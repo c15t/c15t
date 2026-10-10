@@ -10,6 +10,8 @@ const frameworks = [
 	'sveltekit',
 	'solid',
 	'astro',
+	'astro-static',
+	'html',
 ] as const;
 
 /** Framework targets supported by the v3 integration boilerplate command. */
@@ -37,9 +39,33 @@ export interface BoilerplateOptions {
 	scripts: string[];
 }
 
-/** Files are relative to the output directory; instructions use {{output}}. */
+/**
+ * How a host applies a generated file when the project already has one.
+ * Files without an entry replace the existing file, which hosts only do
+ * when the user allows it.
+ *
+ * - `env`: merge `KEY=value` lines into the existing `.env`.
+ * - `keep`: leave the existing file alone; the file is only for new projects.
+ * - `insert`: add each snippet before the first `before` text (or at the
+ *   start for `''`), unless the file already contains `marker`. A snippet
+ *   with its own `marker` is skipped on its own when the file has it.
+ */
+export type FileMerge =
+	| { type: 'env' }
+	| { type: 'keep' }
+	| {
+			type: 'insert';
+			marker?: string;
+			inserts: { before: string; content: string; marker?: string }[];
+	  };
+
+/**
+ * Files are relative to the project root and hold the full contents for a
+ * project without them. `merge` says how to apply a file to an existing one.
+ */
 export interface BoilerplateTemplate {
 	files: Record<string, string>;
+	merge: Record<string, FileMerge>;
 	dependencies: string[];
 	instructions: string[];
 }

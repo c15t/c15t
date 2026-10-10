@@ -8,7 +8,7 @@ group: frameworks
 
 | Import | What it gives you |
 | --- | --- |
-| `@c15t/browser` | `init`, `createConsentClient` and `mountConsentUI`, with the stock banner, dialog and trigger. Supports hosted, offline, manifest and custom modes. |
+| `@c15t/browser` | `init`, `createConsentClient` and `mountConsentUI`, with the stock banner, dialog and trigger. `mode` is required: a factory from `manifest()`, `hosted()`, `offline()` or `custom()`. |
 | `@c15t/browser/hosted` | The stock UI and client for hosted mode only. Requires a backend URL or a hosted transport factory. |
 | `@c15t/browser/offline` | The stock UI and client for offline mode only, with bundled policy rules and presets. |
 | `@c15t/browser/headless` | The same client with no UI and no CSS. `mountUI()` throws. |
@@ -29,7 +29,7 @@ The script-tag files `c15t.js`, `c15t.offline.js` and `c15t.iab.js` each carry
 their complete stylesheet in one file. The default `c15t.js` uses the hosted
 client and requires a backend URL or hosted factory. `c15t.offline.js` uses
 the offline client. For manifest or custom mode with the stock UI, use the
-ES module root `@c15t/browser`, which continues to support every mode.
+ES module root `@c15t/browser`, which takes any mode factory.
 
 `@c15t/browser` is not part of the `c15t` package. Use one entry per page.
 Each creates its own client, and two clients on one page would each run the
@@ -60,7 +60,10 @@ blockers, callbacks and persistence. Their `init()` and
 
 Use `@c15t/browser` for manifest or custom mode, or when an application
 chooses its mode at runtime. Use `@c15t/browser/iab` for IAB TCF. The general
-entry continues to support every mode.
+entry imports no transport itself, so a bundle keeps only the factory it
+imports. It takes `mode` as a factory only: `backendURL`, `manifest`,
+`manifestURL`, `policyRules` and mode names such as `'hosted'` are options of
+the `/hosted` and `/offline` entries and the script-tag builds.
 
 ## Start the client
 
@@ -75,12 +78,9 @@ module can create it at import time and call `client.start()` later:
 {/* example: fragment */}
 
 ```ts
-import { createConsentClient } from '@c15t/browser';
+import { createConsentClient, manifest } from '@c15t/browser';
 
-export const consent = createConsentClient({
-	backendURL: 'https://your-project.inth.app',
-	scripts,
-});
+export const consent = createConsentClient({ mode: manifest(), scripts });
 ```
 
 `start()` reads stored choices, requests the policy, starts the script loader,

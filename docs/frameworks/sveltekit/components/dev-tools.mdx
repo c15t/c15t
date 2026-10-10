@@ -6,7 +6,7 @@ group: frameworks
 
 ## Add the panel in development
 
-Render `ConsentDevTools` inside `ConsentManagerProvider`, and load it only in
+Render `ConsentDevTools` inside `ConsentRoot`, and load it only in
 development. `dev` from `$app/env` (`$app/environment` on SvelteKit 2) is `true` in `vite dev` and
 `false` in a production build, which then drops the import:
 

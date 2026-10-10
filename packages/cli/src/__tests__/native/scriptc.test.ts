@@ -275,6 +275,7 @@ it.each([
 	'sveltekit',
 	'solid',
 	'astro',
+	'astro-static',
 ])('matches Node generation for %s in both modes', (framework) => {
 	for (const mode of ['hosted', 'offline']) {
 		const args = [
@@ -285,8 +286,6 @@ it.each([
 			framework,
 			'--scripts',
 			' google-tag,microsoft-clarity,google-tag, ',
-			'--output',
-			'src/privacy',
 			...(mode === 'hosted'
 				? ['--backend-url', 'https://consent.example.com/a?b=c']
 				: []),
@@ -318,8 +317,8 @@ it.each(
 		['hosted', '--framework', 'react', '--backend-url', 'not-a-url'],
 		['hosted', '--framework', 'react', '--backend-url', 'ftp://example.com'],
 		['offline', '--framework', 'react', '--scripts', 'unknown'],
-		['offline', '--framework', 'react', '--output', '../outside'],
-		['offline', '--framework', 'react', '--output'],
+		['offline', '--framework', 'react', '--output', 'src'],
+		['offline', '--framework', 'html'],
 	].map((args) => ({ args }))
 )('rejects invalid generation arguments $args', ({ args }) => {
 	const result = spawnSync(binary, ['c15t', 'generate', ...args], {
@@ -519,12 +518,14 @@ it('plans and applies files natively, detects conflicts and installs alpha depen
 		await realpath(app)
 	);
 	expect(await readFile(join(app, 'install-args'), 'utf8')).toContain(
-		'@c15t/react@alpha'
+		'c15t@alpha'
 	);
-	await writeFile(join(app, files[0].path), 'user changes');
+	// `.env` is merged, never refused, so the conflict is in a source file.
+	const edited = files.find((file: { path: string }) => file.path !== '.env');
+	await writeFile(join(app, edited.path), 'user changes');
 	const conflict = invoke(['--apply', '--skip-install']);
 	expect(conflict.status).toBe(1);
-	expect(await readFile(join(app, files[0].path), 'utf8')).toBe('user changes');
+	expect(await readFile(join(app, edited.path), 'utf8')).toBe('user changes');
 });
 
 it('recovers native interrupted applies and preserves identical replacement files', async () => {
@@ -580,9 +581,13 @@ it('recovers native interrupted applies and preserves identical replacement file
 		plan.files.map((file: { path: string }) => unlink(join(app, file.path)))
 	);
 	await interrupt();
-	await unlink(join(app, plan.files[0].path));
-	await unlink(join(stage, '0.tmp'));
-	await writeFile(join(app, plan.files[0].path), 'user file\n');
+	// `.env` is merged, never refused, so the user's file is a source file.
+	const owned = plan.files.findIndex(
+		(file: { path: string }) => file.path !== '.env'
+	);
+	await unlink(join(app, plan.files[owned].path));
+	await unlink(join(stage, `${owned}.tmp`));
+	await writeFile(join(app, plan.files[owned].path), 'user file\n');
 	const foreign = spawnSync(
 		runtimeBinary,
 		['c15t', 'generate', '--resume', '--apply', '--skip-install'],
@@ -591,7 +596,7 @@ it('recovers native interrupted applies and preserves identical replacement file
 	// A journaled target without its temp was never published by c15t.
 	expect(foreign.status).toBe(1);
 	expect(foreign.stderr).toContain('Refusing to overwrite');
-	expect(await readFile(join(app, plan.files[0].path), 'utf8')).toBe(
+	expect(await readFile(join(app, plan.files[owned].path), 'utf8')).toBe(
 		'user file\n'
 	);
 	await expect(readFile(join(stage, 'journal.json'))).rejects.toMatchObject({

@@ -1,19 +1,20 @@
 // #region docs:main title="src/main.ts"
-import { c15tVue } from 'c15t/vue/vue-plugin';
+import { posthog } from '@c15t/integrations/posthog';
+import { c15tVue, manifest } from 'c15t/vue/vue-plugin';
 import { createApp } from 'vue';
 
 import App from './App.vue';
-import { consentManifest } from './c15t-manifest';
-import { scripts } from './scripts';
 
 createApp(App)
 	.use(c15tVue, {
-		backendURL:
-			import.meta.env.VITE_C15T_BACKEND_URL ??
-			'https://benchmarks-inth.inth.app',
-		manifest: 'client',
-		manifestSnapshot: consentManifest,
-		scripts,
+		mode: manifest(),
+		scripts: [
+			posthog({
+				id: 'phc_your_project_key',
+				initOptions: { cookieless_mode: 'never' },
+				loadMode: 'after-consent',
+			}),
+		],
 	})
 	.mount('#app');
 // #endregion docs:main

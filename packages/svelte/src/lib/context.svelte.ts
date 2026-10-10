@@ -530,7 +530,7 @@ export const getConsentContext =
 		);
 		if (!context) {
 			throw new Error(
-				'c15t: no v3 consent context. Wrap your app with <ConsentManagerProvider options={...}> from @c15t/svelte.'
+				'c15t: no v3 consent context. Wrap your app with <ConsentProvider options={...}> from @c15t/svelte.'
 			);
 		}
 		return context;
@@ -553,7 +553,7 @@ export const getSnapshot = function getSnapshot(): ConsentSnapshot {
  * own components. React has no single equivalent; it reads each field
  * through its own hook, such as `useConsent()` or `useActiveUI()`.
  *
- * Must be called inside a component tree wrapped in `<ConsentManagerProvider>`.
+ * Must be called inside a component tree wrapped in `<ConsentProvider>`.
  */
 export const getConsentManager =
 	function getConsentManager(): ConsentManagerState {

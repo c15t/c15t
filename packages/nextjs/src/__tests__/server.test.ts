@@ -9,12 +9,14 @@
 
 import { createConsentKernel } from '@c15t/core';
 import type { KernelConfig } from '@c15t/core';
+import { hosted } from '@c15t/core/modes';
 import { clearManifestCache } from '@c15t/core/server';
 import { writePolicyResolutionWire } from '@c15t/schema/types';
 import type { PolicyRule } from '@c15t/schema/types';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { encodeStoredConsentEnvelopeJson } from '../../../core/src/modules/persistence/writer/encode';
+import { defineConsentConfig } from '../config';
 import { resolveConsent as baseResolveConsent } from '../server';
 import { MANIFEST_FIXTURE } from './manifest-fixture';
 import { policyFixture } from './policy-fixture';
@@ -256,7 +258,10 @@ describe('resolveConsent: fluid-compute safety', () => {
 		);
 		const resolveVisitor = (prepared: KernelConfig) =>
 			baseResolveConsent({
-				backendURL: 'https://consent.example.com',
+				config: defineConsentConfig({
+					backendURL: 'https://consent.example.com',
+					mode: hosted(),
+				}),
 				fetch,
 				request: visitorRequest(visitorCookie(prepared)),
 			});
@@ -295,7 +300,7 @@ describe('resolveConsent: manifest session reports', () => {
 		const state = await resolveConsent({
 			backendURL: 'https://consent.example.com',
 			fetch: fetchSpy,
-			manifest: MANIFEST_FIXTURE,
+			snapshot: MANIFEST_FIXTURE,
 			waitUntil: (task) => {
 				registered.push(task);
 			},
@@ -330,7 +335,7 @@ describe('resolveConsent: manifest session reports', () => {
 		await resolveConsent({
 			backendURL: 'https://consent.example.com',
 			fetch: fetchSpy,
-			manifest: MANIFEST_FIXTURE,
+			snapshot: MANIFEST_FIXTURE,
 		});
 		expect(fetchSpy).not.toHaveBeenCalled();
 	});
@@ -340,8 +345,8 @@ describe('resolveConsent: manifest session reports', () => {
 		await resolveConsent({
 			backendURL: 'https://consent.example.com',
 			fetch: fetchSpy,
-			manifest: MANIFEST_FIXTURE,
 			reportSessions: false,
+			snapshot: MANIFEST_FIXTURE,
 		});
 		expect(fetchSpy).not.toHaveBeenCalled();
 	});

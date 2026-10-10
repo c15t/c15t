@@ -1,3 +1,4 @@
+import { readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 import { baseConfig } from '@c15t/vitest-config/base';
@@ -5,6 +6,19 @@ import vue from '@vitejs/plugin-vue';
 import { defineConfig, mergeConfig } from 'vitest/config';
 
 const assignInOrder = Object.assign;
+
+/**
+ * `@c15t/translations/<lang>` for every language module, ahead of the
+ * package-root alias, which would otherwise swallow them.
+ */
+const translationLanguages = Object.fromEntries(
+	readdirSync(resolve(__dirname, '../translations/src/languages'))
+		.filter((file) => file.endsWith('.ts') && !file.endsWith('.test.ts'))
+		.map((file) => [
+			`@c15t/translations/${file.slice(0, -'.ts'.length)}`,
+			resolve(__dirname, '../translations/src/languages', file),
+		])
+);
 
 export default mergeConfig(
 	baseConfig,
@@ -36,6 +50,21 @@ export default mergeConfig(
 					'#c15t/manifest-snapshot': resolve(
 						__dirname,
 						'./src/__tests__/manifest-snapshot.ts'
+					),
+					'#c15t/server-manifest-snapshot': resolve(
+						__dirname,
+						'./src/__tests__/manifest-snapshot.ts'
+					),
+				},
+				{
+					'@c15t/core/generated': resolve(
+						__dirname,
+						'./src/__tests__/generated.ts'
+					),
+					'@c15t/core/modes': resolve(__dirname, '../core/src/modes.ts'),
+					'@c15t/core/runtime/client-mode': resolve(
+						__dirname,
+						'../core/src/runtime/client-mode.ts'
 					),
 				},
 				{
@@ -88,6 +117,12 @@ export default mergeConfig(
 					'@c15t/core/transports/manifest-cache': resolve(
 						__dirname,
 						'../core/src/transports/manifest-cache.ts'
+					),
+				},
+				{
+					'@c15t/core/transports/manifest-browser': resolve(
+						__dirname,
+						'../core/src/transports/manifest-browser.ts'
 					),
 				},
 				{
@@ -147,6 +182,7 @@ export default mergeConfig(
 						'../translations/src/translations/en.ts'
 					),
 				},
+				translationLanguages,
 				{
 					'@c15t/translations': resolve(
 						__dirname,

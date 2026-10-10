@@ -1,4 +1,3 @@
-import { earlyInitModes } from '@c15t/core';
 import type { ProviderTransportContext } from '@c15t/core';
 import type { ConsentManifest } from '@c15t/schema/types';
 import {
@@ -8,8 +7,8 @@ import {
 } from '@c15t/schema/types';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { createConsentClient } from '../client';
 import { mountGPP } from '../gpp';
+import { createScriptTagConsentClient as createConsentClient } from '../script-tag-client';
 import { manifest, manifestNeedsLocation } from '../transports/manifest';
 import type { ConsentClient } from '../types';
 
@@ -217,7 +216,7 @@ describe('manifest() first paint without a known location', () => {
 			mode: manifest({
 				backendURL: 'https://example.test',
 				fetch: fetchSpy,
-				manifest: inlineManifest,
+				snapshot: inlineManifest,
 			}),
 			overrides,
 		});
@@ -323,56 +322,24 @@ describe('manifest() first paint without a known location', () => {
 		expect(fetchSpy.mock.calls.some(([input]) => isInit(input))).toBe(false);
 	});
 
-	it('asks /init for a language the bundle cannot translate', async () => {
-		const fetchSpy = vi.fn<typeof fetch>(() =>
-			Promise.resolve(
-				new Response(
-					JSON.stringify(
-						resolveInitFromManifest(sameBannerEverywhereManifest, {
-							country: 'DE',
-							language: 'de',
-						})
-					)
-				)
-			)
+	it("answers in the visitor's language without /init, with that language's base copy", async () => {
+		const fetchSpy = vi.fn<typeof fetch>(
+			() =>
+				new Promise<Response>(() => {
+					/* never settles */
+				})
 		);
 		const client = start(sameBannerEverywhereManifest, fetchSpy, {
 			language: 'de',
 		});
-		await client.ready();
 
-		expect(fetchSpy).toHaveBeenCalledOnce();
-		expect(isInit(fetchSpy.mock.calls[0]?.[0])).toBe(true);
-	});
+		const snapshot = await client.ready();
 
-	it('asks /init for a language the manifest only partly translates', async () => {
-		// French copy for the title only: a local answer would fill the rest
-		// with English, where /init has the full French base.
-		const partlyFrench: ConsentManifest = {
-			...sameBannerEverywhereManifest,
-			translations: {
-				customTranslations: {
-					fr: { cookieBanner: { title: 'Nous respectons votre vie privée' } },
-				},
-			} as ConsentManifest['translations'],
-		};
-		const fetchSpy = vi.fn<typeof fetch>(() =>
-			Promise.resolve(
-				new Response(
-					JSON.stringify(
-						resolveInitFromManifest(partlyFrench, {
-							country: 'FR',
-							language: 'fr',
-						})
-					)
-				)
-			)
-		);
-		const client = start(partlyFrench, fetchSpy, { language: 'fr' });
-		await client.ready();
-
-		expect(fetchSpy).toHaveBeenCalledOnce();
-		expect(isInit(fetchSpy.mock.calls[0]?.[0])).toBe(true);
+		// The browser loads German base copy on demand, so a local answer has
+		// the same copy `/init` would send.
+		expect(fetchSpy).not.toHaveBeenCalled();
+		expect(snapshot.activeUI).toBe('banner');
+		expect(snapshot.translations?.language).toBe('de');
 	});
 
 	it('asks /init for an IAB policy', async () => {
@@ -416,7 +383,7 @@ describe('manifest() with GPP and an unknown location', () => {
 		manifest({
 			backendURL: 'https://example.test',
 			fetch: fetchSpy,
-			manifest: sameBannerEverywhereManifest,
+			snapshot: sameBannerEverywhereManifest,
 		});
 
 	afterEach(() => {
@@ -472,18 +439,9 @@ describe('manifest() with GPP and an unknown location', () => {
 		expect(response?.location).toEqual({ countryCode: null, regionCode: null });
 		expect(response?.resolvedOverrides?.country).toBeUndefined();
 	});
-
-	it('tells a provider the first init asks /init when __gpp is installed', () => {
-		const early = earlyInitModes.get(inline(vi.fn<typeof fetch>()));
-		expect(early?.requestsInit({ language: 'en' })).toBe(false);
-
-		window.__gpp = () => undefined;
-
-		expect(early?.requestsInit({ language: 'en' })).toBe(true);
-	});
 });
 
-describe('manifest() early init for a provider', () => {
+describe('manifest() transports', () => {
 	const context = {} as ProviderTransportContext;
 	const options = (
 		inlineManifest: ConsentManifest,
@@ -491,30 +449,7 @@ describe('manifest() early init for a provider', () => {
 	) => ({
 		backendURL: 'https://example.test',
 		fetch: fetchSpy,
-		manifest: inlineManifest,
-	});
-
-	it('says the first init asks the backend only when the bundle cannot answer', () => {
-		const fetchSpy = vi.fn<typeof fetch>();
-		const geo = earlyInitModes.get(
-			manifest(options(bannerSomewhereManifest, fetchSpy))
-		);
-		const same = earlyInitModes.get(
-			manifest(options(sameBannerEverywhereManifest, fetchSpy))
-		);
-		const runtime = earlyInitModes.get(
-			manifest({ fetch: fetchSpy, manifestURL: 'https://x.test/manifest' })
-		);
-
-		expect(geo?.requestsInit({ language: 'en' })).toBe(true);
-		expect(
-			geo?.requestsInit({ country: 'US', language: 'en', region: 'NY' })
-		).toBe(false);
-		expect(same?.requestsInit({ language: 'en' })).toBe(false);
-		expect(same?.requestsInit({ language: 'de' })).toBe(true);
-		// A fetched manifest cannot tell before its request.
-		expect(runtime?.requestsInit({ language: 'en' })).toBe(false);
-		expect(fetchSpy).not.toHaveBeenCalled();
+		snapshot: inlineManifest,
 	});
 
 	it('starts the /init request within the init() call', () => {
@@ -536,41 +471,6 @@ describe('manifest() early init for a provider', () => {
 		const mode = manifest(options(bannerSomewhereManifest, vi.fn()));
 		expect(mode(context)).not.toBe(mode(context));
 	});
-
-	it('recognizes a mode built again with the same settings', () => {
-		const fetchSpy = vi.fn<typeof fetch>();
-		const first = earlyInitModes.get(
-			manifest(options(bannerSomewhereManifest, fetchSpy))
-		);
-		const again = earlyInitModes.get(
-			manifest(options(bannerSomewhereManifest, fetchSpy))
-		);
-		const other = earlyInitModes.get(
-			manifest(options(sameBannerEverywhereManifest, fetchSpy))
-		);
-		expect(first && again && first.sameAs(again)).toBe(true);
-		expect(first && other && first.sameAs(other)).toBe(false);
-	});
-
-	it('recognizes an equal manifest built again during render', () => {
-		const fetchSpy = vi.fn<typeof fetch>();
-		const first = earlyInitModes.get(
-			manifest(options(structuredClone(bannerSomewhereManifest), fetchSpy))
-		);
-		const again = earlyInitModes.get(
-			manifest(options(structuredClone(bannerSomewhereManifest), fetchSpy))
-		);
-		const edited = earlyInitModes.get(
-			manifest(
-				options(
-					{ ...structuredClone(bannerSomewhereManifest), appName: 'other' },
-					fetchSpy
-				)
-			)
-		);
-		expect(first && again && first.sameAs(again)).toBe(true);
-		expect(first && edited && first.sameAs(edited)).toBe(false);
-	});
 });
 
 describe('manifest()', () => {
@@ -585,7 +485,7 @@ describe('manifest()', () => {
 			mode: manifest({
 				backendURL: 'https://example.test',
 				fetch: fetchSpy,
-				manifest: everywhereManifest,
+				snapshot: everywhereManifest,
 			}),
 		});
 		clients.push(client);
@@ -610,7 +510,7 @@ describe('manifest()', () => {
 			mode: manifest({
 				backendURL: 'https://example.test',
 				fetch: fetchSpy,
-				manifest: {
+				snapshot: {
 					...geoManifest,
 					policyPacks: [
 						createConsentManifestPolicyPack(
@@ -630,6 +530,29 @@ describe('manifest()', () => {
 		expect(() => manifest({})).toThrow(/manifest/u);
 	});
 
+	it("reads the backend's /manifest when the build had no snapshot", async () => {
+		const fetchSpy = vi.fn<typeof fetch>((input) =>
+			Promise.resolve(
+				String(input) === 'https://example.test/api/manifest'
+					? new Response(JSON.stringify(everywhereManifest))
+					: new Response(JSON.stringify({ subjectId: 'sub_browser1' }))
+			)
+		);
+		const client = createConsentClient({
+			mode: manifest({
+				backendURL: 'https://example.test/api/',
+				fetch: fetchSpy,
+				snapshot: undefined,
+			}),
+		});
+		clients.push(client);
+		client.start();
+		await client.ready();
+		expect(fetchSpy.mock.calls.map(([input]) => pathOf(input))).toEqual([
+			'https://example.test/api/manifest',
+		]);
+	});
+
 	it.each([
 		'https://cdn.example.test/consent.json',
 		'/consent.json',
@@ -647,7 +570,7 @@ describe('manifest()', () => {
 	it.each([everywhereManifest, geoManifest])(
 		'requires a backend for an inline-only manifest',
 		(inlineManifest) => {
-			expect(() => manifest({ manifest: inlineManifest })).toThrow(
+			expect(() => manifest({ snapshot: inlineManifest })).toThrow(
 				/backendURL/u
 			);
 		}
@@ -703,7 +626,7 @@ describe('manifest()', () => {
 			mode: manifest({
 				backendURL: '',
 				fetch: fetchSpy,
-				manifest: everywhereManifest,
+				snapshot: everywhereManifest,
 			}),
 		});
 		clients.push(client);
@@ -724,7 +647,7 @@ describe('manifest()', () => {
 				mode: manifest({
 					backendURL: 'https://x.c15t.dev',
 					fetch: fetchSpy,
-					manifest: everywhereManifest,
+					snapshot: everywhereManifest,
 				}),
 			},
 			{ pkg: 'test' }
@@ -749,7 +672,7 @@ describe('manifest()', () => {
 				mode: manifest({
 					backendURL: 'https://x.c15t.dev',
 					fetch: fetchSpy,
-					manifest: geoManifest,
+					snapshot: geoManifest,
 				}),
 			},
 			{ pkg: 'test' }
@@ -771,7 +694,7 @@ describe('manifest()', () => {
 				mode: manifest({
 					backendURL: 'https://x.c15t.dev',
 					fetch: fetchSpy,
-					manifest: geoManifest,
+					snapshot: geoManifest,
 				}),
 				overrides: { country: 'FR' },
 			},

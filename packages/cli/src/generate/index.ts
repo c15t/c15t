@@ -1,7 +1,9 @@
 import { generateAstroBoilerplate } from './astro.ts';
 import { readBackendURL } from './backend-url.ts';
 import { getInstallSpecifier } from './dependencies.ts';
+import { generateHtmlBoilerplate } from './html.ts';
 import { generateJavaScriptBoilerplate } from './javascript.ts';
+import { generateNextBoilerplate } from './next.ts';
 import { generateReactBoilerplate } from './react.ts';
 import { SCRIPT_SNIPPETS } from './scripts.ts';
 import { generateSolidBoilerplate } from './solid.ts';
@@ -12,6 +14,7 @@ import type {
 	BoilerplateFramework,
 	BoilerplateOptions,
 	BoilerplateTemplate,
+	FileMerge,
 } from './types.ts';
 import { generateVueBoilerplate } from './vue.ts';
 
@@ -19,8 +22,10 @@ export type {
 	BoilerplateFramework,
 	BoilerplateOptions,
 	BoilerplateTemplate,
+	FileMerge,
 } from './types.ts';
 export { getInstallSpecifier, packageTag } from './dependencies.ts';
+export { mergeFile } from './merge.ts';
 export { boilerplateFrameworks } from './types.ts';
 
 /** Explicit inputs for standalone v3 generation in another CLI. */
@@ -29,13 +34,17 @@ export interface GenerateOptions {
 	mode: 'offline' | 'hosted';
 	backendURL?: string;
 	scripts?: string[];
-	/** Relative destination inside the application. Defaults to src/consent. */
-	output?: string;
 }
 
 /** A filesystem-free plan. The host owns validation against existing files and writes. */
 export interface GenerationPlan {
+	/** Paths relative to the project root, with contents for a project without them. */
 	files: Record<string, string>;
+	/**
+	 * How to apply a file the project already has, with {@link mergeFile}.
+	 * Other existing files are replaced only when the user allows it.
+	 */
+	merge: Record<string, FileMerge>;
 	/** Registry installation arguments, with c15t packages on the CLI's release line. */
 	dependencies: string[];
 	instructions: string[];
@@ -45,13 +54,14 @@ const validateOptions = (options: BoilerplateOptions): BoilerplateOptions => {
 	if (options.mode !== 'hosted' && options.mode !== 'offline') {
 		throw new Error('Choose hosted or offline mode.');
 	}
+	let { backendURL } = options;
 	if (options.mode === 'hosted') {
 		if (!options.backendURL) {
 			throw new Error(
 				'Hosted generation requires --backend-url or a selected project with a backend URL.'
 			);
 		}
-		readBackendURL(options.backendURL);
+		backendURL = readBackendURL(options.backendURL);
 	} else if (options.backendURL) {
 		throw new Error('A backend URL requires hosted mode.');
 	}
@@ -64,87 +74,85 @@ const validateOptions = (options: BoilerplateOptions): BoilerplateOptions => {
 			scripts.push(script);
 		}
 	}
-	return { ...options, scripts };
+	return { ...options, backendURL, scripts };
+};
+
+const generators: Record<
+	BoilerplateFramework,
+	(options: BoilerplateOptions) => BoilerplateTemplate
+> = {
+	astro: generateAstroBoilerplate,
+	'astro-static': generateAstroBoilerplate,
+	html: generateHtmlBoilerplate,
+	javascript: generateJavaScriptBoilerplate,
+	'next-app': generateNextBoilerplate,
+	'next-pages': generateNextBoilerplate,
+	nuxt: generateVueBoilerplate,
+	react: generateReactBoilerplate,
+	solid: generateSolidBoilerplate,
+	svelte: generateSvelteBoilerplate,
+	sveltekit: generateSvelteBoilerplate,
+	'tanstack-start': generateTanStackStartBoilerplate,
+	vue: generateVueBoilerplate,
 };
 
 /**
- * Generate v3 integration files without filesystem, terminal, or network access.
+ * Generate a framework's quickstart files without filesystem, terminal, or
+ * network access. Hosted mode writes the backend URL to `.env` under the
+ * framework's public env var; offline mode resolves the policy in the
+ * browser and writes no `.env`.
  * @param options Explicit framework, storage mode, backend URL, and integrations.
- * @returns Relative file contents, bare dependency names, and wiring instructions.
+ * @returns Files relative to the project root, how to merge them into
+ * existing files, bare dependency names, and wiring instructions.
  * @throws {Error} When a framework, mode, backend URL, or integration is invalid.
  * @example
  * const template = generateBoilerplateTemplate({
  *   framework: 'react', mode: 'hosted',
- *   backendURL: 'https://consent.example.com', scripts: ['google-tag'],
+ *   backendURL: 'https://your-project.inth.app', scripts: ['posthog'],
  * });
+ * template.files['src/consent.tsx'];
  */
 export const generateBoilerplateTemplate = (
 	options: BoilerplateOptions
 ): BoilerplateTemplate => {
 	const validatedOptions = validateOptions(options);
-
-	switch (options.framework) {
-		case 'next-app':
-		case 'next-pages':
-		case 'react':
-			return generateReactBoilerplate(validatedOptions);
-		case 'javascript':
-			return generateJavaScriptBoilerplate(validatedOptions);
-		case 'vue':
-		case 'nuxt':
-			return generateVueBoilerplate(validatedOptions);
-		case 'svelte':
-		case 'sveltekit':
-			return generateSvelteBoilerplate(validatedOptions);
-		case 'astro':
-			return generateAstroBoilerplate(validatedOptions);
-		case 'solid':
-			return generateSolidBoilerplate(validatedOptions);
-		case 'tanstack-start':
-			return generateTanStackStartBoilerplate(validatedOptions);
-		default:
-			throw new Error('Unknown boilerplate framework.');
+	if (!Object.hasOwn(generators, options.framework)) {
+		throw new Error('Unknown boilerplate framework.');
 	}
+	const template = generators[options.framework](validatedOptions);
+	const merge: Record<string, FileMerge> = { ...template.merge };
+	if (template.files['.env'] !== undefined) {
+		merge['.env'] = { type: 'env' };
+	}
+	return { ...template, merge };
 };
 
 /**
  * Create a standalone integration plan. Installation arguments pin c15t
  * packages to the release line of the CLI that published this source.
  * @param options Explicit framework and consent configuration.
- * @returns Files relative to the app, including a README with wiring instructions.
- * @throws {Error} When inputs are invalid or the output directory escapes the application.
+ * @returns Files relative to the project root, merge rules for files the
+ * project already has, dependencies, and wiring instructions.
+ * @throws {Error} When inputs are invalid.
  */
 export const generate = (options: GenerateOptions): GenerationPlan => {
-	const output = options.output ?? 'src/consent';
-	if (
-		!output ||
-		output.startsWith('/') ||
-		output.includes('\\') ||
-		output.includes(':') ||
-		output.split('/').includes('..')
-	) {
-		throw new Error(
-			'Output must be a relative directory inside the application.'
-		);
-	}
 	const template = generateBoilerplateTemplate({
 		backendURL: options.backendURL,
 		framework: options.framework,
 		mode: options.mode,
 		scripts: options.scripts ?? [],
 	});
-	const files: Record<string, string> = {};
-	for (const name of Object.keys(template.files)) {
-		files[`${output}/${name}`] = template.files[name] ?? '';
-	}
 	const dependencies = template.dependencies.map(getInstallSpecifier);
-	const instructions = template.instructions.map((instruction) =>
-		instruction.replaceAll('{{output}}', output)
-	);
-	instructions.push(`Install dependencies: ${dependencies.join(' ')}.`);
-	files[`${output}/README.md`] =
-		`# c15t ${options.framework} integration\n\n${instructions.join('\n\n')}\n`;
-	return { dependencies, files, instructions };
+	const instructions = [...template.instructions];
+	if (dependencies.length) {
+		instructions.push(`Install dependencies: ${dependencies.join(' ')}.`);
+	}
+	return {
+		dependencies,
+		files: template.files,
+		instructions,
+		merge: template.merge,
+	};
 };
 
 const readFramework = (framework: string): BoilerplateFramework => {
@@ -154,13 +162,7 @@ const readFramework = (framework: string): BoilerplateFramework => {
 	return framework;
 };
 
-const generationFlags = [
-	'--mode',
-	'--framework',
-	'--backend-url',
-	'--scripts',
-	'--output',
-];
+const generationFlags = ['--mode', '--framework', '--backend-url', '--scripts'];
 
 /** One value flag, read from `--flag value` or `--flag=value`. */
 interface GenerationFlag {
@@ -178,6 +180,11 @@ const readGenerationFlag = (
 	const argument = args[index] ?? '';
 	const separator = argument.indexOf('=');
 	const flag = separator < 0 ? argument : argument.slice(0, separator);
+	if (flag === '--output') {
+		throw new Error(
+			'--output was removed. Generation writes the quickstart files at their framework paths.'
+		);
+	}
 	if (!generationFlags.includes(flag)) {
 		throw new Error(`Unsupported generation flag: ${flag}`);
 	}
@@ -210,12 +217,12 @@ const readMode = (currentMode: string, inputMode: string): string => {
  * Parse standalone generation arguments with defaults supplied by a host CLI.
  * @param args Arguments after `generate`. Explicit arguments override host
  * defaults. Value flags accept `--flag value` and `--flag=value`.
- * @param defaults Framework, mode, backend URL, integrations, and output from the host.
- * @returns Explicit generation options. Backend and output validation runs during generation.
+ * @param defaults Framework, mode, backend URL, and integrations from the host.
+ * @returns Explicit generation options. Backend validation runs during generation.
  * @throws {Error} When arguments are missing, conflicting, or unsupported.
  * @example
  * const options = parseGenerateOptions(['hosted', '--framework', 'react',
- *   '--backend-url', 'https://consent.example.com']);
+ *   '--backend-url', 'https://your-project.inth.app']);
  */
 export const parseGenerateOptions = (
 	args: string[],
@@ -224,7 +231,6 @@ export const parseGenerateOptions = (
 	let mode = '';
 	let framework = '';
 	let backendURL: string | undefined;
-	let output: string | undefined;
 	let scripts = defaults.scripts ?? [];
 	const seenFlags: string[] = [];
 	for (let index = 0; index < args.length; index += 1) {
@@ -245,9 +251,6 @@ export const parseGenerateOptions = (
 			case '--backend-url':
 				backendURL = value;
 				break;
-			case '--output':
-				output = value;
-				break;
 			case '--scripts':
 				scripts = value
 					.split(',')
@@ -267,7 +270,6 @@ export const parseGenerateOptions = (
 			backendURL ?? (mode === 'hosted' ? defaults.backendURL : undefined),
 		framework: readFramework(framework || defaults.framework || ''),
 		mode,
-		output: output ?? defaults.output,
 		scripts,
 	};
 };

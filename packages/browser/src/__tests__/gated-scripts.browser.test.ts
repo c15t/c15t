@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { createConsentClient } from '../client';
 import { activateGatedScripts } from '../gated-scripts';
+import { createScriptTagConsentClient as createConsentClient } from '../script-tag-client';
 
 const frames: HTMLIFrameElement[] = [];
 const scriptURLs: string[] = [];

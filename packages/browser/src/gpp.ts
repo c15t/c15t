@@ -5,10 +5,12 @@
  *
  * @example
  * ```ts
- * import { init } from '@c15t/browser';
+ * import { hosted, init } from '@c15t/browser';
  * import { mountGPP } from '@c15t/browser/gpp';
  *
- * const client = init({ backendURL: 'https://your-instance.c15t.dev' });
+ * const client = init({
+ *   mode: hosted({ backendURL: 'https://your-instance.c15t.dev' }),
+ * });
  * const gpp = mountGPP(client, { usFallback: 'none' });
  * ```
  */

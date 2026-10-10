@@ -59,8 +59,8 @@
 	"type": "module",
 	"sideEffects": [
 		"**/*.css",
-		"shims/vue.*",
-		"shims/vue/**"
+		"**/*.vue",
+		"shims/vue/**/*.vue.js"
 	],
 	"main": "./shims/index.js",
 	"types": "./shims/index.d.ts",
@@ -79,6 +79,11 @@
 			"types": "./shims/experiment.d.ts",
 			"import": "./shims/experiment.js",
 			"default": "./shims/experiment.js"
+		},
+		"./modes": {
+			"types": "./shims/modes.d.ts",
+			"import": "./shims/modes.js",
+			"default": "./shims/modes.js"
 		},
 		"./surface-actions": {
 			"types": "./shims/surface-actions.d.ts",
@@ -99,6 +104,16 @@
 			"types": "./shims/transports/manifest.d.ts",
 			"import": "./shims/transports/manifest.js",
 			"default": "./shims/transports/manifest.js"
+		},
+		"./transports/manifest-browser": {
+			"types": "./shims/transports/manifest-browser.d.ts",
+			"import": "./shims/transports/manifest-browser.js",
+			"default": "./shims/transports/manifest-browser.js"
+		},
+		"./transports/manifest-location": {
+			"types": "./shims/transports/manifest-location.d.ts",
+			"import": "./shims/transports/manifest-location.js",
+			"default": "./shims/transports/manifest-location.js"
 		},
 		"./transports/manifest-cache": {
 			"types": "./shims/transports/manifest-cache.d.ts",
@@ -165,6 +180,11 @@
 			"import": "./shims/runtime.js",
 			"default": "./shims/runtime.js"
 		},
+		"./runtime/client-mode": {
+			"types": "./shims/runtime/client-mode.d.ts",
+			"import": "./shims/runtime/client-mode.js",
+			"default": "./shims/runtime/client-mode.js"
+		},
 		"./runtime/controls": {
 			"types": "./shims/runtime/controls.d.ts",
 			"import": "./shims/runtime/controls.js",
@@ -190,10 +210,20 @@
 			"import": "./shims/build.js",
 			"default": "./shims/build.js"
 		},
+		"./generated": {
+			"types": "./shims/generated.d.ts",
+			"import": "./shims/generated.js",
+			"default": "./shims/generated.js"
+		},
 		"./react": {
 			"types": "./shims/react.d.ts",
 			"import": "./shims/react.js",
 			"default": "./shims/react.js"
+		},
+		"./react/modes": {
+			"types": "./shims/react/modes.d.ts",
+			"import": "./shims/react/modes.js",
+			"default": "./shims/react/modes.js"
 		},
 		"./react/provider": {
 			"types": "./shims/react/provider.d.ts",
@@ -209,6 +239,11 @@
 			"types": "./shims/react/draft.d.ts",
 			"import": "./shims/react/draft.js",
 			"default": "./shims/react/draft.js"
+		},
+		"./react/theme": {
+			"types": "./shims/react/theme.d.ts",
+			"import": "./shims/react/theme.js",
+			"default": "./shims/react/theme.js"
 		},
 		"./react/module-hooks": {
 			"types": "./shims/react/module-hooks.d.ts",
@@ -483,16 +518,6 @@
 			"import": "./shims/vue/devtools.js",
 			"default": "./shims/vue/devtools.js"
 		},
-		"./vue/consent-root": {
-			"types": "./shims/vue/consent-root.d.ts",
-			"import": "./shims/vue/consent-root.js",
-			"default": "./shims/vue/consent-root.js"
-		},
-		"./vue/consent-widget": {
-			"types": "./shims/vue/preferences.d.ts",
-			"import": "./shims/vue/preferences.js",
-			"default": "./shims/vue/preferences.js"
-		},
 		"./vue/runtime/*": "./shims/vue/runtime/*",
 		"./vue/composables/*": "./shims/vue/composables/*",
 		"./vue/runtime/components/consent-banner.vue": {
@@ -535,10 +560,10 @@
 			"import": "./shims/vue/runtime/components/consent-branding-icon.vue.js",
 			"default": "./shims/vue/runtime/components/consent-branding-icon.vue.js"
 		},
-		"./vue/runtime/components/consent-preferences-link.vue": {
-			"types": "./shims/vue/runtime/components/consent-preferences-link.vue.d.ts",
-			"import": "./shims/vue/runtime/components/consent-preferences-link.vue.js",
-			"default": "./shims/vue/runtime/components/consent-preferences-link.vue.js"
+		"./vue/runtime/components/consent-dialog-link.vue": {
+			"types": "./shims/vue/runtime/components/panel-link.vue.d.ts",
+			"import": "./shims/vue/runtime/components/panel-link.vue.js",
+			"default": "./shims/vue/runtime/components/panel-link.vue.js"
 		},
 		"./vue/runtime/components/consent-button.vue": {
 			"types": "./shims/vue/runtime/components/consent-button.vue.d.ts",
@@ -574,11 +599,6 @@
 			"types": "./shims/vue/runtime/components/consent-gate.vue.d.ts",
 			"import": "./shims/vue/runtime/components/consent-gate.vue.js",
 			"default": "./shims/vue/runtime/components/consent-gate.vue.js"
-		},
-		"./vue/runtime/components/consent-frame.vue": {
-			"types": "./shims/vue/runtime/components/consent-frame.vue.d.ts",
-			"import": "./shims/vue/runtime/components/consent-frame.vue.js",
-			"default": "./shims/vue/runtime/components/consent-frame.vue.js"
 		},
 		"./vue/runtime/components/consent-legal-links.vue": {
 			"types": "./shims/vue/runtime/components/consent-legal-links.vue.d.ts",
@@ -635,15 +655,10 @@
 			"import": "./shims/astro/ui/vue.js",
 			"default": "./shims/astro/ui/vue.js"
 		},
-		"./astro/api/init": {
-			"types": "./shims/astro/api/init.d.ts",
-			"import": "./shims/astro/api/init.js",
-			"default": "./shims/astro/api/init.js"
-		},
-		"./astro/api/manifest": {
-			"types": "./shims/astro/api/manifest.d.ts",
-			"import": "./shims/astro/api/manifest.js",
-			"default": "./shims/astro/api/manifest.js"
+		"./astro/components": {
+			"types": "./shims/astro/components.d.ts",
+			"import": "./shims/astro/components.js",
+			"default": "./shims/astro/components.js"
 		},
 		"./astro/styles.css": "./dist/astro/styles.css",
 		"./astro/iab/styles.css": "./dist/astro/iab/styles.css",
@@ -664,10 +679,10 @@
 			"import": "./shims/astro/components/prompt.astro.js",
 			"default": "./shims/astro/components/prompt.astro.js"
 		},
-		"./astro/components/consent-dialog-trigger.astro": {
-			"types": "./shims/astro/components/panel-trigger.astro.d.ts",
-			"import": "./shims/astro/components/panel-trigger.astro.js",
-			"default": "./shims/astro/components/panel-trigger.astro.js"
+		"./astro/components/consent-dialog-link.astro": {
+			"types": "./shims/astro/components/panel-link.astro.d.ts",
+			"import": "./shims/astro/components/panel-link.astro.js",
+			"default": "./shims/astro/components/panel-link.astro.js"
 		},
 		"./astro/components/consent-dialog.astro": {
 			"types": "./shims/astro/components/panel.astro.d.ts",

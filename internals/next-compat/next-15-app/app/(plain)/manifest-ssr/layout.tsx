@@ -1,20 +1,15 @@
-import {
-	COMPAT_BACKEND_URL,
-	COMPAT_MANIFEST_URL,
-} from '@c15t/next-compat-shared/config';
+import { COMPAT_CONSENT_CONFIG } from '@c15t/next-compat-shared/config';
 import { ConsentShell } from '@c15t/next-compat-shared/consent-shell';
 import { resolveConsent } from '@c15t/nextjs/server';
 import type { ReactNode } from 'react';
 
 /**
- * Server-side init resolved from the same-origin manifest route, so the
- * backend `/init` is never called.
+ * Server-side init resolved from the backend manifest in manifest mode, so
+ * the backend `/init` is never called. The server never fetches the app's
+ * own consent route.
  */
 const ManifestSSRLayout = async ({ children }: { children: ReactNode }) => {
-	const state = await resolveConsent({
-		backendURL: COMPAT_BACKEND_URL,
-		manifestURL: COMPAT_MANIFEST_URL,
-	});
+	const state = await resolveConsent({ config: COMPAT_CONSENT_CONFIG });
 
 	return (
 		<ConsentShell

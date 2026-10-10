@@ -5,9 +5,13 @@
  */
 import { clearManifestCache } from '@c15t/core/server';
 import type { RequestEvent } from '@sveltejs/kit';
-import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
-import { createSvelteKitConsentRouteHandlers } from '../routes';
+import { setGenerated } from '../../__tests__/generated';
+import { c15tHandle } from '../handle';
+import { hosted, manifest as manifestMode } from '../index';
+import { loadConsent } from '../load-consent';
+import { createConsentRoute } from '../routes';
 import { createEvent } from './event';
 import { MANIFEST_FIXTURE } from './manifest-fixture';
 
@@ -41,19 +45,19 @@ beforeEach(() => {
 	clearManifestCache();
 });
 
-describe('createSvelteKitConsentRouteHandlers', () => {
-	test('serves and resolves a build snapshot without an upstream policy request', async () => {
+describe('createConsentRoute', () => {
+	test('serves and resolves a snapshot without an upstream policy request', async () => {
 		const fetch = vi.fn<typeof globalThis.fetch>();
-		const handlers = createSvelteKitConsentRouteHandlers({
+		const { GET } = createConsentRoute({
 			backendURL: BACKEND,
 			fetch,
-			manifest: MANIFEST_FIXTURE,
 			reportSessions: false,
+			snapshot: MANIFEST_FIXTURE,
 		});
-		expect(
-			await (await handlers.manifest(restEvent('manifest'))).json()
-		).toEqual(MANIFEST_FIXTURE);
-		const response = await handlers.init(
+		expect(await (await GET(restEvent('manifest'))).json()).toEqual(
+			MANIFEST_FIXTURE
+		);
+		const response = await GET(
 			restEvent('init', { headers: { 'x-vercel-ip-country': 'DE' } })
 		);
 		expect(await response.json()).toMatchObject({
@@ -62,35 +66,18 @@ describe('createSvelteKitConsentRouteHandlers', () => {
 		expect(fetch).not.toHaveBeenCalled();
 	});
 
-	test('returns GET, init and manifest, and the write methods with proxy on', () => {
+	test('returns GET, and the write methods with proxy on', () => {
+		expect(Object.keys(createConsentRoute()).sort()).toEqual(['GET']);
 		expect(
 			Object.keys(
-				createSvelteKitConsentRouteHandlers({ backendURL: BACKEND })
+				createConsentRoute({ backendURL: BACKEND, proxy: true })
 			).sort()
-		).toEqual(['GET', 'init', 'manifest']);
-		expect(
-			Object.keys(
-				createSvelteKitConsentRouteHandlers({
-					backendURL: BACKEND,
-					proxy: true,
-				})
-			).sort()
-		).toEqual([
-			'DELETE',
-			'GET',
-			'OPTIONS',
-			'PATCH',
-			'POST',
-			'PUT',
-			'init',
-			'manifest',
-			'proxy',
-		]);
+		).toEqual(['DELETE', 'GET', 'OPTIONS', 'PATCH', 'POST', 'PUT']);
 	});
 
 	test('GET dispatches on the rest parameter, or the path of a fixed route', async () => {
 		const fetch = upstream();
-		const { GET } = createSvelteKitConsentRouteHandlers({
+		const { GET } = createConsentRoute({
 			backendURL: BACKEND,
 			fetch,
 			reportSessions: false,
@@ -107,14 +94,15 @@ describe('createSvelteKitConsentRouteHandlers', () => {
 
 	test('fetches a relative backend in-process through event.fetch', async () => {
 		const eventFetch = upstream();
-		const { init } = createSvelteKitConsentRouteHandlers({
+		const { GET } = createConsentRoute({
 			backendURL: '/api/self-host',
 			reportSessions: false,
 		});
-		await init(
+		await GET(
 			createEvent({
 				fetch: eventFetch,
 				headers: { host: 'evil.example' },
+				route: { id: ROUTE_ID, params: { path: 'init' } },
 				url: 'https://shop.example/api/c15t/init',
 			})
 		);
@@ -129,17 +117,14 @@ describe('createSvelteKitConsentRouteHandlers', () => {
 		try {
 			const fetch = upstream();
 			const waitUntil = vi.fn();
-			const { manifest } = createSvelteKitConsentRouteHandlers({
-				backendURL: BACKEND,
-				fetch,
-			});
+			const { GET } = createConsentRoute({ backendURL: BACKEND, fetch });
 			const event = () =>
 				Object.assign(restEvent('manifest'), {
 					platform: { context: { waitUntil } },
 				});
-			await manifest(event());
+			await GET(event());
 			vi.advanceTimersByTime(1500);
-			await manifest(event());
+			await GET(event());
 			expect(waitUntil).toHaveBeenCalledTimes(1);
 			expect(waitUntil.mock.contexts[0]).toEqual({ waitUntil });
 		} finally {
@@ -149,7 +134,7 @@ describe('createSvelteKitConsentRouteHandlers', () => {
 
 	test('the proxy vouches for the hop chain with event.getClientAddress()', async () => {
 		const fetch = upstream();
-		const { POST } = createSvelteKitConsentRouteHandlers({
+		const { POST } = createConsentRoute({
 			backendURL: BACKEND,
 			fetch,
 			proxy: true,
@@ -168,5 +153,139 @@ describe('createSvelteKitConsentRouteHandlers', () => {
 		expect(headers.get('x-forwarded-for')).toBe('203.0.113.7');
 		expect(headers.get('x-forwarded-host')).toBe('shop.example');
 		expect(headers.get('x-c15t-proxy')).toBe('@c15t/svelte');
+	});
+});
+
+describe('createConsentRoute with c15tHandle', () => {
+	afterEach(() => {
+		setGenerated({});
+	});
+
+	/** Runs the handle, then the route, on one request, as SvelteKit does. */
+	const throughHandle = (
+		handle: ReturnType<typeof c15tHandle>,
+		route: (event: RequestEvent) => Response | Promise<Response>,
+		event: RequestEvent
+	): Promise<Response> =>
+		handle({ event, resolve: (resolved) => route(resolved) });
+
+	test("reads the handle's snapshot, so it is passed once", async () => {
+		const fetch = vi.fn<typeof globalThis.fetch>();
+		const own = { ...MANIFEST_FIXTURE, revision: 'from-the-handle' };
+		const { GET } = createConsentRoute({ fetch, reportSessions: false });
+		const response = await throughHandle(
+			c15tHandle({ backendURL: BACKEND, snapshot: own }),
+			GET,
+			restEvent('manifest')
+		);
+		expect(await response.json()).toMatchObject({
+			revision: 'from-the-handle',
+		});
+		expect(fetch).not.toHaveBeenCalled();
+	});
+
+	test("reads the handle's backend URL and a hosted() mode's own", async () => {
+		const fetch = upstream();
+		const { GET } = createConsentRoute({ fetch, reportSessions: false });
+		await throughHandle(
+			c15tHandle({ backendURL: 'https://handle.example' }),
+			GET,
+			restEvent('manifest')
+		);
+		await throughHandle(
+			c15tHandle({ mode: hosted({ backendURL: 'https://hosted.example' }) }),
+			GET,
+			restEvent('manifest')
+		);
+		expect(fetch.mock.calls.map(([url]) => String(url))).toEqual([
+			'https://handle.example/manifest',
+			'https://hosted.example/manifest',
+		]);
+	});
+
+	test("reads a manifest() mode's manifestURL", async () => {
+		const fetch = upstream();
+		const { GET } = createConsentRoute({ fetch, reportSessions: false });
+		await throughHandle(
+			c15tHandle({
+				backendURL: BACKEND,
+				mode: manifestMode({ manifestURL: 'https://cdn.example/manifest' }),
+			}),
+			GET,
+			restEvent('manifest')
+		);
+		expect(String(fetch.mock.calls[0]?.[0])).toBe(
+			'https://cdn.example/manifest'
+		);
+	});
+
+	test('explicit route options win over the handle', async () => {
+		const fetch = upstream();
+		const { GET } = createConsentRoute({
+			backendURL: 'https://route.example',
+			fetch,
+			reportSessions: false,
+		});
+		await throughHandle(
+			c15tHandle({ backendURL: 'https://handle.example' }),
+			GET,
+			restEvent('manifest')
+		);
+		expect(String(fetch.mock.calls[0]?.[0])).toBe(
+			'https://route.example/manifest'
+		);
+	});
+
+	test('the proxy setup forwards saves to the build backend, not to itself', async () => {
+		// c15tHandle({ backendURL: '/api/c15t', routePrefix: '/api/c15t' })
+		// points the browser at the route; the route must forward upstream.
+		setGenerated({ backendURL: BACKEND });
+		const fetch = upstream();
+		const eventFetch = vi.fn<typeof globalThis.fetch>();
+		const handle = c15tHandle({
+			backendURL: '/api/c15t',
+			routePrefix: '/api/c15t',
+		});
+		const { GET, POST } = createConsentRoute({ fetch, proxy: true });
+
+		const page = createEvent({ url: 'https://shop.example/' });
+		const { consent } = await handle({
+			event: page,
+			resolve: async (event) =>
+				Response.json(
+					await loadConsent(event, { fetch, reportSessions: false })
+				),
+		}).then((response) => response.json());
+		expect(consent).toMatchObject({
+			backendURL: '/api/c15t',
+			routePrefix: '/api/c15t',
+		});
+
+		const save = await throughHandle(
+			handle,
+			POST,
+			restEvent('subjects', {
+				body: '{}',
+				clientAddress: '203.0.113.7',
+				fetch: eventFetch,
+				method: 'POST',
+			})
+		);
+		expect(save.status).toBe(201);
+		const init = await throughHandle(
+			handle,
+			GET,
+			restEvent('init', {
+				fetch: eventFetch,
+				headers: { 'x-vercel-ip-country': 'DE' },
+			})
+		);
+		expect(await init.json()).toMatchObject({
+			policyResolution: { policyId: 'eu-opt-in', status: 'matched' },
+		});
+		expect(eventFetch).not.toHaveBeenCalled();
+		expect(fetch.mock.calls.map(([url]) => String(url))).toEqual(
+			expect.arrayContaining([`${BACKEND}/subjects`, `${BACKEND}/manifest`])
+		);
 	});
 });

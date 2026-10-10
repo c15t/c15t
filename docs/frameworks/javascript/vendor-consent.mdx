@@ -28,7 +28,7 @@ Pass `vendors` to the runtime next to `scripts`:
 import { vendors } from './vendor-consent';
 
 export const runtime = createConsentRuntime({
-	mode: hosted({ url: 'https://your-project.inth.app' }),
+	mode: hosted({ backendURL: 'https://your-project.inth.app' }),
 	scripts,
 	vendors,
 });

@@ -2,7 +2,7 @@
 
 import * as atoms from './atoms';
 import { ConsentGate as ConsentGateComponent } from './consent-gate';
-import type { ConsentGateCompoundComponent, ConsentGateProps } from './types';
+import type { ConsentGateCompoundComponent } from './types';
 
 /**
  * Renders its children only while a consent category is allowed
@@ -28,29 +28,8 @@ const ConsentGate = Object.assign(ConsentGateComponent, {
 	Title: atoms.ConsentGateTitle,
 }) as ConsentGateCompoundComponent;
 
-/**
- * @deprecated Renamed to {@link ConsentGate}. `Frame` will be removed in a
- * future major release.
- */
-const Frame: ConsentGateCompoundComponent = ConsentGate;
-
-/** @deprecated Renamed to {@link ConsentGateProps}. */
-type FrameProps = ConsentGateProps;
-
-/** @deprecated Renamed to {@link ConsentGateCompoundComponent}. */
-type FrameCompoundComponent = ConsentGateCompoundComponent;
-
-/** @deprecated Renamed to `ConsentGateRoot`. */
-const FrameRoot: typeof atoms.ConsentGateRoot = atoms.ConsentGateRoot;
-
-/** @deprecated Renamed to `ConsentGateTitle`. */
-const FrameTitle: typeof atoms.ConsentGateTitle = atoms.ConsentGateTitle;
-
-/** @deprecated Renamed to `ConsentGateButton`. */
-const FrameButton: typeof atoms.ConsentGateButton = atoms.ConsentGateButton;
-
 export { ConsentGateButton, ConsentGateRoot, ConsentGateTitle } from './atoms';
 export type { ConsentGateCompoundComponent, ConsentGateProps } from './types';
 export { ConsentGate };
-export type { FrameCompoundComponent, FrameProps };
-export { Frame, FrameButton, FrameRoot, FrameTitle };
+export type { FrameCompoundComponent, FrameProps } from './frame';
+export { Frame, FrameButton, FrameRoot, FrameTitle } from './frame';

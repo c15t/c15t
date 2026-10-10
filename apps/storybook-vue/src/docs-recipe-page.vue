@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import ConsentPreferencesLink from '../../../packages/vue/src/runtime/components/preferences-link.vue';
+import ConsentDialogLink from '../../../packages/vue/src/runtime/components/consent-dialog-link.vue';
 
 import '../../docs-recipe-page.css';
 </script>
@@ -38,7 +38,7 @@ import '../../docs-recipe-page.css';
 		</main>
 		<footer>
 			<span>© Northwind Coffee</span>
-			<ConsentPreferencesLink>Privacy settings</ConsentPreferencesLink>
+			<ConsentDialogLink>Privacy settings</ConsentDialogLink>
 		</footer>
 		<slot />
 	</div>

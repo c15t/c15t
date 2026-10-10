@@ -1,5 +1,5 @@
 /**
- * Route handlers for `/api/c15t/init` and `/api/c15t/manifest`.
+ * Route handlers for `${routePrefix}/init` and `${routePrefix}/manifest`.
  *
  * The routes themselves live in `@c15t/core/server`
  * (`createConsentRouteHandler`), shared with the Next.js, Nuxt, SvelteKit
@@ -96,19 +96,29 @@ export const resolveManifestSourceURL = function resolveManifestSourceURL(
 };
 
 /**
- * Build the `init` and `manifest` route handlers.
+ * Build the `init` and `manifest` route handlers, the ones behind the
+ * injected route.
+ *
+ * With `routePrefix: false` the browser never calls a route you build from
+ * these: a page the server resolved inits again through the backend's
+ * `/init`. Mount them for other clients, or let browser resolution fetch
+ * the manifest from them with
+ * `manifest({ resolve: 'browser', manifestURL: '/api/c15t/manifest' })`.
+ * To have the browser use the route for `/init`, keep the injected route
+ * and change its path with `routePrefix`.
  *
  * @param handlerOptions - Integration options plus test seams.
  * @returns `init`, `manifest`, and a `GET` that dispatches between them by
  * the last path segment.
  * @example
  * ```ts
- * // src/pages/api/c15t/init.ts
+ * // src/pages/api/c15t/[...path].ts, with routePrefix: false and
+ * // mode: manifest({ resolve: 'browser', manifestURL: '/api/c15t/manifest' })
  * import options from 'virtual:c15t/options';
- * import { createConsentRouteHandlers } from '@c15t/astro/api';
+ * import { createConsentRouteHandlers } from 'c15t/astro/server';
  *
  * const handlers = createConsentRouteHandlers({ options });
- * export const GET = ({ locals, request }) => handlers.init(request, { locals });
+ * export const GET = ({ locals, request }) => handlers.GET(request, { locals });
  * ```
  */
 export const createConsentRouteHandlers = function createConsentRouteHandlers(
@@ -118,14 +128,16 @@ export const createConsentRouteHandlers = function createConsentRouteHandlers(
 	const handle = createConsentRouteHandler({
 		adapter: '@c15t/astro',
 		backendURL:
-			(mode.type === 'manifest' ? mode.backendURL : undefined) ??
-			(mode.type === 'hosted' ? mode.url : undefined),
+			(mode.type === 'hosted' ? mode.backendURL : undefined) ??
+			handlerOptions.options.backendURL,
 		fetch: handlerOptions.fetch,
 		fetchGvl: handlerOptions.fetchGvl,
-		manifest: mode.type === 'manifest' ? mode.manifest : undefined,
+		manifest: mode.type === 'manifest' ? mode.snapshot : undefined,
 		manifestURL: mode.type === 'manifest' ? mode.manifestURL : undefined,
 		// Hosted mode counts its visitors through the backend's own `/init`.
-		reportSessions: mode.type === 'manifest' && mode.reportSessions !== false,
+		reportSessions:
+			mode.type === 'manifest' &&
+			handlerOptions.options.reportSessions !== false,
 	});
 	const locale = i18n?.locale;
 
@@ -141,7 +153,7 @@ export const createConsentRouteHandlers = function createConsentRouteHandlers(
 	};
 
 	/**
-	 * `GET /api/c15t/init` — a resolved `InitOutput`, never cached.
+	 * `GET ${routePrefix}/init` — a resolved `InitOutput`, never cached.
 	 *
 	 * @param request - The incoming request.
 	 * @param lifetime - The route's `{ locals }`, so detached work can be
@@ -163,7 +175,7 @@ export const createConsentRouteHandlers = function createConsentRouteHandlers(
 	};
 
 	/**
-	 * `GET /api/c15t/manifest` — the manifest, with its own cache headers.
+	 * `GET ${routePrefix}/manifest` — the manifest, with its own cache headers.
 	 *
 	 * @param request - The incoming request.
 	 * @param lifetime - The route's `{ locals }`, so a background manifest
@@ -179,14 +191,27 @@ export const createConsentRouteHandlers = function createConsentRouteHandlers(
 		});
 	};
 
+	/**
+	 * The catch-all route: `init` or `manifest` by the last path segment,
+	 * and 404 for anything else under the prefix.
+	 *
+	 * @param request - The incoming request.
+	 * @param lifetime - The route's `{ locals }`.
+	 */
 	const GET = function GET(
 		request: Request,
 		lifetime?: RequestLifetime
 	): Promise<Response> {
-		const { pathname } = new URL(request.url);
-		return /\/manifest\/?$/u.test(pathname)
-			? manifest(request, lifetime)
-			: init(request, lifetime);
+		const route = /\/(?<route>init|manifest)\/?$/u.exec(
+			new URL(request.url).pathname
+		)?.groups?.route;
+		if (route === 'manifest') {
+			return manifest(request, lifetime);
+		}
+		if (route === 'init') {
+			return init(request, lifetime);
+		}
+		return Promise.resolve(new Response(null, { status: 404 }));
 	};
 
 	return { GET, init, manifest };

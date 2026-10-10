@@ -26,15 +26,15 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 ### Svelte
 
 - [Callbacks](./frameworks/svelte/callbacks.md): Run your own code in a Svelte app when a visitor records a choice or permissions change, with onChoiceRecorded, onPermissionsChanged and script callbacks.
-- [Clear on revocation](./frameworks/svelte/clear-on-revocation.md): Delete the first-party cookies and Web Storage keys a consent category owns in a Svelte app when that category is denied, with the clearOnRevocation prop on ConsentManagerProvider.
-- [Components](./frameworks/svelte/components.md): Props and behavior of every @c15t/svelte component in a Svelte app, from ConsentManagerProvider and ConsentBanner to ConsentGate and DevTools.
+- [Clear on revocation](./frameworks/svelte/clear-on-revocation.md): Delete the first-party cookies and Web Storage keys a consent category owns in a Svelte app when that category is denied, with the clearOnRevocation prop on ConsentProvider.
+- [Components](./frameworks/svelte/components.md): Props and behavior of every @c15t/svelte component in a Svelte app, from ConsentProvider and ConsentBanner to ConsentGate and DevTools.
 - [ConsentBanner](./frameworks/svelte/components/consent-banner.md): Show the c15t cookie banner in a Svelte app with ConsentBanner, and set its variant, position, button layout, copy, accessibility and styling hooks.
 - [ConsentButton](./frameworks/svelte/components/consent-button.md): Accept, reject, save or open preferences from your own Svelte markup with ConsentButton, and what each action records.
 - [ConsentDialog](./frameworks/svelte/components/consent-dialog.md): Add the c15t preference dialog to a Svelte app with ConsentDialog, including how it loads on first use, its props, keyboard behavior and theme slots.
 - [ConsentDialogLink](./frameworks/svelte/components/consent-dialog-link.md): Let visitors reopen c15t preferences from a Svelte footer with ConsentDialogLink, an unstyled button that renders only when the policy offers preferences.
 - [ConsentDialogTrigger](./frameworks/svelte/components/consent-dialog-trigger.md): Add a floating, draggable privacy button to a Svelte app with ConsentDialogTrigger, and set its corner, size, saved position, accessible name and callbacks.
 - [ConsentGate](./frameworks/svelte/components/consent-gate.md): Keep a YouTube video or map out of a Svelte page until its consent category is allowed with ConsentGate, and replace its placeholder.
-- [ConsentManagerProvider](./frameworks/svelte/components/consent-manager-provider.md): Mount ConsentManagerProvider at the root of a Svelte app to start c15t, with every prop, its default, and which options update after mount.
+- [ConsentProvider](./frameworks/svelte/components/consent-provider.md): Mount ConsentProvider at the root of a Svelte app to start c15t, with every prop, its default, and which options update after mount.
 - [ConsentWidget](./frameworks/svelte/components/consent-widget.md): Put c15t's category switches inline on a Svelte privacy settings page with ConsentWidget, and how its draft, vendors and stale-policy alert behave.
 - [DevTools](./frameworks/svelte/components/dev-tools.md): Inspect consent, scripts, location and events in a Svelte app with ConsentDevTools from @c15t/svelte/devtools, loaded only in development.
 - [IABConsentBanner](./frameworks/svelte/components/iab-consent-banner.md): Show the IAB TCF 2.4 first-layer banner to visitors under an IAB policy in a Svelte app with IABConsentBanner, its props and behavior.
@@ -51,21 +51,21 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 - [Quickstart](./frameworks/svelte/quickstart.md): Add a c15t cookie banner, preference dialog and consent-gated scripts to a Svelte 5 app built with Vite, with your Inth policy bundled at build time.
 - [Scripts](./frameworks/svelte/scripts.md): Load vendor scripts, iframes and network requests in a Svelte app only after the visitor allows their consent category, and stop them when consent is withdrawn.
 - [Translations](./frameworks/svelte/translations.md): Change c15t banner and dialog copy in a Svelte app with component text props or the provider's i18n option, and switch languages at runtime.
-- [Troubleshooting](./frameworks/svelte/troubleshooting.md): Fix a Vite build that cannot fetch the c15t manifest, a missing generated manifest module, a missing banner, a wrong backend URL, ignored theme colors and vendors that load before consent in a Svelte app.
-- [Vendor consent](./frameworks/svelte/vendor-consent.md): Let visitors allow a category such as marketing in a Svelte app and still turn off one vendor in it, with the vendors prop on ConsentManagerProvider and getConsentManager.
+- [Troubleshooting](./frameworks/svelte/troubleshooting.md): Fix a Vite build that cannot fetch the c15t manifest, a missing bundled policy, a missing banner, a wrong backend URL, ignored theme colors and vendors that load before consent in a Svelte app.
+- [Vendor consent](./frameworks/svelte/vendor-consent.md): Let visitors allow a category such as marketing in a Svelte app and still turn off one vendor in it, with the vendors prop on ConsentProvider and getConsentManager.
 
 ### SvelteKit
 
 - [Callbacks](./frameworks/sveltekit/callbacks.md): Run your own code in a SvelteKit app when a visitor records a choice or permissions change, with onChoiceRecorded, onPermissionsChanged and script callbacks.
-- [Clear on revocation](./frameworks/sveltekit/clear-on-revocation.md): Delete the first-party cookies and Web Storage keys a consent category owns in a SvelteKit app when that category is denied, with the clearOnRevocation prop on ConsentManagerProvider.
-- [Components](./frameworks/sveltekit/components.md): Props and behavior of every @c15t/svelte component in a SvelteKit app, from ConsentManagerProvider and ConsentBanner to ConsentGate and DevTools.
+- [Clear on revocation](./frameworks/sveltekit/clear-on-revocation.md): Delete the first-party cookies and Web Storage keys a consent category owns in a SvelteKit app when that category is denied, with the clearOnRevocation prop on ConsentRoot.
+- [Components](./frameworks/sveltekit/components.md): Props and behavior of every @c15t/svelte component in a SvelteKit app, from ConsentRoot and ConsentBanner to ConsentGate and DevTools.
 - [ConsentBanner](./frameworks/sveltekit/components/consent-banner.md): Show the c15t cookie banner in SvelteKit server HTML with ConsentBanner, and set its variant, position, button layout, copy, accessibility and styling hooks.
 - [ConsentButton](./frameworks/sveltekit/components/consent-button.md): Accept, reject, save or open preferences from SvelteKit pages with ConsentButton, and what each action records.
 - [ConsentDialog](./frameworks/sveltekit/components/consent-dialog.md): Add the c15t preference dialog to a SvelteKit root layout with ConsentDialog, including how it loads after hydration, its props, keyboard behavior and theme slots.
 - [ConsentDialogLink](./frameworks/sveltekit/components/consent-dialog-link.md): Let visitors reopen c15t preferences from a SvelteKit layout footer with ConsentDialogLink, rendered in server HTML when the policy offers preferences.
 - [ConsentDialogTrigger](./frameworks/sveltekit/components/consent-dialog-trigger.md): Add a floating, draggable privacy button to a SvelteKit layout with ConsentDialogTrigger, and set its corner, size, saved position, accessible name and callbacks.
 - [ConsentGate](./frameworks/sveltekit/components/consent-gate.md): Keep a YouTube video or map out of SvelteKit server HTML until its consent category is allowed with ConsentGate, and replace its placeholder.
-- [ConsentManagerProvider](./frameworks/sveltekit/components/consent-manager-provider.md): Mount ConsentManagerProvider in a SvelteKit root layout with a server prefetch so the banner is in the first HTML, with every prop and its default.
+- [ConsentRoot](./frameworks/sveltekit/components/consent-root.md): Mount ConsentRoot in a SvelteKit root layout with the state loadConsent returns, so the banner is in the first HTML, with every prop and its default.
 - [ConsentWidget](./frameworks/sveltekit/components/consent-widget.md): Put c15t's category switches inline on a SvelteKit privacy settings route with ConsentWidget, and how its draft, vendors and stale-policy alert behave.
 - [DevTools](./frameworks/sveltekit/components/dev-tools.md): Inspect consent, scripts, location and events in a SvelteKit app with ConsentDevTools, imported only when $app/env reports development.
 - [IABConsentBanner](./frameworks/sveltekit/components/iab-consent-banner.md): Show the IAB TCF 2.4 first-layer banner to visitors under an IAB policy in a SvelteKit app with IABConsentBanner, its props and behavior.
@@ -80,13 +80,13 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 - [Headless](./frameworks/sveltekit/headless.md): Replace the c15t banner or preference dialog with your own markup in a SvelteKit app while the provider keeps policy, storage and script loading.
 - [IAB TCF](./frameworks/sveltekit/iab.md): Turn on the IAB TCF 2.4 banner and preference center in a SvelteKit app with IABConsentBanner, IABConsentDialog and the provider's iab option.
 - [Network blocker](./frameworks/sveltekit/network-blocker.md): Hold browser fetch and XMLHttpRequest calls to tracking domains in a SvelteKit app until their consent category is allowed, with the networkBlocker option.
-- [Quickstart](./frameworks/sveltekit/quickstart.md): Bundle your c15t policy into a SvelteKit server at build time, resolve consent in the root layout load so the banner is in the server HTML, then hydrate the provider with consent-gated scripts and a preferences link.
+- [Quickstart](./frameworks/sveltekit/quickstart.md): Bundle your c15t policy into a SvelteKit server at build time, resolve consent in the root layout load so the banner is in the server HTML, then hydrate ConsentRoot with consent-gated scripts and a preferences link.
 - [Rendering and deployment](./frameworks/sveltekit/rendering.md): Use the recommended build-time manifest for SvelteKit server rendering, choose runtime fetching for policy updates without a rebuild, and handle prerendered pages, static sites and SPA mode.
 - [Scripts](./frameworks/sveltekit/scripts.md): Load vendor scripts, iframes and network requests in a SvelteKit app only after the visitor allows their consent category, and stop them when consent is withdrawn.
-- [Server API](./frameworks/sveltekit/server-api.md): Reference for loadConsent, c15tHandle, createSvelteKitConsentRouteHandlers and resolveConsent from @c15t/svelte/kit and @c15t/svelte/server, with every option and default.
-- [Translations](./frameworks/sveltekit/translations.md): Change c15t banner and dialog copy in a SvelteKit app, where the server prefetch carries the backend's translations for the request's language.
-- [Troubleshooting](./frameworks/sveltekit/troubleshooting.md): Fix a SvelteKit build that cannot fetch the c15t manifest, a missing generated manifest module, a banner missing from server HTML, failed saves through the manifest route, a wrong backend URL and ignored theme colors.
-- [Vendor consent](./frameworks/sveltekit/vendor-consent.md): Let visitors allow a category such as marketing in a SvelteKit app and still turn off one vendor in it, with the vendors prop on ConsentManagerProvider and getConsentManager.
+- [Server API](./frameworks/sveltekit/server-api.md): Reference for c15tHandle, loadConsent, createConsentRoute and resolveConsent from @c15t/svelte/kit and @c15t/svelte/server, with every option and default.
+- [Translations](./frameworks/sveltekit/translations.md): Change c15t banner and dialog copy in a SvelteKit app, where the server-resolved consent carries the translations for the request's language.
+- [Troubleshooting](./frameworks/sveltekit/troubleshooting.md): Fix a SvelteKit build that cannot fetch the c15t manifest, a missing bundled policy, a banner missing from server HTML, failed saves through the consent route, a wrong backend URL and ignored theme colors.
+- [Vendor consent](./frameworks/sveltekit/vendor-consent.md): Let visitors allow a category such as marketing in a SvelteKit app and still turn off one vendor in it, with the vendors prop on ConsentRoot and getConsentManager.
 
 ## Concepts
 
@@ -95,12 +95,13 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 - [Consent state reference](./concepts/consent-state.md): How c15t saves choices, gates IAB vendors, hydrates server records and keeps browser tabs and storage in step.
 - [Data fetching](./concepts/data-fetching.md): Choose the recommended build-time policy snapshot or runtime manifest fetching, backend /init, browser resolution or offline rules, and understand where consent choices are saved.
 - [How consent works](./concepts/how-consent-works.md): What c15t decides on each page load, the difference between a permission and a recorded choice, and what happens when a visitor saves.
+- [Consent modes](./concepts/modes.md): Reference for manifest(), hosted() and offline() in every c15t framework package, where each one resolves the visitor's policy, what it adds to first-load JavaScript, the build-time manifest fetch and its failure policy, and the backend URL variable each framework reads.
 - [Policies](./concepts/policies.md): How policy models, prompts and scope decide what c15t asks visitors, where to change the rules, and why a banner may not appear.
 
 ## Guides
 
 - [Banner experiments](./guides/banner-experiments.md): Run A/B tests on consent banner presentation with any feature-flag provider or built-in weighted assignment, and attribute every impression and choice to its arm.
-- [Troubleshooting](./guides/troubleshooting.md): Fix a missing banner, analytics that load before consent, choices lost on reload, CORS errors, hydration differences and failed static builds in c15t v3.
+- [Troubleshooting](./guides/troubleshooting.md): Fix a missing banner, analytics that load before consent, choices lost on reload, CORS errors, hydration differences, failed manifest downloads, mode errors and failed static builds in c15t v3.
 - [Verify consent](./guides/verify-consent.md): Check in a production build that vendor requests wait for consent, rejection survives a reload, preferences reopen and privacy signals apply.
 
 ## Customization

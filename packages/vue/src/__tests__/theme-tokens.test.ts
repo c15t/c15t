@@ -4,7 +4,7 @@ import { afterEach, beforeAll, describe, expect, test, vi } from 'vitest';
 import { createApp, createSSRApp, defineComponent, h, toValue } from 'vue';
 import type { App } from 'vue';
 
-import { c15tVue, generateTokensCSS } from '../index';
+import { c15tVue, generateTokensCSS } from './test-plugin';
 
 const nuxt = vi.hoisted(() => ({
 	head: [] as unknown[],
@@ -149,7 +149,7 @@ describe('the Vue plugin applies tokens', () => {
 
 	test('leaves styling to the host that owns a borrowed runtime', () => {
 		const runtime = createConsentRuntime({
-			mode: hosted({ url: 'https://consent.example.test' }),
+			mode: hosted({ backendURL: 'https://consent.example.test' }),
 			pkg: '@c15t/vue-test',
 		});
 		const app = createApp(defineComponent({ setup: () => () => h('main') }));

@@ -339,10 +339,10 @@ export const ConsentDemo = ({ backend = 'hosted' }: ConsentDemoProps) => {
 			? {
 					...sharedOptions,
 					mode: hosted({
+						backendURL: isSelfHost ? '/api/self-host' : HOSTED_BACKEND_URL,
 						headers: isSelfHost
 							? { [DEMO_SCENARIO_HEADER]: params.scenarioId }
 							: undefined,
-						url: isSelfHost ? '/api/self-host' : HOSTED_BACKEND_URL,
 					}),
 				}
 			: {

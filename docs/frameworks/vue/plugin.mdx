@@ -13,7 +13,8 @@ Import `c15tVue` from `c15t/vue/vue-plugin` and pass it to `app.use()` in
 
 `c15t/vue` is the Nuxt module, not a Vue plugin. Passing it to `app.use()`
 does nothing useful. The [quickstart](/docs/frameworks/vue/quickstart) covers
-the Vite plugins that generate `./c15t-manifest`, and the `scripts` file.
+`consentManifest()`, the Vite plugin that downloads the policy `manifest()`
+reads.
 
 ## What the plugin does
 
@@ -28,8 +29,9 @@ Then the plugin, in order:
 2. Applies Global Privacy Control when the browser sends it.
 3. Starts the script loader for `scripts`, clear-on-revocation, the network
    blocker and the iframe blocker.
-4. Requests the visitor's policy from your backend's `/init`, or resolves it
-   from the manifest with `manifest: 'client'`.
+4. Resolves the visitor's policy with the `mode` you passed: from the
+   manifest in the browser with `manifest()`, from the backend's `/init` with
+   `hosted()`, or from local rules with `offline()`.
 5. With the `iab` option set, loads the IAB TCF module once a policy uses the
    `iab` model.
 
@@ -40,22 +42,32 @@ Composables called outside this app throw `[c15t] Kernel not found`.
 
 ## Options
 
-Every option is optional. Options that hold functions, such as `scripts` and
-`callbacks`, work here because the plugin runs in the browser.
+`mode` is required unless you pass a `runtime`; every other option is
+optional. Options that hold
+functions, such as `scripts` and `callbacks`, work here because the plugin
+runs in the browser.
 
-### Backend and policy
+### Policy source
 
 | Option | Default | What it does |
 | --- | --- | --- |
-| `backendURL` | `'/api/c15t'` | Your Inth or self-hosted backend. The browser requests `/init` from it and sends consent saves to it. |
-| `manifest` | Unset | `'client'` downloads the public policy manifest and resolves the policy in the browser instead of calling `/init`. See [rendering](/docs/frameworks/vue/rendering#resolve-from-the-manifest-in-the-browser). |
-| `manifestURL` | `/api/c15t/manifest` | Where client mode downloads the manifest. Set it to an absolute URL, such as `https://your-project.inth.app/manifest`. Setting it with `manifest` unset selects client mode. |
-| `manifestSnapshot` | Unset | The build-time manifest object. With `manifest: 'client'`, uses this snapshot instead of fetching `manifestURL`. See the recommended [build-time setup](/docs/frameworks/vue/rendering#bundle-the-manifest-during-builds). |
-| `geoURL` | Unset | Client mode only. An endpoint you run that returns `{ country, region }` for the visitor. |
+| `mode` | Required | Where the visitor's policy comes from: `manifest()`, `hosted()`, `offline()` or `custom()`, all from `c15t/vue/vue-plugin`. See [rendering](/docs/frameworks/vue/rendering). |
 | `consentCategories` | The policy's categories | Limits the categories the dialog and widget show, within the policy's scope. |
 | `vendors` | Unset | Vendors listed under their category with their own switch. See [vendor consent](/docs/frameworks/vue/vendor-consent). |
 | `storageConfig` | `{ storageKey: 'c15t' }` | Cookie and localStorage name, `crossSubdomain`, `defaultDomain` and `defaultExpiryDays`, 365 by default. |
-| `customFetch` | `fetch` | The fetch function for backend requests. |
+
+The backend URL, a custom `fetch` and the save `domain` are options of the
+mode, not the plugin:
+
+| Mode | Options |
+| --- | --- |
+| `manifest()` | `backendURL` and the build snapshot default to what `consentManifest()` downloaded. `source: 'runtime'` fetches the manifest when the app starts; `manifestURL` fetches it from that URL instead of using the snapshot; `snapshot` takes one you supply. `geoURL`, `inputs`, `initFallback`, `headers`, `credentials`, `fetch`, `domain`. |
+| `hosted()` | `backendURL`, by default the one `consentManifest()` read from `VITE_C15T_BACKEND_URL` or `VITE_INTH_PROJECT_URL`. `headers`, `fetch`, `domain`. |
+| `offline()` | `policyRules`. Omitted, c15t's recommended rules. |
+
+`manifest()` and `hosted()` throw when they have no backend URL: add
+`consentManifest()` to `vite.config.ts` and set `VITE_C15T_BACKEND_URL` (or
+`VITE_INTH_PROJECT_URL`), or pass `backendURL`.
 
 ### Scripts and blocking
 
@@ -67,7 +79,7 @@ Every option is optional. Options that hold functions, such as `scripts` and
 | `nonce` | Unset | Content Security Policy nonce for every script the loader creates and for the token style element. See [Content Security Policy](/docs/frameworks/vue/content-security-policy). |
 | `reloadOnConsentRevoked` | `true` | Reloads the page when a save withdraws a granted category or vendor. |
 | `clearOnRevocation` | Unset | Deletes first-party cookies and storage keys for a withdrawn category. See [clear on revocation](/docs/frameworks/vue/clear-on-revocation). |
-| `iab` | Off | Turns IAB TCF on; `{}` is enough. Also takes publisher settings, such as `publisherRestrictions`; fields left out come from `/init`. Unset, `false` or `{ enabled: false }` leaves IAB off, and an `iab` policy with a vendor list throws an `IABUnavailableError`. See [IAB TCF](/docs/frameworks/vue/iab). |
+| `iab` | Off | Turns IAB TCF on; `{}` is enough. Also takes publisher settings, such as `publisherRestrictions`; fields left out come from the policy. Unset, `false` or `{ enabled: false }` leaves IAB off, and an `iab` policy with a vendor list throws an `IABUnavailableError`. See [IAB TCF](/docs/frameworks/vue/iab). |
 
 ### Events and other tools
 
@@ -92,12 +104,12 @@ Every option is optional. Options that hold functions, such as `scripts` and
 
 | Option | What it does |
 | --- | --- |
-| `runtime` | A runtime created elsewhere with `createConsentRuntime()`. The plugin renders it and neither starts nor stops it, and ignores `callbacks`, blockers, `scripts` and `tokens`, which the runtime's owner configures. |
+| `runtime` | A runtime created elsewhere with `createConsentRuntime()`, in place of `mode`. The plugin renders it and neither starts nor stops it, and ignores `callbacks`, blockers, `scripts` and `tokens`, which the runtime's owner configures. |
 | `prefetch`, `initialRecords` | A resolved policy and stored records from a server, used for the first render. Plain Vue has no server helper that produces them. |
 
 ## Verify
 
-Open the app with the Network tab open. A bundled snapshot makes no policy
-request. Runtime client mode requests `manifestURL`; without manifest mode,
-the browser calls the backend's `/init`. In the
-Application panel, a `c15t` cookie appears after you accept or reject.
+Open the app with the Network tab open. `manifest()` with a bundled snapshot
+makes no policy request. `manifest({ source: 'runtime' })` requests
+`${backendURL}/manifest`, and `hosted()` requests the backend's `/init`. In
+the Application panel, a `c15t` cookie appears after you accept or reject.

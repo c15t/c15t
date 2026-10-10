@@ -48,7 +48,7 @@ Install `c15t` for the runtime or the kernel:
 <CommandTabs command="c15t@alpha" mode="install" />
 
 The runtime takes the same kind of options v2 did. `mode` and `backendURL`
-become one transport, such as `hosted({ url })` or `offline({ policyRules })`,
+become one transport, such as `hosted({ backendURL })` or `offline({ policyRules })`,
 exported from `c15t`. `translations` becomes `i18n`, and
 `iframeBlockerConfig` becomes `iframeBlocker`. See the
 [runtime reference](/docs/frameworks/javascript/api/runtime) for every option.
@@ -120,6 +120,28 @@ Dev tools no longer depend on React. Upgrade `@c15t/dev-tools` to
 `@c15t/dev-tools@alpha` with the rest of c15t, then call
 `createDevTools({ kernel })` with your runtime's kernel. See
 [dev tools](/docs/frameworks/javascript/dev-tools).
+
+<include src="../../shared/upgrade-v3/earlier-alpha-intro.mdx" />
+
+### Removed
+
+Modes and build integrations:
+
+<include src="../../shared/upgrade-v3/earlier-alpha-modes.mdx" />
+
+`@c15t/browser`:
+
+| Removed | Use instead |
+| --- | --- |
+| `init({ backendURL })` | `init({ mode: hosted() })`, or `init({ mode: manifest() })` with `consentManifest()` from `c15t/build` |
+| `init({ mode: 'hosted' })`, `'manifest'`, `'offline'` | `init({ mode: hosted() })`, `manifest()`, `offline()`. Names work only in the script-tag builds. |
+| `init({ manifest, manifestURL })` | `init({ mode: manifest({ snapshot, manifestURL }) })` |
+| `init({ policyRules: ['europeOptIn'] })` | `init({ mode: offline({ policyRules: [policyRulePresets.europeOptIn()] }) })` |
+| `manifest({ manifest })` | `manifest({ snapshot })` |
+
+The script-tag builds and the `@c15t/browser/hosted` and
+`@c15t/browser/offline` entries keep `backendURL`, `manifest`, `manifestURL`,
+`policyRules` and mode names.
 
 <include src="../../shared/upgrade-v3/cli.mdx" />
 

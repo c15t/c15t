@@ -54,9 +54,9 @@ Replace `https://your-project.inth.app` with the backend URL from your Inth
 project, including any path prefix, and add the example's origin to the
 project's trusted origins. Server-rendered starters also read the URL from the
 framework's public environment variable; the README names it. Starters that
-download the policy when they build fall back to the
-`https://benchmarks-inth.inth.app` demo project instead, so they build on a
-fresh clone. Replace the
+download the policy when they build commit a `.env` that sets that variable to
+the `https://example-inth.inth.app` demo project, so they build on a fresh
+clone. Set your own URL in `.env.local`, which overrides it. Replace the
 placeholder PostHog key with your own, or remove the script.
 
 `examples/self-host` is a Next.js App Router app with `@c15t/backend` mounted
@@ -84,7 +84,7 @@ Next.js apps.
 The Next.js showcases run in offline mode, so they work without an Inth
 project. Offline mode keeps choices in the browser and records nothing on a
 server. Not recommended for production environments. Each README shows the
-one-line swap to `hosted({ url: 'https://your-project.inth.app' })`. The Nuxt
+one-line swap to `hosted({ backendURL: 'https://your-project.inth.app' })`. The Nuxt
 module has no offline mode, so the Nuxt showcase talks to a demo Inth project
 and reads `NUXT_PUBLIC_C15T_BACKEND_URL` for your own.
 

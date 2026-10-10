@@ -9,6 +9,7 @@ import { join } from 'node:path';
 import { describe, expect, test } from 'vitest';
 
 import {
+	preloadBrowserResolver,
 	preloadConsentBanner,
 	stopPrefetchingConsentChunks,
 } from '../prefetch';
@@ -34,7 +35,7 @@ const createManifest = (): Record<string, ClientManifestChunk> => ({
 			c15t('vue/dist/runtime/components/manager.vue'),
 			c15t('vue/dist/runtime/components/iab-prompt.vue'),
 			c15t('iab/dist/index.js'),
-			c15t('vue/dist/runtime/client-manifest.js'),
+			c15t('core/dist/transports/manifest-browser.js'),
 			'node_modules/nuxt/dist/app/components/error-404.vue',
 		],
 		imports: ['_vue.js', '_shared-kernel.js'],
@@ -68,10 +69,10 @@ const createManifest = (): Record<string, ClientManifestChunk> => ({
 		prefetch: true,
 		src: c15t('iab/dist/index.js'),
 	},
-	[c15t('vue/dist/runtime/client-manifest.js')]: {
+	[c15t('core/dist/transports/manifest-browser.js')]: {
 		isDynamicEntry: true,
 		prefetch: true,
-		src: c15t('vue/dist/runtime/client-manifest.js'),
+		src: c15t('core/dist/transports/manifest-browser.js'),
 	},
 });
 
@@ -148,18 +149,18 @@ describe('stopPrefetchingConsentChunks', () => {
 		}
 	});
 
-	test('keeps the client manifest hint only in client manifest mode', () => {
-		// Server manifest and hosted mode never import the resolver and its
+	test("keeps the browser resolver's hint only for browser resolution", () => {
+		// Server resolution and hosted mode never import the resolver and its
 		// translations at startup; a hint downloaded them on every page.
 		const hosted = createManifest();
 		stopPrefetchingConsentChunks(hosted, '/app', isConsentFile, {
-			clientManifest: false,
+			browserResolve: false,
 		});
 		const client = createManifest();
 		stopPrefetchingConsentChunks(client, '/app', isConsentFile, {
-			clientManifest: true,
+			browserResolve: true,
 		});
-		const key = c15t('vue/dist/runtime/client-manifest.js');
+		const key = c15t('core/dist/transports/manifest-browser.js');
 
 		expect(hosted[key]?.prefetch).toBe(false);
 		expect(client[key]?.prefetch).toBe(true);
@@ -224,5 +225,19 @@ describe('preloadConsentBanner', () => {
 		preloadConsentBanner(manifest, '/app', () => false);
 
 		expect(manifest[entry]?.imports).toEqual(['_vue.js']);
+	});
+});
+
+describe('preloadBrowserResolver', () => {
+	test("lists core's browser resolver among the entry imports", () => {
+		const resolver = c15t('core/dist/transports/manifest-browser.js');
+		const entry = 'node_modules/nuxt/dist/app/entry.js';
+		const manifest: Record<string, ClientManifestChunk> = {
+			[resolver]: { isDynamicEntry: true, src: resolver },
+			[entry]: { dynamicImports: [resolver], isEntry: true, src: entry },
+		};
+		preloadBrowserResolver(manifest, '/app', isConsentFile);
+
+		expect(manifest[entry]?.imports).toEqual([resolver]);
 	});
 });

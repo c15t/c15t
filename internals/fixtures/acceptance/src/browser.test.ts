@@ -4,7 +4,7 @@ import { expect, it } from 'vitest';
 import { openBrowserContext } from './browser';
 
 it('stubs PostHog domains and aborts lookalike hosts', async () => {
-	const browser = await chromium.launch();
+	const browser = await chromium.launch({ headless: true });
 	try {
 		const { page, requests } = await openBrowserContext(
 			browser,

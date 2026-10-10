@@ -2,7 +2,7 @@
 import { createEventDispatcher } from '@c15t/integrations/events';
 import { getConsentClient } from 'c15t/astro/client';
 
-import consentClient from './consent-client';
+import consentClient from './c15t.client';
 
 export const trackSearch = function trackSearch(resultCount: number) {
 	const client = getConsentClient();

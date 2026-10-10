@@ -140,7 +140,7 @@
 		"@c15t/conformance": "workspace:*",
 		"@c15t/typescript-config": "workspace:*",
 		"@c15t/vitest-config": "workspace:*",
-		"@sveltejs/kit": "^2.16.0",
+		"@sveltejs/kit": "^2.63.0",
 		"@sveltejs/package": "^2.3.7",
 		"@sveltejs/vite-plugin-svelte": "^5.0.3",
 		"@testing-library/jest-dom": "^6.0.0",
@@ -154,7 +154,7 @@
 		"vite": "^6.0.0"
 	},
 	"peerDependencies": {
-		"@sveltejs/kit": "^2.0.0 || ^3.0.0",
+		"@sveltejs/kit": "^2.63.0 || ^3.0.0",
 		"svelte": "^5.0.0"
 	},
 	"peerDependenciesMeta": {

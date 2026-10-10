@@ -11,7 +11,7 @@
  *
  *   function App({ children }) {
  *     return (
- *       <ConsentProvider options={{ mode: hosted({ url: '/api/c15t' }) }}>
+ *       <ConsentProvider options={{ mode: hosted({ backendURL: '/api/c15t' }) }}>
  *         {children}
  *       </ConsentProvider>
  *     );
@@ -124,11 +124,15 @@ export type {
 // Values, one group per file; see `index-parts/core.ts` for why.
 // oxlint-disable oxc/no-barrel-file -- The package entry; star exports keep unused groups out of esbuild's first chunk.
 export * from './index-parts/core';
+export * from './index-parts/hosted';
+export * from './index-parts/offline';
+export * from './index-parts/presets';
 export * from './index-parts/consent-dialog';
 export * from './index-parts/consent-banner';
 export * from './index-parts/consent-dialog-link';
 export * from './index-parts/consent-dialog-trigger';
 export * from './index-parts/consent-gate';
+export * from './index-parts/frame';
 export * from './index-parts/draft';
 export * from './index-parts/translations';
 export * from './index-parts/module-hooks';

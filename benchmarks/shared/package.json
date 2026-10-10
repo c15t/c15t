@@ -14,6 +14,7 @@
 		"./selection": "./src/selection.ts",
 		"./utils": "./src/utils.ts",
 		"./policy-fixtures": "./src/policy-fixtures.ts",
+		"./examples-payload": "./src/examples-payload.ts",
 		"./expected-results": "./src/expected-results.ts",
 		"./nuxt-baseline": "./src/nuxt-baseline.ts",
 		"./nuxt-repeat-visitor": "./src/nuxt-repeat-visitor.ts",

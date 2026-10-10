@@ -23,7 +23,7 @@ declare global {
 }
 
 const url = process.env.ZARAZ_TEST_URL ?? 'https://zaraz-lab.c15t.cloud';
-const browser = await chromium.launch();
+const browser = await chromium.launch({ headless: true });
 const checks: string[] = [];
 const errors: string[] = [];
 try {

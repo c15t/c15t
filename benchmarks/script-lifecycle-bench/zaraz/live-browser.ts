@@ -1,4 +1,7 @@
-import { createConsentClient } from '../../../packages/browser/src/index';
+import {
+	createConsentClient,
+	offline,
+} from '../../../packages/browser/src/index';
 import { policyRulePresets } from '../../../packages/core/src/index';
 import { createScriptLoader } from '../../../packages/core/src/modules/script-loader/index';
 import { cloudflareZaraz } from '../../../packages/integrations/src/vendors/tag-managers/cloudflare-zaraz';
@@ -15,15 +18,16 @@ const denied = {
 };
 const client = createConsentClient({
 	consentCategories: ['measurement'],
-	mode: 'offline',
-	policyRules: [
-		{
-			...policyRulePresets.europeOptIn(),
-			categories: ['measurement'],
-			match: { isDefault: true },
-			scopeMode: 'strict',
-		},
-	],
+	mode: offline({
+		policyRules: [
+			{
+				...policyRulePresets.europeOptIn(),
+				categories: ['measurement'],
+				match: { isDefault: true },
+				scopeMode: 'strict',
+			},
+		],
+	}),
 	presentation: { prompt: { position: 'bottom-right' } },
 	storageConfig: { storageKey: 'c15t-zaraz-lab' },
 	ui: {

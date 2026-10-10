@@ -5,9 +5,9 @@
 			<ul>
 				<li><NuxtLink to="/privacy">Privacy policy</NuxtLink></li>
 				<li>
-					<ConsentPreferencesLink class="footer-link">
+					<ConsentDialogLink class="footer-link">
 						Privacy settings
-					</ConsentPreferencesLink>
+					</ConsentDialogLink>
 				</li>
 			</ul>
 		</div>

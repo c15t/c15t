@@ -39,54 +39,38 @@ Add the `consentManifest` plugin to `vite.config.ts`, before `tanstackStart()`:
 
 <include src="../../shared/examples/tanstack-start/vite-config.mdx" />
 
-When `vite build` or `vite dev` starts, the plugin downloads your project's
-public policy from `${backendURL}/manifest` and writes it to
-`src/c15t-manifest.ts`. Keep that file out of Git.
+During `vite build`, or in `vite dev` when the server first loads it, the
+plugin downloads your project's public policy from `${backendURL}/manifest` and serves it to server code as
+`snapshot` from `c15t/generated`. In the browser bundle, `snapshot` is
+`undefined`, so the policy stays on the server. No file is written into your
+project.
 
-`https://benchmarks-inth.inth.app` is a demo project, so the config runs as
-is. Set `VITE_C15T_BACKEND_URL` to your project's backend URL, exactly as Inth
-shows it, including any path prefix, or replace the fallback. The app code
-below reads the same variable. Vite writes its value into the server and
-browser builds, so setting it when you start a built app has no effect.
+Set `VITE_C15T_BACKEND_URL` to your project's backend URL, exactly as Inth
+shows it, including any path prefix, in `.env` or wherever you build:
 
-Declare the server's consent options in `src/consent-options.server.ts`:
+```sh title=".env"
+VITE_C15T_BACKEND_URL=https://your-project.inth.app
+```
 
-<include src="../../shared/examples/tanstack-start/consent-options.mdx" />
+If your app already sets `VITE_INTH_PROJECT_URL` for other Inth SDKs, that works
+too. When both are set, `VITE_C15T_BACKEND_URL` wins.
 
-The `.server.ts` suffix makes the build fail if browser code imports the
-snapshot.
+The example app's `.env` points at `https://example-inth.inth.app`, a demo
+project. The server function and `ConsentRoot` read the URL from the plugin,
+so the app code never repeats it. If you pass `backendURL` to the plugin
+instead, the plugin sets the variable to that URL. Vite writes its value into
+the server and browser builds, so setting it when you start a built app has
+no effect.
 
 <include src="../../shared/build-time-manifest-notes.mdx" />
 
 <include src="../../shared/vite-build-manifest.mdx" />
 
-To apply policy edits without rebuilding, remove the plugin and the `manifest`
-line. The server function then fetches and caches the policy at runtime; see
+To apply policy edits without rebuilding, pass
+`createConsentStateHandler({ mode: manifest({ source: 'runtime' }) })`, with
+`manifest` from `c15t/tanstack-start`. The server function then fetches and
+caches the policy at runtime; see
 [runtime fetching](/docs/frameworks/tanstack-start/rendering#await-consent-in-the-loader).
-
-## Read location headers on every request
-
-Register `consentRequestMiddleware` in `src/start.ts`. It reads the country and
-region headers your host or CDN adds, such as `cf-ipcountry` or
-`x-vercel-ip-country`, plus `accept-language` and the Global Privacy Control
-header. It writes them onto the request in one format that the server function
-reads.
-
-<include src="../../shared/examples/tanstack-start/start.mdx" />
-
-If `src/start.ts` already exists, add `consentRequestMiddleware()` to its
-`requestMiddleware` list.
-
-## Register your vendor scripts
-
-Create `src/scripts.ts`. PostHog waits for measurement permission, so your
-policy must include that category. PostHog uses its EU host; change `region` to
-`'us'` for a US project. Remove any other PostHog loader from your app so
-PostHog loads once.
-
-<include src="../../shared/examples/tanstack-start/scripts.mdx" />
-
-Replace `phc_your_project_key` with your PostHog project key.
 
 ## Resolve consent in the root route
 
@@ -96,12 +80,17 @@ Replace or merge `src/routes/__root.tsx`:
 
 What each part does:
 
-- **`getConsentState`** runs on the server. `createConsentStateHandler` reads
-  the `c15t` cookie and the headers from the middleware, then resolves this
-  visitor's policy from the bundled snapshot, so the render never waits on
-  Inth. Declare the `createServerFn()` call in your own module, as shown.
-  Start's compiler finds server code by that call site and removes it, with
-  the `consent-options.server` import, from the browser build. A server
+- **`getConsentState`** runs on the server. `createConsentStateHandler()`
+  takes no options here: it uses `manifest()`, the default mode, and reads the
+  backend URL and the snapshot from `consentManifest()`. It reads
+  the `c15t` cookie and the location headers your host or CDN adds, such as
+  `cf-ipcountry` or `x-vercel-ip-country`, then resolves this visitor's policy
+  from the bundled snapshot, so the render never waits on Inth.
+  [Geography headers](/docs/frameworks/tanstack-start/geography-headers) lists
+  the headers it reads. Declare the `createServerFn()` call in your own module,
+  as shown. Start's compiler finds server code by that call site and removes
+  it from the browser build. The browser build's `c15t/generated` exports
+  `snapshot: undefined`, so the policy never ships to the browser. A server
   function built inside a package does not work. In the browser build,
   `@c15t/tanstack-start/server` carries only `consentLoaderOptions`; its other
   helpers throw if browser code calls them.
@@ -109,12 +98,17 @@ What each part does:
   from running again on client-side navigation, since the visitor's consent
   state does not change between routes.
 - **`ConsentRoot`** creates the consent runtime from that state, so the server
-  HTML and the first browser render match. `initRoute={false}` sends the
-  browser's requests straight to your backend URL. Consent saves go there
-  too, so `backendURL` reads `VITE_C15T_BACKEND_URL` like the consent
-  options, and saves reach the project the snapshot came from.
+  HTML and the first browser render match. The state carries the backend URL,
+  the mode and the route prefix, so `ConsentRoot` needs only `state`. The
+  browser sends its requests, including consent saves, straight to the
+  backend URL the server function used, so saves reach the project the
+  snapshot came from.
 - **`scripts`** stays in this module. A server function can only return
-  serializable data, and vendor loaders contain functions.
+  serializable data, and vendor loaders contain functions. PostHog waits for
+  measurement permission, so your policy must include that category. Replace
+  `phc_your_project_key` with your PostHog project key; PostHog uses its EU
+  host, so add `region: 'us'` for a US project. Remove any other PostHog
+  loader from your app so PostHog loads once.
 - **No stylesheet** is linked. `ConsentBanner` renders its rules into the
   server HTML, and `ConsentDialog` adds its own when it opens.
 
@@ -143,8 +137,8 @@ before you record or report choices. For iframes, use `ConsentGate`; see
 Build the app with `vite build`, start the production server, and open the site
 in a private window with DevTools open on the Network tab. Test under a policy
 that asks for a choice, such as an EU opt-in policy. Your host must send a
-country header; locally, add `consentRequestMiddleware({ country: 'DE' })` for
-the test only.
+country header; locally, add `country: 'DE'` to the `createConsentStateHandler`
+options for the test only.
 
 1. **Server HTML.** View the page source. It contains an element with
    `data-testid="consent-banner-root"`.

@@ -9,24 +9,20 @@ group: frameworks
 Pass vendor loaders to `ConsentRoot` through its `scripts` prop. `ConsentRoot`
 loads each script in the browser when its category is allowed and removes it
 when the category is denied. The [quickstart](/docs/frameworks/tanstack-start/quickstart)
-registers PostHog in `src/scripts.ts`:
+registers PostHog in the root route:
 
 <include src="../../shared/examples/tanstack-start/scripts.mdx" />
 
-The root route imports that module and passes it on:
+and passes the array to `ConsentRoot`:
 
 {/* example: fragment */}
 
 ```tsx title="src/routes/__root.tsx"
-import { scripts } from '../scripts';
-
-<ConsentRoot
-	state={consent}
-	backendURL={backendURL}
-	initRoute={false}
-	scripts={scripts}
->
+<ConsentRoot state={consent} scripts={scripts}>
 ```
+
+To share the array with other modules, move it to its own file, such as
+`src/scripts.ts`, and import it in the root route.
 
 Import vendor helpers in route modules, not in a server function. A server
 function's return value must be serializable, and vendor loaders contain

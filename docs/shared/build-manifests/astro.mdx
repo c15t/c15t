@@ -1,37 +1,38 @@
 <include src="../build-time-manifest.mdx" />
 
-`manifest()` mode bundles the manifest by default. The integration fetches
+`manifest()`, the default mode, bundles the manifest. The integration fetches
 it when `astro build` or `astro dev` starts, then embeds it in its generated
-server options. Middleware, init routes and manifest routes use that same
-snapshot automatically. The browser options omit the full manifest. No
+server options. The middleware and the consent route use that same snapshot.
+The browser options omit it; only `manifest({ resolve: 'browser' })` serves
+it to the browser, as the prerendered `/api/c15t/manifest`. No
 generated file or extra import is needed. `astro check` and `astro sync` do
 not fetch, so type checks work without the backend. `astro preview` serves the
 completed build and never fetches a new snapshot.
 
-The build fetches only from an absolute upstream `backendURL` or
+The build fetches only from an absolute upstream backend URL or
 `manifestURL`, because it cannot fetch a route in the app it is still
-compiling. With a relative URL, `hosted()` or `offline()`, the integration
-skips the fetch. If the fetch fails, the integration logs a warning, and the
-server fetches and caches the policy at runtime. The config is read once at
-build time, so the built server keeps the backend URL and the snapshot it was
-built with.
+compiling. `c15t()` without a `backendURL` reads `PUBLIC_C15T_BACKEND_URL`, then
+`PUBLIC_INTH_PROJECT_URL`.
+With a relative URL, `manifest({ source: 'runtime' })`,
+`manifest({ snapshot })`, `hosted()` or `offline()`, the integration skips
+the fetch. If the fetch fails, or no backend URL is set, `astro build` stops.
+`astro dev` logs a warning instead, and the server fetches and caches the
+policy at runtime. The config is read once at build time, so the built server
+keeps the backend URL and the snapshot it was built with.
 
-To stop the build when the snapshot can't be fetched, set
-`buildManifest: true`:
+To let a build continue when the snapshot can't be fetched, set
+`onBuildError: 'runtime'`, or build with `C15T_ON_BUILD_ERROR=runtime`:
 
 {/* example: fragment */}
 
 ```js title="astro.config.mjs"
-c15t({
-	buildManifest: true,
-	mode: manifest({ backendURL: 'https://your-project.inth.app' }),
-});
+c15t({ onBuildError: 'runtime' });
 ```
 
-`buildManifest: true` with `hosted()`, `offline()` or a relative URL stops
-`astro build` and `astro dev` too.
+`onBuildError: 'fail'` stops `astro dev` too, and stops the build on a
+relative URL.
 
 <include src="../build-time-manifest-notes.mdx" />
 
-For policy updates without a rebuild, set `buildManifest: false` and keep
-`manifest()`. The server then fetches and caches the policy at runtime.
+For policy updates without a rebuild, set `mode: manifest({ source: 'runtime' })`.
+The server then fetches and caches the policy at runtime.

@@ -11,13 +11,14 @@ host or CDN adds. It never looks up an IP address itself. The headers are read
 in three places:
 
 - During server rendering, the c15t plugin reads them from the page request.
-- In server mode, the `/api/c15t/init` route reads them from the browser's own
-  request, for example on a prerendered route.
-- With `manifest` unset, the plugin forwards them to your backend's `/init`.
+- In the default `manifest()` mode, the `/api/c15t/init` route reads them
+  from the browser's own request, for example on a prerendered route.
+- In `hosted()` mode, the plugin forwards them to your backend's `/init`.
 
-With `manifest: 'client'`, no request reaches your server, so the browser has
-no location. Set `geoURL` to an endpoint that returns the visitor's `country`
-and `region`, or every visitor gets the policy for an unknown location. See
+With `manifest({ resolve: 'browser' })`, no request reaches your server, so
+the browser has no location. Pass `geoURL` to `manifest()` with a route that
+returns the visitor's `country` and `region`, or a policy that depends on
+location asks the backend's `/init` on the first visit. See
 [deploy to static hosting](/docs/frameworks/nuxt/rendering#deploy-to-static-hosting).
 
 When no location header is present, the location stays unknown and your
@@ -62,7 +63,8 @@ traffic, such as your CDN or load balancer, to delete incoming
 of its own.
 
 Stripping the headers also turns off the `country` and `region` props of
-`ConsentRoot` in server mode. In the browser, those props reach the
+`ConsentRoot` when the server resolves the policy. In the browser, those
+props reach the
 `/api/c15t/init` route as `x-c15t-country` and `x-c15t-region` headers, so
 the edge removes them too.
 
@@ -81,8 +83,8 @@ with your host's origin protection.
 Use one of these while you build, never in production:
 
 - Render `<ConsentRoot country="DE" />`, or pass `region` too. c15t resolves
-  the policy again for that location. In server mode this only works while
-  nothing strips the `x-c15t-*` headers.
+  the policy again for that location. When the server resolves the policy,
+  this only works while nothing strips the `x-c15t-*` headers.
 - Send the override header yourself, for example
   `curl -H 'x-c15t-country: DE' http://localhost:3000/api/c15t/init`. This
   only works while nothing strips the header.

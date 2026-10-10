@@ -26,7 +26,7 @@ dialog in the shop's brand. Nothing is rebuilt: the components are the ones
   specificity. They read `--c15t-primary`, so the rule follows the dark
   palette.
 - **`app/app.vue`** mounts `ConsentRoot`. The footer's Privacy settings link
-  is `ConsentPreferencesLink` with a class.
+  is `ConsentDialogLink` with a class.
 
 The rest is the shop: the product page, header, footer and
 `app/assets/site.css`.
@@ -41,11 +41,11 @@ bun run build:libs
 bun run --cwd examples/showcase-nuxt-theme dev
 ```
 
-The app talks to the `https://benchmarks-inth.inth.app` Inth project.
-The module downloads that project's policy when `nuxt dev` or `nuxt build`
-starts. To use your own project, set
-`NUXT_PUBLIC_C15T_BACKEND_URL` to its backend URL and add the app's origin to
-its trusted origins.
+The app's `.env` points it at the `https://example-inth.inth.app` demo
+Inth project. The module downloads that project's policy when `nuxt dev` or
+`nuxt build` starts. To use your own project, set
+`NUXT_PUBLIC_C15T_BACKEND_URL` in `.env.local` to its backend URL and add the
+app's origin to its trusted origins.
 
 ## Docs
 

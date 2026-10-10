@@ -4,7 +4,6 @@ import { ConsentBanner, ConsentDialog, ConsentRoot } from 'c15t/next';
 import type { ConsentRootProps } from 'c15t/next';
 import type { ReactNode } from 'react';
 
-import { consentConfig } from '@/c15t.config';
 import { experimentCallbacks } from '@/lib/experiment';
 
 /** The `Consent` wrapper with the banner experiment's event callbacks. */
@@ -17,7 +16,6 @@ export const ExperimentConsent = ({
 }) => (
 	<ConsentRoot
 		state={state}
-		config={consentConfig}
 		options={{ callbacks: experimentCallbacks }}
 	>
 		{children}

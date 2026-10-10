@@ -20,16 +20,15 @@ import {
 import { scripts } from '../scripts';
 import { testBackend } from '../test-backend';
 
-// The consent server route in src/routes/api/c15t/$.ts.
-const consentRoute = '/api/c15t';
-
 // Declare the server function in your own module. Start's compiler splits
-// the server code out of the browser bundle at this call site.
+// the server code out of the browser bundle at this call site. The browser
+// sends init and saves to the consent route in src/routes/api/c15t/$.ts.
 const getConsentState = createServerFn({ method: 'GET' }).handler(
 	createConsentStateHandler({
 		backendURL: 'https://your-project.inth.app',
 		...testBackend('backendURL'),
-		routePrefix: consentRoute,
+		proxy: true,
+		routePrefix: '/api/c15t',
 	})
 );
 
@@ -43,7 +42,6 @@ const RootComponent = () => {
 			<body>
 				<ConsentRoot
 					state={consent}
-					backendURL={consentRoute}
 					scripts={scripts}
 				>
 					<Outlet />

@@ -69,6 +69,11 @@
 			"import": "./dist/experiment.js",
 			"default": "./dist/experiment.js"
 		},
+		"./modes": {
+			"types": "./dist-types/modes.d.ts",
+			"import": "./dist/modes.js",
+			"default": "./dist/modes.js"
+		},
 		"./surface-actions": {
 			"types": "./dist-types/surface-actions/index.d.ts",
 			"import": "./dist/surface-actions/index.js",
@@ -88,6 +93,16 @@
 			"types": "./dist-types/transports/manifest.d.ts",
 			"import": "./dist/transport-manifest.js",
 			"default": "./dist/transport-manifest.js"
+		},
+		"./transports/manifest-browser": {
+			"types": "./dist-types/transports/manifest-browser.d.ts",
+			"import": "./dist/transports/manifest-browser.js",
+			"default": "./dist/transports/manifest-browser.js"
+		},
+		"./transports/manifest-location": {
+			"types": "./dist-types/transports/manifest-browser-location.d.ts",
+			"import": "./dist/transports/manifest-browser-location.js",
+			"default": "./dist/transports/manifest-browser-location.js"
 		},
 		"./transports/manifest-cache": {
 			"types": "./dist-types/transports/manifest-cache.d.ts",
@@ -154,6 +169,11 @@
 			"import": "./dist/runtime.js",
 			"default": "./dist/runtime.js"
 		},
+		"./runtime/client-mode": {
+			"types": "./dist-types/runtime/client-mode.d.ts",
+			"import": "./dist/runtime/client-mode.js",
+			"default": "./dist/runtime/client-mode.js"
+		},
 		"./runtime/controls": {
 			"types": "./dist-types/runtime/controls.d.ts",
 			"import": "./dist/runtime/controls.js",
@@ -188,6 +208,11 @@
 			"types": "./dist-types/build.d.ts",
 			"import": "./dist/build.js",
 			"default": "./dist/build.js"
+		},
+		"./generated": {
+			"types": "./dist-types/generated.d.ts",
+			"import": "./dist/generated.js",
+			"default": "./dist/generated.js"
 		}
 	},
 	"publishConfig": {

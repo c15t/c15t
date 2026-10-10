@@ -2,7 +2,7 @@ import { policyRulePresets } from '@c15t/core';
 import type { ConsentSnapshot } from '@c15t/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { createConsentClient } from '../client';
+import { createScriptTagConsentClient as createConsentClient } from '../script-tag-client';
 import type { ConsentClient } from '../types';
 // Not `./dialog-surface`: the suites alias that specifier to the dialog
 // itself, as the script-tag builds do.

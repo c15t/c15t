@@ -26,9 +26,9 @@ import type { UIStyle, ExpandedTheme } from './prompts';
 import { getClientConfigDependencies } from './templates/config';
 import {
 	applyFileEdits,
+	describeFileEdits,
 	rollbackFileEdits,
 } from './templates/shared/file-plan';
-import type { FileEdit } from './templates/shared/file-plan';
 import { SCRIPT_SNIPPETS } from './templates/shared/scripts';
 
 const stringFlag = (context: CliContext, key: string): string | undefined => {
@@ -207,26 +207,6 @@ const validateFrameworkOptions = async (
 	}
 };
 
-// Keep rollback contents private while exposing reviewable edit metadata.
-const describeEdits = async (edits: FileEdit[]) =>
-	await Promise.all(
-		edits.map(async (edit) => {
-			const isEnvironmentFile = (filePath: string) =>
-				/^\.env(?:\.|$)/u.test(path.basename(filePath));
-			let sensitive = isEnvironmentFile(edit.path);
-			if (!sensitive && edit.before !== null) {
-				sensitive = isEnvironmentFile(await fs.realpath(edit.path));
-			}
-			return sensitive
-				? {
-						operation: edit.before === null ? 'create' : 'update',
-						path: edit.path,
-						redacted: true,
-					}
-				: edit;
-		})
-	);
-
 const applySetup = async (
 	context: CliContext,
 	edits: Awaited<ReturnType<typeof planGenerateFiles>>['edits'],
@@ -339,7 +319,7 @@ export const generateWithoutPrompts = async (
 	return {
 		applied: apply,
 		dependencies: missingDependencies,
-		edits: await describeEdits(plan.edits),
+		edits: await describeFileEdits(plan.edits),
 		framework: framework.framework,
 		installSkipped: !apply || flags['skip-install'] === true,
 		mode,

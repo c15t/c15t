@@ -158,7 +158,7 @@ export interface IABProviderConfig extends IABUserConfig {
  * import { iab } from '@c15t/iab';
  *
  * <ConsentProvider options={{
- *   mode: hosted({ url: '/api/c15t' }),
+ *   mode: hosted({ backendURL: '/api/c15t' }),
  *   iab: iab({ cmpId: 28, vendors: [1, 2, 755] }),
  * }}>
  *   {children}

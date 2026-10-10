@@ -4,7 +4,7 @@ import type { ConsentManagerOptions } from '@c15t/svelte';
 import './slim-bar.css';
 
 /**
- * Spread into the options you pass to `ConsentManagerProvider`. The bar
+ * Spread into the options you pass to `ConsentProvider`. The bar
  * keeps the stock markup and actions; the slot classes put it on one row.
  */
 export const slimBar = {

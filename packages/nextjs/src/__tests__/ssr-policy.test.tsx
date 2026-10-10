@@ -1,5 +1,6 @@
 import { buildPrefetchScript, createConsentKernel } from '@c15t/core';
 import type { ConsentSnapshot, KernelConfig } from '@c15t/core';
+import { hosted } from '@c15t/core/modes';
 import { createPersistence } from '@c15t/core/modules/persistence';
 import {
 	ConsentBanner,
@@ -157,7 +158,7 @@ describe('Next.js request policy and RSC hydration', () => {
 				)
 			);
 			const config = await resolveConsent({
-				backendURL: 'https://consent.example.com',
+				config: { backendURL: 'https://consent.example.com', mode: hosted() },
 				cookieName: storageKey,
 				fetch,
 				now,
@@ -341,7 +342,7 @@ describe('Next.js request policy and RSC hydration', () => {
 			root.render(
 				<ConsentRoot
 					state={{}}
-					backendURL="/api/next-prefetch-test"
+					config={{ backendURL: '/api/next-prefetch-test' }}
 					persistence={false}
 				>
 					<Probe />

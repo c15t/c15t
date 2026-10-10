@@ -7,8 +7,8 @@
  * make the bundler emit a separate stylesheet). Reading both from the
  * published `dist/` of `@c15t/ui` keeps this package's DOM in lockstep
  * with the React, Svelte and Vue surfaces: same classes, same tokens.
- * Rules only other frameworks' surfaces can match are dropped
- * (`prune-stylesheet.ts`).
+ * Rules only other frameworks' surfaces can match are dropped, and so are
+ * comments and formatting whitespace (`prune-stylesheet.ts`).
  *
  * Runs from `prebuild`; the output is gitignored.
  */
@@ -19,8 +19,8 @@ import { fileURLToPath } from 'node:url';
 
 import {
 	collectClassNames,
+	compactStylesheet,
 	pruneStylesheet,
-	withoutTailwind3Hints,
 } from './prune-stylesheet';
 
 const uiDist = dirname(
@@ -90,7 +90,7 @@ const main = async function main(): Promise<void> {
 	const rendered = collectClassNames([classes, iabClasses]);
 	// The sheet already pairs every `:root` with `:host`, so it applies
 	// inside the shadow root as published. It holds the dialog rules too.
-	const stylesheet = withoutTailwind3Hints(
+	const stylesheet = compactStylesheet(
 		pruneStylesheet(
 			await readFile(join(uiDist, 'styles.css'), 'utf8'),
 			rendered
@@ -111,7 +111,7 @@ const main = async function main(): Promise<void> {
 
 	await mkdir(outputDir, { recursive: true });
 	await writeFile(join(outputDir, 'styles.ts'), `${banner}\n${body}`);
-	const iabStylesheet = withoutTailwind3Hints(
+	const iabStylesheet = compactStylesheet(
 		pruneStylesheet(
 			await readFile(join(uiDist, 'iab/styles.css'), 'utf8'),
 			rendered

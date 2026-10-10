@@ -1,4 +1,10 @@
-Run `vite build` or `vite dev` before a standalone `tsc`, `vue-tsc` or
-`svelte-check`; the generated file doesn't exist on a fresh checkout. Both
-commands fetch the manifest when they start, so both need the backend.
-`vite preview` serves the last build without fetching.
+`vite build` and `vite dev` fetch the manifest when they start. `vite preview`
+serves the last build without fetching. The plugin writes no file into your
+app, so there is nothing to keep out of Git. `c15t/generated` ships its own
+types, so `tsc`, `vue-tsc` and `svelte-check` pass on a fresh checkout without
+a build first.
+
+The plugin can't see the options your app passes to `manifest()`. When the
+app passes `source: 'runtime'` or `manifestURL`, set
+`consentManifest({ source: 'runtime' })` too. The build then downloads no
+manifest, so it doesn't fail when the backend's `/manifest` is down.

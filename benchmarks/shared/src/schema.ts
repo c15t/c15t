@@ -10,7 +10,9 @@ export type BenchmarkSuite =
 	| 'backend-runtime'
 	// Node-side policy wire payload and synchronous resolution measurements
 	// over fixed policy fixtures (issue #1025).
-	| 'policy-runtime';
+	| 'policy-runtime'
+	// First-load client bytes of every starter in `examples/`.
+	| 'examples-payload';
 
 export type BenchmarkFramework =
 	| 'core'

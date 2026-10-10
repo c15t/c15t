@@ -9,7 +9,7 @@ const { ignorePatterns: _ignorePatterns, ...repoOptions } = repoConfig;
  * The repo's formatter options, loosened for reading. Source files put every
  * JSX attribute on its own line and keep objects multi-line once written that
  * way; in the docs that turns a three-attribute tag into five lines and leaves
- * `hosted({ url })` split after hidden test lines are removed. Snippets wrap
+ * `hosted({ backendURL })` split after hidden test lines are removed. Snippets wrap
  * only when a line is too long.
  */
 export const docsFormatOptions: FormatConfig = {

@@ -2,7 +2,37 @@ The snapshot is fixed at build time:
 
 - Rebuild after changing policies, translations or vendors. If your CI caches
   build output, force a fresh build.
-- The build must reach the backend. A failed fetch stops Next.js, TanStack
-  Start, SvelteKit and Vite builds. By default, Astro and Nuxt log a warning
-  instead and fetch the policy at runtime.
 - Consent choices still go to the backend.
+
+The build reads the backend URL from your public backend URL variable when
+the config doesn't pass one: `NEXT_PUBLIC_C15T_BACKEND_URL` in Next.js,
+`NUXT_PUBLIC_C15T_BACKEND_URL` in Nuxt, `PUBLIC_C15T_BACKEND_URL` in Astro,
+Svelte and SvelteKit, and `VITE_C15T_BACKEND_URL` in TanStack Start and other
+Vite apps. Each also reads the matching Inth variable, such as
+`NEXT_PUBLIC_INTH_PROJECT_URL`, when the c15t one is unset. See
+[set the backend URL](/docs/concepts/modes#set-the-backend-url).
+
+The fetch waits at most 10 seconds. When it fails, or no backend URL is set,
+every framework does the same thing:
+
+| Command | Default when the fetch fails |
+| --- | --- |
+| Production build: `next build`, `vite build`, `nuxt build`, `astro build` | The build stops with an error. |
+| Dev: `next dev`, `vite dev`, `nuxt dev`, `astro dev` | A warning, and the server fetches the policy at runtime. |
+
+Set `onBuildError` to use one behaviour for both. `'fail'` stops dev too.
+`'runtime'` lets a production build finish, and the server fetches the policy
+at runtime. The `C15T_ON_BUILD_ERROR` environment variable overrides the
+option, so you can deploy during a backend outage without a code change:
+
+```sh
+C15T_ON_BUILD_ERROR=runtime npm run build
+```
+
+Turborepo's strict environment mode hides undeclared variables from tasks, so
+list `C15T_ON_BUILD_ERROR` in the build task's `passThroughEnv` there.
+
+The build skips the fetch, without an error, when it can't use a snapshot,
+for example when the backend URL is relative. With `onBuildError: 'fail'`, a
+relative URL stops the build. [Consent modes](/docs/concepts/modes#what-happens-when-the-download-fails)
+lists every case.

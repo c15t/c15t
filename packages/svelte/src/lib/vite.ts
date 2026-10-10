@@ -1,34 +1,80 @@
 /**
- * `@c15t/svelte/vite` — build-time help for SvelteKit apps.
+ * `@c15t/svelte/vite` — build-time help for Svelte and SvelteKit apps.
  *
- * The provider loads the script loader and the network blocker on demand,
- * as one chunk. {@link c15tPreload} lets `c15tHandle` preload it on the
- * pages that configure `scripts` or blocker rules, so it arrives with the
- * app's code instead of one round trip after it.
+ * {@link consentManifest} serves the consent manifest the build downloads.
+ * In a SvelteKit build it also lets `c15tHandle` preload the on-demand
+ * chunk that holds the script loader and the network blocker, on the pages
+ * that configure `scripts` or blocker rules, so it arrives with the app's
+ * code instead of one round trip after it.
  */
 import { readdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
-import { consentManifest as createManifestPlugin } from '@c15t/core/build';
-import type { ManifestBuildOptions } from '@c15t/core/build';
+import { createConsentManifestPlugin } from '@c15t/core/build';
+import type {
+	ConsentManifestPlugin,
+	ConsentManifestPluginOptions,
+} from '@c15t/core/build';
 
 // With its extension: Node loads this file straight from `dist`, unbundled.
 import { MODULE_PRELOAD_PLACEHOLDERS } from './kit/module-preload.js';
 import type { PreloadChunkName } from './kit/module-preload.js';
 
-export type { ConsentManifest, ManifestBuildOptions } from '@c15t/core/build';
+export type {
+	ConsentManifest,
+	ConsentManifestPluginOptions,
+	ManifestBuildErrorMode,
+	ManifestBuildOptions,
+} from '@c15t/core/build';
+
+/** The plugin `sveltekit()` adds first, which marks a SvelteKit app. */
+const SVELTEKIT_PLUGIN = 'vite-plugin-sveltekit-setup';
+
+/** The slice of Vite's resolved config {@link ServerGeneratedPlugin} edits. */
+interface ExternalConfigLike {
+	environments?: Record<string, { resolve?: { external?: unknown } }>;
+	ssr?: { external?: unknown };
+}
+
+/** The plugin that keeps `@c15t/core` bundled in dev SSR. */
+export interface ServerGeneratedPlugin {
+	configResolved: (config: ExternalConfigLike) => void;
+	name: string;
+}
 
 /**
- * Generates a manifest before Svelte or SvelteKit compilation.
- * @param options - Backend URL and generated module settings. Appends `/manifest`.
- * @returns A Vite plugin using `@c15t/svelte/vite` for its type import.
- * @throws {Error} When the manifest cannot be fetched or written.
+ * `vite-plugin-svelte` marks a Svelte library's plain dependencies as SSR
+ * externals, so in `vite dev` Node loads `@c15t/core` itself. Its
+ * `@c15t/core/generated` is then the empty stand-in, and `loadConsent`
+ * sees no snapshot or backend URL. Dropping `@c15t/core` from the externals
+ * lets Vite resolve that import to the build's virtual module, as it does
+ * in `vite build`.
+ *
+ * @returns The Vite plugin.
+ * @internal
  */
-export const consentManifest = (options: ManifestBuildOptions) =>
-	createManifestPlugin({
-		...options,
-		importSource: options.importSource ?? '@c15t/svelte/vite',
-	});
+export const createServerGeneratedPlugin =
+	function createServerGeneratedPlugin(): ServerGeneratedPlugin {
+		const keepCore = (external: unknown): void => {
+			if (!Array.isArray(external)) {
+				return;
+			}
+			for (let index = external.length - 1; index >= 0; index -= 1) {
+				if (external[index] === '@c15t/core') {
+					external.splice(index, 1);
+				}
+			}
+		};
+		return {
+			configResolved(config) {
+				keepCore(config.ssr?.external);
+				for (const environment of Object.values(config.environments ?? {})) {
+					keepCore(environment.resolve?.external);
+				}
+			},
+			name: 'c15t:svelte-server-generated',
+		};
+	};
 
 /** The `@c15t/core` module each on-demand chunk starts from. */
 const CHUNK_MODULES: Readonly<Record<PreloadChunkName, RegExp>> = {
@@ -61,10 +107,11 @@ interface ResolvedConfigLike {
 }
 
 /**
- * The Vite plugin {@link c15tPreload} returns, typed structurally so it
- * fits the `plugins` array of every Vite version SvelteKit supports.
+ * The module-preload plugin {@link consentManifest} includes, typed
+ * structurally so it fits the `plugins` array of every Vite version
+ * SvelteKit supports.
  */
-export interface C15tPreloadPlugin {
+export interface ModulePreloadPlugin {
 	apply: 'build';
 	configResolved: (config: ResolvedConfigLike) => void;
 	name: string;
@@ -165,55 +212,114 @@ export const writeChunkHrefs = async function writeChunkHrefs(
  *
  * Only builds are affected. Outside SvelteKit (a Vite single-page app)
  * the plugin does nothing: there is no server render to put a link in.
+ * {@link consentManifest} includes it.
  *
  * @returns The Vite plugin.
+ * @internal
+ */
+export const createModulePreloadPlugin =
+	function createModulePreloadPlugin(): ModulePreloadPlugin {
+		let kit: KitConfigLike | undefined;
+		// Empty resolves against the working directory, as Vite does.
+		let root = '';
+		let ssr = false;
+		return {
+			apply: 'build',
+			configResolved(config) {
+				({ root } = config);
+				ssr = Boolean(config.build.ssr);
+				const setup = config.plugins.find(
+					(plugin) => plugin.name === SVELTEKIT_PLUGIN
+				);
+				// SvelteKit 2 nests its options under `kit` (svelte.config.js);
+				// SvelteKit 3 takes them flat, from `sveltekit({ ... })`.
+				const options = (
+					setup?.api as
+						| { options?: KitConfigLike & { kit?: KitConfigLike } }
+						| undefined
+				)?.options;
+				kit = options?.kit ?? options;
+			},
+			name: 'c15t:module-preload',
+			async writeBundle(_options, bundle) {
+				// SvelteKit 3 builds every environment with one plugin instance;
+				// SvelteKit 2 starts a separate client build.
+				const client = this.environment
+					? this.environment.name === 'client'
+					: !ssr;
+				if (!kit || !client) {
+					return;
+				}
+				const { assets = '', base = '' } = kit.paths ?? {};
+				await writeChunkHrefs(
+					path.resolve(root, kit.outDir ?? '.svelte-kit', 'output', 'server'),
+					resolveChunkHrefs(bundle, assets || base)
+				);
+			},
+		};
+	};
+
+/**
+ * Serves the deployment's consent manifest and backend URL as the virtual
+ * module `@c15t/core/generated` (also `c15t/generated`). Import `snapshot`
+ * from it; no file is written into the app. `vite build` fetches the
+ * manifest only when the bundle reads `snapshot`: a Svelte app that uses
+ * `hosted()` or `offline()` never depends on the backend at build time.
  *
+ * In a SvelteKit app (the `sveltekit()` plugin is present), the snapshot
+ * stays on the server: in the client environment, `snapshot` is
+ * `undefined`. A Svelte single-page app receives it in the browser.
+ * `backendURL` is public and reaches both.
+ *
+ * `backendURL` defaults to `PUBLIC_C15T_BACKEND_URL` (SvelteKit), then
+ * `VITE_C15T_BACKEND_URL`, then the Inth variables `PUBLIC_INTH_PROJECT_URL`
+ * and `VITE_INTH_PROJECT_URL`, including `.env` files. When
+ * `VITE_C15T_BACKEND_URL` is unset, the plugin sets
+ * `import.meta.env.VITE_C15T_BACKEND_URL` to the URL it used, so app code
+ * reads the same value. A missing URL or a failed fetch stops
+ * `vite build` and warns in `vite dev`, where `snapshot` is `undefined`.
+ * Set `onBuildError` or `C15T_ON_BUILD_ERROR` to change that. In a Svelte
+ * single-page app whose policy depends on the visitor's location, the
+ * build warns and suggests `hosted()`. With `manifest({ manifestURL })` or
+ * `manifest({ source: 'runtime' })`, pass `source: 'runtime'` here too, so
+ * the build never fetches a snapshot the app would discard.
+ *
+ * In a SvelteKit build it also writes the URL of the on-demand chunk that
+ * holds the script loader and the network blocker into the server output,
+ * so `c15tHandle` adds a `<link rel="modulepreload">` for it to every page
+ * whose provider has `scripts` or blocker rules.
+ *
+ * @param options - Backend URL, `onBuildError` and `source`. Appends
+ * `/manifest`.
+ * @returns The Vite plugins, for `plugins`.
+ * @throws {Error} When the fetch fails in `'fail'` mode, the default for
+ * `vite build`.
  * @example
  * ```ts
  * // vite.config.ts
- * import { c15tPreload } from '@c15t/svelte/vite';
- * import { sveltekit } from '@sveltejs/kit/vite';
+ * import { consentManifest } from '@c15t/svelte/vite';
+ * import { svelte } from '@sveltejs/vite-plugin-svelte';
  *
- * export default { plugins: [sveltekit(), c15tPreload()] };
+ * export default { plugins: [consentManifest(), svelte()] };
  * ```
  */
-export const c15tPreload = function c15tPreload(): C15tPreloadPlugin {
-	let kit: KitConfigLike | undefined;
-	// Empty resolves against the working directory, as Vite does.
-	let root = '';
-	let ssr = false;
-	return {
-		apply: 'build',
-		configResolved(config) {
-			({ root } = config);
-			ssr = Boolean(config.build.ssr);
-			const setup = config.plugins.find(
-				(plugin) => plugin.name === 'vite-plugin-sveltekit-setup'
-			);
-			// SvelteKit 2 nests its options under `kit` (svelte.config.js);
-			// SvelteKit 3 takes them flat, from `sveltekit({ ... })`.
-			const options = (
-				setup?.api as
-					| { options?: KitConfigLike & { kit?: KitConfigLike } }
-					| undefined
-			)?.options;
-			kit = options?.kit ?? options;
-		},
-		name: 'c15t:module-preload',
-		async writeBundle(_options, bundle) {
-			// SvelteKit 3 builds every environment with one plugin instance;
-			// SvelteKit 2 starts a separate client build.
-			const client = this.environment
-				? this.environment.name === 'client'
-				: !ssr;
-			if (!kit || !client) {
-				return;
-			}
-			const { assets = '', base = '' } = kit.paths ?? {};
-			await writeChunkHrefs(
-				path.resolve(root, kit.outDir ?? '.svelte-kit', 'output', 'server'),
-				resolveChunkHrefs(bundle, assets || base)
-			);
-		},
-	};
-};
+export const consentManifest = (
+	options: ConsentManifestPluginOptions = {}
+): [ConsentManifestPlugin, ModulePreloadPlugin, ServerGeneratedPlugin] => [
+	createConsentManifestPlugin(options, {
+		// A Svelte single-page app only: SvelteKit resolves on the server.
+		adviseHostedForLocation: true,
+		envNames: [
+			'PUBLIC_C15T_BACKEND_URL',
+			'VITE_C15T_BACKEND_URL',
+			'PUBLIC_INTH_PROJECT_URL',
+			'VITE_INTH_PROJECT_URL',
+		],
+		label: '@c15t/svelte/vite',
+		serverRendered: (config) =>
+			config.plugins?.some((plugin) => plugin.name === SVELTEKIT_PLUGIN) ??
+			false,
+	}),
+	createModulePreloadPlugin(),
+	createServerGeneratedPlugin(),
+];

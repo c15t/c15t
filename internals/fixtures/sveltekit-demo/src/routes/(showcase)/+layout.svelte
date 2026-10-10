@@ -12,12 +12,13 @@
 		ConsentBanner,
 		ConsentDialog,
 		ConsentDialogTrigger,
-		ConsentManagerProvider,
-		hosted,
+		ConsentProvider,
+		ConsentRoot,
 		offline,
 		IABConsentBanner,
 		IABConsentDialog,
 	} from '@c15t/svelte';
+	import type { ConsentManagerOptions } from '@c15t/svelte';
 	import { baseTranslations } from '@c15t/translations/all';
 
 	import { createDemoScripts } from '#lib/consent-manager/demo-scripts.js';
@@ -60,59 +61,35 @@
 			},
 		};
 	});
-</script>
 
-<!--
-	`prefetch` and `mode` are top-level props: the server already resolved the
-	policy in +layout.server.ts, so the banner renders in the first HTML.
-	`/api/showcase` is this app's own consent endpoint (manifest mode).
--->
-{#if !isThemeShowcase}
-	<ThemeTokens theme={activeTheme} />
-{/if}
-<ConsentManagerProvider
-	prefetch={isIabPlayground ? undefined : data.prefetch}
-	mode={isIabPlayground
-		? offline({
-				policyRules: [
-					{
-						id: 'devtools-iab-playground',
-						match: { fallback: true, isDefault: true },
-						model: 'iab',
-						prompt: 'choice',
-						categories: ['marketing', 'measurement'],
-						scopeMode: 'permissive',
-					},
-				],
-			})
-		: hosted({ url: '/api/showcase' })}
-	options={{
-		persistence: isIabPlayground ? false : undefined,
+	const options = $derived({
 		consentCategories: ['necessary', 'marketing', 'measurement'],
+		i18n: {
+			messages: {
+				de: { ...baseTranslations.de },
+				en: { ...baseTranslations.en },
+				fr: { ...baseTranslations.fr },
+				zh: { ...baseTranslations.zh },
+			},
+		},
 		iab: {
-			enabled: true,
-			persistence: isIabPlayground ? false : undefined,
 			// Match the example backend. This is a demo ID, not a production CMP configuration.
 			cmpId: 10,
 			customVendors: [
 				{
+					cookieMaxAgeSeconds: 31536000,
+					dataCategories: [1, 2, 6, 8],
 					id: 'internal-analytics',
 					name: 'Example Analytics',
 					privacyPolicyUrl: 'https://www.google.com',
 					purposes: [1, 8],
-					dataCategories: [1, 2, 6, 8],
-					usesCookies: true,
-					cookieMaxAgeSeconds: 31536000,
-					usesNonCookieAccess: true,
 					specialFeatures: [1, 2],
+					usesCookies: true,
+					usesNonCookieAccess: true,
 				},
 			],
+			enabled: true,
 		},
-		scripts,
-		storageConfig: {
-			crossSubdomain: true,
-		},
-		theme: activeTheme,
 		legalLinks: {
 			privacyPolicy: {
 				href: '/legal/privacy-policy',
@@ -121,24 +98,23 @@
 				href: '/legal/terms-of-service',
 			},
 		},
-		user: {
-			id: '123',
-			identityProvider: 'custom',
-		},
-		i18n: {
-			messages: {
-				zh: { ...baseTranslations.zh },
-				en: { ...baseTranslations.en },
-				fr: { ...baseTranslations.fr },
-				de: { ...baseTranslations.de },
-			},
-		},
 		overrides: {
 			country: 'CA',
 			region: 'QC',
 		},
-	}}
->
+		scripts,
+		storageConfig: {
+			crossSubdomain: true,
+		},
+		theme: activeTheme,
+		user: {
+			id: '123',
+			identityProvider: 'custom',
+		},
+	} satisfies Omit<ConsentManagerOptions, 'mode' | 'prefetch'>);
+</script>
+
+{#snippet surfaces()}
 	{#if isIabPlayground}
 		<p role="status">
 			IAB playground: saves stay in memory and reset on reload. The vendor list
@@ -156,4 +132,44 @@
 			<ConsentDevTools position="bottom-right" />
 		{/await}
 	{/if}
-</ConsentManagerProvider>
+{/snippet}
+
+{#if !isThemeShowcase}
+	<ThemeTokens theme={activeTheme} />
+{/if}
+{#if isIabPlayground}
+	<!-- The IAB playground resolves in the browser and keeps saves in memory. -->
+	<ConsentProvider
+		mode={offline({
+			policyRules: [
+				{
+					id: 'devtools-iab-playground',
+					match: { fallback: true, isDefault: true },
+					model: 'iab',
+					prompt: 'choice',
+					categories: ['marketing', 'measurement'],
+					scopeMode: 'permissive',
+				},
+			],
+		})}
+		options={{
+			...options,
+			iab: { ...options.iab, persistence: false },
+			persistence: false,
+		}}
+	>
+		{@render surfaces()}
+	</ConsentProvider>
+{:else}
+	<!--
+		The server already resolved the policy in +layout.server.ts, so the
+		banner renders in the first HTML. The browser saves through
+		`/api/showcase`, this app's own consent endpoint (manifest mode).
+	-->
+	<ConsentRoot
+		state={data.consent}
+		{...options}
+	>
+		{@render surfaces()}
+	</ConsentRoot>
+{/if}

@@ -10,10 +10,10 @@ import type { ConsentSnapshot, HydrationRecords } from '../../types';
 import { clearStoredRecords } from './clear';
 import { hydrateFromStorage, readStoredRecordsForReconcile } from './hydrate';
 import type { StoredRecords } from './hydrate';
-import { resolveStorageKeys } from './record-storage';
+import { isNewerDenial, resolveStorageKeys } from './record-storage';
 import { persistenceTools } from './tools';
 import type { PersistenceHandle, PersistenceOptions } from './types';
-import { pageWriterLoader } from './writer-loader';
+import { pageWriterLoader, preloadWriter } from './writer-loader';
 import type { WriterLoader, WriterModule } from './writer-loader';
 import type {
 	PersistenceContext,
@@ -21,31 +21,28 @@ import type {
 	WriteKind,
 } from './writer/types';
 
-// Safari has no requestIdleCallback; a short delay after load stands in.
-const IDLE_FALLBACK_DELAY_MS = 200;
 // A write waits for the write code: after a failed load, try again after
 // 1, 4 and 16 seconds. Later events, focus and visibility changes try too.
 const RETRY_BASE_MS = 1000;
 const RETRIES = 3;
 
-/** Run `task` in idle time after the page's load event. */
-const afterLoadWhenIdle = function afterLoadWhenIdle(task: () => void): void {
-	const idle = () => {
-		if (typeof requestIdleCallback === 'function') {
-			requestIdleCallback(task);
-		} else {
-			setTimeout(task, IDLE_FALLBACK_DELAY_MS);
-		}
-	};
-	if (
-		document.readyState === 'loading' ||
-		document.readyState === 'interactive'
-	) {
-		window.addEventListener('load', idle, { once: true });
-	} else {
-		idle();
-	}
-};
+// By consent key, the kernel whose writes wait for the write code, while
+// they wait. A handle mounted meanwhile (a provider remounted right after a
+// choice) starts from that kernel's records, not from storage that does not
+// hold them yet. A later handle's own write replaces the entry; the earlier
+// write landing afterwards keeps the newer decision per category, as every
+// write does, and leaves the newer entry alone. Entries are compared by
+// kernel, so handles sharing a kernel share one. Landing, a landed write
+// and `clear()` remove the entry. A disposed handle whose load retries give
+// up keeps it: its writes never reach storage, so a later mount still needs
+// its records. That holds one kernel per key until a handle for the key
+// writes or clears.
+/**
+ * Exported for tests.
+ *
+ * @internal
+ */
+export const queuedWrites = new Map<string, InternalKernel>();
 
 /**
  * `createPersistence`, with the place the write code comes from. Tests
@@ -75,6 +72,8 @@ export const mountPersistence = function mountPersistence(
 		typeof window.addEventListener === 'function' &&
 		typeof document.addEventListener === 'function';
 	let disposed = false;
+	const keys = resolveStorageKeys(storageConfig);
+	const consentKey = keys.consent;
 
 	let writer: PersistenceWriter | undefined;
 	// The read memory last matched, for the writer to start from, and
@@ -112,6 +111,9 @@ export const mountPersistence = function mountPersistence(
 		}
 		requested.clear();
 		writer.flush();
+		if (queuedWrites.get(consentKey) === kernel) {
+			queuedWrites.delete(consentKey);
+		}
 		markLanded();
 		if (hydrateRequested && !disposed) {
 			hydrateRequested = false;
@@ -161,12 +163,16 @@ export const mountPersistence = function mountPersistence(
 	/** Write `kinds` now through the writer, or once it has landed. */
 	const request = function request(...kinds: WriteKind[]): void {
 		const landed = landedWriter();
+		// A write stored from this kernel, which started from any queued
+		// records, supersedes them. One that waits is queued itself.
 		if (landed) {
+			queuedWrites.delete(consentKey);
 			for (const kind of kinds) {
 				landed.schedule(kind);
 			}
 			return;
 		}
+		queuedWrites.set(consentKey, kernel);
 		for (const kind of kinds) {
 			requested.add(kind);
 		}
@@ -228,6 +234,21 @@ export const mountPersistence = function mountPersistence(
 	];
 
 	/**
+	 * `records`, or the records another handle's queued writes will store
+	 * over them. Never this handle's own: `hydrate()` waits for those.
+	 */
+	const withQueued = function withQueued(
+		records: HydrationRecords
+	): HydrationRecords {
+		const snapshot = queuedWrites.get(consentKey)?.getSnapshot();
+		// The snapshot's subject, notice and vendor records under their
+		// hydration names; hydration ignores every other field.
+		return snapshot
+			? { ...records, ...snapshot, choice: snapshot.explicitChoice }
+			: records;
+	};
+
+	/**
 	 * A server prefetch seeds the kernel from the cookie alone, and the seed
 	 * stays authoritative (`skipHydration`). But a browser can drop a cookie
 	 * write while localStorage takes it, so a newer record may exist only
@@ -245,20 +266,13 @@ export const mountPersistence = function mountPersistence(
 		const at = now();
 		const read = readStoredRecordsForReconcile(storageConfig, at);
 		baseline = [read, false];
-		const { records } = read;
+		const records = withQueued(read.records);
 		const snapshot = kernel.getSnapshot();
 		const patch: HydrationRecords = {};
 		const seeded = snapshot.explicitChoice?.categories ?? {};
 		const denials = Object.entries(records.choice?.categories ?? {}).filter(
-			([category, decision]) => {
-				const current = seeded[category as keyof typeof seeded];
-				return (
-					decision?.value === false &&
-					(!current ||
-						decision.confirmedAt > current.confirmedAt ||
-						(decision.confirmedAt === current.confirmedAt && current.value))
-				);
-			}
+			([category, decision]) =>
+				isNewerDenial(decision, seeded[category as keyof typeof seeded])
 		);
 		if (denials.length > 0) {
 			patch.choice = {
@@ -291,7 +305,9 @@ export const mountPersistence = function mountPersistence(
 			void withWriter();
 			return false;
 		}
-		const stored = hydrateFromStorage(kernel, storageConfig, now());
+		// What another handle queued wins over what storage holds; the
+		// writer still starts from storage.
+		const stored = hydrateFromStorage(kernel, storageConfig, now(), withQueued);
 		if (!stored) {
 			return false;
 		}
@@ -307,45 +323,52 @@ export const mountPersistence = function mountPersistence(
 		if (!listenable) {
 			return () => undefined;
 		}
-		// Leaving the page: a write still waiting for its macrotask runs now.
-		const onPageHide = function onPageHide(): void {
-			writer?.flush();
-		};
-		window.addEventListener('pagehide', onPageHide);
-		if (options.sync === false) {
-			return () => {
-				window.removeEventListener('pagehide', onPageHide);
-			};
+		const listeners: [EventTarget, string, (event: Event) => void][] = [
+			// Leaving the page: a write still waiting for its macrotask runs now.
+			[window, 'pagehide', () => writer?.flush()],
+		];
+		if (options.sync !== false) {
+			const watched = new Set<string | null>([
+				consentKey,
+				keys.legacyConsent,
+				keys.notice,
+				keys.vendors,
+				keys.epoch,
+				// Another page called `localStorage.clear()`.
+				null,
+			]);
+			listeners.push(
+				[
+					window,
+					'storage',
+					(event) => {
+						if (watched.has((event as StorageEvent).key)) {
+							scheduleReconcile();
+						}
+					},
+				],
+				[window, 'focus', scheduleReconcile],
+				[
+					document,
+					'visibilitychange',
+					() => {
+						if (document.visibilityState !== 'hidden') {
+							scheduleReconcile();
+						}
+					},
+				]
+			);
 		}
-		const keys = resolveStorageKeys(storageConfig);
-		const watched = new Set<string | null>([
-			keys.consent,
-			keys.legacyConsent,
-			keys.notice,
-			keys.vendors,
-			keys.epoch,
-			// Another page called `localStorage.clear()`.
-			null,
-		]);
-		const onStorage = function onStorage(event: StorageEvent): void {
-			if (watched.has(event.key)) {
-				scheduleReconcile();
+		const toggle = (add: boolean) => {
+			for (const [target, type, listener] of listeners) {
+				target[add ? 'addEventListener' : 'removeEventListener'](
+					type,
+					listener
+				);
 			}
 		};
-		const onVisibilityChange = function onVisibilityChange(): void {
-			if (document.visibilityState !== 'hidden') {
-				scheduleReconcile();
-			}
-		};
-		window.addEventListener('storage', onStorage);
-		window.addEventListener('focus', scheduleReconcile);
-		document.addEventListener('visibilitychange', onVisibilityChange);
-		return () => {
-			window.removeEventListener('pagehide', onPageHide);
-			window.removeEventListener('storage', onStorage);
-			window.removeEventListener('focus', scheduleReconcile);
-			document.removeEventListener('visibilitychange', onVisibilityChange);
-		};
+		toggle(true);
+		return () => toggle(false);
 	};
 
 	if (!browser) {
@@ -357,25 +380,22 @@ export const mountPersistence = function mountPersistence(
 	}
 
 	if (!landedWriter() && listenable) {
-		// Load the write code before the visitor acts on a banner or dialog,
-		// so the first save rarely waits for it. Only once one has been
-		// shown: it never competes with showing it, and a visitor with
-		// nothing to answer downloads it only if they act.
-		const stop = kernel.events.on('surface:shown', () => {
-			stop();
-			afterLoadWhenIdle(() => {
+		// See `preloadWriter` for when the write code loads.
+		unsubscribers.push(
+			preloadWriter(kernel, () => {
 				if (!disposed) {
 					void withWriter();
 				}
-			});
-		});
-		unsubscribers.push(stop);
+			})
+		);
 	}
 
 	const removeListeners = installListeners();
 
 	return {
 		clear() {
+			// What any handle queued belongs to the cleared records.
+			queuedWrites.delete(consentKey);
 			state.choiceRecorded = false;
 			state.vendorsRecorded = false;
 			// The cleared subject is gone: an id generated by a save already
@@ -409,12 +429,9 @@ export const mountPersistence = function mountPersistence(
 			// A write queued in the current tick must not fire after dispose.
 			// Flushing synchronously keeps the last change durable without
 			// leaving a timer behind. Writes requested before the writer landed
-			// still land with it.
-			const landed = landedWriter();
-			if (landed) {
-				landed.dispose();
-				landed.flush();
-			}
+			// still land with it, and their `queuedWrites` entry stays until then.
+			landedWriter()?.dispose();
+			writer?.flush();
 		},
 		hydrate,
 		reconcile() {

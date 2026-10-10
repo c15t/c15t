@@ -127,7 +127,7 @@ await writeFile(
 	resolve(out, 'index.html'),
 	`<!doctype html><html lang="en"><meta charset="utf-8"><title>c15t Zaraz bridge verification</title><main><h1>Zaraz bridge verification</h1><p>This page uses a local Zaraz API fixture. It does not load Cloudflare Zaraz or send analytics.</p><pre id="result">Running browser checks…</pre></main><script src="/bridge-test.js"></script><script>window.verifyZarazBridge().then(checks => { document.querySelector('#result').textContent = checks.map(check => 'PASS: ' + check).join('\\n'); window.bridgeTestResult = { passed: true, checks }; }).catch(error => { document.querySelector('#result').textContent = error.message; window.bridgeTestResult = { passed: false, error: error.message }; });</script></html>`
 );
-const browser = await chromium.launch();
+const browser = await chromium.launch({ headless: true });
 try {
 	const pages = await Promise.all(
 		bundles.map(async (bundle) => {

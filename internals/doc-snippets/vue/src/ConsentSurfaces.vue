@@ -1,8 +1,10 @@
 <!-- #region docs:consent-surfaces title="src/ConsentSurfaces.vue" -->
 <script setup lang="ts">
-import ConsentBanner from 'c15t/vue/runtime/components/consent-banner.vue';
-import ConsentDialogTrigger from 'c15t/vue/runtime/components/consent-dialog-trigger.vue';
-import ConsentManager from 'c15t/vue/runtime/components/consent-manager.vue';
+import {
+	ConsentBanner,
+	ConsentDialogTrigger,
+	ConsentManager,
+} from 'c15t/vue/vue-plugin';
 </script>
 
 <template>

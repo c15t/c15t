@@ -29,7 +29,7 @@ import type {
  * import { hosted } from '@c15t/core';
  *
  * const runtime = createConsentRuntime({
- *   mode: hosted({ url: '/api/c15t' }),
+ *   mode: hosted({ backendURL: '/api/c15t' }),
  *   pkg: '@c15t/astro',
  * });
  * runtime.start();
@@ -165,7 +165,7 @@ export const defaultRuntimeModules: ConsentRuntimeModules = {
  * const runtime = createConsentRuntime({
  *   createIAB,
  *   iab: { cmpId: 123 },
- *   mode: hosted({ url: '/api/c15t' }),
+ *   mode: hosted({ backendURL: '/api/c15t' }),
  *   scripts: [{ category: 'measurement', id: 'ga', src: '...' }],
  * });
  * runtime.start();

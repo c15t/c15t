@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { ConsentBanner, ConsentManagerProvider, offline } from '@c15t/svelte';
+	import { ConsentBanner, ConsentProvider, offline } from '@c15t/svelte';
 	import type { Theme } from '@c15t/svelte';
 
 	import ForceBannerShow from '#lib/components/ForceBannerShow.svelte';
@@ -544,7 +544,7 @@
 	</div>
 
 	{#key key}
-		<ConsentManagerProvider
+		<ConsentProvider
 			options={{
 				mode: offline({
 					policyRules: [
@@ -565,7 +565,7 @@
 				layout={currentThemeData.layout ?? [['reject', 'accept'], 'customize']}
 				primaryButton={currentThemeData.primaryButton ?? ['customize']}
 			/>
-		</ConsentManagerProvider>
+		</ConsentProvider>
 	{/key}
 
 	<footer

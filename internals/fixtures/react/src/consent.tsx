@@ -11,8 +11,8 @@ import { scripts } from './scripts';
 import { testBackend } from './test-backend';
 
 const mode = hosted({
-	url: 'https://your-project.inth.app',
-	...testBackend('url'),
+	backendURL: 'https://your-project.inth.app',
+	...testBackend('backendURL'),
 });
 
 export const Consent = ({ children }: { children: ReactNode }) => (

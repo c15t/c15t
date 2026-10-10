@@ -16,7 +16,7 @@ import type { AstroConsentClient } from '../client';
 import * as reactPanelSurface from '../components/islands/panel-surface';
 import * as vuePanelSurface from '../components/islands/panel-surface.vue';
 import { resolveOptions } from '../integration';
-import { offlineMode } from '../mode';
+import { offline as offlineMode } from '../mode';
 import type { C15tUIAdapterName } from '../types';
 import { registerDialogAdapter, registerDialogSurface } from '../ui/adapter';
 import { buildProviderProps } from '../ui/provider-props';

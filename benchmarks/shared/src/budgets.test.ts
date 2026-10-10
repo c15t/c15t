@@ -1,6 +1,7 @@
 import { expect, it } from 'vitest';
 
 import {
+	artifactBudgets,
 	astroBrowserBudgetsForScenario,
 	bundleEntryBudgets,
 	nextjsBrowserBudgetsForScenario,
@@ -29,6 +30,11 @@ it.each([
 	{ limit: 5632, metric: 'initialGzip', scenario: 'kernel-hosted' },
 	{ limit: 12_288, metric: 'lazyGzip', scenario: 'kernel-hosted' },
 	{ limit: 3072, metric: 'gzipSize', scenario: 'kernel-hosted' },
+	{ limit: 5632, metric: 'initialGzip', scenario: 'browser-full' },
+	{ limit: 99_328, metric: 'lazyGzip', scenario: 'browser-full' },
+	{ limit: 3072, metric: 'gzipSize', scenario: 'browser-full' },
+	{ limit: 99_328, metric: 'lazyGzip', scenario: 'browser-headless' },
+	{ limit: 3072, metric: 'gzipSize', scenario: 'browser-headless' },
 ])(
 	'caps $scenario $metric growth at $limit bytes',
 	({ scenario, metric, limit }) => {
@@ -53,6 +59,20 @@ it.each([
 		).toBe(false);
 	}
 );
+
+it('caps @c15t/core tarball growth at 79,872 bytes over the v3 tarball', () => {
+	const budget = artifactBudgets.find((entry) => entry.metric === '@c15t/core');
+	expect.assert(budget);
+	const base = summarizeMetric(budget.metric, 'bytes', [323_549]);
+	const grownBy = (bytes: number) =>
+		evaluateBudget(
+			budget,
+			summarizeMetric(budget.metric, 'bytes', [323_549 + bytes]),
+			base
+		).pass;
+	expect(grownBy(79_872)).toBe(true);
+	expect(grownBy(79_873)).toBe(false);
+});
 
 it('requires zero init traffic on the consent-free TanStack baseline', () => {
 	expect(tanstackBrowserBudgetsForScenario('baseline')).toContainEqual({

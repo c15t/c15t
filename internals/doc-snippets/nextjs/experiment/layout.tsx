@@ -3,7 +3,6 @@ import { resolveConsent } from 'c15t/next/server';
 import { Suspense } from 'react';
 import type { ReactNode } from 'react';
 
-import { consentOptions } from '@/c15t.server';
 import { ExperimentConsent } from '@/components/experiment-consent';
 import { bannerExperiment } from '@/lib/experiment';
 import { bannerExperimentFlag } from '@/lib/flags';
@@ -13,7 +12,6 @@ import '@/styles/globals.css';
 const ResolvedConsent = async ({ children }: { children: ReactNode }) => {
 	const arm = await bannerExperimentFlag();
 	const state = await resolveConsent({
-		...consentOptions,
 		// `off` keeps this visitor out of the experiment.
 		experiment: arm === 'off' ? undefined : { ...bannerExperiment, arm },
 	});

@@ -33,8 +33,11 @@ the c15t repository use this setup.
 The recommended [quickstart](/docs/frameworks/react/quickstart) bundles the
 manifest and resolves it in the browser. See [build-time manifests](#bundle-the-manifest-during-vite-builds).
 
-For policy updates without rebuilding, use `hosted({ url })` from
-`c15t/react` as the mode. That runtime path works as follows:
+For policy updates without rebuilding, use `hosted()` from `c15t/react` as
+the mode. It reads the backend URL `consentManifest` read from
+`VITE_C15T_BACKEND_URL` or `VITE_INTH_PROJECT_URL`; without the plugin, pass
+`hosted({ backendURL })`.
+That runtime path works as follows:
 
 1. The page loads with no consent state. Every optional category is denied.
 2. `ConsentProvider` requests `GET /init` from your backend URL while it first
@@ -73,7 +76,7 @@ its own `<style>` element, so there is no stylesheet to import.
 This is optional. `fetchSSRData` from `c15t/react/server` calls the backend's
 `/init` from your server loader, forwarding the visitor's location and
 language headers. Pass the result to the browser, wrap it in a promise and give
-it to `hosted({ url, initialData })`. The provider's first init then uses that
+it to `hosted({ backendURL, initialData })`. The provider's first init then uses that
 response instead of a network request.
 
 Know its limits before you add it:
@@ -120,14 +123,14 @@ cache.
 
 ## Where the browser sends requests
 
-With `hosted({ url })`, the browser calls two backend endpoints:
+With `hosted()`, the browser calls two backend endpoints:
 
 | Request | When |
 | --- | --- |
 | `GET {url}/init` | Once per page load, to resolve the policy |
 | `POST {url}/subjects` | When the visitor accepts, rejects or saves |
 
-With a bundled manifest, `manifest({ backendURL })` sends the same
+With a bundled manifest, `manifest()` sends the same
 `/subjects` request, and requests `/init` only when the policy depends on a
 country or region the browser does not know.
 

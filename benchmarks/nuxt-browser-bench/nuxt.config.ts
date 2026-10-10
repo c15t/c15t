@@ -28,17 +28,14 @@ const config = {
 	routeRules: {
 		'/baseline-client': { ssr: false },
 		'/client': { ssr: false },
-		// The route plugin switches this page to client manifest mode in the
-		// browser, which the server cannot see, so its HTML must not start
-		// the hosted `/init` request.
+		// The route plugin switches this page to browser resolution, which
+		// the server cannot see in an `ssr: false` shell, so its HTML must
+		// not start the hosted `/init` request.
 		'/client-manifest': { c15t: { initPrefetch: false }, ssr: false },
 	},
 	runtimeConfig: {
 		public: {
 			benchBaseline: baselineBuild,
-			c15t: {
-				manifest: false,
-			},
 		},
 	},
 	typescript: {
@@ -91,8 +88,14 @@ if (baselineBuild) {
 				'marketing',
 			],
 			disableAnimation: true,
-			manifest: true,
-			manifestURL: getBenchManifestURL(),
+			// The fixture backend is this app, which isn't running during the
+			// build, so the server reads the manifest at runtime. The route
+			// plugin switches the other routes to `hosted()`.
+			mode: {
+				manifestURL: getBenchManifestURL(),
+				source: 'runtime',
+				type: 'manifest',
+			},
 			trapFocus: false,
 		},
 	});

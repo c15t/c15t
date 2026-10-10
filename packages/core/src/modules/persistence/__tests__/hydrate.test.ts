@@ -10,6 +10,7 @@ import {
 import { createKernel as createConsentKernel } from '../../../kernel';
 import { deleteConsentFromStorage, setCookie } from '../../../libs/cookie';
 import { STORAGE_KEY_V2 } from '../../../libs/storage-keys';
+import type { HydrationRecords } from '../../../types';
 import {
 	hydrateFromStorage,
 	readStoredRecords,
@@ -158,12 +159,14 @@ describe('readStoredRecordsFromCookieHeader', () => {
 });
 
 describe('hydrateFromStorage', () => {
+	const same = (records: HydrationRecords) => records;
+
 	test('returns null without storage APIs', () => {
 		const originalDocument = globalThis.document;
 		vi.stubGlobal('document', undefined);
 		try {
 			expect(
-				hydrateFromStorage(createConsentKernel(), undefined, NOW)
+				hydrateFromStorage(createConsentKernel(), undefined, NOW, same)
 			).toBeNull();
 		} finally {
 			vi.stubGlobal('document', originalDocument);
@@ -181,7 +184,7 @@ describe('hydrateFromStorage', () => {
 		kernel.events.on('choice:recorded', choiceRecorded);
 		kernel.events.on('permissions:changed', permissions);
 
-		const stored = hydrateFromStorage(kernel, undefined, NOW);
+		const stored = hydrateFromStorage(kernel, undefined, NOW, same);
 		expect(stored?.found).toBe(true);
 		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(true);
 		expect(kernel.getSnapshot().subject?.subjectId ?? null).toBe(

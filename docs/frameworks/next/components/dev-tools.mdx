@@ -30,9 +30,9 @@ export function ConsentDevTools() {
 }
 ```
 
-Import `ConsentDevTools` into your existing consent wrapper or App Router layout
-and render `<ConsentDevTools />` inside `ConsentRoot`. Keep its `state`,
-`config` and other props unchanged. A setup that uses `ConsentProvider`
+Import `ConsentDevTools` into your root layout or `pages/_app.tsx` and render
+`<ConsentDevTools />` inside `ConsentRoot`. Keep its `state` and other props
+unchanged. A setup that uses `ConsentProvider`
 directly can place the same component inside that provider.
 
 The umbrella import is `c15t/next/devtools`. When installing the dedicated

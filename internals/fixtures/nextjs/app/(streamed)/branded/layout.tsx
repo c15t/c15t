@@ -1,4 +1,4 @@
-import { ConsentTheme } from 'c15t/next';
+import { ConsentTheme } from 'c15t/react';
 import type { ReactNode } from 'react';
 
 import { brandTheme } from '@/lib/theme';

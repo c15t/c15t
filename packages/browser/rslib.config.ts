@@ -62,6 +62,16 @@ const scriptTagLib = function scriptTagLib(name: string, entry: string) {
 						'./create-runtime-static'
 					),
 					inlineDialog(),
+					// The write code is in the file already: no loader, no preload.
+					new rspack.NormalModuleReplacementPlugin(
+						/^\.\/writer-loader(?:\.js)?$/u,
+						(resource) => {
+							resource.request = resource.request.replace(
+								'writer-loader',
+								'writer-loader-static'
+							);
+						}
+					),
 					...(IAB_BUNDLES.has(name) ? [] : [iabBundleBoundary()]),
 					...(name === 'c15t' ? [modeBundleBoundary('hosted')] : []),
 					...(name === 'c15t.offline' ? [modeBundleBoundary('offline')] : []),

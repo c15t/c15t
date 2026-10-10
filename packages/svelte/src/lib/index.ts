@@ -2,8 +2,8 @@ export {
 	custom,
 	defaultTranslationConfig,
 	detectBrowserLanguage,
-	hosted,
 	mergeTranslationConfigs,
+	offline,
 	policyRulePresets,
 	prepareTranslationConfig,
 } from '@c15t/core';
@@ -33,7 +33,11 @@ export type {
 	NonIABVendor,
 	PolicyRule,
 	PolicyScopeMode,
+	ConsentMode,
+	HostedModeFactory,
 	HostedModeOptions,
+	OfflineModeFactory,
+	OfflineModeOptions,
 	ProviderTransportContext,
 	ProviderTransportFactory,
 	ProviderTransportKind,
@@ -69,11 +73,10 @@ export { default as ConsentButton } from './components/action-button.svelte';
 export { default as ConsentDialog } from './components/deferred-panel.svelte';
 export { default as ConsentDialogLink } from './components/panel-link.svelte';
 export { default as ConsentDialogTrigger } from './components/panel-trigger.svelte';
-export { default as ConsentManagerProvider } from './components/manager-provider.svelte';
+export { default as ConsentProvider } from './components/consent-provider.svelte';
+export { default as ConsentRoot } from './components/consent-root.svelte';
 export { default as ConsentWidget } from './components/preferences.svelte';
 export { default as ConsentGate } from './components/consent-gate.svelte';
-/** @deprecated Renamed to `ConsentGate`. */
-export { default as Frame } from './components/consent-gate.svelte';
 export { default as IABConsentBanner } from './components/iab-prompt.svelte';
 export { default as IABConsentDialog } from './components/iab-panel.svelte';
 export {
@@ -97,6 +100,7 @@ export {
 export type {
 	ConsentManagerOptions,
 	ConsentProviderCallbacks,
+	ConsentRootState,
 	ProviderIABOptions,
 	SvelteUIOptions,
 	UseNetworkBlockerOptions,
@@ -104,8 +108,11 @@ export type {
 	UseScriptLoaderOptions,
 } from './types';
 export type { DialogPreload } from './dialog-warming';
-export type { OfflineModeOptions } from './transports/offline';
-export { offline } from './transports/offline';
+export type { HostedOptions } from './transports/hosted';
+export { hosted } from './transports/hosted';
+export type { ManifestModeOptions } from './transports/manifest';
+export { manifest } from './transports/manifest';
+export type { BrowserManifestModeFactory } from '@c15t/core/transports/manifest-browser';
 
 export type { ConsentManagerState, ConsentDraftState } from './context.svelte';
 export { resolveConsentPresentation } from '@c15t/core';

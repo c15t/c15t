@@ -1,83 +1,87 @@
-import { existsSync } from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { createConsentManifestPlugin } from '@c15t/core/build';
+import type {
+	ConsentManifestPlugin,
+	ConsentManifestPluginOptions,
+} from '@c15t/core/build';
 
-import { consentManifest as createManifestPlugin } from '@c15t/core/build';
-import type { ManifestBuildOptions } from '@c15t/core/build';
-import type { Plugin } from 'vite';
-
-const dir = path.dirname(fileURLToPath(import.meta.url));
+export type {
+	ConsentManifest,
+	ConsentManifestPluginOptions,
+	ManifestBuildErrorMode,
+	ManifestBuildOptions,
+} from '@c15t/core/build';
 
 /**
- * Source builds ship .ts, dist builds ship .js — resolve whichever exists
- * (hardcoding .ts broke every consumer of the published package; the Nuxt
- * module entry probes the same way).
+ * Packages that ship `.vue` files. Vite's dependency pre-bundling cannot
+ * load them, so they stay out of it, along with the `c15t` umbrella that
+ * re-exports them.
  */
-const resolveRuntimeModule = function resolveRuntimeModule(
-	...candidates: string[]
-): string {
-	return candidates
-		.map((candidate) => path.resolve(dir, candidate))
-		.find((candidatePath) => existsSync(candidatePath)) as string;
+const VUE_SOURCE_PACKAGES = ['@c15t/vue', 'c15t'];
+
+/** What {@link consentManifest} returns: one Vite plugin. */
+export type VueConsentManifestPlugin = Omit<ConsentManifestPlugin, 'config'> & {
+	config: () => ReturnType<ConsentManifestPlugin['config']>;
 };
 
-const stubPath = resolveRuntimeModule(
-	'./runtime/vue/stubs.ts',
-	'./runtime/vue/stubs.js'
-);
-
-const composablesPath = resolveRuntimeModule(
-	'./runtime/composables/index.ts',
-	'./runtime/composables/index.js'
-);
-
 /**
- * Resolve the Nuxt-shaped specifiers `@c15t/vue`'s shared runtime uses.
+ * The c15t Vite plugin for a plain Vue app. It serves the deployment's
+ * consent manifest and backend URL as the virtual module
+ * `@c15t/core/generated` (also `c15t/generated`), which `manifest()` and
+ * `hosted()` from `c15t/vue/vue-plugin` read. No file is written into the
+ * app. It also keeps `@c15t/vue`, whose components are `.vue` files, out of
+ * dependency pre-bundling.
  *
- * `#imports` and `#c15t/composables` are Nuxt virtuals; a plain Vue or
- * Astro app has neither. Both are answered from `resolveId` rather than
- * `resolve.alias` alone: a host that sets its own aliases in array form
- * (Astro does) replaces the object this plugin's `config()` contributes
- * instead of merging with it, and the composables specifier then reaches
- * Rollup unresolved. The alias stays for anything that reads it directly.
+ * `backendURL` defaults to `VITE_C15T_BACKEND_URL`, then
+ * `VITE_INTH_PROJECT_URL`, including `.env` files. When
+ * `VITE_C15T_BACKEND_URL` is unset, the plugin sets
+ * `import.meta.env.VITE_C15T_BACKEND_URL` to the URL it used, so app code
+ * reads the same value.
  *
- * @returns The Vite plugin to list in a non-Nuxt app's config.
+ * `vite build` fetches the manifest only when the bundle uses `manifest()`,
+ * so a `hosted()` or `offline()` build never depends on the backend. With
+ * `manifest()`, a missing URL or a failed fetch stops `vite build`. `vite
+ * dev` fetches when the app first loads the module and only warns, and
+ * `manifest()` then fetches the manifest when the app starts. Set
+ * `onBuildError` or `C15T_ON_BUILD_ERROR` to change that. When the policy
+ * depends on the visitor's location, the build warns and suggests
+ * `hosted()`. With `manifest({ manifestURL })` or
+ * `manifest({ source: 'runtime' })`, pass `source: 'runtime'` here too, so
+ * the build never fetches a snapshot the app would discard.
+ *
+ * @param options - Backend URL, `onBuildError` and `source`. Appends
+ * `/manifest`.
+ * @returns A Vite plugin.
+ * @throws {Error} When the fetch fails in `'fail'` mode, the default for
+ * `vite build`.
+ * @example
+ * ```ts
+ * import vue from '@vitejs/plugin-vue';
+ * import { consentManifest } from 'c15t/vue/vite';
+ * import { defineConfig } from 'vite';
+ *
+ * export default defineConfig({
+ * 	plugins: [vue(), consentManifest()],
+ * });
+ * ```
  */
-export const c15tVue = function c15tVue(): Plugin {
+export const consentManifest = (
+	options: ConsentManifestPluginOptions = {}
+): VueConsentManifestPlugin => {
+	const plugin = createConsentManifestPlugin(options, {
+		adviseHostedForLocation: true,
+		envNames: ['VITE_C15T_BACKEND_URL', 'VITE_INTH_PROJECT_URL'],
+		label: '@c15t/vue/vite',
+	});
 	return {
-		config() {
+		...plugin,
+		config: () => {
+			const config = plugin.config();
 			return {
-				resolve: {
-					alias: {
-						'#c15t/composables': composablesPath,
-					},
+				...config,
+				optimizeDeps: {
+					exclude: [...config.optimizeDeps.exclude, ...VUE_SOURCE_PACKAGES],
 				},
 			};
 		},
-		enforce: 'pre',
-		name: '@c15t/vue',
-		resolveId(id) {
-			if (id === '#imports') {
-				return stubPath;
-			}
-			if (id === '#c15t/composables') {
-				return composablesPath;
-			}
-		},
 	};
 };
-
-export default c15tVue;
-export type { ConsentManifest, ManifestBuildOptions } from '@c15t/core/build';
-
-/**
- * Generates a manifest before plain Vue compilation.
- * @param options - Backend URL and generated module settings. Appends `/manifest`.
- * @returns A Vite plugin using `@c15t/vue/vite` for its type import.
- * @throws {Error} When the manifest cannot be fetched or written.
- */
-export const consentManifest = (options: ManifestBuildOptions) =>
-	createManifestPlugin({
-		...options,
-		importSource: options.importSource ?? '@c15t/vue/vite',
-	});

@@ -19,7 +19,7 @@ const backendURL =
 	import.meta.env.VITE_C15T_BACKEND_URL ?? 'https://your-project.inth.app';
 
 // No loader: the HTML is built ahead of time, so the browser resolves
-// consent after it loads.
+// consent after it loads, from the backend URL consentManifest() read.
 const RootComponent = () => (
 	<html lang="en">
 		<head>
@@ -28,8 +28,6 @@ const RootComponent = () => (
 		<body>
 			<ConsentRoot
 				state={{}}
-				backendURL={backendURL}
-				initRoute={false}
 				scripts={scripts}
 			>
 				<Outlet />

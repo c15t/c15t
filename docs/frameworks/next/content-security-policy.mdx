@@ -24,62 +24,29 @@ leaves the framework scripts without a nonce and the browser blocks hydration.
 `c15tProxy` copies the incoming request headers into the forwarded request, so
 both headers travel with the geography headers.
 
-Add a `nonce` prop to the `Consent` wrapper from the
-[App Router guide](/docs/frameworks/next/app-router):
-
-```tsx title="components/consent.tsx (partial)"
-'use client';
-
-import { ConsentRoot } from 'c15t/next';
-import type { ConsentRootProps } from 'c15t/next';
-import type { ReactNode } from 'react';
-
-import { consentConfig } from '@/c15t.config';
-import { scripts } from '@/lib/scripts';
-
-interface ConsentProps {
-	children: ReactNode;
-	state: ConsentRootProps['state'];
-	nonce?: string;
-}
-
-export function Consent({ children, state, nonce }: ConsentProps) {
-	return (
-		<ConsentRoot
-			state={state}
-			config={consentConfig}
-			options={{ nonce }}
-			scripts={scripts}
-		>
-			{children}
-			{/* banner, dialog and footer as in the App Router guide */}
-		</ConsentRoot>
-	);
-}
-```
-
-Then read the header in the async consent component from the App Router guide
-and pass it through:
+Then read the header in the root layout and pass it to `ConsentRoot` as
+`options.nonce`. A string can cross from a Server Component to a Client
+Component, so no wrapper is needed:
 
 ```tsx title="app/layout.tsx"
+import { ConsentBanner, ConsentDialog, ConsentRoot } from 'c15t/next';
 import { resolveConsent } from 'c15t/next/server';
 import { headers } from 'next/headers';
 import { Suspense } from 'react';
 import type { ReactNode } from 'react';
 
-import { consentConfig } from '@/c15t.config';
-import { Consent } from '@/components/consent';
-
-import '@/styles/globals.css';
+import './globals.css';
 
 async function ResolvedConsent({ children }: { children: ReactNode }) {
 	const nonce = (await headers()).get('x-nonce') ?? undefined;
-	const state = await resolveConsent({ config: consentConfig });
+	const state = await resolveConsent();
 
 	return (
-		<Consent state={state} nonce={nonce}>
+		<ConsentRoot state={state} options={{ nonce }}>
 			{children}
-		</Consent>
+			<ConsentBanner />
+			<ConsentDialog />
+		</ConsentRoot>
 	);
 }
 
@@ -158,19 +125,19 @@ It does not apply to anything else:
 The browser sends consent submissions to `${backendURL}/subjects`, and, when
 the browser initializes or retries after a failed server prefetch, requests to
 `${backendURL}/init` or the manifest URL. Add the backend origin to
-`connect-src`, and the manifest origin too when `manifestURL` is an absolute
-URL on a different host such as a CDN:
+`connect-src`, and the manifest origin too when the mode's `manifestURL` is an
+absolute URL on a different host such as a CDN:
 
 ```txt title="Content-Security-Policy (partial)"
 connect-src 'self' https://<your-backend-host> https://<your-manifest-host>;
 ```
 
 Use the endpoint host supplied by your Inth project or your self-hosted backend.
-When you use the same-origin rewrite from
-[Optimization](/docs/frameworks/next/optimization), `backendURL` is `/api/c15t`
-and `'self'` already covers the browser requests; the Next.js server connects to
-the backend outside the browser's CSP. A local manifest route at
-`/api/c15t/manifest` is also same-origin.
+With `proxy: true` and `routePrefix: '/api/c15t'`, as
+[Optimization](/docs/frameworks/next/optimization#keep-browser-consent-requests-on-your-origin)
+shows, the browser sends every consent request to `/api/c15t` and `'self'`
+covers them; the Next.js server connects to the backend outside the browser's
+CSP.
 
 IAB TCF policies can fetch the Global Vendor List from the URL the policy
 provides; allow that host in `connect-src` if you use the

@@ -4,14 +4,13 @@
  * `@c15t/core`'s provider runtime owns behaviour: the kernel, persistence,
  * the script loader, the blockers, IAB, callbacks, the prefetch adoption
  * and teardown. This module owns expression: it turns the Vue and Nuxt
- * config into runtime options (the hosted and manifest transports are the
- * runtime's `mode`), and exposes the kernel to components as Vue refs. One
+ * config into runtime options, takes the transport factory the plugin
+ * chose as the runtime's `mode`, and exposes the kernel to components as
+ * Vue refs. One
  * runtime serves one app; the plugin provides it through
  * {@link provideVueConsentContext}.
  */
 import {
-	c15tProtocolHeaders,
-	createHostedTransport,
 	IABUnavailableError,
 	initOutputToKernelConfig,
 	policyNeedsIAB,
@@ -22,10 +21,8 @@ import type {
 	ConsentKernel,
 	ConsentSnapshot,
 	HydrationRecords,
-	InitResponse,
 	KernelActiveUI,
 	KernelConfig,
-	KernelTransport,
 	ProviderTransportFactory,
 } from '@c15t/core';
 import { createIframeBlocker } from '@c15t/core/modules/iframe-blocker';
@@ -59,21 +56,12 @@ import type {
 } from '@c15t/core/runtime/provider';
 import { showConsentSurface } from '@c15t/core/surface-actions';
 import type { ConsentActiveUI } from '@c15t/schema/config';
-import {
-	CONSENT_REQUEST_HEADER_NAMES,
-	extractConsentRequestInputs,
-} from '@c15t/schema/types';
-import type { ConsentManifest, InitOutput } from '@c15t/schema/types';
+import { CONSENT_REQUEST_HEADER_NAMES } from '@c15t/schema/types';
+import type { InitOutput } from '@c15t/schema/types';
 import { computed, shallowRef } from 'vue';
 import type { App, Ref } from 'vue';
 
-import type * as ClientManifestModule from './client-manifest';
 import type { ConsentConfig } from './config';
-import {
-	isClientManifestModeEnabled,
-	isServerManifestModeEnabled,
-	resolveClientManifestURL,
-} from './manifest';
 import {
 	symbolActiveUI,
 	symbolConsent,
@@ -177,8 +165,6 @@ export type RuntimeConsentConfig = ConsentConfig & {
 	 */
 	nonce?: string;
 	storageConfig?: StorageConfig;
-	customFetch?: typeof fetch;
-	domain?: string;
 	/**
 	 * Block matching network requests until the mapped consent category is
 	 * granted. Same shape as the react/svelte `networkBlocker` option;
@@ -295,294 +281,23 @@ const snapshotToDisplayData = function snapshotToDisplayData(
 	};
 };
 
-export const getNuxtInitFetchTarget = function getNuxtInitFetchTarget(
-	config: Partial<RuntimeConsentConfig>
-):
-	| {
-			url: string;
-			baseURL?: string;
-	  }
-	| undefined {
-	if (isClientManifestModeEnabled(config)) {
-		return undefined;
-	}
-	if (isServerManifestModeEnabled(config)) {
-		return {
-			url: config.initRoute ?? '/api/c15t/init',
-		};
-	}
-	return {
-		baseURL: config.backendURL,
-		url: '/init',
-	};
-};
-
-const getBrowserLanguage = function getBrowserLanguage(): string | undefined {
-	if (typeof navigator === 'undefined') {
-		return undefined;
-	}
-	return navigator.language || navigator.languages?.[0];
-};
-
-const getBrowserGpc = function getBrowserGpc(): boolean | undefined {
-	if (typeof navigator === 'undefined') {
-		return undefined;
-	}
-	try {
-		const value = (navigator as Navigator & { globalPrivacyControl?: unknown })
-			.globalPrivacyControl;
-		return typeof value === 'boolean' ? value : undefined;
-	} catch {
-		return undefined;
-	}
-};
-
-const getManifestInputs = function getManifestInputs(
-	config: RuntimeConsentConfig,
-	headers: Record<string, string>
-) {
-	if (isClientManifestModeEnabled(config)) {
-		const contextualHeaders = { ...headers };
-		const browserLanguage = getBrowserLanguage();
-		if (browserLanguage) {
-			contextualHeaders['accept-language'] = browserLanguage;
-		}
-
-		const inputs = extractConsentRequestInputs(contextualHeaders);
-		return {
-			country: null,
-			gpc: getBrowserGpc() ?? inputs.gpc,
-			language: inputs.language ?? 'en',
-			region: null,
-		};
-	}
-
-	const inputs = extractConsentRequestInputs(headers);
-	return {
-		country: inputs.country ?? null,
-		gpc: inputs.gpc,
-		language: inputs.language ?? 'en',
-		region: inputs.region ?? null,
-	};
-};
-
 /**
- * Hosted transport for Nuxt. `initURL` selects server manifest mode: init
- * goes through the same-origin Nuxt route, which resolves the manifest on
- * the server and never issues a policy snapshot token, so saves assert the
- * decision inputs instead. Each init builds its own transport so the
- * override-derived headers apply; saves go through whichever transport
- * completed the latest init so those remembered inputs stay attached.
+ * The runtime `mode`: the test transport when one is given, otherwise the
+ * factory the plugin chose.
  */
-const createVueHostedTransport = function createVueHostedTransport(
-	config: RuntimeConsentConfig,
-	headers: Record<string, string>,
-	initURL?: string
-): KernelTransport {
-	const backendURL = config.backendURL ?? '/api/c15t';
-	const assertDecisionInputs = initURL !== undefined;
-	const baseTransport = createHostedTransport({
-		assertDecisionInputs,
-		backendURL,
-		domain: config.domain,
-		fetch: config.customFetch,
-		headers,
-		initURL,
-	});
-	let activeTransport = baseTransport;
-
-	return {
-		...baseTransport,
-		async init(ctx) {
-			// Country, region and GPC overrides reach `/init` from `ctx` as
-			// query parameters; as headers here they would cost a cross-origin
-			// init a CORS preflight.
-			const initHeaders = { ...headers };
-			if (ctx.overrides.language) {
-				initHeaders['accept-language'] = ctx.overrides.language;
-			}
-
-			const contextualHeaders = pickAllowedInitHeaders(initHeaders);
-			const contextualTransport = createHostedTransport({
-				assertDecisionInputs,
-				backendURL,
-				domain: config.domain,
-				fetch: config.customFetch,
-				headers: contextualHeaders,
-				initURL,
-			});
-			const response =
-				(await contextualTransport.init?.(ctx)) ?? ({} as InitResponse);
-			activeTransport = contextualTransport;
-			return response;
-		},
-		save(payload) {
-			return activeTransport.save?.(payload) ?? Promise.resolve({ ok: true });
-		},
-	};
-};
-
-type Settled<Value> =
-	| { ok: true; value: Value }
-	| { ok: false; error: unknown };
-
-const settle = async function settle<Value>(
-	promise: Promise<Value>
-): Promise<Settled<Value>> {
-	try {
-		return { ok: true, value: await promise };
-	} catch (error) {
-		return { error, ok: false };
-	}
-};
-
-type ClientManifestResources = typeof ClientManifestModule;
-
-let bundledClientManifest: ClientManifestResources | undefined;
-
-/**
- * Hand the kernel client manifest resources that are already part of the
- * app's entry, so it uses them instead of importing its own chunk. Nuxt's
- * client manifest mode registers them from a plugin that imports them
- * statically: that mode resolves the manifest at startup, and a static
- * import lets the page preload the resolver instead of fetching it after
- * the entry runs.
- *
- * @param resources - The `./client-manifest` module, or `undefined` to
- * go back to importing it on demand.
- * @internal
- */
-export const registerClientManifest = function registerClientManifest(
-	resources: ClientManifestResources | undefined
-): void {
-	bundledClientManifest = resources;
-};
-
-const createVueManifestTransport = function createVueManifestTransport(
-	config: RuntimeConsentConfig,
-	headers: Record<string, string>,
-	prefetch: InitOutput | undefined
-): KernelTransport {
-	const backendURL = config.backendURL ?? '/api/c15t';
-	const manifestURL = resolveClientManifestURL(config);
-	const hostedTransport = createHostedTransport({
-		backendURL,
-		domain: config.domain,
-		fetch: config.customFetch,
-		headers,
-	});
-	let manifestTransport: KernelTransport | undefined;
-
-	const fetchManifest =
-		async function fetchManifest(): Promise<ConsentManifest> {
-			if (config.manifestSnapshot) {
-				return config.manifestSnapshot;
-			}
-			const fetchImpl =
-				config.customFetch ?? globalThis.fetch?.bind(globalThis);
-			if (!fetchImpl) {
-				throw new Error(
-					'createManifestTransport: no fetch available. Pass `fetch` in options.'
-				);
-			}
-
-			const response = await fetchImpl(manifestURL, {
-				credentials: 'include',
-				headers: {
-					accept: 'application/json',
-					...c15tProtocolHeaders,
-					...headers,
-				},
-				method: 'GET',
-			});
-			if (!response.ok) {
-				throw new Error(
-					`c15t manifest transport: /manifest responded ${response.status} ${response.statusText}`
-				);
-			}
-
-			return response.json();
-		};
-
-	// Settled, never rejecting: a failed eager load must not surface as an
-	// unhandled rejection before `init()` awaits it. `init()` rethrows.
-	const loadClientResources = function loadClientResources() {
-		return settle(
-			Promise.all([
-				bundledClientManifest ?? import('./client-manifest'),
-				fetchManifest(),
-			])
-		);
-	};
-
-	// Started eagerly so the resolver and manifest fetch overlap hydration.
-	// A failed load is dropped so the kernel's next init attempt fetches
-	// again instead of replaying the cached failure until a page reload.
-	let clientResources =
-		typeof window === 'undefined' ? undefined : loadClientResources();
-
-	return {
-		...hostedTransport,
-		async init(ctx) {
-			if (typeof window === 'undefined') {
-				return {};
-			}
-
-			clientResources ??= loadClientResources();
-			const loaded = await clientResources;
-			if (!loaded.ok) {
-				clientResources = undefined;
-				throw loaded.error;
-			}
-			const [{ baseTranslations, createManifestTransport }, manifest] =
-				loaded.value;
-			manifestTransport ??= createManifestTransport({
-				backendURL,
-				baseTranslations,
-				domain: config.domain,
-				fetch: config.customFetch,
-				headers,
-				initialInit: prefetch,
-				inputs: getManifestInputs(config, headers),
-				manifest,
-				manifestURL,
-			});
-			return manifestTransport.init?.(ctx) ?? {};
-		},
-		async save(payload) {
-			return (
-				(await manifestTransport?.save?.(payload)) ??
-				(await hostedTransport.save?.(payload)) ?? { ok: true }
-			);
-		},
-	};
-};
-
-/** The runtime `mode` for one Vue config: hosted, or the browser manifest. */
-const createVueTransportFactory = function createVueTransportFactory(
-	config: RuntimeConsentConfig,
-	headers: Record<string, string>,
-	prefetch: InitOutput | undefined,
-	transport: KernelTransport | undefined
+const resolveTransportFactory = function resolveTransportFactory(
+	mode: ProviderTransportFactory | undefined,
+	transport: KernelConfig['transport']
 ): ProviderTransportFactory {
-	const create = (): KernelTransport => {
-		if (transport) {
-			return transport;
-		}
-		if (isClientManifestModeEnabled(config)) {
-			return createVueManifestTransport(config, headers, prefetch);
-		}
-		return createVueHostedTransport(
-			config,
-			headers,
-			isServerManifestModeEnabled(config)
-				? getNuxtInitFetchTarget(config)?.url
-				: undefined
+	if (transport) {
+		return Object.assign(() => transport, { kind: 'custom' as const });
+	}
+	if (!mode) {
+		throw new Error(
+			'c15t: pass `mode`, such as `app.use(c15tVue, { mode: manifest() })` with `manifest` from `c15t/vue/vue-plugin`.'
 		);
-	};
-	return Object.assign(create, {
-		kind: transport ? ('custom' as const) : ('hosted' as const),
-	});
+	}
+	return mode;
 };
 
 /**
@@ -650,21 +365,17 @@ const mountIABUnderIABPolicy: NonNullable<ConsentRuntimeModules['mountIAB']> = (
  * a `consentSource` connection load only for apps that configure them,
  * each as one chunk that imports nothing the first load has.
  */
-const createVueRuntimeModules = function createVueRuntimeModules(
-	windowMode: 'hosted' | 'manifest'
-): ConsentRuntimeModules {
-	return {
-		...onDemandRuntimeModules,
-		createIframeBlocker,
-		createPersistence,
-		// Vue reports its manifest modes as `manifest`, which no transport
-		// factory kind names.
-		createWindowDebug: (options) =>
-			createWindowDebug({ ...options, mode: windowMode }),
-		mountIAB: mountIABUnderIABPolicy,
-		watchRevocationReload,
+const createVueRuntimeModules =
+	function createVueRuntimeModules(): ConsentRuntimeModules {
+		return {
+			...onDemandRuntimeModules,
+			createIframeBlocker,
+			createPersistence,
+			createWindowDebug,
+			mountIAB: mountIABUnderIABPolicy,
+			watchRevocationReload,
+		};
 	};
-};
 
 /**
  * The runtime options a Vue config maps to. Everything but `mode`,
@@ -702,63 +413,6 @@ const toRuntimeOptions = function toRuntimeOptions(
 		theme: config.theme,
 		vendors: config.vendors,
 	};
-};
-
-const normalizeGeoValue = function normalizeGeoValue(
-	value: unknown
-): string | undefined {
-	return typeof value === 'string' && value.trim()
-		? value.trim().toUpperCase()
-		: undefined;
-};
-
-/**
- * Client manifest mode resolves with an unknown location first. With a
- * `geoURL`, fetch the visitor's country and region once that first init
- * settles and resolve again with them.
- */
-const refreshClientGeo = async function refreshClientGeo(
-	runtime: ConsentRuntime,
-	config: RuntimeConsentConfig,
-	isActive: () => boolean
-): Promise<void> {
-	if (!config.geoURL) {
-		return;
-	}
-	try {
-		const fetchImpl = config.customFetch ?? globalThis.fetch.bind(globalThis);
-		const response = await fetchImpl(config.geoURL, {
-			credentials: 'same-origin',
-			headers: { accept: 'application/json' },
-			method: 'GET',
-		});
-		if (!response.ok) {
-			return;
-		}
-		const payload = (await response.json()) as {
-			country?: unknown;
-			region?: unknown;
-		};
-		const country = normalizeGeoValue(payload.country);
-		const region = normalizeGeoValue(payload.region);
-		// The runtime may have been torn down while the geo fetch was in
-		// flight; re-arming a disposed kernel would leak its retry listeners.
-		if (!(country || region) || !isActive()) {
-			return;
-		}
-		const overrides: { country?: string; region?: string } = {};
-		if (country) {
-			overrides.country = country;
-		}
-		if (region) {
-			overrides.region = region;
-		}
-		runtime.setOverrides(overrides);
-		await runtime.reinit();
-	} catch {
-		// Keep the manifest's unknown-location result when the optional geo
-		// microfetch is unavailable.
-	}
 };
 
 /** Where an app sets `iab`, for the fix an {@link IABUnavailableError} names. */
@@ -832,6 +486,13 @@ const createIABGuard = function createIABGuard(
 /** What {@link createVueConsentKernelContext} builds a context from. */
 export interface VueConsentContextOptions {
 	config: RuntimeConsentConfig;
+	/**
+	 * Where the policy comes from: a transport factory such as `manifest()`
+	 * or `hosted()` from `@c15t/vue/vue-plugin`, or the one the Nuxt plugin
+	 * builds from its `mode` data. Required unless `runtime` or a test
+	 * `transport` is given.
+	 */
+	mode?: ProviderTransportFactory;
 	/** The request's consent headers (Nuxt), for init and the manifest inputs. */
 	headers?: Record<string, string | undefined>;
 	/** A resolved `/init` answer to start from (`config.prefetch` otherwise). */
@@ -850,7 +511,7 @@ export interface VueConsentContextOptions {
 	now?: number;
 	/**
 	 * Kernel configuration merged over the prefetch; a `transport` replaces
-	 * the hosted or manifest one. A test seam.
+	 * the `mode`. A test seam.
 	 *
 	 * @internal
 	 */
@@ -937,20 +598,10 @@ export const createVueConsentKernelContext =
 				{
 					...runtimeOptions,
 					createIAB,
-					mode: createVueTransportFactory(
-						config,
-						headers,
-						initOutput,
-						transport
-					),
+					mode: resolveTransportFactory(options.mode, transport),
 					prefetch,
 				},
-				createVueRuntimeModules(
-					isClientManifestModeEnabled(config) ||
-						isServerManifestModeEnabled(config)
-						? 'manifest'
-						: 'hosted'
-				)
+				createVueRuntimeModules()
 			);
 		}
 		const runtime: ConsentRuntime = borrowed ?? (owned as ConsentRuntime);
@@ -992,7 +643,6 @@ export const createVueConsentKernelContext =
 		const storedConsent = computed(() => snapshot.value.explicitChoice);
 
 		let active = true;
-		const isActive = () => active;
 
 		return {
 			activeUI,
@@ -1030,18 +680,6 @@ export const createVueConsentKernelContext =
 					return;
 				}
 				owned.start();
-				if (
-					owned.started &&
-					isClientManifestModeEnabled(config) &&
-					config.geoURL
-				) {
-					const stop = kernel.events.on('command:init:completed', () => {
-						stop();
-						if (active && owned) {
-							void refreshClientGeo(owned, config, isActive);
-						}
-					});
-				}
 			},
 			storedConsent,
 			update(next) {

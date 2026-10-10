@@ -29,6 +29,16 @@ describe('benchmark package selection', () => {
 		}
 	);
 
+	it('measures the examples payload as its own profile', () => {
+		expect(createBenchmarkPlan('examples')).toEqual({
+			expectedPackages: ['@c15t/examples-payload-bench'],
+			only: [],
+			packages: ['@c15t/examples-payload-bench'],
+			skip: [],
+			suites: ['examples-payload'],
+		});
+	});
+
 	it('selects one core-benchmarks shard by its matrix id', () => {
 		expect(createBenchmarkPlan('quick', 'core-benchmarks-california')).toEqual({
 			expectedPackages: ['@c15t/core-benchmarks'],
@@ -42,6 +52,7 @@ describe('benchmark package selection', () => {
 	it.each([
 		['quick', 4],
 		['full', 10],
+		['examples', 1],
 	])('emits %s matrix jobs with unique artifact names', (mode, count) => {
 		const output = execFileSync(
 			'bun',

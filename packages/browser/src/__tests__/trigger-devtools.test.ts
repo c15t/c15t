@@ -5,9 +5,9 @@
 import type { DevToolsInstance } from '@c15t/dev-tools';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { createConsentClient } from '../client';
 import { mountDevTools } from '../devtools';
 import type { C15tGlobalBase } from '../global-base';
+import { createScriptTagConsentClient as createConsentClient } from '../script-tag-client';
 import type {
 	ConsentClient,
 	ConsentClientOptions,

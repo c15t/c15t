@@ -1,28 +1,25 @@
 <!-- #region docs:app -->
 <script lang="ts">
-	import { manifest } from '@c15t/browser/headless';
+	import { posthog } from '@c15t/integrations/posthog';
 	import {
 		ConsentBanner,
 		ConsentDialog,
 		ConsentDialogLink,
-		ConsentManagerProvider,
+		ConsentProvider,
+		manifest,
 	} from '@c15t/svelte';
 
-	// Written by the consentManifest plugin in vite.config.ts.
-	import { consentManifest } from './c15t-manifest';
-	import { scripts } from './scripts';
-
-	const mode = manifest({
-		// Consent choices still go to the backend.
-		backendURL:
-			import.meta.env.VITE_C15T_BACKEND_URL ||
-			'https://benchmarks-inth.inth.app',
-		manifest: consentManifest,
-	});
+	const scripts = [
+		posthog({
+			id: 'phc_your_project_key',
+			initOptions: { cookieless_mode: 'never' },
+			loadMode: 'after-consent',
+		}),
+	];
 </script>
 
-<ConsentManagerProvider
-	{mode}
+<ConsentProvider
+	mode={manifest()}
 	{scripts}
 >
 	<main>
@@ -34,5 +31,5 @@
 	</footer>
 	<ConsentBanner />
 	<ConsentDialog />
-</ConsentManagerProvider>
+</ConsentProvider>
 <!-- #endregion docs:app -->

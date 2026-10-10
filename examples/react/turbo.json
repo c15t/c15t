@@ -4,7 +4,7 @@
 	"tasks": {
 		"build": {
 			"env": ["VITE_C15T_BACKEND_URL"],
-			"outputs": ["dist/**", "src/c15t-manifest.ts"]
+			"outputs": ["dist/**"]
 		}
 	}
 }

@@ -20,7 +20,7 @@ import {
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
-import { ConsentRoot, DEFAULT_INIT_ROUTE } from '../root';
+import { ConsentRoot } from '../root';
 import type { ConsentState } from '../server';
 import { policyFixture } from './policy-fixture';
 
@@ -58,6 +58,10 @@ const deferred = function deferred() {
 	return { promise, resolve: settle };
 };
 
+// The server function's config, as `createConsentStateHandler({
+// routePrefix: '/api/c15t', proxy: true })` puts it on the state.
+const sameOrigin = { backendURL: '/api/c15t', routePrefix: '/api/c15t' };
+
 const initResponse = () =>
 	Response.json({
 		branding: 'c15t',
@@ -71,7 +75,6 @@ describe('ConsentRoot: streamed state', () => {
 		const { promise } = deferred();
 		const html = renderToString(
 			<ConsentRoot
-				backendURL="/api/c15t"
 				persistence={false}
 				state={promise}
 			>
@@ -91,7 +94,6 @@ describe('ConsentRoot: streamed state', () => {
 		try {
 			const { getByTestId } = await render(
 				<ConsentRoot
-					backendURL="/api/c15t"
 					persistence={false}
 					state={promise}
 				>
@@ -104,7 +106,7 @@ describe('ConsentRoot: streamed state', () => {
 				.element(getByTestId('status'))
 				.toHaveTextContent('pending/none/false');
 
-			resolveState(policyFixture());
+			resolveState({ ...policyFixture(), ...sameOrigin });
 			await expect
 				.element(getByTestId('status'))
 				.toHaveTextContent('opt-in/banner/false');
@@ -132,7 +134,6 @@ describe('ConsentRoot: streamed state', () => {
 		try {
 			await render(
 				<ConsentRoot
-					backendURL="/api/c15t"
 					persistence={false}
 					state={promise}
 				>
@@ -145,11 +146,11 @@ describe('ConsentRoot: streamed state', () => {
 			});
 			expect(fetchSpy).not.toHaveBeenCalled();
 
-			resolveState({ initialOverrides: { country: 'DE' } });
+			resolveState({ initialOverrides: { country: 'DE' }, ...sameOrigin });
 			await vi.waitFor(() => {
 				expect(fetchSpy).toHaveBeenCalled();
 			});
-			expect(String(fetchSpy.mock.calls[0]?.[0])).toContain(DEFAULT_INIT_ROUTE);
+			expect(String(fetchSpy.mock.calls[0]?.[0])).toContain('/api/c15t/init');
 		} finally {
 			fetchSpy.mockRestore();
 		}

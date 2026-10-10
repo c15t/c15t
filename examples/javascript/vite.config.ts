@@ -1,17 +1,8 @@
 // #region docs:vite-config
 import { consentManifest } from 'c15t/build';
-import { defineConfig, loadEnv } from 'vite';
+import { defineConfig } from 'vite';
 
-export default defineConfig(({ mode }) => {
-	const env = loadEnv(mode, process.cwd(), 'VITE_');
-	return {
-		plugins: [
-			// Downloads the policy and writes src/c15t-manifest.ts.
-			consentManifest({
-				backendURL:
-					env.VITE_C15T_BACKEND_URL ?? 'https://benchmarks-inth.inth.app',
-			}),
-		],
-	};
+export default defineConfig({
+	plugins: [consentManifest()],
 });
 // #endregion docs:vite-config

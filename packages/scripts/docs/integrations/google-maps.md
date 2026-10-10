@@ -111,7 +111,7 @@ on revocation. Keep your existing consent styles and preferences dialog.
 
 **Nuxt**
 
-The Nuxt module registers `ConsentGate` and `ConsentPreferencesLink`, so
+The Nuxt module registers `ConsentGate` and `ConsentDialogLink`, so
 this component imports only the embed configuration.
 
 ```vue title="app/components/ConsentEmbed.vue"
@@ -130,7 +130,7 @@ import { embedCategory, embedURL, embedTitle, embedAspectRatio } from '../../src
     />
     <template #placeholder>
       <p>Allow {{ embedCategory }} to load this content.</p>
-      <ConsentPreferencesLink>Open privacy settings</ConsentPreferencesLink>
+      <ConsentDialogLink>Open privacy settings</ConsentDialogLink>
     </template>
   </ConsentGate>
 </template>
@@ -146,8 +146,7 @@ Render this component inside the app that installed the c15t Vue plugin.
 
 ```vue title="src/ConsentEmbed.vue"
 <script setup lang="ts">
-import ConsentGate from 'c15t/vue/runtime/components/consent-gate.vue';
-import ConsentPreferencesLink from 'c15t/vue/runtime/components/consent-preferences-link.vue';
+import { ConsentDialogLink, ConsentGate } from 'c15t/vue/vue-plugin';
 import { embedCategory, embedURL, embedTitle, embedAspectRatio } from './embed-config';
 </script>
 
@@ -162,7 +161,7 @@ import { embedCategory, embedURL, embedTitle, embedAspectRatio } from './embed-c
     />
     <template #placeholder>
       <p>Allow {{ embedCategory }} to load this content.</p>
-      <ConsentPreferencesLink>Open privacy settings</ConsentPreferencesLink>
+      <ConsentDialogLink>Open privacy settings</ConsentDialogLink>
     </template>
   </ConsentGate>
 </template>
@@ -223,7 +222,7 @@ runtime for this embed.
 
 **Svelte**
 
-Render this component inside the existing `ConsentManagerProvider`.
+Render this component inside the existing `ConsentProvider`.
 The provider from your quickstart supplies its consent state.
 
 ```svelte title="src/ConsentEmbed.svelte"
@@ -252,8 +251,8 @@ iframe.
 
 **SvelteKit**
 
-Render this component inside the existing `ConsentManagerProvider`.
-Keep the SvelteKit root provider and its server prefetch unchanged.
+Render this component inside the existing `ConsentRoot`.
+Keep the SvelteKit root and its server-resolved state unchanged.
 
 ```svelte title="src/lib/ConsentEmbed.svelte"
 <script lang="ts">

@@ -179,10 +179,10 @@ describe('resolveConsent with an inline manifest: session reports', () => {
 			{
 				backendURL: 'https://consent.example.com',
 				fetch: fetchSpy,
-				manifest: MANIFEST_FIXTURE,
 				onBackgroundRevalidate: (task) => {
 					registered.push(task);
 				},
+				snapshot: MANIFEST_FIXTURE,
 			}
 		);
 		expect(state.initialPolicyResolution).toMatchObject({
@@ -220,10 +220,10 @@ describe('resolveConsent with an inline manifest: session reports', () => {
 				backendURL: 'https://consent.example.com',
 				experiment,
 				fetch: fetchSpy,
-				manifest: MANIFEST_FIXTURE,
 				onBackgroundRevalidate: (task) => {
 					registered.push(task);
 				},
+				snapshot: MANIFEST_FIXTURE,
 			}
 		);
 		expect(state.experiment).toEqual(experiment);
@@ -242,8 +242,8 @@ describe('resolveConsent with an inline manifest: session reports', () => {
 			{
 				backendURL: 'https://consent.example.com',
 				fetch: fetchSpy,
-				manifest: MANIFEST_FIXTURE,
 				reportSessions: false,
+				snapshot: MANIFEST_FIXTURE,
 			}
 		);
 		expect(fetchSpy).not.toHaveBeenCalled();

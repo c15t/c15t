@@ -52,7 +52,7 @@ const pairs = pairStories(byFramework).filter(
 );
 console.log(`pairs: ${pairs.map((p) => p.key).join(', ')}`);
 
-const browser = await chromium.launch();
+const browser = await chromium.launch({ headless: true });
 const page = await browser.newPage({ viewport: { height: 900, width: 1200 } });
 
 for (const pair of pairs) {

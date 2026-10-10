@@ -268,9 +268,8 @@ describe('ConsentGate server rendering', () => {
 });
 
 describe('Frame alias', () => {
-	test('stays the same component as ConsentGate', () => {
-		expect(Frame).toBe(ConsentGate);
-		expect(Frame.Root).toBe(ConsentGate.Root);
-		expect(reactEntry.Frame).toBe(reactEntry.ConsentGate);
+	test('is exported next to ConsentGate', () => {
+		expect(reactEntry.Frame).toBe(Frame);
+		expect(reactEntry.ConsentGate).toBe(ConsentGate);
 	});
 });

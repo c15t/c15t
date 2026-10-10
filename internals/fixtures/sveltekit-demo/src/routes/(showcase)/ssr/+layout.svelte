@@ -3,7 +3,7 @@
 		ConsentBanner,
 		ConsentDialog,
 		ConsentDialogTrigger,
-		ConsentManagerProvider,
+		ConsentProvider,
 		IABConsentBanner,
 		IABConsentDialog,
 		offline,
@@ -20,7 +20,7 @@
 	});
 </script>
 
-<ConsentManagerProvider
+<ConsentProvider
 	options={{
 		mode: offline({ policyRules: rules }),
 		prefetch: { initialPolicyResolution: resolution },
@@ -88,4 +88,4 @@
 	<IABConsentDialog />
 	<ConsentDialogTrigger />
 	{@render children()}
-</ConsentManagerProvider>
+</ConsentProvider>

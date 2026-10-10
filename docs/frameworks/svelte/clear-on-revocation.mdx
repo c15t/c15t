@@ -1,6 +1,6 @@
 ---
 title: Clear on revocation
-description: Delete the first-party cookies and Web Storage keys a consent category owns in a Svelte app when that category is denied, with the clearOnRevocation prop on ConsentManagerProvider.
+description: Delete the first-party cookies and Web Storage keys a consent category owns in a Svelte app when that category is denied, with the clearOnRevocation prop on ConsentProvider.
 group: frameworks
 ---
 
@@ -8,7 +8,7 @@ group: frameworks
 
 Gating stops new requests, but it leaves the cookies and storage keys a vendor
 already wrote. List the ones each optional category owns and pass them to
-`ConsentManagerProvider` in `src/App.svelte`. When that category is denied,
+`ConsentProvider` in `src/App.svelte`. When that category is denied,
 c15t deletes them:
 
 {/* example: fragment */}
@@ -23,7 +23,7 @@ c15t deletes them:
   };
 </script>
 
-<ConsentManagerProvider {mode} {scripts} {clearOnRevocation}>
+<ConsentProvider mode={manifest()} {scripts} {clearOnRevocation}>
 ```
 
 The provider reads `clearOnRevocation` once, when it is created. For a shared

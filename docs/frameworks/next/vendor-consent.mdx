@@ -1,6 +1,6 @@
 ---
 title: Vendor consent
-description: Let visitors allow a category such as marketing in a Next.js app and still turn off one vendor in it, with the vendors prop on ConsentRoot and useVendorAllowed.
+description: Let visitors allow a category such as marketing in a Next.js app and still turn off one vendor in it, with vendors in c15t.config.ts and useVendorAllowed.
 group: frameworks
 ---
 
@@ -12,40 +12,28 @@ Built-in `@c15t/integrations` helpers already list their vendor by name, so
 you only declare a vendor for a script of your own, or to replace a helper's
 name and privacy policy.
 
-Declare the vendors next to the scripts in `lib/scripts.ts`, using the `vendor`
-slug each script already carries:
+Declare the vendors next to the scripts in `c15t.config.ts`, using the
+`vendor` slug each script already carries:
 
 {/* example: fragment */}
 
-```ts title="lib/scripts.ts (partial)"
-import type { Vendor } from 'c15t';
+```ts title="c15t.config.ts"
+import { defineConsentConfig } from 'c15t/next';
 
-export const vendors: Vendor[] = [
-	{
-		id: 'x-pixel',
-		name: 'X Pixel',
-		category: 'marketing',
-		privacyPolicyUrl: 'https://x.com/privacy',
-	},
-];
+export default defineConsentConfig({
+	vendors: [
+		{
+			id: 'x-pixel',
+			name: 'X Pixel',
+			category: 'marketing',
+			privacyPolicyUrl: 'https://x.com/privacy',
+		},
+	],
+});
 ```
 
-Then pass them to the `ConsentRoot` in `components/consent.tsx`:
-
-{/* example: fragment */}
-
-```tsx title="components/consent.tsx (partial)"
-import { scripts, vendors } from '@/lib/scripts';
-
-<ConsentRoot
-	state={state}
-	config={consentConfig}
-	scripts={scripts}
-	vendors={vendors}
->
-```
-
-`ConsentRoot` takes `vendors` as a top-level prop, not inside `options`.
+`vendors` is a top-level option, not inside `options`. Keep your `scripts` in
+the same call. A `vendors` prop on `ConsentRoot` wins over the config's.
 
 <import src="../../shared/scripts/vendor-consent.mdx#fields" />
 

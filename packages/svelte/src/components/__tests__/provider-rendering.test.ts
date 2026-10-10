@@ -1,5 +1,5 @@
 /**
- * Tests for ConsentManagerProvider rendering/hydration behavior.
+ * Tests for ConsentProvider rendering/hydration behavior.
  *
  * Mirrors: packages/react/src/providers/__tests__/provider-hydration.test.tsx
  */
@@ -11,7 +11,7 @@ import BannerFixture from '../../__tests__/fixtures/banner-fixture.svelte';
 import ProviderOnlyFixture from '../../__tests__/fixtures/provider-only-fixture.svelte';
 import { testOffline } from '../../__tests__/test-offline';
 
-describe('ConsentManagerProvider Rendering Behavior', () => {
+describe('ConsentProvider Rendering Behavior', () => {
 	beforeEach(() => {});
 
 	test('should render children immediately without blocking', () => {

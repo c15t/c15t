@@ -36,6 +36,7 @@ import type { Theme } from '@c15t/ui/theme';
 
 /**
  * The transports a script-tag site can name without importing anything.
+ * `init()` from `@c15t/browser` takes a factory instead.
  *
  * - `hosted` — `GET /init` and `POST /subjects` against `backendURL`.
  * - `offline` — no backend; policy resolved from `policies` (or a default
@@ -208,10 +209,11 @@ export type ConsentSaveInput = Partial<ConsentState> & {
 };
 
 /**
- * Everything `init()` accepts. Queue serializable options, transport
- * factories, callbacks, and DOM containers through `c15t.push(['config', {...}])` on a no-code site.
+ * Options every client accepts, whichever entry point picks its mode. See
+ * {@link ConsentClientOptions} for `init()` from `@c15t/browser` and
+ * {@link ScriptTagClientOptions} for the script-tag builds.
  */
-export interface ConsentClientOptions extends Pick<
+export interface ConsentClientBaseOptions extends Pick<
 	ConsentRuntimeOptions,
 	'consentSource' | 'persistence' | 'scriptLoader' | 'vendors'
 > {
@@ -241,28 +243,6 @@ export interface ConsentClientOptions extends Pick<
 	 * bundled app, call `mountGPP()` from `@c15t/browser/gpp` instead.
 	 */
 	gpp?: ConsentRuntimeOptions['gpp'];
-	/**
-	 * Transport. A name picks one of the built-in modes; a factory from
-	 * `hosted()`, `offline()`, `manifest()` or `custom()` is used as is.
-	 * Defaults to `manifest` when a manifest is given, `hosted` when a
-	 * `backendURL` is given, otherwise `offline`.
-	 */
-	mode?: ProviderTransportFactory | ConsentModeName;
-	/** Backend origin for `hosted` and `manifest` modes. */
-	backendURL?: string;
-	/** Inline consent manifest for `manifest` mode. */
-	manifest?: ConsentManifest;
-	/**
-	 * Manifest URL for `manifest` mode. URLs other than the backend's
-	 * `/manifest` endpoint require an explicit `backendURL`.
-	 */
-	manifestURL?: string;
-	/**
-	 * Policy rules for `offline` mode. A preset name such as
-	 * `'europeOptIn'` stands in for `policyRulePresets.europeOptIn()`, so a
-	 * JSON config or a `data-policy-rules` attribute can name them.
-	 */
-	policyRules?: (PolicyRule | PolicyPresetName)[];
 	/** Categories the UI offers. Defaults to every category the policy allows. */
 	consentCategories?: AllConsentNames[];
 	/** Third-party scripts to load once their category is granted. */
@@ -320,9 +300,61 @@ export interface ConsentClientOptions extends Pick<
 	pkg?: string;
 }
 
+/**
+ * What `init()` and `createConsentClient()` from `@c15t/browser`,
+ * `@c15t/browser/headless` and `@c15t/browser/iab` accept.
+ *
+ * @example
+ * ```ts
+ * import { init, manifest } from '@c15t/browser';
+ *
+ * init({ mode: manifest() });
+ * ```
+ */
+export interface ConsentClientOptions extends ConsentClientBaseOptions {
+	/**
+	 * Transport: a factory from `manifest()`, `hosted()`, `offline()` or
+	 * `custom()`. Import only the one you use, so the bundler leaves the
+	 * others out. Mode names such as `'hosted'` work only in the
+	 * script-tag builds.
+	 */
+	mode: ProviderTransportFactory;
+}
+
+/**
+ * What the script-tag builds accept, from the tag's `data-*` attributes
+ * and `c15t.push(['config', {...}])`. A no-code site can queue
+ * serializable options, transport factories, callbacks, and DOM
+ * containers that way.
+ */
+export interface ScriptTagClientOptions extends ConsentClientBaseOptions {
+	/**
+	 * Transport. A name picks one of the built-in modes; a factory from
+	 * `c15t.hosted()`, `c15t.offline()`, `c15t.manifest()` or
+	 * `c15t.custom()` is used as is. Defaults to `manifest` when a manifest
+	 * is given, `hosted` when a `backendURL` is given, otherwise `offline`.
+	 */
+	mode?: ProviderTransportFactory | ConsentModeName;
+	/** Backend origin for `hosted` and `manifest` modes. */
+	backendURL?: string;
+	/** Inline consent manifest for `manifest` mode. */
+	manifest?: ConsentManifest;
+	/**
+	 * Manifest URL for `manifest` mode. URLs other than the backend's
+	 * `/manifest` endpoint require an explicit `backendURL`.
+	 */
+	manifestURL?: string;
+	/**
+	 * Policy rules for `offline` mode. A preset name such as
+	 * `'europeOptIn'` stands in for `policyRulePresets.europeOptIn()`, so a
+	 * JSON config or a `data-policy-rules` attribute can name them.
+	 */
+	policyRules?: (PolicyRule | PolicyPresetName)[];
+}
+
 /** Options for `@c15t/browser/hosted` and the default `c15t.js` bundle. */
 export interface HostedConsentClientOptions extends Omit<
-	ConsentClientOptions,
+	ScriptTagClientOptions,
 	'mode' | 'manifest' | 'manifestURL' | 'policyRules'
 > {
 	/** Defaults to hosted. Factories must have `kind: 'hosted'`. */
@@ -337,7 +369,7 @@ export interface HostedConsentClientOptions extends Omit<
 
 /** Options for `@c15t/browser/offline` and `c15t.offline.js`. */
 export interface OfflineConsentClientOptions extends Omit<
-	ConsentClientOptions,
+	ScriptTagClientOptions,
 	'mode' | 'backendURL' | 'manifest' | 'manifestURL'
 > {
 	/** Defaults to offline. Factories must have `kind: 'offline'`. */
@@ -389,7 +421,7 @@ export interface ConsentClient {
 	/** The kernel: snapshot, commands and events. */
 	readonly kernel: ConsentKernel;
 	/** The options the client was created with. */
-	readonly options: ConsentClientOptions;
+	readonly options: ScriptTagClientOptions;
 	/**
 	 * `options.presentation` with the assigned experiment arm merged over it.
 	 * Equal to `options.presentation` while no experiment is configured or

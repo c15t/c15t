@@ -1,10 +1,11 @@
+import { hosted } from '@c15t/core/modes';
 /**
  * Wiring tests for `resolveConsent` on top of `resolveRequestConsent` from
  * `@c15t/core/server`. The resolution rules themselves (forwarding, budget,
  * self-route guard, deferral, experiment, shared renders) are pinned once in
  * the core suite; these check what the Next.js adapter supplies: the
- * request adapter's headers and cookies, the `config` routes, and the
- * development warning.
+ * request adapter's headers and cookies, the config's mode and route
+ * prefix, and the development warning.
  */
 import { clearManifestCache } from '@c15t/core/server';
 import {
@@ -14,6 +15,7 @@ import {
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { defineConsentConfig } from '../config';
+import type { ConsentConfig } from '../config';
 import { resolveConsent } from '../server';
 import type { NextRequestContext } from '../server';
 import { MANIFEST_FIXTURE } from './manifest-fixture';
@@ -61,6 +63,10 @@ const requestOf = (
 	headers: () => new Headers({ host: 'app.example.com', ...headers }),
 });
 
+/** A config that asks the backend's `/init` for every render. */
+const hostedAt = (backendURL: string, config: ConsentConfig = {}) =>
+	defineConsentConfig({ ...config, backendURL, mode: hosted() });
+
 beforeEach(() => {
 	clearManifestCache();
 });
@@ -71,13 +77,12 @@ afterEach(() => {
 });
 
 describe('resolveConsent wiring', () => {
-	test('a same-origin config manifest route is read at the backend, not fetched', async () => {
+	test('the manifest is read at the backend, never at the route prefix', async () => {
 		const fetch = backend();
 		const state = await resolveConsent({
 			config: defineConsentConfig({
 				backendURL: 'https://consent.example.com',
-				initURL: '/api/consent/init',
-				manifestURL: '/api/consent/manifest',
+				routePrefix: '/api/consent',
 			}),
 			fetch,
 			reportSessions: false,
@@ -98,10 +103,7 @@ describe('resolveConsent wiring', () => {
 	test('a tab config reports a page journey, and false turns it off', async () => {
 		const tab = backend();
 		const started = await resolveConsent({
-			config: defineConsentConfig({
-				backendURL: 'https://consent.example.com',
-				journey: 'tab',
-			}),
+			config: hostedAt('https://consent.example.com', { journey: 'tab' }),
 			fetch: tab,
 			request: requestOf({}),
 		});
@@ -111,16 +113,9 @@ describe('resolveConsent wiring', () => {
 		expect(sent.searchParams.get('journey')).toBe(started.journey?.id);
 
 		for (const options of [
+			{ config: hostedAt('https://consent.example.com', { journey: false }) },
 			{
-				config: defineConsentConfig({
-					backendURL: 'https://consent.example.com',
-					journey: false,
-				}),
-			},
-			{
-				config: defineConsentConfig({
-					backendURL: 'https://consent.example.com',
-				}),
+				config: hostedAt('https://consent.example.com'),
 				reportSessions: false,
 			},
 		]) {
@@ -139,21 +134,40 @@ describe('resolveConsent wiring', () => {
 		}
 	});
 
-	test('defineConsentConfig rejects an unknown journey', () => {
-		expect(() =>
-			defineConsentConfig({
-				backendURL: 'https://consent.example.com',
-				journey: 'session' as never,
-			})
-		).toThrow(TypeError);
-	});
-
-	test('a config without manifestURL asks the backend /init with the request inputs', async () => {
-		const fetch = backend();
-		const state = await resolveConsent({
+	test('with proxy, the server still reads the absolute backend', async () => {
+		const manifestFetch = backend();
+		await resolveConsent({
 			config: defineConsentConfig({
 				backendURL: 'https://consent.example.com',
+				proxy: true,
+				routePrefix: '/api/consent',
 			}),
+			fetch: manifestFetch,
+			reportSessions: false,
+			request: requestOf({ 'x-vercel-ip-country': 'DE' }),
+		});
+		expect(manifestFetch.mock.calls.map(([input]) => String(input))).toEqual([
+			'https://consent.example.com/manifest',
+		]);
+
+		const initFetch = backend();
+		await resolveConsent({
+			config: hostedAt('https://consent.example.com', {
+				proxy: true,
+				routePrefix: '/api/consent',
+			}),
+			fetch: initFetch,
+			request: requestOf({}),
+		});
+		expect(String(initFetch.mock.calls[0]?.[0]).split('?')[0]).toBe(
+			'https://consent.example.com/init'
+		);
+	});
+
+	test('hosted() asks the backend /init with the request inputs', async () => {
+		const fetch = backend();
+		const state = await resolveConsent({
+			config: hostedAt('https://consent.example.com'),
 			country: 'FR',
 			fetch,
 			request: requestOf({ 'accept-language': 'de-DE' }, 'c15t=x; session=y'),
@@ -175,7 +189,7 @@ describe('resolveConsent wiring', () => {
 		// backend prefix, through a rewrite or a backend catch-all route.
 		const fetch = backend();
 		const state = await resolveConsent({
-			backendURL: '/api/c15t',
+			config: hostedAt('/api/c15t'),
 			fetch,
 			request: requestOf({ 'x-vercel-ip-country': 'DE' }),
 		});
@@ -190,7 +204,7 @@ describe('resolveConsent wiring', () => {
 	test('a render reached by another render’s own request does not fetch its origin again', async () => {
 		const fetch = backend();
 		const first = await resolveConsent({
-			backendURL: '/api/c15t',
+			config: hostedAt('/api/c15t'),
 			fetch,
 			request: requestOf({}),
 		});
@@ -200,7 +214,7 @@ describe('resolveConsent wiring', () => {
 		const sent = new Headers(fetch.mock.calls[0]?.[1]?.headers);
 		const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 		const nested = await resolveConsent({
-			backendURL: '/api/c15t',
+			config: hostedAt('/api/c15t'),
 			fetch,
 			request: requestOf(Object.fromEntries(sent)),
 		});
@@ -211,12 +225,12 @@ describe('resolveConsent wiring', () => {
 		);
 	});
 
-	test('never fetches the config’s own handler routes, and says so outside production', async () => {
+	test('never fetches under the route prefix, and says so outside production', async () => {
 		const fetch = backend();
 		const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 		const config = defineConsentConfig({
 			backendURL: '/api/c15t',
-			manifestURL: '/api/c15t/manifest',
+			routePrefix: '/api/c15t',
 		});
 		const state = await resolveConsent({
 			config,
@@ -249,7 +263,7 @@ describe('resolveConsent wiring', () => {
 		const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 		const onError = vi.fn();
 		await resolveConsent({
-			backendURL: 'https://consent.example.com',
+			config: hostedAt('https://consent.example.com'),
 			fetch: failing,
 			onError,
 			request: requestOf({}),
@@ -258,7 +272,7 @@ describe('resolveConsent wiring', () => {
 		expect(String(onError.mock.calls[0]?.[0])).toContain('network down');
 		vi.stubGlobal('process', { env: { NODE_ENV: 'production' } });
 		await resolveConsent({
-			backendURL: 'https://consent.example.com',
+			config: hostedAt('https://consent.example.com'),
 			fetch: failing,
 			request: requestOf({}),
 		});
@@ -275,7 +289,7 @@ describe('resolveConsent wiring', () => {
 		>['experiment'];
 		const fetch = backend();
 		const state = await resolveConsent({
-			backendURL: 'https://consent.example.com',
+			config: hostedAt('https://consent.example.com'),
 			experiment,
 			fetch,
 			request: {

@@ -7,9 +7,10 @@
  *
  * - Intent: pointerenter or focus on any `ConsentButton` that opens the
  *   dialog, including the stock banner's Customize button.
- * - Idle: once the page has loaded and the browser is idle, while the banner
- *   is shown or a dialog trigger is mounted. This covers an immediate tap or
- *   focus-and-Enter, which leaves no lead time for intent warming.
+ * - Idle: a few seconds after the page's load event, in browser idle time,
+ *   while the banner is shown or a dialog trigger is mounted. The wait keeps
+ *   the dialog out of first-load JavaScript; a visitor who opens it sooner
+ *   hovers, focuses or touches the button first, which warms it at once.
  *
  * Module-level registry keeps banner components decoupled from the
  * aggregate exports (no context change, tree-shakes with the aggregate).
@@ -24,9 +25,9 @@ type Warmer = () => void;
 /**
  * When the deferred consent dialog starts loading before it opens.
  *
- * - `'idle'`: after the page's load event, in browser idle time, while the
- *   banner is shown or a button that opens the dialog is mounted. Also on
- *   hover or focus of such a button.
+ * - `'idle'`: a few seconds after the page's load event, in browser idle
+ *   time, while the banner is shown or a button that opens the dialog is
+ *   mounted. Also on hover or focus of such a button.
  * - `'intent'`: only on hover or focus of a button that opens the dialog.
  *
  * @public
@@ -66,8 +67,16 @@ interface NetworkInformationLike {
 }
 
 const SLOW_CONNECTIONS = new Set(['slow-2g', '2g']);
-// Safari has no requestIdleCallback; a short delay after load stands in.
+// Safari has no requestIdleCallback; a short delay stands in.
 const IDLE_FALLBACK_DELAY_MS = 200;
+/**
+ * How long after the load event idle warming waits. The page's own requests
+ * (consent init, vendor scripts) finish first, so the dialog stays out of
+ * first-load JavaScript.
+ */
+const DEFAULT_IDLE_WARM_DELAY_MS = 3000;
+let idleWarmDelayMs = DEFAULT_IDLE_WARM_DELAY_MS;
+let loadedAt: number | undefined;
 
 /**
  * Idle warming spends bytes the visitor may never need, so it stays off when
@@ -103,14 +112,29 @@ const scheduleIdleWarm = function scheduleIdleWarm(): void {
 		return;
 	}
 	idleScheduled = true;
-	const afterLoad = () => {
+	const inIdleTime = () => {
 		if (typeof window.requestIdleCallback === 'function') {
 			window.requestIdleCallback(warmWhenIdle);
 		} else {
 			window.setTimeout(warmWhenIdle, IDLE_FALLBACK_DELAY_MS);
 		}
 	};
+	const afterLoad = () => {
+		loadedAt ??= performance.now();
+		const wait = idleWarmDelayMs - (performance.now() - loadedAt);
+		if (wait > 0) {
+			window.setTimeout(inIdleTime, wait);
+		} else {
+			inIdleTime();
+		}
+	};
 	if (document.readyState === 'complete') {
+		// Loaded before this module ran: count from the navigation's load
+		// event when the browser recorded it.
+		const [navigation] = performance.getEntriesByType(
+			'navigation'
+		) as PerformanceNavigationTiming[];
+		loadedAt ??= navigation?.loadEventEnd || performance.now();
 		afterLoad();
 	} else {
 		window.addEventListener('load', afterLoad, { once: true });
@@ -144,13 +168,18 @@ export const useIdleDialogWarming = function useIdleDialogWarming(
 };
 
 /**
- * Reset module state between tests.
+ * Reset module state between tests. Idle warming waits `idleWarmDelayMs`
+ * after load, `0` unless a test passes another delay.
  *
  * @internal
  */
 export const resetDialogChunkWarmingForTests =
-	function resetDialogChunkWarmingForTests(): void {
+	function resetDialogChunkWarmingForTests(
+		options: { idleWarmDelayMs?: number } = {}
+	): void {
 		warmed = false;
 		activeGates = 0;
 		idleScheduled = false;
+		loadedAt = undefined;
+		idleWarmDelayMs = options.idleWarmDelayMs ?? 0;
 	};

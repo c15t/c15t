@@ -3,6 +3,7 @@
  * keeps the app: the root renders its default slot next to the consent
  * surfaces, in the browser and in the server HTML, and hydrates it.
  */
+import { hosted } from '@c15t/core';
 import type { InitOutput } from '@c15t/schema/types';
 import {
 	resolvePolicyRules,
@@ -63,10 +64,10 @@ const initFixture: InitOutput = {
 	},
 } as InitOutput;
 
+const mode = hosted({ backendURL: 'https://consent.example' });
+
 const config: RuntimeConsentConfig = {
-	backendURL: 'https://consent.example',
 	consentCategories: ['necessary', 'measurement'],
-	domain: 'consent.example',
 	showTrigger: false,
 };
 
@@ -132,7 +133,7 @@ describe.each([
 	test('renders wrapped children next to the banner', async () => {
 		const wrapper = mount(Root, {
 			attachTo: document.body,
-			global: { plugins: [[c15tVue, config]] },
+			global: { plugins: [[c15tVue, { ...config, mode }]] },
 			slots: { default: page },
 		});
 		try {
@@ -147,14 +148,12 @@ describe.each([
 
 describe('Nuxt ConsentRoot wrapping the app', () => {
 	test('server-renders the children and hydrates them without mismatches', async () => {
-		const runtimeConfig: RuntimeConsentConfig = {
-			...config,
-			customFetch: fetch,
-		};
+		const runtimeConfig: RuntimeConsentConfig = config;
 		const App = () => h(NuxtConsentRoot, null, { default: page });
 
 		const serverContext = createVueConsentKernelContext({
 			config: runtimeConfig,
+			mode,
 			prefetch: initFixture,
 		});
 		let html: string;
@@ -170,6 +169,7 @@ describe('Nuxt ConsentRoot wrapping the app', () => {
 
 		const clientContext = createVueConsentKernelContext({
 			config: runtimeConfig,
+			mode,
 			prefetch: initFixture,
 		});
 		const warnings: string[] = [];

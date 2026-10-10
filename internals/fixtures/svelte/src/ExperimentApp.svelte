@@ -7,7 +7,7 @@
 		ConsentBanner,
 		ConsentDialog,
 		ConsentDialogLink,
-		ConsentManagerProvider,
+		ConsentProvider,
 		hosted,
 	} from '@c15t/svelte';
 
@@ -20,15 +20,15 @@
 	import { testBackend } from './test-backend';
 
 	const mode = hosted({
-		url: 'https://your-project.inth.app',
-		...testBackend('url'),
+		backendURL: 'https://your-project.inth.app',
+		...testBackend('backendURL'),
 	});
 	// `&arm=wall` sets the arm the way a flag provider would; without it
 	// c15t picks one.
 	const experiment = experimentFromSearch(location.search);
 </script>
 
-<ConsentManagerProvider
+<ConsentProvider
 	callbacks={experimentCallbacks}
 	{experiment}
 	{mode}
@@ -40,4 +40,4 @@
 	</footer>
 	<ConsentBanner />
 	<ConsentDialog />
-</ConsentManagerProvider>
+</ConsentProvider>

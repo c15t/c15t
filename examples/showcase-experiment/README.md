@@ -49,7 +49,7 @@ Open <http://localhost:3115> and the browser console. You'll see lines like:
 The app runs in offline mode, so it needs no backend. c15t's bundled policy
 rules ask for opt-in consent, and choices stay in the browser. For
 production, replace `offline()` in `components/consent.tsx` with
-`hosted({ url: 'https://your-project.inth.app' })`. The backend then counts
+`hosted({ backendURL: 'https://your-project.inth.app' })`. The backend then counts
 impressions and choices per arm on its own, including those of visitors your
 analytics never loads for.
 

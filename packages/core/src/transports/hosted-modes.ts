@@ -3,21 +3,39 @@
  * at runtime, so a provider can ask without loading the hosted transport:
  * an app on `offline()` or `custom()` never needs it.
  */
-import type { HostedModeOptions, ProviderTransportFactory } from './mode';
+import type {
+	HostedModeFactory,
+	HostedModeOptions,
+	ProviderTransportFactory,
+} from './mode';
 
 /**
- * The options each factory `hosted()` returned was called with, copied at
- * that call: the same copy builds the factory's transports. Kept here
- * rather than on the factory, so a wrapper that copies the factory's
- * properties is not mistaken for it: `get()` gives `undefined` for any
- * factory but one `hosted()` returned. A provider compares the options to
+ * Every factory `hosted()` returned. Membership, not the factory's own
+ * `type`, decides what {@link readHostedMode} recognizes: a wrapper that
+ * copies a factory's properties carries the same data but may build a
+ * different transport, so it is not mistaken for the original.
+ *
+ * @internal
+ */
+export const hostedFactories = new WeakSet<ProviderTransportFactory>();
+
+/**
+ * The options a `hosted()` factory was called with, read from the factory
+ * itself, or `undefined` for any other factory. A provider compares them to
  * recognize the same backend in a factory a later render rebuilt: `fetch`
  * and `initialData` by identity, the rest as JSON. A new option that is not
  * plain data needs the same identity check there.
  *
+ * @param mode - A provider's `mode`.
+ * @returns The factory's hosted options, without `kind` and `type`.
  * @internal
  */
-export const hostedModes = new WeakMap<
-	ProviderTransportFactory,
-	HostedModeOptions
->();
+export const readHostedMode = function readHostedMode(
+	mode: ProviderTransportFactory
+): HostedModeOptions | undefined {
+	if (!hostedFactories.has(mode)) {
+		return undefined;
+	}
+	const { kind: _kind, type: _type, ...options } = mode as HostedModeFactory;
+	return options;
+};

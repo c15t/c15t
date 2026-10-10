@@ -1,11 +1,11 @@
 /**
  * Browser-resolved manifest transport for the `client-manifest` arm.
  *
- * `@c15t/svelte` has no shipped browser manifest mode — the SvelteKit layer
- * resolves manifests on the server (`createSvelteKitConsentRouteHandlers`).
- * This arm exists so the suite can price the alternative: fetch the
- * CDN-cacheable manifest once and resolve `/init` in the page, trading an
- * `/init` round-trip for the resolver plus the translation catalogue.
+ * The SvelteKit layer resolves manifests on the server by default
+ * (`c15tHandle` with `manifest()`, plus `createConsentRoute`). This arm
+ * exists so the suite can price the alternative: fetch the CDN-cacheable
+ * manifest once and resolve `/init` in the page, trading an `/init`
+ * round-trip for the resolver plus the translation catalogue.
  *
  * It mirrors what `@c15t/vue` does for `manifest: 'client'` — the resolver,
  * the catalogue and the manifest all load lazily and in parallel with
@@ -85,8 +85,8 @@ export const createBrowserManifestTransport =
 				manifestTransport ??= createManifestTransport({
 					backendURL: BACKEND_URL,
 					baseTranslations,
-					manifest,
 					manifestURL: MANIFEST_URL,
+					snapshot: manifest,
 				});
 				return (await manifestTransport.init?.(context)) ?? {};
 			},

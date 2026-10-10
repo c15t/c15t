@@ -34,12 +34,7 @@ The parts read the provider that `ConsentRoot` renders. In the
 {/* example: fragment */}
 
 ```tsx title="src/routes/__root.tsx (partial)"
-<ConsentRoot
-	state={consent}
-	backendURL={backendURL}
-	initRoute={false}
-	scripts={scripts}
->
+<ConsentRoot state={consent} scripts={scripts}>
 	<Outlet />
 	<CookieBanner />
 	<ConsentDialog />

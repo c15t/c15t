@@ -3,7 +3,7 @@
  * The shared consent scenario the example suite drives: PostHog on
  * measurement, X Pixel on marketing, and a measurement-gated video.
  */
-import ConsentDialogTrigger from 'c15t/astro/components/consent-dialog-trigger.astro';
+import ConsentDialogLink from 'c15t/astro/components/consent-dialog-link.astro';
 
 import '../consent-example.css';
 import ConsentVideo from './consent-video.astro';
@@ -20,5 +20,5 @@ import ThemeSwitcher from './theme-switcher.astro';
 	<ExperimentReadout />
 	<h2>Watch the video</h2>
 	<ConsentVideo />
-	<footer><ConsentDialogTrigger>Privacy settings</ConsentDialogTrigger></footer>
+	<footer><ConsentDialogLink>Privacy settings</ConsentDialogLink></footer>
 </main>

@@ -1,0 +1,22 @@
+{
+	"name": "@c15t/examples-payload-bench",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"bench": "bunx tsx run.ts --out ../../.benchmarks/current/examples-payload",
+		"bench:ci": "bunx tsx run.ts --out ../../.benchmarks/head/examples-payload",
+		"build": "echo 'examples payload harness is source-only; it builds the examples itself'",
+		"test": "vitest run"
+	},
+	"dependencies": {
+		"@c15t/benchmarking": "workspace:*",
+		"playwright": "1.61.1"
+	},
+	"devDependencies": {
+		"@c15t/browser": "workspace:*",
+		"@c15t/integrations": "workspace:*",
+		"@c15t/svelte": "workspace:*",
+		"c15t": "workspace:*",
+		"vitest": "4.1.10"
+	}
+}

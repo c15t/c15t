@@ -59,7 +59,7 @@ const manifest = {
 const init = await createManifestTransport({
 	fetchGvl: () => Promise.resolve(gvl),
 	inputs: { country: 'DE', language: 'en' },
-	manifest,
+	snapshot: manifest,
 }).init({ overrides: {}, user: null });
 // Both revisions receive the same full upstream response.
 const inline = {
@@ -95,7 +95,7 @@ const fixture = createServer((req, res) => {
 await new Promise<void>((resolve) => {
 	fixture.listen(4325, '127.0.0.1', resolve);
 });
-const browser = await chromium.launch();
+const browser = await chromium.launch({ headless: true });
 const results = [];
 try {
 	for (const framework of ['tanstack-start', 'nuxt'] as const) {

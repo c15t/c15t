@@ -57,8 +57,8 @@ describe('@c15t/svelte/server resolveConsent', () => {
 			backendURL: 'https://consent.example.com',
 			fetch,
 			headers: new Headers({ 'cf-ipcountry': 'DE' }),
-			manifest: MANIFEST_FIXTURE,
 			onBackgroundRevalidate,
+			snapshot: MANIFEST_FIXTURE,
 		});
 		expect(state.initialPolicyResolution?.status).toBe('matched');
 		expect(fetch).toHaveBeenCalledWith(
@@ -98,8 +98,8 @@ describe('@c15t/svelte/server resolveConsent', () => {
 					cookie: 'c15t=c.necessary:1,c.marketing:1,i.t:1234567890',
 					'sec-gpc': '1',
 				}),
-				manifest: MANIFEST_FIXTURE,
 				reportSessions: false,
+				snapshot: MANIFEST_FIXTURE,
 			});
 			expect(fetch).not.toHaveBeenCalled();
 			expect(state.initialPolicyResolution).toMatchObject({

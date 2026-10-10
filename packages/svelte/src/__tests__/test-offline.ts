@@ -1,6 +1,5 @@
+import { offline } from '@c15t/core';
 import type { PolicyRule } from '@c15t/schema/types';
-
-import { offline } from '../lib/transports/offline';
 
 /**
  * Opt-in choice rule matching every visitor. Component tests mount it so a

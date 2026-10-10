@@ -1,0 +1,6 @@
+## Upgrade from an earlier v3 alpha
+
+The v3 alphas renamed and removed APIs that never shipped in a stable release.
+Names that were in stable v2 keep a deprecated alias. Every other renamed name
+is removed with no alias, so a build that still uses one fails to type-check
+or throws at runtime.

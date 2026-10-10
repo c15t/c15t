@@ -92,7 +92,7 @@ The HTML contains the banner for that region, or none for a region whose
 policy shows no banner. In a browser, a header-rewriting extension that sets
 `x-c15t-country` does the same for every request, including `/init`.
 
-With `hosted()`, `hosted({ url, headers: { 'x-c15t-country': 'DE' } })` pins
+With `hosted()`, `hosted({ headers: { 'x-c15t-country': 'DE' } })` pins
 the country for the server and the browser `/init` requests alike. Use it only
 in a development configuration.
 

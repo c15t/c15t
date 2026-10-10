@@ -1,10 +1,12 @@
 <!-- #region docs:layout -->
 ---
 import { ClientRouter } from 'astro:transitions';
-import ConsentBanner from 'c15t/astro/components/consent-banner.astro';
-import ConsentDialog from 'c15t/astro/components/consent-dialog.astro';
-import ConsentDialogTrigger from 'c15t/astro/components/consent-dialog-trigger.astro';
-import ConsentScript from 'c15t/astro/components/consent-script.astro';
+import {
+	ConsentBanner,
+	ConsentDialog,
+	ConsentDialogLink,
+	ConsentScript,
+} from 'c15t/astro/components';
 
 interface Props {
 	title: string;
@@ -24,7 +26,7 @@ const { title } = Astro.props;
 	<body>
 		<slot />
 		<footer>
-			<ConsentDialogTrigger>Privacy settings</ConsentDialogTrigger>
+			<ConsentDialogLink>Privacy settings</ConsentDialogLink>
 		</footer>
 		<ConsentBanner />
 		<ConsentDialog />

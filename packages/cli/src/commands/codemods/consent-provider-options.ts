@@ -31,6 +31,23 @@ const PROVIDER_ENTRIES = new Set([
 	'c15t/tanstack-start',
 ]);
 
+/**
+ * Where a provider entry's transport factories come from. The Next.js and
+ * TanStack Start entries export `hosted()`, `manifest()` and `offline()` as
+ * plain data for `defineConsentConfig` and server state, and
+ * `ConsentProvider` needs the transport itself, which the React entry
+ * exports.
+ */
+const TRANSPORT_ENTRIES: Record<string, string> = {
+	'@c15t/nextjs': '@c15t/react',
+	'@c15t/tanstack-start': '@c15t/react',
+	'c15t/next': 'c15t/react',
+	'c15t/tanstack-start': 'c15t/react',
+};
+
+const transportEntry = (entry: string): string =>
+	TRANSPORT_ENTRIES[entry] ?? entry;
+
 /** The v2 store package. Its runtime factory takes the same transport keys. */
 const RUNTIME_ENTRY = 'c15t';
 const RUNTIME_FACTORIES = new Set(['getOrCreateConsentRuntime']);
@@ -271,9 +288,17 @@ export const hasHandWrittenRules = function hasHandWrittenRules(
 const MAX_MODE_DEPTH = 5;
 
 /** The v3 transport factories. */
-const TRANSPORT_FACTORIES = new Set(['custom', 'hosted', 'offline']);
+const TRANSPORT_FACTORIES = new Set([
+	'custom',
+	'hosted',
+	'manifest',
+	'offline',
+]);
 
-/** Whether a call invokes `hosted()`, `offline()` or `custom()`, or an alias of one. */
+/**
+ * Whether a call invokes `manifest()`, `hosted()`, `offline()` or
+ * `custom()`, or an alias of one.
+ */
 const callsTransportFactory = function callsTransportFactory(
 	call: TsMorphTypes.CallExpression
 ): boolean {
@@ -295,8 +320,8 @@ const callsTransportFactory = function callsTransportFactory(
 };
 
 /**
- * Whether a `mode` value is already a v3 transport: a call to `hosted()`,
- * `offline()` or `custom()`, a choice between transports, a variable that
+ * Whether a `mode` value is already a v3 transport: a call to `manifest()`,
+ * `hosted()`, `offline()` or `custom()`, a choice between transports, a variable that
  * holds one, or a value typed as an object. v2 modes were strings, so a
  * helper that returns one, such as `getConsentMode()`, is not a transport.
  */
@@ -367,7 +392,7 @@ const planHosted = function planHosted(
 	const headers = findProperty(object, 'headers');
 	const customFetch = findProperty(object, 'customFetch');
 	const args = [
-		`url: ${(backend && propertyValueText(backend)) ?? V2_DEFAULT_BACKEND_URL}`,
+		`backendURL: ${(backend && propertyValueText(backend)) ?? V2_DEFAULT_BACKEND_URL}`,
 	];
 	const headersValue = headers && propertyValueText(headers);
 	if (headersValue) {
@@ -391,7 +416,7 @@ const planHosted = function planHosted(
 			)
 		)
 	);
-	requireImport(plan, entry, 'hosted');
+	requireImport(plan, transportEntry(entry), 'hosted');
 	plan.summaries.push('mode/backendURL -> hosted()');
 	plan.operations += 1;
 };
@@ -422,7 +447,7 @@ const planOffline = function planOffline(
 		? `offline({ ${propertyText('policyRules', packsValue)} })`
 		: 'offline()';
 	plan.edits.push(toTextEdit(mode, `mode: ${transport}`));
-	requireImport(plan, entry, 'offline');
+	requireImport(plan, transportEntry(entry), 'offline');
 	if (packsValue && hasHandWrittenRules(packs)) {
 		addTodo(mode, POLICY_RULES_TODO, plan.edits);
 	}
@@ -452,7 +477,7 @@ const planOffline = function planOffline(
 const CUSTOM_TODO =
 	"mode 'custom' and endpointHandlers were removed. Implement the v3 transport interface and pass mode: custom(transport). See https://c15t.com/docs/concepts/data-fetching";
 const MODE_TODO =
-	'mode now takes a transport such as hosted({ url }) or offline(). Replace this value and remove backendURL, offlinePolicy and endpointHandlers.';
+	'mode now takes a transport: hosted({ backendURL }), manifest() with the consentManifest() build plugin, or offline(). Replace this value and remove backendURL, offlinePolicy and endpointHandlers.';
 const RETRY_TODO = 'retryConfig was removed. Delete it.';
 
 /** Queues a TODO and counts it once. */
@@ -481,7 +506,7 @@ const planTransport = function planTransport(
 		(kind === 'literal' && (value === 'hosted' || value === 'c15t')) ||
 		(kind === 'absent' && backend)
 	) {
-		if (canImport(sourceFile, entry, 'hosted')) {
+		if (canImport(sourceFile, transportEntry(entry), 'hosted')) {
 			planHosted(object, entry, plan);
 		} else {
 			planTodo(plan, mode ?? backend ?? object, MODE_TODO, 'TODO: mode');
@@ -492,7 +517,7 @@ const planTransport = function planTransport(
 		return;
 	}
 	if (kind === 'literal' && value === 'offline') {
-		if (canImport(sourceFile, entry, 'offline')) {
+		if (canImport(sourceFile, transportEntry(entry), 'offline')) {
 			planOffline(object, entry, plan);
 		} else {
 			planTodo(plan, mode, MODE_TODO, 'TODO: mode');
@@ -677,9 +702,13 @@ export { findOptionsObjects };
 
 /**
  * Renames `ConsentManagerProvider` and its option types to `ConsentProvider`,
- * turns `mode`/`backendURL`/`offlinePolicy` into `hosted()` or `offline()`
- * transports, and renames `iframeBlockerConfig` to `iframeBlocker`. Custom
- * mode gets a `TODO(c15t v3)` comment.
+ * turns `mode`/`backendURL`/`offlinePolicy` into `hosted({ backendURL })` or
+ * `offline()` transports, and renames `iframeBlockerConfig` to
+ * `iframeBlocker`. The transports come from the React entry, also for a
+ * provider imported from the Next.js or TanStack Start entry, whose
+ * `hosted()` is plain data for `defineConsentConfig`. A mode that is
+ * already `manifest()`, `hosted()`, `offline()` or `custom()` is left alone.
+ * Custom mode gets a `TODO(c15t v3)` comment.
  *
  * @param options - Codemod execution options.
  * @returns Changed files and non-fatal per-file errors.

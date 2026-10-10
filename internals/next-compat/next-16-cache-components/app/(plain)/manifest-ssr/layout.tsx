@@ -1,21 +1,15 @@
-import {
-	COMPAT_BACKEND_URL,
-	COMPAT_MANIFEST_URL,
-} from '@c15t/next-compat-shared/config';
+import { COMPAT_CONSENT_CONFIG } from '@c15t/next-compat-shared/config';
 import { ConsentShell } from '@c15t/next-compat-shared/consent-shell';
 import { resolveConsent } from '@c15t/nextjs/server';
 import { Suspense } from 'react';
 import type { ReactNode } from 'react';
 
 /**
- * Server-side init resolved from the same-origin manifest route. Under
- * `cacheComponents` the await must sit behind `<Suspense>` (see ssr).
+ * Server-side init resolved from the backend manifest in manifest mode.
+ * Under `cacheComponents` the await must sit behind `<Suspense>` (see ssr).
  */
 const ManifestSSRBoundary = async ({ children }: { children: ReactNode }) => {
-	const state = await resolveConsent({
-		backendURL: COMPAT_BACKEND_URL,
-		manifestURL: COMPAT_MANIFEST_URL,
-	});
+	const state = await resolveConsent({ config: COMPAT_CONSENT_CONFIG });
 
 	return (
 		<ConsentShell

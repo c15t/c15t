@@ -1,18 +1,15 @@
 // #region docs:init
-import { init } from '@c15t/browser';
+import { init, manifest } from '@c15t/browser';
+import { posthog } from '@c15t/integrations/posthog';
 
-import { consentManifest } from './c15t-manifest';
-import { scripts } from './scripts';
-
-const consent = init({
-	backendURL:
-		import.meta.env.VITE_C15T_BACKEND_URL ?? 'https://benchmarks-inth.inth.app',
-	manifest: consentManifest,
-	mode: 'manifest',
-	scripts,
+init({
+	mode: manifest(),
+	scripts: [
+		posthog({
+			id: 'phc_your_project_key',
+			initOptions: { cookieless_mode: 'never' },
+			loadMode: 'after-consent',
+		}),
+	],
 });
-
-document
-	.querySelector('#privacy-settings')
-	?.addEventListener('click', () => consent.openDialog());
 // #endregion docs:init

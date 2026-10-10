@@ -13,9 +13,11 @@ import type { C15tClientOptionsExtension } from '@c15t/astro';
 import {
 	boot,
 	getConsentClient,
+	offlineTransport,
 	registerDialogAdapter,
 	registerDialogSurface,
 	registerIAB,
+	registerTransport,
 } from '@c15t/astro/client';
 import { createLazyIABFactory } from '@c15t/core/runtime';
 import { mountRuntimeIAB } from '@c15t/core/runtime/on-demand';
@@ -27,6 +29,10 @@ import type { AstroUIAdapter } from './story-variants';
 const DIALOG_HOST_ID = 'c15t-dialog-host';
 
 const registered = new Set<string>();
+
+// Every story resolves its policy offline, so this is the transport the
+// integration's boot script would register for it.
+registerTransport(offlineTransport);
 
 /**
  * Register one dialog adapter and the island it mounts.

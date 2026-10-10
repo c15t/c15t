@@ -1,14 +1,17 @@
 // #region docs:app-locals
-import type { C15tLocals } from '@c15t/svelte/kit';
+/// <reference types="@c15t/svelte/kit/locals" />
+// #endregion docs:app-locals
 
+// See https://svelte.dev/docs/kit/types#app.d.ts
+// for information about these interfaces
 declare global {
 	namespace App {
-		interface Locals {
-			/** Consent context resolved once per request by `c15tHandle`. */
-			c15t: C15tLocals;
-		}
+		// interface Error {}
+		// interface Locals {}
+		// interface PageData {}
+		// interface PageState {}
+		// interface Platform {}
 	}
 }
 
 export {};
-// #endregion docs:app-locals

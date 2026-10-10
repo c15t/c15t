@@ -22,7 +22,7 @@ place, so type-checking fails at each one until you resolve it.
 | ID | Rewrites | Leaves a `TODO(c15t v3)` for |
 | --- | --- | --- |
 | `packages-to-c15t` | `@c15t/react` and `@c15t/nextjs` imports to `c15t/react`, `c15t/next` and their subpaths, and removes `styles.css` imports | Stylesheet imports Tailwind CSS 3 or a cascade layer needs, and `components/integrations` imports |
-| `consent-provider-options` | `ConsentManagerProvider`, `ConsentManagerOptions` and `ConsentManagerProviderProps` to the `ConsentProvider` names; `mode: 'hosted'` with `backendURL`, `headers` and `customFetch` to `mode: hosted({ url, headers, fetch })`; `mode: 'offline'` with `offlinePolicy.policyPacks` to `mode: offline({ policyRules })`; `iframeBlockerConfig` to `iframeBlocker` | `mode: 'custom'` with `endpointHandlers`, a `mode` set from a variable, `retryConfig`, other `offlinePolicy` keys and hand-written policy packs |
+| `consent-provider-options` | `ConsentManagerProvider`, `ConsentManagerOptions` and `ConsentManagerProviderProps` to the `ConsentProvider` names; `mode: 'hosted'` with `backendURL`, `headers` and `customFetch` to `mode: hosted({ backendURL, headers, fetch })`; `mode: 'offline'` with `offlinePolicy.policyPacks` to `mode: offline({ policyRules })`; `iframeBlockerConfig` to `iframeBlocker` | `mode: 'custom'` with `endpointHandlers`, a `mode` set from a variable, `retryConfig`, other `offlinePolicy` keys and hand-written policy packs |
 | `root-exports-to-subpaths` | Imports of names that left the `c15t/react`, `c15t/next`, `@c15t/react` and `@c15t/nextjs` roots, moved to `/headless`, `/consent-dialog-trigger`, `/types` or `/components/consent-banner` | Removed names such as `useConsentScript`, `YouTubeEmbed` and `ConsentButton` |
 | `use-consent-manager-to-hooks` | `useConsentManager()` fields to one hook each | Fields with no one-call replacement |
 | `scripts-to-integrations` | `@c15t/scripts` imports to `@c15t/integrations` | Nothing |
@@ -104,11 +104,15 @@ Replace the packages with `c15t@alpha` and run it again.
 `consent-provider-options` finds option objects passed to the provider's
 `options` prop, variables typed as `ConsentManagerOptions` or
 `ConsentProviderOptions`, and objects passed to `getOrCreateConsentRuntime()`
-from `c15t`. It adds `hosted` or `offline` to the import the file already
-uses for the provider. A hosted mode without `backendURL` gets v2's default,
-`hosted({ url: '/api/c15t' })`. A `mode` set from a variable or expression
+from `c15t`. It imports `hosted` or `offline` from the entry the provider
+comes from. A provider from `c15t/next` or `c15t/tanstack-start` gets them
+from `c15t/react`, and one from `@c15t/nextjs` or `@c15t/tanstack-start`
+from `@c15t/react`: those framework entries export `hosted()` as plain data
+for `defineConsentConfig`, and `ConsentProvider` needs the transport. A
+hosted mode without `backendURL` gets v2's default,
+`hosted({ backendURL: '/api/c15t' })`. A `mode` set from a variable or expression
 gets a `TODO(c15t v3)` comment, unless it already holds a transport such as
-`hosted()`. A module that re-exports
+`manifest()` or `hosted()`. A module that re-exports
 `ConsentManagerProvider` keeps that name as an alias, so its importers still
 resolve.
 

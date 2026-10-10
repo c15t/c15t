@@ -14,7 +14,7 @@ import { symbolKernel } from '../runtime/utils/symbols';
 
 const createRuntime = function createRuntime(): ConsentRuntime {
 	return createConsentRuntime({
-		mode: hosted({ url: 'https://consent.example.test' }),
+		mode: hosted({ backendURL: 'https://consent.example.test' }),
 		pkg: '@c15t/vue-test',
 		prefetch: {
 			initialPolicyResolution: resolvePolicyRules({
@@ -63,7 +63,10 @@ describe('createVueConsentKernelContext with an external runtime', () => {
 	});
 
 	test('still owns the kernel when no runtime is passed', () => {
-		const context = createVueConsentKernelContext({ config: {} });
+		const context = createVueConsentKernelContext({
+			config: {},
+			mode: hosted({ backendURL: '/api/c15t' }),
+		});
 		const dispose = vi.spyOn(context.kernel, 'dispose');
 
 		expect(context.ownsKernel).toBe(true);

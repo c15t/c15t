@@ -3,9 +3,10 @@
 import {
 	ConsentBanner,
 	ConsentProvider,
-	offline,
 	useEffectivePermissions,
 } from '@c15t/nextjs';
+// The provider takes a transport; `offline` from `@c15t/nextjs` is data.
+import { offline } from '@c15t/react';
 
 const BasicState = () => {
 	const consents = useEffectivePermissions();

@@ -1,4 +1,4 @@
-import { createNextConsentRouteHandlers } from '@c15t/nextjs/api';
+import { createConsentRoute } from '@c15t/nextjs/api';
 
 const getBenchManifestURL = function getBenchManifestURL() {
 	const token = process.env.C15T_BENCH_COLD_MANIFEST_TOKEN;
@@ -7,8 +7,7 @@ const getBenchManifestURL = function getBenchManifestURL() {
 		: '/api/bench-consent/manifest';
 };
 
-const handlers = createNextConsentRouteHandlers({
+// A fixed route file: the handler reads the route from the last URL segment.
+export const { GET } = createConsentRoute({
 	manifestURL: getBenchManifestURL(),
 });
-
-export const { GET } = handlers;

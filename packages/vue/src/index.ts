@@ -1,3 +1,4 @@
+import type { ProviderTransportFactory } from '@c15t/core';
 import type { ConsentRuntime } from '@c15t/core/runtime';
 // oxlint-disable oxc/no-barrel-file -- Public framework entry point intentionally re-exports the supported API.
 import { getCurrentInstance } from 'vue';
@@ -15,6 +16,7 @@ import { mountTokensStyle } from './runtime/theme-tokens';
 export type { AllConsentNames, ClearOnRevocationConfig } from '@c15t/core';
 export type * from '@c15t/schema/config';
 export { defineTheme, type Theme } from '@c15t/ui/theme';
+export * from './runtime/components/index';
 export * from './runtime/composables';
 export type {
 	ConsentConfig,
@@ -25,61 +27,96 @@ export type {
 	UseNetworkBlockerOptions,
 } from './runtime/kernel';
 export {
+	custom,
+	hosted,
+	manifest,
+	offline,
+	type BrowserManifestModeFactory,
+	type HostedModeFactory,
+	type OfflineModeFactory,
+	type ProviderTransportFactory,
+} from './runtime/modes';
+export {
 	generateTokensCSS,
 	type TokensCSSOptions,
 } from './runtime/theme-tokens';
 
 /**
- * Options accepted by the {@link c15tVue} plugin: the consent config plus
- * the browser modules the plugin starts on mount (`scripts`,
- * `networkBlocker`, `iframeBlocker`, `gpp`, `storageConfig`, `nonce`).
+ * The consent config the {@link c15tVue} plugin takes, without where the
+ * policy comes from: the browser modules it starts on mount (`scripts`,
+ * `networkBlocker`, `iframeBlocker`, `gpp`, `storageConfig`, `nonce`), the
+ * UI options and callbacks.
  */
-export type C15tVuePluginOptions = Partial<RuntimeConsentConfig> & {
-	/**
-	 * A runtime this app should render instead of building its own kernel.
-	 *
-	 * Hosts without a single component tree — an Astro page whose islands
-	 * cannot see each other, a SvelteKit layout — create one runtime with
-	 * `createConsentRuntime()` and hand it to whatever renders. The plugin
-	 * then neither starts nor disposes it, and mounts none of the modules
-	 * the runtime already owns.
-	 *
-	 * @example
-	 * ```ts
-	 * import { createApp } from 'vue';
-	 * import { c15tVue } from '@c15t/vue/vue-plugin';
-	 *
-	 * createApp(Dialog).use(c15tVue, { runtime }).mount(target);
-	 * ```
-	 */
-	runtime?: ConsentRuntime;
-};
+export type C15tVuePluginConfig = Omit<
+	Partial<RuntimeConsentConfig>,
+	'backendURL' | 'reportSessions' | 'timeoutMs'
+>;
 
 /**
- * Plain Vue has no Nuxt server to host the init route that server manifest
- * mode calls. A `manifestURL` without an explicit `manifest` mode therefore
- * means the browser fetches and resolves that manifest itself.
+ * Options accepted by the {@link c15tVue} plugin: a `mode`, or a `runtime`
+ * the host owns, plus the {@link C15tVuePluginConfig}.
  */
-const resolvePlainVueOptions = function resolvePlainVueOptions(
-	options: C15tVuePluginOptions | undefined
-): C15tVuePluginOptions | undefined {
-	if (options?.manifestURL && options.manifest === undefined) {
-		return { ...options, manifest: 'client' };
-	}
-	return options;
-};
+export type C15tVuePluginOptions = C15tVuePluginConfig &
+	(
+		| {
+				/**
+				 * Where the visitor's policy comes from: `manifest()`, `hosted()`,
+				 * `offline()` or `custom()` from `c15t/vue/vue-plugin`.
+				 *
+				 * @example
+				 * ```ts
+				 * import { c15tVue, manifest } from 'c15t/vue/vue-plugin';
+				 *
+				 * app.use(c15tVue, { mode: manifest() });
+				 * ```
+				 */
+				mode: ProviderTransportFactory;
+				runtime?: undefined;
+		  }
+		| {
+				mode?: undefined;
+				/**
+				 * A runtime this app should render instead of building its own
+				 * kernel.
+				 *
+				 * Hosts without a single component tree — an Astro page whose
+				 * islands cannot see each other, a SvelteKit layout — create one
+				 * runtime with `createConsentRuntime()` and hand it to whatever
+				 * renders. The plugin then neither starts nor disposes it, and
+				 * mounts none of the modules the runtime already owns.
+				 *
+				 * @example
+				 * ```ts
+				 * import { createApp } from 'vue';
+				 * import { c15tVue } from 'c15t/vue/vue-plugin';
+				 *
+				 * createApp(Dialog).use(c15tVue, { runtime }).mount(target);
+				 * ```
+				 */
+				runtime: ConsentRuntime;
+		  }
+	);
 
-export const c15tVue: Plugin<[C15tVuePluginOptions?]> = {
-	install(app: App, pluginOptions?: C15tVuePluginOptions) {
-		const options = resolvePlainVueOptions(pluginOptions);
-		if (options) {
-			app.provide(consentConfigKey, options);
-		}
+/**
+ * The c15t Vue plugin. One consent runtime per app, shared with every
+ * component through `provide`/`inject`; it starts once the root mounts.
+ *
+ * @example
+ * ```ts
+ * import { c15tVue, manifest } from 'c15t/vue/vue-plugin';
+ * import { createApp } from 'vue';
+ *
+ * createApp(App).use(c15tVue, { mode: manifest() }).mount('#app');
+ * ```
+ */
+export const c15tVue: Plugin<[C15tVuePluginOptions]> = {
+	install(app: App, options: C15tVuePluginOptions) {
+		app.provide(consentConfigKey, options);
 
-		const { runtime, ...rest } = options ?? {};
+		const { mode, runtime, ...rest } = options;
 		const config = rest as RuntimeConsentConfig;
 		// One runtime per app, shared through `provide`/`inject`.
-		const context = createVueConsentKernelContext({ config, runtime });
+		const context = createVueConsentKernelContext({ config, mode, runtime });
 		provideVueConsentContext(app, context);
 		// Tokens and the color scheme apply from install, before the first
 		// render, so every surface is styled whether or not a ConsentRoot

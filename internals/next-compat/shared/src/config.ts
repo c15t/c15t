@@ -1,4 +1,4 @@
-import { defineConsentConfig } from '@c15t/nextjs';
+import { defineConsentConfig, hosted } from '@c15t/nextjs';
 
 /**
  * Backend URL every fixture app proxies to its in-process stub.
@@ -11,24 +11,39 @@ import { defineConsentConfig } from '@c15t/nextjs';
 export const COMPAT_BACKEND_URL = '/api/c15t';
 
 /**
- * Same-origin manifest route each app mounts with `@c15t/nextjs/api`.
+ * Where each app mounts the consent route from `@c15t/nextjs/api` (or
+ * `@c15t/nextjs/pages`), which serves `manifest` and `init`.
  */
-export const COMPAT_MANIFEST_URL = '/api/consent/manifest';
+export const COMPAT_ROUTE_PREFIX = '/api/consent';
 
 /**
- * Same-origin init route (the route handlers' `GET`): resolves init from the
- * cached manifest with the request's geo headers.
+ * Same-origin manifest route under {@link COMPAT_ROUTE_PREFIX}.
  */
-export const COMPAT_INIT_URL = '/api/consent/init';
+export const COMPAT_MANIFEST_URL = `${COMPAT_ROUTE_PREFIX}/manifest`;
 
 /**
- * The one config object the route files, the server helpers, and the
- * root all read.
+ * Hosted mode against the stub: the server helpers and the browser call
+ * the backend `/init`.
+ *
+ * @remarks
+ * No cell wraps its `next.config.ts` in `withConsentManifest`, so nothing
+ * finds a `c15t.config.ts`; every helper and root gets its config passed
+ * explicitly.
+ */
+export const COMPAT_HOSTED_CONFIG = defineConsentConfig({
+	backendURL: COMPAT_BACKEND_URL,
+	mode: hosted(),
+});
+
+/**
+ * Manifest mode with the app's consent route: the server resolves init from
+ * the backend `/manifest`, and the browser re-inits through
+ * `${COMPAT_ROUTE_PREFIX}/init`, which resolves the cached manifest with the
+ * request's geo headers. The route files read the same config.
  */
 export const COMPAT_CONSENT_CONFIG = defineConsentConfig({
 	backendURL: COMPAT_BACKEND_URL,
-	initURL: COMPAT_INIT_URL,
-	manifestURL: COMPAT_MANIFEST_URL,
+	routePrefix: COMPAT_ROUTE_PREFIX,
 });
 
 /**

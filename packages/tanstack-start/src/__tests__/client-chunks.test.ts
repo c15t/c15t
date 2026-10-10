@@ -36,7 +36,7 @@ import { ConsentBanner, ConsentDialog, ConsentProvider } from '@c15t/tanstack-st
 export default () => h(ConsentProvider, { options: { backendURL: '/api/c15t' } }, h(ConsentBanner), h(ConsentDialog));`,
 	'root-route': `import { createElement as h } from 'react';
 import { ConsentBanner, ConsentDialog, ConsentRoot } from '@c15t/tanstack-start';
-export default () => h(ConsentRoot, { options: { backendURL: '/api/c15t' } }, h(ConsentBanner), h(ConsentDialog));`,
+export default () => h(ConsentRoot, { state: { backendURL: '/api/c15t' } }, h(ConsentBanner), h(ConsentDialog));`,
 };
 
 interface FirstLoad {
@@ -117,10 +117,22 @@ const routeFirstLoad = async function routeFirstLoad(
 
 const streamedInitModule = /core\/dist\/runtime\/streamed-init\.js$/u;
 
+/**
+ * Code `ConsentRoot` loads with `import()` only when the browser runs init:
+ * the full hosted transport, offline mode with its policy pack, and both
+ * manifest resolvers.
+ */
+const deferredModules = [
+	/core\/dist\/transports\/hosted\.js$/u,
+	/core\/dist\/transports\/offline\.js$/u,
+	/core\/dist\/transports\/manifest(?:-browser)?\.js$/u,
+	/react\/dist\/transports\/offline\.js$/u,
+];
+
 describe('TanStack Start client chunks', () => {
 	test.each([
 		['root-route', 10],
-		['provider-route', 8],
+		['provider-route', 9],
 	])(
 		'a %s loads at most %i files first',
 		async (route, bound) => {
@@ -128,6 +140,8 @@ describe('TanStack Start client chunks', () => {
 			// helpers Rolldown still keeps apart: it checks each helper before
 			// the shared module that imports it, and never revisits it. The
 			// root route adds the streamed-state resolver and its helpers.
+			// English base copy is a chunk of its own too: the languages the
+			// root's browser resolver loads on demand import it.
 			const { files } = await routeFirstLoad(route);
 			expect(files.length, files.join('\n')).toBeLessThanOrEqual(bound);
 		},
@@ -137,6 +151,14 @@ describe('TanStack Start client chunks', () => {
 	test('a root route applies a streamed state with code it loads first', async () => {
 		const { modules } = await routeFirstLoad('root-route');
 		expect(modules.some((id) => streamedInitModule.test(id))).toBe(true);
+	}, 60_000);
+
+	test('a root route loads no init path, policy pack or resolver first', async () => {
+		const { modules } = await routeFirstLoad('root-route');
+		const initPaths = modules.filter((id) =>
+			deferredModules.some((pattern) => pattern.test(id))
+		);
+		expect(initPaths).toEqual([]);
 	}, 60_000);
 
 	test('a provider route leaves that code to load on demand', async () => {

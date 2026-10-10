@@ -723,8 +723,8 @@ export const PolicyDemo = () => {
 											].translations,
 									},
 									mode: hosted({
+										backendURL: '/api/self-host',
 										headers: { 'x-c15t-demo-example': resolvedExample },
-										url: '/api/self-host',
 									}),
 									overrides,
 									presentation: getScenarioById(resolvedExample).presentation,

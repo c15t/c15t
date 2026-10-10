@@ -24,7 +24,6 @@ import IabPanel from '../runtime/components/iab-panel.vue';
 import IabPrompt from '../runtime/components/iab-prompt.vue';
 import { consentConfigKey } from '../runtime/composables/config';
 import type { ConsentConfig } from '../runtime/config';
-import { createVueConsentKernelContext } from '../runtime/kernel';
 import {
 	symbolActiveUI,
 	symbolConsent,
@@ -33,6 +32,7 @@ import {
 	symbolKernelContext,
 	symbolSnapshot,
 } from '../runtime/utils/symbols';
+import { createVueConsentKernelContext } from './test-kernel';
 
 const CMP_ID = 28;
 

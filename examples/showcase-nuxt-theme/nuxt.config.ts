@@ -1,8 +1,5 @@
 export default defineNuxtConfig({
 	c15t: {
-		backendURL:
-			process.env.NUXT_PUBLIC_C15T_BACKEND_URL ??
-			'https://benchmarks-inth.inth.app',
 		// The banner and dialog link to the shop's privacy policy. The label
 		// comes from the project's translations.
 		bannerLegalLinks: ['privacyPolicy'],

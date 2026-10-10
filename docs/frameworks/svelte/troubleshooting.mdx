@@ -1,43 +1,56 @@
 ---
 title: Troubleshooting
-description: Fix a Vite build that cannot fetch the c15t manifest, a missing generated manifest module, a missing banner, a wrong backend URL, ignored theme colors and vendors that load before consent in a Svelte app.
+description: Fix a Vite build that cannot fetch the c15t manifest, a missing bundled policy, a missing banner, a wrong backend URL, ignored theme colors and vendors that load before consent in a Svelte app.
 group: frameworks
 ---
 
 ## The build or dev server fails fetching the manifest
 
 **Check.** `vite build` and `vite dev` download the policy through the
-`consentManifest` plugin in `vite.config.ts`. The error names the cause:
+`consentManifest` plugin in `vite.config.ts`. `vite build` stops with an
+error that starts with `@c15t/svelte/vite: could not fetch the consent
+manifest`, and `vite dev` logs it as a warning. The part in parentheses names
+the cause:
 
 | Error | Cause |
 | --- | --- |
-| `@c15t/core/build: /manifest responded 404` | The backend URL is wrong, or still the `https://your-project.inth.app` placeholder. |
-| `@c15t/core/build: build-time manifests require an absolute upstream URL.` | The backend URL is empty or relative. |
-| `@c15t/core/build: /manifest returned an invalid consent manifest.` | The URL answers, but not with a c15t v3 manifest. |
-| `fetch failed` | The machine running the command cannot reach the backend. |
+| `/manifest responded 404` | The backend URL is wrong, or still the `https://your-project.inth.app` placeholder. |
+| `no backend URL is set` | Neither the `backendURL` option nor `VITE_C15T_BACKEND_URL` (or `VITE_INTH_PROJECT_URL`) is set, or it is empty. `vite build` stops; `vite dev` warns. |
+| `skipped the consent manifest fetch` (a notice) | The backend URL is relative. With `onBuildError: 'fail'`, this is the error `build-time manifests require an absolute upstream URL`. |
+| `/manifest returned an invalid consent manifest.` | The URL answers, but not with a c15t v3 manifest. |
+| `fetch failed` or `no response within 10 seconds` | The machine running the command cannot reach the backend. |
 
-**Fix.** Set `VITE_C15T_BACKEND_URL` to your project's absolute backend URL
-where the command runs, in `.env` or the CI environment, and make sure that
-machine can reach the backend.
+**Fix.** Set `VITE_C15T_BACKEND_URL` (or `VITE_INTH_PROJECT_URL`) to your
+project's absolute backend URL where the command runs, in `.env` or the CI environment, and make sure that
+machine can reach the backend. To deploy while it is down, build with
+`C15T_ON_BUILD_ERROR=runtime`.
 
-## Cannot find module './c15t-manifest'
+## The browser fetches the manifest at runtime
 
-**Check.** `src/c15t-manifest.ts` is generated and kept out of Git, so it does
-not exist on a fresh checkout until the plugin runs. `svelte-check` does not
-run Vite plugins.
+**Check.** With `manifest()`, the browser requests `<backendURL>/manifest` on
+page load instead of resolving from a bundled policy. The build had no policy
+to bundle: `consentManifest` is missing from `plugins` in `vite.config.ts`,
+the fetch failed in `vite dev` or in a build with
+`C15T_ON_BUILD_ERROR=runtime`, or the backend URL is relative. Without the
+plugin and without a `backendURL` option, `manifest()` has no backend URL at
+all and throws when it runs.
 
-**Fix.** Run `vite dev` or `vite build` once before `svelte-check`.
+**Fix.** Add the plugin or fix the cause from the
+[fetch errors](#the-build-or-dev-server-fails-fetching-the-manifest), then
+restart `vite dev` or rebuild. A build fetches once, and `vite dev` fetches
+the first time the app loads the policy.
 
 ## Consent requests go to the wrong backend
 
-**Check.** Look at the backend URL in `vite.config.ts` and `src/App.svelte`.
-One still has the demo project, the placeholder
+**Check.** Look at `VITE_C15T_BACKEND_URL` and `VITE_INTH_PROJECT_URL` in
+`.env`, `.env.local` and the build environment, and at any `backendURL` in `vite.config.ts` or
+`src/App.svelte`. One still has the demo project, the placeholder
 `https://your-project.inth.app`, or a URL from another project. Vite writes
 `VITE_C15T_BACKEND_URL` into the bundle at build time, so changing it later
 does nothing until you rebuild.
 
-**Fix.** Set `VITE_C15T_BACKEND_URL` to your Inth project's backend URL,
-including any path prefix, and rebuild. The project must also list your app's
+**Fix.** Set `VITE_C15T_BACKEND_URL` (or `VITE_INTH_PROJECT_URL`) to your
+Inth project's backend URL, including any path prefix, and rebuild. The project must also list your app's
 origin as trusted.
 
 ## The banner appears after the page
@@ -50,6 +63,22 @@ categories stay denied until the policy resolves.
 SvelteKit does that. See [choose your setup](/docs/concepts/choose-your-setup).
 
 <include src="../../shared/svelte/troubleshooting.mdx" />
+
+## Names from an earlier alpha are missing
+
+**Check.** An import from an earlier v3 alpha fails, such as
+`ConsentManagerProvider`, `Frame` or `consentManifest({ outputFile })`.
+`@c15t/svelte` was not public in v2, so the alphas renamed these with no
+alias.
+
+**Fix.** Use the current names:
+
+| Removed | Use instead |
+| --- | --- |
+| `ConsentManagerProvider` | `ConsentProvider` |
+| `Frame` | `ConsentGate` |
+| `hosted({ url })` | `hosted()` with `VITE_C15T_BACKEND_URL`, or `hosted({ backendURL })` |
+| `ConsentManifestOptions`, `consentManifest({ outputFile })` | Removed. `consentManifest()` serves the snapshot as `c15t/generated`. |
 
 ## More help
 

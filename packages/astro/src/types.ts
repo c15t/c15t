@@ -21,76 +21,23 @@ import type {
 	StorageConfig,
 	Vendor,
 } from '@c15t/core';
+import type { ConsentMode } from '@c15t/core/modes';
 import type {
 	ConsentRuntimeOptions,
 	RuntimeGPPOptions,
 	RuntimeNetworkBlockerOptions,
 } from '@c15t/core/runtime';
-import type {
-	PolicyRule,
-	PolicyResolution,
-	ConsentManifest,
-	GlobalVendorList,
-} from '@c15t/schema/types';
+import type { PolicyResolution, GlobalVendorList } from '@c15t/schema/types';
 import type { Theme } from '@c15t/ui/theme';
-
-/** Transport selection, in a form that survives serialization. */
-export type C15tModeDescriptor =
-	| C15tHostedDescriptor
-	| C15tOfflineDescriptor
-	| C15tManifestDescriptor;
-
-/** Talk to a c15t backend over HTTP. */
-export interface C15tHostedDescriptor {
-	type: 'hosted';
-	/** Backend base URL. Absolute, or same-origin like `/api/c15t`. */
-	url: string;
-	/** Domain recorded when consent is saved. */
-	domain?: string;
-	/** Extra headers forwarded to the backend. */
-	headers?: Record<string, string>;
-}
-
-/** Resolve policies locally with no backend at all. */
-export interface C15tOfflineDescriptor {
-	type: 'offline';
-	/** Policy packs resolved locally. */
-	policyRules?: PolicyRule[];
-}
-
-/**
- * Resolve `/init` from a cached consent manifest.
- *
- * The server resolves the manifest per request; the browser talks to the
- * injected `/api/c15t/init` route, which is manifest-backed and cached.
- */
-export interface C15tManifestDescriptor {
-	type: 'manifest';
-	/** `GET /manifest` URL. Defaults to `${backendURL}/manifest`. */
-	manifestURL?: string;
-	/** Backend base URL used for `POST /subjects`. */
-	backendURL?: string;
-	/** Inline manifest. Takes precedence over `manifestURL`. */
-	manifest?: ConsentManifest;
-	/**
-	 * Report each init the server resolves, in the middleware and the init
-	 * route, to the backend's `POST /sessions`, server-to-server and
-	 * detached from the response, so the backend still counts visitors it
-	 * never served `/init` to. Set `false` to send none.
-	 *
-	 * @default true
-	 */
-	reportSessions?: boolean;
-}
 
 /**
  * Which framework renders the on-demand dialog islands.
  *
  * Svelte is the default because it is the smallest: its runtime costs
- * roughly 14 KB gzipped against React's ~45 KB. A site already shipping
- * React or Vue should say so and reuse what it has instead of downloading
- * a second framework for one dialog. The choice is never inferred — a
- * silent change to what a page downloads is worse than an explicit one.
+ * roughly 14 KB gzipped against React's ~45 KB. A site that already ships
+ * React or Vue reuses it instead of downloading a second framework for one
+ * dialog. Unset, the integration picks the one of `@astrojs/svelte`,
+ * `@astrojs/react` and `@astrojs/vue` the site registers.
  */
 export type C15tUIAdapterName = 'svelte' | 'react' | 'vue';
 
@@ -104,22 +51,6 @@ export type C15tUIAdapterName = 'svelte' | 'react' | 'vue';
  * or removes it, so a site with its own theme switch toggles it itself.
  */
 export type C15tColorScheme = 'light' | 'dark' | 'system' | 'none';
-
-/** Route paths the integration can inject. */
-export interface C15tEndpointOptions {
-	/**
-	 * Inject `GET /api/c15t/init` and `GET /api/c15t/manifest`.
-	 *
-	 * Required for `mode: manifest()` unless you write the routes yourself.
-	 *
-	 * @default true when `mode.type === 'manifest'`, otherwise false
-	 */
-	enabled?: boolean;
-	/** @default '/api/c15t/init' */
-	initPath?: string;
-	/** @default '/api/c15t/manifest' */
-	manifestPath?: string;
-}
 
 /** How the integration registers its `pre`-order middleware. */
 export interface C15tMiddlewareOptions {
@@ -164,17 +95,60 @@ export interface C15tMiddlewareOptions {
 /** Options accepted by the `c15t()` Astro integration. */
 export interface C15tAstroOptions {
 	/**
-	 * Fetch the manifest when `astro build` or `astro dev` starts and bundle
-	 * it for this deployment. Policy edits then need a rebuild.
+	 * Your c15t backend: the browser saves consent there with
+	 * `POST /subjects`, `hosted()` asks its `/init`, and `manifest()` reads
+	 * `${backendURL}/manifest`.
 	 *
-	 * Unset, `manifest()` mode fetches it whenever its upstream URL is
-	 * absolute; a failed fetch logs a warning and the server fetches the
-	 * policy at runtime instead. `true` requires manifest mode with an
-	 * absolute upstream URL and stops the build when the fetch fails.
-	 * `false` always fetches at runtime, so policy edits apply without a
-	 * rebuild.
+	 * Defaults to `PUBLIC_C15T_BACKEND_URL`, then `PUBLIC_INTH_PROJECT_URL`,
+	 * read from the environment or a `.env` file in the project root when
+	 * `astro.config.mjs` loads. A
+	 * `hosted({ backendURL })` of its own wins over both.
 	 */
-	buildManifest?: boolean;
+	backendURL?: string;
+	/**
+	 * Where the visitor's policy comes from. Build it with `manifest()`,
+	 * `hosted()` or `offline()` from `c15t/astro`.
+	 *
+	 * `manifest()` downloads your project's policy when `astro build` or
+	 * `astro dev` starts and resolves each visitor on the server.
+	 * `manifest({ source: 'runtime' })` fetches it at runtime instead, so
+	 * policy edits apply without a rebuild.
+	 *
+	 * @default manifest()
+	 */
+	mode?: ConsentMode;
+	/**
+	 * Path of the route the integration injects for `manifest()` mode, which
+	 * answers `${routePrefix}/init` and `${routePrefix}/manifest`. A page
+	 * whose consent changes after it loads asks it again. `false` injects
+	 * nothing, and the browser then asks the backend's `/init` instead; it
+	 * never calls a route of your own at that path.
+	 *
+	 * The route renders on demand, so `astro build` needs a server adapter.
+	 * A static site uses `hosted()` or `offline()`, or
+	 * `manifest({ resolve: 'browser' })`, which prerenders only
+	 * `${routePrefix}/manifest`.
+	 *
+	 * @default '/api/c15t'
+	 */
+	routePrefix?: string | false;
+	/**
+	 * What a failed build-time manifest fetch does. `'fail'` stops
+	 * `astro build` and `astro dev`. `'runtime'` logs a warning, and the
+	 * server fetches the policy at runtime. Unset, `astro build` fails and
+	 * `astro dev` warns. The `C15T_ON_BUILD_ERROR` environment variable
+	 * overrides this option. The fetch waits at most 10 seconds.
+	 */
+	onBuildError?: 'fail' | 'runtime';
+	/**
+	 * In `manifest()` mode, report each init the server resolves, in the
+	 * middleware and the injected route, to the backend's `POST /sessions`,
+	 * server-to-server and detached from the response, so the backend still
+	 * counts visitors it never served `/init` to. Set `false` to send none.
+	 *
+	 * @default true
+	 */
+	reportSessions?: boolean;
 	/** Host layout and styling constrained by the active policy. */
 	presentation?: ConsentPresentation;
 	/**
@@ -187,11 +161,6 @@ export interface C15tAstroOptions {
 	 * Built-in assignment is not available on Astro.
 	 */
 	experiment?: ConsentExperiment;
-	/**
-	 * Transport selection. Build it with `hosted()`, `offline()` or
-	 * `manifest()` so the descriptor stays well-formed.
-	 */
-	mode: C15tModeDescriptor;
 
 	/** Categories offered in the banner and preference centre. */
 	consentCategories?: AllConsentNames[];
@@ -213,7 +182,6 @@ export interface C15tAstroOptions {
 	 * @example
 	 * ```js
 	 * c15t({
-	 *   mode: hosted({ url: backendURL }),
 	 *   vendors: [
 	 *     {
 	 *       id: 'posthog',
@@ -272,7 +240,6 @@ export interface C15tAstroOptions {
 	 * @example
 	 * ```js
 	 * c15t({
-	 *   mode: hosted({ url: backendURL }),
 	 *   gpp: { usFallback: 'none' },
 	 * });
 	 * ```
@@ -326,13 +293,12 @@ export interface C15tAstroOptions {
 	/**
 	 * Framework used to render the on-demand dialog islands.
 	 *
-	 * `'svelte'` ships the least JavaScript and is the default. Pick
-	 * `'react'` or `'vue'` when the site already loads that runtime, so the
-	 * dialog reuses it instead of adding a second framework. Whichever you
-	 * pick, install the matching Astro integration — `@astrojs/svelte`,
-	 * `@astrojs/react` or `@astrojs/vue` — and list it before `c15t()`.
-	 *
-	 * @default 'svelte'
+	 * Unset, it is the framework of the one Astro integration among
+	 * `@astrojs/svelte`, `@astrojs/react` and `@astrojs/vue` the site
+	 * registers, so the dialog reuses a runtime the site already loads. With
+	 * none or several of them it is `'svelte'`, which ships the least
+	 * JavaScript. Whichever it is, the matching Astro integration has to be
+	 * listed in `astro.config`.
 	 */
 	ui?: C15tUIAdapterName;
 
@@ -355,16 +321,16 @@ export interface C15tAstroOptions {
 	 */
 	styles?: boolean;
 
-	/** Injected API routes. */
-	endpoints?: C15tEndpointOptions | boolean;
-
 	/**
-	 * Module specifier whose default export is a
-	 * {@link C15tClientOptionsExtension}. Use it for anything that cannot be
-	 * serialized — callbacks, a custom GVL fetcher, scripts with lifecycle
-	 * hooks.
+	 * Module whose default export is a {@link C15tClientOptionsExtension},
+	 * for anything that cannot be serialized: callbacks, a custom GVL
+	 * fetcher, scripts with lifecycle hooks such as the
+	 * `@c15t/integrations` helpers.
 	 *
-	 * @example './src/c15t.client.ts'
+	 * A relative path resolves from the project root. Unset, the integration
+	 * uses `src/c15t.client.ts`, `.js` or `.mjs` when the file exists.
+	 *
+	 * @example './src/consent-client.ts'
 	 */
 	clientEntrypoint?: string;
 
@@ -372,7 +338,7 @@ export interface C15tAstroOptions {
 	 * Register the `pre`-order middleware that populates `Astro.locals.c15t`.
 	 *
 	 * `false` is the same as `{ enabled: false }`. The middleware already
-	 * skips the integration's own init and manifest routes, so a site that
+	 * skips the integration's own route under `routePrefix`, so a site that
 	 * serves its own manifest does not have to hand-roll one to break the
 	 * cycle; use `skip` to add routes of your own.
 	 *
@@ -495,19 +461,21 @@ export interface C15tClientOptionsExtension {
 
 /**
  * The serialized options shape shared by the middleware, the components and
- * the client boot script.
+ * the client boot script. The browser's copy leaves out what only the server
+ * reads: the snapshot, the middleware settings and the build options.
  *
  * @internal
  */
 export interface C15tResolvedOptions extends Omit<
 	C15tAstroOptions,
-	'endpoints' | 'middleware' | 'requireUIIntegration'
+	'middleware' | 'mode' | 'requireUIIntegration' | 'routePrefix'
 > {
+	/** The configured mode; on the server, with the build's snapshot. */
+	mode: ConsentMode;
+	/** The injected route's prefix, without a trailing slash. Unset with `routePrefix: false`. */
+	routePrefix?: string;
 	ui: C15tUIAdapterName;
 	colorScheme: C15tColorScheme;
-	endpoints: Required<Omit<C15tEndpointOptions, 'enabled'>> & {
-		enabled: boolean;
-	};
 	middleware: Required<Omit<C15tMiddlewareOptions, 'timeoutMs'>> &
 		Pick<C15tMiddlewareOptions, 'timeoutMs'>;
 	/**

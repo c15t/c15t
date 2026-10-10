@@ -336,6 +336,20 @@
         "typescript": "6.0.3",
       },
     },
+    "benchmarks/examples-payload": {
+      "name": "@c15t/examples-payload-bench",
+      "dependencies": {
+        "@c15t/benchmarking": "workspace:*",
+        "playwright": "1.61.1",
+      },
+      "devDependencies": {
+        "@c15t/browser": "workspace:*",
+        "@c15t/integrations": "workspace:*",
+        "@c15t/svelte": "workspace:*",
+        "c15t": "workspace:*",
+        "vitest": "4.1.10",
+      },
+    },
     "benchmarks/manifest-cache-bench": {
       "name": "@c15t/manifest-cache-bench",
       "dependencies": {
@@ -799,7 +813,6 @@
     "examples/react": {
       "name": "@c15t/example-react",
       "dependencies": {
-        "@c15t/browser": "workspace:*",
         "@c15t/integrations": "workspace:*",
         "c15t": "workspace:*",
         "react": "19.2.7",
@@ -968,10 +981,8 @@
     "examples/svelte": {
       "name": "@c15t/example-svelte",
       "dependencies": {
-        "@c15t/browser": "workspace:*",
         "@c15t/integrations": "workspace:*",
         "@c15t/svelte": "workspace:*",
-        "c15t": "workspace:*",
         "svelte": "^5.56.4",
       },
       "devDependencies": {
@@ -986,7 +997,6 @@
       "dependencies": {
         "@c15t/integrations": "workspace:*",
         "@c15t/svelte": "workspace:*",
-        "c15t": "workspace:*",
       },
       "devDependencies": {
         "@sveltejs/adapter-auto": "8.0.0",
@@ -2031,7 +2041,7 @@
         "@c15t/conformance": "workspace:*",
         "@c15t/typescript-config": "workspace:*",
         "@c15t/vitest-config": "workspace:*",
-        "@sveltejs/kit": "^2.16.0",
+        "@sveltejs/kit": "^2.63.0",
         "@sveltejs/package": "^2.3.7",
         "@sveltejs/vite-plugin-svelte": "^5.0.3",
         "@testing-library/jest-dom": "^6.0.0",
@@ -2045,7 +2055,7 @@
         "vite": "^6.0.0",
       },
       "peerDependencies": {
-        "@sveltejs/kit": "^2.0.0 || ^3.0.0",
+        "@sveltejs/kit": "^2.63.0 || ^3.0.0",
         "svelte": "^5.0.0",
       },
       "optionalPeers": [
@@ -2657,6 +2667,8 @@
     "@c15t/example-tanstack-start": ["@c15t/example-tanstack-start@workspace:examples/tanstack-start"],
 
     "@c15t/example-vue": ["@c15t/example-vue@workspace:examples/vue"],
+
+    "@c15t/examples-payload-bench": ["@c15t/examples-payload-bench@workspace:benchmarks/examples-payload"],
 
     "@c15t/fixture-acceptance": ["@c15t/fixture-acceptance@workspace:internals/fixtures/acceptance"],
 

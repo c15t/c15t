@@ -16,12 +16,9 @@ import type { Component } from 'vue';
 import { createSSRApp } from 'vue';
 import { renderToString } from 'vue/server-renderer';
 
-import { c15tVue } from '../index';
 import NuxtConsentRoot from '../runtime/components/nuxt-root.vue';
 import ConsentRoot from '../runtime/components/root.vue';
 import { consentConfigKey } from '../runtime/composables/config';
-import type { RuntimeConsentConfig } from '../runtime/kernel';
-import { createVueConsentKernelContext } from '../runtime/kernel';
 import {
 	symbolActiveUI,
 	symbolConsent,
@@ -30,6 +27,9 @@ import {
 	symbolKernelContext,
 	symbolSnapshot,
 } from '../runtime/utils/symbols';
+import type { RuntimeConsentConfig } from './test-kernel';
+import { createVueConsentKernelContext } from './test-kernel';
+import { c15tVue } from './test-plugin';
 
 const initFixture: InitOutput = {
 	branding: 'c15t',
@@ -76,8 +76,11 @@ const banner = () =>
 	document.querySelector('[data-testid="consent-banner-root"]');
 
 const waitFor = async function waitFor(check: () => unknown) {
-	for (let attempt = 0; attempt < 50 && !check(); attempt += 1) {
-		// The surfaces arrive through dynamic imports.
+	// The surfaces arrive through dynamic imports, which Vite compiles on
+	// first request. Give that 2 seconds: a parallel run across packages can
+	// take far longer than the half second a quiet machine needs.
+	const deadline = Date.now() + 2000;
+	while (Date.now() < deadline && !check()) {
 		// oxlint-disable-next-line no-await-in-loop -- Polling in order.
 		await flushPromises();
 		// oxlint-disable-next-line no-await-in-loop -- Polling in order.

@@ -78,7 +78,7 @@ corner and opens on the Scripts tab.
 The shop runs in offline mode, so it needs no account: c15t's bundled policy
 rules show the opt-in banner, and choices stay in this browser. For
 production, replace `offline()` in `components/consent.tsx` with
-`hosted({ url: 'https://your-project.inth.app' })`.
+`hosted({ backendURL: 'https://your-project.inth.app' })`.
 
 The placeholder IDs belong to no real account. GTM answers `gtm.js` with a
 404, which DevTools shows as an error, PostHog can't find the project's

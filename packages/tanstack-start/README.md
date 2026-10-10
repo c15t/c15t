@@ -24,7 +24,7 @@ TanStack Start cookie banner and consent management platform with SSR-hydrated f
 
 - Works with TanStack Start and TanStack Router 1.x
 - Root route loader hands the server-resolved consent state to the client, so the first paint already shows the right banner
-- Same-origin manifest and init server routes with in-process caching, ETag passthrough, and no self-fetch during SSR
+- An optional same-origin consent route, `createConsentRoute()`, for prerendered pages and proxied saves
 - Request middleware that normalizes CDN geo, language, and Global Privacy Control headers for every request
 - Static helpers for prerendered builds: the manifest's unknown-location policy first, client-side geo fix-up afterwards
 - Prebuilt and customizable cookie banner, consent dialog, and preference center UI
@@ -57,22 +57,21 @@ To manually install, follow the guide in our [docs – manual setup](https://c15
 
 ## Usage
 
-1. Mount the consent server route so the client has same-origin `manifest` and `init` endpoints (the snippets below use this default; optionally add `proxy: true` and point `ConsentRoot` at `/api/c15t` to also route consent saves through it)
-2. Resolve the consent state in the root route loader with a server function
-3. Wrap the app in `ConsentRoot` and add `ConsentBanner` and `ConsentDialog`
-4. For full implementation details, see the [TanStack Start quickstart docs](https://c15t.com/docs/frameworks/tanstack-start/quickstart)
+1. Set `VITE_C15T_BACKEND_URL` to your Inth backend URL in `.env`
+2. Add `consentManifest()` from `@c15t/tanstack-start/build` to `vite.config.ts`. It downloads your policy at build time and keeps it on the server
+3. Resolve the consent state in the root route loader with `createConsentStateHandler()` in a server function
+4. Wrap the app in `ConsentRoot` and add `ConsentBanner` and `ConsentDialog`
+5. For full implementation details, see the [TanStack Start quickstart docs](https://c15t.com/docs/frameworks/tanstack-start/quickstart)
 
-```tsx
-// src/routes/api/c15t/$.ts
-import { createFileRoute } from '@tanstack/react-router';
-import { createConsentServerRoute } from '@c15t/tanstack-start/api';
+```ts
+// vite.config.ts
+import { consentManifest } from '@c15t/tanstack-start/build';
+import { tanstackStart } from '@tanstack/react-start/plugin/vite';
+import viteReact from '@vitejs/plugin-react';
+import { defineConfig } from 'vite';
 
-export const Route = createFileRoute('/api/c15t/$')({
-  server: {
-    handlers: createConsentServerRoute({
-      backendURL: 'https://your-instance.c15t.dev',
-    }),
-  },
+export default defineConfig({
+  plugins: [consentManifest(), tanstackStart(), viteReact()],
 });
 ```
 
@@ -91,19 +90,19 @@ import {
 } from '@c15t/tanstack-start/server';
 
 const getConsentState = createServerFn({ method: 'GET' }).handler(
-  createConsentStateHandler({ backendURL: 'https://your-instance.c15t.dev' })
+  createConsentStateHandler()
 );
 
 export const Route = createRootRoute({
   ...consentLoaderOptions,
-  loader: () => getConsentState(),
+  loader: async () => ({ consent: await getConsentState() }),
   component: RootComponent,
 });
 
 function RootComponent() {
-  const state = Route.useLoaderData();
+  const { consent } = Route.useLoaderData();
   return (
-    <ConsentRoot state={state} backendURL="https://your-instance.c15t.dev">
+    <ConsentRoot state={consent}>
       <ConsentBanner />
       <ConsentDialog />
       <Outlet />

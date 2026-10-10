@@ -12,7 +12,13 @@
  * the suite correct whatever flags vitest was launched with. Running with
  * `NODE_OPTIONS=--no-experimental-webstorage` also works, but only for
  * whoever remembers to set it.
+ *
+ * It also registers the transport the integration's boot script would, so
+ * a test can call `boot()` directly.
  */
+
+import { registerTransport } from '../client';
+import { lazyTransport, offlineTransport } from '../transport';
 
 class MemoryStorage implements Storage {
 	private readonly entries = new Map<string, string>();
@@ -55,3 +61,9 @@ const install = function install(name: 'localStorage' | 'sessionStorage') {
 
 install('localStorage');
 install('sessionStorage');
+
+registerTransport((options) =>
+	options.mode.type === 'offline'
+		? offlineTransport(options)
+		: lazyTransport(options)
+);

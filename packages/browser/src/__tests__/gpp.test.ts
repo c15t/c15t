@@ -5,11 +5,11 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createGlobal, installGlobal } from '../global';
 import type { C15tGlobal } from '../global';
 import { mountGPP } from '../gpp';
-import { init } from '../index';
-import type { ConsentClient, ConsentClientOptions } from '../types';
+import type { ConsentClient, ScriptTagClientOptions } from '../types';
+import { init } from './fixtures/factory-init';
 
 const testWindow = window as Window & { c15t?: unknown };
-const options: ConsentClientOptions = {
+const options: ScriptTagClientOptions = {
 	overrides: { country: 'US', region: 'CA' },
 	persistence: false,
 	policyRules: [

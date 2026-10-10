@@ -29,7 +29,7 @@ export default function ConsentManagerClient({ children, state }: Props) {
 	return (
 		<ConsentProvider
 			options={{
-				mode: hosted({ url: '/api/c15t' }),
+				mode: hosted({ backendURL: '/api/c15t' }),
 				prefetch: state,
 				theme,
 				components,

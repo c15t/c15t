@@ -1,6 +1,6 @@
 ---
 import { ClientRouter } from 'astro:transitions';
-import ConsentDialogTrigger from 'c15t/astro/components/consent-dialog-trigger.astro';
+import ConsentDialogLink from 'c15t/astro/components/consent-dialog-link.astro';
 import ConsentScript from 'c15t/astro/components/consent-script.astro';
 import IABConsentBanner from 'c15t/astro/components/iab-consent-banner.astro';
 import IABConsentDialog from 'c15t/astro/components/iab-consent-dialog.astro';
@@ -23,7 +23,7 @@ const { title } = Astro.props;
 	<body>
 		<slot />
 		<footer>
-			<ConsentDialogTrigger kind="iab">Cookie preferences</ConsentDialogTrigger>
+			<ConsentDialogLink kind="iab">Cookie preferences</ConsentDialogLink>
 		</footer>
 		<IABConsentBanner />
 		<IABConsentDialog />

@@ -2,7 +2,7 @@
 	import {
 		ConsentDialog,
 		ConsentDialogLink,
-		ConsentManagerProvider,
+		ConsentProvider,
 		hosted,
 	} from '@c15t/svelte';
 
@@ -13,12 +13,12 @@
 	let { children } = $props();
 
 	const mode = hosted({
-		url: 'https://your-project.inth.app',
-		...testBackend('url'),
+		backendURL: 'https://your-project.inth.app',
+		...testBackend('backendURL'),
 	});
 </script>
 
-<ConsentManagerProvider
+<ConsentProvider
 	{mode}
 	{scripts}
 >
@@ -28,4 +28,4 @@
 	</footer>
 	<CustomConsentBanner />
 	<ConsentDialog />
-</ConsentManagerProvider>
+</ConsentProvider>

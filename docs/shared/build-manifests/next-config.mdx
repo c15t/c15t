@@ -4,8 +4,48 @@ or function goes in as the first argument, unchanged:
 <include src="../examples/nextjs/next-config.mdx" />
 
 `next build`, `next dev` and `next typegen` fetch `${backendURL}/manifest` and
-write the policy to `c15t-manifest.ts` in the directory you run them from.
-`next start` serves the built snapshot and fetches no policy. The build reads
-`NEXT_PUBLIC_C15T_BACKEND_URL` with the same fallback as `c15t.config.ts`, so
-saves and the snapshot point at the same project. Keep `c15t-manifest.ts` out
-of Git.
+write the policy to `node_modules/.cache/c15t/`, outside your source tree, so
+there is nothing to keep out of Git. `next start` serves the built snapshot and
+fetches no policy. Without a `backendURL` option, the build reads the
+`backendURL` in `c15t.config.ts`, which defaults to
+`NEXT_PUBLIC_C15T_BACKEND_URL`, then `NEXT_PUBLIC_INTH_PROJECT_URL`, so saves
+and the snapshot point at the same
+project.
+
+The wrapper reads `c15t.config.ts` the way Next.js reads `next.config.ts`, and
+skips the fetch for `mode: hosted()`, `mode: offline()`,
+`manifest({ snapshot })` and `manifest({ source: 'runtime' })`, which read no
+build-time manifest. Those builds never contact the backend. If the file can't
+be read at build time, for example because it imports something Node can't
+load, the build warns and fetches as for `manifest()`.
+
+The wrapper also finds `c15t.config.ts` (or `.mts`, `.js`, `.mjs`) at the
+project root, next to `next.config.ts`, and points `c15t/generated` at the
+cache, in Turbopack and webpack. `ConsentRoot`, `resolveConsent` and the
+consent route read both without an import. Server code that needs the
+snapshot itself imports `snapshot` from `c15t/generated`. Only server
+bundles get the snapshot: in a browser bundle,
+`c15t/generated` imports `server-only`, so importing it from a client
+component fails the build. The wrapper also adds `c15t`, `@c15t/core` and
+`@c15t/nextjs` to `transpilePackages`, so Pages Router server bundles see the
+aliases. A package you list in `serverExternalPackages` stays external: it
+reads no `c15t.config.ts` and fetches the policy at runtime.
+
+If the fetch fails, `next build` stops. `next dev` logs a warning instead, and
+`snapshot` is `undefined`, so the server fetches and caches the policy at
+runtime, as with
+[runtime manifest caching](/docs/frameworks/next/optimization#reuse-cached-policy-data).
+To let a build continue the same way, set `onBuildError: 'runtime'`, or run it
+with `C15T_ON_BUILD_ERROR=runtime`:
+
+{/* example: fragment */}
+
+```ts title="next.config.ts"
+export default withConsentManifest(nextConfig, { onBuildError: 'runtime' });
+```
+
+A missing backend URL counts as a failed fetch. The build skips the fetch and
+leaves `snapshot` `undefined` when the backend URL is relative, or when the
+config sets `output: 'export'`, which has no server to use the snapshot. With
+`onBuildError: 'fail'`, a relative URL stops the build. A static export always
+skips the fetch.

@@ -91,6 +91,7 @@ export {
 	mergeInitOutputIntoKernelConfig,
 } from './transports/init-output';
 export type {
+	HostedModeFactory,
 	HostedModeOptions,
 	ProviderTransportContext,
 	ProviderTransportFactory,
@@ -101,11 +102,22 @@ export { earlyInitModes } from './transports/early-init-modes';
 export type { EarlyInitMode } from './transports/early-init-modes';
 export { hosted } from './transports/mode';
 export type {
+	ConsentMode,
+	ConsentModeType,
+	HostedMode,
+	ManifestMode,
+	ManifestModeInputs,
+	OfflineMode,
+} from './modes';
+export type {
 	OfflineKernelTransport,
 	OfflineTransportOptions,
 } from './transports/offline';
 export { createOfflineTransport, offline } from './transports/offline';
-export type { OfflineModeOptions } from './transports/offline';
+export type {
+	OfflineModeFactory,
+	OfflineModeOptions,
+} from './transports/offline';
 export { buildSubjectPostBody } from './transports/subject-body';
 export {
 	C15T_POLICY_CONTRACT_HEADER,

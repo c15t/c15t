@@ -75,7 +75,13 @@ const alias = {
 		__dirname,
 		'../core/src/runtime/streamed-init.ts'
 	),
+	'@c15t/core/runtime/client-mode': resolve(
+		__dirname,
+		'../core/src/runtime/client-mode.ts'
+	),
 	'@c15t/core/runtime': resolve(__dirname, '../core/src/runtime/index.ts'),
+	'@c15t/core/generated': resolve(__dirname, '../core/src/generated.ts'),
+	'@c15t/core/modes': resolve(__dirname, '../core/src/modes.ts'),
 	'@c15t/core': resolve(__dirname, '../core/src/index.ts'),
 	'@c15t/react/context': resolve(__dirname, '../react/dist/context.js'),
 	'@c15t/react/gpp': resolve(__dirname, '../react/dist/gpp.js'),
@@ -178,6 +184,7 @@ export default mergeConfig(
 					test: {
 						browser: {
 							enabled: true,
+							headless: true,
 							instances: [{ browser: 'chromium' }],
 							provider: playwright(),
 						},

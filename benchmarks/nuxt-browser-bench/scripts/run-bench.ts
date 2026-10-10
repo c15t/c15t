@@ -565,8 +565,7 @@ const run = async function run(baseline: boolean) {
 		const manifestURL = env.C15T_BENCH_COLD_MANIFEST_TOKEN
 			? `${manifestBase}${manifestBase.includes('?') ? '&' : '?'}cold=${encodeURIComponent(env.C15T_BENCH_COLD_MANIFEST_TOKEN)}`
 			: manifestBase;
-		env.NUXT_C15T_MANIFEST_URL = manifestURL;
-		env.NUXT_PUBLIC_C15T_MANIFEST_URL = manifestURL;
+		env.NUXT_PUBLIC_C15T_MODE_MANIFEST_URL = manifestURL;
 	}
 
 	const server = spawn('node', [serverEntry(baseline)], {

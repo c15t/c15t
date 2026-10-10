@@ -1,40 +1,92 @@
+import { hosted, manifest, offline } from '@c15t/core/modes';
 /**
- * Tests for `defineConsentConfig`: validation, freezing, and the dev
- * warning for an `initURL` with no `manifestURL`.
+ * Tests for `defineConsentConfig`: validation, defaults and freezing. The
+ * checks run where Next.js first evaluates the config, on the server, so
+ * these run in Node.
  */
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
-import { defineConsentConfig, isConsentConfig } from '../config';
+import { defineConsentConfig } from '../config';
 
 afterEach(() => {
 	vi.restoreAllMocks();
-	vi.unstubAllGlobals();
+	vi.unstubAllEnvs();
 });
 
 describe('defineConsentConfig', () => {
 	test('returns a frozen config carrying every field', () => {
+		const scripts = [
+			{ category: 'measurement' as const, id: 'tag', src: '/t.js' },
+		];
 		const config = defineConsentConfig({
 			backendURL: 'https://consent.example.com',
-			initURL: '/api/consent/init',
-			manifestURL: '/api/consent/manifest',
+			journey: 'tab',
+			mode: manifest({ resolve: 'browser' }),
+			routePrefix: '/api/consent/',
+			scripts,
 		});
 
-		expect(config).toMatchObject({
+		expect(config).toEqual({
 			backendURL: 'https://consent.example.com',
-			initURL: '/api/consent/init',
-			manifestURL: '/api/consent/manifest',
+			journey: 'tab',
+			mode: { resolve: 'browser', type: 'manifest' },
+			routePrefix: '/api/consent',
+			scripts,
 		});
 		expect(Object.isFrozen(config)).toBe(true);
-		expect(isConsentConfig(config)).toBe(true);
-		expect(isConsentConfig({ ...config })).toBe(true);
-		expect(isConsentConfig({ backendURL: '/api/c15t' })).toBe(false);
 	});
 
-	test('serializes to plain JSON without the brand', () => {
-		const config = defineConsentConfig({ backendURL: '/api/c15t' });
+	test('reads the backend URL from NEXT_PUBLIC_C15T_BACKEND_URL', () => {
+		vi.stubEnv('NEXT_PUBLIC_C15T_BACKEND_URL', 'https://env.example.com');
 
-		expect(JSON.parse(JSON.stringify(config))).toEqual({
-			backendURL: '/api/c15t',
+		expect(defineConsentConfig().backendURL).toBe('https://env.example.com');
+	});
+
+	test('names NEXT_PUBLIC_INTH_PROJECT_URL in the missing-URL error', () => {
+		vi.stubEnv('NEXT_PUBLIC_C15T_BACKEND_URL', '');
+		expect(() => defineConsentConfig()).toThrow(
+			'@c15t/nextjs: defineConsentConfig needs `backendURL`, or NEXT_PUBLIC_C15T_BACKEND_URL (or NEXT_PUBLIC_INTH_PROJECT_URL) set at build time.'
+		);
+	});
+
+	test('needs no backend URL for offline() or a hosted() that has one', () => {
+		vi.stubEnv('NEXT_PUBLIC_C15T_BACKEND_URL', '');
+
+		expect(defineConsentConfig({ mode: offline() })).toEqual({
+			mode: { type: 'offline' },
+		});
+		expect(() =>
+			defineConsentConfig({
+				mode: hosted({ backendURL: 'https://consent.example.com' }),
+			})
+		).not.toThrow();
+		expect(() => defineConsentConfig({ mode: hosted() })).toThrow(
+			/NEXT_PUBLIC_C15T_BACKEND_URL/u
+		);
+		expect(() => defineConsentConfig()).toThrow(
+			/NEXT_PUBLIC_C15T_BACKEND_URL/u
+		);
+	});
+
+	test('proxy needs routePrefix', () => {
+		expect(() =>
+			defineConsentConfig({
+				backendURL: 'https://consent.example.com',
+				proxy: true,
+			})
+		).toThrow(
+			'@c15t/nextjs: `proxy` sends saves through the consent route, so it needs `routePrefix`.'
+		);
+		expect(
+			defineConsentConfig({
+				backendURL: 'https://consent.example.com',
+				proxy: true,
+				routePrefix: '/api/c15t/',
+			})
+		).toMatchObject({
+			backendURL: 'https://consent.example.com',
+			proxy: true,
+			routePrefix: '/api/c15t',
 		});
 	});
 
@@ -42,60 +94,30 @@ describe('defineConsentConfig', () => {
 		expect(() =>
 			defineConsentConfig({
 				backendURL: '/api/c15t',
-				manifestURL: 'http://localhost:3000/api/consent/manifest',
+				mode: manifest({
+					manifestURL: 'http://localhost:3000/api/consent/manifest',
+				}),
 			})
 		).not.toThrow();
 	});
 
 	test.each([
-		['missing backendURL', {}],
 		['empty backendURL', { backendURL: '' }],
 		['bare path', { backendURL: 'api/c15t' }],
 		['protocol-relative URL', { backendURL: '//consent.example.com' }],
 		['non-http scheme', { backendURL: 'ftp://consent.example.com' }],
+		['bare routePrefix', { backendURL: '/api/c15t', routePrefix: 'api/c15t' }],
 		[
 			'invalid manifestURL',
-			{ backendURL: '/api/c15t', manifestURL: 'manifest' },
+			{ backendURL: '/api/c15t', mode: manifest({ manifestURL: 'manifest' }) },
 		],
-		['invalid initURL', { backendURL: '/api/c15t', initURL: 'init' }],
-		['non-string initURL', { backendURL: '/api/c15t', initURL: 42 }],
+		[
+			'non-string hosted backendURL',
+			{ mode: { backendURL: 42, type: 'hosted' } },
+		],
+		['unknown mode', { backendURL: '/api/c15t', mode: { type: 'custom' } }],
+		['unknown journey', { backendURL: '/api/c15t', journey: 'session' }],
 	])('rejects %s', (_label, input) => {
 		expect(() => defineConsentConfig(input as never)).toThrow(TypeError);
-	});
-
-	test('warns outside production when initURL has no manifestURL', () => {
-		const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-
-		defineConsentConfig({
-			backendURL: '/api/c15t',
-			initURL: '/api/consent/init',
-		});
-
-		expect(warnSpy).toHaveBeenCalledTimes(1);
-		expect(warnSpy.mock.calls[0]?.[0]).toContain('manifestURL');
-	});
-
-	test('stays quiet in production', () => {
-		vi.stubGlobal('process', { env: { NODE_ENV: 'production' } });
-		const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-
-		defineConsentConfig({
-			backendURL: '/api/c15t',
-			initURL: '/api/consent/init',
-		});
-
-		expect(warnSpy).not.toHaveBeenCalled();
-	});
-
-	test('does not warn when manifestURL accompanies initURL', () => {
-		const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-
-		defineConsentConfig({
-			backendURL: '/api/c15t',
-			initURL: '/api/consent/init',
-			manifestURL: '/api/consent/manifest',
-		});
-
-		expect(warnSpy).not.toHaveBeenCalled();
 	});
 });

@@ -4,11 +4,15 @@
  * props, that rerender should load nothing. Its own file, because a module
  * loads once per test file.
  */
+import { offline } from '@c15t/core/modes';
 import { expect, test } from 'vitest';
 import { render } from 'vitest-browser-react';
 
 import { ConsentRoot } from '../root';
 import { policyFixture } from './policy-fixture';
+
+/** These tests are not about the backend; an explicit offline() needs none. */
+const OFFLINE_CONFIG = { mode: offline() };
 
 const updateModuleRequests = () =>
 	performance
@@ -22,6 +26,7 @@ test('a rerender with the same props loads no update module', async () => {
 	const state = policyFixture({});
 	const root = () => (
 		<ConsentRoot
+			config={OFFLINE_CONFIG}
 			persistence={false}
 			state={state}
 		>

@@ -3,7 +3,7 @@
 	import { untrack } from 'svelte';
 
 	import ConsentGate from '../../lib/components/consent-gate.svelte';
-	import Provider from '../../lib/components/manager-provider.svelte';
+	import Provider from '../../lib/components/consent-provider.svelte';
 	import ConsentDialogLink from '../../lib/components/panel-link.svelte';
 	import ConsentDialogTrigger from '../../lib/components/panel-trigger.svelte';
 	import ConsentDialog from '../../lib/components/panel.svelte';

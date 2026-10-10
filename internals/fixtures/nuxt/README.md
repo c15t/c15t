@@ -2,7 +2,7 @@
 
 c15t Nuxt integration through the `c15t` umbrella package (`c15t/vue` is
 `@c15t/vue`). The consent setup is a module entry in a Nuxt layer under
-`config/`, `ConsentRoot` and `ConsentPreferencesLink` in `app/app.vue`, and
+`config/`, `ConsentRoot` and `ConsentDialogLink` in `app/app.vue`, and
 `scripts` in `app/app.config.ts`. Without a backend URL the demo falls back to a
 self-hosted `@c15t/backend` mounted at `/api/self-host`
 (`server/api/self-host/[...all].ts`), so it also runs from a single origin.
@@ -12,9 +12,9 @@ bun install
 bun run dev
 ```
 
-`manifest: 'server'` enables same-origin, CDN-cacheable consent resolution — the
-module's server routes fetch `GET /api/self-host/manifest` once, cache it,
-and resolve `/api/c15t/init` locally from geo/language/GPC headers with no
+`manifest()` enables same-origin, CDN-cacheable consent resolution — the
+module's consent route fetches `GET /api/self-host/manifest` once, caches it,
+and resolves `/api/c15t/init` locally from geo/language/GPC headers with no
 consent-backend round trip on the request path. The banner is server-rendered into
 the first HTML with zero CLS; live state is read via auto-imported
 composables (`useConsentActiveUI`, `useHasConsent`, `useConsentInit`).
@@ -106,8 +106,10 @@ https://c15t.com/docs/guides/banner-experiments.
 
 ## Layout
 
-- `config/server/nuxt.config.ts`: the module with `manifest: 'server'`.
-- `config/static/nuxt.config.ts`: `ssr: false` with `manifest: 'client'`,
+- `config/server/nuxt.config.ts`: the module with `manifest()`, read at
+  runtime.
+- `config/static/nuxt.config.ts`: `ssr: false` with
+  `manifest({ resolve: 'browser' })` and no consent route,
   used when `C15T_NUXT_OUTPUT=static`. Build it with `bun run generate` and
   serve it with `bun run preview:static`.
 - `app/app.config.ts` and `app/consent-scripts.ts`: vendor scripts.

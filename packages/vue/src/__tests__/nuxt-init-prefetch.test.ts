@@ -28,7 +28,7 @@ const nuxt = vi.hoisted(() => ({
 // Hoisted with the mocks below, which both read it.
 const useRuntimeConfig = vi.hoisted(() => () => ({
 	c15t: { ssr: nuxt.ssr },
-	public: { c15t: { backendURL: '/api/c15t', manifest: false } },
+	public: { c15t: { backendURL: '/api/c15t', mode: { type: 'hosted' } } },
 }));
 // oxlint-disable-next-line anti-slop/no-module-mocking -- Nitro supplies this runtime; the test provides the config the server plugin reads.
 vi.mock('nitropack/runtime', () => ({
@@ -287,13 +287,8 @@ describe('which pages get the script', () => {
 		).toBe(SHELL_HEAD);
 	});
 
-	test('no app whose app config picks client manifest mode', async () => {
-		nuxt.appConfig = { manifest: 'client' };
-		expect(await renderHead()).toBe(SHELL_HEAD);
-	});
-
 	// Under Nuxt 5 Nitro has no auto-imports, so `app.config.ts`, which may
-	// hold a `customFetch` that rules the script out, cannot load.
+	// hold a `consentSource` that rules the script out, cannot load.
 	test('no page when the server cannot read the app config', async () => {
 		nuxt.serverAppConfig = false;
 		expect(await renderHead()).toBe(SHELL_HEAD);
@@ -336,28 +331,39 @@ describe('the script', () => {
 	});
 });
 
+/** `hosted()` with a same-origin backend: the config that gets a script. */
+const HOSTED = { backendURL: '/api/c15t', mode: { type: 'hosted' as const } };
+/** The same backend in the default `manifest()` mode. */
+const HOSTED_BACKEND = { backendURL: '/api/c15t' };
+
 describe('pages whose request the server cannot know get no script', () => {
 	test.each([
+		['manifest(), which asks the Nuxt consent route', HOSTED_BACKEND],
 		[
-			'server manifest mode, which asks the Nuxt init route',
-			{ manifest: 'server' },
+			"manifest({ resolve: 'browser' }), which sends no /init",
+			{ ...HOSTED_BACKEND, mode: { resolve: 'browser', type: 'manifest' } },
 		],
-		['manifest: true', { manifest: true }],
-		['a manifestURL without a mode', { manifestURL: 'https://cdn.example/m' }],
-		['client manifest mode, which sends no /init', { manifest: 'client' }],
+		['offline(), which sends no request', { mode: { type: 'offline' } }],
+		[
+			'hosted() with init headers the script cannot send',
+			{
+				...HOSTED,
+				mode: { headers: { 'x-c15t-country': 'DE' }, type: 'hosted' },
+			},
+		],
+		['hosted() without a backend URL', { mode: { type: 'hosted' } }],
 		[
 			'a consentSource',
-			{ consentSource: { subscribe: () => () => undefined } },
+			{ ...HOSTED, consentSource: { subscribe: () => () => undefined } },
 		],
-		['a customFetch', { customFetch: globalThis.fetch }],
 		[
 			'an experiment, whose arm travels with /init',
-			{ experiment: { arms: {}, id: 'x' } },
+			{ ...HOSTED, experiment: { arms: {}, id: 'x' } },
 		],
-		['a prefetch already in the config', { prefetch: initResponse }],
+		['a prefetch already in the config', { ...HOSTED, prefetch: initResponse }],
 		[
 			'a backend URL the browser would resolve against the page',
-			{ backendURL: 'api/c15t' },
+			{ backendURL: 'api/c15t', mode: { type: 'hosted' } },
 		],
 	])('%s', (_name, config) => {
 		expect(
@@ -368,21 +374,30 @@ describe('pages whose request the server cannot know get no script', () => {
 		).toBeUndefined();
 	});
 
-	test('an absolute backend and the default route both get one', () => {
+	test("hosted() with an absolute or a same-origin backend gets one, the mode's first", () => {
 		expect(
 			buildInitPrefetchTag({
-				config: { backendURL: 'https://consent.example/' },
+				config: {
+					backendURL: 'https://consent.example/',
+					mode: { type: 'hosted' },
+				},
 				shell: true,
 			})
 		).toContain('"backendURL":"https://consent.example/"');
-		expect(buildInitPrefetchTag({ config: {}, shell: true })).toContain(
-			'"backendURL":"/api/c15t"'
-		);
+		expect(
+			buildInitPrefetchTag({
+				config: {
+					backendURL: 'https://consent.example/',
+					mode: { backendURL: '/api/c15t', type: 'hosted' },
+				},
+				shell: true,
+			})
+		).toContain('"backendURL":"/api/c15t"');
 	});
 
 	test('a nonce cannot close its attribute', () => {
 		expect(
-			buildInitPrefetchTag({ config: {}, nonce: 'a"b', shell: true })
+			buildInitPrefetchTag({ config: HOSTED, nonce: 'a"b', shell: true })
 		).toMatch(/^<script nonce="a&quot;b">/u);
 	});
 });

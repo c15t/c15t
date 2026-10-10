@@ -15,22 +15,20 @@ export default {
 };
 ```
 
-Vite writes `src/c15t-manifest.ts` before compiling, including at development
-startup. Keep the generated file out of Git. Install `@c15t/browser@alpha` for
-its browser manifest transport. In `src/consent.tsx`, create the provider's
-mode with `manifest()` instead of `hosted()`:
+Without `backendURL`, the plugin reads `VITE_C15T_BACKEND_URL`, then
+`VITE_INTH_PROJECT_URL`. The plugin
+fetches the policy during `vite build`, or in `vite dev` when the app first
+loads it, and serves it as `snapshot` from `c15t/generated`. A build fetches
+only when the app uses `manifest()`. In `src/consent.tsx`, create the
+provider's mode with `manifest()` from `c15t/react` instead of `hosted()`. It
+reads the snapshot and the backend URL from `c15t/generated`:
 
 {/* example: fragment */}
 
 ```tsx title="src/consent.tsx"
-import { manifest } from '@c15t/browser/headless';
+import { manifest } from 'c15t/react';
 
-import { consentManifest } from './c15t-manifest';
-
-const mode = manifest({
-	backendURL: 'https://your-project.inth.app',
-	manifest: consentManifest,
-});
+const mode = manifest();
 ```
 
 Keep passing `mode` to `ConsentProvider`. The browser resolves the snapshot
@@ -38,8 +36,13 @@ without `/manifest` when it has the geography the policy needs, or the policy
 does not depend on geography. Supply known country and region through `inputs`
 or overrides to keep regional resolution on the snapshot.
 
+When the build has no snapshot, as in `vite dev` after a failed fetch,
+`snapshot` is `undefined`, and the browser fetches
+`${backendURL}/manifest` instead.
+
 When the required country or region is missing, the transport calls backend
-`/init` and uses its resolved policy and translations. That response can use
+`/init` and uses its resolved policy and translations. `consentManifest` warns
+during the build when it downloads such a policy, and suggests `hosted()`. That response can use
 newer backend policy than the build snapshot. This is a full consent resolution,
 so these visitors still wait for a backend round trip. `ConsentProvider` sends
 that request while it first renders, before the page mounts, unless the visitor
@@ -59,6 +62,6 @@ Policy and resolver code are part of the browser bundle.
 
 <include src="../vite-build-manifest.mdx" />
 
-For policy updates without a rebuild, use `hosted({ url })` from `c15t/react`
+For policy updates without a rebuild, use `hosted({ backendURL })` from `c15t/react`
 as the mode and omit the build plugin. That setup resolves policy through the
 backend `/init` on each page load.

@@ -8,8 +8,8 @@ import { testBackend } from './test-backend';
 // iframe blocking and the reload after a revocation.
 export const runtime = createConsentRuntime({
 	mode: hosted({
-		url: 'https://your-project.inth.app',
-		...testBackend('url'),
+		backendURL: 'https://your-project.inth.app',
+		...testBackend('backendURL'),
 	}),
 	scripts,
 });

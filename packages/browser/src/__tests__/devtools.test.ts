@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { createConsentClient } from '../client';
 import { mountDevTools } from '../devtools';
 import { createGlobal, installGlobal } from '../global';
 import type { C15tGlobal } from '../global';
+import { createScriptTagConsentClient as createConsentClient } from '../script-tag-client';
 import type { ConsentClient } from '../types';
 
 type TestWindow = Window & { c15t?: unknown };

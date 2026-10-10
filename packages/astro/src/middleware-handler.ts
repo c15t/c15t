@@ -46,7 +46,7 @@ const matchesPrefix = function matchesPrefix(
 /**
  * The paths this middleware leaves alone.
  *
- * The injected init and manifest routes are always in the list. With the
+ * The injected route under `routePrefix` is always in the list. With the
  * manifest served by the same process, letting them through would make the
  * manifest request resolve consent, which fetches the manifest, which
  * resolves consent — a request that never returns. Nothing on those routes
@@ -58,11 +58,9 @@ const matchesPrefix = function matchesPrefix(
 const resolveSkipPaths = function resolveSkipPaths(
 	options: C15tResolvedOptions
 ): string[] {
-	return [
-		options.endpoints.initPath,
-		options.endpoints.manifestPath,
-		...(options.middleware?.skip ?? []),
-	].filter(Boolean);
+	return [options.routePrefix, ...(options.middleware?.skip ?? [])].filter(
+		(path): path is string => Boolean(path)
+	);
 };
 
 /**
@@ -79,7 +77,7 @@ const resolveSkipPaths = function resolveSkipPaths(
  * policy, and the browser applies the visitor's own cookie on boot. Use
  * `<ConsentBannerDeferred />` when a cached page still needs live geo.
  *
- * So are the integration's own init and manifest routes, and anything
+ * So is the integration's own route under `routePrefix`, and anything
  * listed in `middleware.skip` — those run `next()` with `Astro.locals.c15t`
  * left unset.
  *

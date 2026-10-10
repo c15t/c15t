@@ -67,6 +67,11 @@
 			"import": "./dist/index.js",
 			"default": "./dist/index.js"
 		},
+		"./modes": {
+			"types": "./dist-types/modes.d.ts",
+			"import": "./dist/modes.js",
+			"default": "./dist/modes.js"
+		},
 		"./provider": {
 			"types": "./dist-types/provider.d.ts",
 			"import": "./dist/provider.js",
@@ -81,6 +86,11 @@
 			"types": "./dist-types/draft.d.ts",
 			"import": "./dist/draft.js",
 			"default": "./dist/draft.js"
+		},
+		"./theme": {
+			"types": "./dist-types/index-parts/theme.d.ts",
+			"import": "./dist/index-parts/theme.js",
+			"default": "./dist/index-parts/theme.js"
 		},
 		"./module-hooks": {
 			"types": "./dist-types/module-hooks.d.ts",

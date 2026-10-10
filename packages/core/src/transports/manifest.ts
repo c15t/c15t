@@ -1,9 +1,11 @@
 /**
- * Server-oriented manifest transport.
+ * `@c15t/core/transports/manifest` — server-only manifest transport.
  *
- * This module resolves `/init` locally with `@c15t/schema` and imports every
- * translation language. Import it from `@c15t/core/transports/manifest`
- * only in server code, or load it lazily for static client-only hosts.
+ * This module resolves `/init` with `@c15t/schema` and imports every
+ * translation language. Import it only in server code: route handlers,
+ * Server Components, server load functions and edge middleware. Client code
+ * resolves with `@c15t/core/transports/manifest-browser`, which bundles
+ * English only and loads other languages on demand.
  */
 
 import {
@@ -75,14 +77,14 @@ export interface ManifestTransportOptions {
 	baseTranslations?: BaseTranslations;
 
 	/**
-	 * URL for `GET /manifest`. Either `manifestURL` or `manifest` is required.
+	 * URL for `GET /manifest`. Either `manifestURL` or `snapshot` is required.
 	 */
 	manifestURL?: string;
 
 	/**
-	 * Inline manifest object. Either `manifestURL` or `manifest` is required.
+	 * The manifest itself. Either `manifestURL` or `snapshot` is required.
 	 */
-	manifest?: ConsentManifest;
+	snapshot?: ConsentManifest;
 
 	/**
 	 * Backend URL used for `POST /subjects`. Defaults to `manifestURL` with a
@@ -300,12 +302,11 @@ const defaultFetchGvl = function defaultFetchGvl(input: {
  * Build a transport that resolves `/init` locally from a consent manifest
  * and posts saves to the backend.
  *
- * Server-only by design: resolution pulls in `@c15t/schema` and every
- * translation language, so import it from
- * `@c15t/core/transports/manifest` in server code (route handlers,
- * RSC, edge) or behind a dynamic import on static client-only hosts.
- * `@c15t/core` deliberately does not re-export it. Pass
- * `baseTranslations` to ship a narrower language set.
+ * Server-only: resolution pulls in `@c15t/schema` and every translation
+ * language, so import it from `@c15t/core/transports/manifest` in server
+ * code (route handlers, RSC, edge) only. `@c15t/core` deliberately does not
+ * re-export it. Browser code uses `createBrowserManifestTransport` from
+ * `@c15t/core/transports/manifest-browser`.
  *
  * Saves without a signed `policySnapshotToken` carry the resolved policy
  * id, fingerprint, geo, language, and GPC signal so the backend can reject
@@ -313,7 +314,7 @@ const defaultFetchGvl = function defaultFetchGvl(input: {
  *
  * @param options - Manifest source, backend URL, and resolver inputs.
  * @returns A kernel transport backed by local manifest resolution.
- * @throws {Error} When neither `manifest` nor `manifestURL` is provided, or no
+ * @throws {Error} When neither `snapshot` nor `manifestURL` is provided, or no
  * `fetch` implementation is available.
  * @example
  * ```ts
@@ -334,9 +335,9 @@ export const createManifestTransport = function createManifestTransport(
 			'createManifestTransport: no fetch available. Pass `fetch` in options.'
 		);
 	}
-	if (!options.manifest && !options.manifestURL) {
+	if (!options.snapshot && !options.manifestURL) {
 		throw new Error(
-			'createManifestTransport: either `manifest` or `manifestURL` is required.'
+			'createManifestTransport: either `snapshot` or `manifestURL` is required.'
 		);
 	}
 
@@ -352,7 +353,7 @@ export const createManifestTransport = function createManifestTransport(
 	const requireBackendURL = function requireBackendURL(what: string): string {
 		if (!backendURL) {
 			throw new Error(
-				`createManifestTransport: \`backendURL\` is required to ${what} when using an inline manifest without \`manifestURL\`.`
+				`createManifestTransport: \`backendURL\` is required to ${what} when using a \`snapshot\` without \`manifestURL\`.`
 			);
 		}
 		return backendURL;
@@ -385,8 +386,8 @@ export const createManifestTransport = function createManifestTransport(
 			: undefined;
 
 	const getManifest = function getManifest(): Promise<ConsentManifest> {
-		if (options.manifest) {
-			return Promise.resolve(options.manifest);
+		if (options.snapshot) {
+			return Promise.resolve(options.snapshot);
 		}
 		if (!manifestPromise) {
 			// Cached on success only. A rejected fetch is dropped so the kernel's

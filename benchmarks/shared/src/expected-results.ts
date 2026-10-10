@@ -27,6 +27,11 @@ import {
 	reactBrowserBudgetsForScenario,
 	scriptLifecycleBudgetsForMetric,
 } from './budgets';
+import {
+	EXAMPLES_PAYLOAD_PACKAGE,
+	examplesPayloadBudgetsFor,
+	examplesPayloadExamples,
+} from './examples-payload';
 import { coreFixtures } from './fixtures';
 import { policyBenchFixtures } from './policy-fixtures';
 import type { BenchmarkSuite, MetricBudget } from './schema';
@@ -302,6 +307,14 @@ export const expectedBenchmarkResultsFor = function expectedBenchmarkResultsFor(
 				scenario,
 				'bundle',
 				bundleEntryBudgets(scenario)
+			)
+		),
+		...examplesPayloadExamples.map((example) =>
+			expect(
+				EXAMPLES_PAYLOAD_PACKAGE,
+				example.name,
+				'examples-payload',
+				examplesPayloadBudgetsFor(example.kind)
 			)
 		),
 	];

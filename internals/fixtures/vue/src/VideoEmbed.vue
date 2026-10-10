@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import ConsentGate from 'c15t/vue/runtime/components/consent-gate.vue';
-import ConsentPreferencesLink from 'c15t/vue/runtime/components/consent-preferences-link.vue';
+import { ConsentDialogLink, ConsentGate } from 'c15t/vue/vue-plugin';
 </script>
 
 <template>
@@ -13,7 +12,7 @@ import ConsentPreferencesLink from 'c15t/vue/runtime/components/consent-preferen
 		/>
 		<template #placeholder>
 			<p>Allow measurement to load this YouTube video.</p>
-			<ConsentPreferencesLink>Choose video permissions</ConsentPreferencesLink>
+			<ConsentDialogLink>Choose video permissions</ConsentDialogLink>
 		</template>
 	</ConsentGate>
 </template>

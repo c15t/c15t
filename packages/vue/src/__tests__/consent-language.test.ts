@@ -11,8 +11,6 @@ import NuxtConsentRoot from '../runtime/components/nuxt-root.vue';
 import { consentConfigKey } from '../runtime/composables/config';
 import { useConsentLanguage } from '../runtime/composables/language';
 import type { ConsentConfig } from '../runtime/config';
-import { createVueConsentKernelContext } from '../runtime/kernel';
-import type { VueConsentKernelContext } from '../runtime/kernel';
 import {
 	symbolActiveUI,
 	symbolConsent,
@@ -21,6 +19,8 @@ import {
 	symbolKernelContext,
 	symbolSnapshot,
 } from '../runtime/utils/symbols';
+import { createVueConsentKernelContext } from './test-kernel';
+import type { VueConsentKernelContext } from './test-kernel';
 
 const rule: PolicyRule = {
 	id: 'vue_language',

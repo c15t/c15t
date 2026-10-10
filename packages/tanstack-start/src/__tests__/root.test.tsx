@@ -5,8 +5,11 @@
  * Invariants verified:
  * - State is respected (initial consents, initial overrides).
  * - Kernel is per-mount (two mounts produce two kernels).
- * - `backendURL` selects hosted mode with the same-origin init route.
+ * - The state's `backendURL` and `routePrefix` pick the transport. Init
+ *   goes to the backend unless `routePrefix` names the same-origin consent
+ *   route.
  */
+import { offline } from '@c15t/core/modes';
 import {
 	useConsent,
 	useDeclaredVendors,
@@ -22,7 +25,7 @@ import { render } from 'vitest-browser-react';
 // while the file loads.
 import '@c15t/core/modules/clear-on-revocation';
 
-import { ConsentRoot, DEFAULT_INIT_ROUTE } from '../root';
+import { ConsentRoot } from '../root';
 import { policyFixture } from './policy-fixture';
 
 describe('ConsentRoot: state is honored', () => {
@@ -58,7 +61,10 @@ describe('ConsentRoot: state is honored', () => {
 
 		const { getByTestId } = await render(
 			<ConsentRoot
-				state={{ initialOverrides: { country: 'DE', language: 'de' } }}
+				state={{
+					initialOverrides: { country: 'DE', language: 'de' },
+					mode: offline(),
+				}}
 				persistence={false}
 			>
 				<CountryLabel />
@@ -103,52 +109,22 @@ describe('ConsentRoot: kernel is per-mount', () => {
 });
 
 describe('ConsentRoot: transport selection', () => {
-	test('backendURL runs init through the same-origin init route', async () => {
-		const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-			Response.json({
-				branding: 'c15t',
-				location: { countryCode: 'DE', regionCode: null },
-				translations: { language: 'en', translations: { common: {} } },
-			})
-		);
+	const initResponse = () =>
+		Response.json({
+			branding: 'c15t',
+			location: { countryCode: 'DE', regionCode: null },
+			translations: { language: 'en', translations: { common: {} } },
+		});
+
+	test('an absolute backendURL gets init from the backend by default', async () => {
+		const fetchSpy = vi
+			.spyOn(globalThis, 'fetch')
+			.mockImplementation(() => Promise.resolve(initResponse()));
 
 		try {
 			await render(
 				<ConsentRoot
-					backendURL="https://consent.example.com"
-					state={{}}
-					persistence={false}
-				>
-					<span>ready</span>
-				</ConsentRoot>
-			);
-
-			await vi.waitFor(() => {
-				expect(fetchSpy).toHaveBeenCalled();
-			});
-			const initURL = String(fetchSpy.mock.calls[0]?.[0]);
-			expect(initURL).toContain(DEFAULT_INIT_ROUTE);
-			expect(initURL).not.toContain('consent.example.com');
-		} finally {
-			fetchSpy.mockRestore();
-		}
-	});
-
-	test('initRoute={false} calls the backend init endpoint directly', async () => {
-		const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-			Response.json({
-				branding: 'c15t',
-				location: { countryCode: 'DE', regionCode: null },
-				translations: { language: 'en', translations: { common: {} } },
-			})
-		);
-
-		try {
-			await render(
-				<ConsentRoot
-					backendURL="https://consent.example.com"
-					state={{}}
-					initRoute={false}
+					state={{ backendURL: 'https://consent.example.com' }}
 					persistence={false}
 				>
 					<span>ready</span>
@@ -161,6 +137,66 @@ describe('ConsentRoot: transport selection', () => {
 			// The query carries the consent journey.
 			expect(String(fetchSpy.mock.calls[0]?.[0]).split('?')[0]).toBe(
 				'https://consent.example.com/init'
+			);
+		} finally {
+			fetchSpy.mockRestore();
+		}
+	});
+
+	test('routePrefix runs init through the same-origin route', async () => {
+		const fetchSpy = vi
+			.spyOn(globalThis, 'fetch')
+			.mockImplementation(() => Promise.resolve(initResponse()));
+
+		try {
+			await render(
+				<ConsentRoot
+					state={{
+						backendURL: 'https://consent.example.com',
+						routePrefix: '/api/c15t/',
+					}}
+					persistence={false}
+				>
+					<span>ready</span>
+				</ConsentRoot>
+			);
+
+			await vi.waitFor(() => {
+				expect(fetchSpy).toHaveBeenCalled();
+			});
+			expect(String(fetchSpy.mock.calls[0]?.[0]).split('?')[0]).toBe(
+				'/api/c15t/init'
+			);
+		} finally {
+			fetchSpy.mockRestore();
+		}
+	});
+
+	test('a same-origin backendURL without routePrefix calls its /init directly', async () => {
+		const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+			Response.json({
+				branding: 'c15t',
+				location: { countryCode: 'DE', regionCode: null },
+				translations: { language: 'en', translations: { common: {} } },
+			})
+		);
+
+		try {
+			await render(
+				<ConsentRoot
+					state={{ backendURL: '/api/c15t' }}
+					persistence={false}
+				>
+					<span>ready</span>
+				</ConsentRoot>
+			);
+
+			await vi.waitFor(() => {
+				expect(fetchSpy).toHaveBeenCalled();
+			});
+			// The query carries the consent journey.
+			expect(String(fetchSpy.mock.calls[0]?.[0]).split('?')[0]).toBe(
+				'/api/c15t/init'
 			);
 		} finally {
 			fetchSpy.mockRestore();

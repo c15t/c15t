@@ -9,7 +9,7 @@ import { brandTheme } from '@/lib/consent-theme';
 
 // Runs without a backend: policy rules ship with c15t and choices stay in
 // this browser. In production, swap this line for your project's backend:
-// const mode = hosted({ url: 'https://your-project.inth.app' });
+// const mode = hosted({ backendURL: 'https://your-project.inth.app' });
 const mode = offline();
 
 // The support chat is a script, not an iframe. c15t adds it to the page only

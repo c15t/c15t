@@ -41,9 +41,6 @@ const RootComponent = () => {
 			<body>
 				<ConsentRoot
 					state={consent}
-					backendURL={backendURL}
-					{...testBackend('backendURL')}
-					initRoute={false}
 					scripts={scripts}
 				>
 					<Outlet />

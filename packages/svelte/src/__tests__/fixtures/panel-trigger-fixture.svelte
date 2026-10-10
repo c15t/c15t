@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { ConsentDialogTrigger } from '../../lib';
-	import ConsentManagerProvider from '../../lib/components/manager-provider.svelte';
+	import ConsentProvider from '../../lib/components/consent-provider.svelte';
 	import type { ConsentManagerOptions } from '../../lib/types';
 
 	let {
@@ -12,6 +12,6 @@
 	} = $props();
 </script>
 
-<ConsentManagerProvider {options}>
+<ConsentProvider {options}>
 	<ConsentDialogTrigger {showWhen} />
-</ConsentManagerProvider>
+</ConsentProvider>

@@ -1,9 +1,23 @@
+import { readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 import { baseConfig } from '@c15t/vitest-config/base';
 import react from '@vitejs/plugin-react';
 import { playwright } from '@vitest/browser-playwright';
 import { defineConfig, mergeConfig } from 'vitest/config';
+
+/**
+ * `@c15t/translations/<lang>` for every language module, ahead of the
+ * package-root alias, which would otherwise swallow them.
+ */
+const translationLanguages = Object.fromEntries(
+	readdirSync(resolve(__dirname, '../translations/src/languages'))
+		.filter((file) => file.endsWith('.ts') && !file.endsWith('.test.ts'))
+		.map((file) => [
+			`@c15t/translations/${file.slice(0, -'.ts'.length)}`,
+			resolve(__dirname, '../translations/src/languages', file),
+		])
+);
 
 export default mergeConfig(
 	baseConfig,
@@ -23,6 +37,41 @@ export default mergeConfig(
 			// oxlint-disable-next-line sort-keys -- Vite resolves aliases in declaration order, so subpaths must precede package roots.
 			alias: {
 				'~': resolve(__dirname, './src'),
+				'@c15t/nextjs/generated-manifest': resolve(
+					__dirname,
+					'./src/generated-manifest.ts'
+				),
+				'@c15t/nextjs/user-config': resolve(__dirname, './src/user-config.ts'),
+				'@c15t/core/modes': resolve(__dirname, '../core/src/modes.ts'),
+				'@c15t/core/runtime/client-mode': resolve(
+					__dirname,
+					'../core/src/runtime/client-mode.ts'
+				),
+				'@c15t/react/components/consent-banner': resolve(
+					__dirname,
+					'../react/dist/components/prompt/index.js'
+				),
+				'@c15t/react/consent-dialog': resolve(
+					__dirname,
+					'../react/dist/panel.js'
+				),
+				'@c15t/react/components/consent-dialog-trigger': resolve(
+					__dirname,
+					'../react/dist/components/panel-trigger/index.js'
+				),
+				'@c15t/react/components/consent-gate': resolve(
+					__dirname,
+					'../react/dist/components/consent-gate/index.js'
+				),
+				'@c15t/react/consent-widget': resolve(
+					__dirname,
+					'../react/dist/preferences.js'
+				),
+				'@c15t/react/draft': resolve(__dirname, '../react/dist/draft.js'),
+				'@c15t/react/theme': resolve(
+					__dirname,
+					'../react/dist/index-parts/theme.js'
+				),
 				'@c15t/react/devtools': resolve(__dirname, '../react/src/devtools.tsx'),
 				'@c15t/core/modules/clear-on-revocation': resolve(
 					__dirname,
@@ -55,6 +104,10 @@ export default mergeConfig(
 				'@c15t/core/transports/manifest-cache': resolve(
 					__dirname,
 					'../core/src/transports/manifest-cache.ts'
+				),
+				'@c15t/core/transports/manifest-browser': resolve(
+					__dirname,
+					'../core/src/transports/manifest-browser.ts'
 				),
 				'@c15t/core/transports/manifest': resolve(
 					__dirname,
@@ -127,6 +180,7 @@ export default mergeConfig(
 					__dirname,
 					'../translations/src/translations/en.ts'
 				),
+				...translationLanguages,
 				'@c15t/translations': resolve(
 					__dirname,
 					'../translations/src/index.ts'
@@ -152,7 +206,10 @@ export default mergeConfig(
 					extends: true,
 					test: {
 						environment: 'node',
-						include: ['src/__tests__/build.test.ts'],
+						include: [
+							'src/__tests__/build.test.ts',
+							'src/__tests__/config.test.ts',
+						],
 						name: 'node',
 					},
 				},
@@ -161,10 +218,14 @@ export default mergeConfig(
 					test: {
 						browser: {
 							enabled: true,
+							headless: true,
 							instances: [{ browser: 'chromium' }],
 							provider: playwright(),
 						},
-						exclude: ['src/__tests__/build.test.ts'],
+						exclude: [
+							'src/__tests__/build.test.ts',
+							'src/__tests__/config.test.ts',
+						],
 						include: [
 							'src/**/*.test.tsx',
 							'src/**/*.test.ts',

@@ -108,11 +108,13 @@ your client component, import from `c15t/next`, and change the provider:
 {/* example: fragment */}
 
 ```tsx title="After (v3): components/consent-manager/provider.tsx, changed lines"
-import { ConsentBanner, ConsentDialog, ConsentProvider, hosted } from 'c15t/next';
+import { ConsentBanner, ConsentDialog, ConsentProvider } from 'c15t/next';
+// c15t/next's hosted() is data for c15t.config.ts; the provider takes the transport.
+import { hosted } from 'c15t/react';
 
 // In the component, replace ConsentManagerProvider:
 <ConsentProvider
-  options={{ mode: hosted({ url: 'https://your-project.c15t.dev' }) }}
+  options={{ mode: hosted({ backendURL: 'https://your-project.c15t.dev' }) }}
 >
 ```
 
@@ -180,6 +182,34 @@ removes the `namespace` prop:
 ```bash
 npx @c15t/cli@alpha codemods dev-tools-to-c15t --dry-run --json
 ```
+
+<include src="../../shared/upgrade-v3/earlier-alpha-intro.mdx" />
+
+<include src="../../shared/upgrade-v3/earlier-alpha-frame.mdx" />
+
+### Removed
+
+Modes and build integrations, in every framework:
+
+<include src="../../shared/upgrade-v3/earlier-alpha-modes.mdx" />
+
+Next.js:
+
+| Removed | Use instead |
+| --- | --- |
+| `defineConsentConfig({ manifestURL, initURL })` | `routePrefix`, or `mode: manifest({ resolve: 'browser', manifestURL })` |
+| A named `consentConfig` export, passed to `ConsentRoot` as `config` | `export default defineConsentConfig(...)` in `c15t.config.ts`. `withConsentManifest` finds the file. `config` stays as an optional override. |
+| `ConsentRoot`'s `backendURL` prop | `backendURL` in the config, or `NEXT_PUBLIC_C15T_BACKEND_URL` |
+| The `'use client'` wrapper that passed `config` and `scripts` | `scripts` and other browser options in `c15t.config.ts`. A Server Component renders `ConsentRoot` directly. |
+| `createNextConsentRouteHandlers()`, its `GET` and `manifestGET` | `createConsentRoute()` in one catch-all route, `app/api/c15t/[...c15t]/route.ts` |
+| `createPagesApiHandlers()` and its `init` and `manifest` | `createPagesConsentRoute()` in `pages/api/c15t/[...c15t].ts` |
+| `resolveConsent(...)` with a JSON round trip in `getServerSideProps` | `export const getServerSideProps = withConsentProps()`, and `AppProps<ConsentPageProps>` in `_app.tsx` |
+| `resolveConsent({ manifest })`, and `manifest` on the route helpers | `snapshot`, which defaults to the build's |
+| `ConsentManifestOptions` and the `c15t.server.ts` module | `ResolveConsentOptions` or `NextConsentRouteOptions`. The helpers read the config and snapshot themselves. |
+| `resolveStrictestDefaultInit` from `c15t/next/static` | `resolveUnknownLocationInit` |
+| `ConsentRoot` falling back to offline mode when no config or `NEXT_PUBLIC_C15T_BACKEND_URL` gives it a backend URL | `ConsentRoot` throws. Set `mode: offline()` to run without a backend. |
+| `onBuildError: 'runtime'` to build a `hosted()` or `offline()` app while the backend is unreachable | Nothing. `withConsentManifest` reads the mode from `c15t.config.ts` and skips the download for modes that don't use it. |
+| `hosted`, `offline` and `manifest` from `c15t/next` as transports | They are data for `c15t.config.ts` now. A `ConsentProvider` imports them from `c15t/react`. |
 
 <include src="../../shared/upgrade-v3/cli.mdx" />
 

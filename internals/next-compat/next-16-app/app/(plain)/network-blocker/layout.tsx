@@ -1,5 +1,5 @@
 import {
-	COMPAT_BACKEND_URL,
+	COMPAT_HOSTED_CONFIG,
 	COMPAT_TRACKER_RULES,
 } from '@c15t/next-compat-shared/config';
 import { ConsentShell } from '@c15t/next-compat-shared/consent-shell';
@@ -12,7 +12,7 @@ import type { ReactNode } from 'react';
  * tracker call from a component rendered next to the root.
  */
 const NetworkBlockerLayout = ({ children }: { children: ReactNode }) => {
-	const state = resolveConsent({ backendURL: COMPAT_BACKEND_URL });
+	const state = resolveConsent({ config: COMPAT_HOSTED_CONFIG });
 
 	return (
 		<>

@@ -14,31 +14,33 @@ they load. Install the helpers if you have not:
 
 <CommandTabs command="@c15t/integrations@alpha" mode="install" />
 
-Keep `c15t.config.ts`, the manifest route and the layout from your router
-guide. Adding a vendor needs no server change. Server-rendered state, a
-streamed promise and browser initialization with `state={{}}` all reach the
-same `ConsentRoot`, and no script loads until the browser has a resolved
-policy and the visitor's choice allows it.
+Keep `next.config.ts` and the layout from your router guide. Adding a vendor
+needs no server change. Server-rendered state, a streamed promise and
+browser initialization without `state` all reach the same `ConsentRoot`, and
+no script loads until the browser has a resolved policy and the visitor's
+choice allows it.
 
 <include src="../../shared/next-consent-wrapper.mdx" />
 
 ## Register several vendors
 
-Every helper goes in the same `scripts` array in `lib/scripts.ts`, in the App
-Router and the Pages Router alike. This array loads Google Tag Manager and
+Every helper goes in the same `scripts` array in `c15t.config.ts`, in the App
+Router and the Pages Router alike. This config loads Google Tag Manager and
 Meta Pixel together:
 
 {/* example: fragment */}
 
-```ts title="lib/scripts.ts (partial)"
+```ts title="c15t.config.ts"
 import { googleTagManager } from '@c15t/integrations/google-tag-manager';
 import { metaPixel } from '@c15t/integrations/meta-pixel';
-import type { Script } from 'c15t';
+import { defineConsentConfig } from 'c15t/next';
 
-export const scripts: Script[] = [
-	googleTagManager({ id: 'GTM-XXXXXXX' }),
-	metaPixel({ pixelId: 'YOUR_PIXEL_ID' }),
-];
+export default defineConsentConfig({
+	scripts: [
+		googleTagManager({ id: 'GTM-XXXXXXX' }),
+		metaPixel({ pixelId: 'YOUR_PIXEL_ID' }),
+	],
+});
 ```
 
 Each helper keeps its own consent rules. Meta Pixel waits for marketing, and

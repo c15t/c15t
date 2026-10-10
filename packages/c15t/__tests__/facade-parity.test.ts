@@ -73,23 +73,31 @@ const EXPECTED_ESM_FAILURES = new Set<string>([
 	// The vue plugin/runtime entries need a Nuxt/Vite context (`#imports`)
 	// or the `.vue` SFC pipeline.
 	'./vue/vue-plugin',
-	'./vue/consent-root',
-	'./vue/consent-widget',
 	// Compatibility entries also resolve to raw SFCs, which Node cannot load.
 	...Object.keys(manifest.exports).filter(
 		(subpath) =>
 			subpath.startsWith('./vue/runtime/') && subpath.endsWith('.vue')
 	),
-	// The Astro middleware and routes import the `virtual:c15t/options`
+	// The Astro middleware and route import the `virtual:c15t/options`
 	// module the integration generates at build time.
 	'./astro/middleware',
-	'./astro/api/init',
-	'./astro/api/manifest',
-	// `.astro` components only load through Astro's compiler.
+	'./astro/api',
+	// `.astro` components, and the barrel of them, only load through
+	// Astro's compiler.
+	'./astro/components',
 	...Object.keys(manifest.exports).filter(
 		(subpath) => subpath.startsWith('./astro/') && subpath.endsWith('.astro')
 	),
 ]);
+
+/**
+ * Names an umbrella entry adds on top of its scoped entry, from the
+ * generator's `overrides`. `c15t/react` takes the single-page app modes from
+ * `@c15t/react/modes`, which `@c15t/react` keeps out of its index.
+ */
+const EXTRA_UMBRELLA_KEYS: Record<string, string[]> = {
+	'./react': ['manifest'],
+};
 
 const describeResult = function describeResult(result: LoadResult): string {
 	return result.ok
@@ -147,7 +155,14 @@ const assertParity = function assertParity(
 	if (!(pair.umbrella.ok && pair.scoped.ok)) {
 		return;
 	}
-	expect(pair.umbrella.keys, subpath).toEqual(pair.scoped.keys);
+	expect(pair.umbrella.keys, subpath).toEqual(
+		[
+			...new Set([
+				...pair.scoped.keys,
+				...(EXTRA_UMBRELLA_KEYS[subpath] ?? []),
+			]),
+		].sort()
+	);
 	if (
 		pair.umbrella.hasDefault !== undefined &&
 		pair.scoped.hasDefault !== undefined

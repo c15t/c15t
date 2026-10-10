@@ -1,4 +1,4 @@
-import { createConsentKernel } from '@c15t/core';
+import { createConsentKernel, offline } from '@c15t/core';
 /**
  * Server-render contract for the consent banner.
  *
@@ -13,8 +13,7 @@ import bannerStyles from '@c15t/ui/styles/components/consent-banner';
 import { render } from 'svelte/server';
 import { describe, expect, test } from 'vitest';
 
-import ConsentManagerProvider from '../lib/components/manager-provider.svelte';
-import { offline } from '../lib/transports/offline';
+import ConsentProvider from '../lib/components/consent-provider.svelte';
 import type { ConsentManagerOptions } from '../lib/types';
 import BannerFixture from './fixtures/banner-fixture.svelte';
 
@@ -259,7 +258,7 @@ describe('consent banner SSR', () => {
 	});
 
 	test('the provider alone renders no banner', () => {
-		const html = render(ConsentManagerProvider, {
+		const html = render(ConsentProvider, {
 			props: {
 				options: buildOptions({ initialPolicyResolution: BANNER_POLICY }),
 			},

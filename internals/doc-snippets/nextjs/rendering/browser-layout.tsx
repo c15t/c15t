@@ -1,15 +1,26 @@
 // #region docs:browser-layout title="app/layout.tsx"
+import {
+	ConsentBanner,
+	ConsentDialog,
+	ConsentDialogLink,
+	ConsentRoot,
+} from 'c15t/next';
 import type { ReactNode } from 'react';
 
-import { Consent } from '@/components/consent';
-
-import '@/styles/globals.css';
+import './globals.css';
 
 // No resolveConsent: the browser resolves consent, so pages can be static.
 const RootLayout = ({ children }: { children: ReactNode }) => (
 	<html lang="en">
 		<body>
-			<Consent state={{}}>{children}</Consent>
+			<ConsentRoot>
+				{children}
+				<ConsentBanner />
+				<ConsentDialog />
+				<footer>
+					<ConsentDialogLink>Privacy settings</ConsentDialogLink>
+				</footer>
+			</ConsentRoot>
 		</body>
 	</html>
 );

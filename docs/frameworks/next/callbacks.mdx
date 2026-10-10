@@ -1,33 +1,34 @@
 ---
 title: Callbacks
-description: Run code in a Next.js app when a visitor records a consent choice, when permissions change, when a request fails and before the revocation reload, from the Client Component that renders ConsentRoot.
+description: Run code in a Next.js app when a visitor records a consent choice, when permissions change, when a request fails and before the revocation reload, from c15t.config.ts.
 group: frameworks
 ---
 
-## Put callbacks in the client wrapper
+## Put callbacks in c15t.config.ts
 
 Callbacks are functions, and a Server Component cannot pass functions to a
 Client Component. React serializes every prop a layout passes across that
-boundary. So define the callbacks in a module, import it in the
-`'use client'` file that renders `ConsentRoot`, and pass it there. In the
-[App Router](/docs/frameworks/next/app-router) guide that file is
-`components/consent.tsx`, and the layout passes it only `state`.
+boundary. `c15t.config.ts` is bundled into the browser, so put the callbacks
+there instead, under `options`. Define them in a module:
 
 <include src="../../shared/examples/nextjs/callbacks.mdx" />
 
+Then pass them in the config:
+
 {/* example: fragment */}
 
-```tsx title="components/consent.tsx"
-<ConsentRoot
-  state={state}
-  config={consentConfig}
-  scripts={scripts}
-  options={{ callbacks }}
->
+```ts title="c15t.config.ts"
+import { defineConsentConfig } from 'c15t/next';
+
+import { callbacks } from './lib/consent-callbacks';
+
+export default defineConsentConfig({ options: { callbacks } });
 ```
 
-The [Pages Router](/docs/frameworks/next/pages-router) setup renders the same
-wrapper from `pages/_app.tsx`, so the same file covers both routers.
+`ConsentRoot` reads the config in the App Router layout and in the
+[Pages Router](/docs/frameworks/next/pages-router) `_app.tsx` alike, so the
+same file covers both routers. Keep your existing `scripts` and other options
+in the same call.
 
 `ConsentRoot` subscribes the callbacks after it mounts in the browser. Server
 rendering never calls them. The provider calls the latest `callbacks` object
@@ -83,10 +84,7 @@ Without the option, `resolveConsent` logs a warning outside production.
 {/* example: fragment */}
 
 ```tsx title="app/layout.tsx"
-const state = resolveConsent({
-	config: consentConfig,
-	onError: (error) => reportToMonitoring(error),
-});
+const state = resolveConsent({ onError: (error) => reportToMonitoring(error) });
 ```
 
 This option is fine in the layout, because it runs on the server and never

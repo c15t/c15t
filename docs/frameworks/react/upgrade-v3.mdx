@@ -66,7 +66,7 @@ a transport as `mode`:
 
 | v2 option | v3 option |
 | --- | --- |
-| `mode: 'hosted'` with `backendURL` | `mode: hosted({ url })` |
+| `mode: 'hosted'` with `backendURL` | `mode: hosted({ backendURL })` |
 | `mode: 'offline'` with `offlinePolicy` | `mode: offline({ policyRules })` |
 | `mode: 'custom'` with `endpointHandlers` | `mode: custom(transport)`, where `transport` implements the v3 transport interface. `endpointHandlers` throws. |
 
@@ -77,7 +77,7 @@ import { ConsentBanner, ConsentDialog, ConsentProvider, hosted } from 'c15t/reac
 
 // Replace ConsentManagerProvider:
 <ConsentProvider
-  options={{ mode: hosted({ url: 'https://your-project.c15t.dev' }) }}
+  options={{ mode: hosted({ backendURL: 'https://your-project.c15t.dev' }) }}
 >
 ```
 
@@ -94,6 +94,12 @@ Keep your backend URL. An existing hosted URL such as
 projects use URLs such as `https://your-project.inth.app`. The
 [React quickstart](/docs/frameworks/react/quickstart) shows the full provider,
 and [data fetching](/docs/concepts/data-fetching) covers custom transports.
+
+v3 also adds `manifest()`, which the quickstart uses: `consentManifest()` from
+`c15t/build` downloads the policy when Vite builds, and the browser resolves it
+without asking `/init`. `manifest()` and `hosted()` then read the backend URL
+from `VITE_C15T_BACKEND_URL`, so they need no arguments. See
+[consent modes](/docs/concepts/modes).
 
 Offline mode keeps choices in the browser and records nothing on a server. Not
 recommended for production environments.
@@ -135,6 +141,18 @@ removes the `namespace` prop:
 ```bash
 npx @c15t/cli@alpha codemods dev-tools-to-c15t --dry-run --json
 ```
+
+<include src="../../shared/upgrade-v3/earlier-alpha-intro.mdx" />
+
+<include src="../../shared/upgrade-v3/earlier-alpha-frame.mdx" />
+
+### Removed
+
+<include src="../../shared/upgrade-v3/earlier-alpha-modes.mdx" />
+
+React removes nothing besides the modes above. Import `manifest()` from
+`c15t/react`, next to `hosted()` and `offline()`, instead of from
+`@c15t/browser/headless`; React apps need nothing from `@c15t/browser`.
 
 <include src="../../shared/upgrade-v3/cli.mdx" />
 

@@ -1,24 +1,28 @@
 // #region docs:consent
-import { manifest } from '@c15t/browser/headless';
+import { posthog } from '@c15t/integrations/posthog';
 import {
 	ConsentBanner,
 	ConsentDialog,
 	ConsentDialogLink,
 	ConsentProvider,
+	manifest,
 } from 'c15t/react';
 import type { ReactNode } from 'react';
 
-import { consentManifest } from './c15t-manifest';
-import { scripts } from './scripts';
-
-const mode = manifest({
-	backendURL:
-		import.meta.env.VITE_C15T_BACKEND_URL ?? 'https://benchmarks-inth.inth.app',
-	manifest: consentManifest,
-});
+const options = {
+	// The policy the build downloaded from VITE_C15T_BACKEND_URL.
+	mode: manifest(),
+	scripts: [
+		posthog({
+			id: 'phc_your_project_key',
+			initOptions: { cookieless_mode: 'never' },
+			loadMode: 'after-consent',
+		}),
+	],
+};
 
 export const Consent = ({ children }: { children: ReactNode }) => (
-	<ConsentProvider options={{ mode, scripts }}>
+	<ConsentProvider options={options}>
 		{children}
 		<ConsentBanner />
 		<ConsentDialog />

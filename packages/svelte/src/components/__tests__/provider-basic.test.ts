@@ -1,20 +1,20 @@
 /**
- * Tests for ConsentManagerProvider basic request behavior.
+ * Tests for ConsentProvider basic request behavior.
  *
  * Mirrors: packages/react/src/providers/__tests__/provider-basic.test.tsx
  */
 
 import { IAB_FIXTURE_CMP_ID, MINIMAL_GVL } from '@c15t/conformance';
 import type { ConsentKernel } from '@c15t/core';
+import { offline } from '@c15t/core';
 import { render } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import ContextConsumerFixture from '../../__tests__/fixtures/context-consumer-fixture.svelte';
 import ProviderOnlyFixture from '../../__tests__/fixtures/provider-only-fixture.svelte';
 import { testOffline } from '../../__tests__/test-offline';
-import ConsentManagerProvider from '../../lib/components/manager-provider.svelte';
+import ConsentProvider from '../../lib/components/consent-provider.svelte';
 import { custom, hosted } from '../../lib/index';
-import { offline } from '../../lib/transports/offline';
 
 const mockFetch = vi.fn();
 window.fetch = mockFetch;
@@ -28,7 +28,7 @@ type WindowWithC15t = Window & {
 	};
 };
 
-describe('ConsentManagerProvider Basic Request Behavior', () => {
+describe('ConsentProvider Basic Request Behavior', () => {
 	beforeEach(() => {
 		delete (window as WindowWithC15t).c15t;
 		delete (window as WindowWithC15t).__tcfapi;
@@ -96,7 +96,7 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 	test('hosted() reports hosted mode and calls the init URL', async () => {
 		const result = render(ProviderOnlyFixture, {
 			options: {
-				mode: hosted({ url: '/api/c15t' }),
+				mode: hosted({ backendURL: '/api/c15t' }),
 			},
 		});
 
@@ -146,7 +146,7 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 			},
 			options: {
 				iab: { enabled: true, vendors: [755] },
-				mode: hosted({ url: '/api/c15t' }),
+				mode: hosted({ backendURL: '/api/c15t' }),
 			},
 		});
 
@@ -168,11 +168,11 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 
 	test('throws when mode is missing', () => {
 		expect(() =>
-			render(ConsentManagerProvider, {
+			render(ConsentProvider, {
 				// @ts-expect-error Verify the runtime guard for untyped callers.
 				options: {},
 			})
-		).toThrow('Use hosted(), offline(), or custom().');
+		).toThrow('@c15t/svelte ConsentProvider: `mode` is required.');
 	});
 
 	test('should not make fetch calls in offline mode', async () => {
@@ -194,10 +194,10 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 	test('should accept top-level options and prefer them over options object', async () => {
 		mockFetch.mockClear();
 
-		render(ConsentManagerProvider, {
+		render(ConsentProvider, {
 			mode: testOffline(),
 			options: {
-				mode: hosted({ url: 'https://example.invalid' }),
+				mode: hosted({ backendURL: 'https://example.invalid' }),
 			},
 		});
 

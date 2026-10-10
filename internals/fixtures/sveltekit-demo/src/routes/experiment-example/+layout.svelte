@@ -10,8 +10,7 @@
 		ConsentBanner,
 		ConsentDialog,
 		ConsentDialogLink,
-		ConsentManagerProvider,
-		hosted,
+		ConsentRoot,
 	} from '@c15t/svelte';
 
 	import { scripts } from '#lib/example-scripts.js';
@@ -19,23 +18,17 @@
 		experimentCallbacks,
 		experimentFromSearch,
 	} from '#lib/experiment.svelte.js';
-	import { testBackend } from '#lib/test-backend.js';
 
 	let { children, data } = $props();
 
-	const mode = hosted({
-		url: 'https://your-project.inth.app',
-		...testBackend('url'),
-	});
 	// Read once: the provider takes its experiment at mount.
 	const experiment = experimentFromSearch(page.url.searchParams);
 </script>
 
-<ConsentManagerProvider
+<ConsentRoot
 	callbacks={experiment ? experimentCallbacks : undefined}
 	{experiment}
-	{mode}
-	prefetch={data.prefetch}
+	state={data.consent}
 	{scripts}
 >
 	{@render children()}
@@ -44,4 +37,4 @@
 	</footer>
 	<ConsentBanner />
 	<ConsentDialog />
-</ConsentManagerProvider>
+</ConsentRoot>

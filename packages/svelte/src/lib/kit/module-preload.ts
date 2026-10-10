@@ -6,11 +6,11 @@
  * as one chunk, so a page with scripts and blocker rules preloads one file.
  *
  * SvelteKit builds the server before the client, so no server module can
- * know what the client build names a chunk. The `c15tPreload()` Vite plugin
- * from `@c15t/svelte/vite` closes that gap: once the client build has
- * written its chunks, it replaces the placeholders below in the server
- * output with each chunk's URL. Without the plugin (or in `vite dev`) the
- * placeholders stay, and no link is added.
+ * know what the client build names a chunk. `consentManifest()` from
+ * `@c15t/svelte/vite`, next to the `sveltekit()` plugin, closes that gap:
+ * once the client build has written its chunks, it replaces the placeholders
+ * below in the server output with each chunk's URL. Without the plugin (or
+ * in `vite dev`) the placeholders stay, and no link is added.
  */
 
 /**
@@ -20,7 +20,7 @@
 export type PreloadChunkName = 'loader-and-blocker';
 
 /**
- * Each chunk's URL, written into the server build by `c15tPreload()`.
+ * Each chunk's URL, written into the server build by `consentManifest()`.
  *
  * @internal
  */

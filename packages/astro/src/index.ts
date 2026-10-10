@@ -2,20 +2,20 @@
  * `@c15t/astro` — consent management for Astro.
  *
  * The banner is a server-rendered `.astro` component with no framework
- * JavaScript; the preference centre and the IAB dialog are Svelte islands
- * mounted only when someone opens them; and because Astro islands never
- * share a component tree, the kernel is a page-level singleton created by
- * the script this integration injects rather than a provider.
+ * JavaScript; the preference centre and the IAB dialog are Svelte, React or
+ * Vue islands mounted only when someone opens them; and because Astro
+ * islands never share a component tree, the kernel is a page-level
+ * singleton created by the script this integration injects rather than a
+ * provider. The components are in `c15t/astro/components`.
  *
  * ```js
- * // astro.config.mjs
- * import { defineConfig } from 'astro/config';
+ * // astro.config.mjs, with PUBLIC_C15T_BACKEND_URL in .env
  * import svelte from '@astrojs/svelte';
- * import c15t, { hosted } from '@c15t/astro';
+ * import { defineConfig } from 'astro/config';
+ * import c15t, { hosted } from 'c15t/astro';
  *
  * export default defineConfig({
- *   output: 'server',
- *   integrations: [svelte(), c15t({ mode: hosted({ url: '/api/c15t' }) })],
+ *   integrations: [svelte(), c15t({ mode: hosted() })],
  * });
  * ```
  */
@@ -23,27 +23,24 @@
 export { c15t, c15t as default, resolveOptions } from './integration';
 export { createConsentMiddleware } from './middleware-handler';
 export type { ConsentMiddlewareOptions } from './middleware-handler';
-export {
-	hostedMode as hosted,
-	manifestMode as manifest,
-	offlineMode as offline,
-	resolveTransportFactory,
-	custom,
-} from './mode';
-export type { ManifestClientEndpoints } from './mode';
+export { hosted, manifest, offline } from './mode';
+export type {
+	ConsentMode,
+	HostedMode,
+	HostedModeOptions,
+	ManifestMode,
+	ManifestModeOptions,
+	OfflineMode,
+	OfflineModeOptions,
+} from '@c15t/core/modes';
 export type {
 	C15tAstroOptions,
 	C15tClientOptionsExtension,
 	C15tColorScheme,
-	C15tEndpointOptions,
-	C15tHostedDescriptor,
 	C15tI18nOptions,
 	C15tIABOptions,
 	C15tLocals,
-	C15tManifestDescriptor,
 	C15tMiddlewareOptions,
-	C15tModeDescriptor,
-	C15tOfflineDescriptor,
 	C15tResolvedOptions,
 	C15tUIAdapterName,
 } from './types';

@@ -7,11 +7,11 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import ConsentScript from '../components/consent-script.astro';
 import IABConsentDialog from '../components/iab-panel.astro';
 import IABConsentBanner from '../components/iab-prompt.astro';
-import ConsentDialogTrigger from '../components/panel-trigger.astro';
+import ConsentDialogLink from '../components/panel-link.astro';
 import ConsentBanner from '../components/prompt.astro';
 import { INLINE_IAB_STYLES_CSS, INLINE_STYLES_CSS } from '../inline-styles';
 import { resolveOptions } from '../integration';
-import { offlineMode } from '../mode';
+import { offline as offlineMode } from '../mode';
 import { resolveConsentContext } from '../server';
 import type { C15tAstroOptions, C15tLocals } from '../types';
 import { testRule } from './policy-fixture';
@@ -133,7 +133,7 @@ describe('inlined first-paint styles', () => {
 	});
 
 	it('a dialog trigger can supply the shared rules before the deferred surface', async () => {
-		const html = await container.renderToString(ConsentDialogTrigger, {
+		const html = await container.renderToString(ConsentDialogLink, {
 			locals: { c15t: await buildLocals(IAB_OPTIONS) },
 			props: { kind: 'iab' },
 		});

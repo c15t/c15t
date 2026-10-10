@@ -43,7 +43,7 @@ The docs no longer publish code from this app. The Vue quickstart quotes
 - `vite.config.ts` adds the c15t Vite plugin.
 - `src/main.ts` installs `c15tVue` with the backend URL and `scripts`.
 - `src/scripts.ts` holds the vendor configuration.
-- `src/App.vue` mounts `ConsentRoot` and `ConsentPreferencesLink`.
+- `src/App.vue` mounts `ConsentRoot` and `ConsentDialogLink`.
 - `src/VideoEmbed.vue` gates the YouTube iframe with `ConsentGate`.
 - `src/branded.ts` is `main.ts` with tokens, presentation and a slot class.
 - `src/headless.ts`, `src/HeadlessApp.vue` and `src/ConsentPrompt.vue` replace

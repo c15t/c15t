@@ -3,7 +3,7 @@
 		ConsentBanner,
 		ConsentDialog,
 		ConsentDialogLink,
-		ConsentManagerProvider,
+		ConsentProvider,
 		hosted,
 	} from '@c15t/svelte';
 
@@ -12,12 +12,12 @@
 	import { testBackend } from './test-backend';
 
 	const mode = hosted({
-		url: 'https://your-project.inth.app',
-		...testBackend('url'),
+		backendURL: 'https://your-project.inth.app',
+		...testBackend('backendURL'),
 	});
 </script>
 
-<ConsentManagerProvider
+<ConsentProvider
 	{mode}
 	{scripts}
 >
@@ -27,4 +27,4 @@
 	</footer>
 	<ConsentBanner />
 	<ConsentDialog />
-</ConsentManagerProvider>
+</ConsentProvider>

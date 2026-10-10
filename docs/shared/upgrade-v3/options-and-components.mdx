@@ -3,10 +3,10 @@
 | v2 | v3 |
 | --- | --- |
 | `translations` | `i18n` |
-| `backendURL`, `mode: 'hosted'` | `mode: hosted({ url })` |
+| `backendURL`, `mode: 'hosted'` | `mode: hosted({ backendURL })` from `c15t/react` on `ConsentProvider`. Next.js `ConsentRoot`: `NEXT_PUBLIC_C15T_BACKEND_URL` and `c15t.config.ts`. |
 | `ssrData` (Next.js) | `ConsentRoot` with `state` from `resolveConsent()` |
 | `iframeBlockerConfig` | `iframeBlocker`, or `false` to turn it off |
-| `Frame` | `ConsentGate`. `Frame` still works as a deprecated alias. |
+| `Frame`, `FrameRoot`, `FrameTitle`, `FrameButton`, `FrameProps` | `ConsentGate` and its parts. The `Frame` names still work as deprecated aliases and log a one-time warning outside production. |
 | `frame` translations, such as `frame.title` | `consentGate`, such as `consentGate.title`. Copy under `frame` still applies and logs a warning outside production. |
 | `FrameTranslations` | `ConsentGateTranslations`. `FrameTranslations` still works as a deprecated alias. |
 | `--frame-*` CSS variables | `--consent-gate-*`, with the same suffixes, such as `--consent-gate-placeholder-background-color`. The old names no longer apply. |

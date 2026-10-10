@@ -242,7 +242,7 @@ export const defineCompatSuite = function defineCompatSuite({
 		let pageErrors: string[];
 
 		beforeAll(async () => {
-			browser = await chromium.launch();
+			browser = await chromium.launch({ headless: true });
 		});
 
 		afterAll(async () => {

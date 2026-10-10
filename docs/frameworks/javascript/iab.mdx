@@ -16,10 +16,10 @@ policy that uses the `iab` model, so a client that resolves one emits an
 `iab: false`.
 
 ```ts title="src/main.ts"
-import { init } from '@c15t/browser/iab';
+import { init, manifest } from '@c15t/browser/iab';
 
 const consent = init({
-	backendURL: 'https://your-project.inth.app',
+	mode: manifest(),
 	iab: { cmpId: YOUR_CMP_ID, vendors: [1, 2, 755] },
 });
 
@@ -155,10 +155,9 @@ uncacheable `409` if it can no longer supply that version. Responses are not
 marked immutable because translations or publisher filtering can change
 without a new vendor-list version.
 
-Astro manifest mode uses its configured same-origin `endpoints.initPath` route.
-Next.js uses a same-origin route when `config.initURL` is configured, and
-TanStack Start uses one when `routePrefix` explicitly names a mounted consent
-route. Without those options, Next.js and TanStack Start reference the public
+Astro, Next.js and TanStack Start use a same-origin route when `routePrefix`
+names a mounted consent route. Astro mounts one at `/api/c15t` by
+default. Without those options, Next.js and TanStack Start reference the public
 list URL from the manifest. Allow `'self'` in CSP `connect-src` for same-origin
 routes, or allow the public list origin for direct requests.
 

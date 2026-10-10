@@ -54,7 +54,7 @@ const config: KnipConfig = {
 				'src/client.ts',
 				'src/server.ts',
 				'src/middleware.ts',
-				'src/api/{init,manifest}.ts',
+				'src/api/route.ts',
 				'src/components/**/*.astro',
 			],
 			ignore: ['src/**/__tests__/**'],
@@ -89,7 +89,7 @@ const config: KnipConfig = {
 			entry: [
 				'src/{index,module,vite,devtools,composables}.ts',
 				'src/runtime/plugin.nuxt.ts',
-				'src/runtime/server/{init,manifest}.get.ts',
+				'src/runtime/server/consent-route.ts',
 				'src/runtime/components/index.ts',
 				'src/runtime/components/nuxt-consent-root.vue',
 				// Compatibility entries available through the package runtime wildcard.

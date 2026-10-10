@@ -29,7 +29,6 @@ describe('host-owned frontend commands', () => {
 			generation: {
 				backendURL: 'https://host.example.com',
 				framework: 'react',
-				output: 'src/privacy',
 				scripts: ['google-tag'],
 			},
 		};
@@ -69,15 +68,12 @@ describe('host-owned frontend commands', () => {
 					'https://override.example.com',
 					'--framework',
 					'vue',
-					'--output',
-					'privacy',
 					'--scripts',
 					'microsoft-clarity',
 				],
 				{
 					generation: {
 						framework: 'react',
-						output: 'src/consent',
 						scripts: ['google-tag'],
 					},
 					projects,
@@ -90,7 +86,6 @@ describe('host-owned frontend commands', () => {
 				backendURL: 'https://override.example.com',
 				framework: 'vue',
 				mode: 'hosted',
-				output: 'privacy',
 				scripts: ['microsoft-clarity'],
 			}),
 		});
@@ -143,7 +138,6 @@ describe('host-owned frontend commands', () => {
 			'--mode=offline',
 			'--framework=react',
 			'--scripts=google-tag',
-			'--output=src/privacy',
 			'--plan',
 		];
 		const { forwarded } = parseGenerationWorkflowArguments(args);
@@ -153,7 +147,6 @@ describe('host-owned frontend commands', () => {
 			data: generate({
 				framework: 'react',
 				mode: 'offline',
-				output: 'src/privacy',
 				scripts: ['google-tag'],
 			}),
 		});

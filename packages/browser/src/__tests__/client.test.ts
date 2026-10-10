@@ -5,7 +5,7 @@ import {
 } from '@c15t/schema/types';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
-import { createConsentClient } from '../client';
+import { createScriptTagConsentClient as createConsentClient } from '../script-tag-client';
 import type { ConsentClient } from '../types';
 
 const clients: ConsentClient[] = [];

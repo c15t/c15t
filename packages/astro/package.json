@@ -69,9 +69,9 @@
 			"default": "./dist/server.js"
 		},
 		"./api": {
-			"types": "./dist-types/api/index.d.ts",
-			"import": "./dist/api/index.js",
-			"default": "./dist/api/index.js"
+			"types": "./dist-types/api/route.d.ts",
+			"import": "./dist/api/route.js",
+			"default": "./dist/api/route.js"
 		},
 		"./ui/svelte": {
 			"types": "./dist-types/ui/svelte.d.ts",
@@ -88,20 +88,15 @@
 			"import": "./dist/ui/vue.js",
 			"default": "./dist/ui/vue.js"
 		},
+		"./components": {
+			"types": "./src/components/index.ts",
+			"import": "./src/components/index.ts",
+			"default": "./src/components/index.ts"
+		},
 		"./components/*": "./src/components/*",
 		"./islands/*": {
 			"svelte": "./src/components/islands/*",
 			"default": "./src/components/islands/*"
-		},
-		"./api/init": {
-			"types": "./dist-types/api/init.d.ts",
-			"import": "./dist/api/init.js",
-			"default": "./dist/api/init.js"
-		},
-		"./api/manifest": {
-			"types": "./dist-types/api/manifest.d.ts",
-			"import": "./dist/api/manifest.js",
-			"default": "./dist/api/manifest.js"
 		},
 		"./styles.css": "./dist/styles.css",
 		"./iab/styles.css": "./dist/iab/styles.css",
@@ -116,7 +111,7 @@
 		"./components/consent-script.astro": "./src/components/consent-script.astro",
 		"./components/consent-banner-deferred.astro": "./src/components/prompt-deferred.astro",
 		"./components/consent-banner.astro": "./src/components/prompt.astro",
-		"./components/consent-dialog-trigger.astro": "./src/components/panel-trigger.astro",
+		"./components/consent-dialog-link.astro": "./src/components/panel-link.astro",
 		"./components/consent-dialog.astro": "./src/components/panel.astro",
 		"./components/iab-consent-banner.astro": "./src/components/iab-prompt.astro",
 		"./components/iab-consent-dialog.astro": "./src/components/iab-panel.astro",

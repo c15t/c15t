@@ -6,6 +6,7 @@ import type { CliContext } from '../../../context/types';
 import { CliError } from '../../../core/errors';
 import { findLayoutFile } from '../../../detection/layout';
 import { generateBoilerplateTemplate } from '../../../generate';
+import { mergeFile } from '../../../generate/merge';
 import {
 	boilerplateFrameworks,
 	isBoilerplateFramework,
@@ -18,13 +19,33 @@ import {
 import {
 	applyFileEdits,
 	collectFileEdits,
-	createFile,
+	describeFileEdits,
+	readFile,
+	writeFile,
 } from '../templates/shared/file-plan';
 import { SCRIPT_SNIPPETS } from '../templates/shared/scripts';
 import { planBoilerplateDependencies } from './package-source';
 import type { BoilerplateFramework, BoilerplateOptions } from './types';
 
 export { boilerplateFrameworks } from '../../../generate/types';
+
+/** Server adapters that give an Astro site on-demand rendering. */
+const ASTRO_ADAPTER = /^@astrojs\/(?:cloudflare|netlify|node|vercel)$/u;
+
+/** Whether an Astro project lists a server adapter, so it can render per request. */
+const usesAstroAdapter = async (projectRoot: string): Promise<boolean> => {
+	try {
+		const manifest = JSON.parse(
+			await fs.readFile(path.join(projectRoot, 'package.json'), 'utf8')
+		) as Record<string, Record<string, string> | undefined>;
+		return [manifest.dependencies, manifest.devDependencies].some(
+			(dependencies) =>
+				Object.keys(dependencies ?? {}).some((name) => ASTRO_ADAPTER.test(name))
+		);
+	} catch {
+		return false;
+	}
+};
 
 const resolveFramework = async (
 	context: CliContext
@@ -40,7 +61,6 @@ const resolveFramework = async (
 	}
 	const detected = context.framework.framework;
 	const names: Record<string, BoilerplateFramework> = {
-		Astro: 'astro',
 		Nuxt: 'nuxt',
 		React: 'react',
 		Solid: 'solid',
@@ -59,6 +79,11 @@ const resolveFramework = async (
 			details:
 				'Specify --framework next-app or next-pages for a project without an existing router layout.',
 		});
+	}
+	if (detected === 'Astro') {
+		return (await usesAstroAdapter(context.projectRoot))
+			? 'astro'
+			: 'astro-static';
 	}
 	if (detected && names[detected]) {
 		return names[detected];
@@ -223,91 +248,135 @@ const checkOutputPath = async (root: string, target: string): Promise<void> => {
 	}
 };
 
-/** Plans or creates standalone integration files; never installs registry packages. */
+/**
+ * Next.js projects created with `--src-dir` keep `app/` and `pages/` under
+ * `src/`. The quickstart's other files stay at the project root.
+ */
+const placeFiles = async (
+	projectRoot: string,
+	framework: BoilerplateFramework
+): Promise<(name: string) => string> => {
+	if (framework !== 'next-app' && framework !== 'next-pages') {
+		return (name) => name;
+	}
+	const layout = await findLayoutFile(projectRoot);
+	if (!layout?.path.split(path.sep).join('/').startsWith('src/')) {
+		return (name) => name;
+	}
+	return (name) => (/^(?:app|pages)\//u.test(name) ? `src/${name}` : name);
+};
+
+/** The file a project already has, or `null`. */
+const readExisting = async (file: string): Promise<string | null> => {
+	try {
+		return await readFile(file, 'utf8');
+	} catch (error) {
+		if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
+			return null;
+		}
+		throw error;
+	}
+};
+
+/**
+ * Plans or writes a framework's quickstart files; never installs registry
+ * packages. Existing files are merged where the template says how, such as
+ * `.env`, and otherwise replaced only with `--overwrite`.
+ */
 export const generateBoilerplate = async (context: CliContext) => {
 	const inputOptions = readOptions(context);
-	await checkOutputPath(
-		context.projectRoot,
-		path.join(context.projectRoot, 'package.json')
-	);
-	await fs.access(path.join(context.projectRoot, 'package.json'));
-	const output = path.resolve(
-		context.projectRoot,
-		typeof context.flags.output === 'string'
-			? context.flags.output
-			: 'src/consent'
-	);
-	await checkOutputPath(context.projectRoot, output);
+	const root = context.projectRoot;
+	await checkOutputPath(root, path.join(root, 'package.json'));
+	await fs.access(path.join(root, 'package.json'));
 	const recovered = await recoverGeneration(
-		context.projectRoot,
+		root,
 		context.flags.resume === true
 	);
 	const options: BoilerplateOptions = {
 		...inputOptions,
 		framework: await resolveFramework(
 			recovered
-				? { ...context, framework: await detectFramework(context.projectRoot) }
+				? { ...context, framework: await detectFramework(root) }
 				: context
 		),
 	};
-	const template = await generateBoilerplateTemplate(options);
+	let template: ReturnType<typeof generateBoilerplateTemplate>;
+	try {
+		template = generateBoilerplateTemplate(options);
+	} catch (error) {
+		throw new CliError('FLAG_INVALID', {
+			details: error instanceof Error ? error.message : String(error),
+		});
+	}
 	const dependencyPlan = await planBoilerplateDependencies({
 		dependencies: template.dependencies,
 		packageSource:
 			typeof context.flags['package-source'] === 'string'
 				? path.resolve(context.cwd, context.flags['package-source'])
 				: undefined,
-		projectRoot: context.projectRoot,
+		projectRoot: root,
 	});
-	const relativeOutput =
-		path.relative(context.projectRoot, output).split(path.sep).join('/') || '.';
 	const instructions = [
-		...template.instructions.map((instruction) =>
-			instruction.replaceAll('{{output}}', relativeOutput)
-		),
+		...template.instructions,
 		...dependencyPlan.instructions,
 	];
-	if (options.scripts.length) {
-		instructions.push(
-			'Replace vendor example IDs in the generated script configuration before running the application.'
-		);
-	}
-	const files = {
-		...template.files,
-		'README.md': `# c15t ${options.framework} integration\n\n${instructions.map((instruction, index) => `${index + 1}. ${instruction}`).join('\n\n')}\n`,
-	};
+	const place = await placeFiles(root, options.framework);
+	const overwrite = context.flags.overwrite === true;
+	const conflicts: string[] = [];
 	const { edits } = await collectFileEdits(async () => {
-		for (const [name, content] of Object.entries(files)) {
-			const destination = path.resolve(output, name);
+		for (const [templateName, content] of Object.entries(template.files)) {
+			const name = place(templateName);
+			const destination = path.resolve(root, name);
 			// oxlint-disable-next-line no-await-in-loop -- Inspect and record files in deterministic order.
-			await checkOutputPath(output, destination);
-			// oxlint-disable-next-line no-await-in-loop -- Keep the first conflicting file actionable.
-			await createFile(destination, content);
+			await checkOutputPath(root, destination);
+			// oxlint-disable-next-line no-await-in-loop -- Read each file once, in order.
+			const existing = await readExisting(destination);
+			const merge = template.merge[templateName];
+			let next = content;
+			if (existing !== null && merge) {
+				try {
+					next = mergeFile(existing, content, merge);
+				} catch (error) {
+					throw new CliError('FILE_CONFLICT', {
+						details: `${name}: ${error instanceof Error ? error.message : String(error)}`,
+					});
+				}
+			} else if (existing !== null && existing !== content && !overwrite) {
+				conflicts.push(name);
+				continue;
+			}
+			// oxlint-disable-next-line no-await-in-loop -- Record edits in order.
+			await writeFile(destination, next);
 		}
 	});
+	if (conflicts.length) {
+		throw new CliError('FILE_CONFLICT', {
+			details: `${conflicts.join(', ')}. Merge the quickstart into them by hand, or pass --overwrite to replace them.`,
+		});
+	}
 	const plannedEdits = [...edits, ...dependencyPlan.edits];
 	const applied =
 		!context.flags.plan &&
 		!context.flags['dry-run'] &&
 		(context.flags.apply === true || context.flags.yes === true);
 	if (applied && plannedEdits.length) {
-		await saveGenerationJournal(context.projectRoot, plannedEdits);
+		await saveGenerationJournal(root, plannedEdits);
 		try {
 			await applyFileEdits(plannedEdits);
 		} catch (error) {
 			if (!(error instanceof AggregateError)) {
-				await clearGenerationJournal(context.projectRoot);
+				await clearGenerationJournal(root);
 			}
 			throw error;
 		}
-		await clearGenerationJournal(context.projectRoot);
+		await clearGenerationJournal(root);
 	}
 	context.logger.success(
-		`${applied ? 'Created' : 'Planned'} ${edits.length} boilerplate file edits for ${options.framework}.`
+		`${applied ? 'Wrote' : 'Planned'} ${edits.length} quickstart file edits for ${options.framework}.`
 	);
 	for (const edit of plannedEdits) {
 		context.logger.message(
-			`${edit.before === null ? 'Create' : 'Update'} ${path.relative(context.projectRoot, edit.path)}`
+			`${edit.before === null ? 'Create' : 'Update'} ${path.relative(root, edit.path)}`
 		);
 	}
 	for (const instruction of instructions) {
@@ -321,12 +390,11 @@ export const generateBoilerplate = async (context: CliContext) => {
 	return {
 		applied,
 		dependencies: dependencyPlan.dependencies,
-		edits: plannedEdits,
+		edits: await describeFileEdits(plannedEdits),
 		framework: options.framework,
 		installSkipped: true,
 		instructions,
 		mode: options.mode,
-		output,
 		source: dependencyPlan.source,
 	};
 };

@@ -61,7 +61,7 @@ right.
 
   <Tab value="Svelte">
     Render `CookieBanner` in place of `ConsentBanner`, inside
-    `ConsentManagerProvider` and next to `ConsentDialog`.
+    `ConsentProvider` and next to `ConsentDialog`.
 
     <include src="../shared/examples/storybook-svelte/bottom-bar.mdx" />
   </Tab>
@@ -147,7 +147,7 @@ requires.
   </Tab>
 
   <Tab value="Svelte">
-    Spread `slimBar` into the options you pass to `ConsentManagerProvider`.
+    Spread `slimBar` into the props you pass to `ConsentProvider`.
     Svelte scopes component styles, so the classes live in a global
     stylesheet.
 
@@ -187,7 +187,7 @@ a choice is recorded only when the visitor clicks.
   <Tab value="Svelte">
     `getHeadlessConsent()` returns the banner state and `performAction`.
     Render `CookieBar` in place of `ConsentBanner`, inside
-    `ConsentManagerProvider`, and keep `ConsentDialog`, which Preferences
+    `ConsentProvider`, and keep `ConsentDialog`, which Preferences
     opens.
 
     <include src="../shared/examples/storybook-svelte/headless-bar.mdx" />

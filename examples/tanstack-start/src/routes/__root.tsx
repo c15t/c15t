@@ -1,5 +1,6 @@
 // oxlint-disable no-use-before-define -- TanStack Router's file-route shape: the component reads its own route's loader data.
 // #region docs:root
+import { posthog } from '@c15t/integrations/posthog';
 import {
 	createRootRoute,
 	HeadContent,
@@ -18,20 +19,20 @@ import {
 	createConsentStateHandler,
 } from 'c15t/tanstack-start/server';
 
-import { consentOptions } from '../consent-options.server';
-import { scripts } from '../scripts';
-
-// Where the browser saves consent: the project the build read the manifest
-// from.
-const backendURL =
-	import.meta.env.VITE_C15T_BACKEND_URL ?? 'https://benchmarks-inth.inth.app';
-
-// Declare the server function in your own module. Start's compiler splits
-// the server code, and the bundled manifest, out of the browser bundle at
-// this call site.
+// Start's compiler keeps the handler and the bundled policy on the server.
 const getConsentState = createServerFn({ method: 'GET' }).handler(
-	createConsentStateHandler(consentOptions)
+	createConsentStateHandler()
 );
+
+// #region docs:scripts
+const scripts = [
+	posthog({
+		id: 'phc_your_project_key',
+		initOptions: { cookieless_mode: 'never' },
+		loadMode: 'after-consent',
+	}),
+];
+// #endregion docs:scripts
 
 const RootComponent = () => {
 	const { consent } = Route.useLoaderData();
@@ -43,8 +44,6 @@ const RootComponent = () => {
 			<body>
 				<ConsentRoot
 					state={consent}
-					backendURL={backendURL}
-					initRoute={false}
 					scripts={scripts}
 				>
 					<Outlet />

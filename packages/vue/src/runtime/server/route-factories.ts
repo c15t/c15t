@@ -1,24 +1,22 @@
 /**
- * Nitro server routes for manifest mode: h3 event handlers around the
- * consent route handler in `@c15t/core/server`, which owns the `/manifest`
- * and `/init` behaviour for every adapter (including the fallback to the
- * backend's own `/init` and the render budget the SSR plugin sends in
- * `x-c15t-timeout-ms`). This module only converts between h3 and the Web
- * `Request`/`Response`, reads the c15t runtime config, sends relative
- * backend URLs through Nitro's in-process fetch, and hands detached work to
- * the preset's `waitUntil`.
+ * The Nitro consent route for `manifest()` mode: one h3 handler, mounted at
+ * `${routePrefix}/**`, around the consent route handler in
+ * `@c15t/core/server`. Core owns the `/manifest` and `/init` behaviour for
+ * every adapter (including the fallback to the backend's own `/init` and
+ * the render budget the SSR plugin sends in `x-c15t-timeout-ms`). This
+ * module only converts between h3 and the Web `Request`/`Response`, reads
+ * the c15t runtime config, sends relative backend URLs through Nitro's
+ * in-process fetch, and hands detached work to the preset's `waitUntil`.
  */
 import { createConsentRouteHandler, readWaitUntil } from '@c15t/core/server';
-import type {
-	ConsentRouteHandler,
-	ConsentRouteName,
-	ManifestFetch,
-} from '@c15t/core/server';
+import type { ConsentRouteHandler, ManifestFetch } from '@c15t/core/server';
 import type { ConsentManifest } from '@c15t/schema/types';
 import { defineEventHandler, sendWebResponse, toWebRequest } from 'h3';
 import type { EventHandlerRequest, H3Event } from 'h3';
 
 import type { ConsentConfig } from '../config';
+import { readNuxtMode, readNuxtRoutePrefix } from '../nuxt-mode';
+import type { NuxtConsentModeConfig } from '../nuxt-mode';
 
 interface C15TNitroRuntimeConfig {
 	c15t?: Record<string, unknown>;
@@ -29,6 +27,8 @@ interface C15TNitroRuntimeConfig {
 
 type RuntimeConfigReader = (event?: H3Event<EventHandlerRequest>) => unknown;
 
+type RouteConfig = ConsentConfig & NuxtConsentModeConfig;
+
 interface RouteDependencies {
 	/**
 	 * Nitro's fetch: dispatches a path in-process and an absolute URL over
@@ -36,7 +36,10 @@ interface RouteDependencies {
 	 * resolves without a host.
 	 */
 	fetch: ManifestFetch;
-	/** The manifest fetched during the build, when `buildManifest` is on. */
+	/**
+	 * The manifest the build downloaded, or the `snapshot` the mode names.
+	 * Without one the route reads the manifest at runtime.
+	 */
 	manifest?: ConsentManifest;
 	useRuntimeConfig: RuntimeConfigReader;
 	/**
@@ -68,13 +71,13 @@ export const waitUntilFromEvent = function waitUntilFromEvent(
 
 /**
  * The public `c15t` config with the private one over it. A private value
- * that is empty or unset leaves the public one: the module writes empty
- * private URLs, so `NUXT_PUBLIC_C15T_BACKEND_URL` alone moves these routes,
- * and `NUXT_C15T_BACKEND_URL` gives them a server-only address.
+ * that is empty or unset leaves the public one: the module writes an empty
+ * private `backendURL`, so `NUXT_PUBLIC_C15T_BACKEND_URL` alone moves this
+ * route, and `NUXT_C15T_BACKEND_URL` gives it a server-only address.
  */
 const readConsentConfig = function readConsentConfig(
 	runtimeConfig: unknown
-): ConsentConfig {
+): RouteConfig {
 	const config =
 		typeof runtimeConfig === 'object' && runtimeConfig !== null
 			? (runtimeConfig as C15TNitroRuntimeConfig)
@@ -87,67 +90,84 @@ const readConsentConfig = function readConsentConfig(
 	return {
 		...(config.public?.c15t ?? {}),
 		...serverOnly,
-	} as ConsentConfig;
+	} as RouteConfig;
 };
 
 /**
- * One h3 handler for a consent route. The core handler is rebuilt only when
- * Nitro hands back a different runtime config object.
+ * The path below the route prefix (`init`, `manifest`), or `undefined` to
+ * let the core handler read the last URL segment.
  */
-const createRoute = function createRoute(
-	dependencies: RouteDependencies,
-	route: ConsentRouteName
+const readSubpath = function readSubpath(
+	event: H3Event<EventHandlerRequest>,
+	request: Request,
+	prefix: string | undefined
+): string | undefined {
+	const wildcard = (event.context.params as Record<string, string> | undefined)
+		?._;
+	if (typeof wildcard === 'string') {
+		return wildcard;
+	}
+	const { pathname } = new URL(request.url);
+	if (prefix && pathname.startsWith(`${prefix}/`)) {
+		return pathname.slice(prefix.length + 1);
+	}
+	return undefined;
+};
+
+/**
+ * `GET ${routePrefix}/manifest` and `GET ${routePrefix}/init`: the backend
+ * manifest with its cache headers, and the visitor's init resolved from
+ * it. The core handler is rebuilt only when Nitro hands back a different
+ * runtime config object.
+ *
+ * @param dependencies - Nitro's fetch and runtime config, and the snapshot.
+ * @returns The h3 handler the module mounts at `${routePrefix}/**`.
+ * @internal
+ */
+export const createConsentRoute = function createConsentRoute(
+	dependencies: RouteDependencies
 ) {
 	const built: {
-		current?: { runtimeConfig: unknown; handle: ConsentRouteHandler };
+		current?: {
+			runtimeConfig: unknown;
+			handle: ConsentRouteHandler;
+			prefix: string | undefined;
+		};
 	} = {};
-	const handlerFor = function handlerFor(
-		runtimeConfig: unknown
-	): ConsentRouteHandler {
+	const handlerFor = function handlerFor(runtimeConfig: unknown) {
 		const { current } = built;
 		if (current && current.runtimeConfig === runtimeConfig) {
-			return current.handle;
+			return current;
 		}
 		const config = readConsentConfig(runtimeConfig);
+		const mode = readNuxtMode(config);
 		const handle = createConsentRouteHandler({
 			adapter: '@c15t/vue',
 			backendURL: config.backendURL,
 			fetch: dependencies.fetch,
 			manifest: dependencies.manifest,
-			manifestURL: config.manifestURL,
+			// With browser resolution, `manifestURL` is what the browser
+			// fetches instead of this route.
+			manifestURL:
+				mode.type === 'manifest' && mode.resolve !== 'browser'
+					? mode.manifestURL
+					: undefined,
 			reportSessions: config.reportSessions,
 		});
-		built.current = { handle, runtimeConfig };
-		return handle;
+		const next = { handle, prefix: readNuxtRoutePrefix(config), runtimeConfig };
+		built.current = next;
+		return next;
 	};
 	return defineEventHandler(async (event) => {
-		const handle = handlerFor(dependencies.useRuntimeConfig(event));
+		const { handle, prefix } = handlerFor(dependencies.useRuntimeConfig(event));
 		const onBackgroundRevalidate =
 			dependencies.onBackgroundRevalidate ?? waitUntilFromEvent;
-		const response = await handle(toWebRequest(event), {
+		const request = toWebRequest(event);
+		const response = await handle(request, {
 			localFetch: dependencies.fetch,
-			route,
+			path: readSubpath(event, request, prefix),
 			waitUntil: (task) => onBackgroundRevalidate(task, event),
 		});
 		return sendWebResponse(event, response);
 	});
-};
-
-/**
- * `GET /api/c15t/manifest`: the backend manifest with its cache headers.
- * A plain handler, not `defineCachedEventHandler`: the manifest is geo- and
- * language-independent, so the backend's cache headers are forwarded
- * verbatim.
- */
-export const createManifestRoute = function createManifestRoute(
-	dependencies: RouteDependencies
-) {
-	return createRoute(dependencies, 'manifest');
-};
-
-/** `GET /api/c15t/init`: the visitor's init, resolved from the manifest. */
-export const createInitRoute = function createInitRoute(
-	dependencies: RouteDependencies
-) {
-	return createRoute(dependencies, 'init');
 };

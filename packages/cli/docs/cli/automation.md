@@ -50,7 +50,7 @@ For Inth or another host, use explicit project inputs and inspect the returned r
 
 ## Reuse generation in another CLI
 
-Install `@c15t/cli@alpha` in the host project. Import the generation entry point to create integration files without loading the interactive runner:
+Install `@c15t/cli@alpha` in the host project. Import the generation entry point to create a framework's quickstart files without loading the interactive runner:
 
 ```ts
 import { generate, runGenerateCommand } from '@c15t/cli/generate';
@@ -60,7 +60,6 @@ const plan = generate({
 	mode: 'hosted',
 	backendURL: projectBackendURL,
 	scripts: ['google-tag'],
-	output: 'src/consent',
 });
 
 // Forward arguments after `inth c15t generate`:
@@ -73,11 +72,15 @@ const forwardedPlan = runGenerateCommand([
 ]);
 ```
 
-Both functions return `{ files, dependencies, instructions }` synchronously. `files` maps application-relative paths to their contents, including a README. `dependencies` contains installation arguments on the CLI's release line, such as `@c15t/react@alpha` from an alpha CLI or `@c15t/react@3` from a stable v3 CLI. `getInstallSpecifier` applies the same rule as the CLI's own installs to bare c15t package names and preserves explicit specifiers and external package names. The published source records the CLI version it shipped with, so vendored source keeps that release line. `generateBoilerplateTemplate` exposes the lower-level template with bare dependency names and paths relative to the output directory.
+Both functions return `{ files, merge, dependencies, instructions }` synchronously. `files` maps paths relative to the project root to the contents a project without them gets, such as `.env`, `c15t.config.ts`, `next.config.ts` and `app/layout.tsx` for `next-app`. They are the files of the framework's quickstart. Hosted mode writes the backend URL to `.env` under the framework's public env var, such as `NEXT_PUBLIC_C15T_BACKEND_URL` or `VITE_C15T_BACKEND_URL`. No other file holds the URL, and no file is a `.gitignore`.
+
+`merge` says how to apply a file the project already has: `env` adds the generated `KEY=value` lines to an existing `.env` and keeps its other keys, but skips a `*_C15T_BACKEND_URL` line when the file already sets the matching `*_INTH_PROJECT_URL`, `insert` adds a snippet such as the privacy settings link to an existing `index.html`, and `keep` leaves the file alone. `mergeFile(existing, generated, merge)` applies one. Replace other existing files only when the user asks.
+
+`dependencies` contains installation arguments on the CLI's release line, such as `c15t@alpha` from an alpha CLI or `c15t@3` from a stable v3 CLI. `getInstallSpecifier` applies the same rule as the CLI's own installs to bare c15t package names and preserves explicit specifiers and external package names. The published source records the CLI version it shipped with, so vendored source keeps that release line. `generateBoilerplateTemplate` exposes the lower-level template with bare dependency names.
 
 The host CLI owns writing files, checking existing contents and symlinks, installing dependencies, diagnostics, and authentication. These functions do not read the application, detect its framework, prompt, write files, install packages, or access the network. Use the project's provisioned backend URL for hosted mode.
 
-`runGenerateCommand` accepts `hosted` or `offline`, `--framework`, and optional `--backend-url`, `--scripts`, and `--output` values. Value flags accept `--flag value` or `--flag=value`. A second argument supplies host defaults for these inputs. Without defaults, mode and framework are required. Explicit arguments override defaults; selecting offline clears an inherited backend URL. Repeated flags are rejected. `parseGenerateOptions` exposes the same parser without generating files. It supports the [boilerplate framework targets](./commands/boilerplate.md). The default output is `src/consent`. Hosted mode requires an absolute HTTP or HTTPS URL without embedded credentials, whitespace or control characters. Offline mode rejects a backend URL. Invalid frameworks, integrations, flags, and paths that escape the application throw an `Error`. Runner flags such as `--apply`, `--json`, and `--package-source` belong to the host rather than this parser.
+`runGenerateCommand` accepts `hosted` or `offline`, `--framework`, and optional `--backend-url` and `--scripts` values. Value flags accept `--flag value` or `--flag=value`. A second argument supplies host defaults for these inputs. Without defaults, mode and framework are required. Explicit arguments override defaults; selecting offline clears an inherited backend URL. Repeated flags are rejected. `parseGenerateOptions` exposes the same parser without generating files. It supports the [quickstart framework targets](./commands/boilerplate.md). Hosted mode requires an absolute HTTP or HTTPS URL without embedded credentials, whitespace or control characters. Offline mode rejects a backend URL. Invalid frameworks, integrations and flags, including the removed `--output`, throw an `Error`. Runner flags such as `--apply`, `--json`, and `--package-source` belong to the host rather than this parser.
 
 For Node hosts that need the full CLI command metadata and actions, `import { commands } from '@c15t/cli/commands'` exports the same registry used by the runner. Actions accept a c15t `CliContext`; use `runCli` when you need the runner to create that context.
 
@@ -156,8 +159,11 @@ and application wiring.
 The result contains `{ command, applied, created, installed, plan, recovered }`.
 `plan` contains the canonical application `root`, `files` with `path`, `content`
 and `exists`, release-line `dependencies`, and `instructions`. Existing files
-must already match. Apply checks the reviewed files again before writing and refuses
-conflicts, symlink targets and symlink ancestors, including dangling symlinks.
+must already match, except files the plan merges: when an existing `.env` or
+`index.html` lacks the generated lines, the runtime leaves it alone and adds an
+instruction with the lines to add. Apply checks the reviewed files again before
+writing and refuses conflicts, symlink targets and symlink ancestors, including
+dangling symlinks.
 The application root itself resolves to its real directory.
 
 Files stage in `.c15t-native-generation` and publish with exclusive hard links.
@@ -300,7 +306,7 @@ c15t setup --codex --plan --json
 ```
 
 `--dry-run` also previews the task. Live agent launch rejects `--json` and
-`--non-interactive`. Scaffold options such as `--boilerplate`, `--output`,
+`--non-interactive`. Scaffold options such as `--boilerplate`, `--overwrite`,
 `--apply`, `--resume`, and `--skip-install` are not supported with `--codex`.
 Discuss styling, SSR, proxying, and other frontend preferences in the agent
 session. `generate` retains deterministic generation and rejects `--codex`.

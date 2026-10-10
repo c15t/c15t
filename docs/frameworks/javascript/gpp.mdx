@@ -45,7 +45,7 @@ import { createConsentRuntime } from '@c15t/core/runtime';
 const runtime = createConsentRuntime({
 	gpp: true,
 	loadGPP: () => import('@c15t/iab/gpp'),
-	mode: hosted({ url: 'https://your-project.inth.app' }),
+	mode: hosted({ backendURL: 'https://your-project.inth.app' }),
 });
 runtime.start();
 ```

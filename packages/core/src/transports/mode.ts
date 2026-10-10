@@ -1,6 +1,7 @@
 import type { PolicyRule } from '@c15t/schema/types';
 
 import type { AllConsentNames } from '../consent/consent-types';
+import type { HostedModeOptions as HostedModeDataOptions } from '../modes';
 import type { SSRInitialData } from '../options/ssr';
 import type {
 	KernelConfig,
@@ -9,7 +10,7 @@ import type {
 } from '../types';
 import type { RememberedDecisionInputs } from './decision-inputs';
 import { createHostedTransport } from './hosted';
-import { hostedModes } from './hosted-modes';
+import { hostedFactories } from './hosted-modes';
 
 /** Runtime values supplied by a provider to a transport factory. */
 export interface ProviderTransportContext {
@@ -38,13 +39,17 @@ export interface ProviderTransportContext {
 }
 
 /** Transport kind exposed through `window.c15t.mode`. */
-export type ProviderTransportKind = 'hosted' | 'offline' | 'custom';
+export type ProviderTransportKind =
+	| 'hosted'
+	| 'manifest'
+	| 'offline'
+	| 'custom';
 
 /**
  * Creates a kernel transport from provider runtime context.
  *
  * Providers require one of these as their `mode` option. Build it with
- * `hosted()`, `custom()`, or a framework adapter's `offline()` rather than
+ * `hosted()`, `offline()`, `manifest()` or `custom()` rather than
  * by hand so the `kind` property stays accurate. `kind` lets adapters
  * report the selected transport through `window.c15t.mode` without
  * importing every transport implementation.
@@ -58,9 +63,9 @@ export interface ProviderTransportFactory {
 }
 
 /** Options for {@link hosted}. */
-export interface HostedModeOptions {
-	/** Backend URL. Can be relative or absolute. */
-	url: string;
+export interface HostedModeOptions extends HostedModeDataOptions {
+	/** Backend URL. Can be relative (`/api/c15t`) or absolute. */
+	backendURL: string;
 	/** Domain sent when consent is saved. */
 	domain?: string;
 	/** Fetch implementation used for backend requests. */
@@ -68,23 +73,22 @@ export interface HostedModeOptions {
 	/** Headers forwarded to the backend init endpoint. */
 	headers?: Record<string, string>;
 	/**
-	 * URL used for `GET /init`. Defaults to `${url}/init`.
+	 * URL used for `GET /init`. Defaults to `${backendURL}/init`.
 	 *
 	 * Point this at a same-origin server route that resolves init from a
 	 * manifest (for example with `resolveManifestInit` from
 	 * `@c15t/core/transports/manifest-cache`) while consent saves keep going
-	 * to `${url}/subjects`. Set `assertDecisionInputs: true` alongside it:
-	 * manifest resolution never issues a `policySnapshotToken`.
+	 * to `${backendURL}/subjects`. Manifest resolution never issues a
+	 * `policySnapshotToken`, so setting `initURL` also turns on
+	 * `assertDecisionInputs`.
 	 */
 	initURL?: string;
 	/**
 	 * Assert the resolved policy decision on `POST /subjects` when the save
-	 * carries no signed `policySnapshotToken`. Enable this whenever `initURL`
-	 * points at a route that resolves init from a manifest, so the backend
-	 * can reject a save made against a stale policy instead of recording it
-	 * unbound.
+	 * carries no signed `policySnapshotToken`, so the backend can reject a
+	 * save made against a stale policy instead of recording it unbound.
 	 *
-	 * @defaultValue false
+	 * @defaultValue `true` when `initURL` is set, otherwise `false`
 	 */
 	assertDecisionInputs?: boolean;
 	/**
@@ -102,27 +106,38 @@ export interface HostedModeOptions {
 }
 
 /**
+ * What `hosted()` returns: a transport factory that also carries its
+ * options as enumerable data, so it satisfies `HostedMode` from
+ * `@c15t/core/modes`.
+ */
+export type HostedModeFactory = ProviderTransportFactory &
+	Readonly<HostedModeOptions> & {
+		readonly kind: 'hosted';
+		readonly type: 'hosted';
+	};
+
+/**
  * Selects the hosted transport for a consent provider.
  *
  * @param options - Hosted backend connection options.
- * @returns A hosted provider transport factory.
+ * @returns A hosted provider transport factory carrying its options.
  * @example
  * ```ts
  * import { hosted } from '@c15t/core';
  *
- * const mode = hosted({ url: '/api/c15t' });
+ * const mode = hosted({ backendURL: '/api/c15t' });
  *
- * // Resolve init from a same-origin route, save to the backend.
+ * // Resolve init from a same-origin route, save to the backend. Saves
+ * // assert the decision because `initURL` is set.
  * const sameOriginInit = hosted({
- *   url: 'https://consent.example.com',
+ *   backendURL: 'https://consent.example.com',
  *   initURL: '/api/consent/init',
- *   assertDecisionInputs: true,
  * });
  * ```
  */
 export const hosted = function hosted(
 	options: HostedModeOptions
-): ProviderTransportFactory {
+): HostedModeFactory {
 	// The options as of this call: editing the object afterwards changes
 	// neither the transports this factory builds nor what a provider
 	// compares them by. `fetch` and `initialData` stay the same values.
@@ -130,21 +145,26 @@ export const hosted = function hosted(
 		...options,
 		headers: options.headers && { ...options.headers },
 	};
+	if (settings.headers === undefined) {
+		delete settings.headers;
+	}
 	const mode = Object.assign(
 		() =>
 			createHostedTransport({
-				assertDecisionInputs: settings.assertDecisionInputs,
-				backendURL: settings.url,
+				assertDecisionInputs:
+					settings.assertDecisionInputs ?? settings.initURL !== undefined,
+				backendURL: settings.backendURL,
 				decisionInputs: settings.decisionInputs,
 				domain: settings.domain,
 				fetch: settings.fetch,
-				headers: settings.headers,
+				headers: settings.headers && { ...settings.headers },
 				initURL: settings.initURL,
 				initialData: settings.initialData,
 			}),
-		{ kind: 'hosted' as const }
+		settings,
+		{ kind: 'hosted' as const, type: 'hosted' as const }
 	);
-	hostedModes.set(mode, settings);
+	hostedFactories.add(mode);
 	return mode;
 };
 

@@ -166,6 +166,7 @@ const VisitorRoot = ({
 }) =>
 	visitor.adapter === 'next' ? (
 		<NextConsentRoot
+			config={{ backendURL: BACKEND_URL }}
 			persistence={false}
 			state={visitor.state}
 		>
@@ -173,7 +174,6 @@ const VisitorRoot = ({
 		</NextConsentRoot>
 	) : (
 		<TanStackConsentRoot
-			initRoute={false}
 			persistence={false}
 			state={visitor.state}
 		>

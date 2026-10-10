@@ -43,13 +43,13 @@ describe('resolveConsent wiring', () => {
 		const handler = createConsentStateHandler({
 			backendURL: 'https://consent.example.com',
 			fetch,
-			manifest,
 			reportSessions: false,
 			request: requestOf({
 				'accept-language': 'de-DE',
 				'sec-gpc': '1',
 				'x-vercel-ip-country': 'DE',
 			}),
+			snapshot: manifest,
 		});
 		const state = await handler();
 		expect(state.initialPolicyResolution).toMatchObject({
@@ -89,8 +89,8 @@ describe('resolveConsent wiring', () => {
 			backendURL: 'https://consent.example.com',
 			fetch: sessions,
 			journey: 'tab',
-			manifest: MANIFEST_FIXTURE,
 			request: requestOf({ 'x-vercel-ip-country': 'DE' }),
+			snapshot: MANIFEST_FIXTURE,
 		});
 		await vi.waitFor(() => expect(sessions).toHaveBeenCalled());
 		const report = JSON.parse(String(sessions.mock.calls[0]?.[1]?.body));
@@ -107,8 +107,8 @@ describe('resolveConsent wiring', () => {
 			// oxlint-disable-next-line no-await-in-loop -- One render at a time.
 			const state = await resolveConsent({
 				backendURL: 'https://consent.example.com',
-				manifest: MANIFEST_FIXTURE,
 				request: requestOf({ 'x-vercel-ip-country': 'DE' }),
+				snapshot: MANIFEST_FIXTURE,
 				...off,
 			});
 			// The state tells ConsentRoot this page has no journey.
@@ -121,9 +121,9 @@ describe('resolveConsent wiring', () => {
 		rememberConsentInputs(request, { country: 'DE' });
 		const state = await resolveConsent({
 			backendURL: 'https://consent.example.com',
-			manifest: MANIFEST_FIXTURE,
 			reportSessions: false,
 			request,
+			snapshot: MANIFEST_FIXTURE,
 		});
 		expect(state.initialOverrides?.country).toBe('DE');
 		expect(state.initialPolicyResolution).toMatchObject({
@@ -149,6 +149,40 @@ describe('resolveConsent wiring', () => {
 		warn.mockRestore();
 	});
 
+	test('fetches a relative backendURL that is not the route prefix', async () => {
+		// A backend mounted elsewhere on the app's origin, beside the consent
+		// route, as the TanStack Start browser bench's manifest-ssr arm does.
+		const fetch = manifestFetch();
+		const state = await resolveConsent({
+			backendURL: '/api/backend',
+			cache: createManifestCache(),
+			fetch,
+			reportSessions: false,
+			request: requestOf({ 'x-vercel-ip-country': 'DE' }),
+			routePrefix: '/api/c15t',
+			snapshot: undefined,
+		});
+		expect(String(fetch.mock.calls[0]?.[0])).toBe(
+			'https://app.example.com/api/backend/manifest'
+		);
+		expect(state.initialPolicyResolution).toMatchObject({
+			policyId: 'eu-opt-in',
+			status: 'matched',
+		});
+	});
+
+	test('never fetches the default /api/c15t route, with no routePrefix set', async () => {
+		const fetch = manifestFetch();
+		const state = await createConsentStateHandler({
+			backendURL: '/api/c15t',
+			cache: createManifestCache(),
+			fetch,
+			request: requestOf({ cookie: 'c15t=c.necessary:1,c.marketing:1,i.t:1' }),
+		})();
+		expect(fetch).not.toHaveBeenCalled();
+		expect(state.initialRecords?.choice).toBeTruthy();
+	});
+
 	test('a prerender is a shared render: no visitor state, no prefetch', async () => {
 		vi.stubEnv('TSS_PRERENDERING', 'true');
 		const fetch = manifestFetch();
@@ -162,10 +196,14 @@ describe('resolveConsent wiring', () => {
 			}),
 		});
 		expect(fetch).not.toHaveBeenCalled();
-		expect(state).toEqual({});
+		// Only what the browser needs to resolve the visitor itself.
+		expect(state).toEqual({ backendURL: 'https://consent.example.com' });
 	});
 
-	test('a deferred vendor list points at the route prefix when one is set', async () => {
+	test.each([
+		['/api/consent', /^\/api\/consent\/init\?c15t-gvl=7/u],
+		['/', /^\/init\?c15t-gvl=7/u],
+	])('a deferred vendor list points at %s/init', async (routePrefix, url) => {
 		const fetch = vi.fn<typeof globalThis.fetch>();
 		vi.stubGlobal(
 			'fetch',
@@ -187,7 +225,10 @@ describe('resolveConsent wiring', () => {
 		);
 		const state = await resolveConsent({
 			backendURL: 'https://consent.example.com',
-			manifest: {
+			reportSessions: false,
+			request: requestOf(),
+			routePrefix,
+			snapshot: {
 				...MANIFEST_FIXTURE,
 				cmpId: 28,
 				iab: {
@@ -203,14 +244,9 @@ describe('resolveConsent wiring', () => {
 					}),
 				],
 			} as unknown as typeof MANIFEST_FIXTURE,
-			reportSessions: false,
-			request: requestOf(),
-			routePrefix: '/api/consent',
 		});
 		vi.unstubAllGlobals();
 		expect(fetch).not.toHaveBeenCalled();
-		expect(state.initialIab?.gvlReference?.url).toMatch(
-			/^\/api\/consent\/init\?c15t-gvl=7/u
-		);
+		expect(state.initialIab?.gvlReference?.url).toMatch(url);
 	});
 });

@@ -16,7 +16,7 @@ const warningsAbout = (spy: MockInstance) =>
 		String(message).includes('provider `theme`')
 	);
 
-describe('ConsentManagerProvider theme tokens warning', () => {
+describe('ConsentProvider theme tokens warning', () => {
 	let warn: MockInstance;
 
 	beforeEach(() => {

@@ -12,10 +12,9 @@ snippet so it loads once.
 
 Vendor helpers from `@c15t/integrations` contain callbacks, and the integration
 options in `astro.config.mjs` must survive JSON serialization. So register
-helpers in the module that the integration's `clientEntrypoint` option names.
-This list loads PostHog on measurement:
-
-<include src="../../shared/examples/astro/scripts.mdx" />
+helpers in `src/c15t.client.ts`, which the integration finds on its own, or
+the module its `clientEntrypoint` option names. This list loads PostHog on
+measurement:
 
 <include src="../../shared/examples/astro/client-entrypoint.mdx" />
 
@@ -31,7 +30,6 @@ it an `id`, a `category`, and either a `src` or inline `textContent`:
 
 ```js title="astro.config.mjs (partial)"
 c15t({
-	mode: hosted({ url: 'https://your-project.inth.app' }),
 	scripts: [
 		{
 			id: 'example-analytics',

@@ -2,11 +2,11 @@ import bannerStyles from '@c15t/ui/styles/components/consent-banner';
 import { experimental_AstroContainer as AstroContainer } from 'astro/container';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 
-import ConsentDialogTrigger from '../components/panel-trigger.astro';
+import ConsentDialogLink from '../components/panel-link.astro';
 import ConsentDialog from '../components/panel.astro';
 import ConsentBanner from '../components/prompt.astro';
 import { resolveOptions } from '../integration';
-import { hostedMode, offlineMode } from '../mode';
+import { hosted as hostedMode, offline as offlineMode } from '../mode';
 import { resolveConsentContext } from '../server';
 import type { C15tAstroOptions, C15tLocals } from '../types';
 import { testRule, testWire } from './policy-fixture';
@@ -446,7 +446,7 @@ describe('<ConsentBanner /> without a resolved policy', () => {
 			) as never,
 			headers: new Headers(),
 			options: resolveOptions({
-				mode: hostedMode({ url: 'https://consent.example.com' }),
+				mode: hostedMode({ backendURL: 'https://consent.example.com' }),
 			}),
 			url: 'https://example.com/',
 		});
@@ -475,7 +475,7 @@ describe('<ConsentBanner /> without a resolved policy', () => {
 	});
 
 	it('hides the dialog trigger until a policy is resolved', async () => {
-		const hidden = await container.renderToString(ConsentDialogTrigger, {
+		const hidden = await container.renderToString(ConsentDialogLink, {
 			locals: { c15t: await withoutPolicy() },
 		});
 		const trigger = /<[^>]*data-testid="consent-dialog-trigger"[^>]*>/u.exec(
@@ -485,7 +485,7 @@ describe('<ConsentBanner /> without a resolved policy', () => {
 		expect(trigger).toContain('hidden');
 		expect(trigger).toContain('data-c15t-surface="trigger"');
 
-		const shown = await container.renderToString(ConsentDialogTrigger, {
+		const shown = await container.renderToString(ConsentDialogLink, {
 			locals: { c15t: await buildLocals() },
 		});
 		const visible = /<[^>]*data-testid="consent-dialog-trigger"[^>]*>/u.exec(
@@ -763,7 +763,7 @@ describe('<ConsentBanner /> under a none rule', () => {
 		const html = await render(locals, { force: true });
 		expect(html).not.toContain('data-testid="consent-banner-root"');
 
-		const trigger = await container.renderToString(ConsentDialogTrigger, {
+		const trigger = await container.renderToString(ConsentDialogLink, {
 			locals: { c15t: locals },
 		});
 		expect(
@@ -779,7 +779,7 @@ describe('<ConsentBanner /> under a none rule', () => {
 		const html = await render(locals);
 		expect(html).not.toContain('data-testid="consent-banner-root"');
 
-		const trigger = await container.renderToString(ConsentDialogTrigger, {
+		const trigger = await container.renderToString(ConsentDialogLink, {
 			locals: { c15t: locals },
 		});
 		expect(

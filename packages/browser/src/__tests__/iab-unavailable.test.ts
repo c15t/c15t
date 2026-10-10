@@ -17,10 +17,10 @@ import type { PolicyRule } from '@c15t/schema/types';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { completeGVL } from '../../../iab/src/__tests__/fixtures/gvl-sample';
-import { init as initIAB } from '../iab';
-import { custom, init } from '../index';
+import { custom } from '../index';
 import { offline } from '../transports/offline';
-import type { ConsentClient, ConsentClientOptions } from '../types';
+import type { ConsentClient, ScriptTagClientOptions } from '../types';
+import { init, initIAB } from './fixtures/factory-init';
 
 const policy = (model: PolicyRule['model']) =>
 	writePolicyResolutionWire(
@@ -61,7 +61,7 @@ const clients: ConsentClient[] = [];
 const start = async function start(
 	entry: typeof init,
 	response: InitResponse,
-	options: ConsentClientOptions = {}
+	options: ScriptTagClientOptions = {}
 ): Promise<{ client: ConsentClient; errors: Error[]; thrown: unknown[] }> {
 	const errors: Error[] = [];
 	const thrown: unknown[] = [];

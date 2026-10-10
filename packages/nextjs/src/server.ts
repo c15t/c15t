@@ -14,12 +14,11 @@
  */
 import type { ConsentJourneyOption, ServerExperiment } from '@c15t/core';
 import { resolveRequestConsent } from '@c15t/core/server';
-import type { ConsentManifest } from '@c15t/schema/types';
 import * as React from 'react';
 
 import { createManifestFetchInit } from './api';
-import type { NextConsentManifestHandlersOptions } from './api';
-import type { ConsentConfig } from './config';
+import type { ConsentSourceOptions } from './consent-source';
+import { resolveConsentSource } from './consent-source';
 import type { ConsentState } from './types';
 
 type Awaitable<Value> = Promise<Value> | Value;
@@ -143,54 +142,8 @@ export { defineConsentConfig } from './config';
 
 // -- Optional: server-side prefetch of the init roundtrip -------------------
 
-export interface ResolveConsentOptions extends ConsentRequestOptions {
-	/**
-	 * Backend base URL. When set (here or through `config`), the helper
-	 * calls `${backendURL}/init` server-side and folds the response into the
-	 * returned state (policy, UI, translations, IAB metadata, and consents
-	 * if the backend knows the user). This avoids a first-paint flicker
-	 * before the client-side init lands.
-	 *
-	 * A relative URL resolves against the request's `host` header: over
-	 * `https` for a domain name, and over `http` for `localhost`, an IP
-	 * address or a single-label host such as `app:3000`. `x-forwarded-*`
-	 * headers are ignored unless `trustForwardedHeaders` is set. A
-	 * same-origin prefix such as `/api/c15t` is fetched like any backend, so
-	 * it must reach one (a rewrite or a mounted backend); passing the
-	 * backend's own URL saves that hop. A URL under the `config.manifestURL`
-	 * or `config.initURL` routes is never fetched: those are this app's
-	 * handlers.
-	 *
-	 * Without a backend URL the helper returns the cookie- and header-only
-	 * state and performs no network call. Overrides `config.backendURL`.
-	 */
-	backendURL?: string;
-
-	/**
-	 * A `defineConsentConfig` result. Supplies `backendURL` and the manifest
-	 * source; the explicit fields on this options bag win. A same-origin
-	 * `config.manifestURL` names the manifest route your handlers serve, so
-	 * the render reads what that route reads, `${backendURL}/manifest`,
-	 * through the same process cache instead of fetching its own route.
-	 */
-	config?: ConsentConfig;
-
-	/**
-	 * Absolute `GET /manifest` URL, or a same-origin path that is not one of
-	 * this app's consent routes. When set, the helper resolves init locally
-	 * from the manifest and does not call `/init`. The manifest is read
-	 * through the in-process manifest cache, so concurrent renders share one
-	 * request, a fresh copy answers from memory, and a failing source is
-	 * retried with backoff instead of on every render.
-	 */
-	manifestURL?: string;
-
-	/**
-	 * Inline manifest for hosts that already loaded it. Takes precedence over
-	 * `manifestURL` and keeps the request path backend-free.
-	 */
-	manifest?: ConsentManifest;
-
+export interface ResolveConsentOptions
+	extends ConsentRequestOptions, ConsentSourceOptions {
 	/**
 	 * Override fetch. Useful for testing or for wiring Vercel's
 	 * unstable_cache / Next.js `fetch`-level caching around the call.
@@ -208,11 +161,11 @@ export interface ResolveConsentOptions extends ConsentRequestOptions {
 	forwardHeaders?: string[];
 
 	/**
-	 * Resolve a relative `backendURL` or `manifestURL` against the request's
-	 * `forwarded`, `x-forwarded-host` and `x-forwarded-proto` headers instead
-	 * of `host`, and forward the visitor IP to backend `/init`. Any client
-	 * can send those headers, so set this only behind a proxy that sets them
-	 * and drops incoming ones.
+	 * Resolve a relative backend or manifest URL against the request's
+	 * `forwarded`, `x-forwarded-host` and `x-forwarded-proto` headers
+	 * instead of `host`, and forward the visitor IP to backend `/init`. Any
+	 * client can send those headers, so set this only behind a proxy that
+	 * sets them and drops incoming ones.
 	 *
 	 * @default false
 	 */
@@ -253,8 +206,8 @@ export interface ResolveConsentOptions extends ConsentRequestOptions {
 	 */
 	reportSessions?: boolean;
 	/**
-	 * The consent journey scope this render reports. Defaults to
-	 * `config.journey`; `ConsentRoot` must use the same value.
+	 * The consent journey scope this render reports. Defaults to the
+	 * config's `journey`; `ConsentRoot` must use the same value.
 	 */
 	journey?: ConsentJourneyOption;
 	/**
@@ -267,7 +220,7 @@ export interface ResolveConsentOptions extends ConsentRequestOptions {
 	 *
 	 * @example
 	 * ```ts
-	 * resolveConsent({ config, experiment: { ...bannerShape, arm } });
+	 * resolveConsent({ experiment: { ...bannerShape, arm } });
 	 * ```
 	 */
 	experiment?: ServerExperiment;
@@ -282,42 +235,11 @@ export interface ResolveConsentOptions extends ConsentRequestOptions {
 	waitUntil?: (task: Promise<void>) => void;
 }
 
-/**
- * The options `resolveConsent` and `createNextConsentRouteHandlers` share.
- * Declare them once in a server-only module and pass the same object to
- * both, so the render and the consent routes resolve from the same backend
- * and manifest.
- *
- * @example
- * ```ts
- * // c15t.server.ts
- * import type { ConsentManifestOptions } from '@c15t/nextjs/server';
- *
- * export const consentOptions = {
- *   config: consentConfig,
- *   manifest: consentManifest,
- * } satisfies ConsentManifestOptions;
- * ```
- */
-export type ConsentManifestOptions = Pick<
-	ResolveConsentOptions & NextConsentManifestHandlersOptions,
-	| 'backendURL'
-	| 'config'
-	| 'fetch'
-	| 'manifest'
-	| 'manifestURL'
-	| 'reportSessions'
-	| 'trustForwardedHeaders'
->;
-
 const isProduction = function isProduction(): boolean {
 	const nodeEnv = (globalThis as { process?: { env?: { NODE_ENV?: string } } })
 		.process?.env?.NODE_ENV;
 	return nodeEnv === 'production';
 };
-
-const isPath = (url: string | undefined): url is string =>
-	url !== undefined && url.startsWith('/') && !url.startsWith('//');
 
 const reportPrefetchError = function reportPrefetchError(
 	options: ResolveConsentOptions,
@@ -338,101 +260,75 @@ const reportPrefetchError = function reportPrefetchError(
 };
 
 /**
- * Where the render resolves from: the backend, the manifest source, the
- * mode, and this app's own consent routes (never fetched).
- *
- * The own routes are only the handler routes the config names. Next.js
- * mounts nothing under a default prefix: `/api/c15t` in the docs is the
- * backend prefix, reached through a rewrite or a mounted backend, so it is
- * fetched like any other backend URL.
- */
-const resolveSource = function resolveSource(options: ResolveConsentOptions) {
-	const { config } = options;
-	const backendURL = options.backendURL ?? config?.backendURL;
-	// A same-origin config manifest URL is the handlers' own route, which
-	// serves `${backendURL}/manifest`; the render reads that directly.
-	const manifestURL =
-		options.manifestURL ??
-		(isPath(config?.manifestURL) ? undefined : config?.manifestURL);
-	let mode: 'hosted' | 'manifest' | undefined;
-	if (options.manifest || options.manifestURL || config?.manifestURL) {
-		mode = 'manifest';
-	} else if (backendURL) {
-		mode = 'hosted';
-	}
-	const ownRoutes: string[] = [];
-	for (const route of [config?.manifestURL, config?.initURL]) {
-		if (isPath(route)) {
-			ownRoutes.push(route);
-		}
-	}
-	return {
-		backendURL,
-		gvlRoute: isPath(config?.initURL) ? config.initURL : undefined,
-		manifestURL,
-		mode,
-		ownRoutes,
-	};
-};
-
-/**
- * Resolve the visitor's consent state for the current request.
+ * Resolve the visitor's consent state for the current request, from
+ * `c15t.config.ts`.
  *
  * 1. Reads the consent cookie, geo headers, language, and GPC from the
  *    request.
- * 2. With a backend URL (`backendURL` or `config.backendURL`), calls
- *    `${backendURL}/init` server-side with the request context, or resolves
- *    init from the cached manifest when `manifest`, `manifestURL` or
- *    `config.manifestURL` is set.
- * 3. Folds the response into a `ConsentState` so first paint is correct
+ * 2. Resolves the visitor's policy for the config's `mode`: `manifest()`
+ *    (the default) from the snapshot `withConsentManifest` downloaded, or
+ *    `${backendURL}/manifest` through the in-process cache without one;
+ *    `hosted()` from `${backendURL}/init`. `offline()` leaves it to the
+ *    browser.
+ * 3. Folds the result into a `ConsentState` so first paint is correct
  *    without waiting for a client roundtrip.
  *
- * Without a backend URL, step 2 is skipped and the request-only state is
- * returned with no network call. If the backend call fails, does not
- * answer within `timeoutMs` (500 ms by default), or points at the
- * `config.manifestURL` or `config.initURL` handler routes, the request-only
- * state is returned too: no consent UI
- * is rendered on the server, optional categories stay denied, and
- * `ConsentRoot` resolves the policy on mount. The failure reaches `onError`
- * when provided, and is otherwise logged outside production.
+ * Without a backend URL or snapshot, step 2 is skipped and the request-only
+ * state is returned with no network call. If the request fails, does not
+ * answer within `timeoutMs` (500 ms by default), or points under the
+ * config's `routePrefix` (the app's own route, never fetched), the
+ * request-only state is returned too: no consent UI is rendered on the
+ * server, optional categories stay denied, and `ConsentRoot` resolves the
+ * policy on mount. The failure reaches `onError` when provided, and is
+ * otherwise logged outside production.
  *
  * Each call reads fresh headers and never caches across requests, so
  * concurrent requests stay isolated.
  *
- * @param options - Backend URL or a `defineConsentConfig` result, the
- * manifest source, fetch overrides, and how to read the request
+ * @param options - Overrides of the config, fetch options, and how to read
+ * the request
  * @returns The visitor's JSON-serializable state for `ConsentRoot`
  * @example
- * ```ts
- * import { resolveConsent } from '@c15t/nextjs/server';
- * import { consentConfig } from '@/consent.config';
+ * ```tsx
+ * import { ConsentRoot } from 'c15t/next';
+ * import { resolveConsent } from 'c15t/next/server';
  *
- * const state = await resolveConsent({ config: consentConfig });
+ * // In a Server Component. Not awaited: the page renders while consent
+ * // resolves.
+ * <ConsentRoot state={resolveConsent()}>{children}</ConsentRoot>;
  * ```
  */
 export const resolveConsent = async function resolveConsent(
 	options: ResolveConsentOptions = {}
 ): Promise<ConsentState> {
+	const source = resolveConsentSource(options);
 	const facts = options.request
 		? await readRequestContext(options.request)
 		: await readAppRouterRequest();
+	const { routePrefix } = source;
 	return (await resolveRequestConsent({
-		...resolveSource(options),
 		adapter: '@c15t/nextjs',
+		backendURL: source.backendURL,
 		experiment: options.experiment,
 		fetch: options.fetch,
 		forwardHeaders: options.forwardHeaders,
-		journey: options.journey ?? options.config?.journey,
-		manifest: options.manifest,
+		gvlRoute: routePrefix ? `${routePrefix}/init` : undefined,
+		initHeaders: source.initHeaders,
+		journey: options.journey ?? source.config?.journey,
+		manifest: source.snapshot,
 		// The manifest route's Data Cache hint, so a render and the route
 		// share the Next.js Data Cache as well as the process cache.
 		manifestFetchInit: { next: createManifestFetchInit().next } as Omit<
 			RequestInit,
 			'headers' | 'method'
 		>,
+		manifestURL: source.manifestURL,
+		mode: source.mode,
 		now: options.now,
 		onError: (error, url) => reportPrefetchError(options, error, url),
 		overrides: { country: options.country, language: options.language },
+		// The app's own consent route: the render never fetches it.
+		ownRoutes: routePrefix ? [routePrefix] : [],
 		reportSessions: options.reportSessions,
 		request: facts,
 		storage: options.cookieName

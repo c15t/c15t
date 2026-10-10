@@ -10,9 +10,9 @@ import type { PolicyRule } from '@c15t/schema/types';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { completeGVL } from '../../../iab/src/__tests__/fixtures/gvl-sample';
-import { init } from '../iab';
 import { offline } from '../transports/offline';
-import type { ConsentClient, ConsentClientOptions } from '../types';
+import type { ConsentClient, ScriptTagClientOptions } from '../types';
+import { initIAB as init } from './fixtures/factory-init';
 
 const iabRule: PolicyRule = {
 	id: 'browser-iab-policy',
@@ -24,7 +24,7 @@ const iabRule: PolicyRule = {
 };
 const clients: ConsentClient[] = [];
 const start = async (
-	options: ConsentClientOptions = {}
+	options: ScriptTagClientOptions = {}
 ): Promise<ConsentClient> => {
 	const client = init({
 		iab: { cmpId: 28, gvl: completeGVL },

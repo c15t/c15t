@@ -21,7 +21,7 @@ This directory contains the internal benchmark platform for `c15t`, `@c15t/react
 - `nuxt-browser-bench`
   Runs Playwright against a Nuxt app on `@c15t/vue`, covering SSR, client SPA, manifest and repeat-visitor paths plus a zero-consent baseline build.
 - `sveltekit-browser-bench`
-  Runs Playwright against a SvelteKit app on `@c15t/svelte/kit` (`c15tHandle`, `loadConsent`, `createSvelteKitConsentRouteHandlers`), with the same scenario names as the Nuxt suite and zero-consent baseline routes.
+  Runs Playwright against a SvelteKit app on `@c15t/svelte/kit` (`c15tHandle`, `loadConsent`, `createConsentRoute`), with the same scenario names as the Nuxt suite and zero-consent baseline routes.
 - `astro-browser-bench`
   Runs Playwright against an Astro app on `@c15t/astro`, covering the server-rendered banner in manifest and hosted modes, the `server:defer` banner island, a repeat visitor, and a zero-consent baseline built without the integration.
 - `script-lifecycle-bench`
@@ -36,6 +36,8 @@ This directory contains the internal benchmark platform for `c15t`, `@c15t/react
   Adds a persisted repeat visitor over the SSR route plus `consoleErrorCount`, `hydrationWarningCount`, `promptTransitionCount`, and `promptShownCount` for every scenario, so matching server and client inputs must settle on the same prompt without a flash or a hydration warning.
 - `bundle-test-app/client-payload`
   Builds one Next.js consumer with no consent library, v2, and several v3 setups, installed from npm or packed tarballs, and attributes initial, dialog-open and first-accept JS/CSS to packages and modules through production source maps. Run by hand; see `benchmarks/reports/client-payload-2026-09-25/`.
+- `examples-payload`
+  Builds and starts every starter in `examples/` against a fixture backend (`/manifest`, `/init`, `/subjects`, `/c15t.js`), with all four `*_C15T_BACKEND_URL` variables pointed at it and `*.inth.app` routed to it. Records first-load JS, CSS and HTML bytes, the extra JS that opening the dialog and accepting load, emitted client JS, banner time, init/manifest/cross-origin requests, and the gzip bytes of first-load assets that carry a boundary marker (snapshot, manifest resolver, offline policy, non-English copy, IAB, devtools). `--root <checkout>` measures another worktree's own examples, so base and head never share example code: `bunx tsx benchmarks/examples-payload/run.ts --root ../c15t-base --out .benchmarks/base/examples-payload`. The `examples` profile runs it for both revisions.
 - `bundle-test-app` (`bench:entries`, `ordinary-react` entry)
   Builds a synthetic esbuild entry for the ordinary non-IAB React path and reports `iabInputBytes`, `devtoolsInputBytes`, and `allLocalesInputBytes` from the metafile so the import boundary is measured, not assumed.
 - `shared`
@@ -69,6 +71,7 @@ did it.
 BENCHMARK_BASE_REF=origin/canary bun scripts/benchmark-run.ts bundle
 BENCHMARK_BASE_REF=origin/canary bun scripts/benchmark-run.ts quick
 BENCHMARK_BASE_REF=origin/canary bun scripts/benchmark-run.ts full
+BENCHMARK_BASE_REF=origin/canary bun scripts/benchmark-run.ts examples
 ```
 
 The runner creates an isolated checkout at the exact base revision and installs
@@ -137,6 +140,15 @@ their combined allowance only in deferred and total budgets. Its initial cap
 stays unchanged. The lazy IAB entry receives another 7 KiB in deferred and total
 budgets for its IAB banner and dialog sheets. The ordinary entry keeps its
 existing caps, and entries that emit no stock styles receive no allowance.
+
+The browser manifest resolver loads each non-English language through its
+own `import()`. Entries that import `@c15t/browser` emit those chunks even
+when they never call `manifest()`, so `browser-full` and `browser-headless`
+get a one-time deferred allowance of 85 KiB gzip. Their initial and total
+budgets do not change. The core tarball gets a one-time allowance of 55 KiB
+and 18 percentage points for the self-contained bundles that `clientMode()`
+loads (`dist/runtime/lazy-*.js`). Both allowances come off once the change
+is on the base branch.
 
 The Next.js tarball normally allows at most 15 KiB and 10% growth. Restoring
 dialog rules in the app-imported stylesheet in #1378 added 4,487 packed bytes.

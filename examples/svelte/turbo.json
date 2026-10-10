@@ -3,8 +3,7 @@
 	"extends": ["//"],
 	"tasks": {
 		"build": {
-			"env": ["VITE_C15T_BACKEND_URL"],
-			"outputs": ["$TURBO_EXTENDS$", "src/c15t-manifest.ts"]
+			"env": ["VITE_C15T_BACKEND_URL"]
 		}
 	}
 }

@@ -16,7 +16,7 @@ import type { AstroConsentClient } from '../client';
 // loads, so no test timeout covers the compile.
 import * as vuePanelSurface from '../components/islands/panel-surface.vue';
 import { resolveOptions } from '../integration';
-import { offlineMode } from '../mode';
+import { offline as offlineMode } from '../mode';
 import type { C15tAstroOptions } from '../types';
 import {
 	registerDialogAdapter,

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import ConsentManagerProvider from '../../lib/components/manager-provider.svelte';
+	import ConsentProvider from '../../lib/components/consent-provider.svelte';
 	import ConsentDialog from '../../lib/components/panel.svelte';
 	import type { ConsentManagerOptions } from '../../lib/types';
 	import ActiveUiControl from './active-ui-control.svelte';
@@ -13,7 +13,7 @@
 	} = $props();
 </script>
 
-<ConsentManagerProvider {options}>
+<ConsentProvider {options}>
 	<ActiveUiControl />
 	<ConsentDialog {open} />
-</ConsentManagerProvider>
+</ConsentProvider>

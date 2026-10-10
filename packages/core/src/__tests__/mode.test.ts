@@ -1,15 +1,18 @@
 import { writePolicyResolutionWire } from '@c15t/schema/types';
+import type { ConsentManifest } from '@c15t/schema/types';
 /**
- * Provider transport factories: `hosted()` and `custom()`.
- *
- * `offline()` lives in the framework adapters and is tested there.
+ * Provider transport factories, `hosted()`, `offline()` and `custom()`, and
+ * the data factories from `@c15t/core/modes`.
  */
-import { describe, expect, test, vi } from 'vitest';
+import { describe, expect, expectTypeOf, test, vi } from 'vitest';
 
 import type { KernelTransport, SavePayload } from '../index';
-import { hostedModes } from '../transports/hosted-modes';
+import * as modes from '../modes';
+import type { ConsentMode, ManifestModeOptions } from '../modes';
+import { readHostedMode } from '../transports/hosted-modes';
 import { custom, hosted } from '../transports/mode';
 import type { ProviderTransportContext } from '../transports/mode';
+import { offline } from '../transports/offline';
 import { matchedResolution, optInRule } from './fixtures/kernel-fixtures';
 
 const context: ProviderTransportContext = {
@@ -53,8 +56,8 @@ describe('hosted()', () => {
 			.fn()
 			.mockResolvedValue(new Response(JSON.stringify({ ok: true })));
 		const mode = hosted({
+			backendURL: '/api/c15t/',
 			fetch: fetchSpy as unknown as typeof globalThis.fetch,
-			url: '/api/c15t/',
 		});
 
 		expect(mode.kind).toBe('hosted');
@@ -95,9 +98,9 @@ describe('hosted()', () => {
 		);
 		const mode = hosted({
 			assertDecisionInputs: true,
+			backendURL: 'https://backend.example',
 			fetch: fetchSpy as unknown as typeof globalThis.fetch,
 			initURL: '/api/consent/init',
-			url: 'https://backend.example',
 		});
 		const transport = mode(context);
 
@@ -118,17 +121,59 @@ describe('hosted()', () => {
 		});
 	});
 
+	test('carries its options as enumerable data', () => {
+		const mode = hosted({
+			backendURL: '/api/c15t',
+			headers: { 'accept-language': 'de' },
+		});
+
+		expect({ ...mode }).toEqual({
+			backendURL: '/api/c15t',
+			headers: { 'accept-language': 'de' },
+			kind: 'hosted',
+			type: 'hosted',
+		});
+		expectTypeOf(mode).toExtend<ConsentMode>();
+	});
+
 	test('recognizes its own factories, not wrappers that copy them', () => {
-		const options = { url: '/api/c15t' };
+		const options = { backendURL: '/api/c15t' };
 		const mode = hosted(options);
 		const wrapper = Object.assign(
 			(providerContext: ProviderTransportContext) => mode(providerContext),
 			mode
 		);
 
-		expect(hostedModes.get(mode)).toEqual(options);
+		expect(readHostedMode(mode)).toEqual(options);
 		expect(wrapper.kind).toBe('hosted');
-		expect(hostedModes.get(wrapper)).toBeUndefined();
+		expect(wrapper.type).toBe('hosted');
+		expect(readHostedMode(wrapper)).toBeUndefined();
+	});
+
+	test('asserts decision inputs when initURL is set, unless told not to', async () => {
+		const fetchSpy = vi.fn(() =>
+			Promise.resolve(new Response(JSON.stringify({ ok: true })))
+		);
+		const save = async (options: Partial<Parameters<typeof hosted>[0]>) => {
+			fetchSpy.mockClear();
+			const transport = hosted({
+				backendURL: 'https://backend.example',
+				fetch: fetchSpy as unknown as typeof globalThis.fetch,
+				...options,
+			})(context);
+			// No init has resolved a decision: an asserting transport refuses.
+			return await transport.save?.(payload).then(
+				() => 'saved',
+				() => 'refused'
+			);
+		};
+
+		expect(await save({})).toBe('saved');
+		expect(await save({ initURL: '/api/c15t/init' })).toBe('refused');
+		expect(
+			await save({ assertDecisionInputs: false, initURL: '/api/c15t/init' })
+		).toBe('saved');
+		expect(await save({ assertDecisionInputs: true })).toBe('refused');
 	});
 
 	test('keeps the options it was called with when the object changes', async () => {
@@ -137,23 +182,24 @@ describe('hosted()', () => {
 		);
 		const initialData = Promise.resolve(undefined);
 		const options = {
+			backendURL: 'https://old.example',
 			fetch: fetchSpy as typeof globalThis.fetch,
 			headers: { 'accept-language': 'de' },
 			initialData,
-			url: 'https://old.example',
 		};
 		const mode = hosted(options);
-		options.url = 'https://new.example';
+		options.backendURL = 'https://new.example';
 		options.headers['accept-language'] = 'fr';
 
-		expect(hostedModes.get(mode)).toEqual({
+		expect(readHostedMode(mode)).toEqual({
+			backendURL: 'https://old.example',
 			fetch: fetchSpy,
 			headers: { 'accept-language': 'de' },
 			initialData,
-			url: 'https://old.example',
 		});
-		expect(hostedModes.get(mode)?.fetch).toBe(fetchSpy);
-		expect(hostedModes.get(mode)?.initialData).toBe(initialData);
+		expect(mode.backendURL).toBe('https://old.example');
+		expect(readHostedMode(mode)?.fetch).toBe(fetchSpy);
+		expect(readHostedMode(mode)?.initialData).toBe(initialData);
 
 		// `initialData` resolves to nothing, so both inits reach the backend,
 		// each with the options as passed.
@@ -168,6 +214,63 @@ describe('hosted()', () => {
 			expect(url.split('?')[0]).toBe('https://old.example/init');
 			expect(init.headers['accept-language']).toBe('de');
 		}
+	});
+});
+
+describe('offline()', () => {
+	test('carries its policy rules as enumerable data', () => {
+		const policyRules = [optInRule({ id: 'everywhere' })];
+
+		expect({ ...offline() }).toEqual({ kind: 'offline', type: 'offline' });
+		expect({ ...offline({ policyRules }) }).toEqual({
+			kind: 'offline',
+			policyRules,
+			type: 'offline',
+		});
+		expectTypeOf(offline()).toExtend<ConsentMode>();
+	});
+});
+
+describe('offline() transport', () => {
+	test('answers init with the location it resolved for, as /init does', async () => {
+		const transport = offline()(context);
+		const response = await transport.init?.({
+			overrides: { country: 'DE', region: 'BE' },
+		} as Parameters<NonNullable<KernelTransport['init']>>[0]);
+
+		expect(response?.location).toEqual({ countryCode: 'DE', regionCode: 'BE' });
+	});
+});
+
+describe('@c15t/core/modes', () => {
+	test('returns plain, serializable data', () => {
+		const snapshot = { revision: '1', schemaVersion: 2 } as never;
+		const all = [
+			modes.manifest(),
+			modes.manifest({ resolve: 'browser', snapshot }),
+			modes.hosted({ backendURL: 'https://backend.example' }),
+			modes.offline({ policyRules: [optInRule({ id: 'everywhere' })] }),
+		];
+
+		expect(all.map((mode) => mode.type)).toEqual([
+			'manifest',
+			'manifest',
+			'hosted',
+			'offline',
+		]);
+		expect(JSON.parse(JSON.stringify(all))).toEqual(all);
+		expect(modes.manifest({ source: 'runtime' })).toEqual({
+			source: 'runtime',
+			type: 'manifest',
+		});
+	});
+
+	test('rejects a snapshot with a source', () => {
+		const snapshot = { revision: '1', schemaVersion: 2 } as ConsentManifest;
+		// @ts-expect-error `snapshot` is its own source.
+		const both: ManifestModeOptions = { snapshot, source: 'build' };
+
+		expect(both).toBeDefined();
 	});
 });
 

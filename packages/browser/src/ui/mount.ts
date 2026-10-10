@@ -148,7 +148,9 @@ const applyColorScheme = function applyColorScheme(
  *
  * @example
  * ```ts
- * const client = createConsentClient({ backendURL: 'https://x.c15t.dev' });
+ * const client = createConsentClient({
+ *   mode: hosted({ backendURL: 'https://x.c15t.dev' }),
+ * });
  * client.start();
  * mountConsentUI(client, { colorScheme: 'dark', trigger: true });
  * ```

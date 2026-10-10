@@ -1,7 +1,7 @@
 import { policyRulePresets } from '@c15t/core';
 import type { PolicyRule } from '@c15t/core';
 
-import type { ConsentClientOptions } from './types';
+import type { ScriptTagClientOptions } from './types';
 
 /**
  * Turn preset names into policy rules.
@@ -11,7 +11,7 @@ import type { ConsentClientOptions } from './types';
  * @throws {Error} On a name `policyRulePresets` does not export.
  */
 export const resolveRules = function resolveRules(
-	policyRules: ConsentClientOptions['policyRules']
+	policyRules: ScriptTagClientOptions['policyRules']
 ): PolicyRule[] | undefined {
 	if (!policyRules) {
 		return undefined;

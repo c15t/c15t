@@ -1,5 +1,5 @@
 <script lang="ts">
-	import ConsentManagerProvider from '../../lib/components/manager-provider.svelte';
+	import ConsentProvider from '../../lib/components/consent-provider.svelte';
 	import ConsentDialogTrigger from '../../lib/components/panel-trigger.svelte';
 	import ConsentDialog from '../../lib/components/panel.svelte';
 	import ConsentBanner from '../../lib/components/prompt.svelte';
@@ -14,8 +14,8 @@
 	} = $props();
 </script>
 
-<ConsentManagerProvider {options}>
+<ConsentProvider {options}>
 	<ConsentBanner />
 	<ConsentDialog />
 	<ConsentDialogTrigger {showWhen} />
-</ConsentManagerProvider>
+</ConsentProvider>

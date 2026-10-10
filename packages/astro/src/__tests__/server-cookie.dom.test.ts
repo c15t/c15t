@@ -3,7 +3,7 @@ import { createPersistence } from '@c15t/core/modules/persistence';
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 
 import { resolveOptions } from '../integration';
-import { offlineMode } from '../mode';
+import { offline as offlineMode } from '../mode';
 import { resolveConsentContext } from '../server';
 import type { C15tAstroOptions } from '../types';
 import { testRule, testResolution } from './policy-fixture';

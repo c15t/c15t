@@ -21,13 +21,10 @@ import {
 
 import { scripts } from '../scripts';
 
-const backendURL =
-	import.meta.env.VITE_C15T_BACKEND_URL ?? 'https://your-project.inth.app';
-
 // Declare the server function in your own module. Start's compiler splits
 // the server code out of the browser bundle at this call site.
 const getConsentState = createServerFn({ method: 'GET' }).handler(
-	createConsentStateHandler({ backendURL })
+	createConsentStateHandler()
 );
 
 const RootComponent = () => {
@@ -38,12 +35,7 @@ const RootComponent = () => {
 				<HeadContent />
 			</head>
 			<body>
-				<ConsentRoot
-					state={consent}
-					backendURL={backendURL}
-					initRoute={false}
-					scripts={scripts}
-				>
+				<ConsentRoot state={consent} scripts={scripts}>
 					<Outlet />
 					<ConsentBanner />
 					<ConsentDialog />

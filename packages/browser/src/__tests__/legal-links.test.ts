@@ -3,9 +3,8 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import { completeGVL } from '../../../iab/src/__tests__/fixtures/gvl-sample';
 import { readPageOptions } from '../auto-init';
-import { init as initIAB } from '../iab';
-import { init } from '../index';
-import type { ConsentClient, ConsentClientOptions } from '../types';
+import type { ConsentClient, ScriptTagClientOptions } from '../types';
+import { init, initIAB } from './fixtures/factory-init';
 
 const clients: ConsentClient[] = [];
 
@@ -39,10 +38,10 @@ afterEach(() => {
 describe.each(['ordinary', 'IAB'])('%s script-tag legal links', (variant) => {
 	const start = async (
 		attributes: Record<string, string> = legalAttributes,
-		configs: ConsentClientOptions[] = []
+		configs: ScriptTagClientOptions[] = []
 	): Promise<ConsentClient> => {
 		const { options } = readPageOptions(scriptWith(attributes), configs);
-		const clientOptions: ConsentClientOptions = {
+		const clientOptions: ScriptTagClientOptions = {
 			mode: 'offline',
 			overrides: { country: 'DE' },
 			...options,

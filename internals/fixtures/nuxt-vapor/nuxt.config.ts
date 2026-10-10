@@ -13,16 +13,17 @@
  * (`future.compatibilityVersion: 5`) and the 4.6 opt-ins that touch
  * rendering: `early404` and prerendered error pages.
  */
+import { manifest } from 'c15t/vue';
+
 const future = process.env.C15T_NUXT_FUTURE === '1';
 
 export default defineNuxtConfig({
 	c15t: {
 		// The self-hosted backend, or the suite's mock backend.
 		backendURL: process.env.NUXT_PUBLIC_C15T_BACKEND_URL ?? '/api/self-host',
-		// Fetched at runtime, so the acceptance suite's backend outage reaches
+		// Read at runtime, so the acceptance suite's backend outage reaches
 		// the server render.
-		buildManifest: false,
-		manifest: 'server',
+		mode: manifest({ source: 'runtime' }),
 	},
 	compatibilityDate: '2026-10-05',
 	css: ['~/consent-example.css'],

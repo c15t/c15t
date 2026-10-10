@@ -20,7 +20,7 @@ import type { PublishDevToolsLauncher } from './devtools-mount';
 import type {
 	ConsentClient,
 	ConsentClientEventMap,
-	ConsentClientOptions,
+	ScriptTagClientOptions,
 	ConsentUIHandle,
 	ConsentUIOptions,
 } from './types';
@@ -73,7 +73,7 @@ export interface C15tGlobalBase {
 	 *
 	 * @param options - Client options to layer on.
 	 */
-	config: (options: ConsentClientOptions) => void;
+	config: (options: ScriptTagClientOptions) => void;
 	/**
 	 * Create and start the page's client. A second call returns the
 	 * existing one.
@@ -82,7 +82,7 @@ export interface C15tGlobalBase {
 	 * every queued `config`.
 	 * @returns The page's client.
 	 */
-	init: (options?: ConsentClientOptions) => ConsentClient;
+	init: (options?: ScriptTagClientOptions) => ConsentClient;
 	/**
 	 * Run once the client exists, immediately if it already does. Safe to
 	 * call before `init()`; `c15t.devtools.js` mounts through this.
@@ -394,7 +394,7 @@ export const installGlobal = function installGlobal<Api extends C15tGlobalBase>(
 export const createGlobalWith = function createGlobalWith(
 	context: CreateConsentClientContext,
 	createClient: (
-		options: ConsentClientOptions,
+		options: ScriptTagClientOptions,
 		context: CreateConsentClientContext
 	) => ConsentClient,
 	supportedMode?: 'hosted' | 'offline'
@@ -428,7 +428,7 @@ export const createGlobalWith = function createGlobalWith(
 	// the new client instead of answering from the disposed one.
 	let clientReady = createDeferred<ConsentClient>();
 	const pendingListeners = new Set<(created: ConsentClient) => void>();
-	const queuedConfig: ConsentClientOptions[] = [];
+	const queuedConfig: ScriptTagClientOptions[] = [];
 
 	const require = function require(): ConsentClient {
 		if (!client) {

@@ -1,0 +1,216 @@
+{
+	"budgetDefinitions": [
+		{
+			"comparator": "delta-bytes-lte",
+			"description": "First-load JavaScript may not grow (gzip, 0 B tolerance).",
+			"metric": "initialJsGzip",
+			"threshold": 0
+		},
+		{
+			"comparator": "delta-bytes-lte",
+			"description": "First-load JavaScript may not grow (brotli, 0 B tolerance).",
+			"metric": "initialJsBrotli",
+			"threshold": 0
+		},
+		{
+			"comparator": "delta-bytes-lte",
+			"description": "A first visit may not add cross-origin requests.",
+			"metric": "crossOriginRequests",
+			"threshold": 0
+		},
+		{
+			"comparator": "absolute-lte",
+			"description": "Offline fallback policy data stays out of first-load JavaScript.",
+			"metric": "offlinePolicyBytes",
+			"threshold": 0
+		},
+		{
+			"comparator": "absolute-lte",
+			"description": "Languages other than English stay out of first-load JavaScript.",
+			"metric": "nonEnLocaleBytes",
+			"threshold": 0
+		}
+	],
+	"budgets": [],
+	"commitSha": "bce619034d5451b1058f0f847c480301a9ce096c",
+	"environment": {
+		"arch": "arm64",
+		"browserVersion": "149.0.7827.55",
+		"ci": false,
+		"nodeVersion": "v24.21.0",
+		"os": "darwin"
+	},
+	"fixture": {
+		"consentCount": 5,
+		"localeCount": 1,
+		"name": "optin-choice-eu",
+		"notes": [
+			"Fixture backend serves buildBrowserBenchManifest() and its DE resolution."
+		],
+		"scriptCount": 0,
+		"themeComplexity": "minimal"
+	},
+	"framework": "core",
+	"metadata": {
+		"backendLatencyMs": 0,
+		"bannerVisible": true,
+		"kind": "spa",
+		"url": "http://127.0.0.1:4523/"
+	},
+	"metrics": [
+		{
+			"avg": 770,
+			"median": 770,
+			"name": "acceptJsGzip",
+			"p95": 770,
+			"samples": [770],
+			"unit": "bytes"
+		},
+		{
+			"avg": 41,
+			"median": 46,
+			"name": "bannerVisibleMs",
+			"p95": 47,
+			"samples": [33, 33, 46, 46, 47],
+			"unit": "ms"
+		},
+		{
+			"avg": 2,
+			"median": 2,
+			"name": "crossOriginRequests",
+			"p95": 2,
+			"samples": [2],
+			"unit": "count"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "devtoolsBytes",
+			"p95": 0,
+			"samples": [0],
+			"unit": "bytes"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "dialogJsGzip",
+			"p95": 0,
+			"samples": [0],
+			"unit": "bytes"
+		},
+		{
+			"avg": 511,
+			"median": 511,
+			"name": "documentGzip",
+			"p95": 511,
+			"samples": [511],
+			"unit": "bytes"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "iabBytes",
+			"p95": 0,
+			"samples": [0],
+			"unit": "bytes"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "initialCssGzip",
+			"p95": 0,
+			"samples": [0],
+			"unit": "bytes"
+		},
+		{
+			"avg": 81025,
+			"median": 81025,
+			"name": "initialJsBrotli",
+			"p95": 81025,
+			"samples": [81025],
+			"unit": "bytes"
+		},
+		{
+			"avg": 96296,
+			"median": 96296,
+			"name": "initialJsGzip",
+			"p95": 96296,
+			"samples": [96296],
+			"unit": "bytes"
+		},
+		{
+			"avg": 357667,
+			"median": 357667,
+			"name": "initialJsRaw",
+			"p95": 357667,
+			"samples": [357667],
+			"unit": "bytes"
+		},
+		{
+			"avg": 1,
+			"median": 1,
+			"name": "initialJsRequests",
+			"p95": 1,
+			"samples": [1],
+			"unit": "count"
+		},
+		{
+			"avg": 1,
+			"median": 1,
+			"name": "initRequests",
+			"p95": 1,
+			"samples": [1],
+			"unit": "count"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "manifestRequests",
+			"p95": 0,
+			"samples": [0],
+			"unit": "count"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "nonEnLocaleBytes",
+			"p95": 0,
+			"samples": [0],
+			"unit": "bytes"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "offlinePolicyBytes",
+			"p95": 0,
+			"samples": [0],
+			"unit": "bytes"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "resolverBytes",
+			"p95": 0,
+			"samples": [0],
+			"unit": "bytes"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "snapshotBytes",
+			"p95": 0,
+			"samples": [0],
+			"unit": "bytes"
+		}
+	],
+	"notes": [
+		"Blocked internet requests: https://eu-assets.i.posthog.com/static/array.js",
+		"emittedClientJsGzip not measured"
+	],
+	"package": "@c15t/examples-payload-bench",
+	"runtime": "chromium",
+	"scenario": "html",
+	"schemaVersion": 1,
+	"suite": "examples-payload",
+	"timestamp": "2026-10-09T18:48:57.336Z"
+}

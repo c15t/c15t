@@ -4,4 +4,4 @@
  * (esbuild) does not treat every module the index names as part of an app
  * that imports one hook: only the groups it uses are live.
  */
-export { ConsentGate, Frame } from '../components/consent-gate';
+export { ConsentGate } from '../components/consent-gate';

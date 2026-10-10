@@ -2,7 +2,7 @@
 	import {
 		ConsentBanner,
 		ConsentDialog,
-		ConsentManagerProvider,
+		ConsentProvider,
 		offline,
 	} from '@c15t/svelte';
 
@@ -22,7 +22,7 @@
 	});
 </script>
 
-<ConsentManagerProvider
+<ConsentProvider
 	{mode}
 	persistence={false}
 >
@@ -31,4 +31,4 @@
 	<ConsentBanner class="p-[7px] dark:p-[11px]" />
 	<!-- #endregion docs:slot -->
 	<ConsentDialog />
-</ConsentManagerProvider>
+</ConsentProvider>

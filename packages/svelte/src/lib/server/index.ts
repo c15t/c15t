@@ -10,9 +10,9 @@ import type {
  * Resolves the visitor's consent state from a SvelteKit request.
  *
  * 1. Reads the consent cookie, the CDN geo headers, `accept-language`, and
- *    the GPC signal. Without a manifest or `backendURL` this is the whole
+ *    the GPC signal. Without a snapshot or `backendURL` this is the whole
  *    result, and no network call is made.
- * 2. With a manifest, resolves locally using this visitor's inputs. An
+ * 2. With a snapshot, resolves locally using this visitor's inputs. An
  *    absolute `backendURL` receives session reports unless disabled with
  *    `reportSessions: false`. IAB vendor lists can still require a fetch.
  * 3. With only a `backendURL`, calls `${backendURL}/init` with the request
@@ -26,7 +26,7 @@ import type {
  * client runs init on mount.
  *
  * @param options - Request headers, cookie name, geo/language overrides,
- * the manifest snapshot, and the backend location.
+ * the snapshot, and the backend location.
  * @returns A serializable state for the provider's `prefetch` prop.
  * @example
  * ```ts
@@ -48,7 +48,7 @@ export const resolveConsent = function resolveConsent(
 		fetch: options.fetch,
 		forwardHeaders: options.forwardHeaders,
 		localFetch: options.frameworkFetch,
-		manifest: options.manifest,
+		manifest: options.snapshot,
 		now: options.now,
 		overrides: {
 			country: options.country,
@@ -72,5 +72,4 @@ export const resolveConsent = function resolveConsent(
 
 export type { KernelConfig } from '@c15t/core';
 export type { ConsentRequestOptions, ConsentState, ResolveConsentOptions };
-export { custom, hosted } from '@c15t/core';
-export { offline } from '../transports/offline';
+export { custom, hosted, offline } from '@c15t/core';

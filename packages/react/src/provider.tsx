@@ -41,9 +41,9 @@ import {
 	claimEarlyJourney,
 	createConsentProviderRuntime,
 	earlyInitModes,
-	hostedModes,
 	lazyRuntimeModule,
 	lazyStreamPrefetch,
+	readHostedMode,
 	streamPrefetchWith,
 } from '@c15t/core/runtime/provider';
 import type {
@@ -183,7 +183,7 @@ export interface ConsentProviderOptions
 	 * ```tsx
 	 * import { ConsentProvider, hosted, offline } from '@c15t/react';
 	 *
-	 * <ConsentProvider options={{ mode: hosted({ url: '/api/c15t' }) }}>
+	 * <ConsentProvider options={{ mode: hosted({ backendURL: '/api/c15t' }) }}>
 	 *   {children}
 	 * </ConsentProvider>
 	 *
@@ -227,7 +227,7 @@ export interface ConsentProviderOptions
 	 * // app/layout.tsx — stays synchronous, so the shell prerenders.
 	 * const config = resolveConsent({ backendURL });
 	 * return (
-	 *   <ConsentProvider options={{ mode: hosted({ url }), prefetch: config }}>
+	 *   <ConsentProvider options={{ mode: hosted({ backendURL }), prefetch: config }}>
 	 *     {children}
 	 *   </ConsentProvider>
 	 * );
@@ -472,7 +472,7 @@ const treeIABModes = new WeakMap<
 /**
  * The mode an early `/init` was sent for: the `hosted()` options, or a
  * mode that registered in `earlyInitModes` (such as `manifest()` from
- * `@c15t/browser`) and the global `fetch` its transport would use.
+ * `c15t/react`) and the global `fetch` its transport would use.
  */
 type EarlySource =
 	| { readonly hosted: HostedModeOptions }
@@ -614,7 +614,7 @@ const earlySend = function earlySend(
 	) {
 		return undefined;
 	}
-	const hostedMode = hostedModes.get(options.mode);
+	const hostedMode = readHostedMode(options.mode);
 	if (hostedMode) {
 		return {
 			source: {
@@ -705,7 +705,7 @@ let entrySequence = 0;
  * did not return itself: a custom transport's `init()` may expect a
  * mounted page, and a wrapper's transport may not be swapped for another.
  * The exception is a mode registered in `earlyInitModes`, such as
- * `manifest()` from `@c15t/browser`. It sends early only when it says its
+ * `manifest()` from `c15t/react`. It sends early only when it says its
  * first `init()` would request the backend (its bundled manifest cannot
  * answer for an unknown location) and the visitor has no stored choice.
  */
@@ -970,7 +970,7 @@ const isPromiseLike = function isPromiseLike(
  * ```tsx
  * import { createConsentRuntime } from '@c15t/core/runtime';
  *
- * const runtime = createConsentRuntime({ mode: hosted({ url: '/api/c15t' }) });
+ * const runtime = createConsentRuntime({ mode: hosted({ backendURL: '/api/c15t' }) });
  * runtime.start();
  *
  * <ConsentProvider runtime={runtime} options={{ theme }}>

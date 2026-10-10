@@ -5,9 +5,9 @@ integration in `hosted()` mode. Every page is built once. In the browser, c15t
 asks your backend whether to show the banner, and PostHog loads once the
 visitor allows measurement.
 
-- `astro.config.mjs` registers the integration and the backend URL.
-- `src/scripts.ts` lists the consent-gated scripts, and
-  `src/consent-client.ts` hands them to the browser.
+- `astro.config.mjs` registers the integration.
+- `src/c15t.client.ts` lists the consent-gated scripts. The integration finds
+  it on its own.
 - `src/layouts/base.astro` renders the banner, the dialog and the
   "Privacy settings" link.
 
@@ -21,9 +21,14 @@ bun run build:libs
 bun run --cwd examples/astro-static dev
 ```
 
-Replace `https://your-project.inth.app` in `astro.config.mjs` with your
-project's backend URL, and add the site's origin to the project's trusted
-origins. `bun run --cwd examples/astro-static build` writes the site to `dist/`.
+The site's `.env` points it at the `https://example-inth.inth.app` demo Inth
+project. To use your own project, set `PUBLIC_C15T_BACKEND_URL` in
+`.env.local` to its backend URL and add the site's origin to its trusted
+origins. The build bakes the URL into the pages, so rebuild after you change
+it. `bun run --cwd examples/astro-static build` writes the site to `dist/`.
+
+Replace `phc_your_project_key` in `src/c15t.client.ts` with your PostHog
+project key.
 
 For server-rendered pages, see [`examples/astro`](../astro). The
 [Astro rendering guide](https://c15t.com/docs/frameworks/astro/rendering)

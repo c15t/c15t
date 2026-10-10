@@ -1,32 +1,26 @@
 <!-- #region docs:layout -->
 <script lang="ts">
-	import { PUBLIC_C15T_BACKEND_URL } from '$app/env/public';
+	import { posthog } from '@c15t/integrations/posthog';
 	import {
 		ConsentBanner,
 		ConsentDialog,
 		ConsentDialogLink,
-		ConsentManagerProvider,
-		hosted,
+		ConsentRoot,
 	} from '@c15t/svelte';
-
-	import { scripts } from '#lib/scripts.js';
 
 	let { children, data } = $props();
 
-	const mode = hosted({
-		// The route resolves from the bundled policy, so each save asserts the
-		// decision it was made against.
-		assertDecisionInputs: true,
-		// Where the browser resolves consent when the server did not, such as
-		// on a prerendered page. Saves still go to `url`.
-		initURL: '/api/c15t',
-		url: PUBLIC_C15T_BACKEND_URL,
-	});
+	const scripts = [
+		posthog({
+			id: 'phc_your_project_key',
+			initOptions: { cookieless_mode: 'never' },
+			loadMode: 'after-consent',
+		}),
+	];
 </script>
 
-<ConsentManagerProvider
-	{mode}
-	prefetch={data.prefetch}
+<ConsentRoot
+	state={data.consent}
 	{scripts}
 >
 	{@render children()}
@@ -35,5 +29,5 @@
 	</footer>
 	<ConsentBanner />
 	<ConsentDialog />
-</ConsentManagerProvider>
+</ConsentRoot>
 <!-- #endregion docs:layout -->

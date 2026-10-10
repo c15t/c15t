@@ -12,7 +12,7 @@ import { ConsentDevTools } from './consent-dev-tools';
 
 // Runs without a backend: policy rules ship with c15t and choices stay in
 // this browser. In production, swap this line for your project's backend:
-// const mode = hosted({ url: 'https://your-project.inth.app' });
+// const mode = hosted({ backendURL: 'https://your-project.inth.app' });
 const mode = offline();
 
 const options: ConsentRootProps['options'] = {

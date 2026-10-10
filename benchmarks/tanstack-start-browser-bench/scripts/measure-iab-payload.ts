@@ -38,7 +38,7 @@ if (resolution.status !== 'matched') {
 const transport = createManifestTransport({
 	fetchGvl: () => Promise.resolve(gvl),
 	inputs: { country: 'DE', language: 'en' },
-	manifest: {
+	snapshot: {
 		branding: 'c15t',
 		cmpId: 28,
 		iab: { enabled: true, gvl: { url: 'https://gvl.test/list' } },
@@ -76,7 +76,7 @@ const median = (values: number[]) => {
 		? (sorted[middle] ?? 0)
 		: ((sorted[middle - 1] ?? 0) + (sorted[middle] ?? 0)) / 2;
 };
-const browser = await chromium.launch();
+const browser = await chromium.launch({ headless: true });
 try {
 	const page = await browser.newPage();
 	const results = [];

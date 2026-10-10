@@ -90,4 +90,10 @@ links land on the framework list. Do not mention React Native, Expo or
 | `/docs/frameworks/react-native/native-behaviour` | `/docs/frameworks` | Removed, not published in v3 |
 | `/docs/frameworks/react-native/platform-support` | `/docs/frameworks` | Removed, not published in v3 |
 | `/docs/frameworks/react-native/troubleshooting` | `/docs/frameworks` | Removed, not published in v3 |
+| `/docs/frameworks/vue/components/consent-preferences-link` | `/docs/frameworks/vue/components/consent-dialog-link` | Named after the renamed component, `ConsentDialogLink` |
+| `/docs/frameworks/nuxt/components/consent-preferences-link` | `/docs/frameworks/nuxt/components/consent-dialog-link` | Named after the renamed component, `ConsentDialogLink` |
+| `/docs/frameworks/astro/components/consent-dialog-trigger` | `/docs/frameworks/astro/components/consent-dialog-link` | Named after the renamed component, `ConsentDialogLink` |
+| `/docs/frameworks/svelte/components/consent-manager-provider` | `/docs/frameworks/svelte/components/consent-provider` | Named after the renamed component, `ConsentProvider` |
+| `/docs/frameworks/sveltekit/components/consent-manager-provider` | `/docs/frameworks/sveltekit/components/consent-root` | SvelteKit layouts render `ConsentRoot`, which wraps `ConsentProvider` |
+| `/docs/frameworks/sveltekit/rendering#serve-the-manifest-route` | `/docs/frameworks/sveltekit/rendering#fetch-the-manifest-at-runtime` | Runtime fetching is a `c15tHandle` mode; the route moved to `#serve-the-consent-route`. Anchor links cannot redirect server-side |
 | `/docs/upgrade-v3` | `/docs/self-host/upgrade-v3` | Split up. Client steps live in the Next.js, React and JavaScript upgrade guides, which the self-host guide links to; the backend and Node.js SDK steps moved to the self-host guide. Keep the target free of a fragment so browsers carry over the old `#upgrade-a-self-hosted-backend` and `#update-the-nodejs-sdk` anchors, which published v3 alpha changelogs link to |

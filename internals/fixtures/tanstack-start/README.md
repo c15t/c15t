@@ -8,11 +8,11 @@ A TanStack Start app wired to c15t through the `c15t` umbrella package
 - `src/routes/__root.tsx` declares `getConsentState` with
   `createServerFn().handler(createConsentStateHandler({ backendURL }))`. The
   root loader awaits it on the server, so the banner is in the first HTML.
-  `ConsentRoot` reads the result with `Route.useLoaderData()` and, with
-  `initRoute={false}`, calls the backend directly from the browser.
+  `ConsentRoot` reads the result, which carries the backend URL, with
+  `Route.useLoaderData()` and calls the backend directly from the browser.
 - `src/scripts.ts` registers PostHog and X Pixel.
 - `src/routes/api/c15t/$.ts` mounts
-  `createConsentServerRoute({ backendURL, proxy: true })` for the same-origin
+  `createConsentRoute({ backendURL, proxy: true })` for the same-origin
   rendering variant.
 
 ```bash

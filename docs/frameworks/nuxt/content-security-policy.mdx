@@ -12,10 +12,11 @@ A Nuxt app with c15t adds these to the page, and your policy must allow them:
 | --- | --- |
 | The `<style id="c15t-css-vars">` tag with your theme tokens, in the page head | `style-src` |
 | The components' CSS: inline `<style>` tags Nuxt writes for the server-rendered banner, and stylesheets Nuxt bundles with your app | `style-src` |
-| On `ssr: false` pages with `manifest` unset, an inline `<script>` in the page head that starts `/init` | `script-src` |
+| On `ssr: false` pages in `hosted()` mode, an inline `<script>` in the page head that starts `/init` | `script-src` |
 | On server-rendered pages with a banner, an inline `<script>` before its buttons that holds a tap made before hydration | `script-src` |
-| Browser requests to `/api/c15t/init` and `/api/c15t/manifest` in server mode | `connect-src 'self'` |
-| Consent saves to your backend's `/subjects`, and `manifestURL` in client mode | `connect-src` |
+| Browser requests to `/api/c15t/init` and `/api/c15t/manifest` in the default `manifest()` mode | `connect-src 'self'` |
+| Consent saves to your backend's `/subjects`, plus `/init` in `hosted()` mode | `connect-src` |
+| Chunks Nuxt splits out, such as the browser resolver with `manifest({ resolve: 'browser' })` and the copy for a language other than English | `script-src 'self'` |
 | `<script>` elements the script loader creates for `scripts` | `script-src` |
 | Scripts, frames, images and requests your vendors load | `script-src`, `frame-src`, `img-src`, `connect-src` for each vendor |
 
@@ -46,7 +47,7 @@ Nuxt's own styles, the tag needs nothing more.
 
 ## Allow the early init script
 
-On a page with `ssr: false` and `manifest` unset, the module writes an inline
+On a page with `ssr: false` in `hosted()` mode, the module writes an inline
 `<script>` into the page head that requests your backend's `/init` before the
 app's JavaScript loads. A `script-src` without `'unsafe-inline'` blocks it, and
 the app then sends its own `/init` request after it loads, as it would without
@@ -70,12 +71,12 @@ after hydration, but a tap before then does nothing.
 
 ## Allow the backend
 
-In server mode the browser calls your own origin for `/api/c15t/init`, which
-`'self'` covers, and sends consent saves to your backend. Add the backend's
-origin to `connect-src`. With `manifest: 'client'`, add the origin of
-`manifestURL` too. With `iab` set and an IAB TCF policy, the browser loads the Global
-Vendor List through the module's init route in server mode, or from your
-backend otherwise.
+In the default `manifest()` mode the browser calls your own origin for
+`/api/c15t/init`, which `'self'` covers, and sends consent saves to your
+backend. Add the backend's origin to `connect-src`. A `manifestURL` or
+`geoURL` on another origin needs that origin too. With `iab` set and an IAB
+TCF policy, the browser loads the Global Vendor List through the module's
+consent route in `manifest()` mode, or from your backend otherwise.
 
 ```txt title="Content-Security-Policy (partial)"
 connect-src 'self' https://<your-backend-host>;

@@ -1,10 +1,14 @@
-// #region docs:config
+// #region docs:quickstart-config title="c15t.config.ts"
+import { posthog } from '@c15t/integrations/posthog';
 import { defineConsentConfig } from 'c15t/next';
 
-export const consentConfig = defineConsentConfig({
-	backendURL:
-		process.env.NEXT_PUBLIC_C15T_BACKEND_URL ??
-		'https://benchmarks-inth.inth.app',
-	manifestURL: '/api/c15t/manifest',
+export default defineConsentConfig({
+	scripts: [
+		posthog({
+			id: 'phc_your_project_key',
+			initOptions: { cookieless_mode: 'never' },
+			loadMode: 'after-consent',
+		}),
+	],
 });
-// #endregion docs:config
+// #endregion docs:quickstart-config

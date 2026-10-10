@@ -4,10 +4,10 @@ import { clearGVLCache } from '@c15t/iab';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { completeGVL } from '../../../iab/src/__tests__/fixtures/gvl-sample';
-import { init } from '../iab';
 import { createVendorDisclosures } from '../iab/vendor-disclosures';
 import type { ConsentClient } from '../types';
 import { resolveCopy } from '../ui/copy';
+import { initIAB as init } from './fixtures/factory-init';
 
 const vendor: GlobalVendorList['vendors'][number] = {
 	cookieMaxAgeSeconds: 172800,

@@ -13,9 +13,8 @@ import type { SuiteApi } from '@c15t/conformance/suite';
 import type { ConsentPresentation, GlobalVendorList } from '@c15t/core';
 import { afterEach, describe, expect, test } from 'vitest';
 
-import { init as initIAB } from '../iab';
-import { init } from '../index';
 import type { ConsentClient } from '../types';
+import { init, initIAB } from './fixtures/factory-init';
 
 const clients = new Set<ConsentClient>();
 let current: ConsentClient | undefined;

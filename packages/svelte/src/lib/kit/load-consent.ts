@@ -1,24 +1,29 @@
 /**
  * `loadConsent` — the `+layout.server.ts` half of the SvelteKit layer.
  *
- * Returns a plain, serializable `ConsentState` to hand the provider as
- * `prefetch`. With a prefetch in hand the kernel resolves the policy on the
- * server, so the banner is in the first HTML instead of appearing a frame
- * after hydration. The resolution itself is `resolveRequestConsent` from
+ * Returns `{ consent }`: a plain, serializable state for `<ConsentRoot
+ * state>`. With it the kernel resolves the policy on the server, so the
+ * banner is in the first HTML instead of appearing a frame after
+ * hydration. The resolution itself is `resolveRequestConsent` from
  * `@c15t/core/server`; this module supplies what SvelteKit knows about the
  * request: `event.request`, `event.url`, `event.fetch`, the platform's
- * `waitUntil`, and the inputs `c15tHandle` normalized.
+ * `waitUntil`, and the config and inputs `c15tHandle` stored.
  */
+import { building } from '$app/env';
+import {
+	backendURL as builtBackendURL,
+	snapshot as builtSnapshot,
+} from '@c15t/core/generated';
+import type { ConsentMode } from '@c15t/core/modes';
 import { readWaitUntil, resolveRequestConsent } from '@c15t/core/server';
-import type { ConsentManifest } from '@c15t/schema/types';
+import type { ResolveRequestConsentOptions } from '@c15t/core/server';
 import type { RequestEvent } from '@sveltejs/kit';
 
-import type { C15tLocals, ConsentRequestOptions, ConsentState } from './types';
+import type { ConsentRootState } from '../types';
+import type { C15tLocals, ConsentRequestOptions } from './types';
 
-/** Options for {@link loadConsent}. */
+/** Options for {@link loadConsent}, when you call it from your own `load`. */
 export interface LoadConsentOptions extends ConsentRequestOptions {
-	/** Deployment-bound manifest. Resolves locally using this visitor's inputs. */
-	manifest?: ConsentManifest;
 	/** Report manifest resolutions to the backend. @default true */
 	reportSessions?: boolean;
 	/**
@@ -27,22 +32,6 @@ export interface LoadConsentOptions extends ConsentRequestOptions {
 	 * platform's `waitUntil`, such as the one from `@vercel/functions`.
 	 */
 	onBackgroundRevalidate?: (task: Promise<void>, event: RequestEvent) => void;
-	/**
-	 * Hosted mode: the c15t backend base URL, absolute or origin-relative.
-	 * `loadConsent` calls its `/init` directly. A relative URL resolves
-	 * against `event.url`.
-	 */
-	backendURL?: string;
-
-	/**
-	 * Manifest mode: the same-origin init route installed with
-	 * {@link createSvelteKitConsentRouteHandlers}, e.g. `/api/c15t`.
-	 * Takes precedence over `backendURL`.
-	 *
-	 * Fetched through `event.fetch`, so the request never leaves the process
-	 * and SvelteKit forwards the page's cookies and headers for you.
-	 */
-	initRoute?: string;
 
 	/**
 	 * Extra request headers to forward upstream in hosted mode, such as a
@@ -70,44 +59,19 @@ export interface LoadConsentOptions extends ConsentRequestOptions {
 	trustForwardedHeaders?: boolean;
 
 	/**
-	 * Fetch for a hosted backend on another origin. Defaults to the global
-	 * `fetch`; a URL on this app's origin always goes through `event.fetch`,
+	 * Fetch for a backend on another origin. Defaults to the global `fetch`;
+	 * a URL on this app's origin always goes through `event.fetch`,
 	 * in-process. A custom fetch keeps the vendor list inline, since the
 	 * browser cannot replay it.
 	 */
 	fetch?: typeof globalThis.fetch;
 
 	/**
-	 * The HTML this load feeds is served to every visitor, as a prerendered
-	 * page is. A shared render carries no stored consent, clock, privacy
-	 * signal or experiment (any of them would stop the browser reading the
-	 * visitor's own cookie) and makes no upstream call, so the browser
-	 * resolves the visitor itself. Pass SvelteKit's `building` flag, which
-	 * is `true` while it prerenders: from `$app/environment` in SvelteKit 2,
-	 * `$app/env` in SvelteKit 3. Defaults to the `shared` flag
-	 * {@link c15tHandle} was given.
-	 *
-	 * @example
-	 * ```ts
-	 * import { building } from '$app/environment';
-	 *
-	 * export const load = async (event) => ({
-	 *   prefetch: await loadConsent(event, { initRoute: '/api/c15t', shared: building }),
-	 * });
-	 * ```
-	 */
-	shared?: boolean;
-
-	/**
-	 * Longest `loadConsent` waits for the init route or the backend `/init`,
+	 * Longest `loadConsent` waits for the manifest or the backend `/init`,
 	 * in milliseconds. When it runs out, `loadConsent` returns the
-	 * cookie-only config, the same as when the call fails: the page renders
-	 * without consent UI in the server HTML, optional categories stay denied,
-	 * and the browser resolves the policy after hydration. A hosted-mode
-	 * request is aborted. An init route request finishes in the background,
-	 * kept alive through the platform's `waitUntil` where it has one, and
-	 * fills the manifest cache for the next render; it sends no session
-	 * report, because the browser's own init reports the page view.
+	 * cookie-only state, the same as when the call fails: the page renders
+	 * without consent UI in the server HTML, optional categories stay
+	 * denied, and the browser resolves the policy after hydration.
 	 *
 	 * `false` (or `Infinity`) waits for the upstream, however long it takes.
 	 * Any other value that is not a finite, non-negative number uses the
@@ -138,46 +102,99 @@ const backgroundWorkFor = (
 	);
 };
 
+/** How the server resolves each mode. */
+const serverResolution = function serverResolution(
+	mode: ConsentMode,
+	locals: C15tLocals | undefined,
+	backendURL: string | undefined
+): Pick<
+	ResolveRequestConsentOptions,
+	| 'backendURL'
+	| 'gvlRoute'
+	| 'initHeaders'
+	| 'manifest'
+	| 'manifestURL'
+	| 'mode'
+	| 'offline'
+> {
+	if (mode.type === 'offline') {
+		return { mode: 'offline', offline: { policyRules: mode.policyRules } };
+	}
+	if (mode.type === 'hosted') {
+		return { backendURL, initHeaders: mode.headers, mode: 'hosted' };
+	}
+	if (mode.resolve === 'browser') {
+		// The browser resolves; the server reads the cookie only.
+		return {};
+	}
+	return {
+		backendURL,
+		// The catch-all serves deferred vendor lists only on its init path.
+		gvlRoute:
+			locals?.routePrefix === undefined
+				? undefined
+				: `${locals.routePrefix}/init`,
+		manifest:
+			mode.snapshot ??
+			(mode.source === 'runtime'
+				? undefined
+				: (locals?.snapshot ?? builtSnapshot)),
+		manifestURL: mode.manifestURL,
+		mode: 'manifest',
+	};
+};
+
 /**
- * Loads the consent prefetch for a request.
+ * The mode as the browser receives it. A manifest resolved on the server
+ * needs no snapshot there.
+ */
+const browserMode = function browserMode(mode: ConsentMode): ConsentMode {
+	if (mode.type !== 'manifest' || mode.resolve === 'browser') {
+		return mode;
+	}
+	const { snapshot: _snapshot, source: _source, ...data } = mode;
+	return data;
+};
+
+/**
+ * Resolves the visitor's consent for `<ConsentRoot state>`. Export it as
+ * the root layout's `load`:
  *
  * ```ts
  * // src/routes/+layout.server.ts
- * import { loadConsent } from '@c15t/svelte/kit';
- *
- * export const load = async (event) => ({
- *   prefetch: await loadConsent(event, { initRoute: '/api/c15t' }),
- * });
+ * export { loadConsent as load } from '@c15t/svelte/kit';
  * ```
- *
- * Then pass it straight through:
  *
  * ```svelte
- * <ConsentManagerProvider prefetch={data.prefetch} mode={hosted({ url: '/api/c15t' })}>
+ * <!-- src/routes/+layout.svelte -->
+ * <ConsentRoot state={data.consent}>
  * ```
  *
- * Modes:
- * - `initRoute` — manifest mode. Resolves against the same-origin init route
- *   in-process via `event.fetch`.
- * - `backendURL` — hosted mode. Calls the backend's `/init` directly.
- * - Neither — cookie and request context only. The client still initializes;
- *   the server just has nothing extra to seed.
+ * It resolves with the mode `c15tHandle()` was given, `manifest()` by
+ * default, from the snapshot `consentManifest()` downloaded. Without a
+ * snapshot it fetches the manifest from the backend, and caches it.
  *
- * Never throws: a failed upstream call degrades to the cookie-only config
+ * Never throws: a failed upstream call degrades to the cookie-only state
  * rather than taking the page down with it. Neither does a slow one: after
- * `timeoutMs` (500 ms by default) the cookie-only config is returned. A
- * prerendered page carries no visitor's consent and makes no upstream call.
+ * `timeoutMs` (500 ms by default) the cookie-only state is returned. While
+ * SvelteKit prerenders, the page carries no visitor's consent and makes no
+ * upstream call; the browser resolves the visitor itself.
  *
  * @param event - The SvelteKit request event from `load`.
- * @param options - Mode selection, cookie name, geo/language overrides, and
- * the time budget.
- * @returns A serializable `ConsentState` for the provider's `prefetch` prop.
+ * @param options - Geo/language overrides, upstream fetch settings and the
+ * time budget, when you call it from your own `load`.
+ * @returns `{ consent }`, for `<ConsentRoot state={data.consent}>`.
  */
-export const loadConsent = function loadConsent(
+export const loadConsent = async function loadConsent(
 	event: RequestEvent,
 	options: LoadConsentOptions = {}
-): Promise<ConsentState> {
+): Promise<{ consent: ConsentRootState }> {
 	const locals = readLocals(event);
+	const mode: ConsentMode = locals?.mode ?? { type: 'manifest' };
+	const backendURL =
+		(mode.type === 'hosted' ? mode.backendURL : undefined) ??
+		locals?.backendURL ??
+		builtBackendURL;
 	// Per-call inputs beat the handle's: a route that passes `country` is
 	// naming the country for that page. The handle's cookie name is part of
 	// the request context, so a per-call `country` keeps it.
@@ -186,22 +203,15 @@ export const loadConsent = function loadConsent(
 		options.language !== undefined ||
 		options.region !== undefined;
 	const cookieName = options.cookieName ?? locals?.cookieName;
-	const { initRoute } = options;
-	const mode = options.manifest ? 'manifest' : 'hosted';
-	return resolveRequestConsent({
+	const state = await resolveRequestConsent({
 		adapter: '@c15t/svelte',
-		backendURL: initRoute && !options.manifest ? undefined : options.backendURL,
+		...serverResolution(mode, locals, backendURL),
 		fetch: options.fetch,
 		forwardHeaders: options.forwardHeaders,
-		gvlRoute: options.manifest ? initRoute : undefined,
-		initURL: initRoute,
-		// SvelteKit answers this app's own routes in-process, so the init
+		// SvelteKit answers this app's own routes in-process, so the consent
 		// route never leaves the server and the request's host never picks
 		// where a relative backend goes.
 		localFetch: event.fetch,
-		manifest: options.manifest,
-		mode:
-			options.manifest || initRoute || options.backendURL ? mode : undefined,
 		overrides: {
 			country: options.country,
 			language: options.language,
@@ -214,10 +224,21 @@ export const loadConsent = function loadConsent(
 			url: event.url,
 		},
 		// A prerendered page is one HTML file for every visitor.
-		shared: options.shared ?? locals?.shared === true,
+		shared: building || locals?.shared === true,
 		storage: cookieName ? { storageKey: cookieName } : undefined,
 		timeoutMs: options.timeoutMs,
 		trustForwardedHeaders: options.trustForwardedHeaders,
 		waitUntil: backgroundWorkFor(event, options.onBackgroundRevalidate),
 	});
+	const consent: ConsentRootState = {
+		mode: browserMode(mode),
+		prefetch: state,
+	};
+	if (backendURL !== undefined) {
+		consent.backendURL = backendURL;
+	}
+	if (locals?.routePrefix !== undefined) {
+		consent.routePrefix = locals.routePrefix;
+	}
+	return { consent };
 };

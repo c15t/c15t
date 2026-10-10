@@ -32,11 +32,10 @@ Rebuild after changing policies, translations or vendors.
 
 ## Install c15t
 
-<CommandTabs command="c15t@alpha @c15t/browser@alpha @c15t/integrations@alpha" mode="install" />
+<CommandTabs command="c15t@alpha @c15t/integrations@alpha" mode="install" />
 
 `c15t` contains the React adapter at `c15t/react` and the Vite plugin at
-`c15t/build`. `@c15t/browser` resolves the bundled policy in the browser.
-`@c15t/integrations` holds the vendor loaders used below.
+`c15t/build`. `@c15t/integrations` holds the vendor loaders used below.
 
 ## Bundle your policy
 
@@ -44,33 +43,25 @@ Add `consentManifest` to `vite.config.ts`:
 
 <include src="../../shared/examples/react/vite-config.mdx" />
 
-`https://benchmarks-inth.inth.app` is a demo project, so the snippet runs as
-is. Replace it with your project's backend URL, exactly as Inth shows it,
-including any path prefix, or set `VITE_C15T_BACKEND_URL` when you build.
+The plugin reads `VITE_C15T_BACKEND_URL`. Set it to your project's backend URL,
+exactly as Inth shows it, including any path prefix, in `.env` or wherever you
+build:
 
-`consentManifest` downloads your project's public policy from `/manifest` when
-`vite build` or `vite dev` starts, and writes it to `src/c15t-manifest.ts`.
-Add that file to `.gitignore`.
+```sh title=".env"
+VITE_C15T_BACKEND_URL=https://your-project.inth.app
+```
+
+If your app already sets `VITE_INTH_PROJECT_URL` for other Inth SDKs, that works
+too. When both are set, `VITE_C15T_BACKEND_URL` wins.
+
+`consentManifest` downloads your project's public policy from `/manifest`
+during `vite build`, or in `vite dev` when the app first loads it, and serves
+it to your app as `snapshot`
+from `c15t/generated`. No file is written into your project.
 
 <include src="../../shared/build-time-manifest-notes.mdx" />
 
 <include src="../../shared/vite-build-manifest.mdx" />
-
-## Register your vendor scripts
-
-Create `src/scripts.ts`. PostHog waits for measurement permission, so your
-policy must include that category. Remove any other PostHog loader from your
-app so PostHog loads once.
-
-<include src="../../shared/examples/react/scripts.mdx" />
-
-Replace `phc_your_project_key` with your PostHog project key. PostHog uses its
-EU host; add `region: 'us'` for a US project.
-
-`loadMode: 'after-consent'` keeps the PostHog SDK off the page until the
-visitor allows measurement. `cookieless_mode: 'never'` turns off PostHog's
-cookieless capture. See [integrations](/docs/integrations/overview) for other
-vendors.
 
 ## Mount the provider
 
@@ -82,16 +73,27 @@ banner closes.
 <include src="../../shared/examples/react/consent.mdx" />
 
 `manifest()` resolves the policy from the bundled snapshot in the browser,
-with no `/manifest` request. Use the same backend URL as in
-`vite.config.ts`: consent choices go to it, and so does an `/init` request
-when the policy depends on the visitor's country or region and the browser
-does not know it. That request returns the backend's current policy, which can
-be newer than the snapshot. Vite reads `VITE_C15T_BACKEND_URL` at build time
-for both files, so set it before you build, not when you serve the files.
+with no `/manifest` request. It reads the snapshot and the backend URL from
+what `consentManifest` downloaded. Consent choices go to that backend, and so
+does an `/init` request when the policy depends on the visitor's country or
+region and the browser does not know it. That request returns the backend's
+current policy, which can be newer than the snapshot. Vite reads
+`VITE_C15T_BACKEND_URL` at build time, so set it before you build, not when
+you serve the files.
 
-To apply policy edits without rebuilding, remove `consentManifest` and use
-`hosted({ url })` from `c15t/react` as the mode. The browser then requests the
-policy from `/init` on every page load.
+To apply policy edits without rebuilding, use `hosted()` from `c15t/react` as
+the mode. The browser then requests the policy from `/init` on every page load.
+[Consent modes](/docs/concepts/modes) compares the three modes.
+
+PostHog waits for measurement permission, so your policy must include that
+category. Replace `phc_your_project_key` with your PostHog project key.
+PostHog uses its EU host; add `region: 'us'` for a US project. Remove any
+other PostHog loader from your app so PostHog loads once.
+
+`loadMode: 'after-consent'` keeps the PostHog SDK off the page until the
+visitor allows measurement. `cookieless_mode: 'never'` turns off PostHog's
+cookieless capture. See [integrations](/docs/integrations/overview) for other
+vendors.
 
 Wrap your app with it in `src/main.tsx`:
 

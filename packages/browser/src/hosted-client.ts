@@ -3,17 +3,17 @@ import type { ProviderTransportFactory } from '@c15t/core';
 
 import { createConsentClientWith } from './client-base';
 import type { CreateConsentClientContext } from './client-base';
-import type { ConsentClient, ConsentClientOptions } from './types';
+import type { ConsentClient, ScriptTagClientOptions } from './types';
 
 const defaultHostedFactory = function defaultHostedFactory(
 	backendURL: string | undefined
 ): ProviderTransportFactory {
 	if (!backendURL) {
 		throw new Error(
-			'@c15t/browser/hosted: provide backendURL, data-backend-url, or a hosted() factory.'
+			'@c15t/browser/hosted: provide backendURL (data-backend-url) or hosted().'
 		);
 	}
-	return hosted({ url: backendURL });
+	return hosted({ backendURL });
 };
 
 /**
@@ -26,18 +26,18 @@ const defaultHostedFactory = function defaultHostedFactory(
  * @internal
  */
 export const createHostedConsentClient = function createHostedConsentClient(
-	options: ConsentClientOptions = {},
+	options: ScriptTagClientOptions = {},
 	context: CreateConsentClientContext = {}
 ): ConsentClient {
 	if (options.manifest !== undefined || options.manifestURL !== undefined) {
 		throw new Error(
-			'@c15t/browser/hosted: manifest inputs require the generic @c15t/browser entry.'
+			'@c15t/browser/hosted: manifest inputs need manifest mode.'
 		);
 	}
 	const policyRules = options.policyRules?.map((rule) => {
 		if (typeof rule === 'string') {
 			throw new Error(
-				'@c15t/browser/hosted: policy preset names require @c15t/browser/offline or the generic entry. Pass authored policy rules instead.'
+				'@c15t/browser/hosted: policy preset names need offline mode.'
 			);
 		}
 		return rule;

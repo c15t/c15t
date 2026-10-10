@@ -1,0 +1,12 @@
+### Deprecated, still working
+
+Only React's v2 `Frame` names remain. They render `ConsentGate` and, outside
+production, log a one-time warning such as
+``c15t: `Frame` is deprecated and will be removed in a future major release. Use `ConsentGate` instead.``
+
+| Package | Deprecated | Use instead |
+| --- | --- | --- |
+| `c15t/react`, `c15t/next`, `c15t/tanstack-start` | `Frame`, `FrameRoot`, `FrameTitle`, `FrameButton`, and the `FrameProps` type | `ConsentGate` and its parts, and `ConsentGateProps` |
+
+v2's `ConsentManagerProvider` and string modes such as `mode: 'hosted'` are
+handled by the `consent-provider-options` codemod, not by aliases.

@@ -48,9 +48,12 @@ describe('IAB Events E2E Tests', () => {
 			);
 			await waitForCMP();
 			await userEvent.click(acceptButton);
-			await vi.waitFor(() =>
-				expect(window.localStorage.getItem('euconsent-v2')).toBeTruthy()
-			);
+			// Saves are queued and written once the write code loads: remount
+			// only after both records are stored, as a reload would.
+			await vi.waitFor(() => {
+				expect(window.localStorage.getItem('euconsent-v2')).toBeTruthy();
+				expect(window.localStorage.getItem('c15t')).toBeTruthy();
+			});
 			await firstVisit.unmount();
 			delete (window as { __tcfapi?: unknown }).__tcfapi;
 

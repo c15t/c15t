@@ -44,7 +44,7 @@ goes depends on the framework:
 | Next.js, TanStack Start, React | `<ConsentTheme theme={theme} />`, rendered on the server where the app has one | `theme` in the provider options |
 | Nuxt, Vue | `theme` or `tokens` in the module or plugin options | Not available |
 | Astro | `theme` in the integration options | The same `theme` |
-| Svelte, SvelteKit | `generateThemeCSS(theme)` from `@c15t/ui/theme` on the server, in a `<style>` element, or `--c15t-*` variables in your stylesheet | `theme` on `ConsentManagerProvider` |
+| Svelte, SvelteKit | `generateThemeCSS(theme)` from `@c15t/ui/theme` on the server, in a `<style>` element, or `--c15t-*` variables in your stylesheet | `theme` on `ConsentProvider` (Svelte) or `ConsentRoot` (SvelteKit) |
 | HTML, JavaScript | `ui.theme` | Not available |
 
 React and Svelte providers do not turn tokens in their `theme` option into

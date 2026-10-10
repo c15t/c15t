@@ -34,40 +34,72 @@ yourself and set `styles: false`, as
 [Customize](/docs/frameworks/next/customize#load-the-stylesheet-yourself)
 shows.
 
-## Add the consent config
+## Set the backend URL
 
-Create `c15t.config.ts` at the project root, or in `src/` if your app uses a
-`src` directory:
+Set your project's backend URL, including any path prefix, in `.env.local` and
+in your host's build settings:
 
-<include src="../../shared/examples/nextjs/config.mdx" />
+```sh title=".env.local"
+NEXT_PUBLIC_C15T_BACKEND_URL=https://example-inth.inth.app
+```
 
-`https://benchmarks-inth.inth.app` is a demo project, so the snippets run as
-they are. Set `NEXT_PUBLIC_C15T_BACKEND_URL` to your project's backend URL,
-including any path prefix, in `.env.local` and in your host's build settings,
-or replace the fallback with the URL. Next.js inlines `NEXT_PUBLIC_` variables
-at build time, so the server and the browser use the same URL, and changing
-the variable on a built app has no effect until you rebuild. `manifestURL`
-points at the route you add below.
+If your app already sets `NEXT_PUBLIC_INTH_PROJECT_URL` for other Inth SDKs, that works
+too. When both are set, `NEXT_PUBLIC_C15T_BACKEND_URL` wins.
+
+`https://example-inth.inth.app` is a demo project you can use to try the
+setup. Next.js inlines `NEXT_PUBLIC_` variables at build time, so the build,
+the server and the browser use the same URL, and changing the variable on a
+built app has no effect until you rebuild.
 
 ## Bundle the manifest during builds
 
-<include src="../../shared/build-manifests/next.mdx" />
+<include src="../../shared/build-time-manifest.mdx" />
 
-## Serve the manifest route
+Wrap your Next.js config in `withConsentManifest`. An existing config object
+or function goes in as the first argument, unchanged:
 
-<include src="../../shared/examples/nextjs/manifest-route.mdx" />
+<include src="../../shared/examples/nextjs/quickstart-next-config.mdx" />
 
-The route serves the bundled snapshot, so a fresh server answers without a
-policy request to Inth.
+`next build` and `next dev` fetch `${NEXT_PUBLIC_C15T_BACKEND_URL}/manifest`
+and write the policy to `node_modules/.cache/c15t/`, outside your source tree.
+`resolveConsent` reads it on its own, so you don't import it. `next start`
+serves the built snapshot and fetches no policy. There is nothing to keep out
+of Git.
 
-<include src="../../shared/next-consent-wrapper.mdx" />
+<include src="../../shared/build-time-manifest-notes.mdx" />
+
+## Add the consent config
+
+Create `c15t.config.ts` at the project root:
+
+<include src="../../shared/examples/nextjs/quickstart-config.mdx" />
+
+`withConsentManifest` finds this file, so `ConsentRoot` and `resolveConsent`
+read it without an import. Export the config as the file's default export.
+The file is bundled into the browser as well as the server, so it can hold
+`scripts` but must hold no secrets.
+
+The config sets no `mode`, so it uses `manifest()`: the server resolves each
+visitor from the bundled policy. [Consent modes](/docs/concepts/modes) lists
+the alternatives.
+
+PostHog waits for measurement consent here. Replace `phc_your_project_key`
+with your project key, or use the [integration](/docs/integrations/overview)
+your application needs. `cookieless_mode: 'never'` disables cookieless capture
+after rejection. Remove any existing PostHog loader, including `next/script`
+and tag-manager entries, so the integration loads once.
 
 ## Resolve consent in the root layout
 
-Call `resolveConsent` with `consentOptions` in the root layout without
-awaiting it, and pass the pending result to the `Consent` wrapper:
+Render `ConsentRoot` in the root layout and pass it `resolveConsent()` without
+awaiting it:
 
-<include src="../../shared/examples/nextjs/app-router-layout.mdx" />
+<include src="../../shared/examples/nextjs/quickstart-layout.mdx" />
+
+The layout is a Server Component. `c15t/next` gives it `ConsentRoot`,
+`ConsentBanner`, `ConsentDialog` and `ConsentDialogLink` as client components,
+so you write no `'use client'` wrapper. `ConsentRoot` already wraps
+`ConsentProvider`, so don't mount both.
 
 Next.js renders the page without waiting for consent and sends the result
 later in the same response. Until the browser applies it, the banner stays
@@ -107,14 +139,14 @@ visible banner alone does not prove that analytics wait for consent.
 | Static, ISR or `'use cache'` pages, Cache Components, `ensureStatic`, or the banner in the first HTML | [Rendering and deployment](/docs/frameworks/next/rendering) |
 | The fewest files, with consent resolved in the browser | [Client-side initialization](/docs/frameworks/next/client-side) |
 
-[Offline mode](/docs/frameworks/next/data-fetching-reference#offline-configuration)
-keeps policy in your code and choices in the browser, with no consent records.
-Not recommended for production environments.
+`offline()` keeps policy in your code and choices in the browser, with no
+consent records. Not recommended for production environments. See
+[offline configuration](/docs/frameworks/next/data-fetching-reference#offline-configuration).
 
 ## Next steps
 
-- [App Router](/docs/frameworks/next/app-router): the awaited layout, browser
-  initialization and backend `/init` instead of the manifest.
+- [App Router](/docs/frameworks/next/app-router): the awaited layout, the
+  consent route for static pages, and backend `/init` instead of the manifest.
 - [Scripts](/docs/frameworks/next/scripts): more vendors and how each loads
   and revokes.
 - [Customize](/docs/frameworks/next/customize): theme, layout and copy.

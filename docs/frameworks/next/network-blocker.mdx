@@ -1,6 +1,6 @@
 ---
 title: Network blocker
-description: Hold fetch and XMLHttpRequest calls in a Next.js app until their consent category is allowed, with networkBlocker rules on ConsentRoot.
+description: Hold fetch and XMLHttpRequest calls in a Next.js app until their consent category is allowed, with networkBlocker rules in c15t.config.ts.
 group: frameworks
 ---
 
@@ -12,41 +12,36 @@ that bypass script loading, such as a pixel fired by an SDK already on the
 page. Load vendor SDKs through [`scripts`](/docs/frameworks/next/scripts)
 first, so they do not run at all before consent.
 
-Define the rules in `components/consent.tsx` and pass them to `ConsentRoot`.
-`onRequestBlocked` is a function, so the rules cannot come from a Server
-Component.
+Define the rules in `c15t.config.ts`. `onRequestBlocked` is a function, so the
+rules cannot be passed as a prop from a Server Component, but the config is
+bundled into the browser and can hold them.
 
 {/* example: fragment */}
 
-```tsx title="components/consent.tsx (partial)"
-import type { ConsentRootProps } from 'c15t/next';
+```ts title="c15t.config.ts"
+import { defineConsentConfig } from 'c15t/next';
 
-const networkBlocker: NonNullable<ConsentRootProps['networkBlocker']> = {
-	rules: [
-		{
-			id: 'google-analytics',
-			domain: 'google-analytics.com',
-			category: 'measurement',
-		},
-		{
-			id: 'meta-pixel',
-			domain: 'facebook.com',
-			pathIncludes: '/tr',
-			category: 'marketing',
-		},
-	],
-};
-
-// On the existing root:
-<ConsentRoot
-	state={state}
-	config={consentConfig}
-	scripts={scripts}
-	networkBlocker={networkBlocker}
->
+export default defineConsentConfig({
+	networkBlocker: {
+		rules: [
+			{
+				id: 'google-analytics',
+				domain: 'google-analytics.com',
+				category: 'measurement',
+			},
+			{
+				id: 'meta-pixel',
+				domain: 'facebook.com',
+				pathIncludes: '/tr',
+				category: 'marketing',
+			},
+		],
+	},
+});
 ```
 
-Keep the page content inside `ConsentRoot`. Blocking starts when it renders, so
+Keep your `scripts` in the same call. Keep the page content inside
+`ConsentRoot`. Blocking starts when it renders, so
 components outside it that send requests while rendering, and modules evaluated
 before it, are not covered. Requests your server makes, in Server Components,
 route handlers or `getServerSideProps`, are not blocked either.

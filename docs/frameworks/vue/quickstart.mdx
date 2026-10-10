@@ -25,22 +25,29 @@ Rebuild after changing policies, translations or vendors.
 
 <CommandTabs command="c15t@alpha @c15t/integrations@alpha" mode="install" />
 
-## Add the Vite plugins
+## Add the Vite plugin
 
-Add two plugins to `vite.config.ts`. The c15t components share code with the
-Nuxt module and import Nuxt-style module names; `c15tVue()` from
-`c15t/vue/vite` resolves those names in a plain Vue app. `consentManifest`
-from `c15t/build` bundles your policy.
+Add `consentManifest()` from `c15t/vue/vite` to `vite.config.ts`, next to
+`@vitejs/plugin-vue`:
 
 <include src="../../shared/examples/vue/vite-config.mdx" />
 
-`https://benchmarks-inth.inth.app` is a demo project, so the snippet runs as
-is. Replace it with your project's backend URL, including any path prefix, or
-set `VITE_C15T_BACKEND_URL` when you build.
+Set `VITE_C15T_BACKEND_URL` to your project's backend URL, including any
+path prefix, in `.env` or wherever you build:
 
-`consentManifest` downloads your project's public policy from `/manifest` when
-`vite build` or `vite dev` starts, and writes it to `src/c15t-manifest.ts`.
-Add that file to `.gitignore`.
+```sh title=".env"
+VITE_C15T_BACKEND_URL=https://your-project.inth.app
+```
+
+If your app already sets `VITE_INTH_PROJECT_URL` for other Inth SDKs, that works
+too. When both are set, `VITE_C15T_BACKEND_URL` wins.
+
+`consentManifest()` downloads your project's public policy from `/manifest`
+during `vite build`, or in `vite dev` when the app first loads it, and hands
+it and the backend URL to the Vue plugin. A build fetches only when the app
+uses `manifest()`. No file is written into your project. It also keeps the c15t
+components, which ship as `.vue` files, out of Vite's dependency
+pre-bundling.
 
 <include src="../../shared/build-time-manifest-notes.mdx" />
 
@@ -52,36 +59,32 @@ Install the plugin from `c15t/vue/vue-plugin` in `src/main.ts`:
 
 <include src="../../shared/examples/vue/main.mdx" />
 
-Use the same backend URL as in `vite.config.ts`; consent choices go to it.
-Vite reads `VITE_C15T_BACKEND_URL` at build time for both files, so set it
-before you build, not when you serve the files.
-
 `c15t/vue` is the Nuxt module. Do not pass it to `app.use()`.
 
 The plugin creates the consent runtime for this app. When the app mounts, it
 reads the visitor's stored choice, resolves their policy, and starts the
-script loader for the `scripts` you pass. `manifest: 'client'` with
-`manifestSnapshot` resolves the policy from the bundled snapshot, with no
-`/manifest` or `/init` request. The browser does not know the visitor's
-location, so without `geoURL`, or a `country` and `region` passed to
+script loader for the `scripts` you pass. `mode: manifest()` resolves the
+policy in the browser from the snapshot `consentManifest()` downloaded, with
+no `/manifest` or `/init` request, and sends consent choices to the same
+backend URL. Vite reads `VITE_C15T_BACKEND_URL` at build time, so set it
+before you build, not when you serve the files.
+
+The browser does not know the visitor's location, so without `inputs` or
+`geoURL` on `manifest()`, or a `country` and `region` passed to
 `ConsentRoot`, every visitor gets the policy your project assigns when the
 location is unknown. Configure that fallback rule in your project, or see
-[rendering](/docs/frameworks/vue/rendering#resolve-from-the-manifest-in-the-browser)
-for `geoURL`.
+[rendering](/docs/frameworks/vue/rendering#tell-the-browser-where-the-visitor-is).
+The bundle carries English copy; other languages load on demand.
 
-To apply policy edits without rebuilding, remove `consentManifest`, `manifest`
-and `manifestSnapshot`. The plugin then requests the policy from the backend's
-`/init` on every page load, and the backend resolves the visitor's location.
-The next section creates `src/scripts.ts`.
+To apply policy edits without rebuilding, use `manifest({ source: 'runtime' })`
+or `hosted()`. [Rendering](/docs/frameworks/vue/rendering) compares the
+modes.
 
 ## Register consent-gated scripts
 
 Remove any existing PostHog snippet so the script loads once, and add
-measurement to your Inth policy.
-
-Create `src/scripts.ts`. PostHog waits for measurement permission.
-
-<include src="../../shared/examples/vue/scripts.mdx" />
+measurement to your Inth policy. The `scripts` option in `src/main.ts` loads
+PostHog once the visitor allows measurement.
 
 Replace `phc_your_project_key` with your PostHog project key. PostHog
 defaults to its EU region; set `region: 'us'` for a US project.
@@ -91,7 +94,7 @@ defaults to its EU region; set `region: 'us'` for a US project.
 <include src="../../shared/examples/vue/app.mdx" />
 
 `ConsentRoot` renders the banner when the visitor's policy asks for one and
-loads the preference dialog when it opens. `ConsentPreferencesLink` renders a
+loads the preference dialog when it opens. `ConsentDialogLink` renders a
 button that reopens preferences. Without slot content, its label is the
 dialog's title in the visitor's language: Privacy Settings in English. It
 renders nothing until the policy offers preferences. Replace the `<main>`
@@ -117,7 +120,7 @@ under a policy that asks for consent.
 
 1. Load the page. The bundled manifest resolves the policy and the banner
    appears, with no `/manifest` or `/init` request. Test the unknown-location
-   rule, or supply `geoURL` if you need regional policies. No requests to
+   rule, or pass `geoURL` to `manifest()` if you need regional policies. No requests to
    `posthog.com` or `youtube-nocookie.com` appear.
 2. Click **Reject All**, then reload. The banner stays closed and the vendor
    requests stay absent.
@@ -131,7 +134,7 @@ under a policy that asks for consent.
 ## Next steps
 
 - [Rendering and deployment](/docs/frameworks/vue/rendering) covers static
-  hosting, manifest mode and server rendering.
+  hosting, each `mode` and server rendering.
 - [c15tVue plugin](/docs/frameworks/vue/plugin) lists every option.
 - [Scripts](/docs/frameworks/vue/scripts), [embeds](/docs/frameworks/vue/embeds)
   and the [network blocker](/docs/frameworks/vue/network-blocker) cover

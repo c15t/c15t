@@ -134,12 +134,47 @@ const warnInDevelopment = function warnInDevelopment(
 	}
 };
 
+// Typed here so core needs no Node types; see `libs/is-production.ts`.
+declare const process: { env: { NODE_ENV?: string } };
+
+/**
+ * The API the app passed its options to, named from the runtime's `pkg`:
+ * the component or function a developer would look for in their code.
+ */
+const runtimeOwner = function runtimeOwner(pkg: string): string {
+	if (pkg === '@c15t/core') {
+		return 'createConsentRuntime()';
+	}
+	if (pkg.startsWith('@c15t/browser')) {
+		return 'init()';
+	}
+	if (pkg === '@c15t/vue') {
+		return 'the c15tVue plugin';
+	}
+	return pkg === '@c15t/nextjs' || pkg === '@c15t/tanstack-start'
+		? 'ConsentRoot'
+		: 'ConsentProvider';
+};
+
+/**
+ * The runtime's `mode`, or an error naming the package and, outside
+ * production, the API that got no mode. `process.env.NODE_ENV` is read
+ * inline, so bundlers drop the API names from production builds.
+ */
 const requireTransportFactory = function requireTransportFactory(
-	options: Pick<ConsentRuntimeOptions, 'mode'>
+	options: Pick<ConsentRuntimeOptions, 'mode' | 'pkg'>
 ) {
 	if (typeof options.mode !== 'function') {
+		let caller = options.pkg ?? '@c15t/core';
+		try {
+			if (process.env.NODE_ENV !== 'production') {
+				caller = `${caller} ${runtimeOwner(caller)}`;
+			}
+		} catch {
+			// No bundler and no `process`: the package name has to do.
+		}
 		throw new Error(
-			'c15t v3 ConsentManagerProvider: `mode` is required. Use hosted(), offline(), or custom().'
+			`${caller}: \`mode\` is required. Use manifest() or hosted().`
 		);
 	}
 	return options.mode;

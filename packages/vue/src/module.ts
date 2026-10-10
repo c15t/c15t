@@ -1,10 +1,7 @@
 import { existsSync, realpathSync } from 'node:fs';
 
-import {
-	hasBuildManifestSource,
-	loadBuildManifest,
-	loadDefaultBuildManifest,
-} from '@c15t/core/build';
+import { loadManifestForBuild, readBuildEnv } from '@c15t/core/build';
+import type { ConsentMode } from '@c15t/core/modes';
 import { isIABConfigured } from '@c15t/core/runtime';
 import { defaultConsentConfig } from '@c15t/schema/config';
 import type { ConsentManifest } from '@c15t/schema/types';
@@ -25,10 +22,12 @@ import type { Nuxt, NuxtModule } from '@nuxt/schema';
 import { defu } from 'defu';
 import { joinURL } from 'ufo';
 
+import { readComposableExports } from './composable-exports';
 import type { C15tNuxtConfig, ModuleOptions } from './nuxt-options';
 import {
 	createPackageCheck,
 	preloadConsentBanner,
+	preloadBrowserResolver,
 	stopPrefetchingConsentChunks,
 } from './prefetch';
 import {
@@ -36,16 +35,28 @@ import {
 	DEVTOOLS_PAGE_ROUTE,
 } from './runtime/devtools/constants';
 import {
-	resolveManifestMode,
-	resolveNuxtInitRoute,
-	resolveNuxtManifestRoute,
-} from './runtime/manifest';
+	DEFAULT_NUXT_ROUTE_PREFIX,
+	readNuxtMode,
+	readNuxtRoutePrefix,
+} from './runtime/nuxt-mode';
 import {
 	collectStyleSources,
 	preloadInlinedConsentStyles,
 } from './stylesheets';
 import type { StyleSourceIndex } from './stylesheets';
 
+export {
+	hosted,
+	manifest,
+	offline,
+	type ConsentMode,
+	type HostedMode,
+	type HostedModeOptions,
+	type ManifestMode,
+	type ManifestModeOptions,
+	type OfflineMode,
+	type OfflineModeOptions,
+} from '@c15t/core/modes';
 export { defineTheme, type Theme } from '@c15t/ui/theme';
 
 export type {
@@ -111,62 +122,207 @@ const addDevToolsTab = (
 const renderSnapshotModule = (snapshot: ConsentManifest | undefined): string =>
 	`export default ${snapshot ? JSON.stringify(snapshot) : 'undefined'};`;
 
+/** Variable the module reads the backend URL from when none is set. */
+const BACKEND_URL_ENV = 'NUXT_PUBLIC_C15T_BACKEND_URL';
+
 /**
- * Whether `buildManifest` left unset fetches a snapshot. It needs a Nuxt
- * server that renders pages and an absolute upstream URL, and stays out of
- * the way of an explicit `manifest: false` or `'client'` and of a
- * `manifestSnapshot` the app supplies.
+ * The Inth project URL, shared with other Inth SDKs. Read when
+ * {@link BACKEND_URL_ENV} is unset.
  */
-const buildsManifestByDefault = (
+const INTH_URL_ENV = 'NUXT_PUBLIC_INTH_PROJECT_URL';
+
+/**
+ * Where the backend URL came from, so the runtime knows whether
+ * `NUXT_PUBLIC_INTH_PROJECT_URL` may replace it on a running server.
+ */
+type BackendURLSource = 'option' | 'c15t-env' | 'inth-env' | 'none';
+
+/**
+ * The variable the app reads at runtime also gives the build its backend
+ * when the config sets none. Read like every other framework integration:
+ * the environment first (Nuxt loads `.env` into it before the config), then
+ * the `.env` files in the root. `NUXT_PUBLIC_C15T_BACKEND_URL` wins over
+ * `NUXT_PUBLIC_INTH_PROJECT_URL`.
+ */
+const fillBackendURLFromEnv = (
 	options: ModuleOptions,
-	nuxt: Nuxt,
-	hasSnapshot: boolean
-): boolean => {
-	const { manifest } = options;
-	if (manifest === false || manifest === 'client' || hasSnapshot) {
-		return false;
+	nuxt: Nuxt
+): BackendURLSource => {
+	if (options.backendURL !== undefined) {
+		return 'option';
 	}
-	// `nuxt generate` deploys static files with no server routes to serve
-	// the snapshot, and an `ssr: false` app renders nothing on the server.
-	const { _generate: generate } = nuxt.options as { _generate?: boolean };
-	if (generate || nuxt.options.nitro.static || nuxt.options.ssr === false) {
-		return false;
+	const envOptions = {
+		mode: nuxt.options.dev ? 'development' : 'production',
+		root: nuxt.options.rootDir,
+	};
+	const fromC15t = readBuildEnv([BACKEND_URL_ENV], envOptions);
+	if (fromC15t) {
+		options.backendURL = fromC15t;
+		return 'c15t-env';
 	}
-	return hasBuildManifestSource(options);
+	const fromInth = readBuildEnv([INTH_URL_ENV], envOptions);
+	if (fromInth) {
+		options.backendURL = fromInth;
+		return 'inth-env';
+	}
+	return 'none';
 };
 
-const loadNuxtBuildManifest = (
-	enabled: boolean | undefined,
-	options: ModuleOptions,
-	nuxt: Nuxt,
-	hasSnapshot: boolean
-) => {
-	if (enabled === false) {
-		return undefined;
+/**
+ * The `mode` option, checked. It reaches the browser as JSON through the
+ * public runtime config, so it must be the data `manifest()`, `hosted()` or
+ * `offline()` from `c15t/vue` return, not a transport.
+ */
+const readModuleMode = function readModuleMode(
+	options: ModuleOptions
+): ConsentMode {
+	if (typeof options.mode === 'function') {
+		throw new TypeError(
+			"@c15t/vue: `c15t.mode` in nuxt.config.ts is a transport. Import `manifest`, `hosted` or `offline` from 'c15t/vue' (the module entry), which return plain data."
+		);
 	}
-	if (enabled === true && options.manifest === 'client') {
-		throw new Error('@c15t/vue: buildManifest requires server manifest mode.');
-	}
+	return readNuxtMode(options);
+};
+
+/**
+ * `manifest()` saves consent at `${backendURL}/subjects` from the browser.
+ * The consent route answers `GET` only, so without a backend URL every save
+ * would fail after the visitor chose. A `snapshot` replaces the manifest
+ * download, not the save endpoint. `nuxt prepare` runs during dependency
+ * installation, where the variable is often unset, so it is not checked.
+ *
+ * @throws {Error} When `manifest()` has no backend URL.
+ */
+const assertManifestBackend = function assertManifestBackend(
+	mode: ConsentMode,
+	backendURL: string | undefined,
+	nuxt: Nuxt
+): void {
 	if (
-		enabled === undefined &&
-		!buildsManifestByDefault(options, nuxt, hasSnapshot)
+		mode.type !== 'manifest' ||
+		backendURL !== undefined ||
+		nuxt.options._prepare
+	) {
+		return;
+	}
+	const reason = mode.snapshot
+		? `manifest({ snapshot }) still needs a backend URL: the snapshot replaces the manifest download, but the browser saves consent with POST \${backendURL}/subjects`
+		: `manifest() needs a backend URL: the browser saves consent with POST \${backendURL}/subjects`;
+	throw new Error(
+		`@c15t/vue: ${reason}, and the consent route only answers GET. Set ${BACKEND_URL_ENV} (or ${INTH_URL_ENV}), or \`c15t.backendURL\` in nuxt.config.ts.`
+	);
+};
+
+/**
+ * Downloads the manifest during `nuxt build` and `nuxt dev` setup, for
+ * `manifest()` without a `snapshot` or `source: 'runtime'`. `onBuildError`
+ * decides what a failed download or a missing backend URL does. `nuxt
+ * prepare` writes types during dependency installation and never
+ * downloads.
+ */
+const loadNuxtBuildManifest = function loadNuxtBuildManifest(
+	mode: ConsentMode,
+	backendURL: string | undefined,
+	onBuildError: ModuleOptions['onBuildError'],
+	nuxt: Nuxt
+): Promise<ConsentManifest | undefined> | undefined {
+	if (
+		mode.type !== 'manifest' ||
+		mode.snapshot ||
+		mode.source === 'runtime' ||
+		nuxt.options._prepare
 	) {
 		return undefined;
 	}
-	options.manifest = 'server';
-	// `nuxt prepare` writes types during dependency installation. The
-	// build loads its own snapshot, so preparation needs no backend request.
-	if (nuxt.options._prepare) {
-		return undefined;
-	}
-	// Only an explicit `true` stops the build when the fetch fails. Otherwise
-	// the server routes fetch and cache the manifest at runtime.
-	return enabled
-		? loadBuildManifest(options, '@c15t/vue')
-		: loadDefaultBuildManifest(options, '@c15t/vue', (message) =>
-				useLogger('@c15t/vue').warn(message)
-			);
+	const logger = useLogger('@c15t/vue');
+	return loadManifestForBuild(
+		{ backendURL, manifestURL: mode.manifestURL },
+		{
+			command: nuxt.options.dev ? 'dev' : 'build',
+			envNames: [BACKEND_URL_ENV, INTH_URL_ENV],
+			label: '@c15t/vue',
+			logger: {
+				info: (message) => logger.info(message),
+				warn: (message) => logger.warn(message),
+			},
+			onBuildError,
+		}
+	);
 };
+
+/**
+ * The snapshot the server reads, and the one the browser bundle holds. A
+ * `snapshot` the mode names wins over the download. Neither travels through
+ * runtime config, where Nitro would replace every `null` in it with `''`
+ * during the build. Only browser resolution ships a snapshot to the
+ * browser: every other mode resolves on the server or asks the backend.
+ */
+const resolveSnapshots = async function resolveSnapshots(
+	mode: ConsentMode,
+	backendURL: string | undefined,
+	onBuildError: ModuleOptions['onBuildError'],
+	nuxt: Nuxt
+): Promise<{
+	clientSnapshot: ConsentManifest | undefined;
+	serverSnapshot: ConsentManifest | undefined;
+}> {
+	if (mode.type !== 'manifest' || mode.source === 'runtime') {
+		return { clientSnapshot: undefined, serverSnapshot: undefined };
+	}
+	const serverSnapshot =
+		mode.snapshot ??
+		(await loadNuxtBuildManifest(mode, backendURL, onBuildError, nuxt));
+	return {
+		clientSnapshot: mode.resolve === 'browser' ? serverSnapshot : undefined,
+		serverSnapshot,
+	};
+};
+
+/**
+ * `nuxt generate` deploys files only, so nothing answers the consent route
+ * or renders per visitor: say so instead of shipping a banner that never
+ * resolves.
+ */
+const warnStaticServerResolution = function warnStaticServerResolution(
+	mode: ConsentMode,
+	nuxt: Nuxt
+): void {
+	const { _generate: generate } = nuxt.options as { _generate?: boolean };
+	if (
+		(generate || nuxt.options.nitro.static) &&
+		!nuxt.options._prepare &&
+		mode.type === 'manifest' &&
+		mode.resolve !== 'browser'
+	) {
+		useLogger('@c15t/vue').warn(
+			"`nuxt generate` deploys no server, so `manifest()` cannot resolve the policy there. Set `c15t: { mode: manifest({ resolve: 'browser' }), routePrefix: false }`, or `mode: hosted()`."
+		);
+	}
+};
+
+/** The mode as the browser and the server read it: without its snapshot. */
+const withoutSnapshot = function withoutSnapshot(
+	mode: ConsentMode
+): ConsentMode {
+	if (mode.type !== 'manifest' || !mode.snapshot) {
+		return mode;
+	}
+	const { snapshot: _snapshot, ...rest } = mode;
+	return rest;
+};
+
+/** The modules the snapshot templates declare, with their documentation. */
+const SNAPSHOT_MODULES = [
+	['#c15t/manifest-snapshot', 'The server snapshot for the consent route.'],
+	[
+		'#c15t/server-manifest-snapshot',
+		'The server snapshot for a server render without a consent route.',
+	],
+	[
+		'#c15t/client-manifest-snapshot',
+		"The snapshot for `manifest({ resolve: 'browser' })`; otherwise `undefined`.",
+	],
+] as const;
 
 // Annotated explicitly: the inferred type names `NuxtModule` through
 // @nuxt/schema's store path, which is not portable across installs (TS2883).
@@ -175,14 +331,14 @@ const module: NuxtModule<ModuleOptions> = defineNuxtModule<ModuleOptions>({
 		...defaultConsentConfig,
 		devtools: true,
 		initPrefetch: true,
-		initRoute: resolveNuxtInitRoute({}),
-		manifestRoute: resolveNuxtManifestRoute({}),
+		routePrefix: DEFAULT_NUXT_ROUTE_PREFIX,
 	}),
 	meta: {
 		configKey: 'c15t',
 		name: '@c15t/vue',
 	},
-	async setup({ buildManifest, devtools, initPrefetch, ...options }, nuxt) {
+	async setup({ devtools, initPrefetch, onBuildError, ...options }, nuxt) {
+		const backendURLSource = fillBackendURLFromEnv(options, nuxt);
 		// Nuxt merges module options with `defu`, which skips `null`, so a
 		// `colorScheme: null` under the `c15t` key would arrive unset and
 		// mirror a `dark` class. Read it back: `null` leaves `c15t-dark` to
@@ -193,23 +349,16 @@ const module: NuxtModule<ModuleOptions> = defineNuxtModule<ModuleOptions>({
 			options.colorScheme = null;
 		}
 		const resolver = createResolver(import.meta.url);
-		// A `manifestSnapshot` under the `c15t` key stays out of runtime config,
-		// like the build snapshot below.
-		const configuredSnapshot = options.manifestSnapshot;
-		delete options.manifestSnapshot;
-		const manifestSnapshot =
-			(await loadNuxtBuildManifest(
-				buildManifest,
-				options,
-				nuxt,
-				configuredSnapshot !== undefined
-			)) ?? configuredSnapshot;
-		// Left unset so the build manifest could tell it from an explicit
-		// `false`. Without one, a `manifestURL` alone still calls `/init`.
-		options.manifest ??= false;
-		const manifestMode = resolveManifestMode(options);
-		const initRoute = resolveNuxtInitRoute(options);
-		const manifestRoute = resolveNuxtManifestRoute(options);
+		const mode = readModuleMode(options);
+		const routePrefix = readNuxtRoutePrefix(options);
+		assertManifestBackend(mode, options.backendURL, nuxt);
+		warnStaticServerResolution(mode, nuxt);
+		const { clientSnapshot, serverSnapshot } = await resolveSnapshots(
+			mode,
+			options.backendURL,
+			onBuildError,
+			nuxt
+		);
 
 		// Source builds ship .ts, dist builds ship .js — alias whichever exists
 		// (hardcoding .ts broke every consumer of the published package).
@@ -220,39 +369,45 @@ const module: NuxtModule<ModuleOptions> = defineNuxtModule<ModuleOptions>({
 		nuxt.options.runtimeConfig.c15t = defu(
 			nuxt.options.runtimeConfig.c15t ?? {},
 			{
-				// Empty, so the server routes use the public value, which
-				// `NUXT_PUBLIC_C15T_BACKEND_URL` replaces at runtime. The keys
-				// exist so `NUXT_C15T_BACKEND_URL` and `NUXT_C15T_MANIFEST_URL`
-				// can give the server routes an address of their own.
+				// Empty, so the consent route uses the public value, which
+				// `NUXT_PUBLIC_C15T_BACKEND_URL` replaces at runtime. The key
+				// exists so `NUXT_C15T_BACKEND_URL` can give the route an
+				// address of its own.
 				backendURL: '',
-				manifestURL: '',
 				// The `/init` script reads it: with `ssr: false` for the whole
 				// app, every page is a shell.
 				ssr: nuxt.options.ssr !== false,
 			}
 		);
 
-		// The server routes import the build snapshot from this virtual. In
+		// The consent route imports the server snapshot from this virtual. In
 		// runtime config, Nitro would replace every `null` in it with `''`
-		// during the build, and the routes would reject each policy pack.
+		// during the build, and the route would reject each policy pack.
 		nuxt.options.nitro.virtual ||= {};
 		nuxt.options.nitro.virtual['#c15t/manifest-snapshot'] = () =>
-			renderSnapshotModule(manifestSnapshot);
-		// The app bundles a `c15t` key snapshot in every mode, because app
-		// config can switch to client manifest mode after this setup. The
-		// build snapshot stays on the server: `buildManifest` needs server mode.
+			renderSnapshotModule(serverSnapshot);
+		// A server render without a consent route resolves from the same
+		// snapshot. Only the server render imports it.
+		nuxt.options.alias['#c15t/server-manifest-snapshot'] = addTemplate({
+			filename: 'c15t-server-manifest-snapshot.mjs',
+			getContents: () => renderSnapshotModule(serverSnapshot),
+		}).dst;
+		// The browser bundle holds a snapshot only for browser resolution.
 		nuxt.options.alias['#c15t/client-manifest-snapshot'] = addTemplate({
 			filename: 'c15t-client-manifest-snapshot.mjs',
-			getContents: () => renderSnapshotModule(configuredSnapshot),
+			getContents: () => renderSnapshotModule(clientSnapshot),
 		}).dst;
 
-		nuxt.options.runtimeConfig.public.c15t = defu(
+		// Untyped: an app's generated runtime config types read `routePrefix`
+		// as the string it holds, while the option also takes `false`.
+		const publicRuntimeConfig: Record<string, unknown> =
+			nuxt.options.runtimeConfig.public;
+		publicRuntimeConfig.c15t = defu(
 			nuxt.options.runtimeConfig.public.c15t ?? {},
 			{
 				...options,
-				initRoute,
-				manifest: manifestMode,
-				manifestRoute,
+				mode: withoutSnapshot(mode),
+				routePrefix: options.routePrefix ?? DEFAULT_NUXT_ROUTE_PREFIX,
 			}
 		);
 
@@ -280,22 +435,12 @@ const module: NuxtModule<ModuleOptions> = defineNuxtModule<ModuleOptions>({
 			// is already registered above.
 		}
 
-		if (manifestMode === 'server') {
+		// One catch-all answers `${routePrefix}/init` and
+		// `${routePrefix}/manifest` in `manifest()` mode.
+		if (routePrefix !== undefined) {
 			addServerHandler({
-				handler: resolver.resolve('./runtime/server/init.get'),
-				method: 'get',
-				route: initRoute,
-			});
-			addServerHandler({
-				handler: resolver.resolve('./runtime/server/manifest.get'),
-				method: 'get',
-				route: manifestRoute,
-			});
-		} else if (manifestMode === 'client' && !options.manifestURL) {
-			addServerHandler({
-				handler: resolver.resolve('./runtime/server/manifest.get'),
-				method: 'get',
-				route: manifestRoute,
+				handler: resolver.resolve('./runtime/server/consent-route'),
+				route: `${routePrefix}/**`,
 			});
 		}
 
@@ -337,23 +482,22 @@ const module: NuxtModule<ModuleOptions> = defineNuxtModule<ModuleOptions>({
 				},
 				{ nitro: true, nuxt: true }
 			);
-			// Nitro's typed routes import the server handlers, and with them
-			// the snapshot virtual. The plugin imports the client snapshot.
+			// Nitro's typed routes import the consent route, and with it the
+			// snapshot virtual. The plugin imports the client snapshot.
 			addTypeTemplate(
 				{
 					filename: 'types/c15t-manifest-snapshot.d.ts',
 					getContents: () =>
-						['#c15t/manifest-snapshot', '#c15t/client-manifest-snapshot']
-							.flatMap((id) => [
-								`declare module '${id}' {`,
-								`\timport type { C15tNuxtConfig } from ${JSON.stringify(specifier)};`,
-								'',
-								"\tconst manifest: C15tNuxtConfig['manifestSnapshot'];",
-								'\texport default manifest;',
-								'}',
-								'',
-							])
-							.join('\n'),
+						SNAPSHOT_MODULES.flatMap(([id, description]) => [
+							`declare module '${id}' {`,
+							"\timport type { ConsentManifest } from '@c15t/schema/types';",
+							'',
+							`\t/** ${description} */`,
+							'\tconst manifest: ConsentManifest | undefined;',
+							'\texport default manifest;',
+							'}',
+							'',
+						]).join('\n'),
 				},
 				{ nitro: true, nuxt: true }
 			);
@@ -387,6 +531,14 @@ const module: NuxtModule<ModuleOptions> = defineNuxtModule<ModuleOptions>({
 		);
 
 		addPlugin(resolver.resolve('./runtime/plugin.nuxt'));
+		// Nuxt applies `NUXT_PUBLIC_C15T_BACKEND_URL` on a running server by
+		// itself. The Inth variable needs a plugin, and only while neither the
+		// option nor the c15t variable gave the build its URL.
+		if (backendURLSource === 'inth-env' || backendURLSource === 'none') {
+			addServerPlugin(
+				resolver.resolve('./runtime/server/inth-project-url.nuxt')
+			);
+		}
 		if (initPrefetch !== false) {
 			// Starts `/init` from the HTML of `ssr: false` pages, before the
 			// app's JavaScript loads.
@@ -413,15 +565,6 @@ const module: NuxtModule<ModuleOptions> = defineNuxtModule<ModuleOptions>({
 				nitroConfig.virtual['#c15t/server-app-config'] = source;
 			});
 		}
-		if (manifestMode === 'client') {
-			// Resolves the manifest in the browser at startup: bundle the
-			// resolver with the entry so it preloads with the page.
-			addPlugin({
-				mode: 'client',
-				src: resolver.resolve('./runtime/plugin-client-manifest.nuxt'),
-			});
-		}
-
 		// Which stylesheets each CSS file of the client build holds; the
 		// manifest below only names the files.
 		const styleSources: StyleSourceIndex = new Map();
@@ -439,16 +582,16 @@ const module: NuxtModule<ModuleOptions> = defineNuxtModule<ModuleOptions>({
 		// on. `app.config.ts` can turn it on too, but the build cannot read
 		// it; the CMP then loads on demand, without a hint.
 		const iab = isIABConfigured(options.iab);
+		// Browser resolution loads the resolver as the app starts.
+		const browserResolve =
+			mode.type === 'manifest' && mode.resolve === 'browser';
 		nuxt.hook('build:manifest', (manifest) => {
 			const isConsentFile = createPackageCheck();
 			stopPrefetchingConsentChunks(
 				manifest,
 				nuxt.options.srcDir,
 				isConsentFile,
-				{
-					clientManifest: manifestMode === 'client',
-					iab,
-				}
+				{ browserResolve, iab }
 			);
 			preloadInlinedConsentStyles(
 				manifest,
@@ -457,6 +600,9 @@ const module: NuxtModule<ModuleOptions> = defineNuxtModule<ModuleOptions>({
 				isConsentFile
 			);
 			preloadConsentBanner(manifest, nuxt.options.srcDir, isConsentFile);
+			if (browserResolve) {
+				preloadBrowserResolver(manifest, nuxt.options.srcDir, isConsentFile);
+			}
 		});
 
 		if (nuxt.options.dev && devtools && isNuxtDevToolsEnabled(nuxt)) {
@@ -482,11 +628,9 @@ const module: NuxtModule<ModuleOptions> = defineNuxtModule<ModuleOptions>({
 		});
 
 		for (const [name, file] of [
-			['ConsentPreferencesLink', 'preferences-link'],
+			['ConsentDialogLink', 'consent-dialog-link'],
 			['ConsentDialogTrigger', 'panel-trigger'],
 			['ConsentGate', 'consent-gate'],
-			// Deprecated alias kept so existing <ConsentFrame> templates resolve.
-			['ConsentFrame', 'consent-gate'],
 		] as const) {
 			addComponent({
 				filePath: resolver.resolve(`./runtime/components/${file}.vue`),
@@ -495,51 +639,20 @@ const module: NuxtModule<ModuleOptions> = defineNuxtModule<ModuleOptions>({
 			});
 		}
 
-		// Auto-import every public composable from the index entry. A single
-		// resolvable `from` avoids unimport's per-file registry quirks (three
-		// names registered from per-file paths were silently dropped — see
-		// internals/fixtures/nuxt regression: useHasConsent undefined at runtime).
+		// Auto-import every composable the index exports. A single resolvable
+		// `from` avoids unimport's per-file registry quirks (names registered
+		// from per-file paths were silently dropped — see the
+		// internals/fixtures/nuxt regression: useHasConsent undefined at
+		// runtime).
 		const composablesEntry = ['index.ts', 'index.js']
 			.map((file) => resolver.resolve(`./runtime/composables/${file}`))
 			.find((path) => existsSync(path)) as string;
 		addImports(
-			[
-				'useConsentConfig',
-				'useConsentInit',
-				'useConsent',
-				'useConsentSave',
-				'useHasConsent',
-				'useStoredConsent',
-				'useConsentKernel',
-				'useConsentSnapshot',
-				'useExplicitChoice',
-				'useEffectivePermissions',
-				'usePromptRequirement',
-				'useNoticeDismissal',
-				'usePrivacySignals',
-				'usePolicyRule',
-				'usePolicyResolution',
-				'useConsentRestrictions',
-				'useDismissNotice',
-				'useConsentDraft',
-				'useVendorAllowed',
-				'useConsentPolicyActions',
-				'useExperiment',
-				'useResolvedPresentation',
-				'useResolvedTheme',
-
-				'useConsentIabSelection',
-				'useConsentIabSave',
-				'useConsentLanguage',
-				'useConsentActiveUI',
-				'useConsentComponent',
-				'useRequestRegion',
-			].map((name) => ({ from: composablesEntry, name }))
+			readComposableExports(composablesEntry).map((name) => ({
+				from: composablesEntry,
+				name,
+			}))
 		);
-		// Note: unimport's generated .nuxt/imports.d.ts omits
-		// useHasConsent/useStoredConsent even though the runtime registry
-		// (imports:context) contains them and `nuxt typecheck` passes —
-		// cosmetic generator quirk, tracked upstream-worthy.
 	},
 });
 

@@ -24,8 +24,10 @@ directive.
 
 ## Allow the consent backend
 
-With `hosted({ url })`, the browser calls `GET {url}/init` on every page load
-and `POST {url}/subjects` when the visitor accepts, rejects or saves. Add the
+With `hosted()`, the browser calls `GET {url}/init` on every page load
+and `POST {url}/subjects` when the visitor accepts, rejects or saves. With
+`manifest()`, it calls `POST {url}/subjects`, and `GET {url}/init` only when
+the policy needs a location the browser does not know. Add the
 backend's origin to `connect-src`:
 
 ```txt title="Content-Security-Policy (partial)"

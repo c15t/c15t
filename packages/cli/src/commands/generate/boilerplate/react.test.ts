@@ -1,119 +1,120 @@
-import { spawnSync } from 'node:child_process';
-import {
-	mkdtempSync,
-	mkdirSync,
-	symlinkSync,
-	writeFileSync,
-	rmSync,
-} from 'node:fs';
-import { createRequire } from 'node:module';
-import { tmpdir } from 'node:os';
-import { dirname, join, resolve } from 'node:path';
-
 import { describe, expect, it } from 'vitest';
 
-import { generateJavaScriptBoilerplate } from './javascript';
-import { generateReactBoilerplate } from './react';
+import { generateBoilerplateTemplate } from '../../../generate';
+import { mergeFile } from '../../../generate/merge';
+import { typecheckInExample } from './__tests__/example-project';
 import type { BoilerplateFramework } from './types';
 
-describe('React, Next.js and JavaScript boilerplate', () => {
-	it('typechecks both modes and script integration against built local v3 packages', () => {
-		const root = mkdtempSync(join(tmpdir(), 'c15t-boilerplate-types-'));
-		const packages = resolve(import.meta.dirname, '../../../../..');
-		const require = createRequire(join(packages, 'react/package.json'));
-		try {
-			mkdirSync(join(root, 'node_modules/@c15t'), { recursive: true });
-			for (const [name, directory] of Object.entries({
-				core: 'core',
-				integrations: 'integrations',
-				nextjs: 'nextjs',
-				react: 'react',
-			})) {
-				symlinkSync(
-					join(packages, directory),
-					join(root, 'node_modules/@c15t', name)
-				);
-			}
-			mkdirSync(join(root, 'node_modules/@types'), { recursive: true });
-			symlinkSync(
-				dirname(require.resolve('@types/react/package.json')),
-				join(root, 'node_modules/@types/react')
-			);
-			symlinkSync(
-				dirname(require.resolve('react/package.json')),
-				join(root, 'node_modules/react')
-			);
-			const frameworks: BoilerplateFramework[] = [
-				'react',
-				'next-app',
-				'next-pages',
-				'javascript',
-			];
-			for (const framework of frameworks) {
-				for (const mode of ['offline', 'hosted'] as const) {
-					const options = {
-						backendURL: "https://example.com/a'b",
-						framework,
-						mode,
-						scripts: ['google-tag'],
-					};
-					const template =
-						framework === 'javascript'
-							? generateJavaScriptBoilerplate(options)
-							: generateReactBoilerplate(options);
-					for (const [file, content] of Object.entries(template.files)) {
-						writeFileSync(join(root, `${framework}-${mode}-${file}`), content);
-					}
-				}
-			}
-			writeFileSync(join(root, 'env.d.ts'), "declare module '*.css';\n");
-			writeFileSync(
-				join(root, 'tsconfig.json'),
-				JSON.stringify({
-					compilerOptions: {
-						jsx: 'react-jsx',
-						module: 'ESNext',
-						moduleResolution: 'Bundler',
-						noEmit: true,
-						skipLibCheck: true,
-						strict: true,
-						target: 'ES2022',
-						types: ['react'],
-					},
-					include: ['*.ts', '*.tsx'],
-				})
-			);
-			const cliRequire = createRequire(import.meta.url);
-			const compiler = join(
-				dirname(cliRequire.resolve('typescript/package.json')),
-				'bin/tsc'
-			);
-			const result = spawnSync(
-				process.execPath,
-				[
-					compiler,
-					'--project',
-					join(root, 'tsconfig.json'),
-					'--pretty',
-					'false',
-				],
-				{ encoding: 'utf8', timeout: 30_000 }
-			);
-			expect(result.status, result.stdout + result.stderr).toBe(0);
-		} finally {
-			rmSync(root, { force: true, recursive: true });
-		}
-	}, 40_000);
+const BACKEND_URL = 'https://your-project.inth.app';
 
-	it("offline JavaScript uses core's offline() so language changes switch the copy", () => {
-		const consent = generateJavaScriptBoilerplate({
-			backendURL: undefined,
-			framework: 'javascript',
-			mode: 'offline',
-			scripts: [],
-		}).files['consent.ts'];
-		expect(consent).toContain("import { offline } from '@c15t/core';");
-		expect(consent).toMatch(/mode: offline\(\{ policyRules: /u);
-		expect(consent).not.toContain('createOfflineTransport');
+const variants = (['offline', 'hosted'] as const).flatMap((mode) => [
+	{ mode, scripts: [] },
+	{ mode, scripts: ['google-tag'] },
+]);
+
+const generated = (
+	framework: BoilerplateFramework,
+	mode: 'offline' | 'hosted',
+	scripts: string[]
+) =>
+	generateBoilerplateTemplate({
+		backendURL: mode === 'hosted' ? BACKEND_URL : undefined,
+		framework,
+		mode,
+		scripts,
+	});
+
+describe('React, Next.js and JavaScript boilerplate', () => {
+	it('typechecks both modes and script integration against built local v3 packages', async () => {
+		const checks: [BoilerplateFramework, string, Record<string, string>][] = [
+			['next-app', 'nextjs', {}],
+			['next-pages', 'nextjs-pages-router', {}],
+			// The quickstart's main.tsx renders the app's own root component.
+			['react', 'react', { 'src/app.tsx': 'export const App = () => null;\n' }],
+			['javascript', 'javascript', {}],
+		];
+		const results = await Promise.all(
+			checks.flatMap(([framework, example, extra]) =>
+				variants.map(async ({ mode, scripts }) => {
+					const template = generated(framework, mode, scripts);
+					const output = await typecheckInExample(
+						example,
+						{ ...template.files, ...extra },
+						// `@/styles/globals.css` in the Pages Router `_app.tsx`.
+						{ paths: { '@/*': ['./*'] } }
+					);
+					return output && `${framework} ${mode} ${scripts}: ${output}`;
+				})
+			)
+		);
+		expect(results.filter(Boolean).join('\n')).toBe('');
+	}, 180_000);
+
+	it('offline JavaScript uses the browser offline() with its recommended policy', () => {
+		const template = generated('javascript', 'offline', []);
+		const main = template.files['src/main.ts'];
+		expect(main).toContain("import { init, offline } from '@c15t/browser';");
+		expect(main).toMatch(/mode: offline\(\),/u);
+		expect(template.files['.env']).toBeUndefined();
+		expect(template.files['vite.config.ts']).toContain(
+			"consentManifest({ onBuildError: 'runtime' })"
+		);
+	});
+
+	it('adds the privacy settings link to an existing page once', () => {
+		const template = generated('javascript', 'hosted', []);
+		const page =
+			'<html>\n\t<body>\n\t\t<div id="app"></div>\n\t</body>\n</html>\n';
+		const merged = mergeFile(
+			page,
+			template.files['index.html'] ?? '',
+			template.merge['index.html']
+		);
+		expect(merged).toBe(
+			'<html>\n\t<body>\n\t\t<div id="app"></div>\n\t\t<a href="#c15t-preferences">Privacy settings</a>\n\t</body>\n</html>\n'
+		);
+		expect(mergeFile(merged, '', template.merge['index.html'])).toBe(merged);
+		// A page indented with spaces keeps its own step.
+		expect(
+			mergeFile(
+				'<body>\n  <main></main>\n</body>\n',
+				'',
+				template.merge['index.html']
+			)
+		).toBe(
+			'<body>\n  <main></main>\n  <a href="#c15t-preferences">Privacy settings</a>\n</body>\n'
+		);
+	});
+
+	it('loads c15t.js from the backend for a script tag, in hosted mode only', () => {
+		const template = generated('html', 'hosted', []);
+		const page =
+			'<!doctype html>\n<html>\n\t<head>\n\t\t<title>Site</title>\n\t</head>\n\t<body>\n\t\t<main></main>\n\t</body>\n</html>\n';
+		expect(
+			mergeFile(
+				page,
+				template.files['index.html'] ?? '',
+				template.merge['index.html']
+			)
+		).toBe(
+			`<!doctype html>\n<html>\n\t<head>\n\t\t<title>Site</title>\n\t\t<script\n\t\t\tsrc="${BACKEND_URL}/c15t.js"\n\t\t\tdefer\n\t\t></script>\n\t</head>\n\t<body>\n\t\t<main></main>\n\t\t<a href="#c15t-preferences">Privacy settings</a>\n\t</body>\n</html>\n`
+		);
+		expect(template.dependencies).toEqual([]);
+		expect(() => generated('html', 'offline', [])).toThrow('hosted mode');
+		expect(() => generated('html', 'hosted', ['google-tag'])).toThrow(
+			'data-c15t-category'
+		);
+	});
+
+	it('keeps an existing Pages Router page and its data loading', () => {
+		const template = generated('next-pages', 'hosted', []);
+		const page = 'export default function Home() {\n\treturn null;\n}\n';
+		expect(
+			mergeFile(
+				page,
+				template.files['pages/index.tsx'] ?? '',
+				template.merge['pages/index.tsx']
+			)
+		).toBe(page);
 	});
 });

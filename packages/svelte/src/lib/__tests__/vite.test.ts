@@ -2,10 +2,14 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-import { afterEach, describe, expect, test } from 'vitest';
+import { createConsentManifestPolicyPack } from '@c15t/schema/types';
+import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import { MODULE_PRELOAD_PLACEHOLDERS } from '../kit/module-preload';
-import { c15tPreload, consentManifest, resolveChunkHrefs } from '../vite';
+import { consentManifest, resolveChunkHrefs } from '../vite';
+
+/** The module-preload plugin `consentManifest()` includes. */
+const preloadPlugin = () => consentManifest()[1];
 
 const CORE = '/app/node_modules/@c15t/core/dist/modules';
 
@@ -44,24 +48,20 @@ afterEach(async () => {
 	);
 });
 
-describe('Svelte manifest generation', () => {
+describe('Svelte manifest module', () => {
 	test.each([
-		{ expectedImport: '@c15t/svelte/vite', settings: {} },
+		{ app: 'Svelte single-page app', plugins: [], snapshotInBrowser: true },
 		{
-			expectedImport: '@c15t/svelte/vite',
-			settings: { importSource: undefined },
-		},
-		{
-			expectedImport: '@c15t/core/build',
-			settings: { importSource: '@c15t/core/build' },
+			app: 'SvelteKit app',
+			plugins: [{ name: 'vite-plugin-sveltekit-setup' }],
+			snapshotInBrowser: false,
 		},
 	])(
-		'generates an available type import with settings $settings',
-		async ({ expectedImport, settings }) => {
+		'a $app gets the snapshot in the browser: $snapshotInBrowser',
+		async ({ plugins, snapshotInBrowser }) => {
 			const root = await mkdtemp(path.join(tmpdir(), 'c15t-svelte-manifest-'));
 			directories.push(root);
-			await consentManifest({
-				...settings,
+			const [plugin] = consentManifest({
 				backendURL: 'https://consent.example.com',
 				fetch: () =>
 					Promise.resolve(
@@ -71,13 +71,69 @@ describe('Svelte manifest generation', () => {
 							schemaVersion: 2,
 						})
 					),
-			}).configResolved({ root });
-			const source = await readFile(
-				path.join(root, 'src/c15t-manifest.ts'),
-				'utf8'
+			});
+			await plugin.configResolved({ command: 'serve', plugins, root });
+			const load = (consumer: 'client' | 'server') =>
+				plugin.load.call(
+					{ environment: { config: { consumer } } },
+					plugin.resolveId('@c15t/core/generated') as string
+				);
+			expect((await load('client'))?.includes('svelte-build')).toBe(
+				snapshotInBrowser
 			);
-			expect(source).toContain(`from '${expectedImport}'`);
-			expect(source).toContain('satisfies ConsentManifest');
+			expect(await load('server')).toContain('svelte-build');
+		}
+	);
+});
+
+describe('location advice', () => {
+	const regional = () =>
+		Promise.resolve(
+			Response.json({
+				branding: 'c15t',
+				policyPacks: [
+					createConsentManifestPolicyPack({
+						id: 'regional',
+						match: { countries: ['DE'] },
+						model: 'opt-in',
+						prompt: 'choice',
+					}),
+				],
+				revision: 'svelte-regional',
+				schemaVersion: 2,
+			})
+		);
+	test.each([
+		{ app: 'a Svelte single-page app', plugins: [], warns: true },
+		{
+			app: 'SvelteKit, which resolves on the server',
+			plugins: [{ name: 'vite-plugin-sveltekit-setup' }],
+			warns: false,
+		},
+	])(
+		'suggests hosted() for a location-based policy in $app: $warns',
+		async ({ plugins, warns }) => {
+			const warn = vi.fn();
+			const [plugin] = consentManifest({
+				backendURL: 'https://consent.example.com',
+				fetch: regional,
+			});
+			plugin.configResolved({
+				command: 'build',
+				logger: { info: vi.fn(), warn },
+				plugins,
+				root: tmpdir(),
+			});
+			const source = await plugin.load.call(
+				{ environment: { config: { consumer: 'server' } } },
+				plugin.resolveId('@c15t/core/generated') as string
+			);
+			await plugin.renderChunk(source as string);
+			expect(
+				warn.mock.calls.some(([message]) =>
+					/^@c15t\/svelte\/vite: .*location.*hosted\(\)/u.test(String(message))
+				)
+			).toBe(warns);
 		}
 	);
 });
@@ -107,7 +163,7 @@ describe('resolveChunkHrefs', () => {
 	});
 });
 
-describe('c15tPreload', () => {
+describe('consentManifest module preload', () => {
 	const setup = async function setup() {
 		const root = await mkdtemp(path.join(tmpdir(), 'c15t-preload-'));
 		directories.push(root);
@@ -118,7 +174,7 @@ describe('c15tPreload', () => {
 			file,
 			`const hrefs = ${JSON.stringify(MODULE_PRELOAD_PLACEHOLDERS)};`
 		);
-		const plugin = c15tPreload();
+		const plugin = preloadPlugin();
 		const configure = (ssr: boolean) =>
 			plugin.configResolved({
 				build: { ssr },
@@ -172,7 +228,7 @@ describe('c15tPreload', () => {
 
 	test('reads SvelteKit 3 options, which are not nested under kit', async () => {
 		const { file } = await setup();
-		const plugin = c15tPreload();
+		const plugin = preloadPlugin();
 		plugin.configResolved({
 			build: {},
 			plugins: [
@@ -195,7 +251,7 @@ describe('c15tPreload', () => {
 
 	test('does nothing outside SvelteKit', async () => {
 		const { file } = await setup();
-		const plugin = c15tPreload();
+		const plugin = preloadPlugin();
 		plugin.configResolved({
 			build: {},
 			plugins: [],
@@ -205,5 +261,90 @@ describe('c15tPreload', () => {
 		expect(await readFile(file, 'utf8')).toContain(
 			MODULE_PRELOAD_PLACEHOLDERS['loader-and-blocker']
 		);
+	});
+});
+
+describe('Svelte backend URL variables', () => {
+	/** The `backendURL` the generated module exports, for the given env. */
+	const resolveBackendURL = async (
+		env: Record<string, unknown>,
+		options: { backendURL?: string } = {}
+	) => {
+		const root = await mkdtemp(path.join(tmpdir(), 'c15t-inth-env-'));
+		try {
+			const [plugin] = consentManifest({
+				...options,
+				fetch: vi
+					.fn<typeof globalThis.fetch>()
+					.mockRejectedValue(new Error('unreachable')),
+				onBuildError: 'runtime',
+			});
+			await plugin.configResolved({
+				command: 'serve',
+				env,
+				logger: { info: () => undefined, warn: () => undefined },
+				root,
+			});
+			const source = String(
+				await plugin.load.call(
+					{ environment: { config: { consumer: 'server' } } },
+					plugin.resolveId('@c15t/core/generated') as string
+				)
+			);
+			return {
+				backendURL: /export const backendURL = "(?<url>[^"]*)";/u.exec(source)
+					?.groups?.url,
+				env,
+			};
+		} finally {
+			await rm(root, { force: true, recursive: true });
+		}
+	};
+	const INTH = 'https://inth.example.com';
+	const C15T = 'https://c15t.example.com';
+
+	test('PUBLIC_INTH_PROJECT_URL alone gives the backend URL', async () => {
+		const { backendURL } = await resolveBackendURL({
+			PUBLIC_INTH_PROJECT_URL: INTH,
+		});
+		expect(backendURL).toBe(INTH);
+	});
+
+	test('either c15t variable beats either Inth variable', async () => {
+		const { backendURL } = await resolveBackendURL({
+			PUBLIC_C15T_BACKEND_URL: C15T,
+			PUBLIC_INTH_PROJECT_URL: INTH,
+			VITE_INTH_PROJECT_URL: INTH,
+		});
+		expect(backendURL).toBe(C15T);
+		const vite = await resolveBackendURL({
+			PUBLIC_INTH_PROJECT_URL: INTH,
+			VITE_C15T_BACKEND_URL: C15T,
+		});
+		expect(vite.backendURL).toBe(C15T);
+	});
+
+	test('VITE_INTH_PROJECT_URL alone gives the backend URL', async () => {
+		const { backendURL, env } = await resolveBackendURL({
+			VITE_INTH_PROJECT_URL: INTH,
+		});
+		expect(backendURL).toBe(INTH);
+		expect(env.VITE_C15T_BACKEND_URL).toBe(INTH);
+	});
+
+	test('VITE_C15T_BACKEND_URL wins when both are set', async () => {
+		const { backendURL } = await resolveBackendURL({
+			VITE_C15T_BACKEND_URL: C15T,
+			VITE_INTH_PROJECT_URL: INTH,
+		});
+		expect(backendURL).toBe(C15T);
+	});
+
+	test('an explicit backendURL beats both variables', async () => {
+		const { backendURL } = await resolveBackendURL(
+			{ VITE_C15T_BACKEND_URL: C15T, VITE_INTH_PROJECT_URL: INTH },
+			{ backendURL: 'https://option.example.com' }
+		);
+		expect(backendURL).toBe('https://option.example.com');
 	});
 });

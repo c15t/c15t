@@ -39,26 +39,36 @@ Register the module in `nuxt.config.ts`:
 
 <include src="../../shared/examples/nuxt/nuxt-config.mdx" />
 
-`https://benchmarks-inth.inth.app` is a demo project, so the snippet runs as
-is. Replace it with your project's backend URL, including any path prefix, or
-set `NUXT_PUBLIC_C15T_BACKEND_URL` when you build. The policy is fixed at
-build time: setting `NUXT_PUBLIC_C15T_BACKEND_URL` on a running server moves
-consent saves, not the policy, so build again to switch projects.
+Set `NUXT_PUBLIC_C15T_BACKEND_URL` to your project's backend URL, including
+any path prefix, in `.env` or wherever you build. The module reads it, so the
+config needs no `backendURL`. The policy is fixed at build time: setting
+`NUXT_PUBLIC_C15T_BACKEND_URL` on a running server moves consent saves, not
+the policy, so build again to switch projects.
 
-With an absolute `backendURL`, the module fetches your project's public policy
-once, during `nuxt build` and when `nuxt dev` starts, and embeds it in the
-server bundle.
-It also adds two routes to your Nuxt server, `/api/c15t/manifest` and
-`/api/c15t/init`. The server resolves each visitor from the bundled policy
-and the request's location and language headers, so rendering a page never
-waits on Inth. Consent saves still go to Inth.
-[Data fetching](/docs/concepts/data-fetching) compares this with calling the
-backend on every request.
+```sh title=".env"
+NUXT_PUBLIC_C15T_BACKEND_URL=https://your-project.inth.app
+```
+
+If your app already sets `NUXT_PUBLIC_INTH_PROJECT_URL` for other Inth SDKs, that works
+too. When both are set, `NUXT_PUBLIC_C15T_BACKEND_URL` wins.
+
+The module's default mode, `manifest()`, fetches your project's public
+policy once, during `nuxt build` and when `nuxt dev` starts, and embeds it in
+the server bundle. It also adds one consent route to your Nuxt server,
+`/api/c15t/**`, which answers `/api/c15t/init` and `/api/c15t/manifest`. The
+server resolves each visitor from the bundled policy and the request's
+location and language headers, so rendering a page never waits on Inth. The
+browser bundle carries no policy and no resolver. Consent saves still go to
+Inth. [Data fetching](/docs/concepts/data-fetching) compares this with
+calling the backend on every request.
 
 <include src="../../shared/build-time-manifest-notes.mdx" />
 
-To apply policy edits without rebuilding, set `buildManifest: false` and
-`manifest: 'server'`. The routes then fetch and cache the policy at runtime.
+To apply policy edits without rebuilding, set
+`c15t: { mode: manifest({ source: 'runtime' }) }`, with `manifest` imported
+from `c15t/vue`. The server then fetches and caches the policy at runtime.
+[Rendering and deployment](/docs/frameworks/nuxt/rendering) covers the other
+modes.
 
 ## Mount the consent UI
 
@@ -67,7 +77,7 @@ Add `ConsentRoot` and a preferences link to `app.vue`:
 <include src="../../shared/examples/nuxt/root.mdx" />
 
 `ConsentRoot` renders the banner when the visitor's policy asks for one and
-loads the preference dialog when it opens. `ConsentPreferencesLink` renders a
+loads the preference dialog when it opens. `ConsentDialogLink` renders a
 button that reopens preferences, labelled with the dialog's title in the
 visitor's language: Privacy Settings in English. It renders nothing until the
 policy offers preferences.
@@ -82,16 +92,12 @@ their own styles.
 Remove any existing PostHog snippet so the script loads once, and add
 measurement to your Inth policy.
 
-Create `app/consent-scripts.ts`. PostHog waits for measurement permission and
-uses its EU region; change `region` to `'us'` for a US project.
-
-<include src="../../shared/examples/nuxt/scripts.mdx" />
-
-Replace `phc_your_project_key` with your PostHog project key.
-
-Register the scripts in `app/app.config.ts`:
+Register PostHog in `app/app.config.ts`. It waits for measurement permission.
 
 <include src="../../shared/examples/nuxt/app-config.mdx" />
+
+Replace `phc_your_project_key` with your PostHog project key. PostHog
+defaults to its EU region; set `region: 'us'` for a US project.
 
 The module merges the `c15t` key of `app.config.ts` over its options in
 `nuxt.config.ts`, then starts one script loader in the browser after

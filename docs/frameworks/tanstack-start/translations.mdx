@@ -30,9 +30,9 @@ To override the header, set `language` in one of these places:
 
 - `consentRequestMiddleware({ language })` in `src/start.ts` fixes one
   language for every request.
-- `createConsentStateHandler({ ...consentOptions, language })` fixes one language for
+- `createConsentStateHandler({ language })` fixes one language for
   the root loader.
-- `resolveConsent({ ...consentOptions, language })` from
+- `resolveConsent({ language })` from
   `c15t/tanstack-start/server`, called in your own server function, takes a
   different language per request, such as the locale from your URL.
 
@@ -61,8 +61,6 @@ Import it in `src/routes/__root.tsx` and pass it under `options` on
 ```tsx title="src/routes/__root.tsx"
 <ConsentRoot
   state={consent}
-  backendURL={backendURL}
-  initRoute={false}
   scripts={scripts}
   options={{ i18n }}
 >

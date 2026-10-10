@@ -162,9 +162,10 @@ They are the same plugin. A config that already lists
 
 Make four changes:
 
-1. Set `styles: false` where you configure c15t: `options` on `ConsentRoot`
-   in Next.js and TanStack Start, `options` on `ConsentProvider` in React,
-   and `styles={false}` on `ConsentManagerProvider` in Svelte and SvelteKit.
+1. Set `styles: false` where you configure c15t: `options` in Next.js
+   `c15t.config.ts`, `options` on `ConsentRoot` in TanStack Start, `options`
+   on `ConsentProvider` in React, and `styles={false}` on `ConsentProvider` in
+   Svelte or `ConsentRoot` in SvelteKit.
    Vue, Nuxt and Astro need no change.
 2. Add the plugin to your PostCSS plugins, before `tailwindcss`. Write the plugins as an object, as the examples below do.
    PostCSS runs them in the order of the keys. Next.js also accepts an array
@@ -301,7 +302,7 @@ the app to Vite.
 
     Import `@c15t/svelte/styles.css` above the directives, import this
     stylesheet from `src/main.ts`, and pass `styles={false}` to
-    `ConsentManagerProvider`:
+    `ConsentProvider`:
 
     <include src="../shared/examples/tailwind-v3/svelte/tailwind-css.mdx" />
   </Tab>
@@ -315,7 +316,7 @@ the app to Vite.
 
     Import `@c15t/svelte/styles.css` above the directives, import this
     stylesheet from your root `+layout.svelte`, and pass `styles={false}` to
-    `ConsentManagerProvider`:
+    `ConsentRoot`:
 
     <include src="../shared/examples/tailwind-v3/sveltekit/tailwind-css.mdx" />
   </Tab>

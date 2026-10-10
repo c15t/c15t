@@ -103,20 +103,18 @@ need control over the file:
 
 | Framework | Option | Files to import |
 | --- | --- | --- |
-| Next.js | `options.styles` on `ConsentRoot` | `c15t/next/styles.css`, and `c15t/next/iab/styles.css` for IAB TCF |
+| Next.js | `options.styles` in `c15t.config.ts` or on `ConsentRoot` | `c15t/next/styles.css`, and `c15t/next/iab/styles.css` for IAB TCF |
 | TanStack Start | `options.styles` on `ConsentRoot` | `c15t/tanstack-start/styles.css`, and `c15t/tanstack-start/iab/styles.css` for IAB TCF |
 | React | `options.styles` on `ConsentProvider` | `c15t/react/styles.css`, and `c15t/react/iab/styles.css` for IAB TCF |
-| Svelte, SvelteKit | `options.styles` on `ConsentManagerProvider` | `@c15t/svelte/styles.css`, and `@c15t/svelte/iab/styles.css` for IAB TCF |
+| Svelte, SvelteKit | `options.styles` on `ConsentProvider` or `ConsentRoot` | `@c15t/svelte/styles.css`, and `@c15t/svelte/iab/styles.css` for IAB TCF |
 | Astro | `styles` in the `c15t()` integration options | See [load Astro's stylesheets yourself](#load-astros-stylesheets-yourself) |
 
 {/* example: fragment */}
 
-```tsx title="components/consent.tsx (partial)"
-<ConsentRoot
-	state={state}
-	config={consentConfig}
-	options={{ styles: false }}
->
+```ts title="c15t.config.ts (Next.js)"
+import { defineConsentConfig } from 'c15t/next';
+
+export default defineConsentConfig({ options: { styles: false } });
 ```
 
 `styles: false` turns off only the stylesheets. Tokens from `ConsentTheme`

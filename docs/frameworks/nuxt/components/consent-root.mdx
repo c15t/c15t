@@ -22,7 +22,7 @@ in it instead, the page still renders after the banner, dialog and trigger,
 but wrapping adds nothing.
 
 Always mount the Nuxt `ConsentRoot`, not the Vue one from
-`c15t/vue/consent-root`. The Nuxt component renders the banner on the
+`c15t/vue/vue-plugin`. The Nuxt component renders the banner on the
 server.
 
 ## What ConsentRoot renders
@@ -37,7 +37,7 @@ server.
 It also renders [`ConsentDialogTrigger`](/docs/frameworks/nuxt/components/consent-dialog-trigger)
 when the `showTrigger` option is `true`.
 
-The banner is part of the server render. In server manifest mode, the default with an absolute `backendURL`,
+The banner is part of the server render. When the server resolves the policy, in the default `manifest()` mode or `hosted()`,
 a visitor whose policy asks for consent gets the banner
 in the first HTML, with no layout shift after hydration. On prerendered and
 cached routes the banner appears after the browser resolves the policy. See

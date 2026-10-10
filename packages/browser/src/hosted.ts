@@ -43,7 +43,8 @@ export {
 	activateGatedScripts,
 	CATEGORY_ATTRIBUTE,
 } from './gated-scripts';
-export { hosted } from '@c15t/core';
+export { hosted } from './transports/hosted';
+export type { HostedOptions } from './transports/hosted';
 export type { HostedModeOptions } from '@c15t/core';
 export type {
 	ConsentBannerOptions,

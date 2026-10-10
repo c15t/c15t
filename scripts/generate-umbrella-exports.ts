@@ -144,6 +144,23 @@ export interface UmbrellaSource {
 	 * out are not claimed.
 	 */
 	include?: string[];
+	/**
+	 * Names a shim takes from another scoped subpath instead, keyed by the
+	 * subpath whose shim they join. A named re-export wins over the shim's
+	 * `export *`, so the umbrella can offer a different implementation under
+	 * the same name than the scoped entry does.
+	 */
+	overrides?: Record<string, ShimOverride>;
+}
+
+/** Names a shim re-exports from another subpath of the same package. */
+export interface ShimOverride {
+	/** The scoped subpath the names come from, such as `'./modes'`. */
+	from: string;
+	/** Value exports. */
+	values: string[];
+	/** Type-only exports, added to the declaration shim. */
+	types: string[];
 }
 
 /**
@@ -172,12 +189,29 @@ export const UMBRELLA_SOURCES: UmbrellaSource[] = [
 	{
 		directory: 'react',
 		exclude: [TAILWIND3_PLUGIN],
+		// `c15t/react` offers the single-page app modes, which default to the
+		// build integration's `@c15t/core/generated`. `@c15t/react` keeps them
+		// out of its index, which the Next.js and TanStack Start entries
+		// re-export into browser bundles that must not import that module.
+		overrides: {
+			'.': {
+				from: './modes',
+				types: [
+					'BrowserManifestModeFactory',
+					'HostedOptions',
+					'ManifestModeOptions',
+				],
+				values: ['hosted', 'manifest', 'offline'],
+			},
+		},
 		packageName: '@c15t/react',
 		prefix: 'react',
 	},
 	{
 		directory: 'nextjs',
-		exclude: [TAILWIND3_PLUGIN],
+		// The stand-in `withConsentManifest` aliases to the generated
+		// snapshot; the server helpers import it, apps never do.
+		exclude: ['./generated-manifest', './user-config', TAILWIND3_PLUGIN],
 		packageName: '@c15t/nextjs',
 		prefix: 'next',
 	},
@@ -367,15 +401,36 @@ const renderTypesShim = function renderTypesShim(
 	return `${lines.join('\n')}\n`;
 };
 
+const renderOverrideLines = function renderOverrideLines(
+	condition: string,
+	specifier: string,
+	override: ShimOverride
+): string {
+	const lines = [
+		`export { ${override.values.join(', ')} } from '${specifier}';`,
+	];
+	if (condition === 'types' && override.types.length > 0) {
+		lines.push(
+			`export type { ${override.types.join(', ')} } from '${specifier}';`
+		);
+	}
+	return `${lines.join('\n')}\n`;
+};
+
 const renderShimCondition = function renderShimCondition(
 	condition: string,
 	specifier: string,
-	info: EntryModuleInfo
+	info: EntryModuleInfo,
+	override?: { specifier: string; names: ShimOverride }
 ): string {
-	if (condition === 'types') {
-		return renderTypesShim(specifier, info);
+	const shim =
+		condition === 'types'
+			? renderTypesShim(specifier, info)
+			: renderEsmShim(specifier, info);
+	if (!override) {
+		return shim;
 	}
-	return renderEsmShim(specifier, info);
+	return `${shim}${renderOverrideLines(condition, override.specifier, override.names)}`;
 };
 
 const buildConditionalEntry = function buildConditionalEntry(
@@ -389,8 +444,18 @@ const buildConditionalEntry = function buildConditionalEntry(
 	const specifier = toSpecifier(source.config.packageName, subpath);
 	const info = source.analyzeEntry(subpath, entry);
 	const mapped: ConditionalExport = {};
+	const names = source.config.overrides?.[subpath];
+	const override = names && {
+		names,
+		specifier: toSpecifier(source.config.packageName, names.from),
+	};
 
 	for (const condition of Object.keys(entry)) {
+		// The shim re-exports the bare specifier, so the bundler applies
+		// `react-server` when it resolves the scoped package.
+		if (condition === 'react-server') {
+			continue;
+		}
 		const extension = SHIM_EXTENSIONS[condition];
 		if (!extension) {
 			throw new Error(
@@ -399,7 +464,12 @@ const buildConditionalEntry = function buildConditionalEntry(
 		}
 
 		const shimPath = `${shimBase}${extension}`;
-		shimFiles[shimPath] = renderShimCondition(condition, specifier, info);
+		shimFiles[shimPath] = renderShimCondition(
+			condition,
+			specifier,
+			info,
+			override
+		);
 		mapped[condition] = `./${shimPath}`;
 	}
 
@@ -609,6 +679,11 @@ const buildWildcardEntry = function buildWildcardEntry(
 	const shimBase = toShimBase(umbrellaSubpath);
 	const mapped: ConditionalExport = {};
 	for (const condition of Object.keys(entry)) {
+		// The shim re-exports the bare specifier, so the bundler applies
+		// `react-server` when it resolves the scoped package.
+		if (condition === 'react-server') {
+			continue;
+		}
 		const extension = SHIM_EXTENSIONS[condition];
 		if (!extension) {
 			throw new Error(
@@ -619,6 +694,9 @@ const buildWildcardEntry = function buildWildcardEntry(
 	}
 	return mapped;
 };
+
+/** The `sideEffects` claim of a package that ships Vue single-file components. */
+const VUE_FILES = '**/*.vue';
 
 /**
  * Derives the umbrella's `sideEffects` claim from the mirrored packages' own
@@ -654,11 +732,22 @@ const deriveSideEffects = function deriveSideEffects(
 		if (
 			Array.isArray(declared) &&
 			declared.every(
-				(pattern) => typeof pattern === 'string' && pattern.endsWith('.css')
+				(pattern) =>
+					typeof pattern === 'string' &&
+					(pattern.endsWith('.css') || pattern === VUE_FILES)
 			)
 		) {
-			// CSS-only claims are covered by the umbrella's own `**/*.css`:
-			// the mirrored CSS subpaths are real files under `dist/`.
+			// CSS claims are covered by the umbrella's own `**/*.css`: the
+			// mirrored CSS subpaths are real files under `dist/`. A `.vue`
+			// claim covers the SFC shims, and the `.vue.js` shims that
+			// re-export a `.vue` entry.
+			if (declared.includes(VUE_FILES)) {
+				const { prefix } = source.config;
+				sideEffects.push(
+					VUE_FILES,
+					prefix ? `shims/${prefix}/**/*.vue.js` : 'shims/**/*.vue.js'
+				);
+			}
 			continue;
 		}
 		if (declared === undefined || declared === true) {
@@ -877,6 +966,14 @@ const resolveEntryModulePath = function resolveEntryModulePath(
 	}
 
 	const typesTarget = entry.types ? normalizePackagePath(entry.types) : null;
+	// A module shipped as source, such as `@c15t/astro`'s components barrel,
+	// which Astro compiles along with the `.astro` files it re-exports.
+	if (typesTarget?.startsWith('src/') && /\.tsx?$/u.test(typesTarget)) {
+		const sourcePath = join(packageDir, typesTarget);
+		if (existsSync(sourcePath)) {
+			return sourcePath;
+		}
+	}
 	if (!typesTarget?.startsWith('dist-types/')) {
 		throw new Error(
 			`${packageName} ${subpath}: cannot locate the entry module — expected a dist-types/ types condition or a sourceRoot mapping, got ${JSON.stringify(entry)}.`

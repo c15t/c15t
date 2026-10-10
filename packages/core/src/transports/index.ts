@@ -37,6 +37,7 @@ export {
 	resolveInitPolicyWire,
 } from './init-output';
 export type {
+	HostedModeFactory,
 	HostedModeOptions,
 	ProviderTransportContext,
 	ProviderTransportFactory,
@@ -49,7 +50,7 @@ export type {
 	OfflineTransportOptions,
 } from './offline';
 export { createOfflineTransport, offline } from './offline';
-export type { OfflineModeOptions } from './offline';
+export type { OfflineModeFactory, OfflineModeOptions } from './offline';
 export {
 	ConsentSaveRejectedError,
 	isConsentSaveRejection,

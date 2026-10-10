@@ -8,7 +8,7 @@ group: frameworks
 
 This guide uses [Inth](https://inth.com) for policies and consent records. Your
 Next.js build bundles the project's public policy manifest. The server resolves consent
-for each visitor in `getServerSideProps`. The browser sends consent choices to
+for each visitor in `getServerSideProps`, through `withConsentProps`. The browser sends consent choices to
 Inth.
 
 A [self-hosted backend](/docs/self-host/quickstart) uses the same files with
@@ -33,37 +33,57 @@ site's origin to its trusted origins. Copy the project's backend URL.
 
 <CommandTabs command="c15t@alpha @c15t/integrations@alpha" mode="install" />
 
-## Share the consent URLs
+## Set the backend URL
 
-Create `c15t.config.ts` at the project root, or in `src/` if your app uses a
-`src` directory. `manifestURL` selects manifest
-resolution; a backend URL alone uses backend `/init`.
+Set `NEXT_PUBLIC_C15T_BACKEND_URL` to your project's backend URL, including
+any path prefix, in `.env.local` and in your host's build settings:
 
-<include src="../../shared/examples/nextjs/config.mdx" />
+```sh title=".env.local"
+NEXT_PUBLIC_C15T_BACKEND_URL=https://your-project.inth.app
+```
 
-`https://benchmarks-inth.inth.app` is a demo project, so the snippets run as
-they are. Set `NEXT_PUBLIC_C15T_BACKEND_URL` to your project's backend URL,
-including any path prefix, in `.env.local` and in your host's build settings,
-or replace the fallback with the URL. Next.js inlines `NEXT_PUBLIC_` variables
-at build time, so the server and the browser use the same URL, and changing
-the variable on a built app has no effect until you rebuild.
+If your app already sets `NEXT_PUBLIC_INTH_PROJECT_URL` for other Inth SDKs, that works
+too. When both are set, `NEXT_PUBLIC_C15T_BACKEND_URL` wins.
+
+Next.js inlines `NEXT_PUBLIC_` variables at build time, so the build, the
+server and the browser use the same URL, and changing the variable on a built
+app has no effect until you rebuild.
 
 ## Bundle the manifest during builds
 
 <include src="../../shared/build-manifests/next-pages.mdx" />
 
-## Add the manifest API route
+## Add the consent config
 
-<include src="../../shared/examples/nextjs-pages-router/pages-manifest-route.mdx" />
+Create `c15t.config.ts` at the project root, next to `next.config.ts`:
 
-The route serves the build-time snapshot without an upstream request. With
-runtime fetching, it reads `backendURL` from the config, fetches
-`${backendURL}/manifest` and caches the public policy. It
-answers methods other than `GET` and `HEAD` with `405`. An app that also has an `app/` directory can serve
-the App Router route from the [App Router guide](/docs/frameworks/next/app-router#serve-the-manifest-route)
-instead.
+<include src="../../shared/examples/nextjs-pages-router/pages-config.mdx" />
 
-<include src="../../shared/next-consent-wrapper.mdx" />
+`withConsentManifest` finds the file, so `ConsentRoot`, `withConsentProps` and
+the consent route read it without an import. The file is bundled into the
+browser as well as the server, so it can hold `scripts` but must hold no
+secrets. The config sets no `mode`, so it uses `manifest()`; see
+[consent modes](/docs/concepts/modes).
+
+`routePrefix` names the consent route below. Pages without
+`getServerSideProps` resolve consent in the browser through it.
+
+PostHog waits for measurement consent here. Replace `phc_your_project_key`
+with your project key, or use the [integration](/docs/integrations/overview)
+your application needs.
+
+## Add the consent API route
+
+Create one catch-all API route under `routePrefix`:
+
+<include src="../../shared/examples/nextjs-pages-router/pages-consent-route.mdx" />
+
+It answers `GET /api/c15t/init` and `GET /api/c15t/manifest` from the bundled
+snapshot. With runtime fetching, it fetches `${backendURL}/manifest` and
+caches the public policy. Any other path under `/api/c15t` returns 404, and
+methods other than `GET` and `HEAD` get `405`. The file must be named
+`[...c15t].ts`; for another name, pass the parameter as the second argument,
+such as `createPagesConsentRoute({}, 'path')` for `[...path].ts`.
 
 ## Mount one root for every page
 
@@ -74,54 +94,67 @@ With Tailwind CSS 3, import `c15t/next/styles.css` yourself and set
 [Customize](/docs/frameworks/next/customize#load-the-stylesheet-yourself)
 shows.
 
-Mount the wrapper in `_app.tsx`. It reads the state a page resolved on the
-server from `pageProps.initialConsent`:
+Render `ConsentRoot` in `_app.tsx`. It reads the state a page resolved on the
+server from `pageProps.consent`:
 
 <include src="../../shared/examples/nextjs-pages-router/pages-app.mdx" />
 
-A page with `getServerSideProps` supplies `initialConsent`. Any other page,
-including static and `getStaticProps` pages, passes `{}`, and the browser
-loads the manifest and resolves consent after hydration. Browser resolution
-has no location input, so those pages follow your unknown-location rule unless
-you add the
-[optional local init route](/docs/frameworks/next/data-fetching-reference#do-i-need-the-local-init-route).
+A page with `withConsentProps` supplies `consent`. On any other page,
+including static and `getStaticProps` pages, `consent` is undefined, and the
+browser asks `/api/c15t/init` after hydration. That route resolves the
+bundled policy with the browser request's location headers.
 
 ## Resolve consent in getServerSideProps
 
-Import `resolveConsent` from `c15t/next/pages` and pass it `consentOptions`
-with the `req` from `getServerSideProps`. The App Router helper in `c15t/next/server` reads
-`next/headers`, which the Pages Router does not have.
+Export `withConsentProps()` from `c15t/next/pages` as the page's
+`getServerSideProps`:
 
 <include src="../../shared/examples/nextjs-pages-router/pages-ssr.mdx" />
 
-The JSON round trip removes `undefined` fields, such as an absent GPC signal,
-because `next dev` rejects `undefined` in `getServerSideProps` props. The page renders the banner in the
-server HTML, and the browser applies the same state without an `/init`
-request.
+It resolves the visitor's consent from `c15t.config.ts` and adds it to the
+page's props as `consent`, with `undefined` fields removed, as Next.js
+requires. The page renders the banner in the server HTML, and the browser
+applies the same state without an `/init` request.
 
-Add this `getServerSideProps` to every page that should render consent on the
-server, and return `initialConsent` from each. Do not resolve consent in
-`getStaticProps`. It runs without the visitor's request, so it cannot read
-their cookies or location. With runtime fetching, if the manifest request fails or takes longer than
-`timeoutMs`, 500 ms by default, the page renders without a policy and the
+A page with its own `getServerSideProps` passes it in:
+
+{/* example: fragment */}
+
+```ts title="pages/posts/[slug].tsx (partial)"
+export const getServerSideProps = withConsentProps(async ({ params }) => ({
+	props: { post: await loadPost(params?.slug) },
+}));
+```
+
+Consent resolves while the page's function runs, and its `redirect` and
+`notFound` results pass through unchanged. `resolveConsent` options, such as
+`timeoutMs`, go in the second argument.
+
+Add `withConsentProps` to every page that should render consent on the
+server. Do not resolve consent in `getStaticProps`. It runs without the
+visitor's request, so it cannot read their cookies or location. If the
+snapshot is missing and the runtime manifest request fails or takes longer
+than `timeoutMs`, 500 ms by default, the page renders without a policy and the
 browser retries after hydration.
 
 ## Use backend init instead of the manifest
 
-Remove `withConsentManifest` from `next.config.ts`, and the `consentManifest`
-import and `manifest` line from `c15t.server.ts`. Delete the `manifestURL` line from
-`c15t.config.ts` and delete `pages/api/c15t/manifest.ts`. `_app.tsx` and the pages stay the same.
-`resolveConsent` and the browser now call `${backendURL}/init`, and consent
-choices still go to `${backendURL}/subjects`. For a browser-only setup with no
-server work, follow [client-side initialization](/docs/frameworks/next/client-side).
+Set `mode: hosted()` in `c15t.config.ts` and remove `routePrefix` and
+`pages/api/c15t/[...c15t].ts`. Keep `withConsentManifest`, which finds the
+config. With `hosted()` it downloads no manifest, so `next build` does not
+contact the backend. `_app.tsx` and the pages stay the same. `withConsentProps` and the browser now call
+`${backendURL}/init`, and consent choices still go to
+`${backendURL}/subjects`. For a browser-only setup with no server work, follow
+[client-side initialization](/docs/frameworks/next/client-side).
 
-A same-origin [rewrite](/docs/frameworks/next/optimization) is optional with
+Keeping browser saves on your origin with
+[`proxy: true`](/docs/frameworks/next/optimization#keep-browser-consent-requests-on-your-origin) is optional with
 either source.
 
 ## Verify the setup
 
 Start the production build with `next build` and `next start`, then open a
-page that has `getServerSideProps` in a fresh browser session with DevTools
+page that exports `withConsentProps` in a fresh browser session with DevTools
 open.
 
 1. View the page source. It contains `data-testid="consent-banner-root"`.
@@ -133,9 +166,9 @@ open.
 4. Navigate to another page with a Next.js `Link` and reopen
    **Privacy settings**. The choice is still selected.
 5. Open a static page directly. It shows the same choice, resolved in the
-   browser.
+   browser through `/api/c15t/init`.
 
-The browser makes no `/init` request, and choices post to
+Pages with `withConsentProps` make no `/init` request, and choices post to
 `${backendURL}/subjects`. [Script loading](/docs/frameworks/next/scripts)
 explains each vendor's loading and revocation behavior, and
 [the consent checks](/docs/guides/verify-consent) cover the release checklist.
