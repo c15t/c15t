@@ -38,8 +38,9 @@ can cross from the server to the browser. `withConsentManifest` in
 | `options` | Provider options such as styling, callbacks and an explicit `mode` override |
 
 Every prop except `state` and `config` can also be set in `c15t.config.ts`. A
-prop wins over the config's value of the same name. The merge is one key
-deep: an `options` prop replaces the config's whole `options` object.
+prop wins over the config's value of the same name. `options` merges one key
+at a time, and `options.callbacks` one callback at a time, so
+`options={{ nonce }}` keeps the config's callbacks and other options.
 
 ### Which mode does ConsentRoot use?
 

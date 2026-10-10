@@ -63,12 +63,6 @@ export default function RootLayout({ children }: { children: ReactNode }) {
 }
 ```
 
-`ConsentRoot` props win over `c15t.config.ts` one key at a time, so an
-`options` prop replaces the config's whole `options` object. If the config
-sets `options` too, such as `callbacks`, render `ConsentRoot` from a
-`'use client'` component that imports the config and passes
-`options={{ ...config.options, nonce }}`.
-
 Reading `headers()` keeps the route dynamic, which a per-request nonce requires
 anyway. Do not combine a nonce-based policy with `cacheComponents: true`
 (Partial Prerendering): the static shell is rendered once at build time, so its

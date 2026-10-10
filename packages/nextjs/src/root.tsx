@@ -70,12 +70,34 @@ const createMode = function createMode(
 	});
 };
 
+type RootOptions = ConsentClientOptions['options'];
+
+/**
+ * `options` from props over the config's, one key at a time, and
+ * `callbacks` one callback at a time, so `options={{ nonce }}` keeps the
+ * config's callbacks and other options.
+ */
+const mergeOptions = function mergeOptions(
+	config: RootOptions,
+	props: RootOptions
+): RootOptions {
+	if (!(config && props)) {
+		return props ?? config;
+	}
+	return {
+		...config,
+		...props,
+		callbacks: { ...config.callbacks, ...props.callbacks },
+	};
+};
+
 /**
  * Mounts the consent provider for a Next.js app. Render it once, near the
  * top of the tree. It reads `c15t.config.ts` itself, so a Server Component
  * layout renders it directly with the `state` it resolved.
  *
- * Props win over the config's browser options of the same name.
+ * Props win over the config's browser options of the same name. `options`
+ * merges one key at a time, and `options.callbacks` one callback at a time.
  *
  * @example
  * ```tsx
@@ -119,7 +141,11 @@ export const ConsentRoot = (props: ConsentRootProps) => {
 		scripts,
 		state,
 		vendors,
-	} = { ...config, ...props };
+	} = {
+		...config,
+		...props,
+		options: mergeOptions(config?.options, props.options),
+	};
 	// Initial-only, like the provider's own `mode`. A new one on every
 	// render would make each rerender load the runtime's update module.
 	const [mode, setMode] = useState(() => createMode(config, options));
