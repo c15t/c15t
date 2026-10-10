@@ -346,6 +346,67 @@ body
 `);
 	});
 
+	it('migrates Sass @use and @forward of c15t stylesheets', async () => {
+		const css = `@use '@c15t/react/styles.css';
+@forward '@c15t/react/styles.css';
+`;
+		const { read } = await run(
+			{ c15t: '^3.0.0', tailwindcss: '^4.0.0' },
+			{
+				'src/index.css': css,
+				'src/legacy.less': css,
+				'src/main.scss': `@use 'sass:math';
+@use '@c15t/react/styles.css';
+@forward "@c15t/nextjs/styles.css"; // legacy
+@use '@c15t/react/iab/styles.css' as c15t;
+@use '@c15t/react/styles.css' with ($radius: 4px);
+@forward '@c15t/nextjs/styles.css' show $radius;
+@forward '@c15t/react/styles.css' hide $radius;
+body {}
+`,
+				'src/theme.sass': `@use '@c15t/react/styles.css'
+@forward '@c15t/nextjs/styles.css' as c15t-*
+body
+	color: red
+`,
+			}
+		);
+
+		expect(await read('src/main.scss')).toBe(`@use 'sass:math';
+/* ${TODO} */
+@use 'c15t/react/iab/styles.css' as c15t;
+/* ${TODO} */
+@use 'c15t/react/styles.css' with ($radius: 4px);
+/* ${TODO} */
+@forward 'c15t/next/styles.css' show $radius;
+/* ${TODO} */
+@forward 'c15t/react/styles.css' hide $radius;
+body {}
+`);
+		expect(await read('src/theme.sass')).toBe(`/* ${TODO} */
+@forward 'c15t/next/styles.css' as c15t-*
+body
+	color: red
+`);
+		// CSS and Less have no @use or @forward.
+		expect(await read('src/index.css')).toBe(css);
+		expect(await read('src/legacy.less')).toBe(css);
+	});
+
+	it('rewrites a Sass @use of a c15t stylesheet under Tailwind CSS 3', async () => {
+		const { read } = await run(
+			{ c15t: '^3.0.0', tailwindcss: '^3.4.0' },
+			{
+				'src/main.scss': `@use '@c15t/react/styles.tw3.css';
+`,
+			}
+		);
+
+		expect(await read('src/main.scss')).toBe(`/* ${TODO} */
+@use 'c15t/react/styles.css';
+`);
+	});
+
 	it('keeps a stylesheet imported into a named layer', async () => {
 		const { read } = await run(
 			{ c15t: '^3.0.0', tailwindcss: '^4.0.0' },
@@ -1044,6 +1105,9 @@ import 'c15t/react/styles.css';
 		const source = `import '@c15t/react/styles.css';
 import { ConsentProvider } from '@c15t/react';
 `;
+		const sass = `@use '@c15t/react/styles.css';
+@forward '@c15t/react/iab/styles.tw3.css';
+`;
 		const test = `vi.mock('@c15t/react/styles.tw3.css', () => ({}));
 const path = require.resolve('@c15t/react/iab/styles.tw3.css');
 `;
@@ -1053,6 +1117,7 @@ const path = require.resolve('@c15t/react/iab/styles.tw3.css');
 				'src/consent.test.ts': test,
 				'src/consent.tsx': source,
 				'src/index.css': css,
+				'src/main.scss': sass,
 			}
 		);
 

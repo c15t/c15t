@@ -6,8 +6,11 @@ interface StylesheetSyntax {
 	indented: boolean;
 	/** `@import (css) '…'` options: Less. */
 	importOptions: boolean;
-	/** `@import 'a', 'b'` lists several targets: SCSS and indented Sass. */
-	importLists: boolean;
+	/**
+	 * `@import 'a', 'b'` lists several targets, and `@use` and `@forward`
+	 * load stylesheets too: SCSS and indented Sass.
+	 */
+	sassRules: boolean;
 }
 
 /** One stylesheet an `@import` names, with offsets into the text. */
@@ -22,9 +25,12 @@ export interface StylesheetTarget {
 	end: number;
 }
 
-/** One `@import` directive, with offsets into the stylesheet's text. */
+/**
+ * One `@import` directive, or a Sass `@use` or `@forward`, with offsets into
+ * the stylesheet's text.
+ */
 export interface StylesheetImport {
-	/** The `@` of `@import`. */
+	/** The `@` of `@import`, `@use` or `@forward`. */
 	start: number;
 	/** After the directive's `;`, or its last character when it has none. */
 	end: number;
@@ -42,7 +48,8 @@ export interface StylesheetImport {
 	targets?: [StylesheetTarget, StylesheetTarget, ...StylesheetTarget[]];
 	/**
 	 * Text after the URL, such as `layer(c15t)`, a media query or
-	 * `supports()`, which places the import on purpose.
+	 * `supports()`, which places the import on purpose, or a Sass `as`,
+	 * `with()`, `show` or `hide` clause, which code may depend on.
 	 */
 	placed: boolean;
 	/** Something other than a comment follows the directive on its line. */
@@ -57,22 +64,22 @@ export interface StylesheetImport {
 }
 
 const BLOCK_COMMENTS_ONLY: StylesheetSyntax = {
-	importLists: false,
 	importOptions: false,
 	indented: false,
 	lineComments: false,
+	sassRules: false,
 };
 
-const IMPORT_KEYWORD = /@import(?![\w-])/iuy;
+const LOAD_RULE = /@(?<rule>import|use|forward)(?![\w-])/iuy;
 const UNQUOTED_URL = /url\(\s*(?!['"\s])[^)]*\)/iuy;
 const URL_FUNCTION = /url\(/iuy;
 
 const syntaxOf = function syntaxOf(extension: string): StylesheetSyntax {
 	return {
-		importLists: extension === '.scss' || extension === '.sass',
 		importOptions: extension === '.less',
 		indented: extension === '.sass',
 		lineComments: extension !== '.css',
+		sassRules: extension === '.scss' || extension === '.sass',
 	};
 };
 
@@ -249,6 +256,27 @@ const urlOf = function urlOf(
 };
 
 /**
+ * The load rule at `index`: `@import` anywhere, and `@use` or `@forward` in
+ * Sass. `lists` says whether it can list several targets, as a Sass
+ * `@import` can.
+ */
+const loadRuleAt = function loadRuleAt(
+	text: string,
+	index: number,
+	syntax: StylesheetSyntax
+): { length: number; lists: boolean } | undefined {
+	const match = matchesAt(LOAD_RULE, text, index);
+	const rule = match?.groups?.rule?.toLowerCase();
+	if (!(match && rule) || (rule !== 'import' && !syntax.sassRules)) {
+		return undefined;
+	}
+	return {
+		length: match[0].length,
+		lists: rule === 'import' && syntax.sassRules,
+	};
+};
+
+/**
  * The targets of a Sass import that lists several, or `undefined` when it
  * names one or anything but a URL follows a comma. Each target is read whole,
  * so a comma inside quotes or `url()` doesn't split it.
@@ -259,9 +287,6 @@ const targetsOf = function targetsOf(
 	end: number,
 	syntax: StylesheetSyntax
 ): StylesheetImport['targets'] {
-	if (!syntax.importLists) {
-		return undefined;
-	}
 	const targets: StylesheetTarget[] = [];
 	let cursor = prelude;
 	for (;;) {
@@ -291,8 +316,8 @@ const targetsOf = function targetsOf(
 };
 
 /**
- * Finds the `@import` directives in a stylesheet, skipping strings and
- * comments. A directive can span lines, take Less options, and name its URL
+ * Finds the `@import` directives in a stylesheet, and the `@use` and
+ * `@forward` rules in Sass, skipping strings and comments. A directive can span lines, take Less options, and name its URL
  * as a string or with `url()`.
  *
  * @param text - The stylesheet's text.
@@ -323,12 +348,13 @@ export const findStylesheetImports = function findStylesheetImports(
 			cursor += unquotedUrl[0].length;
 			continue;
 		}
-		if (char !== '@' || matchesAt(IMPORT_KEYWORD, text, cursor) === null) {
+		const rule = char === '@' ? loadRuleAt(text, cursor, syntax) : undefined;
+		if (!rule) {
 			cursor += 1;
 			continue;
 		}
 		const start = cursor;
-		const prelude = start + '@import'.length;
+		const prelude = start + rule.length;
 		let end = directiveEnd(text, prelude, syntax);
 		if (text[end - 1] !== ';') {
 			while (end > prelude && /\s/u.test(text[end - 1] ?? '')) {
@@ -341,7 +367,9 @@ export const findStylesheetImports = function findStylesheetImports(
 			continue;
 		}
 		const conditions = skipTrivia(text, url.after, syntax);
-		const targets = targetsOf(text, prelude, end, syntax);
+		const targets = rule.lists
+			? targetsOf(text, prelude, end, syntax)
+			: undefined;
 		const trailingEnd = skipTrivia(text, end, syntax, false);
 		const lineEnd = text.indexOf('\n', trailingEnd);
 		const rest = text.slice(
