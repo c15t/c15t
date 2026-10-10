@@ -41,6 +41,11 @@ interface QueuedEntry {
 
 let store: SaveOutboxStore;
 
+// The outbox loads its queue code on first use. Under a loaded, instrumented
+// run that first import can outlast a test's one-second `vi.waitFor`, and the
+// replay then lands in the next test. Load it once up front.
+await import('../save-outbox/queue');
+
 beforeEach(() => {
 	store = createMemoryOutboxStore();
 });
