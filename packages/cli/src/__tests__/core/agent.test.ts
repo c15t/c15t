@@ -524,13 +524,28 @@ describe('c15t setup instructions', () => {
 		);
 	});
 
-	it('treats any c15t package or c15t.js script tag as an existing setup', () => {
+	it('treats a browser-side c15t package or c15t.js script tag as an existing setup', () => {
 		const instructions = createC15tSetupInstructions();
-		expect(instructions).toContain('list c15t or any @c15t/* package');
+		expect(instructions).toContain(
+			'list c15t or a browser-side @c15t/* package'
+		);
 		for (const name of ['@c15t/svelte', '@c15t/browser']) {
 			expect(instructions).toContain(name);
 		}
-		expect(instructions).toContain('does a page load c15t.js');
+		expect(instructions).toContain('load c15t.js with a script tag');
+		expect(instructions).toContain(
+			"Server and tooling packages (@c15t/backend, @c15t/node-sdk, @c15t/cli) don't count."
+		);
+	});
+
+	it('expects the first-visit banner only under a policy that asks for a choice', () => {
+		const instructions = createC15tSetupInstructions();
+		expect(instructions).toContain(
+			'First visit: under a policy that asks for a choice, the banner shows'
+		);
+		expect(instructions).toContain(
+			'no banner is correct there, and no optional tool loads when the backend is blocked'
+		);
 	});
 
 	it('installs only the packages the framework quickstart installs', () => {
