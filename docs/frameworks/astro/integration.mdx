@@ -212,6 +212,7 @@ one copy. Keep it small, because it loads on every page.
 | `hosted() needs a backend URL` | No `backendURL`, `hosted({ backendURL })`, `PUBLIC_C15T_BACKEND_URL` or `PUBLIC_INTH_PROJECT_URL` |
 | `gives the server no manifest to fetch` | `backendURL: ''` without `manifest({ manifestURL })` or `manifest({ snapshot })` |
 | `` `routePrefix` must be a path `` | `routePrefix` is not `false` and does not start with `/` |
+| ``@c15t/astro: `routePrefix` can't be '/': a consent route at the site root would catch every page. Use a path such as '/api/c15t'.`` | `routePrefix` is `'/'`. A catch-all route at the site root would answer every page |
 | `clientEntrypoint ... does not exist` | The `clientEntrypoint` path does not resolve to a file |
 | `unknown ui` | `ui` is not `'svelte'`, `'react'` or `'vue'` |
 | `ui: "svelte" needs @astrojs/svelte` | The `ui` framework's Astro integration is missing |
