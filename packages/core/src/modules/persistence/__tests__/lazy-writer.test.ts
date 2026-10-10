@@ -26,7 +26,7 @@ import {
 import type { SaveResult } from '../../../types';
 import { watchRevocationReload } from '../../revocation-reload';
 import { createScriptLoader } from '../../script-loader';
-import { mountPersistence as createPersistence } from '../mount';
+import { mountPersistence as createPersistence, queuedWrites } from '../mount';
 import { readStoredConsentRecord } from '../record-storage';
 import { createWriterLoader } from '../writer-loader';
 import type { WriterLoader } from '../writer-loader';
@@ -118,6 +118,7 @@ const kernelWithTransport = function kernelWithTransport(
 beforeEach(() => {
 	vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
 	vi.setSystemTime(NOW);
+	queuedWrites.clear();
 	localStorage.clear();
 	clearStoredConsentRecords();
 	document.cookie = `${STORAGE_KEY_V2}-epoch=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
@@ -648,6 +649,60 @@ describe('before the write code lands', () => {
 
 		await vi.advanceTimersByTimeAsync(1000);
 		expect(loads()).toBe(0);
+	});
+});
+
+describe('the queued writes another mount starts from', () => {
+	test('end when the write code lands', async () => {
+		const { land, loader } = heldBackLoader();
+		const kernel = createConsentKernel({ now: Date.now() });
+		const handle = createPersistence({ kernel }, loader);
+		const saving = kernel.commands.save({ marketing: true });
+		handle.dispose();
+		expect(queuedWrites.get(STORAGE_KEY_V2)).toBe(kernel);
+
+		await land();
+		await settle(saving);
+		expect(queuedWrites.has(STORAGE_KEY_V2)).toBe(false);
+	});
+
+	test('of a newer mount outlast an earlier mount’s writes landing', async () => {
+		const earlier = heldBackLoader();
+		const first = createConsentKernel({ now: Date.now() });
+		createPersistence({ kernel: first }, earlier.loader);
+		const accepting = first.commands.save({ marketing: true });
+
+		const later = heldBackLoader();
+		const kernel = createConsentKernel({ now: Date.now() });
+		createPersistence({ kernel }, later.loader);
+		vi.setSystemTime(NOW + 1000);
+		const rejecting = kernel.commands.save({ marketing: false });
+
+		await earlier.land();
+		await settle(accepting);
+		expect(queuedWrites.get(STORAGE_KEY_V2)).toBe(kernel);
+
+		await later.land();
+		await settle(rejecting);
+		expect(queuedWrites.has(STORAGE_KEY_V2)).toBe(false);
+	});
+
+	test('are not kept for writes made once the write code has landed', async () => {
+		const kernel = createConsentKernel({ now: Date.now() });
+		createPersistence({ kernel });
+		await settle(kernel.commands.save({ marketing: true }));
+		expect(queuedWrites.has(STORAGE_KEY_V2)).toBe(false);
+	});
+
+	test('end on clear()', () => {
+		const { loader } = heldBackLoader();
+		const kernel = createConsentKernel({ now: Date.now() });
+		const handle = createPersistence({ kernel }, loader);
+		void kernel.commands.save({ marketing: true });
+		expect(queuedWrites.has(STORAGE_KEY_V2)).toBe(true);
+
+		handle.clear();
+		expect(queuedWrites.has(STORAGE_KEY_V2)).toBe(false);
 	});
 });
 
