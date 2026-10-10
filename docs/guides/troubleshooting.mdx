@@ -136,6 +136,10 @@ messages, prefixed with the integration's name, such as
 
 Each failure message ends with what to do next. In a production build:
 ``Set `C15T_ON_BUILD_ERROR=runtime` (or `onBuildError: 'runtime'`) to deploy with runtime fetching.``
+The Vite plugins add one more fix. The plugin can't see a mode set in app
+code, so an app that uses `manifest({ manifestURL })` or
+`manifest({ source: 'runtime' })` should pass `source: 'runtime'` to
+`consentManifest()`, and the build skips the download.
 A failed download never reuses an older snapshot. With
 `C15T_ON_BUILD_ERROR=runtime`, the build finishes without a snapshot, and the
 manifest is fetched at runtime. Dev warnings end with
