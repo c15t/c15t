@@ -1,3 +1,6 @@
 'use client';
 
-export * from './components/panel-link';
+export {
+	ConsentDialogLink,
+	type ConsentDialogLinkProps,
+} from './components/panel-link';
