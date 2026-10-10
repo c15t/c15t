@@ -148,11 +148,24 @@ describe('createRuntimeKernel', () => {
 		expect(() =>
 			createRuntimeKernel({ mode: undefined as never, pkg })
 		).toThrowError(
-			`${owner}: \`mode\` is required. Use manifest(), hosted(), offline() or custom().`
+			`${owner}: \`mode\` is required. Use manifest() or hosted().`
 		);
 		expect(() =>
 			createRuntimeKernel({ mode: undefined as never, pkg })
 		).not.toThrowError(/ConsentManagerProvider/u);
+	});
+
+	test('the production missing-mode error names the package only', () => {
+		vi.stubEnv('NODE_ENV', 'production');
+		try {
+			expect(() =>
+				createRuntimeKernel({ mode: undefined as never, pkg: '@c15t/react' })
+			).toThrowError(
+				'@c15t/react: `mode` is required. Use manifest() or hosted().'
+			);
+		} finally {
+			vi.unstubAllEnvs();
+		}
 	});
 
 	test('merges prefetched backend vendors with code-declared ones and keeps the list version', () => {
