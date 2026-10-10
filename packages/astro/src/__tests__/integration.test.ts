@@ -414,6 +414,26 @@ describe('resolveOptions', () => {
 		).toThrowError(/must be a path that starts with "\/"/u);
 	});
 
+	it('rejects a snapshot with no route and no backend to save consent to', () => {
+		expect(() =>
+			resolveOptions({
+				mode: manifestMode({ snapshot: INLINE_MANIFEST }),
+				routePrefix: false,
+			})
+		).toThrowError(/routePrefix: false` leaves the browser nowhere to save/u);
+		expect(
+			resolveOptions({
+				backendURL: 'https://consent.example.com',
+				mode: manifestMode({ snapshot: INLINE_MANIFEST }),
+				routePrefix: false,
+			}).mode.type
+		).toBe('manifest');
+		expect(
+			resolveOptions({ mode: manifestMode({ snapshot: INLINE_MANIFEST }) })
+				.routePrefix
+		).toBe('/api/c15t');
+	});
+
 	it('rejects a function in the serialized options', () => {
 		// `JSON.stringify` would drop it, so a `posthog()` helper here used to
 		// lose its callbacks without a word.
