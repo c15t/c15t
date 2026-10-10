@@ -1,11 +1,12 @@
 import { createConsentManifestPlugin } from '@c15t/core/build';
 import type {
 	ConsentManifestPlugin,
-	ManifestBuildOptions,
+	ConsentManifestPluginOptions,
 } from '@c15t/core/build';
 
 export type {
 	ConsentManifest,
+	ConsentManifestPluginOptions,
 	ManifestBuildErrorMode,
 	ManifestBuildOptions,
 } from '@c15t/core/build';
@@ -43,9 +44,12 @@ export type VueConsentManifestPlugin = Omit<ConsentManifestPlugin, 'config'> & {
  * `manifest()` then fetches the manifest when the app starts. Set
  * `onBuildError` or `C15T_ON_BUILD_ERROR` to change that. When the policy
  * depends on the visitor's location, the build warns and suggests
- * `hosted()`.
+ * `hosted()`. With `manifest({ manifestURL })` or
+ * `manifest({ source: 'runtime' })`, pass `source: 'runtime'` here too, so
+ * the build never fetches a snapshot the app would discard.
  *
- * @param options - Backend URL and `onBuildError`. Appends `/manifest`.
+ * @param options - Backend URL, `onBuildError` and `source`. Appends
+ * `/manifest`.
  * @returns A Vite plugin.
  * @throws {Error} When the fetch fails in `'fail'` mode, the default for
  * `vite build`.
@@ -61,7 +65,7 @@ export type VueConsentManifestPlugin = Omit<ConsentManifestPlugin, 'config'> & {
  * ```
  */
 export const consentManifest = (
-	options: ManifestBuildOptions = {}
+	options: ConsentManifestPluginOptions = {}
 ): VueConsentManifestPlugin => {
 	const plugin = createConsentManifestPlugin(options, {
 		adviseHostedForLocation: true,

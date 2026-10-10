@@ -71,15 +71,15 @@ app.use(c15tVue, { mode: manifest({ source: 'runtime' }), scripts });
 ```
 
 Keep `consentManifest()` in `vite.config.ts`: `manifest()` reads the backend
-URL from it. The plugin can't see options you pass in app code, so a build
-with `manifest({ source: 'runtime' })` still downloads the manifest. To build
-without a reachable backend, set `consentManifest({ onBuildError: 'runtime' })`.
+URL from it. The plugin can't see options you pass in app code, so set
+`consentManifest({ source: 'runtime' })` as well. Without it, the build still
+downloads the manifest, and fails when the backend is down.
 
 To fetch the manifest from somewhere else, such as a CDN in front of your
 backend, pass `manifest({ manifestURL })`. The app fetches that URL when it
-starts and ignores the build's snapshot. As with `source: 'runtime'`, the
-build still downloads the manifest. Consent saves still go to the backend URL
-from `consentManifest()`.
+starts and ignores the build's snapshot. As with `source: 'runtime'`, set
+`consentManifest({ source: 'runtime' })` so the build doesn't download the
+manifest. Consent saves still go to the backend URL from `consentManifest()`.
 
 The manifest is the same for every visitor, so a CDN can cache it. Location,
 `geoURL` and language loading work as in the

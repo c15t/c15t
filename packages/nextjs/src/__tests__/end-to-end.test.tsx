@@ -1,5 +1,5 @@
 import type { KernelConfig } from '@c15t/core';
-import { manifest, offline } from '@c15t/core/modes';
+import { hosted, manifest, offline } from '@c15t/core/modes';
 /**
  * End-to-end tests for the Next.js adapter.
  *
@@ -290,11 +290,23 @@ describe('ConsentRoot: config picks the transport', () => {
 			'saves post to the backend',
 			undefined,
 			'https://consent.example.com/subjects',
+			undefined,
 		],
-		['with proxy, saves post to the route too', true, '/api/consent/subjects'],
+		[
+			'with proxy, saves post to the route too',
+			true,
+			'/api/consent/subjects',
+			undefined,
+		],
+		[
+			"with proxy, hosted()'s own backend URL stays on the server",
+			true,
+			'/api/consent/subjects',
+			hosted({ backendURL: 'https://hosted.example.com' }),
+		],
 	])(
 		'routePrefix: init hits the same-origin route, %s',
-		async (_name, proxy, saveURL) => {
+		async (_name, proxy, saveURL, mode) => {
 			const fetchSpy = vi.fn((url: string, _init?: RequestInit) =>
 				Promise.resolve(
 					url.endsWith('/subjects')
@@ -324,6 +336,7 @@ describe('ConsentRoot: config picks the transport', () => {
 						state={{}}
 						config={defineConsentConfig({
 							backendURL: 'https://consent.example.com',
+							mode,
 							proxy,
 							routePrefix: '/api/consent',
 						})}

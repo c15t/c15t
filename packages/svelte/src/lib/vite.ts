@@ -13,7 +13,7 @@ import path from 'node:path';
 import { createConsentManifestPlugin } from '@c15t/core/build';
 import type {
 	ConsentManifestPlugin,
-	ManifestBuildOptions,
+	ConsentManifestPluginOptions,
 } from '@c15t/core/build';
 
 // With its extension: Node loads this file straight from `dist`, unbundled.
@@ -22,6 +22,7 @@ import type { PreloadChunkName } from './kit/module-preload.js';
 
 export type {
 	ConsentManifest,
+	ConsentManifestPluginOptions,
 	ManifestBuildErrorMode,
 	ManifestBuildOptions,
 } from '@c15t/core/build';
@@ -279,14 +280,17 @@ export const createModulePreloadPlugin =
  * `vite build` and warns in `vite dev`, where `snapshot` is `undefined`.
  * Set `onBuildError` or `C15T_ON_BUILD_ERROR` to change that. In a Svelte
  * single-page app whose policy depends on the visitor's location, the
- * build warns and suggests `hosted()`.
+ * build warns and suggests `hosted()`. With `manifest({ manifestURL })` or
+ * `manifest({ source: 'runtime' })`, pass `source: 'runtime'` here too, so
+ * the build never fetches a snapshot the app would discard.
  *
  * In a SvelteKit build it also writes the URL of the on-demand chunk that
  * holds the script loader and the network blocker into the server output,
  * so `c15tHandle` adds a `<link rel="modulepreload">` for it to every page
  * whose provider has `scripts` or blocker rules.
  *
- * @param options - Backend URL and `onBuildError`. Appends `/manifest`.
+ * @param options - Backend URL, `onBuildError` and `source`. Appends
+ * `/manifest`.
  * @returns The Vite plugins, for `plugins`.
  * @throws {Error} When the fetch fails in `'fail'` mode, the default for
  * `vite build`.
@@ -300,7 +304,7 @@ export const createModulePreloadPlugin =
  * ```
  */
 export const consentManifest = (
-	options: ManifestBuildOptions = {}
+	options: ConsentManifestPluginOptions = {}
 ): [ConsentManifestPlugin, ModulePreloadPlugin, ServerGeneratedPlugin] => [
 	createConsentManifestPlugin(options, {
 		// A Svelte single-page app only: SvelteKit resolves on the server.

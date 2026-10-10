@@ -20,9 +20,9 @@ export interface BuildOutput {
 }
 
 /**
- * Fill the options the page left out from the build: the backend URL unless
- * a `manifestURL` names its own, and the snapshot unless the page passed
- * one, a `manifestURL`, or `source: 'runtime'`.
+ * Fill the options the page left out from the build: the backend URL that
+ * saves go to, and the snapshot unless the page passed one, a
+ * `manifestURL`, or `source: 'runtime'`.
  *
  * @param options - The page's options.
  * @param build - What the build downloaded.
@@ -34,11 +34,13 @@ export const withBuildDefaults = function withBuildDefaults(
 	build: BuildOutput
 ): BrowserManifestOptions {
 	const settings: BrowserManifestOptions = { ...options };
-	if (settings.manifestURL !== undefined) {
-		return settings;
-	}
+	// Saves go to the build's backend even when `manifestURL` names where
+	// the policy comes from, such as a CDN.
 	if (build.backendURL !== undefined && settings.backendURL === undefined) {
 		settings.backendURL = build.backendURL;
+	}
+	if (settings.manifestURL !== undefined) {
+		return settings;
 	}
 	if (
 		build.snapshot &&
@@ -59,6 +61,8 @@ export const withBuildDefaults = function withBuildDefaults(
  * `c15t/generated`. Without a
  * snapshot, such as in dev after a failed fetch, it fetches
  * `${backendURL}/manifest` at runtime. Saves go to the backend either way.
+ * With `manifestURL` or `source: 'runtime'`, also pass `source: 'runtime'`
+ * to `consentManifest()`, so the build downloads no snapshot.
  *
  * @param options - Overrides: your own `snapshot`, `source: 'runtime'`, a
  * `manifestURL`, a `backendURL`, or the visitor's location as `inputs`.

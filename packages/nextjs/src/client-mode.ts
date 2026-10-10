@@ -10,7 +10,7 @@
  *
  * @internal
  */
-import type { ConsentMode } from '@c15t/core/modes';
+import type { ConsentMode, HostedMode } from '@c15t/core/modes';
 import {
 	lazyBrowserManifest,
 	lazyHosted,
@@ -29,11 +29,14 @@ let warnedImplementation = false;
 
 /** Where the transport sends requests. */
 export interface NextClientModeOptions {
-	/**
-	 * Backend URL for saves, and for `GET /init` in hosted mode. With
-	 * `proxy`, the route prefix.
-	 */
+	/** Backend URL for saves, and for `GET /init` in hosted mode. */
 	backendURL?: string;
+	/**
+	 * The consent route forwards writes, so the browser sends everything
+	 * to `routePrefix`, even for a `hosted()` with its own `backendURL`.
+	 * The server helpers keep using the absolute URLs.
+	 */
+	proxy?: boolean;
 	/** Prefix of the app's catch-all consent route, such as `/api/c15t`. */
 	routePrefix?: string;
 }
@@ -52,7 +55,7 @@ export interface NextClientModeOptions {
  * - `offline()`: the offline transport, loaded on first init.
  *
  * @param mode - The mode as data, or a transport factory, used as is.
- * @param options - Backend URL and route prefix.
+ * @param options - Backend URL, route prefix and `proxy`.
  * @returns A provider transport factory.
  * @throws {Error} When `manifest()` or `hosted()` has no backend URL.
  * @internal
@@ -83,10 +86,10 @@ export const createClientMode = function createClientMode(
 		return Object.assign(lazyOffline({ policyRules: data.policyRules }), data);
 	}
 	// Saves never fall back to `routePrefix`: the route takes writes only
-	// with `proxy`, and then `ConsentRoot` passes it as `backendURL`.
-	const backendURL =
-		(data.type === 'hosted' ? data.backendURL : undefined) ??
-		options.backendURL;
+	// with `proxy`. Of the modes left, only `hosted()` has a `backendURL`.
+	const backendURL = options.proxy
+		? routePrefix
+		: ((data as HostedMode).backendURL ?? options.backendURL);
 	if (!backendURL) {
 		// Production builds drop the setup hint and its variable names.
 		throw new Error(

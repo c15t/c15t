@@ -24,7 +24,9 @@ export type ManifestModeOptions = BrowserManifestOptions;
  * With `manifestURL`, that URL is fetched when the page loads and the
  * build's snapshot is not used. Without a snapshot, as after
  * `source: 'runtime'` or a dev server that could not reach the backend,
- * the manifest is fetched from the backend when the page loads.
+ * the manifest is fetched from the backend when the page loads. With
+ * either, also pass `source: 'runtime'` to `consentManifest()`, so the
+ * build downloads no snapshot.
  *
  * Only English base copy is bundled. Another language's copy loads the
  * first time a visitor resolves to it.
@@ -50,7 +52,6 @@ export const manifest = function manifest(
 	options: ManifestModeOptions = {}
 ): BrowserManifestModeFactory {
 	return browserManifest({
-		backendURL,
 		// A `manifestURL` is fetched at runtime and `source: 'runtime'` asks
 		// for the backend's, so both skip the build's snapshot. A snapshot of
 		// your own replaces it.
@@ -59,5 +60,8 @@ export const manifest = function manifest(
 				? undefined
 				: snapshot,
 		...options,
+		// Saves go to the build's backend, even when `manifestURL` names
+		// where the policy comes from.
+		backendURL: options.backendURL ?? backendURL,
 	} as ManifestModeOptions);
 };

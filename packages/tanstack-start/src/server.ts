@@ -353,7 +353,8 @@ export interface ResolveConsentOptions extends ConsentRequestOptions {
 	/**
 	 * The route at {@link routePrefix} was created with
 	 * `createConsentRoute({ proxy: true })`, so the browser sends saves
-	 * through it instead of straight to `backendURL`. Needs `routePrefix`.
+	 * through it instead of straight to `backendURL`, or to `hosted()`'s
+	 * own `backendURL`, which the server keeps using. Needs `routePrefix`.
 	 *
 	 * @default false
 	 */
@@ -432,6 +433,12 @@ const clientConfigFor = function clientConfigFor(
 	const { mode } = options;
 	if (mode?.type === 'manifest' && mode.resolve !== 'browser') {
 		const { snapshot: _snapshot, ...data } = mode;
+		config.mode = data;
+	} else if (mode?.type === 'hosted' && options.proxy) {
+		// The browser's init and saves go through the route, which
+		// `clientMode()` uses only when the mode names no URL of its own.
+		// The server keeps the hosted backend URL.
+		const { backendURL: _backendURL, ...data } = mode;
 		config.mode = data;
 	} else if (mode !== undefined) {
 		config.mode = mode;

@@ -41,6 +41,18 @@ describe('manifest()', () => {
 		expect(mode.backendURL).toBe('https://consent.example.com');
 	});
 
+	test("a manifestURL on a CDN still saves to the build's backend", () => {
+		for (const options of [
+			{ manifestURL: 'https://cdn.example/policy.json' },
+			// As from an unset `import.meta.env` variable.
+			{ backendURL: undefined, manifestURL: 'https://cdn.example/policy.json' },
+		]) {
+			const mode = manifest(options);
+			expect(mode.backendURL).toBe('https://consent.example.com');
+			expect(mode.snapshot).toBeUndefined();
+		}
+	});
+
 	test('options replace the defaults', () => {
 		const own: ConsentManifest = { ...BUILT, revision: 'own' };
 		expect({

@@ -67,16 +67,11 @@ const createMode = function createMode(
 	config: ConsentConfig | undefined,
 	options: ConsentClientOptions['options']
 ) {
-	let backendURL = readBackendURLFromEnv();
-	if (config) {
-		// With `proxy`, saves go through the app's consent route; the server
-		// helpers keep the config's absolute backend URL.
-		backendURL = config.proxy ? config.routePrefix : config.backendURL;
-	}
-	return createClientMode(options?.mode ?? config?.mode, {
-		backendURL,
-		routePrefix: config?.routePrefix,
-	});
+	// The config carries the backend URL, route prefix and `proxy`.
+	return createClientMode(
+		options?.mode ?? config?.mode,
+		config ?? { backendURL: readBackendURLFromEnv() }
+	);
 };
 
 type RootOptions = ConsentClientOptions['options'];
