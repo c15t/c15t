@@ -19,6 +19,7 @@ const SSRBoundary = async ({ children }: { children: ReactNode }) => {
 
 	return (
 		<ConsentShell
+			styles={false}
 			state={state}
 			scenario="ssr"
 		>

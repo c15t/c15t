@@ -8,6 +8,7 @@
  */
 
 import {
+	applyInitParamsToHeaders,
 	buildConsentSessionReport,
 	CONSENT_EXPERIMENT_HEADER,
 	parseExperimentHeader,
@@ -35,9 +36,16 @@ export const register = function register({
 			tags: ['Init'],
 		}),
 		async (c) => {
+			// A browser sends its version, contract, overrides and experiment
+			// arm as query parameters (`v`, `contract`, `country`, `region`,
+			// `gpc`, `experiment`), so a cross-origin init needs no CORS
+			// preflight. Older clients and server callers send the same
+			// values as headers. Folded onto the header names, a parameter
+			// wins and every reader below sees one set of inputs.
+			const headers = applyInitParamsToHeaders(c.req.url, c.req.raw.headers);
 			const { body, manifest, signals } = await buildInitResponse(
 				options.manifest ?? {},
-				c.req.raw.headers,
+				headers,
 				options.policySnapshot,
 				options.gvl,
 				options.tenantId
@@ -62,7 +70,7 @@ export const register = function register({
 								// The arm an undecided visitor runs; the client sends it
 								// only while no choice is stored.
 								experiment: parseExperimentHeader(
-									c.req.header(CONSENT_EXPERIMENT_HEADER)
+									headers.get(CONSENT_EXPERIMENT_HEADER)
 								),
 								init: body,
 								inputs: signals,
@@ -80,16 +88,17 @@ export const register = function register({
 							// The instance's scope, as a host's report is stamped.
 							tenantId: instanceTenant(options),
 						},
-						{ delivery: 'detached', ip: 'connection' }
+						{ delivery: 'detached', headers, ip: 'connection' }
 					)
 				);
 			}
 			// Geo-dependent by definition, so it must never be cached across
-			// visitors the way /manifest is. The contract header is part of the
+			// visitors the way /manifest is. The contract is part of the
 			// response identity too, for any cache that ignores no-store, and so
 			// is the declared vendor scope: it changes which vendors the response
 			// names, which is the one thing a consent surface may not serve to the
-			// wrong client.
+			// wrong client. A contract sent as `contract` is already in
+			// the URL every cache keys on; `Vary` covers the legacy header.
 			c.header('Cache-Control', 'no-store');
 			c.header('Vary', 'Origin, x-c15t-policy-contract, x-c15t-vendors');
 			return c.json(body);

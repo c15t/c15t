@@ -394,18 +394,12 @@ const createVueHostedTransport = function createVueHostedTransport(
 	return {
 		...baseTransport,
 		async init(ctx) {
+			// Country, region and GPC overrides reach `/init` from `ctx` as
+			// query parameters; as headers here they would cost a cross-origin
+			// init a CORS preflight.
 			const initHeaders = { ...headers };
 			if (ctx.overrides.language) {
 				initHeaders['accept-language'] = ctx.overrides.language;
-			}
-			if (ctx.overrides.gpc !== undefined) {
-				initHeaders['sec-gpc'] = ctx.overrides.gpc ? '1' : '0';
-			}
-			if (ctx.overrides.country) {
-				initHeaders['x-c15t-country'] = ctx.overrides.country;
-			}
-			if (ctx.overrides.region) {
-				initHeaders['x-c15t-region'] = ctx.overrides.region;
 			}
 
 			const contextualHeaders = pickAllowedInitHeaders(initHeaders);

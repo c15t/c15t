@@ -16,6 +16,7 @@ const ResolvedConsent = async () => {
 
 	return (
 		<ConsentShell
+			styles={false}
 			state={state}
 			scenario="ssr-fallback"
 		>

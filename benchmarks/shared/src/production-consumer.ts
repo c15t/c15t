@@ -196,6 +196,39 @@ export const consumerPackageJson = function consumerPackageJson(
 	};
 };
 
+/** How an arm's stock surfaces get c15t's rules. */
+export type ConsumerStyleDelivery = 'automatic' | 'external';
+
+/**
+ * A built `@c15t/react` module that exists only in versions whose components
+ * deliver their own styles, relative to the package directory.
+ */
+export const AUTOMATIC_STYLES_MODULE =
+	'dist/components/shared/surface-styles.js';
+
+/** The aggregate stylesheet an arm without automatic styles imports. */
+export const CONSUMER_EXTERNAL_STYLESHEET = 'c15t/react/styles.css';
+
+/**
+ * The consumer's global stylesheet for one arm. The template imports nothing
+ * from c15t, as the docs recommend once components deliver their own styles.
+ * An older build still needs the aggregate import for a styled banner, so the
+ * comparison measures each product as its users set it up.
+ *
+ * @param source - The template's `app/globals.css`.
+ * @param delivery - How the arm's installed build delivers its styles.
+ * @returns The stylesheet to build the arm with.
+ */
+export const consumerGlobalStyles = function consumerGlobalStyles(
+	source: string,
+	delivery: ConsumerStyleDelivery
+): string {
+	if (delivery === 'automatic') {
+		return source;
+	}
+	return `@import '${CONSUMER_EXTERNAL_STYLESHEET}';\n\n${source}`;
+};
+
 /** Scenario names the production-consumer bench measures. */
 export type ConsumerScenarioName =
 	| 'fresh'

@@ -20,8 +20,6 @@ import {
 import { scripts } from '../scripts';
 import { testBackend } from '../test-backend';
 
-import consentCss from 'c15t/tanstack-start/styles.css?url';
-
 const backendURL = 'https://your-project.inth.app';
 
 // Declare the server function in your own module. Start's compiler splits
@@ -65,7 +63,6 @@ export const Route = createRootRoute({
 	...consentLoaderOptions,
 	component: RootComponent,
 	head: () => ({
-		links: [{ href: consentCss, rel: 'stylesheet' }],
 		meta: [
 			{ charSet: 'utf-8' },
 			{ content: 'width=device-width, initial-scale=1', name: 'viewport' },

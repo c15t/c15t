@@ -24,6 +24,7 @@ export const getServerSideProps: GetServerSideProps<
 
 const ManifestSSRPage = ({ state }: ManifestSSRPageProps) => (
 	<ConsentShell
+		styles={false}
 		state={state}
 		scenario="manifest-ssr"
 		transport="manifest"

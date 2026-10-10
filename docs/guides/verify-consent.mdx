@@ -43,10 +43,11 @@ nothing.
 | Turn that category off again | The page reloads, and the vendor does not load after the reload. |
 | Navigate between pages without a full reload | Each vendor loads once, not once per navigation. |
 
-Google Tag and Google Tag Manager load before consent on purpose and send
-Consent Mode signals. For them, check that the consent state in the request
-parameters changes when the visitor chooses, not that requests are absent.
-See [Google Tag Manager](/docs/integrations/google-tag-manager).
+By default, Google Tag and Google Tag Manager load before consent on purpose
+and send Consent Mode signals. For them, check that the consent state in the
+request parameters changes when the visitor chooses, not that requests are
+absent. With `loadMode: 'after-consent'`, they follow the table above. See
+[Google Tag Manager](/docs/integrations/google-tag-manager).
 
 ## Check each location
 

@@ -1,6 +1,6 @@
 ---
 title: Google Tag Manager
-description: Load a Google Tag Manager container with c15t Consent Mode v2 signals, configure consent checks inside the container, and verify both in DevTools.
+description: Load a Google Tag Manager container before or after consent with c15t Consent Mode v2 signals, configure consent checks inside the container, and verify both in DevTools.
 icon: google-tag-manager
 group: integrations
 ---
@@ -29,15 +29,68 @@ export const scripts = [googleTagManager({ id: 'GTM-XXXXXXX' })];
 | `dataLayer` | `'dataLayer'` | Queue name. A custom name adds `&l=<name>` to the container URL and renames the helper's queue function to `<name>Gtag`. |
 | `updateEventName` | `'consent-update'` | `dataLayer` event pushed after every consent update. Use it as a GTM trigger. |
 | `consentMapping` | The table below | Replaces the category-to-Google mapping. |
+| `loadMode` | `'always'` | When `gtm.js` loads. See [choose when the container loads](#choose-when-the-container-loads). |
+| `category` | `'necessary'`, or `{ or: ['measurement', 'marketing'] }` with `loadMode: 'after-consent'` | Consent condition for the container. With `'after-consent'`, `gtm.js` waits for it. With `'always'`, it sets the script's permission, which callbacks receive, but does not delay loading. |
+
+## Choose when the container loads
+
+| `loadMode` | Until the category is allowed | After the category is allowed |
+| --- | --- | --- |
+| `'always'` | Loads `gtm.js` and sends `consent` `default` with the current permissions before the `gtm.js` start event. | Sends `consent` `update`, then the `consent-update` event. |
+| `'after-consent'` | Sends nothing to Google. The helper creates no `dataLayer` or `gtag` function. | Loads `gtm.js` once. `consent` `default` carries the current permissions and comes before the `gtm.js` start event. Later changes send `update` and `consent-update`. |
+
+Use `'after-consent'` when your policy forbids any request to Google before
+the visitor opts in:
+
+{/* example: fragment */}
+
+```ts title="src/consent-scripts.ts (partial)"
+googleTagManager({ id: 'GTM-XXXXXXX', loadMode: 'after-consent' }),
+```
+
+`'after-consent'` waits for the category to be allowed, not for a recorded
+choice. Under an `opt-in` policy, that happens when the visitor allows it.
+Under an `opt-out` or `none` policy, optional categories are allowed before a
+choice, so `gtm.js` loads on the first page unless a saved refusal or a
+privacy signal restricts the category; see
+[policies](/docs/concepts/policies).
+
+`necessary` is always allowed, so a gated container needs another category.
+This mode defaults to `{ or: ['measurement', 'marketing'] }`. A container
+usually holds Analytics tags and advertising tags, and this default loads it
+once the visitor allows either purpose. Google tags inside still follow the
+Consent Mode types, so an Ads tag stays restricted for a visitor who allowed
+only measurement. If the container holds only Analytics tags, pass
+`category: 'measurement'`.
+
+This mode gives up part of Consent Mode. With `'always'`, Google tags send
+cookieless pings while a type is denied, and Google uses them to model
+conversions and behavior for visitors who refused or have not chosen. With
+`'after-consent'`, visitors whose category is denied send nothing, so Google
+has no data to model them from. Reports cover only visitors who allowed the
+category.
+
+The container starts with the visitor's current choice in its `default`
+command. On the page where the visitor accepts, it loads after the choice, so
+no `consent-update` event fires for that choice. Triggers that wait only for
+`consent-update` first fire on a later change. Use the tag's consent settings,
+described below, for tags that should fire on the first page.
+
+When the visitor withdraws the category, c15t reloads the page and the new
+page does not load `gtm.js`. With `reloadOnConsentRevoked: false`, the running
+container stays on the page and gets an `update` that denies the withdrawn
+types. A later grant reuses it instead of starting a second container.
 
 <include src="../shared/integrations/google-consent-mode.mdx" />
 
 ## Configure consent inside the container
 
-`googleTagManager` uses the `necessary` category and `alwaysLoad`, so the
-container loads on every page. Consent signals reach Google tags that support
-Consent Mode. Other tags in the container, such as a third-party pixel added as
-Custom HTML, ignore those signals and fire on their triggers.
+With the default `loadMode: 'always'`, `googleTagManager` uses the `necessary`
+category and `alwaysLoad`, so the container loads on every page. With
+`'after-consent'`, it loads once its category is allowed. In both modes,
+consent signals reach Google tags that support Consent Mode. Other tags in the
+container, such as a third-party pixel added as Custom HTML, ignore those
+signals and fire on their triggers.
 
 For each non-Google tag, add a consent requirement in the tag's consent
 settings, or fire it from a Custom Event trigger on `consent-update`. If a
@@ -53,6 +106,8 @@ choices per arm. To see the arm in GTM as well, forward the `onSurfaceShown` and
 
 ## Verify Google Tag Manager
 
+With the default `loadMode: 'always'`:
+
 1. In a private window with an opt-in policy, load the page. `gtm.js` loads.
    In Google Tag Assistant, the first consent command is `default` with
    `analytics_storage` and `ad_storage` set to `denied`.
@@ -64,6 +119,20 @@ choices per arm. To see the arm in GTM as well, forward the `onSurfaceShown` and
    `consent-update` event, and measurement tags fire.
 4. Turn measurement off again and save. c15t reloads the page, and the new
    page starts with `analytics_storage` denied.
+
+With `loadMode: 'after-consent'`:
+
+1. In a private window with an opt-in policy, filter DevTools Network by
+   `google` and load the page. No request appears, and `window.dataLayer` is
+   `undefined` in the Console.
+2. Allow measurement. `gtm.js` loads once. In Tag Assistant, the first command
+   is `consent` `default` with `analytics_storage` set to `granted`, before
+   the container starts.
+3. Allow marketing as well. Tag Assistant shows an `update` command that
+   grants the ad types, followed by a `consent-update` event. No second
+   `gtm.js` request appears.
+4. Turn both off again and save. c15t reloads the page, and the new page makes
+   no request to Google.
 
 See the [consent verification guide](/docs/guides/verify-consent) for
 navigation and hosting checks.

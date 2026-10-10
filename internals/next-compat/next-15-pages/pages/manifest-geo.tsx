@@ -2,6 +2,7 @@ import { ConsentShell } from '@c15t/next-compat-shared/consent-shell';
 
 const ManifestGeoPage = () => (
 	<ConsentShell
+		styles={false}
 		scenario="manifest-geo"
 		transport="manifest-geo"
 	>
