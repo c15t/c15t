@@ -43,6 +43,12 @@ export default mergeConfig(
 					),
 				},
 				{
+					'#c15t/route-prefix': resolve(
+						__dirname,
+						'./src/__tests__/route-prefix-virtual.ts'
+					),
+				},
+				{
 					'#c15t/client-manifest-snapshot': resolve(
 						__dirname,
 						'./src/__tests__/manifest-snapshot.ts'

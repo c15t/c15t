@@ -557,6 +557,28 @@ describe('mode and routePrefix', () => {
 		);
 	});
 
+	test.each([
+		[{ backendURL: '/api/self-host' }, '/api/c15t'],
+		[{ backendURL: '/api/self-host', routePrefix: '/consent/' }, '/consent'],
+		[{ backendURL: '/api/self-host', routePrefix: false }, false],
+	])(
+		'pins the built routePrefix against runtime overrides, with %j',
+		async (c15t, built) => {
+			const nuxt = await setUpModule(c15t);
+			const { plugins = [], virtual = {} } = nuxt.options.nitro as {
+				plugins?: string[];
+				virtual?: Record<string, string | (() => string)>;
+			};
+			expect(
+				plugins.filter((plugin) => plugin.includes('route-prefix.nuxt'))
+			).toHaveLength(1);
+			const source = virtual['#c15t/route-prefix'];
+			expect(typeof source === 'function' ? source() : source).toBe(
+				`export default ${JSON.stringify(built)};\n`
+			);
+		}
+	);
+
 	test('hosted() needs no consent route', async () => {
 		const nuxt = await setUpModule({
 			backendURL: 'https://consent.example.com',

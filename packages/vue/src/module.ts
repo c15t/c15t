@@ -334,8 +334,8 @@ const withoutSnapshot = function withoutSnapshot(
  * Puts the module options in the public runtime config, which the server
  * render and the browser read. Values already there win, except
  * `routePrefix`: the consent route is mounted at the checked option, so the
- * browser must get that one. A runtime `NUXT_PUBLIC_C15T_ROUTE_PREFIX`
- * cannot move the mounted route either, so it is not supported.
+ * browser must get that one. The `route-prefix` server plugin does the same
+ * for a runtime `NUXT_PUBLIC_C15T_ROUTE_PREFIX`.
  */
 const publishOptions = function publishOptions(
 	options: Omit<ModuleOptions, 'devtools' | 'initPrefetch' | 'onBuildError'>,
@@ -575,6 +575,11 @@ const module: NuxtModule<ModuleOptions> = defineNuxtModule<ModuleOptions>({
 		);
 
 		addPlugin(resolver.resolve('./runtime/plugin.nuxt'));
+		// The route is mounted at the built prefix; a runtime
+		// `NUXT_PUBLIC_C15T_ROUTE_PREFIX` would send the browser elsewhere.
+		nuxt.options.nitro.virtual['#c15t/route-prefix'] = () =>
+			`export default ${JSON.stringify(options.routePrefix)};\n`;
+		addServerPlugin(resolver.resolve('./runtime/server/route-prefix.nuxt'));
 		// Nuxt applies `NUXT_PUBLIC_C15T_BACKEND_URL` on a running server by
 		// itself. The Inth variable needs a plugin, and only while neither the
 		// option nor the c15t variable gave the build its URL.

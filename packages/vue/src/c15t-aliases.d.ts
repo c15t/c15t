@@ -62,3 +62,10 @@ declare module '#c15t/client-manifest-snapshot' {
 	const manifest: ConsentManifest | undefined;
 	export default manifest;
 }
+
+/** A Nitro virtual the module registers for its route prefix plugin. */
+declare module '#c15t/route-prefix' {
+	/** The prefix the build mounted the consent route at, or `false`. */
+	const routePrefix: string | false;
+	export default routePrefix;
+}
