@@ -41,7 +41,7 @@ import { slotAttrs } from '../utils/slot-attrs';
 import ConsentActions from './actions.vue';
 import DescriptionContent from './description-content.vue';
 import EarlyTapScript from './early-tap-script';
-import { dialogIntentHandler } from './lazy-surfaces';
+import { dialogIntentHandler, useIdleDialogPrefetch } from './lazy-surfaces';
 import ConsentTag from './tag.vue';
 
 /**
@@ -236,6 +236,14 @@ const rightLabels = computed<Record<PolicyRight, string>>(() => {
  */
 const warmDialogOnIntent = dialogIntentHandler(
 	'[data-action="customize"], [data-action="right"]',
+	() => false
+);
+
+// While the banner shows, prefetch the dialog once the page has loaded and
+// gone quiet, so the first open rarely waits for it. A banner that the
+// model filters hide holds no gate.
+useIdleDialogPrefetch(
+	() => isOpen.value,
 	() => false
 );
 

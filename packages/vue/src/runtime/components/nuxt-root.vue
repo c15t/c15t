@@ -15,7 +15,6 @@ import {
 	LazyConsentManager,
 	LazyIabConsentBanner,
 	LazyIabConsentDialog,
-	useIdleDialogPrefetch,
 } from './lazy-surfaces';
 
 const props = defineProps<{
@@ -62,10 +61,6 @@ watch(
 		}
 	},
 	{ immediate: true }
-);
-useIdleDialogPrefetch(
-	() => activeUI.value === 'banner',
-	() => Boolean(init.value?.gvl || init.value?.gvlReference)
 );
 </script>
 

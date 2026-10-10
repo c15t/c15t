@@ -119,16 +119,23 @@ const roots = {
 		(await import('../runtime/components/nuxt-root.vue')).default as Component,
 };
 
-const mountRoot = async (name: keyof typeof roots) => {
+const mountRootApp = async (
+	name: keyof typeof roots,
+	appConfig: Partial<RuntimeConsentConfig> = {}
+) => {
 	const { c15tVue } = await import('../index');
 	const { resetIdleDialogPrefetchForTests } =
 		await import('../runtime/components/lazy-surfaces');
 	resetIdleDialogPrefetchForTests({ scheduleIdle });
 	const Root = await roots[name]();
-	const wrapper = mount(Root, {
+	return mount(Root, {
 		attachTo: document.body,
-		global: { plugins: [[c15tVue, config]] },
+		global: { plugins: [[c15tVue, { ...config, ...appConfig }]] },
 	});
+};
+
+const mountRoot = async (name: keyof typeof roots) => {
+	const wrapper = await mountRootApp(name);
 	expect(
 		await waitFor(() => byTestId('consent-banner-customize-button'))
 	).toBeTruthy();
@@ -190,6 +197,19 @@ describe.each(Object.keys(roots) as (keyof typeof roots)[])('%s', (Root) => {
 			runIdle();
 			await settle();
 			expect(loads.manager).toBe(1);
+		} finally {
+			wrapper.unmount();
+		}
+	});
+
+	test('skips the idle load when the model filter hides the banner', async () => {
+		// The policy's model is opt-in, so no banner renders.
+		const wrapper = await mountRootApp(Root, { bannerModels: ['opt-out'] });
+		try {
+			await waitFor(() => vi.mocked(fetch).mock.calls.length > 0);
+			await settle();
+			expect(byTestId('consent-banner-customize-button')).toBeNull();
+			expect(loads.idle).toHaveLength(0);
 		} finally {
 			wrapper.unmount();
 		}

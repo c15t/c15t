@@ -28,7 +28,7 @@ import { useLateEntry } from '../composables/use-late-entry';
 import { useFocusTrap } from '../primitives/use-focus-trap';
 import { slotAttrs } from '../utils/slot-attrs';
 import ConsentActions from './actions.vue';
-import { dialogIntentHandler } from './lazy-surfaces';
+import { dialogIntentHandler, useIdleDialogPrefetch } from './lazy-surfaces';
 import ConsentTag from './tag.vue';
 
 const IAB_BANNER_LAYOUT: (PresentationAction | PresentationAction[])[] = [
@@ -157,6 +157,14 @@ const descriptionParts = computed(() => {
  */
 const warmDialogOnIntent = dialogIntentHandler(
 	'[data-action="customize"], [data-testid="iab-consent-banner-partners-link"]',
+	() => true
+);
+
+// While the banner shows, prefetch the dialog once the page has loaded and
+// gone quiet, so the first open rarely waits for it. A banner that the
+// model filters hide holds no gate.
+useIdleDialogPrefetch(
+	() => isOpen.value,
 	() => true
 );
 
