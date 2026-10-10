@@ -14,7 +14,6 @@ import {
 	readNuxtMode,
 	readNuxtRoutePrefix,
 	resolvesOnServer,
-	withClientData,
 } from '../runtime/nuxt-mode';
 
 type WindowWithC15t = Window & {
@@ -165,31 +164,6 @@ describe('plain Vue modes', () => {
 			snapshot: createManifestFixture(),
 		});
 		const transport = mode({} as Parameters<typeof mode>[0]);
-		await transport
-			.init?.({
-				journey: undefined,
-				overrides: {},
-			} as unknown as Parameters<NonNullable<typeof transport.init>>[0])
-			.catch(() => null);
-		expect(String(fetch.mock.calls[0]?.[0])).toContain(
-			'https://consent.example.com/init'
-		);
-	});
-
-	test("Nuxt's browser resolution also sends a visitor without a location to /init", async () => {
-		const fetch = vi
-			.fn<typeof globalThis.fetch>()
-			.mockRejectedValue(new Error('offline'));
-		vi.stubGlobal('fetch', fetch);
-		const mode = withClientData(
-			{ resolve: 'browser', type: 'manifest' },
-			{},
-			createManifestFixture()
-		);
-		const factory = clientMode(mode, {
-			backendURL: 'https://consent.example.com',
-		});
-		const transport = factory({} as Parameters<typeof factory>[0]);
 		await transport
 			.init?.({
 				journey: undefined,

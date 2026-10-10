@@ -4,7 +4,6 @@
  * build and every runtime agree on them.
  */
 import type { ConsentMode } from '@c15t/core/modes';
-import type { ConsentManifest } from '@c15t/schema/types';
 
 /** Where the module serves its consent route unless `routePrefix` says otherwise. */
 export const DEFAULT_NUXT_ROUTE_PREFIX = '/api/c15t';
@@ -89,36 +88,4 @@ export const resolvesOnServer = function resolvesOnServer(
 		return mode.resolve !== 'browser';
 	}
 	return mode.type === 'hosted';
-};
-
-/**
- * The mode the browser runs: browser resolution gets the snapshot the
- * build bundled for it, and `hosted()` forwards the consent headers the
- * server read from the request (a CDN's country, for example) to `/init`.
- *
- * As in every single-page app, a policy that depends on a location that
- * neither `inputs` nor `geoURL` supplies is resolved by the backend's
- * `/init`, never as an unknown location: that could apply another
- * region's rules.
- *
- * @param mode - The mode from `nuxt.config.ts`.
- * @param headers - Consent headers the server read from the request.
- * @param snapshot - The snapshot the build bundled for the browser, if any.
- * @returns The mode for `clientMode()`.
- * @internal
- */
-export const withClientData = function withClientData(
-	mode: ConsentMode,
-	headers: Record<string, string>,
-	snapshot: ConsentManifest | undefined
-): ConsentMode {
-	if (mode.type === 'manifest' && mode.resolve === 'browser') {
-		return snapshot && !mode.snapshot
-			? { ...mode, snapshot, source: undefined }
-			: mode;
-	}
-	if (mode.type === 'hosted' && Object.keys(headers).length > 0) {
-		return { ...mode, headers: { ...headers, ...mode.headers } };
-	}
-	return mode;
 };
