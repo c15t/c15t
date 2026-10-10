@@ -521,6 +521,45 @@ const fixed = require(\`@c15t/react\`);
 `);
 	});
 
+	it('rewrites only require() calls that load Node modules', async () => {
+		const shadowed = `function lookup(require) {
+	return require('@c15t/react');
+}
+`;
+		const local = `const require = (name) => name;
+require('@c15t/react');
+`;
+		const { read, result } = await run(
+			{ c15t: '^3.0.0' },
+			{
+				'src/created.mjs': `import { createRequire } from 'node:module';
+const require = createRequire(import.meta.url);
+require('@c15t/react');
+`,
+				'src/global.cjs': `require('@c15t/react');
+`,
+				'src/local.cjs': local,
+				'src/shadowed.cjs': shadowed,
+			}
+		);
+
+		expect(await read('src/shadowed.cjs')).toBe(shadowed);
+		expect(await read('src/local.cjs')).toBe(local);
+		expect(await read('src/created.mjs'))
+			.toBe(`import { createRequire } from 'node:module';
+const require = createRequire(import.meta.url);
+// ${ESM_TODO}
+require('c15t/react');
+`);
+		expect(await read('src/global.cjs')).toBe(`// ${ESM_TODO}
+require('c15t/react');
+`);
+		expect(result.warnings?.map(({ filePath }) => filePath).sort()).toEqual([
+			expect.stringMatching(/src\/created\.mjs$/u),
+			expect.stringMatching(/src\/global\.cjs$/u),
+		]);
+	});
+
 	it('rewrites TypeScript import-equals declarations', async () => {
 		const { read, result } = await run(
 			{ c15t: '^3.0.0' },

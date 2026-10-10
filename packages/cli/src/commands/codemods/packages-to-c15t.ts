@@ -17,6 +17,7 @@ import {
 	addTodo,
 	applyEdits,
 	elementRemovals,
+	isNodeRequire,
 	propertyKey,
 	TODO_MARKER,
 	UNCHANGED,
@@ -241,12 +242,12 @@ const isPostcssPluginKey = function isPostcssPluginKey(
 	);
 };
 
-/** Whether a call is `require(...)`. */
+/** Whether a call is Node's `require(...)`, not a local function of that name. */
 const isRequireCall = function isRequireCall(
 	call: TsMorphTypes.CallExpression
 ): boolean {
 	const callee = call.getExpression();
-	return Node.isIdentifier(callee) && callee.getText() === 'require';
+	return Node.isIdentifier(callee) && isNodeRequire(callee);
 };
 
 /**

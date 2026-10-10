@@ -177,6 +177,51 @@ export const referencesOf = function referencesOf(
 		);
 };
 
+/**
+ * Whether an identifier names Node's `require`: the global, or a binding
+ * created by `createRequire()` from `node:module`. A parameter or local
+ * declaration that shadows `require` does not count.
+ */
+export const isNodeRequire = function isNodeRequire(
+	identifier: TsMorphTypes.Identifier
+): boolean {
+	const sourceFile = identifier.getSourceFile();
+	const declarations = identifier.getSymbol()?.getDeclarations() ?? [];
+	const localDeclarations = declarations.filter(
+		(declaration) => declaration.getSourceFile() === sourceFile
+	);
+	if (localDeclarations.length === 0) {
+		return identifier.getText() === 'require';
+	}
+	return localDeclarations.some((declaration) => {
+		if (!Node.isVariableDeclaration(declaration)) {
+			return false;
+		}
+		const initializer = declaration.getInitializer();
+		if (!initializer || !Node.isCallExpression(initializer)) {
+			return false;
+		}
+		const factory = initializer.getExpression();
+		return (
+			factory
+				.getSymbol()
+				?.getDeclarations()
+				.some((imported) => {
+					if (
+						!Node.isImportSpecifier(imported) ||
+						imported.getName() !== 'createRequire'
+					) {
+						return false;
+					}
+					const moduleName = imported
+						.getFirstAncestorByKind(SyntaxKind.ImportDeclaration)
+						?.getModuleSpecifierValue();
+					return moduleName === 'node:module' || moduleName === 'module';
+				}) ?? false
+		);
+	});
+};
+
 /** An object property's key without quotes, or undefined when computed. */
 export const propertyKey = function propertyKey(
 	property: TsMorphTypes.ObjectLiteralElementLike
