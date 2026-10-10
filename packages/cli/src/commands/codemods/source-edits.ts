@@ -299,10 +299,26 @@ const siblingsOf = function siblingsOf(
 	);
 };
 
+/** Whether a comment or other text sits between two adjacent elements. */
+const hasTriviaBetween = function hasTriviaBetween(
+	left: TsMorphTypes.Node,
+	right: TsMorphTypes.Node
+): boolean {
+	return (
+		left
+			.getSourceFile()
+			.getFullText()
+			.slice(left.getEnd(), right.getStart())
+			.replace(',', '')
+			.trim() !== ''
+	);
+};
+
 /**
  * Ranges that remove `elements` and their commas. Adjacent elements of one
  * list are removed as a single run: removing `b` and `c` from
- * `{ a: 1, b: 2, c: 3 }` leaves `{ a: 1 }`.
+ * `{ a: 1, b: 2, c: 3 }` leaves `{ a: 1 }`. A comment between two elements
+ * ends the run, so it stays.
  */
 export const elementRemovals = function elementRemovals(
 	elements: Iterable<TsMorphTypes.Node>
@@ -323,7 +339,7 @@ export const elementRemovals = function elementRemovals(
 		covered.add(element);
 		while (index >= 0) {
 			const next = siblings[index + 1];
-			if (!next || !removing.has(next)) {
+			if (!(next && removing.has(next)) || hasTriviaBetween(last, next)) {
 				break;
 			}
 			covered.add(next);

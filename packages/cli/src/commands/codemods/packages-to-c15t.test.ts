@@ -1191,6 +1191,26 @@ import { createC15tClient } from '@c15t/node-sdk';
 		expect(result.changedFiles).toEqual([]);
 	});
 
+	it('keeps a comment between removed stylesheet imports', async () => {
+		const { read, result } = await run(
+			{ c15t: '^3.0.0' },
+			{
+				'src/consent.tsx': `import '@c15t/react/styles.css'; /* application note */ import '@c15t/react/iab/styles.css';
+import '@c15t/nextjs/styles.css';
+// keep this note
+import '@c15t/nextjs/iab/styles.css';
+import { ConsentProvider } from '@c15t/react';
+`,
+			}
+		);
+
+		expect(result.errors).toEqual([]);
+		expect(await read('src/consent.tsx')).toBe(`/* application note */
+// keep this note
+import { ConsentProvider } from 'c15t/react';
+`);
+	});
+
 	it('is idempotent and writes nothing in a dry run', async () => {
 		const files = {
 			'src/consent.tsx': `import { ConsentProvider } from '@c15t/react';
