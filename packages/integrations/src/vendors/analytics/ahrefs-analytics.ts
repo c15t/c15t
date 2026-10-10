@@ -91,7 +91,7 @@ export const ahrefsAnalytics = function ahrefsAnalytics(
 	if (key === undefined) {
 		return skipMissingId('ahrefsAnalytics', 'key', {
 			category: 'measurement',
-			id: 'ahrefs-analytics',
+			manifest: ahrefsAnalyticsManifest,
 		});
 	}
 

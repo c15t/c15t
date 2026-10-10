@@ -324,7 +324,7 @@ export const amplitude = function amplitude({
 	if (normalizedApiKey === undefined) {
 		return skipMissingId('amplitude', 'apiKey', {
 			category: 'measurement',
-			id: 'amplitude',
+			manifest: amplitudeManifest,
 		});
 	}
 

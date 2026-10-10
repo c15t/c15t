@@ -309,7 +309,7 @@ export const redditPixel = function redditPixel({
 	if (normalizedPixelId === undefined) {
 		return skipMissingId('redditPixel', 'pixelId', {
 			category: 'marketing',
-			id: 'reddit-pixel',
+			manifest: redditPixelManifest,
 		});
 	}
 

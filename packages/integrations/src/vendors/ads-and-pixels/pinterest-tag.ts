@@ -416,7 +416,7 @@ export const pinterestTag = function pinterestTag({
 	if (normalizedTagId === undefined) {
 		return skipMissingId('pinterestTag', 'tagId', {
 			category: 'marketing',
-			id: 'pinterest-tag',
+			manifest: pinterestTagManifest,
 		});
 	}
 

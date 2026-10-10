@@ -190,7 +190,7 @@ export const gtag = function gtag({
 	if (normalizedId === undefined) {
 		return skipMissingId('gtag', 'id', {
 			category,
-			id: 'gtag',
+			manifest: gtagManifest,
 		});
 	}
 

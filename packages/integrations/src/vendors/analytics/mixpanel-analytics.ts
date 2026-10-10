@@ -164,7 +164,7 @@ export const mixpanelAnalytics = function mixpanelAnalytics({
 }: MixpanelAnalyticsOptions): Script {
 	const skipped = {
 		category: 'measurement',
-		id: 'mixpanel-analytics',
+		manifest: mixpanelAnalyticsManifest,
 	} as const;
 	const normalizedToken = readId(token);
 	if (normalizedToken === undefined) {

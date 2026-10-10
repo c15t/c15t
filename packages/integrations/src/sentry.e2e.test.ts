@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { scripts as sentryExampleScripts } from '../../../internals/doc-snippets/javascript/src/sentry';
 import { deniedConsents, grantedMeasurementConsents } from './e2e-test-utils';
-import { sentry } from './vendors/analytics/sentry';
+import { sentry, sentryManifest } from './vendors/analytics/sentry';
 import type {
 	SentryClient,
 	SentryEnvelope,
@@ -2524,6 +2524,8 @@ describe('Sentry loaded from the CDN', () => {
 			callbackOnly: true,
 			category: { or: ['necessary', 'measurement'] },
 			id: 'sentry',
+			vendor: 'sentry',
+			vendorDetails: sentryManifest.vendorDetails,
 		});
 		expect(error).toHaveBeenCalledOnce();
 		expect(error).toHaveBeenCalledWith(

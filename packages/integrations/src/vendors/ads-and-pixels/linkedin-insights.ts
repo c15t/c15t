@@ -125,7 +125,7 @@ export const linkedinInsights = function linkedinInsights({
 	if (normalizedId === undefined) {
 		return skipMissingId('linkedinInsights', 'id', {
 			category: 'marketing',
-			id: 'linkedin-insights',
+			manifest: linkedinInsightsManifest,
 		});
 	}
 

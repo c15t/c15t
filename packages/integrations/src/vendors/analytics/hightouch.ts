@@ -408,7 +408,7 @@ export const hightouch = function hightouch({
 	if (normalizedWriteKey === undefined) {
 		return skipMissingId('hightouch', 'writeKey', {
 			category: 'measurement',
-			id: 'hightouch',
+			manifest: hightouchManifest,
 		});
 	}
 	const loadOptions = {

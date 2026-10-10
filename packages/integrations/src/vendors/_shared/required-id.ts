@@ -1,5 +1,16 @@
 import type { Script } from '@c15t/core';
 
+import type { VendorManifest } from '../../types';
+
+/**
+ * What a helper knows about the script it would have returned: its consent
+ * category and the manifest that names and describes the vendor.
+ */
+export interface SkippedScript {
+	category: Script['category'];
+	manifest: Pick<VendorManifest, 'vendor' | 'vendorDetails'>;
+}
+
 /**
  * Normalizes a required vendor ID option.
  *
@@ -32,29 +43,37 @@ export const readId = function readId(value: unknown): string | undefined {
  * deployment problem rather than a code bug. Throwing during render would
  * take the consent UI down with the app, so the helper reports the problem
  * with `console.error` and hands c15t a callback-only script with no
- * callbacks: nothing is added to the page and no vendor code runs.
+ * callbacks: nothing is added to the page and no vendor code runs. The
+ * script keeps the manifest's vendor slug and details, so the vendor stays
+ * listed in the preference center while the ID is missing.
  *
  * @param problem - What is wrong, prefixed with the helper name, for example
  * `posthog: missing or invalid id`.
- * @param script - ID and consent category of the script the helper would
- * have returned.
+ * @param script - Consent category and manifest of the script the helper
+ * would have returned.
  * @returns A callback-only script without callbacks.
  *
  * @example
  * ```ts
  * skipScript('posthog: missing or invalid id', {
  *   category: 'measurement',
- *   id: 'posthog',
+ *   manifest: posthogManifest,
  * });
  * ```
  */
 export const skipScript = function skipScript(
 	problem: string,
-	{ category, id }: Pick<Script, 'category' | 'id'>
+	{ category, manifest }: SkippedScript
 ): Script {
 	console.error(`${problem}. The script will not load.`);
 
-	return { callbackOnly: true, category, id };
+	return {
+		callbackOnly: true,
+		category,
+		id: manifest.vendor,
+		vendor: manifest.vendor,
+		vendorDetails: manifest.vendorDetails,
+	};
 };
 
 /**
@@ -63,14 +82,14 @@ export const skipScript = function skipScript(
  *
  * @param helper - Name of the helper, used as the message prefix.
  * @param option - Name of the missing option.
- * @param script - ID and consent category of the script the helper would
- * have returned.
+ * @param script - Consent category and manifest of the script the helper
+ * would have returned.
  * @returns A callback-only script without callbacks.
  */
 export const skipMissingId = function skipMissingId(
 	helper: string,
 	option: string,
-	script: Pick<Script, 'category' | 'id'>
+	script: SkippedScript
 ): Script {
 	return skipScript(`${helper}: missing or invalid ${option}`, script);
 };

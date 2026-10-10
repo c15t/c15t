@@ -23,11 +23,6 @@ declare global {
 const DEFAULT_LOGROCKET_SCRIPT_URL =
 	'https://cdn.logrocket.io/LogRocket.min.js';
 
-const skippedLogRocketScript = {
-	category: 'measurement',
-	id: 'logrocket',
-} as const;
-
 const isLogRocketAppId = function isLogRocketAppId(appId: string): boolean {
 	const segments = appId.split('/');
 
@@ -74,6 +69,11 @@ export const logRocketManifest = {
 		privacyPolicyUrl: 'https://logrocket.com/privacy',
 	},
 } as const satisfies VendorManifest;
+
+const skippedLogRocketScript = {
+	category: 'measurement',
+	manifest: logRocketManifest,
+} as const;
 
 export interface LogRocketOptions {
 	/**

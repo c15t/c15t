@@ -420,7 +420,7 @@ export const metaPixel = function metaPixel({
 	if (normalizedPixelId === undefined) {
 		return skipMissingId('metaPixel', 'pixelId', {
 			category: 'marketing',
-			id: 'meta-pixel',
+			manifest: metaPixelManifest,
 		});
 	}
 

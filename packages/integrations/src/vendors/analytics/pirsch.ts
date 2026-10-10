@@ -164,7 +164,7 @@ export const pirsch = function pirsch(options: PirschOptions): Script {
 	if (identificationCode === undefined) {
 		return skipMissingId('pirsch', 'identificationCode', {
 			category: 'measurement',
-			id: 'pirsch',
+			manifest: pirschManifest,
 		});
 	}
 

@@ -226,7 +226,7 @@ export const plausibleAnalytics = function plausibleAnalytics(
 	if (!scriptId && !domain) {
 		return skipScript('plausibleAnalytics: missing scriptId or domain', {
 			category: 'measurement',
-			id: 'plausible-analytics',
+			manifest: plausibleAnalyticsManifest,
 		});
 	}
 

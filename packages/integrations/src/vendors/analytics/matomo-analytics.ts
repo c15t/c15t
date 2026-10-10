@@ -320,7 +320,7 @@ export const matomoAnalytics = function matomoAnalytics(
 	if (!trackerUrl || !scriptUrl) {
 		return skipScript(
 			'matomoAnalytics: missing matomoUrl, cloudId, or explicit trackerUrl and scriptUrl',
-			{ category: 'measurement', id: 'matomo-analytics' }
+			{ category: 'measurement', manifest: matomoAnalyticsManifest }
 		);
 	}
 

@@ -197,7 +197,7 @@ export const crisp = function crisp(options: CrispOptions): Script {
 	if (websiteId === undefined) {
 		return skipMissingId('crisp', 'websiteId', {
 			category: 'functionality',
-			id: 'crisp',
+			manifest: crispManifest,
 		});
 	}
 

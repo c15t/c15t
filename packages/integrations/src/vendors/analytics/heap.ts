@@ -464,7 +464,7 @@ export const heap = function heap({
 	if (normalizedEnvId === undefined) {
 		return skipMissingId('heap', 'envId', {
 			category: 'measurement',
-			id: 'heap',
+			manifest: heapManifest,
 		});
 	}
 

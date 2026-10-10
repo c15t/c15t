@@ -215,12 +215,12 @@ export const klaviyo = function klaviyo(options: KlaviyoOptions): Script {
 	if (publicApiKey === undefined) {
 		return skipMissingId('klaviyo', 'publicApiKey', {
 			category,
-			id: 'klaviyo',
+			manifest: klaviyoManifest,
 		});
 	}
 	const problem = getPublicApiKeyProblem(publicApiKey);
 	if (problem !== undefined) {
-		return skipScript(problem, { category, id: 'klaviyo' });
+		return skipScript(problem, { category, manifest: klaviyoManifest });
 	}
 
 	const script = resolveManifest(klaviyoManifest, {

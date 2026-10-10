@@ -481,7 +481,7 @@ export const posthog = function posthog(
 	if (id === undefined) {
 		return skipMissingId('posthog', 'id', {
 			category: 'measurement',
-			id: 'posthog',
+			manifest: posthogManifest,
 		});
 	}
 

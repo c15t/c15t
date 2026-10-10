@@ -92,7 +92,7 @@ export const cloudflareWebAnalytics = function cloudflareWebAnalytics(
 	if (token === undefined) {
 		return skipMissingId('cloudflareWebAnalytics', 'token', {
 			category: 'measurement',
-			id: 'cloudflare-web-analytics',
+			manifest: cloudflareWebAnalyticsManifest,
 		});
 	}
 

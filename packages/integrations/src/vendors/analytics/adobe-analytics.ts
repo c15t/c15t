@@ -17,11 +17,6 @@ interface AdobeAnalyticsManifestOptions {
 	seedAdobeDataLayer: boolean;
 }
 
-const skippedAdobeAnalyticsScript = {
-	category: 'measurement',
-	id: 'adobe-analytics',
-} as const;
-
 const getAdobeAnalyticsScriptUrlProblem =
 	function getAdobeAnalyticsScriptUrlProblem(
 		scriptUrl: string
@@ -85,6 +80,11 @@ export const adobeAnalyticsManifest = createAdobeAnalyticsManifest({
 	async: true,
 	seedAdobeDataLayer: true,
 });
+
+const skippedAdobeAnalyticsScript = {
+	category: 'measurement',
+	manifest: adobeAnalyticsManifest,
+} as const;
 
 export interface AdobeAnalyticsOptions {
 	/**

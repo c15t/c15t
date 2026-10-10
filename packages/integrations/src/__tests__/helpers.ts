@@ -289,7 +289,8 @@ export const expectScriptMatchesIntegration =
  * never loads, instead of throwing.
  *
  * @param create - Calls the helper under test.
- * @param script - ID and category the skipped script should keep.
+ * @param script - ID and category the skipped script should keep. Its
+ * vendor slug is the ID.
  * @param problem - Expected message, without the trailing
  * `. The script will not load.`
  *
@@ -309,7 +310,13 @@ export const expectSkippedScript = function expectSkippedScript(
 ): void {
 	const error = vi.spyOn(console, 'error').mockImplementation(() => undefined);
 	try {
-		expect(create()).toEqual({ callbackOnly: true, ...script });
+		// The vendor stays declared, and listed by name, while the ID is missing.
+		expect(create()).toEqual({
+			callbackOnly: true,
+			...script,
+			vendor: script.id,
+			vendorDetails: expect.objectContaining({ name: expect.any(String) }),
+		});
 		expect(error).toHaveBeenCalledOnce();
 		expect(error).toHaveBeenCalledWith(`${problem}. The script will not load.`);
 	} finally {

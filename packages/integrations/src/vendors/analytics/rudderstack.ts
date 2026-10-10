@@ -387,7 +387,7 @@ export interface RudderStackOptions {
 
 const skippedRudderstackScript = {
 	category: 'measurement',
-	id: 'rudderstack',
+	manifest: rudderstackManifest,
 } as const;
 
 const validateOptionalHttpsScriptUrl = function validateOptionalHttpsScriptUrl(

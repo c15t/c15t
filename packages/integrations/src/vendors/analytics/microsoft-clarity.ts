@@ -274,7 +274,7 @@ export const clarity = function clarity({
 	if (scriptUrlOverride === undefined && normalizedId === undefined) {
 		return skipMissingId('clarity', 'id', {
 			category: 'measurement',
-			id: 'microsoft-clarity',
+			manifest: clarityManifest,
 		});
 	}
 

@@ -213,7 +213,7 @@ export const segment = function segment({
 	if (normalizedWriteKey === undefined) {
 		return skipMissingId('segment', 'writeKey', {
 			category: 'measurement',
-			id: 'segment',
+			manifest: segmentManifest,
 		});
 	}
 	const segmentCdnBase = 'https://cdn.segment.com/analytics.js/v1';

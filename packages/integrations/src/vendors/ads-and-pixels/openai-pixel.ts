@@ -243,7 +243,7 @@ export const openaiPixel = function openaiPixel({
 	if (normalizedPixelId === undefined) {
 		return skipMissingId('openaiPixel', 'pixelId', {
 			category: 'marketing',
-			id: 'openai-pixel',
+			manifest: openaiPixelManifest,
 		});
 	}
 

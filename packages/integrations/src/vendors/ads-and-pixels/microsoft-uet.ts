@@ -148,7 +148,7 @@ export const microsoftUet = function microsoftUet({
 	if (normalizedId === undefined) {
 		return skipMissingId('microsoftUet', 'id', {
 			category: 'marketing',
-			id: 'microsoft-uet',
+			manifest: microsoftUetManifest,
 		});
 	}
 

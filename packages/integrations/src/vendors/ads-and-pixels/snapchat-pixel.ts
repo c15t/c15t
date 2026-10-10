@@ -235,7 +235,7 @@ export const snapchatPixel = function snapchatPixel({
 	if (normalizedPixelId === undefined) {
 		return skipMissingId('snapchatPixel', 'pixelId', {
 			category: 'marketing',
-			id: 'snapchat-pixel',
+			manifest: snapchatPixelManifest,
 		});
 	}
 

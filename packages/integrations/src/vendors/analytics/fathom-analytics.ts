@@ -122,7 +122,7 @@ export const fathomAnalytics = function fathomAnalytics(
 	if (site === undefined) {
 		return skipMissingId('fathomAnalytics', 'site', {
 			category: 'measurement',
-			id: 'fathom-analytics',
+			manifest: fathomAnalyticsManifest,
 		});
 	}
 

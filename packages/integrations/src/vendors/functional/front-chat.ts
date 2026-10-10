@@ -75,7 +75,7 @@ export const frontChat = function frontChat(options: FrontChatOptions): Script {
 	if (chatId === undefined) {
 		return skipMissingId('frontChat', 'chatId', {
 			category: 'functionality',
-			id: 'front-chat',
+			manifest: frontChatManifest,
 		});
 	}
 

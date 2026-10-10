@@ -182,7 +182,7 @@ export const intercom = function intercom({
 	if (normalizedAppId === undefined) {
 		return skipMissingId('intercom', 'appId', {
 			category: 'functionality',
-			id: 'intercom',
+			manifest: intercomManifest,
 		});
 	}
 

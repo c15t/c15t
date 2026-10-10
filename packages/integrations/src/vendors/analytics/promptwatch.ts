@@ -60,7 +60,7 @@ export const promptwatch = function promptwatch({
 	if (normalizedProjectId === undefined) {
 		return skipMissingId('promptwatch', 'projectId', {
 			category: 'measurement',
-			id: 'promptwatch',
+			manifest: promptwatchManifest,
 		});
 	}
 

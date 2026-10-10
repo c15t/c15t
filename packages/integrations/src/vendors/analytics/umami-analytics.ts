@@ -125,7 +125,7 @@ export const umamiAnalytics = function umamiAnalytics(
 	if (websiteId === undefined) {
 		return skipMissingId('umamiAnalytics', 'websiteId', {
 			category: 'measurement',
-			id: 'umami-analytics',
+			manifest: umamiAnalyticsManifest,
 		});
 	}
 

@@ -201,7 +201,7 @@ export const databuddy = function databuddy(
 	if (clientId === undefined) {
 		return skipMissingId('databuddy', 'clientId', {
 			category: 'measurement',
-			id: 'databuddy',
+			manifest: databuddyManifest,
 		});
 	}
 

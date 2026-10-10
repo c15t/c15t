@@ -220,7 +220,7 @@ export const googleTagManager = function googleTagManager({
 		// missing.
 		return skipMissingId('googleTagManager', 'id', {
 			category: scriptCategory ?? googleTagManagerManifest.category,
-			id: 'google-tag-manager',
+			manifest: googleTagManagerManifest,
 		});
 	}
 

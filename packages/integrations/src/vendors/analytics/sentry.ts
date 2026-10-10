@@ -1695,7 +1695,7 @@ export const sentry = (options: SentryOptions): Script => {
 	if (missingDsn) {
 		return skipMissingId('sentry', 'dsn', {
 			category: getScriptCategory(options),
-			id: scriptId,
+			manifest: sentryManifest,
 		});
 	}
 	return reuseSentryScript(options, createSentryScript);

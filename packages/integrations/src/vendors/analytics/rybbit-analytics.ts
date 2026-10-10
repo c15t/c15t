@@ -131,7 +131,7 @@ export const rybbitAnalytics = function rybbitAnalytics(
 	if (siteId === undefined) {
 		return skipMissingId('rybbitAnalytics', 'siteId', {
 			category: 'measurement',
-			id: 'rybbit-analytics',
+			manifest: rybbitAnalyticsManifest,
 		});
 	}
 

@@ -103,7 +103,7 @@ export const hotjar = function hotjar({
 	if (normalizedSiteId === undefined || normalizedSiteId === '0') {
 		return skipMissingId('hotjar', 'siteId', {
 			category: 'measurement',
-			id: 'hotjar',
+			manifest: hotjarManifest,
 		});
 	}
 

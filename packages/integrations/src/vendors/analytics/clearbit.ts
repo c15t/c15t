@@ -88,7 +88,7 @@ export const clearbit = function clearbit(options: ClearbitOptions): Script {
 	if (publishableKey === undefined) {
 		return skipMissingId('clearbit', 'publishableKey', {
 			category: 'marketing',
-			id: 'clearbit',
+			manifest: clearbitManifest,
 		});
 	}
 

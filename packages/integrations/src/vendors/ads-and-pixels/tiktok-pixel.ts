@@ -212,7 +212,7 @@ export const tiktokPixel = function tiktokPixel({
 	if (normalizedPixelId === undefined) {
 		return skipMissingId('tiktokPixel', 'pixelId', {
 			category: 'marketing',
-			id: 'tiktok-pixel',
+			manifest: tiktokPixelManifest,
 		});
 	}
 

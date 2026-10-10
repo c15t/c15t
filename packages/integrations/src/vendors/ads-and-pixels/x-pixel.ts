@@ -192,7 +192,7 @@ export const xPixel = function xPixel({
 	if (normalizedPixelId === undefined) {
 		return skipMissingId('xPixel', 'pixelId', {
 			category: 'marketing',
-			id: 'x-pixel',
+			manifest: xPixelManifest,
 		});
 	}
 
