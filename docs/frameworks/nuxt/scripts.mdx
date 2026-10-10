@@ -110,8 +110,10 @@ Registry options do not carry over one to one. Copy each vendor's ID into the
 helper, then check the vendor guide for the rest. Meta's `id` becomes
 `pixelId`, and Tag Manager's `l` or `dataLayer` becomes `dataLayer`. The `gtag`
 helper always uses `window.dataLayer`, so Google Analytics' `l` has no
-equivalent. For a vendor without a helper, such as AdSense, write a
-[custom integration](/docs/integrations/building-integrations).
+equivalent. The `googleTagManager` helper has no options for Tag Manager's
+`auth`, `preview`, `envName`, `cookiesWin` or `onBeforeGtmStart`. A container
+environment that needs them, or a vendor without a helper such as AdSense,
+needs a [custom integration](/docs/integrations/building-integrations).
 
 Put the helpers in `app/consent-scripts.ts`, keeping the same IDs:
 
@@ -215,7 +217,7 @@ module's configuration and composables:
 | `gtag.config` | The `config` option on `gtag` |
 | `gtag.tags` with several IDs | One `gtag` helper, when the extra IDs need no `config` of their own. Add them as destinations of that Google tag in Google's tag settings. Otherwise see [tags with their own settings](#tags-with-their-own-settings). |
 | `gtag.initCommands` with `consent` `default` | Delete. The helper sends `default` from the visitor's permissions. |
-| `initMode: 'manual'` and `useGtag().initialize()` | Delete. c15t loads the tag. |
+| `initMode: 'manual'` and `useGtag().initialize()` | Delete. c15t loads the tag. The helper needs its `id` when you register `scripts`, so an ID passed to `initialize()` at runtime, as in `nuxt-gtag`'s multi-tenancy setup, needs a [custom integration](/docs/integrations/building-integrations). |
 | `useGtag().gtag(...)` | `window.gtag?.(...)` |
 | `useTrackEvent(name, params)` | `window.gtag?.('event', name, params)` |
 | `useGtag().disableAnalytics()` and `enableAnalytics()` | Delete, and set `loadMode: 'after-consent'` if you used them to stop all Analytics requests. See [stop all requests until consent](#stop-all-requests-until-consent). |

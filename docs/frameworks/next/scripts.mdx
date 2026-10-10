@@ -228,10 +228,11 @@ renders its Google iframe straight away. Render your own iframe inside
 
 Put the `videoid` in the URL path and the `params` string in its query, and use
 the `playlabel` text as the iframe `title`. For a map, keep the URL
-`GoogleMapsEmbed` built:
-`https://www.google.com/maps/embed/v1/<mode>?key=<apiKey>&q=<q>`, with
+`GoogleMapsEmbed` built. In `place` mode that is
+`https://www.google.com/maps/embed/v1/place?key=<apiKey>&q=<q>`, with
 `center`, `zoom`, `maptype`, `language` and `region` as further query
-parameters. The [YouTube](/docs/integrations/youtube) and
+parameters. Other modes need their own parameters, such as `center` and
+`zoom` for `view`, so copy every parameter your component set. The [YouTube](/docs/integrations/youtube) and
 [Google Maps](/docs/integrations/google-maps) guides cover categories, sizing
 and placeholders.
 
