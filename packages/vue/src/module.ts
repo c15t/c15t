@@ -126,19 +126,46 @@ const renderSnapshotModule = (snapshot: ConsentManifest | undefined): string =>
 const BACKEND_URL_ENV = 'NUXT_PUBLIC_C15T_BACKEND_URL';
 
 /**
+ * The Inth project URL, shared with other Inth SDKs. Read when
+ * {@link BACKEND_URL_ENV} is unset.
+ */
+const INTH_URL_ENV = 'NUXT_PUBLIC_INTH_PROJECT_URL';
+
+/**
+ * Where the backend URL came from, so the runtime knows whether
+ * `NUXT_PUBLIC_INTH_PROJECT_URL` may replace it on a running server.
+ */
+type BackendURLSource = 'option' | 'c15t-env' | 'inth-env' | 'none';
+
+/**
  * The variable the app reads at runtime also gives the build its backend
  * when the config sets none. Read like every other framework integration:
  * the environment first (Nuxt loads `.env` into it before the config), then
- * the `.env` files in the root.
+ * the `.env` files in the root. `NUXT_PUBLIC_C15T_BACKEND_URL` wins over
+ * `NUXT_PUBLIC_INTH_PROJECT_URL`.
  */
-const fillBackendURLFromEnv = (options: ModuleOptions, nuxt: Nuxt): void => {
-	const fromEnv = readBuildEnv([BACKEND_URL_ENV], {
+const fillBackendURLFromEnv = (
+	options: ModuleOptions,
+	nuxt: Nuxt
+): BackendURLSource => {
+	if (options.backendURL !== undefined) {
+		return 'option';
+	}
+	const envOptions = {
 		mode: nuxt.options.dev ? 'development' : 'production',
 		root: nuxt.options.rootDir,
-	});
-	if (options.backendURL === undefined && fromEnv) {
-		options.backendURL = fromEnv;
+	};
+	const fromC15t = readBuildEnv([BACKEND_URL_ENV], envOptions);
+	if (fromC15t) {
+		options.backendURL = fromC15t;
+		return 'c15t-env';
 	}
+	const fromInth = readBuildEnv([INTH_URL_ENV], envOptions);
+	if (fromInth) {
+		options.backendURL = fromInth;
+		return 'inth-env';
+	}
+	return 'none';
 };
 
 /**
@@ -182,7 +209,7 @@ const assertManifestBackend = function assertManifestBackend(
 		? `manifest({ snapshot }) still needs a backend URL: the snapshot replaces the manifest download, but the browser saves consent with POST \${backendURL}/subjects`
 		: `manifest() needs a backend URL: the browser saves consent with POST \${backendURL}/subjects`;
 	throw new Error(
-		`@c15t/vue: ${reason}, and the consent route only answers GET. Set ${BACKEND_URL_ENV}, or \`c15t.backendURL\` in nuxt.config.ts.`
+		`@c15t/vue: ${reason}, and the consent route only answers GET. Set ${BACKEND_URL_ENV} (or ${INTH_URL_ENV}), or \`c15t.backendURL\` in nuxt.config.ts.`
 	);
 };
 
@@ -212,7 +239,7 @@ const loadNuxtBuildManifest = function loadNuxtBuildManifest(
 		{ backendURL, manifestURL: mode.manifestURL },
 		{
 			command: nuxt.options.dev ? 'dev' : 'build',
-			envNames: [BACKEND_URL_ENV],
+			envNames: [BACKEND_URL_ENV, INTH_URL_ENV],
 			label: '@c15t/vue',
 			logger: {
 				info: (message) => logger.info(message),
@@ -311,7 +338,7 @@ const module: NuxtModule<ModuleOptions> = defineNuxtModule<ModuleOptions>({
 		name: '@c15t/vue',
 	},
 	async setup({ devtools, initPrefetch, onBuildError, ...options }, nuxt) {
-		fillBackendURLFromEnv(options, nuxt);
+		const backendURLSource = fillBackendURLFromEnv(options, nuxt);
 		// Nuxt merges module options with `defu`, which skips `null`, so a
 		// `colorScheme: null` under the `c15t` key would arrive unset and
 		// mirror a `dark` class. Read it back: `null` leaves `c15t-dark` to
@@ -504,6 +531,14 @@ const module: NuxtModule<ModuleOptions> = defineNuxtModule<ModuleOptions>({
 		);
 
 		addPlugin(resolver.resolve('./runtime/plugin.nuxt'));
+		// Nuxt applies `NUXT_PUBLIC_C15T_BACKEND_URL` on a running server by
+		// itself. The Inth variable needs a plugin, and only while neither the
+		// option nor the c15t variable gave the build its URL.
+		if (backendURLSource === 'inth-env' || backendURLSource === 'none') {
+			addServerPlugin(
+				resolver.resolve('./runtime/server/inth-project-url.nuxt')
+			);
+		}
 		if (initPrefetch !== false) {
 			// Starts `/init` from the HTML of `ssr: false` pages, before the
 			// app's JavaScript loads.

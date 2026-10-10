@@ -228,7 +228,9 @@ describe('plain Vue modes', () => {
 		// No `consentManifest()` plugin in this test, so the build supplied
 		// no backend URL.
 		expect(() => manifest()).toThrow('consentManifest() from c15t/vue/vite');
-		expect(() => hosted()).toThrow('VITE_C15T_BACKEND_URL');
+		expect(() => hosted()).toThrow(
+			'c15t: hosted() has no backend URL. Add consentManifest() from c15t/vue/vite to vite.config.ts and set VITE_C15T_BACKEND_URL (or VITE_INTH_PROJECT_URL), or pass `backendURL`.'
+		);
 	});
 
 	test('the plugin rejects a config without a mode', () => {

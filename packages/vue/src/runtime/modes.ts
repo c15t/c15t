@@ -27,8 +27,27 @@ export type {
 } from '@c15t/core';
 export type { BrowserManifestModeFactory } from '@c15t/core/transports/manifest-browser';
 
-const MISSING_BACKEND_URL =
-	'Add consentManifest() from c15t/vue/vite to vite.config.ts and set VITE_C15T_BACKEND_URL, or pass `backendURL`.';
+/**
+ * Bundlers replace `process.env.NODE_ENV` at build time, so production
+ * bundles drop the setup hint behind it.
+ */
+declare const process: { env: { NODE_ENV?: string } };
+
+/** The error for a mode with no backend URL, with the setup hint in dev. */
+const missingBackendURL = function missingBackendURL(
+	mode: 'hosted' | 'manifest'
+): Error {
+	let hint = '';
+	try {
+		if (process.env.NODE_ENV !== 'production') {
+			hint =
+				' Add consentManifest() from c15t/vue/vite to vite.config.ts and set VITE_C15T_BACKEND_URL (or VITE_INTH_PROJECT_URL), or pass `backendURL`.';
+		}
+	} catch {
+		// No bundler and no `process`: the short message has to do.
+	}
+	return new Error(`c15t: ${mode}() has no backend URL.${hint}`);
+};
 
 /**
  * Resolve the visitor's policy in the browser from the backend's consent
@@ -67,9 +86,7 @@ export const manifest = function manifest(
 		options.backendURL === undefined &&
 		options.manifestURL === undefined
 	) {
-		throw new Error(
-			`c15t: manifest() has no backend URL. ${MISSING_BACKEND_URL}`
-		);
+		throw missingBackendURL('manifest');
 	}
 	return browserManifest({
 		// A `manifestURL` is fetched at runtime, so the build's snapshot is
@@ -88,7 +105,8 @@ export const manifest = function manifest(
  * Ask the backend's `/init` for every visitor's policy.
  *
  * @param options - Hosted options. `backendURL` defaults to the URL
- * `consentManifest()` read from `VITE_C15T_BACKEND_URL`.
+ * `consentManifest()` read from `VITE_C15T_BACKEND_URL` or
+ * `VITE_INTH_PROJECT_URL`.
  * @returns A transport factory for `mode`.
  * @throws {Error} When no backend URL is set.
  * @example
@@ -103,9 +121,7 @@ export const hosted = function hosted(
 ): HostedModeFactory {
 	const backendURL = options.backendURL ?? builtBackendURL;
 	if (backendURL === undefined) {
-		throw new Error(
-			`c15t: hosted() has no backend URL. ${MISSING_BACKEND_URL}`
-		);
+		throw missingBackendURL('hosted');
 	}
 	return coreHosted({ ...options, backendURL });
 };

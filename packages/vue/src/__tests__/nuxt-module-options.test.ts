@@ -298,7 +298,7 @@ describe('the build snapshot in manifest() mode', () => {
 					dev: true,
 				})
 			).rejects.toThrow(
-				/needs a backend URL.*Set NUXT_PUBLIC_C15T_BACKEND_URL/u
+				/needs a backend URL.*Set NUXT_PUBLIC_C15T_BACKEND_URL \(or NUXT_PUBLIC_INTH_PROJECT_URL\)/u
 			);
 		}
 	);
@@ -365,6 +365,77 @@ describe('the build snapshot in manifest() mode', () => {
 		} finally {
 			vi.unstubAllEnvs();
 		}
+	});
+
+	describe('NUXT_PUBLIC_INTH_PROJECT_URL', () => {
+		const INTH = 'https://inth.example.com';
+		const C15T = 'https://c15t.example.com';
+		const inthPlugins = (nuxt: Nuxt) =>
+			((nuxt.options.nitro as { plugins?: string[] }).plugins ?? []).filter(
+				(plugin) => plugin.includes('inth-project-url')
+			);
+		const setUp = async (
+			c15t: Record<string, unknown>,
+			env: Record<string, string | undefined>
+		) => {
+			vi.stubEnv('NUXT_PUBLIC_C15T_BACKEND_URL', undefined);
+			vi.stubEnv('NUXT_PUBLIC_INTH_PROJECT_URL', undefined);
+			for (const [key, value] of Object.entries(env)) {
+				vi.stubEnv(key, value);
+			}
+			const fetch = snapshotResponse(createSnapshot());
+			try {
+				const nuxt = await setUpModule(c15t, fetch);
+				return {
+					backendURL: (
+						nuxt.options.runtimeConfig.public.c15t as Record<string, unknown>
+					).backendURL,
+					fetch,
+					nuxt,
+				};
+			} finally {
+				vi.unstubAllEnvs();
+			}
+		};
+
+		test('alone gives the build its URL and applies on a running server', async () => {
+			const { backendURL, fetch, nuxt } = await setUp(
+				{},
+				{ NUXT_PUBLIC_INTH_PROJECT_URL: INTH }
+			);
+			expect(fetch).toHaveBeenCalledWith(`${INTH}/manifest`, expect.anything());
+			expect(backendURL).toBe(INTH);
+			expect(inthPlugins(nuxt)).toHaveLength(1);
+		});
+
+		test('loses to NUXT_PUBLIC_C15T_BACKEND_URL when both are set', async () => {
+			const { backendURL, fetch, nuxt } = await setUp(
+				{},
+				{
+					NUXT_PUBLIC_C15T_BACKEND_URL: C15T,
+					NUXT_PUBLIC_INTH_PROJECT_URL: INTH,
+				}
+			);
+			expect(fetch).toHaveBeenCalledWith(`${C15T}/manifest`, expect.anything());
+			expect(backendURL).toBe(C15T);
+			expect(inthPlugins(nuxt)).toHaveLength(0);
+		});
+
+		test('an explicit backendURL beats both variables', async () => {
+			const { backendURL, fetch, nuxt } = await setUp(
+				{ backendURL: 'https://option.example.com' },
+				{
+					NUXT_PUBLIC_C15T_BACKEND_URL: C15T,
+					NUXT_PUBLIC_INTH_PROJECT_URL: INTH,
+				}
+			);
+			expect(fetch).toHaveBeenCalledWith(
+				'https://option.example.com/manifest',
+				expect.anything()
+			);
+			expect(backendURL).toBe('https://option.example.com');
+			expect(inthPlugins(nuxt)).toHaveLength(0);
+		});
 	});
 
 	test.each([

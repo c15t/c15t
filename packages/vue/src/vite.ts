@@ -30,8 +30,9 @@ export type VueConsentManifestPlugin = Omit<ConsentManifestPlugin, 'config'> & {
  * app. It also keeps `@c15t/vue`, whose components are `.vue` files, out of
  * dependency pre-bundling.
  *
- * `backendURL` defaults to `VITE_C15T_BACKEND_URL`, including `.env` files.
- * When that variable is unset, the plugin sets
+ * `backendURL` defaults to `VITE_C15T_BACKEND_URL`, then
+ * `VITE_INTH_PROJECT_URL`, including `.env` files. When
+ * `VITE_C15T_BACKEND_URL` is unset, the plugin sets
  * `import.meta.env.VITE_C15T_BACKEND_URL` to the URL it used, so app code
  * reads the same value.
  *
@@ -64,7 +65,7 @@ export const consentManifest = (
 ): VueConsentManifestPlugin => {
 	const plugin = createConsentManifestPlugin(options, {
 		adviseHostedForLocation: true,
-		envNames: ['VITE_C15T_BACKEND_URL'],
+		envNames: ['VITE_C15T_BACKEND_URL', 'VITE_INTH_PROJECT_URL'],
 		label: '@c15t/vue/vite',
 	});
 	return {

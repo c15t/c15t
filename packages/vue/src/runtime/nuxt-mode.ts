@@ -11,8 +11,9 @@ export const DEFAULT_NUXT_ROUTE_PREFIX = '/api/c15t';
 /** The Nuxt module options that choose where the policy comes from. */
 export interface NuxtConsentModeConfig {
 	/**
-	 * Backend URL. Defaults to `NUXT_PUBLIC_C15T_BACKEND_URL`, read when the
-	 * build starts and again by the server at runtime.
+	 * Backend URL. Defaults to `NUXT_PUBLIC_C15T_BACKEND_URL`, then
+	 * `NUXT_PUBLIC_INTH_PROJECT_URL`, read when the build starts and again
+	 * by the server at runtime.
 	 */
 	backendURL?: string;
 	/**

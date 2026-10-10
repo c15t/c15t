@@ -46,6 +46,9 @@ apply without a rebuild. `manifest()` without a backend URL, including
 `manifest({ snapshot })`, now stops `nuxt build` and `nuxt dev` with an error
 naming `NUXT_PUBLIC_C15T_BACKEND_URL`: the consent route answers `GET` only,
 so saves used to fail after the visitor chose.
+`NUXT_PUBLIC_INTH_PROJECT_URL` works when `NUXT_PUBLIC_C15T_BACKEND_URL` is
+unset, at build time and on a running server; `consentManifest()` from
+`c15t/vue/vite` reads `VITE_INTH_PROJECT_URL` the same way.
 
 **Vue.** `app.use(c15tVue, { mode })` requires a mode: `manifest()`,
 `hosted()`, `offline()` or `custom()` from `c15t/vue/vue-plugin`.
