@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
+import { userEvent } from 'vitest/browser';
 
 import { ConsentDialog } from '~/aggregate-components';
 import {
@@ -59,7 +60,11 @@ const stubConnection = (connection: ConnectionStub) => {
 	});
 };
 
-beforeEach(() => {
+beforeEach(async () => {
+	// An earlier test can leave the pointer where a banner button renders,
+	// and Chromium then reports a pointer enter, which warms the dialog on
+	// intent. Park it in the corner so idle warming is all these tests see.
+	await userEvent.hover(document.documentElement, { position: { x: 1, y: 1 } });
 	expect(document.readyState).toBe('complete');
 	resetDialogChunkWarmingForTests();
 	idleCallbacks = [];

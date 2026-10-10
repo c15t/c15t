@@ -31,3 +31,10 @@ if (typeof window !== 'undefined') {
 
 	console.log('[test-setup.browser] Mock GVL set on window');
 }
+
+// Fetch persistence's write code into the module cache once per test file.
+// A save still waits for its dynamic import, but no longer for the dev
+// server to transform the module graph on first use, which under a loaded
+// run took longer than the tests' one-second waits for a stored choice.
+// The loader is left untouched, so saves keep their lazy path.
+await import('../../core/src/modules/persistence/writer/writer');
