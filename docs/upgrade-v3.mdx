@@ -315,6 +315,7 @@ Next.js:
 | `resolveConsent({ manifest })`, and `manifest` on the route helpers | `snapshot`, which defaults to the build's |
 | `ConsentManifestOptions` and the `c15t.server.ts` module | `ResolveConsentOptions` or `NextConsentRouteOptions`. The helpers read the config and snapshot themselves. |
 | `resolveStrictestDefaultInit` from `c15t/next/static` | `resolveUnknownLocationInit` |
+| `ConsentRoot` falling back to offline mode when no config or `NEXT_PUBLIC_C15T_BACKEND_URL` gives it a backend URL | `ConsentRoot` throws. Set `mode: offline()` to run without a backend. |
 | `hosted`, `offline` and `manifest` from `c15t/next` as transports | They are data for `c15t.config.ts` now. A `ConsentProvider` imports them from `c15t/react`. |
 
 TanStack Start:

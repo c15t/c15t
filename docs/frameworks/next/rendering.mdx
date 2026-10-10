@@ -179,8 +179,8 @@ asks the backend to resolve the visitor. Consent saves go to
 `${backendURL}/subjects` either way.
 
 Offline mode keeps policy in your code and choices in the browser, with no
-consent records. `ConsentRoot` also runs offline when it has no backend URL at
-all. See
+consent records. It runs only with `mode: offline()`; without a backend URL,
+`manifest()` and `hosted()` throw. See
 [offline configuration](/docs/frameworks/next/data-fetching-reference#offline-configuration).
 
 The [fetching reference](/docs/frameworks/next/data-fetching-reference#mode-combinations)

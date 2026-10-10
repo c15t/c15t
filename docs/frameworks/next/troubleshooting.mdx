@@ -141,8 +141,26 @@ else. A config in `src/` is not found. Check that:
 - You restarted `next dev` after adding the file.
 
 Without a config, `ConsentRoot` reads `NEXT_PUBLIC_C15T_BACKEND_URL`, uses
-`manifest()` and runs no `scripts`. With no backend URL either, it runs
-offline.
+`manifest()` and runs no `scripts`. With no backend URL either, it throws; see
+the next section.
+
+## Why does ConsentRoot throw that it needs a backend URL?
+
+**Check.** The page, or `next build` while it prerenders the page, throws one
+of these errors from `ConsentRoot`:
+
+- ``@c15t/nextjs: manifest() needs a backend URL. Set NEXT_PUBLIC_C15T_BACKEND_URL, or `backendURL` in c15t.config.ts.``
+- ``@c15t/nextjs: hosted() needs a backend URL. Set NEXT_PUBLIC_C15T_BACKEND_URL, or `backendURL` in c15t.config.ts.``
+
+`ConsentRoot` found no `c15t.config.ts`, or got a `config` prop without a
+backend URL, and `NEXT_PUBLIC_C15T_BACKEND_URL` was unset when Next.js
+compiled the page.
+
+**Fix.** Set `NEXT_PUBLIC_C15T_BACKEND_URL` wherever `next build` and
+`next dev` run, and check that `withConsentManifest` finds `c15t.config.ts`
+(see the previous section). Earlier alphas fell back to offline mode here;
+now the root throws. To run without a backend, set `mode: offline()` in
+`c15t.config.ts`, or pass `options={{ mode: offline() }}` to `ConsentRoot`.
 
 ## Why does ConsentRoot warn that a transport ships in the first-load bundle?
 

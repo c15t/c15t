@@ -1,5 +1,5 @@
 import type { KernelConfig } from '@c15t/core';
-import { manifest } from '@c15t/core/modes';
+import { manifest, offline } from '@c15t/core/modes';
 /**
  * End-to-end tests for the Next.js adapter.
  *
@@ -134,7 +134,7 @@ describe('ConsentRoot: backendURL triggers auto-init', () => {
 		}
 	});
 
-	test('root without backendURL or transport does NOT fire any network call', async () => {
+	test('an offline() root fires no network call', async () => {
 		const fetchSpy = vi.fn().mockResolvedValue(new Response());
 		const originalFetch = globalThis.fetch;
 		globalThis.fetch = fetchSpy as unknown as typeof globalThis.fetch;
@@ -147,6 +147,7 @@ describe('ConsentRoot: backendURL triggers auto-init', () => {
 		try {
 			const { getByTestId } = await render(
 				<ConsentRoot
+					config={{ mode: offline() }}
 					state={{}}
 					persistence={false}
 				>
@@ -155,7 +156,7 @@ describe('ConsentRoot: backendURL triggers auto-init', () => {
 			);
 
 			await expect.element(getByTestId('probe')).toHaveTextContent('false');
-			// No network call should have fired — no transport, no backendURL.
+			// offline() resolves in the browser and saves nowhere.
 			expect(fetchSpy).not.toHaveBeenCalled();
 		} finally {
 			globalThis.fetch = originalFetch;

@@ -46,7 +46,11 @@ The config takes `backendURL` (default `NEXT_PUBLIC_C15T_BACKEND_URL`),
 browser options `scripts`, `vendors`, `clearOnRevocation`, `networkBlocker`,
 `persistence`, `scriptLoader` and `options`. `ConsentRoot` props win over the
 config's. `options` merges one key at a time and `options.callbacks` one
-callback at a time, so `options={{ nonce }}` keeps the config's callbacks. `ConsentRoot` warns in development when it finds no config.
+callback at a time, so `options={{ nonce }}` keeps the config's callbacks.
+`ConsentRoot` warns in development when it finds no config, and throws when
+`manifest()` or `hosted()` has no backend URL instead of running offline: set
+`NEXT_PUBLIC_C15T_BACKEND_URL` or `backendURL` in the config, or choose
+`mode: offline()`.
 `options.mode` on `ConsentRoot` takes the same data, or a transport such as
 `custom(transport)`; a `hosted()` or `offline()` transport from `c15t/react`
 still works but warns in development, because its code is then in the

@@ -7,6 +7,7 @@
  * commits and no effect runs: the module loads only if the root's render
  * asked for it.
  */
+import { offline } from '@c15t/core/modes';
 import type * as ScriptLoaderModule from '@c15t/core/modules/script-loader';
 import type { Script } from '@c15t/core/modules/script-loader';
 import { createRoot } from 'react-dom/client';
@@ -18,6 +19,9 @@ import { ConsentRoot } from '../root';
 import type { ConsentRootProps } from '../root';
 import type { ConsentState } from '../types';
 import { policyFixture } from './policy-fixture';
+
+/** These tests are not about the backend; an explicit offline() needs none. */
+const OFFLINE_CONFIG = { mode: offline() };
 
 const loads = vi.hoisted(() => ({ created: 0, evaluated: 0 }));
 
@@ -76,6 +80,7 @@ const renderUncommitted = (
 	root = createRoot(container);
 	root.render(
 		<ConsentRoot
+			config={OFFLINE_CONFIG}
 			persistence={false}
 			scripts={scripts}
 			state={state}
@@ -263,6 +268,7 @@ describe('ConsentRoot: script loader before hydration', () => {
 		root = createRoot(container);
 		root.render(
 			<ConsentRoot
+				config={OFFLINE_CONFIG}
 				persistence={false}
 				scripts={scripts}
 				state={policyFixture({ marketing: true })}

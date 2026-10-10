@@ -46,12 +46,12 @@ export interface NextClientModeOptions {
  *   first init, reading `${routePrefix}/manifest`, else
  *   `${backendURL}/manifest`.
  * - `hosted()`: the hosted transport, loaded on first init.
- * - `offline()`, or no backend at all: the offline transport, loaded on
- *   first init.
+ * - `offline()`: the offline transport, loaded on first init.
  *
  * @param mode - The mode as data, or a transport factory, used as is.
  * @param options - Backend URL and route prefix.
  * @returns A provider transport factory.
+ * @throws {Error} When `manifest()` or `hosted()` has no backend URL.
  * @internal
  */
 export const createClientMode = function createClientMode(
@@ -72,19 +72,20 @@ export const createClientMode = function createClientMode(
 		return mode;
 	}
 	// `defineConsentConfig` trimmed the prefix and checked that the mode
-	// has a backend URL. Without one, the root runs offline.
+	// has a backend URL. Without a config there may be none: say so rather
+	// than run a mode the app never chose.
 	const { routePrefix } = options;
 	const data: ConsentMode = mode ?? { type: 'manifest' };
+	if (data.type === 'offline') {
+		return Object.assign(lazyOffline({ policyRules: data.policyRules }), data);
+	}
 	const backendURL =
 		(data.type === 'hosted' ? data.backendURL : undefined) ??
 		options.backendURL ??
 		routePrefix;
-	if (data.type === 'offline' || !backendURL) {
-		const offline =
-			data.type === 'offline' ? data : { type: 'offline' as const };
-		return Object.assign(
-			lazyOffline({ policyRules: offline.policyRules }),
-			offline
+	if (!backendURL) {
+		throw new Error(
+			`@c15t/nextjs: ${data.type}() needs a backend URL. Set NEXT_PUBLIC_C15T_BACKEND_URL, or \`backendURL\` in c15t.config.ts.`
 		);
 	}
 	if (data.type === 'hosted') {

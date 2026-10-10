@@ -545,11 +545,11 @@ policy needs different behavior. Browser persistence stores choices, but this
 setup has no backend record service. See
 [transport choices](/docs/concepts/data-fetching) for the tradeoffs.
 
-`ConsentRoot` also runs offline when it finds no backend URL anywhere: not in
-the mode, the config or `NEXT_PUBLIC_C15T_BACKEND_URL`. That happens only
-without a `c15t.config.ts`, because `defineConsentConfig` throws without a
-backend URL. Outside production `ConsentRoot` then warns that it found no
-config. Not recommended for production environments.
+Offline mode runs only when you choose it. `ConsentRoot` throws when
+`manifest()` or `hosted()` finds no backend URL: not in the mode, the config
+or `NEXT_PUBLIC_C15T_BACKEND_URL`. That happens only without a
+`c15t.config.ts`, because `defineConsentConfig` throws without a backend URL.
+See [troubleshooting](/docs/frameworks/next/troubleshooting#why-does-consentroot-throw-that-it-needs-a-backend-url).
 
 ### Authenticated hosted vendor lists
 

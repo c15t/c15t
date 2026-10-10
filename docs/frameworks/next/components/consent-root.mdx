@@ -58,7 +58,9 @@ at a time, and `options.callbacks` one callback at a time, so
   environments.
 
 Choices post to `${backendURL}/subjects` in every mode but `offline()`. With
-no backend URL anywhere, `ConsentRoot` runs offline too. See
+no backend URL anywhere, `ConsentRoot` throws
+``@c15t/nextjs: manifest() needs a backend URL. Set NEXT_PUBLIC_C15T_BACKEND_URL, or `backendURL` in c15t.config.ts.``
+instead of running a mode you did not choose. See
 [offline configuration](/docs/frameworks/next/data-fetching-reference#offline-configuration)
 and [consent modes](/docs/concepts/modes).
 
