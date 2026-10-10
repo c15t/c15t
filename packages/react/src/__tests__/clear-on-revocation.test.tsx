@@ -42,6 +42,13 @@ const assertPreservedData = () => {
 	expect(localStorage.getItem(consentKey)).not.toBeNull();
 };
 
+/** Saves are queued and written once the write code loads; wait for it. */
+const waitForStoredConsent = () =>
+	vi.waitFor(() => {
+		expect(document.cookie).toContain(`${consentKey}=`);
+		expect(localStorage.getItem(consentKey)).not.toBeNull();
+	});
+
 const Permission = () => {
 	const allowed = useConsent('measurement');
 	return <output>Measurement {allowed ? 'allowed' : 'denied'}</output>;
@@ -92,6 +99,7 @@ test('accepting then rejecting through the UI removes real cookies and both stor
 	const screen = await render(<App onLoad={onLoad} />);
 	await screen.getByTestId('consent-banner-accept-button').click();
 	await vi.waitFor(() => expect(onLoad).toHaveBeenCalledOnce());
+	await waitForStoredConsent();
 	assertIntegrationData(true);
 	assertPreservedData();
 

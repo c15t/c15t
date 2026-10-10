@@ -62,6 +62,12 @@ test('the preset quickstart records rejection, restores it, and reopens preferen
 		.element(first.getByTestId('quickstart-state'))
 		.toHaveTextContent('false|false');
 	expect(onChoiceRecorded).toHaveBeenCalledTimes(1);
+	// Saves are queued and written once the write code loads: remount only
+	// after the rejection is stored, as a reload would.
+	await vi.waitFor(() => {
+		expect(document.cookie).toContain('c15t=');
+		expect(localStorage.getItem('c15t')).toContain('marketing');
+	});
 	await first.unmount();
 	const returning = await render(app);
 	await expect
