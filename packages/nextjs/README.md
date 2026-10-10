@@ -76,83 +76,54 @@ To manually install, follow the [quickstart](https://c15t.com/docs/frameworks/ne
 
 ## Usage
 
-1. Create `c15t.config.ts` with your Inth backend URL and the manifest route
+1. Set `NEXT_PUBLIC_C15T_BACKEND_URL` to your Inth backend URL in `.env`
+2. Wrap `next.config.ts` in `withConsentManifest`, which downloads your policy at build time and finds `c15t.config.ts`
+
+```ts
+// next.config.ts
+import { withConsentManifest } from '@c15t/nextjs/build'
+import type { NextConfig } from 'next'
+
+const nextConfig = {} satisfies NextConfig
+
+export default withConsentManifest(nextConfig)
+```
+
+3. Export the config from `c15t.config.ts` at the project root
 
 ```ts
 // c15t.config.ts
 import { defineConsentConfig } from '@c15t/nextjs'
 
-export const consentConfig = defineConsentConfig({
-  backendURL: 'https://your-project.inth.app',
-  manifestURL: '/api/c15t/manifest',
-})
+export default defineConsentConfig({})
 ```
 
-2. Serve the policy manifest from that route
-
-```ts
-// app/api/c15t/manifest/route.ts
-import { createNextConsentRouteHandlers } from '@c15t/nextjs/api'
-
-import { consentConfig } from '@/c15t.config'
-
-export const { manifestGET: GET } =
-  createNextConsentRouteHandlers(consentConfig)
-```
-
-3. Mount `ConsentRoot` with `ConsentBanner` and `ConsentDialog` in a client component. Import the config there; do not pass it from a Server Component
+4. Render `ConsentRoot` with `ConsentBanner` and `ConsentDialog` in the root layout, and pass it `resolveConsent()`
 
 ```tsx
-// components/consent.tsx
-'use client'
-
+// app/layout.tsx
 import {
   ConsentBanner,
   ConsentDialog,
   ConsentDialogLink,
   ConsentRoot,
 } from '@c15t/nextjs'
-import type { ConsentRootProps } from '@c15t/nextjs'
-import type { ReactNode } from 'react'
-
-import { consentConfig } from '@/c15t.config'
-
-export const Consent = ({
-  children,
-  state,
-}: {
-  children: ReactNode
-  state: ConsentRootProps['state']
-}) => (
-  <ConsentRoot state={state} config={consentConfig}>
-    {children}
-    <ConsentBanner />
-    <ConsentDialog />
-    <ConsentDialogLink>Privacy settings</ConsentDialogLink>
-  </ConsentRoot>
-)
-```
-
-4. Call `resolveConsent` in the root layout and pass the result to that component
-
-```tsx
-// app/layout.tsx
 import { resolveConsent } from '@c15t/nextjs/server'
 import type { ReactNode } from 'react'
-
-import { consentConfig } from '@/c15t.config'
-import { Consent } from '@/components/consent'
 
 import './globals.css'
 
 export default function RootLayout({ children }: { children: ReactNode }) {
-  // Not awaited: the page renders while consent resolves.
-  const state = resolveConsent({ config: consentConfig })
-
   return (
     <html lang="en">
       <body>
-        <Consent state={state}>{children}</Consent>
+        {/* Not awaited: the page renders while consent resolves. */}
+        <ConsentRoot state={resolveConsent()}>
+          {children}
+          <ConsentBanner />
+          <ConsentDialog />
+          <ConsentDialogLink>Privacy settings</ConsentDialogLink>
+        </ConsentRoot>
       </body>
     </html>
   )
