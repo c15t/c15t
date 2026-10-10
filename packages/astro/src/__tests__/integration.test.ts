@@ -365,7 +365,10 @@ describe('resolveOptions', () => {
 		],
 		[
 			'a snapshot of its own',
-			{ mode: manifestMode({ snapshot: INLINE_MANIFEST }) },
+			{
+				backendURL: 'https://consent.example.com',
+				mode: manifestMode({ snapshot: INLINE_MANIFEST }),
+			},
 		],
 	] satisfies [string, C15tAstroOptions][])(
 		'fetches no build snapshot with %s',
@@ -414,25 +417,32 @@ describe('resolveOptions', () => {
 		).toThrowError(/must be a path that starts with "\/"/u);
 	});
 
-	it('rejects a snapshot with no route and no backend to save consent to', () => {
-		expect(() =>
-			resolveOptions({
-				mode: manifestMode({ snapshot: INLINE_MANIFEST }),
-				routePrefix: false,
-			})
-		).toThrowError(/routePrefix: false` leaves the browser nowhere to save/u);
-		expect(
-			resolveOptions({
-				backendURL: 'https://consent.example.com',
-				mode: manifestMode({ snapshot: INLINE_MANIFEST }),
-				routePrefix: false,
-			}).mode.type
-		).toBe('manifest');
-		expect(
-			resolveOptions({ mode: manifestMode({ snapshot: INLINE_MANIFEST }) })
-				.routePrefix
-		).toBe('/api/c15t');
-	});
+	it.each([
+		['the default route', {}],
+		['routePrefix: false', { routePrefix: false }],
+		['a route of its own', { routePrefix: '/consent' }],
+	] satisfies [string, C15tAstroOptions][])(
+		'rejects a snapshot with no backend to save consent to, with %s',
+		(_name, options) => {
+			// The injected route answers `GET` only, so a save posted to it
+			// would get a 404 after the visitor chose.
+			expect(() =>
+				resolveOptions({
+					...options,
+					mode: manifestMode({ snapshot: INLINE_MANIFEST }),
+				})
+			).toThrowError(
+				/manifest\(\{ snapshot \}\) still needs a backend URL.*PUBLIC_C15T_BACKEND_URL/u
+			);
+			expect(
+				resolveOptions({
+					...options,
+					backendURL: 'https://consent.example.com',
+					mode: manifestMode({ snapshot: INLINE_MANIFEST }),
+				}).mode.type
+			).toBe('manifest');
+		}
+	);
 
 	it('rejects a function in the serialized options', () => {
 		// `JSON.stringify` would drop it, so a `posthog()` helper here used to
@@ -546,13 +556,6 @@ describe('resolveOptions', () => {
 		} finally {
 			vi.unstubAllEnvs();
 		}
-	});
-
-	it('leaves an inline manifest without a backendURL alone', () => {
-		// The network-free path: the app serves its own save route.
-		expect(
-			resolveOptions({ mode: manifestMode({ snapshot: INLINE_MANIFEST }) })
-		).not.toHaveProperty('backendURL');
 	});
 
 	it('rejects a manifestURL with nowhere to save consent', () => {

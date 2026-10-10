@@ -155,8 +155,9 @@ browser saves consent there, so `astro.config` refuses to load without one.
 
 **Fix.** Set `PUBLIC_C15T_BACKEND_URL` in `.env`, or pass
 `c15t({ backendURL: 'https://your-project.inth.app' })` with your project's
-URL in place of the placeholder. A `manifest({ snapshot })` needs no backend
-URL for the policy.
+URL in place of the placeholder. A `manifest({ snapshot })` still needs one:
+the snapshot replaces the manifest download, but the consent route answers
+`GET` only, so saves go to the backend.
 
 ## Options from an earlier alpha have no effect
 

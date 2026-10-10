@@ -57,6 +57,10 @@ export default defineConfig({
   saves consent. The init path loads when a page inits again.
 - `offline()` reports the location it resolved for, so the preference dialog
   shows its title.
+- `manifest()` without a backend URL, from `backendURL` or
+  `PUBLIC_C15T_BACKEND_URL`, fails at setup, including
+  `manifest({ snapshot })` and any `routePrefix`. The consent route answers
+  `GET` only, so saves used to fail after the visitor chose.
 
 With `manifest()`, the integration fetches the policy manifest during
 `astro build` and dev startup and bundles it into the server. Middleware and

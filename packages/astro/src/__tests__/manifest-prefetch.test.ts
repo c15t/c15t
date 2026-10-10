@@ -136,7 +136,11 @@ describe('manifest-mode server prefetch', () => {
 	it('serves an inline manifest without any fetch', async () => {
 		const fetchImpl = vi.fn(() => Promise.resolve(manifestResponse()));
 		const { c15t } = await render({
-			astroOptions: { mode: manifestMode({ snapshot: MANIFEST }) },
+			astroOptions: {
+				backendURL: 'https://consent.example.com',
+				mode: manifestMode({ snapshot: MANIFEST }),
+				reportSessions: false,
+			},
 			fetch: fetchImpl as never,
 			headers: { 'x-c15t-country': 'DE' },
 		});
@@ -237,8 +241,10 @@ it.each(['public', 'custom'] as const)(
 			const result = await render({
 				// IAB is opt-in: without `iab` an IAB policy throws.
 				astroOptions: {
+					backendURL: 'https://consent.example.com',
 					iab: { cmpId: 28 },
 					mode: manifestMode({ snapshot: manifest }),
+					reportSessions: false,
 				},
 				fetch: loader === 'custom' ? fetch : undefined,
 				headers: { 'x-c15t-country': 'DE' },

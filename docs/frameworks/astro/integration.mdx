@@ -207,7 +207,8 @@ one copy. Keep it small, because it loads on every page.
 | --- | --- |
 | `` `mode` must be manifest(), hosted() or offline() `` | `mode` is a transport function, or not built with a helper from `c15t/astro` |
 | `is a function` | A serialized option, such as a `scripts` entry from `@c15t/integrations`, holds a function. Move it to `src/c15t.client.ts` |
-| `manifest() needs a backend URL` | No `backendURL`, no `PUBLIC_C15T_BACKEND_URL`, and no `manifest({ snapshot })` |
+| `manifest() needs a backend URL` | No `backendURL` and no `PUBLIC_C15T_BACKEND_URL` |
+| `manifest({ snapshot }) still needs a backend URL` | A snapshot, but no `backendURL` and no `PUBLIC_C15T_BACKEND_URL`. Saves go to the backend whatever `routePrefix` is |
 | `hosted() needs a backend URL` | No `backendURL`, `hosted({ backendURL })` or `PUBLIC_C15T_BACKEND_URL` |
 | `gives the server no manifest to fetch` | `backendURL: ''` without `manifest({ manifestURL })` or `manifest({ snapshot })` |
 | `` `routePrefix` must be a path `` | `routePrefix` is not `false` and does not start with `/` |

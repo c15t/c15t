@@ -205,9 +205,10 @@ const MODE_TYPES = new Set(['manifest', 'hosted', 'offline']);
  *
  * `manifest()` reads `${backendURL}/manifest` on the server and the
  * browser saves consent at `${backendURL}/subjects`, so without a backend
- * URL it fails here. A `snapshot` is the network-free path and is left
- * alone: an app on it serves its own save route. `backendURL: ''` saves
- * on this origin but gives the server no manifest, so it also needs a
+ * URL it fails here, whatever `routePrefix` is. A `snapshot` replaces the
+ * manifest fetch only: the injected consent route answers `GET`, so saves
+ * still need the backend. `backendURL: ''` saves on this origin but gives
+ * the server no manifest, so without a snapshot it also needs a
  * `manifestURL`.
  *
  * @param mode - The configured mode, or `undefined` for the default.
@@ -237,12 +238,14 @@ const resolveMode = function resolveMode(
 			`@c15t/astro: hosted() needs a backend URL to ask for each visitor's policy. ${envHint}`
 		);
 	}
+	if (mode.type === 'manifest' && backendURL === undefined) {
+		throw new Error(
+			mode.snapshot
+				? `@c15t/astro: manifest({ snapshot }) still needs a backend URL: the snapshot replaces the manifest fetch, but the browser saves consent with POST \${backendURL}/subjects, and the consent route only answers GET. ${envHint}`
+				: `@c15t/astro: manifest() needs a backend URL: the server reads its policy from \${backendURL}/manifest, and the browser saves consent there with POST /subjects. ${envHint}`
+		);
+	}
 	if (mode.type === 'manifest' && !mode.snapshot) {
-		if (backendURL === undefined) {
-			throw new Error(
-				`@c15t/astro: manifest() needs a backend URL: the server reads its policy from \${backendURL}/manifest, and the browser saves consent there with POST /subjects. ${envHint}`
-			);
-		}
 		if (backendURL === '' && !mode.manifestURL) {
 			throw new Error(
 				"@c15t/astro: `backendURL: ''` saves consent on this origin but gives the server no manifest to fetch. Pass manifest({ manifestURL }) or manifest({ snapshot })."
@@ -372,18 +375,6 @@ export const resolveOptions = function resolveOptions(
 	const prefix = resolveRoutePrefix(routePrefix);
 	if (prefix !== undefined) {
 		resolved.routePrefix = prefix;
-	}
-	// A snapshot replaces the manifest fetch, not the endpoint the browser
-	// saves consent to. Without the route or a backend, the page would throw
-	// on boot instead of here.
-	if (
-		mode.type === 'manifest' &&
-		prefix === undefined &&
-		options.backendURL === undefined
-	) {
-		throw new Error(
-			`@c15t/astro: manifest() with \`routePrefix: false\` leaves the browser nowhere to save consent. Set ${BACKEND_URL_ENV} in .env, pass \`backendURL\` to c15t(), or keep the default routePrefix.`
-		);
 	}
 	return resolved;
 };
