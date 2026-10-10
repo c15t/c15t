@@ -292,6 +292,22 @@ const requiredIdCases: {
 		option: 'id',
 		script: { category: 'necessary', id: 'google-tag-manager' },
 	},
+	{
+		create: (id) => googleTagManager({ category: 'measurement', id: asId(id) }),
+		helper: 'googleTagManager',
+		option: 'id',
+		script: { category: 'measurement', id: 'google-tag-manager' },
+	},
+	{
+		create: (id) =>
+			googleTagManager({ id: asId(id), loadMode: 'after-consent' }),
+		helper: 'googleTagManager',
+		option: 'id',
+		script: {
+			category: { or: ['measurement', 'marketing'] },
+			id: 'google-tag-manager',
+		},
+	},
 ];
 
 describe('required IDs', () => {

@@ -210,10 +210,16 @@ export const googleTagManager = function googleTagManager({
 	loadMode = 'always',
 	category,
 }: GoogleTagManagerOptions): Script {
+	const scriptCategory =
+		loadMode === 'after-consent'
+			? (category ?? afterConsentCategory())
+			: category;
 	const normalizedId = readId(id);
 	if (normalizedId === undefined) {
+		// Keep the category so it stays in the consent scope while the ID is
+		// missing.
 		return skipMissingId('googleTagManager', 'id', {
-			category: 'necessary',
+			category: scriptCategory ?? googleTagManagerManifest.category,
 			id: 'google-tag-manager',
 		});
 	}
@@ -255,12 +261,12 @@ export const googleTagManager = function googleTagManager({
 
 	if (loadMode === 'after-consent') {
 		gtmScript.alwaysLoad = undefined;
-		gtmScript.category = category ?? afterConsentCategory();
 		// Removing gtm.js does not stop a running container. Keeping the element
 		// lets a later grant reuse it instead of starting a second container.
 		gtmScript.persistAfterConsentRevoked = true;
-	} else if (category !== undefined) {
-		gtmScript.category = category;
+	}
+	if (scriptCategory !== undefined) {
+		gtmScript.category = scriptCategory;
 	}
 
 	return gtmScript;
