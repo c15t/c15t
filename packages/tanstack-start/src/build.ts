@@ -1,7 +1,8 @@
 import { createConsentManifestPlugin } from '@c15t/core/build';
-import type { ManifestBuildOptions } from '@c15t/core/build';
+import type { ConsentManifestPluginOptions } from '@c15t/core/build';
 
 export type {
+	ConsentManifestPluginOptions,
 	ManifestBuildErrorMode,
 	ManifestBuildOptions,
 } from '@c15t/core/build';
@@ -30,10 +31,12 @@ export type {
  * so the server fetches the policy at runtime. Set
  * `onBuildError: 'runtime'` or `'fail'`, or the `C15T_ON_BUILD_ERROR`
  * environment variable, to use one behaviour in both. The fetch is skipped
- * for a `backendURL` that is not absolute http(s).
+ * for a `backendURL` that is not absolute http(s), and with
+ * `source: 'runtime'`, for an app whose `manifest({ source: 'runtime' })`
+ * reads the policy at runtime.
  *
- * @param options - Backend URL and `onBuildError`. The build appends
- * `/manifest`.
+ * @param options - Backend URL, `onBuildError` and `source`. The build
+ * appends `/manifest`.
  * @returns A Vite plugin to place before the TanStack Start plugin.
  * @throws {Error} When the fetch fails in `'fail'` mode, the default for
  * `vite build`.
@@ -45,7 +48,7 @@ export type {
  * const plugins = [consentManifest()];
  * ```
  */
-export const consentManifest = (options: ManifestBuildOptions = {}) =>
+export const consentManifest = (options: ConsentManifestPluginOptions = {}) =>
 	createConsentManifestPlugin(options, {
 		envNames: ['VITE_C15T_BACKEND_URL', 'VITE_INTH_PROJECT_URL'],
 		label: '@c15t/tanstack-start/build',

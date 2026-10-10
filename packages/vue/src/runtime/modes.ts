@@ -57,7 +57,9 @@ const missingBackendURL = function missingBackendURL(
  * downloaded during the build. With `manifestURL` it fetches that URL when
  * the app starts and ignores the build's snapshot. With no build snapshot
  * (a dev server that could not reach the backend, or `source: 'runtime'`)
- * it fetches `${backendURL}/manifest` when the app starts. English copy is
+ * it fetches `${backendURL}/manifest` when the app starts. With
+ * `manifestURL` or `source: 'runtime'`, also pass `source: 'runtime'` to
+ * `consentManifest()`, so the build downloads no snapshot. English copy is
  * bundled; other languages load on demand.
  *
  * The browser does not know where the visitor is, so when the policy

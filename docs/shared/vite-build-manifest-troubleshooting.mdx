@@ -46,6 +46,8 @@ requests `${backendURL}/manifest` on page load.
   `C15T_ON_BUILD_ERROR=runtime`. The terminal shows a `could not fetch the
   consent manifest` warning.
 - The backend URL is relative, so the plugin skipped the fetch.
+- `consentManifest({ source: 'runtime' })` is set, so the plugin never
+  fetches.
 
 Fix the cause, then restart `vite dev` or rebuild. The plugin fetches once
 when Vite starts.

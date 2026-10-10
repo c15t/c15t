@@ -447,6 +447,21 @@ export interface ManifestBuildOptions {
 	fetch?: typeof globalThis.fetch;
 }
 
+/** Options of the `consentManifest()` Vite plugins. */
+export interface ConsentManifestPluginOptions extends ManifestBuildOptions {
+	/**
+	 * `'runtime'` never downloads a snapshot: `@c15t/core/generated`
+	 * exports `snapshot: undefined` and the app reads the manifest at
+	 * runtime. Set it when the app's `manifest()` passes `manifestURL` or
+	 * `source: 'runtime'`. Those discard the build's snapshot, but the
+	 * bundle still imports it, so without this option the build fetches
+	 * `${backendURL}/manifest` and fails when that fetch fails.
+	 *
+	 * @default 'build'
+	 */
+	source?: 'build' | 'runtime';
+}
+
 /** What `@c15t/core/generated` exports. */
 export interface GeneratedManifestModule {
 	/** The backend URL the build read the manifest from. */
@@ -733,7 +748,7 @@ const GENERATED_IMPORTERS = [
  * @internal
  */
 export const createConsentManifestPlugin = (
-	options: ManifestBuildOptions,
+	options: ConsentManifestPluginOptions,
 	defaults: {
 		envNames: readonly string[];
 		label: string;
@@ -750,6 +765,7 @@ export const createConsentManifestPlugin = (
 	let serverRendered = false;
 	let generation: Promise<ConsentManifest | undefined> | undefined;
 	let missingURLReported = false;
+	const runtimeOnly = options.source === 'runtime';
 	const command = (): ManifestBuildCommand =>
 		resolved?.command === 'serve' ? 'dev' : 'build';
 	const logger = (): ManifestBuildLogger =>
@@ -821,6 +837,15 @@ export const createConsentManifestPlugin = (
 				command(),
 				defaults.label
 			);
+			if (
+				options.source !== undefined &&
+				options.source !== 'build' &&
+				!runtimeOnly
+			) {
+				throw new Error(
+					`${defaults.label}: source must be 'build' or 'runtime', received ${JSON.stringify(options.source)}.`
+				);
+			}
 			const { serverRendered: rendered = false } = defaults;
 			serverRendered =
 				typeof rendered === 'function' ? rendered(config) : rendered;
@@ -862,10 +887,19 @@ export const createConsentManifestPlugin = (
 				return renderGeneratedModule(
 					{
 						backendURL,
-						snapshot: clientStub ? undefined : await loadSnapshot(),
+						snapshot:
+							clientStub || runtimeOnly ? undefined : await loadSnapshot(),
 					},
 					{ clientStub }
 				);
+			}
+			let snapshotLine = `export const snapshot = ${placeholderExpression(PLACEHOLDERS.snapshot)};`;
+			if (clientStub) {
+				snapshotLine =
+					'// The snapshot stays on the server; the browser bundle never gets it.\nexport const snapshot = undefined;';
+			} else if (runtimeOnly) {
+				snapshotLine =
+					"// source: 'runtime': the app reads the manifest at runtime.\nexport const snapshot = undefined;";
 			}
 			const lines = [
 				'// Written by the c15t build integration. Do not edit.',
@@ -875,9 +909,7 @@ export const createConsentManifestPlugin = (
 						? placeholderExpression(PLACEHOLDERS.backendURL)
 						: JSON.stringify(backendURL)
 				};`,
-				clientStub
-					? '// The snapshot stays on the server; the browser bundle never gets it.\nexport const snapshot = undefined;'
-					: `export const snapshot = ${placeholderExpression(PLACEHOLDERS.snapshot)};`,
+				snapshotLine,
 				'',
 			];
 			return lines.join('\n');
@@ -934,10 +966,13 @@ export const createConsentManifestPlugin = (
  * `snapshot` is `undefined`. Set `onBuildError` or `C15T_ON_BUILD_ERROR` to
  * change that. When the policy depends on the visitor's location, it warns
  * and suggests `hosted()`, since the browser's `manifest()` then still asks
- * the backend's `/init` unless the page passes `inputs` or `geoURL`.
+ * the backend's `/init` unless the page passes `inputs` or `geoURL`. With
+ * `manifest({ manifestURL })` or `manifest({ source: 'runtime' })`, pass
+ * `source: 'runtime'` here too, so the build never fetches a snapshot the
+ * app would discard.
  *
- * @param options - Backend URL and `onBuildError`. `backendURL` defaults to
- * `VITE_C15T_BACKEND_URL`, then `VITE_INTH_PROJECT_URL`.
+ * @param options - Backend URL, `onBuildError` and `source`. `backendURL`
+ * defaults to `VITE_C15T_BACKEND_URL`, then `VITE_INTH_PROJECT_URL`.
  * @returns A Vite plugin, compatible with React, Vue, Svelte and Solid builds.
  * @throws {Error} When the fetch fails in `'fail'` mode, stopping Vite.
  * @example
@@ -948,7 +983,7 @@ export const createConsentManifestPlugin = (
  * ```
  */
 export const consentManifest = (
-	options: ManifestBuildOptions = {}
+	options: ConsentManifestPluginOptions = {}
 ): ConsentManifestPlugin =>
 	createConsentManifestPlugin(options, {
 		adviseHostedForLocation: true,

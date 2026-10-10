@@ -61,6 +61,8 @@ export const withBuildDefaults = function withBuildDefaults(
  * `c15t/generated`. Without a
  * snapshot, such as in dev after a failed fetch, it fetches
  * `${backendURL}/manifest` at runtime. Saves go to the backend either way.
+ * With `manifestURL` or `source: 'runtime'`, also pass `source: 'runtime'`
+ * to `consentManifest()`, so the build downloads no snapshot.
  *
  * @param options - Overrides: your own `snapshot`, `source: 'runtime'`, a
  * `manifestURL`, a `backendURL`, or the visitor's location as `inputs`.

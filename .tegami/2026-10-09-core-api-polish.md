@@ -83,6 +83,11 @@ integration.
   that uses `hosted()` or `offline()` never contacts the backend during the
   build, and a backend outage no longer stops it. `vite dev` fetches when
   the app first loads `c15t/generated`.
+- The plugins can't see the options passed to `manifest()`, so an app whose
+  `manifest()` takes `manifestURL` or `source: 'runtime'` still reads
+  `snapshot`. Pass `source: 'runtime'` to the plugin as well, as in
+  `consentManifest({ source: 'runtime' })`: it never fetches, and serves
+  `snapshot: undefined` in dev and in builds.
 
 The build reads the backend URL from the framework's public variable when you
 don't pass one, from the environment or a `.env` file:

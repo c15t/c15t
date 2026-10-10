@@ -24,7 +24,9 @@ export type ManifestModeOptions = BrowserManifestOptions;
  * With `manifestURL`, that URL is fetched when the page loads and the
  * build's snapshot is not used. Without a snapshot, as after
  * `source: 'runtime'` or a dev server that could not reach the backend,
- * the manifest is fetched from the backend when the page loads.
+ * the manifest is fetched from the backend when the page loads. With
+ * either, also pass `source: 'runtime'` to `consentManifest()`, so the
+ * build downloads no snapshot.
  *
  * Only English base copy is bundled. Another language's copy loads the
  * first time a visitor resolves to it.

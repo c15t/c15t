@@ -159,6 +159,39 @@ describe('@c15t/core/generated in Vite', () => {
 		expect(options.fetch).toHaveBeenCalledTimes(1);
 	});
 
+	test("source: 'runtime' builds without fetching, for manifest({ manifestURL })", async () => {
+		// The app's manifest() discards the snapshot at runtime, but the
+		// bundle still imports it, so only the plugin option can skip the
+		// fetch.
+		const root = await createRoot();
+		const options = optionsFor(root);
+		options.fetch.mockRejectedValue(new Error('backend unavailable'));
+		const code = await buildEntry(
+			root,
+			consentManifest({ ...options, source: 'runtime' }),
+			"import { backendURL, snapshot } from '@c15t/core/generated';\nexport const mode = { backendURL, snapshot: location.hash ? undefined : snapshot };\n"
+		);
+		expect(options.fetch).not.toHaveBeenCalled();
+		expect(code).not.toContain('__c15t_build_snapshot__');
+		expect(code).toContain('https://consent.example.com');
+
+		const plugin = consentManifest({ ...options, source: 'runtime' });
+		await plugin.configResolved({ command: 'serve', root });
+		const dev = await plugin.load.call(
+			undefined,
+			plugin.resolveId(GENERATED_MODULE_IDS[0]) as string
+		);
+		expect(dev).toContain('export const snapshot = undefined;');
+		expect(options.fetch).not.toHaveBeenCalled();
+
+		expect(() =>
+			consentManifest({ source: 'never' as 'runtime' }).configResolved({
+				command: 'build',
+				root: '/',
+			})
+		).toThrow("source must be 'build' or 'runtime'");
+	});
+
 	test('a server-rendered framework keeps the snapshot out of the client build', async () => {
 		const root = await createRoot();
 		const options = optionsFor(root);
