@@ -12,6 +12,7 @@
  * - `clear.ts`          — removing every record and storing the clear epoch.
  * - `index.ts`          — this file: the public entry.
  * - `mount.ts`          — hydration, event wiring, lifecycle.
+ * - `writer-loader.ts`  — loads and preloads the write code.
  * - `writer/`           — everything else that runs after a choice or a
  *                         later event: encoders, storage writes, the write
  *                         scheduler and reconciliation. Loaded on demand;
@@ -49,9 +50,11 @@
  *   the sync listeners' reconciliations requested before it lands run when
  *   it lands, in that order. So do writes requested before `dispose()`.
  * - The write code starts loading on the first write or reconciliation, or,
- *   once a banner or dialog has been shown, in idle time after the page's
- *   load event, whichever comes first. Once loaded it serves every later
- *   handle synchronously.
+ *   once a banner or dialog has been shown, on a press, key or focus inside
+ *   one, or in idle time three seconds after the page's load event,
+ *   whichever comes first. Once loaded it serves every later handle
+ *   synchronously. Script-tag builds bundle it and swap in
+ *   `writer-loader-static.ts`.
  * - `clear()` needs no write code: it clears the kernel's records and
  *   storage, and stores the clear epoch, before it returns, so a reload
  *   right after it cannot restore a cleared grant. It cancels queued writes

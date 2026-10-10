@@ -413,7 +413,7 @@ describe('before the write code lands', () => {
 		expect(storedChoice()?.choice.categories.marketing?.value).toBe(true);
 	});
 
-	test('once a banner is shown, the write code loads in idle time after the load event', async () => {
+	test('once a banner is shown, the write code loads in idle time three seconds after the load event', async () => {
 		const { land, loader, loads } = heldBackLoader();
 		const kernel = createConsentKernel({
 			consentCategories: ['marketing'],
@@ -428,10 +428,10 @@ describe('before the write code lands', () => {
 		expect(loads()).toBe(0);
 
 		kernel.markLive();
-		// jsdom has no requestIdleCallback; the fallback delay stands in.
-		await vi.advanceTimersByTimeAsync(199);
+		// jsdom has no requestIdleCallback, so it loads right after the delay.
+		await vi.advanceTimersByTimeAsync(2999);
 		expect(loads()).toBe(0);
-		await vi.advanceTimersByTimeAsync(1);
+		await vi.advanceTimersByTimeAsync(2);
 		expect(loads()).toBe(1);
 
 		await land();
@@ -442,6 +442,71 @@ describe('before the write code lands', () => {
 		await vi.advanceTimersByTimeAsync(0);
 		expect(storedChoice()?.choice.categories.marketing?.value).toBe(true);
 		await settle(saving);
+	});
+
+	test('a press inside the banner loads the write code at once, and only once', async () => {
+		const { loader, loads } = heldBackLoader();
+		const kernel = createConsentKernel({
+			consentCategories: ['marketing'],
+			initialPolicyResolution: matchedResolution(
+				optInRule({ categories: ['marketing'] })
+			),
+			now: Date.now(),
+		});
+		createPersistence({ kernel }, loader);
+		const banner = document.createElement('div');
+		banner.dataset.testid = 'consent-banner-root';
+		const button = document.createElement('button');
+		banner.append(button);
+		const outside = document.createElement('button');
+		document.body.append(banner, outside);
+		try {
+			// Before a banner is shown, a press does nothing.
+			button.dispatchEvent(new Event('pointerdown', { bubbles: true }));
+			kernel.markLive();
+			// Outside the banner, neither.
+			outside.dispatchEvent(new Event('pointerdown', { bubbles: true }));
+			outside.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+			await vi.advanceTimersByTimeAsync(0);
+			expect(loads()).toBe(0);
+
+			button.dispatchEvent(new Event('pointerdown', { bubbles: true }));
+			await vi.advanceTimersByTimeAsync(0);
+			expect(loads()).toBe(1);
+
+			// The delayed idle preload and later presses do not load it again.
+			button.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true }));
+			await vi.advanceTimersByTimeAsync(5000);
+			expect(loads()).toBe(1);
+		} finally {
+			banner.remove();
+			outside.remove();
+		}
+	});
+
+	test('focus inside the dialog loads the write code at once', async () => {
+		const { loader, loads } = heldBackLoader();
+		const kernel = createConsentKernel({
+			consentCategories: ['marketing'],
+			initialPolicyResolution: matchedResolution(
+				optInRule({ categories: ['marketing'] })
+			),
+			now: Date.now(),
+		});
+		createPersistence({ kernel }, loader);
+		kernel.markLive();
+		const dialog = document.createElement('div');
+		dialog.dataset.testid = 'iab-consent-dialog-root';
+		const toggle = document.createElement('input');
+		dialog.append(toggle);
+		document.body.append(dialog);
+		try {
+			toggle.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+			await vi.advanceTimersByTimeAsync(0);
+			expect(loads()).toBe(1);
+		} finally {
+			dialog.remove();
+		}
 	});
 
 	test('a returning visitor who is not prompted does not load the write code', async () => {

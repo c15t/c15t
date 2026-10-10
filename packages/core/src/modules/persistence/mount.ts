@@ -13,7 +13,7 @@ import type { StoredRecords } from './hydrate';
 import { resolveStorageKeys } from './record-storage';
 import { persistenceTools } from './tools';
 import type { PersistenceHandle, PersistenceOptions } from './types';
-import { pageWriterLoader } from './writer-loader';
+import { pageWriterLoader, preloadWriter } from './writer-loader';
 import type { WriterLoader, WriterModule } from './writer-loader';
 import type {
 	PersistenceContext,
@@ -21,31 +21,10 @@ import type {
 	WriteKind,
 } from './writer/types';
 
-// Safari has no requestIdleCallback; a short delay after load stands in.
-const IDLE_FALLBACK_DELAY_MS = 200;
 // A write waits for the write code: after a failed load, try again after
 // 1, 4 and 16 seconds. Later events, focus and visibility changes try too.
 const RETRY_BASE_MS = 1000;
 const RETRIES = 3;
-
-/** Run `task` in idle time after the page's load event. */
-const afterLoadWhenIdle = function afterLoadWhenIdle(task: () => void): void {
-	const idle = () => {
-		if (typeof requestIdleCallback === 'function') {
-			requestIdleCallback(task);
-		} else {
-			setTimeout(task, IDLE_FALLBACK_DELAY_MS);
-		}
-	};
-	if (
-		document.readyState === 'loading' ||
-		document.readyState === 'interactive'
-	) {
-		window.addEventListener('load', idle, { once: true });
-	} else {
-		idle();
-	}
-};
 
 /**
  * `createPersistence`, with the place the write code comes from. Tests
@@ -353,23 +332,21 @@ export const mountPersistence = function mountPersistence(
 	} else if (options.skipHydration) {
 		applyNewerStoredRecords();
 	} else {
+		// Known gap: a handle mounted while an earlier one's write still waits
+		// for the write code (a provider remounted right after a choice) reads
+		// storage before that write lands, and does not see it until reload.
 		hydrate();
 	}
 
 	if (!landedWriter() && listenable) {
-		// Load the write code before the visitor acts on a banner or dialog,
-		// so the first save rarely waits for it. Only once one has been
-		// shown: it never competes with showing it, and a visitor with
-		// nothing to answer downloads it only if they act.
-		const stop = kernel.events.on('surface:shown', () => {
-			stop();
-			afterLoadWhenIdle(() => {
+		// See `preloadWriter` for when the write code loads.
+		unsubscribers.push(
+			preloadWriter(kernel, () => {
 				if (!disposed) {
 					void withWriter();
 				}
-			});
-		});
-		unsubscribers.push(stop);
+			})
+		);
 	}
 
 	const removeListeners = installListeners();
