@@ -542,6 +542,21 @@ describe('mode and routePrefix', () => {
 		);
 	});
 
+	test('publishes the checked routePrefix over one already in runtimeConfig', async () => {
+		warn.mockClear();
+		const nuxt = createNuxt({ backendURL: '/api/self-host' });
+		nuxt.options.runtimeConfig.public.c15t = { routePrefix: '/' };
+		await runWithNuxtContext(nuxt, () => module({}, nuxt));
+		// The route and the browser read the same prefix.
+		expect(handlerRoutes(nuxt)).toEqual(['/api/c15t/**']);
+		expect(nuxt.options.runtimeConfig.public.c15t).toMatchObject({
+			routePrefix: '/api/c15t',
+		});
+		expect(warn).toHaveBeenCalledWith(
+			expect.stringContaining('runtimeConfig.public.c15t.routePrefix')
+		);
+	});
+
 	test('hosted() needs no consent route', async () => {
 		const nuxt = await setUpModule({
 			backendURL: 'https://consent.example.com',

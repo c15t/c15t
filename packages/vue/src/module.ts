@@ -330,6 +330,41 @@ const withoutSnapshot = function withoutSnapshot(
 	return rest;
 };
 
+/**
+ * Puts the module options in the public runtime config, which the server
+ * render and the browser read. Values already there win, except
+ * `routePrefix`: the consent route is mounted at the checked option, so the
+ * browser must get that one. A runtime `NUXT_PUBLIC_C15T_ROUTE_PREFIX`
+ * cannot move the mounted route either, so it is not supported.
+ */
+const publishOptions = function publishOptions(
+	options: Omit<ModuleOptions, 'devtools' | 'initPrefetch' | 'onBuildError'>,
+	mode: ConsentMode,
+	nuxt: Nuxt
+): void {
+	const existing = nuxt.options.runtimeConfig.public.c15t as
+		| Record<string, unknown>
+		| undefined;
+	if (
+		existing?.routePrefix !== undefined &&
+		existing.routePrefix !== options.routePrefix
+	) {
+		useLogger('@c15t/vue').warn(
+			`\`runtimeConfig.public.c15t.routePrefix\` is ignored: the consent route is mounted at \`c15t.routePrefix\` (${JSON.stringify(options.routePrefix)}). Set the prefix there.`
+		);
+	}
+	const published: Record<string, unknown> = defu(existing ?? {}, {
+		...options,
+		mode: withoutSnapshot(mode),
+	});
+	published.routePrefix = options.routePrefix;
+	// Untyped: an app's generated runtime config types read `routePrefix`
+	// as the string it holds, while the option also takes `false`.
+	const publicRuntimeConfig: Record<string, unknown> =
+		nuxt.options.runtimeConfig.public;
+	publicRuntimeConfig.c15t = published;
+};
+
 /** The modules the snapshot templates declare, with their documentation. */
 const SNAPSHOT_MODULES = [
 	['#c15t/manifest-snapshot', 'The server snapshot for the consent route.'],
@@ -418,18 +453,7 @@ const module: NuxtModule<ModuleOptions> = defineNuxtModule<ModuleOptions>({
 			getContents: () => renderSnapshotModule(clientSnapshot),
 		}).dst;
 
-		// Untyped: an app's generated runtime config types read `routePrefix`
-		// as the string it holds, while the option also takes `false`.
-		const publicRuntimeConfig: Record<string, unknown> =
-			nuxt.options.runtimeConfig.public;
-		publicRuntimeConfig.c15t = defu(
-			nuxt.options.runtimeConfig.public.c15t ?? {},
-			{
-				...options,
-				mode: withoutSnapshot(mode),
-				routePrefix: options.routePrefix ?? DEFAULT_NUXT_ROUTE_PREFIX,
-			}
-		);
+		publishOptions(options, mode, nuxt);
 
 		// Transpile/inline the module runtime by directory, not just package
 		// name. When the module is registered through an aliasing package
