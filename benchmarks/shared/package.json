@@ -11,6 +11,7 @@
 		"./fixtures": "./src/fixtures.ts",
 		"./reporting": "./src/reporting.ts",
 		"./schema": "./src/schema.ts",
+		"./selection": "./src/selection.ts",
 		"./utils": "./src/utils.ts",
 		"./policy-fixtures": "./src/policy-fixtures.ts",
 		"./expected-results": "./src/expected-results.ts",

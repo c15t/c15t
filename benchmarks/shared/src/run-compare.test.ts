@@ -442,6 +442,35 @@ describe('run-compare gate', () => {
 		);
 	});
 
+	it('requires exactly the scenarios a CI shard measured', () => {
+		const tiny = [makeResult('tiny', coreMedians, coreBudgets)];
+		const shard = runCompare({
+			BENCHMARK_ARM_MAP: emptyArmMap(),
+			BENCHMARK_BASE_DIR: writeResults(tiny),
+			BENCHMARK_HEAD_DIR: writeResults(tiny),
+			BENCHMARK_PROFILE: 'regression',
+			C15T_BENCH_ONLY: 'core-runtime:tiny',
+		});
+		expect(shard.code).toBe(0);
+		expect(summaryOf(shard).results.expected).toBe(1);
+
+		const missing = runCompare({
+			BENCHMARK_ARM_MAP: emptyArmMap(),
+			BENCHMARK_BASE_DIR: writeResults(tiny),
+			BENCHMARK_HEAD_DIR: writeResults(tiny),
+			BENCHMARK_PROFILE: 'regression',
+			C15T_BENCH_ONLY: 'core-runtime',
+			C15T_BENCH_SKIP: 'core-runtime:large',
+		});
+		expect(missing.code).not.toBe(0);
+		expect(summaryOf(missing).results.missingHead).toContain(
+			'@c15t/core-benchmarks:small:core-runtime'
+		);
+		expect(summaryOf(missing).results.missingHead).not.toContain(
+			'@c15t/core-benchmarks:large:core-runtime'
+		);
+	});
+
 	it('rejects an empty suite selection instead of passing without results', () => {
 		const run = runCompare({ BENCHMARK_EXPECTED_SUITES: 'misspelled-suite' });
 		expect(run.code).not.toBe(0);

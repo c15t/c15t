@@ -25,6 +25,10 @@ import { coreFixtures } from '@c15t/benchmarking/fixtures';
 import { BENCHMARK_SCHEMA_VERSION } from '@c15t/benchmarking/schema';
 import type { BenchmarkResult } from '@c15t/benchmarking/schema';
 import {
+	benchSelectionFromEnv,
+	isBenchSelected,
+} from '@c15t/benchmarking/selection';
+import {
 	benchmarkCount,
 	getEnvironment,
 	measureAsyncLoop,
@@ -49,7 +53,10 @@ const WARMUP = benchmarkCount(
 );
 const outputDir = process.env.BENCH_OUTPUT_DIR ?? '.benchmarks/core-v3-runtime';
 
-const fixtures = Object.values(coreFixtures);
+const selection = benchSelectionFromEnv(process.env);
+const fixtures = Object.values(coreFixtures).filter((fixture) =>
+	isBenchSelected(selection, 'core-runtime', fixture.name)
+);
 
 // Every fixture runs the same empty-kernel operations, so one loop per
 // operation measures all of them and deals its samples out in turn. A burst of
@@ -158,67 +165,73 @@ const measureOperations = async function measureOperations() {
 	};
 };
 
-// One discarded pass over every operation. The per-operation warmup is too
-// short for a cold process: samples keep falling through the whole measured
-// loop, so where a median lands varies from run to run.
-await measureOperations();
-const measured = await measureOperations();
+// A CI shard that measures only policy fixtures selects none of these.
+if (fixtures.length > 0) {
+	// One discarded pass over every operation. The per-operation warmup is too
+	// short for a cold process: samples keep falling through the whole measured
+	// loop, so where a median lands varies from run to run.
+	await measureOperations();
+	const measured = await measureOperations();
 
-await fixtures.reduce(async (previousIteration, fixture, fixtureIndex) => {
-	await previousIteration;
-	const createKernelSamples = dealt(measured.createKernelSamples, fixtureIndex);
-	const getSnapshotSamples = dealt(measured.getSnapshotSamples, fixtureIndex);
-	const subscribeSamples = dealt(measured.subscribeSamples, fixtureIndex);
-	const setConsentSamples = dealt(measured.setConsentSamples, fixtureIndex);
-	const saveAllSamples = dealt(measured.saveAllSamples, fixtureIndex);
-	const repeatVisitorSamples = dealt(
-		measured.repeatVisitorSamples,
-		fixtureIndex
-	);
-	const initSamples = dealt(measured.initSamples, fixtureIndex);
-	const identifySamples = dealt(measured.identifySamples, fixtureIndex);
+	await fixtures.reduce(async (previousIteration, fixture, fixtureIndex) => {
+		await previousIteration;
+		const createKernelSamples = dealt(
+			measured.createKernelSamples,
+			fixtureIndex
+		);
+		const getSnapshotSamples = dealt(measured.getSnapshotSamples, fixtureIndex);
+		const subscribeSamples = dealt(measured.subscribeSamples, fixtureIndex);
+		const setConsentSamples = dealt(measured.setConsentSamples, fixtureIndex);
+		const saveAllSamples = dealt(measured.saveAllSamples, fixtureIndex);
+		const repeatVisitorSamples = dealt(
+			measured.repeatVisitorSamples,
+			fixtureIndex
+		);
+		const initSamples = dealt(measured.initSamples, fixtureIndex);
+		const identifySamples = dealt(measured.identifySamples, fixtureIndex);
 
-	const result: BenchmarkResult = {
-		baseSha: safeBaseSha(),
-		budgetDefinitions: [
-			...coreRuntimeBudgets,
-			...coreRuntimeCoverageBudgets,
-			...coreRuntimeV3Budgets,
-		],
-		budgets: [],
-		commitSha: safeCommitSha(),
-		environment: getEnvironment(),
-		fixture,
-		framework: 'core',
-		metadata: {
-			fixtureSizesApplied: false,
-			gitDirty: safeGitDirty(),
-			iterations: ITERATIONS,
-			warmupIterations: WARMUP,
-			workload: 'historical-empty-kernel',
-		},
-		metrics: [
-			summarizeMetric('createConsentKernel', 'us', createKernelSamples),
-			summarizeMetric('getSnapshot', 'us', getSnapshotSamples),
-			summarizeMetric('subscribe', 'us', subscribeSamples),
-			summarizeMetric('setConsent', 'us', setConsentSamples),
-			summarizeMetric('saveAll', 'us', saveAllSamples),
-			summarizeMetric('repeatVisitorInit', 'us', repeatVisitorSamples),
-			summarizeMetric('initConsentManager', 'us', initSamples),
-			summarizeMetric('identify', 'us', identifySamples),
-		],
-		notes: [
-			'Kernel construction is pure and has no side effects.',
-			'Historical comparators only: fixture labels do not change these empty-kernel operations. Real policy and receipt operations are in policy-runtime.',
-			'v3-over-v2 improvement budgets target the v2 base arm and stay unevaluated without v2 artifacts.',
-		],
-		package: '@c15t/core-benchmarks',
-		runtime: process.versions.bun ? 'bun' : 'node',
-		scenario: fixture.name,
-		schemaVersion: BENCHMARK_SCHEMA_VERSION,
-		suite: 'core-runtime',
-		timestamp: new Date().toISOString(),
-	};
+		const result: BenchmarkResult = {
+			baseSha: safeBaseSha(),
+			budgetDefinitions: [
+				...coreRuntimeBudgets,
+				...coreRuntimeCoverageBudgets,
+				...coreRuntimeV3Budgets,
+			],
+			budgets: [],
+			commitSha: safeCommitSha(),
+			environment: getEnvironment(),
+			fixture,
+			framework: 'core',
+			metadata: {
+				fixtureSizesApplied: false,
+				gitDirty: safeGitDirty(),
+				iterations: ITERATIONS,
+				warmupIterations: WARMUP,
+				workload: 'historical-empty-kernel',
+			},
+			metrics: [
+				summarizeMetric('createConsentKernel', 'us', createKernelSamples),
+				summarizeMetric('getSnapshot', 'us', getSnapshotSamples),
+				summarizeMetric('subscribe', 'us', subscribeSamples),
+				summarizeMetric('setConsent', 'us', setConsentSamples),
+				summarizeMetric('saveAll', 'us', saveAllSamples),
+				summarizeMetric('repeatVisitorInit', 'us', repeatVisitorSamples),
+				summarizeMetric('initConsentManager', 'us', initSamples),
+				summarizeMetric('identify', 'us', identifySamples),
+			],
+			notes: [
+				'Kernel construction is pure and has no side effects.',
+				'Historical comparators only: fixture labels do not change these empty-kernel operations. Real policy and receipt operations are in policy-runtime.',
+				'v3-over-v2 improvement budgets target the v2 base arm and stay unevaluated without v2 artifacts.',
+			],
+			package: '@c15t/core-benchmarks',
+			runtime: process.versions.bun ? 'bun' : 'node',
+			scenario: fixture.name,
+			schemaVersion: BENCHMARK_SCHEMA_VERSION,
+			suite: 'core-runtime',
+			timestamp: new Date().toISOString(),
+		};
 
-	writeJson(join(outputDir, `${fixture.name}.json`), result);
-}, Promise.resolve());
+		writeJson(join(outputDir, `${fixture.name}.json`), result);
+	}, Promise.resolve());
+}

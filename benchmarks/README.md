@@ -80,8 +80,10 @@ dependency absent from the base manifest fails before measurement. `.ci-reports/
 records both SHAs and the fixture overlay; base, head and comparison evidence
 sit alongside it. A failed measurement cannot reuse a previous report.
 
-CI runs one benchmark package per runner: two parallel jobs for `quick` and
-eight for `full`. A planning job resolves both revisions to commit IDs before
+CI runs one benchmark package per runner, except `@c15t/core-benchmarks`:
+each policy fixture takes about 30 seconds a pass, so `scripts/benchmark-plan.ts`
+splits the package across three runners. That makes four parallel jobs for
+`quick` and ten for `full`. A planning job resolves both revisions to commit IDs before
 starting the matrix. Each runner measures base and head with `--concurrency=1`,
 so timing loops do not compete for CPU. Runtime modes split the iterations into
 three rounds that alternate base-head, head-base, base-head, then pool each
@@ -96,10 +98,18 @@ package, for example:
 BENCHMARK_PACKAGE=@c15t/react-browser-bench bun scripts/benchmark-run.ts full
 ```
 
-Unknown packages and packages outside the selected profile fail before any
-measurement. Each job enforces every expected result and budget for its package
-and uploads `runtime-benchmarks-<id>` with pooled base and head results, each
-round's raw results under `rounds/`, the comparison and provenance files. The matrix `id` is the package name with `@c15t/` removed,
+`BENCHMARK_SHARD` selects one shard by its matrix `id` instead, for example
+`BENCHMARK_SHARD=core-benchmarks-california`. A shard sets `C15T_BENCH_ONLY`
+and `C15T_BENCH_SKIP` to comma lists of `suite` or `suite:scenario`; the bench
+scripts measure only the selected scenarios, and the comparison expects only
+them. The last core-benchmarks shard skips the fixtures listed before it, so a
+new policy fixture runs there by default.
+
+Unknown packages, shards and packages outside the selected profile fail before
+any measurement. Each job enforces every expected result and budget in its
+share and uploads `runtime-benchmarks-<id>` with pooled base and head results,
+each round's raw results under `rounds/`, the comparison and provenance files.
+The matrix `id` is the shard id, or the package name with `@c15t/` removed,
 for example `runtime-benchmarks-react-browser-bench` for
 `@c15t/react-browser-bench`. A failed job does not cancel the remaining matrix jobs.
 Rounds split browser and script-lifecycle iterations, so pooled sample counts

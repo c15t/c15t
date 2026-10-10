@@ -249,6 +249,7 @@ describe('release validation', () => {
 								BENCHMARK_BASE_REF: `\${{ needs.plan.outputs.base_sha }}`,
 								BENCHMARK_MODE: `\${{ inputs.mode || 'full' }}`,
 								BENCHMARK_PACKAGE: `\${{ matrix.package }}`,
+								BENCHMARK_SHARD: `\${{ matrix.id }}`,
 							}),
 							run: 'bun scripts/benchmark-run.ts "$BENCHMARK_MODE"',
 						}),
