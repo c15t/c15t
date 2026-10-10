@@ -143,9 +143,10 @@ The component props map to helper options:
 
 ### Keep initial data layer values
 
-`GoogleTagManager` pushes its `dataLayer` object before the `gtm.js` start
-event, so the container's startup triggers can read those values. Pushing the
-object later, like an event, can arrive after those triggers have run.
+`GoogleTagManager` pushes its `dataLayer` object in the same inline snippet
+that pushes the `gtm.js` start event, before the container script runs, so the
+container's startup triggers can read those values. Pushing the object later,
+like an event, can arrive after those triggers have run.
 
 Seed the queue in the initial HTML instead, before c15t loads the container.
 Add a `beforeInteractive` script to the root `app/layout.tsx`, or to

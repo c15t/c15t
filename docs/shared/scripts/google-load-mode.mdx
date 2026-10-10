@@ -31,6 +31,15 @@ group: reference
   Under an `opt-out` or `none` policy, optional categories are allowed before a
   choice, so the helper loads on the first page.
 
+  In either mode, the container runs every tag in it once it starts. Google
+  tags inside follow Consent Mode, but Custom HTML tags and third-party pixels
+  fire on their own triggers. With the default `category`, a visitor who
+  allowed only measurement starts the container, and a marketing pixel in it
+  loads too. With `'always'`, both load before any choice. Add a
+  consent check to each of those tags in GTM, or move the vendor out of the
+  container to its own c15t helper. See
+  [configure consent inside the container](/docs/integrations/google-tag-manager#configure-consent-inside-the-container).
+
   Set it on each Google helper in your `scripts` array:
 
   {/* example: fragment */}

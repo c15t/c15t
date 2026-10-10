@@ -124,8 +124,20 @@ Register `scripts` in `app/app.config.ts` as in
 leftover composable call loads a second copy of the vendor outside c15t.
 
 The helpers load each vendor from the host in its guide, usually the vendor's
-own domain. If you used the `@nuxt/scripts` first-party proxy or bundling for
-a vendor, its requests now go to that host, so allow it in your
+own domain, and the vendor's requests go straight to it. `@nuxt/scripts`
+bundles and proxies many registry scripts by default, including Google
+Analytics, when the app has a server runtime. Before a request reaches the
+vendor, the proxy truncates the visitor's IP address, strips cookie and
+authorization headers, and, depending on the script, generalizes fingerprinting
+fields such as language and hardware. After the move, the vendor receives these
+unchanged.
+
+If your privacy notice or legal review relies on that proxy, keep the vendor's
+requests on your own domain: write a
+[custom integration](/docs/integrations/building-integrations) that loads the
+script and points the vendor's collection endpoint at a reverse proxy you run.
+Otherwise, update the notice. In both cases, allow the hosts the browser now
+contacts in your
 [Content Security Policy](/docs/frameworks/nuxt/content-security-policy).
 
 <import src="../../shared/scripts/google-load-mode.mdx#choose" />
@@ -201,12 +213,12 @@ module's configuration and composables:
 | --- | --- |
 | `gtag.id` in `nuxt.config.ts` | `gtag({ id, category: 'measurement' })` in `app/consent-scripts.ts` |
 | `gtag.config` | The `config` option on `gtag` |
-| `gtag.tags` with several IDs | One `gtag` helper. Add the other IDs as destinations of that Google tag in Google's tag settings. |
+| `gtag.tags` with several IDs | One `gtag` helper, when the extra IDs need no `config` of their own. Add them as destinations of that Google tag in Google's tag settings. Otherwise see [tags with their own settings](#tags-with-their-own-settings). |
 | `gtag.initCommands` with `consent` `default` | Delete. The helper sends `default` from the visitor's permissions. |
 | `initMode: 'manual'` and `useGtag().initialize()` | Delete. c15t loads the tag. |
 | `useGtag().gtag(...)` | `window.gtag?.(...)` |
 | `useTrackEvent(name, params)` | `window.gtag?.('event', name, params)` |
-| `useGtag().disableAnalytics()` and `enableAnalytics()` | Delete. Consent Mode updates follow the visitor's choice, and [vendor consent](/docs/frameworks/nuxt/vendor-consent) can turn Google off on its own. |
+| `useGtag().disableAnalytics()` and `enableAnalytics()` | Delete, and set `loadMode: 'after-consent'` if you used them to stop all Analytics requests. See [stop all requests until consent](#stop-all-requests-until-consent). |
 | `enabled: false` for an environment | Leave the helper out of `scripts` in that environment. |
 | `url`, `loadingStrategy` | No equivalent. The helper loads `gtag.js` from `googletagmanager.com` with `async`. |
 
@@ -225,6 +237,41 @@ missed.
 
 Call `window.gtag` from browser code. `useGtag()` returned a function that did
 nothing on the server, and `window` does not exist there.
+
+### Stop all requests until consent
+
+`disableAnalytics()` sets Google's `ga-disable-<ID>` flag, so `gtag.js` sends
+nothing to Analytics for that ID. The `gtag` helper's default
+`loadMode: 'always'` works differently: it loads `gtag.js` before consent and
+sends Consent Mode `default` with the optional types denied. Google then
+receives cookieless pings. Turning Google off with
+[vendor consent](/docs/frameworks/nuxt/vendor-consent) sends the same denied
+signals.
+
+If you called `disableAnalytics()` so that a visitor who has not opted in sends
+nothing, set `loadMode: 'after-consent'` on the helper. `gtag.js` then waits
+for the helper's `category`.
+
+### Tags with their own settings
+
+The `gtag` helper sends one `config` command, for its `id`. A `gtag.tags`
+entry with its own `config`, or a mix of Analytics IDs with Google Ads or
+Floodlight IDs, has no direct mapping:
+
+- Destinations added in Google's tag settings share the helper's `config`.
+- With `loadMode: 'after-consent'`, every destination waits for the helper's
+  one `category`. An Ads ID under `measurement` stays off for a visitor who
+  allowed only marketing.
+
+For these setups, replace the `gtag` helper with a
+[custom integration](/docs/integrations/building-integrations). It loads
+`gtag.js` once, sends Consent Mode `default` and `update` from the visitor's
+permissions, as in
+[load before consent and signal the vendor](/docs/integrations/building-integrations#load-before-consent-and-signal-the-vendor),
+and sends a `config` command for each tag with that tag's settings. To send
+nothing before opt-in, leave out `alwaysLoad` and set
+`category: { or: ['measurement', 'marketing'] }`. Either grant then loads the
+tag, and Consent Mode keeps the other purpose's destinations restricted.
 
 ## Verify gating
 
