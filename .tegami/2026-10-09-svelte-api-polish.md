@@ -48,7 +48,11 @@ export { loadConsent as load } from '@c15t/svelte/kit';
   policy pack, snapshot or other language.
 - `createConsentRoute()` serves `src/routes/api/c15t/[...path]/+server.ts`,
   needed only for prerendered pages, with `c15tHandle({ routePrefix:
-  '/api/c15t' })`.
+  '/api/c15t' })`. It reads the handle's `snapshot`, `backendURL` and mode
+  from `event.locals.c15t`, so they are set once; route options still win.
+  In the proxy setup, `c15tHandle({ backendURL: '/api/c15t', routePrefix:
+  '/api/c15t' })`, the route skips the handle's URL, which names the route
+  itself, and forwards to the build's backend URL.
 - `consentManifest()` now includes the module-preload plugin when the
   `sveltekit()` plugin is present, and keeps the snapshot out of the browser
   bundle there. It reads `PUBLIC_C15T_BACKEND_URL`, then

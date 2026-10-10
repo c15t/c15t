@@ -90,10 +90,12 @@ catch-all route. See
 
 ## The consent route times out or calls itself
 
-**Check.** `createConsentRoute` needs the backend's URL, which it reads from
-`consentManifest` unless you pass `backendURL`. A relative `backendURL` names
-a route in your own app, which the handlers call in-process; if it points at
-`/api/c15t`, the route requests itself.
+**Check.** `createConsentRoute` needs the backend's URL. It reads it from
+`c15tHandle()` and then `consentManifest` unless you pass `backendURL`, and
+skips a handle `backendURL` that points at the route itself. A relative
+`backendURL` passed to the route names a route in your own app, which the
+handlers call in-process; if it points at `/api/c15t`, the route requests
+itself.
 
 **Fix.** Pass the Inth URL as `createConsentRoute({ backendURL })`, or leave
 it unset so the route uses `PUBLIC_C15T_BACKEND_URL`.

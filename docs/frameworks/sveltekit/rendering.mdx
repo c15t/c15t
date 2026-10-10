@@ -114,9 +114,10 @@ export const handle = c15tHandle({ routePrefix: '/api/c15t' });
 | `GET /api/c15t/manifest` | The manifest, with the backend's `Cache-Control` and `ETag`. Answers `If-None-Match` with `304`. |
 
 The route resolves from the snapshot `consentManifest` downloaded and reads
-the backend URL from it, so it needs no options. If you pass `snapshot` or
-`backendURL` to `c15tHandle()`, pass the same values to
-`createConsentRoute()`: the route does not read the handle's options.
+the backend URL from it, so it needs no options. It also reads what you pass
+to `c15tHandle()`: a `snapshot`, a `backendURL`, and the mode's own
+`backendURL` or `manifestURL`. Set them once, on the handle. Options you pass
+to `createConsentRoute()` win.
 
 This route file exports `GET` only, so a `POST` or `PATCH` to `/api/c15t`
 gets a `405`. Consent saves go to the backend URL directly, unless you turn
@@ -138,10 +139,23 @@ export const { GET, POST, PATCH, PUT, DELETE, OPTIONS } = createConsentRoute({
 });
 ```
 
-Then point saves at the route with `c15tHandle({ backendURL: '/api/c15t',
-routePrefix: '/api/c15t' })`, and pass the absolute backend URL to the route
-as `createConsentRoute({ backendURL: 'https://your-project.inth.app', proxy:
-true })`, so the route does not forward to itself. With the proxy on, `GET`
+Then point saves at the route:
+
+{/* example: fragment */}
+
+```ts title="src/hooks.server.ts"
+import { c15tHandle } from '@c15t/svelte/kit';
+
+export const handle = c15tHandle({
+	backendURL: '/api/c15t',
+	routePrefix: '/api/c15t',
+});
+```
+
+The route skips a handle `backendURL` that points at itself, and forwards to
+the backend URL `consentManifest` read from `PUBLIC_C15T_BACKEND_URL`. To
+forward somewhere else, pass `createConsentRoute({ backendURL, proxy: true })`.
+With the proxy on, `GET`
 still resolves `init` and `manifest` in the process, and the handlers forward
 other requests to `backendURL`. They forward only
 `subjects`, `subjects/:id`, `init`, `manifest`, `health`, `status` and any
