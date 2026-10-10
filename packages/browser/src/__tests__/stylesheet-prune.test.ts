@@ -14,8 +14,8 @@ import { describe, expect, it } from 'vitest';
 
 import {
 	collectClassNames,
+	compactStylesheet,
 	pruneStylesheet,
-	withoutTailwind3Hints,
 } from '../../scripts/prune-stylesheet';
 import {
 	classes as iabClasses,
@@ -53,15 +53,15 @@ describe('inlined stylesheet', () => {
 
 	it('keeps every rule the surfaces can match', () => {
 		expect(stylesheet).toBe(
-			withoutTailwind3Hints(pruneStylesheet(uiMainStylesheet(), rendered))
+			compactStylesheet(pruneStylesheet(uiMainStylesheet(), rendered))
 		);
 		expect(iabStylesheet).toBe(
-			withoutTailwind3Hints(
+			compactStylesheet(
 				pruneStylesheet(uiStylesheet('@c15t/ui/iab/styles.css'), rendered)
 			)
 		);
-		expect(stylesheet).not.toContain('postcss-tailwind3');
-		expect(iabStylesheet).not.toContain('postcss-tailwind3');
+		expect(stylesheet).not.toContain('/*');
+		expect(iabStylesheet).not.toContain('/*');
 		// The tokens and the class-map rules the banner starts from are there.
 		expect(stylesheet).toContain('--c15t-surface');
 		expect(stylesheet).toContain(`.${classes.banner.card?.split(' ')[0]}`);
@@ -98,5 +98,53 @@ describe('pruneStylesheet', () => {
 				used
 			)
 		).toBe('.c15t-ui-root-AAAAA{color:red}@keyframes k{0%{opacity:0}}');
+	});
+
+	it('drops a component variable only the removed rules read', () => {
+		expect(
+			pruneStylesheet(
+				':root,:host{--tabs-gap:1px;--tabs-ring:var(--tabs-color);--tabs-color:red;--root-gap:2px;--unread:3px;--c15t-tabs:4px}:root,:host{--tabs-only:0}.c15t-ui-x-CCCCC{gap:var(--tabs-gap);outline-color:var(--tabs-ring);margin:var(--c15t-tabs) var(--tabs-only)}.c15t-ui-root-AAAAA{gap:var(--root-gap)}',
+				used
+			)
+		).toBe(
+			':root,:host{--root-gap:2px;--unread:3px;--c15t-tabs:4px}.c15t-ui-root-AAAAA{gap:var(--root-gap)}'
+		);
+	});
+
+	it('keeps a variable a kept rule still reads', () => {
+		expect(
+			pruneStylesheet(
+				':root{--shared:1px;--chain:var(--shared)}.c15t-ui-x-CCCCC{gap:var(--shared)}.c15t-ui-root-AAAAA{gap:var(--chain)}',
+				used
+			)
+		).toBe(
+			':root{--shared:1px;--chain:var(--shared)}.c15t-ui-root-AAAAA{gap:var(--chain)}'
+		);
+	});
+});
+
+describe('compactStylesheet', () => {
+	it('drops comments and whitespace between rules, keeping every value', () => {
+		expect(
+			compactStylesheet(
+				[
+					'@layer theme, components;',
+					'',
+					'/* tokens */',
+					':root, :host {',
+					'\t--x: hsl(0, 0%, 90%);',
+					'\tcolor: var(--x, red) !important;',
+					'}',
+					'',
+					'@media (min-width: 640px) {',
+					'\t.a .b { margin: 0 auto }',
+					'}',
+					'@keyframes k { 0% { opacity: 0 } }',
+					'',
+				].join('\n')
+			)
+		).toBe(
+			'@layer theme, components;:root, :host{--x: hsl(0, 0%, 90%);color: var(--x, red) !important;}@media (min-width: 640px) {.a .b{margin: 0 auto}}@keyframes k {0%{opacity: 0}}'
+		);
 	});
 });

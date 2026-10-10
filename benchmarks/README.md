@@ -141,6 +141,15 @@ stays unchanged. The lazy IAB entry receives another 7 KiB in deferred and total
 budgets for its IAB banner and dialog sheets. The ordinary entry keeps its
 existing caps, and entries that emit no stock styles receive no allowance.
 
+The browser manifest resolver loads each non-English language through its
+own `import()`. Entries that import `@c15t/browser` emit those chunks even
+when they never call `manifest()`, so `browser-full` and `browser-headless`
+get a one-time deferred allowance of 85 KiB gzip. Their initial and total
+budgets do not change. The core tarball gets a one-time allowance of 55 KiB
+and 18 percentage points for the self-contained bundles that `clientMode()`
+loads (`dist/runtime/lazy-*.js`). Both allowances come off once the change
+is on the base branch.
+
 The Next.js tarball normally allows at most 15 KiB and 10% growth. Restoring
 dialog rules in the app-imported stylesheet in #1378 added 4,487 packed bytes.
 The percentage check allows those bytes only when the measured baseline's

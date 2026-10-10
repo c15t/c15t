@@ -8,10 +8,12 @@
  *
  * @example
  * ```ts
- * import { init } from '@c15t/browser';
+ * import { hosted, init } from '@c15t/browser';
  * import { mountDevTools } from '@c15t/browser/devtools';
  *
- * const client = init({ backendURL: 'https://your-instance.c15t.dev' });
+ * const client = init({
+ *   mode: hosted({ backendURL: 'https://your-instance.c15t.dev' }),
+ * });
  * if (import.meta.env.DEV) {
  *   mountDevTools(client, { defaultOpen: true, defaultTab: 'location' });
  * }
