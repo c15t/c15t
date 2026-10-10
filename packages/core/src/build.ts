@@ -158,7 +158,8 @@ const parseEnvFile = (source: string): Record<string, string> => {
 		const close = quote === '"' || quote === "'" ? value.indexOf(quote, 1) : -1;
 		// Unquoted, `#` starts a comment as in dotenv, with or without a
 		// space before it.
-		value = close > 0 ? value.slice(1, close) : value.split('#', 1)[0].trim();
+		value =
+			close > 0 ? value.slice(1, close) : (value.split('#', 1)[0] ?? '').trim();
 		values[key] = value;
 	}
 	return values;
