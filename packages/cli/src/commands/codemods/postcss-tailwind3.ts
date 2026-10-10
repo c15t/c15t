@@ -12,7 +12,14 @@ import {
 } from './manifest';
 import { createCodemodSession } from './runner';
 import type { CodemodRunOptions, CodemodRunResult } from './runner';
-import { lineIndent, propertyKey, unwrapExpression } from './source-edits';
+import {
+	importedModuleOf,
+	isNodeRequire,
+	lineIndent,
+	localDeclarationsOf,
+	propertyKey,
+	unwrapExpression,
+} from './source-edits';
 
 const CONFIG_FILES = [
 	'postcss.config.js',
@@ -59,6 +66,72 @@ const pluginLists = function pluginLists(
 		.map((property) => unwrapExpression(property.getInitializerOrThrow()));
 };
 
+/** A c15t PostCSS plugin entry: `c15t/…` or a scoped `@c15t/…/…` one. */
+const PLUGIN_MODULE = /^(?:c15t|@c15t\/[^/]+)\/postcss-tailwind3$/u;
+
+/**
+ * The module an array-form plugin entry loads: a string, the first item of
+ * a `[name, options]` tuple, a `require()` call, or a binding imported or
+ * required from it, called or not.
+ */
+const entryModuleOf = function entryModuleOf(
+	entry: TsMorphTypes.Node,
+	depth = 0
+): string | undefined {
+	const node = unwrapExpression(entry);
+	if (depth > 8) {
+		return undefined;
+	}
+	if (
+		Node.isStringLiteral(node) ||
+		Node.isNoSubstitutionTemplateLiteral(node)
+	) {
+		return node.getLiteralValue();
+	}
+	if (Node.isArrayLiteralExpression(node)) {
+		const [name] = node.getElements();
+		return name && entryModuleOf(name, depth + 1);
+	}
+	if (Node.isPropertyAccessExpression(node)) {
+		return entryModuleOf(node.getExpression(), depth + 1);
+	}
+	if (Node.isCallExpression(node)) {
+		const callee = node.getExpression();
+		const [argument] = node.getArguments();
+		return Node.isIdentifier(callee) && isNodeRequire(callee) && argument
+			? entryModuleOf(argument, depth + 1)
+			: entryModuleOf(callee, depth + 1);
+	}
+	if (!Node.isIdentifier(node)) {
+		return undefined;
+	}
+	for (const declaration of localDeclarationsOf(node)) {
+		const imported = importedModuleOf(declaration);
+		if (imported !== undefined) {
+			return imported;
+		}
+		const initializer = Node.isVariableDeclaration(declaration)
+			? declaration.getInitializer()
+			: undefined;
+		if (initializer) {
+			return entryModuleOf(initializer, depth + 1);
+		}
+	}
+	return undefined;
+};
+
+/** Whether an array-form `plugins` list already has a c15t plugin. */
+const hasPluginEntry = function hasPluginEntry(
+	list: TsMorphTypes.Node
+): boolean {
+	return (
+		Node.isArrayLiteralExpression(list) &&
+		list
+			.getElements()
+			.some((entry) => PLUGIN_MODULE.test(entryModuleOf(entry) ?? ''))
+	);
+};
+
 type Outcome =
 	| { kind: 'added' }
 	| { kind: 'present' }
@@ -96,6 +169,9 @@ const addPlugin = function addPlugin(
 			ownLine ? `${entry}\n${lineIndent(tailwind)}` : `${entry} `
 		);
 		return { kind: 'added' };
+	}
+	if (lists.some(hasPluginEntry)) {
+		return { kind: 'present' };
 	}
 	if (lists.some((list) => Node.isArrayLiteralExpression(list))) {
 		return {

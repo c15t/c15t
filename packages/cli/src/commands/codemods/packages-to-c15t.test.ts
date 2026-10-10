@@ -1092,6 +1092,25 @@ export default defineConfig({
 `);
 	});
 
+	it('leaves no PostCSS warning after it migrates an array-form plugin', async () => {
+		const { rootDir } = await run(
+			{ c15t: '^3.0.0', tailwindcss: '^3.4.17' },
+			{
+				'postcss.config.cjs': `module.exports = {
+	plugins: [require('@c15t/react/postcss-tailwind3'), require('tailwindcss')],
+};
+`,
+			}
+		);
+		const tailwind3 = await postcssTailwind3({
+			dryRun: false,
+			projectRoot: rootDir,
+		});
+
+		expect(tailwind3.changedFiles).toEqual([]);
+		expect(tailwind3.warnings).toEqual([]);
+	});
+
 	it('passes dry-run stylesheet edits to the next codemod in a session', async () => {
 		const stylesheet = `@import "@c15t/react/styles.css";
 .banner {

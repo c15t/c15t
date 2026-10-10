@@ -178,7 +178,7 @@ export const referencesOf = function referencesOf(
 };
 
 /** The declarations an identifier resolves to in its own file. */
-const localDeclarationsOf = function localDeclarationsOf(
+export const localDeclarationsOf = function localDeclarationsOf(
 	identifier: TsMorphTypes.Identifier
 ): TsMorphTypes.Node[] {
 	const sourceFile = identifier.getSourceFile();
@@ -188,7 +188,7 @@ const localDeclarationsOf = function localDeclarationsOf(
 };
 
 /** The module an import declaration that holds `node` loads. */
-const importedModuleOf = function importedModuleOf(
+export const importedModuleOf = function importedModuleOf(
 	node: TsMorphTypes.Node
 ): string | undefined {
 	return node

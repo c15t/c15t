@@ -195,6 +195,38 @@ export default config;
 		);
 	});
 
+	it.each([
+		["require('c15t/postcss-tailwind3')"],
+		["require('c15t/postcss-tailwind3')()"],
+		["'c15t/postcss-tailwind3'"],
+		["['c15t/postcss-tailwind3', {}]"],
+		["require('@c15t/react/postcss-tailwind3')"],
+		['c15tTailwind3', "import c15tTailwind3 from 'c15t/postcss-tailwind3';\n"],
+		[
+			'c15tTailwind3()',
+			"const c15tTailwind3 = require('c15t/postcss-tailwind3');\n",
+		],
+	])(
+		'leaves an array-form config with %s alone',
+		async (entry, preamble = '') => {
+			const config = `${preamble}module.exports = {
+	plugins: [${entry}, require('tailwindcss')],
+};
+`;
+			const rootDir = await createProject({
+				'package.json': manifest({ c15t: '^3.0.0', tailwindcss: '^3.4.0' }),
+				'postcss.config.cjs': config,
+			});
+			const result = await codemod({ dryRun: false, projectRoot: rootDir });
+
+			expect(result.changedFiles).toEqual([]);
+			expect(result.warnings).toEqual([]);
+			expect(await readFile(join(rootDir, 'postcss.config.cjs'), 'utf-8')).toBe(
+				config
+			);
+		}
+	);
+
 	it('warns and leaves an array-form config unchanged', async () => {
 		const config = `module.exports = { plugins: [require('tailwindcss'), require('autoprefixer')] };
 `;
