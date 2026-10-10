@@ -7,7 +7,7 @@ group: frameworks
 <Prompt title="Upgrade this JavaScript app to c15t v3" description="Paste into Claude Code, Codex, Cursor or another coding agent at the root of your app.">
   Upgrade this JavaScript app from the c15t v2 store to c15t v3.
 
-  Read https://c15t.com/docs/frameworks/javascript/upgrade-v3.md first and follow it in order. Do not guess v3 APIs from memory.
+  Read https://v3.c15t.com/docs/frameworks/javascript/upgrade-v3.md first and follow it in order. Do not guess v3 APIs from memory.
 
   1. Find every use of the `c15t` package and `@c15t/scripts`: `getOrCreateConsentRuntime`, `configureConsentManager`, `consentStore`, cookie helpers, script loader and iframe blocker functions.
   2. Decide which v3 entry fits. Use `@c15t/browser` if the app wants the stock banner, `createConsentRuntime` from `c15t/runtime` if it renders its own UI, and `createConsentKernel` only if it mounts each module itself. Tell me which one you picked and why.
@@ -15,7 +15,7 @@ group: frameworks
   4. Run `npx @c15t/cli@alpha codemods scripts-to-integrations consent-provider-options policy-packs-to-policy-rules callbacks-to-v3 --dry-run --json`. Review the output, then run the same command without `--dry-run`. The codemods leave a `TODO(c15t v3)` comment wherever they need you to finish a change.
   5. If you picked `createConsentRuntime`, call `runtime.start()` after creating it. Replace each store call with its v3 equivalent from the guide's mapping table.
   6. Update callbacks and policy presets as the guide describes.
-  7. Keep the existing backend URL. If the app runs its own c15t backend, stop and tell me, because it has to be upgraded in the same release with https://c15t.com/docs/self-host/upgrade-v3.md.
+  7. Keep the existing backend URL. If the app runs its own c15t backend, stop and tell me, because it has to be upgraded in the same release with https://v3.c15t.com/docs/self-host/upgrade-v3.md.
   8. Run the typecheck and build, and resolve every `TODO(c15t v3)` comment.
 
   When you finish, list the files you changed, anything you could not migrate, and how you checked that vendor requests still wait for consent.

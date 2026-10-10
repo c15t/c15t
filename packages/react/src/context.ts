@@ -23,6 +23,8 @@ export interface ProviderServices {
 	clearRecords: () => void;
 	getPresentation: () => ConsentPresentation | undefined;
 	getConsentCategories: () => readonly AllConsentNames[];
+	/** Whether the runtime has started: records hydrated, prefetch adopted. */
+	isStarted: () => boolean;
 	/**
 	 * Store a language override and load its copy: init runs again on the
 	 * provider's own kernel while it is enabled, and a borrowed runtime

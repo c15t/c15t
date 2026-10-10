@@ -3,6 +3,15 @@ import { realpathSync } from 'node:fs';
 
 import type { AgentSetupPlan } from './prompt.ts';
 
+export {
+	createC15tIntegrationGuidance,
+	createC15tSetupInstructions,
+} from './instructions.ts';
+export type {
+	C15tIntegrationGuidanceOptions,
+	C15tSetupInstructionsOptions,
+	C15tStorageMode,
+} from './instructions.ts';
 export { createAgentSetupPlan, DEFAULT_C15T_SETUP_PROMPT } from './prompt.ts';
 export type { AgentSetupOptions, AgentSetupPlan } from './prompt.ts';
 

@@ -27,7 +27,7 @@ export const scripts = [metaPixel({ pixelId: '123456789012345' })];
 
 ## Register the scripts
 
-Complete your [framework quickstart](https://c15t.com/docs/frameworks) first. Keep its Inth
+Complete your [framework quickstart](https://v3.c15t.com/docs/frameworks) first. Keep its Inth
 endpoint, policy, styles and consent UI. Remove the vendor's original script,
 SDK initializer or tag-manager entry, so the vendor loads only through c15t.
 
@@ -66,7 +66,7 @@ because a Server Component cannot pass script callbacks to it. See
 
 Import the configuration into your root route and pass it to the existing
 `ConsentRoot` as a top-level prop. Keep the loader, `backendURL` and
-`initRoute` from the [TanStack Start quickstart](https://c15t.com/docs/frameworks/tanstack-start/quickstart):
+`initRoute` from the [TanStack Start quickstart](https://v3.c15t.com/docs/frameworks/tanstack-start/quickstart):
 
 ```tsx title="src/routes/__root.tsx"
 import { scripts } from '../consent-scripts';
@@ -96,7 +96,7 @@ import { scripts } from './consent-scripts';
 ```
 
 `mode` is the `hosted({ url: 'https://your-project.inth.app' })` value
-from the [React quickstart](https://c15t.com/docs/frameworks/react/quickstart). Keep the banner,
+from the [React quickstart](https://v3.c15t.com/docs/frameworks/react/quickstart). Keep the banner,
 dialog and preferences link inside the provider. See
 [React scripts and embeds](../frameworks/react/scripts.md).
 
@@ -141,7 +141,7 @@ choice. Do not also call `createScriptLoader` from a component. See
 **Astro**
 
 Add the scripts to the client entrypoint from the
-[Astro quickstart](https://c15t.com/docs/frameworks/astro/quickstart), the module that the
+[Astro quickstart](https://v3.c15t.com/docs/frameworks/astro/quickstart), the module that the
 integration's `clientEntrypoint` option names. Keep `mode`, `ui` and the
 framework integration in `astro.config.mjs` as they are. If the module
 already exports scripts, combine the two arrays.
@@ -177,13 +177,13 @@ pass them as a top-level prop:
 </ConsentManagerProvider>
 ```
 
-Retain the styles and consent UI from the [Svelte quickstart](https://c15t.com/docs/frameworks/svelte/quickstart).
+Retain the styles and consent UI from the [Svelte quickstart](https://v3.c15t.com/docs/frameworks/svelte/quickstart).
 The provider owns the loader and disposes it on unmount.
 
 **SvelteKit**
 
 Add the scripts to the existing root layout provider. Keep the server load
-and its serializable prefetch data from the [SvelteKit quickstart](https://c15t.com/docs/frameworks/sveltekit/quickstart).
+and its serializable prefetch data from the [SvelteKit quickstart](https://v3.c15t.com/docs/frameworks/sveltekit/quickstart).
 
 ```svelte title="src/routes/+layout.svelte"
 <script lang="ts">

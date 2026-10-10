@@ -81,7 +81,7 @@ export default defineDocsConfig({
 				type: 'links',
 			},
 			{
-				body: '[Documentation index](https://c15t.com/docs/llms.txt) · [Full Markdown context](https://c15t.com/llms-full.txt). Prefer the index and individual pages for focused tasks.',
+				body: '[Documentation index](/docs/llms.txt) · [Full Markdown context](/llms-full.txt). Prefer the index and individual pages for focused tasks.',
 				heading: 'More documentation',
 				type: 'markdown',
 			},

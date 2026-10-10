@@ -7,7 +7,7 @@ group: frameworks
 <Prompt title="Upgrade this Next.js app to c15t v3" description="Paste into Claude Code, Codex, Cursor or another coding agent at the root of your app.">
   Upgrade this Next.js app from c15t v2 to c15t v3.
 
-  Read https://c15t.com/docs/frameworks/next/upgrade-v3.md first and follow it in order. Do not guess v3 APIs from memory.
+  Read https://v3.c15t.com/docs/frameworks/next/upgrade-v3.md first and follow it in order. Do not guess v3 APIs from memory.
 
   1. List every c15t dependency and import: `@c15t/nextjs`, `@c15t/react`, `@c15t/scripts`, `@c15t/dev-tools` and `c15t`. Note whether the app uses the App Router, the Pages Router or both.
   2. Check that React is 18 or later and Next.js is 15 or later. Stop and tell me if either needs a major upgrade.
@@ -15,7 +15,7 @@ group: frameworks
   4. Run `npx @c15t/cli@alpha codemods consent-provider-options root-exports-to-subpaths use-consent-manager-to-hooks scripts-to-integrations dev-tools-to-c15t policy-packs-to-policy-rules callbacks-to-v3 theme-to-consent-theme iab-option-to-iab-provider css-variables-to-v3 postcss-tailwind3 --dry-run --json`. Review the output, then run the same command without `--dry-run`. The codemods leave a `TODO(c15t v3)` comment wherever they need you to finish a change.
   5. If the app used `fetchInitialData()`, `C15tPrefetch` or `ssrData`, move it to `ConsentRoot` with `resolveConsent()`. Otherwise keep browser initialization with the `ConsentProvider` and `hosted()` the codemod wrote.
   6. Update callbacks, policy presets, renamed options and components, theme CSS, CSS variables and IAB setup as the guide describes.
-  7. Keep the existing backend URL. If the app runs its own c15t backend, stop and tell me, because it has to be upgraded in the same release with https://c15t.com/docs/self-host/upgrade-v3.md.
+  7. Keep the existing backend URL. If the app runs its own c15t backend, stop and tell me, because it has to be upgraded in the same release with https://v3.c15t.com/docs/self-host/upgrade-v3.md.
   8. Run the typecheck and build, and resolve every `TODO(c15t v3)` comment.
 
   When you finish, list the files you changed, anything you could not migrate, and how you checked that vendor requests still wait for consent.

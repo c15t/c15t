@@ -770,12 +770,21 @@ export const createChoiceRecorder = function createChoiceRecorder({
 	const draft = createBoundDraft<PresentedSelection>(getSnapshot, initialDraft);
 
 	return {
-		dismissNotice(): Promise<NoticeDismissResult> {
+		dismissNotice(context?: {
+			actionAt?: number;
+		}): Promise<NoticeDismissResult> {
 			const snapshot = getSnapshot();
 			if (snapshot.promptRequirement.kind !== 'notice') {
 				return Promise.resolve({ ok: false, reason: 'not-required' });
 			}
-			const actionAt = runtime.now();
+			// A captured time stands only when it is past or present; a bad one
+			// falls back to now, because a dismissal has no issue to report.
+			const currentTime = runtime.now();
+			const actionAt =
+				context?.actionAt !== undefined &&
+				isValidSaveActionAt(context.actionAt, currentTime)
+					? context.actionAt
+					: currentTime;
 			const dismissal = {
 				dismissedAt: actionAt,
 				fingerprint: snapshot.evaluationPolicy.notice.fingerprint,
@@ -792,7 +801,7 @@ export const createChoiceRecorder = function createChoiceRecorder({
 				timeToDecisionMs,
 			} = saveAttribution(snapshot, undefined, actionAt);
 			batch(() => {
-				commit({ noticeDismissal: dismissal, now: actionAt });
+				commit({ noticeDismissal: dismissal, now: currentTime });
 				const event: Extract<KernelEvent, { type: 'notice:dismissed' }> = {
 					dismissal,
 					snapshot: getSnapshot(),
