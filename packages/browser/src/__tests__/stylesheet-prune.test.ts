@@ -99,6 +99,28 @@ describe('pruneStylesheet', () => {
 			)
 		).toBe('.c15t-ui-root-AAAAA{color:red}@keyframes k{0%{opacity:0}}');
 	});
+
+	it('drops a component variable only the removed rules read', () => {
+		expect(
+			pruneStylesheet(
+				':root,:host{--tabs-gap:1px;--tabs-ring:var(--tabs-color);--tabs-color:red;--root-gap:2px;--unread:3px;--c15t-tabs:4px}:root,:host{--tabs-only:0}.c15t-ui-x-CCCCC{gap:var(--tabs-gap);outline-color:var(--tabs-ring);margin:var(--c15t-tabs) var(--tabs-only)}.c15t-ui-root-AAAAA{gap:var(--root-gap)}',
+				used
+			)
+		).toBe(
+			':root,:host{--root-gap:2px;--unread:3px;--c15t-tabs:4px}.c15t-ui-root-AAAAA{gap:var(--root-gap)}'
+		);
+	});
+
+	it('keeps a variable a kept rule still reads', () => {
+		expect(
+			pruneStylesheet(
+				':root{--shared:1px;--chain:var(--shared)}.c15t-ui-x-CCCCC{gap:var(--shared)}.c15t-ui-root-AAAAA{gap:var(--chain)}',
+				used
+			)
+		).toBe(
+			':root{--shared:1px;--chain:var(--shared)}.c15t-ui-root-AAAAA{gap:var(--chain)}'
+		);
+	});
 });
 
 describe('compactStylesheet', () => {

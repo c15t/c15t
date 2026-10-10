@@ -11,12 +11,14 @@
  * anything. A selector keeps its rule unless it requires one of those classes
  * and no class map this package renders contains it. Classes inside `:not()`
  * never make a selector unmatchable, and plain classes such as `c15t-dark` or
- * `c15t-theme-root` are assumed present. Custom properties, `:root`/`:host`
- * token blocks and `@keyframes` are kept.
+ * `c15t-theme-root` are assumed present. `:root`/`:host` token blocks and
+ * `@keyframes` are kept. A component custom property goes only when every
+ * rule that read it went, such as the tabs and ConsentGate variables; the
+ * `--c15t-*` theme tokens always stay.
  */
 
 import { parse } from 'postcss';
-import type { AtRule } from 'postcss';
+import type { AtRule, Root } from 'postcss';
 
 /** Class names `@c15t/ui` generates for its CSS modules. */
 const HASHED_CLASS = /^c15t-ui-[\w-]+-[\w-]{5}$/u;
@@ -24,6 +26,11 @@ const HASHED_CLASS = /^c15t-ui-[\w-]+-[\w-]{5}$/u;
 const NEGATION = /:not\((?:[^()]|\([^()]*\))*\)/gu;
 
 const CLASS_NAME = /\.(?<name>-?[_a-zA-Z][\w-]*)/gu;
+
+const VAR_REFERENCE = /var\(\s*(?<name>--[\w-]+)/gu;
+
+/** Theme tokens: public, so never dropped. */
+const THEME_TOKEN = /^--c15t-/u;
 
 /**
  * Every class name a set of class maps can put on an element.
@@ -76,6 +83,48 @@ const canMatch = function canMatch(
 };
 
 /**
+ * The custom properties a stylesheet reads: those a property or an at-rule
+ * names in `var()`, and the ones their definitions name in turn.
+ *
+ * @param root - The parsed stylesheet.
+ * @returns The custom property names.
+ */
+const readCustomProperties = function readCustomProperties(
+	root: Root
+): Set<string> {
+	const definitions = new Map<string, string[]>();
+	const pending: string[] = [];
+	const collect = (text: string) => {
+		for (const match of text.matchAll(VAR_REFERENCE)) {
+			pending.push(match.groups?.name ?? '');
+		}
+	};
+	root.walkDecls((decl) => {
+		if (decl.prop.startsWith('--')) {
+			definitions.set(decl.prop, [
+				...(definitions.get(decl.prop) ?? []),
+				decl.value,
+			]);
+		} else {
+			collect(decl.value);
+		}
+	});
+	root.walkAtRules((atRule) => {
+		collect(atRule.params);
+	});
+	const read = new Set<string>();
+	for (let name = pending.pop(); name !== undefined; name = pending.pop()) {
+		if (!read.has(name)) {
+			read.add(name);
+			for (const value of definitions.get(name) ?? []) {
+				collect(value);
+			}
+		}
+	}
+	return read;
+};
+
+/**
  * Keep only the rules a surface built from `rendered` classes can match.
  *
  * @param css - The stylesheet.
@@ -87,6 +136,7 @@ export const pruneStylesheet = function pruneStylesheet(
 	rendered: ReadonlySet<string>
 ): string {
 	const root = parse(css);
+	const readBefore = readCustomProperties(root);
 	root.walkRules((rule) => {
 		const { parent } = rule;
 		if (
@@ -102,6 +152,21 @@ export const pruneStylesheet = function pruneStylesheet(
 			rule.remove();
 		} else if (kept.length < rule.selectors.length) {
 			rule.selector = kept.join(',');
+		}
+	});
+	// A component variable only the removed rules read goes with them.
+	const readAfter = readCustomProperties(root);
+	root.walkDecls(/^--/u, (decl) => {
+		if (
+			!THEME_TOKEN.test(decl.prop) &&
+			readBefore.has(decl.prop) &&
+			!readAfter.has(decl.prop)
+		) {
+			const rule = decl.parent;
+			decl.remove();
+			if (rule?.type === 'rule' && rule.nodes.length === 0) {
+				rule.remove();
+			}
 		}
 	});
 	// A block whose rules all went (`@media` for a removed part) goes too;
