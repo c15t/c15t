@@ -85,6 +85,7 @@ export default defineDocsConfig({
 				'how-consent-works',
 				'consent-categories',
 				'policies',
+				'modes',
 				'data-fetching',
 				'consent-state',
 			],
