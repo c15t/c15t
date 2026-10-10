@@ -7,8 +7,11 @@ export type {
 } from '@c15t/core/build';
 
 /**
- * Fetches the deployment's consent manifest when Vite starts and serves it
- * as the virtual module `@c15t/core/generated` (also `c15t/generated`).
+ * Serves the deployment's consent manifest and backend URL as the virtual
+ * module `@c15t/core/generated` (also `c15t/generated`). `vite build`
+ * fetches the manifest once the server bundle is known to read it, which
+ * `createConsentStateHandler()` and `createConsentRoute()` do; `vite dev`
+ * fetches when the server first loads the module.
  * `createConsentStateHandler()` and `createConsentRoute()` read the backend
  * URL and the snapshot from it, so they need no options. No file is
  * written into the app.

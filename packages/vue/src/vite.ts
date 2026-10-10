@@ -23,8 +23,8 @@ export type VueConsentManifestPlugin = Omit<ConsentManifestPlugin, 'config'> & {
 };
 
 /**
- * The c15t Vite plugin for a plain Vue app. It fetches the deployment's
- * consent manifest when Vite starts and serves it as the virtual module
+ * The c15t Vite plugin for a plain Vue app. It serves the deployment's
+ * consent manifest and backend URL as the virtual module
  * `@c15t/core/generated` (also `c15t/generated`), which `manifest()` and
  * `hosted()` from `c15t/vue/vue-plugin` read. No file is written into the
  * app. It also keeps `@c15t/vue`, whose components are `.vue` files, out of
@@ -33,10 +33,16 @@ export type VueConsentManifestPlugin = Omit<ConsentManifestPlugin, 'config'> & {
  * `backendURL` defaults to `VITE_C15T_BACKEND_URL`, including `.env` files.
  * When that variable is unset, the plugin sets
  * `import.meta.env.VITE_C15T_BACKEND_URL` to the URL it used, so app code
- * reads the same value. A missing URL or a failed fetch stops `vite build`
- * and warns in `vite dev`, where `manifest()` then fetches the manifest
- * when the app starts. Set `onBuildError` or `C15T_ON_BUILD_ERROR` to
- * change that.
+ * reads the same value.
+ *
+ * `vite build` fetches the manifest only when the bundle uses `manifest()`,
+ * so a `hosted()` or `offline()` build never depends on the backend. With
+ * `manifest()`, a missing URL or a failed fetch stops `vite build`. `vite
+ * dev` fetches when the app first loads the module and only warns, and
+ * `manifest()` then fetches the manifest when the app starts. Set
+ * `onBuildError` or `C15T_ON_BUILD_ERROR` to change that. When the policy
+ * depends on the visitor's location, the build warns and suggests
+ * `hosted()`.
  *
  * @param options - Backend URL and `onBuildError`. Appends `/manifest`.
  * @returns A Vite plugin.

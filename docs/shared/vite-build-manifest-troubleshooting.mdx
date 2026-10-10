@@ -1,7 +1,7 @@
 ## Why does the build fail to download the manifest?
 
-**Check.** `vite build` stops before compiling, with an error from
-`consentManifest` that starts with the plugin's name, such as
+**Check.** `vite build` stops with an error from `consentManifest` that
+starts with the plugin's name, such as
 `@c15t/core/build: could not fetch the consent manifest from <url> during the
 build`. The name is `@c15t/core/build` for `c15t/build` and `@c15t/vue/vite`
 for `c15t/vue/vite`. `vite dev` logs the same message as a warning and keeps
@@ -17,6 +17,10 @@ going. The part in parentheses names the cause:
 A failed download never reuses an old snapshot. To deploy while the backend
 is down, run the build with `C15T_ON_BUILD_ERROR=runtime`. `snapshot` is then
 `undefined`, and the browser fetches the policy from the backend at runtime.
+
+Only a build that uses `manifest()` downloads the manifest. The plugin
+fetches after Vite has dropped the code the app does not use, so a `hosted()`
+or `offline()` build never contacts the backend and never fails this way.
 
 An error or warning that says `no backend URL is set` means the plugin found
 no `backendURL` option and no variable. Set `VITE_C15T_BACKEND_URL` in `.env`

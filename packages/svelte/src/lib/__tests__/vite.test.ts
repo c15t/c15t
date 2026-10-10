@@ -71,7 +71,7 @@ describe('Svelte manifest module', () => {
 						})
 					),
 			});
-			await plugin.configResolved({ plugins, root });
+			await plugin.configResolved({ command: 'serve', plugins, root });
 			const load = (consumer: 'client' | 'server') =>
 				plugin.load.call(
 					{ environment: { config: { consumer } } },

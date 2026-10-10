@@ -232,7 +232,7 @@ policy.
 ## consentManifest
 
 `consentManifest(options)` from `@c15t/svelte/vite` returns the Vite plugins
-that download `<backendURL>/manifest` when Vite starts. `loadConsent`,
+that download `<backendURL>/manifest` during the build. `loadConsent`,
 `createConsentRoute()` and `manifest()` from `@c15t/svelte` read the result
 without an import. The plugin writes no file into your project.
 

@@ -38,7 +38,8 @@ with `C15T_ON_BUILD_ERROR=runtime`, or the backend URL is relative.
 
 **Fix.** Add the plugin or fix the cause from the
 [fetch errors](#the-build-dev-server-or-type-check-fails-fetching-the-manifest),
-then restart `vite dev` or rebuild. The plugin fetches once when Vite starts.
+then restart `vite dev` or rebuild. A build fetches once, and `vite dev`
+fetches the first time the server loads the policy.
 Until then, the server fetches and caches the policy at runtime.
 
 ## Why is the banner missing from the server HTML?

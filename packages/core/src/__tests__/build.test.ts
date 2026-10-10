@@ -106,6 +106,57 @@ describe('@c15t/core/generated in Vite', () => {
 		await expect(stat(join(root, 'src/c15t-manifest.ts'))).rejects.toThrow();
 	});
 
+	test('a build that never reads the snapshot does not fetch the manifest', async () => {
+		// hosted() and offline() read the backend URL at most. A backend
+		// that is down, or no backend URL, must not stop their builds.
+		const root = await createRoot();
+		const options = optionsFor(root);
+		options.fetch.mockRejectedValue(new Error('backend unavailable'));
+		// Like a package that exports every mode, of which the app uses one.
+		await mkdir(join(root, 'src'), { recursive: true });
+		await writeFile(
+			join(root, 'src/modes.js'),
+			"import { backendURL, snapshot } from '@c15t/core/generated';\nexport const hosted = () => ({ backendURL });\nexport const manifest = () => ({ backendURL, snapshot });\n"
+		);
+		const code = await buildEntry(
+			root,
+			consentManifest(options),
+			"import { hosted } from './modes.js';\nexport const mode = hosted();\n"
+		);
+		expect(options.fetch).not.toHaveBeenCalled();
+		expect(code).toContain('https://consent.example.com');
+		const withoutURL = await buildEntry(
+			root,
+			consentManifest({ fetch: options.fetch }),
+			"export { backendURL } from '@c15t/core/generated';\n"
+		);
+		expect(withoutURL).toContain('const backendURL = void 0;');
+	});
+
+	test('a build that reads the snapshot fails when the fetch fails', async () => {
+		const root = await createRoot();
+		const options = optionsFor(root);
+		options.fetch.mockRejectedValue(new Error('backend unavailable'));
+		await expect(
+			buildEntry(root, consentManifest(options), GENERATED_ENTRY)
+		).rejects.toThrow('during the build (backend unavailable)');
+		expect(options.fetch).toHaveBeenCalledTimes(1);
+	});
+
+	test("onBuildError: 'runtime' bundles an undefined snapshot when the fetch fails", async () => {
+		const root = await createRoot();
+		const options = optionsFor(root);
+		options.fetch.mockRejectedValue(new Error('backend unavailable'));
+		const code = await buildEntry(
+			root,
+			consentManifest({ ...options, onBuildError: 'runtime' }),
+			"import { snapshot } from '@c15t/core/generated';\nexport const policy = snapshot ?? 'no snapshot';\n"
+		);
+		expect(code).not.toContain('__c15t_build_snapshot__');
+		expect(code).toContain('no snapshot');
+		expect(options.fetch).toHaveBeenCalledTimes(1);
+	});
+
 	test('a server-rendered framework keeps the snapshot out of the client build', async () => {
 		const root = await createRoot();
 		const options = optionsFor(root);
@@ -138,7 +189,7 @@ describe('@c15t/core/generated in Vite', () => {
 				label: 'test/build',
 				serverRendered,
 			});
-			await plugin.configResolved({ root });
+			await plugin.configResolved({ command: 'serve', root });
 			const id = plugin.resolveId(GENERATED_MODULE_IDS[0]);
 			expect(id).toBeDefined();
 			expect(plugin.resolveId('c15t/generated')).toBe(id);
@@ -160,7 +211,7 @@ describe('@c15t/core/generated in Vite', () => {
 			label: 'test/build',
 			serverRendered: true,
 		});
-		await plugin.configResolved({ root });
+		await plugin.configResolved({ command: 'serve', root });
 		const id = plugin.resolveId(GENERATED_MODULE_IDS[0]) as string;
 		expect(await plugin.load.call(undefined, id, { ssr: true })).toContain(
 			'build-test'
@@ -226,19 +277,18 @@ describe('@c15t/core/generated in Vite', () => {
 		const logger = createLogger();
 		const plugin = consentManifest(options);
 		await plugin.configResolved({ command: 'serve', logger, root });
+		// Dev fetches when the module is first loaded, not at startup.
+		expect(options.fetch).not.toHaveBeenCalled();
+		const source = await plugin.load.call(
+			undefined,
+			plugin.resolveId(GENERATED_MODULE_IDS[0]) as string
+		);
 		expect(logger.warn).toHaveBeenCalledWith(
 			expect.stringMatching(
 				/^@c15t\/core\/build: could not fetch .* during dev/u
 			)
 		);
-		const source = await plugin.load.call(
-			undefined,
-			plugin.resolveId(GENERATED_MODULE_IDS[0]) as string
-		);
 		expect(source).toContain('export const snapshot = undefined;');
-		await expect(
-			consentManifest(options).configResolved({ command: 'build', root })
-		).rejects.toThrow('during the build (backend unavailable)');
 	});
 
 	test('reads VITE_C15T_BACKEND_URL from .env and exposes it', async () => {
@@ -251,15 +301,11 @@ describe('@c15t/core/generated in Vite', () => {
 		const env: Record<string, unknown> = {};
 		const plugin = consentManifest({ fetch });
 		await plugin.configResolved({
-			command: 'build',
+			command: 'serve',
 			env,
 			mode: 'production',
 			root,
 		});
-		expect(fetch).toHaveBeenCalledWith(
-			'https://env.example.com/api/manifest',
-			expect.any(Object)
-		);
 		expect(env.VITE_C15T_BACKEND_URL).toBe('https://env.example.com/api');
 		expect(
 			await plugin.load.call(
@@ -267,6 +313,10 @@ describe('@c15t/core/generated in Vite', () => {
 				plugin.resolveId(GENERATED_MODULE_IDS[0]) as string
 			)
 		).toContain('export const backendURL = "https://env.example.com/api";');
+		expect(fetch).toHaveBeenCalledWith(
+			'https://env.example.com/api/manifest',
+			expect.any(Object)
+		);
 	});
 
 	test('suggests hosted() when the policy depends on location', async () => {
@@ -286,10 +336,20 @@ describe('@c15t/core/generated in Vite', () => {
 			.fn<typeof globalThis.fetch>()
 			.mockImplementation(() => Promise.resolve(Response.json(regional)));
 		const logger = createLogger();
-		await consentManifest({
-			backendURL: 'https://consent.example.com',
-			fetch,
-		}).configResolved({ command: 'build', logger, root });
+		const load = async (
+			plugin: ReturnType<typeof consentManifest>,
+			warnings: ReturnType<typeof createLogger>
+		) => {
+			await plugin.configResolved({ command: 'serve', logger: warnings, root });
+			await plugin.load.call(
+				undefined,
+				plugin.resolveId(GENERATED_MODULE_IDS[0]) as string
+			);
+		};
+		await load(
+			consentManifest({ backendURL: 'https://consent.example.com', fetch }),
+			logger
+		);
 		expect(logger.warn).toHaveBeenCalledWith(
 			expect.stringMatching(
 				/^@c15t\/core\/build: the consent policy depends on the visitor's location.*hosted\(\)/u
@@ -297,21 +357,19 @@ describe('@c15t/core/generated in Vite', () => {
 		);
 
 		const everywhere = createLogger();
-		await consentManifest(optionsFor(root)).configResolved({
-			command: 'build',
-			logger: everywhere,
-			root,
-		});
+		await load(consentManifest(optionsFor(root)), everywhere);
 		expect(everywhere.warn).not.toHaveBeenCalled();
 	});
 
-	test('shares one snapshot across Vite configuration resolution', async () => {
+	test('shares one fetch across loads and environments', async () => {
 		const root = await createRoot();
 		const options = optionsFor(root);
 		const plugin = consentManifest(options);
+		await plugin.configResolved({ command: 'serve', root });
+		const id = plugin.resolveId(GENERATED_MODULE_IDS[0]) as string;
 		await Promise.all([
-			plugin.configResolved({ root }),
-			plugin.configResolved({ root }),
+			plugin.load.call(undefined, id),
+			plugin.load.call(undefined, id, { ssr: true }),
 		]);
 		expect(options.fetch).toHaveBeenCalledTimes(1);
 	});
@@ -322,28 +380,71 @@ describe('@c15t/core/generated in Vite', () => {
 		options.fetch.mockResolvedValueOnce(
 			new Response('unavailable', { status: 503 })
 		);
-		const plugin = consentManifest(options);
+		const plugin = consentManifest({ ...options, onBuildError: 'fail' });
+		await plugin.configResolved({ command: 'serve', root });
+		const id = plugin.resolveId(GENERATED_MODULE_IDS[0]) as string;
 		const results = await Promise.allSettled([
-			plugin.configResolved({ root }),
-			plugin.configResolved({ root }),
+			plugin.load.call(undefined, id),
+			plugin.load.call(undefined, id),
 		]);
 		expect(results.map((result) => result.status)).toEqual([
 			'rejected',
 			'rejected',
 		]);
 		expect(options.fetch).toHaveBeenCalledTimes(1);
-		await Promise.all([
-			plugin.configResolved({ root }),
-			plugin.configResolved({ root }),
+		const [first] = await Promise.all([
+			plugin.load.call(undefined, id),
+			plugin.load.call(undefined, id),
 		]);
-		await plugin.configResolved({ root });
+		expect(first).toContain('build-test');
+		await plugin.load.call(undefined, id);
 		expect(options.fetch).toHaveBeenCalledTimes(2);
-		expect(
-			await plugin.load.call(
-				undefined,
-				plugin.resolveId(GENERATED_MODULE_IDS[0]) as string
+	});
+
+	test('rejects an unknown onBuildError when Vite starts', () => {
+		const plugin = consentManifest({
+			onBuildError: 'warn' as 'fail',
+		});
+		expect(() =>
+			plugin.configResolved({ command: 'build', root: '/' })
+		).toThrow("onBuildError must be 'runtime' or 'fail'");
+	});
+
+	test('warns once when the bundle reads a backend URL that is not set', async () => {
+		const root = await createRoot();
+		const warn = vi.fn();
+		await mkdir(join(root, 'src'), { recursive: true });
+		await writeFile(
+			join(root, 'src/entry.js'),
+			"export { backendURL } from '@c15t/core/generated';\n"
+		);
+		await build({
+			build: {
+				minify: false,
+				rollupOptions: {
+					input: join(root, 'src/entry.js'),
+					preserveEntrySignatures: 'strict',
+				},
+				write: false,
+			},
+			configFile: false,
+			customLogger: {
+				clearScreen: () => undefined,
+				error: () => undefined,
+				hasErrorLogged: () => false,
+				hasWarned: false,
+				info: () => undefined,
+				warn,
+				warnOnce: () => undefined,
+			},
+			plugins: [consentManifest({ fetch: optionsFor(root).fetch })],
+			root,
+		});
+		expect(warn).toHaveBeenCalledWith(
+			expect.stringContaining(
+				'no backend URL is set. `hosted()` and `manifest()`'
 			)
-		).toContain('build-test');
+		);
 	});
 });
 

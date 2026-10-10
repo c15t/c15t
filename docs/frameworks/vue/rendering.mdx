@@ -69,9 +69,9 @@ app.use(c15tVue, { mode: manifest({ source: 'runtime' }), scripts });
 ```
 
 Keep `consentManifest()` in `vite.config.ts`: `manifest()` reads the backend
-URL from it. To build without a reachable backend, set
-`consentManifest({ onBuildError: 'runtime' })`, or pass
-`manifest({ backendURL: 'https://your-project.inth.app', source: 'runtime' })`.
+URL from it. The plugin can't see options you pass in app code, so a build
+with `manifest({ source: 'runtime' })` still downloads the manifest. To build
+without a reachable backend, set `consentManifest({ onBuildError: 'runtime' })`.
 Set `manifestURL` to fetch the manifest from somewhere else, such as a CDN in
 front of your backend.
 
@@ -98,9 +98,8 @@ app.use(c15tVue, { mode: hosted(), scripts });
 `hosted({ backendURL: 'https://your-project.inth.app' })`. Keep
 `consentManifest()` in `vite.config.ts` either way: it also keeps the c15t
 components, which are `.vue` files, out of Vite's dependency pre-bundling.
-The plugin still downloads the manifest during the build, so set
-`consentManifest({ onBuildError: 'runtime' })` if a backend outage should
-not stop a `hosted()` build.
+A `hosted()` build never downloads the manifest, so a backend outage does
+not stop it.
 
 Until `/init` answers, every optional category is denied, so gated scripts
 and iframes wait. The build output is plain static files. Deploy it to any

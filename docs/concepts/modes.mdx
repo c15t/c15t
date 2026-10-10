@@ -252,6 +252,12 @@ snapshot:
 - Next.js builds with `output: 'export'`, which has no server.
 - The mode is `hosted()`, `offline()`, `manifest({ snapshot })` or
   `manifest({ source: 'runtime' })` in Nuxt and Astro.
+- A single-page app built with Vite (React, Vue, Svelte, JavaScript) does
+  not use `manifest()`. The mode is set in app code, so the plugin downloads
+  the manifest only once the bundle turns out to read it, after unused code
+  is dropped. A `hosted()` or `offline()` build never contacts the backend.
+  SvelteKit and TanStack Start choose the mode on the server at runtime, so
+  their builds always download it.
 
 A failed download never reuses an older snapshot. The
 [troubleshooting guide](/docs/guides/troubleshooting#why-does-the-build-fail-to-download-the-manifest)

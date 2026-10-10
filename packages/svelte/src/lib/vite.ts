@@ -1,7 +1,7 @@
 /**
  * `@c15t/svelte/vite` — build-time help for Svelte and SvelteKit apps.
  *
- * {@link consentManifest} downloads the consent manifest when Vite starts.
+ * {@link consentManifest} serves the consent manifest the build downloads.
  * In a SvelteKit build it also lets `c15tHandle` preload the on-demand
  * chunk that holds the script loader and the network blocker, on the pages
  * that configure `scripts` or blocker rules, so it arrives with the app's
@@ -259,9 +259,11 @@ export const createModulePreloadPlugin =
 	};
 
 /**
- * Fetches the deployment's consent manifest when Vite starts and serves it
- * as the virtual module `@c15t/core/generated` (also `c15t/generated`).
- * Import `snapshot` from it; no file is written into the app.
+ * Serves the deployment's consent manifest and backend URL as the virtual
+ * module `@c15t/core/generated` (also `c15t/generated`). Import `snapshot`
+ * from it; no file is written into the app. `vite build` fetches the
+ * manifest only when the bundle reads `snapshot`: a Svelte app that uses
+ * `hosted()` or `offline()` never depends on the backend at build time.
  *
  * In a SvelteKit app (the `sveltekit()` plugin is present), the snapshot
  * stays on the server: in the client environment, `snapshot` is
@@ -274,7 +276,9 @@ export const createModulePreloadPlugin =
  * `import.meta.env.VITE_C15T_BACKEND_URL` to the URL it used, so app code
  * reads the same value. A missing URL or a failed fetch stops
  * `vite build` and warns in `vite dev`, where `snapshot` is `undefined`.
- * Set `onBuildError` or `C15T_ON_BUILD_ERROR` to change that.
+ * Set `onBuildError` or `C15T_ON_BUILD_ERROR` to change that. In a Svelte
+ * single-page app whose policy depends on the visitor's location, the
+ * build warns and suggests `hosted()`.
  *
  * In a SvelteKit build it also writes the URL of the on-demand chunk that
  * holds the script loader and the network blocker into the server output,

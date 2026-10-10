@@ -616,7 +616,7 @@ export interface ConsentManifestPlugin {
 		optimizeDeps: { exclude: string[] };
 		ssr: { noExternal: string[] };
 	};
-	configResolved: (config: ManifestPluginConfig) => Promise<void>;
+	configResolved: (config: ManifestPluginConfig) => void;
 	enforce: 'pre';
 	load: (
 		this: ManifestPluginContext | undefined,
@@ -624,6 +624,7 @@ export interface ConsentManifestPlugin {
 		options?: { ssr?: boolean }
 	) => Promise<string | undefined>;
 	name: string;
+	renderChunk: (code: string) => Promise<{ code: string; map: null } | null>;
 	resolveId: (id: string) => string | undefined;
 }
 
@@ -637,6 +638,26 @@ const LOCATION_ADVICE =
 
 /** The resolved id of the virtual `@c15t/core/generated` module. */
 const VIRTUAL_GENERATED_ID = '\0@c15t/core/generated';
+
+/**
+ * Stand-ins a production build gives the generated module's exports until
+ * tree-shaking has decided which ones the bundle reads. A pure call keeps
+ * an unread export removable and stops the bundler from folding the value.
+ */
+const PLACEHOLDERS = {
+	backendURL: '__c15t_build_backend_url__',
+	snapshot: '__c15t_build_snapshot__',
+} as const;
+
+const placeholderExpression = (token: string): string =>
+	`/* @__PURE__ */ Object(${JSON.stringify(token)})`;
+
+/** Matches a stand-in after the bundler rendered it, comment or not. */
+const placeholderPattern = (token: string): RegExp =>
+	new RegExp(
+		`(?:/\\*\\s*[#@]__PURE__\\s*\\*/\\s*)?Object\\(\\s*(["'\`])${token}\\1\\s*\\)`,
+		'gu'
+	);
 
 /**
  * Packages whose modules can import `@c15t/core/generated`. Server builds
@@ -653,14 +674,25 @@ const GENERATED_IMPORTERS = [
 ];
 
 /**
- * Builds the Vite plugin behind each `consentManifest` export. It fetches
- * the snapshot once when Vite resolves its configuration and serves it as
+ * Builds the Vite plugin behind each `consentManifest` export. It serves
  * the virtual `@c15t/core/generated` module, so no file is written into the
- * app. A failed generation can be retried. Preview uses the existing build.
- * `vite build` follows the build policy, `vite dev` the dev policy. Without
- * `backendURL`, the first of `envNames` that is set supplies it; a `VITE_`
- * variable left unset is then set to the URL used, so app code reads the
- * same value.
+ * app. Preview uses the existing build. Without `backendURL`, the first of
+ * `envNames` that is set supplies it; a `VITE_` variable left unset is then
+ * set to the URL used, so app code reads the same value.
+ *
+ * The manifest is fetched only for a bundle that reads `snapshot`, which
+ * `hosted()` and `offline()` never do. The mode is chosen in app code, so
+ * the plugin cannot know it from the Vite config:
+ *
+ * - `vite build` gives the exports stand-ins and fills them in after
+ *   tree-shaking, in `renderChunk`. A chunk that still contains the
+ *   snapshot triggers the fetch, under the build policy. A chunk that
+ *   reads `backendURL` when none is set gets the missing-URL policy.
+ * - `vite dev` fetches when the module is first loaded, under the dev
+ *   policy. Dev has no tree-shaking, so this also happens for a `hosted()`
+ *   app; dev only warns.
+ *
+ * A failed fetch can be retried.
  *
  * In a server-rendered framework, the client environment's module exports
  * `snapshot: undefined`, so the snapshot never reaches the browser bundle.
@@ -689,40 +721,27 @@ export const createConsentManifestPlugin = (
 		adviseHostedForLocation?: boolean;
 	}
 ): ConsentManifestPlugin => {
-	let generation: Promise<GeneratedManifestModule> | undefined;
+	let resolved: ManifestPluginConfig | undefined;
+	let backendURL: string | undefined;
 	let serverRendered = false;
-	const generate = async (
-		config: ManifestPluginConfig
-	): Promise<GeneratedManifestModule> => {
-		const envRoot =
-			typeof config.envDir === 'string' ? config.envDir : config.root;
-		const backendURL =
-			options.backendURL ??
-			readBuildEnv(defaults.envNames, {
-				env: config.env,
-				mode: config.mode,
-				root: envRoot,
-			});
-		const exposed = defaults.envNames.find((name) => name.startsWith('VITE_'));
-		if (
-			backendURL &&
-			exposed &&
-			config.env &&
-			config.env[exposed] === undefined
-		) {
-			config.env[exposed] = backendURL;
-		}
-		const logger = labelledBuildLogger(defaults.label, config.logger);
+	let generation: Promise<ConsentManifest | undefined> | undefined;
+	let missingURLReported = false;
+	const command = (): ManifestBuildCommand =>
+		resolved?.command === 'serve' ? 'dev' : 'build';
+	const logger = (): ManifestBuildLogger =>
+		labelledBuildLogger(defaults.label, resolved?.logger);
+	const policy = (): ManifestBuildPolicy => ({
+		command: command(),
+		envNames: defaults.envNames,
+		label: defaults.label,
+		logger: logger(),
+		onBuildError: options.onBuildError,
+	});
+	const fetchSnapshot = async (): Promise<ConsentManifest | undefined> => {
 		try {
 			const snapshot = await loadManifestForBuild(
 				{ backendURL, fetch: options.fetch },
-				{
-					command: config.command === 'serve' ? 'dev' : 'build',
-					envNames: defaults.envNames,
-					label: defaults.label,
-					logger,
-					onBuildError: options.onBuildError,
-				}
+				policy()
 			);
 			if (
 				defaults.adviseHostedForLocation &&
@@ -730,13 +749,34 @@ export const createConsentManifestPlugin = (
 				snapshot &&
 				manifestNeedsLocation(snapshot)
 			) {
-				logger.warn(LOCATION_ADVICE);
+				logger().warn(LOCATION_ADVICE);
 			}
-			return { backendURL, snapshot };
+			return snapshot;
 		} catch (error) {
 			generation = undefined;
 			throw error;
 		}
+	};
+	const loadSnapshot = (): Promise<ConsentManifest | undefined> => {
+		generation ??= fetchSnapshot();
+		return generation;
+	};
+	/**
+	 * A bundle reads `backendURL` but none is set: `hosted()` or
+	 * `manifest()` without their own URL. Warns once rather than failing,
+	 * because a mode that passes its own `backendURL` still reads the
+	 * build's as its default; one that does not throws when the app starts.
+	 * A bundle that also reads the snapshot was already reported by its
+	 * fetch.
+	 */
+	const reportMissingBackendURL = (): void => {
+		if (missingURLReported) {
+			return;
+		}
+		missingURLReported = true;
+		logger().warn(
+			`no backend URL is set. \`hosted()\` and \`manifest()\` without their own \`backendURL\` throw when the app starts. Pass backendURL to the plugin or set ${defaults.envNames.join(' or ')}.`
+		);
 	};
 	return {
 		apply: (_config: unknown, environment: { isPreview?: boolean }) =>
@@ -745,12 +785,38 @@ export const createConsentManifestPlugin = (
 			optimizeDeps: { exclude: [...GENERATED_MODULE_IDS] },
 			ssr: { noExternal: [...GENERATED_IMPORTERS] },
 		}),
-		configResolved: async (config: ManifestPluginConfig) => {
+		configResolved: (config: ManifestPluginConfig) => {
+			resolved = config;
+			// An unknown `onBuildError` is a setup mistake: report it now, not
+			// only when a bundle reads the snapshot.
+			resolveManifestBuildErrorMode(
+				options.onBuildError,
+				command(),
+				defaults.label
+			);
 			const { serverRendered: rendered = false } = defaults;
 			serverRendered =
 				typeof rendered === 'function' ? rendered(config) : rendered;
-			generation ??= generate(config);
-			await generation;
+			const envRoot =
+				typeof config.envDir === 'string' ? config.envDir : config.root;
+			backendURL =
+				options.backendURL ??
+				readBuildEnv(defaults.envNames, {
+					env: config.env,
+					mode: config.mode,
+					root: envRoot,
+				});
+			const exposed = defaults.envNames.find((name) =>
+				name.startsWith('VITE_')
+			);
+			if (
+				backendURL &&
+				exposed &&
+				config.env &&
+				config.env[exposed] === undefined
+			) {
+				config.env[exposed] = backendURL;
+			}
 		},
 		enforce: 'pre' as const,
 		async load(
@@ -761,21 +827,73 @@ export const createConsentManifestPlugin = (
 			if (id !== VIRTUAL_GENERATED_ID) {
 				return undefined;
 			}
-			if (!generation) {
+			if (!resolved) {
 				throw new Error(
-					`${defaults.label}: the consent manifest was not loaded before ${GENERATED_MODULE_IDS[0]} was imported.`
+					`${defaults.label}: Vite loaded ${GENERATED_MODULE_IDS[0]} before the plugin read its configuration.`
 				);
 			}
-			const { backendURL, snapshot } = await generation;
 			const consumer =
 				this?.environment?.config?.consumer ??
 				(loadOptions?.ssr ? 'server' : 'client');
-			return renderGeneratedModule(
-				{ backendURL, snapshot },
-				{ clientStub: serverRendered && consumer === 'client' }
-			);
+			const clientStub = serverRendered && consumer === 'client';
+			if (command() === 'dev') {
+				return renderGeneratedModule(
+					{
+						backendURL,
+						snapshot: clientStub ? undefined : await loadSnapshot(),
+					},
+					{ clientStub }
+				);
+			}
+			const lines = [
+				'// Written by the c15t build integration. Do not edit.',
+				'// The build fills in what the bundle still reads after tree-shaking.',
+				`export const backendURL = ${
+					backendURL === undefined
+						? placeholderExpression(PLACEHOLDERS.backendURL)
+						: JSON.stringify(backendURL)
+				};`,
+				clientStub
+					? '// The snapshot stays on the server; the browser bundle never gets it.\nexport const snapshot = undefined;'
+					: `export const snapshot = ${placeholderExpression(PLACEHOLDERS.snapshot)};`,
+				'',
+			];
+			return lines.join('\n');
 		},
 		name: 'c15t:consent-manifest',
+		async renderChunk(code: string) {
+			const readsSnapshot = code.includes(PLACEHOLDERS.snapshot);
+			const readsBackendURL = code.includes(PLACEHOLDERS.backendURL);
+			if (!(readsSnapshot || readsBackendURL)) {
+				return null;
+			}
+			let rendered = code;
+			if (readsSnapshot) {
+				const snapshot = await loadSnapshot();
+				// One line, so the chunk's line mappings stay valid.
+				rendered = rendered.replace(
+					placeholderPattern(PLACEHOLDERS.snapshot),
+					snapshot ? `(${JSON.stringify(snapshot)})` : 'void 0'
+				);
+			}
+			if (readsBackendURL) {
+				if (!readsSnapshot) {
+					reportMissingBackendURL();
+				}
+				rendered = rendered.replace(
+					placeholderPattern(PLACEHOLDERS.backendURL),
+					'void 0'
+				);
+			}
+			if (
+				Object.values(PLACEHOLDERS).some((token) => rendered.includes(token))
+			) {
+				throw new Error(
+					`${defaults.label}: the bundler rewrote the ${GENERATED_MODULE_IDS[0]} stand-ins, so the build cannot fill them in.`
+				);
+			}
+			return { code: rendered, map: null };
+		},
 		resolveId: (id: string): string | undefined =>
 			(GENERATED_MODULE_IDS as readonly string[]).includes(id)
 				? VIRTUAL_GENERATED_ID
@@ -784,10 +902,11 @@ export const createConsentManifestPlugin = (
 };
 
 /**
- * Fetches the deployment's consent manifest when Vite starts and serves it
- * as `@c15t/core/generated`, for single-page apps (React, Solid, plain
- * JavaScript). Import `snapshot` from there; no file is written into the
- * app.
+ * Serves the deployment's consent manifest as `@c15t/core/generated`, for
+ * single-page apps (React, Solid, plain JavaScript). Import `snapshot` from
+ * there; no file is written into the app. The manifest is fetched only when
+ * the bundle reads `snapshot`, as `manifest()` does, so `hosted()` and
+ * `offline()` builds never depend on the backend.
  *
  * A failed fetch stops `vite build` and warns in `vite dev`, where
  * `snapshot` is `undefined`. Set `onBuildError` or `C15T_ON_BUILD_ERROR` to

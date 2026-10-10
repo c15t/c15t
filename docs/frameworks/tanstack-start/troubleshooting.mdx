@@ -7,7 +7,8 @@ group: frameworks
 ## vite build or vite dev can't fetch the manifest
 
 **Check.** Read the message. The `consentManifest` plugin downloads the
-manifest when Vite starts. When the download fails or takes longer than 10
+manifest once per build, and in `vite dev` the first time the server loads
+it. When the download fails or takes longer than 10
 seconds, `vite build` stops with an error that starts with
 `@c15t/tanstack-start/build: could not fetch the consent manifest from <url>
 during the build`. `vite dev` logs the same message as a warning and keeps
@@ -36,8 +37,7 @@ backend URL is relative.
 snapshot themselves, so most apps never import it. On the server, add the
 plugin or fix the
 [fetch error](#vite-build-or-vite-dev-cant-fetch-the-manifest), then restart
-`vite dev` or rebuild. The
-plugin fetches once when Vite starts. While `snapshot` is `undefined`, the
+`vite dev` or rebuild. While `snapshot` is `undefined`, the
 server fetches and caches the policy at runtime.
 
 ## The banner is not in the server HTML
