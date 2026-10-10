@@ -1,31 +1,43 @@
 import { describe, expect, it } from 'vitest';
 
-import { createBenchmarkPlan } from '../../../scripts/benchmark-plan';
+import {
+	createBenchmarkPlan,
+	createBenchmarkShards,
+} from '../../../scripts/benchmark-plan';
 import { expectedBenchmarkResults } from './expected-results';
+import { isBenchSelected } from './selection';
 
 describe('benchmark matrix coverage', () => {
 	it.each(['bundle', 'quick', 'full'])(
-		'covers every expected package in the %s profile exactly once',
+		'measures every expected result in the %s profile on exactly one runner',
 		(mode) => {
 			const plan = createBenchmarkPlan(mode);
 			const expected = expectedBenchmarkResults.filter((entry) =>
 				plan.suites.includes(entry.suite)
 			);
-			const packages = new Set(
-				expected.map((entry) => entry.key.split(':')[0])
+			expect(new Set(plan.expectedPackages)).toEqual(
+				new Set(expected.map((entry) => entry.key.split(':')[0]))
 			);
-			expect(new Set(plan.expectedPackages)).toEqual(packages);
-			expect(plan.packages).toHaveLength(packages.size);
-			for (const name of plan.packages) {
-				const shard = createBenchmarkPlan(mode, name);
-				expect(shard.packages).toEqual([name]);
-				expect(shard.suites).toEqual(plan.suites);
-				expect(shard.expectedPackages).toHaveLength(1);
+			const runners = createBenchmarkShards(plan.packages).map((shard) =>
+				createBenchmarkPlan(mode, shard.id)
+			);
+			const measures = (
+				runner: (typeof runners)[number],
+				entry: (typeof expected)[number]
+			) =>
+				runner.expectedPackages.some((name) =>
+					entry.key.startsWith(`${name}:`)
+				) && isBenchSelected(runner, entry.suite, entry.scenario);
+			for (const entry of expected) {
 				expect(
-					expected.some((entry) =>
-						entry.key.startsWith(`${shard.expectedPackages[0]}:`)
-					)
-				).toBe(true);
+					runners.filter((runner) => measures(runner, entry)),
+					entry.key
+				).toHaveLength(1);
+			}
+			for (const runner of runners) {
+				expect(runner.packages).toHaveLength(1);
+				expect(runner.suites).toEqual(plan.suites);
+				expect(expected.some((entry) => measures(runner, entry))).toBe(true);
 			}
 		}
 	);

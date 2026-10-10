@@ -33,6 +33,10 @@ import type { PolicyBenchFixture } from '@c15t/benchmarking/policy-fixtures';
 import { BENCHMARK_SCHEMA_VERSION } from '@c15t/benchmarking/schema';
 import type { BenchmarkResult } from '@c15t/benchmarking/schema';
 import {
+	benchSelectionFromEnv,
+	isBenchSelected,
+} from '@c15t/benchmarking/selection';
+import {
 	benchmarkCount,
 	getEnvironment,
 	measureAsyncLoop,
@@ -295,7 +299,10 @@ const runFixture = async function runFixture(
 	writeJson(join(outputDir, `${fixture.name}.json`), result);
 };
 
-await policyBenchFixtureNames.reduce(async (previous, name) => {
-	await previous;
-	await runFixture(policyBenchFixtures[name]);
-}, Promise.resolve());
+const selection = benchSelectionFromEnv(process.env);
+await policyBenchFixtureNames
+	.filter((name) => isBenchSelected(selection, 'policy-runtime', name))
+	.reduce(async (previous, name) => {
+		await previous;
+		await runFixture(policyBenchFixtures[name]);
+	}, Promise.resolve());

@@ -16,6 +16,10 @@ import {
 	BENCH_BACKEND_LATENCY_ENV,
 	resolveBenchBackendLatencyMs,
 } from '../benchmarks/shared/src/browser';
+import {
+	BENCH_ONLY_ENV,
+	BENCH_SKIP_ENV,
+} from '../benchmarks/shared/src/selection';
 import { replaceBenchmarkFixtures } from './benchmark-overlay';
 import { createBenchmarkPlan } from './benchmark-plan';
 import { resolveBenchmarkRevisions } from './benchmark-revisions';
@@ -42,9 +46,11 @@ const readFlag = function readFlag(name: string): string | undefined {
 // Base and head both run against a consent backend that answers after this
 // many milliseconds (200 by default; `--backend-latency-ms 0` turns it off).
 const backendLatencyMs = resolveBenchBackendLatencyMs(readFlag, process.env);
-const { expectedPackages, packages, suites } = createBenchmarkPlan(
+// CI passes the matrix id, which names a shard of a package split across
+// runners; locally, BENCHMARK_PACKAGE selects a whole package.
+const { expectedPackages, only, packages, skip, suites } = createBenchmarkPlan(
 	mode,
-	process.env.BENCHMARK_PACKAGE
+	process.env.BENCHMARK_SHARD || process.env.BENCHMARK_PACKAGE
 );
 const root = process.cwd();
 const { baseSha, headSha } = resolveBenchmarkRevisions(
@@ -74,6 +80,10 @@ const env = {
 	// sit close to absolute allowances. Every round runs the full count.
 	C15T_CORE_BENCH_ITERATIONS: '5000',
 	C15T_CORE_BENCH_WARMUP_ITERATIONS: '1000',
+	// Both arms measure this shard's share, and the comparison expects only it.
+	// Set from the plan even when empty, so a stray variable cannot shrink a run.
+	[BENCH_ONLY_ENV]: only.join(','),
+	[BENCH_SKIP_ENV]: skip.join(','),
 };
 // Kept in the report, so a failed later round still uploads the earlier ones.
 const roundDirectory = (round: number, arm: BenchmarkArm) =>
@@ -147,8 +157,10 @@ try {
 				harnessSha: headSha,
 				headSha,
 				mode,
+				only,
 				packages,
 				rounds,
+				skip,
 			},
 			null,
 			2

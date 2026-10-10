@@ -29,20 +29,34 @@ describe('benchmark package selection', () => {
 		}
 	);
 
+	it('selects one core-benchmarks shard by its matrix id', () => {
+		expect(createBenchmarkPlan('quick', 'core-benchmarks-california')).toEqual({
+			expectedPackages: ['@c15t/core-benchmarks'],
+			only: ['policy-runtime:optout-california'],
+			packages: ['@c15t/core-benchmarks'],
+			skip: [],
+			suites: ['core-runtime', 'policy-runtime', 'script-lifecycle'],
+		});
+	});
+
 	it.each([
-		['quick', 2],
-		['full', 8],
+		['quick', 4],
+		['full', 10],
 	])('emits %s matrix jobs with unique artifact names', (mode, count) => {
 		const output = execFileSync(
 			'bun',
 			[new URL('./benchmark-plan.ts', import.meta.url).pathname, String(mode)],
 			{ encoding: 'utf8' }
 		);
-		const expected = createBenchmarkPlan(String(mode)).packages.map((name) => ({
-			id: name.replace('@c15t/', ''),
-			package: name,
-		}));
-		expect(JSON.parse(output)).toEqual({ include: expected });
-		expect(new Set(expected.map((entry) => entry.id)).size).toBe(count);
+		const { include } = JSON.parse(output) as {
+			include: { id: string; package: string }[];
+		};
+		expect(include).toHaveLength(count);
+		expect(new Set(include.map((entry) => entry.id)).size).toBe(count);
+		for (const entry of include) {
+			expect(createBenchmarkPlan(String(mode), entry.id).packages).toEqual([
+				entry.package,
+			]);
+		}
 	});
 });

@@ -37,6 +37,8 @@ export interface ExpectedBenchmarkResult {
 	 * condition, for example `ssr:profile-none:latency-200ms`.
 	 */
 	key: string;
+	/** Scenario part of {@link key}, as a benchmark selection names it. */
+	scenario: string;
 	suite: BenchmarkSuite;
 	/** Canonical budget definitions the head artifact must carry. */
 	budgets: MetricBudget[];
@@ -82,6 +84,7 @@ const expect = function expect(
 	return {
 		budgets,
 		key: `${pkg}:${scenario}:${suite}`,
+		scenario,
 		suite,
 	};
 };

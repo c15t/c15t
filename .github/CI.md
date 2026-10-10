@@ -245,10 +245,11 @@ Both use the measurement tooling on `v3`; other published branches do not
 contain it. Manual runs cannot execute an arbitrary head revision with
 default-branch cache access.
 The base must belong to the selected head's commit history.
-Runtime comparisons use one runner per package: two jobs for quick runs and
-eight for full runs. Both revisions resolve once before the matrix starts.
-Each job measures base then head on the same runner and enforces that package's
-complete expected results and budgets. Browser benches answer every consent-backend
+Runtime comparisons use one runner per package, except core-benchmarks, which
+splits its policy fixtures across three runners: four jobs for quick runs and
+ten for full runs. Both revisions resolve once before the matrix starts.
+Each job measures base then head on the same runner and enforces every expected
+result and budget in its share. Browser benches answer every consent-backend
 request after 200 ms on both revisions. Jobs upload separate reports and keep
 running if another package fails. Failures fail the benchmark workflow and
 preserve its summaries and artifacts without blocking publishing. GitHub activates schedules only once the workflow is on
