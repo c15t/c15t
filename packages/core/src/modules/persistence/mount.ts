@@ -10,7 +10,7 @@ import type { ConsentSnapshot, HydrationRecords } from '../../types';
 import { clearStoredRecords } from './clear';
 import { hydrateFromStorage, readStoredRecordsForReconcile } from './hydrate';
 import type { StoredRecords } from './hydrate';
-import { resolveStorageKeys } from './record-storage';
+import { isNewerDenial, resolveStorageKeys } from './record-storage';
 import { persistenceTools } from './tools';
 import type { PersistenceHandle, PersistenceOptions } from './types';
 import { pageWriterLoader, preloadWriter } from './writer-loader';
@@ -54,6 +54,7 @@ export const mountPersistence = function mountPersistence(
 		typeof window.addEventListener === 'function' &&
 		typeof document.addEventListener === 'function';
 	let disposed = false;
+	const keys = resolveStorageKeys(storageConfig);
 
 	let writer: PersistenceWriter | undefined;
 	// The read memory last matched, for the writer to start from, and
@@ -229,15 +230,8 @@ export const mountPersistence = function mountPersistence(
 		const patch: HydrationRecords = {};
 		const seeded = snapshot.explicitChoice?.categories ?? {};
 		const denials = Object.entries(records.choice?.categories ?? {}).filter(
-			([category, decision]) => {
-				const current = seeded[category as keyof typeof seeded];
-				return (
-					decision?.value === false &&
-					(!current ||
-						decision.confirmedAt > current.confirmedAt ||
-						(decision.confirmedAt === current.confirmedAt && current.value))
-				);
-			}
+			([category, decision]) =>
+				isNewerDenial(decision, seeded[category as keyof typeof seeded])
 		);
 		if (denials.length > 0) {
 			patch.choice = {
@@ -286,45 +280,52 @@ export const mountPersistence = function mountPersistence(
 		if (!listenable) {
 			return () => undefined;
 		}
-		// Leaving the page: a write still waiting for its macrotask runs now.
-		const onPageHide = function onPageHide(): void {
-			writer?.flush();
-		};
-		window.addEventListener('pagehide', onPageHide);
-		if (options.sync === false) {
-			return () => {
-				window.removeEventListener('pagehide', onPageHide);
-			};
+		const listeners: [EventTarget, string, (event: Event) => void][] = [
+			// Leaving the page: a write still waiting for its macrotask runs now.
+			[window, 'pagehide', () => writer?.flush()],
+		];
+		if (options.sync !== false) {
+			const watched = new Set<string | null>([
+				keys.consent,
+				keys.legacyConsent,
+				keys.notice,
+				keys.vendors,
+				keys.epoch,
+				// Another page called `localStorage.clear()`.
+				null,
+			]);
+			listeners.push(
+				[
+					window,
+					'storage',
+					(event) => {
+						if (watched.has((event as StorageEvent).key)) {
+							scheduleReconcile();
+						}
+					},
+				],
+				[window, 'focus', scheduleReconcile],
+				[
+					document,
+					'visibilitychange',
+					() => {
+						if (document.visibilityState !== 'hidden') {
+							scheduleReconcile();
+						}
+					},
+				]
+			);
 		}
-		const keys = resolveStorageKeys(storageConfig);
-		const watched = new Set<string | null>([
-			keys.consent,
-			keys.legacyConsent,
-			keys.notice,
-			keys.vendors,
-			keys.epoch,
-			// Another page called `localStorage.clear()`.
-			null,
-		]);
-		const onStorage = function onStorage(event: StorageEvent): void {
-			if (watched.has(event.key)) {
-				scheduleReconcile();
+		const toggle = (add: boolean) => {
+			for (const [target, type, listener] of listeners) {
+				target[add ? 'addEventListener' : 'removeEventListener'](
+					type,
+					listener
+				);
 			}
 		};
-		const onVisibilityChange = function onVisibilityChange(): void {
-			if (document.visibilityState !== 'hidden') {
-				scheduleReconcile();
-			}
-		};
-		window.addEventListener('storage', onStorage);
-		window.addEventListener('focus', scheduleReconcile);
-		document.addEventListener('visibilitychange', onVisibilityChange);
-		return () => {
-			window.removeEventListener('pagehide', onPageHide);
-			window.removeEventListener('storage', onStorage);
-			window.removeEventListener('focus', scheduleReconcile);
-			document.removeEventListener('visibilitychange', onVisibilityChange);
-		};
+		toggle(true);
+		return () => toggle(false);
 	};
 
 	if (!browser) {

@@ -63,11 +63,8 @@ const kernelVendorChoice = function kernelVendorChoice(
 	if (!record) {
 		return null;
 	}
-	return {
-		confirmedAt: record.confirmedAt,
-		denied: record.denied,
-		version: record.version,
-	};
+	const { subject: _subject, ...vendorChoice } = record;
+	return vendorChoice;
 };
 
 /**

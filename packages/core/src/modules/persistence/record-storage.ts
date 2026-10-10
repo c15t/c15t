@@ -33,6 +33,7 @@
 import { normalizeLegacyConsentRecord } from '../../consent-record/normalize';
 import type { LegacyRecordEncoding } from '../../consent-record/normalize';
 import type {
+	CategoryDecision,
 	ConsentSubject,
 	ExplicitChoice,
 } from '../../consent-record/types';
@@ -48,11 +49,13 @@ import { STORAGE_KEY, STORAGE_KEY_V2 } from '../../libs/storage-keys';
 import { choiceSinceEpoch } from './epoch';
 import {
 	decodeClearEpoch,
+	decodeComponent,
 	decodeNoticeDismissal,
 	decodeNoticeDismissalCompact,
 	decodeStoredConsentEnvelopeCompact,
 	decodeVendorChoice,
 	decodeVendorChoiceCompact,
+	DIGITS_ONLY,
 	validateIabMetadata,
 	validateStoredConsentEnvelope,
 } from './record-codec';
@@ -182,23 +185,11 @@ const parseJsonText = function parseJsonText(text: string): unknown {
 	}
 };
 
-const tryDecodeOuterLayer = function tryDecodeOuterLayer(
-	value: string
-): string | null {
-	try {
-		return decodeURIComponent(value);
-	} catch {
-		return null;
-	}
-};
-
 const LEGACY_BOOLEAN_MAPS: ReadonlySet<string> = new Set([
 	'consents',
 	'iabCustomVendorConsents',
 	'iabCustomVendorLegitimateInterests',
 ]);
-
-const DIGITS_ONLY = /^\d+$/u;
 
 /**
  * Types one v2 compact leaf by its path instead of by what the text looks
@@ -328,7 +319,7 @@ export const parseRawCookieCandidate = function parseRawCookieCandidate(
 	}
 	let form = recognizeCookieForm(rawValue);
 	if (!form && rawValue.includes('%')) {
-		const unwrapped = tryDecodeOuterLayer(rawValue);
+		const unwrapped = decodeComponent(rawValue);
 		if (unwrapped !== null) {
 			form = recognizeCookieForm(unwrapped);
 		}
@@ -587,6 +578,28 @@ const categoriesSinceEpoch = function categoriesSinceEpoch(
 };
 
 /**
+ * Whether `decision` is a denial newer than `current`. A denial from the
+ * same millisecond as a grant counts as newer: two conflicting decisions
+ * that cannot be ordered fall back to the restrictive one.
+ *
+ * @param decision - The candidate decision.
+ * @param current - The decision it would replace.
+ * @returns Whether to apply `decision` over `current`.
+ * @internal
+ */
+export const isNewerDenial = function isNewerDenial(
+	decision: CategoryDecision | undefined,
+	current: CategoryDecision | undefined
+): decision is CategoryDecision {
+	return (
+		decision?.value === false &&
+		(!current ||
+			decision.confirmedAt > current.confirmedAt ||
+			(decision.confirmedAt === current.confirmedAt && current.value))
+	);
+};
+
+/**
  * The cookie record with every newer localStorage denial applied, or the
  * cookie record itself when there is none.
  *
@@ -624,16 +637,8 @@ const withNewerLocalDenials = function withNewerLocalDenials(
 	for (const [category, decision] of Object.entries(
 		categoriesSinceEpoch(local, epoch)
 	)) {
-		const current = categories[category as keyof typeof categories];
-		// A denial from the same millisecond as a cookie grant wins too: two
-		// conflicting decisions that cannot be ordered fall back to the
-		// restrictive one.
 		if (
-			decision &&
-			decision.value === false &&
-			(!current ||
-				decision.confirmedAt > current.confirmedAt ||
-				(decision.confirmedAt === current.confirmedAt && current.value))
+			isNewerDenial(decision, categories[category as keyof typeof categories])
 		) {
 			categories[category as keyof typeof categories] = decision;
 			changed = true;
@@ -780,7 +785,7 @@ const readCompactCookie = function readCompactCookie<RecordType>(
 		return decode(text);
 	}
 	if (text.includes('%')) {
-		const unwrapped = tryDecodeOuterLayer(text);
+		const unwrapped = decodeComponent(text);
 		if (unwrapped !== null && unwrapped.trim().startsWith('v=')) {
 			return decode(unwrapped.trim());
 		}
