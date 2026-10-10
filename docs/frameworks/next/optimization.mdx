@@ -85,10 +85,7 @@ absolute:
 ```ts title="c15t.config.ts"
 import { defineConsentConfig } from 'c15t/next';
 
-export default defineConsentConfig({
-	proxy: true,
-	routePrefix: '/api/c15t',
-});
+export default defineConsentConfig({ proxy: true, routePrefix: '/api/c15t' });
 ```
 
 Then mount the consent route with `proxy: true`, so it forwards saves to the
