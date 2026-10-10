@@ -91,3 +91,35 @@ export const pinBuildOptions = function pinBuildOptions(
 	c15t.mode = structuredClone(built.mode);
 	c15t.routePrefix = built.routePrefix;
 };
+
+/**
+ * A check for each request's runtime config. Platforms such as Cloudflare
+ * apply environment bindings per request, after server plugins start, so
+ * the check runs on every request instead of once at startup. It pins the
+ * built options back when an override is present, and reports each
+ * overridden option once.
+ *
+ * @param built - The options the build used.
+ * @param warn - Receives the name of each option the first time it is
+ * overridden.
+ * @returns The check to run with each request's runtime config.
+ */
+export const createBuildOptionsGuard = function createBuildOptionsGuard(
+	built: BuiltOptions,
+	warn: (name: BuiltOptionName) => void
+): (runtimeConfig: BuiltOptionsRuntimeConfig) => void {
+	const warned = new Set<BuiltOptionName>();
+	return (runtimeConfig) => {
+		const overridden = findOverriddenOptions(runtimeConfig.public.c15t, built);
+		if (overridden.length === 0) {
+			return;
+		}
+		for (const name of overridden) {
+			if (!warned.has(name)) {
+				warned.add(name);
+				warn(name);
+			}
+		}
+		pinBuildOptions(runtimeConfig, built);
+	};
+};

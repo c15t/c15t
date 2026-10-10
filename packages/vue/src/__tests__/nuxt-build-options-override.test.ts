@@ -7,6 +7,7 @@
 import { describe, expect, test } from 'vitest';
 
 import {
+	createBuildOptionsGuard,
 	findOverriddenOptions,
 	pinBuildOptions,
 } from '../runtime/server/build-options';
@@ -93,5 +94,24 @@ describe('findOverriddenOptions', () => {
 			)
 		).toEqual([]);
 		expect(findOverriddenOptions(undefined, BUILT)).toEqual([]);
+	});
+});
+
+describe('createBuildOptionsGuard', () => {
+	test('pins an override that first appears on a later request, warning once', () => {
+		// Cloudflare applies bindings per request: the first request matches
+		// the build, and a later one carries the override.
+		const warned: string[] = [];
+		const guard = createBuildOptionsGuard(BUILT, (name) => warned.push(name));
+		const first = overridden({});
+		guard(first);
+		expect(first.public.c15t.routePrefix).toBe('/api/c15t');
+		expect(warned).toEqual([]);
+		for (let request = 0; request < 2; request += 1) {
+			const later = overridden({ mode: { type: 'hosted' }, routePrefix: '/' });
+			guard(later);
+			expect(later.public.c15t).toMatchObject(BUILT);
+		}
+		expect(warned).toEqual(['mode', 'routePrefix']);
 	});
 });
