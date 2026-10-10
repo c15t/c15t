@@ -162,9 +162,9 @@ const warmDialogOnIntent = dialogIntentHandler(
 
 // While the banner shows, prefetch the dialog once the page has loaded and
 // gone quiet, so the first open rarely waits for it. A banner that the
-// model filters hide holds no gate.
+// model filters hide, or that waits for the vendor list, holds no gate.
 useIdleDialogPrefetch(
-	() => isOpen.value,
+	() => showBanner.value,
 	() => true
 );
 

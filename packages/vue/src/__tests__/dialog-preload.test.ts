@@ -5,6 +5,8 @@
  */
 import type { InitOutput } from '@c15t/schema/types';
 import {
+	createPolicyRuleFingerprints,
+	normalizePolicyRule,
 	resolvePolicyRules,
 	writePolicyResolutionWire,
 } from '@c15t/schema/types';
@@ -356,6 +358,106 @@ const mountInApp = async (
 		global: { plugins: [[c15tVue, { ...config, ...appConfig }]] },
 	});
 };
+
+const iabPolicy = normalizePolicyRule({
+	id: 'policy_iab',
+	match: { isDefault: true },
+	model: 'iab',
+	prompt: 'choice',
+});
+
+/**
+ * Mount the IAB banner for an init that references the vendor list instead
+ * of sending it, as the hosted backend does.
+ */
+const mountIabPrompt = async (summary?: {
+	items: string[];
+	vendorCount: number;
+}) => {
+	const init = {
+		...initFixture,
+		gvlReference: {
+			language: 'en',
+			summary,
+			url: 'https://consent.example/gvl',
+			vendorListVersion: 1,
+		},
+		policyResolution: writePolicyResolutionWire({
+			fingerprints: createPolicyRuleFingerprints(iabPolicy),
+			matchedBy: 'default',
+			policy: iabPolicy,
+			policyId: iabPolicy.id,
+			status: 'matched',
+		}),
+	} as InitOutput;
+	const iabConfig = { ...config, iab: {} } as RuntimeConsentConfig;
+	const { createVueConsentKernelContext } = await import('../runtime/kernel');
+	const symbols = await import('../runtime/utils/symbols');
+	const { consentConfigKey } = await import('../runtime/composables/config');
+	const { resetIdleDialogPrefetchForTests } =
+		await import('../runtime/components/lazy-surfaces');
+	resetIdleDialogPrefetchForTests({ scheduleIdle });
+	const IabPrompt = (await import('../runtime/components/iab-prompt.vue'))
+		.default as Component;
+	const context = createVueConsentKernelContext({
+		config: iabConfig,
+		prefetch: init,
+	});
+	context.kernel.set.activeUI('banner');
+	const wrapper = mount(IabPrompt, {
+		attachTo: document.body,
+		global: {
+			provide: {
+				[consentConfigKey]: iabConfig,
+				[symbols.symbolKernelContext]: context,
+				[symbols.symbolKernel]: context.kernel,
+				[symbols.symbolSnapshot]: context.snapshot,
+				[symbols.symbolInit]: context.init,
+				[symbols.symbolActiveUI]: context.activeUI,
+				[symbols.symbolConsent]: context.storedConsent,
+			},
+		},
+	});
+	return {
+		unmount: () => {
+			wrapper.unmount();
+			context.dispose();
+		},
+	};
+};
+
+describe('IAB banner', () => {
+	test('preloads the dialog while the banner shows', async () => {
+		const prompt = await mountIabPrompt({
+			items: ['Store and/or access information on a device'],
+			vendorCount: 3,
+		});
+		try {
+			expect(
+				await waitFor(() => byTestId('iab-consent-banner-accept-button'))
+			).toBeTruthy();
+			expect(await waitFor(() => loads.idle.length > 0)).toBe(true);
+			runIdle();
+			await settle();
+			expect(loads.iabDialog).toBe(1);
+		} finally {
+			prompt.unmount();
+		}
+	});
+
+	test('skips the idle load while the vendor list it needs is loading', async () => {
+		// With no summary, the banner waits for the full list to name what
+		// it covers.
+		const prompt = await mountIabPrompt();
+		try {
+			await settle();
+			expect(byTestId('iab-consent-banner-accept-button')).toBeNull();
+			expect(loads.idle).toHaveLength(0);
+		} finally {
+			prompt.unmount();
+		}
+	});
+});
 
 describe('ConsentGate', () => {
 	test('waits for /init before preloading the dialog', async () => {
