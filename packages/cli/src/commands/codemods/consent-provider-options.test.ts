@@ -128,6 +128,32 @@ export const App = ({ children }) => (
 		);
 	});
 
+	it('keeps the old local name when the file declares its own ConsentProvider', async () => {
+		const { result, updated } = await transformFile(
+			codemod,
+			`import { ConsentBanner, ConsentManagerProvider } from '@c15t/react';
+import type { ReactNode } from 'react';
+
+export function ConsentProvider({ children }: { children: ReactNode }) {
+	return (
+		<ConsentManagerProvider options={{ mode: 'hosted', backendURL: '/api/c15t' }}>
+			<ConsentBanner />
+			{children}
+		</ConsentManagerProvider>
+	);
+}
+`
+		);
+
+		expect(result.errors).toEqual([]);
+		expect(updated).toContain('ConsentProvider as ConsentManagerProvider');
+		expect(updated).toContain('export function ConsentProvider(');
+		expect(updated).toContain(
+			"<ConsentManagerProvider options={{ mode: hosted({ backendURL: '/api/c15t' }) }}>"
+		);
+		expect(updated).toContain('</ConsentManagerProvider>');
+	});
+
 	it('renames namespace accesses in JSX and types', async () => {
 		const { updated } = await transformFile(
 			codemod,

@@ -49,6 +49,13 @@
  * - Nothing is lost while the write code loads. Writes, a `reconcile()` and
  *   the sync listeners' reconciliations requested before it lands run when
  *   it lands, in that order. So do writes requested before `dispose()`.
+ * - A handle mounted while another handle's writes for the same storage
+ *   key wait for the write code (a provider remounted right after a
+ *   choice) hydrates from that handle's kernel records instead of the
+ *   storage those writes have not reached, including a revocation. Its
+ *   writer still starts from storage. A write from the new handle
+ *   supersedes the queued ones, and when they land they keep the newer
+ *   decision per category like every write. `clear()` drops them.
  * - The write code starts loading on the first write or reconciliation, or,
  *   once a banner or dialog has been shown, on a press, key or focus inside
  *   one, or in idle time three seconds after the page's load event,

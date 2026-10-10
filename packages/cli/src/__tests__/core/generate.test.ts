@@ -111,6 +111,8 @@ describe('reusable generation', () => {
 		for (const existing of [
 			'VITE_INTH_PROJECT_URL=\n',
 			'VITE_INTH_PROJECT_URL=""\n',
+			'VITE_INTH_PROJECT_URL=# TODO\n',
+			'VITE_INTH_PROJECT_URL=#TODO\n',
 			'NEXT_PUBLIC_INTH_PROJECT_URL=https://mine.inth.app\n',
 		]) {
 			expect(mergeFile(existing, env, plan.merge['.env'])).toBe(

@@ -63,6 +63,17 @@ const config: KnipConfig = {
 		'packages/backend': {
 			entry: ['src/index.ts', 'src/sql/*.ts'],
 			ignore: ['src/**/*.test.ts', 'src/**/__tests__/**'],
+			// Peers that hono-openapi and standard-json load at runtime. Yarn
+			// does not install peers and pnpm skips optional ones, so the
+			// backend declares them; src/__tests__/peer-imports.test.ts keeps
+			// the list complete.
+			ignoreDependencies: [
+				'@hono/standard-validator',
+				'@standard-community/standard-json',
+				'@standard-community/standard-openapi',
+				'@valibot/to-json-schema',
+				'quansync',
+			],
 			project: ['src/**/*.ts'],
 		},
 		'packages/c15t': workspaceConfig(c15tConfig),

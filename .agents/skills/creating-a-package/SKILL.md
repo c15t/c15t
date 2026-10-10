@@ -37,7 +37,7 @@ Copy the shape of an existing package rather than inventing one. `packages/logge
 
 6. **turbo.json**: the generic `build`/`test`/`lint` tasks cover most packages. Add a package-specific entry only if outputs differ (e.g. bundled docs add `AGENTS.md` + `docs/**` to build outputs) or the demo should watch it (`@c15t/playground#dev.with`).
 
-7. **Tegami**: decide whether it joins `linkedPackages` in `scripts/tegami.ts` (core SDK packages that must version together) or versions independently (utilities like logger/schema/ui).
+7. **Tegami**: decide whether it joins `linkedPackages` in `scripts/tegami.ts` (core SDK packages that must version together) or versions independently (utilities like logger/schema/ui). A linked package also goes in `LINKED_C15T_PACKAGES` in `packages/cli/src/generate/release.ts`; `c15t-release.test.ts` fails when the two lists differ.
 
 8. **README**: user-facing published packages get a generated `README.md` — create `readme.json` (see `packages/react/readme.json`) and run `bun run generate:readmes`; don't hand-write README.md. Internal utility packages (like schema/ui today) may skip it.
 

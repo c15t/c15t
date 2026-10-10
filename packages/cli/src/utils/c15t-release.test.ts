@@ -49,7 +49,7 @@ describe('c15t release specifier', () => {
 		['@c15t/react', '@c15t/react@3'],
 		['@c15t/dev-tools', '@c15t/dev-tools@3'],
 		['@c15t/ui', '@c15t/ui@latest'],
-		['@c15t/integrations', '@c15t/integrations@latest'],
+		['@c15t/integrations', '@c15t/integrations@3'],
 		['@c15t/svelte', '@c15t/svelte@latest'],
 	])('pins %s to %s for a stable CLI', (dependency, pinned) => {
 		expect(withC15tRelease(dependency, '3.2.1')).toBe(pinned);
