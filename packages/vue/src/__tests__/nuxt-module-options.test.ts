@@ -557,24 +557,53 @@ describe('mode and routePrefix', () => {
 		);
 	});
 
+	test('publishes the module mode over one already in runtimeConfig', async () => {
+		warn.mockClear();
+		const nuxt = createNuxt({
+			backendURL: '/api/self-host',
+			mode: { resolve: 'browser', type: 'manifest' },
+		});
+		nuxt.options.runtimeConfig.public.c15t = { mode: { type: 'hosted' } };
+		await runWithNuxtContext(nuxt, () => module({}, nuxt));
+		// The server and the browser run the same mode.
+		expect(
+			(nuxt.options.runtimeConfig.public.c15t as { mode: unknown }).mode
+		).toEqual({ resolve: 'browser', type: 'manifest' });
+		expect(warn).toHaveBeenCalledWith(
+			expect.stringContaining('runtimeConfig.public.c15t.mode')
+		);
+	});
+
 	test.each([
-		[{ backendURL: '/api/self-host' }, '/api/c15t'],
-		[{ backendURL: '/api/self-host', routePrefix: '/consent/' }, '/consent'],
-		[{ backendURL: '/api/self-host', routePrefix: false }, false],
+		[{ backendURL: '/api/self-host' }, { type: 'manifest' }, '/api/c15t'],
+		[
+			{ backendURL: '/api/self-host', routePrefix: '/consent/' },
+			{ type: 'manifest' },
+			'/consent',
+		],
+		[
+			{
+				backendURL: '/api/self-host',
+				mode: { resolve: 'browser', type: 'manifest' },
+				routePrefix: false,
+			},
+			{ resolve: 'browser', type: 'manifest' },
+			false,
+		],
 	])(
-		'pins the built routePrefix against runtime overrides, with %j',
-		async (c15t, built) => {
+		'pins the built mode and routePrefix against runtime overrides, with %j',
+		async (c15t, mode, routePrefix) => {
 			const nuxt = await setUpModule(c15t);
 			const { plugins = [], virtual = {} } = nuxt.options.nitro as {
 				plugins?: string[];
 				virtual?: Record<string, string | (() => string)>;
 			};
 			expect(
-				plugins.filter((plugin) => plugin.includes('route-prefix.nuxt'))
+				plugins.filter((plugin) => plugin.includes('build-options.nuxt'))
 			).toHaveLength(1);
-			const source = virtual['#c15t/route-prefix'];
+			const source = virtual['#c15t/build-options'];
 			expect(typeof source === 'function' ? source() : source).toBe(
-				`export default ${JSON.stringify(built)};\n`
+				`export default ${JSON.stringify({ mode, routePrefix })};\n`
 			);
 		}
 	);

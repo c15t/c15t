@@ -40,6 +40,8 @@ import {
 	readNuxtMode,
 	readNuxtRoutePrefix,
 } from './runtime/nuxt-mode';
+import { findOverriddenOptions } from './runtime/server/build-options';
+import type { BuiltOptions } from './runtime/server/build-options';
 import {
 	collectStyleSources,
 	preloadInlinedConsentStyles,
@@ -332,10 +334,11 @@ const withoutSnapshot = function withoutSnapshot(
 
 /**
  * Puts the module options in the public runtime config, which the server
- * render and the browser read. Values already there win, except
- * `routePrefix`: the consent route is mounted at the checked option, so the
- * browser must get that one. The `route-prefix` server plugin does the same
- * for a runtime `NUXT_PUBLIC_C15T_ROUTE_PREFIX`.
+ * render and the browser read. Values already there win, except `mode` and
+ * `routePrefix`: the build chose the consent route, the snapshots and the
+ * browser code from the module's, so the server and the browser must run
+ * those. The `build-options` server plugin does the same for runtime
+ * variables such as `NUXT_PUBLIC_C15T_ROUTE_PREFIX`.
  */
 const publishOptions = function publishOptions(
 	options: Omit<ModuleOptions, 'devtools' | 'initPrefetch' | 'onBuildError'>,
@@ -345,19 +348,21 @@ const publishOptions = function publishOptions(
 	const existing = nuxt.options.runtimeConfig.public.c15t as
 		| Record<string, unknown>
 		| undefined;
-	if (
-		existing?.routePrefix !== undefined &&
-		existing.routePrefix !== options.routePrefix
-	) {
-		useLogger('@c15t/vue').warn(
-			`\`runtimeConfig.public.c15t.routePrefix\` is ignored: the consent route is mounted at \`c15t.routePrefix\` (${JSON.stringify(options.routePrefix)}). Set the prefix there.`
-		);
-	}
-	const published: Record<string, unknown> = defu(existing ?? {}, {
-		...options,
+	const built: BuiltOptions = {
 		mode: withoutSnapshot(mode),
-	});
-	published.routePrefix = options.routePrefix;
+		routePrefix: options.routePrefix ?? false,
+	};
+	for (const name of findOverriddenOptions(existing, built)) {
+		if (existing?.[name] !== undefined) {
+			useLogger('@c15t/vue').warn(
+				`\`runtimeConfig.public.c15t.${name}\` is ignored: the build uses \`c15t.${name}\` (${JSON.stringify(built[name])}). Set it there.`
+			);
+		}
+	}
+	const { mode: _mode, routePrefix: _routePrefix, ...rest } = existing ?? {};
+	const published: Record<string, unknown> = defu(rest, options);
+	published.mode = built.mode;
+	published.routePrefix = built.routePrefix;
 	// Untyped: an app's generated runtime config types read `routePrefix`
 	// as the string it holds, while the option also takes `false`.
 	const publicRuntimeConfig: Record<string, unknown> =
@@ -575,11 +580,16 @@ const module: NuxtModule<ModuleOptions> = defineNuxtModule<ModuleOptions>({
 		);
 
 		addPlugin(resolver.resolve('./runtime/plugin.nuxt'));
-		// The route is mounted at the built prefix; a runtime
-		// `NUXT_PUBLIC_C15T_ROUTE_PREFIX` would send the browser elsewhere.
-		nuxt.options.nitro.virtual['#c15t/route-prefix'] = () =>
-			`export default ${JSON.stringify(options.routePrefix)};\n`;
-		addServerPlugin(resolver.resolve('./runtime/server/route-prefix.nuxt'));
+		// The build chose the route, the snapshots and the browser code from
+		// `mode` and `routePrefix`; a runtime override such as
+		// `NUXT_PUBLIC_C15T_ROUTE_PREFIX` would make the browser disagree.
+		const built: BuiltOptions = {
+			mode: withoutSnapshot(mode),
+			routePrefix: options.routePrefix ?? false,
+		};
+		nuxt.options.nitro.virtual['#c15t/build-options'] = () =>
+			`export default ${JSON.stringify(built)};\n`;
+		addServerPlugin(resolver.resolve('./runtime/server/build-options.nuxt'));
 		// Nuxt applies `NUXT_PUBLIC_C15T_BACKEND_URL` on a running server by
 		// itself. The Inth variable needs a plugin, and only while neither the
 		// option nor the c15t variable gave the build its URL.

@@ -63,9 +63,11 @@ declare module '#c15t/client-manifest-snapshot' {
 	export default manifest;
 }
 
-/** A Nitro virtual the module registers for its route prefix plugin. */
-declare module '#c15t/route-prefix' {
-	/** The prefix the build mounted the consent route at, or `false`. */
-	const routePrefix: string | false;
-	export default routePrefix;
+/** A Nitro virtual the module registers for its build options plugin. */
+declare module '#c15t/build-options' {
+	import type { BuiltOptions } from './runtime/server/build-options';
+
+	/** The `mode` and `routePrefix` the build used. */
+	const built: BuiltOptions;
+	export default built;
 }

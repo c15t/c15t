@@ -43,9 +43,9 @@ export default mergeConfig(
 					),
 				},
 				{
-					'#c15t/route-prefix': resolve(
+					'#c15t/build-options': resolve(
 						__dirname,
-						'./src/__tests__/route-prefix-virtual.ts'
+						'./src/__tests__/build-options-virtual.ts'
 					),
 				},
 				{
