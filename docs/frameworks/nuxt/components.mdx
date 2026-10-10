@@ -14,7 +14,7 @@ you use them in templates without an import. Import the others by path.
 | --- | --- | --- |
 | [`ConsentRoot`](/docs/frameworks/nuxt/components/consent-root) | Global | The banner, rendered on the server, and the preference dialog once opened. Switches to the IAB surfaces under an IAB policy when `iab` is set. |
 | [`ConsentWidget`](/docs/frameworks/nuxt/components/consent-widget) | Global | Category switches and save actions inline, for a privacy page. |
-| [`ConsentPreferencesLink`](/docs/frameworks/nuxt/components/consent-preferences-link) | Global | A button that opens preferences. |
+| [`ConsentDialogLink`](/docs/frameworks/nuxt/components/consent-dialog-link) | Global | A button that opens preferences. |
 | [`ConsentDialogTrigger`](/docs/frameworks/nuxt/components/consent-dialog-trigger) | Global | A floating, draggable button that opens preferences. |
 | [`ConsentGate`](/docs/frameworks/nuxt/components/consent-gate) | Global | Its default slot while a category is allowed, otherwise its `placeholder` slot. |
 | [`ConsentBanner`](/docs/frameworks/nuxt/components/consent-banner) | `c15t/vue/runtime/components/consent-banner.vue` | The first-layer banner on its own. |
@@ -36,12 +36,9 @@ import ConsentBanner from 'c15t/vue/runtime/components/consent-banner.vue';
 `ConsentRoot` renders `ConsentBanner` and `ConsentManager`, or the IAB
 components when `iab` is set, for the visitor's policy. Mount `ConsentRoot`, or mount the parts,
 never both, or the visitor sees two banners. Always use the global
-`ConsentRoot` in Nuxt, not `c15t/vue/consent-root`. The global one renders the
-banner on the server. The module writes theme tokens into the page head
+`ConsentRoot` in Nuxt, not the one `c15t/vue/vue-plugin` exports. The global
+one renders the banner on the server. The module writes theme tokens into the page head
 whether you mount `ConsentRoot` or the parts.
-
-`ConsentFrame` is a deprecated name for `ConsentGate`. The module still
-registers it so older templates resolve.
 
 ## Use the components in Vue Vapor
 
@@ -54,7 +51,7 @@ turn on `vue.vapor`:
 Mark a page or component with `<script setup vapor>` to compile it with Vapor.
 c15t's components stay on the virtual DOM, and Nuxt renders them inside Vapor
 components through its interop layer. Mount `ConsentRoot` in a Vapor
-`app.vue`, pass slots to `ConsentGate` or `ConsentPreferencesLink`, and call
+`app.vue`, pass slots to `ConsentGate` or `ConsentDialogLink`, and call
 the composables in a Vapor `<script setup>`, as you would elsewhere:
 
 <include src="../../shared/examples/nuxt/vapor-embed.mdx" />

@@ -18,14 +18,15 @@ keys and how to write labels that describe each action.
 
 The request's `Accept-Language` header decides:
 
-- In server manifest mode, the default with an absolute `backendURL`, the Nuxt
-  server reads the header during server rendering and resolves the text from the bundled
-  or cached manifest. The banner is in
-  the visitor's language in the first HTML.
-- With `manifest: false`, or a relative `backendURL` and `manifest` unset,
-  the server forwards the header to the backend's `/init`.
-- With `manifest: 'client'`, the browser reads `navigator.language` and
-  resolves the text from the manifest.
+- In the default `manifest()` mode, the Nuxt server reads the header during
+  server rendering and resolves the text from the bundled or cached
+  manifest. The banner is in the visitor's language in the first HTML, and
+  the browser bundle carries no translations.
+- With `hosted()`, the server forwards the header to the backend's `/init`.
+- With `manifest({ resolve: 'browser' })`, the browser reads
+  `navigator.language` and resolves the text from the bundled manifest. The
+  bundle carries English base copy; another language's base copy loads from
+  your site the first time a visitor resolves to it.
 
 On prerendered and cached routes the browser requests `/api/c15t/init` after
 hydration, and that request carries the browser's own header. When your
@@ -60,7 +61,7 @@ The assignment alone loads the new text. The example's extra
 
 ## Text that does not come from translations
 
-`ConsentPreferencesLink` and the `ConsentGate` placeholder read their default
+`ConsentDialogLink` and the `ConsentGate` placeholder read their default
 text from the translations, in English until init has delivered copy. One
 label is a module option instead. Set it in the visitor's language when your
 site has more than one:

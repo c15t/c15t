@@ -1,29 +1,31 @@
 <include src="../build-time-manifest.mdx" />
 
-The module bundles the manifest by default when the backend URL is absolute.
-It reads `NUXT_PUBLIC_C15T_BACKEND_URL` when the `c15t` key sets no
-`backendURL`, so `nuxt.config.ts` needs only the module:
+The default mode, `manifest()`, bundles the manifest. The module reads
+`NUXT_PUBLIC_C15T_BACKEND_URL` when the `c15t` key sets no `backendURL`, so
+`nuxt.config.ts` needs only the module:
 
 <include src="../examples/nuxt/nuxt-config.mdx" />
 
-The module enables server manifest mode, fetches the snapshot during
-`nuxt build` or development setup and embeds it in the server bundle.
-`nuxt prepare` does not fetch a manifest, so dependency installation and type
-preparation do not require the backend. The server init and manifest routes
-use it automatically; the full manifest stays out of runtime configuration.
-Production server startup does not run module setup or fetch another manifest.
+The module fetches the snapshot during `nuxt build` and when `nuxt dev`
+starts, and embeds it in the server bundle. `nuxt prepare` does not fetch, so
+dependency installation and type generation do not need the backend. The
+consent route and the server render read the snapshot; it stays out of
+runtime config and out of the browser bundle. Only
+`manifest({ resolve: 'browser' })` adds it to the browser bundle, because the
+browser then resolves the policy itself. Production server startup does not
+fetch another manifest.
 
-The build fetches only from an absolute upstream `backendURL` or
-`manifestURL`. It skips the fetch with a relative URL, `manifest: false`,
-`manifest: 'client'`, a `manifestSnapshot`, `nuxt generate` or `ssr: false`.
-If the fetch fails, `nuxt build` stops. `nuxt dev` logs a warning instead,
-and the server routes fetch and cache the policy at runtime. Set
-`onBuildError: 'runtime'` under the `c15t` key, or build with
-`C15T_ON_BUILD_ERROR=runtime`, to let a build continue the same way.
-`buildManifest: true` is a deprecated spelling of `onBuildError: 'fail'`.
-For a static host without a server, keep the browser setup described below.
+The module skips the fetch for `manifest({ source: 'runtime' })`, a
+`manifest({ snapshot })` you supply, and the `hosted()` and `offline()`
+modes. A relative backend URL is also skipped, unless `onBuildError` is
+`'fail'`.
 
 <include src="../build-time-manifest-notes.mdx" />
 
-For policy updates without a rebuild, set `buildManifest: false` and
-`manifest: 'server'` to fetch and cache the policy at runtime.
+Set `onBuildError` under the `c15t` key in `nuxt.config.ts`. In dev, and in a
+build with `onBuildError: 'runtime'`, a failed fetch leaves the server without
+a snapshot, and the server fetches and caches the policy at runtime.
+
+For policy updates without a rebuild, set `mode: manifest({ source: 'runtime' })`.
+The server then fetches and caches the policy at runtime, and refreshes it
+in the background.

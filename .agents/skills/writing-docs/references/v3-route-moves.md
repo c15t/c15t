@@ -90,3 +90,5 @@ links land on the framework list. Do not mention React Native, Expo or
 | `/docs/frameworks/react-native/native-behaviour` | `/docs/frameworks` | Removed, not published in v3 |
 | `/docs/frameworks/react-native/platform-support` | `/docs/frameworks` | Removed, not published in v3 |
 | `/docs/frameworks/react-native/troubleshooting` | `/docs/frameworks` | Removed, not published in v3 |
+| `/docs/frameworks/vue/components/consent-preferences-link` | `/docs/frameworks/vue/components/consent-dialog-link` | Named after the renamed component, `ConsentDialogLink` |
+| `/docs/frameworks/nuxt/components/consent-preferences-link` | `/docs/frameworks/nuxt/components/consent-dialog-link` | Named after the renamed component, `ConsentDialogLink` |

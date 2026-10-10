@@ -51,7 +51,6 @@ use vendors from your list whose declarations allow each restriction.
 
 ```ts title="src/main.ts (partial)"
 app.use(c15tVue, {
-	backendURL: 'https://your-project.inth.app',
 	iab: {
 		publisherRestrictions: [
 			// Vendors 10 and 755 may not use purpose 4.
@@ -60,12 +59,13 @@ app.use(c15tVue, {
 			{ purposeId: 7, restrictionType: 2, vendorIds: [755] },
 		],
 	},
+	mode: hosted(),
 });
 ```
 
 `iab` also takes `publisherCountryCode`, a `vendors` allowlist,
 `customVendors` and `cmpVersion`. Fields you leave out come from the policy:
-the CMP ID, custom vendors and vendor list arrive with `/init`. The CMP mounts
+the CMP ID, custom vendors and vendor list arrive with the policy. The CMP mounts
 only while the visitor's policy uses the `iab` model.
 
 <include src="../../shared/iab-publisher-restrictions.mdx" />

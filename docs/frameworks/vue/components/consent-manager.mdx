@@ -8,7 +8,7 @@ group: frameworks
 
 `ConsentRoot` already renders `ConsentManager` when preferences open. Import
 it yourself only when you compose the surfaces in place of `ConsentRoot`.
-Import it from `c15t/vue/runtime/components/consent-manager.vue`:
+Import it from `c15t/vue/vue-plugin`:
 
 <include src="../../../shared/examples/vue/consent-surfaces.mdx" />
 
@@ -26,7 +26,7 @@ activeUI.value = 'manager';
 ```
 
 For a footer link, use
-[ConsentPreferencesLink](/docs/frameworks/vue/components/consent-preferences-link),
+[ConsentDialogLink](/docs/frameworks/vue/components/consent-dialog-link),
 which hides itself when the policy offers no preferences.
 
 <import src="../../../shared/vue/components/consent-manager.mdx#behavior" />
