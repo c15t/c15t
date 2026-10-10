@@ -158,6 +158,35 @@ const readModuleMode = function readModuleMode(
 };
 
 /**
+ * `manifest()` saves consent at `${backendURL}/subjects` from the browser.
+ * The consent route answers `GET` only, so without a backend URL every save
+ * would fail after the visitor chose. A `snapshot` replaces the manifest
+ * download, not the save endpoint. `nuxt prepare` runs during dependency
+ * installation, where the variable is often unset, so it is not checked.
+ *
+ * @throws {Error} When `manifest()` has no backend URL.
+ */
+const assertManifestBackend = function assertManifestBackend(
+	mode: ConsentMode,
+	backendURL: string | undefined,
+	nuxt: Nuxt
+): void {
+	if (
+		mode.type !== 'manifest' ||
+		backendURL !== undefined ||
+		nuxt.options._prepare
+	) {
+		return;
+	}
+	const reason = mode.snapshot
+		? `manifest({ snapshot }) still needs a backend URL: the snapshot replaces the manifest download, but the browser saves consent with POST \${backendURL}/subjects`
+		: `manifest() needs a backend URL: the browser saves consent with POST \${backendURL}/subjects`;
+	throw new Error(
+		`@c15t/vue: ${reason}, and the consent route only answers GET. Set ${BACKEND_URL_ENV}, or \`c15t.backendURL\` in nuxt.config.ts.`
+	);
+};
+
+/**
  * Downloads the manifest during `nuxt build` and `nuxt dev` setup, for
  * `manifest()` without a `snapshot` or `source: 'runtime'`. `onBuildError`
  * decides what a failed download or a missing backend URL does. `nuxt
@@ -295,6 +324,7 @@ const module: NuxtModule<ModuleOptions> = defineNuxtModule<ModuleOptions>({
 		const resolver = createResolver(import.meta.url);
 		const mode = readModuleMode(options);
 		const routePrefix = readNuxtRoutePrefix(options);
+		assertManifestBackend(mode, options.backendURL, nuxt);
 		warnStaticServerResolution(mode, nuxt);
 		const { clientSnapshot, serverSnapshot } = await resolveSnapshots(
 			mode,

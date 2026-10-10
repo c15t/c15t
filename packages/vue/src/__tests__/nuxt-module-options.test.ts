@@ -275,6 +275,46 @@ describe('the build snapshot in manifest() mode', () => {
 	});
 
 	test.each([
+		['the default mode', {}],
+		['a snapshot', { mode: { snapshot: createSnapshot(), type: 'manifest' } }],
+		[
+			'a snapshot and no consent route',
+			{
+				mode: { snapshot: createSnapshot(), type: 'manifest' },
+				routePrefix: false,
+			},
+		],
+		[
+			"onBuildError: 'runtime'",
+			{ mode: { type: 'manifest' }, onBuildError: 'runtime' },
+		],
+	] as const)(
+		'stops nuxt dev without a backend URL to save consent to, with %s',
+		async (_name, c15t) => {
+			// The consent route answers `GET` only, so a save posted to it
+			// would 404 after the visitor chose.
+			await expect(
+				setUpModule(c15t, vi.fn<typeof globalThis.fetch>(), true, {
+					dev: true,
+				})
+			).rejects.toThrow(
+				/needs a backend URL.*Set NUXT_PUBLIC_C15T_BACKEND_URL/u
+			);
+		}
+	);
+
+	test('nuxt prepare does not need a backend URL', async () => {
+		await expect(
+			setUpModule(
+				{ mode: { snapshot: createSnapshot(), type: 'manifest' } },
+				vi.fn<typeof globalThis.fetch>(),
+				true,
+				{ _prepare: true }
+			)
+		).resolves.toBeDefined();
+	});
+
+	test.each([
 		['onBuildError', { onBuildError: 'runtime' }, undefined],
 		['C15T_ON_BUILD_ERROR', {}, 'runtime'],
 	])(

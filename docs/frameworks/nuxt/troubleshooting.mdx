@@ -116,9 +116,11 @@ part in parentheses names the cause:
 - `returned an invalid consent manifest`: the URL answers, but not with a c15t
   manifest.
 
-- `no backend URL is set`: neither `backendURL` nor
-  `NUXT_PUBLIC_C15T_BACKEND_URL` is set. A missing URL follows the same rule
-  as a failed download: `nuxt build` stops and `nuxt dev` warns.
+- `manifest() needs a backend URL`: neither `backendURL` nor
+  `NUXT_PUBLIC_C15T_BACKEND_URL` is set. `nuxt build` and `nuxt dev` both
+  stop, whatever `onBuildError` says, because the browser saves consent to
+  the backend. `manifest({ snapshot })` stops with
+  `manifest({ snapshot }) still needs a backend URL` for the same reason.
 
 With `onBuildError: 'fail'`, this error also appears:
 

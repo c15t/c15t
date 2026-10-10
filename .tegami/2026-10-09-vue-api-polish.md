@@ -42,7 +42,10 @@ with an error, where it used to warn and continue, and `nuxt dev` logs a
 warning and fetches the policy at runtime. Set `onBuildError` under the `c15t`
 key, or `C15T_ON_BUILD_ERROR`, to change that. Use
 `manifest({ source: 'runtime' })` to always fetch at runtime, so policy edits
-apply without a rebuild.
+apply without a rebuild. `manifest()` without a backend URL, including
+`manifest({ snapshot })`, now stops `nuxt build` and `nuxt dev` with an error
+naming `NUXT_PUBLIC_C15T_BACKEND_URL`: the consent route answers `GET` only,
+so saves used to fail after the visitor chose.
 
 **Vue.** `app.use(c15tVue, { mode })` requires a mode: `manifest()`,
 `hosted()`, `offline()` or `custom()` from `c15t/vue/vue-plugin`.

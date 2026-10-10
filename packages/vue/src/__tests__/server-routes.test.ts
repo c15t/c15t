@@ -1,3 +1,4 @@
+import { clientMode } from '@c15t/core/runtime/client-mode';
 /**
  * Wiring of the Nitro consent route onto the core consent route handler:
  * one catch-all at `${routePrefix}/**`, h3 to Web `Request` and back,
@@ -13,6 +14,7 @@ import { createConsentManifestPolicyPack } from '@c15t/schema/types';
 import { createApp, createRouter, toWebHandler } from 'h3';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
+import { readNuxtMode, readNuxtRoutePrefix } from '../runtime/nuxt-mode';
 import { createConsentRoute } from '../runtime/server/route-factories';
 import { createServerFetch } from '../runtime/server/server-fetch';
 
@@ -422,5 +424,35 @@ describe('serverFetch', () => {
 		expect(mocks.localFetch).toHaveBeenCalledWith('/api/self-host/manifest', {
 			method: 'GET',
 		});
+	});
+});
+
+describe('saves', () => {
+	test('the route answers a save with 404, so the browser never posts one here', async () => {
+		mocks.useRuntimeConfig.mockReturnValue({ public: { c15t: {} } });
+		const app = createApp();
+		const router = createRouter();
+		(router.use as unknown as MountRoute)(
+			'/api/c15t/**',
+			createConsentRoute({ ...routeDependencies, manifest: MANIFEST })
+		);
+		(app.use as unknown as (handler: unknown) => unknown)(router);
+		const response = await toWebHandler(app)(
+			new Request('http://localhost/api/c15t/subjects', {
+				body: '{}',
+				method: 'POST',
+			})
+		);
+		expect(response.status).toBe(404);
+		// A snapshot-only config has no backend to save to, and the client
+		// refuses to send saves to the route instead.
+		const config = {
+			mode: { snapshot: MANIFEST, type: 'manifest' as const },
+		};
+		expect(() =>
+			clientMode(readNuxtMode(config), {
+				routePrefix: readNuxtRoutePrefix(config),
+			})
+		).toThrow('manifest() needs a backend URL');
 	});
 });
