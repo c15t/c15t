@@ -402,6 +402,30 @@ body
 		);
 	});
 
+	it('migrates Sass pkg: stylesheet URLs', async () => {
+		const scss = `@use 'pkg:@c15t/react/styles.css';
+@forward 'pkg:@c15t/nextjs/styles.css';
+@import 'pkg:@c15t/react/iab/styles.css';
+`;
+		const removed = await run(
+			{ c15t: '^3.0.0', tailwindcss: '^4.0.0' },
+			{ 'src/main.scss': scss }
+		);
+		const kept = await run(
+			{ c15t: '^3.0.0', tailwindcss: '^3.4.0' },
+			{ 'src/main.scss': scss }
+		);
+
+		expect(await removed.read('src/main.scss')).toBe('');
+		expect(await kept.read('src/main.scss')).toBe(`/* ${TODO} */
+@use 'pkg:c15t/react/styles.css';
+/* ${TODO} */
+@forward 'pkg:c15t/next/styles.css';
+/* ${TODO} */
+@import 'pkg:c15t/react/iab/styles.css';
+`);
+	});
+
 	it('migrates Sass @use and @forward of c15t stylesheets', async () => {
 		const css = `@use '@c15t/react/styles.css';
 @forward '@c15t/react/styles.css';

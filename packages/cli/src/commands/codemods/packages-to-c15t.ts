@@ -571,15 +571,21 @@ const directiveRemoval = function directiveRemoval(
 
 const REMOVED = Symbol('removed');
 
+/** The prefix of a Sass `pkg:` URL, which loads a stylesheet by package. */
+const SASS_PKG_PREFIX = 'pkg:';
+
 /**
  * What happens to one stylesheet target: removed, kept at a path, or left
- * alone when it isn't a c15t stylesheet the codemod migrates.
+ * alone when it isn't a c15t stylesheet the codemod migrates. A Sass
+ * `pkg:` URL is matched without its prefix and keeps it when rewritten.
  */
 const targetFate = function targetFate(
-	specifier: string,
+	target: string,
 	placed: boolean,
 	plan: ImportPlan
 ): typeof REMOVED | string | undefined {
+	const prefix = target.startsWith(SASS_PKG_PREFIX) ? SASS_PKG_PREFIX : '';
+	const specifier = target.slice(prefix.length);
 	if (
 		!STYLESHEET_SPECIFIER.test(specifier) ||
 		isV2Stylesheet(specifier, plan)
@@ -590,7 +596,7 @@ const targetFate = function targetFate(
 	if (!(placed || keepsStylesheet(specifier, plan))) {
 		return REMOVED;
 	}
-	return keptStylesheet(specifier, plan.umbrella);
+	return `${prefix}${keptStylesheet(specifier, plan.umbrella)}`;
 };
 
 /** The edit that adds the styles TODO above a directive, unless it has one. */
