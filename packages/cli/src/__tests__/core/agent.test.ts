@@ -544,7 +544,29 @@ describe('c15t setup instructions', () => {
 			'First visit: under a policy that asks for a choice, the banner shows'
 		);
 		expect(instructions).toContain(
-			'no banner is correct there, and no optional tool loads when the backend is blocked'
+			'Also check a location without a prompt as the guide describes: no banner is correct there.'
+		);
+	});
+
+	it('checks backend failure only in modes that have a backend', () => {
+		const hosted = createC15tSetupInstructions({ mode: 'hosted' });
+		const offline = createC15tSetupInstructions({ mode: 'offline' });
+		expect(hosted).toContain('Then block the backend URL: no banner shows');
+		expect(offline).not.toContain('block the backend URL');
+		for (const instructions of [hosted, offline]) {
+			expect(instructions).toContain(
+				'An always-loading helper still loads in these cases; check that it signals denied consent.'
+			);
+		}
+	});
+
+	it('applies the c15t dist-tag only to c15t packages', () => {
+		const instructions = createC15tSetupInstructions({ distTag: 'alpha' });
+		expect(instructions).toContain(
+			'Resolve the exact version of `c15t` and each `@c15t/*` package from the `alpha` dist-tag first.'
+		);
+		expect(instructions).toContain(
+			"with the quickstart's own specifiers; the c15t dist-tag does not apply to them"
 		);
 	});
 

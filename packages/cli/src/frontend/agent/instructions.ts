@@ -243,11 +243,11 @@ Show the inventory as a short checklist and continue.${askTogether}
 
 ## ${install}. Install or upgrade c15t
 
-Install only the packages the framework's quickstart installs (\`${origin}/docs/frameworks/<framework>/quickstart.md\`), and skip \`@c15t/integrations\` when no vendor helper is used. The list differs by framework: Svelte and SvelteKit use \`@c15t/svelte\` and do not install \`c15t\`, and a plain HTML site that loads c15t with a script tag installs nothing. Resolve the exact version of each package first. Use the command for the project's package manager; \`npm view\` also works anywhere npm is installed:
+Install only the packages the framework's quickstart installs (\`${origin}/docs/frameworks/<framework>/quickstart.md\`), and skip \`@c15t/integrations\` when no vendor helper is used. The list differs by framework: Svelte and SvelteKit use \`@c15t/svelte\` and do not install \`c15t\`, and a plain HTML site that loads c15t with a script tag installs nothing. Resolve the exact version of \`c15t\` and each \`@c15t/*\` package from the \`${distTag}\` dist-tag first. Use the command for the project's package manager; \`npm view\` also works anywhere npm is installed:
 
 ${versionLookup(distTag)}
 
-The packages are numbered separately, so their versions can differ. Install each at its exact resolved version with the project's package manager. Never install by tag or without a version. An untagged install resolves npm's default tag, which can be a different major version. A tagged install can resolve to an older release per package when the package manager delays new releases (pnpm's \`minimumReleaseAge\`), and mixing releases installs two copies of the consent engine. After installing, check that exactly one version of \`@c15t/core\` is installed (\`pnpm why @c15t/core\`, \`npm ls @c15t/core\`, \`yarn why @c15t/core\`, \`bun why @c15t/core\`, or the lockfile). Two copies keep two separate consent states. Do not add overrides or resolutions to force it; install the versions the dist-tag resolves instead.
+Install other packages the quickstart lists, such as \`svelte\` or \`@astrojs/svelte\`, with the quickstart's own specifiers; the c15t dist-tag does not apply to them. The c15t packages are numbered separately, so their versions can differ. Install each at its exact resolved version with the project's package manager. Never install by tag or without a version. An untagged install resolves npm's default tag, which can be a different major version. A tagged install can resolve to an older release per package when the package manager delays new releases (pnpm's \`minimumReleaseAge\`), and mixing releases installs two copies of the consent engine. After installing, check that exactly one version of \`@c15t/core\` is installed (\`pnpm why @c15t/core\`, \`npm ls @c15t/core\`, \`yarn why @c15t/core\`, \`bun why @c15t/core\`, or the lockfile). Two copies keep two separate consent states. Do not add overrides or resolutions to force it; install the versions the dist-tag resolves instead.
 
 After installing, read \`node_modules/c15t/SKILL.md\` and \`node_modules/c15t/AGENTS.md\` (for Svelte, the same files in \`node_modules/@c15t/svelte\`). They index the bundled docs for the installed version. Read the bundled choose-your-setup page and the full quickstart for this framework before writing code. If the bundled docs are missing, use \`${origin}/docs/concepts/choose-your-setup.md\` and \`${origin}/docs/frameworks/<framework>/quickstart.md\`. Check each API you use against the installed package's exports and types.
 
@@ -297,7 +297,18 @@ Run the project's typecheck, tests and production build. Serve the production bu
 		}
 	)} and use a fresh browser profile for each journey. Follow the bundled guides/verify-consent page (\`${origin}/docs/guides/verify-consent.md\`). Check, by network requests and storage rather than by what the page shows:
 
-1. First visit: under a policy that asks for a choice, the banner shows; under any policy, no optional tool sends a request that the site's requirement forbids. Also check a location without a prompt and a blocked backend as the guide describes: no banner is correct there, and no optional tool loads when the backend is blocked.
+1. First visit: under a policy that asks for a choice, the banner shows; under any policy, no optional tool sends a request that the site's requirement forbids. Also check a location without a prompt as the guide describes: no banner is correct there.${byMode(
+		mode,
+		{
+			custom:
+				" Then make the app's transport fail: no banner shows and tools that wait for consent send no requests.",
+			hosted:
+				' Then block the backend URL: no banner shows and tools that wait for consent send no requests.',
+			offline: '',
+			unknown:
+				" Unless the setup is offline, also block the backend URL (hosted) or make the app's transport fail (custom): no banner shows and tools that wait for consent send no requests.",
+		}
+	)} An always-loading helper still loads in these cases; check that it signals denied consent.
 2. Reject all: tools that wait for consent send no requests, and always-loading helpers signal denied consent or stay opted out; ${byMode(
 		mode,
 		{
