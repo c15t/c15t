@@ -26,7 +26,9 @@ export const BACKEND_URL_ENV = 'NEXT_PUBLIC_C15T_BACKEND_URL';
 
 /**
  * `NEXT_PUBLIC_C15T_BACKEND_URL`, or `undefined` when it is unset or the
- * runtime has no `process`.
+ * runtime has no `process`. Only the c15t name is read here, so browser
+ * bundles carry one value: `withConsentManifest` sets it from
+ * `NEXT_PUBLIC_INTH_PROJECT_URL` when only that is set.
  *
  * @internal
  */
@@ -54,7 +56,8 @@ export interface ConsentConfig extends ConsentClientOptions {
 	 * Backend base URL. Consent saves (`/subjects`) go here, and the server
 	 * reads `/manifest` or `/init` from it.
 	 *
-	 * @default process.env.NEXT_PUBLIC_C15T_BACKEND_URL
+	 * @default process.env.NEXT_PUBLIC_C15T_BACKEND_URL, then
+	 * process.env.NEXT_PUBLIC_INTH_PROJECT_URL
 	 */
 	backendURL?: string;
 
@@ -164,7 +167,7 @@ const assertConsentConfig = function assertConsentConfig(
 	}
 	if (backendURL === undefined && !modeHasBackend(mode)) {
 		throw new TypeError(
-			`@c15t/nextjs: defineConsentConfig needs \`backendURL\`, or ${BACKEND_URL_ENV} set at build time.`
+			`@c15t/nextjs: defineConsentConfig needs \`backendURL\`, or ${BACKEND_URL_ENV} (or NEXT_PUBLIC_INTH_PROJECT_URL) set at build time.`
 		);
 	}
 	assertConsentURL('backendURL', backendURL);
@@ -202,7 +205,8 @@ const assertConsentConfig = function assertConsentConfig(
  * The file is bundled into the browser too, so it can hold functions (such
  * as `scripts`) but must hold no secrets.
  *
- * @param config - Backend URL (defaults to `NEXT_PUBLIC_C15T_BACKEND_URL`),
+ * @param config - Backend URL (defaults to `NEXT_PUBLIC_C15T_BACKEND_URL`,
+ * then `NEXT_PUBLIC_INTH_PROJECT_URL`),
  * mode, route prefix, journey and the browser options.
  * The checks run where Next.js first evaluates the file: the build, and
  * every server render. A browser bundle skips them.

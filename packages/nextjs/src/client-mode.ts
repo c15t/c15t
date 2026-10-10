@@ -88,8 +88,13 @@ export const createClientMode = function createClientMode(
 		(data.type === 'hosted' ? data.backendURL : undefined) ??
 		options.backendURL;
 	if (!backendURL) {
+		// Production builds drop the setup hint and its variable names.
 		throw new Error(
-			`@c15t/nextjs: ${data.type}() needs a backend URL. Set NEXT_PUBLIC_C15T_BACKEND_URL, or \`backendURL\` in c15t.config.ts.`
+			`@c15t/nextjs: ${data.type}() needs a backend URL.${
+				process.env.NODE_ENV === 'production'
+					? ''
+					: ' Set NEXT_PUBLIC_C15T_BACKEND_URL (or NEXT_PUBLIC_INTH_PROJECT_URL), or `backendURL` in c15t.config.ts.'
+			}`
 		);
 	}
 	if (data.type === 'hosted') {

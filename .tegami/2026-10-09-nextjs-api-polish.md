@@ -51,6 +51,9 @@ callback at a time, so `options={{ nonce }}` keeps the config's callbacks.
 `manifest()` or `hosted()` has no backend URL instead of running offline: set
 `NEXT_PUBLIC_C15T_BACKEND_URL` or `backendURL` in the config, or choose
 `mode: offline()`.
+`NEXT_PUBLIC_INTH_PROJECT_URL` works when `NEXT_PUBLIC_C15T_BACKEND_URL` is
+unset: `withConsentManifest()` copies it to the c15t variable, so the browser
+bundle still holds one value.
 `options.mode` on `ConsentRoot` takes the same data, or a transport such as
 `custom(transport)`; a `hosted()` or `offline()` transport from `c15t/react`
 still works but warns in development, because its code is then in the

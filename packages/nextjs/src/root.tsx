@@ -60,7 +60,8 @@ const warnMissingConfig = function warnMissingConfig(): void {
  * The transport for the config's mode, or for `options.mode`.
  *
  * @throws {Error} When the mode needs a backend URL and neither the config
- * nor `NEXT_PUBLIC_C15T_BACKEND_URL` sets one.
+ * nor `NEXT_PUBLIC_C15T_BACKEND_URL` (or `NEXT_PUBLIC_INTH_PROJECT_URL`)
+ * sets one.
  */
 const createMode = function createMode(
 	config: ConsentConfig | undefined,
@@ -108,7 +109,8 @@ const mergeOptions = function mergeOptions(
  * merges one key at a time, and `options.callbacks` one callback at a time.
  *
  * @throws {Error} When `manifest()` or `hosted()` has no backend URL: no
- * `c15t.config.ts` sets one and `NEXT_PUBLIC_C15T_BACKEND_URL` is unset.
+ * `c15t.config.ts` sets one and neither `NEXT_PUBLIC_C15T_BACKEND_URL` nor
+ * `NEXT_PUBLIC_INTH_PROJECT_URL` is set.
  * `offline()` needs none.
  *
  * @example

@@ -14,6 +14,7 @@ import { dirname, join } from 'node:path';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import { withConsentManifest } from '../build';
+import { defineConsentConfig } from '../config';
 
 const MANIFEST_FIXTURE = {
 	branding: 'c15t',
@@ -288,6 +289,107 @@ describe('Next.js build-time manifest', () => {
 		expect(await readServerModule(root)).toContain(
 			'export const backendURL = "https://env.example.com/api";'
 		);
+	});
+
+	describe('NEXT_PUBLIC_INTH_PROJECT_URL', () => {
+		const INTH = 'https://inth.example.com';
+		const C15T = 'https://c15t.example.com';
+		const build = (options: Parameters<typeof withConsentManifest>[1]) =>
+			withConsentManifest({ env: { OTHER: '1' } }, options)(
+				'phase-production-build',
+				{ defaultConfig: {} }
+			);
+
+		test('alone becomes NEXT_PUBLIC_C15T_BACKEND_URL for the build, the config and the bundles', async () => {
+			// Unset first, so the copy the wrapper writes is undone afterwards.
+			vi.stubEnv('NEXT_PUBLIC_C15T_BACKEND_URL', undefined);
+			vi.stubEnv('NEXT_PUBLIC_INTH_PROJECT_URL', INTH);
+			const root = await createRoot();
+			const { fetch } = optionsFor();
+			const config = await build({ fetch });
+			expect(fetch).toHaveBeenCalledWith(
+				`${INTH}/manifest`,
+				expect.any(Object)
+			);
+			expect(await readServerModule(root)).toContain(
+				`export const backendURL = "${INTH}";`
+			);
+			// Bundles inline the c15t name only, so the browser reads one value.
+			expect(config.env).toEqual({
+				NEXT_PUBLIC_C15T_BACKEND_URL: INTH,
+				OTHER: '1',
+			});
+			// `defineConsentConfig`, on the server and in the browser.
+			expect(defineConsentConfig().backendURL).toBe(INTH);
+		});
+
+		test('reads it from a .env file', async () => {
+			vi.stubEnv('NEXT_PUBLIC_C15T_BACKEND_URL', undefined);
+			vi.stubEnv('NEXT_PUBLIC_INTH_PROJECT_URL', undefined);
+			const root = await createRoot();
+			await writeFile(
+				join(root, '.env'),
+				`NEXT_PUBLIC_INTH_PROJECT_URL=${INTH}\n`
+			);
+			const { fetch } = optionsFor();
+			const config = await build({ fetch });
+			expect(fetch).toHaveBeenCalledWith(
+				`${INTH}/manifest`,
+				expect.any(Object)
+			);
+			expect(config.env?.NEXT_PUBLIC_C15T_BACKEND_URL).toBe(INTH);
+		});
+
+		test('loses to NEXT_PUBLIC_C15T_BACKEND_URL when both are set', async () => {
+			vi.stubEnv('NEXT_PUBLIC_C15T_BACKEND_URL', C15T);
+			vi.stubEnv('NEXT_PUBLIC_INTH_PROJECT_URL', INTH);
+			await createRoot();
+			const { fetch } = optionsFor();
+			const config = await build({ fetch });
+			expect(fetch).toHaveBeenCalledWith(
+				`${C15T}/manifest`,
+				expect.any(Object)
+			);
+			expect(config.env).toEqual({ OTHER: '1' });
+			expect(defineConsentConfig().backendURL).toBe(C15T);
+		});
+
+		test('an explicit backendURL beats both variables', async () => {
+			vi.stubEnv('NEXT_PUBLIC_C15T_BACKEND_URL', undefined);
+			vi.stubEnv('NEXT_PUBLIC_INTH_PROJECT_URL', INTH);
+			const root = await createRoot();
+			await writeFile(
+				join(root, 'c15t.config.ts'),
+				"export default { backendURL: 'https://config.example.com' };\n"
+			);
+			const { fetch } = optionsFor();
+			await build({ fetch });
+			expect(fetch).toHaveBeenCalledWith(
+				'https://config.example.com/manifest',
+				expect.any(Object)
+			);
+			expect(
+				defineConsentConfig({ backendURL: 'https://config.example.com' })
+					.backendURL
+			).toBe('https://config.example.com');
+			// The wrapper's own option wins over the config file too.
+			fetch.mockClear();
+			await build({ backendURL: 'https://option.example.com', fetch });
+			expect(fetch).toHaveBeenCalledWith(
+				'https://option.example.com/manifest',
+				expect.any(Object)
+			);
+		});
+
+		test('names both variables when neither is set', async () => {
+			vi.stubEnv('NEXT_PUBLIC_C15T_BACKEND_URL', undefined);
+			vi.stubEnv('NEXT_PUBLIC_INTH_PROJECT_URL', undefined);
+			await createRoot();
+			const { fetch } = optionsFor();
+			await expect(build({ fetch })).rejects.toThrow(
+				'Pass backendURL or set NEXT_PUBLIC_C15T_BACKEND_URL (or NEXT_PUBLIC_INTH_PROJECT_URL).'
+			);
+		});
 	});
 
 	test.each([

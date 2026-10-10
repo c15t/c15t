@@ -42,6 +42,13 @@ describe('defineConsentConfig', () => {
 		expect(defineConsentConfig().backendURL).toBe('https://env.example.com');
 	});
 
+	test('names NEXT_PUBLIC_INTH_PROJECT_URL in the missing-URL error', () => {
+		vi.stubEnv('NEXT_PUBLIC_C15T_BACKEND_URL', '');
+		expect(() => defineConsentConfig()).toThrow(
+			'@c15t/nextjs: defineConsentConfig needs `backendURL`, or NEXT_PUBLIC_C15T_BACKEND_URL (or NEXT_PUBLIC_INTH_PROJECT_URL) set at build time.'
+		);
+	});
+
 	test('needs no backend URL for offline() or a hosted() that has one', () => {
 		vi.stubEnv('NEXT_PUBLIC_C15T_BACKEND_URL', '');
 

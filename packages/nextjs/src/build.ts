@@ -28,6 +28,12 @@ export type {
 /** Variable the build reads the backend URL from, like `defineConsentConfig`. */
 const BACKEND_URL_ENV = 'NEXT_PUBLIC_C15T_BACKEND_URL';
 
+/**
+ * The Inth project URL, shared with other Inth SDKs. Read when
+ * {@link BACKEND_URL_ENV} is unset.
+ */
+const INTH_URL_ENV = 'NEXT_PUBLIC_INTH_PROJECT_URL';
+
 /** A Next.js configuration object or synchronous/asynchronous factory. */
 export type ConsentNextConfig =
 	| NextConfig
@@ -189,6 +195,33 @@ const modeSkipReason = function modeSkipReason(
 	return undefined;
 };
 
+/**
+ * `NEXT_PUBLIC_INTH_PROJECT_URL` when `NEXT_PUBLIC_C15T_BACKEND_URL` is
+ * unset, copied to `NEXT_PUBLIC_C15T_BACKEND_URL` in the process
+ * environment. `c15t.config.ts`, evaluated next, reads the c15t name, and
+ * the caller also adds it to the config's `env`, so bundles inline one
+ * value and the browser gets no second read.
+ *
+ * @returns The Inth URL that was copied, or `undefined`.
+ */
+const exposeInthProjectURL = function exposeInthProjectURL(
+	root: string,
+	phase: string
+): string | undefined {
+	const envOptions = {
+		mode: phase === PHASE_PRODUCTION_BUILD ? 'production' : 'development',
+		root,
+	};
+	if (readBuildEnv([BACKEND_URL_ENV], envOptions)) {
+		return undefined;
+	}
+	const inth = readBuildEnv([INTH_URL_ENV], envOptions);
+	if (inth) {
+		process.env[BACKEND_URL_ENV] = inth;
+	}
+	return inth;
+};
+
 /** A project-relative `./` path, the form Turbopack resolves alias targets in. */
 const fromProject = function fromProject(file: string): string {
 	const path = relative(process.cwd(), file).split(sep).join('/');
@@ -302,11 +335,17 @@ const withConsentAliases = function withConsentAliases(
  * package listed in `serverExternalPackages` stays external and does not
  * see the aliases: it reads no config and fetches the manifest at runtime.
  *
+ * When `NEXT_PUBLIC_C15T_BACKEND_URL` is unset, the wrapper reads
+ * `NEXT_PUBLIC_INTH_PROJECT_URL` instead and sets
+ * `NEXT_PUBLIC_C15T_BACKEND_URL` to it, in the environment and in the
+ * config's `env`, so every reader of the c15t name sees the same URL.
+ *
  * @param config - Existing Next.js configuration, preserved as given apart
- * from the alias.
+ * from the alias and, for the Inth variable, `env`.
  * @param options - Backend URL and `onBuildError`. `backendURL` defaults to
- * the one in `c15t.config.ts`, then `NEXT_PUBLIC_C15T_BACKEND_URL`, from the
- * environment or a `.env` file, and the build appends `/manifest`.
+ * the one in `c15t.config.ts`, then `NEXT_PUBLIC_C15T_BACKEND_URL`, then
+ * `NEXT_PUBLIC_INTH_PROJECT_URL`, from the environment or a `.env` file,
+ * and the build appends `/manifest`.
  * @returns An asynchronous Next.js configuration factory.
  * @throws {Error} When the fetch fails in `'fail'` mode, the default for
  * `next build`, the snapshot cannot be written, or `defineConsentConfig`
@@ -335,15 +374,20 @@ export const withConsentManifest =
 		context: { defaultConfig: NextConfig }
 	) => Promise<NextConfig>) =>
 	async (phase, context) => {
-		const resolved =
+		const root = process.cwd();
+		const inthURL = exposeInthProjectURL(root, phase);
+		const given =
 			typeof config === 'function' ? await config(phase, context) : config;
+		const resolved: NextConfig =
+			inthURL === undefined
+				? given
+				: { ...given, env: { ...given.env, [BACKEND_URL_ENV]: inthURL } };
 		if (
 			phase !== PHASE_PRODUCTION_BUILD &&
 			phase !== PHASE_DEVELOPMENT_SERVER
 		) {
 			return resolved;
 		}
-		const root = process.cwd();
 		const userConfigFile = findUserConfig(root);
 		const userConfig = userConfigFile
 			? await loadUserConfig(userConfigFile, root)
@@ -354,7 +398,7 @@ export const withConsentManifest =
 				backendURL:
 					options.backendURL ??
 					userConfig?.backendURL ??
-					readBuildEnv([BACKEND_URL_ENV], {
+					readBuildEnv([BACKEND_URL_ENV, INTH_URL_ENV], {
 						mode:
 							phase === PHASE_PRODUCTION_BUILD ? 'production' : 'development',
 						root,
@@ -362,7 +406,7 @@ export const withConsentManifest =
 			},
 			{
 				command: phase === PHASE_PRODUCTION_BUILD ? 'build' : 'dev',
-				envNames: [BACKEND_URL_ENV],
+				envNames: [BACKEND_URL_ENV, INTH_URL_ENV],
 				importSource: 'c15t/next/static',
 				label: '@c15t/nextjs/build',
 				skipReason:

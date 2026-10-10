@@ -64,7 +64,7 @@ test('throws with no config and no NEXT_PUBLIC_C15T_BACKEND_URL', () => {
 			</ConsentRoot>
 		)
 	).toThrow(
-		'@c15t/nextjs: manifest() needs a backend URL. Set NEXT_PUBLIC_C15T_BACKEND_URL, or `backendURL` in c15t.config.ts.'
+		'@c15t/nextjs: manifest() needs a backend URL. Set NEXT_PUBLIC_C15T_BACKEND_URL (or NEXT_PUBLIC_INTH_PROJECT_URL), or `backendURL` in c15t.config.ts.'
 	);
 });
 
