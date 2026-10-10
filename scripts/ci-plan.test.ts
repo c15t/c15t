@@ -157,6 +157,16 @@ describe('CI selection', () => {
 			targets: 'vue',
 		});
 	});
+	it('runs the CLI quickstart tests when a starter changes', () => {
+		// The CLI writes the starters' quickstart files and diffs them in tests.
+		expect(plan(['examples/react/src/consent.tsx']).tests).toContain(
+			'@c15t/cli'
+		);
+		expect(plan(['examples/nuxt/.env']).tests).toContain('@c15t/cli');
+		expect(
+			plan(['examples/showcase-analytics/src/main.tsx']).tests
+		).not.toContain('@c15t/cli');
+	});
 	it('follows package dependencies into the starters', () => {
 		expect(plan(['packages/backend/src/index.ts']).starters).toContain(
 			'self-host'
