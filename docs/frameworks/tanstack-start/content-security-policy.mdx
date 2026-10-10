@@ -16,13 +16,13 @@ allow them:
 | The `<style id="c15t-theme">` element, if you render `ConsentTheme` | `style-src` with the request nonce |
 | `<script>` elements the script loader creates for `scripts` entries, both `src` and inline | `script-src` with the request nonce, or each vendor's host |
 | The inline `consentPrefetchHead` script, on prerendered pages that use it | `script-src` with its hash |
-| Browser requests to `/api/c15t/*`, when you mount the consent server route | `connect-src 'self'` |
+| Browser requests to `/api/c15t/*`, when you mount the consent route | `connect-src 'self'` |
 | Browser requests to your backend's `/init` and `/subjects` | `connect-src` with the backend origin |
 | Iframes inside `ConsentGate`, and the frames, images and requests your vendors load | `frame-src`, `img-src`, `connect-src` for each vendor |
 
 Requests the Start server makes, such as the manifest fetch in
 `createConsentStateHandler` and the proxied saves from
-`createConsentServerRoute`, run outside the browser. The browser's policy does
+`createConsentRoute`, run outside the browser. The browser's policy does
 not apply to them.
 
 ## Pass the request nonce to c15t
@@ -94,7 +94,6 @@ const nonce = useRouter().options.ssr?.nonce;
 
 <ConsentRoot
   state={consent}
-  backendURL={backendURL}
   options={{ nonce }}
   scripts={scripts}
 >
@@ -134,11 +133,11 @@ Which consent requests the browser makes depends on your
 | Setup | Browser requests | Policy |
 | --- | --- | --- |
 | Quickstart | `/init` and `/subjects` on your backend URL | `connect-src` with the backend origin |
-| Consent server route with `routePrefix="/api/c15t"` | `/api/c15t/init` on your origin, `/subjects` on your backend URL | `connect-src 'self'` plus the backend origin |
-| Consent server route with `proxy: true`, `backendURL="/api/c15t"` and `routePrefix="/api/c15t"` | Every consent request on your origin | `connect-src 'self'` |
+| Consent route with `createConsentStateHandler({ routePrefix: '/api/c15t' })` | `/api/c15t/init` on your origin, `/subjects` on your backend URL | `connect-src 'self'` plus the backend origin |
+| Consent route with `proxy: true` on the route and on `createConsentStateHandler({ proxy: true, routePrefix: '/api/c15t' })` | Every consent request on your origin | `connect-src 'self'` |
 
 Under an IAB TCF policy the browser also loads the Global Vendor List. With the
-consent server route and `routePrefix`, it comes through `/api/c15t/init`, which
+consent route and `routePrefix`, it comes through `/api/c15t/init`, which
 `'self'` covers. Otherwise the browser fetches it from the URL the policy
 provides, so allow that host in `connect-src`. See
 [IAB TCF](/docs/frameworks/tanstack-start/iab).
