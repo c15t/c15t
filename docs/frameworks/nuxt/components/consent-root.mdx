@@ -15,11 +15,11 @@ import. Put it in `app.vue`, next to `<NuxtPage />`:
 `app.vue` so it stays mounted when the route changes. It brings its own
 styles.
 
-You can also wrap the app in `ConsentRoot`, the way you would wrap a React
-app in a provider. It renders its default slot after the banner, dialog and
-trigger, on the server and in the browser, so the page inside it still
-shows. Wrapping changes nothing else: the module's plugin gives every
-component the consent runtime, inside `ConsentRoot` or not.
+`ConsentRoot` is not a provider. The module's plugin already gives every
+component the consent runtime, so nothing needs to sit inside it. Render
+`<ConsentRoot />` next to `<NuxtPage />` as shown above. If you wrap the app
+in it instead, the page still renders after the banner, dialog and trigger,
+but wrapping adds nothing.
 
 Always mount the Nuxt `ConsentRoot`, not the Vue one from
 `c15t/vue/consent-root`. The Nuxt component renders the banner on the

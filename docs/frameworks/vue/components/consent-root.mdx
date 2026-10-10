@@ -16,11 +16,11 @@ Import it from `c15t/vue/consent-root`:
 Keep it in the root component so it stays mounted when the route changes.
 It brings its own styles.
 
-You can also wrap your root component's content in `ConsentRoot`, the way
-you would wrap a React app in a provider. It renders its default slot after
-the banner, dialog and trigger, so your router view inside it still shows.
-Wrapping changes nothing else: the c15tVue plugin gives every component the
-consent runtime, inside `ConsentRoot` or not.
+`ConsentRoot` is not a provider. The c15tVue plugin already gives every
+component the consent runtime, so nothing needs to sit inside it. Render
+`<ConsentRoot />` next to your page content as shown above. If you wrap your
+content in it instead, the content still renders after the banner, dialog
+and trigger, but wrapping adds nothing.
 
 ## What ConsentRoot renders
 

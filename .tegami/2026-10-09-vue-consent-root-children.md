@@ -12,5 +12,6 @@ the page never rendered. The Vue and Nuxt `ConsentRoot` now render their
 default slot after the banner, dialog and trigger, on the server and in the
 browser.
 
-Rendering `ConsentRoot` next to your page content, as the docs show, works as
-before.
+Keep rendering `<ConsentRoot />` next to your page content, such as
+`<NuxtPage />`. It is not a provider, so wrapping adds nothing; this change
+only stops a wrapped app from disappearing.
