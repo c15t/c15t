@@ -6,7 +6,7 @@ import type * as TsMorphTypes from 'ts-morph';
 import {
 	declaresTailwind3,
 	dependenciesOf,
-	mayBeBelowMajor,
+	isAtLeastMajor,
 	readPackageJson,
 	tailwindMajor,
 	usesUmbrella,
@@ -675,8 +675,9 @@ const transformStylesheet = function transformStylesheet(
  * The scoped packages whose stylesheets still come from v2. A package the
  * manifest doesn't list follows the one it does, as `@c15t/nextjs` v2
  * installs `@c15t/react` v2. A specifier that isn't a semver range, such as
- * `catalog:`, goes by the installed version, or counts as v2 when nothing is
- * installed, since removing a stylesheet v2 needs breaks the styling.
+ * `catalog:`, or a range on both sides of 3, such as `^2 || ^3`, goes by the
+ * installed version, or counts as v2 when nothing is installed, since
+ * removing a stylesheet v2 needs breaks the styling.
  */
 const v2StylesheetsOf = async function v2StylesheetsOf(
 	projectRoot: string,
@@ -692,7 +693,7 @@ const v2StylesheetsOf = async function v2StylesheetsOf(
 			const specifier = dependencies[name];
 			const v2 =
 				specifier !== undefined &&
-				(await mayBeBelowMajor(projectRoot, name, specifier, 3));
+				(await isAtLeastMajor(projectRoot, name, specifier, 3)) !== true;
 			return v2 ? [pkg] : [];
 		})
 	);
@@ -724,7 +725,7 @@ export const runPackagesToC15tCodemod = async function runPackagesToC15tCodemod(
 		tailwind === undefined
 			? undefined
 			: await tailwindMajor(options.projectRoot, tailwind);
-	const umbrella = usesUmbrella(dependencies);
+	const umbrella = await usesUmbrella(options.projectRoot, dependencies);
 	const plan: ImportPlan = {
 		next:
 			dependencies.next !== undefined ||

@@ -89,7 +89,10 @@ or `^3 || ^4`, it reads the installed `tailwindcss`. If it still can't tell
 the version, it keeps the import the same way and prints a warning.
 
 If `package.json` lists `@c15t/react` or `@c15t/nextjs` but not `c15t` v3, it
-leaves the scoped imports and prints a warning. While those packages are v2, it
+leaves the scoped imports and prints a warning. For a `c15t` version that
+isn't a semver range, such as `catalog:`, or a range over several majors, it
+reads the installed `c15t`, and keeps the scoped imports when nothing is
+installed. While those packages are v2, it
 leaves their stylesheet imports and mocks as they are too, since v2 components
 don't add their own styles. For a version that isn't a semver range, such as
 `catalog:`, it reads the installed package, and treats the package as v2 when
@@ -135,7 +138,8 @@ no other change. Hand-written policy packs use a different format in v3;
 `dev-tools-to-c15t` picks `c15t/next/devtools` when `package.json` lists
 `next` or `@c15t/nextjs`, and `c15t/react/devtools` otherwise. If
 `package.json` lists the scoped packages but not `c15t` v3, it uses
-`@c15t/nextjs/devtools` or `@c15t/react/devtools`.
+`@c15t/nextjs/devtools` or `@c15t/react/devtools`. It reads the `c15t`
+version the same way as `packages-to-c15t`.
 
 ### Styles
 
@@ -151,7 +155,7 @@ or git specifier, or `latest`, or a range over several majors such as
 warning if it still can't tell.
 It adds `'c15t/postcss-tailwind3': {}`, or the
 `@c15t/nextjs/postcss-tailwind3` or `@c15t/react/postcss-tailwind3` plugin
-when the app uses scoped packages, to an object-form
+when the app uses scoped packages without `c15t` v3, to an object-form
 `postcss.config.{js,cjs,mjs,ts}`. It leaves an array-form config unchanged and
 prints a warning; add the plugin by hand as
 [Tailwind CSS 3](https://c15t.com/docs/customization/tailwind#set-up-tailwind-css-3) shows.
@@ -249,7 +253,8 @@ npx @c15t/cli@alpha codemods --all --from 1.9.0 --to 2.0.0 --dry-run --json
 
 `--all` picks the transforms that apply to the version you start from. Without
 `--from`, it reads the `c15t` or framework package version declared in
-`package.json`. If you already upgraded the dependency but the source still
+`package.json`, or the installed version for a specifier such as `catalog:`
+that names none. If you already upgraded the dependency but the source still
 uses v1, pass the old version with `--from 1.9.0` or name the transforms. v2
 prereleases such as `2.0.0-rc.4` count as v2, so `--all` skips every v1
 transform for them.

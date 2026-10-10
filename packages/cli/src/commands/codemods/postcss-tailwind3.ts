@@ -6,7 +6,7 @@ import type * as TsMorphTypes from 'ts-morph';
 
 import {
 	dependenciesOf,
-	majorOf,
+	isAtLeastMajor,
 	readPackageJson,
 	tailwindMajor,
 } from './manifest';
@@ -25,24 +25,28 @@ const PLUGIN_SUFFIX = '/postcss-tailwind3';
 
 /**
  * The plugin entry for the c15t package the app installs: the umbrella
- * `c15t` from v3 on, otherwise the scoped framework package.
+ * `c15t` from v3 on, otherwise the scoped framework package. When neither
+ * the `c15t` range nor the installed package tells its version, the scoped
+ * package wins, and `c15t` is used only when no scoped package is listed.
  */
-const pluginFor = function pluginFor(
+const pluginFor = async function pluginFor(
+	projectRoot: string,
 	dependencies: Record<string, string>
-): string | null {
+): Promise<string | null> {
 	const umbrella = dependencies.c15t;
-	if (umbrella !== undefined) {
-		const major = majorOf(umbrella);
-		if (major === null || major >= 3) {
-			return `c15t${PLUGIN_SUFFIX}`;
-		}
+	const v3 =
+		umbrella === undefined
+			? false
+			: await isAtLeastMajor(projectRoot, 'c15t', umbrella, 3);
+	if (v3 === true) {
+		return `c15t${PLUGIN_SUFFIX}`;
 	}
 	for (const name of ['@c15t/nextjs', '@c15t/react', '@c15t/tanstack-start']) {
 		if (dependencies[name] !== undefined) {
 			return `${name}${PLUGIN_SUFFIX}`;
 		}
 	}
-	return null;
+	return v3 === null ? `c15t${PLUGIN_SUFFIX}` : null;
 };
 
 /** `plugins` values in the file, whatever object holds them. */
@@ -127,7 +131,7 @@ export const runPostcssTailwind3Codemod =
 		const dependencies = dependenciesOf(
 			await readPackageJson(options.projectRoot)
 		);
-		const plugin = pluginFor(dependencies);
+		const plugin = await pluginFor(options.projectRoot, dependencies);
 		const specifier = dependencies.tailwindcss;
 		if (!plugin || specifier === undefined) {
 			return result;

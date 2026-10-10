@@ -46,14 +46,15 @@ const REMOVED_ROOT_TODO = (name: string) =>
 	`${name} was removed. Dev tools read the consent engine; render DevTools inside the provider, or call createDevTools({ kernel }).`;
 
 /** Picks the `/devtools` entry that matches how the app installs c15t. */
-const devtoolsEntryFor = function devtoolsEntryFor(
+const devtoolsEntryFor = async function devtoolsEntryFor(
+	projectRoot: string,
 	manifest: PackageJson | null
-): string {
+): Promise<string> {
 	const dependencies = dependenciesOf(manifest);
 	const usesNext =
 		dependencies.next !== undefined ||
 		dependencies['@c15t/nextjs'] !== undefined;
-	if (usesUmbrella(dependencies)) {
+	if (await usesUmbrella(projectRoot, dependencies)) {
 		return usesNext ? 'c15t/next/devtools' : 'c15t/react/devtools';
 	}
 	return usesNext ? '@c15t/nextjs/devtools' : '@c15t/react/devtools';
@@ -184,5 +185,6 @@ export const runDevToolsToC15tCodemod = async function runDevToolsToC15tCodemod(
 	options: CodemodRunOptions
 ): Promise<CodemodRunResult> {
 	const manifest = await readPackageJson(options.projectRoot);
-	return runTransform(options, transformWith(devtoolsEntryFor(manifest)));
+	const entry = await devtoolsEntryFor(options.projectRoot, manifest);
+	return runTransform(options, transformWith(entry));
 };

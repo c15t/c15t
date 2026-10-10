@@ -92,6 +92,35 @@ const lazy = () => import('@c15t/nextjs/devtools');
 `);
 	});
 
+	it.each<[string | undefined, string]>([
+		['3.0.0', 'c15t/next/devtools'],
+		['2.3.0', '@c15t/nextjs/devtools'],
+		[undefined, '@c15t/nextjs/devtools'],
+	])(
+		'reads the installed c15t for a catalog specifier (installed: %s)',
+		async (installed, entry) => {
+			const rootDir = await createProject({
+				...(installed && {
+					'node_modules/c15t/package.json': JSON.stringify({
+						version: installed,
+					}),
+				}),
+				'package.json': packageJson({
+					'@c15t/nextjs': 'catalog:',
+					c15t: 'catalog:',
+					next: '^15.0.0',
+				}),
+				'src/devtools.tsx': `export { DevTools } from '@c15t/dev-tools/react';
+`,
+			});
+			await codemod({ dryRun: false, projectRoot: rootDir });
+
+			expect(await readFile(join(rootDir, 'src/devtools.tsx'), 'utf-8'))
+				.toBe(`export { DevTools } from '${entry}';
+`);
+		}
+	);
+
 	it('marks removed store helpers from the dev tools root', async () => {
 		const { updated } = await run(
 			{ c15t: '3.0.0' },

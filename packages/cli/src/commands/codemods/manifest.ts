@@ -1,7 +1,14 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import { intersects, minVersion, subset, validRange } from 'semver';
+import {
+	intersects,
+	minVersion,
+	parse,
+	subset,
+	valid,
+	validRange,
+} from 'semver';
 
 /** The dependency fields of an app's `package.json` the codemods read. */
 export interface PackageJson {
@@ -41,38 +48,17 @@ export const dependenciesOf = function dependenciesOf(
 	};
 };
 
-/** The first number in a version specifier, or null for `latest` and the like. */
-export const majorOf = function majorOf(
-	specifier: string | undefined
-): number | null {
-	const major = /(?<major>\d+)/u.exec(specifier ?? '')?.groups?.major;
-	return major ? Number(major) : null;
-};
-
-/**
- * Whether the app should import c15t through the umbrella `c15t` entries:
- * it lists `c15t` 3 or a specifier without a version, or lists neither
- * scoped framework package. An app that lists `@c15t/react` or
- * `@c15t/nextjs` without `c15t` 3 keeps the scoped entries.
- */
-export const usesUmbrella = function usesUmbrella(
-	dependencies: Record<string, string>
-): boolean {
-	const umbrella = dependencies.c15t;
-	if (umbrella !== undefined) {
-		const major = majorOf(umbrella);
-		if (major === null || major >= 3) {
-			return true;
-		}
-	}
-	return (
-		dependencies['@c15t/nextjs'] === undefined &&
-		dependencies['@c15t/react'] === undefined
-	);
-};
-
 /** `workspace:` and `npm:<name>@` prefixes in front of a semver range. */
 const RANGE_PREFIX = /^(?:workspace:|npm:(?:@[^/]+\/)?[^@]+@)/u;
+
+/**
+ * The semver range a specifier names, or null when it isn't one. A catalog,
+ * a `link:`, `file:` or git specifier, or a dist-tag can name any version,
+ * whatever digits it holds.
+ */
+export const rangeOf = function rangeOf(specifier: string): string | null {
+	return validRange(specifier.replace(RANGE_PREFIX, ''));
+};
 
 /**
  * The one major version a specifier allows, or null when it allows several,
@@ -83,7 +69,7 @@ const RANGE_PREFIX = /^(?:workspace:|npm:(?:@[^/]+\/)?[^@]+@)/u;
 const declaredMajorOf = function declaredMajorOf(
 	specifier: string
 ): number | null {
-	const range = validRange(specifier.replace(RANGE_PREFIX, ''));
+	const range = rangeOf(specifier);
 	if (range === null) {
 		return null;
 	}
@@ -103,7 +89,7 @@ const admitsMajor = function admitsMajor(
 	specifier: string,
 	major: number
 ): boolean {
-	const range = validRange(specifier.replace(RANGE_PREFIX, ''));
+	const range = rangeOf(specifier);
 	return (
 		range !== null &&
 		intersects(range, `>=${major}.0.0-0 <${major + 1}.0.0`, {
@@ -112,42 +98,81 @@ const admitsMajor = function admitsMajor(
 	);
 };
 
-/** The major version of an installed package, or null when it isn't installed. */
-const installedMajor = async function installedMajor(
+/** The version of an installed package, or null when it isn't installed. */
+export const installedVersion = async function installedVersion(
 	projectRoot: string,
 	name: string
-): Promise<number | null> {
+): Promise<string | null> {
 	try {
-		const installed = JSON.parse(
+		const { version } = JSON.parse(
 			await readFile(
 				join(projectRoot, 'node_modules', name, 'package.json'),
 				'utf-8'
 			)
-		) as { version?: string };
-		return majorOf(installed.version);
+		) as { version?: unknown };
+		return typeof version === 'string' && valid(version) !== null
+			? version
+			: null;
 	} catch {
 		return null;
 	}
 };
 
+/** The major version of an installed package, or null when it isn't installed. */
+const installedMajor = async function installedMajor(
+	projectRoot: string,
+	name: string
+): Promise<number | null> {
+	const version = await installedVersion(projectRoot, name);
+	return version === null ? null : (parse(version)?.major ?? null);
+};
+
 /**
- * Whether a dependency may be below this major: its semver range allows a
- * version below it, such as `^2.3.0` or `^2 || ^3` below 3. For a specifier
- * that isn't a range, such as `catalog:`, the installed version decides, and
- * with nothing installed it may be.
+ * Whether a dependency is at least this major. A semver range decides when
+ * every version it allows falls on one side, such as `^3.0.0` or `^2.3.0`
+ * for 3. Otherwise, as for `^2 || ^3`, `workspace:*` or `catalog:`, the
+ * installed version decides, and with nothing installed the answer is null.
  */
-export const mayBeBelowMajor = async function mayBeBelowMajor(
+export const isAtLeastMajor = async function isAtLeastMajor(
 	projectRoot: string,
 	name: string,
 	specifier: string,
-	major: number
-): Promise<boolean> {
-	const range = validRange(specifier.replace(RANGE_PREFIX, ''));
-	if (range !== null) {
-		return intersects(range, `<${major}.0.0-0`, { includePrerelease: true });
+	atLeast: number
+): Promise<boolean | null> {
+	const range = rangeOf(specifier);
+	const options = { includePrerelease: true };
+	if (range !== null && !intersects(range, `<${atLeast}.0.0-0`, options)) {
+		return true;
+	}
+	if (range !== null && !intersects(range, `>=${atLeast}.0.0-0`, options)) {
+		return false;
 	}
 	const installed = await installedMajor(projectRoot, name);
-	return installed === null || installed < major;
+	return installed === null ? null : installed >= atLeast;
+};
+
+/**
+ * Whether the app should import c15t through the umbrella `c15t` entries:
+ * it lists `c15t` 3, or lists neither scoped framework package. An app that
+ * lists `@c15t/react` or `@c15t/nextjs` keeps the scoped entries unless
+ * `c15t` is known to be 3, by its range or, for a specifier such as
+ * `catalog:`, by the installed package.
+ */
+export const usesUmbrella = async function usesUmbrella(
+	projectRoot: string,
+	dependencies: Record<string, string>
+): Promise<boolean> {
+	const umbrella = dependencies.c15t;
+	if (
+		umbrella !== undefined &&
+		(await isAtLeastMajor(projectRoot, 'c15t', umbrella, 3))
+	) {
+		return true;
+	}
+	return (
+		dependencies['@c15t/nextjs'] === undefined &&
+		dependencies['@c15t/react'] === undefined
+	);
 };
 
 /**

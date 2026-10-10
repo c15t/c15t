@@ -92,6 +92,49 @@ export default {
 		}
 	);
 
+	it.each<[string, string | undefined, string]>([
+		['catalog:', '3.0.0-alpha.5', 'c15t/postcss-tailwind3'],
+		['catalog:web2', '3.0.0', 'c15t/postcss-tailwind3'],
+		['^2 || ^3', '3.0.0', 'c15t/postcss-tailwind3'],
+		['catalog:', '1.8.0', '@c15t/react/postcss-tailwind3'],
+		['catalog:', undefined, '@c15t/react/postcss-tailwind3'],
+	])(
+		'reads the installed c15t for c15t %s (installed: %s)',
+		async (specifier, installed, plugin) => {
+			const rootDir = await createProject({
+				...(installed && {
+					'node_modules/c15t/package.json': JSON.stringify({
+						version: installed,
+					}),
+				}),
+				'package.json': manifest({
+					'@c15t/react': 'catalog:',
+					c15t: specifier,
+					tailwindcss: '^3.4.17',
+				}),
+				'postcss.config.mjs': OBJECT_CONFIG,
+			});
+			const result = await codemod({ dryRun: false, projectRoot: rootDir });
+
+			expect(result.warnings).toEqual([]);
+			expect(
+				await readFile(join(rootDir, 'postcss.config.mjs'), 'utf-8')
+			).toContain(`'${plugin}': {},\n\t\ttailwindcss: {},`);
+		}
+	);
+
+	it('uses the umbrella plugin for an unresolved c15t with no scoped package', async () => {
+		const rootDir = await createProject({
+			'package.json': manifest({ c15t: 'catalog:', tailwindcss: '^3.4.17' }),
+			'postcss.config.mjs': OBJECT_CONFIG,
+		});
+		await codemod({ dryRun: false, projectRoot: rootDir });
+
+		expect(
+			await readFile(join(rootDir, 'postcss.config.mjs'), 'utf-8')
+		).toContain("'c15t/postcss-tailwind3': {},\n\t\ttailwindcss: {},");
+	});
+
 	it('uses the scoped plugin and the file quote style in a CommonJS config', async () => {
 		const rootDir = await createProject({
 			'package.json': JSON.stringify({
