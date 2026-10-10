@@ -251,6 +251,20 @@ describe('scheduleIdlePreload', () => {
 		expect(task).toHaveBeenCalledOnce();
 	});
 
+	test('runs at the maximum wait without waiting for an idle period', () => {
+		// A busy main thread never grants an idle period.
+		vi.stubGlobal(
+			'requestIdleCallback',
+			vi.fn(() => 1)
+		);
+		addImage();
+		const task = vi.fn();
+		scheduleIdlePreload(task, { maxWaitMs: 2000, quietMs: 500 });
+
+		vi.advanceTimersByTime(2000);
+		expect(task).toHaveBeenCalledOnce();
+	});
+
 	test('hands the task to requestIdleCallback with a timeout', () => {
 		const requestIdleCallback = vi.fn(() => 1);
 		vi.stubGlobal('requestIdleCallback', requestIdleCallback);

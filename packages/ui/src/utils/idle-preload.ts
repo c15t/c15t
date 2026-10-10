@@ -196,9 +196,10 @@ export const scheduleIdlePreload = function scheduleIdlePreload(
 
 	/**
 	 * Check again in `wait` ms, or run once quiet. A check from an idle
-	 * callback runs the task; any other schedules one. The page may start an
-	 * image while the task waits for an idle period, such as a single-page
-	 * app rendering its content, so the idle check looks again first.
+	 * callback, or any check past the deadline, runs the task; any other
+	 * schedules one. The page may start an image while the task waits for an
+	 * idle period, such as a single-page app rendering its content, so the
+	 * idle check looks again first.
 	 */
 	const check = (idle: boolean) => {
 		timer = undefined;
@@ -206,12 +207,13 @@ export const scheduleIdlePreload = function scheduleIdlePreload(
 		if (cancelled) {
 			return;
 		}
-		const wait = remainingWait(performance.now());
+		const now = performance.now();
+		const wait = remainingWait(now);
 		if (wait > 0) {
 			timer = setTimeout(() => check(false), wait);
 			return;
 		}
-		if (!idle) {
+		if (!idle && now - loadedAt < maxWaitMs) {
 			if (typeof window.requestIdleCallback === 'function') {
 				idleHandle = window.requestIdleCallback(() => check(true), {
 					timeout: IDLE_CALLBACK_TIMEOUT_MS,
