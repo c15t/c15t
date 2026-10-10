@@ -7,13 +7,19 @@ group: frameworks
 ## Render `ConsentRoot` in `app.vue`
 
 The Nuxt module registers `ConsentRoot` globally, so you render it without an
-import. Put it in `app.vue`, outside `<NuxtPage />`:
+import. Put it in `app.vue`, next to `<NuxtPage />`:
 
 <include src="../../../shared/examples/nuxt/root.mdx" />
 
 `ConsentRoot` reads the consent runtime the module creates. Keep it in
-`app.vue` so it stays mounted when the route changes. It has no slots and
-brings its own styles.
+`app.vue` so it stays mounted when the route changes. It brings its own
+styles.
+
+`ConsentRoot` is not a provider. The module's plugin already gives every
+component the consent runtime, so nothing needs to sit inside it. Render
+`<ConsentRoot />` next to `<NuxtPage />` as shown above. If you wrap the app
+in it instead, the page still renders after the banner, dialog and trigger,
+but wrapping adds nothing.
 
 Always mount the Nuxt `ConsentRoot`, not the Vue one from
 `c15t/vue/consent-root`. The Nuxt component renders the banner on the
