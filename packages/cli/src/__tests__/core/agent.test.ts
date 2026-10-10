@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import {
 	mkdtemp,
 	readFile,
@@ -8,6 +9,7 @@ import {
 } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { delimiter, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -26,6 +28,7 @@ import { createCliLogger, runCli } from '../../index';
 import { packageInfo } from '../../package-info';
 import * as clipboard from '../../utils/clipboard';
 
+const docsRoot = fileURLToPath(new URL('../../../../../docs', import.meta.url));
 const directories: string[] = [];
 const fixture = async (script?: string) => {
 	const cwd = await mkdtemp(join(tmpdir(), 'c15t-agent-'));
@@ -459,7 +462,7 @@ describe('c15t setup instructions', () => {
 		expect(instructions).toContain('`beta` npm dist-tag');
 		expect(instructions).toContain('npm view <package>@beta version');
 		expect(instructions).toContain(
-			`${origin}/docs/frameworks/<next|react|javascript>/upgrade-v3.md`
+			`${origin}/docs/frameworks/next/upgrade-v3.md`
 		);
 		expect(instructions).toContain(`${origin}/docs/guides/verify-consent.md`);
 		expect(instructions).not.toMatch(/@(?:alpha|latest)\b/u);
@@ -484,6 +487,23 @@ describe('c15t setup instructions', () => {
 			]) {
 				expect(prompt).not.toMatch(/https:\/\/(?:www\.)?c15t\.com\/docs/u);
 			}
+		}
+	);
+
+	it.each(['offline', 'hosted', 'custom', undefined] as const)(
+		'links only to docs pages that exist in %s mode',
+		(mode) => {
+			const instructions = createC15tSetupInstructions({ mode, origin });
+			const paths = [
+				...instructions.matchAll(
+					/https:\/\/docs\.example\.com\/docs\/(?<page>[^\s`),<>]+)\.md\b/gu
+				),
+			].map((match) => match.groups?.page ?? '');
+			expect(paths.length).toBeGreaterThan(2);
+			const missing = paths.filter(
+				(page) => !existsSync(join(docsRoot, `${page}.mdx`))
+			);
+			expect(missing).toEqual([]);
 		}
 	);
 
