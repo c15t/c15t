@@ -159,11 +159,12 @@ describe('plain Vue modes', () => {
 		const fetch = vi
 			.fn<typeof globalThis.fetch>()
 			.mockRejectedValue(new Error('offline'));
-		const transport = manifest({
+		const mode = manifest({
 			backendURL: 'https://consent.example.com',
 			fetch,
 			snapshot: createManifestFixture(),
-		})();
+		});
+		const transport = mode({} as Parameters<typeof mode>[0]);
 		await transport
 			.init?.({
 				journey: undefined,
@@ -185,9 +186,10 @@ describe('plain Vue modes', () => {
 			{},
 			createManifestFixture()
 		);
-		const transport = clientMode(mode, {
+		const factory = clientMode(mode, {
 			backendURL: 'https://consent.example.com',
-		})();
+		});
+		const transport = factory({} as Parameters<typeof factory>[0]);
 		await transport
 			.init?.({
 				journey: undefined,

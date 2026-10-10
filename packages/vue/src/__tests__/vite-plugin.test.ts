@@ -114,7 +114,7 @@ describe('location advice', () => {
 		const warn = vi.fn();
 		const plugin = consentManifest({
 			backendURL: 'https://consent.example.com',
-			fetch: () =>
+			fetch: vi.fn<typeof globalThis.fetch>().mockImplementation(() =>
 				Promise.resolve(
 					Response.json({
 						branding: 'c15t',
@@ -129,7 +129,8 @@ describe('location advice', () => {
 						revision: 'vue-regional',
 						schemaVersion: 2,
 					})
-				),
+				)
+			),
 		});
 		plugin.configResolved({
 			command: 'build',
