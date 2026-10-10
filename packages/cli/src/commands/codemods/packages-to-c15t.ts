@@ -702,6 +702,30 @@ const targetListEdit = function targetListEdit(
 };
 
 /**
+ * The edit that removes a whole directive. Comments between the targets of
+ * a Sass import list stay where the directive was, as block comments.
+ */
+const wholeRemoval = function wholeRemoval(
+	text: string,
+	directive: StylesheetImport,
+	lineStart: number
+): TextEdit {
+	const removal = directiveRemoval(text, directive, lineStart);
+	const gaps = (directive.targets ?? []).map((target, index, targets) => {
+		const previous = targets[index - 1];
+		return previous ? text.slice(previous.end, target.start) : '';
+	});
+	const comments = blockCommentsOf(gaps.join(' '));
+	if (comments === '') {
+		return removal;
+	}
+	return {
+		...removal,
+		text: `${text.slice(removal.start, directive.start)}${comments}${directive.followed ? ' ' : ''}${text.slice(directive.trailingEnd, removal.end)}`,
+	};
+};
+
+/**
  * Removes or keeps c15t stylesheet `@import` directives. Each directive is
  * read whole, so one that spans lines or takes Less options is handled like
  * any other, and each target of a Sass import that lists several is handled
@@ -726,7 +750,7 @@ const transformStylesheet = function transformStylesheet(
 		}
 		const lineStart = lineStartOf(text, directive.start);
 		if (fates.every((fate) => fate === REMOVED)) {
-			edits.push(directiveRemoval(text, directive, lineStart));
+			edits.push(wholeRemoval(text, directive, lineStart));
 		} else if (directive.targets && fates.includes(REMOVED)) {
 			edits.push(targetListEdit(text, directive.targets, fates));
 		}

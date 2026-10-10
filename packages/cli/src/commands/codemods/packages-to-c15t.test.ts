@@ -427,6 +427,36 @@ body
 `);
 	});
 
+	it('keeps comments when it removes a whole Sass import list', async () => {
+		const { read } = await run(
+			{ c15t: '^3.0.0', tailwindcss: '^4.0.0' },
+			{
+				'src/block.scss': `@import '@c15t/react/styles.css', /* application note */ '@c15t/react/iab/styles.css';
+body {
+	margin: 0;
+}
+`,
+				'src/line.scss': `.a {
+	@import
+		'@c15t/react/styles.css',
+		// application note
+		'@c15t/react/iab/styles.css';
+}
+`,
+			}
+		);
+
+		expect(await read('src/block.scss')).toBe(`/* application note */
+body {
+	margin: 0;
+}
+`);
+		expect(await read('src/line.scss')).toBe(`.a {
+	/* application note */
+}
+`);
+	});
+
 	it('migrates Sass pkg: stylesheet URLs', async () => {
 		const scss = `@use 'pkg:@c15t/react/styles.css';
 @forward 'pkg:@c15t/nextjs/styles.css';
