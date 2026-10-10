@@ -2,6 +2,7 @@ import { ConsentShell } from '@c15t/next-compat-shared/consent-shell';
 
 const ManifestPage = () => (
 	<ConsentShell
+		styles={false}
 		scenario="manifest"
 		transport="manifest"
 	>

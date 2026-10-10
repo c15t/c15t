@@ -65,7 +65,7 @@ once.
 
 ## Register the scripts
 
-Complete your [framework quickstart](https://c15t.com/docs/frameworks) first. Keep its Inth
+Complete your [framework quickstart](https://v3.c15t.com/docs/frameworks) first. Keep its Inth
 endpoint, policy, styles and consent UI. Remove the vendor's original script,
 SDK initializer or tag-manager entry, so the vendor loads only through c15t.
 
@@ -93,13 +93,13 @@ Keep the rest of your config, such as `mode` and `routePrefix`, in the
 same call. `ConsentRoot` reads the config in the browser, so the layout
 keeps passing only `state`. App Router, Pages Router and static export all
 read the same file. See
-[Next.js scripts and embeds](https://c15t.com/docs/frameworks/next/scripts).
+[Next.js scripts and embeds](https://v3.c15t.com/docs/frameworks/next/scripts).
 
 **TanStack Start**
 
 Import the configuration into your root route and pass it to the existing
 `ConsentRoot` as a top-level prop. Keep the loader from the
-[TanStack Start quickstart](https://c15t.com/docs/frameworks/tanstack-start/quickstart):
+[TanStack Start quickstart](https://v3.c15t.com/docs/frameworks/tanstack-start/quickstart):
 
 ```tsx title="src/routes/__root.tsx"
 import { scripts } from '../consent-scripts';
@@ -110,7 +110,7 @@ import { scripts } from '../consent-scripts';
 Import vendor helpers in the root route module, not in a server function.
 A server function's return value must be serializable, and script
 configurations carry callbacks. See
-[TanStack Start scripts](https://c15t.com/docs/frameworks/tanstack-start/scripts).
+[TanStack Start scripts](https://v3.c15t.com/docs/frameworks/tanstack-start/scripts).
 
 **React**
 
@@ -146,7 +146,7 @@ one script loader in the browser after hydration, once it has applied the
 visitor's stored choice and privacy signals. Keep `scripts` out of
 `nuxt.config.ts`, which reaches the browser as JSON and drops the vendor
 callbacks. Write the vendor IDs into `consent-scripts.ts`. See
-[Nuxt scripts and embeds](https://c15t.com/docs/frameworks/nuxt/scripts).
+[Nuxt scripts and embeds](https://v3.c15t.com/docs/frameworks/nuxt/scripts).
 
 **Vue**
 
@@ -165,12 +165,12 @@ app.use(c15tVue, {
 Keep your existing `mode` and other options. The plugin starts one
 script loader when the app mounts, after it has applied the visitor's stored
 choice. Do not also call `createScriptLoader` from a component. See
-[Vue scripts and embeds](https://c15t.com/docs/frameworks/vue/scripts).
+[Vue scripts and embeds](https://v3.c15t.com/docs/frameworks/vue/scripts).
 
 **Astro**
 
 Add the scripts to the client entrypoint from the
-[Astro quickstart](https://c15t.com/docs/frameworks/astro/quickstart), `src/c15t.client.ts`,
+[Astro quickstart](https://v3.c15t.com/docs/frameworks/astro/quickstart), `src/c15t.client.ts`,
 which the integration finds on its own. Keep `astro.config.mjs` as it is.
 If the module already exports scripts, combine the two arrays.
 
@@ -203,13 +203,13 @@ pass them as a top-level prop:
 </ConsentProvider>
 ```
 
-Retain the styles and consent UI from the [Svelte quickstart](https://c15t.com/docs/frameworks/svelte/quickstart).
+Retain the styles and consent UI from the [Svelte quickstart](https://v3.c15t.com/docs/frameworks/svelte/quickstart).
 The provider owns the loader and disposes it on unmount.
 
 **SvelteKit**
 
 Add the scripts to the existing `ConsentRoot` in the root layout. Keep the
-handle and the layout load from the [SvelteKit quickstart](https://c15t.com/docs/frameworks/sveltekit/quickstart).
+handle and the layout load from the [SvelteKit quickstart](https://v3.c15t.com/docs/frameworks/sveltekit/quickstart).
 
 ```svelte title="src/routes/+layout.svelte"
 <script lang="ts">
@@ -245,7 +245,7 @@ and keep it inert until its category is allowed:
 Use the category this guide names for the vendor. c15t runs the snippet
 once that category is allowed, and reloads the page when the visitor
 withdraws it. Helper options on this page, such as `loadMode`, do not apply
-to a pasted snippet. See [HTML scripts](https://c15t.com/docs/frameworks/html/scripts).
+to a pasted snippet. See [HTML scripts](https://v3.c15t.com/docs/frameworks/html/scripts).
 
 **JavaScript**
 
@@ -265,7 +265,7 @@ Keep the mode from your quickstart. With
 `createConsentRuntime` from `c15t/runtime`, pass `scripts` to it instead.
 A kernel you create yourself needs a loader from
 `c15t/modules/script-loader`. Attach one loader per kernel. See
-[JavaScript scripts](https://c15t.com/docs/frameworks/javascript/scripts).
+[JavaScript scripts](https://v3.c15t.com/docs/frameworks/javascript/scripts).
 
 ## Options
 

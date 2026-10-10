@@ -1,6 +1,6 @@
 ---
 title: Scripts
-description: Register vendor scripts in a Next.js ConsentRoot, check how each vendor loads, let visitors turn off one vendor and clear stored data after revocation.
+description: Register vendor scripts in a Next.js ConsentRoot, check how each vendor loads, let visitors turn off one vendor, clear stored data after revocation and replace @next/third-parties.
 group: frameworks
 ---
 
@@ -47,8 +47,10 @@ Each helper keeps its own consent rules. Meta Pixel waits for marketing, and
 Google Tag Manager follows the
 [Consent Mode contract](/docs/integrations/google-tag-manager). Remove the
 container and pixel snippets from `pages/_document.tsx` or your layout, so each
-vendor loads once. Both helpers throw on an empty ID, so leave a helper out of
-the array until you have its ID.
+vendor loads once. If they come from `@next/third-parties`, follow
+[migrate from `@next/third-parties`](#migrate-from-nextthird-parties). Both
+helpers throw on an empty ID, so leave a helper out of the array until you
+have its ID.
 
 ## Check each vendor's loading behavior
 
@@ -98,6 +100,154 @@ configuration and browser limits.
 
 To send your own events only to allowed integrations, see
 [send events only to allowed integrations](/docs/integrations/overview#send-events-only-to-allowed-integrations).
+
+## Migrate from `@next/third-parties`
+
+The components in `@next/third-parties/google` add `next/script` tags and
+embeds when the page renders. c15t never sees them, so the banner
+cannot hold them back, and `GoogleAnalytics` and `GoogleTagManager` send no
+Consent Mode signals. Replace each export, keep your IDs, then remove the
+package.
+
+| `@next/third-parties/google` | c15t replacement |
+| --- | --- |
+| `<GoogleAnalytics gaId="G-XXXXXXXXXX" />` | `gtag({ id: 'G-XXXXXXXXXX', category: 'measurement' })` from `@c15t/integrations/google-tag` |
+| `<GoogleTagManager gtmId="GTM-XXXXXXX" />` | `googleTagManager({ id: 'GTM-XXXXXXX' })` from `@c15t/integrations/google-tag-manager` |
+| `sendGAEvent(...args)` | `window.gtag?.(...args)` |
+| `sendGTMEvent(data)` | `window.dataLayer?.push(data)` |
+| `<YouTubeEmbed videoid="VIDEO_ID" />` | `ConsentGate` around a `youtube-nocookie.com` iframe. See [YouTube](/docs/integrations/youtube). |
+| `<GoogleMapsEmbed apiKey="API_KEY" mode="place" />` | `ConsentGate` around a Maps Embed API iframe. See [Google Maps](/docs/integrations/google-maps). |
+
+### Replace GoogleAnalytics and GoogleTagManager
+
+Delete the components from `app/layout.tsx`, `pages/_app.tsx` or
+`pages/_document.tsx`. Add a helper for each one to the `scripts` array your
+`ConsentRoot` receives, with the same measurement ID and container ID:
+
+<include src="../../shared/examples/nextjs/third-parties-scripts.mdx" />
+
+Keep only the helpers for the tags you used. If GA4 already runs inside your
+Tag Manager container, register `googleTagManager` alone, or each page view
+counts twice.
+
+The component props map to helper options:
+
+| Prop | c15t |
+| --- | --- |
+| `gaId` | `id` on `gtag` |
+| `debugMode` | `config: { debug_mode: true }` on `gtag` |
+| `dataLayerName` on `GoogleAnalytics` | No equivalent. `gtag` always queues on `window.dataLayer`. |
+| `gtmId` | `id` on `googleTagManager` |
+| `dataLayerName` on `GoogleTagManager` | `dataLayer` on `googleTagManager`. Keep the same name. |
+| `dataLayer` | No option. Seed the data layer before the container loads. See [keep initial data layer values](#keep-initial-data-layer-values). |
+| `auth`, `preview`, `gtmScriptUrl` | No option. Use a [custom integration](/docs/integrations/building-integrations) for GTM environments or a server-side tagging URL. |
+| `nonce` | `options={{ nonce }}` on `ConsentRoot`. See [Content Security Policy](/docs/frameworks/next/content-security-policy). |
+
+### Keep initial data layer values
+
+`GoogleTagManager` pushes its `dataLayer` object in the same inline snippet
+that pushes the `gtm.js` start event, before the container script runs, so the
+container's startup triggers can read those values. Pushing the object later,
+like an event, can arrive after those triggers have run.
+
+Seed the queue in the initial HTML instead, before c15t loads the container.
+Add a `beforeInteractive` script to the root `app/layout.tsx`, or to
+`pages/_document.tsx` with the Pages Router. Keep `ConsentRoot` and the rest
+of your layout as they are:
+
+{/* example: fragment */}
+
+```tsx title="app/layout.tsx (partial)"
+import Script from 'next/script';
+import type { ReactNode } from 'react';
+
+const initialDataLayer = { pageType: 'product' };
+
+export default function RootLayout({ children }: { children: ReactNode }) {
+	return (
+		<html lang="en">
+			<body>
+				<Script id="gtm-initial-data-layer" strategy="beforeInteractive">
+					{`window.dataLayer = window.dataLayer || [];
+window.dataLayer.push(${JSON.stringify(initialDataLayer)});`}
+				</Script>
+				{children}
+			</body>
+		</html>
+	);
+}
+```
+
+`googleTagManager` keeps an array that already exists, so the queue holds your
+object, then Consent Mode `default`, then the `gtm.js` start event. The script
+sends nothing to Google, so it also works with `loadMode: 'after-consent'`.
+Use the name you pass as `dataLayer` on `googleTagManager`, and pass your
+Content Security Policy nonce to `Script` as `nonce`.
+
+<import src="../../shared/scripts/google-load-mode.mdx#choose" />
+
+### Move sendGAEvent and sendGTMEvent calls
+
+`sendGAEvent` only works after the `GoogleAnalytics` component has rendered.
+In `@next/third-parties` 16.x, once you remove the component, every call logs
+`@next/third-parties: GA has not been initialized` and drops the event.
+`sendGTMEvent` still pushes to `window.dataLayer` without its component, but
+importing it keeps the package installed.
+
+Call the `gtag` function and data layer that c15t sets up instead. The
+arguments do not change:
+
+{/* example: fragment */}
+
+```ts
+// Before
+sendGAEvent('event', 'sign_up', { method: 'email' });
+sendGTMEvent({ event: 'sign_up', method: 'email' });
+
+// After: no import needed
+window.gtag?.('event', 'sign_up', { method: 'email' });
+window.dataLayer?.push({ event: 'sign_up', method: 'email' });
+```
+
+Call them from browser code, such as an event handler. `window.gtag` and
+`window.dataLayer` exist once c15t has set up the Google helper. Until then the
+optional call does nothing and the event is lost, as with `sendGAEvent`. With a
+custom `dataLayer` name on `googleTagManager`, push to `window[name]`
+instead.
+
+To send one event to every allowed integration rather than to Google alone,
+use [`createEventDispatcher`](/docs/integrations/overview#send-events-only-to-allowed-integrations).
+It drops the event while measurement is denied.
+
+### Replace YouTubeEmbed and GoogleMapsEmbed
+
+`YouTubeEmbed` loads `lite-youtube-embed` from `cdn.jsdelivr.net` and the
+video thumbnail from YouTube before the visitor chooses. `GoogleMapsEmbed`
+renders its Google iframe straight away. Render your own iframe inside
+`ConsentGate` instead:
+
+<include src="../../shared/examples/nextjs/video-embed.mdx" />
+
+Put the `videoid` in the URL path and the `params` string in its query, and use
+the `playlabel` text as the iframe `title`. For a map, keep the URL
+`GoogleMapsEmbed` built. In `place` mode that is
+`https://www.google.com/maps/embed/v1/place?key=<apiKey>&q=<q>`, with
+`center`, `zoom`, `maptype`, `language` and `region` as further query
+parameters. Other modes need their own parameters, such as `center` and
+`zoom` for `view`, so copy every parameter your component set. The
+[YouTube](/docs/integrations/youtube) and
+[Google Maps](/docs/integrations/google-maps) guides cover categories, sizing
+and placeholders.
+
+### Remove the package
+
+Search the project for `@next/third-parties`. When nothing imports it,
+uninstall it, for example with `npm uninstall @next/third-parties`. Then open
+the production build in a private window under an opt-in policy. With
+`loadMode: 'after-consent'`, nothing requests `googletagmanager.com` before you
+choose. With the default, Google Tag Assistant shows a `consent` `default`
+command before any tag fires. No request goes to `cdn.jsdelivr.net`, YouTube
+or Google Maps until you allow the embed's category.
 
 ## Verify the integration
 

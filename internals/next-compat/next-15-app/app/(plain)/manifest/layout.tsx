@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 
 const ManifestLayout = ({ children }: { children: ReactNode }) => (
 	<ConsentShell
+		styles={false}
 		scenario="manifest"
 		transport="manifest"
 	>

@@ -164,8 +164,8 @@ routes, or allow the public list origin for direct requests.
 Hosted init responses use an `init` reference to read the list from
 the existing init endpoint. These references include the original country,
 region and GPC inputs so a hosted request resolves the same regional policy.
-They do not carry credentials. Cross-origin hosted requests can require a CORS
-preflight, which adds latency before CMP readiness on a cold connection.
+They do not carry credentials. The inputs travel as query parameters, so a
+cross-origin request needs no CORS preflight.
 The endpoint keeps its existing private caching
 rules. Allow the referenced origin in your CSP `connect-src` directive.
 

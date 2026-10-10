@@ -185,6 +185,10 @@ longer reads them.
 | `buildManifest: false` | `mode: manifest({ source: 'runtime' })` |
 | `buildManifest: true` | `onBuildError: 'fail'` |
 | `initRoute`, `manifestRoute` | `routePrefix`, one catch-all for both |
+| `NUXT_PUBLIC_C15T_MANIFEST_URL`, `NUXT_C15T_MANIFEST_URL` | `mode: manifest({ manifestURL })` in `nuxt.config.ts`. The variables are no longer read, so the manifest URL is fixed at build time. `NUXT_PUBLIC_C15T_BACKEND_URL` and `NUXT_C15T_BACKEND_URL` still work. |
+| `domain` | Nothing. Saves send the page's hostname. |
+| `ConsentPreferencesLink` | `ConsentDialogLink`. The floating `ConsentDialogTrigger` keeps its name. |
+| `ConsentFrame` | `ConsentGate` |
 
 ## Every first visit calls /init on a static site
 

@@ -1,3 +1,4 @@
+import type { ProviderTransportContext } from '@c15t/core';
 import type { ConsentManifest } from '@c15t/schema/types';
 import {
 	createConsentManifestPolicyPack,
@@ -6,16 +7,29 @@ import {
 } from '@c15t/schema/types';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { mountGPP } from '../gpp';
 import { createScriptTagConsentClient as createConsentClient } from '../script-tag-client';
 import { manifest, manifestNeedsLocation } from '../transports/manifest';
 import type { ConsentClient } from '../types';
 
-/** A request URL without the consent journey query the runtime adds. */
-const pathOf = (url: unknown): string =>
-	String(url).replace(
-		/[?&]c15tJourney=[^&#]*&c15tJourneyScope=[^&#]*(?:&c15tStored=[01])?/u,
-		''
-	);
+/** A query pair c15t adds to `/init`. */
+const INIT_PAIR =
+	/^(?:v|contract|country|region|gpc|experiment|journey|journeyScope|stored)=/u;
+
+/** A request URL without the parameters a client adds to `/init`. */
+const pathOf = (url: unknown): string => {
+	const text = String(url);
+	const [base = '', query] = text.split('?');
+	if (query === undefined) {
+		return text;
+	}
+	const pairs = query.split('&');
+	const kept = pairs.filter((pair) => !INIT_PAIR.test(pair));
+	if (kept.length === pairs.length) {
+		return text;
+	}
+	return kept.length > 0 ? `${base}?${kept.join('&')}` : base;
+};
 
 const clients: ConsentClient[] = [];
 
@@ -45,6 +59,37 @@ const geoManifest: ConsentManifest = {
 	...everywhereManifest,
 	policyPacks: [
 		createConsentManifestPolicyPack(policyRulePresets.europeOptIn()),
+	],
+};
+
+/**
+ * Keyed by location, but every location gets the same opt-in banner: only
+ * the policy ids differ.
+ */
+const sameBannerEverywhereManifest: ConsentManifest = {
+	...everywhereManifest,
+	policyPacks: [
+		createConsentManifestPolicyPack(policyRulePresets.europeOptIn()),
+		createConsentManifestPolicyPack(policyRulePresets.quebecOptIn()),
+		createConsentManifestPolicyPack({
+			...policyRulePresets.europeOptIn(),
+			id: 'world_opt_in',
+			match: { isDefault: true },
+		}),
+	],
+};
+
+/**
+ * The demo project's shape: a banner in Europe and Quebec (and for an
+ * unknown location), none in California or anywhere else.
+ */
+const bannerSomewhereManifest: ConsentManifest = {
+	...everywhereManifest,
+	policyPacks: [
+		createConsentManifestPolicyPack(policyRulePresets.europeOptIn()),
+		createConsentManifestPolicyPack(policyRulePresets.quebecOptIn()),
+		createConsentManifestPolicyPack(policyRulePresets.californiaOptOut()),
+		createConsentManifestPolicyPack(policyRulePresets.worldNone()),
 	],
 };
 
@@ -79,6 +124,352 @@ describe('manifestNeedsLocation', () => {
 
 	it('is true for country packs', () => {
 		expect(manifestNeedsLocation(geoManifest)).toBe(true);
+	});
+
+	it('is false when every location gets the same banner', () => {
+		expect(manifestNeedsLocation(sameBannerEverywhereManifest)).toBe(false);
+	});
+
+	it('is true when some location gets a different banner or none', () => {
+		expect(manifestNeedsLocation(bannerSomewhereManifest)).toBe(true);
+		const [europe, quebec] = sameBannerEverywhereManifest.policyPacks ?? [];
+		expect(
+			manifestNeedsLocation({
+				...sameBannerEverywhereManifest,
+				policyPacks: [
+					europe,
+					quebec,
+					createConsentManifestPolicyPack({
+						...policyRulePresets.europeOptIn(),
+						copyRevision: 'world-copy',
+						id: 'world_opt_in',
+						match: { isDefault: true },
+					}),
+				].filter((pack) => pack !== undefined),
+			})
+		).toBe(true);
+	});
+
+	it('is true when an unlisted location matches no pack', () => {
+		const [europe, quebec] = sameBannerEverywhereManifest.policyPacks ?? [];
+		expect(
+			manifestNeedsLocation({
+				...sameBannerEverywhereManifest,
+				policyPacks: [europe, quebec].filter((pack) => pack !== undefined),
+			})
+		).toBe(true);
+	});
+
+	it('checks an unlisted country even when the manifest lists ZZ', () => {
+		// Unknown location and the listed codes get one banner; every other
+		// country gets the default's different copy.
+		expect(
+			manifestNeedsLocation({
+				...everywhereManifest,
+				policyPacks: [
+					createConsentManifestPolicyPack({
+						...policyRulePresets.europeOptIn(),
+						id: 'listed',
+						match: { countries: ['ZZ', 'XX', 'QZ', 'XZ'], fallback: true },
+					}),
+					createConsentManifestPolicyPack({
+						...policyRulePresets.europeOptIn(),
+						copyRevision: 'world-copy',
+						id: 'world_opt_in',
+						match: { isDefault: true },
+					}),
+				],
+			})
+		).toBe(true);
+	});
+
+	it('is true when a country with region packs and no region fails to match', () => {
+		// Default but no fallback: a Canadian visitor without a province is
+		// insufficient input, which shows no banner.
+		expect(
+			manifestNeedsLocation({
+				...sameBannerEverywhereManifest,
+				policyPacks: [
+					createConsentManifestPolicyPack(policyRulePresets.quebecOptIn()),
+					createConsentManifestPolicyPack({
+						...policyRulePresets.quebecOptIn(),
+						id: 'world_opt_in',
+						match: { isDefault: true },
+					}),
+				],
+			})
+		).toBe(true);
+	});
+});
+
+describe('manifest() first paint without a known location', () => {
+	const isInit = (input: unknown): boolean =>
+		pathOf(input).split('?')[0]?.endsWith('/init') === true;
+
+	const start = function start(
+		inlineManifest: ConsentManifest,
+		fetchSpy: typeof fetch,
+		overrides?: { language?: string }
+	): ConsentClient {
+		const client = createConsentClient({
+			consentCategories: ['measurement'],
+			mode: manifest({
+				backendURL: 'https://example.test',
+				fetch: fetchSpy,
+				snapshot: inlineManifest,
+			}),
+			overrides,
+		});
+		clients.push(client);
+		client.start();
+		return client;
+	};
+
+	it('shows the banner without /init when every location gets the same one', async () => {
+		// An /init that never answers: the banner must not depend on it.
+		const fetchSpy = vi.fn<typeof fetch>(
+			() =>
+				new Promise<Response>(() => {
+					/* never settles */
+				})
+		);
+		const client = start(sameBannerEverywhereManifest, fetchSpy);
+
+		const snapshot = await client.ready();
+
+		expect(fetchSpy).not.toHaveBeenCalled();
+		expect(snapshot.activeUI).toBe('banner');
+		expect(snapshot.policyRule.model).toBe('opt-in');
+	});
+
+	it('binds the save to the policy an unknown location resolves to', async () => {
+		const fetchSpy = vi.fn<typeof fetch>(() =>
+			Promise.resolve(new Response(JSON.stringify({ subjectId: 'sub_1' })))
+		);
+		const client = start(sameBannerEverywhereManifest, fetchSpy);
+		await client.ready();
+		await client.acceptAll();
+
+		expect(fetchSpy).toHaveBeenCalledOnce();
+		const body = JSON.parse(String(fetchSpy.mock.calls[0]?.[1]?.body));
+		// The backend recomputes this decision from the asserted inputs, so
+		// it must be what the same manifest gives a visitor with no location.
+		const expected = resolveInitFromManifest(sameBannerEverywhereManifest, {
+			country: null,
+			region: null,
+		}).policyResolution;
+		expect(expected.status).toBe('matched');
+		expect(body).toMatchObject({
+			country: null,
+			region: null,
+			...(expected.status === 'matched' && {
+				fingerprint: expected.fingerprints.policy,
+				policyId: expected.policyId,
+			}),
+		});
+	});
+
+	it('waits for /init when some location gets a different banner or none', async () => {
+		let answer: ((response: Response) => void) | undefined;
+		const fetchSpy = vi.fn<typeof fetch>(
+			() =>
+				new Promise<Response>((resolve) => {
+					answer = resolve;
+				})
+		);
+		const client = start(bannerSomewhereManifest, fetchSpy);
+
+		await vi.waitFor(() => {
+			expect(fetchSpy).toHaveBeenCalledOnce();
+		});
+		expect(isInit(fetchSpy.mock.calls[0]?.[0])).toBe(true);
+		expect(client.getSnapshot().policyPending).toBe(true);
+		expect(client.getSnapshot().activeUI).toBe('none');
+
+		answer?.(
+			new Response(
+				JSON.stringify(
+					resolveInitFromManifest(bannerSomewhereManifest, {
+						country: 'US',
+						language: 'en',
+						region: 'NY',
+					})
+				)
+			)
+		);
+		const snapshot = await client.ready();
+		// A New York visitor gets no banner: one shown from the bundle's
+		// unknown-location rule would have had to disappear.
+		expect(snapshot.activeUI).toBe('none');
+		expect(snapshot.policyRule.id).toBe('world_none');
+	});
+
+	it('shows a returning visitor no banner and sends no /init', async () => {
+		const fetchSpy = vi.fn<typeof fetch>(() =>
+			Promise.resolve(new Response(JSON.stringify({ subjectId: 'sub_1' })))
+		);
+		const first = start(sameBannerEverywhereManifest, fetchSpy);
+		await first.ready();
+		await first.acceptAll();
+		first.dispose();
+		fetchSpy.mockClear();
+
+		const returning = start(sameBannerEverywhereManifest, fetchSpy);
+		const snapshot = await returning.ready();
+
+		expect(snapshot.activeUI).toBe('none');
+		expect(snapshot.explicitChoice).not.toBeNull();
+		expect(fetchSpy.mock.calls.some(([input]) => isInit(input))).toBe(false);
+	});
+
+	it("answers in the visitor's language without /init, with that language's base copy", async () => {
+		const fetchSpy = vi.fn<typeof fetch>(
+			() =>
+				new Promise<Response>(() => {
+					/* never settles */
+				})
+		);
+		const client = start(sameBannerEverywhereManifest, fetchSpy, {
+			language: 'de',
+		});
+
+		const snapshot = await client.ready();
+
+		// The browser loads German base copy on demand, so a local answer has
+		// the same copy `/init` would send.
+		expect(fetchSpy).not.toHaveBeenCalled();
+		expect(snapshot.activeUI).toBe('banner');
+		expect(snapshot.translations?.language).toBe('de');
+	});
+
+	it('asks /init for an IAB policy', async () => {
+		const iabManifest: ConsentManifest = {
+			...everywhereManifest,
+			iab: { enabled: true },
+			policyPacks: [
+				createConsentManifestPolicyPack(policyRulePresets.europeIab()),
+				createConsentManifestPolicyPack({
+					...policyRulePresets.europeIab(),
+					id: 'world_iab',
+					match: { isDefault: true },
+				}),
+			],
+		};
+		expect(manifestNeedsLocation(iabManifest)).toBe(false);
+		const fetchSpy = vi.fn<typeof fetch>(() => Promise.resolve(initResponse()));
+		const client = start(iabManifest, fetchSpy);
+		await client.ready();
+
+		expect(isInit(fetchSpy.mock.calls[0]?.[0])).toBe(true);
+	});
+});
+
+describe('manifest() with GPP and an unknown location', () => {
+	const isInit = (input: unknown): boolean =>
+		pathOf(input).split('?')[0]?.endsWith('/init') === true;
+	const californiaAnswer = () =>
+		Promise.resolve(
+			new Response(
+				JSON.stringify(
+					resolveInitFromManifest(sameBannerEverywhereManifest, {
+						country: 'US',
+						language: 'en',
+						region: 'CA',
+					})
+				)
+			)
+		);
+	const inline = (fetchSpy: typeof fetch) =>
+		manifest({
+			backendURL: 'https://example.test',
+			fetch: fetchSpy,
+			snapshot: sameBannerEverywhereManifest,
+		});
+
+	afterEach(() => {
+		delete window.__gpp;
+	});
+
+	it('asks /init for GPP mounted right after start, so US visitors get their section', async () => {
+		const fetchSpy = vi.fn<typeof fetch>(californiaAnswer);
+		const client = createConsentClient({
+			consentCategories: ['measurement'],
+			mode: inline(fetchSpy),
+			overrides: { language: 'en' },
+		});
+		clients.push(client);
+		client.start();
+		const gpp = mountGPP(client);
+
+		try {
+			const snapshot = await client.ready();
+
+			expect(isInit(fetchSpy.mock.calls[0]?.[0])).toBe(true);
+			expect(snapshot.location).toMatchObject({
+				countryCode: 'US',
+				regionCode: 'CA',
+			});
+			expect(gpp.getPingData().applicableSections).toEqual([8]);
+		} finally {
+			gpp.dispose();
+		}
+	});
+
+	it('asks /init when the runtime mounts GPP', async () => {
+		const fetchSpy = vi.fn<typeof fetch>(californiaAnswer);
+		const transport = inline(fetchSpy)({
+			gppEnabled: true,
+		} as ProviderTransportContext);
+
+		await transport.init?.({ overrides: { language: 'en' }, user: null });
+
+		expect(isInit(fetchSpy.mock.calls[0]?.[0])).toBe(true);
+	});
+
+	it('still answers locally without GPP, with no location', async () => {
+		const fetchSpy = vi.fn<typeof fetch>(californiaAnswer);
+		const transport = inline(fetchSpy)({} as ProviderTransportContext);
+
+		const response = await transport.init?.({
+			overrides: { language: 'en' },
+			user: null,
+		});
+
+		expect(fetchSpy).not.toHaveBeenCalled();
+		expect(response?.location).toEqual({ countryCode: null, regionCode: null });
+		expect(response?.resolvedOverrides?.country).toBeUndefined();
+	});
+});
+
+describe('manifest() transports', () => {
+	const context = {} as ProviderTransportContext;
+	const options = (
+		inlineManifest: ConsentManifest,
+		fetchSpy: typeof fetch
+	) => ({
+		backendURL: 'https://example.test',
+		fetch: fetchSpy,
+		snapshot: inlineManifest,
+	});
+
+	it('starts the /init request within the init() call', () => {
+		const fetchSpy = vi.fn<typeof fetch>(
+			() =>
+				new Promise<Response>(() => {
+					/* never settles */
+				})
+		);
+		const transport = manifest(options(bannerSomewhereManifest, fetchSpy))(
+			context
+		);
+		void transport.init?.({ overrides: { language: 'en' }, user: null });
+		expect(fetchSpy).toHaveBeenCalledOnce();
+		expect(String(fetchSpy.mock.calls[0]?.[0])).toContain('/init');
+	});
+
+	it('builds a transport of its own for every call', () => {
+		const mode = manifest(options(bannerSomewhereManifest, vi.fn()));
+		expect(mode(context)).not.toBe(mode(context));
 	});
 });
 

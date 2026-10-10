@@ -28,9 +28,10 @@ covers a vendor without one.
   ran keeps running, so after the visitor turns off a category they had
   allowed, the provider reloads the page once the save finishes. Set
   `reloadOnConsentRevoked: false` only if every gated vendor stops itself.
-- **`alwaysLoad` helpers.** Some integrations, such as Google Consent Mode,
-  load before consent and pass the visitor's choice to the vendor. Read the
-  vendor's guide; a category on a script does not always mean zero requests.
+- **`alwaysLoad` helpers.** Some integrations, such as the Google Consent Mode
+  helpers by default, load before consent and pass the visitor's choice to the
+  vendor. Read the vendor's guide; a category on a script does not always mean
+  zero requests.
 
 ## When the script loader downloads
 

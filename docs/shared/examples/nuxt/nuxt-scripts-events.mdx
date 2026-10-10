@@ -1,0 +1,26 @@
+{/* Generated from internals/doc-snippets/nuxt/app/components/PurchaseButton.vue (docs:nuxt-scripts-events) by scripts/sync-example-docs.ts. Edit the source file. */}
+
+```vue title="app/components/PurchaseButton.vue"
+<script setup lang="ts">
+import { metaPixelEvent } from '@c15t/integrations/meta-pixel';
+
+const props = defineProps<{ value: number }>();
+const consent = useConsent();
+
+const onPurchase = () => {
+	// Was proxy.gtag('event', 'purchase', ...) from useScriptGoogleAnalytics()
+	window.gtag?.('event', 'purchase', { currency: 'USD', value: props.value });
+
+	// Was proxy.fbq('track', 'Purchase', ...) from useScriptMetaPixel().
+	// fbq stays defined after a revocation until the page reloads, so check
+	// the permission, not the global.
+	if (consent.value.marketing) {
+		metaPixelEvent('Purchase', { currency: 'USD', value: props.value });
+	}
+};
+</script>
+
+<template>
+	<button type="button" @click="onPurchase">Buy now</button>
+</template>
+```

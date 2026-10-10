@@ -332,6 +332,13 @@ The browser resolves consent through the backend's `/init`.
 `ConsentProvider` takes the same props as `ConsentRoot`, with `mode` in place
 of `state`.
 
+## Taps before hydration
+
+A banner in the server HTML shows before the page's JavaScript runs. A tap on
+it in that gap does nothing: the button has no handler yet, so the banner
+stays up and no choice is saved. The React and Vue banners hold such a tap and
+replay it after hydration; the SvelteKit banner does not.
+
 ## Resolve consent in other server code
 
 `resolveConsent` from `@c15t/svelte/server` does what `loadConsent` does

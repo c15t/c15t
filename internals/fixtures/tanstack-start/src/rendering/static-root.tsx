@@ -15,8 +15,6 @@ import {
 import { scripts } from '../scripts';
 import { testBackend } from '../test-backend';
 
-import consentCss from 'c15t/tanstack-start/styles.css?url';
-
 const backendURL = 'https://your-project.inth.app';
 
 // No loader: the HTML is built ahead of time, so the browser resolves
@@ -46,7 +44,6 @@ const RootComponent = () => (
 export const Route = createRootRoute({
 	component: RootComponent,
 	head: () => ({
-		links: [{ href: consentCss, rel: 'stylesheet' }],
 		meta: [
 			{ charSet: 'utf-8' },
 			{ content: 'width=device-width, initial-scale=1', name: 'viewport' },

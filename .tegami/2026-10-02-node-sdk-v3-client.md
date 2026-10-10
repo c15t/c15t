@@ -50,5 +50,5 @@ without `apiKey` has no `subjects.list`, `experiments.summary` or
   replaced by `createMockC15tClient`, `ok` and `err` from
   `@c15t/node-sdk/testing`.
 
-See [Migrate to v3](https://c15t.com/docs/upgrade-v3#update-the-nodejs-sdk) for
+See [Migrate to v3](https://c15t.com/docs/self-host/upgrade-v3#update-the-nodejs-sdk) for
 the full mapping.

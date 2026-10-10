@@ -11,6 +11,8 @@ import { readBackendURL } from '../../generate/backend-url';
 import { getInstallSpecifier } from '../../generate/dependencies';
 import { mergeFile } from '../../generate/merge';
 import {
+	c15tDistTag,
+	c15tDocsOrigin,
 	c15tReleaseSpecifier,
 	describeC15tRelease,
 	withC15tRelease,
@@ -273,6 +275,24 @@ describe('install release line', () => {
 		expect(describeC15tRelease('3.2.1')).not.toContain('alpha');
 		expect(describeC15tRelease('3.2.1')).toContain('@c15t/react');
 	});
+
+	it.each([
+		['3.0.0-alpha.3', 'alpha', 'https://v3.c15t.com'],
+		[
+			'3.0.0-canary-0123456789abcdef0123456789abcdef01234567.0',
+			'canary',
+			'https://v3.c15t.com',
+		],
+		['3.1.0-rc.1', 'rc', 'https://c15t.com'],
+		['3.2.1', 'latest', 'https://c15t.com'],
+		['2.3.0-canary-20260930161603', 'canary', 'https://c15t.com'],
+	])(
+		'points a %s CLI at the %s dist-tag and %s docs',
+		(version, tag, origin) => {
+			expect(c15tDistTag(version)).toBe(tag);
+			expect(c15tDocsOrigin(version)).toBe(origin);
+		}
+	);
 });
 
 describe('backend URL normalization', () => {

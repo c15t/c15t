@@ -60,23 +60,27 @@ the runtime off lets optional scripts load.
 c15t only controls scripts you register with it. Find every other loader:
 
 - A `<script>` tag in your HTML, layout or `_document`.
-- A framework plugin, such as `@next/third-parties`, `nuxt-gtag` or a Vercel
-  or Netlify analytics toggle.
+- A framework package or plugin, such as `@next/third-parties`,
+  `@nuxt/scripts`, `nuxt-gtag` or a Vercel or Netlify analytics toggle.
 - A tag in Google Tag Manager that fires on page view.
 - An embed, such as a YouTube iframe, rendered without `ConsentGate`.
 
 Remove the extra loader and register the vendor through
-[integrations](/docs/integrations/overview). Then reload with the Network panel
-open and cache disabled. The vendor's domain should be absent until you allow
-its category.
+[integrations](/docs/integrations/overview). To replace a framework package,
+follow [migrate from `@next/third-parties`](/docs/frameworks/next/scripts#migrate-from-nextthird-parties),
+[migrate from `@nuxt/scripts`](/docs/frameworks/nuxt/scripts#migrate-from-nuxtscripts)
+or [migrate from `nuxt-gtag`](/docs/frameworks/nuxt/scripts#migrate-from-nuxt-gtag).
+Then reload with the Network panel open and cache disabled. The vendor's
+domain should be absent until you allow its category.
 
 Also check the policy. Under an opt-out policy, optional categories are allowed
 before a choice, so the request is expected.
 
-Google Tag and Google Tag Manager are an exception by design. Their helpers
-load before a choice and send Google Consent Mode signals, so a request to
-Google before consent is expected. If you need no request at all before
-consent, read [Google Tag Manager](/docs/integrations/google-tag-manager) first.
+Google Tag and Google Tag Manager are an exception by design. By default
+their helpers load before a choice and send Google Consent Mode signals, so a
+request to Google before consent is expected. If you need no request at all
+before consent, set `loadMode: 'after-consent'`; see
+[Google Tag Manager](/docs/integrations/google-tag-manager#choose-when-the-container-loads).
 
 ## Why does the choice disappear on reload?
 

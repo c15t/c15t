@@ -80,4 +80,4 @@ bundled docs. Add `--plan` to inspect the prompt before launching Codex. See
 
 The [verification guide](../guides/verify-consent.md) covers the full release
 checklist. For server rendering and other recipes, continue with your
-[framework quickstart](https://c15t.com/docs/frameworks).
+[framework quickstart](https://v3.c15t.com/docs/frameworks).

@@ -1,7 +1,7 @@
-/* The same import every c15t setup uses. @c15t/nextjs/postcss-tailwind3 (in
-   postcss.config.mjs) flattens its layers for Tailwind 3. It sits first
-   because postcss-import (Vite) drops an @import that follows the
-   directives. */
+/* Tailwind CSS 3 setups import c15t's stylesheet and set `styles: false`.
+   @c15t/nextjs/postcss-tailwind3 (in postcss.config.mjs) flattens its layers
+   for Tailwind 3. It sits first because postcss-import (Vite) drops an
+   @import that follows the directives. */
 @import '@c15t/nextjs/styles.css';
 /* Tailwind v3 directives are required for this compatibility fixture. */
 @tailwind base;

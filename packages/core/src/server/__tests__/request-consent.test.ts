@@ -893,9 +893,9 @@ describe('consent journey', () => {
 		expect(state.journey?.id).toMatch(UUID);
 		const sent = new URL(String(callsTo(fetch, '/init')[0]?.[0]));
 		expect(Object.fromEntries(sent.searchParams)).toEqual({
-			c15tJourney: state.journey?.id,
-			c15tJourneyScope: 'page',
-			c15tStored: '1',
+			journey: state.journey?.id,
+			journeyScope: 'page',
+			stored: '1',
 		});
 	});
 
@@ -910,7 +910,7 @@ describe('consent journey', () => {
 		expect(state.initialRecords?.noticeDismissal).toBeTruthy();
 		expect(state.initialRecords?.choice).toBeFalsy();
 		const sent = new URL(String(callsTo(fetch, '/init')[0]?.[0]));
-		expect(sent.searchParams.get('c15tStored')).toBe('1');
+		expect(sent.searchParams.get('stored')).toBe('1');
 	});
 
 	test('the vendor list reference the browser follows carries no journey', async () => {
@@ -938,7 +938,7 @@ describe('consent journey', () => {
 		vi.stubGlobal('fetch', fetch);
 		const state = await render({ backendURL: BACKEND });
 		expect(String(callsTo(fetch, '/init')[0]?.[0])).toContain(
-			`c15tJourney=${state.journey?.id}`
+			`journey=${state.journey?.id}`
 		);
 		expect(state.initialIab?.gvlReference?.url).toBe(`${BACKEND}/init`);
 	});
@@ -1025,7 +1025,7 @@ describe('consent journey', () => {
 			});
 			expect(state.journey).toBeNull();
 			for (const [input] of fetch.mock.calls) {
-				expect(String(input)).not.toContain('c15tJourney');
+				expect(String(input)).not.toContain('journey');
 			}
 		}
 	);
@@ -1040,7 +1040,7 @@ describe('consent journey', () => {
 		const fetch = upstream();
 		await render({ backendURL: BACKEND, fetch, journey: 'tab' });
 		const sent = new URL(String(callsTo(fetch, '/init')[0]?.[0]));
-		expect(sent.searchParams.get('c15tJourneyScope')).toBe('page');
+		expect(sent.searchParams.get('journeyScope')).toBe('page');
 	});
 
 	test('offline mode starts none', async () => {

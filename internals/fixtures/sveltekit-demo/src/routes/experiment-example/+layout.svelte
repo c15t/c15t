@@ -19,8 +19,6 @@
 		experimentFromSearch,
 	} from '#lib/experiment.svelte.js';
 
-	import '@c15t/svelte/styles.css';
-
 	let { children, data } = $props();
 
 	// Read once: the provider takes its experiment at mount.

@@ -200,6 +200,13 @@ On a prerendered page, offline mode resolves the policy at build time because
 it needs no request. The banner is in the HTML but hidden, and a small inline
 script shows it in the first paint to visitors with nothing stored.
 
+## Taps before hydration
+
+A banner in the server HTML shows before the page's JavaScript runs. A tap on
+it in that gap does nothing: the button has no handler yet, so the banner
+stays up and no choice is saved. The React and Vue banners hold such a tap and
+replay it after hydration; the Astro banner does not.
+
 ## Check the rendering path
 
 - **Server output:** view the page source of a first visit. It contains

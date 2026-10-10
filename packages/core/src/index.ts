@@ -98,6 +98,8 @@ export type {
 	ProviderTransportKind,
 } from './transports/mode';
 export { custom } from './transports/custom';
+export { earlyInitModes } from './transports/early-init-modes';
+export type { EarlyInitMode } from './transports/early-init-modes';
 export { hosted } from './transports/mode';
 export type {
 	ConsentMode,
@@ -121,6 +123,7 @@ export {
 	C15T_POLICY_CONTRACT_HEADER,
 	C15T_VERSION_HEADER,
 	c15tProtocolHeaders,
+	c15tProtocolParams,
 	c15tVersionHeaders,
 } from './transports/version-header';
 export type {

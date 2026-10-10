@@ -8,8 +8,6 @@
 
 	import { scripts } from '#lib/example-scripts.js';
 
-	import '@c15t/svelte/styles.css';
-
 	let { children, data } = $props();
 </script>
 

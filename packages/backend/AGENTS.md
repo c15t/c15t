@@ -14,11 +14,11 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 - [Choose your setup](./docs/concepts/choose-your-setup.md): Pick the c15t setup for your framework, rendering mode and hosting, and decide who runs the consent backend.
 - [How consent works](./docs/concepts/how-consent-works.md): What c15t decides on each page load, the difference between a permission and a recorded choice, and what happens when a visitor saves.
 - [Verify consent](./docs/guides/verify-consent.md): Check in a production build that vendor requests wait for consent, rejection survives a reload, preferences reopen and privacy signals apply.
-- [Migrate to v3](./docs/upgrade-v3.md): Upgrade from c15t v2 to v3, or from an earlier v3 alpha. Pick the guide for the v2 package you use (@c15t/nextjs, @c15t/react or the c15t store), rename @c15t/scripts, keep visitors' choices, upgrade a self-hosted backend and the Node.js SDK, and look up every renamed and removed v3 alpha API.
+- [Upgrade a self-hosted backend from v2](./docs/self-host/upgrade-v3.md): Upgrade a self-hosted c15t backend (@c15t/backend) and the Node.js SDK (@c15t/node-sdk) from v2 to v3. Covers the database config, the schema migration, moved backend options, policy rules and the new createC15tClient() client.
 
 ## More documentation
 
-[Documentation index](https://c15t.com/docs/llms.txt) · [Full Markdown context](https://c15t.com/llms-full.txt). Prefer the index and individual pages for focused tasks.
+[Documentation index](https://v3.c15t.com/docs/llms.txt) · [Full Markdown context](https://v3.c15t.com/llms-full.txt). Prefer the index and individual pages for focused tasks.
 
 ## Concepts
 
@@ -50,7 +50,4 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 - [Policy configuration](./docs/self-host/guides/policy-packs.md): Author and validate the policy rules published by a self-hosted backend manifest.
 - [Backend overview](./docs/self-host/overview.md): What the c15t consent backend does, and when to use Inth or run @c15t/backend yourself with your own SQL database.
 - [Self-host the backend](./docs/self-host/quickstart.md): Run the c15t consent backend yourself with @c15t/backend, create its database schema with the CLI, mount it in Next.js, TanStack Start, Nuxt, SvelteKit or another server, and point your app at it.
-
-## Reference
-
-- [Migrate to v3](./docs/upgrade-v3.md): Upgrade from c15t v2 to v3, or from an earlier v3 alpha. Pick the guide for the v2 package you use (@c15t/nextjs, @c15t/react or the c15t store), rename @c15t/scripts, keep visitors' choices, upgrade a self-hosted backend and the Node.js SDK, and look up every renamed and removed v3 alpha API.
+- [Upgrade from v2](./docs/self-host/upgrade-v3.md): Upgrade a self-hosted c15t backend (@c15t/backend) and the Node.js SDK (@c15t/node-sdk) from v2 to v3. Covers the database config, the schema migration, moved backend options, policy rules and the new createC15tClient() client.

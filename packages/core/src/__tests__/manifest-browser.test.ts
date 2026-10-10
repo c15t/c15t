@@ -9,12 +9,15 @@ import {
 import type { ConsentManifest } from '@c15t/schema/types';
 import { baseTranslations } from '@c15t/translations/all';
 import { translations as germanCopy } from '@c15t/translations/de';
-import { describe, expect, test, vi } from 'vitest';
+import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import type { ConsentMode } from '../modes';
+import { earlyInitModes } from '../transports/early-init-modes';
 import {
 	createBrowserManifestTransport,
 	manifest,
+	manifestNeedsLocation,
+	withEarlyInit,
 } from '../transports/manifest-browser';
 import type { InitContext } from '../types';
 
@@ -244,5 +247,199 @@ describe('createBrowserManifestTransport()', () => {
 			accept: 'application/json',
 			'x-test': '1',
 		});
+	});
+});
+
+/**
+ * Keyed by location, but every location gets the same opt-in banner: only
+ * the policy ids differ.
+ */
+const sameBannerEverywhere: ConsentManifest = {
+	...everywhereManifest,
+	policyPacks: [
+		createConsentManifestPolicyPack(policyRulePresets.europeOptIn()),
+		createConsentManifestPolicyPack(policyRulePresets.quebecOptIn()),
+		createConsentManifestPolicyPack({
+			...policyRulePresets.europeOptIn(),
+			id: 'world_opt_in',
+			match: { isDefault: true },
+		}),
+	],
+};
+
+/** A banner in Europe and Quebec, none in California or anywhere else. */
+const bannerSomewhere: ConsentManifest = {
+	...everywhereManifest,
+	policyPacks: [
+		createConsentManifestPolicyPack(policyRulePresets.europeOptIn()),
+		createConsentManifestPolicyPack(policyRulePresets.quebecOptIn()),
+		createConsentManifestPolicyPack(policyRulePresets.californiaOptOut()),
+		createConsentManifestPolicyPack(policyRulePresets.worldNone()),
+	],
+};
+
+describe('manifestNeedsLocation()', () => {
+	test('is false when every location gets the same banner', () => {
+		expect(manifestNeedsLocation(sameBannerEverywhere)).toBe(false);
+	});
+
+	test('is true when some location gets a different banner or none', () => {
+		expect(manifestNeedsLocation(bannerSomewhere)).toBe(true);
+		expect(manifestNeedsLocation(geoManifest)).toBe(true);
+	});
+
+	test('is true when a country with region packs and no region fails to match', () => {
+		// Default but no fallback: a Canadian visitor without a province is
+		// insufficient input, which shows no banner.
+		expect(
+			manifestNeedsLocation({
+				...everywhereManifest,
+				policyPacks: [
+					createConsentManifestPolicyPack(policyRulePresets.quebecOptIn()),
+					createConsentManifestPolicyPack({
+						...policyRulePresets.quebecOptIn(),
+						id: 'world_opt_in',
+						match: { isDefault: true },
+					}),
+				],
+			})
+		).toBe(true);
+	});
+});
+
+describe('createBrowserManifestTransport() for an unknown location', () => {
+	test('answers in the browser when every location gets the same banner', async () => {
+		const fetchSpy = vi.fn<typeof fetch>();
+		const transport = createBrowserManifestTransport({
+			backendURL: 'https://backend.example',
+			fetch: fetchSpy,
+			snapshot: sameBannerEverywhere,
+		});
+
+		const response = await transport.init?.(initContext({ language: 'en' }));
+
+		expect(fetchSpy).not.toHaveBeenCalled();
+		expect(response?.location).toEqual({ countryCode: null, regionCode: null });
+		expect(response?.policyResolution).toMatchObject({ status: 'matched' });
+	});
+
+	test('skips geoURL when every location gets the same banner', async () => {
+		const fetchSpy = vi.fn<typeof fetch>();
+		const transport = createBrowserManifestTransport({
+			backendURL: 'https://backend.example',
+			fetch: fetchSpy,
+			geoURL: '/geo',
+			snapshot: sameBannerEverywhere,
+		});
+
+		await transport.init?.(initContext({ language: 'en' }));
+
+		expect(fetchSpy).not.toHaveBeenCalled();
+	});
+
+	test('asks /init when the runtime mounts GPP', async () => {
+		const fetchSpy = vi.fn<typeof fetch>(() =>
+			Promise.reject(new Error('offline'))
+		);
+		const transport = createBrowserManifestTransport(
+			{
+				backendURL: 'https://backend.example',
+				fetch: fetchSpy,
+				snapshot: sameBannerEverywhere,
+			},
+			{ gppEnabled: true }
+		);
+
+		await transport.init?.(initContext({ language: 'en' })).catch(() => null);
+
+		expect(String(fetchSpy.mock.calls[0]?.[0])).toContain('/init');
+	});
+
+	test('starts the /init request within the init() call', () => {
+		const fetchSpy = vi.fn<typeof fetch>(
+			() =>
+				new Promise<Response>(() => {
+					/* never settles */
+				})
+		);
+		const transport = createBrowserManifestTransport({
+			backendURL: 'https://backend.example',
+			fetch: fetchSpy,
+			snapshot: bannerSomewhere,
+		});
+
+		void transport.init?.(initContext({ language: 'en' }));
+
+		expect(fetchSpy).toHaveBeenCalledOnce();
+		expect(String(fetchSpy.mock.calls[0]?.[0])).toContain('/init');
+	});
+});
+
+describe('withEarlyInit()', () => {
+	const options = (snapshot: ConsentManifest, fetchSpy: typeof fetch) => ({
+		backendURL: 'https://backend.example',
+		fetch: fetchSpy,
+		snapshot,
+	});
+
+	afterEach(() => {
+		delete (window as Window & { __gpp?: unknown }).__gpp;
+	});
+
+	test('says the first init asks the backend only when the snapshot cannot answer', () => {
+		const fetchSpy = vi.fn<typeof fetch>();
+		const somewhere = earlyInitModes.get(
+			withEarlyInit(manifest(options(bannerSomewhere, fetchSpy)))
+		);
+		const same = earlyInitModes.get(
+			withEarlyInit(manifest(options(sameBannerEverywhere, fetchSpy)))
+		);
+		const fetched = earlyInitModes.get(
+			withEarlyInit(
+				manifest({ fetch: fetchSpy, manifestURL: 'https://x.test/manifest' })
+			)
+		);
+
+		expect(somewhere?.requestsInit({ language: 'en' })).toBe(true);
+		expect(
+			somewhere?.requestsInit({ country: 'US', language: 'en', region: 'NY' })
+		).toBe(false);
+		expect(same?.requestsInit({ language: 'en' })).toBe(false);
+		// A fetched manifest cannot tell before its request.
+		expect(fetched?.requestsInit({ language: 'en' })).toBe(false);
+		expect(fetchSpy).not.toHaveBeenCalled();
+	});
+
+	test('asks /init when __gpp is installed', () => {
+		const early = earlyInitModes.get(
+			withEarlyInit(manifest(options(sameBannerEverywhere, vi.fn())))
+		);
+		expect(early?.requestsInit({ language: 'en' })).toBe(false);
+
+		(window as Window & { __gpp?: unknown }).__gpp = () => undefined;
+
+		expect(early?.requestsInit({ language: 'en' })).toBe(true);
+	});
+
+	test('builds a transport of its own for every call', () => {
+		const mode = manifest(options(bannerSomewhere, vi.fn()));
+		expect(mode({} as never)).not.toBe(mode({} as never));
+	});
+
+	test('recognizes a mode built again with an equal snapshot', () => {
+		const fetchSpy = vi.fn<typeof fetch>();
+		const register = (snapshot: ConsentManifest) =>
+			earlyInitModes.get(withEarlyInit(manifest(options(snapshot, fetchSpy))));
+		const first = register(structuredClone(bannerSomewhere));
+		const again = register(structuredClone(bannerSomewhere));
+		const edited = register({
+			...structuredClone(bannerSomewhere),
+			appName: 'other',
+		});
+		const other = register(sameBannerEverywhere);
+
+		expect(first && again && first.sameAs(again)).toBe(true);
+		expect(first && edited && first.sameAs(edited)).toBe(false);
+		expect(first && other && first.sameAs(other)).toBe(false);
 	});
 });

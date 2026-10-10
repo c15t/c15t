@@ -14,6 +14,7 @@ export const getServerSideProps = withConsentProps(undefined, {
 
 const SSRPage = ({ consent }: ConsentPageProps) => (
 	<ConsentShell
+		styles={false}
 		state={consent}
 		scenario="ssr"
 	>

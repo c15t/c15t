@@ -112,6 +112,24 @@ initialization in your code.
 **Fix.** Use the c15t Nuxt module. See
 [server rendering without Nuxt](/docs/frameworks/vue/rendering#server-rendering-without-nuxt).
 
+## Names from an earlier alpha are missing
+
+**Check.** An import or component from an earlier v3 alpha fails to resolve,
+such as `c15t/vue/consent-root`, `ConsentPreferencesLink` or the default
+export of `c15t/vue/vite`. The v3 alphas removed names that never shipped in
+a stable release, with no alias.
+
+**Fix.** Use the current names:
+
+| Removed | Use instead |
+| --- | --- |
+| Vue plugin options `backendURL`, `manifest`, `manifestSnapshot`, `manifestURL`, `customFetch`, `domain` | `mode`, a factory from `c15t/vue/vue-plugin` that takes them |
+| The default `c15tVue` export of `c15t/vue/vite` | `consentManifest` from `c15t/vue/vite`. The Vue app plugin keeps the name `c15tVue`. |
+| `c15t/vue/consent-root`, `c15t/vue/consent-widget` | Named exports from `c15t/vue/vue-plugin` |
+| `ConsentPreferencesLink`, `runtime/components/consent-preferences-link.vue` | `ConsentDialogLink`, `consent-dialog-link.vue` |
+| `ConsentFrame` | `ConsentGate` |
+| `hosted({ url })` | `hosted({ backendURL })`, or `VITE_C15T_BACKEND_URL` |
+
 ## More help
 
 [Troubleshoot consent](/docs/guides/troubleshooting) covers problems shared by

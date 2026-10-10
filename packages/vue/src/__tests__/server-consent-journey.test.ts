@@ -31,8 +31,8 @@ test('a render starts a page journey and sends it on the hosted /init', async ()
 		request
 	);
 	const sent = new URL(String(fetch.mock.calls[0]?.[0]));
-	expect(sent.searchParams.get('c15tJourney')).toBe(state.journey?.id);
-	expect(sent.searchParams.get('c15tJourneyScope')).toBe('page');
+	expect(sent.searchParams.get('journey')).toBe(state.journey?.id);
+	expect(sent.searchParams.get('journeyScope')).toBe('page');
 });
 
 test('reportSessions: false tells the browser the page has no journey', async () => {
@@ -47,7 +47,7 @@ test('reportSessions: false tells the browser the page has no journey', async ()
 		request
 	);
 	expect(state.journey).toBeNull();
-	expect(String(fetch.mock.calls[0]?.[0])).not.toContain('c15tJourney');
+	expect(String(fetch.mock.calls[0]?.[0])).not.toContain('journey');
 });
 
 test('manifest() without a consent route reads the manifest itself', async () => {

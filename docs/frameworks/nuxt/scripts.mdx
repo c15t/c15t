@@ -1,6 +1,6 @@
 ---
 title: Scripts
-description: Load vendor scripts by consent category in a Nuxt app with the c15t Nuxt module, and what happens when a visitor withdraws consent.
+description: Load vendor scripts by consent category in a Nuxt app with the c15t Nuxt module, what happens when a visitor withdraws consent, and how to move off @nuxt/scripts and nuxt-gtag.
 group: frameworks
 ---
 
@@ -8,7 +8,10 @@ group: frameworks
 
 A banner does not stop a script you load with a `<script>` tag, `useHead` or a
 vendor's Nuxt module. Remove those loaders and register the vendor with c15t
-instead, so c15t loads it only while its category is allowed.
+instead, so c15t loads it only while its category is allowed. For
+`@nuxt/scripts` and `nuxt-gtag`, follow
+[migrate from `@nuxt/scripts`](#migrate-from-nuxtscripts) or
+[migrate from `nuxt-gtag`](#migrate-from-nuxt-gtag).
 
 Register the helpers from `@c15t/integrations` under the `c15t` key in
 `app/app.config.ts`:
@@ -58,6 +61,219 @@ their vendor slug. See [vendor consent](/docs/frameworks/nuxt/vendor-consent).
 Allow each vendor's script host in your `script-src` directive. The module's
 `nonce` option is fixed when the app builds, so prefer the host allowlist.
 See [Content Security Policy](/docs/frameworks/nuxt/content-security-policy).
+
+## Migrate from `@nuxt/scripts`
+
+`@nuxt/scripts` loads a registry script when its own trigger fires, whatever
+the visitor chose in c15t. That covers a `useScriptGoogleAnalytics()` call in
+a component, a `scripts.registry` entry with a `trigger` in `nuxt.config.ts`,
+and components such as `ScriptYouTubePlayer`. Move every tracking vendor to
+c15t's `scripts`. You can keep `@nuxt/scripts` for
+[necessary scripts](#keep-nuxtscripts-for-necessary-scripts).
+
+### Map registry scripts to helpers
+
+| `@nuxt/scripts` | c15t helper |
+| --- | --- |
+| `useScriptGoogleAnalytics` | [`gtag`](/docs/integrations/google-tag) |
+| `useScriptGoogleTagManager` | [`googleTagManager`](/docs/integrations/google-tag-manager) |
+| `useScriptMetaPixel` | [`metaPixel`](/docs/integrations/meta-pixel) |
+| `useScriptTikTokPixel` | [`tiktokPixel`](/docs/integrations/tiktok-pixel) |
+| `useScriptRedditPixel` | [`redditPixel`](/docs/integrations/reddit-pixel) |
+| `useScriptSnapchatPixel` | [`snapchatPixel`](/docs/integrations/snapchat-pixel) |
+| `useScriptXPixel` | [`xPixel`](/docs/integrations/x-pixel) |
+| `useScriptLinkedInInsight` | [`linkedinInsights`](/docs/integrations/linkedin-insights) |
+| `useScriptBingUet` | [`microsoftUet`](/docs/integrations/microsoft-uet) |
+| `useScriptClarity` | [`clarity`](/docs/integrations/microsoft-clarity) |
+| `useScriptHotjar` | [`hotjar`](/docs/integrations/hotjar) |
+| `useScriptPostHog` | [`posthog`](/docs/integrations/posthog) |
+| `useScriptSegment` | [`segment`](/docs/integrations/segment) |
+| `useScriptMixpanelAnalytics` | [`mixpanelAnalytics`](/docs/integrations/mixpanel-analytics) |
+| `useScriptPlausibleAnalytics` | [`plausibleAnalytics`](/docs/integrations/plausible-analytics) |
+| `useScriptFathomAnalytics` | [`fathomAnalytics`](/docs/integrations/fathom-analytics) |
+| `useScriptMatomoAnalytics` | [`matomoAnalytics`](/docs/integrations/matomo-analytics) |
+| `useScriptUmamiAnalytics` | [`umamiAnalytics`](/docs/integrations/umami-analytics) |
+| `useScriptRybbitAnalytics` | [`rybbitAnalytics`](/docs/integrations/rybbit-analytics) |
+| `useScriptDatabuddyAnalytics` | [`databuddy`](/docs/integrations/databuddy) |
+| `useScriptVercelAnalytics` | [`vercelAnalytics`](/docs/integrations/vercel-analytics) |
+| `useScriptCloudflareWebAnalytics` | [`cloudflareWebAnalytics`](/docs/integrations/cloudflare-web-analytics) |
+| `useScriptAhrefsAnalytics` | [`ahrefsAnalytics`](/docs/integrations/ahrefs-analytics) |
+| `useScriptCrisp`, `ScriptCrisp` | [`crisp`](/docs/integrations/crisp) |
+| `useScriptIntercom`, `ScriptIntercom` | [`intercom`](/docs/integrations/intercom) |
+| `ScriptYouTubePlayer` | `ConsentGate` around an iframe. See [embeds](#move-youtube-and-google-maps-embeds). |
+| `ScriptGoogleMaps` | `ConsentGate` around an iframe. See [embeds](#move-youtube-and-google-maps-embeds). |
+
+Registry options do not carry over one to one. Copy each vendor's ID into the
+helper, then check the vendor guide for the rest. Meta's `id` becomes
+`pixelId`, and Tag Manager's `l` or `dataLayer` becomes `dataLayer`. The `gtag`
+helper always uses `window.dataLayer`, so Google Analytics' `l` has no
+equivalent. The `googleTagManager` helper has no options for Tag Manager's
+`auth`, `preview`, `envName`, `cookiesWin` or `onBeforeGtmStart`. A container
+environment that needs them, or a vendor without a helper such as AdSense,
+needs a [custom integration](/docs/integrations/building-integrations).
+
+Put the helpers in `app/consent-scripts.ts`, keeping the same IDs:
+
+<include src="../../shared/examples/nuxt/nuxt-scripts-registry.mdx" />
+
+Register `scripts` in `app/app.config.ts` as in
+[register vendor scripts](#register-vendor-scripts). Then delete the
+`useScript*` calls for those vendors, their `scripts.registry` entries in
+`nuxt.config.ts`, and any `scripts.globals` entry that loads a tracker. A
+leftover composable call loads a second copy of the vendor outside c15t.
+
+The helpers load each vendor from the host in its guide, usually the vendor's
+own domain, and the vendor's requests go straight to it. `@nuxt/scripts`
+bundles some registry scripts and proxies many by default, including Google
+Analytics, when the app has a server runtime. Before a request reaches the
+vendor, the proxy truncates the visitor's IP address, strips cookie and
+authorization headers, and, depending on the script, generalizes fingerprinting
+fields such as language and hardware. After the move, the vendor receives these
+unchanged.
+
+If your privacy notice or legal review relies on that proxy, keep the vendor's
+requests on your own domain: write a
+[custom integration](/docs/integrations/building-integrations) that loads the
+script and points the vendor's collection endpoint at a reverse proxy you run.
+Otherwise, update the notice. In both cases, allow the hosts the browser now
+contacts in your
+[Content Security Policy](/docs/frameworks/nuxt/content-security-policy).
+
+<import src="../../shared/scripts/google-load-mode.mdx#choose" />
+
+### Remove useScriptTriggerConsent
+
+`useScriptTriggerConsent` loads a script once its own `consented` ref turns
+true, through `accept()` or the `consent` option. c15t records consent
+separately, so you end up with two answers that can disagree. If any code
+calls `accept()`, the script loads even after the visitor rejects in the c15t
+banner. Global Privacy Control, vendor switches and policy changes in c15t
+never reach the trigger. Delete every `useScriptTriggerConsent` call and the
+banner code that called `accept()` or `revoke()`. c15t decides when each
+registered script loads.
+
+Remove the Consent Mode calls too: the `defaultConsent` option and
+`consent.update()` on the Google registry scripts. The `gtag` and
+`googleTagManager` helpers send `default` and `update` from the visitor's c15t
+permissions, and a second source sends conflicting commands.
+
+### Keep your event calls
+
+A registry composable returns a `proxy` that queues calls until its script
+loads. Calling the composable to get that proxy also loads the script through
+`@nuxt/scripts`, so event code has to stop calling it. Call the global the
+vendor defines once c15t loads it:
+
+| Before | After |
+| --- | --- |
+| `proxy.gtag(...)` from `useScriptGoogleAnalytics()` | `window.gtag?.(...)` |
+| `proxy.dataLayer.push(...)` from `useScriptGoogleTagManager()` | `window.dataLayer?.push(...)`, or `window[name]` with a custom `dataLayer` name |
+| `proxy.fbq('track', ...)` from `useScriptMetaPixel()` | `metaPixelEvent(...)` from `@c15t/integrations/meta-pixel`, after checking marketing permission |
+
+The proxy did nothing during server rendering. `window` does not exist there,
+so call these from an event handler or `onMounted`:
+
+<include src="../../shared/examples/nuxt/nuxt-scripts-events.mdx" />
+
+Until c15t has set up a vendor, its global is undefined and the optional call
+drops the event. Other vendors' event APIs are in their
+[integration guides](/docs/integrations/overview).
+
+### Move YouTube and Google Maps embeds
+
+`ScriptYouTubePlayer` puts a `dns-prefetch` or `preconnect` link for
+`i.ytimg.com` in the server HTML and loads the video thumbnail from YouTube
+before the visitor clicks. `ScriptGoogleMaps` puts a `dns-prefetch` link for
+`maps.googleapis.com` in the server HTML. For
+a video or a map that only needs to display, render the iframe inside
+`ConsentGate`, as in [embeds](/docs/frameworks/nuxt/embeds) and the
+[YouTube](/docs/integrations/youtube) and
+[Google Maps](/docs/integrations/google-maps) guides.
+
+If you need the YouTube IFrame Player API or the Maps JavaScript API, such as
+player events or markers, keep the `@nuxt/scripts` component and put it
+inside `ConsentGate`. The component then renders only while the category is
+allowed, and its links and requests wait with it.
+
+### Keep @nuxt/scripts for necessary scripts
+
+c15t does not need to own every script. A first-party script or an SDK your
+checkout needs, such as Stripe, can stay on `@nuxt/scripts` with its usual
+trigger, provided your policy does not ask consent for it. Do not load a
+tracker there.
+
+## Migrate from `nuxt-gtag`
+
+The `nuxt-gtag` client plugin adds `gtag.js` to every page as soon as the app
+loads, unless you set `initMode: 'manual'`. c15t cannot gate it. Replace the
+module's configuration and composables:
+
+| `nuxt-gtag` | c15t |
+| --- | --- |
+| `gtag.id` in `nuxt.config.ts` | `gtag({ id, category: 'measurement' })` in `app/consent-scripts.ts` |
+| `gtag.config` | The `config` option on `gtag` |
+| `gtag.tags` with several IDs | One `gtag` helper, when the extra IDs need no `config` of their own. Add them as destinations of that Google tag in Google's tag settings. Otherwise see [tags with their own settings](#tags-with-their-own-settings). |
+| `gtag.initCommands` with `consent` `default` | Delete. The helper sends `default` from the visitor's permissions. |
+| `initMode: 'manual'` and `useGtag().initialize()` | Delete. c15t loads the tag. The helper needs its `id` when you register `scripts`, so an ID passed to `initialize()` at runtime, as in `nuxt-gtag`'s multi-tenancy setup, needs a [custom integration](/docs/integrations/building-integrations). |
+| `useGtag().gtag(...)` | `window.gtag?.(...)` |
+| `useTrackEvent(name, params)` | `window.gtag?.('event', name, params)` |
+| `useGtag().disableAnalytics()` and `enableAnalytics()` | Delete, and set `loadMode: 'after-consent'` if you used them to stop all Analytics requests. See [stop all requests until consent](#stop-all-requests-until-consent). |
+| `enabled: false` for an environment | Leave the helper out of `scripts` in that environment. |
+| `url`, `loadingStrategy` | No equivalent. The helper loads `gtag.js` from `googletagmanager.com` with `async`. |
+
+Register one `gtag` helper only. c15t tracks scripts by ID, and every `gtag`
+helper uses the script ID `gtag`.
+
+<include src="../../shared/examples/nuxt/nuxt-gtag-scripts.mdx" />
+
+Register `scripts` in `app/app.config.ts` as in
+[register vendor scripts](#register-vendor-scripts), and choose a
+[load mode](#choose-when-google-loads) for the tag. Then remove
+`'nuxt-gtag'` from `modules` and the `gtag` key from `nuxt.config.ts`, and
+uninstall the package, for example with `npm uninstall nuxt-gtag`. `useGtag`
+and `useTrackEvent` were auto-imports, so `nuxt typecheck` reports any call you
+missed.
+
+Call `window.gtag` from browser code. `useGtag()` returned a function that did
+nothing on the server, and `window` does not exist there.
+
+### Stop all requests until consent
+
+`disableAnalytics()` sets Google's `ga-disable-<ID>` flag, so `gtag.js` sends
+nothing to Analytics for that ID. The `gtag` helper's default
+`loadMode: 'always'` works differently: it loads `gtag.js` before consent and
+sends Consent Mode `default` with the optional types denied. Google then
+receives cookieless pings. Turning Google off with
+[vendor consent](/docs/frameworks/nuxt/vendor-consent) sends the same denied
+signals.
+
+If you called `disableAnalytics()` so that a visitor who has not opted in sends
+nothing, set `loadMode: 'after-consent'` on the helper. `gtag.js` then waits
+for the helper's `category`.
+
+### Tags with their own settings
+
+The `gtag` helper sends one `config` command, for its `id`. A `gtag.tags`
+entry with its own `config`, or a mix of Analytics IDs with Google Ads or
+Floodlight IDs, has no direct mapping:
+
+- Destinations added in Google's tag settings share the helper's `config`.
+- With `loadMode: 'after-consent'`, every destination waits for the helper's
+  one `category`. An Ads ID under `measurement` stays off for a visitor who
+  allowed only marketing.
+
+For these setups, replace the `gtag` helper with a
+[custom integration](/docs/integrations/building-integrations). It loads
+`gtag.js` once, sends Consent Mode `default` and `update` from the visitor's
+permissions, as in
+[load before consent and signal the vendor](/docs/integrations/building-integrations#load-before-consent-and-signal-the-vendor),
+and sends a `config` command for each tag with that tag's settings. To send
+nothing before opt-in, leave out `alwaysLoad` and set
+`category: { or: ['measurement', 'marketing'] }`. That condition only decides
+when `gtag.js` loads. Set each Google consent type from its own category, so
+Consent Mode keeps the other purpose's destinations restricted:
+`measurement` sets `analytics_storage`, and `marketing` sets `ad_storage`,
+`ad_user_data` and `ad_personalization`.
 
 ## Verify gating
 

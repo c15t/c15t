@@ -60,10 +60,10 @@ browser takes over after hydration:
 
 - The server HTML contains your page but no banner and no consent state.
 - After hydration the browser resolves the bundled manifest, then shows the
-  banner if the policy asks for one. When required country or region is
-  missing, it calls `/init` and uses the backend's current policy and
-  translations, which can differ from the build snapshot. With `hosted()`,
-  it always calls `/init`.
+  banner if the policy asks for one. When the banner depends on a country or
+  region the browser does not know, it calls `/init` and uses the backend's
+  current policy and translations, which can differ from the build snapshot.
+  With `hosted()`, it always calls `/init`.
 - The server render and the first browser render agree, so hydration does not
   warn or change a stored choice.
 

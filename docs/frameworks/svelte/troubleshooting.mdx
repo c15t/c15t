@@ -64,6 +64,22 @@ SvelteKit does that. See [choose your setup](/docs/concepts/choose-your-setup).
 
 <include src="../../shared/svelte/troubleshooting.mdx" />
 
+## Names from an earlier alpha are missing
+
+**Check.** An import from an earlier v3 alpha fails, such as
+`ConsentManagerProvider`, `Frame` or `consentManifest({ outputFile })`.
+`@c15t/svelte` was not public in v2, so the alphas renamed these with no
+alias.
+
+**Fix.** Use the current names:
+
+| Removed | Use instead |
+| --- | --- |
+| `ConsentManagerProvider` | `ConsentProvider` |
+| `Frame` | `ConsentGate` |
+| `hosted({ url })` | `hosted()` with `VITE_C15T_BACKEND_URL`, or `hosted({ backendURL })` |
+| `ConsentManifestOptions`, `consentManifest({ outputFile })` | Removed. `consentManifest()` serves the snapshot as `c15t/generated`. |
+
 ## More help
 
 [Troubleshoot consent](/docs/guides/troubleshooting) covers problems shared by

@@ -177,6 +177,11 @@ layout that imports `consent-dialog-trigger.astro` fails to resolve it.
 | `buildManifest: false` | `manifest({ source: 'runtime' })` |
 | `buildManifest: true` | `onBuildError: 'fail'` |
 | `ConsentDialogTrigger` from `consent-dialog-trigger.astro` | `ConsentDialogLink` from `c15t/astro/components` |
+| `hosted({ domain })` | `hosted({ backendURL })`, or the top-level `backendURL` |
+| `manifest({ reportSessions })` | The top-level `reportSessions` |
+| The `c15t/astro/api/init` and `c15t/astro/api/manifest` entries, and route handlers from `c15t/astro/api` | `routePrefix`, and `createConsentRouteHandlers` and the manifest cache helpers from `c15t/astro/server` |
+| `resolveTransportFactory`, `custom`, and the `C15tModeDescriptor`, `C15tHostedDescriptor`, `C15tManifestDescriptor`, `C15tOfflineDescriptor` and `C15tEndpointOptions` types | `ConsentMode` from `c15t/astro` |
+| `/// <reference types="c15t/astro/middleware" />` in `src/env.d.ts` | Nothing. The integration adds the `Astro.locals.c15t` type. |
 
 ## A vendor loads before the visitor chooses
 

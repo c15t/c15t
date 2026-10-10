@@ -1,5 +1,8 @@
 import { backendURL as builtBackendURL, snapshot } from '@c15t/core/generated';
-import { manifest as browserManifest } from '@c15t/core/transports/manifest-browser';
+import {
+	manifest as browserManifest,
+	withEarlyInit,
+} from '@c15t/core/transports/manifest-browser';
 import type {
 	BrowserManifestModeFactory,
 	BrowserManifestOptions,
@@ -71,8 +74,12 @@ export const withBuildDefaults = function withBuildDefaults(
 export const manifest = function manifest(
 	options: BrowserManifestOptions = {}
 ): BrowserManifestModeFactory {
-	return browserManifest(
-		withBuildDefaults(options, { backendURL: builtBackendURL, snapshot })
+	// `ConsentProvider` may send the first `/init` during its first render
+	// when the snapshot can't answer for an unknown location.
+	return withEarlyInit(
+		browserManifest(
+			withBuildDefaults(options, { backendURL: builtBackendURL, snapshot })
+		)
 	);
 };
 

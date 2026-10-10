@@ -32,7 +32,7 @@ packages:
 ### Link a page's `/init` to the save that follows
 
 c15t now sends a random journey id on `GET /init` and `POST /subjects` as query
-parameters (`c15tJourney`, `c15tJourneyScope`, plus `c15tStored` on `/init`).
+parameters (`journey`, `journeyScope`, plus `stored` on `/init`).
 Session reports gain `journey: { id, scope, storedChoice, prompt, domain }`, so
 a backend can link a page load to the choice that follows without
 fingerprinting or extra requests.

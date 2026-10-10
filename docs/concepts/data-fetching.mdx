@@ -72,8 +72,8 @@ makes:
 
 | Request | Query parameters |
 | --- | --- |
-| `GET /init` | `c15tJourney`, `c15tJourneyScope`, `c15tStored` (`1` if a choice or notice dismissal was stored) |
-| `POST /subjects` | `c15tJourney`, `c15tJourneyScope` |
+| `GET /init` | `journey`, `journeyScope`, `stored` (`1` if a choice or notice dismissal was stored) |
+| `POST /subjects` | `journey`, `journeyScope` |
 
 Session reports carry it as `journey: { id, scope, storedChoice, prompt, domain }`.
 A report and a save with the same `id` belong to one page load. `prompt` is
@@ -143,12 +143,14 @@ export const mode = hosted({
 });
 ```
 
-The route must return the c15t init response contract. Because `initURL` is
-set, `assertDecisionInputs` defaults to `true`: saves carry the policy decision
-they were made against when init returned no signed policy snapshot token, so
-the backend can reject a save made against a stale policy. Server-rendered
-frameworks do this for you when you set `routePrefix`: the browser re-inits
-through `${routePrefix}/init`.
+The route must return the c15t init response contract. c15t adds its inputs to
+`initURL` as query parameters, replacing any of your own with the same name.
+See [query parameters and CORS](/docs/self-host/api/endpoints#query-parameters-and-cors)
+for the names. Because `initURL` is set, `assertDecisionInputs` defaults to
+`true`: saves carry the policy decision they were made against when init
+returned no signed policy snapshot token, so the backend can reject a save
+made against a stale policy. Server-rendered frameworks do this for you when
+you set `routePrefix`: the browser re-inits through `${routePrefix}/init`.
 
 The init route resolves policy; the backend rewrite forwards `/api/c15t/subjects`
 and other record endpoints. Configure both if you choose this optional proxy

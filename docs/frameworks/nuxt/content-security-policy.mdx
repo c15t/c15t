@@ -13,6 +13,7 @@ A Nuxt app with c15t adds these to the page, and your policy must allow them:
 | The `<style id="c15t-css-vars">` tag with your theme tokens, in the page head | `style-src` |
 | The components' CSS: inline `<style>` tags Nuxt writes for the server-rendered banner, and stylesheets Nuxt bundles with your app | `style-src` |
 | On `ssr: false` pages in `hosted()` mode, an inline `<script>` in the page head that starts `/init` | `script-src` |
+| On server-rendered pages with a banner, an inline `<script>` before its buttons that holds a tap made before hydration | `script-src` |
 | Browser requests to `/api/c15t/init` and `/api/c15t/manifest` in the default `manifest()` mode | `connect-src 'self'` |
 | Consent saves to your backend's `/subjects`, plus `/init` in `hosted()` mode | `connect-src` |
 | Chunks Nuxt splits out, such as the browser resolver with `manifest({ resolve: 'browser' })` and the copy for a language other than English | `script-src 'self'` |
@@ -61,6 +62,12 @@ the script.
   console error and add it to `script-src`.
 
 To leave the script out, set `initPrefetch: false` in the module options.
+
+A server-rendered banner also writes an inline `<script>` before its buttons.
+It holds a tap the visitor makes before the app hydrates. It carries the
+module's `nonce` option when set, and its content is the same for every
+visitor, so a hash works too. If your policy blocks it, the banner still works
+after hydration, but a tap before then does nothing.
 
 ## Allow the backend
 

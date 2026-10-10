@@ -9,11 +9,16 @@ import { createConsentManifestPolicyPack } from '@c15t/schema/types';
 import type { ConsentManifest, InitOutput } from '@c15t/schema/types';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
-import { createHostedTransport, isConsentSaveRejection } from '../index';
+import {
+	createHostedInitRequest,
+	createHostedTransport,
+	isConsentSaveRejection,
+} from '../index';
 import type { InitResponse, KernelConfig, KernelTransport } from '../index';
 import { createKernel } from '../kernel';
 import { createMemoryOutboxStore } from '../kernel/save-outbox';
 import { createManifestTransport } from '../transports/manifest';
+import { corsPreflightReasons } from './fixtures/cors-safelist';
 import {
 	choiceRecords,
 	explicitChoice,
@@ -36,6 +41,15 @@ afterEach(() => {
 	vi.useRealTimers();
 	vi.restoreAllMocks();
 });
+
+/** A request URL without its query string. */
+const withoutQuery = (url: unknown): string => String(url).split('?')[0] ?? '';
+
+const JOURNEY_UUID = '3b241101-e2bb-4255-8caf-4136c566a962';
+
+/** A request URL's query parameters. */
+const queryOf = (url: unknown): URLSearchParams =>
+	new URL(String(url), 'http://c15t.test').searchParams;
 
 const REALISTIC_INIT_OUTPUT = {
 	branding: 'c15t',
@@ -959,6 +973,170 @@ describe('kernel transport: identify forwards to transport', () => {
 
 // ---- createHostedTransport unit tests ------------------------------------
 
+describe('hosted init: CORS simple request', () => {
+	const respondWithInit = () =>
+		vi.fn(
+			// oxlint-disable-next-line require-await -- Match the asynchronous fetch contract.
+			async (url: RequestInfo | URL, _init?: RequestInit) =>
+				new Response(
+					JSON.stringify(
+						withoutQuery(url).endsWith('/init')
+							? REALISTIC_INIT_OUTPUT
+							: { subjectId: 'sub_test' }
+					),
+					{ status: 200 }
+				)
+		);
+
+	// Every input the kernel can hand init at once. A new input that travels
+	// as a custom header makes a cross-origin init preflight, and fails here.
+	test.each([
+		{ label: 'no overrides', overrides: {} },
+		{
+			label: 'every override',
+			overrides: { country: 'DE', gpc: true, language: 'de-DE', region: 'BE' },
+		},
+		{ label: 'a GPC opt-out', overrides: { gpc: false } },
+	])('needs no preflight with $label', async ({ overrides }) => {
+		const fetchSpy = respondWithInit();
+		const kernel = createConsentKernel({
+			initialExperiment: {
+				acknowledgedDiagnostics: false,
+				arm: 'wall',
+				assignedBy: 'host',
+				id: 'banner shape',
+			},
+			transport: createHostedTransport({
+				backendURL: 'https://backend.example',
+				fetch: fetchSpy as unknown as typeof fetch,
+			}),
+		});
+		kernel.set.overrides(overrides);
+		await kernel.commands.init();
+		const [url, init] = fetchSpy.mock.calls.at(-1) ?? [];
+		expect(withoutQuery(url)).toBe('https://backend.example/init');
+		expect(corsPreflightReasons(init)).toEqual([]);
+		kernel.dispose();
+	});
+
+	test('the early init a framework sends before the transport loads needs none either', () => {
+		const request = createHostedInitRequest({
+			backendURL: 'https://backend.example',
+			experiment: { arm: 'b', id: 'x' },
+			journey: { id: JOURNEY_UUID, scope: 'page', storedChoice: false },
+			overrides: { country: 'US', gpc: true, language: 'en', region: 'CA' },
+		});
+		expect(corsPreflightReasons(request.init)).toEqual([]);
+		expect(Object.fromEntries(queryOf(request.url))).toEqual({
+			contract: '1',
+			country: 'US',
+			experiment: 'x=b',
+			gpc: '1',
+			journey: JOURNEY_UUID,
+			journeyScope: 'page',
+			region: 'CA',
+			stored: '0',
+			v: expect.stringMatching(/^\d+\.\d+\.\d+/u),
+		});
+		// The response is still read against the overrides as headers.
+		expect(request.requestHeaders).toMatchObject({
+			'x-c15t-country': 'US',
+			'x-c15t-gpc': '1',
+			'x-c15t-region': 'CA',
+		});
+	});
+
+	test('replaces a parameter an app already put on initURL', () => {
+		// The names are generic, so an app's own init route may use one. The
+		// value c15t sends wins and appears once; the app's own parameters
+		// stay.
+		const request = createHostedInitRequest({
+			backendURL: 'https://backend.example',
+			initURL: '/api/consent/init?country=US&site=shop&journey=stale',
+			journey: { id: JOURNEY_UUID, scope: 'tab', storedChoice: true },
+			overrides: { country: 'GB' },
+		});
+		const query = queryOf(request.url);
+		expect(withoutQuery(request.url)).toBe('/api/consent/init');
+		expect(query.getAll('country')).toEqual(['GB']);
+		expect(query.getAll('journey')).toEqual([JOURNEY_UUID]);
+		expect(query.get('site')).toBe('shop');
+		expect(request.url.startsWith('/api/consent/init?site=shop&v=')).toBe(true);
+	});
+
+	test('reads the response against a parameter initURL keeps', () => {
+		// The backend resolves `?gpc=1` from the URL, so the response side must
+		// see it too. A value c15t sends still wins over the URL's.
+		const request = createHostedInitRequest({
+			backendURL: 'https://backend.example',
+			initURL: '/api/consent/init?gpc=1&country=US',
+			overrides: { country: 'GB' },
+		});
+		expect(request.requestHeaders).toMatchObject({
+			'x-c15t-country': 'GB',
+			'x-c15t-gpc': '1',
+		});
+	});
+
+	test('a caller header outside the safelist brings the preflight back', async () => {
+		const fetchSpy = respondWithInit();
+		const transport = createHostedTransport({
+			backendURL: 'https://backend.example',
+			fetch: fetchSpy as unknown as typeof fetch,
+			headers: { 'cf-ipcountry': 'DE' },
+		});
+		await transport.init({ overrides: {}, user: null });
+		expect(corsPreflightReasons(fetchSpy.mock.calls[0]?.[1])).toEqual([
+			'header cf-ipcountry: DE',
+		]);
+	});
+
+	test('init sends cookies only to its own origin; saves still include them', async () => {
+		const fetchSpy = respondWithInit();
+		const transport = createHostedTransport({
+			backendURL: 'https://backend.example',
+			fetch: fetchSpy as unknown as typeof fetch,
+		});
+		await transport.init({ overrides: {}, user: null });
+		await transport.save({
+			choice: { categories: {}, version: 3 },
+			confirmed: { actionAt: 0, categories: {} },
+			consentAction: 'all',
+			consents: {
+				experience: false,
+				functionality: false,
+				marketing: false,
+				measurement: false,
+				necessary: true,
+			},
+			model: 'opt-in',
+			overrides: {},
+			policySnapshotToken: null,
+			subject: { subjectId: 'sub_test' },
+			subjectId: 'sub_test',
+			uiSource: 'banner',
+			user: null,
+		});
+		const [[, init], [, save]] = fetchSpy.mock.calls as [
+			[string, RequestInit],
+			[string, RequestInit],
+		];
+		expect(init.credentials).toBe('same-origin');
+		expect(save.credentials).toBe('include');
+	});
+
+	test('an explicit credentials mode applies to init too', async () => {
+		const fetchSpy = respondWithInit();
+		const transport = createHostedTransport({
+			backendURL: 'https://backend.example',
+			credentials: 'include',
+			fetch: fetchSpy as unknown as typeof fetch,
+		});
+		await transport.init({ overrides: {}, user: null });
+		expect(fetchSpy.mock.calls[0]?.[1]?.credentials).toBe('include');
+	});
+});
+
 describe('createHostedTransport: request shape', () => {
 	const backendURLToken = String.raw`\${backendURL}`;
 
@@ -983,7 +1161,8 @@ describe('createHostedTransport: request shape', () => {
 		expect(fetchSpy).toHaveBeenCalledTimes(1);
 		const [url, init] = fetchSpy.mock.calls[0] ?? [];
 		// Trailing slash on backendURL is stripped.
-		expect(url).toBe('https://api.example.com/c15t/init');
+		expect(withoutQuery(url)).toBe('https://api.example.com/c15t/init');
+		expect(queryOf(url).get('country')).toBe('DE');
 		expect((init as RequestInit).method).toBe('GET');
 		expect((init as RequestInit).body).toBeUndefined();
 	});
@@ -1154,7 +1333,7 @@ describe('createHostedTransport: request shape', () => {
 			user: null,
 		});
 
-		expect(fetchSpy.mock.calls.map(([url]) => url)).toEqual([
+		expect(fetchSpy.mock.calls.map(([url]) => withoutQuery(url))).toEqual([
 			'/api/c15t/init',
 			'https://api.example.com/c15t/subjects',
 		]);
@@ -1310,7 +1489,7 @@ describe('createHostedTransport: request shape', () => {
 			user: null,
 		});
 
-		expect(fetchSpy.mock.calls.map(([url]) => url)).toEqual([
+		expect(fetchSpy.mock.calls.map(([url]) => withoutQuery(url))).toEqual([
 			'/internal/consent/init',
 			'https://api.example.com/c15t/subjects',
 		]);
@@ -1401,15 +1580,14 @@ describe('createHostedTransport: request shape', () => {
 
 		await transport.init?.({ overrides: {}, user: null });
 		const [, init] = fetchSpy.mock.calls[0] ?? [];
+		// Caller headers stay headers: they are meant for server callers, and
+		// in a browser they bring the CORS preflight back.
 		expect((init as RequestInit).headers).toEqual({
 			accept: 'application/json',
 			'accept-language': 'de-DE,de;q=0.9',
 			'sec-gpc': '1',
 			'x-c15t-country': 'DE',
-			// Always attached by the transport itself, not consumer-forwarded.
-			'x-c15t-policy-contract': '1',
 			'x-c15t-region': 'BE',
-			'x-c15t-version': expect.stringMatching(/^\d+\.\d+\.\d+/u),
 		});
 	});
 
@@ -1752,7 +1930,7 @@ describe('createManifestTransport: local init resolution', () => {
 	});
 });
 
-describe('x-c15t-experiment header', () => {
+describe('experiment query parameter', () => {
 	test('hosted init carries the arm while the visitor has no stored choice', async () => {
 		const fetchSpy = vi.fn(
 			// oxlint-disable-next-line require-await -- Match the asynchronous fetch contract.
@@ -1775,11 +1953,10 @@ describe('x-c15t-experiment header', () => {
 			}),
 		});
 		await kernel.commands.init();
-		const headers = fetchSpy.mock.calls[0]?.[1]?.headers as Record<
-			string,
-			string
-		>;
-		expect(headers['x-c15t-experiment']).toBe('banner%20shape=wall');
+		const [url, init] = fetchSpy.mock.calls[0] ?? [];
+		// The header's `<id>=<arm>` value, URI-encoded parts, as a parameter.
+		expect(queryOf(url).get('experiment')).toBe('banner%20shape=wall');
+		expect(init?.headers).not.toHaveProperty('x-c15t-experiment');
 		kernel.dispose();
 	});
 });
@@ -1789,8 +1966,7 @@ describe('x-c15t-version header (issue #916)', () => {
 		const fetchSpy = vi.fn(
 			// oxlint-disable-next-line require-await -- Match the asynchronous fetch contract.
 			async (url: RequestInfo | URL, _init?: RequestInit) => {
-				const s = String(url);
-				if (s.endsWith('/init')) {
+				if (withoutQuery(url).endsWith('/init')) {
 					return new Response(JSON.stringify(REALISTIC_INIT_OUTPUT), {
 						headers: { 'content-type': 'application/json' },
 						status: 200,
@@ -1813,13 +1989,16 @@ describe('x-c15t-version header (issue #916)', () => {
 		await kernel.commands.save('all');
 
 		expect(fetchSpy).toHaveBeenCalledTimes(2);
-		for (const call of fetchSpy.mock.calls) {
-			const headers = (call[1] as RequestInit).headers as Record<
-				string,
-				string
-			>;
-			expect(headers['x-c15t-version']).toMatch(/^\d+\.\d+\.\d+/u);
-		}
+		const [[initURL, init], [, saveInit]] = fetchSpy.mock.calls as [
+			[string, RequestInit],
+			[string, RequestInit],
+		];
+		// Init carries it in the query string, so it stays a simple request.
+		expect(queryOf(initURL).get('v')).toMatch(/^\d+\.\d+\.\d+/u);
+		expect(queryOf(initURL).get('contract')).toBe('1');
+		expect(init.headers).not.toHaveProperty('x-c15t-version');
+		const saveHeaders = saveInit.headers as Record<string, string>;
+		expect(saveHeaders['x-c15t-version']).toMatch(/^\d+\.\d+\.\d+/u);
 	});
 
 	test('manifest fetch and save both carry the client version', async () => {
@@ -1928,7 +2107,9 @@ describe('hosted transport: initialData', () => {
 
 		// The second init goes to the network: the prefetch is single-use.
 		await transport.init?.({ overrides: {}, user: null });
-		expect(fetchSpy.mock.calls[1]?.[0]).toBe('/internal/consent/init');
+		expect(withoutQuery(fetchSpy.mock.calls[1]?.[0])).toBe(
+			'/internal/consent/init'
+		);
 	});
 
 	test('falls back to the fetch when the prefetch resolved empty or rejected', async () => {
@@ -2008,7 +2189,7 @@ describe('hosted transport: GPC in decision assertions', () => {
 });
 
 describe('hosted transport: init context', () => {
-	test('sends the kernel overrides as canonical consent headers on init', async () => {
+	test('sends the kernel overrides as query parameters on init', async () => {
 		const fetchSpy = vi
 			.fn()
 			.mockResolvedValue(
@@ -2027,15 +2208,16 @@ describe('hosted transport: init context', () => {
 		// A backend that echoes nothing back still yields the requested GPC.
 		expect(result?.resolvedOverrides?.gpc).toBe(true);
 
-		const [, init] = fetchSpy.mock.calls[0] ?? [];
-		expect((init as RequestInit).headers).toMatchObject({
+		const [url, init] = fetchSpy.mock.calls[0] ?? [];
+		const query = queryOf(url);
+		expect(query.get('country')).toBe('FR');
+		expect(query.get('region')).toBe('IDF');
+		expect(query.get('gpc')).toBe('1');
+		// Accept-Language is CORS-safelisted, so the language stays a header.
+		expect((init as RequestInit).headers).toEqual({
+			accept: 'application/json',
 			'accept-language': 'fr',
-			'x-c15t-country': 'FR',
-			'x-c15t-gpc': '1',
-			'x-c15t-region': 'IDF',
 		});
-		// Scripts cannot set Sec-* headers; the override must not try.
-		expect((init as RequestInit).headers).not.toHaveProperty('sec-gpc');
 	});
 });
 
@@ -2136,7 +2318,7 @@ describe('hosted transport: save waits for an in-flight init', () => {
 	test('a save issued while init is pending carries that init decision', async () => {
 		const initGate = Promise.withResolvers<undefined>();
 		const fetchSpy = vi.fn().mockImplementation(async (url: string) => {
-			if (url.endsWith('/init')) {
+			if (withoutQuery(url).endsWith('/init')) {
 				await initGate.promise;
 				return new Response(JSON.stringify(REALISTIC_INIT_OUTPUT), {
 					status: 200,
@@ -2172,7 +2354,7 @@ describe('hosted transport: save waits for an in-flight init', () => {
 			user: null,
 		});
 		await Promise.resolve();
-		expect(fetchSpy.mock.calls.map(([url]) => url)).toEqual([
+		expect(fetchSpy.mock.calls.map(([url]) => withoutQuery(url))).toEqual([
 			'/internal/consent/init',
 		]);
 
@@ -2221,7 +2403,7 @@ describe('hosted transport: assertion state across overlapping inits', () => {
 		];
 		let initCalls = 0;
 		const fetchSpy = vi.fn().mockImplementation(async (url: string) => {
-			if (url.endsWith('/init')) {
+			if (withoutQuery(url).endsWith('/init')) {
 				const index = initCalls;
 				initCalls += 1;
 				await gates[index]?.promise;
@@ -2276,7 +2458,7 @@ describe('hosted transport: assertion state across overlapping inits', () => {
 
 	test('a save refuses to post unbound when the awaited init failed', async () => {
 		const fetchSpy = vi.fn().mockImplementation((url: string) => {
-			if (url.endsWith('/init')) {
+			if (withoutQuery(url).endsWith('/init')) {
 				return Promise.resolve(new Response('nope', { status: 503 }));
 			}
 			return Promise.resolve(
@@ -2325,7 +2507,7 @@ describe('hosted transport: re-init with different inputs', () => {
 		const gates: PromiseWithResolvers<undefined>[] = [];
 		let initCalls = 0;
 		const fetchSpy = vi.fn().mockImplementation(async (url: string) => {
-			if (url.endsWith('/init')) {
+			if (withoutQuery(url).endsWith('/init')) {
 				const index = initCalls;
 				initCalls += 1;
 				const gate = Promise.withResolvers<undefined>();
@@ -2424,7 +2606,7 @@ describe('hosted transport: removing an override', () => {
 	test('drops the remembered decision so a failed re-init refuses the save', async () => {
 		let initCalls = 0;
 		const fetchSpy = vi.fn().mockImplementation((url: string) => {
-			if (url.endsWith('/init')) {
+			if (withoutQuery(url).endsWith('/init')) {
 				initCalls += 1;
 				return Promise.resolve(
 					initCalls === 1
@@ -2522,9 +2704,11 @@ describe('consent journey query parameters', () => {
 		const url = new URL(String(fetchSpy.mock.calls[0]?.[0]));
 		expect(url.pathname).toBe('/c15t/init');
 		expect(Object.fromEntries(url.searchParams)).toEqual({
-			c15tJourney: JOURNEY_ID,
-			c15tJourneyScope: 'tab',
-			c15tStored: '1',
+			contract: '1',
+			journey: JOURNEY_ID,
+			journeyScope: 'tab',
+			stored: '1',
+			v: expect.stringMatching(/^\d+\.\d+\.\d+/u),
 		});
 		// Query parameters only: no header a backend would have to allow.
 		const headers = fetchSpy.mock.calls[0]?.[1]?.headers as Record<
@@ -2536,16 +2720,16 @@ describe('consent journey query parameters', () => {
 		);
 	});
 
-	test('hosted init without a journey sends the plain URL', async () => {
+	test('hosted init without a journey sends no journey parameters', async () => {
 		const fetchSpy = respond();
 		const transport = createHostedTransport({
 			backendURL: 'https://api.example.com/c15t',
 			fetch: fetchSpy as unknown as typeof fetch,
 		});
 		await transport.init({ overrides: {}, user: null });
-		expect(fetchSpy.mock.calls[0]?.[0]).toBe(
-			'https://api.example.com/c15t/init'
-		);
+		const url = String(fetchSpy.mock.calls[0]?.[0]);
+		expect(withoutQuery(url)).toBe('https://api.example.com/c15t/init');
+		expect([...queryOf(url).keys()]).toEqual(['v', 'contract']);
 	});
 
 	test('a relative init route keeps its own query', async () => {
@@ -2560,8 +2744,11 @@ describe('consent journey query parameters', () => {
 			overrides: {},
 			user: null,
 		});
-		expect(fetchSpy.mock.calls[0]?.[0]).toBe(
-			`/api/consent/init?site=shop&c15tJourney=${JOURNEY_ID}&c15tJourneyScope=page&c15tStored=0`
+		expect(fetchSpy.mock.calls[0]?.[0]).toMatch(
+			new RegExp(
+				`^/api/consent/init\\?site=shop&v=[^&]+&contract=1&journey=${JOURNEY_ID}&journeyScope=page&stored=0$`,
+				'u'
+			)
 		);
 	});
 
@@ -2577,7 +2764,7 @@ describe('consent journey query parameters', () => {
 		});
 		const [url, init] = fetchSpy.mock.calls[0] ?? [];
 		expect(url).toBe(
-			`https://api.example.com/c15t/subjects?c15tJourney=${JOURNEY_ID}&c15tJourneyScope=page`
+			`https://api.example.com/c15t/subjects?journey=${JOURNEY_ID}&journeyScope=page`
 		);
 		expect(String(init?.body)).not.toContain(JOURNEY_ID);
 
@@ -2625,7 +2812,7 @@ describe('consent journey query parameters', () => {
 		const saved = fetchSpy.mock.calls.find(([url]) =>
 			String(url).includes('/subjects')
 		);
-		expect(String(saved?.[0])).toContain(`c15tJourney=${JOURNEY_ID}`);
+		expect(String(saved?.[0])).toContain(`journey=${JOURNEY_ID}`);
 	});
 
 	test('manifest save carries the journey on the URL', async () => {
@@ -2640,7 +2827,7 @@ describe('consent journey query parameters', () => {
 			journey: { id: JOURNEY_ID, scope: 'tab' },
 		});
 		expect(fetchSpy.mock.calls[0]?.[0]).toBe(
-			`https://api.example.com/c15t/subjects?c15tJourney=${JOURNEY_ID}&c15tJourneyScope=tab`
+			`https://api.example.com/c15t/subjects?journey=${JOURNEY_ID}&journeyScope=tab`
 		);
 	});
 });

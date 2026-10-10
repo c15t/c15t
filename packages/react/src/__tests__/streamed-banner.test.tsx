@@ -344,7 +344,7 @@ test('accepting right after hydration records the choice against the streamed po
 	await hydrated.unmount();
 });
 
-test('a click before the client has the data is dropped, never saved against a provisional policy', async () => {
+test('a click before the client has the data waits for it and records against the streamed policy', async () => {
 	const config = policyConfig();
 	const server = deferred<KernelConfig>();
 	const client = deferred<KernelConfig>();
@@ -353,22 +353,23 @@ test('a click before the client has the data is dropped, never saved against a p
 	await page.finish();
 	// The root hydrates; the banner's boundary waits for the client's data.
 	const hydrated = await page.hydrate(<Page prefetch={client.promise} />);
-	const button = () =>
-		page?.doc.querySelector<HTMLButtonElement>(
+	page.doc
+		.querySelector<HTMLButtonElement>(
 			'[data-testid="consent-banner-accept-button"]'
-		);
-	button()?.click();
+		)
+		?.click();
 	await tick(50);
+	// The banner's inline script holds the tap and hides the banner. Nothing
+	// is saved against the provisional policy.
 	expect(transportSave).not.toHaveBeenCalled();
-	expect(page.hasBanner()).toBe(true);
+	const banner = page.doc.querySelector<HTMLElement>(BANNER);
+	expect(banner).not.toBeNull();
+	expect(banner && page.doc.defaultView?.getComputedStyle(banner).display).toBe(
+		'none'
+	);
 
 	await act(() => {
 		client.resolve(config);
-	});
-	await tick(50);
-	expect(page.hasBanner()).toBe(true);
-	await act(() => {
-		button()?.click();
 	});
 	await tick(100);
 

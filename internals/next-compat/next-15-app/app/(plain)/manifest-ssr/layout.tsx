@@ -13,6 +13,7 @@ const ManifestSSRLayout = async ({ children }: { children: ReactNode }) => {
 
 	return (
 		<ConsentShell
+			styles={false}
 			state={state}
 			scenario="manifest-ssr"
 			transport="manifest"

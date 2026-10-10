@@ -393,7 +393,7 @@ export const lazyBrowserManifest = function lazyBrowserManifest(
 	load: LoadManifestBrowserModule = loadManifestBrowserModule
 ): ProviderTransportFactory {
 	return Object.assign(
-		(): KernelTransport => {
+		(context?: ProviderTransportContext): KernelTransport => {
 			const fetch =
 				options.fetch ??
 				(typeof globalThis.fetch === 'function'
@@ -433,11 +433,14 @@ export const lazyBrowserManifest = function lazyBrowserManifest(
 					const pending = firstLoad ?? load();
 					firstLoad = undefined;
 					const { createBrowserManifestTransport } = await pending;
-					return createBrowserManifestTransport({
-						...options,
-						fetch: early && fetch ? withEarlyRequest(fetch, early) : fetch,
-						manifestURL: options.snapshot ? options.manifestURL : manifestURL,
-					} as BrowserManifestOptions);
+					return createBrowserManifestTransport(
+						{
+							...options,
+							fetch: early && fetch ? withEarlyRequest(fetch, early) : fetch,
+							manifestURL: options.snapshot ? options.manifestURL : manifestURL,
+						} as BrowserManifestOptions,
+						context
+					);
 				}
 			);
 		},

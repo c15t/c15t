@@ -18,6 +18,7 @@ const NetworkBlockerLayout = ({ children }: { children: ReactNode }) => {
 		<>
 			<SiblingBeacon />
 			<ConsentShell
+				styles={false}
 				networkBlocker={{ rules: COMPAT_TRACKER_RULES }}
 				scenario="network-blocker"
 				state={state}

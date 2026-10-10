@@ -383,13 +383,15 @@ rules below are the same in every framework.
 `GET ${routePrefix}/init` resolves the build snapshot or runtime cached manifest with the request's
 geography, language and GPC headers and responds with `cache-control: private, no-store` and
 `x-c15t-policy-contract: 1`. The payload echoes the inputs it used as
-`resolvedOverrides` and `resolvedPrivacySignals`. When the request carries an
-`x-c15t-policy-contract` header with a different value, the response keeps the
+`resolvedOverrides` and `resolvedPrivacySignals`. The browser sends its
+overrides and policy contract as the `country`, `region`, `gpc` and
+`contract` query parameters, which win over the matching `x-c15t-*` headers. When the request declares a different policy contract in
+either form, the response keeps the
 translations and UI data but sets `policyResolution` to `status: 'failed'`
 with `reason: 'unsupported-contract'`. Whenever the resolution is not
 `matched`, the payload carries no `policySnapshotToken`, `gvl`,
-`gvlReference`, `cmpId` or `customVendors`. Requests without the header are
-treated as compatible.
+`gvlReference`, `cmpId` or `customVendors`. Requests that declare no contract
+are treated as compatible.
 
 With a snapshot, `GET ${routePrefix}/manifest` returns the complete snapshot as
 JSON with status `200`. It makes no upstream request, adds no cache or validator

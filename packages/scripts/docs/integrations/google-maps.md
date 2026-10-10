@@ -26,7 +26,7 @@ address and a directions link outside the consent-gated embed.
 ## Add the embed to your framework
 
 Create `src/embed-config.ts` using the configuration on this page, then select
-your framework. Keep the existing [consent setup](https://c15t.com/docs/frameworks), its policy
+your framework. Keep the existing [consent setup](https://v3.c15t.com/docs/frameworks), its policy
 and preferences UI. These examples do not create a second consent provider.
 
 **Next.js**

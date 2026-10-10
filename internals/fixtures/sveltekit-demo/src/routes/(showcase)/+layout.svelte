@@ -25,9 +25,6 @@
 	import { themePresetStore } from '#lib/consent-manager/theme-store.svelte.js';
 	import ThemeTokens from '#lib/consent-manager/ThemeTokens.svelte';
 
-	import '@c15t/svelte/styles.css';
-	import '@c15t/svelte/iab/styles.css';
-
 	let { children, data } = $props();
 	const devTools = dev ? import('@c15t/svelte/devtools') : null;
 	// The theme showcase renders its own provider and theme tokens.

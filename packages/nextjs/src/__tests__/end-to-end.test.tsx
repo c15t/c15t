@@ -542,7 +542,7 @@ describe('ConsentRoot: config picks the transport', () => {
 				).toBe(true)
 			);
 			for (const [url] of fetchSpy.mock.calls) {
-				expect(String(url)).not.toContain('c15tJourney');
+				expect(String(url)).not.toContain('journey');
 			}
 		} finally {
 			globalThis.fetch = originalFetch;
@@ -575,7 +575,7 @@ describe('ConsentRoot: config picks the transport', () => {
 			expect(pathOf(fetchSpy.mock.calls[0]?.[0])).toBe(
 				'https://consent.example.com/subjects'
 			);
-			expect(String(fetchSpy.mock.calls[0]?.[0])).not.toContain('c15tJourney');
+			expect(String(fetchSpy.mock.calls[0]?.[0])).not.toContain('journey');
 		} finally {
 			globalThis.fetch = originalFetch;
 		}

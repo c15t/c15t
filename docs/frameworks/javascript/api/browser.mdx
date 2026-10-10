@@ -185,7 +185,7 @@ helpers, `mountConsentUI` and `version`.
 | Export | What it does |
 | --- | --- |
 | `hosted`, `offline`, `manifest`, `custom` | Transport factories for the `mode` option. See [transports](/docs/frameworks/javascript/transports). |
-| `manifestNeedsLocation(manifest)` | Whether a manifest's policy depends on the visitor's country, so a page knows it must supply one. |
+| `manifestNeedsLocation(manifest)` | Whether some location gets a different banner, or none, under this manifest, so a page knows it must supply a country to resolve it without `/init`. `false` when every country and region rule gives the same banner. |
 | `resolveRules(rules)` | Turns preset names such as `'europeOptIn'` into policy rules. Throws on an unknown name. |
 | `activateGatedScripts(snapshot, root?, options?)` | Runs allowed `text/plain` scripts under `root` yourself, for a setup without a client. `options.nonce` runs only tags that carry that nonce. Returns how many ran. |
 | `mountConsentUI(client, options?)` | Mounts the stock UI for a client. `mountUI()` calls it. |

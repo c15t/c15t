@@ -1,4 +1,5 @@
 import type { AllConsentNames } from '@c15t/core';
+import { EARLY_TAP_OPT_OUT } from '@c15t/core/surface-actions';
 import { forwardRef as createForwardRef, useCallback } from 'react';
 import type { FocusEvent, MouseEvent, PointerEvent } from 'react';
 
@@ -38,6 +39,81 @@ type ConsentActionThemeKey =
 	| 'customize'
 	| 'dismiss'
 	| 'save';
+
+/**
+ * The `data-action` the banner's pre-hydration script replays for each
+ * button action. It records the choice from that attribute alone.
+ */
+const EARLY_TAP_ACTIONS: Partial<Record<string, string>> = {
+	'accept-consent': 'accept',
+	'dismiss-notice': 'dismiss',
+	'open-consent-dialog': 'customize',
+	'reject-consent': 'reject',
+};
+
+/**
+ * Whether the pre-hydration script must leave this button's taps alone.
+ * It replays from `data-action` alone, so a button whose action does not
+ * match its `data-action`, that skips the default action, or whose click
+ * does more than the stock action opts out. The replay then never records
+ * a choice the hydrated button would not. An `asChild` element can carry
+ * its own `data-action`, so it always opts out.
+ */
+const skipsEarlyTap = function skipsEarlyTap(params: {
+	action: string;
+	asChild: boolean | undefined;
+	dataAction: unknown;
+	ownsClick: boolean;
+	performDefaultAction: boolean;
+}): boolean {
+	const { action, dataAction, ownsClick, performDefaultAction } = params;
+	const replays =
+		!ownsClick &&
+		(performDefaultAction || action === 'open-consent-dialog') &&
+		EARLY_TAP_ACTIONS[action] === dataAction;
+	return (
+		!replays &&
+		(params.asChild === true ||
+			Object.values(EARLY_TAP_ACTIONS).includes(String(dataAction)))
+	);
+};
+
+/**
+ * Whether a click does more than the stock action. A click handler can veto
+ * it. An `asChild` element brings its own `data-action`, handlers, and
+ * perhaps a link to follow. A submit or reset button acts on its form. The
+ * script stops the click but not its default, so a link or form would leave
+ * the page before the replay.
+ */
+const ownsClick = function ownsClick(params: {
+	asChild: boolean | undefined;
+	onClick: unknown;
+	type: unknown;
+}): boolean {
+	return (
+		params.onClick !== undefined ||
+		params.asChild === true ||
+		params.type === 'submit' ||
+		params.type === 'reset'
+	);
+};
+
+/**
+ * The value `key` renders with after the button's prop spreads. As in JSX,
+ * the last layer that has the key wins, even with `undefined`.
+ */
+const renderedProp = function renderedProp(
+	key: string,
+	layers: readonly Readonly<Record<string, unknown>>[]
+): unknown {
+	let value: unknown;
+	for (const layer of layers) {
+		if (key in layer) {
+			value = layer[key];
+		}
+	}
+	return value;
+};
 
 /**
  * Resolves the final variant and mode for a consent button.
@@ -303,19 +379,40 @@ export const ConsentButton = createForwardRef<
 
 		const isStyled = !(contextNoStyle || noStyle);
 
+		// The same layers, in the same order, as the spreads below. A
+		// `components.button.*` slot can set `data-action` or `type` too.
+		const ownProps = {
+			'data-action': consentAction,
+			type: asChild ? undefined : ('button' as const),
+		};
+		const renderedLayers = [ownProps, buttonStyleProps, domProps];
+		const earlyTapOptOut = skipsEarlyTap({
+			action,
+			asChild,
+			dataAction: renderedProp('data-action', renderedLayers),
+			ownsClick: ownsClick({
+				asChild,
+				onClick: forwardedOnClick,
+				type: renderedProp('type', renderedLayers),
+			}),
+			performDefaultAction,
+		})
+			? { [EARLY_TAP_OPT_OUT]: 'off' }
+			: undefined;
+
 		return (
 			<Comp
 				ref={ref}
-				type={asChild ? undefined : 'button'}
 				data-variant={isStyled ? resolvedButtonStyle.variant : undefined}
 				data-mode={isStyled ? resolvedButtonStyle.mode : undefined}
 				data-size={isStyled ? size : undefined}
-				data-action={consentAction}
+				{...ownProps}
 				{...buttonStyleProps}
 				onClick={buttonClick}
 				onFocus={buttonFocus}
 				onPointerEnter={buttonPointerEnter}
 				{...domProps}
+				{...earlyTapOptOut}
 			/>
 		);
 	}

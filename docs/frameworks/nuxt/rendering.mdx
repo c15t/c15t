@@ -52,6 +52,15 @@ renders without consent UI in the HTML, optional categories stay denied,
 gated scripts and iframes stay blocked, and the browser resolves the policy
 after hydration.
 
+A banner in the server HTML shows before the app hydrates, which on a slow
+phone can take seconds. The stock banner puts a small inline script in front of
+its buttons that holds an Accept all, Reject all, notice dismiss or Customize
+tap made in that gap. Accept, reject and dismiss hide the banner at once. When
+the banner hydrates and the runtime has started, c15t records the choice with
+the time of the tap, saves it and loads the scripts it allows; Customize opens
+the dialog. A tap on a banner for one model or prompt is dropped when the
+browser resolves another, and the banner shows again.
+
 ### Without the consent route
 
 `routePrefix: false` adds no route. The server render still resolves each

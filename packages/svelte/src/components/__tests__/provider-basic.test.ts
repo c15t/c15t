@@ -107,9 +107,11 @@ describe('ConsentProvider Basic Request Behavior', () => {
 			});
 		});
 		await vi.waitFor(() => {
-			// The query carries the consent journey.
+			// The query carries the protocol inputs and the consent journey.
 			expect(mockFetch).toHaveBeenCalledWith(
-				expect.stringMatching(/^\/api\/c15t\/init\?c15tJourney=/u),
+				expect.stringMatching(
+					/^\/api\/c15t\/init\?v=[^&]+&contract=1&journey=/u
+				),
 				expect.objectContaining({ method: 'GET' })
 			);
 		});

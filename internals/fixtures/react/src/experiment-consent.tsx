@@ -12,8 +12,6 @@ import type { ReactNode } from 'react';
 import { scripts } from './scripts';
 import { testBackend } from './test-backend';
 
-import 'c15t/react/styles.css';
-
 const mode = hosted({
 	backendURL: 'https://your-project.inth.app',
 	...testBackend('backendURL'),

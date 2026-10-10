@@ -145,6 +145,25 @@ transport is code.
 **Fix.** Pass the `custom()` transport to `ConsentRoot`'s `mode` prop, and
 keep the handle's `mode` for one of the data modes from `@c15t/svelte/kit`.
 
+## Names from an earlier alpha are missing
+
+**Check.** An import or option from an earlier v3 alpha fails, such as
+`createSvelteKitConsentRouteHandlers`, `c15tPreload` or
+`loadConsent(event, { backendURL })`. `@c15t/svelte` was not public in v2, so
+the alphas renamed these with no alias.
+
+**Fix.** Use the current names:
+
+| Removed | Use instead |
+| --- | --- |
+| `ConsentManagerProvider` with `prefetch={...}` | `<ConsentRoot state={data.consent}>` |
+| `Frame` | `ConsentGate` |
+| `createSvelteKitConsentRouteHandlers` | `createConsentRoute` |
+| `c15tPreload` | Part of `consentManifest()` from `@c15t/svelte/vite` |
+| `ConsentManifestOptions`, `consentManifest({ outputFile })` | Removed |
+| `loadConsent(event, { backendURL, manifest, initRoute, shared })` returning `prefetch` | `c15tHandle({ mode, routePrefix, snapshot, backendURL })` in `src/hooks.server.ts`, and `export { loadConsent as load }`, which returns `{ consent }` |
+| `resolveConsent({ manifest })` from `@c15t/svelte/server` | `resolveConsent({ snapshot })` |
+
 <include src="../../shared/svelte/troubleshooting.mdx" />
 
 ## More help

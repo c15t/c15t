@@ -13,7 +13,6 @@ import {
 import { IabSurfaces } from '../demo/iab-surfaces';
 
 import homeCss from '../demo/home.css?url';
-import iabCss from 'c15t/tanstack-start/iab/styles.css?url';
 
 const HomePage = () => {
 	const activeUI = useActiveUI();
@@ -132,9 +131,6 @@ const HomePage = () => {
 export const Route = createFileRoute('/')({
 	component: HomePage,
 	head: () => ({
-		links: [
-			{ href: homeCss, rel: 'stylesheet' },
-			{ href: iabCss, rel: 'stylesheet' },
-		],
+		links: [{ href: homeCss, rel: 'stylesheet' }],
 	}),
 });

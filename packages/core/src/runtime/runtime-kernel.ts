@@ -236,6 +236,12 @@ export const createRuntimeKernel = function createRuntimeKernel(
 
 	const transportContext: ProviderTransportContext = {
 		consentCategories: options.consentCategories,
+		// The same test `start()` uses to mount GPP.
+		gppEnabled:
+			enabled &&
+			!options.consentSource &&
+			Boolean(options.gpp) &&
+			options.loadGPP !== undefined,
 		iabEnabled: isIABConfigured(options.iab),
 		policyRules: options.policyRules,
 		prefetch,

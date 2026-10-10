@@ -171,6 +171,33 @@ export function ConsentPolicyDebug() {
 `location` shows the country and region the server resolved. Remove the
 component after you finish.
 
+## Names from an earlier alpha are missing
+
+**Check.** TypeScript or the build reports a missing export or option, such as
+`createConsentServerRoute`, `DEFAULT_INIT_ROUTE` or `ConsentRoot`'s
+`backendURL` prop. The v3 alphas removed names that never shipped in a stable
+release, with no alias.
+
+**Fix.** Use the current names:
+
+| Removed | Use instead |
+| --- | --- |
+| `ConsentRoot`'s `backendURL` and `routePrefix` props | `createConsentStateHandler({ routePrefix })`. The state carries the backend URL, the mode and the route prefix. |
+| `ConsentRoot`'s `initRoute` prop, and `DEFAULT_INIT_ROUTE` | `createConsentStateHandler({ routePrefix: '/api/c15t' })`. There is no default route any more. |
+| `createConsentServerRoute`, and its `manifestGET`, `initGET` and `proxyHandler` | `createConsentRoute()`, which returns `GET`, plus the write methods with `proxy` |
+| `createConsentStateHandler({ backendURL, manifest })` | `createConsentStateHandler()`, which reads both from `consentManifest()`, or `{ snapshot }` |
+| `manifestURL` on the state handler | `mode: manifest({ manifestURL })` |
+| `ConsentManifestOptions`, `resolveStrictestDefaultInit` | `ResolveConsentOptions`; `resolveUnknownLocationInit` |
+| Falling back to offline mode when no backend URL is set | `ConsentRoot` throws. Pass `mode: offline()` to run without a backend. |
+| `hosted`, `offline` and `manifest` from `c15t/tanstack-start` as transports | They are data for `createConsentStateHandler({ mode })` now. |
+
+The renames shared by every framework:
+
+<include src="../../shared/upgrade-v3/earlier-alpha-modes.mdx" />
+
+`Frame` and its parts still work, with a one-time warning outside production.
+Use `ConsentGate` instead.
+
 ## More help
 
 [Troubleshoot consent](/docs/guides/troubleshooting) covers problems shared by

@@ -9,7 +9,7 @@ group: integrations
 
 Each vendor helper in `@c15t/integrations` returns a script configuration that you
 register with your c15t provider. Importing a helper installs nothing on its
-own. Set up consent with your [framework quickstart](https://c15t.com/docs/frameworks) first,
+own. Set up consent with your [framework quickstart](https://v3.c15t.com/docs/frameworks) first,
 then follow the vendor guide.
 
 | Package manager | Command                                |
@@ -40,41 +40,41 @@ kernel to control its DOM lifecycle. Embeds do not require `@c15t/integrations`.
 
 ## Tag managers
 
-| Integration                                   | Helper             | Category    | Loading behavior                                  |
-| --------------------------------------------- | ------------------ | ----------- | ------------------------------------------------- |
-| [Cloudflare Zaraz](./cloudflare-zaraz.md)     | `cloudflareZaraz`  | `necessary` | Always runs; syncs purposes, Zaraz runs the tools |
-| [Google Tag Manager](./google-tag-manager.md) | `googleTagManager` | `necessary` | Always loads; signals Google consent              |
+| Integration                                   | Helper             | Category                                             | Loading behavior                                                                                     |
+| --------------------------------------------- | ------------------ | ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| [Cloudflare Zaraz](./cloudflare-zaraz.md)     | `cloudflareZaraz`  | `necessary`                                          | Always runs; syncs purposes, Zaraz runs the tools                                                    |
+| [Google Tag Manager](./google-tag-manager.md) | `googleTagManager` | `necessary`; `measurement` or `marketing` when gated | Always loads and signals Google consent by default; `loadMode: 'after-consent'` waits for permission |
 
 ## Analytics
 
-| Integration                                               | Helper                   | Category                                        | Loading behavior                                                             |
-| --------------------------------------------------------- | ------------------------ | ----------------------------------------------- | ---------------------------------------------------------------------------- |
-| [Google Tag](./google-tag.md)                             | `gtag`                   | `measurement` or `marketing`                    | Always loads; signals Google consent                                         |
-| [Ahrefs Analytics](./ahrefs-analytics.md)                 | `ahrefsAnalytics`        | `measurement`                                   | Waits for effective permission                                               |
-| [Adobe Analytics](./adobe-analytics.md)                   | `adobeAnalytics`         | `measurement`                                   | Waits for effective permission                                               |
-| [Amplitude](./amplitude.md)                               | `amplitude`              | `measurement`                                   | Waits for effective permission; opts the SDK out on revocation               |
-| [Cloudflare Web Analytics](./cloudflare-web-analytics.md) | `cloudflareWebAnalytics` | `measurement`                                   | Waits for effective permission                                               |
-| [Clearbit](./clearbit.md)                                 | `clearbit`               | `marketing`                                     | Waits for effective permission                                               |
-| [Microsoft Clarity](./microsoft-clarity.md)               | `clarity`                | `measurement`                                   | Gated initially; keeps the SDK and signals storage consent                   |
-| [Databuddy](./databuddy.md)                               | `databuddy`              | `measurement`                                   | Always loads; switches the SDK's disabled flag                               |
-| [Fathom Analytics](./fathom-analytics.md)                 | `fathomAnalytics`        | `measurement`                                   | Waits for effective permission                                               |
-| [Heap](./heap.md)                                         | `heap`                   | `measurement`                                   | Waits for effective permission                                               |
-| [Matomo Analytics](./matomo-analytics.md)                 | `matomoAnalytics`        | `measurement`                                   | Gated by default; optional consent mode                                      |
-| [Mixpanel](./mixpanel-analytics.md)                       | `mixpanelAnalytics`      | `measurement`                                   | Always loads; calls opt-in and opt-out APIs                                  |
-| [OneDollarStats](./one-dollar-stats.md)                   | `oneDollarStats`         | `measurement`                                   | Waits for effective permission                                               |
-| [Hotjar](./hotjar.md)                                     | `hotjar`                 | `measurement`                                   | Waits for effective permission                                               |
-| [Hightouch](./hightouch.md)                               | `hightouch`              | `measurement`                                   | Waits for effective permission                                               |
-| [LogRocket](./logrocket.md)                               | `logRocket`              | `measurement`                                   | Waits for effective permission                                               |
-| [Plausible Analytics](./plausible-analytics.md)           | `plausibleAnalytics`     | `measurement`                                   | Waits for effective permission                                               |
-| [PostHog](./posthog.md)                                   | `posthog`                | `measurement`                                   | Configurable; defaults to always loading and calling opt-in and opt-out APIs |
-| [Promptwatch](./promptwatch.md)                           | `promptwatch`            | `measurement`                                   | Waits for effective permission                                               |
-| [Pirsch](./pirsch.md)                                     | `pirsch`                 | `measurement`                                   | Waits for effective permission                                               |
-| [RudderStack](./rudderstack.md)                           | `rudderstack`            | `measurement`                                   | Gated by default; optional destination consent mode                          |
-| [Segment](./segment.md)                                   | `segment`                | `measurement`                                   | Waits for effective permission                                               |
-| [Sentry](./sentry.md)                                     | `sentry`                 | `necessary`; Replay and user data `measurement` | Configurable; defaults to always loading and loads Replay after permission   |
-| [Rybbit Analytics](./rybbit-analytics.md)                 | `rybbitAnalytics`        | `measurement`                                   | Waits for effective permission                                               |
-| [Umami Analytics](./umami-analytics.md)                   | `umamiAnalytics`         | `measurement`                                   | Waits for effective permission                                               |
-| [Vercel Analytics](./vercel-analytics.md)                 | `vercelAnalytics`        | `measurement`                                   | Waits for effective permission                                               |
+| Integration                                               | Helper                   | Category                                        | Loading behavior                                                                                     |
+| --------------------------------------------------------- | ------------------------ | ----------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| [Google Tag](./google-tag.md)                             | `gtag`                   | `measurement` or `marketing`                    | Always loads and signals Google consent by default; `loadMode: 'after-consent'` waits for permission |
+| [Ahrefs Analytics](./ahrefs-analytics.md)                 | `ahrefsAnalytics`        | `measurement`                                   | Waits for effective permission                                                                       |
+| [Adobe Analytics](./adobe-analytics.md)                   | `adobeAnalytics`         | `measurement`                                   | Waits for effective permission                                                                       |
+| [Amplitude](./amplitude.md)                               | `amplitude`              | `measurement`                                   | Waits for effective permission; opts the SDK out on revocation                                       |
+| [Cloudflare Web Analytics](./cloudflare-web-analytics.md) | `cloudflareWebAnalytics` | `measurement`                                   | Waits for effective permission                                                                       |
+| [Clearbit](./clearbit.md)                                 | `clearbit`               | `marketing`                                     | Waits for effective permission                                                                       |
+| [Microsoft Clarity](./microsoft-clarity.md)               | `clarity`                | `measurement`                                   | Gated initially; keeps the SDK and signals storage consent                                           |
+| [Databuddy](./databuddy.md)                               | `databuddy`              | `measurement`                                   | Always loads; switches the SDK's disabled flag                                                       |
+| [Fathom Analytics](./fathom-analytics.md)                 | `fathomAnalytics`        | `measurement`                                   | Waits for effective permission                                                                       |
+| [Heap](./heap.md)                                         | `heap`                   | `measurement`                                   | Waits for effective permission                                                                       |
+| [Matomo Analytics](./matomo-analytics.md)                 | `matomoAnalytics`        | `measurement`                                   | Gated by default; optional consent mode                                                              |
+| [Mixpanel](./mixpanel-analytics.md)                       | `mixpanelAnalytics`      | `measurement`                                   | Always loads; calls opt-in and opt-out APIs                                                          |
+| [OneDollarStats](./one-dollar-stats.md)                   | `oneDollarStats`         | `measurement`                                   | Waits for effective permission                                                                       |
+| [Hotjar](./hotjar.md)                                     | `hotjar`                 | `measurement`                                   | Waits for effective permission                                                                       |
+| [Hightouch](./hightouch.md)                               | `hightouch`              | `measurement`                                   | Waits for effective permission                                                                       |
+| [LogRocket](./logrocket.md)                               | `logRocket`              | `measurement`                                   | Waits for effective permission                                                                       |
+| [Plausible Analytics](./plausible-analytics.md)           | `plausibleAnalytics`     | `measurement`                                   | Waits for effective permission                                                                       |
+| [PostHog](./posthog.md)                                   | `posthog`                | `measurement`                                   | Configurable; defaults to always loading and calling opt-in and opt-out APIs                         |
+| [Promptwatch](./promptwatch.md)                           | `promptwatch`            | `measurement`                                   | Waits for effective permission                                                                       |
+| [Pirsch](./pirsch.md)                                     | `pirsch`                 | `measurement`                                   | Waits for effective permission                                                                       |
+| [RudderStack](./rudderstack.md)                           | `rudderstack`            | `measurement`                                   | Gated by default; optional destination consent mode                                                  |
+| [Segment](./segment.md)                                   | `segment`                | `measurement`                                   | Waits for effective permission                                                                       |
+| [Sentry](./sentry.md)                                     | `sentry`                 | `necessary`; Replay and user data `measurement` | Configurable; defaults to always loading and loads Replay after permission                           |
+| [Rybbit Analytics](./rybbit-analytics.md)                 | `rybbitAnalytics`        | `measurement`                                   | Waits for effective permission                                                                       |
+| [Umami Analytics](./umami-analytics.md)                   | `umamiAnalytics`         | `measurement`                                   | Waits for effective permission                                                                       |
+| [Vercel Analytics](./vercel-analytics.md)                 | `vercelAnalytics`        | `measurement`                                   | Waits for effective permission                                                                       |
 
 ## Chat and support
 
@@ -111,6 +111,13 @@ manager entry before adding its helper. c15t cannot gate a copy it did not
 load. Tag managers and data pipelines such as Segment can load further
 destinations, which need consent settings of their own.
 
+Framework packages are loaders too. To move their vendors to c15t, see
+[migrate from `@next/third-parties`](../frameworks/next/scripts.md#migrate-from-nextthird-parties)
+for Next.js, and
+[migrate from `@nuxt/scripts`](../frameworks/nuxt/scripts.md#migrate-from-nuxtscripts)
+or [migrate from `nuxt-gtag`](../frameworks/nuxt/scripts.md#migrate-from-nuxt-gtag)
+for Nuxt.
+
 When a visitor turns off a category they had allowed, c15t reloads the page so
 that code which already ran stops. Each vendor guide lists what its helper does
 on revocation and how to check it.
@@ -123,18 +130,18 @@ behind the cookies a vendor already wrote; `clearOnRevocation` deletes them
 when their category is denied. Each framework documents both in its Scripts
 and embeds group:
 
-| Framework      | Vendor consent                                                                   | Clear on revocation                                                                        |
-| -------------- | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| Next.js        | [Vendor consent](https://c15t.com/docs/frameworks/next/vendor-consent)           | [Clear on revocation](https://c15t.com/docs/frameworks/next/clear-on-revocation)           |
-| TanStack Start | [Vendor consent](https://c15t.com/docs/frameworks/tanstack-start/vendor-consent) | [Clear on revocation](https://c15t.com/docs/frameworks/tanstack-start/clear-on-revocation) |
-| React          | [Vendor consent](https://c15t.com/docs/frameworks/react/vendor-consent)          | [Clear on revocation](https://c15t.com/docs/frameworks/react/clear-on-revocation)          |
-| Nuxt           | [Vendor consent](https://c15t.com/docs/frameworks/nuxt/vendor-consent)           | [Clear on revocation](https://c15t.com/docs/frameworks/nuxt/clear-on-revocation)           |
-| Vue            | [Vendor consent](https://c15t.com/docs/frameworks/vue/vendor-consent)            | [Clear on revocation](https://c15t.com/docs/frameworks/vue/clear-on-revocation)            |
-| Astro          | [Vendor consent](https://c15t.com/docs/frameworks/astro/vendor-consent)          | [Clear on revocation](https://c15t.com/docs/frameworks/astro/clear-on-revocation)          |
-| Svelte         | [Vendor consent](https://c15t.com/docs/frameworks/svelte/vendor-consent)         | [Clear on revocation](https://c15t.com/docs/frameworks/svelte/clear-on-revocation)         |
-| SvelteKit      | [Vendor consent](https://c15t.com/docs/frameworks/sveltekit/vendor-consent)      | [Clear on revocation](https://c15t.com/docs/frameworks/sveltekit/clear-on-revocation)      |
-| HTML           | [Vendor consent](https://c15t.com/docs/frameworks/html/vendor-consent)           | [Clear on revocation](https://c15t.com/docs/frameworks/html/clear-on-revocation)           |
-| JavaScript     | [Vendor consent](https://c15t.com/docs/frameworks/javascript/vendor-consent)     | [Clear on revocation](https://c15t.com/docs/frameworks/javascript/clear-on-revocation)     |
+| Framework      | Vendor consent                                                                      | Clear on revocation                                                                           |
+| -------------- | ----------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| Next.js        | [Vendor consent](https://v3.c15t.com/docs/frameworks/next/vendor-consent)           | [Clear on revocation](https://v3.c15t.com/docs/frameworks/next/clear-on-revocation)           |
+| TanStack Start | [Vendor consent](https://v3.c15t.com/docs/frameworks/tanstack-start/vendor-consent) | [Clear on revocation](https://v3.c15t.com/docs/frameworks/tanstack-start/clear-on-revocation) |
+| React          | [Vendor consent](https://v3.c15t.com/docs/frameworks/react/vendor-consent)          | [Clear on revocation](https://v3.c15t.com/docs/frameworks/react/clear-on-revocation)          |
+| Nuxt           | [Vendor consent](https://v3.c15t.com/docs/frameworks/nuxt/vendor-consent)           | [Clear on revocation](https://v3.c15t.com/docs/frameworks/nuxt/clear-on-revocation)           |
+| Vue            | [Vendor consent](https://v3.c15t.com/docs/frameworks/vue/vendor-consent)            | [Clear on revocation](https://v3.c15t.com/docs/frameworks/vue/clear-on-revocation)            |
+| Astro          | [Vendor consent](https://v3.c15t.com/docs/frameworks/astro/vendor-consent)          | [Clear on revocation](https://v3.c15t.com/docs/frameworks/astro/clear-on-revocation)          |
+| Svelte         | [Vendor consent](https://v3.c15t.com/docs/frameworks/svelte/vendor-consent)         | [Clear on revocation](https://v3.c15t.com/docs/frameworks/svelte/clear-on-revocation)         |
+| SvelteKit      | [Vendor consent](https://v3.c15t.com/docs/frameworks/sveltekit/vendor-consent)      | [Clear on revocation](https://v3.c15t.com/docs/frameworks/sveltekit/clear-on-revocation)      |
+| HTML           | [Vendor consent](https://v3.c15t.com/docs/frameworks/html/vendor-consent)           | [Clear on revocation](https://v3.c15t.com/docs/frameworks/html/clear-on-revocation)           |
+| JavaScript     | [Vendor consent](https://v3.c15t.com/docs/frameworks/javascript/vendor-consent)     | [Clear on revocation](https://v3.c15t.com/docs/frameworks/javascript/clear-on-revocation)     |
 
 ## Send events only to allowed integrations
 

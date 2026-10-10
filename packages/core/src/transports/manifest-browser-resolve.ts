@@ -21,6 +21,7 @@ import type { BaseTranslations, Translations } from '@c15t/translations';
 
 import { mapInitOutputToInitResponse } from './init-output';
 import type { TransportInitResponse } from './init-output';
+import { locationFreeOutcome } from './manifest-browser-location';
 
 /** A language whose base copy loads on demand. */
 export type OtherLanguage = Exclude<keyof BaseTranslations, 'en'>;
@@ -134,3 +135,14 @@ export const resolveLocally = async function resolveLocally(
 		{ producerContract: POLICY_CONTRACT_VERSION }
 	);
 };
+
+/**
+ * Whether every location gets the same banner from this manifest, so the
+ * browser can answer for a visitor whose location it doesn't know.
+ *
+ * @param manifest - The manifest.
+ * @returns `true` when the location changes nothing the visitor sees.
+ * @internal
+ */
+export const isLocationFree = (manifest: ConsentManifest): boolean =>
+	locationFreeOutcome(manifest) !== null;

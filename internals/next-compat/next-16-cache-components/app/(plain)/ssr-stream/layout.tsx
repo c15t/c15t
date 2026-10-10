@@ -12,6 +12,7 @@ const SSRStreamLayout = ({ children }: { children: ReactNode }) => {
 
 	return (
 		<ConsentShell
+			styles={false}
 			state={state}
 			scenario="ssr-stream"
 		>

@@ -20,7 +20,7 @@
  * (`createCMPApi`), stub installer (`initializeIABStub`).
  */
 
-import { registerIABControls } from '@c15t/core';
+import { c15tProtocolParams, registerIABControls } from '@c15t/core';
 import type {
 	CMPApi,
 	ConsentKernel,
@@ -31,6 +31,7 @@ import type {
 	KernelIABState,
 	NonIABVendor,
 } from '@c15t/core';
+import { appendInitParams } from '@c15t/schema/types';
 
 import {
 	AUTHORITY_KEY,
@@ -673,25 +674,26 @@ const changedReference = (
 
 const referenceHeaders = (
 	requested: NonNullable<ConsentSnapshot['iab']>['gvlReference']
-): Record<string, string> | undefined => {
-	if (!requested) {
-		return undefined;
+): Record<string, string> | undefined =>
+	requested ? { 'accept-language': requested.language } : undefined;
+
+/**
+ * Where to fetch a referenced list. An init envelope's resolution context
+ * goes in the query string, as the hosted transport sends it, so a
+ * cross-origin `/init` stays a CORS simple request with no preflight.
+ */
+const referenceEndpoint = (
+	requested: NonNullable<ConsentSnapshot['iab']>['gvlReference']
+): string | undefined => {
+	if (requested?.format !== 'init') {
+		return requested?.url;
 	}
-	const headers: Record<string, string> = {
-		'accept-language': requested.language,
-	};
-	if (requested.format === 'init') {
-		if (requested.context?.country) {
-			headers['x-c15t-country'] = requested.context.country;
-		}
-		if (requested.context?.region) {
-			headers['x-c15t-region'] = requested.context.region;
-		}
-		if (requested.context?.gpc !== undefined) {
-			headers['x-c15t-gpc'] = requested.context.gpc ? '1' : '0';
-		}
-	}
-	return headers;
+	return appendInitParams(requested.url, {
+		...c15tProtocolParams,
+		country: requested.context?.country ?? undefined,
+		gpc: requested.context?.gpc,
+		region: requested.context?.region ?? undefined,
+	});
 };
 
 const cmpDisplayStatus = (snapshot: ConsentSnapshot): 'visible' | 'hidden' =>
@@ -846,7 +848,7 @@ export const createIAB = function createIAB(
 		// An endpoint that ignores the filter still ends up narrowed below, so the
 		// filter is an optimisation and never a behaviour change.
 		const list = await fetchGVL(vendors?.length ? vendors : undefined, {
-			endpoint: requested?.url ?? gvlURL,
+			endpoint: referenceEndpoint(requested) ?? gvlURL,
 			format: requested?.format,
 			headers: referenceHeaders(requested),
 		});

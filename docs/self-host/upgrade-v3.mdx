@@ -1,0 +1,180 @@
+---
+title: Upgrade from v2
+description: Upgrade a self-hosted c15t backend (@c15t/backend) and the Node.js SDK (@c15t/node-sdk) from v2 to v3. Covers the database config, the schema migration, moved backend options, policy rules and the new createC15tClient() client.
+group: self-host
+---
+
+<Prompt title="Upgrade this c15t backend to v3" description="Paste into Claude Code, Codex, Cursor or another coding agent at the root of the app that runs your c15t backend.">
+  Upgrade this app's self-hosted c15t backend from v2 to v3.
+
+  Read https://v3.c15t.com/docs/self-host/upgrade-v3.md first and follow it in order. Do not guess v3 APIs from memory.
+
+  1. Find the `@c15t/backend` config and every use of `@c15t/node-sdk`.
+  2. Install `@c15t/backend@alpha` and the SQL driver for the database, plus `@c15t/node-sdk@alpha` if the app uses it.
+  3. Run `npx @c15t/cli@alpha codemods backend-config-to-v3 policy-packs-to-policy-rules node-sdk-to-v3 --dry-run --json`. Review the output, then run the same command without `--dry-run`. The codemods leave a `TODO(c15t v3)` comment wherever they need you to finish a change.
+  4. Replace `adapter` with `database`, split `iab` between `manifest.iab` and `gvl`, and update the other options as the guide describes.
+  5. Do not run the schema migration yourself. Tell me to back up the database, and give me the `self-host migrate --plan` and `--apply` commands to run.
+  6. List the client apps that call this backend. They have to move to v3 in the same release.
+  7. Run the typecheck and build, and resolve every `TODO(c15t v3)` comment.
+</Prompt>
+
+## Upgrade a self-hosted backend
+
+Deploy the v3 backend and the v3 clients in the same release. A v3 client
+cannot read a v2 backend's `/init` response. Policy resolution fails, optional
+categories stay denied and no banner appears. Upgrade the client apps with the
+[Next.js](/docs/frameworks/next/upgrade-v3),
+[React](/docs/frameworks/react/upgrade-v3) or
+[JavaScript](/docs/frameworks/javascript/upgrade-v3) guide.
+
+1. Install `@c15t/backend@alpha` and the SQL driver for your database.
+2. Replace `adapter` with `database` in your config. The Drizzle, Prisma,
+   TypeORM and Kysely adapters are gone; point `database` at the same SQL
+   database instead. MongoDB has no migration path.
+3. Move `policyPacks`, `branding`, `customTranslations`, `i18n` and `appName`
+   under `manifest`, and rename `policyPacks` to `policyRules`. Split `iab`
+   between `manifest.iab` and `gvl`, as the table below shows.
+4. Back up the database, then plan and apply the schema migration:
+
+```bash
+npx @c15t/cli@alpha self-host migrate --config ./c15t-backend.config.ts --plan
+npx @c15t/cli@alpha self-host migrate --config ./c15t-backend.config.ts --apply
+```
+
+The migrator recognizes the v2 schema, adopts it, and adds the v3 tables and
+columns. Apply it before the v3 backend serves traffic: v3 records policy
+decisions without the v2 `jurisdiction` label, which the migration makes
+nullable. [Database setup](/docs/self-host/guides/database-setup#upgrade-a-v2-backend)
+covers the details, and the [backend quickstart](/docs/self-host/quickstart)
+shows a complete v3 config and route.
+
+The `backend-config-to-v3` codemod does step 3 for the keys that move as they
+are, and leaves a `TODO(c15t v3)` comment on `adapter`, `iab`,
+`disableGeoLocation` and the other options in the table below:
+
+```bash
+npx @c15t/cli@alpha codemods backend-config-to-v3 policy-packs-to-policy-rules --dry-run --json
+```
+
+Preset calls such as `policyRulePresets.europeOptIn()` need no other change.
+A hand-written v2 pack uses `consent` and `ui` keys, which v3 rules replace
+with flat keys such as `model` and `prompt`. See
+[policy configuration](/docs/self-host/guides/policy-packs).
+
+The v3 backend stores timestamps in UTC. Convert rows that a v2 backend wrote
+in another time zone before you deploy. Database setup lists the checks.
+
+Other backend options and entries change too:
+
+| v2 | v3 |
+| --- | --- |
+| `tablePrefix` | Removed. The migrator refuses a database with prefixed c15t tables, so rename them first. On PostgreSQL, `database.schema` keeps c15t's tables in their own schema. |
+| `iab.vendorIds`, `iab.endpoint`, `cache.adapter` | `gvl: { vendorIds, endpoint, cache }` |
+| `iab.enabled`, `iab.cmpId`, `iab.customVendors` | `manifest.iab` |
+| `logger`, `telemetry` | `observability`, passed to `c15tInstance()` |
+| `background`, `iab.bundled` | Removed |
+| `openapi.docsPath`, `openapi.options`, `openapi.customUiTemplate` and the `/docs` page | Removed. The spec is still at `/spec.json`. |
+| `policySnapshot.onValidationFailure` | Removed |
+| `GET /` as an alias of `/status` | Removed. Call `/status`. |
+| `@c15t/backend/define-config`, `/router`, `/types`, `/db/schema`, `/db/adapters/*`, `/db/migrator`, `/edge` | Removed. Import `defineConfig`, `createMigrator` and `policyRulePresets` from `@c15t/backend`. |
+
+### Remove `disableGeoLocation`
+
+v3 removes the top-level `disableGeoLocation` option. Policy rules decide by
+country and region. To show every visitor the same banner, configure one rule
+with `match: { isDefault: true }`. It applies wherever the visitor is, so the
+browser can resolve it without asking the backend for a location.
+
+To test one region's rule from anywhere, set the country in the client's
+`overrides`, for example `overrides: { country: 'US' }`. See
+[runtime options](/docs/frameworks/javascript/api/runtime).
+
+### Stop reading `jurisdiction`
+
+`/init` responses, session reports and `sessions.onReport` no longer carry a
+`jurisdiction` label such as `GDPR`. Read the matched policy from
+`policyResolution` instead, or the report's `policy`, `country` and `region`.
+The backend still accepts `jurisdiction` in a v2 client's save request and
+ignores it.
+
+## Update the Node.js SDK
+
+Install `@c15t/node-sdk@alpha`. The v2 client is gone: create one with
+`createC15tClient()` and pass the backend URL and API key yourself.
+
+<CommandTabs command="@c15t/node-sdk@alpha" mode="install" />
+
+{/* example: fragment */}
+
+```ts
+import { createC15tClient } from '@c15t/node-sdk';
+
+const apiKey = process.env.C15T_API_KEY;
+if (!apiKey) throw new Error('Set C15T_API_KEY');
+
+const c15t = createC15tClient({
+	baseUrl: 'https://app.example.com/api/c15t',
+	apiKey,
+});
+
+const result = await c15t.consents.check({
+	externalId: 'user_123',
+	types: ['privacy_policy', 'marketing_communications'],
+});
+if (result.ok) {
+	console.log(result.data.results.privacy_policy.hasConsent);
+}
+```
+
+| v2 | v3 |
+| --- | --- |
+| `c15tClient(options)`, `new C15TClient(options)` | `createC15tClient(options)` |
+| `C15T_API_URL`, `C15T_API_TOKEN` read from the environment | Not read. Pass `baseUrl` and `apiKey`. |
+| `token` | `apiKey` |
+| `prefix` | Part of `baseUrl`. v2 replaced the base URL's path with `prefix`, so use the origin plus the prefix, such as `https://app.example.com/api/c15t`. |
+| `timeout` | `timeoutMs`, per attempt. The default drops from 30 to 10 seconds. |
+| `retryConfig` | `retry: { maxRetries, initialDelayMs, maxDelayMs }`, or `false`. `backoffFactor`, `retryableStatusCodes`, `nonRetryableStatusCodes` and `retryOnNetworkError` are gone. |
+| `debug`, `C15T_DEBUG` | `onEvent` |
+| `client.meta.status()`, `client.status()` | `c15t.status()` |
+| `client.meta.init(options)`, `client.init(options)` | `c15t.init({ language, country, region, gpc }, options)`. Per-call options move to the second argument. |
+| `getSubject(id, { type: 'a,b' })`, `subjects.get(id, { type: 'a,b' })` | `subjects.get(id, { types: ['a', 'b'] })` |
+| `createSubject(input)` | `subjects.create(input)`. `givenAt` also takes a `Date`. |
+| `patchSubject(id, input)`, `subjects.patch(id, input)` | `subjects.identify(id, { externalId, identityProvider })` |
+| `listSubjects({ externalId })`, `subjects.list({ externalId })` | `subjects.list({ externalId })`, on a client with `apiKey` |
+| `checkConsent(query)`, `consent.check({ externalId, type: 'a,b' })` | `consents.check({ externalId, types: ['a', 'b'] })`, on a client with `apiKey` |
+| `ResponseContext` with `data: T \| null` | `{ ok: true, data } \| { ok: false, error }`. Check `ok` first. |
+| `unwrap()`, `expect()` on the response | `unwrap(result)`, imported from `@c15t/node-sdk` |
+| `unwrapOr()`, `map()` on the response | Check `result.ok` |
+| `throw: true` | `unwrap(result)` |
+| `onSuccess`, `onError` | Check `result.ok` after the call |
+| `C15TError`, `isC15TError()` | `C15tError`, `isC15tError(error, ...codes)` |
+| `C15TClient`, `C15TClientOptions`, `RetryConfig`, `FetchOptions`, `ResponseContext` types | `C15tClient`, `C15tClientOptions`, `C15tRetryOptions`, `C15tCallOptions`, `C15tResult` |
+| Per-call `timeout`, `retryConfig` | `timeoutMs`, `retry` |
+| Per-call `body`, `query`, `method` | Removed. Pass the body and query as the method's arguments. |
+| `$fetch`, `fetcher`, `resolveUrl`, `createResponseContext` | Removed. Pass a custom `fetch` to `createC15tClient` if you need one. |
+| `createMockClient`, `createMockResponse`, `createMockErrorResponse` | `createMockC15tClient`, `ok`, `err` from `@c15t/node-sdk/testing` |
+
+`patchSubject` returned `{ success, subject }`. `subjects.identify` returns
+`{ subject }`, and `subject.identityProvider` is always set. Dates in
+responses, such as `givenAt` and `createdAt`, are now `Date` objects rather
+than strings.
+
+`consents.check` and `subjects.list` count only verified links. Links made by
+v2 don't count until you relink them with `subjects.identify` on a keyed
+client, or [with an identity token](/docs/self-host/api/node-sdk#verify-a-link-made-in-the-browser) on the user's next sign-in.
+
+The `node-sdk-to-v3` codemod renames the factory, client options, methods,
+types and errors in files that create a client. It turns `type` strings into
+`types` arrays, and leaves a `TODO(c15t v3)` comment at each call, because
+results are now `{ ok, data }` or `{ ok, error }`. It renames per-call
+`timeout` and `retryConfig` too. It also marks `prefix`, `debug`, per-call
+`throw`, `onSuccess`, `onError`, `body`, `query` and `method`, and a client
+built from environment variables:
+
+```bash
+npx @c15t/cli@alpha codemods node-sdk-to-v3 --dry-run --json
+```
+
+The new client also adds `manifest()`, `legalDocuments.publish()` and
+`experiments.summary()`. The last two need a client with `apiKey`. See the
+[Node.js SDK reference](/docs/self-host/api/node-sdk).

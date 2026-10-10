@@ -31,6 +31,9 @@ const context = {
 	translations: { language: 'en', translations: {} },
 } as unknown as ProviderTransportContext;
 
+/** A request URL without the query c15t adds to `/init`. */
+const pathOf = (url: unknown): string => String(url).split('?')[0] ?? '';
+
 const initContext = (overrides: InitContext['overrides'] = {}): InitContext =>
 	({ overrides, user: null }) as unknown as InitContext;
 
@@ -109,7 +112,7 @@ describe('clientMode()', () => {
 
 		fetchSpy.mockImplementation(() => Promise.reject(new Error('offline')));
 		await transport.init?.(initContext()).catch(() => undefined);
-		expect(String(fetchSpy.mock.calls[0]?.[0])).toBe('/api/c15t/init');
+		expect(pathOf(fetchSpy.mock.calls[0]?.[0])).toBe('/api/c15t/init');
 	});
 
 	test('manifest() without a route prefix inits against the backend, unasserted', async () => {
@@ -120,7 +123,7 @@ describe('clientMode()', () => {
 		fetchSpy.mockImplementation(() => Promise.reject(new Error('offline')));
 		await transport.init?.(initContext()).catch(() => undefined);
 
-		expect(String(fetchSpy.mock.calls[0]?.[0])).toBe(
+		expect(pathOf(fetchSpy.mock.calls[0]?.[0])).toBe(
 			'https://backend.example/init'
 		);
 	});
@@ -133,7 +136,7 @@ describe('clientMode()', () => {
 		fetchSpy.mockImplementation(() => Promise.reject(new Error('offline')));
 		await transport.init?.(initContext()).catch(() => undefined);
 
-		expect(String(fetchSpy.mock.calls[0]?.[0])).toBe('/api/c15t/init');
+		expect(pathOf(fetchSpy.mock.calls[0]?.[0])).toBe('/api/c15t/init');
 	});
 
 	test("hosted() prefers the mode's own backend URL", async () => {
@@ -145,7 +148,7 @@ describe('clientMode()', () => {
 		fetchSpy.mockImplementation(() => Promise.reject(new Error('offline')));
 		await transport.init?.(initContext()).catch(() => undefined);
 
-		expect(String(fetchSpy.mock.calls[0]?.[0])).toBe(
+		expect(pathOf(fetchSpy.mock.calls[0]?.[0])).toBe(
 			'https://mode.example/init'
 		);
 	});
@@ -219,13 +222,24 @@ describe('lazyHosted()', () => {
 			load
 		)(context);
 
-		const pending = transport.init?.(initContext({ language: 'de' }));
+		const pending = transport.init?.(
+			initContext({ country: 'DE', language: 'de' })
+		);
 		await Promise.resolve();
 
 		expect(fetchSpy).toHaveBeenCalledTimes(1);
-		expect(String(fetchSpy.mock.calls[0]?.[0])).toBe(
+		const [url, init] = fetchSpy.mock.calls[0] ?? [];
+		const sent = new URL(String(url));
+		expect(`${sent.origin}${sent.pathname}`).toBe(
 			'https://backend.example/init'
 		);
+		expect(sent.searchParams.get('country')).toBe('DE');
+		// Only `Accept` and `Accept-Language`: no CORS preflight.
+		expect(init?.headers).toEqual({
+			accept: 'application/json',
+			'accept-language': 'de',
+		});
+		expect(init?.credentials).toBe('same-origin');
 		release();
 		await pending;
 		// The loaded transport took the early response.

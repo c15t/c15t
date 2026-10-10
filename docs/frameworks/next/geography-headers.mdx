@@ -230,6 +230,12 @@ platform origin protection is an additional control that keeps requests on that
 edge; it does not replace the stripping, because a forwarded client header
 still passes through the protected path.
 
+The browser's own `/init` request carries the same overrides as the
+`country`, `region` and `gpc` query parameters, so that a
+cross-origin request needs no CORS preflight. The init route and the backend
+treat them like the `x-c15t-*` headers, so strip them from `/init` requests at
+the same edge.
+
 ## Verify
 
 Deploy with the proxy and load the site from two locations with different

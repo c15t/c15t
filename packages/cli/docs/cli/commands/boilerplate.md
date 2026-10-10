@@ -9,7 +9,7 @@ group: cli
 ## Generate files for your framework
 
 Pass `--framework` to `setup` to write your framework's quickstart: the same
-files the [framework quickstarts](https://c15t.com/docs/frameworks) show, at the same paths.
+files the [framework quickstarts](https://v3.c15t.com/docs/frameworks) show, at the same paths.
 
 ```bash
 npx @c15t/cli@alpha setup hosted --framework react --backend-url https://your-project.inth.app --plan --json

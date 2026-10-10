@@ -52,10 +52,10 @@ from `c15t` requires the URL:
 | Option | What it does |
 | --- | --- |
 | `backendURL` | The backend URL. Relative URLs such as `/api/c15t` work behind a proxy. |
-| `headers` | Extra headers for the `/init` request. |
+| `headers` | Request headers to forward on `/init`: `accept-language`, the geo headers and `sec-gpc`. Meant for server code forwarding a visitor's request. In a browser, any but `accept-language` makes a cross-origin `/init` wait for a CORS preflight; pass overrides through the runtime's `overrides` instead, which travel in the query string. |
 | `fetch` | A `fetch` implementation, for tests or unusual runtimes. |
 | `domain` | The domain recorded with each save. Defaults to the page's host. |
-| `initURL` | Send `/init` somewhere else, such as a same-origin route, while saves still go to `backendURL`. Saves then assert the policy they were made against. |
+| `initURL` | Send `/init` somewhere else, such as a same-origin route, while saves still go to `backendURL`. Saves then assert the policy they were made against. Its query string may carry your own parameters, but c15t replaces any named `v`, `contract`, `country`, `region`, `gpc`, `experiment`, `journey`, `journeyScope` or `stored` with its own value. |
 | `assertDecisionInputs` | Send the resolved policy inputs with each save, so the backend can reject a save made against a stale policy. Defaults to `true` when `initURL` is set. |
 
 `hosted()` from `@c15t/browser` takes the same options, and `backendURL`
@@ -67,7 +67,12 @@ defaults to the URL `consentManifest()` from `c15t/build` read from
 ```
 
 Add your app's origin to the Inth project's trusted origins, or the browser
-blocks `/init` with a CORS error.
+blocks consent saves with a CORS error.
+
+A cross-origin `/init` is a CORS simple request: the client version, policy
+contract, overrides and experiment arm go in the query string, and the request
+carries no cookies, so the browser sends it without an `OPTIONS` preflight.
+Saves still go out with cookies and still need the trusted origin.
 
 ## Manifest
 
@@ -90,12 +95,30 @@ URL `consentManifest()` downloaded; without a snapshot it fetches
 | `initFallback` | `false` resolves for an unknown location instead of asking the backend's `/init`. Defaults to `true`. |
 | `fetch` | A `fetch` implementation. |
 
-When the manifest's policies depend on the visitor's country and neither the
-page nor `geoURL` supplies one, the transport asks the backend's `/init`
-instead, so the answer stays correct. `manifestNeedsLocation(manifest)` from
-`@c15t/browser` tells you in advance. The browser bundle carries English base
-copy. Another language's base copy loads the first time a visitor needs it,
-and the manifest's own translations apply on top.
+When some locations get a different banner than others, or no banner, and
+neither the page nor `geoURL` supplies a country, the transport asks the
+backend's `/init` instead, so the answer stays correct. That visitor's banner
+waits for the round trip. Rules keyed by country or region that all give the
+same banner (same model, prompt, categories, copy and GPC handling, only the
+rule id differs) resolve in the browser, so the banner shows without a
+request. Such a manifest needs a default rule, plus a fallback rule when it
+has region rules, so that every location matches one. When the location is
+unknown, an IAB policy behind country or region rules still goes to `/init`.
+`manifestNeedsLocation(manifest)` from `@c15t/browser` tells you in advance.
+
+The browser bundle carries English base copy. Another language's base copy
+loads the first time a visitor needs it, and the manifest's own translations
+apply on top.
+
+A manifest resolved in the browser without a known location reports no
+location: `getSnapshot().location` and `useLocation()` have a `null` country
+and region. Code that reads the visitor's country should supply it through
+`inputs`, or use `/init`. IAB GPP needs it for its US state sections, so when
+GPP is on, through the runtime's `gpp` option, `<ConsentGPP>` or `mountGPP()`,
+an unknown location goes to `/init` even when every location gets the same
+banner. The script-tag build counts GPP as on, because `c15t.gpp.js` can load
+after `init()`; pass `gpp: false` to `c15t.init()` to resolve in the browser on
+pages that do not load it.
 
 `createManifestTransport` from `c15t/transports/manifest` is for server code
 only. It bundles every language. Browser code uses `manifest()`, or
