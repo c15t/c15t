@@ -265,6 +265,29 @@ describe('scheduleIdlePreload', () => {
 		expect(task).toHaveBeenCalledOnce();
 	});
 
+	test('polls a loading image no later than the maximum wait', () => {
+		addImage();
+		const task = vi.fn();
+		// Checks at 600, 850, ... 1850 ms; the next poll would land at 2100.
+		scheduleIdlePreload(task, { maxWaitMs: 2000, quietMs: 600 });
+
+		vi.advanceTimersByTime(2000);
+		expect(task).toHaveBeenCalledOnce();
+	});
+
+	test('waits for quiet no later than the maximum wait', () => {
+		const task = vi.fn();
+		scheduleIdlePreload(task, { maxWaitMs: 1000, quietMs: 500 });
+
+		// A resource finishing at 900 ms would push quiet to 1400 ms.
+		vi.advanceTimersByTime(400);
+		reportResource(performance.now());
+		vi.advanceTimersByTime(500);
+		reportResource(performance.now());
+		vi.advanceTimersByTime(100);
+		expect(task).toHaveBeenCalledOnce();
+	});
+
 	test('lets an idle wait last no longer than the maximum wait', () => {
 		const requestIdleCallback = vi.fn(() => 1);
 		vi.stubGlobal('requestIdleCallback', requestIdleCallback);

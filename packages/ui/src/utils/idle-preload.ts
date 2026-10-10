@@ -182,16 +182,20 @@ export const scheduleIdlePreload = function scheduleIdlePreload(
 		observer = undefined;
 	};
 
-	/** How much longer to wait for quiet, or 0 once the page is quiet. */
+	/**
+	 * How much longer to wait for quiet, or 0 once the page is quiet. Never
+	 * past the deadline.
+	 */
 	const remainingWait = (now: number): number => {
-		if (now - loadedAt >= maxWaitMs) {
+		const untilDeadline = maxWaitMs - (now - loadedAt);
+		if (untilDeadline <= 0) {
 			return 0;
 		}
 		if (isVisibleImageLoading()) {
-			return IMAGE_POLL_MS;
+			return Math.min(IMAGE_POLL_MS, untilDeadline);
 		}
 		const quietFor = now - Math.max(lastActivity, loadedAt);
-		return quietFor < quietMs ? quietMs - quietFor : 0;
+		return quietFor < quietMs ? Math.min(quietMs - quietFor, untilDeadline) : 0;
 	};
 
 	/**
