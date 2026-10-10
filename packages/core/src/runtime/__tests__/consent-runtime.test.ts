@@ -135,6 +135,26 @@ describe('createRuntimeKernel', () => {
 		).toThrowError(/`mode` is required/u);
 	});
 
+	test.each([
+		[undefined, '@c15t/core createConsentRuntime()'],
+		['@c15t/react', '@c15t/react ConsentProvider'],
+		['@c15t/svelte', '@c15t/svelte ConsentProvider'],
+		['@c15t/vue', '@c15t/vue the c15tVue plugin'],
+		['@c15t/browser', '@c15t/browser init()'],
+		['@c15t/browser/hosted', '@c15t/browser/hosted init()'],
+		['@c15t/nextjs', '@c15t/nextjs ConsentRoot'],
+		['@c15t/tanstack-start', '@c15t/tanstack-start ConsentRoot'],
+	])('the missing-mode error from %s names %s', (pkg, owner) => {
+		expect(() =>
+			createRuntimeKernel({ mode: undefined as never, pkg })
+		).toThrowError(
+			`${owner}: \`mode\` is required. Use manifest(), hosted(), offline() or custom().`
+		);
+		expect(() =>
+			createRuntimeKernel({ mode: undefined as never, pkg })
+		).not.toThrowError(/ConsentManagerProvider/u);
+	});
+
 	test('merges prefetched backend vendors with code-declared ones and keeps the list version', () => {
 		const kernel = createRuntimeKernel({
 			mode: custom(createTransport()),

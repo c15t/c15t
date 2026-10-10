@@ -160,7 +160,7 @@ instead of a factory:
 
 | Message | Fix |
 | --- | --- |
-| ``c15t v3 ConsentManagerProvider: `mode` is required. Use hosted(), offline(), or custom().`` | Pass `mode` to React `ConsentProvider`, the Vue plugin or Svelte `ConsentProvider`, such as `manifest()` from the same package. The message names the v2 provider, but it covers every v3 provider. |
+| ``@c15t/react ConsentProvider: `mode` is required. Use manifest(), hosted(), offline() or custom().`` | Pass `mode`, such as `manifest()` from the same package. The start of the message names the package and the API that got no mode: `@c15t/svelte ConsentProvider`, `@c15t/browser init()` or `@c15t/core createConsentRuntime()`. |
 | ``@c15t/browser: `mode` must be a factory, such as manifest(), hosted() or offline() from @c15t/browser. Mode names like "hosted" work only in the script-tag builds.`` | Import the factory and call it: `init({ mode: hosted() })`. |
 | ``c15t: hosted() needs `backendURL`. Pass it, or add consentManifest() from c15t/build to your Vite config and set VITE_C15T_BACKEND_URL.`` | The React `hosted()` found no backend URL. `@c15t/browser` throws the same message prefixed `@c15t/browser:`. |
 | ``c15t: `mode` is the hosted() transport itself, so its code ships in the client bundle. Pass the hosted() your framework package exports instead: it is plain data, and the root loads the code only when it runs.`` | A warning outside production. A server-rendered root got a transport from `c15t/react`. Import the mode from your framework package. Next.js has its own wording; see [Next.js troubleshooting](/docs/frameworks/next/troubleshooting). |

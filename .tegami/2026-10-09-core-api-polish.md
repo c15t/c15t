@@ -109,3 +109,7 @@ Changed:
 
 - `hosted()` asserts the resolved decision on saves whenever `initURL` is
   set. Pass `assertDecisionInputs: false` to turn that off.
+- The error for a runtime with no `mode` names the package and the API that
+  got none, such as ``@c15t/react ConsentProvider: `mode` is required. Use
+  manifest(), hosted(), offline() or custom().``, instead of the v2
+  `ConsentManagerProvider`.

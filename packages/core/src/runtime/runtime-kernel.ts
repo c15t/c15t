@@ -134,12 +134,32 @@ const warnInDevelopment = function warnInDevelopment(
 	}
 };
 
+/**
+ * The API the app passed its options to, named from the runtime's `pkg`:
+ * the component or function a developer would look for in their code.
+ */
+const runtimeOwner = function runtimeOwner(pkg: string): string {
+	if (pkg === '@c15t/core') {
+		return 'createConsentRuntime()';
+	}
+	if (pkg.startsWith('@c15t/browser')) {
+		return 'init()';
+	}
+	if (pkg === '@c15t/vue') {
+		return 'the c15tVue plugin';
+	}
+	return pkg === '@c15t/nextjs' || pkg === '@c15t/tanstack-start'
+		? 'ConsentRoot'
+		: 'ConsentProvider';
+};
+
 const requireTransportFactory = function requireTransportFactory(
-	options: Pick<ConsentRuntimeOptions, 'mode'>
+	options: Pick<ConsentRuntimeOptions, 'mode' | 'pkg'>
 ) {
 	if (typeof options.mode !== 'function') {
+		const pkg = options.pkg ?? '@c15t/core';
 		throw new Error(
-			'c15t v3 ConsentManagerProvider: `mode` is required. Use hosted(), offline(), or custom().'
+			`${pkg} ${runtimeOwner(pkg)}: \`mode\` is required. Use manifest(), hosted(), offline() or custom().`
 		);
 	}
 	return options.mode;
