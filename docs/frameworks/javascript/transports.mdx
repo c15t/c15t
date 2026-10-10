@@ -11,14 +11,15 @@ to record their choice.
 
 | Transport | Policy comes from | Choices go to | Use it when |
 | --- | --- | --- | --- |
-| Build-time manifest, recommended | Public policy bundled during the build, resolved in the browser | The backend's `/subjects` | You use Vite and can rebuild after policy edits. Regional policies may still request location. |
-| Hosted | The backend's `/init`, per visit | The backend's `/subjects` | Policy changes must apply without rebuilding, or you need backend resolution on every visit. Used when only `backendURL` is configured. |
-| Manifest | The backend's public `/manifest`, resolved in the browser | The backend's `/subjects` | You want the banner to render without a per-visit `/init` request. |
+| `manifest()` with a build-time snapshot, recommended | Public policy bundled during the build, resolved in the browser | The backend's `/subjects` | You use Vite and can rebuild after policy edits. Regional policies may still request location. |
+| `hosted()` | The backend's `/init`, per visit | The backend's `/subjects` | Policy changes must apply without rebuilding, or you need backend resolution on every visit. |
+| `manifest()` at runtime | The backend's public `/manifest`, resolved in the browser | The backend's `/subjects` | You want the banner to render without a per-visit `/init` request and cannot bundle the policy. |
 | Offline | Rules bundled in your app | Nowhere; the browser only | Prototypes and tests. Not recommended for production environments. |
 | Custom | Your own `init` function | Your own `save` function | You run your own consent API. |
 
-[Data fetching](/docs/concepts/data-fetching) compares the paths in more
-depth, including what each one sends.
+[Consent modes](/docs/concepts/modes) covers the same factories in every
+framework, and [data fetching](/docs/concepts/data-fetching) compares the
+paths in more depth, including what each one sends.
 
 ## Pass a transport
 
@@ -26,16 +27,25 @@ Each setup takes the transport in a slightly different form:
 
 | Setup | Where it goes |
 | --- | --- |
-| `@c15t/browser` | `init({ backendURL })` picks hosted mode. `init({ mode: manifest({ … }) })` takes any factory. `mode: 'hosted'`, `'manifest'` or `'offline'` also works as a name. |
+| `@c15t/browser` | `init({ mode })`, a factory such as `manifest()`, `hosted()` or `offline()` from `@c15t/browser`. Required. |
 | `createConsentRuntime` | `mode`, a factory such as `hosted({ backendURL })`. Required. |
+| Script tag | `data-mode="hosted"`, `"manifest"` or `"offline"`. Mode names work only in the script-tag builds. |
 | `createConsentKernel` | `transport`, the transport object itself, such as `createHostedTransport({ backendURL })`. |
 
 A factory is created once. To switch transports, dispose the client or
 runtime and create a new one.
 
+`init()` from `@c15t/browser` imports no transport itself, so the bundle keeps
+only the factory you import. Passing a name throws:
+
+```txt
+@c15t/browser: `mode` must be a factory, such as manifest(), hosted() or offline() from @c15t/browser. Mode names like "hosted" work only in the script-tag builds.
+```
+
 ## Hosted
 
-`hosted({ backendURL })` from `c15t` talks to your Inth or self-hosted backend:
+`hosted()` talks to your Inth or self-hosted backend. `hosted({ backendURL })`
+from `c15t` requires the URL:
 
 <include src="../../shared/examples/javascript/runtime.mdx" />
 
@@ -48,14 +58,23 @@ runtime and create a new one.
 | `initURL` | Send `/init` somewhere else, such as a same-origin route, while saves still go to `backendURL`. Saves then assert the policy they were made against. |
 | `assertDecisionInputs` | Send the resolved policy inputs with each save, so the backend can reject a save made against a stale policy. Defaults to `true` when `initURL` is set. |
 
-With `@c15t/browser`, `init({ backendURL })` builds `hosted({ backendURL })`
-for you. Add your app's origin to the Inth project's trusted origins, or the
-browser blocks `/init` with a CORS error.
+`hosted()` from `@c15t/browser` takes the same options, and `backendURL`
+defaults to the URL `consentManifest()` from `c15t/build` read from
+`VITE_C15T_BACKEND_URL`. Without the plugin or the option it throws:
+
+```txt
+@c15t/browser: hosted() needs `backendURL`. Pass it, or add consentManifest() from c15t/build to your Vite config and set VITE_C15T_BACKEND_URL.
+```
+
+Add your app's origin to the Inth project's trusted origins, or the browser
+blocks `/init` with a CORS error.
 
 ## Manifest
 
-`manifest()` from `@c15t/browser` fetches the backend's public manifest once
-and resolves the policy in the browser. It works with `init()` and with
+`manifest()` from `@c15t/browser` resolves the policy in the browser from the
+backend's public manifest. With no options it uses the snapshot and backend
+URL `consentManifest()` downloaded; without a snapshot it fetches
+`${backendURL}/manifest` once. It works with `init()` and with
 `createConsentRuntime`:
 
 <include src="../../shared/examples/javascript/transport-manifest.mdx" />
@@ -63,10 +82,12 @@ and resolves the policy in the browser. It works with `init()` and with
 | Option | What it does |
 | --- | --- |
 | `manifestURL` | Where to fetch the manifest. A URL that ends in `/manifest` also gives the backend URL. |
-| `snapshot` | The manifest object itself, inlined into the page. No manifest request at all. |
-| `backendURL` | Where saves go. Required unless `manifestURL` ends in `/manifest`. `''` means this origin. |
+| `snapshot` | The manifest object itself, inlined into the page. No manifest request at all. Defaults to the build's snapshot. |
+| `source` | `'runtime'` ignores the build's snapshot and fetches the manifest. You can pass `snapshot` or `source`, not both. |
+| `backendURL` | Where saves go. Defaults to the build's backend URL. Required otherwise, unless `manifestURL` ends in `/manifest`. `''` means this origin. |
 | `inputs` | `{ country, region }` known ahead of time, such as a country your edge injected into the page. |
 | `geoURL` | A same-origin route that answers `{ country, region }`, asked when the policy needs a location the page doesn't have. |
+| `initFallback` | `false` resolves for an unknown location instead of asking the backend's `/init`. Defaults to `true`. |
 | `fetch` | A `fetch` implementation. |
 
 When the manifest's policies depend on the visitor's country and neither the
@@ -102,8 +123,10 @@ country, so without a `country` override every visitor gets the strict
 opt-in fallback. Choices stay in that browser and there are no consent
 records. Not recommended for production environments.
 
-`init()` from `@c15t/browser` with no `backendURL` uses offline mode, and
-accepts `policyRules` as preset names such as `['europeOptIn', 'worldNone']`.
+`init()` from `@c15t/browser` takes `mode: offline({ policyRules })` with rule
+objects from `policyRulePresets`. Preset names such as
+`['europeOptIn', 'worldNone']` work only in the script-tag builds, through
+`data-policy-rules` or a queued `policyRules`.
 [Policies](/docs/concepts/policies) lists the presets.
 
 In offline mode, a language your app sets with `overrides.language`,

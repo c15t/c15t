@@ -47,5 +47,6 @@ A script-tag site without a build step cannot run this hook.
 
 <include src="../vite-build-manifest.mdx" />
 
-For policy updates without a rebuild, omit the build plugin and snapshot.
-Keep the original backend `/init` setup or use a runtime `manifestURL`.
+For policy updates without a rebuild, use `hosted()`, which asks the backend's
+`/init` on each page load, or `manifest({ source: 'runtime' })`, which fetches
+the manifest at runtime. Both keep reading the backend URL from the plugin.

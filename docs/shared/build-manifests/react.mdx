@@ -39,7 +39,8 @@ When the build has no snapshot, as in `vite dev` after a failed fetch,
 `${backendURL}/manifest` instead.
 
 When the required country or region is missing, the transport calls backend
-`/init` and uses its resolved policy and translations. That response can use
+`/init` and uses its resolved policy and translations. `consentManifest` warns
+during the build when it downloads such a policy, and suggests `hosted()`. That response can use
 newer backend policy than the build snapshot. This is a full consent resolution,
 so these visitors still wait for a backend round trip.
 

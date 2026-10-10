@@ -203,9 +203,9 @@ stylesheet. Page hooks such as `data-c15t-action="accept"` still work, and the
 {/* example: fragment */}
 
 ```ts
-import { init } from '@c15t/browser/headless';
+import { init, manifest } from '@c15t/browser/headless';
 
-const consent = init({ backendURL: 'https://your-project.inth.app', scripts });
+const consent = init({ mode: manifest(), scripts });
 consent.on('ui', (surface) => {
 	banner.hidden = surface !== 'banner';
 });
