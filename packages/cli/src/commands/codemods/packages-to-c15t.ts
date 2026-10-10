@@ -17,6 +17,7 @@ import {
 	addTodo,
 	applyEdits,
 	elementRemovals,
+	isGlobalOrImport,
 	isNodeRequire,
 	propertyKey,
 	TODO_MARKER,
@@ -272,7 +273,17 @@ const MODULE_HELPERS = new Set([
 	'vi.unmock',
 ]);
 
-/** Whether a node is a `vi.mock()`-style call from {@link MODULE_HELPERS}. */
+/** Modules that export the test-runner globals, as `vitest` exports `vi`. */
+const HELPER_MODULES: Record<string, readonly string[]> = {
+	jest: ['@jest/globals'],
+	vi: ['vitest'],
+};
+
+/**
+ * Whether a node is a `vi.mock()`-style call from {@link MODULE_HELPERS}
+ * whose receiver is the real `vi`, `jest` or `require`, not a local
+ * binding of the same name.
+ */
 const isModuleHelperCall = function isModuleHelperCall(
 	node: TsMorphTypes.Node
 ): boolean {
@@ -280,10 +291,20 @@ const isModuleHelperCall = function isModuleHelperCall(
 		return false;
 	}
 	const callee = node.getExpression();
-	return (
-		Node.isPropertyAccessExpression(callee) &&
-		MODULE_HELPERS.has(callee.getText())
-	);
+	if (
+		!Node.isPropertyAccessExpression(callee) ||
+		!MODULE_HELPERS.has(callee.getText())
+	) {
+		return false;
+	}
+	const receiver = callee.getExpression();
+	if (!Node.isIdentifier(receiver)) {
+		return false;
+	}
+	const name = receiver.getText();
+	return name === 'require'
+		? isNodeRequire(receiver)
+		: isGlobalOrImport(receiver, name, HELPER_MODULES[name] ?? []);
 };
 
 /** Whether a call's first argument is a module specifier. */

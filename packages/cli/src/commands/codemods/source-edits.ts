@@ -177,6 +177,55 @@ export const referencesOf = function referencesOf(
 		);
 };
 
+/** The declarations an identifier resolves to in its own file. */
+const localDeclarationsOf = function localDeclarationsOf(
+	identifier: TsMorphTypes.Identifier
+): TsMorphTypes.Node[] {
+	const sourceFile = identifier.getSourceFile();
+	return (identifier.getSymbol()?.getDeclarations() ?? []).filter(
+		(declaration) => declaration.getSourceFile() === sourceFile
+	);
+};
+
+/** Whether a declaration is `import { name } from` one of `modules`. */
+const isNamedImportFrom = function isNamedImportFrom(
+	declaration: TsMorphTypes.Node,
+	name: string,
+	modules: readonly string[]
+): boolean {
+	if (!Node.isImportSpecifier(declaration) || declaration.getName() !== name) {
+		return false;
+	}
+	const moduleName = declaration
+		.getFirstAncestorByKind(SyntaxKind.ImportDeclaration)
+		?.getModuleSpecifierValue();
+	return moduleName !== undefined && modules.includes(moduleName);
+};
+
+/**
+ * Whether an identifier names the global `name`, or the `name` export of
+ * one of `modules`, such as `vi` from `vitest`. A parameter or local
+ * declaration that shadows the global does not count.
+ *
+ * @param identifier - The identifier to check.
+ * @param name - The global's name, which is also the export's name.
+ * @param modules - Modules that export the same binding.
+ * @returns Whether the identifier refers to that global or export.
+ */
+export const isGlobalOrImport = function isGlobalOrImport(
+	identifier: TsMorphTypes.Identifier,
+	name: string,
+	modules: readonly string[]
+): boolean {
+	const declarations = localDeclarationsOf(identifier);
+	if (declarations.length === 0) {
+		return identifier.getText() === name;
+	}
+	return declarations.some((declaration) =>
+		isNamedImportFrom(declaration, name, modules)
+	);
+};
+
 /**
  * Whether an identifier names Node's `require`: the global, or a binding
  * created by `createRequire()` from `node:module`. A parameter or local
@@ -185,15 +234,11 @@ export const referencesOf = function referencesOf(
 export const isNodeRequire = function isNodeRequire(
 	identifier: TsMorphTypes.Identifier
 ): boolean {
-	const sourceFile = identifier.getSourceFile();
-	const declarations = identifier.getSymbol()?.getDeclarations() ?? [];
-	const localDeclarations = declarations.filter(
-		(declaration) => declaration.getSourceFile() === sourceFile
-	);
-	if (localDeclarations.length === 0) {
+	const declarations = localDeclarationsOf(identifier);
+	if (declarations.length === 0) {
 		return identifier.getText() === 'require';
 	}
-	return localDeclarations.some((declaration) => {
+	return declarations.some((declaration) => {
 		if (!Node.isVariableDeclaration(declaration)) {
 			return false;
 		}
@@ -201,23 +246,17 @@ export const isNodeRequire = function isNodeRequire(
 		if (!initializer || !Node.isCallExpression(initializer)) {
 			return false;
 		}
-		const factory = initializer.getExpression();
 		return (
-			factory
+			initializer
+				.getExpression()
 				.getSymbol()
 				?.getDeclarations()
-				.some((imported) => {
-					if (
-						!Node.isImportSpecifier(imported) ||
-						imported.getName() !== 'createRequire'
-					) {
-						return false;
-					}
-					const moduleName = imported
-						.getFirstAncestorByKind(SyntaxKind.ImportDeclaration)
-						?.getModuleSpecifierValue();
-					return moduleName === 'node:module' || moduleName === 'module';
-				}) ?? false
+				.some((imported) =>
+					isNamedImportFrom(imported, 'createRequire', [
+						'node:module',
+						'module',
+					])
+				) ?? false
 		);
 	});
 };

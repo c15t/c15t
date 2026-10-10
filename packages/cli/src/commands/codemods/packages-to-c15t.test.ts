@@ -685,6 +685,39 @@ vi.mock(\`@c15t/react\`);
 `);
 	});
 
+	it('leaves module helpers on local bindings alone', async () => {
+		const shadowed = `function lookup(require) {
+	return require.resolve('@c15t/react');
+}
+`;
+		const local = `const vi = { mock: (name) => name };
+vi.mock('@c15t/react');
+`;
+		const { read } = await run(
+			{ c15t: '^3.0.0' },
+			{
+				'src/global.test.ts': `import { jest } from '@jest/globals';
+import { vi } from 'vitest';
+const path = require.resolve('@c15t/react');
+vi.mock('@c15t/react');
+jest.mock('@c15t/react');
+`,
+				'src/local.ts': local,
+				'src/shadowed.cjs': shadowed,
+			}
+		);
+
+		expect(await read('src/shadowed.cjs')).toBe(shadowed);
+		expect(await read('src/local.ts')).toBe(local);
+		expect(await read('src/global.test.ts'))
+			.toBe(`import { jest } from '@jest/globals';
+import { vi } from 'vitest';
+const path = require.resolve('c15t/react');
+vi.mock('c15t/react');
+jest.mock('c15t/react');
+`);
+	});
+
 	it('points mocks of a removed stylesheet import at c15t', async () => {
 		const { read, result } = await run(
 			{ c15t: '^3.0.0', tailwindcss: '^4.0.0' },
