@@ -399,7 +399,7 @@ describe('@c15t/vue Nuxt manifest mode', () => {
 		}) satisfies InitOutput;
 		const fetchMock = vi.fn((input: RequestInfo | URL, _init?: RequestInit) => {
 			const url = String(input);
-			if (url === '/internal/consent/init') {
+			if (url.startsWith('/internal/consent/init?')) {
 				return new Response(JSON.stringify(init), {
 					headers: { 'content-type': 'application/json' },
 					status: 200,
@@ -427,10 +427,9 @@ describe('@c15t/vue Nuxt manifest mode', () => {
 		await context.kernel.commands.init();
 		await context.kernel.commands.save('all');
 
-		expect(fetchMock.mock.calls.map(([url]) => String(url))).toEqual([
-			'/internal/consent/init',
-			'https://backend.example/subjects',
-		]);
+		expect(
+			fetchMock.mock.calls.map(([url]) => String(url).split('?')[0])
+		).toEqual(['/internal/consent/init', 'https://backend.example/subjects']);
 		expect(fetchMock.mock.calls[1]?.[1]).toMatchObject({ method: 'POST' });
 		// The Nuxt init route resolves the manifest on the server and issues no
 		// snapshot token, so the save must still assert the decision it was

@@ -19,6 +19,12 @@ export interface ProviderTransportContext {
 	policyRules?: PolicyRule[];
 	/** Whether the provider configured IAB TCF. */
 	iabEnabled?: boolean;
+	/**
+	 * Whether the runtime mounts IAB GPP. Its US sections read the
+	 * visitor's country and state from the init answer, so a transport
+	 * that could answer without a location should ask the backend instead.
+	 */
+	gppEnabled?: boolean;
 	/** Server-prefetched kernel configuration. */
 	prefetch: KernelConfig;
 	/** Translations resolved from the provider's i18n configuration. */

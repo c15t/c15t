@@ -2,8 +2,9 @@
  * Whether a character can change what a URL means without showing it. The
  * URL parser silently drops tabs and newlines, so a value that parses can
  * still carry hidden text.
+ * @internal
  */
-const isHiddenCharacter = (character: string): boolean => {
+export const isHiddenCharacter = (character: string): boolean => {
 	const code = character.charCodeAt(0);
 	return (
 		code <= 0x20 || (code >= 0x7f && code <= 0x9f) || /\s/u.test(character)

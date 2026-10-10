@@ -143,8 +143,10 @@ app can call a backend deployed elsewhere, as long as its origin is in
 3. Accept, then check DevTools Network for a `POST` to `/subjects` that returns
    a success status.
 4. Reload. The banner stays closed and your choice is still applied.
-5. For a cross-origin deployment, check that the browser's `OPTIONS` preflight
-   succeeds.
+5. For a cross-origin deployment, check that `/init` goes out without an
+   `OPTIONS` preflight and the consent save's `OPTIONS` preflight succeeds. An
+   `/init` preflight means something added a custom request header, such as
+   the hosted transport's `headers` option.
 
 Neither `/status` nor `/manifest` writes to the database, so only steps 3 and 4
 prove that consent writes and reads work. Continue with [configuration](/docs/self-host/api/configuration)

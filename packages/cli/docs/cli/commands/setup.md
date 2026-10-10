@@ -43,11 +43,11 @@ for inputs and requirements. `generate` keeps the deterministic setup workflow.
 
 Pass the mode as the first argument or with `--mode`:
 
-| Mode      | Backend                                                                                                                                                                                             |
-| --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `hosted`  | Inth or a [self-hosted backend](https://c15t.com/docs/self-host/overview). Requires `--backend-url`, or an Inth project through `--project` or the application preference set by `projects select`. |
-| `offline` | No backend. Choices stay in the browser. Not recommended for production environments.                                                                                                               |
-| `custom`  | Your own transport.                                                                                                                                                                                 |
+| Mode      | Backend                                                                                                                                                                                                |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `hosted`  | Inth or a [self-hosted backend](https://v3.c15t.com/docs/self-host/overview). Requires `--backend-url`, or an Inth project through `--project` or the application preference set by `projects select`. |
+| `offline` | No backend. Choices stay in the browser. Not recommended for production environments.                                                                                                                  |
+| `custom`  | Your own transport.                                                                                                                                                                                    |
 
 The older mode names `c15t` and `self-hosted` map to `hosted`. Setup refuses an
 Inth project that is still provisioning, because it has no backend URL yet.
@@ -112,7 +112,7 @@ Setup prints the PostCSS change to make by hand when it finds no config, finds
 several config files, finds the config in the `postcss` key of `package.json`,
 or cannot edit the plugin list, such as a YAML file. A non-interactive run
 logs these warnings and lists them in `warnings` in its result.
-[Tailwind CSS](https://c15t.com/docs/customization/tailwind#set-up-tailwind-css-3) shows the
+[Tailwind CSS](https://v3.c15t.com/docs/customization/tailwind#set-up-tailwind-css-3) shows the
 finished setup.
 
 Create React App ignores PostCSS config files, so Tailwind 3 cannot run the

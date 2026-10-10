@@ -19,7 +19,7 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 
 ## More documentation
 
-[Documentation index](https://c15t.com/docs/llms.txt) · [Full Markdown context](https://c15t.com/llms-full.txt). Prefer the index and individual pages for focused tasks.
+[Documentation index](https://v3.c15t.com/docs/llms.txt) · [Full Markdown context](https://v3.c15t.com/llms-full.txt). Prefer the index and individual pages for focused tasks.
 
 ## Frameworks
 
@@ -27,7 +27,7 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 
 - [Embeds](./frameworks/next/embeds.md): Keep YouTube videos, maps and other iframes out of a Next.js page until their consent category is allowed, with ConsentGate or the iframe blocker in ConsentRoot.
 - [Network blocker](./frameworks/next/network-blocker.md): Hold fetch and XMLHttpRequest calls in a Next.js app until their consent category is allowed, with networkBlocker rules on ConsentRoot.
-- [Scripts](./frameworks/next/scripts.md): Register vendor scripts in a Next.js ConsentRoot, check how each vendor loads, let visitors turn off one vendor and clear stored data after revocation.
+- [Scripts](./frameworks/next/scripts.md): Register vendor scripts in a Next.js ConsentRoot, check how each vendor loads, let visitors turn off one vendor, clear stored data after revocation and replace @next/third-parties.
 
 ### TanStack Start
 
@@ -45,7 +45,7 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 
 - [Embeds](./frameworks/nuxt/embeds.md): Keep YouTube videos, maps and other iframes out of a Nuxt page until their consent category is allowed, with ConsentGate or the iframe blocker.
 - [Network blocker](./frameworks/nuxt/network-blocker.md): Hold fetch and XMLHttpRequest calls in a Nuxt app until their consent category is allowed, with rules in the c15t module options.
-- [Scripts](./frameworks/nuxt/scripts.md): Load vendor scripts by consent category in a Nuxt app with the c15t Nuxt module, and what happens when a visitor withdraws consent.
+- [Scripts](./frameworks/nuxt/scripts.md): Load vendor scripts by consent category in a Nuxt app with the c15t Nuxt module, what happens when a visitor withdraws consent, and how to move off @nuxt/scripts and nuxt-gtag.
 
 ### Vue
 
@@ -123,8 +123,8 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 - [Fathom Analytics](./integrations/fathom-analytics.md): Load Fathom Analytics only after measurement consent with the c15t fathomAnalytics helper, set its SPA mode, and check it in DevTools.
 - [Front Chat](./integrations/front-chat.md): Load the Front Chat widget only after functionality consent with the c15t frontChat helper, forward CSP nonces, clear the session on revocation and check it in DevTools.
 - [Google Maps](./integrations/google-maps.md): Gate a Google Maps iframe embed with c15t v3 so the map loads only after the visitor allows its consent category, in Next.js, TanStack Start, React, Nuxt, Vue, Astro, Svelte, SvelteKit, HTML or JavaScript.
-- [Google Tag](./integrations/google-tag.md): Load gtag.js for Google Analytics or Google Ads with c15t Consent Mode v2 signals, and verify the consent commands in DevTools.
-- [Google Tag Manager](./integrations/google-tag-manager.md): Load a Google Tag Manager container with c15t Consent Mode v2 signals, configure consent checks inside the container, and verify both in DevTools.
+- [Google Tag](./integrations/google-tag.md): Load gtag.js for Google Analytics or Google Ads before or after consent with c15t Consent Mode v2 signals, and verify the consent commands in DevTools.
+- [Google Tag Manager](./integrations/google-tag-manager.md): Load a Google Tag Manager container before or after consent with c15t Consent Mode v2 signals, configure consent checks inside the container, and verify both in DevTools.
 - [Heap](./integrations/heap.md): Load the Heap config script and heap.js only after measurement consent with the c15t heap helper, and check it in DevTools.
 - [Hightouch](./integrations/hightouch.md): Load the Hightouch Events browser SDK only after measurement consent with the c15t hightouch helper, and check page events in DevTools.
 - [Hotjar](./integrations/hotjar.md): Load Hotjar only after measurement consent with the c15t hotjar helper, and check its loader and recordings in DevTools.

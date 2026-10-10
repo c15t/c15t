@@ -556,7 +556,7 @@ export interface InitContext {
 	/**
 	 * The consent journey this page load belongs to, set by the browser
 	 * runtime. The hosted transport sends it as query parameters on
-	 * `GET /init` (`c15tJourney`, `c15tJourneyScope`, `c15tStored`) so the
+	 * `GET /init` (`journey`, `journeyScope`, `stored`) so the
 	 * backend's session report can be linked to the save that follows.
 	 */
 	journey?: KernelJourney;
@@ -1004,8 +1004,17 @@ export interface ConsentKernel {
 				uiSource?: SaveUISource;
 			}
 		) => Promise<SaveResult>;
-		/** Dismiss the current notice. Only while `promptRequirement.kind === 'notice'`. */
-		dismissNotice: () => Promise<NoticeDismissResult>;
+		/**
+		 * Dismiss the current notice. Only while `promptRequirement.kind === 'notice'`.
+		 *
+		 * @param context - Optional dismissal time captured before the call,
+		 * such as a tap made before hydration. A future or invalid time falls
+		 * back to now.
+		 */
+		dismissNotice: (context?: {
+			/** When the visitor dismissed the notice. Defaults to now. */
+			actionAt?: number;
+		}) => Promise<NoticeDismissResult>;
 		identify: (user: KernelUser) => Promise<void>;
 	};
 

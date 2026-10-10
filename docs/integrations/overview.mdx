@@ -37,13 +37,13 @@ kernel to control its DOM lifecycle. Embeds do not require `@c15t/integrations`.
 | Integration | Helper | Category | Loading behavior |
 | --- | --- | --- | --- |
 | [Cloudflare Zaraz](/docs/integrations/cloudflare-zaraz) | `cloudflareZaraz` | `necessary` | Always runs; syncs purposes, Zaraz runs the tools |
-| [Google Tag Manager](/docs/integrations/google-tag-manager) | `googleTagManager` | `necessary` | Always loads; signals Google consent |
+| [Google Tag Manager](/docs/integrations/google-tag-manager) | `googleTagManager` | `necessary`; `measurement` or `marketing` when gated | Always loads and signals Google consent by default; `loadMode: 'after-consent'` waits for permission |
 
 ## Analytics
 
 | Integration | Helper | Category | Loading behavior |
 | --- | --- | --- | --- |
-| [Google Tag](/docs/integrations/google-tag) | `gtag` | `measurement` or `marketing` | Always loads; signals Google consent |
+| [Google Tag](/docs/integrations/google-tag) | `gtag` | `measurement` or `marketing` | Always loads and signals Google consent by default; `loadMode: 'after-consent'` waits for permission |
 | [Ahrefs Analytics](/docs/integrations/ahrefs-analytics) | `ahrefsAnalytics` | `measurement` | Waits for effective permission |
 | [Adobe Analytics](/docs/integrations/adobe-analytics) | `adobeAnalytics` | `measurement` | Waits for effective permission |
 | [Amplitude](/docs/integrations/amplitude) | `amplitude` | `measurement` | Waits for effective permission; opts the SDK out on revocation |
@@ -104,6 +104,13 @@ Remove the vendor's own snippet, tracking image, framework plugin or tag
 manager entry before adding its helper. c15t cannot gate a copy it did not
 load. Tag managers and data pipelines such as Segment can load further
 destinations, which need consent settings of their own.
+
+Framework packages are loaders too. To move their vendors to c15t, see
+[migrate from `@next/third-parties`](/docs/frameworks/next/scripts#migrate-from-nextthird-parties)
+for Next.js, and
+[migrate from `@nuxt/scripts`](/docs/frameworks/nuxt/scripts#migrate-from-nuxtscripts)
+or [migrate from `nuxt-gtag`](/docs/frameworks/nuxt/scripts#migrate-from-nuxt-gtag)
+for Nuxt.
 
 When a visitor turns off a category they had allowed, c15t reloads the page so
 that code which already ran stops. Each vendor guide lists what its helper does

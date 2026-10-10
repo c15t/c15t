@@ -4,13 +4,22 @@ import type {
 	PromptPosition,
 	PromptVariant,
 } from '@c15t/core';
+import { replayEarlyConsentTaps } from '@c15t/core/surface-actions';
 import type { PolicyRight } from '@c15t/schema/types';
 import type { CompleteTranslations } from '@c15t/translations';
-import bannerStyles from '@c15t/ui/styles/components/consent-banner';
 
 import '@c15t/ui/styles/components/consent-banner.css';
+import bannerStyles from '@c15t/ui/styles/components/consent-banner';
 import { getTextDirection } from '@c15t/ui/utils';
-import { computed, mergeProps, ref, Teleport, Transition } from 'vue';
+import {
+	computed,
+	mergeProps,
+	onBeforeUnmount,
+	onMounted,
+	ref,
+	Teleport,
+	Transition,
+} from 'vue';
 
 import {
 	useConsentActiveUI,
@@ -18,6 +27,7 @@ import {
 	useConsentInit,
 	useConsentSave,
 	useConsentKernel,
+	useConsentKernelContext,
 	useConsentSnapshot,
 	useHasConsentUi,
 } from '../composables';
@@ -25,10 +35,12 @@ import { useConsentPolicyActions } from '../composables/use-consent-policy-actio
 import { useConsentScrollLock } from '../composables/use-consent-scroll-lock';
 import { useLateEntry } from '../composables/use-late-entry';
 import { useMounted } from '../composables/use-mounted';
+import type { RuntimeConsentConfig } from '../kernel';
 import { useFocusTrap } from '../primitives/use-focus-trap';
 import { slotAttrs } from '../utils/slot-attrs';
 import ConsentActions from './actions.vue';
 import DescriptionContent from './description-content.vue';
+import EarlyTapScript from './early-tap-script';
 import ConsentTag from './tag.vue';
 
 /**
@@ -70,6 +82,20 @@ const kernel = useConsentKernel();
 const snapshot = useConsentSnapshot();
 
 const transitionStyles = bannerStyles as Record<string, string>;
+
+// A tap on the server-rendered banner before this component hydrated is
+// held by the inline script. From here the banner's own handlers work: stop
+// the script and record the tap once the runtime has started.
+const { runtime } = useConsentKernelContext();
+// The plugin provides the runtime config, which carries the CSP nonce.
+const nonce = computed(() => (config.value as RuntimeConsentConfig).nonce);
+let stopEarlyTaps: (() => void) | undefined;
+onMounted(() => {
+	stopEarlyTaps = replayEarlyConsentTaps(kernel, {
+		started: () => runtime.started,
+	});
+});
+onBeforeUnmount(() => stopEarlyTaps?.());
 
 const {
 	presentation: surface,
@@ -239,6 +265,10 @@ const onAction = function onAction(action: PresentationAction) {
 		to="body"
 		:disabled="!mounted"
 	>
+		<EarlyTapScript
+			v-if="isOpen"
+			:nonce="nonce"
+		/>
 		<Transition
 			:css="!disableAnimation"
 			:enter-from-class="''"

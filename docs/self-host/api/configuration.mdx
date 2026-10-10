@@ -35,7 +35,7 @@ fallback. Add reviewed rules for other locations in
 | --- | --- |
 | `database` | Required PostgreSQL, MySQL or SQLite connection, or an Effect SQL client layer. |
 | `basePath` | Mount prefix to strip before routing. Set it when the handler receives paths such as `/api/c15t/init`. |
-| `trustedOrigins` | Hosts whose browsers may call the backend cross-origin, such as `app.example.com` or `*.example.com`. Empty or absent allows none. |
+| `trustedOrigins` | Hosts whose browsers may call the backend cross-origin, such as `app.example.com` or `*.example.com`. Empty or absent allows none. `GET /init` answers every origin regardless; see [query parameters and CORS](/docs/self-host/api/endpoints#query-parameters-and-cors). |
 | `tenantId` | Fixed tenant for this instance's database queries. Omitted uses the single-tenant scope with null tenant IDs. An empty or padded string, or a non-string such as `null`, throws when the instance is built. This is the only tenant setting; `manifest.tenantId` is no longer accepted and throws. |
 | `requireTenantId` | Set to `true` when several tenants share one database. The instance throws at construction if `tenantId` is missing, instead of running in the single-tenant scope. Defaults to `false`. |
 | `hosting` | Who runs this backend: `'self-hosted'` (the default) or `'inth'`, which only Inth's hosted platform sets. `/init` and `/manifest` report it, and browsers read it as `window.c15t.hosting`. It is not signed, so use it for debugging and support, not as proof of hosting. Any other value throws when the instance is built, and so does `manifest.hosting`. |
@@ -114,7 +114,10 @@ and [script-tag guide](/docs/frameworks/html/quickstart) for usage.
 A `trustedOrigins` entry matches a hostname on any web scheme. Add a port to
 pin one, such as `localhost:3000`. `*.example.com` matches subdomains, and `*`
 allows every origin. CORS controls which browser pages can read responses. It is not authentication and does not
-prevent a non-browser client from calling a public endpoint. Keep API keys,
+prevent a non-browser client from calling a public endpoint. `GET /init` is
+open to every origin without credentials, because it returns only public
+policy data for the request's location; consent saves and subject reads keep
+the allowlist. Keep API keys,
 database credentials and signing keys in server environment variables.
 
 A `tenantId` scopes an instance, not an arbitrary incoming header. Construct the

@@ -107,8 +107,8 @@ describe('resolveConsent wiring', () => {
 		});
 		const sent = new URL(String(tab.mock.calls[0]?.[0]));
 		// A server-rendered page is a page journey, even under 'tab'.
-		expect(sent.searchParams.get('c15tJourneyScope')).toBe('page');
-		expect(sent.searchParams.get('c15tJourney')).toBe(started.journey?.id);
+		expect(sent.searchParams.get('journeyScope')).toBe('page');
+		expect(sent.searchParams.get('journey')).toBe(started.journey?.id);
 
 		for (const options of [
 			{

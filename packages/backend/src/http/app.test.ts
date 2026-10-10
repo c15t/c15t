@@ -375,7 +375,7 @@ describe.each(ENGINES)('HTTP app ($name)', (engine) => {
 			const reporting = createApp(runtime, { sessions: { onReport } });
 			const id = '3b241101-e2bb-4255-8caf-4136c566a962';
 			const response = await reporting.request(
-				`/init?c15tJourney=${id}&c15tJourneyScope=tab&c15tStored=1`,
+				`/init?journey=${id}&journeyScope=tab&stored=1`,
 				{
 					headers: {
 						origin: 'https://shop.example.com',
@@ -398,13 +398,39 @@ describe.each(ENGINES)('HTTP app ($name)', (engine) => {
 			});
 		});
 
+		it('still reads the journey under the alpha parameter names', async () => {
+			// 3.0.0-alpha.8 and alpha.9 browsers send `c15tJourney`,
+			// `c15tJourneyScope` and `c15tStored`.
+			const onReport = vi.fn();
+			const reporting = createApp(runtime, { sessions: { onReport } });
+			const id = '3b241101-e2bb-4255-8caf-4136c566a962';
+			const response = await reporting.request(
+				`/init?c15tJourney=${id}&c15tJourneyScope=page&c15tStored=0`,
+				{
+					headers: {
+						origin: 'https://shop.example.com',
+						'x-c15t-version': '3.0.0-alpha.9',
+					},
+				}
+			);
+			assert.strictEqual(response.status, 200);
+			await vi.waitFor(() => assert.strictEqual(onReport.mock.calls.length, 1));
+			assert.deepStrictEqual(onReport.mock.calls[0]?.[0].journey, {
+				domain: 'shop.example.com',
+				id,
+				prompt: 'due',
+				scope: 'page',
+				storedChoice: false,
+			});
+		});
+
 		it('takes the journey domain from the request host when no Origin is sent', async () => {
 			// A backend on the site's own origin: a same-origin GET carries no
 			// Origin header.
 			const onReport = vi.fn();
 			const reporting = createApp(runtime, { sessions: { onReport } });
 			const response = await reporting.request(
-				'https://shop.example.com/init?c15tJourney=3b241101-e2bb-4255-8caf-4136c566a962&c15tJourneyScope=page&c15tStored=0',
+				'https://shop.example.com/init?journey=3b241101-e2bb-4255-8caf-4136c566a962&journeyScope=page&stored=0',
 				{ headers: { 'x-c15t-version': '3.0.0' } }
 			);
 			assert.strictEqual(response.status, 200);
@@ -419,10 +445,10 @@ describe.each(ENGINES)('HTTP app ($name)', (engine) => {
 			const onReport = vi.fn();
 			const reporting = createApp(runtime, { sessions: { onReport } });
 			for (const query of [
-				'c15tJourney=visitor-42&c15tJourneyScope=page&c15tStored=0',
-				'c15tJourney=3b241101-e2bb-4255-8caf-4136c566a962&c15tJourneyScope=forever&c15tStored=0',
+				'journey=visitor-42&journeyScope=page&stored=0',
+				'journey=3b241101-e2bb-4255-8caf-4136c566a962&journeyScope=forever&stored=0',
 				// Without the stored flag the report cannot say if a prompt was owed.
-				'c15tJourney=3b241101-e2bb-4255-8caf-4136c566a962&c15tJourneyScope=page',
+				'journey=3b241101-e2bb-4255-8caf-4136c566a962&journeyScope=page',
 			]) {
 				// oxlint-disable-next-line no-await-in-loop -- One request at a time keeps the reports in order.
 				const response = await reporting.request(`/init?${query}`, {
@@ -1508,7 +1534,7 @@ describe.each(ENGINES)('HTTP app ($name)', (engine) => {
 			// does not read it must still record the consent.
 			await seed();
 			const response = await app.request(
-				'/subjects?c15tJourney=3b241101-e2bb-4255-8caf-4136c566a962&c15tJourneyScope=page',
+				'/subjects?journey=3b241101-e2bb-4255-8caf-4136c566a962&journeyScope=page',
 				{
 					body: JSON.stringify(submission),
 					headers: {

@@ -161,7 +161,7 @@ It adds `'c15t/postcss-tailwind3': {}`, or the
 when the app uses scoped packages without `c15t` v3, to an object-form
 `postcss.config.{js,cjs,mjs,ts}`. It leaves an array-form config unchanged.
 When the array doesn't list a c15t plugin, it prints a warning; add the plugin
-by hand as [Tailwind CSS 3](https://c15t.com/docs/customization/tailwind#set-up-tailwind-css-3)
+by hand as [Tailwind CSS 3](https://v3.c15t.com/docs/customization/tailwind#set-up-tailwind-css-3)
 shows.
 
 ### Node.js SDK and backend

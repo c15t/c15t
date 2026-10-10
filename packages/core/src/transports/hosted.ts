@@ -44,6 +44,7 @@ import {
 import type { InitOutput } from '@c15t/schema/types';
 
 import { consumePrefetchedInitialData } from '../libs/prefetch/prefetch';
+import { DEFAULT_INIT_CREDENTIALS } from '../libs/request-context-headers';
 import type { SSRInitialData } from '../options/ssr';
 import type { KernelOverrides, InitContext } from '../types';
 import {
@@ -100,14 +101,6 @@ export interface HostedTransportOptions {
 	fetch?: typeof globalThis.fetch;
 
 	/**
-	 * Request headers that may be passed through to `GET /init`.
-	 *
-	 * Only the backend-recognized init headers are forwarded:
-	 * `accept-language`, supported geo CDN headers, and `sec-gpc`.
-	 * Other names are ignored so callers do not accidentally forward
-	 * arbitrary request header bags.
-	 */
-	/**
 	 * An init response that was already requested, for example by an inline
 	 * prefetch script that ran before hydration. The first `init()` consumes
 	 * it instead of calling `initURL`, and still records the decision inputs
@@ -124,12 +117,30 @@ export interface HostedTransportOptions {
 	 */
 	decisionInputs?: RememberedDecisionInputs;
 
+	/**
+	 * Request headers that may be passed through to `GET /init`.
+	 *
+	 * Only the backend-recognized init headers are forwarded:
+	 * `accept-language`, supported geo CDN headers, and `sec-gpc`.
+	 * Other names are ignored so callers do not accidentally forward
+	 * arbitrary request header bags.
+	 *
+	 * Meant for server-side callers forwarding a visitor's request. In a
+	 * browser, any of these except `accept-language` makes a cross-origin
+	 * `/init` a non-simple CORS request, which costs an `OPTIONS`
+	 * preflight round trip before the banner can show. Use the kernel's
+	 * `overrides` instead: they travel in the query string.
+	 */
 	headers?: Record<string, string>;
 
 	/**
-	 * Fetch credentials mode. Defaults to `'include'` so that the
-	 * backend can set/read consent cookies. Set `'omit'` for
-	 * cookie-less modes.
+	 * Fetch credentials mode for every request.
+	 *
+	 * When unset, `GET /init` uses `'same-origin'`: it reads and sets no
+	 * cookie, and a credential-less cross-origin request can be answered
+	 * with `Access-Control-Allow-Origin: *`. Saves and record reads use
+	 * `'include'` so the backend can set and read consent cookies. Set
+	 * `'omit'` for cookie-less modes.
 	 */
 	credentials?: RequestCredentials;
 
@@ -211,6 +222,7 @@ export const createHostedTransport = function createHostedTransport(
 	const fetchImpl = resolveFetch(options.fetch);
 	const initHeaders = buildAllowedInitHeaders(options.headers);
 	const credentials = options.credentials ?? 'include';
+	const initCredentials = options.credentials ?? DEFAULT_INIT_CREDENTIALS;
 	let lastDecisionInputs = options.assertDecisionInputs
 		? options.decisionInputs
 		: undefined;
@@ -254,7 +266,7 @@ export const createHostedTransport = function createHostedTransport(
 		prepareInit(ctx);
 		const request = createHostedInitRequest({
 			backendURL: base,
-			credentials,
+			credentials: initCredentials,
 			experiment: ctx.experiment,
 			headers: initHeaders,
 			initURL,
@@ -268,7 +280,7 @@ export const createHostedTransport = function createHostedTransport(
 				? undefined
 				: consumePrefetchedInitialData({
 						backendURL: base,
-						credentials,
+						credentials: initCredentials,
 						overrides: {
 							...extractConsentRequestInputs(new Headers(requestHeaders)),
 							...ctx.overrides,

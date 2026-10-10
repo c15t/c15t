@@ -4,6 +4,7 @@ import {
 	deniedConsentState,
 	expectGoogleConsentDefault,
 	getTestGlobal,
+	grantedMeasurementConsentState,
 	runOnBeforeLoad,
 	setupScriptHelperTest,
 	toArgumentsArray,
@@ -65,5 +66,57 @@ describe('gtag', () => {
 		expect(script.attributes).toEqual({
 			'data-test': '1',
 		});
+	});
+
+	it('loads before a choice by default', () => {
+		const script = gtag({ category: 'measurement', id: 'G-DEFAULT' });
+
+		expect(script.alwaysLoad).toBe(true);
+		expect(script.category).toBe('measurement');
+		expect(script.persistAfterConsentRevoked).toBe(true);
+		expect(script.src).toBe(
+			'https://www.googletagmanager.com/gtag/js?id=G-DEFAULT'
+		);
+	});
+
+	it('waits for its category with loadMode after-consent', () => {
+		const script = gtag({
+			category: 'marketing',
+			id: 'G-GATED',
+			loadMode: 'after-consent',
+		});
+
+		expect(script.alwaysLoad).toBeUndefined();
+		expect(script.category).toBe('marketing');
+		expect(script.persistAfterConsentRevoked).toBe(true);
+		expect(script.src).toBe(
+			'https://www.googletagmanager.com/gtag/js?id=G-GATED'
+		);
+	});
+
+	it('sends the current permissions as the default before config when gated', () => {
+		const globalRef = getTestGlobal();
+		const script = gtag({
+			category: 'measurement',
+			id: 'G-GATED',
+			loadMode: 'after-consent',
+		});
+
+		runOnBeforeLoad(script, {
+			consents: grantedMeasurementConsentState,
+			hasConsent: true,
+		});
+
+		const dataLayer = globalRef.dataLayer as unknown[];
+		expect(toArgumentsArray(dataLayer[0])).toEqual([
+			'consent',
+			'default',
+			expect.objectContaining({
+				ad_storage: 'denied',
+				analytics_storage: 'granted',
+			}),
+		]);
+		expect(toArgumentsArray(dataLayer[1])[0]).toBe('js');
+		expect(toArgumentsArray(dataLayer[2])).toEqual(['config', 'G-GATED']);
 	});
 });

@@ -71,6 +71,11 @@ them. Blocking direct access to your origin keeps requests on that edge, but
 it does not replace the stripping, because a forwarded client header still
 passes through.
 
+The browser's own `/init` request carries the same overrides as the
+`country`, `region` and `gpc` query parameters, so that a
+cross-origin request needs no CORS preflight. The init route treats them like
+the `x-c15t-*` headers, so strip them from `/init` requests at the same edge.
+
 ## Test a region locally
 
 The override headers are how you test a policy without a VPN. Send them to a

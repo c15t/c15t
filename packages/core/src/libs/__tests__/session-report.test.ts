@@ -162,7 +162,7 @@ describe('forwardSessionReportHeaders', () => {
 
 describe('reportConsentSession', () => {
 	const JOURNEY_ID = '3b241101-e2bb-4255-8caf-4136c566a962';
-	const journeyURL = `https://shop.example.com/api/c15t/init?c15tJourney=${JOURNEY_ID}&c15tJourneyScope=page&c15tStored=1`;
+	const journeyURL = `https://shop.example.com/api/c15t/init?journey=${JOURNEY_ID}&journeyScope=page&stored=1`;
 
 	test('reads the journey from the request URL, with the Origin as domain', async () => {
 		const init = await resolveInit();

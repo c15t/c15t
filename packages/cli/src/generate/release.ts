@@ -1,3 +1,4 @@
+import { docsOriginForVersion } from './docs-origin.ts';
 import { version as cliVersion } from './version.ts';
 
 /**
@@ -124,4 +125,48 @@ export const describeC15tRelease = function describeC15tRelease(
 		return `Install every c15t package with the @${linked} dist-tag.`;
 	}
 	return `Install ${[...LINKED_C15T_PACKAGES].join(', ')} with @${linked}, and other @c15t packages with @${other}.`;
+};
+
+export { C15T_DOCS_ORIGIN } from './docs-origin.ts';
+
+/**
+ * The npm dist-tag that publishes the c15t release a CLI belongs to.
+ * Prereleases use their tag (`3.0.0-alpha.3` becomes `alpha`); stable
+ * releases use `latest`. Unlike {@link c15tReleaseSpecifier}, the result is
+ * always a tag, so `npm view c15t@<tag> version` prints one version.
+ *
+ * @param version - CLI version. Defaults to the CLI that published this source.
+ * @returns A dist-tag such as `alpha`, `canary`, `rc` or `latest`.
+ *
+ * @example
+ * ```ts
+ * c15tDistTag('3.0.0-alpha.3'); // 'alpha'
+ * c15tDistTag('3.2.1'); // 'latest'
+ * ```
+ */
+export const c15tDistTag = function c15tDistTag(
+	version: string = cliVersion
+): string {
+	return version.includes('-') ? c15tReleaseSpecifier(version) : 'latest';
+};
+
+/**
+ * The docs site for the c15t release a CLI belongs to. Prereleases of a new
+ * major (`3.0.0-alpha.3`) have their own site, such as https://v3.c15t.com,
+ * while c15t.com still documents the previous major. Everything else uses
+ * https://c15t.com.
+ *
+ * @param version - CLI version. Defaults to the CLI that published this source.
+ * @returns An origin without a trailing slash.
+ *
+ * @example
+ * ```ts
+ * c15tDocsOrigin('3.0.0-alpha.3'); // 'https://v3.c15t.com'
+ * c15tDocsOrigin('3.2.1'); // 'https://c15t.com'
+ * ```
+ */
+export const c15tDocsOrigin = function c15tDocsOrigin(
+	version: string = cliVersion
+): string {
+	return docsOriginForVersion(version);
 };

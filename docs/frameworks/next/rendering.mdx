@@ -243,6 +243,27 @@ stay denied, and the browser retries after hydration. See
 It returns the visitor's stored records, location, language and privacy
 signals, with no resolved policy. Pass `config` when rendering needs the policy.
 
+## Taps before hydration
+
+A banner in the server HTML shows before the page's JavaScript runs. On a slow
+phone that gap can last seconds. The stock `ConsentBanner` puts a small inline
+script in front of its buttons that holds an Accept all, Reject all, notice
+dismiss or Customize tap made in that gap. Accept, reject and dismiss hide the
+banner at once. When the banner hydrates and the runtime has started, c15t
+records the choice with the time of the tap, saves it and loads the scripts it
+allows; Customize opens the dialog.
+
+A tap made on a banner for one model or prompt is dropped when the browser
+resolves another, and the banner shows again. A banner you build from hooks
+has no inline script, so a tap before hydration does nothing there, and a
+page with two stock banners holds no early taps at all. Neither
+does a button in a composed `ConsentBanner` that has its own `onClick`,
+`asChild`, `type="submit"` or `performDefaultAction={false}`, so your handler,
+link or form still decides that tap. A tap on a banner with its own `uiSource`
+is recorded with that source. Under a
+Content Security Policy the script needs `options.nonce`; see
+[Content Security Policy](/docs/frameworks/next/content-security-policy).
+
 ## Cache policy, never visitor state
 
 A manifest is public policy configuration, so your server and CDN can cache it.
