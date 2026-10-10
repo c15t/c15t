@@ -524,6 +524,41 @@ describe('c15t setup instructions', () => {
 		);
 	});
 
+	it('treats any c15t package or c15t.js script tag as an existing setup', () => {
+		const instructions = createC15tSetupInstructions();
+		expect(instructions).toContain('list c15t or any @c15t/* package');
+		for (const name of ['@c15t/svelte', '@c15t/browser']) {
+			expect(instructions).toContain(name);
+		}
+		expect(instructions).toContain('does a page load c15t.js');
+	});
+
+	it('installs only the packages the framework quickstart installs', () => {
+		const instructions = createC15tSetupInstructions({ origin });
+		expect(instructions).toContain(
+			`Install only the packages the framework's quickstart installs (\`${origin}/docs/frameworks/<framework>/quickstart.md\`)`
+		);
+		expect(instructions).toContain(
+			'Svelte and SvelteKit use `@c15t/svelte` and do not install `c15t`'
+		);
+		expect(instructions).not.toContain('Look up `c15t`');
+	});
+
+	it('checks rejection and withdrawal against each helper documented behavior', () => {
+		const instructions = createC15tSetupInstructions();
+		expect(instructions).not.toContain('nothing optional loads');
+		expect(instructions).not.toContain('the tools stop');
+		expect(instructions).toContain(
+			'tools that wait for consent send no requests, and always-loading helpers signal denied consent or stay opted out'
+		);
+		expect(instructions).toContain(
+			"each tool then follows its guide's revocation behavior"
+		);
+		expect(instructions).toContain(
+			"That is correct only when the site's requirement allows requests with denied defaults"
+		);
+	});
+
 	it('numbers steps after the steps a host puts first', () => {
 		const instructions = createC15tSetupInstructions({ firstStep: 4 });
 		expect(instructions).toContain('## 4. Inventory the application');

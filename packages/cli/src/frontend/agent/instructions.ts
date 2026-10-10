@@ -220,8 +220,10 @@ Do this before installing anything; the result decides which path you take when 
 2. Classify the existing consent setup. Walk this tree:
 
    \`\`\`
-   Does any package.json or lockfile list c15t, @c15t/nextjs, @c15t/react or @c15t/scripts?
-   ├── Yes, every c15t package is 3.x → keep it; check its storage mode (Storage mode below).
+   Does any package.json or lockfile list c15t or any @c15t/* package (such as @c15t/nextjs,
+   @c15t/react, @c15t/svelte, @c15t/browser or @c15t/scripts), or does a page load c15t.js
+   with a script tag (from a CDN, an Inth project or a self-hosted backend)?
+   ├── Yes, every c15t package and pinned script URL is 3.x → keep it; check its storage mode (Storage mode below).
    ├── Yes, any c15t package is below 3.0 → Upgrade path.
    └── No
        ├── Another consent manager or a homegrown banner exists → Replace path.
@@ -240,7 +242,7 @@ Show the inventory as a short checklist and continue.${askTogether}
 
 ## ${install}. Install or upgrade c15t
 
-Resolve exact versions first. Look up \`c15t\`, \`@c15t/integrations\` when any vendor helper is used, and any other \`@c15t/*\` package the framework guide installs, such as \`@c15t/svelte\`. Use the command for the project's package manager; \`npm view\` also works anywhere npm is installed:
+Install only the packages the framework's quickstart installs (\`${origin}/docs/frameworks/<framework>/quickstart.md\`), and skip \`@c15t/integrations\` when no vendor helper is used. The list differs by framework: Svelte and SvelteKit use \`@c15t/svelte\` and do not install \`c15t\`, and a plain HTML site that loads c15t with a script tag installs nothing. Resolve the exact version of each package first. Use the command for the project's package manager; \`npm view\` also works anywhere npm is installed:
 
 ${versionLookup(distTag)}
 
@@ -295,16 +297,21 @@ Run the project's typecheck, tests and production build. Serve the production bu
 	)} and use a fresh browser profile for each journey. Follow the bundled guides/verify-consent page (\`${origin}/docs/guides/verify-consent.md\`). Check, by network requests and storage rather than by what the page shows:
 
 1. First visit: the banner shows and no optional tool sends a request that the site's requirement forbids.
-2. Reject all: nothing optional loads; ${byMode(mode, {
-		custom: "the choice reaches the app's transport (its `save` succeeds)",
-		hosted: 'the choice is written to the backend (a successful POST)',
-		offline: 'the choice is written to browser storage',
-		unknown:
-			"the choice is written to the backend in hosted mode (a successful POST), reaches the app's transport in custom mode, or is written to browser storage in offline mode",
-	})}; it survives a reload and a client-side navigation.
+2. Reject all: tools that wait for consent send no requests, and always-loading helpers signal denied consent or stay opted out; ${byMode(
+		mode,
+		{
+			custom: "the choice reaches the app's transport (its `save` succeeds)",
+			hosted: 'the choice is written to the backend (a successful POST)',
+			offline: 'the choice is written to browser storage',
+			unknown:
+				"the choice is written to the backend in hosted mode (a successful POST), reaches the app's transport in custom mode, or is written to browser storage in offline mode",
+		}
+	)}; it survives a reload and a client-side navigation.
 3. Accept all: each tool loads once, its app events fire once per action, and the choice survives a reload.
-4. Withdraw: reopen preferences, reject, reload; the tools stop.
+4. Withdraw: accept all, then reopen preferences and reject. c15t reloads the page; each tool then follows its guide's revocation behavior: it no longer loads, its SDK is opted out, or it signals denied consent.
 5. Granular choices, keyboard use and a narrow viewport.
+
+Judge each tool by the loading behavior in the integrations overview and the revocation behavior in its guide. A helper that waits for consent sends no request until its category is allowed. A helper the overview says always loads (such as \`gtag\` and \`googleTagManager\`, and \`posthog\` by default) loads before a choice and stays loaded after a rejection; check that it signals denied consent or opts its SDK out, as its guide describes. That is correct only when the site's requirement allows requests with denied defaults; otherwise the tool needs a gated alternative (Move every tool behind consent above).
 
 A closing banner does not prove a saved choice; ${byMode(mode, {
 		custom: "wait for the transport's `save` to finish",
