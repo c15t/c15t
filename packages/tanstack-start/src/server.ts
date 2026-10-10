@@ -72,6 +72,7 @@ import {
 import type { ConsentMode } from '@c15t/core/modes';
 import {
 	DEFAULT_CONSENT_ROUTE_PREFIX,
+	normalizeRoutePrefix,
 	resolveRequestConsent,
 } from '@c15t/core/server';
 import type {
@@ -80,7 +81,6 @@ import type {
 } from '@c15t/core/server';
 import type { ConsentManifest, InitOutput } from '@c15t/schema/types';
 
-import { trimTrailingSlashes } from './libs/path';
 import { readConsentInputs } from './libs/request-inputs';
 
 type Awaitable<Value> = Promise<Value> | Value;
@@ -346,7 +346,8 @@ export interface ResolveConsentOptions extends ConsentRequestOptions {
 	 * the route, and the render never fetches a URL under the prefix on its
 	 * own origin. Unset, the browser gets init from `${backendURL}/init`.
 	 * Same option and default (none) as Next.js
-	 * `defineConsentConfig({ routePrefix })`.
+	 * `defineConsentConfig({ routePrefix })`. `/` is rejected: a catch-all
+	 * route at the site root would catch every page.
 	 */
 	routePrefix?: string;
 
@@ -449,13 +450,20 @@ const clientConfigFor = function clientConfigFor(
 	return config;
 };
 
+/** The options' route prefix, checked; `undefined` when unset. */
+const readRoutePrefix = function readRoutePrefix(
+	options: ResolveConsentOptions
+): string | undefined {
+	return options.routePrefix === undefined
+		? undefined
+		: normalizeRoutePrefix('@c15t/tanstack-start', options.routePrefix);
+};
+
 const resolveConsentState = async function resolveConsentState(
 	options: ResolveConsentOptions
 ): Promise<ConsentState> {
 	const backendURL = options.backendURL ?? generatedBackendURL;
-	const routePrefix = options.routePrefix
-		? trimTrailingSlashes(options.routePrefix) || '/'
-		: undefined;
+	const routePrefix = readRoutePrefix(options);
 	const client = clientConfigFor(options, backendURL, routePrefix);
 	const request = await readCurrentRequest(options.request);
 	const server = serverModeOptions(options, backendURL);
@@ -467,11 +475,7 @@ const resolveConsentState = async function resolveConsentState(
 		experiment: options.experiment,
 		fetch: options.fetch,
 		forwardHeaders: options.forwardHeaders,
-		// A route at the root is `/`; `//init` would read as a host.
-		gvlRoute:
-			routePrefix === undefined
-				? undefined
-				: `${routePrefix === '/' ? '' : routePrefix}/init`,
+		gvlRoute: routePrefix === undefined ? undefined : `${routePrefix}/init`,
 		journey: options.journey,
 		now: options.now,
 		overrides: { country: options.country, language: options.language },
@@ -523,6 +527,7 @@ const resolveConsentState = async function resolveConsentState(
  * URL and snapshot default to what `consentManifest()` provides.
  * @returns A serializable state for `ConsentRoot`.
  * @throws {Error} When `proxy` is set without `routePrefix`.
+ * @throws {TypeError} When `routePrefix` is `/` or not a path.
  */
 export const resolveConsent = async function resolveConsent(
 	options: ResolveConsentOptions = {}
@@ -580,9 +585,12 @@ export { consentLoaderOptions } from './libs/loader-options';
  * @param options - {@link resolveConsent} options: `mode`, `routePrefix`,
  * `snapshot` and the rest. `request` defaults to `getRequest()`.
  * @returns A handler that resolves to the request's consent state.
+ * @throws {TypeError} When `routePrefix` is `/` or not a path, when the
+ * server function is declared rather than on a request.
  */
 export const createConsentStateHandler = function createConsentStateHandler(
 	options: ResolveConsentOptions = {}
 ): () => Promise<ConsentState> {
+	readRoutePrefix(options);
 	return () => resolveConsent(options);
 };
