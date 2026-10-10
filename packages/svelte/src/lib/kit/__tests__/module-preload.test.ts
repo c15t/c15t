@@ -39,7 +39,7 @@ describe('injectModulePreloads', () => {
 
 	test('adds nothing when the build wrote no URL', () => {
 		const html = `<head>${marker('loader-and-blocker')}</head>`;
-		// The placeholders, as in `vite dev` or without `c15tPreload()`.
+		// The placeholders, as in `vite dev` or without `consentManifest()`.
 		expect(injectModulePreloads(html)).toBe(html);
 		// An entry chunk already carries the module.
 		expect(
