@@ -1038,6 +1038,7 @@ describe('readBuildEnv quoting', () => {
 		["'https://api.example' # production"],
 		['"https://api.example"'],
 		['https://api.example # production'],
+		['https://api.example#production'],
 		['https://api.example'],
 	])('reads %s as the bare URL', async (value) => {
 		const root = await createRoot();
