@@ -1,6 +1,6 @@
 ---
 title: Troubleshooting
-description: Fix a missing banner, analytics that load before consent, choices lost on reload, CORS errors, hydration differences and failed static builds in c15t v3.
+description: Fix a missing banner, analytics that load before consent, choices lost on reload, CORS errors, hydration differences, failed manifest downloads, mode errors and failed static builds in c15t v3.
 group: guides
 ---
 
@@ -46,7 +46,7 @@ No banner is sometimes correct. Find out which case you have:
 | --- | --- | --- |
 | The backend request failed or has a CORS error | Wrong backend URL, or your origin is not trusted | Copy the URL from your Inth project exactly, including any path. Add the site's origin, such as `https://www.example.com` or `http://localhost:3000`, to the project's trusted origins. |
 | Requests go to `your-project.inth.app` and fail | The placeholder backend URL from the guides is still in your code | Replace `https://your-project.inth.app` with the URL from your Inth project, including any path prefix. |
-| No backend request at all | No provider mounted, or the provider runs in offline mode | Check `window.c15t`. Confirm the provider receives `hosted()` with your backend URL, or the `backendURL` option your framework uses. |
+| No backend request at all | No provider mounted, the provider runs in offline mode, or the page resolved from a bundled manifest | Check `window.c15t`. `mode: 'manifest'` with no request is expected for a policy that does not depend on location. Otherwise confirm your framework's backend URL variable is set, as [consent modes](/docs/concepts/modes#set-the-backend-url) lists. |
 | The policy resolved and no prompt is needed | The visitor's location maps to a policy without a prompt, such as a US state without a privacy law in the recommended rules | Expected. Test from a location that needs a prompt. Server helpers such as Next.js `resolveConsent` accept a `country` override for testing; remove it before you deploy. |
 | The policy resolved and a choice is stored | A returning visitor | Expected. Clear site data or use a private window. |
 | The banner is in the DOM but invisible or unstyled | c15t's rules are missing: `styles: false` without an imported stylesheet, a Content Security Policy that blocks c15t's `<style>` elements, Tailwind CSS 3's preflight, or a SvelteKit app without `c15tHandle` | See [stylesheets and CSS layers](/docs/customization/stylesheets) for how your framework loads c15t's rules. |
@@ -108,6 +108,62 @@ resolve different policies.
 Never keep consent state in a module-level variable on the server. One
 visitor's state can leak into another request. Create it per request, as the
 framework guides do.
+
+## Why does the build fail to download the manifest?
+
+`manifest()` resolves from a policy snapshot that the build downloads from
+`${backendURL}/manifest`. A production build stops when the download fails,
+and dev logs the same message as a warning. Every framework uses the same
+messages, prefixed with the integration's name, such as
+`@c15t/nextjs/build`, `@c15t/core/build` (for `c15t/build`),
+`@c15t/tanstack-start/build`, `@c15t/vue/vite`, `@c15t/svelte/vite`,
+`@c15t/vue` (Nuxt) or `@c15t/astro`:
+
+| Message | Cause | Fix |
+| --- | --- | --- |
+| `could not fetch the consent manifest from <url> during the build (fetch failed: ...)`, with `ENOTFOUND`, `ECONNREFUSED` or another network error | The build cannot reach the backend | Build where the backend is reachable, or deploy with `C15T_ON_BUILD_ERROR=runtime` |
+| `... (no response within 10 seconds)` | The backend did not answer in time | Check the backend, or build where it is reachable |
+| `... (/manifest responded 404 Not Found)`, or another status | The URL is not your project's backend, such as the `https://your-project.inth.app` placeholder or a URL missing its path prefix | Copy the backend URL exactly as Inth shows it |
+| `... (/manifest returned an invalid consent manifest.)` | The URL answered with something other than a consent manifest, such as an HTML page | Point the backend URL at the backend itself, not your site or a dashboard page |
+| `no backend URL is set, so the build cannot fetch the consent manifest. Pass backendURL or set ...` | No `backendURL` option and no backend URL variable | Set the variable your framework reads; see [consent modes](/docs/concepts/modes#set-the-backend-url) |
+| `skipped the consent manifest fetch because "/api/c15t" is not an absolute http(s) URL, so the server fetches the policy at runtime.` | A relative backend URL. A notice, not an error. | Pass the absolute backend URL. With `onBuildError: 'fail'`, this stops the build with `build-time manifests require an absolute upstream URL.` |
+| `C15T_ON_BUILD_ERROR must be 'runtime' or 'fail', received "..."` | The variable has another value | Set it to `runtime` or `fail`, or unset it |
+| `onBuildError must be 'runtime' or 'fail', received "..."` | The option has another value | Pass `'runtime'` or `'fail'` |
+
+Each failure message ends with what to do next. In a production build:
+``Set `C15T_ON_BUILD_ERROR=runtime` (or `onBuildError: 'runtime'`) to deploy with runtime fetching.``
+A failed download never reuses an older snapshot. With
+`C15T_ON_BUILD_ERROR=runtime`, the build finishes without a snapshot, and the
+manifest is fetched at runtime. Dev warnings end with
+`The server fetches it at runtime instead. A production build stops on this error.`
+
+[Consent modes](/docs/concepts/modes#what-happens-when-the-download-fails)
+describes the policy and when the build skips the download.
+
+### A single-page app warns that the policy depends on location
+
+`consentManifest()` from `c15t/build` logs this warning when it downloads a
+policy with location rules:
+
+```txt
+@c15t/core/build: the consent policy depends on the visitor's location, which the browser doesn't know. Unless you pass `inputs` or `geoURL` to `manifest()`, every first visit still calls the backend's /init, so the bundled policy adds bytes without saving a request. Consider `mode: hosted()` instead.
+```
+
+Pass the visitor's `{ country, region }` as `manifest({ inputs })` when your
+edge knows it, or a `geoURL` that answers with it. Otherwise switch the mode
+to `hosted()`, which asks `/init` without bundling the policy.
+
+## Why does the provider say a mode is required?
+
+The browser throws when a provider or `init()` gets no mode, or a mode name
+instead of a factory:
+
+| Message | Fix |
+| --- | --- |
+| ``c15t v3 ConsentManagerProvider: `mode` is required. Use hosted(), offline(), or custom().`` | Pass `mode` to React `ConsentProvider`, the Vue plugin or Svelte `ConsentProvider`, such as `manifest()` from the same package. The message names the v2 provider, but it covers every v3 provider. |
+| ``@c15t/browser: `mode` must be a factory, such as manifest(), hosted() or offline() from @c15t/browser. Mode names like "hosted" work only in the script-tag builds.`` | Import the factory and call it: `init({ mode: hosted() })`. |
+| ``c15t: hosted() needs `backendURL`. Pass it, or add consentManifest() from c15t/build to your Vite config and set VITE_C15T_BACKEND_URL.`` | The React `hosted()` found no backend URL. `@c15t/browser` throws the same message prefixed `@c15t/browser:`. |
+| ``c15t: `mode` is the hosted() transport itself, so its code ships in the client bundle. Pass the hosted() your framework package exports instead: it is plain data, and the root loads the code only when it runs.`` | A warning outside production. A server-rendered root got a transport from `c15t/react`. Import the mode from your framework package. Next.js has its own wording; see [Next.js troubleshooting](/docs/frameworks/next/troubleshooting). |
 
 ## Why does the static build fail when development works?
 
