@@ -552,10 +552,11 @@ const stylesheetTodo = function stylesheetTodo(
 	directive: StylesheetImport,
 	lineStart: number
 ): TextEdit | undefined {
-	const comment = `/* ${TODO_MARKER} ${STYLES_TODO} */`;
+	const todo = `${TODO_MARKER} ${STYLES_TODO}`;
+	const comment = `/* ${todo} */`;
 	const before = text.slice(lineStart, directive.start);
 	if (before.trim() !== '') {
-		return before.includes(TODO_MARKER)
+		return before.includes(todo)
 			? undefined
 			: { end: directive.start, start: directive.start, text: `${comment} ` };
 	}
@@ -563,7 +564,7 @@ const stylesheetTodo = function stylesheetTodo(
 		lineStartOf(text, Math.max(0, lineStart - 1)),
 		lineStart
 	);
-	return lineStart > 0 && previousLine.includes(TODO_MARKER)
+	return lineStart > 0 && previousLine.includes(todo)
 		? undefined
 		: { end: lineStart, start: lineStart, text: `${before}${comment}\n` };
 };

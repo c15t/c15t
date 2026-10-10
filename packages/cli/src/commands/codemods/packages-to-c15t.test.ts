@@ -1211,6 +1211,39 @@ import { ConsentProvider } from 'c15t/react';
 `);
 	});
 
+	it('adds the styles TODO below an unrelated c15t TODO', async () => {
+		const files = {
+			'src/consent.tsx': `// TODO(c15t v3): pick a theme
+import '@c15t/react/styles.tw3.css';
+`,
+			'src/index.css': `/* TODO(c15t v3): pick a theme */
+@import "@c15t/react/styles.css";
+/* TODO(c15t v3): pick a theme */ @import "@c15t/react/iab/styles.css";
+`,
+		};
+		const { read, result, rootDir } = await run(
+			{ c15t: '^3.0.0', tailwindcss: '^3.4.0' },
+			files
+		);
+
+		expect(result.errors).toEqual([]);
+		const css = `/* TODO(c15t v3): pick a theme */
+/* ${TODO} */
+@import "c15t/react/styles.css";
+/* TODO(c15t v3): pick a theme */ /* ${TODO} */ @import "c15t/react/iab/styles.css";
+`;
+		const source = `// TODO(c15t v3): pick a theme
+// ${TODO}
+import 'c15t/react/styles.css';
+`;
+		expect(await read('src/index.css')).toBe(css);
+		expect(await read('src/consent.tsx')).toBe(source);
+
+		const again = await codemod({ dryRun: false, projectRoot: rootDir });
+		expect(again.changedFiles).toEqual([]);
+		expect(await read('src/index.css')).toBe(css);
+	});
+
 	it('is idempotent and writes nothing in a dry run', async () => {
 		const files = {
 			'src/consent.tsx': `import { ConsentProvider } from '@c15t/react';
