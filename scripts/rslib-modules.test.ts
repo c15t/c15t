@@ -67,7 +67,12 @@ for (const [name, config] of [
 		);
 		const buildConfig: RslibConfig = {
 			...config,
-			lib: config.lib?.map((lib) => ({ ...lib, dts: false })),
+			// Only the bundleless lib emits the public aliases. Core's
+			// self-contained chunks bundle built workspace packages and write to
+			// the package's own dist, so they stay out of this isolated build.
+			lib: config.lib
+				?.filter((lib) => lib.bundle === false)
+				.map((lib) => ({ ...lib, dts: false })),
 			output: { ...config.output, distPath: { root: output } },
 		};
 		const first = await createRslib({ config: buildConfig, cwd });

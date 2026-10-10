@@ -24,12 +24,19 @@ const selfContainedEntries = {
 
 // `tsconfig.json` maps these packages to their type declarations for the
 // bundleless build, which leaves them external. A bundle needs the code.
+// Resolved when a bundle builds, so loading this config doesn't need the
+// packages built.
 const require = createRequire(import.meta.url);
-const bundledPackages = {
-	'@c15t/schema/types$': require.resolve('@c15t/schema/types'),
-	'@c15t/translations$': require.resolve('@c15t/translations'),
-	'@c15t/translations/all$': require.resolve('@c15t/translations/all'),
-	'@c15t/translations/en$': require.resolve('@c15t/translations/en'),
+const bundledPackages = function bundledPackages(
+	alias: Record<string, string | false | (string | false)[]>
+) {
+	return {
+		...alias,
+		'@c15t/schema/types$': require.resolve('@c15t/schema/types'),
+		'@c15t/translations$': require.resolve('@c15t/translations'),
+		'@c15t/translations/all$': require.resolve('@c15t/translations/all'),
+		'@c15t/translations/en$': require.resolve('@c15t/translations/en'),
+	};
 };
 
 /**
