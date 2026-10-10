@@ -59,7 +59,7 @@ export default mergeConfig(
 				{
 					'@c15t/core/generated': resolve(
 						__dirname,
-						'../core/src/generated.ts'
+						'./src/__tests__/generated.ts'
 					),
 					'@c15t/core/modes': resolve(__dirname, '../core/src/modes.ts'),
 					'@c15t/core/runtime/client-mode': resolve(

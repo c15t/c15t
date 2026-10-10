@@ -35,10 +35,11 @@ const MISSING_BACKEND_URL =
  * manifest, the default for single-page apps.
  *
  * Without options it uses the manifest and backend URL `consentManifest()`
- * downloaded during the build. With no build snapshot (a dev server that
- * could not reach the backend, or `source: 'runtime'`) it fetches
- * `${backendURL}/manifest` when the app starts. English copy is bundled;
- * other languages load on demand.
+ * downloaded during the build. With `manifestURL` it fetches that URL when
+ * the app starts and ignores the build's snapshot. With no build snapshot
+ * (a dev server that could not reach the backend, or `source: 'runtime'`)
+ * it fetches `${backendURL}/manifest` when the app starts. English copy is
+ * bundled; other languages load on demand.
  *
  * The browser does not know where the visitor is, so when the policy
  * depends on location, the first visit asks the backend's `/init`, as in
@@ -59,19 +60,27 @@ const MISSING_BACKEND_URL =
 export const manifest = function manifest(
 	options: Partial<BrowserManifestOptions> = {}
 ): BrowserManifestModeFactory {
-	const backendURL = options.backendURL ?? builtBackendURL;
-	if (backendURL === undefined && options.manifestURL === undefined) {
+	// Test the build's URL on its own: a build that baked one in folds the
+	// check, and its error message, away.
+	if (
+		builtBackendURL === undefined &&
+		options.backendURL === undefined &&
+		options.manifestURL === undefined
+	) {
 		throw new Error(
 			`c15t: manifest() has no backend URL. ${MISSING_BACKEND_URL}`
 		);
 	}
-	const snapshot =
-		options.snapshot ??
-		(options.source === 'runtime' ? undefined : builtSnapshot);
 	return browserManifest({
+		// A `manifestURL` is fetched at runtime, so the build's snapshot is
+		// left out, as with `source: 'runtime'`. A snapshot you pass replaces
+		// it.
+		snapshot:
+			options.manifestURL || options.source === 'runtime'
+				? undefined
+				: builtSnapshot,
 		...options,
-		backendURL,
-		snapshot,
+		backendURL: options.backendURL ?? builtBackendURL,
 	} as BrowserManifestOptions);
 };
 

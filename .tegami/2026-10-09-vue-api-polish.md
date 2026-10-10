@@ -48,8 +48,9 @@ apply without a rebuild.
 `hosted()`, `offline()` or `custom()` from `c15t/vue/vue-plugin`.
 `manifest()` and `hosted()` read the backend URL and policy that
 `consentManifest()` from `c15t/vue/vite` downloaded, served as
-`c15t/generated`. The client manifest mode uses the shared browser resolver,
-so it no longer downloads every language. The same entry exports the
+`c15t/generated`. `manifest({ manifestURL })` fetches that URL when the app
+starts instead of using the snapshot. The client manifest mode uses the
+shared browser resolver, so it no longer downloads every language. The same entry exports the
 components, so `ConsentRoot`, `ConsentDialogLink` and the rest import from
 `c15t/vue/vue-plugin`. `consentManifest()` is now the only Vite plugin; the
 package resolves its runtime imports itself. `@c15t/vue` declares
