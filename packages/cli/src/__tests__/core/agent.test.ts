@@ -568,6 +568,12 @@ describe('c15t setup instructions', () => {
 			'Skip this check only if the app makes no initialization request at all.'
 		);
 		expect(custom).toContain("Then make the transport's `init` fail");
+		expect(custom).toContain(
+			'Then restore `init` and confirm consent initializes again.'
+		);
+		expect(hosted).toContain(
+			'Then undo the failure and confirm consent initializes again.'
+		);
 		expect(offline).not.toContain('initializes consent');
 		for (const instructions of [hosted, offline]) {
 			expect(instructions).toContain(

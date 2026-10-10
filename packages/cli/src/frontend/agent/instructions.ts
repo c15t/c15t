@@ -310,10 +310,10 @@ Run the project's typecheck, tests and production build. Serve the production bu
 		mode,
 		{
 			custom:
-				" Then make the transport's `init` fail: no banner shows and tools that wait for consent send no requests.",
-			hosted: ` Then make initialization fail. ${hostedInitFailure} No banner shows and tools that wait for consent send no requests. Skip this check only if the app makes no initialization request at all.`,
+				" Then make the transport's `init` fail: no banner shows and tools that wait for consent send no requests. Then restore `init` and confirm consent initializes again.",
+			hosted: ` Then make initialization fail. ${hostedInitFailure} No banner shows and tools that wait for consent send no requests. Then undo the failure and confirm consent initializes again. Skip this check only if the app makes no initialization request at all.`,
 			offline: '',
-			unknown: ` Unless the setup is offline, also make initialization fail. In hosted mode: ${hostedInitFailure} In custom mode, make the transport's \`init\` fail. No banner shows and tools that wait for consent send no requests. Skip this check only if the app makes no initialization request at all.`,
+			unknown: ` Unless the setup is offline, also make initialization fail. In hosted mode: ${hostedInitFailure} In custom mode, make the transport's \`init\` fail. No banner shows and tools that wait for consent send no requests. Then undo the failure and confirm consent initializes again. Skip this check only if the app makes no initialization request at all.`,
 		}
 	)} An always-loading helper loads before any choice; check that it signals denied consent.
 2. Reject all: tools that wait for consent send no requests, and always-loading helpers signal denied consent or stay opted out; ${byMode(
