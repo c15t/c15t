@@ -1766,7 +1766,7 @@
     },
     "packages/cli": {
       "name": "@c15t/cli",
-      "version": "3.0.0-alpha.10",
+      "version": "3.0.0-alpha.11",
       "bin": {
         "c15t": "dist/bin.mjs",
         "cli": "dist/bin.mjs",
@@ -1857,7 +1857,7 @@
     },
     "packages/integrations": {
       "name": "@c15t/integrations",
-      "version": "3.0.0-alpha.10",
+      "version": "3.0.0-alpha.11",
       "dependencies": {
         "@c15t/core": "workspace:*",
       },
@@ -2001,7 +2001,7 @@
     },
     "packages/scripts": {
       "name": "@c15t/scripts",
-      "version": "3.0.0-alpha.9",
+      "version": "3.0.0-alpha.10",
       "dependencies": {
         "@c15t/integrations": "workspace:*",
       },
