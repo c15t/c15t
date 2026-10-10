@@ -27,7 +27,7 @@ deprecated `translations` option; the `translations-to-i18n` codemod moves it
 to `i18n`.
 
 ```bash
-npx @c15t/cli@alpha codemods consent-provider-options translations-to-i18n --dry-run --json
+npx @c15t/cli codemods consent-provider-options translations-to-i18n --dry-run --json
 ```
 
 `ConsentBanner`, `ConsentDialog`, `ConsentDialogLink`, `ConsentDialogTrigger`
@@ -55,7 +55,7 @@ The `root-exports-to-subpaths` codemod moves these imports to their new
 entries and marks removed names with a `TODO(c15t v3)` comment:
 
 ```bash
-npx @c15t/cli@alpha codemods root-exports-to-subpaths --dry-run --json
+npx @c15t/cli codemods root-exports-to-subpaths --dry-run --json
 ```
 
 `ConsentGate` changes one behavior from `Frame`. When its category is granted,

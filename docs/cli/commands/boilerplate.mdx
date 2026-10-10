@@ -11,8 +11,8 @@ leaves your entry point, layout and configuration alone and tells you where to
 connect the files.
 
 ```bash
-npx @c15t/cli@alpha setup offline --framework vue --plan --json
-npx @c15t/cli@alpha setup offline --framework vue --apply
+npx @c15t/cli setup offline --framework vue --plan --json
+npx @c15t/cli setup offline --framework vue --apply
 ```
 
 Run it from the app directory, which must contain a `package.json`, or pass
@@ -40,10 +40,10 @@ app without a router layout.
 
 Generation never installs packages. The result lists them under
 `data.dependencies`, with each c15t package pinned to the CLI's release line,
-and the first instruction gives the install command. From `@c15t/cli@alpha`,
-that is the `alpha` dist-tag, for example for Vue:
+and the first instruction gives the install command. From the v3 CLI, that is
+the major version, for example for Vue:
 
-<CommandTabs command="@c15t/vue@alpha @c15t/core@alpha @c15t/ui@alpha" mode="install" />
+<CommandTabs command="@c15t/vue@3 @c15t/core@3 @c15t/ui@3" mode="install" />
 
 Then follow the numbered steps under `data.instructions`. The CLI also writes
 them to `README.md` in the output directory. The instructions can mention

@@ -12,7 +12,7 @@ script as `data-client-id`. Remove any existing Databuddy script and any code
 that sets `window.databuddyConfig`. The helper seeds that global only when it
 is absent, so an existing value overrides your initial state.
 
-<CommandTabs command="@c15t/integrations@alpha" mode="install" />
+<CommandTabs command="@c15t/integrations" mode="install" />
 
 ```ts title="src/consent-scripts.ts"
 import { databuddy } from '@c15t/integrations/databuddy';

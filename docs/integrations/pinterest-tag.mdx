@@ -11,7 +11,7 @@ Copy the numeric tag ID from Pinterest Ads Manager. Remove Pinterest's base
 code and its `<noscript>` image. The helper does not emit that image, because
 it fires without JavaScript and c15t cannot gate it.
 
-<CommandTabs command="@c15t/integrations@alpha" mode="install" />
+<CommandTabs command="@c15t/integrations" mode="install" />
 
 ```ts title="src/consent-scripts.ts"
 import { pinterestTag } from '@c15t/integrations/pinterest-tag';
