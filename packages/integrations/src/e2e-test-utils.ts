@@ -340,6 +340,7 @@ const resetVendorGlobals = function resetVendorGlobals() {
 		'databuddyConfig',
 		'fbq',
 		'google_tag_data',
+		'gtag',
 		'heap',
 		'heapReadyCb',
 		'htevents',

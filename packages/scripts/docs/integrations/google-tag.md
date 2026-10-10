@@ -1,7 +1,8 @@
 ---
 title: Google Tag
-description: Load gtag.js for Google Analytics or Google Ads with c15t Consent
-  Mode v2 signals, and verify the consent commands in DevTools.
+description: Load gtag.js for Google Analytics or Google Ads before or after
+  consent with c15t Consent Mode v2 signals, and verify the consent commands in
+  DevTools.
 icon: google-analytics
 group: integrations
 ---
@@ -245,28 +246,69 @@ A kernel you create yourself needs a loader from
 
 ## Options
 
-| Option           | Default         | Behavior                                                                                                                                               |
-| ---------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `id`             | Required        | Tag ID passed to `gtag('config', ...)` and the loader URL. The helper trims it. Empty or whitespace-only values throw.                                 |
-| `category`       | Required        | `measurement` for Analytics, `marketing` for Ads and Floodlight. It sets the script's permission, which callbacks receive, but does not delay loading. |
-| `config`         | None            | Parameters passed as the third argument to `gtag('config', id, config)`.                                                                               |
-| `consentMapping` | The table below | Replaces the category-to-Google mapping.                                                                                                               |
+| Option           | Default         | Behavior                                                                                                                                                                                                                          |
+| ---------------- | --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`             | Required        | Tag ID passed to `gtag('config', ...)` and the loader URL. The helper trims it. Empty or whitespace-only values throw.                                                                                                            |
+| `category`       | Required        | `measurement` for Analytics, `marketing` for Ads and Floodlight. With `loadMode: 'after-consent'`, `gtag/js` waits for it. With `'always'`, it sets the script's permission, which callbacks receive, but does not delay loading. |
+| `loadMode`       | `'always'`      | When `gtag/js` loads. See [choose when Google loads](#choose-when-google-loads).                                                                                                                                                  |
+| `config`         | None            | Parameters passed as the third argument to `gtag('config', id, config)`.                                                                                                                                                          |
+| `consentMapping` | The table below | Replaces the category-to-Google mapping.                                                                                                                                                                                          |
 
 The deprecated `script` option overrides fields of the returned script. Use the
 options above instead.
 
-## Google loads before a choice
+## Choose when Google loads
 
-The `googleTagManager` and `gtag` helpers set `alwaysLoad: true`. Before the
-visitor chooses, the helper creates the `dataLayer` queue, sends
-`gtag('consent', 'default', ...)` with the current permissions and loads
-Google's script. After each permission change it sends
+| `loadMode`        | Until the category is allowed                                                              | After the category is allowed                                                                                                     |
+| ----------------- | ------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
+| `'always'`        | Loads `gtag/js` and sends `consent` `default` with the current permissions, then `config`. | Sends `consent` `update` with the mapped types granted.                                                                           |
+| `'after-consent'` | Sends nothing to Google. The helper creates no `dataLayer` or `gtag` function.             | Loads `gtag/js` once. `consent` `default` carries the current permissions and comes before `config`. Later changes send `update`. |
+
+Use `'after-consent'` when your policy forbids any request to Google before
+the visitor opts in:
+
+```ts title="src/consent-scripts.ts (partial)"
+gtag({ id: 'G-XXXXXXXXXX', category: 'measurement', loadMode: 'after-consent' }),
+```
+
+`'after-consent'` waits for the category to be allowed, not for a recorded
+choice. Under an `opt-in` policy, that happens when the visitor allows it.
+Under an `opt-out` or `none` policy, optional categories are allowed before a
+choice, so `gtag/js` loads on the first page unless a saved refusal or a
+privacy signal restricts the category; see
+[policies](../concepts/policies.md). `necessary` is always allowed, so
+`category: 'necessary'` loads `gtag/js` before a choice in either mode. Use
+`measurement` or `marketing`.
+
+This gives up part of Consent Mode. With `'always'`, Google tags send
+cookieless pings while a type is denied, and Google uses them to model
+conversions and behavior for visitors who refused or have not chosen. With
+`'after-consent'`, visitors whose category is denied send nothing, so Google
+has no data to model them from. Reports cover only visitors who allowed the
+category.
+
+When the visitor withdraws the category, c15t reloads the page and the new
+page does not load `gtag/js`. With `reloadOnConsentRevoked: false`, the tag
+already running stays on the page and gets an `update` that denies the
+withdrawn types. A later grant reuses it instead of loading a second copy.
+
+## Google loads before a choice by default
+
+With the default `loadMode: 'always'`, the `googleTagManager` and `gtag`
+helpers set `alwaysLoad: true`. Before the visitor chooses, the helper creates
+the `dataLayer` queue, sends `gtag('consent', 'default', ...)` with the current
+permissions and loads Google's script. After each permission change it sends
 `gtag('consent', 'update', ...)`. Google's tags then adjust what they store and
 send; see Google's
 [Consent Mode overview](https://developers.google.com/tag-platform/security/concepts/consent-mode).
 
-So the browser does contact Google before consent. If your policy requires no
-Google request until the visitor allows it, do not use these helpers unchanged.
+So the browser contacts Google before consent. If your policy requires no
+Google request until the visitor allows it, set `loadMode: 'after-consent'`.
+The helper then creates nothing and requests nothing until its category is
+allowed. When it loads, it sends the `default` command first, with the
+permissions at that moment, and `update` commands after later changes. Under
+an `opt-out` or `none` policy, optional categories are allowed before a
+choice, so the helper loads on the first page.
 
 ## How categories map to Google consent types
 
@@ -288,10 +330,11 @@ visitor has chosen anything. That is a permission, not a recorded choice.
 
 ## Verify the Google tag
 
-These checks are for the `gtag` helper, which loads before a choice on
-purpose. On a plain HTML page with the script tag, you gate Google's snippet
-instead and it loads only after consent; see
+On a plain HTML page with the script tag, you gate Google's snippet instead
+and it loads only after consent; see
 [HTML scripts](../frameworks/html/scripts.md#google-consent-mode-and-tag-managers).
+
+With the default `loadMode: 'always'`:
 
 1. In a private window with an opt-in policy, load the page. `gtag/js` loads.
    In Google Tag Assistant, the `consent` `default` command comes before
@@ -300,9 +343,21 @@ instead and it loads only after consent; see
    `update` command that grants the mapped types.
 3. Turn the category off again and save. c15t reloads the page, and the new
    page starts with those types denied.
-4. With client-side navigation, check that each route change sends one page
-   view. A separate router integration that also sends `page_view` doubles
-   the count.
+
+With `loadMode: 'after-consent'`:
+
+1. In a private window with an opt-in policy, filter DevTools Network by
+   `google` and load the page. No request appears, and `window.dataLayer` is
+   `undefined` in the Console.
+2. Allow the tag's category. `gtag/js` loads once. In Tag Assistant, the first
+   command is `consent` `default` with the mapped types granted, before
+   `config`.
+3. Turn the category off again and save. c15t reloads the page, and the new
+   page makes no request to Google.
+
+In either mode, with client-side navigation, check that each route change
+sends one page view. A separate router integration that also sends
+`page_view` doubles the count.
 
 See the [consent verification guide](../guides/verify-consent.md) for hosting
 checks.
