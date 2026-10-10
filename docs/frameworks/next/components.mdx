@@ -31,15 +31,15 @@ they read the runtime `ConsentRoot` creates. `ConsentRoot` already renders
 
 Most apps start with four components. `ConsentRoot` holds the runtime,
 `ConsentBanner` and `ConsentDialog` ask for a choice, and a
-`ConsentDialogLink` lets visitors reopen their preferences. The example app puts them in one client wrapper:
+`ConsentDialogLink` lets visitors reopen their preferences. The quickstart
+renders them in the root layout, a Server Component:
 
-<include src="../../shared/examples/nextjs/consent-wrapper.mdx" />
+<include src="../../shared/examples/nextjs/quickstart-layout.mdx" />
 
-The root layout, a Server Component, calls `resolveConsent` and passes only
-`state` to this wrapper. The [App Router guide](/docs/frameworks/next/app-router)
-shows the layout, and the
-[Pages Router guide](/docs/frameworks/next/pages-router) shows the same
-wrapper in `pages/_app.tsx`. Add `ConsentWidget`, `ConsentDialogTrigger` or
+`ConsentRoot` reads `c15t.config.ts`, so the layout passes it only the
+`state` from `resolveConsent`. The
+[Pages Router guide](/docs/frameworks/next/pages-router) renders the same
+components in `pages/_app.tsx`. Add `ConsentWidget`, `ConsentDialogTrigger` or
 `ConsentGate` later, where a page needs them.
 
 ## Server and Client Components
@@ -47,10 +47,10 @@ wrapper in `pages/_app.tsx`. Add `ConsentWidget`, `ConsentDialogTrigger` or
 In the App Router, the `'use client'` boundary decides what you can pass as a
 prop:
 
-- **`ConsentRoot`** needs the `config` from `defineConsentConfig`, which React
-  cannot pass from a Server Component because it carries a symbol key. Import
-  the config in a `'use client'` wrapper, as above. The `state` from
-  `resolveConsent`, or its promise, is plain data and can cross.
+- **`ConsentRoot`** reads `c15t.config.ts` in the browser, so a Server
+  Component passes it only `state`. The `state` from `resolveConsent`, or its
+  promise, is plain data and can cross. Put functions such as callbacks in
+  the config, not in props from a Server Component.
 - **Banner, dialog, widget, link, trigger and gate** can render straight from
   a Server Component page or layout under `ConsentRoot`. Strings, numbers,
   booleans and JSX children cross the boundary. Function props, such as the

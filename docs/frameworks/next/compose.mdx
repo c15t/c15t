@@ -29,16 +29,17 @@ client component, such as `ConsentBanner.Root`, nor pass a function, such as
 `renderAction`.
 
 The parts read the provider inside
-[ConsentRoot](/docs/frameworks/next/components/consent-root). Each router
-guide in the [quickstart](/docs/frameworks/next/quickstart) creates a
-`components/consent.tsx` client wrapper. Import `CookieBanner` there from
-`./cookie-banner` and render it in place of `ConsentBanner`, next to
-`ConsentDialog`:
+[ConsentRoot](/docs/frameworks/next/components/consent-root). Import
+`CookieBanner` in the layout that renders `ConsentRoot`, from the
+[quickstart](/docs/frameworks/next/quickstart#resolve-consent-in-the-root-layout)
+or your router guide, and render it in place of `ConsentBanner`, next to
+`ConsentDialog`. `CookieBanner` is a client component, so a Server Component
+layout can render it:
 
 {/* example: fragment */}
 
-```tsx title="components/consent.tsx (partial)"
-<ConsentRoot state={state} config={consentConfig} scripts={scripts}>
+```tsx title="app/layout.tsx (partial)"
+<ConsentRoot state={resolveConsent()}>
 	{children}
 	<CookieBanner />
 	<ConsentDialog />
@@ -48,8 +49,8 @@ guide in the [quickstart](/docs/frameworks/next/quickstart) creates a
 </ConsentRoot>;
 ```
 
-The App Router and the Pages Router use the same wrapper, so the composed
-banner works in both.
+The Pages Router renders the same components in `pages/_app.tsx`, so the
+composed banner works in both routers.
 
 <import src="../../shared/react/compose.mdx#how-it-works" />
 

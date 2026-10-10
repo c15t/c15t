@@ -11,13 +11,10 @@ no `/api/c15t` route, no rewrite, and no request for `resolveConsent` to read.
 The browser calls your Inth backend directly and resolves consent after the
 page loads. Static hosting still gets hosted policies and consent records.
 
-```ts title="next.config.ts"
-import type { NextConfig } from 'next';
+<include src="../../shared/examples/nextjs/static-export-next-config.mdx" />
 
-const config: NextConfig = { output: 'export' };
-
-export default config;
-```
+`withConsentManifest` finds your `c15t.config.ts`. With `output: 'export'` it
+skips the manifest download, because no server would read the snapshot.
 
 [Create an Inth project](https://inth.com), set its policy rules and add your
 exported site's origin to its trusted origins. Copy the project's backend URL.
@@ -26,19 +23,20 @@ exported site's origin to its trusted origins. Copy the project's backend URL.
 
 ## Share the backend URL
 
-Create `c15t.config.ts` at the project root, or in `src/`, with only
-`backendURL`. Without a
-server there is no manifest route, so the browser calls `${backendURL}/init`.
+Set `NEXT_PUBLIC_C15T_BACKEND_URL` to your project's backend URL, including
+any path prefix, in `.env.local` and in your host's build settings. Keep it
+absolute. A path such as `/api/c15t` would point at your static host, which
+has nothing to answer it.
+
+Create `c15t.config.ts` at the project root with `mode: hosted()`. Without a
+server there is no consent route, so the browser calls `${backendURL}/init`.
 
 <include src="../../shared/examples/nextjs/client-side-config.mdx" />
 
-Replace `https://your-project.inth.app` with your project's backend URL,
-including any path prefix. Keep it absolute. A path such as `/api/c15t` would
-point at your static host, which has nothing to answer it.
+Add your `scripts` to the same config, as the
+[quickstart](/docs/frameworks/next/quickstart#add-the-consent-config) shows.
 
-<include src="../../shared/next-consent-wrapper.mdx" />
-
-## Mount the wrapper
+## Mount the root
 
 There is no c15t stylesheet to import. The components render their own rules
 as `<style>` elements, so no stylesheet request holds back the first paint.
@@ -47,19 +45,19 @@ With Tailwind CSS 3, import `c15t/next/styles.css` yourself and set
 [Customize](/docs/frameworks/next/customize#load-the-stylesheet-yourself)
 shows.
 
-In the App Router, mount the wrapper with an empty state in the root layout:
+In the App Router, render `ConsentRoot` without `state` in the root layout:
 
 <include src="../../shared/examples/nextjs/browser-layout.mdx" />
 
 In the Pages Router, use the same `_app.tsx` as a server app. Exported pages
-have no `getServerSideProps`, so every page passes `{}`:
+have no `getServerSideProps`, so `pageProps.consent` is undefined:
 
 <include src="../../shared/examples/nextjs-pages-router/pages-app.mdx" />
 
-`state={{}}` supplies no server state, so `ConsentRoot` initializes in the
-browser. Backend `/init` reads the visitor's location from its own request,
-so location-based policies depend on the backend host's geography headers,
-not on your static host.
+Without server state, `ConsentRoot` initializes in the browser. Backend
+`/init` reads the visitor's location from its own request, so location-based
+policies depend on the backend host's geography headers, not on your static
+host.
 
 ## What happens before initialization
 
@@ -94,8 +92,13 @@ site's origin. Add it to your Inth project's trusted origins. See
 A same-origin `/api/c15t` URL needs a proxy at your host, because Next.js
 rewrites need a server. Without one, keep the absolute backend URL.
 
-`c15t/next/static` can bundle a manifest at build time. It is a lower-level
-API, and you write the consent transport yourself. See
+To resolve a manifest in the browser instead, set
+`mode: manifest({ resolve: 'browser', manifestURL })` with an absolute
+`manifestURL` the browser can fetch, such as
+`https://your-project.inth.app/manifest`. Browser resolution has no location
+input of its own, so location-based policies call the backend's `/init`
+unless you pass `geoURL`. `c15t/next/static` has lower-level helpers that
+resolve a bundled manifest; see
 [static manifest helpers](/docs/frameworks/next/data-fetching-reference#static-manifest-helpers).
 
 Offline mode stores choices only in the browser and records nothing. Not

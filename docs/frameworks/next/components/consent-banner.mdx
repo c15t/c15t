@@ -6,16 +6,16 @@ group: frameworks
 
 ## Render the banner inside `ConsentRoot`
 
-Render one `ConsentBanner` inside `ConsentRoot`, in the `'use client'` wrapper
-from your [App Router](/docs/frameworks/next/app-router) or
-[Pages Router](/docs/frameworks/next/pages-router) setup:
+Render one `ConsentBanner` inside `ConsentRoot`, in the root layout from your
+[App Router](/docs/frameworks/next/app-router) setup or in `pages/_app.tsx`
+from the [Pages Router](/docs/frameworks/next/pages-router) setup:
 
-<include src="../../../shared/examples/nextjs/consent-wrapper.mdx" />
+<include src="../../../shared/examples/nextjs/quickstart-layout.mdx" />
 
-Keep the banner and `ConsentRoot` in that client file. Do not mount
-`ConsentRoot` directly in a Server Component layout with
-`config={consentConfig}`. The `defineConsentConfig` result carries a symbol
-key, and React cannot pass it from a Server Component to a Client Component.
+The layout is a Server Component. `c15t/next` gives it client references to
+`ConsentRoot` and `ConsentBanner`, and `ConsentRoot` reads `c15t.config.ts`
+itself, so the layout passes only `state`. Function props, such as
+`renderAction`, need a `'use client'` file.
 
 The banner renders what the resolved policy rule requires. With the default
 streamed layout, it arrives in a later chunk of the server response, before
@@ -108,7 +108,7 @@ const theme = {
 } as const;
 ```
 
-Pass `theme` to `ConsentRoot` through `options` in your client wrapper.
+Pass `theme` through `options` in `c15t.config.ts`.
 Per-action theme overrides such as `consentActions.dismiss` take precedence
 over this primary style. See [Customize](/docs/frameworks/next/customize) for
 tokens and slots, and [Policies](/docs/concepts/policies) for the rule IDs and

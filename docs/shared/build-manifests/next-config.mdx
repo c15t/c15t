@@ -10,15 +10,17 @@ fetches no policy. Without a `backendURL` option, the build reads
 `NEXT_PUBLIC_C15T_BACKEND_URL`, as `c15t.config.ts` does, so saves and the
 snapshot point at the same project.
 
-The wrapper points `c15t/generated` at that cache in Turbopack and webpack.
-`resolveConsent` and the consent route handlers read the snapshot from it by
-default. Server code that passes the snapshot itself imports `snapshot` from
-`c15t/generated`. Only server bundles get it: in a browser bundle,
+The wrapper also finds `c15t.config.ts` (or `.mts`, `.js`, `.mjs`) at the
+project root, next to `next.config.ts`, and points `c15t/generated` at the
+cache, in Turbopack and webpack. `ConsentRoot`, `resolveConsent` and the
+consent route read both without an import. Server code that needs the
+snapshot itself imports `snapshot` from `c15t/generated`. Only server
+bundles get the snapshot: in a browser bundle,
 `c15t/generated` imports `server-only`, so importing it from a client
 component fails the build. The wrapper also adds `c15t`, `@c15t/core` and
 `@c15t/nextjs` to `transpilePackages`, so Pages Router server bundles see the
-alias. A package you list in `serverExternalPackages` stays external and reads
-the policy at runtime instead.
+aliases. A package you list in `serverExternalPackages` stays external: it
+reads no `c15t.config.ts` and fetches the policy at runtime.
 
 If the fetch fails, `next build` stops. `next dev` logs a warning instead, and
 `snapshot` is `undefined`, so the server fetches and caches the policy at

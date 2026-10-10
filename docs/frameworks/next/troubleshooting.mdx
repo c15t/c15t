@@ -1,6 +1,6 @@
 ---
 title: Troubleshooting
-description: Diagnose failed c15t consent prefetch and build-time manifest downloads in Next.js, verify manifest requests, and fix symbol serialization warnings, unknown server location and prerendering errors.
+description: Diagnose failed c15t consent prefetch and build-time manifest downloads in Next.js, verify manifest requests, and fix a missing c15t.config.ts, config errors, unknown server location and prerendering errors.
 group: frameworks
 ---
 
@@ -15,13 +15,13 @@ your server logs, as browser Network tools cannot show a server-side fetch.
 **Fix.** Pass `onError` to `resolveConsent` to report failures in production.
 Without it, the helper logs a warning only outside production.
 
-**Check.** If the local manifest handler repeatedly calls itself, check its
-upstream URL.
+**Check.** If the consent route repeatedly calls itself, check its upstream
+URL.
 
 **Fix.** Pass the absolute Inth or self-hosted backend endpoint as the
-`backendURL` of `createNextConsentRouteHandlers`. The browser can use
-`/api/c15t` with an optional rewrite, but that local prefix must not become the
-handler's upstream backend. See
+`backendURL` of `createConsentRoute`. The browser can use `/api/c15t` with an
+optional rewrite or `proxy: true`, but that local prefix must not become the
+route's upstream backend. See
 [Next.js optimization](/docs/frameworks/next/optimization) for the rewrite setup.
 
 ## Why does `next build` or `next dev` fail to fetch the manifest?
@@ -67,11 +67,10 @@ instead.
 imported from a Client Component, in a module that imports `c15t/generated`.
 
 **Fix.** `withConsentManifest` keeps the snapshot out of browser bundles, so
-`c15t/generated` only works in server code. Import it from a server-only
-module such as `c15t.server.ts`, and import that module only from Server
-Components, route handlers, `getServerSideProps` and API routes. Client
-components don't need the snapshot: `resolveConsent` resolves the policy on
-the server and passes the result to `ConsentRoot`.
+`c15t/generated` only works in server code: Server Components, route
+handlers, `getServerSideProps` and API routes. Most apps never import it.
+`resolveConsent` and the consent route read the snapshot themselves, and
+`ConsentRoot` receives the resolved state.
 
 ## Why is `snapshot` undefined?
 
@@ -113,21 +112,54 @@ Check the Next.js server and browser requests after following the
    including submissions. Direct requests to the backend are expected when you
    have not configured a rewrite.
 
-## Why does React warn about objects with symbol properties?
+## Why does ConsentRoot warn that it found no config?
 
-**Check.** A development error that says objects with symbol properties are not
-supported, pointing at `ConsentRoot`, means a Server Component passed the
-`defineConsentConfig` result to it. The config carries a symbol key that React
-cannot serialize.
+**Check.** The browser console shows this warning outside production:
 
-**Fix.** Move `ConsentRoot` into a `'use client'` wrapper that imports
-`consentConfig` itself, and pass only `state` from the layout, as the
-[App Router guide](/docs/frameworks/next/app-router#register-scripts-in-a-client-wrapper)
-shows.
+```txt
+[c15t] ConsentRoot found no config. Export `defineConsentConfig()` as the default export of c15t.config.ts at the project root and wrap next.config.ts in `withConsentManifest()`, or pass `config`.
+```
+
+**Fix.** `withConsentManifest` finds `c15t.config.ts`, `.mts`, `.js` or
+`.mjs` in the directory `next build` and `next dev` run from, and nowhere
+else. A config in `src/` is not found. Check that:
+
+- `next.config.ts` exports `withConsentManifest(nextConfig)`.
+- The file is at the project root, next to `next.config.ts`.
+- It has a default export, `export default defineConsentConfig({ ... })`, not
+  only a named one.
+- You restarted `next dev` after adding the file.
+
+Without a config, `ConsentRoot` reads `NEXT_PUBLIC_C15T_BACKEND_URL`, uses
+`manifest()` and runs no `scripts`. With no backend URL either, it runs
+offline.
+
+## Why does ConsentRoot warn that a transport ships in the first-load bundle?
+
+**Check.** The browser console shows a warning such as:
+
+```txt
+[c15t] ConsentRoot `mode` is the hosted() transport itself, so its code ships in the first-load bundle. Use hosted() from c15t/next instead: it is plain data, and the root loads the code only when it runs.
+```
+
+**Fix.** `options.mode` received `hosted()`, `offline()` or `manifest()` from
+`c15t/react`, which are transports. Import the mode from `c15t/next` and set
+it as `mode` in `c15t.config.ts`. `custom(transport)` does not warn.
+
+## Why does defineConsentConfig throw?
+
+**Check.** `next build` or the first render fails with a `TypeError` that
+starts with `@c15t/nextjs: defineConsentConfig`.
+
+**Fix.** The [config reference](/docs/frameworks/next/data-fetching-reference#config-reference)
+lists each message. The most common is
+``@c15t/nextjs: defineConsentConfig needs `backendURL`, or NEXT_PUBLIC_C15T_BACKEND_URL set at build time.``
+Set the variable in `.env.local` and in your host's build settings, or pass
+`backendURL`.
 
 ## Why is the visitor's location unknown on the server?
 
-**Check.** `resolveConsent` and the local init handler read the visitor's
+**Check.** `resolveConsent` and the consent route read the visitor's
 country and region from hosting platform headers such as `cf-ipcountry` and
 `x-vercel-ip-country`; c15t never derives location from an IP address itself.
 Some platforms expose those headers to Next.js middleware or proxy but strip
@@ -173,7 +205,7 @@ layout. `resolveConsent` reads the visitor's cookies and headers, so that
 layout can't be.
 
 **Fix.** Move those pages into their own route group with the browser layout,
-which renders `ConsentRoot` with `state={{}}`. See
+which renders `ConsentRoot` without `state`. See
 [Keep pages static with `ensureStatic`](/docs/frameworks/next/rendering#keep-pages-static-with-ensurestatic).
 `'shell'` and `'prefetch'` work with the server layouts.
 

@@ -1,6 +1,6 @@
 ---
 title: Client-side initialization
-description: Initialize c15t in the browser in a Next.js app with one backend URL, without server prefetch, a manifest route or API handlers.
+description: Initialize c15t in the browser in a Next.js app with hosted() mode, without server prefetch, a consent route or API handlers.
 group: frameworks
 ---
 
@@ -12,7 +12,7 @@ static. The HTML is the same for every visitor, and the banner appears after
 hydration.
 
 Use it when you do not need the banner in the server HTML and do not want a
-manifest route. For a server app, the [App Router](/docs/frameworks/next/app-router)
+consent route. For a server app, the [App Router](/docs/frameworks/next/app-router)
 and [Pages Router](/docs/frameworks/next/pages-router) guides resolve consent
 on the server and make no `/init` request per visit. For `output: 'export'`,
 follow [static export](/docs/frameworks/next/static-export).
@@ -22,7 +22,7 @@ path.
 Until the policy resolves, optional categories stay denied and the banner
 stays hidden.
 
-## Configure one backend URL
+## Configure the backend and the mode
 
 [Create an Inth project](https://inth.com), set its policy rules and add your
 site's origin to its trusted origins. A self-hosted backend works the same way
@@ -30,33 +30,45 @@ with its own URL.
 
 <CommandTabs command="c15t@alpha @c15t/integrations@alpha" mode="install" />
 
-Create `c15t.config.ts` at the project root, or in `src/` if your app uses
-one:
+Set `NEXT_PUBLIC_C15T_BACKEND_URL` to your project's backend URL, including
+any path prefix, in `.env.local` and in your host's build settings:
+
+```sh title=".env.local"
+NEXT_PUBLIC_C15T_BACKEND_URL=https://your-project.inth.app
+```
+
+Create `c15t.config.ts` at the project root with `mode: hosted()`:
 
 <include src="../../shared/examples/nextjs/client-side-config.mdx" />
 
-Replace `https://your-project.inth.app` with your project's backend URL,
-including any path prefix. A config with only `backendURL` initializes through
-`${backendURL}/init` and posts choices to `${backendURL}/subjects`. It does not
-turn on manifest mode or create routes.
+`hosted()` initializes through `${backendURL}/init` and posts choices to
+`${backendURL}/subjects`. Add your `scripts` to the same config, as the
+[quickstart](/docs/frameworks/next/quickstart#add-the-consent-config) shows.
+The file is bundled into the browser, so it must hold no secrets.
 
-<include src="../../shared/next-consent-wrapper.mdx" />
+Wrap `next.config.ts` in `withConsentManifest`, which finds `c15t.config.ts`:
 
-## Mount the wrapper with an empty state
+<include src="../../shared/examples/nextjs/next-config.mdx" />
+
+It also downloads the manifest during builds, which `hosted()` does not read.
+A failed download stops `next build`; pass `onBuildError: 'runtime'` as the
+second argument to let the build continue.
+
+## Mount the root without state
 
 The components render their own styles. With Tailwind CSS 3,
 [load the stylesheet yourself](/docs/frameworks/next/customize#load-the-stylesheet-yourself).
-In the App Router, mount the wrapper in the root layout:
+In the App Router, render `ConsentRoot` in the root layout without `state`:
 
 <include src="../../shared/examples/nextjs/browser-layout.mdx" />
 
-In the Pages Router, mount it in `_app.tsx`. Without `getServerSideProps`,
-every page passes `{}`:
+In the Pages Router, render it in `_app.tsx`. Without `withConsentProps`,
+`pageProps.consent` is undefined on every page:
 
 <include src="../../shared/examples/nextjs-pages-router/pages-app.mdx" />
 
-`state={{}}` supplies no server state, so `ConsentRoot` initializes in the
-browser. Keep it mounted across client navigation.
+Without server state, `ConsentRoot` initializes in the browser. Keep it
+mounted across client navigation.
 
 ## Optional same-origin rewrite
 

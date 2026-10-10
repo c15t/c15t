@@ -15,7 +15,7 @@ group: frameworks
   2. Check that React is 18 or later and Next.js is 15 or later. Stop and tell me if either needs a major upgrade.
   3. Replace the packages with `c15t@alpha`, plus `@c15t/integrations@alpha` if the app uses vendor helpers.
   4. Run `npx @c15t/cli@alpha codemods consent-provider-options root-exports-to-subpaths use-consent-manager-to-hooks scripts-to-integrations dev-tools-to-c15t policy-packs-to-policy-rules callbacks-to-v3 theme-to-consent-theme iab-option-to-iab-provider css-variables-to-v3 postcss-tailwind3 --dry-run --json`. Review the output, then run the same command without `--dry-run`. The codemods leave a `TODO(c15t v3)` comment wherever they need you to finish a change.
-  5. If the app used `fetchInitialData()`, `C15tPrefetch` or `ssrData`, move it to `ConsentRoot` with `resolveConsent()`. Otherwise keep browser initialization with the `ConsentProvider` and `hosted()` the codemod wrote.
+  5. If the app used `fetchInitialData()`, `C15tPrefetch` or `ssrData`, move it to `ConsentRoot` with `resolveConsent()`, `c15t.config.ts` and `withConsentManifest`. Otherwise keep browser initialization with the `ConsentProvider` the codemod wrote, and import its `hosted` from `c15t/react`, not `c15t/next`.
   6. Update callbacks, policy presets, renamed options and components, theme CSS, CSS variables and IAB setup as the guide describes.
   7. Keep the existing backend URL. If the app runs its own c15t backend, stop and tell me, because it has to be upgraded in the same release.
   8. Run the typecheck and build, and resolve every `TODO(c15t v3)` comment.
@@ -90,24 +90,41 @@ v3 gives you two ways forward.
 
 **Resolve consent on the server.** This is the recommended path. The server
 reads the visitor's policy and stored choice, so gated scripts can start right
-after hydration and the banner can be in the first HTML. Replace the client
-component with `ConsentRoot`. Pass it `resolveConsent()` from
-`c15t/next/server` as `state` and your `defineConsentConfig()` result as
-`config`, then add the manifest route. `ConsentRoot` already wraps
-`ConsentProvider`, so don't mount both. If v2 set `storageConfig.storageKey`,
-pass the same name to `resolveConsent()` as `cookieName`, or the server won't
-find the stored choice. Follow the
-[App Router guide](/docs/frameworks/next/app-router) or the
+after hydration and the banner can be in the first HTML. Delete the client
+component:
+
+1. Move the backend URL to `NEXT_PUBLIC_C15T_BACKEND_URL` in `.env.local`.
+2. Wrap `next.config.ts` in `withConsentManifest` from `c15t/next/build`.
+3. Create `c15t.config.ts` at the project root with
+   `export default defineConsentConfig({ scripts })`, and move your scripts,
+   callbacks and other provider options there.
+4. Render `ConsentRoot` from `c15t/next` in the root layout, with
+   `resolveConsent()` from `c15t/next/server` as `state`, and the banner and
+   dialog inside it. In the Pages Router, export `withConsentProps()` from
+   `c15t/next/pages` as `getServerSideProps` and render `ConsentRoot` in
+   `pages/_app.tsx` with `state={pageProps.consent}`.
+
+`ConsentRoot` already wraps `ConsentProvider`, so don't mount both. If v2 set
+`storageConfig.storageKey`, pass the same name to `resolveConsent()` as
+`cookieName`, or the server won't find the stored choice. Follow the
+[quickstart](/docs/frameworks/next/quickstart) or the
 [Pages Router guide](/docs/frameworks/next/pages-router). This replaces v2's
 `fetchInitialData()`, `ssrData` and `C15tPrefetch`, which are gone.
 
-**Keep browser initialization**, as v2 did without `fetchInitialData()`. Keep
-your client component, import from `c15t/next`, and change the provider:
+**Keep browser initialization**, as v2 did without `fetchInitialData()`. The
+same files work: set `mode: hosted()` in `c15t.config.ts` and render
+`ConsentRoot` without `state`, as
+[client-side initialization](/docs/frameworks/next/client-side) shows.
+
+To keep your client component instead, change the provider and import
+`hosted` from `c15t/react`. In `c15t/next`, `hosted()` returns plain data for
+`c15t.config.ts`, which `ConsentProvider` does not accept:
 
 {/* example: fragment */}
 
 ```tsx title="After (v3): components/consent-manager/provider.tsx, changed lines"
-import { ConsentBanner, ConsentDialog, ConsentProvider, hosted } from 'c15t/next';
+import { ConsentBanner, ConsentDialog, ConsentProvider } from 'c15t/next';
+import { hosted } from 'c15t/react';
 
 // In the component, replace ConsentManagerProvider:
 <ConsentProvider
@@ -115,12 +132,15 @@ import { ConsentBanner, ConsentDialog, ConsentProvider, hosted } from 'c15t/next
 >
 ```
 
-The `consent-provider-options` codemod makes this change, including the
-`hosted` import:
+The `consent-provider-options` codemod rewrites the provider and its options:
 
 ```bash
 npx @c15t/cli@alpha codemods consent-provider-options --dry-run --json
 ```
+
+It adds `hosted`, or `offline`, to the import it changed. In a file that
+imports from `@c15t/nextjs` or `c15t/next`, move them to an import from
+`c15t/react`.
 
 Static exports use browser initialization too. See
 [static export](/docs/frameworks/next/static-export) and
@@ -135,7 +155,7 @@ The other v2 modes map to transports:
 
 | v2 option | v3 option |
 | --- | --- |
-| `mode: 'offline'` with `offlinePolicy` | `mode: offline({ policyRules })` |
+| `mode: 'offline'` with `offlinePolicy` | `mode: offline({ policyRules })` in `c15t.config.ts`, from `c15t/next`. On a `ConsentProvider`, `offline` from `c15t/react`. |
 | `mode: 'custom'` with `endpointHandlers` | `mode: custom(transport)`, where `transport` implements the v3 transport interface. `endpointHandlers` throws. |
 
 The codemod rewrites the offline mode too. It can't translate

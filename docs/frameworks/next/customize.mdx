@@ -17,17 +17,15 @@ and the other stock components render the rules they use as `<style>`
 elements, in the server HTML for a server-rendered banner.
 
 Import the stylesheet yourself with Tailwind CSS 3, to put c15t's rules in a
-named cascade layer. Set `styles: false` in `ConsentRoot`'s
-`options`, so the components add no second copy:
+named cascade layer. Set `styles: false` under `options` in
+`c15t.config.ts`, so the components add no second copy:
 
 {/* example: fragment */}
 
-```tsx title="components/consent.tsx (partial)"
-<ConsentRoot
-	state={state}
-	config={consentConfig}
-	options={{ styles: false }}
->
+```ts title="c15t.config.ts"
+import { defineConsentConfig } from 'c15t/next';
+
+export default defineConsentConfig({ options: { styles: false } });
 ```
 
 Then import c15t once from the global stylesheet that `app/layout.tsx` or
@@ -56,7 +54,7 @@ routes under `app/branded`:
 <include src="../../shared/examples/nextjs/branded-layout.mdx" />
 
 To theme the whole site, render `<ConsentTheme theme={brandTheme} />` in your
-root layout, before the `Consent` wrapper. View the page source to check that
+root layout, before `ConsentRoot`. View the page source to check that
 the `<style id="c15t-theme">` element is in the server HTML. In the Pages
 Router, render `ConsentTheme` in `pages/_document.tsx`, which runs only on the
 server.
@@ -68,8 +66,8 @@ server.
 <import src="../../shared/react/styling/overview.mdx#token-roles" />
 
 `ConsentTheme` renders tokens only. Components read `consentActions` in the
-browser, so pass a theme that contains them to `ConsentRoot` through `options`
-in `components/consent.tsx`:
+browser, so pass a theme that contains them through `options` in
+`c15t.config.ts`:
 
 {/* example: fragment */}
 
@@ -84,17 +82,15 @@ export const actionTheme = defineTheme({
 
 {/* example: fragment */}
 
-```tsx title="components/consent.tsx (partial)"
-<ConsentRoot
-	state={state}
-	config={consentConfig}
-	scripts={scripts}
-	options={{ theme: actionTheme }}
->
+```ts title="c15t.config.ts"
+import { defineConsentConfig } from 'c15t/next';
+
+import { actionTheme } from './lib/theme';
+
+export default defineConsentConfig({ options: { theme: actionTheme } });
 ```
 
-The theme is plain data, but keep this import in the client wrapper next to
-`consentConfig`.
+Keep your `scripts` and other options in the same call.
 
 ## Change the banner's shape
 
