@@ -1,17 +1,19 @@
 /**
- * Keeps `mode` and `routePrefix` at the values the build used. Nitro applies
- * variables such as `NUXT_PUBLIC_C15T_ROUTE_PREFIX` and
- * `NUXT_PUBLIC_C15T_MODE_TYPE` to each request's runtime config, which the
- * server render reads and sends to the browser. The build already chose
- * from these options where the consent route is mounted, which snapshot
- * each bundle holds and which code the browser loads, so they cannot change
- * at runtime.
+ * Keeps `mode.type`, `mode.resolve` and `routePrefix` at the values the
+ * build used. Nitro applies variables such as
+ * `NUXT_PUBLIC_C15T_ROUTE_PREFIX` and `NUXT_PUBLIC_C15T_MODE_TYPE` to each
+ * request's runtime config, which the server render reads and sends to the
+ * browser. From these three the build chose where the consent route is
+ * mounted, which snapshot each bundle holds and which code the browser
+ * loads, so they cannot change at runtime. The other mode fields, such as
+ * `manifestURL` and `backendURL`, the server reads at runtime, so they stay
+ * overridable.
  *
  * @internal
  */
 import type { ConsentMode } from '@c15t/core/modes';
 
-/** The options the build fixed. */
+/** The options the build used. */
 export interface BuiltOptions {
 	/** The mode as data, without its snapshot. */
 	mode: ConsentMode;
@@ -19,43 +21,74 @@ export interface BuiltOptions {
 	routePrefix: string | false;
 }
 
-/** The option names a runtime override can reach. */
-export type BuiltOptionName = keyof BuiltOptions;
+/**
+ * The options a runtime override cannot change: `mode.type`, `mode.resolve`
+ * and `routePrefix`.
+ */
+export type BuiltOptionName = 'resolve' | 'routePrefix' | 'type';
 
 /** The part of the runtime config the step reads and writes. */
 export interface BuiltOptionsRuntimeConfig {
 	public: { c15t?: Record<string, unknown> };
 }
 
-/** Whether two JSON values hold the same data, whatever their key order. */
-const sameData = function sameData(left: unknown, right: unknown): boolean {
-	if (left === right) {
-		return true;
+/** The variable Nitro maps onto each option, as a deployment sets it. */
+const VARIABLES: Record<BuiltOptionName, string> = {
+	resolve: 'NUXT_PUBLIC_C15T_MODE_RESOLVE',
+	routePrefix: 'NUXT_PUBLIC_C15T_ROUTE_PREFIX',
+	type: 'NUXT_PUBLIC_C15T_MODE_TYPE',
+};
+
+/** The order options are checked and reported in. */
+const OPTION_NAMES: readonly BuiltOptionName[] = [
+	'type',
+	'resolve',
+	'routePrefix',
+];
+
+/**
+ * The environment variable that overrides an option at runtime.
+ *
+ * @param name - The option.
+ * @returns The variable, such as `NUXT_PUBLIC_C15T_MODE_TYPE`.
+ */
+export const buildOptionVariable = function buildOptionVariable(
+	name: BuiltOptionName
+): string {
+	return VARIABLES[name];
+};
+
+/** An option's value in a `c15t` config; `undefined` when it is unset. */
+const readOption = function readOption(
+	c15t: { mode?: unknown; routePrefix?: unknown },
+	name: BuiltOptionName
+): unknown {
+	if (name === 'routePrefix') {
+		return c15t.routePrefix;
 	}
-	if (
-		typeof left !== 'object' ||
-		typeof right !== 'object' ||
-		left === null ||
-		right === null ||
-		Array.isArray(left) !== Array.isArray(right)
-	) {
-		return false;
-	}
-	const leftRecord = left as Record<string, unknown>;
-	const rightRecord = right as Record<string, unknown>;
-	const keys = Object.keys(leftRecord);
-	return (
-		keys.length === Object.keys(rightRecord).length &&
-		keys.every(
-			(key) =>
-				Object.hasOwn(rightRecord, key) &&
-				sameData(leftRecord[key], rightRecord[key])
-		)
-	);
+	const { mode } = c15t;
+	return typeof mode === 'object' && mode !== null
+		? (mode as Record<string, unknown>)[name]
+		: undefined;
 };
 
 /**
- * The built options a runtime config no longer matches.
+ * The built value of an option.
+ *
+ * @param built - The options the build used.
+ * @param name - The option.
+ * @returns The value; `undefined` for a `resolve` the build left out.
+ */
+export const readBuiltOption = function readBuiltOption(
+	built: BuiltOptions,
+	name: BuiltOptionName
+): unknown {
+	return readOption(built, name);
+};
+
+/**
+ * The fixed options a runtime config no longer matches. A change to another
+ * mode field, such as `manifestURL`, is not an override.
  *
  * @param c15t - The `public.c15t` runtime config, after Nitro applied the
  * environment.
@@ -69,13 +102,15 @@ export const findOverriddenOptions = function findOverriddenOptions(
 	if (!c15t) {
 		return [];
 	}
-	return (['mode', 'routePrefix'] as const).filter(
-		(name) => !sameData(c15t[name], built[name])
+	return OPTION_NAMES.filter(
+		(name) => readOption(c15t, name) !== readOption(built, name)
 	);
 };
 
 /**
- * Writes the built options back over a runtime override.
+ * Writes the fixed options back over a runtime override: `mode.type`,
+ * `mode.resolve` (removed when the build had none) and `routePrefix`. The
+ * request keeps every other mode field it has.
  *
  * @param runtimeConfig - The request's runtime config, changed in place.
  * @param built - The options the build used.
@@ -88,7 +123,18 @@ export const pinBuildOptions = function pinBuildOptions(
 	if (!c15t) {
 		return;
 	}
-	c15t.mode = structuredClone(built.mode);
+	const mode: Record<string, unknown> =
+		typeof c15t.mode === 'object' && c15t.mode !== null
+			? (c15t.mode as Record<string, unknown>)
+			: {};
+	mode.type = built.mode.type;
+	const resolve = readOption(built, 'resolve');
+	if (resolve === undefined) {
+		delete mode.resolve;
+	} else {
+		mode.resolve = resolve;
+	}
+	c15t.mode = mode;
 	c15t.routePrefix = built.routePrefix;
 };
 

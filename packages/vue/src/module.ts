@@ -40,7 +40,6 @@ import {
 	readNuxtMode,
 	readNuxtRoutePrefix,
 } from './runtime/nuxt-mode';
-import { findOverriddenOptions } from './runtime/server/build-options';
 import type { BuiltOptions } from './runtime/server/build-options';
 import {
 	collectStyleSources,
@@ -352,8 +351,11 @@ const publishOptions = function publishOptions(
 		mode: withoutSnapshot(mode),
 		routePrefix: options.routePrefix ?? false,
 	};
-	for (const name of findOverriddenOptions(existing, built)) {
-		if (existing?.[name] !== undefined) {
+	for (const name of ['mode', 'routePrefix'] as const) {
+		if (
+			existing?.[name] !== undefined &&
+			JSON.stringify(existing[name]) !== JSON.stringify(built[name])
+		) {
 			useLogger('@c15t/vue').warn(
 				`\`runtimeConfig.public.c15t.${name}\` is ignored: the build uses \`c15t.${name}\` (${JSON.stringify(built[name])}). Set it there.`
 			);
