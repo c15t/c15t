@@ -15,7 +15,6 @@ deletes them:
 
 ```js title="astro.config.mjs (partial)"
 c15t({
-  mode: hosted({ url: 'https://your-project.inth.app' }),
   clearOnRevocation: {
     measurement: { cookies: ['_ga', '_ga_*'], localStorage: ['analytics:*'] },
     marketing: { cookies: ['_fbp'], sessionStorage: ['campaign-id'] },

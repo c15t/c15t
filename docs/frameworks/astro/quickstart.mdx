@@ -21,7 +21,7 @@ cached setups.
 | Your site | Astro output | c15t mode |
 | --- | --- | --- |
 | Static pages on any static host, no adapter | `output: 'static'` | `hosted()` |
-| Pages rendered on each request, with a server adapter | `output: 'server'` | `manifest()` |
+| Pages rendered on each request, with a server adapter | `output: 'server'` | `manifest()`, the default |
 
 For server output, the setup below bundles your policy into the server at
 build time, the recommended production setup. Rebuild after changing policies,
@@ -38,14 +38,28 @@ hold the finished code for each.
 
 The banner is plain `.astro` markup and ships no framework JavaScript. The
 preference dialog is an island that loads when a visitor first reaches for it.
-The `ui` option picks the framework that renders it, and the `c15t` package
-includes the dialog for Svelte, React and Vue.
+The `c15t` package includes the dialog for Svelte, React and Vue, and the
+integration renders it with the one of those three your site registers.
 
 Use the framework your site already ships, so visitors do not download a second
-one for a single dialog. This guide uses Svelte, the default. For React, install
-`@astrojs/react react react-dom` instead of `@astrojs/svelte svelte`, register
-`react()` and set `ui: 'react'`. For Vue, install `@astrojs/vue vue`, register
-`vue()` and set `ui: 'vue'`.
+one for a single dialog. This guide uses Svelte. For React, install
+`@astrojs/react react react-dom` instead of `@astrojs/svelte svelte` and
+register `react()`. For Vue, install `@astrojs/vue vue` and register `vue()`.
+With more than one of them registered, set `ui: 'react'` or `ui: 'vue'` on
+`c15t()`; otherwise it uses Svelte.
+
+## Set the backend URL
+
+Set `PUBLIC_C15T_BACKEND_URL` to your project's backend URL, including any
+path prefix, in `.env` or wherever you build:
+
+```sh title=".env"
+PUBLIC_C15T_BACKEND_URL=https://your-project.inth.app
+```
+
+`c15t()` reads it from the environment, or from `.env` or `.env.local` in the
+project root, when `astro.config.mjs` loads, so the config needs no
+`backendURL`. The URL must be absolute.
 
 ## Configure the integration
 
@@ -56,48 +70,41 @@ before `c15t()`.
 
 <include src="../../shared/examples/astro-static/static-config.mdx" />
 
-Replace `https://your-project.inth.app` with your project's backend URL,
-including any path prefix. `hosted()` sends the browser straight to your Inth
-backend, so no server is needed. A static page is the same for every visitor,
-which means the banner appears once the browser's `/init` request returns, not
-in the first HTML.
+`hosted()` sends the browser straight to your Inth backend's `/init`, so no
+server is needed. A static page is the same for every visitor, which means
+the banner appears once the browser's `/init` request returns, not in the
+first HTML.
 
 ### Server output
 
 <include src="../../shared/examples/astro/server-config.mdx" />
 
-`manifest()` without a `backendURL` reads `PUBLIC_C15T_BACKEND_URL` from the
-environment, or from `.env` or `.env.local` in the directory you run Astro
-from. Set it to your project's backend URL, including any path prefix. The URL
-must be absolute, because the build fetches from it.
+`c15t()` with no `mode` uses `manifest()`. It fetches your project's public
+policy once, when `astro build` or `astro dev` starts, and embeds it in the
+server build. The server resolves each visitor from that snapshot and the
+request's location and language headers, so the first HTML already contains
+the banner, or no banner at all for a visitor who has chosen. Consent saves
+still go to Inth. [Data fetching](/docs/concepts/data-fetching) compares
+this with calling the backend on every request.
 
-```sh title=".env"
-PUBLIC_C15T_BACKEND_URL=https://your-project.inth.app
-```
-
-`manifest()` fetches your project's public policy once, when `astro build`
-or `astro dev` starts, and embeds it in the server build. The
-server resolves each visitor from that snapshot and the request's location and
-language headers, so the first HTML already contains the banner, or no banner
-at all for a visitor who has chosen. Consent saves still go to Inth.
-[Data fetching](/docs/concepts/data-fetching) compares this with calling the
-backend on every request.
-
-`manifest()` adds `/api/c15t/init` and `/api/c15t/manifest` routes, so it
-needs a server adapter. Use the adapter for your host in place of
-`@astrojs/node`.
+`manifest()` injects one route, `/api/c15t/[...path]`, which answers
+`/api/c15t/init` and `/api/c15t/manifest`, so it needs a server adapter. Use
+the adapter for your host in place of `@astrojs/node`. A server-rendered page
+ships only the code that saves consent; the code that resolves a policy in
+the browser loads when a page needs it.
 
 <include src="../../shared/build-time-manifest-notes.mdx" />
 
 The built server keeps the backend URL from build time, so setting
 `PUBLIC_C15T_BACKEND_URL` when you start it changes nothing. Rebuild to point
 at another project. To apply policy edits without rebuilding, set
-`buildManifest: false`. The server then fetches and caches the policy at
-runtime.
+`mode: manifest({ source: 'runtime' })`, with `manifest` imported from
+`c15t/astro`. The server then fetches and caches the policy at runtime.
 
-The integration writes its options into the page as JSON. Keep callbacks,
-vendor helpers and secrets out of `c15t({ ... })`. They belong in the module
-that `clientEntrypoint` names.
+The integration writes its options into the page as JSON. `c15t()` throws if
+an option holds a function, and names the option. Callbacks, vendor helpers
+and anything else with a function belong in `src/c15t.client.ts`. Keep
+secrets out of both.
 
 ## Register vendor scripts
 

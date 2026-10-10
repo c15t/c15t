@@ -134,9 +134,7 @@ Turn on Astro's CSP with `security.csp`, or `experimental.csp` in Astro 5:
 ```js title="astro.config.mjs (partial)"
 export default defineConfig({
 	security: { csp: true },
-	integrations: [
-		c15t({ mode: hosted({ url: 'https://your-project.inth.app' }) }),
-	],
+	integrations: [c15t()],
 });
 ```
 
@@ -175,8 +173,9 @@ when the server did not resolve the policy. Allow those origins:
 
 | Mode | Browser requests go to |
 | --- | --- |
-| `hosted({ url })` | The `url` origin, for `/init` and `/subjects` |
-| `manifest({ backendURL })` | Your own origin for `/api/c15t/init`, and the `backendURL` origin for `/subjects` |
+| `manifest()`, the default | Your own origin for `/api/c15t/init`, and the backend origin for `/subjects` |
+| `manifest({ resolve: 'browser' })` | Your own origin for `/api/c15t/manifest`, the backend origin for `/subjects`, and `geoURL` if set |
+| `hosted()` | The backend origin, for `/init` and `/subjects` |
 | `offline()` | No consent backend |
 
 {/* example: fragment */}

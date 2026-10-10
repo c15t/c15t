@@ -504,7 +504,7 @@ export default defineDocsConfig({
 								'components/consent-banner',
 								'components/consent-banner-deferred',
 								'components/consent-dialog',
-								'components/consent-dialog-trigger',
+								'components/consent-dialog-link',
 								'components/iab-consent-banner',
 								'components/iab-consent-dialog',
 							],

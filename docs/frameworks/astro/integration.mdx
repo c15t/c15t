@@ -1,6 +1,6 @@
 ---
 title: Integration options
-description: Reference for every option of the c15t() Astro integration, the Astro equivalent of a consent provider, from mode and scripts to ui, theme, i18n, middleware, endpoints and the client entrypoint.
+description: Reference for every option of the c15t() Astro integration, the Astro equivalent of a consent provider, from backendURL, mode and routePrefix to ui, theme, i18n, middleware and the client entrypoint.
 group: frameworks
 ---
 
@@ -18,72 +18,103 @@ adds four things to your site:
   and dialog rules linked before their surface mounts. On a Tailwind CSS 3
   site, the full base and configured IAB stylesheets run through your CSS
   pipeline instead.
-- In `manifest()` mode, the `/api/c15t/init` and `/api/c15t/manifest` routes.
+- In `manifest()` mode, one route at `/api/c15t/[...path]` that answers
+  `/api/c15t/init` and `/api/c15t/manifest`.
 
-<include src="../../shared/examples/astro-static/static-config.mdx" />
+<include src="../../shared/examples/astro/server-config.mdx" />
 
-List the Astro integration of your `ui` framework before `c15t()`. Import
-`c15t` and the mode helpers from `c15t/astro`.
+`c15t()` works with no options: the backend URL comes from
+`PUBLIC_C15T_BACKEND_URL` and the mode defaults to `manifest()`. List the
+Astro integration of your `ui` framework before `c15t()`. Import `c15t` and
+the mode helpers from `c15t/astro`.
 
 ## Options must survive JSON
 
 The integration serializes its options once at build time and hands the same
 JSON to the middleware, the components and the browser. Functions, class
-instances and other live values do not survive that. Put callbacks, vendor
-helpers from `@c15t/integrations` and anything else with a function in the module
-that [`clientEntrypoint`](#cliententrypoint) names.
+instances and other live values do not survive that, so `c15t()` throws when
+an option holds a function, and names where it is. Put callbacks, vendor
+helpers from `@c15t/integrations` and anything else with a function in
+`src/c15t.client.ts`, the module [`clientEntrypoint`](#cliententrypoint)
+names.
 
 The options are also written into every page, so keep secrets out of them.
 The backend URL is public configuration, not a secret.
 
+## `backendURL`
+
+Your Inth or self-hosted backend. The browser saves consent there with
+`POST /subjects`, `hosted()` asks its `/init`, and `manifest()` reads
+`${backendURL}/manifest`. It defaults to `PUBLIC_C15T_BACKEND_URL`, read from
+the environment or a `.env` file in the project root when `astro.config.mjs`
+loads. A `hosted({ backendURL })` of its own wins over both.
+
+On the server, a relative backend URL or `manifestURL`, such as `/api/self-host`,
+resolves against the URL Astro gives the request, `Astro.url`. c15t does not
+read `x-forwarded-host` or other forwarding headers to build it.
+
 ## `mode`
 
-Required. Build it with one of the three helpers from `c15t/astro`:
+Where the visitor's policy comes from. Build it with one of the three
+helpers from `c15t/astro`; they return plain data. Without `mode`, the
+integration uses `manifest()`.
 
 | Helper | Resolves consent | Needs |
 | --- | --- | --- |
-| `hosted({ url })` | At your backend's `/init`, from the server on request-rendered pages and from the browser otherwise | A backend URL |
-| `manifest({ backendURL })` | On your server, from a cached copy of your project's public policy file | A server adapter and a backend URL |
-| `offline({ policyRules })` | In the browser and on your server, with no backend | Nothing. Not recommended for production environments. |
-
-`hosted()` accepts:
-
-| Field | Type | Effect |
-| --- | --- | --- |
-| `url` | `string` | Backend base URL. Absolute, or same-origin such as `/api/c15t` |
-| `domain` | `string` | Domain recorded when consent is saved |
-| `headers` | `Record<string, string>` | Extra headers sent with `/init` from the server and the browser. From the server, only geography, language and privacy-signal headers are sent |
+| `manifest()` | On your server, from your project's public policy, downloaded during the build | A server adapter and a backend URL |
+| `manifest({ source: 'runtime' })` | On your server, from the policy fetched and cached at runtime | A server adapter and a backend URL |
+| `manifest({ resolve: 'browser' })` | In the browser, from the manifest | A backend URL. Works on static output: the integration prerenders `${routePrefix}/manifest` |
+| `hosted()` | At your backend's `/init`, from the server on request-rendered pages and from the browser otherwise | A backend URL |
+| `offline()` | In the browser and on your server, with no backend | Nothing. Not recommended for production environments. |
 
 `manifest()` accepts:
 
 | Field | Type | Effect |
 | --- | --- | --- |
-| `backendURL` | `string` | Where the browser saves consent. Required unless you pass an inline `manifest`. `''` saves on this origin and then also needs a `manifestURL` or an inline `manifest` |
-| `manifestURL` | `string` | Where the server fetches the manifest. Defaults to `${backendURL}/manifest` |
-| `manifest` | `ConsentManifest` | An inline manifest, used instead of fetching one. Your app then serves its own save route |
-| `reportSessions` | `boolean` | Reports each server-resolved view to the backend, so visitor counts stay complete. Default `true` |
+| `source` | `'build' \| 'runtime'` | `'build'`, the default, uses the snapshot the build downloaded, or fetches at runtime when the build has none. `'runtime'` always fetches at runtime. |
+| `snapshot` | `ConsentManifest` | A manifest you supply, used instead of downloading one. Not combined with `source`. |
+| `resolve` | `'server' \| 'browser'` | Where the policy resolves. `'server'` by default. |
+| `manifestURL` | `string` | Where the manifest is fetched. Defaults to `${backendURL}/manifest`. |
+| `geoURL`, `inputs` | `string`, `{ country?, region? }` | The visitor's location, for `resolve: 'browser'` only. |
 
-`manifest()` without a backend URL stops `astro.config` from loading, because
-the browser would have nowhere to save consent. An inline `manifest` needs
-none.
+`hosted()` accepts:
 
-On the server, a relative `url`, `backendURL` or `manifestURL`, such as
-`/api/c15t`, resolves against the URL Astro gives the request, `Astro.url`.
-c15t does not read `x-forwarded-host` or other forwarding headers to build it.
+| Field | Type | Effect |
+| --- | --- | --- |
+| `backendURL` | `string` | Backend base URL, in place of the top-level `backendURL`. Absolute, or same-origin such as `/api/self-host` |
+| `headers` | `Record<string, string>` | Extra headers sent with `/init` from the server and the browser. From the server, only geography, language and privacy-signal headers are sent |
 
 `offline()` accepts `policyRules`, the rules to resolve locally. Without them
 it resolves the recommended rule pack. Choices persist in the visitor's cookie
 and localStorage only, and there are no consent records.
 
+`manifest()` and `hosted()` stop `astro.config` from loading without a
+backend URL, because the server would have no policy to read and the browser
+nowhere to save consent. A `manifest({ snapshot })` needs none for the policy.
+
 [Rendering and deployment](/docs/frameworks/astro/rendering) explains which
 mode fits which Astro output.
+
+## `routePrefix`
+
+The path of the route the integration injects in `manifest()` mode:
+`'/api/c15t'` by default. One catch-all, `${routePrefix}/[...path]`, answers
+`${routePrefix}/init` and `${routePrefix}/manifest`. A page whose consent
+changes after it loads, such as after a language change, asks it again.
+
+The route renders on demand, so `astro build` with `manifest()` needs a server
+adapter. `manifest({ resolve: 'browser' })` on static output prerenders only
+`${routePrefix}/manifest`. `hosted()` and `offline()` inject nothing. Set
+`routePrefix: false` to inject nothing in `manifest()` mode, for a site that
+serves those paths itself. See
+[serve the routes yourself](/docs/frameworks/astro/server#serve-the-routes-yourself).
 
 ## Consent and scripts
 
 | Option | Type | Default | Effect |
 | --- | --- | --- | --- |
-| `buildManifest` | `boolean` | Unset | Unset, `manifest()` mode with an absolute upstream URL fetches the policy when `astro build` or `astro dev` starts and embeds it in generated options; `onBuildError` decides what a failed fetch does. `false` always fetches at runtime, so policy edits apply without a rebuild. `true` is deprecated: it means `onBuildError: 'fail'` and requires manifest mode. See [build-time manifests](/docs/frameworks/astro/rendering#bundle-the-manifest-during-builds). |
-| `onBuildError` | `'fail' \| 'runtime'` | Unset | What a failed build-time manifest fetch does. Unset, `astro build` stops and `astro dev` logs a warning, and the server fetches the policy at runtime. `'fail'` stops both. `'runtime'` lets both continue. The `C15T_ON_BUILD_ERROR` environment variable overrides it. |
+| `onBuildError` | `'fail' \| 'runtime'` | Unset | What a failed build-time manifest fetch does in `manifest()` mode. Unset, `astro build` stops and `astro dev` logs a warning, and the server fetches the policy at runtime. `'fail'` stops both. `'runtime'` lets both continue. A missing backend URL counts as a failed fetch. The `C15T_ON_BUILD_ERROR` environment variable overrides it. See [build-time manifests](/docs/frameworks/astro/rendering#bundle-the-manifest-during-builds). |
+| `reportSessions` | `boolean` | `true` | In `manifest()` mode, reports each visitor the server resolves to the backend, so visitor counts stay complete. |
 | `consentCategories` | `AllConsentNames[]` | Inferred from scripts and the policy | Categories the banner and dialog offer |
 | `scripts` | `Script[]` | None | Scripts without callbacks, loaded when their category is allowed. See [Scripts](/docs/frameworks/astro/scripts) |
 | `vendors` | `Vendor[]` | None | Vendors the dialog lists with their own switch inside a category. Merged with vendors from the backend manifest. See [Vendor consent](/docs/frameworks/astro/vendor-consent) |
@@ -114,10 +145,11 @@ the browser.
 ## `ui`
 
 `ui` picks the framework that renders the preference dialog and the IAB
-dialog islands: `'svelte'` (default), `'react'` or `'vue'`. Install that
-framework's Astro integration and list it before `c15t()`. Pick the framework
-your site already ships. The integration never switches `ui` on its own. It
-logs a hint when your site loads React or Vue while `ui` is unset.
+dialog islands: `'svelte'`, `'react'` or `'vue'`. Unset, it is the framework
+of the one Astro integration among `@astrojs/svelte`, `@astrojs/react` and
+`@astrojs/vue` your site registers, so the dialog reuses a runtime the site
+already loads. With none or several of them registered, it is `'svelte'`.
+Install that framework's Astro integration and list it before `c15t()`.
 
 `requireUIIntegration`, default `true`, stops the build when the `ui`
 framework's Astro integration is missing. Set it to `false` for a site that
@@ -142,30 +174,17 @@ field.
 | `skip` | `string[]` | `[]` | Path prefixes the middleware leaves alone. `'/api'` covers `/api/health` but not `/apidocs` |
 | `timeoutMs` | `number \| false` | `500` | Longest a server render waits for the policy. `false` or `Infinity` waits however long the backend takes; any other value that is not a finite, non-negative number uses the default |
 
-The integration's own init and manifest routes are always skipped. On a
+The integration's own route under `routePrefix` is always skipped. On a
 skipped route, `Astro.locals.c15t` is unset and `ConsentBanner` throws, so
 skip only routes that render no consent components. See
 [Server API](/docs/frameworks/astro/server).
 
-## `endpoints`
-
-`true`, `false`, or an object:
-
-| Field | Type | Default | Effect |
-| --- | --- | --- | --- |
-| `enabled` | `boolean` | `true` in `manifest()` mode, otherwise `false` | Adds the init and manifest routes |
-| `initPath` | `string` | `'/api/c15t/init'` | Path of the init route |
-| `manifestPath` | `string` | `'/api/c15t/manifest'` | Path of the manifest route |
-
-The routes render on demand, so `astro build` fails without a server adapter
-while they are enabled. Set `endpoints: false` in `manifest()` mode only when
-you serve those routes yourself. See
-[serve the routes yourself](/docs/frameworks/astro/server#serve-the-routes-yourself).
-
 ## `clientEntrypoint`
 
-A path to a module whose default export adds live values in the browser.
-Use an absolute path, as the quickstart does with `fileURLToPath`:
+A path to a module whose default export adds live values in the browser. A
+relative path resolves from the project root. Unset, the integration uses
+`src/c15t.client.ts`, `.js` or `.mjs` when the file exists, so the quickstart
+sets nothing:
 
 <include src="../../shared/examples/astro/client-entrypoint.mdx" />
 
@@ -186,15 +205,19 @@ one copy. Keep it small, because it loads on every page.
 
 | Message contains | Cause |
 | --- | --- |
-| `` `mode` is required `` | `c15t()` has no `mode`, or `mode` is not built with a helper |
-| `pass backendURL to manifest()` | `manifest()` has no `backendURL`, `PUBLIC_C15T_BACKEND_URL` is unset, and there is no inline `manifest` |
-| `gives the server no manifest to fetch` | `manifest({ backendURL: '' })` has no `manifestURL` or inline `manifest` |
+| `` `mode` must be manifest(), hosted() or offline() `` | `mode` is a transport function, or not built with a helper from `c15t/astro` |
+| `is a function` | A serialized option, such as a `scripts` entry from `@c15t/integrations`, holds a function. Move it to `src/c15t.client.ts` |
+| `manifest() needs a backend URL` | No `backendURL`, no `PUBLIC_C15T_BACKEND_URL`, and no `manifest({ snapshot })` |
+| `hosted() needs a backend URL` | No `backendURL`, `hosted({ backendURL })` or `PUBLIC_C15T_BACKEND_URL` |
+| `gives the server no manifest to fetch` | `backendURL: ''` without `manifest({ manifestURL })` or `manifest({ snapshot })` |
+| `` `routePrefix` must be a path `` | `routePrefix` is not `false` and does not start with `/` |
+| `clientEntrypoint ... does not exist` | The `clientEntrypoint` path does not resolve to a file |
 | `unknown ui` | `ui` is not `'svelte'`, `'react'` or `'vue'` |
 | `ui: "svelte" needs @astrojs/svelte` | The `ui` framework's Astro integration is missing |
-| `manifest mode injects on-demand routes` | `astro build` runs with the routes on and no server adapter |
-| `buildManifest requires manifest mode` | `buildManifest: true` with `hosted()` or `offline()` |
-| `build-time manifests require an absolute upstream URL` | `onBuildError: 'fail'` or `buildManifest: true` with a relative or empty `backendURL` or `manifestURL` |
+| `injects an on-demand route` | `astro build` runs in `manifest()` mode with no server adapter |
+| `build-time manifests require an absolute upstream URL` | `onBuildError: 'fail'` with a relative or empty backend URL or `manifestURL` |
 | `could not fetch the consent manifest` | `astro build` could not download a manifest. In `astro dev`, or with `onBuildError: 'runtime'`, the same message is a warning |
+| `no backend URL is set` | The build has no backend URL to fetch from. `astro build` stops; `astro dev` warns |
 
 [Troubleshooting](/docs/frameworks/astro/troubleshooting) has the fix for
 each.
