@@ -45,4 +45,5 @@ The script-tag builds (`c15t.js`, `c15t.offline.js`, `c15t.headless.js`,
 `c15t.iab.js`) still read mode names and these options from `data-*`
 attributes and `c15t.push(['config', …])`. Their option type is now
 `ScriptTagClientOptions`. `@c15t/browser/hosted` and `@c15t/browser/offline`
-keep their options.
+keep their options. The script-tag builds bundle the code that saves consent
+instead of loading it as a second request, so `c15t.js` is slightly smaller.

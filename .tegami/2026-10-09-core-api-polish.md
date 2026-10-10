@@ -99,6 +99,12 @@ or `geoURL`, so the warning suggests `hosted()`.
 `offline()` now reports the location it resolved for, so the Vue and Astro
 preference dialog shows its title.
 
+**Consent write code loads later.** Once a banner or dialog has shown, the
+code that saves consent loads on the first press, key or focus inside it, or
+in idle time three seconds after the load event, whichever comes first. It
+used to load in the first idle time after the load event, which could land it
+in first-load JavaScript. A save that comes first still waits for it.
+
 Removed:
 
 - `hosted({ url })`: use `hosted({ backendURL })`.

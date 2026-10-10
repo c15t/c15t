@@ -20,7 +20,10 @@ npx @c15t/cli@alpha setup hosted --framework react --backend-url https://your-pr
   keeps its other keys. The CLI never creates or edits `.gitignore`.
 - Generated code uses the v3 API only: `manifest()`, `hosted()` and
   `offline()`, `defineConsentConfig`, `withConsentManifest`, `ConsentRoot`
-  and `ConsentDialogLink`.
+  and `ConsentDialogLink`. Templates that pass a backend URL in code write
+  `hosted({ backendURL })`, not `hosted({ url })`. The Astro templates write
+  `ConsentDialogLink` instead of `ConsentDialogTrigger`, and the TanStack
+  Start template no longer writes `initRoute`.
 - New targets: `astro-static` (static output, `hosted()`) and `html` (the
   `c15t.js` script tag). `--boilerplate` picks `astro` or `astro-static` from
   whether the project has a server adapter.
@@ -31,7 +34,8 @@ npx @c15t/cli@alpha setup hosted --framework react --backend-url https://your-pr
   `GenerateOptions.output` is gone, and plans gain a `merge` map with a
   `mergeFile()` helper for files the project already has.
 
-The `consent-provider-options` codemod now imports `hosted()` and `offline()`
-from `c15t/react` (or `@c15t/react`) when the provider comes from a Next.js or
+The `consent-provider-options` codemod writes `hosted({ backendURL })`
+instead of `hosted({ url })`. It imports `hosted()` and `offline()` from
+`c15t/react` (or `@c15t/react`) when the provider comes from a Next.js or
 TanStack Start entry, whose `hosted()` is plain data for
 `defineConsentConfig`. It also leaves an existing `manifest()` mode alone.

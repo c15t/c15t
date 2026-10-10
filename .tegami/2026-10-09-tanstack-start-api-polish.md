@@ -77,6 +77,11 @@ Removed, with no deprecated alias (these were v3 alpha only):
 - `consentManifest()`'s `outputFile`, `exportName`, `importSource` and
   `rootDir` options, and the generated `c15t-manifest.ts`.
 
+The server render now fetches a relative `backendURL`, such as a backend
+mounted elsewhere on the same origin. It skips only URLs under `routePrefix`,
+or `/api/c15t` when none is set, so a render never calls its own consent
+route.
+
 Changed: a root whose state names no backend URL, and no `consentManifest()`,
 throws instead of falling back to offline mode. Pass `mode: offline()` to
 resolve without a backend.

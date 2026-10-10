@@ -30,6 +30,11 @@ runs. Each language's base copy and the IAB vendor list load only when a
 visitor needs them. The React quickstart's first-load JavaScript is about
 3.8 KB gzip smaller.
 
+With `preloadDialog: 'idle'`, the default, the deferred `ConsentDialog`
+starts loading three seconds after the load event, in idle time, instead of
+in the first idle time after it. Hovering, focusing or touching a button that
+opens the dialog still loads it at once.
+
 `ConsentTheme` and `defineTheme` are importable from the new
 `c15t/react/theme` entry, which a Server Component can import.
 
