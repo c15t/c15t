@@ -1093,6 +1093,37 @@ describe('readBuildEnv quoting', () => {
 	});
 });
 
+describe('readBuildEnv expansion', () => {
+	/** `${name}`, written so it is not a template placeholder here. */
+	const ref = (name: string) => `\${${name}}`;
+
+	test.each([
+		[ref('BASE'), 'https://api.example'],
+		['$BASE', 'https://api.example'],
+		[`${ref('BASE')}/c15t`, 'https://api.example/c15t'],
+		['\\$BASE', '$BASE'],
+	])('expands %s from another .env line', async (value, expected) => {
+		const root = await createRoot();
+		await writeFile(
+			join(root, '.env'),
+			`BASE=https://api.example\nPUBLIC_C15T_BACKEND_URL=${value}\n`
+		);
+		expect(readBuildEnv(['PUBLIC_C15T_BACKEND_URL'], { root })).toBe(expected);
+	});
+
+	test('reads a reference from the process environment first', async () => {
+		const root = await createRoot();
+		await writeFile(
+			join(root, '.env'),
+			`BASE=https://file.example\nPUBLIC_C15T_BACKEND_URL=${ref('BASE')}\n`
+		);
+		vi.stubEnv('BASE', 'https://process.example');
+		expect(readBuildEnv(['PUBLIC_C15T_BACKEND_URL'], { root })).toBe(
+			'https://process.example'
+		);
+	});
+});
+
 describe('formatEnvNames', () => {
 	test('puts the Inth names in parentheses', () => {
 		expect(

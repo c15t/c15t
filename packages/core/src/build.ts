@@ -216,9 +216,27 @@ export const readBuildEnv = (
 			continue;
 		}
 		parsed ??= readFiles(options.root);
-		for (const values of parsed) {
+		const files = parsed;
+		// `${NAME}` and `$NAME` expand as Vite's dotenv-expand does: from the
+		// process environment, then the files; `\$` stays a literal `$`.
+		const expand = (value: string, depth: number): string =>
+			value.replace(
+				/\\?\$(?:\{[A-Za-z_]\w*\}|[A-Za-z_]\w*)/gu,
+				(match: string) => {
+					if (match.startsWith('\\')) {
+						return match.slice(1);
+					}
+					const key = match.replace(/^\$\{?|\}$/gu, '');
+					const found =
+						process.env[key] ?? files.find((values) => key in values)?.[key];
+					return found === undefined || depth > 8
+						? ''
+						: expand(found, depth + 1);
+				}
+			);
+		for (const values of files) {
 			if (values[name]) {
-				return values[name];
+				return expand(values[name], 0) || undefined;
 			}
 		}
 	}
