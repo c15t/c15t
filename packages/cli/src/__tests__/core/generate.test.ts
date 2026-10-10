@@ -60,6 +60,29 @@ describe('reusable generation', () => {
 			).toBe(false);
 		}
 	);
+	it('adds the script tag and the preferences link to a page independently', () => {
+		const plan = generate({
+			backendURL: 'https://your-project.inth.app',
+			framework: 'html',
+			mode: 'hosted',
+		});
+		const html = plan.files['index.html'] ?? '';
+		const merge = plan.merge['index.html'];
+		const page = (head: string, body: string) =>
+			`<html>\n<head>\n${head}</head>\n<body>\n${body}</body>\n</html>\n`;
+		const script =
+			'<script src="https://your-project.inth.app/c15t.js"></script>\n';
+		const link = '<a href="#c15t-preferences">Privacy settings</a>\n';
+		const withScript = mergeFile(page(script, ''), html, merge);
+		expect(withScript.match(/\/c15t\.js/gu)).toHaveLength(1);
+		expect(withScript).toContain('#c15t-preferences');
+		const withLink = mergeFile(page('', link), html, merge);
+		expect(withLink.match(/#c15t-preferences/gu)).toHaveLength(1);
+		expect(withLink).toContain('/c15t.js');
+		const both = page(script, link);
+		expect(mergeFile(both, html, merge)).toBe(both);
+	});
+
 	it('merges the backend URL into an existing .env', () => {
 		const plan = generate({
 			backendURL: 'https://your-project.inth.app',

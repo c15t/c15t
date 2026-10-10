@@ -34,11 +34,14 @@ export const mergeFile = (
 	if (merge.type === 'env') {
 		return mergeEnvFile(existing, generated);
 	}
-	if (existing.includes(merge.marker)) {
+	if (merge.marker !== undefined && existing.includes(merge.marker)) {
 		return existing;
 	}
 	let merged = existing;
-	for (const { before, content } of merge.inserts) {
+	for (const { before, content, marker } of merge.inserts) {
+		if (marker !== undefined && merged.includes(marker)) {
+			continue;
+		}
 		if (before === '') {
 			merged = `${content}\n${merged}`;
 			continue;

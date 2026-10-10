@@ -47,15 +47,16 @@ export interface BoilerplateOptions {
  * - `env`: merge `KEY=value` lines into the existing `.env`.
  * - `keep`: leave the existing file alone; the file is only for new projects.
  * - `insert`: add each snippet before the first `before` text (or at the
- *   start for `''`), unless the file already contains `marker`.
+ *   start for `''`), unless the file already contains `marker`. A snippet
+ *   with its own `marker` is skipped on its own when the file has it.
  */
 export type FileMerge =
 	| { type: 'env' }
 	| { type: 'keep' }
 	| {
 			type: 'insert';
-			marker: string;
-			inserts: { before: string; content: string }[];
+			marker?: string;
+			inserts: { before: string; content: string; marker?: string }[];
 	  };
 
 /**

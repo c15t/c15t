@@ -80,11 +80,16 @@ export const generateHtmlBoilerplate = (
 		],
 		merge: {
 			'index.html': {
+				// Each snippet on its own: a page may already load c15t.js
+				// without the preferences link, or the other way round.
 				inserts: [
-					{ before: '</head>', content: tag },
-					{ before: '</body>', content: PREFERENCES_LINK },
+					{ before: '</head>', content: tag, marker: '/c15t.js' },
+					{
+						before: '</body>',
+						content: PREFERENCES_LINK,
+						marker: '#c15t-preferences',
+					},
 				],
-				marker: '/c15t.js',
 				type: 'insert',
 			},
 		},

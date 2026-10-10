@@ -307,6 +307,7 @@ describe('framework quickstarts match the examples the docs publish', () => {
 					extractRegion(read('html/index.html'), 'script-tag', 'html'),
 					extractRegion(read('html/index.html'), 'vendor-scripts', 'html'),
 				].join('\n'),
+				marker: '/c15t.js',
 			},
 			{
 				before: '</body>',
@@ -315,6 +316,7 @@ describe('framework quickstarts match the examples the docs publish', () => {
 					'preferences-link',
 					'html'
 				),
+				marker: '#c15t-preferences',
 			},
 		]);
 	});
