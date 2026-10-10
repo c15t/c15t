@@ -267,6 +267,26 @@ export const sourceNameOf = function sourceNameOf(
 		: undefined;
 };
 
+/**
+ * Strips `as`, `satisfies`, `<T>` type assertions, non-null `!` and
+ * parentheses around an expression.
+ */
+export const unwrapExpression = function unwrapExpression(
+	node: TsMorphTypes.Node
+): TsMorphTypes.Node {
+	let current = node;
+	while (
+		Node.isAsExpression(current) ||
+		Node.isSatisfiesExpression(current) ||
+		Node.isTypeAssertion(current) ||
+		Node.isNonNullExpression(current) ||
+		Node.isParenthesizedExpression(current)
+	) {
+		current = current.getExpression();
+	}
+	return current;
+};
+
 /** The modules that export `createRequire`. */
 const NODE_MODULE = { createRequire: ['node:module', 'module'] } as const;
 
@@ -287,7 +307,8 @@ export const isNodeRequire = function isNodeRequire(
 		if (!Node.isVariableDeclaration(declaration)) {
 			return false;
 		}
-		const initializer = declaration.getInitializer();
+		const declared = declaration.getInitializer();
+		const initializer = declared && unwrapExpression(declared);
 		if (!initializer || !Node.isCallExpression(initializer)) {
 			return false;
 		}
@@ -489,21 +510,6 @@ export const elementRemovals = function elementRemovals(
 		edits.push(spanRemoval(element, last));
 	}
 	return edits;
-};
-
-/** Strips `as`, `satisfies` and parentheses around an expression. */
-export const unwrapExpression = function unwrapExpression(
-	node: TsMorphTypes.Node
-): TsMorphTypes.Node {
-	let current = node;
-	while (
-		Node.isAsExpression(current) ||
-		Node.isSatisfiesExpression(current) ||
-		Node.isParenthesizedExpression(current)
-	) {
-		current = current.getExpression();
-	}
-	return current;
 };
 
 /** The quote character the file's first import uses, defaulting to `'`. */
