@@ -167,6 +167,22 @@ describe('linked and independent versioning', () => {
 		expect(readManifest(root, 'translations').version).toBe('3.0.0-alpha.7');
 	});
 
+	it('releases @c15t/integrations on the linked version of the core it depends on', async () => {
+		const root = fixture([
+			{ name: 'c15t', version: '3.0.0-alpha.9' },
+			{ name: '@c15t/core', version: '3.0.0-alpha.9' },
+			{
+				dependencies: { '@c15t/core': 'workspace:*' },
+				name: '@c15t/integrations',
+				version: '3.0.0-alpha.8',
+			},
+		]);
+		change(root, { '@c15t/core': 'patch' });
+		await (await release(root).draft()).apply();
+		expect(readManifest(root, 'core').version).toBe('3.0.0-alpha.10');
+		expect(readManifest(root, 'integrations').version).toBe('3.0.0-alpha.10');
+	});
+
 	it('uses the highest stable bump regardless of changelog order', async () => {
 		const root = fixture([
 			{ name: '@c15t/core', version: '3.1.0' },

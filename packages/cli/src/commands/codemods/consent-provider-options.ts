@@ -544,12 +544,22 @@ const planRenames = function planRenames(
 ): void {
 	const renamed = new Set<string>();
 	for (const declaration of sourceFile.getImportDeclarations()) {
-		if (!PROVIDER_ENTRIES.has(declaration.getModuleSpecifierValue())) {
+		const entry = declaration.getModuleSpecifierValue();
+		if (!PROVIDER_ENTRIES.has(entry)) {
 			continue;
 		}
 		for (const named of declaration.getNamedImports()) {
 			const next = RENAMES[named.getName()];
 			if (!next) {
+				continue;
+			}
+			// Apps often name their own wrapper `ConsentProvider`. Importing the
+			// new name over it would collide, so keep the old local name.
+			if (!(named.getAliasNode() || canImport(sourceFile, entry, next))) {
+				plan.edits.push(
+					toTextEdit(named.getNameNode(), `${next} as ${named.getName()}`)
+				);
+				renamed.add(named.getName());
 				continue;
 			}
 			plan.edits.push(toTextEdit(named.getNameNode(), next));
