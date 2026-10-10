@@ -12,13 +12,13 @@ Manager and other ad tech read US privacy signals from it.
 
 ## Turn on GPP
 
-Add `gpp` to the provider in your root layout, keeping your existing `mode`,
-`prefetch` and other props:
+Add `gpp` to `ConsentRoot` in your root layout, keeping your existing `state`
+and other props:
 
 {/* example: fragment */}
 
 ```svelte title="src/routes/+layout.svelte"
-<ConsentManagerProvider {mode} prefetch={data.prefetch} {scripts} gpp>
+<ConsentRoot state={data.consent} {scripts} gpp>
 ```
 
 `gpp` on its own uses the defaults. Pass an object to change them, such as

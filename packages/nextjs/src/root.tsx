@@ -57,17 +57,46 @@ const warnMissingConfig = function warnMissingConfig(): void {
 };
 
 /**
- * The transport for the config's mode, or for `options.mode`. Without a
- * backend URL and a mode that brings its own, the root runs offline.
+ * The transport for the config's mode, or for `options.mode`.
+ *
+ * @throws {Error} When the mode needs a backend URL and neither the config
+ * nor `NEXT_PUBLIC_C15T_BACKEND_URL` sets one.
  */
 const createMode = function createMode(
 	config: ConsentConfig | undefined,
 	options: ConsentClientOptions['options']
 ) {
+	let backendURL = readBackendURLFromEnv();
+	if (config) {
+		// With `proxy`, saves go through the app's consent route; the server
+		// helpers keep the config's absolute backend URL.
+		backendURL = config.proxy ? config.routePrefix : config.backendURL;
+	}
 	return createClientMode(options?.mode ?? config?.mode, {
-		backendURL: config ? config.backendURL : readBackendURLFromEnv(),
+		backendURL,
 		routePrefix: config?.routePrefix,
 	});
+};
+
+type RootOptions = ConsentClientOptions['options'];
+
+/**
+ * `options` from props over the config's, one key at a time, and
+ * `callbacks` one callback at a time, so `options={{ nonce }}` keeps the
+ * config's callbacks and other options.
+ */
+const mergeOptions = function mergeOptions(
+	config: RootOptions,
+	props: RootOptions
+): RootOptions {
+	if (!(config && props)) {
+		return props ?? config;
+	}
+	return {
+		...config,
+		...props,
+		callbacks: { ...config.callbacks, ...props.callbacks },
+	};
 };
 
 /**
@@ -75,7 +104,12 @@ const createMode = function createMode(
  * top of the tree. It reads `c15t.config.ts` itself, so a Server Component
  * layout renders it directly with the `state` it resolved.
  *
- * Props win over the config's browser options of the same name.
+ * Props win over the config's browser options of the same name. `options`
+ * merges one key at a time, and `options.callbacks` one callback at a time.
+ *
+ * @throws {Error} When `manifest()` or `hosted()` has no backend URL: no
+ * `c15t.config.ts` sets one and `NEXT_PUBLIC_C15T_BACKEND_URL` is unset.
+ * `offline()` needs none.
  *
  * @example
  * ```tsx
@@ -119,7 +153,11 @@ export const ConsentRoot = (props: ConsentRootProps) => {
 		scripts,
 		state,
 		vendors,
-	} = { ...config, ...props };
+	} = {
+		...config,
+		...props,
+		options: mergeOptions(config?.options, props.options),
+	};
 	// Initial-only, like the provider's own `mode`. A new one on every
 	// render would make each rerender load the runtime's update module.
 	const [mode, setMode] = useState(() => createMode(config, options));

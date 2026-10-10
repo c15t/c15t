@@ -12,12 +12,12 @@ vocabularies, so a configuration from one does not work in the other.
 
 | Framework | Part API | Keys look like | Class key |
 | --- | --- | --- | --- |
-| Next.js, TanStack Start | `options.components` on `ConsentRoot` | `components.banner.card` | `className` |
+| Next.js, TanStack Start | `options.components` in Next.js `c15t.config.ts`, or on `ConsentRoot` | `components.banner.card` | `className` |
 | React | `components` in the `ConsentProvider` options | `components.banner.card` | `className` |
 | Nuxt | `components` in the `c15t` options, or in `app/app.config.ts` | `components.banner.card` | `class` |
 | Vue | `components` in the `c15tVue` options | `components.banner.card` | `class` |
 | Astro | `theme.slots` in the `c15t()` integration options | `slots.consentBannerCard` | A string, or `className` |
-| Svelte, SvelteKit | `theme.slots` on `ConsentManagerProvider` | `slots.consentBannerCard` | A string, or `className` |
+| Svelte, SvelteKit | `theme.slots` on `ConsentProvider` (Svelte) or `ConsentRoot` (SvelteKit) | `slots.consentBannerCard` | A string, or `className` |
 | HTML, JavaScript | `ui.theme.slots` | `slots.consentBannerCard` | A string, or `className` |
 
 React and Vue also read `theme.slots` from the theme in their options, and

@@ -42,6 +42,11 @@ requires a refresh strategy for cached or build-time manifests.
 
 <include src="../shared/build-time-manifest.mdx" />
 
+`manifest()` is the default mode in every server-rendered framework.
+[Consent modes](/docs/concepts/modes#download-the-manifest-at-build-time)
+covers each framework's build integration and what happens when the
+download fails.
+
 The framework quickstarts include the build integration for supported
 deployments. Server resolution uses the snapshot without an upstream manifest
 request. Browser resolution includes the policy and resolver in the client
@@ -92,25 +97,26 @@ the inline prefetch script, pass it to `buildPrefetchScript`. Vue, Svelte, Astro
 and the script tag use `'page'`. A manifest that resolves locally in the
 browser reports no init, so it sends no journey.
 
-If you pass `hosted()` a `fetch`, match on the path: URLs now carry a query string.
+If you pass a transport `hosted()` a `fetch`, match on the path: URLs now carry a query string.
 
 ## What does regular `/init` do?
 
-`hosted({ backendURL })` uses `${backendURL}/init` for initialization and `${backendURL}/subjects` for
-consent submissions. The name `hosted` describes the transport protocol; the URL
-can belong to Inth or your own c15t backend.
+`hosted()` uses `${backendURL}/init` for initialization and
+`${backendURL}/subjects` for consent submissions. The name `hosted` describes
+the protocol; the URL can belong to Inth or your own c15t backend.
 
-```ts title="src/consent-mode.ts"
-import { hosted } from 'c15t';
+{/* example: fragment */}
 
-export function createConsentMode(backendURL: string) {
-	return hosted({ backendURL });
-}
+```ts title="c15t.config.ts"
+import { defineConsentConfig, hosted } from 'c15t/next';
+
+export default defineConsentConfig({ mode: hosted() });
 ```
 
-Pass the factory to your adapter's `mode` option. For request rendering, use the
-adapter's server helper and forward its prepared result to the browser. For
-static output, initialize in the browser with a reachable external URL.
+Each framework passes the mode in a different place, and server-rendered
+frameworks take the data `hosted()` from their own package.
+[Consent modes](/docs/concepts/modes#import-the-factories-from-your-framework-package)
+lists where each one goes.
 
 A regular backend `/init` request lets the backend resolve the visitor context.
 A same-origin URL named `/api/c15t/init` can instead resolve from a cached
@@ -125,7 +131,8 @@ resolver or make personalized responses safe to cache.
 
 For a same-origin init route that resolves a manifest, the hosted transport can
 separate policy reads and record writes. With a backend rewrite mounted at
-`/api/c15t`, a client mode can use:
+`/api/c15t`, a single-page app can use the transport `hosted()` from
+`c15t`:
 
 ```ts title="src/consent-mode.ts"
 import { hosted } from 'c15t';
@@ -133,20 +140,22 @@ import { hosted } from 'c15t';
 export const mode = hosted({
 	backendURL: '/api/c15t',
 	initURL: '/api/c15t/init',
-	assertDecisionInputs: true,
 });
 ```
 
-The route must return the c15t init response contract. `assertDecisionInputs`
-binds saves to the resolved policy when init did not return a signed policy
-snapshot token. The backend can then reject a stale policy decision. Next.js
-sets this option for you when `ConsentRoot` receives a `config` with
-`initURL`.
+The route must return the c15t init response contract. Because `initURL` is
+set, `assertDecisionInputs` defaults to `true`: saves carry the policy decision
+they were made against when init returned no signed policy snapshot token, so
+the backend can reject a save made against a stale policy. Server-rendered
+frameworks do this for you when you set `routePrefix`: the browser re-inits
+through `${routePrefix}/init`.
 
 The init route resolves policy; the backend rewrite forwards `/api/c15t/subjects`
 and other record endpoints. Configure both if you choose this optional proxy
-variant. The
-[Next.js rewrite recipe](/docs/frameworks/next/optimization#keep-browser-consent-requests-on-your-origin)
+variant. Server-rendered frameworks do both with one option: `proxy: true` in
+Next.js `c15t.config.ts` or TanStack Start's `createConsentStateHandler`,
+with a consent route created with `proxy: true`. The
+[Next.js recipe](/docs/frameworks/next/optimization#keep-browser-consent-requests-on-your-origin)
 shows the configuration. A direct absolute backend URL works
 without a rewrite.
 
@@ -171,15 +180,18 @@ saves locally. The runtime's persistence module stores the choice in browser
 storage. There is no backend audit history, cross-device record service or IP
 geolocation supplied by this transport.
 
-Use your adapter's offline factory so its translations and provider context are
-included. This React and Next.js example replaces the hosted mode in an existing
-client provider:
+Use your framework's `offline()` so its translations and provider context are
+included. In a React app it replaces the mode passed to `ConsentProvider`:
 
 ```ts title="src/consent-mode.ts"
 import { offline } from 'c15t/react';
 
 export const mode = offline();
 ```
+
+In Next.js, TanStack Start, Nuxt, Astro and SvelteKit, pass the data
+`offline()` from the framework package where the config takes `mode`; see
+[consent modes](/docs/concepts/modes#import-the-factories-from-your-framework-package).
 
 With no `policyRules`, the current offline transport uses the recommended rule
 pack. Supplying `policyRules` replaces that pack. Unknown country and region are

@@ -1,7 +1,6 @@
 ---
 packages:
   '@c15t/astro': minor
-  '@c15t/cli': patch
   c15t: minor
 ---
 
@@ -10,7 +9,7 @@ packages:
 `c15t()` now works with no options. The backend URL defaults to
 `PUBLIC_C15T_BACKEND_URL`, read from the environment or `.env` in the project
 root, and the mode defaults to `manifest()`. The modes are the data factories
-from `@c15t/core/modes`, re-exported from `c15t/astro`:
+from `c15t/modes`, re-exported from `c15t/astro`:
 
 ```js
 // astro.config.mjs, server output
@@ -56,8 +55,20 @@ export default defineConfig({
   stays at `c15t/astro/components/consent-banner-deferred.astro`.
 - Server-rendered `manifest()` and `hosted()` pages ship only the code that
   saves consent. The init path loads when a page inits again.
+- `offline()` reports the location it resolved for, so the preference dialog
+  shows its title.
 
-Removed, with no deprecated alias:
+With `manifest()`, the integration fetches the policy manifest during
+`astro build` and dev startup and bundles it into the server. Middleware and
+the consent route use that snapshot; the browser options omit it unless the
+mode resolves in the browser. The fetch is skipped for `hosted()`,
+`offline()`, `manifest({ snapshot })`, `manifest({ source: 'runtime' })` and
+a relative backend URL. If the fetch fails or takes longer than 10 seconds,
+`astro build` now stops with an error, where it used to warn and continue,
+and `astro dev` logs a warning and fetches the policy at runtime. Set
+`onBuildError`, or `C15T_ON_BUILD_ERROR`, to change that.
+
+Removed, with no deprecated alias (these were v3 alpha only):
 
 - `hosted({ url })`: use `hosted({ backendURL })`, or the top-level
   `backendURL`. `hosted({ domain })` is gone too.
@@ -77,6 +88,3 @@ Removed, with no deprecated alias:
 - `c15t/astro/api` no longer exports the route handlers. Import
   `createConsentRouteHandlers` and the manifest cache helpers from
   `c15t/astro/server`.
-
-The `c15t generate` Astro boilerplate writes `hosted({ backendURL })` and
-`ConsentDialogLink`.

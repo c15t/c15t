@@ -16,11 +16,16 @@ keys and how to write labels that describe each action.
 
 ## How c15t picks the language
 
-By default the browser's own language decides. The browser sends it as
-`Accept-Language` with the policy request to `/init`. With
-`manifest: 'client'`, c15t reads `navigator.language` and resolves the text
-from the manifest. When your project has no text for that language, the
-backend picks its fallback language.
+By default the browser's own language decides. With `manifest()`, c15t reads
+`navigator.language` and resolves the text from the manifest. With
+`hosted()`, the browser sends it as `Accept-Language` with the policy request
+to `/init`. When your project has no text for that language, the policy's
+fallback language applies.
+
+`manifest()` bundles English base copy only. When a visitor resolves to
+another language, the browser loads that language's base copy from your site
+the first time it is needed. Each visitor downloads their own language only,
+and English visitors download no extra copy.
 
 The text direction follows the resolved language. Arabic, Hebrew and other
 right-to-left languages render the banner and dialog with `dir="rtl"`, and a
@@ -49,7 +54,7 @@ The assignment alone loads the new text. The example's extra
 
 ## Text that does not come from translations
 
-`ConsentPreferencesLink` and the `ConsentGate` placeholder read their default
+`ConsentDialogLink` and the `ConsentGate` placeholder read their default
 text from the translations, in English until init has delivered copy. One
 label in the Vue components is a c15t option instead. Set it in the visitor's
 language when your site has more than one:

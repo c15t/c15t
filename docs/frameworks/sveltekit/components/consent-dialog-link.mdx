@@ -11,8 +11,8 @@ Put it in the root layout's footer, so it is on every page:
 
 <include src="../../../shared/examples/sveltekit/layout.mdx" />
 
-It needs `ConsentDialog` mounted in the same provider. With a server
-`prefetch`, the link is in the server HTML. Without one, such as on a
+It needs `ConsentDialog` mounted in the same provider. With server-resolved
+consent, the link is in the server HTML. Without one, such as on a
 prerendered page, it appears after hydration once the policy resolves.
 
 <include src="../../../shared/svelte/components/consent-dialog-link.mdx" />

@@ -1,6 +1,6 @@
 ---
 title: Migrate to v3
-description: Upgrade from c15t v2 to v3. Pick the guide for the v2 package you use (@c15t/nextjs, @c15t/react or the c15t store), rename @c15t/scripts, keep visitors' choices, and upgrade a self-hosted backend and the Node.js SDK.
+description: Upgrade from c15t v2 to v3, or from an earlier v3 alpha. Pick the guide for the v2 package you use (@c15t/nextjs, @c15t/react or the c15t store), rename @c15t/scripts, keep visitors' choices, upgrade a self-hosted backend and the Node.js SDK, and look up every renamed and removed v3 alpha API.
 group: reference
 ---
 
@@ -27,8 +27,9 @@ group: reference
   the same subpaths and helper names.
 - `ConsentManagerProvider` becomes `ConsentProvider` in React. Next.js apps
   that resolve consent on the server use `ConsentRoot`.
-- `mode` and `backendURL` become one transport, `hosted({ backendURL })` or
-  `offline()`.
+- `mode` and `backendURL` become one mode, `manifest()`, `hosted()` or
+  `offline()`. The backend URL comes from a public environment variable, such
+  as `NEXT_PUBLIC_C15T_BACKEND_URL`. See [consent modes](/docs/concepts/modes).
 - Policy packs become policy rules. You set them in your Inth project, in a
   self-hosted backend's `manifest.policyRules`, or in `offline({ policyRules })`.
 - `useConsentManager()` is gone. Each field has its own hook, and a codemod
@@ -83,8 +84,8 @@ starts offline mode.
 
 If an earlier v3 script tag used local policy rules, switch its URL to
 `c15t.offline.js`. For manifest mode, custom transports or a page that selects
-its mode at runtime, use the root ES module `@c15t/browser`, which still
-accepts every mode. The headless script supports those modes with your own
+its mode at runtime, use the root ES module `@c15t/browser`, which accepts
+every mode as a factory, such as `init({ mode: manifest() })`. The headless script supports those modes with your own
 UI, and the IAB script supports them for IAB policies. The self-hosted
 backend's `/c15t.js` route now resolves policies through `/init`; its headless
 and IAB routes still preload the manifest. See the
@@ -247,5 +248,124 @@ npx @c15t/cli@alpha codemods node-sdk-to-v3 --dry-run --json
 The new client also adds `manifest()`, `legalDocuments.publish()` and
 `experiments.summary()`. The last two need a client with `apiKey`. See the
 [Node.js SDK reference](/docs/self-host/api/node-sdk).
+
+## Upgrade from an earlier v3 alpha
+
+The v3 alphas renamed and removed APIs that never shipped in a stable release.
+Names that were in stable v2 keep a deprecated alias. Every other renamed name
+is removed with no alias, so a build that still uses one fails to type-check
+or throws at runtime.
+
+### Deprecated, still working
+
+Only React's v2 `Frame` names remain. They render `ConsentGate` and, outside
+production, log a one-time warning such as
+``c15t: `Frame` is deprecated and will be removed in a future major release. Use `ConsentGate` instead.``
+
+| Package | Deprecated | Use instead |
+| --- | --- | --- |
+| `c15t/react`, `c15t/next`, `c15t/tanstack-start` | `Frame`, `FrameRoot`, `FrameTitle`, `FrameButton`, and the `FrameProps` type | `ConsentGate` and its parts, and `ConsentGateProps` |
+
+v2's `ConsentManagerProvider` and string modes such as `mode: 'hosted'` are
+handled by the `consent-provider-options` codemod, not by aliases.
+
+### Removed
+
+Modes and build integrations, in every framework:
+
+| Removed | Use instead |
+| --- | --- |
+| `hosted({ url })` | `hosted({ backendURL })`, or the framework's backend URL variable |
+| `createManifestTransport({ manifest })` | `createManifestTransport({ snapshot })` |
+| `assertDecisionInputs` defaulting to `false` on `hosted()` | It now defaults to `true` whenever `initURL` is set. Pass `false` to turn it off. |
+| `hostedModes` from `c15t/runtime/provider` | `readHostedMode(mode)` |
+| `buildManifest: true` in Astro and Nuxt | `onBuildError: 'fail'`, the default for production builds. `buildManifest: false` is `manifest({ source: 'runtime' })`. |
+| A generated `c15t-manifest.ts` and its `.gitignore` entry | `import { snapshot } from 'c15t/generated'`. Most apps no longer import it at all. |
+| The build options `outputFile`, `exportName`, `importSource` and `rootDir` | Removed. The snapshot is a virtual module, or a file under `node_modules/.cache/c15t/` in Next.js. |
+
+`@c15t/browser`:
+
+| Removed | Use instead |
+| --- | --- |
+| `init({ backendURL })` | `init({ mode: hosted() })`, or `init({ mode: manifest() })` with `consentManifest()` from `c15t/build` |
+| `init({ mode: 'hosted' })`, `'manifest'`, `'offline'` | `init({ mode: hosted() })`, `manifest()`, `offline()`. Names work only in the script-tag builds. |
+| `init({ manifest, manifestURL })` | `init({ mode: manifest({ snapshot, manifestURL }) })` |
+| `init({ policyRules: ['europeOptIn'] })` | `init({ mode: offline({ policyRules: [policyRulePresets.europeOptIn()] }) })` |
+| `manifest({ manifest })` | `manifest({ snapshot })` |
+
+The script-tag builds and the `@c15t/browser/hosted` and
+`@c15t/browser/offline` entries keep `backendURL`, `manifest`, `manifestURL`,
+`policyRules` and mode names.
+
+React removes nothing besides the modes above. Import `manifest()` from
+`c15t/react`, next to `hosted()` and `offline()`, instead of from
+`@c15t/browser/headless`; React apps need nothing from `@c15t/browser`.
+
+Next.js:
+
+| Removed | Use instead |
+| --- | --- |
+| `defineConsentConfig({ manifestURL, initURL })` | `routePrefix`, or `mode: manifest({ resolve: 'browser', manifestURL })` |
+| A named `consentConfig` export, passed to `ConsentRoot` as `config` | `export default defineConsentConfig(...)` in `c15t.config.ts`. `withConsentManifest` finds the file. `config` stays as an optional override. |
+| `ConsentRoot`'s `backendURL` prop | `backendURL` in the config, or `NEXT_PUBLIC_C15T_BACKEND_URL` |
+| The `'use client'` wrapper that passed `config` and `scripts` | `scripts` and other browser options in `c15t.config.ts`. A Server Component renders `ConsentRoot` directly. |
+| `createNextConsentRouteHandlers()`, its `GET` and `manifestGET` | `createConsentRoute()` in one catch-all route, `app/api/c15t/[...c15t]/route.ts` |
+| `createPagesApiHandlers()` and its `init` and `manifest` | `createPagesConsentRoute()` in `pages/api/c15t/[...c15t].ts` |
+| `resolveConsent(...)` with a JSON round trip in `getServerSideProps` | `export const getServerSideProps = withConsentProps()`, and `AppProps<ConsentPageProps>` in `_app.tsx` |
+| `resolveConsent({ manifest })`, and `manifest` on the route helpers | `snapshot`, which defaults to the build's |
+| `ConsentManifestOptions` and the `c15t.server.ts` module | `ResolveConsentOptions` or `NextConsentRouteOptions`. The helpers read the config and snapshot themselves. |
+| `resolveStrictestDefaultInit` from `c15t/next/static` | `resolveUnknownLocationInit` |
+| `ConsentRoot` falling back to offline mode when no config or `NEXT_PUBLIC_C15T_BACKEND_URL` gives it a backend URL | `ConsentRoot` throws. Set `mode: offline()` to run without a backend. |
+| `onBuildError: 'runtime'` to build a `hosted()` or `offline()` app while the backend is unreachable | Nothing. `withConsentManifest` reads the mode from `c15t.config.ts` and skips the download for modes that don't use it. |
+| `hosted`, `offline` and `manifest` from `c15t/next` as transports | They are data for `c15t.config.ts` now. A `ConsentProvider` imports them from `c15t/react`. |
+
+TanStack Start:
+
+| Removed | Use instead |
+| --- | --- |
+| `ConsentRoot`'s `backendURL` and `routePrefix` props | `createConsentStateHandler({ routePrefix })`. The state carries the backend URL, the mode and the route prefix. |
+| `ConsentRoot`'s `initRoute` prop, and `DEFAULT_INIT_ROUTE` | `createConsentStateHandler({ routePrefix: '/api/c15t' })`. There is no default route any more. |
+| `createConsentServerRoute`, and its `manifestGET`, `initGET` and `proxyHandler` | `createConsentRoute()`, which returns `GET`, plus the write methods with `proxy` |
+| `createConsentStateHandler({ backendURL, manifest })` | `createConsentStateHandler()`, which reads both from `consentManifest()`, or `{ snapshot }` |
+| `manifestURL` on the state handler | `mode: manifest({ manifestURL })` |
+| `ConsentManifestOptions`, `resolveStrictestDefaultInit` | `ResolveConsentOptions`; `resolveUnknownLocationInit` |
+| Falling back to offline mode when no backend URL is set | `ConsentRoot` throws. Pass `mode: offline()` to run without a backend. |
+| `hosted`, `offline` and `manifest` from `c15t/tanstack-start` as transports | They are data for `createConsentStateHandler({ mode })` now. |
+
+Vue and Nuxt:
+
+| Removed | Use instead |
+| --- | --- |
+| Nuxt options `manifest`, `manifestURL`, `manifestSnapshot`, `buildManifest`, `geoURL`, `initRoute`, `manifestRoute` | `mode`, `routePrefix`, `onBuildError`, and `manifest({ manifestURL, geoURL, snapshot })` from `c15t/vue` |
+| `ConsentPreferencesLink`, `runtime/components/consent-preferences-link.vue` | `ConsentDialogLink`, `consent-dialog-link.vue`. The floating `ConsentDialogTrigger` keeps its name. |
+| `ConsentFrame` | `ConsentGate` |
+| Vue plugin options `backendURL`, `manifest`, `manifestSnapshot`, `manifestURL`, `customFetch`, `domain` | `mode`, a factory from `c15t/vue/vue-plugin` that takes them |
+| The default `c15tVue` export of `c15t/vue/vite` | `consentManifest` from `c15t/vue/vite`. The Vue app plugin keeps the name `c15tVue`. |
+| `c15t/vue/consent-root`, `c15t/vue/consent-widget` | Named exports from `c15t/vue/vue-plugin` |
+
+Svelte and SvelteKit (`@c15t/svelte` was not public in v2):
+
+| Removed | Use instead |
+| --- | --- |
+| `ConsentManagerProvider` | `ConsentProvider` in Svelte, `ConsentRoot` in SvelteKit |
+| `Frame` | `ConsentGate` |
+| `createSvelteKitConsentRouteHandlers` | `createConsentRoute` |
+| `c15tPreload` | Part of `consentManifest()` from `@c15t/svelte/vite` |
+| `ConsentManifestOptions`, `consentManifest({ outputFile })` | Removed |
+| `loadConsent(event, { backendURL, manifest, initRoute, shared })` returning `prefetch` | `c15tHandle({ mode, routePrefix, snapshot, backendURL })` in `src/hooks.server.ts`, and `export { loadConsent as load }`, which returns `{ consent }` |
+| `<ConsentManagerProvider prefetch={...}>` | `<ConsentRoot state={data.consent}>` |
+
+Astro:
+
+| Removed | Use instead |
+| --- | --- |
+| `hosted({ url })`, `hosted({ domain })` | `hosted({ backendURL })`, or the top-level `backendURL` |
+| `manifest({ backendURL, manifest, reportSessions })` | Top-level `backendURL` and `reportSessions`, and `manifest({ snapshot })` |
+| `endpoints`, and the `c15t/astro/api/init` and `c15t/astro/api/manifest` entries | `routePrefix`, `'/api/c15t'` by default, with one catch-all route |
+| `buildManifest` | `onBuildError`, or `manifest({ source: 'runtime' })` |
+| `consent-dialog-trigger.astro`, `ConsentDialogTrigger` | `consent-dialog-link.astro`, `ConsentDialogLink`, also from `c15t/astro/components` |
+| `resolveTransportFactory`, `custom`, and the `C15tModeDescriptor`, `C15tHostedDescriptor`, `C15tManifestDescriptor`, `C15tOfflineDescriptor` and `C15tEndpointOptions` types | `ConsentMode` from `c15t/astro` |
+| Route handlers from `c15t/astro/api` | `createConsentRouteHandlers` and the manifest cache helpers from `c15t/astro/server` |
+| `/// <reference types="c15t/astro/middleware" />` in `src/env.d.ts` | Nothing. The integration adds the `Astro.locals.c15t` type. |
 
 <include src="./shared/upgrade-v3/cli.mdx" />

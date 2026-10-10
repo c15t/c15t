@@ -46,35 +46,28 @@ public policy from `${backendURL}/manifest` and serves it to server code as
 project.
 
 Set `VITE_C15T_BACKEND_URL` to your project's backend URL, exactly as Inth
-shows it, including any path prefix, in `.env` or wherever you build. The
-example app's `.env` points at `https://example-inth.inth.app`, a demo
-project.
+shows it, including any path prefix, in `.env` or wherever you build:
 
-The app code below reads `import.meta.env.VITE_C15T_BACKEND_URL`. If you pass
-`backendURL` to the plugin instead, the plugin sets the variable to that URL, so
-the URL appears in one place. Vite writes its value into the server and browser
-builds, so setting it when you start a built app has no effect.
+```sh title=".env"
+VITE_C15T_BACKEND_URL=https://your-project.inth.app
+```
+
+The example app's `.env` points at `https://example-inth.inth.app`, a demo
+project. The server function and `ConsentRoot` read the URL from the plugin,
+so the app code never repeats it. If you pass `backendURL` to the plugin
+instead, the plugin sets the variable to that URL. Vite writes its value into
+the server and browser builds, so setting it when you start a built app has
+no effect.
 
 <include src="../../shared/build-time-manifest-notes.mdx" />
 
 <include src="../../shared/vite-build-manifest.mdx" />
 
-To apply policy edits without rebuilding, remove the plugin, and the
-`c15t/generated` import and the `manifest` option in the root route, and set
-`VITE_C15T_BACKEND_URL` yourself. The server function then fetches and caches
-the policy at runtime; see
+To apply policy edits without rebuilding, pass
+`createConsentStateHandler({ mode: manifest({ source: 'runtime' }) })`, with
+`manifest` from `c15t/tanstack-start`. The server function then fetches and
+caches the policy at runtime; see
 [runtime fetching](/docs/frameworks/tanstack-start/rendering#await-consent-in-the-loader).
-
-## Register your vendor scripts
-
-Create `src/scripts.ts`. PostHog waits for measurement permission, so your
-policy must include that category. PostHog uses its EU host; change `region` to
-`'us'` for a US project. Remove any other PostHog loader from your app so
-PostHog loads once.
-
-<include src="../../shared/examples/tanstack-start/scripts.mdx" />
-
-Replace `phc_your_project_key` with your PostHog project key.
 
 ## Resolve consent in the root route
 
@@ -84,7 +77,9 @@ Replace or merge `src/routes/__root.tsx`:
 
 What each part does:
 
-- **`getConsentState`** runs on the server. `createConsentStateHandler` reads
+- **`getConsentState`** runs on the server. `createConsentStateHandler()`
+  takes no options here: it uses `manifest()`, the default mode, and reads the
+  backend URL and the snapshot from `consentManifest()`. It reads
   the `c15t` cookie and the location headers your host or CDN adds, such as
   `cf-ipcountry` or `x-vercel-ip-country`, then resolves this visitor's policy
   from the bundled snapshot, so the render never waits on Inth.
@@ -100,11 +95,17 @@ What each part does:
   from running again on client-side navigation, since the visitor's consent
   state does not change between routes.
 - **`ConsentRoot`** creates the consent runtime from that state, so the server
-  HTML and the first browser render match. The browser sends its requests,
-  including consent saves, straight to `backendURL`, the same URL the server
-  function uses, so saves reach the project the snapshot came from.
+  HTML and the first browser render match. The state carries the backend URL,
+  the mode and the route prefix, so `ConsentRoot` needs only `state`. The
+  browser sends its requests, including consent saves, straight to the
+  backend URL the server function used, so saves reach the project the
+  snapshot came from.
 - **`scripts`** stays in this module. A server function can only return
-  serializable data, and vendor loaders contain functions.
+  serializable data, and vendor loaders contain functions. PostHog waits for
+  measurement permission, so your policy must include that category. Replace
+  `phc_your_project_key` with your PostHog project key; PostHog uses its EU
+  host, so add `region: 'us'` for a US project. Remove any other PostHog
+  loader from your app so PostHog loads once.
 - **No stylesheet** is linked. `ConsentBanner` renders its rules into the
   server HTML, and `ConsentDialog` adds its own when it opens.
 

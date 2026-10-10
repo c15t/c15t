@@ -1,17 +1,29 @@
 // #region docs:app-router-awaited-layout title="app/layout.tsx"
+import {
+	ConsentBanner,
+	ConsentDialog,
+	ConsentDialogLink,
+	ConsentRoot,
+} from 'c15t/next';
 import { resolveConsent } from 'c15t/next/server';
 import { Suspense } from 'react';
 import type { ReactNode } from 'react';
 
-import { consentOptions } from '@/c15t.server';
-import { Consent } from '@/components/consent';
-
-import '@/styles/globals.css';
+import './globals.css';
 
 const ResolvedConsent = async ({ children }: { children: ReactNode }) => {
-	const state = await resolveConsent(consentOptions);
+	const state = await resolveConsent();
 
-	return <Consent state={state}>{children}</Consent>;
+	return (
+		<ConsentRoot state={state}>
+			{children}
+			<ConsentBanner />
+			<ConsentDialog />
+			<footer>
+				<ConsentDialogLink>Privacy settings</ConsentDialogLink>
+			</footer>
+		</ConsentRoot>
+	);
 };
 
 const RootLayout = ({ children }: { children: ReactNode }) => (

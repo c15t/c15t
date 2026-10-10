@@ -23,32 +23,23 @@ code for the dialog at all.
 
 ## Pick the framework your site ships
 
-A site that already renders React or Vue islands should set `ui` to that
-framework, so the dialog reuses the runtime visitors already download. A site
-with no framework islands should keep the Svelte default, because Svelte's
-runtime is the smallest of the three.
+The dialog should reuse the framework runtime visitors already download.
+With `ui` unset, the integration picks the framework of the one Astro
+integration among `@astrojs/svelte`, `@astrojs/react` and `@astrojs/vue` your
+site registers. With none or several, it picks Svelte, whose runtime is the
+smallest of the three; set `ui` yourself in that case.
 
 Register the framework's Astro integration before `c15t()`:
 
 {/* example: fragment */}
 
 ```js title="astro.config.mjs (partial)"
-integrations: [
-  react(),
-  c15t({
-    mode: hosted({ url: 'https://your-project.inth.app' }),
-    ui: 'react',
-  }),
-],
+integrations: [react(), c15t()],
 ```
 
 The build stops when that integration is missing, and names the packages to
 install. Only the framework you name in `ui` ends up in your build. With
 `ui: 'svelte'` the build never resolves React or Vue.
-
-The integration logs a hint when your site loads `@astrojs/react` or
-`@astrojs/vue` while `ui` is unset. It never switches the framework on its
-own. Set `ui` to silence the hint, including `ui: 'svelte'` to keep Svelte.
 
 A site that never opens a dialog, such as one that only shows a notice, can
 set `requireUIIntegration: false` and install no framework.
@@ -98,14 +89,15 @@ The Vue and Svelte adapters take the page runtime the same way:
 | --- | --- | --- |
 | React | `ConsentProvider` from `c15t/react` | `runtime={runtime}` and `options={{ colorScheme: null }}` |
 | Vue | `app.use(c15tVue, …)`, with `c15tVue` from `c15t/vue/vue-plugin` | `{ runtime, colorScheme: null }` |
-| Svelte | `ConsentManagerProvider` from `@c15t/svelte` | `runtime={runtime}` and `options={{ colorScheme: null }}` |
+| Svelte | `ConsentProvider` from `@c15t/svelte` | `runtime={runtime}` and `options={{ colorScheme: null }}` |
 
 For Vue, an island's app is set up in the `appEntrypoint` module of
 `@astrojs/vue`. Install the plugin there, and only when `getConsentClient()`
 returns a client, because the entrypoint also runs on the server. The Vue
-composables also need the `c15tVue()` Vite
-plugin from `c15t/vue/vite`. The integration adds it with `ui: 'vue'`. With
-another `ui`, add it to `vite.plugins` in `astro.config.mjs` yourself.
+components ship as `.vue` files, which Vite's dependency pre-bundling cannot
+load. The integration keeps `@c15t/vue` out of pre-bundling with `ui: 'vue'`.
+With another `ui`, add `vite: { optimizeDeps: { exclude: ['@c15t/vue', 'c15t'] } }`
+to `astro.config.mjs` yourself.
 
 For Svelte, install `@c15t/svelte@alpha`, because the `c15t` package has no
 Svelte export.

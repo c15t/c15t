@@ -134,13 +134,34 @@ describe('resolveConsent wiring', () => {
 		}
 	});
 
-	test('defineConsentConfig rejects an unknown journey', () => {
-		expect(() =>
-			defineConsentConfig({
+	test('with proxy, the server still reads the absolute backend', async () => {
+		const manifestFetch = backend();
+		await resolveConsent({
+			config: defineConsentConfig({
 				backendURL: 'https://consent.example.com',
-				journey: 'session' as never,
-			})
-		).toThrow(TypeError);
+				proxy: true,
+				routePrefix: '/api/consent',
+			}),
+			fetch: manifestFetch,
+			reportSessions: false,
+			request: requestOf({ 'x-vercel-ip-country': 'DE' }),
+		});
+		expect(manifestFetch.mock.calls.map(([input]) => String(input))).toEqual([
+			'https://consent.example.com/manifest',
+		]);
+
+		const initFetch = backend();
+		await resolveConsent({
+			config: hostedAt('https://consent.example.com', {
+				proxy: true,
+				routePrefix: '/api/consent',
+			}),
+			fetch: initFetch,
+			request: requestOf({}),
+		});
+		expect(String(initFetch.mock.calls[0]?.[0]).split('?')[0]).toBe(
+			'https://consent.example.com/init'
+		);
 	});
 
 	test('hosted() asks the backend /init with the request inputs', async () => {

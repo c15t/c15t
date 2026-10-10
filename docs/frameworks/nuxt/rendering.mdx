@@ -1,56 +1,113 @@
 ---
 title: Rendering and deployment
-description: Choose the c15t Nuxt module setup for server rendering, prerendered and cached routes, nuxt generate on static hosting, and ssr false.
+description: Choose the c15t Nuxt module's mode and routePrefix for server rendering, prerendered and cached routes, nuxt generate on static hosting, and ssr false.
 group: frameworks
 ---
 
 ## Pick the setup for your deployment
 
-| Your deployment | c15t setup | Banner in the first HTML |
-| --- | --- | --- |
-| A Nuxt server renders each request (`nuxt build`) | An absolute `backendURL`, which bundles the manifest by default. See the [quickstart](/docs/frameworks/nuxt/quickstart). | Yes |
-| A Nuxt server with some prerendered or cached routes (`routeRules` with `prerender`, `swr`, `isr` or `cache`) | The same setup. See [prerendered and cached routes](#prerendered-and-cached-routes). | No on those routes, yes elsewhere |
-| Static hosting with `nuxt generate` | `manifest: 'client'` with an absolute `manifestURL`, or `manifest` unset. See [deploy to static hosting](#deploy-to-static-hosting). | No |
-| A single-page app with `ssr: false` | `manifest: 'client'` with an absolute `manifestURL`. See [build a single-page app](#build-a-single-page-app-with-ssr-false). | No |
+Two module options in `nuxt.config.ts` decide where each visitor's policy
+comes from. `mode` is `manifest()`, `hosted()` or `offline()`, imported from
+`c15t/vue`. `routePrefix` is where the module adds its consent route.
 
-The Nuxt module has one configuration for the whole app. It decides per route
+| Your deployment | `c15t` options | Banner in the first HTML |
+| --- | --- | --- |
+| A Nuxt server renders each request (`nuxt build`) | None: `mode` defaults to `manifest()` and `routePrefix` to `'/api/c15t'`. See the [quickstart](/docs/frameworks/nuxt/quickstart). | Yes |
+| A Nuxt server with some prerendered or cached routes (`routeRules` with `prerender`, `swr`, `isr` or `cache`) | The same. See [prerendered and cached routes](#prerendered-and-cached-routes). | No on those routes, yes elsewhere |
+| Policy edits must apply without a rebuild | `mode: manifest({ source: 'runtime' })`. See [fetch the manifest at runtime](#fetch-the-manifest-at-runtime). | Yes |
+| Static hosting with `nuxt generate` | `mode: manifest({ resolve: 'browser' })` and `routePrefix: false`, or `mode: hosted()`. See [deploy to static hosting](#deploy-to-static-hosting). | No |
+| A single-page app with `ssr: false` | The same as static hosting. See [build a single-page app](#build-a-single-page-app-with-ssr-false). | No |
+
+`mode` and `routePrefix` are read from `nuxt.config.ts` only. They decide
+what the build bundles and which routes the server has, so `app.config.ts`
+cannot change them. Import the modes from `c15t/vue`, the module entry: they
+return plain data that reaches the browser through runtime config. Passing a
+transport, such as `manifest` from `c15t/vue/vue-plugin`, throws during setup.
+
+The module has one configuration for the whole app. It decides per route
 whether the HTML belongs to one visitor or to everyone.
 
 ## Render each request on the server
 
-By default, every server render reads the visitor's consent
-cookie and location headers, resolves their policy from the bundled snapshot, and
-sends the result with the page. The browser reuses it during hydration, so
+By default, every server render reads the visitor's consent cookie and
+location headers, resolves their policy from the bundled snapshot, and sends
+the result with the page. The browser reuses it during hydration, so
 consent-gated scripts can start right after hydration and the banner needs no
-extra request. The [quickstart](/docs/frameworks/nuxt/quickstart) sets this
-up, and `examples/nuxt` in the c15t repository runs it.
+extra request. The browser bundle holds no resolver, snapshot or policy
+rules. The [quickstart](/docs/frameworks/nuxt/quickstart) sets this up, and
+`examples/nuxt` in the c15t repository runs it.
 
-The module adds `/api/c15t/manifest` and `/api/c15t/init` to your Nuxt
-server. The browser uses the init route when it needs to resolve the policy
-itself, for example on a prerendered route or after a failed server render.
-The manifest route serves the deployment's snapshot without fetching upstream.
-To apply policy updates without rebuilding, set `buildManifest: false` and
-`manifest: 'server'`. That path fetches and caches the public manifest at
-runtime and refreshes it in the background.
+The module adds one catch-all route at `${routePrefix}/**`, `/api/c15t/**` by
+default. It answers `GET /api/c15t/init`, the visitor's resolved policy, and
+`GET /api/c15t/manifest`, the deployment's manifest. The server render
+resolves through the init route in-process, through Nitro's local fetch, so
+it never leaves the server. The browser uses the init route when it resolves
+the policy itself, for example on a prerendered route or after a server
+render that timed out. Change the path with `routePrefix: '/consent'`.
 
 Server rendering waits at most `timeoutMs`, 500 milliseconds by default, for
-the policy. With runtime fetching, when the backend is slower or down, the page renders without
-consent UI in the HTML, optional categories stay denied, gated scripts and
-iframes stay blocked, and the browser resolves the policy after hydration.
+the policy. With a bundled snapshot that is local work. When the server
+fetches the manifest at runtime and the backend is slow or down, the page
+renders without consent UI in the HTML, optional categories stay denied,
+gated scripts and iframes stay blocked, and the browser resolves the policy
+after hydration.
 
-In server manifest mode, the render resolves through
-the module's own
-`/api/c15t/init` route in-process, through Nitro's local fetch, so it never
-leaves the server. With `manifest: false`, the server calls the backend's
-`/init` on every render instead of using a cached manifest. That request
-carries the resolved location, language and GPC and the `user-agent`, and,
-over `https` or to a loopback host, the consent cookie alone, never the rest
-of the cookie jar. Prefer the default bundled manifest, or `buildManifest: false` with
-`manifest: 'server'` when you need policy updates without a rebuild.
+### Without the consent route
+
+`routePrefix: false` adds no route. The server render still resolves each
+visitor from the bundled snapshot, and the browser asks the backend's `/init`
+whenever it resolves the policy itself, such as on a prerendered page. Keep
+the route unless something else owns `/api/c15t`.
+
+### Ask the backend on every render
+
+`mode: hosted()` sends every server render to the backend's `/init`, which
+resolves the visitor's location itself. The module adds no route and bundles
+no snapshot:
+
+{/* example: fragment */}
+
+```ts title="nuxt.config.ts"
+import { hosted } from 'c15t/vue';
+
+export default defineNuxtConfig({
+	c15t: { mode: hosted() },
+	modules: ['c15t/vue'],
+});
+```
+
+That request carries the resolved location, language and GPC and the
+`user-agent`, and, over `https` or to a loopback host, the consent cookie
+alone, never the rest of the cookie jar. Every render waits on the backend,
+up to `timeoutMs`. Prefer the default `manifest()`, or
+`manifest({ source: 'runtime' })` when you need policy updates without a
+rebuild.
 
 ## Bundle the manifest during builds
 
 <include src="../../shared/build-manifests/nuxt.mdx" />
+
+## Fetch the manifest at runtime
+
+`manifest({ source: 'runtime' })` skips the build-time download. The server
+fetches the public manifest the first time it needs it, caches it, and
+refreshes it in the background, so policy edits apply without a rebuild:
+
+{/* example: fragment */}
+
+```ts title="nuxt.config.ts"
+import { manifest } from 'c15t/vue';
+
+export default defineNuxtConfig({
+	c15t: { mode: manifest({ source: 'runtime' }) },
+	modules: ['c15t/vue'],
+});
+```
+
+By default the server fetches `${backendURL}/manifest`. Set
+`manifest({ manifestURL })` to fetch from another URL. The consent route and
+the server render share the cache. The first render after a cold start waits
+for the fetch, up to `timeoutMs`.
 
 ## Prerendered and cached routes
 
@@ -59,7 +116,8 @@ rule, sends the same HTML to every visitor. The module renders that HTML
 without any visitor's consent record, location or request headers, so it has
 no banner. After hydration the browser requests the visitor's policy from
 `/api/c15t/init` and reads their stored choice, then shows the banner if the
-policy asks for one.
+policy asks for one. With `hosted()`, or `routePrefix: false`, the browser
+asks the backend's `/init` instead.
 
 {/* example: fragment */}
 
@@ -81,46 +139,39 @@ applies the denial, so an older cookie cannot undo a rejection.
 ## Deploy to static hosting
 
 `nuxt generate` prerenders every page with server rendering on, so crawlers
-get your content in the HTML. A static host has no Nuxt server, so the
-module's `/api/c15t` routes do not exist. Pick a mode that lets the browser
-resolve the policy without them:
+get your content in the HTML. A static host has no Nuxt server, so no
+consent route exists and no server resolves visitors. With the default
+`manifest()`, `nuxt generate` logs a warning that it cannot resolve the
+policy there. Pick a mode that lets the browser resolve it:
 
-- **`manifest: 'client'` with an absolute `manifestURL`**, such as
-  `https://your-project.inth.app/manifest`. The browser downloads the manifest
-  and resolves the policy itself, without an init request.
-- **`manifest` unset.** The browser calls your backend's `/init` directly.
+- **`manifest({ resolve: 'browser' })` with `routePrefix: false`.** The build
+  bundles the manifest into the browser bundle, and the browser resolves the
+  policy without a request to the backend.
+- **`hosted()`.** The browser calls your backend's `/init` directly, and the
+  backend resolves the visitor's location.
 
-`nuxt generate` skips the default build manifest. `buildManifest: true`,
-which still fetches one, `manifest: 'server'` and `manifest: true` don't work on a static host,
-because the browser would call the missing `/api/c15t/init` route.
+<include src="../../shared/examples/nuxt-static/static-config.mdx" />
 
-{/* example: fragment */}
+`examples/nuxt-static` uses `ssr: false` as well; `nuxt generate` works the
+same without it. Run `nuxt generate` and deploy `.output/public`. Every page
+renders without a banner in its HTML, and the browser resolves each visitor
+after hydration, as on a [prerendered route](#prerendered-and-cached-routes).
 
-```ts title="nuxt.config.ts"
-export default defineNuxtConfig({
-	c15t: {
-		backendURL: 'https://your-project.inth.app',
-		manifest: 'client',
-		manifestURL: 'https://your-project.inth.app/manifest',
-	},
-	modules: ['c15t/vue'],
-});
-```
+With browser resolution, only the manifest and English copy are in the
+bundle. The resolver loads as its own chunk when the app starts, and a
+visitor who resolves to another language loads that language's text the
+first time it is needed.
 
-Run `nuxt generate` and deploy `.output/public`. Every page renders without a
-banner in its HTML, and the browser resolves each visitor after hydration, as
-on a [prerendered route](#prerendered-and-cached-routes).
+The browser has no request location. Without `inputs` or `geoURL`, every
+visitor gets the policy your manifest assigns when the location is unknown,
+and the browser does not ask the backend. To resolve by location, pass
+`manifest({ resolve: 'browser', geoURL: '/geo' })` with a route on your own
+origin, such as an edge function your host runs, that returns the visitor's
+`country` and `region` as JSON, for example `{ "country": "DE", "region": "BE" }`. c15t resolves the
+policy again when the response arrives. Or use `hosted()`.
 
-`manifestURL` must be an absolute URL that your site's origin may call. With
-Inth, add the site's origin to the project's trusted origins. A relative URL
-points at `/api/c15t/manifest`, which only a Nuxt server provides.
-
-The browser has no request location in client mode. Without `geoURL`, every
-visitor gets the policy your manifest assigns when the location is unknown.
-To resolve by location, set `geoURL` to an endpoint you run that returns the
-visitor's `country` and `region` as JSON, for example
-`{ "country": "DE", "region": "BE" }`. c15t resolves the policy again when the
-response arrives.
+Consent saves go to the backend from the browser, so the backend must allow
+your site's origin. With Inth, add it to the project's trusted origins.
 
 ## Build a single-page app with ssr: false
 
@@ -129,33 +180,29 @@ and renders every page in the browser, so crawlers that do not run JavaScript
 see no content. That is the tradeoff. Prerendering works without it, so use
 `ssr: false` only when you want a single-page app for other reasons.
 
-<include src="../../shared/examples/nuxt-static/static-config.mdx" />
+On a static host, use the [static hosting](#deploy-to-static-hosting) config
+above. The module reads the visitor's stored choice from their own cookie,
+and the browser resolves the policy from the bundled manifest. The banner
+appears once the resolver chunk loads. `examples/nuxt-static` in the c15t
+repository builds this setup. With a Nuxt server, the default `manifest()`
+also works: the browser asks the server's `/api/c15t/init`.
 
-Run `nuxt generate` and deploy `.output/public`. The module reads the
-visitor's stored choice from their own cookie, and `manifest: 'client'` fetches
-the manifest from `manifestURL` and resolves the policy in the browser. The
-banner appears after the manifest loads. `examples/nuxt-static` in the c15t
-repository builds this setup.
-
-With `manifest` unset, the browser calls your backend's `/init` instead of
-downloading the manifest. The module then adds a small inline script to the
-head of every `ssr: false` page, prerendered ones included, that starts this
-request while the browser parses the HTML. The app uses that response once its
-JavaScript loads, so the policy request no longer waits for the app's bundle.
-The script contains your backend URL and nothing about the visitor. Turn it
-off with the module option `initPrefetch: false`, or for one route with
-`routeRules: { '/path': { c15t: { initPrefetch: false } } }`. Use the route
-rule when a client plugin changes c15t's configuration for that route, because
-the server cannot see that change and the early request would go unused.
+With `hosted()`, the module adds a small inline script to the head of every
+`ssr: false` page, prerendered ones included, that starts the backend's
+`/init` request while the browser parses the HTML. The app uses that response
+once its JavaScript loads, so the policy request no longer waits for the
+app's bundle. The script contains your backend URL and nothing about the
+visitor. Turn it off with the module option `initPrefetch: false`, or for one
+route with `routeRules: { '/path': { c15t: { initPrefetch: false } } }`. Use
+the route rule when a client plugin changes c15t's configuration for that
+route, because the server cannot see that change and the early request would
+go unused.
 
 ## Module options
 
 The [Nuxt module](/docs/frameworks/nuxt/module#backend-and-rendering) page
-lists `manifest`, `manifestURL`, `geoURL`, `timeoutMs`, `reportSessions` and
-the route options with their defaults. Unset, `manifest` is `'server'` when
-the build bundles a manifest and `false` otherwise. Setting `manifestURL`
-does not change that: set `manifest: 'server'` for the server routes, or
-`manifest: 'client'` for static output.
+lists `mode`, `routePrefix`, `onBuildError`, `timeoutMs` and
+`reportSessions` with their defaults.
 
 The server reads the visitor's location from request headers. See
 [geography headers](/docs/frameworks/nuxt/geography-headers) for the list and
@@ -172,8 +219,9 @@ For a prerendered or cached route, view the page source and confirm it has no
 `/api/c15t/init` after the page loads, and the banner appears. Reject, reload,
 and confirm the banner stays closed.
 
-For static output, serve `.output/public` and open the Network tab. The
-browser requests your `manifestURL` once per page load, or your backend's
-`/init` with `manifest` unset, and no `/api/c15t` route. Reject, reload, and
-confirm the banner stays closed. Then follow
-[verify consent](/docs/guides/verify-consent) for the vendor checks.
+For static output with browser resolution, serve `.output/public` and open
+the Network tab. The browser makes no request to the backend's `/manifest` or
+`/init`, and none to `/api/c15t`. With `hosted()`, it requests the backend's
+`/init` once per page load. Reject, reload, and confirm the banner stays
+closed. Then follow [verify consent](/docs/guides/verify-consent) for the
+vendor checks.

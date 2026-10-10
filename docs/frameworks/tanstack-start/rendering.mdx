@@ -29,11 +29,16 @@ The [quickstart](/docs/frameworks/tanstack-start/quickstart) and
 The [quickstart](/docs/frameworks/tanstack-start/quickstart) root loader awaits
 the consent server function. The server reads the visitor's cookie and location
 headers, resolves their policy from the build-time snapshot, and renders the
-banner into the HTML. To apply policy updates without rebuilding, remove the
-`consentManifest` plugin from `vite.config.ts`, and the `c15t/generated` import
-and the `manifest` option from the server function, and set
-`VITE_C15T_BACKEND_URL` yourself. The server then fetches the manifest and
-caches it in memory.
+banner into the HTML. To apply policy updates without rebuilding, pass
+`mode: manifest({ source: 'runtime' })` to `createConsentStateHandler`, with
+`manifest` from `c15t/tanstack-start`. The server then fetches the manifest
+and caches it in memory. Keep the plugin: it still supplies the backend URL.
+
+`createConsentStateHandler({ mode })` takes `manifest()`, `hosted()` or
+`offline()` from `c15t/tanstack-start`. They are plain data, so the state
+carries the mode to `ConsentRoot`, and the browser loads only that mode's
+code. A mode's `snapshot` stays on the server.
+[Consent modes](/docs/concepts/modes) compares them.
 
 With runtime fetching, the first request after a server starts has no cached
 manifest and waits for
@@ -70,12 +75,12 @@ cache. Keep the awaited loader when the banner should arrive with the page.
 ## Keep consent requests on your origin
 
 By default the browser calls your backend URL directly. To keep every consent
-request on your own origin, mount the consent server route:
+request on your own origin, mount the consent route:
 
 <include src="../../shared/examples/tanstack-start/consent-route.mdx" />
 
-Then point `ConsentRoot` at the route and give the server function the route's
-prefix:
+Then give the server function the route's prefix, and `proxy: true` so the
+browser saves through the route too:
 
 <include src="../../shared/examples/tanstack-start/same-origin-root.mdx" />
 
@@ -90,21 +95,24 @@ What the route serves:
 
 Keep these details right:
 
-- `createConsentStateHandler` still gets the absolute backend URL. Given
-  `/api/c15t`, it would fetch its own route during the render, so it skips the
-  fetch and returns only the cookie and header state.
-- `routePrefix` on `ConsentRoot` sends the browser's init to
-  `/api/c15t/init` and binds each save to the policy it resolved. On
-  `createConsentStateHandler` it makes the page load IAB vendor lists through
-  the route too, and keeps the render from fetching its own route. It means
-  the same as Next.js `defineConsentConfig({ routePrefix })`, and like there
-  it has no default.
-- `backendURL="/api/c15t"` sends saves through the proxy. To send only init
-  through the route and keep saves going straight to your backend, drop
-  `proxy: true`, pass the absolute `backendURL`, and keep `routePrefix`.
+- `createConsentStateHandler` keeps the absolute backend URL from
+  `consentManifest()` for its own requests. It never fetches under
+  `routePrefix`, so the render cannot call its own route.
+- `routePrefix` puts the prefix on the state, so `ConsentRoot` sends the
+  browser's init to `/api/c15t/init` and binds each save to the policy it
+  resolved. It also makes the page load IAB vendor lists through the route.
+  It means the same as Next.js `defineConsentConfig({ routePrefix })`, and
+  like there it has no default.
+- `proxy: true` on `createConsentStateHandler` sends saves through the route,
+  like Next.js `defineConsentConfig({ proxy: true })`. It needs `routePrefix`,
+  and throws
+  ``@c15t/tanstack-start: `proxy` sends saves through the consent route, so it needs `routePrefix`.``
+  without it. To send only init through the route and keep saves going
+  straight to your backend, drop `proxy: true` from both and keep
+  `routePrefix`.
 - The proxy forwards the visitor's user agent, language, origin and location
   headers so the backend's firewall sees a normal visitor. Set
-  `trustForwardedHeaders: true` on `createConsentServerRoute` only when your
+  `trustForwardedHeaders: true` on `createConsentRoute` only when your
   host overwrites `x-forwarded-for`, as Vercel and Cloudflare do. Otherwise a
   visitor could send a false IP address to your backend.
 
@@ -112,12 +120,15 @@ Keep these details right:
 
 A prerendered page is the same HTML for every visitor, so it cannot contain one
 visitor's consent. Drop the loader, pass an empty `state`, and let the browser
-resolve consent from your backend URL:
+resolve consent from the backend URL `consentManifest()` read:
 
 <include src="../../shared/examples/tanstack-start/static-root.mdx" />
 
 - `state={{}}` means no server state. The page renders without consent UI and
   every optional category stays denied until the browser has the policy.
+  `ConsentRoot` takes the backend URL from `consentManifest()`; without the
+  plugin, an empty state throws, because there is no backend to ask. Pass
+  `state={{ mode: offline() }}` to resolve without one.
 - The browser sends its `/init` request straight to your backend URL, so the
   host needs no server route or server function. Add the site's origin to
   your Inth project's trusted origins.
@@ -151,7 +162,7 @@ backend in the background. With runtime fetching, the manifest cache also
 refreshes in the background after its `s-maxage`. Some serverless runtimes
 stop background work once the response is sent. Pass your
 platform's `waitUntil` as `onBackgroundRevalidate` to
-`createConsentStateHandler` and `createConsentServerRoute` so that work
+`createConsentStateHandler` and `createConsentRoute` so that work
 finishes. The promise never rejects.
 
 ## Check the rendering path

@@ -35,7 +35,7 @@ component keeps the bare markup so the consent logic is easy to read.
 ## Mount it instead of ConsentRoot
 
 Replace `<ConsentRoot />` in `app.vue` with your component. Keep one way to
-reopen preferences, such as `ConsentPreferencesLink`.
+reopen preferences, such as `ConsentDialogLink`.
 
 {/* example: fragment */}
 
@@ -44,12 +44,12 @@ reopen preferences, such as `ConsentPreferencesLink`.
 	<ConsentPrompt />
 	<NuxtPage />
 	<footer>
-		<ConsentPreferencesLink />
+		<ConsentDialogLink />
 	</footer>
 </template>
 ```
 
-In server manifest mode, the default with an absolute `backendURL`, the component
+When the server resolves the policy, in the default `manifest()` mode or `hosted()`, the component
 renders on the server with the visitor's policy, like `ConsentRoot`.
 
 ## Show the buttons the policy requires

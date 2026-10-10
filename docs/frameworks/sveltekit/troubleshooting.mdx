@@ -1,6 +1,6 @@
 ---
 title: Troubleshooting
-description: Fix a SvelteKit build that cannot fetch the c15t manifest, a missing bundled policy, a banner missing from server HTML, failed saves through the manifest route, a wrong backend URL and ignored theme colors.
+description: Fix a SvelteKit build that cannot fetch the c15t manifest, a missing bundled policy, a banner missing from server HTML, failed saves through the consent route, a wrong backend URL and ignored theme colors.
 group: frameworks
 ---
 
@@ -28,21 +28,18 @@ reach the backend. To deploy while it is down, build with
 A `check-types` script that starts with `svelte-kit sync` needs the backend
 too.
 
-## snapshot is undefined
+## The server fetches the manifest at runtime
 
-**Check.** Log `snapshot` from `c15t/generated` in server code, such as
-`src/lib/server/c15t.ts`. In the browser bundle it is always `undefined`:
-the plugin keeps the policy on the server. On the server, it is `undefined`
-when Vite had no policy to serve: `consentManifest` is missing from `plugins`
-in `vite.config.ts`, the fetch failed in `vite dev` or in a build with
-`C15T_ON_BUILD_ERROR=runtime`, or the backend URL is relative.
+**Check.** With the default `manifest()` mode, the server log shows a
+manifest request to the backend, or a page waits on it after a cold start.
+The build had no policy to bundle: `consentManifest` is missing from
+`plugins` in `vite.config.ts`, the fetch failed in `vite dev` or in a build
+with `C15T_ON_BUILD_ERROR=runtime`, or the backend URL is relative.
 
-**Fix.** Read `snapshot` only in server code. On the server, add the plugin or
-fix the cause from the
+**Fix.** Add the plugin or fix the cause from the
 [fetch errors](#the-build-dev-server-or-type-check-fails-fetching-the-manifest),
 then restart `vite dev` or rebuild. The plugin fetches once when Vite starts.
-While `snapshot` is `undefined`, the server fetches and caches the policy at
-runtime.
+Until then, the server fetches and caches the policy at runtime.
 
 ## Why is the banner missing from the server HTML?
 
@@ -51,13 +48,15 @@ runtime.
 **Fix.** If the banner only appears after hydration, work through these causes
 in order:
 
-1. **The provider has no `prefetch`.** Check that the root
-   `+layout.server.ts` returns `prefetch` and that `+layout.svelte` passes
-   `prefetch={data.prefetch}`.
+1. **`ConsentRoot` has no server state.** Check that the root
+   `+layout.server.ts` exports `loadConsent` as `load` and that
+   `+layout.svelte` passes `state={data.consent}`. With
+   `manifest({ resolve: 'browser' })` or `offline()`, the browser resolves
+   the policy by design.
 2. **`loadConsent` fell back.** It returns the stored choice without a policy
    when resolution fails or takes longer than `timeoutMs`, 500 ms by default.
-   Check the server logs. With runtime fetching, check the backend's response
-   time, and raise `timeoutMs` if it is slow.
+   Check the server logs. With runtime fetching or `hosted()`, check the
+   backend's response time, and raise `timeoutMs` if it is slow.
 3. **The page is prerendered.** Prerendered pages never carry a visitor's
    consent. See
    [prerender some pages](/docs/frameworks/sveltekit/rendering#prerender-some-pages).
@@ -72,39 +71,41 @@ name, the server reads nothing and renders the banner for every visitor.
 
 **Fix.** Pass the same name as `cookieName` to `loadConsent` or `c15tHandle`.
 
-**Check.** Look at what the layout passes to the provider. Rebuilding
-`data.prefetch` from booleans loses the policy and the stored record.
+**Check.** Look at what the layout passes to `ConsentRoot`. Rebuilding
+`data.consent` from booleans loses the policy and the stored record.
 
-**Fix.** Pass `data.prefetch` to the provider unchanged.
+**Fix.** Pass `data.consent` to `ConsentRoot` unchanged.
 
 ## Saving fails with 405 from /api/c15t
 
-**Check.** The provider's `hosted()` mode points at `/api/c15t`, but the route
-does not forward writes. A route file that exports only `GET` still answers a
-save with `405`.
+**Check.** `c15tHandle({ backendURL: '/api/c15t' })` sends saves to the
+consent route, but the route does not forward writes. A route file that
+exports only `GET` still answers a save with `405`.
 
-**Fix.** Pass `proxy: true` to `createSvelteKitConsentRouteHandlers` and export
+**Fix.** Pass `proxy: true` to `createConsentRoute` and export
 `POST`, `PATCH`, `PUT`, `DELETE` and `OPTIONS` next to `GET` from the
 catch-all route. See
 [save consent through your own origin](/docs/frameworks/sveltekit/rendering#save-consent-through-your-own-origin).
 
-## The manifest route times out or calls itself
+## The consent route times out or calls itself
 
-**Check.** `createSvelteKitConsentRouteHandlers` needs the backend's URL. A
-relative `backendURL` names a route in your own app, which the handlers call
-in-process; if it points at `/api/c15t`, the route requests itself.
+**Check.** `createConsentRoute` needs the backend's URL, which it reads from
+`consentManifest` unless you pass `backendURL`. A relative `backendURL` names
+a route in your own app, which the handlers call in-process; if it points at
+`/api/c15t`, the route requests itself.
 
-**Fix.** Pass the Inth URL as `backendURL`.
+**Fix.** Pass the Inth URL as `createConsentRoute({ backendURL })`, or leave
+it unset so the route uses `PUBLIC_C15T_BACKEND_URL`.
 
 ## Consent requests go to the wrong backend
 
 **Check.** Look at `PUBLIC_C15T_BACKEND_URL` in `.env`, `.env.local` and the
 build environment, and at any `backendURL` in `vite.config.ts`,
-`src/lib/server/c15t.ts` and the `hosted()` call in
-`src/routes/+layout.svelte`. One still has the demo project, the placeholder
-`https://your-project.inth.app`, or a URL from another project. `src/env.ts`
-marks the variable `static`, so the build fixes the URL for the policy and
-for saves, and setting it when the built app starts changes nothing.
+`src/hooks.server.ts` and a `hosted({ backendURL })` mode. One still has the
+demo project, the placeholder `https://your-project.inth.app`, or a URL from
+another project. The build reads the variable, so the URL for the policy and
+for saves is fixed when you build, and setting it when the built app starts
+changes nothing.
 
 **Fix.** Set `PUBLIC_C15T_BACKEND_URL` to your Inth project's backend URL,
 including any path prefix, for the build and for the running app, then
@@ -128,7 +129,18 @@ components. They are for server files: `hooks.server.ts`,
 component, they pull the manifest resolver and every bundled translation into
 the browser bundle.
 
-**Fix.** Import `hosted` and the components from `@c15t/svelte` in components.
+**Fix.** Import the components from `@c15t/svelte` in components, and set
+the mode on `c15tHandle()` in `hooks.server.ts`.
+
+## c15tHandle() throws on `custom()`
+
+**Check.** `c15tHandle({ mode })` received `custom()`. The error reads
+"c15tHandle() takes manifest(), hosted() or offline() from @c15t/svelte/kit".
+The handle's mode must be data that can reach the browser, and a custom
+transport is code.
+
+**Fix.** Pass the `custom()` transport to `ConsentRoot`'s `mode` prop, and
+keep the handle's `mode` for one of the data modes from `@c15t/svelte/kit`.
 
 <include src="../../shared/svelte/troubleshooting.mdx" />
 

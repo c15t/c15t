@@ -37,8 +37,6 @@ shows it in context.
 | Prop | Purpose |
 | --- | --- |
 | `state` | Required. The loader's consent state, a promise of it for a [streamed loader](/docs/frameworks/tanstack-start/rendering#stream-the-page-while-consent-resolves), or `{}` for [pages without a server render](/docs/frameworks/tanstack-start/rendering#spa-mode-prerendered-pages-and-static-hosts) |
-| `backendURL` | Your backend URL, or `/api/c15t` with the [same-origin route](/docs/frameworks/tanstack-start/rendering#keep-consent-requests-on-your-origin). Without it, `ConsentRoot` runs in offline mode. Not recommended for production environments. |
-| `routePrefix` | Where `createConsentServerRoute` is mounted, such as `/api/c15t`. The browser then requests `${routePrefix}/init` on your origin. Omit it and the browser requests `${backendURL}/init`. Same option as Next.js `defineConsentConfig` |
 | `scripts` | Consent-gated vendor scripts. See [scripts and embeds](/docs/frameworks/tanstack-start/scripts) |
 | `vendors` | Vendors listed under their category with their own switch |
 | `networkBlocker` | Rules that hold `fetch` and `XMLHttpRequest` calls until their category is allowed |
@@ -47,9 +45,17 @@ shows it in context.
 | `scriptLoader` | Options for the script loader module |
 | `options` | Any other `ConsentProvider` option, such as `theme`, `i18n`, `presentation`, `callbacks`, `consentCategories`, `reloadOnConsentRevoked` or `preloadDialog` |
 
+The state carries the backend URL, the mode and the route prefix you passed
+to `createConsentStateHandler`, so `ConsentRoot` has no props for them. With
+`state={{}}`, it takes the backend URL from `consentManifest()` and uses
+`manifest()`. Without a backend URL from either, it throws, unless the mode is
+`offline()`. `options.mode` replaces the state's mode: `manifest()`,
+`hosted()` or `offline()` from `c15t/tanstack-start`, or a transport such as
+`custom(transport)`.
+
 `ConsentRoot` creates the runtime once, when it mounts, and ignores later
-changes to `state`, `backendURL` and `routePrefix`. Keep it in the root route so
-client navigation never remounts it.
+changes to `state`. Keep it in the root route so client navigation never
+remounts it.
 
 The root entry also exports `consentPrefetchHead` for pages without a server
 render, and `buildPrefetchScript`, the script builder behind it.
@@ -58,9 +64,10 @@ render, and `buildPrefetchScript`, the script builder behind it.
 
 | Import | Exports | Use |
 | --- | --- | --- |
-| `c15t/tanstack-start/server` | `createConsentStateHandler`, `resolveConsent`, `consentLoaderOptions`, `mergeInitIntoConsentState` | Resolve the visitor's state in a server function |
+| `c15t/tanstack-start` | `manifest`, `hosted`, `offline` | The modes, as data for `createConsentStateHandler({ mode })`. See [consent modes](/docs/concepts/modes) |
+| `c15t/tanstack-start/server` | `createConsentStateHandler`, `resolveConsent`, `consentLoaderOptions`, `mergeInitIntoConsentState` | Resolve the visitor's state in a server function. `createConsentStateHandler` takes `mode`, `routePrefix`, `proxy`, `snapshot` and the `resolveConsent` options |
 | `c15t/tanstack-start/middleware` | `consentRequestMiddleware` | Read location, language and privacy headers on every request. See [geography headers](/docs/frameworks/tanstack-start/geography-headers) |
-| `c15t/tanstack-start/api` | `createConsentServerRoute` | Serve `/api/c15t/*` from your app |
+| `c15t/tanstack-start/api` | `createConsentRoute` | Serve `/api/c15t/*` from `src/routes/api/c15t/$.ts` |
 | `c15t/tanstack-start/build` | `consentManifest` | Vite plugin that bundles the manifest at build time. See the [quickstart](/docs/frameworks/tanstack-start/quickstart#bundle-your-policy-at-build-time) |
 | `c15t/generated` | `snapshot`, `backendURL` | The manifest and backend URL the plugin fetched. `snapshot` is `undefined` in the browser bundle |
 | `c15t/tanstack-start/static` | `createStaticConsentResolver`, `loadStaticManifest`, `createStaticManifestModule`, `resolveUnknownLocationInit` | Lower-level helpers for a build-time manifest. See [rendering](/docs/frameworks/tanstack-start/rendering#spa-mode-prerendered-pages-and-static-hosts) |

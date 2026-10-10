@@ -81,6 +81,18 @@ export interface ConsentConfig extends ConsentClientOptions {
 	routePrefix?: string;
 
 	/**
+	 * The route at {@link routePrefix} was created with
+	 * `createConsentRoute({ proxy: true })` (or `createPagesConsentRoute`),
+	 * so the browser sends saves through it instead of straight to
+	 * `backendURL`. The server helpers keep using `backendURL`, so keep it
+	 * absolute. Needs `routePrefix`. Same option as TanStack Start's
+	 * `createConsentStateHandler({ proxy })`.
+	 *
+	 * @default false
+	 */
+	proxy?: boolean;
+
+	/**
 	 * The consent journey scope, read by both `resolveConsent` and
 	 * `ConsentRoot` so they agree.
 	 */
@@ -133,44 +145,23 @@ const modeHasBackend = function modeHasBackend(mode: ConsentMode): boolean {
 };
 
 /**
- * Declare the app's consent setup in `c15t.config.ts` at the project root.
- * `withConsentManifest` in `next.config.ts` finds the file, so
- * `ConsentRoot`, `resolveConsent()`, `createConsentRoute()` and the Pages
- * Router helpers read it without the app importing it.
+ * The checks `defineConsentConfig` runs on the server.
  *
- * The file is bundled into the browser too, so it can hold functions (such
- * as `scripts`) but must hold no secrets.
- *
- * @param config - Backend URL (defaults to `NEXT_PUBLIC_C15T_BACKEND_URL`),
- * mode, route prefix, journey and the browser options.
- * @returns The validated, frozen config.
- * @throws {TypeError} When the mode needs a backend URL and none is set, a
- * URL is neither an absolute `http(s)` URL nor a `/`-relative path, or
- * `mode` or `journey` is not one this package knows.
- * @example
- * ```ts
- * // c15t.config.ts
- * import { posthog } from '@c15t/integrations/posthog';
- * import { defineConsentConfig } from 'c15t/next';
- *
- * export default defineConsentConfig({
- *   scripts: [posthog({ id: 'phc_your_project_key' })],
- * });
- * ```
+ * @throws {TypeError} See {@link defineConsentConfig}.
  */
-export const defineConsentConfig = function defineConsentConfig(
-	config: ConsentConfig = {}
-): ConsentConfig {
+const assertConsentConfig = function assertConsentConfig(
+	config: ConsentConfig
+): void {
 	if (typeof config !== 'object' || config === null) {
 		throw new TypeError('@c15t/nextjs: defineConsentConfig expects an object.');
 	}
+	const backendURL = config.backendURL ?? readBackendURLFromEnv();
 	const mode = config.mode ?? { type: 'manifest' as const };
 	if (!MODE_TYPES.has(mode.type)) {
 		throw new TypeError(
 			'@c15t/nextjs: defineConsentConfig `mode` must be manifest(), hosted() or offline() from c15t/next. Pass a custom transport through ConsentRoot `options.mode`.'
 		);
 	}
-	const backendURL = config.backendURL ?? readBackendURLFromEnv();
 	if (backendURL === undefined && !modeHasBackend(mode)) {
 		throw new TypeError(
 			`@c15t/nextjs: defineConsentConfig needs \`backendURL\`, or ${BACKEND_URL_ENV} set at build time.`
@@ -178,6 +169,11 @@ export const defineConsentConfig = function defineConsentConfig(
 	}
 	assertConsentURL('backendURL', backendURL);
 	assertConsentURL('routePrefix', config.routePrefix);
+	if (config.proxy && config.routePrefix === undefined) {
+		throw new TypeError(
+			'@c15t/nextjs: `proxy` sends saves through the consent route, so it needs `routePrefix`.'
+		);
+	}
 	if (mode.type === 'manifest') {
 		assertConsentURL('mode.manifestURL', mode.manifestURL);
 		assertConsentURL('mode.geoURL', mode.geoURL);
@@ -195,7 +191,49 @@ export const defineConsentConfig = function defineConsentConfig(
 			"@c15t/nextjs: defineConsentConfig `journey` must be 'page', 'tab' or false."
 		);
 	}
+};
 
+/**
+ * Declare the app's consent setup in `c15t.config.ts` at the project root.
+ * `withConsentManifest` in `next.config.ts` finds the file, so
+ * `ConsentRoot`, `resolveConsent()`, `createConsentRoute()` and the Pages
+ * Router helpers read it without the app importing it.
+ *
+ * The file is bundled into the browser too, so it can hold functions (such
+ * as `scripts`) but must hold no secrets.
+ *
+ * @param config - Backend URL (defaults to `NEXT_PUBLIC_C15T_BACKEND_URL`),
+ * mode, route prefix, journey and the browser options.
+ * The checks run where Next.js first evaluates the file: the build, and
+ * every server render. A browser bundle skips them.
+ *
+ * @returns The validated, frozen config.
+ * @throws {TypeError} When the mode needs a backend URL and none is set, a
+ * URL is neither an absolute `http(s)` URL nor a `/`-relative path, `proxy`
+ * is set without `routePrefix`, or `mode` or `journey` is not one this
+ * package knows.
+ * @example
+ * ```ts
+ * // c15t.config.ts
+ * import { posthog } from '@c15t/integrations/posthog';
+ * import { defineConsentConfig } from 'c15t/next';
+ *
+ * export default defineConsentConfig({
+ *   scripts: [posthog({ id: 'phc_your_project_key' })],
+ * });
+ * ```
+ */
+export const defineConsentConfig = function defineConsentConfig(
+	config: ConsentConfig = {}
+): ConsentConfig {
+	// Next.js renders `c15t.config.ts` on the server before any browser
+	// runs it, and `withConsentManifest` reads it at build time, so the
+	// checks run there. Turbopack resolves `typeof window` in browser
+	// bundles, which then drop them.
+	if (typeof window === 'undefined') {
+		assertConsentConfig(config);
+	}
+	const backendURL = config.backendURL ?? readBackendURLFromEnv();
 	const defined: ConsentConfig = { ...config };
 	if (backendURL !== undefined) {
 		defined.backendURL = backendURL;

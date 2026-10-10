@@ -8,11 +8,11 @@ group: frameworks
 
 ## IAB on the server
 
-`loadConsent` and the manifest route handlers know about IAB policies. With a
+`loadConsent` and the consent route know about IAB policies. With a
 server-resolved IAB policy, the IAB banner can render in the server HTML, and
 the browser fetches the Global Vendor List from the route the server names.
-Pass `fetchGvl` to `createSvelteKitConsentRouteHandlers` to change how the
-manifest route fetches the vendor list.
+Pass `fetchGvl` to `createConsentRoute` to change how the consent route
+fetches the vendor list.
 
 Keep [`c15tHandle`](./rendering#resolve-request-context-once-with-c15thandle) in your server hooks. It
 reads the rendered IAB components' stylesheet markers and writes the rules

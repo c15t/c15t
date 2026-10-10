@@ -25,14 +25,15 @@ where the command runs, in `.env` or the CI environment, and make sure that
 machine can reach the backend. To deploy while it is down, build with
 `C15T_ON_BUILD_ERROR=runtime`.
 
-## snapshot is undefined
+## The browser fetches the manifest at runtime
 
-**Check.** `snapshot` from `c15t/generated` is `undefined`, and the browser
-requests `<backendURL>/manifest` on page load. Vite had no policy to serve:
-`consentManifest` is missing from `plugins` in `vite.config.ts`, the fetch
-failed in `vite dev` or in a build with `C15T_ON_BUILD_ERROR=runtime`, or the
-backend URL is relative. Without the plugin, `c15t/generated` still resolves
-but exports `undefined`.
+**Check.** With `manifest()`, the browser requests `<backendURL>/manifest` on
+page load instead of resolving from a bundled policy. The build had no policy
+to bundle: `consentManifest` is missing from `plugins` in `vite.config.ts`,
+the fetch failed in `vite dev` or in a build with
+`C15T_ON_BUILD_ERROR=runtime`, or the backend URL is relative. Without the
+plugin and without a `backendURL` option, `manifest()` has no backend URL at
+all and throws when it runs.
 
 **Fix.** Add the plugin or fix the cause from the
 [fetch errors](#the-build-or-dev-server-fails-fetching-the-manifest), then

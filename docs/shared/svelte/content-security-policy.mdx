@@ -27,7 +27,11 @@ the provider:
 {/* example: fragment */}
 
 ```svelte
-<ConsentManagerProvider {mode} {scripts} nonce={cspNonce}>
+<!-- Svelte: src/App.svelte -->
+<ConsentProvider mode={manifest()} {scripts} nonce={cspNonce}>
+
+<!-- SvelteKit: src/routes/+layout.svelte -->
+<ConsentRoot state={data.consent} {scripts} nonce={cspNonce}>
 ```
 
 The script loader then sets that nonce on every `<script>` it adds, for both

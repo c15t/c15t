@@ -19,15 +19,11 @@ install.
 
 ## Turn on IAB in the integration
 
-Add `iab` to the integration options, next to the `mode` from the
+Add `iab` to the integration options from the
 [quickstart](/docs/frameworks/astro/quickstart):
 
 ```js title="astro.config.mjs (partial)"
-c15t({
-	mode: manifest({ backendURL: 'https://your-project.inth.app' }),
-	iab: { cmpId: 123 },
-	ui: 'svelte',
-});
+c15t({ iab: { cmpId: 123 } });
 ```
 
 Replace `123` with your registered CMP ID. A hosted backend can supply the CMP

@@ -11,30 +11,32 @@ Every component reads the consent runtime that
 inside the app that called `app.use(c15tVue, ...)`. Each component imports its
 own styles; there is no stylesheet to add.
 
-| Component | Import from | What it renders |
-| --- | --- | --- |
-| [`ConsentRoot`](/docs/frameworks/vue/components/consent-root) | `c15t/vue/consent-root` | The banner and, once opened, the preference dialog. Switches to the IAB surfaces under an IAB policy when `iab` is set. |
-| [`ConsentBanner`](/docs/frameworks/vue/components/consent-banner) | `c15t/vue/runtime/components/consent-banner.vue` | The first-layer banner on its own. |
-| [`ConsentManager`](/docs/frameworks/vue/components/consent-manager) | `c15t/vue/runtime/components/consent-manager.vue` | The preference dialog on its own. |
-| [`ConsentWidget`](/docs/frameworks/vue/components/consent-widget) | `c15t/vue/consent-widget` | Category switches and save actions inline, for a privacy page. |
-| [`ConsentPreferencesLink`](/docs/frameworks/vue/components/consent-preferences-link) | `c15t/vue/runtime/components/consent-preferences-link.vue` | A button that opens preferences. |
-| [`ConsentDialogTrigger`](/docs/frameworks/vue/components/consent-dialog-trigger) | `c15t/vue/runtime/components/consent-dialog-trigger.vue` | A floating, draggable button that opens preferences. |
-| [`ConsentGate`](/docs/frameworks/vue/components/consent-gate) | `c15t/vue/runtime/components/consent-gate.vue` | Its default slot while a category is allowed, otherwise its `placeholder` slot. |
-| [`IABConsentBanner`](/docs/frameworks/vue/components/iab-consent-banner) | `c15t/vue/runtime/components/iab-consent-banner.vue` | The IAB TCF first layer. |
-| [`IABConsentDialog`](/docs/frameworks/vue/components/iab-consent-dialog) | `c15t/vue/runtime/components/iab-consent-dialog.vue` | The IAB TCF preference centre. |
-| [`ConsentDevTools`](/docs/frameworks/vue/components/dev-tools) | `c15t/vue/devtools` | A development panel for the consent runtime. |
+Import every component except `ConsentDevTools` by name from
+`c15t/vue/vue-plugin`. A bundler keeps only the components you import.
 
-Only `ConsentRoot`, `ConsentWidget` and `ConsentDevTools` have short entry
-points. Import every other component by its full `.vue` path:
+| Component | What it renders |
+| --- | --- |
+| [`ConsentRoot`](/docs/frameworks/vue/components/consent-root) | The banner and, once opened, the preference dialog. Switches to the IAB surfaces under an IAB policy when `iab` is set. |
+| [`ConsentBanner`](/docs/frameworks/vue/components/consent-banner) | The first-layer banner on its own. |
+| [`ConsentManager`](/docs/frameworks/vue/components/consent-manager) | The preference dialog on its own. |
+| [`ConsentWidget`](/docs/frameworks/vue/components/consent-widget) | Category switches and save actions inline, for a privacy page. |
+| [`ConsentDialogLink`](/docs/frameworks/vue/components/consent-dialog-link) | A button that opens preferences. |
+| [`ConsentDialogTrigger`](/docs/frameworks/vue/components/consent-dialog-trigger) | A floating, draggable button that opens preferences. |
+| [`ConsentGate`](/docs/frameworks/vue/components/consent-gate) | Its default slot while a category is allowed, otherwise its `placeholder` slot. |
+| [`IABConsentBanner`](/docs/frameworks/vue/components/iab-consent-banner) | The IAB TCF first layer. |
+| [`IABConsentDialog`](/docs/frameworks/vue/components/iab-consent-dialog) | The IAB TCF preference centre. |
+| [`ConsentDevTools`](/docs/frameworks/vue/components/dev-tools) | A development panel for the consent runtime, from `c15t/vue/devtools`. |
 
 {/* example: fragment */}
 
 ```ts
-import ConsentGate from 'c15t/vue/runtime/components/consent-gate.vue';
+import { ConsentDialogLink, ConsentGate } from 'c15t/vue/vue-plugin';
 ```
 
-The [Vite plugin](/docs/frameworks/vue/quickstart#add-the-vite-plugins) must
-be in `vite.config.ts` for these `.vue` files to compile.
+The components ship as `.vue` files. Keep
+[`consentManifest()`](/docs/frameworks/vue/quickstart#add-the-vite-plugin) in
+`vite.config.ts`: it keeps them out of Vite's dependency pre-bundling, which
+cannot compile them.
 
 ## ConsentRoot or the parts
 
@@ -43,15 +45,12 @@ components when `iab` is set, for the visitor's policy. Mount `ConsentRoot`, or 
 never both, or the visitor sees two banners. Use the parts when you need a
 different variant per route or want to place the surfaces yourself.
 
-`ConsentFrame` is a deprecated name for `ConsentGate`, imported from
-`c15t/vue/runtime/components/consent-frame.vue`.
-
 ## Building blocks
 
-The stock surfaces are built from smaller components that the package also
-exports under `c15t/vue/runtime/components/`: `consent-button.vue`,
-`consent-switch.vue`, `consent-actions.vue`, `consent-link.vue`,
-`consent-legal-links.vue`, `consent-description.vue`, `consent-tag.vue` and
-`consent-branding-icon.vue`. For consent UI in your own markup, use the
+The stock surfaces are built from smaller components that
+`c15t/vue/vue-plugin` also exports: `ConsentButton`, `ConsentSwitch`,
+`ConsentActions`, `ConsentLink`, `ConsentDescription`, `ConsentTag` and
+`ConsentBrandingIcon`. `ConsentLegalLinks` is only at
+`c15t/vue/runtime/components/consent-legal-links.vue`. For consent UI in your own markup, use the
 [headless composables](/docs/frameworks/vue/headless) instead. They give you
 the policy's actions and the draft state without the stock markup.

@@ -53,7 +53,7 @@ The banner and dialog re-render. With a runtime or kernel, call
 `kernel.set.language('fr')` and then `kernel.commands.init()`.
 
 To follow your app's own language setting from the first render, pass it as
-an override: `init({ backendURL, overrides: { language: 'fr' } })`.
+an override: `init({ mode, overrides: { language: 'fr' } })`.
 
 In offline mode there is no copy to fetch. With `offline()` from `c15t` or
 `@c15t/browser`, a language set with the `language` override,

@@ -7,6 +7,7 @@
  * Kept apart from `root-script-loader-preload.test.tsx`: the mocked module
  * evaluates once per file, so each file can show one load.
  */
+import { offline } from '@c15t/core/modes';
 import type * as ScriptLoaderModule from '@c15t/core/modules/script-loader';
 import type { Script } from '@c15t/core/modules/script-loader';
 import type { ExternalConsentSource } from '@c15t/core/runtime';
@@ -16,6 +17,9 @@ import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import { ConsentRoot } from '../root';
 import { policyFixture } from './policy-fixture';
+
+/** These tests are not about the backend; an explicit offline() needs none. */
+const OFFLINE_CONFIG = { mode: offline() };
 
 const loads = vi.hoisted(() => ({ evaluated: 0, loaded: 0 }));
 
@@ -66,6 +70,7 @@ const renderUncommitted = (scripts: Script[]): void => {
 	root = createRoot(container);
 	root.render(
 		<ConsentRoot
+			config={OFFLINE_CONFIG}
 			options={{ consentSource }}
 			persistence={false}
 			scripts={scripts}

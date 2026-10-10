@@ -1,6 +1,8 @@
 import { hosted, manifest, offline } from '@c15t/core/modes';
 /**
- * Tests for `defineConsentConfig`: validation, defaults and freezing.
+ * Tests for `defineConsentConfig`: validation, defaults and freezing. The
+ * checks run where Next.js first evaluates the config, on the server, so
+ * these run in Node.
  */
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
@@ -8,7 +10,7 @@ import { defineConsentConfig } from '../config';
 
 afterEach(() => {
 	vi.restoreAllMocks();
-	vi.unstubAllGlobals();
+	vi.unstubAllEnvs();
 });
 
 describe('defineConsentConfig', () => {
@@ -35,15 +37,13 @@ describe('defineConsentConfig', () => {
 	});
 
 	test('reads the backend URL from NEXT_PUBLIC_C15T_BACKEND_URL', () => {
-		vi.stubGlobal('process', {
-			env: { NEXT_PUBLIC_C15T_BACKEND_URL: 'https://env.example.com' },
-		});
+		vi.stubEnv('NEXT_PUBLIC_C15T_BACKEND_URL', 'https://env.example.com');
 
 		expect(defineConsentConfig().backendURL).toBe('https://env.example.com');
 	});
 
 	test('needs no backend URL for offline() or a hosted() that has one', () => {
-		vi.stubGlobal('process', { env: {} });
+		vi.stubEnv('NEXT_PUBLIC_C15T_BACKEND_URL', '');
 
 		expect(defineConsentConfig({ mode: offline() })).toEqual({
 			mode: { type: 'offline' },
@@ -59,6 +59,28 @@ describe('defineConsentConfig', () => {
 		expect(() => defineConsentConfig()).toThrow(
 			/NEXT_PUBLIC_C15T_BACKEND_URL/u
 		);
+	});
+
+	test('proxy needs routePrefix', () => {
+		expect(() =>
+			defineConsentConfig({
+				backendURL: 'https://consent.example.com',
+				proxy: true,
+			})
+		).toThrow(
+			'@c15t/nextjs: `proxy` sends saves through the consent route, so it needs `routePrefix`.'
+		);
+		expect(
+			defineConsentConfig({
+				backendURL: 'https://consent.example.com',
+				proxy: true,
+				routePrefix: '/api/c15t/',
+			})
+		).toMatchObject({
+			backendURL: 'https://consent.example.com',
+			proxy: true,
+			routePrefix: '/api/c15t',
+		});
 	});
 
 	test('accepts relative paths and absolute http(s) URLs', () => {

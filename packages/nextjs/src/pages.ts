@@ -17,7 +17,10 @@
 
 import type { GetServerSideProps, GetServerSidePropsContext } from 'next';
 
-import type { NextConsentRouteOptions } from './api';
+import type {
+	NextConsentProxyRouteHandlers,
+	NextConsentRouteOptions,
+} from './api';
 import { createConsentRoute } from './api';
 import type { ConsentConfig } from './config';
 import type {
@@ -115,13 +118,14 @@ export type PagesApiHandler = (
 
 const toPagesApiHandler = function toPagesApiHandler(
 	handler: (request: Request, req: NodeApiRequestLike) => Promise<Response>,
-	trustForwardedHeaders: boolean
+	trustForwardedHeaders: boolean,
+	proxy: boolean
 ): PagesApiHandler {
 	return async (req, res) => {
-		// The App Router only exposes GET for these routes and answers other
-		// methods with 405; a pages/api default export sees every method.
+		// The App Router exposes only the methods a route exports and answers
+		// others with 405; a pages/api default export sees every method.
 		const method = (req.method ?? 'GET').toUpperCase();
-		if (method !== 'GET' && method !== 'HEAD') {
+		if (!proxy && method !== 'GET' && method !== 'HEAD') {
 			await writeWebResponse(
 				new Response(null, { headers: { allow: 'GET' }, status: 405 }),
 				res
@@ -139,13 +143,15 @@ const toPagesApiHandler = function toPagesApiHandler(
 /**
  * One Pages Router API route for every consent path,
  * `pages/api/c15t/[...c15t].ts`: `GET /manifest` and `GET /init`, and 404
- * for anything else. The Pages Router counterpart of `createConsentRoute`.
+ * for anything else unless `proxy` forwards it to the backend. The Pages
+ * Router counterpart of `createConsentRoute`.
  *
  * Pages without `getServerSideProps` resolve consent in the browser, which
  * asks this route when `c15t.config.ts` sets `routePrefix: '/api/c15t'`.
- * Everything defaults to `c15t.config.ts`.
+ * With `proxy: true` here and in `c15t.config.ts`, browser saves come here
+ * too. Everything defaults to `c15t.config.ts`.
  *
- * @param options - Overrides of `c15t.config.ts` and caching options.
+ * @param options - Overrides of `c15t.config.ts`, caching, and `proxy`.
  * @param param - The catch-all parameter's name, from the file name.
  * @returns The API route's default export.
  * @example
@@ -157,23 +163,33 @@ const toPagesApiHandler = function toPagesApiHandler(
  * ```
  */
 export const createPagesConsentRoute = function createPagesConsentRoute(
-	options: Omit<NextConsentRouteOptions, 'proxy'> = {},
+	options: NextConsentRouteOptions = {},
 	param = 'c15t'
 ): PagesApiHandler {
-	const { GET } = createConsentRoute({ ...options, proxy: false });
-	return toPagesApiHandler((request, req) => {
-		// `req.query` mixes the route parameter with the query string, so
-		// only the named parameter goes on.
-		const segments = req.query?.[param];
-		if (!Array.isArray(segments)) {
-			throw new TypeError(
-				`@c15t/nextjs: createPagesConsentRoute found no \`${param}\` catch-all parameter. Name the file [...${param}].ts or pass its parameter name.`
-			);
-		}
-		return GET(request, {
-			params: Promise.resolve({ [param]: segments }),
-		});
-	}, options.trustForwardedHeaders === true);
+	const handlers: Partial<NextConsentProxyRouteHandlers> &
+		Pick<NextConsentProxyRouteHandlers, 'GET'> = createConsentRoute(options);
+	return toPagesApiHandler(
+		(request, req) => {
+			// `req.query` mixes the route parameter with the query string, so
+			// only the named parameter goes on.
+			const segments = req.query?.[param];
+			if (!Array.isArray(segments)) {
+				throw new TypeError(
+					`@c15t/nextjs: createPagesConsentRoute found no \`${param}\` catch-all parameter. Name the file [...${param}].ts or pass its parameter name.`
+				);
+			}
+			// With `proxy`, writes go to the forwarding handlers; HEAD and any
+			// method without one read like GET.
+			const handler =
+				handlers[request.method as keyof NextConsentProxyRouteHandlers] ??
+				handlers.GET;
+			return handler(request, {
+				params: Promise.resolve({ [param]: segments }),
+			});
+		},
+		options.trustForwardedHeaders === true,
+		Boolean(options.proxy)
+	);
 };
 
 /** `pageProps` of a page whose `getServerSideProps` is {@link withConsentProps}. */

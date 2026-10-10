@@ -1,6 +1,6 @@
 ---
 title: "@c15t/browser options"
-description: Every option init() and createConsentClient() from @c15t/browser accept in a bundled JavaScript app, from the backend URL and mode to scripts, blockers, callbacks, storage, presentation and the stock UI.
+description: Every option init() and createConsentClient() from @c15t/browser accept in a bundled JavaScript app, from the mode to scripts, blockers, callbacks, storage, presentation and the stock UI.
 group: frameworks
 ---
 
@@ -11,9 +11,9 @@ group: frameworks
 
 <include src="../../../shared/examples/javascript/init.mdx" />
 
-Every option is optional. With no options at all, c15t runs in offline mode
-with its recommended rules, which is not recommended for production
-environments. The options are read when the client is created. To change
+`mode` is required: a factory from `manifest()`, `hosted()`, `offline()` or
+`custom()`, imported from the same entry. Every other option is optional. The
+options are read when the client is created. To change
 `ui`, call `mountUI()` again; to change anything else, dispose the client and
 create a new one.
 

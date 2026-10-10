@@ -1,10 +1,10 @@
 ---
 title: Next.js consent and scripts
-description: Register scripts inside the shared client boundary used by the Next.js router guides.
+description: Register scripts in the Next.js c15t.config.ts used by the router guides.
 group: frameworks
 ---
 
-## Register scripts in a client wrapper
+## Register scripts in c15t.config.ts
 
 The [runnable Next.js example](/docs/examples) loads PostHog under the
 measurement category. Replace the placeholder `phc_your_project_key` with your
@@ -12,28 +12,20 @@ project key, or replace the helper with the
 [integration](/docs/integrations/overview) your application uses. Include the
 measurement category in your policy.
 
-Create `lib/scripts.ts` with the example's script configuration:
+Put the scripts in `c15t.config.ts`, next to `next.config.ts`:
 
-<include src="./examples/nextjs/scripts.mdx" />
+<include src="./examples/nextjs/quickstart-config.mdx" />
 
 PostHog waits for measurement consent here. `cookieless_mode: 'never'` disables
 cookieless capture after rejection. Remove any existing PostHog loader,
 including `next/script` and tag-manager entries, so the integration loads once.
 
-Create this client wrapper. It owns everything that has to run in the browser:
-the consent config, the scripts, the banner, the dialog and a persistent
-preferences link. The layout or `_app.tsx` passes only the visitor's state.
+`withConsentManifest` in `next.config.ts` finds the file, and `ConsentRoot`
+reads its `scripts` in the browser, so a Server Component layout renders
+`ConsentRoot` without passing them. The file is bundled into the browser as
+well as the server, so it must hold no secrets.
 
-<include src="./examples/nextjs/consent-wrapper.mdx" />
-
-Import `consentConfig` in this `'use client'` file, as shown, and do not pass it
-from a Server Component. `defineConsentConfig` marks its result with a symbol
-key, and React cannot send an object with symbol keys from a Server Component
-to a Client Component.
-
-`ConsentRoot` already provides the consent runtime. Mount this wrapper once and
-do not add a second provider. Keep your site's content and footer inside it.
-
-The files import through the `@/` path alias that `create-next-app` sets up.
-With a `src/` directory the alias points at `src/`, so the same imports work.
-Without the alias, use relative paths.
+`scripts`, `vendors`, `clearOnRevocation`, `networkBlocker`, `persistence`,
+`scriptLoader` and `options` can also be passed to `ConsentRoot` as props,
+which win over the config. Functions can't cross from a Server Component to a
+Client Component, so pass them as props only from a `'use client'` file.

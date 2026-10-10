@@ -6,8 +6,9 @@ The snapshot is fixed at build time:
 
 The build reads the backend URL from your public backend URL variable when
 the config doesn't pass one: `NEXT_PUBLIC_C15T_BACKEND_URL` in Next.js,
-`NUXT_PUBLIC_C15T_BACKEND_URL` in Nuxt, `PUBLIC_C15T_BACKEND_URL` in Astro
-and SvelteKit, and `VITE_C15T_BACKEND_URL` in other Vite apps.
+`NUXT_PUBLIC_C15T_BACKEND_URL` in Nuxt, `PUBLIC_C15T_BACKEND_URL` in Astro,
+Svelte and SvelteKit, and `VITE_C15T_BACKEND_URL` in TanStack Start and other
+Vite apps.
 
 The fetch waits at most 10 seconds. When it fails, or no backend URL is set,
 every framework does the same thing:
@@ -31,4 +32,5 @@ list `C15T_ON_BUILD_ERROR` in the build task's `passThroughEnv` there.
 
 The build skips the fetch, without an error, when it can't use a snapshot,
 for example when the backend URL is relative. With `onBuildError: 'fail'`, a
-relative URL stops the build.
+relative URL stops the build. [Consent modes](/docs/concepts/modes#what-happens-when-the-download-fails)
+lists every case.

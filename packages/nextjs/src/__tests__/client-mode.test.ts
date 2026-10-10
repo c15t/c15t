@@ -30,12 +30,21 @@ describe('createClientMode', () => {
 		expect({ ...mode }).toMatchObject(data);
 	});
 
-	test('runs offline without a backend URL', () => {
-		expect(createClientMode(manifest(), {}).kind).toBe('offline');
-		expect(createClientMode(hosted(), {}).kind).toBe('offline');
+	test('throws without a backend URL instead of running offline', () => {
+		expect(() => createClientMode(manifest(), {})).toThrow(
+			'@c15t/nextjs: manifest() needs a backend URL. Set NEXT_PUBLIC_C15T_BACKEND_URL, or `backendURL` in c15t.config.ts.'
+		);
+		expect(() => createClientMode(undefined, {})).toThrow(
+			'manifest() needs a backend URL'
+		);
+		expect(() => createClientMode(hosted(), {})).toThrow(
+			'@c15t/nextjs: hosted() needs a backend URL. Set NEXT_PUBLIC_C15T_BACKEND_URL, or `backendURL` in c15t.config.ts.'
+		);
 		expect(
 			createClientMode(hosted({ backendURL: 'https://h.example.com' }), {}).kind
 		).toBe('hosted');
+		// offline() is the one mode that needs no backend.
+		expect(createClientMode(offline(), {}).kind).toBe('offline');
 	});
 
 	test('a transport factory is used as is', () => {

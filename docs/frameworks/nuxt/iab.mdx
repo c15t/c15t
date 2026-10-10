@@ -60,7 +60,6 @@ use vendors from your list whose declarations allow each restriction.
 export default defineNuxtConfig({
 	modules: ['c15t/vue'],
 	c15t: {
-		backendURL: 'https://your-project.inth.app',
 		iab: {
 			publisherRestrictions: [
 				// Vendors 10 and 755 may not use purpose 4.
@@ -86,7 +85,7 @@ For an IAB policy, the server HTML carries the banner's purpose names, vendor
 count and a reference to the Global Vendor List, not the whole list. The banner
 renders on the server with the same summary the browser shows. After
 hydration, the IAB module fetches the full list and loads it before it saves a
-TC String. In server manifest mode, the default with an absolute `backendURL`, the
+TC String. In the default `manifest()` mode, the
 module's init route serves the versioned list with a one-day public cache. Allow that
 route, or your backend origin, in your CSP `connect-src`. See
 [Content Security Policy](/docs/frameworks/nuxt/content-security-policy).

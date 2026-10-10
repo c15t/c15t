@@ -4,7 +4,7 @@
 
 Svelte has no consent hooks or stores. `@c15t/svelte` exports context getters
 instead. Call one at the top level of a component's `<script>`, inside
-`ConsentManagerProvider`, and read its properties in markup or in `$derived`.
+`ConsentProvider`, and read its properties in markup or in `$derived`.
 The properties read the provider's `$state`, so the component updates when
 consent changes.
 
@@ -179,9 +179,10 @@ call it and does not update.
 
 | Export | Purpose |
 | --- | --- |
-| `hosted({ backendURL })` | The `mode` for an Inth or self-hosted backend. |
+| `manifest()` | The `mode` that resolves the policy in the browser from the manifest `consentManifest()` downloaded. |
+| `hosted({ backendURL })` | The `mode` that asks an Inth or self-hosted backend's `/init` for every visitor. |
 | `offline({ policyRules })` | The `mode` that resolves policies in the browser with no backend. Not recommended for production environments. |
 | `custom(transport)` | The `mode` for your own transport. |
-| `createConsentRuntime(options)` | Creates a runtime to share between providers. See [ConsentManagerProvider](./components/consent-manager-provider#share-one-runtime). |
+| `createConsentRuntime(options)` | Creates a runtime to share between providers, through their `runtime` prop. |
 | `resolveConsentPresentation(input)` | Resolves the banner or dialog shape and actions a policy asks for, as `getHeadlessConsent()` does. |
 | `defaultTranslationConfig`, `mergeTranslationConfigs`, `prepareTranslationConfig`, `detectBrowserLanguage` | Translation helpers. |

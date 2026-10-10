@@ -6,6 +6,7 @@
  * Each render suspends forever, so nothing commits and no effect runs:
  * anything written or loaded came from the render.
  */
+import { offline } from '@c15t/core/modes';
 import { createRoot } from 'react-dom/client';
 import type { Root } from 'react-dom/client';
 import { afterEach, describe, expect, test, vi } from 'vitest';
@@ -14,6 +15,9 @@ import { encodeStoredConsentEnvelopeJson } from '../../../core/src/modules/persi
 import { ConsentRoot } from '../root';
 import type { ConsentState } from '../types';
 import { policyFixture } from './policy-fixture';
+
+/** These tests are not about the backend; an explicit offline() needs none. */
+const OFFLINE_CONFIG = { mode: offline() };
 
 const writer = vi.hoisted(() => ({ loads: 0 }));
 
@@ -149,6 +153,7 @@ describe('ConsentRoot: the early script loader decision writes nothing', () => {
 		root = createRoot(container);
 		root.render(
 			<ConsentRoot
+				config={OFFLINE_CONFIG}
 				scripts={[
 					{
 						category: 'marketing',

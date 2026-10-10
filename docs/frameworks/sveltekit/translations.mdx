@@ -1,6 +1,6 @@
 ---
 title: Translations
-description: Change c15t banner and dialog copy in a SvelteKit app, where the server prefetch carries the backend's translations for the request's language.
+description: Change c15t banner and dialog copy in a SvelteKit app, where the server-resolved consent carries the translations for the request's language.
 group: frameworks
 ---
 
@@ -9,8 +9,8 @@ group: frameworks
 ## Language on the server
 
 `loadConsent` resolves the language from the request's `Accept-Language`
-header and returns the backend's copy for it in `prefetch`, so the server HTML
+header and returns the copy for it in `consent`, so the server HTML
 is already in the visitor's language. Pass `language` to `loadConsent` or
 `c15tHandle` to force one, for example from a `/de/` route prefix. The
-provider applies its `i18n` messages for that language over the prefetched
-copy, so the server HTML already shows your overrides.
+provider applies its `i18n` messages for that language over the
+server-resolved copy, so the server HTML already shows your overrides.

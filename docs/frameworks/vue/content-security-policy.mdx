@@ -10,7 +10,8 @@ A Vue app with c15t adds these to the page, and your policy must allow them:
 
 | What | Directive |
 | --- | --- |
-| Requests to your backend's `/init` and `/subjects`, or to `manifestURL` | `connect-src` |
+| Requests to your backend's `/subjects`, plus `/init` with `hosted()` or `/manifest` with `manifest({ source: 'runtime' })` | `connect-src` |
+| Chunks your build splits out, such as the manifest resolver and the copy for a language other than English | `script-src 'self'` |
 | `<script>` elements the script loader creates for `scripts` | `script-src` |
 | Scripts, frames, images and requests your vendors load | `script-src`, `frame-src`, `img-src`, `connect-src` for each vendor |
 | The components' CSS, which Vite bundles with your app | `style-src` |
@@ -19,8 +20,8 @@ A Vue app with c15t adds these to the page, and your policy must allow them:
 
 ## Allow the backend
 
-Add your backend's origin to `connect-src`. With `manifest: 'client'`, add
-the origin of `manifestURL` too. With `iab` set and an IAB TCF policy, the IAB module
+Add your backend's origin to `connect-src`. With a `manifestURL` or `geoURL`
+on another origin, add that origin too. With `iab` set and an IAB TCF policy, the IAB module
 fetches the Global Vendor List from the URL the policy gives, usually your
 backend.
 
@@ -46,11 +47,7 @@ Add `'strict-dynamic'` to `script-src` to allow them, or list their hosts.
 {/* example: fragment */}
 
 ```ts title="src/main.ts"
-app.use(c15tVue, {
-	backendURL: 'https://your-project.inth.app',
-	nonce,
-	scripts,
-});
+app.use(c15tVue, { mode: manifest(), nonce, scripts });
 ```
 
 ## Allow styles

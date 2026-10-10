@@ -12,15 +12,15 @@ Built-in `@c15t/integrations` helpers already list their vendor by name, so
 you only declare a vendor for a script of your own, or to replace a helper's
 name and privacy policy.
 
-Declare the vendors next to the scripts in `src/scripts.ts`, using the `vendor`
+Declare the vendors next to the scripts in the root route, using the `vendor`
 slug each script already carries:
 
 {/* example: fragment */}
 
-```ts title="src/scripts.ts (partial)"
+```ts title="src/routes/__root.tsx (partial)"
 import type { Vendor } from 'c15t';
 
-export const vendors: Vendor[] = [
+const vendors: Vendor[] = [
 	{
 		id: 'x-pixel',
 		name: 'X Pixel',
@@ -30,16 +30,13 @@ export const vendors: Vendor[] = [
 ];
 ```
 
-Then pass them to the `ConsentRoot` in `src/routes/__root.tsx`:
+Then pass them to `ConsentRoot` in the same module:
 
 {/* example: fragment */}
 
 ```tsx title="src/routes/__root.tsx (partial)"
-import { scripts, vendors } from '../scripts';
-
 <ConsentRoot
 	state={consent}
-	backendURL={backendURL}
 	scripts={scripts}
 	vendors={vendors}
 >

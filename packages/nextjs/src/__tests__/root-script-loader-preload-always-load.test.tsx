@@ -5,6 +5,7 @@
  * Kept apart from `root-script-loader-preload.test.tsx`: the mocked module
  * evaluates once per file, so each file can show one load.
  */
+import { offline } from '@c15t/core/modes';
 import type * as ScriptLoaderModule from '@c15t/core/modules/script-loader';
 import type { Script } from '@c15t/core/modules/script-loader';
 import { createRoot } from 'react-dom/client';
@@ -13,6 +14,9 @@ import { afterEach, expect, test, vi } from 'vitest';
 
 import { ConsentRoot } from '../root';
 import { policyFixture } from './policy-fixture';
+
+/** These tests are not about the backend; an explicit offline() needs none. */
+const OFFLINE_CONFIG = { mode: offline() };
 
 const loads = vi.hoisted(() => ({ evaluated: 0, loaded: 0 }));
 
@@ -55,6 +59,7 @@ test('a stored choice that denies an alwaysLoad script still loads it during ren
 	root = createRoot(container);
 	root.render(
 		<ConsentRoot
+			config={OFFLINE_CONFIG}
 			persistence={false}
 			scripts={scripts}
 			state={Promise.resolve(policyFixture({ marketing: false }))}

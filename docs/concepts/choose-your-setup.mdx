@@ -75,10 +75,12 @@ public policy manifest, never a response that contains a visitor's consent.
 ## How the server gets the policy
 
 Use a build-time manifest as the default for supported production builds.
-Next.js, TanStack Start, Nuxt server output, Astro server output and SvelteKit
-can resolve requests from the deployment's snapshot. Vite apps can bundle it
-for browser resolution too; location-based policies may still need a location
-request. The framework quickstarts show the build hook and snapshot wiring.
+`manifest()` is the default mode in Next.js, TanStack Start, Nuxt, Astro and
+SvelteKit, so their servers resolve requests from the deployment's snapshot.
+Vite apps can bundle it for browser resolution too; location-based policies
+may still need a location request. The framework quickstarts show the build
+integration. [Consent modes](/docs/concepts/modes) lists every mode, its
+options and the backend URL variable each framework reads.
 
 <include src="../shared/build-time-manifest.mdx" />
 
@@ -87,11 +89,11 @@ request. The framework quickstarts show the build hook and snapshot wiring.
 For deployments that need policy updates without a rebuild, choose a runtime
 path:
 
-- **Cached manifest**.
+- **Cached manifest**, `manifest({ source: 'runtime' })`.
   Your server downloads the project's public policy file, caches it, and
   resolves each visitor locally. Consent saves still go to the backend.
-- **`/init`**. Each visit asks the backend to resolve the visitor. Simpler, but
-  every page load makes a request to the backend.
+- **`/init`**, `hosted()`. Each visit asks the backend to resolve the visitor.
+  Simpler, but every page load makes a request to the backend.
 
 [Data fetching](/docs/concepts/data-fetching) compares them in detail,
 including proxies and custom transports.

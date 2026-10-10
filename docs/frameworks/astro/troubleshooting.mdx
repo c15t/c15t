@@ -4,15 +4,25 @@ description: Fix common c15t problems on Astro sites, from build errors about ad
 group: frameworks
 ---
 
-## The build says manifest mode needs a server adapter
+## The build says manifest() needs a server adapter
 
-**Check.** `manifest()` adds on-demand `/api/c15t/init` and `/api/c15t/manifest`
-routes, and `astro build` stops when no adapter can serve them. Look for an
-adapter and server output in `astro.config.mjs`.
+**Check.** The error reads `manifest() resolves each visitor on the server
+and injects an on-demand route at /api/c15t/[...path]`. `manifest()` is the
+default mode, and `astro build` stops when no adapter can serve its route.
+Look for an adapter and server output in `astro.config.mjs`.
 
-**Fix.** Add your host's adapter and use server output, or switch to
-`hosted({ url })` for a static site. See
-[Rendering and deployment](/docs/frameworks/astro/rendering).
+**Fix.** Add your host's adapter and use server output. For a static site,
+set `c15t({ mode: hosted() })` or `c15t({ mode: manifest({ resolve: 'browser' }) })`.
+See [Rendering and deployment](/docs/frameworks/astro/rendering).
+
+## The config fails with "is a function"
+
+**Check.** A serialized `c15t()` option holds a function. The error names it,
+such as `c15t().scripts[0].onLoad`. A vendor helper from
+`@c15t/integrations`, such as `posthog()`, returns a script with callbacks.
+
+**Fix.** Move the option to the default export of `src/c15t.client.ts`. See
+[`clientEntrypoint`](/docs/frameworks/astro/integration#cliententrypoint).
 
 ## The build says `ui` needs an Astro integration
 
@@ -26,17 +36,20 @@ integration, listed before `c15t()`.
 and `vue`. A site that only shows a notice and never opens the dialog can set
 `requireUIIntegration: false` instead.
 
-**Check.** The build log suggests `ui: 'react'` or `ui: 'vue'`. Your site
-already loads that framework.
+**Check.** The site registers more than one of `@astrojs/svelte`,
+`@astrojs/react` and `@astrojs/vue`, and the dialog renders in Svelte.
+With several registered, `ui` falls back to `'svelte'`.
 
-**Fix.** Set `ui` to it so visitors do not download Svelte as well, or set
-`ui: 'svelte'` to keep Svelte and silence the message.
+**Fix.** Set `ui: 'react'` or `ui: 'vue'` to the framework your pages already
+load, so visitors do not download Svelte as well.
 
 ## Consent requests go to the wrong backend
 
-**Check.** Look at the URL in `hosted({ url })` or `manifest({ backendURL })`
-in `astro.config.mjs`. It is still the placeholder
-`https://your-project.inth.app`, or a URL from another project.
+**Check.** Look at `PUBLIC_C15T_BACKEND_URL` in `.env`, `.env.local` and the
+build environment, and at any `backendURL` in `astro.config.mjs`, top-level or
+in `hosted({ backendURL })`. One is still the placeholder
+`https://your-project.inth.app`, the demo project, or a URL from another
+project.
 
 **Fix.** Replace it with your Inth project's backend URL, including any path
 prefix. Astro reads the config when `astro dev` or `astro build` starts, so
@@ -65,12 +78,15 @@ A relative or empty URL, such as `/api/c15t`, skips the fetch. With
 `onBuildError: 'fail'`, it stops the build with `build-time manifests require
 an absolute upstream URL`.
 
-**Fix.** Set `PUBLIC_C15T_BACKEND_URL`, or `backendURL` in `manifest()`, to
-your Inth project's absolute backend URL, and make sure the machine that
-builds can reach it. To deploy while the backend is down, build with
+A missing backend URL counts as a failed download: `astro build` stops with
+`no backend URL is set`, and `astro dev` warns.
+
+**Fix.** Set `PUBLIC_C15T_BACKEND_URL`, or `backendURL` on `c15t()`, to your
+Inth project's absolute backend URL, and make sure the machine that builds
+can reach it. To deploy while the backend is down, build with
 `C15T_ON_BUILD_ERROR=runtime`, or set `onBuildError: 'runtime'`. To never
-fetch at build time, set `buildManifest: false`. Either way, the server
-fetches the policy at runtime.
+fetch at build time, set `mode: manifest({ source: 'runtime' })`. Either way,
+the server fetches the policy at runtime.
 
 ## A component says `Astro.locals.c15t` is missing
 
@@ -99,7 +115,7 @@ matched.
    [Policies](/docs/concepts/policies#why-the-banner-may-be-absent) explains
    each case.
 3. **The policy did not resolve.** If the browser's `/init` request failed or
-   was blocked, no banner or `ConsentDialogTrigger` appears and optional
+   was blocked, no banner or `ConsentDialogLink` appears and optional
    categories stay denied.
 4. **The page shares its HTML.** On a static or prerendered page, the banner
    appears after the `/init` request returns, not in the first HTML.
@@ -123,22 +139,44 @@ your Inth project's trusted origins. Add each preview deployment's origin too.
 slower, for example on the first request after a deploy, the page renders
 without the banner and the browser shows it after its own request. This happens
 when the server fetches the policy at runtime, with `hosted()`, with
-`buildManifest: false`, or after a build with `onBuildError: 'runtime'`
-could not fetch the manifest.
+`manifest({ source: 'runtime' })`, or after a build with
+`onBuildError: 'runtime'` could not fetch the manifest.
 
 **Fix.** Use `manifest()` with an absolute backend URL and let the build
 reach it, so the policy ships with the build. Or raise the budget with
 `middleware: { timeoutMs }`. See
 [Rendering and deployment](/docs/frameworks/astro/rendering#set-how-long-a-render-waits-for-the-backend).
 
-## The config fails with "pass backendURL to manifest()"
+## The config fails with "manifest() needs a backend URL"
 
-**Check.** In manifest mode, the browser saves consent to the backend URL you
-give `manifest()`, so `astro.config` refuses to load without one.
+**Check.** The server reads the policy from `${backendURL}/manifest`, and the
+browser saves consent there, so `astro.config` refuses to load without one.
+`hosted()` fails the same way with `hosted() needs a backend URL`.
 
-**Fix.** Pass it as `manifest({ backendURL: 'https://your-project.inth.app' })`,
-with your project's URL in place of the placeholder. An inline `manifest`
-object needs no backend URL, because that app serves its own save route.
+**Fix.** Set `PUBLIC_C15T_BACKEND_URL` in `.env`, or pass
+`c15t({ backendURL: 'https://your-project.inth.app' })` with your project's
+URL in place of the placeholder. A `manifest({ snapshot })` needs no backend
+URL for the policy.
+
+## Options from an earlier alpha have no effect
+
+**Check.** `astro.config.mjs` uses `hosted({ url })`,
+`manifest({ backendURL, manifest })`, `endpoints` or `buildManifest`. The
+integration no longer reads them, and TypeScript reports them as unknown. A
+layout that imports `consent-dialog-trigger.astro` fails to resolve it.
+
+**Fix.** Use the current names:
+
+| Earlier | Now |
+| --- | --- |
+| `hosted({ url })` | `hosted()` with the top-level `backendURL`, or `hosted({ backendURL })` |
+| `manifest({ backendURL })` | `manifest()` with the top-level `backendURL` |
+| `manifest({ manifest })` | `manifest({ snapshot })` |
+| `endpoints: { initPath, manifestPath }` | `routePrefix`, one catch-all for both |
+| `endpoints: false` | `routePrefix: false` |
+| `buildManifest: false` | `manifest({ source: 'runtime' })` |
+| `buildManifest: true` | `onBuildError: 'fail'` |
+| `ConsentDialogTrigger` from `consent-dialog-trigger.astro` | `ConsentDialogLink` from `c15t/astro/components` |
 
 ## A vendor loads before the visitor chooses
 

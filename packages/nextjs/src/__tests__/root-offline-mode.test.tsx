@@ -3,11 +3,12 @@
  *
  * `offline()` carries the recommended policy-rule pack. A root with a
  * backend URL never runs it, so the module must not load with the root;
- * a root without one must still resolve those rules.
+ * an `offline()` root must still resolve those rules.
  *
  * The tests share one module registry and run in order: the first checks
  * that nothing loaded, the second that offline init loads it.
  */
+import { offline } from '@c15t/core/modes';
 import { useActiveUI, useModel } from '@c15t/react';
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
@@ -51,9 +52,10 @@ describe('ConsentRoot offline mode', () => {
 		expect(offlineModule.loads).toBe(0);
 	});
 
-	test('a root without a backend resolves the recommended rules', async () => {
+	test('an offline() root resolves the recommended rules', async () => {
 		const { getByTestId } = await render(
 			<ConsentRoot
+				config={{ mode: offline() }}
 				persistence={false}
 				state={{ initialOverrides: { country: 'DE' } }}
 			>

@@ -17,13 +17,13 @@ host receives no request before consent.
 ## Gate an embed with ConsentGate
 
 Wrap the iframe in [`ConsentGate`](/docs/frameworks/vue/components/consent-gate)
-from `c15t/vue/runtime/components/consent-gate.vue`:
+from `c15t/vue/vue-plugin`:
 
 <include src="../../shared/examples/vue/embed.mdx" />
 
 The iframe does not exist in the page until the visitor allows measurement.
 The `placeholder` slot shows a message and a
-[`ConsentPreferencesLink`](/docs/frameworks/vue/components/consent-preferences-link)
+[`ConsentDialogLink`](/docs/frameworks/vue/components/consent-dialog-link)
 until then. When the visitor withdraws measurement, Vue removes the iframe.
 
 Pick the category that matches what the embed does. The example uses

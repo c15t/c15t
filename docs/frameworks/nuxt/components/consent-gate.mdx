@@ -12,14 +12,14 @@ default slot and a placeholder in the `placeholder` slot:
 <include src="../../../shared/examples/nuxt/embed.mdx" />
 
 The iframe is absent from the page until the visitor allows measurement. The
-placeholder uses `ConsentPreferencesLink` so the visitor can open preferences
+placeholder uses `ConsentDialogLink` so the visitor can open preferences
 from it.
 
 <import src="../../../shared/vue/components/consent-gate.mdx#behavior" />
 
 ## During server rendering
 
-In server manifest mode, the default with an absolute `backendURL`, the server
+When the server resolves the policy, in the default `manifest()` mode or `hosted()`, the server
 reads the visitor's consent cookie and evaluates the category before it renders. A
 visitor who allowed the category gets the iframe in the first HTML, and a
 visitor who has not gets the placeholder. On prerendered and cached routes,

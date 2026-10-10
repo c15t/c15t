@@ -14,10 +14,11 @@ The [quickstart](/docs/frameworks/react/quickstart) does this in
 
 <include src="../../../shared/examples/react/consent.mdx" />
 
-`manifest()` from `@c15t/browser/headless` resolves the policy from the
-snapshot the build bundled, and sends consent choices to `backendURL`. Set
-`VITE_C15T_BACKEND_URL` to the backend URL from your Inth project. To fetch the policy from the backend on every page
-load instead, pass `hosted({ backendURL })` from `c15t/react`. The Next.js and TanStack Start adapters export `ConsentRoot` instead, which wraps
+`manifest()` from `c15t/react` resolves the policy from the snapshot
+`consentManifest()` bundled, and sends consent choices to the backend URL the
+plugin read from `VITE_C15T_BACKEND_URL`. Set that variable to the backend URL
+from your Inth project. To fetch the policy from the backend on every page
+load instead, pass `hosted()` from `c15t/react`. The Next.js and TanStack Start adapters export `ConsentRoot` instead, which wraps
 this provider and passes it server-resolved state.
 
 ## Provider options
@@ -32,7 +33,7 @@ the provider to change them. `scripts`, `vendors`, `networkBlocker`,
 
 | Option | Purpose |
 | --- | --- |
-| `mode` | Required. `hosted({ backendURL })` for a backend, `manifest()` from `@c15t/browser/headless` for a bundled policy, `offline()` for local policies, or `custom()` for your own transport |
+| `mode` | Required. `manifest()` for a bundled policy, `hosted()` for the backend's `/init`, `offline()` for local policies, all from `c15t/react`, or `custom()` for your own transport. See [consent modes](/docs/concepts/modes) |
 | `prefetch` | Server-resolved state, or a promise of it, from a framework adapter's server helper |
 | `scripts` | Consent-gated vendor scripts. See [scripts and embeds](/docs/frameworks/react/scripts) |
 | `vendors` | Vendors listed under their category with their own switch. See [vendor consent](/docs/frameworks/react/vendor-consent) |

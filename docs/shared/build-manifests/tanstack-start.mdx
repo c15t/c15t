@@ -25,11 +25,6 @@ shows:
 
 <include src="../vite-build-manifest.mdx" />
 
-Without a `backendURL` option, the plugin reads `VITE_C15T_BACKEND_URL`,
-including from `.env` files. If the variable is unset, the plugin sets it to
-the URL it used, so `import.meta.env.VITE_C15T_BACKEND_URL` in the app reads
-the same value.
-
 If the fetch fails, `vite build` stops. `vite dev` logs a warning instead,
 and `snapshot` is `undefined`, so the server fetches and caches the policy at
 runtime. To let a build continue the same way, set `onBuildError: 'runtime'`,
@@ -41,5 +36,7 @@ or run it with `C15T_ON_BUILD_ERROR=runtime`:
 consentManifest({ onBuildError: 'runtime' }),
 ```
 
-For policy updates without a rebuild, remove the plugin and the `manifest`
-option, set `VITE_C15T_BACKEND_URL` yourself, and use [runtime fetching](/docs/frameworks/tanstack-start/rendering#await-consent-in-the-loader).
+For policy updates without a rebuild, pass
+`mode: manifest({ source: 'runtime' })` to `createConsentStateHandler` and
+keep the plugin, which still supplies the backend URL. See
+[runtime fetching](/docs/frameworks/tanstack-start/rendering#await-consent-in-the-loader).

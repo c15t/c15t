@@ -506,6 +506,56 @@ describe('@c15t/nextjs/pages: API bridge', () => {
 		expect(config.initialPolicyResolution?.policy?.id).toBe('eu-opt-in');
 	});
 
+	test('with proxy, the route forwards saves to the backend', async () => {
+		const fetchSpy = vi
+			.fn<typeof globalThis.fetch>()
+			.mockResolvedValue(
+				Response.json({ ok: true, subjectId: 'sub_1' }, { status: 201 })
+			);
+		const options = {
+			backendURL: 'https://consent.example.com',
+			fetch: fetchSpy,
+			reportSessions: false,
+			snapshot: MANIFEST_FIXTURE,
+		};
+		const save = (route: PagesApiHandler) => {
+			const sink = createResponseSink();
+			return route(
+				{
+					// Next.js has already parsed the JSON body.
+					body: { consents: { marketing: true } },
+					headers: {
+						'content-type': 'application/json',
+						host: 'app.example.com',
+					},
+					method: 'POST',
+					query: { c15t: ['subjects'] },
+					url: '/api/c15t/subjects',
+				},
+				sink.res
+			).then(() => sink);
+		};
+
+		// Without proxy, a save is not this route's to answer.
+		expect((await save(createPagesConsentRoute(options))).res.statusCode).toBe(
+			405
+		);
+		expect(fetchSpy).not.toHaveBeenCalled();
+
+		const sink = await save(
+			createPagesConsentRoute({ ...options, proxy: true })
+		);
+		expect(sink.res.statusCode).toBe(201);
+		expect(JSON.parse(sink.text())).toEqual({ ok: true, subjectId: 'sub_1' });
+		const [url, init] = fetchSpy.mock.calls[0] ?? [];
+		expect(String(url)).toBe('https://consent.example.com/subjects');
+		expect(init?.method).toBe('POST');
+		expect(new Headers(init?.headers).get('x-c15t-proxy')).toBe('@c15t/nextjs');
+		expect(await new Response(init?.body).json()).toEqual({
+			consents: { marketing: true },
+		});
+	});
+
 	test('one catch-all API route serves manifest and init and 404s the rest', async () => {
 		const route = createPagesConsentRoute({
 			backendURL: 'https://consent.example.com',

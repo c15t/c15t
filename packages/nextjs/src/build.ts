@@ -1,5 +1,7 @@
 import { existsSync } from 'node:fs';
-import { join, relative, sep } from 'node:path';
+import { createRequire } from 'node:module';
+import { basename, join, relative, sep } from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 import {
 	GENERATED_MODULE_IDS,
@@ -15,6 +17,8 @@ import {
 	PHASE_DEVELOPMENT_SERVER,
 	PHASE_PRODUCTION_BUILD,
 } from 'next/constants.js';
+
+import type { ConsentConfig } from './config';
 
 export type {
 	ManifestBuildErrorMode,
@@ -73,6 +77,114 @@ const findUserConfig = function findUserConfig(
 		if (existsSync(file)) {
 			return file;
 		}
+	}
+	return undefined;
+};
+
+/**
+ * Next.js's own loader for `next.config.ts`: compiles a TypeScript file with
+ * SWC, honouring the project's `tsconfig.json` paths, and evaluates it.
+ * Next.js 15 names the root `cwd`, 16 names it `dir`.
+ */
+type TranspileConfig = (options: {
+	configFileName: string;
+	cwd: string;
+	dir: string;
+	nextConfigPath: string;
+}) => Promise<unknown>;
+
+/** Evaluates a config file and returns its exports. */
+const importConfigFile = async function importConfigFile(
+	file: string,
+	root: string
+): Promise<unknown> {
+	if (!/\.m?ts$/u.test(file)) {
+		return await import(pathToFileURL(file).href);
+	}
+	// Next.js 15 installs TypeScript when it can't find it. Never let
+	// reading the config install packages.
+	createRequire(join(root, 'package.json')).resolve('typescript');
+	const { transpileConfig } =
+		(await import('next/dist/build/next-config-ts/transpile-config.js')) as unknown as {
+			transpileConfig: TranspileConfig;
+		};
+	return await transpileConfig({
+		configFileName: basename(file),
+		cwd: root,
+		dir: root,
+		nextConfigPath: file,
+	});
+};
+
+/**
+ * The default export of the app's `c15t.config.*`, evaluated with the loader
+ * Next.js uses for `next.config.ts`, so the build sees the same `mode` and
+ * `backendURL` as the bundles.
+ *
+ * A config `defineConsentConfig` rejects stops the build with its error.
+ * One that can't be evaluated here for another reason (an import Node
+ * can't load, say) warns and reads as no config: the build then fetches the
+ * manifest as for `manifest()`, as it did before it read the file.
+ *
+ * @throws {TypeError} When `defineConsentConfig` rejects the config.
+ */
+const loadUserConfig = async function loadUserConfig(
+	file: string,
+	root: string
+): Promise<ConsentConfig | undefined> {
+	try {
+		const loaded = (await importConfigFile(file, root)) as
+			| { default?: unknown }
+			| undefined;
+		const config = loaded?.default ?? loaded;
+		return typeof config === 'object' && config !== null
+			? (config as ConsentConfig)
+			: undefined;
+	} catch (error) {
+		// Next.js wraps the evaluation error as its `cause`.
+		const parts = [error, (error as { cause?: unknown } | null)?.cause].filter(
+			(part) => part !== undefined
+		);
+		// `defineConsentConfig` rejected the config: the server render
+		// would too, so stop here.
+		const rejected = parts.find(
+			(part) =>
+				part instanceof Error && part.message.startsWith('@c15t/nextjs: ')
+		);
+		if (rejected) {
+			throw rejected;
+		}
+		const reason = parts
+			.map((part) => (part instanceof Error ? part.message : String(part)))
+			.join(': ');
+		console.warn(
+			`@c15t/nextjs/build: could not read ${relative(root, file)} (${reason}), so the build fetches the consent manifest as for manifest().`
+		);
+		return undefined;
+	}
+};
+
+/**
+ * Why the config's mode needs no build-time manifest, as Nuxt and Astro
+ * decide: `hosted()` and `offline()` have none to fetch, a `snapshot` is
+ * already one, and `manifest({ source: 'runtime' })` always fetches at
+ * runtime. `undefined` when the build should fetch it.
+ */
+const modeSkipReason = function modeSkipReason(
+	config: ConsentConfig | undefined
+): string | undefined {
+	const mode = config?.mode;
+	if (mode?.type === 'hosted') {
+		return 'c15t.config.ts uses hosted(), which asks the backend for each visitor';
+	}
+	if (mode?.type === 'offline') {
+		return 'c15t.config.ts uses offline(), which needs no backend';
+	}
+	if (mode?.snapshot) {
+		return 'c15t.config.ts passes manifest({ snapshot })';
+	}
+	if (mode?.source === 'runtime') {
+		return "c15t.config.ts sets manifest({ source: 'runtime' })";
 	}
 	return undefined;
 };
@@ -177,8 +289,12 @@ const withConsentAliases = function withConsentAliases(
  * missing backend URL counts as a failed fetch. Set
  * `onBuildError: 'runtime'` or `'fail'`, or the `C15T_ON_BUILD_ERROR`
  * environment variable, to use one behaviour in both. The fetch is skipped
- * for a `backendURL` that is not absolute http(s), and for
- * `output: 'export'`, which has no server.
+ * for a `backendURL` that is not absolute http(s), for `output: 'export'`,
+ * which has no server, and when `c15t.config.ts` sets a mode that reads no
+ * build-time manifest: `hosted()`, `offline()`, `manifest({ snapshot })` or
+ * `manifest({ source: 'runtime' })`. The wrapper evaluates the file with the
+ * loader Next.js uses for `next.config.ts` to read its `mode` and
+ * `backendURL`.
  *
  * The config and the snapshot reach the helpers through bundler aliases.
  * The wrapper adds `c15t`, `@c15t/core` and `@c15t/nextjs` to
@@ -189,11 +305,12 @@ const withConsentAliases = function withConsentAliases(
  * @param config - Existing Next.js configuration, preserved as given apart
  * from the alias.
  * @param options - Backend URL and `onBuildError`. `backendURL` defaults to
- * `NEXT_PUBLIC_C15T_BACKEND_URL`, from the environment or a `.env` file, and
- * the build appends `/manifest`.
+ * the one in `c15t.config.ts`, then `NEXT_PUBLIC_C15T_BACKEND_URL`, from the
+ * environment or a `.env` file, and the build appends `/manifest`.
  * @returns An asynchronous Next.js configuration factory.
  * @throws {Error} When the fetch fails in `'fail'` mode, the default for
- * `next build`, or the snapshot cannot be written.
+ * `next build`, the snapshot cannot be written, or `defineConsentConfig`
+ * rejects `c15t.config.ts`.
  * @example
  * ```ts
  * import { withConsentManifest } from 'c15t/next/build';
@@ -226,15 +343,21 @@ export const withConsentManifest =
 		) {
 			return resolved;
 		}
+		const root = process.cwd();
+		const userConfigFile = findUserConfig(root);
+		const userConfig = userConfigFile
+			? await loadUserConfig(userConfigFile, root)
+			: undefined;
 		const files = await writeManifestCacheModule(
 			{
 				...options,
 				backendURL:
 					options.backendURL ??
+					userConfig?.backendURL ??
 					readBuildEnv([BACKEND_URL_ENV], {
 						mode:
 							phase === PHASE_PRODUCTION_BUILD ? 'production' : 'development',
-						root: process.cwd(),
+						root,
 					}),
 			},
 			{
@@ -245,8 +368,8 @@ export const withConsentManifest =
 				skipReason:
 					resolved.output === 'export'
 						? "a static export (`output: 'export'`) has no server to use it"
-						: undefined,
+						: modeSkipReason(userConfig),
 			}
 		);
-		return withConsentAliases(resolved, files, findUserConfig(process.cwd()));
+		return withConsentAliases(resolved, files, userConfigFile);
 	};

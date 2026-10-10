@@ -1,10 +1,11 @@
 ## Why does the build fail to download the manifest?
 
 **Check.** `vite build` stops before compiling, with an error from
-`consentManifest` that starts with `@c15t/core/build: could not fetch the
-consent manifest from <url> during the build`. `vite dev` logs the same
-message as a warning and keeps going. The part in parentheses names the
-cause:
+`consentManifest` that starts with the plugin's name, such as
+`@c15t/core/build: could not fetch the consent manifest from <url> during the
+build`. The name is `@c15t/core/build` for `c15t/build` and `@c15t/vue/vite`
+for `c15t/vue/vite`. `vite dev` logs the same message as a warning and keeps
+going. The part in parentheses names the cause:
 
 | Message | Cause | Fix |
 | --- | --- | --- |
@@ -20,7 +21,8 @@ is down, run the build with `C15T_ON_BUILD_ERROR=runtime`. `snapshot` is then
 An error or warning that says `no backend URL is set` means the plugin found
 no `backendURL` option and no variable. Set `VITE_C15T_BACKEND_URL` in `.env`
 or the build environment, or pass the absolute backend URL from your Inth
-project.
+project. The [troubleshooting guide](/docs/guides/troubleshooting#why-does-the-build-fail-to-download-the-manifest)
+lists every message.
 
 A notice that the build `skipped the consent manifest fetch` means the backend
 URL is relative, such as `/api/c15t`. Pass the absolute backend URL instead.
