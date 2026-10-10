@@ -94,6 +94,28 @@ describe('the client half of the state', () => {
 		).rejects.toThrow('needs `routePrefix`');
 	});
 
+	test("proxy keeps hosted()'s backend URL on the server", async () => {
+		const fetch = offlineFetch();
+		const state = await resolveConsent({
+			fetch,
+			mode: { backendURL: 'https://backend.example', type: 'hosted' },
+			proxy: true,
+			reportSessions: false,
+			request: requestOf({ 'x-vercel-ip-country': 'DE' }),
+			routePrefix: '/api/c15t',
+		});
+		// The browser's init and saves go through the route.
+		expect(state).toMatchObject({
+			backendURL: '/api/c15t',
+			mode: { type: 'hosted' },
+		});
+		expect(state.mode).not.toHaveProperty('backendURL');
+		// The server still asks the hosted backend.
+		expect(String(fetch.mock.calls[0]?.[0])).toMatch(
+			/^https:\/\/backend\.example\/init/u
+		);
+	});
+
 	test('browser resolution leaves the policy to ConsentRoot', async () => {
 		const fetch = offlineFetch();
 		const state = await resolveConsent({

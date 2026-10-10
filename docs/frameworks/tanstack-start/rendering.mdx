@@ -107,9 +107,11 @@ Keep these details right:
   like Next.js `defineConsentConfig({ proxy: true })`. It needs `routePrefix`,
   and throws
   ``@c15t/tanstack-start: `proxy` sends saves through the consent route, so it needs `routePrefix`.``
-  without it. To send only init through the route and keep saves going
-  straight to your backend, drop `proxy: true` from both and keep
-  `routePrefix`.
+  without it. With `hosted({ backendURL })`, the browser still goes through
+  the route; only the server asks that URL, so pass the same URL to
+  `createConsentRoute({ backendURL })`. To send only init through the route
+  and keep saves going straight to your backend, drop `proxy: true` from
+  both and keep `routePrefix`.
 - The proxy forwards the visitor's user agent, language, origin and location
   headers so the backend's firewall sees a normal visitor. Set
   `trustForwardedHeaders: true` on `createConsentRoute` only when your

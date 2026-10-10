@@ -87,9 +87,9 @@ export interface ConsentConfig extends ConsentClientOptions {
 	 * The route at {@link routePrefix} was created with
 	 * `createConsentRoute({ proxy: true })` (or `createPagesConsentRoute`),
 	 * so the browser sends saves through it instead of straight to
-	 * `backendURL`. The server helpers keep using `backendURL`, so keep it
-	 * absolute. Needs `routePrefix`. Same option as TanStack Start's
-	 * `createConsentStateHandler({ proxy })`.
+	 * `backendURL`, or to `hosted()`'s own `backendURL`. The server helpers
+	 * keep using those URLs, so keep them absolute. Needs `routePrefix`.
+	 * Same option as TanStack Start's `createConsentStateHandler({ proxy })`.
 	 *
 	 * @default false
 	 */
