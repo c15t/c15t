@@ -149,7 +149,29 @@ describe('resolveConsent wiring', () => {
 		warn.mockRestore();
 	});
 
-	test('never fetches a relative backendURL, with no routePrefix set', async () => {
+	test('fetches a relative backendURL that is not the route prefix', async () => {
+		// A backend mounted elsewhere on the app's origin, beside the consent
+		// route, as the TanStack Start browser bench's manifest-ssr arm does.
+		const fetch = manifestFetch();
+		const state = await resolveConsent({
+			backendURL: '/api/backend',
+			cache: createManifestCache(),
+			fetch,
+			reportSessions: false,
+			request: requestOf({ 'x-vercel-ip-country': 'DE' }),
+			routePrefix: '/api/c15t',
+			snapshot: undefined,
+		});
+		expect(String(fetch.mock.calls[0]?.[0])).toBe(
+			'https://app.example.com/api/backend/manifest'
+		);
+		expect(state.initialPolicyResolution).toMatchObject({
+			policyId: 'eu-opt-in',
+			status: 'matched',
+		});
+	});
+
+	test('never fetches the default /api/c15t route, with no routePrefix set', async () => {
 		const fetch = manifestFetch();
 		const state = await createConsentStateHandler({
 			backendURL: '/api/c15t',

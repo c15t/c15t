@@ -70,7 +70,10 @@ import {
 	snapshot as generatedSnapshot,
 } from '@c15t/core/generated';
 import type { ConsentMode } from '@c15t/core/modes';
-import { resolveRequestConsent } from '@c15t/core/server';
+import {
+	DEFAULT_CONSENT_ROUTE_PREFIX,
+	resolveRequestConsent,
+} from '@c15t/core/server';
 import type {
 	ManifestCache,
 	ResolveRequestConsentOptions,
@@ -221,10 +224,11 @@ export interface ResolveConsentOptions extends ConsentRequestOptions {
 	 *
 	 * Relative URLs are resolved against the request's own origin
 	 * (`request.url`); set `trustForwardedHeaders` to use `x-forwarded-*`
-	 * behind a trusted proxy. Do not point this at the app's own `/api/c15t` route:
-	 * a server fetching itself during SSR deadlocks the dev server, so the
-	 * helper never fetches under a relative `backendURL` or under
-	 * `routePrefix`, and returns the cookie-and-headers state instead.
+	 * behind a trusted proxy. Do not point this at the app's own consent
+	 * route: a server fetching itself during SSR deadlocks the dev server,
+	 * so the helper never fetches under `routePrefix` (`/api/c15t` when
+	 * unset) and returns the cookie-and-headers state instead. Other
+	 * relative URLs are fetched.
 	 */
 	backendURL?: string;
 
@@ -447,10 +451,6 @@ const resolveConsentState = async function resolveConsentState(
 	const client = clientConfigFor(options, backendURL, routePrefix);
 	const request = await readCurrentRequest(options.request);
 	const server = serverModeOptions(options, backendURL);
-	const relativeBackend =
-		server.backendURL?.startsWith('/') && !server.backendURL.startsWith('//')
-			? trimTrailingSlashes(server.backendURL) || '/'
-			: undefined;
 	const state = await resolveRequestConsent({
 		...server,
 		adapter: '@c15t/tanstack-start',
@@ -463,11 +463,11 @@ const resolveConsentState = async function resolveConsentState(
 		journey: options.journey,
 		now: options.now,
 		overrides: { country: options.country, language: options.language },
-		// A relative backend URL can only be this app; never fetch it, or
-		// the route prefix, during the render.
-		ownRoutes: [routePrefix, relativeBackend].filter(
-			(route): route is string => route !== undefined
-		),
+		// The app's own consent route: a render fetching it would call
+		// itself. Other relative URLs, such as a backend mounted elsewhere
+		// on this origin, are fetched. Without a prefix, the conventional
+		// mount is guarded.
+		ownRoutes: [routePrefix ?? DEFAULT_CONSENT_ROUTE_PREFIX],
 		reportSessions: options.reportSessions,
 		request: {
 			headers: request.headers,
