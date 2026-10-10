@@ -5,7 +5,6 @@
  * @internal
  */
 import type { ConsentMode } from '@c15t/core/modes';
-import { normalizeRoutePrefix } from '@c15t/core/server';
 import {
 	backendURL as generatedBackendURL,
 	snapshot as generatedSnapshot,
@@ -14,7 +13,7 @@ import userConfig from '@c15t/nextjs/user-config';
 import type { ConsentManifest } from '@c15t/schema/types';
 
 import type { ConsentConfig } from './config';
-import { readBackendURLFromEnv } from './config';
+import { checkRoutePrefix, readBackendURLFromEnv } from './config';
 
 /** Options every server helper takes to override `c15t.config.ts`. */
 export interface ConsentSourceOptions {
@@ -60,13 +59,13 @@ const isPath = (url: string | undefined): url is string =>
 	url !== undefined && url.startsWith('/') && !url.startsWith('//');
 
 /**
- * The config's route prefix, checked: a config passed straight to a helper
- * skips `defineConsentConfig`. A `/`-relative prefix goes through the
- * shared check, which rejects `/`.
+ * The config's route prefix, checked as `defineConsentConfig` checks it: a
+ * config passed straight to a helper skips that function.
  *
  * @param config - The config the helper reads.
  * @returns The prefix without a trailing slash, or `undefined`.
- * @throws {TypeError} When the prefix is `/`.
+ * @throws {TypeError} When the prefix is `/`, or neither a `/`-relative
+ * path nor an absolute `http(s)` URL.
  * @internal
  */
 export const readConfigRoutePrefix = function readConfigRoutePrefix(
@@ -76,9 +75,7 @@ export const readConfigRoutePrefix = function readConfigRoutePrefix(
 	if (routePrefix === undefined) {
 		return undefined;
 	}
-	return routePrefix.startsWith('/')
-		? normalizeRoutePrefix('@c15t/nextjs', routePrefix)
-		: routePrefix.replace(/\/+$/u, '');
+	return checkRoutePrefix(routePrefix);
 };
 
 /** The backend URL: explicit, then the mode's, the config's, the env's, the build's. */

@@ -136,6 +136,27 @@ const assertConsentURL = function assertConsentURL(
 	}
 };
 
+/**
+ * Checks a config's `routePrefix` and removes its trailing slashes. A
+ * `/`-relative path goes through the shared check, which rejects `/`; an
+ * absolute `http(s)` URL is kept; anything else is rejected.
+ *
+ * @param routePrefix - The configured prefix.
+ * @returns The prefix without a trailing slash.
+ * @throws {TypeError} When the prefix is `/`, or neither a path nor an
+ * absolute `http(s)` URL.
+ * @internal
+ */
+export const checkRoutePrefix = function checkRoutePrefix(
+	routePrefix: string
+): string {
+	if (typeof routePrefix === 'string' && routePrefix.startsWith('/')) {
+		return normalizeRoutePrefix('@c15t/nextjs', routePrefix);
+	}
+	assertConsentURL('routePrefix', routePrefix);
+	return routePrefix.replace(/\/+$/u, '');
+};
+
 const MODE_TYPES = new Set(['manifest', 'hosted', 'offline']);
 
 /**
@@ -173,13 +194,8 @@ const assertConsentConfig = function assertConsentConfig(
 		);
 	}
 	assertConsentURL('backendURL', backendURL);
-	if (
-		typeof config.routePrefix === 'string' &&
-		config.routePrefix.startsWith('/')
-	) {
-		normalizeRoutePrefix('@c15t/nextjs', config.routePrefix);
-	} else {
-		assertConsentURL('routePrefix', config.routePrefix);
+	if (config.routePrefix !== undefined) {
+		checkRoutePrefix(config.routePrefix);
 	}
 	if (config.proxy && config.routePrefix === undefined) {
 		throw new TypeError(

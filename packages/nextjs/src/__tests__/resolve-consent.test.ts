@@ -268,6 +268,18 @@ describe('resolveConsent wiring', () => {
 		);
 	});
 
+	test('rejects a config routePrefix that is neither a path nor an http(s) URL', async () => {
+		await expect(
+			resolveConsent({
+				backendURL: 'https://consent.example.com',
+				config: { routePrefix: 'api/c15t' },
+				request: requestOf({}),
+			})
+		).rejects.toThrow(
+			'@c15t/nextjs: defineConsentConfig `routePrefix` must be an absolute http(s) URL or a `/`-relative path, received "api/c15t".'
+		);
+	});
+
 	test('onError replaces the warning; production stays quiet', async () => {
 		const failing = vi.fn<typeof globalThis.fetch>(() =>
 			Promise.reject(new Error('network down'))
