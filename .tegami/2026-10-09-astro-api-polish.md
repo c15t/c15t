@@ -8,7 +8,8 @@ packages:
 
 `c15t()` now works with no options. The backend URL defaults to
 `PUBLIC_C15T_BACKEND_URL`, read from the environment or `.env` in the project
-root, and the mode defaults to `manifest()`. The modes are the data factories
+root, and the mode defaults to `manifest()`. `PUBLIC_INTH_PROJECT_URL` works
+too when `PUBLIC_C15T_BACKEND_URL` is unset. The modes are the data factories
 from `c15t/modes`, re-exported from `c15t/astro`:
 
 ```js

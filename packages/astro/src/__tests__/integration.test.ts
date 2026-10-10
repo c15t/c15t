@@ -346,6 +346,44 @@ describe('resolveOptions', () => {
 		);
 	});
 
+	it('reads PUBLIC_INTH_PROJECT_URL when the c15t variable is unset', async () => {
+		vi.stubEnv('PUBLIC_C15T_BACKEND_URL', undefined);
+		vi.stubEnv('PUBLIC_INTH_PROJECT_URL', 'https://inth.example.com');
+		const { calls } = await runSetup({ mode: hostedMode() });
+		expect(serverOptionsSource(calls)).toContain(
+			'"backendURL":"https://inth.example.com"'
+		);
+	});
+
+	it('prefers PUBLIC_C15T_BACKEND_URL in .env over PUBLIC_INTH_PROJECT_URL', async () => {
+		vi.stubEnv('PUBLIC_C15T_BACKEND_URL', undefined);
+		vi.stubEnv('PUBLIC_INTH_PROJECT_URL', 'https://inth.example.com');
+		const root = mkdtempSync(join(tmpdir(), 'c15t-astro-env-'));
+		writeFileSync(
+			join(root, '.env'),
+			'PUBLIC_C15T_BACKEND_URL=https://c15t.example.com\n'
+		);
+		const { calls } = await runSetup(
+			{ mode: hostedMode() },
+			{ root: pathToFileURL(`${root}/`) }
+		);
+		expect(serverOptionsSource(calls)).toContain(
+			'"backendURL":"https://c15t.example.com"'
+		);
+	});
+
+	it('an explicit backendURL beats both variables', async () => {
+		vi.stubEnv('PUBLIC_C15T_BACKEND_URL', 'https://c15t.example.com');
+		vi.stubEnv('PUBLIC_INTH_PROJECT_URL', 'https://inth.example.com');
+		const { calls } = await runSetup({
+			backendURL: 'https://option.example.com',
+			mode: hostedMode(),
+		});
+		expect(serverOptionsSource(calls)).toContain(
+			'"backendURL":"https://option.example.com"'
+		);
+	});
+
 	it.each([
 		[
 			'hosted()',
@@ -492,7 +530,7 @@ describe('resolveOptions', () => {
 		// The browser would post saves to the init route's own prefix,
 		// `/api/c15t/subjects`, where nothing answers.
 		expect(() => resolveOptions({ mode: manifestMode() })).toThrowError(
-			/manifest\(\) needs a backend URL.*PUBLIC_C15T_BACKEND_URL/u
+			/manifest\(\) needs a backend URL.*PUBLIC_C15T_BACKEND_URL \(or PUBLIC_INTH_PROJECT_URL\)/u
 		);
 		expect(() => resolveOptions({ mode: hostedMode() })).toThrowError(
 			/hosted\(\) needs a backend URL/u

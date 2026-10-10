@@ -99,8 +99,9 @@ export interface C15tAstroOptions {
 	 * `POST /subjects`, `hosted()` asks its `/init`, and `manifest()` reads
 	 * `${backendURL}/manifest`.
 	 *
-	 * Defaults to `PUBLIC_C15T_BACKEND_URL`, read from the environment or a
-	 * `.env` file in the project root when `astro.config.mjs` loads. A
+	 * Defaults to `PUBLIC_C15T_BACKEND_URL`, then `PUBLIC_INTH_PROJECT_URL`,
+	 * read from the environment or a `.env` file in the project root when
+	 * `astro.config.mjs` loads. A
 	 * `hosted({ backendURL })` of its own wins over both.
 	 */
 	backendURL?: string;

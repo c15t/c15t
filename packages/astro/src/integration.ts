@@ -32,8 +32,11 @@ import type {
 const VIRTUAL_ID = 'virtual:c15t/options';
 const RESOLVED_VIRTUAL_ID = `\0${VIRTUAL_ID}`;
 
-/** Variable the top-level `backendURL` defaults to. */
-const BACKEND_URL_ENV = 'PUBLIC_C15T_BACKEND_URL';
+/**
+ * Variables the top-level `backendURL` defaults to, in order: the c15t one,
+ * then the Inth project URL other Inth SDKs share.
+ */
+const BACKEND_URL_ENVS = ['PUBLIC_C15T_BACKEND_URL', 'PUBLIC_INTH_PROJECT_URL'];
 
 /** Where the injected route lives unless `routePrefix` says otherwise. */
 const DEFAULT_ROUTE_PREFIX = '/api/c15t';
@@ -232,7 +235,8 @@ const resolveMode = function resolveMode(
 			'@c15t/astro: `mode` must be manifest(), hosted() or offline() from c15t/astro. A transport function cannot be serialized into the page.'
 		);
 	}
-	const envHint = `Set ${BACKEND_URL_ENV} in .env, or pass \`backendURL\` to c15t().`;
+	const envHint =
+		'Set PUBLIC_C15T_BACKEND_URL (or PUBLIC_INTH_PROJECT_URL) in .env, or pass `backendURL` to c15t().';
 	if (mode.type === 'hosted' && (mode.backendURL ?? backendURL) === undefined) {
 		throw new Error(
 			`@c15t/astro: hosted() needs a backend URL to ask for each visitor's policy. ${envHint}`
@@ -821,7 +825,7 @@ const bundleBuildManifest = async function bundleBuildManifest(
 		{ backendURL: resolved.backendURL, manifestURL: mode.manifestURL },
 		{
 			command,
-			envNames: [BACKEND_URL_ENV],
+			envNames: BACKEND_URL_ENVS,
 			label: '@c15t/astro',
 			logger,
 			onBuildError: resolved.onBuildError,
@@ -891,7 +895,7 @@ const resolveSiteOptions = async function resolveSiteOptions(
 	const root = config?.root;
 	const backendURL =
 		options.backendURL ??
-		readBuildEnv([BACKEND_URL_ENV], {
+		readBuildEnv(BACKEND_URL_ENVS, {
 			mode: command === 'build' ? 'production' : 'development',
 			root: root ? fileURLToPath(root) : process.cwd(),
 		});
