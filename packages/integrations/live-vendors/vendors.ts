@@ -57,6 +57,7 @@ import { sentry } from '../src/vendors/analytics/sentry';
 import type { SentryClient } from '../src/vendors/analytics/sentry';
 import { umamiAnalytics } from '../src/vendors/analytics/umami-analytics';
 import { vercelAnalytics } from '../src/vendors/analytics/vercel-analytics';
+import { vercelSpeedInsights } from '../src/vendors/analytics/vercel-speed-insights';
 import { klaviyo } from '../src/vendors/email-and-sms/klaviyo';
 import { crisp } from '../src/vendors/functional/crisp';
 import { frontChat } from '../src/vendors/functional/front-chat';
@@ -86,6 +87,12 @@ type KlaviyoWindow = Window & {
 
 type PromptwatchWindow = Window & {
 	pwc?: unknown;
+};
+
+type SpeedInsightsWindow = Window & {
+	si?: unknown;
+	siq?: unknown;
+	sil?: boolean;
 };
 
 type GoogleTagWindow = Window & {
@@ -1096,6 +1103,29 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 		// placeholder config.
 		tier: 'loader-only',
 		vendor: 'vercel-analytics',
+	},
+	{
+		bootstrapCheck: () =>
+			check(
+				typeof (window as SpeedInsightsWindow).si === 'function' &&
+					Array.isArray((window as SpeedInsightsWindow).siq),
+				'si stub and siq queue present before load'
+			),
+		// The production script.js returns early when navigator.webdriver is
+		// set. The debug bundle skips that check and sends no requests.
+		createScript: () => vercelSpeedInsights({ debug: true }),
+		loaderUrlSubstring:
+			'va.vercel-scripts.com/v1/speed-insights/script.debug.js',
+		// script.debug.js sets window.sil once it starts and swaps the si stub
+		// for its own beforeSend setter.
+		runtimeCheck: () =>
+			check(
+				(window as SpeedInsightsWindow).sil === true,
+				'window.sil set after collector started'
+			),
+		runtimeReplacedGlobals: ['si'],
+		tier: 'full',
+		vendor: 'vercel-speed-insights',
 	},
 	{
 		// Crisp chain-loads widget assets after the bootstrap client runs.

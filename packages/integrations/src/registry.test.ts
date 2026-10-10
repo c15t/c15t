@@ -115,6 +115,10 @@ import {
 	vercelAnalytics,
 	vercelAnalyticsManifest,
 } from './vendors/analytics/vercel-analytics';
+import {
+	vercelSpeedInsights,
+	vercelSpeedInsightsManifest,
+} from './vendors/analytics/vercel-speed-insights';
 import { klaviyo, klaviyoManifest } from './vendors/email-and-sms/klaviyo';
 import { crisp, crispManifest } from './vendors/functional/crisp';
 import { frontChat, frontChatManifest } from './vendors/functional/front-chat';
@@ -473,6 +477,14 @@ const helperParityCases = {
 		},
 		script: vercelAnalytics(),
 	},
+	vercelSpeedInsights: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://va.vercel-scripts.com/v1/speed-insights/script.js',
+		},
+		script: vercelSpeedInsights(),
+	},
 	xPixel: {
 		expected: {
 			alwaysLoad: undefined,
@@ -519,6 +531,7 @@ const vendorManifests = [
 	plausibleAnalyticsManifest,
 	umamiAnalyticsManifest,
 	vercelAnalyticsManifest,
+	vercelSpeedInsightsManifest,
 	crispManifest,
 	frontChatManifest,
 	intercomManifest,

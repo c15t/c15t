@@ -395,6 +395,16 @@ export const builtInScriptIntegrations = [
 		vendor: 'vercel-analytics',
 	},
 	{
+		consentCategory: 'measurement',
+		docsSlug: 'vercel-speed-insights',
+		hint: 'Vercel Speed Insights (Web Vitals)',
+		integrationCategory: 'analytics',
+		key: 'vercelSpeedInsights',
+		label: 'Vercel Speed Insights',
+		packageSubpath: 'vercel-speed-insights',
+		vendor: 'vercel-speed-insights',
+	},
+	{
 		consentCategory: 'functionality',
 		docsSlug: 'crisp',
 		hint: 'Live chat widget',

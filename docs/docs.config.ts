@@ -870,6 +870,7 @@ export default defineDocsConfig({
 						'rybbit-analytics',
 						'umami-analytics',
 						'vercel-analytics',
+						'vercel-speed-insights',
 					],
 					slug: 'analytics',
 					title: 'Analytics',
