@@ -246,6 +246,31 @@ describe('lazyHosted()', () => {
 		expect(fetchSpy).toHaveBeenCalledTimes(1);
 	});
 
+	test('with a banner experiment arm, the first init sends one /init', async () => {
+		fetchSpy.mockImplementation(() =>
+			Promise.resolve(
+				jsonResponse({
+					branding: 'c15t',
+					location: { countryCode: 'DE', regionCode: null },
+					translations: { language: 'en', translations: { common: {} } },
+				})
+			)
+		);
+		const transport = lazyHosted(
+			{ backendURL: 'https://backend.example' },
+			() => Promise.resolve({ createHostedTransport })
+		)(context);
+
+		await transport.init?.({
+			...initContext(),
+			experiment: { arm: 'compact', id: 'banner-copy' },
+		});
+
+		expect(fetchSpy).toHaveBeenCalledTimes(1);
+		const sent = new URL(String(fetchSpy.mock.calls[0]?.[0]));
+		expect(sent.searchParams.toString()).toContain('compact');
+	});
+
 	test('sends no early /init with init headers, which the transport filters', async () => {
 		const init = vi.fn(() => Promise.resolve({}));
 		const transport = lazyHosted(
