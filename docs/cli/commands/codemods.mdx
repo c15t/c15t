@@ -78,14 +78,17 @@ each target on its own and keeps the others. When `package.json` lists
 a stylesheet `@import` has a `layer()`, `supports()` or media condition, it
 keeps the import, points it at `styles.css` from the `c15t` entry, and leaves a
 `TODO(c15t v3)` comment to set `styles: false`. For a `tailwindcss` version
-such as `workspace:*`, `catalog:` or `latest`, or a range over several majors
-such as `^3 || ^4`, it reads the installed `tailwindcss`. If it still can't
-tell the version, it keeps the import the same way and prints a warning.
+that isn't a semver range, such as a catalog, a `link:`, `file:` or git
+specifier, or `latest`, or a range over several majors such as `workspace:*`
+or `^3 || ^4`, it reads the installed `tailwindcss`. If it still can't tell
+the version, it keeps the import the same way and prints a warning.
 
 If `package.json` lists `@c15t/react` or `@c15t/nextjs` but not `c15t` v3, it
 leaves the scoped imports and prints a warning. While those packages are v2, it
 leaves their stylesheet imports and mocks as they are too, since v2 components
-don't add their own styles. At v3, it still removes the stylesheet imports.
+don't add their own styles. For a version that isn't a semver range, such as
+`catalog:`, it reads the installed package, and treats the package as v2 when
+nothing is installed. At v3, it still removes the stylesheet imports.
 Replace the packages with `c15t@alpha` and run it again.
 
 ### Provider, transports and options
@@ -137,9 +140,10 @@ stylesheets and in string and template literals, including inline `style`
 objects.
 
 `postcss-tailwind3` runs when `package.json` lists `tailwindcss` 3 and c15t.
-For a version such as `workspace:*`, `catalog:` or `latest`, or a range over
-several majors such as `^3 || ^4`, it reads the installed `tailwindcss`, and
-prints a warning if it still can't tell.
+For a version that isn't a semver range, such as a catalog, a `link:`, `file:`
+or git specifier, or `latest`, or a range over several majors such as
+`workspace:*` or `^3 || ^4`, it reads the installed `tailwindcss`, and prints a
+warning if it still can't tell.
 It adds `'c15t/postcss-tailwind3': {}`, or the
 `@c15t/nextjs/postcss-tailwind3` or `@c15t/react/postcss-tailwind3` plugin
 when the app uses scoped packages, to an object-form

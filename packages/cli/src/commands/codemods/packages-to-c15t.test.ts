@@ -843,6 +843,70 @@ import 'c15t/react/styles.css';
 		expect(result.warnings).toEqual([]);
 	});
 
+	it('reads the installed Tailwind CSS 3 for a named catalog', async () => {
+		const { read, result } = await run(
+			{ c15t: '^3.0.0', tailwindcss: 'catalog:frontend2026' },
+			{
+				'node_modules/tailwindcss/package.json': JSON.stringify({
+					version: '3.4.17',
+				}),
+				'src/main.ts': `import '@c15t/react/styles.css';
+`,
+			}
+		);
+
+		expect(await read('src/main.ts')).toBe(`// ${TODO}
+import 'c15t/react/styles.css';
+`);
+		expect(result.warnings).toEqual([]);
+	});
+
+	it('keeps stylesheet imports and warns for a named catalog with nothing installed', async () => {
+		const { read, result } = await run(
+			{ c15t: '^3.0.0', tailwindcss: 'catalog:frontend2026' },
+			{
+				'src/main.ts': `import '@c15t/react/styles.css';
+`,
+			}
+		);
+
+		expect(await read('src/main.ts')).toBe(`// ${TODO}
+import 'c15t/react/styles.css';
+`);
+		expect(result.warnings).toEqual([
+			expect.objectContaining({
+				message: expect.stringContaining(
+					"Could not tell the Tailwind CSS version from 'catalog:frontend2026'"
+				),
+			}),
+		]);
+	});
+
+	it.each([
+		'link:../tailwindcss-3',
+		'file:../tailwindcss-3.4.17.tgz',
+		'git+https://github.com/tailwindlabs/tailwindcss.git#v3.4.17',
+		'github:tailwindlabs/tailwindcss#v3',
+		'next',
+	])(
+		'reads the installed Tailwind CSS for %s, which is not a semver range',
+		async (specifier) => {
+			const { read, result } = await run(
+				{ c15t: '^3.0.0', tailwindcss: specifier },
+				{
+					'node_modules/tailwindcss/package.json': JSON.stringify({
+						version: '4.1.0',
+					}),
+					'src/main.ts': `import '@c15t/react/styles.css';
+`,
+				}
+			);
+
+			expect(await read('src/main.ts')).toBe('');
+			expect(result.warnings).toEqual([]);
+		}
+	);
+
 	it('reads Tailwind CSS 3 from peer and optional dependencies', async () => {
 		const files = {
 			'src/consent.tsx': `import '@c15t/react/styles.css';
@@ -1004,6 +1068,43 @@ const path = require.resolve('@c15t/react/iab/styles.tw3.css');
 					'package.json lists @c15t/react without c15t 3, so their imports were left as they are. Replace them with c15t@alpha and run packages-to-c15t again to point them at c15t/react or c15t/next.',
 			},
 		]);
+	});
+
+	it.each([
+		['reads the installed version', { version: '2.3.0' }],
+		['assumes v2 with nothing installed', undefined],
+	])(
+		'keeps stylesheet imports for @c15t/react from a catalog: %s',
+		async (_name, installed) => {
+			const css = `@import "@c15t/react/styles.css";
+`;
+			const { read } = await run(
+				{ '@c15t/react': 'catalog:' },
+				{
+					...(installed && {
+						'node_modules/@c15t/react/package.json': JSON.stringify(installed),
+					}),
+					'src/index.css': css,
+				}
+			);
+
+			expect(await read('src/index.css')).toBe(css);
+		}
+	);
+
+	it('removes stylesheet imports for @c15t/react from a catalog when v3 is installed', async () => {
+		const { read } = await run(
+			{ '@c15t/react': 'catalog:' },
+			{
+				'node_modules/@c15t/react/package.json': JSON.stringify({
+					version: '3.0.0-alpha.9',
+				}),
+				'src/index.css': `@import "@c15t/react/styles.css";
+`,
+			}
+		);
+
+		expect(await read('src/index.css')).toBe('');
 	});
 
 	it('leaves v3 entries and other packages alone', async () => {

@@ -76,15 +76,16 @@ const RANGE_PREFIX = /^(?:workspace:|npm:(?:@[^/]+\/)?[^@]+@)/u;
 
 /**
  * The one major version a specifier allows, or null when it allows several,
- * such as `^3 || ^4` or `>=2 <4`, or names no version. A specifier that isn't
- * a semver range, such as a git URL, falls back to its first number.
+ * such as `^3 || ^4` or `>=2 <4`, or isn't a semver range. A catalog, a
+ * `link:`, `file:` or git specifier, or a dist-tag can name any version,
+ * whatever digits it holds.
  */
 const declaredMajorOf = function declaredMajorOf(
 	specifier: string
 ): number | null {
 	const range = validRange(specifier.replace(RANGE_PREFIX, ''));
 	if (range === null) {
-		return majorOf(specifier);
+		return null;
 	}
 	const major = minVersion(range)?.major;
 	if (major === undefined) {
@@ -111,20 +112,42 @@ const admitsMajor = function admitsMajor(
 	);
 };
 
+/** The major version of an installed package, or null when it isn't installed. */
+const installedMajor = async function installedMajor(
+	projectRoot: string,
+	name: string
+): Promise<number | null> {
+	try {
+		const installed = JSON.parse(
+			await readFile(
+				join(projectRoot, 'node_modules', name, 'package.json'),
+				'utf-8'
+			)
+		) as { version?: string };
+		return majorOf(installed.version);
+	} catch {
+		return null;
+	}
+};
+
 /**
- * Whether a semver specifier allows a version below this major, such as
- * `^2.3.0` or `^2 || ^3` below 3. A specifier that isn't a semver range,
- * such as a dist-tag or a git URL, doesn't.
+ * Whether a dependency may be below this major: its semver range allows a
+ * version below it, such as `^2.3.0` or `^2 || ^3` below 3. For a specifier
+ * that isn't a range, such as `catalog:`, the installed version decides, and
+ * with nothing installed it may be.
  */
-export const admitsBelowMajor = function admitsBelowMajor(
+export const mayBeBelowMajor = async function mayBeBelowMajor(
+	projectRoot: string,
+	name: string,
 	specifier: string,
 	major: number
-): boolean {
+): Promise<boolean> {
 	const range = validRange(specifier.replace(RANGE_PREFIX, ''));
-	return (
-		range !== null &&
-		intersects(range, `<${major}.0.0-0`, { includePrerelease: true })
-	);
+	if (range !== null) {
+		return intersects(range, `<${major}.0.0-0`, { includePrerelease: true });
+	}
+	const installed = await installedMajor(projectRoot, name);
+	return installed === null || installed < major;
 };
 
 /**
@@ -158,26 +181,15 @@ export const declaresTailwind3 = function declaresTailwind3(
 
 /**
  * The Tailwind CSS major version. A specifier without a single major, such
- * as `latest`, `workspace:*`, `catalog:` or `^3 || ^4`, falls back to the
- * installed package.
+ * as `latest`, `workspace:*`, `catalog:`, a git URL or `^3 || ^4`, falls back
+ * to the installed package.
  */
 export const tailwindMajor = async function tailwindMajor(
 	projectRoot: string,
 	specifier: string
 ): Promise<number | null> {
-	const declared = declaredMajorOf(specifier);
-	if (declared !== null) {
-		return declared;
-	}
-	try {
-		const installed = JSON.parse(
-			await readFile(
-				join(projectRoot, 'node_modules', 'tailwindcss', 'package.json'),
-				'utf-8'
-			)
-		) as { version?: string };
-		return majorOf(installed.version);
-	} catch {
-		return null;
-	}
+	return (
+		declaredMajorOf(specifier) ??
+		(await installedMajor(projectRoot, 'tailwindcss'))
+	);
 };

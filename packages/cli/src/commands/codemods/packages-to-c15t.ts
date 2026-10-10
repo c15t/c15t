@@ -4,9 +4,9 @@ import { Node, SyntaxKind } from 'ts-morph';
 import type * as TsMorphTypes from 'ts-morph';
 
 import {
-	admitsBelowMajor,
 	declaresTailwind3,
 	dependenciesOf,
+	mayBeBelowMajor,
 	readPackageJson,
 	tailwindMajor,
 	usesUmbrella,
@@ -674,23 +674,29 @@ const transformStylesheet = function transformStylesheet(
 /**
  * The scoped packages whose stylesheets still come from v2. A package the
  * manifest doesn't list follows the one it does, as `@c15t/nextjs` v2
- * installs `@c15t/react` v2.
+ * installs `@c15t/react` v2. A specifier that isn't a semver range, such as
+ * `catalog:`, goes by the installed version, or counts as v2 when nothing is
+ * installed, since removing a stylesheet v2 needs breaks the styling.
  */
-const v2StylesheetsOf = function v2StylesheetsOf(
+const v2StylesheetsOf = async function v2StylesheetsOf(
+	projectRoot: string,
 	dependencies: Record<string, string>
-): Set<string> {
-	const react = dependencies['@c15t/react'];
-	const nextjs = dependencies['@c15t/nextjs'];
-	const packages = new Set<string>();
-	for (const [pkg, specifier] of [
-		['react', react ?? nextjs],
-		['nextjs', nextjs ?? react],
-	] as const) {
-		if (specifier !== undefined && admitsBelowMajor(specifier, 3)) {
-			packages.add(pkg);
-		}
-	}
-	return packages;
+): Promise<Set<string>> {
+	const scoped = await Promise.all(
+		(['react', 'nextjs'] as const).map(async (pkg) => {
+			const other = pkg === 'react' ? 'nextjs' : 'react';
+			const name =
+				dependencies[`@c15t/${pkg}`] === undefined
+					? `@c15t/${other}`
+					: `@c15t/${pkg}`;
+			const specifier = dependencies[name];
+			const v2 =
+				specifier !== undefined &&
+				(await mayBeBelowMajor(projectRoot, name, specifier, 3));
+			return v2 ? [pkg] : [];
+		})
+	);
+	return new Set(scoped.flat());
 };
 
 /**
@@ -727,7 +733,9 @@ export const runPackagesToC15tCodemod = async function runPackagesToC15tCodemod(
 		// Tailwind CSS 3 needs breaks the styling.
 		tailwind3: major === 3 || major === null || declaresTailwind3(manifest),
 		umbrella,
-		v2Stylesheets: umbrella ? new Set() : v2StylesheetsOf(dependencies),
+		v2Stylesheets: umbrella
+			? new Set()
+			: await v2StylesheetsOf(options.projectRoot, dependencies),
 	};
 	const requireWarnings: { filePath: string; message: string }[] = [];
 	const sources = await runTransform(
