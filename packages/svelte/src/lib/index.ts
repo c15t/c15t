@@ -2,7 +2,6 @@ export {
 	custom,
 	defaultTranslationConfig,
 	detectBrowserLanguage,
-	hosted,
 	mergeTranslationConfigs,
 	offline,
 	policyRulePresets,
@@ -109,6 +108,8 @@ export type {
 	UseScriptLoaderOptions,
 } from './types';
 export type { DialogPreload } from './dialog-warming';
+export type { HostedOptions } from './transports/hosted';
+export { hosted } from './transports/hosted';
 export type { ManifestModeOptions } from './transports/manifest';
 export { manifest } from './transports/manifest';
 export type { BrowserManifestModeFactory } from '@c15t/core/transports/manifest-browser';
