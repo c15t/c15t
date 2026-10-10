@@ -149,7 +149,7 @@ export function ConsentProvider({ children }: { children: ReactNode }) {
 		expect(updated).toContain('ConsentProvider as ConsentManagerProvider');
 		expect(updated).toContain('export function ConsentProvider(');
 		expect(updated).toContain(
-			"<ConsentManagerProvider options={{ mode: hosted({ url: '/api/c15t' }) }}>"
+			"<ConsentManagerProvider options={{ mode: hosted({ backendURL: '/api/c15t' }) }}>"
 		);
 		expect(updated).toContain('</ConsentManagerProvider>');
 	});
