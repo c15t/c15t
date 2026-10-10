@@ -10,8 +10,10 @@ export const BACKEND_URL_ENV = {
 	vite: 'VITE_C15T_BACKEND_URL',
 } as const;
 
+// No capture group: the native scriptc build can't lower
+// `RegExpMatchArray.groups`. Slice off `from '` and `';` instead.
 const specifierOf = (statement: string): string =>
-	statement.match(/from '(?<specifier>[^']+)';$/u)?.groups?.specifier ?? '';
+	statement.match(/from '[^']+';$/u)?.[0].slice(6, -2) ?? '';
 
 /**
  * Join import statements in module-specifier order, the order the examples
