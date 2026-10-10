@@ -24,8 +24,8 @@ import type { C15tLocals, ConsentRequestOptions } from './types';
 export interface C15tHandleOptions extends ConsentRequestOptions {
 	/**
 	 * The c15t backend. Defaults to the URL `consentManifest()` read from
-	 * `PUBLIC_C15T_BACKEND_URL`. A `hosted({ backendURL })` mode's own URL
-	 * wins.
+	 * `PUBLIC_C15T_BACKEND_URL` or `PUBLIC_INTH_PROJECT_URL`. A
+	 * `hosted({ backendURL })` mode's own URL wins.
 	 */
 	backendURL?: string;
 	/**

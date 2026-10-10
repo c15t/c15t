@@ -19,7 +19,8 @@ export type ManifestModeOptions = BrowserManifestOptions;
  *
  * With no options it uses what `consentManifest()` from
  * `@c15t/svelte/vite` downloaded: the snapshot, and the backend URL it
- * read from `VITE_C15T_BACKEND_URL`. Saves still go to that backend.
+ * read from `VITE_C15T_BACKEND_URL` or `VITE_INTH_PROJECT_URL`. Saves
+ * still go to that backend.
  * With `manifestURL`, that URL is fetched when the page loads and the
  * build's snapshot is not used. Without a snapshot, as after
  * `source: 'runtime'` or a dev server that could not reach the backend,

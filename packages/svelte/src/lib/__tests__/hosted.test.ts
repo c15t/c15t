@@ -26,6 +26,8 @@ describe('hosted()', () => {
 	});
 
 	test('names the plugin and the variable when no URL is known', () => {
-		expect(() => hosted()).toThrow('consentManifest() from @c15t/svelte/vite');
+		expect(() => hosted()).toThrow(
+			'c15t: hosted() has no backend URL. Add consentManifest() from @c15t/svelte/vite to vite.config.ts and set VITE_C15T_BACKEND_URL (or VITE_INTH_PROJECT_URL), or pass `backendURL`.'
+		);
 	});
 });

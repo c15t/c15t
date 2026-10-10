@@ -106,7 +106,8 @@ export interface ConsentRouteOptions {
 	/**
 	 * The c15t backend. Defaults to what `c15tHandle()` was given: a
 	 * `hosted()` mode's `backendURL`, then the handle's `backendURL`, then
-	 * the URL `consentManifest()` read from `PUBLIC_C15T_BACKEND_URL`. A
+	 * the URL `consentManifest()` read from `PUBLIC_C15T_BACKEND_URL` or
+	 * `PUBLIC_INTH_PROJECT_URL`. A
 	 * handle `backendURL` that points at this route, as in the proxy setup,
 	 * is skipped. The manifest is read from `${backendURL}/manifest` when
 	 * there is no snapshot.

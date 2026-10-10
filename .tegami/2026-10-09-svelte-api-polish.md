@@ -57,7 +57,8 @@ export { loadConsent as load } from '@c15t/svelte/kit';
 - `consentManifest()` now includes the module-preload plugin when the
   `sveltekit()` plugin is present, and keeps the snapshot out of the browser
   bundle there. It reads `PUBLIC_C15T_BACKEND_URL`, then
-  `VITE_C15T_BACKEND_URL`. A failed download stops `vite build` and warns in
+  `VITE_C15T_BACKEND_URL`, then `PUBLIC_INTH_PROJECT_URL` and
+  `VITE_INTH_PROJECT_URL`. A failed download stops `vite build` and warns in
   `vite dev`; `onBuildError` and `C15T_ON_BUILD_ERROR` change that. In a
   Svelte single-page app, it warns when the bundled policy depends on the
   visitor's location and suggests `hosted()`.
