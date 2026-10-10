@@ -1,5 +1,5 @@
 import { readFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 
 import {
 	intersects,
@@ -98,24 +98,47 @@ const admitsMajor = function admitsMajor(
 	);
 };
 
-/** The version of an installed package, or null when it isn't installed. */
-export const installedVersion = async function installedVersion(
-	projectRoot: string,
-	name: string
-): Promise<string | null> {
+/** The valid version a `package.json` text declares, or null. */
+const versionIn = function versionIn(text: string): string | null {
 	try {
-		const { version } = JSON.parse(
-			await readFile(
-				join(projectRoot, 'node_modules', name, 'package.json'),
-				'utf-8'
-			)
-		) as { version?: unknown };
+		const { version } = JSON.parse(text) as { version?: unknown };
 		return typeof version === 'string' && valid(version) !== null
 			? version
 			: null;
 	} catch {
 		return null;
 	}
+};
+
+/** A directory and each directory above it, up to the filesystem root. */
+const ancestorsOf = function ancestorsOf(directory: string): string[] {
+	const parent = dirname(directory);
+	return parent === directory
+		? [directory]
+		: [directory, ...ancestorsOf(parent)];
+};
+
+/**
+ * The version of an installed package, or null when it isn't installed.
+ * Like Node.js, it looks in `node_modules` in the project and then in each
+ * directory above it, so a package a workspace hoists to its root counts.
+ * It reads the package's `package.json` directly, as its `exports` may not
+ * expose it to `require.resolve()`.
+ */
+export const installedVersion = async function installedVersion(
+	projectRoot: string,
+	name: string
+): Promise<string | null> {
+	const manifests = await Promise.all(
+		ancestorsOf(resolve(projectRoot)).map((directory) =>
+			readFile(
+				join(directory, 'node_modules', name, 'package.json'),
+				'utf-8'
+			).catch(() => undefined)
+		)
+	);
+	const nearest = manifests.find((text) => text !== undefined);
+	return nearest === undefined ? null : versionIn(nearest);
 };
 
 /** The major version of an installed package, or null when it isn't installed. */

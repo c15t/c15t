@@ -1481,6 +1481,35 @@ const path = require.resolve('@c15t/react/iab/styles.tw3.css');
 		}
 	);
 
+	it('reads the Tailwind CSS version a workspace hoists to its root', async () => {
+		const css = `@import "@c15t/react/styles.css";
+`;
+		const rootDir = await createProject({
+			'node_modules/tailwindcss/package.json': JSON.stringify({
+				version: '3.4.17',
+			}),
+			'package.json': JSON.stringify({
+				name: 'root',
+				workspaces: ['packages/*'],
+			}),
+			'packages/app/package.json': JSON.stringify({
+				dependencies: { c15t: '^3.0.0', tailwindcss: 'catalog:' },
+				name: 'app',
+			}),
+			'packages/app/src/index.css': css,
+		});
+		const app = join(rootDir, 'packages/app');
+
+		const result = await codemod({ dryRun: false, projectRoot: app });
+
+		// Tailwind CSS 3 keeps the import; nothing warns about the catalog.
+		expect(await readFile(join(app, 'src/index.css'), 'utf-8'))
+			.toBe(`/* ${TODO} */
+@import "c15t/react/styles.css";
+`);
+		expect(result.warnings).toEqual([]);
+	});
+
 	it('removes stylesheet imports for @c15t/react from a catalog when v3 is installed', async () => {
 		const { read } = await run(
 			{ '@c15t/react': 'catalog:' },

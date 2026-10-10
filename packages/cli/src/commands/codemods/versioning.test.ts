@@ -136,6 +136,28 @@ describe('codemod versioning', () => {
 		}
 	);
 
+	it('reads a c15t version a workspace hoists to its root', async () => {
+		const rootDir = await mkdtemp(join(tmpdir(), 'c15t-versioning-'));
+		createdDirs.push(rootDir);
+		const app = join(rootDir, 'packages/app');
+		await mkdir(join(rootDir, 'node_modules/@c15t/react'), {
+			recursive: true,
+		});
+		await mkdir(app, { recursive: true });
+		await writeFile(
+			join(rootDir, 'node_modules/@c15t/react/package.json'),
+			JSON.stringify({ version: '2.3.0' }),
+			'utf-8'
+		);
+		await writeFile(
+			join(app, 'package.json'),
+			JSON.stringify({ dependencies: { '@c15t/react': 'catalog:' } }),
+			'utf-8'
+		);
+
+		expect(await detectInstalledC15tVersion(app)).toBe('2.3.0');
+	});
+
 	it('ignores the digits in a specifier that names no version', () => {
 		expect(
 			detectInstalledC15tVersionFromPackageJson({
