@@ -174,6 +174,27 @@ export default config;
 		);
 	});
 
+	it('finds the plugin under a computed key', async () => {
+		const config = `export default {
+	plugins: {
+		['c15t/postcss-tailwind3']: false,
+		[\`tailwindcss\`]: {},
+	},
+};
+`;
+		const rootDir = await createProject({
+			'package.json': manifest({ c15t: '^3.0.0', tailwindcss: '^3.4.17' }),
+			'postcss.config.mjs': config,
+		});
+		const result = await codemod({ dryRun: false, projectRoot: rootDir });
+
+		expect(result.changedFiles).toEqual([]);
+		expect(result.warnings).toEqual([]);
+		expect(await readFile(join(rootDir, 'postcss.config.mjs'), 'utf-8')).toBe(
+			config
+		);
+	});
+
 	it('warns and leaves an array-form config unchanged', async () => {
 		const config = `module.exports = { plugins: [require('tailwindcss'), require('autoprefixer')] };
 `;

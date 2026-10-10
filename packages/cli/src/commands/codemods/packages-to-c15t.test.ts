@@ -984,6 +984,34 @@ export default defineConfig({
 		expect(await read('src/index.css')).toBe(stylesheet);
 	});
 
+	it('keeps a disabled computed PostCSS plugin key disabled', async () => {
+		const { read, rootDir } = await run(
+			{ c15t: '^3.0.0', tailwindcss: '^3.4.17' },
+			{
+				'postcss.config.mjs': `export default {
+	plugins: {
+		['@c15t/react/postcss-tailwind3']: false,
+		tailwindcss: {},
+	},
+};
+`,
+			}
+		);
+		const tailwind3 = await postcssTailwind3({
+			dryRun: false,
+			projectRoot: rootDir,
+		});
+
+		expect(tailwind3.changedFiles).toEqual([]);
+		expect(await read('postcss.config.mjs')).toBe(`export default {
+	plugins: {
+		['c15t/postcss-tailwind3']: false,
+		tailwindcss: {},
+	},
+};
+`);
+	});
+
 	it.each(['workspace:*', 'catalog:', 'latest', '*', 'file:../tailwindcss'])(
 		'keeps stylesheet imports and warns when Tailwind CSS %s does not resolve',
 		async (specifier) => {

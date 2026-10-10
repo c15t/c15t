@@ -299,7 +299,11 @@ export const isNodeRequire = function isNodeRequire(
 	});
 };
 
-/** An object property's key without quotes, or undefined when computed. */
+/**
+ * An object property's key without quotes. A computed key counts when it is
+ * a string, as in `['tailwindcss']: {}`; any other computed key is
+ * `undefined`.
+ */
 export const propertyKey = function propertyKey(
 	property: TsMorphTypes.ObjectLiteralElementLike
 ): string | undefined {
@@ -310,10 +314,13 @@ export const propertyKey = function propertyKey(
 	) {
 		return undefined;
 	}
-	const name = property.getNameNode();
-	if (Node.isIdentifier(name)) {
-		return name.getText();
+	const nameNode = property.getNameNode();
+	if (Node.isIdentifier(nameNode)) {
+		return nameNode.getText();
 	}
+	const name = Node.isComputedPropertyName(nameNode)
+		? nameNode.getExpression()
+		: nameNode;
 	if (
 		Node.isStringLiteral(name) ||
 		Node.isNoSubstitutionTemplateLiteral(name)
