@@ -194,6 +194,35 @@ const IAB_STYLES_DEFERRED_GZIP_BYTES = 7168;
 /** Bundle entries that render a stock surface. */
 const SURFACE_ENTRIES = new Set(['iab-lazy', 'ordinary-react']);
 
+/**
+ * `@c15t/browser` exports `manifest()`, whose browser resolver loads each
+ * non-English language's base copy through its own `import()`. esbuild
+ * emits a chunk for every `import()` in a file it scans, so an entry that
+ * only calls `init()` still emits the resolver chunks and 34 language
+ * chunks it cannot request: 86,849 bytes gzip on the browser entries,
+ * measured on #1450 against v3 at a6ceeba59. The same change cut those
+ * entries' first-load JavaScript by about 16 kB gzip and their reachable
+ * total by about 17 kB. The deferred budget carries the chunks once; it
+ * returns to its previous value after the change is on the base branch.
+ */
+const BROWSER_LANGUAGE_CHUNKS_GZIP_BYTES = 87_040;
+
+/** Bundle entries that import `manifest()` from `@c15t/browser`. */
+const BROWSER_MANIFEST_ENTRIES = new Set(['browser-full', 'browser-headless']);
+
+/**
+ * `clientMode()` loads hosted mode, offline mode and the browser resolver
+ * from self-contained bundles (`dist/runtime/lazy-*.js`), so Rolldown does
+ * not split shared modules out of a page's first-load chunk. Each bundle
+ * repeats modules the bundleless build also ships: 55,452 packed bytes,
+ * measured on #1450 against v3 at a6ceeba59, where the tarball was 323,549
+ * bytes. The core tarball budget carries them once, in bytes and as a share
+ * of that tarball, and returns to its previous limits after the change is on
+ * the base branch.
+ */
+const CLIENT_MODE_BUNDLES_TARBALL_BYTES = 56_320;
+const CLIENT_MODE_BUNDLES_TARBALL_PERCENT = 18;
+
 export const bundleBudgets: MetricBudget[] = [
 	{
 		comparator: 'delta-bytes-lte',
@@ -241,10 +270,11 @@ export const artifactBudgets: MetricBudget[] = [
 	{
 		comparator: 'absolute-and-percent-lte',
 		description:
-			'@c15t/core tarball growth, excluding bundled docs, must stay below 15kB and 10%, plus the vendor consent allowance.',
+			'@c15t/core tarball growth, excluding bundled docs, must stay below 15kB and 10%, plus the vendor consent and clientMode() bundle allowances.',
 		metric: '@c15t/core',
-		secondaryThreshold: 10,
-		threshold: 15360 + VENDOR_CONSENT_TARBALL_BYTES,
+		secondaryThreshold: 10 + CLIENT_MODE_BUNDLES_TARBALL_PERCENT,
+		threshold:
+			15360 + VENDOR_CONSENT_TARBALL_BYTES + CLIENT_MODE_BUNDLES_TARBALL_BYTES,
 	},
 	{
 		comparator: 'absolute-and-percent-lte',
@@ -1219,6 +1249,10 @@ export const bundleEntryBudgets = function bundleEntryBudgets(
 	const additionalDeferredStyles =
 		emittedProviderStyles +
 		(scenario === 'iab-lazy' ? IAB_STYLES_DEFERRED_GZIP_BYTES : 0);
+	// Unreachable, so only the deferred budget counts them.
+	const languageChunks = BROWSER_MANIFEST_ENTRIES.has(scenario)
+		? BROWSER_LANGUAGE_CHUNKS_GZIP_BYTES
+		: 0;
 	return [
 		{
 			comparator: 'delta-bytes-lte',
@@ -1234,9 +1268,13 @@ export const bundleEntryBudgets = function bundleEntryBudgets(
 			// growth that is not offset by a smaller first load.
 			comparator: 'delta-bytes-lte',
 			description:
-				'Deferred emitted JavaScript may grow by at most 12 KiB gzip, plus the ordinary or IAB styles emitted by this entry.',
+				'Deferred emitted JavaScript may grow by at most 12 KiB gzip, plus the ordinary or IAB styles and the browser language chunks emitted by this entry.',
 			metric: 'lazyGzip',
-			threshold: 12_288 + surfaceStyles.deferred + additionalDeferredStyles,
+			threshold:
+				12_288 +
+				surfaceStyles.deferred +
+				additionalDeferredStyles +
+				languageChunks,
 		},
 		{
 			comparator: 'delta-bytes-lte',
