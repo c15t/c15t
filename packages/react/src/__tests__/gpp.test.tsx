@@ -2,6 +2,7 @@
  * `ConsentGPP` from `@c15t/react/gpp`: it mounts `window.__gpp` on the
  * provider's kernel and removes it on unmount.
  */
+import type { ProviderTransportFactory } from '@c15t/core';
 import { createConsentRuntime } from '@c15t/core/runtime';
 import type { GPPPingData } from '@c15t/iab/gpp';
 import { policyRulePresets } from '@c15t/schema/types';
@@ -90,5 +91,39 @@ test('logs a mount failure and leaves the app rendered', async () => {
 		expect.objectContaining({ message: expect.stringContaining('cmpId') })
 	);
 	expect(window.__gpp).toBeUndefined();
+	await screen.unmount();
+});
+
+test('installs __gpp within a microtask of the first init()', async () => {
+	// `manifest()` from `@c15t/browser` relies on this: before it answers a
+	// visitor whose location it does not know, it waits one microtask and
+	// asks the backend instead when `__gpp` exists by then.
+	const seen: { atInit?: boolean; afterMicrotask?: boolean } = {};
+	const watching: ProviderTransportFactory = Object.assign(
+		(context: Parameters<ProviderTransportFactory>[0]) => {
+			const transport = mode(context);
+			return {
+				...transport,
+				init: (ctx: Parameters<typeof transport.init>[0]) => {
+					seen.atInit ??= typeof window.__gpp === 'function';
+					return Promise.resolve().then(() => {
+						seen.afterMicrotask ??= typeof window.__gpp === 'function';
+						return transport.init(ctx);
+					});
+				},
+			};
+		},
+		{ kind: 'custom' as const }
+	);
+	const screen = await render(
+		<ConsentProvider
+			options={{ mode: watching, overrides, persistence: false }}
+		>
+			<ConsentGPP />
+		</ConsentProvider>
+	);
+
+	await vi.waitFor(() => expect(seen.afterMicrotask).toBe(true));
+	expect(seen.atInit).toBe(false);
 	await screen.unmount();
 });

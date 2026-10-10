@@ -2,20 +2,28 @@ import {
 	c15tProtocolHeaders,
 	createHostedTransport,
 	createUnreportedJourneys,
+	earlyInitModes,
 	mapInitOutputToInitResponse,
 } from '@c15t/core';
 import type {
+	EarlyInitMode,
 	InitContext,
 	InitResponse,
 	KernelOverrides,
 	KernelTransport,
+	ProviderTransportContext,
 	ProviderTransportFactory,
 } from '@c15t/core';
 import type {
 	ConsentManifest,
+	InitOutput,
+	PolicyResolution,
 	ResolveInitFromManifestInputs,
 } from '@c15t/schema/types';
-import { resolveInitFromManifest } from '@c15t/schema/types';
+import {
+	resolveInitFromManifest,
+	resolvePolicyResolutionFromManifest,
+} from '@c15t/schema/types';
 import { enTranslations } from '@c15t/translations';
 import type { BaseTranslations } from '@c15t/translations/all';
 
@@ -79,14 +87,133 @@ const deriveBackendURL = function deriveBackendURL(
 	return trimmed.slice(0, -'/manifest'.length);
 };
 
+/** Whether any pack is keyed by country or region. */
+const hasLocationMatchers = function hasLocationMatchers(
+	manifest: ConsentManifest
+): boolean {
+	return (manifest.policyPacks ?? []).some(
+		(pack) =>
+			(pack.match.countries?.length ?? 0) > 0 ||
+			(pack.match.regions?.length ?? 0) > 0
+	);
+};
+
+/** Stands in for a region no pack lists. Never a real subdivision code. */
+const UNLISTED_REGION = '?';
+
+/**
+ * One location for every way the matcher can treat a visitor: unknown,
+ * an unlisted country, and each listed country with its listed regions,
+ * an unlisted region and no region. Any location resolves the same way as
+ * one of these, so their outcomes are every outcome the manifest has.
+ */
+const representativeLocations = function representativeLocations(
+	manifest: ConsentManifest
+): { countryCode: string | null; regionCode: string | null }[] {
+	const countries = new Set<string>();
+	const locations: { countryCode: string | null; regionCode: string | null }[] =
+		[{ countryCode: null, regionCode: null }];
+	for (const { match } of manifest.policyPacks ?? []) {
+		for (const country of [
+			...(match.countries ?? []),
+			...(match.regionFallbacks ?? []),
+		]) {
+			countries.add(country.trim().toUpperCase());
+		}
+		for (const { country, region } of match.regions ?? []) {
+			countries.add(country.trim().toUpperCase());
+			locations.push({ countryCode: country, regionCode: region });
+		}
+	}
+	for (const country of countries) {
+		locations.push(
+			{ countryCode: country, regionCode: null },
+			{ countryCode: country, regionCode: UNLISTED_REGION }
+		);
+	}
+	// `ZZ` is a user-assigned ISO code no real visitor has. The matcher
+	// takes any string, so lengthen it until the manifest does not list it.
+	let unlisted = 'ZZ';
+	while (countries.has(unlisted)) {
+		unlisted += 'Z';
+	}
+	locations.push({ countryCode: unlisted, regionCode: null });
+	return locations;
+};
+
+type MatchedResolution = Extract<PolicyResolution, { status: 'matched' }>;
+
+/**
+ * What a visitor experiences under a resolution: the behavior the
+ * fingerprints hash (model, prompt, scope, defaults, validity, GPC
+ * handling, copy revision) plus the message profile, which changes the
+ * banner's copy. The policy id is left out on purpose: two packs with the
+ * same behavior show the same banner.
+ */
+const experienceKey = function experienceKey(
+	resolution: MatchedResolution
+): string {
+	const { fingerprints, policy } = resolution;
+	return JSON.stringify([
+		fingerprints.policy,
+		fingerprints.choice,
+		fingerprints.notice,
+		fingerprints.legacyMaterial ?? null,
+		policy.i18n ?? null,
+	]);
+};
+
+const locationFreeOutcomes = new WeakMap<
+	ConsentManifest,
+	MatchedResolution | null
+>();
+
+/**
+ * The resolution every location gives this manifest, when they all give
+ * the same experience; `null` when any two differ or any location fails
+ * to match. Computed once per manifest object.
+ */
+const locationFreeOutcome = function locationFreeOutcome(
+	manifest: ConsentManifest
+): MatchedResolution | null {
+	if (locationFreeOutcomes.has(manifest)) {
+		return locationFreeOutcomes.get(manifest) ?? null;
+	}
+	let outcome: MatchedResolution | null = null;
+	let key: string | undefined;
+	let locations: ReturnType<typeof representativeLocations> = [];
+	try {
+		locations = representativeLocations(manifest);
+	} catch {
+		// Malformed matchers: the resolver fails them too, so ask `/init`.
+	}
+	for (const location of locations) {
+		const resolution = resolvePolicyResolutionFromManifest(manifest, location);
+		if (resolution.status !== 'matched') {
+			outcome = null;
+			break;
+		}
+		const next = experienceKey(resolution);
+		if (key !== undefined && next !== key) {
+			outcome = null;
+			break;
+		}
+		key = next;
+		outcome = resolution;
+	}
+	locationFreeOutcomes.set(manifest, outcome);
+	return outcome;
+};
+
 /**
  * Whether resolving this manifest needs to know where the visitor is.
  *
- * A manifest whose packs all match by default or fallback — "one banner
- * for everyone" — resolves the same everywhere, so the browser can do it
- * without a round trip. So does a manifest without packs, which resolves
- * to `unconfigured` or `no-match` wherever the visitor is. Anything keyed by
- * country or region needs a location.
+ * A manifest without country or region packs resolves the same everywhere,
+ * so the browser can do it without a round trip. So does one whose packs
+ * are keyed by location but all give the same experience, for example
+ * opt-in with the same categories and copy in Europe, Quebec and everywhere
+ * else: only the policy id differs. A manifest where some location gets a
+ * different banner, or none, or matches no pack, needs a location.
  *
  * @param manifest - The manifest.
  * @returns `true` when a country is required for a faithful answer.
@@ -94,10 +221,27 @@ const deriveBackendURL = function deriveBackendURL(
 export const manifestNeedsLocation = function manifestNeedsLocation(
 	manifest: ConsentManifest
 ): boolean {
-	return (manifest.policyPacks ?? []).some(
-		(pack) =>
-			(pack.match.countries?.length ?? 0) > 0 ||
-			(pack.match.regions?.length ?? 0) > 0
+	return (
+		hasLocationMatchers(manifest) && locationFreeOutcome(manifest) === null
+	);
+};
+
+/**
+ * Whether a local resolution gives the copy `/init` would. The browser
+ * bundle carries English only. For any other language, `/init` lays the
+ * manifest's copy over that language's full base, while a local answer
+ * fills the gaps with English and still reports the other language. So
+ * only an English answer to an English visitor counts.
+ */
+const servesSameCopy = function servesSameCopy(
+	output: InitOutput,
+	requested: string | null | undefined
+): boolean {
+	const primary = (language: string): string =>
+		language.toLowerCase().split(/[-_]/u)[0] ?? '';
+	return (
+		primary(output.translations.language) === 'en' &&
+		primary(requested ?? 'en') === 'en'
 	);
 };
 
@@ -135,6 +279,106 @@ const browserBaseTranslations = {
 } as unknown as BaseTranslations;
 
 /**
+ * Whether these inputs place the visitor precisely enough for this
+ * manifest: it has no location packs, or the country is known and so is
+ * the region whenever some pack is keyed by region.
+ */
+const knowsLocation = function knowsLocation(
+	resolved: ConsentManifest,
+	inputs: ResolveInitFromManifestInputs
+): boolean {
+	return (
+		!hasLocationMatchers(resolved) ||
+		Boolean(
+			inputs.country &&
+			(inputs.region ||
+				!resolved.policyPacks?.some(
+					(pack) => (pack.match.regions?.length ?? 0) > 0
+				))
+		)
+	);
+};
+
+/**
+ * Whether IAB GPP is on the page: the `__gpp` stub or API is installed.
+ * Another CMP's `__gpp` counts too; it only costs a request.
+ */
+const gppOnPage = function gppOnPage(): boolean {
+	return (
+		typeof window !== 'undefined' &&
+		typeof (window as Window & { __gpp?: unknown }).__gpp === 'function'
+	);
+};
+
+/**
+ * The init the browser can answer from this manifest for these inputs, or
+ * `undefined` when it must ask `/init`. Synchronous, so a provider can ask
+ * during render whether the first `init()` will send a request.
+ *
+ * @param needsLocation - Something reads the visitor's location after
+ * init, such as GPP's US sections. A manifest keyed by location then
+ * never answers for an unknown one, even when every location gets the
+ * same banner: that answer reports no location.
+ */
+const localAnswer = function localAnswer(
+	resolved: ConsentManifest,
+	inputs: ResolveInitFromManifestInputs,
+	needsLocation: boolean
+): InitOutput | undefined {
+	const resolveLocally = () =>
+		resolveInitFromManifest(resolved, inputs, {
+			baseTranslations: browserBaseTranslations,
+		});
+	if (knowsLocation(resolved, inputs)) {
+		return resolveLocally();
+	}
+	if (needsLocation) {
+		return undefined;
+	}
+	// The location is unknown. When every location gets the same banner,
+	// the bundle already holds the answer and the banner need not wait for
+	// a round trip. IAB needs the vendor list, and a visitor in any language
+	// but English would get copy with English gaps, so both still ask `/init`.
+	const outcome = locationFreeOutcome(resolved);
+	if (!outcome || outcome.policy.model === 'iab') {
+		return undefined;
+	}
+	const local = resolveLocally();
+	return servesSameCopy(local, inputs.language) ? local : undefined;
+};
+
+/** The options each `manifest()` early-init entry was registered with. */
+const earlySettings = new WeakMap<EarlyInitMode, ManifestModeOptions>();
+
+/** Each inline manifest's JSON, built once per object. */
+const manifestText = new WeakMap<ConsentManifest, string>();
+
+/**
+ * Whether two inline manifests are the same. A manifest built during
+ * render is a new object on every render, so equal content counts too.
+ */
+const sameManifest = function sameManifest(
+	a: ConsentManifest | undefined,
+	b: ConsentManifest | undefined
+): boolean {
+	if (a === b) {
+		return true;
+	}
+	if (!a || !b || a.revision !== b.revision) {
+		return false;
+	}
+	const text = (value: ConsentManifest) => {
+		let json = manifestText.get(value);
+		if (json === undefined) {
+			json = JSON.stringify(value);
+			manifestText.set(value, json);
+		}
+		return json;
+	};
+	return text(a) === text(b);
+};
+
+/**
  * Resolve `/init` in the browser from the backend's consent manifest.
  *
  * The manifest is the geo-independent half of the backend's decision:
@@ -142,8 +386,12 @@ const browserBaseTranslations = {
  * fetching it once, cached at the CDN) lets the banner render without a
  * per-visitor `/init` round trip. Saves still go to the backend.
  *
- * When the policy depends on location and no country is known, the
- * transport falls back to `GET /init` so the answer stays faithful.
+ * When some locations get a different banner than others and no country
+ * is known, the transport falls back to `GET /init` so the answer stays
+ * faithful. Packs keyed by location that all give the same banner resolve
+ * in the browser (see {@link manifestNeedsLocation}), unless IAB GPP is on
+ * the page or the runtime: its US sections need the visitor's country, and
+ * a local answer for an unknown location reports none.
  *
  * @param options - Manifest source and backend.
  * @returns A transport factory for `mode`.
@@ -171,9 +419,6 @@ export const manifest = function manifest(
 			'@c15t/browser: manifest() needs `backendURL` unless `manifestURL` ends in `/manifest`. Pass the consent API URL, or an empty string for this origin.'
 		);
 	}
-	// `''` is a real answer: a root-relative `manifestURL` such as
-	// `/manifest` or an explicit empty backend means this origin.
-	const hosted = createHostedTransport({ backendURL, fetch: options.fetch });
 	let cached: Promise<ConsentManifest> | undefined;
 
 	const fetchManifest =
@@ -191,9 +436,6 @@ export const manifest = function manifest(
 		};
 
 	const loadManifest = async function loadManifest(): Promise<ConsentManifest> {
-		if (options.manifest) {
-			return options.manifest;
-		}
 		cached ??= fetchManifest();
 		try {
 			return await cached;
@@ -204,35 +446,98 @@ export const manifest = function manifest(
 		}
 	};
 
-	// A local resolution makes no request, so nothing carries its journey;
-	// the saves that follow send none either.
-	const unreported = createUnreportedJourneys();
-	const transport: KernelTransport = {
-		identify: hosted.identify,
-		async init(ctx: InitContext): Promise<InitResponse> {
-			const resolved = await loadManifest();
-			const { journey } = ctx;
-			const inputs = mergeInputs(options.inputs, ctx.overrides);
-			if (
-				manifestNeedsLocation(resolved) &&
-				(!inputs.country ||
-					(!inputs.region &&
-						resolved.policyPacks?.some(
-							(pack) => (pack.match.regions?.length ?? 0) > 0
-						)))
-			) {
-				unreported.reported(journey);
-				return hosted.init(ctx);
-			}
-			unreported.resolvedLocally(journey);
-			const output = resolveInitFromManifest(resolved, inputs, {
-				baseTranslations: browserBaseTranslations,
-			});
+	/**
+	 * One transport per call: a provider builds a second one to carry an
+	 * `/init` it sends during its first render, so their request state and
+	 * unreported journeys must not be shared.
+	 */
+	const createTransport = function createTransport(
+		context?: ProviderTransportContext
+	): KernelTransport {
+		// `''` is a real answer: a root-relative `manifestURL` such as
+		// `/manifest` or an explicit empty backend means this origin.
+		const hosted = createHostedTransport({ backendURL, fetch: options.fetch });
+		// A local resolution makes no request, so nothing carries its
+		// journey; the saves that follow send none either.
+		const unreported = createUnreportedJourneys();
+		const gppNeedsLocation = () => context?.gppEnabled === true || gppOnPage();
+		const ask = function ask(ctx: InitContext): Promise<InitResponse> {
+			unreported.reported(ctx.journey);
+			return hosted.init(ctx);
+		};
+		const answer = function answer(
+			output: InitOutput,
+			ctx: InitContext
+		): InitResponse {
+			unreported.resolvedLocally(ctx.journey);
 			return mapInitOutputToInitResponse(output, {});
-		},
-		loadSubjectRecord: hosted.loadSubjectRecord,
-		save: (payload) => hosted.save(unreported.strip(payload)),
+		};
+		const initFrom = function initFrom(
+			resolved: ConsentManifest,
+			ctx: InitContext
+		): Promise<InitResponse> {
+			const inputs = mergeInputs(options.inputs, ctx.overrides);
+			const output = localAnswer(resolved, inputs, gppNeedsLocation());
+			if (!output) {
+				return ask(ctx);
+			}
+			if (knowsLocation(resolved, inputs)) {
+				return Promise.resolve(answer(output, ctx));
+			}
+			// This answer has no location. GPP mounted in the same task, such
+			// as React's <ConsentGPP> effect or `mountGPP()` right after
+			// `init()`, installs `__gpp` before a microtask runs.
+			return Promise.resolve().then(() =>
+				gppNeedsLocation() ? ask(ctx) : answer(output, ctx)
+			);
+		};
+		return {
+			identify: hosted.identify,
+			init(ctx: InitContext): Promise<InitResponse> {
+				// An inlined manifest decides synchronously, so an `/init` it
+				// needs leaves within this call: a provider that calls it
+				// during render gets the request out at that moment.
+				if (options.manifest) {
+					try {
+						return initFrom(options.manifest, ctx);
+					} catch (error) {
+						return Promise.reject(error);
+					}
+				}
+				return loadManifest().then((resolved) => initFrom(resolved, ctx));
+			},
+			loadSubjectRecord: hosted.loadSubjectRecord,
+			save: (payload) => hosted.save(unreported.strip(payload)),
+		};
 	};
 
-	return Object.assign(() => transport, { kind: 'custom' as const });
+	const mode = Object.assign(createTransport, { kind: 'custom' as const });
+	const settings: ManifestModeOptions = {
+		...options,
+		inputs: options.inputs && { ...options.inputs },
+	};
+	const early: EarlyInitMode = {
+		// Only an inlined manifest can tell without a request.
+		requestsInit: (overrides) =>
+			settings.manifest !== undefined &&
+			localAnswer(
+				settings.manifest,
+				mergeInputs(settings.inputs, overrides),
+				gppOnPage()
+			) === undefined,
+		sameAs: (other) => {
+			const theirs = earlySettings.get(other);
+			return (
+				theirs !== undefined &&
+				sameManifest(theirs.manifest, settings.manifest) &&
+				theirs.fetch === settings.fetch &&
+				theirs.manifestURL === settings.manifestURL &&
+				theirs.backendURL === settings.backendURL &&
+				JSON.stringify(theirs.inputs) === JSON.stringify(settings.inputs)
+			);
+		},
+	};
+	earlySettings.set(early, settings);
+	earlyInitModes.set(mode, early);
+	return mode;
 };

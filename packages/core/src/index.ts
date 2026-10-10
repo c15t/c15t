@@ -97,6 +97,8 @@ export type {
 	ProviderTransportKind,
 } from './transports/mode';
 export { custom } from './transports/custom';
+export { earlyInitModes } from './transports/early-init-modes';
+export type { EarlyInitMode } from './transports/early-init-modes';
 export { hosted } from './transports/mode';
 export type {
 	OfflineKernelTransport,
