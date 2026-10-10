@@ -17,10 +17,7 @@ const docsRoot = fileURLToPath(new URL('../docs', import.meta.url));
 
 test('documented umbrella imports exist in the package export map', async () => {
 	const exports = Object.keys(umbrellaPackage.exports);
-	const files = await fg('**/*.mdx', {
-		cwd: docsRoot,
-		ignore: ['upgrade-v3.mdx'],
-	});
+	const files = await fg('**/*.mdx', { cwd: docsRoot });
 	const invalidImports: string[] = [];
 	for (const file of files) {
 		const content = readFileSync(resolve(docsRoot, file), 'utf8');

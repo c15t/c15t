@@ -22,7 +22,7 @@ Deprecated compatibility package for @c15t/integrations. Existing imports keep w
 
 ## Documentation
 
-For further information, guides, and examples visit the [reference documentation](https://c15t.com/docs/upgrade-v3#rename-the-integrations-dependency).
+For further information, guides, and examples visit the [reference documentation](https://c15t.com/docs/cli/commands/codemods#rename-c15tscripts-imports).
 
 ## Migration
 

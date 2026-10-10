@@ -90,3 +90,4 @@ links land on the framework list. Do not mention React Native, Expo or
 | `/docs/frameworks/react-native/native-behaviour` | `/docs/frameworks` | Removed, not published in v3 |
 | `/docs/frameworks/react-native/platform-support` | `/docs/frameworks` | Removed, not published in v3 |
 | `/docs/frameworks/react-native/troubleshooting` | `/docs/frameworks` | Removed, not published in v3 |
+| `/docs/upgrade-v3` | `/docs/self-host/upgrade-v3` | Split up. Client steps live in the Next.js, React and JavaScript upgrade guides, which the self-host guide links to; the backend and Node.js SDK steps moved to the self-host guide. Keep the target free of a fragment so browsers carry over the old `#upgrade-a-self-hosted-backend` and `#update-the-nodejs-sdk` anchors, which published v3 alpha changelogs link to |

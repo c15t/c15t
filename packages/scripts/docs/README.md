@@ -15,7 +15,9 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 - [How consent works](./concepts/how-consent-works.md): What c15t decides on each page load, the difference between a permission and a recorded choice, and what happens when a visitor saves.
 - [Customize the interface](./customization/overview.md): Change c15t's consent banner and dialog one step at a time, from a prop to your own markup, and find where each step lives in your framework.
 - [Verify consent](./guides/verify-consent.md): Check in a production build that vendor requests wait for consent, rejection survives a reload, preferences reopen and privacy signals apply.
-- [Migrate to v3](./upgrade-v3.md): Upgrade from c15t v2 to v3. Pick the guide for the v2 package you use (@c15t/nextjs, @c15t/react or the c15t store), rename @c15t/scripts, keep visitors' choices, and upgrade a self-hosted backend and the Node.js SDK.
+- [Upgrade a Next.js app from v2](./frameworks/next/upgrade-v3.md): Upgrade a Next.js app from c15t v2 (@c15t/nextjs) to v3. Covers packages, ConsentRoot or ConsentProvider, the useConsentManager codemod, callbacks, policies, styles, IAB and stored consent.
+- [Upgrade a React app from v2](./frameworks/react/upgrade-v3.md): Upgrade a React app from c15t v2 (@c15t/react) to v3. Covers packages, ConsentProvider and transports, the useConsentManager codemod, callbacks, policies, styles, IAB and stored consent.
+- [Upgrade a JavaScript app from v2](./frameworks/javascript/upgrade-v3.md): Upgrade a JavaScript app from the c15t v2 store and getOrCreateConsentRuntime to v3. Covers @c15t/browser, createConsentRuntime, the consent kernel, moved exports, callbacks, policies and stored consent.
 
 ## More documentation
 
@@ -28,6 +30,7 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 - [Embeds](./frameworks/next/embeds.md): Keep YouTube videos, maps and other iframes out of a Next.js page until their consent category is allowed, with ConsentGate or the iframe blocker in ConsentRoot.
 - [Network blocker](./frameworks/next/network-blocker.md): Hold fetch and XMLHttpRequest calls in a Next.js app until their consent category is allowed, with networkBlocker rules on ConsentRoot.
 - [Scripts](./frameworks/next/scripts.md): Register vendor scripts in a Next.js ConsentRoot, check how each vendor loads, let visitors turn off one vendor, clear stored data after revocation and replace @next/third-parties.
+- [Upgrade from v2](./frameworks/next/upgrade-v3.md): Upgrade a Next.js app from c15t v2 (@c15t/nextjs) to v3. Covers packages, ConsentRoot or ConsentProvider, the useConsentManager codemod, callbacks, policies, styles, IAB and stored consent.
 
 ### TanStack Start
 
@@ -40,6 +43,7 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 - [Embeds](./frameworks/react/embeds.md): Keep YouTube videos, maps and other iframes out of a React page until their consent category is allowed, with ConsentGate or the iframe blocker in ConsentProvider.
 - [Network blocker](./frameworks/react/network-blocker.md): Hold fetch and XMLHttpRequest calls in a React app until their consent category is allowed, with networkBlocker rules in the ConsentProvider options.
 - [Scripts](./frameworks/react/scripts.md): Load vendor scripts by consent category in a React app with ConsentProvider, and clear stored data or reload the page when a visitor withdraws consent.
+- [Upgrade from v2](./frameworks/react/upgrade-v3.md): Upgrade a React app from c15t v2 (@c15t/react) to v3. Covers packages, ConsentProvider and transports, the useConsentManager codemod, callbacks, policies, styles, IAB and stored consent.
 
 ### Nuxt
 
@@ -80,6 +84,7 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 ### JavaScript
 
 - [Scripts](./frameworks/javascript/scripts.md): Register vendor scripts with @c15t/browser, createConsentRuntime or a consent kernel in JavaScript, and control what happens when a visitor withdraws permission.
+- [Upgrade from v2](./frameworks/javascript/upgrade-v3.md): Upgrade a JavaScript app from the c15t v2 store and getOrCreateConsentRuntime to v3. Covers @c15t/browser, createConsentRuntime, the consent kernel, moved exports, callbacks, policies and stored consent.
 
 ## Concepts
 
@@ -156,7 +161,3 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 - [Vercel Analytics](./integrations/vercel-analytics.md): Load the Vercel Web Analytics script only after measurement consent with the c15t vercelAnalytics helper, choose the debug script, and check it in DevTools.
 - [X Pixel](./integrations/x-pixel.md): Load the X Pixel only after marketing consent with the c15t xPixel helper, guard twq conversion events, and check it in DevTools.
 - [YouTube](./integrations/youtube.md): Gate YouTube embeds with c15t v3 in Next.js, TanStack Start, React, Nuxt, Vue, Astro, Svelte, SvelteKit or JavaScript.
-
-## Reference
-
-- [Migrate to v3](./upgrade-v3.md): Upgrade from c15t v2 to v3. Pick the guide for the v2 package you use (@c15t/nextjs, @c15t/react or the c15t store), rename @c15t/scripts, keep visitors' choices, and upgrade a self-hosted backend and the Node.js SDK.
