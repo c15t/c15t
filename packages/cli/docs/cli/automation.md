@@ -271,11 +271,14 @@ optional hints. Explicitly select `offline` or `custom` when needed. Without a
 mode, the task asks the agent to confirm it with you. The prompt includes a
 public inputs section only when you supply configuration.
 
-Codex receives the default c15t v3 frontend task and named public inputs. It
-inspects the application, proposes a setup plan, installs required c15t packages
-from the CLI's release line, and reads their version-matched bundled docs
-before adapting providers, UI, styles, and consent-gated scripts. It does not
-provision a backend or migrate a database. The prompt includes the parsed
+Codex receives the default c15t v3 frontend task and named public inputs. The
+agent inventories the application and its analytics, pixels and embeds, then
+takes the install, upgrade or replace path. It resolves exact package versions
+from the CLI's npm dist-tag, reads the version-matched bundled docs, runs the
+upgrade guide's codemods, moves every tool behind consent, and verifies consent
+in a browser. Docs links in the task point at the site for the CLI's release
+line: `https://v3.c15t.com` for v3 prereleases, `https://c15t.com` otherwise.
+It does not provision a backend or migrate a database. The prompt includes the parsed
 backend URL, and setup rejects URLs containing whitespace or control
 characters. Review the resulting diff and the agent's verification report
 before deploying.
@@ -319,7 +322,35 @@ const exitCode = await launchAgentSetup(projectDirectory, plan, abortSignal);
 `mode`, `backendURL`, `framework`, and `scripts`; it copies only those fields
 into the task. Hosts keep authentication and project selection in their own
 code. The module also exports `DEFAULT_C15T_SETUP_PROMPT`, `AgentSetupOptions`,
-and `AgentSetupPlan`. A missing executable produces an installation hint;
+and `AgentSetupPlan`.
+
+Hosts that write their own task can reuse the c15t steps alone.
+`createC15tSetupInstructions` returns the inventory, install, upgrade and
+replace paths, consent-gating rules, browser checks and handoff as Markdown,
+without account or backend provisioning steps:
+
+```ts
+import { createC15tSetupInstructions } from '@c15t/cli/frontend/agent';
+
+const task = `${hostAccountSteps}\n\n${createC15tSetupInstructions({
+	firstStep: 4,
+	mode: 'hosted',
+})}`;
+```
+
+Its options are `origin`, the docs site the agent reads; `distTag`, the npm
+dist-tag it resolves exact versions from; `mode`, which is `hosted`, `offline`
+or `custom`, or omitted so the agent asks; and `firstStep`, the number of the
+first c15t step when the host puts its own steps first. Steps refer to each
+other by name, so renumbering them breaks no reference. `origin` and `distTag`
+default to the CLI's release line. Invalid values throw.
+
+`createC15tIntegrationGuidance({ origin })` returns only the rules for moving
+analytics, pixels, tag managers and embeds behind consent, including the
+replacements for framework vendor packages such as `@next/third-parties` and
+`@nuxt/scripts`. Use it to embed those rules in another prompt or skill.
+
+A missing executable produces an installation hint;
 `launchAgentSetup` returns the agent's exit code and rejects on caller
 cancellation or launch failure. `isAgentNotStartedError` identifies rejections
 raised before Codex ran.
