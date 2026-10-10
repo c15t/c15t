@@ -40,8 +40,9 @@ VITE_C15T_BACKEND_URL=https://your-project.inth.app
 ```
 
 `consentManifest()` downloads your project's public policy from `/manifest`
-when `vite build` or `vite dev` starts, and hands it and the backend URL to
-the Vue plugin. No file is written into your project. It also keeps the c15t
+during `vite build`, or in `vite dev` when the app first loads it, and hands
+it and the backend URL to the Vue plugin. A build fetches only when the app
+uses `manifest()`. No file is written into your project. It also keeps the c15t
 components, which ship as `.vue` files, out of Vite's dependency
 pre-bundling.
 

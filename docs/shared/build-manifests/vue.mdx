@@ -1,7 +1,8 @@
 <include src="../build-time-manifest.mdx" />
 
-`consentManifest()` from `c15t/vue/vite` downloads the policy when
-`vite build` or `vite dev` starts:
+`consentManifest()` from `c15t/vue/vite` downloads the policy during
+`vite build`, when the app uses `manifest()`, and in `vite dev` when the app
+first loads it:
 
 <include src="../examples/vue/vite-config.mdx" />
 
@@ -13,10 +14,10 @@ needs no import from `c15t/generated`:
 <include src="../examples/vue/main.mdx" />
 
 The browser resolves the visitor's policy from the bundled snapshot, with no
-`/manifest` or `/init` request. Without `inputs` or `geoURL`, every visitor
-gets the policy your project assigns when the location is unknown, so
-configure that fallback rule. The app bundles the policy and English copy,
-and loads the resolver as its own chunk when it starts.
+`/manifest` request. When the policy depends on the visitor's country or
+region and neither `inputs` nor `geoURL` supplies one, the browser asks the
+backend's `/init` instead. The app bundles the policy and English copy, and
+loads the resolver as its own chunk when it needs it.
 
 When the build has no snapshot, as in `vite dev` after a failed download,
 `manifest()` fetches `${backendURL}/manifest` when the app starts.

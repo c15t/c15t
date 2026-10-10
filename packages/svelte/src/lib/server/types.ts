@@ -44,7 +44,7 @@ export interface ResolveConsentOptions extends ConsentRequestOptions {
 	/**
 	 * c15t backend base URL, absolute or origin-relative. When set, the
 	 * helper calls `${backendURL}/init` and folds the response into the
-	 * returned state when no manifest is supplied. With a manifest, an
+	 * returned state when no snapshot is supplied. With a snapshot, an
 	 * absolute backend URL receives session reports. Without either, only
 	 * cookies and headers are read.
 	 *
@@ -53,8 +53,11 @@ export interface ResolveConsentOptions extends ConsentRequestOptions {
 	 * `trustForwardedHeaders` is set.
 	 */
 	backendURL?: string;
-	/** Deployment-bound manifest. Resolves locally using this visitor's inputs. */
-	manifest?: ConsentManifest;
+	/**
+	 * The consent manifest to resolve with, such as `snapshot` from
+	 * `c15t/generated`. Resolves locally using this visitor's inputs.
+	 */
+	snapshot?: ConsentManifest;
 	/** Report manifest resolutions to the backend. @default true */
 	reportSessions?: boolean;
 	/**

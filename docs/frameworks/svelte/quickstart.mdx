@@ -52,8 +52,9 @@ VITE_C15T_BACKEND_URL=https://your-project.inth.app
 ```
 
 `consentManifest` downloads your project's public policy from
-`<backendURL>/manifest` when `vite build` or `vite dev` starts, and hands it
-and the backend URL to `manifest()`. No file is written into your project.
+`<backendURL>/manifest` during `vite build`, or in `vite dev` when the app
+first loads it, and hands it and the backend URL to `manifest()`. A build
+fetches only when the app uses `manifest()`. No file is written into your project.
 
 <include src="../../shared/build-time-manifest-notes.mdx" />
 
@@ -103,19 +104,18 @@ see [stylesheets and CSS layers](/docs/customization/stylesheets#import-the-styl
 
 To apply policy edits without a rebuild, pass `manifest({ source: 'runtime' })`,
 which fetches the manifest from the backend when the page loads. To have the
-backend resolve every visitor's location, pass `hosted()` with the backend
-URL; unlike `manifest()`, it does not read it from `consentManifest`:
+backend resolve every visitor's location, pass `hosted()`. Like `manifest()`,
+it reads the backend URL from `consentManifest`, and a `hosted()` build never
+downloads the manifest:
 
 {/* example: fragment */}
 
 ```svelte title="src/App.svelte (partial)"
 <script lang="ts">
 	import { ConsentProvider, hosted } from '@c15t/svelte';
-
-	const mode = hosted({ backendURL: import.meta.env.VITE_C15T_BACKEND_URL });
 </script>
 
-<ConsentProvider {mode} {scripts}>
+<ConsentProvider mode={hosted()} {scripts}>
 ```
 
 ## Verify consent

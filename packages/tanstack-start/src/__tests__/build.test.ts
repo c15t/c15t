@@ -17,6 +17,18 @@ const loadGenerated = (plugin: Plugin, consumer: 'client' | 'server') =>
 		plugin.resolveId('@c15t/core/generated') as string
 	);
 
+/**
+ * What a production chunk that reads every export ends up with: the module
+ * as loaded, with the stand-ins filled in after tree-shaking.
+ */
+const buildGenerated = async (
+	plugin: Plugin,
+	consumer: 'client' | 'server'
+): Promise<string> => {
+	const source = (await loadGenerated(plugin, consumer)) as string;
+	return (await plugin.renderChunk(source))?.code ?? source;
+};
+
 afterEach(async () => {
 	await Promise.all(
 		directories
@@ -43,8 +55,8 @@ describe('TanStack Start manifest generation', () => {
 			fetch: fetchSpy,
 		});
 		await plugin.configResolved({ root });
-		expect(await loadGenerated(plugin, 'server')).toContain('tanstack-build');
-		const client = await loadGenerated(plugin, 'client');
+		expect(await buildGenerated(plugin, 'server')).toContain('tanstack-build');
+		const client = await buildGenerated(plugin, 'client');
 		expect(client).not.toContain('tanstack-build');
 		expect(client).toContain('export const snapshot = undefined;');
 		expect(client).toContain(
@@ -82,12 +94,12 @@ describe('TanStack Start manifest generation', () => {
 
 	test('vite build stops when the fetch fails', async () => {
 		const root = await createRoot();
-		await expect(
-			consentManifest({
-				backendURL: 'https://consent.example.com',
-				fetch: failingFetch(),
-			}).configResolved({ command: 'build', root })
-		).rejects.toThrow(
+		const plugin = consentManifest({
+			backendURL: 'https://consent.example.com',
+			fetch: failingFetch(),
+		});
+		plugin.configResolved({ command: 'build', root });
+		await expect(buildGenerated(plugin, 'server')).rejects.toThrow(
 			"during the build (backend unavailable). Set `C15T_ON_BUILD_ERROR=runtime` (or `onBuildError: 'runtime'`) to deploy with runtime fetching."
 		);
 	});
@@ -103,11 +115,13 @@ describe('TanStack Start manifest generation', () => {
 				})
 			)
 		);
-		await consentManifest({ fetch: fetchSpy }).configResolved({
+		const plugin = consentManifest({ fetch: fetchSpy });
+		plugin.configResolved({
 			command: 'build',
 			env: { VITE_C15T_BACKEND_URL: 'https://env.example.com' },
 			root,
 		});
+		await buildGenerated(plugin, 'server');
 		expect(fetchSpy).toHaveBeenCalledWith(
 			'https://env.example.com/manifest',
 			expect.any(Object)
@@ -123,11 +137,10 @@ describe('TanStack Start manifest generation', () => {
 			fetch: fetchSpy,
 		});
 		await plugin.configResolved({ command: 'build', logger, root });
+		const server = await buildGenerated(plugin, 'server');
 		expect(fetchSpy).not.toHaveBeenCalled();
 		expect(logger.warn).not.toHaveBeenCalled();
-		expect(await loadGenerated(plugin, 'server')).toContain(
-			'export const snapshot = undefined;'
-		);
+		expect(server).toContain('export const snapshot = void 0;');
 	});
 });
 
@@ -164,10 +177,12 @@ describe('TanStack Start manifest backend URL', () => {
 		const env: Record<string, unknown> = {
 			VITE_C15T_BACKEND_URL: '/api/c15t',
 		};
-		await consentManifest({
+		const plugin = consentManifest({
 			backendURL: 'https://consent.example.com',
 			fetch: fetchSpy,
-		}).configResolved({ env, root: await tempRoot() });
+		});
+		plugin.configResolved({ env, root: await tempRoot() });
+		await buildGenerated(plugin, 'server');
 		expect(String(fetchSpy.mock.calls[0]?.[0])).toBe(
 			'https://consent.example.com/manifest'
 		);
@@ -175,13 +190,15 @@ describe('TanStack Start manifest backend URL', () => {
 	});
 
 	test('vite build fails without a backend URL', async () => {
-		await expect(
-			consentManifest().configResolved({
-				command: 'build',
-				env: {},
-				root: await tempRoot(),
-			})
-		).rejects.toThrow(/VITE_C15T_BACKEND_URL/u);
+		const plugin = consentManifest();
+		plugin.configResolved({
+			command: 'build',
+			env: {},
+			root: await tempRoot(),
+		});
+		await expect(buildGenerated(plugin, 'server')).rejects.toThrow(
+			/VITE_C15T_BACKEND_URL/u
+		);
 	});
 
 	test('vite dev warns without a backend URL', async () => {
@@ -194,11 +211,11 @@ describe('TanStack Start manifest backend URL', () => {
 			logger,
 			root,
 		});
-		expect(logger.warn).toHaveBeenCalledWith(
-			expect.stringContaining('VITE_C15T_BACKEND_URL')
-		);
 		expect(await loadGenerated(plugin, 'server')).toContain(
 			'export const snapshot = undefined;'
+		);
+		expect(logger.warn).toHaveBeenCalledWith(
+			expect.stringContaining('VITE_C15T_BACKEND_URL')
 		);
 	});
 });

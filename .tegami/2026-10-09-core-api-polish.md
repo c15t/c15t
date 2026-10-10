@@ -77,6 +77,12 @@ integration.
   change: `C15T_ON_BUILD_ERROR=runtime npm run build`.
 - The fetch is skipped, without an error, for a relative backend URL. With
   `onBuildError: 'fail'`, a relative URL stops the build.
+- The Vite plugins fetch only for a bundle that reads `snapshot`. A
+  single-page app picks its mode in app code, so `vite build` fills the
+  snapshot in after tree-shaking: a React, Vue, Svelte or JavaScript app
+  that uses `hosted()` or `offline()` never contacts the backend during the
+  build, and a backend outage no longer stops it. `vite dev` fetches when
+  the app first loads `c15t/generated`.
 
 The build reads the backend URL from the framework's public variable when you
 don't pass one, from the environment or a `.env` file:

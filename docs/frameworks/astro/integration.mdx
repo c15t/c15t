@@ -105,8 +105,8 @@ changes after it loads, such as after a language change, asks it again.
 The route renders on demand, so `astro build` with `manifest()` needs a server
 adapter. `manifest({ resolve: 'browser' })` on static output prerenders only
 `${routePrefix}/manifest`. `hosted()` and `offline()` inject nothing. Set
-`routePrefix: false` to inject nothing in `manifest()` mode, for a site that
-serves those paths itself. See
+`routePrefix: false` to inject nothing in `manifest()` mode. The browser then
+asks the backend's `/init`, not a route of your own. See
 [serve the routes yourself](/docs/frameworks/astro/server#serve-the-routes-yourself).
 
 ## Consent and scripts

@@ -89,8 +89,9 @@ When the policy depends on where the visitor is, and the browser does not
 know the country or region, browser resolution asks `geoURL`, then the
 backend's `/init`. Set `initFallback: false` to resolve for an unknown location
 instead. A policy with location rules therefore saves no request in a
-single-page app unless you pass `inputs` or `geoURL`. `consentManifest()`
-from `c15t/build` warns about this when it downloads such a policy.
+single-page app unless you pass `inputs` or `geoURL`. The `consentManifest()`
+plugins from `c15t/build`, `c15t/vue/vite` and `@c15t/svelte/vite` warn
+about this when a single-page app build bundles such a policy.
 
 ## hosted()
 
@@ -253,6 +254,12 @@ snapshot:
 - The mode is `hosted()`, `offline()`, `manifest({ snapshot })` or
   `manifest({ source: 'runtime' })` in Next.js, Nuxt and Astro. Next.js reads
   the mode from `c15t.config.ts`.
+- A single-page app built with Vite (React, Vue, Svelte, JavaScript) does
+  not use `manifest()`. The mode is set in app code, so the plugin downloads
+  the manifest only once the bundle turns out to read it, after unused code
+  is dropped. A `hosted()` or `offline()` build never contacts the backend.
+  SvelteKit and TanStack Start choose the mode on the server at runtime, so
+  their builds always download it.
 
 A failed download never reuses an older snapshot. The
 [troubleshooting guide](/docs/guides/troubleshooting#why-does-the-build-fail-to-download-the-manifest)

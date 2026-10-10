@@ -151,13 +151,38 @@ describe('plain Vue modes', () => {
 		}
 	});
 
-	test('manifest() without a location resolves the unknown-location policy, asking the backend nothing', async () => {
+	test("manifest() without a location sends the visitor to the backend's /init", async () => {
+		// A region-based policy resolved for an unknown location could apply
+		// the wrong region's rules. Core's default, shared with React,
+		// Svelte and the browser package, asks the backend instead.
+		const fetch = vi
+			.fn<typeof globalThis.fetch>()
+			.mockRejectedValue(new Error('offline'));
+		const mode = manifest({
+			backendURL: 'https://consent.example.com',
+			fetch,
+			snapshot: createManifestFixture(),
+		});
+		const transport = mode({} as Parameters<typeof mode>[0]);
+		await transport
+			.init?.({
+				journey: undefined,
+				overrides: {},
+			} as unknown as Parameters<NonNullable<typeof transport.init>>[0])
+			.catch(() => null);
+		expect(String(fetch.mock.calls[0]?.[0])).toContain(
+			'https://consent.example.com/init'
+		);
+	});
+
+	test('manifest({ initFallback: false }) resolves the unknown-location policy without a request', async () => {
 		const fetch = vi.fn<typeof globalThis.fetch>();
 		const context = createVueConsentKernelContext({
 			config: {},
 			mode: manifest({
 				backendURL: 'https://consent.example.com',
 				fetch,
+				initFallback: false,
 				snapshot: createManifestFixture(),
 			}),
 		});

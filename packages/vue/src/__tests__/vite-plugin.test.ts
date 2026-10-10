@@ -5,11 +5,14 @@
  * always is under `turbo run test`.
  */
 import { existsSync, readFileSync } from 'node:fs';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { createConsentManifestPolicyPack } from '@c15t/schema/types';
+import { build } from 'vite';
+import type { Rollup } from 'vite';
 import { describe, expect, it, vi } from 'vitest';
 
 import { consentManifest } from '../vite';
@@ -33,7 +36,7 @@ describe('Vue manifest module', () => {
 					)
 				),
 			});
-			await plugin.configResolved({ root });
+			await plugin.configResolved({ command: 'serve', root });
 			const source = await plugin.load.call(
 				{ environment: { config: { consumer: 'client' } } },
 				plugin.resolveId('c15t/generated') as string
@@ -43,6 +46,105 @@ describe('Vue manifest module', () => {
 		} finally {
 			await rm(root, { force: true, recursive: true });
 		}
+	});
+});
+
+describe('Vue production builds', () => {
+	const modesPath = join(packageDir, 'src/runtime/modes.ts');
+	/** Builds an app entry that imports the Vue plugin's modes. */
+	const buildApp = async (source: string, fetch: typeof globalThis.fetch) => {
+		const root = await mkdtemp(join(tmpdir(), 'c15t-vue-build-'));
+		try {
+			const entry = join(root, 'entry.ts');
+			await writeFile(entry, source.replace('MODES', modesPath));
+			const output = (await build({
+				build: {
+					minify: false,
+					rollupOptions: { input: entry },
+					write: false,
+				},
+				configFile: false,
+				logLevel: 'silent',
+				plugins: [
+					consentManifest({
+						backendURL: 'https://unreachable.invalid',
+						fetch,
+					}),
+				],
+				root,
+			})) as Rollup.RollupOutput;
+			return output.output
+				.map((chunk) => (chunk.type === 'chunk' ? chunk.code : ''))
+				.join('\n');
+		} finally {
+			await rm(root, { force: true, recursive: true });
+		}
+	};
+	const unreachable = () =>
+		vi
+			.fn<typeof globalThis.fetch>()
+			.mockRejectedValue(new TypeError('fetch failed'));
+
+	it.each(['hosted()', 'offline()'])(
+		'builds an app that uses %s while the backend is down',
+		async (mode) => {
+			const fetch = unreachable();
+			await buildApp(
+				`import { hosted, offline } from 'MODES';\nexport const mode = ${mode};\n`,
+				fetch
+			);
+			expect(fetch).not.toHaveBeenCalled();
+		}
+	);
+
+	it('stops a manifest() build while the backend is down', async () => {
+		const fetch = unreachable();
+		await expect(
+			buildApp(
+				"import { manifest } from 'MODES';\nexport const mode = manifest();\n",
+				fetch
+			)
+		).rejects.toThrow('could not fetch the consent manifest');
+		expect(fetch).toHaveBeenCalledTimes(1);
+	});
+});
+
+describe('location advice', () => {
+	it('suggests hosted() when a manifest() build bundles a policy that depends on location', async () => {
+		const warn = vi.fn();
+		const plugin = consentManifest({
+			backendURL: 'https://consent.example.com',
+			fetch: vi.fn<typeof globalThis.fetch>().mockImplementation(() =>
+				Promise.resolve(
+					Response.json({
+						branding: 'c15t',
+						policyPacks: [
+							createConsentManifestPolicyPack({
+								id: 'regional',
+								match: { countries: ['DE'] },
+								model: 'opt-in',
+								prompt: 'choice',
+							}),
+						],
+						revision: 'vue-regional',
+						schemaVersion: 2,
+					})
+				)
+			),
+		});
+		plugin.configResolved({
+			command: 'build',
+			logger: { info: vi.fn(), warn },
+			root: tmpdir(),
+		});
+		const source = await plugin.load.call(
+			undefined,
+			plugin.resolveId('c15t/generated') as string
+		);
+		await plugin.renderChunk(source as string);
+		expect(warn).toHaveBeenCalledWith(
+			expect.stringMatching(/^@c15t\/vue\/vite: .*location.*hosted\(\)/u)
+		);
 	});
 });
 

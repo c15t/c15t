@@ -66,6 +66,11 @@ Removed, with no deprecated alias (these were v3 alpha only):
 - Nuxt options `manifest`, `manifestURL`, `manifestSnapshot`, `buildManifest`,
   `geoURL`, `initRoute` and `manifestRoute`. Use `mode`, `routePrefix`,
   `onBuildError` and `manifest({ manifestURL, geoURL, snapshot })`.
+- The `NUXT_PUBLIC_C15T_MANIFEST_URL` and `NUXT_C15T_MANIFEST_URL`
+  environment variables. Set `mode: manifest({ manifestURL })` in
+  `nuxt.config.ts`. `NUXT_PUBLIC_C15T_BACKEND_URL` and
+  `NUXT_C15T_BACKEND_URL` still work.
+- The Nuxt option `domain`. Saves send the page's hostname.
 - `ConsentPreferencesLink`. It is `ConsentDialogLink`, at
   `runtime/components/consent-dialog-link.vue`. The floating
   `ConsentDialogTrigger` stays.
@@ -80,3 +85,13 @@ Removed, with no deprecated alias (these were v3 alpha only):
 
 `offline()` now reports the location it resolved for, so the preference
 dialog shows its title.
+
+**Location-based policies in the browser.** When the policy depends on the
+visitor's country or region and the browser has no location, the Vue
+plugin's `manifest()` and Nuxt's `manifest({ resolve: 'browser' })` now ask
+the backend's `/init`, as React, Svelte and `@c15t/browser` do. They used to
+apply the rule for an unknown location without a request, which could be
+another region's rules. Pass `inputs` or `geoURL` to resolve in the browser,
+or `initFallback: false` to the Vue plugin's `manifest()` to keep the old
+behaviour. `consentManifest()` from `c15t/vue/vite` now warns when a
+`manifest()` build bundles such a policy, and suggests `hosted()`.

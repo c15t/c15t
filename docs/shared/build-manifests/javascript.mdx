@@ -16,9 +16,10 @@ export default {
 };
 ```
 
-Without `backendURL`, the plugin reads `VITE_C15T_BACKEND_URL`. When
-`vite build` or `vite dev` starts, the plugin fetches the policy and serves it
-as `snapshot` from `c15t/generated`. In your browser entry point, pass
+Without `backendURL`, the plugin reads `VITE_C15T_BACKEND_URL`. The plugin
+fetches the policy during `vite build`, or in `vite dev` when the app first
+loads it, and serves it as `snapshot` from `c15t/generated`. A build fetches
+only when the app uses `manifest()`. In your browser entry point, pass
 `manifest()` as the mode of the existing `init()` call. It reads the snapshot
 and the backend URL from `c15t/generated`:
 

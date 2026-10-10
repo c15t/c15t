@@ -146,7 +146,8 @@ policy there. Pick a mode that lets the browser resolve it:
 
 - **`manifest({ resolve: 'browser' })` with `routePrefix: false`.** The build
   bundles the manifest into the browser bundle, and the browser resolves the
-  policy without a request to the backend.
+  policy. A policy that depends on location still asks the backend, as
+  described below.
 - **`hosted()`.** The browser calls your backend's `/init` directly, and the
   backend resolves the visitor's location.
 
@@ -162,9 +163,11 @@ bundle. The resolver loads as its own chunk when the app starts, and a
 visitor who resolves to another language loads that language's text the
 first time it is needed.
 
-The browser has no request location. Without `inputs` or `geoURL`, every
-visitor gets the policy your manifest assigns when the location is unknown,
-and the browser does not ask the backend. To resolve by location, pass
+The browser has no request location. When your policy depends on the
+visitor's country or region and neither `inputs` nor `geoURL` supplies one,
+the browser asks the backend's `/init` on the first visit, as every
+single-page app does. It doesn't apply the rule for an unknown location,
+which could be another region's. To resolve by location in the browser, pass
 `manifest({ resolve: 'browser', geoURL: '/geo' })` with a route on your own
 origin, such as an edge function your host runs, that returns the visitor's
 `country` and `region` as JSON, for example `{ "country": "DE", "region": "BE" }`. c15t resolves the

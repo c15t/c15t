@@ -61,8 +61,8 @@ Add `consentManifest` to the plugins in `vite.config.ts`:
 <include src="../../shared/examples/sveltekit/vite-config.mdx" />
 
 `consentManifest` downloads your project's public policy from
-`<backendURL>/manifest` when Vite starts, for `vite build` and `vite dev`. On
-SvelteKit 3, `svelte-kit sync` runs it too. The policy stays on the server:
+`<backendURL>/manifest` during `vite build`, and in `vite dev` the first time
+the server loads it. The policy stays on the server:
 the browser bundle never gets it. No file is written into your project. In a
 build, the plugin also lets `c15tHandle`, added below, preload the script
 loader on pages that register scripts.

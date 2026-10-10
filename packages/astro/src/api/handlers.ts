@@ -96,14 +96,24 @@ export const resolveManifestSourceURL = function resolveManifestSourceURL(
 };
 
 /**
- * Build the `init` and `manifest` route handlers.
+ * Build the `init` and `manifest` route handlers, the ones behind the
+ * injected route.
+ *
+ * With `routePrefix: false` the browser never calls a route you build from
+ * these: a page the server resolved inits again through the backend's
+ * `/init`. Mount them for other clients, or let browser resolution fetch
+ * the manifest from them with
+ * `manifest({ resolve: 'browser', manifestURL: '/api/c15t/manifest' })`.
+ * To have the browser use the route for `/init`, keep the injected route
+ * and change its path with `routePrefix`.
  *
  * @param handlerOptions - Integration options plus test seams.
  * @returns `init`, `manifest`, and a `GET` that dispatches between them by
  * the last path segment.
  * @example
  * ```ts
- * // src/pages/api/c15t/[...path].ts, with routePrefix: false
+ * // src/pages/api/c15t/[...path].ts, with routePrefix: false and
+ * // mode: manifest({ resolve: 'browser', manifestURL: '/api/c15t/manifest' })
  * import options from 'virtual:c15t/options';
  * import { createConsentRouteHandlers } from 'c15t/astro/server';
  *

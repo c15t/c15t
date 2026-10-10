@@ -142,11 +142,16 @@ fetches. `hosted()` and `offline()` inject no route.
 
 With `routePrefix: false`, the integration injects nothing and `astro build`
 no longer needs an adapter for it. The browser then asks the backend's
-`/init` on pages the server did not resolve. To answer `init` and `manifest`
-from a route of your own, export the handlers the injected route uses,
-`createConsentRouteHandlers({ options })` from `c15t/astro/server`, with the
-resolved integration options. Its `GET(request, { locals })` dispatches by
-the last path segment.
+`/init` whenever a page inits again, and never calls a route of your own at
+that path. To keep `/init` on your origin, keep the injected route and move
+it with `routePrefix` instead.
+
+The handlers the injected route uses are exported as
+`createConsentRouteHandlers({ options })` from `c15t/astro/server`. Mount
+them yourself for other clients, or for browser resolution: with
+`mode: manifest({ resolve: 'browser', manifestURL: '/api/c15t/manifest' })`,
+the browser fetches the manifest from your route. `GET(request, { locals })`
+dispatches by the last path segment.
 
 ## Helpers in `c15t/astro/server`
 

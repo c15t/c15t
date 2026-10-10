@@ -38,7 +38,8 @@ with `C15T_ON_BUILD_ERROR=runtime`, or the backend URL is relative.
 
 **Fix.** Add the plugin or fix the cause from the
 [fetch errors](#the-build-dev-server-or-type-check-fails-fetching-the-manifest),
-then restart `vite dev` or rebuild. The plugin fetches once when Vite starts.
+then restart `vite dev` or rebuild. A build fetches once, and `vite dev`
+fetches the first time the server loads the policy.
 Until then, the server fetches and caches the policy at runtime.
 
 ## Why is the banner missing from the server HTML?
@@ -89,10 +90,12 @@ catch-all route. See
 
 ## The consent route times out or calls itself
 
-**Check.** `createConsentRoute` needs the backend's URL, which it reads from
-`consentManifest` unless you pass `backendURL`. A relative `backendURL` names
-a route in your own app, which the handlers call in-process; if it points at
-`/api/c15t`, the route requests itself.
+**Check.** `createConsentRoute` needs the backend's URL. It reads it from
+`c15tHandle()` and then `consentManifest` unless you pass `backendURL`, and
+skips a handle `backendURL` that points at the route itself. A relative
+`backendURL` passed to the route names a route in your own app, which the
+handlers call in-process; if it points at `/api/c15t`, the route requests
+itself.
 
 **Fix.** Pass the Inth URL as `createConsentRoute({ backendURL })`, or leave
 it unset so the route uses `PUBLIC_C15T_BACKEND_URL`.

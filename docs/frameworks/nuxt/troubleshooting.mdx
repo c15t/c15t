@@ -186,13 +186,16 @@ longer reads them.
 | `buildManifest: true` | `onBuildError: 'fail'` |
 | `initRoute`, `manifestRoute` | `routePrefix`, one catch-all for both |
 
-## Every visitor gets the same policy on a static site
+## Every first visit calls /init on a static site
 
 **Check.** With `manifest({ resolve: 'browser' })` the browser has no request
-location, so it resolves the policy for an unknown location.
+location. When your policy depends on the visitor's country or region, the
+browser asks the backend's `/init` for it on the first visit.
 
 **Fix.** Pass `geoURL` to `manifest()` with a route on your site that returns
-the visitor's `country` and `region`, or use `hosted()`.
+the visitor's `country` and `region`, so the browser resolves the policy
+itself. Or use `hosted()`, which makes the same `/init` request without
+bundling the manifest.
 
 ## A composable throws "Kernel not found"
 

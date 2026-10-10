@@ -2,7 +2,8 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-import { afterEach, describe, expect, test } from 'vitest';
+import { createConsentManifestPolicyPack } from '@c15t/schema/types';
+import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import { MODULE_PRELOAD_PLACEHOLDERS } from '../kit/module-preload';
 import { consentManifest, resolveChunkHrefs } from '../vite';
@@ -71,7 +72,7 @@ describe('Svelte manifest module', () => {
 						})
 					),
 			});
-			await plugin.configResolved({ plugins, root });
+			await plugin.configResolved({ command: 'serve', plugins, root });
 			const load = (consumer: 'client' | 'server') =>
 				plugin.load.call(
 					{ environment: { config: { consumer } } },
@@ -81,6 +82,58 @@ describe('Svelte manifest module', () => {
 				snapshotInBrowser
 			);
 			expect(await load('server')).toContain('svelte-build');
+		}
+	);
+});
+
+describe('location advice', () => {
+	const regional = () =>
+		Promise.resolve(
+			Response.json({
+				branding: 'c15t',
+				policyPacks: [
+					createConsentManifestPolicyPack({
+						id: 'regional',
+						match: { countries: ['DE'] },
+						model: 'opt-in',
+						prompt: 'choice',
+					}),
+				],
+				revision: 'svelte-regional',
+				schemaVersion: 2,
+			})
+		);
+	test.each([
+		{ app: 'a Svelte single-page app', plugins: [], warns: true },
+		{
+			app: 'SvelteKit, which resolves on the server',
+			plugins: [{ name: 'vite-plugin-sveltekit-setup' }],
+			warns: false,
+		},
+	])(
+		'suggests hosted() for a location-based policy in $app: $warns',
+		async ({ plugins, warns }) => {
+			const warn = vi.fn();
+			const [plugin] = consentManifest({
+				backendURL: 'https://consent.example.com',
+				fetch: regional,
+			});
+			plugin.configResolved({
+				command: 'build',
+				logger: { info: vi.fn(), warn },
+				plugins,
+				root: tmpdir(),
+			});
+			const source = await plugin.load.call(
+				{ environment: { config: { consumer: 'server' } } },
+				plugin.resolveId('@c15t/core/generated') as string
+			);
+			await plugin.renderChunk(source as string);
+			expect(
+				warn.mock.calls.some(([message]) =>
+					/^@c15t\/svelte\/vite: .*location.*hosted\(\)/u.test(String(message))
+				)
+			).toBe(warns);
 		}
 	);
 });

@@ -37,7 +37,8 @@ all and throws when it runs.
 
 **Fix.** Add the plugin or fix the cause from the
 [fetch errors](#the-build-or-dev-server-fails-fetching-the-manifest), then
-restart `vite dev` or rebuild. The plugin fetches once when Vite starts.
+restart `vite dev` or rebuild. A build fetches once, and `vite dev` fetches
+the first time the app loads the policy.
 
 ## Consent requests go to the wrong backend
 
