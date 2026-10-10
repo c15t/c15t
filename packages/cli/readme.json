@@ -1,8 +1,8 @@
 {
 	"title": "@c15t/cli: c15t's CLI",
-	"description": "Generate c15t integration boilerplate, preview file edits, and configure supported applications.",
+	"description": "Generate c15t framework quickstarts, preview file edits, and configure supported applications.",
 	"features": [
-		"V3 boilerplate for Next.js, React, JavaScript, TanStack Start, Vue, Nuxt, Svelte, SvelteKit, Solid, and Astro",
+		"V3 quickstart files for Next.js, Nuxt, TanStack Start, Astro, React, JavaScript, a script tag, Vue, Svelte, SvelteKit, and Solid",
 		"Preview and apply integration files with explicit framework wiring instructions",
 		"Use prepared local package snapshots before v3 is published",
 		"Add consent-aware script integration examples",

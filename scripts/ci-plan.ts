@@ -62,6 +62,11 @@ export const isDocumentation = function isDocumentation(path: string): boolean {
 	);
 };
 
+/** A file in an `examples/` starter, the apps other than showcases. */
+export const isStarterPath = function isStarterPath(path: string): boolean {
+	return /^examples\/(?!showcase-)[^/]+\//u.test(path);
+};
+
 /**
  * The native kernels, protocol fixtures, and contract live outside the workspace
  * graph, so a change there owns no package and needs an explicit filter.
@@ -151,6 +156,11 @@ export const createCiPlan = function createCiPlan(
 		const [owner] = workspaces
 			.filter((workspace) => path.startsWith(`${workspace.directory}/`))
 			.sort((left, right) => right.directory.length - left.directory.length);
+		if (isStarterPath(path)) {
+			// The CLI generates the starters' quickstart files, and its tests diff
+			// them against these files, so a starter edit runs those tests too.
+			owners.add('@c15t/cli');
+		}
 		if (owner) {
 			owners.add(owner.name);
 		} else {

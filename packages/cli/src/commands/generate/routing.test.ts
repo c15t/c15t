@@ -162,7 +162,7 @@ describe('setup routing in an interactive terminal', () => {
 	it.each([
 		['setup', '--framework', 'javascript'],
 		['generate', '--boilerplate'],
-		['generate', '--output', 'src/privacy'],
+		['generate', '--framework', 'react'],
 	])('previews %s %s without asking for a package manager', async (...args) => {
 		const cwd = await fixture();
 		const result = await runCli([args[0], 'offline', ...args.slice(1)], {

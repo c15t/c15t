@@ -64,13 +64,9 @@ export const parseGenerationWorkflowArguments = (
 		} else {
 			forwarded.push(argument);
 			if (
-				[
-					'--mode',
-					'--framework',
-					'--backend-url',
-					'--scripts',
-					'--output',
-				].includes(argument)
+				['--mode', '--framework', '--backend-url', '--scripts'].includes(
+					argument
+				)
 			) {
 				index += 1;
 				forwarded.push(args[index] ?? '');

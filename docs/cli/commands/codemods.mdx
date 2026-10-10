@@ -49,11 +49,15 @@ The codemods edit `.ts`, `.tsx`, `.js`, `.jsx`, `.mts`, `.cts`, `.mjs` and
 `consent-provider-options` finds option objects passed to the provider's
 `options` prop, variables typed as `ConsentManagerOptions` or
 `ConsentProviderOptions`, and objects passed to `getOrCreateConsentRuntime()`
-from `c15t`. It adds `hosted` or `offline` to the import the file already
-uses for the provider. A hosted mode without `backendURL` gets v2's default,
+from `c15t`. It imports `hosted` or `offline` from the entry the provider
+comes from. A provider from `c15t/next` or `c15t/tanstack-start` gets them
+from `c15t/react`, and one from `@c15t/nextjs` or `@c15t/tanstack-start`
+from `@c15t/react`: those framework entries export `hosted()` as plain data
+for `defineConsentConfig`, and `ConsentProvider` needs the transport. A
+hosted mode without `backendURL` gets v2's default,
 `hosted({ backendURL: '/api/c15t' })`. A `mode` set from a variable or expression
 gets a `TODO(c15t v3)` comment, unless it already holds a transport such as
-`hosted()`. A module that re-exports
+`manifest()` or `hosted()`. A module that re-exports
 `ConsentManagerProvider` keeps that name as an alias, so its importers still
 resolve.
 

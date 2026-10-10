@@ -39,11 +39,11 @@ export const setupFlags: CliFlag[] = [
 	),
 	stringFlag(
 		['--framework'],
-		'Boilerplate target: next-app, next-pages, react, javascript, tanstack-start, vue, nuxt, svelte, sveltekit, solid, astro.'
+		'Quickstart target: next-app, next-pages, react, javascript, html, tanstack-start, vue, nuxt, svelte, sveltekit, solid, astro, astro-static.'
 	),
-	stringFlag(
-		['--output'],
-		'Project-relative boilerplate directory; defaults to src/consent.'
+	booleanFlag(
+		['--overwrite'],
+		'Let quickstart files replace existing files with different contents.'
 	),
 	stringFlag(
 		['--package-source'],

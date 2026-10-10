@@ -10,7 +10,10 @@
 interface ScriptSnippet {
 	/** Named export of the `@c15t/integrations/<subpath>` module. */
 	importName: string;
-	/** Example call with the vendor's real required options. */
+	/**
+	 * Example call with the vendor's real required options. A multi-line
+	 * example indents with tabs from column 0; generation re-indents it.
+	 */
 	example: string;
 }
 
@@ -47,13 +50,13 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 	},
 	'cloudflare-zaraz': {
 		example: `cloudflareZaraz({
-  purposes: { measurement: ['YOUR_ZARAZ_PURPOSE_ID'] },
-  // TODO(required): Disable Zaraz automatic pageviews and consent modal.
-  // Keep this configuration stable outside render functions before adding onReady.
-  // Follow https://c15t.com/docs/integrations/cloudflare-zaraz
-  onReady: () => {
-    // TODO(required): Send the initial Zaraz Pageview here after consent sync.
-  },
+	purposes: { measurement: ['YOUR_ZARAZ_PURPOSE_ID'] },
+	// TODO(required): Disable Zaraz automatic pageviews and consent modal.
+	// Keep this configuration stable outside render functions before adding onReady.
+	// Follow https://c15t.com/docs/integrations/cloudflare-zaraz
+	onReady: () => {
+		// TODO(required): Send the initial Zaraz Pageview here after consent sync.
+	},
 })`,
 		importName: 'cloudflareZaraz',
 	},
@@ -151,7 +154,12 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 		importName: 'plausibleAnalytics',
 	},
 	posthog: {
-		example: "posthog({ id: 'phc_XXXXXXXXXX' })",
+		// Matches the vendor every framework quickstart shows.
+		example: `posthog({
+	id: 'phc_your_project_key',
+	initOptions: { cookieless_mode: 'never' },
+	loadMode: 'after-consent',
+})`,
 		importName: 'posthog',
 	},
 	promptwatch: {
@@ -300,8 +308,8 @@ export function generateScriptsArrayValue(
 	if (!selectedScripts.length) {
 		return '[]';
 	}
-	const scriptConfigs = selectedScripts.map(
-		(script) => getSnippet(script).example
+	const scriptConfigs = selectedScripts.map((script) =>
+		getSnippet(script).example.replaceAll('\n', `\n${indentation}\t`)
 	);
 
 	return `[\n${indentation}\t${scriptConfigs.join(`,\n${indentation}\t`)},\n${indentation}]`;

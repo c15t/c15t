@@ -1,12 +1,15 @@
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-import { Project, ts } from 'ts-morph';
 import { describe, expect, it } from 'vitest';
 
+import { typecheckInExample } from './__tests__/example-project';
 import { generateTanStackStartBoilerplate } from './tanstack-start';
 
-const packages = fileURLToPath(new URL('../../../../../', import.meta.url));
+const generate = (mode: 'offline' | 'hosted', scripts: string[]) =>
+	generateTanStackStartBoilerplate({
+		backendURL: mode === 'hosted' ? 'https://your-project.inth.app' : undefined,
+		framework: 'tanstack-start',
+		mode,
+		scripts,
+	});
 
 describe('TanStack Start boilerplate', () => {
 	it.each(
@@ -15,71 +18,35 @@ describe('TanStack Start boilerplate', () => {
 			{ mode, scripts: ['google-tag-manager'] },
 		])
 	)(
-		'typechecks the $mode boundary with scripts $scripts against local v3 source',
-		({ mode, scripts }) => {
-			const template = generateTanStackStartBoilerplate({
-				backendURL: 'https://consent.example.com',
-				framework: 'tanstack-start',
-				mode,
-				scripts,
-			});
-			const project = new Project({
-				compilerOptions: {
-					jsx: ts.JsxEmit.ReactJSX,
-					module: ts.ModuleKind.ESNext,
-					moduleResolution: ts.ModuleResolutionKind.Bundler,
-					paths: {
-						'@c15t/integrations/google-tag-manager': [
-							path.join(
-								packages,
-								'integrations/src/vendors/tag-managers/google-tag-manager.ts'
-							),
-						],
-						'@c15t/tanstack-start': [
-							path.join(packages, 'tanstack-start/src/index.ts'),
-						],
-						'@c15t/tanstack-start/*': [
-							path.join(packages, 'tanstack-start/src/*'),
-						],
-					},
-					skipLibCheck: true,
-					strict: true,
-					target: ts.ScriptTarget.ESNext,
-				},
-			});
-			for (const [name, source] of Object.entries(template.files)) {
-				project.createSourceFile(
-					path.join(packages, 'tanstack-start/.boilerplate-test', name),
-					source,
-					{ overwrite: true }
-				);
-			}
-			const errors = project
-				.getPreEmitDiagnostics()
-				.filter((item) =>
-					item.getSourceFile()?.getFilePath().includes('/.boilerplate-test/')
-				);
-			expect(project.formatDiagnosticsWithColorAndContext(errors)).toBe('');
+		'typechecks the $mode root route with scripts $scripts against the built packages',
+		async ({ mode, scripts }) => {
+			const template = generate(mode, scripts);
+			expect(
+				await typecheckInExample('tanstack-start', template.files, {
+					types: ['vite/client', 'node'],
+				})
+			).toBe('');
 		},
-		30_000
+		60_000
 	);
-	it('does not assume that the app mounts the optional init proxy', () => {
-		const template = generateTanStackStartBoilerplate({
-			backendURL: 'https://consent.example.com',
-			framework: 'tanstack-start',
-			mode: 'hosted',
-			scripts: [],
-		});
-		// ConsentRoot calls the backend's /init unless routePrefix opts in to
-		// the same-origin consent route, which this template does not mount.
-		expect(template.files['Consent.tsx']).toContain(
-			'backendURL={"https://consent.example.com"}'
+
+	it('carries the config in the loader state instead of ConsentRoot props', () => {
+		const root = generate('hosted', []).files['src/routes/__root.tsx'];
+		expect(root).toContain('createConsentStateHandler()');
+		expect(root).toContain('<ConsentRoot state={consent}>');
+		expect(root).not.toContain('backendURL');
+		expect(root).not.toContain('initRoute');
+		expect(root).toContain('createServerFn({ method:');
+	});
+
+	it('resolves offline mode on the server without a backend', () => {
+		const template = generate('offline', []);
+		expect(template.files['src/routes/__root.tsx']).toContain(
+			'createConsentStateHandler({ mode: offline() })'
 		);
-		expect(template.files['Consent.tsx']).not.toContain('routePrefix');
-		expect(template.files['Consent.tsx']).not.toContain('initRoute');
-		expect(template.files['consent-server.ts']).toContain(
-			'createServerFn({ method:'
+		expect(template.files['vite.config.ts']).toContain(
+			"consentManifest({ onBuildError: 'runtime' })"
 		);
-		expect(template.instructions.join('\n')).toContain('Route.useLoaderData()');
+		expect(template.files['.env']).toBeUndefined();
 	});
 });

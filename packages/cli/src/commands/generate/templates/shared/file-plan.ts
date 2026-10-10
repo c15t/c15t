@@ -107,6 +107,39 @@ export const collectFileEdits = async function collectFileEdits<Result>(
 	};
 };
 
+const isEnvironmentFile = (filePath: string): boolean =>
+	/^\.env(?:\.|$)/u.test(path.basename(filePath));
+
+/**
+ * Reviewable edit metadata for output. Environment files, including a
+ * symlink that points at one, show only their path and operation, so their
+ * contents stay out of logs and JSON. Rollback keeps the full edits.
+ */
+export const describeFileEdits = async function describeFileEdits(
+	edits: FileEdit[]
+): Promise<
+	(
+		| FileEdit
+		| { operation: 'create' | 'update'; path: string; redacted: true }
+	)[]
+> {
+	return await Promise.all(
+		edits.map(async (edit) => {
+			let sensitive = isEnvironmentFile(edit.path);
+			if (!sensitive && edit.before !== null) {
+				sensitive = isEnvironmentFile(await fs.realpath(edit.path));
+			}
+			return sensitive
+				? {
+						operation: edit.before === null ? 'create' : 'update',
+						path: edit.path,
+						redacted: true as const,
+					}
+				: edit;
+		})
+	);
+};
+
 /** Restores applied edits; refuses to overwrite intervening user changes. */
 export const rollbackFileEdits = async function rollbackFileEdits(
 	edits: FileEdit[]

@@ -68,7 +68,7 @@ describe('Solid boilerplate', () => {
 			mode: 'offline',
 			scripts: [],
 		});
-		const component = template.files['Consent.tsx'];
+		const component = template.files['src/consent/Consent.tsx'];
 		expect(component).toContain('onMount(() =>');
 		expect(component).toContain('owner.dispose()');
 		expect(component).toContain("snapshot()?.model === 'iab'");
@@ -81,7 +81,7 @@ describe('Solid boilerplate', () => {
 			framework: 'solid',
 			mode: 'offline',
 			scripts: [],
-		}).files['consent-runtime.ts'];
+		}).files['src/consent/consent-runtime.ts'];
 		expect(runtime).toContain("import { offline } from '@c15t/core';");
 		expect(runtime).toMatch(/mode: offline\(\{ policyRules: /u);
 		expect(runtime).not.toContain('createOfflineTransport');

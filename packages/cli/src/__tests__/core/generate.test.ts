@@ -9,6 +9,7 @@ import {
 } from '../../generate';
 import { readBackendURL } from '../../generate/backend-url';
 import { getInstallSpecifier } from '../../generate/dependencies';
+import { mergeFile } from '../../generate/merge';
 import {
 	c15tReleaseSpecifier,
 	describeC15tRelease,
@@ -27,15 +28,55 @@ describe('reusable generation', () => {
 		'svelte',
 		'sveltekit',
 		'astro',
+		'astro-static',
+		'vue',
+		'nuxt',
+		'javascript',
 	] as const)('uses automatic component styles for %s', (framework) => {
 		const plan = generate({ framework, mode: 'offline' });
 		const content = Object.values(plan.files).join('\n');
 		expect(content).not.toContain('/styles.css');
 		expect(content).not.toMatch(/styles:\s*false/u);
 	});
-	it('keeps the stylesheet required by the Vue setup', () => {
-		const plan = generate({ framework: 'vue', mode: 'offline' });
-		expect(Object.values(plan.files).join('\n')).toContain('/styles.css');
+	it.each(['next-app', 'react', 'vue', 'nuxt', 'sveltekit', 'astro'] as const)(
+		'writes the backend URL to .env for %s and merges it there',
+		(framework) => {
+			const plan = generate({
+				backendURL: 'https://your-project.inth.app',
+				framework,
+				mode: 'hosted',
+			});
+			expect(plan.files['.env']).toMatch(
+				/^(?:NEXT_PUBLIC_|NUXT_PUBLIC_|VITE_|PUBLIC_)C15T_BACKEND_URL=https:\/\/your-project\.inth\.app\n$/u
+			);
+			expect(plan.merge['.env']).toEqual({ type: 'env' });
+			expect(plan.files['.gitignore']).toBeUndefined();
+			expect(
+				Object.entries(plan.files)
+					.filter(([name]) => name !== '.env')
+					.some(([, content]) => content.includes('your-project.inth.app'))
+			).toBe(false);
+		}
+	);
+	it('merges the backend URL into an existing .env', () => {
+		const plan = generate({
+			backendURL: 'https://your-project.inth.app',
+			framework: 'react',
+			mode: 'hosted',
+		});
+		const env = plan.files['.env'] ?? '';
+		expect(
+			mergeFile(
+				'A=1\n# note\nVITE_C15T_BACKEND_URL=old\nB=2',
+				env,
+				plan.merge['.env']
+			)
+		).toBe(
+			'A=1\n# note\nVITE_C15T_BACKEND_URL=https://your-project.inth.app\nB=2'
+		);
+		expect(mergeFile('A=1', env, plan.merge['.env'])).toBe(
+			'A=1\nVITE_C15T_BACKEND_URL=https://your-project.inth.app\n'
+		);
 	});
 	it.each([undefined, '', 'not-a-url'])(
 		'explains how to supply a hosted backend URL: %s',
@@ -79,25 +120,26 @@ describe('reusable generation', () => {
 			generate({ framework: 'react', mode: 'offline', scripts: ['google-tag'] })
 		);
 	});
-	it('returns app-relative files and release-line installation arguments', () => {
+	it('returns project-relative files and release-line installation arguments', () => {
 		const plan = generate({
 			backendURL: 'https://consent.example.com',
 			framework: 'react',
 			mode: 'hosted',
-			output: 'src/privacy',
 			scripts: ['google-tag'],
 		});
-		expect(plan.files['src/privacy/consent-manager.tsx']).toContain(
-			'hosted({ backendURL: "https://consent.example.com" })'
-		);
-		expect(plan.files['src/privacy/consent-manager.tsx']).toContain('gtag(');
-		expect(plan.files['src/privacy/README.md']).toContain(
-			'src/privacy/consent-manager'
-		);
+		expect(Object.keys(plan.files).toSorted()).toEqual([
+			'.env',
+			'src/consent.tsx',
+			'src/main.tsx',
+			'vite.config.ts',
+		]);
+		expect(plan.files['src/consent.tsx']).toContain('mode: manifest(),');
+		expect(plan.files['src/consent.tsx']).toContain('gtag(');
 		expect(plan.dependencies).toEqual([
-			withC15tRelease('@c15t/react', packageInfo.version),
+			withC15tRelease('c15t', packageInfo.version),
 			withC15tRelease('@c15t/integrations', packageInfo.version),
 		]);
+		expect(plan.instructions.at(-1)).toContain('Install dependencies:');
 	});
 	it.each([
 		[['offline', '--framework=react', '--scripts=google-tag']],
@@ -108,17 +150,15 @@ describe('reusable generation', () => {
 			generate({ framework: 'react', mode: 'offline', scripts: ['google-tag'] })
 		);
 	});
-	it('reads backend URL and output values containing = signs', () => {
+	it('reads backend URL values containing = signs', () => {
 		expect(
 			parseGenerateOptions([
 				'hosted',
 				'--framework=react',
 				'--backend-url=https://consent.example.com/?region=eu',
-				'--output=src/consent=v3',
 			])
 		).toMatchObject({
 			backendURL: 'https://consent.example.com/?region=eu',
-			output: 'src/consent=v3',
 		});
 	});
 	it.each([
@@ -127,6 +167,7 @@ describe('reusable generation', () => {
 		[['--mode=offline', '--mode=hosted', '--framework=react'], 'only once'],
 		[['offline', '--framework='], 'Missing value for --framework'],
 		[['offline', '--framework=react', '--theme=dark'], 'Unsupported'],
+		[['offline', '--framework=react', '--output=src'], '--output was removed'],
 	])('rejects %j', (args, message) => {
 		expect(() => runGenerateCommand(args)).toThrow(message);
 	});
@@ -146,17 +187,6 @@ describe('reusable generation', () => {
 				scripts: ['google-tag', 'microsoft-clarity'],
 			})
 		);
-	});
-	it.each([
-		'../outside',
-		'/absolute',
-		'C:/absolute',
-		'src/../../outside',
-		'src\\outside',
-	])('rejects output outside the application: %s', (output) => {
-		expect(() =>
-			generate({ framework: 'react', mode: 'offline', output })
-		).toThrow('relative directory');
 	});
 	it.each([
 		'ftp://example.com',

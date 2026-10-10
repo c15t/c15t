@@ -2,7 +2,10 @@ import { DEFAULT_OFFLINE_RULES } from './options.ts';
 import { generateScriptsArrayValue, generateScriptsImport } from './scripts.ts';
 import type { BoilerplateOptions, BoilerplateTemplate } from './types.ts';
 
-/** Generate a Solid owner-scoped runtime and native headless consent controls. */
+/**
+ * Generate a Solid owner-scoped runtime and native headless consent controls
+ * in `src/consent/`. Solid has no c15t quickstart or UI package yet.
+ */
 export const generateSolidBoilerplate = (
 	options: BoilerplateOptions
 ): BoilerplateTemplate => {
@@ -16,7 +19,7 @@ export const generateSolidBoilerplate = (
 			...(options.scripts.length ? ['@c15t/integrations'] : []),
 		],
 		files: {
-			'Consent.tsx': `import { createContext, createSignal, For, onCleanup, onMount, Show, useContext } from 'solid-js';
+			'src/consent/Consent.tsx': `import { createContext, createSignal, For, onCleanup, onMount, Show, useContext } from 'solid-js';
 import type { Accessor, JSX } from 'solid-js';
 import type { ConsentSnapshot, ConsentState } from '@c15t/core';
 import { createSiteConsent } from './consent-runtime';
@@ -109,7 +112,7 @@ function ConsentControls() {
 	);
 }
 `,
-			'consent-runtime.ts': `import { ${hosted ? 'hosted' : 'offline'} } from '@c15t/core';
+			'src/consent/consent-runtime.ts': `import { ${hosted ? 'hosted' : 'offline'} } from '@c15t/core';
 import { createConsentRuntime } from '@c15t/core/runtime';
 ${generateScriptsImport(options.scripts)}
 
@@ -121,7 +124,7 @@ export function createSiteConsent() {
 	});
 }
 `,
-			'consent.css': `.site-consent { font: inherit; }
+			'src/consent/consent.css': `.site-consent { font: inherit; }
 .site-consent section { padding: 1rem; border: 1px solid currentColor; margin-block: 1rem; }
 .site-consent label { display: flex; gap: .5rem; align-items: center; min-height: 44px; }
 .site-consent input { width: 1.25rem; height: 1.25rem; }
@@ -131,14 +134,15 @@ export function createSiteConsent() {
 `,
 		},
 		instructions: [
-			'Import { Consent } from "{{output}}/Consent" in the Solid application root and wrap its existing children with <Consent>. Keep it mounted above route changes. The runtime is created onMount and disposed with its Solid owner; server rendering does not initialize browser state.',
+			'Import { Consent } from "src/consent/Consent" in the Solid application root and wrap its existing children with <Consent>. Keep it mounted above route changes. The runtime is created onMount and disposed with its Solid owner; server rendering does not initialize browser state.',
 			'Use useSiteConsent() inside the wrapper to read snapshot()?.effectivePermissions for consent gates. The snapshot is unavailable until browser mount, so treat missing optional permissions as denied.',
 			'This is a headless Solid integration with native inline controls. The local @c15t/solid package currently exports styling primitives only. Review the copy, privacy links, category descriptions, and policy presentation for your site. The generated UI does not implement IAB TCF or modal policy presentation.',
 			...(options.scripts.length
 				? [
-						'Replace vendor placeholders in {{output}}/consent-runtime.ts. The shared runtime owns consent-gated loading, persistence, and cleanup.',
+						'Replace vendor placeholders in src/consent/consent-runtime.ts. The shared runtime owns consent-gated loading, persistence, and cleanup.',
 					]
 				: []),
 		],
+		merge: {},
 	};
 };
