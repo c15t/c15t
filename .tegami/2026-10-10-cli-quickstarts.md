@@ -17,7 +17,9 @@ npx @c15t/cli@alpha setup hosted --framework react --backend-url https://your-pr
 - Hosted mode writes the backend URL to `.env` under the framework's public
   env var (`NEXT_PUBLIC_C15T_BACKEND_URL`, `NUXT_PUBLIC_C15T_BACKEND_URL`,
   `PUBLIC_C15T_BACKEND_URL` or `VITE_C15T_BACKEND_URL`). An existing `.env`
-  keeps its other keys. The CLI never creates or edits `.gitignore`.
+  keeps its other keys. One that already sets the matching
+  `*_INTH_PROJECT_URL` gets no c15t variable, which would override it. The
+  CLI never creates or edits `.gitignore`.
 - Generated code uses the v3 API only: `manifest()`, `hosted()` and
   `offline()`, `defineConsentConfig`, `withConsentManifest`, `ConsentRoot`
   and `ConsentDialogLink`. Templates that pass a backend URL in code write

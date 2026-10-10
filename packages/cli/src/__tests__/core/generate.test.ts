@@ -80,6 +80,60 @@ describe('reusable generation', () => {
 			'A=1\nVITE_C15T_BACKEND_URL=https://your-project.inth.app\n'
 		);
 	});
+	it.each([
+		['react', 'VITE_INTH_PROJECT_URL'],
+		['next-app', 'NEXT_PUBLIC_INTH_PROJECT_URL'],
+		['nuxt', 'NUXT_PUBLIC_INTH_PROJECT_URL'],
+		['sveltekit', 'PUBLIC_INTH_PROJECT_URL'],
+	] as const)(
+		'adds no c15t variable to a %s .env that sets %s',
+		(framework, inthName) => {
+			// The integrations read either name and the c15t one wins, so
+			// adding it would replace the project URL the file names.
+			const plan = generate({
+				backendURL: 'https://your-project.inth.app',
+				framework,
+				mode: 'hosted',
+			});
+			const existing = `A=1\nexport ${inthName}=https://mine.inth.app # project\n`;
+			expect(
+				mergeFile(existing, plan.files['.env'] ?? '', plan.merge['.env'])
+			).toBe(existing);
+		}
+	);
+	it("still adds the c15t variable when the Inth one is empty or another framework's", () => {
+		const plan = generate({
+			backendURL: 'https://your-project.inth.app',
+			framework: 'react',
+			mode: 'hosted',
+		});
+		const env = plan.files['.env'] ?? '';
+		for (const existing of [
+			'VITE_INTH_PROJECT_URL=\n',
+			'VITE_INTH_PROJECT_URL=""\n',
+			'NEXT_PUBLIC_INTH_PROJECT_URL=https://mine.inth.app\n',
+		]) {
+			expect(mergeFile(existing, env, plan.merge['.env'])).toBe(
+				`${existing}VITE_C15T_BACKEND_URL=https://your-project.inth.app\n`
+			);
+		}
+	});
+	it('updates a c15t variable the .env already has, next to an Inth one', () => {
+		const plan = generate({
+			backendURL: 'https://your-project.inth.app',
+			framework: 'react',
+			mode: 'hosted',
+		});
+		expect(
+			mergeFile(
+				'VITE_INTH_PROJECT_URL=https://mine.inth.app\nVITE_C15T_BACKEND_URL=old\n',
+				plan.files['.env'] ?? '',
+				plan.merge['.env']
+			)
+		).toBe(
+			'VITE_INTH_PROJECT_URL=https://mine.inth.app\nVITE_C15T_BACKEND_URL=https://your-project.inth.app\n'
+		);
+	});
 	it.each([undefined, '', 'not-a-url'])(
 		'explains how to supply a hosted backend URL: %s',
 		(backendURL) => {

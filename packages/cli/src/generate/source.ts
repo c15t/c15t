@@ -136,10 +136,43 @@ export const vendorInstruction = (
 		? [`Replace the placeholder vendor IDs in ${file} before deployment.`]
 		: [];
 
+/** Matches the `KEY=` line of `key`, with or without `export`. */
+const envLinePattern = (key: string): RegExp =>
+	new RegExp(`^\\s*(?:export\\s+)?${key}\\s*=`, 'u');
+
+/**
+ * Whether `lines` set the Inth project URL that stands in for `key`, such
+ * as `VITE_INTH_PROJECT_URL` for `VITE_C15T_BACKEND_URL`, to a value.
+ */
+const setsInthProjectURL = (lines: string[], key: string): boolean => {
+	if (!key.endsWith('_C15T_BACKEND_URL')) {
+		return false;
+	}
+	const inth = envLinePattern(
+		key.replace(/C15T_BACKEND_URL$/u, 'INTH_PROJECT_URL')
+	);
+	return lines.some((line) => {
+		const match = inth.exec(line);
+		if (!match) {
+			return false;
+		}
+		const value = line
+			.slice(match[0].length)
+			.replace(/\s+#.*$/u, '')
+			.trim();
+		return value !== '' && value !== '""' && value !== "''";
+	});
+};
+
 /**
  * Merge generated `KEY=value` lines into an existing `.env`. A key that is
  * already set takes the generated value in place; other lines, comments
  * and keys stay as they are. New keys are appended.
+ *
+ * A backend URL variable such as `VITE_C15T_BACKEND_URL` is not added to a
+ * file that already sets the matching `VITE_INTH_PROJECT_URL`: the build
+ * integrations read either, and the c15t name would win over the project
+ * URL the file already names.
  * @param existing Current `.env` contents, or `null` when there is none.
  * @param generated Generated `KEY=value` lines.
  * @returns The merged file contents.
@@ -158,13 +191,12 @@ export const mergeEnvFile = (
 	const appended: string[] = [];
 	for (const line of generated.split('\n').filter(Boolean)) {
 		const key = line.slice(0, line.indexOf('='));
-		const index = lines.findIndex((current) =>
-			new RegExp(`^\\s*(?:export\\s+)?${key}\\s*=`, 'u').test(current)
-		);
-		if (index === -1) {
-			appended.push(line);
-		} else {
+		const pattern = envLinePattern(key);
+		const index = lines.findIndex((current) => pattern.test(current));
+		if (index !== -1) {
 			lines[index] = line;
+		} else if (!setsInthProjectURL(lines, key)) {
+			appended.push(line);
 		}
 	}
 	const merged = lines.join('\n');

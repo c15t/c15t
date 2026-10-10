@@ -46,6 +46,11 @@ recommended for production environments.
 | `PUBLIC_C15T_BACKEND_URL`      | `astro`, `astro-static`, `sveltekit`                     |
 | `VITE_C15T_BACKEND_URL`        | `tanstack-start`, `react`, `javascript`, `vue`, `svelte` |
 
+When the project's `.env` already sets the matching Inth variable, such as
+`VITE_INTH_PROJECT_URL`, the CLI leaves the c15t variable out. The
+integrations read either, and the c15t one would win over the project URL
+the file already names.
+
 Use `--boilerplate` without `--framework` to detect the framework from
 `package.json`. An Astro project with a server adapter gets `astro`, and one
 without gets `astro-static`. A Next.js project needs an existing router layout
