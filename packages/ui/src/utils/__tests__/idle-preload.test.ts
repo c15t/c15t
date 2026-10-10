@@ -265,6 +265,22 @@ describe('scheduleIdlePreload', () => {
 		expect(task).toHaveBeenCalledOnce();
 	});
 
+	test('lets an idle wait last no longer than the maximum wait', () => {
+		const requestIdleCallback = vi.fn(() => 1);
+		vi.stubGlobal('requestIdleCallback', requestIdleCallback);
+		const task = vi.fn();
+		scheduleIdlePreload(task, { maxWaitMs: 1000, quietMs: 500 });
+
+		// Quiet from 400 ms, so the page is quiet at 900 ms, 100 ms short of
+		// the deadline.
+		vi.advanceTimersByTime(400);
+		reportResource(performance.now());
+		vi.advanceTimersByTime(500);
+		expect(requestIdleCallback).toHaveBeenCalledWith(expect.any(Function), {
+			timeout: 100,
+		});
+	});
+
 	test('hands the task to requestIdleCallback with a timeout', () => {
 		const requestIdleCallback = vi.fn(() => 1);
 		vi.stubGlobal('requestIdleCallback', requestIdleCallback);

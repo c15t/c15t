@@ -213,13 +213,18 @@ export const scheduleIdlePreload = function scheduleIdlePreload(
 			timer = setTimeout(() => check(false), wait);
 			return;
 		}
-		if (!idle && now - loadedAt < maxWaitMs) {
+		// Time left before the deadline; an idle wait may not outlast it.
+		const untilDeadline = maxWaitMs - (now - loadedAt);
+		if (!idle && untilDeadline > 0) {
 			if (typeof window.requestIdleCallback === 'function') {
 				idleHandle = window.requestIdleCallback(() => check(true), {
-					timeout: IDLE_CALLBACK_TIMEOUT_MS,
+					timeout: Math.min(IDLE_CALLBACK_TIMEOUT_MS, untilDeadline),
 				});
 			} else {
-				timer = setTimeout(() => check(true), IDLE_FALLBACK_DELAY_MS);
+				timer = setTimeout(
+					() => check(true),
+					Math.min(IDLE_FALLBACK_DELAY_MS, untilDeadline)
+				);
 			}
 			return;
 		}
