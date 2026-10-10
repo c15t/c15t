@@ -270,8 +270,11 @@ permissions, as in
 [load before consent and signal the vendor](/docs/integrations/building-integrations#load-before-consent-and-signal-the-vendor),
 and sends a `config` command for each tag with that tag's settings. To send
 nothing before opt-in, leave out `alwaysLoad` and set
-`category: { or: ['measurement', 'marketing'] }`. Either grant then loads the
-tag, and Consent Mode keeps the other purpose's destinations restricted.
+`category: { or: ['measurement', 'marketing'] }`. That condition only decides
+when `gtag.js` loads. Set each Google consent type from its own category, so
+Consent Mode keeps the other purpose's destinations restricted:
+`measurement` sets `analytics_storage`, and `marketing` sets `ad_storage`,
+`ad_user_data` and `ad_personalization`.
 
 ## Verify gating
 
