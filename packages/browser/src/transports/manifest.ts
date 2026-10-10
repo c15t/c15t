@@ -54,7 +54,8 @@ export const withBuildDefaults = function withBuildDefaults(
  *
  * Without options it uses what `consentManifest()` from `c15t/build`
  * downloaded: the snapshot and the backend URL from
- * `VITE_C15T_BACKEND_URL`, both served as `c15t/generated`. Without a
+ * `VITE_C15T_BACKEND_URL` or `VITE_INTH_PROJECT_URL`, both served as
+ * `c15t/generated`. Without a
  * snapshot, such as in dev after a failed fetch, it fetches
  * `${backendURL}/manifest` at runtime. Saves go to the backend either way.
  *

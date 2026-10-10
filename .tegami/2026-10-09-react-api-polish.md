@@ -11,6 +11,8 @@ longer import anything from `@c15t/browser`. With `consentManifest()` from
 `c15t/build` in the Vite config, `manifest()` needs no arguments: it reads the
 policy snapshot and the backend URL from `c15t/generated`. `hosted()` reads
 the same backend URL.
+The plugin reads `VITE_C15T_BACKEND_URL`, then `VITE_INTH_PROJECT_URL`, and
+`hosted()`'s missing-URL error names both outside production.
 
 ```tsx
 import { ConsentProvider, manifest } from 'c15t/react';

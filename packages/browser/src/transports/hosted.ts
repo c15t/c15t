@@ -6,12 +6,18 @@ import { hosted as coreHosted } from '@c15t/core';
 import type { HostedModeFactory, HostedModeOptions } from '@c15t/core';
 import { backendURL as builtBackendURL } from '@c15t/core/generated';
 
+/**
+ * Bundlers replace `process.env.NODE_ENV` at build time, so production
+ * bundles drop the setup hint behind it.
+ */
+declare const process: { env: { NODE_ENV?: string } };
+
 /** Options for {@link hosted}. `backendURL` defaults to the build's. */
 export type HostedOptions = Omit<HostedModeOptions, 'backendURL'> & {
 	/**
 	 * Backend URL, relative (`/api/c15t`) or absolute. Defaults to the URL
 	 * `consentManifest()` from `c15t/build` read from
-	 * `VITE_C15T_BACKEND_URL`.
+	 * `VITE_C15T_BACKEND_URL` or `VITE_INTH_PROJECT_URL`.
 	 */
 	backendURL?: string;
 };
@@ -32,9 +38,16 @@ export const hostedWithBuild = function hostedWithBuild(
 ): HostedModeFactory {
 	const backendURL = options.backendURL ?? buildBackendURL;
 	if (backendURL === undefined) {
-		throw new Error(
-			'@c15t/browser: hosted() needs `backendURL`. Pass it, or add consentManifest() from c15t/build to your Vite config and set VITE_C15T_BACKEND_URL.'
-		);
+		let hint = '';
+		try {
+			if (process.env.NODE_ENV !== 'production') {
+				hint =
+					' Pass it, or add consentManifest() from c15t/build to your Vite config and set VITE_C15T_BACKEND_URL (or VITE_INTH_PROJECT_URL).';
+			}
+		} catch {
+			// No bundler and no `process`: the short message has to do.
+		}
+		throw new Error(`@c15t/browser: hosted() needs \`backendURL\`.${hint}`);
 	}
 	return coreHosted({ ...options, backendURL });
 };

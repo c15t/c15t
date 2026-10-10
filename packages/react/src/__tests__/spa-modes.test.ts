@@ -66,7 +66,9 @@ describe('hosted() from c15t/react', () => {
 	});
 
 	test('needs a backend URL when the build set none', () => {
-		expect(() => hosted()).toThrow('hosted() needs `backendURL`');
+		expect(() => hosted()).toThrow(
+			'c15t: hosted() needs `backendURL`. Pass it, or add consentManifest() from c15t/build to your Vite config and set VITE_C15T_BACKEND_URL (or VITE_INTH_PROJECT_URL).'
+		);
 		expect(hosted({ backendURL: '/api/c15t' }).kind).toBe('hosted');
 	});
 });

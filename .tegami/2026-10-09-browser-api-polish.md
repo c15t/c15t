@@ -14,7 +14,7 @@ offline policy pack.
 
 With `consentManifest()` from `c15t/build`, `manifest()` reads the policy
 snapshot and the backend URL from `c15t/generated`, and `hosted()` reads the
-backend URL:
+backend URL (from `VITE_C15T_BACKEND_URL`, then `VITE_INTH_PROJECT_URL`):
 
 ```ts
 import { init, manifest } from '@c15t/browser';
