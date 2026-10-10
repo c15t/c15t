@@ -170,7 +170,7 @@ describe('ConsentProvider Basic Request Behavior', () => {
 				// @ts-expect-error Verify the runtime guard for untyped callers.
 				options: {},
 			})
-		).toThrow('Use hosted(), offline(), or custom().');
+		).toThrow('@c15t/svelte ConsentProvider: `mode` is required.');
 	});
 
 	test('should not make fetch calls in offline mode', async () => {
