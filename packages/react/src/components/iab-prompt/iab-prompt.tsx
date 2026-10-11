@@ -260,8 +260,14 @@ export const IABConsentBanner: FC<IABConsentBannerProps> = ({
 								type="button"
 								data-testid="iab-consent-banner-partners-link"
 								onClick={handleViewVendors}
-								onFocus={warmDialogChunk}
-								onPointerEnter={warmDialogChunk}
+								onFocus={(event) => {
+									partnersLinkProps.onFocus?.(event);
+									warmDialogChunk();
+								}}
+								onPointerEnter={(event) => {
+									partnersLinkProps.onPointerEnter?.(event);
+									warmDialogChunk();
+								}}
 							>
 								{partnersLinkText}
 							</button>

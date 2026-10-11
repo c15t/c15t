@@ -105,6 +105,37 @@ test.each([
 	}
 });
 
+test("the partners link keeps the app's focus and pointer handlers", async () => {
+	const warmer = vi.fn();
+	const onFocus = vi.fn();
+	const onPointerEnter = vi.fn();
+	const unregister = registerDialogChunkWarmer(warmer);
+	try {
+		const screen = await render(
+			<ComponentFixtureProvider
+				options={{
+					...options('iab'),
+					components: {
+						'iab-banner': { partnersLink: { onFocus, onPointerEnter } },
+					},
+				}}
+			>
+				<IABConsentBanner disableAnimation />
+			</ComponentFixtureProvider>
+		);
+		const testId = 'iab-consent-banner-partners-link';
+		await vi.waitFor(() => expect(byTestId(testId)).not.toBeNull());
+		byTestId(testId)?.focus();
+		await userEvent.hover(byTestId(testId) as HTMLElement);
+		expect(onFocus).toHaveBeenCalledOnce();
+		expect(onPointerEnter).toHaveBeenCalledOnce();
+		expect(warmer).toHaveBeenCalled();
+		await screen.unmount();
+	} finally {
+		unregister();
+	}
+});
+
 test('loads the IAB dialog in idle time while the IAB banner is shown', async () => {
 	const screen = await render(
 		<ComponentFixtureProvider options={options('iab')}>
