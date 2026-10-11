@@ -9,6 +9,8 @@ app uses `offline()` or gives `hosted()` its own `backendURL`, `initURL` or
 `headers`. If it sets `credentials`, `overrides`, `storageKey`, an
 `experiment`, or `journey: false`, pass the same values as
 `initPrefetch: { credentials, experiment, journey, overrides, storageKey }`.
+Pass `experiment` only when c15t assigns the arm. If a feature flag picks
+it, leave it out, or the script sends an arm the visitor may never see.
 The dev server adds the script even to a `manifest()` app, which then sends
 one `/init` per page load that it doesn't use. A production build leaves it
 out.

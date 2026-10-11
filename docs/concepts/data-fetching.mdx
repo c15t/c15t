@@ -131,7 +131,9 @@ In the browser, an inline script in `<head>` can start `/init` while the
 app's JavaScript downloads, and `hosted()` uses that response. Vite apps get
 it from `consentManifest()` by default, Nuxt adds it to pages with
 `ssr: false`, and TanStack Start has `consentPrefetchHead`. Elsewhere, render
-`buildPrefetchScript({ backendURL })` from `c15t` yourself.
+`buildPrefetchScript({ backendURL })` from `c15t` yourself. If c15t assigns
+a banner experiment's arm, give the script the same `experiment`, or
+`hosted()` sends a second `/init` for visitors who have not chosen yet.
 
 ## How do transports and proxies differ?
 

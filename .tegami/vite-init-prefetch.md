@@ -40,7 +40,10 @@ It sends that arm while the visitor has no stored choice, and the runtime
 runs it. `buildPrefetchScript()` and `primePrefetchedInitialData()` take the
 same `experiment` option. `hosted()` sends its own `/init` when the early
 request carried a different arm, or none, so the backend counts each visitor
-toward the arm the banner showed.
+toward the arm the banner showed. If you render `buildPrefetchScript()` or
+`consentPrefetchHead()` yourself and run a banner experiment, pass it the
+same `experiment`. Otherwise visitors who have not chosen yet now get a
+second `/init`. When a feature flag picks the arm, leave `experiment` out.
 
 The CLI's React, Vue and Svelte single-page setups now use `hosted()`.
 Offline Vite setups, JavaScript included, pass `initPrefetch: false`, so they
