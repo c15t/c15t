@@ -562,6 +562,30 @@ describe('prefetch utilities', () => {
 			}
 		});
 
+		it('still sends the arm after a notice dismissal, as the runtime does', async () => {
+			storeArm('floating');
+			document.cookie = 'c15t-notice=v=1&t=1&f=abc; path=/';
+			try {
+				const fetch = respond();
+				vi.stubGlobal('fetch', fetch);
+				window.eval(
+					buildPrefetchScript({ backendURL: '/api/c15t', experiment })
+				);
+				expect(sentArm(fetch)).toEqual({ arm: 'floating', id: 'banner-shape' });
+				expect(await resolved('/api/c15t')).toEqual({
+					arm: 'floating',
+					id: 'banner-shape',
+				});
+				void primePrefetchedInitialData({
+					backendURL: '/api/other',
+					experiment,
+				});
+				expect(sentArm(fetch, 1)?.arm).toBe('floating');
+			} finally {
+				document.cookie = 'c15t-notice=; max-age=0; path=/';
+			}
+		});
+
 		it.each([
 			['no experiment', undefined],
 			['an invalid experiment', { ...experiment, arm: 'wall' }],

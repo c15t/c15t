@@ -653,7 +653,7 @@ describe('initPrefetch', () => {
 		expect(html).toMatch(/[?&]country=DE[&"]/u);
 		expect(html).toContain('"language":"de"');
 		expect(html).toContain('"journey":null');
-		expect(html).toContain('"cookies":["shop-consent","shop-consent-notice"]');
+		expect(html).toContain('"notice":"shop-consent-notice"');
 		expect(html).toContain('"arms":["control","wall"]');
 		expect(html).toContain('"weights":[60,40]');
 		// Only the arm names reach the page, not what each arm changes.
