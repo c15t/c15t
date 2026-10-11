@@ -140,7 +140,10 @@ resolve consent from the backend URL `consentManifest()` read:
   your Inth project's trusted origins.
 - `consentPrefetchHead` is optional. It adds an inline script to `<head>` that
   starts the `/init` request before the app's JavaScript loads, and
-  `ConsentRoot` uses that response instead of sending its own.
+  `ConsentRoot` uses that response instead of sending its own. If c15t
+  assigns a banner experiment's arm, pass the experiment too:
+  `consentPrefetchHead({ backendURL, experiment })`. Without it,
+  `ConsentRoot` sends a second `/init` for visitors who have not chosen yet.
 
 Drop the consent loader from a prerendered root. A loader that stays anyway
 is safe: while TanStack Start prerenders (`TSS_PRERENDERING`),

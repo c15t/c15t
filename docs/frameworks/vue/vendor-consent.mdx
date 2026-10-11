@@ -37,9 +37,7 @@ Then pass them to the plugin in `src/main.ts`:
 ```ts title="src/main.ts (partial)"
 import { scripts, vendors } from './scripts';
 
-createApp(App)
-	.use(c15tVue, { mode: manifest(), scripts, vendors })
-	.mount('#app');
+createApp(App).use(c15tVue, { mode: hosted(), scripts, vendors }).mount('#app');
 ```
 
 <import src="../../shared/scripts/vendor-consent.mdx#fields" />

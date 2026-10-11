@@ -39,7 +39,7 @@ Then pass them to `ConsentProvider` in `src/App.svelte`:
   import { scripts, vendors } from './scripts';
 </script>
 
-<ConsentProvider mode={manifest()} {scripts} {vendors}>
+<ConsentProvider mode={hosted()} {scripts} {vendors}>
 ```
 
 The provider reads `vendors` once, when it is created.

@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { corsPreflightReasons } from '../../../__tests__/fixtures/cors-safelist';
 import { createHostedTransport } from '../../../transports/hosted';
+import type { KernelJourney } from '../../../types';
 import { buildPrefetchScript, primePrefetchedInitialData } from '../prefetch';
 
 const legacyPolicy = { id: 'legacy', model: 'opt-in', ui: { mode: 'banner' } };
@@ -25,6 +26,9 @@ const response = (
 beforeEach(() => {
 	delete (window as Window & { __c15tInitialDataPromises?: unknown })
 		.__c15tInitialDataPromises;
+	delete (window as Window & { __c15tExperiment?: unknown }).__c15tExperiment;
+	delete (window as JourneyWindow).__c15tJourney;
+	localStorage.clear();
 	Object.defineProperty(navigator, 'globalPrivacyControl', {
 		configurable: true,
 		value: false,
@@ -34,7 +38,16 @@ afterEach(() => {
 	vi.unstubAllGlobals();
 	vi.restoreAllMocks();
 });
-const context = { overrides: {}, user: null };
+type JourneyWindow = Window & { __c15tJourney?: KernelJourney };
+// The runtime's init carries the journey the early request claimed.
+const context = {
+	get journey() {
+		return (window as JourneyWindow).__c15tJourney;
+	},
+	overrides: {},
+	user: null,
+};
+const withoutJourney = { overrides: {}, user: null };
 
 describe('hosted browser prefetch consumption', () => {
 	it.each([{ country: 'DE' }, { region: 'CA' }, { language: 'fr' }])(
@@ -66,6 +79,24 @@ describe('hosted browser prefetch consumption', () => {
 		expect(corsPreflightReasons(init)).toEqual([]);
 		await transport.init?.(context);
 		expect(fetch).toHaveBeenCalledTimes(2);
+	});
+
+	it("sends init through a custom fetch instead of using the page's response", async () => {
+		const pageFetch = vi
+			.fn()
+			.mockImplementation(() => Promise.resolve(response()));
+		vi.stubGlobal('fetch', pageFetch);
+		window.eval(buildPrefetchScript({ backendURL: '/api/c15t' }));
+		// A wrapper that signs or routes requests has to see `/init`.
+		const signed = vi
+			.fn()
+			.mockImplementation(() => Promise.resolve(response()));
+		await createHostedTransport({
+			backendURL: '/api/c15t',
+			fetch: signed,
+		}).init?.(context);
+		expect(pageFetch).toHaveBeenCalledTimes(1);
+		expect(signed).toHaveBeenCalledTimes(1);
 	});
 
 	it.each([
@@ -169,5 +200,107 @@ describe('hosted browser prefetch consumption', () => {
 		// Detected GPC is never sent: browsers drop a script's `Sec-GPC`.
 		expect(fetch.mock.calls[0]?.[1].headers).toEqual({});
 		await Promise.resolve();
+	});
+
+	describe('journey', () => {
+		it('sends its own /init without a journey when the early request sent one', async () => {
+			const fetch = vi
+				.fn()
+				.mockImplementation(() => Promise.resolve(response()));
+			vi.stubGlobal('fetch', fetch);
+			window.eval(buildPrefetchScript({ backendURL: '/api/c15t' }));
+			await createHostedTransport({ backendURL: '/api/c15t' }).init(
+				withoutJourney
+			);
+			expect(fetch).toHaveBeenCalledTimes(2);
+			const [url] = fetch.mock.calls[1] ?? [];
+			expect(new URL(url, location.origin).searchParams.has('journey')).toBe(
+				false
+			);
+		});
+
+		it('reuses an early request built with journey: false', async () => {
+			const fetch = vi
+				.fn()
+				.mockImplementation(() => Promise.resolve(response()));
+			vi.stubGlobal('fetch', fetch);
+			window.eval(
+				buildPrefetchScript({ backendURL: '/api/c15t', journey: false })
+			);
+			await createHostedTransport({ backendURL: '/api/c15t' }).init(
+				withoutJourney
+			);
+			expect(fetch).toHaveBeenCalledTimes(1);
+		});
+	});
+
+	describe('banner experiment arm', () => {
+		const experiment = {
+			arms: { bar: {}, floating: {} },
+			id: 'banner-shape',
+		};
+		const running = (arm: string) => ({
+			...context,
+			experiment: { arm, id: 'banner-shape' },
+		});
+		const prefetchBar = () => {
+			const fetch = vi
+				.fn()
+				.mockImplementation(() => Promise.resolve(response()));
+			vi.stubGlobal('fetch', fetch);
+			window.eval(
+				buildPrefetchScript({
+					backendURL: '/api/c15t',
+					experiment: { ...experiment, arm: 'bar' },
+				})
+			);
+			return fetch;
+		};
+
+		it('reuses an early request that sent the arm this init runs', async () => {
+			const fetch = prefetchBar();
+			await createHostedTransport({ backendURL: '/api/c15t' }).init(
+				running('bar')
+			);
+			expect(fetch).toHaveBeenCalledTimes(1);
+		});
+
+		it.each([
+			['another arm', running('floating')],
+			['no arm', context],
+		])(
+			'sends its own /init when the early request sent %s',
+			async (_label, ctx) => {
+				const fetch = prefetchBar();
+				await createHostedTransport({ backendURL: '/api/c15t' }).init(ctx);
+				expect(fetch).toHaveBeenCalledTimes(2);
+			}
+		);
+
+		it('sends its own /init for an arm the early request did not send', async () => {
+			const fetch = vi
+				.fn()
+				.mockImplementation(() => Promise.resolve(response()));
+			vi.stubGlobal('fetch', fetch);
+			window.eval(buildPrefetchScript({ backendURL: '/api/c15t' }));
+			await createHostedTransport({ backendURL: '/api/c15t' }).init(
+				running('bar')
+			);
+			expect(fetch).toHaveBeenCalledTimes(2);
+		});
+
+		it('reuses initial data that does not say which arm it carried', async () => {
+			const fetch = vi.fn();
+			vi.stubGlobal('fetch', fetch);
+			const transport = createHostedTransport({
+				backendURL: '/api/c15t',
+				initialData: Promise.resolve({
+					init: await response().json(),
+					producerPolicyContract: '1',
+				}),
+			});
+			await transport.init(running('bar'));
+			expect(fetch).not.toHaveBeenCalled();
+		});
 	});
 });

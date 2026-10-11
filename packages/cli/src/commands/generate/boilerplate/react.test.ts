@@ -50,6 +50,30 @@ describe('React, Next.js and JavaScript boilerplate', () => {
 		expect(results.filter(Boolean).join('\n')).toBe('');
 	}, 180_000);
 
+	it('hosted React asks /init per visit and prefetches it from index.html', () => {
+		const template = generated('react', 'hosted', []);
+		const consent = template.files['src/consent.tsx'];
+		expect(consent).toContain("\thosted,\n} from 'c15t/react';");
+		expect(consent).toContain(
+			"// Asks VITE_C15T_BACKEND_URL for each visitor's policy.\n\tmode: hosted(),"
+		);
+		expect(consent).not.toContain('manifest');
+		expect(template.files['vite.config.ts']).toContain(
+			'plugins: [react(), consentManifest()],'
+		);
+	});
+
+	it('offline React keeps offline() and skips the build fetch and early /init', () => {
+		const template = generated('react', 'offline', []);
+		const consent = template.files['src/consent.tsx'];
+		expect(consent).toContain("\toffline,\n} from 'c15t/react';");
+		expect(consent).toContain('mode: offline(),');
+		expect(template.files['vite.config.ts']).toContain(
+			"plugins: [react(), consentManifest({ initPrefetch: false, onBuildError: 'runtime' })],"
+		);
+		expect(template.files['.env']).toBeUndefined();
+	});
+
 	it('offline JavaScript uses the browser offline() with its recommended policy', () => {
 		const template = generated('javascript', 'offline', []);
 		const main = template.files['src/main.ts'];
@@ -57,7 +81,7 @@ describe('React, Next.js and JavaScript boilerplate', () => {
 		expect(main).toMatch(/mode: offline\(\),/u);
 		expect(template.files['.env']).toBeUndefined();
 		expect(template.files['vite.config.ts']).toContain(
-			"consentManifest({ onBuildError: 'runtime' })"
+			"consentManifest({ initPrefetch: false, onBuildError: 'runtime' })"
 		);
 	});
 

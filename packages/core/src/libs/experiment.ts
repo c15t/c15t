@@ -16,9 +16,12 @@
 import type { ConsentKernel, ConsentSnapshot } from '../types';
 import type { StorageConfig } from './cookie';
 import {
+	readEarlyExperimentArm,
 	readStoredExperimentArm,
+	writeEarlyExperimentArm,
 	writeStoredExperimentArm,
 } from './experiment-storage';
+import type { StoredExperimentArm } from './experiment-storage';
 import type {
 	ConsentPresentation,
 	PreferencesPresentation,
@@ -477,6 +480,27 @@ export const experimentConfigError = function experimentConfigError(
 };
 
 /**
+ * The relative weight of each arm in `names` under `split`: equal without
+ * one, and `0` for an arm the split leaves out.
+ *
+ * @param experiment - A valid experiment definition.
+ * @param names - Its arm names, from {@link experimentArmNames}.
+ * @returns One weight per name.
+ * @internal
+ */
+export const experimentArmWeights = function experimentArmWeights(
+	experiment: ConsentExperiment,
+	names: readonly string[]
+): number[] {
+	const split = experiment.split as
+		| Record<string, number | undefined>
+		| undefined;
+	return names.map((name) =>
+		split ? Math.max(0, (Object.hasOwn(split, name) ? split[name] : 0) ?? 0) : 1
+	);
+};
+
+/**
  * Pick an arm for a visitor c15t assigns: the arm this browser already saw
  * when it still exists, otherwise a weighted random pick over `split`
  * (equal by default). Nothing here is stored; the controller stores the arm
@@ -502,12 +526,7 @@ export const pickExperimentArm = function pickExperimentArm(
 		return assignment(stored.arm);
 	}
 	const names = experimentArmNames(experiment);
-	const split = experiment.split as
-		| Record<string, number | undefined>
-		| undefined;
-	const weights = names.map((name) =>
-		split ? Math.max(0, (Object.hasOwn(split, name) ? split[name] : 0) ?? 0) : 1
-	);
+	const weights = experimentArmWeights(experiment, names);
 	const total = weights.reduce((sum, weight) => sum + weight, 0);
 	let point = random * total;
 	for (const [index, name] of names.entries()) {
@@ -517,6 +536,46 @@ export const pickExperimentArm = function pickExperimentArm(
 		}
 	}
 	return assignment(names.at(-1) ?? CONTROL_ARM);
+};
+
+/**
+ * The arm c15t starts from: the one this page's early `/init` picked, else
+ * the one this browser stored. Either only when it is an arm of
+ * `experiment`.
+ */
+const knownArm = function knownArm(
+	experiment: ConsentExperiment
+): StoredExperimentArm | null {
+	const early = readEarlyExperimentArm();
+	return early?.id === experiment.id && isExperimentArm(experiment, early.arm)
+		? early
+		: readStoredExperimentArm();
+};
+
+/**
+ * The arm a request sent before the runtime starts carries: the host `arm`,
+ * else this page's early arm, the stored arm or a new pick under
+ * {@link pickExperimentArm}. Recorded for the runtime, which runs the same
+ * arm. The inline prefetch script does the same.
+ *
+ * @param experiment - The experiment definition.
+ * @returns The arm, or `undefined` for an invalid definition or outside a
+ * browser.
+ * @internal
+ */
+export const claimEarlyExperimentArm = function claimEarlyExperimentArm(
+	experiment: ConsentExperiment
+): StoredExperimentArm | undefined {
+	if (typeof window === 'undefined' || experimentConfigError(experiment)) {
+		return undefined;
+	}
+	const claimed = {
+		arm:
+			experiment.arm ?? pickExperimentArm(experiment, knownArm(experiment)).arm,
+		id: experiment.id,
+	};
+	writeEarlyExperimentArm(claimed);
+	return claimed;
 };
 
 /**
@@ -598,7 +657,8 @@ export interface StartExperimentOptions {
  * before `init()`.
  *
  * When c15t picks the arm, it does so here, synchronously, so the `/init`
- * that follows already carries it. Then the controller loads as its own
+ * that follows already carries it. An arm this page's early `/init` sent
+ * wins, so the banner runs the arm that request counted. Then the controller loads as its own
  * chunk, checks the arm against the visitor's policy and releases the held
  * prompt. A site pays for the controller only when it runs an experiment.
  * A failed load runs no experiment and still releases the prompt, so a
@@ -618,9 +678,7 @@ export const startExperiment = function startExperiment(
 		return () => undefined;
 	}
 	if (!kernel.getSnapshot().experiment && experiment.arm === undefined) {
-		kernel.set.experiment(
-			pickExperimentArm(experiment, readStoredExperimentArm())
-		);
+		kernel.set.experiment(pickExperimentArm(experiment, knownArm(experiment)));
 	}
 	let detach: (() => void) | null = null;
 	let stopped = false;

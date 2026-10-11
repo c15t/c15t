@@ -14,11 +14,14 @@ The [quickstart](/docs/frameworks/react/quickstart) does this in
 
 <include src="../../../shared/examples/react/consent.mdx" />
 
-`manifest()` from `c15t/react` resolves the policy from the snapshot
-`consentManifest()` bundled, and sends consent choices to the backend URL the
-plugin read from `VITE_C15T_BACKEND_URL` or `VITE_INTH_PROJECT_URL`. Set one
-to the backend URL from your Inth project. To fetch the policy from the backend on every page
-load instead, pass `hosted()` from `c15t/react`. The Next.js and TanStack Start adapters export `ConsentRoot` instead, which wraps
+`hosted()` from `c15t/react` asks the backend's `/init` for the visitor's
+policy on each page load, and sends consent choices to the same backend. It
+uses the backend URL `consentManifest()` read from `VITE_C15T_BACKEND_URL` or
+`VITE_INTH_PROJECT_URL`. Set one to the backend URL from your Inth project. To
+resolve a bundled policy in the browser instead, pass `manifest()` from
+`c15t/react`; see
+[rendering](/docs/frameworks/react/rendering#bundle-the-policy-at-build-time).
+The Next.js and TanStack Start adapters export `ConsentRoot` instead, which wraps
 this provider and passes it server-resolved state.
 
 ## Provider options
@@ -33,7 +36,7 @@ the provider to change them. `scripts`, `vendors`, `networkBlocker`,
 
 | Option | Purpose |
 | --- | --- |
-| `mode` | Required. `manifest()` for a bundled policy, `hosted()` for the backend's `/init`, `offline()` for local policies, all from `c15t/react`, or `custom()` for your own transport. See [consent modes](/docs/concepts/modes) |
+| `mode` | Required. `hosted()` for the backend's `/init`, `manifest()` for a bundled policy, `offline()` for local policies, all from `c15t/react`, or `custom()` for your own transport. See [consent modes](/docs/concepts/modes) |
 | `prefetch` | Server-resolved state, or a promise of it, from a framework adapter's server helper |
 | `scripts` | Consent-gated vendor scripts. See [scripts and embeds](/docs/frameworks/react/scripts) |
 | `vendors` | Vendors listed under their category with their own switch. See [vendor consent](/docs/frameworks/react/vendor-consent) |

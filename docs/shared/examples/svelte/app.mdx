@@ -8,7 +8,7 @@
 		ConsentDialog,
 		ConsentDialogLink,
 		ConsentProvider,
-		manifest,
+		hosted,
 	} from '@c15t/svelte';
 
 	const scripts = [
@@ -20,7 +20,7 @@
 	];
 </script>
 
-<ConsentProvider mode={manifest()} {scripts}>
+<ConsentProvider mode={hosted()} {scripts}>
 	<main>
 		<h1>c15t + Svelte</h1>
 		<p>Your app goes here.</p>

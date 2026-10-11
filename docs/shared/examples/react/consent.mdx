@@ -7,13 +7,13 @@ import {
 	ConsentDialog,
 	ConsentDialogLink,
 	ConsentProvider,
-	manifest,
+	hosted,
 } from 'c15t/react';
 import type { ReactNode } from 'react';
 
 const options = {
-	// The policy the build downloaded from VITE_C15T_BACKEND_URL.
-	mode: manifest(),
+	// Asks VITE_C15T_BACKEND_URL for each visitor's policy.
+	mode: hosted(),
 	scripts: [
 		posthog({
 			id: 'phc_your_project_key',

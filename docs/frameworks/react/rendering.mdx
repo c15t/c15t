@@ -21,34 +21,31 @@ read the visitor's cookie and location on the server, so the banner can be in
 the first HTML. [Choose your setup](/docs/concepts/choose-your-setup#server-rendering-or-browser-rendering)
 explains the difference in general terms.
 
-## Bundle the manifest during Vite builds
-
-The [quickstart](/docs/frameworks/react/quickstart) and `examples/react` in
-the c15t repository use this setup.
-
-<include src="../../shared/build-manifests/react.mdx" />
-
 ## Client-rendered apps
 
-The recommended [quickstart](/docs/frameworks/react/quickstart) bundles the
-manifest and resolves it in the browser. See [build-time manifests](#bundle-the-manifest-during-vite-builds).
-
-For policy updates without rebuilding, use `hosted()` from `c15t/react` as
-the mode. It reads the backend URL `consentManifest` read from
-`VITE_C15T_BACKEND_URL` or `VITE_INTH_PROJECT_URL`; without the plugin, pass
-`hosted({ backendURL })`.
-That runtime path works as follows:
+The [quickstart](/docs/frameworks/react/quickstart) and `examples/react` in
+the c15t repository use `hosted()` from `c15t/react`. It reads the backend URL
+`consentManifest` read from `VITE_C15T_BACKEND_URL` or
+`VITE_INTH_PROJECT_URL`; without the plugin, pass `hosted({ backendURL })`.
+Policy edits apply on the next page load, without a rebuild. The page loads
+like this:
 
 1. The page loads with no consent state. Every optional category is denied.
-2. `ConsentProvider` requests `GET /init` from your backend URL while it first
-   renders, before the page paints. The backend picks the visitor's policy
-   from their location. With an `experiment`, the request waits until the
-   provider mounts, because it carries the visitor's arm.
+2. The browser requests `GET /init` from your backend URL. A
+   [script in `index.html`](#send-init-before-the-app-loads) sends it while
+   the JavaScript downloads. The backend picks the visitor's policy from their
+   location. With an `experiment`, pass it to the plugin as
+   `initPrefetch: { experiment }` so the early request carries the visitor's
+   arm. Without that, the provider sends its own `/init` when it mounts.
 3. The provider applies the policy and any stored choice. It shows the banner
    if the policy asks for one, and loads the scripts the visitor allowed.
 
 Until step 3 finishes, gated scripts and `ConsentGate` embeds stay blocked. If
 the backend request fails, they stay blocked and no banner shows.
+
+### Send `/init` before the app loads
+
+<include src="../../shared/vite-init-prefetch.mdx" />
 
 ## React Router, Remix and other server-rendered apps
 
@@ -60,16 +57,19 @@ around the outlet. In React Router framework mode that is `app/root.tsx`.
 browser takes over after hydration:
 
 - The server HTML contains your page but no banner and no consent state.
-- After hydration the browser resolves the bundled manifest, then shows the
-  banner if the policy asks for one. When the banner depends on a country or
-  region the browser does not know, it calls `/init` and uses the backend's
-  current policy and translations, which can differ from the build snapshot.
-  With `hosted()`, it always calls `/init`.
+- After hydration the browser calls `/init`, then shows the banner if the
+  policy asks for one.
 - The server render and the first browser render agree, so hydration does not
   warn or change a stored choice.
 
 The Vite setup needs no change. The banner renders in the browser and brings
 its own `<style>` element, so there is no stylesheet to import.
+
+These frameworks render their own HTML, so the Vite plugin can't add the
+early `/init` script. Put `buildPrefetchScript({ backendURL })` from `c15t` in
+a `<script>` in the root `<head>` instead, unless your loader supplies
+`initialData` as described below. The two are alternatives: with
+`initialData` the provider never reads the script's response.
 
 ### Skip the browser's first init request
 
@@ -112,9 +112,9 @@ browser path.
 ## Static and prerendered pages
 
 A prerendered page is the same HTML for every visitor, so it cannot contain one
-visitor's consent. Use the quickstart's build-time snapshot. Consent saves and
-any `/init` requests go to the backend URL directly, so the static host
-needs no server route. Add the site's
+visitor's consent. Use the quickstart's setup. `/init` requests and consent
+saves go to the backend URL directly, so the static host needs no server
+route. Add the site's
 origin to the trusted origins in your Inth project.
 
 Do not cache a response that contains a visitor's consent in a CDN or a shared
@@ -130,10 +130,6 @@ With `hosted()`, the browser calls two backend endpoints:
 | `GET {url}/init` | Once per page load, to resolve the policy |
 | `POST {url}/subjects` | When the visitor accepts, rejects or saves |
 
-With a bundled manifest, `manifest()` sends the same
-`/subjects` request, and requests `/init` only when the policy depends on a
-country or region the browser does not know.
-
 These requests go to the backend's origin, so it must list your site as a
 trusted origin.
 [Data fetching](/docs/concepts/data-fetching) compares this with proxies and
@@ -144,9 +140,25 @@ custom transports.
 1. Open the page in a private window and view the page source. In a
    server-rendered app the HTML contains your content and no element with
    `data-testid="consent-banner-root"`.
-2. In DevTools Network, confirm there is no `/manifest` request with a
-   build-time snapshot. A regional policy may still need an `/init` request
-   to resolve consent when geography is missing. With `hosted()`, one `/init`
-   request runs unless you supply `initialData`.
+2. In DevTools Network, confirm one `/init` request runs, unless you supply
+   `initialData`.
 3. The banner appears once the policy resolves. Vendor requests stay absent
    until you allow their category.
+
+## Bundle the policy at build time
+
+`manifest()` resolves the policy in the browser from a snapshot the build
+downloaded. It saves the `/init` request only in these cases:
+
+- The policy has no location rules, or every location gets the same banner.
+- The page already knows the visitor's location, for example from an edge
+  worker, and passes it as `inputs`.
+- You run a same-origin `geoURL` route that returns the location.
+
+Otherwise the browser still calls `/init` on a first visit and uses the
+backend's answer, so the bundle adds bytes without saving a request.
+`consentManifest` warns during the build when that happens. The resolver adds
+about 3 KB gzipped to the bundle, and policy edits need a rebuild. The browser
+sends no `/init`, so the backend doesn't count visitors it resolves this way.
+
+<include src="../../shared/build-manifests/react.mdx" />

@@ -1,19 +1,19 @@
 import {
 	BACKEND_URL_ENV,
-	buildOptions,
 	envFile,
 	integrationDependencies,
 	offlineInstruction,
 	scriptImports,
 	scriptsProperty,
 	sortImports,
+	spaBuildOptions,
 	vendorInstruction,
 } from './source.ts';
 import type { BoilerplateOptions, BoilerplateTemplate } from './types.ts';
 
 const consent = (options: BoilerplateOptions): string => {
 	const offline = options.mode === 'offline';
-	const mode = offline ? 'offline' : 'manifest';
+	const mode = offline ? 'offline' : 'hosted';
 	return `${sortImports([
 		...scriptImports(options.scripts),
 		`import {
@@ -27,7 +27,7 @@ const consent = (options: BoilerplateOptions): string => {
 	])}
 
 const options = {
-	// ${offline ? 'The recommended policy, resolved in the browser.' : `The policy the build downloaded from ${BACKEND_URL_ENV.vite}.`}
+	// ${offline ? 'The recommended policy, resolved in the browser.' : `Asks ${BACKEND_URL_ENV.vite} for each visitor's policy.`}
 	mode: ${mode}(),
 ${scriptsProperty(options.scripts, '\t')}};
 
@@ -79,7 +79,7 @@ import { consentManifest } from 'c15t/build';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
-	plugins: [react(), consentManifest(${buildOptions(options)})],
+	plugins: [react(), consentManifest(${spaBuildOptions(options)})],
 });
 `,
 	},

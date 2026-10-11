@@ -16,10 +16,10 @@ keys and how to write labels that describe each action.
 
 ## How c15t picks the language
 
-By default the browser's own language decides. With `manifest()`, c15t reads
-`navigator.language` and resolves the text from the manifest. With
-`hosted()`, the browser sends it as `Accept-Language` with the policy request
-to `/init`. When your project has no text for that language, the policy's
+By default the browser's own language decides. With `hosted()`, the browser
+sends it as `Accept-Language` with the policy request to `/init`. With
+`manifest()`, c15t reads `navigator.language` and resolves the text from the
+manifest. When your project has no text for that language, the policy's
 fallback language applies.
 
 `manifest()` bundles English base copy only. When a visitor resolves to

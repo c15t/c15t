@@ -565,6 +565,228 @@ describe('@c15t/core/generated in Vite', () => {
 	});
 });
 
+/** Builds `index.html` with `source` as its module script. */
+const buildPage = async (
+	root: string,
+	plugin: ReturnType<typeof consentManifest>,
+	source: string,
+	options: { cspNonce?: string; warn?: (message: string) => void } = {}
+): Promise<string> => {
+	await mkdir(join(root, 'src'), { recursive: true });
+	await writeFile(join(root, 'src/entry.js'), source);
+	await writeFile(join(root, 'src/style.css'), 'body { margin: 0; }\n');
+	await writeFile(
+		join(root, 'index.html'),
+		'<!doctype html>\n<html lang="en">\n\t<head>\n\t\t<meta charset="UTF-8" />\n\t\t<link rel="stylesheet" href="/src/style.css" />\n\t</head>\n\t<body>\n\t\t<script type="module" src="/src/entry.js"></script>\n\t</body>\n</html>\n'
+	);
+	const warn = options.warn ?? (() => undefined);
+	const output = (await build({
+		build: { minify: false, write: false },
+		configFile: false,
+		customLogger: {
+			clearScreen: () => undefined,
+			error: () => undefined,
+			hasErrorLogged: () => false,
+			hasWarned: false,
+			info: () => undefined,
+			warn,
+			warnOnce: warn,
+		},
+		html: options.cspNonce ? { cspNonce: options.cspNonce } : undefined,
+		plugins: [plugin],
+		root,
+	})) as Rollup.RollupOutput | Rollup.RollupOutput[];
+	const [first] = Array.isArray(output) ? output : [output];
+	const page = first?.output.find((file) => file.fileName === 'index.html');
+	return page?.type === 'asset' ? String(page.source) : '';
+};
+
+const HOSTED_ENTRY =
+	"import { backendURL } from '@c15t/core/generated';\nconsole.log(backendURL);\n";
+const PREFETCH_TAG = '<script id="c15t-initial-data-prefetch"';
+
+describe('initPrefetch', () => {
+	test('puts the /init script after the charset and before the stylesheet by default', async () => {
+		const root = await createRoot();
+		const options = optionsFor(root);
+		const html = await buildPage(root, consentManifest(options), HOSTED_ENTRY);
+		const tag = html.indexOf(PREFETCH_TAG);
+		expect(tag).toBeGreaterThan(html.indexOf('<meta charset="UTF-8" />'));
+		expect(tag).toBeLessThan(html.indexOf('rel="stylesheet"'));
+		expect(html).toContain('"backendURL":"https://consent.example.com"');
+		expect(html).toContain('"journey":"auto"');
+		expect(options.fetch).not.toHaveBeenCalled();
+	});
+
+	test('initPrefetch: false leaves the script out', async () => {
+		const root = await createRoot();
+		const html = await buildPage(
+			root,
+			consentManifest({ ...optionsFor(root), initPrefetch: false }),
+			HOSTED_ENTRY
+		);
+		expect(html).toContain('rel="stylesheet"');
+		expect(html).not.toContain(PREFETCH_TAG);
+	});
+
+	test('passes credentials, experiment, journey, overrides and storageKey to the script', async () => {
+		const root = await createRoot();
+		const html = await buildPage(
+			root,
+			consentManifest({
+				...optionsFor(root),
+				initPrefetch: {
+					credentials: 'include',
+					experiment: {
+						arms: { wall: { prompt: { variant: 'wall' } } },
+						id: 'banner-shape',
+						split: { control: 60, wall: 40 },
+					},
+					journey: false,
+					overrides: { country: 'DE', language: 'de' },
+					storageKey: 'shop-consent',
+				},
+			}),
+			HOSTED_ENTRY
+		);
+		expect(html).toContain('"credentials":"include"');
+		expect(html).toMatch(/[?&]country=DE[&"]/u);
+		expect(html).toContain('"language":"de"');
+		expect(html).toContain('"journey":null');
+		expect(html).toContain('"notice":"shop-consent-notice"');
+		expect(html).toContain('"arms":["control","wall"]');
+		expect(html).toContain('"weights":[60,40]');
+		// Only the arm names reach the page, not what each arm changes.
+		expect(html).not.toContain('"variant":"wall"');
+	});
+
+	test("carries Vite's html.cspNonce", async () => {
+		const root = await createRoot();
+		const html = await buildPage(
+			root,
+			consentManifest({ ...optionsFor(root), initPrefetch: true }),
+			HOSTED_ENTRY,
+			{ cspNonce: 'n0nce' }
+		);
+		expect(html).toMatch(
+			/<script id="c15t-initial-data-prefetch" nonce="n0nce">/u
+		);
+	});
+
+	test('leaves the script out of a build that bundles the snapshot', async () => {
+		// manifest() resolves from the snapshot, so an early /init would
+		// be a request the app may never read, counted by the backend.
+		const root = await createRoot();
+		const warn = vi.fn();
+		const html = await buildPage(
+			root,
+			consentManifest({ ...optionsFor(root), initPrefetch: true }),
+			"import { snapshot } from '@c15t/core/generated';\nconsole.log(snapshot);\n",
+			{ warn }
+		);
+		expect(html).not.toContain(PREFETCH_TAG);
+		expect(warn).toHaveBeenCalledWith(
+			expect.stringContaining(
+				'initPrefetch: the bundle reads the snapshot, as `manifest()` does'
+			)
+		);
+	});
+
+	test('leaves the script out of a manifest() build quietly unless asked for', async () => {
+		const root = await createRoot();
+		const warn = vi.fn();
+		const html = await buildPage(
+			root,
+			consentManifest(optionsFor(root)),
+			"import { snapshot } from '@c15t/core/generated';\nconsole.log(snapshot);\n",
+			{ warn }
+		);
+		expect(html).not.toContain(PREFETCH_TAG);
+		expect(warn).not.toHaveBeenCalledWith(
+			expect.stringContaining('initPrefetch')
+		);
+	});
+
+	test("leaves the script out with source: 'runtime'", async () => {
+		const root = await createRoot();
+		const warn = vi.fn();
+		const html = await buildPage(
+			root,
+			consentManifest({
+				...optionsFor(root),
+				initPrefetch: true,
+				source: 'runtime',
+			}),
+			HOSTED_ENTRY,
+			{ warn }
+		);
+		expect(html).not.toContain(PREFETCH_TAG);
+		expect(warn).toHaveBeenCalledWith(
+			expect.stringContaining("initPrefetch: `source: 'runtime'`")
+		);
+	});
+
+	test('a server-rendered app warns and adds nothing', async () => {
+		const root = await createRoot();
+		const logger = createLogger();
+		const plugin = createConsentManifestPlugin(
+			{ ...optionsFor(root), initPrefetch: true },
+			{ envNames: [], label: 'test', serverRendered: true }
+		);
+		plugin.configResolved({ command: 'build', logger, root });
+		expect(logger.warn).toHaveBeenCalledWith(
+			expect.stringContaining('initPrefetch has no effect')
+		);
+		expect(plugin.transformIndexHtml('<head></head>')).toBeUndefined();
+	});
+
+	test('a page without a <head> keeps the script after the doctype', () => {
+		const plugin = createConsentManifestPlugin(
+			{ backendURL: 'https://consent.example.com' },
+			{ envNames: [], label: 'test' }
+		);
+		plugin.configResolved({
+			command: 'build',
+			logger: createLogger(),
+			root: '/app',
+		});
+		const html = plugin.transformIndexHtml(
+			'<!doctype html>\n<html lang="en"><body></body></html>'
+		);
+		expect(html).toMatch(
+			/^<!doctype html>\n<html lang="en">\n<script id="c15t-initial-data-prefetch"/u
+		);
+	});
+
+	test('a watch rebuild that stops bundling the snapshot adds the script', async () => {
+		const root = await createRoot();
+		const plugin = createConsentManifestPlugin(optionsFor(root), {
+			envNames: [],
+			label: 'test',
+		});
+		plugin.configResolved({ command: 'build', logger: createLogger(), root });
+		const source = await plugin.load.call(
+			undefined,
+			plugin.resolveId(GENERATED_MODULE_IDS[0]) as string
+		);
+		await plugin.renderChunk(source as string);
+		expect(plugin.transformIndexHtml('<head></head>')).toBeUndefined();
+		plugin.buildStart();
+		expect(plugin.transformIndexHtml('<head></head>')).toContain(PREFETCH_TAG);
+	});
+
+	test('a server-rendered app that left the option unset hears nothing', () => {
+		const logger = createLogger();
+		const plugin = createConsentManifestPlugin(
+			{ backendURL: 'https://consent.example.com' },
+			{ envNames: [], label: 'test', serverRendered: true }
+		);
+		plugin.configResolved({ command: 'build', logger, root: '/app' });
+		expect(logger.warn).not.toHaveBeenCalled();
+		expect(plugin.transformIndexHtml('<head></head>')).toBeUndefined();
+	});
+});
+
 describe('@c15t/core/generated typings', () => {
 	const packageRoot = resolve(__dirname, '../..');
 	const readJSON = (path: string) =>

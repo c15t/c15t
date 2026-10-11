@@ -320,6 +320,8 @@ export const lazyHosted = function lazyHosted(
 						headers: options.headers,
 						initURL: options.initURL,
 						initialData: options.initialData,
+						// `fetch` here is the global one, as the page's script uses.
+						pagePrefetch: true,
 					});
 				}
 			);

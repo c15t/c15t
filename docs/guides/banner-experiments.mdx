@@ -289,6 +289,24 @@ arm re-assigns only the visitors who were in it. For a clean analysis, change
 Built-in assignment is not available in Astro; see
 [Astro](#astro).
 
+A Vite app's early `/init` script, from `consentManifest()`, picks the arm
+the same way when you pass it the experiment, and the app then runs that
+arm. Import the same object into `vite.config.ts`:
+
+{/* example: fragment */}
+
+```ts title="vite.config.ts"
+consentManifest({ initPrefetch: { experiment: bannerExperiment } });
+```
+
+Without it, the app sends its own `/init` for visitors who have not chosen
+yet. The same goes for `consentPrefetchHead` in TanStack Start and
+`buildPrefetchScript` elsewhere, which take the same `experiment` option.
+
+When a feature flag picks the arm, leave `experiment` out of
+`initPrefetch`. The script would pick its own arm and send it to the
+backend, and the app would then send a second `/init` with the flag's arm.
+
 ## Acknowledge presentation diagnostics
 
 Each arm is resolved under the visitor's policy the same way `presentation`

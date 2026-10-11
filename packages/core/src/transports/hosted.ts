@@ -110,6 +110,15 @@ export interface HostedTransportOptions {
 	initialData?: Promise<SSRInitialData | undefined>;
 
 	/**
+	 * Whether the first `init()` may use the response an inline `/init`
+	 * script left on the page. Defaults to `true` unless `fetch` is set: the
+	 * script sends `/init` with the global `fetch`, so a custom `fetch` that
+	 * signs, routes or instruments requests would never see it.
+	 * @internal
+	 */
+	pagePrefetch?: boolean;
+
+	/**
 	 * Decision inputs a server-side prefetch already resolved. Seeds the
 	 * assertion `POST /subjects` carries when `assertDecisionInputs` is set,
 	 * so a save made before the first client `init()` resolves is still
@@ -168,28 +177,43 @@ export interface HostedKernelTransport extends HostedRecordTransport {
 const INIT_HEADER_ALLOWLIST = new Set<string>(CONSENT_REQUEST_HEADER_NAMES);
 
 /**
- * Whether an early response answers this init: it has a payload and, when
- * this init carries a journey, its request carried the same one. Otherwise
- * the saves that follow would carry an id no report named.
+ * Whether an early response answers this init: it has a payload and its
+ * request carried this init's journey, the same id and stored flag, or none
+ * for none. Otherwise the saves that follow would carry an id no report
+ * named. Initial data that doesn't say which journey it carried still counts.
+ * The scope may differ: an early script can't know the app's `journey`
+ * option on a tab's first page, and the runtime continues its id either way.
+ *
+ * When the early request says which experiment arm it carried, it must be
+ * this init's arm, or none for none: the backend counts the visit toward
+ * the arm `/init` names.
  */
 const usablePrefetch = function usablePrefetch(
 	prefetched: SSRInitialData | undefined,
-	journey: InitContext['journey']
+	{ experiment, journey }: Pick<InitContext, 'experiment' | 'journey'>
 ): prefetched is SSRInitialData & { init: InitOutput } {
 	if (!prefetched?.init) {
 		return false;
 	}
+	const sentArm = prefetched.metadata?.experiment;
+	if (
+		sentArm !== undefined &&
+		(sentArm?.id !== experiment?.id || sentArm?.arm !== experiment?.arm)
+	) {
+		return false;
+	}
 	const sent = prefetched.metadata?.journey;
-	// Only an init that carries a journey needs the early request to have
-	// carried the same one; its saves will carry that id.
-	if (!journey || sent === undefined) {
+	if (sent === undefined) {
 		return true;
 	}
+	// An init without a journey, such as `journey: false`, can't use a
+	// request that sent one: the backend would record a journey the app
+	// turned off.
+	if (!journey) {
+		return !sent;
+	}
 	return Boolean(
-		sent &&
-		sent.id === journey.id &&
-		sent.scope === journey.scope &&
-		sent.storedChoice === journey.storedChoice
+		sent && sent.id === journey.id && sent.storedChoice === journey.storedChoice
 	);
 };
 
@@ -247,6 +271,7 @@ export const createHostedTransport = function createHostedTransport(
 
 	let pendingInit: Promise<TransportInitResponse> | undefined;
 	let { initialData } = options;
+	const pagePrefetch = options.pagePrefetch ?? options.fetch === undefined;
 
 	const prepareInit = (ctx: InitContext) => {
 		if (options.assertDecisionInputs && lastDecisionInputs) {
@@ -276,7 +301,7 @@ export const createHostedTransport = function createHostedTransport(
 		const { requestHeaders } = request;
 		const supplied =
 			initialData ??
-			(options.initURL
+			(options.initURL || !pagePrefetch
 				? undefined
 				: consumePrefetchedInitialData({
 						backendURL: base,
@@ -292,7 +317,7 @@ export const createHostedTransport = function createHostedTransport(
 		// provider's first render) gets the request out at that moment.
 		const prefetched: SSRInitialData | undefined =
 			supplied && (await supplied.catch(() => undefined));
-		if (usablePrefetch(prefetched, ctx.journey)) {
+		if (usablePrefetch(prefetched, ctx)) {
 			const headers = { ...requestHeaders };
 			const gpc = prefetched.metadata?.requestContext?.gpc;
 			if (gpc !== undefined) {

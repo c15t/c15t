@@ -1,6 +1,6 @@
 import type { InitOutput } from '@c15t/schema/types';
 
-import type { GlobalVendorList, KernelJourney } from '../types';
+import type { GlobalVendorList, InitContext, KernelJourney } from '../types';
 
 /**
  * Request context captured alongside server-fetched init data so the
@@ -26,6 +26,12 @@ export interface SSRInitRequestMetadata {
 	 * sends its own `/init` instead.
 	 */
 	journey?: KernelJourney | null;
+	/**
+	 * The experiment arm the early request carried, or `null` for none.
+	 * Absent when the producer does not say; a runtime whose arm differs
+	 * sends its own `/init` instead.
+	 */
+	experiment?: InitContext['experiment'] | null;
 	requestDurationMs?: number;
 	cache?: {
 		isHit: boolean;

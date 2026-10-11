@@ -6,11 +6,10 @@ group: frameworks
 
 ## Before you start
 
-This guide sets up a client-rendered React app built with Vite. The build
-bundles your project's public policy. The browser loads the page, resolves the
-visitor's policy from that bundle, then shows the banner or runs the scripts
-the visitor allowed. Regional policies may still need a backend location
-request.
+This guide sets up a client-rendered React app built with Vite. The browser
+loads the page and asks your consent backend for the visitor's policy, then
+shows the banner or runs the scripts the visitor allowed. The backend reads the
+visitor's location from the request, so regional policies need no extra setup.
 
 - **Next.js or TanStack Start?** Use that framework's guide from the
   [framework list](/docs/frameworks). Their adapters resolve consent on the
@@ -27,8 +26,8 @@ the backend URL.
 [Choose your setup](/docs/concepts/choose-your-setup#decide-who-runs-the-consent-backend)
 covers self-hosting and offline mode.
 
-Bundling the policy at build time is the recommended production setup.
-Rebuild after changing policies, translations or vendors.
+The guide uses `hosted()` mode. Policy, translation and vendor edits in your
+project reach visitors on their next page load, without a rebuild.
 
 ## Install c15t
 
@@ -37,7 +36,7 @@ Rebuild after changing policies, translations or vendors.
 `c15t` contains the React adapter at `c15t/react` and the Vite plugin at
 `c15t/build`. `@c15t/integrations` holds the vendor loaders used below.
 
-## Bundle your policy
+## Add the Vite plugin
 
 Add `consentManifest` to `vite.config.ts`:
 
@@ -54,14 +53,14 @@ VITE_C15T_BACKEND_URL=https://your-project.inth.app
 If your app already sets `VITE_INTH_PROJECT_URL` for other Inth SDKs, that works
 too. When both are set, `VITE_C15T_BACKEND_URL` wins.
 
-`consentManifest` downloads your project's public policy from `/manifest`
-during `vite build`, or in `vite dev` when the app first loads it, and serves
-it to your app as `snapshot`
-from `c15t/generated`. No file is written into your project.
+`consentManifest` hands the backend URL to `hosted()` through
+`c15t/generated`. No file is written into your project. Without the plugin,
+pass the URL as `hosted({ backendURL })`.
 
-<include src="../../shared/build-time-manifest-notes.mdx" />
-
-<include src="../../shared/vite-build-manifest.mdx" />
+The plugin also adds a small script to `index.html` that sends `/init` while
+your JavaScript downloads, so the banner shows sooner.
+[Rendering](/docs/frameworks/react/rendering#send-init-before-the-app-loads)
+covers when to turn it off.
 
 ## Mount the provider
 
@@ -72,18 +71,11 @@ banner closes.
 
 <include src="../../shared/examples/react/consent.mdx" />
 
-`manifest()` resolves the policy from the bundled snapshot in the browser,
-with no `/manifest` request. It reads the snapshot and the backend URL from
-what `consentManifest` downloaded. Consent choices go to that backend, and so
-does an `/init` request when the policy depends on the visitor's country or
-region and the browser does not know it. That request returns the backend's
-current policy, which can be newer than the snapshot. Vite reads
-`VITE_C15T_BACKEND_URL` at build time, so set it before you build, not when
-you serve the files.
-
-To apply policy edits without rebuilding, use `hosted()` from `c15t/react` as
-the mode. The browser then requests the policy from `/init` on every page load.
-[Consent modes](/docs/concepts/modes) compares the three modes.
+`hosted()` makes one `/init` request to your backend, started early by the
+script in `index.html`. The backend picks the policy from the visitor's
+location and language and returns its current version. Consent choices go to
+the same backend. Vite reads `VITE_C15T_BACKEND_URL` at build time, so set it
+before you build, not when you serve the files.
 
 PostHog waits for measurement permission, so your policy must include that
 category. Replace `phc_your_project_key` with your PostHog project key.
@@ -130,7 +122,8 @@ Build and preview the production bundle with `vite build` and `vite preview`,
 then open the site in a private window with DevTools open on the Network tab.
 Test under a policy that asks for a choice, such as an EU opt-in policy.
 
-1. **Before a choice.** The banner shows, with no `/manifest` request. There
+1. **Before a choice.** One `/init` request goes to your backend URL, starting
+   before your JavaScript finishes downloading, and the banner shows. There
    are no requests to `posthog.com`.
 2. **Reject All.** The banner closes and the vendor requests stay absent.
 3. **Reload.** The banner stays closed and the vendor requests stay absent.
@@ -139,8 +132,7 @@ Test under a policy that asks for a choice, such as an EU opt-in policy.
    save. PostHog's `array.js` loads.
 5. **Turn Analytics off again.** The page reloads and PostHog does not load.
 
-If the banner never appears, check the generated policy and any location
-request to `/init` on your backend URL. [Troubleshooting](/docs/frameworks/react/troubleshooting)
+If the banner never appears, check the `/init` request to your backend URL. [Troubleshooting](/docs/frameworks/react/troubleshooting)
 covers the common causes. [Verify consent](/docs/guides/verify-consent) has the
 full release checklist.
 

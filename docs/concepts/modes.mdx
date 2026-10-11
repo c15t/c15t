@@ -14,13 +14,16 @@ and `offline()`. Consent choices go to the backend in `manifest()` and
 
 | Mode | Where the policy resolves | Backend requests on a first visit | Use it when |
 | --- | --- | --- | --- |
-| `manifest()`, the default | Your server, from the policy the build downloaded. With `resolve: 'browser'`, or in a single-page app, the browser. | None to resolve the policy. Choices post to `/subjects`. | Most apps. Rebuild to ship policy changes, or set `source: 'runtime'`. |
-| `hosted()` | The backend's `GET /init` | One `/init` per page that resolves consent. | Static hosting without a server, or a policy that changes without a rebuild and needs the backend's geolocation. |
+| `manifest()`, the default | Your server, from the policy the build downloaded. With `resolve: 'browser'`, or in a single-page app, the browser. | None to resolve the policy, unless the browser needs a location it doesn't have. Choices post to `/subjects`. | Server-rendered apps. Rebuild to ship policy changes, or set `source: 'runtime'`. |
+| `hosted()` | The backend's `GET /init` | One `/init` per page that resolves consent. | Single-page apps and static hosting without a server, where the backend reads each visitor's location from the request. Policy edits apply without a rebuild. |
 | `offline()` | The browser, from rules in your bundle | None. Choices stay in the browser. | Local development, tests and demos. Not recommended for production environments. |
 
 `manifest()` is the default in Next.js, TanStack Start, Nuxt, Astro and
 SvelteKit. React, Vue, Svelte and `@c15t/browser` have no default: pass a
-mode yourself. Their quickstarts use `manifest()`. The script tag picks its
+mode yourself. The React, Vue and Svelte quickstarts use `hosted()`, because
+a browser has no request location and a bundled regional policy still needs
+`/init` on a first visit. The JavaScript quickstart uses `manifest()`. The
+script tag picks its
 mode from the bundle file; see
 [choose a mode](/docs/frameworks/html/attributes-and-api#choose-a-mode).
 

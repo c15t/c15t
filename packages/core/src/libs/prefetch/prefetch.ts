@@ -4,14 +4,24 @@ import {
 	CONSENT_JOURNEY_PARAM,
 	CONSENT_JOURNEY_SCOPE_PARAM,
 	CONSENT_JOURNEY_STORED_PARAM,
+	INIT_EXPERIMENT_PARAM,
 } from '@c15t/schema/types';
 import type { InitOutput } from '@c15t/schema/types';
 
 import type { SSRInitialData } from '../../options/ssr';
 import { c15tProtocolParams } from '../../transports/version-header';
-import type { KernelJourney } from '../../types';
+import type { InitContext, KernelJourney } from '../../types';
+import {
+	claimEarlyExperimentArm,
+	experimentArmNames,
+	experimentArmWeights,
+	experimentConfigError,
+} from '../experiment';
+import type { ConsentExperiment } from '../experiment';
+import { EXPERIMENT_WINDOW_KEY } from '../experiment-storage';
 import {
 	claimEarlyJourney,
+	detectJourneyOption,
 	hasStoredConsentRecord,
 	JOURNEY_WINDOW_KEY,
 	storedAnswerKeys,
@@ -24,7 +34,11 @@ import {
 	matchesStoredRequestContext,
 } from '../request-context';
 import { DEFAULT_INIT_CREDENTIALS } from '../request-context-headers';
-import { JOURNEY_STORAGE_KEY, STORAGE_KEY_V2 } from '../storage-keys';
+import {
+	EXPERIMENT_STORAGE_KEY,
+	JOURNEY_STORAGE_KEY,
+	STORAGE_KEY_V2,
+} from '../storage-keys';
 import type { PrefetchOptions } from './types';
 import { PREFETCH_WINDOW_KEY } from './window-key';
 
@@ -129,7 +143,8 @@ const toInitialData = function toInitialData(
 	config: Pick<PrefetchConfig, 'requestContext'>,
 	init: InitOutput | undefined,
 	producerPolicyContract: string | null,
-	journey: KernelJourney | undefined
+	journey: KernelJourney | undefined,
+	experiment: InitContext['experiment']
 ): PrefetchedInitialData | undefined {
 	if (!init) {
 		return undefined;
@@ -139,6 +154,7 @@ const toInitialData = function toInitialData(
 		gvl: init.gvl,
 		init,
 		metadata: {
+			experiment: experiment ?? null,
 			journey: journey ?? null,
 			requestContext: config.requestContext,
 		},
@@ -168,15 +184,17 @@ const getPromiseMap = function getPromiseMap(
 
 const createPrefetchEntry = function createPrefetchEntry(
 	config: PrefetchConfig,
-	journey: KernelJourney | undefined
+	journey: KernelJourney | undefined,
+	experiment: InitContext['experiment']
 ): PrefetchEntry {
 	const promise = (async () => {
 		try {
 			// The cache key stays the bare URL; only the request carries the
-			// journey, as the inline script does.
-			const url = journey
-				? appendJourneyParams(config.url, journey)
+			// experiment arm and journey, as the inline script does.
+			const withArm = experiment
+				? appendInitParams(config.url, { experiment })
 				: config.url;
+			const url = journey ? appendJourneyParams(withArm, journey) : withArm;
 			const response = await fetch(url, {
 				credentials: config.credentials,
 				headers: config.headers,
@@ -189,7 +207,8 @@ const createPrefetchEntry = function createPrefetchEntry(
 				config,
 				init,
 				response.headers.get('x-c15t-policy-contract'),
-				journey
+				journey,
+				experiment
 			);
 		} catch {
 			return undefined;
@@ -270,6 +289,28 @@ export const consumePrefetchedInitialData = (
 };
 
 /**
+ * What the inline script needs to pick an arm as {@link pickExperimentArm}
+ * does: the arm names and their weights. A host `arm` is the only arm.
+ * An invalid definition gives `null`, and the runtime reports it.
+ */
+const scriptExperiment = function scriptExperiment(
+	experiment: ConsentExperiment
+): { id: string; arms: string[]; weights: number[] } | null {
+	if (experimentConfigError(experiment)) {
+		return null;
+	}
+	if (experiment.arm !== undefined) {
+		return { arms: [experiment.arm], id: experiment.id, weights: [1] };
+	}
+	const arms = experimentArmNames(experiment);
+	return {
+		arms,
+		id: experiment.id,
+		weights: experimentArmWeights(experiment, arms),
+	};
+};
+
+/**
  * Generates a self-contained inline script that starts the `/init`
  * prefetch before framework hydration.
  *
@@ -288,11 +329,15 @@ export const buildPrefetchScript = function buildPrefetchScript(
 	const payload = {
 		backendURL: options.backendURL,
 		credentials: options.credentials ?? DEFAULT_INIT_CREDENTIALS,
+		experiment: options.experiment
+			? scriptExperiment(options.experiment)
+			: null,
 		// An explicit override wins over the browser signal, and travels as
 		// `gpc` inside `query`; `null` means detect at runtime.
 		gpc: options.overrides?.gpc ?? null,
 		headers: buildRequestContextSentHeaders(options.overrides),
-		journey: options.journey === false ? null : (options.journey ?? 'page'),
+		// `'auto'`: continue a `'tab'` journey this tab holds, else `'page'`.
+		journey: options.journey === false ? null : (options.journey ?? 'auto'),
 		query: buildInitQuery(options.overrides),
 		requestContext: {
 			country: options.overrides?.country ?? null,
@@ -315,7 +360,7 @@ export const buildPrefetchScript = function buildPrefetchScript(
 	// The journey part mirrors `claimEarlyJourney`; it goes on the request
 	// only, never in the cache key. Everything but `Accept-Language` is in
 	// the query string, so a cross-origin `/init` needs no preflight.
-	return `(()=>{var w=globalThis.window;if(w===void 0)return;var p=${json},t=v=>v!=="/"&&v.endsWith("/")?v.slice(0,-1):v,b;try{b=t(p.backendURL);b=/^https?:\\/\\//.test(b)?t(new URL(b)+""):b.startsWith("/")?t(new URL(b,w.location.origin)+""):void 0}catch{}if(!b)return;var g=p.gpc;if(g===null)try{g=w.navigator.globalPrivacyControl===true}catch{g=false}var h=p.headers,c=p.credentials,r=p.requestContext,x={backendURL:b,country:r.country,region:r.region,language:r.language,gpc:g,credentials:c},u=b+"/init"+p.query,k=u+"|"+c+"|gpc:"+g+"|"+Object.entries(h).sort(([l],[n])=>l<n?-1:l>n?1:0).map(([l,v])=>l+":"+v).join("|"),m=w["${WINDOW_PROMISES_KEY}"]=w["${WINDOW_PROMISES_KEY}"]||{};if(m[k])return;var q="",R=/^[\\da-f]{8}-[\\da-f]{4}-[\\da-f]{4}-[\\da-f]{4}-[\\da-f]{12}$/i,J=w["${JOURNEY_WINDOW_KEY}"],y=p.journey;if(y){if(!(J&&R.test(J.id)&&(J.scope==="page"||J.scope==="tab")&&typeof J.storedChoice==="boolean")){var S=y,o,D=false;if(S==="tab")try{o=w.sessionStorage.getItem("${JOURNEY_STORAGE_KEY}");if(!R.test(o))o=void 0}catch{S="page"}if(!o)try{o=w.crypto.randomUUID()}catch{try{var a=w.crypto.getRandomValues(new Uint8Array(16));a[6]=a[6]%16+64;a[8]=a[8]%64+128;o=Array.from(a,e=>e.toString(16).padStart(2,"0")).join("").replace(/^(.{8})(.{4})(.{4})(.{4})/,"$1-$2-$3-$4-")}catch{}}try{D=w.document.cookie.split("; ").some(e=>p.stored.cookies.some(n=>e.startsWith(n+"=")&&e.length>n.length+1))}catch{}if(!D)try{D=p.stored.local.some(e=>w.localStorage.getItem(e)!==null)}catch{}J=o?w["${JOURNEY_WINDOW_KEY}"]={id:o,scope:S,storedChoice:D}:void 0}if(J)q=(p.query?"&":"?")+"${CONSENT_JOURNEY_PARAM}="+J.id+"&${CONSENT_JOURNEY_SCOPE_PARAM}="+J.scope+"&${CONSENT_JOURNEY_STORED_PARAM}="+(J.storedChoice?1:0)}m[k]={promise:fetch(u+q,{method:"GET",credentials:c,headers:h}).then(async s=>{if(!s.ok)return;var i=await s.json();return i?{init:i,gvl:i.gvl,producerPolicyContract:s.headers.get("x-c15t-policy-contract"),metadata:{requestContext:x,journey:J||null}}:void 0}).catch(()=>{}),requestContext:x}})();`;
+	return `(()=>{var w=globalThis.window;if(w===void 0)return;var p=${json},t=v=>v!=="/"&&v.endsWith("/")?v.slice(0,-1):v,b;try{b=t(p.backendURL);b=/^https?:\\/\\//.test(b)?t(new URL(b)+""):b.startsWith("/")?t(new URL(b,w.location.origin)+""):void 0}catch{}if(!b)return;var g=p.gpc;if(g===null)try{g=w.navigator.globalPrivacyControl===true}catch{g=false}var h=p.headers,c=p.credentials,r=p.requestContext,x={backendURL:b,country:r.country,region:r.region,language:r.language,gpc:g,credentials:c},u=b+"/init"+p.query,k=u+"|"+c+"|gpc:"+g+"|"+Object.entries(h).sort(([l],[n])=>l<n?-1:l>n?1:0).map(([l,v])=>l+":"+v).join("|"),m=w["${WINDOW_PROMISES_KEY}"]=w["${WINDOW_PROMISES_KEY}"]||{};if(m[k])return;var q="",Q=(n,v)=>{q+=(p.query||q?"&":"?")+n+"="+v},d=z=>{var f=false,C=p.stored.cookies,L=p.stored.local;if(z)C=C.concat(p.stored.notice),L=L.concat(p.stored.notice);try{f=w.document.cookie.split("; ").some(e=>C.some(n=>e.startsWith(n+"=")&&e.length>n.length+1))}catch{}if(!f)try{f=L.some(e=>w.localStorage.getItem(e)!==null)}catch{}return f},R=/^[\\da-f]{8}-[\\da-f]{4}-[\\da-f]{4}-[\\da-f]{4}-[\\da-f]{12}$/i,J=w["${JOURNEY_WINDOW_KEY}"],y=p.journey,E=p.experiment,X;if(y&&!(J&&R.test(J.id)&&(J.scope==="page"||J.scope==="tab")&&typeof J.storedChoice==="boolean")){var S=y,o;if(S!=="page")try{o=w.sessionStorage.getItem("${JOURNEY_STORAGE_KEY}");if(!R.test(o))o=void 0}catch{S="page"}if(S==="auto")S=o?"tab":"page";if(!o)try{o=w.crypto.randomUUID()}catch{try{var a=w.crypto.getRandomValues(new Uint8Array(16));a[6]=a[6]%16+64;a[8]=a[8]%64+128;o=Array.from(a,e=>e.toString(16).padStart(2,"0")).join("").replace(/^(.{8})(.{4})(.{4})(.{4})/,"$1-$2-$3-$4-")}catch{}}J=o?w["${JOURNEY_WINDOW_KEY}"]={id:o,scope:S,storedChoice:d(1)}:void 0}if(E){var A=w["${EXPERIMENT_WINDOW_KEY}"];if(!(A&&A.id===E.id&&E.arms.includes(A.arm))){var s,K="${EXPERIMENT_STORAGE_KEY}",P=Math.random()*E.weights.reduce((l,n)=>l+n,0);try{s=JSON.parse(w.localStorage.getItem(K))}catch{}if(!(s&&typeof s.id=="string"&&typeof s.arm=="string"))try{s=w.document.cookie.split(";").map(e=>e.trim()).find(e=>e.startsWith(K+"="));s=s&&JSON.parse(decodeURIComponent(s.slice(K.length+1)))}catch{s=void 0}A=w["${EXPERIMENT_WINDOW_KEY}"]={id:E.id,arm:s&&s.id===E.id&&E.arms.includes(s.arm)?s.arm:E.arms.find((n,i)=>(P-=E.weights[i])<0)||E.arms[E.arms.length-1]}}if(!d())X=A}if(X)Q("${INIT_EXPERIMENT_PARAM}",encodeURIComponent(encodeURIComponent(X.id)+"="+encodeURIComponent(X.arm)));if(y&&J)Q("${CONSENT_JOURNEY_PARAM}",J.id),Q("${CONSENT_JOURNEY_SCOPE_PARAM}",J.scope),Q("${CONSENT_JOURNEY_STORED_PARAM}",J.storedChoice?1:0);m[k]={promise:fetch(u+q,{method:"GET",credentials:c,headers:h}).then(async s=>{if(!s.ok)return;var i=await s.json();return i?{init:i,gvl:i.gvl,producerPolicyContract:s.headers.get("x-c15t-policy-contract"),metadata:{requestContext:x,journey:y&&J||null,experiment:X||null}}:void 0}).catch(()=>{}),requestContext:x}})();`;
 };
 
 export const primePrefetchedInitialData = function primePrefetchedInitialData(
@@ -331,12 +376,18 @@ export const primePrefetchedInitialData = function primePrefetchedInitialData(
 
 	if (!promises[config.cacheKey]) {
 		const storageKey = options.storageKey || STORAGE_KEY_V2;
+		const arm = options.experiment
+			? claimEarlyExperimentArm(options.experiment)
+			: undefined;
 		promises[config.cacheKey] = createPrefetchEntry(
 			config,
 			claimEarlyJourney({
-				option: options.journey,
+				option: options.journey ?? detectJourneyOption(),
 				storedChoice: hasStoredConsentRecord(storageKey),
-			})
+			}),
+			// Until the visitor makes a choice, as the runtime does: a notice
+			// dismissal alone still counts toward the arm.
+			hasStoredConsentRecord(storageKey, false) ? undefined : arm
 		);
 	}
 

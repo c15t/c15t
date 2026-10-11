@@ -1,6 +1,6 @@
 <include src="../build-time-manifest.mdx" />
 
-Add `consentManifest` to your existing Vite plugin list:
+Keep `consentManifest` in your Vite plugin list:
 
 {/* example: fragment */}
 
@@ -41,27 +41,19 @@ When the build has no snapshot, as in `vite dev` after a failed fetch,
 `${backendURL}/manifest` instead.
 
 When the required country or region is missing, the transport calls backend
-`/init` and uses its resolved policy and translations. `consentManifest` warns
-during the build when it downloads such a policy, and suggests `hosted()`. That response can use
-newer backend policy than the build snapshot. This is a full consent resolution,
-so these visitors still wait for a backend round trip. `ConsentProvider` sends
-that request while it first renders, before the page mounts, unless the visitor
-has a stored choice.
+`/init` and uses its resolved policy and translations. That response can use
+newer backend policy than the build snapshot. `ConsentProvider` sends that
+request while it first renders, before the page mounts, unless the visitor has
+a stored choice.
 
 The browser cannot guess the banner from the snapshot alone when locations
 differ. With a European opt-in rule and no banner elsewhere, a banner shown
 before `/init` answers would vanish for most of the world. The exception is a
 policy whose country and region rules all show the same banner, with a default
-rule that covers everywhere else: the browser resolves it at once. To skip the
-round trip for location-specific rules, pass the country your CDN or edge
-already knows through `inputs`.
+rule that covers everywhere else: the browser resolves it at once.
 
 Policy and resolver code are part of the browser bundle.
 
 <include src="../build-time-manifest-notes.mdx" />
 
 <include src="../vite-build-manifest.mdx" />
-
-For policy updates without a rebuild, use `hosted({ backendURL })` from `c15t/react`
-as the mode and omit the build plugin. That setup resolves policy through the
-backend `/init` on each page load.

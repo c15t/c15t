@@ -1,6 +1,6 @@
 ---
 title: Quickstart
-description: Add a c15t cookie banner, preference dialog and consent-gated scripts to a Svelte 5 app built with Vite, with your Inth policy bundled at build time.
+description: Add a c15t cookie banner, preference dialog and consent-gated scripts to a Svelte 5 app built with Vite, using Inth as the consent backend.
 group: frameworks
 ---
 
@@ -25,20 +25,21 @@ Create an Inth project, then:
 A self-hosted backend or offline mode works too; see
 [other setups](#other-setups).
 
-The setup bundles your policy into the browser bundle at build time, the
-recommended production setup. Rebuild after changing policies, translations
-or vendors.
+The guide uses `hosted()` mode. The browser asks your backend for each
+visitor's policy, and the backend reads the visitor's location from the
+request, so regional policies need no extra setup. Policy, translation and
+vendor edits reach visitors on their next page load, without a rebuild.
 
 ## Install
 
 <CommandTabs command="@c15t/svelte@alpha @c15t/integrations@alpha" mode="install" />
 
 Svelte uses its own package, `@c15t/svelte`, which exports the components and
-the `manifest()`, `hosted()` and `offline()` modes. `@c15t/integrations`
+the consent modes. `@c15t/integrations`
 holds the vendor helpers. The `c15t` package has no Svelte entry point, so
 you don't install it.
 
-## Bundle the policy at build time
+## Add the Vite plugin
 
 Add `consentManifest` to the plugins in `vite.config.ts`:
 
@@ -54,14 +55,13 @@ VITE_C15T_BACKEND_URL=https://your-project.inth.app
 If your app already sets `VITE_INTH_PROJECT_URL` for other Inth SDKs, that works
 too. When both are set, `VITE_C15T_BACKEND_URL` wins.
 
-`consentManifest` downloads your project's public policy from
-`<backendURL>/manifest` during `vite build`, or in `vite dev` when the app
-first loads it, and hands it and the backend URL to `manifest()`. A build
-fetches only when the app uses `manifest()`. No file is written into your project.
+`consentManifest` hands the backend URL to `hosted()`. No file is written
+into your project. Without the plugin, pass the URL as
+`hosted({ backendURL })`.
 
-<include src="../../shared/build-time-manifest-notes.mdx" />
-
-<include src="../../shared/vite-build-manifest.mdx" />
+The plugin also adds a small script to `index.html` that sends `/init` while
+your JavaScript downloads, so the banner shows sooner.
+[Send `/init` early](#send-init-early) covers when to turn it off.
 
 ## Mount the provider
 
@@ -70,26 +70,16 @@ vendor scripts c15t should load:
 
 <include src="../../shared/examples/svelte/app.mdx" />
 
-The `<main>` element stands in for your app's content. `manifest()` from
-`@c15t/svelte`, with no options, resolves the policy from the snapshot
-`consentManifest` downloaded and saves choices to the same
-`VITE_C15T_BACKEND_URL`. Vite writes the variable into the bundle at build
-time, so changing it means a rebuild.
+The `<main>` element stands in for your app's content. `hosted()` from
+`@c15t/svelte` makes one `/init` request to `VITE_C15T_BACKEND_URL`, started
+early by the script in `index.html`. The backend picks the policy from the
+visitor's location and language and returns its current version. Consent choices go to the same
+backend. Vite writes the variable into the bundle at build time, so changing
+it means a rebuild.
 
 PostHog waits for measurement permission. Replace `phc_your_project_key`
 with your PostHog project key. Remove any `<script>` tags or SDK imports that
 already load PostHog, so c15t is the only thing that loads it.
-
-The browser resolves the snapshot without a request when the policy does not
-depend on geography, or when it knows the country and region the policy needs.
-Pass them as `manifest({ inputs: { country, region } })`, for example from an
-edge worker, or set `geoURL` to a same-origin route that returns them, to keep
-regional resolution on the snapshot. Otherwise it calls the backend's `/init`
-and uses its resolved policy and translations. Those visitors wait for a
-backend round trip and can receive newer policy than the build snapshot. The
-bundle carries the policy and English copy. The resolver loads as its own
-chunk when the app starts, and a visitor who resolves to another language
-loads that language's copy the first time it is needed.
 
 The provider starts consent when it mounts and stops it when it unmounts, so
 keep it at the root of the app.
@@ -105,38 +95,27 @@ There is no stylesheet to import. Each component adds the rules it uses to
 `@c15t/svelte/styles.css` yourself and pass `styles={false}` to the provider;
 see [stylesheets and CSS layers](/docs/customization/stylesheets#import-the-stylesheet-yourself).
 
-To apply policy edits without a rebuild, pass `manifest({ source: 'runtime' })`,
-which fetches the manifest from the backend when the page loads.
-`manifest({ manifestURL })` fetches it from another URL, such as a CDN,
-instead of using the build's snapshot. To have the backend resolve every
-visitor's location, pass `hosted()`. Like `manifest()`, it reads the backend
-URL from `consentManifest`, and a `hosted()` build never downloads the
-manifest:
-
-{/* example: fragment */}
-
-```svelte title="src/App.svelte (partial)"
-<script lang="ts">
-	import { ConsentProvider, hosted } from '@c15t/svelte';
-</script>
-
-<ConsentProvider mode={hosted()} {scripts}>
-```
-
 ## Verify consent
 
 Build and preview the production bundle with `vite build` and `vite preview`,
 then open the app in a private window with DevTools open on the Network tab:
 
-1. The banner appears. No requests go to PostHog yet.
+1. One `/init` request goes to your backend URL, starting before your
+   JavaScript finishes downloading, and the banner appears. No requests go to
+   PostHog yet.
 2. Select **Reject All**. Reload. The banner stays closed and PostHog requests
    stay absent.
 3. Select **Privacy settings**, turn on **Analytics** (the `measurement`
    category) and save. PostHog loads.
 4. Turn it off and save. The page reloads and PostHog does not load.
 
-If the banner does not appear, see [troubleshooting](/docs/frameworks/svelte/troubleshooting).
+If the banner does not appear, check the `/init` request, then see
+[troubleshooting](/docs/frameworks/svelte/troubleshooting).
 [Verify consent](/docs/guides/verify-consent) has the release checklist.
+
+## Send `/init` early
+
+<include src="../../shared/vite-init-prefetch.mdx" />
 
 ## Other setups
 
@@ -161,9 +140,52 @@ explains the trade-offs.
 **A self-hosted backend** uses the same setup with your own backend URL. See
 [self-hosting](/docs/self-host/overview).
 
+**A bundled policy** with `manifest()` saves the `/init` request in a few
+cases; see [bundle the policy at build time](#bundle-the-policy-at-build-time).
+
 **Astro** can render these Svelte components as islands. Its integration uses
 Svelte for the dialog by default. Pick the Astro row in
 [choose your setup](/docs/concepts/choose-your-setup).
 
 Next, [customize](/docs/frameworks/svelte/customize) the banner or read
 consent in your own components with [context getters](/docs/frameworks/svelte/getters).
+
+## Bundle the policy at build time
+
+`manifest()` resolves the policy in the browser from a snapshot
+`consentManifest` downloads during `vite build`. It saves the `/init` request
+only in these cases:
+
+- The policy has no location rules, or every location gets the same banner.
+- The page already knows the visitor's location, for example from an edge
+  worker, and passes it as `manifest({ inputs: { country, region } })`.
+- You run a same-origin route that returns the location and set it as
+  `geoURL`.
+
+Otherwise the browser still calls `/init` on a first visit and uses the
+backend's answer, so the bundle adds bytes without saving a request.
+`consentManifest` warns during the build when that happens. The resolver adds
+about 3 KB gzipped, loaded as its own chunk, and the backend doesn't count
+visitors the browser resolves this way. Swap the mode in `src/App.svelte`:
+
+{/* example: fragment */}
+
+```svelte title="src/App.svelte (partial)"
+<script lang="ts">
+	import { ConsentProvider, manifest } from '@c15t/svelte';
+</script>
+
+<ConsentProvider mode={manifest()} {scripts}>
+```
+
+The bundle carries the policy and English copy. A visitor who resolves to
+another language loads that language's copy the first time it is needed.
+
+<include src="../../shared/build-time-manifest-notes.mdx" />
+
+<include src="../../shared/vite-build-manifest.mdx" />
+
+`manifest({ source: 'runtime' })` fetches the manifest from the backend when
+the page loads, so policy edits apply without a rebuild.
+`manifest({ manifestURL })` fetches it from another URL, such as a CDN,
+instead of using the build's snapshot.

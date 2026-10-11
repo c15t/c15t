@@ -26,6 +26,8 @@ export interface StarterTarget {
 	postgres?: boolean;
 	/** Host in the base URL, when the app trusts only a named host. */
 	host?: string;
+	/** `consentManifest()` adds the inline script that sends `/init` early. */
+	earlyInit?: boolean;
 }
 
 export const placeholderBackendURL = 'https://your-project.inth.app';
@@ -133,10 +135,13 @@ export const starterTargets: StarterTarget[] = [
 			'--strictPort',
 		],
 	},
-	// VITE_C15T_BACKEND_URL from the shared environment is where the build
-	// downloads the bundled manifest and where the browser sends saves.
+	// VITE_C15T_BACKEND_URL from the shared environment is where the
+	// React, Vue and Svelte starters send `/init` and saves, and where the
+	// JavaScript starter's build downloads its bundled manifest. The other
+	// three use `hosted()`, so their builds carry the early `/init` script.
 	...['react', 'vue', 'svelte', 'javascript'].map((id) => ({
 		directory: `examples/${id}`,
+		earlyInit: id !== 'javascript',
 		id,
 		routes: ['/'],
 		serverRendered: false,

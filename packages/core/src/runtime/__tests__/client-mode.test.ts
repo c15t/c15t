@@ -8,6 +8,7 @@ import type { ConsentManifest } from '@c15t/schema/types';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { optInRule } from '../../__tests__/fixtures/kernel-fixtures';
+import { primePrefetchedInitialData } from '../../libs/prefetch/prefetch';
 import { hosted, manifest, offline } from '../../modes';
 import { custom } from '../../transports/custom';
 import { createHostedTransport } from '../../transports/hosted';
@@ -272,6 +273,30 @@ describe('lazyHosted()', () => {
 		release();
 		await pending;
 		// The loaded transport took the early response.
+		expect(fetchSpy).toHaveBeenCalledTimes(1);
+	});
+
+	test("the first init takes the page script's early response", async () => {
+		fetchSpy.mockImplementation(() =>
+			Promise.resolve(
+				jsonResponse({
+					branding: 'c15t',
+					location: { countryCode: 'DE', regionCode: null },
+					translations: { language: 'en', translations: { common: {} } },
+				})
+			)
+		);
+		await primePrefetchedInitialData({
+			backendURL: 'https://backend.example',
+			journey: false,
+		});
+		const transport = lazyHosted(
+			{ backendURL: 'https://backend.example' },
+			() => Promise.resolve({ createHostedTransport })
+		)(context);
+
+		await transport.init?.(initContext());
+
 		expect(fetchSpy).toHaveBeenCalledTimes(1);
 	});
 

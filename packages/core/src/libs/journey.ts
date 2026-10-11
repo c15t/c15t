@@ -118,6 +118,28 @@ export const openJourney = function openJourney(options: {
 };
 
 /**
+ * The journey option of an early request that wasn't given one: `'tab'`
+ * when this tab already holds a journey id, which only a `'tab'` runtime
+ * writes, otherwise `'page'`. The inline prefetch script runs the same
+ * check.
+ *
+ * @param storage - Where a `'tab'` journey is kept.
+ * @returns The option to start the early journey with.
+ * @internal
+ */
+export const detectJourneyOption = function detectJourneyOption(
+	storage: () => JourneyStorage | null = sessionStorageOf
+): ConsentJourneyScope {
+	try {
+		return parseJourneyId(storage()?.getItem(JOURNEY_STORAGE_KEY))
+			? 'tab'
+			: 'page';
+	} catch {
+		return 'page';
+	}
+};
+
+/**
  * Window property holding the journey an early request (React's early
  * `/init`, the inline prefetch script) sent, for the runtime to continue.
  */
@@ -177,43 +199,48 @@ export const claimEarlyJourney = function claimEarlyJourney(options: {
 };
 
 /**
- * Where a choice or a notice dismissal is stored: the cookies and the
- * localStorage keys (with the legacy one) for `storageKey`.
+ * Where a choice is stored, as cookie names and localStorage keys (with the
+ * legacy one) for `storageKey`, and the key a notice dismissal uses for both.
  *
  * @param storageKey - The consent storage key.
- * @returns The cookie names and localStorage keys.
+ * @returns The choice's cookie names and localStorage keys, and the notice key.
  * @internal
  */
 export const storedAnswerKeys = function storedAnswerKeys(storageKey: string): {
 	cookies: string[];
 	local: string[];
+	notice: string;
 } {
-	const notice = `${storageKey}-notice`;
 	return {
-		cookies: [storageKey, notice],
-		local: [
-			storageKey,
-			notice,
-			...(storageKey === STORAGE_KEY ? [] : [STORAGE_KEY]),
-		],
+		cookies: [storageKey],
+		local: [storageKey, ...(storageKey === STORAGE_KEY ? [] : [STORAGE_KEY])],
+		notice: `${storageKey}-notice`,
 	};
 };
 
 /**
- * Whether a consent choice or notice dismissal is stored under `storageKey`,
- * without decoding it. The inline prefetch script runs the same check.
+ * Whether a consent choice, or with `notice` a notice dismissal too, is
+ * stored under `storageKey`, without decoding it. The inline prefetch script
+ * runs the same check.
+ *
+ * The journey's stored flag counts a dismissal. The experiment arm does not:
+ * the runtime sends an arm until the visitor makes a choice.
  *
  * @param storageKey - The consent storage key. Defaults to `c15t`.
+ * @param notice - Whether a notice dismissal counts. Defaults to `true`.
  * @returns `true` when a record is present.
  * @internal
  */
 export const hasStoredConsentRecord = function hasStoredConsentRecord(
-	storageKey: string = STORAGE_KEY_V2
+	storageKey: string = STORAGE_KEY_V2,
+	notice = true
 ): boolean {
 	if (typeof document === 'undefined') {
 		return false;
 	}
-	const { cookies, local } = storedAnswerKeys(storageKey);
+	const keys = storedAnswerKeys(storageKey);
+	const cookies = notice ? [...keys.cookies, keys.notice] : keys.cookies;
+	const local = notice ? [...keys.local, keys.notice] : keys.local;
 	try {
 		if (
 			document.cookie

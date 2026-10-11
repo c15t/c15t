@@ -13,7 +13,12 @@ import type {
 import { afterAll, afterEach, beforeAll, describe, expect, test } from 'vitest';
 
 import { runCommand } from '../../../../scripts/browser-process';
-import { acceptButton, openBrowserContext, privacySettings } from './browser';
+import {
+	acceptButton,
+	holdAppScripts,
+	openBrowserContext,
+	privacySettings,
+} from './browser';
 import type { Requests } from './browser';
 import { startPostgres } from './postgres';
 import { startApp } from './server';
@@ -154,7 +159,32 @@ for (const target of selectedStarterTargets()) {
 					contentType: 'text/javascript; charset=utf-8',
 				});
 			});
+			return context;
 		};
+
+		if (target.earlyInit) {
+			// The plugin leaves the script out when a bundle still holds the
+			// policy snapshot, so a chunking change could drop it from every
+			// build. The app would still work, one round trip later.
+			test('the inline script sends the only /init before the app loads', async () => {
+				const scripts = await holdAppScripts(await open(), server.baseURL);
+				let initRequests = 0;
+				page.on('request', (request) => {
+					if (new URL(request.url()).pathname.endsWith('/init')) {
+						initRequests += 1;
+					}
+				});
+				await page.goto(target.routes[0] ?? '/', { waitUntil: 'commit' });
+				await expect.poll(() => initRequests).toBe(1);
+				await expect.poll(() => scripts.held()).toBeGreaterThan(0);
+
+				scripts.release();
+				// `hosted()` answers its first init from the early response.
+				await expect.poll(() => acceptButton(page).isVisible()).toBe(true);
+				expect(initRequests).toBe(1);
+				expect(requests.unexpected).toEqual([]);
+			});
+		}
 
 		for (const route of target.routes) {
 			if (target.serverRendered) {
