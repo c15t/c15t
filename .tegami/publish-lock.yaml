@@ -1,46 +1,22 @@
 c15t:release:
   - branch: v3
-    id: npm:@c15t/browser
-    version: 3.0.0-alpha.11
-  - branch: v3
-    id: npm:@c15t/iab
-    version: 3.0.0-alpha.11
-  - branch: v3
-    id: npm:@c15t/vue
-    version: 3.0.0-alpha.11
-  - branch: v3
-    id: npm:@c15t/logger
-    version: 3.0.0-alpha.1
-  - branch: v3
-    id: npm:@c15t/backend
-    version: 3.0.0-alpha.11
-  - branch: v3
-    id: npm:@c15t/integrations
-    version: 3.0.0-alpha.11
-  - branch: v3
-    id: npm:@c15t/ui
-    version: 3.0.0-alpha.11
-  - branch: v3
-    id: npm:@c15t/dev-tools
-    version: 3.0.0-alpha.11
-  - branch: v3
     id: npm:c15t
-    version: 3.0.0-alpha.11
+    version: 3.0.0-alpha.12
   - branch: v3
     id: npm:@c15t/nextjs
-    version: 3.0.0-alpha.11
+    version: 3.0.0-alpha.12
   - branch: v3
     id: npm:@c15t/schema
     version: 3.0.0-alpha.9
   - branch: v3
     id: npm:@c15t/react
-    version: 3.0.0-alpha.11
+    version: 3.0.0-alpha.12
   - branch: v3
     id: npm:@c15t/cli
-    version: 3.0.0-alpha.11
+    version: 3.0.0-alpha.12
   - branch: v3
     id: npm:@c15t/tanstack-start
-    version: 3.0.0-alpha.11
+    version: 3.0.0-alpha.12
   - branch: v3
     id: npm:@c15t/core
     version: 3.0.0-alpha.11
@@ -52,98 +28,95 @@ c15t:release:
     version: 3.0.0-alpha.10
   - branch: v3
     id: npm:@c15t/svelte
-    version: 3.0.0-alpha.11
+    version: 3.0.0-alpha.12
   - branch: v3
     id: npm:@c15t/node-sdk
     version: 3.0.0-alpha.11
   - branch: v3
     id: npm:@c15t/astro
+    version: 3.0.0-alpha.12
+  - branch: v3
+    id: npm:@c15t/ui
+    version: 3.0.0-alpha.12
+  - branch: v3
+    id: npm:@c15t/browser
+    version: 3.0.0-alpha.12
+  - branch: v3
+    id: npm:@c15t/iab
+    version: 3.0.0-alpha.11
+  - branch: v3
+    id: npm:@c15t/vue
+    version: 3.0.0-alpha.12
+  - branch: v3
+    id: npm:@c15t/logger
+    version: 3.0.0-alpha.1
+  - branch: v3
+    id: npm:@c15t/backend
+    version: 3.0.0-alpha.12
+  - branch: v3
+    id: npm:@c15t/integrations
+    version: 3.0.0-alpha.11
+  - branch: v3
+    id: npm:@c15t/dev-tools
     version: 3.0.0-alpha.11
 core:changelogs:
-  - content: "---\npackages:\n  \"@c15t/integrations\":\n    type: minor\n  \"@c15t/cli\":\n    type: patch\n---\n\n### Add a Vercel Speed Insights integration\n\n`vercelSpeedInsights()` from `@c15t/integrations/vercel-speed-insights` loads\nVercel's Web Vitals collector once measurement is allowed. The collector keeps\nrunning after its script is removed, so on revocation the helper also drops\nevery report through Speed Insights' `beforeSend` hook. Pass your own\n`beforeSend` to edit reports while measurement is allowed. Remove\n`<SpeedInsights />` or `injectSpeedInsights()` from `@vercel/speed-insights`\nwhen you switch. The CLI offers Vercel Speed Insights in its integration picker.\n"
-    filename: 2026-10-10-vercel-speed-insights.md
-    v: 0.0.0
-  - content: "---\npackages:\n  \"@c15t/nextjs\":\n    type: patch\n  \"@c15t/react\":\n    type: patch\n  \"@c15t/ui\":\n    type: patch\n---\n\n### Ship the first-paint CSS once on Next.js pages\n\nNext.js pages no longer ship the banner's first-paint CSS twice. The server already renders it into the HTML, so `withConsentManifest` now points browser bundles at a deferred copy that loads only when the banner, trigger or `ConsentGate` first renders in the browser. That takes 9 to 10 KB gzip off first-load JavaScript. FCP and LCP are unchanged.\n"
-    filename: 2026-10-11-next-first-paint-css-once.md
-    v: 0.0.0
-  - content: "---\npackages:\n  \"@c15t/schema\":\n    type: patch\n  \"@c15t/react\":\n    type: patch\n---\n\n### Smaller first load for offline mode and the trigger\n\nShrink the first-load bundle for offline mode and the consent trigger. `recommendedPolicyRules()` no longer pulls every policy preset into the bundle. In a Vite build of an app that uses `offline()`, this saves 6.5 to 7.7 KB gzip, depending on the page, with or without `policyRules`. Turbopack already dropped the unused presets. `ConsentDialogTrigger` now loads its DevTools toolbar only when `<ConsentDevTools>` is mounted, which saves about 0.5 to 1 KB gzip for apps without DevTools. With DevTools mounted, the trigger still switches to the toolbar without waiting for a request.\n"
-    filename: 2026-10-11-lean-offline-trigger-bundle.md
-    v: 0.0.0
-  - content: "---\npackages:\n  \"@c15t/react\":\n    type: patch\n---\n\n### Load the consent dialog at first idle\n\nWith `preloadDialog: 'idle'` (the default), the deferred `ConsentDialog` starts loading in the browser's first idle period after the page's `load` event, as documented, instead of 3 seconds after it. On Slow 4G, opening the dialog in the first 3 seconds after load no longer waits about 700 ms for its chunk.\n"
-    filename: 2026-10-11-dialog-warms-at-first-idle.md
-    v: 0.0.0
-  - content: "---\npackages:\n  \"@c15t/react\":\n    type: patch\n---\n\n### Load the IAB consent dialog on demand\n\n`IABConsentDialog` from `@c15t/react/iab` now loads on demand, like `ConsentDialog`. The preference center leaves first-load JavaScript (28 KB gzip smaller in a Vite app, 40 KB in a Next.js app) and downloads in the browser's first idle period after `load` while the IAB banner is shown, on hover or focus of the banner's Customize button or partners link, or when it opens. A visitor who opens it before the download finishes waits for it. `preloadDialog: 'intent'` skips the idle download, and nothing downloads under a policy model the dialog's `models` prop does not list.\n"
-    filename: 2026-10-11-iab-dialog-loads-on-demand.md
-    v: 0.0.0
-  - content: "---\npackages:\n  \"@c15t/react\":\n    type: patch\n---\n\n### Keep refs on lazy-loaded dialog parts in React 18\n\nA `ref` on a compound part of `ConsentDialog`, `ConsentWidget` or `IABConsentDialog`, such as `ConsentDialog.Card`, now reaches the element in React 18. The lazy-loaded wrapper dropped it, and React 18 logged a function-component ref warning.\n"
-    filename: 2026-10-11-deferred-dialog-refs.md
+  - content: "---\npackages:\n  \"@c15t/ui\":\n    type: minor\n  \"@c15t/react\":\n    type: patch\n  \"@c15t/nextjs\":\n    type: patch\n  \"@c15t/tanstack-start\":\n    type: patch\n  \"@c15t/browser\":\n    type: patch\n  c15t:\n    type: patch\n---\n\n### Let clicks through the banner's empty space and lower its z-index\n\nA non-blocking banner no longer swallows clicks outside its card. The padding around a floating card and the strip beside the \"Secured by\" tag on a bar were part of the banner's fixed box, so page links and buttons under them did nothing. Clicks there now reach the page. The card and tag still take clicks, and a blocking banner still catches all of them.\n\nSet `--consent-banner-z-index` and `--consent-banner-overlay-z-index` to put a navbar, drawer or chat widget above the banner. The IAB banner takes `--iab-consent-banner-z-index` and `--iab-consent-banner-overlay-z-index`. Defaults are unchanged.\n\nA top bar now pads its card by `env(safe-area-inset-top)`, as a bottom bar already did for the bottom inset, so its content clears the notch on pages that set `viewport-fit=cover`.\n"
+    filename: 2026-10-11-banner-click-through-and-stacking.md
     v: 0.0.0
 core:packages:
-  - id: npm:@c15t/browser
+  - changelogIds:
+      - 2026-10-11-banner-click-through-and-stacking.md
+    id: npm:c15t
+    updated: true
+  - changelogIds:
+      - 2026-10-11-banner-click-through-and-stacking.md
+    id: npm:@c15t/nextjs
+    updated: true
+  - id: npm:@c15t/schema
+    updated: false
+  - changelogIds:
+      - 2026-10-11-banner-click-through-and-stacking.md
+    id: npm:@c15t/react
+    updated: true
+  - id: npm:@c15t/cli
+    updated: true
+  - changelogIds:
+      - 2026-10-11-banner-click-through-and-stacking.md
+    id: npm:@c15t/tanstack-start
+    updated: true
+  - id: npm:@c15t/core
+    updated: false
+  - id: npm:@c15t/translations
+    updated: false
+  - id: npm:@c15t/scripts
+    updated: false
+  - id: npm:@c15t/svelte
+    updated: true
+  - id: npm:@c15t/node-sdk
+    updated: false
+  - id: npm:@c15t/astro
+    updated: true
+  - changelogIds:
+      - 2026-10-11-banner-click-through-and-stacking.md
+    id: npm:@c15t/ui
+    updated: true
+  - changelogIds:
+      - 2026-10-11-banner-click-through-and-stacking.md
+    id: npm:@c15t/browser
     updated: true
   - id: npm:@c15t/iab
-    updated: true
+    updated: false
   - id: npm:@c15t/vue
     updated: true
   - id: npm:@c15t/logger
     updated: false
   - id: npm:@c15t/backend
     updated: true
-  - changelogIds:
-      - 2026-10-10-vercel-speed-insights.md
-    id: npm:@c15t/integrations
-    updated: true
-  - changelogIds:
-      - 2026-10-11-next-first-paint-css-once.md
-    id: npm:@c15t/ui
-    updated: true
-  - id: npm:@c15t/dev-tools
-    updated: true
-  - id: npm:c15t
-    updated: true
-  - changelogIds:
-      - 2026-10-11-next-first-paint-css-once.md
-    id: npm:@c15t/nextjs
-    updated: true
-  - changelogIds:
-      - 2026-10-11-lean-offline-trigger-bundle.md
-    id: npm:@c15t/schema
-    updated: true
-  - changelogIds:
-      - 2026-10-11-dialog-warms-at-first-idle.md
-      - 2026-10-11-iab-dialog-loads-on-demand.md
-      - 2026-10-11-next-first-paint-css-once.md
-      - 2026-10-11-deferred-dialog-refs.md
-      - 2026-10-11-lean-offline-trigger-bundle.md
-    id: npm:@c15t/react
-    updated: true
-  - changelogIds:
-      - 2026-10-10-vercel-speed-insights.md
-    id: npm:@c15t/cli
-    updated: true
-  - id: npm:@c15t/tanstack-start
-    updated: true
-  - id: npm:@c15t/core
-    updated: true
-  - id: npm:@c15t/translations
+  - id: npm:@c15t/integrations
     updated: false
-  - id: npm:@c15t/scripts
-    updated: true
-  - id: npm:@c15t/svelte
-    updated: true
-  - id: npm:@c15t/node-sdk
-    updated: true
-  - id: npm:@c15t/astro
-    updated: true
+  - id: npm:@c15t/dev-tools
+    updated: false
 npm:packages:
-  - distTag: alpha
-    id: npm:@c15t/iab
-  - distTag: alpha
-    id: npm:@c15t/backend
-  - distTag: alpha
-    id: npm:@c15t/integrations
-  - distTag: alpha
-    id: npm:@c15t/dev-tools
   - distTag: alpha
     id: npm:c15t
   - distTag: alpha
@@ -161,13 +134,13 @@ npm:packages:
   - distTag: alpha
     id: npm:@c15t/node-sdk
   - distTag: alpha
-    id: npm:@c15t/browser
+    id: npm:@c15t/iab
   - distTag: alpha
-    id: npm:@c15t/vue
+    id: npm:@c15t/backend
   - distTag: alpha
-    id: npm:@c15t/logger
+    id: npm:@c15t/integrations
   - distTag: alpha
-    id: npm:@c15t/ui
+    id: npm:@c15t/dev-tools
   - distTag: alpha
     id: npm:@c15t/schema
   - distTag: alpha
@@ -176,3 +149,11 @@ npm:packages:
     id: npm:@c15t/svelte
   - distTag: alpha
     id: npm:@c15t/astro
+  - distTag: alpha
+    id: npm:@c15t/ui
+  - distTag: alpha
+    id: npm:@c15t/browser
+  - distTag: alpha
+    id: npm:@c15t/vue
+  - distTag: alpha
+    id: npm:@c15t/logger

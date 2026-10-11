@@ -1,11 +1,23 @@
 ---
 packages:
-  '@c15t/ui': minor
-  '@c15t/react': patch
-  '@c15t/nextjs': patch
-  '@c15t/tanstack-start': patch
-  '@c15t/browser': patch
-  c15t: patch
+  "@c15t/ui":
+    replay:
+      - exit-prerelease(npm:@c15t/ui)
+  "@c15t/react":
+    replay:
+      - exit-prerelease(npm:@c15t/react)
+  "@c15t/nextjs":
+    replay:
+      - exit-prerelease(npm:@c15t/nextjs)
+  "@c15t/tanstack-start":
+    replay:
+      - exit-prerelease(npm:@c15t/tanstack-start)
+  "@c15t/browser":
+    replay:
+      - exit-prerelease(npm:@c15t/browser)
+  c15t:
+    replay:
+      - exit-prerelease(npm:c15t)
 ---
 
 ### Let clicks through the banner's empty space and lower its z-index

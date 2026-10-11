@@ -1637,7 +1637,7 @@
     },
     "packages/astro": {
       "name": "@c15t/astro",
-      "version": "3.0.0-alpha.11",
+      "version": "3.0.0-alpha.12",
       "dependencies": {
         "@c15t/core": "workspace:*",
         "@c15t/iab": "workspace:*",
@@ -1682,7 +1682,7 @@
     },
     "packages/backend": {
       "name": "@c15t/backend",
-      "version": "3.0.0-alpha.11",
+      "version": "3.0.0-alpha.12",
       "dependencies": {
         "@c15t/browser": "workspace:*",
         "@c15t/schema": "workspace:*",
@@ -1728,7 +1728,7 @@
     },
     "packages/browser": {
       "name": "@c15t/browser",
-      "version": "3.0.0-alpha.11",
+      "version": "3.0.0-alpha.12",
       "dependencies": {
         "@c15t/core": "workspace:*",
         "@c15t/dev-tools": "workspace:*",
@@ -1750,7 +1750,7 @@
     },
     "packages/c15t": {
       "name": "c15t",
-      "version": "3.0.0-alpha.11",
+      "version": "3.0.0-alpha.12",
       "dependencies": {
         "@c15t/astro": "workspace:*",
         "@c15t/core": "workspace:*",
@@ -1766,7 +1766,7 @@
     },
     "packages/cli": {
       "name": "@c15t/cli",
-      "version": "3.0.0-alpha.11",
+      "version": "3.0.0-alpha.12",
       "bin": {
         "c15t": "dist/bin.mjs",
         "cli": "dist/bin.mjs",
@@ -1886,7 +1886,7 @@
     },
     "packages/nextjs": {
       "name": "@c15t/nextjs",
-      "version": "3.0.0-alpha.11",
+      "version": "3.0.0-alpha.12",
       "dependencies": {
         "@c15t/core": "workspace:*",
         "@c15t/react": "workspace:*",
@@ -1928,7 +1928,7 @@
     },
     "packages/react": {
       "name": "@c15t/react",
-      "version": "3.0.0-alpha.11",
+      "version": "3.0.0-alpha.12",
       "dependencies": {
         "@c15t/core": "workspace:*",
         "@c15t/dev-tools": "workspace:*",
@@ -2026,7 +2026,7 @@
     },
     "packages/svelte": {
       "name": "@c15t/svelte",
-      "version": "3.0.0-alpha.11",
+      "version": "3.0.0-alpha.12",
       "dependencies": {
         "@c15t/core": "workspace:*",
         "@c15t/dev-tools": "workspace:*",
@@ -2065,7 +2065,7 @@
     },
     "packages/tanstack-start": {
       "name": "@c15t/tanstack-start",
-      "version": "3.0.0-alpha.11",
+      "version": "3.0.0-alpha.12",
       "dependencies": {
         "@c15t/core": "workspace:*",
         "@c15t/react": "workspace:*",
@@ -2106,7 +2106,7 @@
     },
     "packages/ui": {
       "name": "@c15t/ui",
-      "version": "3.0.0-alpha.11",
+      "version": "3.0.0-alpha.12",
       "dependencies": {
         "@c15t/core": "workspace:*",
         "@c15t/translations": "workspace:*",
@@ -2123,7 +2123,7 @@
     },
     "packages/vue": {
       "name": "@c15t/vue",
-      "version": "3.0.0-alpha.11",
+      "version": "3.0.0-alpha.12",
       "dependencies": {
         "@c15t/core": "workspace:*",
         "@c15t/dev-tools": "workspace:*",
