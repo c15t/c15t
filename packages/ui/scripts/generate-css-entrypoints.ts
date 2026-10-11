@@ -555,6 +555,31 @@ writeSheet(
 		`@layer components{${rulesFor(nonIab.ruleParts, 'first-paint', 'styles/sheets/first-paint.js').join('\n')}}`,
 	].join('\n')
 );
+// `first-paint-deferred` has the same `id` and no text: it loads
+// `first-paint` when asked. The Next.js adapter aliases `first-paint` to it in
+// browser bundles, where the server-rendered HTML already holds the sheet, so
+// the text ships once.
+writeDist(
+	'styles/sheets/first-paint-deferred.js',
+	[
+		'export const id = "c15t-first-paint";',
+		'export const css = "";',
+		'export const load = () => import("./first-paint.js").then((sheet) => sheet.css);',
+		'',
+	].join('\n')
+);
+writeFileSync(
+	join(TYPES_DIR, 'styles', 'sheets', 'first-paint-deferred.d.ts'),
+	[
+		'/** Identifies the stylesheet, so a page renders it once. */',
+		'export declare const id: string;',
+		'/** Empty: the text loads through `load`. */',
+		'export declare const css: string;',
+		'/** Loads the stylesheet text. */',
+		'export declare const load: () => Promise<string>;',
+		'',
+	].join('\n')
+);
 const dialogSheet = `${LAYER_ORDER}\n@layer components{${rulesFor(nonIab.ruleParts, 'dialog', 'styles/sheets/dialog.js').join('\n')}}`;
 // The same rules as a file, for hosts that link the dialog's rules when it
 // opens instead of carrying them in its code (Astro).

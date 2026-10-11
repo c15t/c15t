@@ -11,7 +11,10 @@ import type { FC, ReactNode } from 'react';
 
 import { DIALOG_SHEETS } from '~/components/shared/dialog-sheets';
 import { Box } from '~/components/shared/primitives/box';
-import { SurfaceStyles } from '~/components/shared/surface-styles';
+import {
+	SurfaceStyles,
+	useSurfaceSheetsReady,
+} from '~/components/shared/surface-styles';
 import {
 	ConsentTrackingContext,
 	useConsentTracking,
@@ -134,7 +137,8 @@ const ConsentWidgetRoot: FC<ConsentWidgetRootProps> = ({
 		[resolvedUiSource]
 	);
 	const hasConsentUI = useHasConsentUI();
-	if (!hasConsentUI) {
+	const sheetsReady = useSurfaceSheetsReady(DIALOG_SHEETS, noStyle);
+	if (!(hasConsentUI && sheetsReady)) {
 		// No resolved policy, or a `none` rule with no right to exercise: there
 		// is nothing to manage, so render nothing.
 		return null;

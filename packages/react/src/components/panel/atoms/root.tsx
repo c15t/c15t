@@ -31,7 +31,10 @@ import { cnExt as cn } from '~/utils/cn';
 import { mergeSlotProps } from '~/utils/merge-slot-props';
 
 import { DIALOG_SHEETS } from '../../shared/dialog-sheets';
-import { SurfaceStyles } from '../../shared/surface-styles';
+import {
+	SurfaceStyles,
+	useSurfaceSheetsReady,
+} from '../../shared/surface-styles';
 import { Overlay } from './overlay';
 
 // `none` is included: it never owes a prompt, but a `none` rule that lists
@@ -189,13 +192,12 @@ const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 
 	// Final open state (controlled or managed by consent manager).
 	const hasConsentUI = useHasConsentUI();
-	const isOpen = resolveDialogOpen(
-		hasConsentUI,
-		models,
-		model,
-		openProp,
-		activeUI
-	);
+	// A deferred first-paint sheet the page does not hold yet loads with
+	// the dialog's code; the dialog opens once both are here.
+	const sheetsReady = useSurfaceSheetsReady(DIALOG_SHEETS, noStyle);
+	const isOpen =
+		sheetsReady &&
+		resolveDialogOpen(hasConsentUI, models, model, openProp, activeUI);
 
 	// Animation visibility flag – mirrors logic in original component
 	const [isVisible, setIsVisible] = useState(false);

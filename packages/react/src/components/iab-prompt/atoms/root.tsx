@@ -16,7 +16,10 @@ import { useUIConfig } from '~/ui-config-context';
 import { mergeSlotProps } from '~/utils/merge-slot-props';
 
 import { IAB_FIRST_PAINT_SHEETS } from '../../shared/iab-first-paint-sheets';
-import { SurfaceStyles } from '../../shared/surface-styles';
+import {
+	SurfaceStyles,
+	useSurfaceSheetsReady,
+} from '../../shared/surface-styles';
 import { IABConsentBannerOverlay } from './overlay';
 
 const DEFAULT_MODELS: C15tCoreTypes.Model[] = ['iab'];
@@ -65,8 +68,12 @@ const IABConsentBannerRootChildren = createForwardRef<
 		const translations = useTranslations();
 		const textDirection = useTextDirection(translations?.language ?? 'en');
 		// IAB banner shows when activeUI is 'banner' and the current model matches
+		const sheetsReady = useSurfaceSheetsReady(IAB_FIRST_PAINT_SHEETS, noStyle);
 		const shouldShowBanner =
-			model !== null && activeUI === 'banner' && models.includes(model);
+			sheetsReady &&
+			model !== null &&
+			activeUI === 'banner' &&
+			models.includes(model);
 		// A banner that arrives after the page painted fades in.
 		const lateEntry = useLateEntry(shouldShowBanner) && !disableAnimation;
 		const contentStyle = mergeSlotProps(components?.['iab-banner']?.root, {

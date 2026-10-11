@@ -26,7 +26,10 @@ import { mergeSlotProps } from '~/utils/merge-slot-props';
 
 import { FIRST_PAINT_SHEETS } from '../../shared/first-paint-sheets';
 import { StreamedSurface } from '../../shared/streamed-surface';
-import { SurfaceStyles } from '../../shared/surface-styles';
+import {
+	SurfaceStyles,
+	useSurfaceSheetsReady,
+} from '../../shared/surface-styles';
 import {
 	ConsentBannerSurfaceContext,
 	mirrorDefaultPosition,
@@ -282,8 +285,14 @@ const ConsentBannerRootChildren = createForwardRef<
 		);
 		// ConsentBanner shows when a policy is resolved, activeUI is 'banner'
 		// and the current model matches. Without a policy nothing renders.
+		// Mounted on every page, so a banner the browser shows later finds
+		// its sheet loaded.
+		const sheetsReady = useSurfaceSheetsReady(FIRST_PAINT_SHEETS, noStyle);
 		const shouldShowBanner =
-			hasConsentUI && activeUI === 'banner' && models.includes(model);
+			sheetsReady &&
+			hasConsentUI &&
+			activeUI === 'banner' &&
+			models.includes(model);
 		// A banner that arrives after the page painted fades in.
 		const lateEntry = useLateEntry(shouldShowBanner) && !disableAnimation;
 		const contentStyle = mergeSlotProps(components?.banner?.root, {

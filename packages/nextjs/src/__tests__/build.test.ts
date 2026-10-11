@@ -160,7 +160,16 @@ describe('Next.js build-time manifest', () => {
 		});
 		expect(aliasFor(false)).toEqual({
 			...Object.fromEntries(specifiers.map((name) => [`${name}$`, browser])),
+			// The server HTML holds the first-paint sheet: browsers load it
+			// only for a surface they render first.
+			'@c15t/ui/styles/sheets/first-paint$': expect.stringMatching(
+				/first-paint-deferred\.js$/u
+			),
 			existing: '/existing.js',
+		});
+		expect(turbopackAlias['@c15t/ui/styles/sheets/first-paint']).toEqual({
+			browser: expect.stringMatching(/first-paint-deferred\.js$/u),
+			default: expect.stringMatching(/sheets\/first-paint\.js$/u),
 		});
 		expect(userWebpack).toHaveBeenCalledTimes(2);
 	});

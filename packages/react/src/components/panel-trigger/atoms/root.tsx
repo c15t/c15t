@@ -16,7 +16,10 @@ import { useBranding } from '~/hooks';
 import { useIsHydrated } from '~/hooks/use-is-hydrated';
 
 import { FIRST_PAINT_SHEETS } from '../../shared/first-paint-sheets';
-import { SurfaceStyles } from '../../shared/surface-styles';
+import {
+	SurfaceStyles,
+	useSurfaceSheetsReady,
+} from '../../shared/surface-styles';
 import type { CornerPosition, TriggerVisibility } from '../types';
 import { useDraggable } from '../use-draggable';
 import type { UseDraggableReturn } from '../use-draggable';
@@ -140,6 +143,7 @@ export const TriggerRoot = ({
 		});
 
 	const mounted = useIsHydrated();
+	const sheetsReady = useSurfaceSheetsReady(FIRST_PAINT_SHEETS);
 
 	const contextValue = useMemo<TriggerContextValue>(
 		() => ({
@@ -167,7 +171,7 @@ export const TriggerRoot = ({
 	);
 
 	// Don't render on server or when not visible
-	if (!mounted || !isVisible) {
+	if (!mounted || !isVisible || !sheetsReady) {
 		return null;
 	}
 

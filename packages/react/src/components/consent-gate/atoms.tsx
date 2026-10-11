@@ -12,28 +12,36 @@ import { Box } from '../shared/primitives/box';
 import type { BoxProps } from '../shared/primitives/box';
 import { ConsentButton } from '../shared/primitives/button';
 import type { ConsentButtonProps } from '../shared/primitives/button.types';
-import { SurfaceStyles } from '../shared/surface-styles';
+import { SurfaceStyles, useSurfaceSheetsReady } from '../shared/surface-styles';
 
 const ConsentGateRoot = createForwardRef<
 	HTMLDivElement,
 	Omit<BoxProps, 'slotKey'>
->(({ children, ...props }, ref) => (
-	<>
-		<SurfaceStyles
-			sheets={FIRST_PAINT_SHEETS}
-			noStyle={props.noStyle}
-		/>
-		<Box
-			ref={ref as Ref<HTMLDivElement>}
-			baseClassName={styles.placeholder}
-			data-testid="consent-gate-placeholder"
-			slotKey="consent-gate.root"
-			{...props}
-		>
-			{children}
-		</Box>
-	</>
-));
+>(({ children, ...props }, ref) => {
+	// A gate the browser renders first, after a client-side navigation,
+	// waits for a deferred sheet rather than paint unstyled.
+	const sheetsReady = useSurfaceSheetsReady(FIRST_PAINT_SHEETS, props.noStyle);
+	if (!sheetsReady) {
+		return null;
+	}
+	return (
+		<>
+			<SurfaceStyles
+				sheets={FIRST_PAINT_SHEETS}
+				noStyle={props.noStyle}
+			/>
+			<Box
+				ref={ref as Ref<HTMLDivElement>}
+				baseClassName={styles.placeholder}
+				data-testid="consent-gate-placeholder"
+				slotKey="consent-gate.root"
+				{...props}
+			>
+				{children}
+			</Box>
+		</>
+	);
+});
 
 const ConsentGateTitle = createForwardRef<
 	HTMLDivElement,
