@@ -1,7 +1,11 @@
 ---
 packages:
-  '@c15t/integrations': minor
-  '@c15t/cli': patch
+  "@c15t/integrations":
+    replay:
+      - exit-prerelease(npm:@c15t/integrations)
+  "@c15t/cli":
+    replay:
+      - exit-prerelease(npm:@c15t/cli)
 ---
 
 ### Add a Vercel Speed Insights integration

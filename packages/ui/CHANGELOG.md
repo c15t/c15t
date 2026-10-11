@@ -1,3 +1,9 @@
+## @c15t/ui@3.0.0-alpha.11 (alpha)
+
+### Ship the first-paint CSS once on Next.js pages
+
+Next.js pages no longer ship the banner's first-paint CSS twice. The server already renders it into the HTML, so `withConsentManifest` now points browser bundles at a deferred copy that loads only when the banner, trigger or `ConsentGate` first renders in the browser. That takes 9 to 10 KB gzip off first-load JavaScript. FCP and LCP are unchanged.
+
 ## @c15t/ui@3.0.0-alpha.10 (alpha)
 
 ### Stop c15t's stylesheet holding back the first paint

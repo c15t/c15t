@@ -1,7 +1,11 @@
 ---
 packages:
-  '@c15t/schema': patch
-  '@c15t/react': patch
+  "@c15t/schema":
+    replay:
+      - exit-prerelease(npm:@c15t/schema)
+  "@c15t/react":
+    replay:
+      - exit-prerelease(npm:@c15t/react)
 ---
 
 ### Smaller first load for offline mode and the trigger

@@ -1,8 +1,14 @@
 ---
 packages:
-  '@c15t/nextjs': patch
-  '@c15t/react': patch
-  '@c15t/ui': patch
+  "@c15t/nextjs":
+    replay:
+      - exit-prerelease(npm:@c15t/nextjs)
+  "@c15t/react":
+    replay:
+      - exit-prerelease(npm:@c15t/react)
+  "@c15t/ui":
+    replay:
+      - exit-prerelease(npm:@c15t/ui)
 ---
 
 ### Ship the first-paint CSS once on Next.js pages
