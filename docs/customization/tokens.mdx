@@ -124,6 +124,35 @@ them, on any screen size.
 Test long translations and small screens after changing width or typography.
 A compact banner must still fit the required actions.
 
+## Stack the banner with your own layers
+
+The banner and its overlay sit at the top of the page's stacking order by
+default. Lower them when a navbar, drawer, or chat widget should cover the
+banner.
+
+| Variable | Default | Target |
+| --- | --- | --- |
+| `--consent-banner-z-index` | `999998` | Banner |
+| `--consent-banner-overlay-z-index` | `999997` | Backdrop of a blocking banner |
+| `--iab-consent-banner-z-index` | `999998` | IAB TCF banner |
+| `--iab-consent-banner-overlay-z-index` | `999997` | IAB TCF banner backdrop |
+| `--consent-dialog-z-index` | `999999` | Preferences dialog |
+| `--consent-dialog-overlay-z-index` | `999998` | Preferences dialog backdrop |
+
+```css
+:root {
+  --consent-banner-z-index: 40;
+  --consent-banner-overlay-z-index: 39;
+}
+```
+
+Keep each z-index above its overlay's, or the backdrop covers the card it
+belongs to. Keep the dialog above the banner so Customize opens on top.
+
+Only the card and the "Secured by" tag take clicks. Clicks on the space
+around a floating card, or beside the tag on a bar, reach the page. A
+blocking banner catches every click.
+
 ## Restyle the "Secured by" tag
 
 The tag sits on the edge of the banner and dialog cards and uses the primary

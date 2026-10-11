@@ -46,6 +46,10 @@
 	--consent-banner-description-color-dark: var(--c15t-text-muted);
 	--consent-banner-overlay-background-color: var(--c15t-overlay);
 	--consent-banner-overlay-background-color-dark: var(--c15t-overlay);
+
+	/* Stacking. A blocking banner's z-index must stay above its overlay's. */
+	--consent-banner-z-index: 999998;
+	--consent-banner-overlay-z-index: 999997;
 }
 
 /* Hairline borders for retina displays */
@@ -62,13 +66,34 @@
 		flex-direction: column;
 		width: 100%;
 		display: flex;
-		z-index: 999998;
+		z-index: var(--consent-banner-z-index);
 		position: fixed;
+		pointer-events: none;
 		font-family: var(--consent-banner-font-family);
 		line-height: var(--consent-banner-line-height);
 		-webkit-text-size-adjust: var(--consent-banner-text-size-adjust);
 		-webkit-font-smoothing: antialiased;
 		tab-size: var(--consent-banner-tab-size);
+	}
+
+	/* The root's padding and the strip beside the branding tag are layout,
+	   not banner. Clicks there reach the page. The card, the tag, and any
+	   part composed straight into the root still take them, and a blocking
+	   banner catches every click. */
+	.root:not(:global(.headless)) > * {
+		pointer-events: auto;
+	}
+
+	.root:not(:global(.headless)) > .cardShell:not(:global(.headless)) {
+		pointer-events: none;
+	}
+
+	.cardShell:not(:global(.headless)) > * {
+		pointer-events: auto;
+	}
+
+	.root[data-blocking='true']:not(:global(.headless)) {
+		pointer-events: auto;
 	}
 
 	/*
@@ -213,6 +238,7 @@
 	.root[data-variant='bar'][data-position='top']:not(:global(.headless)) .card {
 		border-bottom-width: var(--consent-banner-border-width);
 		border-bottom-style: solid;
+		padding-top: env(safe-area-inset-top);
 	}
 
 	/* The branding tag keeps its tab look on a bar, with room from the
@@ -760,7 +786,7 @@
 		position: fixed;
 		inset: 0px;
 		background-color: var(--consent-banner-overlay-background-color);
-		z-index: 999997;
+		z-index: var(--consent-banner-overlay-z-index);
 	}
 
 	/* The backdrop of a blocking banner enters and leaves with it. */
