@@ -96,17 +96,27 @@ test('loads the dialog in idle time while the banner is shown', async () => {
 	expect(warmer).toHaveBeenCalledOnce();
 });
 
-test('waits after the load event before loading the dialog in idle time', async () => {
-	resetDialogChunkWarmingForTests({ idleWarmDelayMs: 60_000 });
-	await render(
-		<ConsentProvider options={fresh}>
-			<ConsentDialog />
-		</ConsentProvider>
-	);
-	await settle();
-	// The page loaded seconds ago, not a minute ago: nothing is scheduled yet.
-	expect(idleCallbacks).toHaveLength(0);
-	expect(warmer).not.toHaveBeenCalled();
+test('waits for the load event, then loads the dialog in the next idle period', async () => {
+	Object.defineProperty(document, 'readyState', {
+		configurable: true,
+		get: () => 'interactive',
+	});
+	try {
+		await render(
+			<ConsentProvider options={fresh}>
+				<ConsentDialog />
+			</ConsentProvider>
+		);
+		await settle();
+		expect(idleCallbacks).toHaveLength(0);
+	} finally {
+		Reflect.deleteProperty(document, 'readyState');
+	}
+
+	window.dispatchEvent(new Event('load'));
+	expect(idleCallbacks).toHaveLength(1);
+	runIdleCallbacks();
+	expect(warmer).toHaveBeenCalledOnce();
 });
 
 test('loads the dialog in idle time for a mounted trigger after consent was saved', async () => {
