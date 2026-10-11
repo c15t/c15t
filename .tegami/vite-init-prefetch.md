@@ -33,8 +33,9 @@ Without a `journey` option, the early request continues a `'tab'` journey the
 tab already holds and otherwise starts a `'page'` one. `hosted()` accepts an
 early response for the same journey id even when the scope differs, so a
 `journey: 'tab'` app uses it on a tab's first page too. A `journey: false` app
-sends its own `/init` unless it passes `initPrefetch: { journey: false }`, so
-the backend never records a journey the app turned off.
+should pass `initPrefetch: { journey: false }`. Without it, the early request
+still sends a journey, and `hosted()` ignores that response and sends its own
+`/init` without one, so the app's saves never carry a journey id.
 
 Given the banner `experiment`, the early request picks the arm the way c15t
 does: the arm this browser saw before, otherwise a weighted pick by `split`.
