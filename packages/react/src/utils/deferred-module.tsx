@@ -1,6 +1,11 @@
 'use client';
 
-import { lazy, Suspense, useSyncExternalStore } from 'react';
+import {
+	forwardRef as createForwardRef,
+	lazy,
+	Suspense,
+	useSyncExternalStore,
+} from 'react';
 import type { ComponentType } from 'react';
 
 /**
@@ -81,23 +86,32 @@ export const createDeferredModule = <ModuleType,>(
 				void selected.then(publish, publish);
 				return selected;
 			});
-			return function DeferredComponent(props: Props) {
-				const current = useSyncExternalStore(
-					subscribe,
-					getSnapshot,
-					getServerSnapshot
-				);
-				if (current.status === 'error') {
-					throw current.error;
+			// React 18 drops a `ref` passed to a function component; forward it
+			// to the loaded part, many of which take one.
+			const DeferredComponent = createForwardRef<unknown, Props>(
+				(props, ref) => {
+					const current = useSyncExternalStore(
+						subscribe,
+						getSnapshot,
+						getServerSnapshot
+					);
+					if (current.status === 'error') {
+						throw current.error;
+					}
+					// The subscription retries this stable boundary synchronously instead
+					// of waiting for React's throttled default retry.
+					return (
+						<Suspense fallback={null}>
+							<LazyComponent
+								{...(props as Props)}
+								ref={ref}
+							/>
+						</Suspense>
+					);
 				}
-				// The subscription retries this stable boundary synchronously instead
-				// of waiting for React's throttled default retry.
-				return (
-					<Suspense fallback={null}>
-						<LazyComponent {...props} />
-					</Suspense>
-				);
-			};
+			);
+			DeferredComponent.displayName = 'DeferredComponent';
+			return DeferredComponent as unknown as ComponentType<Props>;
 		},
 		async preload(): Promise<void> {
 			try {

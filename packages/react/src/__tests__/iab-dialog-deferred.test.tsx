@@ -1,6 +1,7 @@
 import { MINIMAL_GVL } from '@c15t/conformance';
 import { custom } from '@c15t/core';
 import type { GlobalVendorList } from '@c15t/schema/types';
+import { createRef } from 'react';
 import { hydrateRoot } from 'react-dom/client';
 import { renderToReadableStream } from 'react-dom/server';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
@@ -139,10 +140,11 @@ test('the dialog stays closed under another model, even with open set', async ()
 });
 
 test('compound parts render from the deferred export', async () => {
+	const card = createRef<HTMLDivElement>();
 	const screen = await render(
 		<ComponentFixtureProvider options={iabOptions({ disableAnimation: true })}>
 			<IABConsentDialog.Root open>
-				<IABConsentDialog.Card>
+				<IABConsentDialog.Card ref={card}>
 					<IABConsentDialog.Footer />
 				</IABConsentDialog.Card>
 			</IABConsentDialog.Root>
@@ -152,6 +154,7 @@ test('compound parts render from the deferred export', async () => {
 		expect(byTestId('iab-consent-dialog-card')).not.toBeNull()
 	);
 	expect(IABConsentDialog.Root).toBe(IABConsentDialog.Root);
+	expect(card.current).toBe(byTestId('iab-consent-dialog-card'));
 	await screen.unmount();
 });
 
