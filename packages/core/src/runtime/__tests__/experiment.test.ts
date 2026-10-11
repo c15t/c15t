@@ -66,6 +66,7 @@ beforeEach(() => {
 afterEach(() => {
 	vi.restoreAllMocks();
 	delete (window as { c15t?: unknown }).c15t;
+	delete (window as { __c15tExperiment?: unknown }).__c15tExperiment;
 });
 
 /** Wait for the lazily loaded controller to release the held prompt. */
@@ -143,6 +144,44 @@ describe('runtime experiments', () => {
 			mode: custom(createTransport()),
 			prefetch: { initialExperiment: seeded },
 		});
+		expect(runtime.kernel.getSnapshot().experiment?.arm).toBe('bar');
+		runtime.dispose();
+	});
+
+	test('runs the arm the early /init sent over the stored one', async () => {
+		localStorage.setItem(
+			EXPERIMENT_STORAGE_KEY,
+			JSON.stringify({ arm: 'bar', id: 'banner-shape' })
+		);
+		(window as { __c15tExperiment?: unknown }).__c15tExperiment = {
+			arm: 'floating',
+			id: 'banner-shape',
+		};
+		const { runtime, transport } = createRuntime();
+		runtime.start();
+		await settled(runtime);
+		expect(runtime.kernel.getSnapshot().experiment?.arm).toBe('floating');
+		// The runtime's init carries the arm the early request counted.
+		expect(transport.init).toHaveBeenCalledWith(
+			expect.objectContaining({
+				experiment: { arm: 'floating', id: 'banner-shape' },
+			})
+		);
+		runtime.dispose();
+	});
+
+	test.each([
+		['another experiment', { arm: 'floating', id: 'banner-copy' }],
+		['an arm it does not declare', { arm: 'wall', id: 'banner-shape' }],
+	])('ignores an early arm from %s', async (_label, early) => {
+		localStorage.setItem(
+			EXPERIMENT_STORAGE_KEY,
+			JSON.stringify({ arm: 'bar', id: 'banner-shape' })
+		);
+		(window as { __c15tExperiment?: unknown }).__c15tExperiment = early;
+		const { runtime } = createRuntime();
+		runtime.start();
+		await settled(runtime);
 		expect(runtime.kernel.getSnapshot().experiment?.arm).toBe('bar');
 		runtime.dispose();
 	});

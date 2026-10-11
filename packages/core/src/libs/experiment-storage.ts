@@ -76,6 +76,48 @@ export const readStoredExperimentArm =
 	};
 
 /**
+ * Window property holding the arm an early `/init` request (the inline
+ * prefetch script) picked, so the runtime runs the arm that request sent.
+ */
+export const EXPERIMENT_WINDOW_KEY = '__c15tExperiment';
+
+/**
+ * The arm an early request of this page picked, if it is well formed.
+ *
+ * @returns The arm, or `null`.
+ * @internal
+ */
+export const readEarlyExperimentArm =
+	function readEarlyExperimentArm(): StoredExperimentArm | null {
+		if (typeof window === 'undefined') {
+			return null;
+		}
+		const value = (window as unknown as Record<string, unknown>)[
+			EXPERIMENT_WINDOW_KEY
+		] as Partial<StoredExperimentArm> | null | undefined;
+		return typeof value?.id === 'string' && typeof value.arm === 'string'
+			? { arm: value.arm, id: value.id }
+			: null;
+	};
+
+/**
+ * Record the arm an early request picked, for the runtime to run.
+ *
+ * @param record - The experiment id and arm.
+ * @internal
+ */
+export const writeEarlyExperimentArm = function writeEarlyExperimentArm(
+	record: StoredExperimentArm
+): void {
+	if (typeof window !== 'undefined') {
+		(window as unknown as Record<string, unknown>)[EXPERIMENT_WINDOW_KEY] = {
+			arm: record.arm,
+			id: record.id,
+		};
+	}
+};
+
+/**
  * Persist the arm the banner showed. Writes localStorage when available and
  * falls back to a cookie otherwise. A successful localStorage write also
  * drops any fallback cookie a previous visit left, so a later read that has

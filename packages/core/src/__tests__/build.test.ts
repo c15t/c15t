@@ -629,7 +629,7 @@ describe('initPrefetch', () => {
 		expect(html).not.toContain(PREFETCH_TAG);
 	});
 
-	test('passes credentials, journey and storageKey to the script', async () => {
+	test('passes credentials, experiment, journey and storageKey to the script', async () => {
 		const root = await createRoot();
 		const html = await buildPage(
 			root,
@@ -637,6 +637,11 @@ describe('initPrefetch', () => {
 				...optionsFor(root),
 				initPrefetch: {
 					credentials: 'include',
+					experiment: {
+						arms: { wall: { prompt: { variant: 'wall' } } },
+						id: 'banner-shape',
+						split: { control: 60, wall: 40 },
+					},
 					journey: false,
 					storageKey: 'shop-consent',
 				},
@@ -646,6 +651,10 @@ describe('initPrefetch', () => {
 		expect(html).toContain('"credentials":"include"');
 		expect(html).toContain('"journey":null');
 		expect(html).toContain('"cookies":["shop-consent","shop-consent-notice"]');
+		expect(html).toContain('"arms":["control","wall"]');
+		expect(html).toContain('"weights":[60,40]');
+		// Only the arm names reach the page, not what each arm changes.
+		expect(html).not.toContain('"variant":"wall"');
 	});
 
 	test("carries Vite's html.cspNonce", async () => {

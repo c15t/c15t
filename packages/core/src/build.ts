@@ -491,8 +491,8 @@ export interface ConsentManifestPluginOptions extends ManifestBuildOptions {
 	 * does, or sets `source: 'runtime'` leaves the script out, and so does a
 	 * server-rendered app. Pass `false` to turn it off, or an object when
 	 * the app sets `credentials` or `storageKey` on `hosted()` or the
-	 * provider, or turns `journey` off, so the early request matches the
-	 * one the app would send. Under a Content Security Policy, set Vite's
+	 * provider, turns `journey` off or runs an `experiment`, so the early
+	 * request matches the one the app would send. Under a Content Security Policy, set Vite's
 	 * `html.cspNonce` or allow the script's hash.
 	 *
 	 * @default true
@@ -503,7 +503,7 @@ export interface ConsentManifestPluginOptions extends ManifestBuildOptions {
 /** Options of the inline `/init` script `initPrefetch` adds. */
 export type InitPrefetchOptions = Pick<
 	PrefetchOptions,
-	'credentials' | 'journey' | 'storageKey'
+	'credentials' | 'experiment' | 'journey' | 'storageKey'
 >;
 
 /** What `@c15t/core/generated` exports. */

@@ -25,6 +25,8 @@ const response = (
 beforeEach(() => {
 	delete (window as Window & { __c15tInitialDataPromises?: unknown })
 		.__c15tInitialDataPromises;
+	delete (window as Window & { __c15tExperiment?: unknown }).__c15tExperiment;
+	localStorage.clear();
 	Object.defineProperty(navigator, 'globalPrivacyControl', {
 		configurable: true,
 		value: false,
@@ -169,5 +171,75 @@ describe('hosted browser prefetch consumption', () => {
 		// Detected GPC is never sent: browsers drop a script's `Sec-GPC`.
 		expect(fetch.mock.calls[0]?.[1].headers).toEqual({});
 		await Promise.resolve();
+	});
+
+	describe('banner experiment arm', () => {
+		const experiment = {
+			arms: { bar: {}, floating: {} },
+			id: 'banner-shape',
+		};
+		const running = (arm: string) => ({
+			...context,
+			experiment: { arm, id: 'banner-shape' },
+		});
+		const prefetchBar = () => {
+			const fetch = vi
+				.fn()
+				.mockImplementation(() => Promise.resolve(response()));
+			vi.stubGlobal('fetch', fetch);
+			window.eval(
+				buildPrefetchScript({
+					backendURL: '/api/c15t',
+					experiment: { ...experiment, arm: 'bar' },
+				})
+			);
+			return fetch;
+		};
+
+		it('reuses an early request that sent the arm this init runs', async () => {
+			const fetch = prefetchBar();
+			await createHostedTransport({ backendURL: '/api/c15t' }).init(
+				running('bar')
+			);
+			expect(fetch).toHaveBeenCalledTimes(1);
+		});
+
+		it.each([
+			['another arm', running('floating')],
+			['no arm', context],
+		])(
+			'sends its own /init when the early request sent %s',
+			async (_label, ctx) => {
+				const fetch = prefetchBar();
+				await createHostedTransport({ backendURL: '/api/c15t' }).init(ctx);
+				expect(fetch).toHaveBeenCalledTimes(2);
+			}
+		);
+
+		it('sends its own /init for an arm the early request did not send', async () => {
+			const fetch = vi
+				.fn()
+				.mockImplementation(() => Promise.resolve(response()));
+			vi.stubGlobal('fetch', fetch);
+			window.eval(buildPrefetchScript({ backendURL: '/api/c15t' }));
+			await createHostedTransport({ backendURL: '/api/c15t' }).init(
+				running('bar')
+			);
+			expect(fetch).toHaveBeenCalledTimes(2);
+		});
+
+		it('reuses initial data that does not say which arm it carried', async () => {
+			const fetch = vi.fn();
+			vi.stubGlobal('fetch', fetch);
+			const transport = createHostedTransport({
+				backendURL: '/api/c15t',
+				initialData: Promise.resolve({
+					init: await response().json(),
+					producerPolicyContract: '1',
+				}),
+			});
+			await transport.init(running('bar'));
+			expect(fetch).not.toHaveBeenCalled();
+		});
 	});
 });

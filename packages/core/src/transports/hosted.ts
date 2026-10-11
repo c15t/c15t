@@ -173,12 +173,23 @@ const INIT_HEADER_ALLOWLIST = new Set<string>(CONSENT_REQUEST_HEADER_NAMES);
  * flag. Otherwise the saves that follow would carry an id no report named.
  * The scope may differ: an early script can't know the app's `journey`
  * option on a tab's first page, and the runtime continues its id either way.
+ *
+ * When the early request says which experiment arm it carried, it must be
+ * this init's arm, or none for none: the backend counts the visit toward
+ * the arm `/init` names.
  */
 const usablePrefetch = function usablePrefetch(
 	prefetched: SSRInitialData | undefined,
-	journey: InitContext['journey']
+	{ experiment, journey }: Pick<InitContext, 'experiment' | 'journey'>
 ): prefetched is SSRInitialData & { init: InitOutput } {
 	if (!prefetched?.init) {
+		return false;
+	}
+	const sentArm = prefetched.metadata?.experiment;
+	if (
+		sentArm !== undefined &&
+		(sentArm?.id !== experiment?.id || sentArm?.arm !== experiment?.arm)
+	) {
 		return false;
 	}
 	const sent = prefetched.metadata?.journey;
@@ -291,7 +302,7 @@ export const createHostedTransport = function createHostedTransport(
 		// provider's first render) gets the request out at that moment.
 		const prefetched: SSRInitialData | undefined =
 			supplied && (await supplied.catch(() => undefined));
-		if (usablePrefetch(prefetched, ctx.journey)) {
+		if (usablePrefetch(prefetched, ctx)) {
 			const headers = { ...requestHeaders };
 			const gpc = prefetched.metadata?.requestContext?.gpc;
 			if (gpc !== undefined) {

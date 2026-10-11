@@ -2,7 +2,11 @@
  * @vitest-environment jsdom
  */
 
-import { readJourneyParams } from '@c15t/schema/types';
+import {
+	INIT_EXPERIMENT_PARAM,
+	parseExperimentHeader,
+	readJourneyParams,
+} from '@c15t/schema/types';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { corsPreflightReasons } from '../../../__tests__/fixtures/cors-safelist';
@@ -18,6 +22,7 @@ describe('prefetch utilities', () => {
 		delete (window as Window & { __c15tInitialDataPromises?: unknown })
 			.__c15tInitialDataPromises;
 		delete (window as Window & { __c15tJourney?: unknown }).__c15tJourney;
+		delete (window as Window & { __c15tExperiment?: unknown }).__c15tExperiment;
 		sessionStorage.clear();
 		localStorage.clear();
 	});
@@ -426,6 +431,150 @@ describe('prefetch utilities', () => {
 			expect(readJourneyParams(String(fetch.mock.calls[1]?.[0]))?.id).toBe(
 				sent(fetch)?.id
 			);
+		});
+	});
+
+	describe('banner experiment', () => {
+		const experiment = {
+			arms: {
+				bar: { prompt: { variant: 'bar' as const } },
+				floating: { prompt: { variant: 'floating' as const } },
+			},
+			id: 'banner-shape',
+		};
+		const respond = () =>
+			vi.fn((_input: RequestInfo | URL, _init?: RequestInit) =>
+				Promise.resolve(new Response('{}'))
+			);
+		const sentArm = (fetch: ReturnType<typeof vi.fn>, call = 0) =>
+			parseExperimentHeader(
+				new URL(String(fetch.mock.calls[call]?.[0])).searchParams.get(
+					INIT_EXPERIMENT_PARAM
+				)
+			);
+		const early = () =>
+			(window as Window & { __c15tExperiment?: unknown }).__c15tExperiment;
+		const storeArm = (arm: string, id = 'banner-shape') =>
+			localStorage.setItem('c15t-experiment-v1', JSON.stringify({ arm, id }));
+		const resolved = async (backendURL: string) =>
+			(await primePrefetchedInitialData({ backendURL }))?.metadata?.experiment;
+
+		it('the inline script sends the arm this browser saw and records it for the runtime', async () => {
+			storeArm('floating');
+			const fetch = respond();
+			vi.stubGlobal('fetch', fetch);
+			window.eval(buildPrefetchScript({ backendURL: '/api/c15t', experiment }));
+			expect(sentArm(fetch)).toEqual({ arm: 'floating', id: 'banner-shape' });
+			expect(early()).toEqual({ arm: 'floating', id: 'banner-shape' });
+			expect(await resolved('/api/c15t')).toEqual({
+				arm: 'floating',
+				id: 'banner-shape',
+			});
+		});
+
+		it('reads the arm from the cookie when localStorage has none', () => {
+			document.cookie = `c15t-experiment-v1=${encodeURIComponent(
+				JSON.stringify({ arm: 'bar', id: 'banner-shape' })
+			)}; path=/`;
+			try {
+				const fetch = respond();
+				vi.stubGlobal('fetch', fetch);
+				window.eval(
+					buildPrefetchScript({ backendURL: '/api/c15t', experiment })
+				);
+				expect(sentArm(fetch)?.arm).toBe('bar');
+			} finally {
+				document.cookie = 'c15t-experiment-v1=; max-age=0; path=/';
+			}
+		});
+
+		it.each([
+			[0.2, 'bar'],
+			[0.7, 'floating'],
+		])(
+			'picks by the split for a new visitor (random %d), as the runtime does',
+			(random, arm) => {
+				vi.spyOn(Math, 'random').mockReturnValue(random);
+				// An arm the browser saw for another experiment is not reused.
+				storeArm('control', 'other-test');
+				const split = { bar: 1, control: 0, floating: 3 };
+				const fetch = respond();
+				vi.stubGlobal('fetch', fetch);
+				window.eval(
+					buildPrefetchScript({
+						backendURL: '/api/c15t',
+						experiment: { ...experiment, split },
+					})
+				);
+				expect(sentArm(fetch)?.arm).toBe(arm);
+				// The script's twin picks the same arm from the same draw.
+				delete (window as Window & { __c15tExperiment?: unknown })
+					.__c15tExperiment;
+				void primePrefetchedInitialData({
+					backendURL: '/api/other',
+					experiment: { ...experiment, split },
+				});
+				expect(sentArm(fetch, 1)?.arm).toBe(arm);
+			}
+		);
+
+		it('sends a host arm as is', () => {
+			storeArm('floating');
+			const fetch = respond();
+			vi.stubGlobal('fetch', fetch);
+			window.eval(
+				buildPrefetchScript({
+					backendURL: '/api/c15t',
+					experiment: { ...experiment, arm: 'bar' },
+				})
+			);
+			expect(sentArm(fetch)?.arm).toBe('bar');
+		});
+
+		it('a second request on the page sends the arm the first one picked', () => {
+			const fetch = respond();
+			vi.stubGlobal('fetch', fetch);
+			window.eval(buildPrefetchScript({ backendURL: '/api/c15t', experiment }));
+			storeArm(sentArm(fetch)?.arm === 'bar' ? 'floating' : 'bar');
+			void primePrefetchedInitialData({ backendURL: '/api/other', experiment });
+			expect(sentArm(fetch, 1)).toEqual(sentArm(fetch));
+		});
+
+		it('sends no arm for a visitor who already chose, but still records one', async () => {
+			storeArm('floating');
+			document.cookie = 'c15t=c.necessary:1,c.marketing:0; path=/';
+			try {
+				const fetch = respond();
+				vi.stubGlobal('fetch', fetch);
+				window.eval(
+					buildPrefetchScript({ backendURL: '/api/c15t', experiment })
+				);
+				expect(sentArm(fetch)).toBeNull();
+				expect(early()).toEqual({ arm: 'floating', id: 'banner-shape' });
+				expect(await resolved('/api/c15t')).toBeNull();
+				void primePrefetchedInitialData({
+					backendURL: '/api/other',
+					experiment,
+				});
+				expect(sentArm(fetch, 1)).toBeNull();
+			} finally {
+				document.cookie = 'c15t=; max-age=0; path=/';
+			}
+		});
+
+		it.each([
+			['no experiment', undefined],
+			['an invalid experiment', { ...experiment, arm: 'wall' }],
+		])('sends no arm for %s', async (_label, option) => {
+			const fetch = respond();
+			vi.stubGlobal('fetch', fetch);
+			window.eval(
+				buildPrefetchScript({ backendURL: '/api/c15t', experiment: option })
+			);
+			expect(sentArm(fetch)).toBeNull();
+			expect(early()).toBeUndefined();
+			// Says it sent none, so a runtime running an arm fetches its own.
+			expect(await resolved('/api/c15t')).toBeNull();
 		});
 	});
 });
