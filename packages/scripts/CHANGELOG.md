@@ -133,6 +133,40 @@ Also fixed: the Vue preference center rendered its switches and category rows un
 
   Serve a stale consent manifest from the server adapters' in-process cache inside the backend's `stale-while-revalidate` window while one background request revalidates it, instead of blocking every request after `s-maxage` expires; a failed or timed-out revalidation keeps the stale manifest. The backend sends its manifest cache policy as `CDN-Cache-Control` too, so Vercel's CDN forwards it. Add `onBackgroundRevalidate` to the core cache and every server adapter for runtimes that stop detached work after the response.
 
+## 2.3.0
+
+### Minor Changes
+
+- 184b491: Read the [c15t 2.3.0 changelog](https://c15t.com/changelog/2.3.0) for the complete release notes and upgrade context.
+
+## 2.3.0-canary-20260930161603
+
+### Minor Changes
+
+- fd7a7c3: Add a consent-gated OneDollarStats integration with optional hostname validation, tracker data attributes, and CLI setup support.
+- b01c4b0: Add a Front Chat integration that loads after functionality consent, forwards CSP nonces, and supports optional session cleanup. Include Front Chat in the CLI integration chooser and generated provider setup.
+- ad0ce98: Add a Pinterest Tag integration. `pinterestTag()` from `@c15t/scripts/pinterest-tag` recreates Pinterest's v3 base code (the `pintrk` queue stub, `load`, `setconsent`, and `page`), loads `core.js` behind marketing consent, and keeps the script loaded after revocation so `pintrk('setconsent', false)` can stop tracking and clear Pinterest's first-party cookies. `pinterestTagEvent()` provides typed standard and custom event tracking. The CLI `generate` command now offers Pinterest Tag as a script snippet.
+
+### Patch Changes
+
+- 9c613d4: Fix declaration imports for TypeScript consumers using Node16 or NodeNext resolution. Preserve explicit JavaScript filenames so exported APIs retain their types without requiring `skipLibCheck`.
+
+## 2.2.0
+
+### Patch Changes
+
+- Read the [c15t 2.2.0 changelog](https://c15t.com/changelog/2.2.0) for the complete release notes and upgrade context.
+
+## 2.2.0-canary-20260804162155
+
+### Patch Changes
+
+- 1116dce: Preserve `posthog.capture(...)` calls made after c15t bootstraps PostHog but before its SDK finishes loading.
+
+  The helper now uses PostHog's root snippet queue and pending init tuple, with the current consent decision queued before captured events replay. It also leaves an already-installed PostHog SDK unchanged during later consent revoke and re-grant cycles.
+
+- d481939: Fix the PostHog integration loading no analytics runtime at all. Since posthog-js 1.410.2, `array.js` refuses to install itself over an existing `window.posthog` that has no snippet-shaped pending-init queue, so c15t's bootstrap stub was left in place and every call — including `init` — silently became a no-op. The stub now seeds `_i` like the official snippet does.
+
 ## 2.2.0-canary-20260727202135
 
 ### Minor Changes

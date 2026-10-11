@@ -96,6 +96,59 @@ Fix declaration imports for TypeScript consumers using Node16 or NodeNext resolu
 - Updated dependencies [4460e3e]
   - @c15t/backend@3.0.0-alpha.0
 
+## 2.3.0
+
+### Minor Changes
+
+- 184b491: Read the [c15t 2.3.0 changelog](https://c15t.com/changelog/2.3.0) for the complete release notes and upgrade context.
+
+### Patch Changes
+
+- Updated dependencies [184b491]
+  - @c15t/backend@2.3.0
+  - @c15t/schema@2.3.0
+
+## 2.3.0-canary-20260930161603
+
+### Patch Changes
+
+- 9c613d4: Fix declaration imports for TypeScript consumers using Node16 or NodeNext resolution. Preserve explicit JavaScript filenames so exported APIs retain their types without requiring `skipLibCheck`.
+- Updated dependencies [9c613d4]
+- Updated dependencies [808ece2]
+- Updated dependencies [d651989]
+  - @c15t/backend@2.3.0-canary-20260930161603
+  - @c15t/schema@2.3.0-canary-20260930161603
+
+## 2.2.1
+
+### Patch Changes
+
+- Restore `enabled: false` so all client-side consents are granted, initialization requests are skipped, and consent-gated scripts load immediately.
+
+  Fix `www` handling in CORS origin matching. `*.example.com` now accepts `https://www.example.com`, and a schemeless `www.example.com` entry accepts both the apex and `www` forms.
+
+  Support native WebView app schemes in `trustedOrigins` (`capacitor://localhost`, `ionic://localhost`, custom `iosScheme` values), matched on both scheme and host.
+
+  Declare `hono` as `^4.12.34` rather than an exact pin so you can take Hono security releases without waiting for a new `@c15t/backend`.
+
+- Updated dependencies
+  - @c15t/backend@2.2.1
+
+## 2.2.0
+
+### Patch Changes
+
+- Read the [c15t 2.2.0 changelog](https://c15t.com/changelog/2.2.0) for the complete release notes and upgrade context.
+- Updated dependencies
+  - @c15t/backend@2.2.0
+
+## 2.2.0-canary-20260804162155
+
+### Patch Changes
+
+- Updated dependencies [a29544d]
+  - @c15t/backend@2.2.0-canary-20260804162155
+
 ## 2.2.0-canary-20260731105620
 
 ### Patch Changes

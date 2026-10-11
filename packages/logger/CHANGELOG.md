@@ -22,6 +22,18 @@ Fix declaration imports for TypeScript consumers using Node16 or NodeNext resolu
 
   Serve a stale consent manifest from the server adapters' in-process cache inside the backend's `stale-while-revalidate` window while one background request revalidates it, instead of blocking every request after `s-maxage` expires; a failed or timed-out revalidation keeps the stale manifest. The backend sends its manifest cache policy as `CDN-Cache-Control` too, so Vercel's CDN forwards it. Add `onBackgroundRevalidate` to the core cache and every server adapter for runtimes that stop detached work after the response.
 
+## 2.1.1
+
+### Patch Changes
+
+- 184b491: Read the [c15t 2.3.0 changelog](https://c15t.com/changelog/2.3.0) for the complete release notes and upgrade context.
+
+## 2.1.1-canary-20260930161603
+
+### Patch Changes
+
+- 9c613d4: Fix declaration imports for TypeScript consumers using Node16 or NodeNext resolution. Preserve explicit JavaScript filenames so exported APIs retain their types without requiring `skipLibCheck`.
+
 ## 2.1.0
 
 ### Minor Changes

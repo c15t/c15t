@@ -552,6 +552,71 @@ Fix declaration imports for TypeScript consumers using Node16 or NodeNext resolu
   - @c15t/backend@3.0.0-alpha.0
   - @c15t/scripts@3.0.0-alpha.0
 
+## 2.3.0
+
+### Minor Changes
+
+- 184b491: Read the [c15t 2.3.0 changelog](https://c15t.com/changelog/2.3.0) for the complete release notes and upgrade context.
+
+### Patch Changes
+
+- Updated dependencies [184b491]
+  - @c15t/backend@2.3.0
+  - @c15t/scripts@2.3.0
+  - @c15t/logger@2.1.1
+
+## 2.3.0-canary-20260930161603
+
+### Patch Changes
+
+- fd7a7c3: Add a consent-gated OneDollarStats integration with optional hostname validation, tracker data attributes, and CLI setup support.
+- b01c4b0: Add a Front Chat integration that loads after functionality consent, forwards CSP nonces, and supports optional session cleanup. Include Front Chat in the CLI integration chooser and generated provider setup.
+- 9c613d4: Fix declaration imports for TypeScript consumers using Node16 or NodeNext resolution. Preserve explicit JavaScript filenames so exported APIs retain their types without requiring `skipLibCheck`.
+- ad0ce98: Add a Pinterest Tag integration. `pinterestTag()` from `@c15t/scripts/pinterest-tag` recreates Pinterest's v3 base code (the `pintrk` queue stub, `load`, `setconsent`, and `page`), loads `core.js` behind marketing consent, and keeps the script loaded after revocation so `pintrk('setconsent', false)` can stop tracking and clear Pinterest's first-party cookies. `pinterestTagEvent()` provides typed standard and custom event tracking. The CLI `generate` command now offers Pinterest Tag as a script snippet.
+- Updated dependencies [fd7a7c3]
+- Updated dependencies [b01c4b0]
+- Updated dependencies [9c613d4]
+- Updated dependencies [d651989]
+- Updated dependencies [ad0ce98]
+  - @c15t/scripts@2.3.0-canary-20260930161603
+  - @c15t/backend@2.3.0-canary-20260930161603
+  - @c15t/logger@2.1.1-canary-20260930161603
+
+## 2.2.1
+
+### Patch Changes
+
+- Restore `enabled: false` so all client-side consents are granted, initialization requests are skipped, and consent-gated scripts load immediately.
+
+  Fix `www` handling in CORS origin matching. `*.example.com` now accepts `https://www.example.com`, and a schemeless `www.example.com` entry accepts both the apex and `www` forms.
+
+  Support native WebView app schemes in `trustedOrigins` (`capacitor://localhost`, `ionic://localhost`, custom `iosScheme` values), matched on both scheme and host.
+
+  Declare `hono` as `^4.12.34` rather than an exact pin so you can take Hono security releases without waiting for a new `@c15t/backend`.
+
+- Updated dependencies
+  - @c15t/backend@2.2.1
+  - @c15t/scripts@2.2.0
+
+## 2.2.0
+
+### Patch Changes
+
+- Read the [c15t 2.2.0 changelog](https://c15t.com/changelog/2.2.0) for the complete release notes and upgrade context.
+- Updated dependencies
+  - @c15t/backend@2.2.0
+  - @c15t/scripts@2.2.0
+
+## 2.2.0-canary-20260804162155
+
+### Patch Changes
+
+- Updated dependencies [1116dce]
+- Updated dependencies [d481939]
+- Updated dependencies [a29544d]
+  - @c15t/scripts@2.2.0-canary-20260804162155
+  - @c15t/backend@2.2.0-canary-20260804162155
+
 ## 2.2.0-canary-20260731105620
 
 ### Patch Changes

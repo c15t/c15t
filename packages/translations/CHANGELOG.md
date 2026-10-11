@@ -97,6 +97,48 @@ Also fixed: the Vue preference center rendered its switches and category rows un
 
   Serve a stale consent manifest from the server adapters' in-process cache inside the backend's `stale-while-revalidate` window while one background request revalidates it, instead of blocking every request after `s-maxage` expires; a failed or timed-out revalidation keeps the stale manifest. The backend sends its manifest cache policy as `CDN-Cache-Control` too, so Vercel's CDN forwards it. Add `onBackgroundRevalidate` to the core cache and every server adapter for runtimes that stop detached work after the response.
 
+## 2.3.0
+
+### Minor Changes
+
+- 184b491: Read the [c15t 2.3.0 changelog](https://c15t.com/changelog/2.3.0) for the complete release notes and upgrade context.
+
+## 2.3.0-canary-20260930161603
+
+### Minor Changes
+
+- 808ece2: Support IAB TCF 2.4 and TCF Policies v5.0.b.
+
+  - `IABConsentDialog` shows Features in their own section with the IAB standard text and no controls. Special Purposes stay locked.
+  - `__tcfapi` TC data includes `vendor.disclosedVendors`.
+  - `isServiceSpecific` is deprecated. TC strings always set IsServiceSpecific=1.
+  - Vendors that declare only Special Purposes no longer get a legitimate interest bit.
+  - Decoding a TC string keeps vendor IDs above 1000.
+
+  No migration needed. Existing TC strings stay valid.
+
+### Patch Changes
+
+- 9c613d4: Fix declaration imports for TypeScript consumers using Node16 or NodeNext resolution. Preserve explicit JavaScript filenames so exported APIs retain their types without requiring `skipLibCheck`.
+
+## 2.2.1
+
+### Patch Changes
+
+- Restore `enabled: false` so all client-side consents are granted, initialization requests are skipped, and consent-gated scripts load immediately.
+
+  Fix `www` handling in CORS origin matching. `*.example.com` now accepts `https://www.example.com`, and a schemeless `www.example.com` entry accepts both the apex and `www` forms.
+
+  Support native WebView app schemes in `trustedOrigins` (`capacitor://localhost`, `ionic://localhost`, custom `iosScheme` values), matched on both scheme and host.
+
+  Declare `hono` as `^4.12.34` rather than an exact pin so you can take Hono security releases without waiting for a new `@c15t/backend`.
+
+## 2.2.0
+
+### Patch Changes
+
+- Read the [c15t 2.2.0 changelog](https://c15t.com/changelog/2.2.0) for the complete release notes and upgrade context.
+
 ## 2.2.0-canary-20260727202135
 
 ### Minor Changes
