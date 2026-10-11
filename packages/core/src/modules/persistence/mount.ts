@@ -261,6 +261,8 @@ export const mountPersistence = function mountPersistence(
 	 *
 	 * The read also becomes what the writer starts from: the kernel's
 	 * records stay the seed's, and storage is what it was read as here.
+	 * Reconciling merges only records that changed since this read, so a
+	 * grant left out here stays out until another runtime writes storage.
 	 */
 	const applyNewerStoredRecords = function applyNewerStoredRecords(): void {
 		const at = now();
