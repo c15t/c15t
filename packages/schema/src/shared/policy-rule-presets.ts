@@ -151,6 +151,30 @@ const quebecRule = function quebecRule(): PolicyRule {
 	};
 };
 
+// The recommended pack calls these directly rather than through
+// `policyRulePresets`, so a bundle that only resolves the pack leaves the
+// other presets out.
+const europeOptInPreset = function europeOptInPreset(): PolicyRule {
+	return {
+		...europeRule('opt-in'),
+		legacyMaterial: structuredClone(legacyPresetMaterial.europeOptIn),
+	};
+};
+
+const europeIabPreset = function europeIabPreset(): PolicyRule {
+	return {
+		...europeRule('iab'),
+		legacyMaterial: structuredClone(legacyPresetMaterial.europeIab),
+	};
+};
+
+const quebecOptInPreset = function quebecOptInPreset(): PolicyRule {
+	return {
+		...quebecRule(),
+		legacyMaterial: structuredClone(legacyPresetMaterial.quebecOptIn),
+	};
+};
+
 const worldOptOutNoPromptRule = function worldOptOutNoPromptRule(): PolicyRule {
 	return {
 		i18n: { messageProfile: 'preferences' },
@@ -505,14 +529,8 @@ export const policyRulePresets: PolicyRulePresets = {
 				'Personalized commercial recommendations need a non-personalized option or convenient refusal under Article 24.',
 			]
 		),
-	europeIab: () => ({
-		...europeRule('iab'),
-		legacyMaterial: structuredClone(legacyPresetMaterial.europeIab),
-	}),
-	europeOptIn: () => ({
-		...europeRule('opt-in'),
-		legacyMaterial: structuredClone(legacyPresetMaterial.europeOptIn),
-	}),
+	europeIab: () => europeIabPreset(),
+	europeOptIn: () => europeOptInPreset(),
 	indiaOptIn: () =>
 		countryOptIn(
 			'india_opt_in',
@@ -620,10 +638,7 @@ export const policyRulePresets: PolicyRulePresets = {
 				'Disclose specific purposes and recipients; a broad category label alone is not an informed consent notice.',
 			]
 		),
-	quebecOptIn: () => ({
-		...quebecRule(),
-		legacyMaterial: structuredClone(legacyPresetMaterial.quebecOptIn),
-	}),
+	quebecOptIn: () => quebecOptInPreset(),
 	saudiArabiaOptIn: () =>
 		countryOptIn(
 			'saudi_arabia_opt_in',
@@ -784,12 +799,10 @@ export interface RecommendedPolicyRulesOptions {
 export const recommendedPolicyRules = function recommendedPolicyRules(
 	options: RecommendedPolicyRulesOptions = {}
 ): PolicyRule[] {
-	const us = policyRulePresets.usPrivacyStatesOptOut();
+	const us = usPrivacyStatesRule('opt-out');
 	return [
-		options.iab
-			? policyRulePresets.europeIab()
-			: policyRulePresets.europeOptIn(),
-		policyRulePresets.quebecOptIn(),
+		options.iab ? europeIabPreset() : europeOptInPreset(),
+		quebecOptInPreset(),
 		{
 			...us,
 			match: policyMatchers.merge(
@@ -797,6 +810,6 @@ export const recommendedPolicyRules = function recommendedPolicyRules(
 				policyMatchers.regionFallback(['US'])
 			),
 		},
-		policyRulePresets.worldNone(),
+		worldNoneRule(),
 	];
 };
