@@ -97,7 +97,9 @@ Set it on the runtime or provider. In Next.js use `defineConsentConfig({ journey
 in TanStack Start pass the same value to `resolveConsent` and `ConsentRoot`; with
 the inline prefetch script, pass it to `buildPrefetchScript` or to
 `consentManifest({ initPrefetch: { journey } })`. Left unset, the script
-continues a `'tab'` journey the tab already holds. Vue, Svelte, Astro
+continues a `'tab'` journey the tab already holds. A tab's first page has
+none, so its `/init` reports the scope as `'page'`. The id still links it to
+the save. Pass `journey: 'tab'` to the script too if you report on scope. Vue, Svelte, Astro
 and the script tag use `'page'`. A manifest that resolves locally in the
 browser reports no init, so it sends no journey.
 

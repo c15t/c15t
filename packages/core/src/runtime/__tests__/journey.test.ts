@@ -661,6 +661,26 @@ describe('a journey a request before the runtime started', () => {
 		}
 	});
 
+	test("a script given journey: 'tab' reports the tab scope on a tab's first page", async () => {
+		vi.stubGlobal('fetch', fakeFetch);
+		try {
+			window.eval(
+				buildPrefetchScript({
+					backendURL: 'https://consent.example.com',
+					journey: 'tab',
+				})
+			);
+			const runtime = await load({ journey: 'tab' });
+			expect(init()).toHaveLength(1);
+			const early = init()[0]?.journey;
+			expect(early?.scope).toBe('tab');
+			await runtime.kernel.commands.save('all');
+			expect(saves()[0]?.journey).toEqual({ id: early?.id, scope: 'tab' });
+		} finally {
+			vi.unstubAllGlobals();
+		}
+	});
+
 	test('a script sent without a journey: the runtime asks again with its own', async () => {
 		vi.stubGlobal('fetch', fakeFetch);
 		try {

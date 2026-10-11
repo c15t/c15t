@@ -9,6 +9,8 @@ app uses `offline()` or gives `hosted()` its own `backendURL`, `initURL` or
 `headers`. If it sets `credentials`, `overrides`, `storageKey`, an
 `experiment`, or `journey: false`, pass the same values as
 `initPrefetch: { credentials, experiment, journey, overrides, storageKey }`.
+With `journey: 'tab'`, passing it too makes a tab's first `/init` report the
+`'tab'` scope instead of `'page'`. It doesn't save a request.
 Pass `experiment` only when c15t assigns the arm. If a feature flag picks
 it, leave it out, or the script sends an arm the visitor may never see.
 The dev server adds the script even to a `manifest()` app, which then sends
