@@ -120,9 +120,6 @@ export const ConsentDevTools = ({
 	position,
 	shadow,
 }: ConsentDevToolsProps): null => {
-	// A trigger that carries the launcher renders this toolbar. Registering it
-	// here, before the launcher is published, keeps that swap synchronous.
-	registerTriggerToolbar(TriggerToolbar);
 	const services = useContext(ProviderServicesContext);
 	const stableServices = useStableServices(
 		clearRecords ?? services?.clearRecords,
@@ -134,6 +131,13 @@ export const ConsentDevTools = ({
 		getConsentCategories ?? services?.getConsentCategories,
 		disabled
 	);
+
+	// A trigger that carries the launcher renders this toolbar. Registering it
+	// before the effect below publishes the launcher keeps that swap
+	// synchronous.
+	useEffect(() => {
+		registerTriggerToolbar(TriggerToolbar);
+	}, []);
 
 	useEffect(() => {
 		if (!kernel) {
