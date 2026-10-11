@@ -136,6 +136,33 @@ test("the partners link keeps the app's focus and pointer handlers", async () =>
 	}
 });
 
+test('does not warm the IAB dialog while IAB is disabled, even under a listed fallback model', async () => {
+	const screen = await render(
+		<ComponentFixtureProvider
+			options={{
+				...options('iab'),
+				// What a backend that returned no vendor list leaves behind: IAB
+				// off, so an `iab` policy runs as opt-in.
+				iab: { cmpId: 123, gvl: null },
+			}}
+		>
+			<IABConsentBanner disableAnimation />
+			<IABConsentDialog models={['iab', 'opt-in']} />
+		</ComponentFixtureProvider>
+	);
+	await new Promise((resolve) => {
+		setTimeout(resolve, 300);
+	});
+	expect(byTestId('iab-consent-banner-customize-button')).toBeNull();
+	runIdleCallbacks();
+	// Long enough for a dialog request to finish if one started.
+	await new Promise((resolve) => {
+		setTimeout(resolve, 1500);
+	});
+	expect(moduleLoaded(IAB_DIALOG_MODULE)).toBe(false);
+	await screen.unmount();
+});
+
 test('loads the IAB dialog in idle time while the IAB banner is shown', async () => {
 	const screen = await render(
 		<ComponentFixtureProvider options={options('iab')}>

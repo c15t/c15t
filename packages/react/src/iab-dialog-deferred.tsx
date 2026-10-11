@@ -81,10 +81,13 @@ const LazyIABConsentDialog = (props: IABConsentDialogProps) => {
 	const iab = useIAB();
 	const hydrated = useIsHydrated();
 	const models = props.models ?? DEFAULT_MODELS;
-	const modelMatches = model !== null && models.includes(model);
+	// The dialog opens only under a listed model, and renders nothing while
+	// IAB is disabled, such as when the backend returned no vendor list.
+	const canOpen =
+		model !== null && models.includes(model) && Boolean(iab?.config.enabled);
 
 	useEffect(() => {
-		if (!modelMatches) {
+		if (!canOpen) {
 			return;
 		}
 		openableDialogs += 1;
@@ -95,15 +98,15 @@ const LazyIABConsentDialog = (props: IABConsentDialogProps) => {
 		return () => {
 			openableDialogs -= 1;
 		};
-	}, [modelMatches]);
+	}, [canOpen]);
 
 	// A shown IAB banner can open the dialog at any moment.
-	useIdleDialogWarming(modelMatches && activeUI === 'banner');
+	useIdleDialogWarming(canOpen && activeUI === 'banner');
 
 	// The dialog's own open state: a controlled `open={false}` wins over
 	// `activeUI`, so it loads nothing.
 	const shouldLoad =
-		modelMatches &&
+		canOpen &&
 		((props.open ?? activeUI === 'dialog') || Boolean(props.showTrigger));
 	// Once rendered, stay rendered, as the eager dialog always was: closing
 	// then plays the exit animation instead of removing the dialog at once.
