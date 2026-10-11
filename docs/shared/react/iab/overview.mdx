@@ -59,7 +59,9 @@ group: reference
   - The dialog opening.
 
   A visitor who opens the dialog before the download finishes waits for
-  it. `open={true}` and `showTrigger` load it on mount. Set
+  it. `open={true}` and `showTrigger` load it on mount, under a model the
+  dialog's `models` prop lists. Under another model, `showTrigger` loads
+  only the trigger. Set
   `preloadDialog: 'intent'` in the consent provider options to skip the
   idle download. Idle loading is also skipped with Save-Data on, on `2g`
   and `slow-2g` connections, and while offline.

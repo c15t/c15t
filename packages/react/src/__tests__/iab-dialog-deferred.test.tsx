@@ -62,6 +62,25 @@ test('a controlled open={false} loads nothing while activeUI is dialog', async (
 	await screen.unmount();
 });
 
+test('showTrigger under another model renders the trigger without the dialog', async () => {
+	const screen = await render(
+		<ComponentFixtureProvider
+			options={iabOptions({ prefetch: policyFixture() })}
+		>
+			<IABConsentDialog showTrigger />
+		</ComponentFixtureProvider>
+	);
+	await vi.waitFor(() =>
+		expect(byTestId('consent-dialog-trigger')).not.toBeNull()
+	);
+	// Long enough for a dialog request to finish if one started.
+	await new Promise((resolve) => {
+		setTimeout(resolve, 1500);
+	});
+	expect(dialogModuleLoaded()).toBe(false);
+	await screen.unmount();
+});
+
 test('the IAB banner loads none of the dialog until Customize opens it', async () => {
 	const screen = await render(
 		<ComponentFixtureProvider options={iabOptions({ disableAnimation: true })}>

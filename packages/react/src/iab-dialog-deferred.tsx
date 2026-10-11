@@ -25,7 +25,10 @@ import type {
 	IABConsentDialogCompoundComponent,
 	IABConsentDialogProps,
 } from './components/iab-panel';
+import type { ConsentDialogTriggerProps } from './components/panel-trigger';
 import { useActiveUI, useModel } from './hooks';
+import { useIsHydrated } from './hooks/use-is-hydrated';
+import { useIAB } from './iab-context';
 import { createDeferredModule } from './utils/deferred-module';
 
 type AnyComponent = ComponentType<Record<string, unknown>>;
@@ -58,10 +61,25 @@ registerDialogChunkWarmer(() => {
 const LazyIABConsentDialogComponent = iabDialogModule.component(
 	(module) => module.IABConsentDialog
 );
+// The trigger alone, for a model the dialog does not open under.
+const LazyConsentDialogTrigger = createDeferredModule(
+	() => import('./components/panel-trigger')
+).component((module) => module.ConsentDialogTrigger);
+
+const resolveTriggerProps = (
+	showTrigger: IABConsentDialogProps['showTrigger']
+): ConsentDialogTriggerProps | null => {
+	if (showTrigger === true) {
+		return {};
+	}
+	return showTrigger || null;
+};
 
 const LazyIABConsentDialog = (props: IABConsentDialogProps) => {
 	const activeUI = useActiveUI();
 	const model = useModel();
+	const iab = useIAB();
+	const hydrated = useIsHydrated();
 	const models = props.models ?? DEFAULT_MODELS;
 	const modelMatches = model !== null && models.includes(model);
 
@@ -85,8 +103,8 @@ const LazyIABConsentDialog = (props: IABConsentDialogProps) => {
 	// The dialog's own open state: a controlled `open={false}` wins over
 	// `activeUI`, so it loads nothing.
 	const shouldLoad =
-		(modelMatches && (props.open ?? activeUI === 'dialog')) ||
-		Boolean(props.showTrigger);
+		modelMatches &&
+		((props.open ?? activeUI === 'dialog') || Boolean(props.showTrigger));
 	// Once rendered, stay rendered, as the eager dialog always was: closing
 	// then plays the exit animation instead of removing the dialog at once.
 	const [rendered, setRendered] = useState(shouldLoad);
@@ -94,7 +112,12 @@ const LazyIABConsentDialog = (props: IABConsentDialogProps) => {
 		setRendered(true);
 	}
 	if (!(shouldLoad || rendered)) {
-		return null;
+		// The eager dialog rendered its trigger under any model. Under one it
+		// does not open for, render the trigger without loading the dialog.
+		const triggerProps = resolveTriggerProps(props.showTrigger);
+		return triggerProps && hydrated && iab?.config.enabled ? (
+			<LazyConsentDialogTrigger {...triggerProps} />
+		) : null;
 	}
 	return <LazyIABConsentDialogComponent {...props} />;
 };
@@ -141,7 +164,8 @@ for (const name of COMPOUND_PARTS) {
  * on hover or focus of the banner's Customize button or partners link, or
  * when the dialog opens, whichever comes first. `preloadDialog: 'intent'` in
  * the provider options skips the idle load. `open={true}` or `showTrigger`
- * loads it on mount.
+ * loads it on mount under a model `models` lists; under another model,
+ * `showTrigger` loads only the trigger.
  *
  * The compound parts (`IABConsentDialog.Root`, `.Card`, `.Header`, `.Tabs`,
  * `.TabButton`, `.Content`, `.Footer`, `.Overlay`, `.FeatureItem`,
