@@ -1,6 +1,8 @@
 ---
 packages:
-  '@c15t/react': patch
+  "@c15t/react":
+    replay:
+      - exit-prerelease(npm:@c15t/react)
 ---
 
 ### Keep refs on lazy-loaded dialog parts in React 18

@@ -1,3 +1,25 @@
+## @c15t/react@3.0.0-alpha.11 (alpha)
+
+### Load the consent dialog at first idle
+
+With `preloadDialog: 'idle'` (the default), the deferred `ConsentDialog` starts loading in the browser's first idle period after the page's `load` event, as documented, instead of 3 seconds after it. On Slow 4G, opening the dialog in the first 3 seconds after load no longer waits about 700 ms for its chunk.
+
+### Load the IAB consent dialog on demand
+
+`IABConsentDialog` from `@c15t/react/iab` now loads on demand, like `ConsentDialog`. The preference center leaves first-load JavaScript (28 KB gzip smaller in a Vite app, 40 KB in a Next.js app) and downloads in the browser's first idle period after `load` while the IAB banner is shown, on hover or focus of the banner's Customize button or partners link, or when it opens. A visitor who opens it before the download finishes waits for it. `preloadDialog: 'intent'` skips the idle download, and nothing downloads under a policy model the dialog's `models` prop does not list.
+
+### Ship the first-paint CSS once on Next.js pages
+
+Next.js pages no longer ship the banner's first-paint CSS twice. The server already renders it into the HTML, so `withConsentManifest` now points browser bundles at a deferred copy that loads only when the banner, trigger or `ConsentGate` first renders in the browser. That takes 9 to 10 KB gzip off first-load JavaScript. FCP and LCP are unchanged.
+
+### Keep refs on lazy-loaded dialog parts in React 18
+
+A `ref` on a compound part of `ConsentDialog`, `ConsentWidget` or `IABConsentDialog`, such as `ConsentDialog.Card`, now reaches the element in React 18. The lazy-loaded wrapper dropped it, and React 18 logged a function-component ref warning.
+
+### Smaller first load for offline mode and the trigger
+
+Shrink the first-load bundle for offline mode and the consent trigger. `recommendedPolicyRules()` no longer pulls every policy preset into the bundle. In a Vite build of an app that uses `offline()`, this saves 6.5 to 7.7 KB gzip, depending on the page, with or without `policyRules`. Turbopack already dropped the unused presets. `ConsentDialogTrigger` now loads its DevTools toolbar only when `<ConsentDevTools>` is mounted, which saves about 0.5 to 1 KB gzip for apps without DevTools. With DevTools mounted, the trigger still switches to the toolbar without waiting for a request.
+
 ## @c15t/react@3.0.0-alpha.10 (alpha)
 
 ### Send a bundled manifest's `/init` from the provider's first render
