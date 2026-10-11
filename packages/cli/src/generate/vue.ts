@@ -1,12 +1,12 @@
 import {
 	BACKEND_URL_ENV,
-	buildOptions,
 	envFile,
 	integrationDependencies,
 	offlineInstruction,
 	scriptImports,
 	scriptsProperty,
 	sortImports,
+	spaBuildOptions,
 	vendorInstruction,
 } from './source.ts';
 import type { BoilerplateOptions, BoilerplateTemplate } from './types.ts';
@@ -43,7 +43,7 @@ ${scriptsProperty(options.scripts, '\t\t')}	},
 
 const vueFiles = (options: BoilerplateOptions): Record<string, string> => {
 	const mode = options.mode === 'offline' ? 'offline' : 'hosted';
-	const build = buildOptions(options);
+	const build = spaBuildOptions(options);
 	return {
 		...envFile(BACKEND_URL_ENV.vite, options),
 		'src/App.vue': `<script setup lang="ts">

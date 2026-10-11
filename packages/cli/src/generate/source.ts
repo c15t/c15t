@@ -122,6 +122,18 @@ export const offlineInstruction = (options: BoilerplateOptions): string[] =>
 export const buildOptions = (options: BoilerplateOptions): string =>
 	options.mode === 'offline' ? "{ onBuildError: 'runtime' }" : '';
 
+/**
+ * Options for `consentManifest()` in a client-rendered Vite app. Offline
+ * mode also turns off the inline `/init` script, which would otherwise
+ * call a backend URL left in the environment.
+ * @param options Generation options.
+ * @returns `''` in hosted mode, `{ initPrefetch: false, onBuildError: 'runtime' }` offline.
+ */
+export const spaBuildOptions = (options: BoilerplateOptions): string =>
+	options.mode === 'offline'
+		? "{ initPrefetch: false, onBuildError: 'runtime' }"
+		: '';
+
 /** Dependencies shared by every template that uses vendor integrations. */
 export const integrationDependencies = (
 	options: BoilerplateOptions

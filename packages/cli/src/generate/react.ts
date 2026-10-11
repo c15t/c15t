@@ -1,12 +1,12 @@
 import {
 	BACKEND_URL_ENV,
-	buildOptions,
 	envFile,
 	integrationDependencies,
 	offlineInstruction,
 	scriptImports,
 	scriptsProperty,
 	sortImports,
+	spaBuildOptions,
 	vendorInstruction,
 } from './source.ts';
 import type { BoilerplateOptions, BoilerplateTemplate } from './types.ts';
@@ -79,7 +79,7 @@ import { consentManifest } from 'c15t/build';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
-	plugins: [react(), consentManifest(${buildOptions(options)})],
+	plugins: [react(), consentManifest(${spaBuildOptions(options)})],
 });
 `,
 	},

@@ -63,13 +63,13 @@ describe('React, Next.js and JavaScript boilerplate', () => {
 		);
 	});
 
-	it('offline React keeps offline() and skips the build fetch', () => {
+	it('offline React keeps offline() and skips the build fetch and early /init', () => {
 		const template = generated('react', 'offline', []);
 		const consent = template.files['src/consent.tsx'];
 		expect(consent).toContain("\toffline,\n} from 'c15t/react';");
 		expect(consent).toContain('mode: offline(),');
 		expect(template.files['vite.config.ts']).toContain(
-			"plugins: [react(), consentManifest({ onBuildError: 'runtime' })],"
+			"plugins: [react(), consentManifest({ initPrefetch: false, onBuildError: 'runtime' })],"
 		);
 		expect(template.files['.env']).toBeUndefined();
 	});
@@ -81,7 +81,7 @@ describe('React, Next.js and JavaScript boilerplate', () => {
 		expect(main).toMatch(/mode: offline\(\),/u);
 		expect(template.files['.env']).toBeUndefined();
 		expect(template.files['vite.config.ts']).toContain(
-			"consentManifest({ onBuildError: 'runtime' })"
+			"consentManifest({ initPrefetch: false, onBuildError: 'runtime' })"
 		);
 	});
 

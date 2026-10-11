@@ -1,12 +1,12 @@
 import {
 	BACKEND_URL_ENV,
-	buildOptions,
 	envFile,
 	integrationDependencies,
 	offlineInstruction,
 	scriptImports,
 	scriptsProperty,
 	sortImports,
+	spaBuildOptions,
 	vendorInstruction,
 } from './source.ts';
 import type { BoilerplateOptions, BoilerplateTemplate } from './types.ts';
@@ -77,7 +77,7 @@ ${scriptsProperty(options.scripts, '\t')}});
 import { defineConfig } from 'vite';
 
 export default defineConfig({
-	plugins: [consentManifest(${buildOptions(options)})],
+	plugins: [consentManifest(${spaBuildOptions(options)})],
 });
 `,
 		},

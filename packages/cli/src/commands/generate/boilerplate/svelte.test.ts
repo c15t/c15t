@@ -93,13 +93,13 @@ describe('Svelte v3 boilerplate', () => {
 		);
 	});
 
-	it('offline Svelte keeps offline() and skips the build fetch', () => {
+	it('offline Svelte keeps offline() and skips the build fetch and early /init', () => {
 		const svelte = generate('svelte', 'offline', []);
 		expect(svelte.files['src/App.svelte']).toContain(
 			'<ConsentProvider mode={offline()}>'
 		);
 		expect(svelte.files['vite.config.ts']).toContain(
-			"plugins: [consentManifest({ onBuildError: 'runtime' }), svelte()],"
+			"plugins: [consentManifest({ initPrefetch: false, onBuildError: 'runtime' }), svelte()],"
 		);
 	});
 

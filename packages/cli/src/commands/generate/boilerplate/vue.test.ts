@@ -179,7 +179,7 @@ try {
 		);
 		expect(vue.files['src/main.ts']).toContain('mode: offline(),');
 		expect(vue.files['vite.config.ts']).toContain(
-			"consentManifest({ onBuildError: 'runtime' })"
+			"consentManifest({ initPrefetch: false, onBuildError: 'runtime' })"
 		);
 		const nuxt = generate('nuxt', 'offline', []);
 		expect(nuxt.files['nuxt.config.ts']).toContain(

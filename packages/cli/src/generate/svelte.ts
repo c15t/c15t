@@ -8,6 +8,7 @@ import {
 	scriptImports,
 	scriptsConstant,
 	sortImports,
+	spaBuildOptions,
 	vendorInstruction,
 } from './source.ts';
 import type { BoilerplateOptions, BoilerplateTemplate } from './types.ts';
@@ -50,7 +51,7 @@ const viteConfig = (
 ])}
 
 export default defineConfig({
-	plugins: [consentManifest(${buildOptions(options)}), ${kit ? 'sveltekit({ adapter: adapter() })' : 'svelte()'}],
+	plugins: [consentManifest(${kit ? buildOptions(options) : spaBuildOptions(options)}), ${kit ? 'sveltekit({ adapter: adapter() })' : 'svelte()'}],
 });
 `;
 
