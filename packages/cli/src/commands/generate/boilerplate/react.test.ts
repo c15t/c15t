@@ -59,7 +59,7 @@ describe('React, Next.js and JavaScript boilerplate', () => {
 		);
 		expect(consent).not.toContain('manifest');
 		expect(template.files['vite.config.ts']).toContain(
-			'plugins: [react(), consentManifest({ initPrefetch: true })],'
+			'plugins: [react(), consentManifest()],'
 		);
 	});
 

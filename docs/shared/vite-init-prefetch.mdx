@@ -1,10 +1,11 @@
-`consentManifest({ initPrefetch: true })` adds a small inline script to the
-`<head>` of `index.html`. It sends `/init` while the browser downloads your
-JavaScript, and `hosted()` uses that response instead of sending its own. The
-banner usually shows 50 to 250 ms sooner.
+`consentManifest()` adds a small inline script to the `<head>` of
+`index.html`. It sends `/init` while the browser downloads your JavaScript,
+and `hosted()` uses that response instead of sending its own. The banner
+usually shows 50 to 250 ms sooner. There is nothing to configure.
 
-Leave it off when the app uses `manifest()` or `offline()`, sets an
-`experiment`, or gives `hosted()` its own `backendURL`, `initURL` or
-`headers`. The early request wouldn't match, so the app would send a second
-`/init`. If `hosted()` sets `credentials`, `journey` or `storageKey`, pass the
-same values as `initPrefetch: { credentials, journey, storageKey }`.
+The early request can't read your app's options, so in a few setups it won't
+match and the app sends a second `/init`. Pass `initPrefetch: false` when the
+app uses `offline()`, sets an `experiment`, or gives `hosted()` its own
+`backendURL`, `initURL` or `headers`. If it sets `credentials` or
+`storageKey`, or `journey: false`, pass the same values as
+`initPrefetch: { credentials, journey, storageKey }`.

@@ -1,11 +1,11 @@
 import {
 	BACKEND_URL_ENV,
+	buildOptions,
 	envFile,
 	integrationDependencies,
 	offlineInstruction,
 	scriptImports,
 	scriptsProperty,
-	singlePageBuildOptions,
 	sortImports,
 	vendorInstruction,
 } from './source.ts';
@@ -79,7 +79,7 @@ import { consentManifest } from 'c15t/build';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
-	plugins: [react(), consentManifest(${singlePageBuildOptions(options)})],
+	plugins: [react(), consentManifest(${buildOptions(options)})],
 });
 `,
 	},

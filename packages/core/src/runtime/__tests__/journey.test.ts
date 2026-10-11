@@ -643,6 +643,24 @@ describe('a journey a request before the runtime started', () => {
 		}
 	});
 
+	test("a tab journey takes the script's page journey on a tab's first page", async () => {
+		vi.stubGlobal('fetch', fakeFetch);
+		try {
+			window.eval(
+				buildPrefetchScript({ backendURL: 'https://consent.example.com' })
+			);
+			const runtime = await load({ journey: 'tab' });
+			// The script couldn't know the option; the id still links the save.
+			expect(init()).toHaveLength(1);
+			const early = init()[0]?.journey;
+			expect(early?.scope).toBe('page');
+			await runtime.kernel.commands.save('all');
+			expect(saves()[0]?.journey).toEqual({ id: early?.id, scope: 'tab' });
+		} finally {
+			vi.unstubAllGlobals();
+		}
+	});
+
 	test('a script sent without a journey: the runtime asks again with its own', async () => {
 		vi.stubGlobal('fetch', fakeFetch);
 		try {

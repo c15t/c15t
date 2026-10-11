@@ -164,7 +164,7 @@ try {
 		);
 		expect(vue.files['src/main.ts']).toContain('mode: hosted(),');
 		expect(vue.files['vite.config.ts']).toContain(
-			'plugins: [vue(), consentManifest({ initPrefetch: true })],'
+			'plugins: [vue(), consentManifest()],'
 		);
 		// The Nuxt module resolves consent on the server.
 		const nuxt = generate('nuxt', 'hosted', []);

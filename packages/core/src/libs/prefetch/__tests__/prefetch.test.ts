@@ -366,6 +366,37 @@ describe('prefetch utilities', () => {
 			expect(sent(fetch)).toEqual({ id, scope: 'tab', storedChoice: false });
 		});
 
+		it('with no journey option, continues a tab journey this tab holds', () => {
+			const id = '3b241101-e2bb-4255-8caf-4136c566a962';
+			sessionStorage.setItem('c15t-journey-v1', id);
+			const fetch = respond();
+			vi.stubGlobal('fetch', fetch);
+			window.eval(buildPrefetchScript({ backendURL: '/api/c15t' }));
+			expect(sent(fetch)).toEqual({ id, scope: 'tab', storedChoice: false });
+			// The script's twin makes the same call.
+			delete (window as Window & { __c15tJourney?: unknown }).__c15tJourney;
+			void primePrefetchedInitialData({ backendURL: '/api/other' });
+			expect(readJourneyParams(String(fetch.mock.calls[1]?.[0]))).toEqual({
+				id,
+				scope: 'tab',
+				storedChoice: false,
+			});
+		});
+
+		it('an explicit page journey ignores a tab id in sessionStorage', () => {
+			sessionStorage.setItem(
+				'c15t-journey-v1',
+				'3b241101-e2bb-4255-8caf-4136c566a962'
+			);
+			const fetch = respond();
+			vi.stubGlobal('fetch', fetch);
+			window.eval(
+				buildPrefetchScript({ backendURL: '/api/c15t', journey: 'page' })
+			);
+			expect(sent(fetch)?.scope).toBe('page');
+			expect(sent(fetch)?.id).not.toBe('3b241101-e2bb-4255-8caf-4136c566a962');
+		});
+
 		it('a second script on the page shares the journey, and false sends none', () => {
 			const fetch = respond();
 			vi.stubGlobal('fetch', fetch);

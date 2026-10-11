@@ -485,17 +485,17 @@ export interface ConsentManifestPluginOptions extends ManifestBuildOptions {
 	/**
 	 * Adds an inline script to `index.html` that sends the `/init` request
 	 * as the browser parses `<head>`, while the bundle downloads. `hosted()`
-	 * then reads that response instead of sending its own request. For
-	 * single-page apps that use `hosted()` with the plugin's backend URL.
+	 * then reads that response instead of sending its own request.
 	 *
-	 * Pass an object when the app sets `credentials`, `journey` or
-	 * `storageKey` on `hosted()` or the provider, so the early request
-	 * matches the one the app would send. A build that bundles the snapshot,
-	 * as `manifest()` does, or sets `source: 'runtime'` leaves the script out,
-	 * and so does a server-rendered app. Under a Content Security Policy, set
-	 * Vite's `html.cspNonce` or allow the script's hash.
+	 * On by default. A build that bundles the snapshot, as `manifest()`
+	 * does, or sets `source: 'runtime'` leaves the script out, and so does a
+	 * server-rendered app. Pass `false` to turn it off, or an object when
+	 * the app sets `credentials` or `storageKey` on `hosted()` or the
+	 * provider, or turns `journey` off, so the early request matches the
+	 * one the app would send. Under a Content Security Policy, set Vite's
+	 * `html.cspNonce` or allow the script's hash.
 	 *
-	 * @default false
+	 * @default true
 	 */
 	initPrefetch?: boolean | InitPrefetchOptions;
 }
@@ -887,7 +887,8 @@ export const createConsentManifestPlugin = (
 	};
 	/** Warns once, for a multi-page app, why no page got the script. */
 	const reportPrefetchSkipped = (reason: string): void => {
-		if (prefetchSkipReported) {
+		// Only an app that asked for the script hears why it got none.
+		if (prefetchSkipReported || options.initPrefetch === undefined) {
 			return;
 		}
 		prefetchSkipReported = true;
@@ -901,12 +902,14 @@ export const createConsentManifestPlugin = (
 	 * snapshot; dev can't tell, and always adds it.
 	 */
 	const addPrefetchScript = (html: string): string | undefined => {
-		const { initPrefetch } = options;
+		const { initPrefetch = true } = options;
 		if (!initPrefetch || serverRendered) {
 			return undefined;
 		}
 		if (!backendURL) {
-			reportMissingBackendURL();
+			if (options.initPrefetch !== undefined) {
+				reportMissingBackendURL();
+			}
 			return undefined;
 		}
 		if (runtimeOnly) {

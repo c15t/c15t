@@ -7,7 +7,6 @@ import {
 	openingTag,
 	scriptImports,
 	scriptsConstant,
-	singlePageBuildOptions,
 	sortImports,
 	vendorInstruction,
 } from './source.ts';
@@ -38,10 +37,6 @@ ${indent(sortImports([...scriptImports(options.scripts), ...imports]))}
 ${constants ? `\n${indent(constants)}` : ''}</script>`;
 };
 
-/**
- * SvelteKit resolves consent on the server; a Svelte single-page app uses
- * `hosted()` with the `/init` prefetch.
- */
 const viteConfig = (
 	options: BoilerplateOptions,
 	kit: boolean
@@ -55,7 +50,7 @@ const viteConfig = (
 ])}
 
 export default defineConfig({
-	plugins: [consentManifest(${kit ? buildOptions(options) : singlePageBuildOptions(options)}), ${kit ? 'sveltekit({ adapter: adapter() })' : 'svelte()'}],
+	plugins: [consentManifest(${buildOptions(options)}), ${kit ? 'sveltekit({ adapter: adapter() })' : 'svelte()'}],
 });
 `;
 

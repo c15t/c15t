@@ -46,15 +46,12 @@ too. When both are set, `VITE_C15T_BACKEND_URL` wins.
 
 `consentManifest()` hands the backend URL to the Vue plugin, and keeps the
 c15t components, which ship as `.vue` files, out of Vite's dependency
-pre-bundling. No file is written into your project. A production build with
-`hosted()` downloads nothing from the backend, so a backend outage does not
-stop it. `vite dev` downloads the policy when the app first loads it, and only
-warns if that fails.
+pre-bundling. No file is written into your project.
 
-`initPrefetch: true` sends `/init` from `index.html` while your JavaScript
-downloads, so the banner shows sooner. Keep it on with `hosted()`;
-[rendering](/docs/frameworks/vue/rendering#send-init-before-the-app-loads)
-lists when to turn it off.
+The plugin also adds a small script to `index.html` that sends `/init` while
+your JavaScript downloads, so the banner shows sooner.
+[Rendering](/docs/frameworks/vue/rendering#send-init-before-the-app-loads)
+covers when to turn it off.
 
 ## Install the Vue plugin
 
@@ -67,16 +64,11 @@ Install the plugin from `c15t/vue/vue-plugin` in `src/main.ts`:
 The plugin creates the consent runtime for this app. When the app mounts, it
 reads the visitor's stored choice, resolves their policy, and starts the
 script loader for the `scripts` you pass. `mode: hosted()` makes one `/init`
-request to your backend, started early by the `initPrefetch` script. The
-backend picks the policy from the visitor's
-location and language and returns its current version. Consent choices go to
-the same backend URL. Vite reads `VITE_C15T_BACKEND_URL` at build time, so set
-it before you build, not when you serve the files.
-
-`manifest()` bundles the policy instead. It skips that request only when the
-policy has no location rules or the page already knows the visitor's location,
-and the backend then doesn't count those visitors.
-[Rendering](/docs/frameworks/vue/rendering) compares the modes.
+request to your backend, started early by the script in `index.html`. The
+backend picks the policy from the visitor's location and language and returns
+its current version. Consent choices go to the same backend URL. Vite reads
+`VITE_C15T_BACKEND_URL` at build time, so set it before you build, not when
+you serve the files.
 
 ## Register consent-gated scripts
 

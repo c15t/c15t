@@ -35,7 +35,7 @@ vendor edits reach visitors on their next page load, without a rebuild.
 <CommandTabs command="@c15t/svelte@alpha @c15t/integrations@alpha" mode="install" />
 
 Svelte uses its own package, `@c15t/svelte`, which exports the components and
-the `hosted()`, `manifest()` and `offline()` modes. `@c15t/integrations`
+the consent modes. `@c15t/integrations`
 holds the vendor helpers. The `c15t` package has no Svelte entry point, so
 you don't install it.
 
@@ -56,14 +56,12 @@ If your app already sets `VITE_INTH_PROJECT_URL` for other Inth SDKs, that works
 too. When both are set, `VITE_C15T_BACKEND_URL` wins.
 
 `consentManifest` hands the backend URL to `hosted()`. No file is written
-into your project. A production build with `hosted()` downloads nothing from
-the backend, so a backend outage does not stop it. `vite dev` downloads the
-policy when the app first loads it, and only warns if that fails. Without the
-plugin, pass the URL as `hosted({ backendURL })`.
+into your project. Without the plugin, pass the URL as
+`hosted({ backendURL })`.
 
-`initPrefetch: true` sends `/init` from `index.html` while your JavaScript
-downloads, so the banner shows sooner. Keep it on with `hosted()`;
-[send `/init` early](#send-init-early) lists when to turn it off.
+The plugin also adds a small script to `index.html` that sends `/init` while
+your JavaScript downloads, so the banner shows sooner.
+[Send `/init` early](#send-init-early) covers when to turn it off.
 
 ## Mount the provider
 
@@ -74,8 +72,8 @@ vendor scripts c15t should load:
 
 The `<main>` element stands in for your app's content. `hosted()` from
 `@c15t/svelte` makes one `/init` request to `VITE_C15T_BACKEND_URL`, started
-early by the `initPrefetch` script. The backend picks the policy from the visitor's location and
-language and returns its current version. Consent choices go to the same
+early by the script in `index.html`. The backend picks the policy from the
+visitor's location and language and returns its current version. Consent choices go to the same
 backend. Vite writes the variable into the bundle at build time, so changing
 it means a rebuild.
 
@@ -119,6 +117,39 @@ If the banner does not appear, check the `/init` request, then see
 
 <include src="../../shared/vite-init-prefetch.mdx" />
 
+## Other setups
+
+**Offline mode** resolves policies in the browser and keeps choices in the
+browser's cookie and local storage, with no backend and no consent records. Use it for local development
+and tests. Not recommended for production environments.
+
+{/* example: fragment */}
+
+```ts
+import { offline } from '@c15t/svelte';
+
+const mode = offline();
+```
+
+With no arguments, `offline()` uses the recommended rules. They ask for
+opt-in in Europe and unknown locations, use opt-out in US privacy states, and
+show no banner where no consent law applies. Pass `offline({ policyRules })` to use your own.
+[Data fetching](/docs/concepts/data-fetching#when-should-i-use-offline-mode)
+explains the trade-offs.
+
+**A self-hosted backend** uses the same setup with your own backend URL. See
+[self-hosting](/docs/self-host/overview).
+
+**A bundled policy** with `manifest()` saves the `/init` request in a few
+cases; see [bundle the policy at build time](#bundle-the-policy-at-build-time).
+
+**Astro** can render these Svelte components as islands. Its integration uses
+Svelte for the dialog by default. Pick the Astro row in
+[choose your setup](/docs/concepts/choose-your-setup).
+
+Next, [customize](/docs/frameworks/svelte/customize) the banner or read
+consent in your own components with [context getters](/docs/frameworks/svelte/getters).
+
 ## Bundle the policy at build time
 
 `manifest()` resolves the policy in the browser from a snapshot
@@ -158,33 +189,3 @@ another language loads that language's copy the first time it is needed.
 the page loads, so policy edits apply without a rebuild.
 `manifest({ manifestURL })` fetches it from another URL, such as a CDN,
 instead of using the build's snapshot.
-
-## Other setups
-
-**Offline mode** resolves policies in the browser and keeps choices in the
-browser's cookie and local storage, with no backend and no consent records. Use it for local development
-and tests. Not recommended for production environments.
-
-{/* example: fragment */}
-
-```ts
-import { offline } from '@c15t/svelte';
-
-const mode = offline();
-```
-
-With no arguments, `offline()` uses the recommended rules. They ask for
-opt-in in Europe and unknown locations, use opt-out in US privacy states, and
-show no banner where no consent law applies. Pass `offline({ policyRules })` to use your own.
-[Data fetching](/docs/concepts/data-fetching#when-should-i-use-offline-mode)
-explains the trade-offs.
-
-**A self-hosted backend** uses the same setup with your own backend URL. See
-[self-hosting](/docs/self-host/overview).
-
-**Astro** can render these Svelte components as islands. Its integration uses
-Svelte for the dialog by default. Pick the Astro row in
-[choose your setup](/docs/concepts/choose-your-setup).
-
-Next, [customize](/docs/frameworks/svelte/customize) the banner or read
-consent in your own components with [context getters](/docs/frameworks/svelte/getters).

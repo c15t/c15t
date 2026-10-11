@@ -122,17 +122,6 @@ export const offlineInstruction = (options: BoilerplateOptions): string[] =>
 export const buildOptions = (options: BoilerplateOptions): string =>
 	options.mode === 'offline' ? "{ onBuildError: 'runtime' }" : '';
 
-/**
- * Options for the Vite plugin of a client-rendered single-page app. In
- * hosted mode the app uses `hosted()`, and `initPrefetch` sends its
- * `/init` request from `index.html` while the bundle downloads.
- * @param options Generation options.
- * @returns `{ initPrefetch: true }` in hosted mode, `{ onBuildError:
- * 'runtime' }` offline.
- */
-export const singlePageBuildOptions = (options: BoilerplateOptions): string =>
-	options.mode === 'offline' ? buildOptions(options) : '{ initPrefetch: true }';
-
 /** Dependencies shared by every template that uses vendor integrations. */
 export const integrationDependencies = (
 	options: BoilerplateOptions

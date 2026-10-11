@@ -118,6 +118,28 @@ export const openJourney = function openJourney(options: {
 };
 
 /**
+ * The journey option of an early request that wasn't given one: `'tab'`
+ * when this tab already holds a journey id, which only a `'tab'` runtime
+ * writes, otherwise `'page'`. The inline prefetch script runs the same
+ * check.
+ *
+ * @param storage - Where a `'tab'` journey is kept.
+ * @returns The option to start the early journey with.
+ * @internal
+ */
+export const detectJourneyOption = function detectJourneyOption(
+	storage: () => JourneyStorage | null = sessionStorageOf
+): ConsentJourneyScope {
+	try {
+		return parseJourneyId(storage()?.getItem(JOURNEY_STORAGE_KEY))
+			? 'tab'
+			: 'page';
+	} catch {
+		return 'page';
+	}
+};
+
+/**
  * Window property holding the journey an early request (React's early
  * `/init`, the inline prefetch script) sent, for the runtime to continue.
  */

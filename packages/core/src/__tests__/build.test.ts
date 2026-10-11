@@ -606,27 +606,23 @@ const HOSTED_ENTRY =
 const PREFETCH_TAG = '<script id="c15t-initial-data-prefetch"';
 
 describe('initPrefetch', () => {
-	test('puts the /init script after the charset and before the stylesheet', async () => {
+	test('puts the /init script after the charset and before the stylesheet by default', async () => {
 		const root = await createRoot();
 		const options = optionsFor(root);
-		const html = await buildPage(
-			root,
-			consentManifest({ ...options, initPrefetch: true }),
-			HOSTED_ENTRY
-		);
+		const html = await buildPage(root, consentManifest(options), HOSTED_ENTRY);
 		const tag = html.indexOf(PREFETCH_TAG);
 		expect(tag).toBeGreaterThan(html.indexOf('<meta charset="UTF-8" />'));
 		expect(tag).toBeLessThan(html.indexOf('rel="stylesheet"'));
 		expect(html).toContain('"backendURL":"https://consent.example.com"');
-		expect(html).toContain('"journey":"page"');
+		expect(html).toContain('"journey":"auto"');
 		expect(options.fetch).not.toHaveBeenCalled();
 	});
 
-	test('is off by default', async () => {
+	test('initPrefetch: false leaves the script out', async () => {
 		const root = await createRoot();
 		const html = await buildPage(
 			root,
-			consentManifest(optionsFor(root)),
+			consentManifest({ ...optionsFor(root), initPrefetch: false }),
 			HOSTED_ENTRY
 		);
 		expect(html).toContain('rel="stylesheet"');
@@ -684,6 +680,21 @@ describe('initPrefetch', () => {
 		);
 	});
 
+	test('leaves the script out of a manifest() build quietly unless asked for', async () => {
+		const root = await createRoot();
+		const warn = vi.fn();
+		const html = await buildPage(
+			root,
+			consentManifest(optionsFor(root)),
+			"import { snapshot } from '@c15t/core/generated';\nconsole.log(snapshot);\n",
+			{ warn }
+		);
+		expect(html).not.toContain(PREFETCH_TAG);
+		expect(warn).not.toHaveBeenCalledWith(
+			expect.stringContaining('initPrefetch')
+		);
+	});
+
 	test("leaves the script out with source: 'runtime'", async () => {
 		const root = await createRoot();
 		const warn = vi.fn();
@@ -714,6 +725,17 @@ describe('initPrefetch', () => {
 		expect(logger.warn).toHaveBeenCalledWith(
 			expect.stringContaining('initPrefetch has no effect')
 		);
+		expect(plugin.transformIndexHtml('<head></head>')).toBeUndefined();
+	});
+
+	test('a server-rendered app that left the option unset hears nothing', () => {
+		const logger = createLogger();
+		const plugin = createConsentManifestPlugin(
+			{ backendURL: 'https://consent.example.com' },
+			{ envNames: [], label: 'test', serverRendered: true }
+		);
+		plugin.configResolved({ command: 'build', logger, root: '/app' });
+		expect(logger.warn).not.toHaveBeenCalled();
 		expect(plugin.transformIndexHtml('<head></head>')).toBeUndefined();
 	});
 });

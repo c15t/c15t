@@ -27,8 +27,8 @@ nonce to give the provider, so set `styles={false}` on
 `ConsentProvider` and import `@c15t/svelte/styles.css` from your
 entry module. `'self'` covers that stylesheet.
 
-Allow the `initPrefetch` script in `index.html` in `script-src` by the hash in
-the browser's `Refused to execute inline script` error. If the policy blocks
+Allow the early `/init` script that `consentManifest()` adds to `index.html`
+in `script-src` by the hash in the browser's `Refused to execute inline script` error. If the policy blocks
 it, the provider sends `/init` itself.
 
 <include src="../../shared/svelte/content-security-policy.mdx" />

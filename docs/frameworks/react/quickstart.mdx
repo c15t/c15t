@@ -54,16 +54,13 @@ If your app already sets `VITE_INTH_PROJECT_URL` for other Inth SDKs, that works
 too. When both are set, `VITE_C15T_BACKEND_URL` wins.
 
 `consentManifest` hands the backend URL to `hosted()` through
-`c15t/generated`. No file is written into your project. A production build
-with `hosted()` downloads nothing from the backend, so a backend outage does
-not stop it. `vite dev` downloads the policy when the app first loads it, and
-only warns if that fails. Without the plugin, pass the URL as
-`hosted({ backendURL })`.
+`c15t/generated`. No file is written into your project. Without the plugin,
+pass the URL as `hosted({ backendURL })`.
 
-`initPrefetch: true` sends `/init` from `index.html` while your JavaScript
-downloads, so the banner shows sooner. Keep it on with `hosted()`;
-[rendering](/docs/frameworks/react/rendering#send-init-before-the-app-loads)
-lists when to turn it off.
+The plugin also adds a small script to `index.html` that sends `/init` while
+your JavaScript downloads, so the banner shows sooner.
+[Rendering](/docs/frameworks/react/rendering#send-init-before-the-app-loads)
+covers when to turn it off.
 
 ## Mount the provider
 
@@ -75,16 +72,10 @@ banner closes.
 <include src="../../shared/examples/react/consent.mdx" />
 
 `hosted()` makes one `/init` request to your backend, started early by the
-`initPrefetch` script. The backend picks the policy from the visitor's
-location and language and returns its current version. Consent
-choices go to the same backend. Vite reads `VITE_C15T_BACKEND_URL` at build
-time, so set it before you build, not when you serve the files.
-
-`manifest()` bundles the policy instead. It skips that request only when the
-policy has no location rules or the page already knows the visitor's location,
-and the backend then doesn't count those visitors. [Rendering](/docs/frameworks/react/rendering#bundle-the-policy-at-build-time)
-covers that setup, and [consent modes](/docs/concepts/modes) compares the three
-modes.
+script in `index.html`. The backend picks the policy from the visitor's
+location and language and returns its current version. Consent choices go to
+the same backend. Vite reads `VITE_C15T_BACKEND_URL` at build time, so set it
+before you build, not when you serve the files.
 
 PostHog waits for measurement permission, so your policy must include that
 category. Replace `phc_your_project_key` with your PostHog project key.

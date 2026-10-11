@@ -13,7 +13,7 @@ A Vue app with c15t adds these to the page, and your policy must allow them:
 | Requests to your backend's `/subjects`, plus `/init` with `hosted()` or `/manifest` with `manifest({ source: 'runtime' })` | `connect-src` |
 | Chunks your build splits out, such as the manifest resolver and the copy for a language other than English | `script-src 'self'` |
 | `<script>` elements the script loader creates for `scripts` | `script-src` |
-| With `consentManifest({ initPrefetch: true })`, the inline `<script>` in `index.html` that sends `/init` early | `script-src` with a nonce or its hash |
+| The inline `<script>` that `consentManifest()` adds to `index.html` to send `/init` early | `script-src` with a nonce or its hash |
 | Scripts, frames, images and requests your vendors load | `script-src`, `frame-src`, `img-src`, `connect-src` for each vendor |
 | The components' CSS, which Vite bundles with your app | `style-src` |
 | The `<style id="c15t-css-vars">` element with your theme tokens, in `<head>` | `style-src` |
@@ -51,7 +51,7 @@ Add `'strict-dynamic'` to `script-src` to allow them, or list their hosts.
 app.use(c15tVue, { mode: hosted(), nonce, scripts });
 ```
 
-On a static host, allow the `initPrefetch` script by the hash in the browser's
+On a static host, allow the early `/init` script by the hash in the browser's
 `Refused to execute inline script` error. If the policy blocks it, the app
 sends `/init` itself.
 

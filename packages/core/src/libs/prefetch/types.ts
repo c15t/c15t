@@ -24,8 +24,8 @@ export interface PrefetchOptions {
 
 	/**
 	 * The provider's `journey` setting, for the journey this `/init` starts.
-	 *
-	 * @default 'page'
+	 * Unset, the request continues a `'tab'` journey id this tab already
+	 * holds, and otherwise starts a `'page'` journey.
 	 */
 	journey?: ConsentJourneyOption;
 

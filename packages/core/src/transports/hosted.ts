@@ -169,8 +169,10 @@ const INIT_HEADER_ALLOWLIST = new Set<string>(CONSENT_REQUEST_HEADER_NAMES);
 
 /**
  * Whether an early response answers this init: it has a payload and, when
- * this init carries a journey, its request carried the same one. Otherwise
- * the saves that follow would carry an id no report named.
+ * this init carries a journey, its request carried the same id and stored
+ * flag. Otherwise the saves that follow would carry an id no report named.
+ * The scope may differ: an early script can't know the app's `journey`
+ * option on a tab's first page, and the runtime continues its id either way.
  */
 const usablePrefetch = function usablePrefetch(
 	prefetched: SSRInitialData | undefined,
@@ -186,10 +188,7 @@ const usablePrefetch = function usablePrefetch(
 		return true;
 	}
 	return Boolean(
-		sent &&
-		sent.id === journey.id &&
-		sent.scope === journey.scope &&
-		sent.storedChoice === journey.storedChoice
+		sent && sent.id === journey.id && sent.storedChoice === journey.storedChoice
 	);
 };
 

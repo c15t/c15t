@@ -83,7 +83,7 @@ describe('Svelte v3 boilerplate', () => {
 			'<ConsentProvider mode={hosted()}>'
 		);
 		expect(svelte.files['vite.config.ts']).toContain(
-			'plugins: [consentManifest({ initPrefetch: true }), svelte()],'
+			'plugins: [consentManifest(), svelte()],'
 		);
 		// SvelteKit resolves consent on the server.
 		expect(

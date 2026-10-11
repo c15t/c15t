@@ -96,7 +96,8 @@ Saves replayed after going offline carry none.
 Set it on the runtime or provider. In Next.js use `defineConsentConfig({ journey })`;
 in TanStack Start pass the same value to `resolveConsent` and `ConsentRoot`; with
 the inline prefetch script, pass it to `buildPrefetchScript` or to
-`consentManifest({ initPrefetch: { journey } })`. Vue, Svelte, Astro
+`consentManifest({ initPrefetch: { journey } })`. Left unset, the script
+continues a `'tab'` journey the tab already holds. Vue, Svelte, Astro
 and the script tag use `'page'`. A manifest that resolves locally in the
 browser reports no init, so it sends no journey.
 
@@ -128,7 +129,7 @@ runs.
 
 In the browser, an inline script in `<head>` can start `/init` while the
 app's JavaScript downloads, and `hosted()` uses that response. Vite apps get
-it from `consentManifest({ initPrefetch: true })`, Nuxt adds it to pages with
+it from `consentManifest()` by default, Nuxt adds it to pages with
 `ssr: false`, and TanStack Start has `consentPrefetchHead`. Elsewhere, render
 `buildPrefetchScript({ backendURL })` from `c15t` yourself.
 
