@@ -95,10 +95,11 @@ projects use URLs such as `https://your-project.inth.app`. The
 [React quickstart](/docs/frameworks/react/quickstart) shows the full provider,
 and [data fetching](/docs/concepts/data-fetching) covers custom transports.
 
-v3 also adds `manifest()`, which the quickstart uses: `consentManifest()` from
-`c15t/build` downloads the policy when Vite builds, and the browser resolves it
-without asking `/init`. `manifest()` and `hosted()` then read the backend URL
-from `VITE_C15T_BACKEND_URL`, so they need no arguments. See
+The quickstart keeps `hosted()` and adds `consentManifest()` from
+`c15t/build` to `vite.config.ts`. `hosted()` then reads the backend URL from
+`VITE_C15T_BACKEND_URL`, so it needs no arguments. v3 also adds `manifest()`,
+which bundles the policy when Vite builds. It skips `/init` only when the
+policy has no location rules or the page knows the visitor's location. See
 [consent modes](/docs/concepts/modes).
 
 Offline mode keeps choices in the browser and records nothing on a server. Not

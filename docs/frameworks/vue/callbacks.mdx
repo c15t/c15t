@@ -15,7 +15,7 @@ Then add them to the plugin options in `src/main.ts`:
 {/* example: fragment */}
 
 ```ts title="src/main.ts"
-app.use(c15tVue, { callbacks, mode: manifest(), scripts });
+app.use(c15tVue, { callbacks, mode: hosted(), scripts });
 ```
 
 c15t wires the callbacks once for the app, when the plugin installs. A

@@ -1,13 +1,13 @@
 // #region docs:main title="src/main.ts"
 import { posthog } from '@c15t/integrations/posthog';
-import { c15tVue, manifest } from 'c15t/vue/vue-plugin';
+import { c15tVue, hosted } from 'c15t/vue/vue-plugin';
 import { createApp } from 'vue';
 
 import App from './App.vue';
 
 createApp(App)
 	.use(c15tVue, {
-		mode: manifest(),
+		mode: hosted(),
 		scripts: [
 			posthog({
 				id: 'phc_your_project_key',

@@ -74,6 +74,35 @@ describe('Svelte v3 boilerplate', () => {
 		);
 	});
 
+	it('hosted Svelte uses hosted() and prefetches /init; SvelteKit does not', () => {
+		const svelte = generate('svelte', 'hosted', []);
+		expect(svelte.files['src/App.svelte']).toContain(
+			"\t\thosted,\n\t} from '@c15t/svelte';"
+		);
+		expect(svelte.files['src/App.svelte']).toContain(
+			'<ConsentProvider mode={hosted()}>'
+		);
+		expect(svelte.files['vite.config.ts']).toContain(
+			'plugins: [consentManifest({ initPrefetch: true }), svelte()],'
+		);
+		// SvelteKit resolves consent on the server.
+		expect(
+			generate('sveltekit', 'hosted', []).files['vite.config.ts']
+		).toContain(
+			'plugins: [consentManifest(), sveltekit({ adapter: adapter() })],'
+		);
+	});
+
+	it('offline Svelte keeps offline() and skips the build fetch', () => {
+		const svelte = generate('svelte', 'offline', []);
+		expect(svelte.files['src/App.svelte']).toContain(
+			'<ConsentProvider mode={offline()}>'
+		);
+		expect(svelte.files['vite.config.ts']).toContain(
+			"plugins: [consentManifest({ onBuildError: 'runtime' }), svelte()],"
+		);
+	});
+
 	it('adds the locals type to an existing app.d.ts once', () => {
 		const template = generate('sveltekit', 'hosted', []);
 		const existing = 'declare global {\n\tnamespace App {}\n}\n\nexport {};\n';

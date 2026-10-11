@@ -4,6 +4,6 @@ import { consentManifest } from 'c15t/vue/vite';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
-	plugins: [vue(), consentManifest()],
+	plugins: [vue(), consentManifest({ initPrefetch: true })],
 });
 // #endregion docs:vite-config

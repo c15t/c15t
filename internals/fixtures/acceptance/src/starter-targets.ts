@@ -133,8 +133,9 @@ export const starterTargets: StarterTarget[] = [
 			'--strictPort',
 		],
 	},
-	// VITE_C15T_BACKEND_URL from the shared environment is where the build
-	// downloads the bundled manifest and where the browser sends saves.
+	// VITE_C15T_BACKEND_URL from the shared environment is where the
+	// React, Vue and Svelte starters send `/init` and saves, and where the
+	// JavaScript starter's build downloads its bundled manifest.
 	...['react', 'vue', 'svelte', 'javascript'].map((id) => ({
 		directory: `examples/${id}`,
 		id,

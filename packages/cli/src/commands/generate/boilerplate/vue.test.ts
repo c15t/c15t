@@ -157,6 +157,21 @@ try {
 		120_000
 	);
 
+	it('hosted Vue uses hosted() and prefetches /init; Nuxt is unchanged', () => {
+		const vue = generate('vue', 'hosted', []);
+		expect(vue.files['src/main.ts']).toContain(
+			"import { c15tVue, hosted } from 'c15t/vue/vue-plugin';"
+		);
+		expect(vue.files['src/main.ts']).toContain('mode: hosted(),');
+		expect(vue.files['vite.config.ts']).toContain(
+			'plugins: [vue(), consentManifest({ initPrefetch: true })],'
+		);
+		// The Nuxt module resolves consent on the server.
+		const nuxt = generate('nuxt', 'hosted', []);
+		expect(nuxt.files['nuxt.config.ts']).not.toContain('mode:');
+		expect(nuxt.files['nuxt.config.ts']).not.toContain('initPrefetch');
+	});
+
 	it('offline mode uses the plugin entry offline() with its recommended policy', () => {
 		const vue = generate('vue', 'offline', []);
 		expect(vue.files['src/main.ts']).toContain(

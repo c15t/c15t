@@ -23,7 +23,7 @@ c15t deletes them:
   };
 </script>
 
-<ConsentProvider mode={manifest()} {scripts} {clearOnRevocation}>
+<ConsentProvider mode={hosted()} {scripts} {clearOnRevocation}>
 ```
 
 The provider reads `clearOnRevocation` once, when it is created. For a shared

@@ -7,6 +7,7 @@ import {
 	openingTag,
 	scriptImports,
 	scriptsConstant,
+	singlePageBuildOptions,
 	sortImports,
 	vendorInstruction,
 } from './source.ts';
@@ -37,6 +38,10 @@ ${indent(sortImports([...scriptImports(options.scripts), ...imports]))}
 ${constants ? `\n${indent(constants)}` : ''}</script>`;
 };
 
+/**
+ * SvelteKit resolves consent on the server; a Svelte single-page app uses
+ * `hosted()` with the `/init` prefetch.
+ */
 const viteConfig = (
 	options: BoilerplateOptions,
 	kit: boolean
@@ -50,7 +55,7 @@ const viteConfig = (
 ])}
 
 export default defineConfig({
-	plugins: [consentManifest(${buildOptions(options)}), ${kit ? 'sveltekit({ adapter: adapter() })' : 'svelte()'}],
+	plugins: [consentManifest(${kit ? buildOptions(options) : singlePageBuildOptions(options)}), ${kit ? 'sveltekit({ adapter: adapter() })' : 'svelte()'}],
 });
 `;
 
@@ -61,7 +66,7 @@ const withScripts = (
 	options.scripts.length ? [...attributes, '{scripts}'] : attributes;
 
 const svelteFiles = (options: BoilerplateOptions): Record<string, string> => {
-	const mode = options.mode === 'offline' ? 'offline' : 'manifest';
+	const mode = options.mode === 'offline' ? 'offline' : 'hosted';
 	return {
 		...envFile(BACKEND_URL_ENV.vite, options),
 		'src/App.svelte': `${scriptBlock(

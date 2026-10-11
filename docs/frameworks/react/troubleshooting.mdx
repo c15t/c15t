@@ -4,13 +4,12 @@ description: Fix a missing banner, early vendor requests, unstyled components an
 group: frameworks
 ---
 
-<include src="../../shared/vite-build-manifest-troubleshooting.mdx" />
-
 ## There is no banner
 
 **Check.** In DevTools Network, find the `GET` request to `/init` on your
-backend URL. With the bundled manifest, the browser makes no request before
-the banner unless the policy depends on a country or region it does not know.
+backend URL. With `hosted()`, the browser sends it while the provider first
+renders. With a bundled `manifest()`, the browser makes no request before the
+banner unless the policy depends on a country or region it does not know.
 
 | What you see | Cause | Fix |
 | --- | --- | --- |
@@ -21,6 +20,8 @@ the banner unless the policy depends on a country or region it does not know.
 A policy with `prompt: 'none'` shows no banner by design, and so does a
 returning visitor with a valid stored choice. [Policies](/docs/concepts/policies)
 explains why a region may not show one.
+
+<include src="../../shared/vite-build-manifest-troubleshooting.mdx" />
 
 ## The page throws that no IABProvider is mounted
 

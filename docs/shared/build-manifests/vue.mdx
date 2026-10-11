@@ -11,7 +11,13 @@ Without a `backendURL` option, the plugin reads `VITE_C15T_BACKEND_URL`, then
 options, reads the downloaded policy and the same backend URL, so `src/main.ts`
 needs no import from `c15t/generated`:
 
-<include src="../examples/vue/main.mdx" />
+{/* example: fragment */}
+
+```ts title="src/main.ts"
+import { c15tVue, manifest } from 'c15t/vue/vue-plugin';
+
+app.use(c15tVue, { mode: manifest(), scripts });
+```
 
 The browser resolves the visitor's policy from the bundled snapshot, with no
 `/manifest` request. When the policy depends on the visitor's country or
@@ -27,6 +33,5 @@ When the build has no snapshot, as in `vite dev` after a failed download,
 <include src="../vite-build-manifest.mdx" />
 
 For policy edits without a rebuild, use
-[`manifest({ source: 'runtime' })`](/docs/frameworks/vue/rendering#fetch-the-manifest-at-runtime),
-or [`hosted()`](/docs/frameworks/vue/rendering#ask-the-backend-for-each-visitors-policy)
-when you need the backend's geolocation.
+[`hosted()`](/docs/frameworks/vue/rendering#ask-the-backend-for-each-visitors-policy)
+or [`manifest({ source: 'runtime' })`](/docs/frameworks/vue/rendering#fetch-the-manifest-at-runtime).

@@ -241,7 +241,7 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 - [Headless](./docs/frameworks/svelte/headless.md): Replace the c15t banner or preference dialog with your own Svelte markup while the provider keeps policy, storage and script loading.
 - [IAB TCF](./docs/frameworks/svelte/iab.md): Turn on the IAB TCF 2.4 banner and preference center in a Svelte app with IABConsentBanner, IABConsentDialog and the provider's iab option.
 - [Network blocker](./docs/frameworks/svelte/network-blocker.md): Hold fetch and XMLHttpRequest calls to tracking domains in a Svelte app until their consent category is allowed, with the provider's networkBlocker option.
-- [Quickstart](./docs/frameworks/svelte/quickstart.md): Add a c15t cookie banner, preference dialog and consent-gated scripts to a Svelte 5 app built with Vite, with your Inth policy bundled at build time.
+- [Quickstart](./docs/frameworks/svelte/quickstart.md): Add a c15t cookie banner, preference dialog and consent-gated scripts to a Svelte 5 app built with Vite, using Inth as the consent backend.
 - [Scripts](./docs/frameworks/svelte/scripts.md): Load vendor scripts, iframes and network requests in a Svelte app only after the visitor allows their consent category, and stop them when consent is withdrawn.
 - [Translations](./docs/frameworks/svelte/translations.md): Change c15t banner and dialog copy in a Svelte app with component text props or the provider's i18n option, and switch languages at runtime.
 - [Troubleshooting](./docs/frameworks/svelte/troubleshooting.md): Fix a Vite build that cannot fetch the c15t manifest, a missing bundled policy, a missing banner, a wrong backend URL, ignored theme colors and vendors that load before consent in a Svelte app.

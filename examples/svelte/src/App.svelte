@@ -6,7 +6,7 @@
 		ConsentDialog,
 		ConsentDialogLink,
 		ConsentProvider,
-		manifest,
+		hosted,
 	} from '@c15t/svelte';
 
 	const scripts = [
@@ -19,7 +19,7 @@
 </script>
 
 <ConsentProvider
-	mode={manifest()}
+	mode={hosted()}
 	{scripts}
 >
 	<main>

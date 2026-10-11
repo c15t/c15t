@@ -13,8 +13,8 @@ Import `c15tVue` from `c15t/vue/vue-plugin` and pass it to `app.use()` in
 
 `c15t/vue` is the Nuxt module, not a Vue plugin. Passing it to `app.use()`
 does nothing useful. The [quickstart](/docs/frameworks/vue/quickstart) covers
-`consentManifest()`, the Vite plugin that downloads the policy `manifest()`
-reads.
+`consentManifest()`, the Vite plugin that supplies the backend URL to
+`hosted()`.
 
 ## What the plugin does
 
@@ -30,8 +30,8 @@ Then the plugin, in order:
 3. Starts the script loader for `scripts`, clear-on-revocation, the network
    blocker and the iframe blocker.
 4. Resolves the visitor's policy with the `mode` you passed: from the
-   manifest in the browser with `manifest()`, from the backend's `/init` with
-   `hosted()`, or from local rules with `offline()`.
+   backend's `/init` with `hosted()`, from the manifest in the browser with
+   `manifest()`, or from local rules with `offline()`.
 5. With the `iab` option set, loads the IAB TCF module once a policy uses the
    `iab` model.
 
@@ -51,7 +51,7 @@ runs in the browser.
 
 | Option | Default | What it does |
 | --- | --- | --- |
-| `mode` | Required | Where the visitor's policy comes from: `manifest()`, `hosted()`, `offline()` or `custom()`, all from `c15t/vue/vue-plugin`. See [rendering](/docs/frameworks/vue/rendering). |
+| `mode` | Required | Where the visitor's policy comes from: `hosted()`, `manifest()`, `offline()` or `custom()`, all from `c15t/vue/vue-plugin`. See [rendering](/docs/frameworks/vue/rendering). |
 | `consentCategories` | The policy's categories | Limits the categories the dialog and widget show, within the policy's scope. |
 | `vendors` | Unset | Vendors listed under their category with their own switch. See [vendor consent](/docs/frameworks/vue/vendor-consent). |
 | `storageConfig` | `{ storageKey: 'c15t' }` | Cookie and localStorage name, `crossSubdomain`, `defaultDomain` and `defaultExpiryDays`, 365 by default. |
@@ -61,11 +61,11 @@ mode, not the plugin:
 
 | Mode | Options |
 | --- | --- |
-| `manifest()` | `backendURL` and the build snapshot default to what `consentManifest()` downloaded. `source: 'runtime'` fetches the manifest when the app starts; `manifestURL` fetches it from that URL instead of using the snapshot; `snapshot` takes one you supply. `geoURL`, `inputs`, `initFallback`, `headers`, `credentials`, `fetch`, `domain`. |
 | `hosted()` | `backendURL`, by default the one `consentManifest()` read from `VITE_C15T_BACKEND_URL` or `VITE_INTH_PROJECT_URL`. `headers`, `fetch`, `domain`. |
+| `manifest()` | `backendURL` and the build snapshot default to what `consentManifest()` downloaded. `source: 'runtime'` fetches the manifest when the app starts; `manifestURL` fetches it from that URL instead of using the snapshot; `snapshot` takes one you supply. `geoURL`, `inputs`, `initFallback`, `headers`, `credentials`, `fetch`, `domain`. |
 | `offline()` | `policyRules`. Omitted, c15t's recommended rules. |
 
-`manifest()` and `hosted()` throw when they have no backend URL: add
+`hosted()` and `manifest()` throw when they have no backend URL: add
 `consentManifest()` to `vite.config.ts` and set `VITE_C15T_BACKEND_URL` (or
 `VITE_INTH_PROJECT_URL`), or pass `backendURL`.
 
@@ -109,7 +109,8 @@ mode, not the plugin:
 
 ## Verify
 
-Open the app with the Network tab open. `manifest()` with a bundled snapshot
-makes no policy request. `manifest({ source: 'runtime' })` requests
-`${backendURL}/manifest`, and `hosted()` requests the backend's `/init`. In
+Open the app with the Network tab open. `hosted()` requests the backend's
+`/init`. `manifest()` with a bundled snapshot makes no policy request unless
+the policy needs a location the browser doesn't have, and
+`manifest({ source: 'runtime' })` requests `${backendURL}/manifest`. In
 the Application panel, a `c15t` cookie appears after you accept or reject.

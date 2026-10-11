@@ -214,7 +214,7 @@ describe('reusable generation', () => {
 			'src/main.tsx',
 			'vite.config.ts',
 		]);
-		expect(plan.files['src/consent.tsx']).toContain('mode: manifest(),');
+		expect(plan.files['src/consent.tsx']).toContain('mode: hosted(),');
 		expect(plan.files['src/consent.tsx']).toContain('gtag(');
 		expect(plan.dependencies).toEqual([
 			withC15tRelease('c15t', packageInfo.version),

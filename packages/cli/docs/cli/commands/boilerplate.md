@@ -23,6 +23,10 @@ under the framework's public env var. Offline mode resolves the recommended
 policy in the browser, writes no `.env`, and records nothing on a server. Not
 recommended for production environments.
 
+In hosted mode, `react`, `vue` and `svelte` use `hosted()` with
+`consentManifest({ initPrefetch: true })`, so `index.html` sends `/init` while
+the app's JavaScript downloads.
+
 | `--framework`    | Generated files                                                                                                                                 |
 | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
 | `next-app`       | `.env`, `next.config.ts`, `c15t.config.ts`, `app/layout.tsx`                                                                                    |

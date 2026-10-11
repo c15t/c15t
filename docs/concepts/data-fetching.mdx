@@ -14,10 +14,10 @@ removes backend requests. For a recommendation by framework, start with
 
 | Fetching path | Where policy resolves | Where choices are submitted | Choose it when |
 | --- | --- | --- | --- |
-| Build-time manifest, recommended | Your server or browser resolves a bundled policy snapshot with each visitor's inputs | Inth or your c15t backend | Your framework supports a build integration and policy changes can ship with a rebuild |
+| Build-time manifest, recommended for server-rendered apps | Your server resolves a bundled policy snapshot with each visitor's inputs | Inth or your c15t backend | Your framework renders on the server, supports a build integration, and policy changes can ship with a rebuild |
 | Cached manifest on your server | Your application resolves public policy data with each request's location and signals | Inth or your c15t backend | Policy changes must reach the app without rebuilding, or builds cannot access the backend |
-| Regular backend `/init` | The consent backend | The same backend | You want the fewest moving parts, need backend-owned request resolution, or have no application server |
-| Manifest in the browser | The browser, using supplied or unknown location | Inth or your c15t backend | You deliberately want client resolution and have planned geography, bundle size and policy refresh |
+| Regular backend `/init` | The consent backend | The same backend | You have no application server, as in a React, Vue or Svelte single-page app, want the fewest moving parts, or need backend-owned request resolution |
+| Manifest in the browser | The browser, using a supplied location, or `/init` when the policy needs one it doesn't have | Inth or your c15t backend | The policy has no location rules or the page knows the visitor's location, and you accept about 3 KB more bundle and a rebuild for policy edits |
 | Offline | The browser or local runtime, using bundled rules | No backend submission | Local development and tests. Not recommended for production environments. |
 | Custom transport | Your implementation | Your implementation | An existing service cannot use the c15t backend protocol |
 
@@ -50,7 +50,9 @@ download fails.
 The framework quickstarts include the build integration for supported
 deployments. Server resolution uses the snapshot without an upstream manifest
 request. Browser resolution includes the policy and resolver in the client
-bundle, and may still request location for regional policies. Static Nuxt and
+bundle, and still calls `/init` for a regional policy when the browser doesn't
+know the visitor's location, so the React, Vue and Svelte quickstarts use
+`hosted()` instead. Static Nuxt and
 Astro sites and script-tag sites keep the runtime setup from their guides.
 
 <include src="../shared/build-time-manifest-notes.mdx" />
@@ -93,7 +95,8 @@ Saves replayed after going offline carry none.
 
 Set it on the runtime or provider. In Next.js use `defineConsentConfig({ journey })`;
 in TanStack Start pass the same value to `resolveConsent` and `ConsentRoot`; with
-the inline prefetch script, pass it to `buildPrefetchScript`. Vue, Svelte, Astro
+the inline prefetch script, pass it to `buildPrefetchScript` or to
+`consentManifest({ initPrefetch: { journey } })`. Vue, Svelte, Astro
 and the script tag use `'page'`. A manifest that resolves locally in the
 browser reports no init, so it sends no journey.
 
@@ -122,6 +125,12 @@ A regular backend `/init` request lets the backend resolve the visitor context.
 A same-origin URL named `/api/c15t/init` can instead resolve from a cached
 manifest in your application. The URL name alone does not tell you which path
 runs.
+
+In the browser, an inline script in `<head>` can start `/init` while the
+app's JavaScript downloads, and `hosted()` uses that response. Vite apps get
+it from `consentManifest({ initPrefetch: true })`, Nuxt adds it to pages with
+`ssr: false`, and TanStack Start has `consentPrefetchHead`. Elsewhere, render
+`buildPrefetchScript({ backendURL })` from `c15t` yourself.
 
 ## How do transports and proxies differ?
 

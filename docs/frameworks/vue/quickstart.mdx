@@ -6,9 +6,11 @@ group: frameworks
 
 ## Before you start
 
-This guide is for a Vue 3 single-page app built with Vite. The build bundles
-your project's public policy, and the browser resolves each visitor's policy
-from it after the page loads, so it works on any static host. For a Vue app that renders on the server, use the c15t Nuxt module.
+This guide is for a Vue 3 single-page app built with Vite. After the page
+loads, the browser asks your consent backend for the visitor's policy, so the
+app works on any static host. The backend reads the visitor's location from
+the request, so regional policies need no extra setup. For a Vue app that
+renders on the server, use the c15t Nuxt module.
 [Choose your setup](/docs/concepts/choose-your-setup) compares every option.
 
 The guide uses [Inth](https://inth.com) for policies and consent records.
@@ -18,8 +20,8 @@ origins, and copy the backend URL. To run the service yourself, use a
 policies in your code and choices in the browser, with no consent records.
 Not recommended for production environments.
 
-Bundling the policy at build time is the recommended production setup.
-Rebuild after changing policies, translations or vendors.
+The guide uses `hosted()` mode. Policy, translation and vendor edits in your
+project reach visitors on their next page load, without a rebuild.
 
 ## Install c15t
 
@@ -42,16 +44,17 @@ VITE_C15T_BACKEND_URL=https://your-project.inth.app
 If your app already sets `VITE_INTH_PROJECT_URL` for other Inth SDKs, that works
 too. When both are set, `VITE_C15T_BACKEND_URL` wins.
 
-`consentManifest()` downloads your project's public policy from `/manifest`
-during `vite build`, or in `vite dev` when the app first loads it, and hands
-it and the backend URL to the Vue plugin. A build fetches only when the app
-uses `manifest()`. No file is written into your project. It also keeps the c15t
-components, which ship as `.vue` files, out of Vite's dependency
-pre-bundling.
+`consentManifest()` hands the backend URL to the Vue plugin, and keeps the
+c15t components, which ship as `.vue` files, out of Vite's dependency
+pre-bundling. No file is written into your project. A production build with
+`hosted()` downloads nothing from the backend, so a backend outage does not
+stop it. `vite dev` downloads the policy when the app first loads it, and only
+warns if that fails.
 
-<include src="../../shared/build-time-manifest-notes.mdx" />
-
-<include src="../../shared/vite-build-manifest.mdx" />
+`initPrefetch: true` sends `/init` from `index.html` while your JavaScript
+downloads, so the banner shows sooner. Keep it on with `hosted()`;
+[rendering](/docs/frameworks/vue/rendering#send-init-before-the-app-loads)
+lists when to turn it off.
 
 ## Install the Vue plugin
 
@@ -63,22 +66,17 @@ Install the plugin from `c15t/vue/vue-plugin` in `src/main.ts`:
 
 The plugin creates the consent runtime for this app. When the app mounts, it
 reads the visitor's stored choice, resolves their policy, and starts the
-script loader for the `scripts` you pass. `mode: manifest()` resolves the
-policy in the browser from the snapshot `consentManifest()` downloaded, with
-no `/manifest` or `/init` request, and sends consent choices to the same
-backend URL. Vite reads `VITE_C15T_BACKEND_URL` at build time, so set it
-before you build, not when you serve the files.
+script loader for the `scripts` you pass. `mode: hosted()` makes one `/init`
+request to your backend, started early by the `initPrefetch` script. The
+backend picks the policy from the visitor's
+location and language and returns its current version. Consent choices go to
+the same backend URL. Vite reads `VITE_C15T_BACKEND_URL` at build time, so set
+it before you build, not when you serve the files.
 
-The browser does not know the visitor's location, so without `inputs` or
-`geoURL` on `manifest()`, or a `country` and `region` passed to
-`ConsentRoot`, every visitor gets the policy your project assigns when the
-location is unknown. Configure that fallback rule in your project, or see
-[rendering](/docs/frameworks/vue/rendering#tell-the-browser-where-the-visitor-is).
-The bundle carries English copy; other languages load on demand.
-
-To apply policy edits without rebuilding, use `manifest({ source: 'runtime' })`
-or `hosted()`. [Rendering](/docs/frameworks/vue/rendering) compares the
-modes.
+`manifest()` bundles the policy instead. It skips that request only when the
+policy has no location rules or the page already knows the visitor's location,
+and the backend then doesn't count those visitors.
+[Rendering](/docs/frameworks/vue/rendering) compares the modes.
 
 ## Register consent-gated scripts
 
@@ -118,10 +116,8 @@ Build and preview the production app with `vite build` and `vite preview`.
 Open it in a private window with your browser's DevTools on the Network tab,
 under a policy that asks for consent.
 
-1. Load the page. The bundled manifest resolves the policy and the banner
-   appears, with no `/manifest` or `/init` request. Test the unknown-location
-   rule, or pass `geoURL` to `manifest()` if you need regional policies. No requests to
-   `posthog.com` or `youtube-nocookie.com` appear.
+1. Load the page. One `/init` request goes to your backend URL, starting
+   before your JavaScript finishes downloading, and the banner appears. No requests to `posthog.com` or `youtube-nocookie.com` appear.
 2. Click **Reject All**, then reload. The banner stays closed and the vendor
    requests stay absent.
 3. Click **Privacy settings**, turn on **Analytics** (the `measurement` category) and save. PostHog's `array.js`

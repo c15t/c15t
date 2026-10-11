@@ -4,6 +4,6 @@ import { consentManifest } from 'c15t/build';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
-	plugins: [react(), consentManifest()],
+	plugins: [react(), consentManifest({ initPrefetch: true })],
 });
 // #endregion docs:vite-config

@@ -11,11 +11,11 @@ you pass to `mount()`:
 
 <include src="../../../shared/examples/svelte/app.mdx" />
 
-`mode` is the only required prop. Here `manifest()` resolves the policy from
-the snapshot the build bundled and saves choices to your Inth project, as set
-up in the [quickstart](../quickstart). `manifest({ source: 'runtime' })`
-fetches the manifest when the page loads instead, and `hosted()` asks the
-backend's `/init`. Both read the backend URL from `consentManifest`, or take
+`mode` is the only required prop. Here `hosted()` asks your Inth project's
+`/init` for the visitor's policy and saves choices there, as set up in the
+[quickstart](../quickstart). `manifest()` resolves the policy from a snapshot
+the build bundled instead, and `manifest({ source: 'runtime' })` fetches the
+manifest when the page loads. All three read the backend URL from `consentManifest`, or take
 `backendURL`. Import every mode from
 `@c15t/svelte`. The consent components render inside
 the provider; your app's own components can sit anywhere inside it too, so

@@ -12,9 +12,9 @@ Import the mode from `c15t/vue/vue-plugin`:
 
 | Your app | `mode` |
 | --- | --- |
-| Vue with Vite, served as static files | `manifest()`, as in the [quickstart](/docs/frameworks/vue/quickstart). The build bundles the policy and the browser resolves it. Plan location inputs or an unknown-location rule. |
-| Policy edits must apply without a rebuild | [`manifest({ source: 'runtime' })`](#fetch-the-manifest-at-runtime) |
-| Regional policies that need the visitor's location from the backend | [`hosted()`](#ask-the-backend-for-each-visitors-policy) |
+| Vue with Vite, served as static files | [`hosted()`](#ask-the-backend-for-each-visitors-policy), as in the [quickstart](/docs/frameworks/vue/quickstart). The backend resolves each visitor's policy from their location. |
+| A policy without location rules, or a page that already knows the visitor's location | [`manifest()`](#bundle-the-manifest-during-builds). The build bundles the policy and the browser resolves it. |
+| Browser resolution, with policy edits that apply without a rebuild | [`manifest({ source: 'runtime' })`](#fetch-the-manifest-at-runtime) |
 | A prototype with no backend | [`offline()`](#resolve-the-policy-without-a-backend). Not recommended for production environments. |
 | Vue rendered on the server without Nuxt | Any of the above; the banner mounts after hydration. For the banner in server HTML, [use Nuxt](#server-rendering-without-nuxt). |
 
@@ -22,10 +22,46 @@ Import the mode from `c15t/vue/vue-plugin`:
 mode is imported statically, so the bundle carries only the modes your app
 imports.
 
-## Bundle the manifest during builds
+## Ask the backend for each visitor's policy
 
 The [quickstart](/docs/frameworks/vue/quickstart) and `examples/vue` in the
-c15t repository use this setup.
+c15t repository use this setup. `hosted()` sends each page load to the
+backend's `/init`. The backend reads the visitor's location from the request,
+resolves the current policy and returns the text in the visitor's language:
+
+{/* example: fragment */}
+
+```ts title="src/main.ts"
+import { c15tVue, hosted } from 'c15t/vue/vue-plugin';
+
+app.use(c15tVue, { mode: hosted(), scripts });
+```
+
+`hosted()` reads the backend URL from `consentManifest()`, or takes it as
+`hosted({ backendURL: 'https://your-project.inth.app' })`. Keep
+`consentManifest()` in `vite.config.ts` either way: it also keeps the c15t
+components, which are `.vue` files, out of Vite's dependency pre-bundling.
+A `hosted()` build never downloads the manifest, so a backend outage does
+not stop it.
+
+Until `/init` answers, every optional category is denied, so gated scripts
+and iframes wait. The build output is plain static files. Deploy it to any
+static host. The backend must allow your site's origin. With Inth, add it to
+the project's trusted origins.
+[Data fetching](/docs/concepts/data-fetching) compares the two paths.
+
+### Send `/init` before the app loads
+
+<include src="../../shared/vite-init-prefetch.mdx" />
+
+## Bundle the manifest during builds
+
+`manifest()` resolves the policy in the browser from a snapshot the build
+downloaded. It saves the `/init` request only when the policy has no location
+rules, or when the browser knows the visitor's location. Otherwise the bundle
+adds bytes without saving a request. The resolver adds about 3 KB gzipped,
+policy edits need a rebuild, and the backend doesn't count visitors the
+browser resolves this way.
 
 <include src="../../shared/build-manifests/vue.mdx" />
 
@@ -86,33 +122,6 @@ The manifest is the same for every visitor, so a CDN can cache it. Location,
 [build-time setup](#tell-the-browser-where-the-visitor-is). Consent saves
 still go to the backend.
 
-## Ask the backend for each visitor's policy
-
-`hosted()` sends each visitor's first page load to the backend's `/init`.
-The backend reads the visitor's location from the request, resolves the
-policy and returns the text in the visitor's language:
-
-{/* example: fragment */}
-
-```ts title="src/main.ts"
-import { c15tVue, hosted } from 'c15t/vue/vue-plugin';
-
-app.use(c15tVue, { mode: hosted(), scripts });
-```
-
-`hosted()` reads the backend URL from `consentManifest()`, or takes it as
-`hosted({ backendURL: 'https://your-project.inth.app' })`. Keep
-`consentManifest()` in `vite.config.ts` either way: it also keeps the c15t
-components, which are `.vue` files, out of Vite's dependency pre-bundling.
-A `hosted()` build never downloads the manifest, so a backend outage does
-not stop it.
-
-Until `/init` answers, every optional category is denied, so gated scripts
-and iframes wait. The build output is plain static files. Deploy it to any
-static host. The backend must allow your site's origin. With Inth, add it to
-the project's trusted origins.
-[Data fetching](/docs/concepts/data-fetching) compares the two paths.
-
 ## Resolve the policy without a backend
 
 `offline()` resolves policy rules in the browser and stores choices in the
@@ -161,10 +170,10 @@ Serve the production build and open the Network tab:
 
 | `mode` | Policy requests on the first page load |
 | --- | --- |
-| `manifest()` with a build snapshot | None to the backend. A language other than English loads its text from your site. |
+| `hosted()` | One `GET` to `${backendURL}/init` |
+| `manifest()` with a build snapshot | None to the backend when the policy has no location rules or the browser knows the location, otherwise one `GET` to `${backendURL}/init`. A language other than English loads its text from your site. |
 | `manifest({ source: 'runtime' })` | One `GET` to `${backendURL}/manifest` |
 | `manifest({ manifestURL })` | One `GET` to `manifestURL` |
-| `hosted()` | One `GET` to `${backendURL}/init` |
 | `offline()` | None |
 
 Reject, reload, and confirm the banner stays closed. Then follow

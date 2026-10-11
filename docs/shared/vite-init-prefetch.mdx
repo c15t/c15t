@@ -1,0 +1,10 @@
+`consentManifest({ initPrefetch: true })` adds a small inline script to the
+`<head>` of `index.html`. It sends `/init` while the browser downloads your
+JavaScript, and `hosted()` uses that response instead of sending its own. The
+banner usually shows 50 to 250 ms sooner.
+
+Leave it off when the app uses `manifest()` or `offline()`, sets an
+`experiment`, or gives `hosted()` its own `backendURL`, `initURL` or
+`headers`. The early request wouldn't match, so the app would send a second
+`/init`. If `hosted()` sets `credentials`, `journey` or `storageKey`, pass the
+same values as `initPrefetch: { credentials, journey, storageKey }`.

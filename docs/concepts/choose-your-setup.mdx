@@ -77,8 +77,11 @@ public policy manifest, never a response that contains a visitor's consent.
 Use a build-time manifest as the default for supported production builds.
 `manifest()` is the default mode in Next.js, TanStack Start, Nuxt, Astro and
 SvelteKit, so their servers resolve requests from the deployment's snapshot.
-Vite apps can bundle it for browser resolution too; location-based policies
-may still need a location request. The framework quickstarts show the build
+React, Vue and Svelte single-page apps have no server, so their quickstarts
+use `hosted()`: the backend reads each visitor's location from the `/init`
+request. They can bundle the manifest for browser resolution too, but a
+regional policy still needs `/init` on a first visit unless the page knows
+the location. The framework quickstarts show the build
 integration. [Consent modes](/docs/concepts/modes) lists every mode, its
 options and the backend URL variable each framework reads.
 

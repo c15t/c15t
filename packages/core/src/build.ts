@@ -5,6 +5,8 @@ import { dirname, join, resolve } from 'node:path';
 
 import type { ConsentManifest } from '@c15t/schema/types';
 
+import { buildPrefetchScript } from './libs/prefetch/prefetch';
+import type { PrefetchOptions } from './libs/prefetch/types';
 import { loadStaticManifest } from './server/static-manifest';
 import { manifestNeedsLocation } from './transports/manifest-browser-location';
 
@@ -480,7 +482,29 @@ export interface ConsentManifestPluginOptions extends ManifestBuildOptions {
 	 * @default 'build'
 	 */
 	source?: 'build' | 'runtime';
+	/**
+	 * Adds an inline script to `index.html` that sends the `/init` request
+	 * as the browser parses `<head>`, while the bundle downloads. `hosted()`
+	 * then reads that response instead of sending its own request. For
+	 * single-page apps that use `hosted()` with the plugin's backend URL.
+	 *
+	 * Pass an object when the app sets `credentials`, `journey` or
+	 * `storageKey` on `hosted()` or the provider, so the early request
+	 * matches the one the app would send. A build that bundles the snapshot,
+	 * as `manifest()` does, or sets `source: 'runtime'` leaves the script out,
+	 * and so does a server-rendered app. Under a Content Security Policy, set
+	 * Vite's `html.cspNonce` or allow the script's hash.
+	 *
+	 * @default false
+	 */
+	initPrefetch?: boolean | InitPrefetchOptions;
 }
+
+/** Options of the inline `/init` script `initPrefetch` adds. */
+export type InitPrefetchOptions = Pick<
+	PrefetchOptions,
+	'credentials' | 'journey' | 'storageKey'
+>;
 
 /** What `@c15t/core/generated` exports. */
 export interface GeneratedManifestModule {
@@ -684,6 +708,7 @@ export interface ConsentManifestPlugin {
 	name: string;
 	renderChunk: (code: string) => Promise<{ code: string; map: null } | null>;
 	resolveId: (id: string) => string | undefined;
+	transformIndexHtml: (html: string) => string | undefined;
 }
 
 /**
@@ -693,6 +718,20 @@ export interface ConsentManifestPlugin {
  */
 const LOCATION_ADVICE =
 	"the consent policy depends on the visitor's location, which the browser doesn't know. Unless you pass `inputs` or `geoURL` to `manifest()`, every first visit still calls the backend's /init, so the bundled policy adds bytes without saving a request. Consider `mode: hosted()` instead.";
+
+/** Id of the inline script `initPrefetch` adds to `index.html`. */
+const PREFETCH_SCRIPT_ID = 'c15t-initial-data-prefetch';
+
+/**
+ * Where the `/init` script goes: after `<meta charset>`, which must stay
+ * in the first 1024 bytes, or else at the start of `<head>`. Either way it
+ * comes before stylesheets, which would hold an inline script back until
+ * they load.
+ */
+const PREFETCH_ANCHORS = [
+	/<meta\s[^>]*charset[^>]*>/iu,
+	/<head(?:\s[^>]*)?>/iu,
+] as const;
 
 /** The resolved id of the virtual `@c15t/core/generated` module. */
 const VIRTUAL_GENERATED_ID = '\0@c15t/core/generated';
@@ -785,6 +824,8 @@ export const createConsentManifestPlugin = (
 	let serverRendered = false;
 	let generation: Promise<ConsentManifest | undefined> | undefined;
 	let missingURLReported = false;
+	let bundlesSnapshot = false;
+	let prefetchSkipReported = false;
 	const runtimeOnly = options.source === 'runtime';
 	const command = (): ManifestBuildCommand =>
 		resolved?.command === 'serve' ? 'dev' : 'build';
@@ -844,6 +885,58 @@ export const createConsentManifestPlugin = (
 			`no backend URL is set. \`hosted()\` and \`manifest()\` without their own \`backendURL\` throw when the app starts. Pass backendURL to the plugin or set ${formatEnvNames(defaults.envNames)}.`
 		);
 	};
+	/** Warns once, for a multi-page app, why no page got the script. */
+	const reportPrefetchSkipped = (reason: string): void => {
+		if (prefetchSkipReported) {
+			return;
+		}
+		prefetchSkipReported = true;
+		logger().warn(
+			`initPrefetch: ${reason}, so index.html gets no \`/init\` script. It speeds up \`hosted()\` only.`
+		);
+	};
+	/**
+	 * Adds the `initPrefetch` script to `index.html`. A build runs this
+	 * after `renderChunk`, so it knows whether the bundle reads the
+	 * snapshot; dev can't tell, and always adds it.
+	 */
+	const addPrefetchScript = (html: string): string | undefined => {
+		const { initPrefetch } = options;
+		if (!initPrefetch || serverRendered) {
+			return undefined;
+		}
+		if (!backendURL) {
+			reportMissingBackendURL();
+			return undefined;
+		}
+		if (runtimeOnly) {
+			reportPrefetchSkipped(
+				"`source: 'runtime'` means the app uses `manifest()`"
+			);
+			return undefined;
+		}
+		if (bundlesSnapshot) {
+			reportPrefetchSkipped(
+				'the bundle reads the snapshot, as `manifest()` does'
+			);
+			return undefined;
+		}
+		const prefetchOptions: PrefetchOptions =
+			initPrefetch === true ? { backendURL } : { ...initPrefetch, backendURL };
+		const script = `<script id="${PREFETCH_SCRIPT_ID}">${buildPrefetchScript(
+			prefetchOptions
+		)}</script>`;
+		for (const anchor of PREFETCH_ANCHORS) {
+			const match = anchor.exec(html);
+			if (match) {
+				const end = match.index + match[0].length;
+				const lineStart = html.lastIndexOf('\n', match.index) + 1;
+				const indent = /^[\t ]*/u.exec(html.slice(lineStart))?.[0] ?? '';
+				return `${html.slice(0, end)}\n${indent}${script}${html.slice(end)}`;
+			}
+		}
+		return `${script}\n${html}`;
+	};
 	return {
 		apply: (_config: unknown, environment: { isPreview?: boolean }) =>
 			!environment.isPreview,
@@ -872,6 +965,11 @@ export const createConsentManifestPlugin = (
 			const { serverRendered: rendered = false } = defaults;
 			serverRendered =
 				typeof rendered === 'function' ? rendered(config) : rendered;
+			if (serverRendered && options.initPrefetch) {
+				logger().warn(
+					'initPrefetch has no effect in a server-rendered app, which resolves consent on the server.'
+				);
+			}
 			const envRoot =
 				typeof config.envDir === 'string' ? config.envDir : config.root;
 			backendURL =
@@ -946,6 +1044,7 @@ export const createConsentManifestPlugin = (
 			}
 			let rendered = code;
 			if (readsSnapshot) {
+				bundlesSnapshot = true;
 				const snapshot = await loadSnapshot();
 				// One line, so the chunk's line mappings stay valid.
 				rendered = rendered.replace(
@@ -975,6 +1074,7 @@ export const createConsentManifestPlugin = (
 			(GENERATED_MODULE_IDS as readonly string[]).includes(id)
 				? VIRTUAL_GENERATED_ID
 				: undefined,
+		transformIndexHtml: addPrefetchScript,
 	};
 };
 

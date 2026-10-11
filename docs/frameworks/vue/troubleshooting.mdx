@@ -7,8 +7,8 @@ group: frameworks
 ## Vite fails to pre-bundle c15t's .vue files
 
 **Check.** `vite dev` reports an error from dependency optimization for a
-`.vue` file under `@c15t/vue`, or `manifest()` throws `c15t: manifest() has
-no backend URL`. `consentManifest()` is missing from the `plugins` array of
+`.vue` file under `@c15t/vue`, or the mode throws `c15t: hosted() has no
+backend URL`. `consentManifest()` is missing from the `plugins` array of
 `vite.config.ts`.
 
 **Fix.** Add `consentManifest()` from `c15t/vue/vite` to the `plugins` array,
@@ -21,7 +21,7 @@ next to `@vitejs/plugin-vue`, and set `VITE_C15T_BACKEND_URL` (or
 **Check.** The plugin options have no `mode`. Earlier v3 alphas took
 `backendURL`, `manifest`, `manifestURL` and `manifestSnapshot` on the plugin.
 
-**Fix.** Pass `mode: manifest()`, `hosted()` or `offline()` from
+**Fix.** Pass `mode: hosted()`, `manifest()` or `offline()` from
 `c15t/vue/vue-plugin`. Move `backendURL` into the mode, such as
 `hosted({ backendURL })`, or let `consentManifest()` supply it.
 
@@ -54,9 +54,10 @@ with `manifest({ source: 'runtime' })`, the `/manifest` request.
 1. **The visitor's policy asks for no banner.** A policy with prompt `none`
    shows no banner, which is common in opt-out regions. See
    [why the banner may be absent](/docs/concepts/policies#why-the-banner-may-be-absent).
-2. **`manifest()` resolves the unknown-location policy.** Without `inputs`
-   or `geoURL`, every visitor gets the policy your project assigns when the
-   location is unknown. Check that rule, then rebuild.
+2. **`manifest()` resolves the unknown-location policy.** With
+   `initFallback: false` and no `inputs` or `geoURL`, every visitor gets the
+   policy your project assigns when the location is unknown. Switch to
+   `hosted()`, or check that rule and rebuild.
 3. **`ConsentRoot` is inside a route that unmounts.** Put it in the root
    component.
 4. **The backend did not answer.** With `hosted()`, `/init` must return
