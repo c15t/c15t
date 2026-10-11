@@ -28,10 +28,8 @@ export {
 	IABConsentBanner,
 	type IABConsentBannerProps,
 } from './components/iab-prompt';
-export {
-	IABConsentDialog,
-	type IABConsentDialogProps,
-} from './components/iab-panel';
+export type { IABConsentDialogProps } from './components/iab-panel';
+export { IABConsentDialog } from './iab-dialog-deferred';
 export {
 	type HeadlessIABBannerAction,
 	type HeadlessIABBannerState,

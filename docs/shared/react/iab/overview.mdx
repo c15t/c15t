@@ -47,6 +47,23 @@ group: reference
   `c15t/react/iab` for those visitors, or remove the `iab` model from the
   policy.
 
+  ## When the dialog loads
+
+  `IABConsentDialog` loads its code on demand, so the first page load
+  carries the banner without the preference center. The code downloads at
+  the first of:
+
+  - The browser's first idle period after the page's `load` event, while
+    the IAB banner is shown.
+  - Hover or focus on the banner's Customize button or partners link.
+  - The dialog opening.
+
+  A visitor who opens the dialog before the download finishes waits for
+  it. `open={true}` and `showTrigger` load it on mount. Set
+  `preloadDialog: 'intent'` in the consent provider options to skip the
+  idle download. Idle loading is also skipped with Save-Data on, on `2g`
+  and `slow-2g` connections, and while offline.
+
   ## Verify vendor and purpose choices
 
   Test category choices alongside vendor, purpose, legitimate-interest and special

@@ -10,6 +10,7 @@ import actionStyles from '@c15t/ui/styles/components/consent-actions';
 import styles from '@c15t/ui/styles/components/iab-consent-banner';
 import type { FC } from 'react';
 
+import { warmDialogChunk } from '~/chunk-warming';
 import { useHeadlessIABConsentUI } from '~/component-hooks/use-headless-iab-consent-ui';
 import { Box } from '~/components/shared/primitives/box';
 import { BrandingLink } from '~/components/shared/ui/branding';
@@ -259,9 +260,8 @@ export const IABConsentBanner: FC<IABConsentBannerProps> = ({
 								type="button"
 								data-testid="iab-consent-banner-partners-link"
 								onClick={handleViewVendors}
-								onMouseEnter={() => {
-									// Prefetch vendor list on hover
-								}}
+								onFocus={warmDialogChunk}
+								onPointerEnter={warmDialogChunk}
 							>
 								{partnersLinkText}
 							</button>
@@ -320,6 +320,8 @@ export const IABConsentBanner: FC<IABConsentBannerProps> = ({
 								mode={isPrimary('customize') ? 'filled' : 'stroke'}
 								size="small"
 								onClick={handleCustomize}
+								onFocus={warmDialogChunk}
+								onPointerEnter={warmDialogChunk}
 								data-action="customize"
 								data-testid="iab-consent-banner-customize-button"
 							>
