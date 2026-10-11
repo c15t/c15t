@@ -82,8 +82,10 @@ const LazyIABConsentDialog = (props: IABConsentDialogProps) => {
 	// A shown IAB banner can open the dialog at any moment.
 	useIdleDialogWarming(modelMatches && activeUI === 'banner');
 
+	// The dialog's own open state: a controlled `open={false}` wins over
+	// `activeUI`, so it loads nothing.
 	const shouldLoad =
-		(modelMatches && (props.open === true || activeUI === 'dialog')) ||
+		(modelMatches && (props.open ?? activeUI === 'dialog')) ||
 		Boolean(props.showTrigger);
 	// Once rendered, stay rendered, as the eager dialog always was: closing
 	// then plays the exit animation instead of removing the dialog at once.

@@ -44,7 +44,24 @@ afterEach(() => {
 	vi.unstubAllGlobals();
 });
 
-// Runs first: once a test loads the dialog module, this document keeps it.
+// These run first: once a test loads the dialog module, this document
+// keeps it.
+test('a controlled open={false} loads nothing while activeUI is dialog', async () => {
+	const screen = await render(
+		<ComponentFixtureProvider options={iabOptions({ initialUI: 'dialog' })}>
+			<IABConsentDialog open={false} />
+		</ComponentFixtureProvider>
+	);
+	// Long enough for the module request to finish if one started: a
+	// resource-timing entry appears only once the response ends.
+	await new Promise((resolve) => {
+		setTimeout(resolve, 1500);
+	});
+	expect(dialogModuleLoaded()).toBe(false);
+	expect(byTestId('iab-consent-dialog-root')).toBeNull();
+	await screen.unmount();
+});
+
 test('the IAB banner loads none of the dialog until Customize opens it', async () => {
 	const screen = await render(
 		<ComponentFixtureProvider options={iabOptions({ disableAnimation: true })}>
