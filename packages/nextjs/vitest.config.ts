@@ -72,7 +72,7 @@ export default mergeConfig(
 					__dirname,
 					'../react/dist/index-parts/theme.js'
 				),
-				'@c15t/react/devtools': resolve(__dirname, '../react/src/devtools.tsx'),
+				'@c15t/react/devtools': resolve(__dirname, '../react/dist/devtools.js'),
 				'@c15t/core/modules/clear-on-revocation': resolve(
 					__dirname,
 					'../core/src/modules/clear-on-revocation/index.ts'
