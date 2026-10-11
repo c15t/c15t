@@ -179,6 +179,20 @@ describe('policyRulePresets', () => {
 		expect(recommendedPolicyRules({ iab: true })[0]?.id).toBe('europe_iab');
 	});
 
+	test('the recommended pack builds the same rules as the named presets', () => {
+		const [europe, quebec, us, world] = recommendedPolicyRules();
+		expect(europe).toEqual(policyRulePresets.europeOptIn());
+		expect(recommendedPolicyRules({ iab: true })[0]).toEqual(
+			policyRulePresets.europeIab()
+		);
+		expect(quebec).toEqual(policyRulePresets.quebecOptIn());
+		expect(us).toMatchObject({
+			...policyRulePresets.usPrivacyStatesOptOut(),
+			match: expect.any(Object),
+		});
+		expect(world).toEqual(policyRulePresets.worldNone());
+	});
+
 	test.each([undefined, null, '', ' '])(
 		'the default pack uses US opt-out for missing state %j even with IAB enabled',
 		(regionCode) => {

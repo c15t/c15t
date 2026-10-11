@@ -26,6 +26,8 @@ import type {
 	RefCallback,
 } from 'react';
 
+import { TriggerToolbar } from './components/panel-trigger/atoms/toolbar';
+import { registerTriggerToolbar } from './components/panel-trigger/toolbar-loader';
 import { KernelContext, ProviderServicesContext } from './context';
 import { publishDevToolsLauncher } from './devtools-launcher';
 import { useIsHydrated } from './hooks/use-is-hydrated';
@@ -129,6 +131,13 @@ export const ConsentDevTools = ({
 		getConsentCategories ?? services?.getConsentCategories,
 		disabled
 	);
+
+	// A trigger that carries the launcher renders this toolbar. Registering it
+	// before the effect below publishes the launcher keeps that swap
+	// synchronous.
+	useEffect(() => {
+		registerTriggerToolbar(TriggerToolbar);
+	}, []);
 
 	useEffect(() => {
 		if (!kernel) {

@@ -9,8 +9,8 @@
  * @packageDocumentation
  */
 
-import { useMemo } from 'react';
-import type { FC, ReactNode } from 'react';
+import { createElement, useEffect, useMemo, useState } from 'react';
+import type { ComponentProps, FC, ReactNode } from 'react';
 
 import { useDevToolsLauncherAvailable } from '~/devtools-launcher';
 
@@ -22,13 +22,55 @@ import { TriggerRoot, useTriggerContext } from './atoms/root';
 import type { TriggerRootProps } from './atoms/root';
 import { TriggerText } from './atoms/text';
 import type { TriggerTextProps } from './atoms/text';
-import { TriggerToolbar } from './atoms/toolbar';
+import { getTriggerToolbar, loadTriggerToolbar } from './toolbar-loader';
+import type { TriggerToolbarComponent } from './toolbar-loader';
 import type {
 	ConsentDialogTriggerProps,
 	ConsentDialogTriggerToolbarAction,
 } from './types';
 
 const EMPTY_ACTIONS: readonly ConsentDialogTriggerToolbarAction[] = [];
+
+type DevToolsToolbarProps = ComponentProps<TriggerToolbarComponent> & {
+	/** Rendered until the toolbar has loaded. */
+	fallback: ReactNode;
+};
+
+/**
+ * The toolbar a trigger becomes while DevTools is mounted. It loads on
+ * demand; `<ConsentDevTools>` registers it before publishing its launcher,
+ * so this normally renders it at once. Otherwise `fallback` shows until the
+ * toolbar arrives.
+ */
+const DevToolsToolbar = ({ fallback, ...props }: DevToolsToolbarProps) => {
+	const [loaded, setLoaded] = useState<TriggerToolbarComponent | undefined>(
+		undefined
+	);
+	const toolbar = loaded ?? getTriggerToolbar();
+	useEffect(() => {
+		if (toolbar) {
+			return;
+		}
+		let active = true;
+		const load = async () => {
+			try {
+				const component = await loadTriggerToolbar();
+				if (active) {
+					setLoaded(() => component);
+				}
+			} catch {
+				// Keep the fallback; the next mount retries the load.
+			}
+		};
+		void load();
+		return () => {
+			active = false;
+		};
+	}, [toolbar]);
+	// The toolbar is a module-level component, loaded once; createElement
+	// renders it without redefining it.
+	return toolbar ? createElement(toolbar, props) : fallback;
+};
 
 /**
  * Convenience component that composes the compound components.
@@ -94,6 +136,20 @@ const ConsentDialogTriggerComponent = ({
 		[ariaLabel, className, icon]
 	);
 
+	const button = (
+		<TriggerButton
+			size={size}
+			ariaLabel={ariaLabel}
+			className={className}
+			noStyle={noStyle}
+		>
+			<TriggerIcon
+				icon={icon}
+				noStyle={noStyle}
+			/>
+		</TriggerButton>
+	);
+
 	return (
 		<TriggerRoot
 			defaultPosition={defaultPosition}
@@ -103,24 +159,15 @@ const ConsentDialogTriggerComponent = ({
 			onPositionChange={onPositionChange}
 		>
 			{hostsDevTools ? (
-				<TriggerToolbar
+				<DevToolsToolbar
 					actions={EMPTY_ACTIONS}
+					fallback={button}
 					noStyle={noStyle}
 					preferences={preferences}
 					size={size}
 				/>
 			) : (
-				<TriggerButton
-					size={size}
-					ariaLabel={ariaLabel}
-					className={className}
-					noStyle={noStyle}
-				>
-					<TriggerIcon
-						icon={icon}
-						noStyle={noStyle}
-					/>
-				</TriggerButton>
+				button
 			)}
 		</TriggerRoot>
 	);
