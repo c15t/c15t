@@ -67,13 +67,27 @@ const findInPage = function findInPage(id: string): boolean {
 const isSheetReady = (sheet: SurfaceStyleSheet): boolean =>
 	!sheet.load || findInPage(sheet.id);
 
+const loadSheet = async function loadSheet(
+	id: string,
+	load: () => Promise<string>
+): Promise<void> {
+	try {
+		loadedCss.set(id, await load());
+		notify();
+	} catch (error) {
+		pendingLoads.delete(id);
+		throw error;
+	}
+};
+
 /**
  * Starts loading the deferred sheets the page does not hold yet. Safe to
- * call often: each sheet loads once.
+ * call often: each sheet loads once, and a failed load is retried by the
+ * next call.
  *
  * @internal
  */
-export const preloadSurfaceSheets = function preloadSurfaceSheets(
+export const preloadSurfaceSheets = async function preloadSurfaceSheets(
 	sheets: readonly SurfaceStyleSheet[]
 ): Promise<void> {
 	const loads: Promise<void>[] = [];
@@ -84,15 +98,17 @@ export const preloadSurfaceSheets = function preloadSurfaceSheets(
 		}
 		let pending = pendingLoads.get(id);
 		if (!pending) {
-			pending = load().then((css) => {
-				loadedCss.set(id, css);
-				notify();
-			});
+			pending = loadSheet(id, load);
 			pendingLoads.set(id, pending);
 		}
 		loads.push(pending);
 	}
-	return Promise.all(loads).then(() => undefined);
+	try {
+		await Promise.all(loads);
+	} catch {
+		// Not cached: the surface stays hidden until a later preload, such as
+		// the next surface that mounts, loads the sheet.
+	}
 };
 
 /**

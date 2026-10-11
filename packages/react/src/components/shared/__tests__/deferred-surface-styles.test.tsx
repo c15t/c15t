@@ -16,6 +16,7 @@ import type { SurfaceStyleSheet } from '../surface-styles';
  */
 
 const CSS = '.deferred-probe{color:rgb(1, 2, 3)}';
+const NONCE_CONFIG = { nonce: 'test-nonce' };
 
 const deferredSheet = (id: string) => {
 	const load = vi.fn(() => Promise.resolve(CSS));
@@ -66,7 +67,9 @@ describe('deferred surface sheets', () => {
 		await vi.waitFor(() =>
 			expect(container.querySelector('[data-testid="surface"]')).not.toBeNull()
 		);
-		await new Promise((resolve) => setTimeout(resolve, 50));
+		await new Promise((resolve) => {
+			setTimeout(resolve, 50);
+		});
 		consoleError.mockRestore();
 
 		expect(errors).toEqual([]);
@@ -97,7 +100,7 @@ describe('deferred surface sheets', () => {
 		document.body.append(serverStyle);
 
 		const screen = await render(
-			<V3UIConfigContext.Provider value={{ nonce: 'test-nonce' }}>
+			<V3UIConfigContext.Provider value={NONCE_CONFIG}>
 				<Surface sheet={sheet} />
 			</V3UIConfigContext.Provider>
 		);
@@ -105,7 +108,7 @@ describe('deferred surface sheets', () => {
 		// The server's element goes away with its surface; the text stays.
 		serverStyle.remove();
 		await screen.rerender(
-			<V3UIConfigContext.Provider value={{ nonce: 'test-nonce' }}>
+			<V3UIConfigContext.Provider value={NONCE_CONFIG}>
 				<Surface sheet={sheet} />
 			</V3UIConfigContext.Provider>
 		);
@@ -113,5 +116,24 @@ describe('deferred surface sheets', () => {
 		expect(load).not.toHaveBeenCalled();
 		expect(stylesFor(id).map((element) => element.textContent)).toEqual([CSS]);
 		await screen.unmount();
+	});
+
+	test('a failed sheet load is retried by the next surface that mounts', async () => {
+		const id = 'c15t-test-retry';
+		const load = vi
+			.fn<() => Promise<string>>()
+			.mockRejectedValueOnce(new Error('chunk failed to load'))
+			.mockResolvedValue(CSS);
+		const sheet: SurfaceStyleSheet = { css: '', id, load };
+
+		const first = await render(<Surface sheet={sheet} />);
+		await vi.waitFor(() => expect(load).toHaveBeenCalledTimes(1));
+		expect(first.container.querySelector('[data-testid="surface"]')).toBeNull();
+		await first.unmount();
+
+		const second = await render(<Surface sheet={sheet} />);
+		await expect.element(second.getByTestId('surface')).toBeInTheDocument();
+		expect(load).toHaveBeenCalledTimes(2);
+		await second.unmount();
 	});
 });

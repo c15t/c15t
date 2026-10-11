@@ -55,6 +55,7 @@ const resolveDialogOptions = (
 });
 
 const resolveDialogOpen = (
+	sheetsReady: boolean,
 	hasConsentUI: boolean,
 	models: C15tCoreTypes.Model[],
 	model: C15tCoreTypes.Model | null,
@@ -66,7 +67,7 @@ const resolveDialogOpen = (
 	if (!hasConsentUI || !models.includes(model ?? 'opt-in')) {
 		return false;
 	}
-	return open ?? activeUI === 'dialog';
+	return sheetsReady && (open ?? activeUI === 'dialog');
 };
 
 const getRootClasses = (
@@ -195,9 +196,14 @@ const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 	// A deferred first-paint sheet the page does not hold yet loads with
 	// the dialog's code; the dialog opens once both are here.
 	const sheetsReady = useSurfaceSheetsReady(DIALOG_SHEETS, noStyle);
-	const isOpen =
-		sheetsReady &&
-		resolveDialogOpen(hasConsentUI, models, model, openProp, activeUI);
+	const isOpen = resolveDialogOpen(
+		sheetsReady,
+		hasConsentUI,
+		models,
+		model,
+		openProp,
+		activeUI
+	);
 
 	// Animation visibility flag – mirrors logic in original component
 	const [isVisible, setIsVisible] = useState(false);

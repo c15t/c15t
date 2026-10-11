@@ -24,13 +24,12 @@ type AnyComponent = ComponentType<Record<string, unknown>>;
 // Vite derives chunk names from these paths. Keep them neutral so URL filters
 // do not block the UI. Each module is shared by its default and compound exports.
 // A deferred first-paint sheet the page lacks loads beside the dialog's
-// code, not after it.
-const dialogModule = createDeferredModule(() =>
-	Promise.all([
-		import('./components/panel'),
-		preloadSurfaceSheets(FIRST_PAINT_SHEETS),
-	]).then(([module]) => module)
-);
+// code, not after it. The dialog waits for it before opening, so a failed
+// sheet load leaves the module usable.
+const dialogModule = createDeferredModule(() => {
+	void preloadSurfaceSheets(FIRST_PAINT_SHEETS);
+	return import('./components/panel');
+});
 const widgetModule = createDeferredModule(
 	() => import('./components/preferences')
 );
