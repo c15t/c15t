@@ -44,6 +44,10 @@
 	--iab-consent-banner-overlay-background-color-dark: var(--c15t-overlay);
 	--iab-consent-banner-link-color: var(--c15t-primary);
 	--iab-consent-banner-link-color-dark: var(--c15t-primary);
+
+	/* Stacking. The banner's z-index must stay above its overlay's. */
+	--iab-consent-banner-z-index: 999998;
+	--iab-consent-banner-overlay-z-index: 999997;
 }
 
 /* Hairline borders for retina displays */
@@ -60,7 +64,7 @@
 		display: flex;
 		justify-content: center;
 		align-items: center;
-		z-index: 999998;
+		z-index: var(--iab-consent-banner-z-index);
 		position: fixed;
 		inset: 0;
 		font-family: var(--iab-consent-banner-font-family);
@@ -299,7 +303,7 @@
 		position: fixed;
 		inset: 0;
 		background-color: var(--iab-consent-banner-overlay-background-color);
-		z-index: 999997;
+		z-index: var(--iab-consent-banner-overlay-z-index);
 	}
 
 	/* The backdrop enters and leaves with the banner. */
