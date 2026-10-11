@@ -7,12 +7,14 @@ icon: google-analytics
 group: integrations
 ---
 
-The c15t `gtag` helper loads Google's gtag.js for Google Analytics or Google Ads
-on every page, before the visitor chooses. You must give a category, usually
-`measurement` or `marketing`, but the category does not delay the load. Before
-gtag.js loads, the helper sends the Google Consent Mode v2 default with
-`gtag('consent', 'default', ...)`. Each consent change sends an `update`.
-`measurement` controls `analytics_storage`, and `marketing` controls
+The c15t `gtag` helper loads Google's gtag.js for Google Analytics or Google
+Ads. With the default `loadMode: 'always'`, gtag.js loads on every page, before
+the visitor chooses. You must give a category, usually `measurement` or
+`marketing`, but in this mode the category does not delay the load. With
+`loadMode: 'after-consent'`, c15t sends nothing to Google until the category has
+consent. In both modes, the helper sends the Google Consent Mode v2 default with
+`gtag('consent', 'default', ...)` before `config`. Each consent change sends an
+`update`. `measurement` controls `analytics_storage`, and `marketing` controls
 `ad_storage`, `ad_user_data`, and `ad_personalization`. The `consentMapping`
 option replaces this map.
 

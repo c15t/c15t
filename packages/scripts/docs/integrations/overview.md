@@ -129,10 +129,13 @@ on revocation and how to check it.
 
 ## Vendor switches and cookie cleanup
 
-Every helper sets a `vendor` slug, so once you declare that vendor a visitor
-can allow its category and still switch the vendor off. Gating also leaves
-behind the cookies a vendor already wrote; `clearOnRevocation` deletes them
-when their category is denied. Each framework documents both in its Scripts
+Every helper sets a `vendor` slug and the vendor's name and privacy policy, so
+the preference dialog lists the vendor with its own switch. A visitor can allow
+a category and still switch one vendor off. c15t then does not load that
+vendor's script. The dialog lists `necessary` helpers without a switch. Declare
+a vendor with the same slug to replace its name and links, for example when you
+self-host Matomo or PostHog. Gating also leaves behind the cookies a vendor
+already wrote; `clearOnRevocation` deletes them when their category is denied. Each framework documents both in its Scripts
 and embeds group:
 
 | Framework      | Vendor consent                                                                      | Clear on revocation                                                                           |

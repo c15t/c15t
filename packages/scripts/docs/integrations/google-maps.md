@@ -293,14 +293,15 @@ iframe.
 **HTML**
 
 The c15t script tag gates iframes that name a category. Put the embed's URL
-in `data-src` instead of `src`, using the values from the configuration on
-this page:
+in `data-src` instead of `src`. Replace `EMBED_URL`, `EMBED_CATEGORY` and
+`EMBED_TITLE` with `embedURL`, `embedCategory` and `embedTitle` from the
+configuration on this page:
 
 ```html
 <iframe
-  data-src="https://www.youtube-nocookie.com/embed/VIDEO_ID?playsinline=1"
-  data-category="measurement"
-  title="Product video"
+  data-src="EMBED_URL"
+  data-category="EMBED_CATEGORY"
+  title="EMBED_TITLE"
   loading="lazy"
   allowfullscreen
 ></iframe>

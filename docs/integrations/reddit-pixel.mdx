@@ -11,7 +11,8 @@ The c15t `redditPixel` helper keeps the Reddit Pixel off the page until
 `marketing` has consent. Until then, c15t does not define `rdt`. The helper
 sends no consent signal to Reddit. If the visitor withdraws consent, the helper
 calls `rdt('disableFirstPartyCookies')`. The pixel stays on the page. By
-default, c15t also reloads the page.
+default, c15t also reloads the page. If `marketing` has consent again, the
+helper calls `rdt('enableFirstPartyCookies')`.
 
 ## Configure the Reddit Pixel
 

@@ -303,8 +303,8 @@ permission before each of your own event calls. The reload does not delete
 cookies the vendor already set; see
 [clear on revocation for your framework](./overview.md#vendor-switches-and-cookie-cleanup).
 
-The helper sets `vendor` to its script ID, so once you declare that vendor a
-visitor can turn it off inside an allowed category. See
+The helper lists its vendor by name in the preference dialog, so a visitor can
+turn it off inside an allowed category. See
 [vendor consent for your framework](./overview.md#vendor-switches-and-cookie-cleanup). The
 [consent verification guide](../guides/verify-consent.md) covers navigation,
 expiry and hosting checks.

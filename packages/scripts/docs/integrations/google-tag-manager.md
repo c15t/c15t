@@ -5,20 +5,23 @@ description: Load a Google Tag Manager container before or after consent with
   and verify both in DevTools.
 seoTitle: Google Tag Manager Consent Mode v2 with c15t
 seoDescription: Set Google Consent Mode v2 defaults before your GTM container
-  loads. The c15t googleTagManager helper sends each consent update to the tags
-  in the container.
+  starts. Load it on every page or only after consent with the c15t
+  googleTagManager helper.
 icon: google-tag-manager
 group: integrations
 ---
 
 The c15t `googleTagManager` helper loads your Google Tag Manager container,
-`gtm.js`, on every page, before the visitor chooses. Its category is
-`necessary`. Before the container loads, the helper sends the Google Consent
-Mode v2 default with `gtag('consent', 'default', ...)`. Each consent change
-sends an `update`, and then a `consent-update` event. `measurement` controls
-`analytics_storage`, and `marketing` controls `ad_storage`, `ad_user_data`, and
-`ad_personalization`. Tags in the container that are not from Google ignore
-these signals, unless you add consent checks in GTM.
+`gtm.js`. With the default `loadMode: 'always'`, the container loads on every
+page, before the visitor chooses, under the `necessary` category. With
+`loadMode: 'after-consent'`, c15t sends nothing to Google until `measurement` or
+`marketing` has consent. In both modes, the helper sends the Google Consent Mode
+v2 default with `gtag('consent', 'default', ...)` before the container starts.
+Each later consent change sends an `update`, and then a `consent-update` event.
+`measurement` controls `analytics_storage`, and `marketing` controls
+`ad_storage`, `ad_user_data`, and `ad_personalization`. Tags in the container
+that are not from Google ignore these signals, unless you add consent checks in
+GTM.
 
 ## Configure Google Tag Manager
 
