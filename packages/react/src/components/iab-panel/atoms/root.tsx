@@ -19,7 +19,10 @@ import { cnExt as cn } from '~/utils/cn';
 import { mergeSlotProps } from '~/utils/merge-slot-props';
 
 import { IAB_DIALOG_SHEETS } from '../../shared/iab-dialog-sheets';
-import { SurfaceStyles } from '../../shared/surface-styles';
+import {
+	SurfaceStyles,
+	useSurfaceSheetsReady,
+} from '../../shared/surface-styles';
 import { IABConsentDialogOverlay } from './overlay';
 
 const DEFAULT_MODELS: C15tCoreTypes.Model[] = ['iab'];
@@ -79,8 +82,12 @@ const IABConsentDialogRoot: FC<IABConsentDialogRootProps> = ({
 	const [isVisible, setIsVisible] = useState(false);
 
 	// IABConsentDialog only opens when the consent model matches
+	const sheetsReady = useSurfaceSheetsReady(IAB_DIALOG_SHEETS, noStyle);
 	const isOpen =
-		model !== null && models.includes(model) && (open ?? activeUI === 'dialog');
+		sheetsReady &&
+		model !== null &&
+		models.includes(model) &&
+		(open ?? activeUI === 'dialog');
 	const resolvedScrollLock = policyDialog.blocking;
 
 	const contextValue = useMemo(
