@@ -740,6 +740,41 @@ describe('initPrefetch', () => {
 		expect(plugin.transformIndexHtml('<head></head>')).toBeUndefined();
 	});
 
+	test('a page without a <head> keeps the script after the doctype', () => {
+		const plugin = createConsentManifestPlugin(
+			{ backendURL: 'https://consent.example.com' },
+			{ envNames: [], label: 'test' }
+		);
+		plugin.configResolved({
+			command: 'build',
+			logger: createLogger(),
+			root: '/app',
+		});
+		const html = plugin.transformIndexHtml(
+			'<!doctype html>\n<html lang="en"><body></body></html>'
+		);
+		expect(html).toMatch(
+			/^<!doctype html>\n<html lang="en">\n<script id="c15t-initial-data-prefetch"/u
+		);
+	});
+
+	test('a watch rebuild that stops bundling the snapshot adds the script', async () => {
+		const root = await createRoot();
+		const plugin = createConsentManifestPlugin(optionsFor(root), {
+			envNames: [],
+			label: 'test',
+		});
+		plugin.configResolved({ command: 'build', logger: createLogger(), root });
+		const source = await plugin.load.call(
+			undefined,
+			plugin.resolveId(GENERATED_MODULE_IDS[0]) as string
+		);
+		await plugin.renderChunk(source as string);
+		expect(plugin.transformIndexHtml('<head></head>')).toBeUndefined();
+		plugin.buildStart();
+		expect(plugin.transformIndexHtml('<head></head>')).toContain(PREFETCH_TAG);
+	});
+
 	test('a server-rendered app that left the option unset hears nothing', () => {
 		const logger = createLogger();
 		const plugin = createConsentManifestPlugin(

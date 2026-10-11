@@ -697,6 +697,7 @@ export interface ManifestPluginContext {
  */
 export interface ConsentManifestPlugin {
 	apply: (config: unknown, environment: { isPreview?: boolean }) => boolean;
+	buildStart: () => void;
 	config: () => {
 		optimizeDeps: { exclude: string[] };
 		ssr: { noExternal: string[] };
@@ -734,6 +735,10 @@ const PREFETCH_SCRIPT_ID = 'c15t-initial-data-prefetch';
 const PREFETCH_ANCHORS = [
 	/<meta\s[^>]*charset[^>]*>/iu,
 	/<head(?:\s[^>]*)?>/iu,
+	// Without a `<head>`, stay after the doctype: a script before it puts
+	// the page in quirks mode.
+	/<html(?:\s[^>]*)?>/iu,
+	/<!doctype[^>]*>/iu,
 ] as const;
 
 /** The resolved id of the virtual `@c15t/core/generated` module. */
@@ -946,6 +951,10 @@ export const createConsentManifestPlugin = (
 	return {
 		apply: (_config: unknown, environment: { isPreview?: boolean }) =>
 			!environment.isPreview,
+		buildStart: () => {
+			// `vite build --watch` reuses the plugin: each rebuild decides anew.
+			bundlesSnapshot = false;
+		},
 		config: () => ({
 			optimizeDeps: { exclude: [...GENERATED_MODULE_IDS] },
 			ssr: { noExternal: [...GENERATED_IMPORTERS] },
