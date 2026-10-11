@@ -6,6 +6,9 @@ usually shows 50 to 250 ms sooner. There is nothing to configure.
 The early request can't read your app's options, so in a few setups it won't
 match and the app sends a second `/init`. Pass `initPrefetch: false` when the
 app uses `offline()` or gives `hosted()` its own `backendURL`, `initURL` or
-`headers`. If it sets `credentials`, `storageKey`, an `experiment`, or
-`journey: false`, pass the same values as
-`initPrefetch: { credentials, experiment, journey, storageKey }`.
+`headers`. If it sets `credentials`, `overrides`, `storageKey`, an
+`experiment`, or `journey: false`, pass the same values as
+`initPrefetch: { credentials, experiment, journey, overrides, storageKey }`.
+The dev server adds the script even to a `manifest()` app, which then sends
+one `/init` per page load that it doesn't use. A production build leaves it
+out.

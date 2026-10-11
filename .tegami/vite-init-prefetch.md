@@ -23,8 +23,8 @@ packages:
 `/init` request while the browser downloads the app's JavaScript. `hosted()`
 uses that response instead of sending its own, so the page still makes one
 request. It's on by default. Pass `initPrefetch: false` to turn it off, or
-`initPrefetch: { credentials, experiment, journey, storageKey }` when the app
-sets those.
+`initPrefetch: { credentials, experiment, journey, overrides, storageKey }`
+when the app sets those.
 The plugin leaves the script out when the build bundles the snapshot, uses
 `source: 'runtime'`, or renders on the server. Set Vite's `html.cspNonce` to
 stamp a nonce on it.
@@ -43,3 +43,5 @@ request carried a different arm, or none, so the backend counts each visitor
 toward the arm the banner showed.
 
 The CLI's React, Vue and Svelte single-page setups now use `hosted()`.
+Offline Vite setups, JavaScript included, pass `initPrefetch: false`, so they
+never call a backend URL left in the environment.

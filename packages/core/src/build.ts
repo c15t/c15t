@@ -487,13 +487,16 @@ export interface ConsentManifestPluginOptions extends ManifestBuildOptions {
 	 * as the browser parses `<head>`, while the bundle downloads. `hosted()`
 	 * then reads that response instead of sending its own request.
 	 *
-	 * On by default. A build that bundles the snapshot, as `manifest()`
-	 * does, or sets `source: 'runtime'` leaves the script out, and so does a
-	 * server-rendered app. Pass `false` to turn it off, or an object when
-	 * the app sets `credentials` or `storageKey` on `hosted()` or the
-	 * provider, turns `journey` off or runs an `experiment`, so the early
-	 * request matches the one the app would send. Under a Content Security Policy, set Vite's
-	 * `html.cspNonce` or allow the script's hash.
+	 * On by default. A production build that bundles the snapshot, as
+	 * `manifest()` does, or sets `source: 'runtime'` leaves the script out,
+	 * and so does a server-rendered app. The dev server can't tell which
+	 * mode the app uses and always adds it, so a `manifest()` app sends one
+	 * unused `/init` per page load in dev. Pass `false` to turn it off, or
+	 * an object when the app sets `credentials`, `overrides` or `storageKey`
+	 * on `hosted()` or the provider, turns `journey` off or runs an
+	 * `experiment`, so the early request matches the one the app would send.
+	 * Under a Content Security Policy, set Vite's `html.cspNonce` or allow
+	 * the script's hash.
 	 *
 	 * @default true
 	 */
@@ -503,7 +506,7 @@ export interface ConsentManifestPluginOptions extends ManifestBuildOptions {
 /** Options of the inline `/init` script `initPrefetch` adds. */
 export type InitPrefetchOptions = Pick<
 	PrefetchOptions,
-	'credentials' | 'experiment' | 'journey' | 'storageKey'
+	'credentials' | 'experiment' | 'journey' | 'overrides' | 'storageKey'
 >;
 
 /** What `@c15t/core/generated` exports. */

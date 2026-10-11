@@ -629,7 +629,7 @@ describe('initPrefetch', () => {
 		expect(html).not.toContain(PREFETCH_TAG);
 	});
 
-	test('passes credentials, experiment, journey and storageKey to the script', async () => {
+	test('passes credentials, experiment, journey, overrides and storageKey to the script', async () => {
 		const root = await createRoot();
 		const html = await buildPage(
 			root,
@@ -643,12 +643,15 @@ describe('initPrefetch', () => {
 						split: { control: 60, wall: 40 },
 					},
 					journey: false,
+					overrides: { country: 'DE', language: 'de' },
 					storageKey: 'shop-consent',
 				},
 			}),
 			HOSTED_ENTRY
 		);
 		expect(html).toContain('"credentials":"include"');
+		expect(html).toMatch(/[?&]country=DE[&"]/u);
+		expect(html).toContain('"language":"de"');
 		expect(html).toContain('"journey":null');
 		expect(html).toContain('"cookies":["shop-consent","shop-consent-notice"]');
 		expect(html).toContain('"arms":["control","wall"]');

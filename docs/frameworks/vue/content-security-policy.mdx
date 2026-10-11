@@ -51,9 +51,12 @@ Add `'strict-dynamic'` to `script-src` to allow them, or list their hosts.
 app.use(c15tVue, { mode: hosted(), nonce, scripts });
 ```
 
-On a static host, allow the early `/init` script by the hash in the browser's
-`Refused to execute inline script` error. If the policy blocks it, the app
-sends `/init` itself.
+The plugin's `nonce` option does not reach the early `/init` script, because
+that script is already in `index.html`. With a nonce per response, set Vite's
+`html.cspNonce` to a placeholder and have your server replace it with each
+response's nonce; the script carries it. On a static host, allow the script by
+the hash in the browser's `Refused to execute inline script` error. If the
+policy blocks it, the app sends `/init` itself.
 
 ## Allow styles
 

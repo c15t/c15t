@@ -34,8 +34,9 @@ like this:
 2. The browser requests `GET /init` from your backend URL. A
    [script in `index.html`](#send-init-before-the-app-loads) sends it while
    the JavaScript downloads. The backend picks the visitor's policy from their
-   location. With an `experiment`, the request waits until the provider
-   mounts, because it carries the visitor's arm.
+   location. With an `experiment`, pass it to the plugin as
+   `initPrefetch: { experiment }` so the early request carries the visitor's
+   arm. Without that, the provider sends its own `/init` when it mounts.
 3. The provider applies the policy and any stored choice. It shows the banner
    if the policy asks for one, and loads the scripts the visitor allowed.
 
@@ -66,7 +67,9 @@ its own `<style>` element, so there is no stylesheet to import.
 
 These frameworks render their own HTML, so the Vite plugin can't add the
 early `/init` script. Put `buildPrefetchScript({ backendURL })` from `c15t` in
-a `<script>` in the root `<head>` instead.
+a `<script>` in the root `<head>` instead, unless your loader supplies
+`initialData` as described below. The two are alternatives: with
+`initialData` the provider never reads the script's response.
 
 ### Skip the browser's first init request
 
