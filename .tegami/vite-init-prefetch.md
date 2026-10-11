@@ -25,6 +25,9 @@ uses that response instead of sending its own, so the page still makes one
 request. It's on by default. Pass `initPrefetch: false` to turn it off, or
 `initPrefetch: { credentials, experiment, journey, overrides, storageKey }`
 when the app sets those.
+`hosted({ fetch })` sends its first `/init` through that `fetch` and
+ignores the early response, so pass `initPrefetch: false` with a custom
+`fetch`.
 The plugin leaves the script out when the build bundles the snapshot, uses
 `source: 'runtime'`, or renders on the server. Set Vite's `html.cspNonce` to
 stamp a nonce on it.

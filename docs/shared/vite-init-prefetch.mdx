@@ -5,8 +5,9 @@ usually shows 50 to 250 ms sooner. There is nothing to configure.
 
 The early request can't read your app's options, so in a few setups it won't
 match and the app sends a second `/init`. Pass `initPrefetch: false` when the
-app uses `offline()` or gives `hosted()` its own `backendURL`, `initURL` or
-`headers`. If it sets `credentials`, `overrides`, `storageKey`, an
+app uses `offline()` or gives `hosted()` its own `backendURL`, `fetch`,
+`initURL` or `headers`. With its own `fetch`, `hosted()` sends `/init` through
+it and ignores the early response. If it sets `credentials`, `overrides`, `storageKey`, an
 `experiment`, or `journey: false`, pass the same values as
 `initPrefetch: { credentials, experiment, journey, overrides, storageKey }`.
 With `journey: 'tab'`, passing it too makes a tab's first `/init` report the

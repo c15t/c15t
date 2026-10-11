@@ -81,6 +81,24 @@ describe('hosted browser prefetch consumption', () => {
 		expect(fetch).toHaveBeenCalledTimes(2);
 	});
 
+	it("sends init through a custom fetch instead of using the page's response", async () => {
+		const pageFetch = vi
+			.fn()
+			.mockImplementation(() => Promise.resolve(response()));
+		vi.stubGlobal('fetch', pageFetch);
+		window.eval(buildPrefetchScript({ backendURL: '/api/c15t' }));
+		// A wrapper that signs or routes requests has to see `/init`.
+		const signed = vi
+			.fn()
+			.mockImplementation(() => Promise.resolve(response()));
+		await createHostedTransport({
+			backendURL: '/api/c15t',
+			fetch: signed,
+		}).init?.(context);
+		expect(pageFetch).toHaveBeenCalledTimes(1);
+		expect(signed).toHaveBeenCalledTimes(1);
+	});
+
 	it.each([
 		['1', 'invalid-payload'],
 		['99', 'unsupported-contract'],

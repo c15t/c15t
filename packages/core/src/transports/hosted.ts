@@ -110,6 +110,15 @@ export interface HostedTransportOptions {
 	initialData?: Promise<SSRInitialData | undefined>;
 
 	/**
+	 * Whether the first `init()` may use the response an inline `/init`
+	 * script left on the page. Defaults to `true` unless `fetch` is set: the
+	 * script sends `/init` with the global `fetch`, so a custom `fetch` that
+	 * signs, routes or instruments requests would never see it.
+	 * @internal
+	 */
+	pagePrefetch?: boolean;
+
+	/**
 	 * Decision inputs a server-side prefetch already resolved. Seeds the
 	 * assertion `POST /subjects` carries when `assertDecisionInputs` is set,
 	 * so a save made before the first client `init()` resolves is still
@@ -262,6 +271,7 @@ export const createHostedTransport = function createHostedTransport(
 
 	let pendingInit: Promise<TransportInitResponse> | undefined;
 	let { initialData } = options;
+	const pagePrefetch = options.pagePrefetch ?? options.fetch === undefined;
 
 	const prepareInit = (ctx: InitContext) => {
 		if (options.assertDecisionInputs && lastDecisionInputs) {
@@ -291,7 +301,7 @@ export const createHostedTransport = function createHostedTransport(
 		const { requestHeaders } = request;
 		const supplied =
 			initialData ??
-			(options.initURL
+			(options.initURL || !pagePrefetch
 				? undefined
 				: consumePrefetchedInitialData({
 						backendURL: base,

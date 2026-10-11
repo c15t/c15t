@@ -80,6 +80,9 @@ const fakeFetch: typeof globalThis.fetch = (input, init) => {
 const backend = () =>
 	hosted({ backendURL: 'https://consent.example.com', fetch: fakeFetch });
 
+/** `hosted()` on the global `fetch`, which a test stubs, as a page's is. */
+const pageBackend = () => hosted({ backendURL: 'https://consent.example.com' });
+
 const init = () => requests.filter((request) => request.path === '/init');
 const saves = () => requests.filter((request) => request.path === '/subjects');
 
@@ -627,7 +630,7 @@ describe('a journey a request before the runtime started', () => {
 			window.eval(
 				buildPrefetchScript({ backendURL: 'https://consent.example.com' })
 			);
-			const runtime = await load();
+			const runtime = await load({ mode: pageBackend() });
 			// The runtime took the script's response: one /init in all.
 			expect(init()).toHaveLength(1);
 			const early = init()[0]?.journey;
@@ -649,7 +652,7 @@ describe('a journey a request before the runtime started', () => {
 			window.eval(
 				buildPrefetchScript({ backendURL: 'https://consent.example.com' })
 			);
-			const runtime = await load({ journey: 'tab' });
+			const runtime = await load({ journey: 'tab', mode: pageBackend() });
 			// The script couldn't know the option; the id still links the save.
 			expect(init()).toHaveLength(1);
 			const early = init()[0]?.journey;
@@ -670,7 +673,7 @@ describe('a journey a request before the runtime started', () => {
 					journey: 'tab',
 				})
 			);
-			const runtime = await load({ journey: 'tab' });
+			const runtime = await load({ journey: 'tab', mode: pageBackend() });
 			expect(init()).toHaveLength(1);
 			const early = init()[0]?.journey;
 			expect(early?.scope).toBe('tab');
@@ -690,7 +693,7 @@ describe('a journey a request before the runtime started', () => {
 					journey: false,
 				})
 			);
-			const runtime = await load();
+			const runtime = await load({ mode: pageBackend() });
 			// The script's /init carried none, so it cannot answer this runtime.
 			expect(init()).toHaveLength(2);
 			expect(init()[0]?.journey).toBeNull();
