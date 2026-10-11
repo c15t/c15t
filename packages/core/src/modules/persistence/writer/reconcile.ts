@@ -457,12 +457,12 @@ const reconcileChoice = function reconcileChoice(
 		if (movement.removed('choice') && explicitChoice !== null) {
 			records.choice = null;
 		}
-	} else if (stored.choice) {
-		// On equal times a decision another runtime stored since this one
-		// last looked wins; otherwise the stored record is this runtime's own.
-		const merged = movement.changed('choice')
-			? merge(stored.choice, explicitChoice)
-			: merge(explicitChoice, stored.choice);
+	} else if (stored.choice && movement.changed('choice')) {
+		// An unchanged record is one this runtime already read or wrote. A
+		// server-seeded runtime read it at mount and kept only its newer
+		// denials, so merging it now would apply grants the load ignored.
+		// On equal times the decision another runtime stored wins.
+		const merged = merge(stored.choice, explicitChoice);
 		if (!sameRecord(merged, explicitChoice)) {
 			records.choice = merged;
 		}

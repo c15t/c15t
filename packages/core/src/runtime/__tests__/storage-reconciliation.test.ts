@@ -1372,3 +1372,55 @@ test('a clear after the clock went back more than an hour keeps a readable epoch
 	);
 	expect(decision(start(threeCategories), 'measurement')).toBeUndefined();
 });
+
+test('a server-seeded runtime keeps ignoring a grant only localStorage holds when it reconciles', async () => {
+	vi.useFakeTimers({ toFake: ['Date'] });
+	vi.setSystemTime(T);
+	const accepted = start();
+	await accepted.kernel.commands.save('all');
+	await nextTask();
+	accepted.dispose();
+	// The visitor deleted cookies and kept localStorage, so the server read
+	// no record and rendered the banner.
+	clearCookies();
+	expect(
+		readStoredConsentRecord(undefined, T).selected?.choice.categories
+			.measurement?.value
+	).toBe(true);
+
+	const active = start({
+		prefetch: {
+			initialPolicyResolution: resolution,
+			initialRecords: readStoredRecordsFromCookieHeader('', undefined, T),
+		},
+	});
+	expect(active.kernel.getSnapshot().explicitChoice).toBeNull();
+
+	// Switching tabs reconciles with storage, which still holds the same
+	// grant. The load ignored it, so reconciling does too.
+	window.dispatchEvent(new Event('focus'));
+	await nextTask();
+	expect(active.reconcileStorage()).toBe(false);
+	expect(active.kernel.getSnapshot().explicitChoice).toBeNull();
+	expect(measurement(active)).toBe(false);
+});
+
+test('a server-seeded runtime adopts a grant another runtime stores after it loaded', async () => {
+	vi.useFakeTimers({ toFake: ['Date'] });
+	vi.setSystemTime(T);
+	const active = start({
+		prefetch: {
+			initialPolicyResolution: resolution,
+			initialRecords: readStoredRecordsFromCookieHeader('', undefined, T),
+		},
+	});
+	expect(measurement(active)).toBe(false);
+
+	vi.setSystemTime(T + 1000);
+	const other = start();
+	await other.kernel.commands.save('all');
+	await nextTask();
+
+	active.reconcileStorage();
+	expect(measurement(active)).toBe(true);
+});
