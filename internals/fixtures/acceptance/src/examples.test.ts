@@ -434,7 +434,10 @@ for (const target of selectedTargets()) {
 				// choice is stored and applied.
 				await expect.poll(() => banner.count()).toBe(0);
 				await expect.poll(storedChoice).not.toBeNull();
-				expect(await page.locator('#c15t-early-tap').count()).toBe(0);
+				// The hiding style goes on the frame after the banner leaves.
+				await expect
+					.poll(() => page.locator('#c15t-early-tap').count())
+					.toBe(0);
 				if (choice === 'accept') {
 					await expect.poll(() => requests.posthog).toBe(1);
 					await expect.poll(() => requests.xPixel).toBe(1);
