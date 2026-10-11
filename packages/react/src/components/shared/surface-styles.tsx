@@ -24,9 +24,19 @@ const loadedCss = new Map<string, string>();
 /** Deferred sheets the server put in `<head>`, where React keeps them. */
 const hoistedInPage = new Set<string>();
 const pendingLoads = new Map<string, Promise<void>>();
+/**
+ * Deferred sheets whose last load failed. Their surfaces show without them:
+ * an unstyled consent banner beats a hidden one.
+ */
+const failedLoads = new Set<string>();
 const listeners = new Set<() => void>();
+/** Bumped on each change, so a mounted `SurfaceStyles` renders new text. */
+let sheetsVersion = 0;
+const getSheetsVersion = (): number => sheetsVersion;
+const getServerSheetsVersion = (): number => 0;
 
 const notify = function notify(): void {
+	sheetsVersion += 1;
 	for (const listener of listeners) {
 		listener();
 	}
@@ -65,7 +75,7 @@ const findInPage = function findInPage(id: string): boolean {
 };
 
 const isSheetReady = (sheet: SurfaceStyleSheet): boolean =>
-	!sheet.load || findInPage(sheet.id);
+	!sheet.load || failedLoads.has(sheet.id) || findInPage(sheet.id);
 
 const loadSheet = async function loadSheet(
 	id: string,
@@ -73,17 +83,20 @@ const loadSheet = async function loadSheet(
 ): Promise<void> {
 	try {
 		loadedCss.set(id, await load());
-		notify();
+		failedLoads.delete(id);
 	} catch (error) {
 		pendingLoads.delete(id);
+		failedLoads.add(id);
 		throw error;
+	} finally {
+		notify();
 	}
 };
 
 /**
  * Starts loading the deferred sheets the page does not hold yet. Safe to
- * call often: each sheet loads once, and a failed load is retried by the
- * next call.
+ * call often: each sheet loads once, and the next call retries a failed
+ * load.
  *
  * @internal
  */
@@ -93,7 +106,7 @@ export const preloadSurfaceSheets = async function preloadSurfaceSheets(
 	const loads: Promise<void>[] = [];
 	for (const sheet of sheets) {
 		const { id, load } = sheet;
-		if (!load || isSheetReady(sheet)) {
+		if (!load || findInPage(id)) {
 			continue;
 		}
 		let pending = pendingLoads.get(id);
@@ -106,8 +119,8 @@ export const preloadSurfaceSheets = async function preloadSurfaceSheets(
 	try {
 		await Promise.all(loads);
 	} catch {
-		// Not cached: the surface stays hidden until a later preload, such as
-		// the next surface that mounts, loads the sheet.
+		// Its surfaces show without the failed sheet, and the next preload,
+		// such as the next surface that mounts, retries it.
 	}
 };
 
@@ -188,6 +201,9 @@ export const SurfaceStyles = ({
 	noStyle?: boolean;
 }) => {
 	const { nonce } = useUIConfig();
+	// A sheet that failed to load can arrive later, under a surface that is
+	// already showing.
+	useSyncExternalStore(subscribe, getSheetsVersion, getServerSheetsVersion);
 	if (useStylesDisabled(noStyle)) {
 		return null;
 	}

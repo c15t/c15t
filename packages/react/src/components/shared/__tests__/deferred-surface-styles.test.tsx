@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { hydrateRoot } from 'react-dom/client';
 import { renderToString } from 'react-dom/server';
 import { describe, expect, test, vi } from 'vitest';
@@ -25,10 +26,12 @@ const deferredSheet = (id: string) => {
 };
 
 const Surface = ({ sheet }: { sheet: SurfaceStyleSheet }) => {
-	const ready = useSurfaceSheetsReady([sheet]);
+	// Stable, like the module-level sheet lists the stock surfaces pass.
+	const sheets = useMemo(() => [sheet], [sheet]);
+	const ready = useSurfaceSheetsReady(sheets);
 	return ready ? (
 		<>
-			<SurfaceStyles sheets={[sheet]} />
+			<SurfaceStyles sheets={sheets} />
 			<div data-testid="surface">surface</div>
 		</>
 	) : null;
@@ -118,7 +121,7 @@ describe('deferred surface sheets', () => {
 		await screen.unmount();
 	});
 
-	test('a failed sheet load is retried by the next surface that mounts', async () => {
+	test('a surface shows without a sheet that failed to load, and the next one retries it', async () => {
 		const id = 'c15t-test-retry';
 		const load = vi
 			.fn<() => Promise<string>>()
@@ -127,12 +130,16 @@ describe('deferred surface sheets', () => {
 		const sheet: SurfaceStyleSheet = { css: '', id, load };
 
 		const first = await render(<Surface sheet={sheet} />);
-		await vi.waitFor(() => expect(load).toHaveBeenCalledTimes(1));
-		expect(first.container.querySelector('[data-testid="surface"]')).toBeNull();
+		await expect.element(first.getByTestId('surface')).toBeInTheDocument();
+		expect(load).toHaveBeenCalledTimes(1);
+		expect(stylesFor(id)).toEqual([]);
 		await first.unmount();
 
 		const second = await render(<Surface sheet={sheet} />);
 		await expect.element(second.getByTestId('surface')).toBeInTheDocument();
+		await vi.waitFor(() =>
+			expect(stylesFor(id).map((element) => element.textContent)).toEqual([CSS])
+		);
 		expect(load).toHaveBeenCalledTimes(2);
 		await second.unmount();
 	});
