@@ -7,10 +7,10 @@
  *
  * - Intent: pointerenter or focus on any `ConsentButton` that opens the
  *   dialog, including the stock banner's Customize button.
- * - Idle: a few seconds after the page's load event, in browser idle time,
- *   while the banner is shown or a dialog trigger is mounted. The wait keeps
- *   the dialog out of first-load JavaScript; a visitor who opens it sooner
- *   hovers, focuses or touches the button first, which warms it at once.
+ * - Idle: in the browser's first idle period after the page's load event,
+ *   while the banner is shown or a dialog trigger is mounted. This covers a
+ *   tap, which leaves intent warming no lead time: on touch, pointerenter
+ *   fires with the tap itself.
  *
  * Module-level registry keeps banner components decoupled from the
  * aggregate exports (no context change, tree-shakes with the aggregate).
@@ -25,8 +25,8 @@ type Warmer = () => void;
 /**
  * When the deferred consent dialog starts loading before it opens.
  *
- * - `'idle'`: a few seconds after the page's load event, in browser idle
- *   time, while the banner is shown or a button that opens the dialog is
+ * - `'idle'`: in the browser's first idle period after the page's load
+ *   event, while the banner is shown or a button that opens the dialog is
  *   mounted. Also on hover or focus of such a button.
  * - `'intent'`: only on hover or focus of a button that opens the dialog.
  *
@@ -67,16 +67,8 @@ interface NetworkInformationLike {
 }
 
 const SLOW_CONNECTIONS = new Set(['slow-2g', '2g']);
-// Safari has no requestIdleCallback; a short delay stands in.
+// Safari has no requestIdleCallback; a short delay after load stands in.
 const IDLE_FALLBACK_DELAY_MS = 200;
-/**
- * How long after the load event idle warming waits. The page's own requests
- * (consent init, vendor scripts) finish first, so the dialog stays out of
- * first-load JavaScript.
- */
-const DEFAULT_IDLE_WARM_DELAY_MS = 3000;
-let idleWarmDelayMs = DEFAULT_IDLE_WARM_DELAY_MS;
-let loadedAt: number | undefined;
 
 /**
  * Idle warming spends bytes the visitor may never need, so it stays off when
@@ -112,29 +104,19 @@ const scheduleIdleWarm = function scheduleIdleWarm(): void {
 		return;
 	}
 	idleScheduled = true;
-	const inIdleTime = () => {
+	// No fixed wait after load. A tap or Enter gives intent warming almost no
+	// lead time, so a wait here adds the whole download to opens inside it
+	// (~700 ms each on Slow 4G with a 3 s wait). The cost: an image the page
+	// starts after load shares bandwidth with the chunk (~125 ms later LCP
+	// for a 159 KB hero on Slow 4G; none measurable unthrottled).
+	const afterLoad = () => {
 		if (typeof window.requestIdleCallback === 'function') {
 			window.requestIdleCallback(warmWhenIdle);
 		} else {
 			window.setTimeout(warmWhenIdle, IDLE_FALLBACK_DELAY_MS);
 		}
 	};
-	const afterLoad = () => {
-		loadedAt ??= performance.now();
-		const wait = idleWarmDelayMs - (performance.now() - loadedAt);
-		if (wait > 0) {
-			window.setTimeout(inIdleTime, wait);
-		} else {
-			inIdleTime();
-		}
-	};
 	if (document.readyState === 'complete') {
-		// Loaded before this module ran: count from the navigation's load
-		// event when the browser recorded it.
-		const [navigation] = performance.getEntriesByType(
-			'navigation'
-		) as PerformanceNavigationTiming[];
-		loadedAt ??= navigation?.loadEventEnd || performance.now();
 		afterLoad();
 	} else {
 		window.addEventListener('load', afterLoad, { once: true });
@@ -168,18 +150,13 @@ export const useIdleDialogWarming = function useIdleDialogWarming(
 };
 
 /**
- * Reset module state between tests. Idle warming waits `idleWarmDelayMs`
- * after load, `0` unless a test passes another delay.
+ * Reset module state between tests.
  *
  * @internal
  */
 export const resetDialogChunkWarmingForTests =
-	function resetDialogChunkWarmingForTests(
-		options: { idleWarmDelayMs?: number } = {}
-	): void {
+	function resetDialogChunkWarmingForTests(): void {
 		warmed = false;
 		activeGates = 0;
 		idleScheduled = false;
-		loadedAt = undefined;
-		idleWarmDelayMs = options.idleWarmDelayMs ?? 0;
 	};
