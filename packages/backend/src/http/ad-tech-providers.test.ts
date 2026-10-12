@@ -121,6 +121,23 @@ describe('resolveAdTechProviders', () => {
 		assert.strictEqual(cache.store.size, 0);
 	});
 
+	it('loads the list past a cache that throws, and serves it', async () => {
+		const { fetch, urls } = listServer();
+		const broken: CacheAdapter = {
+			delete: () => Promise.reject(new Error('cache down')),
+			get: () => Promise.reject(new Error('cache down')),
+			set: () => Promise.reject(new Error('cache down')),
+		};
+		const providers = await resolveAdTechProviders({
+			cache: broken,
+			fetch,
+			providers: [89],
+			url: 'https://lists.example/ac-broken-cache',
+		});
+		assert.deepStrictEqual(providers, [LIST.providers['89']]);
+		assert.strictEqual(urls.length, 1);
+	});
+
 	it('gives up on a stalled list instead of holding /init open', async () => {
 		const deadline = new AbortController();
 		const timeout = vi

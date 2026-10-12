@@ -72,12 +72,61 @@ export const adTechProviderCacheKey = function adTechProviderCacheKey(
 const inflight = new Map<string, Promise<AdTechProvider[] | null>>();
 
 /**
+ * Loads the list from upstream.
+ *
+ * @returns The listed providers, or null when the request fails, stalls or
+ *   answers with something other than a provider list.
+ */
+const fetchAdTechProviderList = async function fetchAdTechProviderList(
+	options: AdTechProviderOptions,
+	ids: readonly number[]
+): Promise<AdTechProvider[] | null> {
+	try {
+		const doFetch = options.fetch ?? globalThis.fetch;
+		const response = await doFetch(adTechProviderListUrl(options.url, ids), {
+			signal: adTechProviderFetchSignal(),
+		});
+		return response.ok
+			? parseAdTechProviderList(await response.json(), ids)
+			: null;
+	} catch {
+		return null;
+	}
+};
+
+/** A cache read that throws counts as a miss. */
+const readCachedProviders = async function readCachedProviders(
+	cache: CacheAdapter | undefined,
+	key: string
+): Promise<AdTechProvider[] | null> {
+	try {
+		return (await cache?.get<AdTechProvider[]>(key)) ?? null;
+	} catch {
+		return null;
+	}
+};
+
+/** A cache write that throws costs the next request a fetch, nothing more. */
+const cacheProviders = async function cacheProviders(
+	options: AdTechProviderOptions,
+	key: string,
+	providers: AdTechProvider[]
+): Promise<void> {
+	try {
+		await options.cache?.set(key, providers, options.ttlMs ?? DEFAULT_TTL_MS);
+	} catch {
+		// The list just fetched is still served.
+	}
+};
+
+/**
  * Fetches names and privacy policy links for the configured providers, from
  * cache where possible.
  *
  * Returns null rather than throwing when the upstream is unavailable: the
  * AC string only supplements the TC string, and a thrown error would fail
- * `/init` and leave the visitor with no consent UI at all.
+ * `/init` and leave the visitor with no consent UI at all. For the same
+ * reason a broken cache only costs a fetch.
  *
  * @param options - Providers and endpoint from the manifest, plus loading options.
  * @returns The listed providers sorted by ID, `[]` when none of the
@@ -92,7 +141,7 @@ export const resolveAdTechProviders = async function resolveAdTechProviders(
 	}
 	const key = adTechProviderCacheKey(options.url, ids);
 
-	const cached = await options.cache?.get<AdTechProvider[]>(key);
+	const cached = await readCachedProviders(options.cache, key);
 	if (cached) {
 		return cached;
 	}
@@ -103,24 +152,11 @@ export const resolveAdTechProviders = async function resolveAdTechProviders(
 
 	const request = (async () => {
 		try {
-			const doFetch = options.fetch ?? globalThis.fetch;
-			const response = await doFetch(adTechProviderListUrl(options.url, ids), {
-				signal: adTechProviderFetchSignal(),
-			});
-			if (!response.ok) {
-				return null;
-			}
-			const providers = parseAdTechProviderList(await response.json(), ids);
+			const providers = await fetchAdTechProviderList(options, ids);
 			if (providers) {
-				await options.cache?.set(
-					key,
-					providers,
-					options.ttlMs ?? DEFAULT_TTL_MS
-				);
+				await cacheProviders(options, key, providers);
 			}
 			return providers;
-		} catch {
-			return null;
 		} finally {
 			inflight.delete(key);
 		}
