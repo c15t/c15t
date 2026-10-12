@@ -4,9 +4,12 @@
  * matched an IAB policy.
  */
 
-import { policyRulePresets } from '@c15t/schema/types';
+import {
+	AD_TECH_PROVIDER_FETCH_TIMEOUT_MS,
+	policyRulePresets,
+} from '@c15t/schema/types';
 import type { ConsentManifestConfig } from '@c15t/schema/types';
-import { assert, describe, it } from 'vitest';
+import { afterEach, assert, describe, expect, it, vi } from 'vitest';
 
 import { resolveAdTechProviders } from './ad-tech-providers';
 import type { CacheAdapter } from './gvl';
@@ -61,6 +64,10 @@ const memoryCache = (): CacheAdapter & { store: Map<string, unknown> } => {
 };
 
 describe('resolveAdTechProviders', () => {
+	afterEach(() => {
+		vi.restoreAllMocks();
+	});
+
 	it('keeps configured providers Google lists, sorted by ID', async () => {
 		const { fetch, urls } = listServer();
 		const providers = await resolveAdTechProviders({
@@ -111,6 +118,34 @@ describe('resolveAdTechProviders', () => {
 				url,
 			})
 		);
+		assert.strictEqual(cache.store.size, 0);
+	});
+
+	it('gives up on a stalled list instead of holding /init open', async () => {
+		const deadline = new AbortController();
+		const timeout = vi
+			.spyOn(AbortSignal, 'timeout')
+			.mockReturnValue(deadline.signal);
+		const stalled = ((_input: RequestInfo | URL, init?: RequestInit) =>
+			new Promise<Response>((_resolve, reject) => {
+				init?.signal?.addEventListener('abort', () =>
+					reject(init.signal?.reason)
+				);
+			})) as typeof globalThis.fetch;
+		const cache = memoryCache();
+		const pending = resolveAdTechProviders({
+			cache,
+			fetch: stalled,
+			providers: [89],
+			url: 'https://lists.example/ac-stalled',
+		});
+		await vi.waitFor(() =>
+			expect(timeout).toHaveBeenCalledWith(AD_TECH_PROVIDER_FETCH_TIMEOUT_MS)
+		);
+		deadline.abort(
+			new DOMException('The operation timed out.', 'TimeoutError')
+		);
+		assert.isNull(await pending);
 		assert.strictEqual(cache.store.size, 0);
 	});
 });

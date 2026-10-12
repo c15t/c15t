@@ -12,6 +12,7 @@
 import type { AdTechProvider } from '@c15t/core';
 import {
 	AD_TECH_PROVIDERS_URL,
+	adTechProviderFetchSignal,
 	adTechProviderListUrl,
 	normalizeAdTechProviderIds,
 	parseAdTechProviderList,
@@ -181,7 +182,9 @@ export const fetchAdTechProviders = function fetchAdTechProviders(
 	}
 	const request = (async () => {
 		try {
-			const response = await fetch(requestUrl);
+			const response = await fetch(requestUrl, {
+				signal: adTechProviderFetchSignal(),
+			});
 			if (!response.ok) {
 				throw new Error(
 					`Failed to fetch ad tech providers: ${response.status} ${response.statusText}`

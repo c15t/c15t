@@ -187,8 +187,10 @@ export {
 } from './shared/client-ip';
 // Google Additional Consent providers - ad tech outside the GVL
 export {
+	AD_TECH_PROVIDER_FETCH_TIMEOUT_MS,
 	AD_TECH_PROVIDERS_URL,
 	type AdTechProvider,
+	adTechProviderFetchSignal,
 	adTechProviderListUrl,
 	adTechProviderSchema,
 	normalizeAdTechProviderIds,

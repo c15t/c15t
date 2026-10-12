@@ -2,6 +2,7 @@
 import { createConsentKernel } from '@c15t/core';
 import type { ConsentKernel } from '@c15t/core';
 import {
+	AD_TECH_PROVIDER_FETCH_TIMEOUT_MS,
 	createPolicyRuleFingerprints,
 	normalizePolicyRule,
 } from '@c15t/schema/types';
@@ -92,7 +93,8 @@ describe('provider list', () => {
 		expect(first).toEqual(second);
 		expect(fetchMock).toHaveBeenCalledTimes(1);
 		expect(fetchMock).toHaveBeenCalledWith(
-			'https://lists.example/ac?providerIds=89%2C2577'
+			'https://lists.example/ac?providerIds=89%2C2577',
+			{ signal: expect.any(AbortSignal) }
 		);
 		vi.unstubAllGlobals();
 	});
@@ -189,7 +191,8 @@ describe('createIAB with Additional Consent', () => {
 			kernel.getSnapshot().iab?.adTechProviders?.map(({ id }) => id)
 		).toEqual([89, 2577]);
 		expect(fetchMock).toHaveBeenCalledWith(
-			'https://lists.example/ac?providerIds=89%2C404%2C2577'
+			'https://lists.example/ac?providerIds=89%2C404%2C2577',
+			{ signal: expect.any(AbortSignal) }
 		);
 	});
 
@@ -302,6 +305,43 @@ describe('createIAB with Additional Consent', () => {
 		expect(warn).toHaveBeenCalledWith(
 			expect.stringContaining('Additional Consent is off'),
 			expect.any(Error)
+		);
+	});
+
+	test('a provider list that stalls gives up and lets the save through', async () => {
+		const deadline = new AbortController();
+		const timeout = vi
+			.spyOn(AbortSignal, 'timeout')
+			.mockReturnValue(deadline.signal);
+		fetchMock.mockImplementation(
+			(_url: string, init?: RequestInit) =>
+				new Promise<Response>((_resolve, reject) => {
+					init?.signal?.addEventListener('abort', () =>
+						reject(init.signal?.reason)
+					);
+				})
+		);
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+		const kernel = makeKernel();
+		const addon = createIAB({
+			additionalConsent: { providers: [89], url: 'https://lists.example/ac' },
+			cmpId: 28,
+			gvl: completeGVL,
+			kernel,
+		});
+		disposers.push(addon.dispose);
+		await vi.waitFor(() => expect(fetchMock).toHaveBeenCalled());
+		deadline.abort(
+			new DOMException('The operation timed out.', 'TimeoutError')
+		);
+		await addon.whenReady();
+		addon.acceptAll();
+		await addon.save();
+		expect(timeout).toHaveBeenCalledWith(AD_TECH_PROVIDER_FETCH_TIMEOUT_MS);
+		expect((await tcData()).tcString).not.toBe('');
+		expect(warn).toHaveBeenCalledWith(
+			expect.stringContaining('Additional Consent is off'),
+			expect.anything()
 		);
 	});
 

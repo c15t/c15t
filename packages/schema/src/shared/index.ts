@@ -100,8 +100,10 @@ export {
 	gvlVendorUrlSchema,
 } from './gvl';
 export {
+	AD_TECH_PROVIDER_FETCH_TIMEOUT_MS,
 	AD_TECH_PROVIDERS_URL,
 	type AdTechProvider,
+	adTechProviderFetchSignal,
 	adTechProviderListUrl,
 	adTechProviderSchema,
 	MAX_AD_TECH_PROVIDER_QUERY_IDS,

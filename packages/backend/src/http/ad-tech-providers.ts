@@ -14,6 +14,7 @@
  */
 
 import {
+	adTechProviderFetchSignal,
 	adTechProviderListUrl,
 	normalizeAdTechProviderIds,
 	parseAdTechProviderList,
@@ -103,7 +104,9 @@ export const resolveAdTechProviders = async function resolveAdTechProviders(
 	const request = (async () => {
 		try {
 			const doFetch = options.fetch ?? globalThis.fetch;
-			const response = await doFetch(adTechProviderListUrl(options.url, ids));
+			const response = await doFetch(adTechProviderListUrl(options.url, ids), {
+				signal: adTechProviderFetchSignal(),
+			});
 			if (!response.ok) {
 				return null;
 			}

@@ -9,6 +9,7 @@
  * field out and the consent surface still renders.
  */
 import {
+	adTechProviderFetchSignal,
 	adTechProviderListUrl,
 	normalizeAdTechProviderIds,
 	parseAdTechProviderList,
@@ -77,7 +78,11 @@ export const fetchCachedAdTechProviders = function fetchCachedAdTechProviders(
 		try {
 			const response = await options.fetch(
 				adTechProviderListUrl(options.reference.url, ids),
-				{ headers: options.headers, method: 'GET' }
+				{
+					headers: options.headers,
+					method: 'GET',
+					signal: adTechProviderFetchSignal(),
+				}
 			);
 			const providers = response.ok
 				? parseAdTechProviderList(await response.json(), ids)

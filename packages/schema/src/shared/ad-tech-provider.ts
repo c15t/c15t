@@ -40,6 +40,30 @@ export const AD_TECH_PROVIDERS_URL = 'https://gvl.inth.app/additional-consent';
 export const MAX_AD_TECH_PROVIDER_QUERY_IDS = 500;
 
 /**
+ * How long a provider list request may take before it is aborted. The list
+ * only supplements the TC String, so a stalled endpoint must not hold `/init`
+ * or a consent save open: an aborted request takes the same path as a failed
+ * one.
+ */
+export const AD_TECH_PROVIDER_FETCH_TIMEOUT_MS = 5000;
+
+/**
+ * A signal that aborts a provider list request after
+ * {@link AD_TECH_PROVIDER_FETCH_TIMEOUT_MS}.
+ *
+ * @returns The signal, or `undefined` where the runtime has no
+ *   `AbortSignal.timeout`.
+ */
+export const adTechProviderFetchSignal = function adTechProviderFetchSignal():
+	| AbortSignal
+	| undefined {
+	return typeof AbortSignal !== 'undefined' &&
+		typeof AbortSignal.timeout === 'function'
+		? AbortSignal.timeout(AD_TECH_PROVIDER_FETCH_TIMEOUT_MS)
+		: undefined;
+};
+
+/**
  * Distinct positive integer IDs, ascending.
  *
  * @param ids - Configured provider IDs.
