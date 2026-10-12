@@ -1,3 +1,11 @@
+## @c15t/ui@3.0.0
+
+### c15t v3
+
+c15t v3 is stable and published under the `latest` tag. See the
+[3.0.0 changelog](https://c15t.com/changelog/3.0.0) for new features, breaking
+changes and upgrade guides.
+
 ## @c15t/ui@3.0.0-alpha.12 (alpha)
 
 ### Let clicks through the banner's empty space and lower its z-index

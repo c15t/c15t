@@ -1,159 +1,187 @@
 c15t:release:
-  - branch: v3
-    id: npm:c15t
-    version: 3.0.0-alpha.12
-  - branch: v3
-    id: npm:@c15t/nextjs
-    version: 3.0.0-alpha.12
-  - branch: v3
-    id: npm:@c15t/schema
-    version: 3.0.0-alpha.9
-  - branch: v3
-    id: npm:@c15t/react
-    version: 3.0.0-alpha.12
-  - branch: v3
-    id: npm:@c15t/cli
-    version: 3.0.0-alpha.12
-  - branch: v3
-    id: npm:@c15t/tanstack-start
-    version: 3.0.0-alpha.12
-  - branch: v3
-    id: npm:@c15t/core
-    version: 3.0.0-alpha.11
-  - branch: v3
-    id: npm:@c15t/translations
-    version: 3.0.0-alpha.6
-  - branch: v3
-    id: npm:@c15t/scripts
-    version: 3.0.0-alpha.10
-  - branch: v3
-    id: npm:@c15t/svelte
-    version: 3.0.0-alpha.12
-  - branch: v3
-    id: npm:@c15t/node-sdk
-    version: 3.0.0-alpha.11
-  - branch: v3
-    id: npm:@c15t/astro
-    version: 3.0.0-alpha.12
-  - branch: v3
-    id: npm:@c15t/ui
-    version: 3.0.0-alpha.12
-  - branch: v3
-    id: npm:@c15t/browser
-    version: 3.0.0-alpha.12
-  - branch: v3
-    id: npm:@c15t/iab
-    version: 3.0.0-alpha.11
-  - branch: v3
-    id: npm:@c15t/vue
-    version: 3.0.0-alpha.12
-  - branch: v3
-    id: npm:@c15t/logger
-    version: 3.0.0-alpha.1
-  - branch: v3
-    id: npm:@c15t/backend
-    version: 3.0.0-alpha.12
-  - branch: v3
-    id: npm:@c15t/integrations
-    version: 3.0.0-alpha.11
-  - branch: v3
+  - branch: main
     id: npm:@c15t/dev-tools
-    version: 3.0.0-alpha.11
+    version: 3.0.0
+  - branch: main
+    id: npm:@c15t/logger
+    version: 3.0.0
+  - branch: main
+    id: npm:@c15t/backend
+    version: 3.0.0
+  - branch: main
+    id: npm:@c15t/integrations
+    version: 3.0.0
+  - branch: main
+    id: npm:@c15t/vue
+    version: 3.0.0
+  - branch: main
+    id: npm:@c15t/svelte
+    version: 3.0.0
+  - branch: main
+    id: npm:@c15t/node-sdk
+    version: 3.0.0
+  - branch: main
+    id: npm:@c15t/astro
+    version: 3.0.0
+  - branch: main
+    id: npm:@c15t/ui
+    version: 3.0.0
+  - branch: main
+    id: npm:@c15t/scripts
+    version: 3.0.0
+  - branch: main
+    id: npm:@c15t/browser
+    version: 3.0.0
+  - branch: main
+    id: npm:@c15t/iab
+    version: 3.0.0
+  - branch: main
+    id: npm:c15t
+    version: 3.0.0
+  - branch: main
+    id: npm:@c15t/nextjs
+    version: 3.0.0
+  - branch: main
+    id: npm:@c15t/schema
+    version: 3.0.0
+  - branch: main
+    id: npm:@c15t/react
+    version: 3.0.0
+  - branch: main
+    id: npm:@c15t/cli
+    version: 3.0.0
+  - branch: main
+    id: npm:@c15t/tanstack-start
+    version: 3.0.0
+  - branch: main
+    id: npm:@c15t/core
+    version: 3.0.0
+  - branch: main
+    id: npm:@c15t/translations
+    version: 3.0.0
 core:changelogs:
-  - content: "---\npackages:\n  \"@c15t/ui\":\n    type: minor\n  \"@c15t/react\":\n    type: patch\n  \"@c15t/nextjs\":\n    type: patch\n  \"@c15t/tanstack-start\":\n    type: patch\n  \"@c15t/browser\":\n    type: patch\n  c15t:\n    type: patch\n---\n\n### Let clicks through the banner's empty space and lower its z-index\n\nA non-blocking banner no longer swallows clicks outside its card. The padding around a floating card and the strip beside the \"Secured by\" tag on a bar were part of the banner's fixed box, so page links and buttons under them did nothing. Clicks there now reach the page. The card and tag still take clicks, and a blocking banner still catches all of them.\n\nSet `--consent-banner-z-index` and `--consent-banner-overlay-z-index` to put a navbar, drawer or chat widget above the banner. The IAB banner takes `--iab-consent-banner-z-index` and `--iab-consent-banner-overlay-z-index`. Defaults are unchanged.\n\nA top bar now pads its card by `env(safe-area-inset-top)`, as a bottom bar already did for the bottom inset, so its content clears the notch on pages that set `viewport-fit=cover`.\n"
-    filename: 2026-10-11-banner-click-through-and-stacking.md
+  - content: "---\npackages:\n  c15t:\n    type: major\n  \"@c15t/astro\":\n    type: major\n  \"@c15t/backend\":\n    type: major\n  \"@c15t/browser\":\n    type: major\n  \"@c15t/cli\":\n    type: major\n  \"@c15t/core\":\n    type: major\n  \"@c15t/dev-tools\":\n    type: major\n  \"@c15t/iab\":\n    type: major\n  \"@c15t/integrations\":\n    type: major\n  \"@c15t/logger\":\n    type: major\n  \"@c15t/nextjs\":\n    type: major\n  \"@c15t/node-sdk\":\n    type: major\n  \"@c15t/react\":\n    type: major\n  \"@c15t/schema\":\n    type: major\n  \"@c15t/scripts\":\n    type: major\n  \"@c15t/svelte\":\n    type: major\n  \"@c15t/tanstack-start\":\n    type: major\n  \"@c15t/translations\":\n    type: major\n  \"@c15t/ui\":\n    type: major\n  \"@c15t/vue\":\n    type: major\n---\n\n### c15t v3\n\nc15t v3 is stable and published under the `latest` tag. See the\n[3.0.0 changelog](https://c15t.com/changelog/3.0.0) for new features, breaking\nchanges and upgrade guides.\n"
+    filename: 2026-10-12-c15t-3.md
     v: 0.0.0
 core:packages:
   - changelogIds:
-      - 2026-10-11-banner-click-through-and-stacking.md
-    id: npm:c15t
-    updated: true
-  - changelogIds:
-      - 2026-10-11-banner-click-through-and-stacking.md
-    id: npm:@c15t/nextjs
-    updated: true
-  - id: npm:@c15t/schema
-    updated: false
-  - changelogIds:
-      - 2026-10-11-banner-click-through-and-stacking.md
-    id: npm:@c15t/react
-    updated: true
-  - id: npm:@c15t/cli
-    updated: true
-  - changelogIds:
-      - 2026-10-11-banner-click-through-and-stacking.md
-    id: npm:@c15t/tanstack-start
-    updated: true
-  - id: npm:@c15t/core
-    updated: false
-  - id: npm:@c15t/translations
-    updated: false
-  - id: npm:@c15t/scripts
-    updated: false
-  - id: npm:@c15t/svelte
-    updated: true
-  - id: npm:@c15t/node-sdk
-    updated: false
-  - id: npm:@c15t/astro
-    updated: true
-  - changelogIds:
-      - 2026-10-11-banner-click-through-and-stacking.md
-    id: npm:@c15t/ui
-    updated: true
-  - changelogIds:
-      - 2026-10-11-banner-click-through-and-stacking.md
-    id: npm:@c15t/browser
-    updated: true
-  - id: npm:@c15t/iab
-    updated: false
-  - id: npm:@c15t/vue
-    updated: true
-  - id: npm:@c15t/logger
-    updated: false
-  - id: npm:@c15t/backend
-    updated: true
-  - id: npm:@c15t/integrations
-    updated: false
-  - id: npm:@c15t/dev-tools
-    updated: false
-npm:packages:
-  - distTag: alpha
-    id: npm:c15t
-  - distTag: alpha
-    id: npm:@c15t/nextjs
-  - distTag: alpha
-    id: npm:@c15t/react
-  - distTag: alpha
-    id: npm:@c15t/cli
-  - distTag: alpha
-    id: npm:@c15t/tanstack-start
-  - distTag: alpha
-    id: npm:@c15t/core
-  - distTag: alpha
-    id: npm:@c15t/translations
-  - distTag: alpha
-    id: npm:@c15t/node-sdk
-  - distTag: alpha
-    id: npm:@c15t/iab
-  - distTag: alpha
-    id: npm:@c15t/backend
-  - distTag: alpha
-    id: npm:@c15t/integrations
-  - distTag: alpha
+      - 2026-10-12-c15t-3.md
     id: npm:@c15t/dev-tools
-  - distTag: alpha
-    id: npm:@c15t/schema
-  - distTag: alpha
-    id: npm:@c15t/scripts
-  - distTag: alpha
-    id: npm:@c15t/svelte
-  - distTag: alpha
-    id: npm:@c15t/astro
-  - distTag: alpha
-    id: npm:@c15t/ui
-  - distTag: alpha
-    id: npm:@c15t/browser
-  - distTag: alpha
+    updated: true
+  - changelogIds:
+      - 2026-10-12-c15t-3.md
+    id: npm:@c15t/logger
+    updated: true
+  - changelogIds:
+      - 2026-10-12-c15t-3.md
+    id: npm:@c15t/backend
+    updated: true
+  - changelogIds:
+      - 2026-10-12-c15t-3.md
+    id: npm:@c15t/integrations
+    updated: true
+  - changelogIds:
+      - 2026-10-12-c15t-3.md
     id: npm:@c15t/vue
-  - distTag: alpha
+    updated: true
+  - changelogIds:
+      - 2026-10-12-c15t-3.md
+    id: npm:@c15t/svelte
+    updated: true
+  - changelogIds:
+      - 2026-10-12-c15t-3.md
+    id: npm:@c15t/node-sdk
+    updated: true
+  - changelogIds:
+      - 2026-10-12-c15t-3.md
+    id: npm:@c15t/astro
+    updated: true
+  - changelogIds:
+      - 2026-10-12-c15t-3.md
+    id: npm:@c15t/ui
+    updated: true
+  - changelogIds:
+      - 2026-10-12-c15t-3.md
+    id: npm:@c15t/scripts
+    updated: true
+  - changelogIds:
+      - 2026-10-12-c15t-3.md
+    id: npm:@c15t/browser
+    updated: true
+  - changelogIds:
+      - 2026-10-12-c15t-3.md
+    id: npm:@c15t/iab
+    updated: true
+  - changelogIds:
+      - 2026-10-12-c15t-3.md
+    id: npm:c15t
+    updated: true
+  - changelogIds:
+      - 2026-10-12-c15t-3.md
+    id: npm:@c15t/nextjs
+    updated: true
+  - changelogIds:
+      - 2026-10-12-c15t-3.md
+    id: npm:@c15t/schema
+    updated: true
+  - changelogIds:
+      - 2026-10-12-c15t-3.md
+    id: npm:@c15t/react
+    updated: true
+  - changelogIds:
+      - 2026-10-12-c15t-3.md
+    id: npm:@c15t/cli
+    updated: true
+  - changelogIds:
+      - 2026-10-12-c15t-3.md
+    id: npm:@c15t/tanstack-start
+    updated: true
+  - changelogIds:
+      - 2026-10-12-c15t-3.md
+    id: npm:@c15t/core
+    updated: true
+  - changelogIds:
+      - 2026-10-12-c15t-3.md
+    id: npm:@c15t/translations
+    updated: true
+npm:packages:
+  - distTag: latest
+    id: npm:@c15t/dev-tools
+  - distTag: latest
+    id: npm:@c15t/vue
+  - distTag: latest
+    id: npm:c15t
+  - distTag: latest
+    id: npm:@c15t/svelte
+  - distTag: latest
+    id: npm:@c15t/astro
+  - distTag: latest
+    id: npm:@c15t/browser
+  - distTag: latest
+    id: npm:@c15t/backend
+  - distTag: latest
+    id: npm:@c15t/cli
+  - distTag: latest
+    id: npm:@c15t/react
+  - distTag: latest
+    id: npm:@c15t/nextjs
+  - distTag: latest
+    id: npm:@c15t/tanstack-start
+  - distTag: latest
+    id: npm:@c15t/integrations
+  - distTag: latest
+    id: npm:@c15t/scripts
+  - distTag: latest
+    id: npm:@c15t/node-sdk
+  - distTag: latest
+    id: npm:@c15t/iab
+  - distTag: latest
+    id: npm:@c15t/core
+  - distTag: latest
+    id: npm:@c15t/ui
+  - distTag: latest
+    id: npm:@c15t/translations
+  - distTag: latest
+    id: npm:@c15t/schema
+  - distTag: latest
     id: npm:@c15t/logger
