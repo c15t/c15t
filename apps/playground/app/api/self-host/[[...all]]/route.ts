@@ -15,7 +15,7 @@ const handleRequest = (request: NextRequest) => {
 		request.headers.get(DEMO_SCENARIO_HEADER) ??
 		request.nextUrl.searchParams.get('scenario') ??
 		DEFAULT_SCENARIO_ID;
-	return createDemoInstance(scenario).handler(request);
+	return createDemoInstance(scenario, request.nextUrl.origin).handler(request);
 };
 
 export {

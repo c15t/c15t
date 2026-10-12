@@ -4,7 +4,7 @@ import { createUpstashRedisAdapter } from '@c15t/backend/cache';
 
 import { DEMO_LEGAL_DOCUMENT_SNAPSHOT } from './demo-legal-document-snapshot';
 import {
-	DEFAULT_SCENARIO_ID,
+	DEMO_ADDITIONAL_CONSENT,
 	DEMO_CMP_ID,
 	DEMO_CUSTOM_VENDORS,
 	DEMO_IAB_VENDOR_IDS,
@@ -37,7 +37,8 @@ export const DEMO_TERMS_RELEASE = {
 };
 
 export const createDemoInstance = function createDemoInstance(
-	scenario = DEFAULT_SCENARIO_ID
+	scenario: string,
+	origin: string
 ) {
 	const gvlCache =
 		process.env.REDIS_URL && process.env.REDIS_TOKEN
@@ -64,6 +65,13 @@ export const createDemoInstance = function createDemoInstance(
 				messages: demoI18nMessages,
 			},
 			iab: {
+				// Resolved server-side and served on /init, like the vendor list.
+				// The playground serves Google's list itself until
+				// gvl.inth.app does, and a server fetch needs an absolute URL.
+				additionalConsent: {
+					endpoint: new URL(DEMO_ADDITIONAL_CONSENT.url, origin).toString(),
+					providers: DEMO_ADDITIONAL_CONSENT.providers,
+				},
 				cmpId: DEMO_CMP_ID,
 				customVendors: DEMO_CUSTOM_VENDORS,
 				enabled: true,
