@@ -350,14 +350,16 @@ export const createIABPreferences = (
 	// Google Additional Consent providers: few, outside the TCF, and listed
 	// with the privacy policy the spec requires before they count as shown.
 	const providerList = h('div', { class: css(styles.vendorSection) });
-	const renderAdTechProviders = (query: string): void => {
+	// Returns how many providers match, all of which it shows: the list is
+	// short enough that it never pages.
+	const renderAdTechProviders = (query: string): number => {
 		providerList.replaceChildren();
 		const shown = (snapshot.iab?.adTechProviders ?? []).filter((provider) =>
 			provider.name.toLocaleLowerCase().includes(query)
 		);
 		providerList.hidden = shown.length === 0;
 		if (shown.length === 0) {
-			return;
+			return 0;
 		}
 		const { vendorList } = t.preferenceCenter;
 		providerList.append(
@@ -418,6 +420,7 @@ export const createIABPreferences = (
 				)
 			);
 		}
+		return shown.length;
 	};
 	const search = h('input', {
 		'aria-label': t.preferenceCenter.vendorList.search,
@@ -444,11 +447,14 @@ export const createIABPreferences = (
 		const filtered = vendorRows.filter((vendor) =>
 			vendor.name.toLocaleLowerCase().includes(query)
 		);
+		const providers = renderAdTechProviders(query);
 		count.textContent = t.preferenceCenter.vendorList.showingCount
-			.replace('{filtered}', String(Math.min(limit, filtered.length)))
-			.replace('{total}', String(filtered.length));
+			.replace(
+				'{filtered}',
+				String(Math.min(limit, filtered.length) + providers)
+			)
+			.replace('{total}', String(filtered.length + providers));
 		more.hidden = filtered.length <= limit;
-		renderAdTechProviders(query);
 		for (const vendor of filtered.slice(0, limit)) {
 			const id = String(vendor.id);
 			const custom = snapshot.iab?.customVendors.some(

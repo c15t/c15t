@@ -63,6 +63,16 @@ it('lists Google ad tech providers with their privacy policy and a consent switc
 		'https://ads.example/privacy'
 	);
 	expect(root?.textContent).toContain('Google Ad Tech Providers (1)');
+	const count = root?.querySelector('p[aria-live="polite"]');
+	expect(count?.textContent).toBe(
+		`${Math.min(50, vendorCount) + 1} of ${vendorCount + 1} vendors`
+	);
+	const search = root?.querySelector<HTMLInputElement>('input[type="search"]');
+	if (search) {
+		search.value = 'example ad tech';
+		search.dispatchEvent(new Event('input'));
+	}
+	expect(count?.textContent).toBe('1 of 1 vendors');
 
 	row
 		?.querySelector<HTMLButtonElement>(
