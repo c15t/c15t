@@ -43,7 +43,9 @@ describe('mixpanelAnalytics', () => {
 
 		const mixpanel = globalRef.mixpanel as Window['mixpanel'];
 		expect(mixpanel?.__SV).toBe(1.2);
-		expect(mixpanel?._i).toEqual([[MOCK_MIXPANEL_TOKEN, {}, 'mixpanel']]);
+		expect(mixpanel?._i).toEqual([
+			[MOCK_MIXPANEL_TOKEN, { opt_out_tracking_by_default: true }, 'mixpanel'],
+		]);
 	});
 
 	it('logs and skips the script for blank or malformed tokens', () => {
@@ -74,7 +76,30 @@ describe('mixpanelAnalytics', () => {
 		);
 
 		expect((globalRef.mixpanel as Window['mixpanel'])?._i).toEqual([
-			[MOCK_MIXPANEL_TOKEN, { debug: true }, 'mixpanel'],
+			[
+				MOCK_MIXPANEL_TOKEN,
+				{ debug: true, opt_out_tracking_by_default: true },
+				'mixpanel',
+			],
+		]);
+	});
+
+	it('lets init options turn off opt_out_tracking_by_default', () => {
+		const globalRef = getTestGlobal();
+		const script = mixpanelAnalytics({
+			initOptions: { opt_out_tracking_by_default: false },
+			token: MOCK_MIXPANEL_TOKEN,
+		});
+
+		script.onBeforeLoad?.(
+			createCallbackInfo({
+				consents: deniedConsentState,
+				id: script.id,
+			})
+		);
+
+		expect((globalRef.mixpanel as Window['mixpanel'])?._i).toEqual([
+			[MOCK_MIXPANEL_TOKEN, { opt_out_tracking_by_default: false }, 'mixpanel'],
 		]);
 	});
 

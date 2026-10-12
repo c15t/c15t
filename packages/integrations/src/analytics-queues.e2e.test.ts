@@ -159,7 +159,11 @@ describe('analytics queue contracts', () => {
 		expect(queueBeforeLoad).toEqual([['track', 'Signup', { plan: 'pro' }]]);
 		expect(snippetVersion).toBe(1.2);
 		expect(pendingInits).toEqual([
-			['1234567890abcdef1234567890abcdef', { debug: true }, 'mixpanel'],
+			[
+				'1234567890abcdef1234567890abcdef',
+				{ debug: true, opt_out_tracking_by_default: true },
+				'mixpanel',
+			],
 		]);
 		expect(queueAfterLoad).toEqual([
 			['track', 'Signup', { plan: 'pro' }],
