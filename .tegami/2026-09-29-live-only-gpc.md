@@ -1,47 +1,8 @@
 ---
 packages:
-  c15t:
-    replay:
-      - exit-prerelease(npm:c15t)
-  "@c15t/core":
-    replay:
-      - exit-prerelease(npm:@c15t/core)
-  "@c15t/react":
-    replay:
-      - exit-prerelease(npm:@c15t/react)
-  "@c15t/vue":
-    replay:
-      - exit-prerelease(npm:@c15t/vue)
-  "@c15t/svelte":
-    replay:
-      - exit-prerelease(npm:@c15t/svelte)
-  "@c15t/nextjs":
-    replay:
-      - exit-prerelease(npm:@c15t/nextjs)
-  "@c15t/tanstack-start":
-    replay:
-      - exit-prerelease(npm:@c15t/tanstack-start)
-  "@c15t/astro":
-    replay:
-      - exit-prerelease(npm:@c15t/astro)
-  "@c15t/browser":
-    replay:
-      - exit-prerelease(npm:@c15t/browser)
-  "@c15t/dev-tools":
-    replay:
-      - exit-prerelease(npm:@c15t/dev-tools)
-  "@c15t/cli":
-    replay:
-      - exit-prerelease(npm:@c15t/cli)
   "@c15t/react-native":
     replay:
       - exit-prerelease(npm:@c15t/react-native)
-  "@c15t/schema":
-    replay:
-      - exit-prerelease(npm:@c15t/schema)
-  "@c15t/backend":
-    replay:
-      - exit-prerelease(npm:@c15t/backend)
 ---
 
 ### Read GPC live instead of storing standing opt-outs
