@@ -1,3 +1,11 @@
+## @c15t/vue@3.0.0
+
+### c15t v3
+
+c15t v3 is stable and published under the `latest` tag. See the
+[3.0.0 changelog](https://c15t.com/changelog/3.0.0) for new features, breaking
+changes and upgrade guides.
+
 ## @c15t/vue@3.0.0-alpha.10 (alpha)
 
 ### Make IAB TCF opt-in for Vue and Nuxt
