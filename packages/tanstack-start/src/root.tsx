@@ -73,7 +73,7 @@ export interface ConsentRootProps {
 	 * its own switch, so a visitor can grant a category and still turn one
 	 * vendor off. Scripts, network rules and iframes naming a vendor's
 	 * `id` follow that choice. Merged with vendors the backend declares.
-	 * See the granular consent guide.
+	 * Optional: most sites need only categories. See the vendor consent guide.
 	 */
 	vendors?: Vendor[];
 
