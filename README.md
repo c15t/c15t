@@ -1,8 +1,8 @@
 <p align="center">
   <a href="https://c15t.com?utm_source=github&utm_medium=repo_homepage" target="_blank" rel="noopener noreferrer">
     <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="docs/assets/c15t-banner-readme-dark.svg" type="image/svg+xml">
-      <img src="docs/assets/c15t-banner-readme-light.svg" alt="c15t Banner" type="image/svg+xml">
+      <source media="(prefers-color-scheme: dark)" srcset="docs/assets/c15t-banner-readme-dark.png">
+      <img src="docs/assets/c15t-banner-readme-light.png" alt="c15t: the open standard for cookie banners">
     </picture>
   </a>
 </p>
