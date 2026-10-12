@@ -1,5 +1,6 @@
 import { execFileSync, spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
+import { runInNewContext } from 'node:vm';
 
 import { describe, expect, it } from 'vitest';
 
@@ -111,7 +112,6 @@ describe('release validation', () => {
 						group: `release-\${{ github.ref }}`,
 						queue: 'max',
 					},
-					if: "github.repository == 'c15t/c15t'",
 					needs: 'checks',
 					// The tip check runs inside the release group, right before
 					// Tegami, so a newer push that lands while this job waits stops it.
@@ -133,6 +133,63 @@ describe('release validation', () => {
 			},
 		});
 	});
+
+	it('requires an explicit manual opt-in to bypass release CI', () => {
+		expect(readWorkflow('release')).toMatchObject({
+			jobs: { publish: { needs: 'checks' } },
+			on: {
+				push: { branches: ['main', 'canary', '2.0.0', 'v3'] },
+				workflow_dispatch: {
+					inputs: { skip_tests: { default: false, type: 'boolean' } },
+				},
+			},
+		});
+	});
+
+	it.each([
+		{ eventName: 'push', skipTests: undefined },
+		{ eventName: 'push', skipTests: true },
+		{ eventName: 'workflow_dispatch', skipTests: undefined },
+		{ eventName: 'workflow_dispatch', skipTests: false },
+		{ eventName: 'workflow_dispatch', skipTests: true },
+	])(
+		'gates $eventName publication with skip_tests=$skipTests',
+		({ eventName, skipTests }) => {
+			const workflow = readWorkflow('release') as {
+				jobs: { checks: { if: string }; publish: { if: string } };
+			};
+			const bypass = eventName === 'workflow_dispatch' && skipTests === true;
+			// These conditions use the same boolean syntax in Actions and JavaScript.
+			// A status function prevents Actions from implicitly requiring success()
+			// when the checks job was intentionally skipped.
+			expect(workflow.jobs.publish.if).toContain('!cancelled()');
+			for (const repository of ['c15t/c15t', 'fork/c15t']) {
+				const github = { event_name: eventName, repository };
+				const inputs = { skip_tests: skipTests };
+				expect(
+					runInNewContext(workflow.jobs.checks.if, { github, inputs })
+				).toBe(repository === 'c15t/c15t' && !bypass);
+				for (const result of ['success', 'skipped', 'failure', 'cancelled']) {
+					for (const cancelled of [false, true]) {
+						expect(
+							Boolean(
+								runInNewContext(workflow.jobs.publish.if, {
+									cancelled: () => cancelled,
+									github,
+									inputs,
+									needs: { checks: { result } },
+								})
+							)
+						).toBe(
+							!cancelled &&
+								repository === 'c15t/c15t' &&
+								(result === 'success' || (bypass && result === 'skipped'))
+						);
+					}
+				}
+			}
+		}
+	);
 
 	it('skips runtime comparisons in releases while keeping other checks required', () => {
 		expect(readWorkflow('release')).toMatchObject({

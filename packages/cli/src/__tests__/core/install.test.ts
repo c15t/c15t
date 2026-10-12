@@ -9,12 +9,14 @@ import {
 	getManualInstallCommand,
 	runPackageManagerInstall,
 } from '../../machines/generate/actors/dependencies';
+import { packageInfo } from '../../package-info';
+import { withC15tRelease } from '../../utils/c15t-release';
 
 describe('v3 dependency installation', () => {
 	it
 		.skipIf(process.platform === 'win32')
 		.each(['npm', 'pnpm', 'yarn', 'bun'] as const)(
-		'installs alpha packages through %s',
+		'installs release-line packages through %s',
 		async (manager) => {
 			const directory = await mkdtemp(join(tmpdir(), 'c15t-install-'));
 			const originalPath = process.env.PATH;
@@ -37,14 +39,20 @@ describe('v3 dependency installation', () => {
 						.split('\n')
 				).toEqual([
 					manager === 'npm' ? 'install' : 'add',
-					'c15t@alpha',
-					'@c15t/integrations@alpha',
-					'@c15t/ui@alpha',
+					withC15tRelease('c15t', packageInfo.version),
+					withC15tRelease('@c15t/integrations', packageInfo.version),
+					withC15tRelease('@c15t/ui', packageInfo.version),
 					'@effect/sql-pg',
 				]);
 				expect(
 					getManualInstallCommand(['c15t', '@c15t/integrations'], manager)
-				).toContain('c15t@alpha @c15t/integrations@alpha');
+				).toContain(
+					['c15t', '@c15t/integrations']
+						.map((dependency) =>
+							withC15tRelease(dependency, packageInfo.version)
+						)
+						.join(' ')
+				);
 			} finally {
 				if (originalPath === undefined) {
 					delete process.env.PATH;

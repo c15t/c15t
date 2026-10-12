@@ -24,6 +24,8 @@ import {
 	recoverGeneration,
 	runGenerationWorkflow,
 } from '../../frontend/runtime';
+import { packageInfo } from '../../package-info';
+import { withC15tRelease } from '../../utils/c15t-release';
 
 let root = '';
 const generation = {
@@ -131,7 +133,9 @@ const interrupted = () => {
 
 it('reviews without writes, applies complete files and preserves matching files', () => {
 	const plan = planGeneration(root, generation);
-	expect(plan.dependencies).toEqual(['@c15t/react@alpha']);
+	expect(plan.dependencies).toEqual([
+		withC15tRelease('@c15t/react', packageInfo.version),
+	]);
 	expect(existsSync(join(root, 'src'))).toBe(false);
 	expect(applyGeneration(plan)).toEqual(['README.c15t.md', 'src/privacy.ts']);
 	expect(readFileSync(join(root, 'src/privacy.ts'), 'utf8')).toBe('hello\n');
@@ -273,9 +277,19 @@ it('requires explicit apply and an installation choice', async () => {
 	expect(applied.created.length).toBeGreaterThan(0);
 	expect(applied.installed).toBe(false);
 });
-it.each(['npm', 'pnpm', 'yarn', 'bun'] as const)(
-	'installs alpha dependencies using %s in the application directory',
-	async (manager) => {
+it.each(
+	(['npm', 'pnpm', 'yarn', 'bun'] as const).flatMap((manager) => [
+		{
+			dependency: '@c15t/react',
+			expected: withC15tRelease('@c15t/react', packageInfo.version),
+			manager,
+		},
+		{ dependency: '@c15t/react@alpha', expected: '@c15t/react@alpha', manager },
+		{ dependency: '@c15t/react@3', expected: '@c15t/react@3', manager },
+	])
+)(
+	'installs $dependency using $manager in the application directory',
+	async ({ dependency, expected, manager }) => {
 		const bin = join(root, 'bin');
 		mkdirSync(bin);
 		const executable = join(bin, manager);
@@ -287,17 +301,13 @@ it.each(['npm', 'pnpm', 'yarn', 'bun'] as const)(
 		vi.stubEnv('PATH', `${bin}:${process.env.PATH}`);
 		await installGenerationDependencies(
 			root,
-			['@c15t/react', 'react@19'],
+			[dependency, 'react@19'],
 			manager
 		);
 		expect(readFileSync(join(root, 'install-cwd'), 'utf8').trim()).toBe(root);
 		expect(
 			readFileSync(join(root, 'install-args'), 'utf8').split('\n').slice(0, 3)
-		).toEqual([
-			manager === 'npm' ? 'install' : 'add',
-			'@c15t/react@alpha',
-			'react@19',
-		]);
+		).toEqual([manager === 'npm' ? 'install' : 'add', expected, 'react@19']);
 	}
 );
 it('keeps committed files and supplies a retry command on installer failure', async () => {

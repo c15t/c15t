@@ -50,6 +50,18 @@ unfinished publish lock before running `ci` and publishes that lock first,
 leaving any newer notes for the next run. A failed retry preserves the lock.
 Tegami's upstream `ci` command skips this check, so use `bun run tegami ci`.
 
+To release without the CI suites, manually run `release.yml` on the release
+branch with `skip_tests` enabled:
+
+```sh
+gh workflow run release.yml --ref main -f skip_tests=true
+```
+
+The option defaults to false and applies only to manual runs. Publishing stays
+in `release.yml` for npm trusted publishing. Tegami still builds the selected
+packages and bundled docs and checks their tarballs before uploading. A failed
+build or artifact check stops publication. Normal pushes require CI to pass.
+
 The version hook explicitly refreshes workspace versions in `bun.lock`. Bun
 1.3.11 leaves them stale after version-only manifest changes, even when running
 `bun install --lockfile-only`. Packing uses the refreshed dependency versions.
