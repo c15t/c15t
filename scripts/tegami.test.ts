@@ -697,9 +697,12 @@ describe('version PR body', () => {
 	});
 });
 
-it('drafts the real workspace without bumping private packages or leaving alpha', async () => {
+it('drafts the real workspace without bumping private packages or leaving its release channel', async () => {
 	const root = realWorkspace();
-	const draft = await release(root).draft();
+	const branch = readManifest(root, 'c15t').version?.includes('-alpha.')
+		? 'v3'
+		: 'main';
+	const draft = await release(root, branch).draft();
 	const notes = readdirSync(join(root, '.tegami')).filter(
 		(file) => file.endsWith('.md') && file !== 'README.md'
 	);
@@ -721,7 +724,9 @@ it('drafts the real workspace without bumping private packages or leaving alpha'
 		);
 	}
 	for (const manifest of manifests.filter((pkg) => !pkg.private)) {
-		expect(manifest.version).toMatch(/^3\.0\.0-alpha\.\d+$/u);
+		expect(() =>
+			checkReleaseVersion(branch, manifest.version ?? '')
+		).not.toThrow();
 	}
-	expect((await release(root).draft()).hasPending()).toBe(false);
+	expect((await release(root, branch).draft()).hasPending()).toBe(false);
 });
