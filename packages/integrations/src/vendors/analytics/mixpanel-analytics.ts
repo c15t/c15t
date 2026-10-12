@@ -81,6 +81,25 @@ export const mixpanelAnalyticsManifest = {
 			type: 'loadScript',
 		},
 	],
+	// Queued before load so the SDK replays them during init. Mixpanel applies
+	// opt_out_tracking_by_default first, then replays opt-in and opt-out calls
+	// ahead of queued track calls, so a granted visitor keeps those events.
+	onBeforeLoadDenied: [
+		{
+			global: 'mixpanel',
+			method: 'opt_out_tracking',
+
+			type: 'callGlobal',
+		},
+	],
+	onBeforeLoadGranted: [
+		{
+			global: 'mixpanel',
+			method: 'opt_in_tracking',
+
+			type: 'callGlobal',
+		},
+	],
 	onConsentDenied: [
 		{
 			global: 'mixpanel',
@@ -90,22 +109,6 @@ export const mixpanelAnalyticsManifest = {
 		},
 	],
 	onConsentGranted: [
-		{
-			global: 'mixpanel',
-			method: 'opt_in_tracking',
-
-			type: 'callGlobal',
-		},
-	],
-	onLoadDenied: [
-		{
-			global: 'mixpanel',
-			method: 'opt_out_tracking',
-
-			type: 'callGlobal',
-		},
-	],
-	onLoadGranted: [
 		{
 			global: 'mixpanel',
 			method: 'opt_in_tracking',
@@ -187,9 +190,11 @@ export const mixpanelAnalytics = function mixpanelAnalytics({
 		// first opt-in or opt-out call lands, so start every visitor opted out
 		// of tracking and storage.
 		initOptions: {
-			opt_out_persistence_by_default: true,
-			opt_out_tracking_by_default: true,
 			...initOptions,
+			opt_out_persistence_by_default:
+				initOptions?.opt_out_persistence_by_default ?? true,
+			opt_out_tracking_by_default:
+				initOptions?.opt_out_tracking_by_default ?? true,
 		},
 		scriptUrl: resolveScriptUrl(
 			scriptUrl,
