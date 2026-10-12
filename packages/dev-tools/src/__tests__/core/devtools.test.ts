@@ -1,0 +1,436 @@
+import { createConsentKernel } from '@c15t/core';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
+import { createDevTools } from '../../index';
+import type { DevToolsInstance } from '../../index';
+import { choiceRecords, policyResolution } from '../helpers/kernel';
+
+const instances: DevToolsInstance[] = [];
+
+// oxlint-disable-next-line func-style -- Test helpers are clearer as declarations.
+function createInstance(
+	kernel = createConsentKernel(),
+	container?: HTMLElement
+): DevToolsInstance {
+	const instance = createDevTools({ container, kernel });
+	instances.push(instance);
+	return instance;
+}
+
+/** The focused element in the panel's tree, which is a shadow root by default. */
+const activeElementOf = (instance: DevToolsInstance): Element | null =>
+	(instance.element?.getRootNode() as Document | ShadowRoot | undefined)
+		?.activeElement ?? null;
+
+afterEach(() => {
+	for (const instance of instances.splice(0)) {
+		instance.destroy();
+	}
+	document.body.replaceChildren();
+});
+
+describe('createDevTools', () => {
+	it.each([0, -1, Number.NaN, Number.POSITIVE_INFINITY])(
+		'bounds captured events for maxEvents=%s',
+		(maxEvents) => {
+			const kernel = createConsentKernel();
+			const tools = createDevTools({ kernel, maxEvents });
+			instances.push(tools);
+			const launcher = tools.element?.querySelector<HTMLButtonElement>(
+				'button[aria-label="Open c15t DevTools"]'
+			);
+			launcher?.focus();
+			for (let index = 0; index < 110; index += 1) {
+				kernel.set.overrides({ country: index % 2 === 0 ? 'DE' : 'FR' });
+			}
+			expect(tools.getState().events).toHaveLength(
+				Number.isFinite(maxEvents) ? 1 : 100
+			);
+			expect(activeElementOf(tools)).toBe(launcher);
+			expect(
+				tools.element?.querySelector('[role="tabpanel"]')?.childElementCount
+			).toBe(0);
+			tools.open();
+			expect(
+				tools.element?.querySelector<HTMLInputElement>(
+					'[data-focus-key="consent:measurement"]'
+				)?.checked
+			).toBe(false);
+			expect(
+				tools.element?.querySelector('[role="tabpanel"]')?.childElementCount
+			).toBeGreaterThan(0);
+		}
+	);
+	it('disables duplicate saves and reports failure and retry success beside the controls', async () => {
+		const pendingSave = Promise.withResolvers<{ ok: boolean }>();
+		const save = vi
+			.fn()
+			.mockReturnValueOnce(pendingSave.promise)
+			.mockResolvedValue({ ok: true });
+		const kernel = createConsentKernel({ transport: { save } });
+		const devTools = createInstance(kernel);
+		devTools.open();
+		const saveButton = () =>
+			[...(devTools.element?.querySelectorAll('button') ?? [])].find(
+				(button) => button.textContent === 'Save changes'
+			);
+		saveButton()?.click();
+		expect(saveButton()?.disabled).toBe(true);
+		saveButton()?.click();
+		await vi.waitFor(() => expect(save).toHaveBeenCalledOnce());
+		pendingSave.resolve({ ok: false });
+		await vi.waitFor(() =>
+			expect(
+				devTools.element?.querySelector('[role="alert"]')?.textContent
+			).toContain('request failed')
+		);
+		expect(saveButton()?.disabled).toBe(false);
+		saveButton()?.click();
+		await vi.waitFor(() =>
+			expect(
+				devTools.element?.querySelector('[role="status"]')?.textContent
+			).toBe('Consent saved.')
+		);
+	});
+
+	it('accepts and rejects only displayed categories, preserving hidden choices', async () => {
+		const kernel = createConsentKernel({
+			initialRecords: choiceRecords({ experience: true, functionality: false }),
+		});
+		const devTools = createDevTools({
+			defaultOpen: true,
+			getConsentCategories: () => ['necessary', 'marketing', 'measurement'],
+			kernel,
+		});
+		instances.push(devTools);
+		expect(devTools.element?.querySelectorAll('[role="switch"]')).toHaveLength(
+			3
+		);
+		const click = (label: string) => {
+			const button = [
+				...(devTools.element?.querySelectorAll('button') ?? []),
+			].find((element) => element.textContent === label);
+			if (!button) {
+				throw new Error(`Missing ${label}`);
+			}
+			button.click();
+		};
+		click('Accept all');
+		expect(kernel.getSnapshot().effectivePermissions).toEqual({
+			experience: true,
+			functionality: false,
+			marketing: true,
+			measurement: true,
+			necessary: true,
+		});
+		await vi.waitFor(() => {
+			expect(
+				devTools.element?.querySelector('[role="status"]')?.textContent
+			).toBe('Displayed consents accepted.');
+		});
+		click('Reject optional');
+		expect(kernel.getSnapshot().effectivePermissions).toEqual({
+			experience: true,
+			functionality: false,
+			marketing: false,
+			measurement: false,
+			necessary: true,
+		});
+		await devTools.actions.save('all');
+		expect(kernel.getSnapshot().effectivePermissions.functionality).toBe(false);
+		await devTools.actions.save('none');
+		expect(kernel.getSnapshot().effectivePermissions.experience).toBe(true);
+	});
+
+	it('stages choices through labeled switches and keeps necessary consent locked', async () => {
+		const kernel = createConsentKernel();
+		const devTools = createInstance(kernel);
+		devTools.open();
+		const necessary = devTools.element?.querySelector<HTMLInputElement>(
+			'[data-focus-key="consent:necessary"]'
+		);
+		const marketing = devTools.element?.querySelector<HTMLInputElement>(
+			'[data-focus-key="consent:marketing"]'
+		);
+
+		expect(necessary?.disabled).toBe(true);
+		expect(necessary?.closest('label')?.textContent).toContain('Always on');
+		expect(marketing?.getAttribute('role')).toBe('switch');
+		marketing?.closest('label')?.click();
+		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);
+		expect(kernel.getSnapshot().explicitChoice).toBeNull();
+		expect(devTools.getState().draft.marketing).toBe(true);
+		await devTools.actions.save();
+		expect(
+			kernel.getSnapshot().explicitChoice?.categories.marketing?.value
+		).toBe(true);
+	});
+
+	it('opens from an accessible icon-only launcher', () => {
+		const devTools = createInstance();
+		const launcher = devTools.element?.querySelector<HTMLButtonElement>(
+			'button[aria-label="Open c15t DevTools"]'
+		);
+
+		expect(launcher?.textContent).toBe('');
+		expect(launcher?.querySelector('svg')?.getAttribute('aria-hidden')).toBe(
+			'true'
+		);
+		launcher?.click();
+		expect(devTools.getState().isOpen).toBe(true);
+	});
+
+	it.each([false, true])(
+		'closes with Escape and returns focus to the launcher with custom container=%s',
+		async (customContainer) => {
+			const container = document.createElement('div');
+			document.body.append(container);
+			const devTools = createInstance(
+				undefined,
+				customContainer ? container : undefined
+			);
+			devTools.open();
+			devTools.element?.dispatchEvent(
+				new KeyboardEvent('keydown', { bubbles: true, key: 'Escape' })
+			);
+
+			expect(devTools.getState().isOpen).toBe(false);
+			await vi.waitFor(() => {
+				expect(activeElementOf(devTools)?.getAttribute('aria-label')).toBe(
+					'Open c15t DevTools'
+				);
+			});
+		}
+	);
+	it('renders into the page with its stylesheet when shadow is off', () => {
+		const kernel = createConsentKernel();
+		const tools = createDevTools({ kernel, shadow: false });
+		instances.push(tools);
+
+		expect(document.querySelector('[data-c15t-dev-tools-host]')).toBeNull();
+		expect(document.body.contains(tools.element)).toBe(true);
+		expect(
+			document.head.querySelector('#c15t-dev-tools-styles')?.textContent
+		).toContain('.c15t-dev-tools');
+	});
+
+	it('keeps the embedded panel open on Escape', () => {
+		const devTools = createInstance(undefined, document.body);
+		devTools.element?.classList.add('c15t-dev-tools--embedded');
+		devTools.open();
+		devTools.element?.dispatchEvent(
+			new KeyboardEvent('keydown', { bubbles: true, key: 'Escape' })
+		);
+		expect(devTools.getState().isOpen).toBe(true);
+	});
+
+	it('publishes kernel snapshots to instance subscribers', () => {
+		const kernel = createConsentKernel();
+		const devTools = createInstance(kernel);
+		const listener = vi.fn();
+		const unsubscribe = devTools.subscribe(listener);
+
+		kernel.commands.save({ measurement: true });
+
+		expect(devTools.getState().snapshot.effectivePermissions.measurement).toBe(
+			true
+		);
+		expect(listener).toHaveBeenCalled();
+		expect(listener.mock.lastCall?.[0].snapshot).toBe(kernel.getSnapshot());
+
+		unsubscribe();
+		const callCount = listener.mock.calls.length;
+		devTools.open();
+		expect(listener).toHaveBeenCalledTimes(callCount);
+	});
+
+	it('does not expose the instance or kernel through window globals', () => {
+		const devTools = createInstance();
+
+		expect(devTools.element).toBeInstanceOf(HTMLElement);
+		expect('__c15tDevTools' in window).toBe(false);
+		expect('c15tStore' in window).toBe(false);
+	});
+
+	it('unsubscribes from the kernel and removes its DOM on destroy', () => {
+		const kernel = createConsentKernel();
+		const devTools = createInstance(kernel);
+		const listener = vi.fn();
+		devTools.subscribe(listener);
+		const stateBeforeDestroy = devTools.getState();
+		const { element } = devTools;
+
+		devTools.destroy();
+		kernel.commands.save({ marketing: true });
+
+		expect(element?.isConnected).toBe(false);
+		expect(devTools.getState()).toBe(stateBeforeDestroy);
+		expect(devTools.getState().snapshot.effectivePermissions.marketing).toBe(
+			false
+		);
+		expect(listener).not.toHaveBeenCalled();
+	});
+
+	it('keeps state, events, DOM, and cleanup isolated by instance', () => {
+		const firstKernel = createConsentKernel();
+		const secondKernel = createConsentKernel();
+		const firstContainer = document.createElement('div');
+		const secondContainer = document.createElement('div');
+		document.body.append(firstContainer, secondContainer);
+		const first = createInstance(firstKernel, firstContainer);
+		const second = createInstance(secondKernel, secondContainer);
+
+		first.open();
+		firstKernel.commands.save({ experience: true });
+
+		expect(first.getState().isOpen).toBe(true);
+		expect(second.getState().isOpen).toBe(false);
+		expect(first.getState().snapshot.effectivePermissions.experience).toBe(
+			true
+		);
+		expect(second.getState().snapshot.effectivePermissions.experience).toBe(
+			false
+		);
+		expect(first.getState().events.map((event) => event.type)).toContain(
+			'choice:recorded'
+		);
+		expect(second.getState().events).toHaveLength(0);
+
+		first.destroy();
+		expect(firstContainer.childElementCount).toBe(0);
+		expect(secondContainer.childElementCount).toBe(1);
+
+		secondKernel.commands.save({ functionality: true });
+		expect(second.getState().snapshot.effectivePermissions.functionality).toBe(
+			true
+		);
+	});
+});
+
+describe('vendors on the consents tab', () => {
+	const meta = {
+		category: 'marketing' as const,
+		id: 'meta-pixel',
+		name: 'Meta Pixel',
+		presentable: true,
+		privacyPolicyUrl: 'https://www.facebook.com/privacy/policy/',
+		source: 'config' as const,
+	};
+	const denied = {
+		confirmedAt: Date.now() - 1,
+		denied: ['meta-pixel'],
+		version: 1 as const,
+	};
+
+	it('labels each vendor with what the gate answers', () => {
+		const analytics = {
+			...meta,
+			category: 'measurement' as const,
+			id: 'google-analytics',
+			name: 'Google Analytics',
+		};
+		const kernel = createConsentKernel({
+			initialPolicyResolution: policyResolution(),
+			initialRecords: {
+				...choiceRecords({ marketing: true, measurement: false }),
+				vendorChoice: denied,
+			},
+			initialVendors: { declared: [analytics, meta], listVersion: null },
+		});
+		const tools = createInstance(kernel);
+		tools.open();
+		const rows = [
+			...(tools.element?.querySelectorAll('.c15t-dev-tools__check') ?? []),
+		].map((row) => row.textContent);
+		expect(rows.find((row) => row?.includes('Meta Pixel'))).toContain('Denied');
+		// Not denied, but its category is off: the gate still blocks it.
+		expect(rows.find((row) => row?.includes('Google Analytics'))).toContain(
+			'Blocked by category'
+		);
+	});
+
+	it('hides the same vendors under an IAB policy', () => {
+		const kernel = createConsentKernel({
+			initialPolicyResolution: policyResolution({ model: 'iab' }),
+			initialRecords: { vendorChoice: denied },
+			initialVendors: { declared: [meta], listVersion: null },
+		});
+		// The kernel derives `model: 'iab'` from an enabled IAB module, not from
+		// the policy rule alone.
+		kernel.set.iab({ enabled: true });
+		const tools = createInstance(kernel);
+		tools.open();
+		tools.setActiveTab('consents');
+		expect(tools.element?.textContent).toContain('Use the IAB tab');
+		expect(tools.element?.textContent).not.toContain('Meta Pixel');
+		expect(tools.element?.textContent).not.toContain('Denied');
+	});
+});
+
+describe('embedded panel', () => {
+	it('fills its container when embedded and ignores Escape', () => {
+		const container = document.createElement('div');
+		document.body.append(container);
+		const tools = createDevTools({
+			container,
+			embedded: true,
+			kernel: createConsentKernel(),
+		});
+		instances.push(tools);
+		expect(tools.getState().isOpen).toBe(true);
+		expect(tools.element?.classList).toContain('c15t-dev-tools--embedded');
+		tools.element?.dispatchEvent(
+			new KeyboardEvent('keydown', { bubbles: true, key: 'Escape' })
+		);
+		expect(tools.getState().isOpen).toBe(true);
+	});
+
+	it('renders into an iframe container and scans the page that owns the kernel', () => {
+		const frame = document.createElement('iframe');
+		document.body.append(frame);
+		const frameDocument = frame.contentDocument;
+		if (!frameDocument) {
+			throw new Error('jsdom did not create the iframe document');
+		}
+		const script = document.createElement('script');
+		script.src = 'https://example.test/app-analytics.js';
+		document.body.append(script);
+		const tools = createDevTools({
+			container: frameDocument.body,
+			embedded: true,
+			kernel: createConsentKernel(),
+		});
+		instances.push(tools);
+		expect(tools.element?.ownerDocument).toBe(frameDocument);
+		tools.setActiveTab('scripts');
+		[...(tools.element?.querySelectorAll('button') ?? [])]
+			.find((button) => button.textContent === 'Scan page')
+			?.click();
+		expect(tools.element?.textContent).toContain(
+			'https://example.test/app-analytics.js'
+		);
+	});
+});
+
+describe('docking', () => {
+	it('moves to the host corner and restores its own placement when undocked', () => {
+		const tools = createInstance();
+		const root = tools.element;
+		tools.dock({ block: 72, inline: 20, position: 'top-left' });
+		expect(root?.classList).toContain('c15t-dev-tools--docked');
+		expect(root?.classList).toContain('c15t-dev-tools--top-left');
+		expect(root?.classList).not.toContain('c15t-dev-tools--bottom-right');
+		expect(root?.style.getPropertyValue('--c15t-dev-tools-dock-block')).toBe(
+			'72px'
+		);
+
+		tools.open();
+		tools.dock(null);
+		expect(root?.classList).not.toContain('c15t-dev-tools--docked');
+		expect(root?.classList).toContain('c15t-dev-tools--bottom-right');
+		expect(root?.style.getPropertyValue('--c15t-dev-tools-dock-block')).toBe(
+			''
+		);
+		expect(tools.getState().isOpen).toBe(true);
+	});
+});

@@ -1,26 +1,58 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { userEvent } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
-import { ConsentDialog } from '~/components/consent-dialog';
-import { ConsentDialogLink } from '~/components/consent-dialog-link';
-import {
-	ConsentManagerProvider,
-	clearConsentRuntimeCache,
-} from '~/providers/consent-manager-provider';
+import { userEvent } from 'vitest/browser';
+
+import { ComponentFixtureProvider as ConsentProvider } from '~/__tests__/component-fixture-provider';
+import { policyFixture } from '~/__tests__/policy-fixture';
+import { ConsentDialog } from '~/components/panel';
+import { ConsentDialogLink } from '~/components/panel-link';
+import { ConsentDialogTrigger } from '~/components/panel-trigger';
+import { offline } from '~/transports/offline';
 
 describe('ConsentDialogLink', () => {
 	beforeEach(() => {
-		clearConsentRuntimeCache();
 		window.localStorage.clear();
 		vi.clearAllMocks();
 	});
 
+	test.each(['opt-in', 'opt-out'] as const)(
+		'exposes the rights of the %s policy on preferences controls',
+		async (model) => {
+			render(
+				<ConsentProvider
+					options={{
+						mode: offline(),
+						prefetch: policyFixture({}, { model }),
+					}}
+				>
+					<ConsentDialogLink>Preferences</ConsentDialogLink>
+					<ConsentDialogTrigger />
+				</ConsentProvider>
+			);
+			await vi.waitFor(() => {
+				for (const testId of [
+					'consent-dialog-link',
+					'consent-dialog-trigger',
+				]) {
+					expect(
+						document.querySelector(`[data-testid="${testId}"]`)
+					).toHaveAttribute(
+						'data-c15t-rights',
+						model === 'opt-out'
+							? 'disclosure opt-out preferences'
+							: 'disclosure preferences'
+					);
+				}
+			});
+		}
+	);
+
 	test('renders custom text and opens the dialog when clicked', async () => {
 		render(
-			<ConsentManagerProvider options={{ mode: 'offline' }}>
+			<ConsentProvider options={{ mode: offline() }}>
 				<ConsentDialog />
 				<ConsentDialogLink>Your privacy settings</ConsentDialogLink>
-			</ConsentManagerProvider>
+			</ConsentProvider>
 		);
 
 		await vi.waitFor(
@@ -53,14 +85,17 @@ describe('ConsentDialogLink', () => {
 
 	test('supports asChild for anchor-based footer links', async () => {
 		render(
-			<ConsentManagerProvider options={{ mode: 'offline' }}>
+			<ConsentProvider options={{ mode: offline() }}>
 				<ConsentDialog />
 				<ConsentDialogLink asChild>
-					<a href="#privacy-settings" data-testid="consent-preferences-anchor">
+					<a
+						href="#privacy-settings"
+						data-testid="consent-preferences-anchor"
+					>
 						Manage Preferences
 					</a>
 				</ConsentDialogLink>
-			</ConsentManagerProvider>
+			</ConsentProvider>
 		);
 
 		await vi.waitFor(

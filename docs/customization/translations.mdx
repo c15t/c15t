@@ -1,0 +1,136 @@
+---
+title: Copy and translations
+description: Change consent wording through i18n and test the complete prompt and preferences flow.
+group: customization
+---
+
+## Configure shared messages
+
+Use provider `i18n` for wording that should stay consistent across components.
+For React, this fragment belongs in `ConsentProvider` options:
+
+```tsx
+i18n: {
+  messages: {
+    en: {
+      common: {
+        acceptAll: 'Accept all',
+        rejectAll: 'Reject optional',
+        customize: 'Choose cookies',
+        acknowledge: 'Got it',
+      },
+    },
+  },
+}
+```
+
+Supply the same message keys in each supported locale. A one-off component prop
+such as `dismissButtonText` is useful for one banner; use translations for a
+site-wide change. Astro's serializable integration options have their own
+types, so verify that shape before copying a React object. The Vue plugin and
+Nuxt module have no `i18n` option; their copy comes from the backend.
+
+## Load only the languages you use
+
+c15t bundles English. Every other language it ships is a separate entry point
+in `@c15t/translations`, named by its language code. Importing one registers
+c15t's built-in copy for that language. Offline mode can then switch to it,
+and your messages that repeat its wording don't hide backend edits. Import
+them in the file that configures the provider, so they load in the browser:
+
+{/* example: fragment */}
+
+```ts
+import '@c15t/translations/de';
+import '@c15t/translations/fr';
+```
+
+Each entry also exports that copy as `translations`, if you want to read a
+string or build your messages from it:
+
+{/* example: fragment */}
+
+```ts
+import { translations as de } from '@c15t/translations/de';
+```
+
+The entries are `bg`, `cs`, `cy`, `da`, `de`, `el`, `es`, `et`, `fi`, `fr`,
+`ga`, `gu`, `he`, `hi`, `hr`, `hu`, `id`, `is`, `it`, `lb`, `lt`, `lv`, `mt`,
+`nb`, `nl`, `nn`, `pl`, `pt`, `rm`, `ro`, `sk`, `sl`, `sv` and `zh`.
+`@c15t/translations/all` still loads every language at once. The `c15t`
+package doesn't re-export these entries, so add `@c15t/translations` to your
+dependencies.
+
+## Combine messages with backend copy
+
+With a backend or a manifest, the copy it sends for the visitor's language is
+the base. Your `i18n.messages` for that language replace it key by key, and
+keys you leave out keep the backend's wording, including copy edited in your
+Inth project. c15t looks up messages for the exact language first, then for
+its primary language, so `de-AT` uses your `de` messages when there is no
+`de-AT` entry. Messages for other languages are not applied.
+
+A key only overrides the backend when your text differs from c15t's built-in
+wording for that language. So passing a stock bundle to enable a language
+keeps backend edits visible, while a key you actually reworded stays pinned
+in code. c15t only recognizes the built-in wording of English and of the
+languages you [import](#load-only-the-languages-you-use), such as
+`@c15t/translations/de` or `@c15t/translations/all`.
+
+## Write labels that describe the action
+
+Accept and Reject record a choice. Customize opens preferences. Acknowledge
+dismisses a notice and does not record a grant. Do not label a notice dismissal
+"Accept all" or make a preferences link sound like it submits an opt-out.
+
+The notice acknowledgement uses `common.acknowledge`, with `common.dismiss` as
+a fallback for older translation bundles. Keep the displayed label and the
+command's effect aligned.
+
+## Translate the ConsentGate placeholder
+
+The `ConsentGate` placeholder reads the `consentGate` section:
+
+| Key | Where it shows |
+| --- | --- |
+| `consentGate.title` | The placeholder text. `{category}` is replaced by the category's translated title. |
+| `consentGate.actionButton` | The button that opens preferences, with the same `{category}` replacement. |
+| `consentGate.policyBlocked` | React and Vue show it in place of the title, with no button, when a strict policy leaves the category out of scope. |
+
+Earlier versions called this section `frame`. Copy under `frame` in
+`i18n.messages` or custom translations still applies. c15t reads it as `consentGate`, a key set under `consentGate`
+wins over the same key under `frame`, and c15t logs a warning once outside
+production. Rename the section to `consentGate` to remove the warning.
+
+## Show right-to-left languages
+
+c15t sets `dir="rtl"` on its surfaces when the resolved language is Arabic,
+Hebrew, Persian, Urdu, Pashto, Sindhi, Kurdish or Dhivehi. It matches the
+primary language, so `ar-EG` counts as Arabic. Hebrew is the only
+right-to-left translation c15t ships. For the others, supply your own
+messages or the copy from your Inth project.
+
+What follows the direction:
+
+- Text, headings and the button row in the banner, the preference dialog and
+  the preference widget flow right to left.
+- A floating or widget banner in its default corner moves to the mirrored
+  corner, so `bottom-left` becomes `bottom-right`. A `position` you set
+  yourself stays where you put it.
+- The HTML script tag, `@c15t/browser` and Astro's banner also set `lang` on
+  their surfaces. React, Vue and Svelte set `dir` only, so set `lang` on
+  `<html>` yourself.
+
+What does not follow yet:
+
+- The IAB TCF dialog aligns several labels, indents and borders to the left.
+- The floating `ConsentDialogTrigger` keeps the corner you give it.
+
+Test right-to-left pages with a real translation before you ship them.
+
+## Test more than English
+
+Try the longest labels you support at a narrow width, with browser zoom and
+right-to-left text where relevant. Check banner actions, category descriptions,
+legal links and the preferences save action. Translate explanations as well as
+buttons so a visitor can make an informed choice.

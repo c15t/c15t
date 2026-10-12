@@ -1,0 +1,81 @@
+/**
+ * Transport factories. Each export is optional — consumers pick the one
+ * that matches their backend shape. Adapter authors who want to build
+ * their own transport should import from `./contract` (re-exports below)
+ * for the typed surface.
+ *
+ * Public subpath: `@c15t/core/transports`.
+ */
+
+export type {
+	InitContext,
+	InitResponse,
+	InitResult,
+	KernelTransport,
+	SavePayload,
+	SaveResult,
+} from './contract';
+export type { HostedKernelTransport, HostedTransportOptions } from './hosted';
+export { createHostedTransport } from './hosted';
+export type {
+	HostedRecordTransport,
+	HostedRecordTransportOptions,
+} from './hosted-records';
+export { createHostedRecordTransport } from './hosted-records';
+export type {
+	MapInitOutputOptions,
+	TransportInitResponse,
+	TransportKernelConfig,
+} from './init-output';
+export {
+	initOutputToKernelConfig,
+	initResponseToKernelConfig,
+	mapInitOutputToInitResponse,
+	mapPrivacySignals,
+	mergeInitOutputIntoKernelConfig,
+	mergeInitResponseIntoKernelConfig,
+	resolveInitPolicyWire,
+} from './init-output';
+export type {
+	HostedModeFactory,
+	HostedModeOptions,
+	ProviderTransportContext,
+	ProviderTransportFactory,
+	ProviderTransportKind,
+} from './mode';
+export { custom } from './custom';
+export { hosted } from './mode';
+export type {
+	OfflineKernelTransport,
+	OfflineTransportOptions,
+} from './offline';
+export { createOfflineTransport, offline } from './offline';
+export type { OfflineModeFactory, OfflineModeOptions } from './offline';
+export {
+	ConsentSaveRejectedError,
+	isConsentSaveRejection,
+} from './save-rejection';
+export type { SubjectPostBody, SubjectSavePayload } from './subject-body';
+export { buildConfirmedChoiceWire, buildSubjectPostBody } from './subject-body';
+export type {
+	MapSubjectRecordOptions,
+	SubjectRecordWire,
+	TransportHydrationRecords,
+} from './subject-record';
+export {
+	mapSubjectRecordToHydrationRecords,
+	reviveSubjectRecord,
+} from './subject-record';
+export {
+	C15T_POLICY_CONTRACT_HEADER,
+	C15T_VERSION_HEADER,
+	c15tProtocolHeaders,
+	c15tProtocolParams,
+	c15tVersionHeaders,
+	readProducerPolicyContract,
+} from './version-header';
+export {
+	deferInitGvl,
+	createGvlReferenceURL,
+	serveGvlReference,
+} from './gvl-reference';

@@ -1,0 +1,228 @@
+---
+title: Troubleshooting
+description: Fix common c15t Nuxt module problems, from a missing banner and scripts that never load to returning banners and static hosting.
+group: frameworks
+---
+
+## Why is there no banner?
+
+**Check.** [DevTools](/docs/frameworks/nuxt/components/dev-tools) shows the
+matched policy, and `useConsentSnapshot()` exposes `policyRule.prompt`. In the
+Network tab, find the init request.
+
+**Fix.** Work through these causes in order:
+
+1. **The visitor's policy asks for no banner.** A policy with prompt `none`
+   shows no banner, which is common in opt-out regions. See
+   [why the banner may be absent](/docs/concepts/policies#why-the-banner-may-be-absent).
+2. **`ConsentRoot` is inside a page that unmounts.** Put it in `app.vue`.
+3. **The policy did not resolve.** In the default `manifest()` mode,
+   `/api/c15t/init` must return 200. With `hosted()`, the backend's `/init`
+   must. While resolution fails, c15t shows no UI and keeps every optional
+   category denied.
+4. **A stored choice exists.** Clear the `c15t` cookie and localStorage entry,
+   or use a private window.
+
+## The page throws IABUnavailableError
+
+**Check.** Nuxt shows its error page, and the error has the code
+`C15T_IAB_UNAVAILABLE` and reads "c15t: this visitor's policy uses IAB TCF,
+but `iab` is not set." The visitor's policy uses the `iab` model and the
+backend sent its vendor list, but the module has no `iab` option, or has
+`iab: false` or `iab: { enabled: false }`. The standard banner does not
+handle the IAB model, so c15t throws rather than leave the visitor with no
+consent UI. A server render fails with status 500. A prerendered or
+`ssr: false` page shows the error page once the browser resolves the policy.
+
+**Fix.** If the site uses IAB TCF, set `c15t: { iab: {} }` in
+`nuxt.config.ts`, or `iab: { cmpId }` when your backend sends no CMP ID. See
+[IAB TCF](/docs/frameworks/nuxt/iab). If it does not, remove the `iab` model
+from the policy for that region in your Inth project or policy pack. A
+backend that answers `gvl: null` turns IAB off for that request, and nothing
+throws.
+
+## The banner is not in the server HTML
+
+**Check.** Only request-time rendering in `manifest()` or `hosted()` mode
+puts the banner in the HTML. `manifest({ resolve: 'browser' })` and
+`offline()` resolve in the browser.
+Prerendered routes, routes with a `prerender`, `swr`, `isr` or `cache` rule,
+`nuxt generate` output and `ssr: false` send the same HTML to every visitor,
+so the banner appears after the browser resolves the policy.
+
+**Fix.** If a route needs the banner in its HTML, render it at request time
+with `manifest()`, the default, or `hosted()`.
+
+**Check.** With server rendering, the render waits at most `timeoutMs` for the
+policy, 500 milliseconds by default. A slower backend renders the page without
+consent UI and the browser resolves the policy after hydration. Check the
+server log for backend errors.
+
+**Fix.** Raise `timeoutMs` if your backend is reachable but slow.
+
+## The banner comes back after a visitor rejects
+
+**Check.** Filter the Network tab by `subjects` and check that the `POST` to
+your backend returns 2xx. A CORS error means the site's origin is missing from
+your Inth project's trusted origins.
+
+**Fix.** Add the site's origin to the trusted origins.
+
+**Check.** Compare `storageConfig.storageKey` in the module options and
+`app.config.ts`. When they differ, the choice is written under one name and
+read under another.
+
+**Fix.** Use the same `storageKey` in both places.
+
+**Check.** Look for a cache in front of Nuxt, such as a CDN, that stores pages
+Nitro renders per request. The module only recognizes Nuxt's own prerendering
+and `prerender`, `swr`, `isr` or `cache` route rules.
+
+**Fix.** Use a route rule for those pages, or have the CDN skip HTML. See
+[prerendered and cached routes](/docs/frameworks/nuxt/rendering#prerendered-and-cached-routes).
+
+## Scripts never load, or load before consent
+
+**Check.** Look for `scripts` in `nuxt.config.ts`. Module options drop
+functions.
+
+**Fix.** Move `scripts` to `app/app.config.ts`.
+
+**Check.** Look at the vendor ID. It is still a placeholder, such as
+`phc_your_project_key`.
+
+**Fix.** Replace it with the ID from your vendor account.
+
+**Check.** Look for a second loader, such as the vendor's own Nuxt module or a
+`useHead` script, that also loads the vendor.
+
+**Fix.** Remove it, or the vendor loads without consent.
+
+## `nuxt build` or `nuxt dev` can't fetch the manifest
+
+**Check.** The module downloads the manifest when `nuxt build` runs and when
+`nuxt dev` starts, and waits at most 10 seconds. When the download fails,
+`nuxt build` stops with an error that starts with `could not fetch the
+consent manifest from <url> during the build`. `nuxt dev` logs the same
+message as a warning, and the server fetches the policy at runtime. The
+part in parentheses names the cause:
+
+- `fetch failed` with a network error, or `no response within 10 seconds`:
+  the build machine can't reach the backend.
+
+- `/manifest responded 404 Not Found`, or another status: the URL doesn't
+  point at your project's backend, or the backend is down.
+
+- `returned an invalid consent manifest`: the URL answers, but not with a c15t
+  manifest.
+
+- `manifest() needs a backend URL`: neither `backendURL` nor
+  `NUXT_PUBLIC_C15T_BACKEND_URL` (or `NUXT_PUBLIC_INTH_PROJECT_URL`) is set. `nuxt build` and `nuxt dev` both
+  stop, whatever `onBuildError` says, because the browser saves consent to
+  the backend. `manifest({ snapshot })` stops with
+  `manifest({ snapshot }) still needs a backend URL` for the same reason.
+
+With `onBuildError: 'fail'`, this error also appears:
+
+- `build-time manifests require an absolute upstream URL`: `backendURL` or
+  `manifestURL` is a relative path. Without `onBuildError: 'fail'`, the
+  module skips the fetch instead.
+
+**Fix.** Set `NUXT_PUBLIC_C15T_BACKEND_URL` (or
+`NUXT_PUBLIC_INTH_PROJECT_URL`), or `backendURL` under the `c15t` key, to your project's absolute backend URL, including any path prefix; the
+module adds `/manifest`. To download from another address, set
+`mode: manifest({ manifestURL })` to the full manifest URL, which is used as
+written. Make sure the build machine can reach the backend. To deploy while
+it is down, build with `C15T_ON_BUILD_ERROR=runtime`, or set
+`onBuildError: 'runtime'`. To never fetch at build time, set
+`mode: manifest({ source: 'runtime' })`. `nuxt prepare` doesn't download the
+manifest, so installing dependencies works offline.
+
+## Policy edits don't show up
+
+**Check.** When the build bundles a manifest, the policy is fixed when you
+build.
+Changing `NUXT_PUBLIC_C15T_BACKEND_URL` on a running server moves consent
+saves, not the policy.
+
+**Fix.** Build again after editing policies, translations or vendors. If your
+CI caches build output, skip the cache for that build. To pick up edits
+without rebuilding, set `mode: manifest({ source: 'runtime' })`.
+
+## Static hosting returns 404 for /api/c15t/init
+
+**Check.** A static host has no Nuxt server routes, so `/api/c15t/init` and
+`/api/c15t/manifest` do not exist after deployment. `nuxt generate` warns
+about this when `mode` is the default `manifest()`.
+
+**Fix.** Set `mode: manifest({ resolve: 'browser' })` with
+`routePrefix: false`, or `mode: hosted()`, as in
+[deploy to static hosting](/docs/frameworks/nuxt/rendering#deploy-to-static-hosting).
+If the browser reports a CORS error for a consent save or `/init`, add your
+site's origin to the Inth project's trusted origins.
+
+## The module throws "`c15t.mode` in nuxt.config.ts is a transport"
+
+**Check.** `nuxt.config.ts` imports `manifest`, `hosted` or `offline` from
+`c15t/vue/vue-plugin`. Those return browser transports, which cannot travel
+through runtime config.
+
+**Fix.** Import them from `c15t/vue`, the module entry, which returns plain
+data.
+
+## Options from an earlier alpha have no effect
+
+**Check.** The `c15t` key sets `manifest`, `manifestURL`, `manifestSnapshot`,
+`buildManifest`, `geoURL`, `initRoute` or `manifestRoute`. The module no
+longer reads them.
+
+**Fix.** Use `mode` and `routePrefix`:
+
+| Earlier option | Now |
+| --- | --- |
+| `manifest: 'server'` | Nothing: `manifest()` is the default |
+| `manifest: 'client'` | `mode: manifest({ resolve: 'browser' })` |
+| `manifest: false` | `mode: hosted()` |
+| `manifestURL`, `geoURL`, `manifestSnapshot` | `manifest({ manifestURL })`, `manifest({ geoURL })`, `manifest({ snapshot })` |
+| `buildManifest: false` | `mode: manifest({ source: 'runtime' })` |
+| `buildManifest: true` | `onBuildError: 'fail'` |
+| `initRoute`, `manifestRoute` | `routePrefix`, one catch-all for both |
+| `NUXT_PUBLIC_C15T_MANIFEST_URL`, `NUXT_C15T_MANIFEST_URL` | `mode: manifest({ manifestURL })` in `nuxt.config.ts`. The variables are no longer read, so the manifest URL is fixed at build time. `NUXT_PUBLIC_C15T_BACKEND_URL` and `NUXT_C15T_BACKEND_URL` still work. |
+| `domain` | Nothing. Saves send the page's hostname. |
+| `ConsentPreferencesLink` | `ConsentDialogLink`. The floating `ConsentDialogTrigger` keeps its name. |
+| `ConsentFrame` | `ConsentGate` |
+
+## Every first visit calls /init on a static site
+
+**Check.** With `manifest({ resolve: 'browser' })` the browser has no request
+location. When your policy depends on the visitor's country or region, the
+browser asks the backend's `/init` for it on the first visit.
+
+**Fix.** Pass `geoURL` to `manifest()` with a route on your site that returns
+the visitor's `country` and `region`, so the browser resolves the policy
+itself. Or use `hosted()`, which makes the same `/init` request without
+bundling the manifest.
+
+## A composable throws "Kernel not found"
+
+**Check.** The composable ran outside the Nuxt app, for example in a server
+route or a plain module.
+
+**Fix.** Call consent composables inside a component's `setup`.
+
+## Every visitor resolves the same location
+
+**Check.** The server found no location header, or an `x-c15t-country` header
+that your own code adds, such as a test middleware, won. A header a visitor
+sends only changes that visitor's policy. Check which headers reach Nuxt.
+
+**Fix.** Choose the headers you trust as
+[geography headers](/docs/frameworks/nuxt/geography-headers) describes.
+
+## More help
+
+[Troubleshoot consent](/docs/guides/troubleshooting) covers problems shared by
+every framework, such as a missing banner, analytics that load before a choice,
+imports that fail because npm installed c15t v2, choices that disappear on
+reload, server HTML that differs from the browser, static builds that fail and
+content blockers that hide the consent UI.

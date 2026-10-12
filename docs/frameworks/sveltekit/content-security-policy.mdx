@@ -1,0 +1,97 @@
+---
+title: Content Security Policy
+description: Write a Content Security Policy for a SvelteKit app using c15t with SvelteKit's csp option, covering vendor hosts, c15t's style elements, the server-rendered theme style and style attributes.
+group: frameworks
+---
+
+## Configure csp
+
+SvelteKit writes the `Content-Security-Policy` header when you set its `csp`
+option. In SvelteKit 3 that option goes to the `sveltekit()` plugin in
+`vite.config.ts`. SvelteKit adds nonces or hashes to its own inline scripts.
+Add the hosts c15t and your vendors need to the directives:
+
+{/* example: fragment */}
+
+```ts title="vite.config.ts (partial)"
+export default defineConfig({
+	plugins: [
+		sveltekit({
+			csp: {
+				mode: 'auto',
+				directives: {
+					'connect-src': ['self', 'https://your-project.inth.app'],
+					'frame-src': ['https://www.youtube-nocookie.com'],
+					'script-src': ['self', 'https://<vendor-script-host>'],
+				},
+			},
+		}),
+	],
+});
+```
+
+On SvelteKit 2, set the same `csp` object as `kit.csp` in `svelte.config.js`.
+
+Replace `https://your-project.inth.app` with the backend URL from your Inth
+project, and list each vendor's script host.
+
+SvelteKit does not pass the nonce it generates to your components, so the
+provider's `nonce` prop cannot reuse it. Allow vendor hosts in `script-src`
+instead. Host sources still apply next to SvelteKit's nonces, as long as the
+list has no `'strict-dynamic'`.
+
+The `<link rel="modulepreload">` tag that `c15tHandle` adds for the script
+loader and network blocker chunk takes the nonce SvelteKit put on its own
+scripts, unless the provider has a `nonce` of its own. The chunk is on your
+own origin, so `'self'` covers it too.
+
+## Allow c15t's style elements
+
+c15t's components add their rules as `<style>` elements. On a server-rendered
+page, `c15tHandle` writes the banner's rules into the HTML `<head>` with the
+provider's `nonce`, or else the nonce SvelteKit put on its own scripts, so a
+nonce-based policy admits them. A prerendered page under `mode: 'auto'` gets
+hashes instead of nonces, so there is no nonce for `c15tHandle` to copy.
+
+The standard and IAB dialogs and other components that first render in the
+browser use the provider's `nonce`, or inherit the nonce from an existing
+c15t style or a page script. Your `style-src` must allow that nonce.
+
+For a prerendered page, or when your policy does not allow those nonces, set
+`styles={false}` on `ConsentRoot` and import
+`@c15t/svelte/styles.css` in your root layout. With IAB TCF, also import
+`@c15t/svelte/iab/styles.css` after it. `'self'` covers those stylesheets.
+
+## Allow the generated theme
+
+The `<style id="c15t-theme">` element from
+[customize](./customize#render-brand-tokens-on-the-server) is inline CSS that
+you render with `{@html}`. SvelteKit's `csp` option adds no nonce or hash to it, so a
+`style-src` without `'unsafe-inline'` blocks it and the banner falls back to
+the stock colors. Either add the SHA-256 hash of the element's text to
+`style-src`, which stays fixed while the theme does not change, or switch to
+[a stylesheet](./customize#use-a-stylesheet-instead), which `'self'` covers.
+Browsers ignore `'unsafe-inline'` in a list that also has a nonce or hash, so
+adding it does not help under `mode: 'nonce'` or `'auto'`.
+
+## Style attributes in server HTML
+
+In the browser, Svelte sets `style` values through the DOM, which a policy
+does not block. Server-rendered HTML is different. A `style` attribute in the
+HTML is inline style, and `style-src` without `'unsafe-inline'` blocks it.
+c15t renders `style` attributes for theme slot `style` values and for the
+position of `ConsentDialogTrigger`. Svelte does not set them again during
+hydration, so a blocked value stays unapplied.
+
+Use class names in theme slots instead of `style` objects, or allow style
+attributes with a separate `style-src-attr 'unsafe-inline'` directive.
+
+## Server requests
+
+`loadConsent`, `c15tHandle` and the manifest route call the backend from your
+server, which the browser's policy does not govern. Only the browser's own
+requests, such as saving a choice, need the backend in `connect-src`. With
+the [consent proxy](./rendering#save-consent-through-your-own-origin), those
+go to your own origin and `'self'` covers them.
+
+<include src="../../shared/svelte/content-security-policy.mdx" />

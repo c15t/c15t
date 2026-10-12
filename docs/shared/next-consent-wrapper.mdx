@@ -1,0 +1,31 @@
+---
+title: Next.js consent and scripts
+description: Register scripts in the Next.js c15t.config.ts used by the router guides.
+group: frameworks
+---
+
+## Register scripts in c15t.config.ts
+
+The [runnable Next.js example](/docs/examples) loads PostHog under the
+measurement category. Replace the placeholder `phc_your_project_key` with your
+project key, or replace the helper with the
+[integration](/docs/integrations/overview) your application uses. Include the
+measurement category in your policy.
+
+Put the scripts in `c15t.config.ts`, next to `next.config.ts`:
+
+<include src="./examples/nextjs/quickstart-config.mdx" />
+
+PostHog waits for measurement consent here. `cookieless_mode: 'never'` disables
+cookieless capture after rejection. Remove any existing PostHog loader,
+including `next/script` and tag-manager entries, so the integration loads once.
+
+`withConsentManifest` in `next.config.ts` finds the file, and `ConsentRoot`
+reads its `scripts` in the browser, so a Server Component layout renders
+`ConsentRoot` without passing them. The file is bundled into the browser as
+well as the server, so it must hold no secrets.
+
+`scripts`, `vendors`, `clearOnRevocation`, `networkBlocker`, `persistence`,
+`scriptLoader` and `options` can also be passed to `ConsentRoot` as props,
+which win over the config. Functions can't cross from a Server Component to a
+Client Component, so pass them as props only from a `'use client'` file.

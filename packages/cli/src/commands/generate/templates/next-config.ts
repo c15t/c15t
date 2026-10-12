@@ -1,93 +1,18 @@
-import {
-	type CallExpression,
-	type Expression,
-	type MethodDeclaration,
-	Node,
-	type ObjectLiteralExpression,
-	Project,
-	type PropertyAssignment,
-	type SourceFile,
+import { Node, Project } from 'ts-morph';
+import type {
+	CallExpression,
+	Expression,
+	MethodDeclaration,
+	ObjectLiteralExpression,
+	PropertyAssignment,
+	SourceFile,
 } from 'ts-morph';
+
+import { resolvePlannedPath, writeFile } from './shared/file-plan';
 
 interface UpdateNextConfigOptions {
 	projectRoot: string;
 	backendURL?: string;
-	useEnvFile?: boolean;
-}
-
-/**
- * Updates or creates a Next.js config file with API rewrite rules for c15t backend
- *
- * @param options - Configuration options for updating the Next.js config
- * @returns Information about the update operation
- *
- * @throws {Error} When config file parsing fails
- * @throws {TypeError} When config structure is invalid
- *
- * @example
- * ```ts
- * const result = await updateNextConfig({
- *   projectRoot: '/path/to/project',
- *   backendURL: 'https://api.example.com',
- *   useEnvFile: true
- * });
- * ```
- */
-export async function updateNextConfig({
-	projectRoot,
-	backendURL,
-	useEnvFile,
-}: UpdateNextConfigOptions): Promise<{
-	updated: boolean;
-	filePath: string | null;
-	alreadyModified: boolean;
-	created: boolean;
-}> {
-	const project = new Project();
-	const configFile = findNextConfigFile(project, projectRoot);
-
-	if (!configFile) {
-		// Create a new config file if none exists
-		const newConfigPath = `${projectRoot}/next.config.ts`;
-		const newConfig = createNewNextConfig(backendURL, useEnvFile);
-
-		const newConfigFile = project.createSourceFile(newConfigPath, newConfig);
-		await newConfigFile.save();
-
-		return {
-			updated: true,
-			filePath: newConfigPath,
-			alreadyModified: false,
-			created: true,
-		};
-	}
-
-	// Check if rewrite rule already exists
-	if (hasC15tRewriteRule(configFile)) {
-		return {
-			updated: false,
-			filePath: configFile.getFilePath(),
-			alreadyModified: true,
-			created: false,
-		};
-	}
-
-	const updated = await updateExistingConfig(
-		configFile,
-		backendURL,
-		useEnvFile
-	);
-
-	if (updated) {
-		await configFile.save();
-	}
-
-	return {
-		updated,
-		filePath: configFile.getFilePath(),
-		alreadyModified: false,
-		created: false,
-	};
 }
 
 /**
@@ -98,10 +23,10 @@ export async function updateNextConfig({
  * @param projectRoot - Root directory of the project
  * @returns The config file if found, undefined otherwise
  */
-function findNextConfigFile(
+const findNextConfigFile = async function findNextConfigFile(
 	project: Project,
 	projectRoot: string
-): SourceFile | undefined {
+): Promise<SourceFile | undefined> {
 	const configPatterns = [
 		'next.config.ts',
 		'next.config.js',
@@ -110,6 +35,8 @@ function findNextConfigFile(
 
 	for (const pattern of configPatterns) {
 		const configPath = `${projectRoot}/${pattern}`;
+		// oxlint-disable-next-line no-await-in-loop -- Validate each candidate before the parser reads it.
+		await resolvePlannedPath(configPath);
 		try {
 			const files = project.addSourceFilesAtPaths(configPath);
 			if (files.length > 0) {
@@ -121,65 +48,33 @@ function findNextConfigFile(
 	}
 
 	return undefined;
-}
+};
 
 /**
- * Checks if the config file already has a c15t rewrite rule
+ * Generates the rewrite destination as a string literal. `JSON.stringify`
+ * escapes quotes and backslashes in the URL, so the generated file stays valid.
  *
- * @param configFile - The Next.js config source file
- * @returns True if c15t rewrite rule exists
- */
-function hasC15tRewriteRule(configFile: SourceFile): boolean {
-	const text = configFile.getFullText();
-	return text.includes('/api/c15t/') || text.includes("'/api/c15t/:path*'");
-}
-
-/**
- * Generates the destination URL for the rewrite rule
- *
- * @param mode - The storage mode
  * @param backendURL - The backend URL
- * @param useEnvFile - Whether to use environment variables
- * @returns The formatted destination URL and whether it should be treated as a template literal
+ * @returns The destination, for example `"https://your-project.inth.app/:path*"`
  */
-function generateRewriteDestination(
-	backendURL?: string,
-	useEnvFile?: boolean
-): { destination: string; isTemplateLiteral: boolean } {
-	if (useEnvFile) {
-		return {
-			// biome-ignore lint/suspicious/noTemplateCurlyInString: This will be transformed into a template literal later
-			destination: '${process.env.NEXT_PUBLIC_C15T_URL}/:path*',
-			isTemplateLiteral: true,
-		};
-	}
-
-	return {
-		destination: `${backendURL || 'https://your-project.inth.app'}/:path*`,
-		isTemplateLiteral: false,
-	};
-}
+const generateRewriteDestination = function generateRewriteDestination(
+	backendURL?: string
+): string {
+	return JSON.stringify(
+		`${backendURL || 'https://your-project.inth.app'}/:path*`
+	);
+};
 
 /**
  * Creates a new Next.js config file with c15t rewrite rule
  *
- * @param mode - The storage mode
  * @param backendURL - The backend URL
- * @param useEnvFile - Whether to use environment variables
  * @returns The complete config file content
  */
-function createNewNextConfig(
-	backendURL?: string,
-	useEnvFile?: boolean
+const createNewNextConfig = function createNewNextConfig(
+	backendURL?: string
 ): string {
-	const { destination, isTemplateLiteral } = generateRewriteDestination(
-		backendURL,
-		useEnvFile
-	);
-	// Format destination based on whether it's a template literal
-	const destinationValue = isTemplateLiteral
-		? `\`${destination}\``
-		: `'${destination}'`;
+	const destinationValue = generateRewriteDestination(backendURL);
 
 	return `import type { NextConfig } from 'next';
 
@@ -196,85 +91,71 @@ const config: NextConfig = {
 
 export default config;
 `;
-}
+};
 
 /**
- * Updates an existing Next.js config file with c15t rewrite rule
+ * Checks if the config file already has a c15t rewrite rule
  *
- * @param configFile - The existing config source file
- * @param mode - The storage mode
- * @param backendURL - The backend URL
- * @param useEnvFile - Whether to use environment variables
- * @returns True if the config was successfully updated
+ * @param configFile - The Next.js config source file
+ * @returns True if c15t rewrite rule exists
  */
-/**
- * Creates the rewrite rule object string with proper template literal handling
- */
-function createRewriteRule(
-	destination: string,
-	isTemplateLiteral: boolean
-): string {
-	const destinationValue = isTemplateLiteral
-		? `\`${destination}\``
-		: `'${destination}'`;
-	return `{
-		source: '/api/c15t/:path*',
-		destination: ${destinationValue},
-	}`;
-}
-
-function updateExistingConfig(
-	configFile: SourceFile,
-	backendURL?: string,
-	useEnvFile?: boolean
+const hasC15tRewriteRule = function hasC15tRewriteRule(
+	configFile: SourceFile
 ): boolean {
-	const { destination, isTemplateLiteral } = generateRewriteDestination(
-		backendURL,
-		useEnvFile
-	);
+	const text = configFile.getFullText();
+	return text.includes('/api/c15t/') || text.includes("'/api/c15t/:path*'");
+};
 
-	// Find the config object
-	const configObject = findConfigObject(configFile);
-	if (!configObject) {
-		return false;
+const findConfigFromIdentifier = function findConfigFromIdentifier(
+	identifierText: string,
+	configFile: SourceFile
+) {
+	const configVar = configFile.getVariableDeclaration(identifierText);
+	const initializer = configVar?.getInitializer();
+	return initializer && Node.isObjectLiteralExpression(initializer)
+		? initializer
+		: undefined;
+};
+
+const findConfigFromCallExpression = function findConfigFromCallExpression(
+	expression: CallExpression,
+	configFile: SourceFile
+) {
+	const args = expression.getArguments();
+	if (args.length === 0) {
+		return undefined;
 	}
 
-	// Look for existing rewrites method
-	const rewritesProperty = configObject.getProperty('rewrites');
-
-	if (rewritesProperty && Node.isMethodDeclaration(rewritesProperty)) {
-		// Update existing rewrites method
-		return updateExistingRewrites(
-			rewritesProperty,
-			destination,
-			isTemplateLiteral
-		);
+	// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
+	const firstArg = args[0];
+	if (Node.isCallExpression(firstArg)) {
+		const innerArgs = firstArg.getArguments();
+		if (innerArgs.length > 0 && Node.isIdentifier(innerArgs[0])) {
+			return findConfigFromIdentifier(innerArgs[0].getText(), configFile);
+		}
 	}
+	return undefined;
+};
 
-	if (rewritesProperty && Node.isPropertyAssignment(rewritesProperty)) {
-		// Handle property assignment case (less common)
-		return updatePropertyAssignmentRewrites(
-			rewritesProperty,
-			destination,
-			isTemplateLiteral
-		);
+const findConfigFromExpression = function findConfigFromExpression(
+	expression: Expression,
+	configFile: SourceFile
+) {
+	if (Node.isCallExpression(expression)) {
+		return findConfigFromCallExpression(expression, configFile);
 	}
+	if (Node.isObjectLiteralExpression(expression)) {
+		return expression;
+	}
+	if (Node.isIdentifier(expression)) {
+		return findConfigFromIdentifier(expression.getText(), configFile);
+	}
+	return undefined;
+};
 
-	// Add new rewrites method
-	return addNewRewritesMethod(configObject, destination, isTemplateLiteral);
-}
-
-/**
- * Finds the main config object in the file
- */
-function findConfigObject(configFile: SourceFile) {
-	return (
-		findConfigFromExportDefault(configFile) ||
-		findConfigFromVariableDeclarations(configFile)
-	);
-}
-
-function findConfigFromExportDefault(configFile: SourceFile) {
+const findConfigFromExportDefault = function findConfigFromExportDefault(
+	configFile: SourceFile
+) {
 	const exportDefault = configFile.getDefaultExportSymbol();
 
 	if (!exportDefault) {
@@ -294,80 +175,55 @@ function findConfigFromExportDefault(configFile: SourceFile) {
 		}
 	}
 	return undefined;
-}
+};
 
-function findConfigFromExpression(
-	expression: Expression,
-	configFile: SourceFile
-) {
-	if (Node.isCallExpression(expression)) {
-		return findConfigFromCallExpression(expression, configFile);
-	}
-	if (Node.isObjectLiteralExpression(expression)) {
-		return expression;
-	}
-	if (Node.isIdentifier(expression)) {
-		return findConfigFromIdentifier(expression.getText(), configFile);
-	}
-	return undefined;
-}
-
-function findConfigFromCallExpression(
-	expression: CallExpression,
-	configFile: SourceFile
-) {
-	const args = expression.getArguments();
-	if (args.length === 0) {
-		return undefined;
-	}
-
-	const firstArg = args[0];
-	if (Node.isCallExpression(firstArg)) {
-		const innerArgs = firstArg.getArguments();
-		if (innerArgs.length > 0 && Node.isIdentifier(innerArgs[0])) {
-			return findConfigFromIdentifier(innerArgs[0].getText(), configFile);
-		}
-	}
-	return undefined;
-}
-
-function findConfigFromIdentifier(
-	identifierText: string,
-	configFile: SourceFile
-) {
-	const configVar = configFile.getVariableDeclaration(identifierText);
-	const initializer = configVar?.getInitializer();
-	return initializer && Node.isObjectLiteralExpression(initializer)
-		? initializer
-		: undefined;
-}
-
-function findConfigFromVariableDeclarations(configFile: SourceFile) {
-	const variableDeclarations = configFile.getVariableDeclarations();
-	for (const varDecl of variableDeclarations) {
-		const typeNode = varDecl.getTypeNode();
-		if (typeNode?.getText().includes('NextConfig')) {
-			const initializer = varDecl.getInitializer();
-			if (Node.isObjectLiteralExpression(initializer)) {
-				return initializer;
+const findConfigFromVariableDeclarations =
+	function findConfigFromVariableDeclarations(configFile: SourceFile) {
+		const variableDeclarations = configFile.getVariableDeclarations();
+		for (const varDecl of variableDeclarations) {
+			const typeNode = varDecl.getTypeNode();
+			if (typeNode?.getText().includes('NextConfig')) {
+				const initializer = varDecl.getInitializer();
+				if (Node.isObjectLiteralExpression(initializer)) {
+					return initializer;
+				}
 			}
 		}
-	}
-	return undefined;
-}
+		return undefined;
+	};
+
+/**
+ * Finds the main config object in the file
+ */
+const findConfigObject = function findConfigObject(configFile: SourceFile) {
+	return (
+		findConfigFromExportDefault(configFile) ||
+		findConfigFromVariableDeclarations(configFile)
+	);
+};
+
+/**
+ * Creates the rewrite rule object string
+ */
+const createRewriteRule = function createRewriteRule(
+	destinationValue: string
+): string {
+	return `{
+		source: '/api/c15t/:path*',
+		destination: ${destinationValue},
+	}`;
+};
 
 /**
  * Updates an existing rewrites method by adding the c15t rewrite rule
  *
  * @param rewritesMethod - The existing rewrites method declaration
- * @param destination - The destination URL for the rewrite
- * @param isTemplateLiteral - Whether the destination should be a template literal
+ * @param destinationValue - The quoted destination for the rewrite
  * @returns True if successfully updated
  */
-function updateExistingRewrites(
+const updateExistingRewrites = function updateExistingRewrites(
 	rewritesMethod: MethodDeclaration,
-	destination: string,
-	isTemplateLiteral: boolean
+	destinationValue: string
 ): boolean {
 	const body = rewritesMethod.getBody();
 	if (!Node.isBlock(body)) {
@@ -387,7 +243,7 @@ function updateExistingRewrites(
 	}
 
 	// Add the c15t rewrite rule at the beginning of the array
-	const newRewrite = createRewriteRule(destination, isTemplateLiteral);
+	const newRewrite = createRewriteRule(destinationValue);
 
 	const elements = expression.getElements();
 	if (elements.length > 0) {
@@ -397,49 +253,42 @@ function updateExistingRewrites(
 	}
 
 	return true;
-}
+};
 
 /**
  * Updates a property assignment style rewrites configuration
  *
  * @param rewritesProperty - The rewrites property assignment
- * @param destination - The destination URL for the rewrite
- * @param isTemplateLiteral - Whether the destination should be a template literal
+ * @param destinationValue - The quoted destination for the rewrite
  * @returns True if successfully updated
  */
-function updatePropertyAssignmentRewrites(
-	rewritesProperty: PropertyAssignment,
-	destination: string,
-	isTemplateLiteral: boolean
-): boolean {
-	// This is less common but we should handle it
-	const initializer = rewritesProperty.getInitializer();
-	if (Node.isArrayLiteralExpression(initializer)) {
-		const newRewrite = createRewriteRule(destination, isTemplateLiteral);
-		initializer.insertElement(0, newRewrite);
-		return true;
-	}
+const updatePropertyAssignmentRewrites =
+	function updatePropertyAssignmentRewrites(
+		rewritesProperty: PropertyAssignment,
+		destinationValue: string
+	): boolean {
+		// This is less common but we should handle it
+		const initializer = rewritesProperty.getInitializer();
+		if (Node.isArrayLiteralExpression(initializer)) {
+			const newRewrite = createRewriteRule(destinationValue);
+			initializer.insertElement(0, newRewrite);
+			return true;
+		}
 
-	return false;
-}
+		return false;
+	};
 
 /**
  * Adds a new rewrites method to the config object
  *
  * @param configObject - The config object literal
- * @param destination - The destination URL for the rewrite
- * @param isTemplateLiteral - Whether the destination should be a template literal
+ * @param destinationValue - The quoted destination for the rewrite
  * @returns True if successfully added
  */
-function addNewRewritesMethod(
+const addNewRewritesMethod = function addNewRewritesMethod(
 	configObject: ObjectLiteralExpression,
-	destination: string,
-	isTemplateLiteral: boolean
+	destinationValue: string
 ): boolean {
-	const destinationValue = isTemplateLiteral
-		? `\`${destination}\``
-		: `'${destination}'`;
-
 	const rewritesMethod = `async rewrites() {
 		return [
 			{
@@ -451,4 +300,113 @@ function addNewRewritesMethod(
 
 	configObject.addProperty(rewritesMethod);
 	return true;
-}
+};
+
+/**
+ * Updates an existing Next.js config file with c15t rewrite rule
+ *
+ * @param configFile - The existing config source file
+ * @param backendURL - The backend URL
+ * @returns True if the config was successfully updated
+ */
+const updateExistingConfig = function updateExistingConfig(
+	configFile: SourceFile,
+	backendURL?: string
+): boolean {
+	const destinationValue = generateRewriteDestination(backendURL);
+
+	// Find the config object
+	const configObject = findConfigObject(configFile);
+	if (!configObject) {
+		return false;
+	}
+
+	// Look for existing rewrites method
+	const rewritesProperty = configObject.getProperty('rewrites');
+
+	if (rewritesProperty && Node.isMethodDeclaration(rewritesProperty)) {
+		// Update existing rewrites method
+		return updateExistingRewrites(rewritesProperty, destinationValue);
+	}
+
+	if (rewritesProperty && Node.isPropertyAssignment(rewritesProperty)) {
+		// Handle property assignment case (less common)
+		return updatePropertyAssignmentRewrites(rewritesProperty, destinationValue);
+	}
+
+	// Add new rewrites method
+	return addNewRewritesMethod(configObject, destinationValue);
+};
+
+/**
+ * Updates or creates a Next.js config file with API rewrite rules for c15t backend
+ *
+ * @param options - Configuration options for updating the Next.js config
+ * @returns Information about the update operation
+ *
+ * @throws {Error} When config file parsing fails
+ * @throws {TypeError} When config structure is invalid
+ *
+ * @example
+ * ```ts
+ * const result = await updateNextConfig({
+ *   projectRoot: '/path/to/project',
+ *   backendURL: 'https://api.example.com',
+ * });
+ * ```
+ */
+export const updateNextConfig = async function updateNextConfig({
+	projectRoot,
+	backendURL,
+}: UpdateNextConfigOptions): Promise<{
+	updated: boolean;
+	filePath: string | null;
+	alreadyModified: boolean;
+	created: boolean;
+}> {
+	const project = new Project();
+	const configFile = await findNextConfigFile(project, projectRoot);
+
+	if (!configFile) {
+		// Create a new config file if none exists
+		const newConfigPath = `${projectRoot}/next.config.ts`;
+		const newConfig = createNewNextConfig(backendURL);
+
+		const newConfigFile = project.createSourceFile(newConfigPath, newConfig);
+		await writeFile(newConfigPath, newConfigFile.getFullText(), 'utf-8');
+
+		return {
+			alreadyModified: false,
+			created: true,
+			filePath: newConfigPath,
+			updated: true,
+		};
+	}
+
+	// Check if rewrite rule already exists
+	if (hasC15tRewriteRule(configFile)) {
+		return {
+			alreadyModified: true,
+			created: false,
+			filePath: configFile.getFilePath(),
+			updated: false,
+		};
+	}
+
+	const updated = await updateExistingConfig(configFile, backendURL);
+
+	if (updated) {
+		await writeFile(
+			configFile.getFilePath(),
+			configFile.getFullText(),
+			'utf-8'
+		);
+	}
+
+	return {
+		alreadyModified: false,
+		created: false,
+		filePath: configFile.getFilePath(),
+		updated,
+	};
+};

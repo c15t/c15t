@@ -48,7 +48,7 @@ export const standardSourceEntries = [
  * otherwise returns an empty array.
  * This utility centralizes the Rsdoctor plugin configuration across all rslib configs.
  */
-export function getRsdoctorPlugins() {
+export const getRsdoctorPlugins = function getRsdoctorPlugins() {
 	if (process.env.WITH_RSDOCTOR) {
 		return [
 			new RsdoctorRspackPlugin({
@@ -63,4 +63,4 @@ export function getRsdoctorPlugins() {
 		];
 	}
 	return [];
-}
+};

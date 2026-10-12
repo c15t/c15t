@@ -1,15 +1,8 @@
-import { pluginReact } from '@rsbuild/plugin-react';
 import { defineConfig } from '@rslib/core';
+
 import { getRsdoctorPlugins } from '../shared/rslib-utils';
 
 export default defineConfig({
-	source: {
-		entry: {
-			index: './src/index.ts',
-			react: './src/react.ts',
-			tanstack: './src/tanstack.ts',
-		},
-	},
 	lib: [
 		{
 			bundle: true,
@@ -18,18 +11,19 @@ export default defineConfig({
 			},
 			format: 'esm',
 		},
-		{
-			bundle: true,
-			dts: false,
-			format: 'cjs',
-		},
 	],
 	output: {
-		target: 'web',
 		cleanDistPath: true,
-		injectStyles: true,
+		// The stylesheet ships as a string inside the panel's shadow root.
+		injectStyles: false,
+		target: 'web',
 	},
-	plugins: [pluginReact()],
+	source: {
+		entry: {
+			index: './src/index.ts',
+		},
+		exclude: ['**/__tests__/**', '**/*.test.ts'],
+	},
 	tools: {
 		rspack: {
 			plugins: [...getRsdoctorPlugins()],

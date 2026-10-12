@@ -1,0 +1,853 @@
+@import url('./animations/enter-exit.css');
+
+:root {
+	/* Typography */
+	--consent-banner-font-family: var(--c15t-font-family);
+	--consent-banner-line-height: var(--c15t-line-height-normal);
+	--consent-banner-text-size-adjust: 100%;
+	--consent-banner-tab-size: 4;
+
+	/* Layout variables */
+	--consent-banner-border-radius-sm: var(--c15t-radius-sm);
+	--consent-banner-border-radius: var(--c15t-radius-lg);
+	--consent-banner-max-width: 440px;
+	/* `widget` chips and `wall` cards size independently of the floating card. */
+	--consent-banner-widget-max-width: 20rem;
+	--consent-banner-wall-max-width: 30rem;
+	--consent-banner-branding-tag-offset: 2rem;
+
+	/* Animation variables. A banner that mounts after the page has painted
+	   fades in on the entry pair; hiding fades out on the exit pair. */
+	--consent-banner-entry-duration: var(--c15t-duration-normal);
+	--consent-banner-entry-timing: var(--c15t-easing-out);
+	--consent-banner-animation-duration: var(--c15t-duration-fast);
+	--consent-banner-animation-timing: var(--c15t-easing-in);
+
+	/* Border */
+	--consent-banner-border-width: 1px;
+	--consent-banner-border-width-hairline: 1px;
+
+	/* Shadow */
+	--consent-banner-shadow: var(--c15t-shadow-lg);
+	--consent-banner-shadow-dark: var(--c15t-shadow-lg);
+
+	/* Colors */
+	--consent-banner-background-color: var(--c15t-surface);
+	--consent-banner-background-color-dark: var(--c15t-surface);
+	--consent-banner-footer-background-color: var(--c15t-surface-hover);
+	--consent-banner-footer-background-color-dark: var(--c15t-surface-hover);
+	--consent-banner-text-color: var(--c15t-text);
+	--consent-banner-text-color-dark: var(--c15t-text);
+	--consent-banner-border-color: var(--c15t-border);
+	--consent-banner-border-color-dark: var(--c15t-border);
+	--consent-banner-title-color: var(--c15t-text);
+	--consent-banner-title-color-dark: var(--c15t-text);
+	--consent-banner-description-color: var(--c15t-text-muted);
+	--consent-banner-description-color-dark: var(--c15t-text-muted);
+	--consent-banner-overlay-background-color: var(--c15t-overlay);
+	--consent-banner-overlay-background-color-dark: var(--c15t-overlay);
+
+	/* Stacking. A blocking banner's z-index must stay above its overlay's. */
+	--consent-banner-z-index: 999998;
+	--consent-banner-overlay-z-index: 999997;
+}
+
+/* Hairline borders for retina displays */
+@media only screen and (min-resolution: 192dpi) {
+	:root {
+		--consent-banner-border-width-hairline: 0.5px;
+	}
+}
+
+@layer components {
+	.root:not(:global(.headless)) {
+		box-sizing: border-box;
+		padding: 1rem;
+		flex-direction: column;
+		width: 100%;
+		display: flex;
+		z-index: var(--consent-banner-z-index);
+		position: fixed;
+		pointer-events: none;
+		font-family: var(--consent-banner-font-family);
+		line-height: var(--consent-banner-line-height);
+		-webkit-text-size-adjust: var(--consent-banner-text-size-adjust);
+		-webkit-font-smoothing: antialiased;
+		tab-size: var(--consent-banner-tab-size);
+	}
+
+	/* The root's padding and the strip beside the branding tag are layout,
+	   not banner. Clicks there reach the page. The card, the tag, and any
+	   part composed straight into the root still take them, and a blocking
+	   banner catches every click. */
+	.root:not(:global(.headless)) > * {
+		pointer-events: auto;
+	}
+
+	.root:not(:global(.headless)) > .cardShell:not(:global(.headless)) {
+		pointer-events: none;
+	}
+
+	.cardShell:not(:global(.headless)) > * {
+		pointer-events: auto;
+	}
+
+	.root[data-blocking='true']:not(:global(.headless)) {
+		pointer-events: auto;
+	}
+
+	/*
+	 * The banner appears on its first frame when it shows with the page.
+	 * There it is part of the first paint, and a slide reads as layout
+	 * shift. Hiding still fades out. Adapters keep adding the enter classes
+	 * and `bannerEntering` on mount; those states are fully visible.
+	 */
+	.bannerEnterActive:not(:global(.headless)),
+	.bannerEnterFrom:not(:global(.headless)),
+	.bannerEnterTo:not(:global(.headless)),
+	.bannerEntering:not(:global(.headless)),
+	.bannerLeaveFrom:not(:global(.headless)),
+	.bannerVisible:not(:global(.headless)) {
+		opacity: 1;
+	}
+
+	/*
+	 * A banner that mounts after the page has painted fades in instead, so
+	 * it does not pop into a page someone is already reading. Adapters mark
+	 * that mount with `data-entry="late"`. It fades only, never moves.
+	 */
+	.bannerEntering[data-entry='late']:not(.bannerHidden):not(
+			:global(.headless)
+		) {
+		transition: opacity var(--consent-banner-entry-duration)
+			var(--consent-banner-entry-timing);
+	}
+
+	@starting-style {
+		.bannerEntering[data-entry='late']:not(:global(.headless)) {
+			opacity: 0;
+		}
+	}
+
+	/* Banner — Vue <Transition> leave classes */
+	.bannerLeaveActive:not(:global(.headless)) {
+		transition: opacity var(--consent-banner-animation-duration)
+			var(--consent-banner-animation-timing);
+	}
+
+	.bannerLeaveTo:not(:global(.headless)) {
+		opacity: 0;
+	}
+
+	/* Legacy/compat class toggle */
+	.bannerHidden:not(:global(.headless)) {
+		opacity: 0;
+		transition: opacity var(--consent-banner-animation-duration)
+			var(--consent-banner-animation-timing);
+	}
+
+	@media (min-width: 640px) {
+		.root:not(:global(.headless)) {
+			padding: 1.5rem;
+			width: auto;
+		}
+	}
+
+	.root[data-position='bottom-left']:not(:global(.headless)) {
+		left: 0;
+		bottom: 0;
+	}
+
+	.root[data-position='bottom-right']:not(:global(.headless)) {
+		right: 0;
+		bottom: 0;
+	}
+
+	.root[data-position='top-left']:not(:global(.headless)) {
+		left: 0;
+		top: 0;
+	}
+
+	.root[data-position='top-right']:not(:global(.headless)) {
+		right: 0;
+		top: 0;
+	}
+
+	/* Variant geometry. The root carries `data-variant`, `data-position`,
+	   `data-prompt`, `data-model`, and `data-blocking`. The corner rules
+	   above stay unscoped so a root without `data-variant` keeps today's
+	   floating card. */
+
+	/* floating: horizontally centred edges. Width comes from the card shell;
+	   auto margins centre it, so the root carries no transform. */
+	.root[data-variant='floating'][data-position='bottom-center']:not(
+			:global(.headless)
+		) {
+		inset-inline: 0;
+		bottom: 0;
+		margin-inline: auto;
+		width: fit-content;
+	}
+
+	.root[data-variant='floating'][data-position='top-center']:not(
+			:global(.headless)
+		) {
+		inset-inline: 0;
+		top: 0;
+		margin-inline: auto;
+		width: fit-content;
+	}
+
+	/* bar: full-width edge strip. */
+	.root[data-variant='bar']:not(:global(.headless)) {
+		left: 0;
+		right: 0;
+		width: 100%;
+		padding: 0;
+	}
+
+	.root[data-variant='bar'][data-position='bottom']:not(:global(.headless)) {
+		bottom: 0;
+		top: auto;
+	}
+
+	.root[data-variant='bar'][data-position='top']:not(:global(.headless)) {
+		top: 0;
+		bottom: auto;
+	}
+
+	.root[data-variant='bar']:not(:global(.headless)) .cardShell {
+		width: 100%;
+		max-width: none;
+	}
+
+	.root[data-variant='bar']:not(:global(.headless)) .card {
+		border-radius: 0;
+		border-width: 0;
+		box-shadow: var(--consent-banner-shadow);
+	}
+
+	/* Only the inner edge keeps a border: the one facing the page. */
+	.root[data-variant='bar'][data-position='bottom']:not(:global(.headless))
+		.card {
+		border-top-width: var(--consent-banner-border-width);
+		border-top-style: solid;
+		padding-bottom: env(safe-area-inset-bottom);
+	}
+
+	.root[data-variant='bar'][data-position='top']:not(:global(.headless)) .card {
+		border-bottom-width: var(--consent-banner-border-width);
+		border-bottom-style: solid;
+		padding-top: env(safe-area-inset-top);
+	}
+
+	/* The branding tag keeps its tab look on a bar, with room from the
+	   viewport edge. A top bar hangs it below the card instead. */
+	.root[data-variant='bar']:not(:global(.headless))
+		.cardShell
+		> [data-variant='banner-tag'] {
+		margin-inline-end: 1.5rem;
+	}
+
+	.root[data-variant='bar'][data-position='top']:not(:global(.headless))
+		.cardShell
+		> [data-variant='banner-tag'] {
+		order: 1;
+		margin-block-end: 0;
+		margin-block-start: -1px;
+		border-bottom-width: 1px;
+		border-top-width: 0;
+		border-radius: 0 0 0.75rem 0.75rem;
+	}
+
+	/* Any prompt in a bar reads as rights leading, actions trailing. */
+	.root[data-variant='bar']:not(:global(.headless)) .footer {
+		flex-direction: column;
+		align-items: stretch;
+		gap: 0.75rem;
+	}
+
+	.root[data-variant='bar']:not(:global(.headless)) .footer .rights {
+		flex-direction: column;
+		align-items: flex-start;
+	}
+
+	.root[data-variant='bar']:not(:global(.headless))
+		.footer
+		button[data-action]:not(.rightLink) {
+		width: 100%;
+		flex: 1 1 auto;
+		min-width: 0;
+	}
+
+	@media (min-width: 640px) {
+		.root[data-variant='bar']:not(:global(.headless)) .footer {
+			flex-direction: row;
+			align-items: center;
+			justify-content: space-between;
+		}
+
+		.root[data-variant='bar']:not(:global(.headless)) .footer .rights {
+			flex-direction: row;
+			flex-wrap: wrap;
+			align-items: center;
+			margin-inline-end: auto;
+		}
+
+		.root[data-variant='bar']:not(:global(.headless)) .footer > * {
+			width: auto;
+		}
+
+		.root[data-variant='bar']:not(:global(.headless))
+			.footer
+			button[data-action]:not(.rightLink) {
+			width: auto;
+			flex: none;
+		}
+	}
+
+	/* Wide bar: text and controls share one row, like a classic cookie bar.
+	   The footer drops its own background and divider; the card is the
+	   surface. */
+	@media (min-width: 1024px) {
+		.root[data-variant='bar']:not(:global(.headless)) .card {
+			display: flex;
+			flex-direction: row;
+			align-items: center;
+		}
+
+		.root[data-variant='bar']:not(:global(.headless)) .header {
+			flex: 1 1 auto;
+			min-width: 0;
+		}
+
+		/* The footer also carries `actionRoot`, whose base rule is
+		   `width: 100%`; in the row it must size to its controls. */
+		.root[data-variant='bar']:not(:global(.headless)) .footer {
+			width: auto;
+			min-width: 0;
+			background-color: transparent;
+		}
+
+		.root[data-variant='bar']:not(:global(.headless))
+			.card
+			> :not([hidden])
+			~ :not([hidden]) {
+			border-top-width: 0;
+		}
+	}
+
+	/* Below 640px the root spans the viewport, so the shell must hug the
+	   corner named by `data-position`. Positions are physical, so these use
+	   physical auto margins rather than logical `align-items` keywords,
+	   which would flip under `dir="rtl"`. */
+	.root[data-variant='floating'][data-position$='-right']:not(
+			:global(.headless)
+		)
+		.cardShell,
+	.root[data-variant='widget'][data-position$='-right']:not(:global(.headless))
+		.cardShell {
+		margin-left: auto;
+		margin-right: 0;
+	}
+
+	.root[data-variant='floating'][data-position$='-left']:not(:global(.headless))
+		.cardShell,
+	.root[data-variant='widget'][data-position$='-left']:not(:global(.headless))
+		.cardShell {
+		margin-left: 0;
+		margin-right: auto;
+	}
+
+	.root[data-variant='floating'][data-position$='-center']:not(
+			:global(.headless)
+		)
+		.cardShell {
+		margin-left: auto;
+		margin-right: auto;
+	}
+
+	/* widget: compact chip in a corner. */
+	.root[data-variant='widget']:not(:global(.headless)) {
+		padding: 0.75rem;
+	}
+
+	@media (min-width: 640px) {
+		.root[data-variant='widget']:not(:global(.headless)) {
+			padding: 1rem;
+		}
+	}
+
+	.root[data-variant='widget']:not(:global(.headless)) .cardShell {
+		width: min(calc(100vw - 1.5rem), var(--consent-banner-widget-max-width));
+	}
+
+	.root[data-variant='widget']:not(:global(.headless)) .header {
+		padding: 0.75rem;
+	}
+
+	.root[data-variant='widget']:not(:global(.headless)) .title {
+		font-size: 0.875rem;
+		line-height: 1.25rem;
+	}
+
+	.root[data-variant='widget']:not(:global(.headless)) .description {
+		font-size: 0.8125rem;
+		line-height: 1.125rem;
+	}
+
+	.root[data-variant='widget']:not(:global(.headless)) .footer {
+		padding: 0.75rem;
+		gap: 0.5rem;
+	}
+
+	.root[data-variant='widget']:not(:global(.headless))
+		.footer
+		button[data-action]:not(.rightLink) {
+		padding: 0.5rem 0.75rem;
+	}
+
+	.root[data-variant='widget']:not(:global(.headless)) .footer .rightLink {
+		font-size: 0.8125rem;
+		line-height: 1.125rem;
+	}
+
+	/* wall: centred blocker. The adapter renders the overlay and locks
+	   scroll because `wall` always resolves to `blocking`. */
+	.root[data-variant='wall']:not(:global(.headless)) {
+		inset: 0;
+		display: grid;
+		place-items: center;
+		width: auto;
+		padding: 1rem;
+	}
+
+	.root[data-variant='wall']:not(:global(.headless)) .cardShell {
+		width: min(calc(100vw - 2rem), var(--consent-banner-wall-max-width));
+	}
+
+	/* Card styles */
+	.card:not(:global(.headless)) {
+		position: relative;
+		width: 100%;
+		border-radius: var(--consent-banner-border-radius);
+		border-width: var(--consent-banner-border-width);
+		/* Explicit style: never rely on Tailwind preflight's `border-style`. */
+		border-style: solid;
+		border-color: var(--consent-banner-border-color);
+		background-color: var(--consent-banner-background-color);
+		box-shadow: var(--consent-banner-shadow);
+		overflow: hidden;
+	}
+
+	/* The footer lays out its actions by this shell's width, not the
+	   viewport's (see consent-actions.module.css). Inline-size containment
+	   ignores the content's width, so every variant must give the shell an
+	   explicit width, as the rules here do. */
+	.cardShell:not(:global(.headless)) {
+		display: flex;
+		flex-direction: column;
+		width: min(calc(100vw - 2rem), var(--consent-banner-max-width));
+		container: c15t-banner / inline-size;
+	}
+
+	@media (min-width: 640px) {
+		.cardShell:not(:global(.headless)) {
+			width: min(calc(100vw - 3rem), var(--consent-banner-max-width));
+		}
+	}
+
+	:global(.c15t-dark) .card:not(:global(.headless)) {
+		background-color: var(--consent-banner-background-color-dark);
+		border-color: var(--consent-banner-border-color-dark);
+		box-shadow: var(--consent-banner-shadow-dark);
+	}
+
+	:global(.c15t-dark) .root[data-variant='bar']:not(:global(.headless)) .card {
+		box-shadow: var(--consent-banner-shadow-dark);
+	}
+
+	/* Divider between sections */
+	.card:not(:global(.headless)) > :not([hidden]) ~ :not([hidden]) {
+		border-top-width: var(--consent-banner-border-width);
+		/* Top only: never rely on Tailwind preflight's border reset. */
+		border-top-style: solid;
+		border-color: var(--consent-banner-border-color);
+	}
+
+	:global(.c15t-dark)
+		.card:not(:global(.headless))
+		> :not([hidden])
+		~ :not([hidden]) {
+		border-color: var(--consent-banner-border-color-dark);
+	}
+
+	/* Focus styles: the card is tabindex="-1" — it only receives
+	   programmatic focus (the trap moves focus here on open so screen
+	   readers announce the surface) and is never a keyboard tab stop, so it
+	   renders no ring. Interactive children carry the focus indicators. */
+	.card:not(:global(.headless)):focus {
+		outline: none;
+	}
+
+	.header:not(:global(.headless)) {
+		display: flex;
+		flex-direction: column;
+		padding: 1rem;
+		color: var(--consent-banner-text-color);
+	}
+
+	:global(.c15t-dark) .header:not(:global(.headless)) {
+		color: var(--consent-banner-text-color-dark);
+	}
+
+	@media (min-width: 640px) {
+		.header:not(:global(.headless)) {
+			padding: 1.5rem;
+		}
+	}
+
+	.header:not(:global(.headless)) > :not([hidden]) ~ :not([hidden]) {
+		--consent-banner-space-y-reverse: 0;
+		margin-top: calc(0.5rem * calc(1 - var(--consent-banner-space-y-reverse)));
+		margin-bottom: calc(0.5rem * var(--consent-banner-space-y-reverse));
+	}
+
+	.footer:not(:global(.headless)) {
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+		justify-content: space-between;
+		padding-left: 1.25rem;
+		padding-right: 1.25rem;
+		padding-top: 1rem;
+		padding-bottom: 1rem;
+		background-color: var(--consent-banner-footer-background-color);
+	}
+
+	:global(.c15t-dark) .footer:not(:global(.headless)) {
+		background-color: var(--consent-banner-footer-background-color-dark);
+	}
+
+	@media (min-width: 640px) {
+		.footer:not(:global(.headless)) {
+			flex-direction: row;
+		}
+	}
+
+	/* Persistent-right links (opt-out, preferences) rendered in the footer
+	   when the prompt recommends an additional preferences button. */
+	.rights:not(:global(.headless)) {
+		display: flex;
+		flex-direction: row;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 0.75rem;
+		min-width: 0;
+	}
+
+	.rightLink:not(:global(.headless)) {
+		display: inline-block;
+		width: auto;
+		flex: none;
+		align-self: center;
+		margin: 0;
+		padding: 0;
+		border: 0;
+		background: none;
+		font: inherit;
+		font-family: var(--consent-banner-font-family);
+		font-size: 0.875rem;
+		line-height: 1.25rem;
+		letter-spacing: -0.006em;
+		font-weight: 400;
+		color: var(--consent-banner-description-color);
+		text-decoration: underline;
+		text-underline-offset: 0.15em;
+		text-align: start;
+		cursor: pointer;
+		border-radius: var(--consent-banner-border-radius-sm);
+		touch-action: manipulation;
+	}
+
+	.rightLink:not(:global(.headless)):hover {
+		color: var(--consent-banner-text-color);
+	}
+
+	.rightLink:not(:global(.headless)):focus-visible {
+		outline: none;
+		box-shadow: var(
+			--button-shadow-primary-focus,
+			0 0 0 2px var(--c15t-primary)
+		);
+	}
+
+	:global(.c15t-dark) .rightLink:not(:global(.headless)) {
+		color: var(--consent-banner-description-color-dark);
+	}
+
+	:global(.c15t-dark) .rightLink:not(:global(.headless)):hover {
+		color: var(--consent-banner-text-color-dark);
+	}
+
+	:global(.c15t-dark) .rightLink:not(:global(.headless)):focus-visible {
+		box-shadow: var(
+			--button-shadow-primary-focus-dark,
+			0 0 0 2px var(--c15t-primary)
+		);
+	}
+
+	/* Notice prompt: rights lead, the dismiss action trails. The root carries
+	   `data-prompt` and `data-model` so hosts can target either in CSS.
+	   Rights render as underlined text (`.rightLink`, `data-action="right"`)
+	   so the primary action is the only button and carries the emphasis.
+	   Below 640px the footer stacks: the link keeps its natural width at the
+	   start, and only real buttons fill the width, like a choice prompt. */
+	.root[data-prompt='notice']:not(:global(.headless)) .footer {
+		flex-direction: column;
+		align-items: stretch;
+		gap: 0.75rem;
+	}
+
+	.root[data-prompt='notice']:not(:global(.headless)) .footer .rights {
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 0.5rem;
+	}
+
+	.root[data-prompt='notice']:not(:global(.headless))
+		.footer
+		button[data-action]:not(.rightLink) {
+		width: 100%;
+		flex: 1 1 auto;
+		min-width: 0;
+	}
+
+	.root[data-prompt='notice']:not(:global(.headless)) .footer .rightLink {
+		width: auto;
+		flex: none;
+		align-self: flex-start;
+	}
+
+	@media (min-width: 640px) {
+		.root[data-prompt='notice']:not(:global(.headless)) .footer {
+			flex-direction: row;
+			align-items: center;
+			justify-content: space-between;
+			gap: 0.75rem;
+		}
+
+		.root[data-prompt='notice']:not(:global(.headless)) .footer .rights {
+			flex: 1 1 auto;
+			flex-direction: row;
+			flex-wrap: wrap;
+			align-items: center;
+			gap: 0.75rem;
+			min-width: 0;
+		}
+
+		.root[data-prompt='notice']:not(:global(.headless)) .footer > * {
+			width: auto;
+		}
+
+		.root[data-prompt='notice']:not(:global(.headless))
+			.footer
+			button[data-action]:not(.rightLink) {
+			width: auto;
+			flex: none;
+		}
+
+		.root[data-prompt='notice']:not(:global(.headless)) .footer .rightLink {
+			align-self: center;
+		}
+	}
+
+	/* Bar polish: tighter paddings at every width, and from 1024px the
+	   description clamps to two lines while the rights sit inline on one
+	   row between the text and the trailing action. Placed after the
+	   notice rules so a notice in a bar takes the inline layout. */
+	.root[data-variant='bar']:not(:global(.headless)) .header {
+		padding: 0.75rem 1rem;
+	}
+
+	.root[data-variant='bar']:not(:global(.headless)) .footer {
+		padding: 0.75rem 1rem;
+	}
+
+	@media (min-width: 640px) {
+		.root[data-variant='bar']:not(:global(.headless)) .header {
+			padding: 1rem 1.5rem;
+		}
+
+		.root[data-variant='bar']:not(:global(.headless)) .footer {
+			padding: 0.75rem 1.5rem;
+		}
+	}
+
+	@media (min-width: 1024px) {
+		.root[data-variant='bar']:not(:global(.headless)) .header {
+			padding: 0.75rem 1.5rem;
+		}
+
+		.root[data-variant='bar']:not(:global(.headless))
+			.header
+			> :not([hidden])
+			~ :not([hidden]) {
+			margin-top: 0.25rem;
+		}
+
+		.root[data-variant='bar']:not(:global(.headless)) .title {
+			line-height: 1.25rem;
+		}
+
+		.root[data-variant='bar']:not(:global(.headless)) .footer {
+			flex: 0 0 auto;
+			gap: 0.75rem;
+		}
+
+		.root[data-variant='bar']:not(:global(.headless)) .footer .rights {
+			flex: 0 0 auto;
+			flex-direction: row;
+			flex-wrap: nowrap;
+			align-items: center;
+			gap: 0.75rem;
+			margin-inline-end: 0;
+		}
+
+		.root[data-variant='bar']:not(:global(.headless)) .footer .rightLink {
+			font-size: 0.8125rem;
+			line-height: 1.125rem;
+			white-space: nowrap;
+		}
+	}
+
+	.description:not(:global(.headless)) {
+		font-size: 0.875rem;
+		line-height: 1.25rem;
+		letter-spacing: -0.006em;
+		font-weight: 400;
+		color: var(--consent-banner-description-color);
+	}
+
+	:global(.c15t-dark) .description:not(:global(.headless)) {
+		color: var(--consent-banner-description-color-dark);
+	}
+
+	.description[data-context='banner']:not(:global(.headless)) {
+		font-size: 0.875rem;
+		line-height: 1.25rem;
+		letter-spacing: -0.006em;
+		font-weight: 400;
+		color: var(--consent-banner-description-color);
+	}
+
+	:global(.c15t-dark)
+		.description[data-context='banner']:not(:global(.headless)) {
+		color: var(--consent-banner-description-color-dark);
+	}
+
+	.description[data-context='dialog']:not(:global(.headless)) {
+		color: var(--consent-dialog-muted-color);
+		font-size: var(--consent-dialog-description-font-size);
+		font-weight: var(--consent-dialog-description-font-weight);
+		line-height: var(--consent-dialog-description-line-height);
+	}
+
+	:global(.c15t-dark)
+		.description[data-context='dialog']:not(:global(.headless)) {
+		color: var(--consent-dialog-muted-color-dark);
+	}
+
+	.description[data-context='manager']:not(:global(.headless)) {
+		color: var(--consent-manager-text-muted-color);
+	}
+
+	:global(.c15t-dark)
+		.description[data-context='manager']:not(:global(.headless)) {
+		color: var(--consent-manager-text-muted-color-dark);
+	}
+
+	.title:not(:global(.headless)) {
+		/* Every adapter renders the title as an `<h2>`, so the card height
+		   depends on the user agent's block margins unless they are reset. */
+		margin: 0;
+		font-size: 1rem;
+		line-height: 1.5rem;
+		letter-spacing: -0.011em;
+		font-weight: 500;
+		color: var(--consent-banner-title-color);
+	}
+
+	:global(.c15t-dark) .title:not(:global(.headless)) {
+		color: var(--consent-banner-title-color-dark);
+	}
+
+	.overlay:not(:global(.headless)) {
+		position: fixed;
+		inset: 0px;
+		background-color: var(--consent-banner-overlay-background-color);
+		z-index: var(--consent-banner-overlay-z-index);
+	}
+
+	/* The backdrop of a blocking banner enters and leaves with it. */
+	.overlayEnterActive:not(:global(.headless)),
+	.overlayEnterFrom:not(:global(.headless)),
+	.overlayEnterTo:not(:global(.headless)),
+	.overlayEntering:not(:global(.headless)),
+	.overlayLeaveFrom:not(:global(.headless)),
+	.overlayVisible:not(:global(.headless)) {
+		opacity: 1;
+	}
+
+	.overlayEntering[data-entry='late']:not(.overlayHidden):not(
+			:global(.headless)
+		) {
+		transition: opacity var(--consent-banner-entry-duration)
+			var(--consent-banner-entry-timing);
+	}
+
+	@starting-style {
+		.overlayEntering[data-entry='late']:not(:global(.headless)) {
+			opacity: 0;
+		}
+	}
+
+	/* Overlay — Vue <Transition> leave classes */
+	.overlayLeaveActive:not(:global(.headless)) {
+		transition: opacity var(--consent-banner-animation-duration)
+			var(--consent-banner-animation-timing);
+	}
+
+	.overlayLeaveTo:not(:global(.headless)) {
+		opacity: 0;
+	}
+
+	/* Legacy/compat class toggle */
+	.overlayHidden:not(:global(.headless)) {
+		opacity: 0;
+		transition: opacity var(--consent-banner-animation-duration)
+			var(--consent-banner-animation-timing);
+	}
+
+	:global(.c15t-dark) .overlay:not(:global(.headless)) {
+		background-color: var(--consent-banner-overlay-background-color-dark);
+	}
+
+	/* The same selectors as the rules that animate, so these win on
+	   source order in every adapter. */
+	@media (prefers-reduced-motion: reduce) {
+		.bannerEntering[data-entry='late']:not(.bannerHidden):not(
+				:global(.headless)
+			),
+		.overlayEntering[data-entry='late']:not(.overlayHidden):not(
+				:global(.headless)
+			),
+		.bannerLeaveActive:not(:global(.headless)),
+		.bannerHidden:not(:global(.headless)),
+		.overlayLeaveActive:not(:global(.headless)),
+		.overlayHidden:not(:global(.headless)) {
+			transition: none;
+			animation: none;
+		}
+	}
+}

@@ -1,0 +1,199 @@
+---
+title: Transports
+description: Choose where a JavaScript app's c15t policy comes from and where choices go, with the hosted, manifest, offline and custom transports for @c15t/browser, createConsentRuntime and your own kernel.
+group: frameworks
+---
+
+## Compare the transports
+
+A transport tells the kernel which policy applies to this visitor and where
+to record their choice.
+
+| Transport | Policy comes from | Choices go to | Use it when |
+| --- | --- | --- | --- |
+| `manifest()` with a build-time snapshot, recommended | Public policy bundled during the build, resolved in the browser | The backend's `/subjects` | You use Vite and can rebuild after policy edits. Regional policies may still request location. |
+| `hosted()` | The backend's `/init`, per visit | The backend's `/subjects` | Policy changes must apply without rebuilding, or you need backend resolution on every visit. |
+| `manifest()` at runtime | The backend's public `/manifest`, resolved in the browser | The backend's `/subjects` | You want the banner to render without a per-visit `/init` request and cannot bundle the policy. |
+| Offline | Rules bundled in your app | Nowhere; the browser only | Prototypes and tests. Not recommended for production environments. |
+| Custom | Your own `init` function | Your own `save` function | You run your own consent API. |
+
+[Consent modes](/docs/concepts/modes) covers the same factories in every
+framework, and [data fetching](/docs/concepts/data-fetching) compares the
+paths in more depth, including what each one sends.
+
+## Pass a transport
+
+Each setup takes the transport in a slightly different form:
+
+| Setup | Where it goes |
+| --- | --- |
+| `@c15t/browser` | `init({ mode })`, a factory such as `manifest()`, `hosted()` or `offline()` from `@c15t/browser`. Required. |
+| `createConsentRuntime` | `mode`, a factory such as `hosted({ backendURL })`. Required. |
+| Script tag | `data-mode="hosted"`, `"manifest"` or `"offline"`. Mode names work only in the script-tag builds. |
+| `createConsentKernel` | `transport`, the transport object itself, such as `createHostedTransport({ backendURL })`. |
+
+A factory is created once. To switch transports, dispose the client or
+runtime and create a new one.
+
+`init()` from `@c15t/browser` imports no transport itself, so the bundle keeps
+only the factory you import. Passing a name throws:
+
+```txt
+@c15t/browser: `mode` must be a factory, such as manifest(), hosted() or offline() from @c15t/browser. Mode names like "hosted" work only in the script-tag builds.
+```
+
+## Hosted
+
+`hosted()` talks to your Inth or self-hosted backend. `hosted({ backendURL })`
+from `c15t` requires the URL:
+
+<include src="../../shared/examples/javascript/runtime.mdx" />
+
+| Option | What it does |
+| --- | --- |
+| `backendURL` | The backend URL. Relative URLs such as `/api/c15t` work behind a proxy. |
+| `headers` | Request headers to forward on `/init`: `accept-language`, the geo headers and `sec-gpc`. Meant for server code forwarding a visitor's request. In a browser, any but `accept-language` makes a cross-origin `/init` wait for a CORS preflight; pass overrides through the runtime's `overrides` instead, which travel in the query string. |
+| `fetch` | A `fetch` implementation, for tests or unusual runtimes. |
+| `domain` | The domain recorded with each save. Defaults to the page's host. |
+| `initURL` | Send `/init` somewhere else, such as a same-origin route, while saves still go to `backendURL`. Saves then assert the policy they were made against. Its query string may carry your own parameters, but c15t replaces any named `v`, `contract`, `country`, `region`, `gpc`, `experiment`, `journey`, `journeyScope` or `stored` with its own value. |
+| `assertDecisionInputs` | Send the resolved policy inputs with each save, so the backend can reject a save made against a stale policy. Defaults to `true` when `initURL` is set. |
+
+`hosted()` from `@c15t/browser` takes the same options, and `backendURL`
+defaults to the URL `consentManifest()` from `c15t/build` read from
+`VITE_C15T_BACKEND_URL` or `VITE_INTH_PROJECT_URL`. Without the plugin or the
+option it throws:
+
+```txt
+@c15t/browser: hosted() needs `backendURL`. Pass it, or add consentManifest() from c15t/build to your Vite config and set VITE_C15T_BACKEND_URL (or VITE_INTH_PROJECT_URL).
+```
+
+A production build prints only the first sentence.
+
+Add your app's origin to the Inth project's trusted origins, or the browser
+blocks consent saves with a CORS error.
+
+A cross-origin `/init` is a CORS simple request: the client version, policy
+contract, overrides and experiment arm go in the query string, and the request
+carries no cookies, so the browser sends it without an `OPTIONS` preflight.
+Saves still go out with cookies and still need the trusted origin.
+
+## Manifest
+
+`manifest()` from `@c15t/browser` resolves the policy in the browser from the
+backend's public manifest. With no options it uses the snapshot and backend
+URL `consentManifest()` downloaded; without a snapshot it fetches
+`${backendURL}/manifest` once. It works with `init()` and with
+`createConsentRuntime`:
+
+<include src="../../shared/examples/javascript/transport-manifest.mdx" />
+
+| Option | What it does |
+| --- | --- |
+| `manifestURL` | Where to fetch the manifest when the page loads. The build's snapshot is not used, but saves still go to the build's backend URL. Without one, a URL that ends in `/manifest` also gives the backend URL. |
+| `snapshot` | The manifest object itself, inlined into the page. No manifest request at all. Defaults to the build's snapshot unless you set `manifestURL`. |
+| `source` | `'runtime'` ignores the build's snapshot and fetches the manifest. You can pass `snapshot` or `source`, not both. |
+| `backendURL` | Where saves go. Defaults to the build's backend URL. Required otherwise, unless `manifestURL` ends in `/manifest`. `''` means this origin. |
+| `inputs` | `{ country, region }` known ahead of time, such as a country your edge injected into the page. |
+| `geoURL` | A same-origin route that answers `{ country, region }`, asked when the policy needs a location the page doesn't have. |
+| `initFallback` | `false` resolves for an unknown location instead of asking the backend's `/init`. Defaults to `true`. |
+| `fetch` | A `fetch` implementation. |
+
+When some locations get a different banner than others, or no banner, and
+neither the page nor `geoURL` supplies a country, the transport asks the
+backend's `/init` instead, so the answer stays correct. That visitor's banner
+waits for the round trip. Rules keyed by country or region that all give the
+same banner (same model, prompt, categories, copy and GPC handling, only the
+rule id differs) resolve in the browser, so the banner shows without a
+request. Such a manifest needs a default rule, plus a fallback rule when it
+has region rules, so that every location matches one. When the location is
+unknown, an IAB policy behind country or region rules still goes to `/init`.
+`manifestNeedsLocation(manifest)` from `@c15t/browser` tells you in advance.
+
+The browser bundle carries English base copy. Another language's base copy
+loads the first time a visitor needs it, and the manifest's own translations
+apply on top.
+
+A manifest resolved in the browser without a known location reports no
+location: `getSnapshot().location` and `useLocation()` have a `null` country
+and region. Code that reads the visitor's country should supply it through
+`inputs`, or use `/init`. IAB GPP needs it for its US state sections, so when
+GPP is on, through the runtime's `gpp` option, `<ConsentGPP>` or `mountGPP()`,
+an unknown location goes to `/init` even when every location gets the same
+banner. The script-tag build counts GPP as on, because `c15t.gpp.js` can load
+after `init()`; pass `gpp: false` to `c15t.init()` to resolve in the browser on
+pages that do not load it.
+
+`createManifestTransport` from `c15t/transports/manifest` is for server code
+only. It bundles every language. Browser code uses `manifest()`, or
+`createBrowserManifestTransport` from `c15t/transports/manifest-browser`.
+
+### Bundle the manifest during Vite builds
+
+The [quickstart](/docs/frameworks/javascript/quickstart) and
+`examples/javascript` in the c15t repository use this setup.
+
+<include src="../../shared/build-manifests/javascript.mdx" />
+
+## Offline
+
+`offline()` resolves bundled rules in the browser and sends nothing. `c15t`
+and `@c15t/browser` export the same `offline()`, so it works with `init()` and
+with `createConsentRuntime`:
+
+<include src="../../shared/examples/javascript/transport-offline.mdx" />
+
+Without `policyRules`, it uses c15t's recommended rules. They are strict
+opt-in for Europe, the UK, Quebec and unknown locations, opt-out for US
+states with a privacy law, and no prompt elsewhere. The browser cannot see the visitor's
+country, so without a `country` override every visitor gets the strict
+opt-in fallback. Choices stay in that browser and there are no consent
+records. Not recommended for production environments.
+
+`init()` from `@c15t/browser` takes `mode: offline({ policyRules })` with rule
+objects from `policyRulePresets`. Preset names such as
+`['europeOptIn', 'worldNone']` work only in the script-tag builds, through
+`data-policy-rules` or a queued `policyRules`.
+[Policies](/docs/concepts/policies) lists the presets.
+
+In offline mode, a language your app sets with `overrides.language`,
+`setLanguage()` or `kernel.set.language()` switches the copy when the bundle
+or `i18n.messages` has that language. A language with no copy shows the
+default copy. The language a server prefetch detected from `Accept-Language`
+does not switch the copy. See
+[translations](/docs/frameworks/javascript/translations#switch-language-at-runtime).
+
+For a kernel you create yourself, `createOfflineTransport({ policyRules })`
+from `c15t` returns the transport object. Pass it `translationsFor`, a
+function that returns the copy for a language or `undefined`, and
+`detectedLanguage` to get the same language switching. Without
+`translationsFor`, the transport serves its starting copy under whatever
+language the kernel asks for.
+
+## Custom
+
+`custom(transport)` from `c15t` wraps your own `init` and `save`. This one
+resolves the policy locally and records choices with your API:
+
+<include src="../../shared/examples/javascript/transport-custom.mdx" />
+
+| Method | Receives | Returns |
+| --- | --- | --- |
+| `init(context)` | `{ overrides, user }` | An init response with a `policyResolution`. Build it with `createOfflineTransport`, or return what a c15t backend returns. |
+| `save(payload)` | The choice, the resulting permissions, the subject ID, the decision inputs and a `policySnapshotToken` | `{ ok, subjectId? }`. Return `ok: false` or throw to have the kernel keep and retry the payload. |
+| `identify(user, subjectId)` | Optional. | Link a signed-in user. |
+| `loadSubjectRecord(subjectId)` | Optional. | Stored records for a subject, applied without counting as a choice. |
+
+Every method is optional; a missing one makes its command succeed without a
+request. An `init` response without a valid `policyResolution` fails safely:
+optional categories stay denied and no banner shows. `custom()` rejects v2
+endpoint handlers such as `setConsent`.
+
+## Check it works
+
+1. With hosted mode, the Network tab shows one `/init` request per fresh
+   visit and a `/subjects` request after a choice.
+2. With a build-time manifest, it shows no `/manifest` request. With runtime
+   manifest mode, it shows a `/manifest` request. Neither calls `/init`, unless
+   the policy needs a country the page did not supply.
+3. With offline mode, it shows no c15t request at all, and the choice survives
+   a reload.

@@ -1,0 +1,36 @@
+{
+	"title": "@c15t/vue: Vue and Nuxt Cookie Banner and Consent Management",
+	"description": "Cookie banner, consent dialog, and preference center for Vue 3 and Nuxt 3 and 4. One package gives you a Vue plugin and a Nuxt module, with composables when you want your own design.",
+	"features": [
+		"A Nuxt module: add `c15t/vue` to `modules` and the server resolves each visitor's policy, so the banner is in the first HTML",
+		"A Vue plugin for Vite apps, with `consentManifest()` to bundle your policy at build time",
+		"Prebuilt cookie banner, consent dialog, and preference center with a theme system",
+		"Composables for a fully custom design",
+		"Analytics, ads, and pixels follow each visitor's choice through @c15t/integrations: Google Tag Manager, Google Consent Mode v2, GA4, Meta Pixel, PostHog, and more",
+		"IAB TCF 2.4 banner and dialog components",
+		"Translations for 35 languages through @c15t/translations"
+	],
+	"prerequisites": [
+		"Vue 3.5 or later, or Nuxt 3 or 4",
+		"Node.js 20.19 or later",
+		"An [Inth project](https://inth.com) (free sign-up), a [self-hosted backend](https://c15t.com/docs/self-host/quickstart), or offline mode for local development"
+	],
+	"manualInstallation": [
+		"",
+		"```bash\npnpm add c15t\n```",
+		"",
+		"The `c15t` package re-exports this package at `c15t/vue`, and the docs use that path. To install this package on its own, run `pnpm add @c15t/vue` and import from `@c15t/vue` instead."
+	],
+	"usage": [
+		"**Nuxt**: register the module and set `NUXT_PUBLIC_C15T_BACKEND_URL` to your Inth backend URL",
+		"```ts\n// nuxt.config.ts\nexport default defineNuxtConfig({\n  modules: ['c15t/vue'],\n})\n```",
+		"Add `ConsentRoot` and a link that opens the preference dialog to `app.vue`",
+		"```vue\n<!-- app/app.vue -->\n<template>\n  <ConsentRoot />\n  <NuxtPage />\n  <footer>\n    <ConsentDialogLink>Privacy settings</ConsentDialogLink>\n  </footer>\n</template>\n```",
+		"**Vue with Vite**: install the plugin with `app.use(c15tVue, { mode: hosted() })` from `c15t/vue/vue-plugin`, and render `ConsentRoot` in `App.vue`",
+		"For the full setup, see the [Nuxt quickstart](https://c15t.com/docs/frameworks/nuxt/quickstart) or the [Vue quickstart](https://c15t.com/docs/frameworks/vue/quickstart)"
+	],
+	"docsLink": "https://c15t.com/docs/frameworks/nuxt/quickstart",
+	"quickStartLink": "https://c15t.com/docs/frameworks/nuxt/quickstart",
+	"showCLIGeneration": false,
+	"showHosting": true
+}

@@ -1,4 +1,6 @@
 import { describe, expect, test } from 'vitest';
+
+import manifest from '../../package.json';
 import {
 	CLI_INFO,
 	LAYOUT_PATTERNS,
@@ -12,9 +14,9 @@ import {
 describe('constants', () => {
 	describe('URLS', () => {
 		test('should have valid URL formats', () => {
-			expect(URLS.CONSENT_IO).toMatch(/^https:\/\//);
-			expect(URLS.DOCS).toMatch(/^https:\/\//);
-			expect(URLS.GITHUB).toMatch(/^https:\/\/github\.com/);
+			expect(URLS.CONSENT_IO).toMatch(/^https:\/\//u);
+			expect(URLS.DOCS).toMatch(/^https:\/\//u);
+			expect(URLS.GITHUB).toMatch(/^https:\/\/github\.com/u);
 		});
 	});
 
@@ -49,7 +51,7 @@ describe('constants', () => {
 	describe('CLI_INFO', () => {
 		test('should have CLI metadata', () => {
 			expect(CLI_INFO.NAME).toBe('c15t');
-			expect(CLI_INFO.VERSION).toMatch(/^\d+\.\d+\.\d+/);
+			expect(CLI_INFO.VERSION).toBe(manifest.version);
 		});
 	});
 
@@ -64,10 +66,10 @@ describe('constants', () => {
 	});
 
 	describe('PACKAGES', () => {
-		test('should have all package names', () => {
+		test('should expose the umbrella entry points', () => {
 			expect(PACKAGES.CORE).toBe('c15t');
-			expect(PACKAGES.REACT).toBe('@c15t/react');
-			expect(PACKAGES.NEXTJS).toBe('@c15t/nextjs');
+			expect(PACKAGES.REACT).toBe('c15t/react');
+			expect(PACKAGES.NEXTJS).toBe('c15t/next');
 		});
 	});
 

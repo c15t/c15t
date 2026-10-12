@@ -1,0 +1,223 @@
+{
+	"budgetDefinitions": [
+		{
+			"comparator": "delta-bytes-lte",
+			"description": "First-load JavaScript may not grow (gzip, 0 B tolerance).",
+			"metric": "initialJsGzip",
+			"threshold": 0
+		},
+		{
+			"comparator": "delta-bytes-lte",
+			"description": "First-load JavaScript may not grow (brotli, 0 B tolerance).",
+			"metric": "initialJsBrotli",
+			"threshold": 0
+		},
+		{
+			"comparator": "delta-bytes-lte",
+			"description": "A first visit may not add cross-origin requests.",
+			"metric": "crossOriginRequests",
+			"threshold": 0
+		},
+		{
+			"comparator": "absolute-lte",
+			"description": "Offline fallback policy data stays out of first-load JavaScript.",
+			"metric": "offlinePolicyBytes",
+			"threshold": 0
+		},
+		{
+			"comparator": "absolute-lte",
+			"description": "Languages other than English stay out of first-load JavaScript.",
+			"metric": "nonEnLocaleBytes",
+			"threshold": 0
+		}
+	],
+	"budgets": [],
+	"commitSha": "bce619034d5451b1058f0f847c480301a9ce096c",
+	"environment": {
+		"arch": "arm64",
+		"browserVersion": "149.0.7827.55",
+		"ci": false,
+		"nodeVersion": "v24.21.0",
+		"os": "darwin"
+	},
+	"fixture": {
+		"consentCount": 5,
+		"localeCount": 1,
+		"name": "optin-choice-eu",
+		"notes": [
+			"Fixture backend serves buildBrowserBenchManifest() and its DE resolution."
+		],
+		"scriptCount": 0,
+		"themeComplexity": "minimal"
+	},
+	"framework": "core",
+	"metadata": {
+		"backendLatencyMs": 0,
+		"bannerVisible": true,
+		"kind": "spa",
+		"url": "http://127.0.0.1:4524/"
+	},
+	"metrics": [
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "acceptJsGzip",
+			"p95": 0,
+			"samples": [0],
+			"unit": "bytes"
+		},
+		{
+			"avg": 43.6,
+			"median": 45,
+			"name": "bannerVisibleMs",
+			"p95": 46,
+			"samples": [36, 45, 45, 46, 46],
+			"unit": "ms"
+		},
+		{
+			"avg": 1,
+			"median": 1,
+			"name": "crossOriginRequests",
+			"p95": 1,
+			"samples": [1],
+			"unit": "count"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "devtoolsBytes",
+			"p95": 0,
+			"samples": [0],
+			"unit": "bytes"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "dialogJsGzip",
+			"p95": 0,
+			"samples": [0],
+			"unit": "bytes"
+		},
+		{
+			"avg": 428,
+			"median": 428,
+			"name": "documentGzip",
+			"p95": 428,
+			"samples": [428],
+			"unit": "bytes"
+		},
+		{
+			"avg": 124646,
+			"median": 124646,
+			"name": "emittedClientJsGzip",
+			"p95": 124646,
+			"samples": [124646],
+			"unit": "bytes"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "iabBytes",
+			"p95": 0,
+			"samples": [0],
+			"unit": "bytes"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "initialCssGzip",
+			"p95": 0,
+			"samples": [0],
+			"unit": "bytes"
+		},
+		{
+			"avg": 100047,
+			"median": 100047,
+			"name": "initialJsBrotli",
+			"p95": 100047,
+			"samples": [100047],
+			"unit": "bytes"
+		},
+		{
+			"avg": 117803,
+			"median": 117803,
+			"name": "initialJsGzip",
+			"p95": 117803,
+			"samples": [117803],
+			"unit": "bytes"
+		},
+		{
+			"avg": 413637,
+			"median": 413637,
+			"name": "initialJsRaw",
+			"p95": 413637,
+			"samples": [413637],
+			"unit": "bytes"
+		},
+		{
+			"avg": 4,
+			"median": 4,
+			"name": "initialJsRequests",
+			"p95": 4,
+			"samples": [4],
+			"unit": "count"
+		},
+		{
+			"avg": 1,
+			"median": 1,
+			"name": "initRequests",
+			"p95": 1,
+			"samples": [1],
+			"unit": "count"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "manifestRequests",
+			"p95": 0,
+			"samples": [0],
+			"unit": "count"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "nonEnLocaleBytes",
+			"p95": 0,
+			"samples": [0],
+			"unit": "bytes"
+		},
+		{
+			"avg": 101894,
+			"median": 101894,
+			"name": "offlinePolicyBytes",
+			"p95": 101894,
+			"samples": [101894],
+			"unit": "bytes"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "resolverBytes",
+			"p95": 0,
+			"samples": [0],
+			"unit": "bytes"
+		},
+		{
+			"avg": 101894,
+			"median": 101894,
+			"name": "snapshotBytes",
+			"p95": 101894,
+			"samples": [101894],
+			"unit": "bytes"
+		}
+	],
+	"notes": [
+		"Blocked internet requests: https://eu-assets.i.posthog.com/static/array.js"
+	],
+	"package": "@c15t/examples-payload-bench",
+	"runtime": "chromium",
+	"scenario": "javascript",
+	"schemaVersion": 1,
+	"suite": "examples-payload",
+	"timestamp": "2026-10-09T18:48:57.336Z"
+}

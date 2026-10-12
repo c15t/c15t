@@ -6,19 +6,8 @@
 export const brandingValues = ['c15t', 'inth', 'consent', 'none'] as const;
 
 /**
- * Jurisdiction codes representing different privacy regulations
- * This is a runtime-safe constant that can be imported without Zod
+ * Who runs the backend that served a consent decision: inth's hosted
+ * platform, or the site's own `@c15t/backend`.
+ * This is a runtime-safe constant that can be imported without Valibot
  */
-export const jurisdictionCodes = [
-	'UK_GDPR',
-	'GDPR',
-	'CH',
-	'BR',
-	'PIPEDA',
-	'QC_LAW25',
-	'AU',
-	'APPI',
-	'PIPA',
-	'CCPA',
-	'NONE',
-] as const;
+export const hostingValues = ['inth', 'self-hosted'] as const;

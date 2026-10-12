@@ -1,0 +1,19 @@
+`consentManifest()` adds a small inline script to the `<head>` of
+`index.html`. It sends `/init` while the browser downloads your JavaScript,
+and `hosted()` uses that response instead of sending its own. The banner
+usually shows 50 to 250 ms sooner. There is nothing to configure.
+
+The early request can't read your app's options, so in a few setups it won't
+match and the app sends a second `/init`. Pass `initPrefetch: false` when the
+app uses `offline()` or gives `hosted()` its own `backendURL`, `fetch`,
+`initURL` or `headers`. With its own `fetch`, `hosted()` sends `/init` through
+it and ignores the early response. If it sets `credentials`, `overrides`, `storageKey`, an
+`experiment`, or `journey: false`, pass the same values as
+`initPrefetch: { credentials, experiment, journey, overrides, storageKey }`.
+With `journey: 'tab'`, passing it too makes a tab's first `/init` report the
+`'tab'` scope instead of `'page'`. It doesn't save a request.
+Pass `experiment` only when c15t assigns the arm. If a feature flag picks
+it, leave it out, or the script sends an arm the visitor may never see.
+The dev server adds the script even to a `manifest()` app, which then sends
+one `/init` per page load that it doesn't use. A production build leaves it
+out.

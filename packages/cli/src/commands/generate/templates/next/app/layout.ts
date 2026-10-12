@@ -1,12 +1,14 @@
+/* oxlint-disable func-style -- These declarations mirror the generated layout's function-oriented structure. */
 /**
  * App Directory layout template generator
- * Handles updating Next.js App Directory layout files with ConsentManagerProvider
+ * Handles updating Next.js App Router layouts with the v3 consent provider.
  * and creates separate consent-manager component files
  */
 
-import fs from 'node:fs/promises';
 import path from 'node:path';
+
 import type { AvailablePackages } from '~/context/framework-detection';
+
 import type { ExpandedTheme, UIStyle } from '../../../prompts';
 import { generateConsentComponent } from '../../shared/components';
 import { getComponentsDirectory } from '../../shared/directory';
@@ -14,23 +16,26 @@ import {
 	generateExpandedConsentBannerTemplate,
 	generateExpandedConsentDialogTemplate,
 	generateExpandedProviderTemplate,
-	generateExpandedThemeTemplate,
+	generateProjectThemeTemplate,
 } from '../../shared/expanded-components';
+import fs, { createFile } from '../../shared/file-plan';
 import { NEXTJS_CONFIG } from '../../shared/framework-config';
 import { runLayoutUpdatePipeline } from '../../shared/layout-pipeline';
-import { generateOptionsText, getBackendURLValue } from '../../shared/options';
+import {
+	generateProjectOptionsText,
+	getBackendURLValue,
+} from '../../shared/options';
 import { generateServerComponent } from '../../shared/server-components';
 
-const HTML_TAG_REGEX = /<html[^>]*>([\s\S]*)<\/html>/;
-const BODY_TAG_REGEX = /<body[^>]*>([\s\S]*)<\/body>/;
-const BODY_OPENING_TAG_REGEX = /<body[^>]*>/;
-const HTML_CONTENT_REGEX = /([\s\S]*<\/html>)/;
+const HTML_TAG_REGEX = /<html[^>]*>(?<content>[\s\S]*)<\/html>/u;
+const BODY_TAG_REGEX = /<body[^>]*>(?<content>[\s\S]*)<\/body>/u;
+const BODY_OPENING_TAG_REGEX = /<body[^>]*>/u;
+const HTML_CONTENT_REGEX = /(?<content>[\s\S]*<\/html>)/u;
 
 interface UpdateAppLayoutOptions {
 	projectRoot: string;
 	mode: string;
 	backendURL?: string;
-	useEnvFile?: boolean;
 	pkg: AvailablePackages;
 	proxyNextjs?: boolean;
 	enableSSR?: boolean;
@@ -139,21 +144,21 @@ async function createExpandedConsentManagerComponents(
 	options: {
 		mode: string;
 		backendURL?: string;
-		useEnvFile?: boolean;
 		proxyNextjs?: boolean;
 		enableSSR: boolean;
 		enableDevTools?: boolean;
 		expandedTheme: ExpandedTheme;
+		selectedScripts?: string[];
 	}
 ): Promise<ComponentFilePaths> {
 	const {
 		mode,
 		backendURL,
-		useEnvFile,
 		proxyNextjs,
 		enableSSR,
 		enableDevTools,
 		expandedTheme,
+		selectedScripts,
 	} = options;
 
 	// Detect or create components directory
@@ -164,41 +169,36 @@ async function createExpandedConsentManagerComponents(
 		'consent-manager'
 	);
 
-	// Get the backend URL value for fetchInitialData
-	const backendURLValue = getBackendURLValue(
-		backendURL,
-		useEnvFile,
-		proxyNextjs,
-		NEXTJS_CONFIG.envVarPrefix
-	);
+	// Get the backend URL value for the client boundary.
+	const backendURLValue = getBackendURLValue(backendURL, proxyNextjs);
 
 	// Generate options text for the provider component
-	const optionsText = generateOptionsText(
+	const optionsText = await generateProjectOptionsText(
+		projectRoot,
 		mode,
 		backendURL,
-		useEnvFile,
-		proxyNextjs,
-		undefined,
-		NEXTJS_CONFIG.envVarPrefix
+		proxyNextjs
 	);
 
 	// Generate all component file contents
 	const serverComponentContent = generateServerComponent({
-		enableSSR,
 		backendURLValue,
+		enableSSR,
 		framework: NEXTJS_CONFIG,
 	});
 	const providerContent = generateExpandedProviderTemplate({
-		enableSSR,
 		enableDevTools: Boolean(enableDevTools),
-		optionsText,
+		enableSSR,
 		framework: NEXTJS_CONFIG,
+		optionsText,
+		selectedScripts,
 	});
 	const consentBannerContent =
 		generateExpandedConsentBannerTemplate(NEXTJS_CONFIG);
 	const consentDialogContent =
 		generateExpandedConsentDialogTemplate(NEXTJS_CONFIG);
-	const themeContent = generateExpandedThemeTemplate(
+	const themeContent = await generateProjectThemeTemplate(
+		projectRoot,
 		expandedTheme,
 		NEXTJS_CONFIG
 	);
@@ -219,11 +219,11 @@ async function createExpandedConsentManagerComponents(
 	// Create directory and write files
 	await fs.mkdir(consentManagerDirPath, { recursive: true });
 	await Promise.all([
-		fs.writeFile(indexPath, serverComponentContent, 'utf-8'),
-		fs.writeFile(providerPath, providerContent, 'utf-8'),
-		fs.writeFile(consentBannerPath, consentBannerContent, 'utf-8'),
-		fs.writeFile(consentDialogPath, consentDialogContent, 'utf-8'),
-		fs.writeFile(themePath, themeContent, 'utf-8'),
+		createFile(indexPath, serverComponentContent, 'utf-8'),
+		createFile(providerPath, providerContent, 'utf-8'),
+		createFile(consentBannerPath, consentBannerContent, 'utf-8'),
+		createFile(consentDialogPath, consentDialogContent, 'utf-8'),
+		createFile(themePath, themeContent, 'utf-8'),
 	]);
 
 	return {
@@ -245,7 +245,7 @@ async function createExpandedConsentManagerComponents(
  * @remarks
  * Creates in components/consent-manager/:
  * - index.tsx - Main server component entry point
- * - provider.tsx - Client component with ConsentManagerProvider
+ * - provider.tsx - Client component with ConsentProvider or ConsentRoot
  */
 async function createPrebuiltConsentManagerComponents(
 	projectRoot: string,
@@ -253,7 +253,6 @@ async function createPrebuiltConsentManagerComponents(
 	options: {
 		mode: string;
 		backendURL?: string;
-		useEnvFile?: boolean;
 		proxyNextjs?: boolean;
 		enableSSR: boolean;
 		enableDevTools?: boolean;
@@ -266,7 +265,6 @@ async function createPrebuiltConsentManagerComponents(
 	const {
 		mode,
 		backendURL,
-		useEnvFile,
 		proxyNextjs,
 		enableSSR,
 		enableDevTools,
@@ -284,42 +282,34 @@ async function createPrebuiltConsentManagerComponents(
 		'consent-manager'
 	);
 
-	// Get the backend URL value for fetchInitialData
-	const backendURLValue = getBackendURLValue(
-		backendURL,
-		useEnvFile,
-		proxyNextjs,
-		NEXTJS_CONFIG.envVarPrefix
-	);
+	// Get the backend URL value for the client boundary.
+	const backendURLValue = getBackendURLValue(backendURL, proxyNextjs);
 
 	// Generate options text for the client component
-	const optionsText = generateOptionsText(
+	const optionsText = await generateProjectOptionsText(
+		projectRoot,
 		mode,
 		backendURL,
-		useEnvFile,
-		proxyNextjs,
-		undefined,
-		NEXTJS_CONFIG.envVarPrefix
+		proxyNextjs
 	);
 
 	// Generate component file contents
 	const consentManagerContent = generateServerComponent({
-		enableSSR,
 		backendURLValue,
+		enableSSR,
 		framework: NEXTJS_CONFIG,
 	});
 	const consentManagerClientContent = generateConsentComponent({
+		defaultExport: true,
+		devToolsImportSource: NEXTJS_CONFIG.devToolsImportSource,
+		docsSlug: NEXTJS_CONFIG.docsSlug,
+		enableDevTools: Boolean(enableDevTools),
 		importSource: NEXTJS_CONFIG.importSource,
+		includeTheme: Boolean(hasTheme),
 		optionsText,
 		selectedScripts,
-		useClientDirective: true,
-		defaultExport: true,
 		ssrDataOption: enableSSR,
-		includeOverrides: !enableSSR,
-		enableDevTools: Boolean(enableDevTools),
-		useFrameworkProps: enableSSR ? NEXTJS_CONFIG.importSource : undefined,
-		includeTheme: Boolean(hasTheme),
-		docsSlug: NEXTJS_CONFIG.docsSlug,
+		useClientDirective: true,
 	});
 
 	// Define file paths - everything in components/consent-manager/
@@ -329,18 +319,19 @@ async function createPrebuiltConsentManagerComponents(
 	// Create directory and write files
 	await fs.mkdir(consentManagerDirPath, { recursive: true });
 	const writePromises: Promise<void>[] = [
-		fs.writeFile(indexPath, consentManagerContent, 'utf-8'),
-		fs.writeFile(providerPath, consentManagerClientContent, 'utf-8'),
+		createFile(indexPath, consentManagerContent, 'utf-8'),
+		createFile(providerPath, consentManagerClientContent, 'utf-8'),
 	];
 
 	// Generate theme file when a theme is selected
 	if (hasTheme) {
-		const themeContent = generateExpandedThemeTemplate(
+		const themeContent = await generateProjectThemeTemplate(
+			projectRoot,
 			expandedTheme,
 			NEXTJS_CONFIG
 		);
 		const themePath = path.join(consentManagerDirPath, 'theme.ts');
-		writePromises.push(fs.writeFile(themePath, themeContent, 'utf-8'));
+		writePromises.push(createFile(themePath, themeContent, 'utf-8'));
 	}
 
 	await Promise.all(writePromises);
@@ -374,16 +365,15 @@ const APP_LAYOUT_PATTERNS = [
  * 4. Adds ConsentManager import to layout
  * 5. Wraps layout content with ConsentManager component
  */
-export async function updateAppLayout({
+export function updateAppLayout({
 	projectRoot,
 	mode,
 	backendURL,
-	useEnvFile,
 	proxyNextjs,
 	enableSSR = false,
 	enableDevTools = false,
 	uiStyle = 'prebuilt',
-	expandedTheme = 'tailwind',
+	expandedTheme = 'none',
 	selectedScripts,
 	layoutFilePath,
 }: UpdateAppLayoutOptions): Promise<{
@@ -393,33 +383,32 @@ export async function updateAppLayout({
 	componentFiles?: ComponentFilePaths;
 }> {
 	return runLayoutUpdatePipeline({
-		filePatterns: APP_LAYOUT_PATTERNS,
-		projectRoot,
-		knownFilePath: layoutFilePath,
-		frameworkDirName: 'app',
-		wrapJsx: wrapAppJsxContent,
-		createComponents: async (_layoutFilePath, appDir) => {
+		createComponents: (_layoutFilePath, appDir) => {
 			if (uiStyle === 'expanded') {
 				return createExpandedConsentManagerComponents(projectRoot, appDir, {
-					mode,
 					backendURL,
-					useEnvFile,
-					proxyNextjs,
-					enableSSR,
 					enableDevTools,
+					enableSSR,
 					expandedTheme,
+					mode,
+					proxyNextjs,
+					selectedScripts,
 				});
 			}
 			return createPrebuiltConsentManagerComponents(projectRoot, appDir, {
-				mode,
 				backendURL,
-				useEnvFile,
-				proxyNextjs,
-				enableSSR,
 				enableDevTools,
+				enableSSR,
 				expandedTheme,
+				mode,
+				proxyNextjs,
 				selectedScripts,
 			});
 		},
+		filePatterns: APP_LAYOUT_PATTERNS,
+		frameworkDirName: 'app',
+		knownFilePath: layoutFilePath,
+		projectRoot,
+		wrapJsx: wrapAppJsxContent,
 	});
 }

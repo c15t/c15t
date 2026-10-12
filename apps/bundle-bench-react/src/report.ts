@@ -8,10 +8,10 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
-import { gzipSync } from 'node:zlib';
+
 import { benchmarkConsentOptions } from './fixtures';
 
-type BundleResult = {
+interface BundleResult {
 	entry: string;
 	cssBytes: number;
 	cssGzipBytes: number;
@@ -19,7 +19,7 @@ type BundleResult = {
 	jsGzipBytes: number;
 	totalBytes: number;
 	totalGzipBytes: number;
-};
+}
 
 const BASELINE_REF = 'origin/2.0.0';
 const BASELINE_ENTRY = '2.0.0-consent-surfaces';
@@ -29,7 +29,7 @@ const OUTPUT_ROOT = resolve(tmpdir(), 'c15t-bundle-bench-output');
 const APP_DIR = process.cwd();
 const REPO_ROOT = resolve(APP_DIR, '..', '..');
 
-function run(command: string[], cwd = process.cwd()) {
+const run = function run(command: string[], cwd = process.cwd()) {
 	const result = Bun.spawnSync(command, {
 		cwd,
 		stderr: 'pipe',
@@ -47,13 +47,15 @@ function run(command: string[], cwd = process.cwd()) {
 	}
 
 	return result.stdout.toString();
-}
+};
 
-function serializeOptions(options: typeof benchmarkConsentOptions) {
+const serializeOptions = function serializeOptions(
+	options: typeof benchmarkConsentOptions
+) {
 	return JSON.stringify(options, null, 2).replaceAll('</', '<\\/');
-}
+};
 
-function createHistoricalEntrySource() {
+const createHistoricalEntrySource = function createHistoricalEntrySource() {
 	const options = serializeOptions(benchmarkConsentOptions);
 
 	return `import {
@@ -76,9 +78,12 @@ export function HistoricalConsentSurfaces() {
 
 export default createElement(HistoricalConsentSurfaces);
 `;
-}
+};
 
-function createBuildScript(entryFile: string, outdir: string) {
+const createBuildScript = function createBuildScript(
+	entryFile: string,
+	outdir: string
+) {
 	return `
 		import { gzipSync } from 'node:zlib';
 
@@ -125,18 +130,18 @@ function createBuildScript(entryFile: string, outdir: string) {
 
 		console.log(JSON.stringify(summary));
 	`;
-}
+};
 
-function ensureBaselineWorktree() {
+const ensureBaselineWorktree = function ensureBaselineWorktree() {
 	if (existsSync(resolve(WORKTREE_DIR, '.git'))) {
 		return;
 	}
 
 	rmSync(WORKTREE_DIR, { force: true, recursive: true });
 	run(['git', 'worktree', 'add', '--detach', WORKTREE_DIR, BASELINE_REF]);
-}
+};
 
-function ensureBaselineInstall() {
+const ensureBaselineInstall = function ensureBaselineInstall() {
 	const nodeModulesDir = resolve(WORKTREE_DIR, 'node_modules');
 	const hasCoreWorkspace = existsSync(resolve(nodeModulesDir, 'c15t'));
 	const hasUiWorkspace = existsSync(resolve(nodeModulesDir, '@c15t', 'ui'));
@@ -150,13 +155,13 @@ function ensureBaselineInstall() {
 		['bun', 'install', '--frozen-lockfile', '--ignore-scripts'],
 		WORKTREE_DIR
 	);
-}
+};
 
-function ensureUiBuild(cwd: string) {
+const ensureUiBuild = function ensureUiBuild(cwd: string) {
 	run(['bunx', 'rslib', 'build', '--no-dts'], resolve(cwd, 'packages/ui'));
-}
+};
 
-function linkWorkspacePackage({
+const linkWorkspacePackage = function linkWorkspacePackage({
 	root,
 	packageName,
 	sourcePath,
@@ -174,9 +179,9 @@ function linkWorkspacePackage({
 	mkdirSync(parent, { recursive: true });
 	rmSync(target, { force: true, recursive: true });
 	symlinkSync(sourcePath, target, 'junction');
-}
+};
 
-function ensureBaselineWorkspaceBuild() {
+const ensureBaselineWorkspaceBuild = function ensureBaselineWorkspaceBuild() {
 	run(['bun', 'run', 'prebuild'], resolve(WORKTREE_DIR, 'packages/core'));
 	run(['bun', 'run', 'prebuild'], resolve(WORKTREE_DIR, 'packages/react'));
 	run(
@@ -197,36 +202,36 @@ function ensureBaselineWorkspaceBuild() {
 	);
 
 	linkWorkspacePackage({
-		root: WORKTREE_DIR,
 		packageName: 'c15t',
+		root: WORKTREE_DIR,
 		sourcePath: resolve(WORKTREE_DIR, 'packages/core'),
 	});
 	linkWorkspacePackage({
-		root: WORKTREE_DIR,
 		packageName: '@c15t/schema',
+		root: WORKTREE_DIR,
 		sourcePath: resolve(WORKTREE_DIR, 'packages/schema'),
 	});
 	linkWorkspacePackage({
-		root: WORKTREE_DIR,
 		packageName: '@c15t/translations',
+		root: WORKTREE_DIR,
 		sourcePath: resolve(WORKTREE_DIR, 'packages/translations'),
 	});
 	linkWorkspacePackage({
-		root: WORKTREE_DIR,
 		packageName: '@c15t/ui',
+		root: WORKTREE_DIR,
 		sourcePath: resolve(WORKTREE_DIR, 'packages/ui'),
 	});
-}
+};
 
-function writeHistoricalEntry() {
+const writeHistoricalEntry = function writeHistoricalEntry() {
 	const benchDir = resolve(WORKTREE_DIR, '.bundle-bench');
 	mkdirSync(benchDir, { recursive: true });
 	const entryFile = resolve(benchDir, `${BASELINE_ENTRY}.tsx`);
 	writeFileSync(entryFile, createHistoricalEntrySource());
 	return entryFile;
-}
+};
 
-function buildEntry({
+const buildEntry = function buildEntry({
 	cwd,
 	entry,
 	entryFile,
@@ -253,17 +258,18 @@ function buildEntry({
 		totalBytes: summary.jsBytes + summary.cssBytes,
 		totalGzipBytes: summary.jsGzipBytes + summary.cssGzipBytes,
 	};
-}
+};
 
-function formatDelta(value: number) {
+const formatDelta = function formatDelta(value: number) {
 	return Math.abs(value).toLocaleString();
-}
+};
 
-function getDirection(value: number) {
+const getDirection = function getDirection(value: number) {
+	// oxlint-disable-next-line no-nested-ternary -- Preserve established branch order and control flow.
 	return value === 0 ? 'matches' : value < 0 ? 'smaller than' : 'larger than';
-}
+};
 
-async function main() {
+const main = function main() {
 	const reportDir = resolve(APP_DIR, 'report');
 	mkdirSync(reportDir, { recursive: true });
 
@@ -341,6 +347,6 @@ async function main() {
 			'',
 		].join('\n')
 	);
-}
+};
 
 await main();

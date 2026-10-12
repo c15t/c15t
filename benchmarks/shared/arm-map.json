@@ -1,0 +1,4 @@
+{
+	"_comment": "Alternate base keys for head result keys. Every browser, bundle, and runtime scenario now has a same-key base artifact, so no mappings are active. Earlier entries compared Vue scenarios against React baselines and manifest arms against non-manifest arms; those are cross-arm comparisons, not regression gates, and made a base compared against itself fail. Named base arms (for example the v2 arm used by coreRuntimeV3Budgets) are supplied through BENCHMARK_ARM_BASE_DIRS instead.",
+	"mappings": {}
+}

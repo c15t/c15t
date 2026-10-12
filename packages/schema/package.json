@@ -1,69 +1,81 @@
 {
 	"name": "@c15t/schema",
-	"version": "2.3.0-canary-20260930161603",
+	"version": "3.0.0-alpha.9",
 	"description": "Framework-agnostic Valibot schemas and TypeScript types for c15t consent management",
 	"keywords": [
-		"consent",
-		"privacy",
-		"gdpr",
 		"ccpa",
+		"consent",
+		"gdpr",
+		"privacy",
 		"schema",
-		"valibot",
 		"typescript",
+		"valibot",
 		"validation"
 	],
 	"homepage": "https://c15t.com/docs",
 	"bugs": {
 		"url": "https://github.com/c15t/c15t/issues"
 	},
+	"license": "Apache-2.0",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/c15t/c15t"
 	},
-	"license": "Apache-2.0",
-	"sideEffects": false,
-	"type": "module",
-	"exports": {
-		".": {
-			"types": "./dist-types/index.d.ts",
-			"import": "./dist/index.js",
-			"require": "./dist/index.cjs"
-		},
-		"./types": {
-			"types": "./dist-types/types.d.ts",
-			"import": "./dist/types.js",
-			"require": "./dist/types.cjs"
-		}
-	},
-	"main": "./dist/index.cjs",
-	"module": "./dist/index.js",
-	"types": "./dist-types/index.d.ts",
 	"files": [
 		"dist",
 		"dist-types"
 	],
+	"type": "module",
+	"sideEffects": false,
+	"main": "./dist/index.js",
+	"types": "./dist-types/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist-types/index.d.ts",
+			"import": "./dist/index.js",
+			"default": "./dist/index.js"
+		},
+		"./types": {
+			"types": "./dist-types/types.d.ts",
+			"import": "./dist/types.js",
+			"default": "./dist/types.js"
+		},
+		"./config": {
+			"types": "./dist-types/config/index.d.ts",
+			"import": "./dist/config.js",
+			"default": "./dist/config.js"
+		},
+		"./geo": {
+			"types": "./dist-types/shared/geo-headers.d.ts",
+			"import": "./dist/geo.js",
+			"default": "./dist/geo.js"
+		}
+	},
+	"publishConfig": {
+		"access": "public"
+	},
 	"scripts": {
 		"build": "rslib build && bun ../../scripts/normalize-dist-types.mjs",
 		"check-types": "tsc --noEmit",
 		"dev": "sh -c 'rslib build --no-dts --no-clean && rslib build --watch --no-dts --no-clean'",
-		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
-		"lint": "bun biome lint ./src",
+		"fmt": "bun oxfmt .",
+		"lint": "bun oxlint ./src",
 		"test": "vitest run --passWithNoTests",
 		"test:watch": "vitest"
+	},
+	"dependencies": {
+		"@c15t/translations": "workspace:*",
+		"base-x": "5.0.1",
+		"valibot": "1.4.2"
+	},
+	"devDependencies": {
+		"@c15t/typescript-config": "workspace:*",
+		"@c15t/vitest-config": "workspace:*",
+		"typescript": "7.0.2"
 	},
 	"browserslist": [
 		">0.2%",
 		"not dead",
 		"not op_mini all"
-	],
-	"dependencies": {
-		"valibot": "1.4.2"
-	},
-	"devDependencies": {
-		"@c15t/typescript-config": "workspace:*",
-		"@c15t/vitest-config": "workspace:*"
-	},
-	"publishConfig": {
-		"access": "public"
-	}
+	]
 }

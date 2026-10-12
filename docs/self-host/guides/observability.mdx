@@ -1,99 +1,63 @@
 ---
-title: Observability
-description: Add logging, metrics, and tracing to your self-hosted c15t backend.
+title: Request logging
+description: Inspect failed backend requests, enable request logs and send events to your existing logging pipeline.
 group: self-host
 ---
 
-The c15t backend supports structured logging and opt-in OpenTelemetry integration for production observability.
+## Choose the request log level
 
-## OpenTelemetry
+The backend logs rejected and failed requests by default. Successful requests
+produce no request log at the default `warn` level. Configure logging directly on
+`c15tInstance`, not inside `defineConfig`.
 
-Telemetry is disabled by default. To enable it, pass your own tracer and meter instances:
-
-```ts title="c15t.ts"
+```ts title="src/consent-backend.ts"
 import { c15tInstance } from '@c15t/backend';
-import { trace, metrics } from '@opentelemetry/api';
 
-export const c15t = c15tInstance({
-  // ...
-  telemetry: {
-    enabled: true,
-    tracer: trace.getTracer('consent-api'),
-    meter: metrics.getMeter('consent-api'),
-    defaultAttributes: {
-      'service.name': 'consent-api',
-      environment: 'production',
-    },
-  },
+import config from '../c15t-backend.config';
+
+export const backend = c15tInstance({
+	...config,
+	observability: {
+		level: 'info',
+		service: 'consent-backend',
+		exclude: ['/status'],
+	},
 });
 ```
 
-<Callout type="info">
-  You need to set up your own OpenTelemetry SDK and exporter (e.g. Jaeger, Datadog, Grafana). The c15t backend creates spans and metrics using the instances you provide.
-</Callout>
+| Level | Requests logged |
+| --- | --- |
+| `silent` | None; no logging middleware is installed. |
+| `error` | Server failures with status 500 or higher. |
+| `warn` | Rejections and failures with status 400 or higher. Default. |
+| `info` | Every request. |
+| `inherit` | Use the host application's existing evlog configuration. |
 
-## Metrics
+## Use your existing logging pipeline
 
-When telemetry is enabled, the following metrics are recorded:
+`observability.drain` receives evlog drain events. `enrich` can add fields before
+draining. `include` limits logged route patterns; `exclude` takes precedence.
+Automatic redaction is enabled unless explicitly disabled.
 
-### Business Metrics
+The backend's log level and service name configure process-global evlog state.
+If several instances share a process, configure evlog once in the host and use
+`level: 'inherit'` without a per-instance `service`. Otherwise the most recently
+constructed instance can change logging for the others.
 
-| Metric | Type | Description |
-| --- | --- | --- |
-| `consentCreated` | Counter | Consent record created (by type, jurisdiction) |
-| `consentAccepted` | Counter | Consent accepted (by type) |
-| `consentRejected` | Counter | Consent rejected (by type) |
-| `subjectCreated` | Counter | New subject created |
-| `subjectLinked` | Counter | Subject linked to external ID |
-| `initCount` | Counter | `/init` endpoint called |
+## Diagnose a failed save
 
-### HTTP Metrics
+Correlate the request's HTTP status and error code with its server event. SQL
+failures deliberately omit database details from the public response. The
+server log records the underlying error. Consent writes include whether the
+submission created a record or replayed an existing one, plus receipt and
+decision identifiers when present. `consent.decisionSource` is
+`snapshot_token_replayed` for a save that arrived after its policy token
+expired; see [late saves](/docs/self-host/api/endpoints#late-saves).
 
-| Metric | Type | Description |
-| --- | --- | --- |
-| `httpRequestDuration` | Histogram | Request duration (by method, route, status) |
-| `httpRequestCount` | Counter | Total requests |
-| `httpErrorCount` | Counter | Error responses |
+A valid HTTP response with a failed policy resolution needs a configuration
+check too. Invalid `manifest.policyRules` produce a startup warning and a failed
+policy result. Inspect the manifest's `policyFailure` and the response's
+`policyResolution` instead of treating a `200` as a matched policy.
 
-### Database Metrics
-
-| Metric | Type | Description |
-| --- | --- | --- |
-| `dbQueryDuration` | Histogram | Query duration (by operation, entity) |
-| `dbQueryCount` | Counter | Total queries |
-| `dbErrorCount` | Counter | Query errors |
-
-### Cache Metrics
-
-| Metric | Type | Description |
-| --- | --- | --- |
-| `cacheHit` | Counter | Cache hits (by layer) |
-| `cacheMiss` | Counter | Cache misses (by layer) |
-| `cacheLatency` | Histogram | Cache operation latency |
-
-## Tracing
-
-Every request creates a span with:
-
-- HTTP method and route
-- Response status code
-- Tenant ID (if multi-tenant)
-- API key authentication status
-- Geo-location resolution
-
-Child spans are created for database queries and cache operations.
-
-## Logging
-
-Configure the log level:
-
-```ts
-c15tInstance({
-  // ...
-  logger: {
-    level: 'info', // debug, info, warn, error
-  },
-});
-```
-
-Logs are structured (JSON-compatible) and include trace context when telemetry is enabled, making it easy to correlate logs with traces.
+Request logs are operational diagnostics. Stored consent records have their
+own persistence and are not replaced by a logging drain.

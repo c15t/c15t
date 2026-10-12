@@ -1,5 +1,16 @@
+/* oxlint-disable func-style -- This prompt remains an async declaration to match the option helpers around it. */
 import * as p from '@clack/prompts';
+
 import type { CliContext } from '~/context/types';
+
+export const getDevToolsDocsPath = (
+	pkg: CliContext['framework']['pkg']
+): string => {
+	if (pkg === 'c15t') {
+		return 'frameworks/javascript/dev-tools';
+	}
+	return `frameworks/${pkg === 'c15t/next' ? 'next' : 'react'}/components/dev-tools`;
+};
 
 interface GetDevToolsOptionOptions {
 	context: CliContext;
@@ -13,31 +24,33 @@ export async function getDevToolsOption({
 	onCancel,
 }: GetDevToolsOptionOptions): Promise<boolean> {
 	const isReactProject =
-		context.framework.pkg === '@c15t/react' ||
-		context.framework.pkg === '@c15t/nextjs';
+		context.framework.pkg === 'c15t/react' ||
+		context.framework.pkg === 'c15t/next';
 
 	context.logger.info(
-		'c15t DevTools helps you inspect consent state, scripts, and location overrides during development.'
+		'c15t DevTools helps you inspect consent state, policy, location, and kernel events during development.'
 	);
-	context.logger.info('Learn more: https://c15t.com/docs/dev-tools/overview');
+	context.logger.info(
+		`Learn more: https://c15t.com/docs/${getDevToolsDocsPath(context.framework.pkg)}`
+	);
 
 	const enableDevTools = await p.select({
-		message: 'Install and enable c15t DevTools?',
+		initialValue: true,
+		message: 'Enable c15t DevTools?',
 		options: [
 			{
-				value: true,
-				label: 'Yes (Recommended)',
 				hint: isReactProject
 					? 'Adds <DevTools /> to generated consent components'
-					: 'Adds createDevTools() setup to c15t.config.ts',
+					: 'Adds createDevTools({ kernel }) to the client configuration',
+				label: 'Yes (Recommended)',
+				value: true,
 			},
 			{
-				value: false,
+				hint: 'Skip DevTools setup',
 				label: 'No',
-				hint: 'Skip DevTools installation and setup',
+				value: false,
 			},
 		],
-		initialValue: true,
 	});
 
 	const cancelled =

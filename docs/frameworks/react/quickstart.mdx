@@ -1,178 +1,149 @@
 ---
 title: Quickstart
-description: Add consent management to your React app in under 5 minutes.
-variants:
-  - value: "javascript"
-    href: "/docs/frameworks/javascript/quickstart"
-    label: "JavaScript"
-  - value: "react"
-    href: "/docs/frameworks/react/quickstart"
-    label: "React"
-  - value: "next"
-    href: "/docs/frameworks/next/quickstart"
-    label: "Next.js"
+description: Add a consent banner, preferences dialog and consent-gated scripts to a React single-page app built with Vite, using Inth as the consent backend.
 group: frameworks
 ---
 
-## Via CLI
+## Before you start
 
-<PackageCommandTabs command="@c15t/cli" />
+This guide sets up a client-rendered React app built with Vite. The browser
+loads the page and asks your consent backend for the visitor's policy, then
+shows the banner or runs the scripts the visitor allowed. The backend reads the
+visitor's location from the request, so regional policies need no extra setup.
 
-## Manual Installation
+- **Next.js or TanStack Start?** Use that framework's guide from the
+  [framework list](/docs/frameworks). Their adapters resolve consent on the
+  server.
+- **React Router framework mode, Remix or another server-rendered React app?**
+  This guide still works. The server renders the page without consent state and
+  the browser resolves it after hydration. Read
+  [rendering](/docs/frameworks/react/rendering#react-router-remix-and-other-server-rendered-apps)
+  for what that means for the first paint.
 
-<Steps>
-  <Step>
-    ### Install package
+You need an [Inth](https://inth.com) project. In the project, set the policy
+rules for your regions, add your site's origin to the trusted origins, and copy
+the backend URL.
+[Choose your setup](/docs/concepts/choose-your-setup#decide-who-runs-the-consent-backend)
+covers self-hosting and offline mode.
 
-    <PackageCommandTabs mode="install" command="@c15t/react" />
-  </Step>
+The guide uses `hosted()` mode. Policy, translation and vendor edits in your
+project reach visitors on their next page load, without a rebuild.
 
-  <Step>
-    ### Import styles
+## Install c15t
 
-    Import the prebuilt component stylesheet in your app-level CSS entrypoint. This is required for styled components to render correctly.
+<CommandTabs command="c15t @c15t/integrations" mode="install" />
 
-    ```css title="src/index.css"
-    @import "@c15t/react/styles.css";
-    ```
+`c15t` contains the React adapter at `c15t/react` and the Vite plugin at
+`c15t/build`. `@c15t/integrations` holds the vendor loaders used below.
 
-    <import src="../../shared/react/styling/stylesheet-entrypoint.mdx#why-global-css" />
+## Add the Vite plugin
 
-    <Callout type="info">
-      If you are using the headless API or fully custom styling, you can skip this import. `src/main.tsx` should keep importing `./index.css` as usual.
-    </Callout>
-  </Step>
+Add `consentManifest` to `vite.config.ts`:
 
-  <Step>
-    ### Create `ConsentManager` components
+<include src="../../shared/examples/react/vite-config.mdx" />
 
-    Create a provider component with the consent UI and a wrapper that re-exports it. This initializes the consent store and makes consent state available to all child components.
+The plugin reads `VITE_C15T_BACKEND_URL`. Set it to your project's backend URL,
+exactly as Inth shows it, including any path prefix, in `.env` or wherever you
+build:
 
-    ```tsx title="components/consent-manager/provider.tsx"
-    'use client';
-
-    import { type ReactNode } from 'react';
-    import { ConsentManagerProvider, ConsentBanner, ConsentDialog } from '@c15t/react';
-
-    export default function ConsentManagerClient({ children }: { children: ReactNode }) {
-      return (
-        <ConsentManagerProvider
-          options={{
-            mode: 'hosted',
-            backendURL: 'https://your-instance.c15t.dev',
-            consentCategories: ['necessary', 'measurement', 'marketing'],
-            // Shows banner during development. Remove for production.
-            overrides: { country: 'DE' },
-          }}
-        >
-          <ConsentBanner />
-          <ConsentDialog />
-          {children}
-        </ConsentManagerProvider>
-      );
-    }
-    ```
-
-    ```tsx title="components/consent-manager/index.tsx"
-    import type { ReactNode } from 'react';
-    import ConsentManagerProvider from './provider';
-
-    export function ConsentManager({ children }: { children: ReactNode }) {
-      return <ConsentManagerProvider>{children}</ConsentManagerProvider>;
-    }
-    ```
-
-    <Callout type="info">
-      Hosted mode is the recommended production setup because the backend resolves jurisdiction and policy, keeps durable consent records, and lets c15t recover from temporary network failures by re-syncing later.
-    </Callout>
-
-    <Callout type="warn">
-      Don't have a backend yet? You can use `mode: 'offline'` for local-only consent storage, but it gives up backend audit history, server-side consent awareness, and automatic jurisdiction detection. Review the [browser-only storage consequences](/docs/frameworks/react/concepts/client-modes#offline-mode) before choosing it for production.
-    </Callout>
-  </Step>
-
-  <Step>
-    ### Mount `ConsentManager` at the app root
-
-    Wrap your existing app tree with `ConsentManager` so all routes/components can access consent state.
-
-    ```tsx title="src/App.tsx"
-    import { ConsentManager } from './components/consent-manager';
-
-    export default function App() {
-      return (
-        <ConsentManager>
-          {/* your existing app */}
-        </ConsentManager>
-      );
-    }
-    ```
-  </Step>
-
-  <Step>
-    ### Verify it works
-
-    Start your development server and confirm:
-
-    1. A **consent banner** appears at the bottom of the page
-    2. Clicking **"Customize"** opens a dialog with toggles for each consent category
-    3. After accepting or rejecting, the banner dismisses and your choice persists across page reloads
-  </Step>
-</Steps>
-
-<Callout type="info">
-  Want to improve startup performance? See [Optimization](/docs/frameworks/react/optimization) for
-  the decision guide, prefetch setup, and network tuning.
-</Callout>
-
-## Optional: Add DevTools
-
-Install DevTools only if you want a runtime inspector while building and debugging:
-
-<PackageCommandTabs mode="install" command="@c15t/dev-tools" />
-
-Then add it inside your existing provider:
-
-```tsx title="components/consent-manager/provider.tsx"
-import { DevTools } from '@c15t/dev-tools/react';
-
-// ...
-
-<ConsentManagerProvider options={...}>
-  <ConsentBanner />
-  <ConsentDialog />
-  {process.env.NODE_ENV !== 'production' && <DevTools />}
-  {children}
-</ConsentManagerProvider>
+```sh title=".env"
+VITE_C15T_BACKEND_URL=https://your-project.inth.app
 ```
 
-<Callout type="info">
-  Want to understand what's happening under the hood? See [Initialization
-  Flow](/docs/frameworks/react/concepts/initialization-flow) for the lifecycle and [Cookie
-  Management](/docs/frameworks/react/concepts/cookie-management) for script/cookie behavior and
-  revocation handling.
-</Callout>
+If your app already sets `VITE_INTH_PROJECT_URL` for other Inth SDKs, that works
+too. When both are set, `VITE_C15T_BACKEND_URL` wins.
 
-## Optional: AI Agents
+`consentManifest` hands the backend URL to `hosted()` through
+`c15t/generated`. No file is written into your project. Without the plugin,
+pass the URL as `hosted({ backendURL })`.
 
-Install c15t agent skills to let AI agents help with styling, i18n, scripts & other configuration.
+The plugin also adds a small script to `index.html` that sends `/init` while
+your JavaScript downloads, so the banner shows sooner.
+[Rendering](/docs/frameworks/react/rendering#send-init-before-the-app-loads)
+covers when to turn it off.
 
-<PackageCommandTabs command="@c15t/cli skills" />
+## Mount the provider
 
-See [AI Agents](/docs/ai-agents) for bundled package docs and agent skills.
+Create `src/consent.tsx`. `ConsentProvider` creates the consent runtime and
+loads the scripts. `ConsentBanner` and `ConsentDialog` render when the policy
+asks for them, and `ConsentDialogLink` keeps preferences reachable after the
+banner closes.
+
+<include src="../../shared/examples/react/consent.mdx" />
+
+`hosted()` makes one `/init` request to your backend, started early by the
+script in `index.html`. The backend picks the policy from the visitor's
+location and language and returns its current version. Consent choices go to
+the same backend. Vite reads `VITE_C15T_BACKEND_URL` at build time, so set it
+before you build, not when you serve the files.
+
+PostHog waits for measurement permission, so your policy must include that
+category. Replace `phc_your_project_key` with your PostHog project key.
+PostHog uses its EU host; add `region: 'us'` for a US project. Remove any
+other PostHog loader from your app so PostHog loads once.
+
+`loadMode: 'after-consent'` keeps the PostHog SDK off the page until the
+visitor allows measurement. `cookieless_mode: 'never'` turns off PostHog's
+cookieless capture. See [integrations](/docs/integrations/overview) for other
+vendors.
+
+Wrap your app with it in `src/main.tsx`:
+
+<include src="../../shared/examples/react/main.mdx" />
+
+Keep `Consent` mounted for the life of the app. If you use a client-side
+router, render the router inside `Consent` so navigation does not remount the
+provider. There is no stylesheet to import: the banner and dialog render their
+own rules as `<style>` elements.
+
+## Gate your own features
+
+Read a category's permission with `useConsent` inside the provider:
+
+{/* example: fragment */}
+
+```tsx title="src/marketing-banner.tsx"
+import { useConsent } from 'c15t/react';
+
+export function MarketingBanner() {
+	return useConsent('marketing') ? <aside>Spring sale</aside> : null;
+}
+```
+
+`useConsent` returns the permission right now. Under an opt-out policy it can be
+`true` before the visitor has chosen anything. Read
+[how consent works](/docs/concepts/how-consent-works#a-permission-is-not-a-recorded-choice)
+before you record or report choices. For iframes, use
+[`ConsentGate`](/docs/frameworks/react/components/consent-gate).
+
+## Check that it works
+
+Build and preview the production bundle with `vite build` and `vite preview`,
+then open the site in a private window with DevTools open on the Network tab.
+Test under a policy that asks for a choice, such as an EU opt-in policy.
+
+1. **Before a choice.** One `/init` request goes to your backend URL, starting
+   before your JavaScript finishes downloading, and the banner shows. There
+   are no requests to `posthog.com`.
+2. **Reject All.** The banner closes and the vendor requests stay absent.
+3. **Reload.** The banner stays closed and the vendor requests stay absent.
+4. **Privacy settings.** The footer link opens the dialog with **Analytics** (the
+   `measurement` category) and **Marketing** off. Turn on **Analytics** and
+   save. PostHog's `array.js` loads.
+5. **Turn Analytics off again.** The page reloads and PostHog does not load.
+
+If the banner never appears, check the `/init` request to your backend URL. [Troubleshooting](/docs/frameworks/react/troubleshooting)
+covers the common causes. [Verify consent](/docs/guides/verify-consent) has the
+full release checklist.
 
 ## Next steps
 
-<Cards className="not-prose grid gap-4 grid-cols-1 sm:grid-cols-2">
-  <Card variant="interactive" title="Optimization" description="Choose the right startup optimizations, then wire up proxying, prefetching, and network tuning." href="/docs/frameworks/react/optimization" />
-
-  <Card variant="interactive" title="Script Loader" description="Gate third-party scripts like Google Analytics and Meta Pixel behind consent." href="/docs/frameworks/react/script-loader" />
-
-  <Card variant="interactive" title="Styling" description="Customize colors, typography, spacing, and individual component slots." href="/docs/frameworks/react/styling/overview" />
-
-  <Card variant="interactive" title="Consent Categories" description="Understand the five consent categories and how to configure them." href="/docs/frameworks/react/concepts/consent-categories" />
-
-  <Card variant="interactive" title="Components" description="Explore the full set of pre-built consent UI components." href="/docs/frameworks/react/components/consent-banner" />
-
-  <Card variant="interactive" title="AI Agents" description="Help AI tools with bundled package docs and reusable c15t agent skills." href="/docs/ai-agents" />
-</Cards>
+- [Rendering](/docs/frameworks/react/rendering) for server-rendered React apps and
+  what the first paint contains.
+- [Scripts and embeds](/docs/frameworks/react/scripts) for more vendors, network
+  blocking and data cleanup.
+- [Customize](/docs/frameworks/react/customize) for colors, fonts, layout and copy.
+- [Components](/docs/frameworks/react/components/consent-provider) for
+  every provider option and component prop.
+- The runnable app in `examples/react` of the
+  [c15t repository](https://github.com/c15t/c15t) contains this setup.

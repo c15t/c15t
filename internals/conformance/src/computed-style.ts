@@ -1,0 +1,517 @@
+/**
+ * Computed-style snapshot utilities.
+ *
+ * Pixel equality can pass while the underlying class contract drifts; this
+ * module captures the *computed* style and CSS custom properties for each
+ * element so we can assert visual-parity at the property level and diff
+ * across frameworks.
+ */
+
+/**
+ * Properties we care about for parity. Kept intentionally small: layout,
+ * box, typography, visual. Adding more properties increases noise without
+ * catching more real drift.
+ */
+const DEFAULT_PROPS = [
+	// layout
+	'display',
+	'position',
+	'flex-direction',
+	'justify-content',
+	'align-items',
+	'gap',
+	'grid-template-columns',
+	'grid-template-rows',
+	// box
+	'width',
+	'height',
+	'padding-top',
+	'padding-right',
+	'padding-bottom',
+	'padding-left',
+	'margin-top',
+	'margin-right',
+	'margin-bottom',
+	'margin-left',
+	'border-top-width',
+	'border-right-width',
+	'border-bottom-width',
+	'border-left-width',
+	'border-radius',
+	// typography
+	'font-family',
+	'font-size',
+	'font-weight',
+	'line-height',
+	'letter-spacing',
+	'text-align',
+	'color',
+	// visual
+	'background-color',
+	'opacity',
+	'visibility',
+	'z-index',
+	'box-shadow',
+	// accessibility-visible direction
+	'direction',
+] as const;
+
+export interface ComputedStyleSnapshot {
+	readonly properties: Readonly<Record<string, string>>;
+	readonly customProperties: Readonly<Record<string, string>>;
+}
+
+export interface ComputedStyleDiff {
+	path: string;
+	kind: 'property' | 'custom-property';
+	name: string;
+	a: string | undefined;
+	b: string | undefined;
+}
+
+export interface CaptureOptions {
+	/** CSS property names to capture. Defaults to DEFAULT_PROPS. */
+	properties?: readonly string[];
+	/** Whether to capture CSS custom properties (`--*`). Default: true. */
+	captureCustomProperties?: boolean;
+}
+
+// ---------------------------------------------------------------------------
+// Value canonicalizers
+//
+// Two cosmetic differences show up across frameworks for identical visual
+// output: color notation (React ships CSS modules that keep hex literals;
+// Svelte's build emits `hsl(...)`) and animation-name hashes (bundler-scoped
+// keyframe names). Both round-trip through `getComputedStyle` verbatim for
+// CSS custom properties, so we normalize here before comparing. Raw values
+// are preserved in the snapshot for debuggability — only the diff engine
+// consults canonical form.
+// ---------------------------------------------------------------------------
+
+const parseColorComponent = function parseColorComponent(
+	s: string,
+	max: number
+): number | null {
+	if (s.endsWith('%')) {
+		const n = Number.parseFloat(s);
+		if (Number.isNaN(n)) {
+			return null;
+		}
+		return max === 1 ? n / 100 : (n / 100) * max;
+	}
+	const n = Number.parseFloat(s);
+	if (Number.isNaN(n)) {
+		return null;
+	}
+	return n;
+};
+
+const parseHexColor = function parseHexColor(
+	value: string
+): [number, number, number, number] | null {
+	// oxlint-disable-next-line prefer-named-capture-group -- Preserve declaration order, interface shape, and public compatibility.
+	const m = value.match(/^#([0-9a-f]+)$/iu);
+	if (!m) {
+		return null;
+	}
+	const h = m[1] as string;
+	if (h.length === 3) {
+		const [h0, h1, h2] = [h[0] as string, h[1] as string, h[2] as string];
+		return [
+			Number.parseInt(h0 + h0, 16),
+			Number.parseInt(h1 + h1, 16),
+			Number.parseInt(h2 + h2, 16),
+			1,
+		];
+	}
+	if (h.length === 4) {
+		const [h0, h1, h2, h3] = [
+			h[0] as string,
+			h[1] as string,
+			h[2] as string,
+			h[3] as string,
+		];
+		return [
+			Number.parseInt(h0 + h0, 16),
+			Number.parseInt(h1 + h1, 16),
+			Number.parseInt(h2 + h2, 16),
+			Number.parseInt(h3 + h3, 16) / 255,
+		];
+	}
+	if (h.length === 6) {
+		return [
+			Number.parseInt(h.slice(0, 2), 16),
+			Number.parseInt(h.slice(2, 4), 16),
+			Number.parseInt(h.slice(4, 6), 16),
+			1,
+		];
+	}
+	if (h.length === 8) {
+		return [
+			Number.parseInt(h.slice(0, 2), 16),
+			Number.parseInt(h.slice(2, 4), 16),
+			Number.parseInt(h.slice(4, 6), 16),
+			Number.parseInt(h.slice(6, 8), 16) / 255,
+		];
+	}
+	return null;
+};
+
+const parseRgbColor = function parseRgbColor(
+	value: string
+): [number, number, number, number] | null {
+	const prefix = /^rgba?\s*\(/iu.exec(value);
+	if (!prefix || value.indexOf(')') !== value.length - 1) {
+		return null;
+	}
+	const parts = value
+		.slice(prefix[0].length, -1)
+		.split(/[\s,/]+/u)
+		.filter(Boolean);
+	if (parts.length < 3 || parts.length > 4) {
+		return null;
+	}
+	const r = parseColorComponent(parts[0] as string, 255);
+	const g = parseColorComponent(parts[1] as string, 255);
+	const b = parseColorComponent(parts[2] as string, 255);
+	const a = parts[3] ? parseColorComponent(parts[3], 1) : 1;
+	if (r === null || g === null || b === null || a === null) {
+		return null;
+	}
+	return [r, g, b, a];
+};
+
+const hslToRgb = function hslToRgb(
+	h: number,
+	s: number,
+	l: number
+): [number, number, number] {
+	const hh = ((h % 360) + 360) % 360;
+	const c = (1 - Math.abs(2 * l - 1)) * s;
+	const x = c * (1 - Math.abs(((hh / 60) % 2) - 1));
+	const m = l - c / 2;
+	let rp = 0;
+	let gp = 0;
+	let bp = 0;
+	if (hh < 60) {
+		rp = c;
+		gp = x;
+	} else if (hh < 120) {
+		rp = x;
+		gp = c;
+	} else if (hh < 180) {
+		gp = c;
+		bp = x;
+	} else if (hh < 240) {
+		gp = x;
+		bp = c;
+	} else if (hh < 300) {
+		rp = x;
+		bp = c;
+	} else {
+		rp = c;
+		bp = x;
+	}
+	return [
+		Math.round((rp + m) * 255),
+		Math.round((gp + m) * 255),
+		Math.round((bp + m) * 255),
+	];
+};
+
+const parseHslColor = function parseHslColor(
+	value: string
+): [number, number, number, number] | null {
+	const prefix = /^hsla?\s*\(/iu.exec(value);
+	if (!prefix || value.indexOf(')') !== value.length - 1) {
+		return null;
+	}
+	const parts = value
+		.slice(prefix[0].length, -1)
+		.split(/[\s,/]+/u)
+		.filter(Boolean);
+	if (parts.length < 3 || parts.length > 4) {
+		return null;
+	}
+	const hueRaw = parts[0] as string;
+	let h = Number.parseFloat(hueRaw);
+	if (/rad$/iu.test(hueRaw)) {
+		h = (h * 180) / Math.PI;
+	} else if (/grad$/iu.test(hueRaw)) {
+		h *= 0.9;
+	} else if (/turn$/iu.test(hueRaw)) {
+		h *= 360;
+	}
+	if (Number.isNaN(h)) {
+		return null;
+	}
+	const s = parseColorComponent(parts[1] as string, 1);
+	const l = parseColorComponent(parts[2] as string, 1);
+	const a = parts[3] ? parseColorComponent(parts[3], 1) : 1;
+	if (s === null || l === null || a === null) {
+		return null;
+	}
+	const [r, g, b] = hslToRgb(h, s, l);
+	return [r, g, b, a];
+};
+
+/**
+ * Canonicalize any CSS color value to `rgb(r, g, b)` / `rgba(r, g, b, a)`.
+ * Returns the input untouched if it doesn't parse as a color (transparent,
+ * currentColor, named colors, calc(), etc. — we'd have to carry a named-color
+ * table to handle those, and they rarely differ across frameworks).
+ */
+const canonicalizeColor = function canonicalizeColor(value: string): string {
+	const trimmed = value.trim();
+	let parsed: [number, number, number, number] | null = null;
+	if (trimmed.startsWith('#')) {
+		parsed = parseHexColor(trimmed);
+	} else if (/^rgba?\s*\(/iu.test(trimmed)) {
+		parsed = parseRgbColor(trimmed);
+	} else if (/^hsla?\s*\(/iu.test(trimmed)) {
+		parsed = parseHslColor(trimmed);
+	}
+	if (!parsed) {
+		return value;
+	}
+	const [r, g, b, a] = parsed;
+	const ri = Math.round(r);
+	const gi = Math.round(g);
+	const bi = Math.round(b);
+	const alpha = Math.round(a * 100) / 100;
+	if (alpha === 1) {
+		return `rgb(${ri}, ${gi}, ${bi})`;
+	}
+	return `rgba(${ri}, ${gi}, ${bi}, ${alpha})`;
+};
+
+/**
+ * Replace the first identifier token of an animation value with `<anim>`.
+ * Used for `animation`, `animation-name`, and any custom property whose name
+ * ends in `-animation`. Keyword values (`none`, `initial`, `inherit`) pass
+ * through.
+ */
+const canonicalizeAnimation = function canonicalizeAnimation(
+	value: string
+): string {
+	const trimmed = value.trim();
+	if (!trimmed) {
+		return trimmed;
+	}
+	if (
+		// oxlint-disable-next-line prefer-named-capture-group -- Preserve declaration order, interface shape, and public compatibility.
+		/^(none|initial|inherit|unset|normal|revert|revert-layer)$/u.test(trimmed)
+	) {
+		return trimmed;
+	}
+	return trimmed.replace(/^[A-Za-z_][\w-]*/u, '<anim>');
+};
+
+const isColorPropertyName = function isColorPropertyName(
+	name: string
+): boolean {
+	const n = name.toLowerCase();
+	return (
+		n === 'color' ||
+		n.endsWith('-color') ||
+		n.includes('color') ||
+		n === 'background' ||
+		n === 'border' ||
+		n === 'outline' ||
+		n === 'fill' ||
+		n === 'stroke' ||
+		// CSS custom properties don't follow naming conventions universally,
+		// but we can detect color-like values by prefix.
+		n.startsWith('--')
+	);
+};
+
+const canonicalizeColors = function canonicalizeColors(value: string): string {
+	// Consume each function through its closing delimiter once. A failed suffix
+	// search must not restart at every nested or repeated color prefix.
+	const starts = /#[0-9a-f]+|(?:rgba?|hsla?)\s*\(/giu;
+	const chunks: string[] = [];
+	let cursor = 0;
+	let noClosingDelimiter = false;
+	for (let match = starts.exec(value); match; match = starts.exec(value)) {
+		let end = starts.lastIndex;
+		if (!match[0].startsWith('#')) {
+			if (noClosingDelimiter) {
+				continue;
+			}
+			const close = value.indexOf(')', end);
+			if (close === -1) {
+				noClosingDelimiter = true;
+				continue;
+			}
+			end = close + 1;
+		}
+		chunks.push(
+			value.slice(cursor, match.index),
+			canonicalizeColor(value.slice(match.index, end))
+		);
+		cursor = end;
+		starts.lastIndex = end;
+	}
+	if (chunks.length === 0) {
+		return value;
+	}
+	chunks.push(value.slice(cursor));
+	const result = chunks.join('');
+	return result.replace(/\s+/gu, (space: string, offset: number) =>
+		result[offset - 1] === '(' || result[offset + space.length] === ')'
+			? ''
+			: space
+	);
+};
+
+const isAnimationPropertyName = function isAnimationPropertyName(
+	name: string
+): boolean {
+	const n = name.toLowerCase();
+	return (
+		n === 'animation' || n === 'animation-name' || n.endsWith('-animation')
+	);
+};
+
+/**
+ * Canonicalize a single property value for diff comparison. Applied
+ * symmetrically to both sides of every diff.
+ */
+export const canonicalizeStyleValue = function canonicalizeStyleValue(
+	name: string,
+	value: string
+): string {
+	if (isAnimationPropertyName(name)) {
+		return canonicalizeAnimation(value);
+	}
+	if (isColorPropertyName(name)) {
+		return canonicalizeColors(value);
+	}
+	return value;
+};
+
+const getCustomProperties = function getCustomProperties(
+	style: CSSStyleDeclaration
+): Record<string, string> {
+	const out: Record<string, string> = {};
+	for (let i = 0; i < style.length; i += 1) {
+		const name = style.item(i);
+		if (name.startsWith('--')) {
+			out[name] = style.getPropertyValue(name).trim();
+		}
+	}
+	return out;
+};
+
+/**
+ * Capture the computed style + CSS custom properties for a single element.
+ */
+export const captureComputedStyle = function captureComputedStyle(
+	el: Element,
+	options: CaptureOptions = {}
+): ComputedStyleSnapshot {
+	const props = options.properties ?? DEFAULT_PROPS;
+	const captureCustom = options.captureCustomProperties ?? true;
+	const style = getComputedStyle(el);
+
+	const properties: Record<string, string> = {};
+	for (const name of props) {
+		properties[name] = style.getPropertyValue(name).trim();
+	}
+
+	return {
+		customProperties: captureCustom ? getCustomProperties(style) : {},
+		properties,
+	};
+};
+
+/**
+ * Capture computed styles for a map of elements keyed by `data-testid`.
+ * Missing test-ids are silently skipped — consumers can assert presence
+ * separately via the DOM contract.
+ */
+export const captureComputedStyleFor = function captureComputedStyleFor(
+	root: ParentNode,
+	testIds: readonly string[],
+	options: CaptureOptions = {}
+): Record<string, ComputedStyleSnapshot> {
+	const out: Record<string, ComputedStyleSnapshot> = {};
+	for (const id of testIds) {
+		const el = root.querySelector(`[data-testid="${id}"]`);
+		if (el) {
+			out[id] = captureComputedStyle(el, options);
+		}
+	}
+	return out;
+};
+
+/**
+ * Diff two snapshots. Returns an array of divergences (empty if equal).
+ */
+export const diffComputedStyle = function diffComputedStyle(
+	a: ComputedStyleSnapshot,
+	b: ComputedStyleSnapshot,
+	path = '$'
+): ComputedStyleDiff[] {
+	const diffs: ComputedStyleDiff[] = [];
+
+	const propNames = new Set([
+		...Object.keys(a.properties),
+		...Object.keys(b.properties),
+	]);
+	for (const name of propNames) {
+		const av = a.properties[name];
+		const bv = b.properties[name];
+		const canonAv = av === undefined ? av : canonicalizeStyleValue(name, av);
+		const canonBv = bv === undefined ? bv : canonicalizeStyleValue(name, bv);
+		if (canonAv !== canonBv) {
+			diffs.push({ a: av, b: bv, kind: 'property', name, path });
+		}
+	}
+
+	const customNames = new Set([
+		...Object.keys(a.customProperties),
+		...Object.keys(b.customProperties),
+	]);
+	for (const name of customNames) {
+		const av = a.customProperties[name];
+		const bv = b.customProperties[name];
+		const canonAv = av === undefined ? av : canonicalizeStyleValue(name, av);
+		const canonBv = bv === undefined ? bv : canonicalizeStyleValue(name, bv);
+		if (canonAv !== canonBv) {
+			diffs.push({ a: av, b: bv, kind: 'custom-property', name, path });
+		}
+	}
+
+	return diffs;
+};
+
+/**
+ * Diff two keyed snapshot maps (as produced by `captureComputedStyleFor`).
+ * Each divergence carries the test-id in its `path`. Missing keys on either
+ * side are reported as property diffs with `undefined` on the missing side.
+ */
+export const diffComputedStyleMap = function diffComputedStyleMap(
+	a: Record<string, ComputedStyleSnapshot>,
+	b: Record<string, ComputedStyleSnapshot>
+): ComputedStyleDiff[] {
+	const diffs: ComputedStyleDiff[] = [];
+	const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
+	for (const key of keys) {
+		const av = a[key];
+		const bv = b[key];
+		if (!av || !bv) {
+			diffs.push({
+				a: av ? 'present' : undefined,
+				b: bv ? 'present' : undefined,
+				kind: 'property',
+				name: '<presence>',
+				path: key,
+			});
+			continue;
+		}
+		diffs.push(...diffComputedStyle(av, bv, key));
+	}
+	return diffs;
+};

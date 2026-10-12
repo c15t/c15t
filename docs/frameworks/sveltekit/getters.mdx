@@ -1,0 +1,18 @@
+---
+title: Context getters
+description: Reference for every @c15t/svelte context getter in SvelteKit components, from reading permissions and recorded choices to saving, the draft, IAB state and events.
+group: frameworks
+---
+
+<include src="../../shared/svelte/getters.mdx" />
+
+## Read consent on the server
+
+Getters run in components. On the server there is no provider, only the
+state `loadConsent` returns, or `event.locals.c15t.config` when `c15tHandle`
+is installed. That state is the input the provider starts from. It holds the
+stored records, the request's location and GPC, and the resolved policy when
+the backend answered. It holds no computed permissions, so gate vendors in the browser
+through `scripts` and the getters on this page.
+[Rendering and deployment](/docs/frameworks/sveltekit/rendering#resolve-request-context-once-with-c15thandle)
+covers `c15tHandle`.

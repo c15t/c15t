@@ -1,0 +1,320 @@
+import {
+	IAB_FIXTURE_CMP_ID,
+	IAB_FIXTURE_CMP_VERSION,
+	MINIMAL_GVL,
+	runConformanceSuite,
+} from '@c15t/conformance';
+/**
+ * Svelte conformance entry point.
+ *
+ * Drives the shared `runConformanceSuite` against real Svelte renders:
+ * - `mount` boots a fixture that wraps the requested component in
+ *   `ConsentProvider` (provider takes a `children` snippet, so
+ *   each component variant needs a dispatching fixture).
+ * - `getStore` projects the provider's live kernel snapshot into the
+ *   v2-compatible shape asserted by the shared suite.
+ * - `serverRender` invokes `svelte/server.render` against the same fixture.
+ *
+ * IAB variants mount the real `IABConsentBanner`/`IABConsentDialog` with the
+ * shared minimal GVL fixture and an `iab` policy (the provider's `iab`
+ * option wires `createIAB` exactly like production).
+ */
+import type {
+	MountableComponent,
+	MountOptions,
+	MountResult,
+	SuiteApi,
+	TestDriver,
+} from '@c15t/conformance';
+import { custom, deferInitGvl, offline } from '@c15t/core';
+import type {
+	AllConsentNames,
+	ConsentKernel,
+	KernelActiveUI,
+	KernelConfig,
+	InitResponse,
+} from '@c15t/core';
+import {
+	normalizePolicyRule,
+	createPolicyRuleFingerprints,
+	writePolicyResolutionWire,
+} from '@c15t/schema/types';
+import type { GlobalVendorList } from '@c15t/schema/types';
+import { mount, unmount } from 'svelte';
+import { afterAll, beforeAll, describe, expect, test } from 'vitest';
+
+import { whenIABReady } from '../lib/iab-loader';
+import type { ConsentManagerOptions } from '../lib/types';
+import ConformanceFixture from './fixtures/conformance-fixture.svelte';
+import { createPolicySession, probePolicyContract } from './policy-driver';
+import { closeSsrWorker, renderSsr, warmSsrWorker } from './server-render';
+
+type ProviderOptions = ConsentManagerOptions;
+
+type StoreState = Record<string, unknown> & {
+	consents: Record<string, boolean>;
+	selectedConsents: Record<string, boolean>;
+	activeUI: 'none' | 'banner' | 'dialog';
+	consentCategories: string[];
+};
+
+const DEFAULT_CONSENT_CATEGORIES = [
+	'necessary',
+	'functionality',
+	'experience',
+	'measurement',
+	'marketing',
+] as const satisfies readonly AllConsentNames[];
+
+const isIabComponent = function isIabComponent(
+	component: MountableComponent
+): boolean {
+	return (
+		component === 'iab-consent-banner' || component === 'iab-consent-dialog'
+	);
+};
+
+const consentCategoriesFor = function consentCategoriesFor(
+	options: Partial<ProviderOptions>
+) {
+	return options.consentCategories?.length === 0
+		? [...DEFAULT_CONSENT_CATEGORIES]
+		: [...(options.consentCategories ?? DEFAULT_CONSENT_CATEGORIES)];
+};
+
+const buildProviderOptions = function buildProviderOptions(
+	opts: MountOptions
+): ProviderOptions {
+	const provided = (opts.providerOptions ?? {}) as Partial<ProviderOptions>;
+	const rule = normalizePolicyRule({
+		categories: consentCategoriesFor(provided).filter(
+			(name) => name !== 'necessary'
+		),
+		id: 'svelte_conformance_policy',
+		match: { fallback: true },
+		model: isIabComponent(opts.component)
+			? 'iab'
+			: (opts.policy?.model ?? 'opt-in'),
+		privacySignals: {
+			gpc: {
+				denyCategories: opts.policy?.respectGpc
+					? ['marketing', 'measurement']
+					: [],
+			},
+		},
+		prompt: 'choice',
+		scopeMode: 'permissive',
+	});
+	const resolution = {
+		fingerprints: createPolicyRuleFingerprints(rule),
+		matchedBy: 'fallback' as const,
+		policy: rule,
+		policyId: rule.id,
+		status: 'matched' as const,
+	};
+	const authoritative =
+		opts.initMode !== 'pending' && opts.initMode !== 'failing';
+	const prefetch: KernelConfig = {
+		...(provided.prefetch ?? {}),
+		initialBranding: 'c15t',
+		// A server that resolved an IAB policy ships the vendor list in the
+		// state; the lazy `@c15t/iab` factory only seeds it on the client.
+		initialIab:
+			isIabComponent(opts.component) && authoritative
+				? {
+						cmpId: IAB_FIXTURE_CMP_ID,
+						enabled: true,
+						gvl: (opts.gvl ?? MINIMAL_GVL) as unknown as GlobalVendorList,
+					}
+				: undefined,
+		initialPolicyPending: !authoritative,
+		initialPolicyResolution: authoritative ? resolution : undefined,
+		initialPrivacySignals: { gpc: opts.gpc },
+	};
+
+	const options = {
+		...provided,
+		consentCategories: consentCategoriesFor(provided),
+		disableAnimation: provided.disableAnimation ?? true,
+		mode: provided.mode ?? offline(),
+		persistence: opts.persistence ?? provided.persistence ?? false,
+		prefetch,
+		trapFocus: provided.trapFocus ?? false,
+	} as ProviderOptions;
+	// Real IAB wiring: the provider normalizes this into `createIAB`,
+	// which seeds the kernel's IAB slice (enabled + GVL + CMP id).
+	if (isIabComponent(opts.component)) {
+		options.iab = {
+			cmpId: IAB_FIXTURE_CMP_ID,
+			cmpVersion: IAB_FIXTURE_CMP_VERSION,
+			enabled: true,
+			gvl: (opts.gvl ?? MINIMAL_GVL) as unknown as GlobalVendorList,
+		};
+	}
+
+	return options;
+};
+
+const activeUIForStore = function activeUIForStore(
+	activeUI: KernelActiveUI
+): StoreState['activeUI'] {
+	if (activeUI === 'banner' || activeUI === 'dialog') {
+		return activeUI;
+	}
+	return 'none';
+};
+
+const projectStoreState = function projectStoreState(
+	kernel: ConsentKernel
+): StoreState {
+	const snapshot = kernel.getSnapshot();
+	const consents = { ...snapshot.effectivePermissions } as Record<
+		string,
+		boolean
+	>;
+	return {
+		...(snapshot as unknown as Record<string, unknown>),
+		activeUI: activeUIForStore(snapshot.activeUI),
+		consentCategories: [...snapshot.policyRule.scope],
+		consents,
+		selectedConsents: { ...consents },
+	};
+};
+
+let lastKernel: ConsentKernel | null = null;
+
+const driver: TestDriver = {
+	createPolicySession,
+	framework: 'svelte',
+	getStore() {
+		if (!lastKernel) {
+			throw new Error('Svelte driver: getStore called before mount');
+		}
+		return {
+			getState: () => projectStoreState(lastKernel as ConsentKernel),
+			subscribe: (listener) =>
+				(lastKernel as ConsentKernel).subscribe(() => {
+					listener();
+				}),
+		};
+	},
+	async mount(opts: MountOptions): Promise<MountResult> {
+		const options = buildProviderOptions(opts);
+		let resolveInit: (() => void) | undefined;
+		if (opts.initMode === 'pending') {
+			const resolution = buildProviderOptions({
+				...opts,
+				initMode: 'authoritative',
+			}).prefetch?.initialPolicyResolution;
+			const promise = new Promise<InitResponse>((resolve) => {
+				resolveInit = () =>
+					resolve({
+						policyResolution: writePolicyResolutionWire(
+							resolution ?? { policy: null, status: 'unconfigured' }
+						),
+					});
+			});
+			options.mode = custom({ init: () => promise });
+		} else if (opts.initMode === 'failing') {
+			options.mode = custom({
+				init: () => Promise.reject(new Error('Init failed')),
+			});
+		}
+
+		let mountedKernel: ConsentKernel | null = null;
+
+		const container = document.createElement('div');
+		document.body.appendChild(container);
+
+		const app = mount(ConformanceFixture, {
+			props: {
+				component: opts.component,
+				onKernel: (kernel: ConsentKernel) => {
+					mountedKernel = kernel;
+					lastKernel = kernel;
+				},
+				options,
+			},
+			target: container,
+		});
+
+		if (isIabComponent(opts.component)) {
+			// `@c15t/iab` is loaded on demand, so an IAB surface only has a
+			// live handle once that import has settled — the same wait an
+			// embedding app does before opening a TCF dialog.
+			await whenIABReady();
+		}
+		await new Promise((resolve) => {
+			setTimeout(resolve, 0);
+		});
+
+		if (!mountedKernel) {
+			throw new Error('Svelte driver: mount completed without kernel');
+		}
+
+		return {
+			resolveInit: resolveInit
+				? async () => {
+						resolveInit?.();
+						await new Promise((resolve) => {
+							setTimeout(resolve, 0);
+						});
+					}
+				: undefined,
+			root: container,
+			unmount: async () => {
+				await unmount(app);
+				container.replaceChildren();
+				container.remove();
+				if (lastKernel === mountedKernel) {
+					lastKernel = null;
+				}
+			},
+		};
+	},
+	probePolicyContract,
+	serverRender(opts: MountOptions): Promise<string> {
+		const options = buildProviderOptions(opts);
+		if (options.iab) {
+			options.iab.gvl = undefined;
+		}
+		if (options.prefetch?.initialIab?.gvl) {
+			Object.assign(
+				options.prefetch.initialIab,
+				deferInitGvl({ gvl: options.prefetch.initialIab.gvl }, '/test-gvl')
+			);
+		}
+		return renderSsr(
+			{ component: opts.component, options: { ...options, mode: undefined } },
+			'conformance-fixture.svelte'
+		).then((result) => result.html);
+	},
+};
+
+/**
+ * Scenarios that server-render (`ssr-*`) go through the shared Vite worker.
+ * The worker is warmed in `beforeAll`, but on a loaded CI runner a single
+ * render can still take seconds, so those cases get a larger budget than
+ * the default 5 s. Everything else keeps the default.
+ */
+const SSR_SCENARIO_TIMEOUT_MS = 20_000;
+
+const api: SuiteApi = {
+	describe,
+	expect: expect as unknown as SuiteApi['expect'],
+	test: (name, body) => {
+		if (name.startsWith('ssr-')) {
+			// oxlint-disable-next-line vitest/expect-expect -- The shared conformance suite supplies the assertions in body.
+			test(name, body, SSR_SCENARIO_TIMEOUT_MS);
+		} else {
+			// oxlint-disable-next-line vitest/expect-expect -- The shared conformance suite supplies the assertions in body.
+			test(name, body);
+		}
+	},
+};
+
+// Boot Vite and load the fixtures once, outside any per-test budget.
+beforeAll(() => warmSsrWorker(), 60_000);
+afterAll(() => closeSsrWorker());
+
+runConformanceSuite(driver, api);

@@ -1,0 +1,304 @@
+{
+	"browser": "149.0.7827.55",
+	"label": "before",
+	"results": [
+		{
+			"bannerText": "Secured byc15tc15tPrivacy SettingsWe and our 1211 partners store and/or access information on your device and process personal data, such as unique identifiers and browsing data, for this website, to:Store and/or access information on a devicePersonalised advertising and content, advertising and content measurement, audience research and services developmentUse precise geolocation dataIdentify devices based on information actively requestedSome partners claim a legitimate interest to process your data. You have the right to object to this processing, customize your choices, and withdraw your consent at any time. Your consent applies only to this website and will not affect other services.Reject AllAccept AllCustomize",
+			"framework": "tanstack-start",
+			"htmlBytes": 952346,
+			"htmlGzipBytes": 168773,
+			"samples": [
+				{
+					"cache": "cold",
+					"bannerMs": 26.5,
+					"cls": 0,
+					"cmpMs": 80.60000002384186,
+					"longTaskMs": 0,
+					"htmlCompleteMs": 19.600000023841858,
+					"resources": [],
+					"ttfbMs": 18.5
+				},
+				{
+					"cache": "warm",
+					"bannerMs": 35.799999952316284,
+					"cls": 0,
+					"cmpMs": 52.700000047683716,
+					"longTaskMs": 0,
+					"htmlCompleteMs": 20.799999952316284,
+					"resources": [],
+					"ttfbMs": 17.5
+				},
+				{
+					"cache": "cold",
+					"bannerMs": 26.299999952316284,
+					"cls": 0,
+					"cmpMs": 77.19999992847443,
+					"longTaskMs": 0,
+					"htmlCompleteMs": 19.600000023841858,
+					"resources": [],
+					"ttfbMs": 18.5
+				},
+				{
+					"cache": "warm",
+					"bannerMs": 36.5,
+					"cls": 0,
+					"cmpMs": 47.799999952316284,
+					"longTaskMs": 0,
+					"htmlCompleteMs": 18.200000047683716,
+					"resources": [],
+					"ttfbMs": 17.399999976158142
+				},
+				{
+					"cache": "cold",
+					"bannerMs": 27,
+					"cls": 0,
+					"cmpMs": 80.39999997615814,
+					"longTaskMs": 0,
+					"htmlCompleteMs": 19.799999952316284,
+					"resources": [],
+					"ttfbMs": 18.399999976158142
+				},
+				{
+					"cache": "warm",
+					"bannerMs": 37.300000071525574,
+					"cls": 0,
+					"cmpMs": 53.60000002384186,
+					"longTaskMs": 0,
+					"htmlCompleteMs": 18.800000071525574,
+					"resources": [],
+					"ttfbMs": 17.90000009536743
+				},
+				{
+					"cache": "cold",
+					"bannerMs": 40.40000009536743,
+					"cls": 0,
+					"cmpMs": 77.40000009536743,
+					"longTaskMs": 0,
+					"htmlCompleteMs": 20.5,
+					"resources": [],
+					"ttfbMs": 19.5
+				},
+				{
+					"cache": "warm",
+					"bannerMs": 35.10000002384186,
+					"cls": 0,
+					"cmpMs": 50.799999952316284,
+					"longTaskMs": 0,
+					"htmlCompleteMs": 17.200000047683716,
+					"resources": [],
+					"ttfbMs": 16.5
+				},
+				{
+					"cache": "cold",
+					"bannerMs": 25.200000047683716,
+					"cls": 0,
+					"cmpMs": 76.10000002384186,
+					"longTaskMs": 0,
+					"htmlCompleteMs": 17.800000071525574,
+					"resources": [],
+					"ttfbMs": 17
+				},
+				{
+					"cache": "warm",
+					"bannerMs": 34.300000071525574,
+					"cls": 0,
+					"cmpMs": 49.700000047683716,
+					"longTaskMs": 0,
+					"htmlCompleteMs": 16.5,
+					"resources": [],
+					"ttfbMs": 15.800000071525574
+				},
+				{
+					"cache": "cold",
+					"bannerMs": 24.299999952316284,
+					"cls": 0,
+					"cmpMs": 77.19999992847443,
+					"longTaskMs": 0,
+					"htmlCompleteMs": 17.399999976158142,
+					"resources": [],
+					"ttfbMs": 16.399999976158142
+				},
+				{
+					"cache": "warm",
+					"bannerMs": 34.89999997615814,
+					"cls": 0,
+					"cmpMs": 48.799999952316284,
+					"longTaskMs": 0,
+					"htmlCompleteMs": 16.59999990463257,
+					"resources": [],
+					"ttfbMs": 15.899999976158142
+				},
+				{
+					"cache": "cold",
+					"bannerMs": 23.200000047683716,
+					"cls": 0,
+					"cmpMs": 71.89999997615814,
+					"longTaskMs": 0,
+					"htmlCompleteMs": 16.399999976158142,
+					"resources": [],
+					"ttfbMs": 15.5
+				},
+				{
+					"cache": "warm",
+					"bannerMs": 33.60000002384186,
+					"cls": 0,
+					"cmpMs": 48.5,
+					"longTaskMs": 0,
+					"htmlCompleteMs": 16.299999952316284,
+					"resources": [],
+					"ttfbMs": 15.799999952316284
+				}
+			],
+			"scenario": "manifest-ssr"
+		},
+		{
+			"bannerText": "Secured byc15tc15tPrivacy SettingsWe and our  1211 partners  store and/or access information on your device and process personal data, such as unique identifiers and browsing data, for this website, to:Store and/or access information on a devicePersonalised advertising and content, advertising and content measurement, audience research and services developmentUse precise geolocation dataIdentify devices based on information actively requestedSome partners claim a legitimate interest to process your data. You have the right to object to this processing, customize your choices, and withdraw your consent at any time. Your consent applies only to this website and will not affect other services.Reject AllAccept AllCustomize",
+			"framework": "nuxt",
+			"htmlBytes": 1022401,
+			"htmlGzipBytes": 197849,
+			"samples": [
+				{
+					"cache": "cold",
+					"bannerMs": 47.5,
+					"cls": 0,
+					"cmpMs": 0,
+					"longTaskMs": 0,
+					"htmlCompleteMs": 44.5,
+					"resources": [],
+					"ttfbMs": 38.699999928474426
+				},
+				{
+					"cache": "warm",
+					"bannerMs": 40.699999928474426,
+					"cls": 0,
+					"cmpMs": 0,
+					"longTaskMs": 0,
+					"htmlCompleteMs": 31.399999976158142,
+					"resources": [],
+					"ttfbMs": 30.299999952316284
+				},
+				{
+					"cache": "cold",
+					"bannerMs": 40.60000002384186,
+					"cls": 0,
+					"cmpMs": 0,
+					"longTaskMs": 0,
+					"htmlCompleteMs": 32.90000009536743,
+					"resources": [],
+					"ttfbMs": 31.300000071525574
+				},
+				{
+					"cache": "warm",
+					"bannerMs": 41.300000071525574,
+					"cls": 0,
+					"cmpMs": 0,
+					"longTaskMs": 0,
+					"htmlCompleteMs": 32.300000071525574,
+					"resources": [],
+					"ttfbMs": 31.5
+				},
+				{
+					"cache": "cold",
+					"bannerMs": 37.39999997615814,
+					"cls": 0,
+					"cmpMs": 0,
+					"longTaskMs": 0,
+					"htmlCompleteMs": 27.700000047683716,
+					"resources": [],
+					"ttfbMs": 26.700000047683716
+				},
+				{
+					"cache": "warm",
+					"bannerMs": 36.700000047683716,
+					"cls": 0,
+					"cmpMs": 0,
+					"longTaskMs": 0,
+					"htmlCompleteMs": 28.100000023841858,
+					"resources": [],
+					"ttfbMs": 27.299999952316284
+				},
+				{
+					"cache": "cold",
+					"bannerMs": 42,
+					"cls": 0,
+					"cmpMs": 0,
+					"longTaskMs": 0,
+					"htmlCompleteMs": 32.699999928474426,
+					"resources": [],
+					"ttfbMs": 31.699999928474426
+				},
+				{
+					"cache": "warm",
+					"bannerMs": 35.89999997615814,
+					"cls": 0,
+					"cmpMs": 0,
+					"longTaskMs": 0,
+					"htmlCompleteMs": 27.199999928474426,
+					"resources": [],
+					"ttfbMs": 26.5
+				},
+				{
+					"cache": "cold",
+					"bannerMs": 41,
+					"cls": 0,
+					"cmpMs": 0,
+					"longTaskMs": 0,
+					"htmlCompleteMs": 33.39999997615814,
+					"resources": [],
+					"ttfbMs": 32.39999997615814
+				},
+				{
+					"cache": "warm",
+					"bannerMs": 37.39999997615814,
+					"cls": 0,
+					"cmpMs": 0,
+					"longTaskMs": 0,
+					"htmlCompleteMs": 28.100000023841858,
+					"resources": [],
+					"ttfbMs": 27.300000071525574
+				},
+				{
+					"cache": "cold",
+					"bannerMs": 42.200000047683716,
+					"cls": 0,
+					"cmpMs": 0,
+					"longTaskMs": 0,
+					"htmlCompleteMs": 31.90000009536743,
+					"resources": [],
+					"ttfbMs": 30.100000023841858
+				},
+				{
+					"cache": "warm",
+					"bannerMs": 43.799999952316284,
+					"cls": 0,
+					"cmpMs": 0,
+					"longTaskMs": 0,
+					"htmlCompleteMs": 34.89999997615814,
+					"resources": [],
+					"ttfbMs": 33.89999997615814
+				},
+				{
+					"cache": "cold",
+					"bannerMs": 38.700000047683716,
+					"cls": 0,
+					"cmpMs": 0,
+					"longTaskMs": 0,
+					"htmlCompleteMs": 31.399999976158142,
+					"resources": [],
+					"ttfbMs": 30
+				},
+				{
+					"cache": "warm",
+					"bannerMs": 39.09999990463257,
+					"cls": 0,
+					"cmpMs": 0,
+					"longTaskMs": 0,
+					"htmlCompleteMs": 30.5,
+					"resources": [],
+					"ttfbMs": 29.699999928474426
+				}
+			],
+			"scenario": "ssr-hosted"
+		}
+	]
+}

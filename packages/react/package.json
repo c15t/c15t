@@ -1,141 +1,53 @@
 {
 	"name": "@c15t/react",
-	"version": "2.3.0-canary-20260930161603",
+	"version": "3.0.0-alpha.12",
 	"description": "React cookie banner, consent manager, preference center, and headless CMP components with IAB TCF and Consent Mode support.",
 	"keywords": [
+		"ccpa",
+		"cmp",
+		"consent",
+		"consent-banner",
+		"consent-management",
+		"consent-management-platform",
+		"consent-manager-react",
+		"consent-mode-v2",
+		"cookie-banner",
+		"cookie-consent",
+		"gdpr",
+		"google-consent-mode",
+		"headless",
+		"iab",
+		"lgpd",
+		"preference-center",
+		"privacy",
 		"react",
+		"react-cmp",
 		"react-consent",
 		"react-cookie-banner",
 		"react-cookie-consent",
-		"consent",
-		"privacy",
-		"gdpr",
-		"ccpa",
-		"lgpd",
-		"tcf",
-		"iab",
-		"cmp",
-		"headless",
-		"typescript",
-		"cookie-banner",
-		"cookie-consent",
-		"consent-management-platform",
-		"consent-management",
-		"consent-banner",
-		"consent-manager-react",
-		"preference-center",
 		"react-server-components",
 		"rsc",
-		"use-client",
+		"tcf",
 		"tracking-consent",
-		"google-consent-mode",
-		"consent-mode-v2",
-		"react-cmp"
+		"typescript",
+		"use-client"
 	],
 	"homepage": "https://c15t.com/docs/frameworks/react/quickstart",
 	"bugs": {
 		"url": "https://github.com/c15t/c15t/issues"
 	},
+	"license": "Apache-2.0",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/c15t/c15t.git",
 		"directory": "packages/react"
 	},
-	"license": "Apache-2.0",
-	"sideEffects": [
-		"**/*.css"
-	],
-	"type": "module",
-	"exports": {
-		"./styles.css": "./dist/styles.css",
-		"./styles.tw3.css": "./dist/styles.tw3.css",
-		"./iab/styles.css": "./dist/iab/styles.css",
-		"./iab/styles.tw3.css": "./dist/iab/styles.tw3.css",
-		"./primitives": {
-			"types": "./dist-types/primitives.d.ts",
-			"import": "./dist/primitives.js",
-			"require": "./dist/primitives.cjs"
-		},
-		"./primitives/*": {
-			"types": "./dist-types/primitives/*.d.ts",
-			"import": "./dist/primitives/*.js",
-			"require": "./dist/primitives/*.cjs"
-		},
-		"./server": {
-			"types": "./dist-types/server/index.d.ts",
-			"import": "./dist/server/index.js",
-			"require": "./dist/server/index.cjs"
-		},
-		"./headless": {
-			"types": "./dist-types/headless.d.ts",
-			"import": "./dist/headless.js",
-			"require": "./dist/headless.cjs"
-		},
-		"./cookie-banner": {
-			"types": "./dist-types/components/consent-banner/index.d.ts",
-			"import": "./client/components/consent-banner.js",
-			"require": "./dist/components/consent-banner/index.cjs"
-		},
-		"./components/consent-banner": {
-			"types": "./dist-types/components/consent-banner/index.d.ts",
-			"import": "./client/components/consent-banner.js",
-			"require": "./dist/components/consent-banner/index.cjs"
-		},
-		"./components/consent-dialog": {
-			"types": "./dist-types/components/consent-dialog/index.d.ts",
-			"import": "./client/components/consent-dialog.js",
-			"require": "./dist/components/consent-dialog/index.cjs"
-		},
-		"./components/consent-dialog-trigger": {
-			"types": "./dist-types/components/consent-dialog-trigger/index.d.ts",
-			"import": "./client/components/consent-dialog-trigger.js",
-			"require": "./dist/components/consent-dialog-trigger/index.cjs"
-		},
-		"./components/consent-dialog-link": {
-			"types": "./dist-types/components/consent-dialog-link/index.d.ts",
-			"import": "./client/components/consent-dialog-link.js",
-			"require": "./dist/components/consent-dialog-link/index.cjs"
-		},
-		"./components/consent-widget": {
-			"types": "./dist-types/components/consent-widget/index.d.ts",
-			"import": "./client/components/consent-widget.js",
-			"require": "./dist/components/consent-widget/index.cjs"
-		},
-		"./components/frame": {
-			"types": "./dist-types/components/frame/index.d.ts",
-			"import": "./client/components/frame.js",
-			"require": "./dist/components/frame/index.cjs"
-		},
-		"./components/integrations": {
-			"types": "./dist-types/components/integrations/index.d.ts",
-			"import": "./client/components/integrations.js",
-			"require": "./dist/components/integrations/index.cjs"
-		},
-		"./iab": {
-			"types": "./dist-types/iab.d.ts",
-			"import": "./dist/iab.js",
-			"require": "./dist/iab.cjs"
-		},
-		"./hooks": {
-			"types": "./dist-types/hooks/index.d.ts",
-			"import": "./dist/hooks/index.js",
-			"require": "./dist/hooks/index.cjs"
-		},
-		".": {
-			"types": "./dist-types/index.d.ts",
-			"import": "./dist/index.js",
-			"require": "./dist/index.cjs"
-		}
-	},
-	"main": "./dist/index.cjs",
-	"module": "./dist/index.js",
-	"types": "./dist-types/index.d.ts",
 	"files": [
 		"dist",
 		"dist-types",
 		"AGENTS.md",
+		"SKILL.md",
 		"docs",
-		"client",
 		"styles.css",
 		"styles.tw3.css",
 		"iab",
@@ -143,46 +55,250 @@
 		"src/iab/styles.tw3.css",
 		"!dist/mockServiceWorker.js"
 	],
+	"type": "module",
+	"sideEffects": [
+		"**/*.css"
+	],
+	"main": "./dist/index.js",
+	"types": "./dist-types/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist-types/index.d.ts",
+			"import": "./dist/index.js",
+			"default": "./dist/index.js"
+		},
+		"./modes": {
+			"types": "./dist-types/modes.d.ts",
+			"import": "./dist/modes.js",
+			"default": "./dist/modes.js"
+		},
+		"./provider": {
+			"types": "./dist-types/provider.d.ts",
+			"import": "./dist/provider.js",
+			"default": "./dist/provider.js"
+		},
+		"./hooks": {
+			"types": "./dist-types/hooks.d.ts",
+			"import": "./dist/hooks.js",
+			"default": "./dist/hooks.js"
+		},
+		"./draft": {
+			"types": "./dist-types/draft.d.ts",
+			"import": "./dist/draft.js",
+			"default": "./dist/draft.js"
+		},
+		"./theme": {
+			"types": "./dist-types/index-parts/theme.d.ts",
+			"import": "./dist/index-parts/theme.js",
+			"default": "./dist/index-parts/theme.js"
+		},
+		"./module-hooks": {
+			"types": "./dist-types/module-hooks.d.ts",
+			"import": "./dist/module-hooks.js",
+			"default": "./dist/module-hooks.js"
+		},
+		"./module-hooks/script-loader": {
+			"types": "./dist-types/module-hooks/script-loader.d.ts",
+			"import": "./dist/module-hooks/script-loader.js",
+			"default": "./dist/module-hooks/script-loader.js"
+		},
+		"./module-hooks/persistence": {
+			"types": "./dist-types/module-hooks/persistence.d.ts",
+			"import": "./dist/module-hooks/persistence.js",
+			"default": "./dist/module-hooks/persistence.js"
+		},
+		"./module-hooks/network-blocker": {
+			"types": "./dist-types/module-hooks/network-blocker.d.ts",
+			"import": "./dist/module-hooks/network-blocker.js",
+			"default": "./dist/module-hooks/network-blocker.js"
+		},
+		"./module-hooks/iframe-blocker": {
+			"types": "./dist-types/module-hooks/iframe-blocker.d.ts",
+			"import": "./dist/module-hooks/iframe-blocker.js",
+			"default": "./dist/module-hooks/iframe-blocker.js"
+		},
+		"./consent-banner": {
+			"types": "./dist-types/prompt.d.ts",
+			"import": "./dist/prompt.js",
+			"default": "./dist/prompt.js"
+		},
+		"./consent-dialog": {
+			"types": "./dist-types/panel.d.ts",
+			"import": "./dist/panel.js",
+			"default": "./dist/panel.js"
+		},
+		"./consent-widget": {
+			"types": "./dist-types/preferences.d.ts",
+			"import": "./dist/preferences.js",
+			"default": "./dist/preferences.js"
+		},
+		"./consent-dialog-link": {
+			"types": "./dist-types/panel-link.d.ts",
+			"import": "./dist/panel-link.js",
+			"default": "./dist/panel-link.js"
+		},
+		"./consent-dialog-trigger": {
+			"types": "./dist-types/panel-trigger.d.ts",
+			"import": "./dist/panel-trigger.js",
+			"default": "./dist/panel-trigger.js"
+		},
+		"./consent-gate": {
+			"types": "./dist-types/consent-gate.d.ts",
+			"import": "./dist/consent-gate.js",
+			"default": "./dist/consent-gate.js"
+		},
+		"./frame": {
+			"types": "./dist-types/consent-gate.d.ts",
+			"import": "./dist/consent-gate.js",
+			"default": "./dist/consent-gate.js"
+		},
+		"./iab": {
+			"types": "./dist-types/iab.d.ts",
+			"import": "./dist/iab.js",
+			"default": "./dist/iab.js"
+		},
+		"./gpp": {
+			"types": "./dist-types/gpp.d.ts",
+			"import": "./dist/gpp.js",
+			"default": "./dist/gpp.js"
+		},
+		"./styles.css": "./dist/styles.css",
+		"./styles.tw3.css": "./dist/styles.tw3.css",
+		"./iab/styles.css": "./dist/iab/styles.css",
+		"./iab/styles.tw3.css": "./dist/iab/styles.tw3.css",
+		"./postcss-tailwind3": {
+			"types": "./dist-types/postcss-tailwind3.d.ts",
+			"import": "./dist/postcss-tailwind3.js",
+			"default": "./dist/postcss-tailwind3.js"
+		},
+		"./primitives": {
+			"types": "./dist-types/primitives.d.ts",
+			"import": "./dist/primitives.js",
+			"default": "./dist/primitives.js"
+		},
+		"./primitives/*": {
+			"types": "./dist-types/primitives/*.d.ts",
+			"import": "./dist/primitives/*.js",
+			"default": "./dist/primitives/*.js"
+		},
+		"./server": {
+			"types": "./dist-types/server/index.d.ts",
+			"import": "./dist/server/index.js",
+			"default": "./dist/server/index.js"
+		},
+		"./headless": {
+			"types": "./dist-types/headless.d.ts",
+			"import": "./dist/headless.js",
+			"default": "./dist/headless.js"
+		},
+		"./components/consent-banner": {
+			"types": "./dist-types/components/prompt/index.d.ts",
+			"import": "./dist/components/prompt/index.js",
+			"default": "./dist/components/prompt/index.js"
+		},
+		"./components/consent-dialog": {
+			"types": "./dist-types/components/panel/index.d.ts",
+			"import": "./dist/components/panel/index.js",
+			"default": "./dist/components/panel/index.js"
+		},
+		"./components/consent-dialog-trigger": {
+			"types": "./dist-types/components/panel-trigger/index.d.ts",
+			"import": "./dist/components/panel-trigger/index.js",
+			"default": "./dist/components/panel-trigger/index.js"
+		},
+		"./components/consent-dialog-link": {
+			"types": "./dist-types/components/panel-link/index.d.ts",
+			"import": "./dist/components/panel-link/index.js",
+			"default": "./dist/components/panel-link/index.js"
+		},
+		"./components/consent-widget": {
+			"types": "./dist-types/components/preferences/index.d.ts",
+			"import": "./dist/components/preferences/index.js",
+			"default": "./dist/components/preferences/index.js"
+		},
+		"./components/consent-gate": {
+			"types": "./dist-types/components/consent-gate/index.d.ts",
+			"import": "./dist/components/consent-gate/index.js",
+			"default": "./dist/components/consent-gate/index.js"
+		},
+		"./components/frame": {
+			"types": "./dist-types/components/consent-gate/index.d.ts",
+			"import": "./dist/components/consent-gate/index.js",
+			"default": "./dist/components/consent-gate/index.js"
+		},
+		"./context": {
+			"types": "./dist-types/context/index.d.ts",
+			"import": "./dist/context/index.js",
+			"default": "./dist/context/index.js"
+		},
+		"./types": {
+			"types": "./dist-types/types/index.d.ts",
+			"import": "./dist/types/index.js",
+			"default": "./dist/types/index.js"
+		},
+		"./utils": {
+			"types": "./dist-types/utils/index.d.ts",
+			"import": "./dist/utils/index.js",
+			"default": "./dist/utils/index.js"
+		},
+		"./devtools": {
+			"types": "./dist-types/devtools.d.ts",
+			"import": "./dist/devtools.js",
+			"default": "./dist/devtools.js"
+		}
+	},
+	"publishConfig": {
+		"access": "public"
+	},
 	"scripts": {
-		"prebuild": "genversion --esm --semi src/version.ts",
-		"build": "bun prebuild && rslib build && bun ../../scripts/normalize-dist-types.mjs && bun scripts/generate-distribution-css.ts && bun run clean:dist:test-artifacts && bun ../../scripts/generate-package-docs.ts @c15t/react",
+		"build": "bun prebuild && rslib build && bun ../../scripts/normalize-dist-types.mjs && bun scripts/generate-distribution-css.ts && bun run clean:dist:test-artifacts && node ../shared/restore-client-directives.mjs src dist",
 		"build:docs": "bun ../../scripts/generate-package-docs.ts @c15t/react",
-		"check-types": "bun prebuild && tsc --noEmit",
+		"check-types": "bun prebuild && tsc --noEmit && tsc -p tsconfig.type-tests.json",
 		"clean:dist:test-artifacts": "bun --eval \"import { rmSync } from 'node:fs'; rmSync('dist/mockServiceWorker.js', { force: true });\"",
 		"dev": "sh -c 'bun prebuild && rslib build --no-dts --no-clean && bun scripts/generate-distribution-css.ts && rslib build --watch --no-dts --no-clean'",
-		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
-		"lint": "bun biome lint ./src",
-		"prepack": "bun ../../scripts/verify-package-artifacts.ts",
-		"test": "bun prebuild && bun run test:types && vitest run",
-		"test:types": "tsc --noEmit --project tsconfig.type-tests.json",
+		"fmt": "bun oxfmt .",
+		"lint": "bun oxlint ./src",
+		"prebuild": "genversion --esm --semi src/version.ts",
+		"prepack": "bun run build:docs && bun ../../scripts/verify-package-artifacts.ts",
+		"test": "bun prebuild && vitest run",
 		"test:watch": "bun prebuild && vitest"
+	},
+	"dependencies": {
+		"@c15t/core": "workspace:*",
+		"@c15t/dev-tools": "workspace:*",
+		"@c15t/iab": "workspace:*",
+		"@c15t/schema": "workspace:*",
+		"@c15t/translations": "workspace:*",
+		"@c15t/ui": "workspace:*",
+		"@types/google.maps": "3.65.3"
+	},
+	"devDependencies": {
+		"@c15t/backend": "workspace:*",
+		"@c15t/conformance": "workspace:*",
+		"@c15t/typescript-config": "workspace:*",
+		"@c15t/vitest-config": "workspace:*",
+		"@iabtechlabtcf/core": "^1.5.22",
+		"genversion": "3.2.0",
+		"msw": "^2.14.6",
+		"typescript": "7.0.2"
+	},
+	"peerDependencies": {
+		"react": "^18.0.0 || ^19.0.0 || ^19.0.0-rc",
+		"react-dom": "^18.0.0 || ^19.0.0 || ^19.0.0-rc"
+	},
+	"peerDependenciesMeta": {
+		"react": {
+			"optional": true
+		},
+		"react-dom": {
+			"optional": true
+		}
 	},
 	"browserslist": [
 		">0.2%",
 		"not dead",
 		"not op_mini all"
 	],
-	"dependencies": {
-		"@c15t/ui": "workspace:*",
-		"@types/google.maps": "3.65.3",
-		"c15t": "workspace:*"
-	},
-	"devDependencies": {
-		"@c15t/backend": "workspace:*",
-		"@c15t/iab": "workspace:*",
-		"@c15t/typescript-config": "workspace:*",
-		"@c15t/vitest-config": "workspace:*",
-		"@iabtechlabtcf/core": "^1.5.22",
-		"genversion": "3.2.0",
-		"msw": "^2.14.6"
-	},
-	"peerDependencies": {
-		"react": "^19.0.0 || ^19.0.0-rc || ^18.0.0 || ^17.0.0 || ^16.8.0",
-		"react-dom": "^19.0.0 || ^19.0.0-rc || ^18.0.0 || ^17.0.0 || ^16.8.0"
-	},
-	"publishConfig": {
-		"access": "public"
-	},
 	"msw": {
 		"workerDirectory": [
 			"public"

@@ -1,61 +1,58 @@
 ---
 title: ConsentDialog
-description: A modal dialog where users can toggle individual consent categories.
+description: Open the c15t preference center as a modal ConsentDialog in a React app, wire its triggers and control blocking, focus and policy gating.
 group: frameworks
 ---
 
-<import src="../../../shared/react/components/consent-dialog.mdx#intro" />
+## Open the preference center
 
-## Basic Usage
+`ConsentDialog` is the modal preference center. Mount it once inside
+`ConsentProvider`, next to the banner, and it opens whenever something makes
+`dialog` the active surface: the banner's Customize button, a
+`ConsentDialogLink` in your footer, a `ConsentDialogTrigger`, or your own
+code.
+
+<include src="../../../shared/examples/react/consent.mdx" />
+
+To hide the "Secured by" tag in the dialog card, pass `hideBranding`:
+
+{/* example: fragment */}
 
 ```tsx
-import { ConsentManagerProvider, ConsentBanner, ConsentDialog } from '@c15t/react';
+<ConsentDialog hideBranding />;
+```
 
-export function ConsentManager() {
-  return (
-    <ConsentManagerProvider options={{ mode: 'hosted', backendURL: 'https://your-instance.c15t.dev' }}>
-      <ConsentBanner />
-      <ConsentDialog />
-    </ConsentManagerProvider>
-  );
+To open it from your own component, set the active surface:
+
+```tsx
+import { useSetActiveUI } from 'c15t/react';
+
+export function PrivacyMenuItem() {
+	const setActiveUI = useSetActiveUI();
+	return (
+		<button type="button" onClick={() => setActiveUI('dialog')}>
+			Cookie preferences
+		</button>
+	);
 }
 ```
 
-## Controlled State
-
-By default, the dialog follows `activeUI === 'dialog'` from the consent store. Use the `open` prop for manual control:
-
-```tsx
-import { useState } from 'react';
-
-function SettingsPage() {
-  const [open, setOpen] = useState(false);
-
-  return (
-    <>
-      <button onClick={() => setOpen(true)}>Privacy Settings</button>
-      <ConsentDialog open={open} />
-    </>
-  );
-}
-```
-
-Or use the hook to open it programmatically:
-
-```tsx
-import { useConsentManager } from '@c15t/react';
-
-function PrivacyLink() {
-  const { setActiveUI } = useConsentManager();
-
-  return (
-    <button onClick={() => setActiveUI('dialog')}>
-      Manage cookies
-    </button>
-  );
-}
-```
-
-<import src="../../../shared/react/components/consent-dialog.mdx#customization" />
+`ConsentDialogLink` does the same with the policy's rights exposed for
+styling; see [ConsentDialogLink](./consent-dialog-link). For a floating
+button, see [ConsentDialogTrigger](./consent-dialog-trigger). Under an IAB
+policy, mount `IABConsentDialog` from the [IAB guide](/docs/frameworks/react/iab)
+instead; this dialog stays closed for the `iab` model.
 
 <import src="../../../shared/react/components/consent-dialog.mdx#props" />
+
+<import src="../../../shared/react/components/consent-dialog.mdx#behavior" />
+
+<import src="../../../shared/react/components/consent-dialog.mdx#accessibility" />
+
+<import src="../../../shared/react/components/consent-dialog.mdx#composition" />
+
+The compound parts import from `c15t/react` as properties of `ConsentDialog`,
+and `ConsentWidget` from the same module. See
+[customize](/docs/frameworks/react/customize) for slots and tokens.
+
+<import src="../../../shared/react/components/consent-dialog.mdx#verify" />

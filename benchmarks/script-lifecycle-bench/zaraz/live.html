@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta
+			name="viewport"
+			content="width=device-width, initial-scale=1"
+		/>
+		<title>c15t × Zaraz · Consent lab</title>
+		<style>
+			:root {
+				color-scheme: light;
+				font-family: ui-sans-serif, system-ui, sans-serif;
+				color: #20251f;
+				background: #f5f6f2;
+			}
+			* {
+				box-sizing: border-box;
+			}
+			body {
+				margin: 0;
+			}
+			main {
+				max-width: 1056px;
+				margin: 0 auto;
+				padding: 48px 24px;
+			}
+			header {
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				gap: 16px;
+				border-bottom: 1px solid #dce0d5;
+				padding-bottom: 24px;
+			}
+			.brand {
+				font-size: 20px;
+				font-weight: 650;
+				letter-spacing: -0.5px;
+			}
+			.status {
+				font-size: 14px;
+				color: #53614e;
+			}
+			h1 {
+				font-size: clamp(32px, 5vw, 48px);
+				letter-spacing: -1.5px;
+				line-height: 1.1;
+				margin: 40px 0 16px;
+			}
+			p {
+				max-width: 65ch;
+				color: #596054;
+				line-height: 1.65;
+			}
+			.flow {
+				display: grid;
+				grid-template-columns: repeat(3, 1fr);
+				gap: 16px;
+				margin: 32px 0;
+			}
+			.card,
+			.panel {
+				background: white;
+				border: 1px solid #dce0d5;
+				border-radius: 12px;
+				padding: 24px;
+			}
+			.label {
+				color: #65705d;
+				font-size: 14px;
+				margin: 0 0 16px;
+			}
+			.value {
+				display: block;
+				font-size: 32px;
+				font-weight: 600;
+				letter-spacing: -1px;
+				font-variant-numeric: tabular-nums;
+			}
+			.note {
+				font-size: 13px;
+				margin-bottom: 0;
+			}
+			.actions {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 10px;
+				margin: 20px 0;
+			}
+			button {
+				font: inherit;
+				font-size: 14px;
+				font-weight: 550;
+				min-height: 44px;
+				padding: 10px 16px;
+				border: 1px solid #bcc5b3;
+				border-radius: 7px;
+				background: white;
+				color: #283722;
+				cursor: pointer;
+			}
+			button:hover {
+				background: #edf2e7;
+			}
+			button:active {
+				background: #dce6d2;
+			}
+			button:focus-visible {
+				outline: 3px solid #659149;
+				outline-offset: 3px;
+			}
+			button.primary {
+				background: #304a24;
+				border-color: #304a24;
+				color: white;
+			}
+			button.primary:hover {
+				background: #456437;
+			}
+			button:disabled {
+				cursor: wait;
+				opacity: 0.5;
+			}
+			h2 {
+				margin: 0;
+				font-size: 18px;
+				letter-spacing: -0.3px;
+			}
+			.panel-head {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				gap: 16px;
+			}
+			#result {
+				min-height: 26px;
+				margin: 0 0 24px;
+				color: #304a24;
+			}
+			#log {
+				list-style: none;
+				margin: 20px 0 0;
+				padding: 0;
+				max-height: 320px;
+				overflow: auto;
+			}
+			#log li {
+				display: flex;
+				gap: 20px;
+				padding: 12px 0;
+				border-top: 1px solid #edf0e9;
+				font-size: 14px;
+				line-height: 1.5;
+			}
+			time {
+				color: #737b6b;
+				font-variant-numeric: tabular-nums;
+				flex-shrink: 0;
+			}
+			footer {
+				margin-top: 24px;
+				font-size: 13px;
+				color: #697260;
+				line-height: 1.7;
+			}
+			@media (max-width: 600px) {
+				main {
+					padding: 24px 16px;
+				}
+				.flow {
+					grid-template-columns: 1fr;
+					gap: 10px;
+				}
+				.card {
+					padding: 20px;
+				}
+				.value {
+					font-size: 28px;
+				}
+				h1 {
+					margin-top: 32px;
+				}
+				.panel-head {
+					align-items: flex-start;
+					flex-direction: column;
+				}
+			}
+		</style>
+	</head>
+	<body>
+		<main>
+			<header>
+				<span class="brand">c15t × Zaraz</span
+				><span
+					class="status"
+					id="connection"
+					role="status"
+					>Connecting to Zaraz…</span
+				>
+			</header>
+			<h1>See consent control a real tool.</h1>
+			<p>
+				Send a pageview while measurement is blocked, then accept measurement in
+				the cookie banner. Cloudflare Zaraz runs the queued event only after
+				c15t grants permission. Revoke consent to block the next one.
+			</p>
+			<section
+				class="flow"
+				aria-label="Live consent state"
+			>
+				<div class="card">
+					<p class="label">1 · c15t measurement</p>
+					<output
+						class="value"
+						id="c15t-state"
+						>Denied</output
+					>
+					<p class="note">Your consent choice</p>
+				</div>
+				<div class="card">
+					<p class="label">2 · Zaraz purpose</p>
+					<output
+						class="value"
+						id="zaraz-state"
+						>Connecting…</output
+					>
+					<p class="note">Live permission from Cloudflare</p>
+				</div>
+				<div class="card">
+					<p class="label">3 · Actual tool executions</p>
+					<output
+						class="value"
+						id="tool-runs"
+						aria-live="polite"
+						>0</output
+					>
+					<p class="note">Counter incremented by the Zaraz tool</p>
+				</div>
+			</section>
+			<div
+				class="actions"
+				aria-label="Test controls"
+			>
+				<button
+					class="primary"
+					id="demo"
+					disabled
+				>
+					Run consent demo
+				</button>
+				<button
+					id="send"
+					disabled
+				>
+					Send pageview
+				</button>
+				<button
+					id="preferences"
+					disabled
+				>
+					Cookie preferences
+				</button>
+				<button
+					id="banner"
+					disabled
+				>
+					Show cookie banner
+				</button>
+			</div>
+			<p
+				id="result"
+				role="status"
+			>
+				Waiting for the live consent API. Then run the demo or try the controls
+				yourself.
+			</p>
+			<section
+				class="panel"
+				aria-labelledby="activity-title"
+			>
+				<div class="panel-head">
+					<h2 id="activity-title">Activity</h2>
+					<span class="status">This browser session</span>
+				</div>
+				<ol
+					id="log"
+					aria-live="polite"
+					aria-relevant="additions"
+				></ol>
+			</section>
+			<footer>
+				This isolated test uses one real Zaraz Custom HTML tool. It increments a
+				counter in this page; no analytics or advertising destination is
+				configured. The demo tests consent behavior, not vendor performance.
+				Your consent choice is saved across refreshes. The guided demo changes
+				consent and finishes with measurement denied.
+			</footer>
+		</main>
+		<script
+			type="module"
+			src="/bridge.js"
+		></script>
+		<script
+			src="/cdn-cgi/zaraz/i.js"
+			defer
+		></script>
+	</body>
+</html>

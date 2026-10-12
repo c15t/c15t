@@ -1,0 +1,444 @@
+/**
+ * `/init` and `/manifest`.
+ *
+ * The load-bearing assertion is the parity one: what this backend returns for
+ * `/init` must equal what a host computes locally from the same `/manifest`.
+ * The manifest exists so a host can skip the round trip,
+ * and they are only interchangeable if they agree. A disagreement would show
+ * different visitors different banners depending on which path their host
+ * happened to take.
+ */
+
+import {
+	buildConsentManifestFromConfig,
+	resolveInitFromManifest,
+} from '@c15t/schema/types';
+import type { ConsentManifestConfig } from '@c15t/schema/types';
+import { baseTranslations } from '@c15t/translations/all';
+import { decodeJwt } from 'jose';
+import { assert, describe, it } from 'vitest';
+
+import { buildInitResponse, readInitSignals } from './init';
+import {
+	buildManifestResponse,
+	createManifestCacheControl,
+	DEFAULT_MANIFEST_S_MAXAGE,
+} from './manifest';
+
+const config: ConsentManifestConfig = {
+	appName: 'Example',
+};
+
+describe('init signals', () => {
+	it('treats sec-gpc as affirmative only when it is exactly "1"', () => {
+		// The spec defines '1' as the only affirmative value. Reading 'true' or
+		// '0' as consent-relevant would act on a signal the visitor did not
+		// send.
+		for (const [value, expected] of [
+			['1', true],
+			['0', false],
+			['true', false],
+			['', false],
+		] as const) {
+			const headers = new Headers(value === '' ? {} : { 'sec-gpc': value });
+			assert.strictEqual(readInitSignals(headers).gpc, expected, value);
+		}
+	});
+
+	it('lets x-c15t-gpc override the browser sec-gpc signal', () => {
+		// Scripts cannot set Sec-* request headers, so a client that asserts a
+		// GPC value on its own init request sends the adapter header instead.
+		assert.strictEqual(
+			readInitSignals(new Headers({ 'sec-gpc': '1', 'x-c15t-gpc': '0' })).gpc,
+			false
+		);
+		assert.strictEqual(
+			readInitSignals(new Headers({ 'x-c15t-gpc': '1' })).gpc,
+			true
+		);
+	});
+
+	it('reads a declared vendor scope without failing on a bad one', () => {
+		// The signal the request-level narrowing runs on. A header the backend
+		// cannot read has to look exactly like no header, because `/init` sits
+		// on the critical rendering path and has to answer either way.
+		const declared = new Headers({
+			'x-c15t-country': 'DE',
+			'x-c15t-vendors': '7, 41, 672',
+		});
+		assert.deepStrictEqual(
+			readInitSignals(declared).declaredVendorIds,
+			[7, 41, 672]
+		);
+
+		const absent = new Headers({ 'x-c15t-country': 'DE' });
+		assert.isUndefined(readInitSignals(absent).declaredVendorIds);
+
+		const useless = new Headers({ 'x-c15t-vendors': 'c15t' });
+		assert.isUndefined(readInitSignals(useless).declaredVendorIds);
+	});
+	it('defaults language to en when the header is absent', () => {
+		assert.strictEqual(readInitSignals(new Headers()).language, 'en');
+	});
+
+	it('reports absent geo as null rather than guessing', () => {
+		const signals = readInitSignals(new Headers());
+		assert.isNull(signals.country);
+		assert.isNull(signals.region);
+	});
+});
+
+describe('init and manifest parity', () => {
+	it('matches what a host resolves locally from the manifest', async () => {
+		const headers = new Headers({
+			'accept-language': 'de-DE',
+			'sec-gpc': '1',
+		});
+
+		const fromBackend = await buildInitResponse(config, headers);
+
+		// What a host would do: fetch /manifest once, then resolve locally for
+		// each visitor without touching the backend again.
+		const manifest = await buildConsentManifestFromConfig(config);
+		const fromHost = resolveInitFromManifest(
+			manifest,
+			{
+				country: null,
+				gpc: true,
+				language: 'de-DE',
+				region: null,
+			},
+			{ baseTranslations }
+		);
+
+		assert.deepStrictEqual(fromBackend.body, fromHost);
+	});
+
+	it('serves a manifest whose etag is its own revision', async () => {
+		const result = await buildManifestResponse(config, undefined, null);
+		const manifest = await buildConsentManifestFromConfig(config);
+
+		// Deriving a second hash would risk the etag and the revision
+		// disagreeing about whether a manifest changed.
+		assert.strictEqual(result.etag, `"${manifest.revision}"`);
+	});
+
+	it('produces a stable revision for unchanged config', async () => {
+		const first = await buildConsentManifestFromConfig(config);
+		const second = await buildConsentManifestFromConfig(config);
+
+		// A revision that moved on every build would bust every CDN cache and
+		// every client etag on every deploy.
+		assert.strictEqual(first.revision, second.revision);
+	});
+});
+
+describe('manifest cache control', () => {
+	it('uses the shipped defaults', () => {
+		assert.strictEqual(
+			createManifestCacheControl(undefined),
+			`public, s-maxage=${DEFAULT_MANIFEST_S_MAXAGE}, stale-while-revalidate=86400`
+		);
+	});
+
+	it('falls back rather than emitting a nonsense directive', () => {
+		// A negative or non-finite value is a config mistake. Passing it
+		// through would put something a CDN acts on into the header.
+		for (const bad of [-1, Number.NaN, Number.POSITIVE_INFINITY]) {
+			assert.include(
+				createManifestCacheControl({ sMaxAge: bad }),
+				`s-maxage=${DEFAULT_MANIFEST_S_MAXAGE}`
+			);
+		}
+	});
+
+	it('honours a configured value', () => {
+		assert.include(
+			createManifestCacheControl({ sMaxAge: 60, staleWhileRevalidate: 120 }),
+			's-maxage=60, stale-while-revalidate=120'
+		);
+	});
+});
+
+describe('init policy snapshot token', () => {
+	const snapshot = { signingKey: 'test-signing-key-at-least-32-chars-long' };
+
+	it('omits the token when signing is not configured', async () => {
+		const result = await buildInitResponse(config, new Headers());
+		// The field is optional in the contract precisely because signing is
+		// opt-in; an unsigned placeholder would be worse than its absence.
+		assert.isUndefined(
+			(result.body as { policySnapshotToken?: string }).policySnapshotToken
+		);
+	});
+
+	it('omits the token when no policy matched', async () => {
+		// Nothing was decided, so there is nothing to attest to.
+		const result = await buildInitResponse(config, new Headers(), snapshot);
+		assert.isUndefined(
+			(result.body as { policySnapshotToken?: string }).policySnapshotToken
+		);
+	});
+
+	it('still resolves identically to a local resolve', async () => {
+		// The token is additive: adding it must not change the decision a host
+		// computing locally would reach.
+		const withToken = await buildInitResponse(config, new Headers(), snapshot);
+		const without = await buildInitResponse(config, new Headers());
+
+		const { policySnapshotToken: _omitted, ...rest } = withToken.body as {
+			policySnapshotToken?: string;
+		} & Record<string, unknown>;
+		assert.deepStrictEqual(rest, without.body);
+	});
+});
+
+describe('init GVL inclusion', () => {
+	const iabConfig: ConsentManifestConfig = {
+		...config,
+		iab: { enabled: true },
+		policyRules: [
+			{ id: 'iab', match: { isDefault: true }, model: 'iab', prompt: 'choice' },
+		],
+	};
+	const GVL = {
+		features: {},
+		gvlSpecificationVersion: 3,
+		lastUpdated: '2026-01-01T00:00:00Z',
+		purposes: {},
+		specialFeatures: {},
+		specialPurposes: {},
+		stacks: {},
+		tcfPolicyVersion: 4,
+		vendorListVersion: 1,
+		vendors: {},
+	};
+	const serve = (() =>
+		new Response(JSON.stringify(GVL))) as unknown as typeof globalThis.fetch;
+
+	it('omits the vendor list when the block explicitly declines', async () => {
+		// `enabled: false` is the refusal that stays: a deployment that keeps its
+		// scope and cache configured because the list is loaded elsewhere.
+		let requests = 0;
+		const result = await buildInitResponse(
+			iabConfig,
+			new Headers(),
+			undefined,
+			{
+				enabled: false,
+				fetch: ((input: RequestInfo | URL) => {
+					requests += 1;
+					return serve(input);
+				}) as unknown as typeof globalThis.fetch,
+			}
+		);
+
+		assert.isUndefined((result.body as { gvl?: unknown }).gvl);
+		assert.strictEqual(requests, 0, 'a refusal must not reach the upstream');
+	});
+
+	it('fetches nothing when `gvl` is not configured at all', async () => {
+		// Taking the `enabled` flag away must not turn into "always fetch". A
+		// deployment that never asked for server-side list loading gets no
+		// third-party document pulled on its behalf per visitor, on the critical
+		// rendering path. The scope is a firewall rule, and an absent one does
+		// not silently mean "the whole list".
+		const globalFetch = globalThis.fetch;
+		let requests = 0;
+		globalThis.fetch = (() => {
+			requests += 1;
+			return Promise.reject(new Error('no server-side list configured'));
+		}) as unknown as typeof globalThis.fetch;
+
+		try {
+			const result = await buildInitResponse(iabConfig, new Headers());
+
+			assert.isUndefined((result.body as { gvl?: unknown }).gvl);
+			assert.strictEqual(requests, 0);
+		} finally {
+			globalThis.fetch = globalFetch;
+		}
+	});
+
+	it('includes the vendor list when IAB is active', async () => {
+		const result = await buildInitResponse(
+			iabConfig,
+			new Headers(),
+			undefined,
+			{
+				enabled: true,
+				fetch: serve,
+			}
+		);
+		assert.isDefined((result.body as { gvl?: unknown }).gvl);
+	});
+
+	it('still resolves when the vendor list cannot be fetched', async () => {
+		const result = await buildInitResponse(
+			iabConfig,
+			new Headers(),
+			undefined,
+			{
+				enabled: true,
+				fetch: (() => {
+					throw new Error('gvl upstream down');
+				}) as unknown as typeof globalThis.fetch,
+			}
+		);
+
+		// The visitor still gets a consent decision. Failing /init because a
+		// third party is unreachable would leave them with no banner at all.
+		assert.isDefined(result.body);
+		assert.isNull((result.body as { gvl?: unknown }).gvl ?? null);
+	});
+
+	it('clears all IAB authority and does not fetch GVL for an unsupported contract', async () => {
+		let requests = 0;
+		const result = await buildInitResponse(
+			{ ...iabConfig, iab: { cmpId: 123, customVendors: [], enabled: true } },
+			new Headers({ 'x-c15t-policy-contract': '99' }),
+			{ signingKey: 'test-signing-key-at-least-32-chars-long' },
+			{
+				enabled: true,
+				fetch: (() => {
+					requests += 1;
+					return new Response(JSON.stringify(GVL));
+				}) as typeof globalThis.fetch,
+			}
+		);
+		assert.strictEqual(requests, 0);
+		assert.deepStrictEqual(result.body.policyResolution, {
+			policy: null,
+			reason: 'unsupported-contract',
+			status: 'failed',
+			version: 1,
+		});
+		for (const field of [
+			'cmpId',
+			'customVendors',
+			'gvl',
+			'policySnapshotToken',
+		]) {
+			assert.isFalse(field in result.body);
+		}
+	});
+
+	it('requests the document at the endpoint, never a per-language path', async () => {
+		let requested = '';
+		const capture = ((url: string) => {
+			requested = String(url);
+			return new Response(JSON.stringify(GVL));
+		}) as unknown as typeof globalThis.fetch;
+
+		await buildInitResponse(
+			iabConfig,
+			new Headers({ 'accept-language': 'fr-CA' }),
+			undefined,
+			{ fetch: capture }
+		);
+
+		// Upstream answers `/<language>.json` with a 404, so the request that
+		// looks like it is being helpful is the one that leaves a French visitor
+		// with no list at all. The language still separates cache entries, which
+		// is the only place it can honestly do anything.
+		assert.strictEqual(requested, 'https://gvl.inth.app');
+	});
+});
+
+/**
+ * The snapshot-token path, which needs a policy that actually matches.
+ *
+ * Every other init case uses a bare config, so no policy resolves and the
+ * token branch never runs — the branch that mints signed evidence of a
+ * decision was the least exercised code in the module.
+ */
+describe('init with a matching policy', () => {
+	const snapshot = { signingKey: 'test-signing-key-at-least-32-chars-long' };
+
+	const withPolicy: ConsentManifestConfig = {
+		appName: 'Example',
+		policyRules: [
+			// oxlint-disable-next-line sort-keys -- Preserve declaration order, interface shape, and public compatibility.
+			{
+				id: 'pol_default',
+				// isDefault so it matches regardless of geo, which keeps the case
+				// about the token rather than about geo matching.
+				match: { isDefault: true },
+				model: 'opt-in',
+				prompt: 'choice',
+			},
+		],
+	};
+	/** The instance's tenant, which the routes pass for the token audience. */
+	const tenantId = 'tenant_1';
+
+	it('resolves a policy decision', async () => {
+		const { body } = await buildInitResponse(withPolicy, new Headers());
+		assert.isDefined(
+			body.policyResolution,
+			'expected a default policy to match'
+		);
+	});
+
+	it('mints a snapshot token when signing is configured', async () => {
+		const { body } = await buildInitResponse(
+			withPolicy,
+			new Headers(),
+			snapshot
+		);
+		const token = (body as { policySnapshotToken?: string })
+			.policySnapshotToken;
+
+		assert.isString(token);
+		// Three segments: it is a real signed JWT, not a placeholder.
+		assert.strictEqual(token?.split('.').length, 3);
+	});
+
+	it('omits the token when signing is not configured', async () => {
+		const { body } = await buildInitResponse(withPolicy, new Headers());
+		assert.isUndefined(
+			(body as { policySnapshotToken?: string }).policySnapshotToken
+		);
+	});
+
+	it('binds the token to the decision it attests to', async () => {
+		const { body } = await buildInitResponse(
+			withPolicy,
+			new Headers(),
+			snapshot,
+			undefined,
+			tenantId
+		);
+		const typed = body as {
+			policySnapshotToken?: string;
+			policyResolution: { policyId: string; fingerprints: { policy: string } };
+		};
+		const claims = decodeJwt(typed.policySnapshotToken ?? '');
+
+		// A token attesting to a different decision than the one returned would
+		// be worse than none — the server would verify evidence for a decision
+		// the visitor never saw.
+		assert.strictEqual(claims.policyId, typed.policyResolution.policyId);
+		assert.strictEqual(
+			claims.fingerprint,
+			typed.policyResolution.fingerprints.policy
+		);
+		assert.strictEqual(claims.tenantId, 'tenant_1');
+	});
+
+	it('carries the tenant into the token audience', async () => {
+		const { body } = await buildInitResponse(
+			withPolicy,
+			new Headers(),
+			snapshot,
+			undefined,
+			tenantId
+		);
+		const claims = decodeJwt(
+			(body as { policySnapshotToken?: string }).policySnapshotToken ?? ''
+		);
+		// Tenant-scoped audience is what stops evidence being portable between
+		// tenants.
+		assert.strictEqual(claims.aud, 'c15t-policy-snapshot:tenant_1');
+	});
+});

@@ -1,5 +1,5 @@
-import type { ConsentState } from '../../types';
-import type { AllConsentNames } from '../../types/consent-types';
+import type { ConsentState } from '../../consent/compliance';
+import type { AllConsentNames } from '../../consent/consent-types';
 import type { HasCondition } from '../has';
 
 /**
@@ -8,6 +8,18 @@ import type { HasCondition } from '../has';
  * @public
  */
 export interface NetworkBlockerRule {
+	/**
+	 * Vendor slug for vendor-level consent outside IAB. Requests match the
+	 * rule as usual, then are blocked while the subject has this vendor
+	 * turned off. Inert in IAB mode. A slug no declaration names is not
+	 * checked, so the rule follows its category alone.
+	 */
+	vendor?: string;
+	/** IAB TCF vendor id. Only evaluated in IAB mode. */
+	vendorId?: number | string;
+	iabPurposes?: number[];
+	iabLegIntPurposes?: number[];
+	iabSpecialFeatures?: number[];
 	/**
 	 * Optional identifier for the rule.
 	 * Useful for debugging and logging.
@@ -112,7 +124,7 @@ export interface NetworkBlockerConfig {
 	 * This allows the blocker to use a slightly stale consent snapshot so that
 	 * script teardown callbacks can finish before stricter blocking is applied.
 	 */
-	initialConsents?: ConsentState;
+	initialDraft?: ConsentState;
 
 	/**
 	 * Whether to automatically log blocked requests to the console.

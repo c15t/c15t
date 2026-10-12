@@ -1,0 +1,110 @@
+{/* Shared by the Svelte and SvelteKit ConsentBanner pages, after each page's usage section. */}
+
+## Change the shape
+
+`variant` and `position` set the shape for one banner. The provider's
+`presentation` prop sets them for every surface; a prop on `ConsentBanner`
+wins. This banner is a full-width bar along the bottom edge:
+
+<include src="../../examples/storybook-svelte/bottom-bar.mdx" />
+
+| `variant` | Positions |
+| --- | --- |
+| `floating` | `bottom-left` (default), `bottom-right`, `top-left`, `top-right`, `bottom-center`, `top-center` |
+| `bar` | `bottom` (default), `top` |
+| `widget` | `bottom-right` (default), `bottom-left`, `top-left`, `top-right` |
+| `wall` | `center` |
+
+A notice defaults to `bar` and a choice prompt to `floating`. A position that
+does not fit the variant falls back to the variant's default and logs a
+warning in development. When the page's text direction is right to left and
+you set no position, a corner position flips to the other side.
+
+The [design gallery](/docs/customization/recipes) has more banner designs
+with tested Svelte code.
+
+## Props
+
+| Prop | Type | Default | Behavior |
+| --- | --- | --- | --- |
+| `variant` | `'floating'`, `'bar'`, `'widget'` or `'wall'` | from the policy | Shape of the banner. |
+| `position` | see the table above | the variant's default | Where the banner sits. |
+| `blocking` | `boolean` | `false` | Adds a backdrop, locks scrolling, traps focus and ignores outside clicks. `wall` is always blocking; a notice never is. |
+| `layout` | array of `'accept'`, `'reject'`, `'customize'`, `'dismiss'` or nested groups | from the policy | Button order and grouping, such as `[['reject', 'accept'], 'customize']`. |
+| `primaryButton` | one action or an array | from the policy | Which buttons get the primary style. |
+| `title`, `description` | `string` | translated copy | Replace the heading and body for this banner. |
+| `acceptButtonText`, `rejectButtonText`, `customizeButtonText`, `dismissButtonText` | `string` | translated copy | Replace one button label for this banner. |
+| `legalLinks` | array of `LegalLinks` keys, or `null` | every configured link | Which of the provider's `legalLinks` to show after the description. `null` shows none. |
+| `hideBranding` | `boolean` | `false` | Hides the "Secured by" tag. |
+| `models` | `Model[]` | `['opt-in', 'opt-out', 'iab']` | Policy models this banner renders for. |
+| `noStyle` | `boolean` | provider's `noStyle` | Drops c15t's classes, keeping markup and behavior. |
+| `disableAnimation` | `boolean` | provider's value | Shows and hides without a transition. |
+| `scrollLock`, `trapFocus` | `boolean` | from `presentation` | Lock page scroll or trap focus while the banner shows. |
+| `class` | `string` | none | Extra class on the root element. |
+
+The policy wins where it conflicts with `layout` or `primaryButton`. A policy
+that requires a reject button next to accept keeps it, whatever the layout
+says. For copy used across the site, use the provider's `i18n` or your
+backend's translations; see [translations](../translations).
+
+## When the banner shows
+
+`ConsentBanner` renders when all of these are true:
+
+- A policy has resolved for the visitor and it asks for a prompt.
+- The visitor has not chosen yet, or the policy asks them to choose again.
+- The active surface is the banner, not the dialog or nothing.
+- The policy's model is in `models`.
+
+A visitor in a region without a consent law, or one who already chose, gets
+no banner. That is a policy result; see
+[why the banner may be absent](/docs/concepts/policies#why-the-banner-may-be-absent).
+
+A choice prompt shows Accept, Reject and Customize, in the order the policy
+asks for. A notice, such as an opt-out policy that only informs, shows a
+dismiss button and its own title and description from the `noticeTitle` and
+`noticeDescription` translations. Dismissing a notice records the dismissal,
+not a grant.
+
+When the policy grants visitor rights, such as opting out of sale, the banner
+shows each one as a text button that opens the preference dialog.
+
+Accept and Reject record the choice and close the banner in the same task.
+The backend request runs after; a failed request is retried and does not
+reopen the banner. Customize opens `ConsentDialog`, so render the dialog too.
+
+## Accessibility
+
+- The banner card is a `region` labelled by the banner title. With `blocking`,
+  it becomes a `dialog` with `aria-modal="true"`, and focus stays inside it
+  until the visitor chooses.
+- The title is an `h2`. Buttons are `<button type="button">` with their
+  visible text as the accessible name.
+- The banner does not move focus when it appears, unless focus trapping is on.
+  Visitors reach it with Tab.
+- With `prefers-reduced-motion`, the banner appears and leaves without a
+  transition.
+- The root sets `dir` from the active language, so right-to-left copy lays out
+  correctly.
+
+## Style the banner
+
+`ConsentBanner` reads these theme slots from the provider's `theme` prop:
+`consentBanner`, `consentBannerCard`, `consentBannerHeader`,
+`consentBannerTitle`, `consentBannerDescription`, `consentBannerFooter`,
+`consentBannerFooterSubGroup`, `consentBannerRights` and
+`consentBannerRightLink`. [Customize](../customize) shows how to pass them.
+
+The root element carries `data-testid="consent-banner-root"` and these
+attributes for CSS and tests:
+
+| Attribute | Value |
+| --- | --- |
+| `data-prompt` | `choice` or `notice` |
+| `data-model` | `opt-in`, `opt-out` or `iab` |
+| `data-variant` | the resolved variant |
+| `data-position` | the resolved position |
+| `data-blocking` | `true` when blocking |
+
+Each button carries `data-action` with `accept`, `reject`, `customize` or
+`dismiss`.

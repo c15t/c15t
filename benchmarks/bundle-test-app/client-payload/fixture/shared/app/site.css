@@ -1,0 +1,12 @@
+/* Page styles shared by every arm. Each arm's globals.css imports Tailwind,
+   then its consent stylesheet (if any), then this file. */
+:root {
+	--background: #ffffff;
+	--foreground: #0a0a0a;
+}
+
+body {
+	background: var(--background);
+	color: var(--foreground);
+	font-family: system-ui, sans-serif;
+}

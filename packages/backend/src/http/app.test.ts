@@ -1,0 +1,1841 @@
+/**
+ * The HTTP surface, exercised through real requests.
+ *
+ * These assert the wire contract rather than the implementation, because wire
+ * compatibility with `@c15t/backend` 2.x is the hard requirement that makes
+ * running both packages side by side possible. Response
+ * bodies are checked against the same `@c15t/schema` schemas the 2.x routes
+ * validate against, so a drift fails here instead of reaching a client.
+ */
+
+import { listSubjectsOutputSchema } from '@c15t/schema';
+import { Effect, ManagedRuntime } from 'effect';
+import { SqlClient } from 'effect/sql';
+import { SignJWT } from 'jose';
+import * as v from 'valibot';
+import { afterEach, assert, beforeEach, describe, it, vi } from 'vitest';
+
+import { ENGINES, resetDatabase } from '../__tests__/engines';
+import * as Dialect from '../db/dialect';
+import { up as baseline } from '../db/migrations/1-baseline';
+import { up as indexes } from '../db/migrations/2-hot-path-indexes';
+import { up as receipts } from '../db/migrations/3-consent-receipts-and-privacy-directives';
+import { up as vendorChoice } from '../db/migrations/4-vendor-choice';
+import { up as attribution } from '../db/migrations/6-experiment-attribution';
+import { up as optionalJurisdiction } from '../db/migrations/7-optional-decision-jurisdiction';
+import { up as verifiedExternalId } from '../db/migrations/8-verified-external-id';
+import { encodeRow, encoder } from '../db/values';
+import { createApp } from './app';
+
+const SIGNING_KEY = 'identity-signing-key-for-backend-tests';
+
+/** An identity token as `@c15t/node-sdk`'s `createIdentityToken` signs it. */
+const tokenFor = (
+	externalId: string,
+	claims: { exp?: number; idp?: string; key?: string } = {}
+) =>
+	new SignJWT(claims.idp === undefined ? {} : { idp: claims.idp })
+		.setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
+		.setIssuer('c15t')
+		.setAudience('c15t-identity')
+		.setSubject(externalId)
+		.setIssuedAt()
+		.setExpirationTime(claims.exp ?? Math.floor(Date.now() / 1000) + 600)
+		.sign(new TextEncoder().encode(claims.key ?? SIGNING_KEY));
+
+describe.each(ENGINES)('HTTP app ($name)', (engine) => {
+	let runtime: ManagedRuntime.ManagedRuntime<SqlClient.SqlClient, never>;
+	let app: ReturnType<typeof createApp>;
+
+	const API_KEY = 'sk_test_key';
+	const authed = { headers: { Authorization: `Bearer ${API_KEY}` } };
+
+	beforeEach(async () => {
+		runtime = ManagedRuntime.make(engine.client);
+		await runtime.runPromise(
+			Effect.gen(function* appTestEffect() {
+				yield* resetDatabase;
+				yield* baseline;
+				yield* indexes;
+				yield* receipts;
+				yield* vendorChoice;
+				yield* attribution;
+				yield* optionalJurisdiction;
+				yield* verifiedExternalId;
+			})
+		);
+		app = createApp(runtime, {
+			apiKeys: [API_KEY],
+			trustedOrigins: ['https://app.example.com'],
+		});
+	});
+
+	afterEach(async () => {
+		await runtime.dispose();
+	});
+
+	const seed = () =>
+		runtime.runPromise(
+			Effect.gen(function* seedDatabase() {
+				const sql = yield* SqlClient.SqlClient;
+				// Through the encoder, quoted by the dialect: SQLite binds neither a
+				// Date nor a boolean, and MySQL rejects double-quoted identifiers.
+				const encode = yield* encoder;
+				const now = new Date(1_800_000_000_000);
+
+				yield* sql`insert into ${sql('domain')} ${sql.insert(
+					encodeRow(encode, {
+						createdAt: now,
+						id: 'dom_1',
+						name: 'example.com',
+						updatedAt: now,
+					})
+				)}`;
+				yield* sql`insert into ${sql('consentPolicy')} ${sql.insert(
+					encodeRow(encode, {
+						createdAt: now,
+						effectiveDate: now,
+						id: 'pol_1',
+						isActive: true,
+						type: 'cookie',
+						version: '1.0',
+					})
+				)}`;
+				yield* sql`insert into ${sql('subject')} ${sql.insert(
+					encodeRow(encode, {
+						createdAt: now,
+						externalId: 'ext_1',
+						id: 'sub_1',
+						updatedAt: now,
+						verifiedExternalId: 'ext_1',
+					})
+				)}`;
+				yield* sql`insert into ${sql('consent')} ${sql.insert(
+					encodeRow(encode, {
+						domainId: 'dom_1',
+						givenAt: now,
+						id: 'cns_1',
+						policyId: 'pol_1',
+						purposeIds: '[]',
+						subjectId: 'sub_1',
+					})
+				)}`;
+			})
+		);
+
+	describe('GET /subjects', () => {
+		it('returns a body satisfying the shared output schema', async () => {
+			await seed();
+
+			const response = await app.request('/subjects?externalId=ext_1', authed);
+			assert.strictEqual(response.status, 200);
+
+			const body = await response.json();
+
+			// Dates arrive as ISO strings over the wire; the schema expects Date,
+			// so revive before validating — as a 2.x client would. Done generically
+			// rather than field by field, because naming each one means a new date
+			// field silently fails the assertion for the wrong reason.
+			const ISO = /^\d{4}-\d{2}-\d{2}T[\d:.]+Z$/u;
+			const revive = (value: unknown): unknown => {
+				if (typeof value === 'string') {
+					return ISO.test(value) ? new Date(value) : value;
+				}
+				if (Array.isArray(value)) {
+					return value.map(revive);
+				}
+				if (value !== null && typeof value === 'object') {
+					return Object.fromEntries(
+						Object.entries(value).map(([key, nested]) => [key, revive(nested)])
+					);
+				}
+				return value;
+			};
+			const revived = revive(body);
+
+			const parsed = v.safeParse(listSubjectsOutputSchema, revived);
+			assert.isTrue(
+				parsed.success,
+				parsed.success ? '' : JSON.stringify(v.flatten(parsed.issues))
+			);
+		});
+
+		it('reports a missing externalId the way 2.x does', async () => {
+			const response = await app.request('/subjects', authed);
+
+			assert.strictEqual(response.status, 400);
+			assert.deepStrictEqual(await response.json(), {
+				cause: { code: 'EXTERNAL_ID_REQUIRED' },
+				message: 'externalId query parameter is required',
+			});
+		});
+
+		it('treats an empty externalId as missing rather than matching nothing', async () => {
+			// A bare `?externalId=` is a client bug, and answering it with an empty
+			// list would hide that. 2.x rejects it, so this does too.
+			const response = await app.request('/subjects?externalId=', authed);
+			assert.strictEqual(response.status, 400);
+		});
+
+		it('returns an empty list for an externalId nobody has', async () => {
+			await seed();
+			const response = await app.request(
+				'/subjects?externalId=ext_absent',
+				authed
+			);
+
+			assert.strictEqual(response.status, 200);
+			assert.deepStrictEqual(await response.json(), { subjects: [] });
+		});
+
+		it('does not leak database detail when a query fails', async () => {
+			// Drop the table out from under the handler to force a SqlError.
+			await runtime.runPromise(
+				Effect.gen(function* appTestEffect() {
+					const sql = yield* SqlClient.SqlClient;
+					const q = Dialect.escaperFor(yield* Dialect.current);
+					// Foreign keys point at this table, so they have to go first
+					// on the engines with no `cascade`.
+					yield* sql.onDialectOrElse({
+						mysql: () =>
+							Effect.gen(function* mysql() {
+								yield* sql`set foreign_key_checks = 0`;
+								yield* sql.unsafe(`drop table ${q('consent')}`);
+								yield* sql`set foreign_key_checks = 1`;
+							}),
+						orElse: () => sql.unsafe(`drop table ${q('consent')}`),
+						pg: () => sql.unsafe(`drop table ${q('consent')} cascade`),
+					});
+				})
+			);
+
+			const response = await app.request('/subjects?externalId=ext_1', authed);
+			const body = await response.json();
+
+			assert.strictEqual(response.status, 500);
+			// Table and column names in an error body are information disclosure,
+			// and more so on a consent platform. Detail belongs in the wide event.
+			assert.deepStrictEqual(body, {
+				cause: { code: 'DATABASE_ERROR' },
+				message: 'Internal server error',
+			});
+			assert.notInclude(JSON.stringify(body), 'consent');
+		});
+
+		it('refuses a request with no API key', async () => {
+			await seed();
+			const response = await app.request('/subjects?externalId=ext_1');
+
+			// Listing subjects exposes consent records for a named person, so an
+			// unauthenticated caller must get nothing — not an empty list, which
+			// would imply the person has no consents.
+			assert.strictEqual(response.status, 401);
+			assert.deepStrictEqual(await response.json(), {
+				cause: { code: 'UNAUTHORIZED' },
+				message: 'Unauthorized',
+			});
+		});
+
+		it('refuses a wrong API key', async () => {
+			const response = await app.request('/subjects?externalId=ext_1', {
+				headers: { Authorization: 'Bearer sk_test_wrong' },
+			});
+			assert.strictEqual(response.status, 401);
+		});
+
+		it('authenticates before validating input', async () => {
+			// A missing externalId must not leak that the endpoint exists in a
+			// usable state to an unauthenticated caller.
+			const response = await app.request('/subjects');
+			assert.strictEqual(response.status, 401);
+		});
+	});
+
+	describe('GET /status', () => {
+		it('reports version and client context', async () => {
+			const response = await app.request('/status', {
+				headers: {
+					'accept-language': 'de-DE',
+					'x-forwarded-for': '203.0.113.42',
+				},
+			});
+
+			assert.strictEqual(response.status, 200);
+			const body = await response.json();
+			assert.strictEqual(body.client.acceptLanguage, 'de-DE');
+			// The IP is masked on the way in, as it is everywhere else.
+			assert.strictEqual(body.client.ip, '203.0.113.0');
+			assert.isString(body.version);
+		});
+
+		it('needs no API key', async () => {
+			// A health check a load balancer cannot reach without credentials is
+			// not a health check.
+			const response = await app.request('/status');
+			assert.strictEqual(response.status, 200);
+		});
+
+		it('reports 503 rather than 500 when the database is unreachable', async () => {
+			await runtime.runPromise(
+				Effect.gen(function* appTestEffect() {
+					const sql = yield* SqlClient.SqlClient;
+					const q = Dialect.escaperFor(yield* Dialect.current);
+					yield* sql.onDialectOrElse({
+						mysql: () =>
+							Effect.gen(function* mysql() {
+								yield* sql`set foreign_key_checks = 0`;
+								yield* sql.unsafe(`drop table ${q('subject')}`);
+								yield* sql`set foreign_key_checks = 1`;
+							}),
+						orElse: () => sql.unsafe(`drop table ${q('subject')}`),
+						pg: () => sql.unsafe(`drop table ${q('subject')} cascade`),
+					});
+				})
+			);
+
+			const response = await app.request('/status');
+
+			// Orchestrators read 503 as "retry me" and 500 as "I am broken". An
+			// unreachable database is the former.
+			assert.strictEqual(response.status, 503);
+			assert.deepStrictEqual(await response.json(), {
+				cause: { code: 'SERVICE_UNAVAILABLE' },
+				message: 'Database health check failed',
+			});
+		});
+	});
+
+	describe('POST /sessions', () => {
+		const report = {
+			adapter: '@c15t/nextjs',
+			country: 'DE',
+			gpc: false,
+			language: 'de',
+			policy: {
+				fingerprint: 'fp',
+				id: 'eu-opt-in',
+				matchedBy: 'country',
+				model: 'opt-in',
+			},
+			region: null,
+			resolution: 'matched',
+			revision: 'rev-1',
+			source: 'route',
+		};
+
+		it('accepts a report and hands it to the sink with the visitor context', async () => {
+			const onReport = vi.fn();
+			const reporting = createApp(runtime, { sessions: { onReport } });
+
+			const response = await reporting.request('/sessions', {
+				body: JSON.stringify(report),
+				headers: {
+					'content-type': 'application/json',
+					'user-agent': 'Mozilla/5.0',
+					'x-c15t-client-ip': '203.0.113.42',
+					'x-c15t-version': '3.0.0',
+				},
+				method: 'POST',
+			});
+
+			assert.strictEqual(response.status, 204);
+			assert.strictEqual(response.headers.get('cache-control'), 'no-store');
+			// The route waits for the sink: the only party waiting on this
+			// response is the reporting host, which already detached it.
+			assert.strictEqual(onReport.mock.calls.length, 1);
+			// Stamped with the instance's (null) tenant scope, otherwise as sent.
+			assert.deepStrictEqual(onReport.mock.calls[0]?.[0], {
+				...report,
+				tenantId: null,
+			});
+			// The IP goes through the same masking as a consent record's.
+			assert.strictEqual(onReport.mock.calls[0]?.[1].ip, '203.0.113.0');
+			assert.strictEqual(onReport.mock.calls[0]?.[1].userAgent, 'Mozilla/5.0');
+		});
+
+		it('puts the arm from x-c15t-experiment on the /init session report', async () => {
+			const onReport = vi.fn();
+			const reporting = createApp(runtime, { sessions: { onReport } });
+			const response = await reporting.request('/init', {
+				headers: {
+					'x-c15t-experiment': 'banner-shape=wall',
+					'x-c15t-version': '3.0.0',
+				},
+			});
+			assert.strictEqual(response.status, 200);
+			await vi.waitFor(() => assert.strictEqual(onReport.mock.calls.length, 1));
+			assert.deepStrictEqual(onReport.mock.calls[0]?.[0].experiment, {
+				arm: 'wall',
+				id: 'banner-shape',
+			});
+		});
+
+		it('puts the journey from the /init query on the session report', async () => {
+			const onReport = vi.fn();
+			const reporting = createApp(runtime, { sessions: { onReport } });
+			const id = '3b241101-e2bb-4255-8caf-4136c566a962';
+			const response = await reporting.request(
+				`/init?journey=${id}&journeyScope=tab&stored=1`,
+				{
+					headers: {
+						origin: 'https://shop.example.com',
+						'x-c15t-version': '3.0.0',
+					},
+				}
+			);
+			assert.strictEqual(response.status, 200);
+			await vi.waitFor(() => assert.strictEqual(onReport.mock.calls.length, 1));
+			const emitted = onReport.mock.calls[0]?.[0];
+			// No policy is configured, so the browser would show the fallback
+			// prompt; the stored choice answers it.
+			assert.strictEqual(emitted.resolution, 'unconfigured');
+			assert.deepStrictEqual(emitted.journey, {
+				domain: 'shop.example.com',
+				id,
+				prompt: 'stored',
+				scope: 'tab',
+				storedChoice: true,
+			});
+		});
+
+		it('still reads the journey under the alpha parameter names', async () => {
+			// 3.0.0-alpha.8 and alpha.9 browsers send `c15tJourney`,
+			// `c15tJourneyScope` and `c15tStored`.
+			const onReport = vi.fn();
+			const reporting = createApp(runtime, { sessions: { onReport } });
+			const id = '3b241101-e2bb-4255-8caf-4136c566a962';
+			const response = await reporting.request(
+				`/init?c15tJourney=${id}&c15tJourneyScope=page&c15tStored=0`,
+				{
+					headers: {
+						origin: 'https://shop.example.com',
+						'x-c15t-version': '3.0.0-alpha.9',
+					},
+				}
+			);
+			assert.strictEqual(response.status, 200);
+			await vi.waitFor(() => assert.strictEqual(onReport.mock.calls.length, 1));
+			assert.deepStrictEqual(onReport.mock.calls[0]?.[0].journey, {
+				domain: 'shop.example.com',
+				id,
+				prompt: 'due',
+				scope: 'page',
+				storedChoice: false,
+			});
+		});
+
+		it('takes the journey domain from the request host when no Origin is sent', async () => {
+			// A backend on the site's own origin: a same-origin GET carries no
+			// Origin header.
+			const onReport = vi.fn();
+			const reporting = createApp(runtime, { sessions: { onReport } });
+			const response = await reporting.request(
+				'https://shop.example.com/init?journey=3b241101-e2bb-4255-8caf-4136c566a962&journeyScope=page&stored=0',
+				{ headers: { 'x-c15t-version': '3.0.0' } }
+			);
+			assert.strictEqual(response.status, 200);
+			await vi.waitFor(() => assert.strictEqual(onReport.mock.calls.length, 1));
+			assert.strictEqual(
+				onReport.mock.calls[0]?.[0].journey?.domain,
+				'shop.example.com'
+			);
+		});
+
+		it('leaves a malformed or partial journey off the /init report', async () => {
+			const onReport = vi.fn();
+			const reporting = createApp(runtime, { sessions: { onReport } });
+			for (const query of [
+				'journey=visitor-42&journeyScope=page&stored=0',
+				'journey=3b241101-e2bb-4255-8caf-4136c566a962&journeyScope=forever&stored=0',
+				// Without the stored flag the report cannot say if a prompt was owed.
+				'journey=3b241101-e2bb-4255-8caf-4136c566a962&journeyScope=page',
+			]) {
+				// oxlint-disable-next-line no-await-in-loop -- One request at a time keeps the reports in order.
+				const response = await reporting.request(`/init?${query}`, {
+					headers: { 'x-c15t-version': '3.0.0' },
+				});
+				assert.strictEqual(response.status, 200);
+			}
+			await vi.waitFor(() => assert.strictEqual(onReport.mock.calls.length, 3));
+			for (const [emitted] of onReport.mock.calls) {
+				assert.isFalse(Object.hasOwn(emitted, 'journey'));
+			}
+		});
+
+		it('passes a reported journey through to the sink', async () => {
+			const onReport = vi.fn();
+			const reporting = createApp(runtime, { sessions: { onReport } });
+			const journey = {
+				domain: 'shop.example.com',
+				id: '3b241101-e2bb-4255-8caf-4136c566a962',
+				prompt: 'due',
+				scope: 'page',
+				storedChoice: false,
+			};
+			const response = await reporting.request('/sessions', {
+				body: JSON.stringify({ ...report, journey }),
+				headers: {
+					'content-type': 'application/json',
+					'x-c15t-version': '3.0.0',
+				},
+				method: 'POST',
+			});
+			assert.strictEqual(response.status, 204);
+			assert.deepStrictEqual(onReport.mock.calls[0]?.[0].journey, journey);
+
+			const invalid = await reporting.request('/sessions', {
+				body: JSON.stringify({
+					...report,
+					journey: { ...journey, id: 'visitor-42' },
+				}),
+				headers: {
+					'content-type': 'application/json',
+					'x-c15t-version': '3.0.0',
+				},
+				method: 'POST',
+			});
+			assert.strictEqual(invalid.status, 400);
+		});
+
+		it('refuses a report a page could have sent', async () => {
+			// A cross-site POST from a browser carries Origin and cannot add the
+			// protocol header without a preflight an untrusted origin fails.
+			const onReport = vi.fn();
+			const reporting = createApp(runtime, { sessions: { onReport } });
+			const fromPage = await reporting.request('/sessions', {
+				body: JSON.stringify(report),
+				headers: {
+					'content-type': 'text/plain',
+					origin: 'https://attacker.example.net',
+				},
+				method: 'POST',
+			});
+			assert.strictEqual(fromPage.status, 400);
+			const noProtocol = await reporting.request('/sessions', {
+				body: JSON.stringify(report),
+				headers: { 'content-type': 'application/json' },
+				method: 'POST',
+			});
+			assert.strictEqual(noProtocol.status, 400);
+			assert.strictEqual(onReport.mock.calls.length, 0);
+		});
+
+		it('rejects a report that is not one', async () => {
+			const response = await app.request('/sessions', {
+				body: JSON.stringify({ ...report, source: 'browser' }),
+				headers: {
+					'content-type': 'application/json',
+					'x-c15t-version': '3.0.0',
+				},
+				method: 'POST',
+			});
+			assert.strictEqual(response.status, 400);
+			const body = await response.json();
+			assert.strictEqual(body.cause.code, 'BAD_REQUEST');
+			assert.match(body.message, /source/u);
+		});
+
+		it('rejects a report claiming the backend resolved it', async () => {
+			// `init` is reserved for the backend's own route, so a consumer can
+			// trust the source it sees.
+			const onReport = vi.fn();
+			const reporting = createApp(runtime, { sessions: { onReport } });
+			const response = await reporting.request('/sessions', {
+				body: JSON.stringify({ ...report, source: 'init' }),
+				headers: {
+					'content-type': 'application/json',
+					'x-c15t-version': '3.0.0',
+				},
+				method: 'POST',
+			});
+			assert.strictEqual(response.status, 400);
+			assert.strictEqual(onReport.mock.calls.length, 0);
+		});
+
+		it('needs no API key and survives a failing sink', async () => {
+			const reporting = createApp(runtime, {
+				sessions: {
+					onReport: () => Promise.reject(new Error('sink down')),
+				},
+			});
+			const response = await reporting.request('/sessions', {
+				body: JSON.stringify(report),
+				headers: {
+					'content-type': 'application/json',
+					'x-c15t-version': '3.0.0',
+				},
+				method: 'POST',
+			});
+			assert.strictEqual(response.status, 204);
+			await new Promise<void>((resolve) => {
+				setTimeout(resolve, 0);
+			});
+		});
+
+		it("ignores the report IP header on the backend's own /init", async () => {
+			// A browser or any HTTP client can set the header the hosts use;
+			// only a host's report is allowed to name the visitor's address.
+			const onReport = vi.fn();
+			const reporting = createApp(runtime, {
+				manifest: { appName: 'Example' },
+				sessions: { onReport },
+			});
+			const response = await reporting.request('/init', {
+				headers: {
+					'x-c15t-client-ip': '198.51.100.7',
+					'x-forwarded-for': '203.0.113.42',
+				},
+			});
+			assert.strictEqual(response.status, 200);
+			await new Promise<void>((resolve) => {
+				setTimeout(resolve, 0);
+			});
+			assert.strictEqual(onReport.mock.calls[0]?.[1].ip, '203.0.113.0');
+		});
+
+		it('hands the sink an allowlisted copy of the headers, never cookies or credentials', async () => {
+			const onReport = vi.fn();
+			const reporting = createApp(runtime, {
+				apiKeys: [API_KEY],
+				manifest: { appName: 'Example' },
+				sessions: { onReport },
+			});
+			const response = await reporting.request('/init', {
+				headers: {
+					authorization: `Bearer ${API_KEY}`,
+					cookie: 'c15t=secret',
+					'user-agent': 'Mozilla/5.0',
+					'x-c15t-country': 'DE',
+					'x-forwarded-for': '203.0.113.42',
+				},
+			});
+			assert.strictEqual(response.status, 200);
+			await new Promise<void>((resolve) => {
+				setTimeout(resolve, 0);
+			});
+			const { headers } = onReport.mock.calls[0]?.[1] ?? {};
+			assert.strictEqual(headers.get('user-agent'), 'Mozilla/5.0');
+			assert.strictEqual(headers.get('x-c15t-country'), 'DE');
+			assert.isNull(headers.get('cookie'));
+			assert.isNull(headers.get('authorization'));
+			assert.isNull(headers.get('x-forwarded-for'));
+		});
+
+		it('keeps the raw address out of the sink when tracking is off', async () => {
+			const onReport = vi.fn();
+			const reporting = createApp(runtime, {
+				ipAddress: { tracking: false },
+				sessions: { onReport },
+			});
+			const response = await reporting.request('/sessions', {
+				body: JSON.stringify(report),
+				headers: {
+					'content-type': 'application/json',
+					'x-c15t-client-ip': '203.0.113.42',
+					'x-c15t-version': '3.0.0',
+				},
+				method: 'POST',
+			});
+			assert.strictEqual(response.status, 204);
+			const context = onReport.mock.calls[0]?.[1];
+			assert.isNull(context.ip);
+			assert.isNull(context.headers.get('x-c15t-client-ip'));
+		});
+
+		it('attributes a report to the instance tenant, whatever it claims', async () => {
+			const onReport = vi.fn();
+			const reporting = createApp(runtime, {
+				sessions: { onReport },
+				tenantId: 'tenant_a',
+			});
+			const response = await reporting.request('/sessions', {
+				body: JSON.stringify({ ...report, tenantId: 'tenant_b' }),
+				headers: {
+					'content-type': 'application/json',
+					'x-c15t-version': '3.0.0',
+				},
+				method: 'POST',
+			});
+			assert.strictEqual(response.status, 204);
+			assert.strictEqual(onReport.mock.calls[0]?.[0].tenantId, 'tenant_a');
+
+			// An instance without a tenant is the null scope, not any tenant.
+			const untenanted = vi.fn();
+			const single = createApp(runtime, { sessions: { onReport: untenanted } });
+			await single.request('/sessions', {
+				body: JSON.stringify({ ...report, tenantId: 'tenant_b' }),
+				headers: {
+					'content-type': 'application/json',
+					'x-c15t-version': '3.0.0',
+				},
+				method: 'POST',
+			});
+			assert.isNull(untenanted.mock.calls[0]?.[0].tenantId);
+		});
+
+		it('records no address for a report that names none', async () => {
+			// The connection behind a report is the host's server, never the
+			// visitor; an adapter that omits the header meant no address.
+			const onReport = vi.fn();
+			const reporting = createApp(runtime, { sessions: { onReport } });
+			const response = await reporting.request('/sessions', {
+				body: JSON.stringify(report),
+				headers: {
+					'content-type': 'application/json',
+					'x-c15t-version': '3.0.0',
+					'x-forwarded-for': '203.0.113.42',
+				},
+				method: 'POST',
+			});
+			assert.strictEqual(response.status, 204);
+			assert.isNull(onReport.mock.calls[0]?.[1].ip);
+		});
+
+		it('stamps a /init session with the configured tenant', async () => {
+			const onReport = vi.fn();
+			const reporting = createApp(runtime, {
+				manifest: { appName: 'Example' },
+				sessions: { onReport },
+				tenantId: 'tenant_a',
+			});
+			await reporting.request('/init');
+			await new Promise<void>((resolve) => {
+				setTimeout(resolve, 0);
+			});
+			assert.strictEqual(onReport.mock.calls[0]?.[0].tenantId, 'tenant_a');
+		});
+
+		it('does not count a prefetched /init as a session', async () => {
+			const onReport = vi.fn();
+			const reporting = createApp(runtime, {
+				manifest: { appName: 'Example' },
+				sessions: { onReport },
+			});
+			const response = await reporting.request('/init', {
+				headers: { 'next-router-prefetch': '1' },
+			});
+			assert.strictEqual(response.status, 200);
+			await new Promise<void>((resolve) => {
+				setTimeout(resolve, 0);
+			});
+			assert.strictEqual(onReport.mock.calls.length, 0);
+		});
+
+		it('does not count a HEAD probe of /init as a session', async () => {
+			// Hono answers HEAD with the GET handler and drops the body, so a
+			// health check would otherwise register as a visitor.
+			const onReport = vi.fn();
+			const reporting = createApp(runtime, {
+				manifest: { appName: 'Example' },
+				sessions: { onReport },
+			});
+			const response = await reporting.request('/init', { method: 'HEAD' });
+			assert.strictEqual(response.status, 200);
+			await new Promise<void>((resolve) => {
+				setTimeout(resolve, 0);
+			});
+			assert.strictEqual(onReport.mock.calls.length, 0);
+		});
+
+		it("registers the /init sink with the runtime's waitUntil", async () => {
+			// On a runtime that stops work after the response, this is what
+			// keeps the detached sink alive; the response itself never waits.
+			let release: (() => void) | undefined;
+			const onReport = vi.fn(
+				() =>
+					new Promise<void>((resolve) => {
+						release = resolve;
+					})
+			);
+			const waitUntil = vi.fn();
+			const reporting = createApp(runtime, {
+				manifest: { appName: 'Example' },
+				sessions: { onReport },
+			});
+			const response = await reporting.request('/init', undefined, undefined, {
+				passThroughOnException: () => undefined,
+				props: {},
+				waitUntil,
+			});
+			assert.strictEqual(response.status, 200);
+			assert.strictEqual(onReport.mock.calls.length, 1);
+			assert.strictEqual(waitUntil.mock.calls.length, 1);
+			const registered = waitUntil.mock.calls[0]?.[0] as Promise<void>;
+			let settled = false;
+			void registered.then(() => {
+				settled = true;
+			});
+			await Promise.resolve();
+			assert.strictEqual(settled, false);
+			release?.();
+			await registered;
+			assert.strictEqual(settled, true);
+		});
+
+		it("emits the same event from the backend's own /init", async () => {
+			// One sink sees hosted and manifest traffic alike, so a deployment
+			// counting sessions needs no second path for the old route.
+			const onReport = vi.fn();
+			const reporting = createApp(runtime, {
+				manifest: { appName: 'Example' },
+				sessions: { onReport },
+				tenantId: 'tenant_1',
+			});
+			const response = await reporting.request('/init', {
+				headers: {
+					'accept-language': 'de',
+					'sec-gpc': '1',
+					'x-c15t-country': 'DE',
+					'x-forwarded-for': '203.0.113.42',
+				},
+			});
+			assert.strictEqual(response.status, 200);
+			await new Promise<void>((resolve) => {
+				setTimeout(resolve, 0);
+			});
+			assert.strictEqual(onReport.mock.calls.length, 1);
+			const [emitted, context] = onReport.mock.calls[0] ?? [];
+			assert.strictEqual(emitted.source, 'init');
+			assert.strictEqual(emitted.country, 'DE');
+			assert.strictEqual(emitted.gpc, true);
+			assert.strictEqual(emitted.tenantId, 'tenant_1');
+			assert.isString(emitted.revision);
+			assert.strictEqual(context.ip, '203.0.113.0');
+		});
+	});
+
+	describe('GET /subjects/:id', () => {
+		it('returns a body satisfying the shared output schema', async () => {
+			await seed();
+			const response = await app.request('/subjects/sub_1');
+
+			assert.strictEqual(response.status, 200);
+			const body = await response.json();
+			assert.strictEqual(body.subject.id, 'sub_1');
+			assert.strictEqual(body.consents.length, 1);
+		});
+
+		it('404s for a subject that does not exist', async () => {
+			const response = await app.request('/subjects/sub_absent');
+
+			// Distinct from an empty consent list, which would wrongly assert the
+			// subject exists and has consented to nothing.
+			assert.strictEqual(response.status, 404);
+			assert.deepStrictEqual(await response.json(), {
+				cause: { code: 'NOT_FOUND' },
+				message: 'Subject not found',
+			});
+		});
+
+		it('narrows to the requested policy types', async () => {
+			await seed();
+			const matched = await (
+				await app.request('/subjects/sub_1?type=cookie')
+			).json();
+			assert.strictEqual(matched.consents.length, 1);
+
+			const unmatched = await (
+				await app.request('/subjects/sub_1?type=marketing')
+			).json();
+			assert.strictEqual(unmatched.consents.length, 0);
+		});
+
+		it('is valid only against the current policy', async () => {
+			await seed();
+
+			// With no filter there is nothing to be invalid about.
+			const unfiltered = await (await app.request('/subjects/sub_1')).json();
+			assert.isTrue(unfiltered.isValid);
+
+			const matched = await (
+				await app.request('/subjects/sub_1?type=cookie')
+			).json();
+			assert.isTrue(matched.isValid);
+
+			// A type the subject has never consented to cannot be valid.
+			const missing = await (
+				await app.request('/subjects/sub_1?type=marketing')
+			).json();
+			assert.isFalse(missing.isValid);
+		});
+
+		it('does not count consent given against a superseded policy', async () => {
+			await seed();
+			await runtime.runPromise(
+				Effect.gen(function* appTestEffect() {
+					const sql = yield* SqlClient.SqlClient;
+					// A newer active policy of the same type supersedes pol_1.
+					const encode = yield* encoder;
+					yield* sql`insert into ${sql('consentPolicy')} ${sql.insert(
+						encodeRow(encode, {
+							createdAt: new Date(1_800_000_000_000),
+							effectiveDate: new Date(1_800_086_400_000),
+							id: 'pol_2',
+							isActive: true,
+							type: 'cookie',
+							version: '2.0',
+						})
+					)}`;
+				})
+			);
+
+			const body = await (
+				await app.request('/subjects/sub_1?type=cookie')
+			).json();
+
+			// The consent still exists, but it is against an outdated policy — which
+			// is exactly the case a compliance check has to catch.
+			assert.strictEqual(body.consents.length, 1);
+			assert.isFalse(body.consents[0].isLatestPolicy);
+			assert.isFalse(body.isValid);
+		});
+	});
+
+	describe('GET /consents/check', () => {
+		it('reports every requested type, present or not', async () => {
+			await seed();
+			const body = await (
+				await app.request(
+					'/consents/check?externalId=ext_1&type=cookie,marketing',
+					authed
+				)
+			).json();
+
+			// An absent type must appear as false rather than be omitted: a caller
+			// gating script execution has to tell "no consent" from "unknown type".
+			assert.deepStrictEqual(body.results, {
+				cookie: { hasConsent: true, isLatestPolicy: true },
+				marketing: { hasConsent: false, isLatestPolicy: false },
+			});
+		});
+
+		it('separates having consent from it being current', async () => {
+			await seed();
+			await runtime.runPromise(
+				Effect.gen(function* appTestEffect() {
+					const sql = yield* SqlClient.SqlClient;
+					yield* sql`insert into ${sql('consentPolicy')} ${sql.insert(
+						encodeRow(yield* encoder, {
+							createdAt: new Date(1_800_000_000_000),
+							effectiveDate: new Date(1_800_086_400_000),
+							id: 'pol_2',
+							isActive: true,
+							type: 'cookie',
+							version: '2.0',
+						})
+					)}`;
+				})
+			);
+
+			const body = await (
+				await app.request(
+					'/consents/check?externalId=ext_1&type=cookie',
+					authed
+				)
+			).json();
+
+			// Consent exists but is against a superseded policy — the two flags
+			// exist precisely so a caller can act on that difference.
+			assert.deepStrictEqual(body.results.cookie, {
+				hasConsent: true,
+				isLatestPolicy: false,
+			});
+		});
+
+		it('requires both query parameters', async () => {
+			const noExternal = await app.request(
+				'/consents/check?type=cookie',
+				authed
+			);
+			assert.strictEqual(noExternal.status, 400);
+			assert.strictEqual(
+				(await noExternal.json()).cause.code,
+				'EXTERNAL_ID_REQUIRED'
+			);
+
+			const noType = await app.request(
+				'/consents/check?externalId=ext_1',
+				authed
+			);
+			assert.strictEqual(noType.status, 400);
+			assert.strictEqual((await noType.json()).cause.code, 'TYPE_REQUIRED');
+		});
+
+		it('reports all types false for an unknown subject', async () => {
+			const body = await (
+				await app.request(
+					'/consents/check?externalId=nobody&type=cookie',
+					authed
+				)
+			).json();
+			assert.deepStrictEqual(body.results.cookie, {
+				hasConsent: false,
+				isLatestPolicy: false,
+			});
+		});
+
+		it('requires an API key', async () => {
+			await seed();
+			// External ids are often emails or sequential ids. An open check
+			// would tell anyone which of them have consent on file.
+			const anonymous = await app.request(
+				'/consents/check?externalId=ext_1&type=cookie'
+			);
+			assert.strictEqual(anonymous.status, 401);
+
+			const wrongKey = await app.request(
+				'/consents/check?externalId=ext_1&type=cookie',
+				{ headers: { Authorization: 'Bearer sk_wrong' } }
+			);
+			assert.strictEqual(wrongKey.status, 401);
+		});
+	});
+
+	describe('CORS', () => {
+		it('allows a trusted origin', async () => {
+			const response = await app.request('/status', {
+				headers: { Origin: 'https://app.example.com' },
+			});
+			assert.strictEqual(
+				response.headers.get('Access-Control-Allow-Origin'),
+				'https://app.example.com'
+			);
+			// Without Vary, a shared cache could serve one origin's response to
+			// another.
+			assert.strictEqual(response.headers.get('Vary'), 'Origin');
+		});
+
+		it('sends no CORS headers for an untrusted origin', async () => {
+			const response = await app.request('/status', {
+				headers: { Origin: 'https://evil.example.com' },
+			});
+			// Absence is the rejection — the browser blocks it. Echoing the origin
+			// back would defeat the allowlist entirely.
+			assert.isNull(response.headers.get('Access-Control-Allow-Origin'));
+		});
+
+		it('rejects every origin when none are configured', async () => {
+			const closed = createApp(runtime, { apiKeys: [API_KEY] });
+			const response = await closed.request('/status', {
+				headers: { Origin: 'https://app.example.com' },
+			});
+			// A deployment that has not configured origins should reject rather
+			// than default open.
+			assert.isNull(response.headers.get('Access-Control-Allow-Origin'));
+		});
+
+		it('answers a preflight without reaching a route', async () => {
+			const response = await app.request('/subjects', {
+				headers: {
+					'Access-Control-Request-Method': 'GET',
+					Origin: 'https://app.example.com',
+				},
+				method: 'OPTIONS',
+			});
+
+			// 204 and not 401: the preflight carries no credentials by design, so
+			// requiring auth here would break every browser client.
+			assert.strictEqual(response.status, 204);
+			assert.include(
+				response.headers.get('Access-Control-Allow-Methods') ?? '',
+				'GET'
+			);
+		});
+	});
+
+	describe('PUT /legal-documents/:type/current', () => {
+		const release = {
+			effectiveDate: new Date(1_800_000_000_000).toISOString(),
+			hash: 'sha256-abc',
+			version: '1.0',
+		};
+		const put = (body: unknown, auth = true) =>
+			app.request('/legal-documents/privacy_policy/current', {
+				body: JSON.stringify(body),
+				headers: (() => {
+					const headers: Record<string, string> = {
+						'Content-Type': 'application/json',
+					};
+					if (auth) {
+						headers.Authorization = `Bearer ${API_KEY}`;
+					}
+					return headers;
+				})(),
+				method: 'PUT',
+			});
+
+		it('requires an API key', async () => {
+			const response = await put(release, false);
+			// This decides which policy every later consent is measured against,
+			// so it is an administrative operation.
+			assert.strictEqual(response.status, 401);
+		});
+
+		it('creates and activates a release', async () => {
+			const body = await (await put(release)).json();
+			assert.strictEqual(body.policy.version, '1.0');
+			assert.isTrue(body.policy.isActive);
+		});
+
+		it('is idempotent', async () => {
+			const first = await (await put(release)).json();
+			const second = await (await put(release)).json();
+
+			assert.strictEqual(second.policy.id, first.policy.id);
+
+			const rows = await runtime.runPromise(
+				Effect.gen(function* rows() {
+					const sql = yield* SqlClient.SqlClient;
+					return yield* sql<{
+						total: string;
+					}>`select count(*) as total from ${sql('consentPolicy')}`;
+				})
+			);
+			assert.strictEqual(Number(rows[0]?.total), 1);
+		});
+
+		it('leaves exactly one active policy per type', async () => {
+			await put(release);
+			await put({ ...release, hash: 'sha256-def', version: '2.0' });
+
+			const active = await runtime.runPromise(
+				Effect.gen(function* active() {
+					const sql = yield* SqlClient.SqlClient;
+					return yield* sql<{ version: string }>`
+						select ${sql('version')} from ${sql('consentPolicy')}
+						where ${sql('type')} = ${'privacy_policy'}
+							and ${sql('isActive')} = ${(yield* encoder)(true)}
+					`;
+				})
+			);
+
+			// isLatestPolicy on every consent is derived from this invariant, so
+			// two actives would silently break validity checks system-wide.
+			assert.strictEqual(active.length, 1);
+			assert.strictEqual(active[0]?.version, '2.0');
+		});
+
+		it('rejects a hash reused under different metadata', async () => {
+			await put(release);
+			const response = await put({ ...release, version: '9.9' });
+
+			// The hash identifies the content; the same hash claiming a different
+			// version means the caller has two ideas about what the document says.
+			assert.strictEqual(response.status, 400);
+			assert.strictEqual((await response.json()).cause.code, 'CONFLICT');
+		});
+
+		it('rejects an unparseable effectiveDate', async () => {
+			const response = await put({ ...release, effectiveDate: 'not-a-date' });
+			assert.strictEqual(response.status, 422);
+		});
+	});
+
+	describe('PATCH /subjects/:id', () => {
+		const patch = (
+			id: string,
+			body: unknown,
+			headers: Record<string, string> = {},
+			target = app
+		) =>
+			target.request(`/subjects/${id}`, {
+				body: JSON.stringify(body),
+				headers: {
+					'Content-Type': 'application/json',
+					'x-forwarded-for': '203.0.113.42',
+					...headers,
+				},
+				method: 'PATCH',
+			});
+		const withKey = authed.headers;
+
+		it('links a subject to an external identity', async () => {
+			await seed();
+			const body = await (
+				await patch('sub_1', { externalId: 'ext_new' }, withKey)
+			).json();
+			assert.strictEqual(body.subject.externalId, 'ext_new');
+			assert.strictEqual(body.subject.identityProvider, 'external');
+		});
+
+		it('writes an audit entry recording what changed', async () => {
+			await seed();
+			await patch(
+				'sub_1',
+				{ externalId: 'ext_new', identityProvider: 'auth0' },
+				withKey
+			);
+
+			const entries = await runtime.runPromise(
+				Effect.gen(function* entries() {
+					const sql = yield* SqlClient.SqlClient;
+					return yield* sql<{
+						actionType: string;
+						changes: unknown;
+						ipAddress: string | null;
+					}>`select ${sql('actionType')}, ${sql('changes')}, ${sql('ipAddress')}
+						from ${sql('auditLog')}`;
+				})
+			);
+
+			assert.strictEqual(entries.length, 1);
+			assert.strictEqual(entries[0]?.actionType, 'identify_user');
+			// From-and-to, not just "changed": a trail that cannot answer "from
+			// what?" cannot support a subject access request.
+			// Postgres and MySQL hand back parsed JSON; SQLite stores the column
+			// as TEXT and returns the string.
+			const raw = entries[0]?.changes;
+			const changes = (typeof raw === 'string' ? JSON.parse(raw) : raw) as {
+				externalId: { from: string | null; to: string };
+			};
+			assert.strictEqual(changes.externalId.from, 'ext_1');
+			assert.strictEqual(changes.externalId.to, 'ext_new');
+			// The recorded IP is masked, as everywhere else.
+			assert.strictEqual(entries[0]?.ipAddress, '203.0.113.0');
+		});
+
+		it('404s for a subject that does not exist', async () => {
+			const response = await patch('sub_absent', { externalId: 'ext_new' });
+			assert.strictEqual(response.status, 404);
+		});
+
+		it('requires an externalId', async () => {
+			await seed();
+			const response = await patch('sub_1', {});
+			assert.strictEqual(response.status, 400);
+		});
+
+		it('writes no audit entry when the subject is missing', async () => {
+			await patch('sub_absent', { externalId: 'ext_new' });
+			const entries = await runtime.runPromise(
+				Effect.gen(function* entries() {
+					const sql = yield* SqlClient.SqlClient;
+					return yield* sql<{
+						total: string;
+					}>`select count(*) as total from ${sql('auditLog')}`;
+				})
+			);
+			// An audit entry for a change that never happened is worse than none.
+			assert.strictEqual(Number(entries[0]?.total), 0);
+		});
+
+		describe('identity verification', () => {
+			const tokenApp = () =>
+				createApp(runtime, {
+					apiKeys: [API_KEY],
+					identityToken: { signingKey: SIGNING_KEY },
+				});
+
+			/** A subject with consent and no external id, as a browser creates it. */
+			const seedAnonymous = () =>
+				runtime.runPromise(
+					Effect.gen(function* insertAnonymous() {
+						const sql = yield* SqlClient.SqlClient;
+						const encode = yield* encoder;
+						const now = new Date(1_800_000_000_000);
+						yield* sql`insert into ${sql('subject')} ${sql.insert(
+							encodeRow(encode, {
+								createdAt: now,
+								id: 'sub_anon',
+								updatedAt: now,
+							})
+						)}`;
+						yield* sql`insert into ${sql('consent')} ${sql.insert(
+							encodeRow(encode, {
+								domainId: 'dom_1',
+								givenAt: now,
+								id: 'cns_anon',
+								policyId: 'pol_1',
+								purposeIds: '[]',
+								subjectId: 'sub_anon',
+							})
+						)}`;
+					})
+				);
+
+			const listed = async (externalId: string) => {
+				const body = await (
+					await app.request(`/subjects?externalId=${externalId}`, authed)
+				).json();
+				return (body.subjects as { id: string }[]).map((item) => item.id);
+			};
+
+			const checked = async (externalId: string) => {
+				const body = await (
+					await app.request(
+						`/consents/check?externalId=${externalId}&type=cookie`,
+						authed
+					)
+				).json();
+				return body.results.cookie.hasConsent as boolean;
+			};
+
+			it('stores an unverified link without counting it for that user', async () => {
+				await seed();
+				await seedAnonymous();
+
+				// A browser links a user id it has not proved, then the
+				// customer's server asks whether that user consented.
+				const response = await patch('sub_anon', { externalId: 'ext_victim' });
+				assert.strictEqual(response.status, 200);
+
+				assert.deepStrictEqual(await listed('ext_victim'), []);
+				assert.isFalse(await checked('ext_victim'));
+			});
+
+			it('counts a link made with an API key', async () => {
+				await seed();
+				await seedAnonymous();
+
+				await patch('sub_anon', { externalId: 'ext_2' }, withKey);
+
+				assert.deepStrictEqual(await listed('ext_2'), ['sub_anon']);
+				assert.isTrue(await checked('ext_2'));
+			});
+
+			it('counts a link proved by an identity token', async () => {
+				await seed();
+				await seedAnonymous();
+
+				const response = await patch(
+					'sub_anon',
+					{ externalId: 'ext_2', identityToken: await tokenFor('ext_2') },
+					{},
+					tokenApp()
+				);
+
+				assert.strictEqual(response.status, 200);
+				assert.deepStrictEqual(await listed('ext_2'), ['sub_anon']);
+			});
+
+			it('refuses a token that does not prove the identity', async () => {
+				await seed();
+				await seedAnonymous();
+				const target = tokenApp();
+				const past = Math.floor(Date.now() / 1000) - 60;
+
+				const tokens = [
+					...(await Promise.all([
+						tokenFor('ext_other'),
+						tokenFor('ext_2', { key: 'some-other-key' }),
+						tokenFor('ext_2', { exp: past }),
+						tokenFor('ext_2', { idp: 'clerk' }),
+					])),
+					'not-a-jwt',
+				];
+				const responses = await Promise.all(
+					tokens.map((identityToken) =>
+						patch(
+							'sub_anon',
+							{ externalId: 'ext_2', identityToken },
+							{},
+							target
+						)
+					)
+				);
+				const codes = await Promise.all(
+					responses.map(async (response) => [
+						response.status,
+						(await response.json()).cause.code,
+					])
+				);
+				for (const code of codes) {
+					assert.deepStrictEqual(code, [401, 'IDENTITY_TOKEN_INVALID']);
+				}
+				assert.deepStrictEqual(await listed('ext_2'), []);
+			});
+
+			it('refuses a signing key shorter than 32 bytes at startup', () => {
+				assert.throws(
+					() =>
+						createApp(runtime, { identityToken: { signingKey: 'short-key' } }),
+					/at least 32 bytes/u
+				);
+			});
+
+			it('refuses every token when no signing key is configured', async () => {
+				await seed();
+				await seedAnonymous();
+
+				const response = await patch('sub_anon', {
+					externalId: 'ext_2',
+					identityToken: await tokenFor('ext_2'),
+				});
+
+				assert.strictEqual(response.status, 401);
+			});
+
+			it('does not let an unverified link replace a verified one', async () => {
+				await seed();
+
+				const takeover = await patch('sub_1', { externalId: 'ext_other' });
+				assert.strictEqual(takeover.status, 409);
+				assert.strictEqual(
+					(await takeover.json()).cause.code,
+					'IDENTITY_CONFLICT'
+				);
+				assert.deepStrictEqual(await listed('ext_1'), ['sub_1']);
+
+				// Relinking the identity it already has is a harmless retry.
+				const same = await patch('sub_1', { externalId: 'ext_1' });
+				assert.strictEqual(same.status, 200);
+				assert.deepStrictEqual(await listed('ext_1'), ['sub_1']);
+			});
+
+			it('stops counting a link that something else rewrote', async () => {
+				await seed();
+				// A 2.x backend sharing the database rewrites externalId and
+				// knows nothing of verifiedExternalId.
+				await runtime.runPromise(
+					Effect.gen(function* rewrite() {
+						const sql = yield* SqlClient.SqlClient;
+						yield* sql`update ${sql('subject')}
+							set ${sql('externalId')} = ${'ext_rewritten'}
+							where ${sql('id')} = ${'sub_1'}`;
+					})
+				);
+
+				assert.deepStrictEqual(await listed('ext_rewritten'), []);
+				assert.deepStrictEqual(await listed('ext_1'), []);
+			});
+		});
+	});
+
+	describe('POST /subjects', () => {
+		const post = (body: unknown) =>
+			app.request('/subjects', {
+				body: JSON.stringify(body),
+				headers: {
+					'Content-Type': 'application/json',
+					'x-forwarded-for': '203.0.113.42',
+				},
+				method: 'POST',
+			});
+
+		// The documented wire: what `buildSubjectPostBody` in `@c15t/core`
+		// sends, and what the shipped 2.x backend accepted.
+		const submission = {
+			domain: 'example.com',
+			// A moment that has already happened: receipts later than the server
+			// clock are rejected rather than clamped.
+			givenAt: 1_700_000_000_000,
+			preferences: { marketing: false, measurement: true, necessary: true },
+			subjectId: 'sub_visitor1',
+			type: 'cookie_banner',
+		};
+
+		describe('with an external id', () => {
+			const checked = async (externalId: string) => {
+				const body = await (
+					await app.request(
+						`/consents/check?externalId=${externalId}&type=cookie_banner`,
+						authed
+					)
+				).json();
+				return body.results.cookie_banner.hasConsent as boolean;
+			};
+
+			it('does not count a consent recorded under a claimed external id', async () => {
+				await seed();
+				// Anyone can send this from a browser, naming any user.
+				const response = await post({
+					...submission,
+					externalSubjectId: 'ext_victim',
+				});
+
+				assert.strictEqual(response.status, 200);
+				assert.isFalse(await checked('ext_victim'));
+			});
+
+			it('counts it when an identity token proves the external id', async () => {
+				await seed();
+				app = createApp(runtime, {
+					apiKeys: [API_KEY],
+					identityToken: { signingKey: SIGNING_KEY },
+				});
+
+				const response = await post({
+					...submission,
+					externalSubjectId: 'ext_2',
+					identityToken: await tokenFor('ext_2'),
+				});
+
+				assert.strictEqual(response.status, 200);
+				assert.isTrue(await checked('ext_2'));
+			});
+
+			it('still records the consent when the token fails', async () => {
+				await seed();
+				app = createApp(runtime, {
+					apiKeys: [API_KEY],
+					identityToken: { signingKey: SIGNING_KEY },
+				});
+
+				// A consent is a legal record; an expired token must not lose it.
+				const response = await post({
+					...submission,
+					externalSubjectId: 'ext_2',
+					identityToken: await tokenFor('ext_other'),
+				});
+
+				assert.strictEqual(response.status, 200);
+				assert.isFalse(await checked('ext_2'));
+			});
+		});
+
+		it('records a consent', async () => {
+			await seed();
+			const response = await post(submission);
+
+			assert.strictEqual(response.status, 200, await response.clone().text());
+			const body = await response.json();
+			assert.match(body.consentId, /^cns_/u);
+			assert.strictEqual(body.subjectId, 'sub_visitor1');
+			assert.strictEqual(body.domain, 'example.com');
+			assert.strictEqual(
+				body.givenAt,
+				new Date(submission.givenAt).toISOString()
+			);
+			const rows = await runtime.runPromise(
+				Effect.gen(function* rows() {
+					const sql = yield* SqlClient.SqlClient;
+					const encode = yield* encoder;
+					return yield* sql<{ total: string }>`
+						select count(*) as total from ${sql('consent')}
+						where ${sql('id')} = ${body.consentId}
+							and ${sql('givenAt')} = ${encode(new Date(submission.givenAt))}
+					`;
+				})
+			);
+			assert.strictEqual(Number(rows[0]?.total), 1);
+			// Granted codes only, as 2.x echoed them.
+			assert.deepStrictEqual(body.appliedPreferences, submission.preferences);
+			// `ok` so a v3 transport can tell success from a queued failure.
+			assert.strictEqual(body.ok, true);
+		});
+
+		it('resolves the domain by name and reuses the row on the next save', async () => {
+			await seed();
+			const first = await (await post(submission)).json();
+			// The seed created example.com as dom_1; the save must attach to it
+			// rather than create a second row for the same name.
+			assert.strictEqual(first.domainId, 'dom_1');
+		});
+
+		it('is unauthenticated', async () => {
+			// A visitor's own browser submits its own consent; requiring an API key
+			// would mean shipping one to every client.
+			await seed();
+			assert.strictEqual((await post(submission)).status, 200);
+		});
+
+		it('records a consent sent with journey query parameters', async () => {
+			// A v3 client appends the journey to the save URL; a backend that
+			// does not read it must still record the consent.
+			await seed();
+			const response = await app.request(
+				'/subjects?journey=3b241101-e2bb-4255-8caf-4136c566a962&journeyScope=page',
+				{
+					body: JSON.stringify(submission),
+					headers: {
+						'Content-Type': 'application/json',
+						'x-forwarded-for': '203.0.113.42',
+					},
+					method: 'POST',
+				}
+			);
+			assert.strictEqual(response.status, 200, await response.clone().text());
+			const body = await response.json();
+			assert.match(body.consentId, /^cns_/u);
+			assert.strictEqual(body.subjectId, submission.subjectId);
+		});
+
+		it('returns the same consent id on a replay', async () => {
+			await seed();
+			const first = await (await post(submission)).json();
+			const second = await (await post(submission)).json();
+
+			assert.strictEqual(second.consentId, first.consentId);
+			assert.strictEqual(
+				first.givenAt,
+				new Date(submission.givenAt).toISOString()
+			);
+			assert.strictEqual(second.givenAt, first.givenAt);
+
+			// Scoped to this submission: seed() already inserted an unrelated
+			// consent, so a bare count would measure the fixture, not the replay.
+			const rows = await runtime.runPromise(
+				Effect.gen(function* rows() {
+					const sql = yield* SqlClient.SqlClient;
+					return yield* sql<{ total: string }>`
+						select count(*) as total from ${sql('consent')}
+						where ${sql('id')} = ${first.consentId}
+					`;
+				})
+			);
+			assert.strictEqual(Number(rows[0]?.total), 1);
+		});
+
+		it('masks the recorded IP', async () => {
+			await seed();
+			const { consentId } = await (await post(submission)).json();
+
+			const rows = await runtime.runPromise(
+				Effect.gen(function* rows() {
+					const sql = yield* SqlClient.SqlClient;
+					return yield* sql<{ ipAddress: string | null }>`
+						select ${sql('ipAddress')} from ${sql('consent')}
+						where ${sql('id')} = ${consentId}
+					`;
+				})
+			);
+			assert.strictEqual(rows[0]?.ipAddress, '203.0.113.0');
+		});
+
+		it('echoes free-form metadata such as an experiment arm', async () => {
+			await seed();
+			const metadata = {
+				experiment: {
+					acknowledgedDiagnostics: false,
+					arm: 'bar',
+					assignedBy: 'host',
+					id: 'banner-shape',
+				},
+				timeToDecisionMs: 3700,
+			};
+			const response = await post({ ...submission, metadata });
+
+			assert.strictEqual(response.status, 200, await response.clone().text());
+			const body = await response.json();
+			assert.deepStrictEqual(body.metadata, metadata);
+			const rows = await runtime.runPromise(
+				Effect.gen(function* rows() {
+					const sql = yield* SqlClient.SqlClient;
+					return yield* sql<{ metadata: unknown }>`
+						select ${sql('metadata')} from ${sql('consent')}
+						where ${sql('id')} = ${body.consentId}
+					`;
+				})
+			);
+			// The JSON column comes back decoded on Postgres and as text on SQLite.
+			const raw = rows[0]?.metadata;
+			const stored = (
+				typeof raw === 'string' ? JSON.parse(raw) : raw
+			) as typeof metadata;
+			assert.deepStrictEqual(stored.experiment, metadata.experiment);
+			assert.strictEqual(stored.timeToDecisionMs, 3700);
+
+			// And projected onto the attribution columns the summary groups on.
+			const columns = await runtime.runPromise(
+				Effect.gen(function* columns() {
+					const sql = yield* SqlClient.SqlClient;
+					return yield* sql<{
+						experimentId: string | null;
+						experimentArm: string | null;
+						timeToDecisionMs: number | string | null;
+					}>`
+						select ${sql('experimentId')}, ${sql('experimentArm')},
+							${sql('timeToDecisionMs')}
+						from ${sql('consent')}
+						where ${sql('id')} = ${body.consentId}
+					`;
+				})
+			);
+			assert.strictEqual(columns[0]?.experimentId, 'banner-shape');
+			assert.strictEqual(columns[0]?.experimentArm, 'bar');
+			assert.strictEqual(Number(columns[0]?.timeToDecisionMs), 3700);
+		});
+
+		it('summarises a posted choice under the action names the summary reports', async () => {
+			await seed();
+			const experiment = {
+				acknowledgedDiagnostics: false,
+				arm: 'bar',
+				assignedBy: 'host',
+				id: 'banner-shape',
+			};
+			const saves = await Promise.all(
+				[
+					['sub_accepts', 'all'],
+					['sub_rejects', 'necessary'],
+				].map(([subjectId, consentAction]) =>
+					post({
+						...submission,
+						consentAction,
+						metadata: { experiment },
+						subjectId,
+					})
+				)
+			);
+			for (const save of saves) {
+				assert.strictEqual(save.status, 200);
+			}
+
+			const response = await app.request(
+				'/experiments/banner-shape/summary',
+				authed
+			);
+			assert.strictEqual(response.status, 200, await response.clone().text());
+			const body = await response.json();
+			assert.deepStrictEqual(body.arms[0]?.byAction, {
+				accept_all: 1,
+				custom: 0,
+				opt_out: 0,
+				reject_all: 1,
+				unknown: 0,
+			});
+		});
+
+		const attributionColumns = (consentId: string) =>
+			runtime.runPromise(
+				Effect.gen(function* columns() {
+					const sql = yield* SqlClient.SqlClient;
+					const rows = yield* sql<{
+						experimentId: string | null;
+						experimentArm: string | null;
+						timeToDecisionMs: number | string | null;
+					}>`
+						select ${sql('experimentId')}, ${sql('experimentArm')},
+							${sql('timeToDecisionMs')}
+						from ${sql('consent')}
+						where ${sql('id')} = ${consentId}
+					`;
+					return rows[0];
+				})
+			);
+
+		it('drops oversized or malformed attribution without failing the save', async () => {
+			await seed();
+			// The id is longer than its column allows, and the decision time is
+			// past what a 32-bit `int` column holds on MySQL and Postgres.
+			const metadata = {
+				experiment: { arm: 'bar', id: 'x'.repeat(129) },
+				timeToDecisionMs: 3_000_000_000,
+			};
+			const response = await post({ ...submission, metadata });
+
+			assert.strictEqual(response.status, 200, await response.clone().text());
+			const body = await response.json();
+			// Still in the audit copy, just not on the columns.
+			assert.deepStrictEqual(body.metadata, metadata);
+			const columns = await attributionColumns(body.consentId);
+			assert.isNull(columns?.experimentId);
+			// The arm goes with the id: a row with an arm and no id would belong
+			// to no experiment, and one with an id and no arm would never be
+			// counted by the summary.
+			assert.isNull(columns?.experimentArm);
+			assert.isNull(columns?.timeToDecisionMs);
+		});
+
+		it('keeps a well-formed experiment when only the decision time is out of range', async () => {
+			await seed();
+			const metadata = {
+				experiment: { arm: 'bar', id: 'banner-shape' },
+				timeToDecisionMs: -1,
+			};
+			const response = await post({ ...submission, metadata });
+
+			assert.strictEqual(response.status, 200, await response.clone().text());
+			const body = await response.json();
+			const columns = await attributionColumns(body.consentId);
+			assert.strictEqual(columns?.experimentId, 'banner-shape');
+			assert.strictEqual(columns?.experimentArm, 'bar');
+			assert.isNull(columns?.timeToDecisionMs);
+		});
+
+		it('drops the experiment id when the arm is malformed', async () => {
+			await seed();
+			const metadata = {
+				experiment: { arm: 42, id: 'banner-shape' },
+			};
+			const response = await post({ ...submission, metadata });
+
+			assert.strictEqual(response.status, 200, await response.clone().text());
+			const body = await response.json();
+			const columns = await attributionColumns(body.consentId);
+			assert.isNull(columns?.experimentId);
+			assert.isNull(columns?.experimentArm);
+		});
+
+		it('rejects a submission missing its identifiers', async () => {
+			assert.strictEqual(
+				(await post({ ...submission, subjectId: undefined })).status,
+				400
+			);
+			assert.strictEqual(
+				(await post({ ...submission, domain: undefined })).status,
+				400
+			);
+		});
+
+		it('rejects an unparseable givenAt rather than defaulting to now', async () => {
+			await seed();
+			// Defaulting would make a malformed retry a distinct consent, since
+			// givenAt is part of the deterministic id.
+			const response = await post({ ...submission, givenAt: 'not-a-date' });
+			assert.strictEqual(response.status, 400);
+		});
+
+		it('rejects a givenAt later than the server clock rather than clamping it', async () => {
+			await seed();
+			// A receipt records when the subject acted. Moving it to server time
+			// would rewrite the evidence, so a clock ahead of the server is a
+			// visible rejection instead.
+			const response = await post({
+				...submission,
+				givenAt: Date.now() + 60_000,
+			});
+			assert.strictEqual(response.status, 400);
+			assert.strictEqual(
+				(await response.json()).cause.code,
+				'INPUT_VALIDATION_FAILED'
+			);
+		});
+	});
+
+	describe('OpenAPI spec', () => {
+		it('publishes a spec listing every route', async () => {
+			const response = await app.request('/spec.json');
+			assert.strictEqual(response.status, 200);
+
+			const spec = await response.json();
+			assert.strictEqual(spec.openapi, '3.1.0');
+
+			// Every endpoint the backend serves should be discoverable — a spec
+			// that silently omits routes is worse than none, because an integrator
+			// concludes they do not exist.
+			for (const path of [
+				'/subjects',
+				'/subjects/{id}',
+				'/consents/check',
+				'/legal-documents/{type}/current',
+				'/status',
+			]) {
+				assert.property(spec.paths, path, path);
+			}
+		});
+
+		it('declares the bearer scheme the authenticated routes use', async () => {
+			const spec = await (await app.request('/spec.json')).json();
+			assert.deepStrictEqual(spec.components.securitySchemes.bearerAuth, {
+				scheme: 'bearer',
+				type: 'http',
+			});
+		});
+
+		it('can be turned off', async () => {
+			const quiet = createApp(runtime, {
+				apiKeys: [API_KEY],
+				openapi: { enabled: false },
+			});
+			assert.strictEqual((await quiet.request('/spec.json')).status, 404);
+		});
+
+		it('is enabled by default', async () => {
+			// The spec documents a public API; an integrator should not have to opt
+			// in to discovering the endpoints.
+			const bare = createApp(runtime, {});
+			assert.strictEqual((await bare.request('/spec.json')).status, 200);
+		});
+	});
+});

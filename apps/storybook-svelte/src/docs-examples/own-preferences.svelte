@@ -1,0 +1,35 @@
+<!-- #region docs:own-preferences title="src/lib/cookie-preferences.svelte" -->
+<script lang="ts">
+	import { getConsentManager } from '@c15t/svelte';
+
+	const consent = getConsentManager();
+	const config = $derived(consent.translationConfig);
+	const copy = $derived(config.translations[config.defaultLanguage ?? 'en']);
+</script>
+
+{#if consent.draft.isStale}
+	<p role="alert">The cookie policy changed. Review your choices.</p>
+{/if}
+<fieldset>
+	<legend>Cookie preferences</legend>
+	{#each consent.getDisplayedConsents() as category (category.name)}
+		<label>
+			<input
+				type="checkbox"
+				checked={consent.selectedConsents[category.name] ?? false}
+				disabled={category.name === 'necessary'}
+				onchange={(event) =>
+					consent.setConsent(category.name, event.currentTarget.checked)}
+			/>
+			{copy?.consentTypes?.[category.name]?.title ?? category.name}
+		</label>
+	{/each}
+</fieldset>
+<button
+	type="button"
+	disabled={consent.draft.isStale}
+	onclick={() => consent.saveConsents('custom')}
+>
+	Save preferences
+</button>
+<!-- #endregion docs:own-preferences -->

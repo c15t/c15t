@@ -1,7 +1,5 @@
-import { listCssLayerScenarios } from '@c15t/benchmarking';
-
-export default function Home() {
-	const scenarios = listCssLayerScenarios();
+const Home = () => {
+	const surfaces = ['banner', 'dialog', 'widget'] as const;
 
 	return (
 		<main className="css-layer-home">
@@ -18,18 +16,20 @@ export default function Home() {
 			</div>
 
 			<ul className="css-layer-home-list">
-				{scenarios.map((scenario) => (
-					<li key={scenario.id}>
+				{surfaces.map((surface) => (
+					<li key={surface}>
 						<a
 							className="css-layer-home-link"
-							href={`/matrix/${scenario.surface}/${scenario.fixtureKind}`}
+							href={`/matrix/${surface}`}
 						>
-							<span>{scenario.title}</span>
-							<code>{`/matrix/${scenario.surface}/${scenario.fixtureKind}`}</code>
+							<span>{surface}</span>
+							<code>{`/matrix/${surface}`}</code>
 						</a>
 					</li>
 				))}
 			</ul>
 		</main>
 	);
-}
+};
+
+export default Home;

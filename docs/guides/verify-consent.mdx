@@ -1,0 +1,108 @@
+---
+title: Verify consent
+description: Check in a production build that vendor requests wait for consent, rejection survives a reload, preferences reopen and privacy signals apply.
+group: guides
+---
+
+## What you are checking
+
+A banner on screen proves only that the banner renders. Before shipping,
+confirm four things in a production build:
+
+1. Optional vendors make no requests before the visitor allows them.
+2. A rejection survives a reload and a new tab.
+3. The visitor can reopen preferences and change their mind.
+4. The policy is right for each location you serve.
+
+Run the checks against `next build && next start`, `vite preview`, or your
+framework's equivalent. Dev servers load code differently and hide problems.
+
+## Set up the browser
+
+1. Open a private window, so no earlier choice is stored.
+2. Open DevTools, select Network, and turn on **Disable cache** and
+   **Preserve log**.
+3. List the vendors you expect, such as `posthog.com`, `googletagmanager.com`,
+   `connect.facebook.net` or `youtube-nocookie.com`. You will filter by each.
+
+Before testing, list every place a vendor could load: `<script>` tags,
+framework analytics plugins, tag manager tags and embeds. c15t cannot hold
+back code it does not load. Remove duplicates first, or the results mean
+nothing.
+
+## Run the visitor flow
+
+| Step | What to check |
+| --- | --- |
+| Load the page | The banner appears under an opt-in policy. Filter Network by each vendor domain; opt-in vendors show no requests. |
+| Click Reject | The banner closes. Vendor domains still show no requests. |
+| Reload | No banner. Still no vendor requests. DevTools Application shows a `c15t` cookie. |
+| Open a new tab on the same site | Same result as the reload. |
+| Open preferences from your footer link | The dialog opens with the categories you rejected turned off. |
+| Allow one category and save | Only vendors in that category start loading. The others stay silent. |
+| Turn that category off again | The page reloads, and the vendor does not load after the reload. |
+| Navigate between pages without a full reload | Each vendor loads once, not once per navigation. |
+
+By default, Google Tag and Google Tag Manager load before consent on purpose
+and send Consent Mode signals. For them, check that the consent state in the
+request parameters changes when the visitor chooses, not that requests are
+absent. With `loadMode: 'after-consent'`, they follow the table above. See
+[Google Tag Manager](/docs/integrations/google-tag-manager).
+
+## Check each location
+
+Policies usually differ by region. Test at least:
+
+- A location that needs a choice, such as Germany or the United Kingdom.
+- A location without a prompt, such as a US state without a privacy law in
+  your rules.
+- A request with no location headers at all. c15t applies your policy's
+  fallback for unknown locations; make sure that fallback is what you want.
+
+Use a VPN, your host's geolocation preview, or the `country` option on your
+framework's server helper while testing. Remove test overrides before you
+deploy.
+
+## Check privacy signals
+
+Turn on Global Privacy Control in the browser. Brave and DuckDuckGo send it by
+default; in Firefox, enable it in Privacy settings. Reload and confirm the
+categories your policy restricts for GPC are denied, without the visitor
+having clicked anything. Turn GPC off and confirm the restriction ends.
+
+## Check failure behavior
+
+Make the request that initializes consent fail, then reload. Depending on your
+setup, that is the backend `/init`, a same-origin init route, a manifest fetch,
+or the `/init` a bundled manifest falls back to when a regional policy needs a
+location the browser does not know.
+
+- For a request the browser makes, block it in DevTools (right-click the
+  request, then **Block request URL**).
+- When the server resolves consent before the page loads, the browser never
+  sees that request. Make it fail on the server instead, for example by
+  pointing the backend URL at an unreachable address for one run.
+- With a custom transport, make its `init` fail.
+
+No banner appears, and vendors that wait for consent send no requests. Skip this
+check only if the page makes no initialization request at all, such as a
+build-time manifest with no regional fallback. A helper that always loads, such
+as `gtag` with its default `loadMode`, still loads; check that it reports denied
+consent. A missing banner must never mean "allowed". Then undo the change and
+confirm the page recovers.
+
+## Check the interface
+
+- Tab through the banner and dialog with the keyboard only. Focus stays inside
+  a modal dialog and returns to the button that opened it when it closes.
+- Set the viewport to 375 pixels wide and switch to a language with long
+  labels, such as German.
+- After applying your theme, check text contrast and that focus rings are
+  visible.
+
+## Record the result
+
+Write down the framework, the rendering mode, the policy you tested, and the
+requests you saw before and after consent. "The banner appears" is not a test
+result. If something fails, [troubleshooting](/docs/guides/troubleshooting)
+starts with three checks that locate most problems.

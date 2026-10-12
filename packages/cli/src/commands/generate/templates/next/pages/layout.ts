@@ -1,26 +1,30 @@
+/* oxlint-disable func-style -- These declarations mirror the generated layout's function-oriented structure. */
 /**
  * Pages Directory layout template generator
- * Handles updating Next.js Pages Directory _app.tsx files with ConsentManagerProvider
+ * Handles updating Next.js Pages Router _app.tsx files with ConsentProvider.
  * and creates separate consent-manager component files
  */
 
-import fs from 'node:fs/promises';
-import path from 'node:path';
 import type { SourceFile } from 'ts-morph';
+
 import type { AvailablePackages } from '~/context/framework-detection';
-import { generateConsentComponent } from '../../shared/components';
+
+import type { StorageMode } from '../../../../../constants';
+import type { UIStyle, ExpandedTheme } from '../../../prompts';
+import { createConsentManagerComponent } from '../../shared/create-component-files';
+import { NEXTJS_CONFIG } from '../../shared/framework-config';
 import { runLayoutUpdatePipeline } from '../../shared/layout-pipeline';
-import { generateOptionsText } from '../../shared/options';
 
 interface UpdatePagesLayoutOptions {
 	projectRoot: string;
 	mode: string;
 	backendURL?: string;
-	useEnvFile?: boolean;
 	pkg: AvailablePackages;
 	proxyNextjs?: boolean;
 	enableDevTools?: boolean;
 	selectedScripts?: string[];
+	uiStyle?: UIStyle;
+	expandedTheme?: ExpandedTheme;
 	layoutFilePath?: string;
 }
 
@@ -36,7 +40,7 @@ interface ComponentFilePaths {
  *
  * @remarks
  * This function wraps content with <ConsentManager> instead of inline provider components.
- * For Pages Directory, we pass initialData from pageProps.
+ * The v3 Pages Router setup initializes on the client.
  */
 function wrapPagesJsxContent(originalJsx: string): string {
 	const trimmedJsx = originalJsx.trim();
@@ -48,7 +52,7 @@ function wrapPagesJsxContent(originalJsx: string): string {
 		: originalJsx;
 
 	const wrappedContent = `
-		<ConsentManager initialData={pageProps.initialC15TData}>
+		<ConsentManager>
 			${cleanJsx}
 		</ConsentManager>
 	`;
@@ -61,7 +65,7 @@ function wrapPagesJsxContent(originalJsx: string): string {
  *
  * @param projectRoot - Root directory of the project
  * @param pagesDir - Pages directory path (either 'pages' or 'src/pages')
- * @param optionsText - Stringified options object for ConsentManagerProvider
+ * @param optionsText - Stringified options object for ConsentProvider
  * @returns Object containing path to created file
  *
  * @throws {Error} When file cannot be created
@@ -76,90 +80,6 @@ function wrapPagesJsxContent(originalJsx: string): string {
  * Unlike App Directory, Pages Directory doesn't need a separate client component
  * because it doesn't use the 'use client' directive pattern.
  */
-async function createConsentManagerComponent(
-	projectRoot: string,
-	pagesDir: string,
-	optionsText: string,
-	selectedScripts?: string[],
-	enableDevTools?: boolean
-): Promise<ComponentFilePaths> {
-	// Determine the components directory path based on pages directory location
-	// If pages is at 'src/pages', components should be at 'src/components'
-	// If pages is at 'pages', components should be at 'components'
-	let componentsDir: string;
-	if (pagesDir.includes('src')) {
-		componentsDir = path.join('src', 'components');
-	} else {
-		componentsDir = 'components';
-	}
-
-	const componentsDirPath = path.join(projectRoot, componentsDir);
-
-	// Ensure components directory exists
-	await fs.mkdir(componentsDirPath, { recursive: true });
-
-	// Generate component file content
-	const consentManagerContent = generateConsentComponent({
-		importSource: '@c15t/nextjs',
-		optionsText,
-		selectedScripts,
-		initialDataProp: true,
-		enableDevTools,
-		includeOverrides: true,
-	});
-
-	// Define file path in components directory
-	const consentManagerPath = path.join(
-		componentsDirPath,
-		'consent-manager.tsx'
-	);
-
-	// Write file
-	await fs.writeFile(consentManagerPath, consentManagerContent, 'utf-8');
-
-	return {
-		consentManager: consentManagerPath,
-	};
-}
-
-function addServerSideDataComment(
-	appFile: SourceFile,
-	backendURL?: string,
-	useEnvFile?: boolean,
-	proxyNextjs?: boolean
-): void {
-	const existingComments = appFile.getLeadingCommentRanges();
-
-	// Generate the appropriate URL based on configuration
-	let urlExample: string;
-	if (proxyNextjs) {
-		urlExample = "'/api/c15t'";
-	} else if (useEnvFile) {
-		urlExample = 'process.env.NEXT_PUBLIC_C15T_URL!';
-	} else {
-		urlExample = `'${backendURL || 'https://your-project.inth.app'}'`;
-	}
-
-	const serverSideComment = `/**
- * Note: To get the initial server-side data on other pages, add this to each page:
- *
- * import { withInitialC15TData } from '@c15t/nextjs';
- *
- * export const getServerSideProps = withInitialC15TData(${urlExample});
- *
- * This will automatically pass initialC15TData to pageProps.initialC15TData
- */`;
-
-	// Check if similar comment already exists
-	const hasServerSideComment = existingComments.some((comment) =>
-		comment.getText().includes('withInitialC15TData')
-	);
-
-	if (!hasServerSideComment) {
-		appFile.insertText(0, `${serverSideComment}\n\n`);
-	}
-}
-
 function updateAppComponentTyping(appFile: SourceFile): void {
 	const exportAssignment = appFile.getExportAssignment(() => true);
 	if (!exportAssignment) {
@@ -187,8 +107,8 @@ function updateAppComponentTyping(appFile: SourceFile): void {
 
 		if (!hasAppPropsImport) {
 			appFile.addImportDeclaration({
-				namedImports: ['AppProps'],
 				moduleSpecifier: 'next/app',
+				namedImports: ['AppProps'],
 			});
 		}
 	}
@@ -216,19 +136,19 @@ const PAGES_APP_PATTERNS = [
  * 3. Creates consent-manager.tsx file
  * 4. Adds ConsentManager import to _app
  * 5. Wraps _app content with ConsentManager component
- * 6. Adds helpful comment about withInitialC15TData
  *
- * Unlike App Directory, Pages Directory only needs one component file because
+ * Unlike App Router, Pages Router only needs one component file because
  * it doesn't use the 'use client' directive pattern.
  */
-export async function updatePagesLayout({
+export function updatePagesLayout({
 	projectRoot,
 	mode,
 	backendURL,
-	useEnvFile,
 	proxyNextjs,
 	enableDevTools = false,
 	selectedScripts,
+	uiStyle,
+	expandedTheme,
 	layoutFilePath,
 }: UpdatePagesLayoutOptions): Promise<{
 	updated: boolean;
@@ -236,32 +156,25 @@ export async function updatePagesLayout({
 	alreadyModified: boolean;
 	componentFiles?: ComponentFilePaths;
 }> {
-	// Generate options text for the component
-	const optionsText = generateOptionsText(
-		mode,
-		backendURL,
-		useEnvFile,
-		proxyNextjs
-	);
-
 	return runLayoutUpdatePipeline({
-		filePatterns: PAGES_APP_PATTERNS,
-		projectRoot,
-		knownFilePath: layoutFilePath,
-		frameworkDirName: 'pages',
-		wrapJsx: wrapPagesJsxContent,
-		createComponents: async (_layoutFilePath, pagesDir) => {
-			return createConsentManagerComponent(
+		afterImport: updateAppComponentTyping,
+		createComponents: (_layoutFilePath, pagesDir) =>
+			createConsentManagerComponent(
 				projectRoot,
 				pagesDir,
-				optionsText,
+				mode as StorageMode,
+				proxyNextjs ? '/api/c15t' : backendURL,
 				selectedScripts,
-				enableDevTools
-			);
-		},
-		afterImport: (appFile) => {
-			updateAppComponentTyping(appFile);
-			addServerSideDataComment(appFile, backendURL, useEnvFile, proxyNextjs);
-		},
+				enableDevTools,
+				expandedTheme,
+				'node',
+				uiStyle,
+				NEXTJS_CONFIG
+			),
+		filePatterns: PAGES_APP_PATTERNS,
+		frameworkDirName: 'pages',
+		knownFilePath: layoutFilePath,
+		projectRoot,
+		wrapJsx: wrapPagesJsxContent,
 	});
 }

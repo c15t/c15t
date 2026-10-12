@@ -6,9 +6,11 @@
 
 import type { ReactNode, RefObject } from 'react';
 import { describe, expect, test, vi } from 'vitest';
-import { userEvent } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
-import { GlobalThemeContext } from '~/context/theme-context';
+import { userEvent } from 'vitest/browser';
+
+import { StableGlobalThemeProvider } from '~/__tests__/stable-context-providers';
+
 import {
 	Content as AccordionContent,
 	Item as AccordionItem,
@@ -51,9 +53,9 @@ import {
 
 // Wrapper to provide theme context for accordion tests
 const ThemeWrapper = ({ children }: { children: ReactNode }) => (
-	<GlobalThemeContext.Provider value={{ noStyle: false }}>
+	<StableGlobalThemeProvider value={{ noStyle: false }}>
 		{children}
-	</GlobalThemeContext.Provider>
+	</StableGlobalThemeProvider>
 );
 
 describe('Button', () => {
@@ -143,7 +145,10 @@ describe('Button', () => {
 
 		test('should accept noStyle prop', async () => {
 			render(
-				<Button noStyle={true} className="only-this-class">
+				<Button
+					noStyle={true}
+					className="only-this-class"
+				>
 					No Style
 				</Button>
 			);
@@ -314,7 +319,12 @@ describe('Switch', () => {
 		});
 
 		test('should accept noStyle prop', async () => {
-			render(<Switch noStyle={true} className="custom-switch" />);
+			render(
+				<Switch
+					noStyle={true}
+					className="custom-switch"
+				/>
+			);
 
 			await vi.waitFor(
 				() => {
@@ -351,7 +361,12 @@ describe('Switch', () => {
 
 		test('should call onCheckedChange with new value', async () => {
 			const handleChange = vi.fn();
-			render(<Switch defaultChecked={true} onCheckedChange={handleChange} />);
+			render(
+				<Switch
+					defaultChecked={true}
+					onCheckedChange={handleChange}
+				/>
+			);
 
 			await vi.waitFor(
 				() => {
@@ -425,7 +440,10 @@ describe('Accordion', () => {
 		defaultValue?: string;
 	}) => (
 		<ThemeWrapper>
-			<AccordionRoot type={type} defaultValue={defaultValue}>
+			<AccordionRoot
+				type={type}
+				defaultValue={defaultValue}
+			>
 				<AccordionItem value="item-1">
 					<AccordionTrigger>Section 1</AccordionTrigger>
 					<AccordionContent>Content 1</AccordionContent>
@@ -495,7 +513,12 @@ describe('Accordion', () => {
 		});
 
 		test('should close first item when second item is clicked (single type)', async () => {
-			render(<TestAccordion type="single" defaultValue="item-1" />);
+			render(
+				<TestAccordion
+					type="single"
+					defaultValue="item-1"
+				/>
+			);
 
 			await vi.waitFor(
 				() => {
@@ -522,9 +545,10 @@ describe('Accordion', () => {
 					const firstTrigger = document.querySelector(
 						'button[data-state="closed"]'
 					);
-					const secondTrigger = document.querySelectorAll('button')[1];
+					// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
+					const secondTriggerLocal = document.querySelectorAll('button')[1];
 					expect(firstTrigger).toBeInTheDocument();
-					expect(secondTrigger?.getAttribute('data-state')).toBe('open');
+					expect(secondTriggerLocal?.getAttribute('data-state')).toBe('open');
 				},
 				{ timeout: 3000 }
 			);
@@ -609,12 +633,26 @@ describe('Accordion', () => {
 		test('should accept noStyle prop', async () => {
 			render(
 				<ThemeWrapper>
-					<AccordionRoot type="single" noStyle className="custom-accordion">
-						<AccordionItem value="item-1" noStyle className="custom-item">
-							<AccordionTrigger noStyle className="custom-trigger">
+					<AccordionRoot
+						type="single"
+						noStyle
+						className="custom-accordion"
+					>
+						<AccordionItem
+							value="item-1"
+							noStyle
+							className="custom-item"
+						>
+							<AccordionTrigger
+								noStyle
+								className="custom-trigger"
+							>
 								Section
 							</AccordionTrigger>
-							<AccordionContent noStyle className="custom-content">
+							<AccordionContent
+								noStyle
+								className="custom-content"
+							>
 								Content
 							</AccordionContent>
 						</AccordionItem>
@@ -716,7 +754,10 @@ describe('Dialog', () => {
 				<DialogContent initialFocusRef={initialFocusRef}>
 					<DialogTitle>Settings</DialogTitle>
 					<DialogDescription>Manage privacy settings</DialogDescription>
-					<button type="button" ref={initialFocusRef as never}>
+					<button
+						type="button"
+						ref={initialFocusRef as never}
+					>
 						Primary action
 					</button>
 					<DialogClose>Close</DialogClose>
@@ -739,7 +780,7 @@ describe('Dialog', () => {
 		await userEvent.click(trigger);
 
 		await vi.waitFor(() => {
-			const dialog = document.querySelector('[role="dialog"]');
+			const dialog = document.querySelector('dialog[open]');
 			expect(dialog).toBeInTheDocument();
 			expect(dialog?.getAttribute('aria-labelledby')).toBeTruthy();
 			expect(dialog?.getAttribute('aria-describedby')).toBeTruthy();
@@ -754,7 +795,7 @@ describe('Dialog', () => {
 		await userEvent.click(closeButton);
 
 		await vi.waitFor(() => {
-			expect(document.querySelector('[role="dialog"]')).not.toBeInTheDocument();
+			expect(document.querySelector('dialog[open]')).not.toBeInTheDocument();
 		});
 	});
 
@@ -773,7 +814,7 @@ describe('Dialog', () => {
 		trigger.focus();
 		await userEvent.click(trigger);
 
-		const dialog = document.querySelector('[role="dialog"]');
+		const dialog = document.querySelector('dialog[open]');
 		expect(dialog).toBeInstanceOf(HTMLElement);
 		if (!dialog) {
 			throw new Error('Expected dialog to exist');
@@ -782,7 +823,7 @@ describe('Dialog', () => {
 		await userEvent.keyboard('{Escape}');
 
 		await vi.waitFor(() => {
-			expect(document.querySelector('[role="dialog"]')).not.toBeInTheDocument();
+			expect(document.querySelector('dialog[open]')).not.toBeInTheDocument();
 			expect(document.activeElement).toBe(trigger);
 		});
 	});
@@ -803,7 +844,7 @@ describe('Dialog', () => {
 		await userEvent.click(trigger);
 
 		await vi.waitFor(() => {
-			const dialog = document.querySelector('[role="dialog"]');
+			const dialog = document.querySelector('dialog[open]');
 			expect(dialog).toBeInTheDocument();
 			// Focus trap moves focus into the dialog — either to the
 			// initialFocusRef element or to the dialog container itself.
@@ -950,9 +991,15 @@ describe('Collapsible', () => {
 	test('should keep structural collapse behavior in noStyle mode', async () => {
 		render(
 			<ThemeWrapper>
-				<CollapsibleRoot defaultOpen={false} noStyle>
+				<CollapsibleRoot
+					defaultOpen={false}
+					noStyle
+				>
 					<CollapsibleTrigger noStyle>Toggle details</CollapsibleTrigger>
-					<CollapsibleContent noStyle innerClassName="custom-inner">
+					<CollapsibleContent
+						noStyle
+						innerClassName="custom-inner"
+					>
 						<button type="button">Hidden action</button>
 					</CollapsibleContent>
 				</CollapsibleRoot>
@@ -1073,8 +1120,15 @@ describe('PreferenceItem', () => {
 	test('should preserve structural content classes in noStyle mode', async () => {
 		render(
 			<ThemeWrapper>
-				<PreferenceItemRoot defaultOpen={false} noStyle className="custom-root">
-					<PreferenceItemTrigger noStyle className="custom-trigger">
+				<PreferenceItemRoot
+					defaultOpen={false}
+					noStyle
+					className="custom-root"
+				>
+					<PreferenceItemTrigger
+						noStyle
+						className="custom-trigger"
+					>
 						Disclosure row
 					</PreferenceItemTrigger>
 					<PreferenceItemContent

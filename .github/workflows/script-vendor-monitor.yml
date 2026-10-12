@@ -1,6 +1,6 @@
 name: Script Vendor Monitor
 
-# Live browser probes for every built-in @c15t/scripts integration.
+# Live browser probes for every built-in @c15t/integrations integration.
 # Runs outside normal CI so transient third-party/network failures never
 # block PRs. Failures open one deduped issue per vendor; recoveries close
 # that vendor's issue automatically.
@@ -8,15 +8,18 @@ name: Script Vendor Monitor
 # Vendors ship breaking loader changes on their own schedule, and a broken
 # integration is invisible to consumers until it is probed, so the schedule
 # runs every six hours, capping the exposure window at a quarter of a day.
-# Canary pushes probe as well, which catches breakage we introduce ourselves
-# as soon as it lands.
+# Pushes to the publishing branches and v3 development branch probe as well,
+# which catches breakage we introduce ourselves as soon as it lands.
 
 on:
   schedule:
     - cron: '30 */6 * * *'
   push:
     branches:
+      - main
       - canary
+      - '2.0.0'
+      - v3
   workflow_dispatch:
     inputs:
       vendor:
@@ -35,7 +38,7 @@ concurrency:
 jobs:
   live-vendor-probes:
     name: Live Vendor Probes
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 30
     permissions:
       contents: read
@@ -49,7 +52,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@f4d14e03ff726c06358e5557344e1da148b56cf7
         with:
-          bun-version: "1.3.11"
+          bun-version: '1.3.11'
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
@@ -58,14 +61,14 @@ jobs:
         # Derive the version from the package devDependency so browser builds
         # can never drift from the API version runner.ts links against.
         run: |
-          PLAYWRIGHT_VERSION=$(bun -e "console.log(require('./packages/scripts/package.json').devDependencies.playwright)")
+          PLAYWRIGHT_VERSION=$(bun -e "console.log(require('./packages/integrations/package.json').devDependencies.playwright)")
           bunx "playwright@${PLAYWRIGHT_VERSION}" install --with-deps chromium
 
       - name: Build c15t core
-        run: bun turbo run build --filter=c15t
+        run: bun turbo run build --filter=@c15t/core
 
       - name: Run live vendor probes
-        working-directory: packages/scripts
+        working-directory: packages/integrations
         env:
           VENDOR_FILTER: ${{ inputs.vendor }}
         run: |
@@ -80,13 +83,13 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: live-vendors-report
-          path: packages/scripts/live-vendors-report.json
+          path: packages/integrations/live-vendors-report.json
           if-no-files-found: warn
           retention-days: 30
 
       - name: Sync monitor issues
         if: always()
-        working-directory: packages/scripts
+        working-directory: packages/integrations
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |

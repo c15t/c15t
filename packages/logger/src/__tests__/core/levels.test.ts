@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+
 import { levels, shouldPublishLog } from '../../core/levels';
 import type { LogLevel } from '../../core/types';
 

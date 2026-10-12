@@ -1,19 +1,38 @@
 import type {
 	AllConsentNames,
 	Callbacks,
-	ConsentManagerOptions as CoreOptions,
 	I18nConfig,
 	IABConfig,
 	LegalLinks,
 	NetworkBlockerConfig,
 	Overrides,
+	ProviderTransportFactory,
 	Script,
 	SSRInitialData,
 	StorageConfig,
 	TranslationConfig,
 	User,
-} from 'c15t';
+} from '@c15t/core';
+
 import type { UIOptions } from '../theme/types';
+
+/**
+ * Transport and policy options shared by every framework provider.
+ */
+export interface CommonTransportOptions {
+	/**
+	 * Transport factory the provider builds its kernel with.
+	 *
+	 * @remarks
+	 * Pass `hosted()` to talk to a c15t backend, `offline()` to resolve
+	 * policies locally with no network, or `custom()` to supply your own
+	 * kernel transport. Framework providers require this; it is optional
+	 * here so the base type can also describe partial option fragments.
+	 *
+	 * @see {@link ProviderTransportFactory}
+	 */
+	mode?: ProviderTransportFactory;
+}
 
 /**
  * Store-related options that are common across UI implementations.
@@ -33,7 +52,7 @@ export interface CommonInlineStoreOptions {
 	/**
 	 * Event callbacks for consent actions.
 	 *
-	 * @see https://c15t.com/docs/frameworks/react/callbacks
+	 * @see https://c15t.com/docs/frameworks/react/components/consent-provider
 	 * @see {@link Callbacks} for available options
 	 */
 	callbacks?: Callbacks;
@@ -41,7 +60,7 @@ export interface CommonInlineStoreOptions {
 	/**
 	 * Dynamically load scripts based on consent state.
 	 *
-	 * @see https://c15t.com/docs/frameworks/react/script-loader
+	 * @see https://c15t.com/docs/frameworks/react/scripts
 	 * @see {@link Script} for available options
 	 */
 	scripts?: Script[];
@@ -56,7 +75,7 @@ export interface CommonInlineStoreOptions {
 	 *
 	 * A per-script `nonce` still takes precedence over this value.
 	 *
-	 * @see https://c15t.com/docs/frameworks/react/components/consent-manager-provider
+	 * @see https://c15t.com/docs/frameworks/react/components/consent-provider
 	 */
 	nonce?: string;
 
@@ -99,7 +118,7 @@ export interface CommonInlineStoreOptions {
 	 * calls and blocks requests based on the current consent state and
 	 * configured domain rules.
 	 *
-	 * @see https://c15t.com/docs/frameworks/react/network-blocker
+	 * @see https://c15t.com/docs/frameworks/react/scripts
 	 * @see {@link NetworkBlockerConfig} for available options
 	 */
 	networkBlocker?: NetworkBlockerConfig;
@@ -111,7 +130,7 @@ export interface CommonInlineStoreOptions {
 	 * Most users don't need this — only enable if you work with
 	 * IAB-registered programmatic advertising vendors.
 	 *
-	 * @see https://c15t.com/docs/frameworks/react/iab/overview
+	 * @see https://c15t.com/docs/frameworks/react/iab
 	 * @see {@link IABConfig} for available options
 	 */
 	iab?: IABConfig;
@@ -122,7 +141,7 @@ export interface CommonInlineStoreOptions {
 	 * @remarks
 	 * Pass the Promise from `fetchInitialData()` directly to this option.
 	 *
-	 * @see https://c15t.com/docs/frameworks/react/server-side
+	 * @see https://c15t.com/docs/frameworks/next/rendering
 	 * @see {@link SSRInitialData} for the data structure
 	 */
 	ssrData?: Promise<SSRInitialData | undefined>;
@@ -133,7 +152,7 @@ export interface CommonInlineStoreOptions {
  */
 export interface ConsentManagerContentOptions {
 	/**
-	 * Preferred i18n configuration in c15t v2.
+	 * Preferred i18n configuration.
 	 *
 	 * @remarks
 	 * If both `i18n` and legacy `translations` are provided, `i18n` takes precedence.
@@ -145,7 +164,7 @@ export interface ConsentManagerContentOptions {
 	 *
 	 * @deprecated Use `i18n` instead.
 	 *
-	 * @see https://c15t.com/docs/frameworks/react/internationalization
+	 * @see https://c15t.com/docs/customization/translations
 	 * @see {@link TranslationConfig} for available options
 	 */
 	translations?: Partial<TranslationConfig>;
@@ -153,7 +172,7 @@ export interface ConsentManagerContentOptions {
 	/**
 	 * Consent categories to show in the consent banner.
 	 *
-	 * @see https://c15t.com/docs/frameworks/react/concepts/consent-categories
+	 * @see https://c15t.com/docs/concepts/consent-categories
 	 * @see {@link AllConsentNames} for available consent categories
 	 */
 	consentCategories?: AllConsentNames[];
@@ -161,8 +180,11 @@ export interface ConsentManagerContentOptions {
 
 /**
  * Base configuration options for framework-agnostic consent managers.
+ *
+ * @remarks
+ * Framework packages extend this with their own UI and adapter options.
  */
-export type BaseConsentManagerOptions = CoreOptions &
+export type BaseConsentManagerOptions = CommonTransportOptions &
 	CommonInlineStoreOptions &
 	UIOptions &
 	ConsentManagerContentOptions;

@@ -1,0 +1,217 @@
+{
+	"budgetDefinitions": [
+		{
+			"comparator": "delta-bytes-lte",
+			"description": "Consumer entry initial JavaScript may grow by at most 2 KiB gzip, plus the vendor consent allowance and, for entries with a stock surface, its styles.",
+			"metric": "initialGzip",
+			"threshold": 14848
+		},
+		{
+			"comparator": "delta-bytes-lte",
+			"description": "Deferred emitted JavaScript may grow by at most 12 KiB gzip, plus the ordinary or IAB styles emitted by this entry.",
+			"metric": "lazyGzip",
+			"threshold": 17920
+		},
+		{
+			"comparator": "delta-bytes-lte",
+			"description": "Initial plus reachable deferred JavaScript may grow by at most 3 KiB gzip, plus the ordinary or IAB style allowance for this entry.",
+			"metric": "gzipSize",
+			"threshold": 17920
+		},
+		{
+			"comparator": "count-eq",
+			"description": "Ordinary React imports no iab modules, including zero-byte eliminated inputs.",
+			"metric": "iabInputModuleCount",
+			"threshold": 0
+		},
+		{
+			"comparator": "count-eq",
+			"description": "Ordinary React imports no devtools modules, including zero-byte eliminated inputs.",
+			"metric": "devtoolsInputModuleCount",
+			"threshold": 0
+		},
+		{
+			"comparator": "count-eq",
+			"description": "Ordinary React imports no allLocales modules, including zero-byte eliminated inputs.",
+			"metric": "allLocalesInputModuleCount",
+			"threshold": 0
+		},
+		{
+			"comparator": "count-eq",
+			"description": "Ordinary route bundles no @c15t/iab module bytes.",
+			"metric": "iabInputBytes",
+			"threshold": 0
+		},
+		{
+			"comparator": "count-eq",
+			"description": "Ordinary route bundles no @c15t/dev-tools module bytes.",
+			"metric": "devtoolsInputBytes",
+			"threshold": 0
+		},
+		{
+			"comparator": "count-eq",
+			"description": "Ordinary route bundles no all-locale translation module bytes (only the default locale).",
+			"metric": "allLocalesInputBytes",
+			"threshold": 0
+		}
+	],
+	"budgets": [],
+	"commitSha": "b410db25f81caade4fb15cb8ba2dfef52b7b1835",
+	"environment": {
+		"arch": "arm64",
+		"ci": false,
+		"nodeVersion": "v24.21.0",
+		"os": "darwin"
+	},
+	"fixture": {
+		"consentCount": 0,
+		"localeCount": 0,
+		"name": "ordinary-react",
+		"scriptCount": 0,
+		"themeComplexity": "minimal"
+	},
+	"framework": "core",
+	"metadata": {
+		"allLocalesInputs": [],
+		"devtoolsInputs": [],
+		"gitDirty": false,
+		"iabInputs": [],
+		"topInputsByBytesInOutput": [
+			"../../packages/ui/dist/styles/sheets/first-paint.js:68810",
+			"../../packages/ui/dist/styles/sheets/dialog.js:36093",
+			"../../packages/core/dist/kernel/choice.js:8792",
+			"../../packages/core/dist/modules/persistence/record-codec.js:7480",
+			"../../packages/core/dist/kernel/save-outbox/queue.js:7148",
+			"../../packages/core/dist/modules/script-loader/mount.js:6429",
+			"../../packages/schema/dist/shared/policy-resolution-wire.js:6415",
+			"../../packages/core/dist/kernel/init-lifecycle.js:6013",
+			"../../packages/core/dist/modules/persistence/record-storage.js:5439",
+			"../../packages/core/dist/libs/vendors.js:5344"
+		]
+	},
+	"metrics": [
+		{
+			"avg": 80792,
+			"median": 80792,
+			"name": "initialGzip",
+			"p95": 80792,
+			"samples": [80792],
+			"unit": "bytes"
+		},
+		{
+			"avg": 71424,
+			"median": 71424,
+			"name": "initialBrotli",
+			"p95": 71424,
+			"samples": [71424],
+			"unit": "bytes"
+		},
+		{
+			"avg": 44150,
+			"median": 44150,
+			"name": "lazyGzip",
+			"p95": 44150,
+			"samples": [44150],
+			"unit": "bytes"
+		},
+		{
+			"avg": 39322,
+			"median": 39322,
+			"name": "lazyBrotli",
+			"p95": 39322,
+			"samples": [39322],
+			"unit": "bytes"
+		},
+		{
+			"avg": 44150,
+			"median": 44150,
+			"name": "reachableLazyGzip",
+			"p95": 44150,
+			"samples": [44150],
+			"unit": "bytes"
+		},
+		{
+			"avg": 39322,
+			"median": 39322,
+			"name": "reachableLazyBrotli",
+			"p95": 39322,
+			"samples": [39322],
+			"unit": "bytes"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "allLocalesInputModuleCount",
+			"p95": 0,
+			"samples": [0],
+			"unit": "count"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "devtoolsInputModuleCount",
+			"p95": 0,
+			"samples": [0],
+			"unit": "count"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "iabInputModuleCount",
+			"p95": 0,
+			"samples": [0],
+			"unit": "count"
+		},
+		{
+			"avg": 124942,
+			"median": 124942,
+			"name": "gzipSize",
+			"p95": 124942,
+			"samples": [124942],
+			"unit": "bytes"
+		},
+		{
+			"avg": 409394,
+			"median": 409394,
+			"name": "rawSize",
+			"p95": 409394,
+			"samples": [409394],
+			"unit": "bytes"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "iabInputBytes",
+			"p95": 0,
+			"samples": [0],
+			"unit": "bytes"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "devtoolsInputBytes",
+			"p95": 0,
+			"samples": [0],
+			"unit": "bytes"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "allLocalesInputBytes",
+			"p95": 0,
+			"samples": [0],
+			"unit": "bytes"
+		}
+	],
+	"notes": [
+		"Synthetic esbuild entry with React externals and empty CSS loaders.",
+		"lazy* counts every deferred chunk esbuild emits; reachableLazy* counts only the chunks the entry can load through import().",
+		"gzipSize and rawSize count only JavaScript chunks reachable from the entry."
+	],
+	"package": "@c15t/next-bundle-bench",
+	"runtime": "esbuild",
+	"scenario": "ordinary-react",
+	"schemaVersion": 1,
+	"suite": "bundle",
+	"timestamp": "2026-10-09T18:48:12.837Z"
+}

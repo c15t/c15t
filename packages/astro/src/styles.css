@@ -1,0 +1,33 @@
+/**
+ * @c15t/astro — prebuilt component styles.
+ *
+ * For sites that set `styles: false` and load c15t's styles themselves.
+ * By default the integration inlines the first-paint rules and links the
+ * dialog's when it opens, and this file is not used. It covers the theme
+ * tokens, every c15t CSS variable, the server-rendered banner and the
+ * preference dialog. The Svelte dialog also needs `primitives.css`.
+ *
+ * Usage with `styles: false` (src/styles/global.css):
+ *   @import "@c15t/astro/styles.css";
+ *
+ * A site may import this ahead of its own CSS, so it declares Tailwind 4's
+ * layer order before anything else. Layers rank by first
+ * mention; without it `components` would rank below Tailwind's `base` and
+ * preflight would strip the banner's padding and borders.
+ */
+@layer properties, theme, base, components, utilities;
+@import '@c15t/ui/styles.css';
+
+/*
+ * The browser runtime shows and hides the banner with the `hidden`
+ * attribute. The banner's own `display` would otherwise beat the user-agent
+ * rule for `[hidden]`, leaving a dismissed banner on screen. Kept in this
+ * file rather than imported, so a copy of it (the `c15t` package ships one)
+ * stays self-contained.
+ */
+[data-testid='consent-banner-root'][hidden],
+[data-testid='consent-banner-overlay'][hidden],
+[data-testid='iab-consent-banner-root'][hidden],
+[data-testid='iab-consent-banner-overlay'][hidden] {
+	display: none !important;
+}

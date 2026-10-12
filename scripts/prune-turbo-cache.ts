@@ -10,7 +10,8 @@ export const DEFAULT_MAX_CACHE_BYTES = 1024 * 1024 * 1024;
 const DEFAULT_CACHE_DIRECTORY = fileURLToPath(
 	new URL('../.turbo/cache', import.meta.url)
 );
-const CACHE_FILE_PATTERN = /^(.*?)(\.tar\.zst|-meta\.json|-manifest\.json)$/;
+const CACHE_FILE_PATTERN =
+	/^(?<capture1>.*?)(?<capture2>\.tar\.zst|-meta\.json|-manifest\.json)$/u;
 
 interface CacheFile {
 	name: string;
@@ -39,12 +40,13 @@ export interface PruneTurboCacheResult {
 	removedFiles: number;
 }
 
-function cacheFileIdentity(name: string) {
+const cacheFileIdentity = function cacheFileIdentity(name: string) {
 	const match = name.match(CACHE_FILE_PATTERN);
 	if (!match?.[1] || !match[2]) {
 		return { id: `unknown:${name}`, type: 'unknown' as const };
 	}
 
+	// oxlint-disable-next-line no-nested-ternary -- Preserve established branch order and control flow.
 	const type = match[2].endsWith('.tar.zst')
 		? 'archive'
 		: match[2] === '-meta.json'
@@ -52,9 +54,9 @@ function cacheFileIdentity(name: string) {
 			: 'manifest';
 
 	return { id: `turbo:${match[1]}`, type } as const;
-}
+};
 
-async function collectCacheEntries(
+const collectCacheEntries = async function collectCacheEntries(
 	cacheDirectory: string
 ): Promise<CacheEntry[]> {
 	let directoryEntries: Dirent[];
@@ -76,28 +78,29 @@ async function collectCacheEntries(
 		}
 
 		const path = join(cacheDirectory, directoryEntry.name);
+		// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 		const fileStats = await stat(path);
 		const identity = cacheFileIdentity(directoryEntry.name);
 		const files = groups.get(identity.id) ?? [];
 		files.push({
+			mtimeMs: fileStats.mtimeMs,
 			name: directoryEntry.name,
 			path,
 			size: fileStats.size,
-			mtimeMs: fileStats.mtimeMs,
 			type: identity.type,
 		});
 		groups.set(identity.id, files);
 	}
 
 	return [...groups].map(([id, files]) => ({
-		id,
 		files,
-		size: files.reduce((total, file) => total + file.size, 0),
+		id,
 		mtimeMs: Math.max(...files.map((file) => file.mtimeMs)),
+		size: files.reduce((total, file) => total + file.size, 0),
 	}));
-}
+};
 
-function removalOrder(files: CacheFile[]) {
+const removalOrder = function removalOrder(files: CacheFile[]) {
 	const priority = {
 		archive: 0,
 		manifest: 1,
@@ -110,9 +113,9 @@ function removalOrder(files: CacheFile[]) {
 			priority[left.type] - priority[right.type] ||
 			left.name.localeCompare(right.name)
 	);
-}
+};
 
-export async function pruneTurboCache({
+export const pruneTurboCache = async function pruneTurboCache({
 	cacheDirectory = DEFAULT_CACHE_DIRECTORY,
 	maxBytes = DEFAULT_MAX_CACHE_BYTES,
 }: PruneTurboCacheOptions = {}): Promise<PruneTurboCacheResult> {
@@ -154,18 +157,23 @@ export async function pruneTurboCache({
 	);
 	let movedFiles = 0;
 	try {
-		for (const [entryIndex, entry] of entriesToRemove.entries()) {
-			for (const file of removalOrder(entry.files)) {
-				await rename(
-					file.path,
-					join(
-						stagingDirectory,
-						`${entryIndex}-${movedFiles}-${basename(file.path)}`
-					)
-				);
-				movedFiles += 1;
-			}
-		}
+		await Array.from(entriesToRemove.entries()).reduce(
+			async (previousIteration, [entryIndex, entry]) => {
+				await previousIteration;
+				for (const file of removalOrder(entry.files)) {
+					// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
+					await rename(
+						file.path,
+						join(
+							stagingDirectory,
+							`${entryIndex}-${movedFiles}-${basename(file.path)}`
+						)
+					);
+					movedFiles += 1;
+				}
+			},
+			Promise.resolve()
+		);
 	} finally {
 		await rm(stagingDirectory, { force: true, recursive: true });
 	}
@@ -180,7 +188,7 @@ export async function pruneTurboCache({
 		removedEntries: entriesToRemove.length,
 		removedFiles: movedFiles,
 	};
-}
+};
 
 if (import.meta.main) {
 	const result = await pruneTurboCache();

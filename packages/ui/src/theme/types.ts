@@ -22,16 +22,20 @@ export type CSSPropertiesWithVars<
  * @typeParam VariableMap - A record of CSS variable names and their values for inline styles.
  * @public
  */
-export type ClassNameStyle<VariableMap = Record<string, string | number>> = {
+export interface ClassNameStyle<VariableMap = Record<string, string | number>> {
 	/** CSS properties to be applied inline to the component. */
 	style?: CSSPropertiesWithVars<VariableMap>;
 	/** CSS class names to be applied to the component. */
 	className?: string;
 	/** If true, the component will not apply its default internal styles. */
 	noStyle?: boolean;
-	/** @internal Used to pass default class names to the component. */
+	/**
+	 * Used to pass default class names to the component.
+	 *
+	 * @internal
+	 */
 	baseClassName?: ClassValue;
-};
+}
 
 /**
  * Represents a style value that can be either a class name string or a {@link ClassNameStyle} object.
@@ -47,9 +51,9 @@ export type ThemeValue<VariableMap = Record<string, string | number>> =
  * Map of CSS variable names to their values.
  * @public
  */
-export type CSSVariables = {
+export interface CSSVariables {
 	[key: string]: string | number;
-};
+}
 
 // =============================================================================
 // THEME 2.0 TYPES
@@ -82,7 +86,7 @@ export interface ColorTokens {
 	overlay?: string;
 	/** Toggle track color (off state). */
 	switchTrack?: string;
-	/** Toggle track color (on state). */
+	/** Toggle track color (on state). Follows `primary` when omitted. */
 	switchTrackActive?: string;
 	/** Toggle thumb color. */
 	switchThumb?: string;
@@ -181,11 +185,11 @@ export interface MotionTokens {
 	 * Duration presets for transitions.
 	 */
 	duration?: {
-		/** @default '100ms' */
+		/** @default '80ms' */
 		fast?: string;
-		/** @default '200ms' */
+		/** @default '150ms' */
 		normal?: string;
-		/** @default '300ms' */
+		/** @default '200ms' */
 		slow?: string;
 	};
 	/**
@@ -199,6 +203,12 @@ export interface MotionTokens {
 	 * @default 'cubic-bezier(0.215, 0.61, 0.355, 1)'
 	 */
 	easingOut?: string;
+	/**
+	 * CSS easing function for exits.
+	 * Use for elements leaving the screen, so they speed up as they go.
+	 * @default 'cubic-bezier(0.55, 0.055, 0.675, 0.19)'
+	 */
+	easingIn?: string;
 	/**
 	 * CSS easing function for on-screen movement.
 	 * Use when elements already on screen need to move or morph.
@@ -249,7 +259,7 @@ export interface ThemeCSSVariables {
 	'--c15t-overlay'?: string;
 	/** `colors.switchTrack` (default: `hsl(0, 0%, 85%)`) */
 	'--c15t-switch-track'?: string;
-	/** `colors.switchTrackActive` (default: `hsl(228, 100%, 60%)`) */
+	/** `colors.switchTrackActive` (default: `colors.primary`) */
 	'--c15t-switch-track-active'?: string;
 	/** `colors.switchThumb` (default: `hsl(0, 0%, 100%)`) */
 	'--c15t-switch-thumb'?: string;
@@ -302,16 +312,18 @@ export interface ThemeCSSVariables {
 	/** `shadows.lg` (default: `0 8px 24px hsla(0, 0%, 0%, 0.12)`) */
 	'--c15t-shadow-lg'?: string;
 
-	/** `motion.duration.fast` (default: `100ms`) */
+	/** `motion.duration.fast` (default: `80ms`) */
 	'--c15t-duration-fast'?: string;
-	/** `motion.duration.normal` (default: `200ms`) */
+	/** `motion.duration.normal` (default: `150ms`) */
 	'--c15t-duration-normal'?: string;
-	/** `motion.duration.slow` (default: `300ms`) */
+	/** `motion.duration.slow` (default: `200ms`) */
 	'--c15t-duration-slow'?: string;
 	/** `motion.easing` (default: `cubic-bezier(0.4, 0, 0.2, 1)`) */
 	'--c15t-easing'?: string;
 	/** `motion.easingOut` (default: `cubic-bezier(0.215, 0.61, 0.355, 1)`) */
 	'--c15t-easing-out'?: string;
+	/** `motion.easingIn` (default: `cubic-bezier(0.55, 0.055, 0.675, 0.19)`) */
+	'--c15t-easing-in'?: string;
 	/** `motion.easingInOut` (default: `cubic-bezier(0.645, 0.045, 0.355, 1)`) */
 	'--c15t-easing-in-out'?: string;
 	/** `motion.easingSpring` (default: `cubic-bezier(0.34, 1.56, 0.64, 1)`) */
@@ -326,6 +338,13 @@ export type SlotStyle = string | ClassNameStyle;
 
 /**
  * Component slots for specific styling overrides.
+ *
+ * Every adapter reads these: the script tag, Svelte and Astro directly, and
+ * React and Vue through the same parts of their `components` option. The
+ * dialog footer has no slot: the stock dialog's footer is the widget's
+ * (`consentWidgetFooter`). The `consentGate` slots style the stock
+ * `ConsentGate` placeholder in React, Vue and Svelte, the adapters that
+ * render one.
  * @public
  */
 export interface ComponentSlots {
@@ -344,6 +363,10 @@ export interface ComponentSlots {
 	consentBannerFooter?: SlotStyle;
 	/** Nested button group inside the banner footer. */
 	consentBannerFooterSubGroup?: SlotStyle;
+	/** Group of persistent-right links (opt-out, preferences) in the banner footer. */
+	consentBannerRights?: SlotStyle;
+	/** One persistent-right link inside the banner rights group. */
+	consentBannerRightLink?: SlotStyle;
 	/** Branding tag rendered above the consent banner card. */
 	consentBannerTag?: SlotStyle;
 	/** Backdrop overlay rendered behind the banner when enabled. */
@@ -362,12 +385,22 @@ export interface ComponentSlots {
 	consentDialogDescription?: SlotStyle;
 	/** Dialog content region (typically holds ConsentWidget). */
 	consentDialogContent?: SlotStyle;
-	/** Footer container used by compound dialog layouts. */
-	consentDialogFooter?: SlotStyle;
 	/** Branding tag rendered below the stock consent dialog card. */
 	consentDialogTag?: SlotStyle;
 	/** Backdrop overlay rendered behind the dialog. */
 	consentDialogOverlay?: SlotStyle;
+
+	// --- CONSENT DIALOG TRIGGER SLOTS ---
+	/**
+	 * Floating button that reopens the preference center. The same part
+	 * React and Vue style through `components.trigger.root`.
+	 */
+	consentDialogTrigger?: SlotStyle;
+	/**
+	 * Icon wrapper inside the floating trigger, `components.trigger.icon`
+	 * in React and Vue.
+	 */
+	consentDialogTriggerIcon?: SlotStyle;
 
 	// --- CONSENT DIALOG TRIGGER TOOLBAR SLOTS ---
 	/** Floating consent dialog trigger toolbar. */
@@ -389,9 +422,20 @@ export interface ComponentSlots {
 	/** Branding tag rendered below the standalone consent widget. */
 	consentWidgetTag?: SlotStyle;
 
-	// --- FRAME SLOTS ---
-	/** Frame wrapper used by blocking placeholders (e.g., iframe blocking). */
-	frame?: SlotStyle;
+	// --- CONSENT GATE SLOTS ---
+	/**
+	 * Placeholder card `ConsentGate` renders while its category is denied,
+	 * `ConsentGate.Root` in React and `components['consent-gate'].root` in
+	 * React and Vue.
+	 */
+	consentGate?: SlotStyle;
+	/** Placeholder title, `components['consent-gate'].title`. */
+	consentGateTitle?: SlotStyle;
+	/**
+	 * Placeholder button that opens the preferences,
+	 * `components['consent-gate'].button`. Applies on top of `buttonPrimary`.
+	 */
+	consentGateButton?: SlotStyle;
 
 	// --- IAB CONSENT BANNER SLOTS ---
 	/** Root wrapper for the IAB consent banner. */
@@ -444,7 +488,7 @@ export interface UIOptions {
 	/**
 	 * Visual theme to apply.
 	 *
-	 * @see https://c15t.com/docs/frameworks/react/styling/tokens
+	 * @see https://c15t.com/docs/customization/tokens
 	 * @see {@link Theme} for token structure
 	 */
 	theme?: Theme;
@@ -470,10 +514,11 @@ export interface UIOptions {
 	 * Color scheme preference.
 	 * With this option, you can force the theme to be light, dark or system.
 	 * Otherwise, the theme will be detected if you have '.dark' classname in your document.
+	 * `null` leaves the `c15t-dark` class on `<html>` to something else.
 	 *
-	 * @see https://c15t.com/docs/frameworks/react/styling/color-scheme
+	 * @see https://c15t.com/docs/customization/tokens
 	 */
-	colorScheme?: 'light' | 'dark' | 'system';
+	colorScheme?: 'light' | 'dark' | 'system' | null;
 
 	/**
 	 * Whether to disable default styles.
@@ -517,6 +562,8 @@ export interface Theme {
 		accept?: ConsentActionStyle;
 		reject?: ConsentActionStyle;
 		customize?: ConsentActionStyle;
+		/** Treatment for the notice dismissal action. */
+		dismiss?: ConsentActionStyle;
 	};
 	/** Component-specific style overrides. */
 	slots?: ComponentSlots;
@@ -526,8 +573,8 @@ export interface Theme {
  * Helper function to define a theme with full TypeScript autocompletion and validation.
  * @public
  */
-export function defineTheme<ThemeType extends Theme>(
+export const defineTheme = function defineTheme<ThemeType extends Theme>(
 	theme: ThemeType
 ): ThemeType {
 	return theme;
-}
+};

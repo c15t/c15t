@@ -6,8 +6,11 @@
  * @packageDocumentation
  */
 
-import type { CMPApi, CMPApiConfig, GlobalVendorList } from 'c15t';
-import { CMP_ID, CMP_VERSION } from './cmp-defaults';
+import type { CMPApi, CMPApiConfig, GlobalVendorList } from '@c15t/core';
+
+import { forEachSequential } from '../for-each-sequential';
+import { CMP_VERSION_NUMBER } from './cmp-defaults';
+import { assertValidCmpId } from './cmp-id';
 import { IAB_STORAGE_KEYS } from './constants';
 import type {
 	CMPStatus,
@@ -16,36 +19,100 @@ import type {
 	PingData,
 	TCData,
 	TCFApiCallback,
+	TCFConsentData,
 } from './iab-tcf-types';
+import { toTCDataRestrictions } from './publisher-restrictions';
 import { clearStubQueue, getStubQueue } from './stub';
-import { decodeTCString } from './tc-string';
+import { decodeTCString, getDisclosedVendorIds } from './tc-string';
 
 /**
  * Sets a cookie value.
  */
-function setCookie(name: string, value: string, maxAgeDays: number): void {
+const setCookie = function setCookie(
+	name: string,
+	value: string,
+	maxAgeDays: number
+): void {
 	if (typeof document === 'undefined') {
 		return;
 	}
 
 	const maxAge = maxAgeDays * 24 * 60 * 60;
 	document.cookie = `${name}=${encodeURIComponent(value)}; max-age=${maxAge}; path=/; SameSite=Lax`;
-}
+};
 
 /**
  * Gets a cookie value.
  */
-function getCookie(name: string): string | null {
+const getCookie = function getCookie(name: string): string | null {
 	if (typeof document === 'undefined') {
 		return null;
 	}
 
-	const match = document.cookie.match(new RegExp(`(^| )${name}=([^;]+)`));
+	const match = document.cookie.match(new RegExp(`(^| )${name}=([^;]+)`, 'u'));
 	if (match?.[2]) {
 		return decodeURIComponent(match[2]);
 	}
 	return null;
-}
+};
+
+/**
+ * Removes a superseded TC string from the `euconsent-v2` cookie and its
+ * localStorage copy, so vendors reading storage directly, and
+ * `loadFromStorage()`, no longer find it. Each entry is removed only while
+ * it still holds `tcString`: another tab may have saved a newer one.
+ *
+ * @param tcString - The superseded TC string.
+ *
+ * @internal
+ */
+export const clearStoredTCString = function clearStoredTCString(
+	tcString: string
+): void {
+	// Each store is cleared on its own: a malformed cookie must not keep the
+	// localStorage copy alive.
+	try {
+		if (
+			typeof document !== 'undefined' &&
+			getCookie(IAB_STORAGE_KEYS.TC_STRING_COOKIE) === tcString
+		) {
+			document.cookie = `${IAB_STORAGE_KEYS.TC_STRING_COOKIE}=; max-age=0; path=/; SameSite=Lax`;
+		}
+	} catch {
+		// The cookie value can be malformed.
+	}
+	try {
+		if (localStorage.getItem(IAB_STORAGE_KEYS.TC_STRING_LOCAL) === tcString) {
+			localStorage.removeItem(IAB_STORAGE_KEYS.TC_STRING_LOCAL);
+		}
+	} catch {
+		// Storage can be unavailable.
+	}
+};
+
+/**
+ * Copies consent data down to its vectors, so the API's copy is never
+ * shared with the caller.
+ */
+const copyConsentData = function copyConsentData(
+	consentData: TCFConsentData
+): TCFConsentData {
+	return {
+		...consentData,
+		publisherRestrictions: consentData.publisherRestrictions?.map(
+			(restriction) => ({
+				...restriction,
+				vendorIds: [...restriction.vendorIds],
+			})
+		),
+		purposeConsents: { ...consentData.purposeConsents },
+		purposeLegitimateInterests: { ...consentData.purposeLegitimateInterests },
+		specialFeatureOptIns: { ...consentData.specialFeatureOptIns },
+		vendorConsents: { ...consentData.vendorConsents },
+		vendorLegitimateInterests: { ...consentData.vendorLegitimateInterests },
+		vendorsDisclosed: { ...consentData.vendorsDisclosed },
+	};
+};
 
 /**
  * Creates a CMP API instance using functional composition.
@@ -74,13 +141,15 @@ function getCookie(name: string): string | null {
  *
  * @public
  */
-export function createCMPApi(config: CMPApiConfig): CMPApi {
-	const {
-		cmpId = CMP_ID,
-		cmpVersion = CMP_VERSION,
-		gvl,
-		gdprApplies = true,
-	} = config;
+export const createCMPApi = function createCMPApi(
+	config: CMPApiConfig
+): CMPApi {
+	// Vendors read these two fields from `__tcfapi` ping, so an unusable CMP ID
+	// must fail here rather than be reported as if it were valid.
+	const cmpId = assertValidCmpId(config.cmpId);
+	const cmpVersion = config.cmpVersion ?? CMP_VERSION_NUMBER;
+	let { gvl } = config;
+	let gdprApplies = config.gdprApplies ?? true;
 
 	let tcString = '';
 	let cmpStatus: CMPStatus = 'loading';
@@ -90,35 +159,54 @@ export function createCMPApi(config: CMPApiConfig): CMPApi {
 
 	// Decoded TC data cache
 	let cachedTCData: TCData | null = null;
+	let currentConsentData: TCFConsentData | null = null;
 	/**
-	 * Builds TC Data from current state.
+	 * Builds TC Data for one TC string and the consent data published with it.
 	 */
-	async function buildTCData(
+	const composeTCData = async function composeTCData(
+		string: string,
+		consentData: TCFConsentData | null,
 		eventStatus?: EventStatus,
 		listenerId?: number
 	): Promise<TCData> {
-		// Use cached data if available and tc string hasn't changed
-		if (cachedTCData && cachedTCData.tcString === tcString && !eventStatus) {
-			return cachedTCData;
-		}
-
-		let purposeConsents: Record<number, boolean> = {};
-		let purposeLegitInterests: Record<number, boolean> = {};
-		let vendorConsents: Record<number, boolean> = {};
-		let vendorLegitInterests: Record<number, boolean> = {};
-		let specialFeatureOptins: Record<number, boolean> = {};
-		let disclosedVendors: Record<number, boolean> = {};
+		let purposeConsents: Record<number, boolean> =
+			consentData?.purposeConsents ?? {};
+		let purposeLegitInterests: Record<number, boolean> =
+			consentData?.purposeLegitimateInterests ?? {};
+		let vendorConsents: Record<number, boolean> = Object.fromEntries(
+			Object.entries(consentData?.vendorConsents ?? {}).map(([id, value]) => [
+				Number(id),
+				value,
+			])
+		);
+		let vendorLegitInterests: Record<number, boolean> = Object.fromEntries(
+			Object.entries(consentData?.vendorLegitimateInterests ?? {}).map(
+				([id, value]) => [Number(id), value]
+			)
+		);
+		let specialFeatureOptins: Record<number, boolean> =
+			consentData?.specialFeatureOptIns ?? {};
+		let disclosedVendorIds = getDisclosedVendorIds(
+			consentData?.vendorsDisclosed ?? {}
+		);
+		// Restrictions always come from the string vendors receive.
+		let restrictions: Record<number, Record<number, number>> = {};
 
 		// Decode TC string if present
-		if (tcString) {
+		if (string) {
 			try {
-				const decoded = await decodeTCString(tcString);
-				purposeConsents = decoded.purposeConsents;
-				purposeLegitInterests = decoded.purposeLegitimateInterests;
-				vendorConsents = decoded.vendorConsents;
-				vendorLegitInterests = decoded.vendorLegitimateInterests;
-				specialFeatureOptins = decoded.specialFeatureOptIns;
-				disclosedVendors = decoded.vendorsDisclosed;
+				const decoded = await decodeTCString(string);
+				restrictions = toTCDataRestrictions(decoded.publisherRestrictions);
+				if (!consentData) {
+					// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
+					purposeConsents = decoded.purposeConsents;
+					purposeLegitInterests = decoded.purposeLegitimateInterests;
+					// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
+					vendorConsents = decoded.vendorConsents;
+					vendorLegitInterests = decoded.vendorLegitimateInterests;
+					specialFeatureOptins = decoded.specialFeatureOptIns;
+					disclosedVendorIds = getDisclosedVendorIds(decoded.vendorsDisclosed);
+				}
 			} catch {
 				// Invalid TC string, use empty values
 			}
@@ -129,134 +217,195 @@ export function createCMPApi(config: CMPApiConfig): CMPApi {
 				? cmpVersion
 				: Number.parseInt(String(cmpVersion), 10) || 1;
 		const tcData: TCData = {
-			tcString,
-			tcfPolicyVersion: gvl.tcfPolicyVersion,
 			cmpId,
-			cmpVersion: cmpVersionNum,
-			gdprApplies,
-			listenerId,
-			eventStatus,
 			cmpStatus,
+			cmpVersion: cmpVersionNum,
+			eventStatus,
+			gdprApplies,
 			isServiceSpecific: true,
-			useNonStandardTexts: false,
-			publisherCC: 'US',
-			purposeOneTreatment: false,
-			purpose: {
-				consents: purposeConsents,
-				legitimateInterests: purposeLegitInterests,
-			},
-			vendor: {
-				consents: vendorConsents,
-				legitimateInterests: vendorLegitInterests,
-				disclosedVendors,
-			},
-			specialFeatureOptins,
+			listenerId,
 			publisher: {
 				consents: {},
-				legitimateInterests: {},
 				customPurpose: {
 					consents: {},
 					legitimateInterests: {},
 				},
-				restrictions: {},
+				legitimateInterests: {},
+				restrictions,
+			},
+			publisherCC: 'US',
+			purpose: {
+				consents: purposeConsents,
+				legitimateInterests: purposeLegitInterests,
+			},
+			purposeOneTreatment: false,
+			specialFeatureOptins,
+			tcString: string,
+			tcfPolicyVersion: gvl.tcfPolicyVersion,
+			useNonStandardTexts: false,
+			vendor: {
+				consents: vendorConsents,
+				disclosedVendors: Object.fromEntries(
+					disclosedVendorIds.map((vendorId) => [vendorId, true])
+				),
+				legitimateInterests: vendorLegitInterests,
 			},
 		};
 
-		// Cache the data
+		return tcData;
+	};
+
+	/**
+	 * Builds TC Data from current state.
+	 */
+	const buildTCData = async function buildTCData(
+		eventStatus?: EventStatus,
+		listenerId?: number
+	): Promise<TCData> {
+		// Use cached data if available and tc string hasn't changed. Callers
+		// get their own copy, down to the nested maps, so changing a result
+		// never changes the next one.
+		if (cachedTCData && cachedTCData.tcString === tcString && !eventStatus) {
+			return { ...structuredClone(cachedTCData), listenerId };
+		}
+		const string = tcString;
+		const consentData = currentConsentData;
+		const tcData = await composeTCData(
+			string,
+			consentData,
+			eventStatus,
+			listenerId
+		);
+		// An update can land while the string decodes. Never pair its string
+		// with the earlier vectors: build again from the newer state.
+		if (tcString !== string || currentConsentData !== consentData) {
+			return buildTCData(eventStatus, listenerId);
+		}
+
+		// Cache a private copy of the data
 		if (!eventStatus) {
-			cachedTCData = tcData;
+			cachedTCData = structuredClone(tcData);
 		}
 
 		return tcData;
-	}
+	};
 
 	/**
 	 * Handles the 'ping' command.
 	 */
-	function handlePing(callback: TCFApiCallback<PingData>): void {
+	const handlePing = function handlePing(
+		handler: TCFApiCallback<PingData>
+	): void {
 		const pingData: PingData = {
-			gdprApplies,
+			apiVersion: '2.3',
+			cmpId,
 			cmpLoaded: cmpStatus === 'loaded',
 			cmpStatus,
-			displayStatus,
-			apiVersion: '2.3',
 			cmpVersion:
 				typeof cmpVersion === 'string' ? cmpVersion : String(cmpVersion),
-			cmpId,
+			displayStatus,
+			gdprApplies,
 			gvlVersion: gvl.vendorListVersion,
 			tcfPolicyVersion: gvl.tcfPolicyVersion,
 		};
 
-		callback(pingData, true);
-	}
+		handler(pingData, true);
+	};
 
 	/**
 	 * Handles the 'getTCData' command.
 	 */
-	async function handleGetTCData(
-		callback: TCFApiCallback<TCData>,
+	const handleGetTCData = async function handleGetTCData(
+		handler: TCFApiCallback<TCData>,
 		_vendorIds?: number[]
 	): Promise<void> {
 		const tcData = await buildTCData();
-		callback(tcData, true);
-	}
+		handler(tcData, true);
+	};
 
 	/**
 	 * Handles the 'getInAppTCData' command (alias for getTCData).
 	 */
-	async function handleGetInAppTCData(
-		callback: TCFApiCallback<TCData>
+	const handleGetInAppTCData = function handleGetInAppTCData(
+		handler: TCFApiCallback<TCData>
 	): Promise<void> {
-		return handleGetTCData(callback);
-	}
+		return handleGetTCData(handler);
+	};
 
 	/**
 	 * Handles the 'getVendorList' command.
 	 */
-	function handleGetVendorList(
-		callback: TCFApiCallback<GlobalVendorList>,
+	const handleGetVendorList = function handleGetVendorList(
+		handler: TCFApiCallback<GlobalVendorList>,
 		_vendorListVersion?: number
 	): void {
-		callback(gvl, true);
-	}
+		handler(cmpStatus === 'loaded' ? gvl : null, cmpStatus === 'loaded');
+	};
+
+	/**
+	 * Whether vendors can act on the published state without the visitor:
+	 * a TC string is available, or GDPR does not apply.
+	 */
+	const hasSignal = (): boolean => tcString !== '' || gdprApplies === false;
+
+	/**
+	 * The status a new listener is told. TCF CMP API v2: `tcloaded` means a
+	 * valid TC string is available and no UI will be shown, and the CMP must
+	 * not send it when it shows the UI instead. While the UI is up the
+	 * status is `cmpuishown`. Without either there is no status yet.
+	 */
+	const currentStatus = (): EventStatus | undefined => {
+		if (cmpStatus !== 'loaded') {
+			return undefined;
+		}
+		if (displayStatus === 'visible') {
+			return 'cmpuishown';
+		}
+		return hasSignal() ? 'tcloaded' : undefined;
+	};
 
 	/**
 	 * Handles the 'addEventListener' command.
 	 */
-	async function handleAddEventListener(
-		callback: TCFApiCallback<TCData>
+	const handleAddEventListener = async function handleAddEventListener(
+		handler: TCFApiCallback<TCData>
 	): Promise<void> {
-		const listenerId = nextListenerId++;
-		eventListeners.set(listenerId, callback);
+		nextListenerId += 1;
+		const listenerId = nextListenerId;
+		eventListeners.set(listenerId, handler);
 
-		// Immediately call with current state
-		const tcData = await buildTCData('tcloaded', listenerId);
-		callback(tcData, true);
-	}
+		// Registration always returns its ID, including while the list is loading.
+		const tcData = await buildTCData(currentStatus(), listenerId);
+		handler(tcData, true);
+	};
 
 	/**
 	 * Handles the 'removeEventListener' command.
 	 */
-	function handleRemoveEventListener(
-		callback: TCFApiCallback<boolean>,
+	const handleRemoveEventListener = function handleRemoveEventListener(
+		handler: TCFApiCallback<boolean>,
 		listenerId: number
 	): void {
 		const existed = eventListeners.has(listenerId);
 		eventListeners.delete(listenerId);
-		callback(existed, true);
-	}
+		handler(existed, true);
+	};
 
 	/**
 	 * Notifies all event listeners of a state change.
 	 */
-	async function notifyEventListeners(eventStatus: EventStatus): Promise<void> {
-		for (const [listenerId, callback] of eventListeners) {
-			const tcData = await buildTCData(eventStatus, listenerId);
-			callback(tcData, true);
-		}
-	}
+	const notifyEventListeners = async function notifyEventListeners(
+		eventStatus: EventStatus | undefined
+	): Promise<void> {
+		await forEachSequential(eventListeners, {
+			run: async ([listenerId, listener]) => {
+				const tcData = await buildTCData(eventStatus, listenerId);
+				listener(tcData, true);
+			},
+		});
+	};
 
-	function initializeAPI(): void {
+	const initializeAPI = function initializeAPI(): void {
 		if (typeof window === 'undefined') {
 			return;
 		}
@@ -268,71 +417,68 @@ export function createCMPApi(config: CMPApiConfig): CMPApi {
 		window.__tcfapi = ((
 			command: string,
 			version: number,
-			callback: TCFApiCallback<unknown>,
+			handler: TCFApiCallback<unknown>,
 			parameter?: unknown
 		) => {
 			switch (command) {
 				case 'ping':
-					handlePing(callback as TCFApiCallback<PingData>);
+					handlePing(handler as TCFApiCallback<PingData>);
 					break;
 				case 'getTCData':
 					handleGetTCData(
-						callback as TCFApiCallback<TCData>,
+						handler as TCFApiCallback<TCData>,
 						parameter as number[] | undefined
 					);
 					break;
 				case 'getInAppTCData':
-					handleGetInAppTCData(callback as TCFApiCallback<TCData>);
+					handleGetInAppTCData(handler as TCFApiCallback<TCData>);
 					break;
 				case 'getVendorList':
 					handleGetVendorList(
-						callback as TCFApiCallback<GlobalVendorList>,
+						handler as TCFApiCallback<GlobalVendorList>,
 						parameter as number | undefined
 					);
 					break;
 				case 'addEventListener':
-					handleAddEventListener(callback as TCFApiCallback<TCData>);
+					handleAddEventListener(handler as TCFApiCallback<TCData>);
 					break;
 				case 'removeEventListener':
 					handleRemoveEventListener(
-						callback as TCFApiCallback<boolean>,
+						handler as TCFApiCallback<boolean>,
 						parameter as number
 					);
 					break;
 				default:
-					callback(null, false);
+					return handler(null, false);
 			}
 		}) as typeof window.__tcfapi;
 
 		// Clear the stub queue
 		clearStubQueue();
 
+		// The real API is created with a list. Replayed calls can read it now.
+		cmpStatus = 'loaded';
+
 		// Process queued calls
 		for (const args of queuedCalls) {
 			window.__tcfapi?.(...args);
 		}
-
-		// Mark as loaded
-		cmpStatus = 'loaded';
-	}
+	};
 
 	// Initialize on creation
 	initializeAPI();
 
 	return {
-		updateConsent: (newTcString: string) => {
-			tcString = newTcString;
-			cachedTCData = null; // Invalidate cache
-			cmpStatus = 'loaded';
-			notifyEventListeners('useractioncomplete');
-		},
+		destroy: () => {
+			eventListeners.clear();
+			cachedTCData = null;
 
-		setDisplayStatus: (status: DisplayStatus) => {
-			displayStatus = status;
-			if (status === 'visible') {
-				notifyEventListeners('cmpuishown');
+			if (typeof window !== 'undefined') {
+				delete (window as { __tcfapi?: unknown }).__tcfapi;
 			}
 		},
+
+		getTcString: () => tcString,
 
 		loadFromStorage: (): string | null => {
 			// Try cookie first (per TCF spec)
@@ -378,15 +524,55 @@ export function createCMPApi(config: CMPApiConfig): CMPApi {
 			}
 		},
 
-		getTcString: () => tcString,
-
-		destroy: () => {
-			eventListeners.clear();
-			cachedTCData = null;
-
-			if (typeof window !== 'undefined') {
-				delete (window as { __tcfapi?: unknown }).__tcfapi;
+		setDisplayStatus: (status: DisplayStatus) => {
+			displayStatus = status;
+			if (status === 'visible') {
+				notifyEventListeners('cmpuishown');
 			}
 		},
+
+		updateConsent: (
+			newTcString: string,
+			consentData?: TCFConsentData,
+			applies?: boolean
+		) => {
+			const changed =
+				newTcString !== tcString ||
+				(applies !== undefined && applies !== gdprApplies);
+			gdprApplies = applies ?? gdprApplies;
+			tcString = newTcString;
+			// Keep a private copy: a caller changing its object in place must
+			// not change, or half change, the vectors published for this string.
+			currentConsentData =
+				newTcString && consentData ? copyConsentData(consentData) : null;
+			// Invalidate cache
+			cachedTCData = null;
+			if (cmpStatus !== 'loaded') {
+				return;
+			}
+			if (consentData) {
+				notifyEventListeners('useractioncomplete');
+				return;
+			}
+			// Authority can expire or change in another tab while the UI is up.
+			// Report those changes too, without calling them tcloaded.
+			if (!changed) {
+				return;
+			}
+			// A withdrawn string is no `tcloaded`: listeners still hear that
+			// it is gone, with no status.
+			notifyEventListeners(hasSignal() ? currentStatus() : undefined);
+		},
+
+		updateVendorList: (nextGvl) => {
+			if (nextGvl) {
+				gvl = nextGvl;
+			}
+			cmpStatus = nextGvl ? 'loaded' : 'loading';
+			tcString = '';
+			currentConsentData = null;
+			cachedTCData = null;
+			// The owner publishes current confirmed TC data with updateConsent.
+		},
 	};
-}
+};

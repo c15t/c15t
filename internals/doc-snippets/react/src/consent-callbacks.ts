@@ -1,0 +1,23 @@
+// #region docs:callbacks
+import type { ConsentProviderCallbacks } from 'c15t/react';
+
+export const callbacks = {
+	// Right before the page reloads because a save withdrew a permission.
+	onBeforeConsentRevocationReload: ({ preferences }) => {
+		console.info('Reloading with', preferences);
+	},
+	// The visitor clicked Accept all, Reject all or Save.
+	onChoiceRecorded: ({ confirmed, snapshot }) => {
+		console.info('Choice recorded', confirmed, snapshot.explicitChoice);
+	},
+	// A consent command failed, such as a save the backend rejected.
+	onError: ({ error }) => {
+		console.error('c15t', error);
+	},
+	// Permissions changed for any reason: a choice, an expired choice, a new
+	// policy or a privacy signal.
+	onPermissionsChanged: ({ previous, snapshot }) => {
+		console.info('Permissions', previous, snapshot.effectivePermissions);
+	},
+} satisfies ConsentProviderCallbacks;
+// #endregion docs:callbacks

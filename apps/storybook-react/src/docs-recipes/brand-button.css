@@ -1,0 +1,21 @@
+/* Stands in for a design system's button in the compose recipe. Demo only. */
+.brand-button {
+	padding: 0.5rem 1.25rem;
+	border: 1px solid #1f2937;
+	border-radius: 999px;
+	background: transparent;
+	color: #1f2937;
+	font: inherit;
+	font-weight: 600;
+	cursor: pointer;
+}
+
+.brand-button[data-tone='solid'] {
+	background: #1f2937;
+	color: #ffffff;
+}
+
+.brand-button:focus-visible {
+	outline: 2px solid #2563eb;
+	outline-offset: 2px;
+}

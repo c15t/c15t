@@ -1,0 +1,65 @@
+---
+/**
+ * Script-loading probe for the `scripts` arms. Records when the visitor
+ * accepted and, for a returning visitor, how long a request the network
+ * blocker gates was held. The stand-in third-party script records when it
+ * ran; the runner reads its request start from resource timing.
+ *
+ * It renders after `<ConsentScript />`, so its module runs after the
+ * consent runtime was created: the gated request is sent while the runtime
+ * holds matching requests, as a page's own analytics call would be.
+ */
+interface Props {
+	returning: boolean;
+}
+
+const { returning } = Astro.props;
+---
+
+<span
+	data-c15t-bench-script-probe
+	data-returning={returning ? 'true' : 'false'}
+	hidden
+></span>
+
+<script>
+	import type { AstroBenchScriptState } from '../lib/bench-state';
+
+	const state: AstroBenchScriptState = {};
+	window.__c15tAstroBenchScripts = state;
+
+	document.addEventListener(
+		'click',
+		(event) => {
+			if (
+				event.target instanceof Element &&
+				event.target.closest('[data-testid="consent-banner-accept-button"]')
+			) {
+				state.acceptClickMs ??= performance.now();
+			}
+		},
+		true
+	);
+
+	const sendGatedRequest = async (): Promise<void> => {
+		const url = `/bench-beacon.txt?at=${Date.now()}`;
+		const calledAt = performance.now();
+		const response = await fetch(url, { cache: 'no-store' });
+		// The resource timing entry lands once the body has.
+		await response.text();
+		const entry = performance
+			.getEntriesByType('resource')
+			.find((candidate) => candidate.name.endsWith(url));
+		if (entry) {
+			state.heldRequestMs = entry.startTime - calledAt;
+		}
+	};
+
+	const returning =
+		document
+			.querySelector('[data-c15t-bench-script-probe]')
+			?.getAttribute('data-returning') === 'true';
+	if (returning) {
+		void sendGatedRequest();
+	}
+</script>

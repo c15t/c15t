@@ -1,18 +1,25 @@
-import { fetchInitialData } from '@c15t/nextjs';
+import { hosted } from '@c15t/nextjs';
+import { resolveConsent } from '@c15t/nextjs/server';
 import type { ReactNode } from 'react';
-import { NextjsBenchmarkProvider } from '../_bench/provider';
 
-export default function SSRLayout({ children }: { children: ReactNode }) {
-	const ssrData = fetchInitialData({
-		backendURL: '/api/bench-consent',
-		nextCache: {
-			revalidateSeconds: false,
-		},
+import { NextjsPrefetchedBenchmarkProvider } from '../_bench/provider';
+
+const SSRLayout = async ({ children }: { children: ReactNode }) => {
+	// The `ssr` arm resolves through the backend's /init on every request,
+	// the same hosted mode its ConsentRoot uses. Without `mode`, the server
+	// would resolve from the manifest instead.
+	const state = await resolveConsent({
+		config: { backendURL: '/api/bench-consent', mode: hosted() },
 	});
 
 	return (
-		<NextjsBenchmarkProvider scenario="ssr" ssrData={ssrData}>
+		<NextjsPrefetchedBenchmarkProvider
+			state={state}
+			scenario="ssr"
+		>
 			{children}
-		</NextjsBenchmarkProvider>
+		</NextjsPrefetchedBenchmarkProvider>
 	);
-}
+};
+
+export default SSRLayout;

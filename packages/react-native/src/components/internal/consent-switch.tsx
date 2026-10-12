@@ -1,0 +1,252 @@
+/**
+ * The on/off control a category row carries.
+ *
+ * This is the web switch drawn from the same numbers rather than the
+ * platform `Switch` tinted to look near it. The native control takes a track
+ * colour and a thumb colour and lays itself out however the OS wants, which
+ * is how the mobile prompt ended up with a control the web one does not
+ * have: a different size, a different corner shape, and a thumb that runs
+ * right up to the edge of its track.
+ *
+ * The touch target stays the platform minimum rather than the 32x20 track, so
+ * the smaller visual does not cost anybody a reliable tap. It reaches that floor
+ * through its hit area rather than a laid-out box, so the row it sits in stays the
+ * height the design asks for.
+ */
+
+import { useEffect, useMemo, useRef } from 'react';
+import type { ReactNode } from 'react';
+import { Animated, Pressable, View } from 'react-native';
+import type { ViewStyle } from 'react-native';
+
+import { MIN_TAP_TARGET } from '../theme/consent-theme-parts';
+import type { ConsentResolvedParts } from '../theme/consent-theme-parts';
+import type { ConsentTheme } from '../theme/create-consent-theme';
+import { CONSENT_SWITCH_GEOMETRY } from '../theme/use-consent-styles';
+import type { ConsentSwitchGeometry } from '../theme/use-consent-styles';
+import { useReducedMotion } from './use-reduced-motion';
+
+/**
+ * The web `duration-normal`, and the collapse reduced motion asks for.
+ *
+ * The curve is the platform's own rather than the web `easing` token: React
+ * Native only takes one through `Easing`, and a control that cannot be rendered
+ * in the harness is worse than a curve nobody can pick out across 150ms.
+ */
+const SWITCH_DURATION = 150;
+const SWITCH_REDUCED_DURATION = 1;
+
+/**
+ * How big a thumb is when the subject cannot move it: 8.
+ *
+ * `--switch-thumb-size-disabled` on `.root-small` is `0.5rem` against the live
+ * control's `0.625rem`, its fill drops to `surface-hover`, and it loses its ring
+ * (`thumb-disabled { box-shadow: none }`). That smaller, flatter disc on a track
+ * faded to 40% is what a category the subject has no say in looks like: `Strictly
+ * Necessary` reads as pale on the web for that reason, not because web draws it in
+ * a colour of its own.
+ */
+const THUMB_SIZE_DISABLED = 8;
+
+/**
+ * The hole punched through the middle of the thumb: 4.
+ *
+ * `.thumb::before` is masked with `radial-gradient(circle farthest-side, #0000
+ * 1.95px, #000 2.05px)`, so the disc is really a ring: whatever the track behind it
+ * is, a 4pt dot of it shows through the middle of the thumb. React Native has no
+ * mask, so the dot is drawn as a child painted in the track's own colour, which is
+ * the only thing it can ever be seen as.
+ */
+const THUMB_HOLE = 4;
+
+/**
+ * What the control lays out: the track, and nothing around it.
+ *
+ * The tap target used to be a 44pt box laid *around* the track, which is a touch
+ * fact drawn as a layout fact. A row is only as tall as the tallest thing inside
+ * it, so that box set the height of every category card open at 44 plus the
+ * trigger's padding, 18pt past the web's card, and no change to the row's own
+ * minimum could close the gap. The web lays the small track out at 28x16 and keeps
+ * its reach off the layout, so the reach moves to `hitSlop`, which covers the same
+ * points the box did without drawing them.
+ */
+const HIT_BOX: ViewStyle = { flexShrink: 0 };
+
+/** Props for {@link ConsentSwitch}. */
+export interface ConsentSwitchProps {
+	/** Whether the subject may move it. */
+	readonly disabled: boolean;
+	/**
+	 * The box the control was built at, when it is not the small one.
+	 *
+	 * `packages/ui` ships two switches and the consent surfaces ask for different
+	 * ones: a category row takes `size="small"` and the IAB disclosure takes the
+	 * default. The track's own numbers already come from the `switch` part, which
+	 * `useConsentStyles` builds from whichever geometry the presentation uses; this
+	 * is the thumb, which no `ViewStyle` field can carry.
+	 *
+	 * Defaults to {@link CONSENT_SWITCH_GEOMETRY}.
+	 */
+	readonly geometry?: ConsentSwitchGeometry;
+	/** Announced as the control's name, which is the category it decides. */
+	readonly label: string;
+	/** Parts in force for this surface, including the track geometry. */
+	readonly parts: ConsentResolvedParts;
+	/** Theme, for the track and thumb colours. */
+	readonly theme: ConsentTheme;
+	/** Position to show. */
+	readonly value: boolean;
+	/**
+	 * Record the position the subject moved it to.
+	 *
+	 * @param value - New position.
+	 */
+	readonly onValueChange: (value: boolean) => void;
+}
+
+/**
+ * A web-shaped consent switch.
+ *
+ * @param props - Switch props.
+ * @returns The control.
+ */
+export const ConsentSwitch = ({
+	disabled,
+	geometry = CONSENT_SWITCH_GEOMETRY,
+	label,
+	onValueChange,
+	parts,
+	theme,
+	value,
+}: ConsentSwitchProps): ReactNode => {
+	const reducedMotion = useReducedMotion();
+	const track = parts.switch;
+	const { padding, thumb, width } = geometry;
+	// `DimensionValue` also admits percentages, which have no fixed meaning here,
+	// so anything that is not a plain number falls back to the geometry the part
+	// was built with rather than turning the travel into NaN.
+	const points = (candidate: unknown, fallback: number): number =>
+		typeof candidate === 'number' && Number.isFinite(candidate)
+			? candidate
+			: fallback;
+	// The thumb stops one pad short of each end of the track, so a host that
+	// widens the track through the part moves the end of the travel with it.
+	const travel = Math.max(
+		0,
+		points(track.width, width) - thumb - 2 * points(track.padding, padding)
+	);
+
+	// The inset that carries the track to the platform minimum on each axis, read
+	// off the track in force rather than hardcoded: 14 past a 16pt track, 8 past a
+	// 28pt one. A host that draws a bigger control through the `switch` part asks
+	// for less slop, and one that already clears the floor asks for none.
+	const slopFor = (side: number): number =>
+		Math.max(0, Math.ceil((MIN_TAP_TARGET - side) / 2));
+	const verticalSlop = slopFor(points(track.height, geometry.height));
+	const horizontalSlop = slopFor(points(track.width, width));
+	const hitSlop =
+		verticalSlop === 0 && horizontalSlop === 0
+			? undefined
+			: {
+					bottom: verticalSlop,
+					left: horizontalSlop,
+					right: horizontalSlop,
+					top: verticalSlop,
+				};
+
+	// One value for the life of the control, and it starts at zero rather than at
+	// `value`: the memo may not read `value` without taking it as a dependency,
+	// and a ref read here would be a ref read during render. The effect below
+	// parks it on the real position with no animation the first time through, so
+	// a category that was already on does not slide its thumb as the sheet opens.
+	const position = useMemo(() => new Animated.Value(0), []);
+	const primed = useRef(false);
+
+	useEffect(() => {
+		const first = !primed.current;
+
+		primed.current = true;
+
+		Animated.timing(position, {
+			duration:
+				first || reducedMotion ? SWITCH_REDUCED_DURATION : SWITCH_DURATION,
+			toValue: value ? 1 : 0,
+			useNativeDriver: true,
+		}).start();
+	}, [position, reducedMotion, value]);
+
+	// The travel stays the web's own calculation, which reads the live thumb size
+	// even while a smaller disabled one is drawn, so an immovable category stops at
+	// exactly the point a movable one does.
+	const trackColor = value
+		? theme.colors.switchTrackOn
+		: theme.colors.switchTrack;
+	const size = disabled ? THUMB_SIZE_DISABLED : thumb;
+
+	const thumbStyle: ViewStyle = {
+		alignItems: 'center',
+		backgroundColor: disabled
+			? theme.colors.surfaceRaised
+			: theme.colors.switchThumb,
+		borderRadius: size / 2,
+		height: size,
+		justifyContent: 'center',
+		width: size,
+	};
+
+	return (
+		<Pressable
+			accessibilityLabel={label}
+			accessibilityRole="switch"
+			accessibilityState={{ checked: value, disabled }}
+			disabled={disabled}
+			hitSlop={hitSlop}
+			onPress={() => {
+				onValueChange(!value);
+			}}
+			style={HIT_BOX}
+		>
+			<View
+				style={[
+					track,
+					{
+						backgroundColor: value
+							? theme.colors.switchTrackOn
+							: theme.colors.switchTrack,
+						opacity: disabled ? 0.4 : 1,
+					},
+				]}
+			>
+				<Animated.View
+					style={[
+						thumbStyle,
+						{
+							// `.thumb::after` spreads 1px of the border token around the disc,
+							// outside it, and only on a thumb the subject can move.
+							boxShadow: disabled
+								? undefined
+								: `0 0 0 1px ${theme.colors.border}`,
+							transform: [
+								{
+									translateX: position.interpolate({
+										inputRange: [0, 1],
+										outputRange: [0, travel],
+									}),
+								},
+							],
+						},
+					]}
+				>
+					<View
+						style={{
+							backgroundColor: trackColor,
+							borderRadius: THUMB_HOLE / 2,
+							height: THUMB_HOLE,
+							width: THUMB_HOLE,
+						}}
+					/>
+				</Animated.View>
+			</View>
+		</Pressable>
+	);
+};

@@ -1,0 +1,17 @@
+{
+	"title": "@c15t/schema: Consent API Schemas and Types",
+	"description": "Valibot schemas and TypeScript types for the c15t consent API. The c15t backend, frontends, and Node.js SDK share them, so requests and responses match on both sides.",
+	"features": [
+		"Valibot schemas for consent API requests and responses",
+		"TypeScript types inferred from the same schemas",
+		"No framework dependencies"
+	],
+	"manualInstallation": [
+		"",
+		"Most apps get this package through `c15t`, `@c15t/backend`, or `@c15t/node-sdk`. Install it directly to validate consent API payloads in your own code:",
+		"",
+		"```bash\npnpm add @c15t/schema\n```"
+	],
+	"docsLink": "https://c15t.com/docs/self-host/api/node-sdk",
+	"showCLIGeneration": false
+}

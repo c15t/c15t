@@ -1,0 +1,293 @@
+---
+title: createConsentRuntime
+description: Reference for createConsentRuntime from c15t/runtime, the framework-agnostic consent runtime behind every c15t adapter, with every option, what start and dispose do, and the runtime handle's methods.
+group: frameworks
+---
+
+## What the runtime owns
+
+`createConsentRuntime` builds a [consent kernel](/docs/frameworks/javascript/api/kernel)
+and connects the modules a page needs, such as stored choices, script
+loading, iframe gating, network blocking, data clearing, IAB, callbacks and
+the reload after a withdrawal. It renders nothing. Use it when you render your own UI, connect a
+framework without a c15t adapter, or share one consent state between several
+parts of a page. `@c15t/browser` builds one for you; see
+[choose a headless API](/docs/frameworks/javascript/headless#choose-a-headless-api).
+
+<include src="../../../shared/examples/javascript/runtime.mdx" />
+
+Creating the runtime has no side effects. It reads no storage and sends no
+request until `start()`, so the module can also load on a server.
+
+## Options
+
+Only `mode` is required.
+
+| Option | Type | Default | What it does |
+| --- | --- | --- | --- |
+| `mode` | transport factory | required | Where the policy comes from and where choices go: `hosted()`, `offline()`, `manifest()` or `custom()`. `offline()` switches copy when the kernel's language changes. See [transports](/docs/frameworks/javascript/transports). Read once. |
+| `scripts` | `Script[]` | none | Vendor scripts the loader mounts as categories are allowed. See [script loader](/docs/frameworks/javascript/modules/script-loader). |
+| `consentCategories` | category names | inferred | Categories to offer alongside those your scripts, rules and vendors use, within the policy's scope. |
+| `networkBlocker` | `{ rules, enabled?, logBlockedRequests?, onRequestBlocked? }` or `false` | off | Hold matching `fetch` and XHR requests until their category is allowed. See [network blocker](/docs/frameworks/javascript/modules/network-blocker). |
+| `iframeBlocker` | `{ disableAutomaticBlocking? }` or `false` | on | Gate `<iframe data-src data-category>`. See [iframe blocker](/docs/frameworks/javascript/modules/iframe-blocker). |
+| `clearOnRevocation` | cookies and storage keys per category | off | Delete named browser data when its category is denied. Read once. See [clear on revocation](/docs/frameworks/javascript/clear-on-revocation). |
+| `persistence` | `boolean` or `{ storageConfig?, skipHydration?, sync? }` | `true` | Read and write choices in the cookie and localStorage, and follow other tabs. `false` keeps choices in memory only. See [persistence](/docs/frameworks/javascript/modules/persistence). |
+| `storageConfig` | `{ storageKey?, crossSubdomain?, defaultDomain?, defaultExpiryDays? }` | key `c15t`, 365 days | Cookie and localStorage naming and lifetime. |
+| `reloadOnConsentRevoked` | `boolean` | `true` | Reload after an accept, reject or save turns off a category or vendor that was allowed, once the save request finishes. |
+| `callbacks` | `{ onChoiceRecorded?, onPermissionsChanged?, onError?, onBeforeConsentRevocationReload? }` | none | See [callbacks](/docs/frameworks/javascript/callbacks). |
+| `overrides` | `{ country?, region?, language?, gpc? }` | none | Decision inputs the page knows. |
+| `prefetch` | kernel configuration | none | A server-resolved init answer. With a resolved policy, `start()` skips the `/init` request. A prefetch marked `initialPolicyPending` is provisional, so `start()` still sends it. |
+| `policyRules` | `PolicyRule[]` | none | Rules a local transport resolves. |
+| `i18n` | `{ locale?, messages }` | English | Initial language, and messages that override the bundled or backend copy key by key for the same language. See [translations](/docs/frameworks/javascript/translations). |
+| `presentation` | `{ prompt?, preferences? }` | none | Layout and blocking, for UIs that call `resolveConsentPresentation`. |
+| `journey` | `'page'`, `'tab'` or `false` | `'page'` | Random id that links each `/init` to the save that follows. See [session reports](/docs/concepts/data-fetching#link-an-init-to-the-save-that-follows). |
+| `user` | `{ externalId, identityProvider? }` | none | An identified visitor. |
+| `vendors` | `Vendor[]` | none | Vendors offered for vendor-level consent outside IAB. |
+| `nonce` | `string` | none | CSP nonce the script loader puts on every `<script>` it creates. A script's own `nonce` wins. |
+| `scriptLoader` | `{ onDebug? }` | none | Receive every script loader lifecycle event. |
+| `iab` | IAB options or `false` | none | CMP settings. Needs `createIAB`. |
+| `createIAB` | `createIAB` from `@c15t/iab` | none | The IAB module factory. Without it, `iab` is ignored. |
+| `enabled` | `boolean` | `true` | `false` grants every category, skips init and mounts no blocker, persistence or IAB. Scripts load at once. |
+| `windowDebug` | `boolean` | `true` | Install a small `window.c15t` object with `version`, `pkg`, `mode` and `hosting` on `start()`. `hosting` reads the current snapshot, so it changes from `null` once `/init` reports it. |
+| `pkg` | `string` | `'@c15t/core'` | The package name `window.c15t` reports. |
+
+## What start and dispose do
+
+`runtime.start()` mounts, in order:
+
+1. the `window.c15t` debug object, unless `windowDebug: false`;
+2. persistence, which reads stored choices;
+3. the `/init` request. With a resolved `prefetch` it adopts that answer
+   instead: the choice is evaluated at the server's clock, the banner the
+   server rendered counts as the first impression, a detected Global Privacy
+   Control signal is honoured, and `init:applied` fires as it would for a
+   response;
+4. the script loader, when `scripts` is not empty;
+5. the network blocker, when configured;
+6. the iframe blocker, unless `iframeBlocker: false`;
+7. the IAB module, when `iab` and `createIAB` are set;
+8. data clearing, when `clearOnRevocation` is set.
+
+`start()` does nothing without a `document`, so you can call it from shared
+code. A second call does nothing. The callback bridge and the reload watcher
+attach at construction, so they hear events from the first `start()`.
+
+In a client-only app, with no server-rendered markup to hydrate, you can call
+`start()` before the first render: the `/init` request then runs while the app
+mounts, and nothing waits for it. With server-rendered markup, call it after
+hydration so the first browser render matches the server's.
+
+The network blocker and data clearing are opt-in, so they load as separate
+chunks, and only when configured. Network blocker rules hold matching requests
+from construction until the blocker has loaded and decides each one. Data
+clearing waits for the policy anyway.
+
+`runtime.dispose()` undoes everything in reverse, then disposes the kernel.
+A runtime disposed before it started blocks the requests it was holding.
+
+## Runtime handle
+
+| Member | What it does |
+| --- | --- |
+| `kernel` | The kernel. Read and change consent through it. |
+| `start()`, `dispose()` | Mount and unmount every browser side effect. |
+| `started` | Whether `start()` has run and the runtime is not disposed. |
+| `identify(user)` | Link the consent record to a user. Failures surface through `onError`, not a rejection. |
+| `setOverrides(overrides)` | Merge into the country, region, language and GPC inputs. A key you pass replaces its value, `undefined` clears it, and a key you leave out stays. |
+| `reinit()` | Run `/init` again, for example after `setOverrides`. Does nothing while disabled. |
+| `setLanguage(code)` | Show the copy in another language. Does nothing for the current language; otherwise runs `/init` again, unless the runtime is disabled or uses `consentSource`. |
+| `processIframes()` | Pause gated iframes that consent does not allow and restore the ones it allows. Needed only with `iframeBlocker: { disableAutomaticBlocking: true }`. Does nothing before `start()`, after `dispose()` or with `iframeBlocker: false`. |
+| `reconcileStorage()` | Read stored records again and apply changes another runtime or tab made. Returns whether anything changed. |
+| `clearRecords()` | Delete stored choices and reset the kernel's records: choice, notice dismissal, subject and vendor choice. Saves still queued for the cleared subject are dropped. |
+| `consentCategories` | `necessary` plus the categories in the current choice scope, in the order the preference dialog lists them. |
+| `setConsentCategories(categories)` | Replace the configured categories. Discovered ones stay. `undefined` drops the configured list. |
+| `experiment` | The experiment the runtime runs: the one a ready `prefetch` carries, otherwise the `experiment` option. Resolve presentation and theme against it. |
+| `iab` | The CMP handle under IAB, or `null`. |
+| `subscribe(listener)` | Called when `iab` is mounted, replaced or removed; read it again in the listener. Returns an unsubscribe function. A provider runtime also calls it when `kernel` or `enabled` changes. |
+
+## Runtime for a framework provider
+
+`createConsentRuntime` is for a page that configures consent once. A framework
+provider whose options follow its props uses
+`createConsentProviderRuntime(options, modules)` instead. It has every member
+above, plus:
+
+| Member | What it does |
+| --- | --- |
+| `update(options)` | Apply the provider's new options. Pass the whole option set each time; the runtime compares it with the previous one and applies only what changed. Returns a promise that settles once every change has applied. |
+| `setEnabled(enabled)` | Turn consent management off or on. Off renders a separate permissive kernel that grants every category and shows no UI; only the script loader runs, and no request waits for the network blocker. On renders the visitor's kernel again, with their records, and adopts the prefetch again. It runs `/init` instead when there is no prefetch, or when overrides or the language changed while it was off. |
+| `enabled` | Whether consent management is on. |
+| `kernel` | The kernel to render. It changes when `enabled` changes. |
+| `subscribe(listener)` | Called when `kernel`, `iab` or `enabled` changes. Read them again in the listener. Returns an unsubscribe function. |
+
+`update()` applies these options to a running runtime:
+
+| Option | On change |
+| --- | --- |
+| `enabled` | Same as `setEnabled()`. |
+| `user` | The new user is identified. The user the runtime was created with is sent with `/init` and every save, and is not identified separately. |
+| `overrides` | The overrides are set and `/init` runs again. Key order does not count as a change. Before `start()` or while disabled, the next start sends `/init` instead of adopting the prefetch. |
+| `consentCategories` | The configured categories are replaced. |
+| `vendors`, `scripts`, network blocker `rules` | Vendors are declared again. Scripts go to the script loader, rules to the network blocker. A loader starts when scripts first appear. |
+| `networkBlocker` | New `rules` and `enabled` apply; leaving `enabled` out turns the blocker on. Requests new rules match wait until the blocker has them, including while an on-demand blocker loads. `false` removes the blocker; options where there were none add one. |
+| `iframeBlocker` | `false` removes the blocker. A new `disableAutomaticBlocking` rebuilds it. |
+| `callbacks`, `reloadOnConsentRevoked` | Read when an event fires, so the latest values apply. |
+
+`enabled`, `overrides` and `consentCategories` apply before `update()`
+returns. The rest of the comparison loads with the first `update()` in which
+some option is a new value. Calling `update()` with the option values the
+runtime already has, as a mount-time effect does, downloads nothing. Those
+changes apply once it has loaded, and the returned promise settles then. Until
+the network blocker has new or wider rules, requests they match are held, the
+way the runtime holds requests from construction until the blocker loads, so
+none goes out unchecked.
+
+`nonce`, `scriptLoader.onDebug` and the network blocker's `logBlockedRequests`
+and `onRequestBlocked` are read when their module starts. Every other option is
+read once. Storage counts among them: persistence keeps reading and writing
+where it started, and data clearing keeps protecting that location. Outside
+production, a change to `mode`, `i18n`, `experiment`, `persistence` or
+`storageConfig` logs a warning; create a new runtime to change them.
+
+`prefetch` may also be a promise, for example the result of a server helper
+that a framework streams to the browser, when `modules` includes
+`streamPrefetch` from `c15t/runtime`, or `lazyStreamPrefetch` from
+`c15t/runtime/provider`, which loads that code only for a runtime whose prefetch
+is a promise. Without either, a pending prefetch is ignored with a warning
+outside production, and the runtime requests the policy itself. That keeps the
+code out of providers that never stream. The runtime starts with a provisional
+policy, so no consent surface shows, and its first `/init` waits for the
+promise and applies the result instead of sending a request. A result without
+a policy is applied as a baseline (records, location, language) and the
+request is sent with those overrides. A rejected promise sends the request as
+if there were no prefetch. Records cleared while the promise is pending stay
+cleared. An experiment in a streamed result arrives too late to run.
+
+`modules` decides how each module loads. Pass `defaultRuntimeModules` to load
+them the way `createConsentRuntime` does. To keep a module out of the first
+chunk, replace its factory with `lazyRuntimeModule(() => import(...))`: calls
+made before the module has loaded are queued and replayed. A module that
+fails to load stays inactive and, outside production, logs a warning. Keep
+`watchRevocationReload` static, because it has to see the first save, and
+prefer a static `createPersistence`, because a lazy one shows a returning
+visitor the banner until it has loaded. When the script loader is lazy, data
+clearing subscribes once it has loaded, so revocation callbacks still run before
+browser data is removed. IAB mounts through the `mountIAB` module
+(`mountRuntimeIAB`, included in `defaultRuntimeModules`); without it `iab` is
+ignored.
+
+`onDemandRuntimeModules` loads the script loader, the network blocker, data
+clearing and a `consentSource` connection on demand, in chunks that import
+nothing your first chunk has. The script loader and the network blocker share
+one chunk, so a page with scripts and blocker rules downloads, or preloads, one
+file. Spread it into `modules` next to the modules you import statically:
+
+{/* example: fragment */}
+
+```ts
+import { watchRevocationReload } from 'c15t';
+import { createIframeBlocker } from 'c15t/modules/iframe-blocker';
+import { createPersistence } from 'c15t/modules/persistence';
+import { createWindowDebug } from 'c15t/modules/window-debug';
+import { onDemandRuntimeModules } from 'c15t/runtime/on-demand';
+import { createConsentProviderRuntime } from 'c15t/runtime/provider';
+
+const runtime = createConsentProviderRuntime(options, {
+	...onDemandRuntimeModules,
+	createIframeBlocker,
+	createPersistence,
+	createWindowDebug,
+	watchRevocationReload,
+});
+```
+
+A page that configures none of those modules never downloads them. A page
+with only scripts, or only blocker rules, downloads both. Consented scripts
+mount, and matching requests stay held, until the shared chunk has loaded.
+Optional categories stay denied until a `consentSource` connects. A module
+whose chunk fails to load is tried again when the browser comes back online.
+Until then a failed network blocker blocks every request its rules match
+instead of holding it. A module you load yourself with `lazyRuntimeModule`
+works the same way, but if it imports code your first chunk also uses,
+bundlers that split shared code (Vite, esbuild) move that code into extra
+chunks the first load then fetches.
+
+Import from `c15t/runtime/provider` when your provider loads modules on
+demand. It exports `createConsentProviderRuntime`, `lazyRuntimeModule` and
+`lazyStreamPrefetch`, and none of the modules `defaultRuntimeModules` imports
+statically. Some bundlers, esbuild among them, keep a module in the first chunk
+when it is imported statically anywhere in the graph, even unused, and also
+through `import()`.
+
+`c15t/runtime/on-demand` exports `onDemandRuntimeModules`,
+`createConsentRuntimeWith` and `mountRuntimeIAB`.
+`createConsentRuntimeWith(options, modules)` is `createConsentRuntime` with the
+modules you choose, for a page that configures once (a script tag, an Astro
+page) and loads some modules on demand. The same lifecycle and handle apply.
+The two entries are separate because esbuild emits a chunk for every
+`import()` in the files it reaches, used or not. A provider that loads modules
+through its own `import()` calls would get the on-demand chunks as well, plus
+an extra chunk for each module both load, and a page that configures once
+would get the provider runtime's update and streamed-prefetch chunks.
+
+`c15t/runtime/on-demand-factories` exports each on-demand factory on its own:
+`scriptLoaderOnDemand`, `networkBlockerOnDemand`, `clearOnRevocationOnDemand`
+and `connectConsentSourceOnDemand`. `scriptLoaderOnDemand` and
+`networkBlockerOnDemand` each load a chunk with only their module. Use them
+when you import some of those modules statically and load the rest on demand.
+Spreading `onDemandRuntimeModules` instead would load the module you import
+statically a second time, in the shared chunk, and a bundler then moves that
+module into a chunk of its own. The factories have their own entry because
+esbuild emits a chunk for every `import()` in the files it reaches, used or
+not, which would split the shared chunk apart:
+
+{/* example: fragment */}
+
+```ts
+import { watchRevocationReload } from 'c15t';
+import { createIframeBlocker } from 'c15t/modules/iframe-blocker';
+import { createPersistence } from 'c15t/modules/persistence';
+import { createScriptLoader } from 'c15t/modules/script-loader';
+import { createWindowDebug } from 'c15t/modules/window-debug';
+import { createConsentRuntimeWith } from 'c15t/runtime/on-demand';
+import {
+	clearOnRevocationOnDemand,
+	connectConsentSourceOnDemand,
+	networkBlockerOnDemand,
+} from 'c15t/runtime/on-demand-factories';
+
+const runtime = createConsentRuntimeWith(options, {
+	connectConsentSource: connectConsentSourceOnDemand,
+	createClearOnRevocation: clearOnRevocationOnDemand,
+	createIframeBlocker,
+	createNetworkBlocker: networkBlockerOnDemand,
+	createPersistence,
+	createScriptLoader,
+	createWindowDebug,
+	watchRevocationReload,
+});
+runtime.start();
+```
+
+## Other exports
+
+| Export from `c15t/runtime` | What it does |
+| --- | --- |
+| `createLazyIABFactory(loader)` | Wrap a dynamic `import('@c15t/iab')` so the IAB code loads as a separate chunk when the runtime mounts IAB. Pass its `create` as `createIAB`. |
+| `isIABConfigured(iab)` | Whether an `iab` option turns IAB on. |
+| `wireRuntimeCallbacks({ kernel, callbacks })` | Attach the four callbacks to a kernel you own. Returns a disposer. |
+| `createConsentProviderRuntime(options, modules)` | The runtime for a framework provider. See [runtime for a framework provider](#runtime-for-a-framework-provider). |
+| `defaultRuntimeModules` | The module factories `createConsentRuntime` mounts. |
+| `lazyRuntimeModule(load)` | Wrap a module factory so its module loads through a dynamic `import()` on first use. |
+| `streamPrefetch` | Add to the provider runtime's modules to accept a `prefetch` promise. |
+| `mountRuntimeIAB` | The `mountIAB` module: mounts the CMP once the kernel knows its `cmpId`. |
+
+## Check it works
+
+1. Create the runtime and subscribe to `runtime.kernel` before `start()`.
+2. Call `start()` in the browser. The Network tab shows one `/init` request,
+   and your subscriber receives a snapshot whose `resolution.status` is
+   `matched`.
+3. Call `runtime.kernel.commands.save('none')` from a button. A `/subjects`
+   request follows and reloading keeps the choice.
+4. Call `runtime.dispose()`. Scripts the loader added are removed.

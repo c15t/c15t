@@ -6,12 +6,27 @@ export type AllConsentNames =
 	| 'necessary';
 
 export interface CommonTranslations {
+	/** Acknowledges a notice without recording consent. */
+	acknowledge: string;
 	acceptAll: string;
 	rejectAll: string;
 	customize: string;
 	save: string;
 	close: string;
 	securedBy: string;
+	/** Acknowledges a notice prompt without recording a choice. */
+	dismiss: string;
+}
+
+/**
+ * Labels for buttons that open preferences, including the opt-out button
+ * on a notice prompt.
+ */
+export interface RightsTranslations {
+	/** Opt-out right. Keeps the statutory "do not sell or share" meaning. */
+	optOut: string;
+	/** Preferences right; opens the preference center. */
+	preferences: string;
 }
 
 export interface LegalLinksTranslations {
@@ -23,11 +38,32 @@ export interface LegalLinksTranslations {
 export interface CookieBannerTranslations {
 	title: string;
 	description: string;
+	/** Title shown when the active policy requires a notice prompt. */
+	noticeTitle: string;
+	/** Description shown when the active policy requires a notice prompt. */
+	noticeDescription: string;
 }
 
 export interface ConsentManagerDialogTranslations {
 	title: string;
 	description: string;
+	/** Copy for vendor rows nested under a category. Optional in translations. */
+	vendors?: Partial<VendorListTranslations>;
+}
+
+/** Copy for the vendor list inside the preference center. */
+export interface VendorListTranslations {
+	/**
+	 * Accessible name of the vendor list inside one category. Use the
+	 * `{count}` placeholder for the number of vendors listed.
+	 */
+	title: string;
+	/** Link text to a vendor's privacy policy. */
+	privacyPolicy: string;
+	/** Hint shown while the parent category is off, so vendor switches are disabled. */
+	disabledByCategory: string;
+	/** Accessible label for a vendor switch, with a {vendor} placeholder. */
+	switchLabel: string;
 }
 
 export interface ConsentTypeTranslations {
@@ -35,7 +71,11 @@ export interface ConsentTypeTranslations {
 	description: string;
 }
 
-export interface FrameTranslations {
+/**
+ * Copy for the placeholder `ConsentGate` renders while its category is
+ * denied.
+ */
+export interface ConsentGateTranslations {
 	/**
 	 * You can use the {category} placeholder to dynamically insert the consent category name.
 	 */
@@ -45,7 +85,7 @@ export interface FrameTranslations {
 	 */
 	actionButton: string;
 	/**
-	 * Message shown when the frame category is blocked by active policy scope.
+	 * Message shown when the gate's category is blocked by active policy scope.
 	 */
 	policyBlocked: string;
 	/**
@@ -57,6 +97,11 @@ export interface FrameTranslations {
 	 */
 	error?: string;
 }
+
+/**
+ * @deprecated Renamed to {@link ConsentGateTranslations}.
+ */
+export type FrameTranslations = ConsentGateTranslations;
 
 export interface IABBannerTranslations {
 	title: string;
@@ -142,14 +187,24 @@ export interface IABPreferenceCenterTranslations {
 		 * Use {days} placeholder for max age in days.
 		 */
 		maxAge: string;
+		/** Suffix shown when cookie max age refreshes. */
+		maxAgeRefreshes?: string;
 		/**
 		 * Use {days} placeholder for retention in days.
 		 */
 		retention: string;
+		/** Use {days} placeholder. Shown per-purpose/special-purpose. */
+		retainedDays?: string;
 		legitimateInterest: string;
 		privacyPolicy: string;
 		storageDisclosure: string;
 		requiredNotice: string;
+		/** Use {searchTerm} placeholder. */
+		noVendorsFound?: string;
+		/** Use {count} placeholder for partner count. */
+		partnerCount?: string;
+		partnerSingular?: string;
+		partnerPlural?: string;
 	};
 	footer: {
 		consentStorage: string;
@@ -187,9 +242,10 @@ export interface CompleteTranslations {
 	cookieBanner: CookieBannerTranslations;
 	consentManagerDialog: ConsentManagerDialogTranslations;
 	consentTypes: ConsentTypesTranslations;
-	frame: FrameTranslations;
+	consentGate: ConsentGateTranslations;
 	legalLinks: LegalLinksTranslations;
 	iab: IABTranslations;
+	rights: RightsTranslations;
 }
 
 // Partial translations interface (used for other languages)
@@ -200,9 +256,17 @@ export interface Translations {
 	consentTypes: {
 		[key in AllConsentNames]?: Partial<ConsentTypeTranslations>;
 	};
-	frame?: Partial<FrameTranslations>;
+	consentGate?: Partial<ConsentGateTranslations>;
+	/**
+	 * `consentGate` copy under its name before the rename. Read as
+	 * `consentGate` when that key is absent.
+	 *
+	 * @deprecated Use `consentGate`.
+	 */
+	frame?: Partial<ConsentGateTranslations>;
 	legalLinks?: Partial<LegalLinksTranslations>;
 	iab?: DeepPartial<IABTranslations>;
+	rights?: Partial<RightsTranslations>;
 }
 
 // Helper type for deep partial

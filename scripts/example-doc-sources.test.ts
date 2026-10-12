@@ -1,0 +1,331 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+import { describe, expect, test } from 'vitest';
+
+import {
+	collectExampleRegions,
+	extractRegion,
+	findRegions,
+	generatedExamplesDir,
+	languageFor,
+	listGeneratedExamples,
+	renderExampleRegion,
+	toPosixPath,
+} from './example-doc-sources';
+import {
+	compareToBaseline,
+	countHandWrittenExamples,
+	countInDocument,
+	fragmentMarker,
+	handWrittenBaselinePath,
+	lowerBaseline,
+} from './hand-written-examples';
+
+const root = fileURLToPath(new URL('..', import.meta.url));
+const regions = collectExampleRegions(root);
+
+describe('generated example snippets', () => {
+	test.each(regions)('$destination matches $source', async (region) => {
+		expect(readFileSync(resolve(root, region.destination), 'utf8')).toBe(
+			await renderExampleRegion(root, region)
+		);
+	});
+
+	test('every generated snippet still has a source region', () => {
+		const expected = new Set(regions.map((region) => region.destination));
+		const generated = listGeneratedExamples(root);
+		expect(generated.length).toBeGreaterThan(0);
+		expect(generated.filter((file) => !expected.has(file))).toEqual([]);
+	});
+
+	test('compares Windows paths in the same form as destinations', () => {
+		expect(toPosixPath('nextjs\\config.mdx', '\\')).toBe('nextjs/config.mdx');
+		expect(toPosixPath('nextjs/config.mdx', '/')).toBe('nextjs/config.mdx');
+	});
+});
+
+describe('design recipes', () => {
+	// The docs show one design across adapters, so every copy of a recipe's
+	// stylesheet must match the others.
+	test.each(['headless-bar-css', 'slim-bar-css'])(
+		'every %s copy matches',
+		(name) => {
+			const copies = regions.filter((region) => region.name === name);
+			expect(copies.length).toBeGreaterThan(1);
+			const [first, ...rest] = copies.map((region) =>
+				extractRegion(
+					readFileSync(resolve(root, region.source), 'utf8'),
+					region.name,
+					region.source
+				)
+			);
+			for (const copy of rest) {
+				expect(copy).toBe(first);
+			}
+		}
+	);
+});
+
+describe('region extraction', () => {
+	const source = [
+		'import { a } from "a";',
+		'// #region docs:outer title="app/layout.tsx"',
+		'export const Layout = () => (',
+		'\t// #region docs:inner',
+		'\t<Root />',
+		'\t// #endregion docs:inner',
+		');',
+		'// #endregion docs:outer',
+	].join('\n');
+
+	test('removes nested markers from the outer region', () => {
+		expect(extractRegion(source, 'outer', 'x.tsx')).toBe(
+			'export const Layout = () => (\n\t<Root />\n);'
+		);
+	});
+
+	test('removes shared indentation', () => {
+		expect(extractRegion(source, 'inner', 'x.tsx')).toBe('<Root />');
+	});
+
+	test('reads names and title overrides from markup comments', () => {
+		const found = findRegions(
+			'examples/vue/src/App.vue',
+			'<!-- #region docs:root title="src/App.vue" -->\n<ConsentRoot />\n<!-- #endregion docs:root -->'
+		);
+		expect(found).toEqual([
+			expect.objectContaining({
+				destination: `${generatedExamplesDir}/vue/root.mdx`,
+				title: 'src/App.vue',
+			}),
+		]);
+	});
+
+	test('publishes acceptance fixtures under the fixture name', () => {
+		const [region] = findRegions(
+			'internals/fixtures/nuxt/app/app.vue',
+			'<!-- #region docs:root -->\n<ConsentRoot />\n<!-- #endregion docs:root -->'
+		);
+		expect(region).toMatchObject({
+			app: 'internals/fixtures/nuxt',
+			destination: `${generatedExamplesDir}/nuxt/root.mdx`,
+			title: 'app/app.vue',
+		});
+	});
+
+	test('publishes doc snippets under the snippet set name', () => {
+		const [region] = findRegions(
+			'internals/doc-snippets/nuxt/callbacks.ts',
+			'// #region docs:callbacks\nx\n// #endregion docs:callbacks'
+		);
+		expect(region).toMatchObject({
+			app: 'internals/doc-snippets/nuxt',
+			destination: `${generatedExamplesDir}/nuxt/callbacks.mdx`,
+			title: 'callbacks.ts',
+		});
+	});
+
+	test('defaults the title to the path inside the example app', () => {
+		const [region] = findRegions(
+			'internals/next-compat/next-16-app/app/layout.tsx',
+			'// #region docs:layout\nx\n// #endregion docs:layout'
+		);
+		expect(region).toMatchObject({
+			destination: `${generatedExamplesDir}/next-compat/next-16-app/layout.mdx`,
+			title: 'app/layout.tsx',
+		});
+	});
+
+	test('publishes Storybook recipes under the Storybook app name', () => {
+		const [region] = findRegions(
+			'apps/storybook-react/src/docs-recipes/bottom-bar.tsx',
+			'// #region docs:bottom-bar\nx\n// #endregion docs:bottom-bar'
+		);
+		expect(region).toMatchObject({
+			app: 'apps/storybook-react',
+			destination: `${generatedExamplesDir}/storybook-react/bottom-bar.mdx`,
+			title: 'src/docs-recipes/bottom-bar.tsx',
+		});
+	});
+
+	test('publishes Tailwind matrix fixtures by version and framework', () => {
+		const [region] = findRegions(
+			'benchmarks/tailwind-matrix/v3/react/src/app.css',
+			'/* #region docs:tailwind-css */\nx\n/* #endregion docs:tailwind-css */'
+		);
+		expect(region).toMatchObject({
+			app: 'benchmarks/tailwind-matrix/v3/react',
+			destination: `${generatedExamplesDir}/tailwind-v3/react/tailwind-css.mdx`,
+			title: 'src/app.css',
+		});
+	});
+
+	test('rejects files outside an example app', () => {
+		expect(() =>
+			findRegions(
+				'apps/parity-runner/src/geometry.ts',
+				'// #region docs:x\nx\n// #endregion docs:x'
+			)
+		).toThrow('is not inside an example app');
+	});
+
+	test('keeps code that mentions a marker outside a comment', () => {
+		const content = [
+			'// #region docs:note',
+			"const marker = '#region docs:other';",
+			'// #endregion docs:note',
+		].join('\n');
+		expect(findRegions('examples/react/src/x.ts', content)).toHaveLength(1);
+		expect(extractRegion(content, 'note', 'x.ts')).toBe(
+			"const marker = '#region docs:other';"
+		);
+	});
+
+	test('reads markers in shell and block comments', () => {
+		const content = [
+			'# #region docs:env',
+			'KEY=1',
+			'# #endregion docs:env',
+			'/* #region docs:css */',
+			'a {}',
+			'/* #endregion docs:css */',
+		].join('\n');
+		expect(extractRegion(content, 'env', 'x')).toBe('KEY=1');
+		expect(extractRegion(content, 'css', 'x')).toBe('a {}');
+	});
+
+	test('rejects missing and unclosed regions', () => {
+		expect(() => extractRegion(source, 'absent', 'x.tsx')).toThrow(
+			'has no region'
+		);
+		expect(() =>
+			extractRegion('// #region docs:open\nx', 'open', 'x.tsx')
+		).toThrow('does not close');
+	});
+
+	test('omits lines that end in a docs:hide comment', () => {
+		const hidden = [
+			'// #region docs:config',
+			'c15t({',
+			'\tmode: hosted({ backendURL }),',
+			'\tdebug: true, // docs:hide',
+			'});',
+			'<Banner />',
+			'<Demo /> <!-- docs:hide -->',
+			'{demo} {/* docs:hide */}',
+			'.demo {} /* docs:hide */',
+			'// #endregion docs:config',
+		].join('\n');
+		expect(extractRegion(hidden, 'config', 'x.tsx')).toBe(
+			'c15t({\n\tmode: hosted({ backendURL }),\n});\n<Banner />'
+		);
+	});
+
+	test('keeps a line that only mentions docs:hide before the end', () => {
+		const kept = [
+			'// #region docs:note',
+			"const marker = 'docs:hide'; // explains the marker",
+			'// #endregion docs:note',
+		].join('\n');
+		expect(extractRegion(kept, 'note', 'x.ts')).toBe(
+			"const marker = 'docs:hide'; // explains the marker"
+		);
+	});
+
+	test('omits hide blocks, while a region inside one still publishes', () => {
+		const block = [
+			'// #region docs:config',
+			'c15t({',
+			"\tui: 'svelte',",
+			'\t// #hide docs',
+			'\t// #region docs:vendors',
+			'\tvendors: [],',
+			'\t// #endregion docs:vendors',
+			'\t// #endhide docs',
+			'});',
+			'<!-- #hide docs -->',
+			'<Demo />',
+			'<!-- #endhide docs -->',
+			'// #endregion docs:config',
+		].join('\n');
+		expect(extractRegion(block, 'config', 'x.mjs')).toBe(
+			"c15t({\n\tui: 'svelte',\n});"
+		);
+		expect(extractRegion(block, 'vendors', 'x.mjs')).toBe('vendors: [],');
+	});
+
+	test('rejects an unclosed or unopened hide block', () => {
+		expect(() =>
+			extractRegion(
+				'// #region docs:x\n// #hide docs\ny\n// #endregion docs:x',
+				'x',
+				'x.ts'
+			)
+		).toThrow('does not close a hide block');
+		expect(() =>
+			extractRegion(
+				'// #region docs:x\ny\n// #endhide docs\n// #endregion docs:x',
+				'x',
+				'x.ts'
+			)
+		).toThrow('closes a hide block it never opened');
+	});
+
+	test('names fence languages from file names', () => {
+		expect(languageFor('internals/fixtures/nuxt/.env.example')).toBe('dotenv');
+		expect(
+			languageFor('internals/fixtures/astro-demo/src/pages/index.astro')
+		).toBe('astro');
+	});
+});
+
+describe('hand-written docs examples', () => {
+	test('counts code fences that import c15t, including indented tabs', () => {
+		const page = [
+			'```tsx title="app/layout.tsx"',
+			"import { ConsentRoot } from 'c15t/next';",
+			'```',
+			'',
+			'  ```ts',
+			"  import { posthog } from '@c15t/integrations/posthog';",
+			'  ```',
+			'',
+			'```bash',
+			'npm install c15t',
+			'```',
+			'',
+			fragmentMarker,
+			'```ts',
+			"import { hosted } from 'c15t/react';",
+			'```',
+		].join('\n');
+		expect(countInDocument(page)).toBe(2);
+	});
+
+	test('do not grow beyond the baseline', () => {
+		const baseline = JSON.parse(
+			readFileSync(resolve(root, handWrittenBaselinePath), 'utf8')
+		) as Record<string, number>;
+		const { added, stale } = compareToBaseline(
+			baseline,
+			countHandWrittenExamples(root)
+		);
+		expect(
+			added,
+			'Move new setup code into a starter or doc-snippets region (see examples/README.md and the writing-docs skill).'
+		).toEqual([]);
+		expect(
+			stale,
+			'Run bun scripts/sync-example-docs.ts to lower the baseline.'
+		).toEqual([]);
+	});
+
+	test('regenerating the baseline never admits new code', () => {
+		expect(lowerBaseline({ 'a.mdx': 2 }, { 'a.mdx': 5, 'b.mdx': 1 })).toEqual({
+			'a.mdx': 2,
+		});
+		expect(lowerBaseline({ 'a.mdx': 2 }, {})).toEqual({});
+	});
+});

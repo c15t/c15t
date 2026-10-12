@@ -1,40 +1,29 @@
 'use client';
 
-import { configureConsentManager, createConsentManagerStore } from 'c15t';
-import { useEffect, useState } from 'react';
+import { createConsentKernel, createHostedTransport } from '@c15t/core';
+import { useMemo } from 'react';
 
-export default function CoreOnlyPage() {
-	const [consents, setConsents] = useState<Record<string, boolean>>({});
-	const [isLoading, setIsLoading] = useState(true);
-
-	useEffect(() => {
-		const manager = configureConsentManager({ mode: 'offline' });
-		const store = createConsentManagerStore(manager);
-		setConsents(store.getState().consents);
-		setIsLoading(false);
-
-		// Subscribe to changes
-		const unsubscribe = store.subscribe((state) => {
-			setConsents(state.consents);
-		});
-
-		return unsubscribe;
-	}, []);
-
-	if (isLoading) {
-		return <div>Loading...</div>;
-	}
+/**
+ * `/core-only`: the headless kernel plus hosted transport with no React
+ * adapter. `bundleBudgets` carries a `core-only` route budget; this page
+ * gives it a route to measure. Kernel construction is pure, so it can run
+ * inside a memo.
+ */
+const CoreOnlyPage = () => {
+	const kernel = useMemo(
+		() =>
+			createConsentKernel({
+				transport: createHostedTransport({ backendURL: '/api/bench-consent' }),
+			}),
+		[]
+	);
 
 	return (
-		<main style={{ padding: '2rem', fontFamily: 'system-ui' }}>
-			<h1>Core Only Test</h1>
-			<p>
-				This page uses only the vanilla JS core package (c15t) without React
-				bindings.
-			</p>
-
-			<h2>Current Consents</h2>
-			<pre>{JSON.stringify(consents, null, 2)}</pre>
+		<main>
+			<h1>core-only</h1>
+			<p>Kernel revision: {kernel.getSnapshot().revision}</p>
 		</main>
 	);
-}
+};
+
+export default CoreOnlyPage;

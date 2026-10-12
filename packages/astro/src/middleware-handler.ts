@@ -1,0 +1,119 @@
+/**
+ * The middleware factory behind `@c15t/astro/middleware`.
+ *
+ * Kept separate from the entrypoint so it can be constructed with explicit
+ * options — the entrypoint binds it to the build-time virtual module, and
+ * tests and advanced setups bind it to their own.
+ */
+
+import type { APIContext, MiddlewareHandler } from 'astro';
+
+import { waitUntilFromLocals } from './api/handlers';
+import { resolveConsentContext } from './server';
+import type { C15tResolvedOptions } from './types';
+
+/** Options for {@link createConsentMiddleware}. */
+export interface ConsentMiddlewareOptions {
+	/** Override fetch, mainly for tests. */
+	fetch?: typeof globalThis.fetch;
+	/**
+	 * Resolve this request's banner-experiment arm, for example from a
+	 * feature flag or a cookie. Overrides a static `experiment.arm`.
+	 * Return `undefined` to run no experiment for the request. Not called
+	 * for prerendered routes, which render once for every visitor.
+	 */
+	experimentArm?: (
+		context: APIContext
+	) => string | undefined | Promise<string | undefined>;
+}
+
+/**
+ * `true` when `pathname` is `prefix` or lives underneath it.
+ *
+ * Segment-aware on purpose: `/api` must not claim `/apidocs`.
+ */
+const matchesPrefix = function matchesPrefix(
+	pathname: string,
+	prefix: string
+): boolean {
+	if (!prefix) {
+		return false;
+	}
+	const normalized = prefix.endsWith('/') ? prefix.slice(0, -1) : prefix;
+	return pathname === normalized || pathname.startsWith(`${normalized}/`);
+};
+
+/**
+ * The paths this middleware leaves alone.
+ *
+ * The injected route under `routePrefix` is always in the list. With the
+ * manifest served by the same process, letting them through would make the
+ * manifest request resolve consent, which fetches the manifest, which
+ * resolves consent — a request that never returns. Nothing on those routes
+ * renders consent UI, so there is nothing to lose by skipping them.
+ *
+ * @param options - The resolved integration options.
+ * @returns Path prefixes to skip.
+ */
+const resolveSkipPaths = function resolveSkipPaths(
+	options: C15tResolvedOptions
+): string[] {
+	return [options.routePrefix, ...(options.middleware?.skip ?? [])].filter(
+		(path): path is string => Boolean(path)
+	);
+};
+
+/**
+ * Build the `pre`-order middleware that populates `Astro.locals.c15t`.
+ *
+ * It reads the consent cookie and the geo/GPC headers, resolves the policy
+ * decision through the configured mode, and leaves the result on locals so
+ * the components render the right thing on the server and the browser boots
+ * without an `/init` roundtrip.
+ *
+ * A prerendered route is resolved without its request: there is no
+ * per-visitor request to read, and resolving one would bake one visitor's
+ * geo and cookie into a shared HTML file. Offline mode still resolves its
+ * policy, and the browser applies the visitor's own cookie on boot. Use
+ * `<ConsentBannerDeferred />` when a cached page still needs live geo.
+ *
+ * So is the integration's own route under `routePrefix`, and anything
+ * listed in `middleware.skip` — those run `next()` with `Astro.locals.c15t`
+ * left unset.
+ *
+ * @param options - The resolved integration options.
+ * @param middlewareOptions - Test seams.
+ * @returns An Astro middleware handler.
+ */
+export const createConsentMiddleware = function createConsentMiddleware(
+	options: C15tResolvedOptions,
+	middlewareOptions: ConsentMiddlewareOptions = {}
+): MiddlewareHandler {
+	const skipPaths = resolveSkipPaths(options);
+
+	return async (context, next) => {
+		const { pathname } = new URL(context.request.url);
+		if (skipPaths.some((prefix) => matchesPrefix(pathname, prefix))) {
+			return await next();
+		}
+
+		const prerendered = context.isPrerendered === true;
+		const experimentArm =
+			options.experiment && !prerendered
+				? await middlewareOptions.experimentArm?.(context)
+				: undefined;
+		context.locals.c15t = await resolveConsentContext({
+			experimentArm,
+			fetch: middlewareOptions.fetch,
+			// Astro warns on any read of a prerendered request's headers, and
+			// at build time they hold nothing about a visitor anyway.
+			headers: prerendered ? new Headers() : context.request.headers,
+			onBackgroundRevalidate: (revalidation) =>
+				waitUntilFromLocals(revalidation, context.locals),
+			options,
+			prerendered,
+			url: context.request.url,
+		});
+		return await next();
+	};
+};

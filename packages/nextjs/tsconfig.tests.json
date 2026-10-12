@@ -1,0 +1,14 @@
+{
+	"extends": "./tsconfig.json",
+	"compilerOptions": {
+		"rootDir": "../..",
+		"lib": ["ES2022", "DOM", "DOM.Iterable"],
+		"types": ["@vitest/browser/matchers"],
+		"target": "ES2022"
+	},
+	"include": [
+		"src/__tests__",
+		"../react/node_modules/@types/google.maps/index.d.ts"
+	],
+	"exclude": ["node_modules"]
+}

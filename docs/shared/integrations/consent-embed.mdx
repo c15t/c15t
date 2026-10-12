@@ -1,0 +1,391 @@
+---
+title: Embed content by framework
+description: Mount remote iframe content only while the configured category is allowed.
+group: integrations
+---
+
+## Add the embed to your framework
+
+Create `src/embed-config.ts` using the configuration on this page, then select
+your framework. Keep the existing [consent setup](/docs/frameworks), its policy
+and preferences UI. These examples do not create a second consent provider.
+
+<Tabs items={['Next.js', 'TanStack Start', 'React', 'Nuxt', 'Vue', 'Astro', 'Svelte', 'SvelteKit', 'HTML', 'JavaScript']}>
+  <Tab value="Next.js">
+    Render this component inside your existing consent boundary or provider.
+
+    ```tsx title="src/consent-embed.tsx"
+    'use client';
+
+    import { ConsentGate } from 'c15t/next';
+    import { embedCategory, embedURL, embedTitle, embedAspectRatio } from './embed-config';
+
+    export function ConsentEmbed() {
+      return (
+        <ConsentGate category={embedCategory}>
+          <iframe
+            src={embedURL}
+            title={embedTitle}
+            loading="lazy"
+            allowFullScreen
+            style={{ width: '100%', aspectRatio: embedAspectRatio, minHeight: 200, border: 0 }}
+          />
+        </ConsentGate>
+      );
+    }
+    ```
+
+    `ConsentGate` keeps the iframe absent while permission is denied and removes it
+    on revocation. Keep your existing consent styles and preferences dialog.
+  </Tab>
+
+  <Tab value="TanStack Start">
+    Render this component inside your existing consent boundary or provider.
+
+    ```tsx title="src/consent-embed.tsx"
+    import { ConsentGate } from 'c15t/tanstack-start';
+    import { embedCategory, embedURL, embedTitle, embedAspectRatio } from './embed-config';
+
+    export function ConsentEmbed() {
+      return (
+        <ConsentGate category={embedCategory}>
+          <iframe
+            src={embedURL}
+            title={embedTitle}
+            loading="lazy"
+            allowFullScreen
+            style={{ width: '100%', aspectRatio: embedAspectRatio, minHeight: 200, border: 0 }}
+          />
+        </ConsentGate>
+      );
+    }
+    ```
+
+    `ConsentGate` keeps the iframe absent while permission is denied and removes it
+    on revocation. Keep your existing consent styles and preferences dialog.
+  </Tab>
+
+  <Tab value="React">
+    Render this component inside your existing consent boundary or provider.
+
+    ```tsx title="src/consent-embed.tsx"
+    import { ConsentGate } from 'c15t/react';
+    import { embedCategory, embedURL, embedTitle, embedAspectRatio } from './embed-config';
+
+    export function ConsentEmbed() {
+      return (
+        <ConsentGate category={embedCategory}>
+          <iframe
+            src={embedURL}
+            title={embedTitle}
+            loading="lazy"
+            allowFullScreen
+            style={{ width: '100%', aspectRatio: embedAspectRatio, minHeight: 200, border: 0 }}
+          />
+        </ConsentGate>
+      );
+    }
+    ```
+
+    `ConsentGate` keeps the iframe absent while permission is denied and removes it
+    on revocation. Keep your existing consent styles and preferences dialog.
+  </Tab>
+
+  <Tab value="Nuxt">
+    The Nuxt module registers `ConsentGate` and `ConsentDialogLink`, so
+    this component imports only the embed configuration.
+
+    ```vue title="app/components/ConsentEmbed.vue"
+    <script setup lang="ts">
+    import { embedCategory, embedURL, embedTitle, embedAspectRatio } from '../../src/embed-config';
+    </script>
+
+    <template>
+      <ConsentGate :category="embedCategory">
+        <iframe
+          :src="embedURL"
+          :title="embedTitle"
+          loading="lazy"
+          allowfullscreen
+          :style="{ width: '100%', aspectRatio: embedAspectRatio, minHeight: '200px', border: 0 }"
+        />
+        <template #placeholder>
+          <p>Allow {{ embedCategory }} to load this content.</p>
+          <ConsentDialogLink>Open privacy settings</ConsentDialogLink>
+        </template>
+      </ConsentGate>
+    </template>
+    ```
+
+    `ConsentGate` keeps the iframe out of the server HTML and the DOM while
+    permission is denied, and removes it on revocation. See
+    [Nuxt scripts and embeds](/docs/frameworks/nuxt/scripts).
+  </Tab>
+
+  <Tab value="Vue">
+    Render this component inside the app that installed the c15t Vue plugin.
+
+    ```vue title="src/ConsentEmbed.vue"
+    <script setup lang="ts">
+    import { ConsentDialogLink, ConsentGate } from 'c15t/vue/vue-plugin';
+    import { embedCategory, embedURL, embedTitle, embedAspectRatio } from './embed-config';
+    </script>
+
+    <template>
+      <ConsentGate :category="embedCategory">
+        <iframe
+          :src="embedURL"
+          :title="embedTitle"
+          loading="lazy"
+          allowfullscreen
+          :style="{ width: '100%', aspectRatio: embedAspectRatio, minHeight: '200px', border: 0 }"
+        />
+        <template #placeholder>
+          <p>Allow {{ embedCategory }} to load this content.</p>
+          <ConsentDialogLink>Open privacy settings</ConsentDialogLink>
+        </template>
+      </ConsentGate>
+    </template>
+    ```
+
+    `ConsentGate` keeps the iframe out of the DOM while permission is denied,
+    and removes it on revocation. See
+    [Vue scripts and embeds](/docs/frameworks/vue/scripts).
+  </Tab>
+
+  <Tab value="Astro">
+    Use the shared browser helper below with Astro's existing page runtime.
+    Add this component to pages using your consent-enabled base layout:
+
+    ```astro title="src/components/ConsentEmbed.astro"
+    <c15t-consent-embed style="display: block"></c15t-consent-embed>
+
+    <script>
+      import { getConsentClient } from 'c15t/astro/client';
+      import { mountConsentEmbed } from '../consent-embed';
+
+      class ConsentEmbed extends HTMLElement {
+        dispose?: () => void;
+
+        connect = () => {
+          if (this.dispose) return;
+          const client = getConsentClient();
+          if (!client) return;
+          this.dispose = mountConsentEmbed(
+            this,
+            client.runtime.kernel,
+            () => { void client.openDialog(); },
+          );
+        };
+
+        connectedCallback() {
+          document.addEventListener('DOMContentLoaded', this.connect, { once: true });
+          this.connect();
+        }
+
+        disconnectedCallback() {
+          document.removeEventListener('DOMContentLoaded', this.connect);
+          this.dispose?.();
+          this.dispose = undefined;
+        }
+      }
+
+      if (!customElements.get('c15t-consent-embed')) {
+        customElements.define('c15t-consent-embed', ConsentEmbed);
+      }
+    </script>
+    ```
+
+    The first mount waits for the page's module scripts, including c15t's boot
+    script. Later `ClientRouter` mounts reuse the existing runtime. Removing the
+    component unsubscribes and removes the iframe. Do not create another consent
+    runtime for this embed.
+  </Tab>
+
+  <Tab value="Svelte">
+    Render this component inside the existing `ConsentProvider`.
+    The provider from your quickstart supplies its consent state.
+
+    ```svelte title="src/ConsentEmbed.svelte"
+    <script lang="ts">
+      import { ConsentGate } from '@c15t/svelte';
+      import { embedCategory, embedURL, embedTitle, embedAspectRatio } from './embed-config';
+    </script>
+
+    <ConsentGate category={embedCategory}>
+      <iframe
+        src={embedURL}
+        title={embedTitle}
+        loading="lazy"
+        allowfullscreen
+        style:width="100%"
+        style:aspect-ratio={embedAspectRatio}
+        style:min-height="200px"
+        style:border="0"
+      ></iframe>
+    </ConsentGate>
+    ```
+
+    The Svelte `ConsentGate` waits until the browser is mounted and the category is
+    allowed. Its default placeholder opens preferences. Revocation removes the
+    iframe.
+  </Tab>
+
+  <Tab value="SvelteKit">
+    Render this component inside the existing `ConsentRoot`.
+    Keep the SvelteKit root and its server-resolved state unchanged.
+
+    ```svelte title="src/lib/ConsentEmbed.svelte"
+    <script lang="ts">
+      import { ConsentGate } from '@c15t/svelte';
+      import { embedCategory, embedURL, embedTitle, embedAspectRatio } from '../embed-config';
+    </script>
+
+    <ConsentGate category={embedCategory}>
+      <iframe
+        src={embedURL}
+        title={embedTitle}
+        loading="lazy"
+        allowfullscreen
+        style:width="100%"
+        style:aspect-ratio={embedAspectRatio}
+        style:min-height="200px"
+        style:border="0"
+      ></iframe>
+    </ConsentGate>
+    ```
+
+    The Svelte `ConsentGate` waits until the browser is mounted and the category is
+    allowed. Its default placeholder opens preferences. Revocation removes the
+    iframe.
+  </Tab>
+
+  <Tab value="HTML">
+    The c15t script tag gates iframes that name a category. Put the embed's URL
+    in `data-src` instead of `src`. Replace `EMBED_URL`, `EMBED_CATEGORY` and
+    `EMBED_TITLE` with `embedURL`, `embedCategory` and `embedTitle` from the
+    configuration on this page:
+
+    ```html
+    <iframe
+      data-src="EMBED_URL"
+      data-category="EMBED_CATEGORY"
+      title="EMBED_TITLE"
+      loading="lazy"
+      allowfullscreen
+    ></iframe>
+    ```
+
+    c15t sets `src` once the category is allowed and removes it on revocation.
+    Without `src` the iframe loads nothing, so hide it with CSS and show a link
+    to `#c15t-preferences` in its place. See
+    [HTML embeds](/docs/frameworks/html/embeds).
+  </Tab>
+
+  <Tab value="JavaScript">
+    Use the shared browser helper below with your existing client. Put an
+    empty container where the embed should appear:
+
+    ```html
+    <div id="consent-embed"></div>
+    ```
+
+    In your browser entry point, after `init()`:
+
+    ```ts
+    import { mountConsentEmbed } from './consent-embed';
+
+    const container = document.querySelector<HTMLElement>('#consent-embed');
+    if (!container) throw new Error('Missing consent embed container');
+
+    const disposeEmbed = mountConsentEmbed(container, consent.kernel, () =>
+      consent.openDialog(),
+    );
+    ```
+
+    `consent` is the client from `init()` in your quickstart. With
+    `createConsentRuntime`, pass `runtime.kernel` and your own function that
+    opens preferences. Call `disposeEmbed()` when the page or component is
+    destroyed. Iframe markup with `data-src` and `data-category` also works
+    without the helper, because both setups gate iframes by default.
+  </Tab>
+</Tabs>
+
+## Browser helper for Astro and JavaScript
+
+Only the Astro and JavaScript examples need this helper. It creates the iframe
+when permission allows it, keeps an existing player mounted across unrelated
+snapshot updates, and removes it on revocation.
+
+```ts title="src/consent-embed.ts"
+import {
+	embedCategory,
+	embedURL,
+	embedTitle,
+	embedAspectRatio,
+} from './embed-config';
+
+type EmbedKernel = {
+	getSnapshot: () => {
+		effectivePermissions: Record<typeof embedCategory, boolean>;
+	};
+	subscribe: (listener: () => void) => () => void;
+};
+
+export function mountConsentEmbed(
+	container: HTMLElement,
+	kernel: EmbedKernel,
+	openPreferences: () => void
+) {
+	const render = () => {
+		if (kernel.getSnapshot().effectivePermissions[embedCategory]) {
+			if (container.querySelector('iframe')) return;
+			const frame = document.createElement('iframe');
+			frame.src = embedURL;
+			frame.title = embedTitle;
+			frame.loading = 'lazy';
+			frame.allowFullscreen = true;
+			Object.assign(frame.style, {
+				width: '100%',
+				aspectRatio: embedAspectRatio,
+				minHeight: '200px',
+				border: '0',
+			});
+			container.replaceChildren(frame);
+		} else {
+			if (container.querySelector('button')) return;
+			const button = document.createElement('button');
+			button.type = 'button';
+			button.textContent = 'Open privacy settings to view this content';
+			button.onclick = openPreferences;
+			container.replaceChildren(button);
+		}
+	};
+
+	render();
+	const unsubscribe = kernel.subscribe(render);
+	return () => {
+		unsubscribe();
+		container.replaceChildren();
+	};
+}
+```
+
+Keep a transcript, address or other useful alternative outside the embed.
+`loading="lazy"` is a performance hint; the consent condition controls whether
+the iframe exists at all. A denied category may be fixed by policy, so opening
+preferences does not guarantee that the visitor can grant it.
+
+## Gate existing iframe markup
+
+For markup that uses `data-category` and `data-src`, the
+`createIframeBlocker` module from `c15t/modules/iframe-blocker` promotes
+`data-src` only when the category has consent and the URL resolves to HTTP or
+HTTPS. Relative URLs resolve against the iframe document's base URL.
+Malformed URLs and other schemes, including `javascript:`, `data:` and `blob:`,
+remain in `data-src` without loading. Correct the URL and call
+`processAllIframes()` to retry.
+
+Keep the initial URL in `data-src`, without `src`, so the browser cannot load
+it before the blocker runs. The module does not sanitize arbitrary HTML or
+modify iframes without `data-category`.

@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process';
 import {
 	mkdirSync,
 	readdirSync,
@@ -6,9 +7,23 @@ import {
 	writeFileSync,
 } from 'node:fs';
 import { dirname, join } from 'node:path';
+
 import type { BenchmarkEnvironment, MetricSampleSet } from './schema';
 
-export function percentile(values: number[], p: number): number {
+const getDefined = <Value>(
+	value: Value,
+	message = 'Expected value to be defined'
+): NonNullable<Value> => {
+	if (value === null || value === undefined) {
+		throw new Error(message);
+	}
+	return value;
+};
+
+export const percentile = function percentile(
+	values: number[],
+	p: number
+): number {
 	if (values.length === 0) {
 		return 0;
 	}
@@ -16,17 +31,17 @@ export function percentile(values: number[], p: number): number {
 	const sorted = [...values].sort((a, b) => a - b);
 	const rank = Math.ceil((p / 100) * sorted.length) - 1;
 	return sorted[Math.max(0, Math.min(rank, sorted.length - 1))] ?? 0;
-}
+};
 
-export function average(values: number[]): number {
+export const average = function average(values: number[]): number {
 	if (values.length === 0) {
 		return 0;
 	}
 
 	return values.reduce((sum, value) => sum + value, 0) / values.length;
-}
+};
 
-export function median(values: number[]): number {
+export const median = function median(values: number[]): number {
 	if (values.length === 0) {
 		return 0;
 	}
@@ -34,50 +49,74 @@ export function median(values: number[]): number {
 	const sorted = [...values].sort((a, b) => a - b);
 	const middle = Math.floor(sorted.length / 2);
 	return sorted.length % 2 === 0
-		? (sorted[middle - 1]! + sorted[middle]!) / 2
-		: sorted[middle]!;
-}
+		? (getDefined(sorted[middle - 1]) + getDefined(sorted[middle])) / 2
+		: getDefined(sorted[middle]);
+};
 
-export function summarizeMetric(
+export const summarizeMetric = function summarizeMetric(
 	name: string,
 	unit: MetricSampleSet['unit'],
 	samples: number[]
 ): MetricSampleSet {
 	return {
-		name,
-		unit,
-		samples,
 		avg: Number(average(samples).toFixed(3)),
 		median: Number(median(samples).toFixed(3)),
+		name,
 		p95: Number(percentile(samples, 95).toFixed(3)),
+		samples,
+		unit,
 	};
-}
+};
 
-export function getEnvironment(browserVersion?: string): BenchmarkEnvironment {
+export const summarizeNullableMetric = function summarizeNullableMetric(
+	name: string,
+	unit: MetricSampleSet['unit'],
+	samples: (number | null | undefined)[]
+): MetricSampleSet {
+	const values = samples.map((sample) =>
+		typeof sample === 'number' && Number.isFinite(sample) ? sample : null
+	);
+	const numbers = values.filter((sample): sample is number => sample !== null);
 	return {
-		os: process.platform,
+		avg: numbers.length > 0 ? Number(average(numbers).toFixed(3)) : null,
+		median: numbers.length > 0 ? Number(median(numbers).toFixed(3)) : null,
+		name,
+		p95: numbers.length > 0 ? Number(percentile(numbers, 95).toFixed(3)) : null,
+		samples: values,
+		unit,
+	} as unknown as MetricSampleSet;
+};
+
+export const getEnvironment = function getEnvironment(
+	browserVersion?: string
+): BenchmarkEnvironment {
+	return {
 		arch: process.arch,
-		bunVersion: process.versions.bun,
-		nodeVersion: process.version,
 		browserVersion,
+		bunVersion: process.versions.bun,
 		ci: process.env.CI === 'true',
+		nodeVersion: process.version,
+		os: process.platform,
 	};
-}
+};
 
-export function ensureDir(path: string): void {
+export const ensureDir = function ensureDir(path: string): void {
 	mkdirSync(path, { recursive: true });
-}
+};
 
-export function writeJson(path: string, value: unknown): void {
+export const writeJson = function writeJson(
+	path: string,
+	value: unknown
+): void {
 	ensureDir(dirname(path));
 	writeFileSync(path, `${JSON.stringify(value, null, 2)}\n`);
-}
+};
 
-export function readJson<T>(path: string): T {
+export const readJson = function readJson<T>(path: string): T {
 	return JSON.parse(readFileSync(path, 'utf8')) as T;
-}
+};
 
-export function listJsonFiles(path: string): string[] {
+export const listJsonFiles = function listJsonFiles(path: string): string[] {
 	try {
 		statSync(path);
 	} catch {
@@ -100,22 +139,55 @@ export function listJsonFiles(path: string): string[] {
 	}
 
 	return files;
-}
+};
 
-export function safeCommitSha(): string {
+const readGit = function readGit(args: string[]): string | undefined {
+	try {
+		return execFileSync('git', args, {
+			encoding: 'utf8',
+			stdio: ['ignore', 'pipe', 'ignore'],
+		}).trim();
+	} catch {
+		return undefined;
+	}
+};
+
+/**
+ * Commit the measured source came from. CI environment variables win;
+ * otherwise the working tree's `HEAD` is read so local artifacts carry
+ * real provenance instead of `unknown`.
+ */
+export const safeCommitSha = function safeCommitSha(): string {
 	return (
 		process.env.GITHUB_SHA ??
 		process.env.VERCEL_GIT_COMMIT_SHA ??
 		process.env.BENCHMARK_COMMIT_SHA ??
+		readGit(['rev-parse', 'HEAD']) ??
 		'unknown'
 	);
-}
+};
 
-export function safeBaseSha(): string | undefined {
+/**
+ * Whether the measured working tree differs from `HEAD`. `null` when git
+ * is unavailable. Runners record this so a result cannot silently claim a
+ * commit it does not match.
+ */
+export const safeGitDirty = function safeGitDirty(): boolean | null {
+	if (process.env.BENCHMARK_GIT_DIRTY !== undefined) {
+		return process.env.BENCHMARK_GIT_DIRTY === 'true';
+	}
+	const status = readGit(['status', '--porcelain', '--untracked-files=no']);
+	if (status === undefined) {
+		return null;
+	}
+	return status.length > 0;
+};
+
+export const safeBaseSha = function safeBaseSha(): string | undefined {
 	return process.env.BENCHMARK_BASE_SHA ?? process.env.GITHUB_BASE_SHA;
-}
+};
 
-export function formatMetric(
+export const formatMetric = function formatMetric(
 	value: number | null,
 	unit: MetricSampleSet['unit']
 ): string {
@@ -132,39 +204,65 @@ export function formatMetric(
 	}
 
 	return `${value.toFixed(2)} ${unit}`;
-}
+};
 
-export function measureLoop(iterations: number, fn: () => void): number[] {
+export const measureLoop = function measureLoop<Result>(
+	iterations: number,
+	fn: () => Result,
+	cleanup?: (result: Result) => void
+): number[] {
 	const samples: number[] = [];
 
 	for (let index = 0; index < iterations; index += 1) {
 		const startedAt = performance.now();
-		fn();
+		const result = fn();
 		const finishedAt = performance.now();
+		cleanup?.(result);
 		samples.push((finishedAt - startedAt) * 1000);
 	}
 
 	return samples;
-}
+};
 
-export function measureAsyncLoop(
+export const measureAsyncLoop = function measureAsyncLoop<Result>(
 	iterations: number,
-	fn: () => Promise<void>
+	fn: () => Promise<Result>,
+	cleanup?: (result: Result) => void
 ): Promise<number[]> {
 	const samples: number[] = [];
+	const iterationIndexes = Array.from(
+		{ length: iterations },
+		(_, index) => index
+	);
 
-	return (async () => {
-		for (let index = 0; index < iterations; index += 1) {
+	return iterationIndexes.reduce<Promise<number[]>>(
+		async (previous, _index) => {
+			await previous;
 			const startedAt = performance.now();
-			await fn();
+			const result = await fn();
 			const finishedAt = performance.now();
+			cleanup?.(result);
 			samples.push((finishedAt - startedAt) * 1000);
-		}
+			return samples;
+		},
+		Promise.resolve(samples)
+	);
+};
 
-		return samples;
-	})();
-}
-
-export function latestMtimeMs(path: string): number {
+export const latestMtimeMs = function latestMtimeMs(path: string): number {
 	return statSync(path).mtimeMs;
-}
+};
+
+/** Reject empty sampling plans instead of emitting zero-valued timing results. */
+export const benchmarkCount = (
+	value: string | undefined,
+	fallback: number
+): number => {
+	const count = value === undefined ? fallback : Number(value);
+	if (!Number.isSafeInteger(count) || count <= 0) {
+		throw new Error(
+			`Benchmark count must be a positive integer; received ${String(value ?? fallback)}`
+		);
+	}
+	return count;
+};

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+	xmlns:tools="http://schemas.android.com/tools">
+
+	<uses-permission android:name="android.permission.INTERNET" />
+
+	<application>
+		<!--
+			Bootstraps c15t before the first Activity exists, which is what lets an
+			ad SDK that starts earlier than the app still read a deny-all answer.
+			A host that configures c15t itself can remove this entry.
+		-->
+		<provider
+			android:name="androidx.startup.InitializationProvider"
+			android:authorities="${applicationId}.androidx-startup"
+			android:exported="false"
+			tools:node="merge">
+			<meta-data
+				android:name="com.c15t.android.C15tInitializer"
+				android:value="androidx.startup" />
+		</provider>
+	</application>
+</manifest>

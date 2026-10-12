@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta
+			name="viewport"
+			content="width=device-width, initial-scale=1"
+		/>
+		<title>c15t IAB script example</title>
+		<style>
+			body {
+				font-family: system-ui, sans-serif;
+				line-height: 1.5;
+				max-width: 48rem;
+				margin: 3rem auto;
+				padding: 1rem;
+			}
+			button {
+				font: inherit;
+			}
+			pre {
+				white-space: pre-wrap;
+				overflow-wrap: anywhere;
+			}
+		</style>
+		<script>
+			window.c15t = [
+				[
+					'config',
+					{
+						mode: 'offline',
+						overrides: { country: 'DE' },
+						storageConfig: { storageKey: 'c15t-iab-example' },
+						iab: {
+							// Demo CMP ID and sample vendor list. Use your CMP configuration in production.
+							cmpId: 28,
+							gvlURL: new URL('/iab-gvl.json', location.href).href,
+						},
+						ui: { trigger: true, theme: { colors: { primary: '#0a66ff' } } },
+					},
+				],
+				[
+					'on',
+					'consent',
+					(snapshot) => {
+						const output = document.getElementById('receipt');
+						if (output)
+							output.textContent =
+								snapshot.iab?.authority?.tcString ??
+								'No confirmed TC string yet.';
+					},
+				],
+			];
+		</script>
+		<!-- This entry replaces c15t.js and includes its own IAB styles and codec. -->
+		<script
+			src="/c15t.iab.js"
+			defer
+		></script>
+	</head>
+	<body>
+		<h1>IAB consent without a build step</h1>
+		<p>
+			This example uses a small local vendor list and offline storage. Open the
+			preferences to change purpose, vendor, legitimate-interest, and
+			special-feature choices.
+		</p>
+		<button
+			type="button"
+			data-c15t-action="customize"
+		>
+			Privacy settings
+		</button>
+		<button
+			type="button"
+			data-c15t-action="reject"
+		>
+			Withdraw optional consent
+		</button>
+		<h2>Confirmed TC string</h2>
+		<pre id="receipt">No confirmed TC string yet.</pre>
+		<p>
+			<a href="/">Ordinary banner example</a> ·
+			<a href="/styled">Styling example</a>
+		</p>
+	</body>
+</html>

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { switchVariants, getSwitchState, toggleSwitchValue } from '@c15t/svelte';
+	import { Switch, switchVariants } from '@c15t/svelte';
 
 	interface Props {
 		mediumLabel?: string;
@@ -19,31 +19,29 @@
 
 <div style="display:grid;gap:1rem;">
 	<label style="align-items:center;display:inline-flex;gap:0.75rem;">
-		<button
+		<Switch.Root
+			bind:checked={checkedMedium}
 			class={mediumClasses.root()}
-			role="switch"
-			aria-checked={String(checkedMedium)}
 			aria-label={mediumLabel}
-			data-state={getSwitchState(checkedMedium)}
-			type="button"
-			onclick={() => { checkedMedium = toggleSwitchValue(checkedMedium); }}
 		>
-			<span class={mediumClasses.track()}><span class={mediumClasses.thumb()} /></span>
-		</button>
+			<Switch.Control class={mediumClasses.track()}>
+				<Switch.Thumb class={mediumClasses.thumb()} />
+			</Switch.Control>
+			<Switch.HiddenInput />
+		</Switch.Root>
 		<span>{mediumLabel}</span>
 	</label>
 	<label style="align-items:center;display:inline-flex;gap:0.75rem;">
-		<button
+		<Switch.Root
+			bind:checked={checkedSmall}
 			class={smallClasses.root()}
-			role="switch"
-			aria-checked={String(checkedSmall)}
 			aria-label={smallLabel}
-			data-state={getSwitchState(checkedSmall)}
-			type="button"
-			onclick={() => { checkedSmall = toggleSwitchValue(checkedSmall); }}
 		>
-			<span class={smallClasses.track()}><span class={smallClasses.thumb()} /></span>
-		</button>
+			<Switch.Control class={smallClasses.track()}>
+				<Switch.Thumb class={smallClasses.thumb()} />
+			</Switch.Control>
+			<Switch.HiddenInput />
+		</Switch.Root>
 		<span>{smallLabel}</span>
 	</label>
 </div>

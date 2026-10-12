@@ -81,10 +81,13 @@ export interface LoggerOptions {
 	 *
 	 * @example
 	 * ```ts
-	 * import { getTraceContext } from '@c15t/backend/telemetry';
+	 * import { trace } from '@opentelemetry/api';
 	 *
 	 * const logger = createLogger({
-	 *   getTraceContext: () => getTraceContext(),
+	 *   getTraceContext: () => {
+	 *     const span = trace.getActiveSpan()?.spanContext();
+	 *     return span ? { traceId: span.traceId, spanId: span.spanId } : null;
+	 *   },
 	 * });
 	 * ```
 	 */

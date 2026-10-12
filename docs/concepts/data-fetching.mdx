@@ -1,0 +1,246 @@
+---
+title: Data fetching
+description: Choose the recommended build-time policy snapshot or runtime manifest fetching, backend /init, browser resolution or offline rules, and understand where consent choices are saved.
+group: concepts
+---
+
+## Compare the fetching paths
+
+Where policy resolves and where choices are saved are separate from who runs
+the backend. Inth and a [self-hosted backend](/docs/self-host/quickstart) speak
+the same protocol, so every path below works with either. Only `offline()`
+removes backend requests. For a recommendation by framework, start with
+[choose your setup](/docs/concepts/choose-your-setup).
+
+| Fetching path | Where policy resolves | Where choices are submitted | Choose it when |
+| --- | --- | --- | --- |
+| Build-time manifest, recommended for server-rendered apps | Your server resolves a bundled policy snapshot with each visitor's inputs | Inth or your c15t backend | Your framework renders on the server, supports a build integration, and policy changes can ship with a rebuild |
+| Cached manifest on your server | Your application resolves public policy data with each request's location and signals | Inth or your c15t backend | Policy changes must reach the app without rebuilding, or builds cannot access the backend |
+| Regular backend `/init` | The consent backend | The same backend | You have no application server, as in a React, Vue or Svelte single-page app, want the fewest moving parts, or need backend-owned request resolution |
+| Manifest in the browser | The browser, using a supplied location, or `/init` when the policy needs one it doesn't have | Inth or your c15t backend | The policy has no location rules or the page knows the visitor's location, and you accept about 3 KB more bundle and a rebuild for policy edits |
+| Offline | The browser or local runtime, using bundled rules | No backend submission | Local development and tests. Not recommended for production environments. |
+| Custom transport | Your implementation | Your implementation | An existing service cannot use the c15t backend protocol |
+
+## What is a consent manifest?
+
+A manifest is a versioned policy document served by `GET /manifest`. It contains
+policy rules, translation configuration and related consent configuration. It
+is public configuration, not a visitor's saved choices. A resolver combines the
+manifest with country, region, language and privacy signals to produce an init
+result for one visitor.
+
+Reusing the public document avoids asking the consent backend to resolve policy
+for every application request. Cache misses and revalidation still fetch the
+manifest, and consent writes still need the backend. Measure the deployed
+request path before promising a latency improvement.
+
+Do not put secrets, visitor identifiers or consent records into a manifest.
+Keep personalized init responses out of shared caches. Changing a policy also
+requires a refresh strategy for cached or build-time manifests.
+
+## Use a build-time manifest by default
+
+<include src="../shared/build-time-manifest.mdx" />
+
+`manifest()` is the default mode in every server-rendered framework.
+[Consent modes](/docs/concepts/modes#download-the-manifest-at-build-time)
+covers each framework's build integration and what happens when the
+download fails.
+
+The framework quickstarts include the build integration for supported
+deployments. Server resolution uses the snapshot without an upstream manifest
+request. Browser resolution includes the policy and resolver in the client
+bundle, and still calls `/init` for a regional policy when the browser doesn't
+know the visitor's location, so the React, Vue and Svelte quickstarts use
+`hosted()` instead. Static Nuxt and
+Astro sites and script-tag sites keep the runtime setup from their guides.
+
+<include src="../shared/build-time-manifest-notes.mdx" />
+
+## How manifest mode counts visitors
+
+The backend counts visitors from `/init` requests, and manifest resolution
+skips them. To keep the count, the server adapters send a session report after
+each resolution: the host posts to the backend's `POST /sessions` from the
+server, after the response. The browser sends nothing, and the report stores
+no identity; the visitor's IP address and user agent are forwarded under the
+backend's usual IP handling. Static output resolves in the browser and sends
+no report. Set `reportSessions: false` on an adapter to turn it off.
+
+## Link an init to the save that follows
+
+Each page load gets a journey id, a random UUID sent on requests c15t already
+makes:
+
+| Request | Query parameters |
+| --- | --- |
+| `GET /init` | `journey`, `journeyScope`, `stored` (`1` if a choice or notice dismissal was stored) |
+| `POST /subjects` | `journey`, `journeyScope` |
+
+Session reports carry it as `journey: { id, scope, storedChoice, prompt, domain }`.
+A report and a save with the same `id` belong to one page load. `prompt` is
+`due`, `stored` or `not-required`; a page that falls back to the default opt-in
+banner counts as `due` or `stored`. A stored answer counts as `stored` even if a
+policy change makes c15t ask again.
+
+The id is random, is never the subject id and is never written to a cookie.
+Every save that carries one follows an `/init` or report with the same id.
+Saves replayed after going offline carry none.
+
+| `journey` | Behavior |
+| --- | --- |
+| `'page'` (default) | One id per page load, in memory. |
+| `'tab'` | Kept in `sessionStorage` while a prompt is due, and removed once the visitor chooses or no prompt is due. Only when the browser resolves init; server-rendered pages use `'page'`. |
+| `false` | No journey. |
+
+Set it on the runtime or provider. In Next.js use `defineConsentConfig({ journey })`;
+in TanStack Start pass the same value to `resolveConsent` and `ConsentRoot`; with
+the inline prefetch script, pass it to `buildPrefetchScript` or to
+`consentManifest({ initPrefetch: { journey } })`. Left unset, the script
+continues a `'tab'` journey the tab already holds. A tab's first page has
+none, so its `/init` reports the scope as `'page'`. The id still links it to
+the save. Pass `journey: 'tab'` to the script too if you report on scope. Vue, Svelte, Astro
+and the script tag use `'page'`. A manifest that resolves locally in the
+browser reports no init, so it sends no journey.
+
+If you pass a transport `hosted()` a `fetch`, match on the path: URLs now carry a query string.
+
+## What does regular `/init` do?
+
+`hosted()` uses `${backendURL}/init` for initialization and
+`${backendURL}/subjects` for consent submissions. The name `hosted` describes
+the protocol; the URL can belong to Inth or your own c15t backend.
+
+{/* example: fragment */}
+
+```ts title="c15t.config.ts"
+import { defineConsentConfig, hosted } from 'c15t/next';
+
+export default defineConsentConfig({ mode: hosted() });
+```
+
+Each framework passes the mode in a different place, and server-rendered
+frameworks take the data `hosted()` from their own package.
+[Consent modes](/docs/concepts/modes#import-the-factories-from-your-framework-package)
+lists where each one goes.
+
+A regular backend `/init` request lets the backend resolve the visitor context.
+A same-origin URL named `/api/c15t/init` can instead resolve from a cached
+manifest in your application. The URL name alone does not tell you which path
+runs.
+
+In the browser, an inline script in `<head>` can start `/init` while the
+app's JavaScript downloads, and `hosted()` uses that response. Vite apps get
+it from `consentManifest()` by default, Nuxt adds it to pages with
+`ssr: false`, and TanStack Start has `consentPrefetchHead`. Elsewhere, render
+`buildPrefetchScript({ backendURL })` from `c15t` yourself. If c15t assigns
+a banner experiment's arm, give the script the same `experiment`, or
+`hosted()` sends a second `/init` for visitors who have not chosen yet.
+
+## How do transports and proxies differ?
+
+A transport implements initialization, saving and optional record operations.
+A proxy changes where HTTP requests travel. It does not change the policy
+resolver or make personalized responses safe to cache.
+
+For a same-origin init route that resolves a manifest, the hosted transport can
+separate policy reads and record writes. With a backend rewrite mounted at
+`/api/c15t`, a single-page app can use the transport `hosted()` from
+`c15t`:
+
+```ts title="src/consent-mode.ts"
+import { hosted } from 'c15t';
+
+export const mode = hosted({
+	backendURL: '/api/c15t',
+	initURL: '/api/c15t/init',
+});
+```
+
+The route must return the c15t init response contract. c15t adds its inputs to
+`initURL` as query parameters, replacing any of your own with the same name.
+See [query parameters and CORS](/docs/self-host/api/endpoints#query-parameters-and-cors)
+for the names. Because `initURL` is set, `assertDecisionInputs` defaults to
+`true`: saves carry the policy decision they were made against when init
+returned no signed policy snapshot token, so the backend can reject a save
+made against a stale policy. Server-rendered frameworks do this for you when
+you set `routePrefix`: the browser re-inits through `${routePrefix}/init`.
+Every framework rejects `routePrefix: '/'` when it sets up, because a
+catch-all consent route at the site root would catch every page.
+
+The init route resolves policy; the backend rewrite forwards `/api/c15t/subjects`
+and other record endpoints. Configure both if you choose this optional proxy
+variant. Server-rendered frameworks do both with one option: `proxy: true` in
+Next.js `c15t.config.ts` or TanStack Start's `createConsentStateHandler`,
+with a consent route created with `proxy: true`. The
+[Next.js recipe](/docs/frameworks/next/optimization#keep-browser-consent-requests-on-your-origin)
+shows the configuration. A direct absolute backend URL works
+without a rewrite.
+
+This optional optimization keeps c15t requests on the app's origin and avoids a separate browser DNS lookup
+and TLS connection to the consent backend. The app server still connects to
+the upstream backend for manifest refreshes and consent writes. Vendor scripts
+and vendor requests keep their own origins.
+
+The rewrite destination and the init route use the absolute upstream endpoint,
+such as `https://your-project.inth.app`. The browser uses `/api/c15t` without
+needing the upstream URL. A static export cannot serve a Next.js route or
+rewrite at runtime; use the absolute Inth URL or a proxy provided by the static
+host instead.
+
+## When should I use offline mode?
+
+Not recommended for production environments. Use Inth or a self-hosted backend
+for production policy and consent records.
+
+`offline()` resolves bundled policy rules without an init request and acknowledges
+saves locally. The runtime's persistence module stores the choice in browser
+storage. There is no backend audit history, cross-device record service or IP
+geolocation supplied by this transport.
+
+Use your framework's `offline()` so its translations and provider context are
+included. In a React app it replaces the mode passed to `ConsentProvider`:
+
+```ts title="src/consent-mode.ts"
+import { offline } from 'c15t/react';
+
+export const mode = offline();
+```
+
+In Next.js, TanStack Start, Nuxt, Astro and SvelteKit, pass the data
+`offline()` from the framework package where the config takes `mode`; see
+[consent modes](/docs/concepts/modes#import-the-factories-from-your-framework-package).
+
+With no `policyRules`, the current offline transport uses the recommended rule
+pack. Supplying `policyRules` replaces that pack. Unknown country and region are
+real resolution inputs; offline mode does not discover a visitor's location.
+Use [policy rules](/docs/concepts/policies) to understand
+matching and defaults, and test the missing-location case.
+
+Offline mode is an explicit architecture choice, not an automatic fallback for
+a failed Inth request. If hosted initialization fails before a policy resolves,
+optional permissions remain denied and the stock prompt stays hidden. Observe
+initialization failures instead of silently changing policy sources.
+
+## Can I provide my own transport?
+
+`custom(transport)` accepts a `KernelTransport` with the v3 `init` and `save`
+contract. It does not accept v2 endpoint handlers such as `setConsent`. Keep
+policy resolution, record acknowledgments and failure behavior consistent with
+the kernel contract. Prefer a built-in transport when your backend supports it.
+
+## Verify the selected path
+
+Inspect browser and server requests separately. A server manifest fetch will
+not appear in the browser's Network panel. With a build-time snapshot, start a
+fresh production server and confirm it makes no upstream `/manifest` request.
+After a policy edit, rebuild and confirm the new policy appears. On a runtime
+manifest path, check that
+page requests do not call the backend `/init`, a visitor's choice still reaches
+the backend's `/subjects`, and policy changes become visible after the configured
+refresh. With a same-origin consent proxy, the browser should call only
+`/api/c15t` paths for consent HTTP traffic; inspect server logs to verify their
+upstream destinations.
+
+Test different locations, missing location headers, GPC, returning choices and
+backend failure. See [verification](/docs/guides/verify-consent).

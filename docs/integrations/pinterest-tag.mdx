@@ -1,212 +1,92 @@
 ---
 title: Pinterest Tag
-description: Track conversions and build audiences for Pinterest advertising campaigns.
+description: Load the Pinterest Tag only after marketing consent with the c15t pinterestTag helper, guard pintrk event calls, and check it in DevTools.
+seoTitle: Pinterest Tag cookie consent with c15t
+seoDescription: Load the Pinterest Tag only with marketing consent. The c15t pinterestTag helper sends pintrk setconsent signals for you.
 icon: pinterest
 group: integrations
 ---
 
-Pinterest Tag is Pinterest's conversion tracking and audience building tool. It measures the actions people take on your site after seeing your Pins, so you can attribute conversions and build retargeting audiences for Pinterest Ads.
+The c15t `pinterestTag` helper keeps the Pinterest Tag off the page until
+`marketing` has consent. Until then, c15t does not define `pintrk`. When
+`marketing` has consent, the helper queues `load`, `pintrk('setconsent', true)`,
+and a page visit before the loader. If the visitor withdraws consent, the helper
+calls `pintrk('setconsent', false)`. The tag stays on the page. By default, c15t
+also reloads the page.
 
-## Official Pinterest documentation
+## Configure the Pinterest Tag
 
-- [Install the Pinterest Tag (Pinterest Business Help)](https://help.pinterest.com/en/business/article/install-the-pinterest-tag)
-- [Pinterest Tag event codes](https://help.pinterest.com/en/business/article/add-event-codes)
+Copy the numeric tag ID from Pinterest Ads Manager. Remove Pinterest's base
+code and its `<noscript>` image. The helper does not emit that image, because
+it fires without JavaScript and c15t cannot gate it.
 
-## Integrate with c15t
+<CommandTabs command="@c15t/integrations" mode="install" />
 
-<Tabs items={['React', 'Next.js', 'JavaScript']}>
-  <Tab value="React">
-    ```tsx
-    import { type ReactNode } from 'react';
-    import { ConsentManagerProvider } from '@c15t/react';
-    import { pinterestTag } from '@c15t/scripts/pinterest-tag';
+```ts title="src/consent-scripts.ts"
+import { pinterestTag } from '@c15t/integrations/pinterest-tag';
 
-    const scripts = [pinterestTag({ tagId: '2613654212508' })];
-
-    export function ConsentProvider({ children }: { children: ReactNode }) {
-      return (
-        <ConsentManagerProvider
-          options={{
-            mode: 'hosted',
-            backendURL: 'https://your-instance.c15t.dev',
-            scripts,
-          }}
-        >
-          {children}
-        </ConsentManagerProvider>
-      );
-    }
-    ```
-  </Tab>
-
-  <Tab value="Next.js">
-    ```tsx
-    'use client';
-
-    import { type ReactNode } from 'react';
-    import { ConsentManagerProvider } from '@c15t/nextjs';
-    import { pinterestTag } from '@c15t/scripts/pinterest-tag';
-
-    const scripts = [pinterestTag({ tagId: '2613654212508' })];
-
-    export function ConsentProvider({ children }: { children: ReactNode }) {
-      return (
-        <ConsentManagerProvider
-          options={{
-            mode: 'hosted',
-            backendURL: '/api/c15t',
-            scripts,
-          }}
-        >
-          {children}
-        </ConsentManagerProvider>
-      );
-    }
-    ```
-  </Tab>
-
-  <Tab value="JavaScript">
-    ```ts
-    import { getOrCreateConsentRuntime } from 'c15t';
-    import { pinterestTag } from '@c15t/scripts/pinterest-tag';
-
-    getOrCreateConsentRuntime({
-      mode: 'hosted',
-      backendURL: 'https://your-instance.c15t.dev',
-      scripts: [pinterestTag({ tagId: '2613654212508' })],
-    });
-    ```
-  </Tab>
-</Tabs>
-
-## How c15t loads it
-
-- **Category:** `marketing` (Ads & Pixels)
-- **Loads when:** marketing consent is granted
-- **On revocation:** [persists](/docs/frameworks/react/script-loader#persist-after-revocation) — c15t calls `pintrk('setconsent', false)`, which stops Pinterest from sending events and clears its first-party cookies without removing the script
-
-Before the loader runs, c15t recreates Pinterest's base code: it defines the `pintrk` queue stub with `version = "3.0"`, then queues `pintrk('load', tagId)`, `pintrk('setconsent', true)`, and `pintrk('page')`. Pinterest's `core.js` replays the queue once it loads.
-
-## Configure the integration
-
-You can pass extra load options and disable the default page-visit event when you need finer control:
-
-```ts
-pinterestTag({
-  tagId: '2613654212508',
-  loadOptions: {
-    em: 'hello@example.com',
-  },
-  trackPageVisit: false,
-});
+export const scripts = [pinterestTag({ tagId: '2613654212508' })];
 ```
 
-`loadOptions` is forwarded as the third argument to `pintrk('load', tagId, loadOptions)`. Pinterest uses `em` (email) and `external_id` for enhanced match, and hashes plain values before sending them.
+<include src="../shared/integrations/register-scripts.mdx" />
 
-<Callout type="warn">
-  Enhanced match values are personal data. Only pass `em` or `external_id` when
-  your application has separately obtained consent to share them with
-  Pinterest — marketing consent alone does not cover this.
-</Callout>
+## Options
 
-## Tracking events in your app
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `tagId` | Required | Tag ID passed to `pintrk('load', ...)`. The helper trims it. Empty or whitespace-only values log an error and the script does not load. |
+| `loadOptions` | None | Object passed as the third argument to `pintrk('load', ...)`, such as `em` or `external_id` for enhanced match. Pass user data only when your app has the permission it needs. |
+| `trackPageVisit` | `true` | Queues `pintrk('page')` after `load`. Set `false` to send page visits yourself. |
+| `scriptUrl` | `https://s.pinimg.com/ct/core.js` | Loader URL override. A blank value falls back to the default. |
 
-c15t gates the Pinterest Tag from loading until `marketing` consent is granted. After consent is granted the script stays in the DOM, and c15t calls `pintrk('setconsent', false)` if consent is later revoked, so Pinterest itself suppresses events.
+## Loading and revocation
 
-This means `window.pintrk` is only defined after the user has granted marketing consent at least once. Use `pinterestTagEvent()` for typed standard and custom events — it's a no-op until `pintrk` exists, so it's safe to call before consent, and it doesn't bypass consent afterwards. Guarding with `has('marketing')` is still good practice so you don't queue events Pinterest will drop:
+`pinterestTag` uses the `marketing` category. Before marketing is allowed, c15t
+defines no `pintrk` function and loads nothing from Pinterest. When marketing
+becomes allowed, the helper queues `load`, `pintrk('setconsent', true)` and
+the page visit, then loads `core.js`.
 
-```tsx
-import { useCallback } from 'react';
-import { useConsentManager } from '@c15t/react';
-import { pinterestTagEvent } from '@c15t/scripts/pinterest-tag';
+On revocation the helper keeps the tag and calls
+`pintrk('setconsent', false)`, which Pinterest documents as stopping events
+and clearing its first-party storage. If the visitor allows marketing again
+before the page reloads, the helper calls `pintrk('setconsent', true)`.
 
-function useTrackCheckout() {
-  const { has } = useConsentManager();
-  return useCallback(() => {
-    if (has('marketing')) {
-      pinterestTagEvent('checkout', {
-        event_id: 'eventId0001',
-        value: 99.99,
-        order_quantity: 1,
-        currency: 'USD',
-        order_id: 'X-15148',
-        line_items: [
-          {
-            product_name: 'Parker Boots',
-            product_id: '1414',
-            product_category: 'Shoes',
-            product_price: 99.99,
-            product_quantity: 1,
-          },
-        ],
-      });
-    }
-  }, [has]);
-}
+## Guard your own pintrk calls
 
-function CheckoutButton() {
-  const trackCheckout = useTrackCheckout();
-  return <button onClick={trackCheckout}>Complete checkout</button>;
+The helper sends the page visit. Events your code sends, such as `checkout` or
+`lead`, need their own check. After revocation `window.pintrk` still exists, so
+its presence does not mean marketing is allowed. Check the permission first,
+then that the tag has loaded:
+
+```ts title="src/track-checkout.ts"
+export function trackCheckout(marketingAllowed: boolean, orderId: string) {
+	if (!marketingAllowed || typeof window.pintrk !== 'function') return;
+	window.pintrk('track', 'checkout', {
+		currency: 'USD',
+		event_id: orderId,
+		order_id: orderId,
+		value: 99.99,
+		line_items: [{ product_id: '1414', product_quantity: 1 }],
+	});
 }
 ```
 
-From plain JavaScript:
+Pass the current marketing permission from your framework, for example
+`useConsent('marketing')` in React. Put product details in `line_items`, and
+set `event_id` to deduplicate against the Conversions API. Pinterest reports
+conversions only for its 20 event types. It keeps other event names for
+audience targeting.
 
-```ts
-import { getOrCreateConsentRuntime } from 'c15t';
-import { pinterestTagEvent } from '@c15t/scripts/pinterest-tag';
+`@c15t/integrations/pinterest-tag` also exports `pinterestTagEvent`, a typed wrapper
+around `pintrk('track', ...)`. It does nothing until `pintrk` exists and does
+not check permission, so apply the same guard before calling it. Its optional
+third argument receives Pinterest's `(didInit, error)` result.
 
-const { consentStore } = getOrCreateConsentRuntime();
+## Verify the Pinterest Tag
 
-if (consentStore.getState().has('marketing')) {
-  pinterestTagEvent('lead', { lead_type: 'newsletter' });
-}
-```
+After you allow marketing, `core.js` loads from `s.pinimg.com` and Pinterest
+Tag Helper shows the page visit. Trigger one guarded event and check that Tag
+Helper records it. Then revoke marketing. Until the page reloads, calling
+`trackCheckout` sends nothing.
 
-Pass `event_id` when you also send the same event through the Pinterest Conversions API so Pinterest can deduplicate the two. Product details (`product_name`, `product_id`, `product_price`, and so on) go inside `line_items`, one entry per product — Pinterest ignores them at the top level.
-
-### Event names
-
-Pinterest recognises 20 event types for conversion tracking: `checkout`, `addtocart`, `pagevisit`, `signup`, `watchvideo`, `lead`, `search`, `viewcategory`, `custom`, `addpaymentinfo`, `addtowishlist`, `initiatecheckout`, `subscribe`, `viewcontent`, `contact`, `schedule`, `findlocation`, `customizeproduct`, `submitapplication`, and `starttrial`. `pinterestTagEvent()` also accepts any other string as a user-defined event, which Pinterest uses for audience targeting only — it logs a console warning for these.
-
-Which events you need depends on the campaign type. Conversions campaigns require at least one of `signup`, `lead`, `addtocart`, or `checkout`; catalog sales, conversion insights, dynamic retargeting, and the Verified Merchant Program all require `pagevisit`, `addtocart`, and `checkout` with `currency` set. See [Add event codes](https://help.pinterest.com/en/business/article/add-event-codes) for the full matrix.
-
-### Debugging with a callback
-
-Pinterest accepts an optional `(didInit, error)` callback after the event data. Pass it as the third argument to `pinterestTagEvent()` to surface tag errors during development:
-
-```ts
-import { pinterestTagEvent } from '@c15t/scripts/pinterest-tag';
-
-pinterestTagEvent('lead', { lead_type: 'Newsletter' }, (didInit, error) => {
-  if (!didInit) {
-    console.error('Pinterest Tag error:', error);
-  }
-});
-```
-
-## Types
-
-### PinterestTagOptions
-
-<AutoTypeTable path="./packages/scripts/src/vendors/ads-and-pixels/pinterest-tag.ts" name="PinterestTagOptions" />
-
-### PinterestTagLoadOptions
-
-<AutoTypeTable path="./packages/scripts/src/vendors/ads-and-pixels/pinterest-tag.ts" name="PinterestTagLoadOptions" />
-
-### PinterestTagEventData
-
-<AutoTypeTable path="./packages/scripts/src/vendors/ads-and-pixels/pinterest-tag.ts" name="PinterestTagEventData" />
-
-### PinterestTagLineItem
-
-<AutoTypeTable path="./packages/scripts/src/vendors/ads-and-pixels/pinterest-tag.ts" name="PinterestTagLineItem" />
-
-### PinterestTagEventCallback
-
-<AutoTypeTable path="./packages/scripts/src/vendors/ads-and-pixels/pinterest-tag.ts" name="PinterestTagEventCallback" />
-
-### Script
-
-<AutoTypeTable path="./packages/core/src/libs/script-loader/types.ts" name="Script" />
+<include src="../shared/integrations/vendor-revocation-and-verify.mdx" />

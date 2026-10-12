@@ -1,0 +1,9 @@
+{/* Generated from internals/doc-snippets/javascript/src/dev-tools.ts (docs:runtime-devtools) by scripts/sync-example-docs.ts. Edit the source file. */}
+
+```ts title="src/consent-ui.ts"
+if (import.meta.env.DEV) {
+	const { createDevTools } = await import('@c15t/dev-tools');
+	const tools = createDevTools({ kernel });
+	import.meta.hot?.dispose(() => tools.destroy());
+}
+```

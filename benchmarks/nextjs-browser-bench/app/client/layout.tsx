@@ -1,10 +1,11 @@
 import type { ReactNode } from 'react';
-import { NextjsBenchmarkProvider } from '../_bench/provider';
 
-export default function ClientLayout({ children }: { children: ReactNode }) {
-	return (
-		<NextjsBenchmarkProvider scenario="client">
-			{children}
-		</NextjsBenchmarkProvider>
-	);
-}
+import { NextjsClientBenchmarkProvider } from '../_bench/provider';
+
+const ClientLayout = ({ children }: { children: ReactNode }) => (
+	<NextjsClientBenchmarkProvider scenario="client">
+		{children}
+	</NextjsClientBenchmarkProvider>
+);
+
+export default ClientLayout;

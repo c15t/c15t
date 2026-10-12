@@ -1,0 +1,944 @@
+/**
+ * v3 category receipts through the HTTP surface, on every engine.
+ *
+ * The contract under test: a save carries the receipts it confirmed, each
+ * with the subject's own confirmation time and policy basis; the backend
+ * stores them as sent, never renews what a save did not mention, and reads
+ * back the latest receipt per category with those original facts intact.
+ * Legacy rows written before receipts existed still read as the choice they
+ * recorded.
+ */
+
+import type { PolicyRule } from '@c15t/schema';
+import { Effect } from 'effect';
+import { SqlClient } from 'effect/sql';
+import { afterEach, assert, beforeEach, describe, it } from 'vitest';
+
+import { ENGINES } from '../__tests__/engines';
+import { createHttpHarness } from '../__tests__/http-harness';
+import type { HttpHarness } from '../__tests__/http-harness';
+import { createPolicySnapshotToken } from './policy-snapshot';
+
+const SIGNING_KEY = 'test-signing-key-at-least-32-chars-long';
+
+/** A moment that has already happened. Receipts later than now are refused. */
+const T0 = 1_700_000_000_000;
+const T1 = T0 + 60_000;
+const CHOICE_FP = 'choice-v1:test';
+
+const RULES: PolicyRule[] = [
+	{
+		categories: ['marketing', 'measurement'],
+		id: 'eu_opt_in',
+		match: { countries: ['DE'] },
+		model: 'opt-in',
+		prompt: 'choice',
+		scopeMode: 'strict',
+	},
+	{
+		id: 'world_opt_out',
+		match: { isDefault: true },
+		model: 'opt-out',
+		prompt: 'none',
+	},
+];
+
+const receipt = (value: boolean, confirmedAt = T0) => ({
+	basis: { fingerprint: CHOICE_FP, kind: 'choice-v1' as const },
+	confirmedAt,
+	value,
+});
+
+/**
+ * Rewrites the only consent row as the 2.x backend stores it: no receipts,
+ * and `purposeIds` inside the `{ json }` envelope its ORM wrote.
+ */
+const rewriteAs2xRow = (harness: HttpHarness) =>
+	harness.runtime.runPromise(
+		Effect.gen(function* rewrite() {
+			const sql = yield* SqlClient.SqlClient;
+			const rows = yield* sql<{ purposeIds: unknown }>`
+				select ${sql('purposeIds')} from ${sql('consent')}
+			`;
+			const stored = rows[0]?.purposeIds;
+			const ids = typeof stored === 'string' ? JSON.parse(stored) : stored;
+			yield* sql`update ${sql('consent')} set ${sql('choice')} = null, ${sql('purposeIds')} = ${JSON.stringify({ json: ids })}`;
+		})
+	);
+
+const base = {
+	domain: 'example.com',
+	subjectId: 'sub_receipts1',
+	type: 'cookie_banner',
+};
+
+for (const engine of ENGINES) {
+	describe(`consent receipts over HTTP (${engine.name})`, () => {
+		let harness: HttpHarness;
+
+		beforeEach(async () => {
+			harness = await createHttpHarness(engine, {
+				manifest: { appName: 'Receipts', policyRules: RULES },
+				tenantId: 'tenant_r',
+			});
+		});
+
+		afterEach(async () => {
+			await harness.dispose();
+		});
+
+		it('stores the receipts a save confirmed and reads them back with their original facts', async () => {
+			const saved = await harness.json('POST', '/subjects', {
+				...base,
+				choice: {
+					categories: {
+						marketing: receipt(false),
+						measurement: receipt(true),
+					},
+					version: 3,
+				},
+				givenAt: T0,
+				preferences: { marketing: false, measurement: true, necessary: true },
+			});
+			assert.strictEqual(saved.status, 200, JSON.stringify(saved.body));
+			assert.strictEqual(saved.body.ok, true);
+
+			const read = await harness.json('GET', `/subjects/${base.subjectId}`);
+			assert.strictEqual(read.status, 200);
+			const consents = read.body.consents as {
+				choice?: unknown;
+				preferences?: unknown;
+				type: string;
+			}[];
+			assert.strictEqual(consents.length, 1);
+			assert.strictEqual(consents[0]?.type, 'cookie_banner');
+			// 2.x parity: granted codes only.
+			assert.deepStrictEqual(consents[0]?.preferences, {
+				measurement: true,
+				necessary: true,
+			});
+			// The receipts, exactly as sent.
+			assert.deepStrictEqual(consents[0]?.choice, {
+				categories: {
+					marketing: receipt(false),
+					measurement: receipt(true),
+				},
+				version: 3,
+			});
+			assert.deepStrictEqual(read.body.subjectChoice, {
+				categories: {
+					marketing: receipt(false),
+					measurement: receipt(true),
+				},
+				version: 3,
+			});
+		});
+
+		it('an empty receipt renews no category, even with new preferences and a vendor map', async () => {
+			await harness.json('POST', '/subjects', {
+				...base,
+				choice: {
+					categories: {
+						marketing: receipt(true, T0),
+						measurement: receipt(true, T0),
+					},
+					version: 3,
+				},
+				givenAt: T0,
+				preferences: { marketing: true, measurement: true, necessary: true },
+			});
+			// A vendor-only save: the client sends its complete preference map
+			// and a fresh givenAt, but confirms no category. Without `choice`
+			// this would read as a 2.x body and every receipt would be
+			// restamped at T1; the empty receipt says nothing was renewed.
+			const second = await harness.json('POST', '/subjects', {
+				...base,
+				choice: { categories: {}, version: 3 },
+				givenAt: T1,
+				preferences: { marketing: true, measurement: true, necessary: true },
+				vendorChoice: {
+					confirmedAt: T1,
+					grants: { 'meta-pixel': false },
+					version: 1,
+				},
+			});
+			assert.strictEqual(second.status, 200, JSON.stringify(second.body));
+
+			const read = await harness.json('GET', `/subjects/${base.subjectId}`);
+			assert.deepStrictEqual(read.body.subjectChoice, {
+				categories: {
+					marketing: receipt(true, T0),
+					measurement: receipt(true, T0),
+				},
+				version: 3,
+			});
+			assert.deepStrictEqual(read.body.subjectVendorChoice, {
+				confirmedAt: T1,
+				grants: { 'meta-pixel': false },
+				version: 1,
+			});
+		});
+
+		it('keeps the original receipt for a category a later partial save did not mention', async () => {
+			await harness.json('POST', '/subjects', {
+				...base,
+				choice: {
+					categories: {
+						marketing: receipt(true, T0),
+						measurement: receipt(true, T0),
+					},
+					version: 3,
+				},
+				givenAt: T0,
+				preferences: { marketing: true, measurement: true, necessary: true },
+			});
+			// Only marketing was confirmed by the second act.
+			const second = await harness.json('POST', '/subjects', {
+				...base,
+				choice: {
+					categories: { marketing: receipt(false, T1) },
+					version: 3,
+				},
+				givenAt: T1,
+				preferences: { marketing: false, measurement: true, necessary: true },
+			});
+			assert.strictEqual(second.status, 200, JSON.stringify(second.body));
+
+			const read = await harness.json('GET', `/subjects/${base.subjectId}`);
+			// measurement keeps its T0 receipt: the second save did not renew it.
+			assert.deepStrictEqual(read.body.subjectChoice, {
+				categories: {
+					marketing: receipt(false, T1),
+					measurement: receipt(true, T0),
+				},
+				version: 3,
+			});
+			assert.strictEqual(await harness.count('consent'), 2);
+		});
+
+		it('records a replay of the same payload once', async () => {
+			const payload = {
+				...base,
+				choice: { categories: { marketing: receipt(true) }, version: 3 },
+				givenAt: T0,
+				preferences: { marketing: true, necessary: true },
+			};
+			const first = await harness.json('POST', '/subjects', payload);
+			const second = await harness.json('POST', '/subjects', payload);
+
+			assert.strictEqual(first.status, 200);
+			assert.strictEqual(second.status, 200);
+			assert.strictEqual(second.body.consentId, first.body.consentId);
+			assert.strictEqual(await harness.count('consent'), 1);
+			// One act, one audit entry.
+			assert.strictEqual(
+				await harness.count('auditLog', {
+					column: 'actionType',
+					value: 'consent_given',
+				}),
+				1
+			);
+		});
+
+		it('refuses a replay that claims different receipts for the same act', async () => {
+			await harness.json('POST', '/subjects', {
+				...base,
+				choice: { categories: { marketing: receipt(true) }, version: 3 },
+				givenAt: T0,
+				preferences: { marketing: true, necessary: true },
+			});
+			const changed = await harness.json('POST', '/subjects', {
+				...base,
+				choice: { categories: { marketing: receipt(false) }, version: 3 },
+				givenAt: T0,
+				preferences: { marketing: false, necessary: true },
+			});
+			assert.strictEqual(changed.status, 409);
+			assert.strictEqual(
+				(changed.body.cause as { code: string }).code,
+				'CONFLICT'
+			);
+		});
+
+		it('rejects a receipt later than the server clock rather than clamping it', async () => {
+			const future = await harness.json('POST', '/subjects', {
+				...base,
+				choice: {
+					categories: { marketing: receipt(true, Date.now() + 60_000) },
+					version: 3,
+				},
+				givenAt: T0,
+				preferences: { marketing: true, necessary: true },
+			});
+			assert.strictEqual(future.status, 400);
+			assert.strictEqual(await harness.count('consent'), 0);
+		});
+
+		it('tells an unsupported receipt version apart from a malformed one, and both from none', async () => {
+			const unsupported = await harness.json('POST', '/subjects', {
+				...base,
+				choice: { categories: { marketing: receipt(true) }, version: 99 },
+				givenAt: T0,
+				preferences: { marketing: true, necessary: true },
+			});
+			assert.strictEqual(unsupported.status, 400);
+			assert.match(String(unsupported.body.message), /choice\.version/u);
+
+			const malformed = await harness.json('POST', '/subjects', {
+				...base,
+				choice: 'not a receipt',
+				givenAt: T0,
+				preferences: { marketing: true, necessary: true },
+			});
+			assert.strictEqual(malformed.status, 400);
+			assert.match(String(malformed.body.message), /choice/u);
+
+			// Nothing was written by either rejection.
+			assert.strictEqual(await harness.count('consent'), 0);
+
+			// A save without receipts is the legacy path and still records.
+			const legacy = await harness.json('POST', '/subjects', {
+				...base,
+				givenAt: T0,
+				preferences: { marketing: true, necessary: true },
+			});
+			assert.strictEqual(legacy.status, 200, JSON.stringify(legacy.body));
+		});
+
+		it('refuses receipts that disagree with the preference map', async () => {
+			const mismatch = await harness.json('POST', '/subjects', {
+				...base,
+				choice: { categories: { marketing: receipt(true) }, version: 3 },
+				givenAt: T0,
+				preferences: { marketing: false, necessary: true },
+			});
+			assert.strictEqual(mismatch.status, 400);
+			assert.strictEqual(
+				(mismatch.body.cause as { code: string }).code,
+				'CHOICE_PREFERENCE_MISMATCH'
+			);
+		});
+
+		it('keeps the refusals a save without receipts submitted', async () => {
+			// A 2.x client sends its explicit map and no receipts. The values it
+			// submitted, refusals included, become legacy receipts at its givenAt;
+			// nothing is added for categories it did not mention.
+			const legacy = await harness.json('POST', '/subjects', {
+				...base,
+				givenAt: T0,
+				preferences: { marketing: true, measurement: false, necessary: true },
+			});
+			assert.strictEqual(legacy.status, 200, JSON.stringify(legacy.body));
+
+			const read = await harness.json('GET', `/subjects/${base.subjectId}`);
+			assert.deepStrictEqual(read.body.subjectChoice, {
+				categories: {
+					marketing: {
+						basis: { kind: 'legacy-v2' },
+						confirmedAt: T0,
+						value: true,
+					},
+					measurement: {
+						basis: { kind: 'legacy-v2' },
+						confirmedAt: T0,
+						value: false,
+					},
+				},
+				version: 3,
+			});
+
+			// An all-false map is an explicit refusal, not an empty record.
+			const denied = await harness.json('POST', '/subjects', {
+				...base,
+				givenAt: T1,
+				preferences: { marketing: false, measurement: false },
+			});
+			assert.strictEqual(denied.status, 200, JSON.stringify(denied.body));
+			const after = await harness.json('GET', `/subjects/${base.subjectId}`);
+			assert.deepStrictEqual(
+				(after.body.subjectChoice as { categories: Record<string, unknown> })
+					.categories.marketing,
+				{ basis: { kind: 'legacy-v2' }, confirmedAt: T1, value: false }
+			);
+		});
+
+		it('reads a historical 2.x row as the grants it holds and invents no refusal', async () => {
+			// A row the 2.x backend wrote: granted purpose codes only, no receipt
+			// column. The refusal the client may have submitted was never stored.
+			await harness.json('POST', '/subjects', {
+				...base,
+				givenAt: T0,
+				preferences: { marketing: true, measurement: false, necessary: true },
+			});
+			await harness.runtime.runPromise(
+				Effect.gen(function* strip() {
+					const sql = yield* SqlClient.SqlClient;
+					yield* sql`update ${sql('consent')} set ${sql('choice')} = null`;
+				})
+			);
+
+			const read = await harness.json('GET', `/subjects/${base.subjectId}`);
+			const consents = read.body.consents as {
+				choice?: unknown;
+				preferences?: unknown;
+			}[];
+			assert.isUndefined(consents[0]?.choice);
+			assert.deepStrictEqual(consents[0]?.preferences, {
+				marketing: true,
+				necessary: true,
+			});
+			assert.deepStrictEqual(read.body.subjectChoice, {
+				categories: {
+					marketing: {
+						basis: { kind: 'legacy-v2' },
+						confirmedAt: T0,
+						value: true,
+					},
+				},
+				version: 3,
+			});
+		});
+
+		it('reads a 2.x row whose purposes sit in a json envelope', async () => {
+			// The 2.x backend wrote `purposeIds: { json: [...] }`, and its Kysely
+			// adapter stored the envelope as-is. That row is the visitor's newest
+			// act, so it has to read as the grant it holds, not as nothing that
+			// also clears the earlier v3 grant.
+			await harness.json('POST', '/subjects', {
+				...base,
+				givenAt: T1,
+				preferences: { marketing: false, measurement: true, necessary: true },
+			});
+			await rewriteAs2xRow(harness);
+			await harness.json('POST', '/subjects', {
+				...base,
+				choice: { categories: { marketing: receipt(true, T0) }, version: 3 },
+				givenAt: T0,
+				preferences: { marketing: true, measurement: false, necessary: true },
+			});
+
+			const read = await harness.json('GET', `/subjects/${base.subjectId}`);
+			assert.deepStrictEqual(read.body.subjectChoice, {
+				categories: {
+					measurement: {
+						basis: { kind: 'legacy-v2' },
+						confirmedAt: T1,
+						value: true,
+					},
+				},
+				version: 3,
+			});
+		});
+
+		it('accepts a retry of a save the 2.x backend recorded', async () => {
+			// The 2.x backend stored the save but its response was lost, and the
+			// retry reached this backend. The row has no receipts, while this
+			// backend turns the retry's preferences into receipts.
+			const save = {
+				...base,
+				givenAt: T0,
+				preferences: { marketing: true, measurement: false, necessary: true },
+			};
+			await harness.json('POST', '/subjects', save);
+			await rewriteAs2xRow(harness);
+
+			const retry = await harness.json('POST', '/subjects', save);
+			assert.strictEqual(retry.status, 200);
+
+			const changed = await harness.json('POST', '/subjects', {
+				...save,
+				preferences: { marketing: false, measurement: false, necessary: true },
+			});
+			assert.strictEqual(changed.status, 409);
+		});
+
+		it('compares receipts a client sends against a row with none', async () => {
+			// A v3 client's receipts can carry what its purposes do not: a grant
+			// left out of the preference map, or a new refusal. Neither may be
+			// acknowledged against a row that does not hold it, whether the row
+			// came from 2.x or from a v3 save with only `necessary`.
+			const save = {
+				...base,
+				givenAt: T0,
+				preferences: { necessary: true },
+			};
+			await harness.json('POST', '/subjects', save);
+
+			const refusal = await harness.json('POST', '/subjects', {
+				...save,
+				choice: { categories: { marketing: receipt(false) }, version: 3 },
+				preferences: { marketing: false, necessary: true },
+			});
+			assert.strictEqual(refusal.status, 409);
+
+			await rewriteAs2xRow(harness);
+			const grant = await harness.json('POST', '/subjects', {
+				...save,
+				choice: { categories: { marketing: receipt(true) }, version: 3 },
+			});
+			assert.strictEqual(grant.status, 409);
+		});
+
+		it('refuses a refusal added to a v3 row with no receipts', async () => {
+			// A save with only `necessary` stores no receipts, like a 2.x row. A
+			// receipt-less retry that adds a refusal grants the same purposes,
+			// but the refusal would never be stored, so it is a different act.
+			const save = {
+				...base,
+				givenAt: T0,
+				preferences: { necessary: true },
+			};
+			await harness.json('POST', '/subjects', save);
+
+			const retry = await harness.json('POST', '/subjects', {
+				...save,
+				preferences: { marketing: false, necessary: true },
+			});
+			assert.strictEqual(retry.status, 409);
+		});
+
+		it('refuses a retry against a 2.x row whose purposes cannot be read', async () => {
+			// Nothing on the row can be compared with the retry, so accepting it
+			// would answer 200 for grants the row does not hold.
+			const save = {
+				...base,
+				givenAt: T0,
+				preferences: { marketing: false, measurement: false, necessary: true },
+			};
+			await harness.json('POST', '/subjects', save);
+			await harness.runtime.runPromise(
+				Effect.gen(function* corrupt() {
+					const sql = yield* SqlClient.SqlClient;
+					yield* sql`update ${sql('consent')} set ${sql('choice')} = null, ${sql('purposeIds')} = ${'{"json":{"json":["pur_x"]}}'}`;
+				})
+			);
+
+			const changed = await harness.json('POST', '/subjects', {
+				...save,
+				preferences: { marketing: true, measurement: false, necessary: true },
+			});
+			assert.strictEqual(changed.status, 409);
+		});
+
+		it('skips a row whose stored receipts cannot be read rather than salvaging its grants', async () => {
+			await harness.json('POST', '/subjects', {
+				...base,
+				choice: { categories: { marketing: receipt(true) }, version: 3 },
+				givenAt: T0,
+				preferences: { marketing: true, necessary: true },
+			});
+			await harness.runtime.runPromise(
+				Effect.gen(function* poison() {
+					const sql = yield* SqlClient.SqlClient;
+					yield* sql`update ${sql('consent')} set ${sql('choice')} = ${'{"version":99,"categories":{"marketing":{"value":true,"confirmedAt":1,"basis":{"kind":"legacy-v2"}}}}'}`;
+				})
+			);
+
+			const read = await harness.json('GET', `/subjects/${base.subjectId}`);
+			assert.isNull(read.body.subjectChoice);
+			const consents = read.body.consents as { choice?: unknown }[];
+			assert.isNull(consents[0]?.choice);
+		});
+
+		it('lets a v3 receipt supersede a legacy receipt for its own category only', async () => {
+			await harness.json('POST', '/subjects', {
+				...base,
+				givenAt: T0,
+				preferences: { marketing: true, measurement: true, necessary: true },
+			});
+			await harness.json('POST', '/subjects', {
+				...base,
+				choice: { categories: { marketing: receipt(false, T1) }, version: 3 },
+				givenAt: T1,
+				preferences: { marketing: false, measurement: true, necessary: true },
+			});
+
+			const read = await harness.json('GET', `/subjects/${base.subjectId}`);
+			const merged = read.body.subjectChoice as {
+				categories: Record<string, { value: boolean; confirmedAt: number }>;
+			};
+			assert.deepStrictEqual(merged.categories.marketing, receipt(false, T1));
+			assert.deepStrictEqual(merged.categories.measurement, {
+				basis: { kind: 'legacy-v2' },
+				confirmedAt: T0,
+				value: true,
+			});
+		});
+
+		it('is invisible to another tenant', async () => {
+			await harness.json('POST', '/subjects', {
+				...base,
+				choice: { categories: { marketing: receipt(true) }, version: 3 },
+				givenAt: T0,
+				preferences: { marketing: true, necessary: true },
+			});
+			const other = harness.appWith({ tenantId: 'tenant_other' });
+			const read = await harness.json(
+				'GET',
+				`/subjects/${base.subjectId}`,
+				undefined,
+				{},
+				other
+			);
+			assert.strictEqual(read.status, 404);
+		});
+	});
+
+	describe(`policy decision on save (${engine.name})`, () => {
+		let harness: HttpHarness;
+
+		beforeEach(async () => {
+			harness = await createHttpHarness(engine, {
+				manifest: { appName: 'Receipts', policyRules: RULES },
+				policySnapshot: { signingKey: SIGNING_KEY },
+				tenantId: 'tenant_r',
+			});
+		});
+
+		afterEach(async () => {
+			await harness.dispose();
+		});
+
+		const initFor = (country: string) =>
+			harness.json('GET', '/init', undefined, { 'x-c15t-country': country });
+
+		it('records the decision a verified snapshot token attests to', async () => {
+			const init = await initFor('DE');
+			const token = init.body.policySnapshotToken as string;
+			assert.isString(token);
+
+			const saved = await harness.json('POST', '/subjects', {
+				...base,
+				choice: { categories: { marketing: receipt(true) }, version: 3 },
+				givenAt: T0,
+				policySnapshotToken: token,
+				preferences: { marketing: true, measurement: false, necessary: true },
+			});
+			assert.strictEqual(saved.status, 200, JSON.stringify(saved.body));
+			assert.strictEqual(await harness.count('runtimePolicyDecision'), 1);
+			assert.strictEqual(
+				await harness.count('consent', {
+					column: 'runtimePolicySource',
+					value: 'snapshot_token',
+				}),
+				1
+			);
+		});
+
+		it('records one decision for a token save and an asserted save of the same visit', async () => {
+			// The client asserts the language init served, which q-values pick
+			// from the header; here that is not the header's first entry.
+			const init = await harness.json('GET', '/init', undefined, {
+				'accept-language': 'en;q=0.1,de;q=0.9',
+				'x-c15t-country': 'DE',
+			});
+			assert.strictEqual(
+				(init.body.translations as { language: string }).language,
+				'de'
+			);
+			const decision = init.body.policyResolution as {
+				policyId: string;
+				fingerprints: { policy: string };
+			};
+
+			const withToken = await harness.json('POST', '/subjects', {
+				...base,
+				givenAt: T0,
+				policySnapshotToken: init.body.policySnapshotToken,
+				preferences: { marketing: true, necessary: true },
+			});
+			assert.strictEqual(withToken.status, 200, JSON.stringify(withToken.body));
+
+			const asserted = await harness.json('POST', '/subjects', {
+				...base,
+				country: 'DE',
+				fingerprint: decision.fingerprints.policy,
+				givenAt: T1,
+				language: 'de',
+				policyId: decision.policyId,
+				preferences: { marketing: false, necessary: true },
+				region: null,
+			});
+			assert.strictEqual(asserted.status, 200, JSON.stringify(asserted.body));
+			assert.strictEqual(await harness.count('runtimePolicyDecision'), 1);
+		});
+
+		it('keeps the signed served language rather than resolving the header again', async () => {
+			const init = await initFor('DE');
+			const decision = init.body.policyResolution as {
+				policyId: string;
+				matchedBy: string;
+				fingerprints: { policy: string };
+				policy: { model: string };
+			};
+			// Resolving this header now would give English. The token proves the
+			// visitor was served German, so that is what the decision records.
+			const token = await createPolicySnapshotToken(
+				{
+					country: 'DE',
+					fingerprint: decision.fingerprints.policy,
+					language: 'en',
+					matchedBy: decision.matchedBy,
+					model: decision.policy.model,
+					policyId: decision.policyId,
+					region: null,
+					servedLanguage: 'de',
+					tenantId: 'tenant_r',
+				},
+				{ signingKey: SIGNING_KEY }
+			);
+
+			const withToken = await harness.json('POST', '/subjects', {
+				...base,
+				givenAt: T0,
+				policySnapshotToken: token?.token,
+				preferences: { marketing: true, necessary: true },
+			});
+			assert.strictEqual(withToken.status, 200, JSON.stringify(withToken.body));
+
+			const asserted = await harness.json('POST', '/subjects', {
+				...base,
+				country: 'DE',
+				fingerprint: decision.fingerprints.policy,
+				givenAt: T1,
+				language: 'de',
+				policyId: decision.policyId,
+				preferences: { marketing: false, necessary: true },
+				region: null,
+			});
+			assert.strictEqual(asserted.status, 200, JSON.stringify(asserted.body));
+			assert.strictEqual(await harness.count('runtimePolicyDecision'), 1);
+		});
+
+		it('reads a raw Accept-Language claim from an earlier alpha as the served language', async () => {
+			const header = 'en;q=0.1,de;q=0.9';
+			const init = await harness.json('GET', '/init', undefined, {
+				'accept-language': header,
+				'x-c15t-country': 'DE',
+			});
+			const decision = init.body.policyResolution as {
+				policyId: string;
+				matchedBy: string;
+				fingerprints: { policy: string };
+				policy: { model: string };
+			};
+			// Earlier alphas minted the raw header into the claim.
+			const legacy = await createPolicySnapshotToken(
+				{
+					country: 'DE',
+					fingerprint: decision.fingerprints.policy,
+					language: header,
+					matchedBy: decision.matchedBy,
+					model: decision.policy.model,
+					policyId: decision.policyId,
+					region: null,
+					tenantId: 'tenant_r',
+				},
+				{ signingKey: SIGNING_KEY }
+			);
+
+			const withToken = await harness.json('POST', '/subjects', {
+				...base,
+				givenAt: T0,
+				policySnapshotToken: legacy?.token,
+				preferences: { marketing: true, necessary: true },
+			});
+			assert.strictEqual(withToken.status, 200, JSON.stringify(withToken.body));
+
+			const asserted = await harness.json('POST', '/subjects', {
+				...base,
+				country: 'DE',
+				fingerprint: decision.fingerprints.policy,
+				givenAt: T1,
+				language: 'de',
+				policyId: decision.policyId,
+				preferences: { marketing: false, necessary: true },
+				region: null,
+			});
+			assert.strictEqual(asserted.status, 200, JSON.stringify(asserted.body));
+			assert.strictEqual(await harness.count('runtimePolicyDecision'), 1);
+		});
+
+		it('records the asserted language after the served languages change', async () => {
+			const init = await harness.json('GET', '/init', undefined, {
+				'accept-language': 'de',
+				'x-c15t-country': 'DE',
+			});
+			const decision = init.body.policyResolution as {
+				policyId: string;
+				fingerprints: { policy: string };
+			};
+			// A deploy drops German without touching the policy. The visitor was
+			// still shown German, and the decision records that.
+			const englishOnly = harness.appWith({
+				manifest: {
+					appName: 'Receipts',
+					i18n: { messages: { default: { translations: { en: {} } } } },
+					policyRules: RULES,
+				},
+				policySnapshot: { signingKey: SIGNING_KEY },
+				tenantId: 'tenant_r',
+			});
+			const asserted = await harness.json(
+				'POST',
+				'/subjects',
+				{
+					...base,
+					country: 'DE',
+					fingerprint: decision.fingerprints.policy,
+					givenAt: T0,
+					language: 'de',
+					policyId: decision.policyId,
+					preferences: { marketing: false, necessary: true },
+					region: null,
+				},
+				{},
+				englishOnly
+			);
+			assert.strictEqual(asserted.status, 200, JSON.stringify(asserted.body));
+			assert.strictEqual(
+				await harness.count('runtimePolicyDecision', {
+					column: 'language',
+					value: 'de',
+				}),
+				1
+			);
+		});
+
+		it('refuses a token when the same policy ID now has different canonical behavior', async () => {
+			const init = await initFor('DE');
+			const app = harness.appWith({
+				manifest: {
+					policyRules: RULES.map((rule) => ({
+						...rule,
+						validity: { choiceDays: 30 },
+					})),
+				},
+			});
+			const saved = await harness.json(
+				'POST',
+				'/subjects',
+				{
+					...base,
+					choice: { categories: { marketing: receipt(true) }, version: 3 },
+					givenAt: T0,
+					policySnapshotToken: init.body.policySnapshotToken,
+					preferences: { marketing: true, necessary: true },
+				},
+				{},
+				app
+			);
+			assert.strictEqual(saved.status, 409);
+			assert.strictEqual(await harness.count('consent'), 0);
+		});
+
+		it('refuses a receipt that grants a category outside the resolved scope', async () => {
+			const init = await initFor('DE');
+			const token = init.body.policySnapshotToken as string;
+			// The EU rule scopes marketing and measurement only. The preference
+			// map stays inside scope so the receipt check is what refuses.
+			const saved = await harness.json('POST', '/subjects', {
+				...base,
+				choice: { categories: { functionality: receipt(true) }, version: 3 },
+				givenAt: T0,
+				policySnapshotToken: token,
+				preferences: { necessary: true },
+			});
+			assert.strictEqual(saved.status, 400);
+			assert.strictEqual(
+				(saved.body.cause as { code: string }).code,
+				'CHOICE_OUT_OF_SCOPE'
+			);
+
+			// A denial outside scope is a persistent refusal and stays possible.
+			const denial = await harness.json('POST', '/subjects', {
+				...base,
+				choice: { categories: { functionality: receipt(false) }, version: 3 },
+				givenAt: T0,
+				policySnapshotToken: token,
+				preferences: { necessary: true },
+			});
+			assert.strictEqual(denial.status, 200, JSON.stringify(denial.body));
+		});
+
+		it('rejects a tampered token and a missing one when a decision exists to attest', async () => {
+			const init = await initFor('DE');
+			const token = init.body.policySnapshotToken as string;
+			const tampered = await harness.json('POST', '/subjects', {
+				...base,
+				givenAt: T0,
+				policySnapshotToken: `${token}x`,
+				preferences: { marketing: true, necessary: true },
+			});
+			assert.strictEqual(tampered.status, 409);
+			assert.strictEqual(
+				(tampered.body.cause as { code: string }).code,
+				'POLICY_SNAPSHOT_INVALID'
+			);
+
+			const missing = await harness.json('POST', '/subjects', {
+				...base,
+				givenAt: T0,
+				preferences: { marketing: true, necessary: true },
+			});
+			assert.strictEqual(missing.status, 409);
+			assert.strictEqual(
+				(missing.body.cause as { code: string }).code,
+				'POLICY_SNAPSHOT_REQUIRED'
+			);
+			assert.strictEqual(await harness.count('consent'), 0);
+		});
+
+		it('recomputes asserted manifest-mode inputs and refuses a stale decision', async () => {
+			const init = await initFor('DE');
+			const decision = init.body.policyResolution as {
+				policyId: string;
+				fingerprints: { policy: string };
+			};
+
+			const fresh = await harness.json('POST', '/subjects', {
+				...base,
+				country: 'DE',
+				fingerprint: decision.fingerprints.policy,
+				givenAt: T0,
+				language: 'en',
+				policyId: decision.policyId,
+				preferences: { marketing: true, necessary: true },
+				region: null,
+			});
+			assert.strictEqual(fresh.status, 200, JSON.stringify(fresh.body));
+			assert.strictEqual(
+				await harness.count('consent', {
+					column: 'runtimePolicySource',
+					value: 'write_time_fallback',
+				}),
+				1
+			);
+
+			const stale = await harness.json('POST', '/subjects', {
+				...base,
+				country: 'DE',
+				fingerprint: 'not-the-fingerprint-init-issued',
+				givenAt: T1,
+				language: 'en',
+				policyId: decision.policyId,
+				preferences: { marketing: true, necessary: true },
+				region: null,
+			});
+			assert.strictEqual(stale.status, 422);
+			assert.strictEqual(
+				(stale.body.cause as { code: string }).code,
+				'STALE_POLICY'
+			);
+
+			const partial = await harness.json('POST', '/subjects', {
+				...base,
+				country: 'DE',
+				givenAt: T1,
+				language: 'en',
+				preferences: { marketing: true, necessary: true },
+			});
+			assert.strictEqual(partial.status, 422);
+		});
+	});
+}

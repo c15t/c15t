@@ -23,7 +23,7 @@ interface RunAffectedTestsOptions {
 	spawn?: SpawnProcess;
 }
 
-export async function runAffectedTests({
+export const runAffectedTests = function runAffectedTests({
 	args = process.argv.slice(2),
 	env = process.env,
 	spawn = Bun.spawn,
@@ -43,7 +43,7 @@ export async function runAffectedTests({
 	);
 
 	return child.exited;
-}
+};
 
 if (import.meta.main) {
 	process.exitCode = await runAffectedTests();

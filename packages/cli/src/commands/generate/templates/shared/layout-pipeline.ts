@@ -4,8 +4,12 @@
  * creating component files, adding imports, wrapping JSX, and saving.
  */
 
-import { Project, type SourceFile, SyntaxKind } from 'ts-morph';
+import { Project } from 'ts-morph';
+import type { SourceFile } from 'ts-morph';
+
 import { getFrameworkDirectory } from './directory';
+import { resolvePlannedPath, writeFile } from './file-plan';
+import { getLayoutExpressions } from './layout-target';
 import {
 	addConsentManagerImport,
 	hasConsentManagerImport,
@@ -56,7 +60,7 @@ export interface LayoutPipelineConfig {
  * 7. Find the first return statement, wrap its JSX with wrapJsx
  * 8. Save the file
  */
-export async function runLayoutUpdatePipeline(
+export const runLayoutUpdatePipeline = async function runLayoutUpdatePipeline(
 	config: LayoutPipelineConfig
 ): Promise<LayoutUpdateResult> {
 	const {
@@ -75,6 +79,7 @@ export async function runLayoutUpdatePipeline(
 
 	if (knownFilePath) {
 		// Use exact path — avoids glob interpretation of brackets like [locale]
+		await resolvePlannedPath(knownFilePath);
 		try {
 			layoutFile = project.addSourceFileAtPath(knownFilePath);
 		} catch {
@@ -82,8 +87,11 @@ export async function runLayoutUpdatePipeline(
 		}
 	} else {
 		for (const pattern of filePatterns) {
+			// oxlint-disable-next-line no-await-in-loop -- Validate each candidate before the parser reads it.
+			await resolvePlannedPath(`${projectRoot}/${pattern}`);
 			const files = project.addSourceFilesAtPaths(`${projectRoot}/${pattern}`);
 			if (files.length > 0) {
+				// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 				layoutFile = files[0];
 				break;
 			}
@@ -91,7 +99,7 @@ export async function runLayoutUpdatePipeline(
 	}
 
 	if (!layoutFile) {
-		return { updated: false, filePath: null, alreadyModified: false };
+		return { alreadyModified: false, filePath: null, updated: false };
 	}
 
 	const layoutFilePath = layoutFile.getFilePath();
@@ -102,11 +110,13 @@ export async function runLayoutUpdatePipeline(
 	// Step 3: Check for existing import
 	if (hasConsentManagerImport(layoutFile)) {
 		return {
-			updated: false,
-			filePath: layoutFilePath,
 			alreadyModified: true,
+			filePath: layoutFilePath,
+			updated: false,
 		};
 	}
+
+	const expressions = getLayoutExpressions(layoutFile);
 
 	// Step 4: Create component files
 	const componentFiles = await createComponents(layoutFilePath, frameworkDir);
@@ -119,37 +129,15 @@ export async function runLayoutUpdatePipeline(
 		afterImport(layoutFile);
 	}
 
-	// Step 7: Find return statement and wrap JSX
-	const returnStatement = layoutFile.getDescendantsOfKind(
-		SyntaxKind.ReturnStatement
-	)[0];
-	if (!returnStatement) {
-		return {
-			updated: false,
-			filePath: layoutFilePath,
-			alreadyModified: false,
-		};
+	for (const expression of expressions.reverse()) {
+		expression.replaceWithText(`(${wrapJsx(expression.getText())})`);
 	}
+	await writeFile(layoutFilePath, layoutFile.getFullText(), 'utf-8');
 
-	const expression = returnStatement.getExpression();
-	if (!expression) {
-		return {
-			updated: false,
-			filePath: layoutFilePath,
-			alreadyModified: false,
-		};
-	}
-
-	const originalJsx = expression.getText();
-	const newJsx = wrapJsx(originalJsx);
-	returnStatement.replaceWithText(`return ${newJsx}`);
-
-	// Step 8: Save
-	await layoutFile.save();
 	return {
-		updated: true,
-		filePath: layoutFilePath,
 		alreadyModified: false,
 		componentFiles,
+		filePath: layoutFilePath,
+		updated: true,
 	};
-}
+};

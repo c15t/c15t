@@ -1,11 +1,73 @@
 import { fileURLToPath } from 'node:url';
+
+import { transformWithOxc } from 'vite';
 import { defineConfig } from 'vitest/config';
 
+const demoScriptPath = fileURLToPath(
+	new URL(
+		'../internals/fixtures/sveltekit-demo/src/lib/consent-manager/demo-scripts.ts',
+		import.meta.url
+	)
+);
+
 export default defineConfig({
+	// Root tooling tests run before package builds or SvelteKit preparation.
+	oxc: { exclude: [demoScriptPath] },
+	plugins: [
+		{
+			enforce: 'pre',
+			name: 'demo-scripts-without-sveltekit-config',
+			resolveId(source, importer) {
+				// The manifest runtime only imports core's debug emitter at runtime.
+				// Resolve that real implementation without requiring a core build.
+				if (
+					source === '@c15t/core' &&
+					importer?.endsWith('/packages/integrations/src/engine/runtime.ts')
+				) {
+					return fileURLToPath(
+						new URL(
+							'../packages/core/src/libs/script-loader/debug.ts',
+							import.meta.url
+						)
+					);
+				}
+			},
+			transform(code, id) {
+				if (id === demoScriptPath) {
+					return transformWithOxc(code, id, { tsconfig: false });
+				}
+			},
+		},
+	],
+	resolve: {
+		alias: Object.fromEntries(
+			[
+				['google-tag', 'analytics/google-tag'],
+				['meta-pixel', 'ads-and-pixels/meta-pixel'],
+				['microsoft-clarity', 'analytics/microsoft-clarity'],
+				['tiktok-pixel', 'ads-and-pixels/tiktok-pixel'],
+			].map(([entry, source]) => [
+				`@c15t/integrations/${entry}`,
+				fileURLToPath(
+					new URL(
+						`../packages/integrations/src/vendors/${source}.ts`,
+						import.meta.url
+					)
+				),
+			])
+		),
+	},
 	root: fileURLToPath(new URL('.', import.meta.url)),
 	test: {
+		coverage: {
+			enabled: true,
+			include: ['**/*.ts', '!**/*.d.ts', '!**/node_modules/**'],
+			provider: 'istanbul',
+			reportOnFailure: true,
+			reporter: ['text', 'json-summary', 'json', 'html'],
+			reportsDirectory: './coverage',
+		},
 		environment: 'node',
-		include: ['**/*.test.ts'],
 		exclude: [
 			'**/node_modules/**',
 			'**/dist/**',
@@ -13,13 +75,6 @@ export default defineConfig({
 			'**/.cache/**',
 			'**/coverage/**',
 		],
-		coverage: {
-			provider: 'istanbul',
-			reporter: ['text', 'json-summary', 'json', 'html'],
-			reportOnFailure: true,
-			enabled: true,
-			reportsDirectory: './coverage',
-			include: ['**/*.ts', '!**/*.d.ts', '!**/node_modules/**'],
-		},
+		include: ['**/*.test.ts'],
 	},
 });

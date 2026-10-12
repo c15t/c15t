@@ -503,18 +503,18 @@ install_deps() {
 
     symlink_pkg svelte-app    c15t              core
     symlink_pkg svelte-app    @c15t/dev-tools   dev-tools
-    symlink_pkg svelte-app    @c15t/scripts     scripts
+    symlink_pkg svelte-app    @c15t/integrations integrations
 
     symlink_pkg nextjs-app    @c15t/nextjs      nextjs
-    symlink_pkg nextjs-app    @c15t/scripts     scripts
+    symlink_pkg nextjs-app    @c15t/integrations integrations
     symlink_pkg nextjs-app    @c15t/dev-tools   dev-tools
 
     symlink_pkg nextjs-pages  @c15t/nextjs      nextjs
-    symlink_pkg nextjs-pages  @c15t/scripts     scripts
+    symlink_pkg nextjs-pages  @c15t/integrations integrations
     symlink_pkg nextjs-pages  @c15t/dev-tools   dev-tools
 
     symlink_pkg vite-react    @c15t/react       react
-    symlink_pkg vite-react    @c15t/scripts     scripts
+    symlink_pkg vite-react    @c15t/integrations integrations
     symlink_pkg vite-react    @c15t/dev-tools   dev-tools
 
     print_success "All local packages linked"

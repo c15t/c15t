@@ -1,0 +1,499 @@
+/**
+ * Consent writes.
+ *
+ * Recording a consent has to be idempotent: a client that retries a request,
+ * or two requests racing from the same visitor, must produce one record rather
+ * than two. On a consent platform a duplicate is not a cosmetic problem — it
+ * is a second legal record of the same act.
+ *
+ * `@c15t/backend` achieves this by reading first and then writing: look up the
+ * deterministic primary key, fall back to a lookup on the identity tuple for
+ * rows written by older random-id code, attempt the insert, and if it throws,
+ * decide whether the error was a unique violation by string-matching adapter
+ * error codes (`23505`, `ER_DUP_ENTRY`, `P2002`, `SQLITE_CONSTRAINT…`) and
+ * then message substrings as a fallback. That leaves a race window between the
+ * read and the write, and it treats "is this a duplicate?" as a question to be
+ * answered by parsing prose.
+ *
+ * Here the database answers it, in one atomic statement: either this call
+ * inserted the row or someone already had, and the return value says which. No
+ * window, and no error-string sniffing — the error never happens. See
+ * `db/insert-once.ts`, which also explains why that statement is spelled
+ * differently on MySQL.
+ *
+ * The legacy identity lookup is kept, because it is not redundant: rows
+ * written before deterministic ids existed have unrelated primary keys, and
+ * only the identity tuple can find them.
+ */
+
+import { buildConsentId, vendorChoiceWireSchema } from '@c15t/schema';
+import type {
+	ConsentSubmissionIdentity,
+	SubjectChoiceWire,
+	VendorChoiceWire,
+} from '@c15t/schema';
+import { Data, Effect } from 'effect';
+import { SqlClient } from 'effect/sql';
+import type { SqlError } from 'effect/sql';
+import * as v from 'valibot';
+
+import { insertOnce } from '../db/insert-once';
+import { encoder } from '../db/values';
+import { isLegacyJsonEnvelope, unwrapLegacyJson } from './subject-choice';
+
+export interface ConsentSubmission extends ConsentSubmissionIdentity {
+	readonly purposeIds: readonly string[];
+	/**
+	 * v3 receipts this submission confirmed, in wire form. Only the confirmed
+	 * categories, with the client's original confirmation times and bases;
+	 * nothing here is stamped or renewed on the way in.
+	 */
+	readonly choice?: SubjectChoiceWire | null;
+	/**
+	 * True when `choice` was built by this backend from the submitted
+	 * preferences because the save carried no receipts, as a 2.x client's
+	 * does. Such receipts hold nothing the purposes and preferences did not.
+	 */
+	readonly choiceFromPreferences?: boolean;
+	/** Per-vendor grants this submission carried, in wire form, stored as sent. */
+	readonly vendorChoice?: VendorChoiceWire | null;
+	readonly metadata?: unknown;
+	/**
+	 * Experiment attribution, projected out of `metadata` onto real columns so
+	 * the summary can group on them. `metadata` still holds the full object.
+	 */
+	readonly experimentId?: string | null;
+	readonly experimentArm?: string | null;
+	readonly timeToDecisionMs?: number | null;
+	readonly ipAddress?: string | null;
+	readonly userAgent?: string | null;
+	readonly jurisdictionModel?: string | null;
+	readonly tcString?: string | null;
+	readonly uiSource?: string | null;
+	readonly consentAction?: string | null;
+	readonly validUntil?: Date | null;
+	readonly runtimePolicySource?: string | null;
+}
+
+export interface RecordedConsent {
+	readonly id: string;
+	/**
+	 * False when an identical submission was already recorded.
+	 *
+	 * Surfaced rather than hidden so a caller can tell a fresh consent from a
+	 * replay — the audit trail should record one, not both.
+	 */
+	readonly created: boolean;
+}
+
+/**
+ * Finds a consent written before deterministic ids existed.
+ *
+ * Such a row has an unrelated random primary key, so only the identity tuple
+ * can match it. This must run whenever the primary-key lookup misses: during a
+ * rolling deploy an older process can write a random-id row *after* a newer
+ * one has started, so process start time cannot be used to rule it out.
+ */
+const findLegacySubmission = Effect.fn('consent.findLegacy')(
+	function* findLegacySubmission(identity: ConsentSubmissionIdentity) {
+		const sql = yield* SqlClient.SqlClient;
+		// SQLite stores this column as epoch milliseconds and cannot bind a Date.
+		const encode = yield* encoder;
+
+		const rows = yield* sql<{ id: string }>`
+		select ${sql('id')} from ${sql('consent')}
+		where ${sql('subjectId')} = ${identity.subjectId}
+			and ${sql('domainId')} = ${identity.domainId}
+			and ${sql('givenAt')} = ${encode(identity.givenAt)}
+			and ${
+				identity.policyId === undefined || identity.policyId === null
+					? sql`${sql('policyId')} is null`
+					: sql`${sql('policyId')} = ${identity.policyId}`
+			}
+			and ${
+				identity.tenantId === undefined
+					? sql`${sql('tenantId')} is null`
+					: sql`${sql('tenantId')} = ${identity.tenantId}`
+			}
+		limit 1
+	`;
+
+		return rows[0]?.id;
+	}
+);
+
+/**
+ * Records a consent, exactly once.
+ *
+ * Safe to call repeatedly with the same submission: the second and subsequent
+ * calls return the existing id with `created: false`.
+ */
+/**
+ * A consent whose identity already exists, recorded with different purposes.
+ *
+ * The deterministic id covers identity and not purposes, by design — it must
+ * match `@c15t/backend`'s derivation exactly. That makes this case
+ * indistinguishable from a retry at the key level, so it is detected on the
+ * stored row instead.
+ */
+export class ConsentPurposeConflictError extends Data.TaggedError(
+	'ConsentPurposeConflictError'
+)<{
+	readonly message: string;
+}> {}
+
+const safeParse = (value: string): unknown => {
+	try {
+		return JSON.parse(value);
+	} catch {
+		return undefined;
+	}
+};
+
+/**
+ * Stored `purposeIds`, which SQLite hands back as a JSON string and a 2.x
+ * row holds inside a `{ json }` envelope.
+ */
+const normalisePurposeIds = (value: unknown): string[] | undefined => {
+	const parsed = unwrapLegacyJson(
+		typeof value === 'string' ? safeParse(value) : value
+	);
+	return Array.isArray(parsed) ? [...parsed].map(String).sort() : undefined;
+};
+
+/** Whether stored `purposeIds` are a readable list in the 2.x envelope. */
+const writtenBy2x = (value: unknown): boolean => {
+	const parsed = typeof value === 'string' ? safeParse(value) : value;
+	return isLegacyJsonEnvelope(parsed) && Array.isArray(parsed.json);
+};
+
+const sameIds = (a: readonly string[], b: readonly string[]): boolean =>
+	a.length === b.length && a.every((id, index) => id === b[index]);
+
+/** Receipts in a key-stable form, so two equal receipts serialise equally. */
+const canonicalChoice = (choice: SubjectChoiceWire | null | undefined) => {
+	if (!choice) {
+		return null;
+	}
+	const categories = Object.keys(choice.categories)
+		.sort()
+		.map((category) => {
+			const receipt =
+				choice.categories[category as keyof typeof choice.categories];
+			return receipt
+				? [
+						category,
+						receipt.value,
+						receipt.confirmedAt,
+						receipt.basis.kind,
+						receipt.basis.kind === 'choice-v1'
+							? receipt.basis.fingerprint
+							: (receipt.basis.materialFingerprint ?? null),
+					]
+				: [category];
+		});
+	return JSON.stringify(categories);
+};
+
+const storedChoice = (value: unknown): SubjectChoiceWire | null => {
+	const parsed = typeof value === 'string' ? safeParse(value) : value;
+	return parsed && typeof parsed === 'object'
+		? (parsed as SubjectChoiceWire)
+		: null;
+};
+
+/**
+ * The receipts stored on an existing row must match the ones resubmitted.
+ *
+ * Same reasoning as the purpose check: the id covers identity and not what
+ * was confirmed, so a resubmission with different receipts looks like a
+ * retry at the key level and has to be refused on content.
+ */
+const assertSameChoice = Effect.fn('consent.assertSameChoice')(
+	function* assertSameChoice(
+		storedRaw: unknown,
+		submitted: SubjectChoiceWire | null | undefined
+	) {
+		const stored = canonicalChoice(storedChoice(storedRaw));
+		const incoming = canonicalChoice(submitted);
+		if (stored === incoming) {
+			return;
+		}
+		return yield* new ConsentPurposeConflictError({
+			message:
+				'A consent with this identity was already recorded with different ' +
+				'category receipts. Withdraw or supersede it rather than resubmitting ' +
+				'the same act with a different confirmation.',
+		});
+	}
+);
+
+/**
+ * Fails when a stored consent covers different purposes from the one submitted.
+ *
+ * Used on both paths that can find an existing row — the pre-insert lookup and
+ * a lost insert race — because answering success in either case tells a client
+ * its purposes were recorded when the stored record says otherwise.
+ */
+/**
+ * Exported for the tests that cover the lost-race branch, which no
+ * engine in the matrix can be made to interleave on demand.
+ *
+ * @internal
+ */
+export const assertSamePurposes = Effect.fn('consent.assertSamePurposes')(
+	function* assertSamePurposes(
+		storedRaw: unknown,
+		submitted: readonly string[]
+	) {
+		const stored = normalisePurposeIds(storedRaw);
+		const incoming = [...submitted].sort();
+		if (stored === undefined || sameIds(stored, incoming)) {
+			return;
+		}
+		return yield* new ConsentPurposeConflictError({
+			message:
+				`A consent with this identity was already recorded with different ` +
+				`purposes (stored: [${stored.join(', ')}], submitted: ` +
+				`[${incoming.join(', ')}]). Withdraw or supersede it rather than ` +
+				'resubmitting the same act with a different scope.',
+		});
+	}
+);
+
+/** Vendor grants in a key-stable form, so two equal maps serialise equally. */
+const canonicalVendorChoice = (
+	vendorChoice: VendorChoiceWire | null | undefined
+) => {
+	if (!vendorChoice) {
+		return null;
+	}
+	return JSON.stringify([
+		vendorChoice.confirmedAt,
+		Object.keys(vendorChoice.grants)
+			.sort()
+			.map((id) => [id, vendorChoice.grants[id]]),
+	]);
+};
+
+/** A stored `vendorChoice` column that holds something, but not a vendor map. */
+const UNREADABLE = Symbol('unreadable vendor map');
+
+/**
+ * The stored vendor map, decoded through the wire schema. A value that is
+ * present but not a vendor map, after a manual import or corruption, is
+ * `UNREADABLE`: it is never equal to any submission, so a retry against that
+ * row is a conflict rather than a replay whose content cannot be checked.
+ */
+const storedVendorChoice = (
+	value: unknown
+): VendorChoiceWire | null | typeof UNREADABLE => {
+	if (value === null || value === undefined) {
+		return null;
+	}
+	const parsed = typeof value === 'string' ? safeParse(value) : value;
+	if (parsed === null) {
+		// A JSON `null` in the column is the same as no column value.
+		return null;
+	}
+	const decoded = v.safeParse(vendorChoiceWireSchema, parsed);
+	return decoded.success ? decoded.output : UNREADABLE;
+};
+
+/**
+ * The vendor map stored on an existing row must match the one resubmitted.
+ * Same hazard as receipts: the id covers identity, not what was decided.
+ *
+ * One asymmetry is allowed: a stored row with no map against a replay that
+ * carries one. A queued save replays with its original time, so the same
+ * id, and the row it meets can have been written by a process that did not
+ * yet carry the column, during a rolling upgrade or before migration 4.
+ * That replay is accepted as the same act so the client's queue clears; the
+ * row keeps no map, and the visitor's next save carries their full vendor
+ * map, so the subject's aggregate catches up on their next act. The other
+ * direction, a stored map against a replay without one, stays a conflict:
+ * a client that recorded vendors does not later replay the act without them.
+ *
+ * @internal
+ */
+export const assertSameVendors = Effect.fn('consent.assertSameVendors')(
+	function* assertSameVendors(
+		storedRaw: unknown,
+		submitted: VendorChoiceWire | null | undefined
+	) {
+		const storedMap = storedVendorChoice(storedRaw);
+		const stored =
+			storedMap === UNREADABLE ? UNREADABLE : canonicalVendorChoice(storedMap);
+		const incoming = canonicalVendorChoice(submitted);
+		if (stored === incoming || (storedMap === null && submitted)) {
+			return;
+		}
+		return yield* new ConsentPurposeConflictError({
+			message:
+				'A consent with this identity was already recorded with different ' +
+				'vendor grants. Withdraw or supersede it rather than resubmitting ' +
+				'the same act with a different vendor decision.',
+		});
+	}
+);
+
+/**
+ * Every content check against a stored row, for the two paths that find
+ * one.
+ *
+ * @internal
+ */
+export const assertSameSubmission = Effect.fn('consent.assertSameSubmission')(
+	function* assertSameSubmission(
+		stored:
+			| { purposeIds: unknown; choice: unknown; vendorChoice: unknown }
+			| undefined,
+		submission: ConsentSubmission
+	) {
+		yield* assertSamePurposes(stored?.purposeIds, submission.purposeIds);
+		// A 2.x backend sharing the database writes no receipts, and this
+		// backend turns every receipt-less save into `legacy-v2` receipts, so a
+		// 2.x client's retry of a save the 2.x backend recorded would always be
+		// refused here. Its receipts were built from the same preferences as
+		// its purposes, which were read and matched above, so they are not
+		// compared; the row keeps none. That holds only for a row 2.x wrote,
+		// which never stored refusals: this backend also leaves `choice` empty
+		// for a save with only `necessary`, and a retry adding a refusal to
+		// that row is a different act. So the row must carry the `{ json }`
+		// envelope only 2.x writes. Receipts a client sent can grant or refuse
+		// what its purposes do not show, so they are always compared.
+		const legacyRetry =
+			submission.choiceFromPreferences === true &&
+			stored !== undefined &&
+			(stored.choice === null || stored.choice === undefined) &&
+			writtenBy2x(stored.purposeIds);
+		if (!legacyRetry) {
+			yield* assertSameChoice(stored?.choice, submission.choice);
+		}
+		yield* assertSameVendors(stored?.vendorChoice, submission.vendorChoice);
+	}
+);
+
+/** The column values one submission writes, absent fields as SQL NULL. */
+const rowValues = (
+	id: string,
+	submission: ConsentSubmission
+): Record<string, unknown> => ({
+	choice:
+		submission.choice === undefined || submission.choice === null
+			? null
+			: JSON.stringify(submission.choice),
+	consentAction: submission.consentAction ?? null,
+	domainId: submission.domainId,
+	experimentArm: submission.experimentArm ?? null,
+	experimentId: submission.experimentId ?? null,
+	givenAt: submission.givenAt,
+	id,
+	ipAddress: submission.ipAddress ?? null,
+	// 2.x stored a regulation label here; v3 does not derive one.
+	jurisdiction: null,
+	jurisdictionModel: submission.jurisdictionModel ?? null,
+	metadata:
+		submission.metadata === undefined
+			? null
+			: JSON.stringify(submission.metadata),
+	policyId: submission.policyId ?? null,
+	purposeIds: JSON.stringify(submission.purposeIds),
+	runtimePolicySource: submission.runtimePolicySource ?? null,
+	subjectId: submission.subjectId,
+	tcString: submission.tcString ?? null,
+	tenantId: submission.tenantId ?? null,
+	timeToDecisionMs: submission.timeToDecisionMs ?? null,
+	uiSource: submission.uiSource ?? null,
+	userAgent: submission.userAgent ?? null,
+	validUntil: submission.validUntil ?? null,
+	vendorChoice:
+		submission.vendorChoice === undefined || submission.vendorChoice === null
+			? null
+			: JSON.stringify(submission.vendorChoice),
+});
+
+export const record = Effect.fn('consent.record')(function* record(
+	submission: ConsentSubmission
+): Generator<
+	Effect.Effect<
+		unknown,
+		SqlError.SqlError | ConsentPurposeConflictError,
+		SqlClient.SqlClient
+	>,
+	RecordedConsent
+> {
+	const sql = yield* SqlClient.SqlClient;
+	const id = yield* Effect.promise(() => buildConsentId(submission));
+
+	// Primary-key lookup first. A retry — a client retrying, or a visitor
+	// double-clicking — is the common case in production, and this answers it
+	// in one indexed query. Measured: skipping this short-circuit and going
+	// straight to the legacy lookup made retries about twice as slow.
+	const existing = yield* sql<{
+		id: string;
+		purposeIds: unknown;
+		choice: unknown;
+		vendorChoice: unknown;
+	}>`
+		select ${sql('id')}, ${sql('purposeIds')}, ${sql('choice')}, ${sql('vendorChoice')}
+		from ${sql('consent')}
+		where ${sql('id')} = ${id}
+	`;
+	const [found] = existing;
+	if (found) {
+		// The id covers identity — tenant, subject, domain, policy, givenAt — and
+		// deliberately not the purposes, because it has to stay byte-identical to
+		// the one `@c15t/backend` derives. So a resubmission carrying *different*
+		// purposes lands here looking exactly like a retry, and returning
+		// `created: false` would answer 200 while silently keeping the original
+		// set. On a consent platform that means the record says a subject agreed
+		// to something other than what they submitted.
+		//
+		// Reported rather than folded in. Overwriting would rewrite a legal record
+		// in place with no audit entry, and changing the id to cover purposes
+		// would break the parity the derivation exists to preserve.
+		yield* assertSameSubmission(found, submission);
+		return { created: false, id };
+	}
+
+	// Only now check for a row written by an older process. It has a random
+	// primary key, so the conflict target below cannot see it — but this costs
+	// a query, so it must not run on the hot retry path above.
+	const legacyId = yield* findLegacySubmission(submission);
+	if (legacyId !== undefined) {
+		return { created: false, id: legacyId };
+	}
+
+	// `created: false` here means the conflict target matched — someone else
+	// wrote this exact submission, possibly concurrently. That is success, not
+	// failure, and it is the whole reason this is one statement.
+	const created = yield* insertOnce({
+		conflictOn: 'id',
+		into: 'consent',
+		values: rowValues(id, submission),
+	});
+
+	if (created) {
+		return { created, id };
+	}
+
+	// Lost the conflict, which the read above did not see: two submissions with
+	// the same identity and *different* purposes can both pass that check while
+	// neither row exists yet, and the loser would then be told its purposes were
+	// accepted while the winner's are what is stored. Rare, and precisely the
+	// case a deterministic key makes possible, so it is checked rather than
+	// reasoned about.
+	const winner = yield* sql<{
+		purposeIds: unknown;
+		choice: unknown;
+		vendorChoice: unknown;
+	}>`
+		select ${sql('purposeIds')}, ${sql('choice')}, ${sql('vendorChoice')}
+		from ${sql('consent')}
+		where ${sql('id')} = ${id}
+	`;
+	yield* assertSameSubmission(winner[0], submission);
+
+	return { created, id };
+});

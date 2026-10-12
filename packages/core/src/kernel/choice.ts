@@ -1,0 +1,1051 @@
+/**
+ * Choice recording: the only way a visitor's decision enters the kernel.
+ *
+ * - `save()` records an explicit choice, or acknowledges a choice prompt
+ *   with no category to decide. It captures one action time before any
+ *   yield, network call or persistence, commits the choice, the vendor
+ *   decision and any notice it acknowledges in one commit, and then hands
+ *   the action's payload to the save outbox (`save-outbox/`), which owns
+ *   sending, queueing, replay and subject reassignment.
+ * - `dismissNotice()` records the local notice dismissal only.
+ * - Drafts stage what a no-input `save()` confirms. They are bound to the
+ *   choice contract they were presented under and dropped, never
+ *   restamped, when that contract changes.
+ *
+ * Every action is attributed to the surface it was made on, with the time
+ * from that surface's first impression and the experiment arm it ran.
+ */
+
+import { recordCategoryPatch } from '../consent-record/record';
+import type {
+	ConsentSubject,
+	OptionalConsentCategory,
+} from '../consent-record/types';
+import type { AllConsentNames } from '../consent/consent-types';
+import type { ExperimentAssignment } from '../libs/experiment';
+import { generateSubjectId } from '../libs/generate-subject-id';
+import { extractConsentNamesFromCondition, has } from '../libs/has';
+import type { HasCondition } from '../libs/has';
+import { presentedSelection, scopeSelection } from '../policy';
+import type { PresentedSelection } from '../policy';
+import type {
+	ConsentSnapshot,
+	ConsentState,
+	ExplicitChoice,
+	KernelEvent,
+	KernelIABAuthority,
+	NoticeDismissal,
+	NoticeDismissResult,
+	SaveInput,
+	SavePayload,
+	SaveResult,
+	SaveUISource,
+	VendorChoice,
+} from '../types';
+import type { SnapshotPatch } from './patch';
+import type { KernelRuntime } from './runtime';
+import type { SaveOutbox } from './save-outbox';
+import { buildDraft, copyIABAuthority, isPromptSurface } from './snapshot';
+
+/**
+ * Values one save input confirms. Object input is passed through untouched
+ * so the record helper validates it and reports the exact issue.
+ */
+const resolveSaveSelection = function resolveSaveSelection(
+	snapshot: ConsentSnapshot,
+	draft: PresentedSelection | null,
+	input: SaveInput | undefined,
+	categories?: readonly AllConsentNames[]
+): { values: unknown; consentAction: SavePayload['consentAction'] } {
+	const rule = snapshot.policyRule;
+	const choiceScope = snapshot.evaluationPolicy.choiceScope ?? rule.scope;
+	const displayed =
+		categories === undefined
+			? choiceScope
+			: choiceScope.filter((category) => categories.includes(category));
+	const narrow = (values: PresentedSelection) =>
+		displayed.length === rule.scope.length
+			? values
+			: Object.fromEntries(
+					displayed.map((category) => [category, values[category]])
+				);
+	if (input === 'all' || input === 'none') {
+		// A bulk action stays `all` / `necessary` even when the host displays
+		// a subset of the scope: the action names what the visitor clicked,
+		// `confirmed` names what it covered.
+		const bulkAction = input === 'all' ? 'all' : 'necessary';
+		// With nothing to decide, the bulk action still covers everything the
+		// visitor was shown: strictly necessary alone.
+		return {
+			consentAction: bulkAction,
+			values: narrow(scopeSelection(rule, input === 'all')),
+		};
+	}
+	if (input === undefined) {
+		return {
+			consentAction: 'custom',
+			values: narrow(presentedSelection(rule, draft, snapshot.explicitChoice)),
+		};
+	}
+	return { consentAction: 'custom', values: input };
+};
+
+const EMPTY_CHOICE: ExplicitChoice = Object.freeze({
+	categories: Object.freeze({}),
+	version: 3,
+}) as ExplicitChoice;
+
+/**
+ * Separate the vendor grants an object input carries from its categories.
+ * Bulk and omitted inputs pass through; a `vendors` key that is not a map
+ * is kept so the grant validation reports it rather than silently dropped.
+ */
+const splitSaveInput = function splitSaveInput(
+	rawInput: SaveInput | undefined
+): {
+	input: 'all' | 'none' | Partial<ConsentState> | undefined;
+	vendors: Record<string, boolean> | undefined;
+} {
+	if (rawInput === undefined || typeof rawInput !== 'object') {
+		return { input: rawInput, vendors: undefined };
+	}
+	if (!Object.hasOwn(rawInput, 'vendors')) {
+		return { input: rawInput, vendors: undefined };
+	}
+	const { vendors, ...categories } = rawInput;
+	return { input: categories, vendors: vendors as Record<string, boolean> };
+};
+
+/** Own string keys mapped to booleans. Rejects anything else. */
+const isVendorGrantMap = function isVendorGrantMap(
+	value: unknown
+): value is Record<string, boolean> {
+	if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+		return false;
+	}
+	return Object.entries(value).every(
+		([id, granted]) => id.length > 0 && typeof granted === 'boolean'
+	);
+};
+
+/** Ids a save may toggle: declared and not `disabled`. */
+const toggleableVendorIds = function toggleableVendorIds(
+	snapshot: ConsentSnapshot
+): ReadonlySet<string> {
+	const ids = new Set<string>();
+	for (const vendor of snapshot.vendors?.declared ?? []) {
+		if (vendor.disabled !== true) {
+			ids.add(vendor.id);
+		}
+	}
+	return ids;
+};
+
+/** Whether a narrowed bulk action names every category the visitor decides. */
+const coversChoiceScope = function coversChoiceScope(
+	snapshot: ConsentSnapshot,
+	categories: readonly AllConsentNames[]
+): boolean {
+	const scope =
+		snapshot.evaluationPolicy.choiceScope ?? snapshot.policyRule.scope;
+	// An empty scope is vacuously covered by `every`, and the visitor decides
+	// nothing in it, so a narrowed action there is not the full clear.
+	return (
+		scope.length > 0 && scope.every((category) => categories.includes(category))
+	);
+};
+
+/** A condition's outcome, `null` when it cannot be evaluated. */
+const conditionOutcome = function conditionOutcome(
+	condition: HasCondition<AllConsentNames>,
+	consents: ConsentState
+): boolean | null {
+	try {
+		return has(condition, consents);
+	} catch {
+		return null;
+	}
+};
+
+/**
+ * Whether the selected categories alone settle a condition: with them at
+ * their post-action values, no assignment of the condition's other
+ * categories changes the outcome. Checked by enumerating those assignments,
+ * which a condition over a handful of categories keeps small. A condition
+ * that cannot be evaluated is never settled.
+ */
+const settledBySelection = function settledBySelection(
+	condition: HasCondition<AllConsentNames>,
+	afterAction: ConsentState,
+	selected: ReadonlySet<AllConsentNames>
+): boolean {
+	const expected = conditionOutcome(condition, afterAction);
+	if (expected === null) {
+		return false;
+	}
+	const free = [...new Set(extractConsentNamesFromCondition(condition))].filter(
+		(name) => !selected.has(name)
+	);
+	// Walk every other assignment of the free categories like an odometer:
+	// flip the first digit, carrying into the next when it rolls back.
+	const flipped = free.map(() => false);
+	const advance = (): boolean => {
+		for (const [index] of free.entries()) {
+			flipped[index] = !flipped[index];
+			if (flipped[index]) {
+				return true;
+			}
+		}
+		return false;
+	};
+	while (advance()) {
+		const state: ConsentState = { ...afterAction };
+		for (const [index, name] of free.entries()) {
+			if (flipped[index]) {
+				state[name] = !afterAction[name];
+			}
+		}
+		if (conditionOutcome(condition, state) !== expected) {
+			return false;
+		}
+	}
+	return true;
+};
+
+/**
+ * The state after a bulk action narrowed to some categories. A denial is
+ * lifted only for a vendor the action decides on its own: one of its
+ * categories is selected, and the selected categories are what settles its
+ * condition, whatever the unselected ones hold. A vendor under
+ * `{ or: [marketing, measurement] }` keeps its denial when only measurement
+ * is rejected, since the still-granted marketing branch would load it at
+ * once; one under `{ not: marketing }` is decided by rejecting marketing,
+ * and its denial lifts; one under `{ and: [measurement, { not: marketing }] }`
+ * is decided by rejecting both, even though no single flip of the pair
+ * would change its outcome. Every other denial stays. Stamped like a full
+ * bulk action once a governed vendor exists.
+ */
+const scopedBulkVendorChoice = function scopedBulkVendorChoice(
+	snapshot: ConsentSnapshot,
+	categories: readonly AllConsentNames[],
+	granted: boolean,
+	actionAt: number
+): VendorChoice | null {
+	const current = snapshot.vendorChoice;
+	const selected = new Set(categories);
+	const afterAction: ConsentState = { ...snapshot.effectivePermissions };
+	for (const category of selected) {
+		afterAction[category] = granted;
+	}
+	const governed = new Set<string>();
+	for (const vendor of snapshot.vendors?.declared ?? []) {
+		const names = extractConsentNamesFromCondition(vendor.category);
+		if (!names.some((name) => selected.has(name))) {
+			continue;
+		}
+		if (settledBySelection(vendor.category, afterAction, selected)) {
+			governed.add(vendor.id);
+		}
+	}
+	if (governed.size === 0) {
+		return current;
+	}
+	const denied = (current?.denied ?? []).filter((id) => !governed.has(id));
+	if (current && denied.length === current.denied.length) {
+		// Nothing governed was denied. Stamp the clear the way a full bulk
+		// action does, unless the current record is already at least as new.
+		return current.confirmedAt >= actionAt
+			? current
+			: { confirmedAt: actionAt, denied: [...current.denied], version: 1 };
+	}
+	return { confirmedAt: actionAt, denied, version: 1 };
+};
+
+/**
+ * The state after a bulk action. Unlike lifting the last denial, a bulk
+ * action is always stamped once vendors are declared, even over `null` or an
+ * already-empty list: a server denial recorded before the visitor pressed
+ * accept all, but arriving afterwards, must lose to it in the merge.
+ */
+const bulkClearedVendorChoice = function bulkClearedVendorChoice(
+	snapshot: ConsentSnapshot,
+	actionAt: number
+): VendorChoice | null {
+	const current = snapshot.vendorChoice;
+	// Nothing declared and nothing denied is not a decision. A retained
+	// denial for a vendor no longer declared still clears, or the vendor
+	// would come back blocked after the visitor used accept or reject all.
+	if (
+		(snapshot.vendors?.declared.length ?? 0) === 0 &&
+		(current?.denied.length ?? 0) === 0
+	) {
+		return current;
+	}
+	if (current?.denied.length === 0 && current.confirmedAt >= actionAt) {
+		return current;
+	}
+	return { confirmedAt: actionAt, denied: [], version: 1 };
+};
+
+/** Sorted denial list after applying grants on top of the current one. */
+const applyVendorGrants = function applyVendorGrants(
+	snapshot: ConsentSnapshot,
+	current: readonly string[] | undefined,
+	grants: Readonly<Record<string, boolean>> | undefined
+): string[] {
+	const toggleable = toggleableVendorIds(snapshot);
+	const denied = new Set<string>(current);
+	for (const [id, granted] of Object.entries(grants ?? {})) {
+		if (!toggleable.has(id)) {
+			continue;
+		}
+		if (granted) {
+			denied.delete(id);
+		} else {
+			denied.add(id);
+		}
+	}
+	return [...denied].sort();
+};
+
+/**
+ * The vendor denial list one save leaves behind.
+ *
+ * - Under `model === 'iab'` the vendor axis is inert: IAB vendor consent is
+ *   authoritative and nothing here changes.
+ * - `'all'` and `'none'` clear the list: vendors follow the category, and
+ *   any explicit grants or staged draft are ignored. Narrowed to displayed
+ *   `categories`, only the denials of vendors those categories govern lift.
+ * - Otherwise explicit grants win over the staged vendor draft, applied on
+ *   top of the current denials. Ids that are not declared, or are declared
+ *   `disabled`, are ignored.
+ *
+ * Lifting every denial leaves a timestamped empty list, never `null`: `null`
+ * means no vendor decision was ever made, and an explicit grant over `null`
+ * is a decision too. Explicit grants always take the action time, even for
+ * an unchanged list; a staged draft or nothing usable returns the current
+ * value, so a no-input save never renews the time.
+ */
+const resolveVendorSelection = function resolveVendorSelection(
+	snapshot: ConsentSnapshot,
+	input: SaveInput | undefined,
+	explicit: Record<string, boolean> | undefined,
+	actionAt: number,
+	categories?: readonly AllConsentNames[]
+): VendorChoice | null {
+	const current = snapshot.vendorChoice;
+	if (snapshot.model === 'iab') {
+		return current;
+	}
+	const bulk = input === 'all' || input === 'none';
+	if (bulk) {
+		// Vendors follow the category on a bulk action; explicit grants are
+		// discarded so nothing survives as a denial.
+		// A bulk action that covers every category the policy lets the
+		// visitor decide is the stock accept or reject all, whichever surface
+		// sent it: nothing outside it can hold a denial in place, so it
+		// clears the list outright. Only a narrower action lifts denials
+		// selectively.
+		if (categories === undefined || coversChoiceScope(snapshot, categories)) {
+			return bulkClearedVendorChoice(snapshot, actionAt);
+		}
+		return scopedBulkVendorChoice(
+			snapshot,
+			categories,
+			input === 'all',
+			actionAt
+		);
+	}
+	if (explicit === undefined) {
+		return current;
+	}
+	const toggleable = toggleableVendorIds(snapshot);
+	const usable = Object.keys(explicit).some((id) => toggleable.has(id));
+	if (!usable) {
+		return current;
+	}
+	// A grant is a decision and a fresh confirmation even when it denies
+	// nothing or keeps the same list, like a category reconfirmation: an
+	// older server denial, or a server read taken between the old time and
+	// now, must not undo what the visitor just chose.
+	const denied = applyVendorGrants(snapshot, current?.denied, explicit);
+	return { confirmedAt: actionAt, denied, version: 1 };
+};
+
+/**
+ * Granted flag for every declared vendor, for the transport payload. Only
+ * present once a vendor decision exists locally: a save that never decided
+ * vendors must not tell the backend every vendor was granted now, or an
+ * older server denial still in flight would win the local merge while the
+ * backend holds the newer all-granted map. The backend keeps an earlier
+ * decision for any vendor a later map omits, since a client on a stale
+ * vendor list never saw it, so a decision about a vendor nothing declares
+ * right now must be spelled out: a denial the record retains travels as
+ * `false`, and a denial a bulk action just cleared travels as `true`, or
+ * another device would restore it when the vendor is declared again.
+ */
+const vendorChoicePayload = function vendorChoicePayload(
+	snapshot: ConsentSnapshot,
+	previous: ConsentSnapshot['vendorChoice']
+): SavePayload['vendorChoice'] {
+	const declared = snapshot.vendors?.declared ?? [];
+	if (snapshot.model === 'iab' || snapshot.vendorChoice === null) {
+		return undefined;
+	}
+	const denied = new Set(snapshot.vendorChoice.denied);
+	const grants: Record<string, boolean> = {};
+	for (const vendor of declared) {
+		Object.defineProperty(grants, vendor.id, {
+			configurable: true,
+			enumerable: true,
+			value: !denied.has(vendor.id),
+			writable: true,
+		});
+	}
+	// A denial the local record still holds for a vendor nothing declares
+	// right now travels too. The backend reads the map as the whole
+	// decision, so leaving it out would tell every other device the visitor
+	// granted a vendor they turned off, and a later redeclaration would
+	// split the devices. Locally the gate already ignores it.
+	for (const id of denied) {
+		if (!Object.hasOwn(grants, id)) {
+			Object.defineProperty(grants, id, {
+				configurable: true,
+				enumerable: true,
+				value: false,
+				writable: true,
+			});
+		}
+	}
+	// A denial this action lifted for a vendor nothing declares is a
+	// decision too. Only a bulk action can lift one, and it decided every
+	// vendor, so the grant is explicit rather than left for the backend to
+	// read as an omission.
+	for (const id of previous?.denied ?? []) {
+		if (!Object.hasOwn(grants, id)) {
+			Object.defineProperty(grants, id, {
+				configurable: true,
+				enumerable: true,
+				value: true,
+				writable: true,
+			});
+		}
+	}
+	return {
+		confirmedAt: snapshot.vendorChoice.confirmedAt,
+		grants,
+		version: 1,
+	};
+};
+
+/** A save's action time must be a past or present safe integer. */
+const isValidSaveActionAt = function isValidSaveActionAt(
+	actionAt: number,
+	currentTime: number
+): boolean {
+	return (
+		Number.isSafeInteger(actionAt) && actionAt >= 0 && actionAt <= currentTime
+	);
+};
+
+/**
+ * A `none` regime owes no choice: nothing is recorded, written, sent or
+ * announced, because permissions are already granted by default. Returns
+ * the completed result for that case, or `null` when the save proceeds.
+ */
+const saveUnderNoneRegime = function saveUnderNoneRegime(
+	snapshot: ConsentSnapshot
+): SaveResult | null {
+	if (snapshot.evaluationPolicy.model !== 'none') {
+		return null;
+	}
+	return { confirmed: [], ok: true, subjectId: snapshot.subject?.subjectId };
+};
+
+/**
+ * The acknowledgement a save records when the choice prompt has no category
+ * to decide, or `null` when the choice scope has one. It is a dismissal
+ * record bound to the choice fingerprint, so persistence, cross-tab
+ * reconciliation and the deadline timer carry it like a notice dismissal,
+ * and the evaluator never mistakes it for one. A stored acknowledgement at
+ * least as new is kept.
+ */
+const choiceAcknowledgement = function choiceAcknowledgement(
+	snapshot: ConsentSnapshot,
+	actionAt: number
+): NoticeDismissal | null {
+	const policy = snapshot.evaluationPolicy;
+	if (
+		policy.prompt !== 'choice' ||
+		(policy.choiceScope ?? policy.scope).length > 0
+	) {
+		return null;
+	}
+	const current = snapshot.noticeDismissal;
+	if (
+		current &&
+		current.fingerprint === policy.choice.fingerprint &&
+		current.dismissedAt >= actionAt
+	) {
+		return current;
+	}
+	return {
+		dismissedAt: actionAt,
+		fingerprint: policy.choice.fingerprint,
+		version: 1,
+	};
+};
+
+/**
+ * A visitor who records a choice while a notice is owed has read the
+ * notice: the choice acknowledges it, so the banner does not return after
+ * an opt-out made from the preference center. The dismissal rides on
+ * `choice:recorded`; no separate notice event, so an outcome is counted once.
+ */
+const applyNoticeAcknowledgement = function applyNoticeAcknowledgement(
+	patch: SnapshotPatch,
+	before: ConsentSnapshot,
+	actionAt: number
+): void {
+	// Only a notice prompt, and never over an acknowledgement this save
+	// already made (a choice prompt with nothing to decide records its own).
+	if (
+		patch.noticeDismissal !== undefined ||
+		before.evaluationPolicy.prompt !== 'notice' ||
+		before.promptRequirement.kind !== 'notice'
+	) {
+		return;
+	}
+	patch.noticeDismissal = {
+		dismissedAt: actionAt,
+		fingerprint: before.evaluationPolicy.notice.fingerprint,
+		version: 1,
+	};
+};
+
+/** Subject written by a save: the stored identifiers plus the current user's. */
+const saveSubject = function saveSubject(
+	snapshot: ConsentSnapshot,
+	subjectId: string
+): ConsentSubject {
+	const subject: ConsentSubject = { ...snapshot.subject, subjectId };
+	if (snapshot.user?.externalId) {
+		subject.externalId = snapshot.user.externalId;
+		if (snapshot.user.identityProvider) {
+			subject.identityProvider = snapshot.user.identityProvider;
+		}
+	}
+	return subject;
+};
+
+/** Capture the action’s policy evidence before init or navigation changes it. */
+const saveDecisionInputs = (
+	snapshot: ConsentSnapshot
+): Pick<SavePayload, 'decisionInputs'> => {
+	if (
+		snapshot.resolution.status !== 'no-match' &&
+		snapshot.resolution.status !== 'matched'
+	) {
+		return {};
+	}
+	return {
+		decisionInputs: {
+			country: snapshot.location
+				? snapshot.location.countryCode
+				: (snapshot.overrides.country ?? null),
+			fingerprint:
+				snapshot.resolution.status === 'matched'
+					? snapshot.resolution.fingerprints.policy
+					: undefined,
+			gpc: snapshot.privacySignals.gpc.active,
+			language:
+				snapshot.translations?.language ?? snapshot.overrides.language ?? 'en',
+			policyId:
+				snapshot.resolution.status === 'matched'
+					? snapshot.resolution.policyId
+					: null,
+			region: snapshot.location
+				? snapshot.location.regionCode
+				: (snapshot.overrides.region ?? null),
+		},
+	};
+};
+
+const isRecord = function isRecord(
+	value: unknown
+): value is Record<string, unknown> {
+	return value !== null && typeof value === 'object' && !Array.isArray(value);
+};
+
+const isIntegerIn = (value: unknown, min: number, max: number): boolean =>
+	typeof value === 'number' &&
+	Number.isInteger(value) &&
+	value >= min &&
+	value <= max;
+
+/**
+ * Every index of a list, holes included. `every` skips holes, which would
+ * let a sparse list through and hand `undefined` to the IAB gate.
+ */
+const everyIndex = (
+	list: readonly unknown[],
+	check: (entry: unknown) => boolean
+): boolean => {
+	for (let index = 0; index < list.length; index += 1) {
+		if (!(index in list && check(list[index]))) {
+			return false;
+		}
+	}
+	return true;
+};
+
+/** Absent, or a dense list of well-formed TC publisher restrictions. */
+const validPublisherRestrictions = function validPublisherRestrictions(
+	value: unknown
+): boolean {
+	return (
+		value === undefined ||
+		(Array.isArray(value) &&
+			everyIndex(
+				value,
+				(restriction) =>
+					isRecord(restriction) &&
+					isIntegerIn(restriction.purposeId, 1, 63) &&
+					isIntegerIn(restriction.restrictionType, 0, 2) &&
+					Array.isArray(restriction.vendorIds) &&
+					everyIndex(restriction.vendorIds, (id) => isIntegerIn(id, 1, 65_535))
+			))
+	);
+};
+
+/** Validate addon metadata before the local action can mutate any state. */
+const validSaveAuthority = function validSaveAuthority(
+	value: unknown,
+	snapshot: ConsentSnapshot,
+	actionAt: number,
+	now: number
+): value is KernelIABAuthority {
+	if (!isRecord(value)) {
+		return false;
+	}
+	const authority = value;
+	return (
+		snapshot.model === 'iab' &&
+		snapshot.resolution.status === 'matched' &&
+		snapshot.iab?.enabled === true &&
+		typeof authority.tcString === 'string' &&
+		authority.tcString.length > 0 &&
+		authority.choiceFingerprint ===
+			snapshot.evaluationPolicy.choice.fingerprint &&
+		authority.confirmedAt === actionAt &&
+		typeof authority.expiresAt === 'number' &&
+		Number.isSafeInteger(authority.expiresAt) &&
+		authority.expiresAt > now &&
+		authority.expiresAt > actionAt &&
+		authority.expiresAt <=
+			actionAt +
+				Math.min(
+					snapshot.evaluationPolicy.choice.maxAgeMs ?? 395 * 86400000,
+					395 * 86400000
+				) &&
+		validPublisherRestrictions(authority.publisherRestrictions) &&
+		[
+			authority.vendorConsents,
+			authority.vendorLegitimateInterests,
+			authority.purposeConsents,
+			authority.purposeLegitimateInterests,
+			authority.specialFeatureOptIns,
+		].every(
+			(map) =>
+				map !== null &&
+				typeof map === 'object' &&
+				!Array.isArray(map) &&
+				Object.values(map).every((entry) => typeof entry === 'boolean')
+		)
+	);
+};
+
+const applySaveAuthority = function applySaveAuthority(
+	patch: SnapshotPatch,
+	snapshot: ConsentSnapshot,
+	authority?: KernelIABAuthority
+): void {
+	if (authority && snapshot.iab) {
+		patch.iab = {
+			...snapshot.iab,
+			authority: copyIABAuthority(authority),
+			tcString: authority.tcString,
+		};
+	}
+};
+
+/**
+ * Which surface a save is attributed to and, when that surface has a
+ * recorded impression, the milliseconds from it to the action. Unknown
+ * for a non-prompt surface, a surface never shown, or a clock that moved
+ * backwards; then `timeToDecisionMs` is omitted rather than negative.
+ */
+const saveAttribution = function saveAttribution(
+	current: ConsentSnapshot,
+	requested: SaveUISource | undefined,
+	actionAt: number
+): {
+	uiSource: SaveUISource;
+	timeToDecisionMs?: number;
+	experiment?: ExperimentAssignment;
+} {
+	const uiSource = requested ?? current.activeUI;
+	const attribution: ReturnType<typeof saveAttribution> = { uiSource };
+	// The arm the visitor acted under, captured with the action so a
+	// later reassignment cannot relabel this choice. Only once the banner
+	// has shown it in this page: a returning visitor who changes their
+	// choice from a footer link never saw the arm's banner.
+	if (current.experiment && current.surfaceShownAt.banner !== null) {
+		attribution.experiment = current.experiment;
+	}
+	if (!isPromptSurface(uiSource)) {
+		return attribution;
+	}
+	const shownAt = current.surfaceShownAt[uiSource];
+	if (shownAt === null || actionAt < shownAt) {
+		return attribution;
+	}
+	attribution.timeToDecisionMs = actionAt - shownAt;
+	return attribution;
+};
+
+/** Merge staged draft values. Invalid values are ignored. */
+const mergeDraft = function mergeDraft(
+	current: PresentedSelection | null,
+	input: Partial<ConsentState>
+): PresentedSelection | null {
+	const patch = buildDraft(input);
+	if (!patch) {
+		return current;
+	}
+	return { ...current, ...patch };
+};
+
+/**
+ * A staged value bound to the choice contract it was presented under. Read
+ * back only while that contract holds: a draft presented under an earlier
+ * choice contract is stale once the policy changed materially.
+ */
+const createBoundDraft = function createBoundDraft<Values>(
+	getSnapshot: () => ConsentSnapshot,
+	initial: Values | null
+) {
+	const fingerprint = () => getSnapshot().evaluationPolicy.choice.fingerprint;
+	let bound: { fingerprint: string; values: Values } | null = initial
+		? { fingerprint: fingerprint(), values: initial }
+		: null;
+	return {
+		get: (): Values | null =>
+			bound && bound.fingerprint === fingerprint() ? bound.values : null,
+		set(values: Values | null): void {
+			bound = values ? { fingerprint: fingerprint(), values } : null;
+		},
+	};
+};
+
+export interface ChoiceRecorderOptions {
+	runtime: KernelRuntime;
+	/** Takes each recorded action from here on. */
+	outbox: Pick<SaveOutbox, 'send'>;
+	/** Draft values staged by config. */
+	initialDraft: PresentedSelection | null;
+}
+
+/**
+ * Create the choice recorder of one kernel: `commands.save`,
+ * `commands.dismissNotice` and `set.draft`.
+ */
+// oxlint-disable-next-line max-lines-per-function -- save() keeps the order of one action visible.
+export const createChoiceRecorder = function createChoiceRecorder({
+	runtime,
+	outbox,
+	initialDraft,
+}: ChoiceRecorderOptions) {
+	const { batch, getSnapshot, commit, emit } = runtime;
+	const draft = createBoundDraft<PresentedSelection>(getSnapshot, initialDraft);
+
+	return {
+		dismissNotice(context?: {
+			actionAt?: number;
+		}): Promise<NoticeDismissResult> {
+			const snapshot = getSnapshot();
+			if (snapshot.promptRequirement.kind !== 'notice') {
+				return Promise.resolve({ ok: false, reason: 'not-required' });
+			}
+			// A captured time stands only when it is past or present; a bad one
+			// falls back to now, because a dismissal has no issue to report.
+			const currentTime = runtime.now();
+			const actionAt =
+				context?.actionAt !== undefined &&
+				isValidSaveActionAt(context.actionAt, currentTime)
+					? context.actionAt
+					: currentTime;
+			const dismissal = {
+				dismissedAt: actionAt,
+				fingerprint: snapshot.evaluationPolicy.notice.fingerprint,
+				version: 1 as const,
+			};
+			// Attributed like a save: the surface is whatever is open, the
+			// timing is known only for a shown prompt surface and a forward
+			// clock, and the arm is the one the visitor dismissed under. All
+			// three are read before `commit()` notifies subscribers, who may
+			// reassign the arm or move the surface.
+			const {
+				experiment,
+				uiSource: surface,
+				timeToDecisionMs,
+			} = saveAttribution(snapshot, undefined, actionAt);
+			batch(() => {
+				commit({ noticeDismissal: dismissal, now: currentTime });
+				const event: Extract<KernelEvent, { type: 'notice:dismissed' }> = {
+					dismissal,
+					snapshot: getSnapshot(),
+					surface,
+					type: 'notice:dismissed',
+				};
+				if (timeToDecisionMs !== undefined) {
+					event.timeToDecisionMs = timeToDecisionMs;
+				}
+				if (experiment) {
+					event.experiment = experiment;
+				}
+				emit(event);
+			});
+			return Promise.resolve({ dismissal, ok: true });
+		},
+
+		draft(input: Partial<ConsentState>): void {
+			draft.set(mergeDraft(draft.get(), input));
+		},
+
+		// oxlint-disable-next-line complexity -- One action records categories and vendors together in a fixed order.
+		async save(
+			rawInput?: SaveInput,
+			context?: {
+				actionAt?: number;
+				iabAuthority?: KernelIABAuthority;
+				categories?: readonly AllConsentNames[];
+				vendors?: Record<string, boolean>;
+				uiSource?: SaveUISource;
+			}
+		): Promise<SaveResult> {
+			if (getSnapshot().externalPermissions) {
+				throw new Error(
+					'Consent is owned by an external CMP. Save through that provider.'
+				);
+			}
+
+			// An object input may carry the vendor grants next to the categories.
+			// They are split off here so the category validator only sees
+			// categories; the context form wins when both are given.
+			const { input, vendors: inlineVendors } = splitSaveInput(rawInput);
+			const explicitVendors = context?.vendors ?? inlineVendors;
+			const currentTime = runtime.now();
+			const actionAt =
+				context?.actionAt === undefined ? currentTime : context.actionAt;
+			if (!isValidSaveActionAt(actionAt, currentTime)) {
+				return {
+					issues: [{ code: 'invalid-timestamp', path: 'actionAt' }],
+					ok: false,
+				};
+			}
+			if (
+				context?.iabAuthority !== undefined &&
+				!validSaveAuthority(
+					context.iabAuthority,
+					getSnapshot(),
+					actionAt,
+					currentTime
+				)
+			) {
+				return { ok: false };
+			}
+			if (explicitVendors !== undefined && !isVendorGrantMap(explicitVendors)) {
+				return {
+					issues: [{ code: 'invalid-boolean', path: 'vendors' }],
+					ok: false,
+				};
+			}
+			emit({ type: 'command:save:started' });
+
+			const before = getSnapshot();
+			// Vendor denials resolve before any early return so a vendor-only
+			// toggle is recorded even when no category receipt is owed.
+			const nextVendorChoice = resolveVendorSelection(
+				before,
+				input,
+				explicitVendors,
+				actionAt,
+				context?.categories
+			);
+			const vendorsChanged = nextVendorChoice !== before.vendorChoice;
+			const owedNothing = saveUnderNoneRegime(before);
+			if (owedNothing && !vendorsChanged) {
+				emit({ result: owedNothing, type: 'command:save:completed' });
+				return owedNothing;
+			}
+			// Captured once, before validation, yield, network or persistence.
+			const { uiSource, ...decisionTiming } = saveAttribution(
+				before,
+				context?.uiSource,
+				actionAt
+			);
+			let consentAction: SavePayload['consentAction'] = 'custom';
+			let recorded: ReturnType<typeof recordCategoryPatch>;
+			if (owedNothing) {
+				// A `none` regime owes no category receipt; only vendors change.
+				recorded = {
+					choice: before.explicitChoice ?? EMPTY_CHOICE,
+					confirmed: [],
+					ok: true,
+				};
+			} else {
+				const selection = resolveSaveSelection(
+					before,
+					draft.get(),
+					input,
+					context?.categories
+				);
+				({ consentAction } = selection);
+				recorded = recordCategoryPatch(
+					before.explicitChoice,
+					selection.values,
+					{
+						actionAt,
+						now: currentTime,
+						policy: before.evaluationPolicy,
+					}
+				);
+			}
+			if (recorded.ok === false) {
+				const result: SaveResult = { issues: recorded.issues, ok: false };
+				emit({ result, type: 'command:save:completed' });
+				return result;
+			}
+			const categoriesChanged = recorded.confirmed.length > 0;
+			// Any action on a choice prompt with nothing to decide acknowledges
+			// it, and sends a receipt for strictly necessary alone.
+			const acknowledgement = owedNothing
+				? null
+				: choiceAcknowledgement(before, actionAt);
+			if (!categoriesChanged && !vendorsChanged && !acknowledgement) {
+				// Nothing confirmed: no receipt, no choice event, no request, no write.
+				const result: SaveResult = {
+					confirmed: [],
+					ok: true,
+					subjectId: before.subject?.subjectId,
+				};
+				emit({ result, type: 'command:save:completed' });
+				return result;
+			}
+
+			const subjectId = before.subject?.subjectId ?? generateSubjectId();
+			const subject = saveSubject(before, subjectId);
+			draft.set(null);
+			const patch: SnapshotPatch = {
+				now: currentTime,
+				subject,
+			};
+			if (categoriesChanged) {
+				patch.explicitChoice = recorded.choice;
+			}
+			if (vendorsChanged) {
+				patch.vendorChoice = nextVendorChoice;
+			}
+			const acknowledged =
+				acknowledgement !== null && acknowledgement !== before.noticeDismissal;
+			if (acknowledged) {
+				patch.noticeDismissal = acknowledgement;
+			}
+			applyNoticeAcknowledgement(patch, before, actionAt);
+			applySaveAuthority(patch, before, context?.iabAuthority);
+			// Listeners run when the batch closes, after this action's events
+			// are queued: `after` and the events carry this action's snapshot
+			// even when a listener records another choice in response.
+			const { after, generation } = batch(() => {
+				commit(patch);
+				const committed = getSnapshot();
+				// Records generation at the moment the action landed. A hydration
+				// boundary (storage clear, server record) that replaces the choice
+				// afterwards supersedes this action: its outcome must not queue a
+				// replay or touch the subject.
+				const recordsGeneration = runtime.getGeneration();
+				if (categoriesChanged) {
+					emit({
+						actionAt,
+						// Listeners run before the payload below is built. A frozen
+						// copy keeps them from changing what this save sends.
+						confirmed: Object.freeze([...recorded.confirmed]),
+						consentAction,
+						snapshot: committed,
+						type: 'choice:recorded',
+						uiSource,
+						...decisionTiming,
+					});
+				}
+				if (vendorsChanged) {
+					emit({ actionAt, snapshot: committed, type: 'vendors:recorded' });
+				}
+				if (acknowledged) {
+					// Attributed like the save that recorded it.
+					emit({
+						dismissal: acknowledgement,
+						snapshot: committed,
+						surface: uiSource,
+						type: 'notice:dismissed',
+						...decisionTiming,
+					});
+				}
+				return { after: committed, generation: recordsGeneration };
+			});
+			// Exactly the confirmed keys with their recorded values, copied so a
+			// caller mutating its input object cannot change the queued payload.
+			const confirmedCategories: Partial<
+				Record<OptionalConsentCategory, boolean>
+			> = {};
+			for (const category of recorded.confirmed) {
+				const decision = recorded.choice.categories[category];
+				if (decision) {
+					confirmedCategories[category] = decision.value;
+				}
+			}
+
+			// Built once so a queued replay records when the visitor decided,
+			// not when the retry ran, and derives the same backend consent id.
+			const payload: SavePayload = {
+				choice: recorded.choice,
+				confirmed: { actionAt, categories: confirmedCategories },
+				consentAction,
+				consents: after.effectivePermissions,
+				...saveDecisionInputs(after),
+				givenAt: actionAt,
+				model: after.model,
+				overrides: after.overrides,
+				policySnapshotToken: after.policySnapshotToken,
+				subject,
+				subjectId,
+				tcString: after.iab?.tcString ?? null,
+				uiSource,
+				user: after.user,
+				...decisionTiming,
+			};
+			const vendorChoice = vendorChoicePayload(after, before.vendorChoice);
+			if (vendorChoice) {
+				payload.vendorChoice = vendorChoice;
+			}
+
+			const result = await outbox.send(payload, {
+				confirmed: recorded.confirmed,
+				generation,
+				snapshot: after,
+			});
+			emit({ result, type: 'command:save:completed' });
+			return result;
+		},
+	};
+};

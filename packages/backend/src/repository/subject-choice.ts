@@ -1,0 +1,365 @@
+/**
+ * The merged v3 receipt view of a subject's consent rows.
+ *
+ * Every cookie-banner consent row is one append-only act. Rows written by a
+ * v3 client carry the receipts that act confirmed; rows written before
+ * receipts existed carry only the granted purpose codes. This module folds
+ * them into the per-category shape the client evaluator reads, keeping each
+ * receipt's original confirmation time and basis.
+ *
+ * ## Legacy rows
+ *
+ * A row written by the 2.x backend holds only the granted codes as
+ * `purposeIds`; the refusals the client submitted were never stored. Such a
+ * row therefore contributes a `legacy-v2` grant, timed at its `givenAt`, for
+ * every code it holds and nothing for the rest: an absent code is historical
+ * omission, not evidence of a refusal, and no receipt is invented from it.
+ * Saves that reach this backend without receipts have their submitted values
+ * written as receipts at write time, so their refusals do survive. The basis
+ * carries no material fingerprint: the runtime decision's fingerprint is the
+ * exact-policy hash, not the material one, so nothing comparable exists and
+ * the receipt is grandfathered.
+ *
+ * Legacy snapshots and unreadable rows supersede older grants. Explicit
+ * denials survive unless a later receipt or legacy grant replaces them.
+ * No grants are salvaged from an unreadable row's purpose codes.
+ *
+ * Pure. No queries, no clock.
+ */
+
+import {
+	POLICY_OPTIONAL_CATEGORIES,
+	subjectChoiceWireSchema,
+	vendorChoiceWireSchema,
+} from '@c15t/schema';
+import type {
+	PolicyOptionalCategory,
+	SubjectCategoryReceiptWire,
+	SubjectChoiceWire,
+	VendorChoiceWire,
+} from '@c15t/schema';
+import * as v from 'valibot';
+
+/** The consent policy type that carries category receipts. */
+export const COOKIE_BANNER_TYPE = 'cookie_banner';
+
+/**
+ * What a row's `choice` column holds.
+ *
+ * `absent` is a row written before receipts existed; `unreadable` is a row
+ * whose receipts exist but cannot be read as the v3 wire, which poisons the
+ * row for merging.
+ */
+export type StoredChoice =
+	| { kind: 'absent' }
+	| { kind: 'unreadable' }
+	| { kind: 'receipts'; choice: SubjectChoiceWire };
+
+export interface ChoiceSourceRow {
+	readonly type: string;
+	readonly givenAt: Date;
+	readonly preferences: Readonly<Record<string, boolean>> | undefined;
+	readonly choice: StoredChoice;
+}
+
+const OPTIONAL: ReadonlySet<string> = new Set(POLICY_OPTIONAL_CATEGORIES);
+
+const isOptionalCategory = (value: string): value is PolicyOptionalCategory =>
+	OPTIONAL.has(value);
+
+/** Grants a legacy cookie-banner row holds, or none for other rows. */
+const legacyReceipts = (
+	row: ChoiceSourceRow
+): Partial<Record<PolicyOptionalCategory, SubjectCategoryReceiptWire>> => {
+	if (row.type !== COOKIE_BANNER_TYPE || row.preferences === undefined) {
+		return {};
+	}
+	const receipts: Partial<
+		Record<PolicyOptionalCategory, SubjectCategoryReceiptWire>
+	> = {};
+	for (const category of POLICY_OPTIONAL_CATEGORIES) {
+		if (row.preferences[category] === true) {
+			receipts[category] = {
+				basis: { kind: 'legacy-v2' },
+				confirmedAt: row.givenAt.getTime(),
+				value: true,
+			};
+		}
+	}
+	return receipts;
+};
+
+/**
+ * Folds consent rows into the latest receipt per category.
+ *
+ * A v3 receipt wins by its own `confirmedAt`, not by row order: a partial save
+ * that confirmed only `marketing` must not renew the `measurement` receipt an
+ * earlier act made. Ties keep the later row.
+ */
+export const mergeSubjectChoice = function mergeSubjectChoice(
+	rows: readonly ChoiceSourceRow[]
+): SubjectChoiceWire | null {
+	const categories = new Map<
+		PolicyOptionalCategory,
+		SubjectCategoryReceiptWire
+	>();
+	const ordered = [...rows].sort(
+		(left, right) => left.givenAt.getTime() - right.givenAt.getTime()
+	);
+	for (const row of ordered) {
+		if (row.type !== COOKIE_BANNER_TYPE) {
+			continue;
+		}
+		if (row.choice.kind !== 'receipts') {
+			// Legacy rows are snapshots, not partial receipt patches. A later
+			// snapshot or unreadable record cannot renew an earlier grant whose
+			// category it no longer proves. Keep explicit denials intact.
+			for (const category of POLICY_OPTIONAL_CATEGORIES) {
+				const current = categories.get(category);
+				if (current?.value && current.confirmedAt <= row.givenAt.getTime()) {
+					categories.delete(category);
+				}
+			}
+		}
+		if (row.choice.kind === 'unreadable') {
+			continue;
+		}
+		const receipts =
+			row.choice.kind === 'receipts'
+				? row.choice.choice.categories
+				: legacyReceipts(row);
+		for (const [key, receipt] of Object.entries(receipts)) {
+			if (!isOptionalCategory(key) || receipt === undefined) {
+				continue;
+			}
+			const current = categories.get(key);
+			if (current === undefined || receipt.confirmedAt >= current.confirmedAt) {
+				categories.set(key, receipt);
+			}
+		}
+	}
+	return categories.size > 0
+		? { categories: Object.fromEntries(categories), version: 3 }
+		: null;
+};
+
+/** What a row's `choice` column holds. See {@link StoredChoice}. */
+export const decodeStoredChoice = function decodeStoredChoice(
+	value: unknown
+): StoredChoice {
+	if (value === null || value === undefined) {
+		return { kind: 'absent' };
+	}
+	const parsed = (() => {
+		if (typeof value !== 'string') {
+			return value;
+		}
+		try {
+			return JSON.parse(value) as unknown;
+		} catch {
+			return undefined;
+		}
+	})();
+	const validated = v.safeParse(subjectChoiceWireSchema, parsed);
+	return validated.success
+		? { choice: validated.output, kind: 'receipts' }
+		: { kind: 'unreadable' };
+};
+
+/**
+ * Whether a JSON column value is the envelope the 2.x backend wrote.
+ *
+ * The 2.x backend has written JSON columns as `{ json: value }` since
+ * September 2025, and fumadb stores that envelope as-is on every adapter, so
+ * a 2.x row holds `{"json": ["pur_measurement"]}` where a v3 row holds the
+ * bare array. This backend never writes one. Run after any string parse,
+ * since SQLite returns the envelope as text.
+ *
+ * @internal
+ */
+export const isLegacyJsonEnvelope = (
+	value: unknown
+): value is { json: unknown } =>
+	value !== null &&
+	typeof value === 'object' &&
+	!Array.isArray(value) &&
+	'json' in value;
+
+/**
+ * A JSON column value without the 2.x envelope. See
+ * {@link isLegacyJsonEnvelope}.
+ *
+ * @internal
+ */
+export const unwrapLegacyJson = (value: unknown): unknown =>
+	isLegacyJsonEnvelope(value) ? value.json : value;
+
+/** Stored `purposeIds` as codes, or `undefined` when nothing was granted. */
+export const decodePreferences = function decodePreferences(
+	purposeIds: unknown,
+	codesById: ReadonlyMap<string, string>
+): Record<string, boolean> | undefined {
+	const parsed = unwrapLegacyJson(
+		(() => {
+			if (typeof purposeIds !== 'string') {
+				return purposeIds;
+			}
+			try {
+				return JSON.parse(purposeIds) as unknown;
+			} catch {
+				return undefined;
+			}
+		})()
+	);
+	if (!Array.isArray(parsed) || parsed.length === 0) {
+		return undefined;
+	}
+	const preferences: Record<string, boolean> = {};
+	for (const id of parsed) {
+		const code = typeof id === 'string' ? codesById.get(id) : undefined;
+		if (code !== undefined) {
+			preferences[code] = true;
+		}
+	}
+	return Object.keys(preferences).length > 0 ? preferences : undefined;
+};
+
+/**
+ * What a row's `vendorChoice` column holds. `absent` covers rows written
+ * before vendor consent existed and rows whose save declared no vendors.
+ *
+ * @internal
+ */
+export type StoredVendorChoice =
+	| { kind: 'absent' }
+	| { kind: 'unreadable' }
+	| { kind: 'grants'; vendorChoice: VendorChoiceWire };
+
+/**
+ * What a row's `vendorChoice` column holds. See {@link StoredVendorChoice}.
+ *
+ * @internal
+ */
+export const decodeStoredVendorChoice = function decodeStoredVendorChoice(
+	value: unknown
+): StoredVendorChoice {
+	if (value === null || value === undefined) {
+		return { kind: 'absent' };
+	}
+	const parsed = (() => {
+		if (typeof value !== 'string') {
+			return value;
+		}
+		try {
+			return JSON.parse(value) as unknown;
+		} catch {
+			return undefined;
+		}
+	})();
+	// SQLite hands a JSON column back as text, so a stored JSON `null` arrives
+	// as the string 'null'. It means the same as no column value, and must
+	// not read as an unreadable newer act that hides an older valid map.
+	if (parsed === null) {
+		return { kind: 'absent' };
+	}
+	const validated = v.safeParse(vendorChoiceWireSchema, parsed);
+	return validated.success
+		? { kind: 'grants', vendorChoice: validated.output }
+		: { kind: 'unreadable' };
+};
+
+/** @internal */
+export interface VendorSourceRow {
+	readonly id: string;
+	readonly type: string;
+	readonly givenAt: Date;
+	readonly vendorChoice: StoredVendorChoice;
+}
+
+/**
+ * The vendor grant map a subject's cookie-banner acts add up to.
+ *
+ * The latest act by `givenAt` sets the map's time and decides every vendor
+ * it names. A vendor an earlier act decided but the latest one omits keeps
+ * the earlier grant: the client sends the complete map for the list it
+ * saw, and a client on a cached or bundled manifest has not seen a vendor
+ * added since, so its silence is not a decision. A later act that does name
+ * the vendor replaces that grant as usual.
+ *
+ * `givenAt` orders the acts; a map's own `confirmedAt` does not pick the
+ * winner, since a client may send them independently. The composite carries
+ * one `confirmedAt`, and the client compares whole records by it, so it takes
+ * the time of the oldest act whose decision still stands: a retained older
+ * grant must never be presented as newer than it is, or it would override a
+ * newer local decision about a vendor the later act never named. When the
+ * latest act names every vendor, that is simply its own time. Two acts at the same instant can both exist when they
+ * differ in policy or domain, and SQL does not define which one a query
+ * returns last, so a tie is broken by the row id compared by code unit:
+ * the greater id wins on every engine and in every locale. A row without a map is skipped: that act did not decide
+ * vendors. A row whose map is unreadable is a decision that cannot be read,
+ * so everything at or before it is discarded and the aggregate is `null`
+ * unless a later readable act exists.
+ *
+ * @internal
+ */
+export const mergeSubjectVendorChoice = function mergeSubjectVendorChoice(
+	rows: readonly VendorSourceRow[]
+): VendorChoiceWire | null {
+	const ordered = rows
+		.filter(
+			(row) =>
+				row.type === COOKIE_BANNER_TYPE && row.vendorChoice.kind !== 'absent'
+		)
+		.sort((left, right) => {
+			const byTime = left.givenAt.getTime() - right.givenAt.getTime();
+			if (byTime !== 0) {
+				return byTime;
+			}
+			// Code-unit order, not the host locale's: ids are mixed-case Base58,
+			// and a locale-aware compare can order case differently from one
+			// process to the next, so the tie would flip across instances.
+			if (left.id === right.id) {
+				return 0;
+			}
+			return left.id < right.id ? -1 : 1;
+		});
+	let grants: Record<string, boolean> | null = null;
+	// When each surviving decision was confirmed, keyed like `grants`.
+	let decidedAt: Record<string, number> = {};
+	// The latest readable act's own time: what an aggregate without any
+	// per-vendor decision is dated by, since an empty map is still an act.
+	let latestAt = 0;
+	for (const row of ordered) {
+		const stored = row.vendorChoice;
+		if (stored.kind !== 'grants') {
+			// Unreadable: a decision that cannot be read discards what came
+			// before it. Absent rows were filtered out above.
+			grants = null;
+			decidedAt = {};
+			continue;
+		}
+		const map = stored.vendorChoice;
+		grants ??= {};
+		latestAt = map.confirmedAt;
+		for (const [id, granted] of Object.entries(map.grants)) {
+			Object.defineProperty(grants, id, {
+				configurable: true,
+				enumerable: true,
+				value: granted,
+				writable: true,
+			});
+			Object.defineProperty(decidedAt, id, {
+				configurable: true,
+				enumerable: true,
+				value: map.confirmedAt,
+				writable: true,
+			});
+		}
+	}
+	if (grants === null) {
+		return null;
+	}
+	const times = Object.values(decidedAt);
+	const confirmedAt = times.length === 0 ? latestAt : Math.min(...times);
+	return { confirmedAt, grants, version: 1 };
+};

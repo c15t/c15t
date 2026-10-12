@@ -1,10 +1,12 @@
 import { describe, expect, test } from 'vitest';
 import { renderHook } from 'vitest-browser-react';
+
 import {
-	GlobalThemeContext,
-	LocalThemeContext,
-	type ThemeContextValue,
-} from '~/context/theme-context';
+	StableGlobalThemeProvider,
+	StableLocalThemeProvider,
+} from '~/__tests__/stable-context-providers';
+import type { ThemeContextValue } from '~/context/theme-context';
+
 import { useTheme } from '../use-theme';
 
 describe('useTheme', () => {
@@ -12,17 +14,17 @@ describe('useTheme', () => {
 		const globalTheme: ThemeContextValue = {
 			noStyle: false,
 			theme: {
-				slots: {
-					dialog: 'global-style',
+				colors: {
+					primary: '#000000',
 				},
 			},
 		};
 
 		const { result } = await renderHook(() => useTheme(), {
 			wrapper: ({ children }) => (
-				<GlobalThemeContext.Provider value={globalTheme}>
+				<StableGlobalThemeProvider value={globalTheme}>
 					{children}
-				</GlobalThemeContext.Provider>
+				</StableGlobalThemeProvider>
 			),
 		});
 
@@ -33,39 +35,39 @@ describe('useTheme', () => {
 		const globalTheme: ThemeContextValue = {
 			noStyle: false,
 			theme: {
-				slots: {
-					dialog: 'global-style',
-					dialogTitle: 'global-title',
+				colors: {
+					primary: '#000000',
+					secondary: '#111111',
 				},
 			},
 		};
 
 		const localTheme: ThemeContextValue = {
 			theme: {
-				slots: {
-					dialog: 'local-style',
-					dialogContent: 'local-content',
+				colors: {
+					border: '#eeeeee',
+					primary: '#ffffff',
 				},
 			},
 		};
 
 		const { result } = await renderHook(() => useTheme(), {
 			wrapper: ({ children }) => (
-				<GlobalThemeContext.Provider value={globalTheme}>
-					<LocalThemeContext.Provider value={localTheme}>
+				<StableGlobalThemeProvider value={globalTheme}>
+					<StableLocalThemeProvider value={localTheme}>
 						{children}
-					</LocalThemeContext.Provider>
-				</GlobalThemeContext.Provider>
+					</StableLocalThemeProvider>
+				</StableGlobalThemeProvider>
 			),
 		});
 
 		expect(result.current).toEqual({
 			noStyle: false,
 			theme: {
-				slots: {
-					dialog: 'local-style',
-					dialogTitle: 'global-title',
-					dialogContent: 'local-content',
+				colors: {
+					border: '#eeeeee',
+					primary: '#ffffff',
+					secondary: '#111111',
 				},
 			},
 		});
@@ -75,8 +77,8 @@ describe('useTheme', () => {
 		const globalTheme: ThemeContextValue = {
 			noStyle: false,
 			theme: {
-				slots: {
-					dialog: 'global-style',
+				colors: {
+					primary: '#000000',
 				},
 			},
 		};
@@ -84,23 +86,23 @@ describe('useTheme', () => {
 		const localTheme: ThemeContextValue = {
 			noStyle: true,
 			theme: {
-				slots: {
-					dialog: 'local-style',
+				colors: {
+					primary: '#ffffff',
 				},
 			},
 		};
 
 		const { result } = await renderHook(() => useTheme(), {
 			wrapper: ({ children }) => (
-				<GlobalThemeContext.Provider value={globalTheme}>
-					<LocalThemeContext.Provider value={localTheme}>
+				<StableGlobalThemeProvider value={globalTheme}>
+					<StableLocalThemeProvider value={localTheme}>
 						{children}
-					</LocalThemeContext.Provider>
-				</GlobalThemeContext.Provider>
+					</StableLocalThemeProvider>
+				</StableGlobalThemeProvider>
 			),
 		});
 
-		expect(result.current.theme?.slots?.dialog).toBe('local-style');
+		expect(result.current.theme?.colors?.primary).toBe('#ffffff');
 		expect(result.current.noStyle).toBe(true);
 	});
 });

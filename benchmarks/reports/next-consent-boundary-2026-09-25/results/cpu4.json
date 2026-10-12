@@ -1,0 +1,3207 @@
+{
+	"condition": "cpu4",
+	"conditionDetail": {
+		"cpu": 4
+	},
+	"httpCache": "cold",
+	"route": "/docs",
+	"samplesPerArm": 9,
+	"arms": ["a", "b", "c", "d"],
+	"loadAverage": {
+		"start": "19:04  up 4 days,  9:49, 15 users, load averages: 7.60 7.88 11.23",
+		"end": "19:07  up 4 days,  9:52, 15 users, load averages: 6.65 7.54 10.48"
+	},
+	"loadAverageByScenario": {
+		"fresh": {
+			"start": "19:05  up 4 days,  9:49, 15 users, load averages: 7.31 7.82 11.19",
+			"end": "19:05  up 4 days,  9:50, 15 users, load averages: 8.89 8.16 11.16"
+		},
+		"cold": {
+			"start": "19:05  up 4 days,  9:50, 15 users, load averages: 8.89 8.16 11.16",
+			"end": "19:06  up 4 days,  9:51, 15 users, load averages: 7.31 7.85 10.90"
+		},
+		"saved-accept": {
+			"start": "19:06  up 4 days,  9:51, 15 users, load averages: 7.31 7.85 10.90",
+			"end": "19:07  up 4 days,  9:52, 15 users, load averages: 7.18 7.77 10.71"
+		},
+		"saved-reject": {
+			"start": "19:07  up 4 days,  9:52, 15 users, load averages: 7.18 7.77 10.71",
+			"end": "19:07  up 4 days,  9:52, 15 users, load averages: 6.65 7.54 10.48"
+		}
+	},
+	"errors": 0,
+	"scenarios": {
+		"fresh": {
+			"a": {
+				"protocol": "h2",
+				"cssFiles": 1,
+				"cssTransferBytes": 18721,
+				"jsFiles": 9,
+				"jsTransferBytes": 207402,
+				"samples": [
+					{
+						"ttfb": 6.8,
+						"contentInDomAt": 51.8,
+						"contentVisibleAt": 51.8,
+						"cssDoneAt": 29,
+						"fcp": 148,
+						"lcp": 148,
+						"hydratedAt": 409.5,
+						"bannerVisibleDomAt": 466.2,
+						"bannerReadyMs": 578.8,
+						"promptSettledMs": 465.4,
+						"serverResolveMs": null,
+						"bannerShown": true
+					},
+					{
+						"ttfb": 5.6,
+						"contentInDomAt": 31.2,
+						"contentVisibleAt": 31.2,
+						"cssDoneAt": 16.4,
+						"fcp": 100,
+						"lcp": 100,
+						"hydratedAt": 297.5,
+						"bannerVisibleDomAt": 335.5,
+						"bannerReadyMs": 432.2,
+						"promptSettledMs": 335.4,
+						"serverResolveMs": null,
+						"bannerShown": true
+					},
+					{
+						"ttfb": 6.4,
+						"contentInDomAt": 34,
+						"contentVisibleAt": 34,
+						"cssDoneAt": 18.4,
+						"fcp": 112,
+						"lcp": 112,
+						"hydratedAt": 329.3,
+						"bannerVisibleDomAt": 372.4,
+						"bannerReadyMs": 484.3,
+						"promptSettledMs": 372.3,
+						"serverResolveMs": null,
+						"bannerShown": true
+					},
+					{
+						"ttfb": 6.8,
+						"contentInDomAt": 30.3,
+						"contentVisibleAt": 30.3,
+						"cssDoneAt": 18.2,
+						"fcp": 88,
+						"lcp": 88,
+						"hydratedAt": 240.9,
+						"bannerVisibleDomAt": 274.2,
+						"bannerReadyMs": 373.5,
+						"promptSettledMs": 274.1,
+						"serverResolveMs": null,
+						"bannerShown": true
+					},
+					{
+						"ttfb": 7.1,
+						"contentInDomAt": 38,
+						"contentVisibleAt": 38,
+						"cssDoneAt": 20.9,
+						"fcp": 120,
+						"lcp": 120,
+						"hydratedAt": 398.1,
+						"bannerVisibleDomAt": 453.2,
+						"bannerReadyMs": 558.9,
+						"promptSettledMs": 452.2,
+						"serverResolveMs": null,
+						"bannerShown": true
+					},
+					{
+						"ttfb": 5.1,
+						"contentInDomAt": 28.2,
+						"contentVisibleAt": 28.2,
+						"cssDoneAt": 14.9,
+						"fcp": 92,
+						"lcp": 92,
+						"hydratedAt": 269.2,
+						"bannerVisibleDomAt": 306.4,
+						"bannerReadyMs": 407.4,
+						"promptSettledMs": 306.4,
+						"serverResolveMs": null,
+						"bannerShown": true
+					},
+					{
+						"ttfb": 4.5,
+						"contentInDomAt": 25.2,
+						"contentVisibleAt": 25.2,
+						"cssDoneAt": 13.8,
+						"fcp": 88,
+						"lcp": 88,
+						"hydratedAt": 242.4,
+						"bannerVisibleDomAt": 275.3,
+						"bannerReadyMs": 374.6,
+						"promptSettledMs": 274.8,
+						"serverResolveMs": null,
+						"bannerShown": true
+					},
+					{
+						"ttfb": 4.2,
+						"contentInDomAt": 24.7,
+						"contentVisibleAt": 24.7,
+						"cssDoneAt": 13.9,
+						"fcp": 84,
+						"lcp": 84,
+						"hydratedAt": 233.4,
+						"bannerVisibleDomAt": 266,
+						"bannerReadyMs": 365.4,
+						"promptSettledMs": 265.3,
+						"serverResolveMs": null,
+						"bannerShown": true
+					},
+					{
+						"ttfb": 4.6,
+						"contentInDomAt": 26.9,
+						"contentVisibleAt": 26.9,
+						"cssDoneAt": 13.6,
+						"fcp": 88,
+						"lcp": 88,
+						"hydratedAt": 252.6,
+						"bannerVisibleDomAt": 286.3,
+						"bannerReadyMs": 383.9,
+						"promptSettledMs": 286.3,
+						"serverResolveMs": null,
+						"bannerShown": true
+					}
+				],
+				"summary": {
+					"ttfb": {
+						"median": 5.6,
+						"min": 4.2,
+						"max": 7.1,
+						"n": 9
+					},
+					"contentInDomAt": {
+						"median": 30.3,
+						"min": 24.7,
+						"max": 51.8,
+						"n": 9
+					},
+					"contentVisibleAt": {
+						"median": 30.3,
+						"min": 24.7,
+						"max": 51.8,
+						"n": 9
+					},
+					"cssDoneAt": {
+						"median": 16.4,
+						"min": 13.6,
+						"max": 29,
+						"n": 9
+					},
+					"fcp": {
+						"median": 92,
+						"min": 84,
+						"max": 148,
+						"n": 9
+					},
+					"lcp": {
+						"median": 92,
+						"min": 84,
+						"max": 148,
+						"n": 9
+					},
+					"hydratedAt": {
+						"median": 269.2,
+						"min": 233.4,
+						"max": 409.5,
+						"n": 9
+					},
+					"bannerVisibleDomAt": {
+						"median": 306.4,
+						"min": 266,
+						"max": 466.2,
+						"n": 9
+					},
+					"bannerReadyMs": {
+						"median": 407.4,
+						"min": 365.4,
+						"max": 578.8,
+						"n": 9
+					},
+					"promptSettledMs": {
+						"median": 306.4,
+						"min": 265.3,
+						"max": 465.4,
+						"n": 9
+					},
+					"serverResolveMs": null,
+					"contentHeldAtLeast80ms": 0
+				}
+			},
+			"b": {
+				"protocol": "h2",
+				"cssFiles": 1,
+				"cssTransferBytes": 18721,
+				"jsFiles": 9,
+				"jsTransferBytes": 207402,
+				"samples": [
+					{
+						"ttfb": 6,
+						"contentInDomAt": 49.6,
+						"contentVisibleAt": 337.4,
+						"cssDoneAt": 19.5,
+						"fcp": 432,
+						"lcp": 432,
+						"hydratedAt": 544.1,
+						"bannerVisibleDomAt": 337.4,
+						"bannerReadyMs": 549.5,
+						"promptSettledMs": 544.1,
+						"serverResolveMs": 5.4,
+						"bannerShown": true
+					},
+					{
+						"ttfb": 4,
+						"contentInDomAt": 36.7,
+						"contentVisibleAt": 329.2,
+						"cssDoneAt": 14.5,
+						"fcp": 392,
+						"lcp": 392,
+						"hydratedAt": 458,
+						"bannerVisibleDomAt": 329.2,
+						"bannerReadyMs": 462.2,
+						"promptSettledMs": 458,
+						"serverResolveMs": 3.3,
+						"bannerShown": true
+					},
+					{
+						"ttfb": 5,
+						"contentInDomAt": 28.9,
+						"contentVisibleAt": 332,
+						"cssDoneAt": 17.5,
+						"fcp": 404,
+						"lcp": 404,
+						"hydratedAt": 484,
+						"bannerVisibleDomAt": 332,
+						"bannerReadyMs": 488.4,
+						"promptSettledMs": 484,
+						"serverResolveMs": 4.8,
+						"bannerShown": true
+					},
+					{
+						"ttfb": 4.5,
+						"contentInDomAt": 41.2,
+						"contentVisibleAt": 43.8,
+						"cssDoneAt": 20.4,
+						"fcp": 108,
+						"lcp": 108,
+						"hydratedAt": 287.1,
+						"bannerVisibleDomAt": 43.8,
+						"bannerReadyMs": 290.8,
+						"promptSettledMs": 287.1,
+						"serverResolveMs": 3.7,
+						"bannerShown": true
+					},
+					{
+						"ttfb": 5.5,
+						"contentInDomAt": 48.5,
+						"contentVisibleAt": 336.7,
+						"cssDoneAt": 19.1,
+						"fcp": 428,
+						"lcp": 428,
+						"hydratedAt": 536,
+						"bannerVisibleDomAt": 336.7,
+						"bannerReadyMs": 541.5,
+						"promptSettledMs": 536.1,
+						"serverResolveMs": 4.9,
+						"bannerShown": true
+					},
+					{
+						"ttfb": 6.2,
+						"contentInDomAt": 50.2,
+						"contentVisibleAt": 337.6,
+						"cssDoneAt": 20.7,
+						"fcp": 428,
+						"lcp": 428,
+						"hydratedAt": 528.7,
+						"bannerVisibleDomAt": 337.6,
+						"bannerReadyMs": 533.4,
+						"promptSettledMs": 528.7,
+						"serverResolveMs": 4.3,
+						"bannerShown": true
+					},
+					{
+						"ttfb": 5.1,
+						"contentInDomAt": 39.7,
+						"contentVisibleAt": 44,
+						"cssDoneAt": 20.8,
+						"fcp": 112,
+						"lcp": 112,
+						"hydratedAt": 315.5,
+						"bannerVisibleDomAt": 44,
+						"bannerReadyMs": 319,
+						"promptSettledMs": 315.5,
+						"serverResolveMs": 3.6,
+						"bannerShown": true
+					},
+					{
+						"ttfb": 3.9,
+						"contentInDomAt": 26.4,
+						"contentVisibleAt": 328.7,
+						"cssDoneAt": 15.2,
+						"fcp": 392,
+						"lcp": 392,
+						"hydratedAt": 461.1,
+						"bannerVisibleDomAt": 328.7,
+						"bannerReadyMs": 465,
+						"promptSettledMs": 461.1,
+						"serverResolveMs": 3.4,
+						"bannerShown": true
+					},
+					{
+						"ttfb": 4.4,
+						"contentInDomAt": 28.1,
+						"contentVisibleAt": 331.6,
+						"cssDoneAt": 13.4,
+						"fcp": 396,
+						"lcp": 396,
+						"hydratedAt": 463.7,
+						"bannerVisibleDomAt": 331.6,
+						"bannerReadyMs": 467.3,
+						"promptSettledMs": 463.7,
+						"serverResolveMs": 3.4,
+						"bannerShown": true
+					}
+				],
+				"summary": {
+					"ttfb": {
+						"median": 5,
+						"min": 3.9,
+						"max": 6.2,
+						"n": 9
+					},
+					"contentInDomAt": {
+						"median": 39.7,
+						"min": 26.4,
+						"max": 50.2,
+						"n": 9
+					},
+					"contentVisibleAt": {
+						"median": 331.6,
+						"min": 43.8,
+						"max": 337.6,
+						"n": 9
+					},
+					"cssDoneAt": {
+						"median": 19.1,
+						"min": 13.4,
+						"max": 20.8,
+						"n": 9
+					},
+					"fcp": {
+						"median": 396,
+						"min": 108,
+						"max": 432,
+						"n": 9
+					},
+					"lcp": {
+						"median": 396,
+						"min": 108,
+						"max": 432,
+						"n": 9
+					},
+					"hydratedAt": {
+						"median": 463.7,
+						"min": 287.1,
+						"max": 544.1,
+						"n": 9
+					},
+					"bannerVisibleDomAt": {
+						"median": 331.6,
+						"min": 43.8,
+						"max": 337.6,
+						"n": 9
+					},
+					"bannerReadyMs": {
+						"median": 467.3,
+						"min": 290.8,
+						"max": 549.5,
+						"n": 9
+					},
+					"promptSettledMs": {
+						"median": 463.7,
+						"min": 287.1,
+						"max": 544.1,
+						"n": 9
+					},
+					"serverResolveMs": {
+						"median": 3.7,
+						"min": 3.3,
+						"max": 5.4,
+						"n": 9
+					},
+					"contentHeldAtLeast80ms": 7
+				}
+			},
+			"c": {
+				"protocol": "h2",
+				"cssFiles": 1,
+				"cssTransferBytes": 18721,
+				"jsFiles": 9,
+				"jsTransferBytes": 207402,
+				"samples": [
+					{
+						"ttfb": 5.9,
+						"contentInDomAt": 35.4,
+						"contentVisibleAt": 35.4,
+						"cssDoneAt": 18.5,
+						"fcp": 96,
+						"lcp": 96,
+						"hydratedAt": 361.8,
+						"bannerVisibleDomAt": 388.1,
+						"bannerReadyMs": 521.3,
+						"promptSettledMs": 387.2,
+						"serverResolveMs": 4.8,
+						"bannerShown": true
+					},
+					{
+						"ttfb": 3.8,
+						"contentInDomAt": 24,
+						"contentVisibleAt": 24,
+						"cssDoneAt": 11.8,
+						"fcp": 84,
+						"lcp": 84,
+						"hydratedAt": 244.3,
+						"bannerVisibleDomAt": 263.5,
+						"bannerReadyMs": 373.3,
+						"promptSettledMs": 262.9,
+						"serverResolveMs": 2.8,
+						"bannerShown": true
+					},
+					{
+						"ttfb": 4.8,
+						"contentInDomAt": 25.8,
+						"contentVisibleAt": 25.8,
+						"cssDoneAt": 14.8,
+						"fcp": 88,
+						"lcp": 88,
+						"hydratedAt": 259.2,
+						"bannerVisibleDomAt": 278.1,
+						"bannerReadyMs": 386.4,
+						"promptSettledMs": 278.1,
+						"serverResolveMs": 4.3,
+						"bannerShown": true
+					},
+					{
+						"ttfb": 4.4,
+						"contentInDomAt": 25.3,
+						"contentVisibleAt": 25.3,
+						"cssDoneAt": 12.9,
+						"fcp": 92,
+						"lcp": 92,
+						"hydratedAt": 279.6,
+						"bannerVisibleDomAt": 300.4,
+						"bannerReadyMs": 413.2,
+						"promptSettledMs": 300.3,
+						"serverResolveMs": 3.5,
+						"bannerShown": true
+					},
+					{
+						"ttfb": 5.7,
+						"contentInDomAt": 33.3,
+						"contentVisibleAt": 33.3,
+						"cssDoneAt": 17.1,
+						"fcp": 108,
+						"lcp": 108,
+						"hydratedAt": 365,
+						"bannerVisibleDomAt": 392.7,
+						"bannerReadyMs": 518.5,
+						"promptSettledMs": 391.9,
+						"serverResolveMs": 4.8,
+						"bannerShown": true
+					},
+					{
+						"ttfb": 5.8,
+						"contentInDomAt": 34,
+						"contentVisibleAt": 34,
+						"cssDoneAt": 17.7,
+						"fcp": 96,
+						"lcp": 96,
+						"hydratedAt": 354.7,
+						"bannerVisibleDomAt": 379.6,
+						"bannerReadyMs": 495.7,
+						"promptSettledMs": 379.5,
+						"serverResolveMs": 5.2,
+						"bannerShown": true
+					},
+					{
+						"ttfb": 4.1,
+						"contentInDomAt": 25.7,
+						"contentVisibleAt": 25.7,
+						"cssDoneAt": 13.1,
+						"fcp": 88,
+						"lcp": 88,
+						"hydratedAt": 257.2,
+						"bannerVisibleDomAt": 277.3,
+						"bannerReadyMs": 384,
+						"promptSettledMs": 276.5,
+						"serverResolveMs": 3.4,
+						"bannerShown": true
+					},
+					{
+						"ttfb": 4,
+						"contentInDomAt": 27,
+						"contentVisibleAt": 27,
+						"cssDoneAt": 18.7,
+						"fcp": 88,
+						"lcp": 88,
+						"hydratedAt": 237.4,
+						"bannerVisibleDomAt": 254.2,
+						"bannerReadyMs": 365.6,
+						"promptSettledMs": 253.4,
+						"serverResolveMs": 3.3,
+						"bannerShown": true
+					},
+					{
+						"ttfb": 4.7,
+						"contentInDomAt": 26.6,
+						"contentVisibleAt": 26.6,
+						"cssDoneAt": 14.9,
+						"fcp": 92,
+						"lcp": 92,
+						"hydratedAt": 263.4,
+						"bannerVisibleDomAt": 282.5,
+						"bannerReadyMs": 391.2,
+						"promptSettledMs": 282.5,
+						"serverResolveMs": 4.2,
+						"bannerShown": true
+					}
+				],
+				"summary": {
+					"ttfb": {
+						"median": 4.7,
+						"min": 3.8,
+						"max": 5.9,
+						"n": 9
+					},
+					"contentInDomAt": {
+						"median": 26.6,
+						"min": 24,
+						"max": 35.4,
+						"n": 9
+					},
+					"contentVisibleAt": {
+						"median": 26.6,
+						"min": 24,
+						"max": 35.4,
+						"n": 9
+					},
+					"cssDoneAt": {
+						"median": 14.9,
+						"min": 11.8,
+						"max": 18.7,
+						"n": 9
+					},
+					"fcp": {
+						"median": 92,
+						"min": 84,
+						"max": 108,
+						"n": 9
+					},
+					"lcp": {
+						"median": 92,
+						"min": 84,
+						"max": 108,
+						"n": 9
+					},
+					"hydratedAt": {
+						"median": 263.4,
+						"min": 237.4,
+						"max": 365,
+						"n": 9
+					},
+					"bannerVisibleDomAt": {
+						"median": 282.5,
+						"min": 254.2,
+						"max": 392.7,
+						"n": 9
+					},
+					"bannerReadyMs": {
+						"median": 391.2,
+						"min": 365.6,
+						"max": 521.3,
+						"n": 9
+					},
+					"promptSettledMs": {
+						"median": 282.5,
+						"min": 253.4,
+						"max": 391.9,
+						"n": 9
+					},
+					"serverResolveMs": {
+						"median": 4.2,
+						"min": 2.8,
+						"max": 5.2,
+						"n": 9
+					},
+					"contentHeldAtLeast80ms": 0
+				}
+			},
+			"d": {
+				"protocol": "h2",
+				"cssFiles": 5,
+				"cssTransferBytes": 26801,
+				"jsFiles": 9,
+				"jsTransferBytes": 207452,
+				"samples": [
+					{
+						"ttfb": 6,
+						"contentInDomAt": 53.1,
+						"contentVisibleAt": 340.4,
+						"cssDoneAt": 21.4,
+						"fcp": 424,
+						"lcp": 424,
+						"hydratedAt": 519.7,
+						"bannerVisibleDomAt": 340.4,
+						"bannerReadyMs": 524.1,
+						"promptSettledMs": 519.7,
+						"serverResolveMs": 5.6,
+						"bannerShown": true
+					},
+					{
+						"ttfb": 4.4,
+						"contentInDomAt": 39.4,
+						"contentVisibleAt": 333.3,
+						"cssDoneAt": 15.9,
+						"fcp": 408,
+						"lcp": 408,
+						"hydratedAt": 484.6,
+						"bannerVisibleDomAt": 333.3,
+						"bannerReadyMs": 488.3,
+						"promptSettledMs": 484.6,
+						"serverResolveMs": 4.1,
+						"bannerShown": true
+					},
+					{
+						"ttfb": 5.5,
+						"contentInDomAt": 44.3,
+						"contentVisibleAt": 52.3,
+						"cssDoneAt": 21.9,
+						"fcp": 128,
+						"lcp": 128,
+						"hydratedAt": 356.3,
+						"bannerVisibleDomAt": 52.3,
+						"bannerReadyMs": 361.2,
+						"promptSettledMs": 356.3,
+						"serverResolveMs": 5.6,
+						"bannerShown": true
+					},
+					{
+						"ttfb": 4.4,
+						"contentInDomAt": 37.6,
+						"contentVisibleAt": 329.3,
+						"cssDoneAt": 15.7,
+						"fcp": 396,
+						"lcp": 396,
+						"hydratedAt": 461.1,
+						"bannerVisibleDomAt": 329.3,
+						"bannerReadyMs": 466.5,
+						"promptSettledMs": 461.1,
+						"serverResolveMs": 4.7,
+						"bannerShown": true
+					},
+					{
+						"ttfb": 6,
+						"contentInDomAt": 52.2,
+						"contentVisibleAt": 341,
+						"cssDoneAt": 19.8,
+						"fcp": 432,
+						"lcp": 432,
+						"hydratedAt": 530,
+						"bannerVisibleDomAt": 341,
+						"bannerReadyMs": 534.6,
+						"promptSettledMs": 530,
+						"serverResolveMs": 4.1,
+						"bannerShown": true
+					},
+					{
+						"ttfb": 4.8,
+						"contentInDomAt": 41.4,
+						"contentVisibleAt": 334.1,
+						"cssDoneAt": 17,
+						"fcp": 408,
+						"lcp": 408,
+						"hydratedAt": 488.1,
+						"bannerVisibleDomAt": 334.1,
+						"bannerReadyMs": 491.8,
+						"promptSettledMs": 488.1,
+						"serverResolveMs": 4.2,
+						"bannerShown": true
+					},
+					{
+						"ttfb": 4.1,
+						"contentInDomAt": 28.5,
+						"contentVisibleAt": 330.9,
+						"cssDoneAt": 14.5,
+						"fcp": 388,
+						"lcp": 388,
+						"hydratedAt": 438.2,
+						"bannerVisibleDomAt": 330.9,
+						"bannerReadyMs": 441.6,
+						"promptSettledMs": 438.2,
+						"serverResolveMs": 3.6,
+						"bannerShown": true
+					},
+					{
+						"ttfb": 4.1,
+						"contentInDomAt": 39.6,
+						"contentVisibleAt": 333,
+						"cssDoneAt": 20,
+						"fcp": 396,
+						"lcp": 396,
+						"hydratedAt": 465.1,
+						"bannerVisibleDomAt": 333,
+						"bannerReadyMs": 469.1,
+						"promptSettledMs": 465.1,
+						"serverResolveMs": 3.2,
+						"bannerShown": true
+					},
+					{
+						"ttfb": 4.7,
+						"contentInDomAt": 40.1,
+						"contentVisibleAt": 333.5,
+						"cssDoneAt": 17.1,
+						"fcp": 408,
+						"lcp": 408,
+						"hydratedAt": 488,
+						"bannerVisibleDomAt": 333.5,
+						"bannerReadyMs": 492.3,
+						"promptSettledMs": 488,
+						"serverResolveMs": 3.8,
+						"bannerShown": true
+					}
+				],
+				"summary": {
+					"ttfb": {
+						"median": 4.7,
+						"min": 4.1,
+						"max": 6,
+						"n": 9
+					},
+					"contentInDomAt": {
+						"median": 40.1,
+						"min": 28.5,
+						"max": 53.1,
+						"n": 9
+					},
+					"contentVisibleAt": {
+						"median": 333.3,
+						"min": 52.3,
+						"max": 341,
+						"n": 9
+					},
+					"cssDoneAt": {
+						"median": 17.1,
+						"min": 14.5,
+						"max": 21.9,
+						"n": 9
+					},
+					"fcp": {
+						"median": 408,
+						"min": 128,
+						"max": 432,
+						"n": 9
+					},
+					"lcp": {
+						"median": 408,
+						"min": 128,
+						"max": 432,
+						"n": 9
+					},
+					"hydratedAt": {
+						"median": 484.6,
+						"min": 356.3,
+						"max": 530,
+						"n": 9
+					},
+					"bannerVisibleDomAt": {
+						"median": 333.3,
+						"min": 52.3,
+						"max": 341,
+						"n": 9
+					},
+					"bannerReadyMs": {
+						"median": 488.3,
+						"min": 361.2,
+						"max": 534.6,
+						"n": 9
+					},
+					"promptSettledMs": {
+						"median": 484.6,
+						"min": 356.3,
+						"max": 530,
+						"n": 9
+					},
+					"serverResolveMs": {
+						"median": 4.1,
+						"min": 3.2,
+						"max": 5.6,
+						"n": 9
+					},
+					"contentHeldAtLeast80ms": 8
+				}
+			}
+		},
+		"cold": {
+			"a": {
+				"protocol": "h2",
+				"cssFiles": 1,
+				"cssTransferBytes": 18721,
+				"jsFiles": 9,
+				"jsTransferBytes": 207402,
+				"samples": [
+					{
+						"ttfb": 4.9,
+						"contentInDomAt": 27.9,
+						"contentVisibleAt": 27.9,
+						"cssDoneAt": 15.7,
+						"fcp": 88,
+						"lcp": 88,
+						"hydratedAt": 261.4,
+						"bannerVisibleDomAt": 482.5,
+						"bannerReadyMs": 584,
+						"promptSettledMs": 482.4,
+						"serverResolveMs": null,
+						"bannerShown": true
+					},
+					{
+						"ttfb": 5.1,
+						"contentInDomAt": 26.9,
+						"contentVisibleAt": 26.9,
+						"cssDoneAt": 15,
+						"fcp": 88,
+						"lcp": 88,
+						"hydratedAt": 252.8,
+						"bannerVisibleDomAt": 467,
+						"bannerReadyMs": 571.1,
+						"promptSettledMs": 466.9,
+						"serverResolveMs": null,
+						"bannerShown": true
+					},
+					{
+						"ttfb": 5.9,
+						"contentInDomAt": 31.5,
+						"contentVisibleAt": 31.5,
+						"cssDoneAt": 17.2,
+						"fcp": 112,
+						"lcp": 112,
+						"hydratedAt": 322.4,
+						"bannerVisibleDomAt": 538.3,
+						"bannerReadyMs": 639,
+						"promptSettledMs": 537.5,
+						"serverResolveMs": null,
+						"bannerShown": true
+					},
+					{
+						"ttfb": 5.4,
+						"contentInDomAt": 28.9,
+						"contentVisibleAt": 28.9,
+						"cssDoneAt": 15.3,
+						"fcp": 96,
+						"lcp": 96,
+						"hydratedAt": 271.1,
+						"bannerVisibleDomAt": 488.8,
+						"bannerReadyMs": 592.7,
+						"promptSettledMs": 488.4,
+						"serverResolveMs": null,
+						"bannerShown": true
+					},
+					{
+						"ttfb": 4.9,
+						"contentInDomAt": 25.9,
+						"contentVisibleAt": 25.9,
+						"cssDoneAt": 14.4,
+						"fcp": 92,
+						"lcp": 92,
+						"hydratedAt": 262,
+						"bannerVisibleDomAt": 475.9,
+						"bannerReadyMs": 573.1,
+						"promptSettledMs": 475.8,
+						"serverResolveMs": null,
+						"bannerShown": true
+					},
+					{
+						"ttfb": 6.2,
+						"contentInDomAt": 33.4,
+						"contentVisibleAt": 33.4,
+						"cssDoneAt": 17.5,
+						"fcp": 104,
+						"lcp": 104,
+						"hydratedAt": 316.3,
+						"bannerVisibleDomAt": 531.1,
+						"bannerReadyMs": 636.3,
+						"promptSettledMs": 531,
+						"serverResolveMs": null,
+						"bannerShown": true
+					},
+					{
+						"ttfb": 10.9,
+						"contentInDomAt": 53.2,
+						"contentVisibleAt": 53.2,
+						"cssDoneAt": 26.2,
+						"fcp": 148,
+						"lcp": 148,
+						"hydratedAt": 391.1,
+						"bannerVisibleDomAt": 614.7,
+						"bannerReadyMs": 721.2,
+						"promptSettledMs": 614.5,
+						"serverResolveMs": null,
+						"bannerShown": true
+					},
+					{
+						"ttfb": 6,
+						"contentInDomAt": 28.4,
+						"contentVisibleAt": 28.4,
+						"cssDoneAt": 16.4,
+						"fcp": 92,
+						"lcp": 92,
+						"hydratedAt": 260.8,
+						"bannerVisibleDomAt": 475.7,
+						"bannerReadyMs": 578.5,
+						"promptSettledMs": 475.2,
+						"serverResolveMs": null,
+						"bannerShown": true
+					},
+					{
+						"ttfb": 5,
+						"contentInDomAt": 27.6,
+						"contentVisibleAt": 27.6,
+						"cssDoneAt": 15.3,
+						"fcp": 92,
+						"lcp": 92,
+						"hydratedAt": 263.6,
+						"bannerVisibleDomAt": 479.8,
+						"bannerReadyMs": 578.5,
+						"promptSettledMs": 479.7,
+						"serverResolveMs": null,
+						"bannerShown": true
+					}
+				],
+				"summary": {
+					"ttfb": {
+						"median": 5.4,
+						"min": 4.9,
+						"max": 10.9,
+						"n": 9
+					},
+					"contentInDomAt": {
+						"median": 28.4,
+						"min": 25.9,
+						"max": 53.2,
+						"n": 9
+					},
+					"contentVisibleAt": {
+						"median": 28.4,
+						"min": 25.9,
+						"max": 53.2,
+						"n": 9
+					},
+					"cssDoneAt": {
+						"median": 15.7,
+						"min": 14.4,
+						"max": 26.2,
+						"n": 9
+					},
+					"fcp": {
+						"median": 92,
+						"min": 88,
+						"max": 148,
+						"n": 9
+					},
+					"lcp": {
+						"median": 92,
+						"min": 88,
+						"max": 148,
+						"n": 9
+					},
+					"hydratedAt": {
+						"median": 263.6,
+						"min": 252.8,
+						"max": 391.1,
+						"n": 9
+					},
+					"bannerVisibleDomAt": {
+						"median": 482.5,
+						"min": 467,
+						"max": 614.7,
+						"n": 9
+					},
+					"bannerReadyMs": {
+						"median": 584,
+						"min": 571.1,
+						"max": 721.2,
+						"n": 9
+					},
+					"promptSettledMs": {
+						"median": 482.4,
+						"min": 466.9,
+						"max": 614.5,
+						"n": 9
+					},
+					"serverResolveMs": null,
+					"contentHeldAtLeast80ms": 0
+				}
+			},
+			"b": {
+				"protocol": "h2",
+				"cssFiles": 1,
+				"cssTransferBytes": 18721,
+				"jsFiles": 9,
+				"jsTransferBytes": 207402,
+				"samples": [
+					{
+						"ttfb": 5,
+						"contentInDomAt": 227.7,
+						"contentVisibleAt": 331.9,
+						"cssDoneAt": 15.1,
+						"fcp": 412,
+						"lcp": 412,
+						"hydratedAt": 502.5,
+						"bannerVisibleDomAt": 331.9,
+						"bannerReadyMs": 506.6,
+						"promptSettledMs": 502.5,
+						"serverResolveMs": 208.6,
+						"bannerShown": true
+					},
+					{
+						"ttfb": 4.4,
+						"contentInDomAt": 221.3,
+						"contentVisibleAt": 329,
+						"cssDoneAt": 13.6,
+						"fcp": 400,
+						"lcp": 400,
+						"hydratedAt": 466.9,
+						"bannerVisibleDomAt": 329,
+						"bannerReadyMs": 471.2,
+						"promptSettledMs": 466.9,
+						"serverResolveMs": 206.7,
+						"bannerShown": true
+					},
+					{
+						"ttfb": 4.3,
+						"contentInDomAt": 218.7,
+						"contentVisibleAt": 325.2,
+						"cssDoneAt": 12.8,
+						"fcp": 388,
+						"lcp": 388,
+						"hydratedAt": 438.9,
+						"bannerVisibleDomAt": 325.2,
+						"bannerReadyMs": 454.8,
+						"promptSettledMs": 438.9,
+						"serverResolveMs": 204.8,
+						"bannerShown": true
+					},
+					{
+						"ttfb": 4.1,
+						"contentInDomAt": 222,
+						"contentVisibleAt": 325,
+						"cssDoneAt": 14,
+						"fcp": 388,
+						"lcp": 388,
+						"hydratedAt": 455.9,
+						"bannerVisibleDomAt": 325,
+						"bannerReadyMs": 458.5,
+						"promptSettledMs": 455.9,
+						"serverResolveMs": 207.1,
+						"bannerShown": true
+					},
+					{
+						"ttfb": 4,
+						"contentInDomAt": 221.6,
+						"contentVisibleAt": 326.5,
+						"cssDoneAt": 12.6,
+						"fcp": 392,
+						"lcp": 392,
+						"hydratedAt": 463.2,
+						"bannerVisibleDomAt": 326.5,
+						"bannerReadyMs": 466.9,
+						"promptSettledMs": 463.2,
+						"serverResolveMs": 206.9,
+						"bannerShown": true
+					},
+					{
+						"ttfb": 4.3,
+						"contentInDomAt": 221.4,
+						"contentVisibleAt": 326.9,
+						"cssDoneAt": 13.2,
+						"fcp": 392,
+						"lcp": 392,
+						"hydratedAt": 460.5,
+						"bannerVisibleDomAt": 326.9,
+						"bannerReadyMs": 463.8,
+						"promptSettledMs": 460.5,
+						"serverResolveMs": 206.6,
+						"bannerShown": true
+					},
+					{
+						"ttfb": 6.8,
+						"contentInDomAt": 228.9,
+						"contentVisibleAt": 335.9,
+						"cssDoneAt": 19.1,
+						"fcp": 432,
+						"lcp": 432,
+						"hydratedAt": 539.3,
+						"bannerVisibleDomAt": 335.9,
+						"bannerReadyMs": 544.6,
+						"promptSettledMs": 539.3,
+						"serverResolveMs": 208.8,
+						"bannerShown": true
+					},
+					{
+						"ttfb": 4.7,
+						"contentInDomAt": 221.1,
+						"contentVisibleAt": 331.9,
+						"cssDoneAt": 15.5,
+						"fcp": 400,
+						"lcp": 400,
+						"hydratedAt": 467.9,
+						"bannerVisibleDomAt": 331.9,
+						"bannerReadyMs": 472.7,
+						"promptSettledMs": 467.9,
+						"serverResolveMs": 206.0,
+						"bannerShown": true
+					},
+					{
+						"ttfb": 4.6,
+						"contentInDomAt": 221.2,
+						"contentVisibleAt": 329.6,
+						"cssDoneAt": 13.5,
+						"fcp": 396,
+						"lcp": 396,
+						"hydratedAt": 452.1,
+						"bannerVisibleDomAt": 329.6,
+						"bannerReadyMs": 456.2,
+						"promptSettledMs": 452.1,
+						"serverResolveMs": 206.7,
+						"bannerShown": true
+					}
+				],
+				"summary": {
+					"ttfb": {
+						"median": 4.4,
+						"min": 4,
+						"max": 6.8,
+						"n": 9
+					},
+					"contentInDomAt": {
+						"median": 221.4,
+						"min": 218.7,
+						"max": 228.9,
+						"n": 9
+					},
+					"contentVisibleAt": {
+						"median": 329,
+						"min": 325,
+						"max": 335.9,
+						"n": 9
+					},
+					"cssDoneAt": {
+						"median": 13.6,
+						"min": 12.6,
+						"max": 19.1,
+						"n": 9
+					},
+					"fcp": {
+						"median": 396,
+						"min": 388,
+						"max": 432,
+						"n": 9
+					},
+					"lcp": {
+						"median": 396,
+						"min": 388,
+						"max": 432,
+						"n": 9
+					},
+					"hydratedAt": {
+						"median": 463.2,
+						"min": 438.9,
+						"max": 539.3,
+						"n": 9
+					},
+					"bannerVisibleDomAt": {
+						"median": 329,
+						"min": 325,
+						"max": 335.9,
+						"n": 9
+					},
+					"bannerReadyMs": {
+						"median": 466.9,
+						"min": 454.8,
+						"max": 544.6,
+						"n": 9
+					},
+					"promptSettledMs": {
+						"median": 463.2,
+						"min": 438.9,
+						"max": 539.3,
+						"n": 9
+					},
+					"serverResolveMs": {
+						"median": 206.7,
+						"min": 204.8,
+						"max": 208.8,
+						"n": 9
+					},
+					"contentHeldAtLeast80ms": 9
+				}
+			},
+			"c": {
+				"protocol": "h2",
+				"cssFiles": 1,
+				"cssTransferBytes": 18721,
+				"jsFiles": 9,
+				"jsTransferBytes": 207402,
+				"samples": [
+					{
+						"ttfb": 5.8,
+						"contentInDomAt": 33.7,
+						"contentVisibleAt": 33.7,
+						"cssDoneAt": 18.3,
+						"fcp": 100,
+						"lcp": 100,
+						"hydratedAt": 367.8,
+						"bannerVisibleDomAt": 394.8,
+						"bannerReadyMs": 538.4,
+						"promptSettledMs": 394.3,
+						"serverResolveMs": 209.2,
+						"bannerShown": true
+					},
+					{
+						"ttfb": 3.9,
+						"contentInDomAt": 32.3,
+						"contentVisibleAt": 32.3,
+						"cssDoneAt": 17.9,
+						"fcp": 88,
+						"lcp": 88,
+						"hydratedAt": 234.3,
+						"bannerVisibleDomAt": 255.4,
+						"bannerReadyMs": 379.4,
+						"promptSettledMs": 255.1,
+						"serverResolveMs": 205.1,
+						"bannerShown": true
+					},
+					{
+						"ttfb": 4.3,
+						"contentInDomAt": 26.4,
+						"contentVisibleAt": 26.4,
+						"cssDoneAt": 13.4,
+						"fcp": 92,
+						"lcp": 92,
+						"hydratedAt": 262.9,
+						"bannerVisibleDomAt": 284,
+						"bannerReadyMs": 395.9,
+						"promptSettledMs": 283.4,
+						"serverResolveMs": 207.5,
+						"bannerShown": true
+					},
+					{
+						"ttfb": 7.1,
+						"contentInDomAt": 28.9,
+						"contentVisibleAt": 28.9,
+						"cssDoneAt": 18.2,
+						"fcp": 92,
+						"lcp": 92,
+						"hydratedAt": 233.9,
+						"bannerVisibleDomAt": 256.4,
+						"bannerReadyMs": 362.2,
+						"promptSettledMs": 255.8,
+						"serverResolveMs": 209.1,
+						"bannerShown": true
+					},
+					{
+						"ttfb": 5.7,
+						"contentInDomAt": 37,
+						"contentVisibleAt": 37,
+						"cssDoneAt": 22,
+						"fcp": 108,
+						"lcp": 108,
+						"hydratedAt": 274.2,
+						"bannerVisibleDomAt": 294.8,
+						"bannerReadyMs": 417,
+						"promptSettledMs": 294.6,
+						"serverResolveMs": 207.0,
+						"bannerShown": true
+					},
+					{
+						"ttfb": 4,
+						"contentInDomAt": 24.6,
+						"contentVisibleAt": 24.6,
+						"cssDoneAt": 12.7,
+						"fcp": 88,
+						"lcp": 88,
+						"hydratedAt": 267.7,
+						"bannerVisibleDomAt": 287.4,
+						"bannerReadyMs": 413,
+						"promptSettledMs": 286.8,
+						"serverResolveMs": 206.0,
+						"bannerShown": true
+					},
+					{
+						"ttfb": 4.2,
+						"contentInDomAt": 28.2,
+						"contentVisibleAt": 28.2,
+						"cssDoneAt": 15,
+						"fcp": 96,
+						"lcp": 96,
+						"hydratedAt": 268.1,
+						"bannerVisibleDomAt": 288.5,
+						"bannerReadyMs": 419.3,
+						"promptSettledMs": 288,
+						"serverResolveMs": 206.7,
+						"bannerShown": true
+					},
+					{
+						"ttfb": 4.1,
+						"contentInDomAt": 24,
+						"contentVisibleAt": 24,
+						"cssDoneAt": 13.1,
+						"fcp": 88,
+						"lcp": 88,
+						"hydratedAt": 239.6,
+						"bannerVisibleDomAt": 260.1,
+						"bannerReadyMs": 390.3,
+						"promptSettledMs": 259.6,
+						"serverResolveMs": 206.8,
+						"bannerShown": true
+					},
+					{
+						"ttfb": 4.3,
+						"contentInDomAt": 34.7,
+						"contentVisibleAt": 34.7,
+						"cssDoneAt": 20.6,
+						"fcp": 108,
+						"lcp": 108,
+						"hydratedAt": 289.9,
+						"bannerVisibleDomAt": 311.8,
+						"bannerReadyMs": 438.9,
+						"promptSettledMs": 311.6,
+						"serverResolveMs": 207.6,
+						"bannerShown": true
+					}
+				],
+				"summary": {
+					"ttfb": {
+						"median": 4.3,
+						"min": 3.9,
+						"max": 7.1,
+						"n": 9
+					},
+					"contentInDomAt": {
+						"median": 28.9,
+						"min": 24,
+						"max": 37,
+						"n": 9
+					},
+					"contentVisibleAt": {
+						"median": 28.9,
+						"min": 24,
+						"max": 37,
+						"n": 9
+					},
+					"cssDoneAt": {
+						"median": 17.9,
+						"min": 12.7,
+						"max": 22,
+						"n": 9
+					},
+					"fcp": {
+						"median": 92,
+						"min": 88,
+						"max": 108,
+						"n": 9
+					},
+					"lcp": {
+						"median": 92,
+						"min": 88,
+						"max": 108,
+						"n": 9
+					},
+					"hydratedAt": {
+						"median": 267.7,
+						"min": 233.9,
+						"max": 367.8,
+						"n": 9
+					},
+					"bannerVisibleDomAt": {
+						"median": 287.4,
+						"min": 255.4,
+						"max": 394.8,
+						"n": 9
+					},
+					"bannerReadyMs": {
+						"median": 413,
+						"min": 362.2,
+						"max": 538.4,
+						"n": 9
+					},
+					"promptSettledMs": {
+						"median": 286.8,
+						"min": 255.1,
+						"max": 394.3,
+						"n": 9
+					},
+					"serverResolveMs": {
+						"median": 207.0,
+						"min": 205.1,
+						"max": 209.2,
+						"n": 9
+					},
+					"contentHeldAtLeast80ms": 0
+				}
+			},
+			"d": {
+				"protocol": "h2",
+				"cssFiles": 5,
+				"cssTransferBytes": 26801,
+				"jsFiles": 9,
+				"jsTransferBytes": 207452,
+				"samples": [
+					{
+						"ttfb": 6.8,
+						"contentInDomAt": 229.8,
+						"contentVisibleAt": 339,
+						"cssDoneAt": 19.3,
+						"fcp": 424,
+						"lcp": 424,
+						"hydratedAt": 518.2,
+						"bannerVisibleDomAt": 339,
+						"bannerReadyMs": 522.2,
+						"promptSettledMs": 518.2,
+						"serverResolveMs": 209.8,
+						"bannerShown": true
+					},
+					{
+						"ttfb": 3.9,
+						"contentInDomAt": 220.2,
+						"contentVisibleAt": 327.5,
+						"cssDoneAt": 12.1,
+						"fcp": 388,
+						"lcp": 388,
+						"hydratedAt": 442,
+						"bannerVisibleDomAt": 327.5,
+						"bannerReadyMs": 458.2,
+						"promptSettledMs": 442,
+						"serverResolveMs": 206.5,
+						"bannerShown": true
+					},
+					{
+						"ttfb": 5.5,
+						"contentInDomAt": 226.5,
+						"contentVisibleAt": 335.2,
+						"cssDoneAt": 16,
+						"fcp": 428,
+						"lcp": 428,
+						"hydratedAt": 529.7,
+						"bannerVisibleDomAt": 335.2,
+						"bannerReadyMs": 534.7,
+						"promptSettledMs": 529.7,
+						"serverResolveMs": 208.4,
+						"bannerShown": true
+					},
+					{
+						"ttfb": 4.3,
+						"contentInDomAt": 224.5,
+						"contentVisibleAt": 330.9,
+						"cssDoneAt": 15.5,
+						"fcp": 400,
+						"lcp": 400,
+						"hydratedAt": 471.5,
+						"bannerVisibleDomAt": 330.9,
+						"bannerReadyMs": 476.6,
+						"promptSettledMs": 471.5,
+						"serverResolveMs": 208.1,
+						"bannerShown": true
+					},
+					{
+						"ttfb": 4.6,
+						"contentInDomAt": 223.3,
+						"contentVisibleAt": 330.7,
+						"cssDoneAt": 14.5,
+						"fcp": 400,
+						"lcp": 400,
+						"hydratedAt": 478.8,
+						"bannerVisibleDomAt": 330.7,
+						"bannerReadyMs": 482.6,
+						"promptSettledMs": 478.8,
+						"serverResolveMs": 207.7,
+						"bannerShown": true
+					},
+					{
+						"ttfb": 5,
+						"contentInDomAt": 227.5,
+						"contentVisibleAt": 335.1,
+						"cssDoneAt": 16.3,
+						"fcp": 428,
+						"lcp": 428,
+						"hydratedAt": 521.7,
+						"bannerVisibleDomAt": 335.1,
+						"bannerReadyMs": 526.2,
+						"promptSettledMs": 521.7,
+						"serverResolveMs": 208.9,
+						"bannerShown": true
+					},
+					{
+						"ttfb": 4.2,
+						"contentInDomAt": 220.2,
+						"contentVisibleAt": 330.7,
+						"cssDoneAt": 12,
+						"fcp": 424,
+						"lcp": 424,
+						"hydratedAt": 536.6,
+						"bannerVisibleDomAt": 330.7,
+						"bannerReadyMs": 541.6,
+						"promptSettledMs": 536.6,
+						"serverResolveMs": 206.3,
+						"bannerShown": true
+					},
+					{
+						"ttfb": 4.9,
+						"contentInDomAt": 219.6,
+						"contentVisibleAt": 330.5,
+						"cssDoneAt": 13.8,
+						"fcp": 404,
+						"lcp": 404,
+						"hydratedAt": 480.5,
+						"bannerVisibleDomAt": 330.5,
+						"bannerReadyMs": 484.8,
+						"promptSettledMs": 480.5,
+						"serverResolveMs": 205.2,
+						"bannerShown": true
+					},
+					{
+						"ttfb": 4.7,
+						"contentInDomAt": 220.3,
+						"contentVisibleAt": 330.3,
+						"cssDoneAt": 14,
+						"fcp": 408,
+						"lcp": 408,
+						"hydratedAt": 491.2,
+						"bannerVisibleDomAt": 330.3,
+						"bannerReadyMs": 495.2,
+						"promptSettledMs": 491.2,
+						"serverResolveMs": 206.1,
+						"bannerShown": true
+					}
+				],
+				"summary": {
+					"ttfb": {
+						"median": 4.7,
+						"min": 3.9,
+						"max": 6.8,
+						"n": 9
+					},
+					"contentInDomAt": {
+						"median": 223.3,
+						"min": 219.6,
+						"max": 229.8,
+						"n": 9
+					},
+					"contentVisibleAt": {
+						"median": 330.7,
+						"min": 327.5,
+						"max": 339,
+						"n": 9
+					},
+					"cssDoneAt": {
+						"median": 14.5,
+						"min": 12,
+						"max": 19.3,
+						"n": 9
+					},
+					"fcp": {
+						"median": 408,
+						"min": 388,
+						"max": 428,
+						"n": 9
+					},
+					"lcp": {
+						"median": 408,
+						"min": 388,
+						"max": 428,
+						"n": 9
+					},
+					"hydratedAt": {
+						"median": 491.2,
+						"min": 442,
+						"max": 536.6,
+						"n": 9
+					},
+					"bannerVisibleDomAt": {
+						"median": 330.7,
+						"min": 327.5,
+						"max": 339,
+						"n": 9
+					},
+					"bannerReadyMs": {
+						"median": 495.2,
+						"min": 458.2,
+						"max": 541.6,
+						"n": 9
+					},
+					"promptSettledMs": {
+						"median": 491.2,
+						"min": 442,
+						"max": 536.6,
+						"n": 9
+					},
+					"serverResolveMs": {
+						"median": 207.7,
+						"min": 205.2,
+						"max": 209.8,
+						"n": 9
+					},
+					"contentHeldAtLeast80ms": 9
+				}
+			}
+		},
+		"saved-accept": {
+			"a": {
+				"protocol": "h2",
+				"cssFiles": 1,
+				"cssTransferBytes": 18721,
+				"jsFiles": 10,
+				"jsTransferBytes": 207753,
+				"samples": [
+					{
+						"ttfb": 4.5,
+						"contentInDomAt": 23.6,
+						"contentVisibleAt": 23.6,
+						"cssDoneAt": 12.5,
+						"fcp": 80,
+						"lcp": 80,
+						"hydratedAt": 227.6,
+						"bannerVisibleDomAt": null,
+						"bannerReadyMs": null,
+						"promptSettledMs": 258.3,
+						"serverResolveMs": null,
+						"bannerShown": false
+					},
+					{
+						"ttfb": 5.6,
+						"contentInDomAt": 27.7,
+						"contentVisibleAt": 27.7,
+						"cssDoneAt": 15.8,
+						"fcp": 92,
+						"lcp": 92,
+						"hydratedAt": 259.9,
+						"bannerVisibleDomAt": null,
+						"bannerReadyMs": null,
+						"promptSettledMs": 291.8,
+						"serverResolveMs": null,
+						"bannerShown": false
+					},
+					{
+						"ttfb": 6.7,
+						"contentInDomAt": 32.9,
+						"contentVisibleAt": 32.9,
+						"cssDoneAt": 17.8,
+						"fcp": 116,
+						"lcp": 116,
+						"hydratedAt": 299.7,
+						"bannerVisibleDomAt": null,
+						"bannerReadyMs": null,
+						"promptSettledMs": 342.4,
+						"serverResolveMs": null,
+						"bannerShown": false
+					},
+					{
+						"ttfb": 5,
+						"contentInDomAt": 27.4,
+						"contentVisibleAt": 27.4,
+						"cssDoneAt": 15.7,
+						"fcp": 88,
+						"lcp": 88,
+						"hydratedAt": 256,
+						"bannerVisibleDomAt": null,
+						"bannerReadyMs": null,
+						"promptSettledMs": 288.2,
+						"serverResolveMs": null,
+						"bannerShown": false
+					},
+					{
+						"ttfb": 4.4,
+						"contentInDomAt": 24.5,
+						"contentVisibleAt": 24.5,
+						"cssDoneAt": 13.2,
+						"fcp": 84,
+						"lcp": 84,
+						"hydratedAt": 236.3,
+						"bannerVisibleDomAt": null,
+						"bannerReadyMs": null,
+						"promptSettledMs": 266.1,
+						"serverResolveMs": null,
+						"bannerShown": false
+					},
+					{
+						"ttfb": 5.6,
+						"contentInDomAt": 30.1,
+						"contentVisibleAt": 30.1,
+						"cssDoneAt": 16.2,
+						"fcp": 100,
+						"lcp": 100,
+						"hydratedAt": 293.4,
+						"bannerVisibleDomAt": null,
+						"bannerReadyMs": null,
+						"promptSettledMs": 331.6,
+						"serverResolveMs": null,
+						"bannerShown": false
+					},
+					{
+						"ttfb": 4.4,
+						"contentInDomAt": 25,
+						"contentVisibleAt": 25,
+						"cssDoneAt": 13.2,
+						"fcp": 84,
+						"lcp": 84,
+						"hydratedAt": 241.3,
+						"bannerVisibleDomAt": null,
+						"bannerReadyMs": null,
+						"promptSettledMs": 272.8,
+						"serverResolveMs": null,
+						"bannerShown": false
+					},
+					{
+						"ttfb": 4.4,
+						"contentInDomAt": 24.1,
+						"contentVisibleAt": 24.1,
+						"cssDoneAt": 12.7,
+						"fcp": 84,
+						"lcp": 84,
+						"hydratedAt": 255.8,
+						"bannerVisibleDomAt": null,
+						"bannerReadyMs": null,
+						"promptSettledMs": 287.3,
+						"serverResolveMs": null,
+						"bannerShown": false
+					},
+					{
+						"ttfb": 5.5,
+						"contentInDomAt": 30,
+						"contentVisibleAt": 30,
+						"cssDoneAt": 16.4,
+						"fcp": 104,
+						"lcp": 104,
+						"hydratedAt": 297.7,
+						"bannerVisibleDomAt": null,
+						"bannerReadyMs": null,
+						"promptSettledMs": 331.1,
+						"serverResolveMs": null,
+						"bannerShown": false
+					}
+				],
+				"summary": {
+					"ttfb": {
+						"median": 5,
+						"min": 4.4,
+						"max": 6.7,
+						"n": 9
+					},
+					"contentInDomAt": {
+						"median": 27.4,
+						"min": 23.6,
+						"max": 32.9,
+						"n": 9
+					},
+					"contentVisibleAt": {
+						"median": 27.4,
+						"min": 23.6,
+						"max": 32.9,
+						"n": 9
+					},
+					"cssDoneAt": {
+						"median": 15.7,
+						"min": 12.5,
+						"max": 17.8,
+						"n": 9
+					},
+					"fcp": {
+						"median": 88,
+						"min": 80,
+						"max": 116,
+						"n": 9
+					},
+					"lcp": {
+						"median": 88,
+						"min": 80,
+						"max": 116,
+						"n": 9
+					},
+					"hydratedAt": {
+						"median": 256,
+						"min": 227.6,
+						"max": 299.7,
+						"n": 9
+					},
+					"bannerVisibleDomAt": null,
+					"bannerReadyMs": null,
+					"promptSettledMs": {
+						"median": 288.2,
+						"min": 258.3,
+						"max": 342.4,
+						"n": 9
+					},
+					"serverResolveMs": null,
+					"contentHeldAtLeast80ms": 0
+				}
+			},
+			"b": {
+				"protocol": "h2",
+				"cssFiles": 1,
+				"cssTransferBytes": 18721,
+				"jsFiles": 10,
+				"jsTransferBytes": 207753,
+				"samples": [
+					{
+						"ttfb": 4.4,
+						"contentInDomAt": 26.4,
+						"contentVisibleAt": 30.1,
+						"cssDoneAt": 13.9,
+						"fcp": 92,
+						"lcp": 92,
+						"hydratedAt": 275.7,
+						"bannerVisibleDomAt": null,
+						"bannerReadyMs": null,
+						"promptSettledMs": 275.7,
+						"serverResolveMs": 3.9,
+						"bannerShown": false
+					},
+					{
+						"ttfb": 4,
+						"contentInDomAt": 26.4,
+						"contentVisibleAt": 329.3,
+						"cssDoneAt": 13.4,
+						"fcp": 392,
+						"lcp": 392,
+						"hydratedAt": 444.8,
+						"bannerVisibleDomAt": null,
+						"bannerReadyMs": null,
+						"promptSettledMs": 445.4,
+						"serverResolveMs": 3.4,
+						"bannerShown": false
+					},
+					{
+						"ttfb": 5.2,
+						"contentInDomAt": 40.6,
+						"contentVisibleAt": 333.6,
+						"cssDoneAt": 16.9,
+						"fcp": 396,
+						"lcp": 396,
+						"hydratedAt": 451.8,
+						"bannerVisibleDomAt": null,
+						"bannerReadyMs": null,
+						"promptSettledMs": 451.9,
+						"serverResolveMs": 4.3,
+						"bannerShown": false
+					},
+					{
+						"ttfb": 5.1,
+						"contentInDomAt": 28.9,
+						"contentVisibleAt": 331.1,
+						"cssDoneAt": 15.8,
+						"fcp": 388,
+						"lcp": 388,
+						"hydratedAt": 441.4,
+						"bannerVisibleDomAt": null,
+						"bannerReadyMs": null,
+						"promptSettledMs": 441.4,
+						"serverResolveMs": 5.2,
+						"bannerShown": false
+					},
+					{
+						"ttfb": 5.3,
+						"contentInDomAt": 37.8,
+						"contentVisibleAt": 329.3,
+						"cssDoneAt": 16.2,
+						"fcp": 388,
+						"lcp": 388,
+						"hydratedAt": 439.9,
+						"bannerVisibleDomAt": null,
+						"bannerReadyMs": null,
+						"promptSettledMs": 440,
+						"serverResolveMs": 3.5,
+						"bannerShown": false
+					},
+					{
+						"ttfb": 3.8,
+						"contentInDomAt": 26.4,
+						"contentVisibleAt": 328.5,
+						"cssDoneAt": 11.8,
+						"fcp": 384,
+						"lcp": 384,
+						"hydratedAt": 431.3,
+						"bannerVisibleDomAt": null,
+						"bannerReadyMs": null,
+						"promptSettledMs": 431.4,
+						"serverResolveMs": 2.8,
+						"bannerShown": false
+					},
+					{
+						"ttfb": 4.6,
+						"contentInDomAt": 28.6,
+						"contentVisibleAt": 330.7,
+						"cssDoneAt": 15.1,
+						"fcp": 384,
+						"lcp": 384,
+						"hydratedAt": 432.6,
+						"bannerVisibleDomAt": null,
+						"bannerReadyMs": null,
+						"promptSettledMs": 432.6,
+						"serverResolveMs": 4.2,
+						"bannerShown": false
+					},
+					{
+						"ttfb": 4.4,
+						"contentInDomAt": 27.7,
+						"contentVisibleAt": 329.7,
+						"cssDoneAt": 14.2,
+						"fcp": 388,
+						"lcp": 388,
+						"hydratedAt": 437.4,
+						"bannerVisibleDomAt": null,
+						"bannerReadyMs": null,
+						"promptSettledMs": 437.4,
+						"serverResolveMs": 3.6,
+						"bannerShown": false
+					},
+					{
+						"ttfb": 3.9,
+						"contentInDomAt": 26.1,
+						"contentVisibleAt": 328.3,
+						"cssDoneAt": 13.5,
+						"fcp": 380,
+						"lcp": 380,
+						"hydratedAt": 429.4,
+						"bannerVisibleDomAt": null,
+						"bannerReadyMs": null,
+						"promptSettledMs": 429.4,
+						"serverResolveMs": 3.0,
+						"bannerShown": false
+					}
+				],
+				"summary": {
+					"ttfb": {
+						"median": 4.4,
+						"min": 3.8,
+						"max": 5.3,
+						"n": 9
+					},
+					"contentInDomAt": {
+						"median": 27.7,
+						"min": 26.1,
+						"max": 40.6,
+						"n": 9
+					},
+					"contentVisibleAt": {
+						"median": 329.3,
+						"min": 30.1,
+						"max": 333.6,
+						"n": 9
+					},
+					"cssDoneAt": {
+						"median": 14.2,
+						"min": 11.8,
+						"max": 16.9,
+						"n": 9
+					},
+					"fcp": {
+						"median": 388,
+						"min": 92,
+						"max": 396,
+						"n": 9
+					},
+					"lcp": {
+						"median": 388,
+						"min": 92,
+						"max": 396,
+						"n": 9
+					},
+					"hydratedAt": {
+						"median": 437.4,
+						"min": 275.7,
+						"max": 451.8,
+						"n": 9
+					},
+					"bannerVisibleDomAt": null,
+					"bannerReadyMs": null,
+					"promptSettledMs": {
+						"median": 437.4,
+						"min": 275.7,
+						"max": 451.9,
+						"n": 9
+					},
+					"serverResolveMs": {
+						"median": 3.6,
+						"min": 2.8,
+						"max": 5.2,
+						"n": 9
+					},
+					"contentHeldAtLeast80ms": 8
+				}
+			},
+			"c": {
+				"protocol": "h2",
+				"cssFiles": 1,
+				"cssTransferBytes": 18721,
+				"jsFiles": 10,
+				"jsTransferBytes": 207753,
+				"samples": [
+					{
+						"ttfb": 4.2,
+						"contentInDomAt": 27.4,
+						"contentVisibleAt": 27.4,
+						"cssDoneAt": 14.3,
+						"fcp": 92,
+						"lcp": 92,
+						"hydratedAt": 266.9,
+						"bannerVisibleDomAt": null,
+						"bannerReadyMs": null,
+						"promptSettledMs": 283.1,
+						"serverResolveMs": 3.2,
+						"bannerShown": false
+					},
+					{
+						"ttfb": 4.9,
+						"contentInDomAt": 35.8,
+						"contentVisibleAt": 35.8,
+						"cssDoneAt": 19.6,
+						"fcp": 100,
+						"lcp": 100,
+						"hydratedAt": 260.9,
+						"bannerVisibleDomAt": null,
+						"bannerReadyMs": null,
+						"promptSettledMs": 275.7,
+						"serverResolveMs": 3.4,
+						"bannerShown": false
+					},
+					{
+						"ttfb": 4.5,
+						"contentInDomAt": 24.9,
+						"contentVisibleAt": 24.9,
+						"cssDoneAt": 13.9,
+						"fcp": 88,
+						"lcp": 88,
+						"hydratedAt": 243.7,
+						"bannerVisibleDomAt": null,
+						"bannerReadyMs": null,
+						"promptSettledMs": 257,
+						"serverResolveMs": 4.0,
+						"bannerShown": false
+					},
+					{
+						"ttfb": 4.2,
+						"contentInDomAt": 24.7,
+						"contentVisibleAt": 24.7,
+						"cssDoneAt": 15.2,
+						"fcp": 92,
+						"lcp": 92,
+						"hydratedAt": 259.9,
+						"bannerVisibleDomAt": null,
+						"bannerReadyMs": null,
+						"promptSettledMs": 275,
+						"serverResolveMs": 3.7,
+						"bannerShown": false
+					},
+					{
+						"ttfb": 3.8,
+						"contentInDomAt": 25.7,
+						"contentVisibleAt": 25.7,
+						"cssDoneAt": 12.9,
+						"fcp": 92,
+						"lcp": 92,
+						"hydratedAt": 256.9,
+						"bannerVisibleDomAt": null,
+						"bannerReadyMs": null,
+						"promptSettledMs": 271.5,
+						"serverResolveMs": 3.5,
+						"bannerShown": false
+					},
+					{
+						"ttfb": 3.8,
+						"contentInDomAt": 33.8,
+						"contentVisibleAt": 33.8,
+						"cssDoneAt": 18.1,
+						"fcp": 88,
+						"lcp": 88,
+						"hydratedAt": 235.3,
+						"bannerVisibleDomAt": null,
+						"bannerReadyMs": null,
+						"promptSettledMs": 248.9,
+						"serverResolveMs": 2.8,
+						"bannerShown": false
+					},
+					{
+						"ttfb": 5.7,
+						"contentInDomAt": 31.8,
+						"contentVisibleAt": 31.8,
+						"cssDoneAt": 20.8,
+						"fcp": 108,
+						"lcp": 108,
+						"hydratedAt": 316,
+						"bannerVisibleDomAt": null,
+						"bannerReadyMs": null,
+						"promptSettledMs": 334,
+						"serverResolveMs": 7.4,
+						"bannerShown": false
+					},
+					{
+						"ttfb": 6.1,
+						"contentInDomAt": 33.1,
+						"contentVisibleAt": 33.1,
+						"cssDoneAt": 17.1,
+						"fcp": 96,
+						"lcp": 96,
+						"hydratedAt": 359.9,
+						"bannerVisibleDomAt": null,
+						"bannerReadyMs": null,
+						"promptSettledMs": 382.3,
+						"serverResolveMs": 5.2,
+						"bannerShown": false
+					},
+					{
+						"ttfb": 5.5,
+						"contentInDomAt": 26.9,
+						"contentVisibleAt": 26.9,
+						"cssDoneAt": 16.3,
+						"fcp": 88,
+						"lcp": 88,
+						"hydratedAt": 236.3,
+						"bannerVisibleDomAt": null,
+						"bannerReadyMs": null,
+						"promptSettledMs": 249.4,
+						"serverResolveMs": 5.7,
+						"bannerShown": false
+					}
+				],
+				"summary": {
+					"ttfb": {
+						"median": 4.5,
+						"min": 3.8,
+						"max": 6.1,
+						"n": 9
+					},
+					"contentInDomAt": {
+						"median": 27.4,
+						"min": 24.7,
+						"max": 35.8,
+						"n": 9
+					},
+					"contentVisibleAt": {
+						"median": 27.4,
+						"min": 24.7,
+						"max": 35.8,
+						"n": 9
+					},
+					"cssDoneAt": {
+						"median": 16.3,
+						"min": 12.9,
+						"max": 20.8,
+						"n": 9
+					},
+					"fcp": {
+						"median": 92,
+						"min": 88,
+						"max": 108,
+						"n": 9
+					},
+					"lcp": {
+						"median": 92,
+						"min": 88,
+						"max": 108,
+						"n": 9
+					},
+					"hydratedAt": {
+						"median": 259.9,
+						"min": 235.3,
+						"max": 359.9,
+						"n": 9
+					},
+					"bannerVisibleDomAt": null,
+					"bannerReadyMs": null,
+					"promptSettledMs": {
+						"median": 275,
+						"min": 248.9,
+						"max": 382.3,
+						"n": 9
+					},
+					"serverResolveMs": {
+						"median": 3.7,
+						"min": 2.8,
+						"max": 7.4,
+						"n": 9
+					},
+					"contentHeldAtLeast80ms": 0
+				}
+			},
+			"d": {
+				"protocol": "h2",
+				"cssFiles": 5,
+				"cssTransferBytes": 26801,
+				"jsFiles": 10,
+				"jsTransferBytes": 207803,
+				"samples": [
+					{
+						"ttfb": 3.8,
+						"contentInDomAt": 37.1,
+						"contentVisibleAt": 329.8,
+						"cssDoneAt": 13.7,
+						"fcp": 392,
+						"lcp": 392,
+						"hydratedAt": 446.7,
+						"bannerVisibleDomAt": null,
+						"bannerReadyMs": null,
+						"promptSettledMs": 446.7,
+						"serverResolveMs": 3.8,
+						"bannerShown": false
+					},
+					{
+						"ttfb": 7.9,
+						"contentInDomAt": 45.5,
+						"contentVisibleAt": 337.1,
+						"cssDoneAt": 19.1,
+						"fcp": 412,
+						"lcp": 412,
+						"hydratedAt": 470.3,
+						"bannerVisibleDomAt": null,
+						"bannerReadyMs": null,
+						"promptSettledMs": 470.3,
+						"serverResolveMs": 4.4,
+						"bannerShown": false
+					},
+					{
+						"ttfb": 4.1,
+						"contentInDomAt": 29.2,
+						"contentVisibleAt": 331.4,
+						"cssDoneAt": 14,
+						"fcp": 400,
+						"lcp": 400,
+						"hydratedAt": 451.7,
+						"bannerVisibleDomAt": null,
+						"bannerReadyMs": null,
+						"promptSettledMs": 451.7,
+						"serverResolveMs": 3.4,
+						"bannerShown": false
+					},
+					{
+						"ttfb": 3.9,
+						"contentInDomAt": 40.3,
+						"contentVisibleAt": 43.3,
+						"cssDoneAt": 16.3,
+						"fcp": 96,
+						"lcp": 96,
+						"hydratedAt": 262,
+						"bannerVisibleDomAt": null,
+						"bannerReadyMs": null,
+						"promptSettledMs": 262,
+						"serverResolveMs": 4.5,
+						"bannerShown": false
+					},
+					{
+						"ttfb": 4.7,
+						"contentInDomAt": 30.8,
+						"contentVisibleAt": 332.8,
+						"cssDoneAt": 15.9,
+						"fcp": 388,
+						"lcp": 388,
+						"hydratedAt": 439.8,
+						"bannerVisibleDomAt": null,
+						"bannerReadyMs": null,
+						"promptSettledMs": 439.8,
+						"serverResolveMs": 4.4,
+						"bannerShown": false
+					},
+					{
+						"ttfb": 4,
+						"contentInDomAt": 27.4,
+						"contentVisibleAt": 330.2,
+						"cssDoneAt": 13,
+						"fcp": 388,
+						"lcp": 388,
+						"hydratedAt": 437.9,
+						"bannerVisibleDomAt": null,
+						"bannerReadyMs": null,
+						"promptSettledMs": 437.9,
+						"serverResolveMs": 3.1,
+						"bannerShown": false
+					},
+					{
+						"ttfb": 4.8,
+						"contentInDomAt": 43.7,
+						"contentVisibleAt": 335.7,
+						"cssDoneAt": 16.4,
+						"fcp": 404,
+						"lcp": 404,
+						"hydratedAt": 460.1,
+						"bannerVisibleDomAt": null,
+						"bannerReadyMs": null,
+						"promptSettledMs": 460.1,
+						"serverResolveMs": 4.0,
+						"bannerShown": false
+					},
+					{
+						"ttfb": 3.9,
+						"contentInDomAt": 27.4,
+						"contentVisibleAt": 330,
+						"cssDoneAt": 12.7,
+						"fcp": 392,
+						"lcp": 392,
+						"hydratedAt": 444.6,
+						"bannerVisibleDomAt": null,
+						"bannerReadyMs": null,
+						"promptSettledMs": 444.8,
+						"serverResolveMs": 3.1,
+						"bannerShown": false
+					},
+					{
+						"ttfb": 4.7,
+						"contentInDomAt": 28.5,
+						"contentVisibleAt": 331.3,
+						"cssDoneAt": 14,
+						"fcp": 388,
+						"lcp": 388,
+						"hydratedAt": 439.1,
+						"bannerVisibleDomAt": null,
+						"bannerReadyMs": null,
+						"promptSettledMs": 439.1,
+						"serverResolveMs": 3.1,
+						"bannerShown": false
+					}
+				],
+				"summary": {
+					"ttfb": {
+						"median": 4.1,
+						"min": 3.8,
+						"max": 7.9,
+						"n": 9
+					},
+					"contentInDomAt": {
+						"median": 30.8,
+						"min": 27.4,
+						"max": 45.5,
+						"n": 9
+					},
+					"contentVisibleAt": {
+						"median": 331.3,
+						"min": 43.3,
+						"max": 337.1,
+						"n": 9
+					},
+					"cssDoneAt": {
+						"median": 14,
+						"min": 12.7,
+						"max": 19.1,
+						"n": 9
+					},
+					"fcp": {
+						"median": 392,
+						"min": 96,
+						"max": 412,
+						"n": 9
+					},
+					"lcp": {
+						"median": 392,
+						"min": 96,
+						"max": 412,
+						"n": 9
+					},
+					"hydratedAt": {
+						"median": 444.6,
+						"min": 262,
+						"max": 470.3,
+						"n": 9
+					},
+					"bannerVisibleDomAt": null,
+					"bannerReadyMs": null,
+					"promptSettledMs": {
+						"median": 444.8,
+						"min": 262,
+						"max": 470.3,
+						"n": 9
+					},
+					"serverResolveMs": {
+						"median": 3.8,
+						"min": 3.1,
+						"max": 4.5,
+						"n": 9
+					},
+					"contentHeldAtLeast80ms": 8
+				}
+			}
+		},
+		"saved-reject": {
+			"a": {
+				"protocol": "h2",
+				"cssFiles": 1,
+				"cssTransferBytes": 18721,
+				"jsFiles": 9,
+				"jsTransferBytes": 207402,
+				"samples": [
+					{
+						"ttfb": 5.7,
+						"contentInDomAt": 28.1,
+						"contentVisibleAt": 28.1,
+						"cssDoneAt": 16.1,
+						"fcp": 100,
+						"lcp": 100,
+						"hydratedAt": 305.5,
+						"bannerVisibleDomAt": null,
+						"bannerReadyMs": null,
+						"promptSettledMs": 343.9,
+						"serverResolveMs": null,
+						"bannerShown": false
+					},
+					{
+						"ttfb": 5.6,
+						"contentInDomAt": 27.5,
+						"contentVisibleAt": 27.5,
+						"cssDoneAt": 15.3,
+						"fcp": 88,
+						"lcp": 88,
+						"hydratedAt": 259.3,
+						"bannerVisibleDomAt": null,
+						"bannerReadyMs": null,
+						"promptSettledMs": 289.7,
+						"serverResolveMs": null,
+						"bannerShown": false
+					},
+					{
+						"ttfb": 6.4,
+						"contentInDomAt": 28.7,
+						"contentVisibleAt": 28.7,
+						"cssDoneAt": 17.4,
+						"fcp": 92,
+						"lcp": 92,
+						"hydratedAt": 270,
+						"bannerVisibleDomAt": null,
+						"bannerReadyMs": null,
+						"promptSettledMs": 304.6,
+						"serverResolveMs": null,
+						"bannerShown": false
+					},
+					{
+						"ttfb": 5.2,
+						"contentInDomAt": 26.7,
+						"contentVisibleAt": 26.7,
+						"cssDoneAt": 14.6,
+						"fcp": 88,
+						"lcp": 88,
+						"hydratedAt": 242.3,
+						"bannerVisibleDomAt": null,
+						"bannerReadyMs": null,
+						"promptSettledMs": 269.5,
+						"serverResolveMs": null,
+						"bannerShown": false
+					},
+					{
+						"ttfb": 5.6,
+						"contentInDomAt": 29.1,
+						"contentVisibleAt": 29.1,
+						"cssDoneAt": 15.9,
+						"fcp": 92,
+						"lcp": 92,
+						"hydratedAt": 279.4,
+						"bannerVisibleDomAt": null,
+						"bannerReadyMs": null,
+						"promptSettledMs": 315.1,
+						"serverResolveMs": null,
+						"bannerShown": false
+					},
+					{
+						"ttfb": 5,
+						"contentInDomAt": 27.7,
+						"contentVisibleAt": 27.7,
+						"cssDoneAt": 15.1,
+						"fcp": 92,
+						"lcp": 92,
+						"hydratedAt": 262.7,
+						"bannerVisibleDomAt": null,
+						"bannerReadyMs": null,
+						"promptSettledMs": 294.1,
+						"serverResolveMs": null,
+						"bannerShown": false
+					},
+					{
+						"ttfb": 6.1,
+						"contentInDomAt": 28,
+						"contentVisibleAt": 28,
+						"cssDoneAt": 16.7,
+						"fcp": 92,
+						"lcp": 92,
+						"hydratedAt": 269.8,
+						"bannerVisibleDomAt": null,
+						"bannerReadyMs": null,
+						"promptSettledMs": 298.9,
+						"serverResolveMs": null,
+						"bannerShown": false
+					},
+					{
+						"ttfb": 4.7,
+						"contentInDomAt": 25.5,
+						"contentVisibleAt": 25.5,
+						"cssDoneAt": 14.1,
+						"fcp": 84,
+						"lcp": 84,
+						"hydratedAt": 239.4,
+						"bannerVisibleDomAt": null,
+						"bannerReadyMs": null,
+						"promptSettledMs": 272.6,
+						"serverResolveMs": null,
+						"bannerShown": false
+					},
+					{
+						"ttfb": 6,
+						"contentInDomAt": 30.8,
+						"contentVisibleAt": 30.8,
+						"cssDoneAt": 16.6,
+						"fcp": 96,
+						"lcp": 96,
+						"hydratedAt": 276.6,
+						"bannerVisibleDomAt": null,
+						"bannerReadyMs": null,
+						"promptSettledMs": 309.3,
+						"serverResolveMs": null,
+						"bannerShown": false
+					}
+				],
+				"summary": {
+					"ttfb": {
+						"median": 5.6,
+						"min": 4.7,
+						"max": 6.4,
+						"n": 9
+					},
+					"contentInDomAt": {
+						"median": 28,
+						"min": 25.5,
+						"max": 30.8,
+						"n": 9
+					},
+					"contentVisibleAt": {
+						"median": 28,
+						"min": 25.5,
+						"max": 30.8,
+						"n": 9
+					},
+					"cssDoneAt": {
+						"median": 15.9,
+						"min": 14.1,
+						"max": 17.4,
+						"n": 9
+					},
+					"fcp": {
+						"median": 92,
+						"min": 84,
+						"max": 100,
+						"n": 9
+					},
+					"lcp": {
+						"median": 92,
+						"min": 84,
+						"max": 100,
+						"n": 9
+					},
+					"hydratedAt": {
+						"median": 269.8,
+						"min": 239.4,
+						"max": 305.5,
+						"n": 9
+					},
+					"bannerVisibleDomAt": null,
+					"bannerReadyMs": null,
+					"promptSettledMs": {
+						"median": 298.9,
+						"min": 269.5,
+						"max": 343.9,
+						"n": 9
+					},
+					"serverResolveMs": null,
+					"contentHeldAtLeast80ms": 0
+				}
+			},
+			"b": {
+				"protocol": "h2",
+				"cssFiles": 1,
+				"cssTransferBytes": 18721,
+				"jsFiles": 9,
+				"jsTransferBytes": 207402,
+				"samples": [
+					{
+						"ttfb": 4.1,
+						"contentInDomAt": 29.1,
+						"contentVisibleAt": 332.1,
+						"cssDoneAt": 14.8,
+						"fcp": 392,
+						"lcp": 392,
+						"hydratedAt": 447.7,
+						"bannerVisibleDomAt": null,
+						"bannerReadyMs": null,
+						"promptSettledMs": 447.7,
+						"serverResolveMs": 4.1,
+						"bannerShown": false
+					},
+					{
+						"ttfb": 4.6,
+						"contentInDomAt": 39.2,
+						"contentVisibleAt": 333.1,
+						"cssDoneAt": 20.6,
+						"fcp": 400,
+						"lcp": 400,
+						"hydratedAt": 450.7,
+						"bannerVisibleDomAt": null,
+						"bannerReadyMs": null,
+						"promptSettledMs": 450.7,
+						"serverResolveMs": 3.4,
+						"bannerShown": false
+					},
+					{
+						"ttfb": 6.2,
+						"contentInDomAt": 63.4,
+						"contentVisibleAt": 71,
+						"cssDoneAt": 20.4,
+						"fcp": 148,
+						"lcp": 148,
+						"hydratedAt": 391.5,
+						"bannerVisibleDomAt": null,
+						"bannerReadyMs": null,
+						"promptSettledMs": 391.5,
+						"serverResolveMs": 5.1,
+						"bannerShown": false
+					},
+					{
+						"ttfb": 3.7,
+						"contentInDomAt": 26.6,
+						"contentVisibleAt": 328.6,
+						"cssDoneAt": 11.8,
+						"fcp": 388,
+						"lcp": 388,
+						"hydratedAt": 439.4,
+						"bannerVisibleDomAt": null,
+						"bannerReadyMs": null,
+						"promptSettledMs": 439.4,
+						"serverResolveMs": 2.9,
+						"bannerShown": false
+					},
+					{
+						"ttfb": 4.5,
+						"contentInDomAt": 29,
+						"contentVisibleAt": 331.9,
+						"cssDoneAt": 15.2,
+						"fcp": 404,
+						"lcp": 404,
+						"hydratedAt": 461.7,
+						"bannerVisibleDomAt": null,
+						"bannerReadyMs": null,
+						"promptSettledMs": 461.7,
+						"serverResolveMs": 4.0,
+						"bannerShown": false
+					},
+					{
+						"ttfb": 4.2,
+						"contentInDomAt": 27.7,
+						"contentVisibleAt": 331.3,
+						"cssDoneAt": 13.8,
+						"fcp": 396,
+						"lcp": 396,
+						"hydratedAt": 449.1,
+						"bannerVisibleDomAt": null,
+						"bannerReadyMs": null,
+						"promptSettledMs": 449.1,
+						"serverResolveMs": 3.1,
+						"bannerShown": false
+					},
+					{
+						"ttfb": 4.8,
+						"contentInDomAt": 30.2,
+						"contentVisibleAt": 333.4,
+						"cssDoneAt": 16.2,
+						"fcp": 400,
+						"lcp": 400,
+						"hydratedAt": 457.7,
+						"bannerVisibleDomAt": null,
+						"bannerReadyMs": null,
+						"promptSettledMs": 457.7,
+						"serverResolveMs": 4.9,
+						"bannerShown": false
+					},
+					{
+						"ttfb": 5.2,
+						"contentInDomAt": 28.3,
+						"contentVisibleAt": 330.3,
+						"cssDoneAt": 15.5,
+						"fcp": 392,
+						"lcp": 392,
+						"hydratedAt": 448.5,
+						"bannerVisibleDomAt": null,
+						"bannerReadyMs": null,
+						"promptSettledMs": 448.5,
+						"serverResolveMs": 2.9,
+						"bannerShown": false
+					},
+					{
+						"ttfb": 4,
+						"contentInDomAt": 27.4,
+						"contentVisibleAt": 329.5,
+						"cssDoneAt": 14.2,
+						"fcp": 392,
+						"lcp": 392,
+						"hydratedAt": 447.6,
+						"bannerVisibleDomAt": null,
+						"bannerReadyMs": null,
+						"promptSettledMs": 447.6,
+						"serverResolveMs": 3.4,
+						"bannerShown": false
+					}
+				],
+				"summary": {
+					"ttfb": {
+						"median": 4.5,
+						"min": 3.7,
+						"max": 6.2,
+						"n": 9
+					},
+					"contentInDomAt": {
+						"median": 29,
+						"min": 26.6,
+						"max": 63.4,
+						"n": 9
+					},
+					"contentVisibleAt": {
+						"median": 331.3,
+						"min": 71,
+						"max": 333.4,
+						"n": 9
+					},
+					"cssDoneAt": {
+						"median": 15.2,
+						"min": 11.8,
+						"max": 20.6,
+						"n": 9
+					},
+					"fcp": {
+						"median": 392,
+						"min": 148,
+						"max": 404,
+						"n": 9
+					},
+					"lcp": {
+						"median": 392,
+						"min": 148,
+						"max": 404,
+						"n": 9
+					},
+					"hydratedAt": {
+						"median": 448.5,
+						"min": 391.5,
+						"max": 461.7,
+						"n": 9
+					},
+					"bannerVisibleDomAt": null,
+					"bannerReadyMs": null,
+					"promptSettledMs": {
+						"median": 448.5,
+						"min": 391.5,
+						"max": 461.7,
+						"n": 9
+					},
+					"serverResolveMs": {
+						"median": 3.4,
+						"min": 2.9,
+						"max": 5.1,
+						"n": 9
+					},
+					"contentHeldAtLeast80ms": 8
+				}
+			},
+			"c": {
+				"protocol": "h2",
+				"cssFiles": 1,
+				"cssTransferBytes": 18721,
+				"jsFiles": 9,
+				"jsTransferBytes": 207402,
+				"samples": [
+					{
+						"ttfb": 5.4,
+						"contentInDomAt": 27.2,
+						"contentVisibleAt": 27.2,
+						"cssDoneAt": 16.2,
+						"fcp": 100,
+						"lcp": 100,
+						"hydratedAt": 303,
+						"bannerVisibleDomAt": null,
+						"bannerReadyMs": null,
+						"promptSettledMs": 320.8,
+						"serverResolveMs": 4.8,
+						"bannerShown": false
+					},
+					{
+						"ttfb": 4.7,
+						"contentInDomAt": 24.4,
+						"contentVisibleAt": 24.4,
+						"cssDoneAt": 13.6,
+						"fcp": 88,
+						"lcp": 88,
+						"hydratedAt": 253,
+						"bannerVisibleDomAt": null,
+						"bannerReadyMs": null,
+						"promptSettledMs": 268.3,
+						"serverResolveMs": 3.3,
+						"bannerShown": false
+					},
+					{
+						"ttfb": 3.9,
+						"contentInDomAt": 23.3,
+						"contentVisibleAt": 23.3,
+						"cssDoneAt": 12.3,
+						"fcp": 92,
+						"lcp": 92,
+						"hydratedAt": 263,
+						"bannerVisibleDomAt": null,
+						"bannerReadyMs": null,
+						"promptSettledMs": 277.5,
+						"serverResolveMs": 3.7,
+						"bannerShown": false
+					},
+					{
+						"ttfb": 4.3,
+						"contentInDomAt": 25.9,
+						"contentVisibleAt": 25.9,
+						"cssDoneAt": 13.7,
+						"fcp": 92,
+						"lcp": 92,
+						"hydratedAt": 252.1,
+						"bannerVisibleDomAt": null,
+						"bannerReadyMs": null,
+						"promptSettledMs": 266.6,
+						"serverResolveMs": 4.0,
+						"bannerShown": false
+					},
+					{
+						"ttfb": 6,
+						"contentInDomAt": 34.4,
+						"contentVisibleAt": 34.4,
+						"cssDoneAt": 18.4,
+						"fcp": 112,
+						"lcp": 112,
+						"hydratedAt": 322.3,
+						"bannerVisibleDomAt": null,
+						"bannerReadyMs": null,
+						"promptSettledMs": 339.7,
+						"serverResolveMs": 5.2,
+						"bannerShown": false
+					},
+					{
+						"ttfb": 4.2,
+						"contentInDomAt": 27.4,
+						"contentVisibleAt": 27.4,
+						"cssDoneAt": 13.8,
+						"fcp": 92,
+						"lcp": 92,
+						"hydratedAt": 260.9,
+						"bannerVisibleDomAt": null,
+						"bannerReadyMs": null,
+						"promptSettledMs": 275.8,
+						"serverResolveMs": 3.8,
+						"bannerShown": false
+					},
+					{
+						"ttfb": 3.9,
+						"contentInDomAt": 26.4,
+						"contentVisibleAt": 26.4,
+						"cssDoneAt": 12.5,
+						"fcp": 88,
+						"lcp": 88,
+						"hydratedAt": 268.1,
+						"bannerVisibleDomAt": null,
+						"bannerReadyMs": null,
+						"promptSettledMs": 283.9,
+						"serverResolveMs": 2.8,
+						"bannerShown": false
+					},
+					{
+						"ttfb": 4.4,
+						"contentInDomAt": 26.2,
+						"contentVisibleAt": 26.2,
+						"cssDoneAt": 13.7,
+						"fcp": 92,
+						"lcp": 92,
+						"hydratedAt": 270.5,
+						"bannerVisibleDomAt": null,
+						"bannerReadyMs": null,
+						"promptSettledMs": 286.6,
+						"serverResolveMs": 3.5,
+						"bannerShown": false
+					},
+					{
+						"ttfb": 4.5,
+						"contentInDomAt": 26.9,
+						"contentVisibleAt": 26.9,
+						"cssDoneAt": 13.8,
+						"fcp": 88,
+						"lcp": 88,
+						"hydratedAt": 245.1,
+						"bannerVisibleDomAt": null,
+						"bannerReadyMs": null,
+						"promptSettledMs": 259.6,
+						"serverResolveMs": 3.0,
+						"bannerShown": false
+					}
+				],
+				"summary": {
+					"ttfb": {
+						"median": 4.4,
+						"min": 3.9,
+						"max": 6,
+						"n": 9
+					},
+					"contentInDomAt": {
+						"median": 26.4,
+						"min": 23.3,
+						"max": 34.4,
+						"n": 9
+					},
+					"contentVisibleAt": {
+						"median": 26.4,
+						"min": 23.3,
+						"max": 34.4,
+						"n": 9
+					},
+					"cssDoneAt": {
+						"median": 13.7,
+						"min": 12.3,
+						"max": 18.4,
+						"n": 9
+					},
+					"fcp": {
+						"median": 92,
+						"min": 88,
+						"max": 112,
+						"n": 9
+					},
+					"lcp": {
+						"median": 92,
+						"min": 88,
+						"max": 112,
+						"n": 9
+					},
+					"hydratedAt": {
+						"median": 263,
+						"min": 245.1,
+						"max": 322.3,
+						"n": 9
+					},
+					"bannerVisibleDomAt": null,
+					"bannerReadyMs": null,
+					"promptSettledMs": {
+						"median": 277.5,
+						"min": 259.6,
+						"max": 339.7,
+						"n": 9
+					},
+					"serverResolveMs": {
+						"median": 3.7,
+						"min": 2.8,
+						"max": 5.2,
+						"n": 9
+					},
+					"contentHeldAtLeast80ms": 0
+				}
+			},
+			"d": {
+				"protocol": "h2",
+				"cssFiles": 5,
+				"cssTransferBytes": 26801,
+				"jsFiles": 9,
+				"jsTransferBytes": 207452,
+				"samples": [
+					{
+						"ttfb": 5.8,
+						"contentInDomAt": 50.5,
+						"contentVisibleAt": 131.7,
+						"cssDoneAt": 22.3,
+						"fcp": 196,
+						"lcp": 196,
+						"hydratedAt": 298.5,
+						"bannerVisibleDomAt": null,
+						"bannerReadyMs": null,
+						"promptSettledMs": 298.5,
+						"serverResolveMs": 6.5,
+						"bannerShown": false
+					},
+					{
+						"ttfb": 3.9,
+						"contentInDomAt": 26.9,
+						"contentVisibleAt": 328.5,
+						"cssDoneAt": 14.2,
+						"fcp": 384,
+						"lcp": 384,
+						"hydratedAt": 433.9,
+						"bannerVisibleDomAt": null,
+						"bannerReadyMs": null,
+						"promptSettledMs": 433.9,
+						"serverResolveMs": 3.5,
+						"bannerShown": false
+					},
+					{
+						"ttfb": 5.2,
+						"contentInDomAt": 30,
+						"contentVisibleAt": 332.6,
+						"cssDoneAt": 15.4,
+						"fcp": 392,
+						"lcp": 392,
+						"hydratedAt": 442.3,
+						"bannerVisibleDomAt": null,
+						"bannerReadyMs": null,
+						"promptSettledMs": 442.3,
+						"serverResolveMs": 4.0,
+						"bannerShown": false
+					},
+					{
+						"ttfb": 4.8,
+						"contentInDomAt": 41.6,
+						"contentVisibleAt": 334.4,
+						"cssDoneAt": 16.6,
+						"fcp": 396,
+						"lcp": 396,
+						"hydratedAt": 449.4,
+						"bannerVisibleDomAt": null,
+						"bannerReadyMs": null,
+						"promptSettledMs": 449.4,
+						"serverResolveMs": 4.8,
+						"bannerShown": false
+					},
+					{
+						"ttfb": 5.2,
+						"contentInDomAt": 42.1,
+						"contentVisibleAt": 334.2,
+						"cssDoneAt": 16.9,
+						"fcp": 404,
+						"lcp": 404,
+						"hydratedAt": 458.7,
+						"bannerVisibleDomAt": null,
+						"bannerReadyMs": null,
+						"promptSettledMs": 458.8,
+						"serverResolveMs": 3.9,
+						"bannerShown": false
+					},
+					{
+						"ttfb": 4,
+						"contentInDomAt": 38.5,
+						"contentVisibleAt": 331.1,
+						"cssDoneAt": 15.8,
+						"fcp": 392,
+						"lcp": 392,
+						"hydratedAt": 448.5,
+						"bannerVisibleDomAt": null,
+						"bannerReadyMs": null,
+						"promptSettledMs": 448.5,
+						"serverResolveMs": 4.3,
+						"bannerShown": false
+					},
+					{
+						"ttfb": 5.7,
+						"contentInDomAt": 48.1,
+						"contentVisibleAt": 338.1,
+						"cssDoneAt": 20,
+						"fcp": 420,
+						"lcp": 420,
+						"hydratedAt": 489.2,
+						"bannerVisibleDomAt": null,
+						"bannerReadyMs": null,
+						"promptSettledMs": 489.2,
+						"serverResolveMs": 4.3,
+						"bannerShown": false
+					},
+					{
+						"ttfb": 5.5,
+						"contentInDomAt": 39.3,
+						"contentVisibleAt": 333.5,
+						"cssDoneAt": 15.8,
+						"fcp": 384,
+						"lcp": 384,
+						"hydratedAt": 431.1,
+						"bannerVisibleDomAt": null,
+						"bannerReadyMs": null,
+						"promptSettledMs": 431.1,
+						"serverResolveMs": 3.9,
+						"bannerShown": false
+					},
+					{
+						"ttfb": 4,
+						"contentInDomAt": 28.7,
+						"contentVisibleAt": 331.7,
+						"cssDoneAt": 13.9,
+						"fcp": 396,
+						"lcp": 396,
+						"hydratedAt": 452.4,
+						"bannerVisibleDomAt": null,
+						"bannerReadyMs": null,
+						"promptSettledMs": 452.4,
+						"serverResolveMs": 3.0,
+						"bannerShown": false
+					}
+				],
+				"summary": {
+					"ttfb": {
+						"median": 5.2,
+						"min": 3.9,
+						"max": 5.8,
+						"n": 9
+					},
+					"contentInDomAt": {
+						"median": 39.3,
+						"min": 26.9,
+						"max": 50.5,
+						"n": 9
+					},
+					"contentVisibleAt": {
+						"median": 332.6,
+						"min": 131.7,
+						"max": 338.1,
+						"n": 9
+					},
+					"cssDoneAt": {
+						"median": 15.8,
+						"min": 13.9,
+						"max": 22.3,
+						"n": 9
+					},
+					"fcp": {
+						"median": 392,
+						"min": 196,
+						"max": 420,
+						"n": 9
+					},
+					"lcp": {
+						"median": 392,
+						"min": 196,
+						"max": 420,
+						"n": 9
+					},
+					"hydratedAt": {
+						"median": 448.5,
+						"min": 298.5,
+						"max": 489.2,
+						"n": 9
+					},
+					"bannerVisibleDomAt": null,
+					"bannerReadyMs": null,
+					"promptSettledMs": {
+						"median": 448.5,
+						"min": 298.5,
+						"max": 489.2,
+						"n": 9
+					},
+					"serverResolveMs": {
+						"median": 4.0,
+						"min": 3.0,
+						"max": 6.5,
+						"n": 9
+					},
+					"contentHeldAtLeast80ms": 9
+				}
+			}
+		}
+	}
+}

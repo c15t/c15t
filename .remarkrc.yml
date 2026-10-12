@@ -1,5 +1,5 @@
 settings:
-  bullet: "-"
+  bullet: '-'
 plugins:
   # Handle frontmatter in MDX files
   - remark-frontmatter

@@ -1,70 +1,24 @@
-import { readdir } from 'node:fs/promises';
-import { extname, join } from 'node:path';
-import {
-	Node,
-	type ObjectLiteralExpression,
-	Project,
-	type PropertyAssignment,
-	SyntaxKind,
-} from 'ts-morph';
+import { Node, SyntaxKind } from 'ts-morph';
+import type { ObjectLiteralExpression, PropertyAssignment } from 'ts-morph';
+import type * as TsMorphTypes from 'ts-morph';
 
-const SUPPORTED_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx']);
-const IGNORED_DIRS = new Set([
-	'.git',
-	'.next',
-	'.turbo',
-	'coverage',
-	'dist',
-	'build',
-	'node_modules',
-	'out',
-]);
+import { runTransform } from './runner';
+import type { CodemodRunOptions, CodemodRunResult } from './runner';
 
-type TranslationsToI18nResult = {
+interface TranslationsToI18nResult {
 	changed: boolean;
 	operations: number;
 	summaries: string[];
+}
+
+const getPropertyName = function getPropertyName(
+	property: PropertyAssignment
+): string {
+	const rawName = property.getNameNode().getText().trim();
+	return rawName.replace(/^['"]|['"]$/gu, '');
 };
 
-export interface CodemodRunOptions {
-	/**
-	 * Absolute or relative project root to scan for source files.
-	 */
-	projectRoot: string;
-	/**
-	 * Whether to skip saving transformed files.
-	 */
-	dryRun: boolean;
-}
-
-/**
- * Result summary for a codemod run.
- */
-export interface CodemodRunResult {
-	/**
-	 * Number of source files scanned.
-	 */
-	totalFiles: number;
-	/**
-	 * Per-file transformation summaries.
-	 */
-	changedFiles: Array<{
-		filePath: string;
-		operations: number;
-		summaries: string[];
-	}>;
-	/**
-	 * Non-fatal per-file transform errors.
-	 */
-	errors: Array<{ filePath: string; error: string }>;
-}
-
-function getPropertyName(property: PropertyAssignment): string {
-	const rawName = property.getNameNode().getText().trim();
-	return rawName.replace(/^['"]|['"]$/g, '');
-}
-
-function getProperty(
+const getProperty = function getProperty(
 	objectLiteral: ObjectLiteralExpression,
 	name: string
 ): PropertyAssignment | undefined {
@@ -79,59 +33,65 @@ function getProperty(
 	}
 
 	return undefined;
-}
+};
 
-function hasProperty(
+const hasProperty = function hasProperty(
 	objectLiteral: ObjectLiteralExpression,
 	name: string
 ): boolean {
 	return Boolean(getProperty(objectLiteral, name));
-}
+};
 
-function renameProperty(property: PropertyAssignment, nextName: string): void {
+const renameProperty = function renameProperty(
+	property: PropertyAssignment,
+	nextName: string
+): void {
 	property.getNameNode().replaceWithText(nextName);
-}
+};
 
-function isLegacyTranslationConfigObject(
-	objectLiteral: ObjectLiteralExpression
-): boolean {
-	// Heuristic: treat objects as legacy translation config when they include
-	// defaultLanguage/disableAutoLanguageSwitch, or a bare "translations" map
-	// without sibling "language", "i18n", "messages", or "locale" keys.
-	// Limitation: unrelated objects using these property names can be false positives.
-	const hasDefaultLanguage = hasProperty(objectLiteral, 'defaultLanguage');
-	const hasDisableAutoLanguageSwitch = hasProperty(
-		objectLiteral,
-		'disableAutoLanguageSwitch'
-	);
-	const hasTranslations = hasProperty(objectLiteral, 'translations');
-	const hasLanguage = hasProperty(objectLiteral, 'language');
-	const hasI18n = hasProperty(objectLiteral, 'i18n');
-	const hasMessages = hasProperty(objectLiteral, 'messages');
-	const hasLocale = hasProperty(objectLiteral, 'locale');
+const isLegacyTranslationConfigObject =
+	function isLegacyTranslationConfigObject(
+		objectLiteral: ObjectLiteralExpression
+	): boolean {
+		// Heuristic: treat objects as legacy translation config when they include
+		// defaultLanguage/disableAutoLanguageSwitch, or a bare "translations" map
+		// without sibling "language", "i18n", "messages", or "locale" keys.
+		// Limitation: unrelated objects using these property names can be false positives.
+		const hasDefaultLanguage = hasProperty(objectLiteral, 'defaultLanguage');
+		const hasDisableAutoLanguageSwitch = hasProperty(
+			objectLiteral,
+			'disableAutoLanguageSwitch'
+		);
+		const hasTranslations = hasProperty(objectLiteral, 'translations');
+		const hasLanguage = hasProperty(objectLiteral, 'language');
+		const hasI18n = hasProperty(objectLiteral, 'i18n');
+		const hasMessages = hasProperty(objectLiteral, 'messages');
+		const hasLocale = hasProperty(objectLiteral, 'locale');
 
-	if (hasDefaultLanguage || hasDisableAutoLanguageSwitch) {
-		return true;
-	}
+		if (hasDefaultLanguage || hasDisableAutoLanguageSwitch) {
+			return true;
+		}
 
-	// This catches minimal legacy configs like:
-	// { translations: { de: { ... } } }
-	// while avoiding init response objects like:
-	// { language: 'de', translations: { ... } }
-	if (
-		hasTranslations &&
-		!hasLanguage &&
-		!hasI18n &&
-		!hasMessages &&
-		!hasLocale
-	) {
-		return true;
-	}
+		// This catches minimal legacy configs like:
+		// { translations: { de: { ... } } }
+		// while avoiding init response objects like:
+		// { language: 'de', translations: { ... } }
+		if (
+			hasTranslations &&
+			!hasLanguage &&
+			!hasI18n &&
+			!hasMessages &&
+			!hasLocale
+		) {
+			return true;
+		}
 
-	return false;
-}
+		return false;
+	};
 
-function invertExpression(expressionText: string): string {
+const invertExpression = function invertExpression(
+	expressionText: string
+): string {
 	const trimmed = expressionText.trim();
 
 	if (trimmed === 'true') {
@@ -147,9 +107,9 @@ function invertExpression(expressionText: string): string {
 	}
 
 	return `!(${trimmed})`;
-}
+};
 
-function transformLegacyConfigObject(
+const transformLegacyConfigObject = function transformLegacyConfigObject(
 	objectLiteral: ObjectLiteralExpression
 ): TranslationsToI18nResult {
 	let operations = 0;
@@ -194,10 +154,10 @@ function transformLegacyConfigObject(
 		operations,
 		summaries,
 	};
-}
+};
 
-function transformSourceFile(
-	sourceFile: import('ts-morph').SourceFile
+const transformSourceFile = function transformSourceFile(
+	sourceFile: TsMorphTypes.SourceFile
 ): TranslationsToI18nResult {
 	let operations = 0;
 	const summaries: string[] = [];
@@ -245,40 +205,7 @@ function transformSourceFile(
 		operations,
 		summaries: [...new Set(summaries)],
 	};
-}
-
-async function collectSourceFiles(rootDir: string): Promise<string[]> {
-	const files: string[] = [];
-
-	async function walk(currentDir: string): Promise<void> {
-		const entries = await readdir(currentDir, { withFileTypes: true });
-
-		for (const entry of entries) {
-			if (entry.isDirectory()) {
-				if (IGNORED_DIRS.has(entry.name)) {
-					continue;
-				}
-				await walk(join(currentDir, entry.name));
-				continue;
-			}
-
-			if (!entry.isFile()) {
-				continue;
-			}
-
-			const extension = extname(entry.name).toLowerCase();
-			if (!SUPPORTED_EXTENSIONS.has(extension)) {
-				continue;
-			}
-
-			files.push(join(currentDir, entry.name));
-		}
-	}
-
-	await walk(rootDir);
-
-	return files;
-}
+};
 
 /**
  * Runs the legacy translations-to-i18n codemod across project source files.
@@ -294,58 +221,13 @@ async function collectSourceFiles(rootDir: string): Promise<string[]> {
  * });
  * ```
  *
- * @throws Propagates unexpected setup failures such as directory traversal errors.
+ * @throws {Error} Propagates unexpected setup failures such as directory traversal errors.
  */
-export async function runTranslationsToI18nCodemod(
-	options: CodemodRunOptions
-): Promise<CodemodRunResult> {
-	const project = new Project({
-		skipAddingFilesFromTsConfig: true,
-		compilerOptions: {
-			allowJs: true,
-		},
-	});
-	const filePaths = await collectSourceFiles(options.projectRoot);
-
-	const changedFiles: Array<{
-		filePath: string;
-		operations: number;
-		summaries: string[];
-	}> = [];
-	const errors: Array<{ filePath: string; error: string }> = [];
-
-	for (const filePath of filePaths) {
-		try {
-			const sourceFile = project.addSourceFileAtPathIfExists(filePath);
-			if (!sourceFile) {
-				continue;
-			}
-
-			const result = transformSourceFile(sourceFile);
-			if (!result.changed) {
-				continue;
-			}
-
-			changedFiles.push({
-				filePath,
-				operations: result.operations,
-				summaries: result.summaries,
-			});
-
-			if (!options.dryRun) {
-				await sourceFile.save();
-			}
-		} catch (error) {
-			errors.push({
-				filePath,
-				error: error instanceof Error ? error.message : String(error),
-			});
-		}
-	}
-
-	return {
-		totalFiles: filePaths.length,
-		changedFiles,
-		errors,
+export const runTranslationsToI18nCodemod =
+	function runTranslationsToI18nCodemod(
+		options: CodemodRunOptions
+	): Promise<CodemodRunResult> {
+		return runTransform(options, transformSourceFile);
 	};
-}
+
+export type { CodemodRunOptions, CodemodRunResult } from './runner';

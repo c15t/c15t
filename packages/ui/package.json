@@ -1,105 +1,30 @@
 {
 	"name": "@c15t/ui",
-	"version": "2.2.2-canary-20260930161603",
+	"version": "3.0.0-alpha.12",
 	"description": "Framework-agnostic primitives, CSS, and theme system powering c15t consent UIs (React, Solid, Svelte, Vue).",
 	"keywords": [
 		"c15t",
-		"ui",
+		"cmp",
+		"consent",
+		"cookie-banner",
+		"design-system",
+		"framework-agnostic",
 		"headless-ui",
 		"primitives",
-		"react",
-		"consent",
 		"privacy",
-		"cmp",
-		"cookie-banner",
+		"react",
 		"tailwind",
-		"framework-agnostic",
-		"design-system"
+		"ui"
 	],
 	"homepage": "https://c15t.com",
 	"bugs": {
 		"url": "https://github.com/c15t/c15t/issues"
 	},
+	"license": "Apache-2.0",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/c15t/c15t"
 	},
-	"license": "Apache-2.0",
-	"sideEffects": [
-		"**/*.css"
-	],
-	"type": "module",
-	"exports": {
-		"./styles.css": "./dist/styles.css",
-		"./styles.tw3.css": "./dist/styles.tw3.css",
-		"./iab/styles.css": "./dist/iab/styles.css",
-		"./iab/styles.tw3.css": "./dist/iab/styles.tw3.css",
-		"./primitives": {
-			"types": "./dist-types/primitives/index.d.ts",
-			"import": "./dist/primitives/index.js",
-			"require": "./dist/primitives/index.cjs"
-		},
-		"./primitives/data-state": {
-			"types": "./dist-types/primitives/data-state.d.ts",
-			"import": "./dist/primitives/data-state.js",
-			"require": "./dist/primitives/data-state.cjs"
-		},
-		"./primitives/*": {
-			"types": "./dist-types/primitives/*/index.d.ts",
-			"import": "./dist/primitives/*/index.js",
-			"require": "./dist/primitives/*/index.cjs"
-		},
-		"./theme": {
-			"types": "./dist-types/theme/index.d.ts",
-			"import": "./dist/theme/index.js",
-			"require": "./dist/theme/index.cjs"
-		},
-		"./utils": {
-			"types": "./dist-types/utils/index.d.ts",
-			"import": "./dist/utils/index.js",
-			"require": "./dist/utils/index.cjs"
-		},
-		"./styles/primitives": {
-			"types": "./dist-types/styles/primitives/index.d.ts",
-			"import": "./dist/styles/primitives/index.js",
-			"require": "./dist/styles/primitives/index.cjs"
-		},
-		"./styles/primitives/*": {
-			"types": "./dist-types/styles/primitives/*.d.ts",
-			"import": "./dist/styles/primitives/*.js",
-			"require": "./dist/styles/primitives/*.cjs"
-		},
-		"./styles/primitives/*.module.js": {
-			"types": "./src/styles/css-module.d.ts",
-			"import": "./dist/styles/primitives/*.module.js",
-			"require": "./dist/styles/primitives/*.module.cjs"
-		},
-		"./styles/primitives/*.module.css": {
-			"types": "./src/styles/css-module.d.ts",
-			"import": "./dist/styles/primitives/*.module.js",
-			"require": "./dist/styles/primitives/*.module.cjs"
-		},
-		"./utils/*": {
-			"types": "./dist-types/utils/*.d.ts",
-			"import": "./dist/utils/*.js",
-			"require": "./dist/utils/*.cjs"
-		},
-		"./styles/*.module.js": {
-			"types": "./src/styles/css-module.d.ts",
-			"import": "./dist/styles/*.module.js",
-			"require": "./dist/styles/*.module.cjs"
-		},
-		"./styles/*.module.css": "./dist/styles/*.module.css",
-		"./styles/*": "./dist/styles/*",
-		".": {
-			"types": "./dist-types/index.d.ts",
-			"import": "./dist/index.js",
-			"require": "./dist/index.cjs"
-		}
-	},
-	"main": "./dist/index.cjs",
-	"module": "./dist/index.js",
-	"types": "./dist-types/index.d.ts",
 	"files": [
 		"dist",
 		"dist-types",
@@ -109,27 +34,269 @@
 		"src/primitives",
 		"src/styles",
 		"!src/styles/**/__tests__/**",
-		"!src/styles/**/*.test.ts"
+		"!src/styles/**/*.test.ts",
+		"!src/primitives/**/__tests__/**",
+		"!src/primitives/**/*.test.ts",
+		"!dist-types/**/__tests__/**",
+		"!types/**/__tests__/**",
+		"types"
 	],
+	"type": "module",
+	"sideEffects": [
+		"**/*.css"
+	],
+	"main": "./dist/index.js",
+	"types": "./dist-types/index.d.ts",
+	"exports": {
+		"./styles.css": "./dist/styles.css",
+		"./styles.tw3.css": "./dist/styles.tw3.css",
+		"./iab/styles.css": "./dist/iab/styles.css",
+		"./iab/styles.tw3.css": "./dist/iab/styles.tw3.css",
+		"./styles/dialog.css": "./dist/styles/dialog.css",
+		"./styles/dialog": {
+			"types": "./dist/styles/dialog.d.ts",
+			"import": "./dist/styles/dialog.js",
+			"default": "./dist/styles/dialog.js"
+		},
+		"./styles/primitives.css": "./dist/styles/primitives.css",
+		"./styles/sheets/*.css": "./dist/styles/sheets/*.css",
+		"./styles/sheets/*": {
+			"types": "./dist-types/styles/sheets/*.d.ts",
+			"import": "./dist/styles/sheets/*.js",
+			"default": "./dist/styles/sheets/*.js"
+		},
+		"./postcss-tailwind3": {
+			"types": "./dist-types/postcss-tailwind3.d.ts",
+			"import": "./dist/postcss-tailwind3.js",
+			"default": "./dist/postcss-tailwind3.js"
+		},
+		"./primitives": {
+			"types": "./dist-types/primitives/index.d.ts",
+			"import": "./dist/primitives/index.js",
+			"default": "./dist/primitives/index.js"
+		},
+		"./primitives/data-state": {
+			"types": "./dist-types/primitives/data-state.d.ts",
+			"import": "./dist/primitives/data-state.js",
+			"default": "./dist/primitives/data-state.js"
+		},
+		"./primitives/*": {
+			"types": "./dist-types/primitives/*/index.d.ts",
+			"import": "./dist/primitives/*/index.js",
+			"default": "./dist/primitives/*/index.js"
+		},
+		"./theme": {
+			"types": "./dist-types/theme/index.d.ts",
+			"import": "./dist/theme/index.js",
+			"default": "./dist/theme/index.js"
+		},
+		"./utils": {
+			"types": "./dist-types/utils/index.d.ts",
+			"import": "./dist/utils/index.js",
+			"default": "./dist/utils/index.js"
+		},
+		"./styles/primitives": {
+			"types": "./dist-types/styles/primitives/index.d.ts",
+			"import": "./dist/styles/primitives/index.js",
+			"default": "./dist/styles/primitives/index.js"
+		},
+		"./styles/primitives/*": {
+			"types": "./dist-types/styles/primitives/*.d.ts",
+			"import": "./dist/styles/primitives/*.js",
+			"default": "./dist/styles/primitives/*.js"
+		},
+		"./styles/primitives/*.module.js": {
+			"types": "./src/styles/css-module.d.ts",
+			"import": "./dist/styles/primitives/*.module.js",
+			"default": "./dist/styles/primitives/*.module.js"
+		},
+		"./styles/primitives/*.module.css": {
+			"types": "./src/styles/css-module.d.ts",
+			"import": "./dist/styles/primitives/*.module.js",
+			"default": "./dist/styles/primitives/*.module.js"
+		},
+		"./utils/*": {
+			"types": "./dist-types/utils/*.d.ts",
+			"import": "./dist/utils/*.js",
+			"default": "./dist/utils/*.js"
+		},
+		"./styles/*.module.js": {
+			"types": "./src/styles/css-module.d.ts",
+			"import": "./dist/styles/*.module.js",
+			"default": "./dist/styles/*.module.js"
+		},
+		"./styles/*.module.css": "./dist/styles/*.module.css",
+		"./styles/*": "./dist/styles/*",
+		".": {
+			"types": "./dist-types/index.d.ts",
+			"import": "./dist/index.js",
+			"default": "./dist/index.js"
+		},
+		"./styles/components/*.css": "./dist/styles/components/*.css",
+		"./styles/components/*": {
+			"types": "./dist/styles/components/*.d.ts",
+			"style": "./dist/styles/components/*.css",
+			"node": "./dist/styles/components/*.node.js",
+			"import": "./dist/styles/components/*.js",
+			"default": "./dist/styles/components/*.js"
+		},
+		"./styles/components/*.module.css": {
+			"types": "./dist/styles/components/*.d.ts",
+			"style": "./dist/styles/components/*.css",
+			"node": "./dist/styles/components/*.node.js",
+			"import": "./dist/styles/components/*.js",
+			"default": "./dist/styles/components/*.js"
+		},
+		"./styles/components/consent-banner": {
+			"types": "./dist/styles/components/prompt.d.ts",
+			"style": "./dist/styles/components/prompt.css",
+			"node": "./dist/styles/components/prompt.node.js",
+			"import": "./dist/styles/components/prompt.js",
+			"default": "./dist/styles/components/prompt.js"
+		},
+		"./styles/components/consent-banner.module.css": {
+			"types": "./dist/styles/components/prompt.d.ts",
+			"style": "./dist/styles/components/prompt.css",
+			"node": "./dist/styles/components/prompt.node.js",
+			"import": "./dist/styles/components/prompt.js",
+			"default": "./dist/styles/components/prompt.js"
+		},
+		"./styles/components/consent-banner.css": "./dist/styles/components/prompt.css",
+		"./styles/components/consent-dialog-trigger": {
+			"types": "./dist/styles/components/panel-trigger.d.ts",
+			"style": "./dist/styles/components/panel-trigger.css",
+			"node": "./dist/styles/components/panel-trigger.node.js",
+			"import": "./dist/styles/components/panel-trigger.js",
+			"default": "./dist/styles/components/panel-trigger.js"
+		},
+		"./styles/components/consent-dialog-trigger.module.css": {
+			"types": "./dist/styles/components/panel-trigger.d.ts",
+			"style": "./dist/styles/components/panel-trigger.css",
+			"node": "./dist/styles/components/panel-trigger.node.js",
+			"import": "./dist/styles/components/panel-trigger.js",
+			"default": "./dist/styles/components/panel-trigger.js"
+		},
+		"./styles/components/consent-dialog-trigger.css": "./dist/styles/components/panel-trigger.css",
+		"./styles/components/consent-dialog": {
+			"types": "./dist/styles/components/panel.d.ts",
+			"style": "./dist/styles/components/panel.css",
+			"node": "./dist/styles/components/panel.node.js",
+			"import": "./dist/styles/components/panel.js",
+			"default": "./dist/styles/components/panel.js"
+		},
+		"./styles/components/consent-dialog.module.css": {
+			"types": "./dist/styles/components/panel.d.ts",
+			"style": "./dist/styles/components/panel.css",
+			"node": "./dist/styles/components/panel.node.js",
+			"import": "./dist/styles/components/panel.js",
+			"default": "./dist/styles/components/panel.js"
+		},
+		"./styles/components/consent-dialog.css": "./dist/styles/components/panel.css",
+		"./styles/components/consent-manager": {
+			"types": "./dist/styles/components/manager.d.ts",
+			"style": "./dist/styles/components/manager.css",
+			"node": "./dist/styles/components/manager.node.js",
+			"import": "./dist/styles/components/manager.js",
+			"default": "./dist/styles/components/manager.js"
+		},
+		"./styles/components/consent-manager.module.css": {
+			"types": "./dist/styles/components/manager.d.ts",
+			"style": "./dist/styles/components/manager.css",
+			"node": "./dist/styles/components/manager.node.js",
+			"import": "./dist/styles/components/manager.js",
+			"default": "./dist/styles/components/manager.js"
+		},
+		"./styles/components/consent-manager.css": "./dist/styles/components/manager.css",
+		"./styles/components/iab-consent-banner": {
+			"types": "./dist/styles/components/iab-prompt.d.ts",
+			"style": "./dist/styles/components/iab-prompt.css",
+			"node": "./dist/styles/components/iab-prompt.node.js",
+			"import": "./dist/styles/components/iab-prompt.js",
+			"default": "./dist/styles/components/iab-prompt.js"
+		},
+		"./styles/components/iab-consent-banner.module.css": {
+			"types": "./dist/styles/components/iab-prompt.d.ts",
+			"style": "./dist/styles/components/iab-prompt.css",
+			"node": "./dist/styles/components/iab-prompt.node.js",
+			"import": "./dist/styles/components/iab-prompt.js",
+			"default": "./dist/styles/components/iab-prompt.js"
+		},
+		"./styles/components/iab-consent-banner.css": "./dist/styles/components/iab-prompt.css",
+		"./styles/components/iab-consent-dialog": {
+			"types": "./dist/styles/components/iab-panel.d.ts",
+			"style": "./dist/styles/components/iab-panel.css",
+			"node": "./dist/styles/components/iab-panel.node.js",
+			"import": "./dist/styles/components/iab-panel.js",
+			"default": "./dist/styles/components/iab-panel.js"
+		},
+		"./styles/components/iab-consent-dialog.module.css": {
+			"types": "./dist/styles/components/iab-panel.d.ts",
+			"style": "./dist/styles/components/iab-panel.css",
+			"node": "./dist/styles/components/iab-panel.node.js",
+			"import": "./dist/styles/components/iab-panel.js",
+			"default": "./dist/styles/components/iab-panel.js"
+		},
+		"./styles/components/iab-consent-dialog.css": "./dist/styles/components/iab-panel.css",
+		"./styles/components/consent-banner.js": "./dist/styles/components/prompt.js",
+		"./styles/components/consent-banner.node.js": "./dist/styles/components/prompt.node.js",
+		"./styles/components/consent-banner.d.ts": "./dist/styles/components/prompt.d.ts",
+		"./styles/components/consent-dialog.js": "./dist/styles/components/panel.js",
+		"./styles/components/consent-dialog.node.js": "./dist/styles/components/panel.node.js",
+		"./styles/components/consent-dialog.d.ts": "./dist/styles/components/panel.d.ts",
+		"./styles/components/consent-dialog-trigger.js": "./dist/styles/components/panel-trigger.js",
+		"./styles/components/consent-dialog-trigger.node.js": "./dist/styles/components/panel-trigger.node.js",
+		"./styles/components/consent-dialog-trigger.d.ts": "./dist/styles/components/panel-trigger.d.ts",
+		"./styles/components/consent-manager.js": "./dist/styles/components/manager.js",
+		"./styles/components/consent-manager.node.js": "./dist/styles/components/manager.node.js",
+		"./styles/components/consent-manager.d.ts": "./dist/styles/components/manager.d.ts",
+		"./styles/components/iab-consent-banner.js": "./dist/styles/components/iab-prompt.js",
+		"./styles/components/iab-consent-banner.node.js": "./dist/styles/components/iab-prompt.node.js",
+		"./styles/components/iab-consent-banner.d.ts": "./dist/styles/components/iab-prompt.d.ts",
+		"./styles/components/iab-consent-dialog.js": "./dist/styles/components/iab-panel.js",
+		"./styles/components/iab-consent-dialog.node.js": "./dist/styles/components/iab-panel.node.js",
+		"./styles/components/iab-consent-dialog.d.ts": "./dist/styles/components/iab-panel.d.ts",
+		"./styles/components/frame": {
+			"types": "./dist/styles/components/consent-gate.d.ts",
+			"style": "./dist/styles/components/consent-gate.css",
+			"node": "./dist/styles/components/consent-gate.node.js",
+			"import": "./dist/styles/components/consent-gate.js",
+			"default": "./dist/styles/components/consent-gate.js"
+		},
+		"./styles/components/frame.module.css": {
+			"types": "./dist/styles/components/consent-gate.d.ts",
+			"style": "./dist/styles/components/consent-gate.css",
+			"node": "./dist/styles/components/consent-gate.node.js",
+			"import": "./dist/styles/components/consent-gate.js",
+			"default": "./dist/styles/components/consent-gate.js"
+		},
+		"./styles/components/frame.css": "./dist/styles/components/consent-gate.css",
+		"./styles/components/frame.js": "./dist/styles/components/consent-gate.js",
+		"./styles/components/frame.node.js": "./dist/styles/components/consent-gate.node.js",
+		"./styles/components/frame.d.ts": "./dist/styles/components/consent-gate.d.ts",
+		"./styles/components/animations/iab-consent-banner.css": "./dist/styles/components/animations/iab-prompt.css"
+	},
+	"publishConfig": {
+		"access": "public"
+	},
 	"scripts": {
-		"build": "rslib build && bun ../../scripts/normalize-dist-types.mjs && bun scripts/generate-css-entrypoints.ts",
-		"dev": "sh -c 'rslib build --no-dts --no-clean && bun scripts/generate-css-entrypoints.ts && rslib build --watch --no-dts --no-clean'",
-		"fmt": "bun biome format --write .",
-		"lint": "bun biome lint ./src",
+		"build": "rslib build && bun ../../scripts/normalize-dist-types.mjs && tcm src/styles/components -p \"*.module.css\" -o types/styles/components --camelCase && bun scripts/generate-style-artifacts.ts && bun scripts/generate-css-entrypoints.ts",
+		"check-types": "tsc --noEmit && tsc -p tsconfig.type-tests.json",
+		"dev": "sh -c 'rslib build --no-dts --no-clean && tcm src/styles/components -p \"*.module.css\" -o types/styles/components --camelCase && bun scripts/generate-style-artifacts.ts && bun scripts/generate-css-entrypoints.ts && rslib build --watch --no-dts --no-clean'",
+		"fmt": "bun oxfmt .",
+		"lint": "bun oxlint ./src",
 		"test": "vitest run"
 	},
 	"dependencies": {
-		"@c15t/translations": "workspace:*",
-		"c15t": "workspace:*"
+		"@c15t/core": "workspace:*",
+		"@c15t/translations": "workspace:*"
 	},
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",
 		"@c15t/vitest-config": "workspace:*",
 		"@rslib/core": "0.23.2",
-		"typescript": "7.0.1-rc",
+		"postcss": "8.5.10",
+		"typed-css-modules": "0.9.1",
+		"typescript": "7.0.2",
 		"vitest": "4.1.10"
-	},
-	"publishConfig": {
-		"access": "public"
 	}
 }

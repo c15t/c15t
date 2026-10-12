@@ -1,0 +1,181 @@
+{
+	"budgetDefinitions": [
+		{
+			"comparator": "delta-bytes-lte",
+			"description": "Consumer entry initial JavaScript may grow by at most 2 KiB gzip, plus the vendor consent allowance and, for entries with a stock surface, its styles.",
+			"metric": "initialGzip",
+			"threshold": 5632
+		},
+		{
+			"comparator": "delta-bytes-lte",
+			"description": "Deferred emitted JavaScript may grow by at most 12 KiB gzip, plus the ordinary or IAB styles emitted by this entry.",
+			"metric": "lazyGzip",
+			"threshold": 12288
+		},
+		{
+			"comparator": "delta-bytes-lte",
+			"description": "Initial plus reachable deferred JavaScript may grow by at most 3 KiB gzip, plus the ordinary or IAB style allowance for this entry.",
+			"metric": "gzipSize",
+			"threshold": 3072
+		}
+	],
+	"budgets": [],
+	"commitSha": "b410db25f81caade4fb15cb8ba2dfef52b7b1835",
+	"environment": {
+		"arch": "arm64",
+		"ci": false,
+		"nodeVersion": "v24.21.0",
+		"os": "darwin"
+	},
+	"fixture": {
+		"consentCount": 0,
+		"localeCount": 0,
+		"name": "kernel-hosted",
+		"scriptCount": 0,
+		"themeComplexity": "minimal"
+	},
+	"framework": "core",
+	"metadata": {
+		"allLocalesInputs": [],
+		"devtoolsInputs": [],
+		"gitDirty": false,
+		"iabInputs": [],
+		"topInputsByBytesInOutput": [
+			"../../packages/core/dist/kernel/choice.js:8794",
+			"../../packages/core/dist/kernel/save-outbox/queue.js:7148",
+			"../../packages/schema/dist/shared/policy-resolution-wire.js:6415",
+			"../../packages/core/dist/kernel/init-lifecycle.js:6008",
+			"../../packages/translations/dist/4649.js:5281",
+			"../../packages/core/dist/kernel/patch.js:4594",
+			"../../packages/core/dist/kernel/snapshot.js:4486",
+			"../../packages/core/dist/libs/vendors.js:4202",
+			"../../packages/core/dist/consent-record/evaluate.js:3791",
+			"../../packages/core/dist/libs/policy-actions.js:3507"
+		]
+	},
+	"metrics": [
+		{
+			"avg": 30900,
+			"median": 30900,
+			"name": "initialGzip",
+			"p95": 30900,
+			"samples": [30900],
+			"unit": "bytes"
+		},
+		{
+			"avg": 27457,
+			"median": 27457,
+			"name": "initialBrotli",
+			"p95": 27457,
+			"samples": [27457],
+			"unit": "bytes"
+		},
+		{
+			"avg": 5224,
+			"median": 5224,
+			"name": "lazyGzip",
+			"p95": 5224,
+			"samples": [5224],
+			"unit": "bytes"
+		},
+		{
+			"avg": 4679,
+			"median": 4679,
+			"name": "lazyBrotli",
+			"p95": 4679,
+			"samples": [4679],
+			"unit": "bytes"
+		},
+		{
+			"avg": 4025,
+			"median": 4025,
+			"name": "reachableLazyGzip",
+			"p95": 4025,
+			"samples": [4025],
+			"unit": "bytes"
+		},
+		{
+			"avg": 3642,
+			"median": 3642,
+			"name": "reachableLazyBrotli",
+			"p95": 3642,
+			"samples": [3642],
+			"unit": "bytes"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "allLocalesInputModuleCount",
+			"p95": 0,
+			"samples": [0],
+			"unit": "count"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "devtoolsInputModuleCount",
+			"p95": 0,
+			"samples": [0],
+			"unit": "count"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "iabInputModuleCount",
+			"p95": 0,
+			"samples": [0],
+			"unit": "count"
+		},
+		{
+			"avg": 34925,
+			"median": 34925,
+			"name": "gzipSize",
+			"p95": 34925,
+			"samples": [34925],
+			"unit": "bytes"
+		},
+		{
+			"avg": 101665,
+			"median": 101665,
+			"name": "rawSize",
+			"p95": 101665,
+			"samples": [101665],
+			"unit": "bytes"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "iabInputBytes",
+			"p95": 0,
+			"samples": [0],
+			"unit": "bytes"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "devtoolsInputBytes",
+			"p95": 0,
+			"samples": [0],
+			"unit": "bytes"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "allLocalesInputBytes",
+			"p95": 0,
+			"samples": [0],
+			"unit": "bytes"
+		}
+	],
+	"notes": [
+		"Synthetic esbuild entry with React externals and empty CSS loaders.",
+		"lazy* counts every deferred chunk esbuild emits; reachableLazy* counts only the chunks the entry can load through import().",
+		"gzipSize and rawSize count only JavaScript chunks reachable from the entry."
+	],
+	"package": "@c15t/next-bundle-bench",
+	"runtime": "esbuild",
+	"scenario": "kernel-hosted",
+	"schemaVersion": 1,
+	"suite": "bundle",
+	"timestamp": "2026-10-09T18:48:12.780Z"
+}

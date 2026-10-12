@@ -8,7 +8,7 @@
 		"tsconfig.json"
 	],
 	"project": "**/*.{js,ts,jsx,tsx}",
-	"ignoreBinaries": ["biome", "knip"],
+	"ignoreBinaries": ["oxfmt", "oxlint", "knip"],
 	"ignore": ["**/*.spec.{js,ts}", "**/*.test.{js,ts}"],
 	"rules": {
 		"exports": "warn",

@@ -1,0 +1,43 @@
+{
+	"title": "@c15t/browser: Cookie Banner for Any Website, with One Script Tag",
+	"description": "Cookie banner, preference center, and consent-gated scripts for sites without a build step: Webflow, WordPress, Framer, Squarespace, and plain HTML. Paste one script tag. Bundled apps can import the same runtime as an ES module.",
+	"features": [
+		"One script tag from a CDN, configured with data attributes or calls queued on `window.c15t`",
+		"Prebuilt banner and preference dialog in a shadow root, so your site's CSS does not change them",
+		"Vendor scripts wait as `<script type=\"text/plain\" data-c15t-category>` until consent. Iframes wait with `data-src` and `data-category`",
+		"Buttons with `data-c15t-action` and links to `#c15t-preferences` work without code",
+		"A headless build with the same runtime and `window.c15t` API, for your own banner",
+		"DevTools (`c15t.devtools.js`) and IAB GPP (`c15t.gpp.js`) load as a second tag. For IAB TCF 2.4, load `c15t.iab.js` instead of `c15t.js`",
+		"ES module entry points for bundled apps, which can use the @c15t/integrations vendor loaders"
+	],
+	"prerequisites": [
+		"A page where you can add a `<script>` tag",
+		"An [Inth project](https://inth.com) (free sign-up), a [self-hosted backend](https://c15t.com/docs/self-host/quickstart), or offline mode for local development"
+	],
+	"manualInstallation": [
+		"",
+		"Paste before `</head>`, with the backend URL from your Inth project:",
+		"",
+		"```html\n<script\n  src=\"https://cdn.jsdelivr.net/npm/@c15t/browser/dist/c15t.js\"\n  data-backend-url=\"YOUR_INTH_BACKEND_URL\"\n  defer\n></script>\n```",
+		"",
+		"A URL without a version loads the newest release, so pin an exact version, such as `@c15t/browser@3.0.0`, in production. The default `c15t.js` requires a backend URL. Load `dist/c15t.offline.js` for offline mode or `dist/c15t.headless.js` for the runtime without any UI.",
+		"",
+		"For bundled apps:",
+		"",
+		"```bash\nnpm install @c15t/browser\n```"
+	],
+	"usage": [
+		"Add the tag and reload. The banner appears when the visitor's policy asks for one",
+		"Change vendor tags to `type=\"text/plain\"` with `data-c15t-category=\"measurement\"` so they wait for consent",
+		"Link to `#c15t-preferences` so visitors can reopen the preference dialog",
+		"For every attribute and method, see the [HTML docs](https://c15t.com/docs/frameworks/html/attributes-and-api)",
+		"```js\nwindow.c15t = window.c15t || [];\nc15t.push(['on', 'consent', () => {\n  if (c15t.has('measurement')) {\n    startAnalytics();\n  }\n}]);\n```"
+	],
+	"docsLink": "https://c15t.com/docs/frameworks/html/quickstart",
+	"quickStartLink": "https://c15t.com/docs/frameworks/html/quickstart",
+	"showCLIGeneration": false,
+	"customSections": {
+		"Which Script to Load": "| File | Use it for |\n| --- | --- |\n| `c15t.js` | Inth or a self-hosted backend. Set `data-backend-url`. A self-hosted backend also serves a preconfigured script at `/c15t.js` |\n| `c15t.offline.js` | Offline mode: choices stay in the browser, with local policy rules |\n| `c15t.headless.js` | The runtime without UI, for your own banner. Can inline or fetch the backend's cacheable `/manifest` |\n| `c15t.iab.js` | IAB TCF 2.4. Configure `iab` with your registered CMP ID and vendor list. See the [IAB example](https://c15t.com/docs/frameworks/html/iab) |\n| `c15t.devtools.js` | A DevTools panel, with a Location tab to try policies by region |\n| `c15t.gpp.js` | IAB GPP (`__gpp`) for US state opt-outs. Also available as `mountGPP` from `@c15t/browser/gpp` |"
+	},
+	"showHosting": true
+}

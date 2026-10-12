@@ -1,0 +1,29 @@
+{/* Generated from internals/doc-snippets/html/tailwind-classes.html (docs:tailwind-classes) by scripts/sync-example-docs.ts. Edit the source file. */}
+
+```html title="index.html"
+<link
+	rel="stylesheet"
+	href="/tailwind.css"
+/>
+<script>
+	window.c15t = window.c15t || [];
+	c15t.push([
+		'config',
+		{
+			ui: {
+				// The banner renders in a shadow root, where the page's
+				// stylesheets do not reach. Link your Tailwind build into it
+				// too, and keep the page's own link: Tailwind 4 registers
+				// variables with @property, which only works in the page.
+				stylesheetURLs: ['/tailwind.css'],
+				theme: {
+					slots: {
+						consentBannerCard: 'rounded-none border-4 border-sky-600',
+						consentBannerTitle: 'uppercase tracking-wide',
+					},
+				},
+			},
+		},
+	]);
+</script>
+```

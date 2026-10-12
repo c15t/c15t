@@ -34,20 +34,16 @@ build
 dist
 !internals/bundle-analysis-action/dist
 packages/core/docs
-packages/core/AGENTS.md
 packages/react/docs
-packages/react/AGENTS.md
 packages/nextjs/docs
-packages/nextjs/AGENTS.md
 packages/backend/docs
-packages/backend/AGENTS.md
-packages/scripts/docs
-packages/scripts/AGENTS.md
-packages/cli/docs
-packages/cli/AGENTS.md
+packages/browser/docs
 .merge_file_*
 dist-types
 apps/bundle-bench-react/.bundle-bench-dist/
+.svelte-kit/
+internals/fixtures/astro-demo/.astro/
+packages/astro/test/fixtures/**/.astro/
 
 
 # Debug
@@ -69,7 +65,10 @@ docs/public/r/*
 coverage.json
 
 .pnpm-store
-version.ts
+# `genversion` output. These paths only: the hand-written
+# packages/react-native/src/protocol/version.ts was being swallowed by this.
+**/src/version.ts
+**/src/lib/version.ts
 i18n.cache
 
 .test-apps/
@@ -83,8 +82,51 @@ i18n.cache
 storybook-static/
 debug-storybook.log
 
+# Nuxt module playground
+packages/vue/.nuxt
+packages/vue/playground/.nuxt
+packages/vue/playground/.output
+/inrepo_modules/
+/.inrepo/
+
+# Catch env files the explicit list above misses (.env.production,
+# .env.staging, …) while keeping the committed templates.
+.env*
+!.env.example
+!.env.*.example
+# Each example's `.env` holds only the public demo backend URL, so the
+# example runs as checked out. `.env.local` and real environment variables
+# override it. Never add secrets to these files.
+!/examples/astro/.env
+!/examples/astro-static/.env
+!/examples/javascript/.env
+!/examples/nextjs/.env
+!/examples/nextjs-pages-router/.env
+!/examples/nuxt/.env
+!/examples/nuxt-static/.env
+!/examples/react/.env
+!/examples/showcase-nuxt-theme/.env
+!/examples/svelte/.env
+!/examples/sveltekit/.env
+!/examples/tanstack-start/.env
+!/examples/vue/.env
+
 # Agent worktrees
 .claude/worktrees/
 
 # Live vendor monitor output
 live-vendors-report.json
+
+# Vendored Effect source (effect-ts skill prerequisite)
+.repos/effect
+
+# Generated package documentation and agent indexes
+packages/*/docs/
+packages/*/AGENTS.md
+packages/*/SKILL.md
+
+# CI selection and same-run build handoff
+/ci-plan.json
+/ci-build.tar
+/ci-build-cache.tar
+/.ci-reports/

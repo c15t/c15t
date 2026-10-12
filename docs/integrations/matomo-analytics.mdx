@@ -1,164 +1,90 @@
 ---
 title: Matomo Analytics
-description: Load Matomo with c15t and keep Matomo's queue aligned with measurement consent.
-group: integrations
+description: Load Matomo after measurement consent with the c15t matomoAnalytics helper, or use Matomo's own consent mode, and check each mode in DevTools.
+seoTitle: Matomo cookie consent with c15t
+seoDescription: Load Matomo only after measurement consent, or load it on every page and use the Matomo consent API. Set it up with the c15t matomoAnalytics helper.
 icon: matomo
+group: integrations
 ---
 
-Matomo gives you privacy-focused web analytics with self-hosted and cloud deployment options. The `matomoAnalytics()` helper sets up Matomo's `_paq` queue, points it at your tracker, and can queue consent-aware commands before the vendor bundle loads.
+By default, the c15t `matomoAnalytics` helper keeps Matomo off the page until
+`measurement` has consent. In this mode, the helper sends no consent signal to
+Matomo. With `defaultConsent`, the helper loads `matomo.js` on every page,
+before the visitor chooses. The helper then uses the Matomo consent API. It
+calls `requireConsent` while `measurement` has no consent, `setConsentGiven`
+while it has consent, and `forgetConsentGiven` after the visitor withdraws
+consent.
 
-## Integrate with c15t
+## Configure Matomo Analytics
 
-<Tabs items={['React', 'Next.js', 'JavaScript']}>
-  <Tab value="React">
-    ```tsx
-    import { type ReactNode } from 'react';
-    import { ConsentManagerProvider } from '@c15t/react';
-    import { matomoAnalytics } from '@c15t/scripts/matomo-analytics';
+Copy the site ID and your Matomo URL from the Matomo tracking code. For Matomo
+Cloud, pass `cloudId`, for example `'your-site.matomo.cloud'`, instead of
+`matomoUrl`.
 
-    const scripts = [
-      matomoAnalytics({
-        matomoUrl: 'https://analytics.example.com',
-        siteId: 1,
-      }),
-    ];
+<CommandTabs command="@c15t/integrations" mode="install" />
 
-    export function ConsentProvider({ children }: { children: ReactNode }) {
-      return (
-        <ConsentManagerProvider
-          options={{
-            mode: 'hosted',
-            backendURL: 'https://your-instance.c15t.dev',
-            scripts,
-          }}
-        >
-          {children}
-        </ConsentManagerProvider>
-      );
-    }
-    ```
-  </Tab>
+```ts title="src/consent-scripts.ts"
+import { matomoAnalytics } from '@c15t/integrations/matomo-analytics';
 
-  <Tab value="Next.js">
-    ```tsx
-    'use client';
-
-    import { type ReactNode } from 'react';
-    import { ConsentManagerProvider } from '@c15t/nextjs';
-    import { matomoAnalytics } from '@c15t/scripts/matomo-analytics';
-
-    const scripts = [
-      matomoAnalytics({
-        matomoUrl: 'https://analytics.example.com',
-        siteId: 1,
-      }),
-    ];
-
-    export function ConsentProvider({ children }: { children: ReactNode }) {
-      return (
-        <ConsentManagerProvider
-          options={{
-            mode: 'hosted',
-            backendURL: '/api/c15t',
-            scripts,
-          }}
-        >
-          {children}
-        </ConsentManagerProvider>
-      );
-    }
-    ```
-  </Tab>
-
-  <Tab value="JavaScript">
-    ```ts
-    import { getOrCreateConsentRuntime } from 'c15t';
-    import { matomoAnalytics } from '@c15t/scripts/matomo-analytics';
-
-    getOrCreateConsentRuntime({
-      mode: 'hosted',
-      backendURL: 'https://your-instance.c15t.dev',
-      scripts: [
-        matomoAnalytics({
-          matomoUrl: 'https://analytics.example.com',
-          siteId: 1,
-        }),
-      ],
-    });
-    ```
-  </Tab>
-</Tabs>
-
-## How c15t loads it
-
-- **Category:** `measurement` (Analytics)
-- **Loads when:** measurement consent is granted by default
-- **Consent mode option:** with `defaultConsent`, the helper switches to `alwaysLoad: true` and uses Matomo queue commands to grant/forget consent without unloading the SDK.
-
-## Configure the integration
-
-If you want Matomo to manage consent internally, set `defaultConsent` to one
-of these values:
-
-- `'required'` queues Matomo's `requireConsent` command so no tracking runs
-  until consent is granted.
-- `'given'` queues Matomo's `setConsentGiven` command so tracking starts as
-  granted by default.
-
-When `defaultConsent` is omitted, c15t uses the standard script-loader flow:
-Matomo only loads after `measurement` consent is granted.
-
-```ts
-import { matomoAnalytics } from '@c15t/scripts/matomo-analytics';
-
-matomoAnalytics({
-  matomoUrl: 'https://analytics.example.com',
-  siteId: 1,
-  defaultConsent: 'required',
-});
+export const scripts = [
+	matomoAnalytics({ matomoUrl: 'https://analytics.example.com', siteId: 1 }),
+];
 ```
 
-## Tracking events in your app
+<include src="../shared/integrations/register-scripts.mdx" />
 
-Matomo's runtime API is queue-based (`window._paq`). When the script is not loaded yet, pushing to `_paq` is still safe as long as the queue exists. The helper creates `_paq` during setup.
+## Options
 
-From React:
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `matomoUrl` | None | Self-hosted Matomo base URL. The helper loads `<matomoUrl>/matomo.js` and sends hits to `<matomoUrl>/matomo.php`. |
+| `cloudId` | None | Matomo Cloud ID, used when `matomoUrl` is not set. A value ending in `.matomo.cloud` becomes `https://<cloudId>`. Any other value becomes `https://cdn.matomo.cloud/<cloudId>`. |
+| `trackerUrl` | `matomo.php` on the Matomo origin | Tracker endpoint override. |
+| `scriptUrl` | `matomo.js` on the Matomo origin | Loader URL override. Without `matomoUrl` or `cloudId`, set both `trackerUrl` and `scriptUrl`, or the helper logs an error and the script does not load. |
+| `siteId` | `1` | Site ID queued with `setSiteId`. |
+| `trackPageView` | `true` | Queues `trackPageView`. The table below shows when. |
+| `enableLinkTracking` | `false` | Queues `enableLinkTracking`. |
+| `disableCookies` | `false` | Queues `disableCookies`. It does not change when Matomo loads. |
+| `defaultConsent` | None | `'required'` or `'given'` switches to Matomo consent mode. |
 
-```tsx
-import { useCallback } from 'react';
-import { useConsentManager } from '@c15t/react';
+## Loading and revocation
 
-function SignupExample() {
-  const { has } = useConsentManager();
+`matomoAnalytics` uses the `measurement` category. `defaultConsent` picks the
+mode:
 
-  const trackSignup = useCallback(() => {
-    if (has('measurement')) {
-      window._paq?.push(['trackEvent', 'signup', 'completed']);
-    }
-  }, [has]);
+| `defaultConsent` | Loads | When measurement is allowed | On revocation |
+| --- | --- | --- | --- |
+| Omitted | After measurement is allowed, with `trackPageView` queued | Loads `matomo.js` | Removes the script element and calls no Matomo API |
+| `'required'` | On every page, with `requireConsent` queued | Queues `setConsentGiven` and `trackPageView` | Keeps the script and queues `forgetConsentGiven` |
+| `'given'` | On every page. With measurement allowed as it loads, `setConsentGiven` and `trackPageView` are queued; otherwise `requireConsent` | Queues `setConsentGiven` and `trackPageView` | Keeps the script and queues `forgetConsentGiven` |
 
-  return <button onClick={trackSignup}>Sign up</button>;
-}
-```
+In both consent modes Matomo holds tracking until `setConsentGiven`, and the
+helper only queues that call for a visitor who has measurement consent. The
+two modes differ for a visitor who already allowed measurement when the page
+loads: `'given'` skips the up-front `requireConsent`. The helper queues
+another `trackPageView` only when measurement changes from denied to allowed,
+so a change to another category, such as allowing marketing, sends no extra
+page view. Matomo separates
+[tracking consent from cookie consent](https://developer.matomo.org/guides/tracking-consent).
 
-From plain JavaScript:
+## Verify Matomo Analytics
 
-```ts
-import { getOrCreateConsentRuntime } from 'c15t';
+Without `defaultConsent`, allowing measurement loads `matomo.js`, and a
+`matomo.php` request carries the page view.
 
-const { consentStore } = getOrCreateConsentRuntime();
+<include src="../shared/integrations/vendor-revocation-and-verify.mdx" />
 
-if (consentStore.getState().has('measurement')) {
-  window._paq?.push(['trackEvent', 'signup', 'completed']);
-}
-```
+With `defaultConsent: 'required'`, Matomo loads before the choice, so test it
+separately in a private window with an opt-in policy:
 
-## Types
+1. Load the page. `matomo.js` loads, and no `matomo.php` request follows.
+2. Open Privacy settings and allow measurement. Without a reload, a
+   `matomo.php` request carries the page view.
+3. Turn measurement off and save. c15t reloads the page, and the new page
+   loads `matomo.js` without a `matomo.php` request.
 
-### MatomoAnalyticsOptions
-
-<AutoTypeTable path="./packages/scripts/src/vendors/analytics/matomo-analytics.ts" name="MatomoAnalyticsOptions" />
-
-### Script
-
-<AutoTypeTable path="./packages/core/src/libs/script-loader/types.ts" name="Script" />
+`'given'` behaves the same in this test. Under an opt-out policy, or after the
+visitor has allowed measurement, both modes send a `matomo.php` page view as
+the page loads. See the
+[consent verification guide](/docs/guides/verify-consent) for navigation and
+hosting checks.

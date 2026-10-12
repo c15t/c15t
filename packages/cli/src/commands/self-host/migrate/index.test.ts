@@ -1,85 +1,197 @@
+/**
+ * The migrate command's control flow.
+ *
+ * The database work itself is tested against real Postgres, MySQL and SQLite
+ * in `@c15t/backend`. What matters here is the decision-making around it,
+ * because this is the one command that writes to a production database:
+ *
+ * - a blocked plan stops, and nothing is applied;
+ * - an up-to-date database says so instead of prompting;
+ * - declining the confirmation applies nothing;
+ * - the pool is released whichever way the command exits.
+ */
+
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@c15t/backend/db/migrator', () => ({
-	migrator: vi.fn(async () => ({ execute: vi.fn(), getSQL: vi.fn() })),
-}));
-vi.mock('./ensure-backend-config', () => ({
-	ensureBackendConfig: vi.fn(async () => ({
-		path: '/abs/c15t-backend.config.ts',
-		dependencies: [],
-	})),
-}));
-vi.mock('./read-config', () => ({
-	readConfigAndGetDb: vi.fn(async () => ({ db: {}, adapter: 'kysely' })),
-}));
-vi.mock('./migrator-result', () => ({
-	handleMigrationResult: vi.fn(async (..._args: unknown[]) => undefined),
-}));
-vi.mock('./orm-result', () => ({
-	handleORMResult: vi.fn(async (..._args: unknown[]) => undefined),
-}));
-
-import { migrator } from '@c15t/backend/db/migrator';
-import { ensureBackendConfig } from './ensure-backend-config';
 import { migrate } from './index';
-import { handleMigrationResult } from './migrator-result';
-import { handleORMResult } from './orm-result';
-import { readConfigAndGetDb } from './read-config';
 
-function createMockContext() {
+const plan = vi.fn();
+const apply = vi.fn();
+const dispose = vi.fn(() => Promise.resolve());
+const confirmApply = vi.fn();
+
+const dependencies = {
+	confirmApply,
+	createMigrator: vi.fn(() => ({ apply, dispose, plan })),
+	describePlan: vi.fn(),
+	ensureBackendConfig: vi.fn(() =>
+		Promise.resolve({
+			dependencies: [],
+			path: '/abs/c15t-backend.config.ts',
+		})
+	),
+	installDependencies: vi.fn(() => Promise.resolve()),
+	isUpToDate: (report: { adoption: unknown[]; pending: unknown[] }) =>
+		report.adoption.length === 0 && report.pending.length === 0,
+	readDatabaseConfig: vi.fn(() =>
+		Promise.resolve({
+			dialect: 'postgres',
+			url: 'postgres://localhost/c15t',
+		})
+	),
+};
+
+const DATABASE_CLASSIFICATION_KEY = 'shape';
+const assignInOrder = Object.assign;
+
+const report = (over: Record<string, unknown> = {}) =>
+	assignInOrder(
+		{},
+		{ [DATABASE_CLASSIFICATION_KEY]: { _tag: 'Empty' } },
+		{ adoption: ['Create "subject"'] },
+		{ pending: ['2-hot-path-indexes'] },
+		{ retained: [] },
+		{ blocked: undefined },
+		{ applied: false },
+		{ drift: [] },
+		over
+	);
+
+const createMockContext = function createMockContext() {
 	return {
 		cwd: '/tmp/project',
+		flags: {},
 		logger: {
-			info: vi.fn(),
+			debug: vi.fn(),
 			error: vi.fn(),
+			info: vi.fn(),
+			message: vi.fn(),
+			note: vi.fn(),
+			success: vi.fn(),
 		},
 		telemetry: { trackEvent: vi.fn() },
 	} as unknown as Parameters<typeof migrate>[0];
-}
+};
 
 describe('migrate command', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		confirmApply.mockResolvedValue(true);
+		plan.mockResolvedValue(report());
+		apply.mockResolvedValue(report({ applied: true }));
 	});
 
 	afterEach(() => {
 		vi.restoreAllMocks();
 	});
 
-	it('returns early when ensureBackendConfig yields null', async () => {
+	it('fails when there is no backend config', async () => {
 		(
-			ensureBackendConfig as unknown as ReturnType<typeof vi.fn>
+			dependencies.ensureBackendConfig as unknown as ReturnType<typeof vi.fn>
 		).mockResolvedValueOnce(null);
 		const context = createMockContext();
-		await migrate(context);
-		expect(context.logger.error).toHaveBeenCalledWith(
-			'No backend config found.'
+
+		await expect(migrate(context, dependencies)).rejects.toThrow();
+		expect(dependencies.readDatabaseConfig).not.toHaveBeenCalled();
+	});
+
+	it('plans before applying', async () => {
+		const context = createMockContext();
+		await migrate(context, dependencies);
+
+		expect(plan).toHaveBeenCalledTimes(1);
+		expect(apply).toHaveBeenCalledTimes(1);
+		// The dry run has to come first, or the operator is confirming a plan
+		// that already ran.
+		expect(plan.mock.invocationCallOrder[0] as number).toBeLessThan(
+			apply.mock.invocationCallOrder[0] as number
 		);
-		expect(readConfigAndGetDb).not.toHaveBeenCalled();
 	});
 
-	it('loads config, runs migrator, and handles MigrationResult path without path', async () => {
-		(migrator as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-			execute: vi.fn(),
-			getSQL: vi.fn(),
-		});
+	it('applies nothing when the plan is blocked', async () => {
+		plan.mockResolvedValue(
+			report({ blocked: 'Refusing to migrate an unrecognised database.' })
+		);
 		const context = createMockContext();
-		await migrate(context);
-		expect(ensureBackendConfig).toHaveBeenCalled();
-		expect(readConfigAndGetDb).toHaveBeenCalled();
-		expect(migrator).toHaveBeenCalled();
-		expect(handleMigrationResult).toHaveBeenCalled();
-		expect(handleORMResult).not.toHaveBeenCalled();
+
+		await expect(migrate(context, dependencies)).rejects.toThrow();
+
+		expect(apply).not.toHaveBeenCalled();
+		expect(context.logger.error).toHaveBeenCalledWith(
+			expect.stringContaining('unrecognised')
+		);
 	});
 
-	it('delegates to handleORMResult when migrator returns ORMResult with path', async () => {
-		(migrator as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-			path: 'migrations/001.sql',
-			code: 'CREATE TABLE test(id INT);',
-		});
+	it('does not prompt when the database is already up to date', async () => {
+		plan.mockResolvedValue(report({ adoption: [], pending: [] }));
 		const context = createMockContext();
-		await migrate(context);
-		expect(handleORMResult).toHaveBeenCalled();
-		expect(handleMigrationResult).not.toHaveBeenCalled();
+
+		await migrate(context, dependencies);
+
+		expect(confirmApply).not.toHaveBeenCalled();
+		expect(apply).not.toHaveBeenCalled();
+		expect(context.logger.success).toHaveBeenCalledWith(
+			expect.stringContaining('already up to date')
+		);
+	});
+
+	it('applies nothing when the operator declines', async () => {
+		confirmApply.mockResolvedValue(false);
+		const context = createMockContext();
+
+		await migrate(context, dependencies);
+
+		expect(apply).not.toHaveBeenCalled();
+	});
+
+	it('releases the pool even when planning throws', async () => {
+		plan.mockRejectedValue(new Error('connection refused'));
+		const context = createMockContext();
+
+		await expect(migrate(context, dependencies)).rejects.toThrow(
+			'connection refused'
+		);
+
+		// A CLI process holding a pool open does not exit.
+		expect(dispose).toHaveBeenCalledTimes(1);
+	});
+});
+
+describe('explicit migration modes', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		plan.mockResolvedValue(report());
+		apply.mockResolvedValue(report({ applied: true }));
+	});
+	it('returns a plan without applying or prompting', async () => {
+		const context = createMockContext();
+		context.flags = { 'non-interactive': true, plan: true };
+		expect(await migrate(context, dependencies)).toMatchObject({
+			status: 'planned',
+		});
+		expect(apply).not.toHaveBeenCalled();
+		expect(confirmApply).not.toHaveBeenCalled();
+		expect(dispose).toHaveBeenCalledOnce();
+	});
+	it('applies an explicitly requested plan without prompting', async () => {
+		const context = createMockContext();
+		context.flags = { apply: true, 'non-interactive': true };
+		expect(await migrate(context, dependencies)).toMatchObject({
+			status: 'applied',
+		});
+		expect(apply).toHaveBeenCalledOnce();
+		expect(confirmApply).not.toHaveBeenCalled();
+	});
+	it('requires an explicit operation without a terminal', async () => {
+		const context = createMockContext();
+		context.flags = { 'non-interactive': true };
+		await expect(migrate(context, dependencies)).rejects.toThrow();
+		expect(plan).not.toHaveBeenCalled();
+	});
+	it('rejects conflicting modes before connecting', async () => {
+		const context = createMockContext();
+		context.flags = { apply: true, plan: true };
+		await expect(migrate(context, dependencies)).rejects.toThrow();
+		expect(plan).not.toHaveBeenCalled();
 	});
 });

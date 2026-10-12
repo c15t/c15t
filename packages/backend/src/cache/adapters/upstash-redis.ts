@@ -8,7 +8,8 @@
  * @packageDocumentation
  */
 
-import { Redis } from '@upstash/redis';
+import type { Redis } from '@upstash/redis';
+
 import type { CacheAdapter } from '../types';
 import { GVL_TTL_MS } from '../types';
 
@@ -52,16 +53,48 @@ export interface UpstashRedisAdapterOptions {
  *
  * @public
  */
-export function createUpstashRedisAdapter(
+export const createUpstashRedisAdapter = function createUpstashRedisAdapter(
 	options: UpstashRedisAdapterOptions
 ): CacheAdapter {
-	const client = new Redis({
-		url: options.url,
-		token: options.token,
-	});
+	// Imported on first use rather than at module load. `@upstash/redis` is an
+	// optional peer, and `./cache` re-exports this module unconditionally — so a
+	// top-level import made `import '@c15t/backend/cache'` fail outright for
+	// every deployment that uses only the memory adapter and never installed it.
+	//
+	// The factory stays synchronous because the adapter's methods are already
+	// async; the client is a memoised promise the first call awaits.
+	let pending: Promise<Redis> | undefined;
+	const client = (): Promise<Redis> => {
+		pending ??= (async () => {
+			try {
+				const module = await import('@upstash/redis');
+				return new module.Redis({ token: options.token, url: options.url });
+			} catch {
+				throw new Error(
+					'createUpstashRedisAdapter requires the optional peer dependency ' +
+						'"@upstash/redis". Install it, or pass your own client to ' +
+						'createUpstashRedisAdapterFromClient.'
+				);
+			}
+		})();
+		return pending;
+	};
 
-	return createUpstashRedisAdapterFromClient(client);
-}
+	return {
+		async delete(key: string): Promise<void> {
+			await (await client()).del(key);
+		},
+		async get<T>(key: string): Promise<T | null> {
+			return (await (await client()).get<T>(key)) ?? null;
+		},
+		async has(key: string): Promise<boolean> {
+			return (await (await client()).exists(key)) > 0;
+		},
+		async set<T>(key: string, value: T, ttlMs = GVL_TTL_MS): Promise<void> {
+			await (await client()).set(key, value, { ex: Math.ceil(ttlMs / 1000) });
+		},
+	};
+};
 
 /**
  * Creates an Upstash Redis cache adapter from an existing client.
@@ -73,7 +106,7 @@ export function createUpstashRedisAdapter(
  *
  * @example
  * ```typescript
- * import { Redis } from '@upstash/redis';
+ * import type { Redis } from '@upstash/redis';
  * import { createUpstashRedisAdapterFromClient } from '@c15t/backend/cache';
  *
  * const redis = new Redis({
@@ -86,28 +119,27 @@ export function createUpstashRedisAdapter(
  *
  * @public
  */
-export function createUpstashRedisAdapterFromClient(
-	client: Redis
-): CacheAdapter {
-	return {
-		async get<T>(key: string): Promise<T | null> {
-			const result = await client.get<T>(key);
-			return result ?? null;
-		},
+export const createUpstashRedisAdapterFromClient =
+	function createUpstashRedisAdapterFromClient(client: Redis): CacheAdapter {
+		return {
+			async delete(key: string): Promise<void> {
+				await client.del(key);
+			},
 
-		async set<T>(key: string, value: T, ttlMs = GVL_TTL_MS): Promise<void> {
-			// Convert milliseconds to seconds for Redis EX
-			const ttlSeconds = Math.ceil(ttlMs / 1000);
-			await client.set(key, value, { ex: ttlSeconds });
-		},
+			async get<T>(key: string): Promise<T | null> {
+				const result = await client.get<T>(key);
+				return result ?? null;
+			},
 
-		async delete(key: string): Promise<void> {
-			await client.del(key);
-		},
+			async has(key: string): Promise<boolean> {
+				const exists = await client.exists(key);
+				return exists > 0;
+			},
 
-		async has(key: string): Promise<boolean> {
-			const exists = await client.exists(key);
-			return exists > 0;
-		},
+			async set<T>(key: string, value: T, ttlMs = GVL_TTL_MS): Promise<void> {
+				// Convert milliseconds to seconds for Redis EX
+				const ttlSeconds = Math.ceil(ttlMs / 1000);
+				await client.set(key, value, { ex: ttlSeconds });
+			},
+		};
 	};
-}

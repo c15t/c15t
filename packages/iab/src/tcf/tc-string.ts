@@ -6,10 +6,62 @@
  * @packageDocumentation
  */
 
-import type { GlobalVendorList } from 'c15t';
-import type { TCFConsentData } from './iab-tcf-types';
+import type { GlobalVendorList } from '@c15t/core';
+import type { PurposeRestrictionVector } from '@iabtechlabtcf/core';
+
+import type { PublisherRestriction, TCFConsentData } from './iab-tcf-types';
 import { getTCFCore } from './lazy-load';
-import { warnIfServiceSpecificDisabled } from './service-specific';
+import {
+	PublisherRestrictionError,
+	validatePublisherRestrictions,
+} from './publisher-restrictions';
+
+/**
+ * The vendor IDs a disclosed-vendors record encodes.
+ *
+ * Shared by the encoder and the CMP API, so `vendor.disclosedVendors` in
+ * TC data lists exactly the vendors in the TC string's disclosed vendors
+ * segment.
+ *
+ * @param vendorsDisclosed - Disclosed state keyed by vendor ID.
+ * @returns Positive integer vendor IDs marked `true`.
+ * @internal
+ */
+export const getDisclosedVendorIds = function getDisclosedVendorIds(
+	vendorsDisclosed: Record<string | number, boolean>
+): number[] {
+	return Object.entries(vendorsDisclosed)
+		.filter(
+			([vendorId, value]) =>
+				value && /^\d+$/u.test(vendorId) && Number(vendorId) > 0
+		)
+		.map(([vendorId]) => Number(vendorId));
+};
+
+let warnedServiceSpecific = false;
+
+/**
+ * Resolve the deprecated `isServiceSpecific` option.
+ *
+ * TCF requires IsServiceSpecific=1: a string with 0 is invalid, and
+ * group-specific scope is also encoded as 1. c15t therefore always encodes
+ * `true` and warns once when a caller still passes `false`.
+ *
+ * @param value - The configured option.
+ * @returns Always `true`.
+ * @internal
+ */
+export const resolveIsServiceSpecific = function resolveIsServiceSpecific(
+	value: boolean | undefined
+): true {
+	if (value === false && !warnedServiceSpecific) {
+		warnedServiceSpecific = true;
+		console.warn(
+			'[c15t] `isServiceSpecific: false` is deprecated and ignored. TCF requires IsServiceSpecific=1, so c15t always encodes TC strings as service-specific.'
+		);
+	}
+	return true;
+};
 
 /**
  * Configuration for TC String generation.
@@ -17,6 +69,8 @@ import { warnIfServiceSpecificDisabled } from './service-specific';
  * @public
  */
 export interface TCStringConfig {
+	/** Original confirmation time, captured before asynchronous codec loading. */
+	confirmedAt?: number;
 	/** CMP ID registered with IAB */
 	cmpId: number;
 
@@ -33,11 +87,10 @@ export interface TCStringConfig {
 	publisherCountryCode?: string;
 
 	/**
-	 * Whether the TC string is service-specific.
+	 * Ignored: c15t always encodes IsServiceSpecific=1.
 	 *
-	 * @deprecated TCF requires IsServiceSpecific=1 in every TC string, and
-	 * group-specific scope is also encoded as 1. The TC string always has
-	 * IsServiceSpecific=1; passing `false` logs a warning.
+	 * @deprecated TCF requires IsServiceSpecific=1, and group-specific scope
+	 * is also encoded as 1. Passing `false` logs a warning once.
 	 */
 	isServiceSpecific?: boolean;
 }
@@ -49,6 +102,10 @@ export interface TCStringConfig {
  * @param gvlData - The Global Vendor List
  * @param config - Configuration for the TC String
  * @returns The encoded TC String
+ * @throws {TypeError} When `config.confirmedAt` is not a past or current
+ * timestamp.
+ * @throws {PublisherRestrictionError} When a publisher restriction cannot
+ * be encoded for the vendor list. See {@link validatePublisherRestrictions}.
  *
  * @example
  * ```typescript
@@ -67,19 +124,42 @@ export interface TCStringConfig {
  *
  * @public
  */
-export async function generateTCString(
+// oxlint-disable-next-line complexity -- Preserve established branch order and control flow.
+export const generateTCString = async function generateTCString(
 	consentData: TCFConsentData,
 	gvlData: GlobalVendorList,
 	config: TCStringConfig
 ): Promise<string> {
-	const { TCModel, TCString, GVL } = await getTCFCore();
+	const now = Date.now();
+	const confirmedAt =
+		config.confirmedAt === undefined ? now : config.confirmedAt;
+	if (
+		!Number.isSafeInteger(confirmedAt) ||
+		confirmedAt < 0 ||
+		confirmedAt > now
+	) {
+		throw new TypeError(
+			'TC confirmation time must be a valid past or current timestamp.'
+		);
+	}
+	const isServiceSpecific = resolveIsServiceSpecific(config.isServiceSpecific);
+	const publisherRestrictions = validatePublisherRestrictions(
+		consentData.publisherRestrictions,
+		{ gvl: gvlData }
+	);
+	const { TCModel, TCString, GVL, PurposeRestriction } = await getTCFCore();
 
 	// Create GVL instance
-	// biome-ignore lint/suspicious/noExplicitAny: GVL library types don't match our domain types
+	// oxlint-disable-next-line typescript/no-explicit-any -- GVL library types don't match our domain types
 	const gvl = new GVL(gvlData as any);
 
 	// Create TC Model
 	const tcModel = new TCModel(gvl);
+	const confirmedDay = new Date(
+		Math.floor(confirmedAt / 86_400_000) * 86_400_000
+	);
+	tcModel.created = confirmedDay;
+	tcModel.lastUpdated = confirmedDay;
 
 	// Set CMP metadata
 	tcModel.cmpId = config.cmpId;
@@ -90,9 +170,7 @@ export async function generateTCString(
 	tcModel.consentScreen = config.consentScreen ?? 1;
 	tcModel.consentLanguage = config.consentLanguage ?? 'EN';
 	tcModel.publisherCountryCode = config.publisherCountryCode ?? 'US';
-	// TCF requires IsServiceSpecific=1. The option is kept for compatibility.
-	warnIfServiceSpecificDisabled(config.isServiceSpecific);
-	tcModel.isServiceSpecific = true;
+	tcModel.isServiceSpecific = isServiceSpecific;
 
 	// Set purpose consents
 	for (const [purposeId, value] of Object.entries(
@@ -139,19 +217,66 @@ export async function generateTCString(
 		}
 	}
 
-	// Set vendors disclosed (required by TCF)
+	// Set vendors disclosed (required since TCF 2.3)
 	// This indicates which vendors were shown to the user in the CMP UI
-	for (const [vendorId, value] of Object.entries(
-		consentData.vendorsDisclosed
-	)) {
-		if (value) {
-			tcModel.vendorsDisclosed.set(Number(vendorId));
+	for (const vendorId of getDisclosedVendorIds(consentData.vendorsDisclosed)) {
+		tcModel.vendorsDisclosed.set(vendorId);
+	}
+
+	// The encoder drops restrictions its vendor list does not allow. Those
+	// were rejected above; confirm none was dropped anyway.
+	for (const {
+		purposeId,
+		restrictionType,
+		vendorIds,
+	} of publisherRestrictions) {
+		const restriction = new PurposeRestriction(purposeId, restrictionType);
+		for (const vendorId of vendorIds) {
+			tcModel.publisherRestrictions.add(vendorId, restriction);
+			if (
+				tcModel.publisherRestrictions.getRestrictionType(
+					vendorId,
+					purposeId
+				) !== restrictionType
+			) {
+				throw new PublisherRestrictionError(
+					`The TC string encoder rejected restriction type ${restrictionType} for vendor ${vendorId} and purpose ${purposeId}.`
+				);
+			}
 		}
 	}
 
 	// Encode and return
 	return TCString.encode(tcModel);
-}
+};
+
+/**
+ * Reads restrictions from a decoded purpose restriction vector.
+ */
+const readPublisherRestrictions = function readPublisherRestrictions(
+	vector: PurposeRestrictionVector,
+	isServiceSpecific: boolean,
+	policyVersion: number
+): PublisherRestriction[] {
+	const restrictions = vector.getRestrictions();
+	// The spec allows publisher restrictions only in service-specific
+	// strings. c15t never writes another scope, but a stored string may
+	// come from elsewhere.
+	if (restrictions.length > 0 && !isServiceSpecific) {
+		throw new PublisherRestrictionError(
+			'Publisher restrictions are only allowed in service-specific TC strings.'
+		);
+	}
+	return validatePublisherRestrictions(
+		restrictions.map((restriction) => ({
+			purposeId: restriction.purposeId,
+			restrictionType: restriction.restrictionType,
+			vendorIds: vector.getVendors(restriction),
+		})),
+		// Judge the string by the policy it was written under.
+		{ policyVersion }
+	);
+};
 
 /**
  * Decoded TC String data.
@@ -186,7 +311,7 @@ export interface DecodedTCString {
 	/** Special feature opt-ins */
 	specialFeatureOptIns: Record<number, boolean>;
 
-	/** Vendors that were disclosed to the user in the CMP UI */
+	/** Vendors that were disclosed to the user in the CMP UI (TCF 2.3+) */
 	vendorsDisclosed: Record<number, boolean>;
 
 	/** Created date */
@@ -200,6 +325,12 @@ export interface DecodedTCString {
 
 	/** Policy version */
 	policyVersion: number;
+
+	/**
+	 * Publisher restrictions, ordered by purpose then type. Vendor ranges are
+	 * expanded; a range may include IDs missing from the vendor list.
+	 */
+	publisherRestrictions: PublisherRestriction[];
 }
 
 /**
@@ -207,6 +338,14 @@ export interface DecodedTCString {
  *
  * @param tcString - The TC String to decode
  * @returns The decoded consent data
+ * @throws {Error} When the string is not a valid TC string, including a
+ * restriction with the reserved type `3`, purpose ID `0` or a vendor range
+ * that ends before it starts.
+ * @throws {PublisherRestrictionError} When the string carries a
+ * restriction c15t does not support: vendor ID `0`, legitimate interest
+ * required for a purpose that is consent-only under the string's policy
+ * version, two types for one vendor and
+ * purpose, or any restriction in a string that is not service-specific.
  *
  * @example
  * ```typescript
@@ -217,21 +356,20 @@ export interface DecodedTCString {
  *
  * @public
  */
-export async function decodeTCString(
+export const decodeTCString = async function decodeTCString(
 	tcString: string
 ): Promise<DecodedTCString> {
 	const { TCString } = await getTCFCore();
 
 	const tcModel = TCString.decode(tcString);
 
-	// Convert Vector to Record. Vendor vectors use their own maxId because
-	// GVL vendor IDs go well past 1000.
+	// Convert Vector to Record
 	const vectorToRecord = (
-		vector: { has: (id: number) => boolean; maxId: number },
-		maxId: number = vector.maxId
+		vector: { has: (id: number) => boolean },
+		maxId: number
 	): Record<number, boolean> => {
 		const record: Record<number, boolean> = {};
-		for (let i = 1; i <= maxId; i++) {
+		for (let i = 1; i <= maxId; i += 1) {
 			if (vector.has(i)) {
 				record[i] = true;
 			}
@@ -243,24 +381,36 @@ export async function decodeTCString(
 		cmpId: tcModel.cmpId as number,
 		cmpVersion: tcModel.cmpVersion as number,
 		consentLanguage: tcModel.consentLanguage,
+		created: tcModel.created,
 		isServiceSpecific: tcModel.isServiceSpecific,
+		lastUpdated: tcModel.lastUpdated,
+		policyVersion: tcModel.policyVersion as number,
+		publisherRestrictions: readPublisherRestrictions(
+			tcModel.publisherRestrictions,
+			tcModel.isServiceSpecific,
+			tcModel.policyVersion as number
+		),
 		purposeConsents: vectorToRecord(tcModel.purposeConsents, 11),
 		purposeLegitimateInterests: vectorToRecord(
 			tcModel.purposeLegitimateInterests,
 			11
 		),
-		vendorConsents: vectorToRecord(tcModel.vendorConsents),
-		vendorLegitimateInterests: vectorToRecord(
-			tcModel.vendorLegitimateInterests
-		),
 		specialFeatureOptIns: vectorToRecord(tcModel.specialFeatureOptins, 2),
-		vendorsDisclosed: vectorToRecord(tcModel.vendorsDisclosed),
-		created: tcModel.created,
-		lastUpdated: tcModel.lastUpdated,
+		vendorConsents: vectorToRecord(
+			tcModel.vendorConsents,
+			tcModel.vendorConsents.maxId
+		),
+		vendorLegitimateInterests: vectorToRecord(
+			tcModel.vendorLegitimateInterests,
+			tcModel.vendorLegitimateInterests.maxId
+		),
 		vendorListVersion: tcModel.vendorListVersion as number,
-		policyVersion: tcModel.policyVersion as number,
+		vendorsDisclosed: vectorToRecord(
+			tcModel.vendorsDisclosed,
+			tcModel.vendorsDisclosed.maxId
+		),
 	};
-}
+};
 
 /**
  * Validates a TC String format.
@@ -270,7 +420,9 @@ export async function decodeTCString(
  *
  * @public
  */
-export function isValidTCStringFormat(tcString: string): boolean {
+export const isValidTCStringFormat = function isValidTCStringFormat(
+	tcString: string
+): boolean {
 	// TC Strings are base64url encoded and start with a version indicator
 	// Version 2 strings typically start with 'C' or 'B' after base64url encoding
 	if (!tcString || typeof tcString !== 'string') {
@@ -278,7 +430,7 @@ export function isValidTCStringFormat(tcString: string): boolean {
 	}
 
 	// Basic format check: should be base64url characters
-	const base64urlRegex = /^[A-Za-z0-9_-]+$/;
+	const base64urlRegex = /^[A-Za-z0-9_-]+$/u;
 	if (!base64urlRegex.test(tcString)) {
 		return false;
 	}
@@ -289,7 +441,7 @@ export function isValidTCStringFormat(tcString: string): boolean {
 	}
 
 	return true;
-}
+};
 
 /**
  * Checks if a TC String has consent for a specific vendor.
@@ -300,13 +452,13 @@ export function isValidTCStringFormat(tcString: string): boolean {
  *
  * @public
  */
-export async function hasVendorConsent(
+export const hasVendorConsent = async function hasVendorConsent(
 	tcString: string,
 	vendorId: number
 ): Promise<boolean> {
 	const decoded = await decodeTCString(tcString);
 	return decoded.vendorConsents[vendorId] === true;
-}
+};
 
 /**
  * Checks if a TC String has consent for a specific purpose.
@@ -317,10 +469,10 @@ export async function hasVendorConsent(
  *
  * @public
  */
-export async function hasPurposeConsent(
+export const hasPurposeConsent = async function hasPurposeConsent(
 	tcString: string,
 	purposeId: number
 ): Promise<boolean> {
 	const decoded = await decodeTCString(tcString);
 	return decoded.purposeConsents[purposeId] === true;
-}
+};

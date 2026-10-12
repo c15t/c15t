@@ -1,0 +1,107 @@
+---
+title: OpenAI Pixel
+description: Load the ChatGPT Ads Measurement Pixel only after marketing consent with the c15t openaiPixel helper, guard oaiq conversion calls, and check it in DevTools.
+seoTitle: OpenAI Pixel cookie consent with c15t
+seoDescription: Load the OpenAI ChatGPT Ads Measurement Pixel only after marketing consent. The c15t openaiPixel helper sends oaiq consent signals for you.
+icon: chatgpt
+group: integrations
+---
+
+The c15t `openaiPixel` helper keeps the OpenAI ChatGPT Ads Measurement Pixel off
+the page until `marketing` has consent. Until then, c15t does not define the
+`oaiq` queue. When `marketing` has consent, the helper queues
+`oaiq('consent', false)`, `init`, and `oaiq('consent', true)` before the SDK
+loads. If the visitor withdraws consent, the helper calls
+`oaiq('consent', false)`. The SDK stays on the page. By default, c15t also
+reloads the page.
+
+## Configure the OpenAI Pixel
+
+Copy the pixel ID from the conversions tab in OpenAI Ads Manager. Remove the
+standalone OpenAI installation snippet, because the helper creates the `oaiq`
+queue and initializes the pixel itself.
+
+<CommandTabs command="@c15t/integrations" mode="install" />
+
+```ts title="src/consent-scripts.ts"
+import { openaiPixel } from '@c15t/integrations/openai-pixel';
+
+export const scripts = [openaiPixel({ pixelId: 'YOUR_PIXEL_ID' })];
+```
+
+<include src="../shared/integrations/register-scripts.mdx" />
+
+## Options
+
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `pixelId` | Required | Pixel ID passed to `oaiq('init', ...)`. The helper trims it. Empty or whitespace-only values log an error and the script does not load. |
+| `debug` | `false` | Logs SDK activity, including queued and dropped events, to the browser console. |
+| `user` | None | User matching fields passed to `init`: `email_sha256`, `phone_number_sha256`, `external_id_sha256`, `first_name_sha256`, `last_name_sha256`, `country`, `city`, `region` and `postal_code`. |
+| `scriptSrc` | `https://bzrcdn.openai.com/sdk/oaiq.min.js` | SDK URL override. A blank value falls back to the default. |
+
+c15t forwards `user` unchanged. Normalize and hash identifiers yourself as
+OpenAI's
+[user data rules](https://developers.openai.com/ads/measurement-pixel#send-user-data)
+describe. If user data arrives after initialization, call
+`window.oaiq('init', { pixelId, user })` again with the complete object.
+
+## Loading and revocation
+
+`openaiPixel` uses the `marketing` category. Before marketing is allowed, c15t
+defines no `oaiq` function and loads nothing from OpenAI. Measurement
+permission alone does not load the pixel. When marketing becomes allowed, the
+helper queues `oaiq('consent', false)`, `init` and `oaiq('consent', true)`,
+then loads `oaiq.min.js`. The first call overrides the SDK's default consent of
+`true`.
+
+On revocation the helper keeps the SDK and calls `oaiq('consent', false)`. If
+the visitor allows marketing again before the page reloads, it calls
+`oaiq('consent', true)` without reinitializing the pixel. OpenAI drops events
+sent while consent is denied and does not replay them later. The SDK can still
+send diagnostic pings while consent is denied.
+
+## Guard your own oaiq calls
+
+The helper sends no page view or conversion, so every event comes from your
+code. After revocation `window.oaiq` still exists, so its presence does not
+mean marketing is allowed. Check the permission first, then that the queue
+exists:
+
+```ts title="src/track-order.ts"
+export function trackOrder(marketingAllowed: boolean, orderId: string) {
+	if (!marketingAllowed || typeof window.oaiq !== 'function') return;
+	window.oaiq(
+		'measure',
+		'order_created',
+		{ type: 'contents', amount: 2599, currency: 'USD' },
+		{ event_id: orderId }
+	);
+}
+```
+
+Pass the current marketing permission from your framework, for example
+`useConsent('marketing')` in React. `amount` is an integer in the currency's
+minor unit, so `2599` is $25.99. Reuse `event_id` on the server event to
+deduplicate it.
+
+`@c15t/integrations/openai-pixel` also exports `openaiPixelEvent`, a typed wrapper
+around `oaiq('measure', ...)`. It drops calls made before the queue exists and
+does not check permission, so apply the same guard before calling it. A
+`custom` event needs `custom_event_name` in its options. To send to one pixel
+when you run several, call `window.oaiq('measureSingle', pixelId, ...)`.
+
+## Verify the OpenAI Pixel
+
+Set `debug: true` while you test. After you allow marketing, `oaiq.min.js`
+loads from `bzrcdn.openai.com`. Trigger one guarded event and check that a
+request to `https://bzr.openai.com/v1/sdk/events` succeeds and the event
+appears in Event Stream in Ads Manager. An accepted request confirms delivery,
+not attribution to a ChatGPT ad. Then revoke marketing. Until the page
+reloads, calling `trackOrder` sends nothing. Turn off `debug` when you finish.
+
+If your site sets a Content Security Policy, allow `https://bzrcdn.openai.com`
+in `script-src`, both `https://bzr.openai.com` and `https://bzrcdn.openai.com`
+in `connect-src`, and `https://bzr.openai.com` in `img-src`.
+
+<include src="../shared/integrations/vendor-revocation-and-verify.mdx" />

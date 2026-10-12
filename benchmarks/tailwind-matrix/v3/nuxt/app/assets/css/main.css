@@ -1,0 +1,5 @@
+/* #region docs:tailwind-css title="app/assets/css/main.css" */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+/* #endregion docs:tailwind-css */

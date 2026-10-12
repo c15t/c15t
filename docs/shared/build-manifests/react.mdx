@@ -1,0 +1,59 @@
+<include src="../build-time-manifest.mdx" />
+
+Keep `consentManifest` in your Vite plugin list:
+
+{/* example: fragment */}
+
+```ts title="vite.config.ts (plugins option)"
+import { consentManifest } from 'c15t/build';
+
+export default {
+	plugins: [
+		// Keep your existing framework plugins here.
+		consentManifest({ backendURL: 'https://your-project.inth.app' }),
+	],
+};
+```
+
+Without `backendURL`, the plugin reads `VITE_C15T_BACKEND_URL`, then
+`VITE_INTH_PROJECT_URL`. The plugin
+fetches the policy during `vite build`, or in `vite dev` when the app first
+loads it, and serves it as `snapshot` from `c15t/generated`. A build fetches
+only when the app uses `manifest()`. In `src/consent.tsx`, create the
+provider's mode with `manifest()` from `c15t/react` instead of `hosted()`. It
+reads the snapshot and the backend URL from `c15t/generated`:
+
+{/* example: fragment */}
+
+```tsx title="src/consent.tsx"
+import { manifest } from 'c15t/react';
+
+const mode = manifest();
+```
+
+Keep passing `mode` to `ConsentProvider`. The browser resolves the snapshot
+without `/manifest` when it has the geography the policy needs, or the policy
+does not depend on geography. Supply known country and region through `inputs`
+or overrides to keep regional resolution on the snapshot.
+
+When the build has no snapshot, as in `vite dev` after a failed fetch,
+`snapshot` is `undefined`, and the browser fetches
+`${backendURL}/manifest` instead.
+
+When the required country or region is missing, the transport calls backend
+`/init` and uses its resolved policy and translations. That response can use
+newer backend policy than the build snapshot. `ConsentProvider` sends that
+request while it first renders, before the page mounts, unless the visitor has
+a stored choice.
+
+The browser cannot guess the banner from the snapshot alone when locations
+differ. With a European opt-in rule and no banner elsewhere, a banner shown
+before `/init` answers would vanish for most of the world. The exception is a
+policy whose country and region rules all show the same banner, with a default
+rule that covers everywhere else: the browser resolves it at once.
+
+Policy and resolver code are part of the browser bundle.
+
+<include src="../build-time-manifest-notes.mdx" />
+
+<include src="../vite-build-manifest.mdx" />

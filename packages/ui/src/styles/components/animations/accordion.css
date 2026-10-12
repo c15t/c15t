@@ -1,0 +1,19 @@
+@keyframes accordionSlideDown {
+	from {
+		height: 0;
+	}
+
+	to {
+		height: var(--reka-accordion-content-height);
+	}
+}
+
+@keyframes accordionSlideUp {
+	from {
+		height: var(--reka-accordion-content-height);
+	}
+
+	to {
+		height: 0;
+	}
+}

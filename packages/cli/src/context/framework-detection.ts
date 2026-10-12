@@ -4,14 +4,53 @@ import path from 'node:path';
 import type { CliLogger } from '~/utils/logger';
 
 /**
- * Supported package managers
+ * Supported c15t entry points. Every value resolves to the single `c15t`
+ * umbrella package on npm; the subpath selects the framework integration
+ * generated code imports from.
  */
-export type AvailablePackages = '@c15t/nextjs' | '@c15t/react' | 'c15t';
+export type AvailablePackages = 'c15t/next' | 'c15t/react' | 'c15t';
+
+export type DevelopmentEnvironment = 'vite' | 'node' | 'manual';
+
+const detectDevelopmentEnvironment = (
+	deps: Record<string, unknown>,
+	scripts: Record<string, unknown> = {}
+): DevelopmentEnvironment => {
+	if ('next' in deps || 'gatsby' in deps || 'react-scripts' in deps) {
+		return 'node';
+	}
+	// An app's build command takes precedence over tooling-only dependencies.
+	for (const script of [scripts.build, scripts.dev, scripts.start]) {
+		if (typeof script !== 'string') {
+			continue;
+		}
+		if (/(?:^|[\s;&|])webpack(?:\s|$)/u.test(script)) {
+			return 'node';
+		}
+		if (/(?:^|[\s;&|])vite(?:\s|$)/u.test(script)) {
+			return 'vite';
+		}
+		if (/(?:^|[\s;&|])(?:rollup|esbuild)(?:\s|$)/u.test(script)) {
+			return 'manual';
+		}
+	}
+	if ('webpack' in deps) {
+		return 'node';
+	}
+	return 'vite' in deps ||
+		'@vitejs/plugin-react' in deps ||
+		'@vitejs/plugin-react-swc' in deps
+		? 'vite'
+		: 'manual';
+};
 
 /**
  * Framework detection result
  */
 export interface FrameworkDetectionResult {
+	developmentEnvironment?: DevelopmentEnvironment;
+	/** Documentation for frameworks that require manual integration. */
+	manualSetupUrl?: string;
 	framework: string | null;
 	frameworkVersion: string | null;
 	pkg: AvailablePackages;
@@ -27,7 +66,8 @@ export interface FrameworkDetectionResult {
  * @param logger - Optional logger instance for debug messages
  * @returns Object containing framework info and whether React is used
  */
-export async function detectFramework(
+// oxlint-disable-next-line complexity -- Preserve established branch order and control flow.
+export const detectFramework = async function detectFramework(
 	projectRoot: string,
 	logger?: CliLogger
 ): Promise<FrameworkDetectionResult> {
@@ -53,12 +93,39 @@ export async function detectFramework(
 
 		let framework: string | null = null;
 		let frameworkVersion: string | null = null;
-		let pkg: AvailablePackages = hasReact ? '@c15t/react' : 'c15t';
+		let pkg: AvailablePackages = hasReact ? 'c15t/react' : 'c15t';
 
+		const unsupported = [
+			// Astro owns the app even when islands use another framework.
+			['astro', 'Astro', 'javascript'],
+			['@tanstack/react-start', 'TanStack Start', 'tanstack-start'],
+			['@sveltejs/kit', 'SvelteKit', 'svelte'],
+			['svelte', 'Svelte', 'svelte'],
+			['nuxt', 'Nuxt', 'vue'],
+			['vue', 'Vue', 'vue'],
+			['solid-js', 'Solid', 'javascript'],
+			['@remix-run/react', 'Remix', 'react'],
+			['gatsby', 'Gatsby', 'react'],
+		].find(([dependency]) => dependency && dependency in deps);
+		if (unsupported) {
+			return {
+				developmentEnvironment: detectDevelopmentEnvironment(
+					deps,
+					packageJson.scripts ?? {}
+				),
+				framework: unsupported[1] ?? null,
+				frameworkVersion: deps[unsupported[0] ?? ''] ?? null,
+				hasReact,
+				manualSetupUrl: `https://c15t.com/docs/frameworks/${unsupported[2]}/quickstart`,
+				pkg,
+				reactVersion,
+				tailwindVersion,
+			};
+		}
 		if ('next' in deps) {
 			framework = 'Next.js';
 			frameworkVersion = deps.next;
-			pkg = '@c15t/nextjs';
+			pkg = 'c15t/next';
 		} else if ('@remix-run/react' in deps) {
 			framework = 'Remix';
 			frameworkVersion = deps['@remix-run/react'];
@@ -82,10 +149,14 @@ export async function detectFramework(
 				`package: ${pkg}`
 		);
 		return {
+			developmentEnvironment: detectDevelopmentEnvironment(
+				deps,
+				packageJson.scripts ?? {}
+			),
 			framework,
 			frameworkVersion,
-			pkg,
 			hasReact,
+			pkg,
 			reactVersion,
 			tailwindVersion,
 		};
@@ -96,13 +167,13 @@ export async function detectFramework(
 		return {
 			framework: null,
 			frameworkVersion: null,
-			pkg: 'c15t',
 			hasReact: false,
+			pkg: 'c15t',
 			reactVersion: null,
 			tailwindVersion: null,
 		};
 	}
-}
+};
 
 /**
  * Detects the project root by finding the package.json file
@@ -111,7 +182,8 @@ export async function detectFramework(
  * @param logger - Optional logger instance for debug messages
  * @returns The project root directory path or cwd if not found
  */
-export async function detectProjectRoot(
+// oxlint-disable-next-line complexity -- Preserve established branch order and control flow.
+export const detectProjectRoot = async function detectProjectRoot(
 	cwd: string,
 	logger?: CliLogger
 ): Promise<string> {
@@ -121,7 +193,8 @@ export async function detectProjectRoot(
 	try {
 		let prevDir = '';
 		let depth = 0;
-		const maxDepth = 10; // Prevent infinite loops in case of circular symlinks
+		// Prevent infinite loops in case of circular symlinks
+		const maxDepth = 10;
 
 		while (projectRoot !== prevDir && depth < maxDepth) {
 			logger?.debug(`Checking directory (depth ${depth}): ${projectRoot}`);
@@ -130,16 +203,18 @@ export async function detectProjectRoot(
 				const packageJsonPath = path.join(projectRoot, 'package.json');
 				logger?.debug(`Looking for package.json at: ${packageJsonPath}`);
 
+				// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 				await fs.access(packageJsonPath);
 				logger?.debug(`Found package.json at: ${projectRoot}`);
-				break; // Found package.json
+				// Found package.json
+				break;
 			} catch (error) {
 				logger?.debug(
 					`No package.json found in ${projectRoot}: ${error instanceof Error ? error.message : String(error)}`
 				);
 				prevDir = projectRoot;
 				projectRoot = path.dirname(projectRoot);
-				depth++;
+				depth += 1;
 			}
 		}
 
@@ -167,4 +242,4 @@ export async function detectProjectRoot(
 		// Fallback to current directory if not found
 		return cwd;
 	}
-}
+};

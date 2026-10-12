@@ -1,0 +1,32 @@
+<include src="../build-time-manifest.mdx" />
+
+The default mode, `manifest()`, bundles the manifest. The module reads
+`NUXT_PUBLIC_C15T_BACKEND_URL`, then `NUXT_PUBLIC_INTH_PROJECT_URL`, when the
+`c15t` key sets no `backendURL`, so
+`nuxt.config.ts` needs only the module:
+
+<include src="../examples/nuxt/nuxt-config.mdx" />
+
+The module fetches the snapshot during `nuxt build` and when `nuxt dev`
+starts, and embeds it in the server bundle. `nuxt prepare` does not fetch, so
+dependency installation and type generation do not need the backend. The
+consent route and the server render read the snapshot; it stays out of
+runtime config and out of the browser bundle. Only
+`manifest({ resolve: 'browser' })` adds it to the browser bundle, because the
+browser then resolves the policy itself. Production server startup does not
+fetch another manifest.
+
+The module skips the fetch for `manifest({ source: 'runtime' })`, a
+`manifest({ snapshot })` you supply, and the `hosted()` and `offline()`
+modes. A relative backend URL is also skipped, unless `onBuildError` is
+`'fail'`.
+
+<include src="../build-time-manifest-notes.mdx" />
+
+Set `onBuildError` under the `c15t` key in `nuxt.config.ts`. In dev, and in a
+build with `onBuildError: 'runtime'`, a failed fetch leaves the server without
+a snapshot, and the server fetches and caches the policy at runtime.
+
+For policy updates without a rebuild, set `mode: manifest({ source: 'runtime' })`.
+The server then fetches and caches the policy at runtime, and refreshes it
+in the background.

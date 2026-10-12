@@ -1,78 +1,54 @@
 ---
-title: Network Blocker
-description: Block outgoing network requests to third-party domains until the user grants consent for the appropriate category.
+title: Network blocker
+description: Hold fetch and XMLHttpRequest calls in a React app until their consent category is allowed, with networkBlocker rules in the ConsentProvider options.
 group: frameworks
 ---
 
-<import src="../../shared/react/guides/network-blocker.mdx#intro" />
+## Add rules
 
-## Configuration
+Some SDKs are already on the page and send beacons or API calls of their own.
+Add `networkBlocker` rules to the provider options to stop `fetch` and
+`XMLHttpRequest` calls to those domains until the category is allowed. Load
+vendor SDKs through [`scripts`](/docs/frameworks/react/scripts) first, so they
+do not run at all before consent.
 
-Add `networkBlocker` to your provider options:
+This partial example adds the option next to the existing `mode` and
+`scripts`:
 
-```tsx
-import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from '@c15t/react';
+{/* example: fragment */}
 
-export function ConsentManager({ children }: { children: ReactNode }) {
-  return (
-    <ConsentManagerProvider
-      options={{
-        mode: 'hosted',
-        backendURL: 'https://your-instance.c15t.dev',
-        networkBlocker: {
-          rules: [
-            {
-              id: 'google-analytics',
-              domain: 'google-analytics.com',
-              category: 'measurement',
-            },
-            {
-              id: 'facebook-pixel',
-              domain: 'facebook.com',
-              pathIncludes: '/tr',
-              category: 'marketing',
-            },
-            {
-              id: 'analytics-post',
-              domain: 'analytics.example.com',
-              methods: ['POST'],
-              category: 'measurement',
-            },
-          ],
-        },
-      }}
-    >
-      {children}
-    </ConsentManagerProvider>
-  );
-}
+```tsx title="src/consent.tsx"
+const networkBlocker = {
+	rules: [
+		{
+			id: 'google-analytics',
+			domain: 'google-analytics.com',
+			category: 'measurement',
+		},
+		{
+			id: 'meta-pixel',
+			domain: 'facebook.com',
+			pathIncludes: '/tr',
+			category: 'marketing',
+		},
+	],
+};
+
+<ConsentProvider options={{ mode, scripts, networkBlocker }}>
 ```
 
-<import src="../../shared/react/guides/network-blocker.mdx#reference" />
+<import src="../../shared/react/network-blocker.mdx#rules" />
 
-## Runtime Updates
+<import src="../../shared/react/network-blocker.mdx#behavior" />
 
-Update the network blocker configuration at runtime:
+<import src="../../shared/react/network-blocker.mdx#limits" />
 
-```tsx
-import { useConsentManager } from '@c15t/react';
+## Verify the blocked requests
 
-function NetworkBlockerManager() {
-  const { setNetworkBlocker } = useConsentManager();
+Open DevTools Network in a private window, under a policy that asks for
+consent.
 
-  const addRule = () => {
-    setNetworkBlocker({
-      rules: [
-        {
-          id: 'new-tracker',
-          domain: 'tracker.example.com',
-          category: 'marketing',
-        },
-      ],
-    });
-  };
-}
-```
-
-<import src="../../shared/react/guides/network-blocker.mdx#api-reference" />
+1. Before a choice, requests matching a rule are absent, and the console logs
+   each blocked request.
+2. Allow the rule's category and save. Matching requests go out.
+3. Reject, reload, and check that they stay absent.

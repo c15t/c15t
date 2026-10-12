@@ -1,5 +1,6 @@
 {
 	"name": "@c15t/solid",
+	"version": "0.0.0",
 	"private": true,
 	"type": "module",
 	"exports": {
@@ -14,8 +15,9 @@
 		"solid-js": "^1.9.14"
 	},
 	"devDependencies": {
+		"@c15t/conformance": "workspace:*",
 		"@c15t/typescript-config": "workspace:*",
-		"typescript": "7.0.1-rc",
+		"typescript": "7.0.2",
 		"vitest": "4.1.10"
 	}
 }

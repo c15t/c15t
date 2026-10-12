@@ -1,0 +1,19 @@
+.build/
+dist/
+dist-types/
+coverage/
+node_modules/
+src/version.ts
+
+# iOS
+ios/Pods/
+ios/build/
+ios/DerivedData/
+*.xcworkspace/xcuserdata/
+
+# Android
+android/.gradle/
+android/build/
+android/*/build/
+android/local.properties
+local.properties

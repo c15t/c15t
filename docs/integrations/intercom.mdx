@@ -1,137 +1,77 @@
 ---
 title: Intercom
-description: Bootstrap Intercom settings and load the messenger widget bundle.
-group: integrations
+description: Load the Intercom messenger only after functionality consent with the c15t intercom helper, set its region and check it in DevTools.
+seoTitle: Intercom cookie consent with c15t
+seoDescription: Show the Intercom Messenger only with functionality consent. Set it up with the c15t intercom helper and its regional API settings.
 icon: intercom
+group: integrations
 ---
 
-Intercom adds the Intercom messenger widget and queues early `Intercom(...)`
-calls until the widget bundle loads.
+The c15t `intercom` helper keeps the Intercom Messenger off the page until
+`functionality` has consent. Until then, c15t does not define `window.Intercom`
+or `window.intercomSettings`. If the visitor withdraws consent, the helper does
+not call an Intercom API, such as `shutdown`. The Messenger continues to work
+until c15t reloads the page, which c15t does by default.
 
-## Official Intercom documentation
+## Configure Intercom
 
-- [Install Intercom Messenger](https://developers.intercom.com/installing-intercom/web/installation)
-- [Secure your Messenger](https://developers.intercom.com/installing-intercom/web/identity-verification)
-- [JavaScript API](https://developers.intercom.com/installing-intercom/web/methods)
-- [Attributes and objects](https://developers.intercom.com/installing-intercom/web/attributes-objects)
+Copy the app ID from your Intercom installation snippet, where it is set as
+`app_id`. If your workspace is hosted in the EU or Australia, also set
+`apiBase`.
 
-## Integrate with c15t
+<CommandTabs command="@c15t/integrations" mode="install" />
 
-<Tabs items={['React', 'Next.js', 'JavaScript']}>
-  <Tab value="React">
-    ```tsx
-    import { type ReactNode } from 'react';
-    import { ConsentManagerProvider } from '@c15t/react';
-    import { intercom } from '@c15t/scripts/intercom';
+```ts title="src/consent-scripts.ts"
+import { intercom } from '@c15t/integrations/intercom';
 
-    const scripts = [intercom({ appId: 'abc123' })];
-
-    export function ConsentProvider({ children }: { children: ReactNode }) {
-      return (
-        <ConsentManagerProvider
-          options={{
-            mode: 'hosted',
-            backendURL: 'https://your-instance.c15t.dev',
-            scripts,
-          }}
-        >
-          {children}
-        </ConsentManagerProvider>
-      );
-    }
-    ```
-  </Tab>
-
-  <Tab value="Next.js">
-    ```tsx
-    'use client';
-
-    import { type ReactNode } from 'react';
-    import { ConsentManagerProvider } from '@c15t/nextjs';
-    import { intercom } from '@c15t/scripts/intercom';
-
-    const scripts = [intercom({ appId: 'abc123' })];
-
-    export function ConsentProvider({ children }: { children: ReactNode }) {
-      return (
-        <ConsentManagerProvider
-          options={{
-            mode: 'hosted',
-            backendURL: '/api/c15t',
-            scripts,
-          }}
-        >
-          {children}
-        </ConsentManagerProvider>
-      );
-    }
-    ```
-  </Tab>
-
-  <Tab value="JavaScript">
-    ```ts
-    import { getOrCreateConsentRuntime } from 'c15t';
-    import { intercom } from '@c15t/scripts/intercom';
-
-    getOrCreateConsentRuntime({
-      mode: 'hosted',
-      backendURL: 'https://your-instance.c15t.dev',
-      scripts: [intercom({ appId: 'abc123' })],
-    });
-    ```
-  </Tab>
-</Tabs>
-
-## How c15t loads it
-
-- **Category:** `functionality` (Functional)
-- **Loads when:** functionality consent is granted
-- **Before load:** c15t seeds `window.intercomSettings` and a queueing
-  `Intercom` stub
-- **On revocation:** c15t follows the default script loader behavior for
-  non-persistent scripts
-
-## Configure the integration
-
-Intercom's default regional API base is `https://api-iam.intercom.io`. If your
-workspace uses the EU or Australia data host, pass the matching `apiBase`.
-
-```ts
-intercom({
-  appId: 'abc123',
-  apiBase: 'https://api-iam.eu.intercom.io',
-})
+export const scripts = [intercom({ appId: 'YOUR_APP_ID' })];
 ```
 
-### Runtime options
+<include src="../shared/integrations/register-scripts.mdx" />
 
-Pass additional Intercom settings through `settings`. The helper always writes
-the provided `appId` to `app_id` and `apiBase` to `api_base`.
+## Options
 
-```ts
-intercom({
-  appId: 'abc123',
-  settings: {
-    name: 'Ada Lovelace',
-    user_id: 'user-123',
-    company: {
-      company_id: 'company-123',
-      name: 'Example Company Inc.',
-    },
-  },
-})
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `appId` | Required | Sets `app_id` and the loader URL. The helper trims it. Empty or whitespace-only values log an error and the script does not load. |
+| `apiBase` | `https://api-iam.intercom.io` | Regional API base. `INTERCOM_API_BASES` from `@c15t/integrations/intercom` lists `us`, `eu` and `au`. |
+| `settings` | None | Extra JSON-serializable settings merged into `window.intercomSettings`. `appId` and `apiBase` override any `app_id` or `api_base` here. |
+| `scriptSrc` | `https://widget.intercom.io/widget/<appId>` | Loader URL override. A blank value falls back to the default. |
+
+## Loading and revocation
+
+`intercom` uses the `functionality` category. Once functionality is allowed,
+the helper defines a queueing `window.Intercom` stub, writes
+`window.intercomSettings` and loads the messenger. On revocation it removes the
+script element and calls no Intercom API, including `shutdown`. The messenger
+keeps running until c15t reloads the page.
+
+## Guard your own Intercom calls
+
+The helper writes `settings` once, before the messenger loads. It does not
+update them when a user logs in or out, so send identity changes through
+Intercom's messenger API yourself. After revocation `window.Intercom` still
+exists, so its presence does not mean functionality is allowed. Check the
+permission first:
+
+```ts title="src/intercom-user.ts"
+export function updateIntercomUser(
+	functionalityAllowed: boolean,
+	userId: string
+) {
+	if (!functionalityAllowed || typeof window.Intercom !== 'function') return;
+	window.Intercom('update', { user_id: userId });
+}
 ```
 
-For logged-in users, Intercom recommends securing the Messenger with
-server-generated identity data. Generate verification tokens on your backend and
-only pass client-safe values through `settings`.
+Pass the current functionality permission from your framework, for example
+`useConsent('functionality')` in React.
 
-## Types
+## Verify Intercom
 
-### IntercomOptions
+After you allow functionality, the request to
+`widget.intercom.io/widget/<appId>` appears and the messenger shows. Log in
+and out of your app, and check that the messenger never shows the previous
+user's conversations.
 
-<AutoTypeTable path="./packages/scripts/src/vendors/functional/intercom.ts" name="IntercomOptions" />
-
-### Script
-
-<AutoTypeTable path="./packages/core/src/libs/script-loader/types.ts" name="Script" />
+<include src="../shared/integrations/vendor-revocation-and-verify.mdx" />

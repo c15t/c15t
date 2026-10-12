@@ -1,326 +1,180 @@
-import {
-	type I18nConfig,
-	normalizeI18nConfig,
-	resolveTranslationInput,
-} from '@c15t/translations';
-import { version } from '~/version';
-import {
-	type ConsentManagerOptions,
-	clearClientRegistry,
-	configureConsentManager,
-} from '../client';
-import { getMatchingPrefetchedInitialData } from '../libs/prefetch/prefetch';
-import { createConsentManagerStore } from '../store';
-import type { StoreOptions } from '../store/type';
-import type { AllConsentNames, TranslationConfig } from '../types';
+import type {
+	ClearOnRevocationHandle,
+	ClearOnRevocationOptions,
+} from '../modules/clear-on-revocation/types';
+/**
+ * `@c15t/core/runtime` — the framework-agnostic consent runtime.
+ *
+ * A provider is two things: a kernel wired to every opt-in module, and a
+ * component tree that renders it. This module is the first half. It builds
+ * a kernel from the prepared server snapshot, then mounts persistence,
+ * the script loader, network and iframe blockers, IAB, the callback bridge,
+ * `window.c15t` and the initial `init()` (or adopts a resolved prefetch) on
+ * `start()`, and undoes all of it on `dispose()`.
+ *
+ * Two constructors share that lifecycle. `createConsentRuntime` is for a
+ * host that configures once. `createConsentProviderRuntime` is for a
+ * framework provider whose options follow its props: it adds `update()`,
+ * the `enabled` toggle and a streamed `prefetch`, and takes the module
+ * factories so the provider can load some on demand.
+ *
+ * Framework packages own reactivity and rendering; they do not re-derive
+ * any of this. Hosts without a component tree (an Astro page whose islands
+ * cannot share context, a SvelteKit root layout) create one runtime and
+ * hand it to whatever renders.
+ *
+ * @example
+ * ```ts
+ * import { createConsentRuntime } from '@c15t/core/runtime';
+ * import { hosted } from '@c15t/core';
+ *
+ * const runtime = createConsentRuntime({
+ *   mode: hosted({ backendURL: '/api/c15t' }),
+ *   pkg: '@c15t/astro',
+ * });
+ * runtime.start();
+ * ```
+ */
+import { createIframeBlocker } from '../modules/iframe-blocker';
+import type {
+	NetworkBlockerHandle,
+	NetworkBlockerOptions,
+} from '../modules/network-blocker/types';
+import { createPersistence } from '../modules/persistence';
+import { watchRevocationReload } from '../modules/revocation-reload';
+import { createScriptLoader } from '../modules/script-loader';
+import { createWindowDebug } from '../modules/window-debug';
+import { assembleConsentRuntime } from './assemble';
+import { connectConsentSource } from './controls';
+import { mountRuntimeIAB } from './iab-mount';
+import { lazyRuntimeModule } from './lazy-module';
+import type {
+	ConsentRuntime,
+	ConsentRuntimeModules,
+	ConsentRuntimeOptions,
+} from './types';
 
-type ConsentManagerInstance = ReturnType<typeof configureConsentManager>;
-type ConsentStoreInstance = ReturnType<typeof createConsentManagerStore>;
+export { createConsentProviderRuntime } from './provider-runtime';
+export { streamPrefetch } from './streamed-prefetch';
+export { connectConsentSource } from './controls';
+export type { ConsentControlOptions } from './controls';
+export { inferConsentCategories } from './runtime-kernel';
 
-const DEFAULT_BACKEND_URL = '/api/c15t';
+export type {
+	ExternalConsentSource,
+	ConsentRuntime,
+	ConsentRuntimeIABFactory,
+	ConsentRuntimeIABFactoryOptions,
+	ConsentRuntimeGPPFactory,
+	ConsentRuntimeGPPFactoryOptions,
+	ConsentRuntimeGPPHandle,
+	ConsentRuntimeIABHandle,
+	ConsentProviderRuntime,
+	ConsentProviderRuntimeOptions,
+	ConsentRuntimeModules,
+	ConsentRuntimeOptions,
+	ConsentRuntimeUpdate,
+	GPPModuleLoader,
+	RuntimeGPPOptions,
+	RuntimeIABOptions,
+	RuntimeNetworkBlockerOptions,
+	RuntimePersistenceOptions,
+	RuntimePrefetch,
+	StreamedPrefetch,
+	RuntimeScriptLoaderOptions,
+} from './types';
+export type { WireRuntimeCallbacksOptions } from './callbacks';
+export { wireRuntimeCallbacks } from './callbacks';
+export type { IABModuleLoader, LazyIABFactory } from './lazy-iab';
+export { isIABConfigured } from './iab-options';
+export { createLazyIABFactory } from './lazy-iab';
+export { lazyRuntimeModule } from './lazy-module';
+export { mountRuntimeIAB } from './iab-mount';
+export type { RuntimeIABMountOptions } from './iab-mount';
+export { mountRuntimeGPP } from './gpp-mount';
+export type { RuntimeGPPMountOptions } from './gpp-mount';
 
-const managerCache = new Map<string, ConsentManagerInstance>();
-const storeCache = new Map<string, ConsentStoreInstance>();
+const loadClearOnRevocation = function loadClearOnRevocation(
+	options: ClearOnRevocationOptions
+): ClearOnRevocationHandle {
+	return lazyRuntimeModule(async () => {
+		const module = await import('../modules/clear-on-revocation');
+		return module.createClearOnRevocation;
+	})(options);
+};
 
-type RuntimeMode = 'hosted' | 'c15t' | 'offline' | 'custom';
-
-function normalizeRuntimeMode(
-	mode?: RuntimeMode
-): 'hosted' | 'offline' | 'custom' {
-	if (mode === 'offline' || mode === 'custom') {
-		return mode;
-	}
-
-	return 'hosted';
-}
-
-export type ConsentRuntimeOptions = ConsentManagerOptions &
-	Partial<StoreOptions> & {
-		/**
-		 * Preferred i18n configuration in c15t v2.
-		 */
-		i18n?: Partial<I18nConfig>;
-		/**
-		 * @deprecated Use `i18n` instead.
-		 */
-		translations?: Partial<TranslationConfig>;
-		consentCategories?: AllConsentNames[];
-		/**
-		 * Enables verbose runtime diagnostics.
-		 */
-		debug?: boolean;
-	};
-
-export interface ConsentRuntimePkgInfo {
-	pkg: string;
-	version: string;
-}
-
-export interface ConsentRuntimeResult {
-	consentManager: ConsentManagerInstance;
-	consentStore: ConsentStoreInstance;
-	cacheKey: string;
-}
-
-function generateRuntimeCacheKey(options: {
-	mode?: ConsentRuntimeOptions['mode'];
-	backendURL?: string;
-	endpointHandlers?: unknown;
-	storageConfig?: ConsentRuntimeOptions['storageConfig'];
-	defaultLanguage?: string;
-	languageSetKey?: string;
-	offlinePolicyKey?: string;
-	headersKey?: string;
-	enabled?: boolean;
-}): string {
-	const enabledKey = options.enabled === false ? 'disabled' : 'enabled';
-	const normalizedMode = normalizeRuntimeMode(
-		options.mode as RuntimeMode | undefined
-	);
-
-	const cacheParts = [
-		normalizedMode,
-		options.backendURL ?? 'default',
-		options.endpointHandlers ? 'custom' : 'none',
-		options.storageConfig?.storageKey ?? 'default',
-		options.defaultLanguage ?? 'default',
-		options.languageSetKey ?? 'default',
-		options.offlinePolicyKey ?? 'default',
-		options.headersKey ?? 'default',
-		enabledKey,
-	];
-
-	return cacheParts.join(':');
-}
+const loadNetworkBlocker = function loadNetworkBlocker(
+	options: NetworkBlockerOptions
+): NetworkBlockerHandle {
+	return lazyRuntimeModule(async () => {
+		const module = await import('../modules/network-blocker');
+		return module.createNetworkBlocker;
+	})(options);
+};
 
 /**
- * Stable cache-key fragment for custom HTTP headers, so hosted clients with
- * different headers never share a cached runtime.
+ * The module factories `createConsentRuntime` mounts. Pass them to
+ * `createConsentProviderRuntime` to do the same, or spread them and swap
+ * some for `lazyRuntimeModule`.
+ *
+ * Persistence, the script loader, the iframe blocker, window debug and the
+ * revocation reload are imported statically. The network blocker and data
+ * clearing are opt-in, so they load on demand: a page that configures
+ * neither never downloads them. (A provider that loads every module on
+ * demand uses `onDemandRuntimeModules` from `@c15t/core/runtime/on-demand`,
+ * whose chunks import nothing from the first load.) Matching
+ * requests stay held from construction until the blocker has loaded and
+ * decides them. Data clearing sweeps denied categories when it mounts, so a
+ * revocation before it loaded is still cleared, a moment later.
  */
-function generateHeadersKey(
-	headers?: Record<string, string>
-): string | undefined {
-	if (!headers) {
-		return undefined;
-	}
+export const defaultRuntimeModules: ConsentRuntimeModules = {
+	// Arrow functions rather than calls, so the object stays free of side
+	// effects and a bundler drops it, and the modules it names, from a host
+	// that never reads it.
+	connectConsentSource,
+	createClearOnRevocation: (options) => loadClearOnRevocation(options),
+	createIframeBlocker,
+	createNetworkBlocker: (options) => loadNetworkBlocker(options),
+	createPersistence,
+	createScriptLoader,
+	createWindowDebug,
+	mountIAB: mountRuntimeIAB,
+	watchRevocationReload,
+};
 
-	const entries = Object.entries(headers).sort(([a], [b]) =>
-		a.localeCompare(b)
-	);
-
-	if (entries.length === 0) {
-		return undefined;
-	}
-
-	return entries.map(([key, value]) => `${key}=${value}`).join(',');
-}
-
-export function getOrCreateConsentRuntime(
-	options: ConsentRuntimeOptions,
-	pkgInfo?: ConsentRuntimePkgInfo
-): ConsentRuntimeResult {
-	const optionBag = options as ConsentRuntimeOptions & {
-		headers?: Record<string, string>;
-		customFetch?: typeof fetch;
-		retryConfig?: unknown;
-		endpointHandlers?: unknown;
-	};
-	type InternalStoreOptions = StoreOptions & {
-		__internal?: {
-			backendURL?: string;
-			requestCredentials?: RequestCredentials;
-		};
-	};
-
-	const {
-		mode,
-		backendURL,
-		store,
-		i18n,
-		translations,
-		storageConfig,
-		enabled,
-		iab,
-		offlinePolicy,
-		consentCategories,
-		debug,
-		headers,
-		nonce,
-		customFetch: _unusedCustomFetch,
-		retryConfig: _unusedRetryConfig,
-		endpointHandlers: _unusedEndpointHandlers,
-		...storeOptionOverrides
-	} = optionBag;
-
-	const {
-		initialI18nConfig: _unusedTopLevelInitialI18nConfig,
-		initialTranslationConfig: _unusedTopLevelInitialTranslationConfig,
-		ssrData: topLevelSSRData,
-		config: topLevelConfig,
-		...cleanStoreOptionOverrides
-	} = storeOptionOverrides as Partial<StoreOptions>;
-
-	const {
-		initialI18nConfig: _unusedStoreInitialI18nConfig,
-		initialTranslationConfig: _unusedStoreInitialTranslationConfig,
-		ssrData: storeSSRData,
-		config: storeConfig,
-		...storeWithoutTranslationInputs
-	} = store ?? {};
-
-	const preferredLegacyTranslationConfig =
-		translations ?? store?.initialTranslationConfig;
-	const preferredI18nConfig = i18n ?? store?.initialI18nConfig;
-
-	const normalizedInitialTranslationConfig = resolveTranslationInput(
-		preferredLegacyTranslationConfig,
-		preferredI18nConfig
-	);
-	const normalizedI18nConfig = normalizedInitialTranslationConfig
-		? normalizeI18nConfig(normalizedInitialTranslationConfig)
-		: undefined;
-	const normalizedLanguageSet = normalizedI18nConfig
-		? Object.keys(normalizedI18nConfig.messages).sort()
-		: [];
-	const resolvedIab = iab ?? storeWithoutTranslationInputs.iab;
-	const resolvedOfflinePolicy =
-		offlinePolicy ?? storeWithoutTranslationInputs.offlinePolicy;
-	const resolvedStorageConfig =
-		storageConfig ?? storeWithoutTranslationInputs.storageConfig;
-	const resolvedEnabled = enabled ?? storeWithoutTranslationInputs.enabled;
-	// A top-level `nonce` wins over `store.nonce` so the value the provider
-	// applies to the theme stylesheet always matches the one scripts receive.
-	const resolvedNonce = nonce ?? storeWithoutTranslationInputs.nonce;
-	const resolvedBackendURL = backendURL || DEFAULT_BACKEND_URL;
-	const explicitSSRData = topLevelSSRData ?? storeSSRData;
-
-	const cacheKey = generateRuntimeCacheKey({
-		mode,
-		backendURL,
-		endpointHandlers:
-			'endpointHandlers' in options ? options.endpointHandlers : undefined,
-		storageConfig: resolvedStorageConfig,
-		defaultLanguage: normalizedI18nConfig?.locale,
-		languageSetKey:
-			normalizedLanguageSet.length > 0
-				? normalizedLanguageSet.join(',')
-				: undefined,
-		offlinePolicyKey: resolvedOfflinePolicy
-			? JSON.stringify(resolvedOfflinePolicy)
-			: undefined,
-		headersKey: generateHeadersKey(headers),
-		enabled: resolvedEnabled,
-	});
-
-	let consentManager = managerCache.get(cacheKey);
-	if (!consentManager) {
-		const normalizedStoreOptions = {
-			...storeWithoutTranslationInputs,
-			initialTranslationConfig: normalizedInitialTranslationConfig,
-			iab: resolvedIab,
-			offlinePolicy: resolvedOfflinePolicy,
-		};
-
-		if (mode === 'offline') {
-			consentManager = configureConsentManager({
-				mode: 'offline',
-				store: normalizedStoreOptions,
-				storageConfig: resolvedStorageConfig,
-			});
-		} else if (mode === 'custom' && 'endpointHandlers' in options) {
-			consentManager = configureConsentManager({
-				mode: 'custom',
-				endpointHandlers: options.endpointHandlers,
-				store: normalizedStoreOptions,
-				storageConfig: resolvedStorageConfig,
-			});
-		} else {
-			consentManager = configureConsentManager({
-				mode: mode === 'c15t' ? 'c15t' : 'hosted',
-				backendURL: backendURL || DEFAULT_BACKEND_URL,
-				headers,
-				store: normalizedStoreOptions,
-				storageConfig: resolvedStorageConfig,
-			});
-		}
-
-		managerCache.set(cacheKey, consentManager);
-	}
-
-	let consentStore = storeCache.get(cacheKey);
-
-	if (!consentStore) {
-		const normalizedMode = normalizeRuntimeMode(
-			mode as RuntimeMode | undefined
-		);
-		const userConfig = storeConfig ?? topLevelConfig;
-		const autoPrefetchedSSRData =
-			normalizedMode === 'hosted' &&
-			typeof window !== 'undefined' &&
-			!explicitSSRData
-				? getMatchingPrefetchedInitialData({
-						backendURL: resolvedBackendURL,
-						overrides: options.overrides,
-						credentials: 'include',
-					})
-				: undefined;
-		const resolvedSSRData = explicitSSRData ?? autoPrefetchedSSRData;
-
-		consentStore = createConsentManagerStore(consentManager, {
-			config: {
-				...(userConfig ?? {}),
-				pkg: pkgInfo?.pkg || 'c15t',
-				version: pkgInfo?.version || version,
-				mode: normalizedMode,
-				meta: {
-					...(userConfig?.meta ?? {}),
-					...(normalizedMode === 'hosted'
-						? {
-								backendURL: resolvedBackendURL,
-								requestCredentials: 'include',
-							}
-						: {}),
-				},
-			},
-			...cleanStoreOptionOverrides,
-			...storeWithoutTranslationInputs,
-			iab: resolvedIab,
-			offlinePolicy: resolvedOfflinePolicy,
-			storageConfig: resolvedStorageConfig,
-			enabled: resolvedEnabled,
-			nonce: resolvedNonce,
-			initialTranslationConfig: normalizedInitialTranslationConfig,
-			initialConsentCategories: consentCategories,
-			ssrData: resolvedSSRData,
-			debug,
-			__internal:
-				normalizedMode === 'hosted'
-					? {
-							backendURL: resolvedBackendURL,
-							requestCredentials: 'include',
-						}
-					: undefined,
-		} as InternalStoreOptions);
-
-		storeCache.set(cacheKey, consentStore);
-	} else if (consentStore.getState().nonce !== resolvedNonce) {
-		// A nonce is per-request, so a cached store can outlive the one it was
-		// created with. Sync it rather than adding the nonce to the cache key:
-		// keying on it would allocate a fresh manager and store for every request
-		// during SSR, and neither cache evicts. Leaving it stale would let the
-		// theme stylesheet and injected scripts carry different nonces.
-		consentStore.setState({ nonce: resolvedNonce });
-	}
-
-	return {
-		consentManager,
-		consentStore,
-		cacheKey,
-	};
-}
-
-export function clearConsentRuntimeCache(): void {
-	managerCache.clear();
-	storeCache.clear();
-	clearClientRegistry();
-}
+/**
+ * Creates a consent runtime: a kernel plus every opt-in module, wired.
+ *
+ * For a page-level host that configures once: the script tag, an Astro
+ * page, a root layout sharing one runtime. It mounts
+ * {@link defaultRuntimeModules}. A framework provider whose options follow
+ * its props uses `createConsentProviderRuntime`, which adds `update()`, the
+ * `enabled` toggle, a streamed `prefetch` and a choice of module loading.
+ *
+ * Construction preserves the prepared server snapshot. Storage hydration and
+ * browser privacy-signal activation happen on start.
+ *
+ * Nothing else happens until {@link ConsentRuntime.start} is called.
+ *
+ * @param options - The runtime configuration.
+ * @returns The runtime handle.
+ * @throws {Error} When `mode` is not a transport factory.
+ *
+ * @example
+ * ```ts
+ * const runtime = createConsentRuntime({
+ *   createIAB,
+ *   iab: { cmpId: 123 },
+ *   mode: hosted({ backendURL: '/api/c15t' }),
+ *   scripts: [{ category: 'measurement', id: 'ga', src: '...' }],
+ * });
+ * runtime.start();
+ * // ... later
+ * runtime.dispose();
+ * ```
+ */
+export const createConsentRuntime = function createConsentRuntime(
+	options: ConsentRuntimeOptions
+): ConsentRuntime {
+	return assembleConsentRuntime(options, defaultRuntimeModules).runtime;
+};

@@ -1,0 +1,250 @@
+/**
+ * @vitest-environment jsdom
+ */
+
+import { describe, expect, it, vi } from 'vitest';
+
+import {
+	deniedConsents,
+	grantedMeasurementConsents,
+	installHeadProbe,
+	loadScripts,
+	registerVendorContractCleanup,
+	updateScripts,
+} from './e2e-test-utils';
+import { posthog } from './vendors/analytics/posthog';
+
+describe('posthog contract', () => {
+	registerVendorContractCleanup();
+
+	it('boots with the loader attributes intact and denied consent mapped to opt-out', () => {
+		const consentCalls: string[] = [];
+		let attributes: Record<string, string | null> | undefined;
+		let queuedInit: unknown;
+
+		installHeadProbe((node, win) => {
+			if (!node.src.includes('posthog.com/static/array.js')) {
+				return;
+			}
+
+			attributes = {
+				crossorigin: node.getAttribute('crossorigin'),
+				dataApiHost: node.getAttribute('data-api-host'),
+				dataUiHost: node.getAttribute('data-ui-host'),
+			};
+
+			queuedInit = win.posthog._i;
+
+			win.posthog = {
+				capture: () => undefined,
+				get_explicit_consent_status: () => 'pending',
+				init: () => undefined,
+				opt_in_capturing: () => {
+					consentCalls.push('opt_in');
+				},
+				opt_out_capturing: () => {
+					consentCalls.push('opt_out');
+				},
+			};
+
+			node.dispatchEvent(new Event('load'));
+		});
+
+		loadScripts(
+			[
+				{
+					...posthog({ id: 'phc_contract' }),
+					id: 'posthog-contract',
+				},
+			],
+			deniedConsents
+		);
+
+		expect(attributes).toEqual({
+			crossorigin: 'anonymous',
+			dataApiHost: 'https://eu.i.posthog.com',
+			dataUiHost: 'https://eu.posthog.com',
+		});
+		expect(queuedInit).toEqual([
+			[
+				'phc_contract',
+				{
+					api_host: 'https://eu.i.posthog.com',
+					cookieless_mode: 'on_reject',
+					defaults: '2026-01-30',
+					ui_host: 'https://eu.posthog.com',
+				},
+				'posthog',
+			],
+		]);
+		expect(consentCalls).toEqual(['opt_out']);
+	});
+
+	it('queues feature switches into the init tuple the loader reads', () => {
+		let queuedInit: unknown;
+
+		installHeadProbe((node, win) => {
+			if (!node.src.includes('posthog.com/static/array.js')) {
+				return;
+			}
+
+			queuedInit = win.posthog._i;
+		});
+
+		loadScripts(
+			[
+				posthog({
+					features: {
+						deadClicks: false,
+						featureFlags: false,
+						heatmaps: false,
+						surveys: false,
+						webVitals: false,
+					},
+					id: 'phc_features',
+					loadMode: 'after-consent',
+				}),
+			],
+			grantedMeasurementConsents
+		);
+
+		expect(queuedInit).toEqual([
+			[
+				'phc_features',
+				{
+					advanced_disable_feature_flags: true,
+					api_host: 'https://eu.i.posthog.com',
+					capture_dead_clicks: false,
+					capture_heatmaps: false,
+					capture_performance: { web_vitals: false },
+					cookieless_mode: 'on_reject',
+					defaults: '2026-01-30',
+					disable_surveys: true,
+					ui_host: 'https://eu.posthog.com',
+				},
+				'posthog',
+			],
+		]);
+	});
+
+	it('queues capture calls until the loader installs', () => {
+		loadScripts([posthog({ id: 'phc_queue' })], grantedMeasurementConsents);
+
+		window.posthog.capture('signup', { plan: 'pro' });
+
+		expect(Array.from(window.posthog as unknown as unknown[])).toEqual([
+			['opt_in_capturing', { captureEventName: null }],
+			['capture', 'signup', { plan: 'pro' }],
+		]);
+	});
+
+	it('syncs granted consent after load without emitting another opt-in event', () => {
+		const optIn = vi.fn();
+		installHeadProbe((node, win) => {
+			if (!node.src.includes('posthog.com/static/array.js')) {
+				return;
+			}
+
+			win.posthog = {
+				capture: vi.fn(),
+				get_explicit_consent_status: () => 'granted',
+				init: vi.fn(),
+				opt_in_capturing: optIn,
+				opt_out_capturing: vi.fn(),
+			};
+			node.dispatchEvent(new Event('load'));
+		});
+
+		loadScripts([posthog({ id: 'phc_load_sync' })], grantedMeasurementConsents);
+
+		// PostHog emits $opt_in on every argument-free opt-in call, including
+		// calls that only reapply consent already restored from the queue.
+		expect(optIn).toHaveBeenCalledExactlyOnceWith({ captureEventName: null });
+	});
+
+	it('queues opt-out ahead of capture when measurement consent is denied', () => {
+		loadScripts([posthog({ id: 'phc_denied' })], deniedConsents);
+
+		window.posthog.capture('signup');
+
+		expect(Array.from(window.posthog as unknown as unknown[])).toEqual([
+			['opt_out_capturing'],
+			['capture', 'signup'],
+		]);
+	});
+
+	it('leaves an installed SDK intact when bootstrap runs again', () => {
+		const liveInit = () => undefined;
+		const liveCapture = () => undefined;
+		const installed = {
+			capture: liveCapture,
+			get_explicit_consent_status: () => 'granted',
+			init: liveInit,
+			opt_in_capturing: () => undefined,
+			opt_out_capturing: () => undefined,
+		};
+		window.posthog = installed;
+
+		loadScripts([posthog({ id: 'phc_regrant' })], grantedMeasurementConsents);
+
+		expect(window.posthog).toBe(installed);
+		expect(window.posthog.init).toBe(liveInit);
+		expect(window.posthog.capture).toBe(liveCapture);
+		expect(window.posthog.get_explicit_consent_status()).toBe('granted');
+		expect(window.posthog._i).toBeUndefined();
+	});
+
+	it('logs and loads nothing for a blank project key instead of throwing', () => {
+		const error = vi
+			.spyOn(console, 'error')
+			.mockImplementation(() => undefined);
+		const appended: string[] = [];
+		installHeadProbe((node) => {
+			appended.push(node.src);
+		});
+
+		// A blank `VITE_POSTHOG_KEY=` reaches the helper as an empty string.
+		const script = posthog({ id: '' });
+
+		expect(error).toHaveBeenCalledWith(
+			'posthog: missing or invalid id. The script will not load.'
+		);
+		expect(loadScripts([script], grantedMeasurementConsents)).toEqual([
+			'posthog',
+		]);
+		expect(updateScripts([script], deniedConsents)).toEqual({
+			loaded: [],
+			unloaded: ['posthog'],
+		});
+		expect(appended).toEqual([]);
+		expect(window.posthog).toBeUndefined();
+	});
+
+	it('bootstraps a snippet-shaped stub that array.js will install over', () => {
+		let acceptedBySnippetGuard: boolean | undefined;
+
+		installHeadProbe((node, win) => {
+			if (!node.src.includes('posthog.com/static/array.js')) {
+				return;
+			}
+
+			// The guard `array.js` applies before installing its runtime over an
+			// existing global (posthog-js >= 1.410.2). A stub that fails it is
+			// left in place, so every call — including `init` — becomes a no-op.
+			const stub = win.posthog as Window['posthog'] | undefined;
+			acceptedBySnippetGuard = !stub || Array.isArray(stub._i);
+		});
+
+		loadScripts(
+			[
+				{
+					...posthog({ id: 'phc_snippet_guard' }),
+					id: 'posthog-snippet-guard',
+				},
+			],
+			deniedConsents
+		);
+
+		expect(acceptedBySnippetGuard).toBe(true);
+	});
+});

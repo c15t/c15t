@@ -1,10 +1,8 @@
+import { controlledToggle, toggleOnOff } from '@c15t/conformance/play/switch';
 import { Switch } from '@c15t/react/primitives';
-import {
-	controlledToggle,
-	toggleOnOff,
-} from '@c15t/storybook-tests/play/switch';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useState } from 'react';
+
 import { enTranslations } from '../../../packages/translations/src';
 
 const { consentTypes } = enTranslations;
@@ -40,12 +38,15 @@ const meta = {
 					gap: '0.75rem',
 				}}
 			>
-				<Switch.Root aria-label="Enable analytics" {...args} />
+				<Switch.Root
+					aria-label="Enable analytics"
+					{...args}
+				/>
 				<span>{consentTypes.measurement.title}</span>
 			</label>
 		</div>
 	),
-	title: 'Primitives/Switch',
+	title: 'PRIMITIVES - REACT/Switch',
 } satisfies Meta<typeof Switch.Root>;
 
 export default meta;
@@ -112,7 +113,10 @@ export const Sizes: Story = {
 					gap: '0.75rem',
 				}}
 			>
-				<Switch.Root aria-label="Enable essential cookies" defaultChecked />
+				<Switch.Root
+					aria-label="Enable essential cookies"
+					defaultChecked
+				/>
 				<span>{consentTypes.necessary.title}</span>
 			</label>
 			<label

@@ -13,10 +13,13 @@
 		mode = 'filled',
 	}: Props = $props();
 
-	const classes = buttonVariants({ variant, mode });
+	const classes = buttonVariants({ mode, variant });
 </script>
 
-<button class={classes.root()} type="button">
+<button
+	class={classes.root()}
+	type="button"
+>
 	<span class={classes.icon()}>+</span>
 	{label}
 </button>

@@ -1,0 +1,9 @@
+@keyframes spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+:root {
+	--c15t-spin-animation: spin 1s linear infinite;
+}

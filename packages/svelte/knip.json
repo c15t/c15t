@@ -1,0 +1,37 @@
+{
+	"$schema": "https://unpkg.com/knip@latest/schema.json",
+	"entry": [
+		"./src/lib/index.ts",
+		"./src/lib/headless.ts",
+		"./src/lib/types.ts",
+		"./src/lib/utils.ts",
+		"./src/lib/context.svelte.ts",
+		"./src/lib/kit/index.ts",
+		"./styles.css",
+		"./iab/styles.css",
+		"./src/styles.css",
+		"./src/iab/styles.css"
+	],
+	"ignoreBinaries": [
+		"oxfmt",
+		"oxlint",
+		"svelte-package",
+		"svelte-check",
+		"tsc",
+		"vitest"
+	],
+	"ignore": [
+		"**/*.spec.{js,ts}",
+		"**/*.test.{js,ts}",
+		"**/__tests__/**",
+		"type-tests/**"
+	],
+	"ignoreDependencies": ["@c15t/typescript-config", "c15t", "sveltekit-3"],
+	"rules": {
+		"exports": "warn",
+		"types": "warn",
+		"dependencies": "error",
+		"files": "warn"
+	},
+	"ignoreExportsUsedInFile": true
+}

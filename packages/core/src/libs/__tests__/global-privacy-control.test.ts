@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+
 import { hasGlobalPrivacyControlSignal } from '../global-privacy-control';
 
 describe('hasGlobalPrivacyControlSignal', () => {
@@ -8,28 +9,26 @@ describe('hasGlobalPrivacyControlSignal', () => {
 		// Preserve the original window so we can safely override it per test
 		// without leaking global state across tests.
 		// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-		if (typeof window !== 'undefined') {
-			originalWindow = window;
-		} else {
+		if (typeof window === 'undefined') {
 			originalWindow = undefined;
+		} else {
+			originalWindow = window;
 		}
 	});
 
 	afterEach(() => {
 		// Restore the original window reference after each test
-		if (originalWindow !== undefined) {
-			globalThis.window = originalWindow;
+		if (originalWindow === undefined) {
+			// Clean up a window created by the test.
+			Reflect.deleteProperty(globalThis, 'window');
 		} else {
-			// @ts-expect-error - In some environments window might not exist
-			// and we want to clean up any window we created.
-			delete (globalThis as typeof globalThis & { window?: unknown }).window;
+			globalThis.window = originalWindow;
 		}
 	});
 
 	it('returns false when window is undefined (server-side environment)', () => {
 		// Simulate a server-side environment where window is not available
-		// @ts-expect-error - We intentionally delete the global window
-		delete (globalThis as typeof globalThis & { window?: unknown }).window;
+		Reflect.deleteProperty(globalThis, 'window');
 
 		const result = hasGlobalPrivacyControlSignal();
 
@@ -52,7 +51,7 @@ describe('hasGlobalPrivacyControlSignal', () => {
 		expect(result).toBe(true);
 	});
 
-	it('returns true when navigator.globalPrivacyControl is string "1"', () => {
+	it('returns false when navigator.globalPrivacyControl is string "1"', () => {
 		const mockNavigator = {
 			globalPrivacyControl: '1',
 		} as Navigator & { globalPrivacyControl?: boolean | string };
@@ -64,7 +63,7 @@ describe('hasGlobalPrivacyControlSignal', () => {
 
 		const result = hasGlobalPrivacyControlSignal();
 
-		expect(result).toBe(true);
+		expect(result).toBe(false);
 	});
 
 	it('returns false for other values or when the flag is missing', () => {

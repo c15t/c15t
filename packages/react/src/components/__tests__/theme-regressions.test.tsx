@@ -1,115 +1,63 @@
-import type { ConsentStoreState } from 'c15t';
-import { defaultTranslationConfig } from 'c15t';
-import { createRef } from 'react';
+import accordionStyles from '@c15t/ui/styles/components/accordion';
+import bannerStyles from '@c15t/ui/styles/components/consent-banner';
+import dialogStyles from '@c15t/ui/styles/components/consent-dialog';
+import triggerStyles from '@c15t/ui/styles/components/consent-dialog-trigger';
+import iabBannerStyles from '@c15t/ui/styles/components/iab-consent-banner';
+import switchStyles from '@c15t/ui/styles/components/switch';
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
-import { ConsentDialogOverlay } from '~/components/consent-dialog/atoms/overlay';
-import { ConsentDialogTriggerToolbar } from '~/components/consent-dialog-trigger';
-import { ConsentWidgetAccordion } from '~/components/consent-widget/atoms/accordion';
-import { IABConsentBannerFooter } from '~/components/iab-consent-banner/atoms/footer';
-import { IABConsentBannerHeader } from '~/components/iab-consent-banner/atoms/header';
-import { ConsentStateContext } from '~/context/consent-manager-context';
-import { GlobalThemeContext } from '~/context/theme-context';
 
-function createMockState(
-	overrides: Partial<ConsentStoreState> = {}
-): ConsentStoreState {
-	return {
-		activeUI: 'dialog',
-		model: 'opt-in',
-		translationConfig: defaultTranslationConfig,
-		consents: {
-			necessary: true,
-			functionality: false,
-			experience: false,
-			marketing: false,
-			measurement: false,
-		},
-		selectedConsents: {
-			necessary: true,
-			functionality: false,
-			experience: false,
-			marketing: false,
-			measurement: false,
-		},
-		consentInfo: null,
-		consentCategories: [
-			'necessary',
-			'functionality',
-			'experience',
-			'marketing',
-			'measurement',
-		],
-		consentTypes: [],
-		policyCategories: null,
-		policyScopeMode: null,
-		policyBanner: {},
-		policyDialog: {},
-		saveConsents: vi.fn().mockResolvedValue(undefined),
-		setConsent: vi.fn(),
-		setSelectedConsent: vi.fn(),
-		setActiveUI: vi.fn(),
-		has: vi.fn(),
-		hasConsented: vi.fn(),
-		getDisplayedConsents: vi.fn(() => []),
-		subscribeToConsentChanges: vi.fn(() => () => undefined),
-		...overrides,
-	} as unknown as ConsentStoreState;
-}
+import { ComponentFixtureProvider as ConsentProvider } from '~/__tests__/component-fixture-provider';
+import {
+	StableTriggerProvider,
+	StableV3UIConfigProvider,
+} from '~/__tests__/stable-context-providers';
+import { IABConsentBannerFooter } from '~/components/iab-prompt/atoms/footer';
+import { IABConsentBannerHeader } from '~/components/iab-prompt/atoms/header';
+import { ConsentDialogTriggerToolbar } from '~/components/panel-trigger';
+import { TriggerButton } from '~/components/panel-trigger/atoms/button';
+import { ConsentDialogHeaderTitle } from '~/components/panel/atoms/card';
+import { ConsentWidgetAccordion } from '~/components/preferences/atoms/accordion';
+import { ConsentBannerTitle } from '~/components/prompt/components';
+import * as Switch from '~/components/shared/ui/switch';
+import { offline } from '~/transports/offline';
 
 describe('Theme regressions', () => {
-	test('styles trigger toolbar atoms through theme slots and direct overrides', async () => {
-		const state = createMockState({
-			activeUI: 'none',
-			hasConsented: vi.fn(() => true),
-		});
-
+	test('styles trigger toolbar atoms through component slots and direct overrides', async () => {
 		await render(
-			<GlobalThemeContext.Provider
-				value={{
-					noStyle: false,
-					theme: {
-						slots: {
-							consentDialogTriggerToolbar: {
+			<ConsentProvider
+				options={{
+					components: {
+						trigger: {
+							toolbar: {
 								className: 'themed-trigger',
 								style: { backgroundColor: 'rgb(1, 2, 3)' },
 							},
-							consentDialogTriggerToolbarItem: 'themed-trigger-item',
-							consentDialogTriggerToolbarIcon: 'themed-trigger-icon',
+							toolbarIcon: { className: 'themed-trigger-icon' },
+							toolbarItem: { className: 'themed-trigger-item' },
 						},
 					},
+					mode: offline(),
 				}}
 			>
-				<ConsentStateContext.Provider
-					value={{
-						state,
-						store: {
-							getState: () => state,
-							subscribe: () => () => undefined,
-							setState: () => undefined,
+				<ConsentDialogTriggerToolbar
+					actions={[
+						{
+							icon: 'settings',
+							id: 'support',
+							label: 'Open support chat',
+							onSelect: vi.fn(),
 						},
-						manager: null,
+					]}
+					className="direct-trigger"
+					preferences={{
+						className: 'direct-trigger-item',
+						style: { color: 'rgb(4, 5, 6)' },
 					}}
-				>
-					<ConsentDialogTriggerToolbar
-						actions={[
-							{
-								id: 'support',
-								label: 'Open support chat',
-								icon: 'settings',
-								onSelect: vi.fn(),
-							},
-						]}
-						className="direct-trigger"
-						preferences={{
-							className: 'direct-trigger-item',
-							style: { color: 'rgb(4, 5, 6)' },
-						}}
-						showWhen="always"
-						style={{ borderRadius: '12px' }}
-					/>
-				</ConsentStateContext.Provider>
-			</GlobalThemeContext.Provider>
+					showWhen="always"
+					style={{ borderRadius: '12px' }}
+				/>
+			</ConsentProvider>
 		);
 
 		await vi.waitFor(() => {
@@ -137,14 +85,12 @@ describe('Theme regressions', () => {
 
 	test('does not forward slot noStyle to the DOM', async () => {
 		await render(
-			<GlobalThemeContext.Provider
+			<StableV3UIConfigProvider
 				value={{
-					noStyle: false,
-					theme: {
-						slots: {
-							iabConsentBannerHeader: {
+					components: {
+						'iab-banner': {
+							header: {
 								className: 'regression-header',
-								noStyle: true,
 							},
 						},
 					},
@@ -153,7 +99,7 @@ describe('Theme regressions', () => {
 				<IABConsentBannerHeader data-testid="regression-header">
 					<div>Header content</div>
 				</IABConsentBannerHeader>
-			</GlobalThemeContext.Provider>
+			</StableV3UIConfigProvider>
 		);
 
 		await vi.waitFor(() => {
@@ -168,12 +114,11 @@ describe('Theme regressions', () => {
 
 	test('applies inline style from slot objects', async () => {
 		await render(
-			<GlobalThemeContext.Provider
+			<StableV3UIConfigProvider
 				value={{
-					noStyle: false,
-					theme: {
-						slots: {
-							iabConsentBannerFooter: {
+					components: {
+						'iab-banner': {
+							footer: {
 								className: 'regression-footer',
 								style: {
 									backgroundColor: 'rgb(1, 2, 3)',
@@ -187,7 +132,7 @@ describe('Theme regressions', () => {
 				<IABConsentBannerFooter data-testid="regression-footer">
 					<div>Footer content</div>
 				</IABConsentBannerFooter>
-			</GlobalThemeContext.Provider>
+			</StableV3UIConfigProvider>
 		);
 
 		await vi.waitFor(() => {
@@ -203,14 +148,13 @@ describe('Theme regressions', () => {
 		});
 	});
 
-	test('wires consentWidgetAccordion slot className and style', async () => {
+	test('wires accordion.root slot className and style', async () => {
 		await render(
-			<GlobalThemeContext.Provider
+			<StableV3UIConfigProvider
 				value={{
-					noStyle: false,
-					theme: {
-						slots: {
-							consentWidgetAccordion: {
+					components: {
+						accordion: {
+							root: {
 								className: 'regression-accordion',
 								style: {
 									backgroundColor: 'rgb(4, 5, 6)',
@@ -224,7 +168,7 @@ describe('Theme regressions', () => {
 				<ConsentWidgetAccordion data-testid="regression-accordion">
 					<div>Accordion content</div>
 				</ConsentWidgetAccordion>
-			</GlobalThemeContext.Provider>
+			</StableV3UIConfigProvider>
 		);
 
 		await vi.waitFor(() => {
@@ -240,48 +184,71 @@ describe('Theme regressions', () => {
 		});
 	});
 
-	test('allows direct className and inline style on ConsentDialog.Overlay', async () => {
-		const state = createMockState();
-		const overlayRef = createRef<HTMLDivElement>();
-
+	test('provider noStyle strips v3 surface base classes', async () => {
 		await render(
-			<GlobalThemeContext.Provider value={{ noStyle: false }}>
-				<ConsentStateContext.Provider
+			<ConsentProvider options={{ mode: offline(), noStyle: true }}>
+				<ConsentBannerTitle data-testid="nostyle-banner-title">
+					Banner title
+				</ConsentBannerTitle>
+				{/* ConsentDialogHeaderTitle pins its own data-testid after props */}
+				<ConsentDialogHeaderTitle>Dialog title</ConsentDialogHeaderTitle>
+				<ConsentWidgetAccordion data-testid="nostyle-accordion">
+					<div>Accordion content</div>
+				</ConsentWidgetAccordion>
+				<IABConsentBannerFooter data-testid="nostyle-iab-banner-footer">
+					Footer
+				</IABConsentBannerFooter>
+				<StableTriggerProvider
 					value={{
-						state,
-						store: {
-							getState: () => state,
-							subscribe: () => () => undefined,
-							setState: () => undefined,
-						},
-						manager: null,
+						branding: 'c15t',
+						corner: 'bottom-right',
+						dragStyle: {},
+						handlers: {},
+						isDragging: false,
+						isSnapping: false,
+						isVisible: true,
+						openDialog: vi.fn(),
+						wasDragged: () => false,
 					}}
 				>
-					<ConsentDialogOverlay
-						ref={overlayRef}
-						className="dialog-overlay-direct"
-						data-qa="overlay"
-						id="overlay-id"
-						noStyle
-						style={{ backgroundColor: 'rgb(7, 8, 9)' }}
-					/>
-				</ConsentStateContext.Provider>
-			</GlobalThemeContext.Provider>
+					<TriggerButton data-testid="nostyle-trigger">Trigger</TriggerButton>
+				</StableTriggerProvider>
+				<Switch.Root data-testid="nostyle-switch" />
+			</ConsentProvider>
 		);
 
 		await vi.waitFor(() => {
-			const overlay = document.querySelector(
-				'[data-testid="consent-dialog-overlay"]'
-			) as HTMLElement | null;
+			const bannerTitle = document.querySelector(
+				'[data-testid="nostyle-banner-title"]'
+			);
+			const dialogTitle = document.querySelector(
+				'[data-testid="consent-dialog-title"]'
+			);
+			const accordion = document.querySelector(
+				'[data-testid="nostyle-accordion"]'
+			);
+			const iabBannerFooter = document.querySelector(
+				'[data-testid="nostyle-iab-banner-footer"]'
+			);
+			const trigger = document.querySelector('[data-testid="nostyle-trigger"]');
+			const switchRoot = document.querySelector(
+				'[data-testid="nostyle-switch"]'
+			);
+			const switchTrack = switchRoot?.querySelector(
+				'[data-slot="switch-track"]'
+			);
+			const switchThumb = switchRoot?.querySelector(
+				'[data-slot="switch-thumb"]'
+			);
 
-			expect(overlay).toBeInTheDocument();
-			expect(overlayRef.current).toBe(overlay);
-			expect(overlay).toHaveAttribute('data-qa', 'overlay');
-			expect(overlay).toHaveAttribute('id', 'overlay-id');
-			expect(overlay?.className).toContain('dialog-overlay-direct');
-			expect(overlay).toHaveStyle({
-				backgroundColor: 'rgb(7, 8, 9)',
-			});
+			expect(bannerTitle?.className).not.toContain(bannerStyles.title);
+			expect(dialogTitle?.className).not.toContain(dialogStyles.title);
+			expect(accordion?.className).not.toContain(accordionStyles.list);
+			expect(iabBannerFooter?.className).not.toContain(iabBannerStyles.footer);
+			expect(trigger?.className).not.toContain(triggerStyles.trigger);
+			expect(switchRoot?.className).not.toContain(switchStyles.root);
+			expect(switchTrack?.className).not.toContain(switchStyles.track);
+			expect(switchThumb?.className).not.toContain(switchStyles.thumb);
 		});
 	});
 });

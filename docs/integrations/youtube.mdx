@@ -1,190 +1,72 @@
 ---
 title: YouTube
-description: Keep YouTube iframes unmounted until consent with a privacy-enhanced, lazy-loaded React or Next.js embed.
+description: Gate YouTube embeds with c15t v3 in Next.js, TanStack Start, React, Nuxt, Vue, Astro, Svelte, SvelteKit or JavaScript.
+seoTitle: YouTube embed cookie consent with c15t
+seoDescription: Show YouTube videos only with consent. c15t loads the video iframe only when its category has consent, in Next.js, React, Vue, Svelte, Astro and HTML.
 icon: youtube
 group: integrations
 ---
 
-`YouTubeEmbed` is a renderable integration for React and Next.js. It uses c15t's
-`Frame` consent boundary, so the YouTube iframe is not mounted and no YouTube
-request is made until the configured consent category is allowed.
+c15t has no YouTube helper. This guide puts a YouTube iframe inside each
+framework's `ConsentGate`, or uses `data-category` with the HTML script tag. The
+example uses the `marketing` category, but you can choose a different category.
+Until that category has consent, the page has no iframe that loads a YouTube
+URL, so the browser does not connect to YouTube. If the visitor withdraws
+consent, `ConsentGate` removes the iframe. With `data-category`, c15t moves the
+URL from `src` to `data-src`.
 
-The component does not load the YouTube IFrame Player API. It is intended for
-standard iframe embeds and keeps script readiness separate from iframe gating.
+## Configure the video
 
-## Integrate with c15t
+Use the ID of an embeddable video and the category matching its purpose in your
+policy. This page uses `marketing` because the YouTube player can set
+advertising identifiers. The framework quickstarts gate their demo video on
+`measurement` instead; either works if your policy says so. The current v3 adapters use consent-gated iframes rather than the v2
+`YouTubeEmbed` convenience component.
 
-`YouTubeEmbed` must render inside a `ConsentManagerProvider`. Complete the
-[React quickstart](/docs/frameworks/react/quickstart) or
-[Next.js quickstart](/docs/frameworks/next/quickstart) first.
-
-<Tabs items={['React', 'Next.js']}>
-  <Tab value="React">
-    ```tsx
-    import { YouTubeEmbed } from '@c15t/react';
-
-    export function ProductVideo() {
-      return (
-        <YouTubeEmbed
-          consentCategory="marketing"
-          params={{ controls: true, playsinline: true }}
-          title="Product overview"
-          videoId="dQw4w9WgXcQ"
-        />
-      );
-    }
-    ```
-  </Tab>
-
-  <Tab value="Next.js">
-    ```tsx
-    'use client';
-
-    import { YouTubeEmbed } from '@c15t/nextjs';
-
-    export function ProductVideo() {
-      return (
-        <YouTubeEmbed
-          consentCategory="marketing"
-          params={{ controls: true, playsinline: true }}
-          title="Product overview"
-          videoId="dQw4w9WgXcQ"
-        />
-      );
-    }
-    ```
-  </Tab>
-</Tabs>
-
-`marketing` is the default category. Choose a different category only when it
-matches the purpose of the embed and the policy presented to your users.
-
-## How c15t loads it
-
-- **Before consent:** c15t renders a placeholder and does not mount the iframe.
-- **After consent:** the iframe mounts with its final embed URL.
-- **On revocation:** the `Frame` boundary unmounts the iframe, stopping the
-  embedded player and future requests from that document.
-- **Loading behavior:** c15t reserves the final player size, shows a localized
-  loading state, and uses native iframe lazy loading by default.
-- **Default layout:** the placeholder and player share a responsive 16:9,
-  borderless frame with a `200px` minimum height.
-- **Privacy-enhanced mode:** URLs built from `videoId` use
-  `youtube-nocookie.com` by default.
-
-Privacy-enhanced mode changes the YouTube host but does not replace consent
-gating. Keep the iframe behind the category required by your privacy policy.
-
-## Build the embed URL
-
-Prefer `videoId` when you control the video:
-
-```tsx
-<YouTubeEmbed
-  consentCategory="marketing"
-  params={{
-    autoplay: false,
-    controls: true,
-    playsinline: true,
-    rel: false,
-  }}
-  start={36}
-  title="Quarterly product update"
-  videoId="dQw4w9WgXcQ"
-/>
+```ts title="src/embed-config.ts"
+export const embedCategory = 'marketing' as const;
+export const embedURL =
+	'https://www.youtube-nocookie.com/embed/VIDEO_ID?playsinline=1';
+export const embedTitle = 'Product walkthrough';
+export const embedAspectRatio = '16 / 9';
 ```
 
-Boolean `params` are serialized as YouTube's `1` and `0` values. `start` is
-serialized as the player's start time in seconds. If `params.start` is also
-present, the top-level `start` prop takes precedence.
+Replace `VIDEO_ID` before running the example.
 
-Set `privacyEnhanced={false}` only when you intentionally need the regular
-`youtube.com` host.
+<include src="../shared/integrations/consent-embed.mdx" />
 
-### Migrate an existing iframe URL
+## Customize the player and placeholder
 
-Use `src` when you already have a complete embed URL:
+Set playback options in the iframe URL. For example, append `start=36` to begin
+36 seconds into the video. Use supported
+[YouTube player parameters](https://developers.google.com/youtube/player_parameters)
+and reserve at least a 200-by-200-pixel player area.
 
-```tsx
-<YouTubeEmbed
-  consentCategory="marketing"
-  src="https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?start=36"
-  title="Quarterly product update"
-/>
-```
+React and Svelte `ConsentGate` components provide a blocked-state placeholder and
+consent action. Their `placeholder` APIs differ. React takes a node, and
+Svelte takes a snippet. Keep a clear way to reopen preferences when customizing them.
+The Vue and browser examples show that action explicitly. `loading="lazy"` delays an
+allowed iframe for performance; it does not implement consent gating.
 
-When `src` is provided, c15t uses it unchanged. TypeScript treats `src` and
-`videoId` as mutually exclusive source modes: `start`, `params`, and
-`privacyEnhanced` are available only with `videoId`.
+## Consent behavior
 
-## Style the wrapper and iframe
+Add `data-vendor="youtube"` next to `data-category` and declare a `youtube`
+vendor in the runtime's `vendors` option or the backend manifest to let visitors
+turn YouTube off while keeping the rest of the category on. See
+[vendor consent for your framework](/docs/integrations/overview#vendor-switches-and-cookie-cleanup).
 
-`wrapperClassName` targets the consent-gated `Frame`. `className` and the
-forwarded ref target the iframe itself.
+Each example keeps the iframe absent until the category is allowed. After
+permission, the iframe can load. Revoking permission removes the iframe and its
+embedded document. Requests already sent cannot be recalled.
 
-The defaults are responsive and stable without utility classes. Override them
-only when your layout needs a different aspect ratio or height:
+The `youtube-nocookie.com` hostname does not replace the consent boundary. Avoid
+loading a remote thumbnail, preconnecting to YouTube, or installing the IFrame
+Player API separately if you require no YouTube request before permission.
+This recipe embeds a video; it does not load the JavaScript Player API.
 
-```tsx
-<YouTubeEmbed
-  consentCategory="marketing"
-  frameProps={{ style: { aspectRatio: '4 / 3', minHeight: 280 } }}
-  style={{ borderRadius: 4 }}
-  title="Product overview"
-  videoId="dQw4w9WgXcQ"
-/>
-```
+## Verify the integration
 
-`frameProps.style` is merged after the wrapper defaults. The iframe fills that
-wrapper, has no border, and inherits the wrapper radius by default.
-
-## Customize the placeholder
-
-```tsx
-import { Frame, YouTubeEmbed } from '@c15t/react';
-
-<YouTubeEmbed
-  consentCategory="marketing"
-  placeholder={
-    <Frame.Root>
-      <Frame.Title>Allow marketing consent to watch this video.</Frame.Title>
-      <Frame.Button category="marketing" />
-    </Frame.Root>
-  }
-  title="Product overview"
-  videoId="dQw4w9WgXcQ"
-/>
-```
-
-Custom placeholders should explain why the content is blocked and provide a
-clear way to change consent. Always give the iframe a meaningful `title`.
-
-Use `loadingFallback` to replace the post-consent loading message and
-`errorFallback` to replace the configuration error state. If neither `videoId`
-nor `src` is supplied at runtime, the component renders that error state instead
-of mounting an iframe.
-
-Standard cross-origin iframes do not provide a reliable player-error signal.
-`YouTubeEmbed` forwards the iframe's native `onError` when a browser emits it,
-but player-level errors require the YouTube IFrame Player API and are outside
-this iframe-only component.
-
-## Verify setup
-
-1. Clear saved consent and reload the page.
-2. Confirm there is no YouTube iframe or YouTube network request before consent.
-3. Grant the configured category and confirm exactly one iframe mounts.
-4. Confirm a `videoId` embed uses `youtube-nocookie.com` unless
-   `privacyEnhanced={false}`.
-5. Revoke consent and confirm the iframe is removed.
-6. Confirm the default 16:9 frame is borderless and reserves the same space at
-   mobile and desktop widths.
-
-See YouTube's [embedded player parameters](https://developers.google.com/youtube/player_parameters)
-for the supported query parameters.
-
-## Types
-
-### YouTubeEmbedProps
-
-<AutoTypeTable path="./packages/react/src/components/integrations/youtube-embed.tsx" name="YouTubeEmbedProps" />
+In a fresh opt-in session, confirm no iframe or YouTube request exists. Grant
+marketing permission and play the video, then revoke it and confirm the iframe
+is removed. Test a narrow viewport and keyboard access to the placeholder and
+player. See [consent verification](/docs/guides/verify-consent).

@@ -4,56 +4,49 @@
  * Used by both App Directory and Pages Directory implementations
  */
 
+import { detectFramework } from '~/context/framework-detection';
+
+import { DEFAULT_OFFLINE_RULES } from '../../../../generate/options';
+import { isTailwindV3 } from '../../../shared/postcss-config';
+
+export { DEFAULT_OFFLINE_RULES } from '../../../../generate/options';
+
 /**
  * Gets the backend URL value for templates based on configuration
  *
  * @param backendURL - The raw backend URL
- * @param useEnvFile - Whether to use environment variable
  * @param proxyNextjs - Whether to use Next.js proxy
- * @returns The backend URL value as a string (quoted literal or env var expression)
+ * @returns The backend URL value as a quoted string literal
  *
  * @example
  * ```ts
  * // With proxy
- * getBackendURLValue('https://api.example.com', false, true);
+ * getBackendURLValue('https://api.example.com', true);
  * // Returns: '"/api/c15t"'
  *
- * // With env file
- * getBackendURLValue('https://api.example.com', true, false);
- * // Returns: 'process.env.NEXT_PUBLIC_C15T_URL!'
- *
  * // Direct URL
- * getBackendURLValue('https://api.example.com', false, false);
+ * getBackendURLValue('https://api.example.com', false);
  * // Returns: '"https://api.example.com"'
  * ```
  */
-export function getBackendURLValue(
+export const getBackendURLValue = function getBackendURLValue(
 	backendURL?: string,
-	useEnvFile?: boolean,
-	proxyNextjs?: boolean,
-	envVarPrefix = 'NEXT_PUBLIC'
+	proxyNextjs?: boolean
 ): string {
 	if (proxyNextjs) {
 		return '"/api/c15t"';
 	}
 
-	if (useEnvFile) {
-		return `process.env.${envVarPrefix}_C15T_URL!`;
-	}
-
-	return `'${backendURL || 'https://your-project.inth.app'}'`;
-}
+	return JSON.stringify(backendURL || 'https://your-project.inth.app');
+};
 
 /**
- * Generates the inner options text for ConsentManagerProvider based on mode and configuration
+ * Generates the inner options text for ConsentProvider based on mode and configuration
  *
  * @param mode - The storage mode ('hosted', 'self-hosted', 'offline', or 'custom')
  * @param backendURL - URL for the c15t backend/API (for 'hosted'/'self-hosted' modes)
- * @param useEnvFile - Whether to use environment variable for backendURL
  * @param proxyNextjs - Whether to use Next.js API proxy for hosted mode
- * @param inlineCustomHandlers - When true, generates inline fetch-based endpoint handlers
- *   for 'custom' mode instead of referencing createCustomHandlers(). Used by React templates
- *   that don't generate a separate handlers file.
+ * @param _inlineCustomHandlers - Reserved positional argument; custom transports are inline.
  * @returns The formatted options content (without outer braces) as a string
  *
  * @remarks
@@ -63,56 +56,72 @@ export function getBackendURLValue(
  *
  * @example
  * ```ts
- * const options = generateOptionsText('hosted', 'https://api.example.com', false, true);
- * // Returns: "mode: 'hosted',\n\t\t\t\tbackendURL: '/api/c15t', ..."
+ * const options = generateOptionsText('hosted', 'https://api.example.com', true);
+ * // Returns: "mode: hosted({ backendURL: '/api/c15t' }),"
  * ```
  */
-export function generateOptionsText(
+export const generateOptionsText = function generateOptionsText(
 	mode: string,
 	backendURL?: string,
-	useEnvFile?: boolean,
 	proxyNextjs?: boolean,
-	inlineCustomHandlers?: boolean,
-	envVarPrefix = 'NEXT_PUBLIC'
+	_inlineCustomHandlers?: boolean
 ): string {
 	switch (mode) {
 		case 'hosted':
 		case 'c15t':
 		case 'self-hosted': {
-			const backendURLValue = getBackendURLValue(
-				backendURL,
-				useEnvFile,
-				proxyNextjs,
-				envVarPrefix
-			);
-			return `mode: 'hosted',
-				backendURL: ${backendURLValue},`;
+			const backendURLValue = getBackendURLValue(backendURL, proxyNextjs);
+			return `mode: hosted({ backendURL: ${backendURLValue} }),`;
 		}
 		case 'custom': {
-			if (inlineCustomHandlers) {
-				const url = useEnvFile
-					? `process.env.${envVarPrefix}_CONSENT_API_URL`
-					: `'${backendURL || '/api/consent'}'`;
-				return `mode: 'custom',
-			endpointHandlers: {
-				async getConsent() {
-					const res = await fetch(${url});
+			const url = JSON.stringify(backendURL || '/api/consent');
+
+			return `mode: custom({
+				async init() {
+					const res = await fetch(${url}, {
+						headers: { 'x-c15t-policy-contract': '1' },
+					});
+					if (!res.ok) throw new Error('Consent initialization failed');
 					return res.json();
 				},
-				async setConsent(consent) {
+				async save(payload) {
 					const res = await fetch(${url}, {
 						method: 'POST',
-						headers: { 'Content-Type': 'application/json' },
-						body: JSON.stringify(consent),
+						headers: {
+							'Content-Type': 'application/json',
+							'x-c15t-policy-contract': '1',
+						},
+						body: JSON.stringify(payload),
 					});
+					if (!res.ok) throw new Error('Consent save failed');
 					return res.json();
 				},
-			},`;
-			}
-			return `mode: 'custom',
-				endpointHandlers: createCustomHandlers(),`;
+			}),`;
 		}
 		default:
-			return `mode: 'offline',`;
+			return `mode: offline({ policyRules: ${DEFAULT_OFFLINE_RULES} }),`;
 	}
-}
+};
+
+/**
+ * Generates provider options for an existing app. Tailwind 3 uses the external
+ * stylesheet so its PostCSS plugin can flatten c15t's named layers.
+ * @param projectRoot - App root containing package.json.
+ * @param mode - Consent transport mode.
+ * @param backendURL - Backend URL for hosted or custom transports.
+ * @param proxyNextjs - Whether browser requests use the Next.js proxy.
+ * @returns Options with automatic styles disabled only for Tailwind 3.
+ */
+export const generateProjectOptionsText =
+	async function generateProjectOptionsText(
+		projectRoot: string,
+		mode: string,
+		backendURL?: string,
+		proxyNextjs?: boolean
+	): Promise<string> {
+		const { tailwindVersion } = await detectFramework(projectRoot);
+		const options = generateOptionsText(mode, backendURL, proxyNextjs);
+		return isTailwindV3(tailwindVersion)
+			? `${options}\nstyles: false,`
+			: options;
+	};

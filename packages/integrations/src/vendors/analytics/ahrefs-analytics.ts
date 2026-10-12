@@ -1,0 +1,105 @@
+import type { Script } from '@c15t/core';
+
+import { resolveManifest } from '../../resolve';
+import { vendorManifestContract } from '../../types';
+import type { VendorManifest } from '../../types';
+import { readId, skipMissingId } from '../_shared/required-id';
+import { resolveScriptUrl } from '../_shared/script-url';
+
+declare global {
+	interface Window {
+		AhrefsAnalytics?: {
+			sendEvent: (
+				name: string,
+				options?: {
+					props?: Record<string, string>;
+					meta?: Record<string, unknown>;
+				}
+			) => void;
+		};
+	}
+}
+
+/**
+ * Ahrefs Analytics vendor manifest.
+ *
+ * Loads Ahrefs Web Analytics and passes the project key via `data-key`. Ahrefs
+ * Web Analytics is cookieless, so the script is consent-gated on `measurement`
+ * and unloaded when consent is revoked.
+ */
+export const ahrefsAnalyticsManifest = {
+	...vendorManifestContract,
+	category: 'measurement',
+	install: [
+		{
+			async: true,
+			attributes: {
+				'data-key': '{{key}}',
+			},
+
+			src: '{{scriptUrl}}',
+			type: 'loadScript',
+		},
+	],
+	vendor: 'ahrefs-analytics',
+	vendorDetails: {
+		homepageUrl: 'https://ahrefs.com/web-analytics',
+		legalName: 'Ahrefs Pte. Ltd.',
+		name: 'Ahrefs Web Analytics',
+		privacyPolicyUrl: 'https://ahrefs.com/legal/privacy-policy',
+	},
+} as const satisfies VendorManifest;
+
+export interface AhrefsAnalyticsOptions {
+	/**
+	 * Your Ahrefs Web Analytics project key.
+	 */
+	key: string;
+
+	/**
+	 * Custom loader URL.
+	 * @default 'https://analytics.ahrefs.com/analytics.js'
+	 */
+	scriptUrl?: string;
+}
+
+/**
+ * Creates an Ahrefs Analytics script.
+ *
+ * The Ahrefs SDK exposes its runtime API on `window.AhrefsAnalytics` after
+ * load. This helper only models the serializable script manifest.
+ *
+ * @see https://ahrefs.com/web-analytics
+ *
+ * @param options - The options for the Ahrefs Analytics script.
+ * @returns The Ahrefs Analytics script.
+ * @remarks When `key` is missing or blank, the
+ *   helper logs `ahrefsAnalytics: missing or invalid key` with
+ *   `console.error` and returns a script that never loads.
+ *
+ * @example
+ * ```ts
+ * import { ahrefsAnalytics } from '@c15t/integrations/ahrefs-analytics';
+ *
+ * ahrefsAnalytics({ key: 'YOUR_PROJECT_KEY' });
+ * ```
+ */
+export const ahrefsAnalytics = function ahrefsAnalytics(
+	options: AhrefsAnalyticsOptions
+): Script {
+	const key = readId(options.key);
+	if (key === undefined) {
+		return skipMissingId('ahrefsAnalytics', 'key', {
+			category: 'measurement',
+			manifest: ahrefsAnalyticsManifest,
+		});
+	}
+
+	return resolveManifest(ahrefsAnalyticsManifest, {
+		key,
+		scriptUrl: resolveScriptUrl(
+			options.scriptUrl,
+			'https://analytics.ahrefs.com/analytics.js'
+		),
+	});
+};

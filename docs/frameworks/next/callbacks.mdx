@@ -1,106 +1,120 @@
 ---
 title: Callbacks
-description: React to consent lifecycle events - initialization, consent changes, errors, and revocation reloads.
+description: Run code in a Next.js app when a visitor records a consent choice, when permissions change, when a request fails and before the revocation reload, from c15t.config.ts.
 group: frameworks
 ---
 
-<import src="../../shared/react/guides/callbacks.mdx#intro" />
+## Put callbacks in c15t.config.ts
 
-<Callout type="info">
-  `subscribeToConsentChanges()` is the recommended API for analytics SDKs and consent-mode integrations. It only emits future saves that actually changed persisted preferences.
-</Callout>
+Callbacks are functions, and a Server Component cannot pass functions to a
+Client Component. React serializes every prop a layout passes across that
+boundary. `c15t.config.ts` is bundled into the browser, so put the callbacks
+there instead, under `options`. Define them in a module:
 
-## Configuration
+<include src="../../shared/examples/nextjs/callbacks.mdx" />
 
-```tsx
-import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from '@c15t/nextjs';
+Then pass them in the config:
 
-export function ConsentManager({ children }: { children: ReactNode }) {
-  return (
-    <ConsentManagerProvider
-      options={{
-        mode: 'hosted',
-        backendURL: '/api/c15t',
-        callbacks: {
-          onBannerFetched: ({ jurisdiction, location, translations }) => {
-            console.log('Jurisdiction:', jurisdiction);
-            console.log('Country:', location.countryCode);
-            console.log('Language:', translations.language);
-          },
-          onConsentSet: ({ preferences }) => {
-            console.log('Consent lifecycle event:', preferences);
-          },
-          onConsentChanged: ({ allowedCategories, deniedCategories }) => {
-            analytics.syncConsent({ allowedCategories, deniedCategories });
-          },
-          onError: ({ error }) => {
-            errorReporter.captureMessage(error);
-          },
-          onBeforeConsentRevocationReload: ({ preferences }) => {
-            // Flush pending analytics before page reloads
-            analytics.flush();
-          },
-        },
-      }}
-    >
-      {children}
-    </ConsentManagerProvider>
-  );
-}
+{/* example: fragment */}
+
+```ts title="c15t.config.ts"
+import { defineConsentConfig } from 'c15t/next';
+
+import { callbacks } from './lib/consent-callbacks';
+
+export default defineConsentConfig({ options: { callbacks } });
 ```
 
-<import src="../../shared/react/guides/callbacks.mdx#callback-reference" />
+`ConsentRoot` reads the config in the App Router layout and in the
+[Pages Router](/docs/frameworks/next/pages-router) `_app.tsx` alike, so the
+same file covers both routers. Keep your existing `scripts` and other options
+in the same call.
 
-## Change-Only Subscriptions
+`ConsentRoot` subscribes the callbacks after it mounts in the browser. Server
+rendering never calls them. The provider calls the latest `callbacks` object
+it received, so a new object on a later render takes effect without a
+remount.
 
-Use `subscribeToConsentChanges()` when you want a stable listener for real preference changes after mount:
+## Available callbacks
 
-```tsx
-import { useEffect } from 'react';
-import { useConsentManager } from '@c15t/nextjs';
+| Callback | Runs when | Receives |
+| --- | --- | --- |
+| `onChoiceRecorded` | The visitor clicks Accept All, Reject All or Save Settings, in the stock UI or through `useSaveConsents()`. | `snapshot`, the state after the choice; `confirmed`, the categories this action recorded; `actionAt`, the time as a millisecond timestamp |
+| `onPermissionsChanged` | Any effective permission changes value. | `snapshot`, the state after the change; `previous`, the permissions before it |
+| `onError` | A consent command fails in the browser, such as a failed `/init` request or a save the backend rejects. | `error`, a message string |
+| `onBeforeConsentRevocationReload` | A save withdrew a granted category or vendor, right before c15t reloads the page. | `preferences`, the permissions after the save |
 
-function ConsentAnalytics() {
-  const { subscribeToConsentChanges } = useConsentManager();
+The type for the whole object is `ConsentProviderCallbacks` from `c15t/next`.
+Callbacks run after c15t updates its state, so `snapshot` and hooks such as
+`useConsent()` already hold the new values.
 
-  useEffect(() => {
-    return subscribeToConsentChanges(({ allowedCategories, deniedCategories }) => {
-      analytics.syncConsent({ allowedCategories, deniedCategories });
-    });
-  }, [subscribeToConsentChanges]);
+## onChoiceRecorded or onPermissionsChanged
 
-  return null;
-}
+`onChoiceRecorded` runs only for a visitor's action. `onPermissionsChanged`
+runs whenever effective permissions change, whatever the cause:
+
+| Event | `onChoiceRecorded` | `onPermissionsChanged` |
+| --- | --- | --- |
+| Visitor accepts, rejects or saves | Yes | Yes, if a permission changed |
+| A policy resolves in the browser and allows categories before any choice | No | Yes |
+| Global Privacy Control turns off a grant | No | Yes |
+| A recorded choice expires | No | Yes |
+| Visitor dismisses a notice | No | No |
+
+Use `onChoiceRecorded` for consent analytics and audit trails, because it
+fires only when the visitor chose. Use `onPermissionsChanged` to start or stop
+your own code. Never treat it as proof that the visitor agreed to anything,
+and never save consent from it.
+[How consent works](/docs/concepts/how-consent-works#a-permission-is-not-a-recorded-choice)
+explains the difference.
+
+Dismissing a notice records no choice and changes no permission. Read it with
+`useNoticeDismissal()` instead. For consent inside one component, use the
+[hooks](/docs/frameworks/next/hooks), which re-render the component when
+consent changes.
+
+## Report server-side failures
+
+The provider's `onError` runs in the browser. `resolveConsent` has its own
+`onError` option for the server. It runs when the manifest or `/init` request
+fails or runs out of `timeoutMs` during rendering. The page still renders with
+the request-only state and the browser resolves consent after hydration.
+Without the option, `resolveConsent` logs a warning outside production.
+
+{/* example: fragment */}
+
+```tsx title="app/layout.tsx"
+const state = resolveConsent({ onError: (error) => reportToMonitoring(error) });
 ```
 
-## Runtime Callback Registration
+This option is fine in the layout, because it runs on the server and never
+crosses to the browser. `reportToMonitoring` stands for your own error
+reporter.
 
-Register or update callbacks at runtime using `setCallback()`:
+## Before a revocation reload
 
-```tsx
-import { useEffect } from 'react';
-import { useConsentManager } from '@c15t/nextjs';
+Removing a script tag cannot stop code that already ran, so c15t reloads the
+page after an accept, reject or save turns off a category or vendor that was
+granted. The reload waits for the save request to finish. Right before it,
+`onBeforeConsentRevocationReload` runs synchronously. Use it to call a
+vendor's shutdown API or flush queued events. Keep it short, because the
+reload does not wait for promises.
 
-function ConsentAnalytics() {
-  const { setCallback } = useConsentManager();
+A choice that expires, a new policy and a privacy signal change permissions
+without a visitor action, so they do not reload the page.
 
-  useEffect(() => {
-    setCallback('onBannerFetched', ({ jurisdiction, location }) => {
-      console.log('Resolved init data:', { jurisdiction, location });
-    });
+To handle revocation yourself, set `reloadOnConsentRevoked: false` in
+`options` on `ConsentRoot`. Code the visitor turned off then keeps running
+until the next full page load, and `onBeforeConsentRevocationReload` never
+runs.
 
-    setCallback('onConsentSet', ({ preferences }) => {
-      console.log('Broad consent lifecycle event:', preferences);
-    });
+## Verify
 
-    return () => {
-      setCallback('onBannerFetched', undefined);
-      setCallback('onConsentSet', undefined);
-    };
-  }, [setCallback]);
-
-  return null;
-}
-```
-
-`setCallback('onConsentSet', ...)` immediately replays the current consent state. For change-only logic, prefer `subscribeToConsentChanges()` or `onConsentChanged`.
+1. Add the callbacks from this page, open the console and DevTools Network,
+   clear site data and reload under a policy that shows a banner.
+2. Click **Accept All**. `onChoiceRecorded` and `onPermissionsChanged` both log,
+   and the save request to your backend appears in Network.
+3. Reload. `onChoiceRecorded` does not log again.
+4. Open Privacy settings, turn off a category you allowed and save.
+   `onBeforeConsentRevocationReload` logs, then the page reloads. After the
+   reload, that category's vendor requests are absent from Network.

@@ -1,0 +1,54 @@
+---
+title: IAB TCF
+description: Mount the IAB TCF banner and dialog inside a Next.js ConsentRoot and configure the CMP ID, policy and vendor data.
+group: frameworks
+---
+
+## Prepare the IAB configuration
+
+<import src="../../shared/react/iab/overview.mdx#prepare" />
+
+Next.js uses the React IAB components. There is no `c15t/next/iab` JavaScript
+entry point, so import the components from `c15t/react/iab` and render this
+Client Component inside the `ConsentRoot` from your
+[App Router](/docs/frameworks/next/app-router) or
+[Pages Router](/docs/frameworks/next/pages-router) setup.
+
+The IAB banner and dialog render their own styles by default. Leave
+`ConsentRoot`'s `styles` option enabled. The banner's styles render in the
+server HTML, and the dialog loads its rules when opened.
+
+<include src="../../shared/examples/nextjs/iab-consent.mdx" />
+
+<import src="../../shared/react/iab/overview.mdx#configure" />
+
+## Load an external stylesheet
+
+With Tailwind CSS 3, or when you want to put c15t in a named cascade layer,
+import `c15t/next/styles.css` and then `c15t/next/iab/styles.css` at your global
+stylesheet entry. The IAB stylesheet holds the IAB rules and uses the base
+stylesheet's tokens. Set `styles: false` in `ConsentRoot`'s `options` so the
+components use those stylesheets:
+
+{/* example: fragment */}
+
+```css title="styles/globals.css"
+@import 'c15t/next/styles.css';
+@import 'c15t/next/iab/styles.css';
+```
+
+Tailwind CSS 3 also needs the
+[PostCSS plugin](/docs/customization/tailwind#set-up-tailwind-css-3).
+
+## Restrict how vendors use a purpose
+
+Publisher restrictions override a vendor's declared use of one purpose. Pass
+them to `IABProvider` as `publisherRestrictions`. The vendor IDs below are
+placeholders; use vendors from your list whose declarations allow each
+restriction.
+
+<include src="../../shared/examples/nextjs/iab-publisher-restrictions.mdx" />
+
+<include src="../../shared/iab-publisher-restrictions.mdx" />
+
+<include src="../../shared/iab-tcf-2-4.mdx" />

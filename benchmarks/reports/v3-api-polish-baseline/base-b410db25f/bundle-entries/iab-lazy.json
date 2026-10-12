@@ -1,0 +1,242 @@
+{
+	"budgetDefinitions": [
+		{
+			"comparator": "delta-bytes-lte",
+			"description": "Consumer entry initial JavaScript may grow by at most 2 KiB gzip, plus the vendor consent allowance and, for entries with a stock surface, its styles.",
+			"metric": "initialGzip",
+			"threshold": 14848
+		},
+		{
+			"comparator": "delta-bytes-lte",
+			"description": "Deferred emitted JavaScript may grow by at most 12 KiB gzip, plus the ordinary or IAB styles emitted by this entry.",
+			"metric": "lazyGzip",
+			"threshold": 25088
+		},
+		{
+			"comparator": "delta-bytes-lte",
+			"description": "Initial plus reachable deferred JavaScript may grow by at most 3 KiB gzip, plus the ordinary or IAB style allowance for this entry.",
+			"metric": "gzipSize",
+			"threshold": 25088
+		}
+	],
+	"budgets": [],
+	"commitSha": "b410db25f81caade4fb15cb8ba2dfef52b7b1835",
+	"environment": {
+		"arch": "arm64",
+		"ci": false,
+		"nodeVersion": "v24.21.0",
+		"os": "darwin"
+	},
+	"fixture": {
+		"consentCount": 0,
+		"localeCount": 0,
+		"name": "iab-lazy",
+		"scriptCount": 0,
+		"themeComplexity": "minimal"
+	},
+	"framework": "core",
+	"metadata": {
+		"allLocalesInputs": [],
+		"devtoolsInputs": [],
+		"gitDirty": false,
+		"iabInputs": [
+			"../../node_modules/.bun/@iabtechlabtcf+core@1.5.22/node_modules/@iabtechlabtcf/core/lib/mjs/errors/DecodingError.js",
+			"../../node_modules/.bun/@iabtechlabtcf+core@1.5.22/node_modules/@iabtechlabtcf/core/lib/mjs/errors/EncodingError.js",
+			"../../node_modules/.bun/@iabtechlabtcf+core@1.5.22/node_modules/@iabtechlabtcf/core/lib/mjs/errors/GVLError.js",
+			"../../node_modules/.bun/@iabtechlabtcf+core@1.5.22/node_modules/@iabtechlabtcf/core/lib/mjs/errors/TCModelError.js",
+			"../../node_modules/.bun/@iabtechlabtcf+core@1.5.22/node_modules/@iabtechlabtcf/core/lib/mjs/errors/index.js",
+			"../../node_modules/.bun/@iabtechlabtcf+core@1.5.22/node_modules/@iabtechlabtcf/core/lib/mjs/encoder/Base64Url.js",
+			"../../node_modules/.bun/@iabtechlabtcf+core@1.5.22/node_modules/@iabtechlabtcf/core/lib/mjs/model/ConsentLanguages.js",
+			"../../node_modules/.bun/@iabtechlabtcf+core@1.5.22/node_modules/@iabtechlabtcf/core/lib/mjs/model/Fields.js",
+			"../../node_modules/.bun/@iabtechlabtcf+core@1.5.22/node_modules/@iabtechlabtcf/core/lib/mjs/model/IntMap.js",
+			"../../node_modules/.bun/@iabtechlabtcf+core@1.5.22/node_modules/@iabtechlabtcf/core/lib/mjs/model/KeyMap.js",
+			"../../node_modules/.bun/@iabtechlabtcf+core@1.5.22/node_modules/@iabtechlabtcf/core/lib/mjs/Cloneable.js",
+			"../../node_modules/.bun/@iabtechlabtcf+core@1.5.22/node_modules/@iabtechlabtcf/core/lib/mjs/model/RestrictionType.js",
+			"../../node_modules/.bun/@iabtechlabtcf+core@1.5.22/node_modules/@iabtechlabtcf/core/lib/mjs/model/PurposeRestriction.js",
+			"../../node_modules/.bun/@iabtechlabtcf+core@1.5.22/node_modules/@iabtechlabtcf/core/lib/mjs/model/PurposeRestrictionVector.js",
+			"../../node_modules/.bun/@iabtechlabtcf+core@1.5.22/node_modules/@iabtechlabtcf/core/lib/mjs/model/DeviceDisclosureStorageAccessType.js",
+			"../../node_modules/.bun/@iabtechlabtcf+core@1.5.22/node_modules/@iabtechlabtcf/core/lib/mjs/model/DeviceDisclosure.js",
+			"../../node_modules/.bun/@iabtechlabtcf+core@1.5.22/node_modules/@iabtechlabtcf/core/lib/mjs/model/Segment.js",
+			"../../node_modules/.bun/@iabtechlabtcf+core@1.5.22/node_modules/@iabtechlabtcf/core/lib/mjs/model/SegmentIDs.js",
+			"../../node_modules/.bun/@iabtechlabtcf+core@1.5.22/node_modules/@iabtechlabtcf/core/lib/mjs/model/Vector.js",
+			"../../node_modules/.bun/@iabtechlabtcf+core@1.5.22/node_modules/@iabtechlabtcf/core/lib/mjs/model/gvl/ByPurposeVendorMap.js",
+			"../../node_modules/.bun/@iabtechlabtcf+core@1.5.22/node_modules/@iabtechlabtcf/core/lib/mjs/model/gvl/Declarations.js",
+			"../../node_modules/.bun/@iabtechlabtcf+core@1.5.22/node_modules/@iabtechlabtcf/core/lib/mjs/model/gvl/Feature.js",
+			"../../node_modules/.bun/@iabtechlabtcf+core@1.5.22/node_modules/@iabtechlabtcf/core/lib/mjs/model/gvl/GVLMapItem.js",
+			"../../node_modules/.bun/@iabtechlabtcf+core@1.5.22/node_modules/@iabtechlabtcf/core/lib/mjs/model/gvl/IDSetMap.js",
+			"../../node_modules/.bun/@iabtechlabtcf+core@1.5.22/node_modules/@iabtechlabtcf/core/lib/mjs/model/gvl/Purpose.js",
+			"../../node_modules/.bun/@iabtechlabtcf+core@1.5.22/node_modules/@iabtechlabtcf/core/lib/mjs/model/gvl/Stack.js",
+			"../../node_modules/.bun/@iabtechlabtcf+core@1.5.22/node_modules/@iabtechlabtcf/core/lib/mjs/model/gvl/Vendor.js",
+			"../../node_modules/.bun/@iabtechlabtcf+core@1.5.22/node_modules/@iabtechlabtcf/core/lib/mjs/model/gvl/VendorList.js",
+			"../../node_modules/.bun/@iabtechlabtcf+core@1.5.22/node_modules/@iabtechlabtcf/core/lib/mjs/model/gvl/DataCategory.js",
+			"../../node_modules/.bun/@iabtechlabtcf+core@1.5.22/node_modules/@iabtechlabtcf/core/lib/mjs/model/gvl/GvlCreationOptions.js",
+			"../../node_modules/.bun/@iabtechlabtcf+core@1.5.22/node_modules/@iabtechlabtcf/core/lib/mjs/model/gvl/StandardTexts.js",
+			"../../node_modules/.bun/@iabtechlabtcf+core@1.5.22/node_modules/@iabtechlabtcf/core/lib/mjs/model/gvl/index.js",
+			"../../node_modules/.bun/@iabtechlabtcf+core@1.5.22/node_modules/@iabtechlabtcf/core/lib/mjs/model/index.js",
+			"../../node_modules/.bun/@iabtechlabtcf+core@1.5.22/node_modules/@iabtechlabtcf/core/lib/mjs/encoder/BitLength.js",
+			"../../node_modules/.bun/@iabtechlabtcf+core@1.5.22/node_modules/@iabtechlabtcf/core/lib/mjs/encoder/EncodingOptions.js",
+			"../../node_modules/.bun/@iabtechlabtcf+core@1.5.22/node_modules/@iabtechlabtcf/core/lib/mjs/encoder/field/BooleanEncoder.js",
+			"../../node_modules/.bun/@iabtechlabtcf+core@1.5.22/node_modules/@iabtechlabtcf/core/lib/mjs/encoder/field/IntEncoder.js",
+			"../../node_modules/.bun/@iabtechlabtcf+core@1.5.22/node_modules/@iabtechlabtcf/core/lib/mjs/encoder/field/DateEncoder.js",
+			"../../node_modules/.bun/@iabtechlabtcf+core@1.5.22/node_modules/@iabtechlabtcf/core/lib/mjs/encoder/field/FixedVectorEncoder.js",
+			"../../node_modules/.bun/@iabtechlabtcf+core@1.5.22/node_modules/@iabtechlabtcf/core/lib/mjs/encoder/field/LangEncoder.js",
+			"../../node_modules/.bun/@iabtechlabtcf+core@1.5.22/node_modules/@iabtechlabtcf/core/lib/mjs/encoder/field/PurposeRestrictionVectorEncoder.js",
+			"../../node_modules/.bun/@iabtechlabtcf+core@1.5.22/node_modules/@iabtechlabtcf/core/lib/mjs/encoder/field/VectorEncodingType.js",
+			"../../node_modules/.bun/@iabtechlabtcf+core@1.5.22/node_modules/@iabtechlabtcf/core/lib/mjs/encoder/field/VendorVectorEncoder.js",
+			"../../node_modules/.bun/@iabtechlabtcf+core@1.5.22/node_modules/@iabtechlabtcf/core/lib/mjs/encoder/field/FieldEncoderMap.js",
+			"../../node_modules/.bun/@iabtechlabtcf+core@1.5.22/node_modules/@iabtechlabtcf/core/lib/mjs/encoder/field/index.js",
+			"../../node_modules/.bun/@iabtechlabtcf+core@1.5.22/node_modules/@iabtechlabtcf/core/lib/mjs/encoder/sequence/FieldSequence.js",
+			"../../node_modules/.bun/@iabtechlabtcf+core@1.5.22/node_modules/@iabtechlabtcf/core/lib/mjs/encoder/sequence/SegmentSequence.js",
+			"../../node_modules/.bun/@iabtechlabtcf+core@1.5.22/node_modules/@iabtechlabtcf/core/lib/mjs/encoder/sequence/SequenceVersionMap.js",
+			"../../node_modules/.bun/@iabtechlabtcf+core@1.5.22/node_modules/@iabtechlabtcf/core/lib/mjs/encoder/sequence/index.js",
+			"../../node_modules/.bun/@iabtechlabtcf+core@1.5.22/node_modules/@iabtechlabtcf/core/lib/mjs/encoder/SegmentEncoder.js",
+			"../../node_modules/.bun/@iabtechlabtcf+core@1.5.22/node_modules/@iabtechlabtcf/core/lib/mjs/encoder/SemanticPreEncoder.js",
+			"../../node_modules/.bun/@iabtechlabtcf+core@1.5.22/node_modules/@iabtechlabtcf/core/lib/mjs/encoder/index.js",
+			"../../node_modules/.bun/@iabtechlabtcf+core@1.5.22/node_modules/@iabtechlabtcf/core/lib/mjs/Json.js",
+			"../../node_modules/.bun/@iabtechlabtcf+core@1.5.22/node_modules/@iabtechlabtcf/core/lib/mjs/GVL.js",
+			"../../node_modules/.bun/@iabtechlabtcf+core@1.5.22/node_modules/@iabtechlabtcf/core/lib/mjs/TCModel.js",
+			"../../node_modules/.bun/@iabtechlabtcf+core@1.5.22/node_modules/@iabtechlabtcf/core/lib/mjs/TCString.js",
+			"../../node_modules/.bun/@iabtechlabtcf+core@1.5.22/node_modules/@iabtechlabtcf/core/lib/mjs/index.js",
+			"../../packages/iab/dist/327.js",
+			"../../packages/iab/dist/headless.js",
+			"../../packages/iab/dist/index.js"
+		],
+		"topInputsByBytesInOutput": [
+			"../../packages/ui/dist/styles/sheets/first-paint.js:68810",
+			"../../packages/ui/dist/styles/sheets/dialog.js:36093",
+			"../../packages/iab/dist/index.js:31983",
+			"../../packages/ui/dist/styles/sheets/iab-dialog.js:28579",
+			"../../packages/react/dist/components/iab-panel/atoms/vendor-list.js:13374",
+			"../../packages/react/dist/components/iab-panel/iab-panel.js:10849",
+			"../../node_modules/.bun/@iabtechlabtcf+core@1.5.22/node_modules/@iabtechlabtcf/core/lib/mjs/GVL.js:9566",
+			"../../packages/ui/dist/styles/sheets/iab-first-paint.js:9403",
+			"../../packages/core/dist/kernel/choice.js:8792",
+			"../../packages/react/dist/components/iab-panel/atoms/purpose-item.js:8070"
+		]
+	},
+	"metrics": [
+		{
+			"avg": 76493,
+			"median": 76493,
+			"name": "initialGzip",
+			"p95": 76493,
+			"samples": [76493],
+			"unit": "bytes"
+		},
+		{
+			"avg": 67646,
+			"median": 67646,
+			"name": "initialBrotli",
+			"p95": 67646,
+			"samples": [67646],
+			"unit": "bytes"
+		},
+		{
+			"avg": 91608,
+			"median": 91608,
+			"name": "lazyGzip",
+			"p95": 91608,
+			"samples": [91608],
+			"unit": "bytes"
+		},
+		{
+			"avg": 79237,
+			"median": 79237,
+			"name": "lazyBrotli",
+			"p95": 79237,
+			"samples": [79237],
+			"unit": "bytes"
+		},
+		{
+			"avg": 87678,
+			"median": 87678,
+			"name": "reachableLazyGzip",
+			"p95": 87678,
+			"samples": [87678],
+			"unit": "bytes"
+		},
+		{
+			"avg": 75772,
+			"median": 75772,
+			"name": "reachableLazyBrotli",
+			"p95": 75772,
+			"samples": [75772],
+			"unit": "bytes"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "allLocalesInputModuleCount",
+			"p95": 0,
+			"samples": [0],
+			"unit": "count"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "devtoolsInputModuleCount",
+			"p95": 0,
+			"samples": [0],
+			"unit": "count"
+		},
+		{
+			"avg": 60,
+			"median": 60,
+			"name": "iabInputModuleCount",
+			"p95": 60,
+			"samples": [60],
+			"unit": "count"
+		},
+		{
+			"avg": 164171,
+			"median": 164171,
+			"name": "gzipSize",
+			"p95": 164171,
+			"samples": [164171],
+			"unit": "bytes"
+		},
+		{
+			"avg": 565368,
+			"median": 565368,
+			"name": "rawSize",
+			"p95": 565368,
+			"samples": [565368],
+			"unit": "bytes"
+		},
+		{
+			"avg": 72017,
+			"median": 72017,
+			"name": "iabInputBytes",
+			"p95": 72017,
+			"samples": [72017],
+			"unit": "bytes"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "devtoolsInputBytes",
+			"p95": 0,
+			"samples": [0],
+			"unit": "bytes"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "allLocalesInputBytes",
+			"p95": 0,
+			"samples": [0],
+			"unit": "bytes"
+		}
+	],
+	"notes": [
+		"Synthetic esbuild entry with React externals and empty CSS loaders.",
+		"lazy* counts every deferred chunk esbuild emits; reachableLazy* counts only the chunks the entry can load through import().",
+		"gzipSize and rawSize count only JavaScript chunks reachable from the entry."
+	],
+	"package": "@c15t/next-bundle-bench",
+	"runtime": "esbuild",
+	"scenario": "iab-lazy",
+	"schemaVersion": 1,
+	"suite": "bundle",
+	"timestamp": "2026-10-09T18:48:12.724Z"
+}

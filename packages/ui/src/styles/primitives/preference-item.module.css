@@ -1,6 +1,6 @@
 :root {
 	--preference-item-gap: 0.75rem;
-	--preference-item-leading-gap: 0.5rem;
+	--preference-item-leading-gap: var(--c15t-space-sm);
 	--preference-item-content-color: var(--c15t-text-muted);
 	--preference-item-duration: var(--c15t-duration-normal);
 	--preference-item-ease: var(--c15t-easing);
@@ -26,6 +26,9 @@
 		background: none;
 		border: 0;
 		padding: 0;
+		/* A button does not inherit type styles, so without this the
+		   category titles render in the user agent's button font. */
+		font: inherit;
 		text-align: left;
 		color: var(--c15t-text);
 		cursor: pointer;
@@ -87,11 +90,11 @@
 			var(--preference-item-ease);
 	}
 
-	.content[data-state="open"] {
+	.content[data-state='open'] {
 		grid-template-rows: 1fr;
 	}
 
-	.content[data-state="closed"] {
+	.content[data-state='closed'] {
 		pointer-events: none;
 	}
 

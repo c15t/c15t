@@ -1,0 +1,163 @@
+/**
+ * Mount a prerendered `.astro` fragment the way a real Astro page would.
+ *
+ * An Astro page is server-rendered HTML plus one boot script. This does the
+ * same two things: it inlines the config the server produced, drops the
+ * markup into the document, and boots `@c15t/astro/client` with the same
+ * resolved options and the same Svelte dialog adapter the integration
+ * registers. Nothing here is Storybook-specific behaviour — the point is
+ * that the story exercises the shipped runtime, not a stand-in.
+ */
+
+import type { C15tClientOptionsExtension } from '@c15t/astro';
+import {
+	boot,
+	getConsentClient,
+	offlineTransport,
+	registerDialogAdapter,
+	registerDialogSurface,
+	registerIAB,
+	registerTransport,
+} from '@c15t/astro/client';
+import { createLazyIABFactory } from '@c15t/core/runtime';
+import { mountRuntimeIAB } from '@c15t/core/runtime/on-demand';
+import prerendered from 'virtual:c15t-astro-prerendered';
+
+import { requireStoryVariant } from './story-variants';
+import type { AstroUIAdapter } from './story-variants';
+
+const DIALOG_HOST_ID = 'c15t-dialog-host';
+
+const registered = new Set<string>();
+
+// Every story resolves its policy offline, so this is the transport the
+// integration's boot script would register for it.
+registerTransport(offlineTransport);
+
+/**
+ * Register one dialog adapter and the island it mounts.
+ *
+ * The integration registers exactly the one a site's `ui` option names,
+ * which is what keeps a Svelte-only build from resolving React and Vue.
+ * The Storybook does the same, one story at a time, so each story
+ * exercises the adapter it claims to.
+ */
+const registerAdapters = function registerAdapters(ui: AstroUIAdapter): void {
+	if (registered.has(ui)) {
+		return;
+	}
+	registered.add(ui);
+
+	if (ui === 'react') {
+		registerDialogAdapter(
+			'react',
+			async () => (await import('@c15t/astro/ui/react')).reactDialogAdapter
+		);
+		registerDialogSurface(
+			'react',
+			() => import('@c15t/astro/islands/panel-surface.tsx')
+		);
+		return;
+	}
+
+	if (ui === 'vue') {
+		registerDialogAdapter(
+			'vue',
+			async () => (await import('@c15t/astro/ui/vue')).vueDialogAdapter
+		);
+		registerDialogSurface(
+			'vue',
+			() => import('@c15t/astro/islands/panel-surface.vue')
+		);
+		return;
+	}
+
+	registerDialogAdapter(
+		'svelte',
+		async () => (await import('@c15t/astro/ui/svelte')).svelteDialogAdapter
+	);
+	registerDialogSurface(
+		'svelte',
+		() => import('@c15t/astro/islands/panel-surface.svelte')
+	);
+};
+
+const clearCookies = function clearCookies(): void {
+	for (const cookie of document.cookie.split(';')) {
+		const name = cookie.split('=')[0]?.trim();
+		if (name) {
+			document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+		}
+	}
+};
+
+/**
+ * Tear the previous story's page down.
+ *
+ * The runtime is a page-level singleton on `window`, so without this the
+ * second story in a session would silently reuse the first one's kernel,
+ * its consent state and its mounted dialog.
+ */
+const resetPage = function resetPage(): void {
+	getConsentClient()?.dispose();
+	document.getElementById(DIALOG_HOST_ID)?.remove();
+	for (const host of document.querySelectorAll('[data-c15t-story-host]')) {
+		host.remove();
+	}
+	document.documentElement.classList.remove('c15t-dark');
+	window.localStorage.clear();
+	clearCookies();
+};
+
+/**
+ * Render one catalogued Astro variant into the Storybook canvas.
+ *
+ * @param variantId - The id from the story catalogue.
+ * @param extension - What a site's `clientEntrypoint` would default-export,
+ * such as callbacks.
+ * @returns The element Storybook should mount.
+ */
+export const renderAstroStory = function renderAstroStory(
+	variantId: string,
+	extension?: C15tClientOptionsExtension
+): HTMLElement {
+	const variant = requireStoryVariant(variantId);
+	const entry = prerendered[variantId];
+	if (!entry) {
+		throw new Error(`Astro variant "${variantId}" was not prerendered.`);
+	}
+
+	resetPage();
+	registerAdapters(variant.ui ?? 'svelte');
+	if (variant.options?.iab) {
+		registerIAB({
+			...createLazyIABFactory(() => import('../../../packages/iab/src/index')),
+			mount: mountRuntimeIAB,
+		});
+	}
+
+	const host = document.createElement('div');
+	host.setAttribute('data-c15t-story-host', variantId);
+	host.innerHTML = entry.html;
+
+	// The banner reads its kernel config off `window` exactly as it does on
+	// a server-rendered page, so it must be there before `boot()` runs.
+	(window as unknown as Record<string, unknown>).__c15tAstroConfig =
+		entry.config;
+
+	if (variant.dark) {
+		document.documentElement.classList.add('c15t-dark');
+	}
+
+	// Storybook mounts the returned element after the story function
+	// returns, but `boot()` has to see the markup to wire the banner. Queue
+	// the boot for the next task instead of guessing.
+	queueMicrotask(() => {
+		const client = boot(entry.options as Parameters<typeof boot>[0], extension);
+		if (variant.openDialog) {
+			void client.openDialog(variant.openDialog);
+		}
+	});
+
+	return host;
+};

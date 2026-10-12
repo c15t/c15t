@@ -1,0 +1,442 @@
+/**
+ * Snapshot patching.
+ *
+ * Callers describe which input fields change; `buildNextSnapshot` merges
+ * the patch, re-runs the pure evaluator and re-derives every dependent
+ * field. Derived fields keep their previous reference when their value did
+ * not change, so subscribers can rely on `===`.
+ *
+ * Pure: takes the current snapshot + a patch, returns the next snapshot.
+ * Does not notify subscribers.
+ */
+import type { LocationResponse, PolicyResolution } from '@c15t/schema/types';
+
+import { evaluateConsentRecord } from '../consent-record/evaluate';
+import { OPTIONAL_CONSENT_CATEGORIES } from '../consent-record/types';
+import type {
+	ConsentSubject,
+	ExplicitChoice,
+	NoticeDismissal,
+	OptionalConsentCategory,
+	PromptRequirement,
+	RestrictionReason,
+} from '../consent-record/types';
+import type { AllConsentNames } from '../consent/consent-types';
+import { deriveActiveUI } from '../derive-surface';
+import type { ExperimentAssignment } from '../libs/experiment';
+import {
+	buildEvaluationPolicy,
+	deriveModel,
+	resolveEffectivePolicy,
+} from '../policy';
+import type {
+	ConsentSnapshot,
+	ConsentState,
+	KernelActiveUI,
+	KernelBranding,
+	KernelHosting,
+	KernelIABState,
+	KernelOverrides,
+	KernelPrivacySignals,
+	KernelTranslations,
+	KernelUser,
+	KernelVendorsState,
+	VendorChoice,
+} from '../types';
+import { evaluateExternalPermissions } from './external-permissions';
+
+/**
+ * Partial update applied to a snapshot. Only input fields are patchable;
+ * permissions, prompt, restrictions, deadline and model are always derived.
+ *
+ * Nullable fields: `undefined` (omitted) preserves, `null` clears.
+ */
+export interface SnapshotPatch {
+	externalPermissions?: Readonly<ConsentState>;
+	consentCategories?: readonly AllConsentNames[] | null;
+	explicitChoice?: ExplicitChoice | null;
+	noticeDismissal?: NoticeDismissal | null;
+	resolution?: PolicyResolution;
+	subject?: ConsentSubject | null;
+	/** Detected user-agent GPC signal. */
+	privacyDetected?: boolean;
+	overrides?: KernelOverrides;
+	user?: KernelUser | null;
+	location?: LocationResponse | null;
+	translations?: KernelTranslations | null;
+	branding?: KernelBranding | null;
+	hosting?: KernelHosting | null;
+
+	policySnapshotToken?: string | null;
+	activeUI?: KernelActiveUI;
+	policyPending?: boolean;
+	iab?: KernelIABState | null;
+	vendors?: KernelVendorsState | null;
+	vendorChoice?: VendorChoice | null;
+	experiment?: ExperimentAssignment | null;
+	experimentPending?: boolean;
+	/** Evaluation time. Defaults to the current `evaluatedAt`. */
+	now?: number;
+}
+
+const pick = function pick<Value>(
+	patched: Value | undefined,
+	current: Value
+): Value {
+	return patched === undefined ? current : patched;
+};
+
+/**
+ * Whether a patch can retain the current snapshot without constructing a
+ * candidate. Only identical inputs qualify, and time must remain within
+ * the interval already covered by the current evaluation.
+ */
+// oxlint-disable-next-line complexity -- Every patch input must match before bypassing candidate derivation.
+export const isUnchangedPatch = function isUnchangedPatch(
+	current: ConsentSnapshot,
+	patch: SnapshotPatch
+): boolean {
+	const now = pick(patch.now, current.evaluatedAt);
+	// Initial IAB authority can need normalization even with identical inputs.
+	// Keep that work on the full snapshot derivation path.
+	if (
+		current.iab?.authority ||
+		now < current.evaluatedAt ||
+		!Number.isFinite(now) ||
+		(current.nextDeadline !== null && now >= current.nextDeadline)
+	) {
+		return false;
+	}
+	return (
+		pick(patch.externalPermissions, current.externalPermissions) ===
+			current.externalPermissions &&
+		pick(patch.privacyDetected, current.privacySignals.gpc.detected) ===
+			current.privacySignals.gpc.detected &&
+		pick(patch.explicitChoice, current.explicitChoice) ===
+			current.explicitChoice &&
+		pick(patch.noticeDismissal, current.noticeDismissal) ===
+			current.noticeDismissal &&
+		pick(patch.consentCategories, current.consentCategories) ===
+			current.consentCategories &&
+		pick(patch.resolution, current.resolution) === current.resolution &&
+		pick(patch.subject, current.subject) === current.subject &&
+		pick(patch.overrides, current.overrides) === current.overrides &&
+		pick(patch.user, current.user) === current.user &&
+		pick(patch.location, current.location) === current.location &&
+		pick(patch.translations, current.translations) === current.translations &&
+		pick(patch.branding, current.branding) === current.branding &&
+		pick(patch.hosting, current.hosting) === current.hosting &&
+		pick(patch.policySnapshotToken, current.policySnapshotToken) ===
+			current.policySnapshotToken &&
+		pick(patch.activeUI, current.activeUI) === current.activeUI &&
+		pick(patch.policyPending, current.policyPending) ===
+			current.policyPending &&
+		pick(patch.iab, current.iab) === current.iab &&
+		pick(patch.vendors, current.vendors) === current.vendors &&
+		pick(patch.vendorChoice, current.vendorChoice) === current.vendorChoice &&
+		pick(patch.experiment, current.experiment) === current.experiment &&
+		pick(patch.experimentPending, current.experimentPending) ===
+			current.experimentPending
+	);
+};
+
+const samePermissions = function samePermissions(
+	left: Readonly<ConsentState>,
+	right: Readonly<ConsentState>
+): boolean {
+	if (left === right) {
+		return true;
+	}
+	for (const key of Object.keys(right) as (keyof ConsentState)[]) {
+		if (left[key] !== right[key]) {
+			return false;
+		}
+	}
+	return Object.keys(left).length === Object.keys(right).length;
+};
+
+const samePrompt = function samePrompt(
+	left: PromptRequirement,
+	right: PromptRequirement
+): boolean {
+	if (left.kind !== right.kind) {
+		return false;
+	}
+	return left.kind === 'none' || right.kind === 'none'
+		? true
+		: left.reason === right.reason;
+};
+
+type Restrictions = Readonly<
+	Partial<Record<OptionalConsentCategory, readonly RestrictionReason[]>>
+>;
+
+const sameRestrictions = function sameRestrictions(
+	left: Restrictions,
+	right: Restrictions
+): boolean {
+	if (left === right) {
+		return true;
+	}
+	for (const category of OPTIONAL_CONSENT_CATEGORIES) {
+		const a = left[category];
+		const b = right[category];
+		if (a === b) {
+			continue;
+		}
+		if (!a || !b || a.length !== b.length) {
+			return false;
+		}
+		if (a.some((reason, index) => reason !== b[index])) {
+			return false;
+		}
+	}
+	return true;
+};
+
+const samePrivacySignals = function samePrivacySignals(
+	left: KernelPrivacySignals,
+	right: KernelPrivacySignals
+): boolean {
+	return (
+		left.gpc.active === right.gpc.active &&
+		left.gpc.detected === right.gpc.detected &&
+		left.gpc.override === right.gpc.override
+	);
+};
+
+/** Derive the privacy-signal view from the override and the detection. */
+export const derivePrivacySignals = function derivePrivacySignals(
+	override: boolean | undefined,
+	detected: boolean
+): KernelPrivacySignals {
+	return {
+		gpc: {
+			active: override ?? detected,
+			detected,
+			override,
+		},
+	};
+};
+
+/**
+ * Re-derive the surface only when the prompt or the visibility inputs
+ * changed. An adapter that opened the dialog keeps it open across an
+ * unrelated re-evaluation; an explicit patch always wins.
+ */
+const deriveNextActiveUI = function deriveNextActiveUI(input: {
+	current: ConsentSnapshot;
+	patch: SnapshotPatch;
+	derive: boolean;
+	policyRule: ConsentSnapshot['policyRule'];
+	policyPending: boolean;
+	experimentPending: boolean;
+	promptRequirement: PromptRequirement;
+	resolution: PolicyResolution;
+}): KernelActiveUI {
+	if (input.patch.activeUI !== undefined) {
+		return input.patch.activeUI;
+	}
+	if (input.derive) {
+		return deriveActiveUI({
+			experimentPending: input.experimentPending,
+			policyPending: input.policyPending,
+			promptRequirement: input.promptRequirement,
+			resolution: input.resolution,
+		});
+	}
+	return input.current.activeUI;
+};
+
+/**
+ * Merge a patch over the current snapshot and re-derive every dependent
+ * field. Returns an unfrozen candidate at `revision + 1`; the kernel
+ * decides whether anything changed before adopting it.
+ */
+// oxlint-disable-next-line complexity -- One pass over every derived field keeps the derivation order visible.
+export const buildNextSnapshot = function buildNextSnapshot(
+	current: ConsentSnapshot,
+	patch: SnapshotPatch
+): ConsentSnapshot {
+	const resolution = pick(patch.resolution, current.resolution);
+	const consentCategories = pick(
+		patch.consentCategories,
+		current.consentCategories
+	);
+	const resolutionChanged = resolution !== current.resolution;
+	const effective = resolutionChanged
+		? resolveEffectivePolicy(resolution)
+		: null;
+	const policyRule = effective ? effective.rule : current.policyRule;
+	const evaluationPolicy =
+		effective || consentCategories !== current.consentCategories
+			? buildEvaluationPolicy(
+					effective ?? resolveEffectivePolicy(resolution),
+					consentCategories
+				)
+			: current.evaluationPolicy;
+
+	const explicitChoice = pick(patch.explicitChoice, current.explicitChoice);
+	const noticeDismissal = pick(patch.noticeDismissal, current.noticeDismissal);
+	const overrides = pick(patch.overrides, current.overrides);
+	const detected = pick(
+		patch.privacyDetected,
+		current.privacySignals.gpc.detected
+	);
+	const privacyCandidate = derivePrivacySignals(overrides.gpc, detected);
+	const privacySignals = samePrivacySignals(
+		privacyCandidate,
+		current.privacySignals
+	)
+		? current.privacySignals
+		: privacyCandidate;
+	const now = pick(patch.now, current.evaluatedAt);
+	let iab = pick(patch.iab, current.iab);
+	if (
+		iab?.authority &&
+		(!iab.enabled ||
+			resolution.status !== 'matched' ||
+			policyRule.model !== 'iab' ||
+			iab.authority.choiceFingerprint !== evaluationPolicy.choice.fingerprint)
+	) {
+		iab = { ...iab, authority: null };
+	}
+
+	// Frozen evaluator inputs remain valid until their next deadline. Changes
+	// to presentation, identity or metadata do not alter record authority.
+	// A clock moving backwards must re-evaluate previously expired grants.
+	const reuseEvaluation =
+		evaluationPolicy === current.evaluationPolicy &&
+		explicitChoice === current.explicitChoice &&
+		noticeDismissal === current.noticeDismissal &&
+		privacySignals.gpc.active === current.privacySignals.gpc.active &&
+		now >= current.evaluatedAt &&
+		(current.nextDeadline === null || now < current.nextDeadline);
+	const externalPermissions = pick(
+		patch.externalPermissions,
+		current.externalPermissions
+	);
+	let evaluation = reuseEvaluation
+		? {
+				nextDeadline: current.nextDeadline,
+				permissions: current.effectivePermissions,
+				promptRequirement: current.promptRequirement,
+				restrictions: current.restrictions,
+			}
+		: evaluateConsentRecord({
+				choice: explicitChoice,
+				gpc: privacySignals.gpc.active,
+				noticeDismissal,
+				now,
+				policy: evaluationPolicy,
+			});
+	if (externalPermissions) {
+		if (iab && (iab.enabled || iab.authority)) {
+			iab = { ...iab, authority: null, enabled: false };
+		}
+		evaluation = evaluateExternalPermissions(externalPermissions);
+	}
+
+	const effectivePermissions = samePermissions(
+		current.effectivePermissions,
+		evaluation.permissions
+	)
+		? current.effectivePermissions
+		: evaluation.permissions;
+	const promptRequirement = samePrompt(
+		current.promptRequirement,
+		evaluation.promptRequirement
+	)
+		? current.promptRequirement
+		: evaluation.promptRequirement;
+	const restrictions = sameRestrictions(
+		current.restrictions,
+		evaluation.restrictions
+	)
+		? current.restrictions
+		: evaluation.restrictions;
+
+	const policyPending = pick(patch.policyPending, current.policyPending);
+	const experimentPending = pick(
+		patch.experimentPending,
+		current.experimentPending
+	);
+	const promptChanged = promptRequirement !== current.promptRequirement;
+	const visibilityChanged =
+		resolutionChanged ||
+		policyPending !== current.policyPending ||
+		experimentPending !== current.experimentPending;
+	const activeUI = externalPermissions
+		? 'none'
+		: deriveNextActiveUI({
+				current,
+				derive: promptChanged || visibilityChanged,
+				experimentPending,
+				patch,
+				policyPending,
+				policyRule,
+				promptRequirement,
+				resolution,
+			});
+
+	const subject = pick(patch.subject, current.subject);
+
+	return {
+		activeUI,
+		branding: pick(patch.branding, current.branding),
+		consentCategories,
+		effectivePermissions,
+		evaluatedAt: now,
+		evaluationPolicy,
+		experiment: pick(patch.experiment, current.experiment),
+		experimentPending,
+		explicitChoice,
+		externalPermissions,
+		hosting: pick(patch.hosting, current.hosting),
+		iab,
+		location: pick(patch.location, current.location),
+		model: deriveModel(policyRule, iab?.enabled ?? false),
+		nextDeadline: evaluation.nextDeadline,
+		noticeDismissal,
+		overrides,
+		policyPending,
+		policyRule,
+		policySnapshotToken: pick(
+			patch.policySnapshotToken,
+			current.policySnapshotToken
+		),
+		privacySignals,
+		promptRequirement,
+		resolution,
+		restrictions,
+		revision: current.revision + 1,
+		subject,
+		// Impressions are stamped by the runtime once its lifecycle started;
+		// derivation only carries the record through.
+		surfaceShownAt: current.surfaceShownAt,
+		translations: pick(patch.translations, current.translations),
+		user: pick(patch.user, current.user),
+		vendorChoice: pick(patch.vendorChoice, current.vendorChoice),
+		vendors: pick(patch.vendors, current.vendors),
+	};
+};
+
+/**
+ * Whether a candidate differs from the current snapshot in any field other
+ * than `revision` and `evaluatedAt`. Derived fields are reference-stable,
+ * so a shallow comparison is exact.
+ */
+export const snapshotChanged = function snapshotChanged(
+	current: ConsentSnapshot,
+	next: ConsentSnapshot
+): boolean {
+	for (const key of Object.keys(next) as (keyof ConsentSnapshot)[]) {
+		if (key === 'revision' || key === 'evaluatedAt') {
+			continue;
+		}
+		if (current[key] !== next[key]) {
+			return true;
+		}
+	}
+	return false;
+};

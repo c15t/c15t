@@ -1,0 +1,191 @@
+---
+title: Theme tokens
+description: Change c15t's colors, type, radius, spacing, shadows and motion with theme tokens, and see every --c15t-* variable with its default.
+group: customization
+---
+
+## Where tokens come from
+
+c15t's components take their colors from `--c15t-*` CSS variables, and most
+of their fonts, radii, spacing, shadows and motion too. c15t's rules set the
+defaults. You change them with a theme object or with CSS, and every part
+that reads a token changes with it. Some values are still fixed for one
+component, such as button padding, the radius of the "Secured by" tag and
+several font sizes and weights, so a token change does not move them. Restyle
+those parts through [slots](/docs/customization/slots) or your own CSS.
+[Stylesheets and CSS layers](/docs/customization/stylesheets)
+covers how c15t loads its rules, and [dark mode](/docs/customization/dark-mode)
+covers the dark set of tokens.
+
+## Set semantic values together
+
+This React theme changes the brand color and large corner radius. Include
+hover and foreground colors when overriding raw variables so the button remains
+readable in each state.
+
+```ts
+import { defineTheme } from '@c15t/ui/theme';
+
+export const theme = defineTheme({
+	colors: { primary: '#2f6f4e' },
+	radius: { lg: '4px' },
+	consentActions: {
+		primary: { variant: 'primary', mode: 'filled' },
+		dismiss: { variant: 'neutral', mode: 'stroke' },
+	},
+});
+```
+
+Install `@c15t/ui` if importing its theme helper directly. Where the theme
+goes depends on the framework:
+
+| Framework | Tokens | `consentActions` |
+| --- | --- | --- |
+| Next.js, TanStack Start, React | `<ConsentTheme theme={theme} />`, rendered on the server where the app has one | `theme` in the provider options |
+| Nuxt, Vue | `theme` or `tokens` in the module or plugin options | Not available |
+| Astro | `theme` in the integration options | The same `theme` |
+| Svelte, SvelteKit | `generateThemeCSS(theme)` from `@c15t/ui/theme` on the server, in a `<style>` element, or `--c15t-*` variables in your stylesheet | `theme` on `ConsentProvider` (Svelte) or `ConsentRoot` (SvelteKit) |
+| HTML, JavaScript | `ui.theme` | Not available |
+
+React and Svelte providers do not turn tokens in their `theme` option into
+CSS, and warn in development when a theme holds tokens but the page has no
+`<style id="c15t-theme">`. Your framework's customize page shows the full
+setup.
+
+`consentActions` selects styling by action role. A per-action entry overrides
+`primary`, which overrides `default`.
+
+## Combine a generated theme with your own CSS
+
+`generateThemeCSS` writes its variables on `:root:root` and
+`.c15t-theme-root.c15t-theme-root`, more specific than c15t's defaults. The
+theme therefore overrides the defaults whether its
+`<style>` element comes before or after c15t's rules. The same output backs
+`ConsentTheme` in React, Next.js and TanStack Start, Astro's `theme` option and
+the script tag's `ui.theme`.
+
+A `--c15t-*` variable you set on plain `:root` in your own CSS loses to a
+generated theme that sets the same variable, even when your rule loads later.
+Put the value in the theme, or raise your selector:
+
+```css
+:root:root {
+  --c15t-primary: #2f6f4e;
+}
+```
+
+Scoped rules such as `[data-prompt] { --c15t-primary: ... }` set the variable
+on the banner element itself, so they still apply inside it.
+
+## Every token
+
+Every framework uses the same tokens. A theme object, such as `ConsentTheme`'s
+`theme`, Astro's and Vue's `theme` or the script tag's `ui.theme`, takes the
+theme key, such as `radius.lg`. Vue and Nuxt `tokens` take the CSS variable
+name without the leading `--`, such as `c15t-radius-lg`. A stylesheet sets the
+CSS variable itself. Your framework's customize page shows where each one goes.
+[Motion and animation](/docs/customization/motion) explains the duration and
+easing tokens.
+
+<include src="../shared/reference/theme-tokens.mdx" />
+
+The radius tokens round different parts. `radius.lg` rounds the banner card,
+the preference dialog, `ConsentGate` placeholders and the floating trigger.
+`radius.md` rounds buttons, accordions, tabs and the vendor list.
+`radius.sm` rounds small parts inside the banner and dialog. To give the banner
+and its buttons the same 4px corners, set both `lg` and `md`.
+
+## Target a prompt with CSS
+
+```css
+[data-prompt][data-model='opt-in'] {
+  --c15t-primary: #2f6f4e;
+  --c15t-primary-hover: #24563c;
+  --c15t-text-on-primary: #fff;
+}
+```
+
+Use attributes exposed by the rendered component, not guessed class names.
+The script tag's banner has no `data-prompt` or `data-model`. Test the prompt
+and the preferences dialog separately because tokens scoped to one prompt do
+not automatically reach a portaled dialog.
+
+| Size variable | Default | Target |
+| --- | --- | --- |
+| `--consent-banner-max-width` | `440px` | Floating card |
+| `--consent-banner-widget-max-width` | `20rem` | Widget |
+| `--consent-banner-wall-max-width` | `30rem` | Choice wall |
+
+The banner footer lays out its actions by the card's width, not the
+viewport's. With the default `compact` profile, a card narrower than 22rem
+puts Reject and Accept on one row and Customize on a full-width row below
+them, on any screen size.
+
+Test long translations and small screens after changing width or typography.
+A compact banner must still fit the required actions.
+
+## Stack the banner with your own layers
+
+The banner and its overlay sit at the top of the page's stacking order by
+default. Lower them when a navbar, drawer, or chat widget should cover the
+banner.
+
+| Variable | Default | Target |
+| --- | --- | --- |
+| `--consent-banner-z-index` | `999998` | Banner |
+| `--consent-banner-overlay-z-index` | `999997` | Backdrop of a blocking banner |
+| `--iab-consent-banner-z-index` | `999998` | IAB TCF banner |
+| `--iab-consent-banner-overlay-z-index` | `999997` | IAB TCF banner backdrop |
+| `--consent-dialog-z-index` | `999999` | Preferences dialog |
+| `--consent-dialog-overlay-z-index` | `999998` | Preferences dialog backdrop |
+
+```css
+:root {
+  --consent-banner-z-index: 40;
+  --consent-banner-overlay-z-index: 39;
+}
+```
+
+Keep each z-index above its overlay's, or the backdrop covers the card it
+belongs to. Keep the dialog above the banner so Customize opens on top.
+
+Only the card and the "Secured by" tag take clicks. Clicks on the space
+around a floating card, or beside the tag on a bar, reach the page. A
+blocking banner catches every click.
+
+## Restyle the "Secured by" tag
+
+The tag sits on the edge of the banner and dialog cards and uses the primary
+color by default. Set these variables on `:root`, or on an element that
+contains the tag. The dialog renders in a portal, so a variable set on the
+banner does not reach the dialog's tag.
+
+| Variable | Default | Target |
+| --- | --- | --- |
+| `--consent-branding-tag-background-color` | `var(--c15t-primary)` | Tag background |
+| `--consent-branding-tag-border-color` | `--c15t-primary` mixed 14% toward black | Tag border |
+| `--consent-branding-tag-text-color` | `var(--c15t-text-on-primary, #fff)` | "Secured by" and the wordmark |
+| `--consent-branding-tag-mark-color` | The text color | c15t mark or inth logo |
+| `--consent-branding-tag-shadow` | Inset highlight and a 1px drop shadow | Tag shadow |
+| `--consent-branding-tag-attached-edge-width` | `0px` | Border on the edge that meets the card |
+
+The stylesheet does not declare these variables. Each default resolves on the
+tag, so a `--c15t-primary` you scope to a banner still colors the tag.
+
+This makes the tag look like a tab of the card:
+
+```css
+:root {
+  --consent-branding-tag-background-color: var(--c15t-surface);
+  --consent-branding-tag-border-color: var(--c15t-border);
+  --consent-branding-tag-text-color: var(--c15t-text-muted);
+  --consent-branding-tag-mark-color: var(--c15t-primary);
+  --consent-branding-tag-shadow: none;
+}
+```
+
+The edge that meets the card has no border by default. Above the banner the
+tag overlaps the card's top border by 1px and covers it. Below the dialog the
+tag starts under the card's bottom border. Set
+`--consent-branding-tag-attached-edge-width: 1px` to draw that edge. It is
+drawn over the card's border, so the two borders do not stack.

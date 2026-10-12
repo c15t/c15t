@@ -14,20 +14,25 @@
  * @internal
  */
 export const COOKIE_KEY_MAP = {
-	// Top-level keys
-	consents: 'c',
 	consentInfo: 'i',
-	timestamp: 'ts',
+	// Top-level keys
+	// New in v2.0: client-generated subject ID
+	consents: 'c',
+	externalId: 'eid',
 	iabCustomVendorConsents: 'icv',
 	iabCustomVendorLegitimateInterests: 'icvli',
+	// Material active-policy fingerprint
+	id: 'id',
+	// The identity provider (e.g., 'clerk', 'auth0')
+	identityProvider: 'idp',
+	// The external user ID
+	// Legacy: consentId (deprecated in v2.0)
+	materialPolicyFingerprint: 'mpf',
+	subjectId: 'sid',
 	// ConsentInfo keys
 	time: 't',
+	timestamp: 'ts',
 	type: 'y',
-	id: 'id', // Legacy: consentId (deprecated in v2.0)
-	subjectId: 'sid', // New in v2.0: client-generated subject ID
-	externalId: 'eid', // The external user ID
-	materialPolicyFingerprint: 'mpf', // Material active-policy fingerprint
-	identityProvider: 'idp', // The identity provider (e.g., 'clerk', 'auth0')
 } as const;
 
 /**
@@ -51,7 +56,7 @@ export const REVERSE_COOKIE_KEY_MAP = Object.entries(COOKIE_KEY_MAP).reduce(
  *
  * @internal
  */
-export function shortenFlatKeys(
+export const shortenFlatKeys = function shortenFlatKeys(
 	flattened: Record<string, string>
 ): Record<string, string> {
 	const shortened: Record<string, string> = {};
@@ -65,7 +70,7 @@ export function shortenFlatKeys(
 	}
 
 	return shortened;
-}
+};
 
 /**
  * Expands shortened keys in a flattened object back to full keys.
@@ -75,7 +80,7 @@ export function shortenFlatKeys(
  *
  * @internal
  */
-export function expandFlatKeys(
+export const expandFlatKeys = function expandFlatKeys(
 	shortened: Record<string, string>
 ): Record<string, string> {
 	const expanded: Record<string, string> = {};
@@ -87,4 +92,4 @@ export function expandFlatKeys(
 	}
 
 	return expanded;
-}
+};

@@ -1,34 +1,36 @@
-const COUNTRY_PRIORITY = [
-	'cf-ipcountry',
-	'x-vercel-ip-country',
-	'x-amz-cf-ipcountry',
-	'x-country-code',
-] as const;
+import {
+	CONSENT_REQUEST_HEADER_NAMES,
+	extractConsentRequestInputs,
+} from '@c15t/schema/types';
 
-const REGION_PRIORITY = [
-	'x-vercel-ip-country-region',
-	'x-region-code',
-] as const;
-
-const FORWARDED_HEADERS = [
-	...COUNTRY_PRIORITY,
-	...REGION_PRIORITY,
+const REACT_EXTRA_HEADERS = [
 	'x-c15t-version',
-	'accept-language',
 	'user-agent',
-	'x-forwarded-host',
 	'x-forwarded-for',
-	'sec-gpc',
 	'purpose',
 	'sec-purpose',
 	'next-router-prefetch',
 	'x-middleware-prefetch',
 ] as const;
 
+const FORWARDED_HEADERS = [
+	...CONSENT_REQUEST_HEADER_NAMES,
+	...REACT_EXTRA_HEADERS,
+] as const;
+
+/**
+ * Forwarding headers a client can set to name a host or scheme. Passed to
+ * the backend only when the app trusts them.
+ */
+export const CLIENT_FORWARDING_HEADERS = [
+	'forwarded',
+	'x-forwarded-host',
+	'x-forwarded-proto',
+] as const;
+
 type ForwardedHeader =
 	| (typeof FORWARDED_HEADERS)[number]
-	| 'x-c15t-country'
-	| 'x-c15t-region';
+	| (typeof CLIENT_FORWARDING_HEADERS)[number];
 
 type RelevantHeaders = Partial<Record<ForwardedHeader, string>>;
 
@@ -43,10 +45,13 @@ type RelevantHeaders = Partial<Record<ForwardedHeader, string>>;
  * The extracted headers include:
  * - Country headers (cf-ipcountry, x-vercel-ip-country, etc.)
  * - Region headers (x-vercel-ip-country-region, x-region-code)
- * - Standard headers (accept-language, user-agent, x-forwarded-*)
+ * - Standard headers (accept-language, user-agent, x-forwarded-for)
  * - Prefetch headers (purpose, sec-purpose, next-router-prefetch, x-middleware-prefetch)
  *
  * @param headersList - The Headers object from the incoming request
+ * @param options - `trustForwardedHeaders` also copies `forwarded`,
+ * `x-forwarded-host` and `x-forwarded-proto`, which any client can send.
+ * Leave it off unless a proxy you control sets them and drops incoming ones.
  * @returns An object containing the relevant headers for consent management
  *
  * @example
@@ -59,32 +64,29 @@ type RelevantHeaders = Partial<Record<ForwardedHeader, string>>;
  *
  * @public
  */
-export function extractRelevantHeaders(headersList: Headers): RelevantHeaders {
+export const extractRelevantHeaders = function extractRelevantHeaders(
+	headersList: Headers,
+	options: { trustForwardedHeaders?: boolean } = {}
+): RelevantHeaders {
 	const relevantHeaders: RelevantHeaders = {};
+	const names: readonly ForwardedHeader[] = options.trustForwardedHeaders
+		? [...FORWARDED_HEADERS, ...CLIENT_FORWARDING_HEADERS]
+		: FORWARDED_HEADERS;
 
-	// Extract all relevant headers
-	for (const headerName of FORWARDED_HEADERS) {
+	for (const headerName of names) {
 		const value = headersList.get(headerName);
 		if (value) {
 			relevantHeaders[headerName] = value;
 		}
 	}
 
-	// Set country based on priority
-	const countryHeader = COUNTRY_PRIORITY.find(
-		(header) => relevantHeaders[header]
-	);
-	if (countryHeader) {
-		relevantHeaders['x-c15t-country'] = relevantHeaders[countryHeader];
+	const inputs = extractConsentRequestInputs(headersList);
+	if (inputs.country) {
+		relevantHeaders['x-c15t-country'] = inputs.country;
 	}
-
-	// Set region based on priority
-	const regionHeader = REGION_PRIORITY.find(
-		(header) => relevantHeaders[header]
-	);
-	if (regionHeader) {
-		relevantHeaders['x-c15t-region'] = relevantHeaders[regionHeader];
+	if (inputs.region) {
+		relevantHeaders['x-c15t-region'] = inputs.region;
 	}
 
 	return relevantHeaders;
-}
+};

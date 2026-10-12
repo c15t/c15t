@@ -1,38 +1,59 @@
 'use client';
 
 import {
-	ConsentManagerProvider,
-	useConsentManager,
-} from '@c15t/react/headless';
+	ConsentProvider,
+	hosted,
+	useActiveUI,
+	useConsent,
+	useSaveConsents,
+	useSetActiveUI,
+} from '@c15t/react';
+import type { ConsentProviderOptions } from '@c15t/react';
 import { useEffect } from 'react';
+
 import { getBenchState, markInteraction } from '../_bench/state';
 
-function HeadlessBenchmarkUI() {
-	const { activeUI, has, saveConsents, setActiveUI } = useConsentManager();
+const scenario = 'headless' as const;
+
+const consentCategories = [
+	'necessary',
+	'functionality',
+	'experience',
+	'measurement',
+	'marketing',
+] satisfies NonNullable<ConsentProviderOptions['consentCategories']>;
+
+const HeadlessBenchmarkUI = () => {
+	const activeUI = useActiveUI();
+	const hasMeasurement = useConsent('measurement');
+	const saveConsents = useSaveConsents();
+	const setActiveUI = useSetActiveUI();
 
 	useEffect(() => {
-		const state = getBenchState('headless');
+		const state = getBenchState(scenario);
 		if (!state) {
 			return;
 		}
-		state.activeUI = activeUI;
+		state.activeUI = activeUI ?? 'none';
 		if (activeUI === 'banner' && state.bannerReadyMs === undefined) {
-			state.bannerReadyMs = performance.now();
-			state.bannerVisibleMs = performance.now();
+			const now = performance.now();
+			state.bannerReadyMs = now;
+			state.bannerVisibleMs = now;
 		}
 	}, [activeUI]);
 
 	return (
-		<main style={{ padding: '2rem', fontFamily: 'system-ui' }}>
+		<main style={{ fontFamily: 'system-ui', padding: '2rem' }}>
 			<h1>React Headless Benchmark</h1>
 			<p data-testid="headless-status">
-				Measurement consent: {has('measurement') ? 'yes' : 'no'}
+				Measurement consent: {hasMeasurement ? 'yes' : 'no'}
 			</p>
 			<div style={{ display: 'flex', gap: '1rem' }}>
 				<button
 					id="headless-accept"
+					type="button"
 					onClick={async () => {
-						markInteraction('headless', 'acceptAllMs');
+						markInteraction(scenario, 'acceptAllMs');
 						await saveConsents('all');
 					}}
 				>
@@ -40,18 +61,20 @@ function HeadlessBenchmarkUI() {
 				</button>
 				<button
 					id="headless-reject"
+					type="button"
 					onClick={async () => {
-						markInteraction('headless', 'rejectAllMs');
-						await saveConsents('necessary');
+						markInteraction(scenario, 'rejectAllMs');
+						await saveConsents('none');
 					}}
 				>
 					Reject All
 				</button>
 				<button
 					id="headless-open"
+					type="button"
 					onClick={() => {
-						markInteraction('headless', 'openPreferencesMs');
-						setActiveUI('dialog', { force: true });
+						markInteraction(scenario, 'openPreferencesMs');
+						setActiveUI('dialog');
 					}}
 				>
 					Open Preferences
@@ -59,41 +82,31 @@ function HeadlessBenchmarkUI() {
 			</div>
 		</main>
 	);
-}
+};
 
-export default function HeadlessPage() {
-	return (
-		<ConsentManagerProvider
-			options={{
-				mode: 'c15t',
-				backendURL: '/api/bench-consent',
-				callbacks: {
-					onBannerFetched() {
-						const state = getBenchState('headless');
-						if (!state) {
-							return;
-						}
-						state.onBannerFetchedCount += 1;
-						if (state.onBannerFetchedMs === undefined) {
-							state.onBannerFetchedMs = performance.now();
-						}
-					},
-					onConsentSet() {
-						const state = getBenchState('headless');
-						if (state) {
-							state.onConsentSetCount += 1;
-						}
-					},
-					onError() {
-						const state = getBenchState('headless');
-						if (state) {
-							state.onErrorCount += 1;
-						}
-					},
+const HeadlessPage = () => (
+	<ConsentProvider
+		options={{
+			callbacks: {
+				onChoiceRecorded() {
+					const state = getBenchState(scenario);
+					if (state) {
+						state.onChoiceRecordedCount += 1;
+					}
 				},
-			}}
-		>
-			<HeadlessBenchmarkUI />
-		</ConsentManagerProvider>
-	);
-}
+				onError() {
+					const state = getBenchState(scenario);
+					if (state) {
+						state.onErrorCount += 1;
+					}
+				},
+			},
+			consentCategories,
+			mode: hosted({ backendURL: '/api/bench-consent' }),
+		}}
+	>
+		<HeadlessBenchmarkUI />
+	</ConsentProvider>
+);
+
+export default HeadlessPage;

@@ -20,7 +20,7 @@ interface Options {
 	verbose: boolean;
 }
 
-async function findDirectories(
+const findDirectories = async function findDirectories(
 	root: string,
 	dirName: string
 ): Promise<string[]> {
@@ -43,6 +43,7 @@ async function findDirectories(
 
 			// Recursively search in subdirectories
 			try {
+				// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 				const subDirs = await findDirectories(fullPath, dirName);
 				dirs.push(...subDirs);
 			} catch {
@@ -52,9 +53,11 @@ async function findDirectories(
 	}
 
 	return dirs;
-}
+};
 
-async function findCacheDirectories(root: string): Promise<string[]> {
+const findCacheDirectories = async function findCacheDirectories(
+	root: string
+): Promise<string[]> {
 	const dirs: string[] = [];
 	const entries = await readdir(root, { withFileTypes: true });
 
@@ -71,6 +74,7 @@ async function findCacheDirectories(root: string): Promise<string[]> {
 			if (entry.name === 'node_modules') {
 				const cachePath = join(fullPath, '.cache');
 				try {
+					// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 					const stats = await stat(cachePath);
 					if (stats.isDirectory()) {
 						dirs.push(cachePath);
@@ -83,6 +87,7 @@ async function findCacheDirectories(root: string): Promise<string[]> {
 			// Recursively search in subdirectories (but skip node_modules)
 			if (entry.name !== 'node_modules') {
 				try {
+					// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 					const subDirs = await findCacheDirectories(fullPath);
 					dirs.push(...subDirs);
 				} catch {
@@ -93,9 +98,9 @@ async function findCacheDirectories(root: string): Promise<string[]> {
 	}
 
 	return dirs;
-}
+};
 
-async function clearCache(options: Options): Promise<void> {
+const clearCache = async function clearCache(options: Options): Promise<void> {
 	console.log('🧹 Clearing rslib/rspack cache...\n');
 
 	const dirsToRemove: string[] = [];
@@ -124,7 +129,7 @@ async function clearCache(options: Options): Promise<void> {
 
 	console.log(`\nFound ${dirsToRemove.length} directory(ies) to remove:\n`);
 	for (const dir of dirsToRemove) {
-		const relativePath = dir.replace(ROOT_DIR, '.').replace(/^\//, '');
+		const relativePath = dir.replace(ROOT_DIR, '.').replace(/^\//u, '');
 		console.log(`  - ${relativePath}`);
 	}
 
@@ -137,19 +142,19 @@ async function clearCache(options: Options): Promise<void> {
 	for (const dir of dirsToRemove) {
 		try {
 			if (existsSync(dir)) {
-				rmSync(dir, { recursive: true, force: true });
-				removed++;
+				rmSync(dir, { force: true, recursive: true });
+				removed += 1;
 				if (options.verbose) {
-					const relativePath = dir.replace(ROOT_DIR, '.').replace(/^\//, '');
+					const relativePath = dir.replace(ROOT_DIR, '.').replace(/^\//u, '');
 					console.log(`✅ Removed: ${relativePath}`);
 				}
 			}
 		} catch (error) {
-			failed++;
-			const relativePath = dir.replace(ROOT_DIR, '.').replace(/^\//, '');
+			failed += 1;
+			const relativePath = dir.replace(ROOT_DIR, '.').replace(/^\//u, '');
 			console.error(`❌ Failed to remove: ${relativePath}`);
 			if (options.verbose && error instanceof Error) {
-				console.error(`   Error: ${error.message}`);
+				console.error(`, Error: ${error.message}`);
 			}
 		}
 	}
@@ -158,7 +163,7 @@ async function clearCache(options: Options): Promise<void> {
 	if (failed > 0) {
 		console.log(`⚠️  Failed to remove ${failed} directory(ies).`);
 	}
-}
+};
 
 // Parse command line arguments
 const args = process.argv.slice(2);
@@ -184,7 +189,9 @@ Examples:
 	process.exit(0);
 }
 
-clearCache(options).catch((error) => {
+try {
+	await clearCache(options);
+} catch (error) {
 	console.error('❌ Error clearing cache:', error);
 	process.exit(1);
-});
+}

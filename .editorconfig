@@ -11,12 +11,12 @@ charset = utf-8
 indent_style = tab
 indent_size = 2
 tab_width = 2  # Added to explicitly set tab width
-max_line_length = 100
+max_line_length = 80
 trim_trailing_whitespace = true
 
 # JavaScript/TypeScript files
 [*.{js,jsx,ts,tsx}]
-quote_type = double
+quote_type = single
 
 # JSON files
 [*.json]

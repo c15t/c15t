@@ -8,13 +8,17 @@
  *
  * @example
  * ```tsx
- * import { iab } from '@c15t/iab';
- * import { IABConsentBanner, IABConsentDialog } from '@c15t/react/iab';
+ * import { ConsentProvider, hosted } from '@c15t/react';
+ * import { IABProvider, IABConsentBanner, IABConsentDialog } from '@c15t/react/iab';
  *
- * <ConsentManagerProvider options={{ mode: 'hosted', iab: iab({ cmpId: 28 }) }}>
- *   <IABConsentBanner />
- *   <IABConsentDialog />
- * </ConsentManagerProvider>
+ * <ConsentProvider
+ *   options={{ mode: hosted({ backendURL: '/api/c15t' }) }}
+ * >
+ *   <IABProvider cmpId={28}>
+ *     <IABConsentBanner />
+ *     <IABConsentDialog />
+ *   </IABProvider>
+ * </ConsentProvider>
  * ```
  *
  * @packageDocumentation
@@ -23,11 +27,9 @@
 export {
 	IABConsentBanner,
 	type IABConsentBannerProps,
-} from './components/iab-consent-banner';
-export {
-	IABConsentDialog,
-	type IABConsentDialogProps,
-} from './components/iab-consent-dialog';
+} from './components/iab-prompt';
+export type { IABConsentDialogProps } from './components/iab-panel';
+export { IABConsentDialog } from './iab-dialog-deferred';
 export {
 	type HeadlessIABBannerAction,
 	type HeadlessIABBannerState,
@@ -37,3 +39,6 @@ export {
 	type UseHeadlessIABConsentUIResult,
 	useHeadlessIABConsentUI,
 } from './hooks/use-headless-iab-consent-ui';
+
+export { IABProvider } from './iab-context';
+export type { IABProviderProps } from './iab-context';

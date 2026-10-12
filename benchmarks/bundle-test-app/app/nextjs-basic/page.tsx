@@ -1,28 +1,38 @@
 'use client';
 
 import {
-	ConsentManagerProvider,
-	useConsentManager,
-} from '@c15t/nextjs/headless';
-import { ConsentBanner } from '@c15t/react/components/consent-banner';
+	ConsentBanner,
+	ConsentProvider,
+	useEffectivePermissions,
+} from '@c15t/nextjs';
+// The provider takes a transport; `offline` from `@c15t/nextjs` is data.
+import { offline } from '@c15t/react';
 
-export default function NextjsBasicPage() {
-	return (
-		<ConsentManagerProvider
-			options={{
-				mode: 'offline',
-			}}
-		>
-			<main style={{ padding: '2rem', fontFamily: 'system-ui' }}>
-				<h1>Next.js Basic Benchmark</h1>
-				<BasicState />
-			</main>
-			<ConsentBanner />
-		</ConsentManagerProvider>
-	);
-}
-
-function BasicState() {
-	const { consents } = useConsentManager();
+const BasicState = () => {
+	const consents = useEffectivePermissions();
 	return <pre>{JSON.stringify(consents, null, 2)}</pre>;
-}
+};
+const NextjsBasicPage = () => (
+	<ConsentProvider
+		options={{
+			mode: offline({
+				policyRules: [
+					{
+						id: 'bench-opt-in',
+						match: { fallback: true, isDefault: true },
+						model: 'opt-in',
+						prompt: 'choice',
+					},
+				],
+			}),
+		}}
+	>
+		<main style={{ fontFamily: 'system-ui', padding: '2rem' }}>
+			<h1>Next.js Basic Benchmark</h1>
+			<BasicState />
+		</main>
+		<ConsentBanner />
+	</ConsentProvider>
+);
+
+export default NextjsBasicPage;

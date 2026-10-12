@@ -1,0 +1,102 @@
+{
+	"browser": "149.0.7827.55",
+	"commitSha": "f31c13b11336e416c424ebad16301dc5a729fb0b",
+	"metadata": {
+		"gitDirty": false
+	},
+	"samples": [
+		{
+			"mounted": 47,
+			"ready": 47,
+			"resources": [
+				{
+					"end": 5.100000000093132,
+					"name": "http://localhost:3217/_next/static/chunks/packages_ui_dist_styles_components_1_zj9mb._.css"
+				},
+				{
+					"end": 7,
+					"name": "http://localhost:3217/_next/static/chunks/packages_1ec_-dz._.js"
+				},
+				{
+					"end": 4.600000000093132,
+					"name": "http://localhost:3217/_next/static/chunks/packages_astro_src_components_islands_iab-dialog-surface_tsx_109db_y._.js"
+				}
+			]
+		},
+		{
+			"mounted": 45.1999999997206,
+			"ready": 45.1999999997206,
+			"resources": [
+				{
+					"end": 5,
+					"name": "http://localhost:3217/_next/static/chunks/packages_ui_dist_styles_components_1_zj9mb._.css"
+				},
+				{
+					"end": 6.7999999998137355,
+					"name": "http://localhost:3217/_next/static/chunks/packages_1ec_-dz._.js"
+				},
+				{
+					"end": 4.100000000093132,
+					"name": "http://localhost:3217/_next/static/chunks/packages_astro_src_components_islands_iab-dialog-surface_tsx_109db_y._.js"
+				}
+			]
+		},
+		{
+			"mounted": 44.39999999990687,
+			"ready": 44.39999999990687,
+			"resources": [
+				{
+					"end": 5.100000000093132,
+					"name": "http://localhost:3217/_next/static/chunks/packages_ui_dist_styles_components_1_zj9mb._.css"
+				},
+				{
+					"end": 7.2000000001862645,
+					"name": "http://localhost:3217/_next/static/chunks/packages_1ec_-dz._.js"
+				},
+				{
+					"end": 4.2999999998137355,
+					"name": "http://localhost:3217/_next/static/chunks/packages_astro_src_components_islands_iab-dialog-surface_tsx_109db_y._.js"
+				}
+			]
+		},
+		{
+			"mounted": 51.8000000002794,
+			"ready": 51.8000000002794,
+			"resources": [
+				{
+					"end": 5.399999999906868,
+					"name": "http://localhost:3217/_next/static/chunks/packages_ui_dist_styles_components_1_zj9mb._.css"
+				},
+				{
+					"end": 7.2000000001862645,
+					"name": "http://localhost:3217/_next/static/chunks/packages_1ec_-dz._.js"
+				},
+				{
+					"end": 4.5,
+					"name": "http://localhost:3217/_next/static/chunks/packages_astro_src_components_islands_iab-dialog-surface_tsx_109db_y._.js"
+				}
+			]
+		},
+		{
+			"mounted": 48.799999999813735,
+			"ready": 48.799999999813735,
+			"resources": [
+				{
+					"end": 4.7999999998137355,
+					"name": "http://localhost:3217/_next/static/chunks/packages_ui_dist_styles_components_1_zj9mb._.css"
+				},
+				{
+					"end": 6.7999999998137355,
+					"name": "http://localhost:3217/_next/static/chunks/packages_1ec_-dz._.js"
+				},
+				{
+					"end": 4.199999999720603,
+					"name": "http://localhost:3217/_next/static/chunks/packages_astro_src_components_islands_iab-dialog-surface_tsx_109db_y._.js"
+				}
+			]
+		}
+	],
+	"url": "http://localhost:3217/loader-audit?variant=astro-iab",
+	"variant": "astro-iab",
+	"warm": false
+}

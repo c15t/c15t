@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+
 import { normalizeBackendURL, validateBackendURL } from './normalize-url';
 
 describe('validateBackendURL', () => {
@@ -20,14 +21,14 @@ describe('validateBackendURL', () => {
 	it('should trim trailing slashes from absolute URLs', () => {
 		const testCases = [
 			{
-				input: 'https://my-instance.c15t.dev/',
 				expected: 'https://my-instance.c15t.dev',
+				input: 'https://my-instance.c15t.dev/',
 			},
-			{ input: 'https://example.com/', expected: 'https://example.com' },
-			{ input: 'http://localhost:3000/', expected: 'http://localhost:3000' },
+			{ expected: 'https://example.com', input: 'https://example.com/' },
+			{ expected: 'http://localhost:3000', input: 'http://localhost:3000/' },
 			{
-				input: 'https://api.example.com/path/',
 				expected: 'https://api.example.com/path',
+				input: 'https://api.example.com/path/',
 			},
 		];
 
@@ -53,8 +54,8 @@ describe('validateBackendURL', () => {
 
 	it('should validate relative URLs correctly', () => {
 		const testCases = [
-			{ input: '/api/c15t', expected: '/api/c15t' },
-			{ input: '/path/to/api', expected: '/path/to/api' },
+			{ expected: '/api/c15t', input: '/api/c15t' },
+			{ expected: '/path/to/api', input: '/path/to/api' },
 		];
 
 		for (const { input, expected } of testCases) {
@@ -66,9 +67,10 @@ describe('validateBackendURL', () => {
 
 	it('should trim trailing slashes from relative URLs', () => {
 		const testCases = [
-			{ input: '/api/c15t/', expected: '/api/c15t' },
-			{ input: '/path/to/api/', expected: '/path/to/api' },
-			{ input: '/', expected: '/' }, // Root path should be preserved
+			{ expected: '/api/c15t', input: '/api/c15t/' },
+			{ expected: '/path/to/api', input: '/path/to/api/' },
+			// Root path should be preserved
+			{ expected: '/', input: '/' },
 		];
 
 		for (const { input, expected } of testCases) {
@@ -93,11 +95,10 @@ describe('validateBackendURL', () => {
 });
 
 describe('normalizeBackendURL', () => {
-	const createMockHeaders = (headers: Record<string, string>) => {
-		return {
+	const createMockHeaders = (headers: Record<string, string>) =>
+		({
 			get: (key: string) => headers[key.toLowerCase()] || null,
-		} as Headers;
-	};
+		}) as Headers;
 
 	it('should return absolute URLs unchanged', () => {
 		const absoluteURL = 'https://example.com/api';
@@ -110,12 +111,12 @@ describe('normalizeBackendURL', () => {
 	it('should trim trailing slashes from absolute URLs', () => {
 		const testCases = [
 			{
-				input: 'https://my-instance.c15t.dev/',
 				expected: 'https://my-instance.c15t.dev',
+				input: 'https://my-instance.c15t.dev/',
 			},
 			{
-				input: 'https://example.com/api/',
 				expected: 'https://example.com/api',
+				input: 'https://example.com/api/',
 			},
 		];
 
@@ -127,68 +128,60 @@ describe('normalizeBackendURL', () => {
 		}
 	});
 
-	it('should construct URL from x-forwarded headers', () => {
+	it('should ignore x-forwarded headers by default', () => {
 		const headers = createMockHeaders({
-			'x-forwarded-proto': 'https',
-			'x-forwarded-host': 'example.com',
+			host: 'example.com',
+			'x-forwarded-host': 'attacker.example',
+			'x-forwarded-proto': 'http',
 		});
 
 		const result = normalizeBackendURL('/api/c15t', headers);
 		expect(result).toBe('https://example.com/api/c15t');
 	});
 
-	it('should construct URL from x-forwarded headers and trim trailing slashes', () => {
+	it('should construct URL from x-forwarded headers when trusted', () => {
+		const headers = createMockHeaders({
+			'x-forwarded-host': 'example.com',
+			'x-forwarded-proto': 'https',
+		});
+
+		const result = normalizeBackendURL('/api/c15t', headers, {
+			trustForwardedHeaders: true,
+		});
+		expect(result).toBe('https://example.com/api/c15t');
+	});
+
+	it('should construct URL from the host header and trim trailing slashes', () => {
 		const testCases = [
 			{
-				headers: {
-					'x-forwarded-proto': 'https',
-					'x-forwarded-host': 'my-instance.c15t.dev',
-				},
-				input: '/api/c15t/',
 				expected: 'https://my-instance.c15t.dev/api/c15t',
+				input: '/api/c15t/',
 			},
-			{
-				headers: {
-					'x-forwarded-proto': 'https',
-					'x-forwarded-host': 'example.com',
-				},
-				input: '/api/',
-				expected: 'https://example.com/api',
-			},
+			{ expected: 'https://my-instance.c15t.dev/api', input: '/api/' },
 		];
+		const headers = createMockHeaders({ host: 'my-instance.c15t.dev' });
 
-		for (const { headers: headerData, input, expected } of testCases) {
-			const headers = createMockHeaders(headerData);
-			const result = normalizeBackendURL(input, headers);
-			expect(result).toBe(expected);
+		for (const { input, expected } of testCases) {
+			expect(normalizeBackendURL(input, headers)).toBe(expected);
 		}
 	});
 
-	it('should use host header when x-forwarded-host is not available', () => {
+	it('should use http for a localhost host header', () => {
 		const headers = createMockHeaders({
-			host: 'example.com',
+			host: 'localhost:3000',
 		});
 
 		const result = normalizeBackendURL('/api/c15t', headers);
-		expect(result).toBe('https://example.com/api/c15t');
+		expect(result).toBe('http://localhost:3000/api/c15t');
 	});
 
-	it('should use referer when host headers are not available', () => {
+	it('should not use the referer', () => {
 		const headers = createMockHeaders({
 			referer: 'https://example.com/some/path',
 		});
 
 		const result = normalizeBackendURL('/api/c15t', headers);
-		expect(result).toBe('https://example.com/api/c15t');
-	});
-
-	it('should use referer and trim trailing slashes', () => {
-		const headers = createMockHeaders({
-			referer: 'https://my-instance.c15t.dev/some/path',
-		});
-
-		const result = normalizeBackendURL('/api/c15t/', headers);
-		expect(result).toBe('https://my-instance.c15t.dev/api/c15t');
+		expect(result).toBeNull();
 	});
 
 	it('should return null when no headers are available to determine base URL', () => {

@@ -1,0 +1,353 @@
+'use client';
+
+import type * as C15tCoreTypes from '@c15t/core';
+/**
+ * @packageDocumentation
+ * Provides the root component for the Consent Dialog.
+ * Implements context provider pattern with theme support, state management,
+ * focus trapping, scroll locking and portal rendering.
+ */
+import { isDialogDismissKey } from '@c15t/ui/primitives/dialog';
+import styles from '@c15t/ui/styles/components/consent-dialog';
+import type { FC, HTMLAttributes, ReactNode, RefObject } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+
+import { useHeadlessConsentUI } from '~/component-hooks/use-headless-consent-ui';
+import { ConsentTrackingContext } from '~/context/consent-tracking-context';
+import { LocalThemeContext } from '~/context/theme-context';
+import type { ThemeContextValue } from '~/context/theme-context';
+import { useActiveUI, useHasConsentUI, useModel } from '~/hooks';
+import { useFocusTrap } from '~/hooks/use-focus-trap';
+import { useIABPolicyGuard } from '~/hooks/use-iab-policy-guard';
+import { useIsHydrated } from '~/hooks/use-is-hydrated';
+import { useScrollLock } from '~/hooks/use-scroll-lock';
+import { useTextDirection } from '~/hooks/use-text-direction';
+import { useTheme } from '~/hooks/use-theme';
+import { useTranslationLanguage } from '~/kernel-selector';
+import type { CSSPropertiesWithVars } from '~/types/theme';
+import { useUIConfig } from '~/ui-config-context';
+import { cnExt as cn } from '~/utils/cn';
+import { mergeSlotProps } from '~/utils/merge-slot-props';
+
+import { DIALOG_SHEETS } from '../../shared/dialog-sheets';
+import {
+	SurfaceStyles,
+	useSurfaceSheetsReady,
+} from '../../shared/surface-styles';
+import { Overlay } from './overlay';
+
+// `none` is included: it never owes a prompt, but a `none` rule that lists
+// the `preferences` right still opens this dialog as its settings route.
+const DEFAULT_MODELS: C15tCoreTypes.Model[] = ['opt-in', 'opt-out', 'none'];
+
+const resolveDialogOptions = (
+	localDisableAnimation: boolean | undefined,
+	globalDisableAnimation: boolean | undefined,
+	localNoStyle: boolean | undefined,
+	globalNoStyle: boolean | undefined,
+	blocking: boolean
+) => ({
+	disableAnimation: localDisableAnimation ?? globalDisableAnimation ?? false,
+	noStyle: localNoStyle ?? globalNoStyle ?? false,
+	scrollLock: blocking,
+	trapFocus: blocking,
+});
+
+const resolveDialogOpen = (
+	sheetsReady: boolean,
+	hasConsentUI: boolean,
+	models: C15tCoreTypes.Model[],
+	model: C15tCoreTypes.Model | null,
+	open: boolean | undefined,
+	activeUI: string | null
+): boolean => {
+	// Without a resolved policy, or under a `none` rule with no rights, there
+	// is nothing to manage: never open. The model is `null` only then too.
+	if (!hasConsentUI || !models.includes(model ?? 'opt-in')) {
+		return false;
+	}
+	return sheetsReady && (open ?? activeUI === 'dialog');
+};
+
+const getRootClasses = (
+	disableAnimation: boolean,
+	isVisible: boolean
+): string => {
+	if (disableAnimation) {
+		return styles.root;
+	}
+	return cn(
+		styles.root,
+		isVisible ? styles.dialogVisible : styles.dialogHidden
+	);
+};
+
+/**
+ * Props for the root component of the ConsentDialog.
+ *
+ * @public
+ */
+export interface ConsentDialogRootProps extends HTMLAttributes<HTMLDivElement> {
+	/**
+	 * React children that will be rendered inside the dialog container.
+	 * Typically this includes `ConsentDialog.Card` and its sub-components.
+	 */
+	children: ReactNode;
+
+	/**
+	 * Explicitly control the open state of the dialog. If omitted, the dialog
+	 * relies on the consent manager (`activeUI === 'dialog'`) value.
+	 */
+	open?: boolean;
+
+	/**
+	 * Which consent models this dialog responds to.
+	 * @default ['opt-in', 'opt-out', 'none']
+	 */
+	models?: C15tCoreTypes.Model[];
+
+	/**
+	 * When true, the component will not apply any internal styles.
+	 */
+	noStyle?: boolean;
+
+	/**
+	 * Disable entrance / exit animations when true.
+	 */
+	disableAnimation?: boolean;
+
+	/**
+	 * Lock body scroll while the dialog is open. Defaults to `true`.
+	 */
+	scrollLock?: boolean;
+
+	/**
+	 * Trap focus within the dialog while it is open. Defaults to `true`.
+	 */
+	trapFocus?: boolean;
+
+	/**
+	 * Custom backdrop element. Pass a React node to replace the built-in
+	 * semi-transparent overlay or pass `false` to render no backdrop at all.
+	 *
+	 * @default undefined (builtin overlay)
+	 */
+	overlay?: ReactNode | false;
+
+	/**
+	 * Override the UI source identifier sent with consent API calls.
+	 * @default 'dialog'
+	 */
+	uiSource?: string;
+}
+
+/**
+ * Provides theming context, focus-management and portal rendering for the
+ * Consent Dialog. This component is also exposed as
+ * `ConsentDialog.Root` to enable the compound-component usage:
+ *
+ * ```tsx
+ * <ConsentDialog.Root>
+ *   <ConsentDialog.Card>
+ *     …
+ *   </ConsentDialog.Card>
+ * </ConsentDialog.Root>
+ * ```
+ */
+const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
+	children,
+	open: openProp,
+	models = DEFAULT_MODELS,
+	noStyle: localNoStyle,
+	disableAnimation: localDisableAnimation,
+	scrollLock: localScrollLock,
+	trapFocus: localTrapFocus,
+	overlay,
+	uiSource,
+	className,
+	style,
+	...rest
+}) => {
+	useIABPolicyGuard();
+	// Global theme from provider (if any)
+	const globalTheme = useTheme();
+	const { components } = useUIConfig();
+
+	// Consent manager state
+	const activeUI = useActiveUI();
+	const model = useModel();
+	const language = useTranslationLanguage();
+	const { closeUI, dialog } = useHeadlessConsentUI({
+		preferences: { scrollLock: localScrollLock, trapFocus: localTrapFocus },
+	});
+	const { disableAnimation, noStyle, scrollLock, trapFocus } =
+		resolveDialogOptions(
+			localDisableAnimation,
+			globalTheme.disableAnimation,
+			localNoStyle,
+			globalTheme.noStyle,
+			dialog.blocking
+		);
+	const textDirection = useTextDirection(language);
+
+	// Final open state (controlled or managed by consent manager).
+	const hasConsentUI = useHasConsentUI();
+	// A deferred first-paint sheet the page does not hold yet loads with
+	// the dialog's code; the dialog opens once both are here.
+	const sheetsReady = useSurfaceSheetsReady(DIALOG_SHEETS, noStyle);
+	const isOpen = resolveDialogOpen(
+		sheetsReady,
+		hasConsentUI,
+		models,
+		model,
+		openProp,
+		activeUI
+	);
+
+	// Animation visibility flag – mirrors logic in original component
+	const [isVisible, setIsVisible] = useState(false);
+
+	// Refs used for focus trapping
+	const dialogRef = useRef<HTMLDivElement>(null);
+	const contentRef = useRef<HTMLDivElement>(null);
+
+	// Handle mounting (avoid SSR mismatch when using portal)
+	const isMounted = useIsHydrated();
+
+	// Get animation duration from theme
+	const animationDuration = globalTheme.theme?.motion?.duration?.normal;
+
+	// Manage visibility with respect to animation
+	useEffect(() => {
+		if (isOpen) {
+			const frame = requestAnimationFrame(() => setIsVisible(true));
+			return () => cancelAnimationFrame(frame);
+		}
+		if (disableAnimation) {
+			const frame = requestAnimationFrame(() => setIsVisible(false));
+			return () => cancelAnimationFrame(frame);
+		}
+		// Get duration from theme tokens, falling back to 200ms
+		const durationStr = animationDuration || '200ms';
+		const duration = Number.parseInt(durationStr.replace('ms', ''), 10);
+
+		const timer = setTimeout(() => setIsVisible(false), duration);
+		return () => clearTimeout(timer);
+	}, [isOpen, disableAnimation, animationDuration]);
+
+	// Trap focus when dialog open
+	useFocusTrap(isOpen && trapFocus, contentRef as RefObject<HTMLElement>, {
+		initialFocus: 'first-tabbable',
+	});
+
+	useEffect(() => {
+		if (!isOpen) {
+			return;
+		}
+
+		const handleKeyDown = (event: KeyboardEvent) => {
+			if (isDialogDismissKey(event.key)) {
+				event.preventDefault();
+				closeUI();
+			}
+		};
+
+		document.addEventListener('keydown', handleKeyDown);
+		return () => document.removeEventListener('keydown', handleKeyDown);
+	}, [closeUI, isOpen]);
+
+	// Lock scroll when required
+	useScrollLock(isOpen && scrollLock);
+
+	const rootClasses = getRootClasses(disableAnimation, isVisible);
+
+	const themedStyle = mergeSlotProps(components?.dialog?.root, {
+		baseClassName: rootClasses,
+		className,
+		noStyle,
+		style: style as CSSPropertiesWithVars<Record<string, never>>,
+		...rest,
+	});
+	const containerStyle = mergeSlotProps(components?.dialog?.container, {
+		baseClassName: cn(
+			styles.container,
+			!disableAnimation &&
+				(isVisible ? styles.contentVisible : styles.contentHidden)
+		),
+		noStyle,
+	});
+	const contextValue = useMemo<ThemeContextValue>(
+		() => ({
+			disableAnimation,
+			noStyle,
+			scrollLock,
+			theme: globalTheme.theme,
+			trapFocus,
+		}),
+		[disableAnimation, globalTheme.theme, noStyle, scrollLock, trapFocus]
+	);
+	const trackingContextValue = useMemo(
+		() => ({ uiSource: uiSource ?? 'dialog' }),
+		[uiSource]
+	);
+
+	const blockingAttribute = dialog.blocking ? 'true' : undefined;
+	const dialogNode = (
+		<ConsentTrackingContext.Provider value={trackingContextValue}>
+			<LocalThemeContext.Provider value={contextValue}>
+				{isOpen && (
+					<>
+						<SurfaceStyles
+							sheets={DIALOG_SHEETS}
+							noStyle={noStyle}
+						/>
+						{/* Backdrop (customisable) */}
+						{dialog.blocking && overlay !== false
+							? (overlay ?? <Overlay open={isOpen} />)
+							: null}
+
+						{/* The outer element only positions the panel over
+						    the viewport. The panel wrapper below is the
+						    dialog: it carries the semantics, the focus trap
+						    and the `consent-dialog-root` testid, so those
+						    name the same element in every adapter. */}
+						<div
+							ref={dialogRef}
+							data-slot="dialog-positioner"
+							data-blocking={blockingAttribute}
+							{...themedStyle}
+							className={themedStyle.className}
+						>
+							<div
+								ref={contentRef}
+								{...containerStyle}
+								aria-describedby="consent-dialog-description"
+								aria-labelledby="consent-dialog-title"
+								aria-modal={trapFocus ? 'true' : undefined}
+								data-blocking={blockingAttribute}
+								data-testid="consent-dialog-root"
+								dir={textDirection}
+								// oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- A native `dialog` is the positioning shell here, not the panel; the panel is what carries the role.
+								role="dialog"
+								tabIndex={-1}
+							>
+								{children}
+							</div>
+						</div>
+					</>
+				)}
+			</LocalThemeContext.Provider>
+		</ConsentTrackingContext.Provider>
+	);
+
+	if (!isMounted) {
+		return null;
+	}
+
+	return createPortal(dialogNode, document.body);
+};
+
+const Root = ConsentDialogRoot;
+
+export { ConsentDialogRoot, Root };

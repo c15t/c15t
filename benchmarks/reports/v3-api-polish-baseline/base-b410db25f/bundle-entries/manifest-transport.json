@@ -1,0 +1,181 @@
+{
+	"budgetDefinitions": [
+		{
+			"comparator": "delta-bytes-lte",
+			"description": "Consumer entry initial JavaScript may grow by at most 2 KiB gzip, plus the vendor consent allowance and, for entries with a stock surface, its styles.",
+			"metric": "initialGzip",
+			"threshold": 5632
+		},
+		{
+			"comparator": "delta-bytes-lte",
+			"description": "Deferred emitted JavaScript may grow by at most 12 KiB gzip, plus the ordinary or IAB styles emitted by this entry.",
+			"metric": "lazyGzip",
+			"threshold": 12288
+		},
+		{
+			"comparator": "delta-bytes-lte",
+			"description": "Initial plus reachable deferred JavaScript may grow by at most 3 KiB gzip, plus the ordinary or IAB style allowance for this entry.",
+			"metric": "gzipSize",
+			"threshold": 3072
+		}
+	],
+	"budgets": [],
+	"commitSha": "b410db25f81caade4fb15cb8ba2dfef52b7b1835",
+	"environment": {
+		"arch": "arm64",
+		"ci": false,
+		"nodeVersion": "v24.21.0",
+		"os": "darwin"
+	},
+	"fixture": {
+		"consentCount": 0,
+		"localeCount": 0,
+		"name": "manifest-transport",
+		"scriptCount": 0,
+		"themeComplexity": "minimal"
+	},
+	"framework": "core",
+	"metadata": {
+		"allLocalesInputs": ["../../packages/translations/dist/all.js"],
+		"devtoolsInputs": [],
+		"gitDirty": false,
+		"iabInputs": [],
+		"topInputsByBytesInOutput": [
+			"../../packages/translations/dist/5655.js:23517",
+			"../../packages/translations/dist/9941.js:22527",
+			"../../packages/translations/dist/6453.js:19920",
+			"../../packages/translations/dist/9476.js:18857",
+			"../../packages/translations/dist/3353.js:14622",
+			"../../packages/schema/dist/shared/policy-rule.js:9805",
+			"../../packages/translations/dist/5346.js:7503",
+			"../../packages/translations/dist/2114.js:7214",
+			"../../packages/translations/dist/5870.js:7138",
+			"../../packages/translations/dist/1561.js:7034"
+		]
+	},
+	"metrics": [
+		{
+			"avg": 80231,
+			"median": 80231,
+			"name": "initialGzip",
+			"p95": 80231,
+			"samples": [80231],
+			"unit": "bytes"
+		},
+		{
+			"avg": 67996,
+			"median": 67996,
+			"name": "initialBrotli",
+			"p95": 67996,
+			"samples": [67996],
+			"unit": "bytes"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "lazyGzip",
+			"p95": 0,
+			"samples": [0],
+			"unit": "bytes"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "lazyBrotli",
+			"p95": 0,
+			"samples": [0],
+			"unit": "bytes"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "reachableLazyGzip",
+			"p95": 0,
+			"samples": [0],
+			"unit": "bytes"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "reachableLazyBrotli",
+			"p95": 0,
+			"samples": [0],
+			"unit": "bytes"
+		},
+		{
+			"avg": 1,
+			"median": 1,
+			"name": "allLocalesInputModuleCount",
+			"p95": 1,
+			"samples": [1],
+			"unit": "count"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "devtoolsInputModuleCount",
+			"p95": 0,
+			"samples": [0],
+			"unit": "count"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "iabInputModuleCount",
+			"p95": 0,
+			"samples": [0],
+			"unit": "count"
+		},
+		{
+			"avg": 80231,
+			"median": 80231,
+			"name": "gzipSize",
+			"p95": 80231,
+			"samples": [80231],
+			"unit": "bytes"
+		},
+		{
+			"avg": 337518,
+			"median": 337518,
+			"name": "rawSize",
+			"p95": 337518,
+			"samples": [337518],
+			"unit": "bytes"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "iabInputBytes",
+			"p95": 0,
+			"samples": [0],
+			"unit": "bytes"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "devtoolsInputBytes",
+			"p95": 0,
+			"samples": [0],
+			"unit": "bytes"
+		},
+		{
+			"avg": 225,
+			"median": 225,
+			"name": "allLocalesInputBytes",
+			"p95": 225,
+			"samples": [225],
+			"unit": "bytes"
+		}
+	],
+	"notes": [
+		"Synthetic esbuild entry with React externals and empty CSS loaders.",
+		"lazy* counts every deferred chunk esbuild emits; reachableLazy* counts only the chunks the entry can load through import().",
+		"gzipSize and rawSize count only JavaScript chunks reachable from the entry."
+	],
+	"package": "@c15t/next-bundle-bench",
+	"runtime": "esbuild",
+	"scenario": "manifest-transport",
+	"schemaVersion": 1,
+	"suite": "bundle",
+	"timestamp": "2026-10-09T18:48:12.808Z"
+}

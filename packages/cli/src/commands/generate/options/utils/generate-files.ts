@@ -1,21 +1,36 @@
-import fs from 'node:fs/promises';
 import path from 'node:path';
+
 import type * as p from '@clack/prompts';
 import color from 'picocolors';
+
 import type { AvailablePackages } from '~/context/framework-detection';
 import type { CliContext } from '~/context/types';
 import { formatLogMessage } from '~/utils/logger';
+
+import {
+	ensureTailwind3PostcssPlugin,
+	isTailwindV3,
+	tailwind3CreateReactAppWarning,
+	tailwind3PostcssInstruction,
+	tailwind3PostcssPluginName,
+} from '../../../shared/postcss-config';
 import { formatSearchedCssPaths } from '../../../shared/stylesheets';
 import type { ExpandedTheme, UIStyle } from '../../prompts';
 import { generateClientConfigContent } from '../../templates/config';
-import { updateAppStylesheetImports } from '../../templates/css';
 import {
-	generateEnvExampleContent,
-	generateEnvFileContent,
-	getEnvVarName,
-} from '../../templates/env';
+	resolveStylesheetPackageName,
+	updateAppStylesheetImports,
+} from '../../templates/css';
 import { updateReactLayout } from '../../templates/layout';
 import { updateNextConfig } from '../../templates/next-config';
+import {
+	createFile,
+	readFile,
+	collectFileEdits,
+	applyFileEdits,
+} from '../../templates/shared/file-plan';
+import type { FileEdit } from '../../templates/shared/file-plan';
+import { createProjectPathResolver } from '../../templates/shared/project-paths';
 import type { BaseOptions } from '../types';
 
 export type GenerateMode =
@@ -27,10 +42,10 @@ export type GenerateMode =
 
 export interface GenerateFilesOptions extends BaseOptions {
 	context: CliContext;
+	signal?: AbortSignal;
 	mode: GenerateMode;
 	proxyNextjs?: boolean;
 	backendURL?: string;
-	useEnvFile?: boolean;
 	enableSSR?: boolean;
 	enableDevTools?: boolean;
 	uiStyle?: UIStyle;
@@ -39,6 +54,7 @@ export interface GenerateFilesOptions extends BaseOptions {
 }
 
 export interface GenerateFilesResult {
+	edits?: FileEdit[];
 	configContent?: string;
 	configPath?: string | null;
 	layoutUpdated: boolean;
@@ -48,6 +64,10 @@ export interface GenerateFilesResult {
 	nextConfigCreated?: boolean;
 	tailwindCssUpdated?: boolean;
 	tailwindCssPath?: string | null;
+	postcssConfigUpdated?: boolean;
+	postcssConfigPath?: string | null;
+	/** Setup steps the CLI could not do, for the user to do by hand. */
+	warnings?: string[];
 }
 
 interface LayoutUpdateResult {
@@ -66,11 +86,11 @@ interface LayoutUpdateResult {
  * @param options - Configuration options for React layout handling
  * @returns Object containing layout update status and path
  */
-async function handleReactLayout(options: {
+const handleReactLayout = async function handleReactLayout(options: {
+	developmentEnvironment?: CliContext['framework']['developmentEnvironment'];
 	projectRoot: string;
 	mode: GenerateMode;
 	backendURL?: string;
-	useEnvFile?: boolean;
 	pkg: AvailablePackages;
 	proxyNextjs?: boolean;
 	enableSSR?: boolean;
@@ -85,7 +105,6 @@ async function handleReactLayout(options: {
 		projectRoot,
 		mode,
 		backendURL,
-		useEnvFile,
 		proxyNextjs,
 		enableSSR,
 		enableDevTools,
@@ -98,17 +117,17 @@ async function handleReactLayout(options: {
 	} = options;
 	spinner.start('Updating layout file...');
 	const layoutResult = await updateReactLayout({
-		projectRoot,
-		mode,
 		backendURL,
-		useEnvFile,
-		proxyNextjs,
-		enableSSR,
+		developmentEnvironment: options.developmentEnvironment,
 		enableDevTools,
-		uiStyle,
+		enableSSR,
 		expandedTheme,
-		selectedScripts,
+		mode,
 		pkg,
+		projectRoot,
+		proxyNextjs,
+		selectedScripts,
+		uiStyle,
 	});
 
 	const spinnerMessage = () => {
@@ -170,33 +189,31 @@ async function handleReactLayout(options: {
 	spinner.stop(formatLogMessage(type, message));
 
 	return {
-		layoutUpdated: layoutResult.updated,
 		layoutPath: layoutResult.filePath,
+		layoutUpdated: layoutResult.updated,
 	};
-}
+};
 
 /**
  * Handles the Next.js config file updates
  * @param options - Configuration options for Next.js config handling
  * @returns Object containing config update status and path
  */
-async function handleNextConfig(options: {
+const handleNextConfig = async function handleNextConfig(options: {
 	projectRoot: string;
 	backendURL?: string;
-	useEnvFile?: boolean;
 	spinner: ReturnType<typeof p.spinner>;
 }): Promise<{
 	nextConfigUpdated: boolean;
 	nextConfigPath: string | null;
 	nextConfigCreated: boolean;
 }> {
-	const { projectRoot, backendURL, useEnvFile, spinner } = options;
+	const { projectRoot, backendURL, spinner } = options;
 	spinner.start('Updating Next.js config...');
 
 	const configResult = await updateNextConfig({
-		projectRoot,
 		backendURL,
-		useEnvFile,
+		projectRoot,
 	});
 
 	const spinnerMessage = () => {
@@ -229,79 +246,76 @@ async function handleNextConfig(options: {
 	spinner.stop(formatLogMessage(type, message));
 
 	return {
-		nextConfigUpdated: configResult.updated,
-		nextConfigPath: configResult.filePath,
 		nextConfigCreated: configResult.created,
+		nextConfigPath: configResult.filePath,
+		nextConfigUpdated: configResult.updated,
 	};
-}
+};
 
 /**
- * Handles the creation and updating of environment files
- * @param options - Configuration options for environment file handling
+ * Add the installed package's `postcss-tailwind3` plugin (for example
+ * `c15t/postcss-tailwind3`) to a Tailwind 3 app's PostCSS config, or tell the
+ * user how when the config can't be edited.
  */
-async function handleEnvFiles(options: {
-	projectRoot: string;
-	backendURL: string;
-	pkg: AvailablePackages;
-	spinner: ReturnType<typeof p.spinner>;
+const configureTailwind3Postcss = async function configureTailwind3Postcss({
+	cwd,
+	pkg,
+	projectRoot,
+	spinner,
+}: {
 	cwd: string;
-}): Promise<void> {
-	const { projectRoot, backendURL, pkg, spinner, cwd } = options;
-	const envPath = path.join(projectRoot, '.env.local');
-	const envExamplePath = path.join(projectRoot, '.env.example');
+	pkg: 'c15t/next' | 'c15t/react';
+	projectRoot: string;
+	spinner: ReturnType<typeof p.spinner>;
+}): Promise<
+	Pick<
+		GenerateFilesResult,
+		'postcssConfigPath' | 'postcssConfigUpdated' | 'warnings'
+	>
+> {
+	spinner.start('Configuring PostCSS for Tailwind 3...');
+	// The plugin comes from the package the app imports c15t from: `c15t`, or
+	// `@c15t/react` / `@c15t/nextjs` in apps that installed those directly.
+	const pluginName = tailwind3PostcssPluginName(
+		await resolveStylesheetPackageName(projectRoot, pkg)
+	);
+	const postcssResult = await ensureTailwind3PostcssPlugin({
+		pluginName,
+		projectRoot,
+	});
+	const result: Pick<
+		GenerateFilesResult,
+		'postcssConfigPath' | 'postcssConfigUpdated' | 'warnings'
+	> = {
+		postcssConfigPath: postcssResult.filePath,
+		postcssConfigUpdated: postcssResult.status === 'added',
+	};
 
-	spinner.start('Creating/updating environment files...');
-
-	const envContent = generateEnvFileContent(backendURL, pkg);
-	const envExampleContent = generateEnvExampleContent(pkg);
-	const envVarName = getEnvVarName(pkg);
-
-	try {
-		const [envExists, envExampleExists] = await Promise.all([
-			fs
-				.access(envPath)
-				.then(() => true)
-				.catch(() => false),
-			fs
-				.access(envExamplePath)
-				.then(() => true)
-				.catch(() => false),
-		]);
-
-		if (envExists) {
-			const currentEnvContent = await fs.readFile(envPath, 'utf-8');
-			if (!currentEnvContent.includes(envVarName)) {
-				await fs.appendFile(envPath, envContent);
-			}
-		} else {
-			await fs.writeFile(envPath, envContent);
-		}
-
-		if (envExampleExists) {
-			const currentExampleContent = await fs.readFile(envExamplePath, 'utf-8');
-			if (!currentExampleContent.includes(envVarName)) {
-				await fs.appendFile(envExamplePath, envExampleContent);
-			}
-		} else {
-			await fs.writeFile(envExamplePath, envExampleContent);
-		}
-
+	if (postcssResult.status === 'added') {
 		spinner.stop(
 			formatLogMessage(
 				'info',
-				`Environment files added/updated successfully: ${color.cyan(path.relative(cwd, envPath))} and ${color.cyan(path.relative(cwd, envExamplePath))}`
+				`PostCSS config updated: ${color.cyan(path.relative(cwd, postcssResult.filePath))}`
 			)
 		);
-	} catch (error: unknown) {
+	} else if (postcssResult.status === 'present') {
 		spinner.stop(
 			formatLogMessage(
-				'error',
-				`Error processing environment files: ${error instanceof Error ? error.message : String(error)}`
+				'debug',
+				'PostCSS config already runs the c15t Tailwind 3 plugin.'
 			)
 		);
-		throw error;
+	} else {
+		const warning =
+			postcssResult.status === 'config-ignored'
+				? tailwind3CreateReactAppWarning(pluginName)
+				: tailwind3PostcssInstruction(pluginName);
+		spinner.stop(formatLogMessage('warn', warning));
+		result.warnings = [warning];
 	}
-}
+
+	return result;
+};
 
 /**
  * Generates appropriate files based on the package type and mode
@@ -309,11 +323,10 @@ async function handleEnvFiles(options: {
  * @param options - Configuration options for file generation
  * @returns Information about generated/updated files
  */
-export async function generateFiles({
+const generateFilesContent = async function generateFilesContent({
 	context,
 	mode,
 	spinner,
-	useEnvFile,
 	proxyNextjs,
 	backendURL,
 	enableSSR,
@@ -322,8 +335,15 @@ export async function generateFiles({
 	expandedTheme,
 	selectedScripts,
 }: GenerateFilesOptions): Promise<GenerateFilesResult> {
+	if (context.framework.manualSetupUrl) {
+		throw new Error(
+			`${context.framework.framework} requires manual integration: ${context.framework.manualSetupUrl}`
+		);
+	}
+	const warnings: string[] = [];
 	const result: GenerateFilesResult = {
 		layoutUpdated: false,
+		warnings,
 	};
 
 	const {
@@ -331,36 +351,40 @@ export async function generateFiles({
 		framework: { pkg },
 	} = context;
 
-	if (pkg === '@c15t/nextjs' || pkg === '@c15t/react') {
+	if (pkg === 'c15t/next' || pkg === 'c15t/react') {
 		const layoutResult = await handleReactLayout({
-			projectRoot,
-			mode,
 			backendURL,
-			useEnvFile,
-			proxyNextjs,
-			enableSSR,
-			enableDevTools,
-			uiStyle,
-			expandedTheme,
-			selectedScripts,
-			pkg,
-			spinner,
 			cwd: context.cwd,
+			developmentEnvironment: context.framework.developmentEnvironment,
+			enableDevTools,
+			enableSSR,
+			expandedTheme,
+			mode,
+			pkg,
+			projectRoot,
+			proxyNextjs,
+			selectedScripts,
+			spinner,
+			uiStyle,
 		});
+		if (!layoutResult.layoutPath) {
+			throw new Error(
+				`Could not find the application entrypoint. Follow https://c15t.com/docs/frameworks/${pkg === 'c15t/next' ? 'next' : 'react'}/quickstart`
+			);
+		}
 		result.layoutUpdated = layoutResult.layoutUpdated;
 		result.layoutPath = layoutResult.layoutPath;
 	}
 
 	// Update Next.js config for hosted/self-hosted Next.js projects only
 	if (
-		pkg === '@c15t/nextjs' &&
+		pkg === 'c15t/next' &&
 		proxyNextjs &&
 		(mode === 'hosted' || mode === 'c15t' || mode === 'self-hosted')
 	) {
 		const configResult = await handleNextConfig({
-			projectRoot,
 			backendURL,
-			useEnvFile,
+			projectRoot,
 			spinner,
 		});
 		result.nextConfigUpdated = configResult.nextConfigUpdated;
@@ -373,35 +397,28 @@ export async function generateFiles({
 		result.configContent = generateClientConfigContent(
 			mode,
 			backendURL,
-			useEnvFile,
-			enableDevTools
+			enableDevTools,
+			selectedScripts
 		);
 		result.configPath = path.join(projectRoot, 'c15t.config.ts');
+		await createFile(result.configPath, result.configContent, 'utf-8');
 		spinner.stop(
 			formatLogMessage(
 				'info',
-				`Client configuration file generated: ${result.configContent}`
+				`Client configuration file generated: ${result.configPath}`
 			)
 		);
 	}
 
-	if (useEnvFile && backendURL) {
-		await handleEnvFiles({
-			projectRoot,
-			backendURL,
-			pkg,
-			spinner,
-			cwd: context.cwd,
-		});
-	}
-
-	if (pkg === '@c15t/react' || pkg === '@c15t/nextjs') {
+	if (
+		(pkg === 'c15t/react' || pkg === 'c15t/next') &&
+		isTailwindV3(context.framework.tailwindVersion)
+	) {
 		spinner.start('Configuring app stylesheet...');
 		const stylesheetResult = await updateAppStylesheetImports({
-			projectRoot,
-			packageName: pkg,
-			tailwindVersion: context.framework.tailwindVersion,
 			entrypointPath: result.layoutPath,
+			packageName: pkg,
+			projectRoot,
 		});
 		if (stylesheetResult.updated) {
 			result.tailwindCssUpdated = true;
@@ -420,14 +437,69 @@ export async function generateFiles({
 				)
 			);
 		} else {
-			spinner.stop(
-				formatLogMessage(
-					'warn',
-					`Could not find a global CSS entrypoint. Checked: ${formatSearchedCssPaths(projectRoot, stylesheetResult.searchedPaths)}`
-				)
-			);
+			const warning = `Could not find a global CSS entrypoint. Import "${await resolveStylesheetPackageName(projectRoot, pkg)}/styles.css" in the global stylesheet loaded by your app. Checked: ${formatSearchedCssPaths(projectRoot, stylesheetResult.searchedPaths)}`;
+			warnings.push(warning);
+			spinner.stop(formatLogMessage('warn', warning));
 		}
+
+		const postcssResult = await configureTailwind3Postcss({
+			cwd: context.cwd,
+			pkg,
+			projectRoot,
+			spinner,
+		});
+		Object.assign(result, postcssResult, {
+			warnings: [...warnings, ...(postcssResult.warnings ?? [])],
+		});
 	}
 
 	return result;
-}
+};
+
+/** Produces reviewable file edits without mutating the project. */
+export const planGenerateFiles = async function planGenerateFiles(
+	options: GenerateFilesOptions
+): Promise<GenerateFilesResult & { edits: FileEdit[] }> {
+	const resolvePath = await createProjectPathResolver(
+		options.context.projectRoot
+	);
+	const manifest = JSON.parse(
+		await readFile(
+			await resolvePath(path.join(options.context.projectRoot, 'package.json')),
+			'utf-8'
+		)
+	);
+	const { result, edits } = await collectFileEdits(
+		() => generateFilesContent(options),
+		{ projectRoot: options.context.projectRoot }
+	);
+	const dependencies = {
+		...manifest.dependencies,
+		...manifest.devDependencies,
+	};
+	if (!dependencies.c15t) {
+		for (const [umbrella, scoped] of [
+			['c15t/react', '@c15t/react'],
+			['c15t/next', '@c15t/nextjs'],
+		]) {
+			if (!umbrella || !scoped || !dependencies[scoped]) {
+				continue;
+			}
+			for (const edit of edits) {
+				edit.after = edit.after
+					.replaceAll(`'${umbrella}`, `'${scoped}`)
+					.replaceAll(`"${umbrella}`, `"${scoped}`);
+			}
+		}
+	}
+	return { ...result, edits };
+};
+
+/** Generates the files as one transaction, with complete rollback on failure. */
+export const generateFiles = async function generateFiles(
+	options: GenerateFilesOptions
+): Promise<GenerateFilesResult & { edits: FileEdit[] }> {
+	const plan = await planGenerateFiles(options);
+	await applyFileEdits(plan.edits, { signal: options.signal });
+	return plan;
+};

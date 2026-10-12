@@ -1,0 +1,52 @@
+---
+/**
+ * Layout for the measured Astro arms: the server-rendered banner, the
+ * on-demand preference-centre island, a dialog trigger for the
+ * repeat-visitor interaction, and the probe.
+ *
+ * `deferred` swaps the banner for its `server:defer` variant so the
+ * `ssr-deferred` arm prices Astro's server-island path.
+ */
+import ConsentBanner from '@c15t/astro/components/consent-banner.astro';
+import ConsentBannerDeferred from '@c15t/astro/components/consent-banner-deferred.astro';
+import ConsentDialog from '@c15t/astro/components/consent-dialog.astro';
+import ConsentDialogLink from '@c15t/astro/components/consent-dialog-link.astro';
+import ConsentScript from '@c15t/astro/components/consent-script.astro';
+
+import BenchmarkProbe from '../components/benchmark-probe.astro';
+import ScriptProbe from '../components/script-probe.astro';
+
+interface Props {
+	scenario: string;
+	deferred?: boolean;
+	/** Add the script-loading probe (the `scripts` arms). */
+	scripts?: 'first-visit' | 'returning';
+}
+
+const { scenario, deferred = false, scripts } = Astro.props;
+---
+
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta
+			content="width=device-width, initial-scale=1"
+			name="viewport"
+		/>
+		<title>Astro Benchmark: {scenario}</title>
+		<ConsentScript />
+	</head>
+	<body>
+		<main style="padding: 2rem; font-family: system-ui, sans-serif">
+			<h1>Astro Benchmark: {scenario}</h1>
+			<ConsentDialogLink>
+				<span id="open-preferences-label">Open Preferences</span>
+			</ConsentDialogLink>
+		</main>
+
+		<BenchmarkProbe scenario={scenario} />
+		{scripts && <ScriptProbe returning={scripts === 'returning'} />}
+		{deferred ? <ConsentBannerDeferred /> : <ConsentBanner />}
+		<ConsentDialog />
+	</body>
+</html>

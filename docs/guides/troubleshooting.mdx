@@ -1,0 +1,199 @@
+---
+title: Troubleshooting
+description: Fix a missing banner, analytics that load before consent, choices lost on reload, CORS errors, hydration differences, failed manifest downloads, mode errors and failed static builds in c15t v3.
+group: guides
+---
+
+## Start with three checks
+
+Most problems show up in one of these places. Run them before changing code.
+
+1. **Which c15t is running.** In the browser console, run `window.c15t`. v3
+   prints `{ version, pkg, mode, hosting }`, for example `mode: 'manifest'`
+   from `@c15t/nextjs`. `hosting` is `'inth'` or `'self-hosted'` once the
+   backend has answered `/init`, and `null` before then or without a backend. `undefined` means no c15t provider has mounted on this
+   page. A `window.c15tStore` object means the page runs v2. With the script
+   tag, `window.c15t` is the full browser API instead.
+2. **The backend request.** In DevTools Network, filter by your backend URL.
+   Look for `/init` or `/manifest` and check its status. A CORS error means
+   the backend does not trust your site's origin.
+3. **Consent state.** Add the c15t DevTools panel from your framework's guide.
+   It shows the resolved policy, whether a prompt is needed, each category's
+   permission and the scripts c15t manages.
+
+Your framework's troubleshooting page covers adapter-specific failures, such
+as Next.js prerendering errors or SvelteKit hydration.
+
+## "Can't resolve 'c15t/next'" or a missing export
+
+npm's `latest` tag still points to c15t v2, which has no framework entry
+points. A plain `npm install c15t` therefore installs v2, and imports such as
+`c15t/next`, `c15t/react` or `ConsentRoot` fail with "Package subpath is not
+defined by exports" or "Module not found".
+
+Install the v3 release and check the lockfile:
+
+<CommandTabs command="c15t" mode="install" />
+
+Keep every c15t package, including `@c15t/integrations`, on the same release.
+Mixing v2 and v3 packages is not supported.
+
+## Why is there no banner?
+
+No banner is sometimes correct. Find out which case you have:
+
+| What DevTools shows | Cause | Fix |
+| --- | --- | --- |
+| The backend request failed or has a CORS error | Wrong backend URL, or your origin is not trusted | Copy the URL from your Inth project exactly, including any path. Add the site's origin, such as `https://www.example.com` or `http://localhost:3000`, to the project's trusted origins. |
+| Requests go to `your-project.inth.app` and fail | The placeholder backend URL from the guides is still in your code | Replace `https://your-project.inth.app` with the URL from your Inth project, including any path prefix. |
+| No backend request at all | No provider mounted, the provider runs in offline mode, or the page resolved from a bundled manifest | Check `window.c15t`. `mode: 'manifest'` with no request is expected for a policy that does not depend on location. Otherwise confirm your framework's backend URL variable is set, as [consent modes](/docs/concepts/modes#set-the-backend-url) lists. |
+| The policy resolved and no prompt is needed | The visitor's location maps to a policy without a prompt, such as a US state without a privacy law in the recommended rules | Expected. Test from a location that needs a prompt. Server helpers such as Next.js `resolveConsent` accept a `country` override for testing; remove it before you deploy. |
+| The policy resolved and a choice is stored | A returning visitor | Expected. Clear site data or use a private window. |
+| The banner is in the DOM but invisible or unstyled | c15t's rules are missing: `styles: false` without an imported stylesheet, a Content Security Policy that blocks c15t's `<style>` elements, Tailwind CSS 3's preflight, or a SvelteKit app without `c15tHandle` | See [stylesheets and CSS layers](/docs/customization/stylesheets) for how your framework loads c15t's rules. |
+
+Do not "fix" a missing banner by granting every category or turning c15t off.
+While the policy is unresolved, every optional category stays denied. Turning
+the runtime off lets optional scripts load.
+
+## Why does analytics load before the visitor chooses?
+
+c15t only controls scripts you register with it. Find every other loader:
+
+- A `<script>` tag in your HTML, layout or `_document`.
+- A framework package or plugin, such as `@next/third-parties`,
+  `@nuxt/scripts`, `nuxt-gtag` or a Vercel or Netlify analytics toggle.
+- A tag in Google Tag Manager that fires on page view.
+- An embed, such as a YouTube iframe, rendered without `ConsentGate`.
+
+Remove the extra loader and register the vendor through
+[integrations](/docs/integrations/overview). To replace a framework package,
+follow [migrate from `@next/third-parties`](/docs/frameworks/next/scripts#migrate-from-nextthird-parties),
+[migrate from `@nuxt/scripts`](/docs/frameworks/nuxt/scripts#migrate-from-nuxtscripts)
+or [migrate from `nuxt-gtag`](/docs/frameworks/nuxt/scripts#migrate-from-nuxt-gtag).
+Then reload with the Network panel open and cache disabled. The vendor's
+domain should be absent until you allow its category.
+
+Also check the policy. Under an opt-out policy, optional categories are allowed
+before a choice, so the request is expected.
+
+Google Tag and Google Tag Manager are an exception by design. By default
+their helpers load before a choice and send Google Consent Mode signals, so a
+request to Google before consent is expected. If you need no request at all
+before consent, set `loadMode: 'after-consent'`; see
+[Google Tag Manager](/docs/integrations/google-tag-manager#choose-when-the-container-loads).
+
+## Why does the choice disappear on reload?
+
+| Check | Fix |
+| --- | --- |
+| After saving, does DevTools Application show a `c15t` cookie and a `c15t` localStorage entry? | If not, look for `persistence: false` in your config. Examples use it on purpose; production apps should not. |
+| Does the browser block storage, for example in a sandboxed iframe or a strict privacy mode? | The choice works for the current page only. Nothing to fix in your app. |
+| Did the domain, subdomain or protocol change between visits? | Cookies and localStorage are per origin. Serve the site from one origin, or share the cookie across subdomains. |
+| Did the policy change since the visitor chose? | A changed policy, a new required category or an expired choice prompts again. This is intended. |
+
+Never save a choice automatically on page load to make persistence "stick".
+That records consent the visitor did not give.
+
+## Why does the page reload after saving preferences?
+
+A visitor turned off a category or vendor they had allowed. Scripts that
+already ran cannot be unloaded, so c15t reloads the page to start clean with
+only permitted code. Set `reloadOnConsentRevoked: false` if you clean up
+revoked vendors yourself; [clear on revocation for your framework](/docs/integrations/overview#vendor-switches-and-cookie-cleanup)
+covers the options.
+
+## Why does the server HTML differ from the browser?
+
+Pass the value your framework's server helper returns to the provider
+unchanged. Do not merge it with defaults or rebuild it from permissions. Make
+sure the server and browser use the same backend URL, because two backends can
+resolve different policies.
+
+Never keep consent state in a module-level variable on the server. One
+visitor's state can leak into another request. Create it per request, as the
+framework guides do.
+
+## Why does the build fail to download the manifest?
+
+`manifest()` resolves from a policy snapshot that the build downloads from
+`${backendURL}/manifest`. A production build stops when the download fails,
+and dev logs the same message as a warning. Every framework uses the same
+messages, prefixed with the integration's name, such as
+`@c15t/nextjs/build`, `@c15t/core/build` (for `c15t/build`),
+`@c15t/tanstack-start/build`, `@c15t/vue/vite`, `@c15t/svelte/vite`,
+`@c15t/vue` (Nuxt) or `@c15t/astro`:
+
+| Message | Cause | Fix |
+| --- | --- | --- |
+| `could not fetch the consent manifest from <url> during the build (fetch failed: ...)`, with `ENOTFOUND`, `ECONNREFUSED` or another network error | The build cannot reach the backend | Build where the backend is reachable, or deploy with `C15T_ON_BUILD_ERROR=runtime` |
+| `... (no response within 10 seconds)` | The backend did not answer in time | Check the backend, or build where it is reachable |
+| `... (/manifest responded 404 Not Found)`, or another status | The URL is not your project's backend, such as the `https://your-project.inth.app` placeholder or a URL missing its path prefix | Copy the backend URL exactly as Inth shows it |
+| `... (/manifest returned an invalid consent manifest.)` | The URL answered with something other than a consent manifest, such as an HTML page | Point the backend URL at the backend itself, not your site or a dashboard page |
+| `no backend URL is set, so the build cannot fetch the consent manifest. Pass backendURL or set ...` | No `backendURL` option and no backend URL variable | Set the variable your framework reads; see [consent modes](/docs/concepts/modes#set-the-backend-url) |
+| `skipped the consent manifest fetch because "/api/c15t" is not an absolute http(s) URL, so the server fetches the policy at runtime.` | A relative backend URL. A notice, not an error. | Pass the absolute backend URL. With `onBuildError: 'fail'`, this stops the build with `build-time manifests require an absolute upstream URL.` |
+| `C15T_ON_BUILD_ERROR must be 'runtime' or 'fail', received "..."` | The variable has another value | Set it to `runtime` or `fail`, or unset it |
+| `onBuildError must be 'runtime' or 'fail', received "..."` | The option has another value | Pass `'runtime'` or `'fail'` |
+
+Each failure message ends with what to do next. In a production build:
+``Set `C15T_ON_BUILD_ERROR=runtime` (or `onBuildError: 'runtime'`) to deploy with runtime fetching.``
+The Vite plugins add one more fix. The plugin can't see a mode set in app
+code, so an app that uses `manifest({ manifestURL })` or
+`manifest({ source: 'runtime' })` should pass `source: 'runtime'` to
+`consentManifest()`, and the build skips the download.
+A failed download never reuses an older snapshot. With
+`C15T_ON_BUILD_ERROR=runtime`, the build finishes without a snapshot, and the
+manifest is fetched at runtime. Dev warnings end with
+`The server fetches it at runtime instead. A production build stops on this error.`
+
+[Consent modes](/docs/concepts/modes#what-happens-when-the-download-fails)
+describes the policy and when the build skips the download.
+
+### A single-page app warns that the policy depends on location
+
+`consentManifest()` from `c15t/build` logs this warning when it downloads a
+policy with location rules:
+
+```txt
+@c15t/core/build: the consent policy depends on the visitor's location, which the browser doesn't know. Unless you pass `inputs` or `geoURL` to `manifest()`, every first visit still calls the backend's /init, so the bundled policy adds bytes without saving a request. Consider `mode: hosted()` instead.
+```
+
+Pass the visitor's `{ country, region }` as `manifest({ inputs })` when your
+edge knows it, or a `geoURL` that answers with it. Otherwise switch the mode
+to `hosted()`, which asks `/init` without bundling the policy.
+
+## Why does the provider say a mode is required?
+
+The browser throws when a provider or `init()` gets no mode, or a mode name
+instead of a factory:
+
+| Message | Fix |
+| --- | --- |
+| ``@c15t/react ConsentProvider: `mode` is required. Use manifest() or hosted().`` | Pass `mode`, such as `manifest()` from the same package. The start of the message names the package and the API that got no mode, such as `@c15t/svelte ConsentProvider` or `@c15t/core createConsentRuntime()`. Production builds name the package only: ``@c15t/react: `mode` is required.`` |
+| ``@c15t/browser: `mode` must be a factory, such as manifest(), hosted() or offline() from @c15t/browser. Mode names like "hosted" work only in the script-tag builds.`` | Import the factory and call it: `init({ mode: hosted() })`. |
+| ``c15t: hosted() needs `backendURL`. Pass it, or add consentManifest() from c15t/build to your Vite config and set VITE_C15T_BACKEND_URL (or VITE_INTH_PROJECT_URL).`` | The React `hosted()` found no backend URL. `@c15t/browser` throws the same message prefixed `@c15t/browser:`. A production build prints only the first sentence. |
+| ``c15t: `mode` is the hosted() transport itself, so its code ships in the client bundle. Pass the hosted() your framework package exports instead: it is plain data, and the root loads the code only when it runs.`` | A warning outside production. A server-rendered root got a transport from `c15t/react`. Import the mode from your framework package. Next.js has its own wording; see [Next.js troubleshooting](/docs/frameworks/next/troubleshooting). |
+
+## Why does the static build fail when development works?
+
+A static host serves files only. Route handlers, server functions, rewrites
+and proxies that worked under the dev server do not exist after deployment.
+Point the browser at the absolute backend URL from Inth instead of a
+same-origin `/api/c15t` path, then test the built output with a static file
+server, not the dev server. [Choose your setup](/docs/concepts/choose-your-setup)
+lists the static path for each framework.
+
+## Why does the UI disappear with an ad blocker?
+
+Check the Network panel for `ERR_BLOCKED_BY_CLIENT`. Some filter lists block
+the consent backend's domain or old c15t chunk names such as
+`consent-dialog-*.js`. Current releases use neutral chunk names; update and
+rebuild. If the backend domain is blocked, the banner cannot load policy and
+every optional category stays denied.
+
+## Why does my theme do nothing?
+
+Check that c15t's rules load, that you set a token or slot the
+component actually reads, and that the state attribute you target is on the
+element you style. A `data-variant` on the banner root is not on its card.
+Check the Tailwind version and CSS layer order before adding specificity. See
+[customization](/docs/customization/overview).

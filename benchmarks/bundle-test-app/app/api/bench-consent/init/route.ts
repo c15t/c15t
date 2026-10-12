@@ -1,38 +1,12 @@
+import { loadBrowserBenchInit } from '@c15t/benchmarking/policy-fixtures';
 import { NextResponse } from 'next/server';
 
-const response = {
-	branding: 'c15t',
-	jurisdiction: 'GDPR',
-	location: {
-		countryCode: 'DE',
-		regionCode: 'BE',
-	},
-	translations: {
-		language: 'en',
-		translations: {
-			common: {
-				acceptAll: 'Accept All',
-				rejectAll: 'Reject All',
-				customize: 'Customize',
-				save: 'Save',
-			},
-			cookieBanner: {
-				title: 'Benchmark Consent Banner',
-				description: 'Benchmark fixture description.',
-			},
-			consentManagerDialog: {
-				title: 'Benchmark Preferences',
-				description: 'Benchmark fixture dialog description.',
-			},
-		},
-	},
-	policySnapshotToken: 'bundle-bench-snapshot',
-};
+const response = loadBrowserBenchInit();
 
-export async function GET() {
-	return NextResponse.json(response, {
+export const GET = async function GET() {
+	return NextResponse.json(await response, {
 		headers: {
 			'cache-control': 'no-store',
 		},
 	});
-}
+};

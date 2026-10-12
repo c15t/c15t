@@ -1,0 +1,70 @@
+---
+title: "ConsentWidget"
+description: "Shared ConsentWidget reference for the c15t Vue plugin and Nuxt module."
+group: reference
+---
+
+{/* This file is NOT rendered directly. Sections are imported by the Vue and Nuxt ConsentWidget pages. */}
+
+<section id="behavior">
+  ## What ConsentWidget renders
+
+  `ConsentWidget` renders the preference controls inline, in the page flow,
+  for a privacy or account settings page. It shows the categories the policy
+  lets the visitor choose, each with a switch that expands to its description
+  and declared vendors, and a footer with Reject All, Accept All and Save Settings.
+  Necessary is always on and its switch is disabled.
+
+  - Save records the switches as they are. Accept All and Reject All record a
+    choice for every category the policy covers.
+  - The switches start from the visitor's recorded choice. Before any choice,
+    they start from the policy's defaults: on under an opt-out policy or for
+    preselected categories, otherwise off.
+  - A choice saved elsewhere, such as in the banner, updates switches the
+    visitor has not touched and keeps the ones they moved.
+  - If the policy changes, the widget shows "Privacy choices have changed."
+    with a button that reloads the switches. Save stays blocked until then.
+
+  The widget renders nothing until the visitor's policy has resolved, and
+  nothing when the policy owes no consent UI. It does not open or close any
+  other surface. `ConsentManager` renders the same widget inside the dialog.
+</section>
+
+<section id="props">
+  ## Props
+
+  | Prop | Type | Default | Behavior |
+  | --- | --- | --- | --- |
+  | `hideBranding` | `boolean` | `true` | Hides the "Secured by" tag. |
+  | `noStyle` | `boolean` | `false` | Drops the built-in classes from every part, so your own CSS starts from plain markup. |
+  | `language` | `string` | The resolved language | Sets the text direction. It does not change the text. |
+</section>
+
+<section id="accessibility">
+  ## Accessibility
+
+  Each switch is a `button` with `role="switch"`, `aria-checked` and the
+  category title as its label. Each row expands with a button that sets
+  `aria-expanded` and `aria-controls`, and one row is open at a time. The
+  footer actions are native buttons. Give the page a heading that names the
+  widget, as in the example above.
+</section>
+
+<section id="styling">
+  ## Style the widget
+
+  The widget reads `components.manager` for its root and footer,
+  `components.accordion` and `components['accordion-item']` for the rows,
+  `components.switch` for the switches and `components['vendor-list']` for
+  vendor rows. [Component slots](/docs/customization/slots) lists every part.
+  `presentation.preferences` sets the footer's `layout`, `primaryActions`,
+  `direction` and `uiProfile`, and applies to the dialog too.
+</section>
+
+<section id="verify">
+  ## Verify
+
+  Open the page with the widget in a private window. Turn **Analytics** (the `measurement` category) on and
+  click Save. Reload: the switch is still on, and scripts gated on
+  measurement load. Turn it off and save, and the page reloads without them.
+</section>

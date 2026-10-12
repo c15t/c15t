@@ -1,166 +1,103 @@
 name: Benchmark Regression
 
 on:
-  # TODO: re-enable the pull_request trigger once the report is less noisy.
-  # Disabled for now — the per-PR comparison comment is too spammy.
-  # pull_request:
-  #   types: [opened, synchronize, reopened]
-  #   paths:
-  #     - 'packages/core/**'
-  #     - 'packages/react/**'
-  #     - 'packages/nextjs/**'
-  #     - 'packages/translations/**'
-  #     - 'packages/ui/**'
-  #     - 'benchmarks/**'
-  #     - 'package.json'
-  #     - 'bun.lock'
-  #     - 'bun.lockb'
-  #     - 'turbo.json'
-  #     - 'internals/bundle-analysis-action/**'
-  workflow_dispatch:
   push:
-    branches: ['main', 'canary']
-    paths:
-      - 'packages/core/**'
-      - 'packages/react/**'
-      - 'packages/nextjs/**'
-      - 'packages/translations/**'
-      - 'packages/ui/**'
-      - 'benchmarks/**'
-      - 'package.json'
-      - 'bun.lock'
-      - 'bun.lockb'
-      - 'turbo.json'
-      - 'internals/bundle-analysis-action/**'
+    branches: ['v3']
+  schedule:
+    - cron: '43 2 * * *'
+  workflow_call:
+    inputs:
+      base_ref:
+        type: string
+        default: 'HEAD^'
+      mode:
+        type: string
+        default: quick
+      built:
+        type: boolean
+        default: false
+  workflow_dispatch:
+    inputs:
+      base_ref:
+        description: Revision to compare with
+        default: 'HEAD^'
+      mode:
+        description: Runtime coverage
+        type: choice
+        options: [full, quick]
+        default: full
+
+permissions:
+  contents: read
 
 env:
-  # leadtype package-docs generation exceeds the default Node heap on
-  # cache-miss builds of larger packages (core, react).
   NODE_OPTIONS: --max-old-space-size=6144
+  TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+  TURBO_CACHE_POLICY: ${{ vars.TURBO_CACHE_POLICY }}
 
 jobs:
-  benchmark:
-    name: Run Benchmarks
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
+  plan:
+    name: Select benchmark packages and revisions
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+      head_sha: ${{ steps.plan.outputs.head_sha }}
+      base_sha: ${{ steps.plan.outputs.base_sha }}
     steps:
-      - name: Check out base repository
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
-          ref: ${{ github.event.pull_request.base.ref || github.ref }}
+          # Manual and scheduled comparisons use v3's measurement tooling.
+          # PR callers retain their event SHA and PR cache scope.
+          ref: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && 'v3' || github.sha }}
           fetch-depth: 0
           persist-credentials: false
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@f4d14e03ff726c06358e5557344e1da148b56cf7
+      - uses: oven-sh/setup-bun@f4d14e03ff726c06358e5557344e1da148b56cf7
         with:
-          bun-version: "1.3.11"
-
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-
-      - name: Install Playwright Chromium
-        run: |
-          PLAYWRIGHT_VERSION=$(bun -e "console.log(require('./package.json').devDependencies.playwright)")
-          bunx "playwright@${PLAYWRIGHT_VERSION}" install --with-deps chromium chromium-headless-shell
-
-      - name: Clean benchmark output
-        run: rm -rf .benchmarks .perf
-
-      - name: Run base benchmark suite
-        id: run-base-bench
-        continue-on-error: ${{ github.event_name == 'pull_request' }}
+          bun-version: 1.3.11
+      - name: Plan benchmark matrix
+        id: plan
         env:
-          TURBO_TOKEN: ${{ github.event_name != 'pull_request' && secrets.TURBO_TOKEN || '' }}
-          TURBO_TEAM: ${{ github.event_name != 'pull_request' && secrets.TURBO_TEAM || '' }}
-        run: bun run bench:ci
-
-      - name: Save base results
-        if: github.event_name == 'pull_request' && steps.run-base-bench.outcome == 'success'
+          BENCHMARK_BASE_REF: ${{ inputs.base_ref || 'HEAD^' }}
+          BENCHMARK_MODE: ${{ inputs.mode || 'full' }}
         run: |
-          mkdir -p .perf
-          mv .benchmarks/head .perf/base
+          matrix=$(bun scripts/benchmark-plan.ts "$BENCHMARK_MODE")
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+          bun scripts/benchmark-revisions.ts >> "$GITHUB_OUTPUT"
 
-      - name: Check out PR branch
-        if: github.event_name == 'pull_request'
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+  benchmark:
+    permissions:
+      contents: read
+      id-token: write
+    name: Runtime regression budgets (${{ matrix.id }})
+    needs: plan
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
-          clean: false
+          ref: ${{ needs.plan.outputs.head_sha }}
+          fetch-depth: 0
           persist-credentials: false
-
-      - name: Reinstall dependencies for PR branch
-        if: github.event_name == 'pull_request'
-        run: bun install --frozen-lockfile
-
-      - name: Reinstall Playwright Chromium for PR branch
-        if: github.event_name == 'pull_request'
-        run: |
-          PLAYWRIGHT_VERSION=$(bun -e "console.log(require('./package.json').devDependencies.playwright)")
-          bunx "playwright@${PLAYWRIGHT_VERSION}" install --with-deps chromium chromium-headless-shell
-
-      - name: Run head benchmark suite
-        if: github.event_name == 'pull_request'
-        id: run-head-bench
+      - uses: ./.github/actions/setup
+        with:
+          built: ${{ inputs.built || false }}
+          browsers: 'true'
+      - name: Measure base and head in alternating rounds
         env:
-          TURBO_TOKEN: ''
-          TURBO_TEAM: ''
-        run: bun run bench:ci
-
-      - name: Save head results
-        if: github.event_name == 'pull_request' && steps.run-head-bench.outcome == 'success'
-        run: |
-          mkdir -p .perf
-          mv .benchmarks/head .perf/head
-
-      - name: Compare benchmark reports
-        if: github.event_name == 'pull_request' && steps.run-base-bench.outcome == 'success' && steps.run-head-bench.outcome == 'success'
-        env:
-          BENCHMARK_BASE_DIR: .perf/base
-          BENCHMARK_HEAD_DIR: .perf/head
-          BENCHMARK_COMPARE_DIR: .perf/compare
-          BENCHMARK_ENFORCE: ${{ vars.C15T_BENCHMARK_ENFORCE || 'false' }}
-        run: bun run bench:compare
-
-      - name: Note skipped base comparison
-        if: github.event_name == 'pull_request' && steps.run-base-bench.outcome != 'success'
-        run: |
-          mkdir -p .perf/compare
-          cat <<'EOF' > .perf/compare/summary.md
-          Base benchmark suite failed on the target branch, so regression comparison was skipped for this PR run.
-          Head benchmark results were still collected from the PR branch.
-          EOF
-
-      - name: Save PR metadata
-        if: github.event_name == 'pull_request'
-        env:
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-        run: |
-          mkdir -p .perf/metadata
-          echo "$PR_NUMBER" > .perf/metadata/pr-number
-
-      - name: Debug perf directory contents
-        if: github.event_name == 'pull_request'
-        run: ls -la .perf/ && find .perf -type f | head -20 || echo "No .perf directory found"
-
-      - name: Upload regression artifacts
-        if: github.event_name == 'pull_request'
+          BENCHMARK_BASE_REF: ${{ needs.plan.outputs.base_sha }}
+          BENCHMARK_MODE: ${{ inputs.mode || 'full' }}
+          BENCHMARK_PACKAGE: ${{ matrix.package }}
+          BENCHMARK_SHARD: ${{ matrix.id }}
+        run: bun scripts/benchmark-run.ts "$BENCHMARK_MODE"
+      - name: Save measurements and comparison
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: benchmark-regression-result
-          path: |
-            .perf/base/
-            .perf/head/
-            .perf/compare/
-            .perf/metadata/
-          if-no-files-found: warn
-          retention-days: 3
-
-      - name: Upload push artifacts
-        if: github.event_name != 'pull_request'
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: benchmark-current
-          path: .benchmarks/head/
+          name: runtime-benchmarks-${{ matrix.id }}
+          path: .ci-reports/
+          retention-days: 14
+          include-hidden-files: true
           if-no-files-found: error
-          retention-days: 3

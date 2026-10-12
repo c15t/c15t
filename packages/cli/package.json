@@ -1,96 +1,147 @@
 {
 	"name": "@c15t/cli",
-	"version": "2.3.0-canary-20260930161603",
+	"version": "3.0.0-alpha.12",
 	"description": "CLI for c15t setup. Scaffold React and Next.js cookie banners, choose hosted/self-hosted/offline mode, and add consent integrations.",
 	"keywords": [
 		"c15t",
-		"cli",
-		"consent",
-		"privacy",
-		"gdpr",
 		"ccpa",
-		"lgpd",
-		"tcf",
+		"cli",
 		"cmp",
+		"codegen",
+		"codemod",
+		"consent",
+		"consent-management",
+		"consent-mode-v2",
 		"cookie-banner",
 		"cookie-consent",
-		"consent-management",
-		"scaffold",
-		"codegen",
+		"gdpr",
+		"lgpd",
 		"migrations",
-		"codemod",
 		"nextjs",
+		"privacy",
 		"react",
-		"typescript",
-		"consent-mode-v2",
-		"self-hosted-cmp"
+		"scaffold",
+		"self-hosted-cmp",
+		"tcf",
+		"typescript"
 	],
 	"homepage": "https://c15t.com/docs/cli/overview",
 	"bugs": {
 		"url": "https://github.com/c15t/c15t/issues"
 	},
+	"license": "Apache-2.0",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/c15t/c15t.git",
 		"directory": "packages/cli"
 	},
-	"license": "Apache-2.0",
-	"type": "module",
-	"exports": "./dist/index.mjs",
-	"main": "./dist/index.mjs",
-	"module": "dist/index.mjs",
-	"types": "./dist-types/index.d.ts",
 	"bin": {
-		"cli": "dist/index.mjs"
+		"c15t": "dist/bin.mjs",
+		"cli": "dist/bin.mjs"
 	},
 	"files": [
 		"dist",
 		"dist-types",
 		"AGENTS.md",
-		"docs"
+		"SKILL.md",
+		"docs",
+		"src/generate/**/*.ts",
+		"src/frontend/**/*.ts"
 	],
+	"type": "module",
+	"main": "./dist/index.mjs",
+	"types": "./dist-types/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist-types/index.d.ts",
+			"import": "./dist/index.mjs",
+			"default": "./dist/index.mjs"
+		},
+		"./package.json": "./package.json",
+		"./generate": {
+			"types": "./dist-types/generate/index.d.ts",
+			"import": "./dist/generate.mjs",
+			"default": "./dist/generate.mjs"
+		},
+		"./generate/source": "./src/generate/index.ts",
+		"./commands": {
+			"types": "./dist-types/commands/registry.d.ts",
+			"import": "./dist/commands.mjs",
+			"default": "./dist/commands.mjs"
+		},
+		"./frontend": {
+			"types": "./dist-types/frontend/index.d.ts",
+			"import": "./dist/frontend.mjs",
+			"default": "./dist/frontend.mjs"
+		},
+		"./frontend/source": "./src/frontend/index.ts",
+		"./frontend/runtime": {
+			"types": "./dist-types/frontend/runtime/index.d.ts",
+			"import": "./dist/runtime.mjs",
+			"default": "./dist/runtime.mjs"
+		},
+		"./frontend/agent": {
+			"types": "./dist-types/frontend/agent/index.d.ts",
+			"import": "./dist/agent.mjs",
+			"default": "./dist/agent.mjs"
+		},
+		"./frontend/agent/source": "./src/frontend/agent/index.ts"
+	},
+	"publishConfig": {
+		"access": "public",
+		"executableFiles": [
+			"./dist/bin.mjs"
+		]
+	},
 	"scripts": {
-		"build": "rslib build && bun ../../scripts/normalize-dist-types.mjs && bun ../../scripts/generate-package-docs.ts @c15t/cli",
+		"build": "rslib build && bun ../../scripts/normalize-dist-types.mjs",
 		"build:docs": "bun ../../scripts/generate-package-docs.ts @c15t/cli",
-		"check-types": "tsc --noEmit",
-		"dev": "sh -c 'rslib build --no-dts --no-clean && rslib build --watch --no-dts --no-clean'",
-		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
+		"check-types": "bun prebuild && tsc --noEmit",
+		"dev": "sh -c 'bun prebuild && rslib build --no-dts --no-clean && rslib build --watch --no-dts --no-clean'",
+		"fmt": "bun oxfmt .",
 		"knip": "knip",
-		"lint": "bun biome lint ./src",
-		"start": "node ./dist/index.mjs",
+		"lint": "bun oxlint ./src",
+		"prebuild": "bun scripts/write-version.ts",
+		"prepack": "bun prebuild && bun run build:docs",
+		"pretest": "bun prebuild",
+		"start": "node ./dist/bin.mjs",
 		"test": "vitest run",
+		"test:native": "vitest run --config vitest.native.config.ts",
 		"test:watch": "vitest"
 	},
 	"dependencies": {
 		"@c15t/backend": "workspace:*",
-		"@c15t/logger": "workspace:*",
-		"@c15t/scripts": "workspace:*",
+		"@c15t/integrations": "workspace:*",
 		"@clack/prompts": "1.7.0",
-		"@modelcontextprotocol/sdk": "^1.29.0",
+		"@inth/cli": "0.0.4",
 		"c12": "3.3.3",
-		"dotenv": "17.4.2",
 		"evlog": "^2.19.2",
-		"figlet": "1.11.0",
 		"fs-extra": "11.3.6",
 		"open": "11.0.0",
 		"package-manager-detector": "1.7.0",
 		"picocolors": "1.1.1",
+		"postcss": "8.5.16",
+		"semver": "7.8.5",
 		"ts-morph": "27.0.2",
 		"xstate": "^5.32.4",
 		"zod": "4.4.3"
 	},
 	"devDependencies": {
+		"@c15t/astro": "workspace:*",
+		"@c15t/core": "workspace:*",
+		"@c15t/nextjs": "workspace:*",
+		"@c15t/react": "workspace:*",
+		"@c15t/solid": "workspace:*",
+		"@c15t/svelte": "workspace:*",
+		"@c15t/tanstack-start": "workspace:*",
 		"@c15t/typescript-config": "workspace:*",
+		"@c15t/ui": "workspace:*",
 		"@c15t/vitest-config": "workspace:*",
-		"@types/figlet": "1.7.0",
+		"@c15t/vue": "workspace:*",
 		"@types/fs-extra": "11.0.4",
 		"@types/prettier": "^3.0.0",
-		"prettier": "^3.9.4"
-	},
-	"publishConfig": {
-		"access": "public",
-		"executableFiles": [
-			"./dist/index.mjs"
-		]
+		"@types/semver": "7.7.1",
+		"prettier": "^3.9.4",
+		"typescript": "7.0.2"
 	}
 }

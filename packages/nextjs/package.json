@@ -1,90 +1,57 @@
 {
 	"name": "@c15t/nextjs",
-	"version": "2.3.0-canary-20260930161603",
+	"version": "3.0.0-alpha.12",
 	"description": "Next.js cookie banner and consent management platform for App Router, Pages Router, SSR, IAB TCF, and Consent Mode.",
 	"keywords": [
-		"nextjs",
-		"next",
-		"next-cookie-banner",
-		"nextjs-consent",
-		"next-cmp",
-		"consent",
-		"privacy",
-		"gdpr",
+		"app-router",
 		"ccpa",
-		"lgpd",
-		"tcf",
-		"iab",
 		"cmp",
-		"react",
-		"headless",
-		"typescript",
+		"consent",
+		"consent-banner",
+		"consent-management",
+		"consent-management-platform",
+		"consent-mode-v2",
 		"cookie-banner",
 		"cookie-consent",
-		"consent-management-platform",
-		"consent-management",
-		"consent-banner",
-		"preference-center",
-		"app-router",
-		"pages-router",
-		"server-components",
-		"rsc",
-		"ssr",
-		"server-side-rendering",
-		"tracking-consent",
+		"gdpr",
 		"google-consent-mode",
-		"consent-mode-v2",
-		"nextjs-cmp"
+		"headless",
+		"iab",
+		"lgpd",
+		"next",
+		"next-cmp",
+		"next-cookie-banner",
+		"nextjs",
+		"nextjs-cmp",
+		"nextjs-consent",
+		"pages-router",
+		"preference-center",
+		"privacy",
+		"react",
+		"rsc",
+		"server-components",
+		"server-side-rendering",
+		"ssr",
+		"tcf",
+		"tracking-consent",
+		"typescript"
 	],
 	"homepage": "https://c15t.com/docs/frameworks/next/quickstart",
 	"bugs": {
 		"url": "https://github.com/c15t/c15t/issues"
 	},
+	"license": "Apache-2.0",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/c15t/c15t.git",
 		"directory": "packages/nextjs"
 	},
-	"license": "Apache-2.0",
-	"sideEffects": [
-		"**/*.css"
-	],
-	"type": "module",
-	"exports": {
-		"./styles.css": "./dist/styles.css",
-		"./styles.tw3.css": "./dist/styles.tw3.css",
-		"./iab/styles.css": "./dist/iab/styles.css",
-		"./iab/styles.tw3.css": "./dist/iab/styles.tw3.css",
-		"./headless": {
-			"types": "./dist-types/headless.d.ts",
-			"import": "./dist/headless.js",
-			"require": "./dist/headless.cjs"
-		},
-		"./components/consent-dialog-link": {
-			"types": "./dist-types/index.d.ts",
-			"import": "./client/components/consent-dialog-link.js",
-			"require": "./dist/index.cjs"
-		},
-		"./components/integrations": {
-			"types": "./dist-types/components/integrations/index.d.ts",
-			"import": "./client/components/integrations.js",
-			"require": "./dist/components/integrations/index.cjs"
-		},
-		".": {
-			"types": "./dist-types/index.d.ts",
-			"import": "./dist/index.js",
-			"require": "./dist/index.cjs"
-		}
-	},
-	"main": "./dist/index.js",
-	"module": "./dist/index.js",
-	"types": "./dist-types/index.d.ts",
 	"files": [
 		"dist",
 		"dist-types",
 		"AGENTS.md",
+		"SKILL.md",
 		"docs",
-		"client",
 		"styles.css",
 		"styles.tw3.css",
 		"iab",
@@ -93,35 +60,131 @@
 		"src/iab/styles.css",
 		"src/iab/styles.tw3.css"
 	],
+	"type": "module",
+	"sideEffects": [
+		"**/*.css"
+	],
+	"main": "./dist/index.js",
+	"types": "./dist-types/index.d.ts",
+	"exports": {
+		"./styles.css": "./dist/styles.css",
+		"./styles.tw3.css": "./dist/styles.tw3.css",
+		"./iab/styles.css": "./dist/iab/styles.css",
+		"./iab/styles.tw3.css": "./dist/iab/styles.tw3.css",
+		"./postcss-tailwind3": {
+			"types": "./dist-types/postcss-tailwind3.d.ts",
+			"import": "./dist/postcss-tailwind3.js",
+			"default": "./dist/postcss-tailwind3.js"
+		},
+		"./headless": {
+			"types": "./dist-types/headless.d.ts",
+			"import": "./dist/headless.js",
+			"default": "./dist/headless.js"
+		},
+		"./components/consent-dialog-link": {
+			"types": "./dist-types/components/consent-dialog-link.d.ts",
+			"import": "./dist/components/consent-dialog-link.js",
+			"default": "./dist/components/consent-dialog-link.js"
+		},
+		".": {
+			"types": "./dist-types/index.d.ts",
+			"react-server": "./dist/index.react-server.js",
+			"import": "./dist/index.js",
+			"default": "./dist/index.js"
+		},
+		"./server": {
+			"types": "./dist-types/server.d.ts",
+			"import": "./dist/server.js",
+			"default": "./dist/server.js"
+		},
+		"./api": {
+			"types": "./dist-types/api.d.ts",
+			"import": "./dist/api.js",
+			"default": "./dist/api.js"
+		},
+		"./middleware": {
+			"types": "./dist-types/middleware.d.ts",
+			"import": "./dist/middleware.js",
+			"default": "./dist/middleware.js"
+		},
+		"./proxy": {
+			"types": "./dist-types/proxy.d.ts",
+			"import": "./dist/proxy.js",
+			"default": "./dist/proxy.js"
+		},
+		"./pages": {
+			"types": "./dist-types/pages.d.ts",
+			"import": "./dist/pages.js",
+			"default": "./dist/pages.js"
+		},
+		"./static": {
+			"types": "./dist-types/static.d.ts",
+			"import": "./dist/static.js",
+			"default": "./dist/static.js"
+		},
+		"./devtools": {
+			"types": "./dist-types/devtools.d.ts",
+			"import": "./dist/devtools.js",
+			"default": "./dist/devtools.js"
+		},
+		"./build": {
+			"types": "./dist-types/build.d.ts",
+			"import": "./dist/build.js",
+			"default": "./dist/build.js"
+		},
+		"./generated-manifest": {
+			"types": "./dist-types/generated-manifest.d.ts",
+			"import": "./dist/generated-manifest.js",
+			"default": "./dist/generated-manifest.js"
+		},
+		"./user-config": {
+			"types": "./dist-types/user-config.d.ts",
+			"import": "./dist/user-config.js",
+			"default": "./dist/user-config.js"
+		}
+	},
+	"publishConfig": {
+		"access": "public"
+	},
 	"scripts": {
-		"prebuild": "genversion --esm --semi src/version.ts",
-		"build": "bun prebuild && rslib build && bun ../../scripts/normalize-dist-types.mjs && bun scripts/generate-distribution-css.ts && bun ../../scripts/generate-package-docs.ts @c15t/nextjs",
+		"build": "bun prebuild && rslib build && bun ../../scripts/normalize-dist-types.mjs && bun scripts/generate-distribution-css.ts && node ../shared/restore-client-directives.mjs src dist",
 		"build:docs": "bun ../../scripts/generate-package-docs.ts @c15t/nextjs",
 		"check-types": "bun prebuild && tsc --noEmit",
 		"dev": "sh -c 'bun prebuild && rslib build --no-dts --no-clean && bun scripts/generate-distribution-css.ts && rslib build --watch --no-dts --no-clean'",
-		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
-		"lint": "bun biome lint ./src",
-		"prepack": "bun ../../scripts/verify-package-artifacts.ts",
+		"fmt": "bun oxfmt .",
+		"lint": "bun oxlint ./src",
+		"prebuild": "genversion --esm --semi src/version.ts",
+		"prepack": "bun run build:docs && bun ../../scripts/verify-package-artifacts.ts",
 		"test": "bun prebuild && vitest run --passWithNoTests",
 		"test:watch": "bun prebuild && vitest --passWithNoTests"
 	},
 	"dependencies": {
+		"@c15t/core": "workspace:*",
 		"@c15t/react": "workspace:*",
-		"@c15t/translations": "workspace:*",
-		"c15t": "workspace:*"
+		"@c15t/schema": "workspace:*",
+		"@c15t/translations": "workspace:*"
 	},
 	"devDependencies": {
+		"@c15t/conformance": "workspace:*",
 		"@c15t/typescript-config": "workspace:*",
 		"@c15t/vitest-config": "workspace:*",
 		"genversion": "3.2.0",
-		"typescript": "7.0.1-rc"
+		"typescript": "7.0.2"
 	},
 	"peerDependencies": {
-		"next": "^16.0.0 || ^15.0.0 || ^14.0.0 || ^13.0.0",
-		"react": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0 || ^19.0.0-rc",
-		"react-dom": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0 || ^19.0.0-rc"
+		"next": "^15.0.0 || ^16.0.0",
+		"react": "^18.0.0 || ^19.0.0 || ^19.0.0-rc",
+		"react-dom": "^18.0.0 || ^19.0.0 || ^19.0.0-rc"
 	},
-	"publishConfig": {
-		"access": "public"
+	"peerDependenciesMeta": {
+		"next": {
+			"optional": true
+		},
+		"react": {
+			"optional": true
+		},
+		"react-dom": {
+			"optional": true
+		}
 	}
 }

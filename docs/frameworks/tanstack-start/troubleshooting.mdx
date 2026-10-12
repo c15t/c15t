@@ -1,0 +1,207 @@
+---
+title: Troubleshooting
+description: Fix build-time manifest failures, a missing server-rendered banner, server function errors, proxy and firewall failures, and early vendor requests in a TanStack Start app that uses c15t.
+group: frameworks
+---
+
+## vite build or vite dev can't fetch the manifest
+
+**Check.** Read the message. The `consentManifest` plugin downloads the
+manifest once per build, and in `vite dev` the first time the server loads
+it. When the download fails or takes longer than 10
+seconds, `vite build` stops with an error that starts with
+`@c15t/tanstack-start/build: could not fetch the consent manifest from <url>
+during the build`. `vite dev` logs the same message as a warning and keeps
+going. `snapshot` from `c15t/generated` is then `undefined`, so the server
+fetches the policy at runtime.
+
+| Message | Fix |
+| --- | --- |
+| `no backend URL is set` | Set `VITE_C15T_BACKEND_URL` (or `VITE_INTH_PROJECT_URL`) in `.env` or the build environment, or pass `backendURL`. `vite build` stops on this; `vite dev` warns |
+| `skipped the consent manifest fetch because ... is not an absolute http(s) URL` | Set `VITE_C15T_BACKEND_URL` to the absolute backend URL, such as `https://your-project.inth.app`, not `/api/c15t`. With `onBuildError: 'fail'`, this is the error `build-time manifests require an absolute upstream URL` |
+| `/manifest responded 404` | The URL is not a c15t backend, or it is missing a path prefix. Copy the backend URL from Inth exactly |
+| `/manifest responded` with another status | The backend refused or failed the request. Check that the project exists and that the build machine can reach it |
+| `/manifest returned an invalid consent manifest` | The URL answered with something other than a c15t manifest, such as an HTML page. Check the URL |
+| `fetch failed`, with `ENOTFOUND` or another network error, or `no response within 10 seconds` | The build machine cannot reach the backend. Allow the request. To deploy while the backend is down, build with `C15T_ON_BUILD_ERROR=runtime`, or switch to [runtime fetching](/docs/frameworks/tanstack-start/rendering#await-consent-in-the-loader) |
+
+## snapshot is undefined
+
+**Check.** Log `snapshot` from `c15t/generated` in the server function. In the
+browser bundle it is always `undefined`: the plugin keeps the policy on the
+server. On the server, it is `undefined` when Vite had no policy to serve:
+`consentManifest` is missing from `plugins` in `vite.config.ts`, the fetch
+failed in `vite dev` or in a build with `C15T_ON_BUILD_ERROR=runtime`, or the
+backend URL is relative.
+
+**Fix.** `createConsentStateHandler` and `createConsentRoute` read the
+snapshot themselves, so most apps never import it. On the server, add the
+plugin or fix the
+[fetch error](#vite-build-or-vite-dev-cant-fetch-the-manifest), then restart
+`vite dev` or rebuild. While `snapshot` is `undefined`, the
+server fetches and caches the policy at runtime.
+
+## The banner is not in the server HTML
+
+**Check.** View the page source under a policy that asks for a choice. Look for
+`data-testid="consent-banner-root"`.
+
+| Cause | Fix |
+| --- | --- |
+| The root loader streams the consent promise and sets `streamBanner: false` | Expected. The banner mounts after hydration. Remove the option, or await the server function; see [rendering](/docs/frameworks/tanstack-start/rendering) |
+| The page is prerendered or the app runs in SPA mode | Expected. The browser resolves consent after the page loads |
+| With runtime fetching, the backend took longer than 500 ms, often on the first request after a start | The server rendered without consent and the browser resolved it. Later requests use the cached manifest. Raise `timeoutMs` in `createConsentStateHandler` if needed |
+| No country header reaches the server | Check that your host or CDN adds a geo header; [geography headers](/docs/frameworks/tanstack-start/geography-headers) lists the ones c15t reads. Without one the visitor gets your fallback policy |
+| The visitor has a stored choice | Expected. The server reads the `c15t` cookie and renders no banner |
+
+## The server function fails to resolve at runtime
+
+**Check.** Find where you call `createServerFn()`. Start's compiler
+identifies each server function by the file and the top-level assignment where
+you call it, so a call inside a package, a function or a conditional fails.
+
+**Fix.** Declare `const getConsentState = createServerFn(...).handler(createConsentStateHandler())`
+at the top level of your own route module, as in the
+[quickstart](/docs/frameworks/tanstack-start/quickstart#resolve-consent-in-the-root-route).
+
+## A serialization error mentions a function
+
+**Check.** Look at what your server functions and loaders return. Something
+with functions in it, such as vendor script configurations or a `hosted()`
+transport from `c15t/react`, cannot be serialized. `hosted()` from
+`c15t/tanstack-start` is plain data and can be returned.
+
+**Fix.** Return only the consent state from the server function. Import
+`scripts` in the root route module and pass them to `ConsentRoot` there.
+
+## The same-origin setup never renders the banner on the server
+
+**Check.** Look at the `backendURL` you pass to `createConsentStateHandler`,
+or `VITE_C15T_BACKEND_URL`. When it is `/api/c15t`, the helper skips the fetch
+and returns only the cookie and header state, because a server that fetches
+its own route during a render can stall.
+
+**Fix.** Keep `VITE_C15T_BACKEND_URL` absolute, and don't pass `backendURL:
+'/api/c15t'`. To send the browser's requests through the route, pass
+`routePrefix: '/api/c15t'` and `proxy: true` to `createConsentStateHandler`
+instead.
+
+## Saves through /api/c15t fail with 403 or a challenge page
+
+**Check.** The backend's firewall blocks the proxied `POST /subjects`. A
+server cannot solve a browser challenge, such as Vercel Attack Challenge Mode
+or Cloudflare Super Bot Fight Mode.
+
+**Fix.** Exempt the consent paths from the challenge. Requests from the route
+carry an `x-c15t-proxy: @c15t/tanstack-start` header you can match in a
+firewall rule. If rate limits treat every visitor as one IP address, and your
+host overwrites `x-forwarded-for`, set `trustForwardedHeaders: true` on
+`createConsentRoute`.
+
+## The browser calls /api/c15t/init and gets a 404
+
+**Check.** `ConsentRoot` calls `/api/c15t/init` only when the state carries
+`routePrefix: '/api/c15t'`, from `createConsentStateHandler`. Confirm that the
+app mounts the consent route at `src/routes/api/c15t/$.ts`.
+
+**Fix.** Mount the
+[same-origin route](/docs/frameworks/tanstack-start/rendering#keep-consent-requests-on-your-origin),
+or remove `routePrefix`, so the browser calls your backend directly. Earlier
+alphas sent init to `/api/c15t/init` by default; now there is no default.
+
+## ConsentRoot throws that it needs a backend URL
+
+**Check.** The page throws one of these errors from `ConsentRoot`:
+
+- ``c15t: manifest() needs a backend URL. Set `backendURL` in your config.``
+- ``c15t: hosted() needs a backend URL. Set `backendURL` on the mode or in your config.``
+
+The state names no backend URL and `consentManifest()` supplied none, for
+example on a page with `state={{}}` and no plugin in `vite.config.ts`.
+
+**Fix.** Add `consentManifest()` to `vite.config.ts` and set
+`VITE_C15T_BACKEND_URL` (or `VITE_INTH_PROJECT_URL`). Earlier alphas fell back to offline mode here; now
+the root throws. To run without a backend, pass `mode: offline()` to
+`createConsentStateHandler`, or `state={{ mode: offline() }}`.
+
+## A vendor loads before the visitor chooses
+
+**Check.** Search route `head()` definitions, your root component and any tag
+manager for the vendor's script or SDK initializer.
+
+**Fix.** Remove every loader except the one in `ConsentRoot`'s `scripts`. c15t
+only gates scripts registered with it.
+[Scripts and embeds](/docs/frameworks/tanstack-start/scripts) covers the
+options.
+
+## The page throws that no IABProvider is mounted
+
+<import src="../../shared/react/iab/overview.mdx#missing-provider" />
+
+## Inspect the active policy
+
+Render this component inside `ConsentRoot`. It reads state and records no
+choice:
+
+{/* example: fragment */}
+
+```tsx title="src/components/consent-policy-debug.tsx"
+import { useSnapshot } from 'c15t/tanstack-start';
+
+export function ConsentPolicyDebug() {
+	const snapshot = useSnapshot();
+	const resolution = snapshot.resolution;
+
+	return (
+		<pre>
+			{JSON.stringify(
+				{
+					status: resolution.status,
+					policy: resolution.status === 'matched' ? resolution.policy.id : null,
+					prompt: snapshot.promptRequirement,
+					location: snapshot.location,
+				},
+				null,
+				2
+			)}
+		</pre>
+	);
+}
+```
+
+`location` shows the country and region the server resolved. Remove the
+component after you finish.
+
+## Names from an earlier alpha are missing
+
+**Check.** TypeScript or the build reports a missing export or option, such as
+`createConsentServerRoute`, `DEFAULT_INIT_ROUTE` or `ConsentRoot`'s
+`backendURL` prop. The v3 alphas removed names that never shipped in a stable
+release, with no alias.
+
+**Fix.** Use the current names:
+
+| Removed | Use instead |
+| --- | --- |
+| `ConsentRoot`'s `backendURL` and `routePrefix` props | `createConsentStateHandler({ routePrefix })`. The state carries the backend URL, the mode and the route prefix. |
+| `ConsentRoot`'s `initRoute` prop, and `DEFAULT_INIT_ROUTE` | `createConsentStateHandler({ routePrefix: '/api/c15t' })`. There is no default route any more. |
+| `createConsentServerRoute`, and its `manifestGET`, `initGET` and `proxyHandler` | `createConsentRoute()`, which returns `GET`, plus the write methods with `proxy` |
+| `createConsentStateHandler({ backendURL, manifest })` | `createConsentStateHandler()`, which reads both from `consentManifest()`, or `{ snapshot }` |
+| `manifestURL` on the state handler | `mode: manifest({ manifestURL })` |
+| `ConsentManifestOptions`, `resolveStrictestDefaultInit` | `ResolveConsentOptions`; `resolveUnknownLocationInit` |
+| Falling back to offline mode when no backend URL is set | `ConsentRoot` throws. Pass `mode: offline()` to run without a backend. |
+| `hosted`, `offline` and `manifest` from `c15t/tanstack-start` as transports | They are data for `createConsentStateHandler({ mode })` now. |
+
+The renames shared by every framework:
+
+<include src="../../shared/upgrade-v3/earlier-alpha-modes.mdx" />
+
+`Frame` and its parts still work, with a one-time warning outside production.
+Use `ConsentGate` instead.
+
+## More help
+
+[Troubleshoot consent](/docs/guides/troubleshooting) covers problems shared by
+every framework, such as a missing banner, analytics that load before a choice,
+imports that fail because npm installed c15t v2, choices that disappear on
+reload, server HTML that differs from the browser, static builds that fail and
+content blockers that hide the consent UI.

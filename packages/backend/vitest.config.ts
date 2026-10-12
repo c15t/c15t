@@ -1,5 +1,6 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+
 import { baseConfig } from '@c15t/vitest-config/base';
 import { defineConfig, mergeConfig } from 'vitest/config';
 
@@ -12,17 +13,36 @@ export default mergeConfig(
 		resolve: {
 			alias: {
 				'~': path.resolve(__dirname, './src'),
-				// Workaround: fumadb imports without extension, but Node ESM needs .js
-				'semver/functions/compare': 'semver/functions/compare.js',
 			},
 		},
+		// oxlint-disable-next-line sort-keys -- Preserve declaration order, interface shape, and public compatibility.
 		test: {
 			environment: 'node',
-			server: {
-				deps: {
-					inline: ['fumadb'],
-				},
+			// PGlite and SQLite get a fresh in-process database per test, so files
+			// cannot interfere and run in parallel. MySQL and Postgres are real
+			// servers, and two files migrating one database at once fail
+			// depending on scheduling. This setup file gives each worker its own
+			// database on each server, so those files run in parallel too.
+			setupFiles: ['./src/__tests__/worker-databases.ts'],
+			// Almost every test here stands up a real database — PGlite is
+			// Postgres compiled to WASM, and starting one is not free. Vitest's
+			// 5s default is enough when this package runs alone and is not when
+			// the whole monorepo's suites compete for the same cores, which is
+			// exactly the situation in CI. A generous default beats sprinkling
+			// timeouts on individual tests and finding the next one under load.
+			testTimeout: 60_000,
+			hookTimeout: 60_000,
+			coverage: {
+				// `__tests__/packaged.test.ts` imports the built artifact on
+				// purpose, which would otherwise drag `dist/` into the coverage
+				// report and halve every number for no reason — it is the same
+				// code, compiled.
+				exclude: ['dist/**', 'dist-types/**'],
 			},
+			// No coverage thresholds yet: the package has no behaviour to cover.
+			// The floor is the old package's 55% once the first
+			// handlers land, and it ratchets up from there — it never ships below
+			// parity with @c15t/backend.
 		},
 	})
 );

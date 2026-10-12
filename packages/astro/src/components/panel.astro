@@ -1,0 +1,90 @@
+---
+/**
+ * The preference-centre dialog.
+ *
+ * Renders nothing but an empty host element. The surface itself is an
+ * island in whichever framework the `ui` option names, mounted the first
+ * time something opens it — not `client:load` — so a visitor who accepts
+ * or rejects from the banner never downloads a framework at all.
+ *
+ * ```astro
+ * ---
+ * import ConsentDialog from '@c15t/astro/components/consent-dialog.astro';
+ * ---
+ * <ConsentDialog />
+ * ```
+ */
+import type { LegalLinks } from '@c15t/core';
+import ComponentStyles from './component-styles.astro';
+
+interface Props {
+	/**
+	 * Warm the island's chunk once the browser is idle, so the first open
+	 * is instant. Costs a background download on every page.
+	 *
+	 * @default false
+	 */
+	preload?: boolean;
+	/**
+	 * Which of the integration's `legalLinks` the dialog shows after its
+	 * description, the same list `<ConsentBanner legalLinks>` takes.
+	 * `undefined` or `null` shows none.
+	 *
+	 * @example
+	 * ```astro
+	 * <ConsentDialog legalLinks={['privacyPolicy', 'cookiePolicy']} />
+	 * ```
+	 */
+	legalLinks?: (keyof LegalLinks)[] | null;
+	/**
+	 * Skip the dialog's enter and exit animations. Defaults to the
+	 * integration's `disableAnimation`.
+	 */
+	disableAnimation?: boolean;
+}
+
+const { preload = false, legalLinks, disableAnimation } = Astro.props;
+---
+
+<ComponentStyles />
+
+<div
+	data-c15t-dialog-host="preferences"
+	data-disable-animation={disableAnimation === undefined
+		? undefined
+		: String(disableAnimation)}
+	data-legal-links={legalLinks ? legalLinks.join(' ') : undefined}
+	data-preload={preload ? 'true' : undefined}
+>
+</div>
+
+<script>
+	import {
+		getConsentClient,
+		openDialog,
+		preloadDialog,
+	} from '@c15t/astro/client';
+
+	// The island's specifier is not written here: only the integration knows
+	// which framework `ui` selected, and naming all of them would make every
+	// build resolve every framework. It registers the one surface from the
+	// page script it injects.
+	const host = document.querySelector('[data-c15t-dialog-host="preferences"]');
+
+	if (host?.getAttribute('data-preload') === 'true') {
+		const schedule = () => {
+			void preloadDialog();
+		};
+		if ('requestIdleCallback' in window) {
+			window.requestIdleCallback(schedule);
+		} else {
+			window.setTimeout(schedule, 2000);
+		}
+	}
+
+	// A page can ask for the dialog before the runtime has booted (a link
+	// with `#c15t-preferences`, say); replaying it here keeps that working.
+	if (window.location.hash === '#c15t-preferences' && getConsentClient()) {
+		void openDialog('preferences');
+	}
+</script>

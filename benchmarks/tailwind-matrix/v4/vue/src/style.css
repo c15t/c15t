@@ -1,0 +1,5 @@
+/* #region docs:tailwind-css title="src/style.css" */
+@import 'tailwindcss';
+
+@custom-variant dark (&:where(.dark, .dark *));
+/* #endregion docs:tailwind-css */

@@ -1,0 +1,17 @@
+/**
+ * @c15t/svelte — Non-IAB prebuilt component styles.
+ *
+ * Import this stylesheet once from your app-level CSS entrypoint
+ * when using prebuilt (styled) consent components.
+ *
+ * `ConsentDialog` loads its component code after the first paint, but its
+ * rules are here with everything else: `@c15t/ui/styles.css` holds the
+ * tokens and every component rule, dialog included, and
+ * `@c15t/ui/styles/primitives.css` the rules of the primitives the Svelte
+ * components use.
+ *
+ * Usage (src/app.css):
+ *   @import "@c15t/svelte/styles.css";
+ */
+@import '@c15t/ui/styles.css';
+@import '@c15t/ui/styles/primitives.css';

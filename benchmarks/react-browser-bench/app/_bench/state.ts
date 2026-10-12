@@ -1,10 +1,11 @@
 'use client';
 
 export type ReactBenchScenario =
+	| 'banner-css'
+	| 'baseline'
+	| 'css-banner-modules'
 	| 'full-ui'
-	| 'headless'
-	| 'repeat-visitor'
-	| 'vanilla-core';
+	| 'headless';
 
 export interface BenchInteractionMetrics {
 	acceptAllMs?: number;
@@ -19,11 +20,15 @@ export interface BenchState {
 	mountCount: number;
 	renderCount: number;
 	activeUI: string;
-	onBannerFetchedMs?: number;
+	/** A stored explicit choice was restored or recorded. */
+	hasStoredChoice?: boolean;
+	/** First moment policy resolution settled, banner or not. */
+	promptSettledMs?: number;
+	cls?: number;
 	bannerReadyMs?: number;
 	bannerVisibleMs?: number;
-	onBannerFetchedCount: number;
-	onConsentSetCount: number;
+	bannerPaintMs?: number | null;
+	onChoiceRecordedCount: number;
 	onErrorCount: number;
 	interaction: BenchInteractionMetrics;
 }
@@ -34,11 +39,11 @@ declare global {
 	}
 }
 
-export function nowMs(): number {
+export const nowMs = function nowMs(): number {
 	return performance.now();
-}
+};
 
-export function getBenchState(
+export const getBenchState = function getBenchState(
 	scenario: ReactBenchScenario
 ): BenchState | undefined {
 	if (typeof window === 'undefined') {
@@ -50,22 +55,21 @@ export function getBenchState(
 		window.__c15tReactBench.scenario !== scenario
 	) {
 		window.__c15tReactBench = {
+			activeUI: 'none',
+			interaction: {},
+			mountCount: 0,
+			onChoiceRecordedCount: 0,
+			onErrorCount: 0,
+			renderCount: 0,
 			scenario,
 			startedAtMs: nowMs(),
-			mountCount: 0,
-			renderCount: 0,
-			activeUI: 'none',
-			onBannerFetchedCount: 0,
-			onConsentSetCount: 0,
-			onErrorCount: 0,
-			interaction: {},
 		};
 	}
 
 	return window.__c15tReactBench;
-}
+};
 
-export function markInteraction(
+export const markInteraction = function markInteraction(
 	scenario: ReactBenchScenario,
 	key: keyof BenchInteractionMetrics
 ): void {
@@ -75,9 +79,36 @@ export function markInteraction(
 	}
 
 	state.interaction[key] = nowMs();
-}
+};
 
-export function isElementVisible(element: Element): boolean {
+/**
+ * Whether policy resolution has finished: the provisional placeholder is
+ * gone and a resolved policy, resolution, or prompt requirement exists.
+ * Saved-consent visits never show a banner, so they wait on this instead.
+ */
+export const isPolicySettled = function isPolicySettled(
+	snapshot: unknown
+): boolean {
+	const record = snapshot as {
+		policyPending?: unknown;
+		policy?: unknown;
+		resolution?: unknown;
+		promptRequirement?: unknown;
+	};
+	if (record?.policyPending === true) {
+		return false;
+	}
+	return (
+		(record?.policy !== undefined && record?.policy !== null) ||
+		(record?.resolution !== undefined && record?.resolution !== null) ||
+		(record?.promptRequirement !== undefined &&
+			record?.promptRequirement !== null)
+	);
+};
+
+export const isElementVisible = function isElementVisible(
+	element: Element
+): boolean {
 	if (!(element instanceof HTMLElement)) {
 		return false;
 	}
@@ -93,9 +124,11 @@ export function isElementVisible(element: Element): boolean {
 		style.visibility !== 'hidden' &&
 		Number(style.opacity) >= 0.99
 	);
-}
+};
 
-export function hasRunningAnimations(element: Element): boolean {
+export const hasRunningAnimations = function hasRunningAnimations(
+	element: Element
+): boolean {
 	if (
 		!(element instanceof HTMLElement) ||
 		typeof element.getAnimations !== 'function'
@@ -106,4 +139,4 @@ export function hasRunningAnimations(element: Element): boolean {
 	return element
 		.getAnimations()
 		.some((animation) => animation.playState === 'running');
-}
+};

@@ -1,27 +1,42 @@
 ---
 title: DevTools
-description: A development tool for inspecting consent state, geolocation, loaded scripts, and consent events in real time.
+description: Load the c15t DevTools panel only in Next.js development builds to inspect consent state, scripts, policy and events inside ConsentRoot.
 group: frameworks
 ---
 
 <import src="../../../shared/react/components/dev-tools.mdx#intro" />
 
-## Usage
+## Add DevTools to `ConsentRoot` in development
 
-```tsx
-import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from '@c15t/nextjs';
-import { DevTools } from '@c15t/dev-tools/react';
+Keep the `ConsentRoot` from your router setup. Add this client component as
+one of its children, alongside the banner and dialog. It uses the existing
+runtime, including its prefetch result and configured transport.
 
-export function ConsentManager({ children }: { children: ReactNode }) {
-  return (
-    <ConsentManagerProvider options={{ mode: 'hosted', backendURL: '/api/c15t' }}>
-      {children}
-      {process.env.NODE_ENV === 'development' && <DevTools />}
-    </ConsentManagerProvider>
-  );
+```tsx title="components/consent-dev-tools.tsx"
+'use client';
+
+import dynamic from 'next/dynamic';
+
+const DevTools =
+	process.env.NODE_ENV === 'development'
+		? dynamic(
+				() => import('c15t/next/devtools').then(({ DevTools }) => DevTools),
+				{ ssr: false }
+			)
+		: () => null;
+
+export function ConsentDevTools() {
+	return <DevTools />;
 }
 ```
+
+Import `ConsentDevTools` into your root layout or `pages/_app.tsx` and render
+`<ConsentDevTools />` inside `ConsentRoot`. Keep its `state` and other props
+unchanged. A setup that uses `ConsentProvider`
+directly can place the same component inside that provider.
+
+The umbrella import is `c15t/next/devtools`. When installing the dedicated
+Next.js package, use `@c15t/nextjs/devtools`.
 
 <import src="../../../shared/react/components/dev-tools.mdx#customization" />
 

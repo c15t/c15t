@@ -1,27 +1,74 @@
 ---
 title: ConsentWidget
-description: An inline consent management widget for embedding in settings or privacy pages. Shows category toggles with accordion layout.
+description: Render ConsentWidget on a Next.js privacy page inside ConsentRoot as an inline preference center, server-rendered when the route resolves consent.
 group: frameworks
 ---
 
-<import src="../../../shared/react/components/consent-widget.mdx#intro" />
+## Embed the preference center inline
 
-## Basic Usage
+`ConsentWidget` renders the preference center in the page flow instead of in
+a modal: the category switches and the Reject All, Accept All and Save Settings
+actions, without a title, backdrop or portal. Use it on a privacy or
+settings route where the visitor expects the controls to be part of the
+content. It is a Client Component; render it from any route under the
+layout that mounts the `ConsentRoot` from your
+[App Router](/docs/frameworks/next/app-router) or
+[Pages Router](/docs/frameworks/next/pages-router) setup. Keep
+`ConsentDialog` mounted in that root as well so the banner's Customize
+button and preference links still have a dialog to open.
 
-```tsx
-import { ConsentWidget } from '@c15t/nextjs';
+```tsx title="app/privacy/page.tsx"
+import { CookiePreferences } from '../../components/cookie-preferences';
 
-export function PrivacySettingsPage() {
-  return (
-    <>
-      <h1>Privacy Settings</h1>
-      <p>Manage your cookie preferences below.</p>
-      <ConsentWidget />
-    </>
-  );
+export default function PrivacyPage() {
+	return (
+		<main>
+			<h1>Privacy</h1>
+			<p>Choose which optional categories this site may use.</p>
+			<section aria-labelledby="cookie-preferences">
+				<h2 id="cookie-preferences">Cookie preferences</h2>
+				<CookiePreferences />
+			</section>
+		</main>
+	);
 }
 ```
 
-<import src="../../../shared/react/components/consent-widget.mdx#customization" />
+```tsx title="components/cookie-preferences.tsx"
+'use client';
+
+import { ConsentWidget } from 'c15t/next';
+
+export function CookiePreferences() {
+	return <ConsentWidget />;
+}
+```
+
+The page stays a Server Component; only the widget file needs
+`'use client'`. When `ConsentRoot` receives an awaited `resolveConsent`
+result, from the
+[awaited App Router layout](/docs/frameworks/next/app-router#render-the-banner-in-the-server-html)
+or a Pages Router page with `getServerSideProps`, the widget is part of the
+server HTML with the visitor's recorded choices applied. `ConsentDialog`, by
+contrast, always mounts after hydration. With the default streamed layout,
+which passes a pending promise, and on static routes, the widget renders once
+the browser has applied the resolved policy. The widget uses the
+boundary's policy, translations and transport; it does not need a second
+provider, and it does not open or close the banner or dialog by itself.
 
 <import src="../../../shared/react/components/consent-widget.mdx#props" />
+
+<import src="../../../shared/react/components/consent-widget.mdx#behavior" />
+
+The `useConsentDraft` hook and `ConsentDraftProvider` component import from
+`c15t/next`. Use them in Client Components.
+
+<import src="../../../shared/react/components/consent-widget.mdx#accessibility" />
+
+<import src="../../../shared/react/components/consent-widget.mdx#composition" />
+
+The compound parts import from `c15t/next` as properties of `ConsentWidget`.
+Server Components cannot render them: keep the composition in a file with
+`'use client'`. See [Customize](/docs/frameworks/next/customize) for slots and tokens.
+
+<import src="../../../shared/react/components/consent-widget.mdx#verify" />

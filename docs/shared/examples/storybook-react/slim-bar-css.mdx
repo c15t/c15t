@@ -1,0 +1,30 @@
+{/* Generated from apps/storybook-react/src/docs-recipes/slim-bar.css (docs:slim-bar-css) by scripts/sync-example-docs.ts. Edit the source file. */}
+
+```css title="src/slim-bar.css"
+.slim-bar {
+	box-sizing: border-box;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.5rem 1.5rem;
+	padding: 0.5rem 1.5rem;
+}
+
+/* Title and description share one line. */
+.slim-bar__text {
+	display: flex;
+	flex: 1 1 20rem;
+	flex-direction: row;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 0 0.5rem;
+	padding: 0;
+}
+
+/* The actions share the text's row, so drop the footer's own box. */
+.slim-bar > [data-testid='consent-banner-footer'] {
+	padding: 0;
+	border: 0;
+	background: none;
+}
+```

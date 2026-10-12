@@ -1,97 +1,100 @@
 ---
-title: IAB TCF Support
-description: Enable IAB Transparency and Consent Framework (TCF) support in your self-hosted backend.
+title: IAB backend configuration
+description: Publish an IAB TCF policy and serve a cached Global Vendor List from a self-hosted c15t backend.
 group: self-host
 ---
 
-The c15t backend optionally supports [IAB TCF v2.4](https://iabeurope.eu/transparency-consent-framework/), including Global Vendor List (GVL) management and TC String generation.
+## Configure an IAB policy
 
-## CMP Registration
+IAB support needs both an IAB policy in the manifest and the client IAB add-on.
+The server options alone do not install a TCF UI or generate a TC String in the
+browser.
 
-[Inth](https://inth.com), c15t's hosted platform, is IAB TCF certified. If you use Inth instead of self-hosting, the CMP ID is automatically provided to clients — no additional configuration needed.
+```ts title="c15t-backend.config.ts"
+import { defineConfig, policyRulePresets } from '@c15t/backend';
+import { createMemoryCacheAdapter } from '@c15t/backend/cache';
 
-If you self-host, you need your own CMP registration with IAB Europe and must configure your CMP ID via `iab.cmpId`. Registering your own CMP may also involve IAB Europe fees, so check IAB Europe's current CMP registration terms and pricing before choosing this route. The backend returns this value in the `/init` response so clients use the correct CMP identity in TC Strings.
+const url = process.env.DATABASE_URL;
+if (!url) throw new Error('Set DATABASE_URL');
 
-<Callout type="warn">
-  A valid (non-zero) CMP ID is required for IAB TCF compliance. If neither the backend nor the client provides a CMP ID, IAB initialization will fail with an error.
-</Callout>
-
-<Callout type="warn">
-  If you heavily customize or build your own IAB banner or dialog instead of using the default `IABConsentBanner` and `IABConsentDialog` components provided by c15t, you cannot use Inth's CMP ID. You must register your own CMP with [IAB Europe](https://iabeurope.eu/tcf-2-0/) and configure your CMP ID via `iab.cmpId`.
-</Callout>
-
-## Enable IAB
-
-```ts title="c15t.ts"
-import { c15tInstance } from '@c15t/backend';
-
-export const c15t = c15tInstance({
-  // ...
-  iab: {
-    enabled: true,
-    cmpId: Number('<YOUR_CMP_ID>'), // replace with your registered CMP ID
-    vendorIds: [755, 52, 69],   // only include vendors you use
-  },
+export default defineConfig({
+	database: { dialect: 'postgres', url },
+	trustedOrigins: ['https://app.example.com'],
+	manifest: {
+		policyRules: [policyRulePresets.europeIab()],
+		iab: { enabled: true },
+	},
+	// The matched IAB rule asks for a list; this says where it comes from and
+	// which vendors it may name.
+	gvl: { cache: createMemoryCacheAdapter(), vendorIds: [3, 7, 41] },
 });
 ```
 
-The backend fetches the GVL from `https://gvl.inth.com` by default and caches it. The `/init` endpoint returns the filtered GVL and your CMP ID to the frontend, so use the same `iab.cmpId` pattern in every self-hosted configuration.
+Set `manifest.iab.cmpId` to the CMP ID your deployment is entitled to use. IAB
+Europe assigns one when a company registers as a CMP
+([register.consensu.org/CMP](https://register.consensu.org/CMP)); publishers
+using a registered CMP do not need their own. Every TC String names the CMP that
+wrote it, so a copied or placeholder ID attributes your users' consent records
+to another provider and is not a staging-only shortcut.
 
-## Custom GVL Endpoint
+Left unset, `/init` returns no CMP ID and the browser add-on does not mount, so
+nothing writes a TC String. Set to a value outside the encodable range, an
+integer from 2 to 4095, and `@c15t/iab` throws instead of encoding a string that
+names no registered CMP.
 
-Point to your own GVL mirror:
+Review the policy's location coverage and add other reviewed regional rules as
+needed.
 
-```ts
-iab: {
-  enabled: true,
-  cmpId: Number('<YOUR_CMP_ID>'), // replace with your registered CMP ID
-  endpoint: 'https://your-gvl-mirror.com',
-  vendorIds: [755, 52, 69],
-},
+## Understand the two GVL settings
+
+`manifest.iab` publishes IAB metadata and a GVL endpoint to clients that
+resolve the manifest themselves. `gvl` controls how the backend loads the list
+when `/init` resolves a matched IAB rule. Setting one does not configure the
+other. Both endpoints default to `https://gvl.inth.app`; if you run a different
+compatible endpoint, set `manifest.iab.endpoint` and `gvl.endpoint`.
+
+Adding a `gvl` block turns on list loading. Every `/init` that matches an IAB
+rule then carries the list. Set `gvl.enabled: false` to keep the block but serve the
+list from somewhere else. If your rules resolve as IAB and there is no `gvl`
+block, the backend serves no list and prints a warning at startup.
+
+`gvl.vendorIds` is the most the backend will serve. It never fetches a wider
+list to fill gaps, and it filters whatever the upstream returns, so a vendor
+outside the list never reaches a client. Leave `vendorIds` out to serve every
+vendor in the published list.
+
+A client can ask for fewer vendors by listing the ones it ships on each init
+request:
+
+```bash
+curl -i 'http://localhost:3000/api/c15t/init' \
+  -H 'x-c15t-country: DE' \
+  -H 'x-c15t-vendors: 8, 46, 153'
 ```
 
-## Bundle GVL by Language
+For a matched IAB policy, the `gvl` in the response is the intersection of that
+header and `gvl.vendorIds`, so the header can narrow the list but never widen
+it. A missing or unreadable header gets the configured list, and a header with
+more than 500 IDs is ignored. The backend narrows the list after its cache
+lookup, so different app scopes do not add upstream fetches.
 
-Pre-bundle the GVL to avoid runtime fetches:
+Use a [cache adapter](/docs/self-host/guides/caching) to reuse fetched lists.
+`gvl.ttlMs` defaults to one day. A failed upstream fetch or an invalid document
+gives a null GVL instead of failing `/init`. Check how your client handles that
+before you deploy.
 
-```ts
-import gvlEn from './gvl/en.json';
-import gvlDe from './gvl/de.json';
+## Check the IAB setup
 
-iab: {
-  enabled: true,
-  cmpId: Number('<YOUR_CMP_ID>'), // replace with your registered CMP ID
-  bundled: {
-    en: gvlEn,
-    de: gvlDe,
-  },
-},
-```
+1. Request `/manifest` and confirm it lists the IAB rule and IAB metadata.
+2. Call `/init` with a location the rule covers, such as the `curl` request
+   above. The policy model is `iab` and the response has a `gvl` field. A client
+   that bundles no vendor list gets the list only from this response, so a
+   missing `gvl` means that client has no vendors to disclose.
+3. Call `/init` with a location outside the rule. The ordinary consent flow
+   applies and the response has no list.
+4. Send `x-c15t-vendors` and confirm the `gvl` names only those vendors that
+   `gvl.vendorIds` also allows.
 
-<Callout type="warn">
-  Bundling all required GVL translations can significantly increase your deployment size. On serverless environments like Cloudflare Workers — which have strict bundle size limits — this may cause deployments to fail. Consider bundling only the languages you need, or use the GVL endpoint with a [cache adapter](/docs/self-host/guides/caching) instead.
-</Callout>
-
-## Custom Non-IAB Vendors
-
-Add your own vendors alongside IAB-registered ones:
-
-```ts
-iab: {
-  enabled: true,
-  cmpId: Number('<YOUR_CMP_ID>'), // replace with your registered CMP ID
-  vendorIds: [755],
-  customVendors: [
-    {
-      id: 'internal-analytics',
-      name: 'Our Analytics Platform',
-      privacyPolicyUrl: 'https://example.com/privacy',
-      purposes: [1, 8],
-    },
-  ],
-},
-```
-
-## TC String
-
-When IAB TCF is enabled, consent records include a `tcString` field — the encoded TC String that can be passed to vendors. The frontend SDKs handle this automatically when using `mode: 'hosted'`.
+Connect the browser with the [IAB add-on guide](/docs/frameworks/react/iab),
+and keep a persistent link to vendor and purpose choices. A preset and a served
+GVL are configuration; they do not prove your site meets the TCF rules.

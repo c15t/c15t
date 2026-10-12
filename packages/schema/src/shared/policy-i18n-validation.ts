@@ -1,6 +1,10 @@
-import type { PolicyConfig } from './policy-runtime';
+import type { PolicyRule } from './policy-rule';
 
 const DEFAULT_PROFILE = 'default';
+
+/** Stock profiles use the base translations unless the host supplies a profile. */
+export const isBuiltInMessageProfile = (profile: string): boolean =>
+	profile === DEFAULT_PROFILE || profile === 'preferences';
 const SUPPORTED_BASE_LANGUAGES = new Set([
 	'bg',
 	'cs',
@@ -50,7 +54,7 @@ export interface PolicyI18nValidationOptions {
 		defaultProfile?: string;
 		messages?: Record<string, PolicyI18nMessageProfileLike>;
 	};
-	policies?: PolicyConfig[];
+	policies?: PolicyRule[];
 }
 
 export interface PolicyI18nValidationResult {
@@ -59,7 +63,7 @@ export interface PolicyI18nValidationResult {
 	warnings: string[];
 }
 
-function normalizeLanguage(
+const normalizeLanguage = function normalizeLanguage(
 	value: string | null | undefined
 ): string | undefined {
 	if (!value) {
@@ -72,9 +76,9 @@ function normalizeLanguage(
 	}
 
 	return normalized.split('-')[0] ?? undefined;
-}
+};
 
-function normalizeProfiles(
+const normalizeProfiles = function normalizeProfiles(
 	input: PolicyI18nValidationOptions
 ): Record<string, PolicyI18nMessageProfileLike> {
 	const profiles = input.i18n?.messages;
@@ -94,9 +98,9 @@ function normalizeProfiles(
 	}
 
 	return {};
-}
+};
 
-function resolveFallbackLanguage(input: {
+const resolveFallbackLanguage = function resolveFallbackLanguage(input: {
 	profile?: PolicyI18nMessageProfileLike;
 }): string {
 	const configuredFallbackLanguage =
@@ -114,9 +118,9 @@ function resolveFallbackLanguage(input: {
 	}
 
 	return profileLanguages[0] ?? configuredFallbackLanguage;
-}
+};
 
-function resolveActiveProfile(input: {
+const resolveActiveProfile = function resolveActiveProfile(input: {
 	profiles: Record<string, PolicyI18nMessageProfileLike>;
 	defaultProfile: string;
 	policyProfile?: string;
@@ -125,9 +129,10 @@ function resolveActiveProfile(input: {
 	return input.profiles[requestedProfile]
 		? requestedProfile
 		: input.defaultProfile;
-}
+};
 
-export function validatePolicyI18nConfig(
+// oxlint-disable-next-line complexity -- Preserve established branch order and control flow.
+export const validatePolicyI18nConfig = function validatePolicyI18nConfig(
 	options: PolicyI18nValidationOptions
 ): PolicyI18nValidationResult {
 	const profiles = normalizeProfiles(options);
@@ -157,13 +162,23 @@ export function validatePolicyI18nConfig(
 		}
 
 		const profile = resolveActiveProfile({
-			profiles,
 			defaultProfile,
 			policyProfile: policy.i18n.messageProfile,
+			profiles,
 		});
 		const language = normalizeLanguage(policy.i18n.language);
 
-		if (policy.i18n.messageProfile && !profiles[policy.i18n.messageProfile]) {
+		const usesBuiltInProfile = Boolean(
+			policy.i18n.messageProfile &&
+			isBuiltInMessageProfile(policy.i18n.messageProfile) &&
+			!profiles[policy.i18n.messageProfile]
+		);
+
+		if (
+			policy.i18n.messageProfile &&
+			!profiles[policy.i18n.messageProfile] &&
+			!usesBuiltInProfile
+		) {
 			errors.push(
 				`Policy '${policy.id}' references missing i18n profile '${policy.i18n.messageProfile}'.`
 			);
@@ -174,7 +189,11 @@ export function validatePolicyI18nConfig(
 			!!activeProfile &&
 			Object.keys(activeProfile.translations ?? {}).length > 0;
 
-		if (policy.i18n.messageProfile && !hasProfileTranslations) {
+		if (
+			policy.i18n.messageProfile &&
+			!hasProfileTranslations &&
+			!usesBuiltInProfile
+		) {
 			errors.push(
 				`Policy '${policy.id}' references i18n profile '${policy.i18n.messageProfile}' with no configured translations.`
 			);
@@ -208,8 +227,8 @@ export function validatePolicyI18nConfig(
 	}
 
 	return {
-		profiles: profileNames,
 		errors,
+		profiles: profileNames,
 		warnings,
 	};
-}
+};

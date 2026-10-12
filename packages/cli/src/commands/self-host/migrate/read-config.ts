@@ -1,24 +1,49 @@
+/**
+ * Loading `c15t-backend.config.ts`.
+ *
+ * 2.x pulled an `adapter` out of the config and handed it to fumadb. 3.0 needs
+ * only the `database` field, which is either `{ dialect, url }` or a
+ * `SqlClient` layer the host built itself.
+ *
+ * The layer form is accepted here as well as the config form, because a config
+ * file is code and someone will reasonably reach for it — sharing a pool with
+ * an application, or pointing the migrator at a test database.
+ */
+
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { DB } from '@c15t/backend/db/schema';
+
+import type { DatabaseOption } from '@c15t/backend';
 import { loadConfig } from 'c12';
+
 import type { CliContext } from '~/context/types';
 
-type MigratorDatabaseConfig = {
-	adapter: Parameters<(typeof DB)['client']>[0];
-} & Record<string, unknown>;
+interface BackendConfig extends Record<string, unknown> {
+	database?: DatabaseOption;
+}
 
-export async function readConfigAndGetDb(
+interface ReadDatabaseConfigDependencies {
+	loadConfig: typeof loadConfig;
+}
+
+const defaultReadDatabaseConfigDependencies: ReadDatabaseConfigDependencies = {
+	loadConfig,
+};
+
+/**
+ * Reads the config and returns its `database` option.
+ *
+ * @throws {Error} when the file is missing, unreadable, or has no `database`.
+ */
+export const readDatabaseConfig = async function readDatabaseConfig(
 	context: CliContext,
-	absoluteConfigPath: string
-): Promise<{
-	db: ReturnType<typeof DB.client>;
-}> {
+	absoluteConfigPath: string,
+	dependencies: ReadDatabaseConfigDependencies = defaultReadDatabaseConfigDependencies
+): Promise<DatabaseOption> {
 	const { logger } = context;
-
-	logger.info(`Loading backend config from ${absoluteConfigPath}`);
-
 	const resolvedPath = path.resolve(absoluteConfigPath);
+
+	logger.info(`Loading backend config from ${resolvedPath}`);
 
 	try {
 		await fs.access(resolvedPath);
@@ -27,8 +52,10 @@ export async function readConfigAndGetDb(
 	}
 
 	try {
-		const { config } = await loadConfig<MigratorDatabaseConfig>({
-			configFile: absoluteConfigPath,
+		const { config } = await dependencies.loadConfig<BackendConfig>({
+			configFile: resolvedPath,
+			cwd: path.dirname(resolvedPath),
+			dotenv: true,
 			jitiOptions: {
 				extensions: [
 					'.ts',
@@ -39,27 +66,32 @@ export async function readConfigAndGetDb(
 					'.cjs',
 					'.mts',
 					'.cts',
-					'.cjs',
 				],
 			},
 		});
 
-		logger.debug('Imported Config');
-
-		if (!config || typeof config !== 'object' || !('adapter' in config)) {
+		if (
+			!config ||
+			typeof config !== 'object' ||
+			config.database === undefined
+		) {
+			// Names the 2.x field explicitly: someone upgrading hits this, and
+			// "missing database" alone would not tell them their existing config
+			// is the reason.
 			throw new Error(
-				'Invalid backend config: missing required "adapter" property'
+				'Invalid backend config: missing required "database" property. ' +
+					'c15t 3.0 replaced 2.x\'s "adapter" field — see the upgrade guide.'
 			);
 		}
 
-		return {
-			db: DB.client(config.adapter),
-		};
+		return config.database;
 	} catch (error) {
 		logger.error('Failed to load backend config', error);
 		if (error instanceof Error) {
 			throw error;
 		}
-		throw new Error(`Unknown error loading backend config: ${String(error)}`);
+		throw new Error(`Unknown error loading backend config: ${String(error)}`, {
+			cause: error,
+		});
 	}
-}
+};

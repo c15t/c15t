@@ -1,11 +1,28 @@
 import { defineConfig } from '@rslib/core';
+
 import { getRsdoctorPlugins } from '../shared/rslib-utils';
 
 export default defineConfig({
+	lib: [
+		{
+			dts: {
+				distPath: './dist-types',
+			},
+			format: 'esm',
+		},
+	],
+	output: {
+		cleanDistPath: true,
+		target: 'web',
+	},
+	performance: {
+		buildCache: false,
+	},
 	source: {
 		entry: {
-			index: ['./src/index.ts'],
+			gpp: ['./src/gpp.ts'],
 			headless: ['./src/headless.ts'],
+			index: ['./src/index.ts'],
 		},
 		exclude: [
 			'**/__tests__/**',
@@ -14,25 +31,6 @@ export default defineConfig({
 			'**/*.spec.ts',
 			'**/*.spec.tsx',
 		],
-	},
-	lib: [
-		{
-			dts: {
-				distPath: './dist-types',
-			},
-			format: 'esm',
-		},
-		{
-			dts: false,
-			format: 'cjs',
-		},
-	],
-	output: {
-		target: 'web',
-		cleanDistPath: true,
-	},
-	performance: {
-		buildCache: false,
 	},
 	tools: {
 		rspack: {

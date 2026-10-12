@@ -1,0 +1,352 @@
+/**
+ * The HTTP surface.
+ *
+ * Hono stays, because the v3 rewrite changes the data layer and the runtime,
+ * not the wire. Routes hand off to Effect immediately and the app owns exactly two
+ * things: turning a request into handler inputs, and turning a typed failure
+ * into a response.
+ *
+ * ## Wire compatibility is enforced, not asserted
+ *
+ * §Non-goals makes wire compatibility with `@c15t/backend` 2.x a hard
+ * requirement. Rather than restate the response shapes here and hope they stay
+ * aligned, every handler validates its output against the **same
+ * `@c15t/schema` schema the 2.x routes validate against**. If the two drift,
+ * this package fails its own tests rather than shipping a silently different
+ * response.
+ *
+ * That also means the schemas remain the single source of truth across the
+ * cutover, which is what makes running both packages against one contract
+ * possible at all.
+ */
+
+import { hostingValues } from '@c15t/schema';
+import type { ConsentManifestConfig, Hosting } from '@c15t/schema';
+import type { IpAddressConfig } from '@c15t/schema/geo';
+import { Effect, Layer } from 'effect';
+import type { ManagedRuntime } from 'effect';
+import type { SqlClient } from 'effect/sql';
+import type { Context, Hono } from 'hono';
+
+import { layer as tenantLayer } from '../db/tenant';
+import type { Tenant } from '../db/tenant';
+import type { ObservabilityOptions } from '../observability/evlog';
+import { toRequestLog } from '../observability/evlog';
+import { layer as logLayer, silent } from '../observability/log';
+import type { Log } from '../observability/log';
+import { toHttp } from './errors';
+import type { RouteError } from './errors';
+import type { GvlConfig } from './gvl';
+import type { IdentityTokenOptions } from './identity-token';
+import type { LegalDocumentSnapshotOptions } from './legal-document-snapshot';
+import type { ManifestCacheOptions } from './manifest';
+import type { PolicySnapshotOptions } from './policy-snapshot';
+import type { ScriptOptions } from './script';
+import type { SessionOptions } from './session';
+
+export interface AppLayers {
+	readonly sql: SqlClient.SqlClient;
+}
+
+/**
+ * Builds the app over a runtime that already has its layers provided.
+ *
+ * The runtime is constructed once by the caller and reused for every request —
+ * building a layer per request would open a connection pool per request.
+ */
+
+export interface AppOptions {
+	/**
+	 * Client IP handling, passed through to `@c15t/schema`'s shared derivation.
+	 *
+	 * The IP ends up on consent records, so this is a compliance setting rather
+	 * than a diagnostic one: masking is on unless explicitly disabled, and
+	 * `tracking: false` records nothing at all.
+	 */
+	readonly ipAddress?: IpAddressConfig;
+	/** Reported by `GET /status`. */
+	readonly version?: string;
+	/**
+	 * OpenAPI spec publication.
+	 *
+	 * Enabled by default, matching @c15t/backend — the spec documents a public
+	 * API, and a self-hoster integrating against it should not have to opt in
+	 * to discovering what the endpoints are.
+	 */
+	readonly openapi?: {
+		readonly enabled?: boolean;
+		readonly specPath?: string;
+		readonly title?: string;
+		readonly basePath?: string;
+	};
+	/**
+	 * Origins permitted to call this backend from a browser.
+	 *
+	 * Empty or absent means no cross-origin request is allowed. The banner is
+	 * loaded from the host's own page, so a deployment that has not configured
+	 * this should reject rather than default open.
+	 */
+	readonly trustedOrigins?: readonly string[];
+	/**
+	 * The tenant this instance serves, matching @c15t/backend where tenantId is
+	 * instance configuration rather than per-request.
+	 *
+	 * Undefined means a single-tenant deployment whose rows hold NULL. That is
+	 * still a scope — queries filter on `is null` — so there is no unscoped
+	 * mode to fall into.
+	 *
+	 * The only place a self-hosted instance names its tenant. Checked when
+	 * the instance is built: an empty or padded string, or a non-string,
+	 * throws rather than scoping queries to a tenant nobody meant.
+	 */
+	readonly tenantId?: string;
+	/**
+	 * Refuse to build an instance without a `tenantId`.
+	 *
+	 * Set it wherever several tenants share one database. Without it, an
+	 * instance whose `tenantId` came back undefined (a failed lookup, a missing
+	 * environment variable) runs as the single-tenant scope: it writes rows with
+	 * a NULL tenant that the tenant who owns them never sees, and nothing says
+	 * so. With it, construction throws.
+	 *
+	 * @default false
+	 */
+	readonly requireTenantId?: boolean;
+	/**
+	 * Who runs this backend, reported on every `/init` and `/manifest` and
+	 * exposed in the browser as `window.c15t.hosting`.
+	 *
+	 * inth's hosted platform sets `'inth'`. Leave it unset everywhere else.
+	 * The value is not signed, so treat it as a label for debugging and
+	 * support, not as proof of where a backend runs.
+	 *
+	 * @default 'self-hosted'
+	 */
+	readonly hosting?: Hosting;
+	/**
+	 * Per-tenant configuration the manifest and /init are built from.
+	 * `hosting` is set on the instance, not here.
+	 */
+	readonly manifest?: Omit<ConsentManifestConfig, 'hosting'>;
+	readonly manifestCache?: ManifestCacheOptions;
+	/**
+	 * The script-tag builds served at `/c15t.js` and `/c15t.headless.js`,
+	 * pre-configured with this backend's manifest. On by default.
+	 */
+	readonly script?: ScriptOptions;
+	readonly policySnapshot?: PolicySnapshotOptions;
+	/**
+	 * Signing for legal-document snapshots.
+	 *
+	 * Separate from `policySnapshot` because they attest to different things
+	 * and have very different lifetimes — a policy decision is consumed
+	 * immediately, a terms snapshot is held by a client across a session — so
+	 * one signing key and TTL cannot serve both.
+	 */
+	readonly legalDocumentSnapshot?: LegalDocumentSnapshotOptions;
+	/**
+	 * Verification for identity tokens: signed proof, minted by your server,
+	 * that a browser belongs to one of your users.
+	 *
+	 * A subject linked to an external id counts toward
+	 * `GET /subjects?externalId=` and `GET /consents/check` only when the
+	 * link was verified. A request with an API key always verifies its link.
+	 * A browser verifies its link by sending a token that this key signed.
+	 * Without a key, browser links are stored but never verified.
+	 */
+	readonly identityToken?: IdentityTokenOptions;
+	/**
+	 * Server-side Global Vendor List loading.
+	 *
+	 * Configuring it is the opt-in: every request that resolves a matched IAB
+	 * policy gets the list, narrowed to `vendorIds` when a scope is set.
+	 * Leaving `gvl` out serves no list at all — the backend never fetches an
+	 * unscoped document for a deployment that did not configure one, and
+	 * `enabled: false` refuses while keeping the rest in place.
+	 */
+	readonly gvl?: GvlConfig;
+	/**
+	 * Session reports: the per-visitor signal `/init` used to be.
+	 *
+	 * Hosts that resolve init from a cached manifest send `POST /sessions`
+	 * instead of calling `/init`; the backend's own `/init` emits the same
+	 * event. Every report lands on the request's wide event. `onReport`
+	 * additionally hands it to a sink of the deployment's choosing.
+	 */
+	readonly sessions?: SessionOptions;
+	/**
+	 * Keys accepted on `Authorization: Bearer <key>`.
+	 *
+	 * Absent or empty means no request authenticates. A deployment that has
+	 * not configured keys should expose nothing, not everything.
+	 */
+	readonly apiKeys?: readonly string[];
+	/**
+	 * Where this backend is mounted, when it is not at the root.
+	 *
+	 * A self-hoster typically mounts it under a catch-all — `/api/c15t` in
+	 * Next.js, `/api/self-host` in the demo — so requests arrive with that
+	 * prefix while the routes are declared without it. The prefix is stripped
+	 * before dispatch, which is what `@c15t/backend` does too.
+	 *
+	 * Without this, a mounted deployment 404s on every route, which is a
+	 * confusing way to discover the setting.
+	 */
+	readonly basePath?: string;
+	/**
+	 * Wide-event logging.
+	 *
+	 * On by default at `level: 'warn'` — silent when requests succeed, a line
+	 * when they fail. `level: 'info'` gives the full per-request stream;
+	 * `'silent'` turns it off.
+	 */
+	readonly observability?: ObservabilityOptions;
+}
+
+/**
+ * Refuses tenant configuration that would scope queries to the wrong place.
+ *
+ * The tenant is an isolation boundary, so a mistake in it has to stop the
+ * instance from starting. Degrading to the single-tenant scope instead would
+ * write a tenant's consents where it cannot read them, and nothing in a
+ * response or a log would say so.
+ *
+ * @param options - The instance's options.
+ * @throws {Error} When `tenantId` is not a non-empty, unpadded string, when
+ * `requireTenantId` is set without one, or when the config still sets the
+ * removed `manifest.tenantId`.
+ * @internal
+ */
+export const assertTenantOptions = function assertTenantOptions(
+	options: Pick<AppOptions, 'manifest' | 'requireTenantId' | 'tenantId'>
+): void {
+	// Read as unknown: a JavaScript config can pass anything, and `null` would
+	// otherwise scope every query to `tenantId = NULL`, which matches nothing.
+	const tenantId: unknown = options.tenantId;
+	if (tenantId !== undefined) {
+		if (typeof tenantId !== 'string') {
+			throw new TypeError(
+				`[c15t] tenantId must be a string, received ${tenantId === null ? 'null' : typeof tenantId}. Omit it for a single-tenant deployment.`
+			);
+		}
+		if (tenantId.trim() === '' || tenantId.trim() !== tenantId) {
+			throw new Error(
+				`[c15t] tenantId ${JSON.stringify(tenantId)} is empty or has surrounding whitespace. Omit it for a single-tenant deployment.`
+			);
+		}
+	}
+
+	// Read as unknown for the same reason: `requireTenantId: 'true'` from an
+	// untyped config would otherwise switch the guard off without a word.
+	const requireTenantId: unknown = options.requireTenantId;
+	if (requireTenantId !== undefined && typeof requireTenantId !== 'boolean') {
+		throw new TypeError(
+			`[c15t] requireTenantId must be a boolean, received ${requireTenantId === null ? 'null' : typeof requireTenantId}.`
+		);
+	}
+	if (requireTenantId === true && tenantId === undefined) {
+		throw new Error(
+			'[c15t] requireTenantId is set but tenantId is missing. Refusing to start: without it this instance would read and write the single-tenant scope instead of a tenant.'
+		);
+	}
+
+	// `manifest.tenantId` was a second place to name the tenant, and it never
+	// scoped a query. Ignoring it now would leave a config that set only that
+	// one writing every row with a null tenant, so it is refused by name. The
+	// key is checked rather than its value: `tenantId: process.env.TENANT_ID`
+	// with the variable unset is the case this exists for.
+	if (options.manifest && Object.hasOwn(options.manifest, 'tenantId')) {
+		throw new Error(
+			`[c15t] manifest.tenantId is no longer supported. Set tenantId on the instance instead${tenantId === undefined ? '' : ` (it is already ${JSON.stringify(tenantId)})`} and remove it from manifest.`
+		);
+	}
+};
+
+/**
+ * Reads the instance's `hosting` option.
+ *
+ * Checked at startup because every `/init` is validated against the schema:
+ * a typo such as `'inth.com'` would otherwise fail each response rather than
+ * the deploy. `manifest.hosting` is refused by name, so an untyped config
+ * that put it there learns where it goes instead of reporting the default.
+ *
+ * @param options - The instance's options.
+ * @returns The backend's hosting, `'self-hosted'` when unset.
+ * @throws {Error} When `hosting` is not a known value, or when the config
+ * sets `manifest.hosting`.
+ * @internal
+ */
+export const resolveHosting = function resolveHosting(
+	options: Pick<AppOptions, 'hosting' | 'manifest'>
+): Hosting {
+	if (options.manifest && Object.hasOwn(options.manifest, 'hosting')) {
+		throw new Error(
+			'[c15t] manifest.hosting is not supported. Set hosting on the instance instead and remove it from manifest.'
+		);
+	}
+	const hosting: unknown = options.hosting;
+	if (hosting === undefined) {
+		return 'self-hosted';
+	}
+	if (!(hostingValues as readonly unknown[]).includes(hosting)) {
+		throw new Error(
+			`[c15t] hosting must be one of ${hostingValues.map((value) => JSON.stringify(value)).join(', ')}, received ${JSON.stringify(hosting) ?? String(hosting)}.`
+		);
+	}
+	return hosting as Hosting;
+};
+
+/**
+ * What a route module needs to register itself.
+ *
+ * Passed explicitly rather than reached for via module scope, so a route's
+ * dependencies are visible in its signature and it can be exercised without
+ * standing up the whole app.
+ */
+export interface RouteContext {
+	readonly app: Hono;
+	readonly options: AppOptions;
+	readonly run: ReturnType<typeof makeRun>;
+}
+
+export const makeRun =
+	(
+		runtime: ManagedRuntime.ManagedRuntime<SqlClient.SqlClient, never>,
+		tenantId: string | undefined
+	) =>
+	async <A>(
+		c: Context,
+		effect: Effect.Effect<A, RouteError, SqlClient.SqlClient | Tenant | Log>
+	): Promise<
+		{ ok: true; value: A } | { ok: false; failure: ReturnType<typeof toHttp> }
+	> => {
+		// Both provided here, once, rather than at each call site: a route
+		// cannot forget what it never has to remember.
+		//
+		// The logger comes from the Hono context rather than a module-level
+		// singleton because it is per-request — evlog's Hono binding attaches
+		// it with `c.set('log', …)` and offers no async-storage lookup.
+		const log = toRequestLog(c.get('log'));
+		const request = Layer.merge(
+			tenantLayer(tenantId),
+			log === undefined ? silent : logLayer(log)
+		);
+
+		const result = await runtime.runPromise(
+			Effect.result(Effect.provide(effect, request))
+		);
+		if (result._tag === 'Success') {
+			return { ok: true, value: result.success };
+		}
+
+		// The client is told nothing about a database failure on purpose — the
+		// message carries table and column names. That only works if the detail
+		// goes *somewhere*, and until now it went nowhere: `toHttp` dropped it
+		// and the response said `DATABASE_ERROR` with no cause recorded, so an
+		// operator debugging a 500 had the status and nothing else.
+		if (result.failure._tag === 'SqlError' && log !== undefined) {
+			log.error(result.failure);
+		}
+
+		return { failure: toHttp(result.failure), ok: false };
+	};

@@ -1,139 +1,82 @@
 ---
 title: Segment
-description: Load Segment Analytics.js with c15t and gate it behind measurement consent.
-group: integrations
+description: Load Segment Analytics.js only after measurement consent with the c15t segment helper, guard your own track and identify calls, and check it in DevTools.
+seoTitle: Segment cookie consent with c15t
+seoDescription: Load Segment Analytics.js only with measurement consent. The c15t segment helper sends the first page call after consent.
 icon: segment
+group: integrations
 ---
 
-Segment lets you collect analytics events in one place and forward them to downstream destinations. The `segment()` helper creates Segment's standard `window.analytics` queue, optionally queues the initial `page()` call, and loads Analytics.js when `measurement` consent is available.
+The c15t `segment` helper keeps Segment Analytics.js off the page until
+`measurement` has consent. Until then, c15t does not create `window.analytics`.
+When `measurement` has consent, the helper queues a `page()` call and loads
+Analytics.js. The helper sends no consent signal to Segment. If the visitor
+withdraws consent, c15t removes the script element. By default, c15t also
+reloads the page.
 
-## Integrate with c15t
+## Configure Segment
 
-<Tabs items={['React', 'Next.js', 'JavaScript']}>
-  <Tab value="React">
-    ```tsx
-    import { type ReactNode } from 'react';
-    import { ConsentManagerProvider } from '@c15t/react';
-    import { segment } from '@c15t/scripts/segment';
+Copy the write key of your Segment JavaScript source. The helper builds the
+loader URL from it.
 
-    const scripts = [segment({ writeKey: 'abc123xyz456' })];
+<CommandTabs command="@c15t/integrations" mode="install" />
 
-    export function ConsentProvider({ children }: { children: ReactNode }) {
-      return (
-        <ConsentManagerProvider
-          options={{
-            mode: 'hosted',
-            backendURL: 'https://your-instance.c15t.dev',
-            scripts,
-          }}
-        >
-          {children}
-        </ConsentManagerProvider>
-      );
-    }
-    ```
-  </Tab>
+```ts title="src/consent-scripts.ts"
+import { segment } from '@c15t/integrations/segment';
 
-  <Tab value="Next.js">
-    ```tsx
-    'use client';
-
-    import { type ReactNode } from 'react';
-    import { ConsentManagerProvider } from '@c15t/nextjs';
-    import { segment } from '@c15t/scripts/segment';
-
-    const scripts = [segment({ writeKey: 'abc123xyz456' })];
-
-    export function ConsentProvider({ children }: { children: ReactNode }) {
-      return (
-        <ConsentManagerProvider
-          options={{
-            mode: 'hosted',
-            backendURL: '/api/c15t',
-            scripts,
-          }}
-        >
-          {children}
-        </ConsentManagerProvider>
-      );
-    }
-    ```
-  </Tab>
-
-  <Tab value="JavaScript">
-    ```ts
-    import { getOrCreateConsentRuntime } from 'c15t';
-    import { segment } from '@c15t/scripts/segment';
-
-    getOrCreateConsentRuntime({
-      mode: 'hosted',
-      backendURL: 'https://your-instance.c15t.dev',
-      scripts: [segment({ writeKey: 'abc123xyz456' })],
-    });
-    ```
-  </Tab>
-</Tabs>
-
-## How c15t loads it
-
-- **Category:** `measurement` (Analytics)
-- **Loads when:** measurement consent is granted
-- **On revocation:** unloaded - c15t removes the script from the DOM and clears Segment globals until consent is granted again.
-
-c15t deliberately blocks the load rather than mapping consent into Segment's consent tooling: Segment's consent object and consent wrappers control which downstream destinations receive events, but Analytics.js itself still writes identifiers and delivers events to Segment once loaded. Gating the load is the only default that reliably honors missing or denied `measurement` consent. See the [RudderStack consent notes](/docs/integrations/rudderstack#consent-behavior) for the full reasoning behind this model versus vendor consent-API mapping (as used for Google Tag Manager).
-
-## Configure the integration
-
-By default the helper queues `analytics.page()` before the vendor bundle loads. If you want to handle page views yourself, set `trackPageView` to `false`.
-
-```ts
-import { segment } from '@c15t/scripts/segment';
-
-segment({
-  writeKey: 'abc123xyz456',
-  trackPageView: false,
-});
+export const scripts = [segment({ writeKey: 'YOUR_SOURCE_WRITE_KEY' })];
 ```
 
-## Tracking events in your app
+<include src="../shared/integrations/register-scripts.mdx" />
 
-c15t gates the Segment script from loading until `measurement` consent is granted. Your application code that calls Segment's runtime API (`window.analytics.track`, `identify`, etc.) is **not** automatically gated - `window.analytics` does not exist until the script is loaded, so unguarded calls before consent throw.
+## Options
 
-Guard event calls by checking consent state. From React:
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `writeKey` | Required | Source write key. Empty or whitespace-only values log an error and the script does not load. |
+| `loadOptions` | `{}` | Set as `window.analytics._loadOptions` before the loader runs. Analytics.js reads it on initialization. |
+| `trackPageView` | `true` | Queues one `analytics.page()` call before the loader. Set `false` to send page views yourself. |
+| `scriptUrl` | `https://cdn.segment.com/analytics.js/v1/<writeKey>/analytics.min.js` | Loader URL override. |
 
-```tsx
-import { useCallback } from 'react';
-import { useConsentManager } from '@c15t/react';
+## Loading and revocation
 
-function SignupExample() {
-  const { has } = useConsentManager();
+`segment` uses the `measurement` category. Before measurement is allowed, c15t
+defines no `window.analytics` and loads nothing from Segment. When measurement
+becomes allowed, the helper creates the `window.analytics` queue with `track`,
+`page`, `identify`, `group`, `alias` and `reset`, sets the load options,
+queues the page view, then loads Analytics.js. On revocation the helper
+removes the script element and calls no Segment API.
 
-  const trackSignup = useCallback(() => {
-    if (has('measurement')) {
-      window.analytics?.track('Signup Completed', { plan: 'pro' });
-    }
-  }, [has]);
+Segment forwards events to every destination enabled on the source. A
+measurement grant does not cover a destination that needs marketing
+permission. Configure destination consent in Segment, or load that vendor with
+its own c15t helper instead.
+
+## Guard your own Segment calls
+
+The helper sends the first page view. Calls your code makes, such as `track`
+and `identify`, need their own check. After revocation `window.analytics`
+still exists, so its presence does not mean measurement is allowed. Check the
+permission first, then that the queue exists:
+
+```ts title="src/track-signup.ts"
+export function trackSignup(measurementAllowed: boolean, plan: string) {
+	if (!measurementAllowed || !window.analytics) return;
+	window.analytics.track('Signup', { plan });
 }
 ```
 
-From plain JavaScript:
+Pass the current measurement permission from your framework, for example
+`useConsent('measurement')` in React. Analytics.js sends no page view on
+client-side route changes, so call `window.analytics.page()` from your router
+behind the same check.
 
-```ts
-import { getOrCreateConsentRuntime } from 'c15t';
+## Verify Segment
 
-const { consentStore } = getOrCreateConsentRuntime();
+After you allow measurement, `analytics.min.js` loads from `cdn.segment.com`
+with your write key in the path, and a page call goes to `api.segment.io`.
+Check that each browser destination on the source loads only under the
+permission it needs. Then revoke measurement. Before the reload, calling
+`trackSignup` sends nothing.
 
-if (consentStore.getState().has('measurement')) {
-  window.analytics?.track('Signup Completed', { plan: 'pro' });
-}
-```
-
-## Types
-
-### SegmentOptions
-
-<AutoTypeTable path="./packages/scripts/src/vendors/analytics/segment.ts" name="SegmentOptions" />
-
-### Script
-
-<AutoTypeTable path="./packages/core/src/libs/script-loader/types.ts" name="Script" />
+<include src="../shared/integrations/vendor-revocation-and-verify.mdx" />

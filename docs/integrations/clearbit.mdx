@@ -1,122 +1,53 @@
 ---
 title: Clearbit
-description: Visitor and company enrichment loaded with Clearbit's account-keyed tags.js snippet.
-group: integrations
+description: Load the Clearbit enrichment tag only after marketing consent with the c15t clearbit helper, and check it in DevTools.
+seoTitle: Clearbit cookie consent with c15t
+seoDescription: Load Clearbit only with marketing consent, because Clearbit identifies visitors and their companies. Set it up with the c15t clearbit helper.
 icon: clearbit
+group: integrations
 ---
 
-[Clearbit](https://clearbit.com) provides visitor and company enrichment for go-to-market workflows. The official embed loads `https://tag.clearbitscripts.com/v1/{publishableKey}/tags.js` with a `referrerpolicy` of `strict-origin-when-cross-origin`.
+The c15t `clearbit` helper keeps the Clearbit tag, `tags.js`, off the page until
+`marketing` has consent. The category is `marketing`, not `measurement`, because
+Clearbit identifies visitors and their companies. The helper sends no consent
+signal to Clearbit. If the visitor withdraws consent, c15t removes the script
+element. By default, c15t also reloads the page.
 
-## Integrate with c15t
+## Configure Clearbit
 
-<Tabs items={['React', 'Next.js', 'JavaScript']}>
-  <Tab value="React">
-    ```tsx
-    import { type ReactNode } from 'react';
-    import { ConsentManagerProvider } from '@c15t/react';
-    import { clearbit } from '@c15t/scripts/clearbit';
+Use the publishable key from your Clearbit tag installation. Do not put a
+secret Clearbit API key in browser code.
 
-    const scripts = [
-      clearbit({
-        publishableKey: 'YOUR_PUBLISHABLE_KEY',
-      }),
-    ];
+<CommandTabs command="@c15t/integrations" mode="install" />
 
-    export function ConsentProvider({ children }: { children: ReactNode }) {
-      return (
-        <ConsentManagerProvider
-          options={{
-            mode: 'hosted',
-            backendURL: 'https://your-instance.c15t.dev',
-            scripts,
-          }}
-        >
-          {children}
-        </ConsentManagerProvider>
-      );
-    }
-    ```
-  </Tab>
+```ts title="src/consent-scripts.ts"
+import { clearbit } from '@c15t/integrations/clearbit';
 
-  <Tab value="Next.js">
-    ```tsx
-    'use client';
-
-    import { type ReactNode } from 'react';
-    import { ConsentManagerProvider } from '@c15t/nextjs';
-    import { clearbit } from '@c15t/scripts/clearbit';
-
-    const scripts = [
-      clearbit({
-        publishableKey: 'YOUR_PUBLISHABLE_KEY',
-      }),
-    ];
-
-    export function ConsentProvider({ children }: { children: ReactNode }) {
-      return (
-        <ConsentManagerProvider
-          options={{
-            mode: 'hosted',
-            backendURL: '/api/c15t',
-            scripts,
-          }}
-        >
-          {children}
-        </ConsentManagerProvider>
-      );
-    }
-    ```
-  </Tab>
-
-  <Tab value="JavaScript">
-    ```ts
-    import { getOrCreateConsentRuntime } from 'c15t';
-    import { clearbit } from '@c15t/scripts/clearbit';
-
-    getOrCreateConsentRuntime({
-      mode: 'hosted',
-      backendURL: 'https://your-instance.c15t.dev',
-      scripts: [
-        clearbit({
-          publishableKey: 'YOUR_PUBLISHABLE_KEY',
-        }),
-      ],
-    });
-    ```
-  </Tab>
-</Tabs>
-
-## How c15t loads it
-
-- **Category:** `marketing` (Analytics discovery, marketing-sensitive consent)
-- **Loads when:** marketing consent is granted
-- **On revocation:** unloaded — c15t removes the script element from the DOM.
-
-Clearbit enrichment tools are privacy-sensitive because they can identify visitors and companies for profiling, enrichment, and intent use cases. The GitHub issue left the category open between measurement and marketing; c15t defaults this integration to `marketing` because enrichment is not just aggregate measurement. The script stays blocked until marketing consent is granted. On revocation c15t removes the script element it created; tags that Clearbit's loader has already appended can keep running until the next page load (c15t reloads the page on revocation by default), so treat the load gate as the consent boundary.
-
-The helper maps Clearbit's official snippet:
-
-```ts
-clearbit({
-  publishableKey: 'YOUR_PUBLISHABLE_KEY',
-})
+export const scripts = [clearbit({ publishableKey: 'YOUR_PUBLISHABLE_KEY' })];
 ```
 
-To proxy or self-host the loader, pass a custom URL:
+<include src="../shared/integrations/register-scripts.mdx" />
 
-```ts
-clearbit({
-  publishableKey: 'YOUR_PUBLISHABLE_KEY',
-  scriptUrl: 'https://analytics.example.com/clearbit-tags.js',
-})
-```
+## Options
 
-## Types
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `publishableKey` | Required | Publishable key. The helper trims it and URL-encodes it into the default loader URL. Empty or non-string values log an error and the script does not load. |
+| `scriptUrl` | `https://tag.clearbitscripts.com/v1/<publishableKey>/tags.js` | Loader URL override. A blank value falls back to the default. |
 
-### ClearbitOptions
+## Loading and revocation
 
-<AutoTypeTable path="./packages/scripts/src/vendors/analytics/clearbit.ts" name="ClearbitOptions" />
+`clearbit` uses the `marketing` category, not `measurement`. Clearbit
+identifies visitors and their companies for enrichment, so c15t treats it as
+marketing even though these docs list it with analytics. The `tags.js` script
+loads with `referrerpolicy="strict-origin-when-cross-origin"` only while
+marketing is allowed. On revocation the helper removes the script element and
+calls no Clearbit API.
 
-### Script
+## Verify Clearbit
 
-<AutoTypeTable path="./packages/core/src/libs/script-loader/types.ts" name="Script" />
+Filter DevTools Network by `clearbitscripts.com`. After you allow marketing,
+the `tags.js` request carries your publishable key in its path. Allowing
+measurement alone loads nothing from Clearbit.
+
+<include src="../shared/integrations/vendor-revocation-and-verify.mdx" />

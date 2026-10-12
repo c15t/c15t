@@ -1,4 +1,5 @@
 import * as p from '@clack/prompts';
+
 import type { CliContext } from '~/context/types';
 
 interface GetSSROptionOptions {
@@ -11,7 +12,8 @@ interface GetSSROptionOptions {
  * Prompts the user to enable SSR data fetching for Next.js App Router.
  *
  * @remarks
- * SSR data fetching uses `fetchInitialData()` which requires Next.js `headers()` API.
+ * SSR consent state comes from `resolveConsent()`, which requires the
+ * Next.js `headers()` API.
  * This is a dynamic API that:
  * - Works in dynamic routes and server components
  * - Forces the route to be dynamically rendered
@@ -19,7 +21,7 @@ interface GetSSROptionOptions {
  *
  * @returns true if SSR should be enabled, false otherwise
  */
-export async function getSSROption({
+export const getSSROption = async function getSSROption({
 	context,
 	handleCancel,
 	onCancel,
@@ -31,28 +33,30 @@ export async function getSSROption({
 		'Tradeoff: this uses Next.js headers() and makes the route dynamic (not fully static).'
 	);
 	context.logger.info(
-		'On slow backends or cross-region setups, SSR can increase TTFB. Measure both TTFB and banner visibility.'
+		'The generated layout passes the pending consent state to the provider, so pages render without waiting for the backend; the banner appears after hydration.'
 	);
 	context.logger.info(
-		'Learn more: https://c15t.com/docs/frameworks/nextjs/ssr'
+		'Learn more: https://c15t.com/docs/frameworks/next/rendering'
 	);
 
 	const enableSSR = await p.select({
+		initialValue: true,
 		message:
 			'Enable SSR consent prefetch? (faster first banner visibility, dynamic route)',
 		options: [
 			{
-				value: true,
-				label: 'Yes (Recommended)',
 				hint: 'Fetch consent data on server and stream to client',
+
+				label: 'Yes (Recommended)',
+				value: true,
 			},
 			{
-				value: false,
-				label: 'No',
 				hint: 'Client-only fetch after hydration (better for fully static pages)',
+
+				label: 'No',
+				value: false,
 			},
 		],
-		initialValue: true,
 	});
 
 	const cancelled = handleCancel?.(enableSSR) ?? p.isCancel(enableSSR);
@@ -69,4 +73,4 @@ export async function getSSROption({
 	}
 
 	return enableSSR as boolean;
-}
+};

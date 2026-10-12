@@ -1,0 +1,80 @@
+/**
+ * Provider conformance suite.
+ *
+ * Asserts that every framework's consent provider exposes an
+ * observable consent store with the expected top-level shape.
+ */
+
+import type { TestDriver } from '../driver';
+import { conformanceTest, queryByTestId, waitForCondition } from './helpers';
+import type { SuiteApi } from './helpers';
+
+const REQUIRED_STATE_KEYS = [
+	'explicitChoice',
+	'effectivePermissions',
+	'promptRequirement',
+	'noticeDismissal',
+	'resolution',
+] as const;
+
+export const runProviderConformance = function runProviderConformance(
+	driver: TestDriver,
+	api: SuiteApi
+): void {
+	api.describe(`[${driver.framework}] provider`, () => {
+		conformanceTest(
+			api,
+			'exposes a store with the core state shape',
+			async () => {
+				const mounted = await driver.mount({ component: 'consent-banner' });
+				try {
+					const state = driver.getStore().getState();
+					for (const key of REQUIRED_STATE_KEYS) {
+						api.expect(state).toHaveProperty(key);
+					}
+				} finally {
+					await mounted.unmount();
+				}
+			}
+		);
+
+		conformanceTest(
+			api,
+			'subscribes to store changes and receives notifications',
+			async () => {
+				const mounted = await driver.mount({ component: 'consent-banner' });
+				try {
+					const store = driver.getStore();
+					let notified = 0;
+					const unsubscribe = store.subscribe(() => {
+						notified += 1;
+					});
+					try {
+						const accept = queryByTestId(
+							mounted.root,
+							'consent-banner-accept-button'
+						);
+						if (!accept) {
+							throw new Error('Missing accept action');
+						}
+						accept.click();
+						await waitForCondition(() => notified > 0);
+						api.expect(notified).toBeGreaterThan(0);
+					} finally {
+						unsubscribe();
+					}
+				} finally {
+					await mounted.unmount();
+				}
+			}
+		);
+
+		conformanceTest(api, 'unmount cleans up the DOM', async () => {
+			const mounted = await driver.mount({ component: 'consent-banner' });
+			const { root } = mounted;
+			api.expect(root.childNodes.length).toBeGreaterThan(0);
+			await mounted.unmount();
+			api.expect(root.childNodes.length).toBe(0);
+		});
+	});
+};

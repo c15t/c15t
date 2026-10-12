@@ -1,0 +1,55 @@
+---
+title: Components
+description: Every consent surface and page hook the c15t script tag gives a plain HTML site, from the stock banner and preference dialog to data-c15t-action buttons and gated scripts and iframes.
+group: frameworks
+---
+
+## What the script tag puts on your page
+
+`c15t.js` renders three surfaces of its own and reads four kinds of markup you
+write. Each has its own page:
+
+| Component | What it is | Page |
+| --- | --- | --- |
+| Banner | The first prompt: a card or bar with the actions the policy requires. | [Banner](/docs/frameworks/html/components/banner) |
+| Preference dialog | The category list where a visitor changes each choice. | [Preference dialog](/docs/frameworks/html/components/dialog) |
+| Floating trigger | An optional corner button that reopens the dialog. | [Floating trigger](/docs/frameworks/html/components/trigger) |
+| `data-c15t-action` buttons | Your own buttons that accept, reject, open the dialog or show the banner. | [Action buttons](/docs/frameworks/html/components/action-buttons) |
+| `#c15t-preferences` links | Your own links that open the preference dialog. | [Preferences link](/docs/frameworks/html/components/preferences-link) |
+| `<script type="text/plain">` | A vendor script that runs once its category is allowed. | [Gated scripts](/docs/frameworks/html/components/gated-script) |
+| `<iframe data-src>` | An embed that loads once its category is allowed. | [Embeds](/docs/frameworks/html/embeds) |
+| DevTools panel | A debugging panel, loaded from a second tag. | [DevTools](/docs/frameworks/html/dev-tools) |
+
+`c15t.headless.js` keeps the four kinds of markup and drops the three
+surfaces, so your page renders the banner and dialog. See
+[headless](/docs/frameworks/html/headless). `c15t.iab.js` replaces the banner
+and dialog with IAB TCF versions under an IAB policy. See
+[IAB TCF](/docs/frameworks/html/iab).
+
+## Where the surfaces render
+
+The banner, dialog and trigger render inside one host element,
+`<div data-c15t-ui>`, which c15t appends to the end of `<body>`. By default
+the host has a shadow root with its own copy of the stylesheet, so your
+theme's CSS does not reach the UI and the UI's CSS does not reach your page.
+[Customize](/docs/frameworks/html/customize) covers theme tokens, CSS inside
+the shadow root, and rendering into the page instead.
+
+A tag in `<head>` runs before `<body>` exists. c15t starts resolving the
+policy at once and mounts the UI when the document has parsed.
+
+## Which surface shows
+
+c15t decides which surface should show from the policy and the visitor's
+records, then renders it:
+
+- **Banner.** Shows when the policy asks for a choice or a notice and the
+  visitor has not answered it. A policy that needs no prompt shows no banner.
+- **Dialog.** Shows only when something opens it, such as the banner's
+  customize button, an action button, a preferences link, the trigger or
+  `c15t.openDialog()`.
+- **Trigger.** Shows while neither the banner nor the dialog is open.
+
+Saving a choice closes the banner or dialog in the same click. The `ui` event
+reports each change of surface; see
+[events and callbacks](/docs/frameworks/html/callbacks).

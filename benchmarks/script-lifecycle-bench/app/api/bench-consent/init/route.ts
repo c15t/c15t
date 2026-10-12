@@ -1,38 +1,18 @@
+import { loadBrowserBenchInit } from '@c15t/benchmarking/policy-fixtures';
 import { NextResponse } from 'next/server';
 
-const response = {
-	branding: 'c15t',
-	jurisdiction: 'GDPR',
-	location: {
-		countryCode: 'DE',
-		regionCode: 'BE',
-	},
-	translations: {
-		language: 'en',
-		translations: {
-			common: {
-				acceptAll: 'Accept All',
-				rejectAll: 'Reject All',
-				customize: 'Customize',
-				save: 'Save',
-			},
-			cookieBanner: {
-				title: 'Script Lifecycle Benchmark Banner',
-				description: 'Deterministic script benchmark fixture.',
-			},
-			consentManagerDialog: {
-				title: 'Script Lifecycle Preferences',
-				description: 'Benchmark preferences description.',
-			},
-		},
-	},
-	policySnapshotToken: 'script-lifecycle-bench',
-};
+/**
+ * Deterministic init fixture. The scenarios that start as fresh visitors
+ * expect the banner, so the response carries an explicit opt-in choice
+ * policy: the promoted v3 API derives the first-layer UI from the
+ * resolved policy and no longer infers it from `jurisdiction` alone.
+ */
+const response = loadBrowserBenchInit();
 
-export async function GET() {
-	return NextResponse.json(response, {
+export const GET = async function GET() {
+	return NextResponse.json(await response, {
 		headers: {
 			'cache-control': 'no-store',
 		},
 	});
-}
+};

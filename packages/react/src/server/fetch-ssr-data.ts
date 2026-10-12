@@ -1,17 +1,17 @@
-import type { InitOutput, SSRInitialData } from 'c15t';
+import { C15T_VERSION_HEADER } from '@c15t/core';
+import type { InitOutput, SSRInitialData } from '@c15t/core';
+
 import { version } from '../version';
-import { extractRelevantHeaders } from './headers';
+import { CLIENT_FORWARDING_HEADERS, extractRelevantHeaders } from './headers';
 import { normalizeBackendURL } from './normalize-url';
 import type { FetchSSRDataOptions } from './types';
-
-const C15T_VERSION_HEADER = 'x-c15t-version';
 
 interface SSRFetchResult {
 	init?: InitOutput;
 	metadata?: SSRInitialData['metadata'];
 }
 
-function buildRequestContext(options: {
+const buildRequestContext = function buildRequestContext(options: {
 	backendURL: string;
 	headers: Record<string, string>;
 	overrides?: FetchSSRDataOptions['overrides'];
@@ -20,80 +20,15 @@ function buildRequestContext(options: {
 		backendURL: options.backendURL,
 		country:
 			options.overrides?.country ?? options.headers['x-c15t-country'] ?? null,
-		region:
-			options.overrides?.region ?? options.headers['x-c15t-region'] ?? null,
+		gpc: options.headers['sec-gpc'] === '1',
 		language:
 			options.overrides?.language ?? options.headers['accept-language'] ?? null,
-		gpc: options.headers['sec-gpc'] === '1',
+		region:
+			options.overrides?.region ?? options.headers['x-c15t-region'] ?? null,
 	};
-}
+};
 
-/**
- * Performs the init fetch request.
- * All async work (header resolution) should be done before calling this.
- * GVL is now included in the init response when server has it configured.
- */
-function performInitFetch(
-	normalizedURL: string,
-	relevantHeaders: Record<string, string>,
-	requestContext: NonNullable<SSRInitialData['metadata']>['requestContext'],
-	debug?: boolean
-): Promise<SSRFetchResult> {
-	const startTime = getNowMs();
-
-	return fetch(`${normalizedURL}/init`, {
-		method: 'GET',
-		headers: relevantHeaders,
-	})
-		.then((response) => {
-			const requestDurationMs = Math.max(0, Math.round(getNowMs() - startTime));
-			const cache = inspectCacheHeaders(response.headers);
-			const metadata: SSRInitialData['metadata'] = {
-				requestContext,
-				requestDurationMs,
-				cache,
-			};
-
-			if (response.ok) {
-				return response.json().then((init) => ({
-					init: init as InitOutput,
-					metadata,
-				}));
-			}
-			if (debug) {
-				console.log(
-					`[c15t/server] SSR fetch failed with status: ${response.status}`
-				);
-				if (cache.detail) {
-					console.log(`[c15t/server] SSR cache status: ${cache.detail}`);
-				}
-			}
-			return { metadata };
-		})
-		.then((result: SSRFetchResult) => {
-			if (debug && result.init) {
-				console.log(
-					`[c15t/server] SSR fetch succeeded in ${result.metadata?.requestDurationMs ?? 0}ms`
-				);
-				if (result.metadata?.cache?.detail) {
-					console.log(
-						`[c15t/server] SSR cache status: ${result.metadata.cache.detail}`
-					);
-				}
-			}
-			return result;
-		})
-		.catch((error) => {
-			if (debug) {
-				const message =
-					error instanceof Error ? error.message : 'Unknown error';
-				console.log(`[c15t/server] SSR fetch error: ${message}`);
-			}
-			return {};
-		});
-}
-
-function getNowMs(): number {
+const getNowMs = function getNowMs(): number {
 	if (
 		typeof performance !== 'undefined' &&
 		typeof performance.now === 'function'
@@ -101,9 +36,9 @@ function getNowMs(): number {
 		return performance.now();
 	}
 	return Date.now();
-}
+};
 
-function inspectCacheHeaders(headers: Headers): {
+const inspectCacheHeaders = function inspectCacheHeaders(headers: Headers): {
 	isHit: boolean;
 	detail: string | null;
 } {
@@ -124,7 +59,7 @@ function inspectCacheHeaders(headers: Headers): {
 		}
 
 		headerDetail = `${headerName}=${headerValue}`;
-		headerIndicatesHit = /\b(hit|stale|revalidated|updating)\b/i.test(
+		headerIndicatesHit = /\b(?:hit|stale|revalidated|updating)\b/iu.test(
 			headerValue
 		);
 		break;
@@ -140,10 +75,91 @@ function inspectCacheHeaders(headers: Headers): {
 			: (headerDetail ?? ageDetail);
 
 	return {
-		isHit: headerIndicatesHit || ageIndicatesCache,
 		detail,
+		isHit: headerIndicatesHit || ageIndicatesCache,
 	};
-}
+};
+
+const logRelevantHeaders = function logRelevantHeaders(
+	relevantHeaders: Record<string, string>,
+	debug?: boolean
+): void {
+	if (!debug) {
+		return;
+	}
+	const headerKeys = Object.keys(relevantHeaders);
+	console.log(`[c15t/server] Detected headers: [${headerKeys.join(', ')}]`);
+	const cfCountry = relevantHeaders['cf-ipcountry'];
+	const xCountry = relevantHeaders['x-vercel-ip-country'];
+	if (cfCountry) {
+		console.log(`[c15t/server] Country from cf-ipcountry: ${cfCountry}`);
+	} else if (xCountry) {
+		console.log(`[c15t/server] Country from x-vercel-ip-country: ${xCountry}`);
+	}
+};
+
+/**
+ * Performs the init fetch request.
+ * All async work (header resolution) should be done before calling this.
+ * GVL is now included in the init response when server has it configured.
+ */
+const performInitFetch = async function performInitFetch(
+	normalizedURL: string,
+	relevantHeaders: Record<string, string>,
+	requestContext: NonNullable<SSRInitialData['metadata']>['requestContext'],
+	debug?: boolean
+): Promise<SSRFetchResult> {
+	const startTime = getNowMs();
+
+	try {
+		const response = await fetch(`${normalizedURL}/init`, {
+			cache: 'no-store',
+			headers: relevantHeaders,
+			method: 'GET',
+		});
+		const requestDurationMs = Math.max(0, Math.round(getNowMs() - startTime));
+		const cache = inspectCacheHeaders(response.headers);
+		const metadata: SSRInitialData['metadata'] = {
+			cache,
+			requestContext,
+			requestDurationMs,
+		};
+
+		if (response.ok) {
+			const init = await response.json();
+			const result: SSRFetchResult = {
+				init: init as InitOutput,
+				metadata,
+			};
+			if (debug) {
+				console.log(
+					`[c15t/server] SSR fetch succeeded in ${result.metadata?.requestDurationMs ?? 0}ms`
+				);
+				if (result.metadata?.cache?.detail) {
+					console.log(
+						`[c15t/server] SSR cache status: ${result.metadata.cache.detail}`
+					);
+				}
+			}
+			return result;
+		}
+		if (debug) {
+			console.log(
+				`[c15t/server] SSR fetch failed with status: ${response.status}`
+			);
+			if (cache.detail) {
+				console.log(`[c15t/server] SSR cache status: ${cache.detail}`);
+			}
+		}
+		return { metadata };
+	} catch (error) {
+		if (debug) {
+			const message = error instanceof Error ? error.message : 'Unknown error';
+			console.log(`[c15t/server] SSR fetch error: ${message}`);
+		}
+		return {};
+	}
+};
 
 /**
  * Fetches initial consent data on the server for SSR hydration.
@@ -184,7 +200,7 @@ function inspectCacheHeaders(headers: Headers): {
  *
  * @public
  */
-export async function fetchSSRData(
+export const fetchSSRData = async function fetchSSRData(
 	options: FetchSSRDataOptions
 ): Promise<SSRInitialData | undefined> {
 	const { backendURL, headers, overrides, debug } = options;
@@ -194,26 +210,18 @@ export async function fetchSSRData(
 	}
 
 	// Extract relevant headers from the request
-	const relevantHeaders = extractRelevantHeaders(headers);
+	const relevantHeaders = extractRelevantHeaders(headers, {
+		trustForwardedHeaders: options.trustForwardedHeaders,
+	});
 
-	if (debug) {
-		const headerKeys = Object.keys(relevantHeaders);
-		console.log(`[c15t/server] Detected headers: [${headerKeys.join(', ')}]`);
+	logRelevantHeaders(relevantHeaders, debug);
 
-		// Log geo source if available
-		const cfCountry = relevantHeaders['cf-ipcountry'];
-		const xCountry = relevantHeaders['x-vercel-ip-country'];
-		if (cfCountry) {
-			console.log(`[c15t/server] Country from cf-ipcountry: ${cfCountry}`);
-		} else if (xCountry) {
-			console.log(
-				`[c15t/server] Country from x-vercel-ip-country: ${xCountry}`
-			);
-		}
-	}
-
-	// We can't fetch from the server if the headers are not present
-	if (Object.keys(relevantHeaders).length === 0) {
+	// We can't fetch from the server if the headers are not present. Untrusted
+	// forwarding headers are not sent, but they still mark a live request.
+	const hasRequestHeaders =
+		Object.keys(relevantHeaders).length > 0 ||
+		CLIENT_FORWARDING_HEADERS.some((name) => headers.has(name));
+	if (!hasRequestHeaders) {
 		if (debug) {
 			console.log(
 				'[c15t/server] No relevant headers found, skipping SSR fetch'
@@ -223,7 +231,9 @@ export async function fetchSSRData(
 	}
 
 	// Normalize URL synchronously
-	const normalizedURL = normalizeBackendURL(backendURL, headers);
+	const normalizedURL = normalizeBackendURL(backendURL, headers, {
+		trustForwardedHeaders: options.trustForwardedHeaders,
+	});
 	if (!normalizedURL) {
 		if (debug) {
 			console.log('[c15t/server] Failed to normalize URL, skipping SSR fetch');
@@ -235,8 +245,9 @@ export async function fetchSSRData(
 		console.log(`[c15t/server] Fetching from: ${normalizedURL}/init`);
 	}
 
-	// Apply overrides to headers
-	const initHeaders = { ...relevantHeaders };
+	// Preserve an incoming client version; direct SSR requests use this
+	// package's version so the backend can attribute them to a release.
+	const initHeaders = { [C15T_VERSION_HEADER]: version, ...relevantHeaders };
 	if (overrides?.country) {
 		initHeaders['x-c15t-country'] = overrides.country;
 		if (debug) {
@@ -255,9 +266,6 @@ export async function fetchSSRData(
 			console.log(`[c15t/server] Language override: ${overrides.language}`);
 		}
 	}
-	if (!initHeaders[C15T_VERSION_HEADER]) {
-		initHeaders[C15T_VERSION_HEADER] = version;
-	}
 
 	// Fetch init data (GVL is included in response when server has it configured)
 	const initResult = await performInitFetch(
@@ -270,7 +278,7 @@ export async function fetchSSRData(
 		}),
 		debug
 	);
-	const init = initResult.init;
+	const { init } = initResult;
 
 	if (!init) {
 		if (debug) {
@@ -280,5 +288,5 @@ export async function fetchSSRData(
 	}
 
 	// GVL is now part of the init response
-	return { init, gvl: init.gvl, metadata: initResult.metadata };
-}
+	return { gvl: init.gvl, init, metadata: initResult.metadata };
+};

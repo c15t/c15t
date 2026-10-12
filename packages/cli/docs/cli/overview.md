@@ -1,0 +1,70 @@
+---
+title: CLI overview
+description: Run the c15t CLI from @c15t/cli to add c15t to an app, migrate v2
+  code, manage Inth projects and migrate a self-hosted database.
+group: cli
+---
+
+## Run the CLI
+
+The CLI ships as `@c15t/cli`. Run it without installing:
+
+```bash
+npx @c15t/cli --help
+```
+
+`bunx @c15t/cli`, `pnpm dlx @c15t/cli` and `yarn dlx @c15t/cli` work the same
+way.
+
+To pin the version in your repository, install it as a development dependency
+and run the `c15t` executable:
+
+| Package manager | Command                    |
+| :-------------- | :------------------------- |
+| npm             | `npm install -D @c15t/cli` |
+| pnpm            | `pnpm add -D @c15t/cli`    |
+| yarn            | `yarn add -D @c15t/cli`    |
+| bun             | `bun add -D @c15t/cli`     |
+
+```bash
+npx c15t --help
+```
+
+The package also installs the executable under its older name, `cli`.
+
+## Commands
+
+| Command                                               | Purpose                                                                                                                                                              |
+| ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `setup`                                               | Add c15t to a Next.js or React app, or generate framework files for any supported framework. `generate` is an alias.                                                 |
+| `codemods`                                            | Rewrite `useConsentManager()` calls for v3, or run the v1 to v2 transforms.                                                                                          |
+| `login`, `logout`, `status`                           | Sign in to Inth in a browser or by email approval, sign out of the shared Inth session, and check local session status. See [hosted projects](./commands/hosted.md). |
+| `projects list`, `projects select`, `projects create` | Manage Inth projects and the application project preference used by setup. `instances` is an alias.                                                                  |
+| `self-host migrate`                                   | Plan and apply database migrations for a self-hosted backend.                                                                                                        |
+| `skills`                                              | Install c15t agent skills through the external skills CLI.                                                                                                           |
+| `docs`, `changelog`, `github`                         | Open the URL in a browser, or print it when there is no terminal.                                                                                                    |
+
+`setup --codex` hands frontend integration to your installed Codex CLI.
+`generate` keeps deterministic file generation.
+
+Run `npx @c15t/cli <command> --help` for a command's options.
+
+## Pick the right command for your framework
+
+`setup` edits an existing app layout for Next.js App Router, Next.js Pages Router
+and React apps with a recognizable root component. It also writes configuration
+for plain JavaScript. See [setup](./commands/setup.md).
+
+For TanStack Start, Vue, Nuxt, Svelte, SvelteKit, Solid and Astro, `setup` with
+`--framework` writes integration files and wiring instructions, and leaves your
+entry point unchanged. See [framework boilerplate](./commands/boilerplate.md).
+
+Remix and Gatsby have no CLI support. Follow the
+[React guide](https://v3.c15t.com/docs/frameworks/react/quickstart); see
+[Choose your setup](../concepts/choose-your-setup.md) for the rendering mode.
+
+## Next steps
+
+* [Quickstart](./quickstart.md): plan and apply setup in an existing app.
+* [Codemods](./commands/codemods.md): migrate `useConsentManager()` to v3 hooks.
+* [Agents and automation](./automation.md): JSON results and calling the CLI from code.

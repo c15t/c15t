@@ -1,4 +1,3 @@
-import type { C15TOptions } from '@c15t/backend';
 import type { CliLogger } from '../utils/logger';
 import type { Telemetry } from '../utils/telemetry';
 import type { FrameworkDetectionResult } from './framework-detection';
@@ -7,23 +6,34 @@ import type { PackageManagerResult } from './package-manager-detection';
 // --- Command Definition ---
 export interface CliCommand {
 	name: string;
-	label: string; // For prompts
-	hint: string; // For prompts
-	description: string; // For help text (optional)
+	// For prompts
+	label: string;
+	// For prompts
+	hint: string;
+	// For help text (optional)
+	description: string;
 	// Action now takes CliContext
-	action: (context: CliContext) => Promise<void>;
+	action: (context: CliContext) => Promise<unknown>;
 	subcommands?: CliCommand[];
 	hidden?: boolean;
+	hiddenFromMenu?: boolean;
+	/** Arguments and examples shown by command-specific help. */
+	usage?: string;
+	examples?: string[];
+	flags?: CliFlag[];
 }
 
 // --- Flag Definition ---
-export type FlagType = 'boolean' | 'string' | 'special'; // 'special' for help/version
+// 'special' for help/version
+export type FlagType = 'boolean' | 'string' | 'special';
 
 export interface CliFlag {
-	names: string[]; // e.g., ['--help', '-h']
+	// e.g., ['--help', '-h']
+	names: string[];
 	description: string;
 	type: FlagType;
 	expectsValue: boolean;
+	defaultValue?: string | boolean;
 }
 
 // --- Parsed Args Definition ---
@@ -52,8 +62,8 @@ export interface ErrorHandlers {
 
 // --- Config Management ---
 export interface ConfigManagement {
-	loadConfig: () => Promise<C15TOptions | null>;
-	requireConfig: () => Promise<C15TOptions>;
+	loadConfig: () => Promise<unknown | null>;
+	requireConfig: () => Promise<unknown>;
 	getPathAliases: (configPath?: string) => Record<string, string> | null;
 }
 
@@ -79,7 +89,7 @@ export interface CliContext {
 	telemetry: Telemetry;
 
 	// Utilities for user interaction
-	confirm: (message: string, initialValue: boolean) => Promise<boolean>;
+	confirm: (message: string, initialValue?: boolean) => Promise<boolean>;
 
 	projectRoot: string;
 	framework: FrameworkDetectionResult;

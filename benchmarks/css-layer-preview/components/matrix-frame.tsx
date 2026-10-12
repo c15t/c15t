@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 
-export function MatrixFrame({
+export const MatrixFrame = ({
 	description,
 	height,
 	label,
@@ -14,7 +14,7 @@ export function MatrixFrame({
 	label: string;
 	port: number;
 	url: string;
-}) {
+}) => {
 	const [reloadToken, setReloadToken] = useState(0);
 
 	const src = useMemo(() => {
@@ -55,10 +55,11 @@ export function MatrixFrame({
 
 			<iframe
 				key={src}
+				sandbox="allow-scripts"
 				src={src}
 				title={`${label} preview`}
 				style={{ height: `${height}px` }}
 			/>
 		</article>
 	);
-}
+};

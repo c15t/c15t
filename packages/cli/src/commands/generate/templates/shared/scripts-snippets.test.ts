@@ -1,5 +1,6 @@
-import { builtInScriptIntegrations } from '@c15t/scripts/registry';
+import { builtInScriptIntegrations } from '@c15t/integrations/registry';
 import { describe, expect, it } from 'vitest';
+
 import {
 	generateScriptsConfig,
 	generateScriptsImport,
@@ -25,20 +26,34 @@ describe('script snippets', () => {
 		}
 	});
 
+	it('includes required Zaraz startup and stable-registration steps', () => {
+		const config = generateScriptsConfig(['cloudflare-zaraz']);
+		expect(config).toContain(
+			'Disable Zaraz automatic pageviews and consent modal'
+		);
+		expect(config).toContain('stable outside render functions');
+		expect(config).toContain('onReady:');
+		expect(config).toContain(
+			'Send the initial Zaraz Pageview here after consent sync'
+		);
+	});
+
 	it('generates matching imports and config calls', () => {
 		const selected = [
 			'microsoft-clarity',
 			'segment',
 			'logrocket',
 			'front-chat',
+			'klaviyo',
 		];
 
 		expect(generateScriptsImport(selected)).toBe(
 			[
-				"import { clarity } from '@c15t/scripts/microsoft-clarity';",
-				"import { segment } from '@c15t/scripts/segment';",
-				"import { logRocket } from '@c15t/scripts/logrocket';",
-				"import { frontChat } from '@c15t/scripts/front-chat';",
+				"import { clarity } from '@c15t/integrations/microsoft-clarity';",
+				"import { segment } from '@c15t/integrations/segment';",
+				"import { logRocket } from '@c15t/integrations/logrocket';",
+				"import { frontChat } from '@c15t/integrations/front-chat';",
+				"import { klaviyo } from '@c15t/integrations/klaviyo';",
 			].join('\n')
 		);
 
@@ -47,5 +62,8 @@ describe('script snippets', () => {
 		expect(config).toContain("segment({ writeKey: 'YOUR_WRITE_KEY' })");
 		expect(config).toContain("logRocket({ appId: 'org-slug/app-slug' })");
 		expect(config).toContain("frontChat({ chatId: 'YOUR_FRONT_CHAT_ID' })");
+		expect(config).toContain(
+			"klaviyo({ publicApiKey: 'YOUR_PUBLIC_API_KEY' })"
+		);
 	});
 });

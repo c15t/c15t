@@ -1,10 +1,14 @@
 'use client';
 
+import type { ConsentSnapshot } from '@c15t/nextjs';
+
 export type NextjsBenchScenario =
+	| 'baseline'
 	| 'client'
+	| 'manifest-client'
+	| 'manifest-ssr'
 	| 'ssr'
-	| 'prefetch'
-	| 'repeat-visitor';
+	| 'typical-install';
 
 export interface NextjsBenchState {
 	scenario: NextjsBenchScenario;
@@ -12,11 +16,29 @@ export interface NextjsBenchState {
 	mountCount: number;
 	renderCount: number;
 	activeUI: string;
-	onBannerFetchedMs?: number;
+	overrides?: {
+		country?: string;
+		region?: string;
+		language?: string;
+		gpc?: boolean;
+	};
+	privacySignals?: ConsentSnapshot['privacySignals'];
+	location?: {
+		countryCode?: string | null;
+		regionCode?: string | null;
+	} | null;
+	hasStoredChoice?: boolean;
+	/** Distinct `activeUI` values in the order the probe observed them. */
+	activeUiHistory: string[];
+	/** First moment policy resolution settled (any prompt state). */
+	promptSettledMs?: number;
+	/** Prompt requirement kind when the installed source exposes one. */
+	promptKind?: string | null;
+	cls?: number;
 	bannerReadyMs?: number;
 	bannerVisibleMs?: number;
-	onBannerFetchedCount: number;
-	onConsentSetCount: number;
+	bannerPaintMs?: number | null;
+	onChoiceRecordedCount: number;
 	onErrorCount: number;
 	openPreferencesMs?: number;
 	savePreferencesMs?: number;
@@ -28,7 +50,7 @@ declare global {
 	}
 }
 
-export function getState(
+export const getState = function getState(
 	scenario: NextjsBenchScenario
 ): NextjsBenchState | undefined {
 	if (typeof window === 'undefined') {
@@ -37,21 +59,61 @@ export function getState(
 
 	if (!window.__c15tNextBench || window.__c15tNextBench.scenario !== scenario) {
 		window.__c15tNextBench = {
+			activeUI: 'none',
+			activeUiHistory: [],
+			mountCount: 0,
+			onChoiceRecordedCount: 0,
+			onErrorCount: 0,
+			renderCount: 0,
 			scenario,
 			startedAtMs: performance.now(),
-			mountCount: 0,
-			renderCount: 0,
-			activeUI: 'none',
-			onBannerFetchedCount: 0,
-			onConsentSetCount: 0,
-			onErrorCount: 0,
 		};
 	}
 
 	return window.__c15tNextBench;
-}
+};
 
-export function isElementVisible(element: Element): boolean {
+/**
+ * Whether policy resolution has finished for this snapshot: the
+ * provisional placeholder is gone and a resolved policy, a resolution
+ * status, or a prompt requirement is present. Reads the #1025 fields when
+ * the installed source exposes them and the pre-contract fields otherwise.
+ */
+export const isPolicySettled = function isPolicySettled(
+	snapshot: unknown
+): boolean {
+	const record = snapshot as {
+		policyPending?: unknown;
+		policy?: unknown;
+		resolution?: unknown;
+		promptRequirement?: unknown;
+	};
+	if (record?.policyPending === true) {
+		return false;
+	}
+	return (
+		(record?.policy !== undefined && record?.policy !== null) ||
+		(record?.resolution !== undefined && record?.resolution !== null) ||
+		(record?.promptRequirement !== undefined &&
+			record?.promptRequirement !== null)
+	);
+};
+
+export const readPromptKind = function readPromptKind(
+	snapshot: unknown
+): string | null {
+	const requirement = (snapshot as { promptRequirement?: unknown })
+		?.promptRequirement;
+	if (!requirement || typeof requirement !== 'object') {
+		return null;
+	}
+	const { kind } = requirement as { kind?: unknown };
+	return typeof kind === 'string' ? kind : null;
+};
+
+export const isElementVisible = function isElementVisible(
+	element: Element
+): boolean {
 	if (!(element instanceof HTMLElement)) {
 		return false;
 	}
@@ -67,9 +129,11 @@ export function isElementVisible(element: Element): boolean {
 		style.visibility !== 'hidden' &&
 		Number(style.opacity) >= 0.99
 	);
-}
+};
 
-export function hasRunningAnimations(element: Element): boolean {
+export const hasRunningAnimations = function hasRunningAnimations(
+	element: Element
+): boolean {
 	if (
 		!(element instanceof HTMLElement) ||
 		typeof element.getAnimations !== 'function'
@@ -80,4 +144,4 @@ export function hasRunningAnimations(element: Element): boolean {
 	return element
 		.getAnimations()
 		.some((animation) => animation.playState === 'running');
-}
+};

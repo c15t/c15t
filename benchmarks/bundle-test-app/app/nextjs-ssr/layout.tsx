@@ -1,14 +1,14 @@
-import { fetchInitialData } from '@c15t/nextjs';
 import type { ReactNode } from 'react';
+
+import { resolve } from './consent-api/server';
 import { NextjsSSRProvider } from './provider';
 
-export default function NextjsSSRLayout({ children }: { children: ReactNode }) {
-	const ssrData = fetchInitialData({
+const NextjsSSRLayout = async ({ children }: { children: ReactNode }) => {
+	const state = await resolve({
 		backendURL: '/api/bench-consent',
-		nextCache: {
-			revalidateSeconds: false,
-		},
 	});
 
-	return <NextjsSSRProvider ssrData={ssrData}>{children}</NextjsSSRProvider>;
-}
+	return <NextjsSSRProvider state={state}>{children}</NextjsSSRProvider>;
+};
+
+export default NextjsSSRLayout;

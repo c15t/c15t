@@ -311,33 +311,20 @@ ENV/**
 **/dist
 packages/core/docs
 packages/core/docs/**
-packages/core/AGENTS.md
-packages/core/AGENTS.md/**
 packages/react/docs
 packages/react/docs/**
-packages/react/AGENTS.md
-packages/react/AGENTS.md/**
 packages/nextjs/docs
 packages/nextjs/docs/**
-packages/nextjs/AGENTS.md
-packages/nextjs/AGENTS.md/**
 packages/backend/docs
 packages/backend/docs/**
-packages/backend/AGENTS.md
-packages/backend/AGENTS.md/**
-packages/scripts/docs
-packages/scripts/docs/**
-packages/scripts/AGENTS.md
-packages/scripts/AGENTS.md/**
-packages/cli/docs
-packages/cli/docs/**
-packages/cli/AGENTS.md
-packages/cli/AGENTS.md/**
+packages/browser/docs
+packages/browser/docs/**
 **/.merge_file_*
 **/.merge_file_*/**
 **/dist-types
 **/dist-types/**
 apps/bundle-bench-react/.bundle-bench-dist/**
+internals/fixtures/astro-demo/.astro/**
 **/npm-debug.log*
 **/npm-debug.log*/**
 **/yarn-debug.log*
@@ -367,19 +354,160 @@ docs/public/r/*/**
 **/storybook-static/**
 **/debug-storybook.log
 **/debug-storybook.log/**
+packages/vue/.nuxt
+packages/vue/.nuxt/**
+packages/vue/playground/.nuxt
+packages/vue/playground/.nuxt/**
+packages/vue/playground/.output
+packages/vue/playground/.output/**
+inrepo_modules/**
+.inrepo/**
 .claude/worktrees/**
 **/live-vendors-report.json
 **/live-vendors-report.json/**
+.repos/effect
+.repos/effect/**
+packages/*/docs/**
+packages/*/AGENTS.md
+packages/*/AGENTS.md/**
+packages/*/SKILL.md
+packages/*/SKILL.md/**
+ci-plan.json
+ci-plan.json/**
+ci-build.tar
+ci-build.tar/**
+ci-build-cache.tar
+ci-build-cache.tar/**
+.ci-reports/**
+# Narrow .env* rules to preserve the committed .env.example templates.
+**/.env.development
+**/.env.test
+**/.env.production
+**/.env.staging
+**/.env.preview
+**/.env.*.local
 
-# Additional exclusions from examples/.gitignore
-examples/**/vercel-c15t
-examples/**/vercel-c15t/**
-examples/**/v1
-examples/**/v1/**
-examples/**/tailwind-3
-examples/**/tailwind-3/**
-examples/demo/next-env.d.ts
-examples/demo/next-env.d.ts/**
+# Additional exclusions from apps/parity-runner/.gitignore
+apps/parity-runner/**/parity-diffs/**
+apps/parity-runner/**/test-results/**
+apps/parity-runner/**/playwright-report/**
+
+# Additional exclusions from benchmarks/astro-browser-bench/.gitignore
+benchmarks/astro-browser-bench/**/node_modules
+benchmarks/astro-browser-bench/**/node_modules/**
+benchmarks/astro-browser-bench/dist
+benchmarks/astro-browser-bench/dist/**
+benchmarks/astro-browser-bench/dist-hosted
+benchmarks/astro-browser-bench/dist-hosted/**
+benchmarks/astro-browser-bench/dist-baseline
+benchmarks/astro-browser-bench/dist-baseline/**
+benchmarks/astro-browser-bench/.astro
+benchmarks/astro-browser-bench/.astro/**
+benchmarks/astro-browser-bench/.turbo
+benchmarks/astro-browser-bench/.turbo/**
+
+# Additional exclusions from benchmarks/nuxt-browser-bench/.gitignore
+benchmarks/nuxt-browser-bench/**/.nuxt
+benchmarks/nuxt-browser-bench/**/.nuxt/**
+benchmarks/nuxt-browser-bench/**/.output
+benchmarks/nuxt-browser-bench/**/.output/**
+benchmarks/nuxt-browser-bench/**/node_modules
+benchmarks/nuxt-browser-bench/**/node_modules/**
+benchmarks/nuxt-browser-bench/**/.nuxt-baseline/**
+
+# Additional exclusions from benchmarks/sveltekit-browser-bench/.gitignore
+benchmarks/sveltekit-browser-bench/**/node_modules
+benchmarks/sveltekit-browser-bench/**/node_modules/**
+benchmarks/sveltekit-browser-bench/build
+benchmarks/sveltekit-browser-bench/build/**
+benchmarks/sveltekit-browser-bench/.svelte-kit
+benchmarks/sveltekit-browser-bench/.svelte-kit/**
+benchmarks/sveltekit-browser-bench/.turbo
+benchmarks/sveltekit-browser-bench/.turbo/**
+benchmarks/sveltekit-browser-bench/**/vite.config.ts.timestamp-*
+benchmarks/sveltekit-browser-bench/**/vite.config.ts.timestamp-*/**
+
+# Additional exclusions from benchmarks/tanstack-start-browser-bench/.gitignore
+benchmarks/tanstack-start-browser-bench/**/node_modules
+benchmarks/tanstack-start-browser-bench/**/node_modules/**
+benchmarks/tanstack-start-browser-bench/**/dist
+benchmarks/tanstack-start-browser-bench/**/dist/**
+benchmarks/tanstack-start-browser-bench/**/dist-root
+benchmarks/tanstack-start-browser-bench/**/dist-root/**
+benchmarks/tanstack-start-browser-bench/**/.output
+benchmarks/tanstack-start-browser-bench/**/.output/**
+benchmarks/tanstack-start-browser-bench/**/.tanstack
+benchmarks/tanstack-start-browser-bench/**/.tanstack/**
+benchmarks/tanstack-start-browser-bench/**/.nitro
+benchmarks/tanstack-start-browser-bench/**/.nitro/**
+benchmarks/tanstack-start-browser-bench/src/routeTree.gen.ts
+benchmarks/tanstack-start-browser-bench/src/routeTree.gen.ts/**
+
+# Additional exclusions from internals/fixtures/.gitignore
+internals/fixtures/**/vercel-c15t
+internals/fixtures/**/vercel-c15t/**
+internals/fixtures/**/v1
+internals/fixtures/**/v1/**
+internals/fixtures/**/tailwind-3
+internals/fixtures/**/tailwind-3/**
+apps/playground/next-env.d.ts
+apps/playground/next-env.d.ts/**
+
+# Additional exclusions from internals/fixtures/nuxt/.gitignore
+internals/fixtures/nuxt/**/.output
+internals/fixtures/nuxt/**/.output/**
+internals/fixtures/nuxt/**/.nuxt
+internals/fixtures/nuxt/**/.nuxt/**
+internals/fixtures/nuxt/**/node_modules
+internals/fixtures/nuxt/**/node_modules/**
+internals/fixtures/nuxt/**/.pgdata
+internals/fixtures/nuxt/**/.pgdata/**
+
+# Additional exclusions from internals/fixtures/nuxt-vapor/.gitignore
+internals/fixtures/nuxt-vapor/**/.output
+internals/fixtures/nuxt-vapor/**/.output/**
+internals/fixtures/nuxt-vapor/**/.nuxt
+internals/fixtures/nuxt-vapor/**/.nuxt/**
+internals/fixtures/nuxt-vapor/**/node_modules
+internals/fixtures/nuxt-vapor/**/node_modules/**
+internals/fixtures/nuxt-vapor/**/.pgdata
+internals/fixtures/nuxt-vapor/**/.pgdata/**
+
+# Additional exclusions from internals/fixtures/acceptance/.gitignore
+internals/fixtures/acceptance/**/artifacts/**
+
+# Additional exclusions from internals/fixtures/tanstack-start/.gitignore
+internals/fixtures/tanstack-start/**/node_modules
+internals/fixtures/tanstack-start/**/node_modules/**
+internals/fixtures/tanstack-start/**/dist
+internals/fixtures/tanstack-start/**/dist/**
+internals/fixtures/tanstack-start/**/.output
+internals/fixtures/tanstack-start/**/.output/**
+internals/fixtures/tanstack-start/**/.tanstack
+internals/fixtures/tanstack-start/**/.tanstack/**
+internals/fixtures/tanstack-start/**/.nitro
+internals/fixtures/tanstack-start/**/.nitro/**
+internals/fixtures/tanstack-start/src/routeTree.gen.ts
+internals/fixtures/tanstack-start/src/routeTree.gen.ts/**
+internals/fixtures/tanstack-start/**/.pgdata
+internals/fixtures/tanstack-start/**/.pgdata/**
+
+# Additional exclusions from internals/next-compat/next-16-static-export/.gitignore
+internals/next-compat/next-16-static-export/lib/consent-manifest.generated.ts
+internals/next-compat/next-16-static-export/lib/consent-manifest.generated.ts/**
+
+# Additional exclusions from packages/browser/.gitignore
+packages/browser/**/dist
+packages/browser/**/dist/**
+packages/browser/**/dist-types
+packages/browser/**/dist-types/**
+packages/browser/**/coverage
+packages/browser/**/coverage/**
+packages/browser/src/version.ts
+packages/browser/src/version.ts/**
+packages/browser/src/generated/**
+packages/browser/**/.vitest-attachments/**
+packages/browser/src/**/__screenshots__/**
 
 # Additional exclusions from packages/cli/.gitignore
 packages/cli/**/c15t.config.*
@@ -396,6 +524,26 @@ packages/nextjs/**/*.log
 packages/nextjs/**/*.log/**
 packages/nextjs/**/.DS_Store
 packages/nextjs/**/.DS_Store/**
+
+# Additional exclusions from packages/tanstack-start/.gitignore
+packages/tanstack-start/**/dist/**
+packages/tanstack-start/**/coverage/**
+packages/tanstack-start/**/node_modules/**
+packages/tanstack-start/**/.turbo/**
+packages/tanstack-start/**/*.log
+packages/tanstack-start/**/*.log/**
+packages/tanstack-start/**/.DS_Store
+packages/tanstack-start/**/.DS_Store/**
+
+# Additional exclusions from packages/vue/playground/.gitignore
+packages/vue/playground/**/.nuxt
+packages/vue/playground/**/.nuxt/**
+packages/vue/playground/**/.output
+packages/vue/playground/**/.output/**
+packages/vue/playground/**/dist
+packages/vue/playground/**/dist/**
+packages/vue/playground/**/.env
+packages/vue/playground/**/.env/**
 
 # Keep repository exclusions in sync with the referenced .gitignore files.
 # Macroscope does not document Git-style negation. Environment globs above

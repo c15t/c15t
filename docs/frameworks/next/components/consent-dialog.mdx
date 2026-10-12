@@ -1,61 +1,66 @@
 ---
 title: ConsentDialog
-description: A modal dialog where users can toggle individual consent categories.
+description: Mount ConsentDialog as a Client Component inside a Next.js ConsentRoot to open the preference center from the banner, links and triggers.
 group: frameworks
 ---
 
-<import src="../../../shared/react/components/consent-dialog.mdx#intro" />
+## Open the preference center
 
-## Basic Usage
+`ConsentDialog` is the modal preference center. It is a Client Component that
+a Server Component layout can render, inside the `ConsentRoot` that already
+provides the consent runtime, as in the
+[App Router](/docs/frameworks/next/app-router) and
+[Pages Router](/docs/frameworks/next/pages-router) setups. Mount it once,
+next to the banner; it opens whenever something makes `dialog` the active
+surface: the banner's Customize button, a `ConsentDialogLink` in your footer,
+a `ConsentDialogTrigger`, or your own code.
 
-```tsx
-import { ConsentManagerProvider, ConsentBanner, ConsentDialog } from '@c15t/nextjs';
+<include src="../../../shared/examples/nextjs/quickstart-layout.mdx" />
 
-export function ConsentManager() {
-  return (
-    <ConsentManagerProvider options={{ mode: 'hosted', backendURL: '/api/c15t' }}>
-      <ConsentBanner />
-      <ConsentDialog />
-    </ConsentManagerProvider>
-  );
+Pass props on that element, for example `<ConsentDialog hideBranding />`.
+
+The dialog renders nothing on the
+server. It mounts through a portal after hydration, so it does not change the
+server HTML or the streamed shell. If the visitor owes a choice or notice,
+routes that await `resolveConsent` can render the banner on the server. Pages Router pages without `getServerSideProps` show it
+after browser policy resolution. No banner appears when the policy requires
+no prompt or an existing record already satisfies it.
+
+To open it from another Client Component inside the boundary, set the active
+surface:
+
+```tsx title="components/privacy-menu-item.tsx"
+'use client';
+
+import { useSetActiveUI } from 'c15t/next';
+
+export function PrivacyMenuItem() {
+	const setActiveUI = useSetActiveUI();
+	return (
+		<button type="button" onClick={() => setActiveUI('dialog')}>
+			Cookie preferences
+		</button>
+	);
 }
 ```
 
-## Controlled State
-
-By default, the dialog follows `activeUI === 'dialog'` from the consent store. Use the `open` prop for manual control:
-
-```tsx
-import { useState } from 'react';
-
-function SettingsPage() {
-  const [open, setOpen] = useState(false);
-
-  return (
-    <>
-      <button onClick={() => setOpen(true)}>Privacy Settings</button>
-      <ConsentDialog open={open} />
-    </>
-  );
-}
-```
-
-Or use the hook to open it programmatically:
-
-```tsx
-import { useConsentManager } from '@c15t/nextjs';
-
-function PrivacyLink() {
-  const { setActiveUI } = useConsentManager();
-
-  return (
-    <button onClick={() => setActiveUI('dialog')}>
-      Manage cookies
-    </button>
-  );
-}
-```
-
-<import src="../../../shared/react/components/consent-dialog.mdx#customization" />
+`ConsentDialogLink` does the same with the policy's rights exposed for
+styling; see [ConsentDialogLink](./consent-dialog-link). For a floating
+button, see [ConsentDialogTrigger](./consent-dialog-trigger). Under an IAB
+policy, mount `IABConsentDialog` from the [IAB guide](/docs/frameworks/next/iab)
+instead; this dialog stays closed for the `iab` model.
 
 <import src="../../../shared/react/components/consent-dialog.mdx#props" />
+
+<import src="../../../shared/react/components/consent-dialog.mdx#behavior" />
+
+<import src="../../../shared/react/components/consent-dialog.mdx#accessibility" />
+
+<import src="../../../shared/react/components/consent-dialog.mdx#composition" />
+
+The compound parts import from `c15t/next` as properties of `ConsentDialog`,
+and `ConsentWidget` from the same module. Server Components cannot render
+them: keep the composition in a file with `'use client'`. See
+[Customize](/docs/frameworks/next/customize) for slots and tokens.
+
+<import src="../../../shared/react/components/consent-dialog.mdx#verify" />

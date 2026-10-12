@@ -1,10 +1,8 @@
-import {
-	keyboardNavigation,
-	tabSwitching,
-} from '@c15t/storybook-tests/play/tabs';
-import { getNextTabValue, tabsVariants } from '@c15t/vue';
+import { keyboardNavigation, tabSwitching } from '@c15t/conformance/play/tabs';
+import { getNextTabValue } from '@c15t/ui/primitives';
+import { tabsVariants } from '@c15t/ui/styles/primitives';
 import type { Meta, StoryObj } from '@storybook/vue3-vite';
-import { computed, nextTick, ref } from 'vue';
+import { nextTick, ref } from 'vue';
 
 const meta = {
 	parameters: {
@@ -36,11 +34,11 @@ export const Default: Story = {
 
 			const onKeydown = (event: KeyboardEvent) => {
 				const next = getNextTabValue({
-					orientation: 'horizontal',
-					loop: true,
-					triggerValues,
 					currentValue: activeTab.value,
 					key: event.key,
+					loop: true,
+					orientation: 'horizontal',
+					triggerValues,
 				});
 				if (next !== activeTab.value) {
 					const currentEl = event.currentTarget as HTMLElement;
@@ -58,12 +56,12 @@ export const Default: Story = {
 
 			return {
 				activeTab,
-				rootClass,
-				listClass,
-				triggerClass,
 				contentClass,
-				selectTab,
+				listClass,
 				onKeydown,
+				rootClass,
+				selectTab,
+				triggerClass,
 			};
 		},
 		template: `
@@ -133,11 +131,11 @@ export const KeyboardNavigation: Story = {
 
 			const onKeydown = (event: KeyboardEvent) => {
 				const next = getNextTabValue({
-					orientation: 'horizontal',
-					loop: true,
-					triggerValues,
 					currentValue: activeTab.value,
 					key: event.key,
+					loop: true,
+					orientation: 'horizontal',
+					triggerValues,
 				});
 				if (next !== activeTab.value) {
 					const currentEl = event.currentTarget as HTMLElement;
@@ -155,12 +153,12 @@ export const KeyboardNavigation: Story = {
 
 			return {
 				activeTab,
-				rootClass,
-				listClass,
-				triggerClass,
 				contentClass,
-				selectTab,
+				listClass,
 				onKeydown,
+				rootClass,
+				selectTab,
+				triggerClass,
 			};
 		},
 		template: `

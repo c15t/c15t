@@ -1,0 +1,96 @@
+# Next.js compatibility matrix
+
+Real Next.js apps that build and smoke-test `@c15t/nextjs` in every combination we support. Main CI runs the six stable cells in one compatibility group; `.github/workflows/next-compat.yml` additionally runs the Next 16 cells against `next@canary` nightly as an advisory check.
+
+## Cells
+
+| Workspace | Next | Router | Bundler | Scenarios |
+| --- | --- | --- | --- | --- |
+| `next-15-app` | 15 | App | webpack | client, ssr, ssr-stream, isr, manifest, manifest-geo, manifest-ssr |
+| `next-16-app` | 16 | App | Turbopack | client, ssr, ssr-stream, isr, manifest, manifest-geo, manifest-ssr |
+| `next-16-cache-components` | 16 | App, `cacheComponents: true`, `partialPrefetching: true` | Turbopack | client, ssr, ssr-stream, cached, manifest, manifest-geo, manifest-ssr; dev prerender regression |
+| `next-15-pages` | 15 | Pages | webpack (also builds with Turbopack) | client, ssr, manifest, manifest-geo, manifest-ssr |
+| `next-16-pages` | 16 | Pages | Turbopack (also builds with webpack) | client, ssr, manifest, manifest-geo, manifest-ssr |
+| `next-16-static-export` | 16 | App, `output: 'export'` | Turbopack | client, static-manifest |
+
+Every cell pins an exact `next` version in its `package.json` and builds with that version's default bundler. The Pages cells first build with the other bundler too, because the Pages Router is where the two disagree about CSS imported from packages; the suite then runs against the default build. Bump the pins when a new minor ships. Next 13 and 14 are out of the support range for 3.x and have no cell on purpose.
+
+## What a scenario asserts
+
+Each scenario is a route that mounts the same `ConsentShell` from `shared/` (a `ConsentRoot` in hosted mode) and declares how the init data is expected to arrive:
+
+- `client`: the browser runtime calls `/init` after hydration. Static, ISR, and `'use cache'` routes use this path.
+- `ssr`: the server called `/init` through `resolveConsent` (App Router layout, or `getServerSideProps` through the helper's `request` adapter) and the resulting policy reached the first HTML.
+- `manifest`: the browser runs `custom(createManifestTransport(...))` against the same-origin manifest route mounted from `@c15t/nextjs/api`, so the backend never sees `/init`; the route handler fetches the backend `/manifest` once and serves it from the Next.js Data Cache afterwards.
+- `ssr-stream`: the layout passes the pending `resolveConsent` promise to the root without awaiting. The server still called `/init` with the forwarded country, the browser did not, and the banner follows the shell in a later chunk, before hydration. Keeps the layout synchronous, which is what Cache Components wants.
+- `manifest-geo`: the root takes `config={defineConsentConfig({ backendURL, routePrefix: '/api/consent' })}` and calls the same-origin init route from `createConsentRoute`, which resolves from the cached manifest with the request's geo headers. The backend sees no `/init`, and the store knows the country.
+- `manifest-ssr`: the server calls `resolveConsent({ config })` with a manifest-mode config, resolves init from the backend `/manifest` (the server never fetches the app's own consent route), and the policy reaches the first HTML without any `/init`.
+- `static-manifest`: the `@c15t/nextjs/static` path for `output: 'export'`. The cell's build fetches the backend `/manifest` once through `createStaticManifestModule` and writes it as a module the app bundles; in the browser `createStaticConsentResolver` resolves init from that inline manifest, so the backend sees neither `/init` nor `/manifest` at runtime. Without a `geoURL` the resolver has no location and uses the manifest's unknown-location policy (its fallback pack, else its default pack), the same policy server rendering picks when location headers are missing, so the scenario expects `null` for the country.
+
+For every scenario the suite (`shared/src/suite/index.ts`) checks:
+
+1. `next build` rendered the route the way the docs promise: static, ISR with the declared revalidate, dynamic, or partial (a Cache Components route with a static shell and a postponed hole). Read from `.next/prerender-manifest.json`, the route `.meta` file, and for Pages Router pages without data fetching `.next/server/pages-manifest.json`.
+2. The banner renders once the kernel holds an authoritative policy, and the location it reports matches the forwarded `x-vercel-ip-country` header.
+3. Who called `/init` and `/manifest`. The backend stub records every request; browser requests carry `sec-fetch-site`, server requests do not. `ssr` needs a server `/init` call with `x-c15t-country`, `client` needs exactly one browser call and no server call, the manifest scenarios need zero `/init` calls, and `manifest` additionally needs the backend `/manifest` to be fetched once across two page loads (the caching claim).
+4. The first HTML contains the banner only for the server-resolved scenarios.
+5. Accepting consent persists across a reload.
+6. No console errors or warnings and no page errors.
+
+Once per cell, the suite opens the deferred dialog and checks that it is styled without fetching another stylesheet. The Next 16 App and Pages cells use automatic component styles with no CSS imports or explicit head components. They check the hydrated dialog under nonce CSP and the server banner with JavaScript disabled under nonce and hash CSP, with no stylesheet requests. The other cells cover external stylesheets the documented way: they import `@c15t/nextjs/styles.css` and pass `styles={false}` to `ConsentShell`, which sets `styles: false` on the provider.
+
+The backend stub lives in `shared/src/fixture` and is mounted at `/api/c15t` in each app. `GET /api/c15t/__compat/requests` lists what `/init` received; the suite clears it before each test. The static export cell has no app server to mount it in, so its global setup runs the same handlers as a standalone Node server (`shared/src/fixture/standalone.ts`) and provides its origin as `compatBackendURL`; the suite reads the diagnostics from there when that value is present.
+
+The Cache Components cell also starts `next dev` in `tests/dev-prerender.test.ts`. It requests the awaited `/ssr` and streaming `/ssr-stream` routes, plus `/ssr-fallback`, which resolves consent from a manifest endpoint that returns 503. The fallback route must retain the request's country and report the manifest failure. The probe checks the rendered responses and captures server output through shutdown to catch sync IO and prerender errors that Next can report after sending a response. This covers the `Date.now()` failure from #1107 with real Next request APIs; removing `connection()` from the default request context must fail the probe.
+
+## Running locally
+
+```bash
+bun install
+bun turbo run test:compat --filter=@c15t/next-compat-16-app        # one cell, builds deps first
+bun turbo run test:compat --filter='./internals/next-compat/*'    # every cell
+bun run --cwd internals/next-compat/next-16-app test:compat       # skip turbo; builds the app if .next is missing
+bun run --cwd internals/next-compat/next-16-cache-components test:compat tests/dev-prerender.test.ts
+```
+
+The global setup (`shared/src/suite/global-setup.ts`) runs the cell's `build` script when `.next/BUILD_ID` is absent, starts `next start` on a free port, and stops it afterwards. When reusing a build, it restores the packed packages first: Turbo caches the app output, but not its `node_modules`. `COMPAT_FORCE_BUILD=1` rebuilds; `COMPAT_SKIP_BUILD=1` skips compilation but still installs the packed packages; `COMPAT_PRINT_SERVER_LOGS=1` prints the server output at teardown.
+
+A cell can opt out of that flow with a `compat.config.ts` exporting `{ mode: 'static-export' }` (`shared/src/suite/cell-config.ts`). The setup then starts the backend stub on its own port first, runs the build with `NEXT_PUBLIC_COMPAT_BACKEND_URL` set to the stub's absolute URL, and serves `out/` from a small static file server (`shared/src/suite/static-server.ts`) on a second port. Because the stub URL is baked into the export, the setup records it in `.next/compat-static-export.json` and only reuses an existing `out/` when it gets the same port back; otherwise it rebuilds. `bun run build` on its own fails in that cell by design: the manifest step needs the stub URL, so run `test:compat`.
+
+Chromium is needed once: `bunx playwright@<root devDependency version> install chromium chromium-headless-shell`.
+
+## Adding a cell
+
+1. Copy the closest existing cell directory and rename the package to `@c15t/next-compat-<cell>`.
+2. Pin `next` (and `react`, `react-dom` if they must differ) in its `package.json`, run `bun install`.
+3. Adjust routes and the scenario table in `tests/compat.test.ts`. A cell without a server (`output: 'export'`) also needs the `compat.config.ts` and build step described under "Running locally"; `next-16-static-export` is the model.
+4. Add the cell to the table above. Main CI discovers its `test:compat` script from the workspace graph. Add it to `.github/workflows/next-compat.yml` only if it also needs the advisory nightly Next canary probe.
+
+Keep route files thin: everything shared belongs in `shared/` so a failing cell points at the framework combination, not at fixture drift.
+
+## Recipes the fixtures encode
+
+These are the patterns that have to hold for users, so the fixtures use them verbatim.
+
+- `beforeInteractive` scripts are only honoured in a root layout (App Router) or as direct `next/script` children of `<Head>` or `<body>` in `_document` (Pages Router). Worth remembering if a pre-hydration script ever comes back.
+- Import shared constants from a plain module, never from a `'use client'` module. A constant re-exported from a client module reaches a Server Component as a client reference, so `backendURL` silently becomes an object.
+- `resolveConsent` reads request headers and cookies, so its route is dynamic. Static, ISR, and cached routes init in the browser, or use manifest mode.
+- Under `cacheComponents: true`, awaiting `resolveConsent` directly in a layout is a build error (`blocking-prerender-dynamic`). Either pass the promise to the root without awaiting (the `ssr-stream` scenario) or move the await into an async child behind `<Suspense>` (the `ssr` scenario); both make the route partial and put the banner in the response. `export const revalidate` is rejected there too, so the cached scenario uses `'use cache'` with `cacheLife('minutes')`.
+- The manifest route handlers are App Router route handlers (Web `Request` in, `Response` out). The Pages cells serve them through `createPagesConsentRoute` from `@c15t/nextjs/pages` in a catch-all API route (`pages/api/consent/[...c15t].ts`), which does the Node `req`/`res` bridging. Only the backend stub's catch-all route (`pages/api/c15t/[[...path]].ts`) uses the fixture's own adapter (`shared/src/fixture/node-adapter.ts`), because the stub is test code, not a package route.
+- In the browser, manifest mode has no geo input, so the store reports no country; the `manifest` scenario expects `null`. Server-side manifest resolution reads the forwarded headers and does report it.
+- The Pages Router loads installed packages with Node at runtime. Bare `next/*` specifiers do not resolve there (Next ships no `exports` map), so the package imports `next/script.js` and friends.
+- The Pages Router refuses global CSS imported from a dependency's JavaScript: webpack for any installed package, Turbopack for a package linked from outside `node_modules`. No c15t module imports CSS, and the app imports `@c15t/nextjs/styles.css`. Any `transpilePackages` entry, even an unrelated one, makes webpack accept such imports, so no cell sets it.
+- No cell wraps `next.config.ts` in `withConsentManifest`, so no `c15t.config.ts` is found and the server reads the manifest at runtime. Every helper and root gets its config explicitly: `resolveConsent({ config })`, `createConsentRoute({ config })`, and `ConsentShell` passes `config` to `ConsentRoot`. `shared/src/config.ts` holds a hosted-mode config for the `/init` scenarios and a manifest-mode one with `routePrefix: '/api/consent'` for the manifest scenarios.
+- Pages Router SSR and API routes go through `@c15t/nextjs/pages`: `withConsentProps()` or `resolveConsent({ req, ... })` for `getServerSideProps`, and `createPagesConsentRoute({ config })` for the manifest and init routes.
+- `next start` adds `x-forwarded-proto` on both Next 15 and 16, so a relative backend URL resolves in the server helpers.
+- `output: 'export'` needs three things the server cells get for free. The backend URL must be absolute (there is no server to proxy `/api/c15t`), so the cell reads it from `NEXT_PUBLIC_COMPAT_BACKEND_URL` at build time in `lib/backend-url.ts`. The browser then calls the backend cross-origin, so the backend has to answer `OPTIONS` preflights and send `access-control-allow-origin` echoing the page origin plus `access-control-allow-credentials: true`, because the transports fetch with `credentials: 'include'` and custom headers; the standalone stub does exactly that. And the manifest path has no route handler to fetch `/manifest` through, so the cell's build runs `scripts/generate-manifest.ts`, which writes `createStaticManifestModule` output to `lib/consent-manifest.generated.ts` (gitignored) for the route to import.
+- `createStaticManifestModule` emits the fetched JSON with `satisfies ConsentManifest`, so the manifest the backend serves has to be exactly what the schema types describe: the type check of the export fails on any extra field, which is why the stub's `/manifest` payload is typed against `ConsentManifest`.
+
+## How the cells install the packages
+
+Cells depend on `@c15t/nextjs` through the workspace so Turbo orders the package builds first, but they do not consume the workspace links. Each cell's `build` script first runs `shared/scripts/pack.ts`, which runs `bun pm pack` on the whole `@c15t/nextjs` dependency closure, extracts the tarballs as real directories under the cell's own `node_modules/@c15t/*` and links the packages' third-party dependencies beside them. It also copies `shared/src` into the cell as `.compat-shared/src`, which the cell's tsconfig `paths` map `@c15t/next-compat-shared/*` to. Next compiles that copy as the cell's own code, so no cell needs `transpilePackages`, and its imports resolve from the same tree as the app's. Then `next build` runs.
+
+That is the shape an npm install has, and it matters three times over: both bundlers decide "installed dependency or first-party code" by the real path (first-party code gets React Server Components checks in webpack, and the Pages Router treats CSS differently in each case), the Pages Router `require`s installed packages at runtime so their `next` peer must resolve to the cell's own copy, and the cells end up consuming exactly what `files` and `exports` publish.
+
+`bun install` restores the workspace links; the next cell build replaces them again. The pack step also drops the cell's `.next/cache`: webpack's persistent cache treats `node_modules` as immutable unless a package version changes, so a re-packed package would otherwise be served stale. The suite's global setup runs the cell's `build` script when `.next/BUILD_ID` is missing, so a plain `vitest run` in a cell does the same.
+
+The pack step exports `installPackedPackages({ targetDir, roots })` for other fixtures that must run against published artifacts. `internals/consent-observers` uses it to install the `c15t` closure before its tests.

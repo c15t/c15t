@@ -1,135 +1,68 @@
 ---
 title: Rybbit Analytics
-description: Privacy-friendly analytics with script-tag configuration via Rybbit's data attributes.
-group: integrations
+description: Load Rybbit Analytics only after measurement consent with the c15t rybbitAnalytics helper, map its tracking options to data attributes, and check it in DevTools.
+seoTitle: Rybbit Analytics cookie consent with c15t
+seoDescription: Load Rybbit Analytics, with session replay and web vitals, only with measurement consent. Set it up with the c15t rybbitAnalytics helper.
 icon: rybbit-analytics
+group: integrations
 ---
 
-Rybbit Analytics loads through `@c15t/scripts` and configures tracking behavior via `data-*` attributes on the script element.
+The c15t `rybbitAnalytics` helper keeps Rybbit Analytics off the page until
+`measurement` has consent. Options such as `sessionReplay` and `webVitals` run
+inside the same script, under the same consent. The helper sends no consent
+signal to Rybbit. If the visitor withdraws consent, c15t removes the script
+element. By default, c15t also reloads the page.
 
-## Integrate with c15t
+## Configure Rybbit Analytics
 
-<Tabs items={['React', 'Next.js', 'JavaScript']}>
-  <Tab value="React">
-    ```tsx
-    import { type ReactNode } from 'react';
-    import { ConsentManagerProvider } from '@c15t/react';
-    import { rybbitAnalytics } from '@c15t/scripts/rybbit-analytics';
+Copy the site ID from your Rybbit tracking snippet. The helper passes it to
+the script as `data-site-id`.
 
-    const scripts = [rybbitAnalytics({ siteId: 'rybbit-123' })];
+<CommandTabs command="@c15t/integrations" mode="install" />
 
-    export function ConsentProvider({ children }: { children: ReactNode }) {
-      return (
-        <ConsentManagerProvider
-          options={{
-            mode: 'hosted',
-            backendURL: 'https://your-instance.c15t.dev',
-            scripts,
-          }}
-        >
-          {children}
-        </ConsentManagerProvider>
-      );
-    }
-    ```
-  </Tab>
+```ts title="src/consent-scripts.ts"
+import { rybbitAnalytics } from '@c15t/integrations/rybbit-analytics';
 
-  <Tab value="Next.js">
-    ```tsx
-    'use client';
-
-    import { type ReactNode } from 'react';
-    import { ConsentManagerProvider } from '@c15t/nextjs';
-    import { rybbitAnalytics } from '@c15t/scripts/rybbit-analytics';
-
-    const scripts = [rybbitAnalytics({ siteId: 'rybbit-123' })];
-
-    export function ConsentProvider({ children }: { children: ReactNode }) {
-      return (
-        <ConsentManagerProvider
-          options={{
-            mode: 'hosted',
-            backendURL: '/api/c15t',
-            scripts,
-          }}
-        >
-          {children}
-        </ConsentManagerProvider>
-      );
-    }
-    ```
-  </Tab>
-
-  <Tab value="JavaScript">
-    ```ts
-    import { getOrCreateConsentRuntime } from 'c15t';
-    import { rybbitAnalytics } from '@c15t/scripts/rybbit-analytics';
-
-    getOrCreateConsentRuntime({
-      mode: 'hosted',
-      backendURL: 'https://your-instance.c15t.dev',
-      scripts: [rybbitAnalytics({ siteId: 'rybbit-123' })],
-    });
-    ```
-  </Tab>
-</Tabs>
-
-## How c15t loads it
-
-- **Category:** `measurement` (Analytics)
-- **Loads when:** measurement consent is granted
-- **On revocation:** unloaded - c15t removes the script from the DOM and stops network activity until consent is granted again.
-
-To use a custom analytics host:
-
-```ts
-rybbitAnalytics({
-  siteId: 'rybbit-123',
-  analyticsHost: 'https://analytics.example.com',
-})
+export const scripts = [rybbitAnalytics({ siteId: 'YOUR_SITE_ID' })];
 ```
 
-## Tracking events in your app
+<include src="../shared/integrations/register-scripts.mdx" />
 
-c15t gates the Rybbit script from loading until `measurement` consent is granted. Your application code that calls Rybbit's runtime API (`window.rybbit`) is **not** automatically gated - `window.rybbit` does not exist until the script is loaded, so unguarded calls before consent throw.
+## Options
 
-Guard event calls by checking consent state. From React:
+Boolean options become `'true'` or `'false'` data attributes. An option you
+leave unset adds no attribute, so Rybbit uses its own default.
 
-```tsx
-import { useCallback } from 'react';
-import { useConsentManager } from '@c15t/react';
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `siteId` | Required | Site ID as a string or number, set as `data-site-id`. Empty or whitespace-only values log an error and the script does not load. |
+| `autoTrackPageview` | None | Automatic page views, set as `data-auto-track-pageview`. |
+| `trackSpa` | None | Client-side route tracking, set as `data-track-spa`. |
+| `trackQuery` | None | Query strings in tracked URLs, set as `data-track-query`. |
+| `trackOutbound` | None | Outbound link clicks, set as `data-track-outbound`. |
+| `trackErrors` | None | JavaScript errors, set as `data-track-errors`. |
+| `sessionReplay` | None | Session replay, set as `data-session-replay`. |
+| `webVitals` | None | Web Vitals, set as `data-web-vitals`. |
+| `skipPatterns` | None | URL patterns to skip, written as a JSON array to `data-skip-patterns`. |
+| `maskPatterns` | None | URL patterns to mask, written as a JSON array to `data-mask-patterns`. |
+| `debounce` | None | Page view debounce interval, set as `data-debounce`. |
+| `apiKey` | None | Tracking API key, set as `data-api-key`. The key is visible in the page source. |
+| `analyticsHost` | None | Self-hosted Rybbit host. The helper loads `<analyticsHost>/script.js`. |
+| `scriptUrl` | `https://app.rybbit.io/api/script.js` | Loader URL override. Takes precedence over `analyticsHost`. Blank values are ignored. |
 
-export default function SignupExample() {
-  const { has } = useConsentManager();
+## Loading and revocation
 
-  const trackSignup = useCallback(() => {
-    if (has('measurement')) {
-      window.rybbit?.event('signup');
-    }
-  }, [has]);
+`rybbitAnalytics` uses the `measurement` category. The script loads only while
+measurement is allowed, and every feature you turn on, including session
+replay and Web Vitals, runs under that one category. On revocation the helper
+removes the script element and calls no Rybbit API.
 
-  return <button onClick={trackSignup}>Sign up</button>;
-}
-```
+## Verify Rybbit Analytics
 
-From plain JavaScript:
+After you allow measurement, the `script.js` request goes to `app.rybbit.io`
+or your `analyticsHost`, and its script element carries your `data-site-id`.
+Each option you set appears as a data attribute, including explicit `'false'`
+values. If your code calls `window.rybbit.event` or `window.rybbit.identify`,
+check measurement permission before each call.
 
-```ts
-import { getOrCreateConsentRuntime } from 'c15t';
-
-const { consentStore } = getOrCreateConsentRuntime();
-
-if (consentStore.getState().has('measurement')) {
-  window.rybbit?.event('signup');
-}
-```
-
-## Types
-
-### RybbitAnalyticsOptions
-
-<AutoTypeTable path="./packages/scripts/src/vendors/analytics/rybbit-analytics.ts" name="RybbitAnalyticsOptions" />
-
-### Script
-
-<AutoTypeTable path="./packages/core/src/libs/script-loader/types.ts" name="Script" />
+<include src="../shared/integrations/vendor-revocation-and-verify.mdx" />

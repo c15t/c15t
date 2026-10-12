@@ -4,21 +4,23 @@ import { existsSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
+
+import { scriptLifecycleBudgetsForMetric } from '@c15t/benchmarking/budgets';
+import { BENCHMARK_SCHEMA_VERSION } from '@c15t/benchmarking/schema';
+import type { BenchmarkResult } from '@c15t/benchmarking/schema';
 import {
-	BENCHMARK_SCHEMA_VERSION,
-	type BenchmarkResult,
 	getEnvironment,
 	safeBaseSha,
 	safeCommitSha,
-	scriptLifecycleBudgets,
+	safeGitDirty,
 	summarizeMetric,
 	writeJson,
-} from '@c15t/benchmarking';
+} from '@c15t/benchmarking/utils';
 import { chromium } from 'playwright';
-import {
-	allScenarioConfigs,
-	type ScriptLifecycleScenarioConfig,
-} from '../app/_bench/fixtures';
+import type * as PlaywrightTypes from 'playwright';
+
+import { allScenarioConfigs } from '../app/_bench/fixtures';
+import type { ScriptLifecycleScenarioConfig } from '../app/_bench/fixtures';
 
 const HOST = '127.0.0.1';
 const PORT = 4313;
@@ -35,6 +37,8 @@ const expectedServerShutdownSignals = new Set(['SIGTERM', 'SIGKILL']);
 interface SerializableScriptBenchState {
 	scenario: string;
 	startedAtMs: number;
+	actionStartedAtMs?: number;
+	actionCompletedAtMs?: number;
 	consentSaveCount: number;
 	activeUI: string;
 	loadedIds: string[];
@@ -48,22 +52,26 @@ interface SerializableScriptBenchState {
 	completionMarkers: Record<string, boolean>;
 }
 
-async function waitForServer() {
+const waitForServer = async function waitForServer() {
 	for (let attempt = 0; attempt < 120; attempt += 1) {
 		try {
+			// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 			const response = await fetch(`${BASE_URL}/`);
 			if (response.ok) {
 				return;
 			}
-		} catch {}
+		} catch {
+			// Ignore transient failures while polling or cleaning up.
+		}
+		// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 		await sleep(500);
 	}
 
 	throw new Error('Timed out waiting for script lifecycle bench server');
-}
+};
 
-async function runCommand(args: string[], label: string) {
-	return await new Promise<void>((resolvePromise, rejectPromise) => {
+const runCommand = async function runCommand(args: string[], label: string) {
+	return await new Promise<void>((_resolve, reject) => {
 		const command = spawn('bun', args, {
 			cwd: appDir,
 			stdio: ['ignore', 'pipe', 'pipe'],
@@ -79,31 +87,31 @@ async function runCommand(args: string[], label: string) {
 
 		command.on('exit', (code) => {
 			if (code === 0) {
-				resolvePromise();
+				_resolve();
 				return;
 			}
 
-			rejectPromise(
+			reject(
 				new Error(logs || `bun ${args.join(' ')} failed while running ${label}`)
 			);
 		});
-		command.on('error', rejectPromise);
+		command.on('error', reject);
 	});
-}
+};
 
-async function ensureBuild() {
+const ensureBuild = async function ensureBuild() {
 	if (existsSync(buildIdPath)) {
 		return;
 	}
 
 	await runCommand(['run', 'build'], 'script lifecycle benchmark build');
-}
+};
 
-function sortIds(ids: string[]): string[] {
+const sortIds = function sortIds(ids: string[]): string[] {
 	return [...ids].sort((left, right) => left.localeCompare(right));
-}
+};
 
-function assertIds(
+const assertIds = function assertIds(
 	label: string,
 	actual: string[],
 	expected: string[],
@@ -119,9 +127,9 @@ function assertIds(
 			`${scenario}: ${label} mismatch. Expected ${right.join(', ') || '(none)'} but saw ${left.join(', ') || '(none)'}`
 		);
 	}
-}
+};
 
-function assertDomPresence(
+const assertDomPresence = function assertDomPresence(
 	state: SerializableScriptBenchState,
 	config: ScriptLifecycleScenarioConfig
 ) {
@@ -134,9 +142,9 @@ function assertDomPresence(
 			);
 		}
 	}
-}
+};
 
-function assertScenarioInvariants(
+const assertScenarioInvariants = function assertScenarioInvariants(
 	state: SerializableScriptBenchState,
 	config: ScriptLifecycleScenarioConfig
 ) {
@@ -193,10 +201,10 @@ function assertScenarioInvariants(
 			);
 		}
 	}
-}
+};
 
-async function collectScenarioSample(
-	page: import('playwright').Page,
+const collectScenarioSample = async function collectScenarioSample(
+	page: PlaywrightTypes.Page,
 	config: ScriptLifecycleScenarioConfig
 ) {
 	await page.goto(`/?scenario=${config.name}`);
@@ -213,7 +221,6 @@ async function collectScenarioSample(
 		{ timeout: 30_000 }
 	);
 
-	const startedAt = performance.now();
 	await page.click('#run-scenario-action');
 	await page.waitForFunction(
 		(marker) => {
@@ -223,7 +230,6 @@ async function collectScenarioSample(
 		config.completionMarker,
 		{ timeout: 30_000 }
 	);
-	const durationMs = performance.now() - startedAt;
 
 	const state = await page.evaluate(() => {
 		const current = window.__c15tScriptBench;
@@ -239,14 +245,23 @@ async function collectScenarioSample(
 
 	const typedState = state as SerializableScriptBenchState;
 	assertScenarioInvariants(typedState, config);
+	const { actionStartedAtMs, actionCompletedAtMs } = typedState;
+	if (
+		actionStartedAtMs === undefined ||
+		actionCompletedAtMs === undefined ||
+		actionCompletedAtMs < actionStartedAtMs
+	) {
+		throw new Error(`${config.name}: missing or invalid browser action timing`);
+	}
+	const durationMs = actionCompletedAtMs - actionStartedAtMs;
 
 	return {
 		durationMs,
 		state: typedState,
 	};
-}
+};
 
-async function run() {
+const run = async function run() {
 	await ensureBuild();
 
 	const server = spawn(
@@ -271,93 +286,115 @@ async function run() {
 		await waitForServer();
 		const browser = await chromium.launch({ headless: true });
 
-		for (const config of allScenarioConfigs) {
-			const durationSamples: number[] = [];
-			const loadedScriptCounts: number[] = [];
-			const unloadedScriptCounts: number[] = [];
-			const retainedDomScriptCounts: number[] = [];
-			const callbackLoadCounts: number[] = [];
-			const callbackConsentChangeCounts: number[] = [];
-			const errorCounts: number[] = [];
+		await allScenarioConfigs.reduce<Promise<void>>(
+			async (previousScenario, config) => {
+				await previousScenario;
+				const durationSamples: number[] = [];
+				const loadedScriptCounts: number[] = [];
+				const unloadedScriptCounts: number[] = [];
+				const retainedDomScriptCounts: number[] = [];
+				const callbackLoadCounts: number[] = [];
+				const callbackConsentChangeCounts: number[] = [];
+				const errorCounts: number[] = [];
 
-			for (let index = 0; index < warmupIterations + iterations; index += 1) {
-				const context = await browser.newContext({ baseURL: BASE_URL });
-				const page = await context.newPage();
+				const iterationIndexes = Array.from(
+					{ length: warmupIterations + iterations },
+					(_, index) => index
+				);
+				await iterationIndexes.reduce<Promise<void>>(
+					async (previousIteration, index) => {
+						await previousIteration;
+						const context = await browser.newContext({ baseURL: BASE_URL });
+						const page = await context.newPage();
 
-				const sample = await collectScenarioSample(page, config);
+						const sample = await collectScenarioSample(page, config);
 
-				if (index >= warmupIterations) {
-					durationSamples.push(sample.durationMs);
-					loadedScriptCounts.push(sample.state.loadedIds.length);
-					unloadedScriptCounts.push(
-						config.scriptIds.length - sample.state.loadedIds.length
-					);
-					retainedDomScriptCounts.push(
-						Object.values(sample.state.domPresenceById).filter(Boolean).length
-					);
-					callbackLoadCounts.push(
-						sample.state.loadEventCounts['fixture-callback-only'] ?? 0
-					);
-					callbackConsentChangeCounts.push(
-						sample.state.consentChangeEventCounts['fixture-callback-only'] ?? 0
-					);
-					errorCounts.push(sample.state.errors.length);
-				}
+						if (index >= warmupIterations) {
+							durationSamples.push(sample.durationMs);
+							loadedScriptCounts.push(sample.state.loadedIds.length);
+							unloadedScriptCounts.push(
+								config.scriptIds.length - sample.state.loadedIds.length
+							);
+							retainedDomScriptCounts.push(
+								Object.values(sample.state.domPresenceById).filter(Boolean)
+									.length
+							);
+							callbackLoadCounts.push(
+								sample.state.loadEventCounts['fixture-callback-only'] ?? 0
+							);
+							callbackConsentChangeCounts.push(
+								sample.state.consentChangeEventCounts[
+									'fixture-callback-only'
+								] ?? 0
+							);
+							errorCounts.push(sample.state.errors.length);
+						}
 
-				await context.close();
-			}
+						await context.close();
+					},
+					Promise.resolve()
+				);
 
-			const result: BenchmarkResult = {
-				schemaVersion: BENCHMARK_SCHEMA_VERSION,
-				suite: 'script-lifecycle',
-				package: '@c15t/script-lifecycle-bench',
-				framework: 'core',
-				runtime: 'playwright',
-				scenario: config.name,
-				commitSha: safeCommitSha(),
-				baseSha: safeBaseSha(),
-				timestamp: new Date().toISOString(),
-				environment: getEnvironment(browser.version()),
-				fixture: {
-					name: config.name,
-					consentCount: 5,
-					scriptCount: config.scriptIds.length,
-					localeCount: 1,
-					themeComplexity: 'minimal',
-					notes: [
-						'Local deterministic script routes only.',
-						'Measures consent-driven script lifecycle rather than remote CDN latency.',
+				const result: BenchmarkResult = {
+					baseSha: safeBaseSha(),
+					budgetDefinitions: scriptLifecycleBudgetsForMetric(config.metric),
+					budgets: [],
+					commitSha: safeCommitSha(),
+					environment: getEnvironment(browser.version()),
+					fixture: {
+						consentCount: 5,
+						localeCount: 1,
+						name: config.name,
+						notes: [
+							'Local deterministic script routes only.',
+							'Measures consent-driven script lifecycle rather than remote CDN latency.',
+						],
+						scriptCount: config.scriptIds.length,
+						themeComplexity: 'minimal',
+					},
+					framework: 'core',
+					metadata: {
+						gitDirty: safeGitDirty(),
+						iterations,
+						warmupIterations,
+					},
+					metrics: [
+						summarizeMetric(config.metric, 'ms', durationSamples),
+						summarizeMetric('loadedScriptCount', 'count', loadedScriptCounts),
+						summarizeMetric(
+							'unloadedScriptCount',
+							'count',
+							unloadedScriptCounts
+						),
+						summarizeMetric(
+							'retainedDomScriptCount',
+							'count',
+							retainedDomScriptCounts
+						),
+						summarizeMetric('callbackLoadCount', 'count', callbackLoadCounts),
+						summarizeMetric(
+							'callbackConsentChangeCount',
+							'count',
+							callbackConsentChangeCounts
+						),
+						summarizeMetric('errorCount', 'count', errorCounts),
 					],
-				},
-				metrics: [
-					summarizeMetric(config.metric, 'ms', durationSamples),
-					summarizeMetric('loadedScriptCount', 'count', loadedScriptCounts),
-					summarizeMetric('unloadedScriptCount', 'count', unloadedScriptCounts),
-					summarizeMetric(
-						'retainedDomScriptCount',
-						'count',
-						retainedDomScriptCounts
-					),
-					summarizeMetric('callbackLoadCount', 'count', callbackLoadCounts),
-					summarizeMetric(
-						'callbackConsentChangeCount',
-						'count',
-						callbackConsentChangeCounts
-					),
-					summarizeMetric('errorCount', 'count', errorCounts),
-				],
-				budgetDefinitions: scriptLifecycleBudgets.filter((budget) =>
-					[config.metric, 'errorCount'].includes(budget.metric)
-				),
-				budgets: [],
-				notes: [
-					'Script lifecycle benchmark uses local fixture scripts and predicate-based completion checks.',
-					'IAB-gated script lifecycle scenarios are intentionally excluded from v1.',
-				],
-			};
+					notes: [
+						'Script lifecycle benchmark uses local fixture scripts and predicate-based completion checks.',
+						'IAB-gated script lifecycle scenarios are intentionally excluded from v1.',
+					],
+					package: '@c15t/script-lifecycle-bench',
+					runtime: 'playwright',
+					scenario: config.name,
+					schemaVersion: BENCHMARK_SCHEMA_VERSION,
+					suite: 'script-lifecycle',
+					timestamp: new Date().toISOString(),
+				};
 
-			writeJson(join(outputDir, `${config.name}.json`), result);
-		}
+				writeJson(join(outputDir, `${config.name}.json`), result);
+			},
+			Promise.resolve()
+		);
 
 		await browser.close();
 	} finally {
@@ -367,16 +404,19 @@ async function run() {
 			server.kill('SIGKILL');
 		}
 		if (
-			server.exitCode != null &&
+			server.exitCode !== null &&
+			server.exitCode !== undefined &&
 			!expectedServerShutdownCodes.has(server.exitCode)
 		) {
 			serverFailure = new Error(
 				`${logs || 'Script lifecycle bench server failed'}\nUnexpected server exit code: ${server.exitCode}`
 			);
 		} else if (
-			server.exitCode == null &&
-			server.signalCode != null &&
-			!expectedServerShutdownSignals.has(server.signalCode)
+			server.exitCode === null ||
+			(server.exitCode === undefined &&
+				server.signalCode !== null &&
+				server.signalCode !== undefined &&
+				!expectedServerShutdownSignals.has(server.signalCode))
 		) {
 			serverFailure = new Error(
 				`${logs || 'Script lifecycle bench server failed'}\nUnexpected server signal: ${server.signalCode}`
@@ -387,9 +427,11 @@ async function run() {
 	if (serverFailure) {
 		throw serverFailure;
 	}
-}
+};
 
-run().catch((error) => {
+try {
+	await run();
+} catch (error) {
 	console.error(error);
 	process.exit(1);
-});
+}

@@ -1,0 +1,36 @@
+---
+/**
+ * Demo-only buttons that swap the consent surfaces between the default and
+ * a branded set of `--c15t-*` tokens. See `consent-example.css`.
+ */
+---
+
+<theme-switcher>
+	<button data-theme="default" type="button">Default theme</button>
+	<button data-theme="branded" type="button">Branded theme</button>
+</theme-switcher>
+
+<script>
+	const setTheme = (event: Event) => {
+		const { target } = event;
+		if (target instanceof HTMLButtonElement && target.dataset.theme) {
+			document.documentElement.dataset.consentExampleTheme =
+				target.dataset.theme;
+		}
+	};
+
+	class ThemeSwitcher extends HTMLElement {
+		connectedCallback() {
+			this.addEventListener('click', setTheme);
+		}
+
+		disconnectedCallback() {
+			this.removeEventListener('click', setTheme);
+			delete document.documentElement.dataset.consentExampleTheme;
+		}
+	}
+
+	if (!customElements.get('theme-switcher')) {
+		customElements.define('theme-switcher', ThemeSwitcher);
+	}
+</script>

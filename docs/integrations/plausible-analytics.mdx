@@ -1,146 +1,71 @@
 ---
 title: Plausible Analytics
-description: Privacy-friendly cookieless analytics with a prebuilt helper that preserves Plausible's queue bootstrap and loader attributes.
-group: integrations
+description: Load the Plausible Analytics tracker only after measurement consent with the c15t plausibleAnalytics helper, and check it in DevTools.
+seoTitle: Plausible Analytics cookie consent with c15t
+seoDescription: Load Plausible Analytics only with measurement consent. Set it up with the c15t plausibleAnalytics helper and check it in DevTools.
 icon: plausible
+group: integrations
 ---
 
-Plausible Analytics is a privacy-friendly, cookieless analytics product with a lightweight script loader. The `plausibleAnalytics()` helper models Plausible's queue bootstrap and script attributes as a c15t-managed script so early `window.plausible(...)` calls are buffered safely until the tracker loads.
+The c15t `plausibleAnalytics` helper keeps Plausible Analytics off the page
+until `measurement` has consent. Until then, c15t does not define
+`window.plausible`. The helper sends no consent signal to Plausible. If the
+visitor withdraws consent, c15t removes the script element. By default, c15t
+also reloads the page.
 
-## Integrate with c15t
+## Configure Plausible Analytics
 
-<Tabs items={['React', 'Next.js', 'JavaScript']}>
-  <Tab value="React">
-    ```tsx
-    import { type ReactNode } from 'react';
-    import { ConsentManagerProvider } from '@c15t/react';
-    import { plausibleAnalytics } from '@c15t/scripts/plausible-analytics';
+Copy the script ID from your Plausible installation snippet. It is the part of
+the `pa-<id>.js` file name. Sites that still use the legacy domain-based
+snippet can pass `domain` instead of `scriptId`.
 
-    const scripts = [plausibleAnalytics({ domain: 'example.com' })];
+<CommandTabs command="@c15t/integrations" mode="install" />
 
-    export function ConsentProvider({ children }: { children: ReactNode }) {
-      return (
-        <ConsentManagerProvider
-          options={{
-            mode: 'hosted',
-            backendURL: 'https://your-instance.c15t.dev',
-            scripts,
-          }}
-        >
-          {children}
-        </ConsentManagerProvider>
-      );
-    }
-    ```
-  </Tab>
+```ts title="src/consent-scripts.ts"
+import { plausibleAnalytics } from '@c15t/integrations/plausible-analytics';
 
-  <Tab value="Next.js">
-    ```tsx
-    'use client';
-
-    import { type ReactNode } from 'react';
-    import { ConsentManagerProvider } from '@c15t/nextjs';
-    import { plausibleAnalytics } from '@c15t/scripts/plausible-analytics';
-
-    const scripts = [plausibleAnalytics({ domain: 'example.com' })];
-
-    export function ConsentProvider({ children }: { children: ReactNode }) {
-      return (
-        <ConsentManagerProvider
-          options={{
-            mode: 'hosted',
-            backendURL: '/api/c15t',
-            scripts,
-          }}
-        >
-          {children}
-        </ConsentManagerProvider>
-      );
-    }
-    ```
-  </Tab>
-
-  <Tab value="JavaScript">
-    ```ts
-    import { getOrCreateConsentRuntime } from 'c15t';
-    import { plausibleAnalytics } from '@c15t/scripts/plausible-analytics';
-
-    getOrCreateConsentRuntime({
-      mode: 'hosted',
-      backendURL: 'https://your-instance.c15t.dev',
-      scripts: [plausibleAnalytics({ domain: 'example.com' })],
-    });
-    ```
-  </Tab>
-</Tabs>
-
-## How c15t loads it
-
-- **Category:** `measurement` (Analytics)
-- **Loads when:** measurement consent is granted
-- **On revocation:** unloaded — c15t removes the script element from the DOM. Plausible is cookieless, so no client-side state needs clearing.
-
-If you need script extensions or hash-based routing support, pass them through the helper:
-
-```ts
-plausibleAnalytics({
-  domain: 'example.com',
-  extension: ['file-downloads', 'outbound-links'],
-  hashBasedRouting: true,
-})
+export const scripts = [plausibleAnalytics({ scriptId: 'YOUR_SCRIPT_ID' })];
 ```
 
-The helper seeds a `window.plausible` queue stub during `onBeforeLoad`, so any calls made between the consent grant and the real script attaching get buffered into `plausible.q` and replayed. It also maps the legacy `data-domain` / `data-api` attributes and the new `scriptId`-based loader URL automatically.
+<include src="../shared/integrations/register-scripts.mdx" />
 
-## Tracking events in your app
+## Options
 
-c15t gates the Plausible script from loading until `measurement` consent is granted. Your application code that calls Plausible is **not** automatically gated — `window.plausible` does not exist until the script is loaded, so unguarded calls before consent throw.
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `scriptId` | None | Script ID for the `pa-<scriptId>.js` loader. Takes precedence over `domain` and `extension`. |
+| `domain` | None | Legacy site domain, set as `data-domain`. When neither `scriptId` nor `domain` has a non-empty value, the helper logs an error and the script does not load. |
+| `extension` | None | Legacy script extension or array of extensions, such as `['file-downloads', 'outbound-links']`. The helper joins them into `script.<extensions>.js`. Ignored with `scriptId`. |
+| `customProperties` | None | Properties sent with each page view. |
+| `endpoint` | None | Custom event endpoint. With `domain`, the helper also sets it as `data-api`. |
+| `fileDownloads` | None | `{ fileExtensions?: string[] }` for file download tracking. |
+| `hashBasedRouting` | None | `true` tracks hash-based routes. |
+| `autoCapturePageviews` | None | `false` stops automatic page views. |
+| `captureOnLocalhost` | None | `true` records visits on localhost. |
+| `scriptUrl` | `https://plausible.io/js/pa-<scriptId>.js`, or `https://plausible.io/js/script.js` with `domain` | Loader URL override. |
 
-Guard event calls by checking consent state. From React:
+The helper passes `customProperties`, `endpoint`, `fileDownloads`,
+`hashBasedRouting`, `autoCapturePageviews` and `captureOnLocalhost` as init
+options on `window.plausible.o`, which the `scriptId` loader reads. With the
+legacy loader, choose features with `extension`.
 
-```tsx
-import { useCallback } from 'react';
-import { useConsentManager } from '@c15t/react';
+## Loading and revocation
 
-function useTrackSignup() {
-  const { has } = useConsentManager();
+`plausibleAnalytics` uses the `measurement` category. When measurement becomes
+allowed, the helper defines a queueing `window.plausible` stub, unless one
+already exists, and then loads the tracker. Calls made before the tracker
+finishes loading wait in the stub's queue.
 
-  return useCallback(() => {
-    if (has('measurement')) {
-      window.plausible?.('Signup');
-    }
-  }, [has]);
-}
+On revocation the helper removes the script element and calls no Plausible
+API. Plausible sets no cookies, but c15t still waits for measurement
+permission before loading it.
 
-function SignupButton() {
-  const trackSignup = useTrackSignup();
+## Verify Plausible Analytics
 
-  return (
-    <button type="button" onClick={trackSignup}>
-      Sign up
-    </button>
-  );
-}
-```
+After you allow measurement, the `pa-<scriptId>.js` request appears, or
+`script.js` with your `data-domain` for the legacy loader. A page view request
+then goes to `plausible.io/api/event`, or to your `endpoint`. After revocation
+`window.plausible` still exists, so if your code sends custom events through
+it, check measurement permission before each call.
 
-From plain JavaScript:
-
-```ts
-import { getOrCreateConsentRuntime } from 'c15t';
-
-const { consentStore } = getOrCreateConsentRuntime();
-
-if (consentStore.getState().has('measurement')) {
-  window.plausible?.('Signup');
-}
-```
-
-## Types
-
-### PlausibleAnalyticsOptions
-
-<AutoTypeTable path="./packages/scripts/src/vendors/analytics/plausible-analytics.ts" name="PlausibleAnalyticsOptions" />
-
-### Script
-
-<AutoTypeTable path="./packages/core/src/libs/script-loader/types.ts" name="Script" />
+<include src="../shared/integrations/vendor-revocation-and-verify.mdx" />

@@ -1,0 +1,11 @@
+{/* Generated from internals/doc-snippets/nextjs/static-export/next.config.ts (docs:static-export-next-config) by scripts/sync-example-docs.ts. Edit the source file. */}
+
+```ts title="next.config.ts"
+import { withConsentManifest } from 'c15t/next/build';
+import type { NextConfig } from 'next';
+
+const nextConfig = { output: 'export' } satisfies NextConfig;
+
+// Finds c15t.config.ts. A static export skips the manifest download.
+export default withConsentManifest(nextConfig);
+```

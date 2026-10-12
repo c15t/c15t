@@ -1,154 +1,76 @@
 ---
-title: LinkedIn Insights
-description: Track conversions and build matched audiences for LinkedIn advertising campaigns.
+title: LinkedIn Insight Tag
+description: Load the LinkedIn Insight Tag only after marketing consent with the c15t linkedinInsights helper, guard lintrk conversion calls, and check it in DevTools.
+seoTitle: LinkedIn Insight Tag cookie consent with c15t
+seoDescription: Load the LinkedIn Insight Tag only with marketing consent. The c15t linkedinInsights helper keeps insight.min.js off the page until then.
 icon: linkedin
 group: integrations
 ---
 
-LinkedIn Insight Tag is LinkedIn's conversion tracking and audience matching tool for LinkedIn advertising campaigns. It tracks website actions, measures ad performance, builds website retargeting audiences, and provides aggregate audience insights about visitors from LinkedIn member accounts.
+The c15t `linkedinInsights` helper keeps the LinkedIn Insight Tag,
+`insight.min.js`, off the page until `marketing` has consent. Until then, c15t
+sets no LinkedIn globals. The helper sends no consent signal to LinkedIn. If the
+visitor withdraws consent, c15t removes the script element. By default, c15t
+also reloads the page.
 
-## Official LinkedIn documentation
+## Configure the LinkedIn Insight Tag
 
-- [Add the LinkedIn Insight Tag to your website](https://www.linkedin.com/help/lms/answer/a418880)
-- [LinkedIn Insight Tag overview](https://www.linkedin.com/help/lms/answer/a489169)
-- [LinkedIn Insight Tag FAQs](https://www.linkedin.com/help/lms/answer/a427660)
-- [Insight Tag source status](https://www.linkedin.com/help/lms/answer/a488323)
-- [Compatible tag management systems](https://www.linkedin.com/help/lms/answer/a422760)
-- [LinkedIn Ads Agreement](https://www.linkedin.com/legal/sas-terms)
+Copy the partner ID from LinkedIn Campaign Manager under Data, Signals manager,
+Insight Tag. Remove the original Insight Tag snippet and its `<noscript>`
+tracking image.
 
-## Integrate with c15t
+<CommandTabs command="@c15t/integrations" mode="install" />
 
-<Tabs items={['React', 'Next.js', 'JavaScript']}>
-  <Tab value="React">
-    ```tsx
-    import { type ReactNode } from 'react';
-    import { ConsentManagerProvider } from '@c15t/react';
-    import { linkedinInsights } from '@c15t/scripts/linkedin-insights';
+```ts title="src/consent-scripts.ts"
+import { linkedinInsights } from '@c15t/integrations/linkedin-insights';
 
-    const scripts = [
-      linkedinInsights({
-        id: '123456789012345',
-      }),
-    ];
+export const scripts = [linkedinInsights({ id: 'YOUR_PARTNER_ID' })];
+```
 
-    export function ConsentProvider({ children }: { children: ReactNode }) {
-      return (
-        <ConsentManagerProvider
-          options={{
-            mode: 'hosted',
-            backendURL: 'https://your-instance.c15t.dev',
-            scripts,
-          }}
-        >
-          {children}
-        </ConsentManagerProvider>
-      );
-    }
-    ```
-  </Tab>
+<include src="../shared/integrations/register-scripts.mdx" />
 
-  <Tab value="Next.js">
-    ```tsx
-    'use client';
+## Options
 
-    import { type ReactNode } from 'react';
-    import { ConsentManagerProvider } from '@c15t/nextjs';
-    import { linkedinInsights } from '@c15t/scripts/linkedin-insights';
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `id` | Required | Partner ID. The helper trims it, sets it as `_linkedin_partner_id` and appends it to `_linkedin_data_partner_ids`. Empty or whitespace-only values log an error and the script does not load. |
+| `scriptSrc` | `https://snap.licdn.com/li.lms-analytics/insight.min.js` | Loader URL override. A blank value falls back to the default. |
 
-    const scripts = [
-      linkedinInsights({
-        id: '123456789012345',
-      }),
-    ];
+## Loading and revocation
 
-    export function ConsentProvider({ children }: { children: ReactNode }) {
-      return (
-        <ConsentManagerProvider
-          options={{
-            mode: 'hosted',
-            backendURL: '/api/c15t',
-            scripts,
-          }}
-        >
-          {children}
-        </ConsentManagerProvider>
-      );
-    }
-    ```
-  </Tab>
+`linkedinInsights` uses the `marketing` category. Before marketing is allowed,
+c15t sets no LinkedIn globals and loads nothing from LinkedIn. When marketing
+becomes allowed, the helper sets the partner ID globals, defines the `lintrk`
+queue, then loads `insight.min.js`.
 
-  <Tab value="JavaScript">
-    ```ts
-    import { getOrCreateConsentRuntime } from 'c15t';
-    import { linkedinInsights } from '@c15t/scripts/linkedin-insights';
+On revocation the helper removes the script element and calls no LinkedIn API,
+so the page reload is what stops the tag. `window.lintrk` stays defined until
+then.
 
-    getOrCreateConsentRuntime({
-      mode: 'hosted',
-      backendURL: 'https://your-instance.c15t.dev',
-      scripts: [
-        linkedinInsights({
-          id: '123456789012345',
-        }),
-      ],
-    });
-    ```
-  </Tab>
-</Tabs>
+## Guard your own lintrk calls
 
-## How c15t loads it
+The Insight Tag tracks page views itself. Conversions your code sends through
+`lintrk('track', ...)` need their own check, because `window.lintrk` still
+exists after revocation. Check the permission first, then that the tag is set
+up:
 
-- **Category:** `marketing` (Ads & Pixels)
-- **Loads when:** marketing consent is granted
-- **Default install:** c15t sets the LinkedIn partner ID globals, seeds the `lintrk` queue, and loads LinkedIn's `insight.min.js`
-- **On revocation:** unloaded - c15t removes the script element from the DOM
-
-<Callout type="warning">
-  LinkedIn says the Insight Tag should not be installed on pages that collect or contain Sensitive Data, including certain consumer health or financial pages. If your app has those pages, only include this script on eligible routes and confirm the placement with your legal team.
-</Callout>
-
-Use the LinkedIn Insight Tag partner ID as `id`. You can find it in Campaign Manager under **Data** -> **Signals manager** -> **Insight Tag**.
-
-c15t intentionally does not add LinkedIn's `<noscript>` image pixel fallback. The integration is consent-gated JavaScript, so the script only loads after `marketing` consent is granted.
-
-## Tracking events in your app
-
-c15t gates the LinkedIn Insight Tag from loading until `marketing` consent is granted. Page tracking is automatic once the script loads, but if you fire custom conversions through `window.lintrk(...)`, those calls are **not** automatically gated - `window.lintrk` does not exist before consent is granted, and is removed again if consent is revoked.
-
-Guard custom conversion calls by checking consent state:
-
-```tsx
-import { useCallback } from 'react';
-import { useConsentManager } from '@c15t/react';
-
-function useTrackSignup() {
-  const { has } = useConsentManager();
-  return useCallback(() => {
-    if (has('marketing')) {
-      window.lintrk?.('track', { conversion_id: 12345 });
-    }
-  }, [has]);
-}
-
-function SignupButton() {
-  const trackSignup = useTrackSignup();
-  return <button onClick={trackSignup}>Sign up</button>;
+```ts title="src/track-signup.ts"
+export function trackSignup(marketingAllowed: boolean) {
+	if (!marketingAllowed || typeof window.lintrk !== 'function') return;
+	window.lintrk('track', { conversion_id: 1234567 });
 }
 ```
 
-## Verify setup
+Pass the current marketing permission from your framework, for example
+`useConsent('marketing')` in React. Use the conversion ID from your LinkedIn
+conversion. `@c15t/integrations/linkedin-insights` exports no event wrapper.
 
-LinkedIn validates the tag after an associated domain or URL receives traffic. Source status can take a few minutes and up to 24 hours to update after the first page load:
+## Verify the LinkedIn Insight Tag
 
-- **Active:** signal received in the past seven days
-- **No recent activity:** no signal for more than seven days
-- **Unverified:** no signal received yet
+After you allow marketing, `insight.min.js` loads from `snap.licdn.com`, and
+`window._linkedin_data_partner_ids` in the console contains your partner ID.
+Trigger one guarded conversion and check that its request to LinkedIn appears.
+Then revoke marketing. Until the page reloads, calling `trackSignup` sends
+nothing.
 
-## Types
-
-### LinkedInInsightsOptions
-
-<AutoTypeTable path="./packages/scripts/src/vendors/ads-and-pixels/linkedin-insights.ts" name="LinkedInInsightsOptions" />
-
-### Script
-
-<AutoTypeTable path="./packages/core/src/libs/script-loader/types.ts" name="Script" />
+<include src="../shared/integrations/vendor-revocation-and-verify.mdx" />

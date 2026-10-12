@@ -1,0 +1,461 @@
+import { execFileSync } from 'node:child_process';
+import { appendFileSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+
+import fg from 'fast-glob';
+
+import { selectReleaseChanges } from './ci-release-changes';
+
+export interface Workspace {
+	name: string;
+	directory: string;
+	dependencies: string[];
+	scripts: Record<string, string>;
+}
+
+export const readWorkspaces = function readWorkspaces(
+	rootDirectory = '.'
+): Workspace[] {
+	const root = JSON.parse(
+		readFileSync(join(rootDirectory, 'package.json'), 'utf8')
+	) as { workspaces: string[] };
+	return fg
+		.sync(
+			root.workspaces.map((pattern) => `${pattern}/package.json`),
+			{
+				cwd: rootDirectory,
+				ignore: [
+					'**/node_modules/**',
+					'**/dist/**',
+					'**/.next/**',
+					'**/.nuxt/**',
+					'**/.output/**',
+					'**/storybook-static/**',
+				],
+			}
+		)
+		.map((path) => {
+			const manifest = JSON.parse(
+				readFileSync(join(rootDirectory, path), 'utf8')
+			);
+			return {
+				dependencies: Object.keys({
+					...manifest.dependencies,
+					...manifest.devDependencies,
+					...manifest.peerDependencies,
+					...manifest.optionalDependencies,
+				}),
+				directory: dirname(path),
+				name: manifest.name,
+				scripts: manifest.scripts ?? {},
+			};
+		});
+};
+
+/** Documentation never changes executable package code, including bundled copies. */
+export const isDocumentation = function isDocumentation(path: string): boolean {
+	return (
+		path.startsWith('docs/') ||
+		/\.(?:md|mdx)$/u.test(path) ||
+		/^packages\/[^/]+\/readme\.json$/u.test(path) ||
+		/^packages\/[^/]+\/docs\//u.test(path)
+	);
+};
+
+/** A file in an `examples/` starter, the apps other than showcases. */
+export const isStarterPath = function isStarterPath(path: string): boolean {
+	return /^examples\/(?!showcase-)[^/]+\//u.test(path);
+};
+
+/**
+ * The native kernels, protocol fixtures, and contract live outside the workspace
+ * graph, so a change there owns no package and needs an explicit filter.
+ */
+export const isMobileNativePath = function isMobileNativePath(
+	path: string
+): boolean {
+	return path.startsWith('native/');
+};
+
+/**
+ * Files a phone actually compiles, as opposed to files that only reach the SDK's
+ * JavaScript.
+ *
+ * The device group pays for `expo prebuild`, `pod install`, and two app builds, so
+ * it keys on the native kernels, the binding's iOS and Android halves, and the two
+ * example apps. JavaScript-only SDK changes run in the package test job.
+ */
+export const isMobileDevicePath = function isMobileDevicePath(
+	path: string
+): boolean {
+	return (
+		/^internals\/fixtures\/(?:expo-dev|react-native-bare)\//u.test(path) ||
+		isMobileNativePath(path) ||
+		/^packages\/react-native\/(?:ios|android)\//u.test(path) ||
+		/^packages\/react-native\/(?:Package\.swift|C15tReactNative\.podspec|react-native\.config\.(?:js|cjs|mjs|ts))$/u.test(
+			path
+		)
+	);
+};
+
+// The autolink config is matched under every extension a linker might be told to read.
+// It has already been renamed once, from `.cjs` to `.js`, and the rename is what let Expo
+// drop the library silently; a selector naming one literal rots the next time it moves.
+
+/**
+ * The mobile budget harness, as a path rather than a workspace.
+ *
+ * `@c15t/benchmarking` is a dependency of the mobile bench and of the backend, so a
+ * selected workspace would drag mobile macOS minutes into any backend pull request.
+ * Editing the harness itself is the signal that its measurement contracts changed.
+ */
+export const isMobileBenchmarkPath = function isMobileBenchmarkPath(
+	path: string
+): boolean {
+	return path.startsWith('benchmarks/mobile/');
+};
+
+/** Build only the selected packages and their forward dependencies. */
+export const packageBuildClosure = function packageBuildClosure(
+	names: Iterable<string>,
+	workspaces: Workspace[]
+): string[] {
+	const required = new Set(names);
+	let previous = -1;
+	while (previous !== required.size) {
+		previous = required.size;
+		for (const workspace of workspaces) {
+			if (required.has(workspace.name)) {
+				for (const dependency of workspace.dependencies) {
+					required.add(dependency);
+				}
+			}
+		}
+	}
+	return workspaces
+		.filter(
+			(workspace) =>
+				workspace.directory.startsWith('packages/') &&
+				required.has(workspace.name) &&
+				workspace.scripts.build
+		)
+		.map((workspace) => workspace.name);
+};
+
+/** Select reverse dependencies first, then build their forward dependency closure. */
+// oxlint-disable-next-line complexity -- Selection combines independent integration capabilities; graph traversal stays explicit.
+export const createCiPlan = function createCiPlan(
+	files: string[],
+	workspaces: Workspace[],
+	forceFull = false
+) {
+	let full = forceFull;
+	const runtime = files.filter((path) => !isDocumentation(path));
+	const owners = new Set<string>();
+	for (const path of runtime) {
+		const [owner] = workspaces
+			.filter((workspace) => path.startsWith(`${workspace.directory}/`))
+			.sort((left, right) => right.directory.length - left.directory.length);
+		if (isStarterPath(path)) {
+			// The CLI generates the starters' quickstart files, and its tests diff
+			// them against these files, so a starter edit runs those tests too.
+			owners.add('@c15t/cli');
+		}
+		if (owner) {
+			owners.add(owner.name);
+		} else {
+			// Root config, shared build helpers, deleted packages, and unknown inputs
+			// widen the run. An unrecognised file must never silently skip validation.
+			full = true;
+		}
+	}
+	const affected = new Set(
+		full ? workspaces.map((workspace) => workspace.name) : owners
+	);
+	let previous = -1;
+	while (previous !== affected.size) {
+		previous = affected.size;
+		for (const workspace of workspaces) {
+			if (
+				workspace.dependencies.some((dependency) => affected.has(dependency))
+			) {
+				affected.add(workspace.name);
+			}
+		}
+	}
+	const selected = workspaces.filter((workspace) =>
+		affected.has(workspace.name)
+	);
+	const required = new Set(affected);
+	const examples = [
+		['nextjs', 'nextjs'],
+		['react', 'react'],
+		['vue', 'vue'],
+		['svelte', 'svelte'],
+		['html', 'script-tag'],
+		['javascript', 'javascript'],
+		['nuxt', 'nuxt'],
+		['nuxt-prerender', 'nuxt'],
+		['nuxt-static', 'nuxt'],
+		['nuxt-vapor', 'nuxt-vapor'],
+		['nuxt-vapor-future', 'nuxt-vapor'],
+		['tanstack-start', 'tanstack-start'],
+		['tanstack-start-streamed', 'tanstack-start'],
+		['tanstack-start-same-origin', 'tanstack-start'],
+		['tanstack-start-static', 'tanstack-start'],
+		['astro', 'astro-demo'],
+		['astro-static', 'astro-demo'],
+		['sveltekit', 'sveltekit-demo'],
+	]
+		.filter(([, directory]) =>
+			selected.some(
+				(workspace) => workspace.directory === `internals/fixtures/${directory}`
+			)
+		)
+		.map(([id]) => id ?? '');
+	if (affected.has('@c15t/fixture-acceptance')) {
+		examples.splice(
+			0,
+			examples.length,
+			'nextjs',
+			'react',
+			'vue',
+			'svelte',
+			'html',
+			'javascript',
+			'nuxt',
+			'nuxt-prerender',
+			'nuxt-static',
+			'nuxt-vapor',
+			'nuxt-vapor-future',
+			'tanstack-start',
+			'tanstack-start-streamed',
+			'tanstack-start-same-origin',
+			'tanstack-start-static',
+			'astro',
+			'astro-static',
+			'sveltekit'
+		);
+	}
+	// Starters are the `examples/` apps other than showcases, and each one's
+	// directory name is its smoke-test target. A new starter is selected
+	// without a second list here, and fails until it has a target.
+	const starterDirectory = /^examples\/(?!showcase-)[^/]+$/u;
+	const starters = (
+		affected.has('@c15t/fixture-acceptance') ? workspaces : selected
+	)
+		.filter((workspace) => starterDirectory.test(workspace.directory))
+		.map((workspace) => workspace.directory.replace('examples/', ''))
+		.sort();
+	const parity = selected
+		.filter((workspace) =>
+			/^apps\/storybook-(?:react|vue|svelte|astro)$/u.test(workspace.directory)
+		)
+		.map((workspace) => workspace.directory.replace('apps/storybook-', ''));
+	// React is the reference every framework compares against, and the Astro
+	// Storybook is only checked alongside the React, Svelte and Vue ones: the
+	// suite needs at least two of those to pair stories and DevTools panels.
+	if (parity.includes('react') || parity.includes('astro')) {
+		parity.splice(0, parity.length, 'react', 'svelte', 'vue', 'astro');
+	}
+	if (parity.length && !parity.includes('react')) {
+		parity.unshift('react');
+	}
+	// Changes to the comparison runner must exercise the complete contract.
+	if (
+		selected.some(
+			(workspace) => workspace.directory === 'apps/parity-runner'
+		) &&
+		!parity.length
+	) {
+		parity.push('react', 'svelte', 'vue', 'astro');
+	}
+	const journeys = selected
+		.filter((workspace) =>
+			/^benchmarks\/(?:nextjs|nuxt|sveltekit)-browser-bench$/u.test(
+				workspace.directory
+			)
+		)
+		.map((workspace) =>
+			workspace.directory
+				.replace('benchmarks/', '')
+				.replace('-browser-bench', '')
+		);
+	if (affected.has('@c15t/fixture-acceptance')) {
+		journeys.splice(0, journeys.length, 'nextjs', 'nuxt', 'sveltekit');
+	}
+	const compat = selected
+		.filter((workspace) => workspace.scripts['test:compat'])
+		.map((workspace) => workspace.name.replace('@c15t/next-compat-', ''));
+	const tests = selected
+		.filter(
+			(workspace) =>
+				workspace.scripts.test &&
+				workspace.name !== '@c15t/backend' &&
+				workspace.directory !== 'internals/fixtures/acceptance'
+		)
+		.map((workspace) => workspace.name);
+	const types = selected
+		.filter((workspace) => workspace.scripts['check-types'])
+		.map((workspace) => workspace.name);
+	for (const workspace of workspaces) {
+		if (
+			starters.some((target) => workspace.directory === `examples/${target}`) ||
+			parity.some(
+				(target) => workspace.directory === `apps/storybook-${target}`
+			) ||
+			journeys.some(
+				(target) => workspace.directory === `benchmarks/${target}-browser-bench`
+			) ||
+			examples.some(
+				(target) =>
+					workspace.directory ===
+					`internals/fixtures/${({ astro: 'astro-demo', 'astro-static': 'astro-demo', html: 'script-tag', 'nuxt-prerender': 'nuxt', 'nuxt-static': 'nuxt', 'nuxt-vapor-future': 'nuxt-vapor', sveltekit: 'sveltekit-demo', 'tanstack-start-same-origin': 'tanstack-start', 'tanstack-start-static': 'tanstack-start', 'tanstack-start-streamed': 'tanstack-start' } as Record<string, string>)[target] ?? target}`
+			)
+		) {
+			required.add(workspace.name);
+		}
+	}
+	const build = packageBuildClosure(required, workspaces);
+	const styles = selected.some((workspace) =>
+		/benchmarks\/(?:tw3-test|tw4-test|no-tw-test|css-layer-preview|tailwind-matrix\/v[34](?:\/next-15(?:-turbopack)?)?)$/u.test(
+			workspace.directory
+		)
+	);
+	// The package job owns affected JavaScript and protocol tests. Native toolchains
+	// only run when their inputs change, or during full validation.
+	const mobile =
+		full ||
+		runtime.some(
+			(path) =>
+				isMobileDevicePath(path) ||
+				isMobileBenchmarkPath(path) ||
+				/^packages\/react-native\/(?:src\/specs\/|scripts\/|package\.json$)/u.test(
+					path
+				)
+		);
+	// Advisory, and expensive: app builds run on a macOS runner and a full Android
+	// build, so only files an app compiles select it, plus the runs that select
+	// everything.
+	const mobileBrowserOrDevice = full || runtime.some(isMobileDevicePath);
+	const integrations = [
+		{ kind: 'examples', targets: examples.join(',') },
+		{ kind: 'starters', targets: starters.join(',') },
+		{ kind: 'compat', targets: compat.join(',') },
+		{ kind: 'parity', targets: parity.join(',') },
+		{ kind: 'journeys', targets: journeys.join(',') },
+		{ kind: 'styles', targets: styles ? 'all' : '' },
+	].filter((entry) => entry.targets.length > 0);
+	return {
+		backend: affected.has('@c15t/backend'),
+		baseRef: '',
+		build,
+		bundle: affected.has('@c15t/next-bundle-bench'),
+		compat,
+		coverage: selected
+			.filter(
+				(workspace) =>
+					tests.includes(workspace.name) &&
+					workspace.dependencies.includes('@c15t/vitest-config')
+			)
+			.map((workspace) => workspace.directory),
+		docs: full || files.some(isDocumentation),
+		examples,
+		full,
+		integrations,
+		journeys,
+		mobile,
+		mobileBrowserOrDevice,
+		parity,
+		performance: selected.some(
+			(workspace) =>
+				workspace.directory.startsWith('benchmarks/') &&
+				Boolean(workspace.scripts['bench:ci'])
+		),
+		starters,
+		styles,
+		testBrowsers: tests.some((name) =>
+			[
+				'@c15t/react',
+				'@c15t/nextjs',
+				'@c15t/tanstack-start',
+				'@c15t/browser',
+			].includes(name)
+		),
+		testTypes: selected
+			.filter((workspace) => workspace.scripts['check-types:test'])
+			.map((workspace) => workspace.name),
+		tests,
+		types,
+	};
+};
+
+export type CiPlan = ReturnType<typeof createCiPlan>;
+
+/** Keep workspace names in the artifact, outside GitHub's job-output secret filter. */
+export const ciSchedulingOutputs = (plan: CiPlan) => ({
+	backend: plan.backend,
+	baseRef: plan.baseRef,
+	build: plan.build.length > 0,
+	bundle: plan.bundle,
+	docs: plan.docs,
+	integrations: plan.integrations,
+	mobile: plan.mobile,
+	mobileBrowserOrDevice: plan.mobileBrowserOrDevice,
+	packageChecks:
+		plan.tests.length + plan.types.length + plan.testTypes.length > 0,
+	performance: plan.performance,
+	testBrowsers: plan.testBrowsers,
+});
+
+if (import.meta.main) {
+	const base = process.env.CI_DIFF_BASE;
+	let full = process.argv.includes('--full') || !base || /^0+$/u.test(base);
+	let files: string[] = [];
+	if (!full) {
+		try {
+			files = execFileSync(
+				'git',
+				['diff', '--no-renames', '--name-only', '-z', `${base}...HEAD`],
+				{ encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }
+			)
+				.split('\0')
+				.filter(Boolean);
+		} catch (error) {
+			if (process.env.CI_RELEASE_SELECTION !== 'true') {
+				throw error;
+			}
+			full = true;
+			process.stderr.write(
+				'Release diff unavailable; selecting full checks.\n'
+			);
+		}
+	}
+	const workspaces = readWorkspaces();
+	const changes =
+		!full && base && process.env.CI_RELEASE_SELECTION === 'true'
+			? selectReleaseChanges(files, base, workspaces)
+			: { files, versionedPackages: [] };
+	const plan = createCiPlan(changes.files, workspaces, full);
+	plan.baseRef = full ? '' : (base ?? '');
+	plan.build = packageBuildClosure(
+		[...plan.build, ...changes.versionedPackages],
+		workspaces
+	);
+	writeFileSync('ci-plan.json', `${JSON.stringify(plan, null, 2)}\n`);
+	if (process.env.GITHUB_OUTPUT) {
+		for (const [key, value] of Object.entries(ciSchedulingOutputs(plan))) {
+			appendFileSync(
+				process.env.GITHUB_OUTPUT,
+				`${key}=${typeof value === 'string' ? value : JSON.stringify(value)}\n`
+			);
+		}
+	}
+	if (process.env.GITHUB_STEP_SUMMARY) {
+		appendFileSync(
+			process.env.GITHUB_STEP_SUMMARY,
+			`## Selected checks\n\nBase: ${plan.baseRef || 'full run'}\n\n\`\`\`json\n${JSON.stringify(plan, null, 2)}\n\`\`\`\n`
+		);
+	}
+	process.stdout.write(`${JSON.stringify(plan, null, 2)}\n`);
+}

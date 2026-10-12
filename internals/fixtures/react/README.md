@@ -1,0 +1,52 @@
+# React consent example
+
+A runnable Inth setup with PostHog, X Pixel, a consent-gated YouTube video,
+a persistent preferences control and DevTools in development. Choose **Default** or **Branded**
+to compare the same consent flow with different styling.
+
+From the repository root, install and build workspace packages first:
+
+```sh
+bun install
+bun run build:libs
+```
+
+Replace `https://your-project.inth.app` in `src/consent.tsx` with your Inth
+backend URL and allow this app's origin in Inth. Replace the PostHog project
+key and X Pixel ID placeholders in `src/scripts.ts` with your own. Then run:
+
+```sh
+bun run --cwd internals/fixtures/react dev
+```
+
+PostHog uses `loadMode: 'after-consent'`, so its SDK waits for measurement
+permission. X Pixel waits for marketing permission. Revoking permission removes
+the YouTube iframe. Removing a vendor script cannot undo code it has already
+executed.
+
+Reject, reload, reopen preferences and allow measurement only. The video and
+PostHog should load while X Pixel stays blocked. Then allow marketing. Test
+revocation and a failed backend request as well. The shared acceptance suite
+runs these examples with a fixture backend and intercepted vendor requests.
+It sets `VITE_C15T_BACKEND_URL`, which `src/test-backend.ts` applies over the
+placeholder URL:
+
+```sh
+EXAMPLE_TARGET=react bun run --cwd internals/fixtures/acceptance test
+```
+
+`src/consent.tsx`, `src/main.tsx` and `src/scripts.ts` hold the c15t setup.
+`src/app.tsx` is the demo page: status, gated video, design switch and
+DevTools in development.
+
+## Banner experiment
+
+`experiment.html` mounts the same page inside `src/experiment-consent.tsx`,
+the `Consent` wrapper with the banner-shape experiment added. Open `/experiment.html` and c15t picks the
+`control` arm (the default banner) or the `wall` arm; the page shows
+`banner-shape · <arm> · c15t`. `?arm=wall` or `?arm=control` sets the arm the
+way a flag provider would (`assignedBy: host`), and `?arm=off` leaves the
+visitor out. The provider's `onSurfaceShown` and `onChoiceRecorded` callbacks
+push each impression and choice under the arm to `window.dataLayer` as
+`c15t_surface_shown` and `c15t_choice_recorded`, and the page lists them. See
+https://c15t.com/docs/guides/banner-experiments.

@@ -1,0 +1,122 @@
+---
+title: How consent works
+description: What c15t decides on each page load, the difference between a permission and a recorded choice, and what happens when a visitor saves.
+group: concepts
+---
+
+## What c15t decides on each page load
+
+On every page load c15t answers one question for each consent category: is
+this allowed right now? To answer it, c15t:
+
+1. Selects a **policy** for the visitor, usually by country and region. The
+   policy says whether optional categories start denied (opt-in) or allowed
+   (opt-out), and whether to show a banner.
+2. Reads the visitor's **stored choice** from a cookie and localStorage, if
+   there is one that still matches the policy.
+3. Reads **privacy signals** such as Global Privacy Control (GPC).
+
+The result is a set of **permissions**, one per category. Components, script
+loaders, embeds and your own code read those permissions. Nothing optional
+runs until the policy has resolved: while it loads, and if it fails, every
+optional category is denied.
+
+A banner is only the interface. It does not stop a script you load with a
+plain `<script>` tag or a vendor SDK you initialize yourself. To gate that code,
+register it with c15t. See [integrations](/docs/integrations/overview).
+
+## Categories
+
+| Category | Use it for |
+| --- | --- |
+| `necessary` | Code the site cannot work without. Always allowed. |
+| `functionality` | Optional features such as support chat. |
+| `measurement` | Analytics and usage measurement. |
+| `experience` | Personalization. |
+| `marketing` | Advertising, retargeting and pixels. |
+
+Assign a category by what the code does, not by what would be convenient.
+Calling analytics `necessary` does not make it necessary.
+[Consent categories](/docs/concepts/consent-categories) explains which
+categories the preference dialog shows and how policy scope affects them.
+
+## Policies
+
+A policy has a **model** and a **prompt**:
+
+| Model | Optional categories before a choice |
+| --- | --- |
+| `opt-in` | Denied until the visitor allows them. |
+| `opt-out` | Allowed until the visitor refuses them or sends a privacy signal. |
+| `iab` | Controlled by an IAB TCF consent string. |
+| `none` | Allowed, with no prompt. |
+
+| Prompt | What the visitor sees |
+| --- | --- |
+| `choice` | A banner asking for a decision. |
+| `notice` | A notice they can dismiss. Dismissing records an acknowledgement, not consent. |
+| `none` | Nothing on load. The policy can still require a way to open preferences. |
+
+With [Inth](https://inth.com) you manage policies in your project, and the app
+receives them from the backend. Changing a stylesheet or importing a preset in
+the browser does not override a hosted policy.
+[Policies](/docs/concepts/policies) covers presets, scope, and why a banner may
+not appear.
+
+## A permission is not a recorded choice
+
+These two values answer different questions, and mixing them up is the most
+common integration bug:
+
+- **Permission** (`effectivePermissions`, `useConsent('measurement')`) answers
+  "may this run now?" Under an opt-out policy it can be `true` before the
+  visitor has done anything.
+- **Recorded choice** (`explicitChoice`) answers "what did the visitor decide?"
+  It only changes when the visitor accepts, rejects or saves preferences.
+
+| Task | Read |
+| --- | --- |
+| Load a script or render an optional feature | Permission |
+| Show what the visitor chose, or report consent rates | Recorded choice |
+| Decide whether a prompt is needed | `promptRequirement` |
+| Find out why a region behaves differently | `policyRule` |
+| Check that the policy loaded | `resolution.status` |
+
+Never turn a permission into a saved choice. Hydrating server state, reading a
+cookie or rendering a component does not count as a visitor action.
+`onChoiceRecorded` fires only for a visitor's action; `onPermissionsChanged`
+also fires when a choice expires or a privacy signal changes.
+
+## Notices and privacy signals
+
+Dismissing a notice acknowledges it. It grants nothing and leaves earlier
+refusals in place.
+
+GPC is a browser setting that asks sites not to sell or share data. c15t reads
+it live on every evaluation and applies the restrictions your policy configures
+for it. It never becomes a stored refusal: when the browser stops sending GPC,
+the restriction ends. The backend also sees the current value.
+
+## What happens when a visitor saves
+
+When a visitor clicks Accept, Reject or Save, c15t:
+
+1. Updates permissions and closes the banner or dialog in the same click.
+   Scripts, embeds and network rules follow the new permissions immediately.
+2. Writes the choice to the cookie and localStorage.
+3. Sends the choice to the consent backend. If the request fails, the choice
+   stays saved in the browser and the request is retried later.
+4. Reloads the page if the visitor turned off something they had allowed.
+   Code that already ran cannot be unloaded, so the reload starts a page with
+   only permitted code. Set `reloadOnConsentRevoked: false` to handle revocation
+   yourself.
+
+The [consent state reference](/docs/concepts/consent-state) documents the exact
+ordering, retries, server hydration and how open tabs stay in step.
+
+## Where consent data comes from
+
+A consent backend supplies policies and stores consent records. Use Inth, run
+the [c15t backend](/docs/self-host/overview) yourself, or keep policies in the
+browser for local development. [Choose your setup](/docs/concepts/choose-your-setup)
+walks through the options for your framework and hosting.

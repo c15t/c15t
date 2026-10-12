@@ -9,7 +9,7 @@
  */
 
 // Import constants directly to avoid Zod
-import { brandingValues, jurisdictionCodes } from './shared/constants';
+import { brandingValues, hostingValues } from './shared/constants';
 
 // API types - Consent (v2.0: only check endpoint remains)
 export type {
@@ -17,12 +17,16 @@ export type {
 	CheckConsentQuery,
 	ConsentCheckResult,
 } from './api/consent';
+// API types - Experiment
+export type {
+	ExperimentSummaryOutput,
+	ExperimentSummaryQuery,
+	ExperimentArmSummary,
+} from './api/experiment';
 // API types - Init
 export type {
 	InitOutput,
 	LocationResponse,
-	PolicyDecision,
-	ResolvedPolicy,
 	TranslationsResponse,
 } from './api/init';
 export type {
@@ -32,6 +36,9 @@ export type {
 } from './api/legal-document';
 // API types - Meta
 export type { StatusOutput } from './api/meta';
+export type { ResolveBackendURLOptions } from './shared';
+// API types - Session
+export type { ConsentSessionReport, ConsentSessionSource } from './api/session';
 // API types - Subject
 export type {
 	ConsentItem,
@@ -45,7 +52,11 @@ export type {
 	PatchSubjectOutput,
 	PostSubjectInput,
 	PostSubjectOutput,
+	SubjectCategoryReceiptWire,
+	SubjectChoiceBasisWire,
+	SubjectChoiceWire,
 	SubjectItem,
+	VendorChoiceWire,
 } from './api/subject';
 // Domain types
 export type {
@@ -68,8 +79,90 @@ export {
 
 // Shared types - derived from constants without Zod
 export type Branding = (typeof brandingValues)[number];
-export type JurisdictionCode = (typeof jurisdictionCodes)[number];
+export type Hosting = (typeof hostingValues)[number];
 
+export type {
+	ConsentManifest,
+	ConsentManifestBranding,
+	ConsentManifestConfig,
+	ConsentManifestGVLReference,
+	ConsentManifestHosting,
+	ConsentManifestIAB,
+	ConsentManifestPolicyFailure,
+	ConsentManifestPolicyPack,
+	ConsentManifestTranslationInputs,
+	ConsentRequestHeaderInputs,
+	I18nMessageProfile,
+	I18nMessageProfiles,
+	I18nOptions,
+	LoggerLike,
+	ResolveInitFromManifestInputs,
+	ResolveInitFromManifestOptions,
+	BuildConsentSessionReportOptions,
+	ConsentJourneyParams,
+	ConsentJourneyPrompt,
+	ConsentJourneyScope,
+	SessionExperiment,
+	SessionJourney,
+	SessionReportInputs,
+	InitRequestParams,
+} from './shared';
+export {
+	buildConsentManifestFromConfig,
+	appendInitParams,
+	appendJourneyParams,
+	applyInitParamsToHeaders,
+	INIT_COUNTRY_PARAM,
+	INIT_EXPERIMENT_PARAM,
+	INIT_GPC_PARAM,
+	INIT_PARAM_HEADERS,
+	INIT_POLICY_CONTRACT_PARAM,
+	INIT_REGION_PARAM,
+	INIT_VERSION_PARAM,
+	buildConsentSessionReport,
+	CONSENT_EXPERIMENT_HEADER,
+	CONSENT_JOURNEY_PARAM,
+	CONSENT_JOURNEY_SCOPE_PARAM,
+	CONSENT_JOURNEY_STORED_PARAM,
+	CONSENT_SESSION_CLIENT_IP_HEADER,
+	deriveJourneyPrompt,
+	formatExperimentHeader,
+	isSpeculativeRequest,
+	journeyDomainFrom,
+	parseExperimentHeader,
+	parseJourneyId,
+	parseJourneyScope,
+	readJourneyParams,
+	readSessionJourney,
+	CONSENT_REQUEST_HEADER_NAMES,
+	COUNTRY_HEADERS,
+	consentInputsToOverrides,
+	createConsentManifestPolicyPack,
+	EEA_COUNTRY_CODES,
+	EU_COUNTRY_CODES,
+	extractConsentRequestInputs,
+	headersToRecord,
+	getTranslations,
+	getTranslationsData,
+	listProfiles,
+	POLICY_MATCH_DATASET_VERSION,
+	parseGlobalPrivacyControl,
+	policyMatchers,
+	REGION_HEADERS,
+	resolveBackendURL,
+	resolveInitFromManifest,
+	resolvePolicyResolutionFromManifest,
+	sliceConsentManifestLanguage,
+	UK_COUNTRY_CODES,
+	validateMessages,
+} from './shared';
+export {
+	buildConsentId,
+	type ConsentSubmissionIdentity,
+	type EntityKind,
+	generateDeterministicId,
+	generateEntityId,
+} from './shared/entity-id';
 // GVL types - IAB TCF Global Vendor List
 export type {
 	GlobalVendorList,
@@ -83,24 +176,129 @@ export type {
 	GVLVendor,
 	GVLVendorUrl,
 } from './shared/gvl';
-
+export { globalVendorListSchema } from './shared/gvl';
+// Client IP derivation, for hosts that report sessions server-to-server.
+export {
+	DEFAULT_IP_HEADERS_LIST,
+	getIpAddress,
+	type IpAddressConfig,
+	maskIpAddress,
+} from './shared/client-ip';
 // Non-IAB vendor types - Custom vendors not registered with IAB
 export type {
 	NonIABVendor,
 	NonIABVendorConsent,
 } from './shared/non-iab-vendor';
-export {
-	type PolicyDefaults,
-	policyDefaults,
-} from './shared/policy-defaults';
+// Vendor-level consent outside IAB
+export type { Vendor, VendorCategoryCondition } from './shared/vendor';
 export {
 	createDeterministicFingerprint,
 	createDeterministicFingerprintSync,
 	createMaterialPolicyFingerprint,
-	createPolicyFingerprint,
+	createMaterialPolicyFingerprintSync,
 	hashSha256Hex,
 	stableStringify,
 } from './shared/policy-fingerprint';
+export type {
+	PolicyMatchEntry,
+	PolicyMatchOutcome,
+} from './shared/policy-resolution';
+export {
+	matchPolicyRules,
+	resolvePolicyRules,
+} from './shared/policy-resolution';
+// The wire contract and the resolved-rule invariants come straight from their
+// own modules, so a client that only reads a resolution never pulls in the
+// authoring validator or fingerprint hashing behind `resolvePolicyRules`.
+export type {
+	PolicyResolution,
+	PolicyResolutionFailed,
+	PolicyResolutionFailure,
+	PolicyResolutionMatched,
+	PolicyResolutionNoMatch,
+	PolicyResolutionUnconfigured,
+	PolicyResolutionWire,
+	SafeFallbackPolicyInput,
+} from './shared/policy-resolution-wire';
+export {
+	POLICY_CONTRACT_HEADER,
+	POLICY_CONTRACT_VERSION,
+	parsePolicyContractHeader,
+	readPolicyResolutionWire,
+	SAFE_FALLBACK_POLICY_FINGERPRINTS,
+	SAFE_FALLBACK_POLICY_ID,
+	safeFallbackPolicyInput,
+	safeFallbackPolicyRule,
+	writePolicyResolutionWire,
+} from './shared/policy-resolution-wire';
+export type {
+	PolicyActionConstraints,
+	PolicyChoiceAction,
+	PolicyConsentCategory,
+	PolicyOptionalCategory,
+	PolicyPrompt,
+	PolicyPromptAction,
+	PolicyRight,
+	PolicyRule,
+	PolicyRuleModel,
+	PolicyRuleReview,
+	ResolvedPolicyRule,
+} from './shared/policy-rule';
+export {
+	DEFAULT_CHOICE_VALIDITY_DAYS,
+	DEFAULT_NOTICE_VALIDITY_DAYS,
+	inspectPolicyRules,
+	normalizePolicyRule,
+	validatePolicyRules,
+} from './shared/policy-rule';
+export {
+	canonicalizePolicySet,
+	collectResolvedPolicyRuleIssues,
+	expectedPolicyActions,
+	isPlainPolicyObject,
+	isPolicyOptionalCategory,
+	isPolicyPrompt,
+	isPolicyRight,
+	isPolicyRuleModel,
+	isValidPolicyPromptForModel,
+	POLICY_CONSENT_CATEGORIES,
+	POLICY_MODEL_PROMPTS,
+	POLICY_OPTIONAL_CATEGORIES,
+	POLICY_PROMPT_ACTIONS,
+	POLICY_PROMPTS,
+	POLICY_RIGHTS,
+	POLICY_RULE_MODELS,
+	requiredPolicyRights,
+} from './shared/policy-rule-invariants';
+export { compareCanonical } from './shared/canonical-order';
+export type {
+	ChoicePromptFingerprintInput,
+	JsonValue,
+	NoticePromptFingerprintInput,
+	PolicyFingerprintInput,
+	PolicyFingerprints,
+	PresentationFingerprintInput,
+} from './shared/policy-rule-fingerprint';
+export {
+	CHOICE_PROMPT_FINGERPRINT_VERSION,
+	choicePromptFingerprintInput,
+	createPolicyRuleFingerprints,
+	createPresentationFingerprint,
+	NOTICE_PROMPT_FINGERPRINT_VERSION,
+	noticePromptFingerprintInput,
+	POLICY_FINGERPRINT_VERSION,
+	policyFingerprintInput,
+	PRESENTATION_FINGERPRINT_VERSION,
+} from './shared/policy-rule-fingerprint';
+export type {
+	EuropePolicyRuleMode,
+	PolicyRulePresets,
+	RecommendedPolicyRulesOptions,
+} from './shared/policy-rule-presets';
+export {
+	policyRulePresets,
+	recommendedPolicyRules,
+} from './shared/policy-rule-presets';
 export type {
 	PolicyI18nMessageProfileLike,
 	PolicyI18nValidationOptions,
@@ -108,39 +306,17 @@ export type {
 } from './shared/policy-i18n-validation';
 export { validatePolicyI18nConfig } from './shared/policy-i18n-validation';
 export type {
-	EuropePolicyMode,
-	PolicyPackPresets,
-} from './shared/policy-pack-defaults';
-export { policyPackPresets } from './shared/policy-pack-defaults';
-export type {
-	FingerprintHashStrategy,
-	PolicyConfig,
 	PolicyMatch,
 	PolicyMatchedBy,
 	PolicyModel,
-	PolicyPack,
 	PolicyScopeMode,
-	PolicyUiAction,
-	PolicyUiActionDirection,
-	PolicyUiActionGroup,
-	PolicyUiMode,
-	PolicyUiProfile,
-	PolicyUiSurfaceConfig,
 	PolicyValidationResult,
-	ResolvedPolicyDecision,
-	ResolvedPolicyMatch,
 } from './shared/policy-runtime';
-export {
-	EEA_COUNTRY_CODES,
-	EU_COUNTRY_CODES,
-	inspectPolicies,
-	POLICY_MATCH_DATASET_VERSION,
-	policyMatchers,
-	resolvePolicyDecision,
-	resolvePolicySync,
-	UK_COUNTRY_CODES,
-	validatePolicies,
-} from './shared/policy-runtime';
-
 // Re-export constants for runtime checks (no Zod involved)
-export { brandingValues, jurisdictionCodes };
+export { brandingValues, hostingValues };
+
+export type {
+	LegacyMaterialCompatibility,
+	LegacyMaterialPolicyInput,
+	LegacyMaterialSurfaceInput,
+} from './shared/legacy-material-policy';

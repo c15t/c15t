@@ -1,0 +1,31 @@
+---
+import ConsentBanner from 'c15t/astro/components/consent-banner.astro';
+import ConsentDialog from 'c15t/astro/components/consent-dialog.astro';
+import ConsentScript from 'c15t/astro/components/consent-script.astro';
+
+import '../styles/global.css';
+---
+
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta
+			content="width=device-width, initial-scale=1"
+			name="viewport"
+		/>
+		<title>c15t + Tailwind: Astro</title>
+		<ConsentScript />
+	</head>
+	<body>
+		<p
+			class="bg-emerald-600 text-white"
+			data-testid="tailwind-probe"
+		>
+			Tailwind utilities are active on this page.
+		</p>
+		<!-- #region docs:slot -->
+		<ConsentBanner class="!p-[7px] dark:!p-[11px]" />
+		<!-- #endregion docs:slot -->
+		<ConsentDialog />
+	</body>
+</html>

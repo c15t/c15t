@@ -1,27 +1,53 @@
 ---
 title: ConsentDialogLink
-description: An inline trigger for opening the consent dialog from footers, legal pages, and account settings.
+description: Add a ConsentDialogLink to a React footer so visitors reopen the c15t preference center from your own text link, with asChild and rights data.
 group: frameworks
 ---
 
-<import src="../../../shared/react/components/consent-dialog-link.mdx#intro" />
+## Reopen the preference center from your footer
 
-## Basic Usage
+`ConsentDialogLink` is an unstyled button that opens the consent dialog.
+Put it where your site already keeps its legal links, so preferences stay
+reachable after the banner closes. It needs a mounted `ConsentDialog` in the
+same `ConsentProvider`; the [quickstart](../quickstart) mounts both.
 
-```tsx
-import { ConsentDialogLink } from '@c15t/react/components/consent-dialog-link';
+```tsx title="src/site-footer.tsx"
+import { ConsentDialogLink } from 'c15t/react';
 
 export function SiteFooter() {
-  return (
-    <footer>
-      <ConsentDialogLink>
-        Your privacy settings
-      </ConsentDialogLink>
-    </footer>
-  );
+	return (
+		<footer>
+			<nav aria-label="Legal">
+				<a href="/privacy">Privacy policy</a>
+				<a href="/terms">Terms</a>
+				<ConsentDialogLink className="footer-link">
+					Privacy settings
+				</ConsentDialogLink>
+			</nav>
+		</footer>
+	);
 }
 ```
 
-<import src="../../../shared/react/components/consent-dialog-link.mdx#customization" />
+Render `SiteFooter` inside the `Consent` wrapper from your quickstart so the
+link can reach the provider. It renders a `button`, so the CSS for
+`.footer-link` should reset button chrome if your footer styles target
+anchors only.
+
+To reuse an existing link component, pass `asChild`:
+
+```tsx
+<ConsentDialogLink asChild>
+	<a href="#cookie-preferences">Manage cookies</a>
+</ConsentDialogLink>;
+```
 
 <import src="../../../shared/react/components/consent-dialog-link.mdx#props" />
+
+<import src="../../../shared/react/components/consent-dialog-link.mdx#behavior" />
+
+`ConsentDialogTrigger` has its own page: [ConsentDialogTrigger](./consent-dialog-trigger).
+
+<import src="../../../shared/react/components/consent-dialog-link.mdx#accessibility" />
+
+<import src="../../../shared/react/components/consent-dialog-link.mdx#verify" />

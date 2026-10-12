@@ -41,52 +41,56 @@ const memoryCache = new Map<string, CacheEntry>();
  *
  * @public
  */
-export function createMemoryCacheAdapter(): CacheAdapter {
-	return {
-		async get<T>(key: string): Promise<T | null> {
-			const entry = memoryCache.get(key);
-
-			if (!entry) {
-				return null;
-			}
-
-			// Check if entry has expired (lazy expiration)
-			if (Date.now() > entry.expiresAt) {
+export const createMemoryCacheAdapter =
+	function createMemoryCacheAdapter(): CacheAdapter {
+		return {
+			delete(key: string): Promise<void> {
 				memoryCache.delete(key);
-				return null;
-			}
+				return Promise.resolve();
+			},
 
-			return entry.value as T;
-		},
+			get<T>(key: string): Promise<T | null> {
+				const entry = memoryCache.get(key);
 
-		async set<T>(key: string, value: T, ttlMs = MEMORY_TTL_MS): Promise<void> {
-			memoryCache.set(key, {
-				value,
-				expiresAt: Date.now() + ttlMs,
-			});
-		},
+				if (!entry) {
+					return Promise.resolve(null);
+				}
 
-		async delete(key: string): Promise<void> {
-			memoryCache.delete(key);
-		},
+				// Check if entry has expired (lazy expiration)
+				if (Date.now() > entry.expiresAt) {
+					memoryCache.delete(key);
+					return Promise.resolve(null);
+				}
 
-		async has(key: string): Promise<boolean> {
-			const entry = memoryCache.get(key);
+				return Promise.resolve(entry.value as T);
+			},
 
-			if (!entry) {
-				return false;
-			}
+			has(key: string): Promise<boolean> {
+				const entry = memoryCache.get(key);
 
-			// Check if entry has expired
-			if (Date.now() > entry.expiresAt) {
-				memoryCache.delete(key);
-				return false;
-			}
+				if (!entry) {
+					return Promise.resolve(false);
+				}
 
-			return true;
-		},
+				// Check if entry has expired
+				if (Date.now() > entry.expiresAt) {
+					memoryCache.delete(key);
+					return Promise.resolve(false);
+				}
+
+				return Promise.resolve(true);
+			},
+
+			set<T>(key: string, value: T, ttlMs = MEMORY_TTL_MS): Promise<void> {
+				memoryCache.set(key, {
+					expiresAt: Date.now() + ttlMs,
+
+					value,
+				});
+				return Promise.resolve();
+			},
+		};
 	};
-}
 
 /**
  * Clears the entire in-memory cache.
@@ -94,9 +98,9 @@ export function createMemoryCacheAdapter(): CacheAdapter {
  *
  * @public
  */
-export function clearMemoryCache(): void {
+export const clearMemoryCache = function clearMemoryCache(): void {
 	memoryCache.clear();
-}
+};
 
 /**
  * Gets the current size of the in-memory cache.
@@ -106,6 +110,6 @@ export function clearMemoryCache(): void {
  *
  * @public
  */
-export function getMemoryCacheSize(): number {
+export const getMemoryCacheSize = function getMemoryCacheSize(): number {
 	return memoryCache.size;
-}
+};
