@@ -1,8 +1,5 @@
 c15t:release:
   - branch: v3
-    id: npm:c15t
-    version: 3.0.0-alpha.12
-  - branch: v3
     id: npm:@c15t/nextjs
     version: 3.0.0-alpha.12
   - branch: v3
@@ -13,7 +10,7 @@ c15t:release:
     version: 3.0.0-alpha.12
   - branch: v3
     id: npm:@c15t/cli
-    version: 3.0.0-alpha.12
+    version: 3.0.0-alpha.13
   - branch: v3
     id: npm:@c15t/tanstack-start
     version: 3.0.0-alpha.12
@@ -59,31 +56,26 @@ c15t:release:
   - branch: v3
     id: npm:@c15t/dev-tools
     version: 3.0.0-alpha.11
+  - branch: v3
+    id: npm:c15t
+    version: 3.0.0-alpha.12
 core:changelogs:
-  - content: "---\npackages:\n  \"@c15t/ui\":\n    type: minor\n  \"@c15t/react\":\n    type: patch\n  \"@c15t/nextjs\":\n    type: patch\n  \"@c15t/tanstack-start\":\n    type: patch\n  \"@c15t/browser\":\n    type: patch\n  c15t:\n    type: patch\n---\n\n### Let clicks through the banner's empty space and lower its z-index\n\nA non-blocking banner no longer swallows clicks outside its card. The padding around a floating card and the strip beside the \"Secured by\" tag on a bar were part of the banner's fixed box, so page links and buttons under them did nothing. Clicks there now reach the page. The card and tag still take clicks, and a blocking banner still catches all of them.\n\nSet `--consent-banner-z-index` and `--consent-banner-overlay-z-index` to put a navbar, drawer or chat widget above the banner. The IAB banner takes `--iab-consent-banner-z-index` and `--iab-consent-banner-overlay-z-index`. Defaults are unchanged.\n\nA top bar now pads its card by `env(safe-area-inset-top)`, as a bottom bar already did for the bottom inset, so its content clears the notch on pages that set `viewport-fit=cover`.\n"
-    filename: 2026-10-11-banner-click-through-and-stacking.md
+  - content: "---\npackages:\n  \"@c15t/cli\":\n    type: patch\n---\n\n### Name the CLI's release line in the packages-to-c15t warning\n\nWhen `package.json` lists `@c15t/react` or `@c15t/nextjs` without c15t 3, the `packages-to-c15t` warning now tells you to install `c15t` from the CLI's release line, such as `c15t@3`, instead of always naming `c15t@alpha`.\n"
+    filename: 2026-10-12-codemod-release-line-hint.md
     v: 0.0.0
 core:packages:
-  - changelogIds:
-      - 2026-10-11-banner-click-through-and-stacking.md
-    id: npm:c15t
-    updated: true
-  - changelogIds:
-      - 2026-10-11-banner-click-through-and-stacking.md
-    id: npm:@c15t/nextjs
-    updated: true
+  - id: npm:@c15t/nextjs
+    updated: false
   - id: npm:@c15t/schema
     updated: false
+  - id: npm:@c15t/react
+    updated: false
   - changelogIds:
-      - 2026-10-11-banner-click-through-and-stacking.md
-    id: npm:@c15t/react
+      - 2026-10-12-codemod-release-line-hint.md
+    id: npm:@c15t/cli
     updated: true
-  - id: npm:@c15t/cli
-    updated: true
-  - changelogIds:
-      - 2026-10-11-banner-click-through-and-stacking.md
-    id: npm:@c15t/tanstack-start
-    updated: true
+  - id: npm:@c15t/tanstack-start
+    updated: false
   - id: npm:@c15t/core
     updated: false
   - id: npm:@c15t/translations
@@ -91,34 +83,30 @@ core:packages:
   - id: npm:@c15t/scripts
     updated: false
   - id: npm:@c15t/svelte
-    updated: true
+    updated: false
   - id: npm:@c15t/node-sdk
     updated: false
   - id: npm:@c15t/astro
-    updated: true
-  - changelogIds:
-      - 2026-10-11-banner-click-through-and-stacking.md
-    id: npm:@c15t/ui
-    updated: true
-  - changelogIds:
-      - 2026-10-11-banner-click-through-and-stacking.md
-    id: npm:@c15t/browser
-    updated: true
+    updated: false
+  - id: npm:@c15t/ui
+    updated: false
+  - id: npm:@c15t/browser
+    updated: false
   - id: npm:@c15t/iab
     updated: false
   - id: npm:@c15t/vue
-    updated: true
+    updated: false
   - id: npm:@c15t/logger
     updated: false
   - id: npm:@c15t/backend
-    updated: true
+    updated: false
   - id: npm:@c15t/integrations
     updated: false
   - id: npm:@c15t/dev-tools
     updated: false
+  - id: npm:c15t
+    updated: false
 npm:packages:
-  - distTag: alpha
-    id: npm:c15t
   - distTag: alpha
     id: npm:@c15t/nextjs
   - distTag: alpha
@@ -141,6 +129,8 @@ npm:packages:
     id: npm:@c15t/integrations
   - distTag: alpha
     id: npm:@c15t/dev-tools
+  - distTag: alpha
+    id: npm:c15t
   - distTag: alpha
     id: npm:@c15t/schema
   - distTag: alpha
