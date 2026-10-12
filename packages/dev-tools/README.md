@@ -40,7 +40,7 @@ c15t is used by [2,100+ sites](https://www.wappalyzer.com/technologies/cookie-co
 Framework adapters include this engine, so React, Next.js, Vue, and Svelte applications do not need to install it separately. Install it directly only for the imperative API:
 
 ```bash
-pnpm add -D @c15t/dev-tools
+pnpm add -D @c15t/dev-tools@alpha
 ```
 
 ## Usage

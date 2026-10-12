@@ -16,7 +16,7 @@
 	],
 	"manualInstallation": [
 		"",
-		"```bash\npnpm add @c15t/svelte\n```",
+		"```bash\npnpm add @c15t/svelte@alpha\n```",
 		"",
 		"`@c15t/svelte` is not part of the `c15t` package. Install it on its own.",
 		"",

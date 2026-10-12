@@ -40,7 +40,7 @@ c15t is used by [2,100+ sites](https://www.wappalyzer.com/technologies/cookie-co
 ## Installation
 
 ```bash
-pnpm add @c15t/backend @effect/sql-sqlite-node
+pnpm add @c15t/backend@alpha @effect/sql-sqlite-node
 ```
 
 Install the driver version that the backend lists as a peer dependency. Do not want to run a database? [Inth](https://inth.com) runs this backend for you.
@@ -60,7 +60,7 @@ export default defineConfig({
 })
 ```
 
-2. Create the schema: `npx @c15t/cli self-host migrate --config ./c15t-backend.config.ts --plan`, then run it again with `--apply`
+2. Create the schema: `npx @c15t/cli@alpha self-host migrate --config ./c15t-backend.config.ts --plan`, then run it again with `--apply`
 3. Mount the handler on a catch-all route for `GET`, `POST`, `PUT`, `PATCH`, and `OPTIONS`
 
 ```ts

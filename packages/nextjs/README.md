@@ -25,7 +25,7 @@ c15t is used by [2,100+ sites](https://www.wappalyzer.com/technologies/cookie-co
 ## Key Features
 
 - Works with Next.js 15 and 16, on the App Router and the Pages Router
-- The server resolves each visitor's policy, so the banner is in the first HTML and does not appear late
+- On dynamic pages, the server resolves each visitor's policy and sends it in the same response. Await `resolveConsent()` to put the banner in the first HTML
 - Your policy downloads at build time with `withConsentManifest`, so rendering never waits on the consent backend
 - Prebuilt cookie banner, consent dialog, and preference center with a theme system
 - Headless hooks for a fully custom design
@@ -43,7 +43,7 @@ c15t is used by [2,100+ sites](https://www.wappalyzer.com/technologies/cookie-co
 ## Installation
 
 ```bash
-pnpm add @c15t/nextjs
+pnpm add @c15t/nextjs@alpha
 ```
 
 Then add the prebuilt stylesheet to your app-level CSS entry point:

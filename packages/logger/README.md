@@ -34,7 +34,7 @@ c15t is used by [2,100+ sites](https://www.wappalyzer.com/technologies/cookie-co
 ## Installation
 
 ```bash
-pnpm add @c15t/logger
+pnpm add @c15t/logger@alpha
 ```
 
 ## Documentation

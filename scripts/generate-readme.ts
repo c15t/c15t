@@ -271,10 +271,10 @@ Easiest setup with @c15t/cli:
 
 \`\`\`bash
 # Set up c15t in your project
-pnpm dlx @c15t/cli setup
+pnpm dlx @c15t/cli@alpha setup
 # Alternatives:
-# npx @c15t/cli setup
-# bunx --bun @c15t/cli setup
+# npx @c15t/cli@alpha setup
+# bunx --bun @c15t/cli@alpha setup
 \`\`\`
 
 The CLI will:

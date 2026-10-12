@@ -41,10 +41,10 @@ c15t is used by [2,100+ sites](https://www.wappalyzer.com/technologies/cookie-co
 ## Installation
 
 ```bash
-pnpm add c15t
+pnpm add c15t@alpha
 ```
 
-The `c15t` package re-exports this package at `c15t/vue`, and the docs use that path. To install this package on its own, run `pnpm add @c15t/vue` and import from `@c15t/vue` instead.
+The `c15t` package re-exports this package at `c15t/vue`, and the docs use that path. To install this package on its own, run `pnpm add @c15t/vue@alpha` and import from `@c15t/vue` instead.
 
 ## Usage
 

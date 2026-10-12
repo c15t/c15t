@@ -9,7 +9,7 @@
 		"Console redirection functionality",
 		"Lightweight with minimal dependencies"
 	],
-	"installation": ["```bash", "pnpm add @c15t/logger", "```"],
+	"installation": ["```bash", "pnpm add @c15t/logger@alpha", "```"],
 	"docsLink": "https://c15t.com/",
 	"showCLIGeneration": false,
 	"customSections": {

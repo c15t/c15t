@@ -16,14 +16,14 @@
 	],
 	"manualInstallation": [
 		"",
-		"```bash\npnpm add @c15t/backend @effect/sql-sqlite-node\n```",
+		"```bash\npnpm add @c15t/backend@alpha @effect/sql-sqlite-node\n```",
 		"",
 		"Install the driver version that the backend lists as a peer dependency. Do not want to run a database? [Inth](https://inth.com) runs this backend for you."
 	],
 	"usage": [
 		"Create `c15t-backend.config.ts` with your database, trusted origins, and policy rules",
 		"```ts\n// c15t-backend.config.ts\nimport { defineConfig, policyRulePresets } from '@c15t/backend'\n\nexport default defineConfig({\n  database: { dialect: 'sqlite', filename: './consent.db' },\n  trustedOrigins: ['localhost'],\n  manifest: { policyRules: [policyRulePresets.europeOptIn()] },\n})\n```",
-		"Create the schema: `npx @c15t/cli self-host migrate --config ./c15t-backend.config.ts --plan`, then run it again with `--apply`",
+		"Create the schema: `npx @c15t/cli@alpha self-host migrate --config ./c15t-backend.config.ts --plan`, then run it again with `--apply`",
 		"Mount the handler on a catch-all route for `GET`, `POST`, `PUT`, `PATCH`, and `OPTIONS`",
 		"```ts\n// app/api/c15t/[[...path]]/route.ts (Next.js)\nimport { c15tInstance } from '@c15t/backend'\n\nimport config from '../../../../c15t-backend.config'\n\nexport const runtime = 'nodejs'\nconst backend = c15tInstance({ ...config, basePath: '/api/c15t' })\n\nexport const GET = (request: Request) => backend.handler(request)\nexport const POST = GET\nexport const PUT = GET\nexport const PATCH = GET\nexport const OPTIONS = GET\n```",
 		"Point your frontend at the backend URL, such as `https://app.example.com/api/c15t`, where the quickstart asks for the Inth URL",

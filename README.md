@@ -27,7 +27,7 @@ c15t is used by [2,100+ sites](https://www.wappalyzer.com/technologies/cookie-co
 - **Consent lives in your code.** The banner ships in your bundle and renders with your app, not from a third-party snippet that loads after your page.
 - **Analytics, ads, and pixels follow each visitor's choice.** Ready-made loaders cover 40+ vendors, such as Google Tag Manager, GA4, Meta Pixel, and PostHog.
 - **One setup for every region.** Policies decide who sees a banner: opt-in for visitors in the EU, opt-out for some US states, or rules that you write.
-- **On server-rendered pages, the banner is in the first HTML.** Next.js, Nuxt, Astro, TanStack Start, and SvelteKit resolve the policy on the server, so the banner does not appear late.
+- **Server-rendered pages can ship the banner in the first HTML.** Next.js, Nuxt, Astro, TanStack Start, and SvelteKit resolve each visitor's policy on the server, so the banner does not wait for a request from the browser.
 - **Standards built in:** Google Consent Mode v2, IAB TCF 2.4, IAB GPP, and Global Privacy Control.
 - **Your design or ours.** Use the prebuilt components with a theme system, or build your own UI on headless hooks and composables.
 - **Your data where you want it.** Keep consent records on Inth, on a backend you run, or in the browser only.
@@ -36,15 +36,15 @@ c15t is used by [2,100+ sites](https://www.wappalyzer.com/technologies/cookie-co
 
 | Framework | Install | Import from | Quickstart |
 | --- | --- | --- | --- |
-| React 18 and 19 (Vite, React Router) | `c15t` | `c15t/react` | [React](https://c15t.com/docs/frameworks/react/quickstart) |
-| Next.js 15 and 16 (App Router, Pages Router) | `c15t` | `c15t/next` | [Next.js](https://c15t.com/docs/frameworks/next/quickstart) |
-| Vue 3 | `c15t` | `c15t/vue/vue-plugin` | [Vue](https://c15t.com/docs/frameworks/vue/quickstart) |
-| Nuxt 3 and 4 | `c15t` | `c15t/vue` (Nuxt module) | [Nuxt](https://c15t.com/docs/frameworks/nuxt/quickstart) |
-| Astro 5, 6, and 7 | `c15t` | `c15t/astro` | [Astro](https://c15t.com/docs/frameworks/astro/quickstart) |
-| TanStack Start | `c15t` | `c15t/tanstack-start` | [TanStack Start](https://c15t.com/docs/frameworks/tanstack-start/quickstart) |
-| Svelte 5 and SvelteKit | `@c15t/svelte` | `@c15t/svelte` | [Svelte](https://c15t.com/docs/frameworks/svelte/quickstart), [SvelteKit](https://c15t.com/docs/frameworks/sveltekit/quickstart) |
-| JavaScript, headless | `c15t` | `c15t`, `c15t/runtime` | [Headless runtime](https://c15t.com/docs/frameworks/javascript/headless) |
-| Script tag, no build step (Webflow, WordPress, Framer, Squarespace) | `@c15t/browser` | `<script>` from a CDN | [HTML](https://c15t.com/docs/frameworks/html/quickstart) |
+| React 18 and 19 (Vite, React Router) | `c15t@alpha` | `c15t/react` | [React](https://c15t.com/docs/frameworks/react/quickstart) |
+| Next.js 15 and 16 (App Router, Pages Router) | `c15t@alpha` | `c15t/next` | [Next.js](https://c15t.com/docs/frameworks/next/quickstart) |
+| Vue 3 | `c15t@alpha` | `c15t/vue/vue-plugin` | [Vue](https://c15t.com/docs/frameworks/vue/quickstart) |
+| Nuxt 3 and 4 | `c15t@alpha` | `c15t/vue` (Nuxt module) | [Nuxt](https://c15t.com/docs/frameworks/nuxt/quickstart) |
+| Astro 5, 6, and 7 | `c15t@alpha` | `c15t/astro` | [Astro](https://c15t.com/docs/frameworks/astro/quickstart) |
+| TanStack Start | `c15t@alpha` | `c15t/tanstack-start` | [TanStack Start](https://c15t.com/docs/frameworks/tanstack-start/quickstart) |
+| Svelte 5 and SvelteKit | `@c15t/svelte@alpha` | `@c15t/svelte` | [Svelte](https://c15t.com/docs/frameworks/svelte/quickstart), [SvelteKit](https://c15t.com/docs/frameworks/sveltekit/quickstart) |
+| JavaScript, headless | `c15t@alpha` | `c15t`, `c15t/runtime` | [Headless runtime](https://c15t.com/docs/frameworks/javascript/headless) |
+| Script tag, no build step (Webflow, WordPress, Framer, Squarespace) | `@c15t/browser@alpha` | `<script>` from a CDN | [HTML](https://c15t.com/docs/frameworks/html/quickstart) |
 
 ## Hosting
 
@@ -58,7 +58,13 @@ The frontend code is the same for Inth and a self-hosted backend. Only the backe
 
 ## Example
 
-A Next.js App Router app with the prebuilt banner, the preference dialog, and PostHog held until the visitor allows measurement. Set `NEXT_PUBLIC_C15T_BACKEND_URL` to your Inth backend URL in `.env.local`, then add three files:
+A Next.js App Router app with the prebuilt banner, the preference dialog, and PostHog held until the visitor allows measurement. Install c15t and the vendor loaders:
+
+```bash
+pnpm add c15t@alpha @c15t/integrations@alpha
+```
+
+Set `NEXT_PUBLIC_C15T_BACKEND_URL` to your Inth backend URL in `.env.local`, then add three files:
 
 ```ts
 // next.config.ts
@@ -119,7 +125,7 @@ const RootLayout = ({ children }: { children: ReactNode }) => (
 export default RootLayout
 ```
 
-The layout stays a Server Component. You write no `'use client'` wrapper and import no stylesheet. The [Next.js quickstart](https://c15t.com/docs/frameworks/next/quickstart) walks through each file. The quickstart for each other framework has the same example.
+The layout stays a Server Component. You write no `'use client'` wrapper and need no c15t stylesheet import. The [Next.js quickstart](https://c15t.com/docs/frameworks/next/quickstart) walks through each file. The quickstart for each other framework has the same example.
 
 ## Integrations
 

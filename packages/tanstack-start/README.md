@@ -45,7 +45,7 @@ c15t is used by [2,100+ sites](https://www.wappalyzer.com/technologies/cookie-co
 ## Installation
 
 ```bash
-pnpm add @c15t/tanstack-start
+pnpm add @c15t/tanstack-start@alpha
 ```
 
 Then add the prebuilt stylesheet to your app-level CSS entry point:

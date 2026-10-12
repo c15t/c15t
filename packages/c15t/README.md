@@ -27,7 +27,7 @@ c15t is used by [2,100+ sites](https://www.wappalyzer.com/technologies/cookie-co
 - One install for every framework: `c15t` brings the consent engine and the React, Next.js, Vue, Nuxt, Astro, and TanStack Start adapters, always at the same version
 - Analytics, ads, pixels, and embeds follow each visitor's choice. Ready-made loaders cover 40+ vendors, such as Google Tag Manager, GA4, Meta Pixel, and PostHog
 - Policies decide who sees a banner: opt-in for visitors in the EU, opt-out for some US states, or rules that you write
-- On server-rendered Next.js, Nuxt, Astro, and TanStack Start pages, the banner is in the first HTML, so it does not appear late
+- On server-rendered Next.js, Nuxt, Astro, and TanStack Start pages, the server resolves each visitor's policy and can send the banner in the first HTML
 - Google Consent Mode v2, IAB TCF 2.4, and Global Privacy Control support
 - Prebuilt components with a theme system, or headless hooks and composables for your own design
 - Framework peer dependencies are optional, so a plain JavaScript project does not install React, Vue, or Astro
@@ -66,16 +66,17 @@ The frontend code is the same for Inth and a self-hosted backend. Only the backe
 ## Installation
 
 ```bash
-pnpm add c15t
+pnpm add c15t@alpha @c15t/integrations@alpha
 ```
+
+`@c15t/integrations` has the vendor loaders, such as PostHog in the example below. Leave it out if you load no third-party scripts.
 
 Then follow the quickstart for your framework in [Supported Frameworks](#supported-frameworks). Each subpath is the same code as its scoped package, so `c15t/react` and `@c15t/react` are interchangeable.
 
 ## Usage
 
-1. Set your Inth backend URL. In a Vite app, use `VITE_C15T_BACKEND_URL`
-2. Wrap your app in `ConsentProvider` and add the banner, the dialog, and a link that opens the dialog again
-3. Add vendor loaders to `scripts` so each one waits for its consent category
+1. Wrap your app in `ConsentProvider` with the backend URL from your Inth project, and add the banner, the dialog, and a link that opens the dialog again
+2. Add vendor loaders to `scripts` so each one waits for its consent category
 
 ```tsx
 // src/consent.tsx (React)
@@ -92,7 +93,7 @@ import type { ReactNode } from 'react'
 import 'c15t/react/styles.css'
 
 const options = {
-  mode: hosted(), // reads VITE_C15T_BACKEND_URL
+  mode: hosted({ backendURL: 'https://your-project.inth.app' }),
   scripts: [posthog({ id: 'phc_your_project_key', loadMode: 'after-consent' })],
 }
 

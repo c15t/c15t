@@ -33,7 +33,7 @@ c15t is used by [2,100+ sites](https://www.wappalyzer.com/technologies/cookie-co
 Most apps get this package through `c15t`, `@c15t/backend`, or `@c15t/node-sdk`. Install it directly to validate consent API payloads in your own code:
 
 ```bash
-pnpm add @c15t/schema
+pnpm add @c15t/schema@alpha
 ```
 
 ## Documentation
