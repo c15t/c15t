@@ -1,0 +1,129 @@
+import { describe, expect, it } from 'vitest';
+
+import {
+	createCallbackInfo,
+	expectScriptMatchesIntegration,
+	getTestGlobal,
+	grantedMeasurementConsentState,
+	setupScriptHelperTest,
+	toArgumentsArray,
+} from '../../__tests__/helpers';
+import { clarity } from './microsoft-clarity';
+import type { ClarityConsentV2Payload } from './microsoft-clarity';
+
+const consentv2Call = (payload: ClarityConsentV2Payload) =>
+	toArgumentsArray(['consentv2', payload]);
+
+describe('microsoft-clarity', () => {
+	setupScriptHelperTest();
+
+	it('matches registry metadata with default loader URL', () => {
+		const script = clarity({ id: 'abcdef1234' });
+
+		expectScriptMatchesIntegration('microsoft-clarity', script, {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: true,
+			src: 'https://www.clarity.ms/tag/abcdef1234',
+		});
+	});
+
+	it('queues default consent on boot when provided', () => {
+		const globalRef = getTestGlobal();
+		const script = clarity({
+			defaultConsent: { ad_Storage: 'granted' },
+			id: 'abcdef1234',
+		});
+
+		script.onBeforeLoad?.(createCallbackInfo({ id: script.id }));
+
+		const stub = globalRef.clarity as
+			| (((...args: unknown[]) => void) & {
+					q?: unknown[][];
+			  })
+			| undefined;
+		expect(stub?.q).toEqual([
+			consentv2Call({
+				ad_Storage: 'granted',
+				analytics_Storage: 'denied',
+			}),
+		]);
+	});
+
+	it('maps consent updates to Clarity Consent V2 calls', () => {
+		const globalRef = getTestGlobal();
+		const script = clarity({ id: 'abcdef1234' });
+		const grantedMeasurementAndMarketingConsentState = {
+			...grantedMeasurementConsentState,
+			marketing: true,
+		};
+
+		script.onBeforeLoad?.(createCallbackInfo({ id: script.id }));
+		script.onConsentChange?.(
+			createCallbackInfo({
+				consents: grantedMeasurementConsentState,
+				hasConsent: true,
+				id: script.id,
+			})
+		);
+		script.onConsentChange?.(
+			createCallbackInfo({
+				consents: grantedMeasurementAndMarketingConsentState,
+				hasConsent: true,
+				id: script.id,
+			})
+		);
+		script.onConsentChange?.(
+			createCallbackInfo({
+				id: script.id,
+			})
+		);
+
+		const stub = globalRef.clarity as
+			| (((...args: unknown[]) => void) & { q?: unknown[][] })
+			| undefined;
+		expect(stub?.q).toEqual([
+			consentv2Call({
+				ad_Storage: 'denied',
+				analytics_Storage: 'denied',
+			}),
+			consentv2Call({
+				ad_Storage: 'denied',
+				analytics_Storage: 'granted',
+			}),
+			consentv2Call({
+				ad_Storage: 'granted',
+				analytics_Storage: 'granted',
+			}),
+			consentv2Call({
+				ad_Storage: 'denied',
+				analytics_Storage: 'denied',
+			}),
+		]);
+	});
+
+	it('denies every channel while the subject has the vendor turned off', () => {
+		const globalRef = getTestGlobal();
+		const script = clarity({ id: 'abcdef1234' });
+		script.onBeforeLoad?.(createCallbackInfo({ id: script.id }));
+		script.onConsentChange?.(
+			createCallbackInfo({
+				consents: {
+					experience: false,
+					functionality: false,
+					marketing: true,
+					measurement: true,
+					necessary: true,
+				},
+				hasConsent: false,
+				id: script.id,
+				vendor: { granted: false, id: 'microsoft-clarity' },
+			})
+		);
+		const stub = globalRef.clarity as
+			| (((...args: unknown[]) => void) & { q?: unknown[][] })
+			| undefined;
+		expect(stub?.q?.at(-1)).toEqual(
+			consentv2Call({ ad_Storage: 'denied', analytics_Storage: 'denied' })
+		);
+	});
+});

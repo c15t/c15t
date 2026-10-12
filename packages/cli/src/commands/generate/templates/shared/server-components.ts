@@ -18,46 +18,58 @@ interface GenerateServerComponentOptions {
 /**
  * Generates the server-side consent-manager index.tsx component template
  *
- * When SSR is enabled, the component calls fetchInitialData() to pre-fetch
- * consent data on the server and passes the promise to the client component.
- * When SSR is disabled, it simply wraps children with the client component.
+ * When SSR is enabled, the component starts resolving consent state on the
+ * server with `resolveConsent()` and passes the pending promise to the client
+ * component, so the page renders without waiting for consent. The generated
+ * file stays synchronous: awaiting there would hold the whole response until
+ * the backend answers. When SSR is disabled, it simply wraps children with
+ * the client component.
  *
  * @param options - Template generation options
- * @param options.enableSSR - Whether to include fetchInitialData for SSR
+ * @param options.enableSSR - Whether to call `resolveConsent()` for SSR
  * @param options.backendURLValue - The backend URL value (could be env var or literal)
  * @param options.framework - Framework-specific configuration
  * @returns The complete component file content
  */
-export function generateServerComponent({
+export const generateServerComponent = function generateServerComponent({
 	enableSSR,
 	backendURLValue,
 	framework,
 }: GenerateServerComponentOptions): string {
 	if (enableSSR) {
-		return `import { fetchInitialData } from '${framework.importSource}';
+		return `import { resolveConsent } from '${framework.importSource}/server';
 import type { ReactNode } from 'react';
-import ConsentManagerProvider from './provider';
+import ConsentManagerClient from './provider';
 
 /**
- * Server-side consent management wrapper with SSR data prefetching.
- * @see https://c15t.com/docs/frameworks/${framework.docsSlug}/quickstart
+ * Server-side consent management wrapper.
+ *
+ * Starts resolving this request's consent state and passes the pending result
+ * to the client provider without awaiting it, so the page renders without
+ * waiting for the consent backend. The banner follows the page in a later
+ * chunk of the same response, before hydration, once the state arrives.
+ *
+ * To send the page and the banner together instead, make this component
+ * async, await \`resolveConsent\`, and wrap <ConsentManager> in <Suspense> in
+ * your layout. The page then waits for consent before it is shown.
+ * @see https://c15t.com/docs/frameworks/${framework.docsSlug}/app-router
  */
 export function ConsentManager({ children }: { children: ReactNode }) {
-	const ssrData = fetchInitialData({
+	const state = resolveConsent({
 		backendURL: ${backendURLValue},
 	});
 
 	return (
-		<ConsentManagerProvider ssrData={ssrData}>
+		<ConsentManagerClient state={state}>
 			{children}
-		</ConsentManagerProvider>
+		</ConsentManagerClient>
 	);
 }
 `;
 	}
 
 	return `import type { ReactNode } from 'react';
-import ConsentManagerProvider from './provider';
+import ConsentManagerClient from './provider';
 
 /**
  * Consent management wrapper.
@@ -65,13 +77,13 @@ import ConsentManagerProvider from './provider';
  */
 export function ConsentManager({ children }: { children: ReactNode }) {
 	return (
-		<ConsentManagerProvider>
+		<ConsentManagerClient>
 			{children}
-		</ConsentManagerProvider>
+		</ConsentManagerClient>
 	);
 }
 `;
-}
+};
 
 /**
  * Generates a simple non-RSC wrapper component for React (no SSR)
@@ -80,19 +92,20 @@ export function ConsentManager({ children }: { children: ReactNode }) {
  * @param docsSlug - Docs URL slug (e.g. 'react')
  * @returns The complete wrapper file content
  */
-export function generateSimpleWrapperComponent(
-	_frameworkName: string,
-	docsSlug: string
-): string {
-	return `import type { ReactNode } from 'react';
-import ConsentManagerProvider from './provider';
+export const generateSimpleWrapperComponent =
+	function generateSimpleWrapperComponent(
+		_frameworkName: string,
+		docsSlug: string
+	): string {
+		return `import type { ReactNode } from 'react';
+import ConsentManagerClient from './provider';
 
 /**
  * Consent management wrapper.
  * @see https://c15t.com/docs/frameworks/${docsSlug}/quickstart
  */
 export function ConsentManager({ children }: { children: ReactNode }) {
-	return <ConsentManagerProvider>{children}</ConsentManagerProvider>;
+	return <ConsentManagerClient>{children}</ConsentManagerClient>;
 }
 `;
-}
+	};

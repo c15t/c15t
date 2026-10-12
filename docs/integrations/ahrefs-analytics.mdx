@@ -1,149 +1,51 @@
 ---
 title: Ahrefs Analytics
-description: Cookieless web analytics from Ahrefs with a prebuilt helper that wires the project key into a c15t-managed script.
-group: integrations
+description: Load Ahrefs Web Analytics only after measurement consent with the c15t ahrefsAnalytics helper, and check it in DevTools.
+seoTitle: Ahrefs Analytics cookie consent with c15t
+seoDescription: Load Ahrefs Web Analytics only with measurement consent. The c15t ahrefsAnalytics helper keeps analytics.js off the page until then.
 icon: ahrefs
+group: integrations
 ---
 
-Ahrefs Web Analytics is a cookieless analytics product configured with a single project key. The `ahrefsAnalytics()` helper wires that key into the `data-key` attribute that Ahrefs' loader reads at startup.
+The c15t `ahrefsAnalytics` helper keeps Ahrefs Web Analytics off the page until
+`measurement` has consent. Ahrefs says that its analytics sets no cookies, but
+c15t still does not load `analytics.js` before consent. The helper sends no
+consent signal to Ahrefs. If the visitor withdraws consent, c15t removes the
+script element. By default, c15t also reloads the page.
 
-## Integrate with c15t
+## Configure Ahrefs Analytics
 
-<Tabs items={['React', 'Next.js', 'JavaScript']}>
-  <Tab value="React">
-    ```tsx
-    import { type ReactNode } from 'react';
-    import { ConsentManagerProvider } from '@c15t/react';
-    import { ahrefsAnalytics } from '@c15t/scripts/ahrefs-analytics';
+Copy the project key from the Ahrefs installation snippet. The helper passes it
+to the analytics script as `data-key`.
 
-    const scripts = [
-      ahrefsAnalytics({
-        key: 'your-ahrefs-project-key',
-      }),
-    ];
+<CommandTabs command="@c15t/integrations" mode="install" />
 
-    export function ConsentProvider({ children }: { children: ReactNode }) {
-      return (
-        <ConsentManagerProvider
-          options={{
-            mode: 'hosted',
-            backendURL: 'https://your-instance.c15t.dev',
-            scripts,
-          }}
-        >
-          {children}
-        </ConsentManagerProvider>
-      );
-    }
-    ```
-  </Tab>
+```ts title="src/consent-scripts.ts"
+import { ahrefsAnalytics } from '@c15t/integrations/ahrefs-analytics';
 
-  <Tab value="Next.js">
-    ```tsx
-    'use client';
-
-    import { type ReactNode } from 'react';
-    import { ConsentManagerProvider } from '@c15t/nextjs';
-    import { ahrefsAnalytics } from '@c15t/scripts/ahrefs-analytics';
-
-    const scripts = [
-      ahrefsAnalytics({
-        key: 'your-ahrefs-project-key',
-      }),
-    ];
-
-    export function ConsentProvider({ children }: { children: ReactNode }) {
-      return (
-        <ConsentManagerProvider
-          options={{
-            mode: 'hosted',
-            backendURL: '/api/c15t',
-            scripts,
-          }}
-        >
-          {children}
-        </ConsentManagerProvider>
-      );
-    }
-    ```
-  </Tab>
-
-  <Tab value="JavaScript">
-    ```ts
-    import { getOrCreateConsentRuntime } from 'c15t';
-    import { ahrefsAnalytics } from '@c15t/scripts/ahrefs-analytics';
-
-    getOrCreateConsentRuntime({
-      mode: 'hosted',
-      backendURL: 'https://your-instance.c15t.dev',
-      scripts: [
-        ahrefsAnalytics({
-          key: 'your-ahrefs-project-key',
-        }),
-      ],
-    });
-    ```
-  </Tab>
-</Tabs>
-
-## How c15t loads it
-
-- **Category:** `measurement` (Analytics)
-- **Loads when:** measurement consent is granted
-- **On revocation:** unloaded — c15t removes the script element from the DOM. Ahrefs Web Analytics is cookieless, so no client-side state needs clearing.
-
-To run from a custom loader URL (for example a self-hosted proxy):
-
-```ts
-ahrefsAnalytics({
-  key: 'your-ahrefs-project-key',
-  scriptUrl: 'https://analytics.example.com/analytics.js',
-})
+export const scripts = [ahrefsAnalytics({ key: 'YOUR_PROJECT_KEY' })];
 ```
 
-Once loaded, Ahrefs exposes its runtime API on `window.AhrefsAnalytics`. The c15t helper only models the serializable script configuration — calls to `window.AhrefsAnalytics.sendEvent(...)` happen in your application code as needed.
+<include src="../shared/integrations/register-scripts.mdx" />
 
-## Tracking events in your app
+## Options
 
-c15t gates the Ahrefs Analytics script from loading until `measurement` consent is granted. Your application code that calls Ahrefs' runtime API (`window.AhrefsAnalytics.sendEvent`) is **not** automatically gated — `window.AhrefsAnalytics` does not exist until the script is loaded, so unguarded calls before consent throw.
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `key` | Required | Project key. Empty or whitespace-only values log an error and the script does not load. |
+| `scriptUrl` | `https://analytics.ahrefs.com/analytics.js` | Loader URL override. |
 
-Guard event calls by checking consent state. From React:
+## Loading and revocation
 
-```tsx
-import { useCallback } from 'react';
-import { useConsentManager } from '@c15t/react';
+`ahrefsAnalytics` uses the `measurement` category. The script loads only while
+measurement is allowed. On revocation the helper removes the script element and
+calls no Ahrefs API.
 
-function SignupExample() {
-  const { has } = useConsentManager();
+## Verify Ahrefs Analytics
 
-  const trackSignup = useCallback(() => {
-    if (has('measurement')) {
-      window.AhrefsAnalytics?.sendEvent('signup');
-    }
-  }, [has]);
+After you allow measurement, the `analytics.js` request appears and its script
+element carries your `data-key`. If your code calls
+`window.AhrefsAnalytics?.sendEvent`, check measurement permission before each
+call.
 
-  // Call trackSignup() from an event handler after signup succeeds.
-}
-```
-
-From plain JavaScript:
-
-```ts
-import { getOrCreateConsentRuntime } from 'c15t';
-
-const { consentStore } = getOrCreateConsentRuntime();
-
-if (consentStore.getState().has('measurement')) {
-  window.AhrefsAnalytics?.sendEvent('signup');
-}
-```
-
-## Types
-
-### AhrefsAnalyticsOptions
-
-<AutoTypeTable path="./packages/scripts/src/vendors/analytics/ahrefs-analytics.ts" name="AhrefsAnalyticsOptions" />
-
-### Script
-
-<AutoTypeTable path="./packages/core/src/libs/script-loader/types.ts" name="Script" />
+<include src="../shared/integrations/vendor-revocation-and-verify.mdx" />

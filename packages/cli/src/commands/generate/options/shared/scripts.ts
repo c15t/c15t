@@ -1,4 +1,5 @@
 import * as p from '@clack/prompts';
+
 import type { CliContext } from '~/context/types';
 
 interface GetScriptsToAddOptions {
@@ -6,17 +7,17 @@ interface GetScriptsToAddOptions {
 	handleCancel?: (value: unknown) => boolean;
 }
 
-export async function getScriptsToAdd({
+export const getScriptsToAdd = async function getScriptsToAdd({
 	context,
 	handleCancel,
 }: GetScriptsToAddOptions) {
 	context.logger.info(
-		'@c15t/scripts has various prebuilt scripts for you to use. Learn more: https://c15t.com/docs/integrations'
+		'@c15t/integrations has various prebuilt scripts for you to use. Learn more: https://c15t.com/docs/integrations/overview'
 	);
 
 	const addScriptsSelection = await p.confirm({
-		message: 'Do you want to add @c15t/scripts to your project?',
 		initialValue: true,
+		message: 'Do you want to add @c15t/integrations to your project?',
 	});
 
 	if (handleCancel?.(addScriptsSelection)) {
@@ -27,4 +28,4 @@ export async function getScriptsToAdd({
 	}
 
 	return addScriptsSelection;
-}
+};

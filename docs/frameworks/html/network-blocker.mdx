@@ -1,0 +1,105 @@
+---
+title: Network blocker
+description: Hold fetch and XMLHttpRequest calls from a plain HTML page until their consent category is allowed, with network blocker rules queued on the c15t script tag.
+group: frameworks
+---
+
+## When you need it
+
+Some code sends data with `fetch` or `XMLHttpRequest` from a place you cannot
+change into a `text/plain` tag, such as a theme's bundled script, a plugin, or your own
+code that runs before consent. A network blocker rule holds those requests
+until the rule's category is allowed. Script tags and iframes do not need it;
+gate those with [gated scripts](/docs/frameworks/html/components/gated-script)
+and [embeds](/docs/frameworks/html/embeds).
+
+## Add rules
+
+Queue a `config` call with `networkBlocker` before the script tag:
+
+{/* example: fragment */}
+
+```html
+<script>
+  window.c15t = window.c15t || [];
+  c15t.push(['config', {
+    networkBlocker: {
+      rules: [
+        { id: 'collector', domain: 'collect.example.com', category: 'measurement' },
+        {
+          id: 'events',
+          domain: 'example.com',
+          pathIncludes: '/api/track',
+          methods: ['POST'],
+          category: 'measurement',
+        },
+      ],
+      onRequestBlocked: ({ method, url, rule }) => {
+        console.info('c15t blocked', method, url, rule?.id);
+      },
+    },
+  }]);
+</script>
+```
+
+The first rule blocks every request to `collect.example.com` and its
+subdomains until measurement is allowed. The second blocks only POST requests
+to paths on `example.com` that contain `/api/track`.
+
+## Rule fields
+
+| Field | Required | What it does |
+| --- | --- | --- |
+| `domain` | Yes | The host to match. Subdomains match too: `example.com` covers `www.example.com`. |
+| `category` | Yes | The category that lets matching requests through. A condition such as `{ and: ['measurement', 'marketing'] }` works too. |
+| `pathIncludes` | No | Match only URLs whose path contains this text. |
+| `methods` | No | Match only these HTTP methods, such as `['POST']`. All methods when omitted. |
+| `id` | No | A name for the rule, shown in logs and passed to `onRequestBlocked`. |
+| `vendor` | No | Also block while the visitor has turned this vendor off. |
+| `vendorId`, `iabPurposes`, `iabLegIntPurposes`, `iabSpecialFeatures` | No | IAB TCF conditions, checked only under an IAB policy. |
+
+## Blocker options
+
+| Option | Default | What it does |
+| --- | --- | --- |
+| `rules` | required | The rules above. |
+| `enabled` | `true` | `false` keeps the configuration but blocks nothing. |
+| `logBlockedRequests` | `true` | Log each blocked request with `console.warn`. |
+| `onRequestBlocked` | none | Called with `{ method, url, rule }` for each blocked request. |
+
+## What a blocked request sees
+
+- A blocked `fetch` resolves with a `451` response. It does not reject, so
+  check `response.ok` in code that expects data.
+- A blocked `XMLHttpRequest` fires an `error` event.
+- A request sent before the policy resolves waits, then goes out or is
+  blocked once c15t knows the visitor's permissions. If the policy fails to
+  load, it is blocked.
+- A request that does not match any rule goes out at once.
+
+The rules' categories are added to the preference dialog, as they are for
+gated scripts.
+
+## What it cannot block
+
+The network blocker patches `fetch` and `XMLHttpRequest` after the script tag
+runs. It does not cover:
+
+- `navigator.sendBeacon`, WebSockets and `EventSource`;
+- requests from `<img>`, `<script>`, `<link>` and `<iframe>` elements;
+- requests sent before the c15t tag ran. With `defer`, the tag runs after the
+  page has parsed, so inline scripts anywhere in the page run before it;
+- requests from other frames and from service workers.
+
+Use gated tags for scripts and iframes. When inline code sends requests while
+the page parses, load the c15t tag without `defer` at the top of `<head>`, so
+it runs first. The banner still waits for the document to parse before it
+mounts.
+
+## Check it works
+
+1. Open the page in a private window with the console and Network tab open.
+2. Trigger the request, for example by loading the page that sends it. The
+   console shows `[c15t] blocked POST https://example.com/api/track (rule: events)`
+   and the Network tab shows no request.
+3. Allow measurement and trigger it again. The request goes out.

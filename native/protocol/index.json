@@ -1,0 +1,693 @@
+{
+	"clock": 1770000000000,
+	"count": 84,
+	"fixtures": [
+		{
+			"bytes": 6088,
+			"file": "evaluation-eu-opt-in.json",
+			"id": "evaluation-eu-opt-in",
+			"kind": "evaluation",
+			"protocolVersion": 1,
+			"sha256": "261b9cf3d156d199e1e04195c3e214f4c03abdeec8459f3031cb7d876f6972ba"
+		},
+		{
+			"bytes": 6019,
+			"file": "evaluation-us-ccpa-opt-out.json",
+			"id": "evaluation-us-ccpa-opt-out",
+			"kind": "evaluation",
+			"protocolVersion": 1,
+			"sha256": "c4ce3483840fc207849636e350d1a2800e7e7b2abb649aed16be61c854787b59"
+		},
+		{
+			"bytes": 4763,
+			"file": "evaluation-no-rule-matched.json",
+			"id": "evaluation-no-rule-matched",
+			"kind": "evaluation",
+			"protocolVersion": 1,
+			"sha256": "fa125174a7edce42757cb9296cb0f1a9586748870406d968e3ba6fcb03e83d9b"
+		},
+		{
+			"bytes": 6108,
+			"file": "evaluation-gpc-signal-present.json",
+			"id": "evaluation-gpc-signal-present",
+			"kind": "evaluation",
+			"protocolVersion": 1,
+			"sha256": "77842bf6f6acb49529353ac1068143d48c8f9222ace39cb8c2e8f3fe519ba51e"
+		},
+		{
+			"bytes": 5896,
+			"file": "evaluation-notice-pending.json",
+			"id": "evaluation-notice-pending",
+			"kind": "evaluation",
+			"protocolVersion": 1,
+			"sha256": "b105d0c5d748ee2c991d76d6f9083c8a16bdd3d27dcaf95334a226dd6eaf55f8"
+		},
+		{
+			"bytes": 8029,
+			"file": "evaluation-eu-explicit-grants.json",
+			"id": "evaluation-eu-explicit-grants",
+			"kind": "evaluation",
+			"protocolVersion": 1,
+			"sha256": "befbd313082952349ff13e4f57aaf1df833b398b7a86ead1129654986d4cb766"
+		},
+		{
+			"bytes": 7203,
+			"file": "evaluation-eu-partial-denials.json",
+			"id": "evaluation-eu-partial-denials",
+			"kind": "evaluation",
+			"protocolVersion": 1,
+			"sha256": "a5e9600fd92208f46148b6eb3a66b487609a4e953af02e21b9dc80d3eb276c9a"
+		},
+		{
+			"bytes": 6077,
+			"file": "evaluation-notice-dismissed.json",
+			"id": "evaluation-notice-dismissed",
+			"kind": "evaluation",
+			"protocolVersion": 1,
+			"sha256": "8cba6a775b075f87b18353a9615a9ac2a4bb7f990329bdbef154c5f3576358e5"
+		},
+		{
+			"bytes": 6043,
+			"file": "evaluation-narrow-permissive-no-receipt.json",
+			"id": "evaluation-narrow-permissive-no-receipt",
+			"kind": "evaluation",
+			"protocolVersion": 1,
+			"sha256": "6efacaa16a28cface082c63ecd8f8fe59630594bbc2bcaf9560183bae23b16c7"
+		},
+		{
+			"bytes": 7063,
+			"file": "evaluation-narrow-permissive-denial-opt-in.json",
+			"id": "evaluation-narrow-permissive-denial-opt-in",
+			"kind": "evaluation",
+			"protocolVersion": 1,
+			"sha256": "628402181f9f43d331b31eb9f09ffdb3be3bf8c90560dabda1ecd2b42e2a7d88"
+		},
+		{
+			"bytes": 7072,
+			"file": "evaluation-narrow-permissive-denial-opt-out.json",
+			"id": "evaluation-narrow-permissive-denial-opt-out",
+			"kind": "evaluation",
+			"protocolVersion": 1,
+			"sha256": "a1fb5b30a6b666833397587824a912b3e59a0abdffebb63cb11e6746ac87e0b2"
+		},
+		{
+			"bytes": 7077,
+			"file": "evaluation-narrow-strict-denial.json",
+			"id": "evaluation-narrow-strict-denial",
+			"kind": "evaluation",
+			"protocolVersion": 1,
+			"sha256": "ad4bcc2f51ba2b279b453ce6388dfc9fa808455b6c9cc233e566adfd97e28aa4"
+		},
+		{
+			"bytes": 7088,
+			"file": "evaluation-narrow-permissive-denial-expired.json",
+			"id": "evaluation-narrow-permissive-denial-expired",
+			"kind": "evaluation",
+			"protocolVersion": 1,
+			"sha256": "2ea8d0ecc6f17a4d0236b47b9c9c85705d7e60d367758e20386f57c126cd82d2"
+		},
+		{
+			"bytes": 8106,
+			"file": "evaluation-opt-in-grant-expired.json",
+			"id": "evaluation-opt-in-grant-expired",
+			"kind": "evaluation",
+			"protocolVersion": 1,
+			"sha256": "1e65eb2c545b752abe8a5007a4658c9591fbbedf2dd1c3665acb8533c36889a0"
+		},
+		{
+			"bytes": 6023,
+			"file": "evaluation-narrow-iab-no-receipt.json",
+			"id": "evaluation-narrow-iab-no-receipt",
+			"kind": "evaluation",
+			"protocolVersion": 1,
+			"sha256": "0d6951c49589d9eb244c82f2f375b056c78bb99c3f46ba683baa5ad7f1189e7b"
+		},
+		{
+			"bytes": 6977,
+			"file": "evaluation-narrow-iab-denial.json",
+			"id": "evaluation-narrow-iab-denial",
+			"kind": "evaluation",
+			"protocolVersion": 1,
+			"sha256": "d91ba5382534aa196e13b3d75201c29c7b4926b658a74e3b8e8743ddfbcf7711"
+		},
+		{
+			"bytes": 6151,
+			"file": "evaluation-gpc-under-opt-in-no-receipt.json",
+			"id": "evaluation-gpc-under-opt-in-no-receipt",
+			"kind": "evaluation",
+			"protocolVersion": 1,
+			"sha256": "42ed8e6f9952dec5aa1785b73b0bfe577dc51864625f3d318f0d3862775b15be"
+		},
+		{
+			"bytes": 7176,
+			"file": "evaluation-opt-out-denial-under-stale-policy.json",
+			"id": "evaluation-opt-out-denial-under-stale-policy",
+			"kind": "evaluation",
+			"protocolVersion": 1,
+			"sha256": "26f9ed8d7cf70db87961bb890d15619bdba2226bc158d3ad9e09ef133b7377f6"
+		},
+		{
+			"bytes": 7209,
+			"file": "evaluation-opt-out-grant-under-stale-policy.json",
+			"id": "evaluation-opt-out-grant-under-stale-policy",
+			"kind": "evaluation",
+			"protocolVersion": 1,
+			"sha256": "da7584fb87cd17650bc67f5aaa491181e8164b4e267ac54f5a7dffa16b96a15a"
+		},
+		{
+			"bytes": 6260,
+			"file": "evaluation-eu-fresh-install.json",
+			"id": "evaluation-eu-fresh-install",
+			"kind": "evaluation",
+			"protocolVersion": 1,
+			"sha256": "cad74a77d29ae4abc8a7b99b7a65343f450b9f127f09fb838c8dc5a9ca14fcdd"
+		},
+		{
+			"bytes": 6198,
+			"file": "evaluation-us-ccpa-fresh-install.json",
+			"id": "evaluation-us-ccpa-fresh-install",
+			"kind": "evaluation",
+			"protocolVersion": 1,
+			"sha256": "541943c2558f340ec205bde48dd8fd574981b3b1be45a7236fe877470a780267"
+		},
+		{
+			"bytes": 7046,
+			"file": "evaluation-necessary-only-pending.json",
+			"id": "evaluation-necessary-only-pending",
+			"kind": "evaluation",
+			"protocolVersion": 1,
+			"sha256": "2091b0a9815213f4cb42a1c04a4feae8e41f560521a59459e2ba963d75599fb0"
+		},
+		{
+			"bytes": 7200,
+			"file": "evaluation-necessary-only-acknowledged.json",
+			"id": "evaluation-necessary-only-acknowledged",
+			"kind": "evaluation",
+			"protocolVersion": 1,
+			"sha256": "ed6958d67a98360d6d44a7c443eef8f36199a4488845d017b64682035230bfa4"
+		},
+		{
+			"bytes": 7153,
+			"file": "evaluation-necessary-only-acknowledgement-expired.json",
+			"id": "evaluation-necessary-only-acknowledgement-expired",
+			"kind": "evaluation",
+			"protocolVersion": 1,
+			"sha256": "4402858dbb77d64208ef073302397dc3e1d110b9fa3ab616c844daad1e4e170c"
+		},
+		{
+			"bytes": 7187,
+			"file": "evaluation-necessary-only-policy-changed.json",
+			"id": "evaluation-necessary-only-policy-changed",
+			"kind": "evaluation",
+			"protocolVersion": 1,
+			"sha256": "e79bfda6e50d967a81b3da96a9c862be2c4d49dda34dbe9e2b911e2cf2667941"
+		},
+		{
+			"bytes": 8983,
+			"file": "evaluation-necessary-only-answered-by-decision.json",
+			"id": "evaluation-necessary-only-answered-by-decision",
+			"kind": "evaluation",
+			"protocolVersion": 1,
+			"sha256": "01524b1413dea6727299c736024019d20fb00a303f8ca88aeb251b77fd4ac839"
+		},
+		{
+			"bytes": 7121,
+			"file": "evaluation-nothing-declared-strict.json",
+			"id": "evaluation-nothing-declared-strict",
+			"kind": "evaluation",
+			"protocolVersion": 1,
+			"sha256": "77d6b97e6c55e23c2b86d7c492aa1db1a5fc8d6d1d48caa8c37419d9ebd34c26"
+		},
+		{
+			"bytes": 7129,
+			"file": "evaluation-nothing-declared-iab.json",
+			"id": "evaluation-nothing-declared-iab",
+			"kind": "evaluation",
+			"protocolVersion": 1,
+			"sha256": "a4618a8f03482676d5f0e3a82685c8615cbf4dfca20da75cf34f48caf1687ec9"
+		},
+		{
+			"bytes": 13076,
+			"file": "save-body-all.json",
+			"id": "save-body-all",
+			"kind": "save-body",
+			"protocolVersion": 1,
+			"sha256": "c8d5d4d5a1b9829a58c511d85c22cfff7bc3c1a3cbaad52ef60eaf306ceb9249"
+		},
+		{
+			"bytes": 13218,
+			"file": "save-body-necessary.json",
+			"id": "save-body-necessary",
+			"kind": "save-body",
+			"protocolVersion": 1,
+			"sha256": "1ce49cdd62c118b25b1f401ee44821606da058f248adae7b53a060a8f6319cc3"
+		},
+		{
+			"bytes": 11709,
+			"file": "save-body-explicit-partial.json",
+			"id": "save-body-explicit-partial",
+			"kind": "save-body",
+			"protocolVersion": 1,
+			"sha256": "f231eb486c0e9b88e2eee4c273aea4e4f90df6a9bd8aa00c6a78cc5fadcfdbea"
+		},
+		{
+			"bytes": 13176,
+			"file": "save-body-ccpa-gpc.json",
+			"id": "save-body-ccpa-gpc",
+			"kind": "save-body",
+			"protocolVersion": 1,
+			"sha256": "23f47e466e7df4d70253f2283f87bd72eca0b334325a93f46a494f6662cc0816"
+		},
+		{
+			"bytes": 11056,
+			"file": "save-body-necessary-only-all.json",
+			"id": "save-body-necessary-only-all",
+			"kind": "save-body",
+			"protocolVersion": 1,
+			"sha256": "18244e7a7cbf035e12dedef286a4a9282f7b0b1843c638e0c414deaf7d838a74"
+		},
+		{
+			"bytes": 10900,
+			"file": "save-body-necessary-only-necessary.json",
+			"id": "save-body-necessary-only-necessary",
+			"kind": "save-body",
+			"protocolVersion": 1,
+			"sha256": "50e63bda05cf001756d9284d479c4faa9ef281e22602ff41ba4d4e87ded06d67"
+		},
+		{
+			"bytes": 11734,
+			"file": "native-envelope-opt-in-grants.json",
+			"id": "native-envelope-opt-in-grants",
+			"kind": "native-envelope",
+			"protocolVersion": 1,
+			"sha256": "14428ad9c78767ff3d08643a6c23770b6cc7f10f1aea034b63406e01506f58b5"
+		},
+		{
+			"bytes": 11406,
+			"file": "native-envelope-partial-denials.json",
+			"id": "native-envelope-partial-denials",
+			"kind": "native-envelope",
+			"protocolVersion": 1,
+			"sha256": "72e201668acd146896abf70f90023f311ed81277b4f66fbbe3fd8ae821d4e7d5"
+		},
+		{
+			"bytes": 10615,
+			"file": "native-envelope-notice-dismissed.json",
+			"id": "native-envelope-notice-dismissed",
+			"kind": "native-envelope",
+			"protocolVersion": 1,
+			"sha256": "e844ae5d58928d7b435bb92646b83ecac3b29636a062263d3584a78397ff06d4"
+		},
+		{
+			"bytes": 11717,
+			"file": "native-envelope-opt-out-grants.json",
+			"id": "native-envelope-opt-out-grants",
+			"kind": "native-envelope",
+			"protocolVersion": 1,
+			"sha256": "7a3cd3fe6738e1b2bef248ecbc3c442ac9eed22cdaf267e5a539f0982b7d0e7c"
+		},
+		{
+			"bytes": 11747,
+			"file": "native-envelope-choice-acknowledged.json",
+			"id": "native-envelope-choice-acknowledged",
+			"kind": "native-envelope",
+			"protocolVersion": 1,
+			"sha256": "7873d4618ec52b3b853ab9cf7a78798ae7e6548f7a575a890e1d5671bd47a551"
+		},
+		{
+			"bytes": 9430,
+			"file": "native-envelope-unknown-field.json",
+			"id": "native-envelope-unknown-field",
+			"kind": "native-envelope",
+			"protocolVersion": 1,
+			"sha256": "17b635dca9230bb1ccce86f93c990d621ca1fd32c1bdc40a619a789e05eb7c54"
+		},
+		{
+			"bytes": 9366,
+			"file": "native-envelope-truncated-write.json",
+			"id": "native-envelope-truncated-write",
+			"kind": "native-envelope",
+			"protocolVersion": 1,
+			"sha256": "1b21ff04537a5b3c002874914b7a3f877ef51706dc87c0677873c7296c3e8e55"
+		},
+		{
+			"bytes": 9419,
+			"file": "native-envelope-pre-correction-shape.json",
+			"id": "native-envelope-pre-correction-shape",
+			"kind": "native-envelope",
+			"protocolVersion": 1,
+			"sha256": "2b323dbe31ca8993900c9fe7a935570acc453e86d802e0f09f29e7c08077a80d"
+		},
+		{
+			"bytes": 10278,
+			"file": "native-envelope-foreign-wire.json",
+			"id": "native-envelope-foreign-wire",
+			"kind": "native-envelope",
+			"protocolVersion": 1,
+			"sha256": "ebb00aab55556c0ee70fbe8a3af89bba12defc47c4055ee4af12810b2b83ba8a"
+		},
+		{
+			"bytes": 11497,
+			"file": "reset-consent-opt-in-grants.json",
+			"id": "reset-consent-opt-in-grants",
+			"kind": "reset-consent",
+			"protocolVersion": 1,
+			"sha256": "473dc506092f497185a6e0f916929b3bac4eb6c41ad91ce1883052e60b633659"
+		},
+		{
+			"bytes": 11582,
+			"file": "reset-consent-recorded-denial.json",
+			"id": "reset-consent-recorded-denial",
+			"kind": "reset-consent",
+			"protocolVersion": 1,
+			"sha256": "ab90fb490188e8686ae219ffec602e84e8490318421b505e04d925ef7db1bd40"
+		},
+		{
+			"bytes": 12922,
+			"file": "revision-trace-error-writes.json",
+			"id": "revision-trace-error-writes",
+			"kind": "revision-trace",
+			"protocolVersion": 1,
+			"sha256": "2dbf161b22719da5c8dfd8a782418aaa2c63b80c9bd60f64a250287385abbb2b"
+		},
+		{
+			"bytes": 8933,
+			"file": "tc-string-parity-nothing-set.json",
+			"id": "tc-string-parity-nothing-set",
+			"kind": "tc-string",
+			"protocolVersion": 1,
+			"sha256": "4d54b2c5213d39cb124a982a2d47397e0cf28939b7826e7c84d539d55930f9e6"
+		},
+		{
+			"bytes": 8694,
+			"file": "tc-string-parity-purposes-full.json",
+			"id": "tc-string-parity-purposes-full",
+			"kind": "tc-string",
+			"protocolVersion": 1,
+			"sha256": "72fca45074618f8b69f0feb55ceae1deeae71ffba5da9786ca66c6973442a6df"
+		},
+		{
+			"bytes": 8864,
+			"file": "tc-string-parity-li-and-special-features.json",
+			"id": "tc-string-parity-li-and-special-features",
+			"kind": "tc-string",
+			"protocolVersion": 1,
+			"sha256": "5982ce26d1eaca0b2c83a55f72b9dac8b492212206899d14b96d8457b80dbc2b"
+		},
+		{
+			"bytes": 8600,
+			"file": "tc-string-parity-vendor-consents-empty.json",
+			"id": "tc-string-parity-vendor-consents-empty",
+			"kind": "tc-string",
+			"protocolVersion": 1,
+			"sha256": "55a59cf69608f7ac1fa799c5f09117a9fc440df2bbf226271062af70182272cc"
+		},
+		{
+			"bytes": 8623,
+			"file": "tc-string-parity-vendor-consents-single.json",
+			"id": "tc-string-parity-vendor-consents-single",
+			"kind": "tc-string",
+			"protocolVersion": 1,
+			"sha256": "975b2cfbddc5effe8d7d71ee79d5a169aec96bf8bd1ae5e6eb82e68ed46392b7"
+		},
+		{
+			"bytes": 8642,
+			"file": "tc-string-parity-vendor-consents-bitfield.json",
+			"id": "tc-string-parity-vendor-consents-bitfield",
+			"kind": "tc-string",
+			"protocolVersion": 1,
+			"sha256": "b3272b5ff86ad8ba8f13e39f086d030cf4786077f2fa22a662745302e22d71b6"
+		},
+		{
+			"bytes": 8671,
+			"file": "tc-string-parity-vendor-consents-range.json",
+			"id": "tc-string-parity-vendor-consents-range",
+			"kind": "tc-string",
+			"protocolVersion": 1,
+			"sha256": "64165ab340da7acd304a15e05d1a603a2bba182e35d2664a4529259145a82597"
+		},
+		{
+			"bytes": 8594,
+			"file": "tc-string-parity-single-vendor-id-45.json",
+			"id": "tc-string-parity-single-vendor-id-45",
+			"kind": "tc-string",
+			"protocolVersion": 1,
+			"sha256": "d151af8a4c5fbef162d3fa2f80012d94327408fe9eec1bfd83efa0142b716206"
+		},
+		{
+			"bytes": 8569,
+			"file": "tc-string-parity-single-vendor-id-46.json",
+			"id": "tc-string-parity-single-vendor-id-46",
+			"kind": "tc-string",
+			"protocolVersion": 1,
+			"sha256": "611400e72a16dfa128efde039ed19efad78d6ce8b433bebacf203e499d1e8716"
+		},
+		{
+			"bytes": 8657,
+			"file": "tc-string-parity-vendor-consents-sparse-range.json",
+			"id": "tc-string-parity-vendor-consents-sparse-range",
+			"kind": "tc-string",
+			"protocolVersion": 1,
+			"sha256": "80058ce338cb1743d138459efe73c32d0e6d46bf937313b0660197db9d1f19c7"
+		},
+		{
+			"bytes": 12743,
+			"file": "tc-string-parity-vendors-disclosed-long-bitfield.json",
+			"id": "tc-string-parity-vendors-disclosed-long-bitfield",
+			"kind": "tc-string",
+			"protocolVersion": 1,
+			"sha256": "29d4a5c2bec0f86b708825de2678dd6f5d258808b2f03fbd22a9e54e659453b3"
+		},
+		{
+			"bytes": 9582,
+			"file": "tc-string-parity-pruned-signals.json",
+			"id": "tc-string-parity-pruned-signals",
+			"kind": "tc-string",
+			"protocolVersion": 1,
+			"sha256": "bd4d72d26ac0d4b3fe266151f48d80d371be88393aaceb979dfed0f399621667"
+		},
+		{
+			"bytes": 8588,
+			"file": "tc-string-parity-policy-version-4.json",
+			"id": "tc-string-parity-policy-version-4",
+			"kind": "tc-string",
+			"protocolVersion": 1,
+			"sha256": "a140249f4e26d3d30f74c002e327982ad835ae1c25f417503cda4e16fb5860de"
+		},
+		{
+			"bytes": 8598,
+			"file": "tc-string-parity-policy-version-5.json",
+			"id": "tc-string-parity-policy-version-5",
+			"kind": "tc-string",
+			"protocolVersion": 1,
+			"sha256": "866de555af21a093b3403a12e81aeaf21e97d9803388ed9ec1b0820039e8abe3"
+		},
+		{
+			"bytes": 8705,
+			"file": "tc-string-parity-vendor-list-version-max.json",
+			"id": "tc-string-parity-vendor-list-version-max",
+			"kind": "tc-string",
+			"protocolVersion": 1,
+			"sha256": "7432a237726a77a39110ee7a1576e68928fcf4682606bd34f1bf658f505c01e0"
+		},
+		{
+			"bytes": 8994,
+			"file": "tc-string-parity-service-specific-false.json",
+			"id": "tc-string-parity-service-specific-false",
+			"kind": "tc-string",
+			"protocolVersion": 1,
+			"sha256": "172818e0fa4cfe9bf9ce979fec2fa8f2307d45b30212a62312b5a684dadf7b10"
+		},
+		{
+			"bytes": 8867,
+			"file": "tc-string-parity-consent-language-from-vendor-list.json",
+			"id": "tc-string-parity-consent-language-from-vendor-list",
+			"kind": "tc-string",
+			"protocolVersion": 1,
+			"sha256": "c9964bf4b1079402f272be53ced54e03ca3401d463e7658b0ba138eb02c2e397"
+		},
+		{
+			"bytes": 8808,
+			"file": "tc-string-decode-purpose-one-treatment-service-specific.json",
+			"id": "tc-string-decode-purpose-one-treatment-service-specific",
+			"kind": "tc-string",
+			"protocolVersion": 1,
+			"sha256": "fd44a5eb69b7510aa8a8876a48bda784943d9d65abb2203f9026289740ef5815"
+		},
+		{
+			"bytes": 9119,
+			"file": "tc-string-decode-purpose-one-treatment-global.json",
+			"id": "tc-string-decode-purpose-one-treatment-global",
+			"kind": "tc-string",
+			"protocolVersion": 1,
+			"sha256": "83016550f28e7ec3961d8a0c2ff6a1c26e5c6aef66ad067ed790b3f423bc2a2a"
+		},
+		{
+			"bytes": 9210,
+			"file": "tc-string-decode-non-standard-texts-and-oob.json",
+			"id": "tc-string-decode-non-standard-texts-and-oob",
+			"kind": "tc-string",
+			"protocolVersion": 1,
+			"sha256": "b768a6499227e11770937c5254d5d7c85cff55829ec6762cf34a28bff2890f5c"
+		},
+		{
+			"bytes": 10950,
+			"file": "tc-string-decode-restrictions-mixed-single-and-range.json",
+			"id": "tc-string-decode-restrictions-mixed-single-and-range",
+			"kind": "tc-string",
+			"protocolVersion": 1,
+			"sha256": "284eefd5b0b9551171e3c81379376648c57c450928f6182f5bd364407ca83565"
+		},
+		{
+			"bytes": 9676,
+			"file": "tc-string-decode-restrictions-three-types.json",
+			"id": "tc-string-decode-restrictions-three-types",
+			"kind": "tc-string",
+			"protocolVersion": 1,
+			"sha256": "7897a36c3f253c879cdd45c904219b7eb75f05b925de0b40f04075dedb7a87ce"
+		},
+		{
+			"bytes": 8928,
+			"file": "tc-string-decode-restrictions-empty-tail.json",
+			"id": "tc-string-decode-restrictions-empty-tail",
+			"kind": "tc-string",
+			"protocolVersion": 1,
+			"sha256": "173ac4858b88fb82ede38588a9e069d1ac9c3e6b0ff01c16eb57580e9ad915c3"
+		},
+		{
+			"bytes": 9240,
+			"file": "tc-string-decode-wide-custom-purposes.json",
+			"id": "tc-string-decode-wide-custom-purposes",
+			"kind": "tc-string",
+			"protocolVersion": 1,
+			"sha256": "7c60804f0e00eae0f6076811b49b946c6d3547ca35dc9fa20550af46110b53d9"
+		},
+		{
+			"bytes": 9350,
+			"file": "tc-string-decode-vendors-allowed-segment.json",
+			"id": "tc-string-decode-vendors-allowed-segment",
+			"kind": "tc-string",
+			"protocolVersion": 1,
+			"sha256": "97adabdd4fbe549d125486b70337b55b90ebc38ae70ca86a314b4efa38d18eab"
+		},
+		{
+			"bytes": 8869,
+			"file": "tc-string-decode-vendor-li-wide.json",
+			"id": "tc-string-decode-vendor-li-wide",
+			"kind": "tc-string",
+			"protocolVersion": 1,
+			"sha256": "75e8d25270cbf6a66e404404ef301b1f0a09b8b4b7bd4013d1b68814c3739bdc"
+		},
+		{
+			"bytes": 8877,
+			"file": "tc-string-decode-created-before-last-updated.json",
+			"id": "tc-string-decode-created-before-last-updated",
+			"kind": "tc-string",
+			"protocolVersion": 1,
+			"sha256": "37c31980d63fdd43897a45fe30b3d67c24553376c30566595dc74b41b3e07f18"
+		},
+		{
+			"bytes": 9728,
+			"file": "tc-string-parity-deleted-vendor-consent.json",
+			"id": "tc-string-parity-deleted-vendor-consent",
+			"kind": "tc-string",
+			"protocolVersion": 1,
+			"sha256": "43d2af328aec11a7f5f354de3e8bf9639573e9c1de157f084d0f066ff67e358e"
+		},
+		{
+			"bytes": 10899,
+			"file": "tc-string-decode-deleted-vendor-three-vectors.json",
+			"id": "tc-string-decode-deleted-vendor-three-vectors",
+			"kind": "tc-string",
+			"protocolVersion": 1,
+			"sha256": "65ee3b653d2b4a57d0624423e651646a8c7f50e897bffe0305ff6dad4a8350eb"
+		},
+		{
+			"bytes": 51413,
+			"file": "vendor-list-scope-32-vendors.json",
+			"id": "vendor-list-scope-32-vendors",
+			"kind": "vendor-list-scope",
+			"protocolVersion": 1,
+			"sha256": "4f8cc86ad08c60b2a1a5f66a2d30a0e73707e9b2bad03632f15e6255576bfce0"
+		},
+		{
+			"bytes": 64489,
+			"file": "vendor-list-scope-empty.json",
+			"id": "vendor-list-scope-empty",
+			"kind": "vendor-list-scope",
+			"protocolVersion": 1,
+			"sha256": "9354fbb5098e506123ec49586ad69771728a27547a835135453b0a5ecff419c9"
+		},
+		{
+			"bytes": 64499,
+			"file": "vendor-list-scope-absent.json",
+			"id": "vendor-list-scope-absent",
+			"kind": "vendor-list-scope",
+			"protocolVersion": 1,
+			"sha256": "0c2792713e0a344de99b64837d111ce5361f761a9ba4dd8f8be2c50a88942e8f"
+		},
+		{
+			"bytes": 32208,
+			"file": "vendor-list-scope-unknown-id.json",
+			"id": "vendor-list-scope-unknown-id",
+			"kind": "vendor-list-scope",
+			"protocolVersion": 1,
+			"sha256": "a5faf94c506080a02c0abf421717058a644ad2ece48450a43892f41b75f1f9b4"
+		},
+		{
+			"bytes": 69370,
+			"file": "vendor-list-scope-wider-than-list.json",
+			"id": "vendor-list-scope-wider-than-list",
+			"kind": "vendor-list-scope",
+			"protocolVersion": 1,
+			"sha256": "7aed2f04a207e203a135f666dbc6ccae69706babe4441b2755eba8c1c9d511cd"
+		},
+		{
+			"bytes": 66464,
+			"file": "vendor-list-scope-above-query-cap.json",
+			"id": "vendor-list-scope-above-query-cap",
+			"kind": "vendor-list-scope",
+			"protocolVersion": 1,
+			"sha256": "7f05f84da1adbb4484cc28ebcbb39f7ffc072f5573b0ca77bafea7f74a4078a6"
+		},
+		{
+			"bytes": 32339,
+			"file": "vendor-list-scope-key-not-body-id.json",
+			"id": "vendor-list-scope-key-not-body-id",
+			"kind": "vendor-list-scope",
+			"protocolVersion": 1,
+			"sha256": "206cd7985978f3896e59fb2d2f5164beeff689c8239ba1c393e9a3193409a52b"
+		},
+		{
+			"bytes": 35084,
+			"file": "vendor-list-scope-siblings-preserved.json",
+			"id": "vendor-list-scope-siblings-preserved",
+			"kind": "vendor-list-scope",
+			"protocolVersion": 1,
+			"sha256": "a492572ec3958320ea3378c3dd5f0e94b00933bb6bfb7568719979c3330a28e0"
+		},
+		{
+			"bytes": 32957,
+			"file": "vendor-list-scope-versions-preserved.json",
+			"id": "vendor-list-scope-versions-preserved",
+			"kind": "vendor-list-scope",
+			"protocolVersion": 1,
+			"sha256": "3ad952875daefdb5182883845b45d827c082337a844f502f1786797f068eb954"
+		}
+	],
+	"generatedBy": "packages/react-native/scripts/generate-protocol-fixtures.ts",
+	"kinds": [
+		"evaluation",
+		"native-envelope",
+		"reset-consent",
+		"revision-trace",
+		"save-body",
+		"tc-string",
+		"vendor-list-scope"
+	],
+	"policyContractHeader": {
+		"name": "x-c15t-policy-contract",
+		"value": "1"
+	},
+	"protocolVersion": 1
+}

@@ -1,0 +1,337 @@
+---
+/**
+ * Server-rendered consent banner.
+ *
+ * The shell — markup, copy, layout, the policy-driven button order — is
+ * produced on the server with zero framework JavaScript. Only one small
+ * bundled script ships, and it is shared by every banner on the site: a
+ * delegated click handler that turns `data-c15t-action` into runtime calls.
+ *
+ * The server renders the banner only when the decision it already resolved
+ * says to, so a returning visitor gets no banner markup at all — no client
+ * bytes and no flash. The same DOM shape and the same `data-testid`s as the
+ * Svelte and React banners, so cross-framework tests and CSS both hold.
+ *
+ * A prerendered page is built once for every visitor. In offline mode the
+ * banner is rendered hidden. A small inline script shows it at first paint
+ * to visitors with nothing stored, and the runtime decides for everyone
+ * else once it has read their records. In hosted and manifest mode the build cannot know the
+ * policy, so the browser renders the banner from the same model once its
+ * init resolves.
+ *
+ * ```astro
+ * ---
+ * import ConsentBanner from '@c15t/astro/components/consent-banner.astro';
+ * ---
+ * <ConsentBanner />
+ * ```
+ */
+import { applyExperimentAssignment, applyExperimentTheme } from '@c15t/core';
+import {
+	buildBannerRevealScript,
+	buildColorSchemeScript,
+	buildThemeCSS,
+	buildConfigJSON,
+	markConfigEmitted,
+	PROMPT_SLOT_ATTRIBUTE,
+	promptClassNames,
+	resolvePromptModel,
+} from '@c15t/astro/server';
+import type { PromptProps } from '@c15t/astro/server';
+import Branding from './branding.astro';
+import ComponentStyles from './component-styles.astro';
+
+interface Props extends PromptProps {
+	/**
+	 * Render even when the server decided the banner should stay hidden.
+	 * Useful for visual testing.
+	 */
+	force?: boolean;
+	/**
+	 * Content Security Policy nonce for this banner's inline code.
+	 * Defaults to `Astro.locals.c15t.nonce`. `<ConsentBannerDeferred />`
+	 * passes the page's nonce here: the island renders in a request of its
+	 * own, whose nonce the page's policy does not list.
+	 */
+	nonce?: string;
+	/** The deferred wrapper already renders the static CSS. @internal */
+	inlineStyles?: boolean;
+}
+
+const {
+	force = false,
+	inlineStyles = true,
+	nonce: nonceProp,
+	...props
+} = Astro.props;
+
+const { c15t } = Astro.locals;
+
+if (!c15t) {
+	throw new Error(
+		'@c15t/astro: `Astro.locals.c15t` is missing. The c15t() integration registers the middleware that populates it — check it is listed in astro.config, and that you have not set `middleware: false`.'
+	);
+}
+
+const { snapshot } = c15t;
+// An arm's theme overrides ride on the host theme: its tokens, its
+// `consentActions` and its `slots` all follow the assignment.
+const theme = applyExperimentTheme(
+	c15t.options.theme,
+	c15t.options.experiment,
+	snapshot.experiment
+);
+// Rendered as a server island, this is a request of its own with its own
+// nonce, but the page's policy is the one that judges the inserted markup.
+const nonce = nonceProp ?? c15t.nonce;
+// No resolved policy means no consent surface, even when forced.
+const shouldRender = c15t.hasConsentUi && (force || c15t.shouldShowBanner);
+// A prerendered page is shared by every visitor, so it cannot know whether
+// this one has already chosen. It ships hidden, and the browser shows it
+// after reading the visitor's cookie.
+const hidden = c15t.prerendered && !force;
+const emitConfig = markConfigEmitted(Astro.locals);
+// A fallback for layouts with no <ConsentScript /> in <head>. It still runs
+// before the banner markup it precedes, so the first paint is right.
+const colorSchemeScript = emitConfig
+	? buildColorSchemeScript(c15t.options.colorScheme)
+	: '';
+const themeCSS = emitConfig
+	? buildThemeCSS(theme)
+	: '';
+
+const model = resolvePromptModel({
+	classNames: promptClassNames,
+	disableAnimation: c15t.options.disableAnimation,
+	legalLinks: c15t.options.legalLinks,
+	// The arm is the host-resolved `variant`, already on the server snapshot.
+	presentation: applyExperimentAssignment(
+		c15t.options.presentation,
+		c15t.options.experiment,
+		snapshot.experiment
+	),
+	props,
+	snapshot,
+	theme,
+});
+---
+
+{
+	emitConfig && colorSchemeScript && (
+		<script
+			is:inline
+			data-c15t-inline
+			nonce={nonce}
+			set:html={colorSchemeScript}
+		/>
+	)
+}
+
+{inlineStyles && <ComponentStyles nonce={nonce} />}
+
+{
+	themeCSS && (
+		<style is:inline id="c15t-theme" nonce={nonce} set:html={themeCSS} />
+	)
+}
+
+{
+	emitConfig && (
+		<script
+			is:inline
+			type="application/json"
+			data-c15t-config
+			nonce={nonce}
+			set:html={buildConfigJSON(c15t.config)}
+		/>
+	)
+}
+
+{
+	/*
+	 * No policy yet, so nothing to render, but the browser may still owe a
+	 * banner: a prerendered page in hosted or manifest mode only learns its
+	 * policy from the visitor's own init, and so does a server render whose
+	 * init failed. The browser renders it into this spot from the same
+	 * model, with the same props and class names.
+	 */
+	!c15t.hasPolicy && (
+		<div
+			hidden
+			{...{
+				[PROMPT_SLOT_ATTRIBUTE]: JSON.stringify({
+					classNames: promptClassNames,
+					props,
+				}),
+			}}
+		/>
+	)
+}
+
+{
+	shouldRender && model.blocking && (
+		<div
+			aria-hidden="true"
+			class={model.classes.overlay}
+			style={model.styles.overlay}
+			data-testid="consent-banner-overlay"
+			hidden={hidden ? true : undefined}
+		/>
+	)
+}
+
+{
+	shouldRender && (
+		<div
+			class={model.classes.root}
+			style={model.styles.root}
+			data-blocking={model.blocking ? 'true' : undefined}
+			data-c15t-visible={hidden ? 'false' : 'true'}
+			data-model={model.model}
+			data-position={model.position}
+			data-prompt={model.prompt}
+			data-testid="consent-banner-root"
+			data-variant={model.variant}
+			dir={model.textDirection}
+			hidden={hidden ? true : undefined}
+			lang={model.language}
+		>
+			<div class={model.classes.cardShell}>
+				<Branding
+					branding={snapshot.branding}
+					data-testid="consent-banner-branding"
+					hide={props.hideBranding}
+					hostname={Astro.url.hostname}
+					noStyle={props.noStyle}
+					securedBy={model.copy.securedBy}
+					theme={theme}
+					themeSlot="consentBannerTag"
+					variant="banner-tag"
+				/>
+				<div
+					aria-label={model.copy.title}
+					aria-modal={model.blocking ? "true" : undefined}
+					class={model.classes.card}
+					style={model.styles.card}
+					data-testid="consent-banner-card"
+					role={model.blocking ? "dialog" : "region"}
+					tabindex="-1"
+				>
+					<div
+						class={model.classes.header}
+						style={model.styles.header}
+						data-testid="consent-banner-header"
+					>
+						<h2
+							class={model.classes.title}
+							style={model.styles.title}
+							data-testid="consent-banner-title"
+						>
+							{model.copy.title}
+						</h2>
+						<div
+							class={model.classes.description}
+							style={model.styles.description}
+							data-context="banner"
+							data-testid="consent-banner-description"
+						>
+							{model.copy.description}
+							{model.legalLinks.map((link) => (
+								<a
+									data-testid={`consent-banner-legal-link-${link.key}`}
+									href={link.href}
+									rel="noreferrer"
+									target="_blank"
+								>
+									{link.label}
+								</a>
+							))}
+						</div>
+					</div>
+					<div
+						class={model.classes.footer}
+						style={model.styles.footer}
+						data-direction={model.direction}
+						data-fill={model.shouldFill ? 'true' : undefined}
+						data-split={model.split ? 'true' : undefined}
+						data-testid="consent-banner-footer"
+					>
+						{model.rights.length > 0 && (
+							<div
+								class={model.classes.rights}
+								style={model.styles.rights}
+								data-testid="consent-banner-rights"
+							>
+								{model.rights.map(({ right, label }) => (
+									<button
+										class={model.classes.rightLink}
+										style={model.styles.rightLink}
+										data-action="right"
+										data-c15t-action="customize"
+										data-right={right}
+										data-testid={`consent-banner-right-link-${right}`}
+										type="button"
+									>
+										{label}
+									</button>
+								))}
+							</div>
+						)}
+						{model.actionGroups.map((group) => (
+							<div
+								class={model.classes.actionGroup}
+								style={model.styles.actionGroup}
+								data-direction={model.direction}
+								data-fill={model.shouldFill ? 'true' : undefined}
+								data-testid="consent-banner-footer-sub-group"
+							>
+								{group.map(({ action, className, label, mode, style, variant }) => (
+									<button
+										class={className}
+										style={style}
+										data-action={action}
+										data-c15t-action={action}
+										data-mode={mode}
+										data-size={props.noStyle ? undefined : 'small'}
+										data-testid={`consent-banner-${action}-button`}
+										data-variant={variant}
+										type="button"
+									>
+										{label}
+									</button>
+								))}
+							</div>
+						))}
+					</div>
+				</div>
+			</div>
+		</div>
+	)
+}
+
+{
+	/*
+	 * Right after the hidden banner, so a visitor with nothing stored sees it
+	 * in the first paint instead of after the module scripts load.
+	 */
+	shouldRender && hidden && (
+		<script
+			is:inline
+			data-c15t-inline
+			nonce={nonce}
+			set:html={buildBannerRevealScript(
+				c15t.options.storageConfig,
+				'consent-banner'
+			)}
+		/>
+	)
+}
+
+<script>
+	// The banner's only client-side code: one delegated listener, shared by
+	// every banner and dialog trigger on the site. Astro bundles and dedupes
+	// this module across pages.
+	import { attachBannerActions } from '@c15t/astro/client';
+
+	attachBannerActions();
+</script>

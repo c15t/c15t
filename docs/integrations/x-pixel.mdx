@@ -1,139 +1,78 @@
 ---
-title: X Pixel (Twitter Pixel)
-description: Track conversions and build audiences for advertising campaigns on X (formerly Twitter).
+title: X Pixel
+description: Load the X Pixel only after marketing consent with the c15t xPixel helper, guard twq conversion events, and check it in DevTools.
+seoTitle: X Pixel cookie consent with c15t
+seoDescription: Load the X Pixel only with marketing consent. The c15t xPixel helper keeps uwt.js off the page until then.
 icon: x
 group: integrations
 ---
 
-X Pixel (formerly Twitter Pixel) is X's conversion tracking and audience building tool. It helps you measure ad performance, retarget website visitors, and optimize campaigns on the X platform.
+The c15t `xPixel` helper keeps the X Pixel off the page until `marketing` has
+consent. Until then, c15t does not define `twq`. X has no API to update consent,
+so the helper sends no consent signal to X. If the visitor withdraws consent,
+c15t removes the script element. By default, c15t also reloads the page.
 
-## Official X documentation
+## Configure the X Pixel
 
-- [Conversion tracking for websites (X Ads Help)](https://business.x.com/en/help/campaign-measurement-and-analytics/conversion-tracking-for-websites)
+Copy your X Pixel ID. The helper passes it to `twq('config', ...)`. Conversion
+event IDs, which look like `tw-xxxx-xxxx`, are separate from the pixel ID.
 
-## Integrate with c15t
+<CommandTabs command="@c15t/integrations" mode="install" />
 
-<Tabs items={['React', 'Next.js', 'JavaScript']}>
-  <Tab value="React">
-    ```tsx
-    import { type ReactNode } from 'react';
-    import { ConsentManagerProvider } from '@c15t/react';
-    import { xPixel } from '@c15t/scripts/x-pixel';
+```ts title="src/consent-scripts.ts"
+import { xPixel } from '@c15t/integrations/x-pixel';
 
-    const scripts = [xPixel({ pixelId: '123456789012345' })];
-
-    export function ConsentProvider({ children }: { children: ReactNode }) {
-      return (
-        <ConsentManagerProvider
-          options={{
-            mode: 'hosted',
-            backendURL: 'https://your-instance.c15t.dev',
-            scripts,
-          }}
-        >
-          {children}
-        </ConsentManagerProvider>
-      );
-    }
-    ```
-  </Tab>
-
-  <Tab value="Next.js">
-    ```tsx
-    'use client';
-
-    import { type ReactNode } from 'react';
-    import { ConsentManagerProvider } from '@c15t/nextjs';
-    import { xPixel } from '@c15t/scripts/x-pixel';
-
-    const scripts = [xPixel({ pixelId: '123456789012345' })];
-
-    export function ConsentProvider({ children }: { children: ReactNode }) {
-      return (
-        <ConsentManagerProvider
-          options={{
-            mode: 'hosted',
-            backendURL: '/api/c15t',
-            scripts,
-          }}
-        >
-          {children}
-        </ConsentManagerProvider>
-      );
-    }
-    ```
-  </Tab>
-
-  <Tab value="JavaScript">
-    ```ts
-    import { getOrCreateConsentRuntime } from 'c15t';
-    import { xPixel } from '@c15t/scripts/x-pixel';
-
-    getOrCreateConsentRuntime({
-      mode: 'hosted',
-      backendURL: 'https://your-instance.c15t.dev',
-      scripts: [xPixel({ pixelId: '123456789012345' })],
-    });
-    ```
-  </Tab>
-</Tabs>
-
-## How c15t loads it
-
-- **Category:** `marketing` (Ads & Pixels)
-- **Loads when:** marketing consent is granted
-- **On revocation:** unloaded — c15t removes the script element from the DOM
-
-## Configure the integration
-
-You can use the `xPixelEvent` function to track events. This is a wrapper around the `twq` function that the X Pixel script uses.
-
-```ts
-import { xPixelEvent } from '@c15t/scripts/x-pixel';
-
-xPixelEvent('tw-xxxx-xxxx', { value: 10.00, currency: 'USD' });
+export const scripts = [xPixel({ pixelId: 'YOUR_PIXEL_ID' })];
 ```
 
-## Tracking events in your app
+<include src="../shared/integrations/register-scripts.mdx" />
 
-c15t gates the X Pixel script from loading until `marketing` consent is granted. Your application code that calls `twq` or the `xPixelEvent` helper is **not** automatically gated — `window.twq` does not exist before consent is granted, and is removed again if consent is revoked. Unguarded calls throw.
+## Options
 
-Guard event calls by checking consent state:
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `pixelId` | Required | Pixel ID passed to `twq('config', ...)`. The helper trims it. Empty or whitespace-only values log an error and the script does not load. |
+| `scriptSrc` | `https://static.ads-twitter.com/uwt.js` | Loader URL override. A blank value falls back to the default. |
 
-```tsx
-import { useCallback } from 'react';
-import { useConsentManager } from '@c15t/react';
-import { xPixelEvent } from '@c15t/scripts/x-pixel';
+## Loading and revocation
 
-function useTrackPurchase() {
-  const { has } = useConsentManager();
-  return useCallback(() => {
-    if (has('marketing')) {
-      xPixelEvent('tw-xxxx-xxxx', { value: 10.0, currency: 'USD' });
-    }
-  }, [has]);
-}
+`xPixel` uses the `marketing` category. Before marketing is allowed, c15t
+defines no `twq` function and loads nothing from X. When marketing becomes
+allowed, the helper queues `twq('config', pixelId)`, then loads `uwt.js`.
 
-function PurchaseButton() {
-  const trackPurchase = useTrackPurchase();
-  return <button onClick={trackPurchase}>Complete purchase</button>;
+On revocation the helper removes the script element and calls no X API. X
+exposes no consent update call, so the page reload is what stops the pixel.
+`window.twq` stays defined until then.
+
+## Guard your own twq calls
+
+Conversion events come from your code, and each one needs its own check.
+After revocation `window.twq` still exists, so its presence does not mean
+marketing is allowed. Check the permission first, then that the pixel has
+loaded:
+
+```ts title="src/track-purchase.ts"
+export function trackPurchase(marketingAllowed: boolean, orderId: string) {
+	if (!marketingAllowed || typeof window.twq !== 'function') return;
+	window.twq('event', 'tw-xxxx-xxxx', {
+		conversion_id: orderId,
+		currency: 'USD',
+		value: 99.99,
+	});
 }
 ```
 
-## Types
+Pass the current marketing permission from your framework, for example
+`useConsent('marketing')` in React. Set `conversion_id` to deduplicate the
+event. `@c15t/integrations/x-pixel` also exports `xPixelEvent`, a typed wrapper
+around `twq('event', ...)`. `xPixelEvent` does nothing while `twq` is
+undefined, which is the case before marketing is first allowed. It does not
+check permission, so apply the same guard before calling it.
 
-### XPixelOptions
+## Verify the X Pixel
 
-<AutoTypeTable path="./packages/scripts/src/vendors/ads-and-pixels/x-pixel.ts" name="XPixelOptions" />
+After you allow marketing, `uwt.js` loads from `static.ads-twitter.com`.
+Trigger one guarded event and check that its request to X appears. Then revoke
+marketing. Until the page reloads, calling `trackPurchase` sends nothing.
 
-### Script
-
-<AutoTypeTable path="./packages/core/src/libs/script-loader/types.ts" name="Script" />
-
-### XPixelEvent
-
-<AutoTypeTable path="./packages/scripts/src/vendors/ads-and-pixels/x-pixel.ts" name="XPixelEvent" />
-
-### XPixelContent
-
-<AutoTypeTable path="./packages/scripts/src/vendors/ads-and-pixels/x-pixel.ts" name="XPixelContent" />
+<include src="../shared/integrations/vendor-revocation-and-verify.mdx" />

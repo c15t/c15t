@@ -1,0 +1,341 @@
+import { execFileSync, spawnSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
+
+import { describe, expect, it } from 'vitest';
+
+const readWorkflow = function readWorkflow(name: string): unknown {
+	return JSON.parse(
+		execFileSync(
+			'bun',
+			[
+				'-e',
+				'console.log(JSON.stringify(Bun.YAML.parse(await Bun.stdin.text())))',
+			],
+			{
+				encoding: 'utf8',
+				input: readFileSync(
+					new URL(`../.github/workflows/${name}.yml`, import.meta.url),
+					'utf8'
+				),
+			}
+		)
+	);
+};
+
+describe('release validation', () => {
+	it('summarizes coverage against the selected release ancestor', () => {
+		expect(readWorkflow('ci')).toMatchObject({
+			jobs: {
+				packages: {
+					steps: expect.arrayContaining([
+						expect.objectContaining({
+							env: {
+								CI_DIFF_BASE: `\${{ needs.repository.outputs.baseRef }}`,
+							},
+							name: 'Summarize coverage',
+						}),
+					]),
+				},
+			},
+		});
+	});
+
+	it('runs Tegami in the trusted release workflow with provenance and Node 24', () => {
+		expect(readWorkflow('ci')).toMatchObject({
+			jobs: {
+				repository: {
+					steps: expect.arrayContaining([
+						expect.objectContaining({
+							uses: './.github/actions/setup',
+							with: expect.objectContaining({ 'node-version': '24' }),
+						}),
+					]),
+				},
+			},
+		});
+		expect(readWorkflow('release')).toMatchObject({
+			jobs: {
+				publish: {
+					steps: expect.arrayContaining([
+						expect.objectContaining({
+							uses: './.github/actions/setup',
+							with: expect.objectContaining({
+								built: `\${{ needs.checks.outputs.built }}`,
+								'cache-scope': 'publish',
+								'node-version': '24',
+							}),
+						}),
+						expect.objectContaining({
+							env: {
+								GITHUB_TOKEN: `\${{ secrets.GITHUB_TOKEN }}`,
+								NPM_CONFIG_PROVENANCE: 'true',
+							},
+							if: "github.ref != 'refs/heads/canary' && steps.tip.outputs.current == 'true'",
+							run: 'bun run tegami ci',
+						}),
+						expect.objectContaining({
+							env: {
+								GITHUB_TOKEN: `\${{ secrets.GITHUB_TOKEN }}`,
+								NPM_CONFIG_PROVENANCE: 'true',
+							},
+							if: "github.ref == 'refs/heads/canary'",
+							run: 'bun run tegami version --no-checks\nbun run tegami publish\n',
+						}),
+					]),
+				},
+			},
+		});
+	});
+	it('keeps npm trusted publishing on a GitHub-hosted runner', () => {
+		expect(readWorkflow('release')).toMatchObject({
+			jobs: {
+				publish: {
+					permissions: { 'id-token': 'write' },
+					'runs-on': 'ubuntu-latest',
+				},
+			},
+		});
+	});
+
+	it('queues only publishing outside canary, so release checks overlap', () => {
+		expect(readWorkflow('release')).toMatchObject({
+			// Canary keeps whole runs queued so every commit's snapshot publishes.
+			concurrency: {
+				group: `release-run-\${{ github.ref == 'refs/heads/canary' && github.ref || github.run_id }}`,
+				// Without it, a third canary push cancels the second's waiting run.
+				queue: 'max',
+			},
+			jobs: {
+				publish: {
+					concurrency: {
+						group: `release-\${{ github.ref }}`,
+						queue: 'max',
+					},
+					if: "github.repository == 'c15t/c15t'",
+					needs: 'checks',
+					// The tip check runs inside the release group, right before
+					// Tegami, so a newer push that lands while this job waits stops it.
+					steps: expect.arrayContaining([
+						expect.objectContaining({
+							id: 'tip',
+							if: "github.ref != 'refs/heads/canary'",
+							name: 'Skip superseded commits',
+						}),
+					]),
+				},
+			},
+		});
+		// A per-ref group here would queue release checks again from inside
+		// the reusable workflow.
+		expect(readWorkflow('ci')).toMatchObject({
+			concurrency: {
+				group: `ci-\${{ github.event.pull_request.number || github.run_id }}`,
+			},
+		});
+	});
+
+	it('skips runtime comparisons in releases while keeping other checks required', () => {
+		expect(readWorkflow('release')).toMatchObject({
+			jobs: {
+				checks: { with: { skip_mobile_device: true, skip_performance: true } },
+				publish: { needs: 'checks' },
+			},
+		});
+		expect(readWorkflow('validation')).not.toHaveProperty(
+			'jobs.checks.with.skip_performance'
+		);
+		expect(readWorkflow('ci')).toMatchObject({
+			jobs: {
+				complete: {
+					needs: [
+						'repository',
+						'build',
+						'packages',
+						'backend',
+						'browser',
+						'mobile',
+						'bundle',
+						'performance',
+					],
+				},
+				// The device builds are a build report, not a gate: a pod fetch that
+				// breaks must not turn `CI complete` red.
+				mobileBrowserOrDevice: {
+					if: "needs.repository.outputs.mobileBrowserOrDevice == 'true' && !inputs.skip_mobile_device",
+					needs: ['repository', 'build'],
+					uses: './.github/workflows/mobile-device.yml',
+				},
+				performance: {
+					if: "needs.repository.outputs.performance == 'true' && !inputs.skip_performance",
+					with: {
+						mode: `\${{ github.event_name != 'pull_request' && 'full' || 'quick' }}`,
+					},
+				},
+			},
+			on: {
+				workflow_call: {
+					inputs: { skip_performance: { default: false, type: 'boolean' } },
+				},
+			},
+		});
+	});
+
+	it('selects all v3 release checks since a successful ancestor and keeps full validation full', () => {
+		expect(readWorkflow('release')).toMatchObject({
+			jobs: {
+				checks: {
+					with: {
+						release_affected: `\${{ github.ref == 'refs/heads/v3' }}`,
+					},
+				},
+			},
+		});
+		expect(readWorkflow('ci')).toMatchObject({
+			jobs: {
+				repository: {
+					steps: expect.arrayContaining([
+						expect.objectContaining({
+							env: { CI_RELEASE_SELECTION: `\${{ inputs.release_affected }}` },
+							id: 'plan',
+						}),
+					]),
+				},
+			},
+			on: {
+				workflow_call: {
+					inputs: { release_affected: { default: false, type: 'boolean' } },
+				},
+			},
+		});
+		expect(readWorkflow('validation')).not.toHaveProperty(
+			'jobs.checks.with.release_affected'
+		);
+	});
+
+	it('runs advisory app builds independently on release pushes', () => {
+		expect(readWorkflow('mobile-device')).toMatchObject({
+			jobs: {
+				plan: {
+					steps: expect.arrayContaining([
+						expect.objectContaining({
+							env: expect.objectContaining({
+								CI_RELEASE_WORKFLOW: 'mobile-device.yml',
+							}),
+							run: 'bun scripts/ci-release-base.ts',
+						}),
+					]),
+				},
+			},
+			on: { push: { branches: ['main', 'canary', '2.0.0', 'v3'] } },
+		});
+		expect(readWorkflow('release')).toMatchObject({
+			jobs: { checks: { with: { skip_mobile_device: true } } },
+		});
+	});
+
+	it('runs full v3 comparisons separately on push, nightly, and manually', () => {
+		expect(readWorkflow('benchmark-regression')).toMatchObject({
+			jobs: {
+				benchmark: {
+					needs: 'plan',
+					steps: expect.arrayContaining([
+						expect.objectContaining({
+							with: expect.objectContaining({
+								ref: `\${{ needs.plan.outputs.head_sha }}`,
+							}),
+						}),
+						expect.objectContaining({
+							env: expect.objectContaining({
+								BENCHMARK_BASE_REF: `\${{ needs.plan.outputs.base_sha }}`,
+								BENCHMARK_MODE: `\${{ inputs.mode || 'full' }}`,
+								BENCHMARK_PACKAGE: `\${{ matrix.package }}`,
+								BENCHMARK_SHARD: `\${{ matrix.id }}`,
+							}),
+							run: 'bun scripts/benchmark-run.ts "$BENCHMARK_MODE"',
+						}),
+						expect.objectContaining({
+							if: `\${{ !cancelled() }}`,
+							with: expect.objectContaining({
+								name: `runtime-benchmarks-\${{ matrix.id }}`,
+							}),
+						}),
+					]),
+					strategy: {
+						'fail-fast': false,
+						matrix: `\${{ fromJSON(needs.plan.outputs.matrix) }}`,
+					},
+				},
+				plan: {
+					steps: expect.arrayContaining([
+						expect.objectContaining({
+							with: expect.objectContaining({
+								ref: `\${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && 'v3' || github.sha }}`,
+							}),
+						}),
+					]),
+				},
+			},
+			on: {
+				push: { branches: ['v3'] },
+				schedule: [{ cron: '43 2 * * *' }],
+				workflow_dispatch: {
+					inputs: {
+						mode: { default: 'full' },
+					},
+				},
+			},
+		});
+		expect(readWorkflow('benchmark-regression')).not.toHaveProperty(
+			'on.workflow_call.inputs.advisory'
+		);
+		for (const input of ['head_ref', 'branch']) {
+			expect(readWorkflow('benchmark-regression')).not.toHaveProperty(
+				`on.workflow_dispatch.inputs.${input}`
+			);
+		}
+		expect(readWorkflow('benchmark-regression')).not.toMatchObject({
+			jobs: {
+				benchmark: {
+					steps: expect.arrayContaining([
+						expect.objectContaining({ 'continue-on-error': expect.anything() }),
+					]),
+				},
+			},
+		});
+	});
+
+	it.each(['repository', 'build', 'packages', 'backend', 'browser', 'bundle'])(
+		'blocks failed or cancelled %s checks when release benchmarks are skipped',
+		(job) => {
+			const script = execFileSync(
+				'bun',
+				[
+					'-e',
+					'console.log(Bun.YAML.parse(await Bun.stdin.text()).jobs.complete.steps[0].run)',
+				],
+				{
+					encoding: 'utf8',
+					input: readFileSync(
+						new URL('../.github/workflows/ci.yml', import.meta.url),
+						'utf8'
+					),
+				}
+			);
+			for (const result of ['success', 'skipped', 'failure', 'cancelled']) {
+				const run = spawnSync('bash', ['-e', '-c', script], {
+					env: {
+						...process.env,
+						RESULTS: JSON.stringify({
+							[job]: { result },
+							performance: { result: 'skipped' },
+						}),
+					},
+				});
+				expect(run.error).toBeUndefined();
+				expect(run.status).toBe(
+					['success', 'skipped'].includes(result) ? 0 : 1
+				);
+			}
+		}
+	);
+});

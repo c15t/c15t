@@ -1,0 +1,28 @@
+{
+	"name": "@c15t/backend-bench",
+	"private": true,
+	"description": "Head-to-head query benchmarks for the backend rewrite.",
+	"type": "module",
+	"scripts": {
+		"bench": "BENCH_OUTPUT_DIR=../../.benchmarks/current/backend-runtime bunx tsx src/run.ts",
+		"bench:ci": "BENCH_OUTPUT_DIR=../../.benchmarks/head/backend-runtime bunx tsx src/run.ts",
+		"bench:write": "bunx tsx src/run-write.ts",
+		"build": "echo 'backend benchmarks are source-only'",
+		"check-types": "tsc --noEmit",
+		"fmt": "bun oxfmt .",
+		"lint": "bun oxlint ./src"
+	},
+	"dependencies": {
+		"@c15t/backend": "workspace:*",
+		"@c15t/benchmarking": "workspace:*",
+		"@c15t/schema": "workspace:*",
+		"@effect/sql-pglite": "4.0.0",
+		"@electric-sql/pglite": "latest",
+		"effect": "4.0.0"
+	},
+	"devDependencies": {
+		"@c15t/typescript-config": "workspace:*",
+		"@types/node": "^24.10.1",
+		"typescript": "7.0.2"
+	}
+}

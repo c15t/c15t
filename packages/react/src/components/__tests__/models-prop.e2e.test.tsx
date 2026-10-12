@@ -9,33 +9,33 @@
 
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
-import { ConsentBanner } from '~/components/consent-banner';
-import { ConsentDialog } from '~/components/consent-dialog';
+
+import { ComponentFixtureProvider as ConsentProvider } from '~/__tests__/component-fixture-provider';
+import type { ComponentFixtureOptions as ConsentProviderOptions } from '~/__tests__/component-fixture-provider';
+import { policyFixture } from '~/__tests__/policy-fixture';
+import { IABConsentDialog } from '~/components/iab-panel';
+import { IABConsentBanner } from '~/components/iab-prompt';
 import {
 	clearConsentState,
-	defaultIABOptions,
+	defaultProviderIABOptions,
 } from '~/components/iab/__tests__/e2e-setup';
-import { IABConsentBanner } from '~/components/iab-consent-banner';
-import { IABConsentDialog } from '~/components/iab-consent-dialog';
-import {
-	ConsentManagerProvider,
-	clearConsentRuntimeCache,
-} from '~/providers/consent-manager-provider';
-import type { ConsentManagerOptions } from '~/types/consent-manager';
+import { ConsentDialog } from '~/components/panel';
+import { ConsentBanner } from '~/components/prompt';
+import { offline } from '~/transports/offline';
 
 // Mock localStorage
 const localStorageMock = (() => {
 	let store: Record<string, string> = {};
 	return {
-		getItem: (key: string) => store[key] || null,
-		setItem: (key: string, value: string) => {
-			store[key] = value.toString();
-		},
-		removeItem: (key: string) => {
-			delete store[key];
-		},
 		clear: () => {
 			store = {};
+		},
+		getItem: (key: string) => store[key] || null,
+		removeItem: (key: string) => {
+			Reflect.deleteProperty(store, key);
+		},
+		setItem: (key: string, value: string) => {
+			store[key] = value.toString();
 		},
 	};
 })();
@@ -44,8 +44,28 @@ Object.defineProperty(window, 'localStorage', {
 	value: localStorageMock,
 });
 
-const optInOptions: ConsentManagerOptions = {
-	mode: 'offline',
+const optInOptions: ConsentProviderOptions = {
+	consentCategories: [
+		'necessary',
+		'functionality',
+		'experience',
+		'marketing',
+		'measurement',
+	],
+	mode: offline(),
+	prefetch: policyFixture(undefined, {
+		categories: [
+			'necessary',
+			'functionality',
+			'experience',
+			'marketing',
+			'measurement',
+		],
+		id: 'models-prop-opt-in-test',
+		model: 'opt-in',
+		prompt: 'choice',
+		scopeMode: 'permissive',
+	}),
 };
 
 describe('models Prop E2E Tests', () => {
@@ -59,16 +79,15 @@ describe('models Prop E2E Tests', () => {
 			}
 		}
 		vi.clearAllMocks();
-		clearConsentRuntimeCache();
 		clearConsentState();
 	});
 
 	describe('Opt-in mode (default)', () => {
 		test('ConsentBanner renders in opt-in mode (default models includes opt-in)', async () => {
 			render(
-				<ConsentManagerProvider options={optInOptions}>
+				<ConsentProvider options={optInOptions}>
 					<ConsentBanner />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await vi.waitFor(
@@ -84,13 +103,15 @@ describe('models Prop E2E Tests', () => {
 
 		test('IABConsentBanner does NOT render in opt-in mode (default models is iab)', async () => {
 			render(
-				<ConsentManagerProvider options={optInOptions}>
+				<ConsentProvider options={optInOptions}>
 					<IABConsentBanner />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			// Wait long enough to confirm it doesn't appear
-			await new Promise((resolve) => setTimeout(resolve, 1000));
+			await new Promise((resolve) => {
+				setTimeout(resolve, 1000);
+			});
 
 			const banner = document.querySelector(
 				'[data-testid="iab-consent-banner-card"]'
@@ -100,9 +121,9 @@ describe('models Prop E2E Tests', () => {
 
 		test('ConsentDialog renders in opt-in mode when open', async () => {
 			render(
-				<ConsentManagerProvider options={optInOptions}>
+				<ConsentProvider options={optInOptions}>
 					<ConsentDialog open={true} />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await vi.waitFor(
@@ -118,12 +139,14 @@ describe('models Prop E2E Tests', () => {
 
 		test('IABConsentDialog does NOT render in opt-in mode', async () => {
 			render(
-				<ConsentManagerProvider options={optInOptions}>
+				<ConsentProvider options={optInOptions}>
 					<IABConsentDialog open={true} />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
-			await new Promise((resolve) => setTimeout(resolve, 1000));
+			await new Promise((resolve) => {
+				setTimeout(resolve, 1000);
+			});
 
 			const dialog = document.querySelector(
 				'[data-testid="iab-consent-dialog-root"]'
@@ -135,10 +158,10 @@ describe('models Prop E2E Tests', () => {
 	describe('IAB mode', () => {
 		test('IABConsentBanner renders when model is iab', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await vi.waitFor(
@@ -154,12 +177,14 @@ describe('models Prop E2E Tests', () => {
 
 		test('ConsentBanner does NOT render when model is iab', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<ConsentBanner />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
-			await new Promise((resolve) => setTimeout(resolve, 1000));
+			await new Promise((resolve) => {
+				setTimeout(resolve, 1000);
+			});
 
 			const banner = document.querySelector(
 				'[data-testid="consent-banner-root"]'
@@ -171,9 +196,9 @@ describe('models Prop E2E Tests', () => {
 	describe('Custom models prop', () => {
 		test('ConsentBanner with models=[opt-in] renders in opt-in mode', async () => {
 			render(
-				<ConsentManagerProvider options={optInOptions}>
+				<ConsentProvider options={optInOptions}>
 					<ConsentBanner models={['opt-in']} />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await vi.waitFor(
@@ -189,12 +214,14 @@ describe('models Prop E2E Tests', () => {
 
 		test('ConsentBanner with models=[iab] does NOT render in opt-in mode', async () => {
 			render(
-				<ConsentManagerProvider options={optInOptions}>
+				<ConsentProvider options={optInOptions}>
 					<ConsentBanner models={['iab']} />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
-			await new Promise((resolve) => setTimeout(resolve, 1000));
+			await new Promise((resolve) => {
+				setTimeout(resolve, 1000);
+			});
 
 			const banner = document.querySelector(
 				'[data-testid="consent-banner-root"]'
@@ -204,10 +231,10 @@ describe('models Prop E2E Tests', () => {
 
 		test('only matching component renders when both are present', async () => {
 			render(
-				<ConsentManagerProvider options={optInOptions}>
+				<ConsentProvider options={optInOptions}>
 					<ConsentBanner />
 					<IABConsentBanner />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			// Standard banner should render

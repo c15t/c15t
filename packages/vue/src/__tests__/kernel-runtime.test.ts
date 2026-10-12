@@ -1,0 +1,1258 @@
+import { IAB_UNAVAILABLE_ERROR_CODE, IABUnavailableError } from '@c15t/core';
+import {
+	readStoredRecords,
+	readStoredRecordsFromCookieHeader,
+} from '@c15t/core/modules/persistence';
+import type { InitOutput } from '@c15t/schema/types';
+import {
+	resolvePolicyRules,
+	writePolicyResolutionWire,
+} from '@c15t/schema/types';
+import { flushPromises, mount } from '@vue/test-utils';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import { createSSRApp, defineComponent } from 'vue';
+import { renderToString } from 'vue/server-renderer';
+
+import ConsentRoot from '../runtime/components/root.vue';
+import { consentConfigKey } from '../runtime/composables/config';
+import { useHasConsent as getConsentedCategories } from '../runtime/composables/consent';
+import type { ConsentConfig } from '../runtime/config';
+import {
+	symbolActiveUI,
+	symbolConsent,
+	symbolInit,
+	symbolKernel,
+	symbolKernelContext,
+	symbolSnapshot,
+} from '../runtime/utils/symbols';
+import { createVueConsentKernelContext } from './test-kernel';
+import type {
+	RuntimeConsentConfig,
+	VueConsentKernelContext,
+} from './test-kernel';
+import { c15tVue } from './test-plugin';
+
+type WindowWithC15t = Window & {
+	c15t?: {
+		version: string;
+		pkg: string;
+		mode: string;
+	};
+};
+
+const initFixture: InitOutput = {
+	branding: 'c15t',
+	location: {
+		countryCode: 'DE',
+		regionCode: null,
+	},
+	policyResolution: writePolicyResolutionWire(
+		resolvePolicyRules({
+			countryCode: null,
+			regionCode: null,
+			rules: [
+				{
+					categories: ['measurement', 'marketing'],
+					id: 'policy_gdpr',
+					match: { fallback: true },
+					model: 'opt-in',
+					preselectedCategories: ['measurement', 'marketing'],
+					prompt: 'choice',
+					scopeMode: 'strict',
+				},
+			],
+		})
+	),
+	policySnapshotToken: 'token_gdpr',
+	translations: {
+		language: 'en',
+		translations: {
+			common: {
+				acceptAll: 'Accept all',
+				customize: 'Customize',
+				rejectAll: 'Reject all',
+				save: 'Save',
+			},
+			consentGate: {
+				actionButton: 'Manage',
+				title: 'Privacy',
+			},
+			consentManagerDialog: {
+				description: 'Manage your choices.',
+				title: 'Privacy preferences',
+			},
+			consentTypes: {
+				experience: {
+					description: 'Experience cookies.',
+					title: 'Experience',
+				},
+				functionality: {
+					description: 'Feature cookies.',
+					title: 'Functionality',
+				},
+				marketing: {
+					description: 'Advertising cookies.',
+					title: 'Marketing',
+				},
+				measurement: {
+					description: 'Analytics cookies.',
+					title: 'Measurement',
+				},
+				necessary: {
+					description: 'Required cookies.',
+					title: 'Necessary',
+				},
+			},
+			cookieBanner: {
+				description: 'Pick how c15t may use cookies.',
+				title: 'Cookie choices',
+			},
+			legalLinks: {
+				cookiePolicy: 'Cookie policy',
+				privacyPolicy: 'Privacy policy',
+				termsOfService: 'Terms of service',
+			},
+		},
+	},
+};
+
+const createFetchMock = function createFetchMock() {
+	const subjectBodies: unknown[] = [];
+	const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+		// The path alone: the runtime adds its consent journey as a query.
+		const url = String(input).split('?')[0] ?? '';
+		if (url.endsWith('/init')) {
+			return new Response(JSON.stringify(initFixture), {
+				headers: { 'content-type': 'application/json' },
+				status: 200,
+			});
+		}
+		if (url.endsWith('/subjects')) {
+			const body = JSON.parse(String(init?.body ?? '{}')) as {
+				subjectId?: string;
+			};
+			subjectBodies.push(body);
+			return new Response(
+				JSON.stringify({ ok: true, subjectId: body.subjectId }),
+				{
+					headers: { 'content-type': 'application/json' },
+					status: 200,
+				}
+			);
+		}
+		return new Response('not found', { status: 404 });
+	});
+
+	return { fetchMock, subjectBodies };
+};
+
+const mountRoot = async function mountRoot() {
+	const { fetchMock, subjectBodies } = createFetchMock();
+	vi.stubGlobal('fetch', fetchMock);
+	const wrapper = mount(ConsentRoot, {
+		global: {
+			plugins: [
+				[
+					c15tVue,
+					{
+						backendURL: 'https://consent.example',
+						consentCategories: ['necessary', 'measurement', 'marketing'],
+						domain: 'consent.example',
+					},
+				],
+			],
+		},
+	});
+	await flushPromises();
+	return { fetchMock, subjectBodies, wrapper };
+};
+
+const mountRootWithConsentProbe = async function mountRootWithConsentProbe() {
+	const { fetchMock, subjectBodies } = createFetchMock();
+	vi.stubGlobal('fetch', fetchMock);
+	const Probe = defineComponent({
+		components: { ConsentRoot },
+		setup() {
+			return { hasConsent: getConsentedCategories() };
+		},
+		template:
+			'<ConsentRoot /><div data-testid="granted-categories">{{ hasConsent.join(",") }}</div>',
+	});
+	const wrapper = mount(Probe, {
+		global: {
+			plugins: [
+				[
+					c15tVue,
+					{
+						backendURL: 'https://consent.example',
+						consentCategories: ['necessary', 'measurement', 'marketing'],
+						domain: 'consent.example',
+					},
+				],
+			],
+		},
+	});
+	await flushPromises();
+	return { fetchMock, subjectBodies, wrapper };
+};
+
+const provideContext = function provideContext(
+	app: ReturnType<typeof createSSRApp>,
+	context: VueConsentKernelContext,
+	config: ConsentConfig
+) {
+	app.provide(consentConfigKey, config);
+	app.provide(symbolKernelContext, context);
+	app.provide(symbolKernel, context.kernel);
+	app.provide(symbolSnapshot, context.snapshot);
+	app.provide(symbolInit, context.init);
+	app.provide(symbolActiveUI, context.activeUI);
+	app.provide(symbolConsent, context.storedConsent);
+};
+
+const renderRootToString = async function renderRootToString(
+	cookieHeader?: string
+) {
+	const { fetchMock } = createFetchMock();
+	const config: RuntimeConsentConfig = {
+		backendURL: 'https://consent.example',
+		consentCategories: ['necessary', 'measurement', 'marketing'],
+		customFetch: fetchMock as unknown as typeof fetch,
+		domain: 'consent.example',
+	};
+	const initialRecords = readStoredRecordsFromCookieHeader(
+		cookieHeader,
+		config.storageConfig,
+		Date.now()
+	);
+	const context = createVueConsentKernelContext({
+		config,
+		initialRecords,
+		prefetch: initFixture,
+	});
+
+	try {
+		const app = createSSRApp(ConsentRoot);
+		provideContext(app, context, config);
+		const ssrContext: { teleports?: Record<string, string> } = {};
+		const appHtml = await renderToString(app, ssrContext);
+		const html = [appHtml, ...Object.values(ssrContext.teleports ?? {})].join(
+			''
+		);
+		return { context, html };
+	} catch (error) {
+		context.dispose();
+		throw error;
+	}
+};
+
+beforeEach(() => {
+	delete (window as WindowWithC15t).c15t;
+	document.body.innerHTML = '';
+	window.localStorage.clear();
+	document.cookie = 'c15t=; max-age=0; path=/';
+});
+
+afterEach(() => {
+	vi.unstubAllGlobals();
+	vi.restoreAllMocks();
+	delete (window as WindowWithC15t).c15t;
+	document.body.innerHTML = '';
+	window.localStorage.clear();
+	document.cookie = 'c15t=; max-age=0; path=/';
+});
+
+describe('@c15t/vue kernel runtime', () => {
+	test('preserves the prefetched subject through empty cookie hydration and mount', async () => {
+		const { fetchMock } = createFetchMock();
+		const prefetch = { ...initFixture, subjectId: 'backend+literal' };
+		const config: RuntimeConsentConfig = {
+			backendURL: 'https://consent.example',
+			customFetch: fetchMock as unknown as typeof fetch,
+			iframeBlocker: false,
+		};
+		const context = createVueConsentKernelContext({
+			config,
+			initialRecords: readStoredRecordsFromCookieHeader(
+				undefined,
+				undefined,
+				Date.now()
+			),
+			prefetch,
+		});
+		expect(context.kernel.getSnapshot().subject?.subjectId).toBe(
+			'backend+literal'
+		);
+		expect(context.kernel.getSnapshot().explicitChoice).toBeNull();
+		context.start();
+		const { dispose } = context;
+		try {
+			await flushPromises();
+			expect(context.kernel.getSnapshot().subject?.subjectId).toBe(
+				'backend+literal'
+			);
+			expect(context.kernel.getSnapshot().explicitChoice).toBeNull();
+			expect(config.customFetch).not.toHaveBeenCalled();
+		} finally {
+			dispose();
+		}
+	});
+
+	test('a stored rejection wins over server records that lack it', async () => {
+		const { policyResolution } = initFixture;
+		if (policyResolution?.status !== 'matched') {
+			throw new Error('Expected a matched fixture');
+		}
+		const denial = {
+			basis: {
+				fingerprint: policyResolution.fingerprints.choice,
+				kind: 'choice-v1',
+			},
+			confirmedAt: Date.now() - 1000,
+			value: false,
+		};
+		// localStorage kept the visitor's rejection; the render did not see
+		// it (no cookie reached the server, or the HTML came from a cache).
+		window.localStorage.setItem(
+			'c15t',
+			JSON.stringify({
+				categories: { marketing: denial, measurement: denial },
+				version: 3,
+			})
+		);
+		const { fetchMock } = createFetchMock();
+		const config: RuntimeConsentConfig = {
+			backendURL: 'https://consent.example',
+			consentCategories: ['necessary', 'measurement', 'marketing'],
+			customFetch: fetchMock as unknown as typeof fetch,
+			iframeBlocker: false,
+		};
+		const context = createVueConsentKernelContext({
+			config,
+			initialRecords: readStoredRecordsFromCookieHeader(
+				undefined,
+				undefined,
+				Date.now()
+			),
+			prefetch: initFixture,
+		});
+		expect(context.kernel.getSnapshot().activeUI).toBe('banner');
+		context.start();
+		const { dispose } = context;
+		try {
+			await flushPromises();
+			const snapshot = context.kernel.getSnapshot();
+			expect(snapshot.explicitChoice?.categories).toMatchObject({
+				marketing: { value: false },
+				measurement: { value: false },
+			});
+			expect(snapshot.activeUI).toBe('none');
+		} finally {
+			dispose();
+		}
+	});
+
+	test('a stored grant does not override the records the server read', async () => {
+		const { policyResolution } = initFixture;
+		if (policyResolution?.status !== 'matched') {
+			throw new Error('Expected a matched fixture');
+		}
+		// The cookie reached the server without a choice; localStorage holds
+		// a grant. The server's seed stands: only a newer denial would apply.
+		window.localStorage.setItem(
+			'c15t',
+			JSON.stringify({
+				categories: {
+					marketing: {
+						basis: {
+							fingerprint: policyResolution.fingerprints.choice,
+							kind: 'choice-v1',
+						},
+						confirmedAt: Date.now() - 1000,
+						value: true,
+					},
+				},
+				version: 3,
+			})
+		);
+		const config: RuntimeConsentConfig = {
+			backendURL: 'https://consent.example',
+			customFetch: createFetchMock().fetchMock as unknown as typeof fetch,
+			iframeBlocker: false,
+		};
+		const context = createVueConsentKernelContext({
+			config,
+			initialRecords: readStoredRecordsFromCookieHeader(
+				undefined,
+				undefined,
+				Date.now()
+			),
+			prefetch: initFixture,
+		});
+		context.start();
+		try {
+			await flushPromises();
+			expect(context.kernel.getSnapshot().explicitChoice).toBeNull();
+			expect(context.kernel.getSnapshot().activeUI).toBe('banner');
+		} finally {
+			context.dispose();
+		}
+	});
+
+	test('clearRecords clears the vendor choice before the runtime starts', () => {
+		const context = createVueConsentKernelContext({
+			config: { iframeBlocker: false },
+			initialRecords: {
+				now: Date.now(),
+				vendorChoice: {
+					confirmedAt: Date.now() - 1000,
+					denied: ['meta-pixel'],
+					version: 1,
+				},
+			},
+			prefetch: initFixture,
+		});
+		const cleared = vi.fn();
+		context.kernel.events.on('records:cleared', cleared);
+		try {
+			expect(context.kernel.getSnapshot().vendorChoice).not.toBeNull();
+			context.clearRecords();
+			expect(context.kernel.getSnapshot().vendorChoice).toBeNull();
+			expect(cleared).toHaveBeenCalledOnce();
+		} finally {
+			context.dispose();
+		}
+	});
+
+	test('disposes the kernel with its Vue context', () => {
+		const context = createVueConsentKernelContext({
+			config: {
+				backendURL: 'https://consent.example',
+				customFetch: vi.fn() as unknown as typeof fetch,
+			},
+		});
+		const dispose = vi.spyOn(context.kernel, 'dispose');
+
+		context.dispose();
+		expect(dispose).toHaveBeenCalledOnce();
+	});
+
+	test('installs window.c15t with Vue hosted identity', async () => {
+		const { wrapper } = await mountRoot();
+
+		expect((window as WindowWithC15t).c15t).toMatchObject({
+			mode: 'hosted',
+			pkg: '@c15t/vue',
+		});
+		expect(typeof (window as WindowWithC15t).c15t?.version).toBe('string');
+
+		wrapper.unmount();
+		expect((window as WindowWithC15t).c15t).toBeUndefined();
+	});
+
+	test('renders the banner from kernel init state', async () => {
+		const { wrapper } = await mountRoot();
+
+		expect(
+			document.querySelector('[data-testid="consent-banner-root"]')
+		).toBeTruthy();
+		expect(document.body.textContent).toContain('Cookie choices');
+
+		wrapper.unmount();
+	});
+
+	test('server-render retains an expired legacy receipt and asks for a new choice', async () => {
+		const { context, html } = await renderRootToString(
+			'c15t=c.necessary:1,c.measurement:1,c.marketing:1,i.sid:sub_111AEMh5qpiLmhEcbnqwrmsB7X,i.t:1234567890,i.y:all'
+		);
+
+		try {
+			const snapshot = context.kernel.getSnapshot();
+			expect(snapshot.explicitChoice).not.toBeNull();
+			expect(snapshot.activeUI).toBe('banner');
+			expect(snapshot.effectivePermissions).toMatchObject({
+				marketing: false,
+				measurement: false,
+				necessary: true,
+			});
+			expect(html).toContain('data-testid="consent-banner-root"');
+			expect(html).toContain('Cookie choices');
+		} finally {
+			context.dispose();
+		}
+	});
+
+	test('server-render keeps the banner for fresh visitors', async () => {
+		const { context, html } = await renderRootToString();
+
+		try {
+			const snapshot = context.kernel.getSnapshot();
+			expect(snapshot.explicitChoice).toBeNull();
+			expect(snapshot.activeUI).toBe('banner');
+			expect(html).toContain('data-testid="consent-banner-root"');
+			expect(html).toContain('Cookie choices');
+		} finally {
+			context.dispose();
+		}
+	});
+
+	test.each([1, 99, null])(
+		'prefetch fails closed for missing or unsupported negotiated contract %s',
+		(producerContract) => {
+			const { policyResolution: _removedWire, ...unversionedInit } =
+				initFixture;
+			const context = createVueConsentKernelContext({
+				config: {},
+				// @ts-expect-error Deliberately test a producer omitting the required contract.
+				prefetch: unversionedInit,
+				producerContract,
+			});
+			try {
+				expect(context.snapshot.value.resolution.status).toBe('failed');
+				expect(context.snapshot.value.effectivePermissions.marketing).toBe(
+					false
+				);
+				expect(context.snapshot.value.policySnapshotToken).toBeNull();
+			} finally {
+				context.dispose();
+			}
+		}
+	);
+
+	test('prefetch seeds overrides from init location and language', () => {
+		const context = createVueConsentKernelContext({
+			config: {
+				backendURL: 'https://consent.example',
+				customFetch: vi.fn() as unknown as typeof fetch,
+			},
+			prefetch: {
+				...initFixture,
+				location: { countryCode: 'US', regionCode: 'CA' },
+				translations: {
+					...initFixture.translations,
+					language: 'de',
+				},
+			},
+		});
+
+		try {
+			expect(context.kernel.getSnapshot().overrides).toMatchObject({
+				country: 'US',
+				language: 'de',
+				region: 'CA',
+			});
+		} finally {
+			context.dispose();
+		}
+	});
+
+	test('fresh visitor useHasConsent only reports necessary under opt-in policy', async () => {
+		const { wrapper } = await mountRootWithConsentProbe();
+
+		expect(wrapper.find('[data-testid="granted-categories"]').text()).toBe(
+			'necessary'
+		);
+
+		wrapper.unmount();
+	});
+
+	test('hides the banner on consent and posts through the hosted transport', async () => {
+		const { wrapper, subjectBodies } = await mountRoot();
+
+		document
+			.querySelector<HTMLButtonElement>(
+				'[data-testid="consent-banner-accept-button"]'
+			)
+			?.click();
+		await flushPromises();
+		await Promise.resolve();
+
+		expect(
+			document.querySelector('[data-testid="consent-banner-root"]')
+		).toBeNull();
+		// The kernel defers transport.save a macrotask so the UI commit paints
+		// first — the POST lands shortly after the banner is gone.
+		await vi.waitFor(() => {
+			expect(subjectBodies).toHaveLength(1);
+		});
+		expect(subjectBodies[0]).toMatchObject({
+			consentAction: 'all',
+			domain: 'consent.example',
+			policySnapshotToken: 'token_gdpr',
+			preferences: {
+				marketing: true,
+				measurement: true,
+				necessary: true,
+			},
+			type: 'cookie_banner',
+		});
+
+		wrapper.unmount();
+	});
+
+	test('persists consent when accepting all from the dialog', async () => {
+		const { wrapper } = await mountRoot();
+
+		const customizeButton = document.querySelector<HTMLButtonElement>(
+			'[data-testid="consent-banner-customize-button"]'
+		);
+		if (!customizeButton) {
+			throw new Error('Customize button was not rendered');
+		}
+		customizeButton.click();
+		await flushPromises();
+
+		// The dialog is an async component; its first import on a cold CI
+		// runner can take well over vi.waitFor's default one second.
+		await vi.waitFor(
+			() => {
+				expect(
+					document.querySelector(
+						'[data-testid="consent-widget-footer-accept-all-button"]'
+					)
+				).toBeTruthy();
+			},
+			{ timeout: 10_000 }
+		);
+		const acceptAllButton = document.querySelector<HTMLButtonElement>(
+			'[data-testid="consent-widget-footer-accept-all-button"]'
+		);
+		if (!acceptAllButton) {
+			throw new Error('Dialog accept-all button was not rendered');
+		}
+		acceptAllButton.click();
+		await flushPromises();
+		await Promise.resolve();
+
+		await vi.waitFor(() => {
+			expect(window.localStorage.getItem('c15t')).toBeTruthy();
+		});
+		const stored = readStoredRecords(undefined, Date.now()).records;
+		expect(stored).toMatchObject({
+			choice: {
+				categories: {
+					marketing: { value: true },
+					measurement: { value: true },
+				},
+				version: 3,
+			},
+		});
+		expect(document.cookie).toContain('c15t=');
+
+		wrapper.unmount();
+	}, 15_000);
+
+	test('persists a canonical explicit reject receipt', async () => {
+		const { wrapper } = await mountRoot();
+
+		document
+			.querySelector<HTMLButtonElement>(
+				'[data-testid="consent-banner-reject-button"]'
+			)
+			?.click();
+		await flushPromises();
+		await Promise.resolve();
+
+		await vi.waitFor(() => {
+			expect(window.localStorage.getItem('c15t')).toBeTruthy();
+		});
+		const stored = readStoredRecords(undefined, Date.now()).records;
+		expect(stored).toMatchObject({
+			choice: {
+				categories: {
+					marketing: { value: false },
+					measurement: { value: false },
+				},
+				version: 3,
+			},
+		});
+		expect(document.cookie).toContain('c15t=');
+
+		wrapper.unmount();
+	});
+
+	test('network blocker wiring blocks matched requests until consent', async () => {
+		const { fetchMock } = createFetchMock();
+		const onRequestBlocked = vi.fn();
+		const config: RuntimeConsentConfig = {
+			backendURL: 'https://consent.example',
+			consentCategories: ['necessary', 'measurement', 'marketing'],
+			customFetch: fetchMock as unknown as typeof fetch,
+			domain: 'consent.example',
+			iframeBlocker: false,
+			networkBlocker: {
+				logBlockedRequests: false,
+				onRequestBlocked,
+				rules: [{ category: 'marketing', domain: 'tracker.example' }],
+			},
+		};
+		const context = createVueConsentKernelContext({
+			config,
+			prefetch: initFixture,
+		});
+		context.start();
+		const { dispose: stop } = context;
+
+		try {
+			const blocked = await window.fetch('https://tracker.example/pixel');
+			expect(blocked.status).toBe(451);
+			expect(onRequestBlocked).toHaveBeenCalledTimes(1);
+
+			await context.kernel.commands.save({ marketing: true });
+			// jsdom has no real network — reaching the (failing) transport is
+			// enough to prove the request was allowed through the blocker.
+			await window.fetch('https://tracker.example/pixel').catch(() => null);
+			expect(onRequestBlocked).toHaveBeenCalledTimes(1);
+		} finally {
+			stop();
+		}
+	});
+
+	// oxlint-disable-next-line require-await -- Preserve sequential execution and callback compatibility.
+	test('iframe blocker is wired by default and honors opting out', async () => {
+		const { fetchMock } = createFetchMock();
+		const baseConfig: RuntimeConsentConfig = {
+			backendURL: 'https://consent.example',
+			consentCategories: ['necessary', 'measurement', 'marketing'],
+			customFetch: fetchMock as unknown as typeof fetch,
+			domain: 'consent.example',
+		};
+
+		const gated = document.createElement('iframe');
+		gated.setAttribute('data-category', 'marketing');
+		gated.setAttribute('src', 'https://embed.example/video');
+		document.body.appendChild(gated);
+
+		const context = createVueConsentKernelContext({
+			config: baseConfig,
+			prefetch: initFixture,
+		});
+		context.start();
+		const { dispose: stop } = context;
+		try {
+			// Default wiring strips the src of consent-gated iframes.
+			expect(gated.getAttribute('src')).toBeNull();
+		} finally {
+			stop();
+			gated.remove();
+		}
+
+		const untouched = document.createElement('iframe');
+		untouched.setAttribute('data-category', 'marketing');
+		untouched.setAttribute('src', 'https://embed.example/video');
+		document.body.appendChild(untouched);
+
+		const optOutConfig: RuntimeConsentConfig = {
+			...baseConfig,
+			iframeBlocker: false,
+		};
+		const optOutContext = createVueConsentKernelContext({
+			config: optOutConfig,
+			prefetch: initFixture,
+		});
+		optOutContext.start();
+		const { dispose: stopOptOut } = optOutContext;
+		try {
+			expect(untouched.getAttribute('src')).toBe('https://embed.example/video');
+		} finally {
+			stopOptOut();
+			untouched.remove();
+		}
+	});
+});
+
+test('the experiment callbacks carry the arm on the impression and the choice', async () => {
+	const { fetchMock } = createFetchMock();
+	const shown = vi.fn();
+	const recorded = vi.fn();
+	const config: RuntimeConsentConfig = {
+		backendURL: 'https://consent.example',
+		callbacks: { onChoiceRecorded: recorded, onSurfaceShown: shown },
+		customFetch: fetchMock as unknown as typeof fetch,
+		experiment: {
+			arms: { bar: { prompt: { variant: 'bar' } } },
+			id: 'banner-shape',
+			split: { bar: 1 },
+		},
+		iframeBlocker: false,
+	};
+	const context = createVueConsentKernelContext({
+		config,
+		prefetch: initFixture,
+	});
+	// start() picks the arm and loads the experiment chunk; the banner is
+	// held until the arm is checked, so the first impression already names it.
+	context.start();
+	const { dispose: stop } = context;
+	try {
+		await vi.waitFor(() => expect(shown).toHaveBeenCalledOnce());
+		expect(shown.mock.calls[0]?.[0]).toMatchObject({
+			experiment: { arm: 'bar', assignedBy: 'c15t', id: 'banner-shape' },
+			surface: 'banner',
+		});
+		await context.kernel.commands.save('all');
+		expect(recorded.mock.calls[0]?.[0]).toMatchObject({
+			consentAction: 'all',
+			experiment: { arm: 'bar' },
+		});
+	} finally {
+		stop();
+	}
+});
+
+test('runtime clears configured storage when permission is revoked', async () => {
+	const config: RuntimeConsentConfig = {
+		clearOnRevocation: { measurement: { localStorage: ['analytics:visitor'] } },
+		iframeBlocker: false,
+		prefetch: initFixture,
+	};
+	const context = createVueConsentKernelContext({ config });
+	context.start();
+	const { dispose: stop } = context;
+	await context.kernel.commands.save('all');
+	localStorage.setItem('analytics:visitor', 'visitor');
+	localStorage.setItem('application:setting', 'keep');
+	await context.kernel.commands.save('none');
+	// Data clearing subscribes once the script loader has, then sweeps.
+	await vi.waitFor(() =>
+		expect(localStorage.getItem('analytics:visitor')).toBeNull()
+	);
+	expect(localStorage.getItem('application:setting')).toBe('keep');
+	stop();
+	localStorage.removeItem('application:setting');
+});
+
+test('with `iab` set, mounts the shared CMP for a prefetched IAB reference and encodes consent', async () => {
+	const { completeGVL } =
+		await import('../../../iab/src/__tests__/fixtures/gvl-sample');
+	const { deferInitGvl } = await import('@c15t/core');
+	const config: RuntimeConsentConfig = {
+		backendURL: 'https://consent.test',
+		iab: {},
+		iframeBlocker: false,
+	};
+	const prefetch = deferInitGvl(
+		{
+			...initFixture,
+			cmpId: 28,
+			gvl: completeGVL,
+			policyResolution: writePolicyResolutionWire(
+				resolvePolicyRules({
+					countryCode: 'DE',
+					regionCode: null,
+					rules: [
+						{
+							id: 'iab-runtime',
+							match: { isDefault: true },
+							model: 'iab',
+							prompt: 'choice',
+						},
+					],
+				})
+			),
+		},
+		'/vendor-list'
+	);
+	const fetchMock = vi.fn((input: RequestInfo | URL) =>
+		Promise.resolve(
+			Response.json(
+				String(input).includes('/vendor-list')
+					? completeGVL
+					: { subjectId: 'subject-iab' }
+			)
+		)
+	);
+	vi.stubGlobal('fetch', fetchMock);
+	const context = createVueConsentKernelContext({ config, prefetch });
+	context.start();
+	const { dispose } = context;
+	try {
+		expect(context.iab).toBeDefined();
+		await context.iab?.whenReady?.();
+		expect(context.snapshot.value.model).toBe('iab');
+		context.iab?.acceptAll();
+		await context.iab?.save();
+		expect(context.snapshot.value.iab?.authority?.tcString).toBeTruthy();
+		expect(fetchMock).toHaveBeenCalledWith(
+			expect.stringContaining('/vendor-list'),
+			expect.any(Object)
+		);
+		const firstHandle = context.iab;
+		context.kernel.set.iab({ cmpId: 29 });
+		expect(context.iab).toBeDefined();
+		expect(context.iab).not.toBe(firstHandle);
+		await context.iab?.whenReady?.();
+		context.iab?.acceptAll();
+		await context.iab?.save();
+		const { decodeTCString } = await import('../../../iab/src/tcf/tc-string');
+		const tcString = context.snapshot.value.iab?.authority?.tcString;
+		expect(tcString).toBeTruthy();
+		if (!tcString) {
+			throw new Error('Expected consent');
+		}
+		expect((await decodeTCString(tcString)).cmpId).toBe(29);
+		context.kernel.set.iab({ cmpId: null });
+		expect(context.iab).toBeUndefined();
+	} finally {
+		dispose();
+	}
+});
+
+describe('IAB is opt-in', () => {
+	const VUE_MESSAGE =
+		"c15t: this visitor's policy uses IAB TCF, but `iab` is not set. Pass `iab` to the c15t plugin, such as `app.use(c15tVue, { iab: {} })`, or remove the IAB model from your policy.";
+
+	const iabPolicyResolution = writePolicyResolutionWire(
+		resolvePolicyRules({
+			countryCode: 'DE',
+			regionCode: null,
+			rules: [
+				{
+					id: 'iab-opt-in',
+					match: { isDefault: true },
+					model: 'iab',
+					prompt: 'choice',
+				},
+			],
+		})
+	);
+
+	const createIABInit = async function createIABInit(): Promise<InitOutput> {
+		const { completeGVL } =
+			await import('../../../iab/src/__tests__/fixtures/gvl-sample');
+		const { deferInitGvl } = await import('@c15t/core');
+		return deferInitGvl(
+			{
+				...initFixture,
+				cmpId: 28,
+				gvl: completeGVL,
+				policyResolution: iabPolicyResolution,
+			},
+			'https://consent.test/vendor-list'
+		) as InitOutput;
+	};
+
+	/** A hosted backend whose `/init` answers with an IAB policy. */
+	const stubIABBackend = async function stubIABBackend(
+		init: InitOutput | Promise<InitOutput> = createIABInit()
+	) {
+		const { completeGVL } =
+			await import('../../../iab/src/__tests__/fixtures/gvl-sample');
+		const answer = await init;
+		const fetchMock = vi.fn((input: RequestInfo | URL) => {
+			const url = String(input).split('?')[0] ?? '';
+			if (url.endsWith('/init')) {
+				return Promise.resolve(Response.json(answer));
+			}
+			return Promise.resolve(
+				url.endsWith('/vendor-list')
+					? Response.json(completeGVL)
+					: Response.json({ subjectId: 'subject-iab' })
+			);
+		});
+		vi.stubGlobal('fetch', fetchMock);
+		return fetchMock;
+	};
+
+	const expectUnavailable = (error: unknown, message = VUE_MESSAGE) => {
+		expect(error).toBeInstanceOf(IABUnavailableError);
+		expect((error as Error).message).toBe(message);
+		expect((error as { code?: string }).code).toBe(IAB_UNAVAILABLE_ERROR_CODE);
+	};
+
+	test.each([
+		['unset', undefined],
+		['false', false],
+		['{ enabled: false }', { enabled: false }],
+	] as const)(
+		'with `iab` %s, a server-resolved IAB policy throws before anything renders',
+		async (_label, iab) => {
+			const prefetch = await createIABInit();
+			let thrown: unknown;
+			try {
+				createVueConsentKernelContext({
+					config: { backendURL: 'https://consent.test', iab },
+					prefetch,
+				});
+			} catch (error) {
+				thrown = error;
+			}
+			expect(thrown).toMatchObject({
+				code: IAB_UNAVAILABLE_ERROR_CODE,
+				message: VUE_MESSAGE,
+			});
+			expectUnavailable(thrown);
+		}
+	);
+
+	test('the plugin throws the same error from `app.use`', async () => {
+		const prefetch = await createIABInit();
+		const app = createSSRApp(ConsentRoot);
+
+		expect(() =>
+			app.use(c15tVue, { backendURL: 'https://consent.test', prefetch })
+		).toThrow(VUE_MESSAGE);
+	});
+
+	test('with `iab: {}`, the server render shows the IAB banner', async () => {
+		const config: RuntimeConsentConfig = {
+			backendURL: 'https://consent.test',
+			iab: {},
+			iframeBlocker: false,
+		};
+		const context = createVueConsentKernelContext({
+			config,
+			prefetch: await createIABInit(),
+		});
+		try {
+			const app = createSSRApp(ConsentRoot);
+			provideContext(app, context, config);
+			const ssrContext: { teleports?: Record<string, string> } = {};
+			const html = [
+				await renderToString(app, ssrContext),
+				...Object.values(ssrContext.teleports ?? {}),
+			].join('');
+			expect(html).toContain('data-testid="iab-consent-banner');
+			expect(context.iabUnavailable.value).toBe(false);
+		} finally {
+			context.dispose();
+		}
+	});
+
+	test('without `iab`, an IAB answer from `/init` reports the error once and shows no surface', async () => {
+		await stubIABBackend();
+		const config: RuntimeConsentConfig = {
+			backendURL: 'https://consent.test',
+			iframeBlocker: false,
+		};
+		const errors: unknown[] = [];
+		const context = createVueConsentKernelContext({
+			config,
+			onIABUnavailable: (error) => errors.push(error),
+		});
+		const wrapper = mount(ConsentRoot, {
+			global: {
+				provide: {
+					[consentConfigKey as symbol]: config,
+					[symbolKernelContext as symbol]: context,
+					[symbolKernel as symbol]: context.kernel,
+					[symbolSnapshot as symbol]: context.snapshot,
+					[symbolInit as symbol]: context.init,
+					[symbolActiveUI as symbol]: context.activeUI,
+					[symbolConsent as symbol]: context.storedConsent,
+				},
+			},
+		});
+		context.start();
+		try {
+			await vi.waitFor(() => expect(errors).toHaveLength(1));
+			expectUnavailable(errors[0]);
+			expect(context.iabUnavailable.value).toBe(true);
+			await flushPromises();
+			expect(
+				document.querySelector('[data-testid="iab-consent-banner-root"]')
+			).toBeNull();
+			expect(
+				document.querySelector('[data-testid="consent-banner-root"]')
+			).toBeNull();
+			expect(context.iab).toBeUndefined();
+			expect(
+				(window as Window & { __tcfapi?: unknown }).__tcfapi
+			).toBeUndefined();
+
+			// A later answer for the same policy does not report it again.
+			await context.runtime.reinit();
+			await flushPromises();
+			expect(errors).toHaveLength(1);
+		} finally {
+			wrapper.unmount();
+			context.dispose();
+		}
+	});
+
+	test('without `iab`, an IAB policy with `gvl: null` runs as opt-in and reports nothing', async () => {
+		await stubIABBackend({
+			...initFixture,
+			gvl: null,
+			policyResolution: iabPolicyResolution,
+		} as InitOutput);
+		const errors: unknown[] = [];
+		const context = createVueConsentKernelContext({
+			config: { backendURL: 'https://consent.test', iframeBlocker: false },
+			onIABUnavailable: (error) => errors.push(error),
+		});
+		context.start();
+		try {
+			await vi.waitFor(() =>
+				expect(context.snapshot.value.resolution.status).toBe('matched')
+			);
+			await flushPromises();
+			expect(context.snapshot.value.policyRule.model).toBe('iab');
+			// The backend turned IAB off for the request: the policy runs as
+			// opt-in.
+			expect(context.snapshot.value.model).toBe('opt-in');
+			expect(context.iabUnavailable.value).toBe(false);
+			expect(context.init.value?.gvl).toBeUndefined();
+			expect(errors).toEqual([]);
+		} finally {
+			context.dispose();
+		}
+	});
+
+	test('without `iab`, a policy that is not IAB reports nothing', async () => {
+		await stubIABBackend({ ...initFixture, cmpId: 28 } as InitOutput);
+		const errors: unknown[] = [];
+		const context = createVueConsentKernelContext({
+			config: { backendURL: 'https://consent.test', iframeBlocker: false },
+			onIABUnavailable: (error) => errors.push(error),
+		});
+		context.start();
+		try {
+			await vi.waitFor(() =>
+				expect(context.snapshot.value.resolution.status).toBe('matched')
+			);
+			await flushPromises();
+			expect(context.snapshot.value.policyRule.model).toBe('opt-in');
+			expect(errors).toEqual([]);
+		} finally {
+			context.dispose();
+		}
+	});
+
+	test('with `iab: {}`, the same `/init` answer mounts the CMP', async () => {
+		await stubIABBackend();
+		const errors: unknown[] = [];
+		const context = createVueConsentKernelContext({
+			config: {
+				backendURL: 'https://consent.test',
+				iab: {},
+				iframeBlocker: false,
+			},
+			onIABUnavailable: (error) => errors.push(error),
+		});
+		context.start();
+		try {
+			await vi.waitFor(() => expect(context.iab).toBeDefined());
+			expect(context.snapshot.value.model).toBe('iab');
+			expect(context.init.value?.cmpId).toBe(28);
+			await context.iab?.whenReady?.();
+			expect(typeof (window as Window & { __tcfapi?: unknown }).__tcfapi).toBe(
+				'function'
+			);
+			expect(errors).toEqual([]);
+		} finally {
+			context.dispose();
+		}
+	});
+});
+
+test('IAB publisher restrictions configured in Vue reach the CMP and its TC string', async () => {
+	const { completeGVL } =
+		await import('../../../iab/src/__tests__/fixtures/gvl-sample');
+	const { decodeTCString } = await import('../../../iab/src/tcf/tc-string');
+	// Vendor 755 must use legitimate interest for purpose 7.
+	const publisherRestrictions = [
+		{ purposeId: 7, restrictionType: 2 as const, vendorIds: [755] },
+	];
+	const config: RuntimeConsentConfig = {
+		backendURL: 'https://consent.test',
+		iab: { publisherRestrictions },
+		iframeBlocker: false,
+	};
+	vi.stubGlobal(
+		'fetch',
+		vi.fn(() => Promise.resolve(Response.json({ subjectId: 'subject-iab' })))
+	);
+	const context = createVueConsentKernelContext({
+		config,
+		prefetch: {
+			...initFixture,
+			cmpId: 28,
+			gvl: completeGVL,
+			policyResolution: writePolicyResolutionWire(
+				resolvePolicyRules({
+					countryCode: 'DE',
+					regionCode: null,
+					rules: [
+						{
+							id: 'iab-restrictions',
+							match: { isDefault: true },
+							model: 'iab',
+							prompt: 'choice',
+						},
+					],
+				})
+			),
+		},
+	});
+	context.start();
+	try {
+		await context.iab?.whenReady?.();
+		context.iab?.acceptAll();
+		await context.iab?.save();
+		const tcString = context.snapshot.value.iab?.authority?.tcString;
+		if (!tcString) {
+			throw new Error('Expected a TC string');
+		}
+		expect((await decodeTCString(tcString)).publisherRestrictions).toEqual(
+			publisherRestrictions
+		);
+		expect(context.snapshot.value.iab?.vendorLegitimateInterests[755]).toBe(
+			true
+		);
+	} finally {
+		context.dispose();
+	}
+});
+
+test('configured categories complete a choice without accepting hidden policy categories', async () => {
+	const context = createVueConsentKernelContext({
+		config: { consentCategories: ['necessary', 'measurement'] },
+		prefetch: initFixture,
+	});
+	try {
+		expect(context.kernel.getSnapshot().activeUI).toBe('banner');
+		await context.kernel.commands.save('all');
+		expect(context.kernel.getSnapshot().promptRequirement).toEqual({
+			kind: 'none',
+		});
+		expect(context.kernel.getSnapshot().effectivePermissions.measurement).toBe(
+			true
+		);
+		expect(context.kernel.getSnapshot().effectivePermissions.marketing).toBe(
+			false
+		);
+		expect(
+			context.kernel.getSnapshot().explicitChoice?.categories.marketing
+		).toBeUndefined();
+	} finally {
+		context.dispose();
+	}
+});
+
+test('script categories are present before Vue mounts and complete the choice', async () => {
+	const context = createVueConsentKernelContext({
+		config: {
+			scripts: [
+				{ callbackOnly: true, category: 'measurement', id: 'analytics' },
+				{ callbackOnly: true, category: 'marketing', id: 'ads' },
+			],
+		},
+		prefetch: initFixture,
+	});
+	try {
+		expect(
+			context.kernel.getServerSnapshot().evaluationPolicy.choiceScope
+		).toEqual(['marketing', 'measurement']);
+		await context.kernel.commands.save('all');
+		expect(context.snapshot.value.promptRequirement.kind).toBe('none');
+		expect(
+			context.snapshot.value.explicitChoice?.categories.measurement?.value
+		).toBe(true);
+		expect(
+			context.snapshot.value.explicitChoice?.categories.marketing?.value
+		).toBe(true);
+	} finally {
+		context.dispose();
+	}
+});

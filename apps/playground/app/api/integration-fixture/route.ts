@@ -1,0 +1,146 @@
+interface DeferredPromise<Value> {
+	promise: Promise<Value>;
+	resolve: (value: Value | PromiseLike<Value>) => void;
+	reject: (reason?: unknown) => void;
+}
+
+type PromiseWithResolversConstructor = PromiseConstructor & {
+	withResolvers: <Value>() => DeferredPromise<Value>;
+};
+
+const createDeferredPromise = function createDeferredPromise<Value>(
+	run: (
+		resolve: DeferredPromise<Value>['resolve'],
+		reject: DeferredPromise<Value>['reject']
+	) => void
+): Promise<Value> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<Value>();
+	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+};
+
+const RETRY_SESSIONS_COOKIE = 'c15t_demo_retry_sessions';
+const MAX_RETRY_SESSIONS = 12;
+
+const noStoreHeaders = function noStoreHeaders(contentType: string) {
+	return {
+		'Cache-Control': 'no-store',
+		'Content-Type': contentType,
+	};
+};
+
+const readRetrySessions = function readRetrySessions(request: Request) {
+	const cookie = request.headers
+		.get('cookie')
+		?.split(';')
+		.map((part) => part.trim())
+		.find((part) => part.startsWith(`${RETRY_SESSIONS_COOKIE}=`));
+	if (!cookie) {
+		return [];
+	}
+
+	try {
+		const value = cookie.slice(RETRY_SESSIONS_COOKIE.length + 1);
+		const parsed = JSON.parse(decodeURIComponent(value));
+		return Array.isArray(parsed)
+			? parsed.filter((item): item is string => typeof item === 'string')
+			: [];
+	} catch {
+		return [];
+	}
+};
+
+const createRetrySessionsCookie = function createRetrySessionsCookie(
+	sessions: string[]
+) {
+	const value = encodeURIComponent(
+		JSON.stringify(sessions.slice(-MAX_RETRY_SESSIONS))
+	);
+	return `${RETRY_SESSIONS_COOKIE}=${value}; Path=/api/integration-fixture; Max-Age=300; HttpOnly; SameSite=Lax`;
+};
+
+export const GET = async function GET(request: Request) {
+	const url = new URL(request.url);
+	const fixture = url.searchParams.get('fixture');
+
+	if (fixture === 'iframe') {
+		// Only the fixed demo waits are available on this public endpoint.
+		const requestedDelay = url.searchParams.get('delay');
+		let delay = 0;
+		if (requestedDelay === '8000') {
+			delay = 8000;
+		} else if (requestedDelay === '15000') {
+			delay = 15000;
+		}
+
+		await createDeferredPromise((resolve) => setTimeout(resolve, delay));
+
+		return new Response(
+			`<!doctype html>
+			<html lang="en">
+				<head>
+					<meta charset="utf-8" />
+					<meta name="viewport" content="width=device-width, initial-scale=1" />
+					<style>
+						html {
+							color-scheme: light dark;
+						}
+						html, body {
+							align-items: center;
+							background: Canvas;
+							color: CanvasText;
+							display: flex;
+							font: 500 15px/1.5 system-ui, sans-serif;
+							height: 100%;
+							justify-content: center;
+							margin: 0;
+						}
+					</style>
+				</head>
+				<body>Iframe loaded after ${delay / 1000} seconds.</body>
+			</html>`,
+			{ headers: noStoreHeaders('text/html; charset=utf-8') }
+		);
+	}
+
+	if (fixture === 'retry-script') {
+		const session = url.searchParams.get('session');
+		if (!session || session.length > 128) {
+			return new Response('// Invalid or missing fixture session.', {
+				headers: noStoreHeaders('application/javascript; charset=utf-8'),
+				status: 400,
+			});
+		}
+
+		const attemptedSessions = readRetrySessions(request);
+		if (!attemptedSessions.includes(session)) {
+			return new Response('// Intentional first-attempt failure.', {
+				headers: {
+					...noStoreHeaders('application/javascript; charset=utf-8'),
+					'Set-Cookie': createRetrySessionsCookie([
+						...attemptedSessions,
+						session,
+					]),
+				},
+				status: 503,
+			});
+		}
+
+		const encodedSession = JSON.stringify(session);
+		return new Response(
+			`window.__c15tIntegrationFixtures ??= {};
+			window.__c15tIntegrationFixtures[${encodedSession}] = {
+				attempt: 2,
+				session: ${encodedSession}
+			};`,
+			{ headers: noStoreHeaders('application/javascript; charset=utf-8') }
+		);
+	}
+
+	return Response.json(
+		{ error: 'Unknown integration fixture.' },
+		{ status: 404 }
+	);
+};

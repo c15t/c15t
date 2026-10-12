@@ -1,0 +1,13 @@
+{
+	"name": "@c15t/example-html",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"build": "bun serve.ts --check",
+		"dev": "bun serve.ts",
+		"start": "bun serve.ts"
+	},
+	"dependencies": {
+		"@c15t/browser": "workspace:*"
+	}
+}

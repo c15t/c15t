@@ -1,306 +1,198 @@
-/**
- * Control-plane client for c15t hosted projects.
- */
+import { z } from 'zod';
 
-import { CLI_INFO, TIMEOUTS, URLS } from '../constants';
+import { withLegacySessionNotice } from '../auth/legacy';
 import { CliError } from '../core/errors';
+import { runInth } from '../inth/runner';
 import type { Instance } from '../types';
 import type {
 	ControlPlaneClientConfig,
-	ControlPlaneConnectionState,
 	ControlPlaneOrganization,
 	ControlPlaneRegion,
 	CreateInstanceRequest,
 } from './types';
 
-interface ControlPlaneApiErrorPayload {
-	success: false;
-	error?: {
-		code?: string;
-		message?: string;
-		details?: unknown;
-	};
-}
-
-interface ControlPlaneApiSuccessPayload<T> {
-	success: true;
-	data: T;
-}
-
-interface ControlPlaneInstance {
-	instanceId: string;
-	instanceSlug?: string;
-	instanceName: string;
-	organizationId?: string;
-	organizationSlug?: string;
-	region?:
-		| string
-		| {
-				id?: string;
-				slug?: string;
-				code?: string;
-		  };
-	regionId?: string;
-	regionSlug?: string;
-	backendURL: string | null;
-	dashboardURL?: string;
-	backendVersion?: string;
-}
-
-function extractAwsRegion(
-	value: string | null | undefined
-): string | undefined {
-	if (!value) {
-		return undefined;
-	}
-	const match = value.match(/[a-z]{2}-[a-z]+-\d/);
-	return match?.[0];
-}
-
-function isApiSuccessPayload<T>(
-	payload: unknown
-): payload is ControlPlaneApiSuccessPayload<T> {
-	return (
-		typeof payload === 'object' &&
-		payload !== null &&
-		'success' in payload &&
-		(payload as { success?: unknown }).success === true &&
-		'data' in payload
-	);
-}
-
-async function parseJsonSafe(response: Response): Promise<unknown> {
-	try {
-		return await response.json();
-	} catch {
-		return null;
-	}
-}
-
-function mapControlPlaneInstance(raw: ControlPlaneInstance): Instance {
-	const regionFromObject =
-		typeof raw.region === 'string'
-			? raw.region
-			: (raw.region?.id ?? raw.region?.slug ?? raw.region?.code);
-	const region =
-		regionFromObject ??
-		raw.regionId ??
-		raw.regionSlug ??
-		extractAwsRegion(raw.backendURL) ??
-		extractAwsRegion(raw.dashboardURL);
-
-	return {
-		id: raw.instanceId,
-		name: raw.instanceName,
-		organizationSlug: raw.organizationSlug,
-		region,
-		url: raw.backendURL ?? raw.dashboardURL ?? '',
-		createdAt: new Date(0).toISOString(),
-		status: raw.backendURL ? 'active' : 'pending',
-	};
-}
-
-/**
- * Client for c15t hosted projects.
- *
- * Uses direct control-plane HTTP endpoints under /api/v1.
- */
-export class ControlPlaneClient {
-	private config: ControlPlaneClientConfig;
-	private connected = false;
-
-	constructor(config: ControlPlaneClientConfig) {
-		this.config = {
-			clientName: CLI_INFO.CONTROL_PLANE_CLIENT_NAME,
-			clientVersion: CLI_INFO.VERSION,
-			timeout: TIMEOUTS.CONTROL_PLANE_CONNECTION,
-			...config,
-		};
-	}
-
-	/**
-	 * Connect the client.
-	 */
-	async connect(): Promise<ControlPlaneConnectionState> {
-		this.connected = true;
-
-		return {
-			connected: true,
-			capabilities: {
-				tools: ['listInstances', 'createInstance', 'getInstance'],
-			},
-		};
-	}
-
-	/**
-	 * Disconnect the client.
-	 */
-	async close(): Promise<void> {
-		this.connected = false;
-	}
-
-	/**
-	 * Check if connected.
-	 */
-	isConnected(): boolean {
-		return this.connected;
-	}
-
-	private ensureConnected(): void {
-		if (!this.connected) {
-			throw new CliError('CONTROL_PLANE_CONNECTION_FAILED', {
-				details: 'Not connected to control plane',
-			});
-		}
-	}
-
-	private buildUrl(path: string): string {
-		return `${this.config.baseUrl}/api/v1${path}`;
-	}
-
-	private async request<T>(
-		path: string,
-		init?: {
-			method?: 'GET' | 'POST' | 'DELETE' | 'PATCH';
-			body?: unknown;
-		}
-	): Promise<T> {
-		this.ensureConnected();
-
-		const response = await fetch(this.buildUrl(path), {
-			method: init?.method ?? 'GET',
-			headers: {
-				Authorization: `Bearer ${this.config.accessToken}`,
-				'Content-Type': 'application/json',
-			},
-			body: init?.body === undefined ? undefined : JSON.stringify(init.body),
-		});
-
-		const payload = await parseJsonSafe(response);
-		if (response.ok && isApiSuccessPayload<T>(payload)) {
-			return payload.data;
-		}
-
-		const apiError = payload as ControlPlaneApiErrorPayload;
-		const errorCode = apiError?.error?.code;
-		const errorMessage = apiError?.error?.message ?? 'Request failed';
-
-		if (response.status === 401) {
-			throw new CliError('AUTH_TOKEN_INVALID', {
-				details: `${response.status} ${errorMessage}`,
-			});
-		}
-
+const projectSchema = z.object({
+	consent: z.object({ backendUrl: z.string().url().nullable() }).nullish(),
+	createdAt: z.string().optional(),
+	id: z.string().min(1),
+	name: z.string(),
+	organizationSlug: z.string().optional(),
+	region: z.string().optional(),
+});
+const organizationSchema = z.object({
+	id: z.string(),
+	name: z.string(),
+	slug: z.string(),
+});
+const regionSchema = z.object({
+	id: z.string(),
+	label: z.string().optional(),
+	name: z.string().optional(),
+});
+const parseResponse = <Output>(
+	schema: z.ZodType<Output>,
+	value: unknown
+): Output => {
+	const result = schema.safeParse(value);
+	if (!result.success) {
 		throw new CliError('API_ERROR', {
-			details: `${response.status} ${errorCode ? `${errorCode}: ` : ''}${errorMessage}`,
+			details: 'Invalid Inth resource data.',
 		});
 	}
+	return result.data;
+};
+const mapProject = (raw: z.infer<typeof projectSchema>): Instance => {
+	let status: Instance['status'] = 'inactive';
+	if (raw.consent) {
+		status = raw.consent.backendUrl ? 'active' : 'pending';
+	}
+	return {
+		createdAt: raw.createdAt,
+		id: raw.id,
+		name: raw.name,
+		organizationSlug: raw.organizationSlug,
+		region: raw.region,
+		status,
+		url: raw.consent?.backendUrl ?? '',
+	};
+};
 
-	async listOrganizations(): Promise<ControlPlaneOrganization[]> {
-		return this.request<ControlPlaneOrganization[]>('/consent/organizations');
+/** Hosted project operations delegated to Inth's authenticated native executable. */
+export class ControlPlaneClient {
+	private readonly config: ControlPlaneClientConfig;
+	constructor(config: ControlPlaneClientConfig = {}) {
+		this.config = config;
 	}
 
-	async listRegions(): Promise<ControlPlaneRegion[]> {
-		return this.request<ControlPlaneRegion[]>('/consent/regions');
+	/** Run Inth, explaining a leftover pre-Inth c15t session when signed out. */
+	private async run(args: string[]): Promise<unknown> {
+		try {
+			return await runInth(args, this.config);
+		} catch (error) {
+			throw await withLegacySessionNotice(error);
+		}
 	}
 
-	/**
-	 * List all hosted projects for the authenticated user.
-	 */
-	async listInstances(): Promise<Instance[]> {
-		const raw =
-			await this.request<ControlPlaneInstance[]>('/consent/instances');
-		return raw.map(mapControlPlaneInstance);
-	}
-
-	/**
-	 * Get a specific hosted project by ID.
-	 */
-	async getInstance(id: string): Promise<Instance> {
-		const instances = await this.listInstances();
-		const instance = instances.find((item) => item.id === id);
-		if (!instance) {
-			throw new CliError('INSTANCE_NOT_FOUND', {
-				details: `Project not found: ${id}`,
+	private async detail(args: string[]): Promise<unknown> {
+		const value = await this.run(args);
+		const parsed = z
+			.object({ data: z.unknown(), success: z.literal(true) })
+			.safeParse(value);
+		if (!parsed.success) {
+			throw new CliError('API_ERROR', {
+				details: 'Invalid Inth resource response.',
 			});
 		}
-
-		return instance;
+		return parsed.data.data;
 	}
 
-	/**
-	 * Create a new hosted project.
-	 */
+	private async list(args: string[], paginated: boolean): Promise<unknown[]> {
+		const items: unknown[] = [];
+		const seen: string[] = [];
+		let cursor: string | undefined;
+		do {
+			// Each page depends on the preceding cursor.
+			// oxlint-disable-next-line no-await-in-loop
+			const value = await this.run([
+				...args,
+				...(cursor ? ['--cursor', cursor] : []),
+			]);
+			const parsed = z
+				.object({
+					data: z.array(z.unknown()),
+					pagination: z
+						.object({ hasMore: z.boolean(), nextCursor: z.string().nullable() })
+						.optional(),
+					success: z.literal(true),
+				})
+				.safeParse(value);
+			if (!parsed.success) {
+				throw new CliError('API_ERROR', {
+					details: 'Invalid Inth list response.',
+				});
+			}
+			items.push(...parsed.data.data);
+			const page = parsed.data.pagination;
+			cursor =
+				paginated && page?.hasMore ? (page.nextCursor ?? undefined) : undefined;
+			if (paginated && page?.hasMore && (!cursor || seen.includes(cursor))) {
+				throw new CliError('API_ERROR', {
+					details: 'Invalid or repeated Inth pagination cursor.',
+				});
+			}
+			if (cursor) {
+				seen.push(cursor);
+			}
+		} while (cursor);
+		return items;
+	}
+
+	/** List all organizations available through Inth. */
+	async listOrganizations(): Promise<ControlPlaneOrganization[]> {
+		return parseResponse(
+			z.array(organizationSchema),
+			await this.list(['org', 'list'], true)
+		).map((raw) => ({
+			organizationId: raw.id,
+			organizationName: raw.name,
+			organizationSlug: raw.slug,
+		}));
+	}
+	/** List current project regions without legacy backend-version filtering. */
+	async listRegions(): Promise<ControlPlaneRegion[]> {
+		return parseResponse(
+			z.array(regionSchema),
+			await this.list(['region', 'list'], false)
+		).map((raw) => ({ id: raw.id, label: raw.label ?? raw.name ?? raw.id }));
+	}
+	/** List all projects in Inth's linked or selected organization. */
+	async listInstances(): Promise<Instance[]> {
+		const args = [
+			'project',
+			'list',
+			...(this.config.organization
+				? ['--organization', this.config.organization]
+				: []),
+		];
+		return parseResponse(
+			z.array(projectSchema),
+			await this.list(args, true)
+		).map(mapProject);
+	}
+	/** Read a project by its ID. */
+	async getInstance(id: string): Promise<Instance> {
+		return mapProject(
+			parseResponse(projectSchema, await this.detail(['project', 'get', id]))
+		);
+	}
+	/** Create a consent project through Inth's current provisioning command. */
 	async createInstance(request: CreateInstanceRequest): Promise<Instance> {
 		const { organizationSlug, region, trustedOrigins } = request.config;
-		if (!organizationSlug || !region) {
-			throw new CliError('API_ERROR', {
-				details: 'organizationSlug and region are required',
-			});
+		const args = [
+			'project',
+			'create',
+			'--name',
+			request.name,
+			'--region',
+			region,
+			'--organization',
+			organizationSlug,
+			'--branding',
+			'c15t',
+		];
+		if (trustedOrigins) {
+			args.push('--trusted-origins', JSON.stringify(trustedOrigins));
 		}
-
-		const instance = await this.request<ControlPlaneInstance>(
-			'/consent/instances',
-			{
-				method: 'POST',
-				body: {
-					organizationSlug,
-					name: request.name,
-					region,
-					production: false,
-					trustedOrigins: trustedOrigins ?? [],
-					useV2: true,
-				},
-			}
-		);
-
-		return mapControlPlaneInstance(instance);
-	}
-
-	/**
-	 * Delete a hosted project.
-	 */
-	async deleteInstance(id: string): Promise<void> {
-		await this.request<void>(`/consent/instances/${encodeURIComponent(id)}`, {
-			method: 'DELETE',
-		});
+		return mapProject(parseResponse(projectSchema, await this.detail(args)));
 	}
 }
 
-/**
- * Create and connect a client.
- */
-export async function createControlPlaneClient(
-	accessToken: string,
-	baseUrl: string = URLS.CONSENT_IO
-): Promise<ControlPlaneClient> {
-	const client = new ControlPlaneClient({
-		baseUrl,
-		accessToken,
-	});
-
-	const state = await client.connect();
-	if (!state.connected) {
-		throw new CliError('CONTROL_PLANE_CONNECTION_FAILED', {
-			details: state.error,
-		});
-	}
-
-	return client;
-}
-
-/**
- * Create a client from stored config.
- */
-export async function createControlPlaneClientFromConfig(
-	baseUrl: string = URLS.CONSENT_IO
-): Promise<ControlPlaneClient | null> {
-	const { getAccessToken } = await import('../auth/config-store');
-
-	const accessToken = await getAccessToken();
-	if (!accessToken) {
-		return null;
-	}
-
-	return createControlPlaneClient(accessToken, baseUrl);
-}
+/** Create an adapter; authentication and token refresh remain inside Inth. */
+export const createControlPlaneClient = (
+	config: ControlPlaneClientConfig = {}
+): Promise<ControlPlaneClient> =>
+	Promise.resolve(new ControlPlaneClient(config));
+/** Create an adapter in the application directory so Inth resolves its organization link. */
+export const createControlPlaneClientFromConfig = (
+	cwd = process.cwd()
+): Promise<ControlPlaneClient> => createControlPlaneClient({ cwd });

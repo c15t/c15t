@@ -1,4 +1,1233 @@
+## @c15t/react@3.0.0-alpha.12 (alpha)
+
+### Let clicks through the banner's empty space and lower its z-index
+
+A non-blocking banner no longer swallows clicks outside its card. The padding around a floating card and the strip beside the "Secured by" tag on a bar were part of the banner's fixed box, so page links and buttons under them did nothing. Clicks there now reach the page. The card and tag still take clicks, and a blocking banner still catches all of them.
+
+Set `--consent-banner-z-index` and `--consent-banner-overlay-z-index` to put a navbar, drawer or chat widget above the banner. The IAB banner takes `--iab-consent-banner-z-index` and `--iab-consent-banner-overlay-z-index`. Defaults are unchanged.
+
+A top bar now pads its card by `env(safe-area-inset-top)`, as a bottom bar already did for the bottom inset, so its content clears the notch on pages that set `viewport-fit=cover`.
+
+## @c15t/react@3.0.0-alpha.11 (alpha)
+
+### Load the consent dialog at first idle
+
+With `preloadDialog: 'idle'` (the default), the deferred `ConsentDialog` starts loading in the browser's first idle period after the page's `load` event, as documented, instead of 3 seconds after it. On Slow 4G, opening the dialog in the first 3 seconds after load no longer waits about 700 ms for its chunk.
+
+### Load the IAB consent dialog on demand
+
+`IABConsentDialog` from `@c15t/react/iab` now loads on demand, like `ConsentDialog`. The preference center leaves first-load JavaScript (28 KB gzip smaller in a Vite app, 40 KB in a Next.js app) and downloads in the browser's first idle period after `load` while the IAB banner is shown, on hover or focus of the banner's Customize button or partners link, or when it opens. A visitor who opens it before the download finishes waits for it. `preloadDialog: 'intent'` skips the idle download, and nothing downloads under a policy model the dialog's `models` prop does not list.
+
+### Ship the first-paint CSS once on Next.js pages
+
+Next.js pages no longer ship the banner's first-paint CSS twice. The server already renders it into the HTML, so `withConsentManifest` now points browser bundles at a deferred copy that loads only when the banner, trigger or `ConsentGate` first renders in the browser. That takes 9 to 10 KB gzip off first-load JavaScript. FCP and LCP are unchanged.
+
+### Keep refs on lazy-loaded dialog parts in React 18
+
+A `ref` on a compound part of `ConsentDialog`, `ConsentWidget` or `IABConsentDialog`, such as `ConsentDialog.Card`, now reaches the element in React 18. The lazy-loaded wrapper dropped it, and React 18 logged a function-component ref warning.
+
+### Smaller first load for offline mode and the trigger
+
+Shrink the first-load bundle for offline mode and the consent trigger. `recommendedPolicyRules()` no longer pulls every policy preset into the bundle. In a Vite build of an app that uses `offline()`, this saves 6.5 to 7.7 KB gzip, depending on the page, with or without `policyRules`. Turbopack already dropped the unused presets. `ConsentDialogTrigger` now loads its DevTools toolbar only when `<ConsentDevTools>` is mounted, which saves about 0.5 to 1 KB gzip for apps without DevTools. With DevTools mounted, the trigger still switches to the toolbar without waiting for a request.
+
+## @c15t/react@3.0.0-alpha.10 (alpha)
+
+### Send a bundled manifest's `/init` from the provider's first render
+
+With `manifest()` from `@c15t/browser` as the `ConsentProvider` mode, a
+visitor whose banner depends on a location the browser does not know waited
+for the provider to mount before `/init` left. The request now leaves during
+the provider's first client render, as it does with `hosted()`, and the mount
+takes that response instead of asking again. Nothing is sent early when the
+bundled manifest can answer on its own, when the visitor has a stored choice,
+or with a `prefetch` or an `experiment`.
+
+### Throw when an IAB policy has no `IABProvider`
+
+When a visitor's policy used the `iab` model and the backend sent its vendor
+list, an app without `IABProvider` showed no consent UI at all: the standard
+`ConsentBanner` and `ConsentDialog` do not handle the IAB model. They now
+throw an `IABUnavailableError` (code `C15T_IAB_UNAVAILABLE`) during render,
+on the server and in the browser:
+
+> c15t: this visitor's policy uses IAB TCF, but no <IABProvider> is mounted.
+
+Render `IABProvider` from `c15t/react/iab` for those visitors, or remove the
+`iab` model from the policy. A backend that answers `gvl: null` turns IAB off
+for the request, and nothing throws.
+
+`@c15t/core` exports `IABUnavailableError`, `IAB_UNAVAILABLE_ERROR_CODE` and
+`policyNeedsIAB()`, which adapters use to decide when to throw.
+
+### Stop c15t's stylesheet holding back the first paint
+
+The stylesheet apps imported for c15t was linked from `<head>`, and the
+browser painted nothing until it downloaded. On a throttled phone, a Next.js
+page with a banner first painted at about 650 ms instead of 370 ms. Now the
+stock surfaces bring their own styles, and no c15t stylesheet request comes
+before the first paint.
+
+- **React, Next.js and TanStack Start.** `ConsentBanner`,
+  `ConsentDialogTrigger`, `ConsentGate`, `ConsentDialog` and `ConsentWidget`
+  render the c15t rules they use as `<style>` elements. A server-rendered
+  banner puts them in the HTML. The dialog's rules ship with the dialog's
+  code. React 19 moves them into `<head>` and renders each once; with the
+  provider's `nonce`, or in React 18, they render next to the surface and
+  carry the nonce.
+  `IABConsentBanner` and `IABConsentDialog` deliver their IAB rules the same
+  way, including the shared styles a standalone dialog needs.
+  Streamed React IAB banners wait for their complete markup before becoming
+  visible, so the centered card does not shift while its content arrives.
+- **Svelte and SvelteKit.** The surfaces add their rules to `<head>` in the
+  browser. On a server-rendered SvelteKit page, `c15tHandle` writes the
+  banner's rules into the HTML.
+  IAB banners and dialogs also deliver their own styles.
+- **Astro.** The integration no longer adds `c15t/astro/styles.css` to every
+  page. `<ConsentScript />`, or the banner on a layout without it, inlines the
+  first-paint rules, including IAB when configured, and Astro's CSP config gets their hash. The dialog's
+  rules load when a dialog first opens. A site on Tailwind CSS 3 keeps the
+  linked stylesheet, which its PostCSS build has to process.
+
+Remove the `styles.css` import from your app. If you keep it, the page looks
+the same, but the stylesheet still holds the first paint and its rules load
+twice. To keep importing it, for Tailwind CSS 3 or a named cascade layer, set the new
+`styles: false` option on the provider (`ConsentRoot`'s `options` in Next.js
+and TanStack Start). A nonce-based `style-src` needs the provider's `nonce`,
+or `styles: false`.
+
+`@c15t/ui` adds `@c15t/ui/styles/sheets/first-paint`, `dialog` and
+`primitives`, plus `iab-first-paint` and `iab-dialog`, which export those rules
+as strings. `dialog.css` and `iab-dialog.css` are available in the same
+directory for deferred loading. The aggregate stylesheets remain available.
+
+The setup CLI omits aggregate CSS imports for adapters that deliver their own
+styles. Tailwind CSS 3 setups keep manual imports and disable automatic styles.
+
+### Keep banner taps made before the page hydrates
+
+A banner rendered on the server shows before the page's JavaScript runs. On a
+slow phone that gap lasts seconds: about 2 s on Next.js and 1.2 s on Nuxt in
+our mobile benchmark. A tap on Accept all or Reject all in that gap did
+nothing. The button had no handler yet, the banner stayed up and no choice
+was saved.
+
+The stock banner in React, Next.js, TanStack Start, Vue and Nuxt now renders
+a small inline script in front of its buttons. It holds an Accept all, Reject
+all, notice dismiss or Customize tap and hides the banner straight away for
+the first three. Once the banner hydrates and the runtime has started, c15t
+records the choice or the notice dismissal with the time of the tap, so
+later init data can't overwrite it, then saves it and loads the scripts it allows. Customize opens
+the dialog. A tap is dropped and the banner shows again when the browser
+resolves a different consent model or prompt than the one the visitor saw.
+
+Under a Content Security Policy the script takes the `nonce` you already pass
+to c15t. The IAB banner and banners built from hooks are unchanged. In a
+banner composed from `ConsentBanner.*` parts, a button with its own `onClick`,
+`asChild`, `type="submit"` or `performDefaultAction={false}` keeps the old
+behavior, so a handler that calls `preventDefault()`, a link or a form still
+decides what its tap does. A held tap is recorded with the banner's
+`uiSource`.
+
+`kernel.commands.dismissNotice()` takes an optional `{ actionAt }`, the time
+the visitor dismissed the notice. A future or invalid time falls back to now.
+
+### Link v3 package docs to v3.c15t.com
+
+The `AGENTS.md` files and bundled docs in v3 packages linked to `c15t.com`,
+which documents v2. Those links now point at `v3.c15t.com`, so an agent that
+follows them from `node_modules` reads docs for the installed version.
+
+### `c15t/react` exports the modes, defaulting to what the build downloaded
+
+Import `manifest`, `hosted` and `offline` from `c15t/react`. React apps no
+longer import anything from `@c15t/browser`. With `consentManifest()` from
+`c15t/build` in the Vite config, `manifest()` needs no arguments: it reads the
+policy snapshot and the backend URL from `c15t/generated`. `hosted()` reads
+the same backend URL.
+The plugin reads `VITE_C15T_BACKEND_URL`, then `VITE_INTH_PROJECT_URL`, and
+`hosted()`'s missing-URL error names both outside production.
+
+```tsx
+import { ConsentProvider, manifest } from 'c15t/react';
+
+<ConsentProvider options={{ mode: manifest() }}>{children}</ConsentProvider>;
+```
+
+Pass `snapshot`, `manifestURL`, `backendURL` or `source: 'runtime'` to
+override the build's values. `@c15t/react` keeps these modes on its
+`@c15t/react/modes` entry, so the Next.js and TanStack Start entries, which
+re-export `@c15t/react`, never import the build's snapshot module.
+
+The browser manifest resolver loads on demand. When the policy depends on a
+location the page doesn't know, the browser asks `/init` and never downloads
+the resolver. Otherwise the resolver starts loading as soon as `manifest()`
+runs. Each language's base copy and the IAB vendor list load only when a
+visitor needs them. The React quickstart's first-load JavaScript is about
+3.8 KB gzip smaller.
+
+With `preloadDialog: 'idle'`, the default, the deferred `ConsentDialog`
+starts loading three seconds after the load event, in idle time, instead of
+in the first idle time after it. Hovering, focusing or touching a button that
+opens the dialog still loads it at once.
+
+`ConsentTheme` and `defineTheme` are importable from the new
+`c15t/react/theme` entry, which a Server Component can import.
+
+Deprecated, still working: `Frame`, `FrameRoot`, `FrameTitle` and
+`FrameButton`, the v2 names for `ConsentGate` and its parts, and the
+`FrameProps` type. The components still render `ConsentGate`, and now log a
+one-time warning outside production.
+
+## @c15t/react@3.0.0-alpha.8 (alpha)
+
+### Link a page's `/init` to the save that follows
+
+c15t now sends a random journey id on `GET /init` and `POST /subjects` as query
+parameters (`c15tJourney`, `c15tJourneyScope`, plus `c15tStored` on `/init`).
+Session reports gain `journey: { id, scope, storedChoice, prompt, domain }`, so
+a backend can link a page load to the choice that follows without
+fingerprinting or extra requests.
+
+Set `journey` to choose how long the id lives: `'page'` (default, in memory),
+`'tab'` (in `sessionStorage` while a prompt is due, on pages the browser
+resolves) or `false`. In Next.js set it in `defineConsentConfig`; in TanStack
+Start pass it to both `resolveConsent` and `ConsentRoot`. Vue, Svelte, Astro and
+the script tag use `'page'` for now.
+
+Request URLs now carry a query string. If you pass `hosted()` a `fetch` that
+routes on the exact URL, match the path instead.
+
+### Stream the banner before hydration
+
+When `ConsentRoot`'s `state` (or `prefetch`) is a promise, `ConsentBanner` now
+renders on the server once it resolves and follows the page in a later chunk of
+the same response, visible before hydration. It shows only when the resolved
+policy calls for a banner; otherwise it mounts after hydration as before. Set
+`streamBanner: false` in the provider options to keep the old behavior.
+
+## @c15t/react@3.0.0-alpha.7 (alpha)
+
+### Show the consent banner at once, and fade it in only when it arrives late
+
+The banner and the IAB banner no longer slide or scale in on a spring curve.
+A banner that shows with the page is part of the first paint, where the
+overshoot read as layout shift, so it now appears on its first frame. The
+backdrop of a blocking banner appears with it.
+
+A banner that arrives more than 100ms after the page first painted, such as
+after a slow script or a client-side init, fades in instead of popping into a
+page someone is already reading. It fades over `--c15t-duration-normal` on
+`--c15t-easing-out` and never moves. Its root and backdrop carry
+`data-entry="late"`, and `--consent-banner-entry-duration` and
+`--consent-banner-entry-timing` (`--iab-consent-banner-entry-*` for the IAB
+banner) set the fade. A banner rendered on the server always shows at once.
+`@c15t/ui/utils/late-entry` exports the check as `isLateEntry`.
+
+Hiding still fades the banner out where it did before, now without the slide
+or scale, and on an ease-in curve so it speeds up as it leaves.
+`disableAnimation` turns both fades off.
+
+Add the `--c15t-easing-in` theme token, set with `motion.easingIn`. It defaults
+to `cubic-bezier(0.55, 0.055, 0.675, 0.19)` and sets the banner's exit curve.
+
+## @c15t/react@3.0.0-alpha.6 (alpha)
+
+### Keep development warnings out of production builds
+
+Development warnings, such as "Vendor … has no declaration", printed in
+production browser builds. They now read `process.env.NODE_ENV`, which
+bundlers replace at build time. Without a bundler or `process`, the warnings
+still show.
+
+### Build Next.js Pages Router apps without `transpilePackages`
+
+A Next.js app with only a `pages/` directory builds with c15t's stock dialog.
+Before, webpack builds failed with "Global CSS cannot be imported from within
+node_modules" unless the app set `transpilePackages`, and Turbopack failed on
+linked installs.
+
+`styles.css` includes the preference dialog and widget rules again, and no
+`@c15t/react` or `@c15t/ui` module imports CSS. The render-blocking stylesheet
+grows by about 4.5 kB gzip.
+
+`@c15t/ui/styles/dialog.css`, the `@c15t/ui/styles/dialog` module and
+`c15t/astro/dialog.css` are now empty. They still resolve, so existing imports
+keep building. Remove them.
+
+### `ConsentRoot` starts consented scripts sooner
+
+In Next.js and TanStack Start, `ConsentRoot` starts downloading the script
+loader during its first render when stored consent already allows one of its
+`scripts`, instead of after hydration. There is nothing to configure.
+
+### Add IAB Global Privacy Platform support
+
+Every framework can install the GPP 1.1 CMP API (`__gpp`) and keep its GPP
+string in step with the visitor's choices.
+
+- React, Next.js and TanStack Start: render `ConsentGPP` from `@c15t/react/gpp`
+  (`c15t/react/gpp`) inside the consent provider or `ConsentRoot`.
+- Vue, Nuxt, Svelte, SvelteKit and Astro: set the `gpp` option. `gpp: true` uses
+  the defaults.
+- `@c15t/browser`: call `mountGPP(client)` from `@c15t/browser/gpp`, or load
+  `c15t.gpp.js` next to the main script tag.
+- `createConsentRuntime()` takes `gpp` with
+  `loadGPP: () => import('@c15t/iab/gpp')`, and `createGPP()` from
+  `@c15t/iab/gpp` mounts the API on any consent kernel.
+
+The GPP code loads only when you use it.
+
+The matched policy rule picks the section. An `iab` rule maps the TC String to
+`tcfeuv2`. A rule with the `preferences` or `opt-out` right gives US visitors
+their state section, or the US National section when the state is unknown or has
+none. `usFallback: 'none'` turns that fallback off and `usApproach: 'national'`
+always uses it. Indiana, Kentucky, Maryland and Rhode Island are not encoded yet
+and get the fallback.
+
+If another CMP already owns `__gpp`, c15t leaves it in place. The `gpp` option
+reports the conflict to `onError`, `ConsentGPP` logs it, and `mountGPP()` and
+`createGPP()` throw.
+
+### Open DevTools from the consent trigger toolbar
+
+With `<ConsentDevTools>` mounted next to a visible `ConsentDialogTriggerToolbar`
+or `ConsentDialogTrigger`, the trigger shows a DevTools button and DevTools
+hides its floating launcher, so the two no longer overlap.
+`ConsentDialogTrigger` becomes a two-button toolbar. The panel opens beside the
+toolbar and follows it when dragged. DevTools restores its own launcher when no
+trigger is visible.
+
+For hosts that render their own launcher, DevTools instances gain
+`dock(placement | null)` and `DevToolsState` reports the current `dock`.
+
+### Switches follow the theme's primary color
+
+The active switch track defaults to the primary color, in the light and dark
+palettes and in a stylesheet that sets `--c15t-primary` directly. Before, a
+theme that set `colors.primary` without `colors.switchTrackActive` kept the
+switches blue. Set `colors.switchTrackActive` or `--c15t-switch-track-active`
+for a different color. The default theme looks the same.
+
+### Closing the dialog brings back a banner the visitor still owes
+
+Closing preferences with Escape, `closeUI()` or `closeDialog()` left no banner
+and no dialog, even when the policy still required a choice. Closing the dialog
+leaves the same surface a save would. The banner returns while a choice or
+notice is owed. `showConsentSurface(kernel, 'none')` follows the same rule while
+the dialog is open.
+
+`useHeadlessIABConsentUI()` from `@c15t/react/iab` no longer flashes the banner
+while the TC string encodes. The Vue dialog no longer handles one Escape press
+twice.
+
+### Link IAB vendors to their privacy policies
+
+The IAB preference dialog showed empty privacy policy links for every vendor
+because GVL v3 dropped the `policyUrl` field. The links now come from each
+vendor's `urls[]`, in the dialog's language with English as the fallback.
+
+`@c15t/iab/headless` exports `resolveIABVendorUrls(vendor, language)` for
+custom preference UIs, and `processGVLForDialog` takes a `language`.
+
+### Export category, cleanup and policy types from the framework entries
+
+You can type `consentCategories`, `clearOnRevocation` and
+`offline({ policyRules })` from the same import as the provider.
+
+- `c15t/react`, `c15t/next` and `c15t/tanstack-start` add `AllConsentNames`,
+  `ClearOnRevocationConfig`, `PolicyRule` and `policyRulePresets`.
+- `@c15t/svelte` adds `ClearOnRevocationConfig`, `PolicyRule` and
+  `policyRulePresets`.
+- `c15t/astro` adds `ClearOnRevocationConfig`.
+- `c15t/vue` adds `AllConsentNames` and `ClearOnRevocationConfig`.
+
+Importing them from `c15t` keeps working.
+
+### `ConsentProvider` requests `/init` sooner
+
+In a client render, `ConsentProvider` with `hosted()` and no `prefetch` sends
+`/init` during its first render instead of after mount, so the banner shows
+sooner (about 38 ms on a throttled mobile profile). Server renders, hydration
+and apps with a `prefetch` or `ConsentRoot` keep the previous timing.
+
+## @c15t/react@3.0.0-alpha.5 (alpha)
+
+### One preference draft for every framework
+
+React, Vue, Svelte and the `@c15t/browser` preference dialog now share one
+draft, `createPreferenceDraft` from `c15t/preference-draft`, so unsaved
+choices behave the same everywhere:
+
+- **Stale drafts.** A draft with an unsaved change goes stale when the
+  policy, the displayed categories or the vendor list changes. Saving it
+  records nothing until the visitor reviews it (`reset()`). A draft with no
+  unsaved change follows the policy and is never stale; Vue used to mark it
+  stale. The `@c15t/browser` dialog used to drop unsaved changes silently;
+  it now shows a review notice.
+- **Choices saved elsewhere.** When another surface or tab records a choice,
+  switches the visitor left alone take the new value and moved ones keep
+  theirs. React used to write the old values back on save.
+- **Category order.** Every preference form, and `runtime.consentCategories`,
+  lists categories in one fixed order: necessary, functionality,
+  measurement, experience, marketing. Vue and `@c15t/browser` used the
+  configured `consentCategories` order.
+- **Draft values.** `values` lists every category; ones the policy does not
+  offer read `false`. Vue and Svelte listed only the displayed ones.
+- **Late defaults.** Presentation defaults from an experiment arm assigned
+  after the dialog opened apply only while the visitor has changed nothing.
+- **IAB dialog in Vue.** Each switch writes the CMP selection at once, as in
+  React and Svelte. Closing the dialog keeps those changes, and saving can
+  no longer overwrite a newer receipt with an older copy.
+
+React's banner buttons no longer load the draft: it ships with the
+preference dialog, which takes about 1.4 KB gzip off the first load of a
+page that renders a banner. The `@c15t/browser` ES module build loads its
+preference dialog and the draft as a separate chunk, in idle time once the
+banner or trigger shows; the script-tag files stay one file each.
+
+In Svelte the draft now ships with `ConsentWidget` and `ConsentDialog`
+instead of `ConsentManagerProvider`. The state API keeps its synchronous
+shape. `setSelectedConsent()` calls made before the draft loads apply in order
+when it lands, and `saveConsents('custom')` waits for it.
+
+**Breaking:** in headless Svelte code that renders neither component,
+`selectedConsents` and `draft` read empty on first use, because the draft
+loads then, and fill in reactively once it lands. A one-off read outside a
+reactive context gets the empty values. Migration: read them in a reactive
+context (`$derived`, `$effect` or markup).
+
+**Breaking:** the runtime's `stageVendorConsent()` and `resetVendorDraft()`
+are removed. Pass vendors to the save
+(`kernel.commands.save({}, { vendors: { 'x-pixel': false } })`) or stage
+them on a preference draft. Vue's `useConsentDraft()` returns
+`displayedCategories` and `vendors` as computed refs, takes no argument, and
+no longer has `reseedOnNextRecord()`; call `reset()` after a bulk save
+instead.
+
+### Every adapter closes consent surfaces the same way
+
+Accept, reject and save now decide which surface shows next through one module in `@c15t/core`, so React, Vue, Nuxt, Svelte, Astro and `@c15t/browser` behave alike:
+
+- After a choice, the banner shows only while the policy still owes a choice or a notice. A choice saved while the policy is still loading, or after it failed to resolve, no longer brings the banner back in Vue, Nuxt and `@c15t/browser`.
+- A banner reopened for a visitor who already chose now closes once the new choice is recorded in React and Svelte, as it already did in `@c15t/browser`.
+- On Astro, `acceptAll()`, `rejectAll()` and the banner's Accept and Reject buttons go through the IAB CMP under an IAB policy, so the TC string records the choice. Before, they saved categories only. `acceptAll()`, `rejectAll()` and `save()` now also close an open banner or dialog once the choice is recorded.
+
+The rules are public at `c15t/surface-actions` (`@c15t/core/surface-actions`) for custom UI: `hasConsentUI()`, `hasConsentPreferences()`, `showConsentSurface()`, `saveConsentSurface()`, `saveIABConsentSurface()` and `saveConsentBlanket()`.
+
+### React provider on the shared runtime
+
+`@c15t/react`'s `ConsentProvider` now renders the runtime from
+`createConsentProviderRuntime`, the same one the Svelte provider uses, instead
+of its own copy. Its props, hooks and the `runtime` prop are unchanged.
+`ConsentRoot` in `@c15t/nextjs` and `@c15t/tanstack-start` picks this up.
+
+**Breaking.** `persistence` and `storageConfig` are read once, when the
+provider mounts. A new storage key used to move the stored choice to the new
+key; now the choice stays where it was, data clearing keeps protecting that
+key, and a warning is logged outside production. The same applies to every
+provider runtime, including Svelte's. Migration: remount the provider to move
+storage.
+
+Behaviour that changes:
+
+- A `prefetch` that is still marked `initialPolicyPending` is no longer
+  adopted as the answer: the provider sends `/init`.
+- Adopting a server-resolved `prefetch` raises `init:applied`, as an `/init`
+  response does.
+- A streamed `prefetch` that carries an experiment but arrives after mount
+  keeps `experiment` in the `/init` request the provider falls back to.
+- A provider rendered under a `consentSource` raises `init:applied` once the
+  source is connected.
+- After mount, a new `user`, `vendors`, `scripts` or blocker options apply
+  once a small chunk has loaded, the first time options change. `enabled`,
+  `overrides` and `consentCategories` still apply at once, and requests that
+  new network rules match are held until the blocker has them.
+
+`ConsentProvider` loads the code that applies a `prefetch` promise only when it
+gets one, so an app that never streams consent state doesn't download it.
+`ConsentRoot` in `@c15t/nextjs` and `@c15t/tanstack-start`, whose `state` is
+usually streamed, ships that code in its first-load chunk, so a streamed state
+applies as soon as it arrives instead of after one more request.
+
+`@c15t/react`'s index now re-exports its values in groups with `export *`.
+The names are the same. Under esbuild's code splitting, an app that imports
+only `ConsentProvider` or a hook no longer loads the dialog trigger, branding
+and draft modules on first load, because the deferred dialog no longer pulls
+every module the index names into the first chunk.
+
+`@c15t/ui`'s `setupColorScheme` moves to its own module,
+`@c15t/ui/utils/color-scheme`. A provider that sets the color scheme no longer
+shares a chunk with the dialog's focus-trap and scroll-lock helpers.
+`@c15t/astro` imports it from the new path.
+
+**Breaking.** `@c15t/ui/utils/dom` no longer exports `setupColorScheme`.
+Migration: import it from `@c15t/ui/utils/color-scheme` or `@c15t/ui/utils`.
+The old path is not kept as a re-export: Vite 8 (Rolldown) counts unused
+imports when it checks a build's chunks for cycles, and in TanStack Start that
+re-export closed one, so each module a lazy chunk shared with the route became
+its own first-load file.
+
+### Provider runtime
+
+- `c15t/runtime/provider` (`@c15t/core/runtime/provider`) exports what a
+  provider that loads modules on demand needs: `createConsentProviderRuntime`,
+  `lazyRuntimeModule` and `lazyStreamPrefetch`, which loads the
+  streamed-prefetch code only for a runtime whose `prefetch` is a promise.
+  Importing `c15t/runtime` instead can keep the statically imported default
+  modules in the first chunk under esbuild.
+- `update()` returns a promise that settles once every change has applied.
+  The comparison behind it loads with the first `update()`.
+- A `consentSource` connects through a new `connectConsentSource` module
+  (part of `defaultRuntimeModules`). The React provider imports it on demand;
+  until it connects, no optional category is granted.
+- IAB mounts through a new `mountIAB` module (`mountRuntimeIAB`, part of
+  `defaultRuntimeModules`). A provider that passes its own modules without it
+  ignores `iab`.
+- With a script loader that loads on demand, data clearing now subscribes after
+  the loader has loaded, so revocation callbacks run before browser data is
+  removed.
+- `persistence.now` is passed through to persistence; the runtime used to drop
+  it.
+
+## @c15t/react@3.0.0-alpha.4 (alpha)
+
+### Resolve a relative backendURL against the request, not forwarding headers
+
+A relative `backendURL` or `manifestURL` no longer resolves against client-controlled forwarding headers. The server helpers previously built the backend origin from `x-forwarded-host`, `x-forwarded-proto` or `referer` when present, so a request that set them could make the server send its `/init` or manifest request, with the request's cookies and forwarded headers, to another host.
+
+A relative URL now resolves against the URL the framework resolved the request under (`event.url` in SvelteKit, `request.url` in Next.js route handlers, TanStack Start and Astro), or against the `host` header where no request URL exists (Next.js `resolveConsent`, `fetchSSRData`). A bare `host` resolves over `https` for a domain name and over `http` for `localhost`, an IP address, or a single-label host such as `app:3000`. The `referer` header is no longer used.
+
+Apps behind a proxy that sets forwarding headers and drops incoming ones can opt back in with `trustForwardedHeaders: true` on SvelteKit `loadConsent` and `resolveConsent`, Next.js `resolveConsent`, `createNextConsentRouteHandlers` and `createPagesApiHandlers`, and `@c15t/react/server` `fetchSSRData` and `normalizeBackendURL`, matching the existing TanStack Start option. The rule lives in `resolveRequestBackendURL` and `resolveRequestOrigin`, new exports of `@c15t/core/server`, which every server adapter now shares. With the option set, the forwarded host and the forwarded scheme apply independently, so a proxy that keeps `host` and only sets `x-forwarded-proto` or `x-forwarded-ssl` still decides the scheme.
+
+The SvelteKit and `@c15t/react/server` helpers also stop passing the client's `forwarded`, `x-forwarded-host` and `x-forwarded-proto` headers to the backend, including when `forwardHeaders` names them in SvelteKit. `extractRelevantHeaders` in both packages leaves them out unless called with `{ trustForwardedHeaders: true }`. `fetchSSRData` still makes its `/init` request when those headers are the only ones besides `host`; it just does not forward them.
+
+`resolveBackendURL` from `@c15t/schema/types` is deprecated in favor of `resolveRequestBackendURL`. It now follows the same rule by default: it reads only the `host` header, and ignores `x-forwarded-*` and `referer` unless its new third argument is `{ trustForwardedHeaders: true }`, which restores the previous resolution order. The forwarded values are now validated like `host`: the first entry of a comma-separated list is used, a scheme other than `http` or `https` is ignored, and a host that is not a bare authority resolves to `null`.
+
+### Update documentation links
+
+Point documentation links in CLI prompts and errors, runtime warnings, TSDoc, package READMEs and package homepages at the current c15t.com docs pages. The old addresses led to pages that were moved or removed.
+
+### Apply `theme.slots` in React and Vue
+
+`theme.slots` now styles the stock parts in React and Vue, as it already did in Svelte, Astro and the script tag. Each slot maps onto the matching `components` part (`consentDialogCard` onto `dialog.card`, `toggle` onto `switch.root`), and `components` wins where both set the same attribute. A slot with `noStyle: true` drops that part's stock classes and keeps the slot's and the part's own classes, as in the other adapters; a slot that sets only `noStyle` applies too. React used to accept `theme.slots` in its types and ignore it.
+
+The `frame` and `consentDialogFooter` slot keys are removed: no adapter read them. Style the stock dialog's footer with `consentWidgetFooter`, and the `ConsentGate` placeholder with the new `consentGate` slots.
+
+In Vue, the assigned experiment arm's `theme.slots` merge over the host theme's, as they already did in React, so an arm that changes only a slot renders its classes and styles.
+
+A numeric length in a slot style, such as `{ padding: 8 }`, now renders as `8px` in Vue too. Vue writes style objects as given, so the number used to be dropped.
+
+### Show only necessary when a site declares no categories
+
+A site that declares no categories, through `consentCategories`, scripts, network rules, vendors or discovered frames, now offers only Strictly necessary under a permissive policy, as in v2. The banner still appears when the policy asks for a choice. Accept all, Reject all and Save each record an acknowledgement that keeps the banner dismissed after reload, and hosted and manifest modes send a consent receipt for necessary alone. The acknowledgement expires with the policy's choice validity or a policy change, and a category declared later asks again. Strict policies and IAB TCF policies still offer their whole scope.
+
+The Astro server now judges a visitor against the categories the page's `consentCategories`, `scripts` and network rules declare, so it renders the same banner decision as the browser. Browser `hasConsented()` and the `after-consent` trigger treat the acknowledgement as a decision.
+
+In React Native, the Swift and Kotlin cores apply the same rule when the app sets no `consentCategories`: a permissive policy offers only Necessary, any save records the acknowledgement and sends the necessary-only receipt, and strict policies still offer their whole scope. A declared list now also narrows what Accept all and Reject all confirm, as on the web.
+
+### Start the banner's entry from the stylesheet, and keep the collator off the init path
+
+Canonical sets and fingerprint keys were sorted with
+`String.prototype.localeCompare`, whose first call initialises the ICU
+collator on the main thread before the banner can show. They now use a
+comparator that applies the same root-collation order to printable ASCII
+directly and only falls back to the collator for other strings, so every
+fingerprint stays byte-identical.
+
+Every framework also started the banner's entry transition its own way: the
+script tag and Svelte inserted the hidden state, forced a layout and flipped
+the class; React rendered hidden and flipped after a timer; Vue handed the
+flip to `Transition`; Astro's prerendered banner did not animate at all.
+`@c15t/ui` now carries the entry as `@starting-style` states, the
+`bannerEntering`, `overlayEntering`, `dialogEntering` and `contentEntering`
+classes, and each framework renders the banner in its visible state with the
+entering class. The transition runs from the first frame with no hidden
+render or layout read, and it runs the same way whether the banner arrives
+from the server or the client. Astro's prerendered banner now fades in at
+first paint like the others. Browsers without `@starting-style` show the
+banner in place; the script tag keeps its class flip for them.
+
+### Count each experiment arm's visitors through `/init`
+
+The backend now learns which arm a visitor runs before they choose, so a dashboard can compute an opt-in rate per arm without any analytics setup. While a visitor has no stored choice, `/init` carries their arm in an `x-c15t-experiment: <id>=<arm>` header, and the backend adds `experiment: { id, arm }` to that request's session report. Manifest-mode renders and init routes put it on the report they send to `POST /sessions`. A visitor who already chose is not counted, because they are not shown the banner.
+
+On a server-rendered page, pass the experiment with the visitor's arm to `resolveConsent({ experiment: { ...bannerShape, arm } })` in `c15t/next`, `@c15t/tanstack-start` and `@c15t/svelte`. The server sends only `{ id, arm }` to the backend, and the returned state carries the experiment to the client, so the provider needs no `experiment` option of its own. A streamed (unawaited) state arrives after the provider mounts, so pass the experiment to the client too; the provider warns in development when you forget. Astro and Nuxt send the arm they rendered on their own. `@c15t/schema` exports `CONSENT_EXPERIMENT_HEADER`, `formatExperimentHeader` and `parseExperimentHeader`, and the session report schema gains an optional `experiment`.
+
+The `choice:recorded` kernel event and `onChoiceRecorded` payload now include `uiSource` and `consentAction`, and `onSurfaceShown` and `onChoiceRecorded` carry the arm, so forwarding experiment events to GTM, PostHog or any other tool is one callback.
+
+Opt-out experiments are measurable too. The `notice:dismissed` kernel event now carries `surface`, `timeToDecisionMs` and `experiment`. The surface is the snapshot's `activeUI`, so a programmatic `dismissNotice()` with no prompt open reports `surface: 'none'` and no timing, the same as a programmatic `save()`.
+
+Dev-tools show the assigned experiment arm and the first impression time of each surface on the Policy tab.
+
+### A/B test banner presentation with any flag provider
+
+Add an `experiment` option for A/B tests on banner and preferences presentation. Your `presentation` is the `control` arm; `arms` lists what every other arm changes. Pass the `arm` your feature flag resolved (Vercel Flags, PostHog, LaunchDarkly, GrowthBook, Statsig), or a `split` such as `{ control: 60, wall: 40 }` for c15t to pick. `defineExperiment()` infers the arm names, so a misspelled `arm` or `split` key is a type error.
+
+```ts
+experiment: {
+  id: 'banner-shape',
+  arms: { wall: { prompt: { variant: 'wall' } } },
+  arm: flagValue, // or split: { control: 60, wall: 40 }
+}
+```
+
+The arm is merged over `presentation` and exposed as `snapshot.experiment` (React and Vue `useExperiment()`, Svelte `state.experiment`, browser `client.presentation`). It rides on `surface:shown` and `choice:recorded` and is saved with the choice as `metadata.experiment`, but only once the banner has shown it in the current page. A returning visitor who changes their choice from a footer link is not counted toward an arm they never saw.
+
+When c15t picks the arm, it does so when the page starts, before `/init`, and holds the banner until the arm is checked, so the visitor never sees one banner swap for another; on a server-rendered page the banner appears after hydration. The arm is stored as `{ id, arm }` under `c15t-experiment-v1` once the banner has shown it. Nothing is stored for a visitor who is never prompted or for an arm from your flag, and no identifier is stored.
+
+Arm validation loads as its own chunk, only when `experiment` is set, so a site without an experiment ships none of it. It is also exported from `c15t/experiment`, where `validateExperiment()` lets a test fail a build on a rejected arm.
+
+Nothing in the experiment throws into the page. An undeclared `arm` or an unusable `split` logs an error and runs no experiment. An arm that trips a presentation diagnostic under the visitor's policy is not shown to that visitor, who sees `control` and is not counted, unless `acknowledgeDiagnostics: true`, which is recorded with the arm.
+
+`@c15t/astro` resolves the arm on the server: per request through `consentMiddleware({ experimentArm })` from `@c15t/astro/middleware` with `middleware: false`, or one fixed `arm`. Arms vary presentation and theme, not copy.
+
+An arm can also carry `theme` overrides (`arms: { bold: { theme: { colors: { primary: '#0a0a0a' } } } }`), merged one token group deep over the host `theme`. Read the merged theme with React `useResolvedTheme()`, Vue `useResolvedTheme(theme)`, Svelte `getConsentManager().theme` and browser `client.theme`. In React, render its tokens with `<ConsentTheme theme={useResolvedTheme()} />`.
+
+### Keep blocking iframes past an unreadable iframe or an empty category
+
+The iframe blocker now skips an iframe the page can't read, not only an unreadable node that contains it. Before, one such iframe made `createIframeBlocker` throw on startup and stopped each later pass early, so other consent-gated iframes loaded. The on-demand watcher in `@c15t/react` had the same gap.
+
+An empty `data-category` is now treated like an unknown category: the iframe stays blocked and logs a console warning. Before, it counted as no category, so the iframe loaded without consent.
+
+### Keep the Astro color scheme when a dialog opens
+
+With `colorScheme: 'dark'` or `'system'`, opening the preference dialog with `ui: 'react'` removed `c15t-dark` from `<html>` unless the page also had a `dark` class, so the banner and dialog turned light. The dialog islands now leave the class to the page's colour-scheme setting. The provider option types in `@c15t/react` and `@c15t/ui` now accept `colorScheme: null`, which the providers already treated as "leave the class alone".
+
+Set `colorScheme: 'none'` when your site's own theme switch sets `c15t-dark`. c15t then emits no colour-scheme script and never adds or removes the class, on boot, after ClientRouter navigations or when a dialog opens.
+
+### Load the Tailwind 3 PostCSS plugin from the package you installed
+
+Every package that publishes a c15t stylesheet now exports the Tailwind 3 PostCSS plugin as `<package>/postcss-tailwind3`, so you no longer install `@c15t/ui` just to list it:
+
+- `c15t/postcss-tailwind3` for apps that install `c15t` (React, Next.js, TanStack Start, Vue, Nuxt and Astro)
+- `@c15t/svelte/postcss-tailwind3` for Svelte and SvelteKit
+- `@c15t/browser/postcss-tailwind3` for script tag pages that style the light DOM
+- `@c15t/react/postcss-tailwind3`, `@c15t/nextjs/postcss-tailwind3`, `@c15t/tanstack-start/postcss-tailwind3`, `@c15t/vue/postcss-tailwind3` and `@c15t/astro/postcss-tailwind3` for apps that install an adapter directly
+
+```js title="postcss.config.mjs"
+export default {
+	plugins: {
+		'c15t/postcss-tailwind3': {},
+		tailwindcss: {},
+		autoprefixer: {},
+	},
+};
+```
+
+Each one re-exports `@c15t/ui/postcss-tailwind3`, so configs that already list that name keep working. The plugin must still come before `tailwindcss`.
+
+`c15t setup` now adds the plugin from the package it installs, `c15t/postcss-tailwind3`, or `@c15t/react/postcss-tailwind3` and `@c15t/nextjs/postcss-tailwind3` in apps that installed those directly, and no longer installs `@c15t/ui` for Tailwind 3. It leaves a config alone when any c15t `postcss-tailwind3` entry, including `@c15t/ui/postcss-tailwind3`, already runs before `tailwindcss`.
+
+### Rename the remaining `frame` names to `consentGate`
+
+**Breaking.** `ConsentGate` was called `Frame`, and several names still said so. They now say `consentGate`:
+
+- The translations section `frame` is now `consentGate` (`consentGate.title`, `consentGate.actionButton`, `consentGate.policyBlocked`, `consentGate.loading` and `consentGate.error`) in every bundled language, in `CompleteTranslations` and `Translations`, in the `/init` response schema, in `@c15t/backend` responses and in the React Native translation types. `FrameTranslations` is now `ConsentGateTranslations`, and the old name stays as a deprecated alias.
+- The stylesheet `@c15t/ui/styles/components/frame` is now `@c15t/ui/styles/components/consent-gate`, and its custom properties are `--consent-gate-*` instead of `--frame-*`.
+- The placeholder's test ids are `consent-gate-placeholder` and `consent-gate-button` instead of `frame-placeholder` and `frame-open-dialog`. Its title now has `consent-gate-title`.
+
+Copy under the old key still works. When custom translations, `i18n.messages`, stored copy or an older backend's `/init` response has `frame`, c15t reads it as `consentGate`, with `consentGate` winning key by key when both are set, and logs a warning once outside production. `@c15t/translations` exports the conversion as `migrateLegacyTranslationKeys`. The `frame` stylesheet subpaths stay as deprecated aliases of `consent-gate` for this alpha.
+
+`theme.slots` has a `consentGate` family for the placeholder: `consentGate` for the card, `consentGateTitle` and `consentGateButton`. React, Next.js, TanStack Start, Vue and Svelte apply them. React and Vue also take the same parts as `components['consent-gate'].root`, `.title` and `.button`, and `components` wins where both set an attribute. `consentGateButton` applies on top of `buttonPrimary`.
+
+### Report banner impressions and time to decision
+
+Report banner and dialog impressions, not only choices. The kernel emits a `surface:shown` event when the banner or the dialog becomes visible and records the first impression time of each surface in `snapshot.surfaceShownAt`, so a late subscriber can still read it. Provider callbacks gain `onSurfaceShown` (React and Vue/Nuxt `callbacks.onSurfaceShown`); `@c15t/browser` dispatches `c15t:surfaceShown`; dev-tools log the event. A recorded choice now carries `timeToDecisionMs` (impression to action) on the `choice:recorded` event, on `onChoiceRecorded`, and on the saved consent as `metadata.timeToDecisionMs`. `kernel.commands.save()` accepts a `uiSource` override, and the React `uiSource` prop now reaches the save payload, so `ConsentWidget` saves are attributed to `widget` instead of the active banner. The never-fired `onBannerFetched` callback and `OnBannerFetchedPayload` type are removed.
+
+`kernel.markLive()` is public: an adapter that renders from a server-resolved prefetch and never calls `init()` calls it after hydration, so the server-rendered banner still counts as an impression. The core runtime, the React provider (and so Next.js and TanStack Start) and the Vue runtime (and so Nuxt) do this; before, an SSR page with a resolved prefetch never emitted `surface:shown`.
+
+`consentAction` on a saved choice now stays `all` or `necessary` when the host displays only a subset of the policy scope (`consentCategories`). It names the action the visitor took; `confirmed` names the categories it covered. Before, a narrowed accept-all was recorded as `custom`.
+
+A choice saved while a `notice` prompt is owed now records the notice dismissal with it. Before, a visitor who opened the preference center from an opt-out notice and rejected was shown the notice again.
+
+### Match the DevTools panel to its host theme
+
+Embedded DevTools panels, in Nuxt DevTools and in the TanStack Devtools plugin, now use their own light and dark palette instead of the app's consent theme. The TanStack plugin follows the TanStack Devtools theme. Before this change, a dark TanStack Devtools showed a white c15t panel.
+
+The floating panel no longer mixes the page's consent theme with operating-system colors. Danger and success colors come from the panel's own surface and text, so they stay readable in light and dark themes.
+
+When an embedded panel is at least 48rem wide, it switches to a layout built for a devtools pane instead of stretching the floating card. Consent categories and vendors become tiles. Location, Actions, and Policy details sit in two columns. Scripts show name, source, and status on one row. Events show as a log, with each event's data behind a "Data" toggle. Embedded panels use 14px text on devices without a touchscreen. Narrow panes and the floating panel keep the single-column card, and narrow embedded panes wrap their tabs instead of clipping them.
+
+The panel also has a clearer layout. Each form has one filled primary button. Effective consent, vendor access, and script state show as colored status pills. Clearing stored records now has its own section. On devices without a touchscreen, the floating panel uses the same compact controls as embedded panels.
+
+`c15tDevtools()` now returns a render function, which TanStack Devtools calls with its theme. `C15tTanStackDevtoolsPanel` accepts a `theme` prop of `'light'` or `'dark'`.
+
+### Open the preference dialog with focus on its first control
+
+The consent dialog and the IAB dialog used to focus their own container on
+open and draw a focus ring around the whole card for keyboard users. They now
+focus the first tabbable control inside the panel, the way dialog libraries
+such as Base UI do, so the ring lands on a control. Screen readers still
+announce the title and description as focus enters, through the panel's
+`aria-labelledby` and `aria-describedby`. Blocking banners keep focusing
+their container so no action button is favored. `setupFocusTrap` in
+`@c15t/ui` takes an `initialFocus` option, and the React hook, Svelte action
+and Vue composable pass it through.
+
+### Load new copy from `useSetLanguage()` and fix composed banner parts
+
+`useSetLanguage()` now runs init again after storing the language, so the banner and dialog switch to that language without a separate `init()` call. Setting the current language does nothing, and a disabled provider stores the language without running init. With a `runtime` passed to `ConsentProvider`, the runtime reinitializes itself.
+
+The React `offline()` mode, also exported by `@c15t/nextjs` and `@c15t/tanstack-start`, is now core's `offline()`. A language from `useSetLanguage()` or `overrides.language` switches the copy when the bundled translations or `i18n.messages` have that language, and a language with no copy keeps the default copy. The language a server prefetch detected from `Accept-Language` still does not switch the copy, including when `prefetch` is a pending promise.
+
+`ConsentProvider` logs a development warning when `options.callbacks` is passed together with `runtime`. The runtime runs the callbacks its owner passed to `createConsentRuntime({ callbacks })`, and the provider's own callbacks were dropped without notice. The options type for a borrowed runtime now rejects `callbacks`.
+
+Composed banner parts:
+
+- `ConsentBanner.Card` fills a callback ref and keeps its focus trap. Before, a callback ref replaced the ref the trap read, so a blocking card did not trap focus.
+- `ConsentBanner.Title` and `ConsentDialog.HeaderTitle` with `asChild` render the child element, such as an `h1`, in place of the `h2`. Before, the child was nested inside the `h2`. `ConsentBanner.Overlay` now honors `asChild` too. `ConsentBanner.Description` and `ConsentDialog.HeaderDescription` with `asChild` and no child element render their default markup instead of nothing.
+- `ConsentBanner.AcceptButton`, `RejectButton` and `CustomizeButton` placed by hand now carry `data-action="accept"`, `"reject"` and `"customize"`, as they do in the stock banner, and pick up `theme.consentActions.accept`, `.reject` and `.customize`. An explicit `data-action` or `consentAction` prop still wins.
+
+### Keep app `i18n.messages` overrides when the backend sends translations
+
+In hosted and manifest mode, the translations from `/init`, from a server prefetch or from a manifest replaced the app's `i18n.messages` for the same language, so a key overridden in code showed the backend's copy instead. This affected React, Next.js and TanStack Start through the React provider, Svelte and SvelteKit (including `resolveConsent()` prefetches), Astro and `@c15t/browser`.
+
+The backend copy is now the base for the visitor's language and the app's `i18n.messages` for that language are deep-merged over it. An app key replaces the backend's text when it differs from c15t's built-in copy for that language, or for its primary language. A key that repeats the built-in text does not hide the backend's copy, so an app that passes the stock bundles to enable languages, such as `{ ...baseTranslations.de }`, still shows edits made on the backend, while a customized key still wins. Keys the backend does not supply keep the app's copy, so a language the backend does not send still shows the app's copy in full. Overrides for other languages are not applied. A regional language such as `de-AT` uses the overrides under `de` when there is no `de-AT` entry.
+
+Built-in copy is known for English and, once `@c15t/translations/all` has loaded, for every bundled language. Without it, every app key counts as a customization. `@c15t/translations` adds `getStockTranslations()` for this, and `/all` registers its languages when it loads. The package now lists `dist/all.js` under `sideEffects`, so a bare `import '@c15t/translations/all'` survives tree shaking.
+
+Astro also deep-merges `i18n.messages` now. Before, a partial override such as `{ cookieBanner: { title } }` replaced the whole `cookieBanner` section and left its other keys empty. A regional `i18n.locale` or `Accept-Language` such as `de-AT` now renders over the `de` bundle instead of English.
+
+`@c15t/core` now exports `offline()`, a mode for `createConsentRuntime()` that resolves policy rules locally. A language set through the kernel, with `overrides.language` or `kernel.set.language()`, switches the copy when c15t's built-in copy or `i18n.messages` has that language, falling back to the primary language, so `de-AT` uses German copy. Built-in copy covers English, and every bundled language once `@c15t/translations/all` has loaded. A language with no copy gets the startup copy back, still labelled with the startup language. The language a server prefetch detected from `Accept-Language` does not switch the copy until the app has asked for a different language. `@c15t/browser` uses this transport, so `data-language`, the `overrides.language` option and `setLanguage()` now switch the copy in offline mode. The Svelte `offline()` mode is unchanged. The JavaScript, Vue and Solid boilerplate from `@c15t/cli generate` now uses core's `offline()`, and the generated offline kernel config passes `translationsFor` with `baseTranslations` from `@c15t/translations/all`, so generated projects switch to any bundled language too. The CLI installs `@c15t/translations` for that config.
+
+`createOfflineTransport()` accepts `translationsFor` and `detectedLanguage` options with the same behavior. Without `translationsFor` it still relabels its copy with the requested language, as before.
+
+`@c15t/core` also adds a `translationOverrides` kernel option, the `applyTranslationOverrides()` and `resolveLocalTranslations()` helpers, and an optional `translationsFor` on the transport factory context.
+
+### Support IAB TCF 2.4
+
+c15t now follows TCF 2.4 and TCF Policies v5.0.b. Existing TC strings stay valid.
+
+- The IAB preference centre shows Features in their own section with the IAB standard text and no controls. Special Purposes stay locked.
+- `__tcfapi` TC data includes `vendor.disclosedVendors`.
+- `isServiceSpecific` is deprecated. TC strings always set IsServiceSpecific=1.
+- Vendors that declare only Special Purposes no longer get a legitimate interest bit.
+- GVL schemas keep unknown fields, so `standardTexts` survives the backend cache.
+
+### Migration
+
+Headless IAB UIs: `resolveIABDialogDisplayModel` now returns Features in `featureRows` instead of `essentialRows`. Render them without a control, under `featuresStandardText` or your `features.description` translation when it is `null`.
+
+### Inspect consent from a c15t tab in Nuxt DevTools
+
+In development, the Nuxt module adds a c15t tab to Nuxt DevTools. The tab shows the DevTools panels for the app's consent kernel, including events and consent actions, and follows the DevTools light or dark theme. Production builds don't register the tab. Set `devtools: false` in the module options to turn it off.
+
+`c15t/vue/devtools` and `@c15t/vue/devtools` now export `ConsentDevToolsPanel`, which fills its parent element instead of floating over the page. `createDevTools` accepts `embedded: true` for the same layout, and can render into a same-origin iframe while it inspects the page that owns the kernel.
+
+Embedded panels, including the TanStack Devtools plugin from `c15t/react/devtools`, no longer show their own c15t header, because the host already names the panel.
+
+### Ship a c15t skill and the v3 guides in every package
+
+Each package now ships a `SKILL.md` next to `AGENTS.md`, telling coding agents
+how to pick a setup, which rules to follow and how to verify consent, with
+links into the bundled Markdown. `@c15t/core`, `@c15t/react`, `@c15t/nextjs`,
+`@c15t/scripts`, `@c15t/browser`, `@c15t/integrations` and `@c15t/cli` publish
+it for the first time.
+
+The bundled docs follow the rewritten v3 guides: concept pages, a setup
+chooser, a full page set for every framework, and a new HTML guide for the
+script tag in `@c15t/browser`. `@c15t/iab` points its homepage and README at
+the new IAB page.
+
+### An undeclared vendor reads as not allowed
+
+Breaking change: reading vendor consent for an id that no `vendors` entry, script slug or backend vendor list declares now returns `false`. Before, React's `useVendorAllowed`, Astro's `client.isVendorAllowed` and `@c15t/browser`'s `isVendorAllowed` returned `true` for such an id without checking any category, so a typo or a missing declaration read as allowed before the visitor consented. In development, c15t logs one warning per undeclared id that names the missing declaration. Declare every vendor you read, for example `vendors: [{ id: 'youtube', category: 'measurement', ... }]`.
+
+The rule lives in one helper, `isVendorAllowed(snapshot, vendorId, now?)`, exported from `c15t` and `@c15t/core`. A declared vendor keeps its behaviour: it is allowed when its category condition passes and, outside an IAB policy, the visitor has not switched it off.
+
+Vue gains `useVendorAllowed(vendorId)`, which returns a computed boolean and is auto-imported in Nuxt. The Svelte consent manager from `getConsentManager()` gains `isVendorAllowed(vendorId)`.
+
+Scripts, iframes and network rules that carry an undeclared `vendor` slug are gated as before: they follow their category.
+
+### Pass `shadow` from `ConsentDevTools` to the DevTools panel
+
+`ConsentDevTools` in `@c15t/svelte`, `@c15t/react` and `@c15t/vue` accepted
+`shadow` in its props type but never passed it to `createDevTools`, so the
+panel always mounted inside a shadow root. The Vue component did not
+declare the prop at all. `shadow={false}` now mounts the panel in the light
+DOM, with its stylesheet in `<head>`, as the `@c15t/dev-tools` option
+describes. Leaving `shadow` out keeps the shadow root.
+
+### Pass `colorScheme` through `generateThemeCSS` from `@c15t/react/utils`
+
+`generateThemeCSS(theme, colorScheme)` from `@c15t/react/utils` now takes the same `colorScheme` argument as the one in `@c15t/ui/theme` and writes the same CSS. It used to drop the argument, so `'dark'` and `'system'` produced light-only CSS.
+
+### Stop the floating trigger's transitions when `disableAnimation` is set
+
+The floating dialog trigger and the trigger toolbar now carry `data-disable-animation` when the provider's `disableAnimation` is on, and the stylesheet then drops their hover and snap-to-corner transitions. They already stop under `prefers-reduced-motion: reduce`.
+
+## @c15t/react@3.0.0-alpha.3 (alpha)
+
+### Mount collapsed preference content on first open
+
+**Breaking.** A collapsed row in the preferences dialog or `ConsentWidget` no longer renders its content until it first opens. This applies to category rows, vendor cards and IAB purpose, stack and vendor rows. The content element is still rendered, empty, so the trigger's `aria-controls` target exists. Its children mount the first time the row opens and then stay mounted, so the close transition keeps its content. Collapsed content was already `inert` and `aria-hidden`, so keyboard and screen-reader behavior does not change.
+
+Opening the dialog used to mount every vendor card inside the collapsed categories. With 100 declared vendors that was 1,625 React components and 1,811 DOM nodes. It is now 112 components and 103 nodes, the same as with no vendors, and the React commit at 4× CPU slowdown drops from 36 ms to 13 ms.
+
+### Migration
+
+- Tests that read a category description, vendor card or vendor details before opening its row: open the row first. `consent-widget-accordion-content-*` and `consent-widget-vendor-content-*` still exist while collapsed, but they are empty.
+- Custom compositions of the `PreferenceItem` primitive that need collapsed children in the DOM, for example because custom CSS shows them: pass the new `forceMount` prop to the content part (`PreferenceItem.Content` in React and Svelte, `PreferenceItemContent` in Vue).
+
+### Encode and enforce IAB publisher restrictions
+
+Configure TCF publisher restrictions with `publisherRestrictions` on `createIAB`, `IABProvider`, the runtime's `iab` options or the Astro integration's `iab` options. c15t writes them into the TC string's `PubRestrictions` section, decodes them from stored strings, and reports them through `__tcfapi('getTCData')` as `publisher.restrictions`. Previously that map was always empty and configured restrictions were not encoded.
+
+Consent-gated scripts, network rules and iframes with a `vendorId` now apply the confirmed restrictions: type 0 blocks the purpose, type 1 requires consent and type 2 requires legitimate interest for purposes the vendor list marks as flexible. Accept all grants the vendor signal a restriction needs. Legitimate interest a restriction introduces applies until the visitor objects, so Save Settings encodes it as allowed, matching what the preference centres show.
+
+The React, Vue, Svelte and `@c15t/browser/iab` preference centres list each vendor under the legal basis the restrictions leave it, so a vendor moved to legitimate interest gets an objection control instead of a consent toggle. A purpose whose vendors all use legitimate interest shows no consent switch, only the objection, and display-model rows report this as `hasConsentBasis`. Such a purpose no longer decides its c15t category, so a granular save no longer records a denial that blocks its legitimate-interest vendors; legitimate interest never grants a category on its own. Custom UIs can use `applyPublisherRestrictionsToGVL` from `@c15t/iab/headless` or pass `publisherRestrictions` to `processGVLForDialog`.
+
+IAB gates no longer let a refused c15t category block a target that uses only legitimate interest after publisher restrictions. Such a target needs no consent under TCF, so its purpose and vendor legitimate interest signals, and the visitor's objection, decide. Previously every restriction on a referenced category blocked IAB targets; GPC, opt-out directives and strict scope still do, and the refused category still blocks scripts that name only the category or declare a consent purpose.
+
+Unsupported restrictions throw `PublisherRestrictionError` instead of being dropped. This covers reserved type 3, vendors or purposes missing from the vendor list, legitimate interest for purposes 1 and 3 to 6, basis changes on purposes the vendor does not declare as flexible, conflicting types for one vendor, and restrictions in a string that is not service-specific. `whenReady()`, `save()` and `generateTCString()` reject, and no TC string is written. Retrying `whenReady()` does not fetch another vendor list. With an explicit `gvl`, the error lasts for the handle and saving keeps failing even if the kernel later holds a different list; a CMP following the kernel's list checks a replacement list again. When a replacement vendor list makes a restriction unsupported, the TC authority confirmed under the previous list is cleared. Whenever the CMP withdraws its own authority, including on expiry, it also removes the `euconsent-v2` cookie and localStorage entry. A stored TC string whose restrictions differ from the configuration is not restored; the banner opens again for a returning visitor and closes once they save, IAB gates stay denied until then, and the superseded `euconsent-v2` cookie and localStorage entry are removed. Decoding a string written under TCF policy version 2 or 3 accepts legitimate interest required for purposes 3 to 6, which those versions allowed.
+
+### Keep open tabs in step with stored consent
+
+A choice saved in one tab now reaches the other open tabs on the same origin
+without a reload. Before, a tab kept a grant after another tab stored a denial,
+and neither `kernel.refresh()` nor `runtime.reinit()` read storage again.
+
+Browser persistence reads stored records again when another tab on the same
+origin changes a c15t localStorage key, when the page becomes visible and when
+the window regains focus. A tab on another subdomain that shares the consent
+cookie gets no `storage` event and catches up on its next focus or visibility
+change, and so does every tab when localStorage is unavailable and only the
+cookie is stored. Category decisions merge per category, keeping the newer decision for
+each, and privacy directives merge as a union. A stored notice or vendor record
+replaces the one in memory unless it is older. A record removed from storage is
+cleared, so the active policy decides again. Blocked storage or bytes that do
+not decode change nothing. Reconnecting does not read storage.
+
+Queued writes follow the same rules. A tab lands its own pending write before it
+reads, a choice write stores the per-category merge with what storage holds, a
+directive write keeps every stored directive, and the rewrite that adds a
+server subject id no longer recreates records another tab cleared. When two
+tabs act in the same millisecond, the record stored first wins in both. A
+tab that opened before another stored a subject joins the stored subject
+unless it identified a different user; a subject id the server resolved is
+kept unless a strictly newer stored choice carries another one. Only a
+record this tab saw in storage is cleared when it disappears, so a choice
+seeded while storage was blocked survives storage becoming readable.
+
+Under an IAB policy, `@c15t/iab` loads the TC string another tab stored once
+its choice is reconciled, with its purpose, vendor and special-feature
+selections, so `__tcfapi` and the preference controls no longer show the
+previous choice. Selections changed in this tab without saving are kept. A
+TC string that grants any purpose of a category denied after it was saved
+is withdrawn and not restored on the next page load; a partial purpose
+selection saved through IAB keeps its TC string. A TC string confirmed before
+the reconciled choice's newest decision, such as after a save on a sibling
+subdomain that shares the consent cookie, is withdrawn as well, since the TC
+string and its receipt belong to one origin. A newer receipt replaces the held
+one even when the TC string is identical.
+
+Clearing records now stores the clear epoch, the time of the clear, under
+`c15t-epoch` in localStorage and a cookie of the same name, and clearing never
+removes it. Every consent record written afterwards records its epoch too.
+Decisions confirmed before the epoch are void everywhere: a tab that reconciles
+after another tab cleared and saved again drops its pre-clear decisions, a tab
+that missed the clear cannot write them back, and browser hydration and server
+reads (`readStoredRecordsFromCookieHeader`) ignore them. A decision in the
+clearing millisecond counts only from a tab that had seen the clear. Each clear
+moves the epoch forward even after the clock went back, and an epoch up to an
+hour ahead of the clock is kept. Records from before any clear, including v2
+and legacy records, read as epoch 0 and are unaffected; a corrupt epoch also
+reads as 0, and a record whose epoch field is corrupt is kept.
+
+The consent cookie stays authoritative, but a denial in its localStorage copy
+that is newer than the cookie's decision is now applied on top of it, so a
+dropped cookie write no longer keeps an older grant in force. Copies written
+under different clear epochs are cut to the later epoch first, and the
+subject comes from the later copy. Privacy directives from both copies of the
+privacy record apply, a newer local vendor list adds denials without lifting
+any (a vendor copy from before the last clear is ignored), and the newer notice
+dismissal applies. A newer local
+grant is still not applied.
+
+This changes the stored format: after a clear, the consent cookie gains
+`&e=<time>` (16 bytes) and the localStorage record an `epoch` field (22 bytes).
+Visitors who never cleared store what they did before. Older c15t builds reject
+both the cookie and the localStorage record once they carry the epoch and treat
+the visitor as undecided, so under an opt-out policy they grant optional
+categories by default until a new choice is saved. Deploy the new build to every
+page of the site before visitors can clear their records.
+
+When two tabs write at the same moment and one write drops the other tab's
+category or directive, the tab that lost it writes it back on its next
+reconciliation, including directives it kept from storage in its own write.
+Under an IAB policy, a TC string that grants a category a
+reconciled denial covers is withdrawn before any `__tcfapi` listener is
+notified, and one that predates another tab's newer choice is held back until
+this tab reads that tab's receipt, so a revoked vendor is never advertised
+again. A tab reloads the TC string when another tab stores a new receipt, which
+covers a save in the same millisecond or one that changed only vendors, and
+stops publishing the held one until the reload decides. Two receipts from the
+same millisecond settle on the more restrictive one, so a revoked vendor is
+never advertised again; when each grants something the other denies, the
+stored receipt is removed and neither is published until the next save. When
+another tab removes the receipt or clears localStorage, the held TC string is
+withdrawn, and a receipt still being decoded is not installed. localStorage
+has no conditional removal, so the removal after a tie can still delete a
+receipt another tab stored a moment earlier; every tab then withholds its TC
+string until the next save.
+
+A page seeded from a server's cookie read applies newer denials and privacy
+directives that reached only localStorage, and a local denial from the same
+millisecond as a seeded grant, and a clear after the clock went
+back more than an hour writes an epoch other tabs can still read. That capped
+epoch cannot void decisions dated after it that a runtime which missed the
+clear writes back; times alone cannot order a clear against a clock that went
+back more than an hour. When the cookie and its localStorage copy hold
+conflicting decisions from the same millisecond, the denial wins. The
+subject comes from the cookie, which a server-side restoration or a sibling
+subdomain can rewrite on its own, unless this browser's last write reached
+only localStorage and the cookie has not changed since; such a write leaves a
+`<storageKey>-cookie-miss` marker in localStorage. A localStorage write that
+fails while the cookie write lands removes the older local copy.
+
+New API:
+
+- `runtime.reconcileStorage()` and `persistence.reconcile()` read stored
+  records on demand and return whether anything changed. React's
+  `usePersistence()` handle has `reconcile()` too.
+- `persistence: { sync: false }` keeps storage but turns off the automatic
+  reads. `dispose()` removes the listeners.
+
+See [keep open tabs in step](https://c15t.com/docs/guides/consent-state#keep-open-tabs-in-step).
+
+### Close consent surfaces without waiting for the backend
+
+Save, Accept all and Reject all now close the preference dialog in the same
+task as the click, in React, Next.js, TanStack Start, Vue, Nuxt, Svelte,
+Astro's dialog islands and the browser client. The choice, storage, scripts,
+iframes and network rules update from the local record first; the backend
+request runs afterwards. Before, the dialog stayed open until the request
+answered. In a Next.js production build with 170 ms of network latency, a 4x
+CPU slowdown and a 200 ms backend, Save now closes the dialog after 18 ms
+instead of 486 ms. The browser client's
+banner waited the same way and now closes on the click too. IAB banners and
+dialogs close on the click and come back only if the choice could not be
+recorded locally, for example when the vendor list failed to load.
+
+A failed request no longer keeps the dialog open or reopens it. The choice
+stays, the failure reaches `onError` and the kernel's `command:error` event,
+and the kernel replays the queued save after the next initialization or when
+the browser comes back online.
+
+Callback timing is unchanged: `onChoiceRecorded` and `onPermissionsChanged`
+still run in the click task, and the promises returned by `performAction()`,
+`saveConsents()` and the browser client's `save()` still settle when the
+request does. Svelte's `ConsentButton` no longer leaves an unhandled rejection
+when a save fails.
+
+### Load the iframe blocker when a gated iframe is on the page
+
+`ConsentProvider`, and `ConsentRoot` through it, downloaded and started the iframe blocker on every page, including pages without an iframe to gate. It now loads when the first iframe with `data-category` or `data-vendor` is on the page. Until it runs, such an iframe that arrives with a `src` consent does not allow is paused the way the blocker pauses it. In a Next.js 16 production build of the App Router setup with no gated iframes, first-load JavaScript drops by 3,681 bytes (1,572 bytes gzip) and one request. `iframeBlocker: { disableAutomaticBlocking: true }` and `useIframeBlocker()` load the blocker at mount as before.
+
+### Follow a replacement runtime in `ConsentProvider`
+
+When you pass `ConsentProvider` a different `runtime`, the provider now
+switches to it. Hooks and `KernelContext` consumers unsubscribe from the
+previous runtime's kernel and read the new one. Previously the provider kept
+rendering the first runtime it received, so consumers could show that
+runtime's consent after you replaced it. The provider still leaves both
+runtimes to their owner and disposes neither.
+
+An open preference UI switches too. `ConsentDraftProvider`,
+`useConsentDraft()` and `useVendorDraft()` discard the draft staged against
+the previous runtime and start a new one from the new runtime's record, so a
+save only records into the new runtime. A draft inherited from an outer
+`ConsentDraftProvider` is only shared while both providers use the same
+runtime, so a nested provider on another runtime keeps its own. A draft
+handle kept from before the switch, for example by an async submit, no longer
+saves: `save()` resolves `{ ok: false }`, its setters do nothing, and it
+records into neither runtime. This applies from the moment the switch
+commits, including in a layout effect of that commit, and to a handle taken
+from an outer draft. A handle kept after the preference UI unmounts, with no
+switch, still saves.
+
+`IABProvider` stops exposing the previous runtime's handle. An IAB action
+taken right after the switch waits for the new runtime's handle, including
+when you switch back to a runtime the provider rendered before. An action
+still addressed to the previous runtime rejects with an `AbortError` and is
+not applied to either runtime. That includes actions on a `useIAB()` result
+kept from before the switch, under `IABProvider` or a borrowed runtime's
+`ConsentProvider`, from the moment the switch commits: its `save()` rejects
+and its setters do nothing.
+Actions still waiting when `IABProvider` unmounts, for example because its
+CMP failed to start, also reject with an `AbortError` instead of never
+settling. Moving between a borrowed runtime and one the provider creates
+still requires a remount.
+
+### Keep the dialog-trigger icons out of the banner's first load
+
+The fingerprint and settings icons of `ConsentDialogTrigger` shared a module with the branding logos the banner renders, so every page that showed the banner downloaded them. They now live next to the trigger and load with it. A Next.js App Router page with the banner ships about 530 fewer gzipped bytes of JavaScript on first load.
+
+### Share script lifecycle with external consent providers
+
+Add an external consent source to the framework-independent runtime, React, Vue/Nuxt, Svelte/SvelteKit, browser, and Astro entrypoints. Next.js and TanStack Start inherit the controls through React options. Provider decisions update effective gates without creating c15t receipts or mounting a second persistence layer. Route preference controls to the external provider through a shared kernel event, report errors through lifecycle callbacks, and reload the page when the source withdraws a granted category, using the existing `reloadOnConsentRevoked` option and `onBeforeConsentRevocationReload` callback. Keep React script modules lazy through a lightweight controls entrypoint.
+
+Add consent-aware custom event and SPA pageview dispatch to the script SDK, preserve Google tag configuration, support custom GTM data layers and Segment load options, and declare the script SDK's core runtime dependency for isolated package installations.
+
+Keep disabled runtimes permissive when an external source is configured. Complete browser readiness after connecting the source, keep Astro preference triggers available, and reject IAB saves owned by an external CMP. External permissions disable c15t IAB authority. Deliver events for built-in Umami, Rybbit and Matomo integrations, and preserve custom GTM queue names during initialization and dispatch.
+
+Report external CMP subscription failures without aborting provider startup. Keep optional permissions denied and ignore notifications from the failed connection.
+
+### Load the consent dialog before it opens
+
+The deferred `<ConsentDialog />` now starts loading earlier, so the first open doesn't wait for its download.
+
+- Every button that opens the dialog loads it on hover or focus: the stock `<ConsentBanner />` Customize button, `ConsentDialogLink`, `ConsentDialogTrigger`, and the `ConsentGate` button. Before, only `ConsentBanner.PolicyActions` did this. Handlers you pass as `onFocus` or `onPointerEnter` still run.
+- While the banner is shown or one of those buttons is mounted, the dialog also loads in the browser's first idle period after the page's `load` event. That covers a tap or keyboard open with no hover or focus first. It's skipped with Save-Data on, on 2G connections, and offline. A visit with saved consent and nothing that opens the dialog doesn't download it.
+- Set `preloadDialog: 'intent'` in the provider options to load only on hover, focus or open.
+- A preload that fails, for example offline, no longer breaks the dialog. The next hover, focus or open retries the download.
+
+### Render theme CSS on the server
+
+**Breaking.** The browser no longer generates theme CSS. `ConsentProvider` (and `ConsentRoot`) used to turn `options.theme` tokens into a `<style id="c15t-theme">` element on every page, so every visitor downloaded the theme generator and the default theme, about 1.7 KB gzip. The package stylesheet already carries the default tokens, so the provider now renders no theme style at all.
+
+Render custom tokens with the new `ConsentTheme` component, exported from `@c15t/react`, `@c15t/nextjs`, `@c15t/tanstack-start` and the `c15t/react`, `c15t/next` and `c15t/tanstack-start` entries. It is not a client component: render it from a Server Component and the generator stays on the server. `ConsentTheme` takes `theme`, `colorScheme` (`'light'`, `'dark'` or `'system'`, applied before hydration) and `nonce`. `generateThemeCSS()` from `@c15t/ui/theme` now escapes `<`, so its output is safe inside a `<style>` element wherever you render it.
+
+`@c15t/svelte`'s provider no longer injects the token CSS after hydration, which also removes the one-frame flash of default colors in SvelteKit. `@c15t/astro` now renders the integration's `theme` tokens on the server, next to the config script, instead of leaving them to the dialog islands.
+
+### Migration
+
+- **Next.js App Router.** Move the theme to a module without `'use client'`. Render `<ConsentTheme theme={theme} />` in the root layout (a Server Component) next to your consent wrapper, and pass `colorScheme` and `nonce` there if you set them on `ConsentRoot`. Keep `options.theme` on `ConsentRoot` only for `consentActions` and slot styles.
+- **Next.js Pages Router.** Render `ConsentTheme` in `pages/_document.tsx`.
+- **TanStack Start.** Return `generateThemeCSS(theme)` from a `createServerFn` handler in the root loader and render it in a `<style id="c15t-theme">` in the head. Rendering `ConsentTheme` in the root component also works but ships the generator.
+- **React without server rendering.** Render `ConsentTheme` next to the provider (this ships the generator), or put the output of `generateThemeCSS(theme)` in your stylesheet.
+- **SvelteKit.** Return `generateThemeCSS(theme)` from `+layout.server.ts` and render it inside `<svelte:head>`. Keep slot styles and `consentActions` in `options.theme`.
+- **Astro.** Keep tokens in the integration's `theme`. Tokens in the client entrypoint's `theme` are no longer applied.
+- **Light and dark at runtime.** Render `ConsentTheme` without `colorScheme` and toggle the `dark` class on `<html>` (for example with next-themes): its output holds both schemes. The provider's `colorScheme` option still keeps the `c15t-dark` class in sync after hydration.
+- **Switching token sets at runtime.** Render `ConsentTheme` from a client component and change its props.
+- Keep importing the package stylesheet. It holds the default tokens the provider used to inject.
+
+In development, the provider warns when `theme` holds tokens but the page has no `c15t-theme` stylesheet.
+
+### Keep blocking iframes when one node on the page is bad
+
+The iframe blocker could let consent-gated iframes load after it hit a node the page can't read, such as one Firefox reports as "Permission denied to access property". It skipped every iframe in that `MutationObserver` batch, including ones added before the bad node. The on-demand watcher in `@c15t/react` had the same gap. Both now skip the unreadable node and gate the rest.
+
+An iframe with an invalid `data-category` no longer throws. Before, one such iframe stopped the blocker from starting and made every later pass stop early, so revoking consent left other gated iframes loaded. It now stays blocked and logs a console warning, the same way the on-demand watcher already held it.
+
+### Keep dialog CSS out of the render-blocking stylesheet
+
+**Breaking.** `styles.css` now carries only what a first paint can show: the default tokens, every c15t CSS variable, and the rules for the banner, `ConsentDialogTrigger` and the `ConsentGate` placeholder. It shrinks from 125 KB to 66 KB (16.2 KB to 8.8 KB gzipped). The dialog and preference-widget rules moved to `@c15t/ui/styles/dialog.css`, which the dialog's module imports, so your bundler ships them with the dialog's lazy chunk and applies them before the dialog renders. In a Next.js production build the page's stylesheet drops from 18.2 KB to 10.6 KB gzipped.
+
+- `@c15t/ui/styles.css` and `styles.tw3.css` no longer contain the dialog, preference widget, accordion, switch, tabs, collapsible, preference item or vendor list rules. React, Next.js and TanStack Start load them for you. If you render `@c15t/ui` class maps for those parts in your own components, import `@c15t/ui/styles/dialog.css`.
+- `@c15t/react/primitives` and every `@c15t/react/primitives/*` entry load the dialog stylesheet, because the accordion, collapsible, preference item, switch and tabs rules moved there.
+- JavaScript loads the dialog rules through the new `@c15t/ui/styles/dialog` module. Bundlers follow its import of `styles/dialog.css`; under the `node` export condition it imports nothing, so plain Node (the Pages Router, or SSR that keeps dependencies external) can load every `@c15t/react` entry. Import it instead of the `.css` file from components that can run on the server.
+- The rules for the `@c15t/ui/styles/primitives` class maps moved to `@c15t/ui/styles/primitives.css`. The React components never used them. `c15t/svelte/styles.css` imports them; other hosts that render those class maps import the file themselves.
+- `iab/styles.css` no longer repeats the default tokens and the shared rules. Import it after `styles.css`, as the IAB guides already say.
+- Tailwind 3: the dialog stylesheet goes through your PostCSS pipeline, and Tailwind 3 rejects its `@layer components` block. Add `@c15t/ui/postcss-tailwind3` before `tailwindcss` in your PostCSS plugins. Without it the build fails with "`@layer components` is used but no matching `@tailwind components` directive is present".
+- If you import `styles.css` into a named layer (`@import '…/styles.css' layer(c15t)`), the dialog rules still join the top-level `components` layer.
+
+Svelte, Astro, Vue and the script-tag build render the same styles as before. `c15t/svelte/styles.css` still holds every rule, because Svelte loads its dialog with the page. Astro injects the banner rules; the React and Svelte dialog islands import the rest, which Astro links on every page, and with `ui: 'vue'` the integration injects them. If you set `styles: false` with `ui: 'vue'`, also import `@c15t/ui/styles/dialog.css`. `@c15t/browser` inlines the dialog rules as before.
+
+### `useNetworkBlocker` holds matching requests from its first render
+
+The standalone `useNetworkBlocker` hook installed the blocker from a mount effect. Effects in the calling component's children, and in components rendered before it, run first, so matching `fetch` and XHR requests sent from them went out without a consent check on first visits and for visitors who had rejected. The hook now holds matching requests from the first render of the component that calls it, the same way the provider's `networkBlocker` option does since the previous release, and the blocker decides them once it loads.
+
+Holds are now tracked per caller. When a page uses both the provider option and the hook, one blocker loading or one component unmounting no longer releases requests that the other's rules still hold. A blocker configured with `enabled: false` holds nothing and no longer sends requests another caller holds. `createConsentRuntime()` (which the Svelte, Astro and browser packages use) and the Vue plugin follow the same rules, and a runtime or Vue context disposed before it starts ends only its own hold. The requests it held are answered as blocked (a 451 response for `fetch`, a failed XHR) rather than sent, since nothing checked consent for them.
+
+### Migration
+
+The hook's first render in the browser now has a side effect: it patches `fetch` and `XMLHttpRequest` to hold requests that match its rules. On the server it still does nothing. If React discards that render and never commits it (a render that throws, or an attempt thrown away while suspending), the hold ends after 10 seconds and the requests it held fail as blocked (a 451 response for `fetch`, a failed XHR), since nothing checked consent for them. The same applies when the hook's component, or the provider, unmounts before its blocker loads. No code changes are needed. If a test asserts that `window.fetch` is untouched after rendering a component that calls the hook, update it: during the first render `window.fetch` is the hold's wrapper, and after the blocker loads it is the blocker's.
+
+### Defer the dialog and widget on their split entries
+
+**Breaking.** `@c15t/react/consent-dialog` and `c15t/react/consent-dialog` now export the deferred `ConsentDialog`, the same component as the `@c15t/react` root. The dialog's code loads when it first opens, so importing the split entry no longer puts the dialog in every page's first load. Before, this entry exported the dialog itself. In a Next.js production build of a provider, banner, dialog and link imported from split entries, the change takes 4,411 B gzip of JavaScript out of what the page requests before its `load` event.
+
+`@c15t/react/consent-widget` and `c15t/react/consent-widget` likewise export the deferred `ConsentWidget` from the root entry.
+
+Both entries now export only the component and its prop and compound types. The individual parts they also exported, such as `Card`, `Header`, `Overlay`, `ConsentDialogRoot`, `Accordion`, `Switch` and `Footer`, are no longer exported from them.
+
+### Migration
+
+- `<ConsentDialog />` and `<ConsentWidget />` from the split entries need no change. `ConsentDialog.Card` and the other `ConsentDialog.<Part>` properties still work and load with the dialog's chunk.
+- If you imported a part by name, import it from the component entry instead:
+
+  ```ts
+  // Before
+  import { Card, Header } from 'c15t/react/consent-dialog';
+  // After
+  import { Card, Header } from 'c15t/react/components/consent-dialog';
+  ```
+
+- To keep the dialog in the first load, import `ConsentDialog` from `c15t/react/components/consent-dialog` (or `@c15t/react/components/consent-dialog`). The first open then needs no download, and every visitor downloads the dialog.
+
+### Reload the page when a visitor revokes consent
+
+Revoking consent removed a vendor's script element but left its code running. Listeners, timers, history hooks and chat widgets kept working until the next full page load. v2 reloaded the page on revocation, and v3 lost that behaviour when the consent policy contracts were unified.
+
+When an accept, reject or save turns off a category or vendor that was granted, the page now reloads after every in-flight save request settles, so the next page runs only permitted code. `onBeforeConsentRevocationReload` runs just before the reload. A first visit that rejects under opt-in does not reload, because nothing gated had run. Rejecting defaults under opt-out does, because gated code ran before the choice. Expiry, policy changes and privacy signals do not reload.
+
+Set `reloadOnConsentRevoked: false` to turn this off. The option is available on `ConsentProvider`, `ConsentRoot` `options`, `createConsentRuntime()`, the Vue plugin config, the browser client, and the Astro integration. `@c15t/svelte` receives it through its runtime options.
+
+### `ConsentGate` mounts a granted embed after hydration
+
+**Breaking.** With the App Router's awaited `resolveConsent` layout, a returning visitor
+who had allowed the category downloaded a `ConsentGate` iframe twice. The
+page streams inside a `Suspense` boundary, and React moves that HTML into
+place after the browser has parsed it. The browser starts loading the
+iframe during parsing and loads it again after the move.
+
+`ConsentGate` no longer puts granted children in the server HTML. A denied
+category still gets the placeholder there. A granted category gets the empty
+wrapper, and its children mount once hydration completes, so the iframe loads
+once in every layout. Client-side renders mount the children at once, as
+before.
+
+### Migration
+
+- Server HTML for a granted `ConsentGate` no longer contains its children.
+  Tests or crawlers that read the embed from the server response need to wait
+  for hydration.
+- Size the wrapper with `className` or `style` so the page keeps the embed's
+  space while it mounts.
+
+### Stop exposing the kernel on `window.c15tKernel`
+
+`ConsentProvider` no longer sets `window.c15tKernel`. Nothing in c15t has read it since DevTools started taking the kernel directly, and the global kept the whole kernel reachable from any script on the page, including after the provider unmounted. `window.c15t` still carries the debug information. Pages that use the React provider ship 54 bytes less JavaScript after gzip.
+
+### Prerender pages that render `ConsentGate`
+
+With Next.js `cacheComponents: true`, `next build` failed on a page that
+rendered `ConsentGate` in its prerendered shell, because the gate called
+`Date.now()` during server rendering. The server render and hydration now
+evaluate the gate at the snapshot's own evaluation time. In the browser the
+gate still checks the current time, so an expired grant never shows the
+embed.
+
+The page needs no `Suspense` boundary around `ConsentGate`: a static page
+stays static, and its prerendered HTML contains the placeholder instead of
+an empty fallback. `useVendorAllowed` gets the same change.
+
+### Remove `useConsentManager()`
+
+**Breaking.** `useConsentManager()` is no longer exported from `@c15t/react`, `@c15t/nextjs`, `@c15t/tanstack-start`, their `/headless` entries, or the `c15t/react`, `c15t/next` and `c15t/tanstack-start` umbrella entries. The undocumented `useConsentManagerDraft()` on `@c15t/react/draft` is gone with it. The hook subscribed to the whole consent snapshot, so each caller re-rendered on every change. Read each field through its own hook, which re-renders only when that value changes.
+
+`useSubscribeToConsentChanges()` and `useRegisterConsentCategories()` are now exported from the main entries as well as `@c15t/react/hooks`.
+
+| `useConsentManager()` field | Replacement |
+| --- | --- |
+| `activeUI`, `setActiveUI` | `useActiveUI()` (can be `null`), `useSetActiveUI()` |
+| `has(category)` | `useConsent(category)` |
+| `consents`, `effectivePermissions`, `explicitChoice` | `useConsents()`, `useEffectivePermissions()`, `useExplicitChoice()` |
+| `promptRequirement`, `noticeDismissal`, `privacySignals`, `optOutDirectives`, `restrictions` | `usePromptRequirement()`, `useNoticeDismissal()`, `usePrivacySignals()`, `useOptOutDirectives()`, `useRestrictions()` |
+| `resolution`, `policyRule`, `policyScopeMode` | `usePolicyResolution()`, `usePolicyRule()`, `usePolicyScopeMode()` |
+| `policyCategories` | `usePolicyCategories()` (without the leading `'necessary'`) |
+| `policyBanner`, `policyDialog` | `usePromptPresentation()`, `usePreferencesPresentation()` |
+| `model`, `branding` | `useModel()`, `useBranding()` (both can be `null`) |
+| `iab`, `vendors`, `vendorChoice` | `useIABSnapshot()`, `useDeclaredVendors()`, `useVendorChoice()` |
+| `getDisplayedVendors(category)` | `useDeclaredVendors()` filtered by category |
+| `subscribeToConsentChanges`, `updateConsentCategories` | `useSubscribeToConsentChanges()`, `useRegisterConsentCategories()` |
+| `translationConfig` | `useTranslations()` |
+| `selectedConsents`, `setSelectedConsent`, `selectedVendors`, `setSelectedVendor`, `resetDraft`, `draftIsStale` | `useConsentDraft()`: `values`, `set`, `vendors`, `setVendor`, `reset`, `isStale` |
+| `consentCategories`, `consentTypes`, `getDisplayedConsents()` | `useConsentDraft().displayedCategories` with `useTranslations().consentTypes` |
+| `saveConsents('all' \| 'necessary' \| 'custom')` | `useHeadlessConsentUI().performAction('accept' \| 'reject' \| 'save')` |
+| `manager` | Nothing; it was always `null` |
+
+Render components that stage choices with `useConsentDraft()` and save them with `useHeadlessConsentUI()` inside one `ConsentDraftProvider`, so both use the same draft.
+
+`c15t codemods use-consent-manager-to-hooks` rewrites common destructuring forms. Fields it cannot rewrite stay on a `useConsentManager()` call under a `TODO(c15t v3)` comment naming the replacement.
+
+The stock dialog, preference rows, vendor lists, dialog trigger and `ConsentGate` now read only the values they render. Toggling one category in the preferences dialog re-renders that category's row instead of every row.
+
+### Keep policy pack resolution out of client bundles
+
+The React provider and the core runtime resolved their disabled-mode policy with `resolvePolicyRules` when they loaded, so every page validated a rule and computed three SHA-256 fingerprints on startup, and every client bundle carried the policy validator and the hashing code. The kernel's policy wire reader also shared a module with `resolvePolicyRules`, which pulled in the same code. The disabled resolution is now a constant, pinned by a test to what the resolver returns, and `@c15t/schema/types` exports the wire reader and resolved-rule checks from their own modules. In a Next.js 16 production build of the App Router setup, first-load JavaScript drops by 17,665 bytes (5,313 bytes gzip). Every public export keeps its name and behavior.
+
+### Block network requests sent before the network blocker loads
+
+The network blocker loaded after mount, so a `fetch` or XHR that matched a rule and was sent from a child component's mount effect, from an effect next to the provider, or from a client module evaluated inside it went out without a consent check. This happened on first visits, for visitors who had rejected, and when the policy request failed or hung. `ConsentProvider` and `ConsentRoot` now hold matching requests from their first render in the browser, and the blocker decides them once it loads. Vue holds them from plugin install until the root mounts. `createConsentRuntime()`, which `@c15t/svelte` and the `c15t` browser client use, holds them from construction until `start()`. A provider that unmounts before its blocker loads, a runtime disposed before `start()`, or a Vue context disposed before its root mounts answers the requests it held as blocked (a 451 response for `fetch`, a failed XHR) rather than sending them, since nothing checked consent for them. Requests another caller still holds keep waiting.
+
+While consent is unknown, a matching request that would be blocked now waits instead of failing. It is sent if the resolved policy and the visitor's stored choice allow it, and blocked if they do not or if the policy fails to load. Requests that match no rule are not delayed. Apps without `networkBlocker` still do not download the blocker; the hold adds about 0.8 KB gzip to first-load JavaScript.
+
+Requests made before the provider renders are still out of reach, including inline scripts, tags loaded before hydration, and client modules that webpack evaluates when a route's chunk loads. The new network blocker pages for Next.js and React describe these limits and how to keep tracking calls out of that window.
+
+## @c15t/react@3.0.0-alpha.2 (alpha)
+
+### Fix declaration imports for Node16 and NodeNext
+
+Fix declaration imports for TypeScript consumers using Node16 or NodeNext resolution. Preserve explicit JavaScript filenames so exported APIs retain their types without requiring `skipLibCheck`.
+
+### Rename `Frame` to `ConsentGate`
+
+`Frame` is now `ConsentGate` in React, Next.js, TanStack Start and Svelte, and Vue's `ConsentFrame` is now `ConsentGate`. The compound parts follow: `ConsentGate.Root`, `ConsentGate.Title` and `ConsentGate.Button`, with `ConsentGateProps` and `ConsentGateCompoundComponent` types. New subpaths are `c15t/react/consent-gate`, `c15t/react/components/consent-gate` and `@c15t/vue/runtime/components/consent-gate.vue`, and Nuxt auto-registers `<ConsentGate>`.
+
+The old names, subpaths and Nuxt component remain as deprecated aliases for the same component. Props, behavior, `frame.*` translation keys, `--frame-*` CSS custom properties and `data-testid="frame-placeholder"` are unchanged.
+
+### Granular consent
+
+Grant a category and still turn one vendor off, outside IAB TCF. Declare vendors with the `vendors` option or the backend manifest, then name them with `vendor` on scripts and network rules and `data-vendor` on iframes. A target loads when its category passes and its vendor is not off; `alwaysLoad` scripts see the result in their callbacks.
+
+The preference centers in React, Next.js, TanStack Start, Vue, Nuxt and Svelte list each category's vendors with a switch per vendor. Switches edit the draft and record on Save, disable while the category is off, and clear on Accept all and Reject all. React adds `useVendorDraft`, `useVendorAllowed`, `useDeclaredVendors` and `useVendorChoice`; `useConsentDraft` gains `vendors` and `setVendor`; the Svelte manager state gains `selectedVendors` and `setSelectedVendor`.
+
+Denials persist in a `<storageKey>-vendors` cookie and localStorage entry and reach the backend as `vendorChoice`. Migration `4-vendor-choice` adds the column, so run the migrator before deploying. A denial has no expiry and does not delete cookies the vendor already set.
+
+Also fixed: the Vue preference center rendered its switches and category rows unstyled in Nuxt, and the Vue and Svelte category description colour differed from React's.
+
+### Restore category discovery and consent completion
+
+Restore category discovery from scripts, frames, and network rules. Merge discovered categories with `consentCategories` within the policy scope, and use the same set for the dialog and consent completion. Keep the banner dismissed after accepting the displayed categories and reloading. Enable tagged iframe discovery and blocking by default in React, matching the shared runtime.
+
+### Remove dialog scheduling delays and preserve IAB actions
+
+Remove first-open scheduling delays from React's aggregate dialog, widget, and compound components while preserving server rendering and hydration. Keep children mounted when an external runtime provides IAB context, so loading the bridge cannot reset local drafts.
+
+Remove the extra Suspense delay from Astro's React IAB dialog island.
+
+Queue external-runtime IAB actions until the runtime publishes its handle, and reject pending saves with AbortError when the borrowing provider unmounts. Correct the React and Next.js peer dependency ranges to require React and React DOM 18 or newer, matching the APIs already used by v3. Upgrade both React packages before using v3 on an older installation.
+
 # @c15t/react
+
+## 3.0.0-alpha.1
+
+### Minor Changes
+
+- dd44a61: Add opt-in `clearOnRevocation` configuration to remove declared cookies, localStorage keys, and sessionStorage keys when their consent category is denied or revoked. Support exact names, prefix patterns, and cookie scopes while protecting c15t consent records.
+
+### Patch Changes
+
+- 46f45c4: Render theme CSS in the server HTML to prevent React and Next.js consent banners from flashing default styles before hydration. Preserve the stylesheet and CSP nonce through hydration, and escape theme values so HTML-like strings remain inside the stylesheet.
+
+  Apply explicit dark mode and system color preferences before hydration while preserving client-side theme updates.
+
+  Reduce the theme generator's initial JavaScript and generated CSS size without changing theme tokens or contrast colors.
+
+- Updated dependencies [dd44a61]
+- Updated dependencies [46f45c4]
+  - @c15t/core@3.0.0-alpha.1
+  - @c15t/ui@3.0.0-alpha.1
+  - @c15t/dev-tools@3.0.0-alpha.1
+  - @c15t/iab@3.0.0-alpha.1
+
+## 3.0.0-alpha.0
+
+### Major Changes
+
+- 4460e3e: This v3 alpha is for internal use only. APIs are unstable, and breaking changes will occur between alpha releases.
+
+  Introduce the c15t umbrella package, shared consent runtime and policy rules, rewritten backend, and new framework and script-tag integrations. Update the CLI, IAB support, DevTools, and shared styles for v3.
+
+  Packages now ship ESM only. Keep related packages on compatible v3 alpha versions.
+
+  Export `defineTheme` and the `Theme` type from the React, Next.js, TanStack Start, and Vue entries so themes can use the same imports as their framework integration.
+
+  Restrict iframe-blocker URL activation to HTTP and HTTPS. Replace backtracking URL and theme parsing expressions, correct the PostHog hostname boundary, and fix CLI layout detection for nested route groups and locale directories.
+
+  Serve a stale consent manifest from the server adapters' in-process cache inside the backend's `stale-while-revalidate` window while one background request revalidates it, instead of blocking every request after `s-maxage` expires; a failed or timed-out revalidation keeps the stale manifest. The backend sends its manifest cache policy as `CDN-Cache-Control` too, so Vercel's CDN forwards it. Add `onBackgroundRevalidate` to the core cache and every server adapter for runtimes that stop detached work after the response.
+
+### Patch Changes
+
+- Updated dependencies [4460e3e]
+  - @c15t/core@3.0.0-alpha.0
+  - @c15t/dev-tools@3.0.0-alpha.0
+  - @c15t/iab@3.0.0-alpha.0
+  - @c15t/schema@3.0.0-alpha.0
+  - @c15t/translations@3.0.0-alpha.0
+  - @c15t/ui@3.0.0-alpha.0
 
 ## 2.3.0
 
@@ -184,7 +1413,7 @@
 
 ### Major Changes
 
-- 32617c9: Changelog available at https://c15t.com/changelog/2026-04-14-v2.0.0
+- 32617c9: Changelog available at https://c15t.com/changelog/2.0.0
 
 ### Patch Changes
 
@@ -448,7 +1677,7 @@
 
 ### Patch Changes
 
-- 408df0e: feat: CMP ID now comes from backend, either consent.io when hosted or BYO CMP ID
+- 408df0e: feat: CMP ID now comes from backend, either inth.com when hosted or BYO CMP ID
   feat: Center the IAB Banner for better policy compliance
   feat: Improve doc comments around IAB
 - e6bc5db: fix: update import paths from .css to .js for component styles
@@ -472,7 +1701,7 @@
 
 ### Major Changes
 
-- 126a78b: https://c15t.com/changelog/2026-02-12-v2.0.0-rc.0
+- 126a78b: https://c15t.com/changelog/2.0.0-rc.0
 
 ### Patch Changes
 
@@ -484,7 +1713,7 @@
 
 ### Patch Changes
 
-- 6c28663: Full Changelog: https://c15t.com/changelog/2026-01-19-v1.8.3
+- 6c28663: Full Changelog: https://c15t.com/changelog/1.8.3
 - Updated dependencies [6c28663]
   - c15t@1.8.3
 
@@ -520,7 +1749,7 @@
   - fix(react): Frame component CSS overriding
   - fix(react): Legal links using the asChild slot causing multi-child error
 
-  https://c15t.com/changelog/2025-12-12-v1.8.2
+  https://c15t.com/changelog/1.8.2
 
 - Updated dependencies [2ce4d5a]
   - c15t@1.8.2
@@ -564,7 +1793,7 @@
 
 ### Minor Changes
 
-- 68a7324: Full Changelog: https://c15t.com/changelog/2025-10-27-v1.8.0
+- 68a7324: Full Changelog: https://c15t.com/changelog/1.8.0
 
 ### Patch Changes
 
@@ -610,7 +1839,7 @@
 
 ### Minor Changes
 
-- aa16d03: You can find the full changelog at https://c15t.com/changelog/2025-10-11-v1.7.0
+- aa16d03: You can find the full changelog at https://c15t.com/changelog/1.7.0
 
 ### Patch Changes
 
@@ -648,7 +1877,7 @@
 
 ### Minor Changes
 
-- 84ab0c7: For a full detailed changelog see the [v1.6.0 release notes](https://c15t.com/changelog/2025-09-08-v1.6.0).
+- 84ab0c7: For a full detailed changelog see the [v1.6.0 release notes](https://c15t.com/changelog/1.6.0).
 
 ### Patch Changes
 

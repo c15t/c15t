@@ -1,0 +1,175 @@
+<script lang="ts">
+	import { dev } from '$app/env';
+	import {
+		PUBLIC_CLARITY_ID,
+		PUBLIC_DEVTOOLS_IAB,
+		PUBLIC_GOOGLE_TAG_ID,
+		PUBLIC_META_PIXEL_ID,
+		PUBLIC_TIKTOK_PIXEL_ID,
+	} from '$app/env/public';
+	import { page } from '$app/state';
+	import {
+		ConsentBanner,
+		ConsentDialog,
+		ConsentDialogTrigger,
+		ConsentProvider,
+		ConsentRoot,
+		offline,
+		IABConsentBanner,
+		IABConsentDialog,
+	} from '@c15t/svelte';
+	import type { ConsentManagerOptions } from '@c15t/svelte';
+	import { baseTranslations } from '@c15t/translations/all';
+
+	import { createDemoScripts } from '#lib/consent-manager/demo-scripts.js';
+	import { themePresetStore } from '#lib/consent-manager/theme-store.svelte.js';
+	import ThemeTokens from '#lib/consent-manager/ThemeTokens.svelte';
+
+	let { children, data } = $props();
+	const devTools = dev ? import('@c15t/svelte/devtools') : null;
+	// The theme showcase renders its own provider and theme tokens.
+	const isThemeShowcase = $derived(page.url.pathname === '/theme');
+	const isIabPlayground = dev && PUBLIC_DEVTOOLS_IAB === 'true';
+	const scripts = dev
+		? createDemoScripts({
+				clarity: PUBLIC_CLARITY_ID,
+				googleTag: PUBLIC_GOOGLE_TAG_ID,
+				metaPixel: PUBLIC_META_PIXEL_ID,
+				tiktokPixel: PUBLIC_TIKTOK_PIXEL_ID,
+			})
+		: [];
+
+	const activeTheme = $derived.by(() => {
+		if (!themePresetStore.mounted) {
+			return undefined;
+		}
+		const { theme } = themePresetStore;
+		if (!theme) {
+			return undefined;
+		}
+		return {
+			...theme,
+			slots: {
+				...theme.slots,
+				iabBanner: {
+					style: {
+						alignItems: 'center',
+						inset: 0,
+						justifyContent: 'end',
+					},
+				},
+			},
+		};
+	});
+
+	const options = $derived({
+		consentCategories: ['necessary', 'marketing', 'measurement'],
+		i18n: {
+			messages: {
+				de: { ...baseTranslations.de },
+				en: { ...baseTranslations.en },
+				fr: { ...baseTranslations.fr },
+				zh: { ...baseTranslations.zh },
+			},
+		},
+		iab: {
+			// Match the example backend. This is a demo ID, not a production CMP configuration.
+			cmpId: 10,
+			customVendors: [
+				{
+					cookieMaxAgeSeconds: 31536000,
+					dataCategories: [1, 2, 6, 8],
+					id: 'internal-analytics',
+					name: 'Example Analytics',
+					privacyPolicyUrl: 'https://www.google.com',
+					purposes: [1, 8],
+					specialFeatures: [1, 2],
+					usesCookies: true,
+					usesNonCookieAccess: true,
+				},
+			],
+			enabled: true,
+		},
+		legalLinks: {
+			privacyPolicy: {
+				href: '/legal/privacy-policy',
+			},
+			termsOfService: {
+				href: '/legal/terms-of-service',
+			},
+		},
+		overrides: {
+			country: 'CA',
+			region: 'QC',
+		},
+		scripts,
+		storageConfig: {
+			crossSubdomain: true,
+		},
+		theme: activeTheme,
+		user: {
+			id: '123',
+			identityProvider: 'custom',
+		},
+	} satisfies Omit<ConsentManagerOptions, 'mode' | 'prefetch'>);
+</script>
+
+{#snippet surfaces()}
+	{#if isIabPlayground}
+		<p role="status">
+			IAB playground: saves stay in memory and reset on reload. The vendor list
+			loads from inth.com. This is not a production CMP configuration.
+		</p>
+	{/if}
+	{@render children()}
+	<ConsentBanner />
+	<IABConsentBanner />
+	<IABConsentDialog />
+	<ConsentDialogTrigger />
+	<ConsentDialog />
+	{#if devTools}
+		{#await devTools then { ConsentDevTools }}
+			<ConsentDevTools position="bottom-right" />
+		{/await}
+	{/if}
+{/snippet}
+
+{#if !isThemeShowcase}
+	<ThemeTokens theme={activeTheme} />
+{/if}
+{#if isIabPlayground}
+	<!-- The IAB playground resolves in the browser and keeps saves in memory. -->
+	<ConsentProvider
+		mode={offline({
+			policyRules: [
+				{
+					id: 'devtools-iab-playground',
+					match: { fallback: true, isDefault: true },
+					model: 'iab',
+					prompt: 'choice',
+					categories: ['marketing', 'measurement'],
+					scopeMode: 'permissive',
+				},
+			],
+		})}
+		options={{
+			...options,
+			iab: { ...options.iab, persistence: false },
+			persistence: false,
+		}}
+	>
+		{@render surfaces()}
+	</ConsentProvider>
+{:else}
+	<!--
+		The server already resolved the policy in +layout.server.ts, so the
+		banner renders in the first HTML. The browser saves through
+		`/api/showcase`, this app's own consent endpoint (manifest mode).
+	-->
+	<ConsentRoot
+		state={data.consent}
+		{...options}
+	>
+		{@render surfaces()}
+	</ConsentRoot>
+{/if}

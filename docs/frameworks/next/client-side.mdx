@@ -1,0 +1,94 @@
+---
+title: Client-side initialization
+description: Initialize c15t in the browser in a Next.js app with hosted() mode, without server prefetch, a consent route or API handlers.
+group: frameworks
+---
+
+## When to initialize in the browser
+
+This setup has the fewest files. The browser calls your Inth backend's `/init`
+after the page loads, so the server does no consent work and every page can be
+static. The HTML is the same for every visitor, and the banner appears after
+hydration.
+
+Use it when you do not need the banner in the server HTML and do not want a
+consent route. For a server app, the [App Router](/docs/frameworks/next/app-router)
+and [Pages Router](/docs/frameworks/next/pages-router) guides resolve consent
+on the server and make no `/init` request per visit. For `output: 'export'`,
+follow [static export](/docs/frameworks/next/static-export).
+[Rendering and deployment](/docs/frameworks/next/rendering) compares every
+path.
+
+Until the policy resolves, optional categories stay denied and the banner
+stays hidden.
+
+## Configure the backend and the mode
+
+[Create an Inth project](https://inth.com), set its policy rules and add your
+site's origin to its trusted origins. A self-hosted backend works the same way
+with its own URL.
+
+<CommandTabs command="c15t @c15t/integrations" mode="install" />
+
+Set `NEXT_PUBLIC_C15T_BACKEND_URL` to your project's backend URL, including
+any path prefix, in `.env.local` and in your host's build settings:
+
+```sh title=".env.local"
+NEXT_PUBLIC_C15T_BACKEND_URL=https://your-project.inth.app
+```
+
+If your app already sets `NEXT_PUBLIC_INTH_PROJECT_URL` for other Inth SDKs, that works
+too. When both are set, `NEXT_PUBLIC_C15T_BACKEND_URL` wins.
+
+Create `c15t.config.ts` at the project root with `mode: hosted()`:
+
+<include src="../../shared/examples/nextjs/client-side-config.mdx" />
+
+`hosted()` initializes through `${backendURL}/init` and posts choices to
+`${backendURL}/subjects`. Add your `scripts` to the same config, as the
+[quickstart](/docs/frameworks/next/quickstart#add-the-consent-config) shows.
+The file is bundled into the browser, so it must hold no secrets.
+
+Wrap `next.config.ts` in `withConsentManifest`, which finds `c15t.config.ts`:
+
+<include src="../../shared/examples/nextjs/next-config.mdx" />
+
+With `hosted()` it downloads no manifest, so `next build` does not contact the
+backend.
+
+## Mount the root without state
+
+The components render their own styles. With Tailwind CSS 3,
+[load the stylesheet yourself](/docs/frameworks/next/customize#load-the-stylesheet-yourself).
+In the App Router, render `ConsentRoot` in the root layout without `state`:
+
+<include src="../../shared/examples/nextjs/browser-layout.mdx" />
+
+In the Pages Router, render it in `_app.tsx`. Without `withConsentProps`,
+`pageProps.consent` is undefined on every page:
+
+<include src="../../shared/examples/nextjs-pages-router/pages-app.mdx" />
+
+Without server state, `ConsentRoot` initializes in the browser. Keep it
+mounted across client navigation.
+
+## Optional same-origin requests
+
+With `routePrefix` and `proxy: true` in `c15t.config.ts` and a consent route
+that forwards saves, the browser sends every consent request to your own
+origin, which saves it a separate connection to the backend's domain. It
+needs a Next.js server. See
+[optimization](/docs/frameworks/next/optimization#keep-browser-consent-requests-on-your-origin).
+
+## Verify browser initialization
+
+Open the production build in a fresh browser session with DevTools open.
+
+1. The browser calls `${backendURL}/init` once, then shows the banner. No
+   PostHog request runs.
+2. Click **Reject All** and reload. The banner stays closed and PostHog does
+   not load.
+3. Open **Privacy settings**. The rejection is still selected. Turn on
+   **Analytics** (the `measurement` category); PostHog loads.
+4. Block the backend's domain in DevTools and reload in a fresh session. No
+   banner appears and no vendor loads. A hidden banner is not permission.

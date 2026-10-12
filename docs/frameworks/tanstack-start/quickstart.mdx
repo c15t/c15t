@@ -1,0 +1,169 @@
+---
+title: Quickstart
+description: Resolve consent on the server in a TanStack Start root loader, render the banner in the first HTML, and gate vendor scripts, using Inth as the consent backend.
+group: frameworks
+---
+
+## Before you start
+
+This guide sets up the recommended path for a TanStack Start app with server
+rendering. On each request, a server function in the root loader reads the
+visitor's consent cookie and location headers, resolves their policy from a
+build-time policy manifest, and hands the result to `ConsentRoot`. The banner is
+part of the first HTML, and gated scripts can run right after hydration.
+
+It needs a running Start server. For SPA mode, prerendered pages or a static
+host, or to stream the page before consent resolves, see
+[rendering](/docs/frameworks/tanstack-start/rendering).
+
+You need an [Inth](https://inth.com) project. In the project, set the policy
+rules for your regions, add your site's origin to the trusted origins, and copy
+the backend URL.
+[Choose your setup](/docs/concepts/choose-your-setup#decide-who-runs-the-consent-backend)
+covers self-hosting and offline mode.
+
+The setup bundles your policy into the server at build time, the
+recommended production setup. Rebuild after changing policies, translations
+or vendors.
+
+## Install c15t
+
+<CommandTabs command="c15t @c15t/integrations" mode="install" />
+
+`c15t` contains the TanStack Start adapter at `c15t/tanstack-start`.
+`@c15t/integrations` holds the vendor loaders used below.
+
+## Bundle your policy at build time
+
+Add the `consentManifest` plugin to `vite.config.ts`, before `tanstackStart()`:
+
+<include src="../../shared/examples/tanstack-start/vite-config.mdx" />
+
+During `vite build`, or in `vite dev` when the server first loads it, the
+plugin downloads your project's public policy from `${backendURL}/manifest` and serves it to server code as
+`snapshot` from `c15t/generated`. In the browser bundle, `snapshot` is
+`undefined`, so the policy stays on the server. No file is written into your
+project.
+
+Set `VITE_C15T_BACKEND_URL` to your project's backend URL, exactly as Inth
+shows it, including any path prefix, in `.env` or wherever you build:
+
+```sh title=".env"
+VITE_C15T_BACKEND_URL=https://your-project.inth.app
+```
+
+If your app already sets `VITE_INTH_PROJECT_URL` for other Inth SDKs, that works
+too. When both are set, `VITE_C15T_BACKEND_URL` wins.
+
+The example app's `.env` points at `https://example-inth.inth.app`, a demo
+project. The server function and `ConsentRoot` read the URL from the plugin,
+so the app code never repeats it. If you pass `backendURL` to the plugin
+instead, the plugin sets the variable to that URL. Vite writes its value into
+the server and browser builds, so setting it when you start a built app has
+no effect.
+
+<include src="../../shared/build-time-manifest-notes.mdx" />
+
+<include src="../../shared/vite-build-manifest.mdx" />
+
+To apply policy edits without rebuilding, pass
+`createConsentStateHandler({ mode: manifest({ source: 'runtime' }) })`, with
+`manifest` from `c15t/tanstack-start`. The server function then fetches and
+caches the policy at runtime; see
+[runtime fetching](/docs/frameworks/tanstack-start/rendering#await-consent-in-the-loader).
+
+## Resolve consent in the root route
+
+Replace or merge `src/routes/__root.tsx`:
+
+<include src="../../shared/examples/tanstack-start/root.mdx" />
+
+What each part does:
+
+- **`getConsentState`** runs on the server. `createConsentStateHandler()`
+  takes no options here: it uses `manifest()`, the default mode, and reads the
+  backend URL and the snapshot from `consentManifest()`. It reads
+  the `c15t` cookie and the location headers your host or CDN adds, such as
+  `cf-ipcountry` or `x-vercel-ip-country`, then resolves this visitor's policy
+  from the bundled snapshot, so the render never waits on Inth.
+  [Geography headers](/docs/frameworks/tanstack-start/geography-headers) lists
+  the headers it reads. Declare the `createServerFn()` call in your own module,
+  as shown. Start's compiler finds server code by that call site and removes
+  it from the browser build. The browser build's `c15t/generated` exports
+  `snapshot: undefined`, so the policy never ships to the browser. A server
+  function built inside a package does not work. In the browser build,
+  `@c15t/tanstack-start/server` carries only `consentLoaderOptions`; its other
+  helpers throw if browser code calls them.
+- **The loader** awaits the result. `consentLoaderOptions` stops the loader
+  from running again on client-side navigation, since the visitor's consent
+  state does not change between routes.
+- **`ConsentRoot`** creates the consent runtime from that state, so the server
+  HTML and the first browser render match. The state carries the backend URL,
+  the mode and the route prefix, so `ConsentRoot` needs only `state`. The
+  browser sends its requests, including consent saves, straight to the
+  backend URL the server function used, so saves reach the project the
+  snapshot came from.
+- **`scripts`** stays in this module. A server function can only return
+  serializable data, and vendor loaders contain functions. PostHog waits for
+  measurement permission, so your policy must include that category. Replace
+  `phc_your_project_key` with your PostHog project key; PostHog uses its EU
+  host, so add `region: 'us'` for a US project. Remove any other PostHog
+  loader from your app so PostHog loads once.
+- **No stylesheet** is linked. `ConsentBanner` renders its rules into the
+  server HTML, and `ConsentDialog` adds its own when it opens.
+
+## Gate your own features
+
+Read a category's permission with `useConsent` from `c15t/tanstack-start`:
+
+{/* example: fragment */}
+
+```tsx title="src/components/marketing-banner.tsx"
+import { useConsent } from 'c15t/tanstack-start';
+
+export function MarketingBanner() {
+	return useConsent('marketing') ? <aside>Spring sale</aside> : null;
+}
+```
+
+`useConsent` returns the permission right now. Under an opt-out policy it can be
+`true` before the visitor has chosen anything. Read
+[how consent works](/docs/concepts/how-consent-works#a-permission-is-not-a-recorded-choice)
+before you record or report choices. For iframes, use `ConsentGate`; see
+[scripts and embeds](/docs/frameworks/tanstack-start/scripts).
+
+## Check that it works
+
+Build the app with `vite build`, start the production server, and open the site
+in a private window with DevTools open on the Network tab. Test under a policy
+that asks for a choice, such as an EU opt-in policy. Your host must send a
+country header; locally, add `country: 'DE'` to the `createConsentStateHandler`
+options for the test only.
+
+1. **Server HTML.** View the page source. It contains an element with
+   `data-testid="consent-banner-root"`.
+2. **Before a choice.** There are no requests to `posthog.com`.
+3. **Reject All.** The banner closes and the vendor requests stay absent.
+4. **Reload and view source again.** The HTML no longer contains the banner,
+   because the server read the stored rejection from the `c15t` cookie.
+5. **Privacy settings.** The footer link opens the dialog with **Analytics** (the
+   `measurement` category) and **Marketing** off. Turn on **Analytics** and
+   save. PostHog's `array.js` loads.
+6. **Turn Analytics off again.** The page reloads and PostHog does not load.
+
+[Troubleshooting](/docs/frameworks/tanstack-start/troubleshooting) covers the
+common failures. [Verify consent](/docs/guides/verify-consent) has the full
+release checklist.
+
+## Next steps
+
+- [Rendering](/docs/frameworks/tanstack-start/rendering) for streaming, SPA mode,
+  prerendering and a same-origin consent route.
+- [Scripts and embeds](/docs/frameworks/tanstack-start/scripts) for more vendors,
+  iframes and network blocking.
+- [Customize](/docs/frameworks/tanstack-start/customize) for colors, fonts, layout
+  and copy.
+- [Components](/docs/frameworks/tanstack-start/components) and
+  [hooks](/docs/frameworks/tanstack-start/hooks).
+- The runnable app in `examples/tanstack-start` of the
+  [c15t repository](https://github.com/c15t/c15t) contains this setup.

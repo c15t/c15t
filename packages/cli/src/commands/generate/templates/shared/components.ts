@@ -3,6 +3,9 @@
  * Produces the Provider+Banner+Dialog component used by React, Next.js Pages, and App Dir client
  */
 
+import type { DevelopmentEnvironment } from '~/context/framework-detection';
+
+import { DEVTOOLS_COMPONENT, generateDevToolsImport } from './devtools';
 import {
 	generateScriptsCommentPlaceholder,
 	generateScriptsConfig,
@@ -10,8 +13,11 @@ import {
 } from './scripts';
 
 interface GenerateConsentComponentOptions {
-	/** Package to import from: '@c15t/react' or '@c15t/nextjs' */
+	developmentEnvironment?: DevelopmentEnvironment;
+	/** Entry point to import from: 'c15t/react' or 'c15t/next' */
 	importSource: string;
+	/** Framework adapter entry point. Defaults to the provider's devtools subpath. */
+	devToolsImportSource?: string;
 	/** Pre-computed inner options text (mode, backendURL, etc.) */
 	optionsText: string;
 	/** Selected scripts to include */
@@ -28,7 +34,7 @@ interface GenerateConsentComponentOptions {
 	includeOverrides?: boolean;
 	/** Whether to add c15t DevTools component */
 	enableDevTools?: boolean;
-	/** When set, use ConsentManagerProps from this package for props typing (e.g. '@c15t/nextjs') */
+	/** Entry point used for server-prefetch config typing. */
 	useFrameworkProps?: string;
 	/** When true, add theme import from './theme' and include in options */
 	includeTheme?: boolean;
@@ -36,175 +42,10 @@ interface GenerateConsentComponentOptions {
 	docsSlug?: string;
 }
 
-/**
- * Generates a consent manager component with Provider, Banner, and Dialog
- *
- * @param options - Configuration for the generated component
- * @returns The complete component file content as a string
- *
- * @remarks
- * This shared generator covers React, Next.js Pages, and Next.js App Dir client
- * variants. The core JSX pattern is always Provider wrapping Banner + Dialog + children.
- *
- * @example
- * ```ts
- * // React
- * generateConsentComponent({
- *   importSource: '@c15t/react',
- *   optionsText: "mode: 'offline',",
- * });
- *
- * // Next.js Pages
- * generateConsentComponent({
- *   importSource: '@c15t/nextjs',
- *   optionsText: "mode: 'hosted',\n\t\t\t\tbackendURL: '/api/c15t',",
- *   initialDataProp: true,
- * });
- *
- * // Next.js App Dir client
- * generateConsentComponent({
- *   importSource: '@c15t/nextjs',
- *   optionsText: "mode: 'hosted',\n\t\t\t\tbackendURL: '/api/c15t',",
- *   useClientDirective: true,
- *   defaultExport: true,
- *   ssrDataOption: true,
- *   includeOverrides: true,
- * });
- * ```
- */
-export function generateConsentComponent({
-	importSource,
-	optionsText,
-	selectedScripts = [],
-	initialDataProp = false,
-	useClientDirective = false,
-	defaultExport = false,
-	ssrDataOption = false,
-	includeOverrides = false,
-	enableDevTools = false,
-	useFrameworkProps,
-	includeTheme = false,
-	docsSlug,
-}: GenerateConsentComponentOptions): string {
-	// Generate scripts import and config
-	const scriptsImport = generateScriptsImport(selectedScripts);
-	const scriptsConfig = selectedScripts.length
-		? generateScriptsConfig(selectedScripts)
-		: generateScriptsCommentPlaceholder();
-
-	// Build the full options object
-	const ssrDataLine = ssrDataOption ? '\n\t\t\t\tssrData,' : '';
-	const themeLine = includeTheme ? '\n\t\t\t\ttheme,' : '';
-	const overridesLine = '';
-
-	const fullOptionsText = `{
-			${optionsText}${ssrDataLine}${themeLine}
-			${scriptsConfig}${overridesLine}
-		}`;
-
-	// When useFrameworkProps is set with ssrDataOption, use ConsentManagerProps from that source
-	const useConsentManagerProps = useFrameworkProps && ssrDataOption;
-
-	// Whether we need InitialDataPromise type (only when NOT using ConsentManagerProps)
-	const needsDataType =
-		(initialDataProp || ssrDataOption) && !useConsentManagerProps;
-
-	const namedImports = needsDataType
-		? `ConsentDialog,
-	ConsentManagerProvider,
-	ConsentBanner,
-	type InitialDataPromise`
-		: `ConsentDialog,
-	ConsentManagerProvider,
-	ConsentBanner,`;
-
-	// Build framework props type import
-	const frameworkPropsImport = useConsentManagerProps
-		? `import type { ConsentManagerProps } from '${useFrameworkProps}';\n`
-		: '';
-
-	// Build component props
-	let propsDestructure: string;
-	if (useConsentManagerProps) {
-		propsDestructure = '{ children, ssrData }: ConsentManagerProps';
-	} else if (ssrDataOption) {
-		propsDestructure = `{
-	children,
-	ssrData,
-}: {
-	children: ReactNode;
-	ssrData?: InitialDataPromise;
-}`;
-	} else if (initialDataProp) {
-		propsDestructure = `{
-	children,
-	initialData,
-}: {
-	children: ReactNode;
-	initialData?: InitialDataPromise;
-}`;
-	} else {
-		propsDestructure = '{ children }: { children: ReactNode }';
-	}
-
-	// Build provider props
-	const providerProps = initialDataProp
-		? `\n\t\t\tinitialData={initialData}\n\t\t\toptions={${fullOptionsText}}`
-		: ` options={${fullOptionsText}}`;
-
-	// Build directive
-	const directive = useClientDirective ? "'use client';\n\n" : '';
-	const devToolsImport = enableDevTools
-		? "import { DevTools } from '@c15t/dev-tools/react';\n"
-		: '';
-	const themeImport = includeTheme ? "import { theme } from './theme';\n" : '';
-
-	// Build export
-	const componentName = defaultExport
-		? 'ConsentManagerClient'
-		: 'ConsentManager';
-	const exportPrefix = defaultExport
-		? 'export default function'
-		: 'export function';
-
-	// Build doc comment
-	const docComment = buildDocComment({
-		defaultExport,
-		initialDataProp,
-		ssrDataOption,
-		docsSlug,
-	});
-
-	// Build pre-doc extras (e.g. client-only comment for Pages)
-	const preDocComment = initialDataProp
-		? `// For client-only apps (non-SSR), you can use:
-// import { ConsentManagerProvider } from '@c15t/nextjs/client';
-
-`
-		: '';
-
-	return `${directive}import type { ReactNode } from 'react';
-import {
-	${namedImports}
-} from '${importSource}';
-${frameworkPropsImport}${devToolsImport}${themeImport}${scriptsImport ? `${scriptsImport}\n` : ''}${preDocComment}${docComment}
-${exportPrefix} ${componentName}(${propsDestructure}) {
-	return (
-		<ConsentManagerProvider${providerProps}>
-			<ConsentBanner />
-			<ConsentDialog />
-			${enableDevTools ? "<DevTools disabled={process.env.NODE_ENV === 'production'} />" : ''}
-			{children}
-		</ConsentManagerProvider>
-	);
-}
-`;
-}
-
-function buildDocComment({
+const buildDocComment = function buildDocComment({
 	defaultExport,
 	initialDataProp,
-	ssrDataOption,
+	ssrDataOption: _ssrDataOption,
 	docsSlug,
 }: {
 	defaultExport: boolean;
@@ -223,7 +64,7 @@ function buildDocComment({
 	if (initialDataProp) {
 		return `/**
  * Consent management wrapper for Next.js Pages Router.
- * @see https://c15t.com/docs/frameworks/nextjs/quickstart
+ * @see https://c15t.com/docs/frameworks/next/quickstart
  */`;
 	}
 
@@ -232,4 +73,162 @@ function buildDocComment({
  * Consent manager provider.
  * @see https://c15t.com/docs/frameworks/${slug}/quickstart
  */`;
+};
+
+/**
+ * Generates a consent manager component with Provider, Banner, and Dialog
+ *
+ * @param options - Configuration for the generated component
+ * @returns The complete component file content as a string
+ *
+ * @remarks
+ * This shared generator covers React, Next.js Pages, and Next.js App Dir client
+ * variants. The core JSX pattern is always Provider wrapping Banner + Dialog + children.
+ *
+ * @example
+ * ```ts
+ * // React
+ * generateConsentComponent({
+ *   importSource: 'c15t/react',
+ *   optionsText: "mode: 'offline',",
+ * });
+ *
+ * // Next.js Pages
+ * generateConsentComponent({
+ *   importSource: 'c15t/next',
+ *   optionsText: "mode: 'hosted',\n\t\t\t\tbackendURL: '/api/c15t',",
+ *   initialDataProp: true,
+ * });
+ *
+ * // Next.js App Dir client
+ * generateConsentComponent({
+ *   importSource: 'c15t/next',
+ *   optionsText: "mode: 'hosted',\n\t\t\t\tbackendURL: '/api/c15t',",
+ *   useClientDirective: true,
+ *   defaultExport: true,
+ *   ssrDataOption: true,
+ *   includeOverrides: true,
+ * });
+ * ```
+ */
+// oxlint-disable-next-line complexity -- Preserve established branch order and control flow.
+export const generateConsentComponent = function generateConsentComponent({
+	importSource,
+	developmentEnvironment,
+	devToolsImportSource = `${importSource}/devtools`,
+	optionsText,
+	selectedScripts = [],
+	initialDataProp = false,
+	useClientDirective = false,
+	defaultExport = false,
+	ssrDataOption = false,
+	includeOverrides: _includeOverrides = false,
+	enableDevTools = false,
+	useFrameworkProps: _useFrameworkProps,
+	includeTheme = false,
+	docsSlug,
+}: GenerateConsentComponentOptions): string {
+	// Generate scripts import and config
+	const scriptsImport = generateScriptsImport(selectedScripts);
+	const scriptsConfig = selectedScripts.length
+		? generateScriptsConfig(selectedScripts)
+		: generateScriptsCommentPlaceholder();
+
+	// Build the full options object
+	const ssrDataLine = ssrDataOption ? '\n\t\t\t\tprefetch: state,' : '';
+	const themeLine = includeTheme ? '\n\t\t\t\ttheme,\n\t\t\t\tcomponents,' : '';
+	const overridesLine = '';
+
+	const fullOptionsText = `{
+			${optionsText}${ssrDataLine}${themeLine}
+			${scriptsConfig}${overridesLine}
+		}`;
+
+	const needsDataType = initialDataProp || ssrDataOption;
+	const modeImports = ['custom', 'hosted', 'offline'].filter((name) =>
+		optionsText.includes(`${name}(`)
+	);
+	const namedImports = `ConsentDialog,
+	ConsentProvider,
+	ConsentBanner,${includeTheme ? '\n\tConsentTheme,' : ''}${modeImports.map((name) => `\n\t${name},`).join('')}${needsDataType ? '\n\ttype ConsentState,' : ''}`;
+
+	// Build framework props type import
+	const frameworkPropsImport = '';
+
+	// Build component props
+	let propsDestructure: string;
+	if (ssrDataOption) {
+		propsDestructure = `{
+	children,
+	state,
+}: {
+	children: ReactNode;
+	state: ConsentState | Promise<ConsentState>;
+}`;
+	} else if (initialDataProp) {
+		propsDestructure = `{
+	children,
+	initialData,
+}: {
+	children: ReactNode;
+	initialData?: ConsentState;
+}`;
+	} else {
+		propsDestructure = '{ children }: { children: ReactNode }';
+	}
+
+	// Build provider props
+	const providerProps = initialDataProp
+		? ` options={{\n\t\t\t...${fullOptionsText},\n\t\t\tprefetch: initialData,\n\t\t}}`
+		: ` options={${fullOptionsText}}`;
+
+	// Build directive
+	const directive = useClientDirective ? "'use client';\n\n" : '';
+	const devToolsImport = enableDevTools
+		? generateDevToolsImport(devToolsImportSource, developmentEnvironment)
+		: '';
+	const themeImport = includeTheme
+		? "import { components, theme } from './theme';\n"
+		: '';
+
+	// Build export
+	const componentName = defaultExport
+		? 'ConsentManagerClient'
+		: 'ConsentManager';
+	const exportPrefix = defaultExport
+		? 'export default function'
+		: 'export function';
+
+	// Build doc comment
+	const docComment = buildDocComment({
+		defaultExport,
+		docsSlug,
+		initialDataProp,
+		ssrDataOption,
+	});
+
+	// Build pre-doc extras (e.g. client-only comment for Pages)
+	const preDocComment = initialDataProp
+		? `// For client-only apps (non-SSR), you can use:
+// import { ConsentProvider } from 'c15t/next';
+
+`
+		: '';
+
+	return `${directive}import type { ReactNode } from 'react';
+import {
+	${namedImports}
+} from '${importSource}';
+${frameworkPropsImport}${devToolsImport}${themeImport}${scriptsImport ? `${scriptsImport}\n` : ''}${preDocComment}${docComment}
+${exportPrefix} ${componentName}(${propsDestructure}) {
+	return (
+		<ConsentProvider${providerProps}>${includeTheme ? '\n\t\t\t<ConsentTheme theme={theme} />' : ''}
+			<ConsentBanner />
+			<ConsentDialog />
+			${enableDevTools ? DEVTOOLS_COMPONENT : ''}
+			{children}
+		</ConsentProvider>
+	);
 }
+`;
+};

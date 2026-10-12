@@ -1,0 +1,855 @@
+import {
+	DriverNotImplementedError,
+	IAB_FIXTURE_CMP_ID,
+	MINIMAL_GVL,
+	runConformanceSuite,
+} from '@c15t/conformance';
+import type {
+	MountableComponent,
+	MountOptions,
+	MountResult,
+	SuiteApi,
+	TestDriver,
+} from '@c15t/conformance';
+import { deferInitGvl, initOutputToKernelConfig } from '@c15t/core';
+import type { InitResponse, KernelConfig, KernelTransport } from '@c15t/core';
+/**
+ * Vue conformance entry point.
+ *
+ * The Vue package exposes a Nuxt plugin rather than a standalone provider
+ * component, so the driver builds the same kernel context the plugin provides
+ * and injects it into a small Vue app around the requested component.
+ */
+import { createPersistence } from '@c15t/core/modules/persistence';
+import {
+	normalizePolicyRule,
+	createPolicyRuleFingerprints,
+	writePolicyResolutionWire,
+} from '@c15t/schema/types';
+import type {
+	GlobalVendorList,
+	InitOutput,
+	TranslationsResponse,
+} from '@c15t/schema/types';
+import { flushPromises } from '@vue/test-utils';
+import { describe, expect, onTestFinished, test, vi } from 'vitest';
+import { createApp, createSSRApp, defineComponent, h } from 'vue';
+import type { App } from 'vue';
+import { renderToString } from 'vue/server-renderer';
+
+import { completeGVL } from '../../../iab/src/__tests__/fixtures/gvl-sample';
+import { createIAB } from '../../../iab/src/index';
+import IabConsentDialog from '../runtime/components/iab-panel.vue';
+import IabConsentBanner from '../runtime/components/iab-prompt.vue';
+import ConsentManager from '../runtime/components/manager.vue';
+import ConsentWidget from '../runtime/components/preferences.vue';
+import ConsentBanner from '../runtime/components/prompt.vue';
+import { consentConfigKey } from '../runtime/composables/config';
+import type { ConsentConfig } from '../runtime/config';
+import {
+	symbolActiveUI,
+	symbolConsent,
+	symbolInit,
+	symbolKernel,
+	symbolKernelContext,
+	symbolSnapshot,
+} from '../runtime/utils/symbols';
+import { createPolicySession, probePolicyContract } from './policy-driver';
+import { createVueConsentKernelContext } from './test-kernel';
+import type { VueConsentKernelContext } from './test-kernel';
+
+type ProviderOptions = Partial<ConsentConfig> & {
+	callbacks?: Record<string, (...args: unknown[]) => void>;
+	i18n?: {
+		locale?: string;
+		messages?: Record<string, Partial<TranslationsResponse>>;
+	};
+	initialTranslationConfig?: {
+		defaultLanguage?: string;
+		translations?: Record<string, Partial<TranslationsResponse>> | null;
+	};
+};
+
+type StoreState = Record<string, unknown> & {
+	consents: Record<string, boolean>;
+	selectedConsents: Record<string, boolean>;
+	activeUI: 'none' | 'banner' | 'dialog';
+	consentCategories: string[];
+};
+
+const DEFAULT_CONSENT_CATEGORIES = [
+	'necessary',
+	'functionality',
+	'experience',
+	'measurement',
+	'marketing',
+] as const;
+
+const DEFAULT_TRANSLATIONS: TranslationsResponse = {
+	common: {
+		acceptAll: 'Accept all',
+		customize: 'Customize',
+		rejectAll: 'Reject all',
+		save: 'Save',
+	},
+	consentGate: {
+		actionButton: 'Manage',
+		title: 'Privacy',
+	},
+	consentManagerDialog: {
+		description: 'Manage your choices.',
+		title: 'Privacy preferences',
+	},
+	consentTypes: {
+		experience: {
+			description: 'Experience cookies.',
+			title: 'Experience',
+		},
+		functionality: {
+			description: 'Feature cookies.',
+			title: 'Functionality',
+		},
+		marketing: {
+			description: 'Targeted advertising.',
+			title: 'Marketing',
+		},
+		measurement: {
+			description: 'Analytics and performance measurement.',
+			title: 'Measurement',
+		},
+		necessary: {
+			description: 'Required for the site to function.',
+			title: 'Necessary',
+		},
+	},
+	cookieBanner: {
+		description: 'We use cookies to enhance your experience.',
+		title: 'We value your privacy',
+	},
+	legalLinks: {
+		cookiePolicy: 'Cookie policy',
+		privacyPolicy: 'Privacy policy',
+		termsOfService: 'Terms of service',
+	},
+};
+
+const mergeTranslations = function mergeTranslations(
+	base: TranslationsResponse,
+	override: Partial<TranslationsResponse> | undefined
+): TranslationsResponse {
+	if (!override || typeof override !== 'object') {
+		return base;
+	}
+	return {
+		...base,
+		...override,
+		common: { ...base.common, ...override.common },
+		consentGate: { ...base.consentGate, ...override.consentGate },
+		consentManagerDialog: {
+			...base.consentManagerDialog,
+			...override.consentManagerDialog,
+		},
+		consentTypes: {
+			...base.consentTypes,
+			...override.consentTypes,
+		},
+		cookieBanner: { ...base.cookieBanner, ...override.cookieBanner },
+		legalLinks: { ...base.legalLinks, ...override.legalLinks },
+	};
+};
+
+const resolveTranslations = function resolveTranslations(
+	options: ProviderOptions,
+	locale?: string
+) {
+	const language =
+		locale ??
+		options.i18n?.locale ??
+		options.initialTranslationConfig?.defaultLanguage ??
+		'en';
+	const messages = options.i18n?.messages;
+	const legacyMessages = options.initialTranslationConfig?.translations;
+	const override =
+		messages?.[language] ??
+		messages?.en ??
+		(legacyMessages && typeof legacyMessages === 'object'
+			? (legacyMessages[language] ?? legacyMessages.en)
+			: undefined);
+
+	return {
+		language,
+		translations: mergeTranslations(DEFAULT_TRANSLATIONS, override),
+	};
+};
+
+const isIabComponent = function isIabComponent(
+	component: MountableComponent
+): boolean {
+	return (
+		component === 'iab-consent-banner' || component === 'iab-consent-dialog'
+	);
+};
+
+const policyModelFor = function policyModelFor(
+	opts: MountOptions
+): 'opt-in' | 'opt-out' | 'iab' {
+	if (isIabComponent(opts.component)) {
+		return 'iab';
+	}
+	return opts.policy?.model ?? 'opt-in';
+};
+
+const buildInitOutput = function buildInitOutput(
+	opts: MountOptions,
+	options: ProviderOptions
+): InitOutput {
+	const consentCategories =
+		options.consentCategories?.length === 0
+			? [...DEFAULT_CONSENT_CATEGORIES]
+			: [...(options.consentCategories ?? DEFAULT_CONSENT_CATEGORIES)];
+	const policy = normalizePolicyRule({
+		categories: consentCategories.filter(
+			(category) => category !== 'necessary'
+		),
+		id: 'vue_conformance_policy',
+		match: { fallback: true },
+		model: policyModelFor(opts),
+		prompt: 'choice',
+		scopeMode: 'permissive',
+	});
+	const policyResolution = writePolicyResolutionWire({
+		fingerprints: createPolicyRuleFingerprints(policy),
+		matchedBy: 'fallback',
+		policy,
+		policyId: policy.id,
+		status: 'matched',
+	});
+	const init: InitOutput = {
+		branding: 'c15t',
+		location: {
+			countryCode: 'DE',
+			regionCode: null,
+		},
+		policyResolution,
+		policySnapshotToken: 'vue_conformance_token',
+		translations: resolveTranslations(options, opts.locale),
+	};
+	// The same-origin init route ships the vendor list for IAB policies,
+	// and the Nuxt plugin hands that payload to the server render.
+	if (isIabComponent(opts.component)) {
+		init.gvl = (opts.gvl ?? MINIMAL_GVL) as unknown as GlobalVendorList;
+	}
+	return init;
+};
+
+const buildKernelConfig = function buildKernelConfig(
+	opts: MountOptions,
+	options: ProviderOptions,
+	transport: KernelTransport
+): KernelConfig {
+	const state = opts.initialState as
+		| {
+				consents?: Record<string, boolean>;
+				hasConsented?: boolean;
+		  }
+		| undefined;
+	const initMode = opts.initMode ?? 'authoritative';
+	const base: KernelConfig = {
+		initialDraft: state?.consents,
+		initialTranslations: resolveTranslations(options, opts.locale),
+		transport,
+	};
+	if (opts.gpc !== undefined) {
+		base.initialOverrides = { gpc: opts.gpc };
+	}
+	if (isIabComponent(opts.component)) {
+		base.initialIab = {
+			cmpId: IAB_FIXTURE_CMP_ID,
+			enabled: true,
+			gvl: (opts.gvl ?? MINIMAL_GVL) as unknown as GlobalVendorList,
+		};
+	}
+	if (initMode === 'authoritative') {
+		return {
+			...base,
+			initialBranding: 'c15t',
+			initialLocation: {
+				countryCode: 'DE',
+				regionCode: null,
+			},
+			...initOutputToKernelConfig(buildInitOutput(opts, options)),
+			initialIab: base.initialIab,
+			initialPolicySnapshotToken: 'vue_conformance_token',
+		};
+	}
+	return {
+		...base,
+		initialPolicyPending: true,
+	};
+};
+
+const mockFetch = function mockFetch(init: InitOutput): typeof fetch {
+	return vi.fn((input: RequestInfo | URL, request?: RequestInit) => {
+		const url = String(input);
+		if (url.endsWith('/init')) {
+			return Promise.resolve(
+				new Response(JSON.stringify(init), {
+					headers: { 'content-type': 'application/json' },
+					status: 200,
+				})
+			);
+		}
+		if (url.endsWith('/subjects')) {
+			const body = JSON.parse(String(request?.body ?? '{}')) as {
+				subjectId?: string;
+			};
+			return Promise.resolve(
+				new Response(JSON.stringify({ ok: true, subjectId: body.subjectId }), {
+					headers: { 'content-type': 'application/json' },
+					status: 200,
+				})
+			);
+		}
+		return Promise.resolve(new Response('not found', { status: 404 }));
+	}) as unknown as typeof fetch;
+};
+
+const buildConfig = function buildConfig(
+	opts: MountOptions,
+	init: InitOutput
+): ConsentConfig {
+	const provided = (opts.providerOptions ?? {}) as ProviderOptions;
+	return {
+		...provided,
+		backendURL: 'https://consent.example',
+		consentCategories: provided.consentCategories ?? [
+			...DEFAULT_CONSENT_CATEGORIES,
+		],
+		customFetch: mockFetch(init),
+		disableAnimation: true,
+		domain: 'consent.example',
+		hideBranding: true,
+		// IAB is opt-in; the IAB surfaces stand for an app that turned it on.
+		iab: isIabComponent(opts.component) ? {} : provided.iab,
+		trapFocus: provided.trapFocus ?? false,
+	} as ConsentConfig;
+};
+
+const provideContext = function provideContext(
+	app: App,
+	context: VueConsentKernelContext,
+	config: ConsentConfig
+) {
+	app.provide(consentConfigKey, config);
+	app.provide(symbolKernelContext, context);
+	app.provide(symbolKernel, context.kernel);
+	app.provide(symbolSnapshot, context.snapshot);
+	app.provide(symbolInit, context.init);
+	app.provide(symbolActiveUI, context.activeUI);
+	app.provide(symbolConsent, context.storedConsent);
+};
+
+const componentFor = function componentFor(component: MountableComponent) {
+	switch (component) {
+		case 'consent-banner':
+			return defineComponent({
+				name: 'VueConformanceBannerAndDialog',
+				setup() {
+					return () => [h(ConsentBanner), h(ConsentManager)];
+				},
+			});
+		case 'consent-dialog':
+			return ConsentManager;
+		case 'consent-widget':
+			return ConsentWidget;
+		case 'iab-consent-banner':
+			return IabConsentBanner;
+		case 'iab-consent-dialog':
+			return IabConsentDialog;
+		default:
+			throw new DriverNotImplementedError('vue', `mount(${component})`);
+	}
+};
+
+const createHarness = function createHarness(
+	opts: MountOptions,
+	_options: ProviderOptions,
+	context: VueConsentKernelContext
+) {
+	const Child = componentFor(opts.component);
+	// Persistence mounts follow the real lifecycle: the kernel derives
+	// `activeUI` from the policy and storage hydration may dismiss it.
+	if (
+		(opts.initMode ?? 'authoritative') === 'authoritative' &&
+		!opts.persistence
+	) {
+		if (
+			opts.component === 'consent-dialog' ||
+			opts.component === 'consent-widget' ||
+			opts.component === 'iab-consent-dialog'
+		) {
+			context.kernel.set.activeUI('dialog');
+		} else {
+			context.kernel.set.activeUI('banner');
+		}
+	}
+
+	return defineComponent({
+		name: 'VueConformanceHarness',
+		setup() {
+			return () =>
+				h(
+					'div',
+					{
+						'data-testid': 'vue-conformance-root',
+						dir: opts.locale === 'ar' ? 'rtl' : undefined,
+					},
+					[h(Child)]
+				);
+		},
+	});
+};
+
+const createContext = function createContext(opts: MountOptions) {
+	const options = (opts.providerOptions ?? {}) as ProviderOptions;
+	if ((opts.initMode ?? 'authoritative') !== 'authoritative') {
+		throw new DriverNotImplementedError(
+			'vue',
+			`createContext(${opts.initMode}) requires a controlled lifecycle context`
+		);
+	}
+	const init = buildInitOutput(opts, options);
+	const config = buildConfig(opts, init);
+	const context = createVueConsentKernelContext({
+		config,
+		prefetch: init,
+	});
+
+	return {
+		config,
+		context,
+		options,
+	};
+};
+
+const createPendingInit = function createPendingInit(response: InitResponse) {
+	let resolve!: () => void;
+	const promise = new Promise<InitResponse>((_resolve) => {
+		resolve = () => _resolve(response);
+	});
+	return { promise, resolve };
+};
+
+const createLifecycleTransport = function createLifecycleTransport(
+	opts: MountOptions
+) {
+	if ((opts.initMode ?? 'authoritative') === 'pending') {
+		const deferred = createPendingInit({
+			policyResolution: buildInitOutput(
+				opts,
+				(opts.providerOptions ?? {}) as ProviderOptions
+			).policyResolution,
+		});
+		return {
+			resolve: deferred.resolve,
+			transport: {
+				init: () => deferred.promise,
+			},
+		};
+	}
+	if (opts.initMode === 'failing') {
+		return {
+			resolve: undefined,
+			transport: {
+				init() {
+					return Promise.reject(new Error('conformance: init failed'));
+				},
+			},
+		};
+	}
+	const init = buildInitOutput(
+		opts,
+		(opts.providerOptions ?? {}) as ProviderOptions
+	);
+	return {
+		resolve: undefined,
+		transport: {
+			init() {
+				return Promise.resolve({
+					branding: init.branding === 'none' ? undefined : init.branding,
+					location: init.location,
+					policyResolution: init.policyResolution,
+					policySnapshotToken: init.policySnapshotToken,
+					translations: init.translations,
+				});
+			},
+		},
+	};
+};
+
+const createControlledContext = function createControlledContext(
+	opts: MountOptions
+) {
+	const options = (opts.providerOptions ?? {}) as ProviderOptions;
+	const lifecycle = createLifecycleTransport(opts);
+	const config = buildConfig(opts, buildInitOutput(opts, options));
+	const context = createVueConsentKernelContext({
+		config,
+		kernelConfig: buildKernelConfig(opts, options, lifecycle.transport),
+	});
+	return {
+		config,
+		context,
+		options,
+		resolveInit: lifecycle.resolve,
+	};
+};
+
+const activeUIForStore = function activeUIForStore(
+	activeUI: string | null
+): StoreState['activeUI'] {
+	if (activeUI === 'banner' || activeUI === 'dialog') {
+		return activeUI;
+	}
+	return 'none';
+};
+
+const projectStoreState = function projectStoreState(
+	context: VueConsentKernelContext
+): StoreState {
+	const snapshot = context.kernel.getSnapshot();
+	const consents = { ...snapshot.effectivePermissions } as Record<
+		string,
+		boolean
+	>;
+	return {
+		...(snapshot as unknown as Record<string, unknown>),
+		activeUI: activeUIForStore(snapshot.activeUI),
+		consentCategories: [...snapshot.policyRule.scope],
+		consents,
+		selectedConsents: { ...consents },
+	};
+};
+
+const flushScheduler = async function flushScheduler() {
+	await flushPromises();
+	await new Promise((resolve) => {
+		setTimeout(resolve, 0);
+	});
+	await new Promise((resolve) => {
+		setTimeout(resolve, 0);
+	});
+};
+
+let lastContext: VueConsentKernelContext | null = null;
+
+const driver: TestDriver = {
+	createPolicySession,
+	framework: 'vue',
+	getStore() {
+		if (!lastContext) {
+			throw new Error('Vue driver: getStore called before mount');
+		}
+		return {
+			getState: () => projectStoreState(lastContext as VueConsentKernelContext),
+			subscribe: (listener: () => void) =>
+				(lastContext as VueConsentKernelContext).kernel.subscribe(() => {
+					listener();
+				}),
+		};
+	},
+	async mount(opts: MountOptions): Promise<MountResult> {
+		const { context, config, options, resolveInit } =
+			createControlledContext(opts);
+		lastContext = context;
+
+		// Public persistence path: same module `startVueConsentRuntime` wires —
+		// hydrate stored consent before the app mounts, write on every save.
+		const persistence = opts.persistence
+			? createPersistence({ kernel: context.kernel, skipHydration: true })
+			: null;
+		persistence?.hydrate();
+
+		const container = document.createElement('div');
+		document.body.appendChild(container);
+
+		const app = createApp(createHarness(opts, options, context));
+		provideContext(app, context, config);
+		app.mount(container);
+		await flushScheduler();
+		if ((opts.initMode ?? 'authoritative') !== 'authoritative') {
+			void context.kernel.commands.init();
+			await flushScheduler();
+		}
+
+		return {
+			resolveInit: resolveInit
+				? async () => {
+						resolveInit();
+						await flushScheduler();
+					}
+				: undefined,
+			root: container,
+			unmount: async () => {
+				app.unmount();
+				await flushScheduler();
+				container.replaceChildren();
+				container.remove();
+				document.body
+					.querySelectorAll(
+						'[data-testid^="consent-"], [data-testid^="iab-consent-"]'
+					)
+					.forEach((element) => {
+						element.remove();
+					});
+				persistence?.dispose();
+				context.dispose();
+				if (lastContext === context) {
+					lastContext = null;
+				}
+			},
+		};
+	},
+	probePolicyContract,
+	async serverRender(opts: MountOptions): Promise<string> {
+		const { context, config, options } =
+			(opts.initMode ?? 'authoritative') === 'authoritative'
+				? createContext(opts)
+				: createControlledContext(opts);
+		try {
+			const { iab } = context.kernel.getSnapshot();
+			if (iab?.gvl) {
+				context.kernel.set.iab(deferInitGvl({ gvl: iab.gvl }, '/test-gvl'));
+			}
+			const app = createSSRApp(createHarness(opts, options, context));
+			provideContext(app, context, config);
+			// The prompts render through `<Teleport to="body">`, which Vue's
+			// server renderer collects on the context rather than inlining.
+			// Nuxt appends those buffers to `<body>`; do the same so the result
+			// is the HTML a visitor receives.
+			const ssrContext: { teleports?: Record<string, string> } = {};
+			const html = await renderToString(app, ssrContext);
+			return html + Object.values(ssrContext.teleports ?? {}).join('');
+		} finally {
+			context.dispose();
+		}
+	},
+};
+
+const api: SuiteApi = {
+	describe,
+	expect: expect as unknown as SuiteApi['expect'],
+	test,
+};
+
+runConformanceSuite(driver, api);
+
+test.each([
+	['iab-consent-banner', 'accept'],
+	['iab-consent-banner', 'reject'],
+	['iab-consent-dialog', 'accept'],
+	['iab-consent-dialog', 'reject'],
+] as const)(
+	'retains %s after a failed deferred %s action',
+	async (component, action) => {
+		const opts: MountOptions = { component };
+		const { context, config, options } = createContext(opts);
+		onTestFinished(() => context.dispose());
+		let rejectLoad!: (error: Error) => void;
+		const fetch = vi
+			.fn()
+			.mockImplementationOnce(
+				() =>
+					new Promise<Response>((_resolve, reject) => {
+						rejectLoad = reject;
+					})
+			)
+			.mockImplementation(() => Promise.resolve(Response.json(completeGVL)));
+		onTestFinished(() => {
+			vi.unstubAllGlobals();
+		});
+		vi.stubGlobal('fetch', fetch);
+		context.kernel.set.iab({
+			enabled: true,
+			...deferInitGvl({ gvl: completeGVL }, '/vendor-list'),
+		});
+		const handle = createIAB({ cmpId: 28, kernel: context.kernel });
+		onTestFinished(() => handle.dispose());
+		const container = document.createElement('div');
+		onTestFinished(() => container.remove());
+		document.body.append(container);
+		const app = createApp(createHarness(opts, options, context));
+		onTestFinished(() => app.unmount());
+		provideContext(app, context, config);
+		app.mount(container);
+		const surface = component === 'iab-consent-banner' ? 'banner' : 'dialog';
+		const button = () =>
+			document.querySelector<HTMLButtonElement>(
+				surface === 'banner'
+					? `[data-testid="iab-consent-banner-${action}-button"]`
+					: `[data-testid="iab-consent-dialog-root"] [data-action="${action}"]`
+			);
+		await vi.waitFor(() => {
+			expect(button()).not.toBeNull();
+			expect(button()?.disabled).toBe(false);
+		});
+		button()?.click();
+		rejectLoad(new Error('offline'));
+		await flushScheduler();
+		expect(context.kernel.getSnapshot().activeUI).toBe(surface);
+		expect(context.kernel.getSnapshot().iab?.authority).toBeNull();
+		button()?.click();
+		await vi.waitFor(() =>
+			expect(context.kernel.getSnapshot().iab?.authority?.tcString).toBeTruthy()
+		);
+		expect(fetch).toHaveBeenCalledTimes(2);
+	}
+);
+
+test.each(['accept', 'reject', 'save'])(
+	'retains the Vue IAB dialog when %s rejects',
+	async (action) => {
+		const opts: MountOptions = { component: 'iab-consent-dialog' };
+		const { context, config, options } = createContext(opts);
+		onTestFinished(() => context.dispose());
+		context.kernel.set.iab({ enabled: true, gvl: completeGVL });
+		const handle = createIAB({ cmpId: 28, kernel: context.kernel });
+		onTestFinished(() => handle.dispose());
+		await handle.whenReady();
+		const previousAuthority = context.kernel.getSnapshot().iab?.authority;
+		const save = vi.fn(() => handle.save());
+		context.iab = {
+			...handle,
+			save,
+			whenReady: vi
+				.fn()
+				.mockRejectedValueOnce(new Error('offline'))
+				.mockImplementation(() => handle.whenReady()),
+		};
+		const container = document.createElement('div');
+		onTestFinished(() => container.remove());
+		document.body.append(container);
+		const app = createApp(createHarness(opts, options, context));
+		onTestFinished(() => app.unmount());
+		provideContext(app, context, config);
+		app.mount(container);
+		const button = () =>
+			document.querySelector<HTMLButtonElement>(
+				`[data-testid="iab-consent-dialog-card"] [data-action="${action}"]`
+			);
+		await vi.waitFor(() => expect(button()).not.toBeNull());
+		button()?.click();
+		await flushScheduler();
+		expect(context.kernel.getSnapshot().activeUI).toBe('dialog');
+		expect(context.kernel.getSnapshot().iab?.authority).toEqual(
+			previousAuthority
+		);
+		expect(save).not.toHaveBeenCalled();
+		button()?.click();
+		await vi.waitFor(() => expect(save).toHaveBeenCalledOnce());
+		await vi.waitFor(() =>
+			expect(context.kernel.getSnapshot().iab?.authority?.tcString).toBeTruthy()
+		);
+	}
+);
+
+test.each(
+	(['iab-consent-banner', 'iab-consent-dialog'] as const).flatMap((component) =>
+		(['accept', 'reject'] as const).flatMap((action) =>
+			(['pending', 'rejected'] as const).map(
+				(outcome) => [component, action, outcome] as const
+			)
+		)
+	)
+)(
+	'closes %s on %s before a %s save settles',
+	async (component, action, outcome) => {
+		localStorage.clear();
+		const opts: MountOptions = { component };
+		const { context, config, options } = createContext(opts);
+		onTestFinished(() => context.dispose());
+		context.kernel.set.iab({ enabled: true, gvl: completeGVL });
+		const handle = createIAB({ cmpId: 28, kernel: context.kernel });
+		onTestFinished(() => handle.dispose());
+		await handle.whenReady();
+		// The handle records the choice locally, then the backend never
+		// answers or fails.
+		const save = vi.fn(async () => {
+			await handle.save();
+			if (outcome === 'rejected') {
+				throw new Error('offline');
+			}
+			await Promise.withResolvers<never>().promise;
+		});
+		context.iab = { ...handle, save };
+		const container = document.createElement('div');
+		onTestFinished(() => container.remove());
+		document.body.append(container);
+		const app = createApp(createHarness(opts, options, context));
+		onTestFinished(() => app.unmount());
+		provideContext(app, context, config);
+		app.mount(container);
+		const surface = component === 'iab-consent-banner' ? 'banner' : 'dialog';
+		const button = () =>
+			document.querySelector<HTMLButtonElement>(
+				surface === 'banner'
+					? `[data-testid="iab-consent-banner-${action}-button"]`
+					: `[data-testid="iab-consent-dialog-root"] [data-action="${action}"]`
+			);
+		await vi.waitFor(() => {
+			expect(button()).not.toBeNull();
+			expect(button()?.disabled).toBe(false);
+		});
+		button()?.click();
+		expect(context.kernel.getSnapshot().activeUI).toBe('none');
+		const before = context.kernel.getSnapshot().iab?.authority;
+		await vi.waitFor(() => expect(save).toHaveBeenCalledOnce());
+		await vi.waitFor(() =>
+			expect(context.kernel.getSnapshot().iab?.authority).not.toBe(before)
+		);
+		await flushScheduler();
+		expect(context.kernel.getSnapshot().activeUI).toBe('none');
+		expect(
+			document.querySelector(`[data-testid="iab-consent-${surface}-card"]`)
+		).toBeNull();
+	}
+);
+
+test('cancels an action waiting on a replaced Vue IAB handle and retries on the current handle', async () => {
+	const opts: MountOptions = { component: 'iab-consent-banner' };
+	const { context, config, options } = createContext(opts);
+	onTestFinished(() => context.dispose());
+	context.kernel.set.iab({ enabled: true, gvl: completeGVL });
+	const handle = createIAB({ cmpId: 28, kernel: context.kernel });
+	onTestFinished(() => handle.dispose());
+	await handle.whenReady();
+	let finish!: () => void;
+	const waiting = new Promise<void>((resolve) => {
+		finish = resolve;
+	});
+	const oldSave = vi.fn(() => handle.save());
+	const newSave = vi.fn(() => handle.save());
+	context.iab = { ...handle, save: oldSave, whenReady: () => waiting };
+	const container = document.createElement('div');
+	onTestFinished(() => container.remove());
+	document.body.append(container);
+	const app = createApp(createHarness(opts, options, context));
+	onTestFinished(() => app.unmount());
+	provideContext(app, context, config);
+	app.mount(container);
+	const button = () =>
+		document.querySelector<HTMLButtonElement>(
+			'[data-testid="iab-consent-banner-accept-button"]'
+		);
+	await vi.waitFor(() => expect(button()).not.toBeNull());
+	const before = context.kernel.getSnapshot().iab?.vendorConsents;
+	button()?.click();
+	context.iab = { ...handle, save: newSave };
+	finish();
+	await flushScheduler();
+	expect(oldSave).not.toHaveBeenCalled();
+	expect(newSave).not.toHaveBeenCalled();
+	expect(context.kernel.getSnapshot().iab?.vendorConsents).toEqual(before);
+	button()?.click();
+	await vi.waitFor(() => expect(newSave).toHaveBeenCalledOnce());
+});

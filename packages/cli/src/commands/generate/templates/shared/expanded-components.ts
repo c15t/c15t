@@ -10,14 +10,26 @@
  * Next.js App Router, TanStack Start, and other RSC frameworks.
  */
 
+import { detectFramework } from '~/context/framework-detection';
+import type { DevelopmentEnvironment } from '~/context/framework-detection';
+
+import { isTailwindV3 } from '../../../shared/postcss-config';
 import type { ExpandedTheme } from '../../prompts/expanded-theme';
+import { DEVTOOLS_COMPONENT, generateDevToolsImport } from './devtools';
 import type { FrameworkConfig } from './framework-config';
+import {
+	generateScriptsImport,
+	generateScriptsConfig,
+	generateScriptsCommentPlaceholder,
+} from './scripts';
 
 interface GenerateExpandedProviderOptions {
+	developmentEnvironment?: DevelopmentEnvironment;
 	enableSSR: boolean;
 	enableDevTools: boolean;
 	optionsText: string;
 	framework: FrameworkConfig;
+	selectedScripts?: string[];
 }
 
 /**
@@ -26,52 +38,54 @@ interface GenerateExpandedProviderOptions {
  * @param options - Template generation options
  * @returns The complete client provider file content
  */
-export function generateExpandedProviderTemplate({
-	enableSSR,
-	enableDevTools,
-	optionsText,
-	framework,
-}: GenerateExpandedProviderOptions): string {
-	const useConsentManagerProps = enableSSR && framework.hasSSRProps;
+export const generateExpandedProviderTemplate =
+	function generateExpandedProviderTemplate({
+		developmentEnvironment,
+		enableSSR,
+		enableDevTools,
+		optionsText,
+		framework,
+		selectedScripts = [],
+	}: GenerateExpandedProviderOptions): string {
+		let propsInterface: string;
+		let propsDestructure: string;
+		let typeImports: string;
 
-	let propsInterface: string;
-	let propsDestructure: string;
-	let typeImports: string;
-
-	if (useConsentManagerProps) {
-		propsInterface = '';
-		propsDestructure = '{ children, ssrData }: ConsentManagerProps';
-		typeImports = `import type { ConsentManagerProps } from '${framework.importSource}';`;
-	} else if (enableSSR) {
-		propsInterface = `\ninterface Props {
+		if (enableSSR) {
+			propsInterface = `\ninterface Props {
 	children: ReactNode;
-	ssrData?: InitialDataPromise;
+	state: ConsentState | Promise<ConsentState>;
 }\n`;
-		propsDestructure = '{ children, ssrData }: Props';
-		typeImports = `import type { InitialDataPromise } from '${framework.importSource}';`;
-	} else {
-		propsInterface = `\ninterface Props {
+			propsDestructure = '{ children, state }: Props';
+			typeImports = `import type { ConsentState } from '${framework.importSource}';`;
+		} else {
+			propsInterface = `\ninterface Props {
 	children: ReactNode;
 }\n`;
-		propsDestructure = '{ children }: Props';
-		typeImports = '';
-	}
+			propsDestructure = '{ children }: Props';
+			typeImports = '';
+		}
 
-	const ssrDataOption = enableSSR ? '\n\t\t\t\tssrData,' : '';
-	const devToolsImport = enableDevTools
-		? "import { DevTools } from '@c15t/dev-tools/react';\n"
-		: '';
-	const reactNodeImport = useConsentManagerProps
-		? ''
-		: "import type { ReactNode } from 'react';\n";
+		const ssrDataOption = enableSSR ? '\n\t\t\t\tprefetch: state,' : '';
+		const devToolsImport = enableDevTools
+			? generateDevToolsImport(
+					framework.devToolsImportSource,
+					developmentEnvironment
+				)
+			: '';
+		const reactNodeImport = "import type { ReactNode } from 'react';\n";
+		const modeImport = ['custom', 'hosted', 'offline'].find((name) =>
+			optionsText.includes(`${name}(`)
+		);
 
-	return `'use client';
+		return `'use client';
 
-${reactNodeImport}import { ConsentManagerProvider } from '${framework.importSource}';
+${reactNodeImport}import { ConsentProvider, ConsentTheme${modeImport ? `, ${modeImport}` : ''} } from '${framework.importSource}';
 ${typeImports}
+${generateScriptsImport(selectedScripts)}
 ${devToolsImport}import ConsentBanner from './consent-banner';
 import ConsentDialog from './consent-dialog';
-import { theme } from './theme';
+import { components, theme } from './theme';
 ${propsInterface}
 /**
  * Client-side consent manager provider with compound components.
@@ -79,25 +93,24 @@ ${propsInterface}
  */
 export default function ConsentManagerClient(${propsDestructure}) {
 	return (
-		<ConsentManagerProvider
+		<ConsentProvider
 			options={{
 				${optionsText}${ssrDataOption}
 				theme,
-				// Add your scripts here:
-				// scripts: [
-				//   googleTagManager({ id: 'GTM-XXXXXX' }),
-				// ],${!enableSSR ? "\n\t\t\t\t// Shows banner during development. Remove for production.\n\t\t\t\toverrides: { country: 'DE' }," : ''}
+				components,
+				${selectedScripts.length ? generateScriptsConfig(selectedScripts) : generateScriptsCommentPlaceholder()}
 			}}
 		>
+			<ConsentTheme theme={theme} />
 			<ConsentBanner />
 			<ConsentDialog />
-			${enableDevTools ? "<DevTools disabled={process.env.NODE_ENV === 'production'} />" : ''}
+			${enableDevTools ? DEVTOOLS_COMPONENT : ''}
 			{children}
-		</ConsentManagerProvider>
+		</ConsentProvider>
 	);
 }
 `;
-}
+	};
 
 /**
  * Generates the consent-dialog.tsx component using compound components
@@ -105,10 +118,11 @@ export default function ConsentManagerClient(${propsDestructure}) {
  * @param framework - Framework-specific configuration
  * @returns The complete consent dialog file content
  */
-export function generateExpandedConsentDialogTemplate(
-	framework: FrameworkConfig
-): string {
-	return `'use client';
+export const generateExpandedConsentDialogTemplate =
+	function generateExpandedConsentDialogTemplate(
+		framework: FrameworkConfig
+	): string {
+		return `'use client';
 
 import { useState } from 'react';
 import { ConsentDialog, ConsentWidget } from '${framework.consentDialogImport}';
@@ -148,7 +162,7 @@ export default function () {
 	);
 }
 `;
-}
+	};
 
 /**
  * Generates the consent-banner.tsx component using compound components
@@ -156,10 +170,11 @@ export default function () {
  * @param framework - Framework-specific configuration
  * @returns The complete cookie banner file content
  */
-export function generateExpandedConsentBannerTemplate(
-	framework: FrameworkConfig
-): string {
-	return `'use client';
+export const generateExpandedConsentBannerTemplate =
+	function generateExpandedConsentBannerTemplate(
+		framework: FrameworkConfig
+	): string {
+		return `'use client';
 
 import { ConsentBanner } from '${framework.consentBannerImport}';
 
@@ -184,86 +199,12 @@ export default function () {
 	);
 }
 `;
-}
+	};
 
-/**
- * Generates the theme.ts file with the selected theme preset
- *
- * @param theme - The selected theme preset
- * @param framework - Framework-specific configuration
- * @returns The complete theme file content
- */
-export function generateExpandedThemeTemplate(
-	theme: ExpandedTheme,
+const generateMinimalTheme = function generateMinimalTheme(
 	framework: FrameworkConfig
 ): string {
-	switch (theme) {
-		case 'tailwind':
-			return generateTailwindTheme(framework);
-		case 'minimal':
-			return generateMinimalTheme(framework);
-		case 'dark':
-			return generateDarkTheme(framework);
-		default:
-			return generateTailwindTheme(framework);
-	}
-}
-
-function generateTailwindTheme(framework: FrameworkConfig): string {
-	return `import type { Theme } from '${framework.importSource}';
-
-/**
- * Tailwind Theme
- *
- * Uses standard Tailwind colors (Slate/Blue) with backdrop blur effects.
- * This theme works well with Tailwind CSS projects.
- *
- * Customize the colors, typography, and slots below to match your design.
- *
- * @see https://c15t.com/docs/customization/theming
- */
-export const theme: Theme = {
-	colors: {
-		primary: '#3b82f6', // blue-500
-		primaryHover: '#2563eb', // blue-600
-		surface: '#ffffff',
-		surfaceHover: '#f8fafc', // slate-50
-		border: '#e2e8f0', // slate-200
-		borderHover: '#cbd5e1', // slate-300
-		text: '#0f172a', // slate-900
-		textMuted: '#64748b', // slate-500
-		textOnPrimary: '#ffffff',
-		switchTrack: '#e2e8f0',
-		switchTrackActive: '#3b82f6',
-		switchThumb: '#ffffff',
-	},
-	typography: {
-		fontFamily: 'ui-sans-serif, system-ui, -apple-system, sans-serif',
-	},
-	radius: {
-		sm: '0.125rem',
-		md: '0.375rem',
-		lg: '0.5rem',
-		full: '9999px',
-	},
-	slots: {
-		consentBannerCard:
-			'border border-slate-200 bg-white/95 backdrop-blur-sm shadow-md',
-		consentDialogCard:
-			'border border-slate-200 bg-white/95 backdrop-blur-md shadow-xl',
-		buttonPrimary:
-			'bg-blue-600 text-white hover:bg-blue-700 shadow-sm transition-colors',
-		buttonSecondary:
-			'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 transition-colors',
-		consentBannerTitle: 'text-slate-900 font-semibold',
-		consentBannerDescription: 'text-slate-500',
-	},
-};
-`;
-}
-
-function generateMinimalTheme(framework: FrameworkConfig): string {
-	return `import type { Theme } from '${framework.importSource}';
+	return `import type { ReactComponentSlots, Theme } from '${framework.themeTypesImportSource}';
 
 /**
  * Minimal Theme
@@ -271,9 +212,9 @@ function generateMinimalTheme(framework: FrameworkConfig): string {
  * A clean, light theme with subtle grays and refined typography.
  * Uses standard CSS (no Tailwind dependency).
  *
- * Customize the colors, typography, and slots below to match your design.
+ * Customize the colors, typography, and components below to match your design.
  *
- * @see https://c15t.com/docs/customization/theming
+ * @see https://c15t.com/docs/customization/tokens
  */
 export const theme: Theme = {
 	colors: {
@@ -330,27 +271,34 @@ export const theme: Theme = {
 		md: '0 2px 8px rgba(0, 0, 0, 0.06)',
 		lg: '0 4px 16px rgba(0, 0, 0, 0.08)',
 	},
-	slots: {
-		consentBannerCard: {
+};
+
+export const components: ReactComponentSlots = {
+	banner: {
+		card: {
 			style: {
 				border: '1px solid var(--c15t-border)',
 				boxShadow: 'var(--c15t-shadow-sm)',
 			},
 		},
-		consentDialogCard: {
+	},
+	dialog: {
+		card: {
 			style: {
 				border: '1px solid var(--c15t-border)',
 				boxShadow: 'var(--c15t-shadow-lg)',
 			},
 		},
-		buttonPrimary: {
+	},
+	button: {
+		primary: {
 			style: {
 				borderRadius: 'var(--c15t-radius-sm)',
 				boxShadow: 'none',
 				fontWeight: 500,
 			},
 		},
-		buttonSecondary: {
+		secondary: {
 			style: {
 				borderRadius: 'var(--c15t-radius-sm)',
 				backgroundColor: 'transparent',
@@ -363,10 +311,95 @@ export const theme: Theme = {
 	},
 };
 `;
-}
+};
 
-function generateDarkTheme(framework: FrameworkConfig): string {
-	return `import type { Theme } from '${framework.importSource}';
+const generateTailwindTheme = function generateTailwindTheme(
+	framework: FrameworkConfig,
+	tailwindVersion?: string | null
+): string {
+	const classes = (value: string): string =>
+		isTailwindV3(tailwindVersion ?? null)
+			? value
+					.split(' ')
+					.map((utility) =>
+						utility.replace(
+							/(?<variant>^|:)(?<utility>[^:]+)$/u,
+							'$<variant>!$<utility>'
+						)
+					)
+					.join(' ')
+			: value;
+	return `import type { ReactComponentSlots, Theme } from '${framework.themeTypesImportSource}';
+
+/**
+ * Tailwind Theme
+ *
+ * Uses standard Tailwind colors (Slate/Blue) with backdrop blur effects.
+ * This theme works well with Tailwind CSS projects.
+ *
+ * Customize the colors, typography, and components below to match your design.
+ *
+ * @see https://c15t.com/docs/customization/tokens
+ */
+export const theme: Theme = {
+	colors: {
+		primary: '#3b82f6', // blue-500
+		primaryHover: '#2563eb', // blue-600
+		surface: '#ffffff',
+		surfaceHover: '#f8fafc', // slate-50
+		border: '#e2e8f0', // slate-200
+		borderHover: '#cbd5e1', // slate-300
+		text: '#0f172a', // slate-900
+		textMuted: '#64748b', // slate-500
+		textOnPrimary: '#ffffff',
+		switchTrack: '#e2e8f0',
+		switchTrackActive: '#3b82f6',
+		switchThumb: '#ffffff',
+	},
+	typography: {
+		fontFamily: 'ui-sans-serif, system-ui, -apple-system, sans-serif',
+	},
+	radius: {
+		sm: '0.125rem',
+		md: '0.375rem',
+		lg: '0.5rem',
+		full: '9999px',
+	},
+};
+
+export const components: ReactComponentSlots = {
+	banner: {
+		card: {
+			className:
+				'${classes('border border-slate-200 bg-white/95 backdrop-blur-sm shadow-md')}',
+		},
+		title: { className: '${classes('text-slate-900 font-semibold')}' },
+	},
+	dialog: {
+		card: {
+			className:
+				'${classes('border border-slate-200 bg-white/95 backdrop-blur-md shadow-xl')}',
+		},
+	},
+	button: {
+		primary: {
+			className:
+				'${classes('bg-blue-600 text-white hover:bg-blue-700 shadow-sm transition-colors')}',
+		},
+		secondary: {
+			className:
+				'${classes('bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 transition-colors')}',
+		},
+	},
+	description: { banner: { className: '${classes('text-slate-500')}' } },
+};
+`;
+};
+
+const generateDarkTheme = function generateDarkTheme(
+	framework: FrameworkConfig
+): string {
+	return `import type { ReactComponentSlots, Theme } from '${framework.themeTypesImportSource}';
 
 /**
  * Dark Mode Theme
@@ -375,9 +408,9 @@ function generateDarkTheme(framework: FrameworkConfig): string {
  * Stays dark regardless of system preference.
  * Uses standard CSS (no Tailwind dependency).
  *
- * Customize the colors, typography, and slots below to match your design.
+ * Customize the colors, typography, and components below to match your design.
  *
- * @see https://c15t.com/docs/customization/theming
+ * @see https://c15t.com/docs/customization/tokens
  */
 export const theme: Theme = {
 	colors: {
@@ -420,22 +453,29 @@ export const theme: Theme = {
 		md: '0 4px 8px rgba(0, 0, 0, 0.5)',
 		lg: '0 8px 16px rgba(0, 0, 0, 0.5)',
 	},
-	slots: {
-		consentBannerCard: {
+};
+
+export const components: ReactComponentSlots = {
+	banner: {
+		card: {
 			style: {
 				backgroundColor: '#000000',
 				border: '1px solid #333333',
 				boxShadow: 'none',
 			},
 		},
-		consentDialogCard: {
+	},
+	dialog: {
+		card: {
 			style: {
 				backgroundColor: '#000000',
 				border: '1px solid #333333',
 				boxShadow: '0 0 0 1px #333333, 0 8px 40px rgba(0,0,0,0.5)',
 			},
 		},
-		buttonPrimary: {
+	},
+	button: {
+		primary: {
 			style: {
 				backgroundColor: '#ffffff',
 				color: '#000000',
@@ -444,7 +484,7 @@ export const theme: Theme = {
 				fontWeight: 500,
 			},
 		},
-		buttonSecondary: {
+		secondary: {
 			style: {
 				backgroundColor: '#000000',
 				border: '1px solid #333333',
@@ -456,4 +496,39 @@ export const theme: Theme = {
 	},
 };
 `;
-}
+};
+
+/**
+ * Generates the theme.ts file with the selected theme preset
+ *
+ * @param theme - The selected theme preset
+ * @param framework - Framework-specific configuration
+ * @returns The complete theme file content
+ */
+export const generateExpandedThemeTemplate =
+	function generateExpandedThemeTemplate(
+		theme: ExpandedTheme,
+		framework: FrameworkConfig,
+		tailwindVersion?: string | null
+	): string {
+		switch (theme) {
+			case 'tailwind':
+				return generateTailwindTheme(framework, tailwindVersion);
+			case 'minimal':
+				return generateMinimalTheme(framework);
+			case 'dark':
+				return generateDarkTheme(framework);
+			default:
+				return `import type { ReactComponentSlots, Theme } from '${framework.themeTypesImportSource}';\n\nexport const theme: Theme = {};\nexport const components: ReactComponentSlots = {};\n`;
+		}
+	};
+
+/** Generate a preset for the project's installed Tailwind major version. */
+export const generateProjectThemeTemplate = async (
+	projectRoot: string,
+	theme: ExpandedTheme,
+	framework: FrameworkConfig
+): Promise<string> => {
+	const { tailwindVersion } = await detectFramework(projectRoot);
+	return generateExpandedThemeTemplate(theme, framework, tailwindVersion);
+};

@@ -1,113 +1,98 @@
 import * as v from 'valibot';
-import { brandingSchema } from '~/shared/branding';
-import { globalVendorListSchema } from '~/shared/gvl';
-import { jurisdictionCodeSchema } from '~/shared/jurisdiction';
-import { nonIABVendorSchema } from '~/shared/non-iab-vendor';
-import {
-	policyModelSchema,
-	policyScopeModeSchema,
-	policyUiModeSchema,
-	policyUiSurfaceConfigSchema,
-} from '~/shared/policy-schema';
+
+import { brandingSchema } from '../shared/branding';
+import { globalVendorListSchema } from '../shared/gvl';
+import { hostingSchema } from '../shared/hosting';
+import { nonIABVendorSchema } from '../shared/non-iab-vendor';
+import { policyResolutionWireSchema } from '../shared/policy-wire-schema';
+import { vendorSchema } from '../shared/vendor';
 
 /**
- * Title and description schema for translations
+ * A title and description pair. Either may be omitted; the client fills
+ * gaps from its bundled copy.
  */
 export const titleDescriptionSchema = v.object({
-	title: v.string(),
-	description: v.string(),
-});
-
-/**
- * Partial title and description schema
- */
-export const partialTitleDescriptionSchema = v.object({
-	title: v.optional(v.string()),
 	description: v.optional(v.string()),
+	title: v.optional(v.string()),
 });
 
 /**
- * Complete translations schema for newer backend versions
- * All fields are required for full functionality
+ * Cookie banner copy. The notice pair is used when the resolved policy
+ * requires a `notice` prompt.
  */
-export const completeTranslationsSchema = v.object({
+export const cookieBannerTranslationsSchema = v.object({
+	...titleDescriptionSchema.entries,
+	noticeDescription: v.optional(v.string()),
+	noticeTitle: v.optional(v.string()),
+});
+
+/** Copy for the vendor rows nested under a category in the preference center. */
+export const vendorListTranslationsSchema = v.optional(
+	v.object({
+		disabledByCategory: v.optional(v.string()),
+		privacyPolicy: v.optional(v.string()),
+		switchLabel: v.optional(v.string()),
+		title: v.optional(v.string()),
+	})
+);
+
+/** Preference center copy, with the vendor rows' copy alongside. */
+export const consentManagerDialogTranslationsSchema = v.object({
+	...titleDescriptionSchema.entries,
+	vendors: vendorListTranslationsSchema,
+});
+
+/**
+ * Labels for persistent rights a surface exposes when no prompt action
+ * covers them, such as the opt-out and preferences links on a notice.
+ */
+export const rightsTranslationsSchema = v.optional(
+	v.object({
+		optOut: v.optional(v.string()),
+		preferences: v.optional(v.string()),
+	})
+);
+
+/**
+ * Copy served by `/init`.
+ *
+ * The backend sends a complete bundle for the resolved language. Keys stay
+ * optional because the client merges them over its bundled copy, so a
+ * custom transport may send only what it overrides.
+ */
+export const translationsSchema = v.object({
 	common: v.object({
-		acceptAll: v.string(),
-		rejectAll: v.string(),
-		customize: v.string(),
-		save: v.string(),
+		acceptAll: v.optional(v.string()),
+		acknowledge: v.optional(v.string()),
+		customize: v.optional(v.string()),
+		dismiss: v.optional(v.string()),
+		rejectAll: v.optional(v.string()),
+		save: v.optional(v.string()),
 	}),
-	cookieBanner: titleDescriptionSchema,
-	consentManagerDialog: titleDescriptionSchema,
+	consentGate: v.optional(
+		v.object({
+			actionButton: v.optional(v.string()),
+			title: v.optional(v.string()),
+		})
+	),
+	consentManagerDialog: consentManagerDialogTranslationsSchema,
 	consentTypes: v.object({
-		experience: titleDescriptionSchema,
-		functionality: titleDescriptionSchema,
-		marketing: titleDescriptionSchema,
-		measurement: titleDescriptionSchema,
-		necessary: titleDescriptionSchema,
+		experience: v.optional(titleDescriptionSchema),
+		functionality: v.optional(titleDescriptionSchema),
+		marketing: v.optional(titleDescriptionSchema),
+		measurement: v.optional(titleDescriptionSchema),
+		necessary: v.optional(titleDescriptionSchema),
 	}),
-	frame: v.object({
-		title: v.string(),
-		actionButton: v.string(),
-	}),
-	legalLinks: v.object({
-		privacyPolicy: v.string(),
-		termsOfService: v.string(),
-		cookiePolicy: v.string(),
-	}),
-});
-
-/**
- * Partial translations schema for backward compatibility with older backend versions
- * Allows missing fields to gracefully degrade functionality
- */
-export const partialTranslationsSchema = v.object({
-	common: v.partial(
-		v.object({
-			acceptAll: v.optional(v.string()),
-			rejectAll: v.optional(v.string()),
-			customize: v.optional(v.string()),
-			save: v.optional(v.string()),
-		})
-	),
-	cookieBanner: partialTitleDescriptionSchema,
-	consentManagerDialog: partialTitleDescriptionSchema,
-	consentTypes: v.partial(
-		v.object({
-			experience: partialTitleDescriptionSchema,
-			functionality: partialTitleDescriptionSchema,
-			marketing: partialTitleDescriptionSchema,
-			measurement: partialTitleDescriptionSchema,
-			necessary: partialTitleDescriptionSchema,
-		})
-	),
-	frame: v.optional(
-		v.partial(
-			v.object({
-				title: v.optional(v.string()),
-				actionButton: v.optional(v.string()),
-			})
-		)
-	),
+	cookieBanner: cookieBannerTranslationsSchema,
 	legalLinks: v.optional(
-		v.partial(
-			v.object({
-				privacyPolicy: v.optional(v.string()),
-				termsOfService: v.optional(v.string()),
-				cookiePolicy: v.optional(v.string()),
-			})
-		)
+		v.object({
+			cookiePolicy: v.optional(v.string()),
+			privacyPolicy: v.optional(v.string()),
+			termsOfService: v.optional(v.string()),
+		})
 	),
+	rights: rightsTranslationsSchema,
 });
-
-/**
- * Union schema that accepts both complete and partial translations
- * Provides backward compatibility while maintaining type safety
- */
-export const translationsSchema = v.union([
-	completeTranslationsSchema,
-	partialTranslationsSchema,
-]);
 
 /**
  * Location schema for init output
@@ -118,122 +103,86 @@ export const locationSchema = v.object({
 });
 
 /**
- * Matching strategy used to resolve the policy for the request.
- */
-export const policyMatchedBySchema = v.picklist([
-	'region',
-	'country',
-	'default',
-	'fallback',
-]);
-
-/**
- * Resolved runtime policy returned by /init.
- */
-export const resolvedPolicySchema = v.object({
-	id: v.string(),
-	model: policyModelSchema,
-	i18n: v.optional(
-		v.object({
-			language: v.optional(v.string()),
-			messageProfile: v.optional(v.string()),
-		})
-	),
-	consent: v.optional(
-		v.object({
-			expiryDays: v.optional(v.number()),
-			scopeMode: v.optional(policyScopeModeSchema),
-			categories: v.optional(v.array(v.string())),
-			preselectedCategories: v.optional(v.array(v.string())),
-			gpc: v.optional(v.boolean()),
-		})
-	),
-	ui: v.optional(
-		v.object({
-			mode: v.optional(policyUiModeSchema),
-			banner: v.optional(policyUiSurfaceConfigSchema),
-			dialog: v.optional(policyUiSurfaceConfigSchema),
-		})
-	),
-	proof: v.optional(
-		v.object({
-			storeIp: v.optional(v.boolean()),
-			storeUserAgent: v.optional(v.boolean()),
-			storeLanguage: v.optional(v.boolean()),
-		})
-	),
-});
-
-/**
- * Explainability details for the resolved policy decision.
- */
-export const policyDecisionSchema = v.object({
-	policyId: v.string(),
-	fingerprint: v.string(),
-	matchedBy: policyMatchedBySchema,
-	country: v.nullable(v.string()),
-	region: v.nullable(v.string()),
-	jurisdiction: jurisdictionCodeSchema,
-});
-
-/**
  * Output schema for init endpoint
  */
 export const initOutputSchema = v.object({
-	jurisdiction: jurisdictionCodeSchema,
-	location: locationSchema,
-	translations: v.object({
-		language: v.string(),
-		translations: translationsSchema,
-	}),
 	branding: brandingSchema,
-	/**
-	 * Global Vendor List for IAB TCF compliance.
-	 * Present when IAB is active for the resolved request policy.
-	 * For policy-based setups, non-IAB policies omit this field.
-	 * If absent (and response is 200), IAB mode should be disabled on client.
-	 */
-	gvl: v.optional(v.nullable(globalVendorListSchema)),
-	/**
-	 * Custom vendors not registered with IAB.
-	 * These are configured on the backend and synced to the frontend.
-	 */
-	customVendors: v.optional(v.array(nonIABVendorSchema)),
 	/**
 	 * CMP ID registered with IAB Europe.
 	 * Provided by the backend when IAB is enabled and a CMP ID is configured.
 	 */
 	cmpId: v.optional(v.number()),
 	/**
-	 * Runtime policy resolved for the request's geo/jurisdiction context.
-	 * Present only when backend policies are configured and a match is found.
+	 * Custom vendors not registered with IAB.
+	 * These are configured on the backend and synced to the frontend.
 	 */
-	policy: v.optional(resolvedPolicySchema),
+	customVendors: v.optional(v.array(nonIABVendorSchema)),
 	/**
-	 * Explainability details for how the runtime policy was matched.
+	 * Global Vendor List for IAB TCF compliance.
+	 * Present when IAB is active for the resolved request policy.
+	 * For policy-based setups, non-IAB policies omit this field.
+	 * When both this list and gvlReference are absent, IAB is unavailable.
 	 */
-	policyDecision: v.optional(policyDecisionSchema),
+	gvl: v.optional(v.nullable(globalVendorListSchema)),
+	/** Deferred public list and the small summary needed to render the banner. */
+	gvlReference: v.optional(
+		v.object({
+			/** Non-secret policy inputs for a hosted init request. */
+			context: v.optional(
+				v.object({
+					country: v.optional(v.string()),
+					gpc: v.optional(v.boolean()),
+					region: v.optional(v.string()),
+				})
+			),
+			format: v.optional(v.literal('init')),
+			language: v.string(),
+			/** Absent when client filtering requires the full list to derive copy. */
+			summary: v.optional(
+				v.object({
+					items: v.array(v.string()),
+					vendorCount: v.number(),
+				})
+			),
+			url: v.string(),
+			vendorListVersion: v.number(),
+		})
+	),
+	/**
+	 * Who runs the backend that answered: `inth` for inth's hosted platform,
+	 * `self-hosted` for any other `@c15t/backend`. Informational only: it is
+	 * not signed, so a backend can report either value. Absent from backends
+	 * that predate the field and from transports with no backend.
+	 */
+	hosting: v.optional(hostingSchema),
+	location: locationSchema,
+	/** Explicit, versioned policy outcome for every complete response. */
+	policyResolution: policyResolutionWireSchema,
 	/**
 	 * Signed policy snapshot token to ensure write-time consistency.
 	 * Present when backend policy snapshots are configured.
 	 */
 	policySnapshotToken: v.optional(v.string()),
+	/** Privacy signal used to resolve this request; never a recorded choice. */
+	resolvedPrivacySignals: v.optional(
+		v.object({ gpc: v.optional(v.boolean()) })
+	),
+	translations: v.object({
+		language: v.string(),
+		translations: translationsSchema,
+	}),
+	/**
+	 * Version label of the declared vendor list. Shown in the preference
+	 * surface and recorded for audit; it never forces re-consent.
+	 */
+	vendorListVersion: v.optional(v.string()),
+	/**
+	 * Vendors the publisher declares for vendor-level consent outside IAB.
+	 * Merged with vendors declared in code by the client.
+	 */
+	vendors: v.optional(v.array(vendorSchema)),
 });
 
 export type InitOutput = v.InferOutput<typeof initOutputSchema>;
 export type TranslationsResponse = v.InferOutput<typeof translationsSchema>;
 export type LocationResponse = v.InferOutput<typeof locationSchema>;
-/**
- * Runtime policy payload returned by `/init`.
- *
- * This is the fully resolved policy after backend geo/jurisdiction matching.
- * Frontend clients can persist this object and reuse it as an outage fallback.
- */
-export type ResolvedPolicy = v.InferOutput<typeof resolvedPolicySchema>;
-/**
- * Explainability metadata describing how the runtime policy was matched.
- *
- * Includes the match strategy (`matchedBy`), normalized location context,
- * and a deterministic policy fingerprint for snapshot consistency checks.
- */
-export type PolicyDecision = v.InferOutput<typeof policyDecisionSchema>;

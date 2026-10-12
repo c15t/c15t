@@ -1,146 +1,163 @@
 import type { CompleteTranslations } from '../types';
+
 export const translations: CompleteTranslations = {
 	common: {
 		acceptAll: 'Prihvati sve',
-		rejectAll: 'Odbij sve',
-		customize: 'Prilagodi',
-		save: 'Spremi postavke',
+		acknowledge: 'U redu',
 		close: 'Zatvori',
+		customize: 'Prilagodi',
+		dismiss: 'Zatvori',
+		rejectAll: 'Odbij sve',
+		save: 'Spremi postavke',
 		securedBy: 'Zaštitu pruža',
 	},
-	cookieBanner: {
-		title: 'Cijenimo vašu privatnost',
-		description:
-			'Ova stranica koristi kolačiće za poboljšanje vašeg iskustva pregledavanja, analizu prometa na stranici i prikaz personaliziranog sadržaja.',
-	},
-	consentManagerDialog: {
-		title: 'Postavke privatnosti',
-		description:
-			'Ovdje možete prilagoditi svoje postavke privatnosti. Možete odabrati koje vrste kolačića i tehnologija praćenja dopuštate.',
-	},
-	consentTypes: {
-		necessary: {
-			title: 'Strogo nužno',
-			description:
-				'Ovi kolačići su ključni za ispravno funkcioniranje web stranice i ne mogu se onemogućiti.',
-		},
-		functionality: {
-			title: 'Funkcionalnost',
-			description:
-				'Ovi kolačići omogućuju poboljšanu funkcionalnost i personalizaciju web stranice.',
-		},
-		marketing: {
-			title: 'Marketing',
-			description:
-				'Ovi kolačići se koriste za prikaz relevantnih oglasa i praćenje njihove učinkovitosti.',
-		},
-		measurement: {
-			title: 'Analitika',
-			description:
-				'Ovi kolačići nam pomažu razumjeti kako posjetitelji koriste web stranicu i poboljšati njezine performanse.',
-		},
-		experience: {
-			title: 'Iskustvo',
-			description:
-				'Ovi kolačići nam pomažu pružiti bolje korisničko iskustvo i testirati nove značajke.',
-		},
-	},
-	frame: {
-		title: 'Prihvatite {category} privolu za prikaz ovog sadržaja.',
+	consentGate: {
 		actionButton: 'Omogući {category} privolu',
+		error: 'This content could not be loaded.',
+		loading: 'Loading content…',
 		policyBlocked:
 			"This content is unavailable under your region's consent policy.",
-		loading: 'Loading content…',
-		error: 'This content could not be loaded.',
+		title: 'Prihvatite {category} privolu za prikaz ovog sadržaja.',
 	},
-	legalLinks: {
-		privacyPolicy: 'Pravila o privatnosti',
-		cookiePolicy: 'Pravila o kolačićima',
-		termsOfService: 'Uvjeti pružanja usluge',
+	consentManagerDialog: {
+		description:
+			'Ovdje možete prilagoditi svoje postavke privatnosti. Možete odabrati koje vrste kolačića i tehnologija praćenja dopuštate.',
+		title: 'Postavke privatnosti',
+		vendors: {
+			disabledByCategory:
+				'Uključite ovu kategoriju da biste odabrali prodavače.',
+			privacyPolicy: 'Pravila o privatnosti',
+			switchLabel: 'Dopusti {vendor}',
+			title: 'Prodavači ({count})',
+		},
+	},
+	consentTypes: {
+		experience: {
+			description:
+				'Ovi kolačići nam pomažu pružiti bolje korisničko iskustvo i testirati nove značajke.',
+			title: 'Iskustvo',
+		},
+		functionality: {
+			description:
+				'Ovi kolačići omogućuju poboljšanu funkcionalnost i personalizaciju web stranice.',
+			title: 'Funkcionalnost',
+		},
+		marketing: {
+			description:
+				'Ovi kolačići se koriste za prikaz relevantnih oglasa i praćenje njihove učinkovitosti.',
+			title: 'Marketing',
+		},
+		measurement: {
+			description:
+				'Ovi kolačići nam pomažu razumjeti kako posjetitelji koriste web stranicu i poboljšati njezine performanse.',
+			title: 'Analitika',
+		},
+		necessary: {
+			description:
+				'Ovi kolačići su ključni za ispravno funkcioniranje web stranice i ne mogu se onemogućiti.',
+			title: 'Strogo nužno',
+		},
+	},
+	cookieBanner: {
+		description:
+			'Ova stranica koristi kolačiće za poboljšanje vašeg iskustva pregledavanja, analizu prometa na stranici i prikaz personaliziranog sadržaja.',
+		noticeDescription:
+			'Koristimo kolačiće i slične tehnologije za rad ove stranice, mjerenje prometa te personalizaciju sadržaja i oglasa. U bilo kojem trenutku možete se odjaviti ili upravljati svojim postavkama.',
+		noticeTitle: 'Obavijest o privatnosti',
+		title: 'Cijenimo vašu privatnost',
 	},
 	iab: {
 		banner: {
-			title: 'Postavke privatnosti',
+			andMore: 'I još {count}...',
 			description:
 				'Mi i naših {partnerCount} partnera pohranjujemo i/ili pristupamo informacijama na vašem uređaju i obrađujemo osobne podatke, kao što su jedinstveni identifikatori i podaci o pregledavanju, za ovu web stranicu, kako bismo:',
-			partnersLink: '{count} partnera',
-			andMore: 'I još {count}...',
 			legitimateInterestNotice:
 				'Neki partneri polažu pravo na legitimni interes za obradu vaših podataka. Imate pravo prigovora na ovu obradu, prilagodbe svojih izbora i povlačenja privole u bilo kojem trenutku.',
+			partnersLink: '{count} partnera',
+			scopeGroup: 'Vaš izbor vrijedi za sve naše web stranice u ovoj grupi.',
 			scopeServiceSpecific:
 				'Vaš pristanak odnosi se samo na ovu web stranicu i neće utjecati na druge usluge.',
-			scopeGroup: 'Vaš izbor vrijedi za sve naše web stranice u ovoj grupi.',
+			title: 'Postavke privatnosti',
+		},
+		common: {
+			acceptAll: 'Prihvati sve',
+			clearSelection: 'Očisti',
+			customPartner: 'Prilagođeni partner koji nije registriran u IAB-u',
+			customize: 'Prilagodi',
+			loading: 'Učitavanje...',
+			rejectAll: 'Odbij sve',
+			saveSettings: 'Spremi postavke',
+			showingSelectedVendor: 'Prikaz odabranog prodavača',
 		},
 		preferenceCenter: {
-			title: 'Postavke privatnosti',
 			description:
 				'Ovdje možete prilagoditi svoje postavke privatnosti. Možete odabrati koje vrste kolačića i tehnologija praćenja dopuštate.',
-			tabs: {
-				purposes: 'Svrhe',
-				vendors: 'Prodavači',
+			features: {
+				description:
+					'Ova sredstva obrade mogu se koristiti isključivo za ostvarivanje jedne ili više svrha za koje vam je u ovoj obavijesti dan izbor.',
+				title: 'Značajke',
+			},
+			footer: {
+				consentStorage:
+					'Postavke privole pohranjuju se u kolačiću pod nazivom "euconsent-v2" tijekom 13 mjeseci. Trajanje pohrane može se obnoviti kada ažurirate svoje postavke.',
 			},
 			purposeItem: {
-				partners: '{count} partnera',
-				vendorsUseLegitimateInterest:
-					'{count} prodavača polaže pravo na legitimni interes',
 				examples: 'Primjeri',
-				partnersUsingPurpose: 'Partneri koji koriste ovu svrhu',
-				withYourPermission: 'Uz vaše dopuštenje',
 				legitimateInterest: 'Legitimni interes',
 				objectButton: 'Prigovori',
 				objected: 'Prigovoreno',
+				partners: '{count} partnera',
+				partnersUsingPurpose: 'Partneri koji koriste ovu svrhu',
 				rightToObject:
 					'Imate pravo prigovora na obradu temeljenu na legitimnom interesu.',
+				vendorsUseLegitimateInterest:
+					'{count} prodavača polaže pravo na legitimni interes',
+				withYourPermission: 'Uz vaše dopuštenje',
 			},
 			specialPurposes: {
 				title: 'Osnovne funkcije (obavezno)',
 				tooltip:
 					'Ove su funkcije potrebne za funkcionalnost i sigurnost stranice. Prema IAB TCF-u, ne možete uložiti prigovor na ove posebne svrhe.',
 			},
-			features: {
-				title: 'Značajke',
-				description:
-					'Ova sredstva obrade mogu se koristiti isključivo za ostvarivanje jedne ili više svrha za koje vam je u ovoj obavijesti dan izbor.',
+			tabs: {
+				purposes: 'Svrhe',
+				vendors: 'Prodavači',
 			},
+			title: 'Postavke privatnosti',
 			vendorList: {
-				search: 'Pretraži prodavače...',
-				showingCount: '{filtered} od {total} prodavača',
-				iabVendorsHeading: 'IAB registrirani prodavači',
-				iabVendorsNotice:
-					'Ovi partneri su registrirani u IAB Transparency & Consent Framework (TCF), industrijskom standardu za upravljanje privolama',
 				customVendorsHeading: 'Prilagođeni partneri',
 				customVendorsNotice:
 					'Ovo su prilagođeni partneri koji nisu registrirani u IAB Transparency & Consent Framework (TCF). Oni obrađuju podatke na temelju vaše privole i mogu imati drugačije prakse privatnosti od IAB registriranih prodavača.',
-				purposes: 'Svrhe',
-				specialPurposes: 'Posebne svrhe',
-				specialFeatures: 'Posebne značajke',
-				features: 'Značajke',
 				dataCategories: 'Kategorije podataka',
-				usesCookies: 'Koristi kolačiće',
-				nonCookieAccess: 'Pristup bez kolačića',
-				maxAge: 'Maks. starost: {days}d',
-				retention: 'Zadržavanje: {days}d',
+				features: 'Značajke',
+				iabVendorsHeading: 'IAB registrirani prodavači',
+				iabVendorsNotice:
+					'Ovi partneri su registrirani u IAB Transparency & Consent Framework (TCF), industrijskom standardu za upravljanje privolama',
 				legitimateInterest: 'Leg. interes',
+				maxAge: 'Maks. starost: {days}d',
+				nonCookieAccess: 'Pristup bez kolačića',
 				privacyPolicy: 'Pravila o privatnosti',
-				storageDisclosure: 'Objavljivanje pohrane',
+				purposes: 'Svrhe',
 				requiredNotice:
 					'Potrebno za funkcionalnost stranice, ne može se onemogućiti',
-			},
-			footer: {
-				consentStorage:
-					'Postavke privole pohranjuju se u kolačiću pod nazivom "euconsent-v2" tijekom 13 mjeseci. Trajanje pohrane može se obnoviti kada ažurirate svoje postavke.',
+				retention: 'Zadržavanje: {days}d',
+				search: 'Pretraži prodavače...',
+				showingCount: '{filtered} od {total} prodavača',
+				specialFeatures: 'Posebne značajke',
+				specialPurposes: 'Posebne svrhe',
+				storageDisclosure: 'Objavljivanje pohrane',
+				usesCookies: 'Koristi kolačiće',
 			},
 		},
-		common: {
-			acceptAll: 'Prihvati sve',
-			rejectAll: 'Odbij sve',
-			customize: 'Prilagodi',
-			saveSettings: 'Spremi postavke',
-			loading: 'Učitavanje...',
-			showingSelectedVendor: 'Prikaz odabranog prodavača',
-			clearSelection: 'Očisti',
-			customPartner: 'Prilagođeni partner koji nije registriran u IAB-u',
-		},
+	},
+	legalLinks: {
+		cookiePolicy: 'Pravila o kolačićima',
+		privacyPolicy: 'Pravila o privatnosti',
+		termsOfService: 'Uvjeti pružanja usluge',
+	},
+	rights: {
+		optOut: 'Ne prodajte i ne dijelite moje podatke',
+		preferences: 'Upravljanje postavkama',
 	},
 };
 export default translations;

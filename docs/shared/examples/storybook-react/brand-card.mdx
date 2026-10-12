@@ -1,0 +1,19 @@
+{/* Generated from apps/storybook-react/src/docs-recipes/brand-card.tsx (docs:brand-card) by scripts/sync-example-docs.ts. Edit the source file. */}
+
+```tsx title="src/consent-ui.tsx"
+import { ConsentBanner, ConsentDialog, ConsentTheme } from 'c15t/react';
+
+import { brandTheme } from './consent-theme';
+
+/**
+ * Render inside your ConsentProvider, and pass `theme: brandTheme` in the
+ * provider options so the action styles apply too.
+ */
+export const ConsentUI = () => (
+	<>
+		<ConsentTheme theme={brandTheme} />
+		<ConsentBanner />
+		<ConsentDialog />
+	</>
+);
+```

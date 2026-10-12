@@ -6,33 +6,36 @@
 
 export interface FrameworkConfig {
 	importSource: string;
+	devToolsImportSource: string;
+	themeTypesImportSource: string;
 	consentBannerImport: string;
 	consentDialogImport: string;
 	frameworkName: string;
 	ssrMechanism: string;
 	docsSlug: string;
-	envVarPrefix: string;
 	hasSSRProps: boolean;
 }
 
 export const NEXTJS_CONFIG: FrameworkConfig = {
-	importSource: '@c15t/nextjs',
-	consentBannerImport: '@c15t/nextjs',
-	consentDialogImport: '@c15t/nextjs',
+	consentBannerImport: 'c15t/next',
+	consentDialogImport: 'c15t/next',
+	devToolsImportSource: 'c15t/next/devtools',
+	docsSlug: 'next',
 	frameworkName: 'Next.js App Router',
-	ssrMechanism: 'Next.js headers() API',
-	docsSlug: 'nextjs',
-	envVarPrefix: 'NEXT_PUBLIC',
 	hasSSRProps: true,
+	importSource: 'c15t/next',
+	ssrMechanism: 'Next.js headers() API',
+	themeTypesImportSource: 'c15t/react/types',
 };
 
 export const REACT_CONFIG: FrameworkConfig = {
-	importSource: '@c15t/react',
-	consentBannerImport: '@c15t/react',
-	consentDialogImport: '@c15t/react',
-	frameworkName: 'React',
-	ssrMechanism: '',
+	consentBannerImport: 'c15t/react',
+	consentDialogImport: 'c15t/react',
+	devToolsImportSource: 'c15t/react/devtools',
 	docsSlug: 'react',
-	envVarPrefix: '',
+	frameworkName: 'React',
 	hasSSRProps: false,
+	importSource: 'c15t/react',
+	ssrMechanism: '',
+	themeTypesImportSource: 'c15t/react/types',
 };

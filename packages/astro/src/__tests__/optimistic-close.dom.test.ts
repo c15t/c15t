@@ -1,0 +1,98 @@
+/**
+ * The dialog island closes when the choice is recorded, not when the backend
+ * answers. The island renders the real React surface against the page
+ * runtime, as it does on an Astro page with `ui: 'react'`.
+ */
+
+import { custom } from '@c15t/core';
+import { createConsentRuntime } from '@c15t/core/runtime';
+import type { ConsentRuntime } from '@c15t/core/runtime';
+import { afterEach, beforeAll, expect, it, vi } from 'vitest';
+
+// Vite compiles the island's whole component tree on first import. That
+// takes seconds on a busy machine. A static import does it while this file
+// loads, so no test timeout covers the compile.
+import * as reactPanelSurface from '../components/islands/panel-surface';
+import type { C15tResolvedOptions } from '../types';
+import { registerDialogSurface } from '../ui/adapter';
+import type { ConsentDialogHandle } from '../ui/adapter';
+import { reactDialogAdapter } from '../ui/react';
+import { testResolution } from './policy-fixture';
+import { ISLAND_RENDER_TIMEOUT } from './react-dialog-island';
+
+const OPTIONS = {
+	consentCategories: ['necessary', 'marketing', 'measurement'],
+	endpoints: { enabled: false, initPath: '/i', manifestPath: '/m' },
+	mode: { type: 'offline' },
+	ui: 'react',
+} as unknown as C15tResolvedOptions;
+
+const cleanup: (() => Promise<void> | void)[] = [];
+
+// jsdom has no `matchMedia`; the React surface reads reduced motion from it.
+beforeAll(() => {
+	window.matchMedia ??= (query: string) =>
+		({
+			addEventListener: () => undefined,
+			addListener: () => undefined,
+			dispatchEvent: () => false,
+			matches: false,
+			media: query,
+			onchange: null,
+			removeEventListener: () => undefined,
+			removeListener: () => undefined,
+		}) as MediaQueryList;
+});
+
+afterEach(async () => {
+	for (const step of cleanup.splice(0).reverse()) {
+		// oxlint-disable-next-line no-await-in-loop -- Tear down in reverse mount order.
+		await step();
+	}
+	localStorage.clear();
+});
+
+// The sequences (close on the local record, a failed request never reopens)
+// are pinned at core's surface-actions interface. This checks the island
+// reaches them.
+it('closes the React island on save before a failed request settles', async () => {
+	const save = vi.fn(() => Promise.reject(new Error('offline')));
+	const runtime: ConsentRuntime = createConsentRuntime({
+		consentCategories: ['necessary', 'marketing', 'measurement'],
+		mode: custom({ save }),
+		persistence: false,
+		pkg: '@c15t/astro-test',
+		prefetch: { initialPolicyResolution: testResolution() },
+	});
+	cleanup.push(() => runtime.dispose());
+	registerDialogSurface('react', () => Promise.resolve(reactPanelSurface));
+	const target = document.createElement('div');
+	document.body.append(target);
+	cleanup.push(() => target.remove());
+	runtime.kernel.set.activeUI('dialog');
+	const handle: ConsentDialogHandle = await reactDialogAdapter.mount({
+		kind: 'preferences',
+		options: OPTIONS,
+		runtime,
+		target,
+	});
+	cleanup.push(() => handle.destroy());
+	const button = () =>
+		document.querySelector<HTMLButtonElement>(
+			'[data-testid="consent-widget-footer-save-button"]'
+		);
+	await vi.waitFor(
+		() => expect(button()).not.toBeNull(),
+		ISLAND_RENDER_TIMEOUT
+	);
+	button()?.click();
+	// Closed in the click task, before the request starts.
+	expect(runtime.kernel.getSnapshot().activeUI).toBe('none');
+	expect(save).not.toHaveBeenCalled();
+	expect(runtime.kernel.getSnapshot().explicitChoice).not.toBeNull();
+	await vi.waitFor(() => expect(save).toHaveBeenCalledOnce());
+	await new Promise((resolve) => {
+		setTimeout(resolve, 20);
+	});
+	expect(runtime.kernel.getSnapshot().activeUI).toBe('none');
+});

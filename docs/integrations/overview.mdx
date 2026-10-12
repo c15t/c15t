@@ -1,200 +1,184 @@
 ---
 title: Integrations
-description: "Load analytics, pixels, tag managers, and widgets through c15t so consent state controls when they run, update, and appear in your consent UI."
-
+description: Find all c15t integrations for analytics, tag managers, advertising, email and SMS, chat and embedded content.
+seoTitle: Cookie consent integrations for analytics and ads | c15t
+seoDescription: Connect analytics, ad pixels, chat widgets and embeds to your cookie banner. c15t has helpers for Google Tag Manager, Meta Pixel, PostHog, Segment and Hotjar.
 group: integrations
 ---
 
-Third-party tools are easy to paste into app code, but consent makes them part
-of your privacy runtime. Analytics SDKs, ad pixels, tag managers, and chat
-widgets can load remote code, store identifiers, send events, and keep running
-after the first page view.
+## Choose an integration
 
-<Callout type="info">
-  Put consent-sensitive vendor tools in c15t instead of scattering script tags
-  across your codebase. c15t becomes the place that decides when they can load,
-  when they must stop, and which consent categories your UI needs to show.
-</Callout>
+Each vendor helper in `@c15t/integrations` returns a script configuration that you
+register with your c15t provider. Importing a helper installs nothing on its
+own. Set up consent with your [framework quickstart](/docs/frameworks) first,
+then follow the vendor guide.
 
-## Why Manage Tools In c15t
+<CommandTabs command="@c15t/integrations" mode="install" />
 
-When you install a vendor directly in your app, your consent logic has to chase
-that vendor everywhere it appears: page layouts, route handlers, event helpers,
-tag-manager snippets, and cleanup code.
+`@c15t/integrations` is a separate package. Keep importing c15t itself from `c15t`,
+for example `c15t/react` or `c15t/next`.
 
-Register the vendor with c15t instead. The integration becomes a declarative
-`Script` that the consent runtime can reason about:
+The Loading behavior column shows when each helper requests the vendor. Most
+wait for the category to be allowed. A few load on every page and pass the
+permission to the vendor's own consent API, so the browser contacts the vendor
+before a choice.
 
-- c15t registers the tool with the runtime and evaluates it against the current
-  consent state;
-- c15t automatically adds the tool's consent category to the active categories,
-  so GDPR-style consent UIs include `measurement`, `marketing`, or
-  `functionality` when an enabled integration needs them;
-- c15t blocks the script until consent is granted, or loads it with denied
-  defaults when the vendor has its own consent mode;
-- c15t handles revocation by unloading the script or calling the vendor's
-  consent API;
-- c15t runs vendor setup in the right order, including queue stubs, global
-  functions, data attributes, default page-view events, and consent updates.
+## Embeds
 
-That gives your app one consent lifecycle instead of many scattered vendor
-lifecycles.
+| Integration | v3 implementation | Loading behavior |
+| --- | --- | --- |
+| [Google Maps](/docs/integrations/google-maps) | Framework-specific consent-gated map iframe | Iframe mounts only while the chosen permission is allowed |
+| [YouTube](/docs/integrations/youtube) | Framework-specific consent-gated video iframe | Iframe mounts only while the chosen permission is allowed |
 
-## Built-In Helpers
+Both guides include all nine framework examples. React and Svelte use `ConsentGate`;
+Vue conditionally renders the iframe, and Astro and JavaScript use the existing
+kernel to control its DOM lifecycle. Embeds do not require `@c15t/integrations`.
 
-c15t ships prebuilt script helpers in
-[`@c15t/scripts`](https://www.npmjs.com/package/@c15t/scripts) for the
-third-party tools developers integrate most often. Prefer them over copied
-vendor snippets whenever c15t already supports the vendor.
+## Tag managers
 
-Every helper returns a regular `Script` object, so it works anywhere the c15t
-[script loader](/docs/frameworks/javascript/script-loader) accepts scripts. You
-usually choose the helper, provide the vendor ID, and pass the result to your
-provider's `scripts` option. The vendor page explains anything else that still
-matters, such as custom events, region settings, privacy modes, or ecommerce
-payloads.
-
-## Choose An Integration Style
-
-Most apps mix more than one style. Pick the smallest one that keeps consent behavior obvious.
-
-| Style | Use when |
-|---|---|
-| **Built-in helper** from `@c15t/scripts` | The vendor is listed below — start here. |
-| **Plain `Script`** | One-off app code with simple load and callback behavior. |
-| **Manifest-backed helper** | Reusable vendor integration with structured setup phases, queues, stubs, or a vendor consent API. |
-| **Iframe / renderable integration** | Vendor exposes an iframe or React component, not just a script tag. |
-
-Setup is the same shape in every framework: import the helper, call it with vendor options, and pass the result to the consent runtime through your provider's `scripts` option. See the framework guides for end-to-end snippets — [JavaScript](/docs/frameworks/javascript/script-loader), [React](/docs/frameworks/react/script-loader), [Next.js](/docs/frameworks/next/script-loader).
-
-## Renderable Integrations
-
-Maps and video embeds need a visible component as well as consent-aware loading.
-The React and Next.js packages include components that own the placeholder,
-vendor loading, and rendered surface. They are imported from the framework
-package rather than `@c15t/scripts`.
-
-<Cards className="my-10 grid-cols-1 sm:grid-cols-2 @container not-prose grid gap-4">
-  <Card variant="interactive" title="Google Maps" description="Load the Maps JavaScript API once, then create and clean up consent-aware map instances." icon={<Icon name="google-maps" />} href="/docs/integrations/google-maps" />
-
-  <Card variant="interactive" title="YouTube" description="Keep privacy-enhanced YouTube iframes unmounted until the required consent is granted." icon={<Icon name="youtube" />} href="/docs/integrations/youtube" />
-</Cards>
+| Integration | Helper | Category | Loading behavior |
+| --- | --- | --- | --- |
+| [Cloudflare Zaraz](/docs/integrations/cloudflare-zaraz) | `cloudflareZaraz` | `necessary` | Always runs; syncs purposes, Zaraz runs the tools |
+| [Google Tag Manager](/docs/integrations/google-tag-manager) | `googleTagManager` | `necessary`; `measurement` or `marketing` when gated | Always loads and signals Google consent by default; `loadMode: 'after-consent'` waits for permission |
 
 ## Analytics
 
-Analytics integrations usually require `measurement` consent. Some vendors can run in a consent-aware or cookieless mode; others should stay fully blocked until measurement consent is granted.
+| Integration | Helper | Category | Loading behavior |
+| --- | --- | --- | --- |
+| [Google Tag](/docs/integrations/google-tag) | `gtag` | `measurement` or `marketing` | Always loads and signals Google consent by default; `loadMode: 'after-consent'` waits for permission |
+| [Ahrefs Analytics](/docs/integrations/ahrefs-analytics) | `ahrefsAnalytics` | `measurement` | Waits for effective permission |
+| [Adobe Analytics](/docs/integrations/adobe-analytics) | `adobeAnalytics` | `measurement` | Waits for effective permission |
+| [Amplitude](/docs/integrations/amplitude) | `amplitude` | `measurement` | Waits for effective permission; opts the SDK out on revocation |
+| [Cloudflare Web Analytics](/docs/integrations/cloudflare-web-analytics) | `cloudflareWebAnalytics` | `measurement` | Waits for effective permission |
+| [Clearbit](/docs/integrations/clearbit) | `clearbit` | `marketing` | Waits for effective permission |
+| [Microsoft Clarity](/docs/integrations/microsoft-clarity) | `clarity` | `measurement` | Gated initially; keeps the SDK and signals storage consent |
+| [Databuddy](/docs/integrations/databuddy) | `databuddy` | `measurement` | Always loads; switches the SDK's disabled flag |
+| [Fathom Analytics](/docs/integrations/fathom-analytics) | `fathomAnalytics` | `measurement` | Waits for effective permission |
+| [Heap](/docs/integrations/heap) | `heap` | `measurement` | Waits for effective permission |
+| [Matomo Analytics](/docs/integrations/matomo-analytics) | `matomoAnalytics` | `measurement` | Gated by default; optional consent mode |
+| [Mixpanel](/docs/integrations/mixpanel-analytics) | `mixpanelAnalytics` | `measurement` | Always loads; calls opt-in and opt-out APIs |
+| [OneDollarStats](/docs/integrations/one-dollar-stats) | `oneDollarStats` | `measurement` | Waits for effective permission |
+| [Hotjar](/docs/integrations/hotjar) | `hotjar` | `measurement` | Waits for effective permission |
+| [Hightouch](/docs/integrations/hightouch) | `hightouch` | `measurement` | Waits for effective permission |
+| [LogRocket](/docs/integrations/logrocket) | `logRocket` | `measurement` | Waits for effective permission |
+| [Plausible Analytics](/docs/integrations/plausible-analytics) | `plausibleAnalytics` | `measurement` | Waits for effective permission |
+| [PostHog](/docs/integrations/posthog) | `posthog` | `measurement` | Configurable; defaults to always loading and calling opt-in and opt-out APIs |
+| [Promptwatch](/docs/integrations/promptwatch) | `promptwatch` | `measurement` | Waits for effective permission |
+| [Pirsch](/docs/integrations/pirsch) | `pirsch` | `measurement` | Waits for effective permission |
+| [RudderStack](/docs/integrations/rudderstack) | `rudderstack` | `measurement` | Gated by default; optional destination consent mode |
+| [Segment](/docs/integrations/segment) | `segment` | `measurement` | Waits for effective permission |
+| [Sentry](/docs/integrations/sentry) | `sentry` | `necessary`; Replay and user data `measurement` | Configurable; defaults to always loading and loads Replay after permission |
+| [Rybbit Analytics](/docs/integrations/rybbit-analytics) | `rybbitAnalytics` | `measurement` | Waits for effective permission |
+| [Umami Analytics](/docs/integrations/umami-analytics) | `umamiAnalytics` | `measurement` | Waits for effective permission |
+| [Vercel Analytics](/docs/integrations/vercel-analytics) | `vercelAnalytics` | `measurement` | Waits for effective permission |
+| [Vercel Speed Insights](/docs/integrations/vercel-speed-insights) | `vercelSpeedInsights` | `measurement` | Waits for effective permission; drops reports after revocation |
 
-<Cards className="my-10 grid-cols-1 sm:grid-cols-2 2xl:grid-cols-3 @container not-prose grid gap-4">
-  <Card variant="interactive" title="Google Tag (gtag.js)" description="Send data to Google Analytics 4 and Google Ads with automatic Consent Mode v2 support." icon={<Icon name="google-analytics" />} href="/docs/integrations/google-tag" />
+## Chat and support
 
-  <Card variant="interactive" title="Ahrefs Analytics" description="Cookieless web analytics from Ahrefs configured with a single project key." icon={<Icon name="ahrefs" />} href="/docs/integrations/ahrefs-analytics" />
+| Integration | Helper | Category | Loading behavior |
+| --- | --- | --- | --- |
+| [Crisp](/docs/integrations/crisp) | `crisp` | `functionality` | Waits for effective permission |
+| [Front Chat](/docs/integrations/front-chat) | `frontChat` | `functionality` | Waits for effective permission |
+| [Intercom](/docs/integrations/intercom) | `intercom` | `functionality` | Waits for effective permission |
 
-  <Card variant="interactive" title="Adobe Analytics" description="Load an Adobe Data Collection Tags property behind measurement consent." icon={<Icon name="adobe-analytics" />} href="/docs/integrations/adobe-analytics" />
+## Email and SMS
 
-  <Card variant="interactive" title="Amplitude" description="Product analytics with a Browser SDK 2 method-call queue and runtime opt-out synchronization." icon={<Icon name="amplitude" />} href="/docs/integrations/amplitude" />
+| Integration | Helper | Category | Loading behavior |
+| --- | --- | --- | --- |
+| [Klaviyo](/docs/integrations/klaviyo) | `klaviyo` | `marketing` and `measurement` | Waits for both; optional forms-only mode needs `marketing` |
 
-  <Card variant="interactive" title="Cloudflare Web Analytics" description="Cookieless analytics from Cloudflare configured with a single beacon token." icon={<Icon name="cloudflare-web-analytics" />} href="/docs/integrations/cloudflare-web-analytics" />
+## Ads and pixels
 
-  <Card variant="interactive" title="Clearbit" description="Visitor and company enrichment gated on marketing consent." icon={<Icon name="clearbit" />} href="/docs/integrations/clearbit" />
+| Integration | Helper | Category | Loading behavior |
+| --- | --- | --- | --- |
+| [Meta Pixel](/docs/integrations/meta-pixel) | `metaPixel` | `marketing` | Gated initially; keeps the SDK and signals consent |
+| [OpenAI Pixel](/docs/integrations/openai-pixel) | `openaiPixel` | `marketing` | Gated initially; keeps the SDK and signals consent |
+| [Pinterest Tag](/docs/integrations/pinterest-tag) | `pinterestTag` | `marketing` | Gated initially; keeps the tag and signals consent |
+| [Reddit Pixel](/docs/integrations/reddit-pixel) | `redditPixel` | `marketing` | Gated initially; keeps the pixel and toggles first-party cookies |
+| [TikTok Pixel](/docs/integrations/tiktok-pixel) | `tiktokPixel` | `marketing` | Gated initially; keeps the SDK and signals consent |
+| [LinkedIn Insight Tag](/docs/integrations/linkedin-insights) | `linkedinInsights` | `marketing` | Waits for effective permission |
+| [Microsoft UET](/docs/integrations/microsoft-uet) | `microsoftUet` | `marketing` | Always loads; signals ad storage consent |
+| [Snapchat Pixel](/docs/integrations/snapchat-pixel) | `snapchatPixel` | `marketing` | Waits for effective permission |
+| [X Pixel](/docs/integrations/x-pixel) | `xPixel` | `marketing` | Waits for effective permission |
 
-  <Card variant="interactive" title="Microsoft Clarity" description="Session replay and heatmap analytics with queue stubs and consent-state synchronization." icon={<Icon name="microsoft-clarity" />} href="/docs/integrations/microsoft-clarity" />
+## Load each vendor once
 
-  <Card variant="interactive" title="Databuddy" description="Privacy-focused analytics with automatic consent management and cookieless tracking support." icon={<Icon name="databuddy" />} href="/docs/integrations/databuddy" />
+Remove the vendor's own snippet, tracking image, framework plugin or tag
+manager entry before adding its helper. c15t cannot gate a copy it did not
+load. Tag managers and data pipelines such as Segment can load further
+destinations, which need consent settings of their own.
 
-  <Card variant="interactive" title="Rybbit Analytics" description="Load Rybbit with site configuration via data attributes on the script tag." icon={<Icon name="rybbit-analytics" />} href="/docs/integrations/rybbit-analytics" />
+Framework packages are loaders too. To move their vendors to c15t, see
+[migrate from `@next/third-parties`](/docs/frameworks/next/scripts#migrate-from-nextthird-parties)
+for Next.js, and
+[migrate from `@nuxt/scripts`](/docs/frameworks/nuxt/scripts#migrate-from-nuxtscripts)
+or [migrate from `nuxt-gtag`](/docs/frameworks/nuxt/scripts#migrate-from-nuxt-gtag)
+for Nuxt.
 
-  <Card variant="interactive" title="Fathom Analytics" description="Lightweight, cookieless analytics configured entirely through script data attributes." icon={<Icon name="fathom-analytics" />} href="/docs/integrations/fathom-analytics" />
+When a visitor turns off a category they had allowed, c15t reloads the page so
+that code which already ran stops. Each vendor guide lists what its helper does
+on revocation and how to check it.
 
-  <Card variant="interactive" title="Heap" description="Autocapture product analytics with the heap.js callback queue gated behind measurement consent." icon={<Icon name="heap" />} href="/docs/integrations/heap" />
+## Vendor switches and cookie cleanup
 
-  <Card variant="interactive" title="Mixpanel Analytics" description="Product analytics with always-on loading and consent toggled via Mixpanel opt-in and opt-out APIs." icon={<Icon name="mixpanel" />} href="/docs/integrations/mixpanel-analytics" />
+Every helper sets a `vendor` slug and the vendor's name and privacy policy, so
+the preference dialog lists the vendor with its own switch. A visitor can allow
+a category and still switch one vendor off. c15t then does not load that
+vendor's script. Helpers that load on every page, such as Google Tag Manager,
+Microsoft UET and Mixpanel, still load and send the vendor a denied signal
+instead. The dialog lists `necessary` helpers without a switch. Declare
+a vendor with the same slug to replace its name and links, for example when you
+self-host Matomo or PostHog. Gating also leaves behind the cookies a vendor
+already wrote; `clearOnRevocation` deletes them when their category is denied. Each framework documents both in its Scripts
+and embeds group:
 
-  <Card variant="interactive" title="Hotjar" description="Heatmaps, recordings, and feedback tools with Hotjar globals bootstrapped before script load." icon={<Icon name="hotjar" />} href="/docs/integrations/hotjar" />
+| Framework | Vendor consent | Clear on revocation |
+| --- | --- | --- |
+| Next.js | [Vendor consent](/docs/frameworks/next/vendor-consent) | [Clear on revocation](/docs/frameworks/next/clear-on-revocation) |
+| TanStack Start | [Vendor consent](/docs/frameworks/tanstack-start/vendor-consent) | [Clear on revocation](/docs/frameworks/tanstack-start/clear-on-revocation) |
+| React | [Vendor consent](/docs/frameworks/react/vendor-consent) | [Clear on revocation](/docs/frameworks/react/clear-on-revocation) |
+| Nuxt | [Vendor consent](/docs/frameworks/nuxt/vendor-consent) | [Clear on revocation](/docs/frameworks/nuxt/clear-on-revocation) |
+| Vue | [Vendor consent](/docs/frameworks/vue/vendor-consent) | [Clear on revocation](/docs/frameworks/vue/clear-on-revocation) |
+| Astro | [Vendor consent](/docs/frameworks/astro/vendor-consent) | [Clear on revocation](/docs/frameworks/astro/clear-on-revocation) |
+| Svelte | [Vendor consent](/docs/frameworks/svelte/vendor-consent) | [Clear on revocation](/docs/frameworks/svelte/clear-on-revocation) |
+| SvelteKit | [Vendor consent](/docs/frameworks/sveltekit/vendor-consent) | [Clear on revocation](/docs/frameworks/sveltekit/clear-on-revocation) |
+| HTML | [Vendor consent](/docs/frameworks/html/vendor-consent) | [Clear on revocation](/docs/frameworks/html/clear-on-revocation) |
+| JavaScript | [Vendor consent](/docs/frameworks/javascript/vendor-consent) | [Clear on revocation](/docs/frameworks/javascript/clear-on-revocation) |
 
-  <Card variant="interactive" title="Hightouch" description="Customer data platform events with an htevents queue bootstrap and optional initial page call." icon={<Icon name="hightouch" />} href="/docs/integrations/hightouch" />
+## Send events only to allowed integrations
 
-  <Card variant="interactive" title="LogRocket" description="Session replay and monitoring initialized after measurement consent." icon={<Icon name="logrocket" />} href="/docs/integrations/logrocket" />
+`createEventDispatcher` from `@c15t/integrations/events` sends one named event to
+every registered integration that has an event API and is allowed right now.
+It drops events while measurement is denied, and one vendor's error does not
+stop delivery to the others:
 
-  <Card variant="interactive" title="Matomo Analytics" description="Self-hosted or cloud analytics with queue-based tracking and optional consent-mode commands." icon={<Icon name="matomo" />} href="/docs/integrations/matomo-analytics" />
+{/* example: fragment */}
 
-  <Card variant="interactive" title="PostHog" description="Open-source product analytics with cookieless tracking that works even without consent." icon={<Icon name="posthog" />} href="/docs/integrations/posthog" />
+```ts
+import { createEventDispatcher } from '@c15t/integrations/events';
 
-  <Card variant="interactive" title="OneDollarStats" description="Load website analytics after measurement consent, with no API key required." href="/docs/integrations/one-dollar-stats" />
+const events = createEventDispatcher({
+	scripts,
+	getSnapshot: () => runtime.kernel.getSnapshot(),
+	pageviews: ['segment'],
+});
 
-  <Card variant="interactive" title="Promptwatch" description="Artificial Intelligence (AI)-focused website analytics loaded with a project-id script attribute." icon={<Icon name="promptwatch" />} href="/docs/integrations/promptwatch" />
+events.track('docs_search', { resultCount: 4 });
+events.pageview(location.pathname);
+```
 
-  <Card variant="interactive" title="Pirsch" description="Privacy-friendly, cookieless analytics loaded with Pirsch's fixed script id and identification code." icon={<Icon name="pirsch" />} href="/docs/integrations/pirsch" />
+Pass the same `scripts` you registered and a function that returns the live
+consent snapshot. `track` supports Google Tag Manager, Google Tag, PostHog,
+Mixpanel, Segment, Hightouch, Heap, Amplitude, LogRocket, Adobe Analytics,
+Databuddy, Plausible, Fathom, Pirsch, Microsoft Clarity, Hotjar, Vercel
+Analytics, OneDollarStats, Umami, Rybbit, RudderStack and Matomo.
+`pageview` sends single-page-app page views only to the integrations named in
+`pageviews`: PostHog, Segment or Hightouch. Call it from your router's
+navigation hook. The first call records the path without sending, and repeated
+paths or hash-only changes are skipped.
 
-  <Card variant="interactive" title="RudderStack" description="Customer data platform events with a v3 rudderanalytics queue bootstrap and required data plane URL." icon={<Icon name="rudderstack" />} href="/docs/integrations/rudderstack" />
+## Add a vendor without a helper
 
-  <Card variant="interactive" title="Segment" description="Customer data platform with an analytics queue bootstrap and optional initial page call." icon={<Icon name="segment" />} href="/docs/integrations/segment" />
-
-  <Card variant="interactive" title="Plausible Analytics" description="Privacy-friendly, cookieless web analytics with extension support and queue-buffered early calls." icon={<Icon name="plausible" />} href="/docs/integrations/plausible-analytics" />
-
-  <Card variant="interactive" title="Umami Analytics" description="Open-source, cookieless analytics configured entirely through script data attributes." icon={<Icon name="umami-analytics" />} href="/docs/integrations/umami-analytics" />
-
-  <Card variant="interactive" title="Vercel Analytics" description="Bootstrap Vercel Analytics with a declarative queue and script attributes." icon={<Icon name="vercel-analytics" />} href="/docs/integrations/vercel-analytics" />
-</Cards>
-
-## Functional
-
-Functional integrations usually require `functionality` consent. They add optional user-facing capabilities, such as chat widgets, that should only run after the user allows them.
-
-<Cards className="my-10 grid-cols-1 sm:grid-cols-2 2xl:grid-cols-3 @container not-prose grid gap-4">
-  <Card variant="interactive" title="Crisp" description="Load Crisp live chat with the standard website ID bootstrap." icon={<Icon name="crisp" />} href="/docs/integrations/crisp" />
-
-  <Card variant="interactive" title="Front Chat" description="Load Front Chat after functionality consent and initialize the widget when its SDK is ready." href="/docs/integrations/front-chat" />
-
-  <Card variant="interactive" title="Intercom" description="Bootstrap Intercom settings and load the messenger widget bundle." icon={<Icon name="intercom" />} href="/docs/integrations/intercom" />
-</Cards>
-
-## Ads & Pixels
-
-Advertising pixels usually require `marketing` consent. Many of them need startup stubs so events can be queued safely before the remote SDK loads — built-in helpers handle this for you.
-
-<Cards className="my-10 grid-cols-1 sm:grid-cols-2 2xl:grid-cols-3 @container not-prose grid gap-4">
-  <Card variant="interactive" title="Meta Pixel" description="Track conversions and build audiences for Facebook and Instagram advertising campaigns." icon={<Icon name="meta" />} href="/docs/integrations/meta-pixel" />
-
-  <Card variant="interactive" title="Snapchat Pixel" description="Measure Snapchat ad performance and build remarketing audiences with a prebuilt pixel helper." icon={<Icon name="snapchat" />} href="/docs/integrations/snapchat-pixel" />
-
-  <Card variant="interactive" title="Reddit Pixel" description="Track conversions and build audiences for Reddit advertising campaigns." icon={<Icon name="reddit" />} href="/docs/integrations/reddit-pixel" />
-
-  <Card variant="interactive" title="TikTok Pixel" description="Measure ad performance and build audiences for TikTok advertising campaigns." icon={<Icon name="tiktok" />} href="/docs/integrations/tiktok-pixel" />
-
-  <Card variant="interactive" title="LinkedIn Insight Tag" description="Track conversions and build matched audiences for LinkedIn advertising campaigns." icon={<Icon name="linkedin" />} href="/docs/integrations/linkedin-insights" />
-
-  <Card variant="interactive" title="Microsoft UET" description="Track conversions and measure performance for Microsoft Advertising." icon={<Icon name="microsoft" />} href="/docs/integrations/microsoft-uet" />
-
-  <Card variant="interactive" title="X (Twitter) Pixel" description="Measure ad performance and build audiences for advertising campaigns on X (Twitter)." icon={<Icon name="x" />} href="/docs/integrations/x-pixel" />
-
-  <Card variant="interactive" title="Pinterest Tag" description="Track conversions and build audiences for Pinterest advertising campaigns." icon={<Icon name="pinterest" />} href="/docs/integrations/pinterest-tag" />
-</Cards>
-
-## Tag Managers
-
-Tag managers can load other scripts, so they deserve extra care. Prefer vendor consent modes and denied defaults before any tags are allowed to run.
-
-<Cards className="my-10 grid-cols-1 sm:grid-cols-2 2xl:grid-cols-3 @container not-prose grid gap-4">
-  <Card variant="interactive" title="Google Tag Manager" description="Deploy and manage marketing tags centrally with automatic consent state synchronization." icon={<Icon name="google-tag-manager" />} href="/docs/integrations/google-tag-manager" />
-</Cards>
-
-## Build Your Own
-
-If c15t does not ship the vendor you need, drop down a level:
-
-- build a one-off `Script` directly in your app for simple cases,
-- build a reusable manifest-backed helper for shared or package-level integrations,
-- or combine the script loader with iframe gating for visible media and widget integrations.
-
-### Build a Custom Integration
-
-Learn when to use a raw `Script`, when to use a manifest, and how to debug and test custom integrations.
-
-[Read the guide →](/docs/integrations/building-integrations)
-
-## Where To Next
-
-- Read the script loader guide for your framework: [JavaScript](/docs/frameworks/javascript/script-loader), [React](/docs/frameworks/react/script-loader), [Next.js](/docs/frameworks/next/script-loader).
-- Use the [Google Maps](/docs/integrations/google-maps) and [YouTube](/docs/integrations/youtube) components for built-in renderable integrations.
-- See the [iframe blocking](/docs/frameworks/react/iframe-blocking) pattern for other visible embeds such as calendars and social widgets.
-- Use [`has()`](/docs/frameworks/javascript/api/checking-consent) to conditionally run app code based on consent state.
+Use [custom integrations](/docs/integrations/building-integrations) for a
+vendor without a helper, or an SDK your app already loads. Test every
+integration with the [consent verification guide](/docs/guides/verify-consent).

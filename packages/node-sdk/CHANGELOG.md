@@ -1,4 +1,100 @@
+## @c15t/node-sdk@3.0.0-alpha.10 (alpha)
+
+### Fix upgrade links in the package READMEs
+
+The `@c15t/node-sdk` README now links to the Node.js SDK section of the
+self-host upgrade guide. The `@c15t/scripts` README and npm homepage link to
+the `scripts-to-integrations` codemod. Both used to point at the root
+`/docs/upgrade-v3` guide, which has been removed.
+
+## @c15t/node-sdk@3.0.0-alpha.7 (alpha)
+
+### Verified identity links
+
+`GET /subjects?externalId=` and `GET /consents/check` now count only verified links between a subject and your user ID. A link is verified by an API key, or by an `identityToken` from `createIdentityToken` in `@c15t/node-sdk`, passed to `identify({ externalId, identityToken })` and checked against the new `identityToken.signingKey` option.
+
+- `GET /consents/check` requires an API key, so `consents.check` moves to the node-sdk client created with `apiKey`.
+- Existing links, including those made by v2, stay unverified until relinked.
+- Migration 8 adds `subject.verifiedExternalId`.
+
+## @c15t/node-sdk@3.0.0-alpha.5 (alpha)
+
+### Remove the v2 `jurisdiction` label and `disableGeoLocation`
+
+v3 decides consent from policy rules, so the regulation label v2 derived from a fixed country table (`GDPR`, `CCPA`, `NONE` and so on) is gone from the API.
+
+- `/init` responses and session reports no longer carry `jurisdiction`, so `sessions.onReport` no longer receives it. Read the matched policy from `policyResolution`, or the report's `policy`, `country` and `region`.
+- `@c15t/schema` removes `jurisdictionCodes`, `jurisdictionCodeSchema`, `JurisdictionCode` and `checkJurisdiction`. `@c15t/core` and `c15t` remove the unused `LocationInfo`, `ConsentBannerResponse` and `JurisdictionCode` types.
+- The `disableGeoLocation` manifest option is removed. To show every visitor the same banner, configure one policy rule with `match: { isDefault: true }`; the browser resolves it without a location. To test a region's rule, set the country in the client's `overrides`, for example `overrides: { country: 'US' }`.
+- The `/init` translations schema is now one shape with optional keys. `completeTranslationsSchema`, `partialTranslationsSchema` and the `partial*` section schemas are removed, along with the deprecated `frame` key, which the backend already folds into `consentGate`. `titleDescriptionSchema` now accepts a pair with `title` or `description` missing, so its inferred type has both fields optional.
+- The backend still accepts `jurisdiction` in a save request from a 2.x client and ignores it. Policy snapshot tokens no longer carry the claim, and tokens that still do are accepted.
+- Migration 7 makes `runtimePolicyDecision.jurisdiction` nullable; new decisions store `null` and 2.x rows keep their value. Apply it with `@c15t/cli self-host migrate --apply` before deploying this backend.
+
+## @c15t/node-sdk@3.0.0-alpha.4 (alpha)
+
+### Index experiment attribution and summarise choices per arm
+
+Summarise banner experiments from the backend. Migration `6-experiment-attribution` adds `experimentId`, `experimentArm` and `timeToDecisionMs` columns to `consent`, indexed on `(tenantId, experimentId, experimentArm)`, and `POST /subjects` fills them from `metadata.experiment` and `metadata.timeToDecisionMs` while leaving `metadata` untouched. Values over 128 characters or malformed are dropped rather than failing the save. `GET /experiments/:id/summary` (API key) returns `arms: [{ arm, choices, byAction, bySurface, medianTimeToDecisionMs }]`, choices per arm split by stored `consentAction` (`byAction` always carries `accept_all`, `reject_all`, `opt_out`, `custom` and `unknown`) and `uiSource`, with the median time to decision, filtered by `from`, `to` and `domain`; the response is validated against the new `experimentSummaryOutputSchema` in `@c15t/schema`, and `@c15t/node-sdk` exposes it as `client.experiments.summary(id, { from, to, domain })`. The summary counts choices; the visitors each arm was owed to arrive on the session reports `/init` produces, so an opt-in rate divides the two.
+
+### Replace the Node.js client with `createC15tClient`
+
+`@c15t/node-sdk` has a new client. Create it with `createC15tClient({ baseUrl, apiKey })`. Every method resolves to `{ ok: true, data }` or `{ ok: false, error }` and never rejects, and `error.code` is typed per method. Input is checked before anything is sent, response dates are `Date` objects, and calls retry network errors, timeouts and 408, 429, 500, 502, 503 and 504, honouring `Retry-After`. A client created without `apiKey` has no `subjects.list`, `experiments.summary` or `legalDocuments.publish`. New methods: `manifest()` and `legalDocuments.publish()`. `@c15t/node-sdk/testing` exports `createMockC15tClient`, `ok` and `err`.
+
+`patchSubjectOutputSchema` in `@c15t/schema` now matches what the backend sends: it drops `success` and adds `subject.identityProvider`.
+
+### Breaking changes
+
+- `c15tClient()` and the `C15TClient` class are removed. Use `createC15tClient()`.
+- The client no longer reads `C15T_API_URL`, `C15T_API_TOKEN` or `C15T_DEBUG`. Pass `baseUrl` and `apiKey`.
+- `token` is now `apiKey`, `timeout` is `timeoutMs`, and `retryConfig` is `retry`. `prefix` and `debug` are removed; put the path in `baseUrl` and use `onEvent` for logging.
+- The flat methods (`getSubject`, `checkConsent`, `patchSubject` and the rest) and `client.meta` are removed. Use the namespaced methods and `status()` and `init()`.
+- `subjects.patch` is now `subjects.identify`, and returns `{ subject }` without `success`.
+- `consent.check({ externalId, type: 'a,b' })` is now `consents.check({ externalId, types: ['a', 'b'] })`. `subjects.get` takes `{ types }` the same way.
+- `ResponseContext` and its `unwrap`, `unwrapOr`, `expect` and `map` are replaced by result objects and the `unwrap(result)` helper. The `throw`, `onSuccess` and `onError` call options are removed.
+- `C15TError` and `isC15TError` are now `C15tError` and `isC15tError`.
+- `$fetch`, `fetcher`, `resolveUrl` and `createResponseContext` are no longer exported. Pass `fetch` to the client instead.
+- `createMockClient`, `createMockResponse` and `createMockErrorResponse` are replaced by `createMockC15tClient`, `ok` and `err`.
+
+See [Migrate to v3](https://c15t.com/docs/upgrade-v3#update-the-nodejs-sdk) for the full mapping.
+
+Consent checks reject malformed results or missing requested policy types as `UNEXPECTED_RESPONSE`. Non-serializable request bodies and invalid per-call timers return `INVALID_INPUT`. Timeouts accept integers from 1 to 2147483647 milliseconds; retry delays accept integers from 0 to 2147483647. Invalid client settings throw `C15tConfigurationError`. Unknown stale-policy reasons are exposed as `undefined`.
+
+Reject impossible calendar dates before publishing legal documents or querying experiment summaries. Manifest responses require schema version 2, a string revision and a supported branding value; invalid responses return `UNEXPECTED_RESPONSE`.
+
+## @c15t/node-sdk@3.0.0-alpha.2 (alpha)
+
+### Fix declaration imports for Node16 and NodeNext
+
+Fix declaration imports for TypeScript consumers using Node16 or NodeNext resolution. Preserve explicit JavaScript filenames so exported APIs retain their types without requiring `skipLibCheck`.
+
 # @c15t/node-sdk
+
+## 3.0.0-alpha.1
+
+### Patch Changes
+
+- @c15t/backend@3.0.0-alpha.1
+
+## 3.0.0-alpha.0
+
+### Major Changes
+
+- 4460e3e: This v3 alpha is for internal use only. APIs are unstable, and breaking changes will occur between alpha releases.
+
+  Introduce the c15t umbrella package, shared consent runtime and policy rules, rewritten backend, and new framework and script-tag integrations. Update the CLI, IAB support, DevTools, and shared styles for v3.
+
+  Packages now ship ESM only. Keep related packages on compatible v3 alpha versions.
+
+  Export `defineTheme` and the `Theme` type from the React, Next.js, TanStack Start, and Vue entries so themes can use the same imports as their framework integration.
+
+  Restrict iframe-blocker URL activation to HTTP and HTTPS. Replace backtracking URL and theme parsing expressions, correct the PostHog hostname boundary, and fix CLI layout detection for nested route groups and locale directories.
+
+  Serve a stale consent manifest from the server adapters' in-process cache inside the backend's `stale-while-revalidate` window while one background request revalidates it, instead of blocking every request after `s-maxage` expires; a failed or timed-out revalidation keeps the stale manifest. The backend sends its manifest cache policy as `CDN-Cache-Control` too, so Vercel's CDN forwards it. Add `onBackgroundRevalidate` to the core cache and every server adapter for runtimes that stop detached work after the response.
+
+### Patch Changes
+
+- Updated dependencies [4460e3e]
+  - @c15t/backend@3.0.0-alpha.0
 
 ## 2.3.0
 
@@ -135,7 +231,7 @@
 
 ### Major Changes
 
-- 32617c9: Changelog available at https://c15t.com/changelog/2026-04-14-v2.0.0
+- 32617c9: Changelog available at https://c15t.com/changelog/2.0.0
 
 ### Patch Changes
 

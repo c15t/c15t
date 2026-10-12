@@ -1,0 +1,20 @@
+{
+	"name": "@c15t/doc-snippets-astro",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"check-types": "astro check"
+	},
+	"dependencies": {
+		"@astrojs/node": "^9.5.0",
+		"@astrojs/svelte": "^7.2.0",
+		"@c15t/integrations": "workspace:*",
+		"astro": "^5.16.0",
+		"c15t": "workspace:*",
+		"svelte": "^5.0.0"
+	},
+	"devDependencies": {
+		"@astrojs/check": "^0.9.4",
+		"typescript": "6.0.3"
+	}
+}

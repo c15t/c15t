@@ -1,0 +1,18 @@
+{/* Generated from internals/doc-snippets/nextjs/components/iab-consent.tsx (docs:iab-consent) by scripts/sync-example-docs.ts. Edit the source file. */}
+
+```tsx title="components/iab-consent.tsx"
+'use client';
+
+import {
+	IABProvider,
+	IABConsentBanner,
+	IABConsentDialog,
+} from 'c15t/react/iab';
+
+export const IABConsent = ({ cmpId }: { cmpId: number }) => (
+	<IABProvider cmpId={cmpId}>
+		<IABConsentBanner />
+		<IABConsentDialog />
+	</IABProvider>
+);
+```

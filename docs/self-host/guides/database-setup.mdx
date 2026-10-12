@@ -1,125 +1,265 @@
 ---
-title: Database Setup
-description: Configure a database adapter for your self-hosted c15t backend.
+title: Backend database setup
+description: Connect a self-hosted c15t backend to PostgreSQL, MySQL or SQLite, apply migrations, and upgrade a v2 backend database.
 group: self-host
 ---
 
-The c15t backend requires a database to store consent records, subjects, audit logs, and policies. Five adapters are supported — choose the one that matches your existing stack.
+## Choose a supported connection
 
-## Adapters
+| Database | Configuration | Optional driver |
+| --- | --- | --- |
+| PostgreSQL | `{ dialect: 'postgres', url }` | `@effect/sql-pg` |
+| MySQL | `{ dialect: 'mysql', url }` | `@effect/sql-mysql2` |
+| SQLite | `{ dialect: 'sqlite', filename }` | `@effect/sql-sqlite-node` |
 
-### Kysely
+Install the driver version listed in your backend release's peer dependencies.
+The v3 backend takes `database`, not the old ORM `adapter` configuration.
+Applications already using Effect can supply a compatible SQL client layer.
 
-```ts title="c15t.ts"
-import { c15tInstance } from '@c15t/backend';
-import { kyselyAdapter } from '@c15t/backend/db/adapters/kysely';
-import { Kysely, PostgresDialect } from 'kysely';
-import { Pool } from 'pg';
-
-const db = new Kysely({
-  dialect: new PostgresDialect({
-    pool: new Pool({ connectionString: process.env.DATABASE_URL }),
-  }),
-});
-
-export const c15t = c15tInstance({
-  adapter: kyselyAdapter(db),
-  trustedOrigins: ['https://example.com'],
-});
-```
-
-### Drizzle
-
-```ts title="c15t.ts"
-import { c15tInstance } from '@c15t/backend';
-import { drizzleAdapter } from '@c15t/backend/db/adapters/drizzle';
-import { drizzle } from 'drizzle-orm/node-postgres';
-
-const db = drizzle(process.env.DATABASE_URL);
-
-export const c15t = c15tInstance({
-  adapter: drizzleAdapter(db),
-  trustedOrigins: ['https://example.com'],
-});
-```
-
-### Prisma
-
-```ts title="c15t.ts"
-import { c15tInstance } from '@c15t/backend';
-import { prismaAdapter } from '@c15t/backend/db/adapters/prisma';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
-
-export const c15t = c15tInstance({
-  adapter: prismaAdapter(prisma),
-  trustedOrigins: ['https://example.com'],
-});
-```
-
-### TypeORM
-
-```ts title="c15t.ts"
-import { c15tInstance } from '@c15t/backend';
-import { typeormAdapter } from '@c15t/backend/db/adapters/typeorm';
-import { DataSource } from 'typeorm';
-
-const dataSource = new DataSource({
-  type: 'postgres',
-  url: process.env.DATABASE_URL,
-});
-
-export const c15t = c15tInstance({
-  adapter: typeormAdapter(dataSource),
-  trustedOrigins: ['https://example.com'],
-});
-```
-
-### MongoDB
-
-```ts title="c15t.ts"
-import { c15tInstance } from '@c15t/backend';
-import { mongoAdapter } from '@c15t/backend/db/adapters/mongo';
-import { MongoClient } from 'mongodb';
-
-const client = new MongoClient(process.env.MONGODB_URI);
-
-export const c15t = c15tInstance({
-  adapter: mongoAdapter(client),
-  trustedOrigins: ['https://example.com'],
-});
-```
-
-## Migrations
-
-To create & update the database you can use the migrator which is included in the CLI:
-
-<PackageCommandTabs command="@c15t/cli" />
-
-## Table Prefix
-
-If you share a database with other applications, use `tablePrefix` to namespace the c15t tables:
+## Keep credentials on the server
 
 ```ts
-c15tInstance({
-  adapter: kyselyAdapter(db),
-  tablePrefix: 'c15t_',
-  trustedOrigins: ['https://example.com'],
+import { defineConfig } from '@c15t/backend';
+
+const url = process.env.DATABASE_URL;
+if (!url) throw new Error('Set DATABASE_URL');
+export default defineConfig({ database: { dialect: 'postgres', url } });
+```
+
+This fragment only configures storage. Add origins and policy rules as shown in
+[backend setup](/docs/self-host/quickstart). Never expose the database URL through
+public environment variables or client provider props.
+
+PostgreSQL also supports `schema` for isolating c15t tables. For MySQL, choose the
+database through the connection URL. For SQLite, choose a dedicated durable file.
+An in-memory database is suitable for disposable tests, not retained history.
+
+## Connect through a PostgreSQL pooler
+
+`@effect/sql-pg` caches named prepared statements on each connection. A pooler
+in transaction mode, such as PgBouncer or a provider's pooled connection URL,
+can route the next query to a connection that never prepared the statement, and
+the query fails. Connect directly, or pass a client layer with prepared
+statements turned off:
+
+{/* example: fragment */}
+
+```ts title="c15t-backend.config.ts"
+import { defineConfig } from '@c15t/backend';
+import { PgClient } from '@effect/sql-pg';
+import { Redacted } from 'effect';
+
+const url = process.env.DATABASE_URL;
+if (!url) throw new Error('Set DATABASE_URL');
+export default defineConfig({
+	database: PgClient.layer({
+		url: Redacted.make(url),
+		prepare: false,
+		startupParameters: { timezone: 'UTC' },
+	}),
 });
 ```
 
-This prefixes all table names (e.g. `c15t_subject`, `c15t_consent`, `c15t_audit_log`).
+A client layer bypasses the `schema` option and the UTC session that c15t sets
+on its own connections. To keep c15t's tables in their own schema, add
+`startupOptions: '-c search_path=c15t'` to the layer, and check that your pooler
+forwards startup options.
 
-## Schema Overview
+## Store timestamps in UTC
 
-The backend creates and manages these tables:
+The backend stores every timestamp, including each consent's `givenAt`, as UTC
+in columns without a time zone. Connections built from a `database` config set
+this up themselves and override any time zone in the URL:
 
-| Table | Purpose |
-| --- | --- |
-| `subject` | Consent subjects (users/devices). Tracks identification status and external IDs. |
-| `consent` | Append-only consent records. Stores preferences, jurisdiction, IP, and timestamps. |
-| `domain` | Domain/website configuration for multi-domain setups. |
-| `consent_policy` | Versioned consent policies. |
-| `consent_purpose` | Maps consent purposes to categories. |
-| `audit_log` | Immutable log of all consent-related actions. |
+- PostgreSQL sessions use `timezone=UTC`.
+- MySQL connections set the mysql2 `timezone` option to `Z`.
+- SQLite stores epoch milliseconds, so it has no time zone to set.
+
+A client layer you build yourself needs the same setting. Without it, a server
+outside UTC stores every time shifted by its offset. For `PgClient.layer`, pass
+`startupParameters: { timezone: 'UTC' }`, as in the pooler example. For
+`MysqlClient.layer`, add `timezone=Z` to the connection URL.
+
+A v2 backend writing to the same database stores times in its Node.js process's
+time zone. Run it with `TZ=UTC`, or the two backends read different times from
+the same rows.
+
+### Convert timestamps written outside UTC
+
+Earlier backends stored times in whatever zone their connection used. Once the
+backend reads every timestamp as UTC, rows written in another zone read as
+shifted by that zone's offset, and a retried save can be stored twice because
+its `givenAt` no longer matches. Convert those rows before deploying this
+version if any of these applied to a backend that wrote to the database:
+
+- PostgreSQL, v3: the database session time zone was not UTC. Check with
+  `show timezone;` on a connection made the same way as the backend's.
+- PostgreSQL or MySQL, v2: the Node.js process ran without `TZ=UTC` on a host
+  outside UTC.
+- MySQL, v3: the Node.js process ran outside UTC and the URL did not set
+  `timezone`.
+
+SQLite needs no conversion. The steps below assume every backend used the same
+zone. They cannot fix a database that backends in different zones wrote to,
+because a row does not record which backend wrote it.
+
+A zone with daylight saving time repeats an hour when clocks go back, so a
+stored time inside that hour matches two instants. The script picks one of
+them, and rows saved during the repeated hour can stay an hour off. Check those
+rows against another record of the time, such as request logs, before
+deploying.
+
+1. Stop every backend that writes to the database, v2 and v3.
+2. Back up the database.
+3. Run the script for your database, with `Europe/Berlin` replaced by the zone
+   the backends used.
+4. Deploy this backend version, and start any v2 backend with `TZ=UTC`.
+
+For PostgreSQL, run it with `search_path` set to the `schema` option if you use
+one:
+
+```sql
+begin;
+update "subject" set
+	"createdAt" = ("createdAt" at time zone 'Europe/Berlin') at time zone 'UTC',
+	"updatedAt" = ("updatedAt" at time zone 'Europe/Berlin') at time zone 'UTC';
+update "domain" set
+	"createdAt" = ("createdAt" at time zone 'Europe/Berlin') at time zone 'UTC',
+	"updatedAt" = ("updatedAt" at time zone 'Europe/Berlin') at time zone 'UTC';
+update "consentPolicy" set
+	"effectiveDate" = ("effectiveDate" at time zone 'Europe/Berlin') at time zone 'UTC',
+	"createdAt" = ("createdAt" at time zone 'Europe/Berlin') at time zone 'UTC';
+update "consentPurpose" set
+	"createdAt" = ("createdAt" at time zone 'Europe/Berlin') at time zone 'UTC',
+	"updatedAt" = ("updatedAt" at time zone 'Europe/Berlin') at time zone 'UTC';
+update "runtimePolicyDecision" set
+	"createdAt" = ("createdAt" at time zone 'Europe/Berlin') at time zone 'UTC';
+update "consent" set
+	"givenAt" = ("givenAt" at time zone 'Europe/Berlin') at time zone 'UTC',
+	"validUntil" = ("validUntil" at time zone 'Europe/Berlin') at time zone 'UTC';
+update "auditLog" set
+	"createdAt" = ("createdAt" at time zone 'Europe/Berlin') at time zone 'UTC';
+commit;
+```
+
+A database adopted from the pre-2.0 schema also keeps
+`consentPolicy.expirationDate` and the `consentRecord` table. Convert them in the
+same transaction, before `commit`:
+
+```sql
+update "consentPolicy" set
+	"expirationDate" = ("expirationDate" at time zone 'Europe/Berlin') at time zone 'UTC';
+update "consentRecord" set
+	"createdAt" = ("createdAt" at time zone 'Europe/Berlin') at time zone 'UTC';
+```
+
+For MySQL, `convert_tz` returns `NULL` when the server has no time zone tables.
+Check that `select convert_tz('2026-01-01 12:00:00', 'Europe/Berlin', '+00:00');`
+returns a time before running:
+
+```sql
+start transaction;
+update subject set
+	createdAt = convert_tz(createdAt, 'Europe/Berlin', '+00:00'),
+	updatedAt = convert_tz(updatedAt, 'Europe/Berlin', '+00:00');
+update domain set
+	createdAt = convert_tz(createdAt, 'Europe/Berlin', '+00:00'),
+	updatedAt = convert_tz(updatedAt, 'Europe/Berlin', '+00:00');
+update consentPolicy set
+	effectiveDate = convert_tz(effectiveDate, 'Europe/Berlin', '+00:00'),
+	createdAt = convert_tz(createdAt, 'Europe/Berlin', '+00:00');
+update consentPurpose set
+	createdAt = convert_tz(createdAt, 'Europe/Berlin', '+00:00'),
+	updatedAt = convert_tz(updatedAt, 'Europe/Berlin', '+00:00');
+update runtimePolicyDecision set
+	createdAt = convert_tz(createdAt, 'Europe/Berlin', '+00:00');
+update consent set
+	givenAt = convert_tz(givenAt, 'Europe/Berlin', '+00:00'),
+	validUntil = convert_tz(validUntil, 'Europe/Berlin', '+00:00');
+update auditLog set
+	createdAt = convert_tz(createdAt, 'Europe/Berlin', '+00:00');
+commit;
+```
+
+For a database adopted from the pre-2.0 schema, add these before `commit`:
+
+```sql
+update consentPolicy set
+	expirationDate = convert_tz(expirationDate, 'Europe/Berlin', '+00:00');
+update consentRecord set
+	createdAt = convert_tz(createdAt, 'Europe/Berlin', '+00:00');
+```
+
+Run the conversion once. A second run shifts every row again.
+
+## Apply and verify migrations
+
+```bash
+npx @c15t/cli self-host migrate --config ./c15t-backend.config.ts --plan
+npx @c15t/cli self-host migrate --config ./c15t-backend.config.ts --apply
+```
+
+Back up existing data first and review the plan. The plan also warns about
+schema changes made outside the migrator that the backend depends on, such as a
+`runtimePolicyDecision` table without a unique index on `dedupeKey` alone. The
+migrator does not repair these; each warning includes the statement to run.
+
+Run the app against the same
+database, schema and credentials, or the server can connect to a different,
+unmigrated database. A server that starts has not proven that writes and reads
+work; save a choice and read it back.
+
+## Run migrations from a deployment script
+
+`createMigrator()` owns a connection pool. Plan before applying, stop when
+`blocked` is set, and dispose the pool when the script finishes:
+
+```ts title="scripts/migrate-consent.ts"
+import { createMigrator } from '@c15t/backend';
+
+import config from '../c15t-backend.config';
+
+const migrator = createMigrator(config.database);
+try {
+	const plan = await migrator.plan();
+	if (plan.blocked !== undefined) throw new Error(plan.blocked);
+	console.log(plan);
+	const result = await migrator.apply();
+	if (result.blocked !== undefined) throw new Error(result.blocked);
+	console.log(result);
+} finally {
+	await migrator.dispose();
+}
+```
+
+This script applies the reported migration immediately after planning. Run it as
+an intentional deployment step after reviewing a plan against a restored copy
+of an existing database. The CLI provides an interactive review instead.
+
+`plan()` is read-only. Reports include `adoption`, `pending`, `retained`,
+`blocked`, `applied` and `drift`. `drift` lists schema problems the migrator
+found but does not fix. Adoption recognizes supported older SQL schemas before
+applying numbered migrations. A blocked report is a refusal to migrate an
+unrecognized or unsafe state, not permission to delete the ledger and retry.
+The package's `c15t_migrations` ledger tracks applied migrations.
+
+MySQL DDL is not transactional, so migration steps use checkpoints rather than
+relying on rolling back the whole batch. Keep backups and inspect a failed run
+before retrying. PostgreSQL schema creation belongs to migration; the runtime
+and migration configuration must name the same schema.
+
+## Upgrade a v2 backend
+
+Replace the v2 `adapter` option with `database`. The Drizzle, Prisma, TypeORM
+and Kysely adapters are gone. Keep your PostgreSQL, MySQL or SQLite database and
+point `database` at it with the matching driver. MongoDB has no migration path
+to the v3 backend.
+
+The migrator recognizes the v2 schema, adopts it, and then applies the v3
+migrations. Run the plan against a restored copy of production first. After
+migrating, check a consent write, a subject read and an authenticated
+external-identity lookup. `/status` and `/manifest` do not write, so they do not
+prove that persistence works.
+
+Deploy the v3 backend together with v3 clients; the
+[backend upgrade guide](/docs/self-host/upgrade-v3) explains why.

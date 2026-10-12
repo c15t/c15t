@@ -1,39 +1,46 @@
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+
 import { afterEach, describe, expect, it } from 'vitest';
+
 import { runC15tModeToHostedCodemod } from './mode-c15t-to-hosted';
 
 const createdDirs: string[] = [];
 
-async function createTempProject(
+const createTempProject = async function createTempProject(
 	content: string
 ): Promise<{ rootDir: string; filePath: string }> {
 	const rootDir = await mkdtemp(join(tmpdir(), 'c15t-codemod-'));
 	const filePath = join(rootDir, 'app.tsx');
 	await writeFile(filePath, content, 'utf-8');
 	createdDirs.push(rootDir);
-	return { rootDir, filePath };
-}
+	return { filePath, rootDir };
+};
 
 describe('mode-c15t-to-hosted codemod', () => {
 	afterEach(async () => {
-		for (const dir of createdDirs.splice(0, createdDirs.length)) {
-			await rm(dir, { recursive: true, force: true });
-		}
+		await Array.from(createdDirs.splice(0, createdDirs.length)).reduce(
+			async (previousIteration, dir) => {
+				await previousIteration;
+				await rm(dir, { force: true, recursive: true });
+			},
+			Promise.resolve()
+		);
 	});
 
 	it("transforms mode values from 'c15t' to 'hosted'", async () => {
 		const source = `
-const options = {
+import { createConsentManager } from 'c15t';
+const options = createConsentManager({
 	mode: 'c15t',
 	backendURL: '/api/c15t',
-};`;
+});`;
 		const { rootDir, filePath } = await createTempProject(source);
 
 		const result = await runC15tModeToHostedCodemod({
-			projectRoot: rootDir,
 			dryRun: false,
+			projectRoot: rootDir,
 		});
 
 		const updated = await readFile(filePath, 'utf-8');
@@ -46,14 +53,15 @@ const options = {
 
 	it('supports dry-run without modifying files', async () => {
 		const source = `
-const options = {
+import { createConsentManager } from 'c15t';
+const options = createConsentManager({
 	mode: 'c15t',
-};`;
+});`;
 		const { rootDir, filePath } = await createTempProject(source);
 
 		const result = await runC15tModeToHostedCodemod({
-			projectRoot: rootDir,
 			dryRun: true,
+			projectRoot: rootDir,
 		});
 
 		const unchanged = await readFile(filePath, 'utf-8');
@@ -72,8 +80,8 @@ const options = {
 		const { rootDir } = await createTempProject(source);
 
 		const result = await runC15tModeToHostedCodemod({
-			projectRoot: rootDir,
 			dryRun: false,
+			projectRoot: rootDir,
 		});
 
 		expect(result.changedFiles).toHaveLength(0);
@@ -89,8 +97,8 @@ const options = {
 		const { rootDir, filePath } = await createTempProject(source);
 
 		const result = await runC15tModeToHostedCodemod({
-			projectRoot: rootDir,
 			dryRun: false,
+			projectRoot: rootDir,
 		});
 		const updated = await readFile(filePath, 'utf-8');
 
@@ -98,5 +106,22 @@ const options = {
 		expect(result.errors).toHaveLength(0);
 		expect(updated).toContain("const label = 'c15t'");
 		expect(updated).toContain("backendURL: '/api/c15t'");
+	});
+
+	it('only changes options passed to imported c15t APIs', async () => {
+		const { rootDir, filePath } = await createTempProject(`
+import { ConsentManagerProvider as Provider } from '@c15t/react';
+const options = { mode: 'c15t' };
+const unrelated = { mode: 'c15t' };
+const App = () => <Provider options={options} />;
+`);
+		const result = await runC15tModeToHostedCodemod({
+			dryRun: false,
+			projectRoot: rootDir,
+		});
+		const updated = await readFile(filePath, 'utf8');
+		expect(result.errors).toEqual([]);
+		expect(updated).toContain("options = { mode: 'hosted' }");
+		expect(updated).toContain("unrelated = { mode: 'c15t' }");
 	});
 });

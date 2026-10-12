@@ -1,134 +1,66 @@
 ---
 title: Pirsch
-description: Privacy-friendly, cookieless analytics loaded with Pirsch's fixed script id and identification-code attributes.
-group: integrations
+description: Load Pirsch Analytics only after measurement consent with the c15t pirsch helper, keep custom event bindings working, and check it in DevTools.
+seoTitle: Pirsch cookie consent with c15t
+seoDescription: Load Pirsch Analytics only with measurement consent. The c15t pirsch helper keeps pa.js and pirsch-extended.js off the page until then.
 icon: pirsch
+group: integrations
 ---
 
-[Pirsch](https://pirsch.io) provides privacy-friendly, cookieless web analytics. The official embed loads a single deferred script with an `id` of `pianjs` and your `data-code` identification code. c15t preserves that script id so the Pirsch loader can find its own element and read the configured attributes.
+The c15t `pirsch` helper keeps Pirsch Analytics off the page until `measurement`
+has consent. Until then, c15t loads neither `pa.js` nor `pirsch-extended.js`.
+The helper sends no consent signal to Pirsch. If the visitor withdraws consent,
+c15t removes the script element. By default, c15t also reloads the page.
 
-## Integrate with c15t
+## Configure Pirsch
 
-<Tabs items={['React', 'Next.js', 'JavaScript']}>
-  <Tab value="React">
-    ```tsx
-    import { type ReactNode } from 'react';
-    import { ConsentManagerProvider } from '@c15t/react';
-    import { pirsch } from '@c15t/scripts/pirsch';
+Copy the identification code from your Pirsch installation snippet. The helper
+passes it to the script as `data-code`.
 
-    const scripts = [
-      pirsch({
-        identificationCode: 'YOUR_IDENTIFICATION_CODE',
-      }),
-    ];
+<CommandTabs command="@c15t/integrations" mode="install" />
 
-    export function ConsentProvider({ children }: { children: ReactNode }) {
-      return (
-        <ConsentManagerProvider
-          options={{
-            mode: 'hosted',
-            backendURL: 'https://your-instance.c15t.dev',
-            scripts,
-          }}
-        >
-          {children}
-        </ConsentManagerProvider>
-      );
-    }
-    ```
-  </Tab>
+```ts title="src/consent-scripts.ts"
+import { pirsch } from '@c15t/integrations/pirsch';
 
-  <Tab value="Next.js">
-    ```tsx
-    'use client';
-
-    import { type ReactNode } from 'react';
-    import { ConsentManagerProvider } from '@c15t/nextjs';
-    import { pirsch } from '@c15t/scripts/pirsch';
-
-    const scripts = [
-      pirsch({
-        identificationCode: 'YOUR_IDENTIFICATION_CODE',
-      }),
-    ];
-
-    export function ConsentProvider({ children }: { children: ReactNode }) {
-      return (
-        <ConsentManagerProvider
-          options={{
-            mode: 'hosted',
-            backendURL: '/api/c15t',
-            scripts,
-          }}
-        >
-          {children}
-        </ConsentManagerProvider>
-      );
-    }
-    ```
-  </Tab>
-
-  <Tab value="JavaScript">
-    ```ts
-    import { getOrCreateConsentRuntime } from 'c15t';
-    import { pirsch } from '@c15t/scripts/pirsch';
-
-    getOrCreateConsentRuntime({
-      mode: 'hosted',
-      backendURL: 'https://your-instance.c15t.dev',
-      scripts: [
-        pirsch({
-          identificationCode: 'YOUR_IDENTIFICATION_CODE',
-        }),
-      ],
-    });
-    ```
-  </Tab>
-</Tabs>
-
-## How c15t loads it
-
-- **Category:** `measurement` (Analytics)
-- **Loads when:** measurement consent is granted
-- **On revocation:** unloaded — c15t removes the script element from the DOM. Pirsch is cookieless, so no client-side cookies need clearing.
-
-The helper maps Pirsch's core script attributes:
-
-```ts
-pirsch({
-  identificationCode: 'YOUR_IDENTIFICATION_CODE',
-  domain: 'rollup.example.com:ROLLUP_IDENTIFICATION_CODE',
-  dev: 'example.com',
-  hitEndpoint: 'https://analytics.example.com/hit',
-  eventEndpoint: 'https://analytics.example.com/event',
-  disablePageViews: true,
-})
+export const scripts = [
+	pirsch({ identificationCode: 'YOUR_IDENTIFICATION_CODE' }),
+];
 ```
 
-Use the extended loader when you need Pirsch's extended script variant:
+<include src="../shared/integrations/register-scripts.mdx" />
 
-```ts
-pirsch({
-  identificationCode: 'YOUR_IDENTIFICATION_CODE',
-  extended: true,
-})
-```
+## Options
 
-To proxy or self-host the loader, pass a custom URL:
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `identificationCode` | Required | Set as `data-code`. Empty or whitespace-only values log an error and the script does not load. |
+| `domain` | None | Extra dashboard domains, each optionally as `domain:CODE`. An array becomes a comma-separated `data-domain`. |
+| `dev` | None | Hostname Pirsch reports instead of localhost, set as `data-dev`. Use it to test locally. |
+| `hitEndpoint` | None | Page view endpoint, set as `data-hit-endpoint`. |
+| `eventEndpoint` | None | Event endpoint, set as `data-event-endpoint`. |
+| `disablePageViews` | None | `true` adds `data-disable-page-views` and stops automatic page views. |
+| `extended` | None | `true` loads `https://api.pirsch.io/pirsch-extended.js` instead of `pa.js`. |
+| `scriptUrl` | `https://api.pirsch.io/pa.js` | Loader URL override. Blank values fall back to the default. |
 
-```ts
-pirsch({
-  identificationCode: 'YOUR_IDENTIFICATION_CODE',
-  scriptUrl: 'https://analytics.example.com/pa.js',
-})
-```
+Pirsch finds its script element by ID, so the helper sets the element ID to
+`pianjs`, or to `pirschextendedjs` with `extended`.
 
-## Types
+## Loading and revocation
 
-### PirschOptions
+`pirsch` uses the `measurement` category. The script loads only while
+measurement is allowed. Pirsch starts its custom event bindings from a
+`DOMContentLoaded` listener, which has usually fired by the time a visitor
+allows measurement. When the script loads on an already parsed page, the
+helper calls `window.pirschInit()` so those bindings still start.
 
-<AutoTypeTable path="./packages/scripts/src/vendors/analytics/pirsch.ts" name="PirschOptions" />
+On revocation the helper removes the script element and calls no Pirsch API.
 
-### Script
+## Verify Pirsch
 
-<AutoTypeTable path="./packages/core/src/libs/script-loader/types.ts" name="Script" />
+After you allow measurement, the `pa.js` request appears and the `#pianjs`
+script element carries your `data-code`. Allow measurement after the page has
+finished loading, then trigger a custom event and check that its request
+appears. If your code calls `window.pirsch` directly, check measurement
+permission before each call.
+
+<include src="../shared/integrations/vendor-revocation-and-verify.mdx" />

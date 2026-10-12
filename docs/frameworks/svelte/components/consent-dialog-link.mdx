@@ -1,0 +1,20 @@
+---
+title: ConsentDialogLink
+description: Let visitors reopen c15t preferences from a Svelte footer with ConsentDialogLink, an unstyled button that renders only when the policy offers preferences.
+group: frameworks
+---
+
+## Reopen preferences from your footer
+
+`ConsentDialogLink` is an unstyled button that opens the preference dialog.
+Put it where your site keeps its legal links, so preferences stay reachable
+after the banner closes:
+
+<include src="../../../shared/examples/svelte/app.mdx" />
+
+It needs `ConsentDialog` mounted in the same provider. Inside a
+`ConsentGate` placeholder it gives visitors a way to allow a blocked embed:
+
+<include src="../../../shared/examples/svelte/youtube-embed.mdx" />
+
+<include src="../../../shared/svelte/components/consent-dialog-link.mdx" />

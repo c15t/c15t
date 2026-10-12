@@ -1,0 +1,4 @@
+.nuxt
+.output
+dist
+.env

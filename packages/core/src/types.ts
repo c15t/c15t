@@ -1,0 +1,1030 @@
+import type {
+	ConsentJourneyScope,
+	InitOutput,
+	GlobalVendorList,
+	LocationResponse,
+	NonIABVendor,
+	PolicyResolution,
+	PolicyScopeMode,
+	ResolvedPolicyRule,
+	TranslationsResponse,
+	Vendor,
+} from '@c15t/schema/types';
+import type { Translations } from '@c15t/translations';
+/**
+ * Kernel public types.
+ *
+ * These are the only types consumers see. Internal implementation types
+ * (listener sets, pending writes, timers, the staged draft) stay
+ * un-exported.
+ *
+ * The consent model has one explicit-choice record and one derived
+ * effective-permission map. They are different facts: only accept, reject
+ * and save create a choice; permissions are derived from that choice, the
+ * active policy, expiry, scope and privacy signals. Draft values never
+ * establish processing permissions.
+ */
+
+import type {
+	ConsentSubject,
+	EvaluationPolicy,
+	ExplicitChoice,
+	NoticeDismissal,
+	OptionalConsentCategory,
+	PromptReason,
+	PromptRequirement,
+	RestrictionReason,
+} from './consent-record/types';
+import type { RecordIssue } from './consent-record/validation';
+import type { AllConsentNames } from './consent/consent-types';
+import type { ExperimentAssignment, ExperimentGate } from './libs/experiment';
+import type { HasCondition } from './libs/has';
+import type { VendorDetails } from './libs/script-loader/types';
+import type { PublisherRestriction } from './options/iab-tcf';
+
+// Re-export schema types that consumers need so they don't have to
+// import from @c15t/schema directly for routine work.
+export type {
+	GlobalVendorList,
+	LocationResponse,
+	NonIABVendor,
+	PolicyResolution,
+	PolicyScopeMode,
+	ResolvedPolicyRule,
+	TranslationsResponse,
+	Vendor,
+};
+
+export type {
+	ConsentSubject,
+	EvaluationPolicy,
+	ExplicitChoice,
+	NoticeDismissal,
+	OptionalConsentCategory,
+	PromptReason,
+	PromptRequirement,
+	RecordIssue,
+	RestrictionReason,
+};
+
+/**
+ * Brand palette served by `/init` (or chosen offline). Drives default
+ * UI theme but has no effect on consent semantics.
+ */
+export type KernelBranding = 'c15t' | 'consent' | 'inth';
+
+/**
+ * Who runs the backend that served `/init`: inth's hosted platform or a
+ * site's own `@c15t/backend`. Reported, not verified, and independent of
+ * branding.
+ */
+export type KernelHosting = 'inth' | 'self-hosted';
+
+/**
+ * Permission model the runtime enforces, derived from the effective policy
+ * rule and IAB enablement.
+ * - `opt-in`  — optional categories are denied until a valid explicit grant
+ * - `opt-out` — optional categories are allowed until denied
+ * - `iab`     — an IAB rule with the IAB module enabled
+ *
+ * The kernel always resolves a model because every non-matched resolution uses the
+ * safe opt-in fallback rule.
+ */
+export type KernelModel = 'opt-in' | 'opt-out' | 'iab' | 'none';
+
+/**
+ * Consent model alias used by UI adapters.
+ */
+export type Model = KernelModel;
+
+/**
+ * Which UI surface the adapter should render, if any. Derived from the
+ * prompt requirement; adapters may set
+ * it to open or close a surface.
+ */
+export type KernelActiveUI = 'none' | 'banner' | 'dialog' | null;
+
+/**
+ * Surface a save is attributed to. Defaults to the snapshot's `activeUI`;
+ * a host passes `'widget'` for an inline preference center that is not a
+ * kernel-managed surface.
+ */
+export type SaveUISource = KernelActiveUI | 'widget';
+
+/** Prompt surfaces whose first appearance the kernel timestamps. */
+export type PromptSurface = 'banner' | 'dialog';
+
+/**
+ * Active UI surface once the kernel has resolved (never `null`).
+ */
+export type ActiveUI = 'none' | 'banner' | 'dialog';
+
+/**
+ * Boolean map over every category. On the snapshot this is the
+ * effective-permission map gates consume.
+ */
+export type ConsentState = Record<AllConsentNames, boolean>;
+
+/**
+ * Geographic + language + GPC overrides that affect policy evaluation.
+ * `gpc` is the test/developer override; the detected browser signal is
+ * carried separately in {@link KernelPrivacySignals}.
+ */
+export interface KernelOverrides {
+	country?: string;
+	region?: string;
+	language?: string;
+	gpc?: boolean;
+}
+
+/**
+ * Privacy signals the kernel knows about.
+ */
+export interface KernelPrivacySignals {
+	readonly gpc: {
+		/**
+		 * Detected user-agent signal: `navigator.globalPrivacyControl === true`
+		 * in the browser or `Sec-GPC: 1` on the request.
+		 */
+		readonly detected: boolean;
+		/** Explicit override from {@link KernelOverrides.gpc}, if any. */
+		readonly override: boolean | undefined;
+		/** Signal the evaluator honors: the override when set, else detection. */
+		readonly active: boolean;
+	};
+}
+
+/**
+ * User identification attached to consent records.
+ * External ID only — no PII beyond what the consumer opts in.
+ */
+export interface KernelUser {
+	externalId: string;
+	externalIdType?: string;
+	identityProvider?: string;
+	/**
+	 * Signed proof of `externalId`, minted by your server with
+	 * `createIdentityToken` from `@c15t/node-sdk`. The backend counts the
+	 * link in reads by external id only when it verifies. Short-lived: pass a
+	 * fresh one on each page load rather than storing it.
+	 *
+	 * A `user` passed at creation travels only with saves, and a save links
+	 * only a subject it creates. Call `identify()` to link a subject that
+	 * already exists.
+	 */
+	identityToken?: string;
+	properties?: Record<string, string | number | boolean>;
+}
+
+/**
+ * Translation bundle carried on the snapshot. Matches the `translations`
+ * field of the `/init` response — a single resolved language + payload.
+ */
+export interface KernelTranslations {
+	language: string;
+	translations: TranslationsResponse;
+}
+
+/**
+ * IAB TCF state, populated when the `/init` response carries a GVL and
+ * the kernel is running in `model === 'iab'`. Mutations go through
+ * `kernel.set.iab(patch)` — the IAB module is the primary writer. TC
+ * authority (validity, expiry) is owned by the IAB module; the kernel never
+ * derives category authority from it.
+ */
+export interface KernelIABAuthority {
+	/** Validated TC string from an explicit IAB confirmation or stored receipt. */
+	tcString: string;
+	/** Original confirmation clock, never renewed by hydration. */
+	confirmedAt: number;
+	/** Absolute validity deadline in epoch milliseconds. */
+	expiresAt: number;
+	/** Existing choice-v1 fingerprint of the policy at confirmation. */
+	choiceFingerprint: string;
+	vendorConsents: Record<string, boolean>;
+	vendorLegitimateInterests: Record<string, boolean>;
+	purposeConsents: Record<number, boolean>;
+	purposeLegitimateInterests: Record<number, boolean>;
+	specialFeatureOptIns: Record<number, boolean>;
+	/**
+	 * Publisher restrictions decoded from `tcString`. IAB gates apply them to
+	 * the target's `vendorId`. Absent means none.
+	 */
+	publisherRestrictions?: PublisherRestriction[];
+}
+
+export interface KernelIABState {
+	/** Confirmed authority installed by the IAB addon after TC validation. */
+	authority: KernelIABAuthority | null;
+	/** Whether IAB mode is active. False even when fields are populated
+	 * if the consumer has explicitly disabled IAB. */
+	enabled: boolean;
+	/** Global Vendor List (IAB-registered vendors + purposes). */
+	gvl: GlobalVendorList | null;
+	/** Public list deferred until the IAB runtime needs it. */
+	gvlReference?: InitOutput['gvlReference'];
+	/** Non-IAB vendors declared by the publisher. */
+	customVendors: NonIABVendor[];
+	/** CMP ID registered with IAB Europe. */
+	cmpId: number | null;
+	/** Per-vendor consent (vendorId → boolean). */
+	vendorConsents: Record<string, boolean>;
+	/** Per-vendor legitimate interest. */
+	vendorLegitimateInterests: Record<string, boolean>;
+	/** Per-purpose consent (purposeId 1–11 → boolean). */
+	purposeConsents: Record<number, boolean>;
+	/** Per-purpose legitimate interest. */
+	purposeLegitimateInterests: Record<number, boolean>;
+	/** Special features (1 = geolocation, 2 = device ID). */
+	specialFeatureOptIns: Record<number, boolean>;
+	/** Latest TC string, set after `save()` encodes one. */
+	tcString: string | null;
+	/**
+	 * Publisher restrictions configured on the CMP. Preference UIs list each
+	 * vendor under the legal basis these leave it. Gates enforce the ones in
+	 * the confirmed `authority`, not these.
+	 */
+	publisherRestrictions?: PublisherRestriction[];
+}
+
+/**
+ * Where a declared vendor came from. Presentation fields follow
+ * `config` over `manifest` over `script`; a `script` source has the slug,
+ * the owning integration's category and whatever `vendorDetails` the
+ * integration carries.
+ */
+export type VendorSource = 'config' | 'manifest' | 'script';
+
+/**
+ * A vendor after merging every declaration source. `presentable` is
+ * `true` when the vendor carries a name and a privacy policy URL, which
+ * is what a preference surface needs to list it.
+ */
+export type ResolvedVendor = Pick<Vendor, 'id' | 'category'> &
+	Partial<Omit<Vendor, 'id' | 'category'>> & {
+		source: VendorSource;
+		presentable: boolean;
+		/**
+		 * Condition of the scripts or rules that also name this slug, kept on a
+		 * declared entry so a later list that drops the vendor leaves a
+		 * script-sourced fallback instead of nothing.
+		 */
+		ownerCategory?: HasCondition<AllConsentNames>;
+		/**
+		 * `vendorDetails` of those scripts, kept beside `ownerCategory` so the
+		 * script-sourced fallback is still listed by name.
+		 */
+		ownerDetails?: VendorDetails;
+		/**
+		 * The lower-priority declaration this entry replaced, kept so removing
+		 * this entry's source restores it: a config entry remembers the backend
+		 * copy of the same vendor.
+		 */
+		shadowed?: ResolvedVendor;
+	};
+
+/**
+ * Vendor declarations the kernel knows about. Presentation data only:
+ * declaring a vendor never grants or denies anything.
+ */
+export interface KernelVendorsState {
+	readonly declared: readonly ResolvedVendor[];
+	/** Version label of the declared list, for display and audit. */
+	readonly listVersion: string | null;
+}
+
+/**
+ * Vendors the subject turned off. A denial list keeps storage empty in the
+ * common case and decodes without the vendor list. It has no policy basis
+ * and does not expire with the category choice: a denial is protective and
+ * stays until the subject changes it or a bulk action clears it.
+ */
+export interface VendorChoice {
+	readonly version: 1;
+	/** Epoch milliseconds when the vendor grants were last confirmed. */
+	readonly confirmedAt: number;
+	/**
+	 * Sorted, de-duplicated ids of denied vendors. Empty once every denial
+	 * was lifted; the record keeps its time so a newer "nothing denied"
+	 * decision still wins a merge against an older denial. `null` on the
+	 * snapshot means no vendor decision was ever made.
+	 */
+	readonly denied: readonly string[];
+}
+
+/**
+ * Records a hydration boundary can apply without creating a choice.
+ *
+ * Semantics per key: omitted preserves the current value, an explicit
+ * `null` (or empty array) clears it. Every record is validated against
+ * `now` before anything is applied; an invalid input rejects the whole
+ * call.
+ */
+export interface HydrationRecords {
+	choice?: ExplicitChoice | null;
+	subject?: ConsentSubject | null;
+	noticeDismissal?: NoticeDismissal | null;
+	/** Vendors the subject turned off. `null` clears the denial list. */
+	vendorChoice?: VendorChoice | null;
+	/** Evaluation time in epoch milliseconds. Defaults to `Date.now()`. */
+	now?: number;
+}
+
+/** Result of applying stored records to a kernel. */
+export type HydrationResult =
+	| { ok: true; changed: boolean }
+	| { ok: false; issues: RecordIssue[] };
+
+/**
+ * The snapshot returned by `getSnapshot()` and passed to subscribers.
+ * Frozen for cheap reference-equality checks; adapters can use `===` to
+ * skip work. Derived fields keep their previous reference when their
+ * value did not change.
+ */
+export interface ConsentSnapshot {
+	/** Volatile external CMP authority, when configured. Never persisted as a receipt. */
+	readonly externalPermissions?: Readonly<ConsentState>;
+	/** Configured and discovered categories. Null uses the full policy scope. */
+	readonly consentCategories: readonly AllConsentNames[] | null;
+	// -- Consent model -------------------------------------------------------
+	/** Latest explicit per-category receipts. Only accept, reject and save write it. */
+	readonly explicitChoice: Readonly<ExplicitChoice> | null;
+	/** Effective permissions for script, iframe, network and Consent Mode gates. */
+	readonly effectivePermissions: Readonly<ConsentState>;
+	/** Interaction the active policy still requires. */
+	readonly promptRequirement: Readonly<PromptRequirement>;
+	/** Local record that the current notice was dismissed. */
+	readonly noticeDismissal: Readonly<NoticeDismissal> | null;
+	/** Detected and overridden privacy signals. */
+	readonly privacySignals: KernelPrivacySignals;
+	/** Policy resolution outcome. `policy` is `null` for every non-matched status. */
+	readonly resolution: Readonly<PolicyResolution>;
+	/** Rule the evaluator uses: the matched rule or the safe opt-in fallback. */
+	readonly policyRule: Readonly<ResolvedPolicyRule>;
+	/** Categories restricted by a denial, strict scope or a live GPC signal. */
+	readonly restrictions: Readonly<
+		Partial<Record<OptionalConsentCategory, readonly RestrictionReason[]>>
+	>;
+	/** Earliest future time (epoch ms) that can change permissions or the prompt. */
+	readonly nextDeadline: number | null;
+	/** Subject identifiers, carried once. */
+	readonly subject: Readonly<ConsentSubject> | null;
+	/** Epoch milliseconds of the last evaluation. */
+	readonly evaluatedAt: number;
+	/** Validated policy projection the evaluator consumed. Devtools and gate-time re-evaluation only. */
+	readonly evaluationPolicy: Readonly<EvaluationPolicy>;
+
+	// -- Context -------------------------------------------------------------
+	readonly overrides: Readonly<KernelOverrides>;
+	readonly user: Readonly<KernelUser> | null;
+	/** Monotonic revision, bumps on every mutation. */
+	readonly revision: number;
+
+	// -- Init-response derived state -----------------------------------------
+	/** Geographic context reported by the backend. */
+	readonly location: Readonly<LocationResponse> | null;
+	/** Resolved translation bundle. */
+	readonly translations: Readonly<KernelTranslations> | null;
+	/** Branding identifier. */
+	readonly branding: KernelBranding | null;
+	/**
+	 * Who runs the backend, as `/init` reported it. `null` until init
+	 * resolves, and for transports or older backends that do not say.
+	 */
+	readonly hosting: KernelHosting | null;
+	/** Signed token for write-time consistency — sent back on save. */
+	readonly policySnapshotToken: string | null;
+
+	// -- Derived from policy rule + iab.enabled -------------------------------
+	/** Effective consent model. */
+	readonly model: KernelModel;
+	/** Which UI surface should render, if any. */
+	readonly activeUI: KernelActiveUI;
+	/**
+	 * `true` while the policy in the snapshot is a placeholder awaiting the
+	 * transport's init resolution. While provisional, `activeUI` stays
+	 * `'none'`. A failed init also keeps the first layer hidden.
+	 */
+	readonly policyPending: boolean;
+	/**
+	 * Epoch milliseconds of the first time each prompt surface became
+	 * visible in this kernel's lifetime, or `null` while it never has. The
+	 * event bus does not replay `surface:shown` to late subscribers; read
+	 * this to learn about an impression that happened before subscribing.
+	 */
+	readonly surfaceShownAt: Readonly<Record<PromptSurface, number | null>>;
+	/**
+	 * The presentation experiment arm this visitor runs, or `null` when no
+	 * experiment is configured, the arm is not assigned yet, or the policy
+	 * rejects it. Impressions and choices carry it once the banner has shown
+	 * it in this page, and the backend saves it as `metadata.experiment`.
+	 */
+	readonly experiment: Readonly<ExperimentAssignment> | null;
+	/**
+	 * Built-in experiment assignment has not run yet. The prompt stays
+	 * hidden until it has, so the visitor never sees the base banner swap
+	 * for their arm.
+	 */
+	readonly experimentPending: boolean;
+
+	// -- IAB passthrough (null when IAB not enabled) -------------------------
+	readonly iab: Readonly<KernelIABState> | null;
+
+	// -- Vendor-level consent outside IAB ------------------------------------
+	/** Declared vendors, or `null` when none is declared. */
+	readonly vendors: Readonly<KernelVendorsState> | null;
+	/** Vendors the subject turned off, or `null` when none is denied. */
+	readonly vendorChoice: Readonly<VendorChoice> | null;
+}
+
+/**
+ * Configuration accepted by `createConsentKernel()`. Pure data — no
+ * functions run at construction. A transport, if provided, is held as a
+ * handle and only invoked when the corresponding command fires.
+ */
+export interface KernelConfig {
+	/** External CMP authority. An empty object starts with optional categories denied. */
+	initialExternalPermissions?: Partial<ConsentState>;
+	/**
+	 * Categories to offer alongside discovered categories, intersected with policy scope.
+	 * Uses the full policy scope when neither source supplies categories.
+	 */
+	consentCategories?: readonly AllConsentNames[];
+	/** Categories discovered before construction, including during SSR. */
+	inferredConsentCategories?: readonly AllConsentNames[];
+	/**
+	 * Evaluation clock in epoch milliseconds. A server render passes the
+	 * request time so the client can seed the same value and produce the same
+	 * initial snapshot. Defaults to `initialRecords.now`, then `Date.now()`.
+	 */
+	now?: number;
+	/** Validated stored records, usually read from the request cookie header. */
+	initialRecords?: HydrationRecords;
+	/** Policy resolution already computed by a producer or a server prefetch. */
+	initialPolicyResolution?: PolicyResolution;
+	/** Detected privacy signals (for example `Sec-GPC: 1` on the request). */
+	initialPrivacySignals?: { gpc?: boolean };
+	/**
+	 * Seeds only the staged draft a no-input `save()` confirms. It
+	 * never creates a choice or changes permissions.
+	 */
+	initialDraft?: Partial<ConsentState>;
+	/** Initial geographic / language / GPC context. */
+	initialOverrides?: KernelOverrides;
+	/** Initial identified user, if known at construction. */
+	initialUser?: KernelUser;
+	/** Presentation experiment arm already assigned (a host-resolved variant). */
+	initialExperiment?: ExperimentAssignment;
+	/**
+	 * Hold the prompt until `set.experiment()` assigns the arm. Set for
+	 * built-in assignment, which only runs in the browser.
+	 */
+	initialExperimentPending?: boolean;
+	/** Initial translation bundle (e.g. from prefetch). */
+	initialTranslations?: KernelTranslations;
+	/**
+	 * Message overrides declared in code, keyed by language, usually the
+	 * app's `i18n.messages`. The kernel applies the overrides for the active
+	 * language over `initialTranslations` and over every init response, so a
+	 * backend or manifest supplies the base copy and these keys win.
+	 */
+	translationOverrides?: Readonly<
+		Record<string, Partial<Translations> | undefined>
+	>;
+	/** Initial location (e.g. from prefetch). */
+	initialLocation?: LocationResponse;
+	/** Initial branding. */
+	initialBranding?: KernelBranding;
+	/** Initial backend hosting (e.g. from prefetch). */
+	initialHosting?: KernelHosting;
+	/**
+	 * Marks the policy as pending transport initialization.
+	 * Suppresses `activeUI` until init completes.
+	 *
+	 * `init()` marks the kernel live before `transport.init` resolves, so a
+	 * kernel built without an initial policy resolution shows the fallback
+	 * banner and records its impression (`surface:shown`) at once. Headless
+	 * callers that wait for the transport's policy should pass `true` so no
+	 * impression is recorded before the policy arrives.
+	 */
+	initialPolicyPending?: boolean;
+	/**
+	 * Retry policy for failed transport initialization. The first call is
+	 * attempt 1. Defaults to 5 total attempts, a 1,000 ms base delay, and a
+	 * 30,000 ms cap with exponential backoff and jitter. Set to `false` to
+	 * disable background retries.
+	 */
+	initRetry?:
+		| {
+				/** Total attempts including the initial call. Defaults to 5. */
+				maxAttempts?: number;
+				/** Initial backoff delay in milliseconds. Defaults to 1,000. */
+				baseDelayMs?: number;
+				/** Maximum backoff delay in milliseconds. Defaults to 30,000. */
+				maxDelayMs?: number;
+		  }
+		| false;
+	/** Initial policy decision. */
+
+	/** Initial policy snapshot token. */
+	initialPolicySnapshotToken?: string;
+	/** Initial IAB slice. */
+	initialIab?: Partial<KernelIABState>;
+	/** Vendors declared in code, already resolved. Presentation data only. */
+	initialVendors?: KernelVendorsState;
+	/**
+	 * Transport that carries out async commands (init, save, identify).
+	 * Optional — without a transport, commands run as no-ops and return
+	 * minimal success results.
+	 */
+	transport?: KernelTransport;
+}
+
+/**
+ * Context passed to `transport.init()`.
+ */
+export interface InitContext {
+	overrides: Readonly<KernelOverrides>;
+	user: Readonly<KernelUser> | null;
+	/**
+	 * The banner-experiment arm the visitor runs, set only while they have
+	 * no stored choice. Transports send it with the request (`x-c15t-experiment`)
+	 * or put it on the session report, so the backend can count the visitors
+	 * each arm's banner was owed to.
+	 */
+	experiment?: { id: string; arm: string };
+	/**
+	 * The consent journey this page load belongs to, set by the browser
+	 * runtime. The hosted transport sends it as query parameters on
+	 * `GET /init` (`journey`, `journeyScope`, `stored`) so the
+	 * backend's session report can be linked to the save that follows.
+	 */
+	journey?: KernelJourney;
+}
+
+/**
+ * A consent journey: a random id the browser runtime creates per page load
+ * (or per tab), which links an init to the save that follows. Not the
+ * subject id, and never written to a cookie.
+ */
+export interface KernelJourney {
+	/** A random UUID. */
+	readonly id: string;
+	/** `page` lives for one page load; `tab` for the tab while a prompt is due. */
+	readonly scope: ConsentJourneyScope;
+	/** Whether a choice or notice dismissal was stored when the journey started. */
+	readonly storedChoice: boolean;
+}
+
+/**
+ * Response from `transport.init()`. Any field may be omitted; omitted
+ * fields leave the current snapshot value alone.
+ */
+export interface InitResponse {
+	/** Geographic context the transport resolved (e.g. from IP lookup). */
+	resolvedOverrides?: KernelOverrides;
+	/** Detected privacy signals, for example from the `Sec-GPC` header. */
+	resolvedPrivacySignals?: { gpc?: boolean };
+	/**
+	 * Raw `policyResolution` wire value. Read with the strict schema reader;
+	 * anything the client cannot represent fails safely. Missing policy
+	 * contracts fail with `invalid-payload`.
+	 */
+	policyResolution?: unknown;
+	/** Server-mapped receipts, applied through the hydration boundary. */
+	records?: HydrationRecords;
+	/** Server-side subject ID, if the user already has one. */
+	subjectId?: string;
+
+	/** Geographic context reported by the transport (country + region). */
+	location?: LocationResponse;
+	/** Resolved translation bundle. */
+	translations?: KernelTranslations;
+	/** Branding preference. */
+	branding?: KernelBranding;
+	/** Who runs the backend that answered. */
+	hosting?: KernelHosting;
+	/** Signed token for write-time consistency. Sent back on save. */
+	policySnapshotToken?: string;
+
+	/** Global Vendor List. `null` means the server disabled IAB for this request. */
+	gvl?: GlobalVendorList | null;
+	gvlReference?: InitOutput['gvlReference'];
+	/** Non-IAB vendors configured on the backend. */
+	customVendors?: NonIABVendor[];
+	/** CMP ID registered with IAB Europe. */
+	cmpId?: number;
+	/** Vendors the backend declares for vendor-level consent outside IAB. */
+	vendors?: Vendor[];
+	/** Version label of the backend's vendor list. */
+	vendorListVersion?: string;
+}
+
+/** Categories one save confirmed, with the single captured action time. */
+export interface ConfirmedCoverage {
+	categories: Readonly<Partial<Record<OptionalConsentCategory, boolean>>>;
+	/** Epoch milliseconds captured once, before any yield or network call. */
+	actionAt: number;
+}
+
+/**
+ * Payload passed to `transport.save()`. Built once per explicit action and
+ * reused unchanged by a queued replay.
+ */
+export interface SavePayload {
+	subjectId: string;
+	subject: Readonly<ConsentSubject>;
+	/** Receipt snapshot for this action; superseded categories are omitted when delivery is narrowed. */
+	choice: Readonly<ExplicitChoice>;
+	/** Exactly the categories this action confirmed. */
+	confirmed: ConfirmedCoverage;
+	/** Effective permissions after the action. */
+	consents: Readonly<ConsentState>;
+	overrides: Readonly<KernelOverrides>;
+	user: Readonly<KernelUser> | null;
+	model: KernelModel;
+	uiSource: SaveUISource;
+	consentAction: 'all' | 'necessary' | 'custom';
+	policySnapshotToken: string | null;
+	/**
+	 * Milliseconds between the first impression of the surface this save is
+	 * attributed to and `confirmed.actionAt`. Absent when the surface is not
+	 * a prompt surface or was never shown to this kernel.
+	 */
+	timeToDecisionMs?: number;
+	/** The presentation experiment arm the visitor ran when acting, when any. */
+	experiment?: ExperimentAssignment;
+	/**
+	 * Resolved policy inputs captured with the action. The backend
+	 * recomputes them before accepting a choice; retries keep the
+	 * original inputs even after a later initialization changes policy.
+	 */
+	decisionInputs?: {
+		policyId: string | null;
+		fingerprint?: string;
+		country: string | null;
+		region: string | null;
+		language: string;
+		gpc: boolean;
+	};
+	/**
+	 * The consent journey of the page that made this save, added by the
+	 * browser runtime when that page sends it. The hosted transport sends it
+	 * as query parameters on `POST /subjects`. Never stored with a queued
+	 * save, and a replay carries none.
+	 */
+	journey?: Pick<KernelJourney, 'id' | 'scope'>;
+	/** TC string emitted by the IAB module; absent in non-IAB flows. */
+	tcString?: string | null;
+	/** Equals `confirmed.actionAt`. Kept for backends that read one time. */
+	givenAt?: number;
+	/**
+	 * Granted flag for every declared vendor after this action. Present only
+	 * when vendors are declared; a narrowed replay drops it.
+	 */
+	vendorChoice?: {
+		version: 1;
+		confirmedAt: number;
+		grants: Readonly<Record<string, boolean>>;
+	};
+}
+
+/**
+ * Pluggable transport. Each method is optional — a partial transport is
+ * valid. Missing methods make the corresponding command a no-op.
+ */
+/** How the kernel is sending a save. */
+export interface SaveContext {
+	/**
+	 * `true` when the save was queued and is being sent again, possibly by a
+	 * later page than the one that made it.
+	 */
+	replay?: boolean;
+}
+
+export interface KernelTransport {
+	init?: (ctx: InitContext) => Promise<InitResponse>;
+	save?: (payload: SavePayload, context?: SaveContext) => Promise<SaveResult>;
+	identify?: (user: KernelUser, subjectId: string | null) => Promise<void>;
+	/**
+	 * Load the server-side record of a subject as validated receipts. The
+	 * kernel calls it after `identify` succeeds and applies the result through
+	 * the hydration boundary, never as a choice.
+	 */
+	loadSubjectRecord?: (subjectId: string) => Promise<HydrationRecords | null>;
+}
+
+/**
+ * Kernel event surface. Stable event names.
+ */
+export type KernelEvent =
+	| {
+			/** An external authority should open its preferences. */
+			type: 'preferences:requested';
+	  }
+	| {
+			/**
+			 * The visitor's stored records were cleared. The kernel drops its
+			 * queued saves and subject reassignments, so nothing from before
+			 * the clear replays.
+			 */
+			type: 'records:cleared';
+	  }
+	| {
+			/** An explicit accept, reject or save recorded a choice. */
+			type: 'choice:recorded';
+			snapshot: ConsentSnapshot;
+			/** Categories whose receipt this action replaced. */
+			confirmed: readonly OptionalConsentCategory[];
+			actionAt: number;
+			/** Surface the action is attributed to. */
+			uiSource: SaveUISource;
+			/** Whether the action accepted all, only necessary, or a custom selection. */
+			consentAction: SavePayload['consentAction'];
+			/** Milliseconds from the surface's first impression to this action, when known. */
+			timeToDecisionMs?: number;
+			/** The experiment arm the visitor ran, when an experiment is assigned. */
+			experiment?: ExperimentAssignment;
+	  }
+	| {
+			/** A prompt surface became visible. */
+			type: 'surface:shown';
+			surface: PromptSurface;
+			/** Epoch milliseconds of this impression. */
+			shownAt: number;
+			snapshot: ConsentSnapshot;
+			/** The experiment arm the surface rendered with, when an experiment is assigned. */
+			experiment?: ExperimentAssignment;
+	  }
+	| {
+			/** Effective permissions changed by value (choice, policy, expiry, privacy). */
+			type: 'permissions:changed';
+			snapshot: ConsentSnapshot;
+			previous: Readonly<ConsentState>;
+	  }
+	| {
+			/** The current notice was explicitly dismissed. Permissions unchanged. */
+			type: 'notice:dismissed';
+			snapshot: ConsentSnapshot;
+			dismissal: NoticeDismissal;
+			/**
+			 * Surface the notice was dismissed from: the snapshot's `activeUI`,
+			 * so `none` for a programmatic dismissal with no prompt open.
+			 */
+			surface: SaveUISource;
+			/**
+			 * Milliseconds from the surface's first impression to the dismissal.
+			 * Omitted when no prompt surface was open, the surface was never
+			 * shown, or the clock moved backwards.
+			 */
+			timeToDecisionMs?: number;
+			/** Experiment arm active at the dismissal. */
+			experiment?: ExperimentAssignment;
+	  }
+	| { type: 'overrides:set'; snapshot: ConsentSnapshot }
+	| { type: 'user:identified'; snapshot: ConsentSnapshot }
+	| {
+			/** A successful current save resolved its canonical server subject. */
+			type: 'subject:resolved';
+			snapshot: ConsentSnapshot;
+	  }
+	| { type: 'iab:set'; snapshot: ConsentSnapshot }
+	| {
+			/** The declared vendor list changed. */
+			type: 'vendors:set';
+			snapshot: ConsentSnapshot;
+	  }
+	| {
+			/** An explicit save changed which vendors are denied. */
+			type: 'vendors:recorded';
+			snapshot: ConsentSnapshot;
+			actionAt: number;
+	  }
+	| { type: 'init:applied'; snapshot: ConsentSnapshot }
+	| {
+			/** Transport initialization failed and the first layer stayed hidden. */
+			type: 'init:failed';
+			error: unknown;
+			/** One-based attempt number. */
+			attempt: number;
+			/** Scheduled retry delay, or `null` when no retry remains. */
+			nextRetryMs: number | null;
+	  }
+	| {
+			/** A queued consent save was attempted again. */
+			type: 'save:replayed';
+			subjectId: string;
+			ok: boolean;
+			/**
+			 * The backend's code when it refused the save for good, for
+			 * example `POLICY_SNAPSHOT_EXPIRED`. The save left the queue and
+			 * the choice stays recorded in the browser only.
+			 */
+			rejected?: string;
+	  }
+	| { type: 'command:init:started' }
+	| { type: 'command:init:completed'; result: InitResult }
+	| { type: 'command:save:started' }
+	| { type: 'command:save:completed'; result: SaveResult }
+	| { type: 'command:error'; command: string; error: unknown };
+
+/**
+ * Listener signature for subscriptions and events.
+ */
+export type Listener<T> = (value: T) => void;
+
+/**
+ * Returned by `subscribe()` / `events.on()`. Call to stop listening.
+ */
+export type Unsubscribe = () => void;
+
+/**
+ * Result returned by `commands.init()`.
+ */
+export interface InitResult {
+	ok: boolean;
+	error?: unknown;
+}
+
+/**
+ * Input accepted by `commands.save()`.
+ * - `'all'` confirms every category in the active scope with `true`.
+ * - `'none'` confirms every category in the active scope with `false`.
+ * - an object confirms exactly its own optional category keys, and its
+ *   `vendors` map, when present, the per-vendor grants alongside them.
+ * - omitted confirms the presented selection for the active scope: the
+ *   staged draft value, else the explicit value, else the model's displayed
+ *   default. Never the masked effective permissions.
+ */
+export type SaveInput =
+	| 'all'
+	| 'none'
+	| (Partial<ConsentState> & {
+			/**
+			 * Per-vendor grants confirmed by this action, keyed by vendor id.
+			 * Overrides the staged vendor draft. Ignored when the model is
+			 * `iab`. The same map can travel in the save context instead.
+			 */
+			vendors?: Record<string, boolean>;
+	  });
+
+/**
+ * Result returned by `commands.save()`. `ok: false` with `issues` means the
+ * input was rejected atomically and nothing changed.
+ */
+export interface SaveResult {
+	ok: boolean;
+	subjectId?: string;
+	/** Categories this save confirmed. Empty when nothing was recorded. */
+	confirmed?: readonly OptionalConsentCategory[];
+	issues?: RecordIssue[];
+}
+
+/** Result returned by `commands.dismissNotice()`. */
+export type NoticeDismissResult =
+	| { ok: true; dismissal: NoticeDismissal }
+	| { ok: false; reason: 'not-required' };
+
+/**
+ * The public kernel contract.
+ */
+export interface ConsentKernel {
+	/**
+	 * Cancel background retries, the deadline timer and browser listeners.
+	 * Idempotent. Snapshot reads and explicit commands remain available.
+	 */
+	dispose: () => void;
+	/** Returns the current snapshot. Cheap, non-allocating. */
+	getSnapshot: () => ConsentSnapshot;
+	/**
+	 * A number that changes whenever the stored records are replaced:
+	 * hydrated, cleared or swapped for another subject's. An addon that
+	 * starts asynchronous work from the current records reads it first and
+	 * drops the result if it changed meanwhile, as `@c15t/iab` does.
+	 */
+	getRecordsGeneration: () => number;
+
+	/**
+	 * Returns the immutable revision-0 snapshot — the state a server render
+	 * saw. Hydration-time consumers must render from this, not the live
+	 * snapshot.
+	 */
+	getServerSnapshot: () => ConsentSnapshot;
+
+	/**
+	 * Subscribe to snapshot changes. Returns an unsubscribe function.
+	 */
+	subscribe: (listener: Listener<ConsentSnapshot>) => Unsubscribe;
+
+	/**
+	 * Re-evaluate at `now` (default `Date.now()`). Gates call this before a
+	 * time-sensitive decision so an elapsed expiry cannot hide behind a
+	 * delayed timer. Advances the snapshot only when something changed.
+	 */
+	refresh: (now?: number) => ConsentSnapshot;
+
+	/**
+	 * Sync mutations. Notify subscribers synchronously.
+	 */
+	readonly set: {
+		/** Replace external CMP permissions. Only available when configured at construction. */
+		externalPermissions: (permissions: Partial<ConsentState>) => void;
+		/** Replace configured categories, retain discovered categories, and re-evaluate completion. */
+		consentCategories: (
+			categories: readonly AllConsentNames[] | undefined
+		) => void;
+		/** Add categories used by integrations. Retained for this kernel lifetime. */
+		registerConsentCategories: (categories: readonly AllConsentNames[]) => void;
+		/** Stages draft values a no-input `save()` confirms. Never a grant. */
+		draft: (input: Partial<ConsentState>) => void;
+		overrides: (input: KernelOverrides) => void;
+		language: (code: string) => void;
+		subjectId: (id: string | null) => void;
+		/** Detected user-agent privacy signals. */
+		privacySignals: (input: { gpc?: boolean }) => void;
+		/** Set the active UI surface. */
+		activeUI: (ui: KernelActiveUI) => void;
+		/**
+		 * Record the presentation experiment arm this visitor runs; `null`
+		 * runs no experiment. `gate` decides per policy whether the arm is
+		 * shown, and a rejected arm is withheld until a policy accepts it. A
+		 * held prompt stays held until a gate is set or the experiment is
+		 * cleared.
+		 */
+		experiment: (
+			assignment: ExperimentAssignment | null,
+			gate?: ExperimentGate
+		) => void;
+		/** Patch the IAB slice. Creates the slice if currently null. */
+		iab: (patch: Partial<KernelIABState>) => void;
+		/**
+		 * Merge declared vendors. Existing ids keep higher-priority presentation.
+		 * Pass `replaceSource` to drop that source's previous entries first, so a
+		 * caller that owns the source can remove a vendor and not only add one.
+		 */
+		vendors: (
+			patch: Partial<KernelVendorsState>,
+			options?: { replaceSource?: VendorSource }
+		) => void;
+	};
+
+	/**
+	 * Async commands. These are the places where I/O lives.
+	 */
+	readonly commands: {
+		init: () => Promise<InitResult>;
+		/**
+		 * Apply and persist consent. All/none only change the supplied categories,
+		 * falling back to the current policy scope.
+		 * Hidden values are preserved; partial-policy bulk actions are recorded as custom.
+		 * @param input - Explicit values, all/none, or omitted to save current choices.
+		 * @param context - Displayed categories and optional addon confirmation metadata.
+		 * @returns SaveResult with ok indicating transport acceptance. Local changes
+		 * remain applied on failure. Transport exceptions resolve with ok: false
+		 * and queue the payload for retry.
+		 */
+		save: (
+			input?: SaveInput,
+			context?: {
+				/** Narrow all/none or omitted input to these displayed policy categories. */
+				categories?: readonly AllConsentNames[];
+				/** Addon confirmation time captured before asynchronous encoding. Never for hydration or renewal. */
+				actionAt?: number;
+				/** Validated addon authority confirmed by this action.
+				 * @internal
+				 */
+				iabAuthority?: KernelIABAuthority;
+				/**
+				 * Per-vendor grants confirmed by this action. Overrides the staged
+				 * vendor draft and the `vendors` key of an object input. Ignored
+				 * when the model is `iab`.
+				 */
+				vendors?: Record<string, boolean>;
+				/** Surface to attribute the save to. Defaults to the snapshot's `activeUI`. */
+				uiSource?: SaveUISource;
+			}
+		) => Promise<SaveResult>;
+		/**
+		 * Dismiss the current notice. Only while `promptRequirement.kind === 'notice'`.
+		 *
+		 * @param context - Optional dismissal time captured before the call,
+		 * such as a tap made before hydration. A future or invalid time falls
+		 * back to now.
+		 */
+		dismissNotice: (context?: {
+			/** When the visitor dismissed the notice. Defaults to now. */
+			actionAt?: number;
+		}) => Promise<NoticeDismissResult>;
+		identify: (user: KernelUser) => Promise<void>;
+	};
+
+	/**
+	 * Typed event stream for observability, devtools, analytics.
+	 */
+	readonly events: {
+		on: <E extends KernelEvent['type']>(
+			type: E,
+			listener: Listener<Extract<KernelEvent, { type: E }>>
+		) => Unsubscribe;
+	};
+}

@@ -1,0 +1,59 @@
+---
+title: "Google load mode"
+description: "Shared explanation of the loadMode option on the gtag and googleTagManager helpers, for the framework migration sections."
+group: reference
+---
+
+{/* This file is NOT rendered directly. Sections are imported by docs/frameworks/<framework>/scripts.mdx. */}
+
+<section id="choose">
+  ### Choose when Google loads
+
+  The `gtag` and `googleTagManager` helpers take a `loadMode` option. It
+  decides whether the page contacts Google before the helper's category is
+  allowed:
+
+  | `loadMode` | Until the category is allowed | Use it when |
+  | --- | --- | --- |
+  | `'always'` (default) | c15t loads Google's script, sends Consent Mode `default` with the current permissions, then sends `update` as they change. Google receives requests with the optional consent types denied. | You want Consent Mode signals from visitors who have not allowed the category. |
+  | `'after-consent'` | c15t sends no request to Google. | Your site must make no request to Google before opt-in. You give up Consent Mode's cookieless pings and conversion modeling for visitors who haven't allowed the category. |
+
+  With `'after-consent'`, `gtag` waits for its `category`, and
+  `googleTagManager` waits for `measurement` or `marketing` because a container
+  usually holds both kinds of tag. Pass `category` to `googleTagManager` to
+  change that, for example `category: 'measurement'` for an analytics-only
+  container. Until the helper loads, `window.gtag` doesn't exist, and neither
+  does `window.dataLayer` unless you seeded it, so event calls written as
+  `window.gtag?.(...)` do nothing.
+
+  `'after-consent'` waits for the category to be allowed, not for a recorded
+  choice. Under an `opt-in` policy, that happens when the visitor allows it.
+  Under an `opt-out` or `none` policy, optional categories are allowed before a
+  choice, so the helper loads on the first page.
+
+  In either mode, the container runs every tag in it once it starts. Google
+  tags inside follow Consent Mode, but Custom HTML tags and third-party pixels
+  fire on their own triggers. With the default `category`, a visitor who
+  allowed only measurement starts the container, and a marketing pixel in it
+  loads too. With `'always'`, both load before any choice. Add a
+  consent check to each of those tags in GTM, or move the vendor out of the
+  container to its own c15t helper. See
+  [configure consent inside the container](/docs/integrations/google-tag-manager#configure-consent-inside-the-container).
+
+  Set it on each Google helper in your `scripts` array:
+
+  {/* example: fragment */}
+
+  ```ts
+  gtag({
+  	id: 'G-XXXXXXXXXX',
+  	category: 'measurement',
+  	loadMode: 'after-consent',
+  }),
+  googleTagManager({ id: 'GTM-XXXXXXX', loadMode: 'after-consent' }),
+  ```
+
+  The [Google Tag](/docs/integrations/google-tag) and
+  [Google Tag Manager](/docs/integrations/google-tag-manager) guides list what
+  each mode sends and how to check it in DevTools.
+</section>

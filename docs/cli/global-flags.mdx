@@ -1,39 +1,35 @@
 ---
 title: Global flags
-description: Flags that work on every CLI command.
+description: Flags every c15t CLI command accepts, for JSON output, the project directory, prompts and telemetry, plus exit codes.
 group: cli
 ---
 
-These flags are registered globally by the CLI parser (`packages/cli/src/context/parser.ts`) and accepted on every command.
+## Flags for every command
 
-| Flag | Description |
-|---|---|
-| `--help`, `-h` | Show help for the current command and exit. |
-| `--version`, `-v` | Print the installed CLI version and exit. |
-| `--no-telemetry` | Disable anonymous telemetry for this run. See [Telemetry](./telemetry). |
-| `--telemetry-debug` | Print telemetry events to stderr instead of sending them. |
-| `--logger <level>` | Set log level (`fatal`, `error`, `warn`, `info`, `debug`). |
-| `--config <path>` | Load configuration from an explicit file. |
-| `-y`, `--yes` | Skip confirmation prompts (use with caution). |
+```bash
+npx @c15t/cli projects list --json --no-telemetry
+```
 
-`--dry-run` is **not** global; the codemods command accepts it as a per-command flag — see [`codemods`](./commands/codemods).
+| Flag | Behavior |
+| --- | --- |
+| `--help`, `-h` | Show help and the options supported by a command. |
+| `--version`, `-v` | Report the installed CLI version. |
+| `--cwd <directory>` | Resolve the command's project directory without changing the caller's working directory. |
+| `--logger <level>` | Choose the diagnostic log level. |
+| `--yes`, `-y` | Accept confirmation prompts. Does not supply missing names, modes, or URLs. |
+| `--non-interactive` | Fail when required input would need a prompt. |
+| `--json` | Return one versioned JSON result on stdout and disable prompts. |
+| `--no-telemetry` | Disable telemetry. |
+| `--telemetry-debug` | Enable telemetry diagnostics. |
 
-## Environment variables
+String options accept both `--name value` and `--name=value`. Unknown commands, unknown flags, missing flag values, and flags used with the wrong command return a failure.
 
-| Variable | Effect |
-|---|---|
-| `C15T_TELEMETRY_DISABLED=1` | Permanently disable telemetry for this user. |
-| `C15T_DEBUG=1` | Enable verbose debug logs. |
-| `C15T_URL` | Override the backend URL the CLI talks to (the value read by `ENV_VARS.BACKEND_URL` in `packages/cli/src/constants.ts`). |
-| `C15T_API_KEY` | API key passed to the backend (read by `ENV_VARS.API_KEY`). |
-| `CONSENT_URL` | Override the control-plane / dashboard base URL (used for `login`). |
-| `NO_COLOR=1` | Disable terminal colors. |
+`--json` controls presentation. It does not grant permission to apply a setup plan or database migration. Use the command's explicit application option.
 
-## Exit codes
+## Telemetry
 
-| Code | Meaning |
-|---|---|
-| `0` | Success. |
-| `1` | General error (failed command, validation error). |
-| `2` | Usage error (invalid flags or arguments). |
-| `130` | Interrupted (Ctrl-C). |
+Set `C15T_TELEMETRY_DISABLED=1` or `C15T_TELEMETRY_DISABLED=true` to disable telemetry for executable invocations. `--no-telemetry` also disables it. Telemetry is off by default when calling the JavaScript library.
+
+## Exit status
+
+Successful commands return `0`. Failed commands return `1`. Command cancellation returns `130`. JSON results include the corresponding `exitCode`, `success`, and error details.

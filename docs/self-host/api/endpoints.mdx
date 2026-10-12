@@ -1,215 +1,281 @@
 ---
-title: API Endpoints
-description: Full reference for every c15t consent backend endpoint.
+title: HTTP endpoints
+description: HTTP endpoints of a self-hosted c15t v3 backend for the manifest, /init, session reports, consent saves, identity links, the script tag and legal-document releases.
 group: self-host
 ---
 
-All endpoints are relative to your configured `basePath` (e.g. `/api/c15t`).
+## Find your API base URL
 
-<Callout type="info">
-  The backend auto-generates interactive API docs at `{basePath}/docs` using your OpenAPI spec. Visit this URL in a browser to explore endpoints with a visual UI.
-</Callout>
+All paths are relative to the backend's mount point. With
+`basePath: '/api/c15t'`, `/manifest` is available at `/api/c15t/manifest`.
+The framework adapters call these endpoints for you. Prefer the adapter unless
+you are building a custom transport or server integration. For server code,
+the [Node.js SDK](/docs/self-host/api/node-sdk) wraps these endpoints with typed
+inputs, results and retries.
 
-## GET /init
+| Method and path | Purpose | API key |
+| --- | --- | --- |
+| `GET /status` | Service status and configured version. | No |
+| `GET /manifest` | Geo-independent policy configuration, optionally sliced with `?language=en`. | No |
+| `GET /init` | Resolve configuration for this request's location, language and privacy signals. | No |
+| `POST /sessions` | Report an init a host resolved from a cached manifest. Server-to-server only; nothing is stored. | No |
+| `POST /subjects` | Record a consent submission and its category receipts. | No |
+| `GET /subjects/:id` | Read this subject's consent status and merged choices. Optional `?type=a,b` filter. | No, the subject ID is the capability |
+| `PATCH /subjects/:id` | Link `externalId` and optional `identityProvider`. The link counts in reads by external ID only when [verified](#verify-identity-links). | No |
+| `GET /subjects?externalId=...` | Retrieve subjects verifiably linked to an external identity. | Required |
+| `GET /consents/check?externalId=...&type=a,b` | Return `hasConsent` and `isLatestPolicy` for every requested type, from verified links only. | Required |
+| `GET /experiments/:id/summary?from=...&to=...&domain=...` | Choices per arm of a [banner experiment](/docs/guides/banner-experiments), split by action and surface, with the median time to decision. | Required |
+| `PUT /legal-documents/:type/current` | Publish a legal document's current version, hash and effective date. | Required |
+| `GET /spec.json` | Discover the enabled OpenAPI routes. | No |
 
-Returns the initial consent state for a client. This is the first call made by the frontend SDKs.
+Subject IDs allow public reads of that subject's state. Treat them as private
+capabilities. Do not expose administrative API keys to make browser requests.
 
-**Response:**
+## Fetch reusable configuration
 
-```json
-{
-  "jurisdiction": "GDPR",
-  "location": {
-    "countryCode": "DE",
-    "regionCode": "BY"
-  },
-  "translations": {
-    "language": "de",
-    "translations": { "...": "..." }
-  },
-  "branding": "c15t",
-  "gvl": null
-}
+```bash
+curl -i 'http://localhost:3000/api/c15t/manifest?language=en'
 ```
 
-| Field | Description |
+`/manifest` returns the policy configuration and a revision, with an `ETag` and
+public cache headers. It contains no visitor's consent choices. A matching
+`If-None-Match` returns `304`. See [caching](/docs/self-host/guides/caching) before
+putting a CDN in front of the backend.
+
+## Resolve a request with `/init`
+
+```bash
+curl -i 'http://localhost:3000/api/c15t/init' \
+  -H 'x-c15t-country: DE' \
+  -H 'Accept-Language: en'
+```
+
+This development request supplies a location explicitly. In production, use the
+framework adapter and trusted deployment headers. `/init` resolves location,
+language and GPC against the manifest. Its `policyResolution` distinguishes a
+matched rule from an unmatched or failed resolution. A `200` response alone does
+not establish that a rule matched.
+
+### Query parameters and CORS
+
+A browser on another origin sends `/init` with no custom request header, so
+the request needs no CORS `OPTIONS` preflight before the banner can show. The
+client's inputs travel in the query string instead:
+
+| Query parameter | Replaces header | Value |
+| --- | --- | --- |
+| `v` | `x-c15t-version` | Client package version. |
+| `contract` | `x-c15t-policy-contract` | Policy contract the client reads. Any other value than `1` gets an `unsupported-contract` failure. |
+| `country` | `x-c15t-country` | Country override. |
+| `region` | `x-c15t-region` | Region override. |
+| `gpc` | `x-c15t-gpc` | GPC override, `1` or `0`. Other values are ignored. |
+| `experiment` | `x-c15t-experiment` | Experiment arm as `<id>=<arm>`, each part URI-encoded. |
+
+The backend reads each parameter first and the header second, so older
+clients and server-to-server callers that send the headers keep working.
+`Accept-Language` stays a header because browsers send it without a
+preflight. The journey parameters `journey`, `journeyScope` and `stored` also
+travel in the query string. The backend still reads the `c15tJourney`,
+`c15tJourneyScope` and `c15tStored` names that `3.0.0-alpha.8` and `alpha.9`
+clients send.
+
+c15t reserves these names on an init URL. If your `initURL` already carries
+one, such as `/api/consent/init?country=US`, c15t replaces it with its own
+value, so each name appears once. A reserved name c15t does not send on that
+request passes through, and the backend reads it as that input.
+
+`/init` answers any origin. A trusted origin gets its own origin back with
+`Access-Control-Allow-Credentials: true`, as older clients send `/init` with
+cookies. Any other origin gets `Access-Control-Allow-Origin: *` and no
+credentials, which is enough for current clients: they send `/init` without
+cookies to another origin, and `/init` reads none. Every other route,
+including `POST /subjects`, still answers only origins in `trustedOrigins`.
+
+The overrides are visitor-controlled in either form. If your edge strips
+incoming `x-c15t-*` headers so visitors cannot choose their own policy rule,
+strip `country`, `region` and `gpc` from `/init` too.
+
+### Vendor scope
+
+`x-c15t-vendors` is optional. It takes a comma-separated list of the vendor
+IDs an application ships. On a matched IAB rule the `gvl` in
+the response is then the intersection of that list and `gvl.vendorIds`, so the
+header can shrink the served list and cannot widen it. See
+[IAB backend configuration](/docs/self-host/guides/iab-tcf).
+
+Every `/init` and `/manifest` response carries `hosting`: `'self-hosted'`, or
+`'inth'` from Inth's hosted platform. Set it with the instance's
+[`hosting` option](/docs/self-host/api/configuration#instance-options). Backends
+older than this field omit it.
+
+`/init` uses `Cache-Control: no-store`. It can include a signed
+`policySnapshotToken` when signing is configured and a policy matched. For
+request-time framework rendering, prefer a cached manifest and local resolution
+when the adapter supports it. Do not cache one visitor's resolved `/init` result
+as shared configuration.
+
+## Report a session
+
+```bash
+curl -i 'http://localhost:3000/api/c15t/sessions' \
+  -H 'Content-Type: application/json' \
+  -H 'X-C15T-Version: 3.0.0' \
+  -H 'X-C15T-Client-IP: 203.0.113.42' \
+  -H 'User-Agent: Mozilla/5.0' \
+  -d '{"source":"route","revision":"…","resolution":"matched","policy":{"id":"eu-opt-in","fingerprint":"…","matchedBy":"country","model":"opt-in"},"country":"DE","region":null,"language":"de","gpc":false}'
+```
+
+A framework server that resolves consent from a cached manifest never calls
+`/init`, so it reports each resolution here instead. The framework adapters send
+the report server-to-server after responding to the visitor. The backend
+applies its `ipAddress` settings, passes the report to `sessions.onReport`,
+logs it, and answers `204`. It writes nothing to the database.
+
+The route rejects requests a browser could send. A request with an `Origin`
+header, or without the `X-C15T-Version` header, gets `400`. The visitor's user
+agent travels as `User-Agent`, and the visitor's address as `X-C15T-Client-IP`,
+because a platform in front of the backend rewrites `X-Forwarded-For`.
+
+The body follows `consentSessionReportSchema` from `@c15t/schema`. `source` is
+`route` for an init route and `render` for a server-rendered page. `init` is
+reserved for the backend's own `/init`, which emits the same report. Prefetches,
+prerenders and `HEAD` requests send no report.
+
+A report is one resolution, not one visitor. A page view can produce a `render`
+and a `route` report. When the client sends a journey, the reports and the
+save's `POST /subjects` carry the same `journey.id`
+([details](/docs/concepts/data-fetching#link-an-init-to-the-save-that-follows)).
+Without one, group reports by address and user agent within a time window; that
+count is approximate.
+
+## Serve the script tag
+
+`GET /c15t.js` serves the hosted [script-tag build](/docs/frameworks/html/quickstart)
+of the consent banner. A queued `config` call sets the backend URL, hosted
+mode and the defaults from `script.config`. The client resolves the
+visitor's policy through `/init`; this route does not inline a manifest.
+
+`GET /c15t.headless.js` serves the build with no UI. `GET /c15t.iab.js` serves
+the optional IAB CMP and preference UI. Both routes keep their queued
+manifest configuration. Use `script.iabPath` to change the IAB route's path
+and `script.config.iab` to set CMP options.
+
+| Query | What it does |
 | --- | --- |
-| `jurisdiction` | Detected regulation (`GDPR`, `UK_GDPR`, `CCPA`, etc.) |
-| `location` | Geo-location from IP address |
-| `translations` | Server-side translations based on `Accept-Language` |
-| `branding` | Branding configuration |
-| `gvl` | Global Vendor List (if IAB TCF is enabled) |
+| `language` | Override the language used by the hosted `/c15t.js` client. On headless and IAB routes, slice the inlined manifest's translations to one language. |
 
-## GET /status
+Cached like `/manifest`: `Cache-Control: public, s-maxage=…` and an `ETag` that answers `If-None-Match` with `304`. `@c15t/backend` installs `@c15t/browser`, which provides the bundles; `script.bundles` overrides their file paths. Set `script.enabled: false` to remove all three routes.
 
-Health check endpoint. Returns server version and client info.
+## Save and read choices
 
-**Response:**
+The v3 client sends `POST /subjects` with a domain, policy type, `preferences`,
+`givenAt` timestamp and the per-category receipts confirmed by the action. Let the
+client construct this payload so effective permissions are not mistaken for an
+explicit grant. Hydration, a dismissed notice and a GPC signal are not consent
+submissions.
 
-```json
-{
-  "version": "1.8.0",
-  "timestamp": "2026-02-11T12:00:00.000Z",
-  "client": {
-    "ip": "192.168.1.0",
-    "acceptLanguage": "en-US",
-    "userAgent": "Mozilla/5.0 ...",
-    "region": { "countryCode": "US", "regionCode": "CA" }
-  }
-}
-```
+The response includes `subjectId`, `consentId`, `appliedPreferences` and `givenAt`.
+Read `GET /subjects/:id` to inspect merged category choices. A type filter changes
+which consent records are returned and how `isValid` is calculated; it does not
+filter away the subject's cookie-banner choice state.
 
-## POST /subjects
+When the client declares vendors, a save also carries `vendorChoice`: the complete
+per-vendor grant map with one confirmation time. The backend stores it as sent on
+the consent row, including vendors the client declared in code rather than in the
+manifest, and returns `subjectVendorChoice`: the most recent act decides every
+vendor it names, and a vendor an earlier act decided but the latest one omits
+keeps that earlier grant. The aggregate's `confirmedAt` is the time of the oldest
+decision still in it, so a retained grant is never presented as newer than it is. A map that omits a vendor the manifest declares is
+stored too: the client saw an older manifest, so its silence about that vendor
+is not a decision. A vendor no act ever named follows its category.
+Retrying the same act with a different map is a `CONFLICT`, like a retry with
+different receipts, and so is any retry against a stored map that cannot be
+read. Migration `4-vendor-choice` adds the column.
 
-Records a consent event. This is an append-only operation — every call creates a new consent record.
+### Late saves
 
-**Request:**
+A browser that can't deliver a save keeps it and sends it again on the next
+page load or when it comes back online, for up to 7 days. The replay carries
+the original `givenAt` (the click time) and the `policySnapshotToken` from the
+`/init` the visitor saw. Tokens expire after `ttlSeconds` (30 minutes by
+default), so a replay often arrives with an expired token.
 
-```json
-{
-  "type": "cookie_banner",
-  "subjectId": "sub_abc123",
-  "domain": "example.com",
-  "preferences": {
-    "necessary": true,
-    "measurement": true,
-    "marketing": false
-  },
-  "givenAt": 1707648000000,
-  "metadata": {}
-}
-```
+With signing configured, the backend accepts such a save when all of these
+hold:
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `type` | string | Yes | `cookie_banner`, `privacy_policy`, `dpa`, `terms_and_conditions`, `marketing_communications`, `age_verification`, `other`. Legal-document types (`privacy_policy`, `dpa`, `terms_and_conditions`) also accept suffixed variants, e.g. `terms_and_conditions_b2b`, so multiple policies of one family can be active at once |
-| `subjectId` | string | Yes | Client-generated subject identifier |
-| `domain` | string | Yes | Domain where consent was given |
-| `preferences` | object | No | Consent category preferences (for `cookie_banner` type) |
-| `givenAt` | number | Yes | Epoch timestamp |
-| `policyId` | string | No | Associated policy ID |
-| `metadata` | object | No | Arbitrary metadata |
-| `externalSubjectId` | string | No | External user ID for cross-device linking |
-| `identityProvider` | string | No | Identity provider name |
+- The token's signature, issuer and tenant audience verify.
+- The token was valid at `givenAt`: `givenAt` is between the token's issue
+  time and its expiry, with 10 minutes of slack for the visitor's clock.
+- The request arrives no later than `policySnapshot.replayWindowSeconds` after
+  the token expired (7 days by default).
+- The manifest still has the policy the token names under the same
+  fingerprint.
 
-**Response:**
+The record keeps `givenAt` as sent, `createdAt` is when the backend received
+it, and `runtimePolicySource` is `snapshot_token_replayed` instead of
+`snapshot_token`. The request's wide event carries the same value as
+`consent.decisionSource`. A save that arrived before its token expired is
+unchanged. Retrying a save that already landed returns the existing record.
 
-```json
-{
-  "subject": { "id": "sub_abc123", "...": "..." },
-  "consent": { "id": "con_xyz789", "type": "cookie_banner", "...": "..." }
-}
-```
+The backend refuses these, and the c15t client drops them from its replay
+queue instead of retrying:
 
-## GET /subjects/:id
-
-Retrieves consent status for a subject.
-
-**Query Parameters:**
-
-| Parameter | Description |
+| Response | When |
 | --- | --- |
-| `type` | Comma-separated consent types to filter (e.g. `cookie_banner,privacy_policy`) |
+| `409 POLICY_SNAPSHOT_EXPIRED` | `givenAt` is outside the token's lifetime, or the request arrived after the replay window |
+| `409 POLICY_SNAPSHOT_INVALID` | The token doesn't verify, or its claims are incomplete |
+| `422 STALE_POLICY`, reason `policy-changed` | The policy the token names is no longer in the manifest under that fingerprint. The visitor saw the old text, so the choice is not recorded against the new one. |
+| `409 CONFLICT` | This act was already recorded with different receipts, purposes or vendor grants. The earlier record stands. |
+| `409 SUBJECT_CONFLICT` | Another tenant on the same database already holds the save's `subjectId`. The client generates a new subject ID and sends the choice once under it; the save is dropped only if that also fails. |
 
-**Response:**
+A refused save stays recorded in the visitor's browser only. `givenAt` is
+supplied by the client. A late save can only claim a time inside the lifetime
+of a token this backend signed, for a policy that is still current, but within
+that range the backend can't tell a genuine click time from a chosen one.
 
-```json
-{
-  "subject": { "id": "sub_abc123" },
-  "consents": [
-    {
-      "id": "con_xyz789",
-      "type": "cookie_banner",
-      "givenAt": "2026-02-11T12:00:00.000Z",
-      "jurisdiction": "GDPR",
-      "preferences": { "necessary": true, "measurement": true }
-    }
-  ],
-  "isValid": true
-}
-```
+The backend does not store GPC as a standing opt-out. `/init` reads `Sec-GPC`
+on each request, and the client applies the signal live in the browser.
 
-## PATCH /subjects/:id
+## Verify identity links
 
-Links a subject to an external user ID for cross-device consent resolution.
+`GET /subjects?externalId=` and `GET /consents/check` count a subject only when
+its link to the external ID was verified: the `POST /subjects` or
+`PATCH /subjects/:id` that made it carried an API key, or an `identityToken`
+signed with [`identityToken.signingKey`](/docs/self-host/api/configuration).
+Unverified links are stored but skipped by those reads.
 
-**Request:**
+Mint tokens with [`createIdentityToken`](/docs/self-host/api/node-sdk#verify-a-link-made-in-the-browser). From
+another language, sign an HS256 JWT with `sub` set to the external ID, `aud`
+`c15t-identity`, `iss` `c15t`, an `exp`, and optionally `idp` matching
+`identityProvider`.
 
-```json
-{
-  "externalId": "user_12345",
-  "identityProvider": "auth0"
-}
-```
-
-**Response:**
-
-```json
-{
-  "subject": {
-    "id": "sub_abc123",
-    "externalId": "user_12345",
-    "identityProvider": "auth0"
-  }
-}
-```
-
-## GET /consents/check
-
-Check consent status by external ID — useful for cross-device consent resolution.
-
-**Query Parameters:**
-
-| Parameter | Description |
+| Response | Cause |
 | --- | --- |
-| `externalId` | The external user ID to look up |
-| `type` | Comma-separated consent types |
+| `401 IDENTITY_TOKEN_INVALID` | `PATCH` only. The token doesn't verify, has expired, or names another external ID or provider. Nothing changes. |
+| `409 IDENTITY_CONFLICT` | `PATCH` only. The subject's current link is verified and this request isn't, so it can't replace it. Sending the same identity again succeeds. |
 
-**Response:**
+`POST /subjects` never refuses a consent because of its token: a bad token
+leaves the link unverified, and the token only applies when the save creates
+the subject. Verify an existing subject with `PATCH /subjects/:id`.
 
-```json
-{
-  "found": true,
-  "consents": [
-    { "id": "con_xyz789", "type": "cookie_banner", "...": "..." }
-  ]
-}
+## Make an administrative request
+
+Use a server environment variable containing a configured API key:
+
+```bash
+curl 'http://localhost:3000/api/c15t/subjects?externalId=customer-123' \
+  -H "Authorization: Bearer $C15T_API_KEY"
 ```
 
-## GET /subjects (Authenticated)
+From Node.js, `subjects.list` in the [Node.js SDK](/docs/self-host/api/node-sdk#export-a-users-records)
+makes the same request.
 
-List subjects by external ID. Requires an API key.
+Missing or invalid keys return `401` on protected routes. Invalid input returns
+an error body containing `message` and `cause.code`; individual validation paths
+can return `400` or `422`. Inspect both the HTTP status and error code. Database
+errors return a generic failure to the client, with details available through
+[server logging](/docs/self-host/guides/observability).
 
-**Headers:**
-
-```
-Authorization: Bearer sk_live_abc123
-```
-
-**Query Parameters:**
-
-| Parameter | Description |
-| --- | --- |
-| `externalId` | The external user ID to search |
-
-**Response:**
-
-```json
-{
-  "subjects": [
-    { "id": "sub_abc123", "externalId": "user_12345" }
-  ]
-}
-```
-
-<Callout type="warn">
-  This endpoint requires API key authentication. Configure API keys in the `apiKeys` option. The key is passed via the `Authorization: Bearer` header using timing-safe comparison.
-</Callout>
-
-## GET /spec.json
-
-Returns the OpenAPI 3.1 specification for the consent API.
-
-## GET /docs
-
-Serves the interactive API documentation UI (Scalar).
+The OpenAPI document lists available routes and security declarations. Use the
+published `@c15t/schema` contracts and client adapters for complete payload types;
+the generated document does not describe every field accepted by each handler.

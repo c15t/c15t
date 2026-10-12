@@ -1,0 +1,865 @@
+import type { ConsentKernel } from '@c15t/core';
+import { resolveStorageKeys } from '@c15t/core/modules/persistence';
+import { writePolicyResolutionWire } from '@c15t/schema/types';
+import { useContext, useEffect, StrictMode } from 'react';
+import { afterEach, expect, test, vi } from 'vitest';
+import { render } from 'vitest-browser-react';
+
+import { ConsentBanner } from '../components/prompt';
+import { KernelContext } from '../context';
+import { custom, offline } from '../index';
+import { ConsentProvider } from '../provider';
+import { useUIConfig } from '../ui-config-context';
+import { policyFixture } from './policy-fixture';
+
+let kernel: ConsentKernel;
+const Capture = () => {
+	const value = useContext(KernelContext);
+	useEffect(() => {
+		if (value) {
+			kernel = value;
+		}
+	}, [value]);
+	return null;
+};
+afterEach(() => vi.restoreAllMocks());
+
+test('offline rules resolve after mount and expose canonical state', async () => {
+	const screen = await render(
+		<ConsentProvider
+			options={{
+				mode: offline({
+					policyRules: [
+						{
+							id: 'local',
+							match: { fallback: true },
+							model: 'opt-in',
+							prompt: 'choice',
+						},
+					],
+				}),
+				persistence: false,
+			}}
+		>
+			<Capture />
+			<ConsentBanner />
+		</ConsentProvider>
+	);
+	await expect
+		.element(screen.getByTestId('consent-banner-accept-button'))
+		.toBeVisible();
+	expect(kernel.getSnapshot().policyRule.id).toBe('local');
+	expect(kernel.getSnapshot().explicitChoice).toBeNull();
+	expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);
+	expect(kernel.getSnapshot().promptRequirement.kind).toBe('choice');
+});
+
+test('offline mode without rules resolves the recommended pack: strict opt-in for an unknown location', async () => {
+	await render(
+		<ConsentProvider options={{ mode: offline(), persistence: false }}>
+			<Capture />
+			<ConsentBanner />
+		</ConsentProvider>
+	);
+	expect(kernel.getSnapshot().resolution.status).toBe('matched');
+	expect(kernel.getSnapshot().policyRule.id).toBe('europe_opt_in');
+	expect(kernel.getSnapshot().explicitChoice).toBeNull();
+	expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);
+});
+
+test('exposes only the window.c15t debug object, not the kernel', async () => {
+	const screen = await render(
+		<ConsentProvider options={{ mode: offline(), persistence: false }}>
+			<ConsentBanner />
+		</ConsentProvider>
+	);
+	await expect
+		.element(screen.getByTestId('consent-banner-accept-button'))
+		.toBeVisible();
+	expect((window as Window & { c15t?: unknown }).c15t).toMatchObject({
+		mode: 'offline',
+		pkg: '@c15t/react',
+	});
+	expect('c15tKernel' in window).toBe(false);
+});
+
+test('failed initialization keeps the first layer hidden and reports the error', async () => {
+	const onError = vi.fn();
+	await render(
+		<ConsentProvider
+			options={{
+				callbacks: { onError },
+				mode: custom({ init: () => Promise.reject(new Error('offline')) }),
+				persistence: false,
+			}}
+		>
+			<Capture />
+			<ConsentBanner />
+		</ConsentProvider>
+	);
+	await vi.waitFor(() => expect(onError).toHaveBeenCalled());
+	expect(
+		document.querySelector('[data-testid="consent-banner-root"]')
+	).toBeNull();
+	expect(kernel.getSnapshot().explicitChoice).toBeNull();
+});
+
+test('keeps the kernel across rerenders and synchronizes identity and geographic overrides', async () => {
+	const prepared = policyFixture();
+	const init = vi.fn(() =>
+		Promise.resolve({
+			policyResolution: writePolicyResolutionWire(
+				prepared.initialPolicyResolution ?? {
+					policy: null,
+					status: 'unconfigured',
+				}
+			),
+		})
+	);
+	const mode = custom({ init });
+	const screen = await render(
+		<ConsentProvider
+			options={{
+				mode,
+				overrides: { country: 'DE' },
+				persistence: false,
+				prefetch: prepared,
+				user: { externalId: 'first' },
+			}}
+		>
+			<Capture />
+		</ConsentProvider>
+	);
+	const first = kernel;
+	await screen.rerender(
+		<ConsentProvider
+			options={{
+				mode,
+				overrides: { country: 'FR' },
+				persistence: false,
+				prefetch: prepared,
+				user: { externalId: 'second' },
+			}}
+		>
+			<Capture />
+		</ConsentProvider>
+	);
+	expect(kernel).toBe(first);
+	expect(kernel.getSnapshot().overrides.country).toBe('FR');
+	// Identity follows once the runtime's update module has loaded.
+	await vi.waitFor(() =>
+		expect(kernel.getSnapshot().user?.externalId).toBe('second')
+	);
+	await vi.waitFor(() => expect(init).toHaveBeenCalledTimes(1));
+});
+
+test('a prefetch still marked pending is not adopted: the provider asks /init', async () => {
+	const init = vi.fn(() =>
+		Promise.resolve({
+			policyResolution: writePolicyResolutionWire(
+				policyFixture().initialPolicyResolution
+			),
+		})
+	);
+	await render(
+		<ConsentProvider
+			options={{
+				mode: custom({ init }),
+				persistence: false,
+				prefetch: { ...policyFixture(), initialPolicyPending: true },
+			}}
+		>
+			<Capture />
+		</ConsentProvider>
+	);
+	await vi.waitFor(() => expect(init).toHaveBeenCalledTimes(1));
+	await vi.waitFor(() =>
+		expect(kernel.getSnapshot().policyPending).toBe(false)
+	);
+});
+
+test('an offline IAB policy resolves: IAB renders in the tree, so the transport does not reject it', async () => {
+	const iabPolicy = {
+		categories: ['measurement' as const, 'marketing' as const],
+		id: 'iab',
+		match: { fallback: true },
+		model: 'iab' as const,
+		prompt: 'choice' as const,
+		scopeMode: 'permissive' as const,
+	};
+	await render(
+		<ConsentProvider
+			options={{
+				mode: offline({ policyRules: [iabPolicy] }),
+				persistence: false,
+			}}
+		>
+			<Capture />
+		</ConsentProvider>
+	);
+	await vi.waitFor(() =>
+		expect(kernel.getSnapshot().policyPending).toBe(false)
+	);
+	expect(kernel.getSnapshot().resolution.status).toBe('matched');
+});
+
+test('disposes the kernel on unmount', async () => {
+	const screen = await render(
+		<ConsentProvider
+			options={{
+				mode: offline(),
+				persistence: false,
+				prefetch: policyFixture(),
+			}}
+		>
+			<Capture />
+		</ConsentProvider>
+	);
+	const dispose = vi.spyOn(kernel, 'dispose');
+	await screen.unmount();
+	await vi.waitFor(() => expect(dispose).toHaveBeenCalledTimes(1));
+});
+
+test('disabled mode loads scripts without initializing or recording choice', async () => {
+	const init = vi.fn();
+	const onBeforeLoad = vi.fn();
+	await render(
+		<ConsentProvider
+			options={{
+				enabled: false,
+				mode: custom({ init }),
+				persistence: false,
+				scripts: [
+					{
+						callbackOnly: true,
+						category: 'marketing',
+						id: 'disabled-marketing',
+						onBeforeLoad,
+					},
+				],
+			}}
+		>
+			<Capture />
+			<ConsentBanner />
+		</ConsentProvider>
+	);
+	await vi.waitFor(() => expect(onBeforeLoad).toHaveBeenCalledOnce());
+	expect(init).not.toHaveBeenCalled();
+	expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(true);
+	expect(kernel.getSnapshot().explicitChoice).toBeNull();
+	expect(
+		document.querySelector('[data-testid="consent-banner-root"]')
+	).toBeNull();
+});
+
+test.each([false, true])(
+	'keeps an inline vendor initialized once across provider rerenders, self-removing=%s',
+	async (selfRemoving) => {
+		const executed = vi.fn();
+		const initialize = vi.fn();
+		const consent = vi.fn();
+		window.addEventListener('c15t-test-vendor-executed', executed);
+		const mode = custom({ init: vi.fn() });
+		const prefetch = policyFixture({ marketing: true });
+		const provider = () => (
+			<ConsentProvider
+				options={{
+					mode,
+					persistence: false,
+					prefetch,
+					scripts: [
+						{
+							alwaysLoad: true,
+							category: 'marketing',
+							id: 'browser-rerender',
+							onBeforeLoad: () => initialize(),
+							onConsentChange: ({ hasConsent }) => consent(hasConsent),
+							textContent: [
+								"window.dispatchEvent(new Event('c15t-test-vendor-executed'));",
+								selfRemoving ? 'document.currentScript.remove();' : '',
+							].join(' '),
+						},
+					],
+				}}
+			>
+				<Capture />
+			</ConsentProvider>
+		);
+		try {
+			const screen = await render(provider());
+			await vi.waitFor(() => expect(executed).toHaveBeenCalledOnce());
+			await screen.rerender(provider());
+			await screen.rerender(provider());
+			expect(initialize).toHaveBeenCalledOnce();
+			expect(executed).toHaveBeenCalledOnce();
+			expect(consent).toHaveBeenCalledWith(true);
+			expect(consent).not.toHaveBeenCalledWith(false);
+		} finally {
+			window.removeEventListener('c15t-test-vendor-executed', executed);
+		}
+	}
+);
+
+test('toggling disabled mode grants scripts and restores the existing choice', async () => {
+	const onBeforeLoad = vi.fn();
+	const init = vi.fn();
+	const options = {
+		mode: custom({ init }),
+		persistence: false as const,
+		prefetch: policyFixture({ marketing: false }),
+		scripts: [
+			{
+				callbackOnly: true,
+				category: 'marketing' as const,
+				id: 'toggle-marketing',
+				onBeforeLoad,
+			},
+		],
+	};
+	const provider = (enabled: boolean) => (
+		<ConsentProvider options={{ ...options, enabled }}>
+			<Capture />
+			<ConsentBanner />
+		</ConsentProvider>
+	);
+	const screen = await render(provider(true));
+	const choice = kernel.getSnapshot().explicitChoice;
+	expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);
+	expect(onBeforeLoad).not.toHaveBeenCalled();
+	await screen.rerender(provider(false));
+	await vi.waitFor(() => expect(onBeforeLoad).toHaveBeenCalledOnce());
+	expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(true);
+	expect(kernel.getSnapshot().explicitChoice).toBeNull();
+	expect(kernel.getSnapshot().activeUI).toBe('none');
+	await screen.rerender(provider(true));
+	expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);
+	expect(kernel.getSnapshot().explicitChoice).toEqual(choice);
+	expect(init).not.toHaveBeenCalled();
+});
+
+test('late initialization cannot revoke disabled permissions', async () => {
+	const response = {
+		policyResolution: writePolicyResolutionWire(
+			policyFixture().initialPolicyResolution
+		),
+	};
+	let resolveInit!: (value: typeof response) => void;
+	const init = vi.fn(
+		() =>
+			new Promise<typeof response>((resolve) => {
+				resolveInit = resolve;
+			})
+	);
+	const mode = custom({ init });
+	const provider = (enabled: boolean) => (
+		<ConsentProvider options={{ enabled, mode, persistence: false }}>
+			<Capture />
+		</ConsentProvider>
+	);
+	const screen = await render(provider(true));
+	await vi.waitFor(() => expect(init).toHaveBeenCalledOnce());
+	const initializedKernel = kernel;
+	await screen.rerender(provider(false));
+	resolveInit(response);
+	await vi.waitFor(() =>
+		expect(initializedKernel.getSnapshot().policyRule.id).toBe('react-test')
+	);
+	expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(true);
+	expect(kernel.getSnapshot().activeUI).toBe('none');
+	expect(kernel.getSnapshot().explicitChoice).toBeNull();
+});
+
+test('prepared receipts remain authoritative when persistence is disabled', async () => {
+	await render(
+		<ConsentProvider
+			options={{
+				mode: offline(),
+				persistence: false,
+				prefetch: policyFixture({ marketing: true }),
+			}}
+		>
+			<Capture />
+		</ConsentProvider>
+	);
+	expect(kernel.getSnapshot().explicitChoice?.categories.marketing?.value).toBe(
+		true
+	);
+	expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(true);
+});
+
+test('separates explicit actions from effective permission changes', async () => {
+	const onChoiceRecorded = vi.fn();
+	const onPermissionsChanged = vi.fn();
+	const save = vi.fn(() => Promise.resolve({ ok: true }));
+	await render(
+		<ConsentProvider
+			options={{
+				callbacks: { onChoiceRecorded, onPermissionsChanged },
+				mode: custom({ save }),
+				persistence: false,
+				prefetch: policyFixture(),
+			}}
+		>
+			<Capture />
+		</ConsentProvider>
+	);
+	expect(onChoiceRecorded).not.toHaveBeenCalled();
+	await kernel.commands.save({ marketing: true });
+	expect(onChoiceRecorded).toHaveBeenCalledTimes(1);
+	expect(onPermissionsChanged).toHaveBeenCalledTimes(1);
+	await kernel.commands.save({ marketing: true });
+	expect(onChoiceRecorded).toHaveBeenCalledTimes(2);
+	expect(onPermissionsChanged).toHaveBeenCalledTimes(1);
+	expect(save).toHaveBeenCalledTimes(2);
+});
+
+test('onSurfaceShown fires for a prefetched banner without init and for an opened dialog', async () => {
+	const onSurfaceShown = vi.fn();
+	const init = vi.fn(() => Promise.resolve({}));
+	await render(
+		<ConsentProvider
+			options={{
+				callbacks: { onSurfaceShown },
+				mode: custom({ init }),
+				persistence: false,
+				prefetch: policyFixture(),
+			}}
+		>
+			<Capture />
+			<ConsentBanner />
+		</ConsentProvider>
+	);
+	// The prepared branch hydrates and marks the kernel live; no init runs.
+	await vi.waitFor(() => expect(onSurfaceShown).toHaveBeenCalledTimes(1));
+	expect(init).not.toHaveBeenCalled();
+	expect(onSurfaceShown.mock.calls[0]?.[0]).toMatchObject({
+		surface: 'banner',
+	});
+	expect(onSurfaceShown.mock.calls[0]?.[0]).not.toHaveProperty('type');
+	expect(kernel.getSnapshot().surfaceShownAt.banner).not.toBeNull();
+
+	kernel.set.activeUI('dialog');
+	expect(onSurfaceShown).toHaveBeenCalledTimes(2);
+	expect(onSurfaceShown.mock.calls[1]?.[0]).toMatchObject({
+		surface: 'dialog',
+	});
+});
+
+test('onSurfaceShown fires once init resolves the policy', async () => {
+	const onSurfaceShown = vi.fn();
+	const prepared = policyFixture();
+	const init = vi.fn(() =>
+		Promise.resolve({
+			policyResolution: writePolicyResolutionWire(
+				prepared.initialPolicyResolution
+			),
+		})
+	);
+	await render(
+		<ConsentProvider
+			options={{
+				callbacks: { onSurfaceShown },
+				mode: custom({ init }),
+				persistence: false,
+			}}
+		>
+			<Capture />
+			<ConsentBanner />
+		</ConsentProvider>
+	);
+	await vi.waitFor(() => expect(onSurfaceShown).toHaveBeenCalledTimes(1));
+	expect(init).toHaveBeenCalledTimes(1);
+	expect(onSurfaceShown.mock.calls[0]?.[0]).toMatchObject({
+		surface: 'banner',
+	});
+});
+
+test('uses current callback props without replacing the kernel', async () => {
+	const first = vi.fn();
+	const second = vi.fn();
+	const mode = offline();
+	const prefetch = policyFixture();
+	const screen = await render(
+		<ConsentProvider
+			options={{
+				callbacks: { onChoiceRecorded: first },
+				consentCategories: ['marketing'],
+				mode,
+				persistence: false,
+				prefetch,
+			}}
+		>
+			<Capture />
+		</ConsentProvider>
+	);
+	await screen.rerender(
+		<ConsentProvider
+			options={{
+				callbacks: { onChoiceRecorded: second },
+				consentCategories: ['marketing'],
+				mode,
+				persistence: false,
+				prefetch,
+			}}
+		>
+			<Capture />
+		</ConsentProvider>
+	);
+	await kernel.commands.save('none');
+	expect(first).not.toHaveBeenCalled();
+	expect(second).toHaveBeenCalledTimes(1);
+});
+
+test('passes host presentation through UI context', async () => {
+	const Probe = () => (
+		<output data-testid="presentation">
+			{useUIConfig().presentation?.prompt?.direction}
+		</output>
+	);
+	const screen = await render(
+		<ConsentProvider
+			options={{
+				mode: offline(),
+				persistence: false,
+				prefetch: policyFixture(),
+				presentation: { prompt: { direction: 'column' } },
+			}}
+		>
+			<Probe />
+		</ConsentProvider>
+	);
+	await expect
+		.element(screen.getByTestId('presentation'))
+		.toHaveTextContent('column');
+});
+
+test('merges selected i18n messages with English defaults', async () => {
+	await render(
+		<ConsentProvider
+			options={{
+				i18n: {
+					locale: 'en',
+					messages: { en: { cookieBanner: { title: 'Your privacy' } } },
+				},
+				mode: offline(),
+				persistence: false,
+				prefetch: policyFixture(),
+			}}
+		>
+			<Capture />
+		</ConsentProvider>
+	);
+	expect(
+		kernel.getSnapshot().translations?.translations.cookieBanner.title
+	).toBe('Your privacy');
+	expect(
+		kernel.getSnapshot().translations?.translations.common.acceptAll
+	).toBeTruthy();
+});
+
+test('an app i18n override survives hosted init translations for the same language', async () => {
+	const backendCopy = {
+		cookieBanner: {
+			description: 'Backend description',
+			title: 'Backend title',
+		},
+	};
+	const init = vi.fn(() =>
+		Promise.resolve({
+			policyResolution: writePolicyResolutionWire(
+				policyFixture().initialPolicyResolution
+			),
+			translations: { language: 'en', translations: backendCopy as never },
+		})
+	);
+	await render(
+		<ConsentProvider
+			options={{
+				i18n: { messages: { en: { cookieBanner: { title: 'App title' } } } },
+				mode: custom({ init }),
+				persistence: false,
+			}}
+		>
+			<Capture />
+		</ConsentProvider>
+	);
+	await vi.waitFor(() => expect(init).toHaveBeenCalled());
+	await vi.waitFor(() =>
+		expect(
+			kernel.getSnapshot().translations?.translations.cookieBanner.description
+		).toBe('Backend description')
+	);
+	expect(
+		kernel.getSnapshot().translations?.translations.cookieBanner.title
+	).toBe('App title');
+});
+
+test('StrictMode remount keeps persistence subscriptions active', async () => {
+	const key = 'react-strict-persistence';
+	const screen = await render(
+		<StrictMode>
+			<ConsentProvider
+				options={{
+					mode: offline(),
+					prefetch: policyFixture(),
+					storageConfig: { storageKey: key },
+				}}
+			>
+				<Capture />
+			</ConsentProvider>
+		</StrictMode>
+	);
+	await kernel.commands.save({ marketing: true });
+	await vi.waitFor(() =>
+		expect(
+			localStorage.getItem(resolveStorageKeys({ storageKey: key }).consent)
+		).not.toBeNull()
+	);
+	await screen.unmount();
+});
+
+test.each(['header', 'browser'] as const)(
+	'prepared mount applies %s GPC live without init, category choice or storage',
+	async (source) => {
+		const key = `react-prepared-gpc-${source}`;
+		const previous = Object.getOwnPropertyDescriptor(
+			navigator,
+			'globalPrivacyControl'
+		);
+		Object.defineProperty(navigator, 'globalPrivacyControl', {
+			configurable: true,
+			value: source === 'browser',
+		});
+		const prepared = policyFixture(
+			{ marketing: true },
+			{
+				categories: ['marketing'],
+				model: 'opt-out',
+				privacySignals: { gpc: { denyCategories: ['marketing'] } },
+				prompt: 'none',
+			}
+		);
+		prepared.initialPrivacySignals = { gpc: source === 'header' };
+		const init = vi.fn();
+		const save = vi.fn();
+		const onChoiceRecorded = vi.fn();
+		try {
+			const screen = await render(
+				<StrictMode>
+					<ConsentProvider
+						options={{
+							callbacks: { onChoiceRecorded },
+							mode: custom({ init, save }),
+							prefetch: prepared,
+							storageConfig: { storageKey: key },
+						}}
+					>
+						<Capture />
+					</ConsentProvider>
+				</StrictMode>
+			);
+			await vi.waitFor(() =>
+				expect(kernel.getSnapshot().privacySignals.gpc.active).toBe(true)
+			);
+			expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);
+			expect(kernel.getSnapshot().explicitChoice).toEqual(
+				prepared.initialRecords?.choice
+			);
+			expect(localStorage.getItem(`${key}-privacy`)).toBeNull();
+			// The restriction ends with the signal; the stored grant applies again.
+			kernel.set.privacySignals({ gpc: false });
+			expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(true);
+			expect(init).not.toHaveBeenCalled();
+			expect(save).not.toHaveBeenCalled();
+			expect(onChoiceRecorded).not.toHaveBeenCalled();
+			await screen.unmount();
+		} finally {
+			if (previous) {
+				Object.defineProperty(navigator, 'globalPrivacyControl', previous);
+			} else {
+				Reflect.deleteProperty(navigator, 'globalPrivacyControl');
+			}
+		}
+	}
+);
+
+test('an empty provider can prerender without reading the clock', async () => {
+	const { renderToString } = await import('react-dom/server');
+	const now = vi.spyOn(Date, 'now').mockImplementation(() => {
+		throw new Error('Clock read during prerender');
+	});
+	try {
+		expect(
+			renderToString(
+				<ConsentProvider options={{ mode: custom({}), persistence: false }}>
+					<span>Static shell</span>
+					<ConsentBanner />
+				</ConsentProvider>
+			)
+		).toContain('Static shell');
+	} finally {
+		now.mockRestore();
+	}
+});
+
+test('clears configured storage on revocation after stopping scripts', async () => {
+	localStorage.setItem('cleanup:ready', 'pending');
+	const onBeforeLoad = vi.fn();
+	const onConsentChange = vi.fn(({ hasConsent }: { hasConsent: boolean }) => {
+		if (!hasConsent) {
+			localStorage.setItem('analytics:visitor', 'stopped');
+		}
+	});
+	const screen = await render(
+		<ConsentProvider
+			options={{
+				clearOnRevocation: {
+					marketing: { localStorage: ['cleanup:ready'] },
+					measurement: { localStorage: ['analytics:visitor'] },
+				},
+				mode: offline(),
+				persistence: false,
+				prefetch: policyFixture({ measurement: true }),
+				scripts: [
+					{
+						callbackOnly: true,
+						category: 'measurement',
+						id: 'cleanup-order',
+						onBeforeLoad,
+						onConsentChange,
+					},
+				],
+			}}
+		>
+			<Capture />
+		</ConsentProvider>
+	);
+	await vi.waitFor(() => expect(onBeforeLoad).toHaveBeenCalled());
+	await vi.waitFor(() =>
+		expect(localStorage.getItem('cleanup:ready')).toBeNull()
+	);
+	localStorage.setItem('analytics:visitor', 'visitor');
+	localStorage.setItem('application:setting', 'keep');
+	await kernel.commands.save('none');
+	expect(onConsentChange).toHaveBeenCalledWith(
+		expect.objectContaining({ hasConsent: false })
+	);
+	expect(localStorage.getItem('analytics:visitor')).toBeNull();
+	expect(localStorage.getItem('application:setting')).toBe('keep');
+	screen.unmount();
+	localStorage.removeItem('application:setting');
+});
+
+test('disabled providers leave configured browser data alone', async () => {
+	localStorage.setItem('analytics:visitor', 'keep');
+	const screen = await render(
+		<ConsentProvider
+			options={{
+				clearOnRevocation: {
+					measurement: { localStorage: ['analytics:visitor'] },
+				},
+				enabled: false,
+				mode: offline(),
+				persistence: false,
+			}}
+		>
+			<Capture />
+		</ConsentProvider>
+	);
+	expect(localStorage.getItem('analytics:visitor')).toBe('keep');
+	screen.unmount();
+	localStorage.removeItem('analytics:visitor');
+});
+
+test('storage is read once: a new storage key warns and records stay where they were', async () => {
+	const firstKey = 'cleanup-first';
+	const nextKey = 'cleanup-next';
+	const prefetch = policyFixture({ measurement: true });
+	const mode = offline();
+	const clearOnRevocation = {
+		measurement: { localStorage: ['cleanup-*'] },
+	};
+	const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+	const provider = (storageKey: string) => (
+		<ConsentProvider
+			options={{
+				clearOnRevocation,
+				consentCategories: ['measurement'],
+				mode,
+				persistence: { skipHydration: true, storageConfig: { storageKey } },
+				prefetch,
+			}}
+		>
+			<Capture />
+		</ConsentProvider>
+	);
+	const screen = await render(provider(firstKey));
+	// A new options object with the same storage is not a change.
+	await screen.rerender(provider(firstKey));
+	expect(warn).not.toHaveBeenCalledWith(expect.stringContaining('read once'));
+
+	await screen.rerender(provider(nextKey));
+	expect(warn).toHaveBeenCalledWith(expect.stringContaining('read once'));
+
+	await kernel.commands.save('all');
+	// Persistence batches writes in a macrotask; save resolves before storage.
+	await vi.waitFor(() => expect(localStorage.getItem(firstKey)).not.toBeNull());
+	expect(localStorage.getItem(nextKey)).toBeNull();
+
+	// Data clearing protects the key persistence writes, not the new one.
+	const acceptedRecord = localStorage.getItem(firstKey);
+	localStorage.setItem('cleanup-visitor', 'visitor');
+	const removeItem = vi.spyOn(Storage.prototype, 'removeItem');
+	await kernel.commands.save('none');
+	await vi.waitFor(() => {
+		expect(localStorage.getItem(firstKey)).not.toBe(acceptedRecord);
+		expect(localStorage.getItem('cleanup-visitor')).toBeNull();
+	});
+	expect(removeItem).not.toHaveBeenCalledWith(firstKey);
+	expect(localStorage.getItem(firstKey)).not.toBeNull();
+	await screen.unmount();
+	for (const key of [firstKey, nextKey]) {
+		localStorage.removeItem(key);
+		document.cookie = `${key}=; Max-Age=0; Path=/`;
+	}
+});
+
+test('starts cleanup when an initially disabled provider with scripts is enabled', async () => {
+	const onBeforeLoad = vi.fn();
+	const options = {
+		clearOnRevocation: {
+			marketing: { localStorage: ['cleanup:ready'] },
+			measurement: { localStorage: ['analytics:visitor'] },
+		},
+		mode: offline(),
+		persistence: false as const,
+		prefetch: policyFixture({ measurement: true }),
+		scripts: [
+			{
+				callbackOnly: true,
+				category: 'measurement' as const,
+				id: 'initially-disabled-cleanup',
+				onBeforeLoad,
+			},
+		],
+	};
+	const provider = (enabled: boolean) => (
+		<ConsentProvider options={{ ...options, enabled }}>
+			<Capture />
+		</ConsentProvider>
+	);
+	localStorage.setItem('cleanup:ready', 'pending');
+	localStorage.setItem('analytics:visitor', 'visitor');
+	const screen = await render(provider(false));
+	await vi.waitFor(() => expect(onBeforeLoad).toHaveBeenCalledOnce());
+	expect(localStorage.getItem('cleanup:ready')).toBe('pending');
+	expect(localStorage.getItem('analytics:visitor')).toBe('visitor');
+	await screen.rerender(provider(true));
+	await vi.waitFor(() => expect(onBeforeLoad).toHaveBeenCalledTimes(2));
+	await vi.waitFor(() =>
+		expect(localStorage.getItem('cleanup:ready')).toBeNull()
+	);
+	await kernel.commands.save({ measurement: false });
+	expect(localStorage.getItem('analytics:visitor')).toBeNull();
+	await screen.unmount();
+});

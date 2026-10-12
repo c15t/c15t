@@ -1,0 +1,509 @@
+import type { Script } from '@c15t/core';
+
+import { resolveManifest } from '../../resolve';
+import { vendorManifestContract } from '../../types';
+import type { VendorManifest } from '../../types';
+import { readId, skipMissingId } from '../_shared/required-id';
+import { stripTrailingSlashes, trimToUndefined } from '../_shared/script-url';
+
+declare global {
+	interface Window {
+		posthog: {
+			init: (
+				token: string,
+				options: {
+					api_host: string;
+					ui_host?: string;
+					autocapture?: boolean;
+					[key: string]: unknown;
+				}
+			) => void;
+			opt_in_capturing: () => void;
+			opt_out_capturing: () => void;
+			get_explicit_consent_status: () => string;
+			capture: (event: string, properties?: Record<string, unknown>) => void;
+			/**
+			 * Pending `[token, config, instanceName]` init tuples, as seeded by
+			 * the official PostHog snippet. `array.js` only installs its runtime
+			 * over an existing `window.posthog` when this is an array.
+			 */
+			_i?: unknown[][];
+		};
+	}
+}
+
+const DEFAULT_API_HOST = 'https://eu.i.posthog.com';
+const DEFAULT_SCRIPT_URL = 'https://eu-assets.i.posthog.com/static/array.js';
+const DEFAULT_UI_HOST = 'https://eu.posthog.com';
+const DEFAULTS_DATE = '2026-01-30';
+
+export type PosthogRegion = 'eu' | 'us';
+export type PosthogLoadMode = 'always' | 'after-consent' | 'disabled';
+
+interface PosthogHostProfile {
+	apiHost: string;
+	uiHost: string;
+	scriptUrl: string;
+}
+
+const REGION_HOSTS = {
+	eu: {
+		apiHost: DEFAULT_API_HOST,
+		scriptUrl: DEFAULT_SCRIPT_URL,
+		uiHost: DEFAULT_UI_HOST,
+	},
+	us: {
+		apiHost: 'https://us.i.posthog.com',
+		scriptUrl: 'https://us-assets.i.posthog.com/static/array.js',
+		uiHost: 'https://us.posthog.com',
+	},
+} as const satisfies Record<PosthogRegion, PosthogHostProfile>;
+
+const normalizeHost = function normalizeHost(host: string): string {
+	return stripTrailingSlashes(host);
+};
+
+const regionFromHost = function regionFromHost(
+	host: string
+): PosthogRegion | undefined {
+	const normalized = normalizeHost(host);
+	if (
+		/^https:\/\/(?<capture1>app|us|us-assets)(?<capture2>\.i)?\.posthog\.com$/iu.test(
+			normalized
+		)
+	) {
+		return 'us';
+	}
+
+	if (
+		/^https:\/\/(?<capture1>eu|eu-assets)(?<capture2>\.i)?\.posthog\.com$/iu.test(
+			normalized
+		)
+	) {
+		return 'eu';
+	}
+};
+
+const deriveScriptUrlFromApiHost = function deriveScriptUrlFromApiHost(
+	apiHost: string
+): string {
+	const normalized = normalizeHost(apiHost);
+	const region = regionFromHost(normalized);
+	if (region) {
+		return REGION_HOSTS[region].scriptUrl;
+	}
+
+	return `${normalized}/static/array.js`;
+};
+
+/**
+ * Resolves the PostHog host profile from helper options.
+ *
+ * Precedence is:
+ * 1. Explicit `options.apiHost`, `options.uiHost`, and `options.scriptUrl`.
+ * 2. Region inferred from an explicit `apiHost` via `regionFromHost` and
+ *    `REGION_HOSTS`.
+ * 3. `REGION_HOSTS[options.region ?? 'eu']` defaults.
+ *
+ * `options` is a `PosthogConsentOptions` object with optional string host
+ * fields; the returned `PosthogHostProfile` always contains string `apiHost`,
+ * `uiHost`, and `scriptUrl` values. `apiHost` and `uiHost` are always
+ * normalized with `normalizeHost`. `undefined` values select defaults; `null`
+ * is not supported by the option types and should not be passed.
+ *
+ * For custom `apiHost` values that do not match known PostHog Cloud regions,
+ * `uiHost` uses an explicitly selected region when present and otherwise
+ * defaults to the normalized `apiHost`. When `scriptUrl` is omitted, an explicit
+ * `apiHost` derives it with `deriveScriptUrlFromApiHost`; otherwise the
+ * selected region default script URL is used.
+ *
+ * @example
+ * `{ region: 'us' }` resolves US API, UI, and bootstrap script hosts.
+ * @example
+ * `{ apiHost: 'https://us.i.posthog.com/' }` normalizes the API host and
+ * derives the US bootstrap script URL.
+ * @example
+ * `{ apiHost: 'https://events.example.com' }` resolves UI to the same custom
+ * host and script URL to `https://events.example.com/static/array.js`.
+ */
+const resolvePosthogHosts = function resolvePosthogHosts(
+	options: PosthogConsentOptions
+): PosthogHostProfile {
+	const regionDefaults = REGION_HOSTS[options.region ?? 'eu'];
+	const apiHost = normalizeHost(options.apiHost ?? regionDefaults.apiHost);
+	const inferredRegion = regionFromHost(apiHost);
+	let uiHost: string;
+	if (options.uiHost !== undefined) {
+		// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
+		uiHost = options.uiHost;
+	} else if (inferredRegion) {
+		// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
+		uiHost = REGION_HOSTS[inferredRegion].uiHost;
+	} else if (options.region === undefined) {
+		uiHost = apiHost;
+	} else {
+		// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
+		uiHost = REGION_HOSTS[options.region].uiHost;
+	}
+
+	let scriptUrl: string;
+	const scriptUrlOverride = trimToUndefined(options.scriptUrl);
+	if (scriptUrlOverride !== undefined) {
+		scriptUrl = scriptUrlOverride;
+	} else if (options.apiHost === undefined) {
+		// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
+		scriptUrl = regionDefaults.scriptUrl;
+	} else {
+		scriptUrl = deriveScriptUrlFromApiHost(apiHost);
+	}
+
+	return {
+		apiHost,
+		scriptUrl,
+		uiHost: normalizeHost(uiHost),
+	};
+};
+
+/**
+ * PostHog vendor manifest.
+ *
+ * By default, PostHog manages its own consent internally via
+ * opt_in/opt_out capturing. The helper can also gate loading until
+ * measurement consent is granted.
+ */
+export const posthogManifest = {
+	...vendorManifestContract,
+	alwaysLoad: true,
+	bootstrap: [
+		{
+			ifUndefined: true,
+
+			name: 'posthog',
+			type: 'setGlobal',
+			value: [],
+		},
+		{
+			// Since posthog-js 1.410.2, array.js installs over an existing
+			// global only when `_i` is an array. Seeding the full tuple also lets
+			// the loader initialize before replaying calls captured on this queue.
+			ifGlobalIsQueue: true,
+			path: ['posthog', '_i'],
+			type: 'setGlobalPath',
+			value: [['{{id}}', '{{initOptions}}', 'posthog']],
+		},
+		{
+			// PostHog's loader reads the people sub-queue during installation.
+			// Keep the required shape without exposing or emulating its API.
+			ifGlobalIsQueue: true,
+			path: ['posthog', 'people'],
+			type: 'setGlobalPath',
+			value: [],
+		},
+		{
+			methods: ['capture', 'opt_in_capturing', 'opt_out_capturing'],
+			target: 'posthog',
+			type: 'defineQueueMethods',
+		},
+		{
+			ifGlobalIsQueue: true,
+			methods: [
+				{ behavior: 'noop', name: 'init' },
+				{
+					behavior: 'return',
+					name: 'get_explicit_consent_status',
+					value: 'pending',
+				},
+			],
+
+			target: 'posthog',
+			type: 'defineGlobalMethods',
+		},
+	],
+	category: 'measurement',
+	install: [
+		{
+			async: true,
+			attributes: {
+				crossorigin: 'anonymous',
+				'data-api-host': '{{apiHost}}',
+				'data-ui-host': '{{uiHost}}',
+			},
+
+			src: '{{scriptUrl}}',
+			type: 'loadScript',
+		},
+	],
+	onBeforeLoadDenied: [
+		{
+			queue: 'posthog',
+			type: 'pushToQueue',
+			value: ['opt_out_capturing'],
+		},
+	],
+	onBeforeLoadGranted: [
+		{
+			queue: 'posthog',
+			type: 'pushToQueue',
+			value: ['opt_in_capturing', { captureEventName: null }],
+		},
+	],
+	onConsentDenied: [
+		{
+			global: 'posthog',
+			method: 'opt_out_capturing',
+
+			type: 'callGlobal',
+		},
+	],
+	onConsentGranted: [
+		{
+			global: 'posthog',
+			method: 'opt_in_capturing',
+
+			type: 'callGlobal',
+		},
+	],
+	onLoadDenied: [
+		{
+			global: 'posthog',
+			method: 'opt_out_capturing',
+
+			type: 'callGlobal',
+		},
+	],
+	onLoadGranted: [
+		{
+			args: [{ captureEventName: null }],
+			global: 'posthog',
+			method: 'opt_in_capturing',
+
+			type: 'callGlobal',
+		},
+	],
+	vendor: 'posthog',
+	vendorDetails: {
+		homepageUrl: 'https://posthog.com/',
+		legalName: 'PostHog Inc.',
+		name: 'PostHog',
+		privacyPolicyUrl: 'https://posthog.com/privacy',
+	},
+} as const satisfies VendorManifest;
+
+export interface PosthogConsentOptions {
+	/**
+	 * Your posthog id, begins with 'phc_'.
+	 */
+	id: string;
+
+	/**
+	 * PostHog Cloud region used to derive hosts when explicit host options are not
+	 * provided.
+	 * @default 'eu'
+	 */
+	region?: PosthogRegion;
+
+	/**
+	 * Your posthog api host.
+	 * @default 'https://eu.i.posthog.com'
+	 */
+	apiHost?: string;
+
+	/**
+	 * Your PostHog UI host. Defaults to the UI host for the selected region or
+	 * inferred API host region.
+	 */
+	uiHost?: string;
+
+	/** The PostHog array loader URL. */
+	scriptUrl?: string;
+
+	/**
+	 * How c15t should load the PostHog script.
+	 *
+	 * - `always`: load immediately and synchronize consent through PostHog APIs.
+	 * - `after-consent`: wait for measurement consent before loading PostHog.
+	 * - `disabled`: return an inert callback-only script with no network request.
+	 *
+	 * @default 'always'
+	 */
+	loadMode?: PosthogLoadMode;
+
+	/**
+	 * Turns PostHog features on or off at init, so PostHog does not download
+	 * modules or send requests for features the site does not use.
+	 *
+	 * Each switch maps to a `posthog.init` option. An unset switch leaves that
+	 * option out. `initOptions` wins over a switch that sets the same key.
+	 *
+	 * @default {}
+	 */
+	features?: PosthogFeatures;
+
+	/**
+	 * PostHog init options passed to `posthog.init(...)`, merged over the
+	 * helper defaults and `features`.
+	 */
+	initOptions?: Record<string, unknown>;
+}
+
+/**
+ * PostHog features that load extra modules or requests in the browser.
+ *
+ * `false` turns the feature off at init. `true` turns it on, overriding the
+ * project's setting where PostHog allows that. Unset keeps PostHog's own
+ * behavior.
+ */
+export interface PosthogFeatures {
+	/**
+	 * Surveys. `false` sets `disable_surveys: true` and skips `surveys.js`.
+	 *
+	 * PostHog downloads `surveys.js` whenever the project's remote config has a
+	 * `surveys` value, even `false`, so this is the only way to skip it.
+	 *
+	 * @default undefined
+	 */
+	surveys?: boolean;
+
+	/**
+	 * Heatmaps. Maps to `capture_heatmaps`. Unset follows the project setting.
+	 *
+	 * While heatmaps are on, PostHog also loads `dead-clicks-autocapture.js`,
+	 * whatever `deadClicks` says.
+	 *
+	 * @default undefined
+	 */
+	heatmaps?: boolean;
+
+	/**
+	 * Dead click autocapture. Maps to `capture_dead_clicks`. Unset follows the
+	 * project setting. `dead-clicks-autocapture.js` is skipped only when
+	 * heatmaps are off too.
+	 *
+	 * @default undefined
+	 */
+	deadClicks?: boolean;
+
+	/**
+	 * Web vitals. Maps to `capture_performance: { web_vitals }` and skips
+	 * `web-vitals-with-attribution.js` when `false`. Session replay network
+	 * timing keeps following the project setting.
+	 *
+	 * @default undefined
+	 */
+	webVitals?: boolean;
+
+	/**
+	 * Feature flag requests. `false` sets `advanced_disable_feature_flags: true`,
+	 * which stops `/flags` requests and still loads the remote config. Surveys
+	 * that target a feature flag then never show.
+	 *
+	 * @default undefined
+	 */
+	featureFlags?: boolean;
+}
+
+/**
+ * Maps `features` switches to `posthog.init` options. Unset switches add no
+ * key, so the result is empty when no switch is set.
+ *
+ * Never sets `advanced_disable_flags`: that also skips the remote config, and
+ * session replay and other project settings stop applying.
+ */
+const resolveFeatureInitOptions = function resolveFeatureInitOptions(
+	features: PosthogFeatures = {}
+): Record<string, unknown> {
+	const initOptions: Record<string, unknown> = {};
+
+	if (features.surveys !== undefined) {
+		initOptions.disable_surveys = !features.surveys;
+	}
+
+	if (features.heatmaps !== undefined) {
+		initOptions.capture_heatmaps = features.heatmaps;
+	}
+
+	if (features.deadClicks !== undefined) {
+		initOptions.capture_dead_clicks = features.deadClicks;
+	}
+
+	if (features.webVitals !== undefined) {
+		// An object, not a boolean: `capture_performance: false` would also turn
+		// off session replay network timing.
+		initOptions.capture_performance = { web_vitals: features.webVitals };
+	}
+
+	if (features.featureFlags !== undefined) {
+		initOptions.advanced_disable_feature_flags = !features.featureFlags;
+	}
+
+	return initOptions;
+};
+
+/**
+ * Creates a c15t PostHog script helper.
+ *
+ * The `posthog()` helper uses `region` to resolve the PostHog API, UI, and
+ * bootstrap script hosts. By default, `loadMode: 'always'` loads PostHog
+ * immediately and syncs consent with `posthog.opt_in_capturing()` or
+ * `posthog.opt_out_capturing()`.
+ *
+ * With `loadMode: 'after-consent'`, the script is consent-gated and c15t calls
+ * `posthog.opt_in_capturing()` or `posthog.opt_out_capturing()` after load
+ * based on the user's measurement consent. With `loadMode: 'disabled'`, no
+ * PostHog script is loaded and no `posthog.opt_in_capturing()` or
+ * `posthog.opt_out_capturing()` calls are made.
+ *
+ * Edge case: `loadMode: 'disabled'` skips consent-related flows entirely; use it
+ * only when consumers manage PostHog loading and consent externally.
+ *
+ * When `id` is missing or blank, for example from an unset environment
+ * variable, the helper logs `posthog: missing or invalid id` with
+ * `console.error` and returns a script that never loads. The rest of the
+ * consent UI keeps working. `loadMode: 'disabled'` skips this check.
+ *
+ * @see https://posthog.com/docs/libraries/js#opt-in-capturing
+ *
+ * @param options - Optional configuration for the PostHog consent script
+ * @returns The Posthog script
+ */
+export const posthog = function posthog(
+	options: PosthogConsentOptions
+): Script {
+	if (options.loadMode === 'disabled') {
+		return {
+			callbackOnly: true,
+			category: 'measurement',
+			id: 'posthog',
+		};
+	}
+
+	const id = readId(options.id);
+	if (id === undefined) {
+		return skipMissingId('posthog', 'id', {
+			category: 'measurement',
+			manifest: posthogManifest,
+		});
+	}
+
+	const { apiHost, uiHost, scriptUrl } = resolvePosthogHosts(options);
+	const resolved = resolveManifest(posthogManifest, {
+		apiHost,
+		id,
+		initOptions: {
+			cookieless_mode: 'on_reject',
+			defaults: DEFAULTS_DATE,
+			...resolveFeatureInitOptions(options.features),
+			...options.initOptions,
+			api_host: apiHost,
+			ui_host: uiHost,
+		},
+		scriptUrl,
+		uiHost,
+	});
+
+	if (options.loadMode === 'after-consent') {
+		resolved.alwaysLoad = undefined;
+	}
+
+	return resolved;
+};

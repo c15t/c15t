@@ -7,41 +7,35 @@
 import {
 	BUILT_IN_INTEGRATION_CATEGORIES,
 	builtInScriptIntegrations,
-} from '@c15t/scripts/registry';
+} from '@c15t/integrations/registry';
 import * as p from '@clack/prompts';
 import { fromPromise } from 'xstate';
-import {
-	formatUserCode,
-	getAuthState,
-	getControlPlaneBaseUrl,
-	getVerificationUrl,
-	initiateDeviceFlow,
-	pollForToken,
-	setSelectedInstanceId,
-	storeTokens,
-} from '~/auth';
+
+import { getSelectedInstanceId, setSelectedInstanceId } from '~/auth';
+import { login } from '~/auth/login';
 import { getDevToolsOption } from '~/commands/generate/options/shared/dev-tools';
 import { getSSROption } from '~/commands/generate/options/shared/ssr';
-import { ENV_VARS, type StorageMode } from '~/constants';
+import { createAction } from '~/commands/instances';
+import type { StorageMode } from '~/constants';
 import type { CliContext } from '~/context/types';
 import {
-	type ControlPlaneOrganization,
-	type ControlPlaneRegion,
 	createControlPlaneClientFromConfig,
+	resolveInstance,
+	requireInstanceBackendUrl,
 } from '~/control-plane';
 import { CliError } from '~/core/errors';
 import { color } from '~/core/logger';
 import type { Instance } from '~/types';
 import { createTaskSpinner } from '~/utils/spinner';
-import { validateInstanceName } from '~/utils/validation';
+
 import type { ExpandedTheme, UIStyle } from '../types';
 
 /**
  * Check if a value is a cancel symbol
  */
-function isCancel(value: unknown): value is symbol {
+const isCancel = function isCancel(value: unknown): value is symbol {
 	return p.isCancel(value);
-}
+};
 
 /**
  * Cancelled error for prompts
@@ -53,20 +47,20 @@ export class PromptCancelledError extends Error {
 	}
 }
 
-function formatInstanceLabel(instance: Instance): string {
+const formatInstanceLabel = function formatInstanceLabel(
+	instance: Instance
+): string {
 	if (instance.organizationSlug) {
 		return `${instance.organizationSlug}/${instance.name}`;
 	}
 	return instance.name;
-}
+};
 
-function formatInstanceRegion(instance: Instance): string {
+const formatInstanceRegion = function formatInstanceRegion(
+	instance: Instance
+): string {
 	return `(${instance.region ?? 'unknown'})`;
-}
-
-function isV2ModeEnabled(): boolean {
-	return process.env[ENV_VARS.V2] === '1';
-}
+};
 
 // --- Mode Selection Prompt ---
 
@@ -82,7 +76,7 @@ export const modeSelectionActor = fromPromise<
 	ModeSelectionOutput,
 	ModeSelectionInput
 >(async ({ input }) => {
-	let initialMode = input.initialMode;
+	let { initialMode } = input;
 	if (initialMode === 'c15t' || initialMode === 'self-hosted') {
 		initialMode = 'hosted';
 	}
@@ -91,23 +85,26 @@ export const modeSelectionActor = fromPromise<
 	}
 
 	const result = await p.select<string | symbol | undefined>({
-		message: 'How would you like to store consent decisions?',
 		initialValue: initialMode,
+		message: 'How would you like to store consent decisions?',
 		options: [
 			{
-				value: 'hosted',
-				label: 'Hosted',
 				hint: 'inth.com or self-hosted backend URL',
+
+				label: 'Hosted',
+				value: 'hosted',
 			},
 			{
-				value: 'offline',
-				label: 'Offline',
 				hint: 'Store in browser, no backend needed',
+
+				label: 'Offline',
+				value: 'offline',
 			},
 			{
-				value: 'custom',
-				label: 'Custom',
 				hint: 'Full control over storage logic',
+
+				label: 'Custom',
+				value: 'custom',
 			},
 		],
 	});
@@ -135,23 +132,23 @@ export interface HostedModeOutput {
 	provider: HostedProvider;
 }
 
-async function promptBackendURL(input: {
+const promptBackendURL = async function promptBackendURL(input: {
 	message: string;
 	placeholder: string;
 	initialURL?: string;
 	stage: string;
 }): Promise<string> {
 	const result = await p.text({
+		initialValue: input.initialURL,
 		message: input.message,
 		placeholder: input.placeholder,
-		initialValue: input.initialURL,
 		validate: (value) => {
 			if (!value || value.trim() === '') {
 				return 'URL is required';
 			}
 
 			try {
-				new URL(value);
+				String(new URL(value));
 			} catch {
 				return 'Please enter a valid URL';
 			}
@@ -165,212 +162,25 @@ async function promptBackendURL(input: {
 	}
 
 	return result as string;
-}
+};
 
-async function runConsentLogin(cliContext: CliContext): Promise<void> {
-	const baseUrl = getControlPlaneBaseUrl();
-	const authState = await getAuthState();
-	let useExistingSession = false;
+const runConsentLogin = login;
 
-	if (authState.isLoggedIn && !authState.isExpired) {
-		const keepCurrentSession = await p.confirm({
-			message: 'You are already signed in. Use your existing session?',
-			initialValue: true,
-		});
+const createInstanceInteractively = async (
+	context: CliContext
+): Promise<Instance> => {
+	const result = await createAction({ ...context, commandArgs: [] });
+	return result.project;
+};
 
-		if (isCancel(keepCurrentSession)) {
-			throw new PromptCancelledError('consent_existing_session');
-		}
-
-		if (keepCurrentSession) {
-			useExistingSession = true;
-		}
-	}
-
-	if (useExistingSession) {
-		return;
-	}
-
-	const deviceSpinner = createTaskSpinner('Requesting device code...');
-	deviceSpinner.start();
-
-	try {
-		const deviceCode = await initiateDeviceFlow(baseUrl);
-		deviceSpinner.success('Device code received');
-
-		const userCode = formatUserCode(deviceCode.user_code);
-		const verificationUrl = getVerificationUrl(deviceCode);
-
-		cliContext.logger.message('');
-		cliContext.logger.note(
-			`Your code: ${color.bold(color.cyan(userCode))}\n\n` +
-				`This code will expire in ${Math.floor(deviceCode.expires_in / 60)} minutes.`,
-			'Verification Code'
-		);
-		cliContext.logger.message('');
-		cliContext.logger.message(
-			`Open this URL to continue: ${color.underline(verificationUrl)}`
-		);
-		cliContext.logger.message('');
-
-		const shouldOpen = await p.confirm({
-			message: 'Open the verification page in your browser?',
-			initialValue: true,
-		});
-
-		if (isCancel(shouldOpen)) {
-			throw new PromptCancelledError('consent_open_verification');
-		}
-
-		if (shouldOpen) {
-			try {
-				const open = (await import('open')).default;
-				await open(verificationUrl);
-			} catch {
-				cliContext.logger.warn(
-					`Could not open browser automatically. Visit ${verificationUrl} manually.`
-				);
-			}
-		}
-
-		const authSpinner = createTaskSpinner('Waiting for authorization...');
-		authSpinner.start();
-
-		try {
-			const token = await pollForToken(
-				baseUrl,
-				deviceCode.device_code,
-				deviceCode.interval,
-				deviceCode.expires_in
-			);
-			authSpinner.success('Authorization received');
-
-			await storeTokens(token.access_token, {
-				refreshToken: token.refresh_token,
-				expiresIn: token.expires_in,
-			});
-		} catch (error) {
-			authSpinner.error('Authorization failed');
-			throw error;
-		}
-	} catch (error) {
-		deviceSpinner.stop();
-		throw error;
-	}
-}
-
-async function createInstanceInteractively(
-	client: NonNullable<
-		Awaited<ReturnType<typeof createControlPlaneClientFromConfig>>
-	>,
+const selectOrCreateInstance = async function selectOrCreateInstance(
 	cliContext: CliContext
 ): Promise<Instance> {
-	const preloadSpinner = createTaskSpinner(
-		'Loading organizations and regions...'
-	);
-	preloadSpinner.start();
-
-	let organizations: ControlPlaneOrganization[];
-	let regions: ControlPlaneRegion[];
-	try {
-		[organizations, regions] = await Promise.all([
-			client.listOrganizations(),
-			client.listRegions(),
-		]);
-	} finally {
-		preloadSpinner.stop();
-	}
-
-	if (organizations.length === 0) {
-		throw new CliError('API_ERROR', {
-			details: 'No organizations available for this account',
-		});
-	}
-
-	if (regions.length === 0) {
-		throw new CliError('API_ERROR', {
-			details: 'No provisioning regions available',
-		});
-	}
-
-	const orgSelection = await p.select<string | symbol>({
-		message: 'Select organization:',
-		options: organizations.map((org: ControlPlaneOrganization) => ({
-			value: org.organizationSlug,
-			label: org.organizationName,
-			hint: `${org.organizationSlug} • ${org.role}`,
-		})),
-		initialValue: organizations[0]?.organizationSlug,
-	});
-
-	if (isCancel(orgSelection)) {
-		throw new PromptCancelledError('project_create_org_slug');
-	}
-
-	const v2Regions = regions.filter(
-		(region: ControlPlaneRegion) => region.family === 'v2'
-	);
-	if (v2Regions.length === 0) {
-		throw new CliError('API_ERROR', {
-			details: 'No v2 provisioning regions available',
-		});
-	}
-
-	const regionSelection = await p.select<string | symbol>({
-		message: 'Select V2 region:',
-		options: v2Regions.map((region: ControlPlaneRegion) => ({
-			value: region.id,
-			label: region.id,
-			hint: region.label,
-		})),
-		initialValue: v2Regions.find((region) => region.id === 'us-east-1')?.id,
-	});
-
-	if (isCancel(regionSelection)) {
-		throw new PromptCancelledError('project_create_region');
-	}
-
-	const slugInput = await p.text({
-		message: 'New project slug:',
-		placeholder: 'my-app',
-		validate: (value) => validateInstanceName(value?.trim() ?? ''),
-	});
-
-	if (isCancel(slugInput)) {
-		throw new PromptCancelledError('project_create_name');
-	}
-
-	const slug = slugInput.trim();
-	const createSpinner = createTaskSpinner(`Creating project "${slug}"...`);
-	createSpinner.start();
-
-	try {
-		const instance = await client.createInstance({
-			name: slug,
-			config: {
-				organizationSlug: orgSelection,
-				region: regionSelection,
-			},
-		});
-		createSpinner.success('Project created');
-		cliContext.logger.info(
-			'Created as a v2 development project. Enable production mode in the dashboard when you are ready.'
-		);
-		return instance;
-	} catch (error) {
-		createSpinner.error('Failed to create project');
-		throw error;
-	}
-}
-
-async function selectOrCreateInstance(
-	cliContext: CliContext
-): Promise<Instance> {
-	const baseUrl = getControlPlaneBaseUrl();
+	const { projectRoot } = cliContext;
 	const listSpinner = createTaskSpinner('Fetching your inth.com projects...');
 	listSpinner.start();
 
-	const client = await createControlPlaneClientFromConfig(baseUrl);
+	const client = await createControlPlaneClientFromConfig(projectRoot);
 	if (!client) {
 		listSpinner.stop();
 		throw new CliError('AUTH_NOT_LOGGED_IN');
@@ -379,26 +189,39 @@ async function selectOrCreateInstance(
 	try {
 		const instances = await client.listInstances();
 		listSpinner.stop();
+		const explicitProject = cliContext.flags.project;
+		const selectedProject =
+			typeof explicitProject === 'string'
+				? explicitProject
+				: await getSelectedInstanceId(projectRoot);
+		if (selectedProject) {
+			return resolveInstance(selectedProject, instances);
+		}
+		if (cliContext.flags['non-interactive']) {
+			throw new CliError('CONFIG_INVALID', {
+				details: 'Supply --project or select a default project before setup.',
+			});
+		}
 
 		if (instances.length === 0) {
 			cliContext.logger.info(
 				'No projects found. Creating a new project for this local project.'
 			);
-			return await createInstanceInteractively(client, cliContext);
+			return await createInstanceInteractively(cliContext);
 		}
 
 		const selectedId = await p.select<string | symbol>({
 			message: 'Select a project to use:',
 			options: [
 				...instances.map((instance) => ({
-					value: instance.id,
-					label: formatInstanceLabel(instance),
 					hint: formatInstanceRegion(instance),
+					label: formatInstanceLabel(instance),
+					value: instance.id,
 				})),
 				{
-					value: '__create__',
-					label: 'Create new project',
 					hint: 'Provision a new inth.com project now',
+					label: 'Create new project',
+					value: '__create__',
 				},
 			],
 		});
@@ -408,7 +231,7 @@ async function selectOrCreateInstance(
 		}
 
 		if (selectedId === '__create__') {
-			return await createInstanceInteractively(client, cliContext);
+			return await createInstanceInteractively(cliContext);
 		}
 
 		const selected = instances.find((instance) => instance.id === selectedId);
@@ -420,32 +243,43 @@ async function selectOrCreateInstance(
 	} catch (error) {
 		listSpinner.stop();
 		throw error;
-	} finally {
-		await client.close();
 	}
-}
+};
 
 export const hostedModeActor = fromPromise<HostedModeOutput, HostedModeInput>(
 	async ({ input }) => {
 		const { cliContext, initialURL, preselectedProvider } = input;
 		let provider = preselectedProvider ?? null;
+		if (cliContext.flags['non-interactive']) {
+			if (initialURL) {
+				const url = new URL(initialURL);
+				if (!['http:', 'https:'].includes(url.protocol)) {
+					throw new CliError('CONFIG_INVALID', {
+						details: 'Backend URL must use HTTP or HTTPS.',
+					});
+				}
+				return { provider: provider ?? 'inth.com', url: initialURL };
+			}
+			const instance = await selectOrCreateInstance(cliContext);
+			return { provider: 'inth.com', url: requireInstanceBackendUrl(instance) };
+		}
 
 		if (!provider) {
 			const providerSelection = await p.select<HostedProvider | symbol>({
+				initialValue: 'inth.com',
 				message: 'Choose your hosted backend option:',
 				options: [
 					{
-						value: 'inth.com',
+						hint: 'Managed infrastructure',
 						label: 'inth.com (Recommended)',
-						hint: 'Managed infrastucture',
+						value: 'inth.com',
 					},
 					{
-						value: 'self-hosted',
-						label: 'Self-hosted',
 						hint: 'Use your own deployed c15t backend',
+						label: 'Self-hosted',
+						value: 'self-hosted',
 					},
 				],
-				initialValue: 'inth.com',
 			});
 
 			if (isCancel(providerSelection)) {
@@ -457,40 +291,30 @@ export const hostedModeActor = fromPromise<HostedModeOutput, HostedModeInput>(
 
 		if (provider === 'self-hosted') {
 			const url = await promptBackendURL({
+				initialURL,
 				message: 'Enter your self-hosted backend URL:',
 				placeholder: 'https://your-backend.example.com/api/c15t',
-				initialURL,
 				stage: 'self_hosted_backend_url',
 			});
 
-			return { url, provider };
-		}
-
-		if (!isV2ModeEnabled()) {
-			const url = await promptBackendURL({
-				message: 'Enter your inth.com project URL:',
-				placeholder: 'https://your-project.inth.app',
-				initialURL,
-				stage: 'consent_manual_url',
-			});
-			return { url, provider: 'inth.com' };
+			return { provider, url };
 		}
 
 		const setupMethod = await p.select<ConsentSetupMethod | symbol>({
+			initialValue: 'sign-in',
 			message: 'How do you want to configure inth.com?',
 			options: [
 				{
-					value: 'sign-in',
-					label: 'Sign in and pick a project',
 					hint: 'List existing projects or create a new one',
+					label: 'Sign in and pick a project',
+					value: 'sign-in',
 				},
 				{
-					value: 'manual-url',
-					label: 'Enter project URL manually',
 					hint: 'Use an existing backend URL',
+					label: 'Enter project URL manually',
+					value: 'manual-url',
 				},
 			],
-			initialValue: 'sign-in',
 		});
 
 		if (isCancel(setupMethod)) {
@@ -499,25 +323,25 @@ export const hostedModeActor = fromPromise<HostedModeOutput, HostedModeInput>(
 
 		if (setupMethod === 'manual-url') {
 			const url = await promptBackendURL({
+				initialURL,
 				message: 'Enter your inth.com project URL:',
 				placeholder: 'https://your-project.inth.app',
-				initialURL,
 				stage: 'consent_manual_url',
 			});
-			return { url, provider: 'inth.com' };
+			return { provider: 'inth.com', url };
 		}
 
 		await runConsentLogin(cliContext);
 		const instance = await selectOrCreateInstance(cliContext);
 
-		await setSelectedInstanceId(instance.id);
+		await setSelectedInstanceId(instance.id, cliContext.projectRoot);
 		cliContext.logger.info(
 			`Using project ${color.cyan(instance.name)} (${color.dim(instance.id)})`
 		);
 
 		return {
-			url: instance.url,
 			provider: 'inth.com',
+			url: requireInstanceBackendUrl(instance),
 		};
 	}
 );
@@ -530,7 +354,6 @@ export interface BackendOptionsInput {
 }
 
 export interface BackendOptionsOutput {
-	useEnvFile: boolean;
 	proxyNextjs: boolean;
 }
 
@@ -540,29 +363,21 @@ export const backendOptionsActor = fromPromise<
 >(async ({ input }) => {
 	const { cliContext } = input;
 
-	// Env file prompt
-	const useEnvFile = await p.confirm({
-		message:
-			'Store the backendURL in a .env file? (Recommended, URL is public)',
-		initialValue: true,
-	});
-
-	if (isCancel(useEnvFile)) {
-		throw new PromptCancelledError('env_file');
-	}
-
 	// Next.js proxy prompt (only for Next.js projects)
 	let proxyNextjs = false;
-	if (cliContext.framework.pkg === '@c15t/nextjs') {
+	if (cliContext.framework.pkg === 'c15t/next') {
 		cliContext.logger.info(
 			'Learn more about Next.js Rewrites: https://nextjs.org/docs/app/api-reference/config/next-config-js/rewrites'
 		);
 
-		const proxyResult = await p.confirm({
-			message:
-				'Proxy requests to your project with Next.js Rewrites? (Recommended)',
-			initialValue: true,
-		});
+		const proxyResult =
+			cliContext.flags?.yes === true
+				? true
+				: await p.confirm({
+						initialValue: true,
+						message:
+							'Proxy requests to your project with Next.js Rewrites? (Recommended)',
+					});
 
 		if (isCancel(proxyResult)) {
 			throw new PromptCancelledError('proxy_nextjs');
@@ -571,10 +386,7 @@ export const backendOptionsActor = fromPromise<
 		proxyNextjs = proxyResult as boolean;
 	}
 
-	return {
-		useEnvFile: useEnvFile as boolean,
-		proxyNextjs,
-	};
+	return { proxyNextjs };
 });
 
 // --- Frontend UI Options Prompt ---
@@ -582,6 +394,8 @@ export const backendOptionsActor = fromPromise<
 export interface FrontendOptionsInput {
 	cliContext: CliContext;
 	hasBackend: boolean;
+	/** Optional prompt boundary for non-interactive callers. */
+	selectDevTools?: typeof getDevToolsOption;
 }
 
 export interface FrontendOptionsOutput {
@@ -595,8 +409,8 @@ export const frontendOptionsActor = fromPromise<
 	FrontendOptionsOutput,
 	FrontendOptionsInput
 >(async ({ input }) => {
-	const { cliContext, hasBackend } = input;
-	const pkg = cliContext.framework.pkg;
+	const { cliContext, hasBackend, selectDevTools = getDevToolsOption } = input;
+	const { pkg } = cliContext.framework;
 
 	let enableSSR: boolean | undefined;
 	let enableDevTools = false;
@@ -604,18 +418,18 @@ export const frontendOptionsActor = fromPromise<
 	let expandedTheme: ExpandedTheme | undefined;
 
 	// Next.js: SSR (only with backend + App Router) + UI style + theme
-	if (pkg === '@c15t/nextjs') {
+	if (pkg === 'c15t/next') {
 		// SSR only makes sense when there's a backend and App Router
 		if (hasBackend) {
 			const { existsSync } = await import('node:fs');
 			const { join } = await import('node:path');
-			const projectRoot = cliContext.projectRoot;
+			const { projectRoot } = cliContext;
 			const isAppRouter = [
 				'app/layout.tsx',
 				'src/app/layout.tsx',
 				'app/layout.ts',
 				'src/app/layout.ts',
-			].some((p) => existsSync(join(projectRoot, p)));
+			].some((pLocal) => existsSync(join(projectRoot, pLocal)));
 
 			if (isAppRouter) {
 				enableSSR = await getSSROption({
@@ -632,24 +446,24 @@ export const frontendOptionsActor = fromPromise<
 			'Choose how you want your consent UI components generated.'
 		);
 		cliContext.logger.info(
-			'Learn more: https://c15t.com/docs/frameworks/nextjs/customization'
+			'Learn more: https://c15t.com/docs/frameworks/next/customize'
 		);
 
 		const styleResult = await p.select({
+			initialValue: 'prebuilt' as UIStyle,
 			message: 'UI component style:',
 			options: [
 				{
-					value: 'prebuilt',
-					label: 'Prebuilt (Recommended)',
 					hint: 'Ready-to-use components',
+					label: 'Prebuilt (Recommended)',
+					value: 'prebuilt',
 				},
 				{
-					value: 'expanded',
-					label: 'Compound components',
 					hint: 'Full customization control',
+					label: 'Compound components',
+					value: 'expanded',
 				},
 			],
-			initialValue: 'prebuilt' as UIStyle,
 		});
 
 		if (isCancel(styleResult)) {
@@ -660,30 +474,30 @@ export const frontendOptionsActor = fromPromise<
 
 		// Theme prompt (both prebuilt and expanded)
 		const themeResult = await p.select({
+			initialValue: 'none' as ExpandedTheme,
 			message: 'Theme preset:',
 			options: [
 				{
-					value: 'none',
-					label: 'None',
 					hint: 'No preset styling',
+					label: 'None',
+					value: 'none',
 				},
 				{
-					value: 'minimal',
-					label: 'Minimal',
 					hint: 'Clean light theme',
+					label: 'Minimal',
+					value: 'minimal',
 				},
 				{
-					value: 'dark',
-					label: 'Dark',
 					hint: 'High contrast dark mode',
+					label: 'Dark',
+					value: 'dark',
 				},
 				{
-					value: 'tailwind',
-					label: 'Tailwind',
 					hint: 'Uses Tailwind utility classes',
+					label: 'Tailwind',
+					value: 'tailwind',
 				},
 			],
-			initialValue: 'none' as ExpandedTheme,
 		});
 
 		if (isCancel(themeResult)) {
@@ -694,26 +508,26 @@ export const frontendOptionsActor = fromPromise<
 	}
 
 	// React: UI style + theme (no SSR)
-	if (pkg === '@c15t/react') {
+	if (pkg === 'c15t/react') {
 		cliContext.logger.info(
 			'Choose how you want your consent UI components generated.'
 		);
 
 		const styleResult = await p.select({
+			initialValue: 'prebuilt' as UIStyle,
 			message: 'UI component style:',
 			options: [
 				{
-					value: 'prebuilt',
-					label: 'Prebuilt (Recommended)',
 					hint: 'Ready-to-use components',
+					label: 'Prebuilt (Recommended)',
+					value: 'prebuilt',
 				},
 				{
-					value: 'expanded',
-					label: 'Compound components',
 					hint: 'Full customization control',
+					label: 'Compound components',
+					value: 'expanded',
 				},
 			],
-			initialValue: 'prebuilt' as UIStyle,
 		});
 
 		if (isCancel(styleResult)) {
@@ -724,30 +538,30 @@ export const frontendOptionsActor = fromPromise<
 
 		// Theme prompt (both prebuilt and expanded)
 		const reactThemeResult = await p.select({
+			initialValue: 'none' as ExpandedTheme,
 			message: 'Theme preset:',
 			options: [
 				{
-					value: 'none',
-					label: 'None',
 					hint: 'No preset styling',
+					label: 'None',
+					value: 'none',
 				},
 				{
-					value: 'minimal',
-					label: 'Minimal',
 					hint: 'Clean light theme',
+					label: 'Minimal',
+					value: 'minimal',
 				},
 				{
-					value: 'dark',
-					label: 'Dark',
 					hint: 'High contrast dark mode',
+					label: 'Dark',
+					value: 'dark',
 				},
 				{
-					value: 'tailwind',
-					label: 'Tailwind',
 					hint: 'Uses Tailwind utility classes',
+					label: 'Tailwind',
+					value: 'tailwind',
 				},
 			],
-			initialValue: 'none' as ExpandedTheme,
 		});
 
 		if (isCancel(reactThemeResult)) {
@@ -757,8 +571,8 @@ export const frontendOptionsActor = fromPromise<
 		expandedTheme = reactThemeResult as ExpandedTheme;
 	}
 
-	if (pkg === 'c15t' || pkg === '@c15t/react' || pkg === '@c15t/nextjs') {
-		enableDevTools = await getDevToolsOption({
+	if (pkg === 'c15t' || pkg === 'c15t/react' || pkg === 'c15t/next') {
+		enableDevTools = await selectDevTools({
 			context: cliContext,
 			onCancel: () => {
 				throw new PromptCancelledError('dev_tools_option');
@@ -767,26 +581,26 @@ export const frontendOptionsActor = fromPromise<
 	}
 
 	return {
-		enableSSR,
 		enableDevTools,
-		uiStyle,
+		enableSSR,
 		expandedTheme,
+		uiStyle,
 	};
 });
 
 // --- Scripts Option Prompt ---
 
 /**
- * Available scripts from @c15t/scripts package
+ * Available scripts from @c15t/integrations package
  */
 export const AVAILABLE_SCRIPTS = BUILT_IN_INTEGRATION_CATEGORIES.flatMap(
 	(category) =>
 		builtInScriptIntegrations
 			.filter((integration) => integration.integrationCategory === category.key)
 			.map((integration) => ({
-				value: integration.packageSubpath,
-				label: integration.label,
 				hint: integration.hint,
+				label: integration.label,
+				value: integration.packageSubpath,
 			}))
 );
 
@@ -811,13 +625,16 @@ export const scriptsOptionActor = fromPromise<
 	const { cliContext } = input;
 
 	cliContext.logger.info(
-		'The @c15t/scripts package provides pre-configured third-party scripts with consent management.'
+		'The @c15t/integrations package provides pre-configured third-party scripts with consent management.'
 	);
 
-	const addScripts = await p.confirm({
-		message: 'Add @c15t/scripts for third-party script management?',
-		initialValue: true,
-	});
+	const addScripts =
+		input.cliContext.flags?.yes === true
+			? true
+			: await p.confirm({
+					initialValue: true,
+					message: 'Add @c15t/integrations for third-party script management?',
+				});
 
 	if (isCancel(addScripts)) {
 		throw new PromptCancelledError('scripts_option');
@@ -831,9 +648,9 @@ export const scriptsOptionActor = fromPromise<
 	}
 
 	const scriptOptions = AVAILABLE_SCRIPTS.map((script) => ({
-		value: script.value,
-		label: script.label,
 		hint: script.hint,
+		label: script.label,
+		value: script.value,
 	})) satisfies AvailableScriptPromptOptions;
 
 	const selected = await p.multiselect<string>({
@@ -855,6 +672,8 @@ export const scriptsOptionActor = fromPromise<
 // --- Install Confirmation Prompt ---
 
 export interface InstallConfirmInput {
+	yes?: boolean;
+	skipInstall?: boolean;
 	dependencies: string[];
 	packageManager: string;
 }
@@ -868,11 +687,17 @@ export const installConfirmActor = fromPromise<
 	InstallConfirmInput
 >(async ({ input }) => {
 	const { dependencies, packageManager } = input;
+	if (input.skipInstall) {
+		return { confirmed: false };
+	}
+	if (input.yes) {
+		return { confirmed: true };
+	}
 
 	const depList = dependencies.join(', ');
 	const result = await p.confirm({
-		message: `Install dependencies (${depList}) with ${packageManager}?`,
 		initialValue: true,
+		message: `Install dependencies (${depList}) with ${packageManager}?`,
 	});
 
 	if (isCancel(result)) {
@@ -898,11 +723,14 @@ export const skillsInstallActor = fromPromise<
 >(async ({ input }) => {
 	const { cliContext } = input;
 
-	const result = await p.confirm({
-		message:
-			'Install c15t agent skills for AI-assisted development? (Claude, Cursor, etc.)',
-		initialValue: true,
-	});
+	const result =
+		cliContext.flags?.yes === true
+			? true
+			: await p.confirm({
+					initialValue: true,
+					message:
+						'Install c15t agent skills for AI-assisted development? (Claude, Cursor, etc.)',
+				});
 
 	if (isCancel(result)) {
 		return { installed: false };
@@ -915,9 +743,9 @@ export const skillsInstallActor = fromPromise<
 			const pmName = cliContext.packageManager.name;
 			const execCommands: Record<string, string> = {
 				bun: 'bunx',
+				npm: 'npx',
 				pnpm: 'pnpm dlx',
 				yarn: 'yarn dlx',
-				npm: 'npx',
 			};
 			const execCommand = execCommands[pmName] ?? 'npx';
 			const [cmd, ...baseArgs] = execCommand.split(' ') as [
@@ -970,10 +798,13 @@ export const githubStarActor = fromPromise<GitHubStarOutput, GitHubStarInput>(
 	async ({ input }) => {
 		const { cliContext } = input;
 
-		const result = await p.confirm({
-			message: 'Would you like to star c15t on GitHub now?',
-			initialValue: true,
-		});
+		const result =
+			cliContext.flags?.yes === true
+				? true
+				: await p.confirm({
+						initialValue: true,
+						message: 'Would you like to star c15t on GitHub now?',
+					});
 
 		if (isCancel(result)) {
 			// Don't throw for this optional prompt, just return false

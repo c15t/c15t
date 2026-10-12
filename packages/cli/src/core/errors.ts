@@ -10,183 +10,234 @@ import type { CliLogger } from '../types';
 
 // --- Error Catalog ---
 export const ERROR_CATALOG = {
-	// --- Auth Errors ---
-	AUTH_FAILED: {
-		code: 'AUTH_FAILED',
-		message: 'Authentication failed',
-		hint: 'Try running `c15t login` again',
-		docs: `${URLS.CLI_DOCS}/auth`,
+	AGENT_FAILED: {
+		code: 'AGENT_FAILED',
+		hint: 'Review any agent edits before trying again',
+		message: 'Agent setup did not complete',
+	},
+	AGENT_NOT_STARTED: {
+		code: 'AGENT_NOT_STARTED',
+		hint: 'Install the Codex CLI and make sure `codex` is on PATH, or run with --plan to copy the setup prompt',
+		message: 'Agent setup did not start',
+	},
+	API_ERROR: {
+		code: 'API_ERROR',
+		hint: 'Check the error details and try again',
+		message: 'API request failed',
 	},
 	AUTH_EXPIRED: {
 		code: 'AUTH_EXPIRED',
-		message: 'Session expired',
 		hint: 'Run `c15t login` to refresh your session',
+		message: 'Session expired',
+	},
+	// --- Auth Errors ---
+	AUTH_FAILED: {
+		code: 'AUTH_FAILED',
+		docs: `${URLS.DOCS}/cli/commands/hosted`,
+		hint: 'Try running `c15t login` again',
+		message: 'Authentication failed',
 	},
 	AUTH_NOT_LOGGED_IN: {
 		code: 'AUTH_NOT_LOGGED_IN',
-		message: 'Not logged in',
 		hint: 'Run `c15t login` to authenticate',
+		message: 'Not logged in',
 	},
 	AUTH_TOKEN_INVALID: {
 		code: 'AUTH_TOKEN_INVALID',
-		message: 'Invalid authentication token',
 		hint: 'Try logging out with `c15t logout` and logging in again',
+		message: 'Invalid authentication token',
+	},
+	CANCELLED: {
+		code: 'CANCELLED',
+		message: 'Operation cancelled',
+	},
+
+	// --- Command Errors ---
+	COMMAND_NOT_FOUND: {
+		code: 'COMMAND_NOT_FOUND',
+		hint: 'Run `c15t --help` to see available commands',
+		message: 'Unknown command',
+	},
+	CONFIG_EXISTS: {
+		code: 'CONFIG_EXISTS',
+		hint: 'Use --force to overwrite existing configuration',
+		message: 'c15t configuration already exists',
+	},
+	CONFIG_INVALID: {
+		code: 'CONFIG_INVALID',
+		docs: `${URLS.DOCS}/cli/commands/setup`,
+		hint: 'Check your c15t.config.ts file for errors',
+		message: 'Invalid c15t configuration',
+	},
+	CONFIG_NOT_FOUND: {
+		code: 'CONFIG_NOT_FOUND',
+		hint: 'Run `c15t generate` to create a configuration',
+		message: 'c15t configuration not found',
+	},
+	CONTROL_PLANE_CONNECTION_FAILED: {
+		code: 'CONTROL_PLANE_CONNECTION_FAILED',
+		hint: `Check if ${URLS.CONSENT_IO} is accessible`,
+		message: 'Could not connect to inth.com',
+	},
+	DEVICE_FLOW_DENIED: {
+		code: 'DEVICE_FLOW_DENIED',
+		hint: 'The login request was denied. Run `c15t login` to try again',
+		message: 'Authentication denied',
+	},
+	DEVICE_FLOW_PENDING: {
+		code: 'DEVICE_FLOW_PENDING',
+		hint: 'Please complete the login in your browser',
+		message: 'Waiting for authentication',
 	},
 
 	// --- Device Flow Errors ---
 	DEVICE_FLOW_TIMEOUT: {
 		code: 'DEVICE_FLOW_TIMEOUT',
-		message: 'Authentication timed out',
 		hint: 'The login request expired. Run `c15t login` to try again',
-	},
-	DEVICE_FLOW_DENIED: {
-		code: 'DEVICE_FLOW_DENIED',
-		message: 'Authentication denied',
-		hint: 'The login request was denied. Run `c15t login` to try again',
-	},
-	DEVICE_FLOW_PENDING: {
-		code: 'DEVICE_FLOW_PENDING',
-		message: 'Waiting for authentication',
-		hint: 'Please complete the login in your browser',
-	},
-
-	// --- Project Errors ---
-	NOT_A_PROJECT: {
-		code: 'NOT_A_PROJECT',
-		message: 'No package.json found',
-		hint: 'Make sure you are in a JavaScript/TypeScript project directory',
-	},
-	FRAMEWORK_NOT_DETECTED: {
-		code: 'FRAMEWORK_NOT_DETECTED',
-		message: 'Could not detect framework',
-		hint: 'Supported frameworks: Next.js, React, Remix, Vite',
-		docs: `${URLS.CLI_DOCS}/frameworks`,
-	},
-	LAYOUT_NOT_FOUND: {
-		code: 'LAYOUT_NOT_FOUND',
-		message: 'Could not find layout file',
-		hint: 'Make sure you have app/layout.tsx or pages/_app.tsx',
-	},
-	CONFIG_EXISTS: {
-		code: 'CONFIG_EXISTS',
-		message: 'c15t configuration already exists',
-		hint: 'Use --force to overwrite existing configuration',
-	},
-	CONFIG_NOT_FOUND: {
-		code: 'CONFIG_NOT_FOUND',
-		message: 'c15t configuration not found',
-		hint: 'Run `c15t generate` to create a configuration',
-	},
-	CONFIG_INVALID: {
-		code: 'CONFIG_INVALID',
-		message: 'Invalid c15t configuration',
-		hint: 'Check your c15t.config.ts file for errors',
-		docs: `${URLS.DOCS}/configuration`,
-	},
-
-	// --- Network Errors ---
-	NETWORK_ERROR: {
-		code: 'NETWORK_ERROR',
-		message: 'Network request failed',
-		hint: 'Check your internet connection',
-	},
-	CONTROL_PLANE_CONNECTION_FAILED: {
-		code: 'CONTROL_PLANE_CONNECTION_FAILED',
-		message: 'Could not connect to inth.com',
-		hint: `Check if ${URLS.CONSENT_IO} is accessible`,
-	},
-	API_ERROR: {
-		code: 'API_ERROR',
-		message: 'API request failed',
-		hint: 'Check the error details and try again',
-	},
-
-	// --- Validation Errors ---
-	URL_INVALID: {
-		code: 'URL_INVALID',
-		message: 'Invalid URL format',
-		hint: 'Expected format: https://your-project.inth.app',
-	},
-	INSTANCE_NOT_FOUND: {
-		code: 'INSTANCE_NOT_FOUND',
-		message: 'Project not found',
-		hint: 'Run `c15t projects list` to see available projects',
-	},
-	INSTANCE_NAME_INVALID: {
-		code: 'INSTANCE_NAME_INVALID',
-		message: 'Invalid project slug',
-		hint: 'Project slugs must be alphanumeric with hyphens',
-	},
-
-	// --- File System Errors ---
-	FILE_NOT_FOUND: {
-		code: 'FILE_NOT_FOUND',
-		message: 'File not found',
-	},
-	FILE_READ_ERROR: {
-		code: 'FILE_READ_ERROR',
-		message: 'Could not read file',
-		hint: 'Check file permissions',
-	},
-	FILE_WRITE_ERROR: {
-		code: 'FILE_WRITE_ERROR',
-		message: 'Could not write file',
-		hint: 'Check file permissions and disk space',
+		message: 'Authentication timed out',
 	},
 	DIRECTORY_NOT_FOUND: {
 		code: 'DIRECTORY_NOT_FOUND',
 		message: 'Directory not found',
 	},
 
-	// --- Command Errors ---
-	COMMAND_NOT_FOUND: {
-		code: 'COMMAND_NOT_FOUND',
-		message: 'Unknown command',
-		hint: 'Run `c15t --help` to see available commands',
+	// --- File System Errors ---
+	FILE_CONFLICT: {
+		code: 'FILE_CONFLICT',
+		hint: 'Merge the generated code into your files by hand, or pass --overwrite to replace them',
+		message: 'Files already exist with other contents',
 	},
-	SUBCOMMAND_REQUIRED: {
-		code: 'SUBCOMMAND_REQUIRED',
-		message: 'Subcommand required',
-		hint: 'Run the command with --help to see available subcommands',
+	FILE_NOT_FOUND: {
+		code: 'FILE_NOT_FOUND',
+		message: 'File not found',
+	},
+	FILE_READ_ERROR: {
+		code: 'FILE_READ_ERROR',
+		hint: 'Check file permissions',
+		message: 'Could not read file',
+	},
+	FILE_WRITE_ERROR: {
+		code: 'FILE_WRITE_ERROR',
+		hint: 'Check file permissions and disk space',
+		message: 'Could not write file',
+	},
+	FLAG_INVALID: { code: 'FLAG_INVALID', message: 'Invalid flag value' },
+	FLAG_UNKNOWN: {
+		code: 'FLAG_UNKNOWN',
+		hint: 'Run the command with --help to see supported flags',
+		message: 'Unknown flag',
 	},
 	FLAG_VALUE_REQUIRED: {
 		code: 'FLAG_VALUE_REQUIRED',
 		message: 'Flag requires a value',
 	},
+	FRAMEWORK_NOT_DETECTED: {
+		code: 'FRAMEWORK_NOT_DETECTED',
+		docs: `${URLS.DOCS}/frameworks`,
+		hint: 'Supported frameworks: Next.js, React, Remix, Vite',
+		message: 'Could not detect framework',
+	},
 
 	// --- Install Errors ---
+	INPUT_REQUIRED: {
+		code: 'INPUT_REQUIRED',
+		hint: 'Provide the required arguments or run in an interactive terminal',
+		message: 'Interactive input required',
+	},
 	INSTALL_FAILED: {
 		code: 'INSTALL_FAILED',
-		message: 'Package installation failed',
 		hint: 'Try running the install command manually',
+		message: 'Package installation failed',
 	},
-	PACKAGE_MANAGER_NOT_FOUND: {
-		code: 'PACKAGE_MANAGER_NOT_FOUND',
-		message: 'Could not detect package manager',
-		hint: 'Make sure npm, yarn, pnpm, or bun is installed',
+	INSTANCE_NAME_INVALID: {
+		code: 'INSTANCE_NAME_INVALID',
+		hint: 'Project slugs must be alphanumeric with hyphens',
+		message: 'Invalid project slug',
+	},
+	INSTANCE_NOT_FOUND: {
+		code: 'INSTANCE_NOT_FOUND',
+		hint: 'Run `c15t projects list` to see available projects',
+		message: 'Project not found',
+	},
+
+	// --- Inth Errors ---
+	INTH_CRASHED: {
+		code: 'INTH_CRASHED',
+		hint: `Run the command again. If it keeps failing, report it at ${URLS.GITHUB}/issues`,
+		message: 'The Inth executable stopped unexpectedly',
+	},
+	INTH_UNAVAILABLE: {
+		code: 'INTH_UNAVAILABLE',
+		docs: `${URLS.DOCS}/cli/commands/hosted`,
+		hint: 'Follow the details above to restore the Inth executable, or pass --backend-url to `c15t setup` to skip hosted account commands',
+		message: 'The Inth executable for hosted account commands is unavailable',
+	},
+	INTH_UNSUPPORTED_PLATFORM: {
+		code: 'INTH_UNSUPPORTED_PLATFORM',
+		docs: `${URLS.DOCS}/cli/commands/hosted`,
+		hint: 'Login, status and projects are unavailable here, and INTH_TOKEN cannot help without the executable. Pass --backend-url to `c15t setup`, or use `c15t setup offline`',
+		message: 'Hosted account commands are not supported on this platform',
+	},
+	LAYOUT_NOT_FOUND: {
+		code: 'LAYOUT_NOT_FOUND',
+		hint: 'Make sure you have app/layout.tsx or pages/_app.tsx',
+		message: 'Could not find layout file',
+	},
+	MIGRATION_CONFIG_MISSING: {
+		code: 'MIGRATION_CONFIG_MISSING',
+		hint: 'Make sure your c15t.config.ts includes database configuration',
+		message: 'Migration configuration missing',
 	},
 
 	// --- Migration Errors ---
 	MIGRATION_FAILED: {
 		code: 'MIGRATION_FAILED',
-		message: 'Database migration failed',
 		hint: 'Check the error details and database connection',
+		message: 'Database migration failed',
 	},
-	MIGRATION_CONFIG_MISSING: {
-		code: 'MIGRATION_CONFIG_MISSING',
-		message: 'Migration configuration missing',
-		hint: 'Make sure your c15t.config.ts includes database configuration',
+
+	// --- Network Errors ---
+	NETWORK_ERROR: {
+		code: 'NETWORK_ERROR',
+		hint: 'Check your internet connection',
+		message: 'Network request failed',
+	},
+
+	// --- Project Errors ---
+	NOT_A_PROJECT: {
+		code: 'NOT_A_PROJECT',
+		hint: 'Make sure you are in a JavaScript/TypeScript project directory',
+		message: 'No package.json found',
+	},
+	PACKAGE_MANAGER_NOT_FOUND: {
+		code: 'PACKAGE_MANAGER_NOT_FOUND',
+		hint: 'Make sure npm, yarn, pnpm, or bun is installed',
+		message: 'Could not detect package manager',
+	},
+	PROJECT_PREFERENCE_INVALID: {
+		code: 'PROJECT_PREFERENCE_INVALID',
+		docs: `${URLS.DOCS}/cli/commands/hosted`,
+		hint: 'Delete .c15t/project.json (and .c15t itself if it is a symlink), then run `c15t projects select`',
+		message: 'Invalid project selection in .c15t/project.json',
+	},
+	SUBCOMMAND_REQUIRED: {
+		code: 'SUBCOMMAND_REQUIRED',
+		hint: 'Run the command with --help to see available subcommands',
+		message: 'Subcommand required',
 	},
 
 	// --- Generic Errors ---
 	UNKNOWN_ERROR: {
 		code: 'UNKNOWN_ERROR',
-		message: 'An unexpected error occurred',
 		hint: `Please report this issue at ${URLS.GITHUB}/issues`,
+		message: 'An unexpected error occurred',
 	},
-	CANCELLED: {
-		code: 'CANCELLED',
-		message: 'Operation cancelled',
+
+	// --- Validation Errors ---
+	URL_INVALID: {
+		code: 'URL_INVALID',
+		hint: 'Expected format: https://your-project.inth.app',
+		message: 'Invalid URL format',
 	},
 } as const;
 
@@ -219,10 +270,10 @@ export class CliError extends Error {
 	 * Display the error with hints and documentation links
 	 */
 	display(logger: CliLogger): void {
-		const entry = this.entry;
+		const { entry } = this;
 
 		// Build message with context
-		let message = entry.message;
+		let { message } = entry;
 		if (this.context?.details) {
 			message += `: ${this.context.details}`;
 		}
@@ -262,7 +313,7 @@ export class CliError extends Error {
 /**
  * Check if an error is a CliError with a specific code
  */
-export function isCliError(
+export const isCliError = function isCliError(
 	error: unknown,
 	code?: ErrorCode
 ): error is CliError {
@@ -270,30 +321,16 @@ export function isCliError(
 		return false;
 	}
 	return code ? error.code === code : true;
-}
+};
 
 /**
  * Create error handlers for the CLI context
  */
-export function createErrorHandlers(
+export const createErrorHandlers = function createErrorHandlers(
 	logger: CliLogger,
 	telemetry?: { trackError: (error: Error, command?: string) => void }
 ) {
 	return {
-		handleError: (error: unknown, message: string): never => {
-			const cliError = CliError.from(error);
-
-			// Track the error
-			if (telemetry) {
-				telemetry.trackError(cliError, message);
-			}
-
-			// Display the error
-			cliError.display(logger);
-
-			process.exit(1);
-		},
-
 		handleCancel: (
 			message?: string,
 			context?: { command?: string; stage?: string }
@@ -305,15 +342,29 @@ export function createErrorHandlers(
 				logger.info(`Command: ${context.command}`);
 			}
 
-			process.exit(0);
+			throw new CliError('CANCELLED', { details: cancelMessage });
+		},
+
+		handleError: (error: unknown, message: string): never => {
+			const cliError = CliError.from(error);
+
+			// Track the error
+			if (telemetry) {
+				telemetry.trackError(cliError, message);
+			}
+
+			// Display the error
+			cliError.display(logger);
+
+			throw cliError;
 		},
 	};
-}
+};
 
 /**
  * Wrap an async function with error handling
  */
-export function withErrorHandling<
+export const withErrorHandling = function withErrorHandling<
 	T extends (...args: unknown[]) => Promise<unknown>,
 >(fn: T, logger: CliLogger, context?: { command?: string }): T {
 	return (async (...args: Parameters<T>) => {
@@ -325,7 +376,7 @@ export function withErrorHandling<
 			if (context?.command) {
 				logger.info(`Command: ${context.command}`);
 			}
-			process.exit(1);
+			throw cliError;
 		}
 	}) as T;
-}
+};

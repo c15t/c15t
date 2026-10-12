@@ -1,135 +1,58 @@
 ---
 title: Hotjar
-description: Product analytics and behavior insights with a prebuilt helper that seeds Hotjar globals before loading the vendor bundle.
-group: integrations
+description: Load Hotjar only after measurement consent with the c15t hotjar helper, and check its loader and recordings in DevTools.
+seoTitle: Hotjar cookie consent with c15t
+seoDescription: Load Hotjar only with measurement consent. The c15t hotjar helper keeps the Hotjar loader off the page and stops recordings on withdrawal.
 icon: hotjar
+group: integrations
 ---
 
-Hotjar helps you understand behavior with heatmaps, session recordings, and feedback tools. The `hotjar()` helper sets up Hotjar's `_hjSettings` global and `hj` queue stub, then loads the vendor script once `measurement` consent is granted.
+The c15t `hotjar` helper keeps Hotjar off the page until `measurement` has
+consent. Until then, c15t does not define `window._hjSettings` or `window.hj`.
+The helper sends no consent signal to Hotjar. If the visitor withdraws consent,
+c15t removes the loader script element. By default, c15t also reloads the page.
+The reload stops Hotjar.
 
-## Integrate with c15t
+## Configure Hotjar
 
-<Tabs items={['React', 'Next.js', 'JavaScript']}>
-  <Tab value="React">
-    ```tsx
-    import { type ReactNode } from 'react';
-    import { ConsentManagerProvider } from '@c15t/react';
-    import { hotjar } from '@c15t/scripts/hotjar';
+Copy the site ID from your Hotjar tracking code, where it is the `hjid` value.
+Remove the original tracking code.
 
-    const scripts = [hotjar({ siteId: 1234567, version: 6 })];
+<CommandTabs command="@c15t/integrations" mode="install" />
 
-    export function ConsentProvider({ children }: { children: ReactNode }) {
-      return (
-        <ConsentManagerProvider
-          options={{
-            mode: 'hosted',
-            backendURL: 'https://your-instance.c15t.dev',
-            scripts,
-          }}
-        >
-          {children}
-        </ConsentManagerProvider>
-      );
-    }
-    ```
-  </Tab>
+```ts title="src/consent-scripts.ts"
+import { hotjar } from '@c15t/integrations/hotjar';
 
-  <Tab value="Next.js">
-    ```tsx
-    'use client';
-
-    import { type ReactNode } from 'react';
-    import { ConsentManagerProvider } from '@c15t/nextjs';
-    import { hotjar } from '@c15t/scripts/hotjar';
-
-    const scripts = [hotjar({ siteId: 1234567, version: 6 })];
-
-    export function ConsentProvider({ children }: { children: ReactNode }) {
-      return (
-        <ConsentManagerProvider
-          options={{
-            mode: 'hosted',
-            backendURL: '/api/c15t',
-            scripts,
-          }}
-        >
-          {children}
-        </ConsentManagerProvider>
-      );
-    }
-    ```
-  </Tab>
-
-  <Tab value="JavaScript">
-    ```ts
-    import { getOrCreateConsentRuntime } from 'c15t';
-    import { hotjar } from '@c15t/scripts/hotjar';
-
-    getOrCreateConsentRuntime({
-      mode: 'hosted',
-      backendURL: 'https://your-instance.c15t.dev',
-      scripts: [hotjar({ siteId: 1234567, version: 6 })],
-    });
-    ```
-  </Tab>
-</Tabs>
-
-## How c15t loads it
-
-- **Category:** `measurement` (Analytics)
-- **Loads when:** measurement consent is granted
-- **On revocation:** unloaded - c15t removes the loader script element from the DOM, which prevents further loader-driven network requests. Existing Hotjar requests, timers, event listeners, and globals may continue until they finish or are cleared by Hotjar-specific APIs.
-
-To load Hotjar from a custom URL:
-
-```ts
-hotjar({
-  siteId: 1234567,
-  scriptUrl: 'https://cdn.example.com/hotjar.js',
-});
+export const scripts = [hotjar({ siteId: 1234567 })];
 ```
 
-## Tracking events in your app
+<include src="../shared/integrations/register-scripts.mdx" />
 
-c15t gates loading of the Hotjar script until `measurement` consent is granted. The `hotjar()` helper initializes Hotjar globals by creating a pre-load queue stub at `window.hj`, so calls to Hotjar's runtime API (`window.hj(...)`) can be queued before the real script loads. After the helper runs, `window.hj` exists as that queue stub; once Hotjar's script loads, it is replaced by Hotjar's real implementation.
+## Options
 
-Guard event calls by checking consent state. From React:
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `siteId` | Required | Site ID as a number or string. Set as `window._hjSettings.hjid` and used in the default loader URL. Missing, empty and `0` values log an error and the script does not load. |
+| `version` | `6` | Script version, set as `window._hjSettings.hjsv` and the `sv` query parameter of the default loader URL. |
+| `scriptUrl` | `https://static.hotjar.com/c/hotjar-<siteId>.js?sv=<version>` | Loader URL override. |
 
-```tsx
-import { useCallback } from 'react';
-import { useConsentManager } from '@c15t/react';
+## Loading and revocation
 
-function SignupExample() {
-  const { has } = useConsentManager();
+`hotjar` uses the `measurement` category. When measurement becomes allowed,
+the helper sets `window._hjSettings` and a queue-backed `window.hj` stub, each
+only when the global is undefined, then loads the Hotjar loader.
 
-  const trackSignup = useCallback(() => {
-    if (has('measurement')) {
-      window.hj?.('event', 'signup');
-    }
-  }, [has]);
+On revocation the helper removes the loader script element and calls no Hotjar
+API. A recording in progress continues until the page unloads, so c15t's
+default reload on revocation is what ends it.
 
-  // Call trackSignup() from an event handler after signup succeeds.
-}
-```
+## Verify Hotjar
 
-From plain JavaScript:
+Filter DevTools Network by `hotjar`. After you allow measurement, the
+`hotjar-<siteId>.js` request loads from `static.hotjar.com`, and
+`window._hjSettings.hjid` holds your site ID. Review a recording of a real
+screen in your app to check that Hotjar masks the fields you expect.
+`window.hj` still exists after revocation, so check measurement permission
+before your own `hj` calls.
 
-```ts
-import { getOrCreateConsentRuntime } from 'c15t';
-
-const { consentStore } = getOrCreateConsentRuntime();
-
-if (consentStore.getState().has('measurement')) {
-  window.hj?.('event', 'signup');
-}
-```
-
-## Types
-
-### HotjarOptions
-
-<AutoTypeTable path="./packages/scripts/src/vendors/analytics/hotjar.ts" name="HotjarOptions" />
-
-### Script
-
-<AutoTypeTable path="./packages/core/src/libs/script-loader/types.ts" name="Script" />
+<include src="../shared/integrations/vendor-revocation-and-verify.mdx" />

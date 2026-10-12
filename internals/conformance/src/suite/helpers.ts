@@ -1,0 +1,144 @@
+/**
+ * Shared helpers for conformance suites.
+ *
+ * The conformance package is agnostic to the test runner. Each per-framework
+ * driver passes in a `SuiteApi` with `describe`, `test`, and `expect` from
+ * the runner the package actually uses (vitest for framework packages,
+ * bun:test for the meta-suite). Both runners expose compatible APIs.
+ */
+
+import type { TestDriver } from '../driver';
+
+export type TestFn = (name: string, body: () => void | Promise<void>) => void;
+
+export type DescribeFn = (name: string, body: () => void) => void;
+
+/**
+ * The assertion entry point every adapter shim provides. The optional
+ * `message` names the value under test in the failure output, matching the
+ * `expect(value, message)` form of vitest and bun:test.
+ */
+export type ExpectFn = (
+	value: unknown,
+	message?: string
+) => {
+	toBe: (value: unknown) => void;
+	toEqual: (value: unknown) => void;
+	toContain: (value: unknown) => void;
+	toHaveProperty: (key: string) => void;
+	toBeGreaterThan: (value: number) => void;
+	toBeGreaterThanOrEqual: (value: number) => void;
+	toBeDefined: () => void;
+	not: {
+		toBeNull: () => void;
+		toThrow: () => void;
+	};
+};
+
+export interface SuiteApi {
+	describe: DescribeFn;
+	test: TestFn;
+	expect: ExpectFn;
+}
+
+/**
+ * Register a conformance test. Missing supported capabilities are failures.
+ */
+export const conformanceTest = function conformanceTest(
+	api: SuiteApi,
+	name: string,
+	body: () => void | Promise<void>
+): void {
+	api.test(name, body);
+};
+
+export interface SuiteContext {
+	driver: TestDriver;
+	api: SuiteApi;
+}
+
+/** Query rendered adapters, including their open shadow roots. */
+export const queryAllIncludingShadowRoots = (
+	root: ParentNode,
+	selector: string
+): HTMLElement[] => {
+	const results = [...root.querySelectorAll<HTMLElement>(selector)];
+	if (root instanceof Element && root.shadowRoot) {
+		results.push(...queryAllIncludingShadowRoots(root.shadowRoot, selector));
+	}
+	for (const element of root.querySelectorAll('*')) {
+		if (element.shadowRoot) {
+			results.push(
+				...queryAllIncludingShadowRoots(element.shadowRoot, selector)
+			);
+		}
+	}
+	return results;
+};
+
+/**
+ * Query by test-id in the mounted root, falling back to the document body.
+ * Several frameworks portal surfaces (banner/dialog) to `document.body`, so
+ * suites must not assume the element lives inside the mount container.
+ */
+export const queryByTestId = function queryByTestId(
+	root: HTMLElement,
+	testId: string
+): HTMLElement | null {
+	const selector = `[data-testid="${testId}"]`;
+	return (
+		queryAllIncludingShadowRoots(root, selector)[0] ??
+		queryAllIncludingShadowRoots(root.ownerDocument.body, selector)[0] ??
+		null
+	);
+};
+
+/**
+ * Poll until `predicate` returns true or the deadline passes. Resolves with
+ * the final predicate result so callers can make one last hard assertion
+ * (which surfaces the actual mismatch instead of a generic timeout).
+ */
+export const waitForCondition = function waitForCondition(
+	predicate: () => boolean,
+	timeoutMs = 2000,
+	intervalMs = 10
+): Promise<boolean> {
+	const deadline = Date.now() + timeoutMs;
+	const poll = async (): Promise<boolean> => {
+		if (predicate()) {
+			return true;
+		}
+		if (Date.now() >= deadline) {
+			return predicate();
+		}
+		await new Promise((resolve) => {
+			setTimeout(resolve, intervalMs);
+		});
+		return poll();
+	};
+	return poll();
+};
+
+/**
+ * Clear the browser storage surfaces the consent runtimes persist to
+ * (localStorage + cookies). No-ops outside a DOM environment. Suites that
+ * exercise persistence call this at the start and end of each test so
+ * state cannot leak between tests or drivers sharing a page.
+ */
+export const clearBrowserConsentStorage =
+	function clearBrowserConsentStorage(): void {
+		if (typeof document === 'undefined') {
+			return;
+		}
+		try {
+			globalThis.localStorage?.clear();
+		} catch {
+			// Storage may be unavailable (SSR-ish env) — nothing to clear.
+		}
+		for (const cookie of document.cookie.split(';')) {
+			const name = cookie.split('=')[0]?.trim();
+			if (name) {
+				document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+			}
+		}
+	};

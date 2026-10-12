@@ -1,6 +1,9 @@
 import * as p from '@clack/prompts';
 import { detect } from 'package-manager-detector/detect';
+
 import type { CliLogger } from '~/utils/logger';
+
+import { CliError } from '../core/errors';
 
 export type PackageManager = 'npm' | 'yarn' | 'pnpm' | 'bun';
 export const SUPPORTED_PACKAGE_MANAGERS: PackageManager[] = [
@@ -20,7 +23,7 @@ export interface PackageManagerResult {
  * @param pm - Package manager name
  * @returns The version of the package manager or null if not found
  */
-async function getPackageManagerVersion(
+const getPackageManagerVersion = async function getPackageManagerVersion(
 	pm: PackageManager
 ): Promise<string | null> {
 	try {
@@ -30,7 +33,7 @@ async function getPackageManagerVersion(
 	} catch {
 		return null;
 	}
-}
+};
 
 /**
  * Detects the package manager used in the project
@@ -39,9 +42,10 @@ async function getPackageManagerVersion(
  * @param logger - Optional logger instance for debug messages
  * @returns The detected package manager
  */
-export async function detectPackageManager(
+export const detectPackageManager = async function detectPackageManager(
 	projectRoot: string,
-	logger?: CliLogger
+	logger?: CliLogger,
+	interactive = Boolean(process.stdin.isTTY && process.stdout.isTTY)
 ): Promise<PackageManagerResult> {
 	try {
 		logger?.debug('Detecting package manager');
@@ -66,28 +70,31 @@ export async function detectPackageManager(
 			version: pm.version ?? null,
 		};
 	} catch (error) {
-		logger?.error(
+		logger?.debug(
 			`Error detecting package manager: ${error instanceof Error ? error.message : String(error)}`
 		);
 	}
 
+	if (!interactive) {
+		return { name: 'npm', version: null };
+	}
+
 	// If no package manager found, prompt user for package manager
 	const selectedPackageManager = await p.select<PackageManager>({
+		initialValue: 'npm',
 		message: 'Please select your package manager:',
 		options: [
-			{ value: 'npm', label: 'npm' },
-			{ value: 'yarn', label: 'yarn' },
-			{ value: 'pnpm', label: 'pnpm' },
-			{ value: 'bun', label: 'bun' },
+			{ label: 'npm', value: 'npm' },
+			{ label: 'yarn', value: 'yarn' },
+			{ label: 'pnpm', value: 'pnpm' },
+			{ label: 'bun', value: 'bun' },
 		],
-		initialValue: 'npm',
 	});
 
 	if (p.isCancel(selectedPackageManager)) {
 		// Handle potential cancellation (though select usually throws)
 		logger?.debug('Package manager selection cancelled by user');
-		logger?.failed('Package manager selection cancelled. Exiting.');
-		process.exit(0);
+		throw new CliError('CANCELLED');
 	}
 
 	const version = await getPackageManagerVersion(selectedPackageManager);
@@ -96,4 +103,4 @@ export async function detectPackageManager(
 	);
 
 	return { name: selectedPackageManager, version };
-}
+};

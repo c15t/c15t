@@ -1,0 +1,3709 @@
+{
+	"backendLatencyMs": 0,
+	"commitSha": "4add1f511db74e0bce3caa6c21376010a35dff8b",
+	"failures": [],
+	"generatedAt": "2026-10-10T09:09:22.355Z",
+	"markers": {
+		"devtoolsBytes": ["c15t-dev-tools__"],
+		"iabBytes": ["__tcfapi"],
+		"nonEnLocaleBytes": ["Wir respektieren deine", "Nous respectons votre vie"],
+		"offlinePolicyBytes": ["quebec_opt_in"],
+		"resolverBytes": [
+			"createManifestTransport: either",
+			"c15t manifest transport: /manifest responded"
+		],
+		"snapshotBytes": [
+			"675e9c244893e5db83f1907a9b66f58ab72234fe0e602b340e8f585990754acc",
+			"92e599db3379c3b0a47db142ab9bc4d4a33e4b019ce2cd7a524528dee5fa93a4"
+		]
+	},
+	"measurements": [
+		{
+			"accept": {
+				"measured": true,
+				"saved": true
+			},
+			"assets": [
+				{
+					"brotli": 81,
+					"gzip": 113,
+					"raw": 103,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "css",
+					"url": "http://127.0.0.1:3100/_next/static/chunks/2i7k7mk_r728i.css"
+				},
+				{
+					"brotli": 6322,
+					"gzip": 7184,
+					"raw": 21160,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:3100/_next/static/chunks/1r8mvs7gparcj.js"
+				},
+				{
+					"brotli": 3730,
+					"gzip": 4132,
+					"raw": 10545,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:3100/_next/static/chunks/turbopack-3ehff1-rz4itw.js"
+				},
+				{
+					"brotli": 13930,
+					"gzip": 15954,
+					"raw": 44656,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:3100/_next/static/chunks/30gbxzqnhxaku.js"
+				},
+				{
+					"brotli": 16011,
+					"gzip": 18818,
+					"raw": 95184,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:3100/_next/static/chunks/3sqropql11-bi.js"
+				},
+				{
+					"brotli": 12079,
+					"gzip": 13829,
+					"raw": 57915,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:3100/_next/static/chunks/2yjecnf0598l6.js"
+				},
+				{
+					"brotli": 41781,
+					"gzip": 49414,
+					"raw": 197345,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:3100/_next/static/chunks/3iuvfh53xz72_.js"
+				},
+				{
+					"brotli": 42080,
+					"gzip": 48294,
+					"raw": 153923,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:3100/_next/static/chunks/27m69yh8-wlz_.js"
+				},
+				{
+					"brotli": 60698,
+					"gzip": 70990,
+					"raw": 227525,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:3100/_next/static/chunks/2rflk4_5zubm0.js"
+				},
+				{
+					"brotli": 4553,
+					"gzip": 5050,
+					"raw": 14142,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:3100/_next/static/chunks/1iazjeel3obz_.js"
+				},
+				{
+					"brotli": 7948,
+					"gzip": 8950,
+					"raw": 24954,
+					"boundaries": [],
+					"phase": "dialog",
+					"type": "js",
+					"url": "http://127.0.0.1:3100/_next/static/chunks/3wm8219rgbj-u.js"
+				},
+				{
+					"brotli": 10463,
+					"gzip": 12174,
+					"raw": 58252,
+					"boundaries": [],
+					"phase": "dialog",
+					"type": "js",
+					"url": "http://127.0.0.1:3100/_next/static/chunks/0nqge6y3wsd0f.js"
+				},
+				{
+					"brotli": 3610,
+					"gzip": 3987,
+					"raw": 10969,
+					"boundaries": [],
+					"phase": "dialog",
+					"type": "js",
+					"url": "http://127.0.0.1:3100/_next/static/chunks/3wpxqzuaul-qt.js"
+				},
+				{
+					"brotli": 3610,
+					"gzip": 3987,
+					"raw": 10969,
+					"boundaries": [],
+					"phase": "accept",
+					"type": "js",
+					"url": "http://127.0.0.1:3100/_next/static/chunks/3wpxqzuaul-qt.js"
+				}
+			],
+			"bannerVisible": true,
+			"bannerVisibleMs": [16, 15, 16, 14, 15],
+			"buildBackendRequests": {
+				"GET /manifest": 3
+			},
+			"dialog": {
+				"measured": true
+			},
+			"document": {
+				"brotli": 11558,
+				"gzip": 13670,
+				"raw": 84252,
+				"boundaries": []
+			},
+			"emittedClientJsGzip": 449467,
+			"example": "nextjs",
+			"framework": "nextjs",
+			"kind": "server",
+			"notes": [
+				"Blocked internet requests: https://eu-assets.i.posthog.com/static/array.js"
+			],
+			"requests": [
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:3100/"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:3100/_next/static/chunks/2i7k7mk_r728i.css"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:3100/_next/static/chunks/1r8mvs7gparcj.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:3100/_next/static/chunks/3iuvfh53xz72_.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:3100/_next/static/chunks/2rflk4_5zubm0.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:3100/_next/static/chunks/turbopack-3ehff1-rz4itw.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:3100/_next/static/chunks/30gbxzqnhxaku.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:3100/_next/static/chunks/3sqropql11-bi.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:3100/_next/static/chunks/27m69yh8-wlz_.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:3100/_next/static/chunks/2yjecnf0598l6.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:3100/_next/static/chunks/1iazjeel3obz_.js"
+				}
+			],
+			"url": "http://127.0.0.1:3100/",
+			"metrics": {
+				"acceptJsGzip": 3987,
+				"bannerVisibleMs": 15,
+				"crossOriginRequests": 0,
+				"dialogJsGzip": 25111,
+				"documentGzip": 13670,
+				"emittedClientJsGzip": 449467,
+				"initRequests": 0,
+				"initialCssGzip": 113,
+				"initialJsBrotli": 201184,
+				"initialJsGzip": 233665,
+				"initialJsRaw": 822395,
+				"initialJsRequests": 9,
+				"manifestRequests": 0,
+				"snapshotBytes": 0,
+				"resolverBytes": 0,
+				"offlinePolicyBytes": 0,
+				"nonEnLocaleBytes": 0,
+				"iabBytes": 0,
+				"devtoolsBytes": 0
+			}
+		},
+		{
+			"accept": {
+				"measured": true,
+				"saved": true
+			},
+			"assets": [
+				{
+					"brotli": 81,
+					"gzip": 113,
+					"raw": 103,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "css",
+					"url": "http://127.0.0.1:3101/_next/static/chunks/2i7k7mk_r728i.css"
+				},
+				{
+					"brotli": 5684,
+					"gzip": 6405,
+					"raw": 17763,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:3101/_next/static/chunks/3n0x3v90p17f4.js"
+				},
+				{
+					"brotli": 18963,
+					"gzip": 21566,
+					"raw": 61682,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:3101/_next/static/chunks/1r7st89kkgl7p.js"
+				},
+				{
+					"brotli": 15971,
+					"gzip": 18787,
+					"raw": 94372,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:3101/_next/static/chunks/3flu526i_9q70.js"
+				},
+				{
+					"brotli": 212,
+					"gzip": 232,
+					"raw": 363,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:3101/_next/static/LZYZ5ULnr1cIEecIctbV9/_buildManifest.js"
+				},
+				{
+					"brotli": 3760,
+					"gzip": 4176,
+					"raw": 10620,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:3101/_next/static/chunks/turbopack-2-upm400seqwt.js"
+				},
+				{
+					"brotli": 3720,
+					"gzip": 4127,
+					"raw": 10519,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:3101/_next/static/chunks/turbopack-1magyunh1k1v5.js"
+				},
+				{
+					"brotli": 51,
+					"gzip": 60,
+					"raw": 76,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:3101/_next/static/LZYZ5ULnr1cIEecIctbV9/_ssgManifest.js"
+				},
+				{
+					"brotli": 64,
+					"gzip": 66,
+					"raw": 96,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:3101/_next/static/LZYZ5ULnr1cIEecIctbV9/_clientMiddlewareManifest.js"
+				},
+				{
+					"brotli": 42164,
+					"gzip": 48675,
+					"raw": 154167,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:3101/_next/static/chunks/1j87q5aupyo81.js"
+				},
+				{
+					"brotli": 78765,
+					"gzip": 91878,
+					"raw": 306344,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:3101/_next/static/chunks/0m61iiw9m3pak.js"
+				},
+				{
+					"brotli": 4551,
+					"gzip": 5050,
+					"raw": 14142,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:3101/_next/static/chunks/30-p0n8ih4n73.js"
+				},
+				{
+					"brotli": 7955,
+					"gzip": 8954,
+					"raw": 24955,
+					"boundaries": [],
+					"phase": "dialog",
+					"type": "js",
+					"url": "http://127.0.0.1:3101/_next/static/chunks/1tlou4lqmh01b.js"
+				},
+				{
+					"brotli": 10442,
+					"gzip": 12182,
+					"raw": 58253,
+					"boundaries": [],
+					"phase": "dialog",
+					"type": "js",
+					"url": "http://127.0.0.1:3101/_next/static/chunks/1_26d65n7m1jn.js"
+				},
+				{
+					"brotli": 3612,
+					"gzip": 3987,
+					"raw": 10969,
+					"boundaries": [],
+					"phase": "dialog",
+					"type": "js",
+					"url": "http://127.0.0.1:3101/_next/static/chunks/108hnbrq1gn5k.js"
+				},
+				{
+					"brotli": 3612,
+					"gzip": 3987,
+					"raw": 10969,
+					"boundaries": [],
+					"phase": "accept",
+					"type": "js",
+					"url": "http://127.0.0.1:3101/_next/static/chunks/108hnbrq1gn5k.js"
+				}
+			],
+			"bannerVisible": true,
+			"bannerVisibleMs": [18, 17, 16, 15, 15],
+			"buildBackendRequests": {
+				"GET /manifest": 3
+			},
+			"dialog": {
+				"measured": true
+			},
+			"document": {
+				"brotli": 10539,
+				"gzip": 12523,
+				"raw": 78103,
+				"boundaries": []
+			},
+			"emittedClientJsGzip": 392276,
+			"example": "nextjs-pages-router",
+			"framework": "nextjs",
+			"kind": "server",
+			"notes": [
+				"Blocked internet requests: https://eu-assets.i.posthog.com/static/array.js"
+			],
+			"requests": [
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:3101/"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:3101/_next/static/chunks/2i7k7mk_r728i.css"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:3101/_next/static/chunks/1r7st89kkgl7p.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:3101/_next/static/chunks/3flu526i_9q70.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:3101/_next/static/chunks/0m61iiw9m3pak.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:3101/_next/static/chunks/1j87q5aupyo81.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:3101/_next/static/chunks/turbopack-2-upm400seqwt.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:3101/_next/static/chunks/3n0x3v90p17f4.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:3101/_next/static/chunks/turbopack-1magyunh1k1v5.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:3101/_next/static/LZYZ5ULnr1cIEecIctbV9/_buildManifest.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:3101/_next/static/LZYZ5ULnr1cIEecIctbV9/_ssgManifest.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:3101/_next/static/LZYZ5ULnr1cIEecIctbV9/_clientMiddlewareManifest.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:3101/_next/static/chunks/30-p0n8ih4n73.js"
+				}
+			],
+			"url": "http://127.0.0.1:3101/",
+			"metrics": {
+				"acceptJsGzip": 3987,
+				"bannerVisibleMs": 16,
+				"crossOriginRequests": 0,
+				"dialogJsGzip": 25123,
+				"documentGzip": 12523,
+				"emittedClientJsGzip": 392276,
+				"initRequests": 0,
+				"initialCssGzip": 113,
+				"initialJsBrotli": 173905,
+				"initialJsGzip": 201022,
+				"initialJsRaw": 670144,
+				"initialJsRequests": 11,
+				"manifestRequests": 0,
+				"snapshotBytes": 0,
+				"resolverBytes": 0,
+				"offlinePolicyBytes": 0,
+				"nonEnLocaleBytes": 0,
+				"iabBytes": 0,
+				"devtoolsBytes": 0
+			}
+		},
+		{
+			"accept": {
+				"measured": true,
+				"saved": true
+			},
+			"assets": [
+				{
+					"brotli": 385,
+					"gzip": 435,
+					"raw": 730,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4525/_nuxt/BW3xJdEx.js"
+				},
+				{
+					"brotli": 630,
+					"gzip": 749,
+					"raw": 1398,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4525/_nuxt/BaNbYf_w.js"
+				},
+				{
+					"brotli": 27659,
+					"gzip": 30444,
+					"raw": 79371,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4525/_nuxt/BV0_G2ZT.js"
+				},
+				{
+					"brotli": 891,
+					"gzip": 994,
+					"raw": 2144,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4525/_nuxt/BhvHQOUv.js"
+				},
+				{
+					"brotli": 1740,
+					"gzip": 2198,
+					"raw": 5518,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4525/_nuxt/tg36mgvC.js"
+				},
+				{
+					"brotli": 1439,
+					"gzip": 1702,
+					"raw": 18991,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "css",
+					"url": "http://127.0.0.1:4525/_nuxt/button.BHYRvHMs.css"
+				},
+				{
+					"brotli": 1573,
+					"gzip": 1820,
+					"raw": 9950,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "css",
+					"url": "http://127.0.0.1:4525/_nuxt/tag.SW5mjn3M.css"
+				},
+				{
+					"brotli": 2601,
+					"gzip": 2982,
+					"raw": 19030,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "css",
+					"url": "http://127.0.0.1:4525/_nuxt/description-content.ZZcC_c2Y.css"
+				},
+				{
+					"brotli": 518,
+					"gzip": 599,
+					"raw": 1317,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4525/_nuxt/BydxuKhI.js"
+				},
+				{
+					"brotli": 2563,
+					"gzip": 2866,
+					"raw": 7098,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4525/_nuxt/CDHfz-Jx.js"
+				},
+				{
+					"brotli": 81372,
+					"gzip": 93600,
+					"raw": 281603,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4525/_nuxt/CunvZ56w.js"
+				},
+				{
+					"brotli": 2062,
+					"gzip": 2298,
+					"raw": 6224,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4525/_nuxt/lo4NRl2F.js"
+				},
+				{
+					"brotli": 3645,
+					"gzip": 4167,
+					"raw": 10411,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4525/_nuxt/DhJ-HFdw.js"
+				},
+				{
+					"brotli": 1328,
+					"gzip": 1512,
+					"raw": 3522,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4525/_nuxt/D-z_aNnY.js"
+				},
+				{
+					"brotli": 106,
+					"gzip": 132,
+					"raw": 144,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4525/_nuxt/CXXNlpFo.js"
+				},
+				{
+					"brotli": 217,
+					"gzip": 252,
+					"raw": 336,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4525/_nuxt/z3rxXhlR.js"
+				},
+				{
+					"brotli": 257,
+					"gzip": 292,
+					"raw": 417,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4525/_nuxt/g9b6HXgb.js"
+				},
+				{
+					"brotli": 1026,
+					"gzip": 1128,
+					"raw": 2875,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4525/_nuxt/wbF0W1HM.js"
+				},
+				{
+					"brotli": 370,
+					"gzip": 427,
+					"raw": 801,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4525/_nuxt/CifsOZP6.js"
+				},
+				{
+					"brotli": 221,
+					"gzip": 255,
+					"raw": 367,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4525/_nuxt/dxLwYRAW.js"
+				},
+				{
+					"brotli": 81,
+					"gzip": 84,
+					"raw": 91,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4525/_nuxt/yx_BdJkJ.js"
+				},
+				{
+					"brotli": 1310,
+					"gzip": 1443,
+					"raw": 3782,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4525/_nuxt/CrqP8bcg.js"
+				},
+				{
+					"brotli": 204,
+					"gzip": 263,
+					"raw": 325,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4525/_nuxt/DUFeBEVS.js"
+				},
+				{
+					"brotli": 2522,
+					"gzip": 2806,
+					"raw": 7248,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4525/_nuxt/DkqQ_fP2.js"
+				},
+				{
+					"brotli": 129,
+					"gzip": 166,
+					"raw": 241,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4525/_nuxt/DbrB144V.js"
+				},
+				{
+					"brotli": 5384,
+					"gzip": 5989,
+					"raw": 16742,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4525/_nuxt/CR6ZzGLf.js"
+				},
+				{
+					"brotli": 1578,
+					"gzip": 1836,
+					"raw": 9942,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "css",
+					"url": "http://127.0.0.1:4525/_nuxt/switch.BXhKrh8P.css"
+				},
+				{
+					"brotli": 2128,
+					"gzip": 2446,
+					"raw": 13528,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "css",
+					"url": "http://127.0.0.1:4525/_nuxt/preferences.DIxPP_Q7.css"
+				},
+				{
+					"brotli": 380,
+					"gzip": 426,
+					"raw": 943,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4525/_nuxt/C2itlry2.js"
+				},
+				{
+					"brotli": 5135,
+					"gzip": 5672,
+					"raw": 17774,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4525/_nuxt/CIo3QRqq.js"
+				},
+				{
+					"brotli": 2133,
+					"gzip": 2438,
+					"raw": 15456,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "css",
+					"url": "http://127.0.0.1:4525/_nuxt/manager.BHJ7OXNT.css"
+				},
+				{
+					"brotli": 1449,
+					"gzip": 1729,
+					"raw": 4081,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4525/_nuxt/ttqCMz5a.js"
+				},
+				{
+					"brotli": 1009,
+					"gzip": 1189,
+					"raw": 2704,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4525/_nuxt/Cp0h-Nru.js"
+				},
+				{
+					"brotli": 3553,
+					"gzip": 3909,
+					"raw": 11106,
+					"boundaries": [],
+					"phase": "dialog",
+					"type": "js",
+					"url": "http://127.0.0.1:4525/_nuxt/BTe3kg4S.js"
+				},
+				{
+					"brotli": 3553,
+					"gzip": 3909,
+					"raw": 11106,
+					"boundaries": [],
+					"phase": "accept",
+					"type": "js",
+					"url": "http://127.0.0.1:4525/_nuxt/BTe3kg4S.js"
+				}
+			],
+			"bannerVisible": true,
+			"bannerVisibleMs": [18, 18, 17, 16, 15],
+			"buildBackendRequests": {
+				"GET /manifest": 1
+			},
+			"dialog": {
+				"measured": true
+			},
+			"document": {
+				"brotli": 9061,
+				"gzip": 10930,
+				"raw": 62388,
+				"boundaries": []
+			},
+			"emittedClientJsGzip": 348924,
+			"example": "nuxt",
+			"framework": "vue",
+			"kind": "server",
+			"notes": [
+				"Blocked internet requests: https://eu-assets.i.posthog.com/static/array.js"
+			],
+			"requests": [
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4525/"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4525/_nuxt/CunvZ56w.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4525/_nuxt/BV0_G2ZT.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4525/_nuxt/BW3xJdEx.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4525/_nuxt/BaNbYf_w.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4525/_nuxt/BhvHQOUv.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4525/_nuxt/tg36mgvC.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4525/_nuxt/BydxuKhI.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4525/_nuxt/CDHfz-Jx.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4525/_nuxt/lo4NRl2F.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4525/_nuxt/DhJ-HFdw.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4525/_nuxt/tag.SW5mjn3M.css"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4525/_nuxt/D-z_aNnY.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4525/_nuxt/CXXNlpFo.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4525/_nuxt/z3rxXhlR.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4525/_nuxt/g9b6HXgb.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4525/_nuxt/wbF0W1HM.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4525/_nuxt/CifsOZP6.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4525/_nuxt/yx_BdJkJ.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4525/_nuxt/button.BHYRvHMs.css"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4525/_nuxt/dxLwYRAW.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4525/_nuxt/CrqP8bcg.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4525/_nuxt/description-content.ZZcC_c2Y.css"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4525/_nuxt/DUFeBEVS.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4525/_nuxt/error-404.DVpYBNyY.css"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4525/_nuxt/ttqCMz5a.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4525/_nuxt/error-500.j3d-sg-U.css"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4525/_nuxt/Cp0h-Nru.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4525/_nuxt/CR6ZzGLf.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4525/_nuxt/DkqQ_fP2.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4525/_nuxt/DbrB144V.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4525/_nuxt/CIo3QRqq.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4525/_nuxt/C2itlry2.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4525/_nuxt/switch.BXhKrh8P.css"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4525/_nuxt/preferences.DIxPP_Q7.css"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4525/_nuxt/manager.BHJ7OXNT.css"
+				}
+			],
+			"url": "http://127.0.0.1:4525/",
+			"metrics": {
+				"acceptJsGzip": 3909,
+				"bannerVisibleMs": 17,
+				"crossOriginRequests": 0,
+				"dialogJsGzip": 3909,
+				"documentGzip": 10930,
+				"emittedClientJsGzip": 348924,
+				"initRequests": 0,
+				"initialCssGzip": 13224,
+				"initialJsBrotli": 142593,
+				"initialJsGzip": 162115,
+				"initialJsRaw": 458207,
+				"initialJsRequests": 27,
+				"manifestRequests": 0,
+				"snapshotBytes": 0,
+				"resolverBytes": 0,
+				"offlinePolicyBytes": 0,
+				"nonEnLocaleBytes": 0,
+				"iabBytes": 0,
+				"devtoolsBytes": 0
+			}
+		},
+		{
+			"accept": {
+				"measured": true,
+				"saved": true
+			},
+			"assets": [
+				{
+					"brotli": 1573,
+					"gzip": 1820,
+					"raw": 9950,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "css",
+					"url": "http://127.0.0.1:4526/_nuxt/tag.SW5mjn3M.css"
+				},
+				{
+					"brotli": 1439,
+					"gzip": 1702,
+					"raw": 18991,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "css",
+					"url": "http://127.0.0.1:4526/_nuxt/button.BHYRvHMs.css"
+				},
+				{
+					"brotli": 385,
+					"gzip": 435,
+					"raw": 730,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4526/_nuxt/BW3xJdEx.js"
+				},
+				{
+					"brotli": 2601,
+					"gzip": 2982,
+					"raw": 19030,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "css",
+					"url": "http://127.0.0.1:4526/_nuxt/description-content.ZZcC_c2Y.css"
+				},
+				{
+					"brotli": 630,
+					"gzip": 749,
+					"raw": 1398,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4526/_nuxt/BaNbYf_w.js"
+				},
+				{
+					"brotli": 891,
+					"gzip": 994,
+					"raw": 2144,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4526/_nuxt/BhvHQOUv.js"
+				},
+				{
+					"brotli": 518,
+					"gzip": 599,
+					"raw": 1317,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4526/_nuxt/BydxuKhI.js"
+				},
+				{
+					"brotli": 1740,
+					"gzip": 2198,
+					"raw": 5518,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4526/_nuxt/tg36mgvC.js"
+				},
+				{
+					"brotli": 2563,
+					"gzip": 2866,
+					"raw": 7098,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4526/_nuxt/CDHfz-Jx.js"
+				},
+				{
+					"brotli": 27659,
+					"gzip": 30444,
+					"raw": 79371,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4526/_nuxt/BV0_G2ZT.js"
+				},
+				{
+					"brotli": 2062,
+					"gzip": 2298,
+					"raw": 6224,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4526/_nuxt/lo4NRl2F.js"
+				},
+				{
+					"brotli": 1328,
+					"gzip": 1512,
+					"raw": 3522,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4526/_nuxt/D-z_aNnY.js"
+				},
+				{
+					"brotli": 3645,
+					"gzip": 4167,
+					"raw": 10411,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4526/_nuxt/DhJ-HFdw.js"
+				},
+				{
+					"brotli": 106,
+					"gzip": 132,
+					"raw": 144,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4526/_nuxt/CXXNlpFo.js"
+				},
+				{
+					"brotli": 217,
+					"gzip": 252,
+					"raw": 336,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4526/_nuxt/z3rxXhlR.js"
+				},
+				{
+					"brotli": 257,
+					"gzip": 292,
+					"raw": 417,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4526/_nuxt/g9b6HXgb.js"
+				},
+				{
+					"brotli": 370,
+					"gzip": 427,
+					"raw": 801,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4526/_nuxt/CifsOZP6.js"
+				},
+				{
+					"brotli": 81,
+					"gzip": 84,
+					"raw": 91,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4526/_nuxt/yx_BdJkJ.js"
+				},
+				{
+					"brotli": 1026,
+					"gzip": 1128,
+					"raw": 2875,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4526/_nuxt/wbF0W1HM.js"
+				},
+				{
+					"brotli": 221,
+					"gzip": 255,
+					"raw": 367,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4526/_nuxt/dxLwYRAW.js"
+				},
+				{
+					"brotli": 1310,
+					"gzip": 1443,
+					"raw": 3782,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4526/_nuxt/CrqP8bcg.js"
+				},
+				{
+					"brotli": 1,
+					"gzip": 20,
+					"raw": 0,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4526/_nuxt/DkttTv5F.js"
+				},
+				{
+					"brotli": 80085,
+					"gzip": 92639,
+					"raw": 277185,
+					"boundaries": ["snapshotBytes"],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4526/_nuxt/BmbWKJyb.js"
+				},
+				{
+					"brotli": 1,
+					"gzip": 20,
+					"raw": 0,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4526/_nuxt/B1OZAI8J.js"
+				},
+				{
+					"brotli": 204,
+					"gzip": 263,
+					"raw": 325,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4526/_nuxt/DUFeBEVS.js"
+				},
+				{
+					"brotli": 129,
+					"gzip": 166,
+					"raw": 241,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4526/_nuxt/DbrB144V.js"
+				},
+				{
+					"brotli": 380,
+					"gzip": 426,
+					"raw": 943,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4526/_nuxt/C2itlry2.js"
+				},
+				{
+					"brotli": 2509,
+					"gzip": 2808,
+					"raw": 7248,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4526/_nuxt/TYiskFHQ.js"
+				},
+				{
+					"brotli": 5384,
+					"gzip": 5989,
+					"raw": 16742,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4526/_nuxt/CR6ZzGLf.js"
+				},
+				{
+					"brotli": 5163,
+					"gzip": 5675,
+					"raw": 17775,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4526/_nuxt/_ZJHgqtC.js"
+				},
+				{
+					"brotli": 1578,
+					"gzip": 1836,
+					"raw": 9942,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "css",
+					"url": "http://127.0.0.1:4526/_nuxt/switch.BXhKrh8P.css"
+				},
+				{
+					"brotli": 2133,
+					"gzip": 2438,
+					"raw": 15456,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "css",
+					"url": "http://127.0.0.1:4526/_nuxt/manager.BHJ7OXNT.css"
+				},
+				{
+					"brotli": 2128,
+					"gzip": 2446,
+					"raw": 13528,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "css",
+					"url": "http://127.0.0.1:4526/_nuxt/preferences.DIxPP_Q7.css"
+				},
+				{
+					"brotli": 16541,
+					"gzip": 18750,
+					"raw": 59758,
+					"boundaries": ["resolverBytes"],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4526/_nuxt/CzJbvUQu.js"
+				},
+				{
+					"brotli": 3553,
+					"gzip": 3909,
+					"raw": 11106,
+					"boundaries": [],
+					"phase": "dialog",
+					"type": "js",
+					"url": "http://127.0.0.1:4526/_nuxt/BTe3kg4S.js"
+				},
+				{
+					"brotli": 3553,
+					"gzip": 3909,
+					"raw": 11106,
+					"boundaries": [],
+					"phase": "accept",
+					"type": "js",
+					"url": "http://127.0.0.1:4526/_nuxt/BTe3kg4S.js"
+				}
+			],
+			"bannerVisible": true,
+			"bannerVisibleMs": [54, 53, 56, 52, 49],
+			"buildBackendRequests": {
+				"GET /manifest": 1
+			},
+			"dialog": {
+				"measured": true
+			},
+			"document": {
+				"brotli": 1229,
+				"gzip": 1499,
+				"raw": 4668,
+				"boundaries": []
+			},
+			"emittedClientJsGzip": 347957,
+			"example": "nuxt-static",
+			"framework": "vue",
+			"kind": "spa",
+			"notes": [
+				"Blocked internet requests: https://eu-assets.i.posthog.com/static/array.js"
+			],
+			"requests": [
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4526/"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4526/_nuxt/tag.SW5mjn3M.css"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4526/_nuxt/button.BHYRvHMs.css"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4526/_nuxt/description-content.ZZcC_c2Y.css"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4526/_nuxt/BmbWKJyb.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4526/_nuxt/BV0_G2ZT.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4526/_nuxt/BW3xJdEx.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4526/_nuxt/BaNbYf_w.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4526/_nuxt/BhvHQOUv.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4526/_nuxt/tg36mgvC.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4526/_nuxt/BydxuKhI.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4526/_nuxt/CDHfz-Jx.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4526/_nuxt/lo4NRl2F.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4526/_nuxt/DhJ-HFdw.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4526/_nuxt/D-z_aNnY.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4526/_nuxt/CXXNlpFo.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4526/_nuxt/z3rxXhlR.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4526/_nuxt/g9b6HXgb.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4526/_nuxt/wbF0W1HM.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4526/_nuxt/CifsOZP6.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4526/_nuxt/yx_BdJkJ.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4526/_nuxt/dxLwYRAW.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4526/_nuxt/CrqP8bcg.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4526/_nuxt/error-404.DVpYBNyY.css"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4526/_nuxt/DkttTv5F.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4526/_nuxt/error-500.j3d-sg-U.css"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4526/_nuxt/B1OZAI8J.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4526/_nuxt/DUFeBEVS.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4526/_nuxt/CzJbvUQu.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4526/_nuxt/CR6ZzGLf.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4526/_nuxt/TYiskFHQ.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4526/_nuxt/DbrB144V.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4526/_nuxt/_ZJHgqtC.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4526/_nuxt/C2itlry2.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4526/_nuxt/switch.BXhKrh8P.css"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4526/_nuxt/preferences.DIxPP_Q7.css"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4526/_nuxt/manager.BHJ7OXNT.css"
+				},
+				{
+					"crossOrigin": true,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4590/init?c15tJourney=5b825a88-a46c-46fd-9d14-8480120724c5&c15tJourneyScope=page&c15tStored=0"
+				}
+			],
+			"url": "http://127.0.0.1:4526/",
+			"metrics": {
+				"acceptJsGzip": 3909,
+				"bannerVisibleMs": 53,
+				"crossOriginRequests": 1,
+				"dialogJsGzip": 3909,
+				"documentGzip": 1499,
+				"emittedClientJsGzip": 347957,
+				"initRequests": 1,
+				"initialCssGzip": 13224,
+				"initialJsBrotli": 155406,
+				"initialJsGzip": 177031,
+				"initialJsRaw": 506763,
+				"initialJsRequests": 28,
+				"manifestRequests": 0,
+				"snapshotBytes": 92639,
+				"resolverBytes": 18750,
+				"offlinePolicyBytes": 0,
+				"nonEnLocaleBytes": 0,
+				"iabBytes": 0,
+				"devtoolsBytes": 0
+			}
+		},
+		{
+			"accept": {
+				"measured": true,
+				"saved": true
+			},
+			"assets": [
+				{
+					"brotli": 123,
+					"gzip": 148,
+					"raw": 208,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4530/assets/storage-keys-BKTCJJby.js"
+				},
+				{
+					"brotli": 197,
+					"gzip": 236,
+					"raw": 306,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4530/assets/routes-DxLtkD06.js"
+				},
+				{
+					"brotli": 587,
+					"gzip": 708,
+					"raw": 1256,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4530/assets/preload-helper-CZgWQFsJ.js"
+				},
+				{
+					"brotli": 152997,
+					"gzip": 179322,
+					"raw": 599196,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4530/assets/index-D6Aa71sP.js"
+				},
+				{
+					"brotli": 4333,
+					"gzip": 4827,
+					"raw": 13700,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4530/assets/script-loader-BwyBdnQx.js"
+				},
+				{
+					"brotli": 1342,
+					"gzip": 1495,
+					"raw": 3123,
+					"boundaries": [],
+					"phase": "dialog",
+					"type": "js",
+					"url": "http://127.0.0.1:4530/assets/preference-draft-BtK3RTbs.js"
+				},
+				{
+					"brotli": 6911,
+					"gzip": 7662,
+					"raw": 22426,
+					"boundaries": [],
+					"phase": "dialog",
+					"type": "js",
+					"url": "http://127.0.0.1:4530/assets/panel-BCm0hrRo.js"
+				},
+				{
+					"brotli": 3554,
+					"gzip": 3908,
+					"raw": 11107,
+					"boundaries": [],
+					"phase": "dialog",
+					"type": "js",
+					"url": "http://127.0.0.1:4530/assets/writer-Cm4Q9zKb.js"
+				},
+				{
+					"brotli": 10179,
+					"gzip": 11737,
+					"raw": 56255,
+					"boundaries": [],
+					"phase": "dialog",
+					"type": "js",
+					"url": "http://127.0.0.1:4530/assets/preferences-CiPrGOqe.js"
+				},
+				{
+					"brotli": 3554,
+					"gzip": 3908,
+					"raw": 11107,
+					"boundaries": [],
+					"phase": "accept",
+					"type": "js",
+					"url": "http://127.0.0.1:4530/assets/writer-Cm4Q9zKb.js"
+				}
+			],
+			"bannerVisible": true,
+			"bannerVisibleMs": [14, 13, 14, 14, 14],
+			"buildBackendRequests": {
+				"GET /manifest": 1
+			},
+			"dialog": {
+				"measured": true
+			},
+			"document": {
+				"brotli": 10764,
+				"gzip": 12792,
+				"raw": 78228,
+				"boundaries": []
+			},
+			"emittedClientJsGzip": 347106,
+			"example": "tanstack-start",
+			"framework": "tanstack-start",
+			"kind": "server",
+			"notes": [
+				"Blocked internet requests: https://eu-assets.i.posthog.com/static/array.js"
+			],
+			"requests": [
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4530/"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4530/assets/index-D6Aa71sP.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4530/assets/storage-keys-BKTCJJby.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4530/assets/preload-helper-CZgWQFsJ.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4530/assets/routes-DxLtkD06.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4530/assets/script-loader-BwyBdnQx.js"
+				}
+			],
+			"url": "http://127.0.0.1:4530/",
+			"metrics": {
+				"acceptJsGzip": 3908,
+				"bannerVisibleMs": 14,
+				"crossOriginRequests": 0,
+				"dialogJsGzip": 24802,
+				"documentGzip": 12792,
+				"emittedClientJsGzip": 347106,
+				"initRequests": 0,
+				"initialCssGzip": 0,
+				"initialJsBrotli": 158237,
+				"initialJsGzip": 185241,
+				"initialJsRaw": 614666,
+				"initialJsRequests": 5,
+				"manifestRequests": 0,
+				"snapshotBytes": 0,
+				"resolverBytes": 0,
+				"offlinePolicyBytes": 0,
+				"nonEnLocaleBytes": 0,
+				"iabBytes": 0,
+				"devtoolsBytes": 0
+			}
+		},
+		{
+			"accept": {
+				"measured": true,
+				"saved": true
+			},
+			"assets": [
+				{
+					"brotli": 4745,
+					"gzip": 5280,
+					"raw": 15362,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4521/_astro/ClientRouter.astro_astro_type_script_index_0_lang.CDGfc0hd.js"
+				},
+				{
+					"brotli": 45,
+					"gzip": 61,
+					"raw": 41,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4521/_astro/panel-link.astro_astro_type_script_index_0_lang.Xh1eW9IA.js"
+				},
+				{
+					"brotli": 11857,
+					"gzip": 13231,
+					"raw": 39986,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4521/_astro/page.D6yAoQH7.js"
+				},
+				{
+					"brotli": 45,
+					"gzip": 61,
+					"raw": 41,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4521/_astro/prompt.astro_astro_type_script_index_0_lang.Xh1eW9IA.js"
+				},
+				{
+					"brotli": 236,
+					"gzip": 258,
+					"raw": 343,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4521/_astro/panel.astro_astro_type_script_index_0_lang.Berv9bGx.js"
+				},
+				{
+					"brotli": 43619,
+					"gzip": 50387,
+					"raw": 153071,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4521/_astro/client.D9YhLGQg.js"
+				},
+				{
+					"brotli": 4693,
+					"gzip": 5303,
+					"raw": 35992,
+					"boundaries": [],
+					"phase": "dialog",
+					"type": "css",
+					"url": "http://127.0.0.1:4521/_astro/dialog.DtIr0Q9I.css"
+				},
+				{
+					"brotli": 3295,
+					"gzip": 3772,
+					"raw": 25094,
+					"boundaries": [],
+					"phase": "dialog",
+					"type": "css",
+					"url": "http://127.0.0.1:4521/_astro/primitives.Di67u3UJ.css"
+				},
+				{
+					"brotli": 508,
+					"gzip": 565,
+					"raw": 1078,
+					"boundaries": [],
+					"phase": "dialog",
+					"type": "js",
+					"url": "http://127.0.0.1:4521/_astro/svelte.BvZYvsmA.js"
+				},
+				{
+					"brotli": 3623,
+					"gzip": 3982,
+					"raw": 11343,
+					"boundaries": [],
+					"phase": "dialog",
+					"type": "js",
+					"url": "http://127.0.0.1:4521/_astro/writer.3iMEh51-.js"
+				},
+				{
+					"brotli": 627,
+					"gzip": 704,
+					"raw": 1347,
+					"boundaries": [],
+					"phase": "dialog",
+					"type": "js",
+					"url": "http://127.0.0.1:4521/_astro/index-client.WO__qu7Z.js"
+				},
+				{
+					"brotli": 11025,
+					"gzip": 12315,
+					"raw": 31239,
+					"boundaries": [],
+					"phase": "dialog",
+					"type": "js",
+					"url": "http://127.0.0.1:4521/_astro/panel-surface.DO4XxLA-.js"
+				},
+				{
+					"brotli": 13076,
+					"gzip": 14507,
+					"raw": 38219,
+					"boundaries": [],
+					"phase": "dialog",
+					"type": "js",
+					"url": "http://127.0.0.1:4521/_astro/snippet.vFZV-l6R.js"
+				},
+				{
+					"brotli": 526,
+					"gzip": 609,
+					"raw": 1166,
+					"boundaries": [],
+					"phase": "dialog",
+					"type": "js",
+					"url": "http://127.0.0.1:4521/_astro/theme-slots.X1D8X0b4.js"
+				},
+				{
+					"brotli": 1383,
+					"gzip": 1536,
+					"raw": 3197,
+					"boundaries": [],
+					"phase": "dialog",
+					"type": "js",
+					"url": "http://127.0.0.1:4521/_astro/preference-draft._NxSFWzh.js"
+				},
+				{
+					"brotli": 11618,
+					"gzip": 13221,
+					"raw": 38253,
+					"boundaries": [],
+					"phase": "dialog",
+					"type": "js",
+					"url": "http://127.0.0.1:4521/_astro/panel.CDSC8CgT.js"
+				},
+				{
+					"brotli": 1355,
+					"gzip": 1549,
+					"raw": 3565,
+					"boundaries": [],
+					"phase": "dialog",
+					"type": "js",
+					"url": "http://127.0.0.1:4521/_astro/policy-actions.DrvLcRY0.js"
+				},
+				{
+					"brotli": 20134,
+					"gzip": 24620,
+					"raw": 152072,
+					"boundaries": [],
+					"phase": "dialog",
+					"type": "js",
+					"url": "http://127.0.0.1:4521/_astro/index.BLt9k1hm.js"
+				},
+				{
+					"brotli": 3623,
+					"gzip": 3982,
+					"raw": 11343,
+					"boundaries": [],
+					"phase": "accept",
+					"type": "js",
+					"url": "http://127.0.0.1:4521/_astro/writer.3iMEh51-.js"
+				}
+			],
+			"bannerVisible": true,
+			"bannerVisibleMs": [13, 12, 12, 12, 12],
+			"buildBackendRequests": {
+				"GET /manifest": 1
+			},
+			"dialog": {
+				"measured": true
+			},
+			"document": {
+				"brotli": 10599,
+				"gzip": 12661,
+				"raw": 78405,
+				"boundaries": []
+			},
+			"emittedClientJsGzip": 342954,
+			"example": "astro",
+			"framework": "astro",
+			"kind": "server",
+			"notes": [
+				"Blocked internet requests: https://eu-assets.i.posthog.com/static/array.js"
+			],
+			"requests": [
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4521/"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4521/_astro/ClientRouter.astro_astro_type_script_index_0_lang.CDGfc0hd.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4521/_astro/page.D6yAoQH7.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4521/_astro/panel-link.astro_astro_type_script_index_0_lang.Xh1eW9IA.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4521/_astro/prompt.astro_astro_type_script_index_0_lang.Xh1eW9IA.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4521/_astro/panel.astro_astro_type_script_index_0_lang.Berv9bGx.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4521/_astro/client.D9YhLGQg.js"
+				}
+			],
+			"url": "http://127.0.0.1:4521/",
+			"metrics": {
+				"acceptJsGzip": 3982,
+				"bannerVisibleMs": 12,
+				"crossOriginRequests": 0,
+				"dialogJsGzip": 73608,
+				"documentGzip": 12661,
+				"emittedClientJsGzip": 342954,
+				"initRequests": 0,
+				"initialCssGzip": 0,
+				"initialJsBrotli": 60547,
+				"initialJsGzip": 69278,
+				"initialJsRaw": 208844,
+				"initialJsRequests": 6,
+				"manifestRequests": 0,
+				"snapshotBytes": 0,
+				"resolverBytes": 0,
+				"offlinePolicyBytes": 0,
+				"nonEnLocaleBytes": 0,
+				"iabBytes": 0,
+				"devtoolsBytes": 0
+			}
+		},
+		{
+			"accept": {
+				"measured": true,
+				"saved": true
+			},
+			"assets": [
+				{
+					"brotli": 4745,
+					"gzip": 5280,
+					"raw": 15362,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4522/_astro/ClientRouter.astro_astro_type_script_index_0_lang.CDGfc0hd.js"
+				},
+				{
+					"brotli": 45,
+					"gzip": 61,
+					"raw": 41,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4522/_astro/panel-link.astro_astro_type_script_index_0_lang.CTqjXa0I.js"
+				},
+				{
+					"brotli": 45,
+					"gzip": 61,
+					"raw": 41,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4522/_astro/prompt.astro_astro_type_script_index_0_lang.CTqjXa0I.js"
+				},
+				{
+					"brotli": 196,
+					"gzip": 256,
+					"raw": 343,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4522/_astro/panel.astro_astro_type_script_index_0_lang.BJ8uu4x7.js"
+				},
+				{
+					"brotli": 12740,
+					"gzip": 14209,
+					"raw": 43360,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4522/_astro/page.xPlGfx5t.js"
+				},
+				{
+					"brotli": 43733,
+					"gzip": 50551,
+					"raw": 153515,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4522/_astro/client.C1q9wgX7.js"
+				},
+				{
+					"brotli": 1081,
+					"gzip": 1212,
+					"raw": 3165,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4522/_astro/render-prompt.DYYVbaEo.js"
+				},
+				{
+					"brotli": 526,
+					"gzip": 609,
+					"raw": 1166,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4522/_astro/theme-slots.X1D8X0b4.js"
+				},
+				{
+					"brotli": 2938,
+					"gzip": 3370,
+					"raw": 8178,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4522/_astro/dom.ZFqVr0xs.js"
+				},
+				{
+					"brotli": 1355,
+					"gzip": 1549,
+					"raw": 3565,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4522/_astro/policy-actions.DrvLcRY0.js"
+				},
+				{
+					"brotli": 4693,
+					"gzip": 5303,
+					"raw": 35992,
+					"boundaries": [],
+					"phase": "dialog",
+					"type": "css",
+					"url": "http://127.0.0.1:4522/_astro/dialog.DtIr0Q9I.css"
+				},
+				{
+					"brotli": 3295,
+					"gzip": 3772,
+					"raw": 25094,
+					"boundaries": [],
+					"phase": "dialog",
+					"type": "css",
+					"url": "http://127.0.0.1:4522/_astro/primitives.Di67u3UJ.css"
+				},
+				{
+					"brotli": 507,
+					"gzip": 564,
+					"raw": 1083,
+					"boundaries": [],
+					"phase": "dialog",
+					"type": "js",
+					"url": "http://127.0.0.1:4522/_astro/svelte.CbM8xr8Z.js"
+				},
+				{
+					"brotli": 3623,
+					"gzip": 3982,
+					"raw": 11343,
+					"boundaries": [],
+					"phase": "dialog",
+					"type": "js",
+					"url": "http://127.0.0.1:4522/_astro/writer.3iMEh51-.js"
+				},
+				{
+					"brotli": 626,
+					"gzip": 702,
+					"raw": 1347,
+					"boundaries": [],
+					"phase": "dialog",
+					"type": "js",
+					"url": "http://127.0.0.1:4522/_astro/index-client.D-xiyPZL.js"
+				},
+				{
+					"brotli": 10811,
+					"gzip": 11996,
+					"raw": 30053,
+					"boundaries": [],
+					"phase": "dialog",
+					"type": "js",
+					"url": "http://127.0.0.1:4522/_astro/panel-surface.CFb4qoOG.js"
+				},
+				{
+					"brotli": 13090,
+					"gzip": 14507,
+					"raw": 38219,
+					"boundaries": [],
+					"phase": "dialog",
+					"type": "js",
+					"url": "http://127.0.0.1:4522/_astro/snippet.DmUFI6ou.js"
+				},
+				{
+					"brotli": 1385,
+					"gzip": 1537,
+					"raw": 3197,
+					"boundaries": [],
+					"phase": "dialog",
+					"type": "js",
+					"url": "http://127.0.0.1:4522/_astro/preference-draft.DqGFqE_R.js"
+				},
+				{
+					"brotli": 11622,
+					"gzip": 13243,
+					"raw": 38280,
+					"boundaries": [],
+					"phase": "dialog",
+					"type": "js",
+					"url": "http://127.0.0.1:4522/_astro/panel.DndQuKxG.js"
+				},
+				{
+					"brotli": 20152,
+					"gzip": 24625,
+					"raw": 152084,
+					"boundaries": [],
+					"phase": "dialog",
+					"type": "js",
+					"url": "http://127.0.0.1:4522/_astro/index.Cbhjw9e0.js"
+				},
+				{
+					"brotli": 3623,
+					"gzip": 3982,
+					"raw": 11343,
+					"boundaries": [],
+					"phase": "accept",
+					"type": "js",
+					"url": "http://127.0.0.1:4522/_astro/writer.3iMEh51-.js"
+				}
+			],
+			"bannerVisible": true,
+			"bannerVisibleMs": [34, 32, 33, 36, 32],
+			"buildBackendRequests": {},
+			"dialog": {
+				"measured": true
+			},
+			"document": {
+				"brotli": 10360,
+				"gzip": 12303,
+				"raw": 78191,
+				"boundaries": []
+			},
+			"emittedClientJsGzip": 217477,
+			"example": "astro-static",
+			"framework": "astro",
+			"kind": "server",
+			"notes": [
+				"Blocked internet requests: https://eu-assets.i.posthog.com/static/array.js"
+			],
+			"requests": [
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4522/"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4522/_astro/ClientRouter.astro_astro_type_script_index_0_lang.CDGfc0hd.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4522/_astro/page.xPlGfx5t.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4522/_astro/panel-link.astro_astro_type_script_index_0_lang.CTqjXa0I.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4522/_astro/prompt.astro_astro_type_script_index_0_lang.CTqjXa0I.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4522/_astro/panel.astro_astro_type_script_index_0_lang.BJ8uu4x7.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4522/_astro/client.C1q9wgX7.js"
+				},
+				{
+					"crossOrigin": true,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4590/init?c15tJourney=e3d73e2f-6c66-4a3a-baea-826e835cb859&c15tJourneyScope=page&c15tStored=0"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4522/_astro/render-prompt.DYYVbaEo.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4522/_astro/dom.ZFqVr0xs.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4522/_astro/theme-slots.X1D8X0b4.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4522/_astro/policy-actions.DrvLcRY0.js"
+				}
+			],
+			"url": "http://127.0.0.1:4522/",
+			"metrics": {
+				"acceptJsGzip": 3982,
+				"bannerVisibleMs": 33,
+				"crossOriginRequests": 1,
+				"dialogJsGzip": 71156,
+				"documentGzip": 12303,
+				"emittedClientJsGzip": 217477,
+				"initRequests": 1,
+				"initialCssGzip": 0,
+				"initialJsBrotli": 67404,
+				"initialJsGzip": 77158,
+				"initialJsRaw": 228736,
+				"initialJsRequests": 10,
+				"manifestRequests": 0,
+				"snapshotBytes": 0,
+				"resolverBytes": 0,
+				"offlinePolicyBytes": 0,
+				"nonEnLocaleBytes": 0,
+				"iabBytes": 0,
+				"devtoolsBytes": 0
+			}
+		},
+		{
+			"accept": {
+				"measured": true,
+				"saved": true
+			},
+			"assets": [
+				{
+					"brotli": 408,
+					"gzip": 436,
+					"raw": 700,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4527/assets/canonical-order-O_T8OosP.js"
+				},
+				{
+					"brotli": 1600,
+					"gzip": 2058,
+					"raw": 5293,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4527/assets/4649-Gfhr6LbY.js"
+				},
+				{
+					"brotli": 123,
+					"gzip": 148,
+					"raw": 208,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4527/assets/storage-keys-BKTCJJby.js"
+				},
+				{
+					"brotli": 587,
+					"gzip": 708,
+					"raw": 1256,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4527/assets/preload-helper-CZgWQFsJ.js"
+				},
+				{
+					"brotli": 117053,
+					"gzip": 137901,
+					"raw": 474779,
+					"boundaries": ["snapshotBytes"],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4527/assets/index-CUTS3i4X.js"
+				},
+				{
+					"brotli": 4340,
+					"gzip": 4827,
+					"raw": 13700,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4527/assets/script-loader-CFcakmXN.js"
+				},
+				{
+					"brotli": 1366,
+					"gzip": 1520,
+					"raw": 3165,
+					"boundaries": [],
+					"phase": "dialog",
+					"type": "js",
+					"url": "http://127.0.0.1:4527/assets/preference-draft-XS1jK1IR.js"
+				},
+				{
+					"brotli": 6909,
+					"gzip": 7673,
+					"raw": 22425,
+					"boundaries": [],
+					"phase": "dialog",
+					"type": "js",
+					"url": "http://127.0.0.1:4527/assets/panel-Ntwj9dr0.js"
+				},
+				{
+					"brotli": 10221,
+					"gzip": 11747,
+					"raw": 56254,
+					"boundaries": [],
+					"phase": "dialog",
+					"type": "js",
+					"url": "http://127.0.0.1:4527/assets/preferences-CTuTqWEz.js"
+				},
+				{
+					"brotli": 3554,
+					"gzip": 3908,
+					"raw": 11107,
+					"boundaries": [],
+					"phase": "dialog",
+					"type": "js",
+					"url": "http://127.0.0.1:4527/assets/writer-Cm4Q9zKb.js"
+				},
+				{
+					"brotli": 3554,
+					"gzip": 3908,
+					"raw": 11107,
+					"boundaries": [],
+					"phase": "accept",
+					"type": "js",
+					"url": "http://127.0.0.1:4527/assets/writer-Cm4Q9zKb.js"
+				}
+			],
+			"bannerVisible": true,
+			"bannerVisibleMs": [43, 44, 44, 43, 42],
+			"buildBackendRequests": {
+				"GET /manifest": 1
+			},
+			"dialog": {
+				"measured": true
+			},
+			"document": {
+				"brotli": 270,
+				"gzip": 396,
+				"raw": 733,
+				"boundaries": []
+			},
+			"emittedClientJsGzip": 274337,
+			"example": "react",
+			"framework": "react",
+			"kind": "spa",
+			"notes": [
+				"Blocked internet requests: https://eu-assets.i.posthog.com/static/array.js"
+			],
+			"requests": [
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4527/"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4527/assets/index-CUTS3i4X.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4527/assets/4649-Gfhr6LbY.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4527/assets/canonical-order-O_T8OosP.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4527/assets/storage-keys-BKTCJJby.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4527/assets/preload-helper-CZgWQFsJ.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4527/assets/script-loader-CFcakmXN.js"
+				},
+				{
+					"crossOrigin": true,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4590/init?c15tJourney=832f3d85-1865-4a8f-b81c-ad7055b02770&c15tJourneyScope=page&c15tStored=0"
+				}
+			],
+			"url": "http://127.0.0.1:4527/",
+			"metrics": {
+				"acceptJsGzip": 3908,
+				"bannerVisibleMs": 43,
+				"crossOriginRequests": 1,
+				"dialogJsGzip": 24848,
+				"documentGzip": 396,
+				"emittedClientJsGzip": 274337,
+				"initRequests": 1,
+				"initialCssGzip": 0,
+				"initialJsBrotli": 124111,
+				"initialJsGzip": 146078,
+				"initialJsRaw": 495936,
+				"initialJsRequests": 6,
+				"manifestRequests": 0,
+				"snapshotBytes": 137901,
+				"resolverBytes": 0,
+				"offlinePolicyBytes": 0,
+				"nonEnLocaleBytes": 0,
+				"iabBytes": 0,
+				"devtoolsBytes": 0
+			}
+		},
+		{
+			"accept": {
+				"measured": true,
+				"saved": true
+			},
+			"assets": [
+				{
+					"brotli": 71819,
+					"gzip": 84451,
+					"raw": 316036,
+					"boundaries": ["snapshotBytes"],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4524/assets/index-BEhQePYh.js"
+				},
+				{
+					"brotli": 5549,
+					"gzip": 6165,
+					"raw": 17153,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4524/assets/loader-and-blocker-9DwjRoRu.js"
+				},
+				{
+					"brotli": 5128,
+					"gzip": 5761,
+					"raw": 16606,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4524/assets/0~dialog-2B-1jAiI.js"
+				},
+				{
+					"brotli": 3623,
+					"gzip": 3982,
+					"raw": 11343,
+					"boundaries": [],
+					"phase": "accept",
+					"type": "js",
+					"url": "http://127.0.0.1:4524/assets/writer-3iMEh51-.js"
+				}
+			],
+			"bannerVisible": true,
+			"bannerVisibleMs": [43, 44, 46, 45, 47],
+			"buildBackendRequests": {
+				"GET /manifest": 1
+			},
+			"dialog": {
+				"measured": true
+			},
+			"document": {
+				"brotli": 269,
+				"gzip": 415,
+				"raw": 678,
+				"boundaries": []
+			},
+			"emittedClientJsGzip": 198367,
+			"example": "javascript",
+			"framework": "core",
+			"kind": "spa",
+			"notes": [
+				"Blocked internet requests: https://eu-assets.i.posthog.com/static/array.js"
+			],
+			"requests": [
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4524/"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4524/assets/index-BEhQePYh.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4524/assets/loader-and-blocker-9DwjRoRu.js"
+				},
+				{
+					"crossOrigin": true,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4590/init?c15tJourney=8f33aa59-9034-479c-8f76-5cb35291ff45&c15tJourneyScope=page&c15tStored=0"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4524/assets/0~dialog-2B-1jAiI.js"
+				}
+			],
+			"url": "http://127.0.0.1:4524/",
+			"metrics": {
+				"acceptJsGzip": 3982,
+				"bannerVisibleMs": 45,
+				"crossOriginRequests": 1,
+				"dialogJsGzip": 0,
+				"documentGzip": 415,
+				"emittedClientJsGzip": 198367,
+				"initRequests": 1,
+				"initialCssGzip": 0,
+				"initialJsBrotli": 82496,
+				"initialJsGzip": 96377,
+				"initialJsRaw": 349795,
+				"initialJsRequests": 3,
+				"manifestRequests": 0,
+				"snapshotBytes": 84451,
+				"resolverBytes": 0,
+				"offlinePolicyBytes": 0,
+				"nonEnLocaleBytes": 0,
+				"iabBytes": 0,
+				"devtoolsBytes": 0
+			}
+		},
+		{
+			"accept": {
+				"measured": true,
+				"saved": true
+			},
+			"assets": [
+				{
+					"brotli": 80925,
+					"gzip": 96159,
+					"raw": 357347,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "https://your-project.inth.app/c15t.js"
+				},
+				{
+					"brotli": 608,
+					"gzip": 770,
+					"raw": 1331,
+					"boundaries": [],
+					"phase": "accept",
+					"type": "js",
+					"url": "http://127.0.0.1:4523/posthog.js"
+				}
+			],
+			"bannerVisible": true,
+			"bannerVisibleMs": [48, 33, 34, 34, 49],
+			"buildBackendRequests": {},
+			"dialog": {
+				"measured": true
+			},
+			"document": {
+				"brotli": 373,
+				"gzip": 511,
+				"raw": 1035,
+				"boundaries": []
+			},
+			"emittedClientJsGzip": null,
+			"example": "html",
+			"framework": "core",
+			"kind": "spa",
+			"notes": [
+				"Blocked internet requests: https://eu-assets.i.posthog.com/static/array.js"
+			],
+			"requests": [
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4523/"
+				},
+				{
+					"crossOrigin": true,
+					"method": "GET",
+					"phase": "initial",
+					"url": "https://your-project.inth.app/c15t.js"
+				},
+				{
+					"crossOrigin": true,
+					"method": "GET",
+					"phase": "initial",
+					"url": "https://your-project.inth.app/init?c15tJourney=720893d4-717b-4da2-824c-0f9f80d73303&c15tJourneyScope=page&c15tStored=0"
+				}
+			],
+			"url": "http://127.0.0.1:4523/",
+			"metrics": {
+				"acceptJsGzip": 770,
+				"bannerVisibleMs": 34,
+				"crossOriginRequests": 2,
+				"dialogJsGzip": 0,
+				"documentGzip": 511,
+				"emittedClientJsGzip": null,
+				"initRequests": 1,
+				"initialCssGzip": 0,
+				"initialJsBrotli": 80925,
+				"initialJsGzip": 96159,
+				"initialJsRaw": 357347,
+				"initialJsRequests": 1,
+				"manifestRequests": 0,
+				"snapshotBytes": 0,
+				"resolverBytes": 0,
+				"offlinePolicyBytes": 0,
+				"nonEnLocaleBytes": 0,
+				"iabBytes": 0,
+				"devtoolsBytes": 0
+			}
+		},
+		{
+			"accept": {
+				"measured": true,
+				"saved": true
+			},
+			"assets": [
+				{
+					"brotli": 185,
+					"gzip": 225,
+					"raw": 276,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4531/assets/6449-BoCAHQDB.js"
+				},
+				{
+					"brotli": 1600,
+					"gzip": 2058,
+					"raw": 5293,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4531/assets/4649-Gfhr6LbY.js"
+				},
+				{
+					"brotli": 408,
+					"gzip": 436,
+					"raw": 700,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4531/assets/canonical-order-O_T8OosP.js"
+				},
+				{
+					"brotli": 587,
+					"gzip": 708,
+					"raw": 1256,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4531/assets/preload-helper-CZgWQFsJ.js"
+				},
+				{
+					"brotli": 5019,
+					"gzip": 5707,
+					"raw": 48115,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "css",
+					"url": "http://127.0.0.1:4531/assets/index-BVNuVDIB.css"
+				},
+				{
+					"brotli": 1328,
+					"gzip": 1512,
+					"raw": 3522,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4531/assets/policy-actions-D-z_aNnY.js"
+				},
+				{
+					"brotli": 2574,
+					"gzip": 2882,
+					"raw": 7166,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4531/assets/experiment-BsUPC9vJ.js"
+				},
+				{
+					"brotli": 25834,
+					"gzip": 28451,
+					"raw": 74006,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4531/assets/init-DVY3vXeb.js"
+				},
+				{
+					"brotli": 57860,
+					"gzip": 67322,
+					"raw": 207741,
+					"boundaries": ["snapshotBytes"],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4531/assets/index-BRvOeVMu.js"
+				},
+				{
+					"brotli": 5384,
+					"gzip": 5990,
+					"raw": 16744,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4531/assets/loader-and-blocker-Zv083aP8.js"
+				},
+				{
+					"brotli": 1570,
+					"gzip": 1832,
+					"raw": 9899,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "css",
+					"url": "http://127.0.0.1:4531/assets/switch-WOsFkskK.css"
+				},
+				{
+					"brotli": 3796,
+					"gzip": 4303,
+					"raw": 28815,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "css",
+					"url": "http://127.0.0.1:4531/assets/manager-B4afYY8d.css"
+				},
+				{
+					"brotli": 518,
+					"gzip": 579,
+					"raw": 1254,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4531/assets/switch-CUpWLaE4.js"
+				},
+				{
+					"brotli": 6955,
+					"gzip": 7693,
+					"raw": 24548,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4531/assets/manager-0GWm7nTe.js"
+				},
+				{
+					"brotli": 3554,
+					"gzip": 3908,
+					"raw": 11107,
+					"boundaries": [],
+					"phase": "dialog",
+					"type": "js",
+					"url": "http://127.0.0.1:4531/assets/writer-Cm4Q9zKb.js"
+				},
+				{
+					"brotli": 3554,
+					"gzip": 3908,
+					"raw": 11107,
+					"boundaries": [],
+					"phase": "accept",
+					"type": "js",
+					"url": "http://127.0.0.1:4531/assets/writer-Cm4Q9zKb.js"
+				}
+			],
+			"bannerVisible": true,
+			"bannerVisibleMs": [40, 39, 36, 35, 37],
+			"buildBackendRequests": {
+				"GET /manifest": 1
+			},
+			"dialog": {
+				"measured": true
+			},
+			"document": {
+				"brotli": 332,
+				"gzip": 499,
+				"raw": 1099,
+				"boundaries": []
+			},
+			"emittedClientJsGzip": 270225,
+			"example": "vue",
+			"framework": "vue",
+			"kind": "spa",
+			"notes": [
+				"Blocked internet requests: https://eu-assets.i.posthog.com/static/array.js"
+			],
+			"requests": [
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4531/"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4531/assets/index-BRvOeVMu.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4531/assets/4649-Gfhr6LbY.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4531/assets/6449-BoCAHQDB.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4531/assets/canonical-order-O_T8OosP.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4531/assets/preload-helper-CZgWQFsJ.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4531/assets/experiment-BsUPC9vJ.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4531/assets/init-DVY3vXeb.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4531/assets/policy-actions-D-z_aNnY.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4531/assets/index-BVNuVDIB.css"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4531/assets/loader-and-blocker-Zv083aP8.js"
+				},
+				{
+					"crossOrigin": true,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4590/init?c15tJourney=37884cf0-c2b4-4b1d-ac7a-a97ffa06f3f5&c15tJourneyScope=page&c15tStored=0"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4531/assets/manager-0GWm7nTe.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4531/assets/switch-CUpWLaE4.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4531/assets/switch-WOsFkskK.css"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4531/assets/manager-B4afYY8d.css"
+				}
+			],
+			"url": "http://127.0.0.1:4531/",
+			"metrics": {
+				"acceptJsGzip": 3908,
+				"bannerVisibleMs": 37,
+				"crossOriginRequests": 1,
+				"dialogJsGzip": 3908,
+				"documentGzip": 499,
+				"emittedClientJsGzip": 270225,
+				"initRequests": 1,
+				"initialCssGzip": 11842,
+				"initialJsBrotli": 103233,
+				"initialJsGzip": 117856,
+				"initialJsRaw": 342506,
+				"initialJsRequests": 11,
+				"manifestRequests": 0,
+				"snapshotBytes": 67322,
+				"resolverBytes": 0,
+				"offlinePolicyBytes": 0,
+				"nonEnLocaleBytes": 0,
+				"iabBytes": 0,
+				"devtoolsBytes": 0
+			}
+		},
+		{
+			"accept": {
+				"measured": true,
+				"saved": true
+			},
+			"assets": [
+				{
+					"brotli": 81,
+					"gzip": 113,
+					"raw": 103,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "css",
+					"url": "http://127.0.0.1:4528/assets/index-CUK5HLfV.css"
+				},
+				{
+					"brotli": 85791,
+					"gzip": 100121,
+					"raw": 335919,
+					"boundaries": ["snapshotBytes"],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4528/assets/index-BNOmICqc.js"
+				},
+				{
+					"brotli": 5549,
+					"gzip": 6165,
+					"raw": 17153,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4528/assets/loader-and-blocker-9DwjRoRu.js"
+				},
+				{
+					"brotli": 1383,
+					"gzip": 1534,
+					"raw": 3196,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4528/assets/preference-draft-CJOQ156H.js"
+				},
+				{
+					"brotli": 17796,
+					"gzip": 21281,
+					"raw": 102008,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4528/assets/panel-D856l_qf.js"
+				},
+				{
+					"brotli": 3623,
+					"gzip": 3982,
+					"raw": 11343,
+					"boundaries": [],
+					"phase": "dialog",
+					"type": "js",
+					"url": "http://127.0.0.1:4528/assets/writer-3iMEh51-.js"
+				},
+				{
+					"brotli": 3623,
+					"gzip": 3982,
+					"raw": 11343,
+					"boundaries": [],
+					"phase": "accept",
+					"type": "js",
+					"url": "http://127.0.0.1:4528/assets/writer-3iMEh51-.js"
+				}
+			],
+			"bannerVisible": true,
+			"bannerVisibleMs": [35, 35, 36, 40, 35],
+			"buildBackendRequests": {
+				"GET /manifest": 1
+			},
+			"dialog": {
+				"measured": true
+			},
+			"document": {
+				"brotli": 159,
+				"gzip": 274,
+				"raw": 387,
+				"boundaries": []
+			},
+			"emittedClientJsGzip": 261296,
+			"example": "svelte",
+			"framework": "svelte",
+			"kind": "spa",
+			"notes": [
+				"Blocked internet requests: https://eu-assets.i.posthog.com/static/array.js"
+			],
+			"requests": [
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4528/"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4528/assets/index-BNOmICqc.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4528/assets/index-CUK5HLfV.css"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4528/assets/loader-and-blocker-9DwjRoRu.js"
+				},
+				{
+					"crossOrigin": true,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4590/init?c15tJourney=a9a9afd3-4647-4872-a4cf-eff1b081815e&c15tJourneyScope=page&c15tStored=0"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4528/assets/panel-D856l_qf.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4528/assets/preference-draft-CJOQ156H.js"
+				}
+			],
+			"url": "http://127.0.0.1:4528/",
+			"metrics": {
+				"acceptJsGzip": 3982,
+				"bannerVisibleMs": 35,
+				"crossOriginRequests": 1,
+				"dialogJsGzip": 3982,
+				"documentGzip": 274,
+				"emittedClientJsGzip": 261296,
+				"initRequests": 1,
+				"initialCssGzip": 113,
+				"initialJsBrotli": 110519,
+				"initialJsGzip": 129101,
+				"initialJsRaw": 458276,
+				"initialJsRequests": 4,
+				"manifestRequests": 0,
+				"snapshotBytes": 100121,
+				"resolverBytes": 0,
+				"offlinePolicyBytes": 0,
+				"nonEnLocaleBytes": 0,
+				"iabBytes": 0,
+				"devtoolsBytes": 0
+			}
+		},
+		{
+			"accept": {
+				"measured": true,
+				"saved": true
+			},
+			"assets": [
+				{
+					"brotli": 281,
+					"gzip": 307,
+					"raw": 522,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4529/_app/immutable/entry/start.g31IcO-5.js"
+				},
+				{
+					"brotli": 60,
+					"gzip": 77,
+					"raw": 65,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4529/_app/immutable/entry/payload.DSmR2FwN.js"
+				},
+				{
+					"brotli": 630,
+					"gzip": 749,
+					"raw": 1398,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4529/_app/immutable/chunks/BaNbYf_w.js"
+				},
+				{
+					"brotli": 552,
+					"gzip": 603,
+					"raw": 1249,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4529/_app/immutable/entry/app.CwVQZpm5.js"
+				},
+				{
+					"brotli": 1738,
+					"gzip": 1955,
+					"raw": 4346,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4529/_app/immutable/chunks/1AP8nwDQ.js"
+				},
+				{
+					"brotli": 14026,
+					"gzip": 15466,
+					"raw": 42273,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4529/_app/immutable/chunks/DZ5lclHf.js"
+				},
+				{
+					"brotli": 2471,
+					"gzip": 2748,
+					"raw": 6994,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4529/_app/immutable/chunks/CL7fXna3.js"
+				},
+				{
+					"brotli": 16862,
+					"gzip": 18517,
+					"raw": 48985,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4529/_app/immutable/chunks/DZQkeKZr.js"
+				},
+				{
+					"brotli": 2718,
+					"gzip": 3068,
+					"raw": 8582,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4529/_app/immutable/chunks/CBNtFihT.js"
+				},
+				{
+					"brotli": 1740,
+					"gzip": 2198,
+					"raw": 5518,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4529/_app/immutable/chunks/tg36mgvC.js"
+				},
+				{
+					"brotli": 16333,
+					"gzip": 19149,
+					"raw": 94386,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4529/_app/immutable/chunks/BeqNUSa3.js"
+				},
+				{
+					"brotli": 781,
+					"gzip": 884,
+					"raw": 2349,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4529/_app/immutable/chunks/Cwsq_EDd.js"
+				},
+				{
+					"brotli": 3677,
+					"gzip": 4152,
+					"raw": 10471,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4529/_app/immutable/chunks/CpqfKUPc.js"
+				},
+				{
+					"brotli": 187,
+					"gzip": 220,
+					"raw": 266,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4529/_app/immutable/nodes/2.CvmoKdLd.js"
+				},
+				{
+					"brotli": 41397,
+					"gzip": 47372,
+					"raw": 149107,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4529/_app/immutable/nodes/0.CNeQxDeu.js"
+				},
+				{
+					"brotli": 5384,
+					"gzip": 5989,
+					"raw": 16742,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4529/_app/immutable/chunks/CR6ZzGLf.js"
+				},
+				{
+					"brotli": 210,
+					"gzip": 247,
+					"raw": 322,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4529/_app/immutable/nodes/1.CTZzs_Hb.js"
+				},
+				{
+					"brotli": 1355,
+					"gzip": 1509,
+					"raw": 3164,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4529/_app/immutable/chunks/DBCTBmyz.js"
+				},
+				{
+					"brotli": 17725,
+					"gzip": 21177,
+					"raw": 104961,
+					"boundaries": [],
+					"phase": "initial",
+					"type": "js",
+					"url": "http://127.0.0.1:4529/_app/immutable/chunks/D5_q5zOc.js"
+				},
+				{
+					"brotli": 3553,
+					"gzip": 3909,
+					"raw": 11106,
+					"boundaries": [],
+					"phase": "dialog",
+					"type": "js",
+					"url": "http://127.0.0.1:4529/_app/immutable/chunks/BTe3kg4S.js"
+				},
+				{
+					"brotli": 3553,
+					"gzip": 3909,
+					"raw": 11106,
+					"boundaries": [],
+					"phase": "accept",
+					"type": "js",
+					"url": "http://127.0.0.1:4529/_app/immutable/chunks/BTe3kg4S.js"
+				}
+			],
+			"bannerVisible": true,
+			"bannerVisibleMs": [14, 15, 14, 14, 13],
+			"buildBackendRequests": {
+				"GET /manifest": 1
+			},
+			"dialog": {
+				"measured": true
+			},
+			"document": {
+				"brotli": 10849,
+				"gzip": 12905,
+				"raw": 79502,
+				"boundaries": []
+			},
+			"emittedClientJsGzip": 311601,
+			"example": "sveltekit",
+			"framework": "svelte",
+			"kind": "server",
+			"notes": [
+				"Blocked internet requests: https://eu-assets.i.posthog.com/static/array.js"
+			],
+			"requests": [
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4529/"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4529/_app/immutable/entry/start.g31IcO-5.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4529/_app/immutable/entry/payload.DSmR2FwN.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4529/_app/immutable/chunks/BaNbYf_w.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4529/_app/immutable/chunks/DZ5lclHf.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4529/_app/immutable/chunks/DZQkeKZr.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4529/_app/immutable/chunks/1AP8nwDQ.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4529/_app/immutable/entry/app.CwVQZpm5.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4529/_app/immutable/nodes/0.CNeQxDeu.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4529/_app/immutable/chunks/BeqNUSa3.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4529/_app/immutable/chunks/CL7fXna3.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4529/_app/immutable/chunks/CBNtFihT.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4529/_app/immutable/chunks/tg36mgvC.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4529/_app/immutable/chunks/CpqfKUPc.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4529/_app/immutable/chunks/Cwsq_EDd.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4529/_app/immutable/nodes/2.CvmoKdLd.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4529/_app/immutable/chunks/CR6ZzGLf.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4529/_app/immutable/nodes/1.CTZzs_Hb.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4529/_app/immutable/chunks/D5_q5zOc.js"
+				},
+				{
+					"crossOrigin": false,
+					"method": "GET",
+					"phase": "initial",
+					"url": "http://127.0.0.1:4529/_app/immutable/chunks/DBCTBmyz.js"
+				}
+			],
+			"url": "http://127.0.0.1:4529/",
+			"metrics": {
+				"acceptJsGzip": 3909,
+				"bannerVisibleMs": 14,
+				"crossOriginRequests": 0,
+				"dialogJsGzip": 3909,
+				"documentGzip": 12905,
+				"emittedClientJsGzip": 311601,
+				"initRequests": 0,
+				"initialCssGzip": 0,
+				"initialJsBrotli": 128127,
+				"initialJsGzip": 146387,
+				"initialJsRaw": 501700,
+				"initialJsRequests": 19,
+				"manifestRequests": 0,
+				"snapshotBytes": 0,
+				"resolverBytes": 0,
+				"offlinePolicyBytes": 0,
+				"nonEnLocaleBytes": 0,
+				"iabBytes": 0,
+				"devtoolsBytes": 0
+			}
+		}
+	],
+	"method": "Each example is built with its own build script against the fixture backend (all four *_C15T_BACKEND_URL variables set, *.inth.app routed to the fixture, other internet hosts blocked) and started with its own start script. Assets are the scripts and stylesheets Chromium received, each phase in a fresh context. Sizes are the response bodies; gzip and brotli use Node zlib defaults per asset. Boundary bytes are the gzip sizes of first-load JS assets that contain a boundary marker string.",
+	"root": "."
+}

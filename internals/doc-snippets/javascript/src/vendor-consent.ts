@@ -1,0 +1,33 @@
+// #region docs:vendor-consent title="src/vendor-consent.ts"
+import { isVendorAllowed } from 'c15t';
+import type { SaveResult, Vendor } from 'c15t';
+import type { ConsentRuntime } from 'c15t/runtime';
+
+export const vendors: Vendor[] = [
+	{
+		category: 'marketing',
+		id: 'x-pixel',
+		name: 'X Pixel',
+		privacyPolicyUrl: 'https://x.com/privacy',
+	},
+];
+
+// Whether the vendor may run now: it is declared, its category is allowed
+// and the visitor has not switched it off. An undeclared id returns false.
+export const canVendorRun = function canVendorRun(
+	runtime: ConsentRuntime,
+	vendorId: string
+): boolean {
+	return isVendorAllowed(runtime.kernel.getSnapshot(), vendorId);
+};
+
+// Record one vendor switch. The empty category input confirms no category;
+// `save()` with no input would also confirm every displayed category.
+export const saveVendorSwitch = function saveVendorSwitch(
+	runtime: ConsentRuntime,
+	vendorId: string,
+	granted: boolean
+): Promise<SaveResult> {
+	return runtime.kernel.commands.save({}, { vendors: { [vendorId]: granted } });
+};
+// #endregion docs:vendor-consent

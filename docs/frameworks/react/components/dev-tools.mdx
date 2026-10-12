@@ -1,27 +1,52 @@
 ---
 title: DevTools
-description: A development tool for inspecting consent state, geolocation, loaded scripts, and consent events in real time.
+description: Inspect consent state, location, loaded scripts and consent events in a React app during development with the c15t DevTools panel.
 group: frameworks
 ---
 
 <import src="../../../shared/react/components/dev-tools.mdx#intro" />
 
-## Usage
+## Render DevTools in development builds
 
-```tsx
-import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from '@c15t/react';
-import { DevTools } from '@c15t/dev-tools/react';
+Render `DevTools` inside `ConsentProvider`. This example loads it only in
+development with Vite's `import.meta.env.DEV` flag, so production bundles never
+download it. For another bundler, use its development flag instead; for
+example, webpack projects can use a configured
+`process.env.NODE_ENV === 'development'` replacement, since `process` is not a
+browser global.
 
-export function ConsentManager({ children }: { children: ReactNode }) {
-  return (
-    <ConsentManagerProvider options={{ mode: 'hosted', backendURL: 'https://your-instance.c15t.dev' }}>
-      {children}
-      {process.env.NODE_ENV === 'development' && <DevTools />}
-    </ConsentManagerProvider>
-  );
+{/* example: fragment */}
+
+```tsx title="src/consent-devtools.tsx"
+import { lazy, Suspense } from 'react';
+
+const DevTools = import.meta.env.DEV
+	? lazy(() =>
+			import('c15t/react/devtools').then(({ DevTools }) => ({
+				default: DevTools,
+			}))
+		)
+	: null;
+
+export function ConsentDevTools() {
+	return DevTools ? (
+		<Suspense fallback={null}>
+			<DevTools />
+		</Suspense>
+	) : null;
 }
 ```
+
+Render `<ConsentDevTools />` inside the provider from your
+[quickstart](/docs/frameworks/react/quickstart), next to the banner. Import the
+component from `c15t/react/devtools` when you installed the `c15t` package, or
+from `@c15t/react/devtools` when you installed `@c15t/react` directly.
+`@c15t/dev-tools` exports the imperative engine, not the React component.
+
+If the CLI cannot identify your bundler's development flag, it generates
+`const DevTools = false` with a setup comment. Replace `false` with your
+configured build-time development flag to enable the panel. The fallback keeps
+DevTools disabled instead of assuming browser globals or loading it in production.
 
 <import src="../../../shared/react/components/dev-tools.mdx#customization" />
 

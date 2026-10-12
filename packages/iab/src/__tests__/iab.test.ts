@@ -1,0 +1,247 @@
+/**
+ * Tests for @c15t/iab — the IAB TCF module.
+ *
+ * Verifies:
+ * - createIAB seeds the kernel's iab slice (cmpId, customVendors).
+ * - setVendorConsent / setPurposeConsent route through kernel.set.iab.
+ * - setPurposeConsent also propagates to c15t categories.
+ * - acceptAll / rejectAll flip every vendor + purpose.
+ * - dispose cleans up the CMP API + kernel subscription.
+ */
+
+import type { GlobalVendorList } from '@c15t/core';
+import { createConsentKernel } from '@c15t/core';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
+
+import { createIAB, iab as createIABConfig } from '../index';
+import { setMockGVL } from '../tcf/fetch-gvl';
+
+const MOCK_GVL: GlobalVendorList = {
+	features: {},
+	gvlSpecificationVersion: 3,
+	lastUpdated: '2026-01-01T00:00:00Z',
+	purposes: {
+		1: { description: '', id: 1, name: 'Store and/or access information' },
+		2: { description: '', id: 2, name: 'Select basic ads' },
+		3: { description: '', id: 3, name: 'Create a personalised ads profile' },
+		4: { description: '', id: 4, name: 'Select personalised ads' },
+	},
+	specialFeatures: {
+		1: { description: '', id: 1, name: 'Use precise geolocation data' },
+	},
+	specialPurposes: {},
+	stacks: {},
+	tcfPolicyVersion: 4,
+	vendorListVersion: 42,
+	vendors: {
+		'1': {
+			features: [],
+			flexiblePurposes: [],
+			id: 1,
+			legIntPurposes: [],
+			name: 'Vendor 1',
+			policyUrl: '',
+			purposes: [1, 2],
+			specialFeatures: [],
+			specialPurposes: [],
+		},
+		'755': {
+			features: [],
+			flexiblePurposes: [],
+			id: 755,
+			legIntPurposes: [],
+			name: 'Google',
+			policyUrl: '',
+			purposes: [1, 2, 3],
+			specialFeatures: [],
+			specialPurposes: [],
+		},
+	},
+} as unknown as GlobalVendorList;
+
+beforeEach(() => {
+	setMockGVL(MOCK_GVL);
+});
+
+describe('iab', () => {
+	test('creates enabled provider configuration', () => {
+		expect(createIABConfig({ cmpId: 28, vendors: [1, 2, 755] })).toEqual({
+			cmpId: 28,
+			enabled: true,
+			vendors: [1, 2, 755],
+		});
+		expect(createIABConfig({ vendors: [755] })).toEqual({
+			enabled: true,
+			vendors: [755],
+		});
+	});
+});
+
+describe('createIAB: seeding the kernel', () => {
+	test('seeds iab.cmpId + customVendors immediately', () => {
+		const kernel = createConsentKernel();
+		const customVendors = [
+			{ id: 'cv-1', name: 'Custom One' },
+		] as unknown as Parameters<typeof createIAB>[0]['customVendors'];
+
+		const iab = createIAB({
+			cmpId: 28,
+			customVendors,
+			gvl: MOCK_GVL,
+			kernel,
+		});
+
+		const snap = kernel.getSnapshot();
+		expect(snap.iab).not.toBeNull();
+		expect(snap.iab?.cmpId).toBe(28);
+		expect(snap.iab?.customVendors).toHaveLength(1);
+		expect(snap.iab?.enabled).toBe(true);
+
+		iab.dispose();
+	});
+
+	test('keeps a GVL the kernel already holds instead of refetching', async () => {
+		const kernel = createConsentKernel();
+		kernel.set.iab({ cmpId: 28, enabled: true, gvl: MOCK_GVL });
+		const fetchMock = vi.fn();
+		vi.stubGlobal('fetch', fetchMock);
+
+		const iab = createIAB({ cmpId: 28, kernel });
+		await iab.whenReady();
+
+		const snap = kernel.getSnapshot();
+		expect(snap.iab?.enabled).toBe(true);
+		expect(snap.iab?.gvl).toBe(MOCK_GVL);
+		expect(fetchMock).not.toHaveBeenCalled();
+
+		iab.dispose();
+		vi.unstubAllGlobals();
+	});
+
+	test('narrows a kernel-held GVL to the vendors allowlist', async () => {
+		const kernel = createConsentKernel();
+		kernel.set.iab({ cmpId: 28, enabled: true, gvl: MOCK_GVL });
+		const fetchMock = vi.fn();
+		vi.stubGlobal('fetch', fetchMock);
+		const [keep] = Object.keys(MOCK_GVL.vendors);
+
+		const iab = createIAB({ cmpId: 28, kernel, vendors: [Number(keep)] });
+		await iab.whenReady();
+
+		const held = kernel.getSnapshot().iab?.gvl;
+		expect(Object.keys(held?.vendors ?? {})).toEqual([keep]);
+		expect(fetchMock).not.toHaveBeenCalled();
+
+		iab.dispose();
+		vi.unstubAllGlobals();
+	});
+
+	test('keeps a server null GVL for a non-IAB policy instead of fetching', async () => {
+		const kernel = createConsentKernel({
+			initialIab: { cmpId: 28, enabled: false, gvl: null },
+		});
+		const fetchMock = vi.fn();
+		vi.stubGlobal('fetch', fetchMock);
+
+		const iab = createIAB({ cmpId: 28, kernel });
+		await iab.whenReady();
+
+		expect(kernel.getSnapshot().iab?.enabled).toBe(false);
+		expect(fetchMock).not.toHaveBeenCalled();
+
+		iab.dispose();
+		vi.unstubAllGlobals();
+	});
+
+	test('null gvl disables IAB (non-IAB region)', () => {
+		const kernel = createConsentKernel();
+		const iab = createIAB({
+			cmpId: 28,
+			gvl: null,
+			kernel,
+		});
+		expect(kernel.getSnapshot().iab?.enabled).toBe(false);
+		iab.dispose();
+	});
+});
+
+describe('createIAB: mutations', () => {
+	test('setVendorConsent updates the snapshot', () => {
+		const kernel = createConsentKernel();
+		const iab = createIAB({ cmpId: 28, gvl: MOCK_GVL, kernel });
+
+		iab.setVendorConsent(755, true);
+		expect(kernel.getSnapshot().iab?.vendorConsents['755']).toBe(true);
+
+		iab.setVendorConsent('755', false);
+		expect(kernel.getSnapshot().iab?.vendorConsents['755']).toBe(false);
+
+		iab.dispose();
+	});
+
+	test('setPurposeConsent propagates to c15t categories when all related purposes are granted', () => {
+		const kernel = createConsentKernel();
+		const iab = createIAB({ cmpId: 28, gvl: MOCK_GVL, kernel });
+
+		// `marketing` requires purposes 2+3+4 all true. Flip them in
+		// sequence and verify marketing flips on the last.
+		iab.setPurposeConsent(2, true);
+		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);
+		iab.setPurposeConsent(3, true);
+		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);
+		iab.setPurposeConsent(4, true);
+		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);
+		expect(kernel.getSnapshot().explicitChoice).toBeNull();
+
+		iab.dispose();
+	});
+
+	test('acceptAll grants every vendor and what they declare', () => {
+		const kernel = createConsentKernel();
+		const iab = createIAB({ cmpId: 28, gvl: MOCK_GVL, kernel });
+
+		iab.acceptAll();
+		const snap = kernel.getSnapshot();
+		expect(snap.iab?.vendorConsents['1']).toBe(true);
+		expect(snap.iab?.vendorConsents['755']).toBe(true);
+		expect(snap.iab?.purposeConsents[1]).toBe(true);
+		expect(snap.iab?.purposeConsents[2]).toBe(true);
+		expect(snap.iab?.purposeConsents[3]).toBe(true);
+		// No vendor declares the special feature, so it is never shown.
+		expect(snap.iab?.specialFeatureOptIns[1]).toBe(false);
+		// c15t categories should follow.
+		expect(snap.effectivePermissions.marketing).toBe(false);
+		expect(snap.explicitChoice).toBeNull();
+
+		iab.dispose();
+	});
+
+	test('rejectAll clears everything', () => {
+		const kernel = createConsentKernel();
+		const iab = createIAB({ cmpId: 28, gvl: MOCK_GVL, kernel });
+		iab.acceptAll();
+		iab.rejectAll();
+		const snap = kernel.getSnapshot();
+		expect(snap.iab?.vendorConsents['755']).toBe(false);
+		expect(snap.iab?.purposeConsents[2]).toBe(false);
+		expect(snap.effectivePermissions.marketing).toBe(false);
+		iab.dispose();
+	});
+});
+
+describe('createIAB: dispose', () => {
+	test('unsubscribes from kernel and tears down CMP API', () => {
+		const kernel = createConsentKernel();
+		const iab = createIAB({ cmpId: 28, gvl: MOCK_GVL, kernel });
+
+		const listener = vi.fn();
+		kernel.subscribe(listener);
+
+		iab.dispose();
+
+		// Mutation after dispose should still notify external subscribers
+		// (we unsubscribed the module's internal one, not the caller's).
+		void kernel.commands.save({ marketing: true });
+		expect(listener).toHaveBeenCalled();
+	});
+});

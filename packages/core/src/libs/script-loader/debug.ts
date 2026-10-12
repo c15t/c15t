@@ -7,7 +7,7 @@ import type {
 const REGISTRY_KEY = '__c15tScriptDebugListeners';
 let fallbackListeners: Set<ScriptDebugListener> | null = null;
 
-function getListeners(): Set<ScriptDebugListener> {
+const getListeners = function getListeners(): Set<ScriptDebugListener> {
 	if (typeof window === 'undefined') {
 		if (!fallbackListeners) {
 			fallbackListeners = new Set();
@@ -24,9 +24,9 @@ function getListeners(): Set<ScriptDebugListener> {
 	const listeners = new Set<ScriptDebugListener>();
 	host[REGISTRY_KEY] = listeners;
 	return listeners;
-}
+};
 
-export function emitScriptDebugEvent(
+export const emitScriptDebugEvent = function emitScriptDebugEvent(
 	event: ScriptDebugEventInput
 ): ScriptDebugEvent {
 	const fullEvent: ScriptDebugEvent = {
@@ -43,15 +43,16 @@ export function emitScriptDebugEvent(
 	}
 
 	return fullEvent;
-}
+};
 
-export function subscribeToScriptDebugEvents(
-	listener: ScriptDebugListener
-): () => void {
-	const listeners = getListeners();
-	listeners.add(listener);
+export const subscribeToScriptDebugEvents =
+	function subscribeToScriptDebugEvents(
+		listener: ScriptDebugListener
+	): () => void {
+		const listeners = getListeners();
+		listeners.add(listener);
 
-	return () => {
-		listeners.delete(listener);
+		return () => {
+			listeners.delete(listener);
+		};
 	};
-}

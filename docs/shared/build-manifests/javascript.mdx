@@ -1,0 +1,54 @@
+<include src="../build-time-manifest.mdx" />
+
+Install `c15t` alongside `@c15t/browser` for the build plugin. Add it to
+your existing Vite plugins:
+
+{/* example: fragment */}
+
+```ts title="vite.config.ts (plugins option)"
+import { consentManifest } from 'c15t/build';
+
+export default {
+	plugins: [
+		// Keep your existing framework plugins here.
+		consentManifest({ backendURL: 'https://your-project.inth.app' }),
+	],
+};
+```
+
+Without `backendURL`, the plugin reads `VITE_C15T_BACKEND_URL`, then
+`VITE_INTH_PROJECT_URL`. The plugin
+fetches the policy during `vite build`, or in `vite dev` when the app first
+loads it, and serves it as `snapshot` from `c15t/generated`. A build fetches
+only when the app uses `manifest()`. In your browser entry point, pass
+`manifest()` as the mode of the existing `init()` call. It reads the snapshot
+and the backend URL from `c15t/generated`:
+
+{/* example: fragment */}
+
+```ts title="src/main.ts"
+import { init, manifest } from '@c15t/browser';
+
+init({ mode: manifest() });
+```
+
+Keep your scripts and UI options. The browser resolves the snapshot without
+a manifest request when the policy does not need geography, or the required
+country and region are known through `overrides`. When required
+geography is missing, it calls backend `/init` and uses the backend's resolved
+policy and translations. Those visitors still wait for a backend round trip
+and can receive newer policy than the build snapshot.
+
+When the build has no snapshot, as in `vite dev` after a failed fetch,
+`snapshot` is `undefined`, and the browser fetches
+`${backendURL}/manifest` instead.
+
+A script-tag site without a build step cannot run this hook.
+
+<include src="../build-time-manifest-notes.mdx" />
+
+<include src="../vite-build-manifest.mdx" />
+
+For policy updates without a rebuild, use `hosted()`, which asks the backend's
+`/init` on each page load, or `manifest({ source: 'runtime' })`, which fetches
+the manifest at runtime. Both keep reading the backend URL from the plugin.

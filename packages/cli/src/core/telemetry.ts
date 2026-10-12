@@ -1,13 +1,13 @@
+import { createTelemetry } from '../utils/telemetry';
+
 export {
 	createTelemetry,
 	Telemetry,
 	TelemetryEventName,
-	type TelemetryEventName as TelemetryEventNameType,
+	type TelemetryEventNameType,
 	type TelemetryOptions,
 } from '../utils/telemetry';
 
-import { createTelemetry } from '../utils/telemetry';
-
-export function createDisabledTelemetry() {
+export const createDisabledTelemetry = function createDisabledTelemetry() {
 	return createTelemetry({ disabled: true });
-}
+};

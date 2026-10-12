@@ -1,0 +1,473 @@
+/**
+ * The public entry point.
+ *
+ * Everything else in this package is reachable only through `c15tInstance`, so
+ * these are the tests that speak for a consumer. Until this file existed the
+ * package's `index.ts` was literally `export {}` — a fully working backend
+ * with no way to use it, which no amount of internal coverage would have
+ * surfaced.
+ *
+ * The cases are chosen around the one thing the cutover changes for callers:
+ * `database` replaces 2.x's `adapter`. Both accepted forms are exercised,
+ * because the config object is what a self-hoster writes and the layer is what
+ * makes the config object not a dead end.
+ */
+
+import { policyRulePresets } from '@c15t/schema/types';
+import type { ConsentManifestConfig } from '@c15t/schema/types';
+import { PgliteClient } from '@effect/sql-pglite';
+import { assert, describe, expect, it } from '@effect/vitest';
+import { Effect, Layer, ManagedRuntime } from 'effect';
+import { SqlClient } from 'effect/sql';
+
+import { toLayer } from './db/connect';
+import { up as baseline } from './db/migrations/1-baseline';
+import { createApp } from './http/app';
+import type { GvlConfig } from './http/gvl';
+import { c15tInstance } from './instance';
+import type { C15TOptions } from './instance';
+import { composePacks, policyBuilder } from './policy/builder';
+
+/**
+ * A migrated database, as a layer that hands out the *same* client.
+ *
+ * `PgliteClient.layer({})` cannot be shared by passing it twice: each build
+ * creates a fresh in-process database, so an instance handed that layer would
+ * connect to an empty one and every request would 503. Learned by doing
+ * exactly that.
+ *
+ * Building the client once and wrapping it in `Layer.succeed` is also the
+ * honest version of the case being tested — "the caller already has a pool and
+ * wants c15t to use it" is precisely why the layer form exists.
+ */
+const migrated = async () => {
+	const runtime = ManagedRuntime.make(
+		PgliteClient.layer({}) as unknown as Layer.Layer<SqlClient.SqlClient, never>
+	);
+	await runtime.runPromise(baseline);
+
+	const client = await runtime.runPromise(
+		Effect.gen(function* client() {
+			return yield* SqlClient.SqlClient;
+		})
+	);
+	return {
+		dispose: () => runtime.dispose(),
+		layer: Layer.succeed(SqlClient.SqlClient, client),
+	};
+};
+
+describe('c15tInstance', () => {
+	it('serves a request through a supplied client layer', async () => {
+		const { layer, dispose } = await migrated();
+		const instance = c15tInstance({ database: layer });
+
+		try {
+			const response = await instance.handler(
+				new Request('http://localhost/status')
+			);
+			assert.strictEqual(response.status, 200);
+		} finally {
+			await instance.dispose();
+			await dispose();
+		}
+	}, 60_000);
+
+	it('accepts a plain config object without the caller touching Effect', async () => {
+		// The point of the config form: no Layer, no Redacted, no driver
+		// import at the call site. SQLite because it needs no server.
+		const instance = c15tInstance({
+			database: { dialect: 'sqlite', filename: ':memory:' },
+		});
+
+		try {
+			const layer = toLayer({ dialect: 'sqlite', filename: ':memory:' });
+			assert.isDefined(layer);
+
+			// The database is empty — no migration has run — so this answers
+			// unhealthy rather than throwing. That it answers at all is the
+			// assertion: the driver resolved and a connection was made from
+			// nothing but `{ dialect, filename }`.
+			const response = await instance.handler(
+				new Request('http://localhost/status')
+			);
+			assert.oneOf(response.status, [200, 503]);
+		} finally {
+			await instance.dispose();
+		}
+	}, 60_000);
+
+	it('releases its pool on dispose', async () => {
+		const { layer, dispose } = await migrated();
+		const instance = c15tInstance({ database: layer });
+		await instance.handler(new Request('http://localhost/status'));
+
+		await instance.dispose();
+		await dispose();
+
+		// Nothing to assert beyond "this did not hang or throw" — a pool that
+		// cannot be released is a leak in every test and script that builds
+		// an instance, which is why `dispose` is on the public interface.
+		assert.isTrue(true);
+	}, 60_000);
+
+	it('passes app options through to the routes', async () => {
+		const { layer, dispose } = await migrated();
+		const instance = c15tInstance({
+			// Listing subjects is key-only; with no keys configured nothing
+			// authenticates, which is the documented safe default.
+			apiKeys: [],
+
+			database: layer,
+		});
+
+		try {
+			const response = await instance.handler(
+				new Request('http://localhost/subjects?externalId=ext_1')
+			);
+			assert.strictEqual(response.status, 401);
+		} finally {
+			await instance.dispose();
+			await dispose();
+		}
+	}, 60_000);
+});
+
+describe('basePath', () => {
+	it('routes a request that arrives with the mount prefix', async () => {
+		const { layer, dispose } = await migrated();
+		const instance = c15tInstance({
+			basePath: '/api/self-host',
+			database: layer,
+		});
+
+		try {
+			// How a Next.js catch-all actually delivers it. Without stripping,
+			// every route 404s and the cause is not obvious.
+			const response = await instance.handler(
+				new Request('http://localhost/api/self-host/status')
+			);
+			assert.strictEqual(response.status, 200);
+		} finally {
+			await instance.dispose();
+			await dispose();
+		}
+	}, 60_000);
+
+	it('does not strip a prefix that is not a whole segment', async () => {
+		const { layer, dispose } = await migrated();
+		const instance = c15tInstance({
+			basePath: '/api/c15t',
+			database: layer,
+		});
+
+		try {
+			// `startsWith` alone also matches `/api/c15t2/...`, which would be
+			// rewritten to `2/status` and dispatched as if it belonged to this
+			// mount. A neighbouring route on the same host is not ours.
+			const response = await instance.handler(
+				new Request('http://localhost/api/c15t2/status')
+			);
+			assert.strictEqual(response.status, 404);
+		} finally {
+			await instance.dispose();
+			await dispose();
+		}
+	}, 60_000);
+
+	it('routes the mount root itself', async () => {
+		const { layer, dispose } = await migrated();
+		const instance = c15tInstance({
+			basePath: '/api/self-host',
+			database: layer,
+		});
+
+		try {
+			// The prefix with nothing after it must still strip to `/` rather
+			// than being treated as a non-match.
+			const response = await instance.handler(
+				new Request('http://localhost/api/self-host')
+			);
+			assert.notStrictEqual(response.status, 500);
+		} finally {
+			await instance.dispose();
+			await dispose();
+		}
+	}, 60_000);
+
+	it('leaves a request alone when no basePath is set', async () => {
+		const { layer, dispose } = await migrated();
+		const instance = c15tInstance({ database: layer });
+
+		try {
+			const response = await instance.handler(
+				new Request('http://localhost/status')
+			);
+			assert.strictEqual(response.status, 200);
+		} finally {
+			await instance.dispose();
+			await dispose();
+		}
+	}, 60_000);
+
+	it('ignores a path that does not carry the prefix', async () => {
+		const { layer, dispose } = await migrated();
+		const instance = c15tInstance({
+			basePath: '/api/self-host',
+			database: layer,
+		});
+
+		try {
+			// Stripping must be conditional: a request that already lacks the
+			// prefix would otherwise have its first path segment eaten.
+			const response = await instance.handler(
+				new Request('http://localhost/status')
+			);
+			assert.strictEqual(response.status, 200);
+		} finally {
+			await instance.dispose();
+			await dispose();
+		}
+	}, 60_000);
+});
+
+describe('policy authoring', () => {
+	it('builds and composes packs', () => {
+		const pack = policyBuilder.createPack([
+			{ countries: ['DE'], id: 'eu', model: 'opt-in' },
+			{ countries: ['US'], id: 'us', model: 'opt-out' },
+		]);
+
+		const composed = composePacks(pack, [
+			// A duplicate id must lose to the earlier pack rather than shadow it,
+			// or composition order silently changes which policy a visitor gets.
+			...policyBuilder.createPack([{ countries: ['FR'], id: 'eu' }]),
+		]);
+
+		assert.deepStrictEqual(
+			composed.map((policy) => policy.id),
+			['eu', 'us']
+		);
+		assert.deepStrictEqual(composed[0]?.match?.countries, ['DE']);
+	});
+});
+
+describe('startup warning for the vendor list', () => {
+	/** Everything `console.warn` saw while the instance was being built. */
+	const warningsDuring = function warningsDuring(
+		manifest: ConsentManifestConfig,
+		gvl?: GvlConfig
+	) {
+		const lines: string[] = [];
+		const { warn } = console;
+		console.warn = (...args: unknown[]) => {
+			lines.push(args.map(String).join(' '));
+		};
+
+		try {
+			// SQLite in memory: no request is issued, only the startup check
+			// this test is about runs.
+			c15tInstance({
+				database: { dialect: 'sqlite', filename: ':memory:' },
+				gvl,
+				manifest,
+			});
+		} finally {
+			console.warn = warn;
+		}
+
+		return lines.filter((line) => line.includes('Global Vendor List'));
+	};
+
+	it('names the rule and the missing half when an IAB pack has no list', () => {
+		// The failure this exists for: an IAB pack that resolves perfectly and
+		// discloses nothing, visible in a response body only as an absent field.
+		const lines = warningsDuring({
+			policyRules: [policyRulePresets.europeIab()],
+		});
+
+		assert.strictEqual(lines.length, 1);
+		assert.include(lines[0] ?? '', 'europe_iab');
+		// Both halves have to be in the line, or the reader has to go looking
+		// for which knob is missing.
+		assert.include(lines[0] ?? '', 'gvl');
+	});
+
+	it('stays quiet once a `gvl` block exists', () => {
+		assert.deepStrictEqual(
+			warningsDuring(
+				{ policyRules: [policyRulePresets.europeIab()] },
+				{ vendorIds: [7, 41, 672] }
+			),
+			[]
+		);
+	});
+
+	it('stays quiet for a pack that never promised IAB disclosure', () => {
+		// An opt-in European pack legitimately has no vendor list. Warning there
+		// would teach operators to ignore the warning.
+		assert.deepStrictEqual(
+			warningsDuring({ policyRules: [policyRulePresets.europeOptIn()] }),
+			[]
+		);
+	});
+});
+
+describe('tenant configuration', () => {
+	/**
+	 * Builds an instance and disposes it again, so a case that expects the
+	 * build to succeed does not leak a pool.
+	 */
+	const build = async (options: Omit<C15TOptions, 'database'>) => {
+		const instance = c15tInstance({
+			database: { dialect: 'sqlite', filename: ':memory:' },
+			...options,
+		});
+		await instance.dispose();
+	};
+
+	it('refuses to start without a tenantId when one is required', async () => {
+		// The failure this exists for: a tenant lookup that came back
+		// undefined. Without the flag the instance runs as the single-tenant
+		// scope and writes the tenant's consents where it cannot read them.
+		await expect(
+			build({ requireTenantId: true, tenantId: undefined })
+		).rejects.toThrow(/requireTenantId/u);
+	});
+
+	it.each([
+		['string', 'true'],
+		['number', 1],
+		['null', null],
+	])('refuses a requireTenantId that is a %s', async (_label, value) => {
+		// Treating anything but `true` as off would let an untyped config start
+		// in the null-tenant scope while its author believes it is guarded.
+		await expect(
+			build({ requireTenantId: value as unknown as boolean })
+		).rejects.toThrow(/requireTenantId must be a boolean/u);
+	});
+
+	it('starts when a required tenantId is present', async () => {
+		await expect(
+			build({ requireTenantId: true, tenantId: 'tenant_a' })
+		).resolves.toBeUndefined();
+	});
+
+	it('still starts single-tenant when nothing asks for a tenant', async () => {
+		await expect(build({})).resolves.toBeUndefined();
+	});
+
+	it.each([
+		['empty', ''],
+		['blank', '   '],
+		['padded', ' tenant_a\n'],
+	])('refuses an %s tenantId', async (_label, tenantId) => {
+		await expect(build({ tenantId })).rejects.toThrow(/tenantId/u);
+	});
+
+	it('refuses a null tenantId from an untyped config', async () => {
+		// `null` would scope every query to `tenantId = NULL`, which matches
+		// no row: reads find nothing and nothing says why.
+		await expect(
+			build({ tenantId: null as unknown as string })
+		).rejects.toThrow(/received null/u);
+	});
+
+	it('refuses the removed manifest.tenantId instead of ignoring it', async () => {
+		// It never scoped a query. A config that named its tenant only there
+		// would, if the field were silently dropped, write every row with a
+		// null tenant.
+		const manifest = { tenantId: 'tenant_a' } as ConsentManifestConfig;
+		await expect(build({ manifest })).rejects.toThrow(
+			/manifest\.tenantId is no longer supported/u
+		);
+		await expect(build({ manifest, tenantId: 'tenant_a' })).rejects.toThrow(
+			/already "tenant_a"/u
+		);
+	});
+
+	it('refuses manifest.tenantId even when its value is undefined', async () => {
+		// `tenantId: process.env.TENANT_ID` with the variable unset: exactly the
+		// migration a value check would wave through into the null scope.
+		const manifest = { tenantId: undefined } as ConsentManifestConfig;
+		await expect(build({ manifest })).rejects.toThrow(
+			/manifest\.tenantId is no longer supported/u
+		);
+	});
+
+	it('applies the same check to createApp', async () => {
+		// `createApp` is the other public way in; it must not be the one that
+		// skips the check.
+		const runtime = ManagedRuntime.make(
+			PgliteClient.layer({}) as unknown as Layer.Layer<
+				SqlClient.SqlClient,
+				never
+			>
+		);
+		try {
+			assert.throws(
+				() => createApp(runtime, { requireTenantId: true }),
+				/requireTenantId/u
+			);
+		} finally {
+			await runtime.dispose();
+		}
+	});
+});
+
+describe('hosting', () => {
+	const serve = async (
+		options: Omit<C15TOptions, 'database'>,
+		path: string
+	): Promise<unknown> => {
+		const instance = c15tInstance({
+			database: { dialect: 'sqlite', filename: ':memory:' },
+			...options,
+		});
+		try {
+			const response = await instance.handler(
+				new Request(`http://localhost${path}`)
+			);
+			assert.strictEqual(response.status, 200);
+			return await response.json();
+		} finally {
+			await instance.dispose();
+		}
+	};
+
+	it('reports self-hosted on /init and /manifest by default', async () => {
+		expect(await serve({}, '/init')).toMatchObject({ hosting: 'self-hosted' });
+		expect(await serve({}, '/manifest')).toMatchObject({
+			hosting: 'self-hosted',
+		});
+	});
+
+	it('reports inth when the instance says so', async () => {
+		const options = { hosting: 'inth' } as const;
+		expect(await serve(options, '/init')).toMatchObject({ hosting: 'inth' });
+		expect(await serve(options, '/manifest')).toMatchObject({
+			hosting: 'inth',
+		});
+	});
+
+	it('refuses a value no client understands', () => {
+		// Every /init is validated against the schema, so a typo would fail
+		// each response instead of the deploy.
+		expect(() =>
+			c15tInstance({
+				database: { dialect: 'sqlite', filename: ':memory:' },
+				hosting: 'inth.com' as unknown as 'inth',
+			})
+		).toThrow(/hosting must be one of "inth", "self-hosted"/u);
+	});
+
+	it('refuses hosting set on the manifest instead of the instance', () => {
+		const manifest = { hosting: 'inth' } as ConsentManifestConfig;
+		expect(() =>
+			c15tInstance({
+				database: { dialect: 'sqlite', filename: ':memory:' },
+				manifest,
+			})
+		).toThrow(/manifest\.hosting is not supported/u);
+	});
+});

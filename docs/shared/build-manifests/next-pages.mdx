@@ -1,0 +1,16 @@
+<include src="../build-time-manifest.mdx" />
+
+<include src="./next-config.mdx" />
+
+`withConsentProps()` and `createPagesConsentRoute()` read the snapshot
+through the same alias. The wrapper adds `c15t`, `@c15t/core` and
+`@c15t/nextjs` to `transpilePackages` for this: the Pages Router leaves
+dependencies external on the server otherwise, and an external package does
+not see the alias.
+
+<include src="../build-time-manifest-notes.mdx" />
+
+To apply policy edits without a rebuild, set
+`mode: manifest({ source: 'runtime' })` in `c15t.config.ts`. The server then
+uses [runtime manifest caching](/docs/frameworks/next/optimization#reuse-cached-policy-data).
+Keep `withConsentManifest`, which also finds `c15t.config.ts`.

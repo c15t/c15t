@@ -1,0 +1,242 @@
+import type { Script } from '@c15t/core';
+
+import { resolveManifest } from '../../resolve';
+import { vendorManifestContract } from '../../types';
+import type { VendorManifest } from '../../types';
+import { readId, skipMissingId } from '../_shared/required-id';
+import { resolveScriptUrl } from '../_shared/script-url';
+
+export interface XPixelContent {
+	/**
+	 * Type of the content
+	 * @example "Animals & Pet Supplies > Pet Supplies > Cat Supplies > Cat Beds"
+	 * @see https://www.google.com/basepages/producttype/taxonomy.en-US.txt
+	 */
+	content_type?: string;
+	/**
+	 * ID of the content
+	 * For product catalog users: please pass SKU
+	 * For all other users: Please pass Global Trade Item Number (GTIN) if available, otherwise pass SKU
+	 * @example "1234567890"
+	 */
+	content_id: string;
+	/**
+	 * Name of a product or service
+	 * @example "Cat Bed"
+	 */
+	content_name?: string;
+
+	/**
+	 * Price of a product or service
+	 * @example 10.00
+	 */
+	content_price?: number;
+	/**
+	 * Quantity of the content
+	 * @example 1
+	 */
+	num_items?: number;
+	/**
+	 * ID associated with a group of product variants
+	 * @example "1234567890"
+	 */
+	content_group_id?: string;
+}
+export interface XPixelEvent {
+	/**
+	 * Total value of the conversion event (ex: $ value of the transaction in case of a purchase, etc.)
+	 * @example 10.00
+	 */
+	value?: number;
+	/**
+	 * Currency of the conversion event
+	 * ISO 4217 code (ex: USD, EUR, JPY, etc.)
+	 * @example USD
+	 */
+	currency?: string;
+	/**
+	 * Unique identifier for the event that can be used for deduplication purposes
+	 * @example tw-xxxx-xxxx
+	 */
+	conversion_id?: string;
+	/**
+	 * Search string of the conversion event
+	 * @example "search query"
+	 */
+	search_string?: string;
+	/**
+	 * Description of the conversion event
+	 * @example "purchase"
+	 */
+	description?: string;
+	/**
+	 * twclid of the conversion event
+	 * The X Pixel already automatically passes twclid from URL or first-party cookie. This parameter can be optionally used to force attribution to a certain ad click.
+	 * @example "twclid"
+	 */
+	twclid?: string;
+	/**
+	 * Status of the conversion event
+	 * Should be set to values like "started" or "completed".
+	 * @example "completed"
+	 */
+	status?: 'started' | 'completed';
+	/**
+	 * Email address used for user matching.
+	 * The X Pixel hashes this value before transmission.
+	 * @example "[email protected]"
+	 */
+	email_address?: string;
+	/**
+	 * Phone number used for user matching.
+	 * Include country code in E.164 format (for example, +11234567890).
+	 * The X Pixel hashes this value before transmission.
+	 * @example "+11234567890"
+	 */
+	phone_number?: string;
+
+	/**
+	 * Content/products associated with the conversion event
+	 * @example [{content_id: 'OT001', content_name: 'bird seed', content_price: 50, num_items: 1}]
+	 * @see {@link XPixelContent}
+	 */
+	contents?: XPixelContent[];
+}
+
+// Extended Window interface to include X Pixel-specific properties
+declare global {
+	interface Window {
+		twq?: (event: string, ...args: unknown[]) => void;
+	}
+}
+
+/**
+ * X (Twitter) Pixel vendor manifest.
+ *
+ * Uses structured startup steps to load the X tracking pixel.
+ * No consent API — the script simply loads or doesn't based on consent.
+ */
+export const xPixelManifest = {
+	...vendorManifestContract,
+	bootstrap: [
+		{
+			dispatchProperty: 'exe',
+			ifUndefined: true,
+			name: 'twq',
+			properties: {
+				version: '1.1',
+			},
+			queue: {
+				property: 'queue',
+			},
+			type: 'defineStubFunction',
+		},
+	],
+	category: 'marketing',
+	install: [
+		{
+			args: ['config', '{{pixelId}}'],
+			global: 'twq',
+			type: 'callGlobal',
+		},
+		{
+			async: true,
+			src: '{{scriptSrc}}',
+			type: 'loadScript',
+		},
+	],
+	vendor: 'x-pixel',
+	vendorDetails: {
+		homepageUrl: 'https://business.x.com/',
+		name: 'X Pixel',
+		privacyPolicyUrl: 'https://x.com/privacy',
+	},
+} as const satisfies VendorManifest;
+
+export interface XPixelOptions {
+	/**
+	 * Your X Pixel ID
+	 * @example `123456789012345`
+	 */
+	pixelId: string;
+
+	/** X Pixel loader URL. */
+	scriptSrc?: string;
+}
+
+/**
+ * Creates an X Pixel script.
+ * This script loads only when consent is granted.
+ * X Pixel does not expose a consent update API, so c15t treats it as a standard consent-gated loader.
+ *
+ * @param options - The options for the X Pixel script
+ * @returns The X Pixel script configuration
+ * @remarks When `pixelId` is missing or blank, the
+ *   helper logs `xPixel: missing or invalid pixelId` with
+ *   `console.error` and returns a script that never loads.
+ *
+ * @example
+ * ```ts
+ * const xPixelScript = xPixel({
+ *   pixelId: '123456789012345',
+ * });
+ * ```
+ *
+ * @see {@link https://business.x.com/en/help/campaign-measurement-and-analytics/conversion-tracking-for-websites} X conversion tracking documentation
+ */
+export const xPixel = function xPixel({
+	pixelId,
+	scriptSrc,
+}: XPixelOptions): Script {
+	const normalizedPixelId = readId(pixelId);
+	if (normalizedPixelId === undefined) {
+		return skipMissingId('xPixel', 'pixelId', {
+			category: 'marketing',
+			manifest: xPixelManifest,
+		});
+	}
+
+	const resolved = resolveManifest(xPixelManifest, {
+		pixelId: normalizedPixelId,
+		scriptSrc: resolveScriptUrl(
+			scriptSrc,
+			'https://static.ads-twitter.com/uwt.js'
+		),
+	});
+
+	return resolved;
+};
+
+/**
+ * Tracks an X Pixel conversion event.
+ *
+ * @param eventId - The event ID to track
+ * @example 'tw-xxxx-xxxx'
+ * @param metadata - Optional metadata to track
+ *
+ * @example
+ * ```ts
+ * xPixelEvent('tw-xxxx-xxxx', {
+ *   value: 200.00,
+ *   currency: 'USD',
+ *   contents: [
+ *     {content_id: 'OT001', content_name: 'bird seed', content_price: 50, num_items: 1},
+ *     {content_id: 'OT002', content_name: 'bird cage', content_price: 150, num_items: 1}
+ *   ]
+ * });
+ * ```
+ *
+ * @see {@link https://business.x.com/en/help/campaign-measurement-and-analytics/conversion-tracking-for-websites#event-types-and-parameters}
+ *
+ * @remarks
+ * Does nothing when `window.twq` is missing, which is the case until
+ * marketing consent is granted and the X Pixel is set up. Events sent before
+ * then are dropped, not queued.
+ */
+export const xPixelEvent = (eventId: string, metadata?: XPixelEvent): void => {
+	if (typeof window === 'undefined' || typeof window.twq !== 'function') {
+		return;
+	}
+
+	window.twq('event', eventId, metadata);
+};

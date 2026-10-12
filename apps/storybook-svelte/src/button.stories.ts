@@ -1,5 +1,6 @@
-import { buttonRenders } from '@c15t/storybook-tests/play/button';
+import { buttonRenders } from '@c15t/conformance/play/button';
 import type { Meta, StoryObj } from '@storybook/svelte-vite';
+
 import ButtonAllModesDemo from './ButtonAllModesDemo.svelte';
 import ButtonDemo from './ButtonDemo.svelte';
 import ButtonWithIconDemo from './ButtonWithIconDemo.svelte';
@@ -9,7 +10,7 @@ const meta = {
 	parameters: {
 		layout: 'centered',
 	},
-	title: 'Primitives/Button',
+	title: 'PRIMITIVES - SVELTE/Button',
 } satisfies Meta<ButtonDemo>;
 
 export default meta;

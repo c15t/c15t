@@ -1,0 +1,217 @@
+import { createConsentKernel } from '@c15t/core';
+import type {
+	HydrationRecords,
+	HydrationResult,
+	InitResponse,
+	KernelTransport,
+} from '@c15t/core';
+import { policyRulePresets, resolvePolicyRules } from '@c15t/schema/types';
+
+/**
+ * `hydrate` applies stored records the way persistence does. It is a verb
+ * only core's own modules call, so it is not on `ConsentKernel`.
+ */
+const hydrateRecords = <KernelType extends object>(
+	kernel: KernelType,
+	records: HydrationRecords
+): HydrationResult =>
+	(
+		kernel as KernelType & {
+			hydrate: (input: HydrationRecords) => HydrationResult;
+		}
+	).hydrate(records);
+
+const requireCondition = (condition: unknown, message: string): void => {
+	if (!condition) {
+		throw new Error(message);
+	}
+};
+
+/** Genuine choice and receipt work, separate from the frozen empty-kernel arm. */
+export const createPolicyOperations = (
+	response: InitResponse,
+	transportMode: 'local' | 'deferred' = 'local'
+) => {
+	const transport: KernelTransport = {
+		init: () => Promise.resolve(response),
+		...(transportMode === 'deferred' && {
+			save: () => Promise.resolve({ ok: true }),
+		}),
+	};
+	const ready = async () => {
+		// A site declares the categories its integrations use. With none, a
+		// permissive policy asks only for an acknowledgement, and these arms
+		// measure real category grants.
+		const kernel = createConsentKernel({
+			consentCategories: [
+				'necessary',
+				'experience',
+				'functionality',
+				'marketing',
+				'measurement',
+			],
+			transport,
+		});
+		const result = await kernel.commands.init();
+		if (!result.ok || kernel.getSnapshot().resolution.status !== 'matched') {
+			kernel.dispose();
+			throw new Error('Policy fixture did not match or init failed');
+		}
+		return kernel;
+	};
+	return {
+		async realPolicyAcceptUs() {
+			const kernel = await ready();
+			try {
+				const saved = await kernel.commands.save('all');
+				requireCondition(saved.ok, 'Accept failed');
+				const snapshot = kernel.getSnapshot();
+				const choices = Object.values(
+					snapshot.explicitChoice?.categories ?? {}
+				);
+				requireCondition(
+					choices.length === 4 && choices.every((choice) => choice.value),
+					'Accept did not create four explicit grants'
+				);
+				requireCondition(
+					snapshot.effectivePermissions.marketing,
+					'Accept did not enable marketing'
+				);
+			} finally {
+				kernel.dispose();
+			}
+		},
+		async realPolicyNoticeUs() {
+			const rule = {
+				...policyRulePresets.californiaOptOut(),
+				prompt: 'notice' as const,
+			};
+			const resolution = resolvePolicyRules({
+				countryCode: 'US',
+				regionCode: 'CA',
+				rules: [rule],
+			});
+			const kernel = createConsentKernel({
+				initialPolicyResolution: resolution,
+			});
+			try {
+				const before = kernel.getSnapshot();
+				requireCondition(
+					before.promptRequirement.kind === 'notice',
+					'Notice fixture lacks a notice'
+				);
+				const dismissed = await kernel.commands.dismissNotice();
+				requireCondition(dismissed.ok, 'Notice dismissal failed');
+				const after = kernel.getSnapshot();
+				requireCondition(
+					after.noticeDismissal &&
+						!after.explicitChoice &&
+						after.promptRequirement.kind === 'none',
+					'Dismissal did not preserve choice independence'
+				);
+				requireCondition(
+					JSON.stringify(before.effectivePermissions) ===
+						JSON.stringify(after.effectivePermissions),
+					'Dismissal changed permissions'
+				);
+			} finally {
+				kernel.dispose();
+			}
+		},
+		async realPolicyPartialUs() {
+			const kernel = await ready();
+			try {
+				const result = await kernel.commands.save({ measurement: true });
+				requireCondition(result.ok, 'Partial save failed');
+				const choice = kernel.getSnapshot().explicitChoice;
+				requireCondition(
+					choice?.categories.measurement?.value === true,
+					'Partial save did not create its receipt'
+				);
+				requireCondition(
+					Object.keys(choice?.categories ?? {}).length === 1,
+					'Partial save filled undecided categories'
+				);
+			} finally {
+				kernel.dispose();
+			}
+		},
+		async realPolicyRejectUs() {
+			const kernel = await ready();
+			try {
+				const result = await kernel.commands.save('none');
+				requireCondition(result.ok, 'Reject failed');
+				const snapshot = kernel.getSnapshot();
+				requireCondition(
+					snapshot.explicitChoice?.categories.marketing?.value === false,
+					'Reject did not record denial'
+				);
+				requireCondition(
+					!snapshot.effectivePermissions.marketing,
+					'Reject still permits marketing'
+				);
+			} finally {
+				kernel.dispose();
+			}
+		},
+		async realPolicyRepeatHydrationUs() {
+			const first = await ready();
+			const repeat = await ready();
+			try {
+				await first.commands.save('none');
+				const saved = first.getSnapshot();
+				let choiceEvents = 0;
+				repeat.events.on('choice:recorded', () => {
+					choiceEvents += 1;
+				});
+				const hydrated = hydrateRecords(repeat, {
+					choice: saved.explicitChoice,
+					subject: saved.subject,
+				});
+				requireCondition(hydrated.ok, 'Repeat hydration failed');
+				requireCondition(
+					repeat.getSnapshot().explicitChoice?.categories.marketing?.value ===
+						false,
+					'Repeat visitor lost saved denial'
+				);
+				requireCondition(
+					choiceEvents === 0,
+					'Hydration emitted a choice event'
+				);
+			} finally {
+				first.dispose();
+				repeat.dispose();
+			}
+		},
+		// The metric name predates live-only GPC. It is kept so runtime
+		// comparisons against older bases still find the measurement. The
+		// comparison runs this source against the base's packages too, so it
+		// asserts nothing about what happens after the signal is removed: older
+		// bases kept a standing opt-out there.
+		async realPolicyStandingGpcUs() {
+			const resolution = resolvePolicyRules({
+				countryCode: 'US',
+				regionCode: 'CA',
+				rules: [policyRulePresets.californiaOptOut()],
+			});
+			const kernel = createConsentKernel({
+				initialPolicyResolution: resolution,
+			});
+			try {
+				await kernel.commands.init();
+				kernel.set.privacySignals({ gpc: true });
+				requireCondition(
+					!kernel.getSnapshot().effectivePermissions.marketing,
+					'GPC did not restrict marketing'
+				);
+				kernel.set.privacySignals({ gpc: false });
+				requireCondition(
+					!kernel.getSnapshot().explicitChoice,
+					'GPC created a choice'
+				);
+			} finally {
+				kernel.dispose();
+			}
+		},
+	};
+};

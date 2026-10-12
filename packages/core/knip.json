@@ -1,7 +1,23 @@
 {
 	"$schema": "https://unpkg.com/knip@latest/schema.json",
-	"entry": ["./src/index.ts"],
-	"ignoreBinaries": ["biome", "rslib", "tsc", "vitest"],
+	"entry": [
+		"./src/index.ts",
+		"./src/consent-record/index.ts",
+		"./src/transports/index.ts",
+		"./src/transports/manifest.ts",
+		"./src/libs/generate-subject-id.ts",
+		"./src/modules/script-loader/index.ts",
+		"./src/modules/network-blocker/index.ts",
+		"./src/modules/network-blocker/hold.ts",
+		"./src/modules/iframe-blocker/index.ts",
+		"./src/modules/persistence/index.ts",
+		"./src/modules/window-debug/index.ts",
+		"./src/server/index.ts",
+		"./src/static.ts",
+		"./src/runtime/index.ts",
+		"./src/transports/manifest-cache.ts"
+	],
+	"ignoreBinaries": ["oxfmt", "oxlint", "rslib", "tsc", "vitest"],
 	"ignore": [
 		"**/*.spec.{js,ts}",
 		"**/*.test.{js,ts}",

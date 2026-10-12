@@ -1,186 +1,154 @@
 ---
 title: Quickstart
-description: Add consent management to your Next.js app in under 5 minutes.
-variants:
-  - value: "javascript"
-    href: "/docs/frameworks/javascript/quickstart"
-    label: "JavaScript"
-  - value: "react"
-    href: "/docs/frameworks/react/quickstart"
-    label: "React"
-  - value: "next"
-    href: "/docs/frameworks/next/quickstart"
-    label: "Next.js"
+description: Add c15t consent management to a Next.js App Router app with Inth, a build-time policy manifest and consent-gated scripts, then check it works. Links to the Pages Router and static export guides.
 group: frameworks
 ---
 
-## Via CLI
+## Before you start
 
-<PackageCommandTabs command="@c15t/cli" />
+This quickstart sets up the App Router with a Next.js server, which is what
+most Next.js apps use. Your build bundles the Inth project's public policy
+manifest and your server resolves consent for each visitor, so the browser gets the answer
+with the page and makes no `/init` request. Consent choices go to Inth.
 
-## Manual Installation
+Using the Pages Router, `output: 'export'` or cached pages? Find your app in
+[Use another router or deployment](#use-another-router-or-deployment) first.
 
-<Steps>
-  <Step>
-    ### Install package
+You need an [Inth](https://inth.com) project. Set its policy rules, add your
+site's origin to its trusted origins, and copy its backend URL. The URL is
+public configuration, not a secret. A
+[self-hosted backend](/docs/self-host/quickstart) uses the same files with its
+own URL.
 
-    <PackageCommandTabs mode="install" command="@c15t/nextjs" />
-  </Step>
+The setup bundles your policy into the server at build time, the
+recommended production setup. Rebuild after changing policies, translations
+or vendors.
 
-  <Step>
-    ### Import styles
+## Install c15t
 
-    Import the prebuilt component stylesheet in your app-level CSS entrypoint. This is required for styled components to render correctly.
+<CommandTabs command="c15t @c15t/integrations" mode="install" />
 
-    ```css title="app/globals.css"
-    @import "@c15t/nextjs/styles.css";
-    ```
+There is no stylesheet to import. c15t's components render their own rules
+as `<style>` elements. With Tailwind CSS 3, import the stylesheet
+yourself and set `styles: false`, as
+[Customize](/docs/frameworks/next/customize#load-the-stylesheet-yourself)
+shows.
 
-    <import src="../../shared/react/styling/stylesheet-entrypoint.mdx#why-global-css" />
+## Set the backend URL
 
-    <Callout type="info">
-      If you are using the headless API or fully custom styling, you can skip this import. Your root layout should continue importing `./globals.css` as usual.
-    </Callout>
-  </Step>
+Set your project's backend URL, including any path prefix, in `.env.local` and
+in your host's build settings:
 
-  <Step>
-    ### Create `ConsentManager` components
-
-    Create a provider component with the consent UI and a wrapper that re-exports it. This initializes the consent store and makes consent state available to all child components.
-
-    ```tsx title="components/consent-manager/provider.tsx"
-    'use client';
-
-    import { type ReactNode } from 'react';
-    import {
-      ConsentManagerProvider,
-      ConsentBanner,
-      ConsentDialog,
-    } from '@c15t/nextjs';
-
-    export default function ConsentManagerClient({ children }: { children: ReactNode }) {
-      return (
-        <ConsentManagerProvider
-          options={{
-            mode: 'hosted',
-            backendURL: 'https://your-instance.c15t.dev',
-            consentCategories: ['necessary', 'measurement', 'marketing'],
-            // Shows banner during development. Remove for production.
-            overrides: { country: 'DE' },
-          }}
-        >
-          <ConsentBanner />
-          <ConsentDialog />
-          {children}
-        </ConsentManagerProvider>
-      );
-    }
-    ```
-
-    ```tsx title="components/consent-manager/index.tsx"
-    import type { ReactNode } from 'react';
-    import ConsentManagerProvider from './provider';
-
-    export function ConsentManager({ children }: { children: ReactNode }) {
-      return <ConsentManagerProvider>{children}</ConsentManagerProvider>;
-    }
-    ```
-
-    <Callout type="info">
-      Hosted mode is the recommended production setup because the backend resolves jurisdiction and policy, keeps durable consent records, and lets c15t recover from temporary network failures by re-syncing later.
-    </Callout>
-
-    <Callout type="warn">
-      Don't have a backend yet? You can use `mode: 'offline'` for local-only consent storage, but it gives up backend audit history, server-side consent awareness, and automatic jurisdiction detection. Review the [browser-only storage consequences](/docs/frameworks/next/concepts/client-modes#offline-mode) before choosing it for production.
-    </Callout>
-  </Step>
-
-  <Step>
-    ### Mount `ConsentManager` at the app root
-
-    Wrap your app tree with `ConsentManager` so all routes/components can access consent state.
-
-    ```tsx title="app/layout.tsx"
-    import { ConsentManager } from '@/components/consent-manager';
-
-    export default function RootLayout({ children }: { children: React.ReactNode }) {
-      return (
-        <html lang="en">
-          <body>
-            <ConsentManager>{children}</ConsentManager>
-          </body>
-        </html>
-      );
-    }
-    ```
-  </Step>
-
-  <Step>
-    ### Verify it works
-
-    Start your development server and confirm:
-
-    1. A **consent banner** appears at the bottom of the page
-    2. Clicking **"Customize"** opens a dialog with toggles for each consent category
-    3. After accepting or rejecting, the banner dismisses and your choice persists across page reloads
-  </Step>
-</Steps>
-
-<Callout type="info">
-  Want better performance and static-route support? See
-  [Optimization](/docs/frameworks/next/optimization) for rewrites, prefetching, and network tuning.
-  If you want server-side data prefetching, see [Server-Side Data
-  Fetching](/docs/frameworks/next/server-side).
-</Callout>
-
-## Optional: Add DevTools
-
-Install DevTools only if you want a runtime inspector while building and debugging:
-
-<PackageCommandTabs mode="install" command="@c15t/dev-tools" />
-
-Then add it inside your existing provider:
-
-```tsx title="components/consent-manager/provider.tsx"
-import { DevTools } from '@c15t/dev-tools/react';
-
-// ...
-
-<ConsentManagerProvider options={...}>
-  <ConsentBanner />
-  <ConsentDialog />
-  {process.env.NODE_ENV !== 'production' && <DevTools />}
-  {children}
-</ConsentManagerProvider>
+```sh title=".env.local"
+NEXT_PUBLIC_C15T_BACKEND_URL=https://example-inth.inth.app
 ```
 
-<Callout type="info">
-  Want to understand what's happening under the hood? See [Initialization
-  Flow](/docs/frameworks/next/concepts/initialization-flow) for the lifecycle and [Cookie
-  Management](/docs/frameworks/next/concepts/cookie-management) for script/cookie behavior and
-  revocation handling.
-</Callout>
+If your app already sets `NEXT_PUBLIC_INTH_PROJECT_URL` for other Inth SDKs, that works
+too. When both are set, `NEXT_PUBLIC_C15T_BACKEND_URL` wins.
 
-## Optional: AI Agents
+`https://example-inth.inth.app` is a demo project you can use to try the
+setup. Next.js inlines `NEXT_PUBLIC_` variables at build time, so the build,
+the server and the browser use the same URL, and changing the variable on a
+built app has no effect until you rebuild.
 
-Install c15t agent skills to let AI agents help with styling, i18n, scripts & other configuration.
+## Bundle the manifest during builds
 
-<PackageCommandTabs command="@c15t/cli skills" />
+<include src="../../shared/build-time-manifest.mdx" />
 
-See [AI Agents](/docs/ai-agents) for bundled package docs and agent skills.
+Wrap your Next.js config in `withConsentManifest`. An existing config object
+or function goes in as the first argument, unchanged:
+
+<include src="../../shared/examples/nextjs/quickstart-next-config.mdx" />
+
+`next build` and `next dev` fetch `${NEXT_PUBLIC_C15T_BACKEND_URL}/manifest`
+and write the policy to `node_modules/.cache/c15t/`, outside your source tree.
+`resolveConsent` reads it on its own, so you don't import it. `next start`
+serves the built snapshot and fetches no policy. There is nothing to keep out
+of Git.
+
+<include src="../../shared/build-time-manifest-notes.mdx" />
+
+## Add the consent config
+
+Create `c15t.config.ts` at the project root:
+
+<include src="../../shared/examples/nextjs/quickstart-config.mdx" />
+
+`withConsentManifest` finds this file, so `ConsentRoot` and `resolveConsent`
+read it without an import. Export the config as the file's default export.
+The file is bundled into the browser as well as the server, so it can hold
+`scripts` but must hold no secrets.
+
+The config sets no `mode`, so it uses `manifest()`: the server resolves each
+visitor from the bundled policy. [Consent modes](/docs/concepts/modes) lists
+the alternatives.
+
+PostHog waits for measurement consent here. Replace `phc_your_project_key`
+with your project key, or use the [integration](/docs/integrations/overview)
+your application needs. `cookieless_mode: 'never'` disables cookieless capture
+after rejection. Remove any existing PostHog loader, including `next/script`
+and tag-manager entries, so the integration loads once.
+
+## Resolve consent in the root layout
+
+Render `ConsentRoot` in the root layout and pass it `resolveConsent()` without
+awaiting it:
+
+<include src="../../shared/examples/nextjs/quickstart-layout.mdx" />
+
+The layout is a Server Component. `c15t/next` gives it `ConsentRoot`,
+`ConsentBanner`, `ConsentDialog` and `ConsentDialogLink` as client components,
+so you write no `'use client'` wrapper. `ConsentRoot` already wraps
+`ConsentProvider`, so don't mount both.
+
+Next.js renders the page without waiting for consent and sends the result
+later in the same response. Until the browser applies it, the banner stays
+hidden and optional categories stay denied. To send the banner in the first
+HTML instead, see
+[render the banner in the server HTML](/docs/frameworks/next/app-router#render-the-banner-in-the-server-html).
+
+## Check it works
+
+Start the production build with `next build` and `next start`, then open the
+site in a fresh browser session with DevTools open.
+
+1. Under an opt-in policy, the banner appears and the Network panel shows no
+   PostHog request.
+2. Click **Reject All**, then reload. The banner stays closed and PostHog does
+   not load.
+3. Open **Privacy settings** in the footer and turn on **Analytics** (the
+   `measurement` category). PostHog loads.
+4. Open **Privacy settings** again and turn **Analytics** off. The page
+   reloads and PostHog does not load again.
+5. The browser makes no `/init` request, and choices post to
+   `${backendURL}/subjects`.
+
+If the banner does not appear, see
+[why is there no banner](/docs/guides/troubleshooting#why-is-there-no-banner)
+and [Next.js troubleshooting](/docs/frameworks/next/troubleshooting).
+[Verify consent](/docs/guides/verify-consent) has the release checklist. A
+visible banner alone does not prove that analytics wait for consent.
+
+## Use another router or deployment
+
+| Your app | Guide |
+| --- | --- |
+| App Router with a Next.js server | [App Router](/docs/frameworks/next/app-router), the full version of this quickstart |
+| Pages Router with a Next.js server | [Pages Router](/docs/frameworks/next/pages-router) |
+| `output: 'export'`, with either router | [Static export](/docs/frameworks/next/static-export) |
+| Static, ISR or `'use cache'` pages, Cache Components, `ensureStatic`, or the banner in the first HTML | [Rendering and deployment](/docs/frameworks/next/rendering) |
+| The fewest files, with consent resolved in the browser | [Client-side initialization](/docs/frameworks/next/client-side) |
+
+`offline()` keeps policy in your code and choices in the browser, with no
+consent records. Not recommended for production environments. See
+[offline configuration](/docs/frameworks/next/data-fetching-reference#offline-configuration).
 
 ## Next steps
 
-<Cards className="not-prose grid gap-4 grid-cols-1 sm:grid-cols-2">
-  <Card variant="interactive" title="Optimization" description="Improve banner visibility and lower latency with rewrites, browser prefetch, and SSR tradeoffs." href="/docs/frameworks/next/optimization" />
-
-  <Card variant="interactive" title="Script Loader" description="Gate third-party scripts like Google Analytics and Meta Pixel behind consent." href="/docs/frameworks/next/script-loader" />
-
-  <Card variant="interactive" title="Styling" description="Customize colors, typography, spacing, and individual component slots." href="/docs/frameworks/next/styling/overview" />
-
-  <Card variant="interactive" title="Consent Categories" description="Understand the five consent categories and how to configure them." href="/docs/frameworks/next/concepts/consent-categories" />
-
-  <Card variant="interactive" title="Components" description="Explore the full set of pre-built consent UI components." href="/docs/frameworks/next/components/consent-banner" />
-
-  <Card variant="interactive" title="AI Agents" description="Help AI tools with bundled package docs and reusable c15t agent skills." href="/docs/ai-agents" />
-</Cards>
+- [App Router](/docs/frameworks/next/app-router): the awaited layout, the
+  consent route for static pages, and backend `/init` instead of the manifest.
+- [Scripts](/docs/frameworks/next/scripts): more vendors and how each loads
+  and revokes.
+- [Customize](/docs/frameworks/next/customize): theme, layout and copy.
+- [Runnable Next.js example](/docs/examples): this quickstart as an app you
+  can run.

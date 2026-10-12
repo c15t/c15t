@@ -1,3 +1,4 @@
+import { readStoredRecords } from '@c15t/core/modules/persistence';
 /**
  * E2E tests for uiSource tracking through the consent flow.
  *
@@ -6,32 +7,44 @@
  *
  * @packageDocumentation
  */
-
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { userEvent } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
-import { ConsentBanner } from '~/components/consent-banner';
-import { ConsentDialog } from '~/components/consent-dialog';
-import { ConsentWidget } from '~/components/consent-widget';
+import { userEvent } from 'vitest/browser';
+
 import {
-	ConsentManagerProvider,
-	clearConsentRuntimeCache,
-} from '~/providers/consent-manager-provider';
-import type { ConsentManagerOptions } from '~/types/consent-manager';
+	ComponentFixtureProvider as ConsentProvider,
+	DEFAULT_KEY_STORAGE,
+} from '~/__tests__/component-fixture-provider';
+import type { ComponentFixtureOptions as ConsentProviderOptions } from '~/__tests__/component-fixture-provider';
+import { policyFixture } from '~/__tests__/policy-fixture';
+import { ConsentDialog } from '~/components/panel';
+import { ConsentWidget } from '~/components/preferences';
+import { ConsentBanner } from '~/components/prompt';
+import { offline } from '~/transports/offline';
+
+const getDefined = <Value,>(
+	value: Value,
+	message = 'Expected value to be defined'
+): NonNullable<Value> => {
+	if (value === null || value === undefined) {
+		throw new Error(message);
+	}
+	return value;
+};
 
 // Mock localStorage
 const localStorageMock = (() => {
 	let store: Record<string, string> = {};
 	return {
-		getItem: (key: string) => store[key] || null,
-		setItem: (key: string, value: string) => {
-			store[key] = value.toString();
-		},
-		removeItem: (key: string) => {
-			delete store[key];
-		},
 		clear: () => {
 			store = {};
+		},
+		getItem: (key: string) => store[key] || null,
+		removeItem: (key: string) => {
+			Reflect.deleteProperty(store, key);
+		},
+		setItem: (key: string, value: string) => {
+			store[key] = value.toString();
 		},
 	};
 })();
@@ -40,8 +53,30 @@ Object.defineProperty(window, 'localStorage', {
 	value: localStorageMock,
 });
 
-const defaultOptions: ConsentManagerOptions = {
-	mode: 'offline',
+const defaultOptions: ConsentProviderOptions = {
+	consentCategories: [
+		'necessary',
+		'functionality',
+		'experience',
+		'marketing',
+		'measurement',
+	],
+	mode: offline(),
+	prefetch: policyFixture(undefined, {
+		categories: [
+			'necessary',
+			'functionality',
+			'experience',
+			'marketing',
+			'measurement',
+		],
+		id: 'ui-source-tracking-test',
+		model: 'opt-in',
+		prompt: 'choice',
+		scopeMode: 'permissive',
+	}),
+	// These tests seed or read records under the default key.
+	storageConfig: DEFAULT_KEY_STORAGE,
 };
 
 describe('UI Source Tracking E2E Tests', () => {
@@ -55,15 +90,14 @@ describe('UI Source Tracking E2E Tests', () => {
 			}
 		}
 		vi.clearAllMocks();
-		clearConsentRuntimeCache();
 	});
 
 	describe('Banner uiSource', () => {
 		test('should render banner and save consent via accept button', async () => {
 			render(
-				<ConsentManagerProvider options={defaultOptions}>
+				<ConsentProvider options={defaultOptions}>
 					<ConsentBanner />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await vi.waitFor(
@@ -79,15 +113,16 @@ describe('UI Source Tracking E2E Tests', () => {
 			const acceptButton = document.querySelector(
 				'[data-testid="consent-banner-accept-button"]'
 			);
-			await userEvent.click(acceptButton!);
+			await userEvent.click(getDefined(acceptButton));
 
 			// Verify consent is saved
 			await vi.waitFor(
 				() => {
-					const stored = window.localStorage.getItem('c15t');
+					const stored = readStoredRecords(undefined, Date.now()).records
+						.choice;
 					expect(stored).toBeTruthy();
-					const consent = JSON.parse(stored!);
-					expect(consent.consents.necessary).toBe(true);
+					const consent = getDefined(stored);
+					expect(consent.categories.necessary).toBeUndefined();
 				},
 				{ timeout: 3000 }
 			);
@@ -95,9 +130,9 @@ describe('UI Source Tracking E2E Tests', () => {
 
 		test('should render banner with custom uiSource prop', async () => {
 			render(
-				<ConsentManagerProvider options={defaultOptions}>
+				<ConsentProvider options={defaultOptions}>
 					<ConsentBanner uiSource="custom_banner" />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await vi.waitFor(
@@ -115,9 +150,9 @@ describe('UI Source Tracking E2E Tests', () => {
 	describe('Dialog uiSource', () => {
 		test('should render dialog and save consent via accept button', async () => {
 			render(
-				<ConsentManagerProvider options={defaultOptions}>
+				<ConsentProvider options={defaultOptions}>
 					<ConsentDialog open={true} />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await vi.waitFor(
@@ -134,24 +169,26 @@ describe('UI Source Tracking E2E Tests', () => {
 			const acceptButton = document.querySelector(
 				'[data-testid="consent-widget-footer-accept-all-button"]'
 			);
-			if (acceptButton) {
-				await userEvent.click(acceptButton);
+			await userEvent.click(getDefined(acceptButton));
 
-				await vi.waitFor(
-					() => {
-						const stored = window.localStorage.getItem('c15t');
-						expect(stored).toBeTruthy();
-					},
-					{ timeout: 3000 }
-				);
-			}
+			await vi.waitFor(
+				() => {
+					const stored = readStoredRecords(undefined, Date.now()).records
+						.choice;
+					expect(stored?.categories.marketing?.value).toBe(true);
+				},
+				{ timeout: 3000 }
+			);
 		});
 
 		test('should render dialog with custom uiSource prop', async () => {
 			render(
-				<ConsentManagerProvider options={defaultOptions}>
-					<ConsentDialog open={true} uiSource="custom_dialog" />
-				</ConsentManagerProvider>
+				<ConsentProvider options={defaultOptions}>
+					<ConsentDialog
+						open={true}
+						uiSource="custom_dialog"
+					/>
+				</ConsentProvider>
 			);
 
 			await vi.waitFor(
@@ -169,9 +206,9 @@ describe('UI Source Tracking E2E Tests', () => {
 	describe('Widget uiSource', () => {
 		test('should render widget with default uiSource', async () => {
 			render(
-				<ConsentManagerProvider options={defaultOptions}>
+				<ConsentProvider options={defaultOptions}>
 					<ConsentWidget />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await vi.waitFor(
@@ -189,10 +226,10 @@ describe('UI Source Tracking E2E Tests', () => {
 	describe('Banner to Dialog flow preserves correct uiSource', () => {
 		test('should transition from banner to dialog and save from dialog', async () => {
 			render(
-				<ConsentManagerProvider options={defaultOptions}>
+				<ConsentProvider options={defaultOptions}>
 					<ConsentBanner />
 					<ConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			// Wait for banner
@@ -210,7 +247,7 @@ describe('UI Source Tracking E2E Tests', () => {
 			const customizeButton = document.querySelector(
 				'[data-testid="consent-banner-customize-button"]'
 			);
-			await userEvent.click(customizeButton!);
+			await userEvent.click(getDefined(customizeButton));
 
 			// Wait for dialog
 			await vi.waitFor(
@@ -227,15 +264,16 @@ describe('UI Source Tracking E2E Tests', () => {
 			const saveButton = document.querySelector(
 				'[data-testid="consent-widget-footer-save-button"]'
 			);
-			await userEvent.click(saveButton!);
+			await userEvent.click(getDefined(saveButton));
 
 			// Verify consent was saved
 			await vi.waitFor(
 				() => {
-					const stored = window.localStorage.getItem('c15t');
+					const stored = readStoredRecords(undefined, Date.now()).records
+						.choice;
 					expect(stored).toBeTruthy();
-					const consent = JSON.parse(stored!);
-					expect(consent.consents).toBeTruthy();
+					const consent = getDefined(stored);
+					expect(consent.categories).toBeTruthy();
 				},
 				{ timeout: 3000 }
 			);

@@ -11,11 +11,14 @@ type TranslationSection =
 	| 'cookieBanner'
 	| 'consentManagerDialog'
 	| 'consentTypes'
-	| 'frame'
+	| 'consentGate'
 	| 'legalLinks'
-	| 'iab';
+	| 'iab'
+	| 'rights';
 
-function isPlainObject(value: unknown): value is Record<string, unknown> {
+const isPlainObject = function isPlainObject(
+	value: unknown
+): value is Record<string, unknown> {
 	if (!value) {
 		return false;
 	}
@@ -29,7 +32,7 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
 	}
 
 	return true;
-}
+};
 
 function deepMergeSection<K extends TranslationSection>(
 	baseSection: Translations[K] | undefined,
@@ -77,25 +80,96 @@ function deepMergeSection<TSection extends Record<string, unknown>>(
 	return result as TSection;
 }
 
+let warnedLegacyFrame = false;
+
+// Typed here so this package needs no Node types. TypeScript erases it,
+// leaving the expression bundlers look for.
+declare const process: { env: { NODE_ENV?: string } };
+
+/**
+ * Whether this is a production build. Bundlers replace the literal
+ * `process.env.NODE_ENV`, so the warning stays out of production browser
+ * builds; `globalThis.process` would hide it from that replacement. Without
+ * a bundler or `process`, the read throws and counts as development.
+ */
+const isProductionBuild = function isProductionBuild(): boolean {
+	try {
+		return process.env.NODE_ENV === 'production';
+	} catch {
+		return false;
+	}
+};
+
+const warnLegacyFrameOnce = function warnLegacyFrameOnce(): void {
+	if (warnedLegacyFrame || isProductionBuild()) {
+		return;
+	}
+	warnedLegacyFrame = true;
+	console.warn(
+		'c15t: the `frame` translations were renamed to `consentGate`. c15t reads `frame` as `consentGate` for now; rename the key in your translations.'
+	);
+};
+
+/**
+ * Read `frame`, the name of the `consentGate` section before the rename, as
+ * `consentGate`.
+ *
+ * Stored copy, custom translations and responses from older backends can
+ * still carry `frame`. Its keys fill whatever `consentGate` does not set,
+ * and the `frame` key is dropped. Warns once outside production when it
+ * finds one.
+ *
+ * @param translations - Translations that may use the old key.
+ * @returns The translations with `frame` folded into `consentGate`, or the
+ * input unchanged when it has no `frame` key.
+ * @example
+ * ```ts
+ * migrateLegacyTranslationKeys({ frame: { title: 'Blocked' } });
+ * // { consentGate: { title: 'Blocked' } }
+ * ```
+ */
+export const migrateLegacyTranslationKeys =
+	function migrateLegacyTranslationKeys<
+		TranslationsType extends Partial<Translations>,
+	>(translations: TranslationsType): TranslationsType {
+		if (!isPlainObject(translations) || !Object.hasOwn(translations, 'frame')) {
+			return translations;
+		}
+		const { frame, ...rest } = translations;
+		if (!isPlainObject(frame)) {
+			return rest as TranslationsType;
+		}
+		warnLegacyFrameOnce();
+		return {
+			...rest,
+			consentGate: { ...frame, ...rest.consentGate },
+		} as TranslationsType;
+	};
+
 /**
  * Deep merges translation objects
  *
  * This performs a deep merge across all translation sections so that
  * nested overrides (for example, only overriding the title of a consent
- * type) still preserve default values for other keys.
+ * type) still preserve default values for other keys. Either side may use
+ * the old `frame` key for `consentGate`; see
+ * {@link migrateLegacyTranslationKeys}.
  */
-export function deepMergeTranslations(
-	base: Translations,
-	override: Partial<Translations>
+export const deepMergeTranslations = function deepMergeTranslations(
+	legacyBase: Translations,
+	legacyOverride: Partial<Translations>
 ): Translations {
+	const base = migrateLegacyTranslationKeys(legacyBase);
+	const override = migrateLegacyTranslationKeys(legacyOverride);
 	const sections: TranslationSection[] = [
 		'cookieBanner',
 		'consentManagerDialog',
 		'common',
 		'consentTypes',
-		'frame',
+		'consentGate',
 		'legalLinks',
 		'iab',
+		'rights',
 	];
 
 	const result: Partial<Translations> = {};
@@ -109,10 +183,20 @@ export function deepMergeTranslations(
 		}
 	}
 
+	// Older bundles used dismiss for notice acknowledgement. Keep their label
+	// when adding the new key from the base language.
+	if (
+		override.common?.acknowledge === undefined &&
+		override.common?.dismiss !== undefined &&
+		result.common
+	) {
+		result.common.acknowledge = override.common.dismiss;
+	}
+
 	// All required sections are present on the base translations object,
 	// so after merging we can safely treat the result as complete.
 	return result as Translations;
-}
+};
 
 /**
  * Parses an Accept-Language header into a list of normalized language codes.
@@ -120,7 +204,7 @@ export function deepMergeTranslations(
  * The result is ordered by client preference. Each entry is the primary
  * language subtag in lowercase (e.g. "de" from "de-DE").
  */
-export function parseAcceptLanguage(
+export const parseAcceptLanguage = function parseAcceptLanguage(
 	header: string | null | undefined
 ): string[] {
 	if (!header) {
@@ -152,8 +236,8 @@ export function parseAcceptLanguage(
 
 			return {
 				code: normalizedCode.split('-')[0] ?? normalizedCode,
-				quality,
 				index,
+				quality,
 			};
 		})
 		.filter((candidate): candidate is NonNullable<typeof candidate> =>
@@ -178,7 +262,7 @@ export function parseAcceptLanguage(
 	}
 
 	return normalized;
-}
+};
 
 interface SelectLanguageOptions {
 	header?: string | null;
@@ -193,7 +277,7 @@ interface SelectLanguageOptions {
  * - Matches on primary language code (e.g. "de" for "de-DE").
  * - Falls back to the provided fallback or "en".
  */
-export function selectLanguage(
+export const selectLanguage = function selectLanguage(
 	available: string[],
 	options?: SelectLanguageOptions
 ): string {
@@ -212,7 +296,7 @@ export function selectLanguage(
 	}
 
 	return fallback;
-}
+};
 
 /**
  * Normalizes legacy translation config and v2 i18n config into a canonical shape.
@@ -221,7 +305,7 @@ export function selectLanguage(
  * - `i18n.*` values take priority when present
  * - Legacy translation config is used as fallback
  */
-export function normalizeI18nConfig(
+export const normalizeI18nConfig = function normalizeI18nConfig(
 	config?: TranslationInputConfig
 ): I18nConfig {
 	const detectBrowserLanguageFromLegacy =
@@ -230,26 +314,28 @@ export function normalizeI18nConfig(
 			: !config.disableAutoLanguageSwitch;
 
 	return {
-		messages: config?.i18n?.messages ?? config?.translations ?? {},
-		locale: config?.i18n?.locale ?? config?.defaultLanguage,
 		detectBrowserLanguage:
 			config?.i18n?.detectBrowserLanguage ?? detectBrowserLanguageFromLegacy,
+		locale: config?.i18n?.locale ?? config?.defaultLanguage,
+		messages: config?.i18n?.messages ?? config?.translations ?? {},
 	};
-}
+};
 
 /**
  * Maps canonical i18n config back to the legacy translation config shape.
  */
-export function toTranslationConfig(config: I18nConfig): TranslationConfig {
+export const toTranslationConfig = function toTranslationConfig(
+	config: I18nConfig
+): TranslationConfig {
 	return {
-		translations: config.messages,
 		defaultLanguage: config.locale,
 		disableAutoLanguageSwitch:
 			config.detectBrowserLanguage === undefined
 				? undefined
 				: !config.detectBrowserLanguage,
+		translations: config.messages,
 	};
-}
+};
 
 /**
  * Resolves legacy and v2 i18n inputs into a normalized legacy translation config.
@@ -257,7 +343,7 @@ export function toTranslationConfig(config: I18nConfig): TranslationConfig {
  * @param legacyConfig Legacy translation input.
  * @param i18nConfig Preferred v2 i18n input.
  */
-export function resolveTranslationInput(
+export const resolveTranslationInput = function resolveTranslationInput(
 	legacyConfig?: Partial<TranslationConfig>,
 	i18nConfig?: Partial<I18nConfig>
 ): TranslationConfig | undefined {
@@ -265,18 +351,18 @@ export function resolveTranslationInput(
 		return undefined;
 	}
 
-	return toTranslationConfig(
-		normalizeI18nConfig({
-			...(legacyConfig ?? {}),
-			...(i18nConfig ? { i18n: i18nConfig } : {}),
-		})
-	);
-}
+	const config: TranslationInputConfig = { ...(legacyConfig ?? {}) };
+	if (i18nConfig) {
+		config.i18n = i18nConfig;
+	}
+
+	return toTranslationConfig(normalizeI18nConfig(config));
+};
 
 /**
  * Merges custom translations with defaults
  */
-export function mergeTranslationConfigs(
+export const mergeTranslationConfigs = function mergeTranslationConfigs(
 	defaultConfig: TranslationInputConfig,
 	customConfig?: TranslationInputConfig
 ): TranslationConfig {
@@ -312,18 +398,18 @@ export function mergeTranslationConfigs(
 	}
 
 	return toTranslationConfig({
-		messages: translations as Record<string, Partial<Translations>>,
-		locale: normalizedCustom?.locale ?? normalizedDefault.locale,
 		detectBrowserLanguage:
 			normalizedCustom?.detectBrowserLanguage ??
 			normalizedDefault.detectBrowserLanguage,
+		locale: normalizedCustom?.locale ?? normalizedDefault.locale,
+		messages: translations as Record<string, Partial<Translations>>,
 	});
-}
+};
 
 /**
  * Detects browser language and returns appropriate default language
  */
-export function detectBrowserLanguage(
+export const detectBrowserLanguage = function detectBrowserLanguage(
 	translations: Record<string, unknown>,
 	defaultLanguage: string | undefined,
 	disableAutoSwitch = false
@@ -340,12 +426,12 @@ export function detectBrowserLanguage(
 	return browserLang && browserLang in translations
 		? browserLang
 		: defaultLanguage || 'en';
-}
+};
 
 /**
  * Prepares the translation configuration by merging defaults and detecting language
  */
-export function prepareTranslationConfig(
+export const prepareTranslationConfig = function prepareTranslationConfig(
 	defaultConfig: TranslationInputConfig,
 	customConfig?: TranslationInputConfig
 ): TranslationConfig {
@@ -357,4 +443,4 @@ export function prepareTranslationConfig(
 		!detectBrowser
 	);
 	return { ...mergedConfig, defaultLanguage };
-}
+};

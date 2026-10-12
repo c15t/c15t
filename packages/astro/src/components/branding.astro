@@ -1,0 +1,77 @@
+---
+/**
+ * The "Secured by c15t" tag.
+ *
+ * Server-rendered with the same markup, classes and `data-testid` as the
+ * Svelte and React banners, so the shared stylesheet positions it
+ * identically and cross-framework tests compare like with like.
+ *
+ * Rendered by `<ConsentBanner />`; a site turns it off with
+ * `<ConsentBanner hideBranding />`. Which brand it shows comes from the
+ * consent snapshot, not from a prop. The browser-rendered banner builds the
+ * same markup from the same model.
+ */
+import type { ConsentSnapshot } from '@c15t/core';
+import type { AllThemeKeys, Theme } from '@c15t/ui/theme';
+import {
+	C15T_MARK_SVG,
+	INTH_LOGO_SVG,
+	promptClassNames,
+	resolveBrandingModel,
+} from '@c15t/astro/server';
+import type { BrandingVariant } from '@c15t/astro/server';
+
+interface Props {
+	/** Render nothing. */
+	hide?: boolean;
+	/** Ship the DOM without the bundled stylesheet's class names. */
+	noStyle?: boolean;
+	/** Which surface the tag belongs to. */
+	variant?: BrandingVariant;
+	/** The brand the server resolved. */
+	branding: ConsentSnapshot['branding'];
+	/** "Secured by", already resolved from the translation bundle. */
+	securedBy: string;
+	/** The host to attribute the referral to. */
+	hostname?: string;
+	/** Test id, so each surface keeps its own. */
+	'data-testid'?: string;
+	/** The integration's `theme`, for the tag's `slots` entry. */
+	theme?: Theme;
+	/** The tag's `theme.slots` key, such as `consentBannerTag`. */
+	themeSlot?: AllThemeKeys;
+}
+
+const { securedBy, 'data-testid': testId, ...input } = Astro.props;
+const model = resolveBrandingModel({
+	...input,
+	styles: promptClassNames.branding,
+});
+---
+
+{
+	model.show && (
+		<a
+			class={model.classes.root}
+			data-branding={model.brand}
+			data-testid={testId}
+			data-variant={model.variant}
+			href={model.href}
+			style={model.style}
+		>
+			<span class={model.classes.content} data-slot="tag-content">
+				<span class={model.classes.copy}>
+					<span class={model.classes.text}>{securedBy}</span>
+				</span>
+				{model.brand === 'inth' ? (
+					<span class={model.classes.wordmark} dir="ltr" set:html={INTH_LOGO_SVG} />
+				) : (
+					<span class={model.classes.wordmark} dir="ltr">
+						<span class={model.classes.mark} set:html={C15T_MARK_SVG} />
+						<span class={model.classes.label}>c15t</span>
+					</span>
+				)}
+			</span>
+		</a>
+	)
+}

@@ -1,0 +1,59 @@
+---
+title: "@c15t/browser options"
+description: Every option init() and createConsentClient() from @c15t/browser accept in a bundled JavaScript app, from the mode to scripts, blockers, callbacks, storage, presentation and the stock UI.
+group: frameworks
+---
+
+## Pass options to init
+
+`init()` and `createConsentClient()` from `@c15t/browser`,
+`@c15t/browser/headless` and `@c15t/browser/iab` take one options object:
+
+<include src="../../../shared/examples/javascript/init.mdx" />
+
+`mode` is required: a factory from `manifest()`, `hosted()`, `offline()` or
+`custom()`, imported from the same entry. Every other option is optional. The
+options are read when the client is created. To change
+`ui`, call `mountUI()` again; to change anything else, dispose the client and
+create a new one.
+
+The mode-specific `@c15t/browser/hosted` and `@c15t/browser/offline` entries
+accept the same UI, gating and lifecycle options. Their connection options
+are restricted to their mode. The hosted entry requires a backend URL or a
+hosted factory and rejects preset names; the offline entry rejects backend
+and manifest options. See [mode-specific configuration](/docs/frameworks/javascript/api/browser#choose-a-bundle-for-one-mode).
+
+<import src="../../../shared/browser/client-options.mdx#connection" />
+
+[Transports](/docs/frameworks/javascript/transports) compares the modes and
+shows each with an example.
+
+<import src="../../../shared/browser/client-options.mdx#gating" />
+
+Each has a guide: [scripts](/docs/frameworks/javascript/scripts),
+[iframe blocker](/docs/frameworks/javascript/modules/iframe-blocker),
+[network blocker](/docs/frameworks/javascript/modules/network-blocker),
+[clear on revocation](/docs/frameworks/javascript/clear-on-revocation)
+and [callbacks](/docs/frameworks/javascript/callbacks).
+
+<import src="../../../shared/browser/client-options.mdx#presentation" />
+
+<import src="../../../shared/browser/client-options.mdx#ui" />
+
+<import src="../../../shared/browser/client-options.mdx#banner" />
+
+<import src="../../../shared/browser/client-options.mdx#dialog" />
+
+<import src="../../../shared/browser/client-options.mdx#trigger" />
+
+[Customize](/docs/frameworks/javascript/customize) shows these options at
+work.
+
+## Options the client passes to the runtime
+
+`@c15t/browser` builds a [consent runtime](/docs/frameworks/javascript/api/runtime)
+for you and passes every option in the tables above through, including
+`nonce`, `persistence`, `scriptLoader` and `vendors`. Two runtime options have
+no client equivalent. The `@c15t/browser/iab` entry supplies `createIAB`, and
+the client turns `windowDebug` off so the runtime does not replace
+`window.c15t`.

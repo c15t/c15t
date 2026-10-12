@@ -1,0 +1,2 @@
+/* App CSS for IAB builds. IAB components render their own consent styles. */
+@import './app.css';

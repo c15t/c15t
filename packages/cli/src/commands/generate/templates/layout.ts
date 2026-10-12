@@ -1,37 +1,35 @@
+/* oxlint-disable func-style, no-use-before-define -- Function hoisting keeps the JSX traversal before its wrapping helper. */
 /**
  * Templates module for generating configuration files
  * This module now serves as a wrapper that routes to the appropriate implementation
  * based on the detected project structure (App Directory vs Pages Directory)
  */
 
-import fs from 'node:fs/promises';
-import path from 'node:path';
-import {
-	Project,
-	type ReturnStatement,
-	type SourceFile,
-	SyntaxKind,
-} from 'ts-morph';
-import type { AvailablePackages } from '~/context/framework-detection';
+import { Project } from 'ts-morph';
+import type { SourceFile } from 'ts-morph';
+
+import type {
+	AvailablePackages,
+	DevelopmentEnvironment,
+} from '~/context/framework-detection';
+
 import type { StorageMode } from '../../../constants';
 import type { ExpandedTheme, UIStyle } from '../prompts';
 import { updateNextLayout } from './next';
-import { generateConsentComponent } from './shared/components';
-import { getComponentsDirectory, getSourceDirectory } from './shared/directory';
-import { generateExpandedThemeTemplate } from './shared/expanded-components';
-import { REACT_CONFIG } from './shared/framework-config';
+import { createConsentManagerComponent } from './shared/create-component-files';
+import { getSourceDirectory } from './shared/directory';
+import { resolvePlannedPath, writeFile } from './shared/file-plan';
+import { getLayoutExpressions } from './shared/layout-target';
 import {
 	addConsentManagerImport,
 	hasConsentManagerImport,
 } from './shared/module-specifier';
-import { generateOptionsText } from './shared/options';
-import { generateSimpleWrapperComponent } from './shared/server-components';
 
 interface UpdateReactLayoutOptions {
+	developmentEnvironment?: DevelopmentEnvironment;
 	projectRoot: string;
 	mode: string;
 	backendURL?: string;
-	useEnvFile?: boolean;
 	pkg: AvailablePackages;
 	proxyNextjs?: boolean;
 	enableSSR?: boolean;
@@ -56,64 +54,11 @@ interface ComponentFilePaths {
  * @throws {Error} When JSX cannot be parsed or updated
  */
 function updateGenericReactJsx(layoutFile: SourceFile): boolean {
-	// Find the main function component (could be function declaration or arrow function)
-	const functionDeclarations = layoutFile.getFunctions();
-	const variableDeclarations = layoutFile.getVariableDeclarations();
-
-	// Look for return statements in function declarations
-	for (const func of functionDeclarations) {
-		const returnStatement = func.getDescendantsOfKind(
-			SyntaxKind.ReturnStatement
-		)[0];
-		if (returnStatement) {
-			return wrapReturnStatementWithConsentManager(returnStatement);
-		}
+	for (const expression of getLayoutExpressions(layoutFile).reverse()) {
+		expression.replaceWithText(
+			`(<ConsentManager>{${expression.getText()}}</ConsentManager>)`
+		);
 	}
-
-	// Look for return statements in arrow functions
-	for (const varDecl of variableDeclarations) {
-		const initializer = varDecl.getInitializer();
-		if (initializer) {
-			const returnStatement = initializer.getDescendantsOfKind(
-				SyntaxKind.ReturnStatement
-			)[0];
-			if (returnStatement) {
-				return wrapReturnStatementWithConsentManager(returnStatement);
-			}
-		}
-	}
-
-	return false;
-}
-
-/**
- * Wraps a return statement's JSX with ConsentManager component
- *
- * @param returnStatement - The return statement to wrap
- * @returns True if successfully wrapped, false otherwise
- */
-function wrapReturnStatementWithConsentManager(
-	returnStatement: ReturnStatement
-): boolean {
-	const expression = returnStatement.getExpression();
-	if (!expression) {
-		return false;
-	}
-
-	// Unwrap parenthesized expression if present: return (...) -> ...
-	let originalJsx = expression.getText();
-	if (originalJsx.startsWith('(') && originalJsx.endsWith(')')) {
-		originalJsx = originalJsx.slice(1, -1).trim();
-	}
-
-	// Wrap the JSX with ConsentManager
-	const newJsx = `(
-		<ConsentManager>
-			${originalJsx}
-		</ConsentManager>
-	)`;
-
-	returnStatement.replaceWithText(`return ${newJsx}`);
 	return true;
 }
 
@@ -124,7 +69,6 @@ function wrapReturnStatementWithConsentManager(
  * @param sourceDir - Source directory path (either 'src' or '')
  * @param mode - Storage mode for consent management
  * @param backendURL - Backend URL for hosted/self-hosted modes
- * @param useEnvFile - Whether to use environment variables
  * @param selectedScripts - Selected scripts to include
  * @param enableDevTools - Whether to add DevTools component
  * @param expandedTheme - Theme preset selection
@@ -135,79 +79,9 @@ function wrapReturnStatementWithConsentManager(
  * @remarks
  * Creates in components/consent-manager/:
  * - index.tsx - Simple wrapper that imports and renders provider
- * - provider.tsx - Client provider with ConsentManagerProvider, Banner, Dialog
+ * - provider.tsx - Client provider with ConsentProvider, Banner, and Dialog
  * - theme.ts - (optional) Generated when user selects a custom theme
  */
-async function createConsentManagerComponent(
-	projectRoot: string,
-	sourceDir: string,
-	mode: StorageMode,
-	backendURL?: string,
-	useEnvFile?: boolean,
-	selectedScripts?: string[],
-	enableDevTools?: boolean,
-	expandedTheme?: ExpandedTheme
-): Promise<ComponentFilePaths> {
-	const hasTheme = expandedTheme && expandedTheme !== 'none';
-
-	// Detect or create components directory
-	const componentsDir = await getComponentsDirectory(projectRoot, sourceDir);
-	const consentManagerDirPath = path.join(
-		projectRoot,
-		componentsDir,
-		'consent-manager'
-	);
-
-	// Generate component file content
-	const optionsText = generateOptionsText(
-		mode,
-		backendURL,
-		useEnvFile,
-		undefined,
-		true
-	);
-	const providerContent = generateConsentComponent({
-		importSource: '@c15t/react',
-		optionsText,
-		selectedScripts,
-		enableDevTools,
-		useClientDirective: true,
-		defaultExport: true,
-		includeTheme: Boolean(hasTheme),
-		includeOverrides: true,
-		docsSlug: 'react',
-	});
-	const indexContent = generateSimpleWrapperComponent('React', 'react');
-
-	// Define file paths
-	const indexPath = path.join(consentManagerDirPath, 'index.tsx');
-	const providerPath = path.join(consentManagerDirPath, 'provider.tsx');
-
-	// Create directory and write files
-	await fs.mkdir(consentManagerDirPath, { recursive: true });
-	const writePromises: Promise<void>[] = [
-		fs.writeFile(indexPath, indexContent, 'utf-8'),
-		fs.writeFile(providerPath, providerContent, 'utf-8'),
-	];
-
-	// Generate theme file when a theme is selected
-	if (hasTheme) {
-		const themeContent = generateExpandedThemeTemplate(
-			expandedTheme,
-			REACT_CONFIG
-		);
-		const themePath = path.join(consentManagerDirPath, 'theme.ts');
-		writePromises.push(fs.writeFile(themePath, themeContent, 'utf-8'));
-	}
-
-	await Promise.all(writePromises);
-
-	return {
-		consentManager: indexPath,
-		consentManagerDir: consentManagerDirPath,
-	};
-}
-
 /**
  * Fallback function for non-Next.js React projects
  * Handles generic React layout updates for projects that don't use Next.js structure
@@ -218,11 +92,11 @@ async function createConsentManagerComponent(
  * @throws {Error} When layout file cannot be parsed or updated
  */
 async function updateGenericReactLayout({
+	developmentEnvironment,
+	uiStyle,
 	projectRoot,
 	mode,
 	backendURL,
-	useEnvFile,
-	proxyNextjs,
 	selectedScripts,
 	enableDevTools,
 	expandedTheme,
@@ -252,10 +126,12 @@ async function updateGenericReactLayout({
 	let layoutFile: SourceFile | undefined;
 
 	for (const pattern of layoutPatterns) {
+		// oxlint-disable-next-line no-await-in-loop -- Validate each candidate before the parser reads it.
+		await resolvePlannedPath(`${projectRoot}/${pattern}`);
 		try {
 			const files = project.addSourceFilesAtPaths(`${projectRoot}/${pattern}`);
 			if (files.length > 0) {
-				layoutFile = files[0];
+				[layoutFile] = files;
 				break;
 			}
 		} catch {
@@ -265,9 +141,9 @@ async function updateGenericReactLayout({
 
 	if (!layoutFile) {
 		return {
-			updated: false,
-			filePath: null,
 			alreadyModified: false,
+			filePath: null,
+			updated: false,
 		};
 	}
 
@@ -277,23 +153,25 @@ async function updateGenericReactLayout({
 	// Check if ConsentManager is already imported
 	if (hasConsentManagerImport(layoutFile)) {
 		return {
-			updated: false,
-			filePath: layoutFilePath,
 			alreadyModified: true,
+			filePath: layoutFilePath,
+			updated: false,
 		};
 	}
 
 	try {
+		getLayoutExpressions(layoutFile);
 		// Create consent manager component file
 		const componentFiles = await createConsentManagerComponent(
 			projectRoot,
 			sourceDir,
 			mode as StorageMode,
 			backendURL,
-			useEnvFile,
 			selectedScripts,
 			enableDevTools,
-			expandedTheme
+			expandedTheme,
+			developmentEnvironment,
+			uiStyle
 		);
 
 		// Add import for ConsentManager with correct relative path
@@ -303,23 +181,24 @@ async function updateGenericReactLayout({
 		const updated = updateGenericReactJsx(layoutFile);
 
 		if (updated) {
-			await layoutFile.save();
+			await writeFile(layoutFilePath, layoutFile.getFullText(), 'utf-8');
 			return {
-				updated: true,
-				filePath: layoutFilePath,
 				alreadyModified: false,
 				componentFiles,
+				filePath: layoutFilePath,
+				updated: true,
 			};
 		}
 
 		return {
-			updated: false,
-			filePath: layoutFilePath,
 			alreadyModified: false,
+			filePath: layoutFilePath,
+			updated: false,
 		};
 	} catch (error) {
 		throw new Error(
-			`Failed to update generic React layout: ${error instanceof Error ? error.message : String(error)}`
+			`Failed to update generic React layout: ${error instanceof Error ? error.message : String(error)}`,
+			{ cause: error }
 		);
 	}
 }
@@ -333,16 +212,16 @@ export async function updateReactLayout(
 	componentFiles?: ComponentFilePaths;
 }> {
 	// Check package type first to determine which implementation to use
-	if (options.pkg === '@c15t/nextjs') {
+	if (options.pkg === 'c15t/next') {
 		const nextResult = await updateNextLayout(options);
 
 		if (nextResult.structureType) {
 			// Successfully handled by Next.js implementation
 			return {
-				updated: nextResult.updated,
-				filePath: nextResult.filePath,
 				alreadyModified: nextResult.alreadyModified,
 				componentFiles: nextResult.componentFiles,
+				filePath: nextResult.filePath,
+				updated: nextResult.updated,
 			};
 		}
 	}

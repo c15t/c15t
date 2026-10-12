@@ -1,0 +1,308 @@
+# CI validation
+
+CI groups checks by the behavior they protect. Adding another example or
+benchmark should reuse an existing group unless it proves a different contract.
+
+| Group | Owns | Does not need another copy in |
+| --- | --- | --- |
+| Repository and docs | Lint, format, selectors, tooling contracts, generated docs | Package runtime builds |
+| Package behavior and types | Kernel/storage/policy logic, adapter components, public types, test fixture types, external observers of packed exports, benchmark helper units | Every example journey |
+| Database behavior | SQLite, PGlite, real Postgres/MySQL, migrations and audit contracts | Browser acceptance |
+| Example acceptance | Production setup, vendor and iframe gating, revocation, navigation and outage recovery | Each benchmark timing loop |
+| Starter smoke tests | Each `examples/` starter builds for production, shows the banner (in the first HTML when server-rendered), keeps Accept across a reload, and opens the dialog from Privacy settings | Example acceptance journeys |
+| Next compatibility | Packed exports, Next 15/16, App/Pages, Cache Components, static export, first HTML and request/cache contracts | A second version matrix |
+| Framework parity | DOM, accessibility, styles, geometry, live pixel comparisons and Storybook interactions | Example screenshot copies |
+| SSR journeys | Next/Nuxt/SvelteKit headers, language, GPC, stored choices, hydration and Nuxt route contracts | Separate standalone E2E runner |
+| CSS compatibility | Tailwind 3 important overrides, Tailwind 4 layers, plain CSS, the Tailwind 3 and 4 framework matrix | Runtime performance suites |
+| Consumer bundles | Initial/deferred JS, CSS, compressed sizes, import boundaries and tarballs | Per-package Rsdoctor comments |
+| Runtime comparisons | Public operation costs, policy resolution, script lifecycle; full browser metrics in separate v3 runs and full validation | Routine microbench runs |
+| Mobile SDK | Swift and Kotlin kernel builds and tests, both Android assemblies, the binding's autolinking as a host app resolves it, the mobile JS boundary, mobile budgets and their required-row contract | Example app builds |
+| Mobile device builds (advisory) | Expo config-plugin resolution, CocoaPods resolution and the two example apps built for iOS and Android | A second native unit-test run |
+
+## Selection and local commands
+
+### Native frontend CLI commands
+
+The CLI has a separate scriptc 0.2.0 integration suite. Install
+`@scriptc/compiler@0.2.0` in an external tool directory, then point the suite at
+that package's directory:
+
+```sh
+bun turbo run build --filter=@c15t/cli
+SCRIPTC_COMPILER_ROOT=/path/to/tools/node_modules/@scriptc/compiler bun run --cwd packages/cli test:native
+```
+
+The suite packs the CLI, vendors its published generation and frontend sources
+unchanged, and compiles generation and frontend hosts with `dynamic: false`.
+It compares native output with the packed Node entry points for all 11
+frameworks in hosted and offline modes, generation defaults, project list/select,
+and account status. It also checks invalid arguments and unavailable backends. It runs separately from normal
+unit tests because it needs a native compiler toolchain. The compiler API also
+allows verification when npm's scriptc 0.2.0 platform CLI package is unavailable.
+
+### Selected repository checks
+
+```sh
+CI_DIFF_BASE=origin/canary bun scripts/ci-plan.ts
+bun scripts/ci-plan.ts --full
+bun scripts/ci-run.ts build
+bun scripts/ci-run.ts types
+bun scripts/ci-run.ts testTypes
+bun scripts/ci-run.ts tests
+bun turbo run test --filter=@c15t/consent-observers
+CI_INTEGRATION=examples CI_TARGETS=react,vue bun scripts/ci-browser.ts
+CI_INTEGRATION=starters CI_TARGETS=nextjs,html bun scripts/ci-browser.ts
+STARTER_TARGET=react,nuxt bun run --cwd internals/fixtures/acceptance test:starters
+CI_INTEGRATION=compat CI_TARGETS=16-app,16-static-export bun scripts/ci-browser.ts
+CI_INTEGRATION=parity CI_TARGETS=react,svelte,vue,astro bun scripts/ci-browser.ts
+CI_INTEGRATION=journeys CI_TARGETS=nextjs,nuxt,sveltekit bun scripts/ci-browser.ts
+CI_INTEGRATION=styles CI_TARGETS=all bun scripts/ci-browser.ts
+TAILWIND_MATRIX_VERSIONS=v3 TAILWIND_MATRIX_FIXTURES=vue,nuxt bun run compat:styles:matrix
+```
+
+The starters group runs `internals/fixtures/acceptance/src/starters.test.ts`
+once per starter. Every `examples/` directory except `showcase-*` is a
+starter, and its directory name is its target in
+`internals/fixtures/acceptance/src/starter-targets.ts`. A starter is selected
+when its directory or a package it depends on changes, and every starter runs
+when the acceptance workspace changes. Starters hold no test code, so the
+harness points them at the protocol fixture from outside: server-rendered
+starters through their public backend URL variable, client-only starters by
+routing browser requests for `https://your-project.inth.app` to the fixture.
+The plain HTML starter's jsDelivr script is served from `packages/browser/dist`.
+`self-host` runs its own backend, which refuses PGlite in production, so the
+harness starts PostgreSQL 16 in Docker with its data on a tmpfs and applies
+the backend migrations before starting the app. Every other external request
+is blocked and fails the test.
+
+The styles group builds the Next.js Tailwind fixtures and the framework
+matrix in `benchmarks/tailwind-matrix`: Next.js 16 and 15 (Turbopack and
+webpack each), React on Vite, TanStack Start, Vue, Nuxt, Svelte, SvelteKit, Astro
+and the script tag (shadow root and light DOM), each once with Tailwind 3
+(`v3/`) and once with Tailwind 4 (`v4/`). The Next.js fixtures build static
+exports. `next-15/` and `next-15-turbopack/` in each workspace are their own
+packages, so they can pin Next.js 15 next to the workspace's Next.js 16.
+`scripts/verify-tailwind-matrix.ts` serves each static build and checks that
+c15t survives preflight, that a utility on the banner root beats c15t's own
+padding (important on Tailwind 3, bare on Tailwind 4), that `dark` on `<html>`
+turns on Tailwind's `dark:` variant and, outside the shadow root, c15t's
+dark tokens, and that the dialog is styled. The fixtures keep their setup in `#region docs:` blocks for the docs.
+
+```sh
+bun run --cwd benchmarks/mobile bench:ci
+bun scripts/ci-mobile-bench-report.ts --kind ios-toolchain --report-dir .ci-reports/mobile-ios-toolchain
+# Android instrumented suite, needs a booted emulator, so it is local-only
+JAVA_HOME=$(/usr/libexec/java_home -v 17) ANDROID_HOME=$HOME/Library/Android/sdk \
+  sh native/core-android/gradlew -p native/core-android :c15t-android:connectedDebugAndroidTest --no-build-cache
+```
+
+`internals/consent-observers` is an ordinary package test with a different
+install. Its `test` script packs the `c15t` closure with the next-compat pack
+step, type-checks against the extracted `dist-types`, then runs Vitest against
+the extracted `dist`. It owns the external-observer contract: reading and
+subscribing through `c15t/runtime` and `c15t/react/context`, provider
+replacement and isolation, StrictMode, borrowed-runtime ownership, and Next.js
+and TanStack Start request isolation. Any change to a package in that closure
+selects it.
+
+The selector compares committed changes with the merge base. Without
+`CI_DIFF_BASE`, it selects a full run. Its regression tests use the real
+workspace dependency graph, including the docs-only paths from PR #1105.
+The existing `bun run test` command additionally includes local uncommitted
+changes and remains useful during development.
+
+Docs and generated package docs do not select runtime work. Runtime changes
+follow reverse dependencies, while builds include forward dependencies of all
+selected hosts. Unknown paths, root config, lockfiles and removed packages
+select everything. Nightly runs, manual full runs, and releases outside `v3`
+cover the entire graph. Stable check `CI complete` fails if any required selected
+job fails or cancels.
+Release runs skip runtime benchmarks so publishing does not wait for timing
+measurements. Tests, builds, consumer bundle budgets, and package validation
+remain required. Quick runtime comparisons still gate affected PRs. Full
+validation and manual CI runs still include full runtime comparisons.
+
+On `v3`, release checks compare with the last successful ancestor run of
+`release.yml`. Failed and superseded pushes stay in that range until a later
+run validates them. Missing history, API errors, and unreadable revisions fall
+back to full checks. Release selection ignores workspace-version-only changes
+in `bun.lock`. Publish-lock metadata does not select runtime tests.
+Version-only workspace manifests
+select builds of those packages and their dependencies without selecting runtime
+consumers. Real dependency or resolution changes still select full validation.
+PR selection remains conservative for release metadata.
+
+Publishing restores the same-run `ci-build` artifact and its Turbo results. The
+release hook builds code and docs for the packages Tegami will actually upload,
+plus their build dependencies, then checks only those packages' tarballs. The
+guard reuses completed standard docs preparation; custom packing hooks and the
+actual publication's `prepack` checks still run.
+
+Outside `canary`, release checks for consecutive pushes run side by side. Only
+the publish job waits for the previous release on the same branch. Once it gets
+its turn, a publish job whose commit is no longer the branch tip skips
+releasing. The newer run releases both commits if its checks pass; if they fail,
+nothing releases until a later push passes. After publishing a pending version
+PR merge, Tegami goes on to open the next version PR for notes that arrived
+since. `canary` runs stay queued whole, and `queue: max` keeps every waiting
+run, so every commit publishes its own snapshot. Runs publish in the order they
+start, which normally matches push order.
+
+Mobile work selects on paths, not on the dependency graph alone. The mobile
+SDK group runs for native sources and app fixtures, the React Native Codegen
+specs, build scripts and manifest, and `benchmarks/mobile`. JavaScript-only
+SDK changes and changes to web packages select affected package tests, including
+the mobile JavaScript boundary, without selecting native toolchains.
+`@c15t/benchmarking` is a dependency of both the mobile bench and the backend,
+so the bench is matched by path on purpose: a workspace edge there would put a
+macOS runner on every backend pull request. The device group is narrower, and
+takes only the files an app compiles -- the native kernels, the binding's
+`ios/` and `android/` halves, its podspec and Swift manifest, and the two
+example apps -- plus the runs that select everything. Mobile Markdown,
+`native/CONTRACT.md` included, selects neither group.
+
+`mobile-device.yml` runs advisory app builds independently on publishing-branch
+pushes, using its own last successful ancestor. It cannot delay publishing.
+PRs and full validation call the same workflow and restore their library outputs.
+The device group is absent from `complete`, so `CI complete` stays green when
+a pod fetch fails; read it as a build report. It is the most
+expensive thing here: roughly 25 macOS minutes and 12 Ubuntu minutes per
+selected run, and the same again on a dependency bump, because a full run
+selects it. The mobile SDK group is required when selected and costs roughly 10
+macOS plus 8 Ubuntu minutes. Both groups take Xcode 27, the version
+`native/CONTRACT.md` standardises on, and fall back to Xcode 26, which is all
+`macos-latest` ships; the Swift sources build on either because the expanded
+tracking request is found by selector at runtime rather than by declaration.
+They export `DEVELOPER_DIR` instead of switching `xcode-select`, cache SwiftPM,
+Gradle and CocoaPods, and use GitHub-hosted runners only. Files under `native/` own no workspace, so they
+still widen to a full run.
+
+The Android kernel's instrumented suite in `src/androidTest` runs on a booted
+emulator and belongs to neither group. Neither Android leg can host it: both are
+`ubuntu-latest`, which exposes no KVM, and a connected run that finds no device
+answers as a pass rather than a skip. Until a runner with nested virtualization
+or a device cloud is wired up, that suite is a local and pre-release gate, run
+before any change to storage, keystore, launch, or lifecycle, as
+`native/core-android/README.md` describes.
+
+Autolinking is gated separately from the Android assemblies. Assembling an AAR proves Gradle
+can compile the library; it never asks React Native's CLI whether the library can be found. A
+host app's `settings.gradle` runs `react-native config`, so a package the CLI cannot resolve
+fails that app before it configures a project -- and nothing in `packages/react-native` goes
+through that path. It is also not the only linker: an Expo app's `settings.gradle` runs
+`expoAutolinking.rnConfigCommand`, so Expo's own resolver answers for that app and never asks
+the community CLI anything, and the two implementations read a library's config file
+differently. `bun scripts/react-native-autolink.ts` asks both: the unscoped
+`react-native config` from `internals/fixtures/react-native-bare`, and
+`expo-modules-autolinking react-native-config --platform android --json` from
+`internals/fixtures/expo-dev`. Each answer is checked to name the library module and the package class,
+and the bare fixture additionally has to name the podspec. It runs on the Android leg of the
+mobile SDK group and, as `scripts/react-native-autolink.test.ts`, in `bun run test:scripts`.
+
+The same two questions are then asked of the tarball rather than the checkout. Both fixtures
+install `@c15t/react-native` as a workspace symlink, so a pass above only proves the repository
+tree resolves, and the tree holds files `package.json` never publishes. The script runs
+`npm pack`, installs the extracted tarball over the symlink in each fixture, resolves again,
+and restores what it moved aside. Against the packed tree it additionally holds the manifest to
+what the two native builds open: `codegenConfig.jsSrcsDir` has to contain a spec file, because
+an app generates `NativeC15tSpec` from that directory for both platforms and the Android bridge
+generates its own copy there, and every path the podspec declares -- sources, headers, the
+resource bundle, the license -- has to resolve inside the package rather than above it.
+Packing skips `prepack`, so this leg needs no build output and runs in `test:scripts` like the
+rest. A `files` allowlist that drops a file an app reads goes red here and green everywhere
+else, which is the gap this closes.
+
+The publish artifact guard in `scripts/check-publish-artifacts.ts` reads the same tarball from
+the other side. npm discards a package's root `.gitignore` as soon as `files` names an
+allowlist, so a directory that is allowlisted is published with whatever a build left in it:
+`ios/Pods` from a `pod install`, a Gradle `build/` tree, `ios/Tests`, `src/test/kotlin`. The
+guard refuses those shapes anywhere in a tarball, not only under `dist/`, and holds
+`@c15t/react-native` to the host-app file list above. It runs at release time as
+`bun run check:publish-artifacts`; its rules also run in `bun run test:scripts`, so an
+allowlist that starts sweeping a build tree fails the pull request rather than the release.
+
+Mobile budgets are gated twice, each on the runner that can measure them. The
+bench step runs `bench:ci`, which fails any measured row over its `budgets.json`
+ceiling. `scripts/ci-mobile-bench-report.ts` then fails a required row that
+produced no number, the way `BENCHMARK_EXPECTED_PACKAGES` does for the runtime
+comparisons, and publishes `mobile-summary.json` and a markdown table to the
+step summary and the evidence artifact. Each leg declares its own required
+rows: the Swift leg takes the `swift-core` rows and the iOS slice bytes, the
+Android leg takes the `kotlin-core` rows, the JS boundary and the Android class
+bytes. The idle rows and the cold Kotlin bootstrap are reported and budget-gated
+but never required: the first three watch a quiet process, and the fourth medians
+over forked JVMs, so all four read the runner's load. `ios_binding_bytes` alone
+stays unmeasured by design. The Kotlin bench needs a warm Gradle run first, because the harness
+invokes Gradle with `--offline`, and the harness needs Xcode at
+`/Applications/Xcode.app`, which the Xcode step links when the image installs a
+versioned bundle. The package behavior group owns the SDK's Vitest suite, so
+it runs once and a JavaScript regression does not wait on a native toolchain.
+
+`benchmark-regression.yml` also runs full comparisons independently on pushes
+to `v3`, nightly at 02:43 UTC, and manually. Scheduled runs check out `v3`;
+manual runs also check out `v3` and accept a different `base_ref`.
+Both use the measurement tooling on `v3`; other published branches do not
+contain it. Manual runs cannot execute an arbitrary head revision with
+default-branch cache access.
+The base must belong to the selected head's commit history.
+Runtime comparisons use one runner per package, except core-benchmarks, which
+splits its policy fixtures across three runners: four jobs for quick runs and
+ten for full runs. Both revisions resolve once before the matrix starts.
+Each job measures base then head on the same runner and enforces every expected
+result and budget in its share. Browser benches answer every consent-backend
+request after 200 ms on both revisions. Jobs upload separate reports and keep
+running if another package fails. Failures fail the benchmark workflow and
+preserve its summaries and artifacts without blocking publishing. GitHub activates schedules only once the workflow is on
+the default branch; push runs work as soon as this change lands on `v3`.
+Repository branch-protection settings must require `CI complete` when replacing
+the old required checks.
+
+The setup action installs the pinned toolchain and resolved Playwright
+versions. Package outputs and task cache travel together in a tar artifact;
+node_modules does not. Each job restores its own prior Turbo cache before
+merging same-run build results, then saves completed tasks under a key containing
+its scope, source SHA, run ID, and attempt. Tests, type checks, docs, and publication
+results therefore survive future runs and retries. PRs restore caches but do not
+save them or receive remote-cache credentials. Browser jobs keep failure logs and
+traces and report one table per group. Newer PR commits cancel older runs.
+
+Remote caching uses GitHub OIDC. The shared setup action exchanges each job's
+identity for a Vercel token with only `read-write:remote-cache`. Tokens expire
+after 30 minutes, and the action requests revocation when the job ends. The
+Vercel Turborepo CLI policy checks the repository
+name and immutable repository/owner IDs, restricts refs to `main`, `canary`,
+`2.0.0`, and `v3`, and allows only push, scheduled, and manual runs of the CI,
+release, validation, mobile-device, bundle-analysis, and benchmark workflows.
+The audience is `https://vercel.com/inth`. Calling workflows map repository
+variables `TURBO_TEAM` and `TURBO_CACHE_POLICY` into environment variables for the
+composite setup action, which cannot read the `vars` context directly. CI does
+not use a stored `TURBO_TOKEN` secret. PRs and other branches skip the exchange,
+and Vercel rejects their identities even if a modified workflow requests a token.
+Reusable workflow callers must grant `id-token: write` on the calling job, since
+called workflows cannot increase the caller's permissions. Other jobs keep
+read-only permissions.
+
+Coverage is evidence, not a percentage target. The summary lists changed
+instrumented statement-start lines and branches plus uncovered lines; full
+coverage remains an artifact. Missing or empty reports fail for selected suites
+that use the shared coverage configuration; non-instrumented facade/type checks
+can legitimately produce no report. Add tests for missing behavior, especially
+persistence, denial/revocation, server/client consistency and transport failure.
+Do not add tests that merely repeat an implementation to raise a number.
+
+The existing macOS screenshot baselines remain a local opt-in check. CI uses
+live cross-framework pixel and geometry comparisons and currently passes
+`--ignore-snapshots`. The historical baseline test explicitly skips before
+loading stories, rather than reporting success with disabled assertions.
+Vendor network probes retain their separate schedules and isolation because
+local SDK mocks cannot prove a real vendor's tracking behavior.
+
+See [benchmark commands and profiles](../benchmarks/README.md#ci-comparisons).
+
+`cli-native.yml` runs the packed CLI frontend suite on Linux and macOS 15 or newer for CLI
+changes and v3 pushes. It installs `@scriptc/compiler@0.2.0` in the runner's
+temporary directory, compiles with dynamic support disabled, and exercises
+plans, file apply, conflicts, symlinks, interrupted recovery and alpha installer
+arguments. It does not compile the standalone interactive Node executable or
+connect to hosted projects. The compiler API avoids the missing macOS launcher
+package in the scriptc 0.2.0 CLI distribution.

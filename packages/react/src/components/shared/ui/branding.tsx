@@ -1,48 +1,48 @@
-import styles from '@c15t/ui/styles/components/consent-dialog.module.js';
-import { resolveStyles, sanitizeDOMStyleProps } from '@c15t/ui/utils';
-import type { Branding } from 'c15t';
+import type { Branding } from '@c15t/core';
+import styles from '@c15t/ui/styles/components/branding';
 import type { SVGProps } from 'react';
-import { useMemo } from 'react';
-import { useConsentManager } from '~/hooks/use-consent-manager';
+
+import { useTranslations } from '~/component-hooks/use-translations';
+import { useBranding } from '~/hooks';
+import { useIsHydrated } from '~/hooks/use-is-hydrated';
 import { useTheme } from '~/hooks/use-theme';
-import { useTranslations } from '~/hooks/use-translations';
-import type {
-	AllThemeKeys,
-	ClassNameStyle,
-	CSSPropertiesWithVars,
-} from '~/types/theme';
+import type { CSSPropertiesWithVars } from '~/types/theme';
+import { useUIConfig } from '~/ui-config-context';
 import { cnExt as cn } from '~/utils/cn';
-import { mergeStyles } from '~/utils/merge-styles';
+import { mergeSlotProps } from '~/utils/merge-slot-props';
+
 import { C15TIconOnly, InthIconOnly, InthLogo } from './logo';
 
 export type ResolvedBranding = 'c15t' | 'inth' | 'none';
 export type BrandingVariant = 'footer' | 'dialog-tag' | 'banner-tag';
-export type BrandingThemeKey =
-	| 'consentBannerTag'
-	| 'consentDialogTag'
-	| 'consentWidgetTag'
-	| 'iabConsentBannerTag'
-	| 'iabConsentDialogTag';
+export type BrandingSlotContext =
+	| 'banner'
+	| 'dialog'
+	| 'manager'
+	| 'iab-banner'
+	| 'iab-dialog';
 
-type BrandingProps = {
+interface BrandingProps {
 	hideBranding: boolean;
 	variant?: BrandingVariant;
-	themeKey?: BrandingThemeKey;
+	slotContext?: BrandingSlotContext;
 	className?: string;
 	style?: CSSPropertiesWithVars;
 	'data-testid'?: string;
-};
+}
 
-type BrandingFullLogoProps = {
+interface BrandingFullLogoProps {
 	branding: Branding | string;
 	className?: string;
-};
+}
 
 type BrandingCompactLogoProps = SVGProps<SVGSVGElement> & {
 	branding: Branding | string;
 };
 
-export function resolveBranding(branding: Branding | string): ResolvedBranding {
+export const resolveBranding = function resolveBranding(
+	branding: Branding | string
+): ResolvedBranding {
 	if (branding === 'none') {
 		return 'none';
 	}
@@ -52,64 +52,77 @@ export function resolveBranding(branding: Branding | string): ResolvedBranding {
 	}
 
 	return 'c15t';
-}
+};
 
-export function getBrandingHref(
+export const getBrandingHref = function getBrandingHref(
 	branding: Branding | string,
 	refParam = ''
 ): string {
 	return resolveBranding(branding) === 'inth'
 		? `https://inth.com${refParam}`
 		: `https://c15t.com${refParam}`;
-}
+};
 
-export function BrandingFullLogo({
+export const BrandingFullLogo = ({
 	branding,
 	className,
-}: BrandingFullLogoProps) {
+}: BrandingFullLogoProps) => {
 	if (resolveBranding(branding) === 'inth') {
 		return (
-			<span dir="ltr" className={cn(styles.brandingWordmark, className)}>
+			<span
+				dir="ltr"
+				className={cn(styles.brandingWordmark, className)}
+			>
 				<InthLogo aria-hidden="true" />
 			</span>
 		);
 	}
 
 	return (
-		<span dir="ltr" className={cn(styles.brandingWordmark, className)}>
+		<span
+			dir="ltr"
+			className={cn(styles.brandingWordmark, className)}
+		>
 			<span className={styles.brandingC15TMark}>
 				<C15TIconOnly aria-hidden="true" />
 			</span>
 			<span className={styles.brandingWordmarkLabel}>c15t</span>
 		</span>
 	);
-}
+};
 
-export function BrandingCompactLogo({
+export const BrandingCompactLogo = ({
 	branding,
 	...props
-}: BrandingCompactLogoProps) {
+}: BrandingCompactLogoProps) => {
 	const Logo =
 		resolveBranding(branding) === 'inth' ? InthIconOnly : C15TIconOnly;
 	return <Logo {...props} />;
-}
+};
 
-export function BrandingLink({
+export const BrandingLink = ({
 	hideBranding,
 	variant = 'footer',
-	themeKey,
+	slotContext,
 	className,
 	style,
 	'data-testid': testId,
-}: BrandingProps) {
-	const { branding } = useConsentManager();
-	const { noStyle: contextNoStyle, theme } = useTheme();
+}: BrandingProps) => {
+	const branding = useBranding() ?? 'c15t';
+	const { components } = useUIConfig();
+	const { noStyle } = useTheme();
 	const { common } = useTranslations();
 	const resolvedBranding = resolveBranding(branding);
-	const refParam =
-		typeof window !== 'undefined' ? `?ref=${window.location.hostname}` : '';
-	const brandingStyle = useMemo(() => {
-		const componentStyle: ClassNameStyle = {
+	// The referral hostname only exists in the browser. Reading `window` during
+	// the hydration render would make the client href differ from the
+	// server-rendered one and trip React's attribute-mismatch check, so the
+	// parameter is added after hydration instead.
+	const isHydrated = useIsHydrated();
+	const refParam = isHydrated ? `?ref=${window.location.hostname}` : '';
+	const context = slotContext;
+	const brandingStyle = mergeSlotProps(
+		context ? components?.tag?.[context] : undefined,
+		{
 			baseClassName: cn(
 				styles.branding,
 				variant !== 'footer' && styles.brandingTag,
@@ -117,20 +130,18 @@ export function BrandingLink({
 				variant === 'banner-tag' && styles.brandingTagBanner
 			),
 			className,
+			'data-testid': testId,
+			noStyle,
 			style,
-		};
-		if (themeKey && theme?.slots && themeKey in theme.slots) {
-			return resolveStyles(
-				themeKey as AllThemeKeys,
-				theme,
-				componentStyle,
-				contextNoStyle
-			);
 		}
-
-		return mergeStyles({}, componentStyle);
-	}, [className, contextNoStyle, style, theme, themeKey, variant]);
-	const domStyleProps = sanitizeDOMStyleProps(brandingStyle);
+	);
+	const contentStyle = mergeSlotProps(
+		context ? components?.tag?.content : undefined,
+		{
+			baseClassName: styles.brandingContent,
+			noStyle,
+		}
+	);
 
 	if (resolvedBranding === 'none' || hideBranding) {
 		return null;
@@ -138,23 +149,27 @@ export function BrandingLink({
 
 	return (
 		<a
-			{...domStyleProps}
+			{...brandingStyle}
 			href={getBrandingHref(branding, refParam)}
 			data-branding={resolvedBranding}
 			data-variant={variant}
-			data-testid={testId}
 		>
-			<span className={styles.brandingCopy}>
-				<span className={styles.brandingText}>{common.securedBy}</span>
+			<span
+				{...contentStyle}
+				data-slot="tag-content"
+			>
+				<span className={styles.brandingCopy}>
+					<span className={styles.brandingText}>{common.securedBy}</span>
+				</span>
+				<BrandingFullLogo
+					branding={branding}
+					className={
+						resolvedBranding === 'inth'
+							? styles.brandingInth
+							: styles.brandingC15T
+					}
+				/>
 			</span>
-			<BrandingFullLogo
-				branding={branding}
-				className={
-					resolvedBranding === 'inth'
-						? styles.brandingInth
-						: styles.brandingC15T
-				}
-			/>
 		</a>
 	);
-}
+};

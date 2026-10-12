@@ -1,0 +1,205 @@
+import type { Script } from '@c15t/core';
+
+import { resolveManifest } from '../../resolve';
+import { vendorManifestContract } from '../../types';
+import type { VendorManifest } from '../../types';
+import { readId, skipMissingId, skipScript } from '../_shared/required-id';
+import { resolveScriptUrl } from '../_shared/script-url';
+
+declare global {
+	interface Window {
+		mixpanel?: {
+			init: (token: string, config?: Record<string, unknown>) => void;
+			track: (event: string, properties?: Record<string, unknown>) => void;
+			identify: (distinctId: string) => void;
+			reset: () => void;
+			register: (properties: Record<string, unknown>) => void;
+			opt_in_tracking: () => void;
+			opt_out_tracking: () => void;
+			/** Snippet version marker consumed by `init_from_snippet`. */
+			__SV?: number;
+			/** Pending `[token, config, instanceName]` init tuples consumed at SDK load. */
+			_i?: unknown[][];
+		};
+	}
+}
+
+/**
+ * Mixpanel vendor manifest.
+ *
+ * Implements the official snippet contract: the stub array carries the
+ * snippet version marker (`__SV`) and the pending `[token, config, 'mixpanel']`
+ * init tuple in `_i`, which `mixpanel-2-latest.min.js` consumes at load time via
+ * `init_from_snippet`. Without `__SV` the SDK logs "Mixpanel error: Version
+ * mismatch" and never initializes, silently dropping queued calls.
+ *
+ * Mixpanel can stay loaded across consent changes and toggle tracking with its
+ * own opt-in and opt-out APIs.
+ */
+export const mixpanelAnalyticsManifest = {
+	...vendorManifestContract,
+	alwaysLoad: true,
+	category: 'measurement',
+	install: [
+		{
+			ifUndefined: true,
+
+			name: 'mixpanel',
+			type: 'setGlobal',
+			value: [],
+		},
+		{
+			path: ['mixpanel', '__SV'],
+			type: 'setGlobalPath',
+			value: 1.2,
+		},
+		{
+			path: ['mixpanel', '_i'],
+			// The official snippet always pushes an explicit instance name; the
+			// SDK's create_mplib resolves the queue stub through that name, so a
+			// two-element tuple would leave the queue unreplayed.
+			type: 'setGlobalPath',
+			value: [['{{token}}', '{{initOptions}}', 'mixpanel']],
+		},
+		{
+			methods: [
+				'track',
+				'identify',
+				'reset',
+				'register',
+				'opt_in_tracking',
+				'opt_out_tracking',
+			],
+
+			target: 'mixpanel',
+			type: 'defineQueueMethods',
+		},
+		{
+			async: true,
+
+			src: '{{scriptUrl}}',
+			type: 'loadScript',
+		},
+	],
+	// Queued before load so the SDK replays them during init. Mixpanel applies
+	// opt_out_tracking_by_default first, then replays opt-in and opt-out calls
+	// ahead of queued track calls, so a granted visitor keeps those events.
+	onBeforeLoadDenied: [
+		{
+			global: 'mixpanel',
+			method: 'opt_out_tracking',
+
+			type: 'callGlobal',
+		},
+	],
+	onBeforeLoadGranted: [
+		{
+			global: 'mixpanel',
+			method: 'opt_in_tracking',
+
+			type: 'callGlobal',
+		},
+	],
+	onConsentDenied: [
+		{
+			global: 'mixpanel',
+			method: 'opt_out_tracking',
+
+			type: 'callGlobal',
+		},
+	],
+	onConsentGranted: [
+		{
+			global: 'mixpanel',
+			method: 'opt_in_tracking',
+
+			type: 'callGlobal',
+		},
+	],
+	vendor: 'mixpanel-analytics',
+	vendorDetails: {
+		homepageUrl: 'https://mixpanel.com/',
+		legalName: 'Mixpanel, Inc.',
+		name: 'Mixpanel',
+		privacyPolicyUrl: 'https://mixpanel.com/legal/privacy-policy/',
+	},
+} as const satisfies VendorManifest;
+
+export interface MixpanelAnalyticsOptions {
+	/** Your Mixpanel project token. */
+	token: string;
+	/**
+	 * Mixpanel init options passed after the library loads.
+	 *
+	 * The helper sets `opt_out_tracking_by_default: true` and
+	 * `opt_out_persistence_by_default: true`, so the SDK neither tracks nor
+	 * stores a visitor ID before the first opt-in or opt-out call. Pass either
+	 * option as `false` to turn it off.
+	 *
+	 * The manifest engine serializes this object as a template variable, so use
+	 * JSON-serializable values only (no functions, class instances, prototypes,
+	 * `Map`, `Set`, or other non-JSON types). Named instances and nested
+	 * `people.*` queue helpers are intentionally out of scope for this helper.
+	 */
+	initOptions?: Record<string, unknown>;
+	/** Mixpanel loader URL. */
+	scriptUrl?: string;
+}
+
+/**
+ * Creates a Mixpanel Analytics script.
+ *
+ * @param options - The options for the Mixpanel Analytics script.
+ * @returns The Mixpanel Analytics script configuration.
+ * @remarks When `token` is missing, blank, or not a 32-character
+ *   hexadecimal Mixpanel project token, the helper logs the problem with
+ *   `console.error` and returns a script that never loads.
+ *
+ * @example
+ * ```ts
+ * import { mixpanelAnalytics } from '@c15t/integrations/mixpanel-analytics';
+ *
+ * const script = mixpanelAnalytics({
+ * 	token: '1234567890abcdef1234567890abcdef',
+ * 	initOptions: { debug: true },
+ * });
+ * ```
+ */
+export const mixpanelAnalytics = function mixpanelAnalytics({
+	token,
+	initOptions,
+	scriptUrl,
+}: MixpanelAnalyticsOptions): Script {
+	const skipped = {
+		category: 'measurement',
+		manifest: mixpanelAnalyticsManifest,
+	} as const;
+	const normalizedToken = readId(token);
+	if (normalizedToken === undefined) {
+		return skipMissingId('mixpanelAnalytics', 'token', skipped);
+	}
+	if (!/^[a-f0-9]{32}$/iu.test(normalizedToken)) {
+		return skipScript(
+			'mixpanelAnalytics: token must be a 32-character hexadecimal string',
+			skipped
+		);
+	}
+
+	return resolveManifest(mixpanelAnalyticsManifest, {
+		// The SDK loads before consent and initializes before the helper's
+		// first opt-in or opt-out call lands, so start every visitor opted out
+		// of tracking and storage.
+		initOptions: {
+			...initOptions,
+			opt_out_persistence_by_default:
+				initOptions?.opt_out_persistence_by_default ?? true,
+			opt_out_tracking_by_default:
+				initOptions?.opt_out_tracking_by_default ?? true,
+		},
+		scriptUrl: resolveScriptUrl(
+			scriptUrl,
+			'https://cdn.mxpnl.com/libs/mixpanel-2-latest.min.js'
+		),
+		token: normalizedToken,
+	});
+};

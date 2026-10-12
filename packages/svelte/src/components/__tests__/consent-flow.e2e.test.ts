@@ -1,0 +1,298 @@
+import { readStoredRecords } from '@c15t/core/modules/persistence';
+/**
+ * E2E tests for the complete consent flow.
+ *
+ * Tests the full user journey from first visit through consent management.
+ *
+ * Mirrors: packages/react/src/components/__tests__/consent-flow.e2e.test.tsx
+ */
+import { fireEvent, render, waitFor } from '@testing-library/svelte';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
+
+import BannerDialogFixture from '../../__tests__/fixtures/banner-dialog-fixture.svelte';
+import BannerFixture from '../../__tests__/fixtures/banner-fixture.svelte';
+import DialogFixture from '../../__tests__/fixtures/dialog-fixture.svelte';
+import WidgetFixture from '../../__tests__/fixtures/widget-fixture.svelte';
+import { testOffline } from '../../__tests__/test-offline';
+import type { ConsentManagerOptions } from '../../lib/types';
+
+const getDefined = <Value>(
+	value: Value,
+	message = 'Expected value to be defined'
+): NonNullable<Value> => {
+	if (value === null || value === undefined) {
+		throw new Error(message);
+	}
+	return value;
+};
+
+const defaultOptions: ConsentManagerOptions = {
+	// A permissive policy offers only what the site declares.
+	consentCategories: [
+		'functionality',
+		'experience',
+		'measurement',
+		'marketing',
+	],
+	mode: testOffline(),
+};
+
+describe('Consent Flow E2E Tests', () => {
+	beforeEach(() => {
+		window.localStorage.clear();
+		const cookies = document.cookie.split(';');
+		for (const cookie of cookies) {
+			const name = cookie.split('=')[0]?.trim();
+			if (name) {
+				document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+			}
+		}
+		vi.clearAllMocks();
+	});
+
+	describe('First Visit Flow', () => {
+		test('should show cookie banner to first-time visitor', async () => {
+			render(BannerFixture, { options: defaultOptions });
+
+			await waitFor(() => {
+				const banner = document.querySelector(
+					'[data-testid="consent-banner-root"]'
+				);
+				expect(banner).toBeInTheDocument();
+			});
+		});
+
+		test('should hide banner after accepting all', async () => {
+			render(BannerFixture, { options: defaultOptions });
+
+			await waitFor(() => {
+				const acceptButton = document.querySelector(
+					'[data-testid="consent-banner-accept-button"]'
+				);
+				expect(acceptButton).toBeInTheDocument();
+			});
+
+			const acceptButton = getDefined(
+				document.querySelector('[data-testid="consent-banner-accept-button"]')
+			);
+			await fireEvent.click(acceptButton);
+
+			await waitFor(() => {
+				const banner = document.querySelector(
+					'[data-testid="consent-banner-root"]'
+				);
+				expect(banner).not.toBeInTheDocument();
+			});
+		});
+
+		test('should hide banner after rejecting all', async () => {
+			render(BannerFixture, { options: defaultOptions });
+
+			await waitFor(() => {
+				const rejectButton = document.querySelector(
+					'[data-testid="consent-banner-reject-button"]'
+				);
+				expect(rejectButton).toBeInTheDocument();
+			});
+
+			const rejectButton = getDefined(
+				document.querySelector('[data-testid="consent-banner-reject-button"]')
+			);
+			await fireEvent.click(rejectButton);
+
+			await waitFor(() => {
+				const banner = document.querySelector(
+					'[data-testid="consent-banner-root"]'
+				);
+				expect(banner).not.toBeInTheDocument();
+			});
+		});
+	});
+
+	describe('Consent Persistence', () => {
+		test('should persist consent to localStorage on accept', async () => {
+			render(BannerFixture, { options: defaultOptions });
+
+			await waitFor(() => {
+				const acceptButton = document.querySelector(
+					'[data-testid="consent-banner-accept-button"]'
+				);
+				expect(acceptButton).toBeInTheDocument();
+			});
+
+			const acceptButton = getDefined(
+				document.querySelector('[data-testid="consent-banner-accept-button"]')
+			);
+			await fireEvent.click(acceptButton);
+
+			await waitFor(() => {
+				const stored = window.localStorage.getItem('c15t');
+				expect(stored).toBeTruthy();
+				const consent = readStoredRecords(undefined, Date.now()).records.choice;
+				expect(consent?.categories.marketing?.value).toBe(true);
+				expect(consent?.version).toBe(3);
+			});
+		});
+
+		test('should persist reject decision to localStorage', async () => {
+			render(BannerFixture, { options: defaultOptions });
+
+			await waitFor(() => {
+				const rejectButton = document.querySelector(
+					'[data-testid="consent-banner-reject-button"]'
+				);
+				expect(rejectButton).toBeInTheDocument();
+			});
+
+			const rejectButton = getDefined(
+				document.querySelector('[data-testid="consent-banner-reject-button"]')
+			);
+			await fireEvent.click(rejectButton);
+
+			await waitFor(() => {
+				const stored = window.localStorage.getItem('c15t');
+				expect(stored).toBeTruthy();
+				const consent = readStoredRecords(undefined, Date.now()).records.choice;
+				expect(consent?.version).toBe(3);
+				expect(consent?.categories.marketing?.value).toBe(false);
+				expect(consent?.categories.measurement?.value).toBe(false);
+			});
+		});
+	});
+
+	describe('Returning Visitor Flow', () => {
+		test('should not show banner if user has already consented', async () => {
+			const consentData = {
+				consentInfo: {
+					time: Date.now(),
+					type: 'accept-all',
+				},
+				consents: {
+					experience: true,
+					functionality: true,
+					marketing: true,
+					measurement: true,
+					necessary: true,
+				},
+			};
+			window.localStorage.setItem('c15t', JSON.stringify(consentData));
+
+			render(BannerFixture, { options: defaultOptions });
+
+			await new Promise<void>((resolve) => {
+				setTimeout(resolve, 500);
+			});
+
+			const banner = document.querySelector(
+				'[data-testid="consent-banner-root"]'
+			);
+			expect(banner).not.toBeInTheDocument();
+		});
+	});
+
+	describe('Widget Integration', () => {
+		test('should render widget with all consent categories', async () => {
+			render(WidgetFixture, { options: defaultOptions });
+
+			await waitFor(() => {
+				const widget = document.querySelector(
+					'[data-testid="consent-widget-root"]'
+				);
+				expect(widget).toBeInTheDocument();
+			});
+
+			await waitFor(() => {
+				const switches = document.querySelectorAll('[data-slot="switch"]');
+				expect(switches.length).toBeGreaterThan(0);
+			});
+		});
+
+		test('should have disabled necessary consent toggle', async () => {
+			render(WidgetFixture, { options: defaultOptions });
+
+			await waitFor(() => {
+				const necessarySwitch = document.querySelector(
+					'[data-testid="consent-widget-switch-necessary"]'
+				);
+				expect(necessarySwitch).toBeInTheDocument();
+				expect(necessarySwitch?.getAttribute('data-disabled')).toBe('');
+			});
+		});
+	});
+
+	describe('Dialog Integration', () => {
+		test('should show dialog when open prop is true', async () => {
+			render(DialogFixture, { open: true, options: defaultOptions });
+
+			await waitFor(() => {
+				const dialog = document.querySelector(
+					'[data-testid="consent-dialog-root"]'
+				);
+				expect(dialog).toBeInTheDocument();
+			});
+		});
+
+		test('should contain widget inside dialog', async () => {
+			render(DialogFixture, { open: true, options: defaultOptions });
+
+			await waitFor(() => {
+				const widget = document.querySelector(
+					'[data-testid="consent-widget-root"]'
+				);
+				expect(widget).toBeInTheDocument();
+			});
+		});
+	});
+
+	describe('Complete Flow', () => {
+		test('should complete full consent flow: banner -> customize -> save', async () => {
+			render(BannerDialogFixture, { options: defaultOptions });
+
+			// Step 1: Banner should appear
+			await waitFor(() => {
+				const banner = document.querySelector(
+					'[data-testid="consent-banner-root"]'
+				);
+				expect(banner).toBeInTheDocument();
+			});
+
+			// Step 2: Click customize
+			const customizeButton = getDefined(
+				document.querySelector(
+					'[data-testid="consent-banner-customize-button"]'
+				)
+			);
+			await fireEvent.click(customizeButton);
+
+			// Step 3: Dialog should open
+			await waitFor(() => {
+				const dialog = document.querySelector(
+					'[data-testid="consent-dialog-root"]'
+				);
+				expect(dialog).toBeInTheDocument();
+			});
+
+			// Step 4: Toggle a consent category
+			const marketingSwitch = document.querySelector(
+				'[data-testid="consent-widget-switch-marketing"]'
+			);
+			await fireEvent.click(getDefined(marketingSwitch));
+
+			// Step 5: Save preferences
+			const saveButton = getDefined(
+				document.querySelector(
+					'[data-testid="consent-widget-footer-save-button"]'
+				)
+			);
+			await fireEvent.click(saveButton);
+
+			// Step 6: Verify consent was saved
+			await waitFor(() => {
+				const stored = window.localStorage.getItem('c15t');
+				expect(stored).toBeTruthy();
+				const consent = readStoredRecords(undefined, Date.now()).records.choice;
+				expect(consent?.categories.marketing?.value).toBe(true);
+			});
+		});
+	});
+});

@@ -1,141 +1,60 @@
 ---
 title: Umami Analytics
-description: Open-source, cookieless analytics with a prebuilt helper that maps Umami's data attributes into a c15t-managed script.
-group: integrations
+description: Load the Umami Analytics tracker only after measurement consent with the c15t umamiAnalytics helper, point it at a self-hosted instance, and check it in DevTools.
+seoTitle: Umami Analytics cookie consent with c15t
+seoDescription: Load the Umami tracker only with measurement consent. Set it up with the c15t umamiAnalytics helper and check it in DevTools.
 icon: umami-analytics
+group: integrations
 ---
 
-Umami is an open-source, cookieless analytics product configured entirely through `data-*` attributes on its loader. The `umamiAnalytics()` helper serializes your website ID, host override, and tracking options into those attributes and hands the result to c15t's script loader.
+The c15t `umamiAnalytics` helper keeps the Umami tracker off the page until
+`measurement` has consent. The helper sends no consent signal to Umami. If the
+visitor withdraws consent, c15t removes the script element. By default, c15t
+also reloads the page.
 
-## Integrate with c15t
+## Configure Umami Analytics
 
-<Tabs items={['React', 'Next.js', 'JavaScript']}>
-  <Tab value="React">
-    ```tsx
-    import { type ReactNode } from 'react';
-    import { ConsentManagerProvider } from '@c15t/react';
-    import { umamiAnalytics } from '@c15t/scripts/umami-analytics';
+Copy the website ID from your Umami tracking code. The helper passes it to the
+script as `data-website-id`. For a self-hosted Umami instance, set `scriptUrl`
+to your instance's tracker script.
 
-    const scripts = [umamiAnalytics({ websiteId: 'site-abc-123' })];
+<CommandTabs command="@c15t/integrations" mode="install" />
 
-    export function ConsentProvider({ children }: { children: ReactNode }) {
-      return (
-        <ConsentManagerProvider
-          options={{
-            mode: 'hosted',
-            backendURL: 'https://your-instance.c15t.dev',
-            scripts,
-          }}
-        >
-          {children}
-        </ConsentManagerProvider>
-      );
-    }
-    ```
-  </Tab>
+```ts title="src/consent-scripts.ts"
+import { umamiAnalytics } from '@c15t/integrations/umami-analytics';
 
-  <Tab value="Next.js">
-    ```tsx
-    'use client';
-
-    import { type ReactNode } from 'react';
-    import { ConsentManagerProvider } from '@c15t/nextjs';
-    import { umamiAnalytics } from '@c15t/scripts/umami-analytics';
-
-    const scripts = [umamiAnalytics({ websiteId: 'site-abc-123' })];
-
-    export function ConsentProvider({ children }: { children: ReactNode }) {
-      return (
-        <ConsentManagerProvider
-          options={{
-            mode: 'hosted',
-            backendURL: '/api/c15t',
-            scripts,
-          }}
-        >
-          {children}
-        </ConsentManagerProvider>
-      );
-    }
-    ```
-  </Tab>
-
-  <Tab value="JavaScript">
-    ```ts
-    import { getOrCreateConsentRuntime } from 'c15t';
-    import { umamiAnalytics } from '@c15t/scripts/umami-analytics';
-
-    getOrCreateConsentRuntime({
-      mode: 'hosted',
-      backendURL: 'https://your-instance.c15t.dev',
-      scripts: [umamiAnalytics({ websiteId: 'site-abc-123' })],
-    });
-    ```
-  </Tab>
-</Tabs>
-
-## How c15t loads it
-
-- **Category:** `measurement` (Analytics)
-- **Loads when:** measurement consent is granted
-- **On revocation:** unloaded — c15t removes the script element from the DOM. Umami is cookieless, so no client-side state needs clearing.
-
-If you self-host Umami or need to restrict tracking to specific domains:
-
-```ts
-umamiAnalytics({
-  websiteId: 'site-abc-123',
-  hostUrl: 'https://analytics.example.com',
-  domains: ['example.com', 'www.example.com'],
-  autoTrack: false,
-  tag: 'release-2025',
-})
+export const scripts = [umamiAnalytics({ websiteId: 'YOUR_WEBSITE_ID' })];
 ```
 
-Each option is mapped to Umami's published `data-*` attribute (`data-website-id`, `data-host-url`, `data-auto-track`, `data-domains`, `data-tag`, `data-before-send`) and the script uses `defer` so it matches Umami's recommended embed pattern.
+<include src="../shared/integrations/register-scripts.mdx" />
 
-<Callout type="note">
-  `beforeSend` accepts a string referencing a global hook (e.g. `'window.umamiBeforeSend'`), not a function value. The c15t manifest runtime serializes script configuration, so inline callbacks cannot be passed through it.
-</Callout>
+## Options
 
-## Tracking events in your app
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `websiteId` | Required | Set as `data-website-id`. Empty or whitespace-only values log an error and the script does not load. |
+| `hostUrl` | None | Host that receives events, set as `data-host-url`. |
+| `autoTrack` | None | `false` sets `data-auto-track="false"` and stops automatic tracking. |
+| `domains` | None | Domains to track, set as `data-domains`. Pass a comma-separated string or an array; the helper joins an array with commas. |
+| `tag` | None | Tag attached to events, set as `data-tag`. |
+| `beforeSend` | None | Name of a global function, set as `data-before-send`. Function values are not supported. |
+| `scriptUrl` | `https://cloud.umami.is/script.js` | Loader URL override. |
 
-c15t gates the Umami script from loading until `measurement` consent is granted. Your application code that calls Umami's runtime API (`window.umami.track`, `window.umami.identify`) is **not** automatically gated — `window.umami` does not exist until the script is loaded, so unguarded calls before consent throw.
+## Loading and revocation
 
-Guard event calls by checking consent state. From React:
+`umamiAnalytics` uses the `measurement` category. The tracker loads only while
+measurement is allowed. On revocation the helper removes the script element and
+calls no Umami API. Umami sets no cookies, but c15t still waits for measurement
+permission before loading it.
 
-```tsx
-import { useConsentManager } from '@c15t/react';
+A `beforeSend` hook can change events before Umami sends them. It is not a
+consent check. Define the named global before the tracker loads.
 
-function useTrackSignup() {
-  const { has } = useConsentManager();
+## Verify Umami Analytics
 
-  return () => {
-    if (has('measurement')) {
-      window.umami?.track('signup');
-    }
-  };
-}
-```
+After you allow measurement, the tracker script loads with your
+`data-website-id`, and a request to `/api/send` goes to Umami or to your
+`hostUrl`. If your code calls `window.umami.track`, check measurement
+permission before each call.
 
-From plain JavaScript:
-
-```ts
-import { getOrCreateConsentRuntime } from 'c15t';
-
-const { consentStore } = getOrCreateConsentRuntime();
-
-if (consentStore.getState().has('measurement')) {
-  window.umami?.track('signup');
-}
-```
-
-## Types
-
-### UmamiAnalyticsOptions
-
-<AutoTypeTable path="./packages/scripts/src/vendors/analytics/umami-analytics.ts" name="UmamiAnalyticsOptions" />
-
-### Script
-
-<AutoTypeTable path="./packages/core/src/libs/script-loader/types.ts" name="Script" />
+<include src="../shared/integrations/vendor-revocation-and-verify.mdx" />

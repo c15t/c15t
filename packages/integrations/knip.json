@@ -1,0 +1,25 @@
+{
+	"$schema": "https://unpkg.com/knip@latest/schema.json",
+	"entry": [
+		"./src/index.ts",
+		"./src/adapters/next.ts",
+		"./live-vendors/runner.ts",
+		"./live-vendors/manage-issues.ts",
+		"./live-vendors/harness/entry.ts"
+	],
+	"ignoreBinaries": ["oxfmt", "oxlint", "rslib", "tsc", "vitest"],
+	"ignore": [
+		"**/*.spec.{js,ts,tsx}",
+		"**/*.test.{js,ts,tsx}",
+		"**/__tests__/**",
+		"rslib.config.ts"
+	],
+	"ignoreDependencies": ["@c15t/typescript-config", "c15t", "zustand"],
+	"rules": {
+		"exports": "warn",
+		"types": "warn",
+		"dependencies": "error",
+		"files": "warn"
+	},
+	"ignoreExportsUsedInFile": true
+}

@@ -1,0 +1,29 @@
+{
+	"name": "@c15t/mobile-bench",
+	"private": true,
+	"description": "Measured numbers for the mobile budgets in native/CONTRACT.md: native cores, React rerenders, idle cost, and shipped bytes.",
+	"type": "module",
+	"scripts": {
+		"bench": "bunx tsx src/run.ts",
+		"bench:ci": "bunx tsx src/run.ts --check",
+		"bench:quick": "bunx tsx src/run.ts --quick",
+		"build": "echo 'mobile benchmarks are source-only'",
+		"check-types": "tsc --noEmit",
+		"fmt": "bun oxfmt .",
+		"lint": "bun oxlint ./src",
+		"test": "vitest run"
+	},
+	"dependencies": {
+		"@c15t/benchmarking": "workspace:*",
+		"@c15t/core": "workspace:*",
+		"@c15t/react-native": "workspace:*",
+		"react": "19.2.7"
+	},
+	"devDependencies": {
+		"@c15t/typescript-config": "workspace:*",
+		"@types/node": "^24.10.1",
+		"react-test-renderer": "19.2.8",
+		"typescript": "7.0.2",
+		"vitest": "4.1.10"
+	}
+}

@@ -1,0 +1,181 @@
+/**
+ * Composes the HTTP surface.
+ *
+ * This file wires things together and owns nothing else: CORS, the route
+ * modules, and the OpenAPI document. Each resource's routes live in
+ * `./routes/`, mirroring `@c15t/backend`'s layout — one file per resource
+ * keeps a reviewer able to hold a change in mind, and keeps the cutover diff
+ * readable.
+ */
+
+import { POLICY_CONTRACT_HEADER, POLICY_CONTRACT_VERSION } from '@c15t/schema';
+import type { ConsentManifestConfig } from '@c15t/schema';
+import { isOriginTrusted } from '@c15t/schema/geo';
+import type { ManagedRuntime } from 'effect';
+import type { SqlClient } from 'effect/sql';
+import { Hono } from 'hono';
+import { openAPIRouteHandler } from 'hono-openapi';
+
+import {
+	gradeLevel,
+	middleware as observability,
+} from '../observability/evlog';
+import { assertTenantOptions, makeRun, resolveHosting } from './context';
+import type { AppOptions, RouteContext } from './context';
+import { assertIdentityTokenOptions } from './identity-token';
+import { register as registerConsent } from './routes/consent';
+import { register as registerExperiment } from './routes/experiment';
+import { register as registerInit } from './routes/init';
+import { register as registerLegalDocument } from './routes/legal-document';
+import { register as registerManifest } from './routes/manifest';
+import { register as registerScript } from './routes/script';
+import { register as registerSession } from './routes/session';
+import { register as registerStatus } from './routes/status';
+import { register as registerSubject } from './routes/subject';
+
+export type { AppOptions } from './context';
+
+export const createApp = function createApp(
+	runtime: ManagedRuntime.ManagedRuntime<SqlClient.SqlClient, never>,
+	input: AppOptions = {}
+) {
+	assertTenantOptions(input);
+	assertIdentityTokenOptions(input);
+	// Stamped into the manifest config once, so `/init`, `/manifest`, the
+	// script builds, and consent saves all build the same manifest.
+	const manifest: ConsentManifestConfig = {
+		...input.manifest,
+		hosting: resolveHosting(input),
+	};
+	const options: AppOptions = { ...input, manifest };
+	const app = new Hono();
+
+	// First, so the wide event covers CORS rejections and preflights too — a
+	// blocked origin is exactly the kind of thing an operator needs to see.
+	const observe = observability(options.observability);
+	if (observe) {
+		app.use('*', observe);
+		// Immediately after, so it runs inside evlog's wrapper and can grade
+		// the event from the final status before it is emitted.
+		app.use('*', gradeLevel);
+	}
+
+	// `GET /init` reads public policy data: no cookie, no subject, nothing a
+	// direct request could not fetch. Its CORS is open to every origin, so a
+	// cross-origin client's credential-less init is a simple request with no
+	// preflight. Marked here, before the CORS middleware, so the check holds
+	// however the app is mounted. Every other route keeps the allowlist:
+	// consent saves and record reads stay limited to trusted origins.
+	const publicInitRequests = new WeakSet<Request>();
+	app.use('/init', async (c, runNext) => {
+		publicInitRequests.add(c.req.raw);
+		await runNext();
+	});
+
+	app.use('*', async (c, runNext) => {
+		const origin = c.req.header('Origin');
+		const trusted =
+			origin !== undefined &&
+			isOriginTrusted(origin, [...(options.trustedOrigins ?? [])]);
+		const publicInit = publicInitRequests.has(c.req.raw);
+		const allowed = origin !== undefined && (trusted || publicInit);
+
+		if (trusted && origin) {
+			// A trusted origin keeps credentialed access everywhere, `/init`
+			// included: older clients send their init with
+			// `credentials: 'include'`, which `*` cannot answer.
+			c.header('Access-Control-Allow-Origin', origin);
+			c.header('Vary', 'Origin');
+			c.header('Access-Control-Allow-Credentials', 'true');
+		} else if (allowed) {
+			// `*` never allows credentials, so a cookie-carrying request from an
+			// untrusted origin stays unreadable.
+			c.header('Access-Control-Allow-Origin', '*');
+			c.header('Vary', 'Origin');
+		}
+
+		if (c.req.method === 'OPTIONS') {
+			if (!allowed) {
+				// No CORS headers, so the browser blocks it. 204 rather than 403
+				// because the preflight itself is well-formed.
+				return c.body(null, 204);
+			}
+			c.header(
+				'Access-Control-Allow-Methods',
+				publicInit
+					? 'GET, HEAD, OPTIONS'
+					: 'GET, POST, PUT, DELETE, PATCH, OPTIONS'
+			);
+			// Current clients preflight `/init` only when a caller adds its own
+			// headers. Older clients sent the version, contract, overrides and
+			// experiment arm as headers, so those stay allowed.
+			c.header(
+				'Access-Control-Allow-Headers',
+				`Content-Type, Authorization, x-request-id, x-c15t-version, ${POLICY_CONTRACT_HEADER}, x-c15t-country, x-c15t-region, x-c15t-gpc, x-c15t-experiment, sec-gpc, accept-language`
+			);
+			c.header('Access-Control-Max-Age', '86400');
+			return c.body(null, 204);
+		}
+
+		// Which policy contract this producer speaks, on every response and
+		// exposed to browsers, so a client can tell a negotiated producer from
+		// one that predates the contract without guessing from a version.
+		c.header(POLICY_CONTRACT_HEADER, String(POLICY_CONTRACT_VERSION));
+		if (allowed) {
+			c.header('Access-Control-Expose-Headers', POLICY_CONTRACT_HEADER);
+		}
+
+		await runNext();
+	});
+
+	/**
+	 * Runs a handler and maps its typed failure onto a response.
+	 *
+	 * `Effect.result` moves the typed error into the success channel, so what
+	 * comes back is a value to branch on. A defect is left alone and still
+	 * rejects the promise — laundering one into a tidy 500 would erase the
+	 * distinction the typed channel exists to make.
+	 */
+
+	const context: RouteContext = {
+		app,
+		options,
+		run: makeRun(runtime, options.tenantId),
+	};
+
+	registerInit(context);
+	registerManifest(context);
+	registerSession(context);
+	registerScript(context);
+	registerStatus(context);
+	registerLegalDocument(context);
+	registerConsent(context);
+	registerSubject(context);
+	registerExperiment(context);
+
+	// Registered last so every route above is already on the app and appears
+	// in the generated document.
+	if (options.openapi?.enabled !== false) {
+		app.get(
+			options.openapi?.specPath ?? '/spec.json',
+			openAPIRouteHandler(app, {
+				documentation: {
+					components: {
+						securitySchemes: {
+							bearerAuth: { scheme: 'bearer', type: 'http' },
+						},
+					},
+					info: {
+						description: 'API for consent management',
+						title: options.openapi?.title ?? 'c15t API',
+						version: options.version ?? '0.0.0',
+					},
+					openapi: '3.1.0',
+					servers: [{ url: options.openapi?.basePath ?? '/' }],
+				},
+			})
+		);
+	}
+
+	return app;
+};

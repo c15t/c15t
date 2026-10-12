@@ -1,0 +1,32 @@
+{/* Generated from examples/sveltekit/src/routes/+layout.svelte (docs:layout) by scripts/sync-example-docs.ts. Edit the source file. */}
+
+```svelte title="src/routes/+layout.svelte"
+<script lang="ts">
+	import { posthog } from '@c15t/integrations/posthog';
+	import {
+		ConsentBanner,
+		ConsentDialog,
+		ConsentDialogLink,
+		ConsentRoot,
+	} from '@c15t/svelte';
+
+	let { children, data } = $props();
+
+	const scripts = [
+		posthog({
+			id: 'phc_your_project_key',
+			initOptions: { cookieless_mode: 'never' },
+			loadMode: 'after-consent',
+		}),
+	];
+</script>
+
+<ConsentRoot state={data.consent} {scripts}>
+	{@render children()}
+	<footer>
+		<ConsentDialogLink>Privacy settings</ConsentDialogLink>
+	</footer>
+	<ConsentBanner />
+	<ConsentDialog />
+</ConsentRoot>
+```

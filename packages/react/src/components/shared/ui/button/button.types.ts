@@ -1,4 +1,4 @@
-export type ButtonCSSVariables = {
+export interface ButtonCSSVariables {
 	/* Primary Colors */
 	'--button-primary': string;
 	'--button-primary-dark': string;
@@ -54,4 +54,4 @@ export type ButtonCSSVariables = {
 	'--button-shadow-neutral-dark': string;
 	'--button-shadow-neutral-hover': string;
 	'--button-shadow-neutral-hover-dark': string;
-};
+}

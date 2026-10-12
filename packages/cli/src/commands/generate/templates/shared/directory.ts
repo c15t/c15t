@@ -34,7 +34,7 @@ import path from 'node:path';
  * // Returns: 'src/components' (if exists) or 'components' (if exists) or 'src/components' (default)
  * ```
  */
-export async function getComponentsDirectory(
+export const getComponentsDirectory = async function getComponentsDirectory(
 	projectRoot: string,
 	sourceDir: string
 ): Promise<string> {
@@ -48,6 +48,7 @@ export async function getComponentsDirectory(
 	for (const candidate of candidates) {
 		try {
 			const candidatePath = path.join(projectRoot, candidate);
+			// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 			const stat = await fs.stat(candidatePath);
 			if (stat.isDirectory()) {
 				return candidate;
@@ -59,7 +60,7 @@ export async function getComponentsDirectory(
 
 	// No existing components folder, create one based on structure
 	return isSrcDir ? 'src/components' : 'components';
-}
+};
 
 /**
  * Determines the framework directory path based on a file's location
@@ -80,7 +81,7 @@ export async function getComponentsDirectory(
  * getFrameworkDirectory('/project/pages/_app.tsx', 'pages'); // 'pages'
  * ```
  */
-export function getFrameworkDirectory(
+export const getFrameworkDirectory = function getFrameworkDirectory(
 	filePath: string,
 	dirName: string
 ): string {
@@ -92,7 +93,7 @@ export function getFrameworkDirectory(
 	}
 
 	return dirName;
-}
+};
 
 /**
  * Determines the source directory based on a file path
@@ -110,7 +111,9 @@ export function getFrameworkDirectory(
  * getSourceDirectory('/project/app/layout.tsx'); // ''
  * ```
  */
-export function getSourceDirectory(filePath: string): string {
+export const getSourceDirectory = function getSourceDirectory(
+	filePath: string
+): string {
 	// Normalize the path to handle different path separators and formats
 	const normalizedPath = path.normalize(filePath);
 
@@ -123,4 +126,4 @@ export function getSourceDirectory(filePath: string): string {
 	}
 
 	return '';
-}
+};

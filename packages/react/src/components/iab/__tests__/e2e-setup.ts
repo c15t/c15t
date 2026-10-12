@@ -1,3 +1,4 @@
+import { readStoredRecords } from '@c15t/core/modules/persistence';
 /**
  * E2E Test Setup for IAB TCF 2.4 Components
  *
@@ -6,41 +7,51 @@
  *
  * @packageDocumentation
  */
-
-import { iab } from '@c15t/iab';
 import { vi } from 'vitest';
-import type { ConsentManagerOptions } from '~/types/consent-manager';
+
+import { DEFAULT_KEY_STORAGE } from '~/__tests__/component-fixture-provider';
+import { policyFixture } from '~/__tests__/policy-fixture';
+import type { ConsentProviderOptions } from '~/provider';
+import { offline } from '~/transports/offline';
+
 import { mockGVL } from './fixtures/mock-consent-state';
+
+export type TcfApiTestFunction = (
+	command: string,
+	version: number,
+	callback: (...args: unknown[]) => void,
+	parameter?: unknown
+) => void;
 
 /**
  * Creates a mock localStorage with full implementation
  */
-export function createMockLocalStorage() {
+export const createMockLocalStorage = function createMockLocalStorage() {
 	let store: Record<string, string> = {};
 	return {
-		getItem: (key: string) => store[key] || null,
-		setItem: (key: string, value: string) => {
-			store[key] = String(value);
-		},
-		removeItem: (key: string) => {
-			delete store[key];
-		},
 		clear: () => {
 			store = {};
 		},
+		getItem: (key: string) => store[key] || null,
+		key: (index: number) => Object.keys(store)[index] || null,
 		get length() {
 			return Object.keys(store).length;
 		},
-		key: (index: number) => Object.keys(store)[index] || null,
+		removeItem: (key: string) => {
+			Reflect.deleteProperty(store, key);
+		},
+		setItem: (key: string, value: string) => {
+			store[key] = value;
+		},
 	};
-}
+};
 
 /**
  * Clears all consent state between tests.
  *
  * Note: GVL mocking is handled via config.iab.gvl, not window mocking.
  */
-export function clearConsentState() {
+export const clearConsentState = function clearConsentState() {
 	// Clear localStorage
 	window.localStorage.clear();
 
@@ -62,19 +73,19 @@ export function clearConsentState() {
 
 	// Clear window-level mock GVL state between tests
 	delete (window as unknown as { __c15t_mock_gvl?: unknown }).__c15t_mock_gvl;
-}
+};
 
 /**
  * Waits for __tcfapi to be ready
  */
-export async function waitForCMP(timeout = 5000): Promise<void> {
+export const waitForCMP = function waitForCMP(timeout = 5000): Promise<void> {
 	return vi.waitFor(
 		() => {
 			if (!(window as { __tcfapi?: unknown }).__tcfapi) {
 				throw new Error('CMP not ready');
 			}
 			return new Promise<void>((resolve, reject) => {
-				(window as { __tcfapi: Function }).__tcfapi(
+				(window as { __tcfapi: TcfApiTestFunction }).__tcfapi(
 					'ping',
 					2,
 					(ping: { cmpLoaded?: boolean }) => {
@@ -89,18 +100,18 @@ export async function waitForCMP(timeout = 5000): Promise<void> {
 		},
 		{ timeout }
 	);
-}
+};
 
 /**
  * Helper to call __tcfapi as Promise
  */
-export function tcfApiPromise<T>(
+export const tcfApiPromise = function tcfApiPromise<T>(
 	command: string,
 	version = 2,
 	param?: unknown
 ): Promise<T> {
 	return new Promise((resolve, reject) => {
-		const tcfapi = (window as { __tcfapi?: Function }).__tcfapi;
+		const tcfapi = (window as { __tcfapi?: TcfApiTestFunction }).__tcfapi;
 		if (!tcfapi) {
 			reject(new Error('__tcfapi not available'));
 			return;
@@ -118,12 +129,12 @@ export function tcfApiPromise<T>(
 			param
 		);
 	});
-}
+};
 
 /**
  * Gets ping data from CMP
  */
-export async function getCMPPingData(): Promise<{
+export const getCMPPingData = function getCMPPingData(): Promise<{
 	gdprApplies: boolean;
 	cmpLoaded: boolean;
 	cmpStatus: string;
@@ -135,12 +146,12 @@ export async function getCMPPingData(): Promise<{
 	tcfPolicyVersion: number;
 }> {
 	return tcfApiPromise('ping', 2);
-}
+};
 
 /**
  * Gets TC data from CMP
  */
-export async function getCMPTCData(): Promise<{
+export const getCMPTCData = function getCMPTCData(): Promise<{
 	tcString: string;
 	gdprApplies: boolean;
 	cmpStatus: string;
@@ -156,7 +167,6 @@ export async function getCMPTCData(): Promise<{
 	vendor: {
 		consents: Record<number, boolean>;
 		legitimateInterests: Record<number, boolean>;
-		disclosedVendors: Record<number, boolean>;
 	};
 	specialFeatureOptins: Record<number, boolean>;
 	publisher: {
@@ -171,18 +181,18 @@ export async function getCMPTCData(): Promise<{
 	listenerId?: number;
 }> {
 	return tcfApiPromise('getTCData', 2);
-}
+};
 
 /**
  * Adds event listener and returns a promise for first callback
  */
-export function addCMPEventListener(): Promise<{
+export const addCMPEventListener = function addCMPEventListener(): Promise<{
 	listenerId: number;
 	eventStatus: string;
 	tcString: string;
 }> {
 	return new Promise((resolve, reject) => {
-		const tcfapi = (window as { __tcfapi?: Function }).__tcfapi;
+		const tcfapi = (window as { __tcfapi?: TcfApiTestFunction }).__tcfapi;
 		if (!tcfapi) {
 			reject(new Error('__tcfapi not available'));
 			return;
@@ -195,52 +205,61 @@ export function addCMPEventListener(): Promise<{
 			}
 		);
 	});
-}
+};
 
 /**
  * Removes event listener by ID
  */
-export async function removeCMPEventListener(
+export const removeCMPEventListener = function removeCMPEventListener(
 	listenerId: number
 ): Promise<boolean> {
 	return tcfApiPromise('removeEventListener', 2, listenerId);
-}
+};
 
 /**
- * Default consent manager options for IAB E2E tests.
+ * Default provider options for IAB E2E tests.
  *
- * Note: The mockGVL is passed directly in the IAB config to bypass
- * network fetching. This avoids module scope issues in Vitest browser mode.
+ * The mock GVL is passed directly in the IAB config to bypass network
+ * fetching. This avoids module scope issues in Vitest browser mode.
  */
-export const defaultIABOptions: ConsentManagerOptions = {
-	mode: 'offline',
-	iab: iab({
+export const defaultProviderIABOptions: ConsentProviderOptions = {
+	iab: {
 		cmpId: 160,
 		cmpVersion: 1,
-		gvl: mockGVL, // Pre-loaded GVL - skips network fetch
-	}),
-	offlinePolicy: {
-		policy: { id: 'iab_default', model: 'iab' },
+		gvl: mockGVL,
 	},
+	mode: offline(),
+	prefetch: policyFixture(undefined, {
+		categories: undefined,
+		id: 'iab_default',
+		model: 'iab',
+		prompt: 'choice',
+		scopeMode: 'strict',
+	}),
+	// These tests read the TC string and records under the default key.
+	storageConfig: DEFAULT_KEY_STORAGE,
 };
 
 /**
  * Asserts that TC String contains LI objection for a vendor
  */
-export async function assertTCStringHasLIObjection(vendorId: number) {
-	const tcData = await getCMPTCData();
-	const hasLI = tcData.vendor.legitimateInterests[vendorId] === true;
-	if (hasLI) {
-		throw new Error(
-			`Expected vendor ${vendorId} to have LI objection, but LI is granted`
-		);
-	}
-}
+export const assertTCStringHasLIObjection =
+	async function assertTCStringHasLIObjection(vendorId: number) {
+		const tcData = await getCMPTCData();
+		const hasLI = tcData.vendor.legitimateInterests[vendorId] === true;
+		if (hasLI) {
+			throw new Error(
+				`Expected vendor ${vendorId} to have LI objection, but LI is granted`
+			);
+		}
+	};
 
 /**
  * Asserts that TC String contains consent for a purpose
  */
-export async function assertTCStringHasConsent(purposeId: number) {
+export const assertTCStringHasConsent = async function assertTCStringHasConsent(
+	purposeId: number
+) {
 	const tcData = await getCMPTCData();
 	const hasConsent = tcData.purpose.consents[purposeId] === true;
 	if (!hasConsent) {
@@ -248,12 +267,12 @@ export async function assertTCStringHasConsent(purposeId: number) {
 			`Expected purpose ${purposeId} to have consent, but it does not`
 		);
 	}
-}
+};
 
 /**
  * Waits for an element to appear in the DOM
  */
-export async function waitForElement(
+export const waitForElement = function waitForElement(
 	selector: string,
 	timeout = 2000
 ): Promise<Element> {
@@ -267,12 +286,12 @@ export async function waitForElement(
 		},
 		{ timeout }
 	);
-}
+};
 
 /**
  * Waits for an element to be removed from the DOM
  */
-export async function waitForElementRemoved(
+export const waitForElementRemoved = function waitForElementRemoved(
 	selector: string,
 	timeout = 2000
 ): Promise<void> {
@@ -285,32 +304,22 @@ export async function waitForElementRemoved(
 		},
 		{ timeout }
 	);
-}
+};
 
 /**
  * Gets consent from localStorage
  */
-export function getStoredConsent(): {
-	consents?: Record<string, boolean>;
-	consentInfo?: { time: number; subjectId: string };
-	iabCustomVendorConsents?: Record<string, boolean>;
-	iabCustomVendorLegitimateInterests?: Record<string, boolean>;
-} | null {
-	const stored = window.localStorage.getItem('c15t');
-	if (!stored) return null;
-	try {
-		return JSON.parse(stored);
-	} catch {
-		return null;
-	}
-}
+export const getStoredConsent = function getStoredConsent() {
+	const { records } = readStoredRecords(undefined, Date.now());
+	return records.choice ? records : null;
+};
 
 /**
  * Gets TC string from localStorage
  */
-export function getStoredTCString(): string | null {
+export const getStoredTCString = function getStoredTCString(): string | null {
 	return window.localStorage.getItem('euconsent-v2');
-}
+};
 
 /**
  * Export the mock GVL for use in tests

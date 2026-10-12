@@ -1,0 +1,653 @@
+import { custom } from '@c15t/core';
+import type { ConsentKernel } from '@c15t/core';
+import { writePolicyResolutionWire } from '@c15t/schema/types';
+import { fireEvent, render, screen } from '@testing-library/svelte';
+import { tick } from 'svelte';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
+
+import type { ConsentManagerState } from '../lib/context.svelte';
+import { draftReady } from './draft-ready';
+import ConformanceFixture from './fixtures/conformance-fixture.svelte';
+import { policyFixture } from './policy-fixture';
+
+const required = <Value>(value: Value | undefined): Value => {
+	if (value === undefined) {
+		throw new Error('Expected canonical policy resolution');
+	}
+	return value;
+};
+
+beforeEach(() => {
+	localStorage.clear();
+	document.cookie = 'c15t=; Max-Age=0; path=/';
+});
+
+describe('displayed consent actions', () => {
+	test.each(['all', 'necessary', 'custom'] as const)(
+		'%s transport failure keeps the recorded choice and the dialog closed',
+		async (action) => {
+			const captured: {
+				kernel?: ConsentKernel;
+				manager?: ConsentManagerState;
+			} = {};
+			const save = vi
+				.fn()
+				.mockRejectedValue(new Error('Transport unavailable'));
+			const result = render(ConformanceFixture, {
+				component: 'consent-dialog',
+				onKernel: (kernel) => {
+					captured.kernel = kernel;
+				},
+				onManager: (manager) => {
+					captured.manager = manager;
+				},
+				options: {
+					consentCategories: ['necessary', 'marketing'],
+					disableAnimation: true,
+					mode: custom({ save }),
+					persistence: false,
+					// The draft stages only moved values, so the visitor's edit
+					// must move away from the record: start granted when the bulk
+					// action grants, so turning it off is the edit that survives.
+					prefetch: policyFixture(
+						{ marketing: action === 'all' },
+						{ categories: ['marketing'] }
+					),
+				},
+			});
+			try {
+				const kernel = required(captured.kernel);
+				const manager = required(captured.manager);
+				kernel.set.activeUI('dialog');
+				await tick();
+				manager.setSelectedConsent('marketing', action !== 'all');
+				const pending = manager.saveConsents(action);
+				// Closed in the call, before the request starts.
+				expect(kernel.getSnapshot().activeUI).toBe('none');
+				expect(save).not.toHaveBeenCalled();
+				await expect(pending).rejects.toThrow('Unable to save preferences');
+				expect(save).toHaveBeenCalledOnce();
+				const recorded =
+					kernel.getSnapshot().explicitChoice?.categories.marketing?.value;
+				expect(recorded).toBe(action !== 'necessary');
+				// The local choice stands, and the draft follows it.
+				expect(manager.selectedConsents.marketing).toBe(recorded);
+				await tick();
+				expect(kernel.getSnapshot().activeUI).toBe('none');
+				expect(screen.queryByRole('dialog')).toBeNull();
+			} finally {
+				result.unmount();
+			}
+		}
+	);
+	test.each(['all', 'necessary', 'custom'] as const)(
+		'%s closes before the save settles and stays closed when it fails',
+		async (action) => {
+			let rejectSave: (reason: Error) => void = () => {
+				throw new Error('Save not started');
+			};
+			const save = vi.fn(async () => {
+				await new Promise<void>((_resolve, reject) => {
+					rejectSave = reject;
+				});
+				return { ok: true };
+			});
+			const captured: {
+				kernel?: ConsentKernel;
+				manager?: ConsentManagerState;
+			} = {};
+			const result = render(ConformanceFixture, {
+				component: 'consent-dialog',
+				onKernel: (kernel) => {
+					captured.kernel = kernel;
+				},
+				onManager: (manager) => {
+					captured.manager = manager;
+				},
+				options: {
+					consentCategories: ['necessary', 'marketing'],
+					disableAnimation: true,
+					mode: custom({ save }),
+					persistence: false,
+					prefetch: policyFixture({}, { categories: ['marketing'] }),
+				},
+			});
+			try {
+				const kernel = required(captured.kernel);
+				const manager = required(captured.manager);
+				manager.setActiveUI('dialog');
+				await draftReady(manager);
+				manager.setSelectedConsent('marketing', true);
+				const pending = manager.saveConsents(action);
+				const rejected = expect(pending).rejects.toThrow(
+					'Unable to save preferences'
+				);
+				expect(kernel.getSnapshot().activeUI).toBe('none');
+				await tick();
+				expect(screen.queryByRole('dialog')).toBeNull();
+				await vi.waitFor(() => expect(save).toHaveBeenCalledOnce());
+				rejectSave(new Error('Transport unavailable'));
+				await rejected;
+				await tick();
+				expect(kernel.getSnapshot().activeUI).toBe('none');
+				expect(screen.queryByRole('dialog')).toBeNull();
+				// The draft follows the recorded choice, which the failure keeps.
+				expect(manager.selectedConsents.marketing).toBe(action !== 'necessary');
+				expect(
+					kernel.getSnapshot().explicitChoice?.categories.marketing?.value
+				).toBe(action !== 'necessary');
+			} finally {
+				result.unmount();
+			}
+		}
+	);
+	test.each(['all', 'necessary', 'custom'] as const)(
+		'%s completion cannot close or reset a reopened dialog',
+		async (action) => {
+			const finish: (() => void)[] = [];
+			const fail: ((reason: unknown) => void)[] = [];
+			const save = vi.fn(async () => {
+				await new Promise<void>((resolve, reject) => {
+					finish.push(resolve);
+					fail.push(reject);
+				});
+				return { ok: true };
+			});
+			const captured: {
+				kernel?: ConsentKernel;
+				manager?: ConsentManagerState;
+			} = {};
+			const result = render(ConformanceFixture, {
+				component: 'consent-dialog',
+				onKernel: (kernel) => {
+					captured.kernel = kernel;
+				},
+				onManager: (manager) => {
+					captured.manager = manager;
+				},
+				options: {
+					consentCategories: ['necessary', 'marketing'],
+					disableAnimation: true,
+					mode: custom({ save }),
+					persistence: false,
+					prefetch: policyFixture({}, { categories: ['marketing'] }),
+				},
+			});
+			try {
+				const kernel = required(captured.kernel);
+				const manager = required(captured.manager);
+				manager.setActiveUI('dialog');
+				await draftReady(manager);
+				manager.setSelectedConsent('marketing', true);
+				const first = manager.saveConsents(action);
+				expect(kernel.getSnapshot().activeUI).toBe('none');
+				await vi.waitFor(() => expect(save).toHaveBeenCalledTimes(1));
+				manager.setActiveUI('dialog');
+				manager.setSelectedConsent('marketing', action === 'necessary');
+				const second = manager.saveConsents('custom');
+				const secondFailure = expect(second).rejects.toThrow(
+					'Unable to save preferences'
+				);
+				expect(kernel.getSnapshot().activeUI).toBe('none');
+				await vi.waitFor(() => expect(save).toHaveBeenCalledTimes(2));
+				manager.setActiveUI('dialog');
+				manager.setSelectedConsent('marketing', true);
+				required(finish[0])();
+				await first;
+				expect(kernel.getSnapshot().activeUI).toBe('dialog');
+				expect(manager.selectedConsents.marketing).toBe(true);
+				required(fail[1])(new Error('Transport unavailable'));
+				await secondFailure;
+				expect(kernel.getSnapshot().activeUI).toBe('dialog');
+				expect(manager.selectedConsents.marketing).toBe(true);
+			} finally {
+				result.unmount();
+			}
+		}
+	);
+	test.each(['accept', 'reject', 'save'] as const)(
+		'%s button completion leaves a newly reopened dialog alone',
+		async (action) => {
+			let finish = () => {
+				throw new Error('Save not started');
+			};
+			const save = vi.fn(async () => {
+				await new Promise<void>((resolve) => {
+					finish = resolve;
+				});
+				return { ok: true };
+			});
+			const captured: {
+				kernel?: ConsentKernel;
+				manager?: ConsentManagerState;
+			} = {};
+			const result = render(ConformanceFixture, {
+				component: 'consent-dialog',
+				onKernel: (kernel) => {
+					captured.kernel = kernel;
+				},
+				onManager: (manager) => {
+					captured.manager = manager;
+				},
+				options: {
+					consentCategories: ['necessary', 'marketing'],
+					disableAnimation: true,
+					mode: custom({ save }),
+					persistence: false,
+					prefetch: policyFixture({}, { categories: ['marketing'] }),
+				},
+			});
+			try {
+				const kernel = required(captured.kernel);
+				const manager = required(captured.manager);
+				const saveAction = vi.spyOn(manager, 'saveConsents');
+				manager.setActiveUI('dialog');
+				await tick();
+				const button = document.querySelector(`[data-action="${action}"]`);
+				if (!button) {
+					throw new Error('Expected dialog action');
+				}
+				await fireEvent.click(button);
+				await vi.waitFor(() => expect(save).toHaveBeenCalledOnce());
+				manager.setActiveUI('none');
+				manager.setActiveUI('dialog');
+				manager.setSelectedConsent('marketing', false);
+				finish();
+				await required(saveAction.mock.results[0]).value;
+				await tick();
+				expect(kernel.getSnapshot().activeUI).toBe('dialog');
+				expect(manager.selectedConsents.marketing).toBe(false);
+				expect(screen.getByRole('dialog')).toBeTruthy();
+			} finally {
+				result.unmount();
+			}
+		}
+	);
+	test.each(['all', 'necessary', 'custom'] as const)(
+		'%s acknowledges the notice after a successful save',
+		async (action) => {
+			const captured: {
+				kernel?: ConsentKernel;
+				manager?: ConsentManagerState;
+			} = {};
+			const result = render(ConformanceFixture, {
+				component: 'consent-banner',
+				onKernel: (kernel) => {
+					captured.kernel = kernel;
+				},
+				onManager: (manager) => {
+					captured.manager = manager;
+				},
+				options: {
+					consentCategories: ['marketing'],
+					disableAnimation: true,
+					mode: custom({}),
+					persistence: false,
+					prefetch: policyFixture(
+						{},
+						{ categories: ['marketing'], model: 'opt-out', prompt: 'notice' }
+					),
+				},
+			});
+			try {
+				const kernel = required(captured.kernel);
+				const manager = required(captured.manager);
+				manager.setActiveUI('dialog');
+				await manager.saveConsents(action);
+				// Saving from the preference center acknowledges the notice.
+				expect(kernel.getSnapshot().promptRequirement.kind).toBe('none');
+				expect(kernel.getSnapshot().noticeDismissal).not.toBeNull();
+				expect(kernel.getSnapshot().activeUI).toBe('none');
+			} finally {
+				result.unmount();
+			}
+		}
+	);
+	test.each([false, true])(
+		'custom save ignores a hidden draft after policy narrowing, saved choice=%s',
+		async (hiddenChoice) => {
+			let prefetch = policyFixture(
+				{},
+				{ categories: ['marketing', 'measurement'] }
+			);
+			const captured: {
+				kernel?: ConsentKernel;
+				manager?: ConsentManagerState;
+			} = {};
+			const result = render(ConformanceFixture, {
+				component: 'consent-banner',
+				onKernel: (kernel) => {
+					captured.kernel = kernel;
+				},
+				onManager: (manager) => {
+					captured.manager = manager;
+				},
+				options: {
+					consentCategories: ['necessary', 'marketing', 'measurement'],
+					disableAnimation: true,
+					mode: custom({
+						init: () =>
+							Promise.resolve({
+								policyResolution: writePolicyResolutionWire(
+									required(prefetch.initialPolicyResolution)
+								),
+							}),
+					}),
+					persistence: false,
+					prefetch,
+				},
+			});
+			try {
+				const { kernel, manager } = captured;
+				if (!kernel || !manager) {
+					throw new Error('Provider context was not captured');
+				}
+				await kernel.commands.init();
+				await tick();
+				await kernel.commands.save(
+					{ measurement: hiddenChoice },
+					{ actionAt: Date.now() - 1000 }
+				);
+				const hiddenReceipt =
+					kernel.getSnapshot().explicitChoice?.categories.measurement;
+				await draftReady(manager);
+				manager.setSelectedConsent('measurement', !hiddenChoice);
+				manager.setSelectedConsent('marketing', true);
+				prefetch = policyFixture({}, { categories: ['marketing'] });
+				await kernel.commands.init();
+				await tick();
+				expect(manager.consentCategories).toEqual(['necessary', 'marketing']);
+				expect(manager.draft.isStale).toBe(true);
+				manager.setActiveUI('dialog');
+				await expect(manager.saveConsents('custom')).rejects.toThrow(
+					'policy changed'
+				);
+				// A refused save leaves the dialog open for review, as in React and
+				// Vue, where it resolves `{ ok: false }` instead of rejecting.
+				expect(kernel.getSnapshot().activeUI).toBe('dialog');
+				expect(
+					kernel.getSnapshot().explicitChoice?.categories.measurement
+				).toEqual(hiddenReceipt);
+				manager.draft.reset();
+				manager.setSelectedConsent('marketing', true);
+				await manager.saveConsents('custom');
+				expect(
+					kernel.getSnapshot().explicitChoice?.categories.marketing?.value
+				).toBe(true);
+				expect(
+					kernel.getSnapshot().explicitChoice?.categories.measurement
+				).toEqual(hiddenReceipt);
+				expect(manager.draft.isStale).toBe(false);
+				// Every category is listed; one outside the displayed scope is off.
+				expect(manager.selectedConsents).toEqual({
+					experience: false,
+					functionality: false,
+					marketing: true,
+					measurement: false,
+					necessary: true,
+				});
+			} finally {
+				result.unmount();
+			}
+		}
+	);
+	test.each(
+		(['all', 'none'] as const).flatMap((action) =>
+			(['regional', 'all-categories', 'necessary-only'] as const).map(
+				(scope) => ({ action, scope })
+			)
+		)
+	)(
+		'$action preserves hidden receipts under $scope policy',
+		async ({ action, scope }) => {
+			const captured: {
+				kernel?: ConsentKernel;
+				manager?: ConsentManagerState;
+			} = {};
+			let prefetch = policyFixture();
+			const result = render(ConformanceFixture, {
+				component: 'consent-banner',
+				onKernel: (kernel) => {
+					captured.kernel = kernel;
+				},
+				onManager: (manager) => {
+					captured.manager = manager;
+				},
+				options: {
+					consentCategories: ['necessary', 'marketing', 'measurement'],
+					disableAnimation: true,
+					mode: custom({
+						init: () =>
+							Promise.resolve({
+								policyResolution: writePolicyResolutionWire(
+									required(prefetch.initialPolicyResolution)
+								),
+							}),
+					}),
+					persistence: false,
+					prefetch,
+				},
+			});
+			try {
+				const { kernel, manager } = captured;
+				if (!kernel || !manager) {
+					throw new Error('Provider context was not captured');
+				}
+				await kernel.commands.save(
+					{
+						experience: true,
+						functionality: false,
+						marketing: true,
+						measurement: true,
+					},
+					{ actionAt: Date.now() - 1000 }
+				);
+				const before = kernel.getSnapshot().explicitChoice;
+				const rules = {
+					'all-categories': { categories: ['*'] },
+					'necessary-only': { categories: ['necessary'] },
+					regional: { categories: ['marketing'] },
+				} satisfies Record<typeof scope, Parameters<typeof policyFixture>[1]>;
+				prefetch = policyFixture({}, rules[scope]);
+				await kernel.commands.init();
+				await tick();
+				manager.draft.reset();
+				const displayed =
+					scope === 'regional' ? ['marketing'] : ['measurement', 'marketing'];
+				expect(manager.consentCategories).toEqual(['necessary', ...displayed]);
+				kernel.set.activeUI('dialog');
+				await tick();
+				await fireEvent.click(
+					await screen.findByRole('button', {
+						name: action === 'all' ? /accept all/iu : /reject all/iu,
+					})
+				);
+				await vi.waitFor(() =>
+					expect(
+						kernel.getSnapshot().explicitChoice?.categories.marketing
+							?.confirmedAt
+					).toBeGreaterThan(before?.categories.marketing?.confirmedAt ?? 0)
+				);
+				const categories = kernel.getSnapshot().explicitChoice?.categories;
+				for (const category of [
+					'experience',
+					'functionality',
+					'marketing',
+					'measurement',
+				] as const) {
+					/* oxlint-disable vitest/no-conditional-expect -- Displayed categories change; categories outside the fixture scope must stay unchanged. */
+					if (displayed.includes(category)) {
+						expect(categories?.[category]?.value).toBe(action === 'all');
+						expect(categories?.[category]?.confirmedAt).toBeGreaterThan(
+							before?.categories[category]?.confirmedAt ?? 0
+						);
+					} else {
+						expect(categories?.[category]).toEqual(
+							before?.categories[category]
+						);
+					}
+					/* oxlint-enable vitest/no-conditional-expect */
+				}
+			} finally {
+				result.unmount();
+			}
+		}
+	);
+});
+
+test('scripts infer the displayed categories without a configured list', async () => {
+	const captured: { kernel?: ConsentKernel; manager?: ConsentManagerState } =
+		{};
+	const result = render(ConformanceFixture, {
+		component: 'consent-dialog',
+		onKernel: (kernel) => {
+			captured.kernel = kernel;
+		},
+		onManager: (manager) => {
+			captured.manager = manager;
+		},
+		options: {
+			mode: custom({ save: () => Promise.resolve({ ok: true }) }),
+			persistence: false,
+			prefetch: policyFixture({}, { categories: ['necessary'] }),
+			scripts: [
+				{ callbackOnly: true, category: 'measurement', id: 'analytics' },
+				{ callbackOnly: true, category: 'marketing', id: 'ads' },
+			],
+		},
+	});
+	try {
+		const manager = required(captured.manager);
+		const kernel = required(captured.kernel);
+		expect(manager.consentCategories).toEqual([
+			'necessary',
+			'measurement',
+			'marketing',
+		]);
+		kernel.set.activeUI('dialog');
+		await tick();
+		await manager.saveConsents('all');
+		expect(kernel.getSnapshot().promptRequirement.kind).toBe('none');
+		expect(
+			kernel.getSnapshot().explicitChoice?.categories.marketing?.value
+		).toBe(true);
+		expect(
+			kernel.getSnapshot().explicitChoice?.categories.measurement?.value
+		).toBe(true);
+	} finally {
+		result.unmount();
+	}
+});
+
+test.each(['all', 'necessary'] as const)(
+	'%s covers a category a script adds to the configured list',
+	async (action) => {
+		const captured: { kernel?: ConsentKernel; manager?: ConsentManagerState } =
+			{};
+		const result = render(ConformanceFixture, {
+			component: 'consent-dialog',
+			onKernel: (kernel) => {
+				captured.kernel = kernel;
+			},
+			onManager: (manager) => {
+				captured.manager = manager;
+			},
+			options: {
+				consentCategories: ['necessary', 'marketing'],
+				mode: custom({ save: () => Promise.resolve({ ok: true }) }),
+				persistence: false,
+				prefetch: policyFixture(
+					{},
+					{ categories: ['marketing', 'measurement'] }
+				),
+				scripts: [
+					{ callbackOnly: true, category: 'measurement', id: 'analytics' },
+				],
+			},
+		});
+		try {
+			const manager = required(captured.manager);
+			const kernel = required(captured.kernel);
+			// The draft's displayed categories, in the fixed display order, which
+			// the bulk choice covers.
+			expect(manager.consentCategories).toEqual([
+				'necessary',
+				'measurement',
+				'marketing',
+			]);
+			await manager.saveConsents(action);
+			const { categories } = required(kernel.getSnapshot().explicitChoice);
+			expect(categories.marketing?.value).toBe(action === 'all');
+			expect(categories.measurement?.value).toBe(action === 'all');
+			expect(kernel.getSnapshot().promptRequirement.kind).toBe('none');
+		} finally {
+			result.unmount();
+		}
+	}
+);
+
+test.each(['all', 'necessary', 'custom'] as const)(
+	'with nothing declared, %s from the necessary-only dialog closes it before the save settles',
+	async (action) => {
+		const save = vi.fn(() => Promise.withResolvers<{ ok: boolean }>().promise);
+		const captured: {
+			kernel?: ConsentKernel;
+			manager?: ConsentManagerState;
+		} = {};
+		const result = render(ConformanceFixture, {
+			component: 'consent-banner',
+			onKernel: (kernel) => {
+				captured.kernel = kernel;
+			},
+			onManager: (manager) => {
+				captured.manager = manager;
+			},
+			options: {
+				disableAnimation: true,
+				mode: custom({ save }),
+				persistence: false,
+				prefetch: policyFixture(),
+			},
+		});
+		try {
+			const kernel = required(captured.kernel);
+			const manager = required(captured.manager);
+			await tick();
+			expect(kernel.getSnapshot().activeUI).toBe('banner');
+			expect(screen.getByTestId('consent-banner-root')).toBeTruthy();
+			manager.setActiveUI('dialog');
+			await tick();
+			expect(
+				document.querySelectorAll('[data-testid^="consent-widget-switch-"]')
+			).toHaveLength(1);
+			expect(
+				screen.getByTestId('consent-widget-switch-necessary')
+			).toBeTruthy();
+			void manager.saveConsents(action);
+			// The acknowledgement is recorded in the call, so the dialog
+			// closes before the request, which never settles here.
+			expect(kernel.getSnapshot().activeUI).toBe('none');
+			expect(kernel.getSnapshot().promptRequirement).toEqual({
+				kind: 'none',
+			});
+			await vi.waitFor(() => expect(save).toHaveBeenCalledOnce());
+			expect(save).toHaveBeenCalledWith(
+				expect.objectContaining({
+					confirmed: expect.objectContaining({ categories: {} }),
+				})
+			);
+			// Reopened later, the prompt is already answered: only the renewed
+			// acknowledgement tells the dialog to close before the request.
+			await new Promise((resolve) => {
+				setTimeout(resolve, 5);
+			});
+			manager.setActiveUI('dialog');
+			await tick();
+			void manager.saveConsents(action);
+			expect(kernel.getSnapshot().activeUI).toBe('none');
+			await vi.waitFor(() => expect(save).toHaveBeenCalledTimes(2));
+		} finally {
+			result.unmount();
+		}
+	}
+);

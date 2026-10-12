@@ -1,0 +1,187 @@
+---
+title: Rendering and deployment
+description: Choose how a TanStack Start app resolves consent, with an awaited or streamed root loader, a same-origin consent route, or SPA mode, prerendered pages and static hosting.
+group: frameworks
+---
+
+## Pick your rendering path
+
+Rendering choices change `src/routes/__root.tsx`. The recommended build-time
+manifest also adds a Vite plugin; the same-origin path adds one server route. Pages, components and hooks stay the same.
+
+| Your app | Root loader | Banner in the server response | Setup |
+| --- | --- | --- | --- |
+| Start server, recommended | Awaits consent from a build-time manifest | Yes | [Quickstart](/docs/frameworks/tanstack-start/quickstart) |
+| Policy changes must apply without a rebuild | Awaits consent from a runtime manifest cache | Yes | [Runtime fetching](#await-consent-in-the-loader) |
+| Runtime fetching on a serverless or often cold-started server | Streams consent | Yes, in a later chunk, before hydration | [Stream the page](#stream-the-page-while-consent-resolves) |
+| Browser must only talk to your origin | Awaits consent | Yes | [Same-origin route](#keep-consent-requests-on-your-origin) |
+| SPA mode, prerendered pages or a static host | None | No, the browser resolves consent | [No server render](#spa-mode-prerendered-pages-and-static-hosts) |
+
+## Bundle the manifest during builds
+
+The [quickstart](/docs/frameworks/tanstack-start/quickstart) and
+`examples/tanstack-start` use this setup.
+
+<include src="../../shared/build-manifests/tanstack-start.mdx" />
+
+## Await consent in the loader
+
+The [quickstart](/docs/frameworks/tanstack-start/quickstart) root loader awaits
+the consent server function. The server reads the visitor's cookie and location
+headers, resolves their policy from the build-time snapshot, and renders the
+banner into the HTML. To apply policy updates without rebuilding, pass
+`mode: manifest({ source: 'runtime' })` to `createConsentStateHandler`, with
+`manifest` from `c15t/tanstack-start`. The server then fetches the manifest
+and caches it in memory. Keep the plugin: it still supplies the backend URL.
+
+`createConsentStateHandler({ mode })` takes `manifest()`, `hosted()` or
+`offline()` from `c15t/tanstack-start`. They are plain data, so the state
+carries the mode to `ConsentRoot`, and the browser loads only that mode's
+code. A mode's `snapshot` stays on the server.
+[Consent modes](/docs/concepts/modes) compares them.
+
+With runtime fetching, the first request after a server starts has no cached
+manifest and waits for
+the backend. The server function waits at most 500 ms, then renders without
+consent UI and lets the browser resolve consent. Later requests read the cached
+manifest and add little time. Change the wait with `timeoutMs` in
+`createConsentStateHandler`.
+
+## Stream the page while consent resolves
+
+With runtime fetching, return the pending server function call instead of
+awaiting it. TanStack Router streams the promise to the browser and
+`ConsentRoot` accepts it as `state`. This root fetches the manifest at
+runtime, and its loader does not await:
+
+<include src="../../shared/examples/tanstack-start/streamed-root.mdx" />
+
+The response starts without waiting for the backend. What changes for the
+visitor:
+
+- The page streams at once. The banner follows in a later chunk of the same
+  response, before hydration. Pass `streamBanner: false` in `ConsentRoot`'s
+  `options` to mount it after hydration instead.
+- Until then every optional category is denied, so gated scripts and embeds
+  stay blocked. A returning visitor's stored choice applies when the state
+  arrives.
+- If the backend does not answer in time, the promise resolves to the cookie
+  and header state and the browser resolves consent itself.
+
+Stream when a slow or unreachable backend must never delay your page, for
+example on serverless hosts where many requests start with an empty manifest
+cache. Keep the awaited loader when the banner should arrive with the page.
+
+## Keep consent requests on your origin
+
+By default the browser calls your backend URL directly. To keep every consent
+request on your own origin, mount the consent route:
+
+<include src="../../shared/examples/tanstack-start/consent-route.mdx" />
+
+Then give the server function the route's prefix, and `proxy: true` so the
+browser saves through the route too:
+
+<include src="../../shared/examples/tanstack-start/same-origin-root.mdx" />
+
+What the route serves:
+
+| Request | Handled by |
+| --- | --- |
+| `GET /api/c15t/init` or `GET /api/c15t` | The route, from the bundled manifest, for this request's location, language and privacy signal |
+| `GET /api/c15t/manifest` | The route, serving the bundled manifest |
+| `POST /api/c15t/subjects` and other consent paths | Forwarded to your backend because `proxy: true` |
+| Any other path | `404`, so the route is never an open proxy |
+
+Keep these details right:
+
+- `createConsentStateHandler` keeps the absolute backend URL from
+  `consentManifest()` for its own requests. It never fetches under
+  `routePrefix`, so the render cannot call its own route.
+- `routePrefix` puts the prefix on the state, so `ConsentRoot` sends the
+  browser's init to `/api/c15t/init` and binds each save to the policy it
+  resolved. It also makes the page load IAB vendor lists through the route.
+  It means the same as Next.js `defineConsentConfig({ routePrefix })`, and
+  like there it has no default. `'/'` throws
+  ``@c15t/tanstack-start: `routePrefix` can't be '/': a consent route at the site root would catch every page. Use a path such as '/api/c15t'.``
+  when the handler is created. An empty string throws too, because it isn't
+  a path that starts with `/`. To run without a consent route, leave
+  `routePrefix` out.
+- `proxy: true` on `createConsentStateHandler` sends saves through the route,
+  like Next.js `defineConsentConfig({ proxy: true })`. It needs `routePrefix`,
+  and throws
+  ``@c15t/tanstack-start: `proxy` sends saves through the consent route, so it needs `routePrefix`.``
+  without it. With `hosted({ backendURL })`, the browser still goes through
+  the route; only the server asks that URL, so pass the same URL to
+  `createConsentRoute({ backendURL })`. To send only init through the route
+  and keep saves going straight to your backend, drop `proxy: true` from
+  both and keep `routePrefix`.
+- The proxy forwards the visitor's user agent, language, origin and location
+  headers so the backend's firewall sees a normal visitor. Set
+  `trustForwardedHeaders: true` on `createConsentRoute` only when your
+  host overwrites `x-forwarded-for`, as Vercel and Cloudflare do. Otherwise a
+  visitor could send a false IP address to your backend.
+
+## SPA mode, prerendered pages and static hosts
+
+A prerendered page is the same HTML for every visitor, so it cannot contain one
+visitor's consent. Drop the loader, pass an empty `state`, and let the browser
+resolve consent from the backend URL `consentManifest()` read:
+
+<include src="../../shared/examples/tanstack-start/static-root.mdx" />
+
+- `state={{}}` means no server state. The page renders without consent UI and
+  every optional category stays denied until the browser has the policy.
+  `ConsentRoot` takes the backend URL from `consentManifest()`; without the
+  plugin, an empty state throws, because there is no backend to ask. Pass
+  `state={{ mode: offline() }}` to resolve without one.
+- The browser sends its `/init` request straight to your backend URL, so the
+  host needs no server route or server function. Add the site's origin to
+  your Inth project's trusted origins.
+- `consentPrefetchHead` is optional. It adds an inline script to `<head>` that
+  starts the `/init` request before the app's JavaScript loads, and
+  `ConsentRoot` uses that response instead of sending its own. If c15t
+  assigns a banner experiment's arm, pass the experiment too:
+  `consentPrefetchHead({ backendURL, experiment })`. Without it,
+  `ConsentRoot` sends a second `/init` for visitors who have not chosen yet.
+
+Drop the consent loader from a prerendered root. A loader that stays anyway
+is safe: while TanStack Start prerenders (`TSS_PRERENDERING`),
+`resolveConsent` treats the render as shared. It reads no cookie or location
+header, returns no stored consent, clock or GPC signal, and makes no manifest
+request, so no build-time state is baked into the HTML. Pass `shared: true`
+to force the same for other HTML you cache for every visitor. To prerender
+every page, configure the Vite plugin as
+`tanstackStart({ prerender: { enabled: true } })` and serve the output as
+static files. SPA mode renders the same root route
+into its shell.
+
+`c15t/tanstack-start/static` is a lower-level alternative that bundles the
+manifest at build time. `createStaticConsentResolver({ manifest, geoURL })`
+gives first paint the manifest's unknown-location policy, its fallback rule
+or else its default rule, then the visitor's regional policy once `geoURL`
+answers. You write the consent transport yourself, and new policy needs a
+rebuild. A manifest with neither rule resolves to a failed
+`insufficient-inputs` result.
+
+## Run on hosts that stop work after the response
+
+After a render, the server function reports the visitor's session to the
+backend in the background. With runtime fetching, the manifest cache also
+refreshes in the background after its `s-maxage`. Some serverless runtimes
+stop background work once the response is sent. Pass your
+platform's `waitUntil` as `onBackgroundRevalidate` to
+`createConsentStateHandler` and `createConsentRoute` so that work
+finishes. The promise never rejects.
+
+## Check the rendering path
+
+1. **View the page source** in a private window under a policy that asks for a
+   choice. An awaited loader includes an element with
+   `data-testid="consent-banner-root"`, and so does a streamed loader. A
+   prerendered page does not.
+2. **Filter DevTools Network by `subjects`** and reject. The `POST` goes to
+   `/api/c15t/subjects` on your origin with the same-origin route, and to your
+   backend URL otherwise.
+3. **Vendor requests** stay absent until you allow their category, on every
+   path.

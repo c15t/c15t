@@ -1,0 +1,77 @@
+---
+title: DevTools
+description: Mount the c15t DevTools panel in a JavaScript app to inspect consent, scripts, policy and events for @c15t/browser, a consent runtime or a kernel.
+group: frameworks
+---
+
+## Mount the panel with @c15t/browser
+
+`@c15t/browser` includes the panel. Mount it against the client from `init()`,
+behind your bundler's development flag:
+
+<include src="../../shared/examples/javascript/devtools.mdx" />
+
+The panel reads the client's kernel and the categories its dialog offers.
+`defaultTab` picks the first tab: `consents`, `scripts`, `location`, `policy`,
+`iab`, `events` or `actions`. The Location tab changes the country, region,
+language and GPC signal and runs the policy again, so you can check what a
+visitor elsewhere gets.
+
+## Open DevTools from the trigger
+
+With `ui.trigger` on, the stock trigger shows a DevTools button next to its own
+while the panel is mounted, and the panel hides its floating launcher, so one
+control sits in the corner. The DevTools button sits at the end farthest from
+the corner. The panel opens just past the trigger, aligned with its outer
+edge, and follows it when a visitor drags the trigger to another corner.
+`mountDevTools` and `mountConsentUI` can run in either order.
+
+The trigger hides while the banner or the dialog is open. The panel then shows
+its own launcher in its `position` corner until the trigger returns.
+`destroy()` on the panel turns the trigger back into a single button. A panel
+mounted with `embedded: true` keeps the trigger as it is.
+
+## Mount the panel with a runtime or kernel
+
+For [`createConsentRuntime`](/docs/frameworks/javascript/headless) or a kernel
+you created yourself, install the panel on its own:
+
+<CommandTabs command="c15t @c15t/dev-tools" mode="install" />
+
+Pass the same kernel your consent UI and script loader use:
+
+<include src="../../shared/examples/javascript/runtime-devtools.mdx" />
+
+`kernel` is `runtime.kernel`. Pass `getConsentCategories` with the categories
+your UI displays if they differ from the policy's. Call `tools.destroy()` from
+your app's teardown; the example uses Vite's hot-module disposal. Destroying
+the panel does not dispose the kernel or change consent.
+
+To host the panel inside another devtools UI, pass that UI's element as
+`container` and set `embedded: true`. The panel then fills the container,
+starts open, and hides its launcher, header and close button. The container can
+belong to a same-origin iframe; the panel still inspects the page that owns the
+kernel.
+
+## Keep it out of production
+
+`import.meta.env.DEV` is Vite's development flag. Webpack and other bundlers
+replace `process.env.NODE_ENV` instead; neither is a standard browser global.
+The dynamic import behind the flag keeps the panel out of your production
+bundle. The panel shows internal state, so never ship it to visitors.
+
+The CLI's plain JavaScript scaffold adds an unconditional `createDevTools` call
+when you opt in. Move it behind your development flag before you ship.
+
+## Inspect scripts and IAB
+
+The Scripts tab reads loaders registered with the supplied kernel. It shows
+blocked, loading, loaded, failed, and retained scripts. The separate page scan
+shows DOM resources, not proof that they loaded successfully or passed a
+consent gate.
+
+The IAB tab uses the IAB module already attached to that kernel. Vendor,
+purpose, legitimate-interest, and special-feature editing becomes available
+under an IAB policy after the module and vendor list initialize. DevTools does
+not initialize a second CMP. Toggles change live choices; Save IAB consent
+generates the TC string and runs the configured save transport.

@@ -1,0 +1,19 @@
+{
+	"name": "@c15t/doc-snippets-nuxt",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"check-types": "nuxt typecheck"
+	},
+	"dependencies": {
+		"@c15t/backend": "workspace:*",
+		"@c15t/integrations": "workspace:*",
+		"c15t": "workspace:*",
+		"h3": "1.15.11",
+		"nuxt": "^4.5.1"
+	},
+	"devDependencies": {
+		"typescript": "6.0.3",
+		"vue-tsc": "^3.3.6"
+	}
+}

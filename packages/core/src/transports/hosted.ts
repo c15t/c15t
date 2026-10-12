@@ -1,0 +1,395 @@
+/**
+ * Hosted transport — talks to a c15t backend's `/init` and `/subjects`
+ * endpoints.
+ *
+ * Isomorphic: works in Node, RSC, edge, and browser. No top-level
+ * `window` / `document` access. `fetch` is injectable for tests and
+ * for consumers whose runtime has a specific fetch (Node 18 is fine
+ * globally; Cloudflare Workers is fine globally; some edge hosts may
+ * require a specific binding).
+ *
+ * Every request declares the policy contract this client reads, and
+ * `/init` responses are interpreted by what the producer declared back: a
+ * negotiated producer's `policyResolution` is passed through raw for the
+ * kernel's strict reader. Producers without a versioned wire fail safely. A negotiated producer
+ * whose response lacks the field is a failed payload, never a permissive
+ * fallback.
+ *
+ * Beyond `init`, `save` and `identify`, `loadSubjectRecord` carries the v3
+ * record boundary: it reads the backend's merged receipts for a subject as
+ * hydration records. GPC is a live signal and is never sent as a record.
+ *
+ * Identity before a server subject exists is kernel-local. `identify`
+ * without a subject resolves at once and sends nothing: the transport keeps
+ * no pending promise for a subject that may never be created, and never
+ * manufactures a consent to create one. The next legitimate save carries
+ * the identity in its body and the backend links it when it creates the
+ * subject. Local identification is not server persistence and not trusted
+ * cross-profile authority; only an authenticated link is.
+ *
+ * The subject id the kernel passes is the only subject this transport acts
+ * on. It remembers no subject of its own: after the kernel clears its data a
+ * later identify with no subject must not reach the subject an earlier
+ * save established.
+ *
+ * Out of scope for this MVP (deferred to follow-ups):
+ * - Response caching / revalidation
+ * - Translation bundle fetching
+ * - Retry / backoff
+ */
+import {
+	CONSENT_REQUEST_HEADER_NAMES,
+	extractConsentRequestInputs,
+} from '@c15t/schema/types';
+import type { InitOutput } from '@c15t/schema/types';
+
+import { consumePrefetchedInitialData } from '../libs/prefetch/prefetch';
+import { DEFAULT_INIT_CREDENTIALS } from '../libs/request-context-headers';
+import type { SSRInitialData } from '../options/ssr';
+import type { KernelOverrides, InitContext } from '../types';
+import {
+	decisionInputsMatchOverrides,
+	gpcFromHeaders,
+	rememberDecisionInputs,
+} from './decision-inputs';
+import type { RememberedDecisionInputs } from './decision-inputs';
+import { createHostedInitRequest } from './hosted-init-request';
+import {
+	createHostedRecordTransport,
+	resolveFetch,
+	trimSlash,
+} from './hosted-records';
+import type { HostedRecordTransport } from './hosted-records';
+import { mapInitOutputToInitResponse } from './init-output';
+import type { TransportInitResponse } from './init-output';
+import { readProducerPolicyContract } from './version-header';
+
+export interface HostedTransportOptions {
+	/**
+	 * Backend URL. Can be relative (`/api/c15t`) or absolute.
+	 * Trailing slashes are stripped.
+	 */
+	backendURL: string;
+
+	/**
+	 * URL used for `GET /init`. Defaults to `${backendURL}/init`.
+	 *
+	 * Use this to point initialization at a same-origin server route while
+	 * keeping consent saves on `${backendURL}/subjects`.
+	 */
+	initURL?: string;
+
+	/**
+	 * Assert the resolved policy decision on `POST /subjects`.
+	 *
+	 * When enabled, `init` remembers the policy id, fingerprint, geo,
+	 * language, and GPC signal it resolved, and `save` sends them whenever
+	 * the payload has no signed `policySnapshotToken`, so the backend can
+	 * reject a save made against a stale policy instead of recording it
+	 * unbound. Enable this when `initURL` points at a same-origin route that
+	 * resolves init from a manifest: manifest resolution never issues a
+	 * snapshot token.
+	 *
+	 * @defaultValue false
+	 */
+	assertDecisionInputs?: boolean;
+
+	/**
+	 * Fetch implementation. Defaults to `globalThis.fetch`.
+	 * Inject for tests, or to wire Cloudflare Worker bindings.
+	 */
+	fetch?: typeof globalThis.fetch;
+
+	/**
+	 * An init response that was already requested, for example by an inline
+	 * prefetch script that ran before hydration. The first `init()` consumes
+	 * it instead of calling `initURL`, and still records the decision inputs
+	 * when `assertDecisionInputs` is set, so the first save stays bound to
+	 * that decision. A rejected or empty promise falls back to the fetch.
+	 */
+	initialData?: Promise<SSRInitialData | undefined>;
+
+	/**
+	 * Whether the first `init()` may use the response an inline `/init`
+	 * script left on the page. Defaults to `true` unless `fetch` is set: the
+	 * script sends `/init` with the global `fetch`, so a custom `fetch` that
+	 * signs, routes or instruments requests would never see it.
+	 * @internal
+	 */
+	pagePrefetch?: boolean;
+
+	/**
+	 * Decision inputs a server-side prefetch already resolved. Seeds the
+	 * assertion `POST /subjects` carries when `assertDecisionInputs` is set,
+	 * so a save made before the first client `init()` resolves is still
+	 * bound to the policy the server rendered. `init()` replaces the seed.
+	 */
+	decisionInputs?: RememberedDecisionInputs;
+
+	/**
+	 * Request headers that may be passed through to `GET /init`.
+	 *
+	 * Only the backend-recognized init headers are forwarded:
+	 * `accept-language`, supported geo CDN headers, and `sec-gpc`.
+	 * Other names are ignored so callers do not accidentally forward
+	 * arbitrary request header bags.
+	 *
+	 * Meant for server-side callers forwarding a visitor's request. In a
+	 * browser, any of these except `accept-language` makes a cross-origin
+	 * `/init` a non-simple CORS request, which costs an `OPTIONS`
+	 * preflight round trip before the banner can show. Use the kernel's
+	 * `overrides` instead: they travel in the query string.
+	 */
+	headers?: Record<string, string>;
+
+	/**
+	 * Fetch credentials mode for every request.
+	 *
+	 * When unset, `GET /init` uses `'same-origin'`: it reads and sets no
+	 * cookie, and a credential-less cross-origin request can be answered
+	 * with `Access-Control-Allow-Origin: *`. Saves and record reads use
+	 * `'include'` so the backend can set and read consent cookies. Set
+	 * `'omit'` for cookie-less modes.
+	 */
+	credentials?: RequestCredentials;
+
+	/**
+	 * Domain sent to POST /subjects. Defaults to the browser hostname, or
+	 * the backend URL hostname for absolute URLs in server runtimes.
+	 */
+	domain?: string;
+
+	/**
+	 * Clock used to validate records read from the backend. Defaults to
+	 * `Date.now`. Inject for deterministic tests.
+	 */
+	now?: () => number;
+}
+
+/**
+ * The hosted transport's full surface: the record methods of
+ * {@link HostedRecordTransport} plus `init`.
+ */
+export interface HostedKernelTransport extends HostedRecordTransport {
+	init: (ctx: InitContext) => Promise<TransportInitResponse>;
+}
+
+const INIT_HEADER_ALLOWLIST = new Set<string>(CONSENT_REQUEST_HEADER_NAMES);
+
+/**
+ * Whether an early response answers this init: it has a payload and its
+ * request carried this init's journey, the same id and stored flag, or none
+ * for none. Otherwise the saves that follow would carry an id no report
+ * named. Initial data that doesn't say which journey it carried still counts.
+ * The scope may differ: an early script can't know the app's `journey`
+ * option on a tab's first page, and the runtime continues its id either way.
+ *
+ * When the early request says which experiment arm it carried, it must be
+ * this init's arm, or none for none: the backend counts the visit toward
+ * the arm `/init` names.
+ */
+const usablePrefetch = function usablePrefetch(
+	prefetched: SSRInitialData | undefined,
+	{ experiment, journey }: Pick<InitContext, 'experiment' | 'journey'>
+): prefetched is SSRInitialData & { init: InitOutput } {
+	if (!prefetched?.init) {
+		return false;
+	}
+	const sentArm = prefetched.metadata?.experiment;
+	if (
+		sentArm !== undefined &&
+		(sentArm?.id !== experiment?.id || sentArm?.arm !== experiment?.arm)
+	) {
+		return false;
+	}
+	const sent = prefetched.metadata?.journey;
+	if (sent === undefined) {
+		return true;
+	}
+	// An init without a journey, such as `journey: false`, can't use a
+	// request that sent one: the backend would record a journey the app
+	// turned off.
+	if (!journey) {
+		return !sent;
+	}
+	return Boolean(
+		sent && sent.id === journey.id && sent.storedChoice === journey.storedChoice
+	);
+};
+
+const buildAllowedInitHeaders = function buildAllowedInitHeaders(
+	headers: Record<string, string> | undefined
+): Record<string, string> {
+	const allowed: Record<string, string> = {};
+	if (!headers) {
+		return allowed;
+	}
+	for (const [name, value] of Object.entries(headers)) {
+		const normalizedName = name.toLowerCase();
+		if (INIT_HEADER_ALLOWLIST.has(normalizedName)) {
+			allowed[normalizedName] = value;
+		}
+	}
+	return allowed;
+};
+
+/**
+ * Build a hosted transport. The returned object is plain — no listeners,
+ * no caches, and no state beyond the decision inputs remembered when
+ * `assertDecisionInputs` is set. Safe to create per request.
+ */
+export const createHostedTransport = function createHostedTransport(
+	options: HostedTransportOptions
+): HostedKernelTransport {
+	const base = trimSlash(options.backendURL);
+	const initURL = options.initURL ?? `${base}/init`;
+	const fetchImpl = resolveFetch(options.fetch);
+	const initHeaders = buildAllowedInitHeaders(options.headers);
+	const credentials = options.credentials ?? 'include';
+	const initCredentials = options.credentials ?? DEFAULT_INIT_CREDENTIALS;
+	let lastDecisionInputs = options.assertDecisionInputs
+		? options.decisionInputs
+		: undefined;
+
+	// Overlapping inits: the kernel keeps only the latest response, so only
+	// the latest attempt may update the assertion state.
+	let initGeneration = 0;
+	/** Overrides the previous init ran with; `undefined` before the first. */
+	let lastInitOverrides: KernelOverrides | undefined;
+
+	const sameOverrides = function sameOverrides(
+		left: KernelOverrides,
+		right: KernelOverrides
+	): boolean {
+		return (
+			left.country === right.country &&
+			left.region === right.region &&
+			left.language === right.language &&
+			left.gpc === right.gpc
+		);
+	};
+
+	let pendingInit: Promise<TransportInitResponse> | undefined;
+	let { initialData } = options;
+	const pagePrefetch = options.pagePrefetch ?? options.fetch === undefined;
+
+	const prepareInit = (ctx: InitContext) => {
+		if (options.assertDecisionInputs && lastDecisionInputs) {
+			const stale = lastInitOverrides
+				? !sameOverrides(lastInitOverrides, ctx.overrides)
+				: !decisionInputsMatchOverrides(lastDecisionInputs, ctx.overrides);
+			if (stale) {
+				lastDecisionInputs = undefined;
+			}
+		}
+		lastInitOverrides = { ...ctx.overrides };
+	};
+
+	const runInit = async (ctx: InitContext): Promise<TransportInitResponse> => {
+		initGeneration += 1;
+		const generation = initGeneration;
+		prepareInit(ctx);
+		const request = createHostedInitRequest({
+			backendURL: base,
+			credentials: initCredentials,
+			experiment: ctx.experiment,
+			headers: initHeaders,
+			initURL,
+			journey: ctx.journey,
+			overrides: ctx.overrides,
+		});
+		const { requestHeaders } = request;
+		const supplied =
+			initialData ??
+			(options.initURL || !pagePrefetch
+				? undefined
+				: consumePrefetchedInitialData({
+						backendURL: base,
+						credentials: initCredentials,
+						overrides: {
+							...extractConsentRequestInputs(new Headers(requestHeaders)),
+							...ctx.overrides,
+						},
+					}));
+		initialData = undefined;
+		// Awaited only when there is one: with nothing prefetched, `fetch`
+		// starts within this call, so a caller that sends init early (a
+		// provider's first render) gets the request out at that moment.
+		const prefetched: SSRInitialData | undefined =
+			supplied && (await supplied.catch(() => undefined));
+		if (usablePrefetch(prefetched, ctx)) {
+			const headers = { ...requestHeaders };
+			const gpc = prefetched.metadata?.requestContext?.gpc;
+			if (gpc !== undefined) {
+				headers['sec-gpc'] = gpc ? '1' : '0';
+			}
+			if (options.assertDecisionInputs && generation === initGeneration) {
+				lastDecisionInputs = rememberDecisionInputs(
+					prefetched.init,
+					gpcFromHeaders(headers)
+				);
+			}
+			const producerHeaders = new Headers();
+			if (typeof prefetched.producerPolicyContract === 'string') {
+				producerHeaders.set(
+					'x-c15t-policy-contract',
+					prefetched.producerPolicyContract
+				);
+			}
+			return mapInitOutputToInitResponse(prefetched.init, headers, {
+				producerContract: readProducerPolicyContract(producerHeaders),
+			});
+		}
+		const response = await fetchImpl(request.url, request.init);
+
+		if (!response.ok) {
+			throw new Error(
+				`c15t hosted transport: /init responded ${response.status} ${response.statusText}`
+			);
+		}
+
+		const payload = (await response.json()) as InitOutput;
+		if (options.assertDecisionInputs && generation === initGeneration) {
+			lastDecisionInputs = rememberDecisionInputs(
+				payload,
+				gpcFromHeaders(requestHeaders) ??
+					payload.resolvedPrivacySignals?.gpc ??
+					(payload as InitOutput & { resolvedOverrides?: { gpc?: boolean } })
+						.resolvedOverrides?.gpc
+			);
+		}
+		return mapInitOutputToInitResponse(payload, requestHeaders, {
+			producerContract: readProducerPolicyContract(response.headers),
+		});
+	};
+
+	const records = createHostedRecordTransport(
+		{
+			backendURL: base,
+			credentials,
+			domain: options.domain,
+			fetch: fetchImpl,
+			now: options.now,
+		},
+		{
+			inputs: () => lastDecisionInputs,
+			pending: () => pendingInit,
+			required: options.assertDecisionInputs === true,
+		}
+	);
+
+	return {
+		...records,
+		async init(ctx: InitContext): Promise<TransportInitResponse> {
+			const run = runInit(ctx);
+			pendingInit = run;
+			try {
+				return await run;
+			} finally {
+				if (pendingInit === run) {
+					pendingInit = undefined;
+				}
+			}
+		},
+	};
+};

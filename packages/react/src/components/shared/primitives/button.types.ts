@@ -1,5 +1,7 @@
+import type { ConsentComponentSlotKey } from '@c15t/schema/config';
 import type { ButtonMode } from '@c15t/ui/styles/primitives';
 import type { ComponentRef, HTMLAttributes, MouseEvent } from 'react';
+
 import type { CSSVariables, ExtendThemeKeys } from '~/types/theme';
 
 export type ConsentButtonElement = ComponentRef<'button'>;
@@ -10,8 +12,10 @@ export type ConsentButtonElement = ComponentRef<'button'>;
  * @public
  */
 export interface ConsentButtonProps
-	extends Omit<HTMLAttributes<HTMLButtonElement>, 'style'>,
+	extends
+		Omit<HTMLAttributes<HTMLButtonElement>, 'style'>,
 		ExtendThemeKeys<CSSVariables> {
+	slotKey?: ConsentComponentSlotKey;
 	/**
 	 * @remarks
 	 * When true, the button will not apply any styles.
@@ -44,7 +48,7 @@ export interface ConsentButtonProps
 	 * @remarks
 	 * Semantic consent action type for theme-based button styling.
 	 */
-	consentAction?: 'accept' | 'reject' | 'customize';
+	consentAction?: 'accept' | 'reject' | 'customize' | 'dismiss' | 'save';
 	/**
 	 * @remarks
 	 * Whether this button is the primary action for the current surface.

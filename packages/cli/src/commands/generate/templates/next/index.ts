@@ -5,8 +5,10 @@
  */
 
 import path from 'node:path';
+
 import type { AvailablePackages } from '~/context/framework-detection';
 import { findLayoutFile } from '~/detection/layout';
+
 import type { ExpandedTheme, UIStyle } from '../../prompts';
 import { updateAppLayout } from './app/layout';
 import { updatePagesLayout } from './pages/layout';
@@ -15,7 +17,6 @@ interface UpdateNextLayoutOptions {
 	projectRoot: string;
 	mode: string;
 	backendURL?: string;
-	useEnvFile?: boolean;
 	pkg: AvailablePackages;
 	proxyNextjs?: boolean;
 	enableSSR?: boolean;
@@ -27,7 +28,7 @@ interface UpdateNextLayoutOptions {
 
 type NextStructure = 'app' | 'pages' | null;
 
-export async function updateNextLayout(
+export const updateNextLayout = async function updateNextLayout(
 	options: UpdateNextLayoutOptions
 ): Promise<{
 	updated: boolean;
@@ -44,10 +45,10 @@ export async function updateNextLayout(
 
 	if (!layoutDetection) {
 		return {
-			updated: false,
-			filePath: null,
 			alreadyModified: false,
+			filePath: null,
 			structureType: null,
+			updated: false,
 		};
 	}
 
@@ -75,4 +76,4 @@ export async function updateNextLayout(
 		...result,
 		structureType,
 	};
-}
+};

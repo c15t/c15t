@@ -1,0 +1,76 @@
+/**
+ * @vitest-environment jsdom
+ */
+
+import { describe, expect, it } from 'vitest';
+
+import {
+	deniedConsents,
+	grantedMeasurementConsents,
+	installHeadProbe,
+	loadScripts,
+	registerVendorContractCleanup,
+} from './e2e-test-utils';
+import type { TestWindow } from './e2e-test-utils';
+import { databuddy } from './vendors/analytics/databuddy';
+
+describe('databuddy contract', () => {
+	registerVendorContractCleanup();
+
+	it('boots with denied defaults and then flips to granted on consent change', () => {
+		const configWhenGranted = {
+			clientId: 'db-contract',
+			disabled: false,
+			trackScreenViews: true,
+		};
+		const configWhenDenied = {
+			clientId: 'db-contract',
+			disabled: true,
+		};
+		let initialConfig: Record<string, unknown> | undefined;
+		let attributes: Record<string, string | null> | undefined;
+
+		installHeadProbe((node, win) => {
+			if (!node.src.includes('cdn.databuddy.cc/databuddy.js')) {
+				return;
+			}
+
+			initialConfig = { ...(win.databuddyConfig ?? {}) };
+			attributes = {
+				apiUrl: node.getAttribute('data-api-url'),
+				clientId: node.getAttribute('data-client-id'),
+				crossorigin: node.getAttribute('crossorigin'),
+			};
+
+			win.databuddy = {
+				options: {},
+			};
+
+			node.dispatchEvent(new Event('load'));
+		});
+
+		const script = {
+			...databuddy({
+				clientId: 'db-contract',
+				configWhenDenied,
+				configWhenGranted,
+			}),
+			id: 'databuddy-contract',
+		};
+
+		loadScripts([script], deniedConsents);
+
+		expect(initialConfig).toEqual(configWhenDenied);
+		expect(attributes).toEqual({
+			apiUrl: 'https://basket.databuddy.cc',
+			clientId: 'db-contract',
+			crossorigin: 'anonymous',
+		});
+		expect((window as TestWindow).databuddy?.options.disabled).toBe(true);
+
+		loadScripts([script], grantedMeasurementConsents);
+
+		expect((window as TestWindow).databuddyConfig).toEqual(configWhenGranted);
+		expect((window as TestWindow).databuddy?.options.disabled).toBe(false);
+	});
+});

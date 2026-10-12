@@ -1,14 +1,20 @@
-import type { AllConsentNames } from 'c15t';
-import { forwardRef, type MouseEvent, useCallback } from 'react';
-import { useConsentTracking } from '~/context/consent-tracking-context';
-import { useConsentManager } from '~/hooks/use-consent-manager';
-import { useStyles } from '~/hooks/use-styles';
+import type { AllConsentNames } from '@c15t/core';
+import { EARLY_TAP_OPT_OUT } from '@c15t/core/surface-actions';
+import { forwardRef as createForwardRef, useCallback } from 'react';
+import type { FocusEvent, MouseEvent, PointerEvent } from 'react';
+
+import { useIdleDialogWarming, warmDialogChunk } from '~/chunk-warming';
+import {
+	toSaveUISource,
+	useConsentTracking,
+} from '~/context/consent-tracking-context';
+import { useConsentSaveAction } from '~/draft-context';
+import { useSetActiveUI, useDismissNotice } from '~/hooks';
 import { useTheme } from '~/hooks/use-theme';
-import type {
-	AllThemeKeys,
-	CSSPropertiesWithVars,
-	CSSVariables,
-} from '~/types/theme';
+import type { CSSPropertiesWithVars, CSSVariables } from '~/types/theme';
+import { useUIConfig } from '~/ui-config-context';
+import { getSlotProps, mergeSlotProps } from '~/utils/merge-slot-props';
+
 import { Slot } from '../libs/slot';
 import * as Button from '../ui/button';
 import type { ButtonVariantsProps } from '../ui/button/button';
@@ -24,9 +30,90 @@ const NON_DOM_PROPS = [
 	'neutral',
 	'consentAction',
 	'isPrimary',
+	'performDefaultAction',
 ] as const;
 
-type ConsentActionThemeKey = 'accept' | 'reject' | 'customize';
+type ConsentActionThemeKey =
+	| 'accept'
+	| 'reject'
+	| 'customize'
+	| 'dismiss'
+	| 'save';
+
+/**
+ * The `data-action` the banner's pre-hydration script replays for each
+ * button action. It records the choice from that attribute alone.
+ */
+const EARLY_TAP_ACTIONS: Partial<Record<string, string>> = {
+	'accept-consent': 'accept',
+	'dismiss-notice': 'dismiss',
+	'open-consent-dialog': 'customize',
+	'reject-consent': 'reject',
+};
+
+/**
+ * Whether the pre-hydration script must leave this button's taps alone.
+ * It replays from `data-action` alone, so a button whose action does not
+ * match its `data-action`, that skips the default action, or whose click
+ * does more than the stock action opts out. The replay then never records
+ * a choice the hydrated button would not. An `asChild` element can carry
+ * its own `data-action`, so it always opts out.
+ */
+const skipsEarlyTap = function skipsEarlyTap(params: {
+	action: string;
+	asChild: boolean | undefined;
+	dataAction: unknown;
+	ownsClick: boolean;
+	performDefaultAction: boolean;
+}): boolean {
+	const { action, dataAction, ownsClick, performDefaultAction } = params;
+	const replays =
+		!ownsClick &&
+		(performDefaultAction || action === 'open-consent-dialog') &&
+		EARLY_TAP_ACTIONS[action] === dataAction;
+	return (
+		!replays &&
+		(params.asChild === true ||
+			Object.values(EARLY_TAP_ACTIONS).includes(String(dataAction)))
+	);
+};
+
+/**
+ * Whether a click does more than the stock action. A click handler can veto
+ * it. An `asChild` element brings its own `data-action`, handlers, and
+ * perhaps a link to follow. A submit or reset button acts on its form. The
+ * script stops the click but not its default, so a link or form would leave
+ * the page before the replay.
+ */
+const ownsClick = function ownsClick(params: {
+	asChild: boolean | undefined;
+	onClick: unknown;
+	type: unknown;
+}): boolean {
+	return (
+		params.onClick !== undefined ||
+		params.asChild === true ||
+		params.type === 'submit' ||
+		params.type === 'reset'
+	);
+};
+
+/**
+ * The value `key` renders with after the button's prop spreads. As in JSX,
+ * the last layer that has the key wins, even with `undefined`.
+ */
+const renderedProp = function renderedProp(
+	key: string,
+	layers: readonly Readonly<Record<string, unknown>>[]
+): unknown {
+	let value: unknown;
+	for (const layer of layers) {
+		if (key in layer) {
+			value = layer[key];
+		}
+	}
+	return value;
+};
 
 /**
  * Resolves the final variant and mode for a consent button.
@@ -42,56 +129,46 @@ type ConsentActionThemeKey = 'accept' | 'reject' | 'customize';
  * Resolution order:
  * 1. Explicit `variant` / `mode` props
  * 2. `theme.consentActions[consentAction]`
- * 3. `theme.consentActions.primary` (when the policy marks the action primary)
+ * 3. `theme.consentActions.primary` when the action is primary
  * 4. `theme.consentActions.default`
- * 5. `params.fallback`, or the hardcoded fallback based on `isPrimary`
+ * 5. Hardcoded fallback based on `isPrimary`
  */
-export function resolveConsentButtonStyle(params: {
+const resolveConsentButtonStyle = function resolveConsentButtonStyle(params: {
 	consentAction?: ConsentActionThemeKey;
 	isPrimary?: boolean;
 	theme?: ReturnType<typeof useTheme>['theme'];
 	variant?: ButtonVariantsProps['variant'];
 	mode?: ButtonVariantsProps['mode'];
-	fallback?: {
-		variant: NonNullable<ButtonVariantsProps['variant']>;
-		mode: NonNullable<ButtonVariantsProps['mode']>;
-	};
 }) {
 	if (params.variant || params.mode) {
 		return {
-			variant: params.variant ?? 'neutral',
 			mode: params.mode ?? 'stroke',
+			variant: params.variant ?? 'neutral',
 		};
 	}
 
-	const defaultStyle =
-		params.fallback ??
-		(params.isPrimary
-			? { variant: 'primary' as const, mode: 'stroke' as const }
-			: { variant: 'neutral' as const, mode: 'stroke' as const });
-	const themedDefault = params.theme?.consentActions?.default ?? {};
-	// The policy decides which action is primary; the theme decides how a
-	// primary action looks.
-	const themedPrimary = params.isPrimary
-		? (params.theme?.consentActions?.primary ?? {})
-		: {};
-	const themedAction = params.consentAction
-		? params.theme?.consentActions?.[params.consentAction]
-		: undefined;
+	const consentActions = params.theme?.consentActions;
+	// `save` has no theme key; every other action can be themed individually.
+	const themedAction =
+		params.consentAction && params.consentAction !== 'save'
+			? consentActions?.[params.consentAction]
+			: undefined;
+	// Most specific first; the last entry is the hardcoded fallback.
+	const layers = [
+		themedAction,
+		params.isPrimary ? consentActions?.primary : undefined,
+		consentActions?.default,
+		{
+			mode: 'stroke' as const,
+			variant: params.isPrimary ? ('primary' as const) : ('neutral' as const),
+		},
+	];
 
 	return {
-		variant:
-			themedAction?.variant ??
-			themedPrimary.variant ??
-			themedDefault.variant ??
-			defaultStyle.variant,
-		mode:
-			themedAction?.mode ??
-			themedPrimary.mode ??
-			themedDefault.mode ??
-			defaultStyle.mode,
+		mode: layers.find((layer) => layer?.mode)?.mode ?? 'stroke',
+		variant: layers.find((layer) => layer?.variant)?.variant ?? 'neutral',
 	};
-}
+};
 
 /**
  * Button component that allows users to reject non-essential cookies.
@@ -108,7 +185,7 @@ export function resolveConsentButtonStyle(params: {
  *
  * @public
  */
-export const ConsentButton = forwardRef<
+export const ConsentButton = createForwardRef<
 	ConsentButtonElement,
 	ConsentButtonProps &
 		ButtonVariantsProps & {
@@ -119,10 +196,12 @@ export const ConsentButton = forwardRef<
 				| 'reject-consent'
 				| 'custom-consent'
 				| 'open-consent-dialog'
-				| 'set-consent';
+				| 'set-consent'
+				| 'dismiss-notice';
 			category?: AllConsentNames;
 			closeConsentDialog?: boolean;
 			closeConsentBanner?: boolean;
+			performDefaultAction?: boolean;
 		}
 >(
 	(
@@ -132,7 +211,7 @@ export const ConsentButton = forwardRef<
 			style,
 			noStyle,
 			action,
-			themeKey,
+			slotKey,
 			baseClassName,
 			variant,
 			mode,
@@ -140,48 +219,57 @@ export const ConsentButton = forwardRef<
 			consentAction,
 			isPrimary,
 			onClick: forwardedOnClick,
+			onFocus: forwardedOnFocus,
+			onPointerEnter: forwardedOnPointerEnter,
 			closeConsentBanner = false,
 			closeConsentDialog = false,
+			performDefaultAction = true,
 			category,
 			...props
 		},
 		ref
 	) => {
-		const { saveConsents, setActiveUI, setConsent } = useConsentManager();
-		const { uiSource } = useConsentTracking();
+		const saveKernelConsents = useConsentSaveAction();
+		// The nearest surface root declares which UI collected the consent.
+		const { uiSource: trackedUISource } = useConsentTracking();
+		const saveConsents = useCallback(
+			(input?: Parameters<typeof saveKernelConsents>[0]) =>
+				saveKernelConsents(input, toSaveUISource(trackedUISource)),
+			[saveKernelConsents, trackedUISource]
+		);
+		const setActiveUI = useSetActiveUI();
+		const dismissNotice = useDismissNotice();
 		const { noStyle: contextNoStyle, theme } = useTheme();
+		const { components } = useUIConfig();
 		const resolvedButtonStyle = resolveConsentButtonStyle({
 			consentAction,
 			isPrimary,
+			mode,
 			theme,
 			variant,
-			mode,
 		});
 
-		const defaultThemeKey =
+		const defaultSlotKey =
 			resolvedButtonStyle.variant === 'primary'
-				? 'buttonPrimary'
-				: 'buttonSecondary';
+				? 'button.primary'
+				: 'button.secondary';
 
-		const buttonStyle = useStyles(
-			(themeKey as AllThemeKeys) ?? defaultThemeKey,
-			{
-				baseClassName: [
-					!(contextNoStyle || noStyle) &&
-						Button.buttonVariants({
-							variant: resolvedButtonStyle.variant,
-							mode: resolvedButtonStyle.mode,
-							size,
-						}).root(),
-				],
-				style: {
-					...(style as CSSPropertiesWithVars<CSSVariables>),
-				},
-				className: forwardedClassName,
-				noStyle: contextNoStyle || noStyle,
-			}
-		);
-		const { noStyle: _resolvedNoStyle, ...buttonStyleProps } = buttonStyle;
+		const slotProps = getSlotProps(components, slotKey ?? defaultSlotKey);
+		const buttonStyleProps = mergeSlotProps(slotProps, {
+			baseClassName: [
+				Button.buttonVariants({
+					mode: resolvedButtonStyle.mode,
+					size,
+					variant: resolvedButtonStyle.variant,
+				}).root(),
+				baseClassName,
+			],
+			className: forwardedClassName,
+			noStyle: contextNoStyle || noStyle,
+			style: {
+				...(style as CSSPropertiesWithVars<CSSVariables>),
+			},
+		});
 
 		// Need to know what category to set
 		if (!category && action === 'set-consent') {
@@ -190,8 +278,16 @@ export const ConsentButton = forwardRef<
 
 		const buttonClick = useCallback(
 			(e: MouseEvent<HTMLButtonElement>) => {
+				forwardedOnClick?.(e);
+				if (e.defaultPrevented) {
+					return;
+				}
+				const actionSavesConsent =
+					action === 'accept-consent' ||
+					action === 'reject-consent' ||
+					action === 'custom-consent';
 				// Handle UI first - prioritize closing dialogs/banners
-				if (closeConsentBanner || closeConsentDialog) {
+				if ((closeConsentBanner || closeConsentDialog) && !actionSavesConsent) {
 					setActiveUI('none');
 				}
 
@@ -200,29 +296,26 @@ export const ConsentButton = forwardRef<
 					setActiveUI('dialog');
 				}
 
-				// Call the user's onClick handler after UI updates
-				if (forwardedOnClick) {
-					forwardedOnClick(e);
-				}
-
-				if (action !== 'open-consent-dialog') {
-					const consentOptions = uiSource ? { uiSource } : undefined;
+				if (performDefaultAction && action !== 'open-consent-dialog') {
 					switch (action) {
 						case 'accept-consent':
-							saveConsents('all', consentOptions);
+							saveConsents('all');
 							break;
 						case 'reject-consent':
-							saveConsents('necessary', consentOptions);
+							saveConsents('none');
 							break;
 						case 'custom-consent':
-							saveConsents('custom', consentOptions);
+							void saveConsents();
+							break;
+						case 'dismiss-notice':
+							void dismissNotice();
 							break;
 						case 'set-consent':
 							if (!category) {
 								throw new Error('Category is required for set-consent action');
 							}
 
-							setConsent(category, true);
+							void saveConsents({ [category]: true });
 							break;
 						default:
 							break;
@@ -237,9 +330,41 @@ export const ConsentButton = forwardRef<
 				setActiveUI,
 				action,
 				category,
-				setConsent,
-				uiSource,
+				dismissNotice,
+				performDefaultAction,
 			]
+		);
+
+		// Buttons that open the dialog start loading its deferred module on
+		// hover or focus, so the chunk downloads during the lead time before the
+		// click instead of after it. While one is mounted, the module also loads
+		// in idle time after the page loads, for opens with no lead time.
+		//
+		// These handlers replace the ones spread from `buttonStyleProps`, so they
+		// call the caller's handler first: a direct prop, else the
+		// `components.button.*` slot's handler.
+		const opensDialog = action === 'open-consent-dialog';
+		useIdleDialogWarming(opensDialog);
+		const onFocus = forwardedOnFocus ?? buttonStyleProps.onFocus;
+		const onPointerEnter =
+			forwardedOnPointerEnter ?? buttonStyleProps.onPointerEnter;
+		const buttonFocus = useCallback(
+			(event: FocusEvent<HTMLButtonElement>) => {
+				onFocus?.(event);
+				if (opensDialog) {
+					warmDialogChunk();
+				}
+			},
+			[onFocus, opensDialog]
+		);
+		const buttonPointerEnter = useCallback(
+			(event: PointerEvent<HTMLButtonElement>) => {
+				onPointerEnter?.(event);
+				if (opensDialog) {
+					warmDialogChunk();
+				}
+			},
+			[onPointerEnter, opensDialog]
 		);
 
 		const Comp = asChild ? Slot : 'button';
@@ -252,13 +377,42 @@ export const ConsentButton = forwardRef<
 			)
 		);
 
+		const isStyled = !(contextNoStyle || noStyle);
+
+		// The same layers, in the same order, as the spreads below. A
+		// `components.button.*` slot can set `data-action` or `type` too.
+		const ownProps = {
+			'data-action': consentAction,
+			type: asChild ? undefined : ('button' as const),
+		};
+		const renderedLayers = [ownProps, buttonStyleProps, domProps];
+		const earlyTapOptOut = skipsEarlyTap({
+			action,
+			asChild,
+			dataAction: renderedProp('data-action', renderedLayers),
+			ownsClick: ownsClick({
+				asChild,
+				onClick: forwardedOnClick,
+				type: renderedProp('type', renderedLayers),
+			}),
+			performDefaultAction,
+		})
+			? { [EARLY_TAP_OPT_OUT]: 'off' }
+			: undefined;
+
 		return (
 			<Comp
 				ref={ref}
-				type={asChild ? undefined : 'button'}
+				data-variant={isStyled ? resolvedButtonStyle.variant : undefined}
+				data-mode={isStyled ? resolvedButtonStyle.mode : undefined}
+				data-size={isStyled ? size : undefined}
+				{...ownProps}
 				{...buttonStyleProps}
 				onClick={buttonClick}
+				onFocus={buttonFocus}
+				onPointerEnter={buttonPointerEnter}
 				{...domProps}
+				{...earlyTapOptOut}
 			/>
 		);
 	}

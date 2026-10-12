@@ -5,7 +5,10 @@
  */
 
 import * as v from 'valibot';
+
+import { subjectChoiceWireSchema } from './choice-wire';
 import { subjectIdSchema } from './post';
+import { vendorChoiceWireSchema } from './vendor-choice-wire';
 
 /**
  * GET /subject/:id combined input schema (path param + query params).
@@ -65,28 +68,59 @@ export const getSubjectParamsSchema = v.object({
  * Consent item in GET /subject/:id response
  */
 export const consentItemSchema = v.object({
+	/**
+	 * v3 receipts this submission confirmed, exactly as the client sent them.
+	 * Absent on rows written before receipts existed; null when unreadable.
+	 */
+	choice: v.optional(v.nullable(subjectChoiceWireSchema)),
+	givenAt: v.date(),
 	id: v.string(),
-	type: v.string(),
+	isLatestPolicy: v.boolean(),
+	policyEffectiveDate: v.optional(v.date()),
+	policyHash: v.optional(v.string()),
 	policyId: v.optional(v.string()),
 	policyVersion: v.optional(v.string()),
-	policyHash: v.optional(v.string()),
-	policyEffectiveDate: v.optional(v.date()),
-	isLatestPolicy: v.boolean(),
 	preferences: v.optional(v.record(v.string(), v.boolean())),
-	givenAt: v.date(),
+	type: v.string(),
+	/**
+	 * Vendor grants this submission carried, exactly as the client sent
+	 * them. Absent on rows written before vendor consent existed.
+	 */
+	vendorChoice: v.optional(v.nullable(vendorChoiceWireSchema)),
 });
 
 /**
  * GET /subject/:id output schema
+ *
+ * A non-strict object on purpose: parsing drops keys it does not declare.
+ * Backends from 3.0.0-alpha.0 to alpha.3 also return `privacyDirectives`,
+ * which v3 no longer reads, and a newer client must still accept that
+ * response.
  */
 export const getSubjectOutputSchema = v.object({
-	subject: v.object({
-		id: v.string(),
-		externalId: v.optional(v.string()),
-		createdAt: v.optional(v.date()),
-	}),
 	consents: v.array(consentItemSchema),
 	isValid: v.boolean(),
+	subject: v.object({
+		createdAt: v.optional(v.date()),
+
+		externalId: v.optional(v.string()),
+		id: v.string(),
+		/** Provider of `externalId`, as stored. Absent when not identified. */
+		identityProvider: v.optional(v.string()),
+	}),
+	/**
+	 * Latest receipt per category across every cookie-banner consent, with
+	 * each receipt's original confirmation time and basis. Rows written
+	 * before receipts existed contribute legacy-v2 receipts timed at their
+	 * `givenAt`. Null means there is no usable choice. Only backends that
+	 * predate receipts omit this field and require client-side reconstruction.
+	 */
+	subjectChoice: v.optional(v.nullable(subjectChoiceWireSchema)),
+	/**
+	 * Newest vendor grants across every cookie-banner consent. Null when no
+	 * row carries one. Backends that predate vendor consent omit the field.
+	 */
+	subjectVendorChoice: v.optional(v.nullable(vendorChoiceWireSchema)),
 });
 
 /**
@@ -94,8 +128,8 @@ export const getSubjectOutputSchema = v.object({
  */
 export const getSubjectErrorSchemas = {
 	inputValidationFailed: v.object({
-		formErrors: v.array(v.string()),
 		fieldErrors: v.record(v.string(), v.array(v.string())),
+		formErrors: v.array(v.string()),
 	}),
 	subjectNotFound: v.object({
 		subjectId: v.string(),

@@ -1,0 +1,21 @@
+{
+	"name": "@c15t/fixture-script-tag",
+	"version": "0.1.0",
+	"private": true,
+	"description": "The @c15t/browser script tag on plain HTML pages, the way a CMS, page builder or static site loads it.",
+	"scripts": {
+		"build": "bun serve.ts --check",
+		"dev": "bun serve.ts",
+		"fmt": "oxfmt .",
+		"start": "bun serve.ts"
+	},
+	"dependencies": {
+		"@c15t/browser": "workspace:*"
+	},
+	"devDependencies": {
+		"@c15t/doc-snippets-html": "workspace:*",
+		"@tailwindcss/postcss": "4.3.3",
+		"postcss": "8.5.16",
+		"tailwindcss": "4.3.3"
+	}
+}

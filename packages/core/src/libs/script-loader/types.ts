@@ -1,6 +1,19 @@
-import type { ConsentState } from '../../types/compliance';
-import type { AllConsentNames } from '../../types/consent-types';
+import type { Vendor } from '@c15t/schema/types';
+
+import type { ConsentState } from '../../consent/compliance';
+import type { AllConsentNames } from '../../consent/consent-types';
 import type { HasCondition } from '../has';
+
+/**
+ * What a script knows about the vendor its `vendor` slug names: enough for a
+ * preference surface to list the vendor without a `vendors` declaration.
+ * A vendor declared in `vendors` or by the backend replaces these details
+ * as a whole.
+ *
+ * @public
+ */
+export type VendorDetails = Pick<Vendor, 'name' | 'privacyPolicyUrl'> &
+	Partial<Pick<Vendor, 'description' | 'homepageUrl' | 'legalName'>>;
 
 /**
  * Information passed to script callbacks
@@ -8,6 +21,13 @@ import type { HasCondition } from '../has';
  * @public
  */
 export interface ScriptCallbackInfo {
+	/**
+	 * Stable identity of the loader registration, including consent remounts.
+	 * Non-enumerable so callback serialization contains only script data.
+	 * @internal
+	 */
+	readonly registration?: symbol;
+
 	/** The original script ID */
 	id: string;
 
@@ -19,6 +39,14 @@ export interface ScriptCallbackInfo {
 
 	/** The current consent state */
 	consents: ConsentState;
+
+	/**
+	 * Vendor-level consent for the script's `vendor` slug, when set. Absent
+	 * in IAB mode and for scripts without a vendor. `granted` is `false`
+	 * while the subject has the vendor turned off, even when the category
+	 * is granted.
+	 */
+	vendor?: { id: string; granted: boolean };
 
 	/**
 	 * The script element (for load/error callbacks)
@@ -44,6 +72,14 @@ export interface ScriptCallbackInfo {
 export interface Script {
 	/** Unique identifier for the script */
 	id: string;
+
+	/**
+	 * Stable identity of the DOM resource, separate from the logical script ID.
+	 * Set this when separate loaders can select different resources for the same
+	 * integration. Matching keys share an element; different keys mount separately.
+	 * @default id
+	 */
+	resourceKey?: string;
 
 	/** URL of the script to load */
 	src?: string;
@@ -153,7 +189,8 @@ export interface Script {
 	target?: 'head' | 'body';
 
 	/**
-	 * Callback executed before the script is loaded
+	 * Callback executed before a loading attempt. Can repeat with updated consent
+	 * and a new element if a callback invalidates the attempt before loading.
 	 * @param info - Information about the script and current consent state
 	 */
 	onBeforeLoad?: (info: ScriptCallbackInfo) => void;
@@ -171,8 +208,17 @@ export interface Script {
 	onError?: (info: ScriptCallbackInfo) => void;
 
 	/**
+	 * Notify `onConsentChange` before the script loads, including initial denial.
+	 * Useful when several loaders coordinate a shared SDK. This does not load
+	 * the resource without consent. Notifications run only in the browser.
+	 * @default false
+	 */
+	observeConsentBeforeLoad?: boolean;
+
+	/**
 	 * Callback executed whenever the consent store is changed.
-	 * This callback only applies to scripts already loaded.
+	 * This callback applies to loaded scripts unless `observeConsentBeforeLoad`
+	 * is enabled, which also reports initial and subsequent denial before loading.
 	 *
 	 * @param info - Information about the script and current consent state
 	 *
@@ -193,16 +239,72 @@ export interface Script {
 	 */
 	onConsentChange?: (info: ScriptCallbackInfo) => void;
 
+	/**
+	 * Release listeners and other resources when this configuration is removed,
+	 * replaced by a different object, or its loader is disposed. Adding this hook
+	 * opts into object-owned lifecycles; keep the config stable across rerenders.
+	 * Called even if the script never loaded.
+	 * Consent revocation alone does not call this hook. It does not revoke vendor
+	 * consent or undo code that has already executed. Must be safe to call before
+	 * onLoad, including during server rendering.
+	 * @param info - The current consent state and script identity.
+	 */
+	onDispose?: (info: ScriptCallbackInfo) => void;
+
 	// ─────────────────────────────────────────────────────────────────────────
 	// IAB TCF Properties
 	// ─────────────────────────────────────────────────────────────────────────
 
 	/**
+	 * Vendor slug for vendor-level consent outside IAB.
+	 *
+	 * Declare the vendor in the runtime's `vendors` option (or on the
+	 * backend) so the preference surface can list it. The script loads when
+	 * `category` is satisfied and the subject has not turned this vendor
+	 * off. Inert in IAB mode, where `vendorId` and the TC string decide.
+	 * The kernel checks a denial only for a declared vendor; a slug no
+	 * declaration names leaves the script gated on `category` alone.
+	 *
+	 * @example
+	 * ```ts
+	 * const script: Script = {
+	 *   id: 'meta-pixel',
+	 *   src: 'https://connect.facebook.net/en_US/fbevents.js',
+	 *   category: 'marketing',
+	 *   vendor: 'meta-pixel',
+	 * };
+	 * ```
+	 */
+	vendor?: string;
+
+	/**
+	 * Name, privacy policy and other details of the vendor `vendor` names, so
+	 * the preference surface lists it with its own switch. Ignored without
+	 * `vendor`. A declaration in `vendors` or from the backend wins over
+	 * these. Every `@c15t/integrations` helper sets them.
+	 *
+	 * @example
+	 * ```ts
+	 * const script: Script = {
+	 *   id: 'meta-pixel',
+	 *   src: 'https://connect.facebook.net/en_US/fbevents.js',
+	 *   category: 'marketing',
+	 *   vendor: 'meta-pixel',
+	 *   vendorDetails: {
+	 *     name: 'Meta Pixel',
+	 *     privacyPolicyUrl: 'https://www.facebook.com/privacy/policy/',
+	 *   },
+	 * };
+	 * ```
+	 */
+	vendorDetails?: VendorDetails;
+
+	/**
 	 * IAB TCF vendor ID - links script to a registered vendor.
 	 *
-	 * When in IAB mode, the script will only load if this vendor has consent.
-	 * Takes precedence over `category` when in IAB mode.
-	 * Use custom vendor IDs (string or number) to gate non-IAB vendors too.
+	 * Only evaluated in IAB mode, where the script loads when this vendor has
+	 * consent in the TC string. Outside IAB mode a script carrying any IAB
+	 * field is denied; use `vendor` for vendor-level consent there.
 	 *
 	 * @example
 	 * ```ts
@@ -295,6 +397,7 @@ export type ScriptLifecycleCallback =
 	| 'onBeforeLoad'
 	| 'onLoad'
 	| 'onConsentChange'
+	| 'onDispose'
 	| 'onError';
 
 export type ScriptDebugAction =

@@ -5,6 +5,7 @@
  */
 
 import * as v from 'valibot';
+
 import { subjectIdSchema } from './post';
 
 export const patchSubjectParamsSchema = v.object({
@@ -31,6 +32,20 @@ export const patchSubjectInputSchema = v.object({
 			v.examples(['auth0', 'clerk'])
 		)
 	),
+	/**
+	 * Signed proof of `externalId`, minted by your server. A request with an
+	 * API key does not need one. Without either, the link is stored
+	 * unverified: it does not count in reads by external id, and it cannot
+	 * replace a verified link.
+	 */
+	identityToken: v.optional(
+		v.pipe(
+			v.string(),
+			v.description(
+				'Identity token signed by your server, proving externalId. Not needed with an API key.'
+			)
+		)
+	),
 });
 
 /**
@@ -44,12 +59,15 @@ export const patchSubjectFullInputSchema = v.object({
 
 /**
  * PATCH /subject/:id output schema
+ *
+ * `identityProvider` is always present: the backend stores `'external'` when
+ * the request omits it.
  */
 export const patchSubjectOutputSchema = v.object({
-	success: v.boolean(),
 	subject: v.object({
-		id: v.string(),
 		externalId: v.string(),
+		id: v.string(),
+		identityProvider: v.string(),
 	}),
 });
 
@@ -58,8 +76,8 @@ export const patchSubjectOutputSchema = v.object({
  */
 export const patchSubjectErrorSchemas = {
 	inputValidationFailed: v.object({
-		formErrors: v.array(v.string()),
 		fieldErrors: v.record(v.string(), v.array(v.string())),
+		formErrors: v.array(v.string()),
 	}),
 	subjectNotFound: v.object({
 		subjectId: v.string(),

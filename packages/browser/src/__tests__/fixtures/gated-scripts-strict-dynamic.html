@@ -1,0 +1,27 @@
+<!doctype html>
+<html>
+	<head>
+		<!-- The site's own gated tag, trusted by nonce. -->
+		<script
+			nonce="c15t-test-nonce"
+			type="text/plain"
+			data-c15t-category="necessary"
+		>
+			document.documentElement.dataset.trusted = 'true';
+		</script>
+	</head>
+	<body>
+		<!-- Markup an attacker injected through an HTML-injection hole. -->
+		<script
+			type="text/plain"
+			data-c15t-category="necessary"
+			src="/__c15t-test__/injected.js"
+		></script>
+		<script
+			type="text/plain"
+			data-c15t-category="necessary"
+		>
+			document.documentElement.dataset.inlineInjected = 'true';
+		</script>
+	</body>
+</html>

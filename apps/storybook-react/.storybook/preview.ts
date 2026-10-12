@@ -1,18 +1,12 @@
-import {
-	defaultTheme,
-	generateThemeCSS,
-} from '../../../packages/ui/src/theme/utils';
-import '../../../packages/ui/src/styles/primitives/accordion.module.css';
-import '../../../packages/ui/src/styles/primitives/button.module.css';
-import '../../../packages/ui/src/styles/primitives/collapsible.module.css';
-import '../../../packages/ui/src/styles/primitives/switch.module.css';
-import '../../../packages/ui/src/styles/primitives/tabs.module.css';
 import type { Preview } from '@storybook/react-vite';
 
-const storybookThemeStyleId = 'c15t-storybook-theme';
+// The stylesheets ship the `defaultTheme` tokens themselves, so the canvas
+// only has to opt into them — no `generateThemeCSS(defaultTheme)` injection.
+import '../../../packages/react/src/styles.css';
+import '../../../packages/react/src/iab/styles.css';
+
 const storybookCanvasStyleId = 'c15t-storybook-canvas';
 
-const themeCSS = generateThemeCSS(defaultTheme);
 const canvasCSS = `
 	:root {
 		color: var(--c15t-text);
@@ -27,7 +21,10 @@ const canvasCSS = `
 	}
 `;
 
-function ensureGlobalStyle(id: string, cssText: string) {
+const ensureGlobalStyle = function ensureGlobalStyle(
+	id: string,
+	cssText: string
+) {
 	if (typeof document === 'undefined') {
 		return;
 	}
@@ -40,9 +37,8 @@ function ensureGlobalStyle(id: string, cssText: string) {
 	style.id = id;
 	style.textContent = cssText;
 	document.head.appendChild(style);
-}
+};
 
-ensureGlobalStyle(storybookThemeStyleId, themeCSS);
 ensureGlobalStyle(storybookCanvasStyleId, canvasCSS);
 
 const preview: Preview = {

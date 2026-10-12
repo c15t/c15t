@@ -1,215 +1,263 @@
 ---
-title: Optimization
-description: Improve c15t startup performance in Next.js with same-origin rewrites, static prefetching, and dynamic-route SSR.
+title: Performance
+description: Bundle policy at build time to avoid manifest fetch latency, use runtime caching when policies must refresh without a rebuild, and optionally keep browser consent requests on your origin.
 group: frameworks
 ---
 
-<import src="../../shared/react/guides/optimization.mdx#intro" />
+## Bundle the manifest during builds
 
-## Start Here
+<include src="../../shared/build-manifests/next.mdx" />
 
-Apply the optimizations in this order:
+## Reuse cached policy data
 
-| Situation | Use | Why |
-|-----------|-----|-----|
-| Any production Next.js app | Same-origin `/api/c15t` rewrite | Lowers browser startup overhead and keeps the backend origin out of client config |
-| Static route, but banner speed matters | `C15tPrefetch` | Starts `/init` before hydration without making the route dynamic |
-| Dynamic route, or you want the fastest first banner | `fetchInitialData()` | Starts `/init` on the server and streams the result into the provider |
-| You want the simplest setup | Client-only init | No extra moving parts, but the banner appears later on cold loads |
+Use runtime manifest caching when policy changes must reach your app without
+a rebuild. Set the mode in `c15t.config.ts`:
 
-<Callout type="info">
-  `C15tPrefetch` is the only static-route prefetch step you need in `@c15t/nextjs`. Matching prefetched data is consumed automatically during first initialization.
-</Callout>
+{/* example: fragment */}
 
-<Callout type="info">
-  Prefetched or SSR data is reused only when the request context still matches at runtime. That includes the backend URL, credentials, overrides, and the browser's ambient GPC signal.
-</Callout>
+```ts title="c15t.config.ts"
+import { defineConsentConfig, manifest } from 'c15t/next';
 
-<import src="../../shared/react/guides/optimization.mdx#benchmark" />
-
-## 1) Prefer Same-Origin Rewrites
-
-Proxy c15t requests through your Next.js app so the browser calls your own origin instead of a third-party domain.
-
-```ts title="next.config.ts"
-import type { NextConfig } from 'next';
-
-const config: NextConfig = {
-  async rewrites() {
-    return [
-      {
-        source: '/api/c15t/:path*',
-        destination: `${process.env.NEXT_PUBLIC_C15T_URL}/:path*`,
-      },
-    ];
-  },
-};
-
-export default config;
+export default defineConsentConfig({ mode: manifest({ source: 'runtime' }) });
 ```
 
-Then use:
+Keep `withConsentManifest`, which finds the config. A manifest contains public
+policy configuration that your app server can reuse across requests. Each
+visitor's consent still resolves separately.
 
-```tsx
-<ConsentManagerProvider options={{ backendURL: '/api/c15t', mode: 'hosted' }}>
+A warm cache avoids repeated backend policy resolution. It does not eliminate
+all requests. Your app may serve its consent route, cold caches fetch
+upstream data, and consent choices still reach Inth. IAB policies can also need
+a Global Vendor List fetch.
+
+Server rendering supplies the initial policy to the browser. For browser
+initialization that needs request geography, add the
+[consent route](/docs/frameworks/next/data-fetching-reference#do-i-need-the-consent-route).
+
+## Compare manifests with backend initialization
+
+A warm manifest cache can reduce initialization latency by avoiding an upstream
+backend request. The saving depends on backend latency, cache hits and where
+consent resolution sits in rendering. It is not a fixed speedup for the whole
+page.
+
+| Fetching path | Work during initialization |
+| --- | --- |
+| Build-time manifest, recommended | Resolve consent locally from the deployment's snapshot, including on a fresh server instance. |
+| Regular backend `/init` | Wait for the backend to resolve consent and return the result. |
+| Cold manifest cache | Fetch public policy from the backend, cache it and resolve consent locally. |
+| Warm manifest cache | Reuse cached policy and resolve consent locally; local route requests and rendering still take time. |
+
+### Measured performance
+
+Two benchmark reports measure these setups. Each report lists its machine,
+network conditions, samples and reproduction steps.
+
+- [Manifest versus backend init](https://github.com/c15t/c15t/tree/v3/benchmarks/reports/next-manifest-2026-09-10).
+  With 150 ms of simulated backend latency, a warm manifest cache cut the
+  median server response time for a new visitor from about 158 ms to about
+  7 ms. A cold cache still waits for the upstream fetch.
+- [Streamed versus awaited layout](https://github.com/c15t/c15t/tree/v3/benchmarks/reports/next-consent-boundary-2026-09-25).
+  With a 4× CPU slowdown, the streamed layout painted the page in about
+  90 ms and the awaited layout in about 390 ms, because React held the
+  awaited page's streamed reveal.
+
+Measure your own deployment before you choose a layout for speed.
+
+## Keep browser consent requests on your origin
+
+By default the browser saves consent to `${backendURL}/subjects`, a separate
+origin. Sending those requests through your own app can avoid a separate
+browser DNS lookup and TLS connection to the consent backend, and lets a
+`connect-src 'self'` policy cover them. Manifests and server rendering work
+without it.
+
+The app server still connects to the backend, and each save takes an extra
+hop through your server. Measure your deployment to check the effect on
+latency. Vendor scripts, pixels and iframes keep their own URLs; only c15t
+requests move. The same setup works with a self-hosted c15t backend.
+
+Set `routePrefix` and `proxy: true` in the config, and keep `backendURL`
+absolute:
+
+{/* example: fragment */}
+
+```ts title="c15t.config.ts"
+import { defineConsentConfig } from 'c15t/next';
+
+export default defineConsentConfig({ proxy: true, routePrefix: '/api/c15t' });
 ```
 
-<import src="../../shared/react/guides/optimization.mdx#rewrites-why" />
+Then mount the consent route with `proxy: true`, so it forwards saves to the
+backend. In the App Router:
 
-<Callout type="info">
-  Set `NEXT_PUBLIC_C15T_URL` in `.env` to your backend URL, for example `https://your-project.inth.app`.
-</Callout>
+{/* example: fragment */}
 
-<Callout type="warn">
-  Use rewrites for browser-side calls (`ConsentManagerProvider`, `C15tPrefetch`). For server-side `fetchInitialData()`, prefer a direct backend URL (for example `https://your-project.inth.app`) to avoid an extra server proxy hop.
-</Callout>
+```ts title="app/api/c15t/[...c15t]/route.ts"
+import { createConsentRoute } from 'c15t/next/api';
 
-## 2) Choose A Startup Strategy
-
-Start with a same-origin rewrite and the default client-side provider. Add one of the preloading strategies below only when the route behavior or performance target calls for it.
-
-### Client-Only Init
-
-Keep the default provider setup when you want the least complexity. This works on both static and dynamic routes, but the banner only appears after the client runtime starts and the initial `/init` request completes.
-
-### Dynamic Routes: Fetch On The Server And Stream
-
-Use `fetchInitialData()` when the route is already dynamic, or when you are willing to make it dynamic in exchange for the fastest first banner.
-
-Because it depends on `next/headers`, this opts the route into dynamic rendering.
-
-```tsx title="app/layout.tsx"
-import { fetchInitialData } from '@c15t/nextjs';
-import ConsentManager from '@/components/consent-manager';
-
-export default function RootLayout({ children }: { children: React.ReactNode }) {
-  const ssrData = fetchInitialData({
-    backendURL: process.env.NEXT_PUBLIC_C15T_URL!,
-  });
-
-  return (
-    <html lang="en">
-      <body>
-        <ConsentManager ssrData={ssrData}>{children}</ConsentManager>
-      </body>
-    </html>
-  );
-}
+export const { DELETE, GET, OPTIONS, PATCH, POST, PUT } = createConsentRoute({
+	proxy: true,
+});
 ```
 
-```tsx title="components/consent-manager/provider.tsx"
-'use client';
+In the Pages Router:
 
-import { type ReactNode } from 'react';
-import {
-  ConsentManagerProvider,
-  ConsentBanner,
-  ConsentDialog,
-  type InitialDataPromise,
-} from '@c15t/nextjs';
+{/* example: fragment */}
 
-export default function ConsentManager({
-  children,
-  ssrData,
-}: {
-  children: ReactNode;
-  ssrData?: InitialDataPromise;
-}) {
-  return (
-    <ConsentManagerProvider
-      options={{
-        mode: 'hosted',
-        backendURL: '/api/c15t',
-        ssrData,
-      }}
-    >
-      <ConsentBanner />
-      <ConsentDialog />
-      {children}
-    </ConsentManagerProvider>
-  );
-}
+```ts title="pages/api/c15t/[...c15t].ts"
+import { createPagesConsentRoute } from 'c15t/next/pages';
+
+export default createPagesConsentRoute({ proxy: true });
 ```
 
-<Callout type="warn">
-  Do not `await` `fetchInitialData()`. Pass the unresolved Promise to the provider so Next.js can stream the route while `/init` runs in parallel.
-</Callout>
+What the route serves:
 
-<Callout type="info">
-  For `fetchInitialData()`, prefer a direct backend URL such as `https://your-project.inth.app` instead of a rewrite to avoid an extra server-side proxy hop. See [Server-Side Data Fetching](/docs/frameworks/next/server-side) for the full flow.
-</Callout>
+| Request | Handled by |
+| --- | --- |
+| `GET /api/c15t/init` | The route, from the bundled manifest, for this request's location, language and privacy signal |
+| `GET /api/c15t/manifest` | The route, serving the bundled manifest |
+| `POST /api/c15t/subjects` and other consent paths | Forwarded to your backend because `proxy: true` |
+| Any other path | `404`, so the route is never an open proxy |
 
-### Static Routes: Start Fetch Early In The Browser
+Keep these details right:
 
-Use `C15tPrefetch` when the route needs to stay static but you still want the `/init` request to start before hydration. Matching prefetched data is consumed automatically by the runtime during first store initialization.
+- `proxy: true` in `c15t.config.ts` points the browser at `routePrefix` for
+  init and saves. `resolveConsent`, `withConsentProps` and the consent route
+  keep the absolute `backendURL` from the config or
+  `NEXT_PUBLIC_C15T_BACKEND_URL`, so the server never fetches its own route
+  and `withConsentManifest` still downloads the manifest from the backend.
+- `proxy` needs `routePrefix`. Without it, `defineConsentConfig` throws
+  ``@c15t/nextjs: `proxy` sends saves through the consent route, so it needs `routePrefix`.``
+- Set `proxy: true` in both places. With it only in the config, saves reach a
+  route that answers them with 404 or 405. To send only init through the route
+  and keep saves going straight to the backend, drop `proxy` from both and keep
+  `routePrefix`.
+- `options.mode` on `ConsentRoot`, or a `hosted({ backendURL })` with its own
+  URL, keeps talking to that URL.
+- The proxy forwards the visitor's user agent, language, origin and location
+  headers, so the backend's firewall sees a normal visitor. Set
+  `trustForwardedHeaders: true` on the route only when your host overwrites
+  `x-forwarded-for`, as Vercel and Cloudflare do. Otherwise a visitor could
+  send a false IP address to your backend.
 
-```tsx title="app/layout.tsx"
-import { C15tPrefetch } from '@c15t/nextjs';
-import { ConsentManager } from '@/components/consent-manager';
+TanStack Start has the same option, `createConsentStateHandler({ proxy })`.
+A full [static export](/docs/frameworks/next/static-export) has no API routes.
+Use a hosting-level proxy or the public backend URL there.
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <html lang="en">
-      <head>
-        <C15tPrefetch
-          backendURL="/api/c15t"
-          overrides={{ country: 'DE', region: 'BE', language: 'de' }}
-        />
-      </head>
-      <body>
-        <ConsentManager>{children}</ConsentManager>
-      </body>
-    </html>
-  );
-}
+## Configure manifest cache refresh
+
+This section applies to runtime fetching. A build-time snapshot stays fixed
+until the next build and does not use cache revalidation.
+
+In the App Router, `resolveConsent` and `createConsentRoute` pass
+`next: { revalidate: 300 }` to upstream manifest fetches. Next.js's Data Cache
+can reuse that policy across requests and server instances when your host
+provides a shared cache. A new function instance can therefore read cached
+policy even with an empty SDK cache. A Data Cache miss still waits for the
+backend.
+
+The SDK also keeps an in-process manifest cache, which supports ETag
+revalidation and respects upstream cache headers, including responses marked
+private. Pages Router helpers use this cache; ordinary Pages Router fetches
+do not use the App Router Data Cache.
+
+For route handlers, `manifestRevalidateSeconds` changes the Data Cache's
+300-second revalidation interval. Set it to `false` or `0` to skip that layer.
+The SDK cache still follows the upstream cache headers. Visitor-specific
+backend `/init` calls use `cache: 'no-store'`, and resolved consent is never
+shared between visitors.
+
+Once the upstream `s-maxage` has passed, the in-process cache keeps serving the
+cached manifest for as long as the upstream `stale-while-revalidate` allows
+(an explicit `s-maxage` is required for that window to apply),
+and refreshes it in the background. Requests do not wait for that refresh, and
+a refresh that fails or times out leaves the cached manifest in place, so a
+slow or unavailable backend does not delay rendering on a server that has
+already loaded the manifest. Inth sends `s-maxage=300` and a 24 hour
+`stale-while-revalidate` by default; lower the second value on a self-hosted
+backend if a policy change must reach servers sooner after an outage. A server
+with both caches empty still waits for the first upstream response.
+
+The background refresh is detached from the request. On runtimes that stop
+work once a response is sent, register it with the platform so it can finish.
+Pass `onBackgroundRevalidate` to the route; it is called inside the handler
+with the refresh promise, which never rejects:
+
+```ts title="app/api/c15t/[...c15t]/route.ts"
+import { createConsentRoute } from 'c15t/next/api';
+import { after } from 'next/server';
+
+export const { GET } = createConsentRoute({
+	onBackgroundRevalidate: (refresh) => after(() => refresh),
+});
 ```
 
-```tsx title="components/consent-manager/provider.tsx"
-'use client';
+`after` is stable from
+Next 15.1; on Next 15.0 import `unstable_after` instead. Other hosts pass the
+promise to their equivalent, such as `waitUntil` on Vercel or Cloudflare.
+Without it the response still returns at once; only the refresh may be cut
+short, in which case the next request starts another.
 
-import {
-  ConsentManagerProvider,
-  ConsentBanner,
-  ConsentDialog,
-} from '@c15t/nextjs';
+The same hook receives the route's session report. A host that resolves
+init from the manifest never calls `/init`, so after each resolution the route
+posts a small report to the backend's `POST /sessions`, server-to-server, and
+the backend counts the visitor from that instead. The browser makes no request.
+`resolveConsent` reports its renders the same way through its `waitUntil`
+option. Pass `reportSessions: false` to either to send none.
 
-export default function ConsentManagerClient({ children }: { children: React.ReactNode }) {
-  return (
-    <ConsentManagerProvider
-      options={{
-        mode: 'hosted',
-        backendURL: '/api/c15t',
-        overrides: { country: 'DE', region: 'BE', language: 'de' },
-      }}
-    >
-      <ConsentBanner />
-      <ConsentDialog />
-      {children}
-    </ConsentManagerProvider>
-  );
-}
-```
+Build-time snapshots need no background manifest refresh. On serverless
+hosts, `onBackgroundRevalidate` can still keep the optional session report
+alive after the response. It is not required for resolving consent from the
+snapshot.
 
-<Callout type="info">
-  `C15tPrefetch` uses Next.js `beforeInteractive` script loading, so the `/init` request can start before hydration.
-</Callout>
+## Avoid repeating startup work
 
-<Callout type="info">
-  If the request context changes between prefetch time and runtime, c15t falls back to a normal client `/init`. A common example is `overrides.gpc` conflicting with the browser's ambient GPC signal.
-</Callout>
+Keep one boundary in the App Router root layout or Pages Router `_app.tsx`.
+Remounting it during navigation creates another runtime and repeats startup
+work. Keep the consent UI in that shared root too.
 
-<import src="../../shared/react/guides/optimization.mdx#keep-mounted" />
+Choose when to resolve consent according to your page. See
+[rendering and deployment](/docs/frameworks/next/rendering) for server
+rendering, streaming and browser initialization.
 
-<import src="../../shared/react/guides/optimization.mdx#animation" />
+Measure cold entry, warm requests and client navigation separately.
+Check server requests as well as the browser Network panel. Confirm that
+consent saves reach the backend and policy updates appear after a rebuild, or
+the configured refresh window with runtime caching. If you set `proxy: true`,
+also confirm browser consent requests use your origin.
 
-To customize motion durations and easing, see [Styling](/docs/frameworks/next/styling/overview).
+## Start returning visitors' scripts sooner
 
-## Reduce Network Overhead
+`ConsentRoot` loads the script loader as a separate chunk, and only on pages
+whose `scripts` array is not empty. Pages without scripts never download it.
+By default the chunk loads once the page has hydrated.
 
-<import src="../../shared/react/guides/optimization.mdx#preconnect" />
+When the visitor's consent already lets one of those scripts run, `ConsentRoot`
+starts the download during its first render in the browser instead, so the
+chunk loads while React hydrates the rest of the page. It decides as the
+provider would once mounted: with the state from `resolveConsent()`, once a
+streamed state arrives, the current policy, Global Privacy Control, the
+visitor's vendor switches and any newer denial stored in the browser. A grant
+any of those restricts does not count. The visitors this covers:
 
-```tsx title="app/layout.tsx"
-<head>
-  <link rel="preconnect" href="https://your-project.inth.app" crossOrigin="" />
-</head>
-```
+- a returning visitor whose stored choice allows one of the scripts;
+- any visitor, when a script has `alwaysLoad`, since it runs whatever they
+  chose;
+- every visitor, when `options.enabled` is `false`, since a disabled provider
+  grants every category;
+- a visitor under a policy that allows the scripts without a choice, such as
+  an opt-out region.
+
+With `options.consentSource` set, and the provider not disabled, the external
+source decides consent after the page mounts, so only `alwaysLoad` scripts
+start the download early.
+
+The larger the tree inside `ConsentRoot`, the more of that request hydration
+covers. There is nothing to configure. The code that decides ships with
+`ConsentRoot` only: a `ConsentProvider` from `@c15t/react` rendered without
+`ConsentRoot` loads the chunk when it mounts.
+
+c15t does not add a `<link rel="modulepreload">` for the chunk, as it does in
+SvelteKit. Next.js assigns the chunk's file name in the browser build, and the
+server rendering `ConsentRoot` cannot read it.

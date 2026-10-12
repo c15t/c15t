@@ -1,137 +1,151 @@
 ---
 title: Quickstart
-description: Get started with c15t in vanilla JavaScript — framework-agnostic consent management with no UI dependencies.
+description: Add the stock c15t banner, preferences and script gating to a JavaScript app built with Vite or another bundler, with no UI framework, using @c15t/browser.
 group: frameworks
 ---
 
-## Installation
+## Connect Inth
 
-<PackageCommandTabs mode="install" command="c15t" />
+[Create an Inth project](https://inth.com), set its policy rules, add your
+app's origin to its trusted origins, and copy the project's backend URL.
 
-## Initialize the Runtime
+This guide uses `@c15t/browser` as an ES module in a Vite app, with your
+project's policy bundled at build time. `init()` starts the consent runtime
+and mounts the stock banner and preference dialog. For your own UI, use the
+[headless runtime](/docs/frameworks/javascript/headless) instead. Sites
+without a build step load the same package from a script tag;
+[choose your setup](/docs/concepts/choose-your-setup) points to that guide.
 
-`getOrCreateConsentRuntime()` creates a consent client and a Zustand vanilla store in a single call. The store holds all consent state and exposes methods for checking, setting, and subscribing to consent changes.
+Bundling the policy at build time is the recommended production setup.
+Rebuild after changing policies, translations or vendors.
 
-```ts
-import { getOrCreateConsentRuntime } from 'c15t';
+## Install
 
-const { consentManager, consentStore } = getOrCreateConsentRuntime({
-  mode: 'hosted',
-  backendURL: 'https://your-instance.c15t.dev',
-  consentCategories: ['necessary', 'measurement', 'marketing'],
-});
+<CommandTabs command="@c15t/browser c15t @c15t/integrations" mode="install" />
+
+`@c15t/browser` is not part of the `c15t` package. `c15t` supplies the Vite
+plugin at `c15t/build`, and `@c15t/integrations` the PostHog helper used
+below.
+
+## Bundle your policy
+
+Add `consentManifest` to `vite.config.ts`:
+
+<include src="../../shared/examples/javascript/vite-config.mdx" />
+
+The plugin reads `VITE_C15T_BACKEND_URL`. Set it to your project's backend URL,
+including any path prefix, in `.env` or wherever you build:
+
+```sh title=".env"
+VITE_C15T_BACKEND_URL=https://your-project.inth.app
 ```
 
-<Callout type="info">
-  Hosted mode is the recommended production setup because the backend resolves jurisdiction and translations, stores consent decisions outside the current browser, and can re-sync after temporary outages.
-</Callout>
+If your app already sets `VITE_INTH_PROJECT_URL` for other Inth SDKs, that works
+too. When both are set, `VITE_C15T_BACKEND_URL` wins.
 
-<Callout type="warn">
-  You can switch to `mode: 'offline'` for local-only storage, demos, or static previews, but that removes backend audit history, automatic jurisdiction detection, and server-side consent awareness. Review [Client Modes](/docs/frameworks/javascript/concepts/client-modes) before using offline mode in production.
-</Callout>
+`consentManifest` downloads your project's public policy from `/manifest`
+during `vite build`, or in `vite dev` when the app first loads it, and serves
+it to your app as `snapshot`
+from `c15t/generated`. No file is written into your project.
 
-## Subscribe to State Changes
+<include src="../../shared/build-time-manifest-notes.mdx" />
 
-The store is a [Zustand vanilla store](https://zustand.docs.pmnd.rs/reference/apis/create-store). Use `subscribe()` for UI and general state updates, `subscribeToConsentChanges()` for change-only consent integrations, and `getState()` to read the current state:
+<include src="../../shared/vite-build-manifest.mdx" />
 
-```ts
-// React to every state change
-consentStore.subscribe((state) => {
-  console.log('Consent state:', state.consents);
-  console.log('Show banner?', state.activeUI === 'banner');
-});
+## Start c15t
 
-// React only to real saved preference changes
-consentStore
-  .getState()
-  .subscribeToConsentChanges(({ allowedCategories, deniedCategories }) => {
-    analytics.syncConsent({ allowedCategories, deniedCategories });
-  });
+Call `init()` once, in your browser entry point:
 
-// Read current state at any time
-const state = consentStore.getState();
-console.log('Has measurement consent:', state.has('measurement'));
-```
+<include src="../../shared/examples/javascript/init.mdx" />
 
-## Check and Set Consent
+`manifest()` resolves the policy from the bundled snapshot in the browser,
+with no `/manifest` request. It reads the snapshot and the backend URL from
+what `consentManifest` downloaded. Consent choices go to that backend, and so
+does an `/init` request when the policy depends on the visitor's country or
+region and `overrides` does not supply it. That request returns the backend's
+current policy, which can be newer than the snapshot. Vite reads
+`VITE_C15T_BACKEND_URL` at build time, so set it before you build, not when
+you serve the files.
 
-```ts
-const state = consentStore.getState();
+To apply policy edits without rebuilding, pass `hosted()` from
+`@c15t/browser` as the mode instead. The browser then requests the policy from
+`/init` on every page load. Your bundle keeps only the mode you import.
 
-// Check if a category has consent
-if (state.has('measurement')) {
-  // Safe to load analytics
-}
+PostHog waits for measurement permission with `loadMode: 'after-consent'`, and
+`cookieless_mode: 'never'` turns off its cookieless capture. Replace
+`phc_your_project_key` with your PostHog project key. The PostHog helper sends
+events to PostHog's EU cloud; for a US project, add `region: 'us'`.
 
-// Accept all categories
-await state.saveConsents('all');
+Include the measurement category in your Inth policy. Remove any other loader
+for PostHog, such as a snippet in `index.html`, so it loads once and only
+through c15t. Add other vendors to the same list, each with the category it
+needs; the [integration guides](/docs/integrations/overview) give the helper
+for each one.
 
-// Accept only necessary categories
-await state.saveConsents('necessary');
+`init()` returns the client. It reads stored choices, resolves the visitor's
+policy, shows the banner when the policy needs one, and loads each
+script once its category is allowed. The banner renders in a shadow root with
+its own styles, so you do not import a stylesheet. The client lasts for the
+page; call `consent.dispose()` only if your app removes consent entirely.
 
-// Set a specific category
-state.setConsent('marketing', true);
-```
+When a visitor withdraws a permission they had given, the client saves the
+choice and reloads the page, because code that already ran cannot be unloaded.
+[Scripts](/docs/frameworks/javascript/scripts) explains how to change that.
 
-## Minimal Consent Prompt
+## Gate embeds and add a privacy settings button
 
-Here's a bare-bones example using the store to drive a consent prompt — no framework required:
+Put the embed's URL in `data-src` and name its category in `data-category`.
+The client sets `src` only while that category is allowed:
 
-```ts
-import { getOrCreateConsentRuntime } from 'c15t';
+<include src="../../shared/examples/javascript/embed.mdx" />
 
-const { consentStore } = getOrCreateConsentRuntime({
-  mode: 'hosted',
-  backendURL: 'https://your-instance.c15t.dev',
-  consentCategories: ['necessary', 'measurement', 'marketing'],
-});
+Visitors need a way to change their choice after the banner closes. The
+client opens the preference dialog from any link to `#c15t-preferences`:
 
-// Subscribe to show/hide the banner
-consentStore.subscribe((state) => {
-  const banner = document.getElementById('consent-banner');
-  if (banner) {
-    banner.style.display = state.activeUI === 'banner' ? 'block' : 'none';
-  }
-});
+<include src="../../shared/examples/javascript/preferences-link.mdx" />
 
-// Wire up buttons
-document.getElementById('accept-all')?.addEventListener('click', () => {
-  consentStore.getState().saveConsents('all');
-});
+A button with `data-c15t-action="customize"` opens it too, without code.
 
-document.getElementById('reject')?.addEventListener('click', () => {
-  consentStore.getState().saveConsents('necessary');
-});
-```
+## Change the look
 
-## Verify It Works
+Pass theme tokens in `ui.theme`, next to the options your `init()` call
+already has. This example turns the buttons purple and rounds the cards:
 
-Open the browser console and inspect the store state:
+<include src="../../shared/examples/javascript/theme.mdx" />
 
-```ts
-// The store is also available on the window object
-const state = window.c15tStore?.getState();
-console.log('Consents:', state?.consents);
-console.log('Has consented:', state?.hasConsented());
-console.log('Location:', state?.locationInfo);
-```
+`theme` takes the same tokens as every c15t package; see
+[theme tokens](/docs/customization/tokens). `presentation.prompt` changes the
+banner's shape and position, `ui.css` adds CSS inside the shadow root, and
+`i18n` changes the copy. [Customize](/docs/frameworks/javascript/customize)
+covers each option.
 
-<Callout type="info">
-  **No UI included** — the `c15t` core package is fully headless. See [Building UI](/docs/frameworks/javascript/building-ui) for creating your own components, or use [`@c15t/react`](/docs/frameworks/react/quickstart) / [`@c15t/nextjs`](/docs/frameworks/next/quickstart) for pre-built UI.
-</Callout>
+## Check it works
 
-## Optional: Install Agent Skills
+Run the app, open it in a private window, and open the browser's developer
+tools on the Network tab.
 
-Install c15t agent skills to let AI agents help with styling, i18n, scripts & other configuration.
+1. Before you choose, filter for `posthog`. There are no requests, and the
+   YouTube iframe has no `src`.
+2. Click **Reject All** and reload. The banner stays closed and the PostHog
+   requests stay absent.
+3. Click **Privacy settings**, turn on **Analytics** (the `measurement` category) and save. PostHog and
+   the YouTube player load.
+4. Open **Privacy settings** again and turn **Analytics** off. The page reloads,
+   and PostHog and YouTube do not load again.
 
-<PackageCommandTabs command="@c15t/cli skills" />
+If no banner appears, see [why is there no banner](/docs/guides/troubleshooting#why-is-there-no-banner).
+Run the full [verification checklist](/docs/guides/verify-consent) before you
+ship.
 
-See [AI Agents](/docs/ai-agents) for bundled package docs and agent skills.
+## Next steps
 
-## Next Steps
-
-- [Client Modes](/docs/frameworks/javascript/concepts/client-modes) — Choose between hosted, offline, or custom backend
-- [Store API](/docs/frameworks/javascript/api/overview) — Full reference for store state and actions
-- [Script Loader](/docs/frameworks/javascript/script-loader) — Gate third-party scripts behind consent
-- [Building UI](/docs/frameworks/javascript/building-ui) — Create your own consent components
-- [AI Agents](/docs/ai-agents) — Get bundled package docs and reusable agent skills for c15t
+- Render your own banner with the [headless runtime](/docs/frameworks/javascript/headless).
+- Inspect consent with [DevTools](/docs/frameworks/javascript/dev-tools).
+- Read consent from your code. `consent.has('measurement')` answers whether a
+  category is allowed now, `consent.on('consent', listener)` reports changes,
+  and `consent.save({ measurement: true })` records a choice. The
+  [@c15t/browser API](/docs/frameworks/javascript/api/browser) lists every
+  method, and [options](/docs/frameworks/javascript/api/browser-options) every
+  option.
+- Run code on consent events with [callbacks](/docs/frameworks/javascript/callbacks).
+- Add languages with [translations](/docs/frameworks/javascript/translations).

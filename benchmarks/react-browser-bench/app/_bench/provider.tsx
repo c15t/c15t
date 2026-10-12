@@ -3,72 +3,77 @@
 import {
 	ConsentBanner,
 	ConsentDialog,
-	ConsentManagerProvider,
-	type ConsentManagerProviderProps,
+	ConsentProvider,
+	hosted,
 } from '@c15t/react';
+import type { ConsentProviderOptions } from '@c15t/react';
 import type { ReactNode } from 'react';
-import { ReactBenchmarkProbe } from './probe';
-import { getBenchState, type ReactBenchScenario } from './state';
 
-export function BenchmarkProvider({
+import { ReactBenchmarkProbe } from './probe';
+import { getBenchState } from './state';
+import type { ReactBenchScenario } from './state';
+
+// Keep this fixture compatible with revisions before automatic styles.
+type BenchmarkProviderOptions = ConsentProviderOptions & { styles?: boolean };
+
+const consentCategories = [
+	'necessary',
+	'functionality',
+	'experience',
+	'measurement',
+	'marketing',
+] satisfies NonNullable<ConsentProviderOptions['consentCategories']>;
+
+const benchTheme: NonNullable<ConsentProviderOptions['theme']> = {
+	motion: {
+		duration: {
+			fast: '1ms',
+			normal: '1ms',
+			slow: '1ms',
+		},
+	},
+};
+
+export const ReactBenchmarkProvider = ({
 	children,
 	scenario,
-	headless = false,
+	styles,
+	theme = benchTheme,
 }: {
 	children: ReactNode;
 	scenario: ReactBenchScenario;
-	headless?: boolean;
-}) {
-	const options: ConsentManagerProviderProps['options'] = {
-		mode: 'c15t',
-		backendURL: '/api/bench-consent',
+	/** Set false for experiments that import their CSS explicitly. */
+	styles?: BenchmarkProviderOptions['styles'];
+	/** Defaults to the 1ms motion override only. */
+	theme?: ConsentProviderOptions['theme'];
+}) => {
+	const options: BenchmarkProviderOptions = {
 		callbacks: {
-			onBannerFetched() {
+			onChoiceRecorded() {
 				const state = getBenchState(scenario);
-				if (!state) {
-					return;
+				if (state) {
+					state.onChoiceRecordedCount += 1;
 				}
-				state.onBannerFetchedCount += 1;
-				if (state.onBannerFetchedMs === undefined) {
-					state.onBannerFetchedMs = performance.now();
-				}
-			},
-			onConsentSet() {
-				const state = getBenchState(scenario);
-				if (!state) {
-					return;
-				}
-				state.onConsentSetCount += 1;
 			},
 			onError() {
 				const state = getBenchState(scenario);
-				if (!state) {
-					return;
+				if (state) {
+					state.onErrorCount += 1;
 				}
-				state.onErrorCount += 1;
 			},
 		},
-		theme: {
-			motion: {
-				duration: {
-					fast: '1ms',
-					normal: '1ms',
-					slow: '1ms',
-				},
-			},
-		},
+		consentCategories,
+		mode: hosted({ backendURL: '/api/bench-consent' }),
+		styles,
+		theme,
 	};
 
 	return (
-		<ConsentManagerProvider options={options}>
+		<ConsentProvider options={options}>
 			<ReactBenchmarkProbe scenario={scenario} />
-			{!headless ? (
-				<>
-					<ConsentBanner disableAnimation />
-					<ConsentDialog disableAnimation />
-				</>
-			) : null}
+			<ConsentBanner disableAnimation />
+			<ConsentDialog disableAnimation />
 			{children}
-		</ConsentManagerProvider>
+		</ConsentProvider>
 	);
-}
+};

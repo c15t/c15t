@@ -46,6 +46,7 @@ export type {
 	UIStyle,
 } from './generate/types';
 export { createInitialContext } from './generate/types';
+// oxlint-disable-next-line oxc/no-barrel-file -- Preserve declaration order, interface shape, and public compatibility.
 export * from './persistence';
 export * from './telemetry-plugin';
 // Core types and utilities

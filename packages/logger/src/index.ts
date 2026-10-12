@@ -28,15 +28,8 @@
  * ```
  */
 
-export {
-	levels,
-	shouldPublishLog,
-} from './core/levels';
-export {
-	createLogger,
-	extendLogger,
-	logger,
-} from './core/logger';
+export { levels, shouldPublishLog } from './core/levels';
+export { createLogger, extendLogger, logger } from './core/logger';
 // Export from core with explicit imports instead of wildcard
 export type {
 	ExtendedLogger,

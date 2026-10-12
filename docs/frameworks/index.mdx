@@ -1,13 +1,42 @@
 ---
-title: "Frameworks"
-description: "Reference page for frameworks."
+title: Frameworks
+description: c15t setup guides for Next.js, TanStack Start, React, Nuxt, Vue, Astro, Svelte, SvelteKit, plain HTML and JavaScript.
 group: frameworks
 ---
 
-<Cards className="my-6 grid-cols-1 sm:grid-cols-3 @container not-prose grid gap-4">
-  <Card variant="interactive" title="React" description="Add consent management to any React app with hooks, pre-built components, and full theming support." icon={<Icon name="react" />} href="/docs/frameworks/react/quickstart" />
+## Pick your framework
 
-  <Card variant="interactive" title="JavaScript" description="Framework-agnostic consent management for vanilla JS or any frontend stack." icon={<Icon name="javascript" />} href="/docs/frameworks/javascript/quickstart" />
+| Framework | Package | Guide |
+| --- | --- | --- |
+| Next.js | `c15t` (`c15t/next`) | [Next.js quickstart](/docs/frameworks/next/quickstart) |
+| TanStack Start | `c15t` (`c15t/tanstack-start`) | [TanStack Start quickstart](/docs/frameworks/tanstack-start/quickstart) |
+| React | `c15t` (`c15t/react`) | [React quickstart](/docs/frameworks/react/quickstart) |
+| Nuxt | `c15t` (`c15t/vue` Nuxt module) | [Nuxt quickstart](/docs/frameworks/nuxt/quickstart) |
+| Vue | `c15t` (`c15t/vue/vue-plugin`) | [Vue quickstart](/docs/frameworks/vue/quickstart) |
+| Astro | `c15t` (`c15t/astro`) | [Astro quickstart](/docs/frameworks/astro/quickstart) |
+| Svelte | `@c15t/svelte` | [Svelte quickstart](/docs/frameworks/svelte/quickstart) |
+| SvelteKit | `@c15t/svelte` | [SvelteKit quickstart](/docs/frameworks/sveltekit/quickstart) |
+| HTML, a CMS, a page builder or a static site generator | `@c15t/browser` from a script tag | [HTML quickstart](/docs/frameworks/html/quickstart) |
+| JavaScript with a bundler, or your own UI | `@c15t/browser`, or `c15t` (`c15t/runtime`) | [JavaScript quickstart](/docs/frameworks/javascript/quickstart) |
 
-  <Card variant="interactive" title="Next.js" description="Server-side rendering, App Router support, and automatic geolocation for Next.js." icon={<Icon name="nextjs" />} href="/docs/frameworks/next/quickstart" />
-</Cards>
+Not sure which setup your rendering mode needs? [Choose your setup](/docs/concepts/choose-your-setup)
+maps each app shape, such as a Next.js static export or a prerendered SvelteKit
+site, to a guide.
+
+## Install the right package
+
+Most frameworks use one package, `c15t`, and import the framework entry point:
+`c15t/next`, `c15t/react`, `c15t/vue` (the Nuxt module), `c15t/vue/vue-plugin`
+(plain Vue), `c15t/astro` or `c15t/tanstack-start`.
+You do not need `@c15t/nextjs` or `@c15t/react` as well; `c15t` depends on
+them.
+
+Svelte and SvelteKit use their own package, `@c15t/svelte`. HTML pages and the
+stock UI in JavaScript use `@c15t/browser`. Vendor script helpers are a separate
+install, `@c15t/integrations`, in every framework.
+
+## After the quickstart
+
+A banner on screen does not mean analytics wait for consent. Move existing
+scripts into c15t, replace embeds that load on their own, and keep a link to
+reopen preferences. Then [verify the integration](/docs/guides/verify-consent).

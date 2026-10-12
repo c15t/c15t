@@ -1,0 +1,822 @@
+/**
+ * Single source of truth for the demo's policy scenarios.
+ *
+ * Every scenario pairs a location with a policy pack so the demo can show
+ * how c15t resolves policies by geography. The same definitions drive:
+ *
+ * - The client demo in offline mode (`offline({ policyRules })`)
+ * - The self-host backend route (`lib/demo-c15t-instance.ts`)
+ * - The c15t CLI config (`c15t-backend.config.ts`)
+ */
+
+import type { Translations } from '@c15t/translations';
+import { baseTranslations } from '@c15t/translations/all';
+import { policyRulePresets, recommendedPolicyRules } from 'c15t';
+import type { ConsentPresentation, PolicyRule } from 'c15t';
+
+import { presentationForRule } from './policy-playground';
+
+export const DEMO_POLICY_SNAPSHOT_KEY =
+	process.env.C15T_POLICY_SNAPSHOT_KEY ?? 'demo-policy-snapshot-key';
+
+export const DEFAULT_SCENARIO_ID = 'preset-europe-opt-in';
+
+/** Header the self-host route reads to know which scenario to serve. */
+export const DEMO_SCENARIO_HEADER = 'x-c15t-demo-example';
+
+// ---------------------------------------------------------------------------
+// IAB TCF demo configuration (shared between client and self-host backend)
+// ---------------------------------------------------------------------------
+
+/**
+ * CMP ID used across the demo. 10 is a placeholder registration — fine for
+ * demos; production deployments need their own CMP ID from IAB Europe.
+ */
+export const DEMO_CMP_ID = 10;
+
+/** Keep the GVL payload small-ish by scoping to the first 250 vendors. */
+export const DEMO_IAB_VENDOR_IDS = Array.from(
+	{ length: 250 },
+	(_, index) => index + 1
+);
+
+export const DEMO_CUSTOM_VENDORS = [
+	{
+		cookieMaxAgeSeconds: 31536000,
+		dataCategories: [1, 2],
+		id: 'demo-analytics',
+		name: 'Demo Analytics',
+		privacyPolicyUrl: 'https://example.com/privacy',
+		purposes: [1, 8],
+		usesCookies: true,
+		usesNonCookieAccess: false,
+	},
+];
+
+// ---------------------------------------------------------------------------
+// i18n message profiles
+// ---------------------------------------------------------------------------
+
+type I18nMessageProfiles = Record<
+	string,
+	{
+		fallbackLanguage?: string;
+		translations: Record<string, Partial<Translations>>;
+	}
+>;
+
+/** Languages offered by the demo's language picker. */
+export const DEMO_LANGUAGES = ['en', 'fr', 'de', 'es', 'pt'] as const;
+
+/**
+ * Builds a message profile containing every picker language. Each language
+ * starts from the full pack that ships with `@c15t/translations` (so all
+ * surfaces — banner, dialog, IAB UI — stay translated), with demo-specific
+ * copy layered on top only where a profile customizes it. This also means
+ * switching to any picker language works in every scenario instead of
+ * silently falling back to English.
+ */
+const profile = function profile(
+	overrides: Partial<
+		Record<(typeof DEMO_LANGUAGES)[number], Partial<Translations>>
+	> = {}
+): { translations: Record<string, Partial<Translations>> } {
+	return {
+		translations: Object.fromEntries(
+			DEMO_LANGUAGES.map((language) => [
+				language,
+				{ ...baseTranslations[language], ...overrides[language] },
+			])
+		),
+	};
+};
+
+// oxlint-disable-next-line sort-keys -- Preserve declaration order, interface shape, and public compatibility.
+export const demoI18nMessages: I18nMessageProfiles = {
+	// Stock c15t translations, used by the shipped policy-pack presets.
+	default: profile(),
+	eu: profile({
+		de: {
+			cookieBanner: {
+				description:
+					'Optionale Cookies werden nur mit deiner Einwilligung verwendet.',
+				title: 'GDPR-Einwilligung',
+			},
+		},
+		en: {
+			cookieBanner: {
+				description:
+					'We only use optional cookies with your consent. You can change settings anytime.',
+				title: 'EU GDPR Consent',
+			},
+		},
+		fr: {
+			cookieBanner: {
+				description:
+					'Nous utilisons uniquement des cookies facultatifs avec votre consentement.',
+				title: 'Consentement RGPD',
+			},
+		},
+	}),
+	fr: profile({
+		de: {
+			cookieBanner: {
+				description:
+					'Sie konnen IAB-Zwecke akzeptieren, ablehnen oder individuell anpassen.',
+				title: 'Datenschutzeinstellungen (IAB)',
+			},
+		},
+		en: {
+			cookieBanner: {
+				description:
+					'You can accept, reject, or customize IAB purposes for advertising and measurement.',
+				title: 'France IAB Preferences',
+			},
+		},
+		fr: {
+			cookieBanner: {
+				description:
+					'Vous pouvez accepter, refuser ou personnaliser les finalités IAB.',
+				title: 'Paramètres de confidentialité (IAB)',
+			},
+		},
+	}),
+	caSales: profile({
+		en: {
+			cookieBanner: {
+				description:
+					'You can allow all optional uses, or opt out of the sale and sharing of your personal information.',
+				title: 'Your California privacy choices',
+			},
+		},
+	}),
+};
+
+// ---------------------------------------------------------------------------
+// Scenarios
+// ---------------------------------------------------------------------------
+
+export interface DemoScenario {
+	id: string;
+	label: string;
+	group: 'preset' | 'custom';
+	/** Country the scenario simulates (ISO 3166-1 alpha-2). */
+	country: string;
+	/** Optional region the scenario simulates (e.g. CA for California). */
+	region?: string;
+	description: string;
+	policy: PolicyRule;
+	/** Host presentation the scenario sets explicitly, if any. */
+	presentation?: ConsentPresentation;
+	/**
+	 * Resolve through `recommendedPolicyRules()`, the pack a bare `offline()`
+	 * applies, instead of the scenario's policy plus the demo fallback. The
+	 * scenario's `policy` is then the rule the pack is expected to select.
+	 */
+	useRecommendedPack?: boolean;
+	/**
+	 * Whether the demo mounts the trigger toolbar: not for IAB, which has its
+	 * own resurface control, and not for a none rule with no added rights,
+	 * which owes no control at all. Computed once at module load.
+	 */
+	showsTriggerToolbar?: boolean;
+	/**
+	 * Presentation the runtime applies: `presentation` when set, otherwise
+	 * the demo's per-policy shape from `presentationForRule`. Filled in once
+	 * at module load so render only reads a property.
+	 */
+	runtimePresentation?: ConsentPresentation;
+}
+
+const worldFallbackPolicy = policyRulePresets.worldOptOutNoPrompt();
+
+const authoredScenarios: Omit<
+	DemoScenario,
+	'runtimePresentation' | 'showsTriggerToolbar'
+>[] = [
+	// ── Built-in presets ──────────────────────────────────────────────────
+	{
+		country: 'GB',
+		description: 'Shipped preset for Europe + UK opt-in banners.',
+		group: 'preset',
+		id: 'preset-europe-opt-in',
+		label: 'Europe Opt-In',
+		policy: policyRulePresets.europeOptIn(),
+	},
+	{
+		country: 'FR',
+		description: 'Shipped preset for IAB TCF 2.4 across Europe.',
+		group: 'preset',
+		id: 'preset-europe-iab',
+		label: 'Europe IAB',
+		policy: policyRulePresets.europeIab(),
+	},
+	{
+		country: 'US',
+		description: 'Shipped preset for a compact California opt-in banner.',
+		group: 'preset',
+		id: 'preset-california-opt-in',
+		label: 'California Opt-In',
+		policy: policyRulePresets.californiaOptIn(),
+		region: 'CA',
+	},
+	{
+		country: 'US',
+		description: 'Shipped preset for California opt-out with no banner.',
+		group: 'preset',
+		id: 'preset-california-opt-out',
+		label: 'California Opt-Out',
+		policy: policyRulePresets.californiaOptOut(),
+		region: 'CA',
+	},
+	{
+		country: 'CA',
+		description: 'Shipped preset for Quebec opt-in requirements.',
+		group: 'preset',
+		id: 'preset-quebec-opt-in',
+		label: 'Quebec Opt-In',
+		policy: policyRulePresets.quebecOptIn(),
+		region: 'QC',
+	},
+	{
+		country: 'AU',
+		description:
+			'Explicit global opt-out default with no first-layer prompt and persistent preferences.',
+		group: 'custom',
+		id: 'preset-world-no-banner',
+		label: 'World No Banner',
+		policy: worldFallbackPolicy,
+	},
+
+	{
+		country: 'AU',
+		description:
+			'Review the processing assumptions before enabling this profile.',
+		group: 'preset',
+		id: 'preset-australiaOptOut',
+		label: 'Australia opt-out',
+		policy: policyRulePresets.australiaOptOut(),
+	},
+	{
+		country: 'JP',
+		description:
+			'Review the processing assumptions before enabling this profile.',
+		group: 'preset',
+		id: 'preset-japanOptOut',
+		label: 'Japan opt-out',
+		policy: policyRulePresets.japanOptOut(),
+	},
+	{
+		country: 'CA',
+		description:
+			'Review the processing assumptions before enabling this profile.',
+		group: 'preset',
+		id: 'preset-canadaOptIn',
+		label: 'Canada opt-in',
+		policy: policyRulePresets.canadaOptIn(),
+		region: 'ON',
+	},
+	{
+		country: 'CA',
+		description:
+			'Review the processing assumptions before enabling this profile.',
+		group: 'preset',
+		id: 'preset-canadaOptOut',
+		label: 'Canada opt-out',
+		policy: policyRulePresets.canadaOptOut(),
+		region: 'ON',
+	},
+	{
+		country: 'GB',
+		description:
+			'Review the processing assumptions before enabling this profile.',
+		group: 'preset',
+		id: 'preset-ukStatistics',
+		label: 'UK service statistics',
+		policy: policyRulePresets.ukStatistics(),
+	},
+	{
+		country: 'MY',
+		description:
+			'Review the processing assumptions before enabling this profile.',
+		group: 'preset',
+		id: 'preset-malaysiaStatistics',
+		label: 'Malaysia statistics only',
+		policy: policyRulePresets.malaysiaStatistics(),
+	},
+	{
+		country: 'US',
+		description:
+			'Shipped US privacy states starter. Review its assumptions for your processing.',
+		group: 'preset',
+		id: 'preset-us-privacy-states',
+		label: 'US privacy states opt-out',
+		policy: policyRulePresets.usPrivacyStatesOptOut(),
+		region: 'CO',
+	},
+	{
+		country: 'AU',
+		description:
+			'Shipped Australia opt-in starter. Review its assumptions for your processing.',
+		group: 'preset',
+		id: 'preset-australia-opt-in',
+		label: 'Australia opt-in',
+		policy: policyRulePresets.australiaOptIn(),
+	},
+	{
+		country: 'SG',
+		description:
+			'Shipped Singapore opt-in starter. Review its assumptions for your processing.',
+		group: 'preset',
+		id: 'preset-singapore-opt-in',
+		label: 'Singapore opt-in',
+		policy: policyRulePresets.singaporeOptIn(),
+	},
+	{
+		country: 'JP',
+		description:
+			'Shipped Japan opt-in starter. Review its assumptions for your processing.',
+		group: 'preset',
+		id: 'preset-japan-opt-in',
+		label: 'Japan opt-in',
+		policy: policyRulePresets.japanOptIn(),
+	},
+	{
+		country: 'KR',
+		description:
+			'Shipped South Korea opt-in starter. Review its assumptions for your processing.',
+		group: 'preset',
+		id: 'preset-south-korea-opt-in',
+		label: 'South Korea opt-in',
+		policy: policyRulePresets.southKoreaOptIn(),
+	},
+	{
+		country: 'IN',
+		description:
+			'Shipped India opt-in starter. Review its assumptions for your processing.',
+		group: 'preset',
+		id: 'preset-india-opt-in',
+		label: 'India opt-in',
+		policy: policyRulePresets.indiaOptIn(),
+	},
+	{
+		country: 'AE',
+		description:
+			'Shipped UAE opt-in starter. Review its assumptions for your processing.',
+		group: 'preset',
+		id: 'preset-uae-opt-in',
+		label: 'UAE opt-in',
+		policy: policyRulePresets.uaeOptIn(),
+	},
+	{
+		country: 'SA',
+		description:
+			'Shipped Saudi Arabia opt-in starter. Review its assumptions for your processing.',
+		group: 'preset',
+		id: 'preset-saudi-arabia-opt-in',
+		label: 'Saudi Arabia opt-in',
+		policy: policyRulePresets.saudiArabiaOptIn(),
+	},
+
+	{
+		country: 'CN',
+		description:
+			'Review the preset sources and processing assumptions before use.',
+		group: 'preset',
+		id: 'preset-china-opt-in',
+		label: 'China opt-in',
+		policy: policyRulePresets.chinaOptIn(),
+	},
+	{
+		country: 'MY',
+		description:
+			'Review the preset sources and processing assumptions before use.',
+		group: 'preset',
+		id: 'preset-malaysia-opt-in',
+		label: 'Malaysia opt-in',
+		policy: policyRulePresets.malaysiaOptIn(),
+	},
+	{
+		country: 'TH',
+		description:
+			'Review the preset sources and processing assumptions before use.',
+		group: 'preset',
+		id: 'preset-thailand-opt-in',
+		label: 'Thailand opt-in',
+		policy: policyRulePresets.thailandOptIn(),
+	},
+	{
+		country: 'ID',
+		description:
+			'Review the preset sources and processing assumptions before use.',
+		group: 'preset',
+		id: 'preset-indonesia-opt-in',
+		label: 'Indonesia opt-in',
+		policy: policyRulePresets.indonesiaOptIn(),
+	},
+	{
+		country: 'PH',
+		description:
+			'Review the preset sources and processing assumptions before use.',
+		group: 'preset',
+		id: 'preset-philippines-opt-in',
+		label: 'Philippines opt-in',
+		policy: policyRulePresets.philippinesOptIn(),
+	},
+	{
+		country: 'VN',
+		description:
+			'Review the preset sources and processing assumptions before use.',
+		group: 'preset',
+		id: 'preset-vietnam-opt-in',
+		label: 'Vietnam opt-in',
+		policy: policyRulePresets.vietnamOptIn(),
+	},
+	{
+		country: 'BN',
+		description:
+			'Review the preset sources and processing assumptions before use.',
+		group: 'preset',
+		id: 'preset-brunei-opt-in',
+		label: 'Brunei opt-in',
+		policy: policyRulePresets.bruneiOptIn(),
+	},
+	{
+		country: 'LA',
+		description:
+			'Review the preset sources and processing assumptions before use.',
+		group: 'preset',
+		id: 'preset-laos-opt-in',
+		label: 'Laos opt-in',
+		policy: policyRulePresets.laosOptIn(),
+	},
+	{
+		country: 'BR',
+		description:
+			'Review the preset sources and processing assumptions before use.',
+		group: 'preset',
+		id: 'preset-brazil-opt-in',
+		label: 'Brazil opt-in',
+		policy: policyRulePresets.brazilOptIn(),
+	},
+	{
+		country: 'CH',
+		description:
+			'Review the preset sources and processing assumptions before use.',
+		group: 'preset',
+		id: 'preset-switzerland-opt-in',
+		label: 'Switzerland opt-in',
+		policy: policyRulePresets.switzerlandOptIn(),
+	},
+	{
+		country: 'TR',
+		description:
+			'Review the preset sources and processing assumptions before use.',
+		group: 'preset',
+		id: 'preset-turkey-opt-in',
+		label: 'Türkiye opt-in',
+		policy: policyRulePresets.turkeyOptIn(),
+	},
+	{
+		country: 'CH',
+		description:
+			'Review the preset sources and processing assumptions before use.',
+		group: 'preset',
+		id: 'preset-switzerland-opt-out-no-prompt',
+		label: 'Switzerland no prompt',
+		policy: policyRulePresets.switzerlandOptOutNoPrompt(),
+	},
+	{
+		country: 'US',
+		description:
+			'Optional categories wait for a choice. GPC still restricts marketing and measurement.',
+		group: 'preset',
+		id: 'preset-us-privacy-states-opt-in',
+		label: 'US privacy states opt-in',
+		policy: policyRulePresets.usPrivacyStatesOptIn(),
+		region: 'CO',
+	},
+
+	// ── Custom examples ───────────────────────────────────────────────────
+	{
+		country: 'FR',
+		description:
+			'Country-level IAB TCF policy with custom banner copy (the "fr" message profile) in English, French, and German.',
+		group: 'custom',
+		id: 'custom-fr-iab',
+		label: 'France IAB',
+		policy: {
+			categories: ['*'],
+			i18n: { messageProfile: 'fr' },
+			id: 'fr_iab',
+			match: { countries: ['FR'] },
+			model: 'iab',
+			prompt: 'choice',
+			proof: {
+				storeIp: true,
+				storeLanguage: true,
+				storeUserAgent: true,
+			},
+			validity: { choiceDays: 180 },
+		},
+	},
+	{
+		country: 'DE',
+		description:
+			'Strict opt-in with specific categories, compact split-row actions, and custom GDPR copy (the "eu" message profile).',
+		group: 'custom',
+		id: 'custom-de-strict',
+		label: 'Germany Strict',
+		policy: {
+			categories: ['necessary', 'functionality', 'measurement'],
+			i18n: { messageProfile: 'eu' },
+			id: 'de_strict',
+			match: { countries: ['DE'] },
+			model: 'opt-in',
+			prompt: 'choice',
+			proof: {
+				storeIp: true,
+				storeLanguage: true,
+				storeUserAgent: true,
+			},
+			scopeMode: 'strict',
+			validity: { choiceDays: 365 },
+		},
+		presentation: {
+			preferences: {
+				direction: 'row',
+				layout: [['reject', 'accept'], 'save'],
+				primaryActions: ['accept', 'reject', 'save'],
+				uiProfile: 'compact',
+			},
+			prompt: {
+				direction: 'row',
+				layout: [['reject', 'accept'], 'customize'],
+				primaryActions: ['accept', 'reject', 'customize'],
+				uiProfile: 'compact',
+			},
+		},
+	},
+	{
+		country: 'ES',
+		description:
+			'Editorial layout with customize on its own row and accept/reject grouped underneath.',
+		group: 'custom',
+		id: 'custom-es-split-stack',
+		label: 'Spain Split-Stack',
+		policy: {
+			categories: ['necessary', 'measurement', 'marketing'],
+			i18n: { messageProfile: 'default' },
+			id: 'es_split_stack',
+			match: { countries: ['ES'] },
+			model: 'opt-in',
+			prompt: 'choice',
+			proof: {
+				storeIp: false,
+				storeLanguage: true,
+				storeUserAgent: true,
+			},
+			scopeMode: 'strict',
+			validity: { choiceDays: 180 },
+		},
+		presentation: {
+			preferences: {
+				direction: 'column',
+				layout: ['save', ['reject', 'accept']],
+				primaryActions: ['accept', 'reject'],
+				uiProfile: 'balanced',
+			},
+			prompt: {
+				direction: 'column',
+				layout: ['customize', ['reject', 'accept']],
+				primaryActions: ['accept', 'reject'],
+				uiProfile: 'balanced',
+			},
+		},
+	},
+	{
+		country: 'BR',
+		description:
+			'Opt-out choice prompt with accept, reject, and customize actions and a permissive scope.',
+		group: 'custom',
+		id: 'custom-br-growth',
+		label: 'Brazil Opt-Out',
+		policy: {
+			categories: ['necessary', 'functionality', 'measurement', 'marketing'],
+			i18n: { messageProfile: 'default' },
+			id: 'br_growth',
+			match: { countries: ['BR'] },
+			model: 'opt-out',
+			prompt: 'choice',
+			proof: {
+				storeIp: false,
+				storeLanguage: true,
+				storeUserAgent: false,
+			},
+			scopeMode: 'permissive',
+			validity: { choiceDays: 120 },
+		},
+		presentation: {
+			preferences: {
+				direction: 'row',
+				layout: [['accept', 'reject'], 'save'],
+				primaryActions: ['accept', 'reject'],
+				uiProfile: 'balanced',
+			},
+			prompt: {
+				direction: 'row',
+				layout: [['accept', 'reject'], 'customize'],
+				primaryActions: ['accept', 'reject'],
+				uiProfile: 'balanced',
+			},
+		},
+	},
+	{
+		country: 'US',
+		description:
+			'Opt-out choice prompt with two equally prominent actions. Reject records the opt-out, and because nothing on the prompt covers the preferences right, the banner adds a "Manage preferences" text link on its own. The "caSales" message profile supplies California copy.',
+		group: 'custom',
+		id: 'custom-ca-do-not-sell',
+		label: 'California CTA',
+		policy: {
+			actions: ['accept', 'reject'],
+			categories: ['necessary', 'functionality', 'measurement', 'marketing'],
+			i18n: { messageProfile: 'caSales' },
+			id: 'ca_do_not_sell',
+			match: { regions: [{ country: 'US', region: 'CA' }] },
+			model: 'opt-out',
+			privacySignals: { gpc: { denyCategories: ['marketing'] } },
+			prompt: 'choice',
+			proof: {
+				storeIp: true,
+				storeLanguage: true,
+				storeUserAgent: true,
+			},
+			scopeMode: 'permissive',
+			validity: { choiceDays: 365 },
+		},
+		presentation: {
+			preferences: {
+				direction: 'column',
+				layout: ['accept', 'reject', 'save'],
+				primaryActions: ['accept', 'reject'],
+				uiProfile: 'compact',
+			},
+			prompt: {
+				direction: 'column',
+				layout: ['accept', 'reject'],
+				primaryActions: ['accept', 'reject'],
+				uiProfile: 'compact',
+			},
+		},
+		region: 'CA',
+	},
+	{
+		country: 'US',
+		description:
+			'Opt-out notice prompt. The banner renders an OK dismissal plus a "Do not sell or share my data" button styled as underlined text that opens the preference center, because a notice offers no choice actions and the opt-out right stays reachable.',
+		group: 'custom',
+		id: 'custom-us-notice',
+		label: 'US notice',
+		policy: {
+			categories: ['necessary', 'functionality', 'measurement', 'marketing'],
+			i18n: { messageProfile: 'default' },
+			id: 'us_notice',
+			match: { countries: ['US'] },
+			model: 'opt-out',
+			privacySignals: { gpc: { denyCategories: ['marketing', 'measurement'] } },
+			prompt: 'notice',
+			proof: {
+				storeIp: false,
+				storeLanguage: true,
+				storeUserAgent: false,
+			},
+			scopeMode: 'permissive',
+		},
+		// No explicit presentation: the demo's per-policy map renders a notice
+		// as a floating bottom-left card, clear of the bottom-right toolbar.
+	},
+	{
+		country: 'FR',
+		description:
+			'Opt-in choice prompt rendered as a centered wall: a backdrop, scroll lock, and focus trap until the visitor answers. `wall` is always blocking.',
+		group: 'custom',
+		id: 'custom-eu-wall',
+		label: 'EU wall',
+		policy: {
+			categories: ['necessary', 'functionality', 'measurement', 'marketing'],
+			i18n: { messageProfile: 'eu' },
+			id: 'eu_wall',
+			match: { countries: ['FR'] },
+			model: 'opt-in',
+			prompt: 'choice',
+			proof: {
+				storeIp: true,
+				storeLanguage: true,
+				storeUserAgent: true,
+			},
+			scopeMode: 'strict',
+			validity: { choiceDays: 365 },
+		},
+		presentation: {
+			prompt: { variant: 'wall' },
+		},
+	},
+	{
+		country: 'US',
+		description:
+			'A visitor in a US state with no comprehensive privacy law. The recommended pack resolves the world `none` rule: every category is permitted, nothing is recorded, and no consent UI renders because no law grants rights to opt in or out.',
+		group: 'custom',
+		id: 'custom-us-sd-none',
+		label: 'South Dakota',
+		policy: policyRulePresets.worldNone(),
+		region: 'SD',
+		useRecommendedPack: true,
+	},
+	{
+		country: '',
+		description:
+			'A visitor whose location could not be determined. The Europe opt-in rule carries the unknown-location fallback, so the recommended pack shows the strict choice prompt and grants nothing until the visitor chooses.',
+		group: 'custom',
+		id: 'custom-unknown-location',
+		label: 'Unknown location',
+		policy: policyRulePresets.europeOptIn(),
+		useRecommendedPack: true,
+	},
+];
+
+const showsTriggerToolbarFor = function showsTriggerToolbarFor(
+	policy: PolicyRule
+): boolean {
+	if (policy.model === 'iab') {
+		return false;
+	}
+	return policy.model !== 'none' || (policy.rights?.length ?? 0) > 0;
+};
+
+const runtimePresentationFor = function runtimePresentationFor(
+	scenario: Omit<DemoScenario, 'runtimePresentation' | 'showsTriggerToolbar'>
+): ConsentPresentation | undefined {
+	if (scenario.presentation) {
+		return scenario.presentation;
+	}
+	const prompt = presentationForRule(scenario.policy);
+	return prompt ? { prompt } : undefined;
+};
+
+export const demoScenarios: DemoScenario[] = authoredScenarios.map(
+	(scenario) => ({
+		...scenario,
+		runtimePresentation: runtimePresentationFor(scenario),
+		showsTriggerToolbar: showsTriggerToolbarFor(scenario.policy),
+	})
+);
+
+export const getScenarioById = function getScenarioById(
+	id: string | null | undefined
+): DemoScenario {
+	return (
+		demoScenarios.find((scenario) => scenario.id === id) ??
+		(demoScenarios.find(
+			(scenario) => scenario.id === DEFAULT_SCENARIO_ID
+		) as DemoScenario)
+	);
+};
+
+/**
+ * Policy packs for one scenario: the recommended pack for scenarios that
+ * opt into it, otherwise the scenario's policy plus the world no-banner
+ * fallback (unless the scenario itself is the default fallback).
+ */
+export const getScenarioPolicyRules = function getScenarioPolicyRules(
+	id: string
+): PolicyRule[] {
+	const scenario = getScenarioById(id);
+
+	if (scenario.useRecommendedPack) {
+		return recommendedPolicyRules();
+	}
+
+	if (scenario.policy.match?.isDefault) {
+		return [scenario.policy];
+	}
+
+	return [scenario.policy, worldFallbackPolicy];
+};
+
+/**
+ * Every demo policy, used by the CLI backend config.
+ *
+ * Custom scenarios come first: within a matcher type, first match wins by
+ * array order, so the country-specific customs (FR/DE/ES) must be resolved
+ * before the broad Europe presets that also match those countries — and
+ * likewise `custom-ca-do-not-sell` before the California presets.
+ */
+export const demoPolicies: PolicyRule[] = [...demoScenarios]
+	.sort((a, b) => {
+		if (a.group === b.group) {
+			return 0;
+		}
+		return a.group === 'custom' ? -1 : 1;
+	})
+	.map((scenario) => scenario.policy);

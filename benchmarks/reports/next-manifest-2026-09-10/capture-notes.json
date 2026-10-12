@@ -1,0 +1,33 @@
+{
+	"commit": "278fd8667edab3f5d392ae6dfecbea96c54fdfdc",
+	"workingTreeDirty": true,
+	"date": "2026-09-10",
+	"machine": "Apple M5 Pro",
+	"macOS": "26.6.2",
+	"next": "16.2.10",
+	"node": "24.19.0",
+	"chromium": "149.0.7827.55",
+	"profile": "none",
+	"injectedBackendDelayMs": 150,
+	"freshNextProductionBuild": true,
+	"workspaceDependencyBuilds": "Existing workspace dependencies; no dependency rebuild in this capture.",
+	"direct": {
+		"scenario": "ssr",
+		"warmups": 2,
+		"samples": 10
+	},
+	"manifest": {
+		"scenario": "manifest-ssr",
+		"coldManifest": true,
+		"coldSamples": 1,
+		"steadySamples": 10
+	},
+	"limitations": [
+		"Local fixture, not Inth.",
+		"Awaited SSR, not streaming recipe.",
+		"Banner-visible probe executes after hydration, not initial pixel paint.",
+		"One cold sample cannot establish a cold distribution.",
+		"Direct runner also captures repeat visitor samples, excluded from paired table.",
+		"No benchmark source changes."
+	]
+}

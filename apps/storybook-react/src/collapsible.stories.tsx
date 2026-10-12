@@ -1,10 +1,11 @@
-import { Collapsible } from '@c15t/react/primitives';
 import {
 	startsClosedByDefault,
 	toggleOpenClose,
-} from '@c15t/storybook-tests/play/collapsible';
+} from '@c15t/conformance/play/collapsible';
+import { Collapsible } from '@c15t/react/primitives';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import type React from 'react';
+
 import { enTranslations } from '../../../packages/translations/src';
 
 const meta = {
@@ -12,7 +13,7 @@ const meta = {
 	parameters: {
 		layout: 'centered',
 	},
-	title: 'Primitives/Collapsible',
+	title: 'PRIMITIVES - REACT/Collapsible',
 } satisfies Meta<typeof Collapsible.Root>;
 
 export default meta;
@@ -40,7 +41,10 @@ const triggerStyle: React.CSSProperties = {
 export const Default: Story = {
 	play: toggleOpenClose,
 	render: () => (
-		<Collapsible.Root defaultOpen style={rootStyle}>
+		<Collapsible.Root
+			defaultOpen
+			style={rootStyle}
+		>
 			<Collapsible.Trigger style={triggerStyle}>
 				<span>{consentTypes.measurement.title}</span>
 				<span aria-hidden="true">+</span>
@@ -55,7 +59,10 @@ export const Default: Story = {
 export const ClosedByDefault: Story = {
 	play: startsClosedByDefault,
 	render: () => (
-		<Collapsible.Root defaultOpen={false} style={rootStyle}>
+		<Collapsible.Root
+			defaultOpen={false}
+			style={rootStyle}
+		>
 			<Collapsible.Trigger style={triggerStyle}>
 				<span>{consentTypes.functionality.title}</span>
 				<span aria-hidden="true">+</span>

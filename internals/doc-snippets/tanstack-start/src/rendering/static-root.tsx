@@ -1,0 +1,56 @@
+// #region docs:static-root title="src/routes/__root.tsx"
+import {
+	createRootRoute,
+	HeadContent,
+	Outlet,
+	Scripts,
+} from '@tanstack/react-router';
+import {
+	ConsentBanner,
+	ConsentDialog,
+	ConsentDialogLink,
+	ConsentRoot,
+	consentPrefetchHead,
+} from 'c15t/tanstack-start';
+
+import { scripts } from '../scripts';
+
+const backendURL =
+	import.meta.env.VITE_C15T_BACKEND_URL ?? 'https://your-project.inth.app';
+
+// No loader: the HTML is built ahead of time, so the browser resolves
+// consent after it loads, from the backend URL consentManifest() read.
+const RootComponent = () => (
+	<html lang="en">
+		<head>
+			<HeadContent />
+		</head>
+		<body>
+			<ConsentRoot
+				state={{}}
+				scripts={scripts}
+			>
+				<Outlet />
+				<ConsentBanner />
+				<ConsentDialog />
+				<footer>
+					<ConsentDialogLink>Privacy settings</ConsentDialogLink>
+				</footer>
+			</ConsentRoot>
+			<Scripts />
+		</body>
+	</html>
+);
+
+export const Route = createRootRoute({
+	component: RootComponent,
+	head: () => ({
+		meta: [
+			{ charSet: 'utf-8' },
+			{ content: 'width=device-width, initial-scale=1', name: 'viewport' },
+		],
+		// Optional: start the /init request while the browser parses <head>.
+		...consentPrefetchHead({ backendURL }),
+	}),
+});
+// #endregion docs:static-root

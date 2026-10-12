@@ -1,0 +1,52 @@
+---
+/**
+ * `<ConsentDialogLink>`: the "Privacy settings" control that opens a
+ * consent dialog, for the footer every site needs.
+ *
+ * Ships no JavaScript of its own — it carries `data-c15t-action` and the
+ * one delegated listener the banner already installed picks it up.
+ *
+ * ```astro
+ * <ConsentDialogLink>Privacy settings</ConsentDialogLink>
+ * <ConsentDialogLink kind="iab">Ad partners</ConsentDialogLink>
+ * ```
+ */
+import ComponentStyles from './component-styles.astro';
+
+interface Props {
+	/** Which dialog to open. */
+	kind?: 'preferences' | 'iab';
+	/** Extra class names. */
+	class?: string;
+	/** Render an `<a href="#">` instead of a `<button>`. */
+	as?: 'button' | 'a';
+}
+
+const { kind = 'preferences', class: className, as = 'button' } = Astro.props;
+const Tag = as;
+// Hidden until a resolved rule owes consent UI: nothing to manage before a
+// rule resolves, and nothing owed under a `none` rule with no rights. The
+// browser client toggles `hidden` as the snapshot changes.
+const hasConsentUi = Astro.locals.c15t?.hasConsentUi ?? true;
+---
+
+<ComponentStyles />
+
+<Tag
+	class={className}
+	data-c15t-action="customize"
+	data-c15t-dialog={kind}
+	data-c15t-surface="trigger"
+	data-testid="consent-dialog-trigger"
+	hidden={hasConsentUi ? undefined : true}
+	href={as === 'a' ? '#c15t-preferences' : undefined}
+	type={as === 'button' ? 'button' : undefined}
+>
+	<slot />
+</Tag>
+
+<script>
+	import { attachBannerActions } from '@c15t/astro/client';
+
+	attachBannerActions();
+</script>

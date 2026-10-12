@@ -1,5 +1,6 @@
 'use client';
 
+import type { SaveUISource } from '@c15t/core';
 import { createContext, useContext } from 'react';
 
 /**
@@ -36,3 +37,22 @@ export const ConsentTrackingContext = createContext<ConsentTrackingValue>({});
  * @public
  */
 export const useConsentTracking = () => useContext(ConsentTrackingContext);
+
+/**
+ * Narrow a tracking `uiSource` to a value the kernel records. Custom labels
+ * fall back to the kernel's `activeUI` attribution.
+ *
+ * @param value - The `uiSource` from props or context.
+ * @returns A kernel save source, or `undefined` to keep the default.
+ * @public
+ */
+export const toSaveUISource = function toSaveUISource(
+	value: string | undefined
+): SaveUISource | undefined {
+	return value === 'banner' ||
+		value === 'dialog' ||
+		value === 'widget' ||
+		value === 'none'
+		? value
+		: undefined;
+};

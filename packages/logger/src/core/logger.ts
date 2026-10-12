@@ -32,11 +32,14 @@ import type {
  * @example
  * ```ts
  * // Create a logger with trace context for log correlation
- * import { getTraceContext } from '@c15t/backend/telemetry';
+ * import { trace } from '@opentelemetry/api';
  *
  * const logger = createLogger({
  *   level: 'info',
- *   getTraceContext: () => getTraceContext(),
+ *   getTraceContext: () => {
+ *     const span = trace.getActiveSpan()?.spanContext();
+ *     return span ? { traceId: span.traceId, spanId: span.spanId } : null;
+ *   },
  * });
  *
  * // Logs will include traceId and spanId when available
@@ -74,11 +77,11 @@ export const createLogger = (options?: LoggerOptions | Logger): Logger => {
 	 */
 	// Map log levels to console methods
 	const consoleMethods: Record<LogLevel, (...args: unknown[]) => void> = {
-		error: console.error.bind(console),
-		warn: console.warn.bind(console),
-		info: console.log.bind(console),
 		debug: console.debug.bind(console),
+		error: console.error.bind(console),
+		info: console.log.bind(console),
 		success: console.log.bind(console),
+		warn: console.warn.bind(console),
 	};
 
 	/**
@@ -182,9 +185,9 @@ export const logger = createLogger();
  *
  * @public
  */
-export function extendLogger<T extends LoggerExtensions>(
+export const extendLogger = function extendLogger<T extends LoggerExtensions>(
 	baseLogger: Logger,
 	extensions: T
 ): ExtendedLogger<T> {
-	return Object.assign({}, baseLogger, extensions);
-}
+	return { ...baseLogger, ...extensions };
+};

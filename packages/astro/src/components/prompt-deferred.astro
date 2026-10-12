@@ -1,0 +1,51 @@
+---
+/**
+ * The banner as a server island.
+ *
+ * A statically cached page cannot carry a per-visitor consent decision: the
+ * first visitor's country would be baked into the HTML every later visitor
+ * receives. This variant renders the page from cache and defers only the
+ * banner to a per-request island, so geo, GPC and the stored consent cookie
+ * are all still honoured.
+ *
+ * ```astro
+ * ---
+ * import ConsentBannerDeferred from '@c15t/astro/components/consent-banner-deferred.astro';
+ * ---
+ * <ConsentBannerDeferred />
+ * ```
+ *
+ * Under a nonce-based Content Security Policy, the island's inline code
+ * carries the page's nonce from `Astro.locals.c15t.nonce`, since the page's
+ * policy is the one that applies to it. Astro's own island loader is an
+ * inline script without a nonce, so the policy has to allow it too.
+ *
+ * Needs an adapter with on-demand rendering available (`output: 'server'`,
+ * or `output: 'static'` with the page's own `prerender` left on and the
+ * adapter configured). Without one, use `<ConsentBanner />` on an
+ * on-demand-rendered page instead.
+ */
+import type { PromptProps } from '@c15t/astro/server';
+import ComponentStyles from './component-styles.astro';
+import ConsentBanner from './prompt.astro';
+
+/** Every `<ConsentBanner />` prop, forwarded to the deferred island. */
+interface Props extends PromptProps {
+	/**
+	 * Render even when the server decided the banner should stay hidden.
+	 * Useful for visual testing.
+	 */
+	force?: boolean;
+}
+---
+
+<ComponentStyles />
+
+<ConsentBanner
+	server:defer
+	{...Astro.props}
+	inlineStyles={false}
+	nonce={Astro.locals.c15t?.nonce}
+>
+	<slot name="fallback" slot="fallback" />
+</ConsentBanner>

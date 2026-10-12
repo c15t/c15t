@@ -1,222 +1,60 @@
 ---
 title: Amplitude
-description: Load Amplitude Browser SDK 2 with c15t and gate product analytics behind measurement consent.
-group: integrations
+description: Load the Amplitude Browser SDK 2 only after measurement consent with the c15t amplitude helper, which opts the SDK out on revocation and back in on a new grant.
+seoTitle: Amplitude cookie consent with c15t
+seoDescription: Load Amplitude only with measurement consent. The c15t amplitude helper opts the SDK out when a visitor withdraws consent.
 icon: amplitude
+group: integrations
 ---
 
-[Amplitude](https://amplitude.com/) provides product analytics for tracking user behavior, funnels, retention, and feature adoption. The `amplitude()` helper creates the Browser SDK 2 snippet queue, queues `amplitude.init(apiKey, initOptions)`, and loads Amplitude only when `measurement` consent is available.
+The c15t `amplitude` helper keeps the Amplitude Browser SDK 2 off the page until
+`measurement` has consent. Until then, c15t does not define `window.amplitude`.
+When `measurement` has consent, the helper queues `init` and `setOptOut(false)`
+before the SDK loads. If the visitor withdraws consent, the helper calls
+`amplitude.setOptOut(true)`. The SDK stays on the page. By default, c15t also
+reloads the page.
 
-## Integrate with c15t
+## Configure Amplitude
 
-<Tabs items={['React', 'Next.js', 'JavaScript']}>
-  <Tab value="React">
-    ```tsx
-    import { type ReactNode } from 'react';
-    import { ConsentManagerProvider } from '@c15t/react';
-    import { amplitude } from '@c15t/scripts/amplitude';
+Use your Amplitude project API key. The `amplitude` helper initializes Browser
+SDK 2 for you, so remove any existing Amplitude snippet or `init` call.
 
-    const scripts = [
-      amplitude({
-        apiKey: 'AMPLITUDE_API_KEY',
-        initOptions: {
-          autocapture: false,
-        },
-      }),
-    ];
+<CommandTabs command="@c15t/integrations" mode="install" />
 
-    export function ConsentProvider({ children }: { children: ReactNode }) {
-      return (
-        <ConsentManagerProvider
-          options={{
-            mode: 'hosted',
-            backendURL: 'https://your-instance.c15t.dev',
-            scripts,
-          }}
-        >
-          {children}
-        </ConsentManagerProvider>
-      );
-    }
-    ```
-  </Tab>
+```ts title="src/consent-scripts.ts"
+import { amplitude } from '@c15t/integrations/amplitude';
 
-  <Tab value="Next.js">
-    ```tsx
-    'use client';
-
-    import { type ReactNode } from 'react';
-    import { ConsentManagerProvider } from '@c15t/nextjs';
-    import { amplitude } from '@c15t/scripts/amplitude';
-
-    const scripts = [
-      amplitude({
-        apiKey: 'AMPLITUDE_API_KEY',
-        initOptions: {
-          autocapture: false,
-        },
-      }),
-    ];
-
-    export function ConsentProvider({ children }: { children: ReactNode }) {
-      return (
-        <ConsentManagerProvider
-          options={{
-            mode: 'hosted',
-            backendURL: '/api/c15t',
-            scripts,
-          }}
-        >
-          {children}
-        </ConsentManagerProvider>
-      );
-    }
-    ```
-  </Tab>
-
-  <Tab value="JavaScript">
-    ```ts
-    import { getOrCreateConsentRuntime } from 'c15t';
-    import { amplitude } from '@c15t/scripts/amplitude';
-
-    getOrCreateConsentRuntime({
-      mode: 'hosted',
-      backendURL: 'https://your-instance.c15t.dev',
-      scripts: [
-        amplitude({
-          apiKey: 'AMPLITUDE_API_KEY',
-          initOptions: {
-            autocapture: false,
-          },
-        }),
-      ],
-    });
-    ```
-  </Tab>
-</Tabs>
-
-## How c15t loads it
-
-- **Category:** `measurement` (Analytics)
-- **Loads when:** measurement consent is granted
-- **On revocation:** c15t calls `amplitude.setOptOut(true)` through the lifecycle callback and unloads the script by default.
-
-The helper maps Amplitude Browser SDK 2's script-loader contract into the manifest engine:
-
-```ts
-amplitude({
-  apiKey: 'AMPLITUDE_API_KEY',
-  initOptions: {
-    autocapture: false,
-  },
-});
+export const scripts = [amplitude({ apiKey: 'YOUR_PROJECT_API_KEY' })];
 ```
 
-It creates `window.amplitude` with:
+<include src="../shared/integrations/register-scripts.mdx" />
 
-- `invoked: true`
-- `_q: []` for queued `{ name, args, resolve }` method calls
-- `_iq: {}` for the named-instance registry expected by the SDK
-- `Identify` for queued pre-load identify operations
-- core queue methods for `init`, `track`, `identify`, `setUserId`, `setOptOut`, and `flush`
+## Options
 
-Then it queues:
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `apiKey` | Required | Project API key passed to `amplitude.init`. The helper trims it. Empty or whitespace-only values log an error and the script does not load. |
+| `initOptions` | `{}` | Browser SDK 2 options passed as the second argument to `init`. Use JSON-serializable values only. |
+| `scriptUrl` | `https://cdn.amplitude.com/libs/analytics-browser-2.44.4-min.js.gz` | Loader URL override. The default pins Browser SDK 2 version `2.44.4`. A blank value falls back to the default. |
 
-```ts
-window.amplitude.init('AMPLITUDE_API_KEY', {
-  autocapture: false,
-});
-```
+## Loading and revocation
 
-and loads:
+`amplitude` uses the `measurement` category. Before measurement is allowed,
+c15t defines no `window.amplitude` and loads nothing from Amplitude. When
+measurement becomes allowed, the helper creates the Browser SDK 2 queue stub,
+queues `init(apiKey, initOptions)` and `setOptOut(false)`, then loads the SDK,
+which replays the queue. Amplitude saves an opt-out in its cookie, so the
+queued `setOptOut(false)` clears one left by an earlier revocation.
 
-```txt
-https://cdn.amplitude.com/libs/analytics-browser-2.44.4-min.js.gz
-```
+On revocation the helper calls `amplitude.setOptOut(true)` and leaves the SDK
+on the page, because removing the script would not stop the running client.
+If the visitor allows measurement again before the page reloads, the helper
+calls `setOptOut(false)` on that SDK instead of loading a second copy.
 
-`apiKey` is required and must be a non-empty string after trimming.
+## Verify Amplitude
 
-## Configure initialization
+After you allow measurement, the `analytics-browser-2.44.4-min.js.gz` request
+loads and a test event reaches your Amplitude project. Revoke measurement, then
+allow it again on a later page and check that events reach Amplitude again.
 
-Pass `initOptions` to provide Amplitude Browser SDK 2 initialization options. Values must be JSON-serializable: plain objects, arrays, strings, numbers, booleans, and `null`.
-
-```ts
-import { amplitude } from '@c15t/scripts/amplitude';
-
-amplitude({
-  apiKey: 'AMPLITUDE_API_KEY',
-  initOptions: {
-    autocapture: false,
-    fetchRemoteConfig: false,
-  },
-});
-```
-
-Do not pass functions, Dates, Maps, Sets, class instances, symbols, or other non-JSON values in `initOptions`.
-
-## Configure the loader URL
-
-Amplitude's Browser SDK 2 CDN bundle path is versioned. c15t pins a tested default version and lets you override the URL if you self-host or proxy the bundle.
-
-```ts
-amplitude({
-  apiKey: 'AMPLITUDE_API_KEY',
-  scriptUrl: 'https://analytics.example.com/analytics-browser.js',
-});
-```
-
-## Consent behavior
-
-Amplitude should not load before analytics consent. c15t gates the SDK on `measurement` consent and queues `init()` only when the script is allowed to load.
-
-After the SDK has loaded, the generated lifecycle callback maps consent changes to Amplitude's runtime opt-out API:
-
-```ts
-window.amplitude.setOptOut(false); // measurement granted
-window.amplitude.setOptOut(true); // measurement denied
-```
-
-The script still uses c15t's default unload behavior when measurement consent is revoked.
-
-## Tracking events in your app
-
-c15t gates the Amplitude browser SDK from loading until `measurement` consent is granted. Your application code that calls Amplitude's runtime API (`window.amplitude.track`, `identify`, etc.) is **not** automatically gated - `window.amplitude` does not exist until the script is loaded, so unguarded calls before consent throw.
-
-Guard event calls by checking consent state. From React:
-
-```tsx
-import { useCallback } from 'react';
-import { useConsentManager } from '@c15t/react';
-
-function SignupExample() {
-  const { has } = useConsentManager();
-
-  const trackSignup = useCallback(() => {
-    if (has('measurement')) {
-      window.amplitude?.track('Signup Completed', { plan: 'pro' });
-    }
-  }, [has]);
-}
-```
-
-From plain JavaScript:
-
-```ts
-import { getOrCreateConsentRuntime } from 'c15t';
-
-const { consentStore } = getOrCreateConsentRuntime();
-
-if (consentStore.getState().has('measurement')) {
-  window.amplitude?.track('Signup Completed', { plan: 'pro' });
-}
-```
-
-## Types
-
-### AmplitudeOptions
-
-<AutoTypeTable path="./packages/scripts/src/vendors/analytics/amplitude.ts" name="AmplitudeOptions" />
-
-### Script
-
-<AutoTypeTable path="./packages/core/src/libs/script-loader/types.ts" name="Script" />
+<include src="../shared/integrations/vendor-revocation-and-verify.mdx" />

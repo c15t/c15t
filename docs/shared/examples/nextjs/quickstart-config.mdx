@@ -1,0 +1,16 @@
+{/* Generated from examples/nextjs/c15t.config.ts (docs:quickstart-config) by scripts/sync-example-docs.ts. Edit the source file. */}
+
+```ts title="c15t.config.ts"
+import { posthog } from '@c15t/integrations/posthog';
+import { defineConsentConfig } from 'c15t/next';
+
+export default defineConsentConfig({
+	scripts: [
+		posthog({
+			id: 'phc_your_project_key',
+			initOptions: { cookieless_mode: 'never' },
+			loadMode: 'after-consent',
+		}),
+	],
+});
+```

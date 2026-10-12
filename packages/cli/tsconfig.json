@@ -2,12 +2,15 @@
 	"extends": "@c15t/typescript-config/node.json",
 	"compilerOptions": {
 		"rootDir": "src",
+		"allowImportingTsExtensions": true,
 		"lib": ["esnext"],
 		"paths": {
 			"@c15t/backend": ["../backend/dist-types/core.d.ts"],
 			"@c15t/backend/*": ["../backend/dist-types/*"],
 			"@c15t/logger": ["../logger/dist-types/index.d.ts"],
-			"@c15t/scripts/registry": ["../scripts/dist-types/registry.d.ts"],
+			"@c15t/integrations/registry": [
+				"../integrations/dist-types/registry.d.ts"
+			],
 			"~/*": ["./src/*"]
 		}
 	},

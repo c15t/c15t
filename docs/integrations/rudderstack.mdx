@@ -1,263 +1,106 @@
 ---
 title: RudderStack
-description: Load RudderStack's JavaScript SDK with c15t and gate the browser SDK behind measurement consent.
-group: integrations
+description: Load the RudderStack JavaScript SDK after measurement consent with the c15t rudderstack helper, or map c15t categories to destination consent IDs, and check each mode.
+seoTitle: RudderStack cookie consent with c15t
+seoDescription: Load RudderStack only after measurement consent, or use RudderStack consent management with mapped consent IDs. Set it up with the c15t rudderstack helper.
 icon: rudderstack
+group: integrations
 ---
 
-[RudderStack](https://www.rudderstack.com/) collects customer data from websites and routes it through your RudderStack data plane to downstream destinations. The `rudderstack()` helper creates RudderStack's `window.rudderanalytics` v3 queue, queues the required `load()` call with your write key and data plane URL, optionally queues the initial `page()` call, and loads the browser SDK when `measurement` consent is available.
+By default, the c15t `rudderstack` helper keeps the RudderStack JavaScript SDK
+off the page until `measurement` has consent. In this mode, the helper sends no
+consent signal to RudderStack. With `consentManagement`, the helper loads the
+SDK on every page in the RudderStack pre-consent mode, before the visitor
+chooses. In that mode, the SDK keeps events in a buffer and uses no persistent
+storage. The helper then calls `rudderanalytics.consent()` and puts each mapped
+consent ID in the allowed or denied list, from its c15t category.
 
-## Integrate with c15t
+## Configure RudderStack
 
-<Tabs items={['React', 'Next.js', 'JavaScript']}>
-  <Tab value="React">
-    ```tsx
-    import { type ReactNode } from 'react';
-    import { ConsentManagerProvider } from '@c15t/react';
-    import { rudderstack } from '@c15t/scripts/rudderstack';
+Copy the source write key and the HTTPS data plane URL from your RudderStack
+source. Keep control-plane credentials out of the browser.
 
-    const scripts = [
-      rudderstack({
-        writeKey: 'WRITE_KEY',
-        dataPlaneUrl: 'https://example.dataplane.rudderstack.com',
-      }),
-    ];
+<CommandTabs command="@c15t/integrations" mode="install" />
 
-    export function ConsentProvider({ children }: { children: ReactNode }) {
-      return (
-        <ConsentManagerProvider
-          options={{
-            mode: 'hosted',
-            backendURL: 'https://your-instance.c15t.dev',
-            scripts,
-          }}
-        >
-          {children}
-        </ConsentManagerProvider>
-      );
-    }
-    ```
-  </Tab>
+```ts title="src/consent-scripts.ts"
+import { rudderstack } from '@c15t/integrations/rudderstack';
 
-  <Tab value="Next.js">
-    ```tsx
-    'use client';
+export const scripts = [
+	rudderstack({
+		writeKey: 'YOUR_SOURCE_WRITE_KEY',
+		dataPlaneUrl: 'https://your-data-plane.example.com',
+	}),
+];
+```
 
-    import { type ReactNode } from 'react';
-    import { ConsentManagerProvider } from '@c15t/nextjs';
-    import { rudderstack } from '@c15t/scripts/rudderstack';
+<include src="../shared/integrations/register-scripts.mdx" />
 
-    const scripts = [
-      rudderstack({
-        writeKey: 'WRITE_KEY',
-        dataPlaneUrl: 'https://example.dataplane.rudderstack.com',
-      }),
-    ];
+## Options
 
-    export function ConsentProvider({ children }: { children: ReactNode }) {
-      return (
-        <ConsentManagerProvider
-          options={{
-            mode: 'hosted',
-            backendURL: '/api/c15t',
-            scripts,
-          }}
-        >
-          {children}
-        </ConsentManagerProvider>
-      );
-    }
-    ```
-  </Tab>
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `writeKey` | Required | Source write key. Surrounding whitespace is trimmed. An empty value logs an error and the script does not load. |
+| `dataPlaneUrl` | Required | Data plane URL. A missing, invalid or non-HTTPS URL logs an error and the script does not load. |
+| `consentManagement` | None | `{ mapping }` from c15t categories to RudderStack consent IDs. Switches to destination consent mode. |
+| `loadOptions` | `{}` | Third argument to `rudderanalytics.load()`. Use JSON-serializable values only. |
+| `trackPageView` | `true` | Queues `rudderanalytics.page()` before the loader. |
+| `scriptUrl` | `https://cdn.rudderlabs.com/v3/modern/rsa.min.js` | Loader URL override. A non-HTTPS URL throws; a blank value uses the default. |
 
-  <Tab value="JavaScript">
-    ```ts
-    import { getOrCreateConsentRuntime } from 'c15t';
-    import { rudderstack } from '@c15t/scripts/rudderstack';
+## Loading and revocation
 
-    getOrCreateConsentRuntime({
-      mode: 'hosted',
-      backendURL: 'https://your-instance.c15t.dev',
-      scripts: [
-        rudderstack({
-          writeKey: 'WRITE_KEY',
-          dataPlaneUrl: 'https://example.dataplane.rudderstack.com',
-        }),
-      ],
-    });
-    ```
-  </Tab>
-</Tabs>
+`rudderstack` uses the `measurement` category. `consentManagement` picks the
+mode:
 
-## How c15t loads it
+| Mode | Loads | On consent change | On revocation |
+| --- | --- | --- | --- |
+| Default | After measurement is allowed, with `load` and `page` queued | Nothing | Removes the script element and calls no RudderStack API |
+| `consentManagement` | On every page, in RudderStack's pre-consent state | Calls `rudderanalytics.consent()` with the mapped IDs | Keeps the SDK and calls `consent()` with the revoked IDs denied |
 
-- **Category:** `measurement` (Analytics)
-- **Loads when:** measurement consent is granted
-- **On revocation:** unloaded - c15t removes the script element from the DOM and clears RudderStack globals until consent is granted again.
+## Map destination consent
 
-The helper maps RudderStack's v3 browser snippet into the manifest engine:
+`consentManagement` loads the RudderStack SDK before the visitor chooses. Use
+it only when every destination in your workspace carries a consent ID from the
+mapping; c15t cannot check destination settings from the browser. Add the
+mapping to the helper call:
 
 ```ts
 rudderstack({
-  writeKey: 'WRITE_KEY',
-  dataPlaneUrl: 'https://example.dataplane.rudderstack.com',
+	writeKey: 'YOUR_SOURCE_WRITE_KEY',
+	dataPlaneUrl: 'https://your-data-plane.example.com',
+	consentManagement: {
+		mapping: {
+			measurement: ['YOUR_ANALYTICS_CONSENT_ID'],
+			marketing: ['YOUR_ADVERTISING_CONSENT_ID'],
+		},
+	},
 });
 ```
 
-It creates `window.rudderanalytics`, defines the v3 snippet queue methods, queues:
+The helper sets `preConsent.enabled`, buffered event delivery and
+`consentManagement.provider: 'custom'` in the load options. Storage defaults to
+`{ strategy: 'none' }`; a `preConsent.storage` value in `loadOptions` replaces
+it. Before `load`, the helper queues a `consent()` call. IDs of allowed
+categories go to `allowedConsentIds` and IDs of denied categories go to
+`deniedConsentIds`. A visitor who turns off the `rudderstack` vendor gets every
+mapped ID denied. An empty mapping, or a category with no non-blank IDs, throws.
 
-```ts
-window.rudderanalytics.load(
-  'WRITE_KEY',
-  'https://example.dataplane.rudderstack.com',
-  {}
-);
-window.rudderanalytics.page();
-```
+## Verify RudderStack
 
-and loads:
+In the default mode, allowing measurement loads `rsa.min.js` with a
+`data-rsa-write-key` attribute, and a page event goes to your data plane URL.
 
-```txt
-https://cdn.rudderlabs.com/v3/modern/rsa.min.js
-```
+<include src="../shared/integrations/vendor-revocation-and-verify.mdx" />
 
-`writeKey` and `dataPlaneUrl` are both required and must be non-empty strings after trimming. `dataPlaneUrl` must be a valid HTTPS URL.
+With `consentManagement`, the SDK loads before the choice, so check your
+destinations instead. Test in a private window with an opt-in policy:
 
-## Configure load options
+1. Load the page. `rsa.min.js` loads before you choose. Destinations whose
+   consent IDs map to a denied category receive no events.
+2. Open Privacy settings and allow measurement. Without a reload,
+   destinations with measurement IDs start receiving events. Destinations
+   mapped only to marketing still receive none.
+3. Turn measurement off and save. c15t reloads the page, and destinations with
+   measurement IDs receive no events from the new page.
 
-Pass `loadOptions` to provide RudderStack SDK options as the third `load()` argument. Values must be JSON-serializable: plain objects, arrays, strings, numbers, booleans, and `null`.
-
-```ts
-import { rudderstack } from '@c15t/scripts/rudderstack';
-
-rudderstack({
-  writeKey: 'WRITE_KEY',
-  dataPlaneUrl: 'https://example.dataplane.rudderstack.com',
-  loadOptions: {
-    useBeacon: true,
-    plugins: ['BeaconQueue'],
-  },
-});
-```
-
-Do not pass functions, Dates, Maps, Sets, class instances, symbols, or other non-JSON values in `loadOptions`.
-
-## Configure page tracking
-
-By default the helper queues `rudderanalytics.page()` before the vendor bundle loads. If you want to handle page views yourself, set `trackPageView` to `false`.
-
-```ts
-rudderstack({
-  writeKey: 'WRITE_KEY',
-  dataPlaneUrl: 'https://example.dataplane.rudderstack.com',
-  trackPageView: false,
-});
-```
-
-To proxy or self-host the loader, pass a custom URL:
-
-```ts
-rudderstack({
-  writeKey: 'WRITE_KEY',
-  dataPlaneUrl: 'https://example.dataplane.rudderstack.com',
-  scriptUrl: 'https://analytics.example.com/rsa.min.js',
-});
-```
-
-## Consent behavior
-
-RudderStack exposes a `consent()` API for its own consent-management flow and pre-consent event handling. That API is not a simple runtime opt-out or revocation API for c15t to call after a user withdraws `measurement` consent.
-
-c15t therefore uses the post-consent model recommended by RudderStack's docs: it does not load the SDK until `measurement` consent is granted, and it unloads the script if that consent is later revoked.
-
-### Why c15t blocks the load instead of mapping consent into RudderStack
-
-Some integrations — Google Tag Manager is the clearest example — load immediately and receive c15t's consent state through the vendor's own consent API (Google Consent Mode v2). That model is only safe when the vendor API provides denied-by-default semantics where **nothing identifying is stored or transmitted before consent**.
-
-Loading the RudderStack SDK does not provide that guarantee on its own: once loaded normally it writes its `anonymousId` cookie and delivers events to your data plane, and the `consent()` API filters which downstream *destinations* receive those events rather than preventing collection. Even RudderStack's pre-consent mode defaults to `events.delivery: 'immediate'`, which still sends pre-decision events. "Loaded but consent-filtered" is still collection, so c15t treats blocking the load as the only default that reliably honors a missing or denied `measurement` consent.
-
-RudderStack v3 does offer a pre-consent mode (`preConsent` load options with storage disabled and buffered delivery) designed for CMP integrations, which allows a GTM-style flow. c15t supports it as an explicit opt-in — see below. It is not the default because it runs vendor code before consent and depends on vendor-side configuration (consent IDs on every destination) that c15t cannot verify from the browser.
-
-The same reasoning applies to the other customer-data-platform helpers (Segment, Hightouch): their consent surfaces are destination filters, not collection gates, so those helpers block the load too.
-
-### Opt-in: pre-consent mode with consent ID mapping
-
-Pass `consentManagement` to make c15t the consent provider for RudderStack's pre-consent flow:
-
-```ts
-import { rudderstack } from '@c15t/scripts/rudderstack';
-
-rudderstack({
-  writeKey: 'WRITE_KEY',
-  dataPlaneUrl: 'https://example.dataplane.rudderstack.com',
-  consentManagement: {
-    // c15t category → RudderStack consent IDs (from your destination settings)
-    mapping: {
-      measurement: ['product-analytics'],
-      marketing: ['ad-destinations'],
-    },
-  },
-});
-```
-
-In this mode:
-
-- The SDK loads immediately for every visitor, but **inert**: `preConsent` is enabled with storage strategy `none` (no cookies, no localStorage) and buffered event delivery — nothing reaches your data plane before a consent decision.
-- On every consent decision and change, c15t calls `rudderanalytics.consent()` with `allowedConsentIds`/`deniedConsentIds` partitioned from your mapping. The initial signal is queued before the SDK loads, so consent state is known the moment the SDK initializes.
-- Consent revocation re-signals with the denied IDs instead of unloading the script.
-
-**Event attribution.** This is the reason to opt in: events fired before the user interacts with the consent banner (the initial `page()` call, early product events) are buffered and delivered once consent is granted, so consenting users keep their full journey. In the default blocked-load mode those pre-consent events are simply lost. If you want session stitching across the consent boundary as well, pass your own `preConsent` in `loadOptions` with storage strategy `'session'` — c15t keeps your storage choice but always forces `preConsent.enabled`, buffered event delivery, and the `custom` consent provider, since any of those falling back to SDK defaults would leak pre-consent events.
-
-**Requirements and caveats:**
-
-- Every destination in your RudderStack workspace must be assigned the consent IDs used in the mapping. Destinations without consent IDs receive events regardless of consent — that is RudderStack behavior c15t cannot detect or prevent from the browser.
-- Users who never consent have their buffered events discarded; nothing is persisted for them.
-- The daily [script vendor monitor](https://github.com/c15t/c15t/issues/899) probes this mode against the live SDK: it loads RudderStack with denied consent in a real browser and asserts zero data plane requests and zero `rl_*` storage, so a vendor-side change to pre-consent semantics is caught automatically.
-
-### Choosing a consent model for CDPs
-
-- **Default (blocked load)** — strictest interpretation of consent; no vendor code runs pre-consent. Pre-consent events are lost. Right when compliance posture outweighs attribution.
-- **Pre-consent mode (`consentManagement`)** — vendor-sanctioned CMP flow; pre-consent events are buffered and attributed for consenting users. Requires disciplined destination consent-ID configuration and accepts vendor code running before consent, with the live monitor verifying its inertness daily.
-
-## Tracking events in your app
-
-c15t gates the RudderStack browser SDK from loading until `measurement` consent is granted. Your application code that calls RudderStack's runtime API (`window.rudderanalytics.track`, `identify`, etc.) is **not** automatically gated - `window.rudderanalytics` does not exist until the script is loaded, so unguarded calls before consent throw.
-
-Guard event calls by checking consent state. From React:
-
-```tsx
-import { useCallback } from 'react';
-import { useConsentManager } from '@c15t/react';
-
-function SignupExample() {
-  const { has } = useConsentManager();
-
-  const trackSignup = useCallback(() => {
-    if (has('measurement')) {
-      window.rudderanalytics?.track('Signup Completed', { plan: 'pro' });
-    }
-  }, [has]);
-}
-```
-
-From plain JavaScript:
-
-```ts
-import { getOrCreateConsentRuntime } from 'c15t';
-
-const { consentStore } = getOrCreateConsentRuntime();
-
-if (consentStore.getState().has('measurement')) {
-  window.rudderanalytics?.track('Signup Completed', { plan: 'pro' });
-}
-```
-
-## Types
-
-### RudderStackOptions
-
-<AutoTypeTable path="./packages/scripts/src/vendors/analytics/rudderstack.ts" name="RudderStackOptions" />
-
-### Script
-
-<AutoTypeTable path="./packages/core/src/libs/script-loader/types.ts" name="Script" />
+See the [consent verification guide](/docs/guides/verify-consent) for
+navigation and hosting checks.

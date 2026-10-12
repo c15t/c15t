@@ -1,0 +1,176 @@
+'use client';
+
+import { createManifestTransport } from '@c15t/core/transports/manifest';
+import {
+	ConsentBanner,
+	ConsentDialog,
+	ConsentRoot,
+	custom,
+	defineConsentConfig,
+	hosted,
+} from '@c15t/nextjs';
+import type { ConsentConfig, ConsentRootProps } from '@c15t/nextjs';
+import { useMemo } from 'react';
+import type { ReactNode } from 'react';
+
+import {
+	COMPAT_BACKEND_URL,
+	COMPAT_CONSENT_CONFIG,
+	COMPAT_HOSTED_CONFIG,
+	COMPAT_MANIFEST_URL,
+} from './config';
+import { CompatProbe, getCompatCounters } from './probe';
+import { createStaticTransport } from './static-transport';
+import type { CompatManifest } from './static-transport';
+
+export interface ConsentShellProps {
+	children?: ReactNode;
+	scenario: string;
+	/**
+	 * Server-resolved consent state from `resolveConsent()`. Omitted on
+	 * routes that init in the browser.
+	 */
+	state?: ConsentRootProps['state'];
+	backendURL?: string;
+	/**
+	 * `hosted` calls the backend `/init`; `manifest` resolves init in the
+	 * browser from the same-origin manifest route and never calls `/init`;
+	 * `static` resolves init from the `manifest` prop, a module generated at
+	 * build time for `output: 'export'` apps, and fetches nothing.
+	 */
+	transport?: 'hosted' | 'manifest' | 'manifest-geo' | 'static';
+	/** Required with `transport="static"`. */
+	manifest?: CompatManifest;
+	networkBlocker?: ConsentRootProps['networkBlocker'];
+	/** CSP nonce for automatic component styles in the nonce test routes. */
+	nonce?: string;
+	/**
+	 * `false` in the cells that import `@c15t/nextjs/styles.css`, so the
+	 * components do not deliver a second copy of its rules.
+	 */
+	styles?: boolean;
+}
+
+const createMode = function createMode({
+	backendURL,
+	manifest,
+	transport,
+}: Required<Pick<ConsentShellProps, 'backendURL' | 'transport'>> &
+	Pick<ConsentShellProps, 'manifest'>) {
+	switch (transport) {
+		case 'manifest-geo': {
+			// Selection comes from the root's `config`.
+			return undefined;
+		}
+		case 'manifest': {
+			return custom(
+				createManifestTransport({
+					backendURL,
+					manifestURL: COMPAT_MANIFEST_URL,
+				})
+			);
+		}
+		case 'static': {
+			if (!manifest) {
+				throw new Error('ConsentShell: transport="static" needs a manifest');
+			}
+			return custom(createStaticTransport({ backendURL, manifest }));
+		}
+		default: {
+			return undefined;
+		}
+	}
+};
+
+/**
+ * The root's config. `manifest-geo` uses the manifest config with the app's
+ * consent route; the other transports use hosted mode against `backendURL`,
+ * which `options.mode` replaces for `manifest` and `static`.
+ */
+const createConfig = function createConfig(
+	backendURL: string,
+	transport: NonNullable<ConsentShellProps['transport']>
+): ConsentConfig {
+	if (transport === 'manifest-geo') {
+		return COMPAT_CONSENT_CONFIG;
+	}
+	if (backendURL === COMPAT_BACKEND_URL) {
+		return COMPAT_HOSTED_CONFIG;
+	}
+	return defineConsentConfig({ backendURL, mode: hosted() });
+};
+
+/**
+ * The client-side provider tree every fixture route mounts.
+ *
+ * @remarks
+ * Kept identical across routers and Next.js versions so a failing cell
+ * points at the framework combination, not at fixture drift. Mirrors the
+ * v3 pattern: one `ConsentRoot`, hosted mode against `backendURL` by
+ * default, and the server state (when any) passed as a plain prop. No cell
+ * has a `c15t.config.ts`, so the shell passes `config` itself.
+ */
+export const ConsentShell = ({
+	children,
+	scenario,
+	state,
+	backendURL = COMPAT_BACKEND_URL,
+	transport = 'hosted',
+	manifest,
+	networkBlocker,
+	nonce,
+	styles = true,
+}: ConsentShellProps) => {
+	const mode = useMemo(
+		() => createMode({ backendURL, manifest, transport }),
+		[backendURL, manifest, transport]
+	);
+	const config = useMemo(
+		() => createConfig(backendURL, transport),
+		[backendURL, transport]
+	);
+
+	return (
+		<ConsentRoot
+			config={config}
+			networkBlocker={networkBlocker}
+			state={state ?? {}}
+			options={{
+				callbacks: {
+					onChoiceRecorded() {
+						const counters = getCompatCounters();
+						if (counters) {
+							counters.onConsentSetCount += 1;
+						}
+					},
+					onError() {
+						const counters = getCompatCounters();
+						if (counters) {
+							counters.onErrorCount += 1;
+						}
+					},
+				},
+				consentCategories: ['necessary', 'measurement', 'marketing'],
+				mode,
+				nonce,
+				styles,
+				theme: {
+					motion: {
+						duration: { fast: '1ms', normal: '1ms', slow: '1ms' },
+					},
+				},
+			}}
+		>
+			<CompatProbe scenario={scenario} />
+			<ConsentBanner disableAnimation />
+			<ConsentDialog disableAnimation />
+			<main
+				data-scenario={scenario}
+				data-testid="compat-main"
+			>
+				<h1>next-compat: {scenario}</h1>
+				{children}
+			</main>
+		</ConsentRoot>
+	);
+};

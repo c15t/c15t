@@ -1,5 +1,5 @@
+import { buttonRenders } from '@c15t/conformance/play/button';
 import { Button } from '@c15t/react/primitives';
-import { buttonRenders } from '@c15t/storybook-tests/play/button';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 
 const meta = {
@@ -27,7 +27,7 @@ const meta = {
 	parameters: {
 		layout: 'centered',
 	},
-	title: 'Primitives/Button',
+	title: 'PRIMITIVES - REACT/Button',
 } satisfies Meta<typeof Button.Root>;
 
 export default meta;
@@ -64,22 +64,40 @@ export const AllModes: Story = {
 				gridTemplateColumns: 'repeat(2, minmax(0, max-content))',
 			}}
 		>
-			<Button.Root mode="filled" variant="primary">
+			<Button.Root
+				mode="filled"
+				variant="primary"
+			>
 				Primary filled
 			</Button.Root>
-			<Button.Root mode="filled" variant="neutral">
+			<Button.Root
+				mode="filled"
+				variant="neutral"
+			>
 				Neutral filled
 			</Button.Root>
-			<Button.Root mode="stroke" variant="primary">
+			<Button.Root
+				mode="stroke"
+				variant="primary"
+			>
 				Primary stroke
 			</Button.Root>
-			<Button.Root mode="stroke" variant="neutral">
+			<Button.Root
+				mode="stroke"
+				variant="neutral"
+			>
 				Neutral stroke
 			</Button.Root>
-			<Button.Root mode="lighter" variant="primary">
+			<Button.Root
+				mode="lighter"
+				variant="primary"
+			>
 				Primary lighter
 			</Button.Root>
-			<Button.Root mode="ghost" variant="neutral">
+			<Button.Root
+				mode="ghost"
+				variant="neutral"
+			>
 				Neutral ghost
 			</Button.Root>
 		</div>

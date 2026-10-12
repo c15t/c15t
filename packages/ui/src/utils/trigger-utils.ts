@@ -85,7 +85,7 @@ export const VELOCITY_THRESHOLD = 0.15;
  * // Returns: 'bottom-right'
  * ```
  */
-export function calculateNearestCorner(
+export const calculateNearestCorner = function calculateNearestCorner(
 	x: number,
 	y: number,
 	viewportWidth: number,
@@ -104,7 +104,7 @@ export function calculateNearestCorner(
 		return 'top-right';
 	}
 	return 'top-left';
-}
+};
 
 /**
  * Calculates the new corner based on drag direction from the current corner.
@@ -133,7 +133,7 @@ export function calculateNearestCorner(
  * // Returns: 'bottom-left' (velocity overcomes small distance)
  * ```
  */
-export function calculateCornerFromDrag(
+export const calculateCornerFromDrag = function calculateCornerFromDrag(
 	currentCorner: CornerPosition,
 	dragX: number,
 	dragY: number,
@@ -200,7 +200,7 @@ export function calculateCornerFromDrag(
 		return 'top-right';
 	}
 	return 'top-left';
-}
+};
 
 /**
  * Gets CSS position properties for placing an element at a corner.
@@ -215,7 +215,7 @@ export function calculateCornerFromDrag(
  * // Returns: { bottom: '16px', right: '16px' }
  * ```
  */
-export function getCornerStyles(
+export const getCornerStyles = function getCornerStyles(
 	corner: CornerPosition,
 	offset = 16
 ): Record<string, string | undefined> {
@@ -238,7 +238,7 @@ export function getCornerStyles(
 	}
 
 	return styles;
-}
+};
 
 /**
  * Persists the trigger position to localStorage.
@@ -249,7 +249,7 @@ export function getCornerStyles(
  * @remarks
  * Silently fails if localStorage is not available (e.g., in SSR or private browsing).
  */
-export function persistPosition(
+export const persistPosition = function persistPosition(
 	corner: CornerPosition,
 	storageKey: string = DEFAULT_TRIGGER_CONFIG.storageKey
 ): void {
@@ -260,7 +260,7 @@ export function persistPosition(
 	} catch {
 		// Silently fail - localStorage may not be available
 	}
-}
+};
 
 /**
  * Retrieves the persisted trigger position from localStorage.
@@ -271,7 +271,7 @@ export function persistPosition(
  * @remarks
  * Returns null if localStorage is not available or the stored value is invalid.
  */
-export function getPersistedPosition(
+export const getPersistedPosition = function getPersistedPosition(
 	storageKey: string = DEFAULT_TRIGGER_CONFIG.storageKey
 ): CornerPosition | null {
 	try {
@@ -290,22 +290,23 @@ export function getPersistedPosition(
 		// Silently fail - localStorage may not be available
 	}
 	return null;
-}
+};
 
 /**
  * Creates an initial drag state object.
  *
  * @returns A DragState with isDragging false and all coordinates at 0
  */
-export function createInitialDragState(): DragState {
-	return {
-		isDragging: false,
-		startX: 0,
-		startY: 0,
-		currentX: 0,
-		currentY: 0,
+export const createInitialDragState =
+	function createInitialDragState(): DragState {
+		return {
+			currentX: 0,
+			currentY: 0,
+			isDragging: false,
+			startX: 0,
+			startY: 0,
+		};
 	};
-}
 
 /**
  * Calculates the transform offset during a drag operation.
@@ -319,7 +320,9 @@ export function createInitialDragState(): DragState {
  * // Use in style: transform: translate(${offset.x}px, ${offset.y}px)
  * ```
  */
-export function calculateDragOffset(dragState: DragState): {
+export const calculateDragOffset = function calculateDragOffset(
+	dragState: DragState
+): {
 	x: number;
 	y: number;
 } {
@@ -330,4 +333,4 @@ export function calculateDragOffset(dragState: DragState): {
 		x: dragState.currentX - dragState.startX,
 		y: dragState.currentY - dragState.startY,
 	};
-}
+};

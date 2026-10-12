@@ -1,0 +1,500 @@
+{
+	"browser": "149.0.7827.55",
+	"label": "after",
+	"results": [
+		{
+			"bannerText": "Secured byc15tc15tPrivacy SettingsWe and our 1211 partners store and/or access information on your device and process personal data, such as unique identifiers and browsing data, for this website, to:Store and/or access information on a devicePersonalised advertising and content, advertising and content measurement, audience research and services developmentUse precise geolocation dataIdentify devices based on information actively requestedSome partners claim a legitimate interest to process your data. You have the right to object to this processing, customize your choices, and withdraw your consent at any time. Your consent applies only to this website and will not affect other services.Reject AllAccept AllCustomize",
+			"framework": "tanstack-start",
+			"htmlBytes": 14187,
+			"htmlGzipBytes": 5459,
+			"samples": [
+				{
+					"cache": "cold",
+					"bannerMs": 10.5,
+					"cls": 0,
+					"cmpMs": 57,
+					"longTaskMs": 0,
+					"htmlCompleteMs": 5.899999976158142,
+					"resources": [
+						{
+							"bytes": 854657,
+							"duration": 6,
+							"encodedBytes": 854357,
+							"url": "http://127.0.0.1:4314/api/c15t/init?c15t-gvl=176&language=en"
+						}
+					],
+					"ttfbMs": 5.799999952316284
+				},
+				{
+					"cache": "warm",
+					"bannerMs": 11.099999904632568,
+					"cls": 0,
+					"cmpMs": 26.899999976158142,
+					"longTaskMs": 0,
+					"htmlCompleteMs": 7.899999976158142,
+					"resources": [
+						{
+							"bytes": 0,
+							"duration": 0.2999999523162842,
+							"encodedBytes": 854357,
+							"url": "http://127.0.0.1:4314/api/c15t/init?c15t-gvl=176&language=en"
+						}
+					],
+					"ttfbMs": 7.699999928474426
+				},
+				{
+					"cache": "cold",
+					"bannerMs": 13.899999976158142,
+					"cls": 0,
+					"cmpMs": 55.5,
+					"longTaskMs": 0,
+					"htmlCompleteMs": 5.5,
+					"resources": [
+						{
+							"bytes": 854657,
+							"duration": 5.100000023841858,
+							"encodedBytes": 854357,
+							"url": "http://127.0.0.1:4314/api/c15t/init?c15t-gvl=176&language=en"
+						}
+					],
+					"ttfbMs": 5.299999952316284
+				},
+				{
+					"cache": "warm",
+					"bannerMs": 15.5,
+					"cls": 0,
+					"cmpMs": 30.899999976158142,
+					"longTaskMs": 0,
+					"htmlCompleteMs": 6.799999952316284,
+					"resources": [
+						{
+							"bytes": 0,
+							"duration": 0.3999999761581421,
+							"encodedBytes": 854357,
+							"url": "http://127.0.0.1:4314/api/c15t/init?c15t-gvl=176&language=en"
+						}
+					],
+					"ttfbMs": 6.599999904632568
+				},
+				{
+					"cache": "cold",
+					"bannerMs": 9.799999952316284,
+					"cls": 0,
+					"cmpMs": 56.299999952316284,
+					"longTaskMs": 0,
+					"htmlCompleteMs": 5.299999952316284,
+					"resources": [
+						{
+							"bytes": 854657,
+							"duration": 5,
+							"encodedBytes": 854357,
+							"url": "http://127.0.0.1:4314/api/c15t/init?c15t-gvl=176&language=en"
+						}
+					],
+					"ttfbMs": 5.199999928474426
+				},
+				{
+					"cache": "warm",
+					"bannerMs": 12.100000023841858,
+					"cls": 0,
+					"cmpMs": 24.600000023841858,
+					"longTaskMs": 0,
+					"htmlCompleteMs": 5.300000071525574,
+					"resources": [
+						{
+							"bytes": 0,
+							"duration": 0.2999999523162842,
+							"encodedBytes": 854357,
+							"url": "http://127.0.0.1:4314/api/c15t/init?c15t-gvl=176&language=en"
+						}
+					],
+					"ttfbMs": 5.200000047683716
+				},
+				{
+					"cache": "cold",
+					"bannerMs": 9.5,
+					"cls": 0,
+					"cmpMs": 51.60000002384186,
+					"longTaskMs": 0,
+					"htmlCompleteMs": 5.100000023841858,
+					"resources": [
+						{
+							"bytes": 854657,
+							"duration": 4.899999976158142,
+							"encodedBytes": 854357,
+							"url": "http://127.0.0.1:4314/api/c15t/init?c15t-gvl=176&language=en"
+						}
+					],
+					"ttfbMs": 5
+				},
+				{
+					"cache": "warm",
+					"bannerMs": 12.600000023841858,
+					"cls": 0,
+					"cmpMs": 26.600000023841858,
+					"longTaskMs": 0,
+					"htmlCompleteMs": 5.600000023841858,
+					"resources": [
+						{
+							"bytes": 0,
+							"duration": 0.3999999761581421,
+							"encodedBytes": 854357,
+							"url": "http://127.0.0.1:4314/api/c15t/init?c15t-gvl=176&language=en"
+						}
+					],
+					"ttfbMs": 5.300000071525574
+				},
+				{
+					"cache": "cold",
+					"bannerMs": 13,
+					"cls": 0,
+					"cmpMs": 63,
+					"longTaskMs": 0,
+					"htmlCompleteMs": 6.099999904632568,
+					"resources": [
+						{
+							"bytes": 854657,
+							"duration": 6.300000071525574,
+							"encodedBytes": 854357,
+							"url": "http://127.0.0.1:4314/api/c15t/init?c15t-gvl=176&language=en"
+						}
+					],
+					"ttfbMs": 5.799999952316284
+				},
+				{
+					"cache": "warm",
+					"bannerMs": 13.5,
+					"cls": 0,
+					"cmpMs": 28.899999976158142,
+					"longTaskMs": 0,
+					"htmlCompleteMs": 6.299999952316284,
+					"resources": [
+						{
+							"bytes": 0,
+							"duration": 0.2999999523162842,
+							"encodedBytes": 854357,
+							"url": "http://127.0.0.1:4314/api/c15t/init?c15t-gvl=176&language=en"
+						}
+					],
+					"ttfbMs": 6
+				},
+				{
+					"cache": "cold",
+					"bannerMs": 14.200000047683716,
+					"cls": 0,
+					"cmpMs": 58.10000002384186,
+					"longTaskMs": 0,
+					"htmlCompleteMs": 5.600000023841858,
+					"resources": [
+						{
+							"bytes": 854657,
+							"duration": 5.200000047683716,
+							"encodedBytes": 854357,
+							"url": "http://127.0.0.1:4314/api/c15t/init?c15t-gvl=176&language=en"
+						}
+					],
+					"ttfbMs": 5.399999976158142
+				},
+				{
+					"cache": "warm",
+					"bannerMs": 9,
+					"cls": 0,
+					"cmpMs": 25.399999976158142,
+					"longTaskMs": 0,
+					"htmlCompleteMs": 5.699999928474426,
+					"resources": [
+						{
+							"bytes": 0,
+							"duration": 0.3999999761581421,
+							"encodedBytes": 854357,
+							"url": "http://127.0.0.1:4314/api/c15t/init?c15t-gvl=176&language=en"
+						}
+					],
+					"ttfbMs": 5.600000023841858
+				},
+				{
+					"cache": "cold",
+					"bannerMs": 18.100000023841858,
+					"cls": 0,
+					"cmpMs": 68.70000004768372,
+					"longTaskMs": 0,
+					"htmlCompleteMs": 5.600000023841858,
+					"resources": [
+						{
+							"bytes": 854657,
+							"duration": 5.700000047683716,
+							"encodedBytes": 854357,
+							"url": "http://127.0.0.1:4314/api/c15t/init?c15t-gvl=176&language=en"
+						}
+					],
+					"ttfbMs": 5.300000071525574
+				},
+				{
+					"cache": "warm",
+					"bannerMs": 14.700000047683716,
+					"cls": 0,
+					"cmpMs": 30.200000047683716,
+					"longTaskMs": 0,
+					"htmlCompleteMs": 5.700000047683716,
+					"resources": [
+						{
+							"bytes": 0,
+							"duration": 0.2999999523162842,
+							"encodedBytes": 854357,
+							"url": "http://127.0.0.1:4314/api/c15t/init?c15t-gvl=176&language=en"
+						}
+					],
+					"ttfbMs": 5.5
+				}
+			],
+			"scenario": "manifest-ssr"
+		},
+		{
+			"bannerText": "Secured byc15tc15tPrivacy SettingsWe and our  1211 partners  store and/or access information on your device and process personal data, such as unique identifiers and browsing data, for this website, to:Store and/or access information on a devicePersonalised advertising and content, advertising and content measurement, audience research and services developmentUse precise geolocation dataIdentify devices based on information actively requestedSome partners claim a legitimate interest to process your data. You have the right to object to this processing, customize your choices, and withdraw your consent at any time. Your consent applies only to this website and will not affect other services.Reject AllAccept AllCustomize",
+			"framework": "nuxt",
+			"htmlBytes": 27607,
+			"htmlGzipBytes": 8130,
+			"samples": [
+				{
+					"cache": "cold",
+					"bannerMs": 22.09999990463257,
+					"cls": 0,
+					"cmpMs": 71.09999990463257,
+					"longTaskMs": 0,
+					"htmlCompleteMs": 16.799999952316284,
+					"resources": [
+						{
+							"bytes": 0,
+							"duration": 9.299999952316284,
+							"encodedBytes": 0,
+							"url": "http://127.0.0.1:4325/init"
+						}
+					],
+					"ttfbMs": 16.59999990463257
+				},
+				{
+					"cache": "warm",
+					"bannerMs": 23.5,
+					"cls": 0,
+					"cmpMs": 55.40000009536743,
+					"longTaskMs": 0,
+					"htmlCompleteMs": 18.600000023841858,
+					"resources": [
+						{
+							"bytes": 0,
+							"duration": 10.200000047683716,
+							"encodedBytes": 0,
+							"url": "http://127.0.0.1:4325/init"
+						}
+					],
+					"ttfbMs": 18.40000009536743
+				},
+				{
+					"cache": "cold",
+					"bannerMs": 22.5,
+					"cls": 0,
+					"cmpMs": 71.89999997615814,
+					"longTaskMs": 0,
+					"htmlCompleteMs": 16.899999976158142,
+					"resources": [
+						{
+							"bytes": 0,
+							"duration": 9.700000047683716,
+							"encodedBytes": 0,
+							"url": "http://127.0.0.1:4325/init"
+						}
+					],
+					"ttfbMs": 16.799999952316284
+				},
+				{
+					"cache": "warm",
+					"bannerMs": 19.899999976158142,
+					"cls": 0,
+					"cmpMs": 43,
+					"longTaskMs": 0,
+					"htmlCompleteMs": 15.600000023841858,
+					"resources": [
+						{
+							"bytes": 0,
+							"duration": 8.600000023841858,
+							"encodedBytes": 0,
+							"url": "http://127.0.0.1:4325/init"
+						}
+					],
+					"ttfbMs": 15.399999976158142
+				},
+				{
+					"cache": "cold",
+					"bannerMs": 22.799999952316284,
+					"cls": 0,
+					"cmpMs": 66.10000002384186,
+					"longTaskMs": 0,
+					"htmlCompleteMs": 14.5,
+					"resources": [
+						{
+							"bytes": 0,
+							"duration": 8.799999952316284,
+							"encodedBytes": 0,
+							"url": "http://127.0.0.1:4325/init"
+						}
+					],
+					"ttfbMs": 14.299999952316284
+				},
+				{
+					"cache": "warm",
+					"bannerMs": 21.200000047683716,
+					"cls": 0,
+					"cmpMs": 43.60000002384186,
+					"longTaskMs": 0,
+					"htmlCompleteMs": 14.100000023841858,
+					"resources": [
+						{
+							"bytes": 0,
+							"duration": 8.5,
+							"encodedBytes": 0,
+							"url": "http://127.0.0.1:4325/init"
+						}
+					],
+					"ttfbMs": 13.899999976158142
+				},
+				{
+					"cache": "cold",
+					"bannerMs": 20.5,
+					"cls": 0,
+					"cmpMs": 70.29999995231628,
+					"longTaskMs": 0,
+					"htmlCompleteMs": 15.299999952316284,
+					"resources": [
+						{
+							"bytes": 0,
+							"duration": 11,
+							"encodedBytes": 0,
+							"url": "http://127.0.0.1:4325/init"
+						}
+					],
+					"ttfbMs": 15.100000023841858
+				},
+				{
+					"cache": "warm",
+					"bannerMs": 23.899999976158142,
+					"cls": 0,
+					"cmpMs": 48.59999990463257,
+					"longTaskMs": 0,
+					"htmlCompleteMs": 14.699999928474426,
+					"resources": [
+						{
+							"bytes": 0,
+							"duration": 8.5,
+							"encodedBytes": 0,
+							"url": "http://127.0.0.1:4325/init"
+						}
+					],
+					"ttfbMs": 14.5
+				},
+				{
+					"cache": "cold",
+					"bannerMs": 23.100000023841858,
+					"cls": 0,
+					"cmpMs": 67.60000002384186,
+					"longTaskMs": 0,
+					"htmlCompleteMs": 14.800000071525574,
+					"resources": [
+						{
+							"bytes": 0,
+							"duration": 9,
+							"encodedBytes": 0,
+							"url": "http://127.0.0.1:4325/init"
+						}
+					],
+					"ttfbMs": 14.600000023841858
+				},
+				{
+					"cache": "warm",
+					"bannerMs": 22.09999990463257,
+					"cls": 0,
+					"cmpMs": 45.09999990463257,
+					"longTaskMs": 0,
+					"htmlCompleteMs": 15.199999928474426,
+					"resources": [
+						{
+							"bytes": 0,
+							"duration": 8.800000071525574,
+							"encodedBytes": 0,
+							"url": "http://127.0.0.1:4325/init"
+						}
+					],
+					"ttfbMs": 15
+				},
+				{
+					"cache": "cold",
+					"bannerMs": 22.600000023841858,
+					"cls": 0,
+					"cmpMs": 64.89999997615814,
+					"longTaskMs": 0,
+					"htmlCompleteMs": 14.600000023841858,
+					"resources": [
+						{
+							"bytes": 0,
+							"duration": 8.700000047683716,
+							"encodedBytes": 0,
+							"url": "http://127.0.0.1:4325/init"
+						}
+					],
+					"ttfbMs": 14.399999976158142
+				},
+				{
+					"cache": "warm",
+					"bannerMs": 24.699999928474426,
+					"cls": 0,
+					"cmpMs": 53.5,
+					"longTaskMs": 0,
+					"htmlCompleteMs": 20,
+					"resources": [
+						{
+							"bytes": 0,
+							"duration": 10.100000023841858,
+							"encodedBytes": 0,
+							"url": "http://127.0.0.1:4325/init"
+						}
+					],
+					"ttfbMs": 19.799999952316284
+				},
+				{
+					"cache": "cold",
+					"bannerMs": 21,
+					"cls": 0,
+					"cmpMs": 69.80000007152557,
+					"longTaskMs": 0,
+					"htmlCompleteMs": 15.899999976158142,
+					"resources": [
+						{
+							"bytes": 0,
+							"duration": 12.5,
+							"encodedBytes": 0,
+							"url": "http://127.0.0.1:4325/init"
+						}
+					],
+					"ttfbMs": 15.700000047683716
+				},
+				{
+					"cache": "warm",
+					"bannerMs": 21.40000009536743,
+					"cls": 0,
+					"cmpMs": 44,
+					"longTaskMs": 0,
+					"htmlCompleteMs": 14.5,
+					"resources": [
+						{
+							"bytes": 0,
+							"duration": 8.5,
+							"encodedBytes": 0,
+							"url": "http://127.0.0.1:4325/init"
+						}
+					],
+					"ttfbMs": 14.300000071525574
+				}
+			],
+			"scenario": "ssr-hosted"
+		}
+	]
+}

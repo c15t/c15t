@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<title>Gated embed</title>
+		<script
+			src="https://your-project.inth.app/c15t.js"
+			defer
+		></script>
+		<style>
+			.embed iframe:not([src]) {
+				display: none;
+			}
+			.embed iframe[src] + .placeholder {
+				display: none;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="embed">
+			<!-- #region docs:embed title="index.html" -->
+			<iframe
+				data-src="https://www.youtube-nocookie.com/embed/czTksCF6X8Y?playsinline=1"
+				data-category="measurement"
+				title="YouTube video"
+				allow="encrypted-media; picture-in-picture"
+				allowfullscreen
+			></iframe>
+			<!-- #endregion docs:embed -->
+			<div class="placeholder">
+				<p>Allow measurement to load this YouTube video.</p>
+				<a href="#c15t-preferences">Choose video permissions</a>
+			</div>
+		</div>
+		<a href="#c15t-preferences">Privacy settings</a>
+	</body>
+</html>

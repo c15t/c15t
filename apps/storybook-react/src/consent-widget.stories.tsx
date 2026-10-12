@@ -1,9 +1,16 @@
-import { expandedCategories } from '@c15t/storybook-tests/play/consent-widget';
+import {
+	expandedCategories,
+	expandedVendors,
+} from '@c15t/conformance/play/consent-widget';
 import type { Meta, StoryObj } from '@storybook/react-vite';
+
 import { ConsentWidget } from '../../../packages/react/src/index';
 import {
+	storybookVendors,
+	storybookVendorStoredConsent,
+} from '../../storybook-consent-policy';
+import {
 	editableConsentOptions,
-	editableStoredConsent,
 	StorybookConsentProvider,
 } from './storybook-consent-fixtures';
 
@@ -12,7 +19,7 @@ const meta = {
 	parameters: {
 		layout: 'centered',
 	},
-	title: 'Components/Core/Consent Widget',
+	title: 'COMPONENTS - REACT/Core/Consent Widget',
 } satisfies Meta<typeof ConsentWidget>;
 
 export default meta;
@@ -23,7 +30,13 @@ export const Default: Story = {
 	render: () => (
 		<StorybookConsentProvider
 			options={editableConsentOptions}
-			storedConsent={editableStoredConsent}
+			storedConsent={{
+				experience: false,
+				functionality: false,
+				marketing: false,
+				measurement: false,
+				necessary: true,
+			}}
 		>
 			<div style={{ width: '32rem' }}>
 				<ConsentWidget />
@@ -33,15 +46,26 @@ export const Default: Story = {
 };
 
 export const ExpandedCategories: Story = {
+	...Default,
+	play: expandedCategories,
+};
+
+/** Vendors nested under their categories. Expand Marketing to see two cards. */
+export const WithVendors: Story = {
 	render: () => (
 		<StorybookConsentProvider
-			options={editableConsentOptions}
-			storedConsent={editableStoredConsent}
+			options={{ ...editableConsentOptions, vendors: storybookVendors }}
+			storedConsent={storybookVendorStoredConsent}
 		>
 			<div style={{ width: '32rem' }}>
 				<ConsentWidget />
 			</div>
 		</StorybookConsentProvider>
 	),
-	play: expandedCategories,
+};
+
+/** Marketing and one vendor card open, the vendor turned off in the draft. */
+export const WithVendorsExpanded: Story = {
+	...WithVendors,
+	play: expandedVendors,
 };

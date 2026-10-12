@@ -1,0 +1,214 @@
+/**
+ * `GET /init` — the per-request consent decision.
+ *
+ * Every piece of this is shared with `@c15t/backend` rather than
+ * reimplemented: the manifest comes from `buildConsentManifestFromConfig`, geo
+ * from `getRegionFromHeaders`, and the decision itself from
+ * `resolveInitFromManifest`. This module contributes header parsing and
+ * nothing else.
+ *
+ * That is the whole point of the manifest. `/init` is the one endpoint on
+ * the critical rendering path, and it is also the one whose output a host can
+ * compute locally from the manifest. If a backend resolved it differently from
+ * the shared resolver, hosts doing local resolution would disagree with the
+ * server for the same visitor — which on a consent platform means showing the
+ * wrong banner, or none. Keeping exactly one resolver makes that class of bug
+ * unreachable rather than merely tested for.
+ *
+ * Like `/manifest`, this touches no database.
+ */
+
+import { getRegionFromHeaders, headersToRecord } from '@c15t/schema/geo';
+import {
+	buildConsentManifestFromConfig,
+	parsePolicyContractHeader,
+	POLICY_CONTRACT_HEADER,
+	POLICY_CONTRACT_VERSION,
+	resolveInitFromManifest,
+	writePolicyResolutionWire,
+} from '@c15t/schema/types';
+import type {
+	ConsentManifest,
+	ConsentManifestConfig,
+	InitOutput,
+} from '@c15t/schema/types';
+import { baseTranslations } from '@c15t/translations/all';
+
+import { parseVendorScopeHeader, resolveGvl, VENDOR_SCOPE_HEADER } from './gvl';
+import type { GvlConfig } from './gvl';
+import { createPolicySnapshotToken } from './policy-snapshot';
+import type { PolicySnapshotOptions } from './policy-snapshot';
+
+export interface InitRequestSignals {
+	readonly country: string | null;
+	readonly region: string | null;
+	readonly language: string;
+	readonly gpc: boolean;
+	/**
+	 * The policy contract the client declared it can represent, or
+	 * `undefined` for a client that predates the header. `null` when the
+	 * header was present but unparseable.
+	 */
+	readonly policyContract: number | null | undefined;
+	/**
+	 * The vendors this client declared it uses, read from
+	 * `x-c15t-vendors`.
+	 *
+	 * `undefined` covers a client that sent no header and one whose header
+	 * could not be read: both are served the configured scope. A declared
+	 * scope only ever narrows what the configuration already allows, so a
+	 * wrong value costs bytes rather than disclosure.
+	 */
+	readonly declaredVendorIds: readonly number[] | undefined;
+}
+
+const readPolicyContract = function readPolicyContract(
+	value: string | null
+): number | null | undefined {
+	if (value === null) {
+		return undefined;
+	}
+	return parsePolicyContractHeader(value) ?? null;
+};
+
+/**
+ * Extracts the four per-request inputs from headers.
+ *
+ * These are the only request-dependent values in an `/init` response —
+ * everything else comes from the manifest, which is why the manifest can be
+ * cached per tenant and this cannot.
+ */
+export const readInitSignals = function readInitSignals(
+	headers: Headers
+): InitRequestSignals {
+	const { country, region } = getRegionFromHeaders(headersToRecord(headers));
+
+	return {
+		country: country ?? null,
+		// Unreadable, oversized, and absent all arrive as undefined, which is
+		// the shape that serves the configured scope. A consent surface that
+		// answers is worth more than one that reports a bad request.
+		declaredVendorIds: parseVendorScopeHeader(headers.get(VENDOR_SCOPE_HEADER)),
+		// Global Privacy Control is a signal, not a preference: the spec
+		// defines '1' as the only affirmative value, so anything else is
+		// absence rather than a false.
+		gpc: (headers.get('x-c15t-gpc') ?? headers.get('sec-gpc')) === '1',
+
+		// Matches 2.x: the raw header, defaulted to 'en'. Narrowing to a
+		// primary subtag happens downstream in the resolver, not here.
+		language: headers.get('accept-language') || 'en',
+		policyContract: readPolicyContract(headers.get(POLICY_CONTRACT_HEADER)),
+		region: region ?? null,
+	};
+};
+
+/** Negotiation cannot revoke grants already running in cached original clients. */
+const isContractSupported = function isContractSupported(
+	declared: number | null | undefined
+): boolean {
+	return declared === undefined || declared === POLICY_CONTRACT_VERSION;
+};
+
+/**
+ * Resolves an `/init` response for one request.
+ *
+ * Geo-dependent by definition, so unlike `/manifest` it must not be cached
+ * across visitors.
+ *
+ * The matched policy decides whether the response carries a vendor list: a
+ * matched IAB rule gets one as long as the deployment configured `gvl`, because
+ * an IAB banner without a list has no vendor to name. `gvl.enabled: false` is
+ * the only refusal.
+ */
+export const buildInitResponse = async function buildInitResponse(
+	config: ConsentManifestConfig,
+	headers: Headers,
+	snapshot?: PolicySnapshotOptions,
+	gvl?: GvlConfig,
+	/**
+	 * Tenant the token audience is scoped to: the instance's, so the save
+	 * route verifying under `options.tenantId` and the init route minting
+	 * agree.
+	 */
+	tokenTenantId?: string
+): Promise<{
+	body: InitOutput;
+	signals: InitRequestSignals;
+	/** The manifest the decision came from, for the session report. */
+	manifest: ConsentManifest;
+}> {
+	const signals = readInitSignals(headers);
+	const manifest = await buildConsentManifestFromConfig(config);
+
+	const resolved = resolveInitFromManifest(
+		manifest,
+		{
+			country: signals.country,
+			gpc: signals.gpc,
+			language: signals.language,
+			region: signals.region,
+		},
+		{ baseTranslations }
+	);
+
+	const supported = isContractSupported(signals.policyContract);
+	const negotiated: InitOutput = supported
+		? resolved
+		: {
+				branding: resolved.branding,
+				...(resolved.hosting !== undefined && { hosting: resolved.hosting }),
+				location: resolved.location,
+				policyResolution: writePolicyResolutionWire({
+					policy: null,
+					reason: 'unsupported-contract',
+					status: 'failed',
+				}),
+				translations: resolved.translations,
+			};
+	const resolution = negotiated.policyResolution;
+	// The matched policy decides; there is no second flag to forget. A
+	// deployment that wrote a `gvl` block asked for server-side list loading,
+	// and a matched IAB rule with no list is a disclosure of nothing. The scope
+	// stays exactly as configured: an absent block is never filled in by
+	// fetching the whole document on a publisher's behalf. A declared request
+	// scope may only cut that configured scope down, never reach past it, and
+	// it reaches the upstream not at all -- `resolveGvl` narrows the cached
+	// document per request.
+	const wantsGvl =
+		gvl !== undefined &&
+		gvl.enabled !== false &&
+		resolution.status === 'matched' &&
+		resolution.policy.model === 'iab';
+	const gvlDocument = wantsGvl
+		? await resolveGvl(signals.language, gvl, signals.declaredVendorIds)
+		: undefined;
+	const body =
+		gvlDocument === undefined
+			? negotiated
+			: { ...negotiated, gvl: gvlDocument };
+	if (resolution.status !== 'matched' || !snapshot?.signingKey) {
+		return { body, manifest, signals };
+	}
+	const token = await createPolicySnapshotToken(
+		{
+			country: signals.country,
+			fingerprint: resolution.fingerprints.policy,
+			language: signals.language,
+			matchedBy: resolution.matchedBy,
+			model: resolution.policy.model,
+			policyId: resolution.policyId,
+			region: signals.region,
+			// The language init served, which the client asserts: a token save
+			// and an asserted save of the same visit share a dedupe key even
+			// when q-values reorder the header.
+			servedLanguage: resolved.translations.language,
+			tenantId: tokenTenantId,
+		},
+		snapshot
+	);
+	return {
+		body: token ? { ...body, policySnapshotToken: token.token } : body,
+		manifest,
+		signals,
+	};
+};

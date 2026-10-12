@@ -4,19 +4,17 @@
  * Browser-based tests for complete CMP API compliance.
  */
 
-import { userEvent } from '@vitest/browser/context';
-import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
-import { IABConsentBanner } from '~/components/iab-consent-banner';
-import { IABConsentDialog } from '~/components/iab-consent-dialog';
-import {
-	ConsentManagerProvider,
-	clearConsentRuntimeCache,
-} from '~/providers/consent-manager-provider';
+
+import { ComponentFixtureProvider as ConsentProvider } from '~/__tests__/component-fixture-provider';
+import { IABConsentDialog } from '~/components/iab-panel';
+import { IABConsentBanner } from '~/components/iab-prompt';
+
 import {
 	addCMPEventListener,
 	clearConsentState,
-	defaultIABOptions,
+	defaultProviderIABOptions,
 	getCMPPingData,
 	getCMPTCData,
 	removeCMPEventListener,
@@ -29,16 +27,15 @@ describe('__tcfapi E2E Tests', () => {
 	beforeEach(() => {
 		clearConsentState();
 		vi.clearAllMocks();
-		clearConsentRuntimeCache();
 	});
 
 	describe('ping Command', () => {
 		test('should return cmpLoaded=true after CMP ready', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await waitForElement('[data-testid="iab-consent-banner-card"]');
@@ -52,10 +49,10 @@ describe('__tcfapi E2E Tests', () => {
 
 		test('should return correct gdprApplies value', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await waitForElement('[data-testid="iab-consent-banner-card"]');
@@ -67,10 +64,10 @@ describe('__tcfapi E2E Tests', () => {
 
 		test('should return cmpId matching configured ID', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await waitForElement('[data-testid="iab-consent-banner-card"]');
@@ -82,10 +79,10 @@ describe('__tcfapi E2E Tests', () => {
 
 		test('should return apiVersion="2.3"', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await waitForElement('[data-testid="iab-consent-banner-card"]');
@@ -97,10 +94,10 @@ describe('__tcfapi E2E Tests', () => {
 
 		test('should return tcfPolicyVersion=5', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await waitForElement('[data-testid="iab-consent-banner-card"]');
@@ -112,10 +109,10 @@ describe('__tcfapi E2E Tests', () => {
 
 		test('should return cmpStatus="loaded"', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await waitForElement('[data-testid="iab-consent-banner-card"]');
@@ -129,10 +126,10 @@ describe('__tcfapi E2E Tests', () => {
 	describe('addEventListener Command', () => {
 		test('should invoke callback immediately on registration', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await waitForElement('[data-testid="iab-consent-banner-card"]');
@@ -145,10 +142,10 @@ describe('__tcfapi E2E Tests', () => {
 
 		test('should return unique listenerId', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await waitForElement('[data-testid="iab-consent-banner-card"]');
@@ -162,29 +159,29 @@ describe('__tcfapi E2E Tests', () => {
 			expect(event1.listenerId).not.toBe(event2.listenerId);
 		});
 
-		test('should fire eventStatus="tcloaded" initially', async () => {
+		test('should fire eventStatus="cmpuishown" initially while the banner shows', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await waitForElement('[data-testid="iab-consent-banner-card"]');
 			await waitForCMP();
 
 			const eventData = await addCMPEventListener();
-			expect(eventData.eventStatus).toBe('tcloaded');
+			expect(eventData.eventStatus).toBe('cmpuishown');
 		});
 	});
 
 	describe('removeEventListener Command', () => {
 		test('should remove listener by listenerId', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await waitForElement('[data-testid="iab-consent-banner-card"]');
@@ -197,10 +194,10 @@ describe('__tcfapi E2E Tests', () => {
 
 		test('should return false for invalid listenerId', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await waitForElement('[data-testid="iab-consent-banner-card"]');
@@ -214,10 +211,10 @@ describe('__tcfapi E2E Tests', () => {
 	describe('getTCData Command', () => {
 		test('should return complete TCData object', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await waitForElement('[data-testid="iab-consent-banner-card"]');
@@ -237,10 +234,10 @@ describe('__tcfapi E2E Tests', () => {
 
 		test('should return isServiceSpecific=true', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await waitForElement('[data-testid="iab-consent-banner-card"]');
@@ -252,10 +249,10 @@ describe('__tcfapi E2E Tests', () => {
 
 		test('should have purpose.consents and purpose.legitimateInterests', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await waitForElement('[data-testid="iab-consent-banner-card"]');
@@ -270,10 +267,10 @@ describe('__tcfapi E2E Tests', () => {
 
 		test('should have vendor.consents and vendor.legitimateInterests', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await waitForElement('[data-testid="iab-consent-banner-card"]');
@@ -288,10 +285,10 @@ describe('__tcfapi E2E Tests', () => {
 
 		test('should have specialFeatureOptins', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await waitForElement('[data-testid="iab-consent-banner-card"]');
@@ -303,10 +300,10 @@ describe('__tcfapi E2E Tests', () => {
 
 		test('should have publisher object', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await waitForElement('[data-testid="iab-consent-banner-card"]');
@@ -323,10 +320,10 @@ describe('__tcfapi E2E Tests', () => {
 	describe('getVendorList Command', () => {
 		test('should return complete GVL', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await waitForElement('[data-testid="iab-consent-banner-card"]');
@@ -344,10 +341,10 @@ describe('__tcfapi E2E Tests', () => {
 
 		test('GVL should contain all 11 purposes', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await waitForElement('[data-testid="iab-consent-banner-card"]');
@@ -367,10 +364,10 @@ describe('__tcfapi E2E Tests', () => {
 	describe('getInAppTCData Command (Mobile Alias)', () => {
 		test('should return same data as getTCData', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await waitForElement('[data-testid="iab-consent-banner-card"]');

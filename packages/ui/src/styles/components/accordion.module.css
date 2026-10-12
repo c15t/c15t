@@ -1,0 +1,275 @@
+/* Resolve defaults at use sites so imports cannot override one another.
+   Host custom properties and scoped theme tokens remain inherited. */
+
+@layer components {
+	.list:not(:global(.headless)) {
+		display: grid;
+		gap: var(--accordion-stack-gap, 0.75rem);
+	}
+
+	.item:not(:global(.headless)) {
+		display: grid;
+		padding: 0;
+		border: 1px solid var(--accordion-border-color, var(--c15t-border));
+		border-radius: var(--accordion-radius, var(--c15t-radius-md));
+		box-shadow: none;
+		background-color: var(--accordion-background-color, var(--c15t-surface));
+		overflow: visible;
+	}
+
+	:global(.c15t-dark) .item:not(:global(.headless)) {
+		border-color: var(--accordion-border-color-dark, var(--c15t-border));
+		background-color: var(
+			--accordion-background-color-dark,
+			var(--c15t-surface)
+		);
+	}
+
+	.triggerRow:not(:global(.headless)) {
+		display: grid;
+		grid-column: 1 / -1;
+		grid-template-columns: minmax(0, 1fr) auto;
+		align-items: center;
+		gap: var(--accordion-gap, var(--c15t-space-xs));
+		box-sizing: border-box;
+		width: 100%;
+		margin: 0;
+		padding: var(--accordion-padding, var(--c15t-space-sm));
+		border: 0;
+		border-radius: var(--accordion-radius, var(--c15t-radius-md));
+		color: var(--accordion-text-color, var(--c15t-text));
+		background-color: transparent;
+		transition: background-color
+			var(--accordion-duration, var(--c15t-duration-normal))
+			var(--accordion-ease, var(--c15t-easing));
+	}
+
+	.triggerRow:not(:global(.headless)):hover {
+		background-color: var(
+			--accordion-background-hover,
+			var(--c15t-surface-hover)
+		);
+	}
+
+	:global(.c15t-dark) .triggerRow:not(:global(.headless)) {
+		color: var(--accordion-text-color-dark, var(--c15t-text));
+	}
+
+	:global(.c15t-dark) .triggerRow:not(:global(.headless)):hover {
+		background-color: var(
+			--accordion-background-hover-dark,
+			var(--c15t-surface-hover)
+		);
+	}
+
+	.item:not(:global(.headless)):has(.trigger:focus-visible) {
+		outline: 2px solid var(--accordion-focus-ring, var(--c15t-primary));
+		/* Fully inset: the first/last items sit flush against the dialog's
+		   scroll container edge, so any part of the ring outside the item's
+		   border box gets clipped by overflow. -2px keeps the 2px ring
+		   entirely within bounds (it covers the 1px item border). */
+		outline-offset: -2px;
+	}
+
+	:global(.c15t-dark)
+		.item:not(:global(.headless)):has(.trigger:focus-visible) {
+		outline-color: var(--accordion-focus-ring-dark, var(--c15t-primary));
+	}
+
+	.trigger:not(:global(.headless)):focus-visible {
+		outline: none;
+	}
+
+	.item:not(:global(.headless)) > .content {
+		grid-column: 1 / -1;
+	}
+
+	.trigger:not(:global(.headless)) {
+		appearance: none;
+		display: flex;
+		align-items: center;
+		gap: var(--accordion-gap, var(--c15t-space-xs));
+		align-self: stretch;
+		flex: 1 1 auto;
+		min-width: 0;
+		min-height: calc(var(--accordion-icon-size, 1.25rem) + 0.25rem);
+		font-family: inherit;
+		font-size: var(--accordion-title-size, var(--c15t-font-size-sm));
+		line-height: var(--c15t-line-height-tight);
+		letter-spacing: inherit;
+		font-weight: var(--c15t-font-weight-normal);
+		position: relative;
+		width: 100%;
+		padding: 0;
+		border: 0;
+		border-radius: var(--accordion-radius, var(--c15t-radius-md));
+		color: inherit;
+		background: none;
+		text-align: left;
+		cursor: pointer;
+	}
+
+	.arrow:not(:global(.headless)) {
+		display: inline-flex;
+		flex-shrink: 0;
+		align-items: center;
+		justify-content: center;
+		/* A step lighter than the muted text, so the row's label stays the
+		   loudest thing on it. With the default palette this is the 64%
+		   grey the arrow always had, and 80% in dark mode. */
+		color: var(
+			--accordion-arrow-color,
+			color-mix(in srgb, var(--c15t-text-muted) 60%, var(--c15t-surface))
+		);
+		width: var(--accordion-icon-size, 1.25rem);
+		height: var(--accordion-icon-size, 1.25rem);
+		transition: transform var(--accordion-duration, var(--c15t-duration-normal))
+			var(--accordion-ease, var(--c15t-easing));
+	}
+
+	.arrow:not(:global(.headless)) svg {
+		display: block;
+		width: 100%;
+		height: 100%;
+	}
+
+	:global(.c15t-dark) .arrow:not(:global(.headless)) {
+		color: var(
+			--accordion-arrow-color-dark,
+			color-mix(in srgb, var(--c15t-text-muted) 40%, var(--c15t-text))
+		);
+	}
+
+	.header:not(:global(.headless)) {
+		display: flex;
+		flex: 1;
+		flex-direction: column;
+		min-width: 0;
+	}
+
+	.title:not(:global(.headless)) {
+		margin: 0;
+		font: inherit;
+		font-weight: inherit;
+		line-height: inherit;
+		letter-spacing: inherit;
+		color: inherit;
+	}
+
+	.control:not(:global(.headless)) {
+		align-self: center;
+		flex-shrink: 0;
+		position: relative;
+		top: -1px;
+	}
+
+	/* Sits between the trigger row and the content. Explains why a saved
+	   grant is not in effect (GPC, strict scope, an opt-out directive). */
+	.restriction:not(:global(.headless)) {
+		display: block;
+		grid-column: 1 / -1;
+		margin: 0;
+		padding: 0 var(--accordion-row-padding-x, var(--c15t-space-md)) 0.75rem;
+		color: var(--accordion-restriction-color, var(--c15t-text-muted));
+		font-size: var(--c15t-font-size-sm);
+		line-height: var(--c15t-line-height-normal);
+	}
+
+	.content:not(:global(.headless)) {
+		display: grid;
+		grid-template-rows: 0fr;
+		overflow: hidden;
+		padding: 0;
+		/* A step darker than the muted text: the description is the same size as
+		   the label it explains, so tone is what separates them. With the
+		   default palette this is the 36% grey it always had. */
+		color: var(
+			--accordion-content-color,
+			color-mix(in srgb, var(--c15t-text-muted) 87%, var(--c15t-text))
+		);
+		font-size: 0.875rem;
+		line-height: 1.5;
+		letter-spacing: inherit;
+		transition: grid-template-rows
+			var(--accordion-duration, var(--c15t-duration-normal))
+			var(--accordion-ease, var(--c15t-easing));
+	}
+
+	.content:not(:global(.headless))[data-state='open'] {
+		grid-template-rows: 1fr;
+	}
+
+	.content:not(:global(.headless))[data-state='closed'] {
+		pointer-events: none;
+	}
+
+	/* The content is inset the same on both sides, by the width of the
+	   icon and its gap, so the description and the vendor cards nested
+	   under it sit centred in the row instead of hugging the right edge. */
+	.contentViewport:not(:global(.headless)) {
+		min-height: 0;
+		overflow: hidden;
+		padding-top: 0;
+		padding-inline: calc(
+			var(--accordion-icon-size, 1.25rem) +
+				var(--accordion-gap, var(--c15t-space-xs))
+		);
+	}
+
+	.contentInner:not(:global(.headless)) {
+		padding-top: 0;
+		opacity: 1;
+		transition: opacity
+			calc(var(--accordion-duration, var(--c15t-duration-normal)) * 0.35)
+			var(--c15t-easing-out);
+	}
+
+	.content[data-state='open'] .contentViewport:not(:global(.headless)) {
+		padding-bottom: var(--accordion-padding, var(--c15t-space-sm));
+	}
+
+	.content[data-state='closed'] .contentViewport:not(:global(.headless)) {
+		padding-bottom: 0;
+	}
+
+	.content[data-state='closed'] .contentInner:not(:global(.headless)) {
+		opacity: 0;
+	}
+
+	:global(.c15t-dark) .content:not(:global(.headless)) {
+		color: var(--accordion-content-color-dark, var(--c15t-text-muted));
+	}
+
+	:global([data-disable-animation]) .content:not(:global(.headless)),
+	:global(.disable-animation) .content:not(:global(.headless)) {
+		transition: none;
+	}
+
+	:global([data-disable-animation]) .contentInner:not(:global(.headless)),
+	:global(.disable-animation) .contentInner:not(:global(.headless)) {
+		transition: none;
+	}
+
+	:global([data-disable-animation]) .arrow:not(:global(.headless)),
+	:global(.disable-animation) .arrow:not(:global(.headless)) {
+		transition: none;
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.triggerRow:not(:global(.headless)) {
+			transition: none;
+		}
+
+		.arrow:not(:global(.headless)) {
+			transition: none;
+		}
+
+		.content:not(:global(.headless)) {
+			transition: none;
+		}
+
+		.contentInner:not(:global(.headless)) {
+			transition: none;
+		}
+	}
+}

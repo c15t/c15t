@@ -1,112 +1,52 @@
 ---
 title: Promptwatch
-description: Promptwatch analyzes traffic on your site for Artificial Intelligence (AI) traffic and usage insights. Data is stored in the EU without user-identifiable information.
-group: integrations
+description: Load the Promptwatch attribution client only after measurement consent with the c15t promptwatch helper, and check it in DevTools.
+seoTitle: Promptwatch cookie consent with c15t
+seoDescription: Load the Promptwatch client only with measurement consent. Set it up with the c15t promptwatch helper and check it in DevTools.
 icon: promptwatch
+group: integrations
 ---
 
-[Promptwatch](https://promptwatch.com) provides analytics focused on AI-related traffic and usage. The official embed loads a single script with your `data-project-id`. By default, c15t loads this script when `measurement` consent is granted.
+The c15t `promptwatch` helper keeps the Promptwatch client script off the page
+until `measurement` has consent. The helper sends no consent signal to
+Promptwatch. If the visitor withdraws consent, c15t removes the script element.
+By default, c15t also reloads the page.
 
-## Integrate with c15t
+## Configure Promptwatch
 
-<Tabs items={['React', 'Next.js', 'JavaScript']}>
-  <Tab value="React">
-    ```tsx
-    import { type ReactNode } from 'react';
-    import { ConsentManagerProvider } from '@c15t/react';
-    import { promptwatch } from '@c15t/scripts/promptwatch';
+Copy the project ID from your Promptwatch dashboard. The helper passes it to
+the client script as `data-project-id`.
 
-    const scripts = [
-      promptwatch({
-        projectId: '7d60345b-27bb-4779-a385-d4fc19ce732c',
-      }),
-    ];
+<CommandTabs command="@c15t/integrations" mode="install" />
 
-    export function ConsentProvider({ children }: { children: ReactNode }) {
-      return (
-        <ConsentManagerProvider
-          options={{
-            mode: 'hosted',
-            backendURL: 'https://your-instance.c15t.dev',
-            scripts,
-          }}
-        >
-          {children}
-        </ConsentManagerProvider>
-      );
-    }
-    ```
-  </Tab>
+```ts title="src/consent-scripts.ts"
+import { promptwatch } from '@c15t/integrations/promptwatch';
 
-  <Tab value="Next.js">
-    ```tsx
-    'use client';
-
-    import { type ReactNode } from 'react';
-    import { ConsentManagerProvider } from '@c15t/nextjs';
-    import { promptwatch } from '@c15t/scripts/promptwatch';
-
-    const scripts = [
-      promptwatch({
-        projectId: '7d60345b-27bb-4779-a385-d4fc19ce732c',
-      }),
-    ];
-
-    export function ConsentProvider({ children }: { children: ReactNode }) {
-      return (
-        <ConsentManagerProvider
-          options={{
-            mode: 'hosted',
-            backendURL: '/api/c15t',
-            scripts,
-          }}
-        >
-          {children}
-        </ConsentManagerProvider>
-      );
-    }
-    ```
-  </Tab>
-
-  <Tab value="JavaScript">
-    ```ts
-    import { getOrCreateConsentRuntime } from 'c15t';
-    import { promptwatch } from '@c15t/scripts/promptwatch';
-
-    getOrCreateConsentRuntime({
-      mode: 'hosted',
-      backendURL: 'https://your-instance.c15t.dev',
-      scripts: [
-        promptwatch({
-          projectId: '7d60345b-27bb-4779-a385-d4fc19ce732c',
-        }),
-      ],
-    });
-    ```
-  </Tab>
-</Tabs>
-
-## How c15t loads it
-
-- **Category:** `measurement` (Analytics)
-- **Loads when:** measurement consent is granted
-- **On revocation:** unloaded - c15t removes the script from the DOM and pauses Promptwatch data collection until consent is granted again.
-
-To use a custom loader URL:
-
-```ts
-promptwatch({
-	projectId: '7d60345b-27bb-4779-a385-d4fc19ce732c',
-	scriptUrl: 'https://cdn.example.com/promptwatch.js',
-});
+export const scripts = [promptwatch({ projectId: 'YOUR_PROJECT_ID' })];
 ```
 
-## Types
+<include src="../shared/integrations/register-scripts.mdx" />
 
-### PromptwatchOptions
+## Options
 
-<AutoTypeTable path="./packages/scripts/src/vendors/analytics/promptwatch.ts" name="PromptwatchOptions" />
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `projectId` | Required | Project ID from the Promptwatch dashboard. Empty or whitespace-only values log an error and the script does not load. |
+| `scriptUrl` | `https://ingest.promptwatch.com/js/client.min.js` | Loader URL override. Blank values fall back to the default. |
 
-### Script
+## Loading and revocation
 
-<AutoTypeTable path="./packages/core/src/libs/script-loader/types.ts" name="Script" />
+`promptwatch` uses the `measurement` category. The client loads only while
+measurement is allowed. On revocation the helper removes the script element
+and calls no Promptwatch API.
+
+The helper controls only the browser client. If your server also sends events
+to Promptwatch, check the visitor's measurement permission there as well.
+
+## Verify Promptwatch
+
+After you allow measurement, the `client.min.js` request goes to
+`ingest.promptwatch.com` and its script element carries your
+`data-project-id`.
+
+<include src="../shared/integrations/vendor-revocation-and-verify.mdx" />

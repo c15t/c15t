@@ -1,191 +1,59 @@
 ---
 title: Hightouch
-description: Load Hightouch Events with c15t and gate the browser SDK behind measurement consent.
-group: integrations
+description: Load the Hightouch Events browser SDK only after measurement consent with the c15t hightouch helper, and check page events in DevTools.
+seoTitle: Hightouch cookie consent with c15t
+seoDescription: Load the Hightouch Events SDK only with measurement consent. The c15t hightouch helper creates the htevents queue only with consent.
 icon: hightouch
+group: integrations
 ---
 
-[Hightouch Events](https://hightouch.com/docs/events/overview) collects customer behavior from websites and sends it into Hightouch for warehouse-backed analytics, activation, and real-time workflows. The `hightouch()` helper creates Hightouch's `window.htevents` queue, records the write key and optional API host for the standalone loader, optionally queues the initial `page()` call, and loads the browser SDK when `measurement` consent is available.
+The c15t `hightouch` helper keeps the Hightouch Events browser SDK off the page
+until `measurement` has consent. Until then, c15t does not create the
+`window.htevents` queue or load `events.min.js`. The helper sends no consent
+signal to Hightouch. If the visitor withdraws consent, c15t removes the script
+element. By default, c15t also reloads the page.
 
-## Integrate with c15t
+## Configure Hightouch
 
-<Tabs items={['React', 'Next.js', 'JavaScript']}>
-  <Tab value="React">
-    ```tsx
-    import { type ReactNode } from 'react';
-    import { ConsentManagerProvider } from '@c15t/react';
-    import { hightouch } from '@c15t/scripts/hightouch';
+Copy the write key from your Hightouch Event Source. Remove the original
+Hightouch snippet.
 
-    const scripts = [
-      hightouch({
-        writeKey: 'WRITE_KEY',
-        apiHost: 'us-east-1.hightouch-events.com',
-      }),
-    ];
+<CommandTabs command="@c15t/integrations" mode="install" />
 
-    export function ConsentProvider({ children }: { children: ReactNode }) {
-      return (
-        <ConsentManagerProvider
-          options={{
-            mode: 'hosted',
-            backendURL: 'https://your-instance.c15t.dev',
-            scripts,
-          }}
-        >
-          {children}
-        </ConsentManagerProvider>
-      );
-    }
-    ```
-  </Tab>
+```ts title="src/consent-scripts.ts"
+import { hightouch } from '@c15t/integrations/hightouch';
 
-  <Tab value="Next.js">
-    ```tsx
-    'use client';
-
-    import { type ReactNode } from 'react';
-    import { ConsentManagerProvider } from '@c15t/nextjs';
-    import { hightouch } from '@c15t/scripts/hightouch';
-
-    const scripts = [
-      hightouch({
-        writeKey: 'WRITE_KEY',
-        apiHost: 'us-east-1.hightouch-events.com',
-      }),
-    ];
-
-    export function ConsentProvider({ children }: { children: ReactNode }) {
-      return (
-        <ConsentManagerProvider
-          options={{
-            mode: 'hosted',
-            backendURL: '/api/c15t',
-            scripts,
-          }}
-        >
-          {children}
-        </ConsentManagerProvider>
-      );
-    }
-    ```
-  </Tab>
-
-  <Tab value="JavaScript">
-    ```ts
-    import { getOrCreateConsentRuntime } from 'c15t';
-    import { hightouch } from '@c15t/scripts/hightouch';
-
-    getOrCreateConsentRuntime({
-      mode: 'hosted',
-      backendURL: 'https://your-instance.c15t.dev',
-      scripts: [
-        hightouch({
-          writeKey: 'WRITE_KEY',
-          apiHost: 'us-east-1.hightouch-events.com',
-        }),
-      ],
-    });
-    ```
-  </Tab>
-</Tabs>
-
-## How c15t loads it
-
-- **Category:** `measurement` (Analytics)
-- **Loads when:** measurement consent is granted
-- **On revocation:** unloaded - c15t removes the script element it created. The `window.htevents` runtime object is left in place until the next page load (c15t reloads the page on revocation by default), so treat the load gate as the consent boundary.
-
-The helper maps Hightouch's browser snippet into the manifest engine:
-
-```ts
-hightouch({
-  writeKey: 'WRITE_KEY',
-  apiHost: 'us-east-1.hightouch-events.com',
-});
+export const scripts = [hightouch({ writeKey: 'YOUR_WRITE_KEY' })];
 ```
 
-It creates `window.htevents`, defines the official queue methods, queues:
+<include src="../shared/integrations/register-scripts.mdx" />
 
-```ts
-window.htevents.load('WRITE_KEY', {
-  apiHost: 'us-east-1.hightouch-events.com',
-});
-window.htevents.page();
-```
+## Options
 
-and loads:
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `writeKey` | Required | Event Source write key passed to `htevents.load`. The helper trims it. Empty values log an error and the script does not load. |
+| `apiHost` | None | API host passed in the load options. Without it, the SDK uses `us-east-1.hightouch-events.com`. Set it only for another region or a first-party tracking host. A blank value is dropped. |
+| `trackPageView` | `true` | Queues `htevents.page()` after `load`. Set `false` when your router sends page calls. |
+| `scriptUrl` | `https://cdn.hightouch-events.com/browser/release/v1-latest/events.min.js` | Loader URL override. A blank value falls back to the default. |
 
-```txt
-https://cdn.hightouch-events.com/browser/release/v1-latest/events.min.js
-```
+## Loading and revocation
 
-`writeKey` is required and must be a non-empty string after trimming. `apiHost` is optional; Hightouch's SDK defaults to `us-east-1.hightouch-events.com`, so pass it only when your Event Source uses another region or a first-party tracking host.
+`hightouch` uses the `measurement` category. When measurement becomes allowed,
+the helper creates the `window.htevents` queue with the snippet's methods,
+stores the write key and load options on it, and queues `load` and, by
+default, `page`. Then it loads `events.min.js`, which replays the queue.
 
-## Configure page tracking
+On revocation the helper removes the script element and calls no Hightouch API.
+An Event Source can forward events to other destinations, so check each
+destination's purpose in Hightouch as well.
 
-By default the helper queues `htevents.page()` before the vendor bundle loads. If you want to handle page views yourself, set `trackPageView` to `false`.
+## Verify Hightouch
 
-```ts
-import { hightouch } from '@c15t/scripts/hightouch';
+Filter DevTools Network by `hightouch`. After you allow measurement,
+`events.min.js` loads and a page event reaches your API host. With client-side
+routing, check that each route change sends one page event, not two.
+`window.htevents` still exists after revocation, so check measurement
+permission before your own `htevents.track` calls.
 
-hightouch({
-  writeKey: 'WRITE_KEY',
-  trackPageView: false,
-});
-```
-
-To proxy or self-host the loader, pass a custom URL:
-
-```ts
-hightouch({
-  writeKey: 'WRITE_KEY',
-  scriptUrl: 'https://analytics.example.com/events.min.js',
-});
-```
-
-## Consent behavior
-
-c15t blocks the Hightouch SDK from loading until `measurement` consent is granted and unloads it on revocation. Hightouch does not expose a browser API that prevents collection while loaded — the SDK writes identifiers and delivers events to Hightouch as soon as it runs — so gating the load is the only default that reliably honors missing or denied consent. See the [RudderStack consent notes](/docs/integrations/rudderstack#consent-behavior) for the full reasoning behind this model versus vendor consent-API mapping (as used for Google Tag Manager).
-
-## Tracking events in your app
-
-c15t gates the Hightouch browser SDK from loading until `measurement` consent is granted. Your application code that calls Hightouch's runtime API (`window.htevents.track`, `identify`, etc.) is **not** automatically gated - `window.htevents` does not exist until c15t initializes the integration, so unguarded calls made before that (or while consent is denied) throw. Once the integration is initialized with consent, early calls queue normally until the SDK finishes loading.
-
-Guard event calls by checking consent state. From React:
-
-```tsx
-import { useCallback } from 'react';
-import { useConsentManager } from '@c15t/react';
-
-function SignupExample() {
-  const { has } = useConsentManager();
-
-  const trackSignup = useCallback(() => {
-    if (has('measurement')) {
-      window.htevents?.track('Signup Completed', { plan: 'pro' });
-    }
-  }, [has]);
-}
-```
-
-From plain JavaScript:
-
-```ts
-import { getOrCreateConsentRuntime } from 'c15t';
-
-const { consentStore } = getOrCreateConsentRuntime();
-
-if (consentStore.getState().has('measurement')) {
-  window.htevents?.track('Signup Completed', { plan: 'pro' });
-}
-```
-
-## Types
-
-### HightouchOptions
-
-<AutoTypeTable path="./packages/scripts/src/vendors/analytics/hightouch.ts" name="HightouchOptions" />
-
-### Script
-
-<AutoTypeTable path="./packages/core/src/libs/script-loader/types.ts" name="Script" />
+<include src="../shared/integrations/vendor-revocation-and-verify.mdx" />

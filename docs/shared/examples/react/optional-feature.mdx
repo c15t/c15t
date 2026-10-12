@@ -1,0 +1,10 @@
+{/* Generated from internals/doc-snippets/react/src/optional-feature.tsx (docs:optional-feature) by scripts/sync-example-docs.ts. Edit the source file. */}
+
+```tsx title="src/optional-feature.tsx"
+import { useConsent } from 'c15t/react';
+
+export const OptionalFeature = () => {
+	const allowed = useConsent('marketing');
+	return allowed ? <div>Optional marketing content</div> : null;
+};
+```

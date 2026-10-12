@@ -1,0 +1,633 @@
+import type { KernelConfig } from '@c15t/core';
+import { hosted, manifest, offline } from '@c15t/core/modes';
+/**
+ * End-to-end tests for the Next.js adapter.
+ *
+ * Covers the full flow:
+ * 1. Server: resolveConsent calls the backend, returns the enriched state.
+ * 2. Client: ConsentRoot with backendURL auto-fires kernel.commands.init().
+ * 3. Client: enabled=false disables init and treats consents as allowed.
+ * 4. Prefetched banner visibility reaches the snapshot before the client
+ *    roundtrip completes.
+ */
+import { useConsent, useSaveConsents, useSnapshot } from '@c15t/react';
+import {
+	readJourneyParams,
+	resolvePolicyRules,
+	writePolicyResolutionWire,
+} from '@c15t/schema/types';
+import { describe, expect, test, vi } from 'vitest';
+import { render } from 'vitest-browser-react';
+
+import { defineConsentConfig } from '../config';
+import { ConsentRoot } from '../root';
+import { MANIFEST_FIXTURE } from './manifest-fixture';
+import { policyFixture } from './policy-fixture';
+
+type WindowWithC15t = Window & {
+	c15t?: {
+		version: string;
+		pkg: string;
+		mode: string;
+	};
+};
+
+/** A request URL without its query, which carries the consent journey. */
+const pathOf = (url: unknown): string => String(url).split('?')[0] ?? '';
+
+const POLICY_RESOLUTION = writePolicyResolutionWire(
+	resolvePolicyRules({
+		countryCode: null,
+		regionCode: null,
+		rules: [
+			{
+				id: 'gdpr',
+				match: { fallback: true },
+				model: 'opt-in',
+				prompt: 'choice',
+			},
+		],
+	})
+);
+
+describe('ConsentRoot: backendURL triggers auto-init', () => {
+	test('root reports Next.js adapter identity on window.c15t', async () => {
+		const fetchSpy = vi.fn().mockResolvedValue(
+			new Response(JSON.stringify({ policyResolution: POLICY_RESOLUTION }), {
+				headers: { 'content-type': 'application/json' },
+				status: 200,
+			})
+		);
+		const originalFetch = globalThis.fetch;
+		globalThis.fetch = fetchSpy as unknown as typeof globalThis.fetch;
+		delete (window as WindowWithC15t).c15t;
+
+		try {
+			const { unmount } = await render(
+				<ConsentRoot
+					state={{}}
+					config={{ backendURL: '/api/c15t' }}
+					persistence={false}
+				>
+					<div data-testid="probe">ready</div>
+				</ConsentRoot>
+			);
+
+			await vi.waitFor(() => {
+				// The default mode, manifest(), re-inits through the backend.
+				expect((window as WindowWithC15t).c15t).toMatchObject({
+					mode: 'manifest',
+					pkg: '@c15t/nextjs',
+				});
+			});
+			expect(typeof (window as WindowWithC15t).c15t?.version).toBe('string');
+			unmount();
+		} finally {
+			globalThis.fetch = originalFetch;
+			delete (window as WindowWithC15t).c15t;
+		}
+	});
+
+	test('root with backendURL fires kernel.commands.init on mount', async () => {
+		const fetchSpy = vi.fn().mockResolvedValue(
+			new Response(
+				JSON.stringify({
+					branding: 'c15t',
+					location: { countryCode: 'DE', regionCode: null },
+					policyResolution: POLICY_RESOLUTION,
+					translations: { language: 'en', translations: { common: {} } },
+				}),
+				{
+					headers: { 'content-type': 'application/json' },
+					status: 200,
+				}
+			)
+		);
+		const originalFetch = globalThis.fetch;
+		globalThis.fetch = fetchSpy as unknown as typeof globalThis.fetch;
+
+		const Probe = () => {
+			const snap = useSnapshot();
+			return (
+				<div data-testid="probe">{`${(snap.resolution.status === 'matched' ? snap.resolution.policyId : undefined) ?? 'none'}|${snap.model ?? 'none'}|${snap.activeUI ?? 'null'}`}</div>
+			);
+		};
+
+		try {
+			const { getByTestId } = await render(
+				<ConsentRoot
+					state={{}}
+					config={{ backendURL: 'http://bench.example.com/api/c15t' }}
+					persistence={false}
+				>
+					<Probe />
+				</ConsentRoot>
+			);
+
+			// After the init roundtrip completes, policy-derived state updates.
+			await expect
+				.element(getByTestId('probe'))
+				.toHaveTextContent('gdpr|opt-in|banner');
+			expect(fetchSpy).toHaveBeenCalledTimes(1);
+		} finally {
+			globalThis.fetch = originalFetch;
+		}
+	});
+
+	test('an offline() root fires no network call', async () => {
+		const fetchSpy = vi.fn().mockResolvedValue(new Response());
+		const originalFetch = globalThis.fetch;
+		globalThis.fetch = fetchSpy as unknown as typeof globalThis.fetch;
+
+		const Probe = () => {
+			const allowed = useConsent('marketing');
+			return <div data-testid="probe">{String(allowed)}</div>;
+		};
+
+		try {
+			const { getByTestId } = await render(
+				<ConsentRoot
+					config={{ mode: offline() }}
+					state={{}}
+					persistence={false}
+				>
+					<Probe />
+				</ConsentRoot>
+			);
+
+			await expect.element(getByTestId('probe')).toHaveTextContent('false');
+			// offline() resolves in the browser and saves nowhere.
+			expect(fetchSpy).not.toHaveBeenCalled();
+		} finally {
+			globalThis.fetch = originalFetch;
+		}
+	});
+
+	test('enabled=false skips init and treats consent checks as allowed', async () => {
+		const fetchSpy = vi.fn().mockResolvedValue(new Response());
+		const originalFetch = globalThis.fetch;
+		globalThis.fetch = fetchSpy as unknown as typeof globalThis.fetch;
+
+		const Probe = () => {
+			const allowed = useConsent('marketing');
+			const snap = useSnapshot();
+			return (
+				<div data-testid="probe">{`${String(allowed)}|${snap.activeUI ?? 'null'}`}</div>
+			);
+		};
+
+		try {
+			const { getByTestId } = await render(
+				<ConsentRoot
+					state={{}}
+					config={{ backendURL: 'http://bench.example.com/api/c15t' }}
+					options={{ enabled: false }}
+				>
+					<Probe />
+				</ConsentRoot>
+			);
+
+			await expect.element(getByTestId('probe')).toHaveTextContent('true|none');
+			await new Promise((resolve) => {
+				setTimeout(resolve, 10);
+			});
+			expect(fetchSpy).not.toHaveBeenCalled();
+		} finally {
+			globalThis.fetch = originalFetch;
+		}
+	});
+});
+
+describe('ConsentRoot: resolved state reaches first paint', () => {
+	test('prepared policy renders without a duplicate browser init', async () => {
+		// Fetch that resolves on demand — simulates a slow roundtrip.
+		let resolveInit: (value: unknown) => void = () => undefined;
+		const fetchSpy = vi.fn(
+			() =>
+				new Promise<Response>((resolve) => {
+					resolveInit = (value: unknown) => {
+						resolve(
+							new Response(JSON.stringify(value), {
+								headers: { 'content-type': 'application/json' },
+								status: 200,
+							})
+						);
+					};
+				})
+		);
+		const originalFetch = globalThis.fetch;
+		globalThis.fetch = fetchSpy as unknown as typeof globalThis.fetch;
+
+		const Probe = () => {
+			const snap = useSnapshot();
+			return (
+				<div data-testid="probe">{`${(snap.resolution.status === 'matched' ? snap.resolution.policyId : undefined) ?? 'none'}|${snap.model ?? 'none'}|${snap.activeUI ?? 'null'}`}</div>
+			);
+		};
+
+		const state: KernelConfig = policyFixture({}, { id: 'gdpr' });
+
+		try {
+			const { getByTestId } = await render(
+				<ConsentRoot
+					state={state}
+					config={{ backendURL: 'http://bench.example.com/api/c15t' }}
+					persistence={false}
+				>
+					<Probe />
+				</ConsentRoot>
+			);
+
+			// First paint carries the prefetched values. The init roundtrip
+			// is still in flight (resolveInit has not been called).
+			await expect
+				.element(getByTestId('probe'))
+				.toHaveTextContent('gdpr|opt-in|banner');
+
+			// Now resolve the slow init. Snapshot should not regress.
+			expect(fetchSpy).not.toHaveBeenCalled();
+			resolveInit({ policyResolution: POLICY_RESOLUTION });
+			await new Promise((resolve) => {
+				setTimeout(resolve, 10);
+			});
+			await expect
+				.element(getByTestId('probe'))
+				.toHaveTextContent('gdpr|opt-in|banner');
+		} finally {
+			globalThis.fetch = originalFetch;
+		}
+	});
+});
+
+describe('ConsentRoot: config picks the transport', () => {
+	const jsonResponse = (body: unknown) =>
+		new Response(JSON.stringify(body), {
+			headers: { 'content-type': 'application/json' },
+			status: 200,
+		});
+
+	const PolicyProbe = () => {
+		const snap = useSnapshot();
+		const save = useSaveConsents();
+		return (
+			<div>
+				<div data-testid="probe">{`${snap.policyRule.id}|${snap.location?.countryCode ?? 'null'}|${String(!!snap.explicitChoice)}`}</div>
+				<button
+					type="button"
+					data-testid="save"
+					onClick={() => {
+						void save('all');
+					}}
+				>
+					save
+				</button>
+			</div>
+		);
+	};
+
+	test.each([
+		[
+			'saves post to the backend',
+			undefined,
+			'https://consent.example.com/subjects',
+			undefined,
+		],
+		[
+			'with proxy, saves post to the route too',
+			true,
+			'/api/consent/subjects',
+			undefined,
+		],
+		[
+			"with proxy, hosted()'s own backend URL stays on the server",
+			true,
+			'/api/consent/subjects',
+			hosted({ backendURL: 'https://hosted.example.com' }),
+		],
+	])(
+		'routePrefix: init hits the same-origin route, %s',
+		async (_name, proxy, saveURL, mode) => {
+			const fetchSpy = vi.fn((url: string, _init?: RequestInit) =>
+				Promise.resolve(
+					url.endsWith('/subjects')
+						? jsonResponse({ ok: true, subjectId: 'sub_saved' })
+						: jsonResponse({
+								branding: 'c15t',
+								location: { countryCode: 'DE', regionCode: null },
+								policyDecision: {
+									country: 'DE',
+									fingerprint: policyFixture({}, { id: 'gdpr' })
+										.initialPolicyResolution.fingerprints.policy,
+									policyId: 'gdpr',
+								},
+								policyResolution: writePolicyResolutionWire(
+									policyFixture({}, { id: 'gdpr' }).initialPolicyResolution
+								),
+								translations: { language: 'en', translations: { common: {} } },
+							})
+				)
+			);
+			const originalFetch = globalThis.fetch;
+			globalThis.fetch = fetchSpy as unknown as typeof globalThis.fetch;
+
+			try {
+				const { getByTestId } = await render(
+					<ConsentRoot
+						state={{}}
+						config={defineConsentConfig({
+							backendURL: 'https://consent.example.com',
+							mode,
+							proxy,
+							routePrefix: '/api/consent',
+						})}
+						// A site declares its categories; with none, the permissive
+						// policy asks only for an acknowledgement, not a choice.
+						options={{
+							consentCategories: [
+								'necessary',
+								'experience',
+								'functionality',
+								'marketing',
+								'measurement',
+							],
+						}}
+						persistence={false}
+					>
+						<PolicyProbe />
+					</ConsentRoot>
+				);
+
+				await expect
+					.element(getByTestId('probe'))
+					.toHaveTextContent('gdpr|DE|false');
+				await getByTestId('save').click();
+				await expect
+					.element(getByTestId('probe'))
+					.toHaveTextContent('gdpr|DE|true');
+				await vi.waitFor(() => {
+					expect(fetchSpy.mock.calls.map(([url]) => pathOf(url))).toEqual([
+						'/api/consent/init',
+						saveURL,
+					]);
+				});
+				// The init and the save it led to carry one journey.
+				const [initJourney, saveJourney] = fetchSpy.mock.calls.map(([url]) =>
+					readJourneyParams(String(url))
+				);
+				expect(initJourney?.scope).toBe('page');
+				expect(saveJourney?.id).toBe(initJourney?.id);
+				// Manifest-resolved init issues no snapshot token, so the save
+				// asserts the policy it was made against.
+				const saveInit = fetchSpy.mock.calls[1]?.[1];
+				expect(JSON.parse(String(saveInit?.body))).toMatchObject({
+					fingerprint: policyFixture({}, { id: 'gdpr' }).initialPolicyResolution
+						.fingerprints.policy,
+					policyId: 'gdpr',
+				});
+			} finally {
+				globalThis.fetch = originalFetch;
+			}
+		}
+	);
+
+	test("resolve: 'browser': init resolves in the browser from the manifest route", async () => {
+		const fetchSpy = vi.fn((url: string) =>
+			Promise.resolve(
+				url.endsWith('/subjects')
+					? jsonResponse({ ok: true, subjectId: 'sub_saved' })
+					: jsonResponse(MANIFEST_FIXTURE)
+			)
+		);
+		const originalFetch = globalThis.fetch;
+		globalThis.fetch = fetchSpy as unknown as typeof globalThis.fetch;
+
+		try {
+			const { getByTestId } = await render(
+				<ConsentRoot
+					state={{ initialOverrides: { country: 'DE' } }}
+					config={defineConsentConfig({
+						backendURL: 'https://consent.example.com',
+						mode: manifest({ resolve: 'browser' }),
+						routePrefix: '/api/consent',
+					})}
+					persistence={false}
+				>
+					<PolicyProbe />
+				</ConsentRoot>
+			);
+
+			await expect
+				.element(getByTestId('probe'))
+				.toHaveTextContent('eu-opt-in|DE|false');
+			await getByTestId('save').click();
+			await vi.waitFor(() => {
+				expect(fetchSpy.mock.calls.map(([url]) => pathOf(url))).toEqual([
+					'/api/consent/manifest',
+					'https://consent.example.com/subjects',
+				]);
+			});
+		} finally {
+			globalThis.fetch = originalFetch;
+		}
+	});
+
+	test("resolve: 'browser' asks the backend /init for a country the manifest splits by region", async () => {
+		const fetchSpy = vi.fn((url: string) =>
+			Promise.resolve(
+				pathOf(url).endsWith('/init')
+					? jsonResponse({
+							branding: 'c15t',
+							location: { countryCode: 'US', regionCode: 'CA' },
+							policyResolution: writePolicyResolutionWire(
+								policyFixture({}, { id: 'us-ca-opt-out' })
+									.initialPolicyResolution
+							),
+							translations: { language: 'en', translations: { common: {} } },
+						})
+					: jsonResponse(MANIFEST_FIXTURE)
+			)
+		);
+		const originalFetch = globalThis.fetch;
+		globalThis.fetch = fetchSpy as unknown as typeof globalThis.fetch;
+
+		try {
+			const { getByTestId } = await render(
+				<ConsentRoot
+					state={{ initialOverrides: { country: 'US' } }}
+					config={defineConsentConfig({
+						backendURL: 'https://consent.example.com',
+						mode: manifest({ resolve: 'browser' }),
+						routePrefix: '/api/consent',
+					})}
+					persistence={false}
+				>
+					<PolicyProbe />
+				</ConsentRoot>
+			);
+
+			await expect
+				.element(getByTestId('probe'))
+				.toHaveTextContent('us-ca-opt-out|US|false');
+			expect(fetchSpy.mock.calls.map(([url]) => pathOf(url))).toEqual([
+				'/api/consent/manifest',
+				'https://consent.example.com/init',
+			]);
+		} finally {
+			globalThis.fetch = originalFetch;
+		}
+	});
+
+	test('backendURL only: manifest() re-inits against the backend /init', async () => {
+		const fetchSpy = vi.fn().mockResolvedValue(
+			jsonResponse({
+				branding: 'c15t',
+				location: { countryCode: 'DE', regionCode: null },
+				policyResolution: writePolicyResolutionWire(
+					policyFixture({}, { id: 'gdpr' }).initialPolicyResolution
+				),
+				translations: { language: 'en', translations: { common: {} } },
+			})
+		);
+		const originalFetch = globalThis.fetch;
+		globalThis.fetch = fetchSpy as unknown as typeof globalThis.fetch;
+
+		try {
+			const { getByTestId } = await render(
+				<ConsentRoot
+					state={{}}
+					config={defineConsentConfig({
+						backendURL: 'https://consent.example.com',
+					})}
+					persistence={false}
+				>
+					<PolicyProbe />
+				</ConsentRoot>
+			);
+
+			await expect
+				.element(getByTestId('probe'))
+				.toHaveTextContent('gdpr|DE|false');
+			expect(pathOf(fetchSpy.mock.calls[0]?.[0])).toBe(
+				'https://consent.example.com/init'
+			);
+		} finally {
+			globalThis.fetch = originalFetch;
+		}
+	});
+
+	test('config journey false: neither the init nor the save carries one', async () => {
+		const fetchSpy = vi.fn((url: string, _init?: RequestInit) =>
+			Promise.resolve(
+				pathOf(url).endsWith('/subjects')
+					? jsonResponse({ ok: true, subjectId: 'sub_saved' })
+					: jsonResponse({
+							branding: 'c15t',
+							location: { countryCode: 'DE', regionCode: null },
+							policyResolution: writePolicyResolutionWire(
+								policyFixture({}, { id: 'gdpr' }).initialPolicyResolution
+							),
+							translations: { language: 'en', translations: { common: {} } },
+						})
+			)
+		);
+		const originalFetch = globalThis.fetch;
+		globalThis.fetch = fetchSpy as unknown as typeof globalThis.fetch;
+		try {
+			const { getByTestId } = await render(
+				<ConsentRoot
+					state={{}}
+					config={defineConsentConfig({
+						backendURL: 'https://consent.example.com',
+						journey: false,
+					})}
+					persistence={false}
+				>
+					<PolicyProbe />
+				</ConsentRoot>
+			);
+			await expect
+				.element(getByTestId('probe'))
+				.toHaveTextContent('gdpr|DE|false');
+			await getByTestId('save').click();
+			await vi.waitFor(() =>
+				expect(
+					fetchSpy.mock.calls.some(([url]) => pathOf(url).endsWith('/subjects'))
+				).toBe(true)
+			);
+			for (const [url] of fetchSpy.mock.calls) {
+				expect(String(url)).not.toContain('journey');
+			}
+		} finally {
+			globalThis.fetch = originalFetch;
+		}
+	});
+
+	test('a server state with no journey: the save carries none', async () => {
+		const fetchSpy = vi.fn((_url: string, _init?: RequestInit) =>
+			Promise.resolve(jsonResponse({ ok: true, subjectId: 'sub_saved' }))
+		);
+		const originalFetch = globalThis.fetch;
+		globalThis.fetch = fetchSpy as unknown as typeof globalThis.fetch;
+		try {
+			const { getByTestId } = await render(
+				<ConsentRoot
+					state={{
+						...policyFixture({}, { id: 'gdpr' }),
+						journey: null,
+					}}
+					config={defineConsentConfig({
+						backendURL: 'https://consent.example.com',
+					})}
+					persistence={false}
+				>
+					<PolicyProbe />
+				</ConsentRoot>
+			);
+			await getByTestId('save').click();
+			await vi.waitFor(() => expect(fetchSpy).toHaveBeenCalled());
+			expect(pathOf(fetchSpy.mock.calls[0]?.[0])).toBe(
+				'https://consent.example.com/subjects'
+			);
+			expect(String(fetchSpy.mock.calls[0]?.[0])).not.toContain('journey');
+		} finally {
+			globalThis.fetch = originalFetch;
+		}
+	});
+
+	test('options.mode still wins over the config', async () => {
+		const fetchSpy = vi.fn().mockResolvedValue(new Response());
+		const originalFetch = globalThis.fetch;
+		globalThis.fetch = fetchSpy as unknown as typeof globalThis.fetch;
+		const init = vi.fn().mockResolvedValue({
+			policyResolution: writePolicyResolutionWire(
+				policyFixture({}, { id: 'gdpr' }).initialPolicyResolution
+			),
+		});
+
+		try {
+			const { getByTestId } = await render(
+				<ConsentRoot
+					state={{}}
+					config={defineConsentConfig({
+						backendURL: 'https://consent.example.com',
+						routePrefix: '/api/consent',
+					})}
+					options={{
+						mode: Object.assign(() => ({ init }), { kind: 'custom' as const }),
+					}}
+					persistence={false}
+				>
+					<PolicyProbe />
+				</ConsentRoot>
+			);
+
+			await expect
+				.element(getByTestId('probe'))
+				.toHaveTextContent('gdpr|null|false');
+			expect(init).toHaveBeenCalledTimes(1);
+			expect(fetchSpy).not.toHaveBeenCalled();
+		} finally {
+			globalThis.fetch = originalFetch;
+		}
+	});
+});

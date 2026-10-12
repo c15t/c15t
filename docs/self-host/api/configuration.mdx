@@ -1,64 +1,168 @@
 ---
-title: Configuration Reference
-description: Complete reference for all c15t backend configuration options.
+title: Backend configuration
+description: Options for a self-hosted c15t backend in c15t-backend.config.ts and c15tInstance, covering SQL storage, trusted origins, policies, signing, script routes and request logging.
 group: self-host
 ---
 
-All options are passed to `c15tInstance()`. Only `adapter` and `trustedOrigins` are required.
+## Configure the server
 
-## Options
+Use [Inth](https://inth.com) when you want managed hosting. These options belong
+to a self-hosted `@c15t/backend` instance. Browser `hosted()` options only select
+how a client connects; they do not configure the backend's policy.
 
-<AutoTypeTable path="./packages/backend/src/types/index.ts" name="C15TOptions" />
+```ts title="c15t-backend.config.ts"
+import { defineConfig, policyRulePresets } from '@c15t/backend';
 
-<AutoTypeTable path="./packages/backend/src/types/index.ts" name="OpenAPIOptions" />
+const url = process.env.DATABASE_URL;
+if (!url) throw new Error('Set DATABASE_URL');
 
-<AutoTypeTable path="./packages/backend/src/types/index.ts" name="TelemetryOptions" />
+export default defineConfig({
+	database: { dialect: 'postgres', url, schema: 'c15t' },
+	basePath: '/api/c15t',
+	trustedOrigins: ['https://app.example.com'],
+	manifest: { policyRules: [policyRulePresets.europeOptIn()] },
+	ipAddress: { tracking: false },
+});
+```
 
-<AutoTypeTable path="./packages/backend/src/types/index.ts" name="IPAddressOptions" />
+The example uses the Europe preset for its matching locations and unknown-location
+fallback. Add reviewed rules for other locations in
+[policy configuration](/docs/self-host/guides/policy-packs).
 
-<AutoTypeTable path="./packages/backend/src/types/index.ts" name="CacheOptions" />
+## Instance options
 
-<AutoTypeTable path="./packages/backend/src/types/index.ts" name="IABOptions" />
+| Option | Purpose and default |
+| --- | --- |
+| `database` | Required PostgreSQL, MySQL or SQLite connection, or an Effect SQL client layer. |
+| `basePath` | Mount prefix to strip before routing. Set it when the handler receives paths such as `/api/c15t/init`. |
+| `trustedOrigins` | Hosts whose browsers may call the backend cross-origin, such as `app.example.com` or `*.example.com`. Empty or absent allows none. `GET /init` answers every origin regardless; see [query parameters and CORS](/docs/self-host/api/endpoints#query-parameters-and-cors). |
+| `tenantId` | Fixed tenant for this instance's database queries. Omitted uses the single-tenant scope with null tenant IDs. An empty or padded string, or a non-string such as `null`, throws when the instance is built. This is the only tenant setting; `manifest.tenantId` is no longer accepted and throws. |
+| `requireTenantId` | Set to `true` when several tenants share one database. The instance throws at construction if `tenantId` is missing, instead of running in the single-tenant scope. Defaults to `false`. |
+| `hosting` | Who runs this backend: `'self-hosted'` (the default) or `'inth'`, which only Inth's hosted platform sets. `/init` and `/manifest` report it, and browsers read it as `window.c15t.hosting`. It is not signed, so use it for debugging and support, not as proof of hosting. Any other value throws when the instance is built, and so does `manifest.hosting`. |
+| `manifest` | Policy rules, translations, branding and IAB configuration published by `/manifest` and resolved by `/init`. |
+| `manifestCache` | Public manifest cache durations in seconds. Defaults to `sMaxAge: 300`, `staleWhileRevalidate: 86400`. |
+| `apiKeys` | Keys accepted as `Authorization: Bearer <key>` for administrative endpoints. No keys means no request authenticates. |
+| `policySnapshot` | Optional policy decision signing key, issuer, audience and lifetime. Default lifetime is 1,800 seconds when signing is enabled. `replayWindowSeconds` (default 604,800, 7 days) is how long after a token expires a save made while it was valid is still accepted; `0` refuses every late save. See [late saves](/docs/self-host/api/endpoints#late-saves). |
+| `identityToken` | `signingKey` of at least 32 bytes, plus optional `issuer` (default `c15t`) and `audience` (default `c15t-identity`), for verifying [identity tokens](/docs/self-host/api/endpoints#verify-identity-links). Without it, only API-key requests verify links. Keep the key secret, one per tenant. |
+| `legalDocumentSnapshot` | Legal-document signing configuration type. It does not automatically issue or verify HTTP tokens. Use the [explicit signing helpers](/docs/self-host/guides/legal-document-snapshot-integration); their default lifetime is 86,400 seconds. |
+| `gvl` | Server-side Global Vendor List loading and cache configuration. Writing the block is the opt-in: `/init` carries the list for every matched IAB policy. `enabled: false` declines. |
+| `ipAddress` | IP recording options. Masking is on unless disabled; `tracking: false` records no IP. |
+| `openapi` | Enabled by default at `/spec.json`. Supports `enabled`, `specPath`, `title` and the documented server `basePath`. |
+| `script` | Script-tag routes at `/c15t.js`, `/c15t.headless.js` and `/c15t.iab.js`. On by default; see [browser script routes](#browser-script-routes). |
+| `version` | Version reported by the status endpoint and OpenAPI document. |
+| `observability` | Logging configuration passed directly to `c15tInstance`. Defaults to warning and error requests. |
+| `sessions` | `onReport` receives a report for each visitor resolution: framework servers send them to `POST /sessions`, and the backend's own `/init` adds one. Nothing is stored, and a failing sink never fails the request. Pass it to `c15tInstance`, not `defineConfig`. |
 
-## Return Value
+`defineConfig()` checks types and returns the supplied object. It does not load
+environment variables or run migrations. It deliberately rejects `observability`;
+pass logging callbacks when constructing the instance instead.
 
-`c15tInstance()` returns:
+## Manifest options
+
+| Option | What it changes |
+| --- | --- |
+| `policyRules` | Ordered canonical policy rules. Author this field, not the generated manifest's `policyPacks`. |
+| `appName` | Application name included in configuration. |
+| `branding` | Branding setting, defaulting to `c15t`. |
+| `customTranslations`, `i18n` | Translation overrides and locale configuration. |
+| `iab` | `enabled`, `cmpId`, `customVendors` and the GVL `endpoint`. |
+| `vendors`, `vendorListVersion` | Vendors offered for vendor-level consent outside IAB, returned from `/init` and merged with vendors declared in the client. The version label is shown to the visitor and surfaced to dev tools, never used to force re-consent; a saved vendor decision carries the grant map and its time, not the label. |
+
+## Browser script routes
+
+The backend serves `/c15t.js`, `/c15t.headless.js` and `/c15t.iab.js` by
+default, so a self-hosted instance can serve a configured
+[script tag](/docs/frameworks/html/quickstart) without a separate bundle
+deployment. Turn them off when you do not use the script tag:
 
 ```ts
-interface C15TInstance {
-  /** Standard Fetch API handler */
-  handler: (request: Request) => Promise<Response>;
+const backend = c15tInstance({ ...config, script: { enabled: false } });
+```
 
-  /** Resolved configuration */
-  options: C15TOptions;
+The `/c15t.js` route serves the hosted bundle with its backend URL already
+configured. It resolves each visitor's policy through `/init`. The headless
+and IAB routes inline the public manifest and resolve it in the browser.
+Keep secrets out of `script.config`.
 
-  /** Internal context (database, registry, logger) */
-  $context: C15TContext;
+`@c15t/backend` installs `@c15t/browser` as a runtime dependency, including its
+core, UI, IAB, and DevTools dependencies. Disabling the routes removes the HTTP
+endpoints; it does not remove those packages from the installation. Bundle files
+load when requested. A missing bundle returns `503`.
 
-  /** OpenAPI spec as JSON */
-  getOpenAPISpec: () => Promise<Record<string, unknown>>;
+With `c15tInstance({ basePath: '/api/c15t', ... })`, a script loaded from
+`/api/c15t/c15t.js` calls `/api/c15t/init` and `/api/c15t/subjects`. You do not
+need to repeat the mount path in `script.backendURL`.
 
-  /** OpenAPI docs UI as HTML string */
-  getDocsUI: () => string;
+Pass these options under `script` in the `c15tInstance()` or `defineConfig()` options:
+
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `enabled` | `true` | Register all three script routes. Set to `false` to remove them. |
+| `path` | `/c15t.js` | Path for the ordinary banner and preference UI. |
+| `headlessPath` | `/c15t.headless.js` | Path for the runtime without UI. |
+| `iabPath` | `/c15t.iab.js` | Path for the optional IAB CMP and preference UI. |
+| `backendURL` | Derived from the request origin and configured `basePath`, or the request path when `basePath` is omitted | Backend base URL embedded in the bundle. Set it explicitly when a proxy rewrites the public path or origin. |
+| `config` | `{}` | Browser defaults embedded in the response. Page-queued configuration overrides these defaults. |
+| `bundles` | Files resolved from `@c15t/browser` | Override filesystem paths by `full`, `headless`, or `iab` key. Requires a runtime with Node filesystem APIs. |
+
+The routes share the `/manifest` cache policy through `manifestCache` and return
+ETags for conditional requests. See the [endpoint reference](/docs/self-host/api/endpoints)
+and [script-tag guide](/docs/frameworks/html/quickstart) for usage.
+
+## Origins, identity and secrets
+
+A `trustedOrigins` entry matches a hostname on any web scheme. Add a port to
+pin one, such as `localhost:3000`. `*.example.com` matches subdomains, and `*`
+allows every origin. CORS controls which browser pages can read responses. It is not authentication and does not
+prevent a non-browser client from calling a public endpoint. `GET /init` is
+open to every origin without credentials, because it returns only public
+policy data for the request's location; consent saves and subject reads keep
+the allowlist. Keep API keys,
+database credentials and signing keys in server environment variables.
+
+A `tenantId` scopes an instance, not an arbitrary incoming header. Construct the
+correct tenant instance in trusted application code. Do not choose a tenant from
+an unchecked browser value.
+
+When several tenants share one database, set `requireTenantId: true` on every
+instance. Without it, an instance whose tenant lookup returned `undefined` starts
+in the single-tenant scope. It then writes consents with a null tenant, which
+the tenant that owns them never reads, and nothing reports the problem.
+
+```ts title="lib/c15t.ts"
+import { c15tInstance, type C15TInstance } from '@c15t/backend';
+
+const url = process.env.DATABASE_URL;
+if (!url) throw new Error('Set DATABASE_URL');
+
+// One instance per tenant: each instance owns a connection pool.
+const instances = new Map<string, C15TInstance>();
+
+export function instanceFor(tenantId: string | undefined) {
+	const key = tenantId ?? '';
+	let instance = instances.get(key);
+	if (!instance) {
+		instance = c15tInstance({
+			database: { dialect: 'postgres', url },
+			tenantId,
+			// Throws here if the tenant lookup returned undefined.
+			requireTenantId: true,
+		});
+		instances.set(key, instance);
+	}
+	return instance;
 }
 ```
 
-## Edge Init Options
+Subject IDs are chosen by the browser and are unique across the whole database,
+not per tenant. When a save names a subject ID that another tenant already holds,
+the backend answers `409 SUBJECT_CONFLICT` and writes nothing. The c15t client
+then generates a new subject ID for that visitor and sends the choice once more.
 
-`unstable_c15tEdgeInit()` from `@c15t/backend/edge` accepts a subset of `C15TOptions` — only the fields needed for consent policy resolution without a database. This edge runtime API is unstable in `2.0`. See the [Edge Deployment guide](/docs/self-host/guides/edge-deployment) for usage.
+`ipAddress.ipAddressHeaders` overrides the ordered headers used to record an IP.
+Configure the reverse proxy to replace trusted forwarding headers. IP recording
+and policy location resolution are separate operations.
 
-<AutoTypeTable path="./packages/backend/src/edge/types.ts" name="C15TEdgeOptions" />
-
-## defineConfig Helper
-
-For type-safe configuration in a separate file:
-
-```ts title="c15t.config.ts"
-import { defineConfig } from '@c15t/backend';
-
-export default defineConfig({
-  adapter: kyselyAdapter(db),
-  trustedOrigins: ['https://example.com'],
-  // full autocomplete on all options here
-});
-```
+See [HTTP endpoints](/docs/self-host/api/endpoints),
+[request logging](/docs/self-host/guides/observability) and
+[legal-document snapshots](/docs/self-host/guides/legal-document-snapshot-integration).

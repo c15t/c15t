@@ -1,84 +1,10 @@
-/**
- * DevTools State Manager
- * Manages internal state for the DevTools UI
- */
+import type { ConsentSnapshot, ConsentState, KernelEvent } from '@c15t/core';
+import type {
+	ScriptDiagnostic,
+	ScriptLoaderDebugEvent,
+} from '@c15t/core/modules/script-loader';
 
-const STORAGE_KEY = 'c15t-devtools-events';
-const ACTIVE_TAB_STORAGE_KEY = 'c15t-devtools-active-tab';
-
-/**
- * Load persisted events from sessionStorage
- */
-function loadPersistedEvents(): EventLogEntry[] {
-	if (typeof window === 'undefined') {
-		return [];
-	}
-	try {
-		const stored = sessionStorage.getItem(STORAGE_KEY);
-		if (stored) {
-			return JSON.parse(stored) as EventLogEntry[];
-		}
-	} catch {
-		// Ignore storage errors
-	}
-	return [];
-}
-
-/**
- * Persist events to sessionStorage
- */
-function persistEvents(events: EventLogEntry[]): void {
-	if (typeof window === 'undefined') {
-		return;
-	}
-	try {
-		sessionStorage.setItem(STORAGE_KEY, JSON.stringify(events));
-	} catch {
-		// Ignore storage errors (quota exceeded, etc.)
-	}
-}
-
-function isDevToolsTab(value: unknown): value is DevToolsTab {
-	return (
-		value === 'consents' ||
-		value === 'location' ||
-		value === 'policy' ||
-		value === 'scripts' ||
-		value === 'iab' ||
-		value === 'events' ||
-		value === 'actions'
-	);
-}
-
-function loadPersistedActiveTab(): DevToolsTab | null {
-	if (typeof window === 'undefined') {
-		return null;
-	}
-	try {
-		const stored = localStorage.getItem(ACTIVE_TAB_STORAGE_KEY);
-		if (isDevToolsTab(stored)) {
-			return stored;
-		}
-	} catch {
-		// Ignore storage errors
-	}
-	return null;
-}
-
-function persistActiveTab(tab: DevToolsTab): void {
-	if (typeof window === 'undefined') {
-		return;
-	}
-	try {
-		localStorage.setItem(ACTIVE_TAB_STORAGE_KEY, tab);
-	} catch {
-		// Ignore storage errors
-	}
-}
-
-/**
- * Position options for the DevTools panel
- */
+/** Placement of the floating DevTools launcher and panel. */
 export type DevToolsPosition =
 	| 'bottom-right'
 	| 'bottom-left'
@@ -86,177 +12,192 @@ export type DevToolsPosition =
 	| 'top-left';
 
 /**
- * Available tabs in the DevTools
+ * Placement handed over by a host control that renders the launcher, such as
+ * a consent toolbar. Offsets are CSS pixels from the viewport edges of
+ * `position`'s corner to the panel.
  */
+export interface DevToolsDock {
+	/** Corner the host control sits in. */
+	readonly position: DevToolsPosition;
+	/** Distance from the left or right viewport edge to the panel. */
+	readonly inline: number;
+	/** Distance from the top or bottom viewport edge to the panel. */
+	readonly block: number;
+}
+
+/** Kernel views available in the first v3 DevTools release. */
 export type DevToolsTab =
 	| 'consents'
+	| 'scripts'
 	| 'location'
 	| 'policy'
-	| 'scripts'
 	| 'iab'
 	| 'events'
 	| 'actions';
 
-/**
- * Event log entry for debugging
- */
-export interface EventLogEntry {
-	id: string;
-	type:
-		| 'consent_set'
-		| 'consent_save'
-		| 'consent_reset'
-		| 'error'
-		| 'info'
-		| 'network'
-		| 'iab'
-		| 'script';
-	message: string;
-	timestamp: number;
-	data?: Record<string, unknown>;
+/** A serializable entry captured from the kernel event bus. */
+export interface DevToolsEvent {
+	/** Instance-local event identifier. */
+	readonly id: string;
+	/** Kernel event name or script lifecycle action. */
+	readonly type:
+		| KernelEvent['type']
+		| `script:${ScriptLoaderDebugEvent['action']}`;
+	/** Human-readable summary. */
+	readonly message: string;
+	/** Capture time in milliseconds since the Unix epoch. */
+	readonly timestamp: number;
+	/** Optional JSON-safe diagnostic details. */
+	readonly data?: Readonly<Record<string, unknown>>;
 }
 
-/**
- * Internal state for DevTools
- */
+/** Immutable state exposed by a DevTools instance. */
 export interface DevToolsState {
-	/** Whether the panel is open */
-	isOpen: boolean;
-	/** Current active tab */
-	activeTab: DevToolsTab;
-	/** Position of the floating button and panel */
-	position: DevToolsPosition;
-	/** Whether the store is connected */
-	isConnected: boolean;
-	/** Event log for debugging */
-	eventLog: EventLogEntry[];
-	/** Maximum number of events to keep */
-	maxEventLogSize: number;
+	readonly isOpen: boolean;
+	readonly activeTab: DevToolsTab;
+	readonly position: DevToolsPosition;
+	/** Host placement while another control owns the launcher. */
+	readonly dock: DevToolsDock | null;
+	readonly snapshot: ConsentSnapshot;
+	/** Unsaved selections owned by this DevTools instance. */
+	readonly draft: Readonly<Partial<ConsentState>>;
+	/** Choice policy under which the current draft was first edited. */
+	readonly draftFingerprint: string | null;
+	readonly events: readonly DevToolsEvent[];
+	readonly scripts: readonly ScriptDiagnostic[];
 }
 
 /**
- * State change listener
+ * Receives synchronous state changes until unsubscribed or destroyed.
+ * @param state - State after the change.
+ * @param previousState - State before the change.
  */
-export type StateListener = (
+export type DevToolsStateListener = (
 	state: DevToolsState,
-	prevState: DevToolsState
+	previousState: DevToolsState
 ) => void;
 
+/** Owns one panel's state and subscriptions. Destroy releases all listeners. */
+export interface StateManager {
+	getState: () => DevToolsState;
+	subscribe: (listener: DevToolsStateListener) => () => void;
+	setOpen: (isOpen: boolean) => void;
+	setActiveTab: (tab: DevToolsTab) => void;
+	setDock: (dock: DevToolsDock | null) => void;
+	setSnapshot: (snapshot: ConsentSnapshot) => void;
+	setDraft: (draft: Partial<ConsentState>) => void;
+	setScripts: (scripts: readonly ScriptDiagnostic[]) => void;
+	addEvent: (event: DevToolsEvent) => void;
+	clearEvents: () => void;
+	destroy: () => void;
+}
+
 /**
- * Creates a state manager for DevTools
+ * Create an isolated DevTools state store.
+ * @param options - Initial snapshot, presentation, and event retention limit.
+ * @returns A manager whose destroy method releases its subscriptions.
  */
-export function createStateManager(
-	initialState: Partial<DevToolsState> = {}
-): StateManager {
-	// Load persisted events from sessionStorage
-	const persistedEvents = loadPersistedEvents();
-	const persistedActiveTab = loadPersistedActiveTab();
-
+// oxlint-disable-next-line func-style -- Preserve the public factory declaration.
+export function createStateManager(options: {
+	snapshot: ConsentSnapshot;
+	position: DevToolsPosition;
+	isOpen: boolean;
+	activeTab: DevToolsTab;
+	maxEvents: number;
+}): StateManager {
 	let state: DevToolsState = {
-		isOpen: false,
-		activeTab: persistedActiveTab ?? 'location',
-		position: 'bottom-right',
-		isConnected: false,
-		eventLog: persistedEvents,
-		maxEventLogSize: 100,
-		...initialState,
+		activeTab: options.activeTab,
+		dock: null,
+		draft: Object.freeze({}),
+		draftFingerprint: null,
+		events: [],
+		isOpen: options.isOpen,
+		position: options.position,
+		scripts: [],
+		snapshot: options.snapshot,
 	};
+	let destroyed = false;
+	const listeners = new Set<DevToolsStateListener>();
 
-	const listeners = new Set<StateListener>();
-
-	function notify(prevState: DevToolsState): void {
+	// oxlint-disable-next-line func-style -- The helper is shared by every returned action.
+	function update(partial: Partial<DevToolsState>): void {
+		if (destroyed) {
+			return;
+		}
+		const previousState = state;
+		state = { ...state, ...partial };
 		for (const listener of listeners) {
-			listener(state, prevState);
+			listener(state, previousState);
 		}
 	}
 
-	function setState(partial: Partial<DevToolsState>): void {
-		const prevState = state;
-		state = { ...state, ...partial };
-		notify(prevState);
-	}
-
 	return {
+		addEvent: (event) => {
+			update({ events: [event, ...state.events].slice(0, options.maxEvents) });
+		},
+		clearEvents: () => {
+			if (state.events.length > 0) {
+				update({ events: [] });
+			}
+		},
+		destroy: () => {
+			destroyed = true;
+			listeners.clear();
+		},
 		getState: () => state,
-
-		subscribe: (listener) => {
+		setActiveTab: (activeTab) => {
+			if (state.activeTab !== activeTab) {
+				update({ activeTab });
+			}
+		},
+		setDock: (dock) => {
+			const current = state.dock;
+			if (
+				current === dock ||
+				(current &&
+					dock &&
+					current.position === dock.position &&
+					current.inline === dock.inline &&
+					current.block === dock.block)
+			) {
+				return;
+			}
+			update({ dock: dock ? { ...dock } : null });
+		},
+		setDraft: (draft) =>
+			update({
+				draft: Object.freeze({ ...draft }),
+				draftFingerprint:
+					Object.keys(draft).length > 0
+						? (state.draftFingerprint ??
+							state.snapshot.evaluationPolicy.choice.fingerprint)
+						: null,
+			}),
+		setOpen: (isOpen) => {
+			if (state.isOpen !== isOpen) {
+				update({ isOpen });
+			}
+		},
+		setScripts: (scripts) => update({ scripts }),
+		setSnapshot: (snapshot) => {
+			if (state.snapshot !== snapshot) {
+				const reset = snapshot.user !== state.snapshot.user;
+				update({
+					draft: reset ? Object.freeze({}) : state.draft,
+					draftFingerprint: reset ? null : state.draftFingerprint,
+					snapshot,
+				});
+			}
+		},
+		subscribe(listener) {
+			if (destroyed) {
+				// oxlint-disable-next-line no-empty-function -- A destroyed manager has nothing to unsubscribe.
+				return () => {};
+			}
 			listeners.add(listener);
 			return () => {
 				listeners.delete(listener);
 			};
 		},
-
-		setOpen: (isOpen) => {
-			setState({ isOpen });
-		},
-
-		toggle: () => {
-			setState({ isOpen: !state.isOpen });
-		},
-
-		setActiveTab: (tab) => {
-			setState({ activeTab: tab });
-			persistActiveTab(tab);
-		},
-
-		setPosition: (position) => {
-			setState({ position });
-		},
-
-		setConnected: (isConnected) => {
-			setState({ isConnected });
-		},
-
-		addEvent: (entry) => {
-			const newEvent: EventLogEntry = {
-				...entry,
-				id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
-				timestamp: Date.now(),
-			};
-
-			const eventLog = [newEvent, ...state.eventLog].slice(
-				0,
-				state.maxEventLogSize
-			);
-			setState({ eventLog });
-			// Persist to sessionStorage
-			persistEvents(eventLog);
-		},
-
-		clearEventLog: () => {
-			setState({ eventLog: [] });
-			// Clear from sessionStorage
-			persistEvents([]);
-		},
-
-		destroy: () => {
-			listeners.clear();
-		},
 	};
-}
-
-/**
- * State manager interface
- */
-export interface StateManager {
-	/** Get current state */
-	getState: () => DevToolsState;
-	/** Subscribe to state changes */
-	subscribe: (listener: StateListener) => () => void;
-	/** Set open state */
-	setOpen: (isOpen: boolean) => void;
-	/** Toggle open state */
-	toggle: () => void;
-	/** Set active tab */
-	setActiveTab: (tab: DevToolsTab) => void;
-	/** Set position */
-	setPosition: (position: DevToolsPosition) => void;
-	/** Set connection state */
-	setConnected: (isConnected: boolean) => void;
-	/** Add an event to the log */
-	addEvent: (entry: Omit<EventLogEntry, 'id' | 'timestamp'>) => void;
-	/** Clear the event log */
-	clearEventLog: () => void;
-	/** Cleanup */
-	destroy: () => void;
 }

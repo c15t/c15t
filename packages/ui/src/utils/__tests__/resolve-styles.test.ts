@@ -1,15 +1,16 @@
 import { describe, expect, test } from 'vitest';
+
 import type { Theme } from '../../theme/types';
 import { resolveStyles } from '../resolve-styles';
 
 describe('resolveStyles', () => {
 	const mockTheme: Theme = {
 		slots: {
+			banner: 'theme-banner-class',
 			dialogCard: {
 				className: 'theme-dialog-class',
 				style: { color: 'blue' },
 			},
-			banner: 'theme-banner-class',
 		},
 	};
 
@@ -44,8 +45,8 @@ describe('resolveStyles', () => {
 			expect(result.className).toContain('theme-dialog-class');
 			expect(result.className).toContain('component-class');
 			expect(result.style).toEqual({
-				color: 'blue',
 				backgroundColor: 'red',
+				color: 'blue',
 			});
 		});
 
@@ -71,7 +72,8 @@ describe('resolveStyles', () => {
 					baseClassName: 'base-class',
 					className: 'component-class',
 				},
-				true // contextNoStyle
+				// contextNoStyle
+				true
 			);
 			expect(result.noStyle).toBe(true);
 			// Base classes should be included in the merge, but noStyle flag is set
@@ -94,6 +96,32 @@ describe('resolveStyles', () => {
 			expect(result.noStyle).toBe(true);
 		});
 
+		test.each([
+			['the context', { baseClassName: 'base-class' }, true],
+			['the component', { baseClassName: 'base-class', noStyle: true }, false],
+		])(
+			'noStyle from %s keeps theme and component overrides and drops base classes',
+			(_source, componentStyle, contextNoStyle) => {
+				const result = resolveStyles(
+					'consentBannerCard',
+					{
+						slots: {
+							consentBannerCard: {
+								className: 'theme-class',
+								style: { color: 'blue' },
+							},
+						},
+					},
+					{ ...componentStyle, className: 'component-class' },
+					contextNoStyle
+				);
+
+				expect(result.className).toBe('theme-class component-class');
+				expect(result.style).toEqual({ color: 'blue' });
+				expect(result.noStyle).toBe(true);
+			}
+		);
+
 		test('component noStyle is respected', () => {
 			const result = resolveStyles('dialogCard', mockTheme, {
 				className: 'component-class',
@@ -106,7 +134,8 @@ describe('resolveStyles', () => {
 	describe('precedence', () => {
 		test('component style takes precedence over theme', () => {
 			const result = resolveStyles('dialogCard', mockTheme, {
-				style: { color: 'red' }, // Override theme's blue
+				// Override theme's blue
+				style: { color: 'red' },
 			});
 			expect(result.style?.color).toBe('red');
 		});

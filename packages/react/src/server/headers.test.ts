@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+
 import { extractRelevantHeaders } from './headers';
 
 describe('extractRelevantHeaders', () => {
@@ -14,32 +15,54 @@ describe('extractRelevantHeaders', () => {
 		headers.set('user-agent', 'Mozilla/5.0');
 		headers.set('x-forwarded-host', 'example.com');
 		headers.set('x-forwarded-for', '127.0.0.1');
-		headers.set('x-c15t-version', '2.1.0');
 		headers.set('purpose', 'prefetch');
 		headers.set('sec-purpose', 'prefetch');
 		headers.set('next-router-prefetch', '1');
 		headers.set('x-middleware-prefetch', '1');
+		headers.set('x-c15t-version', '3.0.0');
 
 		const result = extractRelevantHeaders(headers);
 
 		expect(result).toEqual({
-			'cf-ipcountry': 'US',
-			'x-vercel-ip-country': 'GB',
-			'x-amz-cf-ipcountry': 'DE',
-			'x-country-code': 'FR',
-			'x-vercel-ip-country-region': 'CA-ON',
-			'x-region-code': 'WEST',
 			'accept-language': 'en-US,en;q=0.9',
-			'user-agent': 'Mozilla/5.0',
-			'x-c15t-country': 'US',
-			'x-c15t-region': 'CA-ON',
-			'x-forwarded-host': 'example.com',
-			'x-forwarded-for': '127.0.0.1',
-			'x-c15t-version': '2.1.0',
+			'cf-ipcountry': 'US',
+			'next-router-prefetch': '1',
 			purpose: 'prefetch',
 			'sec-purpose': 'prefetch',
-			'next-router-prefetch': '1',
+			'user-agent': 'Mozilla/5.0',
+			'x-amz-cf-ipcountry': 'DE',
+			'x-c15t-country': 'US',
+			'x-c15t-region': 'CA-ON',
+			'x-c15t-version': '3.0.0',
+			'x-country-code': 'FR',
+			'x-forwarded-for': '127.0.0.1',
 			'x-middleware-prefetch': '1',
+			'x-region-code': 'WEST',
+			'x-vercel-ip-country': 'GB',
+			'x-vercel-ip-country-region': 'CA-ON',
+		});
+	});
+
+	it('drops client forwarding headers unless trusted', () => {
+		const headers = new Headers({
+			forwarded: 'host=attacker.example',
+			'user-agent': 'Mozilla/5.0',
+			'x-forwarded-host': 'attacker.example',
+			'x-forwarded-proto': 'http',
+		});
+
+		const untrusted = extractRelevantHeaders(headers);
+		expect(untrusted).not.toHaveProperty('forwarded');
+		expect(untrusted).not.toHaveProperty('x-forwarded-host');
+		expect(untrusted).not.toHaveProperty('x-forwarded-proto');
+
+		const trusted = extractRelevantHeaders(headers, {
+			trustForwardedHeaders: true,
+		});
+		expect(trusted).toMatchObject({
+			forwarded: 'host=attacker.example',
+			'x-forwarded-host': 'attacker.example',
+			'x-forwarded-proto': 'http',
 		});
 	});
 
@@ -83,8 +106,8 @@ describe('extractRelevantHeaders', () => {
 		const result = extractRelevantHeaders(headers);
 
 		expect(result).toEqual({
-			'sec-gpc': '1',
 			'cf-ipcountry': 'CA',
+			'sec-gpc': '1',
 			'x-c15t-country': 'CA',
 		});
 	});
@@ -108,9 +131,9 @@ describe('extractRelevantHeaders', () => {
 		const result = extractRelevantHeaders(headers);
 
 		expect(result).toEqual({
+			'next-router-prefetch': '1',
 			purpose: 'prefetch',
 			'sec-purpose': 'prefetch',
-			'next-router-prefetch': '1',
 			'x-middleware-prefetch': '1',
 		});
 	});
@@ -131,8 +154,10 @@ describe('extractRelevantHeaders', () => {
 		const result = extractRelevantHeaders(headers);
 
 		expect(result).toMatchObject({
-			'x-c15t-country': 'US', // Should take the first available country header
-			'x-c15t-region': 'CA-ON', // Should take the first available region header
+			// Should take the first available country header
+			'x-c15t-country': 'US',
+			// Should take the first available region header
+			'x-c15t-region': 'CA-ON',
 		});
 
 		// Test with only one country header
@@ -151,6 +176,21 @@ describe('extractRelevantHeaders', () => {
 		const resultOneRegion = extractRelevantHeaders(headersWithOneRegion);
 		expect(resultOneRegion).toMatchObject({
 			'x-c15t-region': 'WEST',
+		});
+	});
+
+	it('should preserve explicit x-c15t override headers over infra headers', () => {
+		const headers = new Headers();
+		headers.set('x-c15t-country', 'NL');
+		headers.set('cf-ipcountry', 'US');
+		headers.set('x-c15t-region', 'NH');
+		headers.set('cf-region-code', 'CA');
+
+		const result = extractRelevantHeaders(headers);
+
+		expect(result).toMatchObject({
+			'x-c15t-country': 'NL',
+			'x-c15t-region': 'NH',
 		});
 	});
 });

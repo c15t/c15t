@@ -1,0 +1,305 @@
+import type { ConsentSnapshot, KernelEvent, SaveResult } from '@c15t/core';
+
+import { serializeDiagnostic } from './serialization';
+import type { DevToolsEvent } from './state-manager';
+
+const EVENT_TYPES = [
+	'records:cleared',
+	'preferences:requested',
+	'choice:recorded',
+	'surface:shown',
+	'permissions:changed',
+	'notice:dismissed',
+	'overrides:set',
+	'user:identified',
+	'subject:resolved',
+	'iab:set',
+	'vendors:set',
+	'vendors:recorded',
+	'init:applied',
+	'init:failed',
+	'save:replayed',
+	'command:init:started',
+	'command:init:completed',
+	'command:save:started',
+	'command:save:completed',
+	'command:error',
+] as const satisfies readonly KernelEvent['type'][];
+
+/** A new kernel event must also be added to the capture list. */
+export const KERNEL_EVENT_TYPES: Exclude<
+	KernelEvent['type'],
+	(typeof EVENT_TYPES)[number]
+> extends never
+	? typeof EVENT_TYPES
+	: never = EVENT_TYPES;
+
+// oxlint-disable-next-line func-style -- Named conversion helpers aid stack traces.
+function snapshotData(snapshot: ConsentSnapshot): Record<string, unknown> {
+	return {
+		activeUI: snapshot.activeUI,
+		effectivePermissions: snapshot.effectivePermissions,
+		experiment: snapshot.experiment,
+		explicitChoice: snapshot.explicitChoice,
+		model: snapshot.model,
+		noticeDismissal: snapshot.noticeDismissal,
+		privacySignals: snapshot.privacySignals,
+		promptRequirement: snapshot.promptRequirement,
+		resolution: snapshot.resolution.status,
+		revision: snapshot.revision,
+		subject: snapshot.subject,
+		surfaceShownAt: snapshot.surfaceShownAt,
+	};
+}
+
+// oxlint-disable-next-line func-style -- Named conversion helpers aid stack traces.
+function resultData(
+	result: SaveResult | { ok: boolean }
+): Record<string, unknown> {
+	return { result: JSON.parse(serializeDiagnostic(result)) as unknown };
+}
+
+// oxlint-disable-next-line func-style -- Named conversion helpers aid stack traces.
+function errorData(command: string, error: unknown): Record<string, unknown> {
+	let message = serializeDiagnostic(error);
+	try {
+		if (error instanceof Error) {
+			const errorMessage: unknown = error.message;
+			message =
+				typeof errorMessage === 'string'
+					? errorMessage
+					: serializeDiagnostic(errorMessage);
+		} else if (typeof error === 'string') {
+			message = error;
+		}
+	} catch {
+		// Keep the safe serialized fallback when an error getter throws.
+	}
+	return {
+		command,
+		error: message,
+	};
+}
+
+const outcomeMessage = (
+	ok: boolean,
+	success: string,
+	failure: string
+): string => (ok ? success : failure);
+
+const replayMessage = (ok: boolean, rejected: string | undefined): string =>
+	rejected
+		? `Queued consent save refused by the backend (${rejected}); dropped`
+		: outcomeMessage(ok, 'Queued consent saved', 'Queued consent save failed');
+
+/**
+ * Converts a kernel event into the stable log shape shown by DevTools.
+ *
+ * @param event - Event emitted by a consent kernel.
+ * @param id - Instance-local event identifier.
+ * @param timestamp - Capture time in milliseconds.
+ * @returns A serializable DevTools event.
+ */
+// oxlint-disable-next-line func-style, complexity -- Exhaustive public conversion of the kernel event union.
+export function kernelEventToDevToolsEvent(
+	event: KernelEvent,
+	id: string,
+	timestamp: number
+): DevToolsEvent {
+	// oxlint-disable-next-line default-case -- KernelEvent is a discriminated union handled exhaustively.
+	switch (event.type) {
+		case 'preferences:requested':
+			return {
+				id,
+				message: 'External preferences requested',
+				timestamp,
+				type: event.type,
+			};
+		case 'records:cleared':
+			return {
+				id,
+				message: 'Stored records cleared',
+				timestamp,
+				type: event.type,
+			};
+		case 'choice:recorded':
+			return {
+				data: {
+					...snapshotData(event.snapshot),
+					actionAt: event.actionAt,
+					confirmed: event.confirmed,
+					timeToDecisionMs: event.timeToDecisionMs,
+				},
+				id,
+				message: 'Explicit choice recorded',
+				timestamp,
+				type: event.type,
+			};
+		case 'surface:shown':
+			return {
+				data: {
+					...snapshotData(event.snapshot),
+					shownAt: event.shownAt,
+					surface: event.surface,
+				},
+				id,
+				message: `${event.surface === 'banner' ? 'Banner' : 'Dialog'} shown`,
+				timestamp,
+				type: event.type,
+			};
+		case 'permissions:changed':
+			return {
+				data: { ...snapshotData(event.snapshot), previous: event.previous },
+				id,
+				message: 'Effective permissions changed',
+				timestamp,
+				type: event.type,
+			};
+		case 'notice:dismissed':
+			return {
+				data: {
+					...snapshotData(event.snapshot),
+					dismissal: event.dismissal,
+					surface: event.surface,
+					timeToDecisionMs: event.timeToDecisionMs,
+				},
+				id,
+				message: `Local notice dismissed from ${event.surface}`,
+				timestamp,
+				type: event.type,
+			};
+		case 'subject:resolved':
+			return {
+				data: snapshotData(event.snapshot),
+				id,
+				message: 'Canonical subject resolved',
+				timestamp,
+				type: event.type,
+			};
+		case 'overrides:set':
+			return {
+				data: snapshotData(event.snapshot),
+				id,
+				message: 'Location overrides changed',
+				timestamp,
+				type: event.type,
+			};
+		case 'user:identified':
+			return {
+				data: snapshotData(event.snapshot),
+				id,
+				message: 'User identified',
+				timestamp,
+				type: event.type,
+			};
+		case 'iab:set':
+			return {
+				data: snapshotData(event.snapshot),
+				id,
+				message: 'IAB state changed',
+				timestamp,
+				type: event.type,
+			};
+		case 'vendors:set':
+			return {
+				data: {
+					...snapshotData(event.snapshot),
+					vendors: event.snapshot.vendors,
+				},
+				id,
+				message: 'Declared vendors changed',
+				timestamp,
+				type: event.type,
+			};
+		case 'vendors:recorded':
+			return {
+				data: {
+					...snapshotData(event.snapshot),
+					actionAt: event.actionAt,
+					vendorChoice: event.snapshot.vendorChoice,
+				},
+				id,
+				message: 'Vendor choice recorded',
+				timestamp,
+				type: event.type,
+			};
+		case 'init:applied':
+			return {
+				data: snapshotData(event.snapshot),
+				id,
+				message: 'Initialization result applied',
+				timestamp,
+				type: event.type,
+			};
+		case 'command:init:started':
+			return {
+				id,
+				message: 'Initialization started',
+				timestamp,
+				type: event.type,
+			};
+		case 'init:failed':
+			return {
+				data: {
+					...errorData('init', event.error),
+					attempt: event.attempt,
+					nextRetryMs: event.nextRetryMs,
+				},
+				id,
+				message: 'Initialization failed',
+				timestamp,
+				type: event.type,
+			};
+		case 'save:replayed':
+			return {
+				data: {
+					ok: event.ok,
+					rejected: event.rejected,
+					subjectId: event.subjectId,
+				},
+				id,
+				message: replayMessage(event.ok, event.rejected),
+				timestamp,
+				type: event.type,
+			};
+		case 'command:init:completed':
+			return {
+				data: resultData(event.result),
+				id,
+				message: outcomeMessage(
+					event.result.ok,
+					'Initialization completed',
+					'Initialization failed'
+				),
+				timestamp,
+				type: event.type,
+			};
+		case 'command:save:started':
+			return {
+				id,
+				message: 'Consent save started',
+				timestamp,
+				type: event.type,
+			};
+		case 'command:save:completed':
+			return {
+				data: resultData(event.result),
+				id,
+				message: outcomeMessage(
+					event.result.ok,
+					'Consent save completed',
+					'Consent save failed'
+				),
+				timestamp,
+				type: event.type,
+			};
+		case 'command:error':
+			return {
+				data: errorData(event.command, event.error),
+				id,
+				message: `${event.command} command failed`,
+				timestamp,
+				type: event.type,
+			};
+	}
+}

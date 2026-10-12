@@ -1,0 +1,11 @@
+/**
+ * @c15t/astro — IAB TCF component styles.
+ *
+ * The integration injects this next to `@c15t/astro/styles.css` when the
+ * `iab` option is set, unless `styles: false`.
+ *
+ * Usage with `styles: false` (src/styles/global.css):
+ *   @import "@c15t/astro/styles.css";
+ *   @import "@c15t/astro/iab/styles.css";
+ */
+@import '@c15t/ui/iab/styles.css';

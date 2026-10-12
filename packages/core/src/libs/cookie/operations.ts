@@ -17,30 +17,84 @@ import {
 import type { CookieOptions, StorageConfig } from './types';
 
 /**
- * Sets a cookie with the specified name, value, and options.
+ * Finds one cookie's raw value inside a `Cookie` header or
+ * `document.cookie` string.
  *
- * @param name - Cookie name
- * @param value - Cookie value (will be flattened to compact string format)
- * @param options - Cookie configuration options
- * @param config - Storage configuration
- *
- * @throws {Error} When cookie cannot be set
- *
- * @remarks
- * Uses a flat key:value,key:value format without JSON special characters.
- * This avoids issues with curly braces, quotes, and simplifies encoding.
- * Only colons and commas are used as delimiters.
+ * @param cookieHeader - Raw `Cookie` header value, or `document.cookie`.
+ * @param name - Cookie name to find
+ * @returns The raw value exactly as stored, or `undefined` when the cookie
+ * is absent. No decoding or parsing happens here.
  *
  * @internal
  */
-export function setCookie(
+export const readCookieValueFromHeader = function readCookieValueFromHeader(
+	cookieHeader: string | undefined,
+	name: string
+): string | undefined {
+	if (!cookieHeader) {
+		return undefined;
+	}
+
+	const nameEQ = `${name}=`;
+	for (const cookie of cookieHeader.split(';')) {
+		const trimmed = cookie.trim();
+		if (trimmed.startsWith(nameEQ)) {
+			return trimmed.substring(nameEQ.length);
+		}
+	}
+
+	return undefined;
+};
+
+/**
+ * Outcome of one attempt to store a cookie.
+ *
+ * `attempted` is true when the `document.cookie` assignment ran without
+ * throwing. `verified` is true when the value read back immediately
+ * afterwards equals what was written. A browser can accept the
+ * assignment and still drop the cookie (size, policy, blocked storage),
+ * which shows up as `attempted: true, verified: false`. A thrown
+ * assignment is `attempted: false` with the error attached.
+ *
+ * @internal
+ */
+export interface CookieWriteReport {
+	attempted: boolean;
+	verified: boolean;
+	error?: unknown;
+}
+
+const serializeCookieValue = function serializeCookieValue(
+	value: unknown
+): string {
+	if (typeof value === 'string') {
+		return value;
+	}
+	// 1. Flatten the nested object
+	const flattened = flattenObject(value as Record<string, unknown>);
+	// 2. Shorten keys for compression
+	const shortened = shortenFlatKeys(flattened);
+	// 3. Convert to compact string format
+	return flatToString(shortened);
+};
+
+/**
+ * Writes a cookie and reports what happened instead of swallowing it.
+ *
+ * Shared by {@link setCookie}, which keeps its void, warn-on-failure
+ * contract, and by the v3 record writer, which must not report a cookie
+ * as stored when the assignment threw or the browser dropped it.
+ *
+ * @internal
+ */
+export const writeCookie = function writeCookie(
 	name: string,
 	value: unknown,
 	options?: CookieOptions,
 	config?: StorageConfig
-): void {
+): CookieWriteReport {
 	if (typeof document === 'undefined') {
-		return;
+		return { attempted: false, verified: false };
 	}
 
 	const opts = { ...getDefaultCookieOptions(config), ...options };
@@ -50,19 +104,9 @@ export function setCookie(
 		opts.domain = getRootDomain();
 	}
 
+	let cookieValue: string;
 	try {
-		let cookieValue: string;
-
-		if (typeof value === 'string') {
-			cookieValue = value;
-		} else {
-			// 1. Flatten the nested object
-			const flattened = flattenObject(value as Record<string, unknown>);
-			// 2. Shorten keys for compression
-			const shortened = shortenFlatKeys(flattened);
-			// 3. Convert to compact string format
-			cookieValue = flatToString(shortened);
-		}
+		cookieValue = serializeCookieValue(value);
 
 		// Calculate expiry date
 		const date = new Date();
@@ -86,9 +130,108 @@ export function setCookie(
 
 		document.cookie = parts.join('; ');
 	} catch (error) {
-		console.warn(`Failed to set cookie "${name}":`, error);
+		return { attempted: false, error, verified: false };
 	}
-}
+
+	let readBack: string | undefined;
+	try {
+		readBack = readCookieValueFromHeader(document.cookie, name);
+	} catch {
+		readBack = undefined;
+	}
+	return { attempted: true, verified: readBack === cookieValue };
+};
+
+/**
+ * Sets a cookie with the specified name, value, and options.
+ *
+ * @param name - Cookie name
+ * @param value - Cookie value (will be flattened to compact string format)
+ * @param options - Cookie configuration options
+ * @param config - Storage configuration
+ *
+ * @throws {Error} When cookie cannot be set
+ *
+ * @remarks
+ * Uses a flat key:value,key:value format without JSON special characters.
+ * This avoids issues with curly braces, quotes, and simplifies encoding.
+ * Only colons and commas are used as delimiters.
+ *
+ * @internal
+ */
+export const setCookie = function setCookie(
+	name: string,
+	value: unknown,
+	options?: CookieOptions,
+	config?: StorageConfig
+): void {
+	const report = writeCookie(name, value, options, config);
+	if (!report.attempted && report.error !== undefined) {
+		console.warn(`Failed to set cookie "${name}":`, report.error);
+	}
+};
+
+/**
+ * Parses a stored c15t cookie value using the same compact format that
+ * `setCookie` writes. This is safe for server adapters that already have the
+ * raw cookie value from a request header and cannot read `document.cookie`.
+ *
+ * @internal
+ */
+export const parseCookieValue = function parseCookieValue<ReturnType = unknown>(
+	cookieValue: string
+): ReturnType | null {
+	try {
+		// Check if it's the flat format (contains colons)
+		if (cookieValue.includes(':')) {
+			// 1. Parse flat string to object
+			const shortened = stringToFlat(cookieValue);
+			// 2. Expand shortened keys back to full keys
+			const expanded = expandFlatKeys(shortened);
+			// 3. Unflatten to nested object
+			const nested = unflattenObject(expanded);
+			return nested as ReturnType;
+		}
+
+		// Plain string value
+		return cookieValue as ReturnType;
+	} catch (error) {
+		console.warn('Failed to parse cookie value:', error);
+		return null;
+	}
+};
+
+/**
+ * Reads one cookie's raw value from `document.cookie` without parsing it.
+ *
+ * @param name - Cookie name to read
+ * @param onUnavailable - Called when browser cookies cannot be read.
+ * @returns The raw value, or `null` outside the browser, when the cookie
+ * is absent, or when `document.cookie` cannot be read.
+ *
+ * @remarks
+ * Read-only. Callers that need to tell the v2 compact format apart from
+ * a versioned v3 envelope must see the bytes before any parser guesses.
+ *
+ * @internal
+ */
+export const getRawCookieValue = function getRawCookieValue(
+	name: string,
+	onUnavailable?: () => void
+): string | null {
+	if (typeof document === 'undefined') {
+		onUnavailable?.();
+		return null;
+	}
+
+	try {
+		return readCookieValueFromHeader(document.cookie, name) ?? null;
+	} catch (error) {
+		console.warn(`Failed to get cookie "${name}":`, error);
+		onUnavailable?.();
+		return null;
+	}
+};
 
 /**
  * Retrieves a cookie value by name.
@@ -103,7 +246,7 @@ export function setCookie(
  *
  * @internal
  */
-export function getCookie<ReturnType = unknown>(
+export const getCookie = function getCookie<ReturnType = unknown>(
 	name: string
 ): ReturnType | null {
 	if (typeof document === 'undefined') {
@@ -122,20 +265,7 @@ export function getCookie<ReturnType = unknown>(
 
 			if (c.indexOf(nameEQ) === 0) {
 				const cookieValue = c.substring(nameEQ.length);
-
-				// Check if it's the flat format (contains colons)
-				if (cookieValue.includes(':')) {
-					// 1. Parse flat string to object
-					const shortened = stringToFlat(cookieValue);
-					// 2. Expand shortened keys back to full keys
-					const expanded = expandFlatKeys(shortened);
-					// 3. Unflatten to nested object
-					const nested = unflattenObject(expanded);
-					return nested as ReturnType;
-				}
-
-				// Plain string value
-				return cookieValue as ReturnType;
+				return parseCookieValue<ReturnType>(cookieValue);
 			}
 		}
 
@@ -144,7 +274,7 @@ export function getCookie<ReturnType = unknown>(
 		console.warn(`Failed to get cookie "${name}":`, error);
 		return null;
 	}
-}
+};
 
 /**
  * Deletes a cookie by name.
@@ -155,7 +285,7 @@ export function getCookie<ReturnType = unknown>(
  *
  * @internal
  */
-export function deleteCookie(
+export const deleteCookie = function deleteCookie(
 	name: string,
 	options?: CookieOptions,
 	config?: StorageConfig
@@ -186,4 +316,4 @@ export function deleteCookie(
 	} catch (error) {
 		console.warn(`Failed to delete cookie "${name}":`, error);
 	}
-}
+};

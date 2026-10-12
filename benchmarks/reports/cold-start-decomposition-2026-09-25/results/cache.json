@@ -1,0 +1,531 @@
+{
+	"loadStart": [4.61376953125, 6.35498046875, 7.02880859375],
+	"tests": {
+		"gate": {
+			"accept": { "trackerBeforeChoice": 0, "trackerAfterChoice": 1 },
+			"reject": { "trackerBeforeChoice": 0, "trackerAfterChoice": 0 }
+		},
+		"coalesce": {
+			"S": {
+				"warmProcessColdKey": [
+					{
+						"originManifest": 1,
+						"pagesWithBanner": 5,
+						"pageMs": [226.5, 226.4, 226.3, 226.3, 226]
+					},
+					{
+						"originManifest": 1,
+						"pagesWithBanner": 5,
+						"pageMs": [222.1, 222.3, 222.2, 222.3, 222.3]
+					},
+					{
+						"originManifest": 1,
+						"pagesWithBanner": 5,
+						"pageMs": [220.8, 220.5, 220.8, 220.6, 220.7]
+					}
+				],
+				"newProcess": [
+					{
+						"originManifest": 1,
+						"pagesWithBanner": 5,
+						"pageMs": [349.7, 349.6, 349.4, 349.5, 349]
+					},
+					{
+						"originManifest": 1,
+						"pagesWithBanner": 5,
+						"pageMs": [356.9, 357.1, 357.1, 357, 356.9]
+					},
+					{
+						"originManifest": 1,
+						"pagesWithBanner": 5,
+						"pageMs": [386.7, 386.9, 387, 386.9, 387.1]
+					}
+				]
+			},
+			"D": {
+				"warmProcessColdKey": [
+					{
+						"originManifest": 1,
+						"pagesWithBanner": 5,
+						"pageMs": [228, 228.1, 228.1, 228.1, 227.9]
+					},
+					{
+						"originManifest": 1,
+						"pagesWithBanner": 5,
+						"pageMs": [222.5, 222.8, 222.7, 222.7, 222.6]
+					},
+					{
+						"originManifest": 1,
+						"pagesWithBanner": 5,
+						"pageMs": [217.9, 217.6, 217.7, 217.8, 217.8]
+					}
+				],
+				"newProcess": [
+					{
+						"originManifest": 1,
+						"pagesWithBanner": 5,
+						"pageMs": [359.4, 358.8, 359.2, 358.9, 359]
+					},
+					{
+						"originManifest": 1,
+						"pagesWithBanner": 5,
+						"pageMs": [356.8, 356.7, 355.9, 356.5, 356.4]
+					},
+					{
+						"originManifest": 1,
+						"pagesWithBanner": 5,
+						"pageMs": [360.9, 361.2, 361, 361.1, 361]
+					}
+				]
+			}
+		},
+		"direct": {
+			"S": {
+				"concurrent5": {
+					"originManifest": 5,
+					"pageMs": [219.5, 219.7, 219.8, 219.8, 219.7]
+				},
+				"sequential5": {
+					"originManifest": 5,
+					"pageMs": [208.7, 206.6, 207.4, 207.2, 206.8]
+				}
+			},
+			"D": {
+				"concurrent5": {
+					"originManifest": 5,
+					"pageMs": [216.6, 216.6, 218.6, 218.8, 218.8]
+				},
+				"sequential5": {
+					"originManifest": 5,
+					"pageMs": [209, 205.6, 207.8, 209.3, 208.6]
+				}
+			}
+		},
+		"ttl": {
+			"S": {
+				"cacheControl": "public, s-maxage=2, stale-while-revalidate=10",
+				"timeline": [
+					{
+						"atS": 0,
+						"pageMs": 267.8,
+						"origin": ["/manifest?cold=ttl-S-1790362604258 200"],
+						"server": [
+							"resolveConsent:start",
+							"route:manifest:start",
+							"route:manifest:end 208ms",
+							"resolveConsent:end 238ms"
+						]
+					},
+					{
+						"atS": 1,
+						"pageMs": 9,
+						"origin": [],
+						"server": [
+							"resolveConsent:start",
+							"route:manifest:start",
+							"route:manifest:end 1ms",
+							"resolveConsent:end 4ms"
+						]
+					},
+					{
+						"atS": 3,
+						"pageMs": 9.2,
+						"origin": ["/manifest?cold=ttl-S-1790362604258 304 (conditional)"],
+						"server": [
+							"resolveConsent:start",
+							"route:manifest:start",
+							"route:manifest:end 1ms",
+							"resolveConsent:end 4ms"
+						]
+					},
+					{
+						"atS": 3.3,
+						"pageMs": 14.5,
+						"origin": [],
+						"server": [
+							"resolveConsent:start",
+							"route:manifest:start",
+							"route:manifest:end 1ms",
+							"resolveConsent:end 5ms"
+						]
+					},
+					{
+						"atS": 6.5,
+						"pageMs": 9,
+						"origin": ["/manifest?cold=ttl-S-1790362604258 304 (conditional)"],
+						"server": [
+							"resolveConsent:start",
+							"route:manifest:start",
+							"route:manifest:end 1ms",
+							"resolveConsent:end 4ms"
+						]
+					},
+					{
+						"atS": 17,
+						"pageMs": 9.5,
+						"origin": ["/manifest?cold=ttl-S-1790362604258 304 (conditional)"],
+						"server": [
+							"resolveConsent:start",
+							"route:manifest:start",
+							"route:manifest:end 1ms",
+							"resolveConsent:end 4ms"
+						]
+					},
+					{
+						"atS": 17.3,
+						"pageMs": 7.8,
+						"origin": [],
+						"server": [
+							"resolveConsent:start",
+							"route:manifest:start",
+							"route:manifest:end 0ms",
+							"resolveConsent:end 3ms"
+						]
+					}
+				]
+			},
+			"D": {
+				"cacheControl": "public, s-maxage=2, stale-while-revalidate=10",
+				"timeline": [
+					{
+						"atS": 0,
+						"pageMs": 266.9,
+						"origin": ["/manifest?cold=ttl-D-1790362622249 200"],
+						"server": [
+							"resolveConsent:start",
+							"route:manifest:start",
+							"route:manifest:end 209ms",
+							"resolveConsent:end 238ms"
+						]
+					},
+					{
+						"atS": 1,
+						"pageMs": 9.1,
+						"origin": [],
+						"server": [
+							"resolveConsent:start",
+							"route:manifest:start",
+							"route:manifest:end 0ms",
+							"resolveConsent:end 4ms"
+						]
+					},
+					{
+						"atS": 3,
+						"pageMs": 10.4,
+						"origin": ["/manifest?cold=ttl-D-1790362622249 304 (conditional)"],
+						"server": [
+							"resolveConsent:start",
+							"route:manifest:start",
+							"route:manifest:end 1ms",
+							"resolveConsent:end 5ms"
+						]
+					},
+					{
+						"atS": 3.3,
+						"pageMs": 8.7,
+						"origin": [],
+						"server": [
+							"resolveConsent:start",
+							"route:manifest:start",
+							"route:manifest:end 0ms",
+							"resolveConsent:end 3ms"
+						]
+					},
+					{
+						"atS": 6.5,
+						"pageMs": 15.3,
+						"origin": ["/manifest?cold=ttl-D-1790362622249 304 (conditional)"],
+						"server": [
+							"resolveConsent:start",
+							"route:manifest:start",
+							"route:manifest:end 1ms",
+							"resolveConsent:end 7ms"
+						]
+					},
+					{
+						"atS": 17,
+						"pageMs": 10.4,
+						"origin": ["/manifest?cold=ttl-D-1790362622249 304 (conditional)"],
+						"server": [
+							"resolveConsent:start",
+							"route:manifest:start",
+							"route:manifest:end 1ms",
+							"resolveConsent:end 5ms"
+						]
+					},
+					{
+						"atS": 17.3,
+						"pageMs": 8,
+						"origin": [],
+						"server": [
+							"resolveConsent:start",
+							"route:manifest:start",
+							"route:manifest:end 1ms",
+							"resolveConsent:end 4ms"
+						]
+					}
+				]
+			}
+		},
+		"stalefail": {
+			"cacheControl": "public, s-maxage=2, stale-while-revalidate=60",
+			"timeline": [
+				{
+					"atS": 3,
+					"pageMs": 9.7,
+					"bannerInHtml": true,
+					"origin": [
+						"/manifest?cold=stalefail-1790362640130 503 (conditional)"
+					],
+					"server": [
+						"resolveConsent:start",
+						"route:manifest:start",
+						"route:manifest:end 1ms",
+						"resolveConsent:end 4ms"
+					]
+				},
+				{
+					"atS": 3.3,
+					"pageMs": 7.4,
+					"bannerInHtml": true,
+					"origin": [],
+					"server": [
+						"resolveConsent:start",
+						"route:manifest:start",
+						"route:manifest:end 0ms",
+						"resolveConsent:end 3ms"
+					]
+				},
+				{
+					"atS": 9.5,
+					"pageMs": 9.7,
+					"bannerInHtml": true,
+					"origin": [
+						"/manifest?cold=stalefail-1790362640130 503 (conditional)"
+					],
+					"server": [
+						"resolveConsent:start",
+						"route:manifest:start",
+						"route:manifest:end 1ms",
+						"resolveConsent:end 5ms"
+					]
+				},
+				{
+					"atS": 9.8,
+					"pageMs": 9,
+					"bannerInHtml": true,
+					"origin": [],
+					"server": [
+						"resolveConsent:start",
+						"route:manifest:start",
+						"route:manifest:end 0ms",
+						"resolveConsent:end 4ms"
+					]
+				}
+			]
+		},
+		"fail": {
+			"S": {
+				"firstVisit": {
+					"status": 200,
+					"bannerInHtml": false,
+					"bannerInHtmlMs": null,
+					"bannerReadyMs": null,
+					"bannerReadyTimedOut": true,
+					"activeUI": "none",
+					"trackerLoaded": 0,
+					"fcpMs": 388,
+					"browserConsentRequests": [
+						{
+							"url": "http://127.0.0.1:4751/c15t/init",
+							"startMs": 399,
+							"ms": 208
+						},
+						{
+							"url": "http://127.0.0.1:4751/c15t/init",
+							"startMs": 1259,
+							"ms": 205.5
+						},
+						{
+							"url": "http://127.0.0.1:4751/c15t/init",
+							"startMs": 2537.199999988079,
+							"ms": 205.30000001192093
+						},
+						{
+							"url": "http://127.0.0.1:4751/c15t/init",
+							"startMs": 6352.699999988079,
+							"ms": 204.0999999642372
+						},
+						{
+							"url": "http://127.0.0.1:4751/c15t/init",
+							"startMs": 13905.399999976158,
+							"ms": 204
+						}
+					],
+					"failures": [],
+					"origin": [
+						"/manifest 503",
+						"/manifest 503",
+						"/manifest 503",
+						"/manifest 503",
+						"/manifest 503",
+						"/manifest 503"
+					],
+					"server": [
+						"resolveConsent:start",
+						"route:manifest:start",
+						"route:manifest:end 208ms",
+						"resolveConsent:error Error: c15t manifest transport: /manifest responded 500 Internal Server Error",
+						"resolveConsent:end 234ms",
+						"route:init:start",
+						"route:init:error Error: c15t manifest cache: backend /manifest responded 503 Service Unavailable",
+						"route:init:end 205ms",
+						"route:init:start",
+						"route:init:error Error: c15t manifest cache: backend /manifest responded 503 Service Unavailable",
+						"route:init:end 203ms",
+						"route:init:start",
+						"route:init:error Error: c15t manifest cache: backend /manifest responded 503 Service Unavailable",
+						"route:init:end 203ms",
+						"route:init:start",
+						"route:init:error Error: c15t manifest cache: backend /manifest responded 503 Service Unavailable",
+						"route:init:end 202ms",
+						"route:init:start",
+						"route:init:error Error: c15t manifest cache: backend /manifest responded 503 Service Unavailable",
+						"route:init:end 202ms"
+					]
+				},
+				"concurrent5": {
+					"originManifest": 1,
+					"statuses": [200, 200, 200, 200, 200],
+					"bannerInHtml": [false, false, false, false, false]
+				},
+				"sequential3": { "originManifest": 3 },
+				"recoveredVisit": {
+					"bannerInHtml": true,
+					"activeUI": "banner",
+					"trackerLoaded": 0,
+					"origin": ["/manifest 200"]
+				}
+			},
+			"D": {
+				"firstVisit": {
+					"status": 200,
+					"bannerInHtml": false,
+					"bannerInHtmlMs": null,
+					"bannerReadyMs": null,
+					"bannerReadyTimedOut": true,
+					"activeUI": "none",
+					"trackerLoaded": 0,
+					"fcpMs": 436,
+					"browserConsentRequests": [
+						{
+							"url": "http://127.0.0.1:4752/c15t/init",
+							"startMs": 446.89999997615814,
+							"ms": 208.9000000357628
+						},
+						{
+							"url": "http://127.0.0.1:4752/c15t/init",
+							"startMs": 1469,
+							"ms": 205.10000002384186
+						},
+						{
+							"url": "http://127.0.0.1:4752/c15t/init",
+							"startMs": 3396.899999976158,
+							"ms": 205
+						},
+						{
+							"url": "http://127.0.0.1:4752/c15t/init",
+							"startMs": 6428.100000023842,
+							"ms": 204.89999997615814
+						},
+						{
+							"url": "http://127.0.0.1:4752/c15t/init",
+							"startMs": 12318.899999976158,
+							"ms": 206.10000002384186
+						}
+					],
+					"failures": [],
+					"origin": [
+						"/manifest 503",
+						"/manifest 503",
+						"/manifest 503",
+						"/manifest 503",
+						"/manifest 503",
+						"/manifest 503"
+					],
+					"server": [
+						"resolveConsent:start",
+						"route:manifest:start",
+						"route:manifest:end 210ms",
+						"resolveConsent:error Error: c15t manifest transport: /manifest responded 500 Internal Server Error",
+						"resolveConsent:end 239ms",
+						"route:init:start",
+						"route:init:error Error: c15t manifest cache: backend /manifest responded 503 Service Unavailable",
+						"route:init:end 206ms",
+						"route:init:start",
+						"route:init:error Error: c15t manifest cache: backend /manifest responded 503 Service Unavailable",
+						"route:init:end 203ms",
+						"route:init:start",
+						"route:init:error Error: c15t manifest cache: backend /manifest responded 503 Service Unavailable",
+						"route:init:end 203ms",
+						"route:init:start",
+						"route:init:error Error: c15t manifest cache: backend /manifest responded 503 Service Unavailable",
+						"route:init:end 203ms",
+						"route:init:start",
+						"route:init:error Error: c15t manifest cache: backend /manifest responded 503 Service Unavailable",
+						"route:init:end 203ms"
+					]
+				},
+				"concurrent5": {
+					"originManifest": 1,
+					"statuses": [200, 200, 200, 200, 200],
+					"bannerInHtml": [false, false, false, false, false]
+				},
+				"sequential3": { "originManifest": 3 },
+				"recoveredVisit": {
+					"bannerInHtml": true,
+					"activeUI": "banner",
+					"trackerLoaded": 0,
+					"origin": ["/manifest 200"]
+				}
+			}
+		},
+		"hang": {
+			"S": {
+				"wallMs": 30689,
+				"status": 200,
+				"ttfbMs": 126.10000002384186,
+				"firstChunkMs": 127.4,
+				"bannerInHtmlMs": null,
+				"fcpMs": 10172,
+				"bannerReadyMs": null,
+				"activeUI": "none",
+				"trackerLoaded": 0,
+				"browserConsentRequests": [
+					{
+						"url": "http://127.0.0.1:4751/c15t/init",
+						"startMs": 10172.5,
+						"ms": 10007.100000023842
+					}
+				],
+				"origin": [
+					"/manifest pending",
+					"/manifest pending",
+					"/manifest pending"
+				],
+				"server": [
+					"resolveConsent:start",
+					"route:manifest:start",
+					"route:manifest:end 10003ms",
+					"resolveConsent:error Error: c15t manifest transport: /manifest responded 500 Internal Server Error",
+					"resolveConsent:end 10036ms",
+					"route:init:start",
+					"route:init:error Error: c15t manifest cache: fetch timed out after 10 seconds.",
+					"route:init:end 10002ms",
+					"route:init:start"
+				]
+			}
+		}
+	},
+	"loadEnd": [5.61865234375, 6.05419921875, 6.79736328125]
+}

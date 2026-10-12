@@ -1,147 +1,153 @@
 ---
-title: Quickstart
-description: Self-host the c15t consent management backend in your own infrastructure.
+title: Self-host the backend
+description: Run the c15t consent backend yourself with @c15t/backend, create its database schema with the CLI, mount it in Next.js, TanStack Start, Nuxt, SvelteKit or another server, and point your app at it.
 group: self-host
 ---
 
-The `@c15t/backend` package gives you a fully self-hosted consent management API. It handles consent storage, geo-location, audit logging, and policy management — all on your own infrastructure.
+## Before you start
 
-The backend exposes a standard `(request: Request) => Promise<Response>` handler, so it works with any JavaScript runtime (Node.js, Bun, Deno, Cloudflare Workers) and any HTTP framework.
+[Inth](https://inth.com) runs this backend for you. Self-host when you need to
+operate the service and its database yourself. You then own provisioning,
+migrations, backups, policy configuration, signing secrets, availability and
+upgrades.
 
-If you want a fully managed experience we recommend using [inth.com](https://inth.com).
+Your c15t app talks to a self-hosted backend exactly as it talks to Inth, through
+hosted mode. Only the backend URL changes.
 
-## Installation
+## Install the backend
 
-<PackageCommandTabs mode="install" command="@c15t/backend" />
+<CommandTabs command="@c15t/backend" mode="install" />
 
-## Basic Setup
+Also install the driver for your database. The backend declares each driver as
+an optional peer dependency pinned to one version; install that version.
 
-<Steps>
-  <Step>
-    ### Create a c15t instance
+| Database | Driver |
+| --- | --- |
+| PostgreSQL | `@effect/sql-pg` |
+| MySQL | `@effect/sql-mysql2` |
+| SQLite | `@effect/sql-sqlite-node` |
 
-    ```ts title="c15t.ts"
-    import { c15tInstance } from '@c15t/backend';
-    import { kyselyAdapter } from '@c15t/backend/db/adapters/kysely';
-    import { db } from './db'; // your Kysely instance
+## Configure it
 
-    export const c15t = c15tInstance({
-      appName: 'my-app',
-      basePath: '/api/c15t',
-      trustedOrigins: ['https://example.com'],
-      adapter: kyselyAdapter(db),
-    });
-    ```
+Create `c15t-backend.config.ts` in the app that will serve the backend:
 
-    The `trustedOrigins` array controls CORS — list every domain that will send requests to the API.
-  </Step>
+```ts title="c15t-backend.config.ts"
+import { defineConfig, policyRulePresets } from '@c15t/backend';
 
-  <Step>
-    ### Mount the handler
+export default defineConfig({
+	database: { dialect: 'sqlite', filename: './consent.db' },
+	trustedOrigins: ['localhost'],
+	manifest: { policyRules: [policyRulePresets.europeOptIn()] },
+});
+```
 
-    The `c15t.handler` accepts a standard Fetch API `Request` and returns a `Response`. Mount it in your framework of choice:
+This is a local development configuration. `trustedOrigins` lists the sites
+whose browsers may call the backend; add your production host before you
+deploy. Keep the SQLite file on persistent storage, because a temporary
+filesystem loses consent history. [Database setup](/docs/self-host/guides/database-setup)
+covers PostgreSQL and MySQL, and [policy configuration](/docs/self-host/guides/policy-packs)
+covers rules for other regions.
 
-    ```ts title="server.ts"
-    // Bun
-    import { c15t } from './c15t';
+## Create the database schema
 
-    Bun.serve({
-      port: 3001,
-      fetch: c15t.handler,
-    });
-    ```
+Run the migration with the same configuration the server uses:
 
-    ```ts title="src/app/api/c15t/[...path]/route.ts"
-    // Next.js App Router
-    import { c15t } from '@/lib/c15t';
+```bash
+npx @c15t/cli self-host migrate --config ./c15t-backend.config.ts --plan
+npx @c15t/cli self-host migrate --config ./c15t-backend.config.ts --apply
+```
 
-    const handler = c15t.handler;
+Review the plan before you apply it, and back up an existing database first.
+[Self-hosted migrations](/docs/cli/commands/self-host) explains the report.
 
-    export { handler as GET, handler as POST, handler as PUT, handler as PATCH, handler as DELETE };
-    ```
+## Mount the request handler
 
-    ```ts title="worker.ts"
-    // Cloudflare Workers
-    import { c15t } from './c15t';
+`c15tInstance(options).handler` takes a web `Request` and returns a `Response`.
+Mount it on a catch-all route and route `GET`, `POST`, `PUT`, `PATCH` and
+`OPTIONS` to it. `PUT` publishes legal-document releases; a route that exports
+only `POST` leaves the manifest, `/init` and subject reads unreachable.
 
-    export default {
-      async fetch(request: Request) {
-        return c15t.handler(request);
-      },
-    };
-    ```
+Create one instance per server process and reuse it, so requests share its
+database connection pool. Set `basePath` to the path prefix of the requests the
+handler receives, so `/api/c15t/init` routes to `/init`.
 
-    See [Framework Integration](/docs/self-host/guides/framework-integration) for more examples.
-  </Step>
+### Next.js App Router
 
-  <Step>
-    ### Run database migrations
+<include src="../shared/examples/self-host/nextjs-route.mdx" />
 
-    Before the backend can store consent records, your database needs the required tables.
+This route needs a Node.js server. A Next.js static export cannot run it; deploy
+the backend separately and give the app its absolute URL.
 
-    The easiest way to migrate your database is via the c15t cli:
+[`examples/self-host`](https://github.com/c15t/c15t/tree/v3/examples/self-host)
+runs this route with an in-process PGlite database in development and
+PostgreSQL from `DATABASE_URL` when deployed. Its banner calls the backend at
+the same-origin path `/api/c15t`.
 
-    <PackageCommandTabs mode="run" command="@c15t/cli" />
+### TanStack Start
 
-    See [Database Setup](/docs/self-host/guides/database-setup) for adapter-specific migration guides. If you plan to use policy packs with runtime audit storage, also apply the runtime policy decision migration from the [Policy Packs guide](/docs/self-host/guides/policy-packs).
-  </Step>
+The TanStack Start example mounts the backend at `/api/self-host` as a server
+route. Its `getInstance()` creates one `c15tInstance()` on first use and reuses
+it:
 
-  <Step>
-    ### Point your frontend at the backend
+<include src="../shared/examples/tanstack-start/self-host-route.mdx" />
 
-    Update your frontend consent manager to use your self-hosted URL:
+### Nuxt
 
-    ```tsx
-    <ConsentManagerProvider
-      options={{
-        mode: 'hosted',
-        backendURL: 'https://example.com/api/c15t',
-        consentCategories: ['necessary', 'measurement', 'marketing'],
-      }}
-    >
-    ```
-  </Step>
+The Nuxt example mounts the backend at `/api/self-host` as a Nitro catch-all
+route, converting the h3 event with `toWebRequest()`:
 
-  <Step>
-    ### Verify it works
+<include src="../shared/examples/nuxt/self-host-route.mdx" />
 
-    Open `https://example.com/api/c15t/status` in your browser. You should see a JSON response with the server version and your client info:
+### SvelteKit
 
-    ```json
-    {
-      "version": "1.8.0",
-      "timestamp": "2026-02-11T12:00:00.000Z",
-      "client": {
-        "ip": "192.168.1.0",
-        "acceptLanguage": "en-US",
-        "userAgent": "Mozilla/5.0 ...",
-        "region": { "countryCode": "US", "regionCode": "CA" }
-      }
-    }
-    ```
-  </Step>
-</Steps>
+The SvelteKit example creates its `c15tInstance()` as `backend` in
+`src/lib/server/c15t-backend.ts`. The route at `/api/self-host` imports that
+module dynamically on the first request and forwards each request to it:
 
-<Callout type="info">
-  The backend includes auto-generated API documentation. Visit `{basePath}/docs` (e.g. `/api/c15t/docs`) to explore all endpoints interactively.
-</Callout>
+<include src="../shared/examples/sveltekit/self-host-route.mdx" />
 
-## Optional: AI Agents
+Keep the import dynamic on SvelteKit 3. A static import lets the build place
+modules the backend shares with its lazily loaded chunks in the route's own
+chunk, and SvelteKit then fails the build with `Invalid export` for the route.
 
-Install c15t agent skills to let AI agents help with styling, i18n, scripts & other configuration.
+### Another server
 
-<PackageCommandTabs command="@c15t/cli skills" />
+Pass the incoming web `Request` to `handler` and return its `Response`
+unchanged, keeping status, body and headers such as CORS and cache headers. If
+your framework has its own request type, convert it with the framework's web
+request adapter. If a parent router already strips the prefix, leave `basePath`
+unset rather than stripping it twice.
 
-See [AI Agents](/docs/ai-agents) for bundled package docs and agent skills.
+Tests and one-off scripts should call `instance.dispose()` when they finish to
+close the connection pool. A long-running server does not need to.
 
-## Next Steps
+## Point your app at the backend
 
-<Cards className="not-prose grid gap-4 grid-cols-1 sm:grid-cols-2">
-  <Card variant="interactive" title="Database Setup" description="Configure Prisma, Drizzle, Kysely, TypeORM, or MongoDB as your storage adapter." href="/docs/self-host/guides/database-setup" />
+Follow your [framework quickstart](/docs/frameworks) and use your backend's URL,
+such as `https://app.example.com/api/c15t`, where it asks for the Inth URL.
+Server-side resolution needs an absolute URL. The browser only needs the HTTP
+endpoint; keep the config file and database credentials on the server.
 
-  <Card variant="interactive" title="Framework Integration" description="Mount the backend in Next.js, Bun, Express, Hono, Fastify, or Cloudflare Workers." href="/docs/self-host/guides/framework-integration" />
+The frontend does not have to run the backend. A static site or an edge-rendered
+app can call a backend deployed elsewhere, as long as its origin is in
+`trustedOrigins`.
 
-  <Card variant="interactive" title="Caching" description="Add Redis or Cloudflare KV caching for production performance." href="/docs/self-host/guides/caching" />
+## Check the deployment
 
-  <Card variant="interactive" title="API Endpoints" description="Full reference for every consent API endpoint." href="/docs/self-host/api/endpoints" />
-</Cards>
+1. Request `/status` and `/manifest` through the public mount point, for example
+   `curl -i https://app.example.com/api/c15t/status`. `/status` returns `200`
+   once the database answers and the schema exists. The manifest lists your
+   policy rules.
+2. Load the app from a trusted origin in a private window. The banner appears
+   for a visitor your policy asks to choose.
+3. Accept, then check DevTools Network for a `POST` to `/subjects` that returns
+   a success status.
+4. Reload. The banner stays closed and your choice is still applied.
+5. For a cross-origin deployment, check that `/init` goes out without an
+   `OPTIONS` preflight and the consent save's `OPTIONS` preflight succeeds. An
+   `/init` preflight means something added a custom request header, such as
+   the hosted transport's `headers` option.
+
+Neither `/status` nor `/manifest` writes to the database, so only steps 3 and 4
+prove that consent writes and reads work. Continue with [configuration](/docs/self-host/api/configuration)
+and [HTTP endpoints](/docs/self-host/api/endpoints).

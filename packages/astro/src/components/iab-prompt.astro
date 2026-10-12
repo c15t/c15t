@@ -1,0 +1,302 @@
+---
+/**
+ * Server-rendered IAB TCF banner.
+ *
+ * The same deal as `<ConsentBanner />`: markup, copy and the purposes
+ * summary are produced on the server with no framework JavaScript, and the
+ * only client code is the delegated `data-c15t-action` handler every banner
+ * on the site already shares. `customize` opens the TCF preference centre
+ * through `<IABConsentDialog />`'s island, so the TCF surface downloads
+ * only when someone asks for it.
+ *
+ * The summary — which purposes, stacks and special features the banner
+ * names, how many it leaves out, how many vendors there are — comes from
+ * the shared model in `@c15t/core`, the same one the React, Svelte and Vue
+ * banners read. Same DOM shape and the same `data-testid`s, so the
+ * cross-framework parity gate compares like with like.
+ *
+ * The server renders it when it already has a policy and a vendor list.
+ * Offline mode needs `iab.gvl` or `iab.gvlURL` on the integration options.
+ * Otherwise — a prerendered page in hosted or manifest mode, or a vendor
+ * list that arrives later — it leaves a spot, and the browser renders the
+ * banner there from the same model once it has both.
+ *
+ * ```astro
+ * ---
+ * import IABConsentBanner from '@c15t/astro/components/iab-consent-banner.astro';
+ * import IABConsentDialog from '@c15t/astro/components/iab-consent-dialog.astro';
+ * ---
+ * <IABConsentBanner />
+ * <IABConsentDialog />
+ * ```
+ */
+import { applyExperimentAssignment, applyExperimentTheme } from '@c15t/core';
+import {
+	buildBannerRevealScript,
+	buildColorSchemeScript,
+	buildThemeCSS,
+	buildConfigJSON,
+	IAB_PROMPT_SLOT_ATTRIBUTE,
+	iabPromptClassNames,
+	markConfigEmitted,
+	resolveIABPromptModel,
+} from '@c15t/astro/server';
+import type { IABPromptProps } from '@c15t/astro/server';
+import Branding from './branding.astro';
+import ComponentStyles from './component-styles.astro';
+
+interface Props extends IABPromptProps {
+	/**
+	 * Render even when the server decided the banner should stay hidden.
+	 * Useful for visual testing.
+	 */
+	force?: boolean;
+}
+
+const { force = false, ...props } = Astro.props;
+
+const { c15t } = Astro.locals;
+
+if (!c15t) {
+	throw new Error(
+		'@c15t/astro: `Astro.locals.c15t` is missing. The c15t() integration registers the middleware that populates it — check it is listed in astro.config, and that you have not set `middleware: false`.'
+	);
+}
+
+const { snapshot } = c15t;
+// An arm's theme overrides ride on the host theme: its tokens, its
+// `consentActions` and its `slots` all follow the assignment.
+const theme = applyExperimentTheme(
+	c15t.options.theme,
+	c15t.options.experiment,
+	snapshot.experiment
+);
+const model = resolveIABPromptModel({
+	classNames: iabPromptClassNames,
+	disableAnimation: c15t.options.disableAnimation,
+	// The arm is the host-resolved `variant`, already on the server snapshot.
+	presentation: applyExperimentAssignment(
+		c15t.options.presentation,
+		c15t.options.experiment,
+		snapshot.experiment
+	),
+	props,
+	snapshot,
+	theme,
+});
+const emitConfig = markConfigEmitted(Astro.locals);
+const colorSchemeScript = emitConfig
+	? buildColorSchemeScript(c15t.options.colorScheme)
+	: '';
+const themeCSS = emitConfig
+	? buildThemeCSS(theme)
+	: '';
+
+// No vendor list, no banner: every line of copy interpolates a count the
+// summary derives from it.
+const shouldRender =
+	c15t.hasConsentUi && (force || c15t.shouldShowBanner) && model.canRender;
+// A prerendered page is shared by every visitor, so it ships hidden and the
+// browser shows it after reading the visitor's own cookie.
+const hidden = c15t.prerendered && !force;
+---
+
+{
+	emitConfig && colorSchemeScript && (
+		<script
+			is:inline
+			data-c15t-inline
+			nonce={c15t.nonce}
+			set:html={colorSchemeScript}
+		/>
+	)
+}
+
+<ComponentStyles />
+
+{
+	themeCSS && (
+		<style is:inline id="c15t-theme" nonce={c15t.nonce} set:html={themeCSS} />
+	)
+}
+
+{
+	emitConfig && (
+		<script
+			is:inline
+			type="application/json"
+			data-c15t-config
+			nonce={c15t.nonce}
+			set:html={buildConfigJSON(c15t.config)}
+		/>
+	)
+}
+
+{
+	/*
+	 * No policy or no vendor list yet, but the browser may still owe a
+	 * banner once its own init and the vendor list arrive. It renders it
+	 * into this spot from the same model, props and class names.
+	 */
+	!shouldRender && (!c15t.hasPolicy || !model.vendorListReady) && (
+		<div
+			hidden
+			{...{
+				[IAB_PROMPT_SLOT_ATTRIBUTE]: JSON.stringify({
+					classNames: iabPromptClassNames,
+					props,
+				}),
+			}}
+		/>
+	)
+}
+
+{
+	shouldRender && model.blocking && (
+		<div
+			aria-hidden="true"
+			class={model.classes.overlay}
+			style={model.styles.overlay}
+			data-testid="iab-consent-banner-overlay"
+			hidden={hidden ? true : undefined}
+		/>
+	)
+}
+
+{
+	shouldRender && (
+		<div
+			class={model.classes.root}
+			style={model.styles.root}
+			data-c15t-visible={hidden ? 'false' : 'true'}
+			data-blocking={model.blocking ? 'true' : undefined}
+			data-position={model.position}
+			data-testid="iab-consent-banner-root"
+			data-variant={model.variant}
+			dir={model.textDirection}
+			hidden={hidden ? true : undefined}
+			lang={model.language}
+			tabindex="-1"
+		>
+			<div class={model.classes.cardShell}>
+				<Branding
+					branding={snapshot.branding}
+					data-testid="iab-consent-banner-branding"
+					hide={props.hideBranding}
+					hostname={Astro.url.hostname}
+					noStyle={props.noStyle}
+					securedBy={model.copy.securedBy}
+					theme={theme}
+					themeSlot="iabConsentBannerTag"
+					variant="banner-tag"
+				/>
+				<div
+					aria-label={model.copy.title}
+					aria-modal={model.blocking ? 'true' : undefined}
+					class={model.classes.card}
+					style={model.styles.card}
+					data-testid="iab-consent-banner-card"
+					role={model.blocking ? 'dialog' : 'region'}
+				>
+					<div
+						class={model.classes.header}
+						style={model.styles.header}
+						data-testid="iab-consent-banner-header"
+					>
+						<h2 class={model.classes.title}>{model.copy.title}</h2>
+						<p class={model.classes.description}>
+							{model.copy.descriptionBefore}
+							<button
+								class={model.classes.partnersLink}
+								data-c15t-action="customize"
+								data-c15t-dialog="iab"
+								data-c15t-tab="vendors"
+								data-testid="iab-consent-banner-partners-link"
+								type="button"
+							>
+								{model.copy.partnersLink}
+							</button>
+							{model.copy.descriptionAfter}
+						</p>
+						<ul class={model.classes.purposeList}>
+							{model.displayItems.map((name) => (
+								<li>{name}</li>
+							))}
+							{model.copy.andMore && (
+								<li class={model.classes.purposeMore}>{model.copy.andMore}</li>
+							)}
+						</ul>
+						<p class={model.classes.notice}>{model.copy.notice}</p>
+					</div>
+					<div
+						class={model.classes.footer}
+						style={model.styles.footer}
+						data-direction="row"
+						data-split="true"
+						data-testid="iab-consent-banner-footer"
+					>
+						<div class={model.classes.actionGroup} data-direction="row">
+							{model.choiceButtons.map((button) => (
+								<button
+									class={button.className}
+									style={button.style}
+									data-action={button.action}
+									data-c15t-action={button.action}
+									data-mode={button.mode}
+									data-size={props.noStyle ? undefined : 'small'}
+									data-testid={`iab-consent-banner-${button.action}-button`}
+									data-variant={button.variant}
+									type="button"
+								>
+									{button.label}
+								</button>
+							))}
+						</div>
+						<div class={model.classes.actionGroup} data-direction="row">
+							<button
+								class={model.customizeButton.className}
+								style={model.customizeButton.style}
+								data-action="customize"
+								data-c15t-action="customize"
+								data-c15t-dialog="iab"
+								data-mode={model.customizeButton.mode}
+								data-size={props.noStyle ? undefined : 'small'}
+								data-testid="iab-consent-banner-customize-button"
+								data-variant={model.customizeButton.variant}
+								type="button"
+							>
+								{model.customizeButton.label}
+							</button>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	)
+}
+
+{
+	/*
+	 * Right after the hidden banner, so a visitor with nothing stored sees it
+	 * in the first paint instead of after the module scripts load.
+	 */
+	shouldRender && hidden && (
+		<script
+			is:inline
+			data-c15t-inline
+			nonce={c15t.nonce}
+			set:html={buildBannerRevealScript(
+				c15t.options.storageConfig,
+				'iab-consent-banner'
+			)}
+		/>
+	)
+}
+
+<script>
+	// One delegated listener, shared with `<ConsentBanner />` and every
+	// dialog trigger on the site. Astro bundles and dedupes it across pages.
+	import { attachBannerActions } from '@c15t/astro/client';
+
+	attachBannerActions();
+</script>

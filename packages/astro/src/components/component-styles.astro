@@ -1,0 +1,42 @@
+---
+import { isIABConfigured } from '@c15t/core/runtime';
+import {
+	INLINE_IAB_STYLES_CSS,
+	INLINE_IAB_STYLES_ID,
+	INLINE_STYLES_CSS,
+	INLINE_STYLES_ID,
+	markStylesEmitted,
+} from '@c15t/astro/server';
+
+interface Props {
+	/** The outer document's nonce when rendered through a server island. */
+	nonce?: string;
+}
+
+const { c15t } = Astro.locals;
+const emit =
+	c15t?.options.inlineStyles === true && markStylesEmitted(Astro.locals);
+const nonce = Astro.props.nonce ?? c15t?.nonce;
+---
+
+{
+	emit && (
+		<style
+			is:inline
+			data-c15t-styles={INLINE_STYLES_ID}
+			nonce={nonce}
+			set:html={INLINE_STYLES_CSS}
+		/>
+	)
+}
+
+{
+	emit && isIABConfigured(c15t?.options.iab) && (
+		<style
+			is:inline
+			data-c15t-styles={INLINE_IAB_STYLES_ID}
+			nonce={nonce}
+			set:html={INLINE_IAB_STYLES_CSS}
+		/>
+	)
+}

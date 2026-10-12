@@ -1,6 +1,8 @@
-const ABSOLUTE_URL_REGEX = /^https?:\/\//;
+import { resolveRequestBackendURL } from '@c15t/core/server';
 
-function trimTrailingSlash(url: string): string {
+const ABSOLUTE_URL_REGEX = /^https?:\/\//u;
+
+const trimTrailingSlash = function trimTrailingSlash(url: string): string {
 	// Don't trim if it's just the root path "/"
 	if (url === '/') {
 		return url;
@@ -8,7 +10,7 @@ function trimTrailingSlash(url: string): string {
 
 	// Remove trailing slash if present
 	return url.endsWith('/') ? url.slice(0, -1) : url;
-}
+};
 
 /**
  * Validates and normalizes a backend URL.
@@ -28,7 +30,9 @@ function trimTrailingSlash(url: string): string {
  *
  * @public
  */
-export function validateBackendURL(backendURL: string): {
+export const validateBackendURL = function validateBackendURL(
+	backendURL: string
+): {
 	isAbsolute: boolean;
 	normalizedURL: string;
 } {
@@ -37,7 +41,7 @@ export function validateBackendURL(backendURL: string): {
 
 	if (isAbsolute) {
 		// Validate that the URL is valid
-		new URL(backendURL);
+		String(new URL(backendURL));
 
 		return {
 			isAbsolute: true,
@@ -55,19 +59,24 @@ export function validateBackendURL(backendURL: string): {
 	throw new Error(
 		`Invalid URL format: ${backendURL}. URL must be absolute (https://...) or relative starting with (/)`
 	);
-}
+};
 
 /**
- * Normalizes a backend URL, resolving relative URLs using request headers.
+ * Normalizes a backend URL, resolving relative URLs against the request.
  *
  * @remarks
  * For absolute URLs, returns the URL as-is (with trailing slash trimmed).
- * For relative URLs, attempts to construct the full URL using:
- * 1. x-forwarded-proto + x-forwarded-host/host headers
- * 2. Referer header as fallback
+ * A relative URL resolves against the `host` header: over `https` for a
+ * domain name, and over `http` for `localhost`, an IP address or a
+ * single-label host. `x-forwarded-host`, `x-forwarded-proto` and `forwarded`
+ * are read only when `trustForwardedHeaders` is set, because any client can
+ * send them; the `referer` header is never used.
  *
  * @param backendURL - The backend URL (absolute or relative)
  * @param headersList - The Headers object from the incoming request
+ * @param options - `trustForwardedHeaders`: resolve against the request's
+ * forwarding headers. Set it only behind a proxy that sets them and drops
+ * incoming ones.
  * @returns The normalized absolute URL, or null if it cannot be determined
  *
  * @example
@@ -78,42 +87,20 @@ export function validateBackendURL(backendURL: string): {
  * normalizeBackendURL('https://api.example.com/', headers);
  * // Returns: 'https://api.example.com'
  *
- * // Relative URL - resolved from headers
+ * // Relative URL - resolved from the host header
  * normalizeBackendURL('/api/consent', headers);
- * // Returns: 'https://example.com/api/consent' (based on headers)
+ * // Returns: 'https://example.com/api/consent' (for `host: example.com`)
  * ```
  *
  * @public
  */
-export function normalizeBackendURL(
+export const normalizeBackendURL = function normalizeBackendURL(
 	backendURL: string,
-	headersList: Headers
+	headersList: Headers,
+	options: { trustForwardedHeaders?: boolean } = {}
 ): string | null {
-	try {
-		const { normalizedURL: validated, isAbsolute } =
-			validateBackendURL(backendURL);
-
-		if (isAbsolute) {
-			return validated;
-		}
-
-		const referer = headersList.get('referer');
-		const protocol = headersList.get('x-forwarded-proto') || 'https';
-		const host = headersList.get('x-forwarded-host') || headersList.get('host');
-
-		if (host) {
-			return trimTrailingSlash(`${protocol}://${host}${validated}`);
-		}
-
-		if (referer) {
-			const refererUrl = new URL(referer);
-			return trimTrailingSlash(
-				`${refererUrl.protocol}//${refererUrl.host}${validated}`
-			);
-		}
-
-		return null;
-	} catch {
-		return null;
-	}
-}
+	return resolveRequestBackendURL(backendURL, {
+		headers: headersList,
+		trustForwardedHeaders: options.trustForwardedHeaders,
+	});
+};

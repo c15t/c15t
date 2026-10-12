@@ -1,26 +1,28 @@
-import {
-	type ButtonMode,
-	type ButtonSize,
-	type ButtonVariant,
-	type ButtonVariantsProps,
-	buttonVariants,
-} from '@c15t/ui/styles/primitives/button';
-import {
-	type ButtonHTMLAttributes,
-	type ElementType,
-	forwardRef,
-	type ReactElement,
-	useId,
-} from 'react';
+import styles from '@c15t/ui/styles/components/button';
+import { forwardRef as createForwardRef, useId } from 'react';
+import type { ButtonHTMLAttributes, ElementType, ReactElement } from 'react';
+
 import type { PolymorphicComponentProps } from '../../libs/polymorphic';
 import { recursiveCloneChildren } from '../../libs/recursive-clone-children';
 import { Slot } from '../../libs/slot';
 
 // Re-export types for convenience
-export type { ButtonMode, ButtonSize, ButtonVariant, ButtonVariantsProps };
+export type ButtonVariant = 'primary' | 'neutral' | 'secondary';
+export type ButtonMode = 'filled' | 'stroke' | 'lighter' | 'ghost';
+export type ButtonSize = 'medium' | 'small' | 'xsmall' | 'xxsmall';
+export interface ButtonVariantsProps {
+	variant?: ButtonVariant;
+	mode?: ButtonMode;
+	size?: ButtonSize;
+}
 
 // Re-export the helper function
-export { buttonVariants };
+export const buttonVariants = (_props: ButtonVariantsProps = {}) => ({
+	icon: (options?: { class?: string }) =>
+		[styles.buttonIcon, options?.class].filter(Boolean).join(' '),
+	root: (options?: { class?: string }) =>
+		[styles.button, options?.class].filter(Boolean).join(' '),
+});
 
 /**
  * Constants for component display names
@@ -81,7 +83,7 @@ type ButtonRootProps = ButtonSharedProps &
  *
  * @public
  */
-const ButtonRoot = forwardRef<HTMLButtonElement, ButtonRootProps>(
+const ButtonRoot = createForwardRef<HTMLButtonElement, ButtonRootProps>(
 	(
 		{
 			children,
@@ -102,7 +104,7 @@ const ButtonRoot = forwardRef<HTMLButtonElement, ButtonRootProps>(
 		// Only apply button variants if noStyle is false
 		const variantClasses = noStyle
 			? ''
-			: buttonVariants({ variant, mode, size }).root();
+			: buttonVariants({ mode, size, variant }).root();
 
 		// Always include custom className
 		const finalClassName = [variantClasses, className]
@@ -128,6 +130,9 @@ const ButtonRoot = forwardRef<HTMLButtonElement, ButtonRootProps>(
 			<Component
 				ref={forwardedRef}
 				className={finalClassName}
+				data-mode={variantClasses ? (mode ?? 'filled') : undefined}
+				data-size={variantClasses ? (size ?? 'medium') : undefined}
+				data-variant={variantClasses ? (variant ?? 'primary') : undefined}
 				type={type}
 				{...rest}
 			>
@@ -158,19 +163,19 @@ ButtonRoot.displayName = BUTTON_ROOT_NAME;
  *
  * @public
  */
-function ButtonIcon<T extends ElementType>({
+const ButtonIcon = <T extends ElementType>({
 	variant,
 	mode,
 	size,
 	as,
 	className,
 	...rest
-}: PolymorphicComponentProps<T, ButtonIconProps>) {
+}: PolymorphicComponentProps<T, ButtonIconProps>) => {
 	const Component = as || 'div';
 	const { icon } = buttonVariants({
-		variant: variant as ButtonVariant | undefined,
 		mode: mode as ButtonMode | undefined,
 		size: size as ButtonSize | undefined,
+		variant: variant as ButtonVariant | undefined,
 	});
 
 	return (
@@ -179,7 +184,7 @@ function ButtonIcon<T extends ElementType>({
 			{...rest}
 		/>
 	);
-}
+};
 ButtonIcon.displayName = BUTTON_ICON_NAME;
 
 /**

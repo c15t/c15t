@@ -1,100 +1,97 @@
 ---
-title: "Overview"
-description: "Reference page for overview."
+title: "IAB TCF"
+description: "Shared IAB TCF setup guidance for the React and Next.js adapters."
 group: reference
 ---
 
 {/* This file is NOT rendered directly. Sections are imported by framework pages. */}
 
-<section id="intro">
-  ## What is IAB TCF?
+<section id="prepare">
+  Use the IAB integration when your application needs the Transparency and Consent
+  Framework. Configure an IAB policy, the correct CMP identity and vendor data for
+  your deployment. A demo CMP ID is not a production configuration.
 
-  The [IAB Transparency & Consent Framework (TCF)](https://iabeurope.eu/tcf-2-0/) is a standardized protocol for communicating user consent choices to ad tech vendors in the programmatic advertising ecosystem. TCF 2.4 is the current version and is widely adopted across the EU/EEA.
+  A CMP ID is assigned to a company when it registers as a CMP with IAB Europe
+  ([register.consensu.org/CMP](https://register.consensu.org/CMP)). Every TC
+  String names the CMP that wrote it, so an ID you did not register attributes
+  your users' consent records to someone else. Omitting it leaves the add-on
+  unmounted: no `__tcfapi`, and no TC String written.
 
-  When your site participates in the IAB ecosystem (ad exchanges, SSPs, DSPs, DMPs), you need to:
-
-  - Disclose which vendors process user data and for what purposes
-  - Collect granular consent for each IAB-defined purpose
-  - Generate a **TC String** — a standardized encoding of consent choices that ad tech vendors can read
-  - Expose the `__tcfapi` CMP stub for vendor scripts to query consent status
-
-  ## CMP Registration
-
-  [Inth](https://inth.com), c15t's hosted platform, is IAB TCF certified. When you use Inth as your backend with c15t's prebuilt IAB UI, the correct CMP ID is automatically provided to your client via the `/init` endpoint — no client-side configuration needed.
-
-  If you self-host the c15t backend or want to operate as your own CMP, register your own CMP with IAB Europe and configure your CMP ID on the backend via `advanced.iab.cmpId` or on the client via the `iab.cmpId` option. Registering your own CMP may also involve IAB Europe fees, so check IAB Europe's current CMP registration terms and pricing before choosing this route. A valid (non-zero) CMP ID is required for IAB TCF compliance.
-
-  <Callout type="warn">
-    If you heavily customize or build your own IAB banner or dialog instead of using the default `IABConsentBanner` and `IABConsentDialog` components, you cannot use Inth's CMP ID. You must register your own CMP with [IAB Europe](https://iabeurope.eu/tcf-2-0/) and use your own CMP ID.
-  </Callout>
-
-  ## How c15t Implements TCF
-
-  c15t provides a complete IAB TCF 2.4 CMP (Consent Management Platform) implementation:
-
-  1. **Global Vendor List (GVL)** — Automatically fetched from the c15t backend. Contains the official IAB vendor registry with purposes, features, and stacks.
-  2. **IABConsentBanner** — A pre-built banner showing partner count, purpose summaries, and legitimate interest notices.
-  3. **IABConsentDialog** — A tabbed preference center for granular purpose and vendor consent management.
-  4. **TC String generation** — Consent choices are encoded into the standard TC String format.
-  5. **`__tcfapi` stub** — The standard CMP API is exposed on `window` so vendor scripts can query consent.
-
-  If you use the prebuilt styled IAB UI, add your framework's `iab/styles.css` entrypoint alongside the base c15t stylesheet. IAB CSS is published separately so apps that do not render IAB surfaces do not ship those component rules.
+  Install `@c15t/iab` alongside your framework adapter, then mount the IAB
+  components inside an existing consent provider connected to Inth.
 </section>
 
-<section id="config-and-concepts">
-  ## IAB Configuration Options
+<section id="configure">
+  Supply the CMP ID from your deployment's IAB configuration. Keep a persistent
+  preferences entry point through the surrounding consent provider.
 
-  Configure IAB mode with `iab({ ... })` from `@c15t/iab`. The factory enables the addon and injects the runtime module automatically. The user-facing options are:
+  ## Resolve the policy before rendering
 
-  | Option | Type | Description |
-  |--------|------|-------------|
-  | `cmpId` | `number` | CMP ID registered with IAB Europe. Automatically provided by the backend when using Inth with the prebuilt IAB UI. Only set this if you have your own CMP registration. |
-  | `vendors` | `number[]` | IAB vendor IDs that your site works with |
-  | `customVendors` | `NonIABVendor[]` | Custom vendors not in the IAB registry |
+  IAB components remain hidden until an applicable policy resolves. Forcing a
+  dialog open does not create a policy or vendor list. Inspect resolution and the
+  Global Vendor List response before changing rendering conditions.
 
-  ## Key Concepts
+  IAB presentation follows `presentation.prompt.blocking` and
+  `presentation.preferences.blocking`. A blocking dialog needs focus management,
+  scroll locking and a backdrop together.
 
-  ### Purposes
+  ## Mount IABProvider for every IAB policy
 
-  IAB defines 11 standard purposes for data processing (e.g., "Store and/or access information on a device", "Select basic ads", "Measure ad performance"). Each purpose can be consented to individually.
+  IAB is opt-in. The standard `ConsentBanner` and `ConsentDialog` do not
+  handle the IAB model, so when a visitor's policy uses it, the backend
+  sends its vendor list and the app has no `IABProvider`, they throw an
+  `IABUnavailableError` (code `C15T_IAB_UNAVAILABLE`):
+  `c15t: this visitor's policy uses IAB TCF, but no <IABProvider> is mounted`.
+  The error happens during render, on the server and in the browser, so
+  your error boundary or the framework's error overlay shows it. Render `IABProvider` from
+  `c15t/react/iab` for those visitors, or remove the `iab` model from the
+  policy.
 
-  ### Stacks
+  ## When the dialog loads
 
-  Purposes are grouped into **stacks** by the GVL for a simplified UI presentation. For example, "Advertising based on limited data" might group purposes 2, 7, and 10 together.
+  `IABConsentDialog` loads its code on demand, so the first page load
+  carries the banner without the preference center. The code downloads at
+  the first of:
 
-  ### Special Features
+  - The browser's first idle period after the page's `load` event, while
+    the IAB banner is shown.
+  - Hover or focus on the banner's Customize button or partners link.
+  - The dialog opening.
 
-  Features like precise geolocation, or identifying devices based on information actively requested, that require explicit opt-in beyond standard consent.
+  A visitor who opens the dialog before the download finishes waits for
+  it. `open={true}` and `showTrigger` load it on mount, under a model the
+  dialog's `models` prop lists. Under another model, `showTrigger` loads
+  only the trigger. Set
+  `preloadDialog: 'intent'` in the consent provider options to skip the
+  idle download. Idle loading is also skipped with Save-Data on, on `2g`
+  and `slow-2g` connections, and while offline.
 
-  ### Features
+  ## Verify vendor and purpose choices
 
-  Features, such as linking different devices, are means of processing that vendors use only for the purposes the user chooses. They have no consent toggle. The preference center lists them in an informational section with the IAB standard text.
+  Test category choices alongside vendor, purpose, legitimate-interest and special
+  feature controls used by your integration. Confirm the TC String and `__tcfapi`
+  reflect the saved state, and verify the vendor's actual requests. A category-only
+  banner test does not establish that the IAB flow works.
+</section>
 
-  ### Legitimate Interest
+<section id="missing-provider">
+  The visitor's policy uses the `iab` model and the backend sent its vendor
+  list, but no `IABProvider` is mounted. The standard banner and dialog do
+  not handle the IAB model, so they throw rather than leave the visitor
+  with no consent UI. Server and browser render the same error.
 
-  Some purposes can be processed under legitimate interest rather than consent. Users can object to legitimate interest processing per-vendor.
+  Fix it one of two ways:
 
-  ### Vendors
+  - If the site uses IAB TCF, render `IABProvider` with `IABConsentBanner`
+    and `IABConsentDialog` from `c15t/react/iab` inside your consent
+    provider. They can sit next to the standard banner.
+  - If it does not, remove the `iab` model from the policy for that region
+    in your Inth project or policy pack.
 
-  Each vendor in the GVL declares which purposes it uses, whether via consent or legitimate interest. The preference center lets users toggle consent per-vendor.
+  A backend that answers `gvl: null` turns IAB off for that request. The
+  policy then runs as opt-in and nothing throws.
 
-  ## Consent Scope
-
-  c15t stores TCF choices per site and browser, so every TC string it creates is service-specific. c15t does not sync TCF choices across devices.
-
-  Do not use `/consent/check` or your own account data to skip the TCF UI on another device. Reusing choices across devices is a multi-device scope, and the TCF requires you to disclose that scope in the first layer of the UI, which the prebuilt IAB components do not do.
-
-  The `isServiceSpecific` option is deprecated. TCF requires IsServiceSpecific=1 in every TC string, so c15t always encodes `true` and logs a warning if you pass `false`.
-
-  ## Standard vs IAB Components
-
-  | Feature | ConsentBanner / ConsentDialog | IABConsentBanner / IABConsentDialog |
-  |---------|-------------------------------|-------------------------------------|
-  | Consent model | opt-in / opt-out | IAB TCF 2.4 |
-  | Granularity | Category-level (measurement, marketing, etc.) | Purpose-level + vendor-level |
-  | Vendor management | No | Yes (full GVL integration) |
-  | TC String | No | Yes |
-  | `__tcfapi` | No | Yes |
-  | Legitimate interest | No | Yes |
-  | Use when | General GDPR/CCPA compliance | Programmatic advertising in EU/EEA |
+  The check passes once `c15t/react/iab` has loaded. If you import the IAB
+  components with a dynamic `import()`, a render of the standard banner
+  that happens before the import finishes still throws.
 </section>

@@ -1,0 +1,108 @@
+---
+title: Static export
+description: Add c15t to a Next.js site built with output export, where the browser resolves consent through Inth without request helpers or API routes.
+group: frameworks
+---
+
+## Resolve consent in the browser
+
+A site built with `output: 'export'` has no Next.js server at runtime. There is
+no `/api/c15t` route, no rewrite, and no request for `resolveConsent` to read.
+The browser calls your Inth backend directly and resolves consent after the
+page loads. Static hosting still gets hosted policies and consent records.
+
+<include src="../../shared/examples/nextjs/static-export-next-config.mdx" />
+
+`withConsentManifest` finds your `c15t.config.ts`. With `output: 'export'` it
+skips the manifest download, because no server would read the snapshot.
+
+[Create an Inth project](https://inth.com), set its policy rules and add your
+exported site's origin to its trusted origins. Copy the project's backend URL.
+
+<CommandTabs command="c15t @c15t/integrations" mode="install" />
+
+## Share the backend URL
+
+Set `NEXT_PUBLIC_C15T_BACKEND_URL` to your project's backend URL, including
+any path prefix, in `.env.local` and in your host's build settings. Keep it
+absolute. A path such as `/api/c15t` would point at your static host, which
+has nothing to answer it. `NEXT_PUBLIC_INTH_PROJECT_URL` works too; when both
+are set, `NEXT_PUBLIC_C15T_BACKEND_URL` wins.
+
+Create `c15t.config.ts` at the project root with `mode: hosted()`. Without a
+server there is no consent route, so the browser calls `${backendURL}/init`.
+
+<include src="../../shared/examples/nextjs/client-side-config.mdx" />
+
+Add your `scripts` to the same config, as the
+[quickstart](/docs/frameworks/next/quickstart#add-the-consent-config) shows.
+
+## Mount the root
+
+There is no c15t stylesheet to import. The components render their own rules
+as `<style>` elements, so no stylesheet request holds back the first paint.
+With Tailwind CSS 3, import `c15t/next/styles.css` yourself and set
+`styles: false` in `ConsentRoot`'s `options`, as
+[Customize](/docs/frameworks/next/customize#load-the-stylesheet-yourself)
+shows.
+
+In the App Router, render `ConsentRoot` without `state` in the root layout:
+
+<include src="../../shared/examples/nextjs/browser-layout.mdx" />
+
+In the Pages Router, use the same `_app.tsx` as a server app. Exported pages
+have no `getServerSideProps`, so `pageProps.consent` is undefined:
+
+<include src="../../shared/examples/nextjs-pages-router/pages-app.mdx" />
+
+Without server state, `ConsentRoot` initializes in the browser. Backend
+`/init` reads the visitor's location from its own request, so location-based
+policies depend on the backend host's geography headers, not on your static
+host.
+
+## What happens before initialization
+
+The exported HTML is the same for every visitor and cannot contain one
+visitor's consent. After the page loads, the browser restores the stored choice
+and requests the policy from `/init`. Until the policy resolves, optional
+categories stay denied and the banner stays hidden. Do not add an unconditional
+analytics script to the exported HTML to work around that wait.
+
+## Test the exported files
+
+Run `next build` and serve the generated `out/` directory with a static file
+server. `next dev` can hide a dependency on an API route that the export does
+not have. Then open the site in a fresh browser session with DevTools open.
+
+1. The Network panel shows `/init` and `/subjects` requests to your backend's
+   origin, and no failed same-origin `/api/c15t` request.
+2. Under an opt-in policy, the banner appears and no PostHog request runs.
+   Click **Reject All** and reload. The banner stays closed and PostHog does
+   not load.
+3. Open **Privacy settings** and turn on **Analytics** (the `measurement`
+   category). PostHog loads.
+4. Block the backend's domain in DevTools and reload in a fresh session. No
+   banner appears and no vendor loads.
+
+A browser error about CORS means the backend does not trust the exported
+site's origin. Add it to your Inth project's trusted origins. See
+[the consent checks](/docs/guides/verify-consent) for the release checklist.
+
+## Other static options
+
+A same-origin `/api/c15t` URL needs a proxy at your host, because Next.js
+rewrites need a server. Without one, keep the absolute backend URL.
+
+To resolve a manifest in the browser instead, set
+`mode: manifest({ resolve: 'browser', manifestURL })` with an absolute
+`manifestURL` the browser can fetch, such as
+`https://your-project.inth.app/manifest`. Browser resolution has no location
+input of its own, so location-based policies call the backend's `/init`
+unless you pass `geoURL`. `c15t/next/static` has lower-level helpers that
+resolve a bundled manifest; see
+[static manifest helpers](/docs/frameworks/next/data-fetching-reference#static-manifest-helpers).
+
+Offline mode stores choices only in the browser and records nothing. Not
+recommended for production environments. Static hosting alone is not a reason
+to use it; see
+[offline configuration](/docs/frameworks/next/data-fetching-reference#offline-configuration).

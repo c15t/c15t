@@ -1,39 +1,46 @@
 import { getDataDisabled } from '@c15t/ui/primitives/data-state';
 import { getSwitchState, toggleSwitchValue } from '@c15t/ui/primitives/switch';
-import {
-	type SwitchSize,
-	type SwitchVariantsProps,
-	switchVariants,
-} from '@c15t/ui/styles/primitives/switch';
-import {
-	type ButtonHTMLAttributes,
-	forwardRef,
-	type KeyboardEvent,
-} from 'react';
+import styles from '@c15t/ui/styles/components/switch';
+import { forwardRef as createForwardRef } from 'react';
+import type { ButtonHTMLAttributes, KeyboardEvent } from 'react';
+
 import { useControllableState } from '~/components/shared/libs/use-controllable-state';
-import type { AllThemeKeys, ThemeValue } from '~/types/theme';
+import { useTheme } from '~/hooks/use-theme';
+import type { ThemeValue } from '~/types/theme';
+import { useUIConfig } from '~/ui-config-context';
+import { mergeSlotProps } from '~/utils/merge-slot-props';
 
-export type { SwitchSize, SwitchVariantsProps };
-export { switchVariants };
+export type SwitchSize = 'medium' | 'small';
+export interface SwitchVariantsProps {
+	size?: SwitchSize;
+}
+export const switchVariants = () => ({
+	root: (options?: { class?: string }) =>
+		[styles.root, options?.class].filter(Boolean).join(' '),
+	thumb: (options?: { class?: string }) =>
+		[styles.thumb, options?.class].filter(Boolean).join(' '),
+	track: (options?: { class?: string }) =>
+		[styles.track, options?.class].filter(Boolean).join(' '),
+});
 
-export type SwitchStylesKeys = {
+export interface SwitchStylesKeys {
 	'switch.root': ThemeValue;
 	'switch.thumb': ThemeValue;
 	'switch.track': ThemeValue;
-};
+}
 
 export interface SwitchProps
-	extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'onChange' | 'size'>,
+	extends
+		Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'onChange' | 'size'>,
 		SwitchVariantsProps {
 	checked?: boolean;
 	defaultChecked?: boolean;
 	noStyle?: boolean;
 	onCheckedChange?: (checked: boolean) => void;
 	size?: SwitchSize;
-	themeKey?: AllThemeKeys;
 }
 
-const Switch = forwardRef<HTMLButtonElement, SwitchProps>(
+const Switch = createForwardRef<HTMLButtonElement, SwitchProps>(
 	(
 		{
 			checked,
@@ -45,23 +52,35 @@ const Switch = forwardRef<HTMLButtonElement, SwitchProps>(
 			onClick,
 			onKeyDown,
 			size = 'medium',
-			type = 'button',
+			type: _type = 'button',
 			...rest
 		},
 		forwardedRef
 	) => {
-		const variants = switchVariants({ size });
+		const { components } = useUIConfig();
+		const { noStyle: contextNoStyle } = useTheme();
+		const variants = switchVariants();
 		const [isChecked, setIsChecked] = useControllableState({
 			defaultValue: defaultChecked,
 			onChange: onCheckedChange,
 			value: checked,
 		});
+		const finalNoStyle = noStyle ?? contextNoStyle;
 
-		const rootClassName = noStyle
-			? className
-			: variants.root({ class: className, disabled });
-		const thumbClassName = noStyle ? undefined : variants.thumb({ disabled });
-		const trackClassName = noStyle ? undefined : variants.track({ disabled });
+		const rootProps = mergeSlotProps(components?.switch?.root, {
+			baseClassName: variants.root(),
+			className,
+			noStyle: finalNoStyle,
+			...rest,
+		});
+		const trackProps = mergeSlotProps(components?.switch?.track, {
+			baseClassName: variants.track(),
+			noStyle: finalNoStyle,
+		});
+		const thumbProps = mergeSlotProps(components?.switch?.thumb, {
+			baseClassName: variants.thumb(),
+			noStyle: finalNoStyle,
+		});
 		const dataState = getSwitchState(isChecked);
 		const dataDisabled = getDataDisabled(disabled);
 
@@ -89,21 +108,27 @@ const Switch = forwardRef<HTMLButtonElement, SwitchProps>(
 
 		return (
 			<button
+				{...rootProps}
 				ref={forwardedRef}
 				aria-checked={isChecked}
-				className={rootClassName}
 				data-disabled={dataDisabled}
+				data-size={finalNoStyle ? undefined : size}
 				data-slot="switch"
 				data-state={dataState}
 				disabled={disabled}
 				onClick={handleClick}
 				onKeyDown={handleKeyDown}
 				role="switch"
-				type={type}
-				{...rest}
+				type="button"
 			>
-				<span className={trackClassName} data-slot="switch-track">
-					<span className={thumbClassName} data-slot="switch-thumb" />
+				<span
+					{...trackProps}
+					data-slot="switch-track"
+				>
+					<span
+						{...thumbProps}
+						data-slot="switch-thumb"
+					/>
 				</span>
 			</button>
 		);

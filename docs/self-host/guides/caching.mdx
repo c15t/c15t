@@ -1,87 +1,98 @@
 ---
 title: Caching
-description: Add a caching layer to your self-hosted c15t backend for production performance.
+description: Cache public manifests and vendor lists while keeping request-specific initialization and subject state private.
 group: self-host
 ---
 
-The backend includes a caching layer for frequently accessed data like GVL (Global Vendor List) lookups and custom server-side translations. By default, an in-memory cache is used — suitable for single-instance deployments. For production with multiple instances, plug in Redis or Cloudflare KV so all instances share the same cache.
+## Cache the manifest
 
-## In-Memory (Default)
+`GET /manifest` is the reusable configuration endpoint. It does not query consent
+records or depend on the visitor's location. The backend generates its revision
+from the configuration and returns it as an `ETag`.
 
-No configuration needed. The default memory cache has a 5-minute TTL and is suitable for development and single-instance deployments.
+Add these options to the [backend configuration](/docs/self-host/api/configuration):
 
-## Upstash Redis
+```ts
+manifestCache: {
+  sMaxAge: 300,
+  staleWhileRevalidate: 86400,
+},
+```
 
-```ts title="c15t.ts"
+These are the defaults, in seconds. The resulting header is
+`public, s-maxage=300, stale-while-revalidate=86400`, sent as both
+`Cache-Control` and `CDN-Cache-Control`. Vercel's CDN consumes the shared-cache
+directives from a bare `Cache-Control` and strips them before forwarding; the
+second header keeps them visible to app servers reading the manifest through
+the CDN. A policy change alters the
+revision, but a shared cache can continue serving the previous response within
+its cache window. Purge the relevant cache or choose shorter durations when your
+rollout requires it. A revision is an identity, not a remote cache invalidation
+command.
+
+Keep the tenant, backend URL and language query in the cache key. Preserve
+`Vary: Origin` when CORS emits it. Do not combine manifests from different
+projects just because their endpoint paths match.
+
+## Keep visitor state out of shared caches
+
+`GET /init` and `GET /subjects/:id` return `no-store`.
+Do not override that header with a CDN rule. `/init` contains a resolved policy
+for request inputs; subject endpoints contain private state.
+
+A server framework can reuse `/manifest` and resolve it locally for each incoming
+request. That removes the backend initialization round trip on a manifest cache
+hit while preserving per-request policy selection. It does not remove later
+consent writes or make request cookies shareable.
+
+The framework adapters honour both directives above in their in-process cache.
+After `sMaxAge` seconds they keep serving the cached manifest for up to
+`staleWhileRevalidate` seconds while one background request revalidates it with
+the `ETag`, and a failed revalidation keeps the cached copy. A shorter
+`staleWhileRevalidate` therefore bounds how long an app server can keep serving
+an old policy after this backend becomes unreachable, at the cost of blocking
+requests on the backend once that window closes.
+
+## Cache the Global Vendor List
+
+GVL caching is separate from manifest HTTP caching. Supply a cache adapter with
+your server-side GVL configuration. Concurrent misses share an in-flight fetch,
+but persistent reuse requires the configured cache.
+
+```ts title="src/consent-backend.ts"
 import { c15tInstance } from '@c15t/backend';
-import { createUpstashRedisAdapter } from '@c15t/backend/cache';
+import { createMemoryCacheAdapter } from '@c15t/backend/cache';
 
-export const c15t = c15tInstance({
-  // ...
-  cache: {
-    adapter: createUpstashRedisAdapter({
-      url: process.env.UPSTASH_REDIS_REST_URL,
-      token: process.env.UPSTASH_REDIS_REST_TOKEN,
-    }),
-  },
+import config from '../c15t-backend.config';
+
+export const backend = c15tInstance({
+	...config,
+	gvl: { cache: createMemoryCacheAdapter(), ttlMs: 86400000 },
 });
 ```
 
-If you already have an Upstash Redis client, pass it directly:
+A device can narrow the list per request with `x-c15t-vendors`. That header is
+not part of the cache key. The backend caches one document per endpoint,
+language, and configured `gvl.vendorIds`, then narrows that document for each
+request. What a client sends therefore cannot create cache entries, and cannot
+add an upstream fetch. `/init` answers with `Cache-Control: no-store` and lists
+the header in `Vary` regardless, because the vendors it names are
+request-specific.
 
-```ts
-import { createUpstashRedisAdapterFromClient } from '@c15t/backend/cache';
-import { Redis } from '@upstash/redis';
+The backend loads a GVL only for a matched IAB rule. The GVL TTL uses
+milliseconds, unlike `manifestCache`.
 
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN,
-});
+| Adapter | Use it when |
+| --- | --- |
+| `createMemoryCacheAdapter()` | One long-lived process can keep its own cache. Memory is not shared between instances. |
+| `createUpstashRedisAdapter({ url, token })` | Serverless or multiple instances need a shared cache. Install the optional `@upstash/redis` peer. |
+| `createUpstashRedisAdapterFromClient(client)` | Your application already owns an Upstash client. |
+| `createCloudflareKVAdapter(namespace)` | A compatible runtime supplies a KV namespace. This does not supply a database driver. |
 
-const adapter = createUpstashRedisAdapterFromClient(redis);
-```
+Custom `CacheAdapter` implementations provide `get`, `set`, `delete` and `has`.
+`set` receives its optional TTL in milliseconds. Cache operations should fit the
+request latency budget. A failed GVL fetch returns no usable list; verify that
+behavior with your IAB client rather than assuming a warm cache on every request.
 
-## Cloudflare KV
-
-For Cloudflare Workers deployments:
-
-```ts title="worker.ts"
-import { c15tInstance } from '@c15t/backend';
-import { createCloudflareKVAdapter } from '@c15t/backend/cache';
-
-export default {
-  async fetch(request: Request, env: Env) {
-    const c15t = c15tInstance({
-      // ...
-      cache: {
-        adapter: createCloudflareKVAdapter(env.GVL_CACHE),
-      },
-    });
-
-    return c15t.handler(request);
-  },
-};
-```
-
-## Custom Cache Adapter
-
-Implement the `CacheAdapter` interface to use any cache backend:
-
-```ts
-import type { CacheAdapter } from '@c15t/backend/cache';
-
-const customCache: CacheAdapter = {
-  async get<T>(key: string): Promise<T | null> {
-    // retrieve from your cache
-  },
-  async set<T>(key: string, value: T, ttlMs?: number): Promise<void> {
-    // store in your cache
-  },
-  async delete(key: string): Promise<void> {
-    // remove from cache
-  },
-  async has(key: string): Promise<boolean> {
-    // check existence
-  },
-};
-```
+Choose the adapter path in [data fetching](/docs/concepts/data-fetching) or
+[Next.js rendering and deployment](/docs/frameworks/next/rendering#choose-how-the-server-gets-the-policy).

@@ -1,49 +1,64 @@
 ---
 title: c15t vs Silktide Consent Manager
-description: Compare c15t with Silktide Consent Manager for client-side banners, Google Consent Mode, framework APIs, and backend policy resolution.
+description: Choose c15t for native application state, regional policy and backend records. Compare Silktide's free browser manager and the setup c15t adds.
+group: reference
 ---
 
-[Silktide Consent Manager](https://github.com/silktide/consent-manager) is a
-free, open-source banner with Google Consent Mode v2 examples. Its docs show
-consent defaults, `gtag` mappings, a `stcm_consent_update` dataLayer event, and
-both CDN and self-hosted deployment.
+## Choose c15t when consent needs to reach the application
 
-c15t is the better starting point when Consent Mode needs to connect to app
-state, backend records, policy packs, or React and Next.js APIs. Silktide is a
-good fit for a free client-side banner that can stay browser-local.
+c15t is the stronger fit when your product needs consent state across components, vendor rules and backend records. It gives your team a common model for the interface and the code behind it.
 
-<Callout type="warn">
-  Consent tooling does not guarantee legal compliance by itself. Your policies,
-  disclosures, vendor list, regional behavior, and record-keeping still need to
-  match your legal requirements.
-</Callout>
+Silktide Consent Manager is a free, open-source browser manager. It supports preference controls, consent-based script injection and Google Consent Mode. It is more than a decorative banner.
 
-## Why c15t wins here
+<include src="../shared/comparisons/inth-hosting.mdx" />
 
-- c15t can start in JavaScript or offline mode and grow into hosted or
-  self-hosted records.
-- c15t includes React and Next.js APIs for app-owned consent state.
-- c15t supports script loading, iframe blocking, network blocking, and policy
-  packs.
-- c15t keeps Google Consent Mode work connected to the same consent model used
-  by the rest of the app.
-- c15t gives teams room to add durable consent records and server-side state.
+## Compare the scope beyond the banner
 
-## Comparison
-
-| Area | c15t | Silktide Consent Manager |
+| What you need | c15t | Silktide Consent Manager |
 | --- | --- | --- |
-| Primary shape | Developer-first consent platform | Client-side consent banner |
-| Framework support | JavaScript, React, and Next.js packages | CDN or self-hosted script |
-| Backend records | Hosted or self-hosted records | Browser-local storage |
-| Consent Mode | Google tag helper | Consent Mode examples and mappings |
-| Script control | Loader, iframe blocker, and network blocker | Configured scripts and callbacks |
-| Growth path | Backend records, policy packs, framework state, and IAB TCF | Banner and client-side consent logic |
+| Use consent in application components | Native framework adapters and reactive state | Browser configuration and callbacks |
+| Choose policy by visitor context | Backend policy resolution and regional rules | Configure consent types and defaults in the browser setup |
+| Show preference controls | Category and vendor choices | Configurable consent types and preference modal |
+| Control vendor scripts | Integration helpers, request rules and embeds | Script injection per consent type and callbacks |
+| Use Google Consent Mode | Google tag and GTM integrations | Consent Mode updates and GTM events |
+| Handle withdrawal | Reload by default. Optional declared data cleanup | Reload after the visitor revokes consent for injected scripts |
+| Keep remote records | Inth hosts the backend and stores records in its database. Self-hosting is optional | No managed record service documented with the browser library |
+| Customise the interface | Themes, component parts and headless APIs | Configurable text, appearance and source code |
+| Budget for use | No licence fee. Production backend costs remain | Free browser tool without traffic or domain limits |
 
-## Bottom line
+Sources: [Silktide product scope](https://silktide.com/consent-manager/) and [configuration and source](https://github.com/silktide/consent-manager).
 
-Start with c15t even for free client-side banner work. It keeps the Consent Mode
-setup connected to a platform that can support application state, backend
-records, regional policy, and framework behavior.
+## Give the product one consent model
 
-See the full overview in [Compare c15t](/docs/comparison).
+With c15t, a settings screen can read the same state that controls a vendor or video embed. Your developers can test that behaviour with the rest of the application.
+
+Use [framework components](/docs/frameworks) or a [headless interface](/docs/frameworks/react/headless). The backend supplies policy and receives consent records.
+
+That gives you a defined route beyond local browser preferences. A visitor's local choice and a confirmed backend record remain separate events.
+
+## Choose how the page receives consent
+
+For Next.js, c15t supports [streamed, awaited and browser paths](/docs/frameworks/next/rendering). In the App Router, use the default streamed path to let the page appear before consent resolves.
+
+The banner follows in a later chunk of the same response, before hydration. To send the page and the banner together, use an awaited path. That adds a wait, so measure the effect on your application.
+
+Silktide's published setup runs in the browser. c15t's advantage here is its documented framework and server workflow, not a measured speed claim.
+
+## What c15t does not include
+
+- **A free managed record service.** Inth and self-hosted operations have costs beyond the software licence.
+- **The same account-free production workflow.** The recommended c15t setup connects to a backend.
+- **Automatic discovery of every site script.** Register the relevant vendors and remove their old loaders.
+- **A zero-request guarantee from Consent Mode.** Some integrations run with denied signals before consent.
+
+If local preferences and a free browser manager cover the requirement, Silktide remains a reasonable choice. c15t is the stronger choice when policy and records must be part of the application.
+
+## Check signals and actual requests
+
+Build a trial with [Inth and the framework guide](/docs/frameworks). Use the [Google tag](/docs/integrations/google-tag) or [GTM guide](/docs/integrations/google-tag-manager) for your setup.
+
+Inspect the initial signals, acceptance, rejection and later withdrawal. Check the requests made by the tags inside the container too.
+
+Use the [verification guide](/docs/guides/verify-consent) to compare browser behaviour with saved records.
+
+Sources checked on 6 October 2026. Silktide's wider paid website platform is outside this comparison.

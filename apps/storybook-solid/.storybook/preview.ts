@@ -1,9 +1,13 @@
+import type { Preview } from 'storybook-solidjs-vite';
+
+import '../../../packages/ui/dist/styles.css';
+// The stories render the primitive class maps, whose rules are not in
+// styles.css.
+import '../../../packages/ui/dist/styles/primitives.css';
 import {
 	defaultTheme,
 	generateThemeCSS,
 } from '../../../packages/ui/src/theme/utils';
-import '../../../packages/ui/dist/styles.css';
-import type { Preview } from 'storybook-solidjs-vite';
 
 const storybookThemeStyleId = 'c15t-storybook-theme';
 const storybookCanvasStyleId = 'c15t-storybook-canvas';
@@ -23,7 +27,10 @@ const canvasCSS = `
 	}
 `;
 
-function ensureGlobalStyle(id: string, cssText: string) {
+const ensureGlobalStyle = function ensureGlobalStyle(
+	id: string,
+	cssText: string
+) {
 	if (typeof document === 'undefined') {
 		return;
 	}
@@ -36,7 +43,7 @@ function ensureGlobalStyle(id: string, cssText: string) {
 	style.id = id;
 	style.textContent = cssText;
 	document.head.appendChild(style);
-}
+};
 
 ensureGlobalStyle(storybookThemeStyleId, themeCSS);
 ensureGlobalStyle(storybookCanvasStyleId, canvasCSS);

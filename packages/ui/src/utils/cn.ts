@@ -10,7 +10,10 @@ export type ClassValue =
 	| ClassDictionary
 	| ClassArray;
 
-function pushClassNames(tokens: string[], value: ClassValue): void {
+const pushClassNames = function pushClassNames(
+	tokens: string[],
+	value: ClassValue
+): void {
 	if (!value) {
 		return;
 	}
@@ -39,19 +42,16 @@ function pushClassNames(tokens: string[], value: ClassValue): void {
 	const dictionary = value as ClassDictionary;
 
 	for (const key in dictionary) {
-		if (
-			Object.prototype.hasOwnProperty.call(dictionary, key) &&
-			dictionary[key]
-		) {
+		if (Object.hasOwn(dictionary, key) && dictionary[key]) {
 			tokens.push(key);
 		}
 	}
-}
+};
 
 /**
  * Framework-agnostic class merging for c15t UI packages.
  */
-export function cn(...classes: ClassValue[]) {
+export const cn = function cn(...classes: ClassValue[]) {
 	const tokens: string[] = [];
 
 	for (const value of classes) {
@@ -59,4 +59,4 @@ export function cn(...classes: ClassValue[]) {
 	}
 
 	return tokens.join(' ');
-}
+};

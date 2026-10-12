@@ -1,0 +1,23 @@
+---
+title: Hooks
+description: Gate features and save consent choices in React components with the focused hooks exported from c15t/react.
+group: frameworks
+---
+
+## Read only the state you need
+
+Every hook reads the runtime from the nearest `ConsentProvider`, so call them
+from components rendered inside that provider and import them from
+`c15t/react`.
+
+<include src="../../shared/examples/react/optional-feature.mdx" />
+
+<import src="../../shared/react/hooks/overview.mdx#read-state" />
+
+## Save from a visitor action
+
+Render this component inside your existing `ConsentProvider`.
+
+<include src="../../shared/examples/react/reject-button.mdx" />
+
+<import src="../../shared/react/hooks/overview.mdx#save-guidance" />

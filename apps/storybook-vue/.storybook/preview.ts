@@ -1,14 +1,15 @@
-import {
-	defaultTheme,
-	generateThemeCSS,
-} from '../../../packages/ui/src/theme/utils';
-import '../../../packages/ui/dist/styles.css';
 import type { Preview } from '@storybook/vue3-vite';
 
-const storybookThemeStyleId = 'c15t-storybook-theme';
+// The stylesheets ship the `defaultTheme` tokens themselves, so the canvas
+// only has to opt into them — no `generateThemeCSS(defaultTheme)` injection.
+import '../../../packages/ui/dist/styles.css';
+// IAB styles match the react preview import set — the parity runner compares
+// computed CSS custom properties per element, so both storybooks must load
+// the same stylesheet set even for non-IAB stories.
+import '../../../packages/ui/dist/iab/styles.css';
+
 const storybookCanvasStyleId = 'c15t-storybook-canvas';
 
-const themeCSS = generateThemeCSS(defaultTheme);
 const canvasCSS = `
 	:root {
 		color: var(--c15t-text);
@@ -23,7 +24,10 @@ const canvasCSS = `
 	}
 `;
 
-function ensureGlobalStyle(id: string, cssText: string) {
+const ensureGlobalStyle = function ensureGlobalStyle(
+	id: string,
+	cssText: string
+) {
 	if (typeof document === 'undefined') {
 		return;
 	}
@@ -36,9 +40,8 @@ function ensureGlobalStyle(id: string, cssText: string) {
 	style.id = id;
 	style.textContent = cssText;
 	document.head.appendChild(style);
-}
+};
 
-ensureGlobalStyle(storybookThemeStyleId, themeCSS);
 ensureGlobalStyle(storybookCanvasStyleId, canvasCSS);
 
 const preview: Preview = {

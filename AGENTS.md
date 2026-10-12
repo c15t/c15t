@@ -1,6 +1,6 @@
 # c15t Monorepo
 
-c15t is a developer-first consent management platform (CMP): cookie banners, consent dialogs, preference centers, consent-gated script loading, Google Consent Mode v2, and IAB TCF 2.3 for JavaScript, React, Next.js, Vue, Svelte, and Solid. This repo contains the published npm packages, the MDX source for the c15t.com docs, benchmarks, Storybook apps, and a demo.
+c15t is a developer-first consent management platform (CMP): cookie banners, consent dialogs, preference centers, consent-gated script loading, Google Consent Mode v2, and IAB TCF 2.4 for JavaScript, React, Next.js, Vue, Svelte, and Solid. This repo contains the published npm packages, the MDX source for the c15t.com docs, benchmarks, Storybook apps, and a demo.
 
 This file is the canonical agent guide. `CLAUDE.md` imports it. Deeper task guides live in `.agents/skills/` (symlinked into `.claude/skills/`, `.cursor/skills/`, and `.github/skills/`). Third-party skills are managed with the [skills CLI](https://skills.sh) and pinned in `skills-lock.json` — add or refresh them with `bunx skills add <owner>/<repo>` / `bunx skills update -y`, never by hand-editing their files. The first-party skills (`writing-docs`, `releasing`, `creating-a-package`) are maintained in this repo.
 
@@ -8,13 +8,21 @@ This file is the canonical agent guide. `CLAUDE.md` imports it. Deeper task guid
 
 | Path | What it is |
 | --- | --- |
-| `packages/core` | `c15t` — headless consent engine (storage, script gating, callbacks) |
+| `packages/c15t` | `c15t` — the umbrella package users install; re-exports the adapters as `c15t/next`, `c15t/react`, `c15t/vue`, `c15t/astro`, `c15t/tanstack-start` |
+| `packages/core` | `@c15t/core` — headless consent engine (storage, script gating, callbacks) |
 | `packages/react` | `@c15t/react` — banner/dialog/preference-center components + headless hooks |
 | `packages/nextjs` | `@c15t/nextjs` — Next.js integration (App + Pages Router, SSR) |
+| `packages/tanstack-start` | `@c15t/tanstack-start` — TanStack Start integration (server routes, server functions, request middleware, SSR) |
 | `packages/ui` | `@c15t/ui` — framework-agnostic primitives, CSS, theme system |
-| `packages/vue`, `packages/svelte`, `packages/solid` | Thin framework re-exports of `@c15t/ui` |
-| `packages/scripts` | `@c15t/scripts` — consent-aware loaders for GTM, GA4, pixels, widgets |
-| `packages/iab` | `@c15t/iab` — IAB TCF 2.3 addon (TC String, GVL, vendor consent) |
+| `packages/vue` | `@c15t/vue` — Vue plugin and Nuxt module (`c15t/vue`) |
+| `packages/svelte` | `@c15t/svelte` — Svelte components and SvelteKit helpers (not in the umbrella) |
+| `packages/astro` | `@c15t/astro` — Astro integration (`c15t/astro`) |
+| `packages/browser` | `@c15t/browser` — script-tag build and stock UI for sites without a framework |
+| `packages/react-native` | `@c15t/react-native` — native iOS and Android consent SDK, released separately |
+| `packages/solid` | `@c15t/solid` — private; re-exports `@c15t/ui` primitives only |
+| `packages/integrations` | `@c15t/integrations` — consent-aware loaders for GTM, GA4, pixels, widgets |
+| `packages/scripts` | `@c15t/scripts` — deprecated v3 compatibility re-exports of `@c15t/integrations`; retire in v4 |
+| `packages/iab` | `@c15t/iab` — IAB TCF 2.4 addon (TC String, GVL, vendor consent) |
 | `packages/backend` | `@c15t/backend` — self-hostable consent backend (policies, audit, geo) |
 | `packages/cli` | `@c15t/cli` — scaffolding/setup CLI |
 | `packages/node-sdk`, `packages/schema`, `packages/translations`, `packages/logger`, `packages/dev-tools` | Node API client, Valibot schemas, i18n, logger, devtools |
@@ -22,13 +30,13 @@ This file is the canonical agent guide. `CLAUDE.md` imports it. Deeper task guid
 | `docs/` | MDX source for c15t.com **and** the docs bundled into published packages |
 | `internals/` | `@c15t/typescript-config`, `@c15t/vitest-config`, storybook tests, bundle-analysis action |
 | `apps/` | Storybook apps per framework + bundle bench |
-| `examples/demo` | Next.js demo app (`bun run dev` runs this) |
+| `apps/playground` | Next.js demo app (`bun run dev` runs this) |
 | `benchmarks/` | Bundle-size, runtime, and CSS-compat benchmark harnesses |
 | `scripts/` | Repo tooling: docs generation, readme generation, publish checks |
 
 ## Toolchain
 
-Bun `1.3.11` is the package manager and script runner. Turborepo orchestrates tasks. Packages build with **rslib** (ESM + CJS into `dist/`, types into `dist-types/`). Tests run with **Vitest — not `bun test`** — including Playwright-backed browser tests. Lint/format is **Biome**. Versioning/publishing is **Changesets**. Lefthook installs a pre-commit hook (Biome format on staged files) on `bun install`.
+Bun `1.3.11` is the package manager and script runner. Turborepo orchestrates tasks. Packages build with **rslib** (ESM only into `dist/`, types into `dist-types/`). Tests run with **Vitest — not `bun test`** — including Playwright-backed browser tests. **Oxlint** handles linting and **Oxfmt** handles formatting through Ultracite presets. Versioning/publishing is **Tegami**. Lefthook installs a pre-commit hook (Oxfmt on staged files) on `bun install`.
 
 ## Commands
 
@@ -48,15 +56,15 @@ bun run --cwd packages/react test src/foo.test.tsx   # one file — runs the pac
                                                      # — the latter silently lists scripts instead of running
 
 bun run check-types                                  # tsc --noEmit per package (depends on build)
-bun run lint                                         # biome lint via turbo
-bun run fmt                                          # biome format via turbo
+bun run lint                                         # Oxlint via turbo + repo-wide backstop
+bun run fmt                                          # repo-wide Oxfmt
 bun run lint:docs && bun run fmt:docs                # remark for docs/**/*.mdx
 
-bun run dev                                          # examples/demo + watch-builds of its deps
-bun run --cwd examples/demo dev:localhost            # plain `next dev` (no portless/https)
+bun run dev                                          # apps/playground + watch-builds of its deps
+bun run --cwd apps/playground dev:localhost         # plain `next dev` (no portless/https)
 ```
 
-Browser tests (react, nextjs) need Chromium: `bunx playwright@1.58.2 install`.
+Browser tests (react, nextjs, tanstack-start) need Chromium: `bunx playwright@1.58.2 install`.
 
 `check-types` and `test` depend on `build` in `turbo.json` — if types look stale or imports of workspace packages fail, build first.
 
@@ -70,16 +78,17 @@ Keep `cacheDir` unset — Turborepo detects a linked Git worktree and automatica
 
 ## Code style
 
-Enforced by `biome.jsonc` (root):
+Enforced by `oxlint.config.ts` and `oxfmt.config.ts` (root):
 
 - Tabs, line width 80, single quotes, semicolons, LF. JSX uses double quotes.
-- File names must be ASCII **kebab-case** (`useFilenamingConvention` is an error).
-- Errors include `noParameterAssign`, `useAsConstAssertion`, `noUselessElse`, `useSelfClosingElements`, `noInferrableTypes`, `useEnumInitializers`.
-- Class strings are sorted (`useSortedClasses`) in `className`, `clsx`, `cva`, `tw`, `cn`, `twMerge`, `twJoin`.
+- Oxlint extends Ultracite's core, React, and Vue presets. Rules with existing violations are listed as deferred in `oxlint.config.ts`; all other preset rules remain errors.
+- Oxfmt deliberately leaves import, package JSON, and Tailwind sorting disabled to avoid unrelated reorder-only diffs.
+- `@c15t/ui` component CSS takes colors, shadows, fonts, font sizes and weights, line heights, radii, spacing and motion from `var()`: a `--c15t-*` theme token, or a component variable that defaults or falls back to one. A literal fallback on a component variable counts as a literal. `packages/ui/src/styles/__tests__/design-token-literals.test.ts` fails on new literals. Older ones are listed in `design-token-baseline.json`, which should only shrink.
 
 Conventions not enforced by tooling (hold new code to these; older code has exceptions):
 
 - Avoid TypeScript `enum`s — use `as const` objects.
+- File names use ASCII **kebab-case**.
 - TypeScript is strict (`strict`, `noUncheckedIndexedAccess` via `@c15t/typescript-config`). Avoid `any`; prefer `unknown`.
 - Public APIs carry TSDoc (`@param`, `@returns`, `@throws`, `@example`, `@internal` where relevant); descriptive generic names (`ResponseType`, not `T`).
 - React UI uses compound components (`Component.Root`/`Component.Child`), context with throwing accessor hooks, and `asChild` composition.
@@ -89,15 +98,16 @@ Conventions not enforced by tooling (hold new code to these; older code has exce
 
 | File(s) | Generated by | Source of truth |
 | --- | --- | --- |
-| `AGENTS.md` + `docs/` in packages core, react, nextjs, backend, scripts, cli | `scripts/generate-package-docs.ts` (leadtype — see the `leadtype` skill), runs during those packages' builds | `docs/**/*.mdx` + `docs/docs.config.ts` |
+| `AGENTS.md`, `SKILL.md` + `docs/` in the packages listed in `scripts/generate-package-docs.ts` | `scripts/generate-package-docs.ts` (leadtype — see the `leadtype` skill), runs during those packages' builds | `docs/**/*.mdx` + `docs/docs.config.ts` |
 | `README.md` in packages that have a `readme.json` | `bun run generate:readmes` | that package's `readme.json` |
 | `packages/*/src/version.ts` | `genversion` via each package's `prebuild` | package.json version |
+| `packages/cli/src/generate/version.ts` | `packages/cli/scripts/write-version.ts` via `prebuild`, `pretest`, and `check-types` | package.json version |
 | `dist/`, `dist-types/`, `coverage/` | builds/tests | — |
 | `.docs/` | `bun run setup:docs` (private docs-site template; maintainers only) | — |
 
 To change package-bundled docs or READMEs, edit the source (`docs/**/*.mdx` or `readme.json`) and regenerate.
 
-The package-level `AGENTS.md` files are **consumer-facing** documentation indexes that ship in the published tarballs (they are listed in each package's `files`), so an agent in a user's app can read the docs offline from `node_modules`. They are not contribution guidance, they are gitignored here, and they only appear after a build. Keep them useful to that audience — don't add monorepo-only instructions to them. This file's rules still apply when you work inside those packages.
+The package-level `AGENTS.md` files are **consumer-facing** documentation indexes that ship in the published tarballs (they are listed in each package's `files`), so an agent in a user's app can read the docs offline from `node_modules`. They are not contribution guidance and are regenerated by each build; some are also tracked, so commit the regenerated copies when a docs change touches them. Keep them useful to that audience — don't add monorepo-only instructions to them. This file's rules still apply when you work inside those packages.
 
 ## Change hygiene
 
@@ -105,22 +115,62 @@ When adding or changing user-facing package behavior:
 
 - Update or add docs in `docs/**/*.mdx` when the change affects public APIs, integration behavior, setup steps, configuration, migration paths, or user-visible defaults. Use the `writing-docs` skill for docs work, and the `leadtype` skill when touching docs components, navigation/config, MDX conversion, linting, or generated package docs.
 - If the docs are bundled into packages, regenerate with `bun run generate:package-docs` or the relevant package `build:docs` script.
-- Add a changeset for user-facing published-package changes with `bun run changeset`. Write the summary as the changelog entry.
-- Do not hand-edit package `CHANGELOG.md` files during normal feature work; Changesets generates them. Only amend an unpublished generated changelog as part of release/version PR cleanup.
+- Add a `.tegami/*.md` release note for user-facing published-package changes with `RELEASE_BRANCH=v3 bun run tegami`, using the PR target branch. Include explicit package bumps and a Markdown heading. Write the body as the changelog entry.
+- Do not hand-edit package `CHANGELOG.md` files during normal feature work; Tegami generates them. Only amend an unpublished generated changelog as part of release/version PR cleanup.
 
 ## Branches and releases
 
-- **`canary`** is the default branch and PR target; merges auto-publish `--tag canary` snapshots.
-- **`main`** is stable; **`2.0.0`** publishes RC pre-releases. `sync-canary.yml` syncs main → canary.
-- User-facing package changes need a changeset (`bun run changeset`). `c15t`, `@c15t/react`, `@c15t/nextjs`, `@c15t/backend`, `@c15t/cli`, `@c15t/iab`, `@c15t/node-sdk`, `@c15t/translations`, and `@c15t/dev-tools` are **linked** — they version together.
+- **`canary`** is the default branch and PR target; pushes auto-publish commit-specific snapshots with the `canary` npm tag.
+- **`main`** is stable; **`v3`** publishes alpha prereleases; **`2.0.0`** publishes RC pre-releases. `sync-canary.yml` syncs main → canary.
+- User-facing package changes need a `.tegami/*.md` release note. Read `scripts/tegami.ts` for the linked package list. Selected linked packages share a version; unchanged members do not release automatically. See `.tegami/README.md` for release channels, version PRs, and alpha note replay. Publishing stays in `release.yml` to preserve npm trusted publishing.
 - See the `releasing` skill for the full flow.
 
 ## CI on pull requests
 
-- **CI** (`ci.yml`) contains reusable typecheck, lint, build, root script test, and package test jobs. It runs directly for pull requests, with build and package tests scoped by `--affected`; a separate coverage workflow posts per-package coverage comments afterward. **Release** (`release.yml`) calls the same CI checks in full on pushes to `canary`, `main`, and `2.0.0`, then publishes only after every check passes. Keeping `release.yml` as the top-level publishing workflow also preserves its npm trusted-publisher identity. `check-types` and root script tests always run in full as cross-package backstops. A PR that affects no package tests nothing and posts no coverage comment — that is expected, not a failure.
-- **autofix.ci**: runs `bun fmt` + `bun fmt:docs` and pushes fixes to your branch — pull before adding commits after CI runs.
-- **Bundle Analysis** (every PR) and **Benchmark Regression** (path-filtered: core/react/nextjs/translations/ui/benchmarks/lockfile/turbo.json) post bundle-size and perf comparisons. For perf work, include before/after benchmark numbers (`bun run bench`).
-- **PR Preview**: publishes preview packages to pkg.pr.new for package-path changes, but only for org members or PRs labeled `deploy:preview`.
+`ci.yml` selects checks from changed files and the workspace dependency graph.
+Docs-only PRs run lint, formatting, repository tests and docs generation.
+Runtime changes select affected packages and their dependents; lockfile, root
+configuration and unknown inputs select the full graph. Package code builds
+once and downstream jobs restore its outputs and Turbo cache from `ci-build`.
+Docs generation is a separate `build:docs` task. Root `build` and release
+commands include both tasks.
+
+Package tests, test-type checks, database tests and browser integration groups
+report through Actions summaries and artifacts. Coverage reports show changed
+instrumented lines and branches. Bundle and runtime comparisons fail on
+missing measurements. These workflows do not post PR comments. Superseded PR
+runs are cancelled.
+
+Browser groups own example acceptance, supported Next router/build contracts,
+framework parity and Storybook interactions, SSR consent journeys, and CSS
+compatibility. `scripts/ci-plan.ts` selects the groups; `scripts/ci-browser.ts`
+runs them. See [.github/CI.md](.github/CI.md) for commands and assertion ownership.
+
+`release.yml` calls CI with runtime benchmarks skipped before publishing on
+`canary`, `main`, `2.0.0`, and `v3`, preserving its npm trusted-publisher identity.
+On `v3`, checks select changes since the last successful ancestor release run;
+unavailable history falls back to full validation. Version-only workspace manifests
+select forward builds, while version-only lockfile updates and publish-lock metadata
+do not select runtime suites. Real dependency changes still select full checks.
+Publishing restores CI builds and checks only the packages Tegami will upload.
+Jobs save their completed Turbo tasks under separate cache scopes after their work.
+Affected React Native JavaScript tests run in the package job. Native toolchains
+select native, Codegen, mobile build and benchmark inputs. `mobile-device.yml`
+runs advisory app builds independently on release pushes and is called by PR
+and full validation CI, so release publication does not wait for it.
+`benchmark-regression.yml` runs full runtime comparisons independently on `v3`
+pushes, nightly, and manually. Scheduled runs explicitly check out `v3` and
+activate once the workflow is on the default branch. `validation.yml` runs full
+CI nightly. `next-compat.yml` separately probes Next canary releases as advisory
+checks. Runtime benchmarks use one runner per package, except core-benchmarks,
+which splits across three, measuring base and head in alternating rounds on each
+runner. Routine PR comparisons use four quick-profile jobs; full validation uses
+ten jobs including browser performance. Historical v2 improvement
+comparisons remain an explicit release-profile benchmark command.
+
+`autofix.ci` runs `bun fmt` and `bun fmt:docs` and pushes formatting fixes.
+Pull before adding commits after it runs. PR Preview publishes package previews
+for org members or PRs labeled `deploy:preview`.
 
 ## Contributing rules
 

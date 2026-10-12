@@ -1,2 +1,4 @@
 c15t.config.*
 c15t.backend.*
+# Written from package.json by scripts/write-version.ts.
+src/generate/version.ts

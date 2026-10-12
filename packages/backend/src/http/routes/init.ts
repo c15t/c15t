@@ -1,0 +1,107 @@
+/**
+ * `GET /init` — the per-request consent decision.
+ *
+ * Registered by `createApp`. Split by resource, mirroring `@c15t/backend`'s
+ * `routes/` layout — a single file holding every route grows past the point
+ * where a reviewer can hold it in mind, and makes the eventual cutover diff
+ * harder to read than it needs to be.
+ */
+
+import {
+	applyInitParamsToHeaders,
+	buildConsentSessionReport,
+	CONSENT_EXPERIMENT_HEADER,
+	parseExperimentHeader,
+	isSpeculativeRequest,
+	readSessionJourney,
+} from '@c15t/schema/types';
+import { describeRoute } from 'hono-openapi';
+
+import type { RouteContext } from '../context';
+import { buildInitResponse } from '../init';
+import {
+	detachConsentSession,
+	emitConsentSession,
+	instanceTenant,
+} from '../session';
+
+export const register = function register({
+	app,
+	options,
+}: RouteContext): void {
+	app.get(
+		'/init',
+		describeRoute({
+			summary: 'Resolve the consent decision for this request',
+			tags: ['Init'],
+		}),
+		async (c) => {
+			// A browser sends its version, contract, overrides and experiment
+			// arm as query parameters (`v`, `contract`, `country`, `region`,
+			// `gpc`, `experiment`), so a cross-origin init needs no CORS
+			// preflight. Older clients and server callers send the same
+			// values as headers. Folded onto the header names, a parameter
+			// wins and every reader below sees one set of inputs.
+			const headers = applyInitParamsToHeaders(c.req.url, c.req.raw.headers);
+			const { body, manifest, signals } = await buildInitResponse(
+				options.manifest ?? {},
+				headers,
+				options.policySnapshot,
+				options.gvl,
+				options.tenantId
+			);
+			// The same event a manifest host reports through `POST /sessions`,
+			// so one sink sees every visitor regardless of which path served
+			// them. A prefetch is a page the visitor may never open, not a visit,
+			// and a `HEAD` probe (Hono answers it with this handler) is a health
+			// check, not a visitor. Detached: a visitor's response never waits
+			// on a sink.
+			if (
+				c.req.raw.method === 'GET' &&
+				!isSpeculativeRequest(c.req.raw.headers)
+			) {
+				detachConsentSession(
+					c,
+					emitConsentSession(
+						c,
+						options,
+						{
+							...buildConsentSessionReport({
+								// The arm an undecided visitor runs; the client sends it
+								// only while no choice is stored.
+								experiment: parseExperimentHeader(
+									headers.get(CONSENT_EXPERIMENT_HEADER)
+								),
+								init: body,
+								inputs: signals,
+								// The journey id links this resolution to the save that
+								// follows; the browser sends it as query parameters. The
+								// page's domain comes from `Origin`, or from the request's
+								// host when a same-origin GET sent none.
+								journey: readSessionJourney(
+									c.req.url,
+									c.req.header('origin') ?? c.req.url
+								),
+								manifest,
+								source: 'init',
+							}),
+							// The instance's scope, as a host's report is stamped.
+							tenantId: instanceTenant(options),
+						},
+						{ delivery: 'detached', headers, ip: 'connection' }
+					)
+				);
+			}
+			// Geo-dependent by definition, so it must never be cached across
+			// visitors the way /manifest is. The contract is part of the
+			// response identity too, for any cache that ignores no-store, and so
+			// is the declared vendor scope: it changes which vendors the response
+			// names, which is the one thing a consent surface may not serve to the
+			// wrong client. A contract sent as `contract` is already in
+			// the URL every cache keys on; `Vary` covers the legacy header.
+			c.header('Cache-Control', 'no-store');
+			c.header('Vary', 'Origin, x-c15t-policy-contract, x-c15t-vendors');
+			return c.json(body);
+		}
+	);
+};

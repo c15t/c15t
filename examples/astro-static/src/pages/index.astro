@@ -1,0 +1,24 @@
+---
+import BaseLayout from '../layouts/base.astro';
+---
+
+<BaseLayout title="c15t Astro static starter">
+	<main>
+		<h1>c15t Astro static starter</h1>
+		<p>
+			This page is built once and served as a static file. The browser asks
+			your c15t backend whether to show the banner. PostHog loads once you
+			allow analytics.
+		</p>
+	</main>
+</BaseLayout>
+
+<style is:global>
+	body {
+		font-family: system-ui, sans-serif;
+		line-height: 1.5;
+		margin: 0 auto;
+		max-width: 40rem;
+		padding: 2rem 1rem;
+	}
+</style>

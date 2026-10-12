@@ -1,0 +1,48 @@
+---
+title: Backend overview
+description: What the c15t consent backend does, and when to use Inth or run @c15t/backend yourself with your own SQL database.
+group: self-host
+---
+
+## Start with Inth
+
+[Inth](https://inth.com) is the recommended backend for c15t applications. Use
+the endpoint supplied by your project in the [framework quickstart](/docs/frameworks).
+You get a backend connection without running the SQL service described in these
+guides.
+
+Self-hosting runs `@c15t/backend` in your own server, and your app connects to
+it with the same hosted mode it would use for Inth. Choose it when you need to
+operate the service yourself. You own database provisioning, migrations,
+backups, policy configuration, signing secrets, availability and upgrades.
+
+## What the backend provides
+
+| Capability | How clients use it |
+| --- | --- |
+| Reusable configuration | `/manifest` publishes policy rules, translation configuration and IAB metadata for caching and local resolution. |
+| Request initialization | `/init` resolves the policy for a request's location, language and privacy signals. |
+| Consent persistence | Subject endpoints record confirmed category receipts and retrieve current choices. |
+| Identity links | `PATCH /subjects/:id` links a device subject to an external identity, such as a signed-in account. |
+| Legal-document versions | An authenticated release endpoint stores the current document identity. Exported helpers sign and verify document snapshots. |
+
+For Next.js request rendering, prefer the cached manifest path described in
+[data fetching](/docs/concepts/data-fetching). A browser-only application can use
+regular initialization. A static frontend can use either Inth or a separately
+deployed self-hosted backend; static hosting does not require offline mode.
+
+## What offline mode changes
+
+`offline()` resolves policy in the browser and keeps choices in browser
+storage. It never calls a backend, so no consent records exist and policy lives
+in your code. Use it for local development and tests. Not recommended for
+production environments. See [choose your setup](/docs/concepts/choose-your-setup).
+
+## Operate your own backend
+
+Start with the [self-hosted quickstart](/docs/self-host/quickstart), then review
+[database setup](/docs/self-host/guides/database-setup) and
+[configuration](/docs/self-host/api/configuration). Use
+[HTTP endpoints](/docs/self-host/api/endpoints) to integrate a custom server
+client, and [policy configuration](/docs/self-host/guides/policy-packs) when you
+own the policy manifest.

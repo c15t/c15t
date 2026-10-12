@@ -1,0 +1,37 @@
+{
+	"name": "@c15t/conformance",
+	"version": "0.0.1",
+	"private": true,
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts",
+		"./play/*": "./src/play/*.ts",
+		"./fixtures": "./src/fixtures/index.ts",
+		"./fixtures/*": "./src/fixtures/*.ts",
+		"./contract": "./src/contract/index.ts",
+		"./contract/*": "./src/contract/*.ts",
+		"./assertions": "./src/assertions/index.ts",
+		"./a11y": "./src/a11y/index.ts",
+		"./dom-snapshot": "./src/dom-snapshot.ts",
+		"./computed-style": "./src/computed-style.ts",
+		"./driver": "./src/driver.ts",
+		"./suite": "./src/suite/index.ts",
+		"./lint": "./src/lint/testid-lint.ts"
+	},
+	"scripts": {
+		"lint:testids": "bun src/lint/testid-lint.ts",
+		"test": "bun test --tsconfig-override \"$PWD/tsconfig.json\" --preload ./test-setup.ts"
+	},
+	"dependencies": {
+		"@c15t/core": "workspace:*",
+		"@c15t/schema": "workspace:*",
+		"axe-core": "4.11.0",
+		"storybook": "10.3.1"
+	},
+	"devDependencies": {
+		"@c15t/typescript-config": "workspace:*",
+		"@happy-dom/global-registrator": "^20.0.0",
+		"@iabtechlabtcf/core": "^1.5.22",
+		"typescript": "6.0.3"
+	}
+}

@@ -1,3 +1,9 @@
+import type {
+	KernelIABState,
+	GlobalVendorList,
+	NonIABVendor,
+	PublisherRestriction,
+} from '@c15t/core';
 /**
  * Headless IAB types shared across all framework wrappers.
  *
@@ -7,6 +13,33 @@
 export type HeadlessIABBannerAction = 'accept' | 'reject' | 'customize';
 export type HeadlessIABDialogAction = 'accept' | 'reject' | 'customize';
 export type HeadlessIABPreferenceTab = 'purposes' | 'vendors';
+export type HeadlessIABVendorId = number | string;
+
+/**
+ * Minimal IAB state needed by the pure headless derivation helpers.
+ *
+ * React, Vue, Svelte, and direct kernel consumers can all pass their local
+ * IAB state as long as it has this structural shape.
+ */
+export interface HeadlessIABStateInput {
+	gvl: GlobalVendorList | null;
+	/** Server summary and fetch location, present while the full gvl is absent. */
+	gvlReference?: KernelIABState['gvlReference'];
+	isLoadingGVL?: boolean;
+	nonIABVendors?: NonIABVendor[];
+	customVendors?: NonIABVendor[];
+	/**
+	 * Publisher restrictions configured on the CMP. Vendors are listed under
+	 * the legal basis the restrictions leave them, so each control edits the
+	 * signal the IAB gates evaluate.
+	 */
+	publisherRestrictions?: readonly PublisherRestriction[];
+	/**
+	 * Language the consent UI shows, such as `'de'`. Picks each vendor's
+	 * privacy links from the GVL `urls[]`, falling back to English.
+	 */
+	language?: string;
+}
 
 export interface HeadlessIABBannerState {
 	/** Whether the banner summary is ready to display */
@@ -24,4 +57,94 @@ export interface HeadlessIABDialogState {
 	isLoading: boolean;
 	/** Active preference center tab */
 	activeTab: HeadlessIABPreferenceTab;
+}
+
+/**
+ * Processed vendor data for framework UI rendering.
+ */
+export interface HeadlessIABProcessedVendor {
+	id: HeadlessIABVendorId;
+	name: string;
+	policyUrl: string;
+	usesNonCookieAccess: boolean;
+	deviceStorageDisclosureUrl: string | null;
+	usesCookies: boolean;
+	cookieMaxAgeSeconds: number | null;
+	cookieRefresh?: boolean;
+	specialPurposes: number[];
+	specialFeatures: number[];
+	features: number[];
+	purposes: number[];
+	legIntPurposes: number[];
+	legitimateInterestUrl?: string | null;
+	isCustom?: boolean;
+	usesLegitimateInterest?: boolean;
+	dataRetention?: {
+		purposes?: Record<number, number>;
+		specialPurposes?: Record<number, number>;
+		stdRetention?: number;
+	};
+	dataDeclaration?: number[];
+}
+
+/**
+ * Processed purpose data for framework UI rendering.
+ */
+export interface HeadlessIABProcessedPurpose {
+	id: number;
+	name: string;
+	description: string;
+	descriptionLegal?: string;
+	illustrations: string[];
+	vendors: HeadlessIABProcessedVendor[];
+	isSpecialPurpose?: boolean;
+}
+
+/**
+ * Special feature data for framework UI rendering.
+ */
+export interface HeadlessIABProcessedSpecialFeature {
+	id: number;
+	name: string;
+	description: string;
+	descriptionLegal?: string;
+	illustrations: string[];
+	vendors: HeadlessIABProcessedVendor[];
+}
+
+/**
+ * Feature data for framework UI rendering.
+ */
+export interface HeadlessIABProcessedFeature {
+	id: number;
+	name: string;
+	description: string;
+	descriptionLegal?: string;
+	illustrations: string[];
+	vendors: HeadlessIABProcessedVendor[];
+}
+
+/**
+ * Stack data with resolved purposes.
+ */
+export interface HeadlessIABProcessedStack {
+	id: number;
+	name: string;
+	description: string;
+	purposes: HeadlessIABProcessedPurpose[];
+}
+
+/**
+ * Processed GVL data ready for rendering in a consent dialog.
+ */
+export interface HeadlessIABDialogData {
+	purposes: HeadlessIABProcessedPurpose[];
+	specialPurposes: HeadlessIABProcessedPurpose[];
+	specialFeatures: HeadlessIABProcessedSpecialFeature[];
+	features: HeadlessIABProcessedFeature[];
+	stacks: HeadlessIABProcessedStack[];
+	standalonePurposes: HeadlessIABProcessedPurpose[];
+	totalVendors: number;
+	isLoading: boolean;
+	isReady: boolean;
 }

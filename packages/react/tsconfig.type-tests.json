@@ -3,6 +3,10 @@
 	"compilerOptions": {
 		"noEmit": true
 	},
-	"include": ["src/**/*.types.test.ts", "src/**/*.types.test.tsx"],
+	"include": [
+		"src/declaration.d.ts",
+		"src/**/__tests__/**/*.type-test.ts",
+		"src/**/__tests__/**/*.type-test.tsx"
+	],
 	"exclude": ["node_modules"]
 }

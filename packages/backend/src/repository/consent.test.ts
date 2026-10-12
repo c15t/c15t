@@ -1,0 +1,475 @@
+/**
+ * Consent writes must record exactly one row per submission.
+ *
+ * A duplicate is not cosmetic here — it is a second legal record of the same
+ * act, and it corrupts the audit trail the platform exists to produce. So
+ * these tests care mostly about the ways a second row could sneak in:
+ * retries, concurrency, and rows written by older code.
+ */
+
+import { PgliteClient } from '@effect/sql-pglite';
+import { assert, describe, it } from '@effect/vitest';
+import { Effect, Layer } from 'effect';
+import { SqlClient } from 'effect/sql';
+
+import { up as baseline } from '../db/migrations/1-baseline';
+import { up as receipts } from '../db/migrations/3-consent-receipts-and-privacy-directives';
+import { up as vendorChoice } from '../db/migrations/4-vendor-choice';
+import { up as attribution } from '../db/migrations/6-experiment-attribution';
+import { up as optionalJurisdiction } from '../db/migrations/7-optional-decision-jurisdiction';
+import { up as verifiedExternalId } from '../db/migrations/8-verified-external-id';
+import { singleTenant } from '../db/tenant';
+import {
+	assertSamePurposes,
+	assertSameSubmission,
+	assertSameVendors,
+	record,
+} from './consent';
+
+// Tests run single-tenant unless a case says otherwise; the scope is a
+// service, so a query cannot run without one.
+const Pglite = Layer.merge(PgliteClient.layer({}), singleTenant);
+
+const GIVEN_AT = new Date(1_800_000_000_000);
+
+const setup = Effect.gen(function* setup() {
+	yield* baseline;
+	yield* receipts;
+	yield* vendorChoice;
+	yield* attribution;
+	yield* optionalJurisdiction;
+	yield* verifiedExternalId;
+	const sql = yield* SqlClient.SqlClient;
+	yield* sql.unsafe(`insert into "domain" ("id","name","createdAt","updatedAt")
+		values ('dom_1','example.com',now(),now())`);
+	yield* sql.unsafe(`insert into "subject" ("id","externalId","createdAt","updatedAt")
+		values ('sub_1','ext_1',now(),now())`);
+});
+
+const submission = {
+	domainId: 'dom_1',
+	givenAt: GIVEN_AT,
+	policyId: null,
+	purposeIds: ['analytics'],
+	subjectId: 'sub_1',
+};
+
+const countConsents = Effect.fn('countConsents')(function* countConsents() {
+	const sql = yield* SqlClient.SqlClient;
+	const rows = yield* sql<{
+		total: string;
+	}>`select count(*) as total from "consent"`;
+	return Number(rows[0]?.total ?? 0);
+});
+
+describe('consent.record', () => {
+	it.effect(
+		'records a new submission',
+		() =>
+			Effect.gen(function* gen() {
+				yield* setup;
+				const result = yield* record(submission);
+
+				assert.isTrue(result.created);
+				assert.match(result.id, /^cns_/u);
+				assert.strictEqual(yield* countConsents(), 1);
+			}).pipe(Effect.provide(Pglite)),
+		{ timeout: 60_000 }
+	);
+
+	it.effect(
+		'is idempotent across retries',
+		() =>
+			Effect.gen(function* gen() {
+				yield* setup;
+				const first = yield* record(submission);
+				const second = yield* record(submission);
+
+				assert.isTrue(first.created);
+				// The caller can tell a replay from a fresh consent, so the audit
+				// trail records one act rather than two.
+				assert.isFalse(second.created);
+				assert.strictEqual(second.id, first.id);
+				assert.strictEqual(yield* countConsents(), 1);
+			}).pipe(Effect.provide(Pglite)),
+		{ timeout: 60_000 }
+	);
+
+	it.effect(
+		'records one row when the same submission arrives concurrently',
+		() =>
+			Effect.gen(function* gen() {
+				yield* setup;
+
+				// The case the old read-then-write could lose: both calls read
+				// "absent" before either wrote. `on conflict` closes that window
+				// because the check and the write are one statement.
+				const results = yield* Effect.all(
+					[record(submission), record(submission), record(submission)],
+					{ concurrency: 'unbounded' }
+				);
+
+				assert.strictEqual(yield* countConsents(), 1);
+				assert.strictEqual(
+					results.filter((result) => result.created).length,
+					1,
+					'exactly one caller should be told it created the row'
+				);
+				const ids = new Set(results.map((result) => result.id));
+				assert.strictEqual(ids.size, 1);
+			}).pipe(Effect.provide(Pglite)),
+		{ timeout: 60_000 }
+	);
+
+	it.effect(
+		'treats a different givenAt as a different consent',
+		() =>
+			Effect.gen(function* gen() {
+				yield* setup;
+				yield* record(submission);
+				const later = yield* record({
+					...submission,
+					givenAt: new Date(GIVEN_AT.getTime() + 1000),
+				});
+
+				// Consent given at a different moment is a distinct act, even
+				// from the same subject for the same policy.
+				assert.isTrue(later.created);
+				assert.strictEqual(yield* countConsents(), 2);
+			}).pipe(Effect.provide(Pglite)),
+		{ timeout: 60_000 }
+	);
+
+	it.effect(
+		'finds a row written before deterministic ids existed',
+		() =>
+			Effect.gen(function* gen() {
+				yield* setup;
+				const sql = yield* SqlClient.SqlClient;
+
+				// Older code wrote a random primary key, so the conflict target
+				// cannot see it — only the identity tuple can. A rolling deploy
+				// can still produce these after the new code is live.
+				yield* sql.unsafe(`insert into "consent"
+					("id","subjectId","domainId","policyId","purposeIds","givenAt")
+					values ('cns_legacyrandom','sub_1','dom_1',null,'[]',
+						to_timestamp(${GIVEN_AT.getTime()} / 1000.0))`);
+
+				const result = yield* record(submission);
+
+				assert.isFalse(result.created);
+				assert.strictEqual(result.id, 'cns_legacyrandom');
+				assert.strictEqual(yield* countConsents(), 1);
+			}).pipe(Effect.provide(Pglite)),
+		{ timeout: 60_000 }
+	);
+
+	it.effect(
+		'keeps tenants apart',
+		() =>
+			Effect.gen(function* gen() {
+				yield* setup;
+				yield* record({ ...submission, tenantId: 'tenant_a' });
+				const other = yield* record({ ...submission, tenantId: 'tenant_b' });
+
+				// Two tenants recording structurally identical consent are two
+				// separate legal records, not a duplicate.
+				assert.isTrue(other.created);
+				assert.strictEqual(yield* countConsents(), 2);
+			}).pipe(Effect.provide(Pglite)),
+		{ timeout: 60_000 }
+	);
+});
+
+describe('assertSamePurposes', () => {
+	// The comparison `record` applies on both paths that can find an existing
+	// row. The second — a lost insert race — cannot be forced end to end: PGlite
+	// serialises every query, so the second caller always sees the first's row in
+	// the pre-insert check instead. Covered here so the branch is not merely
+	// written and never executed.
+	const run = <A>(effect: Effect.Effect<A, unknown, never>) =>
+		Effect.runPromise(Effect.result(effect));
+
+	it('accepts an identical set', async () => {
+		const result = await run(assertSamePurposes('["a","b"]', ['a', 'b']));
+		assert.strictEqual(result._tag, 'Success');
+	});
+
+	it('accepts the same set in a different order', async () => {
+		// Order is not part of what was consented to; treating it as a change
+		// would refuse ordinary retries.
+		const result = await run(assertSamePurposes('["b","a"]', ['a', 'b']));
+		assert.strictEqual(result._tag, 'Success');
+	});
+
+	it('refuses a different set', async () => {
+		const result = await run(assertSamePurposes('["a"]', ['a', 'b']));
+		assert.strictEqual(result._tag, 'Failure');
+	});
+
+	it('accepts an already-decoded array', async () => {
+		// Postgres and MySQL hand back JSON as a value; SQLite as a string.
+		const result = await run(assertSamePurposes(['a', 'b'], ['b', 'a']));
+		assert.strictEqual(result._tag, 'Success');
+	});
+
+	it('compares a 2.x row through its json envelope', async () => {
+		// Postgres and MySQL return the envelope as an object, SQLite as text.
+		const results = await Promise.all(
+			[{ json: ['a', 'b'] }, '{"json":["a","b"]}'].flatMap((stored) => [
+				run(assertSamePurposes(stored, ['b', 'a'])),
+				run(assertSamePurposes(stored, ['a'])),
+			])
+		);
+		assert.deepStrictEqual(
+			results.map((result) => result._tag),
+			['Success', 'Failure', 'Success', 'Failure']
+		);
+	});
+
+	it('says nothing about a row it cannot read', async () => {
+		// Unparseable or absent is not evidence of a mismatch, and refusing on
+		// it would turn a storage oddity into a rejected consent.
+		assert.strictEqual(
+			(await run(assertSamePurposes(null, ['a'])))._tag,
+			'Success'
+		);
+		assert.strictEqual(
+			(await run(assertSamePurposes('not json', ['a'])))._tag,
+			'Success'
+		);
+	});
+});
+
+describe('assertSameSubmission against a row with no receipts', () => {
+	// The row a 2.x backend writes: purposes, and no `choice`. This backend
+	// builds receipts for a 2.x client's save, so they cannot be compared.
+	const run = <A>(effect: Effect.Effect<A, unknown, never>) =>
+		Effect.runPromise(Effect.result(effect));
+	const retry = {
+		...submission,
+		choice: {
+			categories: {
+				marketing: {
+					basis: { kind: 'legacy-v2' as const },
+					confirmedAt: GIVEN_AT.getTime(),
+					value: true,
+				},
+			},
+			version: 3 as const,
+		},
+		choiceFromPreferences: true,
+		purposeIds: ['a', 'b'],
+	};
+	const row = (purposeIds: unknown) => ({
+		choice: null,
+		purposeIds,
+		vendorChoice: null,
+	});
+
+	it('accepts a retry whose purposes match', async () => {
+		const results = await Promise.all([
+			run(assertSameSubmission(row({ json: ['b', 'a'] }), retry)),
+			run(assertSameSubmission(row('{"json":["a","b"]}'), retry)),
+		]);
+		assert.deepStrictEqual(
+			results.map((result) => result._tag),
+			['Success', 'Success']
+		);
+	});
+
+	it('refuses a retry whose purposes differ', async () => {
+		const result = await run(assertSameSubmission(row({ json: ['a'] }), retry));
+		assert.strictEqual(result._tag, 'Failure');
+	});
+
+	it('compares receipts against a row this backend wrote', async () => {
+		// A v3 save with only `necessary` stores no receipts either, but its
+		// purposes are a bare list. A retry adding a refusal is a new act.
+		const result = await run(assertSameSubmission(row(['a', 'b']), retry));
+		assert.strictEqual(result._tag, 'Failure');
+	});
+
+	it('compares receipts a client sent', async () => {
+		// A client's receipts can grant or refuse what its purposes do not
+		// show, and a v3 save with only `necessary` also stores no receipts.
+		const result = await run(
+			assertSameSubmission(row({ json: ['a', 'b'] }), {
+				...retry,
+				choiceFromPreferences: false,
+			})
+		);
+		assert.strictEqual(result._tag, 'Failure');
+	});
+
+	it('refuses a retry it cannot check', async () => {
+		// Unreadable purposes pass the purpose check, so the receipts are the
+		// only evidence left. Waiving them would accept any grant.
+		const results = await Promise.all([
+			run(assertSameSubmission(row({ json: { json: ['a', 'b'] } }), retry)),
+			run(assertSameSubmission(row('not json'), retry)),
+			run(assertSameSubmission(undefined, retry)),
+		]);
+		assert.deepStrictEqual(
+			results.map((result) => result._tag),
+			['Failure', 'Failure', 'Failure']
+		);
+	});
+});
+
+describe('assertSameVendors', () => {
+	const run = <A>(effect: Effect.Effect<A, unknown, never>) =>
+		Effect.runPromise(Effect.result(effect));
+	const grants = {
+		confirmedAt: 1,
+		grants: { a: true, b: false },
+		version: 1 as const,
+	};
+
+	it('accepts an identical map in any key order', async () => {
+		// Serialised with the keys reversed, so canonicalisation is what matches.
+		const stored =
+			'{"confirmedAt":1,"grants":{"b":false,"a":true},"version":1}';
+		assert.strictEqual(
+			(await run(assertSameVendors(stored, grants)))._tag,
+			'Success'
+		);
+	});
+
+	it('refuses a different grant or a different time', async () => {
+		assert.strictEqual(
+			(
+				await run(
+					assertSameVendors(JSON.stringify(grants), {
+						...grants,
+						grants: { a: true, b: true },
+					})
+				)
+			)._tag,
+			'Failure'
+		);
+		assert.strictEqual(
+			(
+				await run(
+					assertSameVendors(JSON.stringify(grants), {
+						...grants,
+						confirmedAt: 2,
+					})
+				)
+			)._tag,
+			'Failure'
+		);
+	});
+
+	it('refuses every retry against a stored value that is not a vendor map', async () => {
+		// Corruption is not absence: an omitted map cannot be proven equal to
+		// content that cannot be read.
+		assert.strictEqual(
+			(await run(assertSameVendors('{}', undefined)))._tag,
+			'Failure'
+		);
+		assert.strictEqual(
+			(await run(assertSameVendors('{}', grants)))._tag,
+			'Failure'
+		);
+		assert.strictEqual(
+			(await run(assertSameVendors('not json', undefined)))._tag,
+			'Failure'
+		);
+	});
+
+	it('treats absent on both sides as the same submission', async () => {
+		assert.strictEqual(
+			(await run(assertSameVendors(null, undefined)))._tag,
+			'Success'
+		);
+	});
+
+	it('accepts a replay carrying a map against a stored row without one', async () => {
+		// A row written by a process that predates the column, met by the
+		// queued save's replay. Not a conflict: the queue clears and the
+		// visitor's next save carries their full map.
+		await Effect.runPromise(assertSameVendors(null, grants));
+		// The other direction stays a conflict.
+		assert.strictEqual(
+			(await run(assertSameVendors(JSON.stringify(grants), undefined)))._tag,
+			'Failure'
+		);
+	});
+});
+
+describe('consent.record with vendor grants', () => {
+	it.effect(
+		'stores the grant map and refuses a retry that changed it',
+		() =>
+			Effect.gen(function* gen() {
+				yield* setup;
+				const withVendors = {
+					...submission,
+					vendorChoice: {
+						confirmedAt: GIVEN_AT.getTime(),
+						grants: { 'meta-pixel': false },
+						version: 1 as const,
+					},
+				};
+				const first = yield* record(withVendors);
+				assert.isTrue(first.created);
+
+				const retry = yield* record(withVendors);
+				assert.isFalse(retry.created);
+				assert.strictEqual(retry.id, first.id);
+
+				const changed = yield* Effect.result(
+					record({
+						...withVendors,
+						vendorChoice: {
+							...withVendors.vendorChoice,
+							grants: { 'meta-pixel': true },
+						},
+					})
+				);
+				assert.strictEqual(changed._tag, 'Failure');
+				assert.strictEqual(yield* countConsents(), 1);
+			}).pipe(Effect.provide(Pglite)),
+		{ timeout: 60_000 }
+	);
+
+	it.effect(
+		'a replay carrying a map against a row without one is a retry that writes nothing',
+		() =>
+			Effect.gen(function* gen() {
+				yield* setup;
+				const sql = yield* SqlClient.SqlClient;
+				// The row an older process wrote for this act: same id, no map.
+				const first = yield* record(submission);
+				assert.isTrue(first.created);
+				const withVendors = {
+					...submission,
+					vendorChoice: {
+						confirmedAt: GIVEN_AT.getTime(),
+						grants: { 'meta-pixel': false },
+						version: 1 as const,
+					},
+				};
+				for (const stored of [null, '\t\nnull \r\n']) {
+					yield* sql`
+						update ${sql('consent')} set ${sql('vendorChoice')} = ${stored}
+						where ${sql('id')} = ${first.id}
+					`;
+					const replay = yield* record(withVendors);
+					assert.isFalse(replay.created);
+					assert.strictEqual(replay.id, first.id);
+					const rows = yield* sql<{ vendorChoice: unknown }>`
+						select ${sql('vendorChoice')} from ${sql('consent')}
+						where ${sql('id')} = ${first.id}
+					`;
+					// The replay is a retry, not a write: the row still has no map.
+					const kept = rows[0]?.vendorChoice;
+					assert.isNull(
+						typeof kept === 'string' ? JSON.parse(kept) : (kept ?? null)
+					);
+				}
+			}).pipe(Effect.provide(Pglite)),
+		{ timeout: 60_000 }
+	);
+});

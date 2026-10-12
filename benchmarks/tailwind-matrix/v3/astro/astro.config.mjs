@@ -1,0 +1,23 @@
+// #region docs:astro-config title="astro.config.mjs"
+import svelte from '@astrojs/svelte';
+import { defineConfig } from 'astro/config';
+import c15t, { offline } from 'c15t/astro';
+
+export default defineConfig({
+	integrations: [
+		svelte(),
+		c15t({
+			mode: offline({
+				policyRules: [
+					{
+						id: 'tailwind-matrix',
+						match: { isDefault: true },
+						model: 'opt-in',
+						prompt: 'choice',
+					},
+				],
+			}),
+		}),
+	],
+});
+// #endregion docs:astro-config

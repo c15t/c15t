@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext } from 'react';
+
 import type { Theme } from '~/types/theme';
 
 /**
@@ -14,7 +15,7 @@ import type { Theme } from '~/types/theme';
  *
  * @public
  */
-export type ThemeContextValue = {
+export interface ThemeContextValue {
 	/**
 	 * Theme configuration object for styling components
 	 * @default undefined
@@ -50,11 +51,11 @@ export type ThemeContextValue = {
 	trapFocus?: boolean;
 
 	/**
-	 * Color scheme preference.
+	 * Color scheme preference. `null` when the provider leaves the class alone.
 	 * @default 'system'
 	 */
-	colorScheme?: 'light' | 'dark' | 'system';
-};
+	colorScheme?: 'light' | 'dark' | 'system' | null;
+}
 
 /**
  * Context for providing theme values to components.
@@ -67,12 +68,12 @@ export type ThemeContextValue = {
  * @public
  */
 export const GlobalThemeContext = createContext<ThemeContextValue>({
-	theme: undefined,
-	noStyle: false,
-	disableAnimation: false,
-	scrollLock: false,
-	trapFocus: true,
 	colorScheme: 'system',
+	disableAnimation: false,
+	noStyle: false,
+	scrollLock: undefined,
+	theme: undefined,
+	trapFocus: undefined,
 });
 
 /**

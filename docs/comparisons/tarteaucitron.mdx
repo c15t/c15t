@@ -1,50 +1,64 @@
 ---
 title: c15t vs tarteaucitron.js
-description: Compare c15t with tarteaucitron.js for service catalogs, script loading, Consent Mode, backend records, and app-owned consent state.
+description: Choose c15t for native framework state and a deployable record backend. Compare tarteaucitron.js service controls and its separate Pro service.
+group: reference
 ---
 
-[tarteaucitron.js](https://github.com/AmauriC/tarteaucitron.js/) is a
-long-running open-source tool with a large service catalog. Its public docs
-emphasize detection, blocking, open-source installation, and Consent Mode support
-through options such as `googleConsentMode`.
+## Choose c15t to connect service choices to product code
 
-c15t is the better starting point when consent affects app runtime, backend
-records, framework code, or server behavior. tarteaucitron.js is useful when a
-large public service catalog is the main requirement.
+c15t is the stronger fit when consent must drive your application's components, vendor behaviour and records. Your team can own the interface and the backend implementation.
 
-<Callout type="warn">
-  Consent tooling does not guarantee legal compliance by itself. Your policies,
-  disclosures, vendor list, regional behavior, and record-keeping still need to
-  match your legal requirements.
-</Callout>
+tarteaucitron.js is an open-source manager with individual service controls and integration definitions. Its separate Pro service adds automatic detection, an online dashboard and consent statistics.
 
-## Why c15t wins here
+<include src="../shared/comparisons/inth-hosting.mdx" />
 
-- c15t gives teams JavaScript, React, and Next.js packages with TypeScript-first
-  APIs.
-- c15t supports hosted and self-hosted backend records instead of browser-only
-  storage.
-- c15t can coordinate scripts, iframes, and network requests through one consent
-  layer.
-- c15t policy packs keep regional behavior close to the consent platform.
-- c15t fits app architectures where consent affects startup, routing, and server
-  state.
+## Compare the application workflow
 
-## Comparison
-
-| Area | c15t | tarteaucitron.js |
+| What you need | c15t | tarteaucitron.js |
 | --- | --- | --- |
-| Primary shape | Application consent platform | Script and service catalog |
-| Framework support | First-class JavaScript, React, and Next.js packages | Script-first setup |
-| Backend records | Hosted or self-hosted records | Client-side storage unless extended |
-| Service catalog | Integration manifests and custom integrations | Large public service catalog |
-| Consent Mode | Google tag helper | `googleConsentMode` option |
-| SSR awareness | Available through c15t framework packages | Client-side by default |
+| Use consent in framework components | Native adapters and reactive state | Browser service manager |
+| Give visitors service choices | Category and individual vendor controls | Individual service preferences |
+| Control configured vendors | Integration helpers, request rules and embeds | Service definitions and content placeholders |
+| Change the interface | Themes, component parts and headless APIs | Configurable banner, service panel and open source |
+| Choose the Next.js response | Server, streamed or browser resolution | Browser integration in the reviewed guide |
+| Keep remote records | Inth hosts the backend and stores records in its database. Self-hosting is optional | No equivalent record backend established for the open-source library |
+| Use Google Consent Mode | Documented Google tag and GTM integrations | Documented Consent Mode integrations |
+| Discover services automatically | **Not included in the c15t packages** | Separate Pro service |
+| Pay for software | No licence fee. Backend costs remain | Free library. Pro has a separate fee |
 
-## Bottom line
+Sources: [open-source project](https://github.com/AmauriC/tarteaucitron.js) and [Pro service](https://tarteaucitron.io/en/).
 
-Start with c15t when coordinating third-party services. The initial job may look
-like service loading, but consent quickly affects app state, backend records,
-regional policy, analytics, ads, and server rendering.
+## Keep the service rule with the feature
 
-See the full overview in [Compare c15t](/docs/comparison).
+Your c15t consent state can control a video placeholder, analytics integration and privacy settings screen. The same product team can review each change.
+
+Register vendors through [c15t integrations](/docs/integrations/overview). Use a [custom integration](/docs/integrations/building-integrations) when the vendor needs behaviour beyond a current helper.
+
+tarteaucitron.js also controls individual services and supported embeds. c15t's advantage is the native framework workflow and the backend that your team can deploy.
+
+## Use a backend built for consent records
+
+c15t supplies endpoints for policy resolution and recorded choices. Use Inth to run them, or operate the database and backend yourself.
+
+Your team can inspect how a choice moves from the interface to the record. Check backend confirmation separately from browser state.
+
+The tarteaucitron.js guide documents browser service controls. Pro consent statistics do not, by themselves, establish an equivalent per-visitor record API. Confirm that scope if you need it.
+
+## What c15t does not include
+
+- **The Pro service's automatic detection workflow.** c15t needs explicit vendor integration.
+- **A direct replacement for every service definition.** Check each vendor's options and add a custom loader where needed.
+- **An automatic transfer of previous choices.** Map services to categories and preserve individual refusals.
+- **Complete deletion of vendor data after withdrawal.** Declared cleanup follows category changes and browser permissions.
+
+A vendor-only refusal does not trigger c15t's category cleanup. A browser cannot delete another origin's cookies or `HttpOnly` cookies.
+
+## Move one service before the whole site
+
+Choose c15t when native application integration and backend ownership are the priorities. A site focused on the current service catalogue or Pro automation can need less change with tarteaucitron.
+
+Start with [Inth and the framework guide](/docs/frameworks). Pick one service, register its replacement and remove the old loader.
+
+Test a refusal, later acceptance and withdrawal after the vendor ran. Use the [verification guide](/docs/guides/verify-consent) to check requests and saved records.
+
+Sources checked on 6 October 2026. The free library and Pro service are distinct products.

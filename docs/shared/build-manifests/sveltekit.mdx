@@ -1,0 +1,40 @@
+<include src="../build-time-manifest.mdx" />
+
+The [quickstart](/docs/frameworks/sveltekit/quickstart) sets this up across
+these files:
+
+| File | Role |
+| --- | --- |
+| `vite.config.ts` | `consentManifest` from `@c15t/svelte/vite` fetches the policy. |
+| `src/hooks.server.ts` | `c15tHandle()`, whose default mode, `manifest()`, resolves from the fetched policy. |
+| `src/routes/+layout.server.ts` | `export { loadConsent as load }` resolves each visitor. |
+| `src/routes/+layout.svelte` | `ConsentRoot state={data.consent}` renders the result. |
+
+The plugin's position in `plugins` does not matter. It fetches the policy
+once Vite has resolved its config, before anything compiles. Without a
+`backendURL` option, it reads `PUBLIC_C15T_BACKEND_URL`, then
+`PUBLIC_INTH_PROJECT_URL`, from the environment or `.env`.
+
+The plugin detects the `sveltekit()` plugin and keeps the snapshot on the
+server. `loadConsent` and `createConsentRoute()` read it without an import.
+The browser bundle never holds it: `ConsentRoot` gets the resolved policy
+from `loadConsent` instead.
+
+Static hosts follow [build a static site](/docs/frameworks/sveltekit/rendering#build-a-static-site)
+instead.
+
+<include src="../build-time-manifest-notes.mdx" />
+
+<include src="../vite-build-manifest.mdx" />
+
+On SvelteKit 3, `svelte-kit sync` resolves the Vite config, so it runs the
+plugin and fetches the policy too, following the same rules when the fetch
+fails. SvelteKit 2.68 also runs the plugin during `svelte-kit sync`, but logs
+a failed fetch and continues.
+
+To apply policy edits without a rebuild, set
+`c15tHandle({ mode: manifest({ source: 'runtime' }) })` and follow
+[fetch the manifest at runtime](/docs/frameworks/sveltekit/rendering#fetch-the-manifest-at-runtime).
+To have the backend resolve every visit instead, set
+`c15tHandle({ mode: hosted() })`. The layout load then calls the backend's
+`/init`, and so does the browser on pages the server did not resolve.

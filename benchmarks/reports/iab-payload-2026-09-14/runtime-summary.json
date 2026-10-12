@@ -1,0 +1,26 @@
+{
+	"baseArms": {},
+	"budgets": {
+		"definitionMismatches": [],
+		"evaluated": 81,
+		"expected": 81,
+		"failed": 0,
+		"missingBaseMetric": 0,
+		"missingDefinitions": [],
+		"missingHeadMetric": 0,
+		"passed": 81,
+		"unevaluatedArm": 0,
+		"unexpectedDefinitions": []
+	},
+	"enforce": true,
+	"failures": [],
+	"ok": true,
+	"profile": "regression",
+	"results": {
+		"compared": 14,
+		"expected": 14,
+		"missingBase": [],
+		"missingHead": [],
+		"unexpected": []
+	}
+}

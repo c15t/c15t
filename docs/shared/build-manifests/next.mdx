@@ -1,0 +1,10 @@
+<include src="../build-time-manifest.mdx" />
+
+<include src="./next-config.mdx" />
+
+<include src="../build-time-manifest-notes.mdx" />
+
+To apply policy edits without a rebuild, set
+`mode: manifest({ source: 'runtime' })` in `c15t.config.ts`. The server then
+uses [runtime manifest caching](/docs/frameworks/next/optimization#reuse-cached-policy-data).
+Keep `withConsentManifest`, which also finds `c15t.config.ts`.

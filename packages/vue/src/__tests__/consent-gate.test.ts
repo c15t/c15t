@@ -1,0 +1,202 @@
+import type { AllConsentNames } from '@c15t/core';
+import type { PolicyRule } from '@c15t/schema/types';
+import { resolvePolicyRules } from '@c15t/schema/types';
+import gateStyles from '@c15t/ui/styles/components/consent-gate';
+import { flushPromises, mount } from '@vue/test-utils';
+import type { VueWrapper } from '@vue/test-utils';
+import { afterEach, describe, expect, test } from 'vitest';
+import type { Component, ComponentPublicInstance, VNode } from 'vue';
+import { h } from 'vue';
+
+import { translations as de } from '../../../translations/src/translations/de';
+import ConsentGate from '../runtime/components/consent-gate.vue';
+import { consentConfigKey } from '../runtime/composables/config';
+import type { ConsentConfig } from '../runtime/config';
+import {
+	symbolActiveUI,
+	symbolConsent,
+	symbolInit,
+	symbolKernel,
+	symbolKernelContext,
+	symbolSnapshot,
+} from '../runtime/utils/symbols';
+import { createVueConsentKernelContext } from './test-kernel';
+import type { VueConsentKernelContext } from './test-kernel';
+
+let mounted: {
+	context: VueConsentKernelContext;
+	wrapper: VueWrapper<ComponentPublicInstance>;
+} | null = null;
+
+/** Mount a gate for `category` under an opt-in rule. */
+const renderGate = async function renderGate(options: {
+	category: AllConsentNames;
+	config?: Partial<ConsentConfig>;
+	language?: 'de';
+	slots?: Record<string, () => VNode>;
+	strict?: boolean;
+}) {
+	const rule: PolicyRule = {
+		categories: options.strict ? ['measurement'] : ['marketing'],
+		id: 'vue_gate',
+		match: { fallback: true, isDefault: true },
+		model: 'opt-in',
+		prompt: 'choice',
+		scopeMode: options.strict ? 'strict' : 'permissive',
+	};
+	const config = {
+		consentCategories: ['necessary'],
+		...options.config,
+	} as ConsentConfig;
+	const context = createVueConsentKernelContext({
+		config,
+		kernelConfig: {
+			initialLocation: { countryCode: 'DE', regionCode: null },
+			initialPolicyResolution: resolvePolicyRules({
+				countryCode: 'DE',
+				regionCode: null,
+				rules: [rule],
+			}),
+			initialTranslations: options.language
+				? { language: options.language, translations: de }
+				: undefined,
+			transport: {
+				init: () => Promise.resolve({}),
+				save: () => Promise.resolve({ ok: true, subjectId: 'vue-gate' }),
+			},
+		},
+	});
+	const wrapper = mount(
+		{
+			render: () =>
+				h(ConsentGate, { category: options.category }, options.slots ?? {}),
+		} as Component,
+		{
+			attachTo: document.body,
+			global: {
+				provide: {
+					[consentConfigKey as symbol]: config,
+					[symbolKernelContext as symbol]: context,
+					[symbolKernel as symbol]: context.kernel,
+					[symbolSnapshot as symbol]: context.snapshot,
+					[symbolInit as symbol]: context.init,
+					[symbolActiveUI as symbol]: context.activeUI,
+					[symbolConsent as symbol]: context.storedConsent,
+				},
+			},
+		}
+	);
+	await flushPromises();
+	mounted = { context, wrapper };
+	return { context, wrapper };
+};
+
+afterEach(() => {
+	if (mounted) {
+		mounted.wrapper.unmount();
+		mounted.context.dispose();
+		mounted = null;
+	}
+	document.body.innerHTML = '';
+});
+
+describe('ConsentGate default placeholder', () => {
+	test('renders the placeholder with a title and an enable button', async () => {
+		const { wrapper } = await renderGate({ category: 'marketing' });
+		const placeholder = wrapper.get('[data-testid="consent-gate-placeholder"]');
+		expect(placeholder.classes()).toContain(gateStyles.placeholder);
+		expect(placeholder.get(`.${gateStyles.title}`).text()).toBe(
+			'Accept Marketing consent to view this content.'
+		);
+		expect(wrapper.get('[data-testid="consent-gate-button"]').text()).toBe(
+			'Enable Marketing consent'
+		);
+	});
+
+	test('uses the visitor language', async () => {
+		const { wrapper } = await renderGate({
+			category: 'marketing',
+			language: 'de',
+		});
+		const marketing = de.consentTypes.marketing.title;
+		expect(wrapper.get(`.${gateStyles.title}`).text()).toBe(
+			de.consentGate.title.replace('{category}', marketing)
+		);
+		expect(wrapper.get('[data-testid="consent-gate-button"]').text()).toBe(
+			de.consentGate.actionButton.replace('{category}', marketing)
+		);
+	});
+
+	test('the button opens the preferences and registers the category', async () => {
+		const { context, wrapper } = await renderGate({ category: 'marketing' });
+		expect(context.snapshot.value.consentCategories).toContain('marketing');
+
+		await wrapper.get('[data-testid="consent-gate-button"]').trigger('click');
+
+		expect(context.activeUI.value).toBe('manager');
+		// Opening the preferences grants nothing by itself.
+		expect(context.snapshot.value.effectivePermissions.marketing).toBe(false);
+	});
+
+	test('a strict policy without the category says so and offers no button', async () => {
+		const { wrapper } = await renderGate({
+			category: 'marketing',
+			strict: true,
+		});
+		expect(wrapper.get(`.${gateStyles.title}`).text()).toBe(
+			"This content is unavailable under your region's consent policy."
+		);
+		expect(wrapper.find('[data-testid="consent-gate-button"]').exists()).toBe(
+			false
+		);
+	});
+
+	test('the placeholder slot replaces the default', async () => {
+		const { wrapper } = await renderGate({
+			category: 'marketing',
+			slots: { placeholder: () => h('p', 'Custom placeholder') },
+		});
+		expect(wrapper.text()).toBe('Custom placeholder');
+		expect(
+			wrapper.find('[data-testid="consent-gate-placeholder"]').exists()
+		).toBe(false);
+	});
+
+	test('the consentGate slots style the placeholder parts', async () => {
+		const { wrapper } = await renderGate({
+			category: 'marketing',
+			config: {
+				components: {
+					'consent-gate': {
+						button: { class: 'app-button' },
+						root: { style: { color: 'rgb(4, 5, 6)' } },
+					},
+				},
+				theme: {
+					slots: {
+						consentGate: {
+							className: 'theme-gate',
+							style: { backgroundColor: 'rgb(1, 2, 3)', color: 'rgb(7, 8, 9)' },
+						},
+						consentGateButton: 'theme-gate-button',
+						consentGateTitle: 'theme-gate-title',
+					},
+				},
+			},
+		});
+		const placeholder = wrapper.get<HTMLElement>(
+			'[data-testid="consent-gate-placeholder"]'
+		);
+		expect(placeholder.classes()).toContain('theme-gate');
+		expect(placeholder.classes()).toContain(gateStyles.placeholder);
+		// `components` wins where both set a property.
+		expect(placeholder.element.style.backgroundColor).toBe('rgb(1, 2, 3)');
+		expect(placeholder.element.style.color).toBe('rgb(4, 5, 6)');
+		expect(
+			wrapper.get('[data-testid="consent-gate-title"]').classes()
+		).toContain('theme-gate-title');
+		const button = wrapper.get('[data-testid="consent-gate-button"]');
+		expect(button.classes()).toContain('theme-gate-button');
+		expect(button.classes()).toContain('app-button');
+	});
+});

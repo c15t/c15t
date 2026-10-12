@@ -1,0 +1,8 @@
+## Update the CLI
+
+- Run `c15t login` again. The CLI signs in through Inth now and no longer
+  reads sessions saved by v2.
+- `c15t setup` no longer writes `.env.local` or `.env.example` and no longer
+  accepts `--env`. It writes the backend URL into the files it generates.
+- `c15t setup` no longer detects Remix or Gatsby. Pick a guide from
+  [Choose your setup](/docs/concepts/choose-your-setup) for those apps.

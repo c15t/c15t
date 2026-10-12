@@ -1,0 +1,41 @@
+---
+title: Self-hosted migrations
+description: Plan and apply database migrations for a self-hosted c15t backend
+  with the c15t CLI self-host migrate command.
+group: cli
+---
+
+## Plan a migration
+
+```bash
+npx @c15t/cli self-host migrate --config ./c15t-backend.config.ts --plan --json
+```
+
+The CLI reads the `database` option from the config file, loading `.env` from
+the file's directory, and reports what it would change. `--plan` changes no
+schema. Without `--config`, the CLI looks for `c15t-backend.config.ts`; in a
+terminal it can help you create one.
+
+A v2 config that only has `adapter` fails with a message naming the field.
+Replace it with `database`, as the
+[database setup guide](https://v3.c15t.com/docs/self-host/guides/database-setup#upgrade-a-v2-backend)
+shows.
+
+## Apply it
+
+```bash
+npx @c15t/cli self-host migrate --config ./c15t-backend.config.ts --apply --json
+```
+
+`--apply` is the only flag that writes. Without `--plan` or `--apply`, a
+terminal shows the plan and asks before applying; a script must pass one of
+them. `--json` alone never applies a migration.
+
+The result reports planned, applied, already current or cancelled work. A
+database the migrator does not recognize fails with an explanation instead of
+being changed. The CLI closes its database connection when it finishes, also on
+failure.
+
+Back up the database before applying against existing data, and run the
+migration against the same database and schema the server uses. Codemods do
+not migrate a database.

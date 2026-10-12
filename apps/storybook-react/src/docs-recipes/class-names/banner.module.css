@@ -1,0 +1,6 @@
+/* #region docs:class-names-css-modules-css title="src/banner.module.css" */
+.card {
+	border: 3px solid rgb(219 39 119);
+	border-radius: 4px;
+}
+/* #endregion docs:class-names-css-modules-css */

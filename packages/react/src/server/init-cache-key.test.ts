@@ -1,56 +1,57 @@
 import { describe, expect, it } from 'vitest';
+
 import { createSSRInitCacheKey } from './init-cache-key';
 
 describe('createSSRInitCacheKey', () => {
 	it('builds key from normalized URL and relevant headers', () => {
 		const headers = new Headers({
-			'cf-ipcountry': 'US',
-			'x-vercel-ip-country-region': 'CA',
 			'accept-language': 'en-US,en;q=0.9',
+			'cf-ipcountry': 'US',
 			'sec-gpc': '1',
+			'x-vercel-ip-country-region': 'CA',
 		});
 
 		const key = createSSRInitCacheKey({
-			normalizedURL: 'https://example.com/api/c15t',
 			headers,
+			normalizedURL: 'https://example.com/api/c15t',
 		});
 
 		expect(key).toBe(
 			JSON.stringify({
-				normalizedURL: 'https://example.com/api/c15t',
 				country: 'US',
-				region: 'CA',
-				language: 'en-US,en;q=0.9',
 				gpc: '1',
+				language: 'en-US,en;q=0.9',
+				normalizedURL: 'https://example.com/api/c15t',
+				region: 'CA',
 			})
 		);
 	});
 
 	it('prefers overrides over extracted headers', () => {
 		const headers = new Headers({
-			'cf-ipcountry': 'US',
-			'x-vercel-ip-country-region': 'CA',
 			'accept-language': 'en-US,en;q=0.9',
+			'cf-ipcountry': 'US',
 			'sec-gpc': '0',
+			'x-vercel-ip-country-region': 'CA',
 		});
 
 		const key = createSSRInitCacheKey({
-			normalizedURL: 'https://example.com/api/c15t',
 			headers,
+			normalizedURL: 'https://example.com/api/c15t',
 			overrides: {
 				country: 'DE',
-				region: 'BE',
 				language: 'de-DE,de;q=0.9',
+				region: 'BE',
 			},
 		});
 
 		expect(key).toBe(
 			JSON.stringify({
-				normalizedURL: 'https://example.com/api/c15t',
 				country: 'DE',
-				region: 'BE',
-				language: 'de-DE,de;q=0.9',
 				gpc: '0',
+				language: 'de-DE,de;q=0.9',
+				normalizedURL: 'https://example.com/api/c15t',
+				region: 'BE',
 			})
 		);
 	});
@@ -65,12 +66,12 @@ describe('createSSRInitCacheKey', () => {
 		secondHeaders.set('accept-language', 'en-US,en;q=0.9');
 
 		const firstKey = createSSRInitCacheKey({
-			normalizedURL: 'https://example.com/api/c15t',
 			headers: firstHeaders,
+			normalizedURL: 'https://example.com/api/c15t',
 		});
 		const secondKey = createSSRInitCacheKey({
-			normalizedURL: 'https://example.com/api/c15t',
 			headers: secondHeaders,
+			normalizedURL: 'https://example.com/api/c15t',
 		});
 
 		expect(firstKey).toBe(secondKey);

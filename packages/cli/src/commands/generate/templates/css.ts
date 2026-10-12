@@ -1,28 +1,96 @@
-import {
-	type EnsureGlobalCssStylesheetImportsResult,
-	ensureGlobalCssStylesheetImports,
-	type StyledPackageName,
+import { join } from 'node:path';
+
+import { UMBRELLA_PACKAGE } from '~/constants';
+import { detectFramework } from '~/context/framework-detection';
+
+import { isTailwindV3 } from '../../shared/postcss-config';
+import { ensureGlobalCssStylesheetImports } from '../../shared/stylesheets';
+import type {
+	EnsureGlobalCssStylesheetImportsResult,
+	StyledPackageName,
 } from '../../shared/stylesheets';
+import { readFile } from './shared/file-plan';
 
 export interface UpdateAppStylesheetImportsOptions {
 	projectRoot: string;
 	packageName: Exclude<StyledPackageName, '@c15t/ui'>;
-	tailwindVersion: string | null;
 	entrypointPath?: string | null;
 	dryRun?: boolean;
 	includeIab?: boolean;
 }
 
-export async function updateAppStylesheetImports(
-	options: UpdateAppStylesheetImportsOptions
-): Promise<EnsureGlobalCssStylesheetImportsResult> {
-	return ensureGlobalCssStylesheetImports({
-		projectRoot: options.projectRoot,
-		packageName: options.packageName,
-		tailwindVersion: options.tailwindVersion,
-		entrypointPath: options.entrypointPath,
-		includeBase: true,
-		includeIab: options.includeIab ?? false,
-		dryRun: options.dryRun,
-	});
-}
+const SCOPED_STYLESHEET_PACKAGES = {
+	'c15t/next': '@c15t/nextjs',
+	'c15t/react': '@c15t/react',
+} as const;
+
+/**
+ * Resolve which package's stylesheet imports the app should end up with.
+ *
+ * Apps that installed a scoped framework package (`@c15t/react`,
+ * `@c15t/nextjs`) directly — without the `c15t` umbrella — keep scoped
+ * stylesheet imports. Normalizing their CSS to umbrella paths would mix
+ * umbrella CSS with scoped JS, a version-skew hazard. The scoped-to-umbrella
+ * normalization only applies when the app actually depends on the umbrella.
+ *
+ * The Tailwind 3 PostCSS plugin follows the same choice, so it loads from a
+ * package the app depends on directly.
+ *
+ * @param projectRoot - App root containing package.json
+ * @param packageName - The umbrella entry point requested by the caller
+ * @returns The scoped package name for scoped-only apps, otherwise the
+ * requested package name
+ */
+export const resolveStylesheetPackageName =
+	async function resolveStylesheetPackageName(
+		projectRoot: string,
+		packageName: UpdateAppStylesheetImportsOptions['packageName']
+	): Promise<UpdateAppStylesheetImportsOptions['packageName']> {
+		if (!(packageName in SCOPED_STYLESHEET_PACKAGES)) {
+			return packageName;
+		}
+
+		const scopedPackage =
+			SCOPED_STYLESHEET_PACKAGES[
+				packageName as keyof typeof SCOPED_STYLESHEET_PACKAGES
+			];
+
+		try {
+			const packageJson = JSON.parse(
+				await readFile(join(projectRoot, 'package.json'), 'utf-8')
+			);
+			const allDeps = {
+				...packageJson.dependencies,
+				...packageJson.devDependencies,
+			};
+
+			if (!(UMBRELLA_PACKAGE in allDeps) && scopedPackage in allDeps) {
+				return scopedPackage;
+			}
+		} catch {
+			// No readable manifest — keep the requested umbrella entry point.
+		}
+
+		return packageName;
+	};
+
+export const updateAppStylesheetImports =
+	async function updateAppStylesheetImports(
+		options: UpdateAppStylesheetImportsOptions
+	): Promise<EnsureGlobalCssStylesheetImportsResult> {
+		const packageName = await resolveStylesheetPackageName(
+			options.projectRoot,
+			options.packageName
+		);
+		const { tailwindVersion } = await detectFramework(options.projectRoot);
+
+		return ensureGlobalCssStylesheetImports({
+			dryRun: options.dryRun,
+			entrypointPath: options.entrypointPath,
+			includeBase: true,
+			includeIab: options.includeIab ?? false,
+			layerStarterReset: !isTailwindV3(tailwindVersion),
+			packageName,
+			projectRoot: options.projectRoot,
+		});
+	};

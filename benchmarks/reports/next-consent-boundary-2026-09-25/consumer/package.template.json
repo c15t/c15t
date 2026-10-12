@@ -1,0 +1,36 @@
+{
+	"name": "c15t-paint-consumer",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"build": "next build",
+		"start": "next start -H 127.0.0.1"
+	},
+	"dependencies": {
+		"c15t": "file:./tarballs/c15t.tgz",
+		"next": "16.3.4",
+		"next-themes": "0.4.6",
+		"react": "19.2.8",
+		"react-dom": "19.2.8"
+	},
+	"devDependencies": {
+		"@tailwindcss/postcss": "4.3.3",
+		"@types/node": "22.14.1",
+		"@types/react": "19.2.17",
+		"tailwindcss": "4.3.3",
+		"typescript": "5.9.3"
+	},
+	"overrides": {
+		"c15t": "file:./tarballs/c15t.tgz",
+		"@c15t/core": "file:./tarballs/c15t-core.tgz",
+		"@c15t/react": "file:./tarballs/c15t-react.tgz",
+		"@c15t/nextjs": "file:./tarballs/c15t-nextjs.tgz",
+		"@c15t/ui": "file:./tarballs/c15t-ui.tgz",
+		"@c15t/vue": "file:./tarballs/c15t-vue.tgz",
+		"@c15t/tanstack-start": "file:./tarballs/c15t-tanstack-start.tgz",
+		"@c15t/schema": "file:./tarballs/c15t-schema.tgz",
+		"@c15t/translations": "file:./tarballs/c15t-translations.tgz",
+		"@c15t/iab": "file:./tarballs/c15t-iab.tgz",
+		"@c15t/dev-tools": "file:./tarballs/c15t-dev-tools.tgz"
+	}
+}

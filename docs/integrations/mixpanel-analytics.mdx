@@ -1,122 +1,78 @@
 ---
-title: Mixpanel Analytics
-description: Load Mixpanel with c15t and let Mixpanel's own opt-in and opt-out APIs follow measurement consent.
-group: integrations
+title: Mixpanel
+description: Load the Mixpanel SDK on every page with the c15t mixpanelAnalytics helper, which switches Mixpanel tracking on and off with measurement consent, and check it in DevTools.
+seoTitle: Mixpanel cookie consent with c15t
+seoDescription: Opt Mixpanel out without measurement consent, and opt it in with consent. Set it up with the c15t mixpanelAnalytics helper.
 icon: mixpanel
+group: integrations
 ---
 
-Mixpanel helps you track product usage, funnels, and retention. The `mixpanelAnalytics()` helper always loads the Mixpanel library, initializes it after the bundle is ready, and uses Mixpanel's own `opt_in_tracking()` and `opt_out_tracking()` methods to keep tracking aligned with `measurement` consent.
+The c15t `mixpanelAnalytics` helper loads the Mixpanel SDK on every page, before
+the visitor chooses. The helper uses `alwaysLoad`, but its category is
+`measurement`. After the SDK loads, the helper calls
+`mixpanel.opt_out_tracking()` while `measurement` has no consent. It calls
+`mixpanel.opt_in_tracking()` while `measurement` has consent. If the visitor
+withdraws consent, the helper calls `mixpanel.opt_out_tracking()` again. By
+default, c15t also reloads the page.
 
-## Integrate with c15t
+## Configure Mixpanel
 
-<Tabs items={['React', 'Next.js', 'JavaScript']}>
-  <Tab value="React">
-    ```tsx
-    import { type ReactNode } from 'react';
-    import { ConsentManagerProvider } from '@c15t/react';
-    import { mixpanelAnalytics } from '@c15t/scripts/mixpanel-analytics';
+Copy the 32-character project token from your Mixpanel installation snippet,
+where it is passed to `mixpanel.init`. Remove that snippet.
 
-    const scripts = [
-      mixpanelAnalytics({
-        token: '1234567890abcdef1234567890abcdef',
-      }),
-    ];
+<CommandTabs command="@c15t/integrations" mode="install" />
 
-    export function ConsentProvider({ children }: { children: ReactNode }) {
-      return (
-        <ConsentManagerProvider
-          options={{
-            mode: 'hosted',
-            backendURL: 'https://your-instance.c15t.dev',
-            scripts,
-          }}
-        >
-          {children}
-        </ConsentManagerProvider>
-      );
-    }
-    ```
-  </Tab>
+```ts title="src/consent-scripts.ts"
+import { mixpanelAnalytics } from '@c15t/integrations/mixpanel-analytics';
 
-  <Tab value="Next.js">
-    ```tsx
-    'use client';
-
-    import { type ReactNode } from 'react';
-    import { ConsentManagerProvider } from '@c15t/nextjs';
-    import { mixpanelAnalytics } from '@c15t/scripts/mixpanel-analytics';
-
-    const scripts = [
-      mixpanelAnalytics({
-        token: '1234567890abcdef1234567890abcdef',
-      }),
-    ];
-
-    export function ConsentProvider({ children }: { children: ReactNode }) {
-      return (
-        <ConsentManagerProvider
-          options={{
-            mode: 'hosted',
-            backendURL: '/api/c15t',
-            scripts,
-          }}
-        >
-          {children}
-        </ConsentManagerProvider>
-      );
-    }
-    ```
-  </Tab>
-
-  <Tab value="JavaScript">
-    ```ts
-    import { getOrCreateConsentRuntime } from 'c15t';
-    import { mixpanelAnalytics } from '@c15t/scripts/mixpanel-analytics';
-
-    getOrCreateConsentRuntime({
-      mode: 'hosted',
-      backendURL: 'https://your-instance.c15t.dev',
-      scripts: [
-        mixpanelAnalytics({
-          token: '1234567890abcdef1234567890abcdef',
-        }),
-      ],
-    });
-    ```
-  </Tab>
-</Tabs>
-
-## How c15t loads it
-
-- **Category:** `measurement` (Analytics)
-- **Loads when:** immediately (`alwaysLoad: true`)
-- **Consent behavior:** c15t keeps the SDK loaded and toggles tracking by calling Mixpanel's opt-in and opt-out APIs when consent changes.
-
-## Configure the integration
-
-You can pass serializable init options through to `mixpanel.init(...)`.
-
-```ts
-import { mixpanelAnalytics } from '@c15t/scripts/mixpanel-analytics';
-
-mixpanelAnalytics({
-  token: '1234567890abcdef1234567890abcdef',
-  initOptions: {
-    debug: true,
-  },
-});
+export const scripts = [
+	mixpanelAnalytics({ token: '0123456789abcdef0123456789abcdef' }),
+];
 ```
 
-## Tracking events in your app
+The helper sets `opt_out_tracking_by_default` and
+`opt_out_persistence_by_default` to `true`, so the SDK starts a visitor with no
+stored Mixpanel opt-in as opted out. It then applies the opt-in or opt-out call
+the helper queued before load. A visitor without consent stays opted out:
+nothing is tracked, including `track` calls your code queued before the SDK
+loaded, and no visitor ID is stored. The SDK still writes an empty `mp_*`
+cookie as it starts and removes it during the same page load.
 
-Because Mixpanel is configured with `alwaysLoad: true`, `window.mixpanel` is available as soon as the script loads, even before `measurement` consent is granted. You can still call `window.mixpanel.track(...)` from app code; consent suppression is handled by Mixpanel's opt-in/opt-out methods that c15t triggers on consent updates.
+<include src="../shared/integrations/register-scripts.mdx" />
 
-## Types
+## Options
 
-### MixpanelAnalyticsOptions
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `token` | Required | 32-character hexadecimal project token. Surrounding whitespace is trimmed. Any other value logs an error and the script does not load. |
+| `initOptions` | `{ opt_out_tracking_by_default: true, opt_out_persistence_by_default: true }` | Mixpanel config passed to `init`, merged over the defaults. Use JSON-serializable values only. |
+| `scriptUrl` | `https://cdn.mxpnl.com/libs/mixpanel-2-latest.min.js` | Loader URL override. |
 
-<AutoTypeTable path="./packages/scripts/src/vendors/analytics/mixpanel-analytics.ts" name="MixpanelAnalyticsOptions" />
+## Loading and revocation
 
-### Script
+`mixpanelAnalytics` uses the `measurement` category with `alwaysLoad`, so the
+Mixpanel SDK loads on every page, before any choice. Before the SDK loads, the
+helper queues `mixpanel.opt_in_tracking()` if measurement is allowed and
+`mixpanel.opt_out_tracking()` if not. Mixpanel runs that call during init,
+before any queued `track` calls, so a visitor who already consented keeps
+those events. The helper calls the matching method again on each later consent
+change. The SDK stays on the page after revocation.
 
-<AutoTypeTable path="./packages/core/src/libs/script-loader/types.ts" name="Script" />
+Before the SDK loads, the helper queues `track`, `identify`, `reset`,
+`register`, `opt_in_tracking` and `opt_out_tracking` on the default instance.
+Named instances and `people.*` calls are not queued.
+
+## Verify Mixpanel
+
+1. In a private window with an opt-in policy, load the page. The request to
+   `cdn.mxpnl.com` appears before you choose. In the console,
+   `mixpanel.has_opted_out_tracking()` returns `true`.
+2. Click Reject, then reload. The SDK loads again and still reports opted
+   out. Call `mixpanel.track('Test')`; no tracking request goes to Mixpanel.
+3. Open Privacy settings and allow measurement. Without a reload,
+   `has_opted_out_tracking()` returns `false` and tracking requests appear.
+4. Turn measurement off again and save. c15t reloads the page, and the new
+   page loads the SDK opted out.
+
+See the [consent verification guide](/docs/guides/verify-consent) for
+navigation and hosting checks.

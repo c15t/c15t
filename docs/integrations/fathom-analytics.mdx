@@ -1,142 +1,58 @@
 ---
 title: Fathom Analytics
-description: Privacy-friendly cookieless analytics with a prebuilt helper that maps Fathom's data attributes into a c15t-managed script.
-group: integrations
+description: Load Fathom Analytics only after measurement consent with the c15t fathomAnalytics helper, set its SPA mode, and check it in DevTools.
+seoTitle: Fathom Analytics cookie consent with c15t
+seoDescription: Load Fathom Analytics only with measurement consent. The c15t fathomAnalytics helper keeps script.js off the page until then.
 icon: fathom-analytics
+group: integrations
 ---
 
-Fathom Analytics is a lightweight, cookieless analytics product configured entirely through `data-*` attributes on its loader. The `fathomAnalytics()` helper serializes your site ID and tracking options into those attributes and hands the result to c15t's script loader.
+The c15t `fathomAnalytics` helper keeps Fathom Analytics off the page until
+`measurement` has consent. Fathom says that it sets no cookies, but c15t still
+does not load Fathom's `script.js` before consent. The helper sends no consent
+signal to Fathom, and it does not call `blockTrackingForMe`. If the visitor
+withdraws consent, c15t removes the script element. By default, c15t also
+reloads the page.
 
-## Integrate with c15t
+## Configure Fathom Analytics
 
-<Tabs items={['React', 'Next.js', 'JavaScript']}>
-  <Tab value="React">
-    ```tsx
-    import { type ReactNode } from 'react';
-    import { ConsentManagerProvider } from '@c15t/react';
-    import { fathomAnalytics } from '@c15t/scripts/fathom-analytics';
+Copy the site ID from your Fathom embed code, where it is the `data-site`
+value. If your app changes routes without a full page load, also pass `spa`.
+Without it, the helper leaves Fathom's SPA route tracking off.
 
-    const scripts = [fathomAnalytics({ site: 'SITE123' })];
+<CommandTabs command="@c15t/integrations" mode="install" />
 
-    export function ConsentProvider({ children }: { children: ReactNode }) {
-      return (
-        <ConsentManagerProvider
-          options={{
-            mode: 'hosted',
-            backendURL: 'https://your-instance.c15t.dev',
-            scripts,
-          }}
-        >
-          {children}
-        </ConsentManagerProvider>
-      );
-    }
-    ```
-  </Tab>
+```ts title="src/consent-scripts.ts"
+import { fathomAnalytics } from '@c15t/integrations/fathom-analytics';
 
-  <Tab value="Next.js">
-    ```tsx
-    'use client';
-
-    import { type ReactNode } from 'react';
-    import { ConsentManagerProvider } from '@c15t/nextjs';
-    import { fathomAnalytics } from '@c15t/scripts/fathom-analytics';
-
-    const scripts = [fathomAnalytics({ site: 'SITE123' })];
-
-    export function ConsentProvider({ children }: { children: ReactNode }) {
-      return (
-        <ConsentManagerProvider
-          options={{
-            mode: 'hosted',
-            backendURL: '/api/c15t',
-            scripts,
-          }}
-        >
-          {children}
-        </ConsentManagerProvider>
-      );
-    }
-    ```
-  </Tab>
-
-  <Tab value="JavaScript">
-    ```ts
-    import { getOrCreateConsentRuntime } from 'c15t';
-    import { fathomAnalytics } from '@c15t/scripts/fathom-analytics';
-
-    getOrCreateConsentRuntime({
-      mode: 'hosted',
-      backendURL: 'https://your-instance.c15t.dev',
-      scripts: [fathomAnalytics({ site: 'SITE123' })],
-    });
-    ```
-  </Tab>
-</Tabs>
-
-## How c15t loads it
-
-- **Category:** `measurement` (Analytics)
-- **Loads when:** measurement consent is granted
-- **On revocation:** unloaded — c15t removes the script element from the DOM. Fathom is cookieless, so no client-side state needs clearing.
-
-If you need to tune SPA tracking, canonical URL tracking, or Do Not Track handling:
-
-```ts
-fathomAnalytics({
-  site: 'SITE123',
-  spa: 'history',
-  canonical: true,
-  honorDnt: true,
-})
+export const scripts = [fathomAnalytics({ site: 'YOUR_SITE_ID', spa: 'auto' })];
 ```
 
-Each option is mapped to Fathom's published `data-*` attribute (`data-site`, `data-spa`, `data-auto`, `data-canonical`, `data-honor-dnt`) and the script uses `defer` so it matches Fathom's recommended embed pattern.
+<include src="../shared/integrations/register-scripts.mdx" />
 
-## Tracking events in your app
+## Options
 
-c15t gates the Fathom script from loading until `measurement` consent is granted. Your application code that calls Fathom's runtime API (`window.fathom.trackEvent`, `trackPageview`, `trackGoal`) is **not** automatically gated — `window.fathom` does not exist until the script is loaded, so unguarded calls before consent will throw errors.
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `site` | Required | Site ID, set as `data-site`. The helper trims it. Empty or whitespace-only values log an error and the script does not load. |
+| `spa` | None | `'auto'`, `'history'` or `'hash'`, set as `data-spa`. When omitted, the script has no `data-spa` attribute and SPA route tracking stays off. |
+| `auto` | None | Sets `data-auto` to `'true'` or `'false'` to control automatic page views. When omitted, Fathom's default applies. |
+| `canonical` | None | Sets `data-canonical` to control canonical URL tracking. When omitted, Fathom's default applies. |
+| `honorDnt` | None | Sets `data-honor-dnt` to control whether Fathom honors Do Not Track. When omitted, Fathom's default applies. |
+| `scriptUrl` | `https://cdn.usefathom.com/script.js` | Loader URL override. A blank value falls back to the default. |
 
-Guard event calls by checking consent state. From React:
+## Loading and revocation
 
-```tsx
-import { useConsentManager } from '@c15t/react';
+`fathomAnalytics` uses the `measurement` category. Fathom sets no cookies, but
+the helper still waits for measurement permission. It loads `script.js` with
+`defer`. On revocation the helper removes the script element and calls no
+Fathom API. It does not call `window.fathom.blockTrackingForMe`.
 
-function useTrackSignup() {
-  const { has } = useConsentManager();
+## Verify Fathom Analytics
 
-  return () => {
-    if (has('measurement')) {
-      window.fathom?.trackEvent('signup');
-    }
-  };
-}
+After you allow measurement, `script.js` loads from `cdn.usefathom.com` and its
+script element carries your `data-site` and `data-spa` values. Change route in
+your app and check that it sends one page view, not two. If your code calls
+`window.fathom?.trackEvent`, check measurement permission before each call.
 
-function SignupButton() {
-  const trackSignup = useTrackSignup();
-
-  return <button onClick={trackSignup}>Sign up</button>;
-}
-```
-
-From plain JavaScript:
-
-```ts
-import { getOrCreateConsentRuntime } from 'c15t';
-
-const { consentStore } = getOrCreateConsentRuntime();
-
-if (consentStore.getState().has('measurement')) {
-  window.fathom?.trackEvent('signup');
-}
-```
-
-## Types
-
-### FathomAnalyticsOptions
-
-<AutoTypeTable path="./packages/scripts/src/vendors/analytics/fathom-analytics.ts" name="FathomAnalyticsOptions" />
-
-### Script
-
-<AutoTypeTable path="./packages/core/src/libs/script-loader/types.ts" name="Script" />
+<include src="../shared/integrations/vendor-revocation-and-verify.mdx" />

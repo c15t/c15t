@@ -1,36 +1,25 @@
-import type { ConsentStoreState } from 'c15t';
-import { defaultTranslationConfig } from 'c15t';
-import type { ReactElement } from 'react';
+import { defaultTranslationConfig } from '@c15t/core';
+import type { ComponentProps, ReactElement } from 'react';
+import { renderToString } from 'react-dom/server';
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
-import { ConsentDialogFooter } from '~/components/consent-dialog/atoms/card';
-import { ConsentStateContext } from '~/context/consent-manager-context';
-import { GlobalThemeContext } from '~/context/theme-context';
+
+import { ComponentFixtureProvider as ConsentProvider } from '~/__tests__/component-fixture-provider';
+import type { ConsentStateFixture } from '~/__tests__/consent-state-fixture';
+import { policyFixture } from '~/__tests__/policy-fixture';
+import { ConsentDialogFooter } from '~/components/panel/atoms/card';
+import { offline } from '~/transports/offline';
+
 import { BrandingCompactLogo, BrandingLink } from '../branding';
 
-function createMockState(
-	overrides: Partial<ConsentStoreState> = {}
-): ConsentStoreState {
+type ConsentManagerState = ConsentStateFixture;
+
+const createMockState = function createMockState(
+	overrides: Partial<ConsentManagerState> = {}
+): ConsentManagerState {
 	return {
 		activeUI: 'dialog',
-		model: 'opt-in',
-		translationConfig: defaultTranslationConfig,
 		branding: 'c15t',
-		consents: {
-			necessary: true,
-			functionality: false,
-			experience: false,
-			marketing: false,
-			measurement: false,
-		},
-		selectedConsents: {
-			necessary: true,
-			functionality: false,
-			experience: false,
-			marketing: false,
-			measurement: false,
-		},
-		consentInfo: null,
 		consentCategories: [
 			'necessary',
 			'functionality',
@@ -38,51 +27,90 @@ function createMockState(
 			'marketing',
 			'measurement',
 		],
+		consentInfo: null,
 		consentTypes: [],
-		policyCategories: null,
-		policyScopeMode: null,
-		policyBanner: {},
-		policyDialog: {},
-		saveConsents: vi.fn().mockResolvedValue(undefined),
-		setConsent: vi.fn(),
-		setSelectedConsent: vi.fn(),
-		setActiveUI: vi.fn(),
+		consents: {
+			experience: false,
+			functionality: false,
+			marketing: false,
+			measurement: false,
+			necessary: true,
+		},
+		getDisplayedConsents: vi.fn(() => []),
 		has: vi.fn(),
 		hasConsented: vi.fn(),
-		getDisplayedConsents: vi.fn(() => []),
+		model: 'opt-in',
+		policyBanner: {},
+		policyCategories: null,
+		policyDialog: {},
+		policyScopeMode: null,
+		saveConsents: vi.fn().mockResolvedValue(undefined),
+		selectedConsents: {
+			experience: false,
+			functionality: false,
+			marketing: false,
+			measurement: false,
+			necessary: true,
+		},
+		setActiveUI: vi.fn(),
+		setConsent: vi.fn(),
+		setSelectedConsent: vi.fn(),
+		translationConfig: defaultTranslationConfig,
 		...overrides,
-	} as unknown as ConsentStoreState;
-}
+	} as unknown as ConsentManagerState;
+};
 
-async function renderWithConsentState(
+const createConsentTree = function createConsentTree(
 	ui: ReactElement,
-	stateOverrides: Partial<ConsentStoreState> = {},
-	themeOverrides: {
-		theme?: {
-			slots?: Record<string, string>;
-		};
-	} = {}
+	stateOverrides: Partial<ConsentManagerState> = {},
+	providerOverrides: Partial<
+		ComponentProps<typeof ConsentProvider>['options']
+	> = {}
 ) {
 	const state = createMockState(stateOverrides);
 
-	await render(
-		<GlobalThemeContext.Provider value={themeOverrides}>
-			<ConsentStateContext.Provider
-				value={{
-					state,
-					store: {
-						getState: () => state,
-						subscribe: () => () => undefined,
-						setState: () => undefined,
+	return (
+		<ConsentProvider
+			options={{
+				components: providerOverrides.components,
+				initialUI: state.activeUI === 'dialog' ? 'dialog' : 'banner',
+				mode: offline(),
+				persistence: false,
+				prefetch: {
+					...policyFixture(undefined, {
+						categories: state.consentCategories,
+						id: 'branding-test-policy',
+						model: state.model ?? 'opt-in',
+						prompt: 'choice',
+						scopeMode: state.policyScopeMode ?? 'permissive',
+					}),
+					initialBranding: state.branding,
+					initialDraft: state.consents,
+					initialTranslations: {
+						language: state.translationConfig.defaultLanguage,
+						translations:
+							state.translationConfig.translations[
+								state.translationConfig.defaultLanguage
+							] ?? state.translationConfig.translations.en,
 					},
-					manager: null,
-				}}
-			>
-				{ui}
-			</ConsentStateContext.Provider>
-		</GlobalThemeContext.Provider>
+				},
+				presentation: {
+					preferences: state.policyDialog,
+					prompt: state.policyBanner,
+				},
+				theme: providerOverrides.theme,
+			}}
+		>
+			{ui}
+		</ConsentProvider>
 	);
-}
+};
+
+const renderWithConsentState = async function renderWithConsentState(
+	...args: Parameters<typeof createConsentTree>
+) {
+	await render(createConsentTree(...args));
+};
 
 describe('BrandingLink', () => {
 	test('maps deprecated consent branding to the INTH tag treatment', async () => {
@@ -161,14 +189,16 @@ describe('BrandingLink', () => {
 			<BrandingLink
 				hideBranding={false}
 				variant="banner-tag"
-				themeKey="consentBannerTag"
+				slotContext="banner"
 				data-testid="branding-link"
 			/>,
 			{},
 			{
-				theme: {
-					slots: {
-						consentBannerTag: 'branding-theme-marker',
+				components: {
+					tag: {
+						banner: {
+							className: 'branding-theme-marker',
+						},
 					},
 				},
 			}
@@ -225,6 +255,40 @@ describe('BrandingLink', () => {
 		});
 	});
 
+	test('adds the referral hostname only after hydration', async () => {
+		// The server has no `window`. If the hydration render produced a
+		// different href than the server markup, React would log an attribute
+		// mismatch and leave the server value in place, so the referral
+		// parameter has to wait for hydration.
+		const markup = renderToString(
+			createConsentTree(
+				<BrandingLink
+					hideBranding={false}
+					variant="banner-tag"
+					data-testid="branding-link"
+				/>
+			)
+		);
+		expect(markup).toContain('href="https://c15t.com"');
+		expect(markup).not.toContain('?ref=');
+
+		await renderWithConsentState(
+			<BrandingLink
+				hideBranding={false}
+				variant="banner-tag"
+				data-testid="branding-link"
+			/>
+		);
+
+		await vi.waitFor(() => {
+			const link = document.querySelector('[data-testid="branding-link"]');
+			expect(link).toHaveAttribute(
+				'href',
+				`https://c15t.com?ref=${window.location.hostname}`
+			);
+		});
+	});
+
 	test('hides branding when disabled', async () => {
 		await renderWithConsentState(
 			<BrandingLink
@@ -246,7 +310,10 @@ describe('BrandingLink', () => {
 describe('BrandingCompactLogo', () => {
 	test('renders the INTH compact mark for the deprecated consent alias', async () => {
 		render(
-			<BrandingCompactLogo branding="consent" data-testid="branding-icon" />
+			<BrandingCompactLogo
+				branding="consent"
+				data-testid="branding-icon"
+			/>
 		);
 
 		await vi.waitFor(() => {

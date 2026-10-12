@@ -18,27 +18,36 @@ const DEFAULT_SUPPORT_SECTIONS = [
 ];
 
 const DEFAULT_CONTRIBUTING_SECTIONS = [
-	"We're open to all community contributions.",
-	'Read our [Contribution Guidelines](https://c15t.com/docs/oss/contributing)',
-	'Review our [Code of Conduct](https://c15t.com/docs/oss/code-of-conduct)',
-	'Fork the repository',
-	'Create a new branch for your feature',
-	'Submit a pull request',
-	'**All contributions, big or small, are welcome and appreciated.**',
+	'Read the [contribution guidelines](https://c15t.com/docs/oss/contributing) before you open a pull request',
+	'Follow the [code of conduct](https://c15t.com/docs/oss/code-of-conduct)',
 ];
 
 const DEFAULT_SECURITY_SECTION = `## Security
 
-If you believe you have found a security vulnerability in c15t, we encourage you to **_responsibly disclose this and NOT open a public issue_**. We will investigate all legitimate reports.
+Do not open a public issue for a security vulnerability. Report it privately through [GitHub's vulnerability reporting](https://github.com/c15t/c15t/security/advisories/new). We examine every valid report.
 
-Our preference is that you make use of GitHub's private vulnerability reporting feature to disclose potential security vulnerabilities in our open-source software. To do this, please visit [https://github.com/c15t/c15t/security](https://github.com/c15t/c15t/security) and click the "Report a vulnerability" button.
+- Do not share the vulnerability in public forums, issues, or pull requests
+- Give the steps to reproduce it and the versions it affects
+- Give us time to release a fix before you disclose it`;
 
-### Security Policy
+const SOCIAL_PROOF_LINE =
+	'c15t is used by [2,100+ sites](https://www.wappalyzer.com/technologies/cookie-compliance/c15t/), including expo.dev, zed.dev, unkey.dev, mintlify.com, and sazabi.com.';
 
-- Please do not share security vulnerabilities in public forums, issues, or pull requests
-- Provide detailed information about the potential vulnerability
-- Allow reasonable time for us to address the issue before any public disclosure
-- We are committed to addressing security concerns promptly and transparently`;
+/**
+ * Renders the shared hosting section with Inth links tagged for one package.
+ *
+ * @param npmBadgeName - URL-encoded package name used as the UTM content.
+ * @returns The Markdown for the Hosting section.
+ */
+const renderHostingSection = (npmBadgeName: string) => `## Hosting
+
+c15t needs somewhere to keep policies and consent records. Pick one:
+
+- **Hosted on [Inth](https://inth.com?utm_source=npm&utm_medium=readme&utm_campaign=oss_readme&utm_content=${npmBadgeName})**: Inth runs the backend for you. You get policy storage, consent records, audit history, and a dashboard, with no database or server to run. Sign-up is free.
+- **Self-hosted**: Run [\`@c15t/backend\`](https://www.npmjs.com/package/@c15t/backend) on your own server with PostgreSQL, MySQL, or SQLite. You own migrations, backups, and uptime. See the [self-hosting guide](https://c15t.com/docs/self-host/quickstart).
+- **Offline**: Choices stay in the browser, with no consent records. Use it for local development, previews, and demos, not production.
+
+The frontend code is the same for Inth and a self-hosted backend. Only the backend URL changes.`;
 
 // Types
 interface PackageReadmeConfig {
@@ -49,15 +58,16 @@ interface PackageReadmeConfig {
 	prerequisites?: string[];
 	installation?: string[];
 	manualInstallation?: string[];
-	usage?: string[]; // items may include fenced code blocks as strings beginning with ```
-	commands?: Array<{
+	// items may include fenced code blocks as strings beginning with ```
+	usage?: string[];
+	commands?: {
 		name: string;
 		description: string;
-	}>;
-	globalFlags?: Array<{
+	}[];
+	globalFlags?: {
 		flag: string;
 		description: string;
-	}>;
+	}[];
 	telemetry?: {
 		description: string;
 		details?: string[];
@@ -70,6 +80,15 @@ interface PackageReadmeConfig {
 	quickStartLink?: string;
 	showCLIGeneration?: boolean;
 	customSections?: Record<string, string>;
+	/** Sections rendered directly after Key Features, before setup steps. */
+	leadSections?: Record<string, string>;
+	/**
+	 * Renders the shared Hosting section: `'lead'` places it after Key
+	 * Features, `true` places it after Usage.
+	 */
+	showHosting?: boolean | 'lead';
+	/** Set from package.json: true when the published tarball includes AGENTS.md. */
+	shipsAgentDocs?: boolean;
 }
 
 // Helpers
@@ -81,9 +100,9 @@ const INTH_ICON_LOGO =
 	'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGZpbGw9Im5vbmUiIHZpZXdCb3g9IjAgMCAzOTMgNDAwIj48cGF0aCBmaWxsPSIjMDAwIiBkPSJNMTgyLjY2MiAwdjM2Ljg5NWgtNTkuMDMxdjgyLjczM2g1OS4wMzF2MzYuODkzSDI3LjQ4MnYtMzYuODkzaDU5LjAzVjM2Ljg5NWgtNTkuMDNWMHpNMzIxLjk0MSA4OS44NVYwaDM1LjM1NXYxNTYuNTIxaC0yNS43MTNsLTg2LjEzNy05MC4zNjR2OTAuMzY0aC0zNS4zNTVWMGgyNi4zNTV6Ii8+PHBhdGggZmlsbD0iIzAwMCIgZmlsbC1ydWxlPSJldmVub2RkIiBkPSJNMzE4LjU3MSAxODUuNzE0aDc0LjI4NlY0MDBIMFYxODUuNzE0aDI3Mi44NTd2LTQ3LjE0M3ptLTI5MS4wOSAyOC45Njl2MzcuMTE4aDU4LjEzN3YxMTkuNjI4aDM2Ljg5NVYyNTEuODAxaDU4LjU4NHYtMzcuMTE4em0xODIuNjEuMjI0djE1Ni41MjJoMzYuODk0VjMxMy41OWg3My4zNDF2NTcuODM5aDM3LjExOFYyMTQuOTA3aC0zNy4xMTh2NjEuNzg4aC03My4zNDF2LTYxLjc4OHoiIGNsaXAtcnVsZT0iZXZlbm9kZCIvPjwvc3ZnPg==';
 
 const INTH_BADGE_QUERY = new URLSearchParams({
-	logo: INTH_ICON_LOGO,
 	color: 'ffc803',
 	labelTextColor: '000000',
+	logo: INTH_ICON_LOGO,
 	valueColor: '000000',
 }).toString();
 
@@ -145,7 +164,7 @@ const renderNumberedWithCodeBlocks = (items: string[]) => {
 	}
 	return `${lines
 		.join('\n')
-		.replace(/\n{3,}/g, '\n\n')
+		.replace(/\n{3,}/gu, '\n\n')
 		.trim()}\n\n\n\n`;
 };
 
@@ -155,11 +174,16 @@ const addSection = (
 	content: string[] | undefined,
 	formatter: (item: string, index?: number) => string = (item) => `- ${item}`
 ) => {
-	if (!content || content.length === 0) return '';
+	if (!content || content.length === 0) {
+		return '';
+	}
 	const body = content.map(formatter).join('\n');
-	return `${header}\n\n\n\n\n${body}\n\n\n\n`.replace(/\n{3,}/g, '\n\n').trim();
+	return `${header}\n\n\n\n\n${body}\n\n\n\n`
+		.replace(/\n{3,}/gu, '\n\n')
+		.trim();
 };
 
+// oxlint-disable-next-line complexity -- Preserve established branch order and control flow.
 const baseReadmeTemplate = (rawConfig: PackageReadmeConfig) => {
 	const config: PackageReadmeConfig = { ...rawConfig };
 
@@ -217,8 +241,8 @@ ${[
 	const bannerBlock = `<p align="center">
   <a href="https://c15t.com?utm_source=npm&utm_medium=readme&utm_campaign=oss_readme&utm_content=${npmBadgeName}" target="_blank" rel="noopener noreferrer">
     <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="../../docs/assets/c15t-banner-readme-dark.svg" type="image/svg+xml">
-      <img src="../../docs/assets/c15t-banner-readme-light.svg" alt="c15t Banner" type="image/svg+xml">
+      <source media="(prefers-color-scheme: dark)" srcset="../../docs/assets/c15t-banner-readme-dark.png">
+      <img src="../../docs/assets/c15t-banner-readme-light.png" alt="c15t: the open standard for cookie banners">
     </picture>
   </a>
 </p>
@@ -263,7 +287,7 @@ The CLI will:
 	}
 
 	const manualInstallationBlock = config.manualInstallation?.length
-		? `## Manual Installation
+		? `## ${config.showCLIGeneration ? 'Manual Installation' : 'Installation'}
 
 ${config.manualInstallation.map((step) => `${step}`).join('\n')}`
 		: '';
@@ -327,8 +351,28 @@ ${disableMethodsSection}`;
 	if (config.docsLink) {
 		docsBlock = `## Documentation
 
-For further information, guides, and examples visit the [reference documentation](${config.docsLink}).`;
+See the [documentation](${config.docsLink}) for guides, API reference, and examples.`;
 	}
+
+	let leadSectionsBlock = '';
+	if (config.leadSections) {
+		leadSectionsBlock = Object.entries(config.leadSections)
+			.map(([heading, content]) => `## ${heading}\n\n${content}`)
+			.join('\n\n');
+	}
+
+	let agentDocsBlock = '';
+	if (config.shipsAgentDocs) {
+		agentDocsBlock = `## Docs for AI Agents
+
+This package ships its documentation as Markdown, matched to the installed version. After you install it, point your coding agent at \`node_modules/${config.packageName}/AGENTS.md\`. It indexes every guide in \`node_modules/${config.packageName}/docs/\`.
+
+On the web, every page of the [c15t docs](https://c15t.com/docs) has a Markdown version, and [llms.txt](https://c15t.com/docs/llms.txt) lists them all. Install the c15t agent skills with \`npx skills add c15t/skills\`.`;
+	}
+
+	const hostingBlock = config.showHosting
+		? renderHostingSection(npmBadgeName)
+		: '';
 
 	let customSectionsBlock = '';
 	if (config.customSections) {
@@ -351,17 +395,22 @@ For further information, guides, and examples visit the [reference documentation
 	const readmeContent = [
 		bannerBlock,
 		config.description,
+		SOCIAL_PROOF_LINE,
 		featuresBlock,
+		leadSectionsBlock,
+		config.showHosting === 'lead' ? hostingBlock : '',
 		prerequisitesBlock,
 		quickStartBlock,
 		manualInstallationBlock,
 		installationBlock,
 		usageBlock,
+		config.showHosting === true ? hostingBlock : '',
 		commandsBlock,
 		globalFlagsBlock,
 		telemetryBlock,
 		docsBlock,
 		customSectionsBlock,
+		agentDocsBlock,
 		supportBlock,
 		contributingBlock,
 		config.security || DEFAULT_SECURITY_SECTION,
@@ -369,8 +418,9 @@ For further information, guides, and examples visit the [reference documentation
 	]
 		.filter((section) => isNonEmpty(section))
 		.join('\n\n')
-		.replace(/\n{3,}/g, '\n\n')
-		.replace(/\n{2,}$/, '\n'); // Remove multiple trailing newlines
+		.replace(/\n{3,}/gu, '\n\n')
+		// Remove multiple trailing newlines
+		.replace(/\n{2,}$/u, '\n');
 
 	return `${readmeContent.trim()}\n`;
 };
@@ -381,7 +431,7 @@ For further information, guides, and examples visit the [reference documentation
  * @throws {SyntaxError} If readme.json or package.json contains invalid JSON
  * @throws {Error} If file write operations fail
  */
-async function generateReadmes() {
+const generateReadmes = async function generateReadmes() {
 	const packagesDir = path.resolve(__dirname, '../packages');
 
 	if (!fssync.existsSync(packagesDir)) {
@@ -397,7 +447,8 @@ async function generateReadmes() {
 			fssync.existsSync(path.join(packagesDir, dir, 'readme.json'))
 		);
 
-	for (const packageName of packageDirs) {
+	await packageDirs.reduce<Promise<void>>(async (previous, packageName) => {
+		await previous;
 		try {
 			const readmeConfigPath = path.join(
 				packagesDir,
@@ -421,6 +472,10 @@ async function generateReadmes() {
 			// Set package name
 			readmeConfig.packageName = packageJson.name || packageName;
 
+			readmeConfig.shipsAgentDocs = Array.isArray(packageJson.files)
+				? packageJson.files.includes('AGENTS.md')
+				: false;
+
 			// Set description from package.json if not in readme.json
 			if (!readmeConfig.description) {
 				readmeConfig.description = packageJson.description || '';
@@ -434,10 +489,12 @@ async function generateReadmes() {
 		} catch (error) {
 			console.error(`Error generating README for ${packageName}:`, error);
 		}
-	}
-}
+	}, Promise.resolve());
+};
 
-generateReadmes().catch((err) => {
-	console.error('Fatal error generating READMEs:', err);
+try {
+	await generateReadmes();
+} catch (error) {
+	console.error('Fatal error generating READMEs:', error);
 	process.exit(1);
-});
+}

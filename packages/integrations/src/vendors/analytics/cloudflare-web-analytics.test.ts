@@ -1,0 +1,60 @@
+import { describe, expect, it } from 'vitest';
+
+import {
+	expectScriptMatchesIntegration,
+	expectSkippedScript,
+	setupScriptHelperTest,
+} from '../../__tests__/helpers';
+import { cloudflareWebAnalytics } from './cloudflare-web-analytics';
+
+describe('cloudflareWebAnalytics', () => {
+	setupScriptHelperTest();
+
+	it('matches registry metadata with the default loader and enables SPA tracking by default', () => {
+		const script = cloudflareWebAnalytics({ token: 'tok-abc' });
+
+		expectScriptMatchesIntegration('cloudflareWebAnalytics', script, {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://static.cloudflareinsights.com/beacon.min.js',
+		});
+		expect(script.attributes).toEqual({
+			'data-cf-beacon': JSON.stringify({ spa: true, token: 'tok-abc' }),
+		});
+	});
+
+	it('serializes spa: false into the beacon config', () => {
+		const script = cloudflareWebAnalytics({ spa: false, token: 'tok-abc' });
+
+		expect(script.attributes).toEqual({
+			'data-cf-beacon': JSON.stringify({ spa: false, token: 'tok-abc' }),
+		});
+	});
+
+	it('trims tokens before serializing the beacon config', () => {
+		const script = cloudflareWebAnalytics({ token: '  tok-abc  ' });
+
+		expect(script.attributes).toEqual({
+			'data-cf-beacon': JSON.stringify({ spa: true, token: 'tok-abc' }),
+		});
+	});
+
+	it('logs and skips the script for blank tokens', () => {
+		for (const token of ['   ', undefined]) {
+			expectSkippedScript(
+				() => cloudflareWebAnalytics({ token: token as string }),
+				{ category: 'measurement', id: 'cloudflare-web-analytics' },
+				'cloudflareWebAnalytics: missing or invalid token'
+			);
+		}
+	});
+
+	it('honors a custom loader URL', () => {
+		const script = cloudflareWebAnalytics({
+			scriptUrl: 'https://cdn.example.com/beacon.js',
+			token: 'tok-abc',
+		});
+
+		expect(script.src).toBe('https://cdn.example.com/beacon.js');
+	});
+});

@@ -48,12 +48,13 @@ export const checkConsentOutputSchema = v.object({
  * Error schemas for consent check
  */
 export const checkConsentErrorSchemas = {
-	inputValidationFailed: v.object({
-		formErrors: v.array(v.string()),
-		fieldErrors: v.record(v.string(), v.array(v.string())),
-	}),
 	externalIdRequired: v.object({
 		message: v.string(),
+	}),
+	inputValidationFailed: v.object({
+		fieldErrors: v.record(v.string(), v.array(v.string())),
+
+		formErrors: v.array(v.string()),
 	}),
 	typeRequired: v.object({
 		message: v.string(),

@@ -1,13 +1,11 @@
 <script lang="ts">
-	import { switchVariants, getSwitchState, toggleSwitchValue } from '@c15t/svelte';
+	import { Switch, switchVariants } from '@c15t/svelte';
 
 	interface Props {
 		label?: string;
 	}
 
-	const {
-		label = 'Functionality',
-	}: Props = $props();
+	const { label = 'Functionality' }: Props = $props();
 
 	let checked = $state(true);
 	const classes = switchVariants();
@@ -15,17 +13,16 @@
 
 <div style="display:grid;gap:0.75rem;">
 	<label style="align-items:center;display:inline-flex;gap:0.75rem;">
-		<button
+		<Switch.Root
 			class={classes.root()}
-			role="switch"
-			aria-checked={String(checked)}
+			bind:checked
 			aria-label={label}
-			data-state={getSwitchState(checked)}
-			type="button"
-			onclick={() => { checked = toggleSwitchValue(checked); }}
 		>
-			<span class={classes.track()}><span class={classes.thumb()} /></span>
-		</button>
+			<Switch.Control class={classes.track()}>
+				<Switch.Thumb class={classes.thumb()} />
+			</Switch.Control>
+			<Switch.HiddenInput />
+		</Switch.Root>
 		<span>{label}</span>
 	</label>
 	<div aria-live="polite">

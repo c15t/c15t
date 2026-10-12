@@ -1,0 +1,19 @@
+{
+	"compilerOptions": {
+		"target": "ES2022",
+		"lib": ["ES2022", "DOM", "DOM.Iterable"],
+		"module": "ESNext",
+		"moduleResolution": "bundler",
+		"jsx": "react-jsx",
+		"strict": true,
+		"noUncheckedIndexedAccess": true,
+		"isolatedModules": true,
+		"skipLibCheck": true,
+		"noEmit": true,
+		"types": ["vite/client", "node"],
+		"paths": {
+			"#bench-root-shell": ["./src/bench/root-shell.tsx"]
+		}
+	},
+	"include": ["src", "scripts", "vite.config.ts"]
+}

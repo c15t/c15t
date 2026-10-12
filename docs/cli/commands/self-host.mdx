@@ -1,40 +1,40 @@
 ---
-title: self-host
-description: Workflow commands for self-hosted @c15t/backend deployments.
+title: Self-hosted migrations
+description: Plan and apply database migrations for a self-hosted c15t backend with the c15t CLI self-host migrate command.
 group: cli
 ---
 
-`self-host` is the namespace for commands that only apply when you run your own [`@c15t/backend`](/docs/self-host/quickstart). The hosted product (inth.com) handles these automatically.
-
-## Usage
-
-Run the interactive picker:
+## Plan a migration
 
 ```bash
-pnpm dlx @c15t/cli self-host
+npx @c15t/cli self-host migrate --config ./c15t-backend.config.ts --plan --json
 ```
 
-Or invoke a subcommand directly:
+The CLI reads the `database` option from the config file, loading `.env` from
+the file's directory, and reports what it would change. `--plan` changes no
+schema. Without `--config`, the CLI looks for `c15t-backend.config.ts`; in a
+terminal it can help you create one.
+
+A v2 config that only has `adapter` fails with a message naming the field.
+Replace it with `database`, as the
+[database setup guide](/docs/self-host/guides/database-setup#upgrade-a-v2-backend)
+shows.
+
+## Apply it
 
 ```bash
-pnpm dlx @c15t/cli self-host migrate
+npx @c15t/cli self-host migrate --config ./c15t-backend.config.ts --apply --json
 ```
 
-## Subcommands
+`--apply` is the only flag that writes. Without `--plan` or `--apply`, a
+terminal shows the plan and asks before applying; a script must pass one of
+them. `--json` alone never applies a migration.
 
-### `migrate`
+The result reports planned, applied, already current or cancelled work. A
+database the migrator does not recognize fails with an explanation instead of
+being changed. The CLI closes its database connection when it finishes, also on
+failure.
 
-Runs the latest database migrations for your configured adapter.
-
-```bash
-pnpm dlx @c15t/cli self-host migrate
-```
-
-`@c15t/backend` supports Drizzle, Kysely, Prisma, TypeORM, and Mongo adapters. The migrate command picks the right migration runner based on your `c15t-backend.config.ts`.
-
-**Tip:** run `migrate` after every `c15t` upgrade. New schema fields are introduced as additive migrations.
-
-## Related
-
-- [Self-host overview](/docs/self-host/quickstart) — full deployment guide.
-- [`generate`](./generate) — regenerate schema files before migrating.
+Back up the database before applying against existing data, and run the
+migration against the same database and schema the server uses. Codemods do
+not migrate a database.

@@ -50,15 +50,15 @@ We use GitHub to host code, to track issues and feature requests, as well as acc
 We leverage several automated workflows to ensure code quality:
 
 1. **Code Quality**
-   - Formatting: Biome automatically formats code
+   - Formatting: Oxfmt automatically formats code
    - Types: TypeScript checks run on every PR
    - Tests: Vitest runs the test suite
    - Build: Turbo ensures everything builds correctly
 
 2. **Dependencies**
    - Renovate keeps dependencies up to date
-   - PNPM manages our packages
-   - Changesets handles our versioning
+   - Bun manages our packages
+   - Tegami handles versioning and publishing
 
 3. **Pull Requests**
    - PR titles are checked for semantic versioning
@@ -67,7 +67,7 @@ We leverage several automated workflows to ensure code quality:
 
 ## Getting Started
 
-1. Fork the repo and create your branch from `main`:
+1. Fork the repo and create your branch from `canary`:
 
    ```sh
    git clone https://github.com/your-username/c15t.git
@@ -78,16 +78,15 @@ We leverage several automated workflows to ensure code quality:
 2. Install dependencies:
 
    ```sh
-   corepack enable  # Sets up PNPM
-   pnpm install     # Installs dependencies
+   bun install
    ```
 
 3. Make your changes and ensure the following pass:
 
    ```sh
-   pnpm fmt         # Format code
-   pnpm test        # Run tests
-   pnpm build       # Build packages
+   bun run fmt         # Format code
+   bun run test        # Run tests
+   bun run build       # Build packages
    ```
 
 ## Pull Request Process
@@ -97,7 +96,7 @@ We leverage several automated workflows to ensure code quality:
    - For bugs/docs: Can start work immediately
 
 2. **Make Your Changes**
-   - Follow our coding standards (enforced by Biome)
+   - Follow our coding standards (enforced by Oxlint and Oxfmt)
    - Add tests for new functionality
    - Update documentation as needed
 
@@ -109,7 +108,7 @@ We leverage several automated workflows to ensure code quality:
 
 4. **Automated Checks**
    The following will run automatically:
-   - Code formatting (Biome)
+   - Code formatting (Oxfmt)
    - Type checking (TypeScript)
    - Tests (Vitest)
    - Build verification (Turbo)
@@ -124,19 +123,36 @@ We leverage several automated workflows to ensure code quality:
 
 ## Release Process
 
-Releases are automated through our CI/CD pipeline:
+Add a `.tegami/*.md` release note for changes to published packages. On a
+feature branch, run `RELEASE_BRANCH=v3 bun run tegami`, replacing `v3` with the
+PR target. Use explicit package bumps and include a Markdown heading:
 
-1. Merge to `main` triggers version check
-2. Changesets determines version bump
-3. New version is published to npm
-4. GitHub release is created
-5. Documentation is updated
+```md
+---
+packages:
+  '@c15t/core': patch
+---
+
+### Fix consent persistence
+
+Keep saved preferences after reloading the page.
+```
+
+The existing `release.yml` workflow runs CI before Tegami opens a version PR.
+Merging that PR publishes packages and creates GitHub releases. `main` publishes
+stable releases, `v3` publishes alphas, and `2.0.0` publishes RCs. Canary pushes
+publish commit-specific snapshots directly, without a version PR.
+
+Keep generated package changelogs and the publish lock unchanged in feature PRs.
+Replay-only notes remain until the package graduates from prerelease to stable.
+See the [release guide](https://github.com/c15t/c15t/blob/v3/.tegami/README.md)
+for the versioning rules and npm trusted publishing setup.
 
 ## Development Guidelines
 
 ### Code Style
 
-We use Biome for formatting and linting. Configuration is in `biome.jsonc`.
+We use Oxlint for linting and Oxfmt for formatting. Configuration is in `oxlint.config.ts` and `oxfmt.config.ts`.
 
 ### Commits
 
@@ -153,7 +169,7 @@ Follow [Conventional Commits](https://www.conventionalcommits.org/):
 
 - Write tests for new features
 - Update tests for changes
-- Run `pnpm test` locally
+- Run `bun run test` locally
 
 ### Documentation
 

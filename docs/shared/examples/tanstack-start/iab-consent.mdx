@@ -1,0 +1,23 @@
+{/* Generated from internals/doc-snippets/tanstack-start/src/components/iab-consent.tsx (docs:iab-consent) by scripts/sync-example-docs.ts. Edit the source file. */}
+
+```tsx title="src/components/iab-consent.tsx"
+import {
+	IABConsentBanner,
+	IABConsentDialog,
+	IABProvider,
+} from 'c15t/react/iab';
+import { useModel } from 'c15t/tanstack-start';
+
+export const IABConsent = ({ cmpId }: { cmpId: number }) => {
+	const model = useModel();
+	if (model !== 'iab') {
+		return null;
+	}
+	return (
+		<IABProvider cmpId={cmpId}>
+			<IABConsentBanner />
+			<IABConsentDialog />
+		</IABProvider>
+	);
+};
+```

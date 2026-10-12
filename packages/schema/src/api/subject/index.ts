@@ -41,6 +41,21 @@ export {
 } from './patch';
 
 export {
+	type SubjectCategoryReceiptWire,
+	type SubjectChoiceBasisWire,
+	type SubjectChoiceWire,
+	subjectCategoryReceiptWireSchema,
+	subjectChoiceBasisWireSchema,
+	subjectChoiceWireSchema,
+	wireTimestampSchema,
+} from './choice-wire';
+
+export {
+	type VendorChoiceWire,
+	vendorChoiceWireSchema,
+} from './vendor-choice-wire';
+
+export {
 	type PostSubjectInput,
 	type PostSubjectOutput,
 	postSubjectErrorSchemas,

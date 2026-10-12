@@ -1,0 +1,108 @@
+/**
+ * The database shapes that exist in the wild, and the published package that
+ * produces each one.
+ *
+ * There are three eras rather than two: 1.0.x–1.8.x shipped a legacy
+ * introspection-diff migrator at the root export, 1.8.x *additionally* shipped
+ * an opt-in `/v2` subpath backed by fumadb at schema 1.0.0, and 2.x promoted
+ * that surface to the root at schema 2.0.0.
+ */
+
+/** How a given package era exposes its migrator. */
+export type MigratorEra =
+	/** `getMigrations(options)` from `@c15t/backend/pkgs/migrations`. */
+	| 'legacy'
+	/** `migrator({ db, schema })` from `@c15t/backend/v2/db/migrator`. */
+	| 'fumadb-v2-subpath'
+	/** `migrator({ db, schema })` from `@c15t/backend/db/migrator`. */
+	| 'fumadb-root';
+
+export interface DatabaseFixture {
+	/** Directory name under `fixtures/`. */
+	readonly name: string;
+	/**
+	 * Published versions applied in order against the same database. Most
+	 * shapes are a single fresh install; `legacy-upgraded` walks a database
+	 * through several releases the way a long-lived deployment did.
+	 */
+	readonly versions: readonly string[];
+	readonly era: MigratorEra;
+	/** Why this shape exists — copied into the fixture manifest. */
+	readonly rationale: string;
+	/**
+	 * Engines this shape provably cannot be produced on, with the observed
+	 * reason. Recorded rather than silently skipped: "this release could never
+	 * migrate this engine" is a fact the v3 migrator needs, not a gap in
+	 * coverage.
+	 */
+	readonly unsupported?: Readonly<Record<string, string>>;
+}
+
+/**
+ * Both fumadb eras fail to migrate a blank MySQL database. fumadb maps a
+ * `string` column to MySQL `TEXT` and then puts an index on it, and MySQL
+ * requires a prefix length to index TEXT/BLOB. Different eras trip over
+ * different columns — `domain.name` at schema 1.0.0, and
+ * `runtimePolicyDecision.dedupeKey` at 2.0.0 — but the cause is the same.
+ *
+ * Reproduced on fumadb 0.2.2 (pinned by 2.1.0) *and* 0.3.0 (pinned by this
+ * repo on the v3 line), so it is not fixed upstream. The implication is that
+ * fumadb-managed MySQL databases most likely do not exist in the wild: the
+ * documented migrator could never have created one.
+ */
+const FUMADB_MYSQL_FAILURE =
+	'fumadb migration fails on MySQL: "BLOB/TEXT column used in key specification without a key length". fumadb maps string columns to TEXT and indexes them; MySQL needs a prefix length. Trips on domain.name at schema 1.0.0 and runtimePolicyDecision.dedupeKey at 2.0.0. Reproduced on fumadb 0.2.2 and 0.3.0.';
+
+export const DATABASE_FIXTURES: readonly DatabaseFixture[] = [
+	{
+		era: 'legacy',
+		name: 'legacy-fresh-1.0',
+		rationale:
+			'Earliest published release. The floor of what a legacy database can look like.',
+		versions: ['1.0.0'],
+	},
+	{
+		era: 'legacy',
+		name: 'legacy-fresh-1.8',
+		rationale:
+			'Last legacy release, installed fresh. Contrast with legacy-upgraded to expose drift.',
+		versions: ['1.8.6'],
+	},
+	{
+		era: 'legacy',
+		name: 'legacy-upgraded',
+		rationale:
+			'A database created at 1.0 and walked forward. The legacy migrator only ever added tables and columns, so this can retain columns a fresh 1.8 install never had. Cannot be reproduced from any schema definition in the repo.',
+		versions: ['1.0.0', '1.4.2', '1.8.6'],
+	},
+	{
+		era: 'fumadb-v2-subpath',
+		name: 'fumadb-1.0.0',
+		rationale:
+			'The opt-in /v2 path shipped inside 1.8.x. Writes c15t_settings = 1.0.0.',
+		unsupported: { mysql: FUMADB_MYSQL_FAILURE },
+		versions: ['1.8.6'],
+	},
+	{
+		era: 'fumadb-root',
+		name: 'fumadb-2.0.0',
+		rationale: 'Current shipping shape. Writes c15t_settings = 2.0.0.',
+		unsupported: { mysql: FUMADB_MYSQL_FAILURE },
+		versions: ['2.1.0'],
+	},
+] as const;
+
+export const fixtureByName = function fixtureByName(
+	name: string
+): DatabaseFixture {
+	const fixture = DATABASE_FIXTURES.find(
+		(candidate) => candidate.name === name
+	);
+	if (!fixture) {
+		const known = DATABASE_FIXTURES.map((candidate) => candidate.name).join(
+			', '
+		);
+		throw new Error(`Unknown fixture "${name}". Known fixtures: ${known}`);
+	}
+	return fixture;
+};

@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<title>Tailwind classes on the banner</title>
+		<script
+			src="https://your-project.inth.app/c15t.js"
+			defer
+		></script>
+		<!-- #region docs:tailwind-classes title="index.html" -->
+		<link
+			rel="stylesheet"
+			href="/tailwind.css"
+		/>
+		<script>
+			window.c15t = window.c15t || [];
+			c15t.push([
+				'config',
+				{
+					ui: {
+						// The banner renders in a shadow root, where the page's
+						// stylesheets do not reach. Link your Tailwind build into it
+						// too, and keep the page's own link: Tailwind 4 registers
+						// variables with @property, which only works in the page.
+						stylesheetURLs: ['/tailwind.css'],
+						theme: {
+							slots: {
+								consentBannerCard: 'rounded-none border-4 border-sky-600',
+								consentBannerTitle: 'uppercase tracking-wide',
+							},
+						},
+					},
+				},
+			]);
+		</script>
+		<!-- #endregion docs:tailwind-classes -->
+	</head>
+	<body>
+		<a href="#c15t-preferences">Privacy settings</a>
+	</body>
+</html>

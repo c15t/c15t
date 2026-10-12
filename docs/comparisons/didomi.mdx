@@ -1,51 +1,63 @@
 ---
 title: c15t vs Didomi
-description: Compare c15t with Didomi for consent proofs, hosted platform workflows, records, and developer-owned framework integration.
+description: Choose c15t for native framework components, open-source consent logic and backend ownership. Compare Didomi's SDKs, notice console and experiments.
+group: reference
 ---
 
-[Didomi](https://docs.didomi.io/versions-and-proofs/introduction) is a hosted
-consent platform with documentation for versions, proofs, consent proof reports,
-and consent events APIs.
+## Choose c15t for consent that follows your product workflow
 
-c15t is the better starting point when consent needs to affect product behavior,
-backend state, scripts, and framework startup. Didomi is useful when hosted
-proofs, reports, and platform workflows are the first requirement.
-[CookieBench](https://cookiebench.com/) also lists c15t's Next.js and React
-examples above Didomi on score, banner visibility, and network impact.
+c15t is the stronger fit when your developers want to own the consent interface, vendor rules and backend implementation. Changes can follow the same code review and release process as the application.
 
-<Callout type="warn">
-  Consent tooling does not guarantee legal compliance by itself. Your policies,
-  disclosures, vendor list, regional behavior, and record-keeping still need to
-  match your legal requirements.
-</Callout>
+Didomi combines a shared notice console with SDKs, APIs and consent analytics. It also supports React and custom interfaces, so developer access is common to both products.
 
-## Why c15t wins here
+<include src="../shared/comparisons/inth-hosting.mdx" />
 
-- c15t supports durable consent records in hosted and self-hosted modes.
-- c15t gives developers JavaScript, React, Next.js, scripts, backend, and CLI
-  packages.
-- c15t keeps server-visible consent state available to your app.
-- c15t supports policy packs, script loading, iframe blocking, and network
-  blocking.
-- c15t lets engineering decide where consent data lives and how it integrates
-  with the rest of the system.
+## Compare the work your team controls
 
-## Comparison
-
-| Area | c15t | Didomi |
+| What you need | c15t | Didomi |
 | --- | --- | --- |
-| Primary shape | Developer-first consent platform | Hosted consent platform |
-| Framework support | First-class JavaScript, React, and Next.js packages | Hosted platform APIs and snippets |
-| Records/proofs | Hosted or self-hosted consent records and audit history | Consent proofs and reports |
-| Script control | Loader, iframe blocker, and network blocker | Platform-driven consent workflows |
-| CookieBench speed | [Score 95](https://cookiebench.com/), 89ms/148ms banner visibility, 0-byte network impact | [Score 71](https://cookiebench.com/), 250ms banner visibility, 395-byte network impact |
-| Control model | Open-source packages plus hosted or self-hosted backend | SaaS dashboard and APIs |
-| SSR awareness | Available through c15t framework packages | Usually outside app SSR state |
+| Integrate with application code | Native adapters across web frameworks | Hosted Web SDK and a React component |
+| Build a custom interface | Themes, component parts and headless APIs | Notice customisation and APIs for your own UI |
+| Read vendor and purpose choices | Framework state and vendor controls | Web SDK methods and events |
+| Choose the Next.js response | Streamed, awaited or browser paths | Hosted SDK integration. Test the required server flow separately |
+| Run the backend yourself | Open-source backend with your own database | Didomi platform and consent APIs |
+| Keep consent evidence | Inth hosts the backend and stores records in its database. Self-hosting is optional | Consent events and history |
+| Compare banner variants | Presentation experiments with your flags or built-in assignment | A/B tests and consent analytics |
+| Publish notices from a shared console | Inth service workflow. No equivalent business console bundled in the packages | Console for marketing, legal and engineering teams |
 
-## Bottom line
+Sources: [Didomi platform](https://www.didomi.io/consent-management-platform), [Web SDK and React setup](https://developers.didomi.io/cmp/web-sdk/getting-started), [JavaScript API](https://developers.didomi.io/cmp/web-sdk/reference/api) and [custom-UI consent events](https://developers.didomi.io/api-and-platform/consents/events).
 
-Start with c15t when consent needs to be part of product behavior, backend
-state, and framework startup. It gives teams a durable records path without
-making a hosted platform the center of the application.
+## Use one consent state across the product
 
-See the full overview in [Compare c15t](/docs/comparison).
+c15t lets your privacy controls, gated content and registered vendors use the same state. A designer can change the interface while a developer checks its behaviour in application tests.
+
+Start with the supplied components or build a [headless interface](/docs/frameworks/react/headless). Use [vendor controls](/docs/frameworks/react/vendor-consent) to connect an individual service to the visitor's choices.
+
+Didomi's React component loads its SDK and receives notice configuration from the Console. c15t gives you native components plus source code for the consent engine.
+
+## Keep experiments in your current release process
+
+Use your feature-flag tool to assign c15t [banner variants](/docs/guides/banner-experiments). The variant travels with impressions and choices, so you can compare outcomes.
+
+The experiment changes presentation and theme. The policy, categories and policy text stay fixed.
+
+Didomi also has A/B tests. c15t's advantage for application teams is the ability to define the experiment in product code and choose the record backend.
+
+## What c15t does not include
+
+- **Didomi's complete business console.** The open-source packages do not bundle the same notice publication and team administration workflow.
+- **A ready-made cross-device rollout.** Backend identity links need an application flow. Do not assume full parity with Didomi's service.
+- **An automatic record migration.** Your team must map vendor identifiers, purposes, policy versions and previous choices.
+- **A legal guarantee for an experiment.** Presentation checks flag some issues. They do not certify a layout.
+
+In the Next.js App Router, the default streamed [rendering path](/docs/frameworks/next/rendering) sends the banner in the server response, before hydration, without holding the page.
+
+## Test the workflow you will use each week
+
+Choose c15t when native UI and source ownership are central to the product. Didomi is a strong option when a shared operational console is the main requirement.
+
+Build a trial with [Inth and the framework guide](/docs/frameworks). Change one notice translation and one vendor rule, then check when a visitor with saved choices sees the result.
+
+Compare the review, deployment and record workflow. Finish with the [consent verification checks](/docs/guides/verify-consent).
+
+Sources checked on 6 October 2026. Compare commercial terms for the same properties, traffic and support needs.

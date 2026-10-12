@@ -1,68 +1,41 @@
 ---
-title: Building Privacy Tools in the Open
-description: We believe great developer tools should be built in the open, with transparency and community collaboration at their core. This philosophy guides how we're building modern privacy infrastructure.
+title: Open source
+description: Which parts of c15t are open source, the Apache-2.0 license, where the code lives, and how the hosted Inth backend relates to the self-hostable c15t backend.
 group: reference
 ---
 
-## Open Source Foundation
+## What is open source
 
-c15t is built with a strong open source foundation:
+Every c15t package is open source. That covers the consent engine (`c15t`),
+the framework adapters, the stock UI, the vendor helpers in
+`@c15t/integrations`, the IAB TCF addon, the CLI and the consent backend,
+`@c15t/backend`. The code and the source of these docs live in
+[c15t/c15t on GitHub](https://github.com/c15t/c15t).
 
-- **Core Platform**: Apache-2.0 licensed, keeping the core permissive and easy to adopt
-- **UI Components**: Built on shadcn/ui, giving you complete customization control
-- **Server Components**: Full Next.js app directory support for modern applications
-- **Cloud Platform**: Optional managed service coming soon (while keeping core open source)
+## Why consent code should be readable
 
-## Why We Chose Open Source
+A consent manager decides when analytics and ad scripts may run and what gets
+recorded about a visitor. With the source public, you can check how c15t
+stores a choice, which requests it sends before and after consent, and how it
+maps categories to Google Consent Mode or IAB TCF purposes. You can also run
+the same code in your own tests instead of trusting a vendor's description of
+it.
 
-Privacy infrastructure should be:
+## Hosted and self-hosted backends
 
-1. **Transparent**
-   - See exactly how user consent is managed
-   - Audit the code handling sensitive data
-   - Understand the complete data flow
+The consent backend serves policies and stores consent records.
+[Inth](https://inth.com) runs it for you, and the guides use it. You can also
+run `@c15t/backend` on your own server with your own database; your app talks
+to it the same way it talks to Inth, with a different URL. See the
+[backend overview](/docs/self-host/overview) to decide.
 
-2. **Community-Driven**
-   - Benefit from collective expertise
-   - Shape the future of privacy tools
-   - Share best practices globally
+## License
 
-3. **Trustworthy**
-   - No black boxes in privacy management
-   - Full visibility into data handling
-   - Community-verified security
+c15t is licensed under the Apache License, Version 2.0. You can use, modify and
+distribute it, including in commercial products, as long as you keep the
+license and notices. See [License](/docs/oss/license).
 
-4. **Flexible**
-   - Self-host for complete control
-   - Customize to your exact needs
-   - Integrate with your existing stack
+## Contribute
 
-## Following Giants
-
-We're inspired by transformative developer platforms:
-
-- **Vercel**: Revolutionized deployment workflows
-- **Clerk**: Simplified authentication
-- **Resend**: Modernized email infrastructure
-- **Unkey**: Streamlined API key management
-
-Just as these platforms brought developer experience to the forefront, we're bringing that same level of excellence and simplicity to privacy management.
-
-## Our Commitment
-
-By choosing open source, we commit to:
-
-- **Transparency**: All core code is public and auditable
-- **Community**: Decisions made with community input
-- **Quality**: Enterprise-grade while remaining open
-- **Longevity**: Sustainable open source development
-
-## Get Started
-
-Join us in building the future of privacy management:
-
-<Cards>
-  <Card title="Contributing to c15t.com" description="Learn how to contribute and join our community" href="/docs/oss/contributing" />
-
-  <Card title="License" description="Understanding the GNU3 license and your rights" href="/docs/oss/license" />
-</Cards>
+Read [Contribute to c15t](/docs/oss/contributing) before opening a pull
+request, and the [code of conduct](/docs/oss/code-of-conduct).

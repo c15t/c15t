@@ -2,212 +2,550 @@ name: CI
 
 on:
   pull_request:
-    types: [opened, synchronize]
+    types: [opened, synchronize, reopened, ready_for_review]
   workflow_call:
+    inputs:
+      skip_performance:
+        description: Run release checks without waiting for separate runtime benchmarks
+        type: boolean
+        default: false
+      release_affected:
+        description: Select changes since the last successful release on this branch
+        type: boolean
+        default: false
+      skip_mobile_device:
+        description: Run advisory native app builds in their separate push workflow
+        type: boolean
+        default: false
+    outputs:
+      built:
+        description: Same-run library outputs are available in ci-build
+        value: ${{ jobs.repository.outputs.build }}
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+# A new push to a pull request replaces its running checks. Every other run
+# gets a group of its own: release checks for consecutive pushes run side by
+# side, and release.yml serializes only the publish job.
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
-  # The leadtype package-docs generation inside package builds exceeds Node's
-  # default heap on cache-miss builds of the larger packages (core, react).
   NODE_OPTIONS: --max-old-space-size=6144
-  # Pull-request checkouts are detached merge commits, so Turborepo cannot
-  # resolve the base as a local branch even with full history. Track the PR's
-  # real target so release PRs into `main` or `2.0.0` diff against the right
-  # branch instead of always against `canary`.
-  TURBO_SCM_BASE: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || 'origin/canary' }}
+  CI_DIFF_BASE: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || '' }}
+  TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+  TURBO_CACHE_POLICY: ${{ vars.TURBO_CACHE_POLICY }}
 
 jobs:
-  lint_and_check:
-    name: 🧹 Lint & Type Check
-    runs-on: ubuntu-latest
+  repository:
+    name: Repository and docs
     permissions:
-      contents: read # Needed for checkout
-      checks: write # Needed for reviewdog to post results
-      pull-requests: write # Needed for reviewdog github-pr-review reporter (optional)
+      contents: read
+      actions: read
+      id-token: write
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    outputs:
+      build: ${{ steps.plan.outputs.build }}
+      packageChecks: ${{ steps.plan.outputs.packageChecks }}
+      backend: ${{ steps.plan.outputs.backend }}
+      integrations: ${{ steps.plan.outputs.integrations }}
+      testBrowsers: ${{ steps.plan.outputs.testBrowsers }}
+      bundle: ${{ steps.plan.outputs.bundle }}
+      performance: ${{ steps.plan.outputs.performance }}
+      baseRef: ${{ steps.plan.outputs.baseRef }}
+      mobile: ${{ steps.plan.outputs.mobile }}
+      mobileBrowserOrDevice: ${{ steps.plan.outputs.mobileBrowserOrDevice }}
     steps:
-      - name: ⬇️ Check out code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
-          fetch-depth: 2
-          persist-credentials: false
-
-      - name: 🟢 Setup Bun
-        uses: oven-sh/setup-bun@f4d14e03ff726c06358e5557344e1da148b56cf7
-        with:
-          bun-version: 1.3.11
-
-      - name: 📦 Install dependencies
-        run: bun install --frozen-lockfile
-
-      # Read-only: the test job is the single writer of this cache (see below).
-      - name: ♻️ Restore Turborepo cache
-        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
-        with:
-          path: .turbo/cache
-          key: turbo-${{ runner.os }}-${{ github.sha }}
-          restore-keys: |
-            turbo-${{ runner.os }}-
-
-      # Deliberately not affected-scoped: this is the always-on cross-package
-      # signal that catches breakage in packages a PR does not touch directly.
-      - name: 👀 Type Check
-        env:
-          TURBO_TOKEN: ${{ github.event_name != 'pull_request' && secrets.TURBO_TOKEN || '' }}
-          TURBO_TEAM: ${{ github.event_name != 'pull_request' && secrets.TURBO_TEAM || '' }}
-        run: bun turbo run check-types
-
-      - name: 🧹 Run Biome with Reviewdog
-        uses: mongolyy/reviewdog-action-biome@0b1d65ada95594f01240e84f09ba7b8723e5ff7d
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          reporter: github-pr-check # Report results as checks
-          level: warning               # Report errors
-
-  build:
-    name: 🏗️ Build Packages
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read # Needed for checkout
-    steps:
-      - name: ⬇️ Check out code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
-        with:
-          # Full history so Turborepo can resolve the base branch for --affected.
           fetch-depth: 0
           persist-credentials: false
-
-      - name: 🟢 Setup Bun
-        uses: oven-sh/setup-bun@f4d14e03ff726c06358e5557344e1da148b56cf7
+      - uses: ./.github/actions/setup
         with:
-          bun-version: 1.3.11
-
-      - name: 📦 Install dependencies
-        run: bun install --frozen-lockfile
-
-      # Read-only: the test job is the single writer of this cache (see below).
-      - name: ♻️ Restore Turborepo cache
-        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
-        with:
-          path: .turbo/cache
-          key: turbo-${{ runner.os }}-${{ github.sha }}
-          restore-keys: |
-            turbo-${{ runner.os }}-
-
-      - name: 🏗️ Build
+          node-version: '24'
+          cache-scope: repository
+      - name: Find the last validated release
+        if: inputs.release_affected
         env:
-          TURBO_TOKEN: ${{ github.event_name != 'pull_request' && secrets.TURBO_TOKEN || '' }}
-          TURBO_TEAM: ${{ github.event_name != 'pull_request' && secrets.TURBO_TEAM || '' }}
-        run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            bun turbo run build --filter="./packages/*" --affected
-          else
-            bun turbo run build --filter="./packages/*"
-          fi
-
-  test:
-    name: 🧪 Run Tests & Coverage
-    needs: build # Run only after build succeeds
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read # Needed for checkout
-    steps:
-      - name: ⬇️ Check out code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
-        with:
-          # Full history so Turborepo can resolve the base branch for --affected.
-          fetch-depth: 0
-          persist-credentials: false
-
-      - name: 🟢 Setup Bun
-        uses: oven-sh/setup-bun@f4d14e03ff726c06358e5557344e1da148b56cf7
-        with:
-          bun-version: 1.3.11
-
-      - name: 📦 Install dependencies
-        run: bun install --frozen-lockfile
-
-      # Root repository tooling is not part of the package Turbo graph, so run
-      # its focused tests on every CI event before installing browsers.
-      - name: 🧰 Test repository scripts
-        run: bun run test:scripts
-
-      # This job is the single writer of the shared Turborepo cache: it builds
-      # every package as a dependency of `test`, so its cache is the most
-      # complete, and one writer means no concurrent-save conflicts.
-      - name: ♻️ Restore Turborepo cache
-        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
-        with:
-          path: .turbo/cache
-          key: turbo-${{ runner.os }}-${{ github.sha }}
-          restore-keys: |
-            turbo-${{ runner.os }}-
-
-      - name: 🎭 Resolve Playwright version
-        id: playwright
-        run: |
-          echo "version=$(bun -e "console.log(require('./package.json').devDependencies.playwright)")" >> "$GITHUB_OUTPUT"
-
-      - name: 🎭 Restore Playwright browsers
-        id: playwright-cache
-        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
-        with:
-          path: ~/.cache/ms-playwright
-          # Keyed on the Playwright version rather than the lockfile hash —
-          # browsers only change when Playwright does, and lockfile churn was
-          # invalidating them on every unrelated dependency bump.
-          key: playwright-browsers-${{ runner.os }}-${{ steps.playwright.outputs.version }}
-
-      - name: 🎭 Install Playwright browsers
-        run: bunx "playwright@${{ steps.playwright.outputs.version }}" install --with-deps chromium chromium-headless-shell
-
-      # Save immediately after installation so a later test failure does not
-      # discard a successfully prepared browser cache.
-      - name: 🎭 Save Playwright browsers
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
-        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-browsers-${{ runner.os }}-${{ steps.playwright.outputs.version }}
-
-      - name: 🧪 Run Tests
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bun scripts/ci-release-base.ts
+      - name: Select checks
+        id: plan
         env:
-          TURBO_TOKEN: ${{ github.event_name != 'pull_request' && secrets.TURBO_TOKEN || '' }}
-          TURBO_TEAM: ${{ github.event_name != 'pull_request' && secrets.TURBO_TEAM || '' }}
-        run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            bun turbo run test --filter="./packages/*" --affected
-          else
-            bun turbo run test --filter="./packages/*"
-          fi
-
-      # Restored entries are carried into the next save, so the cache would
-      # grow without bound across pushes and thrash the repo's 10GB budget.
-      # Prune complete task entries to a 1 GiB ceiling. This runs on every event
-      # so the script is exercised on PRs, but remains non-fatal because a prune
-      # failure should only produce a larger cache, never failed product CI.
-      - name: ♻️ Prune Turborepo cache
-        continue-on-error: true
-        run: bun scripts/prune-turbo-cache.ts
-
-      # Written only from pushes to publishing branches. PR runs restore
-      # read-only so they cannot churn the cache budget, matching the posture
-      # for TURBO_TOKEN.
-      - name: ♻️ Save Turborepo cache
-        if: github.event_name == 'push'
-        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830
-        with:
-          path: .turbo/cache
-          key: turbo-${{ runner.os }}-${{ github.sha }}
-
-      - name: ⬆️ Upload Individual Coverage Reports
+          CI_RELEASE_SELECTION: ${{ inputs.release_affected }}
+        run: bun scripts/ci-plan.ts
+      - name: Save selected checks
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: individual-coverage-data # Artifact containing all raw reports
+          name: ci-plan
+          path: ci-plan.json
+          retention-days: 1
+          if-no-files-found: error
+      - name: Lint
+        run: bun oxlint . --format=github
+      - name: Check formatting
+        run: bun run fmt:check
+      - name: Test repository tooling and docs contracts
+        run: bun run test:scripts
+      - name: Generate package documentation
+        if: steps.plan.outputs.docs == 'true'
+        run: bun turbo run build:docs
+      - uses: ./.github/actions/save-turbo-cache
+        if: github.event_name != 'pull_request'
+        with:
+          scope: repository
+
+  build:
+    name: Build packages once
+    permissions:
+      contents: read
+      id-token: write
+    needs: repository
+    if: needs.repository.outputs.build == 'true'
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - name: Read selected checks
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: ci-plan
+      - run: bun scripts/ci-run.ts build
+      - name: Package same-run outputs and task cache
+        run: bun scripts/ci-build-artifact.ts
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ci-build
+          path: ci-build.tar
+          retention-days: 1
+      - uses: ./.github/actions/save-turbo-cache
+        if: github.event_name != 'pull_request'
+        with:
+          scope: build
+
+  packages:
+    name: Package behavior and types
+    permissions:
+      contents: read
+      id-token: write
+    needs: [repository, build]
+    if: ${{ !cancelled() && needs.repository.result == 'success' && (needs.build.result == 'success' || needs.build.result == 'skipped') && needs.repository.outputs.packageChecks == 'true' }}
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+        with:
+          built: ${{ needs.build.result == 'success' }}
+          browsers: ${{ needs.repository.outputs.testBrowsers }}
+          cache-scope: packages
+      - name: Read selected checks
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: ci-plan
+      - name: Check types
+        run: bun scripts/ci-run.ts types
+      - name: Check test types
+        if: ${{ !cancelled() }}
+        run: bun scripts/ci-run.ts testTypes
+      - name: Run tests
+        if: ${{ !cancelled() }}
+        run: bun scripts/ci-run.ts tests
+      - name: Summarize coverage
+        if: ${{ !cancelled() }}
+        env:
+          CI_DIFF_BASE: ${{ needs.repository.outputs.baseRef }}
+        run: bun scripts/coverage-summary.ts --plan ci-plan.json
+      - name: Save coverage and test evidence
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: package-test-reports
           path: |
-            packages/*/coverage/coverage-summary.json
-            packages/*/coverage/coverage-final.json
-            apps/*/coverage/coverage-summary.json
-            apps/*/coverage/coverage-final.json
-            # Add other potential locations if necessary
+            packages/*/coverage/
+            internals/*/coverage/
+            apps/*/coverage/
+            benchmarks/*/coverage/
           retention-days: 7
-          # Optional: Handle case where no files are found gracefully
-          if-no-files-found: warn # 'warn', 'error', or 'ignore'
+          if-no-files-found: ignore
+      - uses: ./.github/actions/save-turbo-cache
+        if: ${{ success() && github.event_name != 'pull_request' }}
+        with:
+          scope: packages
+
+  backend:
+    name: Database behavior and migrations
+    permissions:
+      contents: read
+      id-token: write
+    needs: [repository, build]
+    if: needs.repository.outputs.backend == 'true'
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16@sha256:33f923b05f64ca54ac4401c01126a6b92afe839a0aa0a52bc5aeb5cc958e5f20
+        env:
+          POSTGRES_PASSWORD: c15t
+          POSTGRES_DB: c15t
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 10s --health-timeout 5s --health-retries 10
+      mysql:
+        image: mysql:8@sha256:b3b90af2a6552ae30c266fdb7d5dd55f3afb72404bb78d37fe8a23eb857fd3fb
+        env:
+          MYSQL_ROOT_PASSWORD: c15t
+          MYSQL_DATABASE: c15t
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd "mysqladmin ping -uroot -pc15t --silent" --health-interval 10s --health-timeout 5s --health-retries 15
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+        with:
+          built: 'true'
+          cache-scope: backend
+      - name: Test every supported database
+        env:
+          C15T_TEST_PG_URL: postgres://postgres:c15t@127.0.0.1:5432/c15t
+          C15T_TEST_MYSQL_URL: mysql://root:c15t@127.0.0.1:3306/c15t
+        run: bun turbo run test --filter=@c15t/backend
+      - name: Summarize coverage
+        if: ${{ !cancelled() }}
+        run: bun scripts/coverage-summary.ts --require packages/backend
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: ${{ !cancelled() }}
+        with:
+          name: backend-test-reports
+          path: packages/backend/coverage/
+          retention-days: 7
+      - uses: ./.github/actions/save-turbo-cache
+        if: github.event_name != 'pull_request'
+        with:
+          scope: backend
+
+  browser:
+    permissions:
+      contents: read
+      id-token: write
+    name: Browser integration (${{ matrix.kind }})
+    needs: [repository, build]
+    if: needs.repository.outputs.integrations != '[]'
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.repository.outputs.integrations) }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+        with:
+          built: 'true'
+          browsers: 'true'
+          cache-scope: browser-${{ matrix.kind }}
+      - name: Run selected integration contracts
+        env:
+          CI_INTEGRATION: ${{ matrix.kind }}
+          CI_TARGETS: ${{ matrix.targets }}
+        run: bun scripts/ci-browser.ts
+      - name: Save browser evidence
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: browser-${{ matrix.kind }}
+          include-hidden-files: true
+          path: |
+            internals/fixtures/acceptance/artifacts/
+            apps/parity-runner/playwright-report/
+            apps/parity-runner/test-results/
+            .ci-reports/
+          if-no-files-found: ignore
+          retention-days: 7
+      - uses: ./.github/actions/save-turbo-cache
+        if: github.event_name != 'pull_request'
+        with:
+          scope: browser-${{ matrix.kind }}
+
+  # Mobile SDK. The native kernels speak their own toolchains, so no JS job can cover
+  # them: Swift needs a macOS runner with Xcode, and the Android library assembly needs
+  # the Android SDK, which the GitHub-hosted Ubuntu image ships.
+  #
+  # Cost per selected pull request, with both legs in parallel: roughly 10 minutes of
+  # macOS (SwiftPM debug build, two `swift test` runs, then the benchmark run, which
+  # builds a release Swift core, links an arm64 iOS slice, and builds both Gradle
+  # projects for the Android byte rows) and roughly 8 minutes of Ubuntu (two Gradle
+  # assemblies, the SDK's vitest suite, one benchmark run). The macOS leg is the
+  # expensive one: a macOS runner bills roughly eight times an Ubuntu runner, so this
+  # job rather than the browser matrix is what a mobile pull request pays for. Both legs
+  # use GitHub-hosted runners only, so nothing here waits on a self-hosted machine.
+  #
+  # Native sources, protocol/spec changes, mobile benchmark inputs and full
+  # validation select this job. Affected JavaScript tests run in `packages`.
+  mobile:
+    permissions:
+      contents: read
+      id-token: write
+    name: Mobile SDK (${{ matrix.kind }})
+    needs: [repository, build]
+    if: needs.repository.outputs.mobile == 'true'
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - kind: ios-toolchain
+            report: mobile-ios-toolchain
+            runner: macos-latest
+          - kind: android-js
+            report: mobile-android-js
+            runner: ubuntu-latest
+    env:
+      # Xcode versions this job accepts, most preferred first. 27 is the version
+      # native/CONTRACT.md and packages/react-native/ios/README.md standardise on, and the
+      # one that carries the iOS 27.2 SDK; 26 still builds every Swift source here because
+      # the expanded tracking request is reached by selector at runtime, never by
+      # declaration. macos-latest ships 26 only; 27 is a preview runner image. DEVELOPER_DIR
+      # is set per run rather than switched with `sudo xcode-select`, because the machine's
+      # selection may point at Command Line Tools, whose SwiftPM cannot build an iOS slice.
+      C15T_XCODE_VERSIONS: '27 26'
+      # Where the mobile harness stores its run, so the artifact is this leg's evidence.
+      BENCH_OUTPUT_DIR: ${{ github.workspace }}/.ci-reports/${{ matrix.report }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+        with:
+          built: 'true'
+          cache-scope: mobile-${{ matrix.kind }}
+      - name: Select the pinned Xcode
+        if: matrix.kind == 'ios-toolchain'
+        run: |
+          target=""
+          for version in ${C15T_XCODE_VERSIONS}; do
+            # Newest point release of this major first; the glob sorts lexically, so
+            # take the last match. A missing major expands to no matches at all.
+            for candidate in /Applications/Xcode_${version}*.app /Applications/Xcode-${version}*.app; do
+              if [ -d "${candidate}/Contents/Developer" ]; then
+                target="${candidate}"
+              fi
+            done
+            if [ -n "${target}" ]; then
+              break
+            fi
+          done
+          if [ -z "${target}" ] && [ -d /Applications/Xcode.app/Contents/Developer ]; then
+            target=/Applications/Xcode.app
+          fi
+          if [ -z "${target}" ]; then
+            echo "No Xcode ${C15T_XCODE_VERSIONS} in /Applications. This runner has:" >&2
+            ls /Applications >&2
+            exit 1
+          fi
+          # Both the mobile harness and the commands in native/CONTRACT.md address
+          # /Applications/Xcode.app, so a versioned bundle is linked to that name too.
+          if [ "${target}" != "/Applications/Xcode.app" ] && [ ! -e /Applications/Xcode.app ]; then
+            sudo ln -s "${target}" /Applications/Xcode.app
+          fi
+          echo "DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer" >> "${GITHUB_ENV}"
+          xcodebuild -version
+          # Fail here with a version number instead of inside a Swift step minutes later.
+          accepted="$(printf '%s' "${C15T_XCODE_VERSIONS}" | tr ' ' '|')"
+          xcodebuild -version | head -n 1 | grep -qE "^Xcode (${accepted})[. ]" || {
+            echo "Expected Xcode ${C15T_XCODE_VERSIONS}, found the version above." >&2
+            exit 1
+          }
+      - name: Use the JDK the Gradle toolchain asks for
+        if: matrix.kind == 'android-js'
+        run: |
+          if [ -z "${JAVA_HOME_17_X64:-}" ]; then
+            echo "No JDK 17 on this runner: JAVA_HOME_17_X64 is unset, and native/core-android pins jvmToolchain(17)." >&2
+            exit 1
+          fi
+          echo "JAVA_HOME=${JAVA_HOME_17_X64}" >> "${GITHUB_ENV}"
+      - name: Cache SwiftPM
+        if: matrix.kind == 'ios-toolchain'
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: |
+            native/core-swift/.build
+            packages/react-native/.build
+            ~/Library/Caches/org.swift.swiftpm
+          key: swiftpm-${{ runner.os }}-${{ hashFiles('native/core-swift/Package.swift', 'native/core-swift/Sources/**/*.swift', 'packages/react-native/Package.swift') }}
+      - name: Cache Gradle
+        # Both legs, because the harness measures Android class bytes on the iOS leg too:
+        # it builds the two Gradle projects as part of the `bundle` surface. Without this
+        # cache that leg spends minutes of macOS time downloading the dependency graph for
+        # a row it does not gate on.
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            ~/.gradle/build-cache
+          key: gradle-${{ runner.os }}-${{ hashFiles('native/core-android/gradle/wrapper/gradle-wrapper.properties', 'native/core-android/gradle/libs.versions.toml', 'packages/react-native/android/gradle.properties') }}
+      - name: Build and test the Swift core
+        if: matrix.kind == 'ios-toolchain'
+        run: |
+          set -ex
+          swift build --package-path native/core-swift
+          swift test --package-path native/core-swift
+      # A separate step so the failing check names the layer that broke.
+      - name: Build and test the binding's wire layer
+        if: matrix.kind == 'ios-toolchain'
+        run: |
+          set -ex
+          # The binding's React-free half, which is where every wire-format decision
+          # lives. The TurboModule itself needs a host app, so it is built by the mobile
+          # device group instead.
+          swift build --package-path packages/react-native
+          swift test --package-path packages/react-native
+      - name: Test the Kotlin core and assemble the Android library
+        if: matrix.kind == 'android-js'
+        run: |
+          set -ex
+          cd native/core-android
+          ./gradlew :c15t-core:test :c15t-android:assembleRelease --console=plain
+          # The mobile harness invokes Gradle with --offline so a benchmark run never
+          # waits on a download. Warm the bench source set here, or the Kotlin rows
+          # report not-measured and the summary step fails the run.
+          ./gradlew :c15t-core:bench --console=plain -q
+      - name: Assemble the React Native Android binding
+        if: matrix.kind == 'android-js'
+        run: |
+          cd packages/react-native/android
+          ./gradlew :c15t-react-native:assembleRelease --console=plain
+      - name: Generate the Codegen spec and compile the binding against it
+        if: matrix.kind == 'android-js'
+        # Assembling the AAR proves the bridge compiles against the hand-written stand-in in
+        # :c15t-spec. It says nothing about what Codegen emits for src/specs, which is the
+        # class that exists at runtime: a stand-in that drifted from generated output still
+        # compiles here and fails only in the user's app. Here React Native's generator runs
+        # over src/specs, :c15t-spec swaps its source set to the result, and the bridge is
+        # compiled against that. The generated class reaches the bridge through the same
+        # compileOnly edge as the stand-in, so it stays out of the AAR either way -- the
+        # step below asserts the AAR is still spec-free.
+        run: |
+          set -ex
+          cd packages/react-native/android
+          ./gradlew --console=plain -Pc15t.spec.source=codegen \
+            :c15t-spec:assembleRelease :c15t-react-native:assembleRelease
+          # Fail here, naming the file, if generation went quiet rather than wrong.
+          test -f c15t-spec/build/generated/c15t-spec/java/com/c15t/reactnative/NativeC15tSpec.java
+          # The other half of the mode: compiling the generated spec must not put it in the
+          # artifact. Two copies of that class in one APK is a duplicate-class failure.
+          unzip -p c15t-react-native/build/outputs/aar/c15t-react-native-release.aar classes.jar \
+            > "${RUNNER_TEMP}/bridge-classes.jar"
+          leaked="$(unzip -l "${RUNNER_TEMP}/bridge-classes.jar" | grep -c NativeC15tSpec || true)"
+          if [ "${leaked}" != "0" ]; then
+            echo "NativeC15tSpec is in the bridge AAR (${leaked} entries), where an app would meet a second copy of it." >&2
+            exit 1
+          fi
+      - name: Resolve the binding the way a host app autolinks it
+        if: matrix.kind == 'android-js'
+        # Assembling the AAR proves Gradle can compile the library. It says nothing about
+        # whether React Native's CLI can find the library at all, and a host app's
+        # settings.gradle runs `react-native config`: a package the CLI cannot resolve fails
+        # that app's build before a single task runs. This asks the CLI from the bare example
+        # app's own install, which is the cheapest place that answer exists.
+        run: bun scripts/react-native-autolink.ts
+      - name: Measure the mobile budgets
+        run: bun run --cwd benchmarks/mobile bench:ci
+      # The harness already failed the job above if a measured number broke a ceiling.
+      # This step owns the other half of the gate: a row that should have produced a
+      # number and did not, and the machine-readable summary either way.
+      - name: Publish the mobile benchmark summary
+        if: ${{ !cancelled() }}
+        run: bun scripts/ci-mobile-bench-report.ts --kind "${{ matrix.kind }}" --report-dir ".ci-reports/${{ matrix.report }}"
+      - name: Save mobile evidence
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: mobile-${{ matrix.kind }}
+          include-hidden-files: true
+          path: |
+            .ci-reports/${{ matrix.report }}/
+            native/core-android/build/reports/
+            packages/react-native/android/c15t-react-native/build/reports/
+            packages/react-native/coverage/
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - uses: ./.github/actions/save-turbo-cache
+        if: github.event_name != 'pull_request'
+        with:
+          scope: mobile-${{ matrix.kind }}
+
+  # Native app builds remain visible on PRs and full validation. Release pushes
+  # run the advisory workflow independently so publishing cannot wait for it.
+  mobileBrowserOrDevice:
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
+    needs: [repository, build]
+    if: needs.repository.outputs.mobileBrowserOrDevice == 'true' && !inputs.skip_mobile_device
+    uses: ./.github/workflows/mobile-device.yml
+    with:
+      built: true
+
+  bundle:
+    permissions:
+      contents: read
+      id-token: write
+    needs: [repository, build]
+    if: needs.repository.outputs.bundle == 'true'
+    uses: ./.github/workflows/bundle-analysis.yml
+    with:
+      base_ref: ${{ github.event.pull_request.base.sha || needs.repository.outputs.baseRef || 'HEAD^' }}
+      built: true
+
+  performance:
+    permissions:
+      contents: read
+      id-token: write
+    needs: [repository, build]
+    if: needs.repository.outputs.performance == 'true' && !inputs.skip_performance
+    uses: ./.github/workflows/benchmark-regression.yml
+    with:
+      base_ref: ${{ github.event.pull_request.base.sha || 'HEAD^' }}
+      built: true
+      mode: ${{ github.event_name != 'pull_request' && 'full' || 'quick' }}
+
+  complete:
+    name: CI complete
+    if: always()
+    needs:
+      [
+        repository,
+        build,
+        packages,
+        backend,
+        browser,
+        mobile,
+        bundle,
+        performance,
+      ]
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    steps:
+      - name: Check selected jobs
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          echo "$RESULTS" | jq -e 'all(.[]; .result == "success" or .result == "skipped")'

@@ -4,17 +4,17 @@
  * Browser-based tests for IAB stub and queue behavior.
  */
 
-import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
-import { IABConsentBanner } from '~/components/iab-consent-banner';
-import { IABConsentDialog } from '~/components/iab-consent-dialog';
-import {
-	ConsentManagerProvider,
-	clearConsentRuntimeCache,
-} from '~/providers/consent-manager-provider';
+
+import { ComponentFixtureProvider as ConsentProvider } from '~/__tests__/component-fixture-provider';
+import { IABConsentDialog } from '~/components/iab-panel';
+import { IABConsentBanner } from '~/components/iab-prompt';
+
+import type { TcfApiTestFunction } from './e2e-setup';
 import {
 	clearConsentState,
-	defaultIABOptions,
+	defaultProviderIABOptions,
 	waitForCMP,
 	waitForElement,
 } from './e2e-setup';
@@ -23,16 +23,15 @@ describe('IAB Stub E2E Tests', () => {
 	beforeEach(() => {
 		clearConsentState();
 		vi.clearAllMocks();
-		clearConsentRuntimeCache();
 	});
 
 	describe('__tcfapi Availability', () => {
 		test('__tcfapi should be available after CMP loads', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await waitForElement('[data-testid="iab-consent-banner-card"]');
@@ -46,16 +45,16 @@ describe('IAB Stub E2E Tests', () => {
 
 		test('__tcfapi should accept standard parameters', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await waitForElement('[data-testid="iab-consent-banner-card"]');
 			await waitForCMP();
 
-			const tcfapi = (window as { __tcfapi?: Function }).__tcfapi;
+			const tcfapi = (window as { __tcfapi?: TcfApiTestFunction }).__tcfapi;
 			expect(tcfapi).toBeDefined();
 
 			// Should accept command, version, callback
@@ -68,16 +67,16 @@ describe('IAB Stub E2E Tests', () => {
 
 		test('__tcfapi should accept optional parameter', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await waitForElement('[data-testid="iab-consent-banner-card"]');
 			await waitForCMP();
 
-			const tcfapi = (window as { __tcfapi?: Function }).__tcfapi;
+			const tcfapi = (window as { __tcfapi?: TcfApiTestFunction }).__tcfapi;
 
 			// Should accept command, version, callback, parameter
 			const result = await new Promise<boolean>((resolve) => {
@@ -99,17 +98,17 @@ describe('IAB Stub E2E Tests', () => {
 	describe('Stub Ping Behavior', () => {
 		test('ping should return cmpLoaded=true after CMP ready', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await waitForElement('[data-testid="iab-consent-banner-card"]');
 			await waitForCMP();
 
 			const pingData = await new Promise<{ cmpLoaded: boolean }>((resolve) => {
-				(window as { __tcfapi?: Function }).__tcfapi?.(
+				(window as { __tcfapi?: TcfApiTestFunction }).__tcfapi?.(
 					'ping',
 					2,
 					(data: { cmpLoaded: boolean }) => {
@@ -123,17 +122,17 @@ describe('IAB Stub E2E Tests', () => {
 
 		test('ping should return cmpStatus="loaded" after CMP ready', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await waitForElement('[data-testid="iab-consent-banner-card"]');
 			await waitForCMP();
 
 			const pingData = await new Promise<{ cmpStatus: string }>((resolve) => {
-				(window as { __tcfapi?: Function }).__tcfapi?.(
+				(window as { __tcfapi?: TcfApiTestFunction }).__tcfapi?.(
 					'ping',
 					2,
 					(data: { cmpStatus: string }) => {
@@ -149,10 +148,10 @@ describe('IAB Stub E2E Tests', () => {
 	describe('Queue Processing', () => {
 		test('calls should be processed after CMP loads', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await waitForElement('[data-testid="iab-consent-banner-card"]');
@@ -160,7 +159,7 @@ describe('IAB Stub E2E Tests', () => {
 
 			// Make a call that requires CMP to be loaded
 			const result = await new Promise<{ tcString: string }>((resolve) => {
-				(window as { __tcfapi?: Function }).__tcfapi?.(
+				(window as { __tcfapi?: TcfApiTestFunction }).__tcfapi?.(
 					'getTCData',
 					2,
 					(data: { tcString: string }) => {
@@ -177,17 +176,17 @@ describe('IAB Stub E2E Tests', () => {
 	describe('Command Handling', () => {
 		test('should handle ping command', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await waitForElement('[data-testid="iab-consent-banner-card"]');
 			await waitForCMP();
 
 			const result = await new Promise<{ apiVersion: string }>((resolve) => {
-				(window as { __tcfapi?: Function }).__tcfapi?.(
+				(window as { __tcfapi?: TcfApiTestFunction }).__tcfapi?.(
 					'ping',
 					2,
 					(data: { apiVersion: string }) => {
@@ -201,10 +200,10 @@ describe('IAB Stub E2E Tests', () => {
 
 		test('should handle getTCData command', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await waitForElement('[data-testid="iab-consent-banner-card"]');
@@ -214,7 +213,7 @@ describe('IAB Stub E2E Tests', () => {
 				gdprApplies: boolean;
 				cmpStatus: string;
 			}>((resolve) => {
-				(window as { __tcfapi?: Function }).__tcfapi?.(
+				(window as { __tcfapi?: TcfApiTestFunction }).__tcfapi?.(
 					'getTCData',
 					2,
 					(data: { gdprApplies: boolean; cmpStatus: string }) => {
@@ -229,17 +228,17 @@ describe('IAB Stub E2E Tests', () => {
 
 		test('should handle addEventListener command', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await waitForElement('[data-testid="iab-consent-banner-card"]');
 			await waitForCMP();
 
 			const result = await new Promise<{ listenerId: number }>((resolve) => {
-				(window as { __tcfapi?: Function }).__tcfapi?.(
+				(window as { __tcfapi?: TcfApiTestFunction }).__tcfapi?.(
 					'addEventListener',
 					2,
 					(data: { listenerId: number }) => {
@@ -254,10 +253,10 @@ describe('IAB Stub E2E Tests', () => {
 
 		test('should handle getVendorList command', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await waitForElement('[data-testid="iab-consent-banner-card"]');
@@ -266,7 +265,7 @@ describe('IAB Stub E2E Tests', () => {
 			const result = await new Promise<{
 				purposes: Record<number, unknown>;
 			}>((resolve) => {
-				(window as { __tcfapi?: Function }).__tcfapi?.(
+				(window as { __tcfapi?: TcfApiTestFunction }).__tcfapi?.(
 					'getVendorList',
 					2,
 					(data: { purposes: Record<number, unknown> }) => {
@@ -280,10 +279,10 @@ describe('IAB Stub E2E Tests', () => {
 
 		test('should return false for unknown commands', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await waitForElement('[data-testid="iab-consent-banner-card"]');
@@ -293,7 +292,7 @@ describe('IAB Stub E2E Tests', () => {
 				data: unknown;
 				success: boolean;
 			}>((resolve) => {
-				(window as { __tcfapi?: Function }).__tcfapi?.(
+				(window as { __tcfapi?: TcfApiTestFunction }).__tcfapi?.(
 					'unknownCommand',
 					2,
 					(data: unknown, success: boolean) => {

@@ -1,7 +1,9 @@
 import { describe, expect, test } from 'vitest';
+
 import type { Theme } from '../types';
 import {
 	defaultTheme,
+	generateDefaultThemeCSS,
 	generateThemeCSS,
 	getContrastColor,
 	themeToVars,
@@ -46,6 +48,7 @@ describe('defaultTheme', () => {
 		expect(defaultTheme.motion.duration).toBeDefined();
 		expect(defaultTheme.motion.easing).toBeDefined();
 		expect(defaultTheme.motion.easingOut).toBeDefined();
+		expect(defaultTheme.motion.easingIn).toBeDefined();
 		expect(defaultTheme.motion.easingInOut).toBeDefined();
 		expect(defaultTheme.motion.easingSpring).toBeDefined();
 	});
@@ -81,12 +84,12 @@ describe('themeToVars', () => {
 			typography: {
 				fontFamily: 'Arial, sans-serif',
 				fontSize: {
-					sm: '0.875rem',
 					base: '1rem',
+					sm: '0.875rem',
 				},
 				fontWeight: {
-					normal: 400,
 					medium: 500,
+					normal: 400,
 				},
 			},
 		};
@@ -101,9 +104,9 @@ describe('themeToVars', () => {
 	test('converts spacing tokens to CSS variables', () => {
 		const theme: Theme = {
 			spacing: {
-				xs: '0.25rem',
-				sm: '0.5rem',
 				md: '1rem',
+				sm: '0.5rem',
+				xs: '0.25rem',
 			},
 		};
 		const vars = themeToVars(theme);
@@ -115,10 +118,10 @@ describe('themeToVars', () => {
 	test('converts radius tokens to CSS variables', () => {
 		const theme: Theme = {
 			radius: {
-				sm: '4px',
-				md: '8px',
-				lg: '12px',
 				full: '9999px',
+				lg: '12px',
+				md: '8px',
+				sm: '4px',
 			},
 		};
 		const vars = themeToVars(theme);
@@ -131,8 +134,8 @@ describe('themeToVars', () => {
 	test('converts shadow tokens to CSS variables', () => {
 		const theme: Theme = {
 			shadows: {
-				sm: '0 1px 2px rgba(0,0,0,0.05)',
 				md: '0 4px 6px rgba(0,0,0,0.1)',
+				sm: '0 1px 2px rgba(0,0,0,0.05)',
 			},
 		};
 		const vars = themeToVars(theme);
@@ -148,8 +151,9 @@ describe('themeToVars', () => {
 					normal: '200ms',
 				},
 				easing: 'ease-in-out',
-				easingOut: 'cubic-bezier(0.215, 0.61, 0.355, 1)',
+				easingIn: 'cubic-bezier(0.55, 0.055, 0.675, 0.19)',
 				easingInOut: 'cubic-bezier(0.645, 0.045, 0.355, 1)',
+				easingOut: 'cubic-bezier(0.215, 0.61, 0.355, 1)',
 				easingSpring: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
 			},
 		};
@@ -159,6 +163,9 @@ describe('themeToVars', () => {
 		expect(vars['--c15t-easing']).toBe('ease-in-out');
 		expect(vars['--c15t-easing-out']).toBe(
 			'cubic-bezier(0.215, 0.61, 0.355, 1)'
+		);
+		expect(vars['--c15t-easing-in']).toBe(
+			'cubic-bezier(0.55, 0.055, 0.675, 0.19)'
 		);
 		expect(vars['--c15t-easing-in-out']).toBe(
 			'cubic-bezier(0.645, 0.045, 0.355, 1)'
@@ -240,6 +247,41 @@ describe('themeToVars', () => {
 });
 
 describe('getContrastColor', () => {
+	test.each([
+		['hsl(0, 100%, 50%)', '#000000'],
+		['hsl(60, 100%, 50%)', '#000000'],
+		['hsl(120, 100%, 50%)', '#000000'],
+		['hsl(180, 100%, 50%)', '#000000'],
+		['hsl(240, 100%, 50%)', '#ffffff'],
+		['hsl(300, 100%, 50%)', '#000000'],
+		['hsl(-120, 100%, 50%)', '#ffffff'],
+		['hsl(600, 100%, 50%)', '#ffffff'],
+		['hsl(120, 0%, 0%)', '#ffffff'],
+		['hsl(240, 0%, 100%)', '#000000'],
+		['hsl(1e308turn, 0%, 100%)', '#000000'],
+		['#123', '#ffffff'],
+		['#1230', '#ffffff'],
+		['#ffffff00', '#000000'],
+	])('preserves readable foregrounds for %s', (color, foreground) => {
+		expect(getContrastColor(color)).toBe(foreground);
+	});
+
+	test('parses comma-separated colors with long channel whitespace', () => {
+		const color = `rgb(255,214,10${' '.repeat(100_000)})`;
+		const start = performance.now();
+		const contrast = getContrastColor(color);
+		expect(performance.now() - start).toBeLessThan(1_000);
+		expect(contrast).toBe('#000000');
+	});
+
+	test.each([
+		'rgb( 255 , 214 , 10 )',
+		'rgb(255 214 10 / 50%)',
+		'hsl( 0 , 0% , 100% )',
+	])('preserves channel whitespace handling for %s', (color) => {
+		expect(getContrastColor(color)).toBe('#000000');
+	});
+
 	test('returns dark text for bright backgrounds', () => {
 		expect(getContrastColor('#2ed1c3')).toBe('#000000');
 	});
@@ -250,6 +292,18 @@ describe('getContrastColor', () => {
 
 	test('supports rgb color inputs', () => {
 		expect(getContrastColor('rgb(255, 214, 10)')).toBe('#000000');
+	});
+});
+
+describe('generateDefaultThemeCSS', () => {
+	test('preserves explicit light and dark active switch colors', () => {
+		const css = generateDefaultThemeCSS({
+			colors: { primary: '#008000', switchTrackActive: '#ff8000' },
+			dark: { primary: '#80ff80', switchTrackActive: '#ff80ff' },
+		});
+
+		expect(css).toContain('--c15t-switch-track-active: #ff8000');
+		expect(css).toContain('--c15t-switch-track-active: #ff80ff');
 	});
 });
 
@@ -324,8 +378,8 @@ describe('generateThemeCSS', () => {
 		const css = generateThemeCSS(theme);
 		// Should have opening and closing braces
 		// (light, dark, and no-transitions utility with pseudo-elements = 4 selectors)
-		const openBraces = css.match(/{/g)?.length ?? 0;
-		const closeBraces = css.match(/}/g)?.length ?? 0;
+		const openBraces = css.match(/\{/gu)?.length ?? 0;
+		const closeBraces = css.match(/\}/gu)?.length ?? 0;
 		expect(openBraces).toBe(closeBraces);
 		expect(openBraces).toBeGreaterThanOrEqual(3);
 	});

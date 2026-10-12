@@ -168,7 +168,7 @@ A `nonce` set on an individual script definition still takes precedence, so you 
 
 This covers the elements c15t injects. Inline `style` attributes are governed by `style-src-attr`, a directive that ignores nonces entirely, so a policy that restricts it is unaffected by this option.
 
-→ [React ConsentManagerProvider](/docs/frameworks/react/components/consent-manager-provider) · [Next.js ConsentManagerProvider](/docs/frameworks/next/components/consent-manager-provider)
+→ [React ConsentManagerProvider](/docs/frameworks/react/components/consent-provider) · [Next.js ConsentManagerProvider](/docs/frameworks/next/components/consent-root)
 
 ## IAB TCF reliability
 
@@ -176,7 +176,7 @@ IAB TCF now works correctly when c15t runs in offline mode or falls back from th
 
 GVL requests now use the resolved consent language, keeping vendor purposes and features aligned with the rest of the interface. Changing language or location overrides also carries the IAB configuration through re-initialization and refreshes the GVL instead of retaining stale content.
 
-→ [React IAB](/docs/frameworks/react/iab/overview) · [Next.js IAB](/docs/frameworks/next/iab/overview) · [Self-Hosted IAB](/docs/self-host/guides/iab-tcf)
+→ [React IAB](/docs/frameworks/react/iab) · [Next.js IAB](/docs/frameworks/next/iab) · [Self-Hosted IAB](/docs/self-host/guides/iab-tcf)
 
 ## More reliable consent submissions
 

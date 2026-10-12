@@ -5,62 +5,92 @@
  */
 
 import { userEvent } from '@vitest/browser/context';
-import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
-import { IABConsentBanner } from '~/components/iab-consent-banner';
-import { IABConsentDialog } from '~/components/iab-consent-dialog';
-import {
-	ConsentManagerProvider,
-	clearConsentRuntimeCache,
-} from '~/providers/consent-manager-provider';
+
+import { ComponentFixtureProvider as ConsentProvider } from '~/__tests__/component-fixture-provider';
+import { IABConsentDialog } from '~/components/iab-panel';
+import { IABConsentBanner } from '~/components/iab-prompt';
+
+import type { TcfApiTestFunction } from './e2e-setup';
 import {
 	addCMPEventListener,
 	clearConsentState,
-	defaultIABOptions,
+	defaultProviderIABOptions,
 	removeCMPEventListener,
 	waitForCMP,
 	waitForElement,
-	waitForElementRemoved,
 } from './e2e-setup';
+
+const getDefined = <Value,>(value: Value): NonNullable<Value> => {
+	if (value === null || value === undefined) {
+		throw new Error('Expected value to be defined');
+	}
+	return value;
+};
 
 describe('IAB Events E2E Tests', () => {
 	beforeEach(() => {
 		clearConsentState();
 		vi.clearAllMocks();
-		clearConsentRuntimeCache();
 	});
 
 	describe('Event Status Values', () => {
-		test('should emit "tcloaded" when CMP is ready', async () => {
-			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+		test('should emit "tcloaded" with the saved TC string for a returning visitor', async () => {
+			const firstVisit = await render(
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
+			const acceptButton = await waitForElement(
+				'[data-testid="iab-consent-banner-accept-button"]'
+			);
+			await waitForCMP();
+			await userEvent.click(acceptButton);
+			// Saves are queued and written once the write code loads: remount
+			// only after both records are stored, as a reload would.
+			await vi.waitFor(() => {
+				expect(window.localStorage.getItem('euconsent-v2')).toBeTruthy();
+				expect(window.localStorage.getItem('c15t')).toBeTruthy();
+			});
+			await firstVisit.unmount();
+			delete (window as { __tcfapi?: unknown }).__tcfapi;
 
-			await waitForElement('[data-testid="iab-consent-banner-card"]');
+			render(
+				<ConsentProvider options={defaultProviderIABOptions}>
+					<IABConsentBanner />
+					<IABConsentDialog />
+				</ConsentProvider>
+			);
 			await waitForCMP();
 
-			const eventData = await addCMPEventListener();
-			expect(eventData.eventStatus).toBe('tcloaded');
+			const eventData = await vi.waitFor(async () => {
+				const data = await addCMPEventListener();
+				expect(data.eventStatus).toBe('tcloaded');
+				return data;
+			});
+			expect(eventData.tcString).toBeTruthy();
+			expect(
+				document.querySelector('[data-testid="iab-consent-banner-card"]')
+			).toBeNull();
 		});
 
 		test('should emit "cmpuishown" when UI is displayed', async () => {
 			const events: string[] = [];
 
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await waitForElement('[data-testid="iab-consent-banner-card"]');
 			await waitForCMP();
 
 			// Set up listener to capture events
-			const tcfapi = (window as { __tcfapi?: Function }).__tcfapi;
+			const tcfapi = (window as { __tcfapi?: TcfApiTestFunction }).__tcfapi;
 			if (tcfapi) {
 				tcfapi('addEventListener', 2, (data: { eventStatus: string }) => {
 					events.push(data.eventStatus);
@@ -77,25 +107,26 @@ describe('IAB Events E2E Tests', () => {
 				{ timeout: 2000 }
 			);
 
-			// Should have received tcloaded at minimum
-			expect(events).toContain('tcloaded');
+			// The banner is up, so the CMP must not report tcloaded.
+			expect(events).toContain('cmpuishown');
+			expect(events).not.toContain('tcloaded');
 		});
 
 		test('should emit "useractioncomplete" after user action', async () => {
 			const events: string[] = [];
 
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await waitForElement('[data-testid="iab-consent-banner-card"]');
 			await waitForCMP();
 
 			// Set up listener
-			const tcfapi = (window as { __tcfapi?: Function }).__tcfapi;
+			const tcfapi = (window as { __tcfapi?: TcfApiTestFunction }).__tcfapi;
 			if (tcfapi) {
 				tcfapi('addEventListener', 2, (data: { eventStatus: string }) => {
 					events.push(data.eventStatus);
@@ -124,20 +155,70 @@ describe('IAB Events E2E Tests', () => {
 		});
 	});
 
+	describe('First visit', () => {
+		test('ad tags see the banner, then the choice, and never tcloaded', async () => {
+			const events: { eventStatus?: string; tcString: string }[] = [];
+			await render(
+				<ConsentProvider options={defaultProviderIABOptions}>
+					<IABConsentBanner />
+					<IABConsentDialog />
+				</ConsentProvider>
+			);
+			// An ad tag registers as soon as `__tcfapi` exists, stub or not.
+			const tcfapi = await vi.waitFor(() =>
+				getDefined((window as { __tcfapi?: TcfApiTestFunction }).__tcfapi)
+			);
+			tcfapi(
+				'addEventListener',
+				2,
+				(data: { eventStatus?: string; tcString: string }) => {
+					events.push({
+						eventStatus: data.eventStatus,
+						tcString: data.tcString,
+					});
+				}
+			);
+			const acceptButton = await waitForElement(
+				'[data-testid="iab-consent-banner-accept-button"]'
+			);
+			await waitForCMP();
+			await vi.waitFor(() =>
+				expect(events.map((event) => event.eventStatus)).toContain('cmpuishown')
+			);
+
+			await userEvent.click(acceptButton);
+			await vi.waitFor(() =>
+				expect(events.map((event) => event.eventStatus)).toContain(
+					'useractioncomplete'
+				)
+			);
+
+			const statuses = events.map((event) => event.eventStatus);
+			expect(statuses).not.toContain('tcloaded');
+			expect(statuses.indexOf('cmpuishown')).toBeLessThan(
+				statuses.indexOf('useractioncomplete')
+			);
+			const completed = events.find(
+				(event) => event.eventStatus === 'useractioncomplete'
+			);
+			expect(completed?.tcString).toBeTruthy();
+		});
+	});
+
 	describe('Event Listener Lifecycle', () => {
 		test('should invoke listener immediately on registration', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await waitForElement('[data-testid="iab-consent-banner-card"]');
 			await waitForCMP();
 
 			let called = false;
-			const tcfapi = (window as { __tcfapi?: Function }).__tcfapi;
+			const tcfapi = (window as { __tcfapi?: TcfApiTestFunction }).__tcfapi;
 			if (tcfapi) {
 				tcfapi('addEventListener', 2, () => {
 					called = true;
@@ -147,7 +228,9 @@ describe('IAB Events E2E Tests', () => {
 			// Should be called almost immediately
 			await vi.waitFor(
 				() => {
-					if (!called) throw new Error('Not called');
+					if (!called) {
+						throw new Error('Not called');
+					}
 				},
 				{ timeout: 100 }
 			);
@@ -157,10 +240,10 @@ describe('IAB Events E2E Tests', () => {
 
 		test('should assign unique listenerIds', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await waitForElement('[data-testid="iab-consent-banner-card"]');
@@ -182,63 +265,48 @@ describe('IAB Events E2E Tests', () => {
 
 		test('should stop notifying after removeEventListener', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
-
-			await waitForElement('[data-testid="iab-consent-banner-card"]');
 			await waitForCMP();
-
-			let callCount = 0;
+			const tcfapi = (window as { __tcfapi?: TcfApiTestFunction }).__tcfapi;
+			if (!tcfapi) {
+				throw new Error('TCF API is missing');
+			}
+			const removedListener = vi.fn();
 			let listenerId: number | undefined;
-
-			const tcfapi = (window as { __tcfapi?: Function }).__tcfapi;
-			if (tcfapi) {
-				tcfapi('addEventListener', 2, (data: { listenerId: number }) => {
-					callCount++;
-					listenerId = data.listenerId;
-				});
+			tcfapi('addEventListener', 2, (data: { listenerId: number }) => {
+				({ listenerId } = data);
+				removedListener(data);
+			});
+			await vi.waitFor(() => expect(removedListener).toHaveBeenCalledTimes(1));
+			if (listenerId === undefined) {
+				throw new Error('Listener ID is missing');
 			}
-
-			// Wait for initial call
-			await vi.waitFor(
-				() => {
-					if (callCount === 0) throw new Error('Not called');
-				},
-				{ timeout: 100 }
-			);
-
-			expect(callCount).toBe(1);
-
-			// Remove listener
-			if (listenerId !== undefined) {
-				const removed = await removeCMPEventListener(listenerId);
-				expect(removed).toBe(true);
-			}
-
-			// Click accept to trigger another event
-			const acceptButton = document.querySelector(
+			expect(await removeCMPEventListener(listenerId)).toBe(true);
+			const activeListener = vi.fn();
+			tcfapi('addEventListener', 2, activeListener);
+			const acceptButton = await waitForElement(
 				'[data-testid="iab-consent-banner-accept-button"]'
 			);
-			if (acceptButton) {
-				await userEvent.click(acceptButton);
-			}
-
-			// Wait a bit
-			await new Promise((r) => setTimeout(r, 100));
-
-			// Call count should still be 1 (removed listener doesn't receive)
-			expect(callCount).toBe(1);
+			await userEvent.click(acceptButton);
+			await vi.waitFor(() =>
+				expect(activeListener).toHaveBeenCalledWith(
+					expect.objectContaining({ eventStatus: 'useractioncomplete' }),
+					true
+				)
+			);
+			expect(removedListener).toHaveBeenCalledTimes(1);
 		});
 
 		test('multiple listeners should all receive updates', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await waitForElement('[data-testid="iab-consent-banner-card"]');
@@ -248,7 +316,7 @@ describe('IAB Events E2E Tests', () => {
 			const listener2Events: string[] = [];
 			const listener3Events: string[] = [];
 
-			const tcfapi = (window as { __tcfapi?: Function }).__tcfapi;
+			const tcfapi = (window as { __tcfapi?: TcfApiTestFunction }).__tcfapi;
 			if (tcfapi) {
 				tcfapi('addEventListener', 2, (data: { eventStatus: string }) => {
 					listener1Events.push(data.eventStatus);
@@ -285,10 +353,10 @@ describe('IAB Events E2E Tests', () => {
 	describe('Event Data Completeness', () => {
 		test('each event should include complete TCData', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await waitForElement('[data-testid="iab-consent-banner-card"]');
@@ -296,7 +364,7 @@ describe('IAB Events E2E Tests', () => {
 
 			let receivedData: Record<string, unknown> | null = null;
 
-			const tcfapi = (window as { __tcfapi?: Function }).__tcfapi;
+			const tcfapi = (window as { __tcfapi?: TcfApiTestFunction }).__tcfapi;
 			if (tcfapi) {
 				tcfapi('addEventListener', 2, (data: Record<string, unknown>) => {
 					receivedData = data;
@@ -305,7 +373,9 @@ describe('IAB Events E2E Tests', () => {
 
 			await vi.waitFor(
 				() => {
-					if (!receivedData) throw new Error('No data received');
+					if (!receivedData) {
+						throw new Error('No data received');
+					}
 				},
 				{ timeout: 500 }
 			);
@@ -319,10 +389,10 @@ describe('IAB Events E2E Tests', () => {
 
 		test('listenerId in callback should match assigned ID', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await waitForElement('[data-testid="iab-consent-banner-card"]');

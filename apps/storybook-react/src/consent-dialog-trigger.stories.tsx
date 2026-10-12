@@ -1,12 +1,14 @@
-import { triggerOpensDialog } from '@c15t/storybook-tests/play/consent-dialog-trigger';
+import { dialogFocusManagement } from '@c15t/conformance/play/consent-dialog';
+import { triggerOpensDialog } from '@c15t/conformance/play/consent-dialog-trigger';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useEffect, useState } from 'react';
+
 import {
 	ConsentDialog,
 	ConsentDialogTrigger,
 	ConsentDialogTriggerToolbar,
-	type TriggerOrientation,
 } from '../../../packages/react/src/index';
+import type { TriggerOrientation } from '../../../packages/react/src/index';
 import {
 	editableConsentOptions,
 	editableStoredConsent,
@@ -33,7 +35,11 @@ const SunIcon = () => (
 		stroke="currentColor"
 		strokeWidth="2"
 	>
-		<circle cx="12" cy="12" r="4" />
+		<circle
+			cx="12"
+			cy="12"
+			r="4"
+		/>
 		<path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41" />
 	</svg>
 );
@@ -46,7 +52,11 @@ const AccessibilityIcon = () => (
 		stroke="currentColor"
 		strokeWidth="2"
 	>
-		<circle cx="12" cy="4" r="2" />
+		<circle
+			cx="12"
+			cy="4"
+			r="2"
+		/>
 		<path d="M5 8h14M12 6v7M8 22l4-9 4 9M8 14l-3 5M16 14l3 5" />
 	</svg>
 );
@@ -91,23 +101,23 @@ const ToolbarPreview = ({
 			<ConsentDialogTriggerToolbar
 				actions={[
 					{
+						icon: isDark ? <SunIcon /> : <MoonIcon />,
 						id: 'theme',
 						label: 'Dark color scheme',
-						icon: isDark ? <SunIcon /> : <MoonIcon />,
 						onSelect: () => setIsDark((current) => !current),
 						pressed: isDark,
 					},
 					{
+						icon: <AccessibilityIcon />,
 						id: 'accessibility',
 						label: 'Open accessibility options',
-						icon: <AccessibilityIcon />,
 						onSelect: () =>
 							window.dispatchEvent(new CustomEvent('c15t:accessibility')),
 					},
 					{
+						icon: <ChatIcon />,
 						id: 'support',
 						label: 'Open support chat',
-						icon: <ChatIcon />,
 						onSelect: () =>
 							window.dispatchEvent(new CustomEvent('c15t:support')),
 					},
@@ -202,9 +212,9 @@ const CustomStyledToolbarPreview = () => {
 			<ConsentDialogTriggerToolbar
 				actions={[
 					{
+						icon: isDark ? <SunIcon /> : <MoonIcon />,
 						id: 'theme',
 						label: 'Dark color scheme',
-						icon: isDark ? <SunIcon /> : <MoonIcon />,
 						onSelect: () => setIsDark((current) => !current),
 						pressed: isDark,
 						style: isDark
@@ -215,9 +225,9 @@ const CustomStyledToolbarPreview = () => {
 							: undefined,
 					},
 					{
+						icon: <ChatIcon />,
 						id: 'support',
 						label: 'Open support chat',
-						icon: <ChatIcon />,
 						onSelect: () =>
 							window.dispatchEvent(new CustomEvent('c15t:support')),
 					},
@@ -241,7 +251,7 @@ const meta = {
 	parameters: {
 		layout: 'fullscreen',
 	},
-	title: 'Components/Core/Consent Dialog Trigger',
+	title: 'COMPONENTS - REACT/Core/Consent Dialog Trigger',
 } satisfies Meta<typeof ConsentDialogTrigger>;
 
 export default meta;
@@ -249,38 +259,49 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
+	play: triggerOpensDialog,
 	render: () => (
 		<StorybookConsentProvider
 			options={editableConsentOptions}
-			storedConsent={editableStoredConsent}
+			storedConsent={{
+				experience: false,
+				functionality: false,
+				marketing: false,
+				measurement: false,
+				necessary: true,
+			}}
 		>
 			<ConsentDialog />
 			<ConsentDialogTrigger showWhen="always" />
 		</StorybookConsentProvider>
 	),
-	play: triggerOpensDialog,
 };
 
-export const Mobile: Story = {
-	parameters: {
-		viewport: {
-			defaultViewport: 'mobile1',
-		},
-	},
+export const Small: Story = {
 	render: () => (
 		<StorybookConsentProvider
 			options={editableConsentOptions}
-			storedConsent={editableStoredConsent}
+			storedConsent={{
+				experience: false,
+				functionality: false,
+				marketing: false,
+				measurement: false,
+				necessary: true,
+			}}
 		>
 			<ConsentDialog />
 			<ConsentDialogTrigger
 				defaultPosition="bottom-left"
-				icon="fingerprint"
 				showWhen="always"
 				size="sm"
 			/>
 		</StorybookConsentProvider>
 	),
+};
+
+export const DialogFocusManagement: Story = {
+	...Default,
+	play: dialogFocusManagement,
 };
 
 export const Toolbar: Story = {

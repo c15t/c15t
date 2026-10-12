@@ -1,146 +1,163 @@
 import type { CompleteTranslations } from '../types';
+
 export const translations: CompleteTranslations = {
 	common: {
 		acceptAll: 'Accepter tout',
-		rejectAll: 'Tout rejeter',
-		customize: 'Personnaliser',
-		save: 'Enregistrer les paramètres',
+		acknowledge: 'OK',
 		close: 'Fermer',
+		customize: 'Personnaliser',
+		dismiss: 'Fermer',
+		rejectAll: 'Tout rejeter',
+		save: 'Enregistrer les paramètres',
 		securedBy: 'Sécurisé par',
 	},
-	cookieBanner: {
-		title: 'Nous respectons votre vie privée',
-		description:
-			'Ce site utilise des cookies pour améliorer votre expérience de navigation, analyser le trafic du site et afficher du contenu personnalisé.',
-	},
-	consentManagerDialog: {
-		title: 'Paramètres de confidentialité',
-		description:
-			'Personnalisez vos paramètres de confidentialité ici. Vous pouvez choisir les types de cookies et de technologies de suivi que vous autorisez.',
-	},
-	consentTypes: {
-		necessary: {
-			title: 'Strictement nécessaire',
-			description:
-				'Ces cookies sont essentiels pour que le site web fonctionne correctement et ne peuvent pas être désactivés.',
-		},
-		functionality: {
-			title: 'Fonctionnalité',
-			description:
-				"Ces cookies permettent d'améliorer la fonctionnalité et la personnalisation du site web.",
-		},
-		marketing: {
-			title: 'Marketing',
-			description:
-				'Ces cookies sont utilisés pour offrir des publicités pertinentes et suivre leur efficacité.',
-		},
-		measurement: {
-			title: 'Analyse',
-			description:
-				'Ces cookies nous permettent de comprendre comment les visiteurs interagissent avec le site web et améliorent ses performances.',
-		},
-		experience: {
-			title: 'Expérience',
-			description:
-				'Ces cookies nous permettent de fournir une meilleure expérience utilisateur et de tester de nouvelles fonctionnalités.',
-		},
-	},
-	frame: {
-		title: 'Acceptez {category} pour afficher ce contenu.',
+	consentGate: {
 		actionButton: 'Activer le consentement {category}',
+		error: 'This content could not be loaded.',
+		loading: 'Loading content…',
 		policyBlocked:
 			"This content is unavailable under your region's consent policy.",
-		loading: 'Loading content…',
-		error: 'This content could not be loaded.',
+		title: 'Acceptez {category} pour afficher ce contenu.',
 	},
-	legalLinks: {
-		privacyPolicy: 'Politique de Confidentialité',
-		cookiePolicy: 'Politique des Cookies',
-		termsOfService: 'Conditions de Service',
+	consentManagerDialog: {
+		description:
+			'Personnalisez vos paramètres de confidentialité ici. Vous pouvez choisir les types de cookies et de technologies de suivi que vous autorisez.',
+		title: 'Paramètres de confidentialité',
+		vendors: {
+			disabledByCategory:
+				'Activez cette catégorie pour choisir des fournisseurs.',
+			privacyPolicy: 'Politique de confidentialité',
+			switchLabel: 'Autoriser {vendor}',
+			title: 'Fournisseurs ({count})',
+		},
+	},
+	consentTypes: {
+		experience: {
+			description:
+				'Ces cookies nous permettent de fournir une meilleure expérience utilisateur et de tester de nouvelles fonctionnalités.',
+			title: 'Expérience',
+		},
+		functionality: {
+			description:
+				"Ces cookies permettent d'améliorer la fonctionnalité et la personnalisation du site web.",
+			title: 'Fonctionnalité',
+		},
+		marketing: {
+			description:
+				'Ces cookies sont utilisés pour offrir des publicités pertinentes et suivre leur efficacité.',
+			title: 'Marketing',
+		},
+		measurement: {
+			description:
+				'Ces cookies nous permettent de comprendre comment les visiteurs interagissent avec le site web et améliorent ses performances.',
+			title: 'Analyse',
+		},
+		necessary: {
+			description:
+				'Ces cookies sont essentiels pour que le site web fonctionne correctement et ne peuvent pas être désactivés.',
+			title: 'Strictement nécessaire',
+		},
+	},
+	cookieBanner: {
+		description:
+			'Ce site utilise des cookies pour améliorer votre expérience de navigation, analyser le trafic du site et afficher du contenu personnalisé.',
+		noticeDescription:
+			'Nous utilisons des cookies et des technologies similaires pour faire fonctionner ce site, mesurer le trafic et personnaliser le contenu et les publicités. Vous pouvez vous désinscrire ou gérer vos préférences à tout moment.',
+		noticeTitle: 'Avis de confidentialité',
+		title: 'Nous respectons votre vie privée',
 	},
 	iab: {
 		banner: {
-			title: 'Paramètres de confidentialité',
+			andMore: 'Et {count} de plus...',
 			description:
 				'Nous et nos {partnerCount} partenaires stockons et/ou accédons à des informations sur votre appareil et traitons des données personnelles, telles que des identifiants uniques et des données de navigation, pour ce site web, afin de :',
-			partnersLink: '{count} partenaires',
-			andMore: 'Et {count} de plus...',
 			legitimateInterestNotice:
 				'Certains partenaires revendiquent un intérêt légitime pour traiter vos données. Vous avez le droit de vous opposer à ce traitement, de personnaliser vos choix et de retirer votre consentement à tout moment.',
+			partnersLink: '{count} partenaires',
+			scopeGroup: "Votre choix s'applique à tous nos sites web de ce groupe.",
 			scopeServiceSpecific:
 				"Votre consentement s'applique uniquement à ce site web et n'affecte pas d'autres services.",
-			scopeGroup: "Votre choix s'applique à tous nos sites web de ce groupe.",
+			title: 'Paramètres de confidentialité',
+		},
+		common: {
+			acceptAll: 'Accepter tout',
+			clearSelection: 'Effacer',
+			customPartner: "Partenaire personnalisé non enregistré auprès de l'IAB",
+			customize: 'Personnaliser',
+			loading: 'Chargement...',
+			rejectAll: 'Tout rejeter',
+			saveSettings: 'Enregistrer les paramètres',
+			showingSelectedVendor: 'Affichage du fournisseur sélectionné',
 		},
 		preferenceCenter: {
-			title: 'Paramètres de confidentialité',
 			description:
 				'Personnalisez vos paramètres de confidentialité ici. Vous pouvez choisir les types de cookies et de technologies de suivi que vous autorisez.',
-			tabs: {
-				purposes: 'Finalités',
-				vendors: 'Fournisseurs',
+			features: {
+				description:
+					'Ces méthodes de traitement ne peuvent être utilisées que dans le cadre d’une ou plusieurs finalités pour lesquelles vous avez la possibilité de choisir dans le présent avis.',
+				title: 'Fonctionnalités',
+			},
+			footer: {
+				consentStorage:
+					'Les préférences de consentement sont stockées dans un cookie nommé « euconsent-v2 » pendant 13 mois. La durée de stockage peut être renouvelée lorsque vous mettez à jour vos préférences.',
 			},
 			purposeItem: {
-				partners: '{count} partenaires',
-				vendorsUseLegitimateInterest:
-					'{count} fournisseurs revendiquent un intérêt légitime',
 				examples: 'Exemples',
-				partnersUsingPurpose: 'Partenaires utilisant cette finalité',
-				withYourPermission: 'Avec votre autorisation',
 				legitimateInterest: 'Intérêt légitime',
 				objectButton: "S'opposer",
 				objected: 'Opposition enregistrée',
+				partners: '{count} partenaires',
+				partnersUsingPurpose: 'Partenaires utilisant cette finalité',
 				rightToObject:
 					"Vous avez le droit de vous opposer au traitement fondé sur l'intérêt légitime.",
+				vendorsUseLegitimateInterest:
+					'{count} fournisseurs revendiquent un intérêt légitime',
+				withYourPermission: 'Avec votre autorisation',
 			},
 			specialPurposes: {
 				title: 'Fonctions essentielles (obligatoires)',
 				tooltip:
 					"Ces fonctions sont nécessaires au fonctionnement et à la sécurité du site. Conformément au TCF de l'IAB, vous ne pouvez pas vous opposer à ces finalités spéciales.",
 			},
-			features: {
-				title: 'Fonctionnalités',
-				description:
-					'Ces méthodes de traitement ne peuvent être utilisées que dans le cadre d’une ou plusieurs finalités pour lesquelles vous avez la possibilité de choisir dans le présent avis.',
+			tabs: {
+				purposes: 'Finalités',
+				vendors: 'Fournisseurs',
 			},
+			title: 'Paramètres de confidentialité',
 			vendorList: {
-				search: 'Rechercher des fournisseurs...',
-				showingCount: '{filtered} sur {total} fournisseurs',
-				iabVendorsHeading: 'Fournisseurs enregistrés IAB',
-				iabVendorsNotice:
-					"Ces partenaires sont enregistrés auprès du Transparency & Consent Framework (TCF) de l'IAB, une norme industrielle pour la gestion du consentement",
 				customVendorsHeading: 'Partenaires personnalisés',
 				customVendorsNotice:
 					"Il s'agit de partenaires personnalisés non enregistrés auprès de l'IAB Transparency & Consent Framework (TCF). Ils traitent les données sur la base de votre consentement et peuvent avoir des pratiques de confidentialité différentes de celles des fournisseurs enregistrés auprès de l'IAB.",
-				purposes: 'Finalités',
-				specialPurposes: 'Finalités spéciales',
-				specialFeatures: 'Fonctionnalités spéciales',
-				features: 'Fonctionnalités',
 				dataCategories: 'Catégories de données',
-				usesCookies: 'Utilise des cookies',
-				nonCookieAccess: 'Accès sans cookie',
-				maxAge: 'Durée max. : {days} j',
-				retention: 'Rétention : {days} j',
+				features: 'Fonctionnalités',
+				iabVendorsHeading: 'Fournisseurs enregistrés IAB',
+				iabVendorsNotice:
+					"Ces partenaires sont enregistrés auprès du Transparency & Consent Framework (TCF) de l'IAB, une norme industrielle pour la gestion du consentement",
 				legitimateInterest: 'Intérêt légitime',
+				maxAge: 'Durée max. : {days} j',
+				nonCookieAccess: 'Accès sans cookie',
 				privacyPolicy: 'Politique de confidentialité',
-				storageDisclosure: 'Divulgation du stockage',
+				purposes: 'Finalités',
 				requiredNotice:
 					'Requis pour le fonctionnement du site, ne peut pas être désactivé',
-			},
-			footer: {
-				consentStorage:
-					'Les préférences de consentement sont stockées dans un cookie nommé « euconsent-v2 » pendant 13 mois. La durée de stockage peut être renouvelée lorsque vous mettez à jour vos préférences.',
+				retention: 'Rétention : {days} j',
+				search: 'Rechercher des fournisseurs...',
+				showingCount: '{filtered} sur {total} fournisseurs',
+				specialFeatures: 'Fonctionnalités spéciales',
+				specialPurposes: 'Finalités spéciales',
+				storageDisclosure: 'Divulgation du stockage',
+				usesCookies: 'Utilise des cookies',
 			},
 		},
-		common: {
-			acceptAll: 'Accepter tout',
-			rejectAll: 'Tout rejeter',
-			customize: 'Personnaliser',
-			saveSettings: 'Enregistrer les paramètres',
-			loading: 'Chargement...',
-			showingSelectedVendor: 'Affichage du fournisseur sélectionné',
-			clearSelection: 'Effacer',
-			customPartner: "Partenaire personnalisé non enregistré auprès de l'IAB",
-		},
+	},
+	legalLinks: {
+		cookiePolicy: 'Politique des Cookies',
+		privacyPolicy: 'Politique de Confidentialité',
+		termsOfService: 'Conditions de Service',
+	},
+	rights: {
+		optOut: 'Ne pas vendre ni partager mes données',
+		preferences: 'Gérer les préférences',
 	},
 };
 export default translations;

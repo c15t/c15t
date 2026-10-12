@@ -1,0 +1,180 @@
+---
+title: Rendering and deployment
+description: Pick where a Vue app's consent policy comes from with the plugin's mode option, host it statically, and why server-rendered Vue apps should use Nuxt.
+group: frameworks
+---
+
+## Pick the setup for your deployment
+
+The Vue plugin runs in the browser only. The `mode` option of
+`app.use(c15tVue, { mode })` decides where each visitor's policy comes from.
+Import the mode from `c15t/vue/vue-plugin`:
+
+| Your app | `mode` |
+| --- | --- |
+| Vue with Vite, served as static files | [`hosted()`](#ask-the-backend-for-each-visitors-policy), as in the [quickstart](/docs/frameworks/vue/quickstart). The backend resolves each visitor's policy from their location. |
+| A policy without location rules, or a page that already knows the visitor's location | [`manifest()`](#bundle-the-manifest-during-builds). The build bundles the policy and the browser resolves it. |
+| Browser resolution, with policy edits that apply without a rebuild | [`manifest({ source: 'runtime' })`](#fetch-the-manifest-at-runtime) |
+| A prototype with no backend | [`offline()`](#resolve-the-policy-without-a-backend). Not recommended for production environments. |
+| Vue rendered on the server without Nuxt | Any of the above; the banner mounts after hydration. For the banner in server HTML, [use Nuxt](#server-rendering-without-nuxt). |
+
+`mode` is required. Without it, `app.use()` throws and asks for one. Each
+mode is imported statically, so the bundle carries only the modes your app
+imports.
+
+## Ask the backend for each visitor's policy
+
+The [quickstart](/docs/frameworks/vue/quickstart) and `examples/vue` in the
+c15t repository use this setup. `hosted()` sends each page load to the
+backend's `/init`. The backend reads the visitor's location from the request,
+resolves the current policy and returns the text in the visitor's language:
+
+{/* example: fragment */}
+
+```ts title="src/main.ts"
+import { c15tVue, hosted } from 'c15t/vue/vue-plugin';
+
+app.use(c15tVue, { mode: hosted(), scripts });
+```
+
+`hosted()` reads the backend URL from `consentManifest()`, or takes it as
+`hosted({ backendURL: 'https://your-project.inth.app' })`. Keep
+`consentManifest()` in `vite.config.ts` either way: it also keeps the c15t
+components, which are `.vue` files, out of Vite's dependency pre-bundling.
+A `hosted()` build never downloads the manifest, so a backend outage does
+not stop it.
+
+Until `/init` answers, every optional category is denied, so gated scripts
+and iframes wait. The build output is plain static files. Deploy it to any
+static host. The backend must allow your site's origin. With Inth, add it to
+the project's trusted origins.
+[Data fetching](/docs/concepts/data-fetching) compares the two paths.
+
+### Send `/init` before the app loads
+
+<include src="../../shared/vite-init-prefetch.mdx" />
+
+## Bundle the manifest during builds
+
+`manifest()` resolves the policy in the browser from a snapshot the build
+downloaded. It saves the `/init` request only when the policy has no location
+rules, or when the browser knows the visitor's location. Otherwise the bundle
+adds bytes without saving a request. The resolver adds about 3 KB gzipped,
+policy edits need a rebuild, and the backend doesn't count visitors the
+browser resolves this way.
+
+<include src="../../shared/build-manifests/vue.mdx" />
+
+### Tell the browser where the visitor is
+
+The browser has no request location. When the policy depends on the
+visitor's country or region, `manifest()` asks the backend's `/init` on the
+first visit, as React and Svelte do, rather than apply the rule for an
+unknown location, which could be another region's. `vite build` warns when
+it bundles such a policy and suggests `hosted()`, because the bundled policy
+then saves no request. To resolve in the browser instead:
+
+- Pass `country` and `region` props to `ConsentRoot` when the page already
+  knows the location, for example from a value your edge server injected.
+- Pass `inputs: { country, region }` to `manifest()` for the same purpose,
+  set once when the plugin installs.
+- Set `geoURL` to a same-origin route you run that returns the visitor's
+  `{ country, region }` as JSON. `manifest()` requests it only when the
+  policy depends on a location it does not have.
+- Pass `initFallback: false` to `manifest()` to resolve the policy for an
+  unknown location without asking the backend. Only do this when that rule
+  is right for every visitor it reaches.
+
+### Load the visitor's language
+
+The bundle includes English copy. When a visitor resolves to another
+language your project has text for, the browser loads the base text for that
+language from your site the first time it is needed. A visitor downloads
+their own language only, never the full set.
+
+## Fetch the manifest at runtime
+
+`manifest({ source: 'runtime' })` ignores the build's snapshot and fetches
+`${backendURL}/manifest` when the app starts. The browser resolves the
+policy from it, so policy edits apply without a rebuild:
+
+{/* example: fragment */}
+
+```ts title="src/main.ts"
+import { c15tVue, manifest } from 'c15t/vue/vue-plugin';
+
+app.use(c15tVue, { mode: manifest({ source: 'runtime' }), scripts });
+```
+
+Keep `consentManifest()` in `vite.config.ts`: `manifest()` reads the backend
+URL from it. The plugin can't see options you pass in app code, so set
+`consentManifest({ source: 'runtime' })` as well. Without it, the build still
+downloads the manifest, and fails when the backend is down.
+
+To fetch the manifest from somewhere else, such as a CDN in front of your
+backend, pass `manifest({ manifestURL })`. The app fetches that URL when it
+starts and ignores the build's snapshot. As with `source: 'runtime'`, set
+`consentManifest({ source: 'runtime' })` so the build doesn't download the
+manifest. Consent saves still go to the backend URL from `consentManifest()`.
+
+The manifest is the same for every visitor, so a CDN can cache it. Location,
+`geoURL` and language loading work as in the
+[build-time setup](#tell-the-browser-where-the-visitor-is). Consent saves
+still go to the backend.
+
+## Resolve the policy without a backend
+
+`offline()` resolves policy rules in the browser and stores choices in the
+visitor's cookie and localStorage. There is no backend, so no consent
+records are kept. Not recommended for production environments.
+
+{/* example: fragment */}
+
+```ts title="src/main.ts"
+import { c15tVue, offline } from 'c15t/vue/vue-plugin';
+
+app.use(c15tVue, { mode: offline(), scripts });
+```
+
+Without options, `offline()` uses c15t's recommended policy rules. Pass
+`offline({ policyRules })` to replace them.
+
+## Server rendering without Nuxt
+
+c15t has no server helper for plain Vue. The plugin accepts `prefetch` and
+`initialRecords`, but nothing produces them for a custom Vue server. A
+server-rendered page renders without the banner, and the banner appears after
+hydration.
+
+Your theme tokens can still be in the first HTML. `generateTokensCSS()` from
+`c15t/vue/vue-plugin` returns the CSS the plugin applies. Put it in a
+`<style id="c15t-css-vars">` element in your server HTML, and the plugin
+reuses that element in the browser:
+
+{/* example: fragment */}
+
+```ts
+import { generateTokensCSS } from 'c15t/vue/vue-plugin';
+
+const tokensStyle = `<style id="c15t-css-vars">${generateTokensCSS(tokens)}</style>`;
+```
+
+For the banner in server-rendered HTML, use the c15t Nuxt module. Start with
+the Nuxt quickstart in the [framework list](/docs/frameworks).
+It resolves the policy on the server, renders the banner and tokens in the
+first HTML, and hydrates without another request.
+
+## Verify your deployment
+
+Serve the production build and open the Network tab:
+
+| `mode` | Policy requests on the first page load |
+| --- | --- |
+| `hosted()` | One `GET` to `${backendURL}/init` |
+| `manifest()` with a build snapshot | None to the backend when the policy has no location rules or the browser knows the location, otherwise one `GET` to `${backendURL}/init`. A language other than English loads its text from your site. |
+| `manifest({ source: 'runtime' })` | One `GET` to `${backendURL}/manifest` |
+| `manifest({ manifestURL })` | One `GET` to `manifestURL` |
+| `offline()` | None |
+
+Reject, reload, and confirm the banner stays closed. Then follow
+[verify consent](/docs/guides/verify-consent) for the vendor checks.

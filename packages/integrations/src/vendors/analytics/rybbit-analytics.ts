@@ -1,0 +1,168 @@
+import type { Script } from '@c15t/core';
+
+import { resolveManifest } from '../../resolve';
+import { vendorManifestContract } from '../../types';
+import type { VendorManifest } from '../../types';
+import { booleanDataAttribute } from '../_shared/attributes';
+import { readId, skipMissingId } from '../_shared/required-id';
+import { joinUrlPath } from '../_shared/script-url';
+
+declare global {
+	interface Window {
+		rybbit?: {
+			clearUserId: () => void;
+			event: (name: string, properties?: Record<string, unknown>) => void;
+			getUserId: () => string | null;
+			identify: (userId: string) => void;
+			pageview: () => void;
+		};
+	}
+}
+
+/**
+ * Rybbit Analytics vendor manifest.
+ *
+ * Rybbit reads its configuration from script data attributes at load time.
+ */
+export const rybbitAnalyticsManifest = {
+	...vendorManifestContract,
+	category: 'measurement',
+	install: [
+		{
+			attributes: {
+				'data-api-key': '{{apiKey}}',
+
+				'data-auto-track-pageview': '{{autoTrackPageview}}',
+				'data-debounce': '{{debounce}}',
+				'data-mask-patterns': '{{maskPatterns}}',
+				'data-session-replay': '{{sessionReplay}}',
+				'data-site-id': '{{siteId}}',
+				'data-skip-patterns': '{{skipPatterns}}',
+				'data-track-errors': '{{trackErrors}}',
+				'data-track-outbound': '{{trackOutbound}}',
+				'data-track-query': '{{trackQuery}}',
+				'data-track-spa': '{{trackSpa}}',
+				'data-web-vitals': '{{webVitals}}',
+			},
+
+			defer: true,
+			src: '{{scriptUrl}}',
+			type: 'loadScript',
+		},
+	],
+	vendor: 'rybbit-analytics',
+	vendorDetails: {
+		homepageUrl: 'https://rybbit.com/',
+		name: 'Rybbit',
+		privacyPolicyUrl: 'https://rybbit.com/privacy',
+	},
+} as const satisfies VendorManifest;
+
+export interface RybbitAnalyticsOptions {
+	/** Your Rybbit site ID. */
+	siteId: string | number;
+	/** Automatically track pageviews. */
+	autoTrackPageview?: boolean;
+	/** Enable SPA route tracking. */
+	trackSpa?: boolean;
+	/** Include query parameters in tracked URLs. */
+	trackQuery?: boolean;
+	/** Track outbound link clicks. */
+	trackOutbound?: boolean;
+	/** Track JavaScript errors. */
+	trackErrors?: boolean;
+	/** Enable session replay. */
+	sessionReplay?: boolean;
+	/** Enable Web Vitals tracking. */
+	webVitals?: boolean;
+	/** URL patterns to skip from tracking. */
+	skipPatterns?: string[];
+	/** URL patterns to mask in tracked data. */
+	maskPatterns?: string[];
+	/** Debounce interval for pageview tracking. */
+	debounce?: number;
+	/** API key for authenticated tracking. */
+	apiKey?: string;
+	/** Override the analytics host URL. */
+	analyticsHost?: string;
+	/** Custom loader URL. */
+	scriptUrl?: string;
+}
+
+/**
+ * Resolves the Rybbit Analytics script URL.
+ *
+ * Uses `options.scriptUrl` when provided, falls back to
+ * `options.analyticsHost` joined with `script.js`, and defaults to
+ * `https://app.rybbit.io/api/script.js`.
+ *
+ * @param options - Rybbit Analytics options.
+ * @returns The resolved script URL.
+ *
+ * @internal
+ */
+const getRybbitScriptUrl = function getRybbitScriptUrl(
+	options: RybbitAnalyticsOptions
+): string {
+	const url = options.scriptUrl?.trim();
+	if (url && url.length > 0) {
+		return url;
+	}
+	if (options.analyticsHost) {
+		return joinUrlPath(options.analyticsHost, 'script.js');
+	}
+
+	return 'https://app.rybbit.io/api/script.js';
+};
+
+/**
+ * Creates a Rybbit Analytics script.
+ *
+ * @param options - The options for the Rybbit Analytics script.
+ * @returns The Rybbit Analytics script.
+ * @remarks When `siteId` is missing or blank, the helper logs
+ *   `rybbitAnalytics: missing or invalid siteId` with `console.error` and
+ *   returns a script that never loads.
+ */
+export const rybbitAnalytics = function rybbitAnalytics(
+	options: RybbitAnalyticsOptions
+): Script {
+	const siteId = readId(options.siteId);
+	if (siteId === undefined) {
+		return skipMissingId('rybbitAnalytics', 'siteId', {
+			category: 'measurement',
+			manifest: rybbitAnalyticsManifest,
+		});
+	}
+
+	let debounce: string | undefined;
+	if (options.debounce !== undefined) {
+		debounce = String(options.debounce);
+	}
+
+	let skipPatterns: string | undefined;
+	if (options.skipPatterns) {
+		skipPatterns = JSON.stringify(options.skipPatterns);
+	}
+
+	let maskPatterns: string | undefined;
+	if (options.maskPatterns) {
+		maskPatterns = JSON.stringify(options.maskPatterns);
+	}
+
+	return resolveManifest(rybbitAnalyticsManifest, {
+		apiKey: options.apiKey,
+		autoTrackPageview: booleanDataAttribute(options.autoTrackPageview),
+		debounce,
+		maskPatterns,
+		scriptUrl: getRybbitScriptUrl(options),
+		sessionReplay: booleanDataAttribute(options.sessionReplay),
+		siteId,
+		skipPatterns,
+		trackErrors: booleanDataAttribute(options.trackErrors),
+		trackOutbound: booleanDataAttribute(options.trackOutbound),
+		trackQuery: booleanDataAttribute(options.trackQuery),
+		trackSpa: booleanDataAttribute(options.trackSpa),
+		webVitals: booleanDataAttribute(options.webVitals),
+	});
+};

@@ -5,18 +5,17 @@
  */
 
 import { userEvent } from '@vitest/browser/context';
-import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
-import { IABConsentBanner } from '~/components/iab-consent-banner';
-import { IABConsentDialog } from '~/components/iab-consent-dialog';
+
+import { ComponentFixtureProvider as ConsentProvider } from '~/__tests__/component-fixture-provider';
+import { IABConsentDialog } from '~/components/iab-panel';
+import { IABConsentBanner } from '~/components/iab-prompt';
+
+import type { TcfApiTestFunction } from './e2e-setup';
 import {
-	ConsentManagerProvider,
-	clearConsentRuntimeCache,
-} from '~/providers/consent-manager-provider';
-import {
-	addCMPEventListener,
 	clearConsentState,
-	defaultIABOptions,
+	defaultProviderIABOptions,
 	getCMPTCData,
 	getStoredConsent,
 	getStoredTCString,
@@ -29,16 +28,15 @@ describe('IAB Consent Flow E2E Tests', () => {
 	beforeEach(() => {
 		clearConsentState();
 		vi.clearAllMocks();
-		clearConsentRuntimeCache();
 	});
 
 	describe('Accept All Flow', () => {
 		test('complete flow: display → accept → signal → storage', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			// 1. Display banner
@@ -65,10 +63,10 @@ describe('IAB Consent Flow E2E Tests', () => {
 
 		test('should set all purposes to consented', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			const acceptButton = await waitForElement(
@@ -92,10 +90,10 @@ describe('IAB Consent Flow E2E Tests', () => {
 	describe('Reject All Flow', () => {
 		test('complete flow: display → reject → signal → storage', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			const rejectButton = await waitForElement(
@@ -110,7 +108,7 @@ describe('IAB Consent Flow E2E Tests', () => {
 				() => {
 					const consent = getStoredConsent();
 					expect(consent).toBeDefined();
-					expect(consent?.consents?.necessary).toBe(true);
+					expect(consent?.choice?.categories.marketing?.value).toBe(false);
 				},
 				{ timeout: 2000 }
 			);
@@ -120,10 +118,10 @@ describe('IAB Consent Flow E2E Tests', () => {
 	describe('Granular Consent Flow', () => {
 		test('should open preference center for granular selection', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			const customizeButton = await waitForElement(
@@ -139,10 +137,10 @@ describe('IAB Consent Flow E2E Tests', () => {
 
 		test('should save granular preferences', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			const customizeButton = await waitForElement(
@@ -179,23 +177,22 @@ describe('IAB Consent Flow E2E Tests', () => {
 					btn.textContent?.toLowerCase().includes('confirm')
 			);
 
-			if (saveButton) {
-				await userEvent.click(saveButton);
-				await waitForElementRemoved('[data-testid="iab-consent-dialog-root"]');
-
-				const consent = getStoredConsent();
-				expect(consent).toBeDefined();
+			if (!saveButton) {
+				throw new Error('Save preferences button is missing');
 			}
+			await userEvent.click(saveButton);
+			await waitForElementRemoved('[data-testid="iab-consent-dialog-root"]');
+			expect(getStoredConsent()).not.toBeNull();
 		});
 	});
 
 	describe('Persistence & Restoration Flow', () => {
 		test('consent should be stored in localStorage', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			const acceptButton = await waitForElement(
@@ -210,7 +207,7 @@ describe('IAB Consent Flow E2E Tests', () => {
 				() => {
 					const consent = getStoredConsent();
 					expect(consent).toBeDefined();
-					expect(consent?.consents).toBeDefined();
+					expect(consent?.choice?.categories).toBeDefined();
 				},
 				{ timeout: 2000 }
 			);
@@ -218,10 +215,10 @@ describe('IAB Consent Flow E2E Tests', () => {
 
 		test('TC String should be stored', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			const acceptButton = await waitForElement(
@@ -233,25 +230,26 @@ describe('IAB Consent Flow E2E Tests', () => {
 			await waitForElementRemoved('[data-testid="iab-consent-banner-card"]');
 
 			// Verify TC string storage
-			await vi.waitFor(
+			const tcString = await vi.waitFor(
 				() => {
-					const tcString = getStoredTCString();
-					expect(tcString).toBeDefined();
-					expect(typeof tcString).toBe('string');
-					expect(tcString?.length).toBeGreaterThan(10);
+					const stored = getStoredTCString();
+					expect(stored).not.toBeNull();
+					return stored;
 				},
 				{ timeout: 2000 }
 			);
+			expect(typeof tcString).toBe('string');
+			expect(tcString?.length).toBeGreaterThan(10);
 		});
 	});
 
 	describe('First Visit vs Return Visit', () => {
 		test('first visit - banner should display', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			// Banner should show on first visit
@@ -262,23 +260,21 @@ describe('IAB Consent Flow E2E Tests', () => {
 	describe('Event Notifications', () => {
 		test('should fire useractioncomplete on Accept All', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await waitForElement('[data-testid="iab-consent-banner-card"]');
 			await waitForCMP();
 
 			// Set up listener
-			let callCount = 0;
 			const events: string[] = [];
 
-			const tcfapi = (window as { __tcfapi?: Function }).__tcfapi;
+			const tcfapi = (window as { __tcfapi?: TcfApiTestFunction }).__tcfapi;
 			if (tcfapi) {
 				tcfapi('addEventListener', 2, (data: { eventStatus: string }) => {
-					callCount++;
 					events.push(data.eventStatus);
 				});
 			}

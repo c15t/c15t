@@ -2,14 +2,15 @@
 	"name": "@c15t/no-tw-css-test",
 	"private": true,
 	"scripts": {
+		"build": "rm -rf .next && next build",
 		"dev": "next dev --port 3123",
-		"build": "next build",
 		"start": "next start --port 3123"
 	},
 	"dependencies": {
 		"@c15t/benchmarking": "workspace:*",
-		"@c15t/react": "workspace:*",
 		"@c15t/nextjs": "workspace:*",
+		"@c15t/react": "workspace:*",
+		"@c15t/ui": "workspace:*",
 		"next": "15.5.16",
 		"react": "19.2.7",
 		"react-dom": "19.2.7"
@@ -18,6 +19,6 @@
 		"@types/node": "22.14.1",
 		"@types/react": "19.2.17",
 		"@types/react-dom": "19.2.3",
-		"typescript": "5.8.3"
+		"typescript": "6.0.3"
 	}
 }

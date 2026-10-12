@@ -8,6 +8,7 @@ on:
       - 'packages/**/package.json'
       - 'packages/**/tsconfig.json'
       - 'packages/**/rslib.config.ts'
+      - 'packages/c15t/shims/**'
 
 concurrency:
   group: pr-preview-${{ github.event.pull_request.number }}
@@ -16,7 +17,7 @@ concurrency:
 jobs:
   detect-changed-packages:
     name: 🔍 Detect Changed Packages
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     permissions:
       contents: read
       pull-requests: read
@@ -74,7 +75,7 @@ jobs:
       (contains(github.event.pull_request.author_association, 'MEMBER') ||
        contains(github.event.pull_request.labels.*.name, 'deploy:preview')) &&
       needs.detect-changed-packages.outputs.packages != '[]'
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     permissions:
       contents: read
       pull-requests: write

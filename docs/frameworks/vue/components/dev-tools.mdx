@@ -1,0 +1,37 @@
+---
+title: DevTools
+description: Inspect consent state, the resolved policy, location, scripts and consent events in a Vue app during development with ConsentDevTools.
+group: frameworks
+---
+
+## Load DevTools only in development
+
+Import `ConsentDevTools` from `c15t/vue/devtools` with a dynamic import that
+runs only in development:
+
+<include src="../../../shared/examples/vue/devtools.mdx" />
+
+Render this component anywhere inside the app that installed
+[the c15tVue plugin](/docs/frameworks/vue/plugin). `import.meta.env.DEV` is
+`false` in production builds, so Vite drops the dynamic import and the panel
+from your production bundle. A static `import` would ship DevTools to every
+visitor even when `v-if` hides it.
+
+<import src="../../../shared/vue/components/dev-tools.mdx#behavior" />
+
+<import src="../../../shared/vue/components/dev-tools.mdx#props" />
+
+<import src="../../../shared/vue/components/dev-tools.mdx#embedded-panel" />
+
+## Verify
+
+Run `vite` and open the app. A DevTools button appears in the corner you set.
+Open it, pick the Policy panel and check the matched policy for your
+location. Serve a production build with `vite build` and `vite preview`, and
+confirm the DevTools button does not appear.
+
+## Next steps
+
+- [Troubleshooting](/docs/frameworks/vue/troubleshooting) uses DevTools to
+  explain a missing banner.
+- [Verify consent](/docs/guides/verify-consent) is the release checklist.

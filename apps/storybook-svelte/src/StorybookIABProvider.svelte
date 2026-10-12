@@ -1,0 +1,43 @@
+<script lang="ts">
+	import { ConsentProvider } from '@c15t/svelte';
+	import { untrack } from 'svelte';
+	import type { Snippet } from 'svelte';
+
+	import type { ConsentManagerOptions } from '../../../packages/svelte/src/lib/types';
+	import { storybookIABPolicy } from '../../storybook-consent-policy';
+	import {
+		defaultIABOptions,
+		resetStorybookConsentState,
+		seedStoredConsent,
+		seedTCString,
+	} from './storybook-consent-fixtures';
+	import type { ConsentRecord } from './storybook-consent-fixtures';
+
+	const props = $props<{
+		children: Snippet;
+		options?: Partial<ConsentManagerOptions>;
+		storedConsent?: ConsentRecord;
+		tcString?: string | null;
+	}>();
+
+	const initialStoredConsent = untrack(() => props.storedConsent);
+	const initialTcString = untrack(
+		() => props.tcString ?? 'COtybn4Otybn4AcABBENAPCgAAAAAAAAAAwAA4AuAAA'
+	);
+	const mergedOptions = {
+		...defaultIABOptions,
+		...(untrack(() => props.options) ?? {}),
+	};
+
+	if (typeof window !== 'undefined') {
+		resetStorybookConsentState();
+		if (initialStoredConsent) {
+			seedStoredConsent(initialStoredConsent, storybookIABPolicy);
+		}
+		seedTCString(initialTcString);
+	}
+</script>
+
+<ConsentProvider options={mergedOptions}>
+	{@render props.children()}
+</ConsentProvider>

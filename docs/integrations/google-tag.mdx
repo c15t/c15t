@@ -1,127 +1,121 @@
 ---
-title: GA4 + Google Ads (gtag.js)
-description: Send data to Google Analytics 4 and Google Ads with automatic Consent Mode v2 support.
+title: Google Tag
+description: Load gtag.js for Google Analytics or Google Ads before or after consent with c15t Consent Mode v2 signals, and verify the consent commands in DevTools.
+seoTitle: Google Tag Consent Mode v2 with c15t
+seoDescription: Send Google Consent Mode v2 signals before gtag.js runs. c15t maps consent to analytics_storage, ad_storage, ad_user_data and ad_personalization.
 icon: google-analytics
 group: integrations
 ---
 
-Google Tag (`gtag.js`) is Google's unified tracking script for sending data to Google Analytics 4 (GA4), Google Ads, and Floodlight. It measures user behavior, tracks conversions, and powers Google's advertising ecosystem.
+The c15t `gtag` helper loads Google's gtag.js for Google Analytics or Google
+Ads. With the default `loadMode: 'always'`, gtag.js loads on every page, before
+the visitor chooses. You must give a category, usually `measurement` or
+`marketing`, but in this mode the category does not delay the load. With
+`loadMode: 'after-consent'`, c15t sends nothing to Google until the category has
+consent. In both modes, the helper sends the Google Consent Mode v2 default with
+`gtag('consent', 'default', ...)` before `config`. Each consent change sends an
+`update`. `measurement` controls `analytics_storage`, and `marketing` controls
+`ad_storage`, `ad_user_data`, and `ad_personalization`. The `consentMapping`
+option replaces this map.
 
-c15t initializes Google Tag with Consent Mode v2 defaults set to denied and automatically updates the consent state when users make choices. You don't need to configure Google Consent Mode yourself.
+## Configure the Google tag
 
-<Callout type="info">
-  Use GTM if your team needs centralized tag management in the GTM UI. Use `gtag.js` if you only need GA4/Google Ads directly in code. Don't run both for the same destination unless intentional, or you may duplicate events.
-</Callout>
+Copy the tag ID, for example `G-XXXXXXXXXX` for Google Analytics or
+`AW-XXXXXXXXX` for Google Ads. Remove any `gtag.js` snippet already in your
+HTML and any tag-manager entry that loads the same tag.
 
-**Choosing the right category:**
+<CommandTabs command="@c15t/integrations" mode="install" />
 
-- Use `category: 'measurement'` for analytics-only tracking (GA4 events)
-- Use `category: 'marketing'` for advertising and conversion tracking (Google Ads)
+```ts title="src/consent-scripts.ts"
+import { gtag } from '@c15t/integrations/google-tag';
 
-## Integrate with c15t
-
-<Tabs items={['React', 'Next.js', 'JavaScript']}>
-  <Tab value="React">
-    ```tsx
-    import { type ReactNode } from 'react';
-    import { ConsentManagerProvider } from '@c15t/react';
-    import { gtag } from '@c15t/scripts/google-tag';
-
-    const scripts = [
-      gtag({
-        id: 'G-XXXXXXXXXX',
-        category: 'measurement', // or 'marketing'
-      }),
-    ];
-
-    export function ConsentProvider({ children }: { children: ReactNode }) {
-      return (
-        <ConsentManagerProvider
-          options={{
-            mode: 'hosted',
-            backendURL: 'https://your-instance.c15t.dev',
-            scripts,
-          }}
-        >
-          {children}
-        </ConsentManagerProvider>
-      );
-    }
-    ```
-  </Tab>
-
-  <Tab value="Next.js">
-    ```tsx
-    'use client';
-
-    import { type ReactNode } from 'react';
-    import { ConsentManagerProvider } from '@c15t/nextjs';
-    import { gtag } from '@c15t/scripts/google-tag';
-
-    const scripts = [
-      gtag({
-        id: 'G-XXXXXXXXXX',
-        category: 'measurement', // or 'marketing'
-      }),
-    ];
-
-    export function ConsentProvider({ children }: { children: ReactNode }) {
-      return (
-        <ConsentManagerProvider
-          options={{
-            mode: 'hosted',
-            backendURL: '/api/c15t',
-            scripts,
-          }}
-        >
-          {children}
-        </ConsentManagerProvider>
-      );
-    }
-    ```
-  </Tab>
-
-  <Tab value="JavaScript">
-    ```ts
-    import { getOrCreateConsentRuntime } from 'c15t';
-    import { gtag } from '@c15t/scripts/google-tag';
-
-    getOrCreateConsentRuntime({
-      mode: 'hosted',
-      backendURL: 'https://your-instance.c15t.dev',
-      scripts: [
-        gtag({
-          id: 'G-XXXXXXXXXX',
-          category: 'measurement', // or 'marketing'
-        }),
-      ],
-    });
-    ```
-  </Tab>
-</Tabs>
-
-## How c15t loads it
-
-- **Category:** configurable — `measurement` (default, Analytics) or `marketing`
-- **Loads when:** [`alwaysLoad`](/docs/frameworks/react/script-loader#always-load) — runs on page start regardless of consent state, with Consent Mode v2 defaults set to denied
-- **On consent change:** [persists](/docs/frameworks/react/script-loader#persist-after-revocation) — c15t pushes a Consent Mode v2 `update` to gtag instead of removing the script
-
-## Tracking events in your app
-
-`gtag.js` is `alwaysLoad: true`, so `window.gtag` is present from page start regardless of consent. Calls like `gtag('event', 'sign_up')` are **safe at any time** — c15t sets Consent Mode v2 defaults to denied before the user makes a choice, and Google's SDK suppresses transmission of events while the relevant consent is denied. When consent later changes, c15t emits a Consent Mode v2 `update` so events fire correctly going forward.
-
-```ts
-window.gtag?.('event', 'sign_up', { method: 'email' });
+export const scripts = [gtag({ id: 'G-XXXXXXXXXX', category: 'measurement' })];
 ```
 
-You do not need to wrap `gtag(...)` calls in a `useConsentManager().has(...)` check — Consent Mode handles the suppression for you.
+<include src="../shared/integrations/register-scripts.mdx" />
 
-## Types
+## Options
 
-### GtagOptions
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `id` | Required | Tag ID passed to `gtag('config', ...)` and the loader URL. The helper trims it. Empty or whitespace-only values log an error and the script does not load. |
+| `category` | Required | `measurement` for Analytics, `marketing` for Ads and Floodlight. With `loadMode: 'after-consent'`, `gtag/js` waits for it. With `'always'`, it sets the script's permission, which callbacks receive, but does not delay loading. |
+| `loadMode` | `'always'` | When `gtag/js` loads. See [choose when Google loads](#choose-when-google-loads). |
+| `config` | None | Parameters passed as the third argument to `gtag('config', id, config)`. |
+| `consentMapping` | The table below | Replaces the category-to-Google mapping. |
 
-<AutoTypeTable path="./packages/scripts/src/vendors/analytics/google-tag.ts" name="GtagOptions" />
+The deprecated `script` option overrides fields of the returned script. Use the
+options above instead.
 
-### Script
+## Choose when Google loads
 
-<AutoTypeTable path="./packages/core/src/libs/script-loader/types.ts" name="Script" />
+| `loadMode` | Until the category is allowed | After the category is allowed |
+| --- | --- | --- |
+| `'always'` | Loads `gtag/js` and sends `consent` `default` with the current permissions, then `config`. | Sends `consent` `update` with the mapped types granted. |
+| `'after-consent'` | Sends nothing to Google. The helper creates no `dataLayer` or `gtag` function. | Loads `gtag/js` once. `consent` `default` carries the current permissions and comes before `config`. Later changes send `update`. |
+
+Use `'after-consent'` when your policy forbids any request to Google before
+the visitor opts in:
+
+{/* example: fragment */}
+
+```ts title="src/consent-scripts.ts (partial)"
+gtag({ id: 'G-XXXXXXXXXX', category: 'measurement', loadMode: 'after-consent' }),
+```
+
+`'after-consent'` waits for the category to be allowed, not for a recorded
+choice. Under an `opt-in` policy, that happens when the visitor allows it.
+Under an `opt-out` or `none` policy, optional categories are allowed before a
+choice, so `gtag/js` loads on the first page unless a saved refusal or a
+privacy signal restricts the category; see
+[policies](/docs/concepts/policies). `necessary` is always allowed, so
+`category: 'necessary'` loads `gtag/js` before a choice in either mode. Use
+`measurement` or `marketing`.
+
+This gives up part of Consent Mode. With `'always'`, Google tags send
+cookieless pings while a type is denied, and Google uses them to model
+conversions and behavior for visitors who refused or have not chosen. With
+`'after-consent'`, visitors whose category is denied send nothing, so Google
+has no data to model them from. Reports cover only visitors who allowed the
+category.
+
+When the visitor withdraws the category, c15t reloads the page and the new
+page does not load `gtag/js`. With `reloadOnConsentRevoked: false`, the tag
+already running stays on the page and gets an `update` that denies the
+withdrawn types. A later grant reuses it instead of loading a second copy.
+
+<include src="../shared/integrations/google-consent-mode.mdx" />
+
+## Verify the Google tag
+
+On a plain HTML page with the script tag, you gate Google's snippet instead
+and it loads only after consent; see
+[HTML scripts](/docs/frameworks/html/scripts#google-consent-mode-and-tag-managers).
+
+With the default `loadMode: 'always'`:
+
+1. In a private window with an opt-in policy, load the page. `gtag/js` loads.
+   In Google Tag Assistant, the `consent` `default` command comes before
+   `config`, with `analytics_storage` and `ad_storage` set to `denied`.
+2. Open Privacy settings and allow the tag's category. Tag Assistant shows an
+   `update` command that grants the mapped types.
+3. Turn the category off again and save. c15t reloads the page, and the new
+   page starts with those types denied.
+
+With `loadMode: 'after-consent'`:
+
+1. In a private window with an opt-in policy, filter DevTools Network by
+   `google` and load the page. No request appears, and `window.dataLayer` is
+   `undefined` in the Console.
+2. Allow the tag's category. `gtag/js` loads once. In Tag Assistant, the first
+   command is `consent` `default` with the mapped types granted, before
+   `config`.
+3. Turn the category off again and save. c15t reloads the page, and the new
+   page makes no request to Google.
+
+In either mode, with client-side navigation, check that each route change
+sends one page view. A separate router integration that also sends
+`page_view` doubles the count.
+
+See the [consent verification guide](/docs/guides/verify-consent) for hosting
+checks.

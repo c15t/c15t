@@ -1,0 +1,128 @@
+---
+title: Examples
+description: Runnable c15t apps from the c15t repository. Starters show the smallest setup for Next.js, TanStack Start, React, Nuxt, Vue, Astro, Svelte, SvelteKit, HTML and JavaScript. Showcases show custom banners, preference centers, gated embeds, analytics, IAB TCF, experiments and multilingual sites.
+---
+
+## Run an example from the c15t repository
+
+The examples live in the [`examples` directory](https://github.com/c15t/c15t/tree/v3/examples)
+of the c15t repository. They build against the packages in the repository, not
+against npm, so you clone the repository and build the packages first:
+
+```sh
+git clone --branch v3 https://github.com/c15t/c15t.git
+cd c15t
+bun install
+bun run build:libs
+```
+
+You need [Bun](https://bun.sh). Then run any example by its directory:
+
+```sh
+bun run --cwd examples/nextjs dev
+```
+
+Each example has a README that names the two or three files worth reading and
+how to point it at your backend. To add c15t to your own app, follow your
+[framework quickstart](/docs/frameworks) instead; its setup code comes from the
+starters below.
+
+## Starters
+
+A starter is the smallest correct setup for one framework and one rendering
+mode. Each one connects to Inth, shows the stock banner and dialog, keeps a
+**Privacy settings** control on the page after the banner closes, and loads
+PostHog only after the visitor allows measurement.
+
+| Framework | Directory | What it shows |
+| --- | --- | --- |
+| Next.js | `examples/nextjs` | App Router with a server-prefetched manifest |
+| Next.js | `examples/nextjs-pages-router` | Pages Router with `getServerSideProps` |
+| TanStack Start | `examples/tanstack-start` | Request middleware, a server function and the root route |
+| React | `examples/react` | A Vite single-page app |
+| Nuxt | `examples/nuxt` | The Nuxt module with the policy bundled at build time and resolved on the server |
+| Nuxt | `examples/nuxt-static` | `nuxt generate` with the manifest resolved in the browser |
+| Vue | `examples/vue` | The Vue plugin in a Vite single-page app |
+| Astro | `examples/astro` | Server output with the Node adapter |
+| Astro | `examples/astro-static` | Static output with every page prerendered |
+| Svelte | `examples/svelte` | `@c15t/svelte` in a Vite single-page app |
+| SvelteKit | `examples/sveltekit` | Server hooks and server-rendered layouts |
+| HTML | `examples/html` | The script tag on plain HTML pages |
+| JavaScript | `examples/javascript` | `@c15t/browser` with a bundler |
+
+Replace `https://your-project.inth.app` with the backend URL from your Inth
+project, including any path prefix, and add the example's origin to the
+project's trusted origins. Server-rendered starters also read the URL from the
+framework's public environment variable; the README names it. Starters that
+download the policy when they build commit a `.env` that sets that variable to
+the `https://example-inth.inth.app` demo project, so they build on a fresh
+clone. Set your own URL in `.env.local`, which overrides it. Replace the
+placeholder PostHog key with your own, or remove the script.
+
+`examples/self-host` is a Next.js App Router app with `@c15t/backend` mounted
+at `/api/c15t` in the same app. It runs on an embedded PGlite database in
+development and Postgres from `DATABASE_URL` when deployed. The
+[backend quickstart](/docs/self-host/quickstart) publishes its route handler.
+
+## Showcases
+
+Showcases are apps for Northwind Coffee, a made-up coffee roaster. Each one
+shows one thing c15t can do inside a believable product. All but one are
+Next.js apps.
+
+| Showcase | Directory | What it shows |
+| --- | --- | --- |
+| Custom banner | `examples/showcase-custom-banner` | A banner and preferences sheet built on the headless hooks, with no c15t stylesheet |
+| Preference center | `examples/showcase-preference-center` | Consent settings as a page in account settings, with categories, vendors and the last saved time |
+| Gated embeds | `examples/showcase-gated-embeds` | YouTube, Google Maps and a support chat behind designed placeholders that load in place |
+| Analytics | `examples/showcase-analytics` | Google Tag Manager with Consent Mode v2, GA4, PostHog and the Meta Pixel, with DevTools showing each script's state |
+| IAB TCF | `examples/showcase-iab` | A publisher's ad slots filled from the TC string, with GPP |
+| Banner experiment | `examples/showcase-experiment` | An A/B test between two banner layouts, with exposure and choice events per arm |
+| Multilingual | `examples/showcase-multilingual` | Banner language from the route and policy from the visitor's region |
+| Nuxt theme | `examples/showcase-nuxt-theme` | The stock Nuxt banner and dialog in a brand's colors, layout and dark mode, styled through module options |
+
+The Next.js showcases run in offline mode, so they work without an Inth
+project. Offline mode keeps choices in the browser and records nothing on a
+server. Not recommended for production environments. Each README shows the
+one-line swap to `hosted({ backendURL: 'https://your-project.inth.app' })`. The Nuxt
+module has no offline mode, so the Nuxt showcase talks to a demo Inth project
+and reads `NUXT_PUBLIC_C15T_BACKEND_URL` for your own.
+
+The IAB showcase serves a three-vendor list from `public/vendor-list.json` and
+uses a demonstration CMP ID. Its README lists what changes for production.
+
+## What to try
+
+Replace the placeholder PostHog key in
+`examples/showcase-analytics/lib/scripts.ts` with your own. Open the analytics
+showcase in a private window with DevTools Network open:
+
+1. Before you choose, no PostHog request appears.
+2. Reject optional categories and reload. The banner stays closed and PostHog
+   stays absent.
+3. Open **Privacy settings** and allow **Analytics** (the `measurement`
+   category). PostHog loads.
+4. Withdraw it again. The page reloads without PostHog. Reloading cannot undo
+   code that already ran, which is why c15t reloads by default.
+
+## Tests
+
+CI smoke-tests selected starters and checks that the banner renders, that Accept
+persists across a reload and that **Privacy settings** opens the dialog:
+
+```sh
+bunx playwright@1.61.1 install chromium
+STARTER_TARGET=nextjs bun run --cwd internals/fixtures/acceptance test:starters
+```
+
+The full consent journeys run against separate test apps in
+`internals/fixtures`, which carry the test hooks the examples leave out:
+
+```sh
+EXAMPLE_TARGET=nextjs bun run --cwd internals/fixtures/acceptance test
+```
+
+Both variables take a comma-separated list of targets, such as
+`react,tanstack-start`, or `all`. See the
+[verification guide](/docs/guides/verify-consent) for the checks to run against
+your own backend and vendor accounts before you ship.

@@ -1,9 +1,9 @@
-import type { ResolvedPolicy } from '~/api/init';
+import { compareCanonical } from './canonical-order';
+import type { LegacyMaterialPolicyInput } from './legacy-material-policy';
 
-/** @deprecated Strategy selection removed — uses crypto.subtle (async) or pure-JS (sync) */
-export type FingerprintHashStrategy = 'auto' | 'node' | 'webcrypto' | 'pure-js';
-
-export function stableStringify(value: unknown): string {
+export const stableStringify = function stableStringify(
+	value: unknown
+): string {
 	if (value === null || typeof value !== 'object') {
 		return JSON.stringify(value);
 	}
@@ -14,7 +14,7 @@ export function stableStringify(value: unknown): string {
 
 	const entries = Object.entries(value as Record<string, unknown>)
 		.filter(([, entryValue]) => entryValue !== undefined)
-		.sort(([a], [b]) => a.localeCompare(b));
+		.sort(([a], [b]) => compareCanonical(a, b));
 
 	return `{${entries
 		.map(
@@ -22,21 +22,9 @@ export function stableStringify(value: unknown): string {
 				`${JSON.stringify(key)}:${stableStringify(entryValue)}`
 		)
 		.join(',')}}`;
-}
+};
 
-export async function hashSha256Hex(input: string): Promise<string> {
-	const subtle = globalThis.crypto?.subtle;
-	if (subtle) {
-		const data = new TextEncoder().encode(input);
-		const hash = await subtle.digest('SHA-256', data);
-		return Array.from(new Uint8Array(hash))
-			.map((byte) => byte.toString(16).padStart(2, '0'))
-			.join('');
-	}
-	return sha256HexPureJs(input);
-}
-
-function sha256HexPureJs(input: string): string {
+const sha256HexPureJs = function sha256HexPureJs(input: string): string {
 	const data = new TextEncoder().encode(input);
 
 	// SHA-256 constants
@@ -55,128 +43,189 @@ function sha256HexPureJs(input: string): string {
 	]);
 
 	const bitLen = data.length * 8;
-	const padLen = (((data.length + 9 + 63) >> 6) << 6) >>> 0;
+	const padLen = Math.ceil((data.length + 9) / 64) * 64;
 	const padded = new Uint8Array(padLen);
 	padded.set(data);
 	padded[data.length] = 0x80;
 	const view = new DataView(padded.buffer);
 	view.setUint32(padLen - 8, Math.floor(bitLen / 2 ** 32), false);
-	view.setUint32(padLen - 4, bitLen >>> 0, false);
+	view.setUint32(padLen - 4, bitLen % 2 ** 32, false);
 
 	const H = new Uint32Array([
 		0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c,
 		0x1f83d9ab, 0x5be0cd19,
 	]);
 	const W = new Uint32Array(64);
-	const r = (v: number, s: number) => (v >>> s) | (v << (32 - s));
+	// SHA-256 operates on fixed-width words; native bitwise operations avoid
+	// allocating and scanning 32 individual bits for every compression step.
+	/* oxlint-disable no-bitwise -- SHA-256 requires unsigned 32-bit word operations. */
+	const toUint32 = (value: number) => value >>> 0;
+	const rightShift = (value: number, places: number) => value >>> places;
+	const rotateRight = (value: number, places: number) =>
+		(value >>> places) | (value << (32 - places));
+	const andWords = (left: number, right: number) => left & right;
+	const xorWords = (first: number, second: number, third = 0) =>
+		(first ^ second ^ third) >>> 0;
+	/* oxlint-enable no-bitwise */
+	const word = (array: Uint32Array, index: number) => {
+		const value = array[index];
+		if (value === undefined) {
+			throw new RangeError(`SHA-256 word ${index} is out of bounds`);
+		}
+		return value;
+	};
 
 	for (let off = 0; off < padLen; off += 64) {
-		for (let i = 0; i < 16; i++) W[i] = view.getUint32(off + i * 4, false);
-		for (let i = 16; i < 64; i++) {
-			const s0 = r(W[i - 15]!, 7) ^ r(W[i - 15]!, 18) ^ (W[i - 15]! >>> 3);
-			const s1 = r(W[i - 2]!, 17) ^ r(W[i - 2]!, 19) ^ (W[i - 2]! >>> 10);
-			W[i] = (W[i - 16]! + s0 + W[i - 7]! + s1) >>> 0;
+		for (let i = 0; i < 16; i += 1) {
+			W[i] = view.getUint32(off + i * 4, false);
 		}
-		let [a, b, c, d, e, f, g, h] = H;
-		for (let i = 0; i < 64; i++) {
-			const t1 =
-				(h! +
-					(r(e!, 6) ^ r(e!, 11) ^ r(e!, 25)) +
-					((e! & f!) ^ (~e! & g!)) +
-					K[i]! +
-					W[i]!) >>>
-				0;
-			const t2 =
-				((r(a!, 2) ^ r(a!, 13) ^ r(a!, 22)) +
-					((a! & b!) ^ (a! & c!) ^ (b! & c!))) >>>
-				0;
+		for (let i = 16; i < 64; i += 1) {
+			const w15 = word(W, i - 15);
+			const w2 = word(W, i - 2);
+			const s0 = xorWords(
+				rotateRight(w15, 7),
+				rotateRight(w15, 18),
+				rightShift(w15, 3)
+			);
+			const s1 = xorWords(
+				rotateRight(w2, 17),
+				rotateRight(w2, 19),
+				rightShift(w2, 10)
+			);
+			W[i] = toUint32(word(W, i - 16) + s0 + word(W, i - 7) + s1);
+		}
+		let a = word(H, 0);
+		let b = word(H, 1);
+		let c = word(H, 2);
+		let d = word(H, 3);
+		let e = word(H, 4);
+		let f = word(H, 5);
+		let g = word(H, 6);
+		let h = word(H, 7);
+		for (let i = 0; i < 64; i += 1) {
+			const t1 = toUint32(
+				h +
+					xorWords(rotateRight(e, 6), rotateRight(e, 11), rotateRight(e, 25)) +
+					xorWords(andWords(e, f), andWords(0xffff_ffff - e, g)) +
+					word(K, i) +
+					word(W, i)
+			);
+			const t2 = toUint32(
+				xorWords(rotateRight(a, 2), rotateRight(a, 13), rotateRight(a, 22)) +
+					xorWords(andWords(a, b), andWords(a, c), andWords(b, c))
+			);
 			h = g;
 			g = f;
 			f = e;
-			e = (d! + t1) >>> 0;
+			e = toUint32(d + t1);
 			d = c;
 			c = b;
 			b = a;
-			a = (t1 + t2) >>> 0;
+			a = toUint32(t1 + t2);
 		}
-		H[0] = (H[0]! + a!) >>> 0;
-		H[1] = (H[1]! + b!) >>> 0;
-		H[2] = (H[2]! + c!) >>> 0;
-		H[3] = (H[3]! + d!) >>> 0;
-		H[4] = (H[4]! + e!) >>> 0;
-		H[5] = (H[5]! + f!) >>> 0;
-		H[6] = (H[6]! + g!) >>> 0;
-		H[7] = (H[7]! + h!) >>> 0;
+		H[0] = toUint32(word(H, 0) + a);
+		H[1] = toUint32(word(H, 1) + b);
+		H[2] = toUint32(word(H, 2) + c);
+		H[3] = toUint32(word(H, 3) + d);
+		H[4] = toUint32(word(H, 4) + e);
+		H[5] = toUint32(word(H, 5) + f);
+		H[6] = toUint32(word(H, 6) + g);
+		H[7] = toUint32(word(H, 7) + h);
 	}
 
 	return Array.from(H)
 		.map((w) => w.toString(16).padStart(8, '0'))
 		.join('');
-}
+};
 
-export function createDeterministicFingerprintSync(value: unknown): string {
-	return sha256HexPureJs(stableStringify(value));
-}
-
-export async function createDeterministicFingerprint(
-	value: unknown
+export const hashSha256Hex = async function hashSha256Hex(
+	input: string
 ): Promise<string> {
-	return hashSha256Hex(stableStringify(value));
-}
+	const subtle = globalThis.crypto?.subtle;
+	if (subtle) {
+		const data = new TextEncoder().encode(input);
+		const hash = await subtle.digest('SHA-256', data);
+		return Array.from(new Uint8Array(hash))
+			.map((byte) => byte.toString(16).padStart(2, '0'))
+			.join('');
+	}
+	return sha256HexPureJs(input);
+};
 
-export async function createPolicyFingerprint(
-	policy: ResolvedPolicy
-): Promise<string> {
-	return createDeterministicFingerprint(policy);
-}
-
-function createMaterialPolicyFingerprintInput(policy: ResolvedPolicy) {
-	return {
-		model: policy.model,
-		consent: policy.consent
-			? {
-					expiryDays: policy.consent.expiryDays,
-					scopeMode: policy.consent.scopeMode,
-					categories: policy.consent.categories,
-					preselectedCategories: policy.consent.preselectedCategories,
-					gpc: policy.consent.gpc,
-				}
-			: undefined,
-		ui: policy.ui
-			? {
-					mode: policy.ui.mode,
-					banner: policy.ui.banner
-						? {
-								allowedActions: policy.ui.banner.allowedActions,
-								primaryActions: policy.ui.banner.primaryActions,
-								layout: policy.ui.banner.layout,
-								direction: policy.ui.banner.direction,
-							}
-						: undefined,
-					dialog: policy.ui.dialog
-						? {
-								allowedActions: policy.ui.dialog.allowedActions,
-								primaryActions: policy.ui.dialog.primaryActions,
-								layout: policy.ui.dialog.layout,
-								direction: policy.ui.dialog.direction,
-							}
-						: undefined,
-				}
-			: undefined,
-		proof: policy.proof
-			? {
-					storeIp: policy.proof.storeIp,
-					storeUserAgent: policy.proof.storeUserAgent,
-					storeLanguage: policy.proof.storeLanguage,
-				}
-			: undefined,
+export const createDeterministicFingerprintSync =
+	function createDeterministicFingerprintSync(value: unknown): string {
+		return sha256HexPureJs(stableStringify(value));
 	};
-}
 
-export async function createMaterialPolicyFingerprint(
-	policy: ResolvedPolicy
-): Promise<string> {
-	return createDeterministicFingerprint(
-		createMaterialPolicyFingerprintInput(policy)
-	);
-}
+export const createDeterministicFingerprint =
+	function createDeterministicFingerprint(value: unknown): Promise<string> {
+		return hashSha256Hex(stableStringify(value));
+	};
+
+const createMaterialPolicyFingerprintInput =
+	function createMaterialPolicyFingerprintInput(
+		policy: LegacyMaterialPolicyInput
+	) {
+		return {
+			consent: policy.consent
+				? {
+						categories: policy.consent.categories,
+						expiryDays: policy.consent.expiryDays,
+						gpc: policy.consent.gpc,
+						preselectedCategories: policy.consent.preselectedCategories,
+						scopeMode: policy.consent.scopeMode,
+					}
+				: undefined,
+			model: policy.model,
+			proof: policy.proof
+				? {
+						storeIp: policy.proof.storeIp,
+						storeLanguage: policy.proof.storeLanguage,
+						storeUserAgent: policy.proof.storeUserAgent,
+					}
+				: undefined,
+			ui: policy.ui
+				? {
+						banner: policy.ui.banner
+							? {
+									allowedActions: policy.ui.banner.allowedActions,
+									direction: policy.ui.banner.direction,
+									layout: policy.ui.banner.layout,
+									primaryActions: policy.ui.banner.primaryActions,
+								}
+							: undefined,
+						dialog: policy.ui.dialog
+							? {
+									allowedActions: policy.ui.dialog.allowedActions,
+									direction: policy.ui.dialog.direction,
+									layout: policy.ui.dialog.layout,
+									primaryActions: policy.ui.dialog.primaryActions,
+								}
+							: undefined,
+						mode: policy.ui.mode,
+					}
+				: undefined,
+		};
+	};
+
+export const createMaterialPolicyFingerprint =
+	function createMaterialPolicyFingerprint(
+		policy: LegacyMaterialPolicyInput
+	): Promise<string> {
+		return createDeterministicFingerprint(
+			createMaterialPolicyFingerprintInput(policy)
+		);
+	};
+
+/**
+ * Synchronous variant of {@link createMaterialPolicyFingerprint}. Same
+ * input, same bytes; used where resolution must stay synchronous.
+ */
+export const createMaterialPolicyFingerprintSync =
+	function createMaterialPolicyFingerprintSync(
+		policy: LegacyMaterialPolicyInput
+	): string {
+		return createDeterministicFingerprintSync(
+			createMaterialPolicyFingerprintInput(policy)
+		);
+	};

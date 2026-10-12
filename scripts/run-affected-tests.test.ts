@@ -1,9 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
+
 import { runAffectedTests } from './run-affected-tests';
 
-function createSpawn(exitCode = 0) {
+const createSpawn = function createSpawn(exitCode = 0) {
 	return vi.fn(() => ({ exited: Promise.resolve(exitCode) }));
-}
+};
 
 describe('runAffectedTests', () => {
 	it.each([

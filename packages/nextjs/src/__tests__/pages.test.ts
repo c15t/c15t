@@ -1,0 +1,643 @@
+import { hosted } from '@c15t/core/modes';
+/**
+ * Tests for `@c15t/nextjs/pages`: the Node req/res bridge that lets
+ * `getServerSideProps` and `pages/api` routes use the server helpers and
+ * route handlers built for the App Router.
+ */
+import { clearManifestCache } from '@c15t/core/server';
+import { writePolicyResolutionWire } from '@c15t/schema/types';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+
+import { defineConsentConfig } from '../config';
+import { toWebHeaders, toWebRequest } from '../node-bridge';
+import type { NodeApiRequestLike, NodeApiResponseLike } from '../node-bridge';
+import {
+	createPagesConsentRoute,
+	resolveConsent,
+	withConsentProps,
+} from '../pages';
+import type { PagesApiHandler } from '../pages';
+import { MANIFEST_FIXTURE } from './manifest-fixture';
+import { policyFixture } from './policy-fixture';
+
+const createInitOutput = function createInitOutput(
+	overrides: Record<string, unknown> = {}
+) {
+	return {
+		branding: 'c15t',
+		location: { countryCode: null, regionCode: null },
+		translations: { language: 'en', translations: { common: {} } },
+		...overrides,
+	};
+};
+
+const createResponseSink = function createResponseSink() {
+	const headers = new Map<string, string | string[]>();
+	const chunks: Uint8Array[] = [];
+	let ended = false;
+	const res: NodeApiResponseLike = {
+		end(chunk) {
+			if (chunk) {
+				chunks.push(chunk);
+			}
+			ended = true;
+		},
+		setHeader(name, value) {
+			headers.set(name, value);
+		},
+		statusCode: 0,
+		write(chunk) {
+			chunks.push(chunk);
+		},
+	};
+	const text = () => {
+		const decoder = new TextDecoder();
+		return `${chunks
+			.map((chunk) => decoder.decode(chunk, { stream: true }))
+			.join('')}${decoder.decode()}`;
+	};
+	return { ended: () => ended, headers, res, text };
+};
+
+const asyncChunks = function asyncChunks(
+	chunks: (Uint8Array | string)[]
+): () => AsyncIterator<Uint8Array | string> {
+	return () => {
+		const queue = [...chunks];
+		return {
+			next: () => {
+				const value = queue.shift();
+				return Promise.resolve(
+					value === undefined
+						? { done: true, value: undefined }
+						: { done: false, value }
+				);
+			},
+		};
+	};
+};
+
+/** Calls a catch-all API route the way Next passes `[...c15t]`. */
+const callRoute = async function callRoute(
+	route: PagesApiHandler,
+	request: Omit<NodeApiRequestLike, 'method' | 'query'> & { url: string }
+) {
+	const sink = createResponseSink();
+	const path = new URL(request.url, 'https://app.example.com').pathname;
+	await route(
+		{
+			...request,
+			method: 'GET',
+			query: { c15t: path.split('/').slice(3) },
+		},
+		sink.res
+	);
+	return sink;
+};
+
+beforeEach(() => {
+	clearManifestCache();
+});
+
+afterEach(() => {
+	vi.restoreAllMocks();
+});
+
+describe('Pages Router build-time manifest', () => {
+	test.each([
+		['DE', 'BE', 'eu-opt-in'],
+		['US', 'CA', 'us-ca-opt-out'],
+	])(
+		'resolves %s from the snapshot without fetching policy',
+		async (country, region, policyId) => {
+			const fetch = vi.fn<typeof globalThis.fetch>();
+			const state = await resolveConsent({
+				backendURL: 'https://consent.example.com',
+				fetch,
+				reportSessions: false,
+				req: {
+					headers: {
+						host: 'app.example.com',
+						'x-vercel-ip-country': country,
+						'x-vercel-ip-country-region': region,
+					},
+				},
+				snapshot: MANIFEST_FIXTURE,
+			});
+			expect(state.initialPolicyResolution?.policy?.id).toBe(policyId);
+			expect(fetch).not.toHaveBeenCalled();
+		}
+	);
+
+	test('API routes serve and resolve the snapshot without an upstream fetch', async () => {
+		const fetch = vi.fn<typeof globalThis.fetch>();
+		const route = createPagesConsentRoute({
+			backendURL: 'https://consent.example.com',
+			fetch,
+			reportSessions: false,
+			snapshot: MANIFEST_FIXTURE,
+		});
+		const manifestSink = await callRoute(route, {
+			headers: { host: 'app.example.com' },
+			url: '/api/c15t/manifest',
+		});
+		expect(manifestSink.res.statusCode).toBe(200);
+		expect(JSON.parse(manifestSink.text())).toEqual(MANIFEST_FIXTURE);
+
+		const initSink = await callRoute(route, {
+			headers: {
+				host: 'app.example.com',
+				'x-vercel-ip-country': 'DE',
+				'x-vercel-ip-country-region': 'BE',
+			},
+			url: '/api/c15t/init',
+		});
+		expect(initSink.res.statusCode).toBe(200);
+		expect(JSON.parse(initSink.text()).location).toEqual({
+			countryCode: 'DE',
+			regionCode: 'BE',
+		});
+		expect(fetch).not.toHaveBeenCalled();
+	});
+});
+
+describe('@c15t/nextjs/pages: header conversion', () => {
+	test('toWebHeaders joins repeated headers and skips undefined', () => {
+		const headers = toWebHeaders({
+			'accept-language': ['de-DE,de;q=0.9', 'en'],
+			host: 'app.example.com',
+			'x-missing': undefined,
+		});
+		expect(headers.get('host')).toBe('app.example.com');
+		expect(headers.get('accept-language')).toBe('de-DE,de;q=0.9, en');
+		expect(headers.has('x-missing')).toBe(false);
+	});
+
+	test('resolveConsent reads geo, language, and GPC from req.headers', async () => {
+		const config = await resolveConsent({
+			req: {
+				headers: {
+					'accept-language': ['de-DE,de;q=0.9', 'en'],
+					'sec-gpc': '1',
+					'x-vercel-ip-country': 'DE',
+					'x-vercel-ip-country-region': 'BE',
+				},
+			},
+		});
+		expect(config.initialOverrides).toEqual({
+			country: 'DE',
+			language: 'de',
+			region: 'BE',
+		});
+	});
+});
+
+describe('@c15t/nextjs/pages: cookies', () => {
+	test('resolveConsent parses the consent cookie from req.headers.cookie', async () => {
+		const config = await resolveConsent({
+			req: {
+				headers: {
+					cookie: 'sess=abc; c15t=c.necessary:1,c.marketing:1,i.t:1',
+				},
+			},
+		});
+		expect(!!config.initialRecords?.choice).toBe(true);
+		expect(config.initialRecords?.choice?.categories.marketing?.value).toBe(
+			true
+		);
+	});
+
+	test('cookieName follows a custom storage key', async () => {
+		const config = await resolveConsent({
+			cookieName: 'consent',
+			req: {
+				headers: { cookie: 'consent=c.necessary:1,c.marketing:0,i.t:1' },
+			},
+		});
+		expect(!!config.initialRecords?.choice).toBe(true);
+		expect(config.initialRecords?.choice?.categories.marketing?.value).toBe(
+			false
+		);
+	});
+
+	test('returns plain JSON', async () => {
+		const config = await resolveConsent({
+			req: {
+				headers: { cookie: 'c15t=c.necessary:1,i.t:1', 'x-country': 'FR' },
+			},
+		});
+		expect(JSON.parse(JSON.stringify(config))).toEqual(config);
+	});
+});
+
+describe('@c15t/nextjs/pages: resolveConsent with a backend', () => {
+	test('resolves the backend URL from req and forwards cookies', async () => {
+		const fetchSpy = vi.fn().mockResolvedValue(
+			new Response(
+				JSON.stringify(
+					createInitOutput({
+						location: { countryCode: 'DE', regionCode: null },
+						policyResolution: writePolicyResolutionWire(
+							policyFixture({}, { id: 'gdpr' }).initialPolicyResolution
+						),
+					})
+				),
+				{ headers: { 'content-type': 'application/json' }, status: 200 }
+			)
+		);
+
+		const config = await resolveConsent({
+			config: defineConsentConfig({
+				backendURL: '/api/self-host',
+				mode: hosted(),
+			}),
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+			req: {
+				headers: {
+					cookie: 'sess=abc; c15t=stored',
+					host: 'app.example.com',
+					'x-forwarded-proto': 'https',
+					'x-vercel-ip-country': 'DE',
+				},
+			},
+		});
+
+		expect(fetchSpy).toHaveBeenCalledTimes(1);
+		const [url, init] = fetchSpy.mock.calls[0] ?? [];
+		// The query carries the consent journey the render started.
+		expect(String(url).split('?')[0]).toBe(
+			'https://app.example.com/api/self-host/init'
+		);
+		const headers = (init as RequestInit).headers as Record<string, string>;
+		// The consent cookie alone, never the site's session cookies.
+		expect(headers.cookie).toBe('c15t=stored');
+		expect(headers['x-c15t-country']).toBe('DE');
+		expect(config.initialPolicyResolution?.policy?.id).toBe('gdpr');
+		expect(config.initialLocation).toEqual({
+			countryCode: 'DE',
+			regionCode: null,
+		});
+		expect(JSON.parse(JSON.stringify(config))).toEqual(config);
+	});
+
+	test('manifestURL resolves init locally without calling /init', async () => {
+		const fetchSpy = vi.fn().mockResolvedValue(
+			new Response(JSON.stringify(MANIFEST_FIXTURE), {
+				headers: { 'content-type': 'application/json' },
+				status: 200,
+			})
+		);
+
+		const config = await resolveConsent({
+			backendURL: '/api/c15t',
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+			manifestURL: '/api/consent/manifest',
+			req: {
+				headers: {
+					host: 'app.example.com',
+					'x-forwarded-proto': 'https',
+					'x-vercel-ip-country': 'DE',
+				},
+			},
+		});
+
+		const [url] = fetchSpy.mock.calls[0] ?? [];
+		expect(url).toBe('https://app.example.com/api/consent/manifest');
+		expect(config.initialPolicyResolution?.policy?.id).toBe('eu-opt-in');
+	});
+
+	test('a /api/c15t backend prefix is asked for /init from getServerSideProps', async () => {
+		const fetchSpy = vi.fn<typeof globalThis.fetch>().mockResolvedValue(
+			new Response(
+				JSON.stringify(
+					createInitOutput({
+						location: { countryCode: 'DE', regionCode: null },
+						policyResolution: writePolicyResolutionWire(
+							policyFixture({}, { id: 'gdpr' }).initialPolicyResolution
+						),
+					})
+				),
+				{ headers: { 'content-type': 'application/json' }, status: 200 }
+			)
+		);
+
+		const config = await resolveConsent({
+			config: defineConsentConfig({ backendURL: '/api/c15t', mode: hosted() }),
+			fetch: fetchSpy,
+			req: {
+				headers: {
+					host: 'app.example.com',
+					'x-forwarded-proto': 'https',
+					'x-vercel-ip-country': 'DE',
+				},
+			},
+		});
+
+		expect(String(fetchSpy.mock.calls[0]?.[0]).split('?')[0]).toBe(
+			'https://app.example.com/api/c15t/init'
+		);
+		expect(config.initialPolicyResolution?.status).toBe('matched');
+	});
+});
+
+describe('@c15t/nextjs/pages: API bridge', () => {
+	test('API handlers resolve a relative backendURL against host, not x-forwarded-host', async () => {
+		const fetchSpy = vi.fn().mockResolvedValue(
+			new Response(JSON.stringify(MANIFEST_FIXTURE), {
+				headers: { 'content-type': 'application/json' },
+				status: 200,
+			})
+		);
+		const route = createPagesConsentRoute({
+			backendURL: '/api/c15t',
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+		});
+
+		await callRoute(route, {
+			headers: {
+				host: 'app.example.com',
+				'x-forwarded-host': 'attacker.example',
+				'x-forwarded-proto': 'http',
+			},
+			url: '/api/consent/manifest',
+		});
+
+		const [url] = fetchSpy.mock.calls[0] ?? [];
+		expect(new URL(String(url)).origin).toBe('https://app.example.com');
+	});
+
+	test('toWebRequest rebuilds the URL and reads a streamed body', async () => {
+		const request = await toWebRequest({
+			[Symbol.asyncIterator]: asyncChunks([
+				new TextEncoder().encode('{"a":'),
+				'1}',
+			]),
+			headers: {
+				'content-type': 'application/json',
+				host: 'app.example.com',
+				'x-forwarded-proto': 'https',
+			},
+			method: 'POST',
+			url: '/api/consent/manifest?language=de',
+		});
+		expect(request.method).toBe('POST');
+		expect(request.url).toBe(
+			'https://app.example.com/api/consent/manifest?language=de'
+		);
+		expect(request.headers.get('content-type')).toBe('application/json');
+		expect(await request.json()).toEqual({ a: 1 });
+	});
+
+	test('toWebRequest prefers a body Next already parsed', async () => {
+		const request = await toWebRequest({
+			body: { a: 1 },
+			headers: { host: 'app.example.com' },
+			method: 'POST',
+			url: '/api/c15t/init',
+		});
+		expect(request.url).toBe('https://app.example.com/api/c15t/init');
+		expect(await request.json()).toEqual({ a: 1 });
+	});
+
+	test('manifest copies status, headers, and body onto res', async () => {
+		const fetchSpy = vi.fn().mockResolvedValue(
+			new Response(JSON.stringify(MANIFEST_FIXTURE), {
+				headers: {
+					'cache-control': 'public, s-maxage=90, stale-while-revalidate=45',
+					etag: '"manifest-revision"',
+				},
+				status: 200,
+			})
+		);
+		const route = createPagesConsentRoute({
+			backendURL: 'https://consent.example.com/api/c15t',
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+		});
+
+		const sink = await callRoute(route, {
+			headers: { host: 'app.example.com' },
+			url: '/api/consent/manifest?language=de',
+		});
+
+		expect(fetchSpy).toHaveBeenCalledWith(
+			'https://consent.example.com/api/c15t/manifest?language=de',
+			expect.anything()
+		);
+		expect(sink.ended()).toBe(true);
+		expect(sink.res.statusCode).toBe(200);
+		expect(sink.headers.get('content-type')).toBe('application/json');
+		expect(sink.headers.get('cache-control')).toBe(
+			'public, s-maxage=90, stale-while-revalidate=45'
+		);
+		expect(sink.headers.get('etag')).toBe('"manifest-revision"');
+		expect(JSON.parse(sink.text())).toEqual(MANIFEST_FIXTURE);
+	});
+
+	test('init resolves from req headers and writes the payload', async () => {
+		const fetchSpy = vi
+			.fn()
+			.mockResolvedValue(
+				new Response(JSON.stringify(MANIFEST_FIXTURE), { status: 200 })
+			);
+		const route = createPagesConsentRoute({
+			backendURL: 'https://consent.example.com/api/c15t',
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+		});
+
+		const sink = await callRoute(route, {
+			headers: {
+				'accept-language': 'de-DE,de;q=0.9',
+				host: 'app.example.com',
+				'x-vercel-ip-country': 'DE',
+				'x-vercel-ip-country-region': 'BE',
+			},
+			url: '/api/c15t/init',
+		});
+
+		expect(sink.res.statusCode).toBe(200);
+		expect(sink.headers.get('cache-control')).toBe('private, no-store');
+		const body = JSON.parse(sink.text());
+		expect(body.location).toEqual({ countryCode: 'DE', regionCode: 'BE' });
+		expect(body.translations.language).toBe('de');
+	});
+
+	test('the route and resolveConsent read one config', async () => {
+		const fetchSpy = vi
+			.fn()
+			.mockImplementation(() =>
+				Promise.resolve(
+					new Response(JSON.stringify(MANIFEST_FIXTURE), { status: 200 })
+				)
+			);
+		const consentConfig = defineConsentConfig({
+			backendURL: 'https://consent.example.com/api/c15t',
+			routePrefix: '/api/consent',
+		});
+		const route = createPagesConsentRoute({
+			config: consentConfig,
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+		});
+
+		const sink = await callRoute(route, {
+			headers: { host: 'app.example.com' },
+			url: '/api/consent/manifest',
+		});
+		const config = await resolveConsent({
+			config: consentConfig,
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+			req: {
+				headers: {
+					host: 'app.example.com',
+					'x-forwarded-proto': 'https',
+					'x-vercel-ip-country': 'DE',
+				},
+			},
+		});
+
+		// The render reads what the manifest route reads, through the same
+		// process cache entry, instead of fetching its own route. Session
+		// reports go to the backend, detached.
+		expect(
+			fetchSpy.mock.calls
+				.map(([url]) => url)
+				.filter((url) => !String(url).endsWith('/sessions'))
+		).toEqual(['https://consent.example.com/api/c15t/manifest']);
+		expect(sink.res.statusCode).toBe(200);
+		expect(config.initialPolicyResolution?.policy?.id).toBe('eu-opt-in');
+	});
+
+	test('with proxy, the route forwards saves to the backend', async () => {
+		const fetchSpy = vi
+			.fn<typeof globalThis.fetch>()
+			.mockResolvedValue(
+				Response.json({ ok: true, subjectId: 'sub_1' }, { status: 201 })
+			);
+		const options = {
+			backendURL: 'https://consent.example.com',
+			fetch: fetchSpy,
+			reportSessions: false,
+			snapshot: MANIFEST_FIXTURE,
+		};
+		const save = (route: PagesApiHandler) => {
+			const sink = createResponseSink();
+			return route(
+				{
+					// Next.js has already parsed the JSON body.
+					body: { consents: { marketing: true } },
+					headers: {
+						'content-type': 'application/json',
+						host: 'app.example.com',
+					},
+					method: 'POST',
+					query: { c15t: ['subjects'] },
+					url: '/api/c15t/subjects',
+				},
+				sink.res
+			).then(() => sink);
+		};
+
+		// Without proxy, a save is not this route's to answer.
+		expect((await save(createPagesConsentRoute(options))).res.statusCode).toBe(
+			405
+		);
+		expect(fetchSpy).not.toHaveBeenCalled();
+
+		const sink = await save(
+			createPagesConsentRoute({ ...options, proxy: true })
+		);
+		expect(sink.res.statusCode).toBe(201);
+		expect(JSON.parse(sink.text())).toEqual({ ok: true, subjectId: 'sub_1' });
+		const [url, init] = fetchSpy.mock.calls[0] ?? [];
+		expect(String(url)).toBe('https://consent.example.com/subjects');
+		expect(init?.method).toBe('POST');
+		expect(new Headers(init?.headers).get('x-c15t-proxy')).toBe('@c15t/nextjs');
+		expect(await new Response(init?.body).json()).toEqual({
+			consents: { marketing: true },
+		});
+	});
+
+	test('one catch-all API route serves manifest and init and 404s the rest', async () => {
+		const route = createPagesConsentRoute({
+			backendURL: 'https://consent.example.com',
+			reportSessions: false,
+			snapshot: MANIFEST_FIXTURE,
+		});
+		const call = async (segments: string[]) => {
+			const sink = createResponseSink();
+			await route(
+				{
+					headers: { host: 'app.example.com', 'x-vercel-ip-country': 'DE' },
+					method: 'GET',
+					query: { c15t: segments, language: 'de' },
+					url: `/api/c15t/${segments.join('/')}?language=de`,
+				},
+				sink.res
+			);
+			return sink;
+		};
+
+		const manifest = await call(['manifest']);
+		expect(JSON.parse(manifest.text())).toEqual(MANIFEST_FIXTURE);
+		const init = await call(['init']);
+		expect(JSON.parse(init.text()).location.countryCode).toBe('DE');
+		expect((await call(['subjects'])).res.statusCode).toBe(404);
+	});
+});
+
+describe('withConsentProps', () => {
+	const context = {
+		query: {},
+		req: {
+			headers: {
+				cookie: 'c15t=c.necessary:1,c.marketing:1,i.t:1',
+				host: 'app.example.com',
+				'x-vercel-ip-country': 'DE',
+			},
+		},
+		resolvedUrl: '/',
+	} as never;
+
+	test('adds the visitor state as a JSON-safe consent prop', async () => {
+		const result = await withConsentProps(undefined, {
+			backendURL: 'https://consent.example.com',
+			reportSessions: false,
+			snapshot: MANIFEST_FIXTURE,
+		})(context);
+
+		if (!('props' in result)) {
+			throw new Error('expected props');
+		}
+		const { consent } = await result.props;
+		expect(consent?.initialPolicyResolution?.policy?.id).toBe('eu-opt-in');
+		expect(consent?.initialRecords?.choice?.categories.marketing?.value).toBe(
+			true
+		);
+		// Next.js rejects `undefined` anywhere in props.
+		expect(JSON.parse(JSON.stringify(consent))).toEqual(consent);
+	});
+
+	test("keeps the page's own props, awaiting promised ones", async () => {
+		const page = vi.fn(() =>
+			Promise.resolve({ props: Promise.resolve({ title: 'Home' }) })
+		);
+		const result = await withConsentProps(page)(context);
+
+		expect(page).toHaveBeenCalledWith(context);
+		expect(result).toMatchObject({
+			props: { consent: expect.any(Object), title: 'Home' },
+		});
+	});
+
+	test('passes redirects and notFound through', async () => {
+		const redirect = { redirect: { destination: '/login', permanent: false } };
+
+		await expect(
+			withConsentProps(() => Promise.resolve(redirect))(context)
+		).resolves.toBe(redirect);
+		await expect(
+			withConsentProps(() => Promise.resolve({ notFound: true as const }))(
+				context
+			)
+		).resolves.toEqual({ notFound: true });
+	});
+});

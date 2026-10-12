@@ -1,12 +1,17 @@
-import { saveFlow } from '@c15t/storybook-tests/play/consent-dialog';
+import {
+	dialogContract,
+	dialogEscapeCloses,
+	saveFlow,
+} from '@c15t/conformance/play/consent-dialog';
 import type { Meta, StoryObj } from '@storybook/react-vite';
+import { expect, waitFor, within } from 'storybook/test';
+
 import {
 	ConsentBanner,
 	ConsentDialog,
 } from '../../../packages/react/src/index';
 import {
 	editableConsentOptions,
-	editableStoredConsent,
 	StorybookConsentProvider,
 } from './storybook-consent-fixtures';
 
@@ -15,7 +20,7 @@ const meta = {
 	parameters: {
 		layout: 'fullscreen',
 	},
-	title: 'Components/Core/Consent Dialog',
+	title: 'COMPONENTS - REACT/Core/Consent Dialog',
 } satisfies Meta<typeof ConsentDialog>;
 
 export default meta;
@@ -23,22 +28,39 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
+	play: async () => {
+		const overlay = await within(document.body).findByTestId(
+			'consent-dialog-overlay'
+		);
+		await waitFor(() => expect(getComputedStyle(overlay).opacity).toBe('1'));
+	},
 	render: () => (
 		<StorybookConsentProvider
 			options={editableConsentOptions}
-			storedConsent={editableStoredConsent}
+			storedConsent={{
+				experience: false,
+				functionality: false,
+				marketing: false,
+				measurement: false,
+				necessary: true,
+			}}
 		>
 			<ConsentDialog open />
 		</StorybookConsentProvider>
 	),
 };
 
-export const SaveFlow: Story = {
+export const DialogContract: Story = {
+	play: dialogContract,
 	render: () => (
 		<StorybookConsentProvider options={editableConsentOptions}>
 			<ConsentBanner />
 			<ConsentDialog />
 		</StorybookConsentProvider>
 	),
-	play: saveFlow,
 };
+export const DialogEscapeCloses: Story = {
+	...DialogContract,
+	play: dialogEscapeCloses,
+};
+export const SaveFlow: Story = { ...DialogContract, play: saveFlow };

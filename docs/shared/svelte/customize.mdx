@@ -1,0 +1,130 @@
+{/* Shared by docs/frameworks/svelte/customize.mdx and docs/frameworks/sveltekit/customize.mdx, after each page's token section. */}
+
+## Switch to dark tokens
+
+The provider's `colorScheme` prop switches on the dark token set: `'dark'`
+always, `'system'` when the operating system prefers dark, `'light'` never. It
+toggles a `c15t-dark` class on `<html>`. Left unset, the provider copies a
+`dark` class on `<html>` into `c15t-dark`, so an app with its own dark mode
+toggle gets the dark tokens without the prop. Pass `null` if your app sets
+`c15t-dark` itself. Override dark values under `:root.dark` and
+`:root.c15t-dark` in your stylesheet. [Dark mode](/docs/customization/dark-mode)
+covers a dark first paint.
+
+## Style one part with theme slots
+
+The provider's `theme` prop still applies slot styles in the browser. A slot
+takes a class name, or `{ className, style, noStyle }`. Svelte applies a
+slot's class and `style` on every stock part, including the IAB banner and
+dialog:
+
+{/* example: fragment */}
+
+```ts
+const theme = {
+	slots: {
+		consentBannerCard: 'brand-banner-card',
+		consentBannerTitle: 'brand-banner-title',
+	},
+};
+```
+
+Pass it as `theme={theme}` on `ConsentProvider`. Define the class in a
+global stylesheet, or with `:global(.brand-banner-card)` in a component,
+because Svelte scopes component styles. The Svelte components read these
+slots:
+
+| Component | Slots |
+| --- | --- |
+| `ConsentBanner` | `consentBanner`, `consentBannerCard`, `consentBannerHeader`, `consentBannerTitle`, `consentBannerDescription`, `consentBannerFooter`, `consentBannerFooterSubGroup`, `consentBannerRights`, `consentBannerRightLink`, `consentBannerTag`, `consentBannerOverlay` |
+| `ConsentDialog` | `consentDialog`, `consentDialogCard`, `consentDialogHeader`, `consentDialogTitle`, `consentDialogDescription`, `consentDialogContent`, `consentDialogTag` |
+| `ConsentWidget` | `consentWidget`, `consentWidgetFooter`, `consentWidgetFooterSubGroup`, `consentWidgetTag` |
+| `ConsentDialogTrigger` | `consentDialogTrigger`, `consentDialogTriggerIcon` |
+| `IABConsentBanner` | `iabConsentBanner`, `iabConsentBannerTag`, `iabConsentBannerOverlay` |
+| `ConsentGate` | `consentGate`, `consentGateTitle`, `consentGateButton` |
+| Buttons in every component | `buttonPrimary`, `buttonSecondary` |
+
+Slot names are not React's `components.banner.card` keys; do not copy a React
+configuration. Use slots when one part should change and tokens when a value
+should change everywhere. `class` on a component, such as
+`<ConsentBanner class="...">`, goes on its root.
+[Component parts](/docs/customization/slots) explains the attributes each
+element carries, and [Tailwind CSS](/docs/customization/tailwind) shows the
+Svelte and SvelteKit setups for Tailwind 4 and 3.
+
+## Change button styles by action
+
+`theme.consentActions` picks each button's style by what it does, whichever
+order the policy puts the buttons in:
+
+{/* example: fragment */}
+
+```ts
+const theme = {
+	consentActions: {
+		default: { variant: 'neutral', mode: 'stroke' },
+		primary: { variant: 'primary', mode: 'filled' },
+		reject: { variant: 'neutral', mode: 'filled' },
+	},
+};
+```
+
+A per-action entry overrides `primary`, which overrides `default`. The policy
+decides which action is primary.
+
+## Change the banner shape and position
+
+Set the shape on the banner itself, or for every surface with the provider's
+`presentation` prop:
+
+{/* example: fragment */}
+
+```svelte
+<ConsentBanner variant="bar" position="bottom" />
+```
+
+| `variant` | Positions |
+| --- | --- |
+| `floating` | `bottom-left` (default), `bottom-right`, `top-left`, `top-right`, `bottom-center`, `top-center` |
+| `bar` | `bottom` (default), `top` |
+| `widget` | `bottom-right` (default), `bottom-left`, `top-left`, `top-right` |
+| `wall` | `center` |
+
+`blocking` adds a backdrop, locks scrolling, traps focus and stops outside
+clicks from closing the banner. `layout` and `primaryButton` change the button
+order and emphasis. The policy wins where they conflict. A policy that requires
+a reject button keeps it, whatever the layout says.
+
+## Change the copy
+
+For one banner, the text props on `ConsentBanner`, such as `title` and
+`rejectButtonText`, replace the copy in every mode:
+
+{/* example: fragment */}
+
+```svelte
+<ConsentBanner title="Your privacy" rejectButtonText="Reject optional" />
+```
+
+For site-wide copy, pass the provider's `i18n` messages. In `offline()` mode
+they merge over the bundled English copy. In `hosted()` mode they merge over
+the backend's copy for the same language, key by key, so keys you leave out
+keep the wording from your Inth project.
+[Translations](./translations) covers both, the message keys and switching
+languages. [Copy and translations](/docs/customization/translations) covers
+wording for each action.
+
+## Turn off animations
+
+`disableAnimation` on the provider turns off the banner and dialog animations,
+and the same prop on `ConsentBanner`, `ConsentDialog`, `IABConsentBanner` or
+`IABConsentDialog` overrides it for one surface. Left unset, the provider
+follows the visitor's reduced motion setting.
+[Motion and animation](/docs/customization/motion) covers the duration and
+easing tokens.
+
+## Remove c15t's styles
+
+Set `noStyle` on one component or on the provider to render the same markup
+and behavior without c15t's classes. Style the `data-*` attributes and your
+slot classes instead. For different markup, see the headless page.

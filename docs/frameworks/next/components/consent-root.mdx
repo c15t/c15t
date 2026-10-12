@@ -1,0 +1,134 @@
+---
+title: ConsentRoot
+description: Render the Next.js ConsentRoot once from a Server Component layout, pass it the server-resolved state, and see how it reads c15t.config.ts and picks the consent mode.
+group: frameworks
+---
+
+## Mount one root
+
+`ConsentRoot` wraps the React `ConsentProvider` and connects it to
+`c15t.config.ts` and the server-resolved state. Mount it once; it already
+supplies the provider used by consent components and hooks.
+
+Follow the [quickstart](/docs/frameworks/next/quickstart),
+[App Router](/docs/frameworks/next/app-router) or
+[Pages Router](/docs/frameworks/next/pages-router) for the complete setup.
+Keep `ConsentRoot` mounted across navigation.
+
+Render `ConsentRoot` straight from a Server Component layout, or from
+`pages/_app.tsx`. `c15t/next` gives Server Components a client reference to
+it, and `ConsentRoot` reads `c15t.config.ts` itself, so the layout passes only
+`state`. The `state` from `resolveConsent`, or its promise, is plain data and
+can cross from the server to the browser. `withConsentManifest` in
+`next.config.ts` is what makes the config file reachable; without it,
+`ConsentRoot` warns outside production that it found no config.
+
+## Props
+
+| Prop | Purpose |
+| --- | --- |
+| `state` | Visitor state or its promise from `resolveConsent`, or `pageProps.consent` from `withConsentProps`. Omit it to resolve consent in the browser |
+| `config` | A `defineConsentConfig` result to use instead of `c15t.config.ts`, for a root the file can't reach, such as in a test. A Server Component can't pass it, because it may hold functions |
+| `scripts` | Consent-managed script configurations |
+| `vendors` | Vendors the preference center lists under their category, each with its own switch. Merged with vendors the backend declares. See [vendor consent](/docs/frameworks/next/vendor-consent) |
+| `clearOnRevocation` | Cookies and Web Storage keys to remove when their category is denied. Initial-only; remount `ConsentRoot` to replace it |
+| `scriptLoader` | Script-loader options |
+| `networkBlocker` | [Network-blocker](/docs/frameworks/next/network-blocker) options, or `false` to disable it |
+| `persistence` | Browser persistence options; defaults to `true` |
+| `options` | Provider options such as styling, callbacks and an explicit `mode` override |
+
+Every prop except `state` and `config` can also be set in `c15t.config.ts`. A
+prop wins over the config's value of the same name. `options` merges one key
+at a time, and `options.callbacks` one callback at a time, so
+`options={{ nonce }}` keeps the config's callbacks and other options.
+
+### Which mode does ConsentRoot use?
+
+`ConsentRoot` runs the config's `mode`, `manifest()` by default, or
+`options.mode` when you pass one. It loads only that mode's code:
+
+- `manifest()`: with `state`, the browser applies it and needs no request.
+  Without `state`, or to re-init, it asks `${routePrefix}/init` when the
+  config sets `routePrefix`, else `${backendURL}/init`.
+- `manifest({ resolve: 'browser' })`: the browser loads the resolver on first
+  use and fetches `${routePrefix}/manifest`, else `${backendURL}/manifest`.
+- `hosted()`: the browser calls `${backendURL}/init` when it needs a policy.
+- `offline()`: the browser resolves bundled rules. Choices stay in the
+  browser and nothing is recorded. Not recommended for production
+  environments.
+
+Choices post to `${backendURL}/subjects` in every mode but `offline()`. With
+no backend URL anywhere, `ConsentRoot` throws
+``@c15t/nextjs: manifest() needs a backend URL. Set NEXT_PUBLIC_C15T_BACKEND_URL (or NEXT_PUBLIC_INTH_PROJECT_URL), or `backendURL` in c15t.config.ts.``
+instead of running a mode you did not choose. See
+[offline configuration](/docs/frameworks/next/data-fetching-reference#offline-configuration)
+and [consent modes](/docs/concepts/modes).
+
+`options.mode` also takes a transport, such as `custom(transport)`. A
+`hosted()` or `offline()` transport from `c15t/react` works there, but
+outside production it warns that its code is now in the first-load bundle.
+Use the data factories from `c15t/next` instead.
+
+## Provider options
+
+`ConsentRoot` passes `options` to its provider. Keep scripts, vendors,
+`clearOnRevocation`, persistence and network-blocker configuration at the top
+level of the config or the props; `options` does not accept them.
+
+The provider owns initialization, persistence, script loading and subscriptions.
+Changing its initial mode or prefetch configuration is not a supported way to
+switch visitors or backends after mounting.
+
+| Option | Purpose |
+| --- | --- |
+| `mode` | `manifest()`, `hosted()` or `offline()` from `c15t/next`, or a transport such as `custom(transport)`. Replaces the config's `mode` |
+| `callbacks` | Choice, permission and error events |
+| `theme`, `components` | Consent-action styles, theme slots and component slot attributes. Tokens render through `ConsentTheme` |
+| `presentation` | Prompt and preferences layout behavior |
+| `experiment` | A/B test of `presentation`, read once at mount. A `state` from `resolveConsent({ experiment })` already carries it. See [banner experiments](/docs/guides/banner-experiments) |
+| `preloadDialog` | When the deferred `ConsentDialog` starts loading: `'idle'` (default) or `'intent'`; see [ConsentDialog](/docs/frameworks/next/components/consent-dialog#behavior) |
+| `i18n` | Languages and message overrides |
+| `storageConfig` | Browser record storage configuration |
+| `enabled` | Set false only when intentionally bypassing consent enforcement |
+| `reloadOnConsentRevoked` | Reload the page after the visitor turns off a granted category or vendor; defaults to `true` |
+
+`enabled: false` grants categories and allows gated loading while suppressing
+consent UI. It is not a way to fix failed initialization or hide a banner in
+production.
+
+## Listen for consent changes
+
+`onChoiceRecorded` reports explicit accept, reject and save actions.
+`onPermissionsChanged` also covers changes caused by policy, expiry or privacy
+signals. Hydration and notice dismissal do not become explicit choices.
+
+## When would I use ConsentProvider directly?
+
+Use `ConsentProvider` from `c15t/next` when you need to manage the runtime and
+transport yourself. For example, it accepts an externally owned `runtime`.
+Its owner must start and dispose that runtime.
+
+For standard Next.js setups, keep `ConsentRoot`. It supports
+[browser initialization](/docs/frameworks/next/client-side) as well as
+[server rendering](/docs/frameworks/next/rendering).
+
+## Reload after revocation
+
+Removing a script cannot stop code that already ran. A vendor's listeners,
+timers and widgets keep working until the page unloads. When an accept, reject
+or save turns off a category or vendor that was granted, `ConsentRoot` reloads
+the page once the save request settles, so the next page runs only permitted
+code. `onBeforeConsentRevocationReload` runs just before the reload.
+
+Otherwise, expiry, policy changes and privacy signals do not reload the page. Set
+`options.reloadOnConsentRevoked` to `false` only when every gated vendor stops
+itself on revocation, for example through its own opt-out API.
+
+## Clear data when consent is denied
+
+Set `clearOnRevocation` in `c15t.config.ts`, or pass it to `ConsentRoot`, to
+declare cookies and Web Storage keys by optional consent category. Neither
+accepts it inside `options`. If you use `ConsentProvider` directly, pass it in that provider's
+`options`. Cleanup runs in the browser after policy resolution, and the value
+is initial-only. See [clear on revocation](/docs/frameworks/next/clear-on-revocation)
+for examples, cookie scopes, and browser limits.

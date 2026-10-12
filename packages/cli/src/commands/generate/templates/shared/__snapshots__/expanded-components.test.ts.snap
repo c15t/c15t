@@ -1,0 +1,101 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`expanded component templates > generates a Next.js v3 SSR provider with consent state 1`] = `
+"'use client';
+
+import type { ReactNode } from 'react';
+import { ConsentProvider, ConsentTheme, hosted } from 'c15t/next';
+import type { ConsentState } from 'c15t/next';
+
+import { lazy, Suspense } from 'react';
+
+const DevTools = process.env.NODE_ENV !== 'production'
+	? lazy(() => import('c15t/next/devtools').then(({ DevTools }) => ({ default: DevTools })))
+	: () => null;
+import ConsentBanner from './consent-banner';
+import ConsentDialog from './consent-dialog';
+import { components, theme } from './theme';
+
+interface Props {
+	children: ReactNode;
+	state: ConsentState | Promise<ConsentState>;
+}
+
+/**
+ * Client-side consent manager provider with compound components.
+ * @see https://c15t.com/docs/frameworks/next/quickstart
+ */
+export default function ConsentManagerClient({ children, state }: Props) {
+	return (
+		<ConsentProvider
+			options={{
+				mode: hosted({ backendURL: '/api/c15t' }),
+				prefetch: state,
+				theme,
+				components,
+				// Add your scripts here:
+				// import { googleTagManager } from '@c15t/integrations/google-tag-manager';
+				// scripts: [
+				//   googleTagManager({ id: 'GTM-XXXXXX' }),
+				// ],
+			}}
+		>
+			<ConsentTheme theme={theme} />
+			<ConsentBanner />
+			<ConsentDialog />
+			<Suspense fallback={null}><DevTools /></Suspense>
+			{children}
+		</ConsentProvider>
+	);
+}
+"
+`;
+
+exports[`expanded component templates > generates a React v3 provider with its DevTools adapter 1`] = `
+"'use client';
+
+import type { ReactNode } from 'react';
+import { ConsentProvider, ConsentTheme, offline } from 'c15t/react';
+
+
+import { lazy, Suspense } from 'react';
+
+const DevTools = import.meta.env.DEV
+	? lazy(() => import('c15t/react/devtools').then(({ DevTools }) => ({ default: DevTools })))
+	: () => null;
+import ConsentBanner from './consent-banner';
+import ConsentDialog from './consent-dialog';
+import { components, theme } from './theme';
+
+interface Props {
+	children: ReactNode;
+}
+
+/**
+ * Client-side consent manager provider with compound components.
+ * @see https://c15t.com/docs/frameworks/react/quickstart
+ */
+export default function ConsentManagerClient({ children }: Props) {
+	return (
+		<ConsentProvider
+			options={{
+				mode: offline(),
+				theme,
+				components,
+				// Add your scripts here:
+				// import { googleTagManager } from '@c15t/integrations/google-tag-manager';
+				// scripts: [
+				//   googleTagManager({ id: 'GTM-XXXXXX' }),
+				// ],
+			}}
+		>
+			<ConsentTheme theme={theme} />
+			<ConsentBanner />
+			<ConsentDialog />
+			<Suspense fallback={null}><DevTools /></Suspense>
+			{children}
+		</ConsentProvider>
+	);
+}
+"
+`;

@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { renderHook } from 'vitest-browser-react';
+
 import { useColorScheme } from '../use-color-scheme';
 
 describe('useColorScheme', () => {
@@ -22,14 +23,16 @@ describe('useColorScheme', () => {
 
 		// Mock matchMedia
 		mediaQueryList = {
-			matches: false,
 			addEventListener: vi.fn(),
-			removeEventListener: vi.fn(),
-			addListener: vi.fn(), // Deprecated but included for completeness
-			removeListener: vi.fn(), // Deprecated but included for completeness
+			// Deprecated but included for completeness
+			addListener: vi.fn(),
 			dispatchEvent: vi.fn(),
-			onchange: null,
+			matches: false,
 			media: '(prefers-color-scheme: dark)',
+			onchange: null,
+			removeEventListener: vi.fn(),
+			// Deprecated but included for completeness,
+			removeListener: vi.fn(),
 		};
 
 		vi.spyOn(window, 'matchMedia').mockImplementation(
@@ -76,11 +79,13 @@ describe('useColorScheme', () => {
 	test('updates theme when system preference changes', async () => {
 		await renderHook(() => useColorScheme('system'));
 
-		const calls = addEventListenerSpy.mock.calls;
-		const callback = calls[0]?.[1];
-		if (!callback) throw new Error('Callback not found');
+		const { calls } = addEventListenerSpy.mock;
+		const handler = calls[0]?.[1];
+		if (!handler) {
+			throw new Error('Callback not found');
+		}
 
-		(callback as (e: MediaQueryListEvent) => void)({
+		(handler as (e: MediaQueryListEvent) => void)({
 			matches: true,
 		} as MediaQueryListEvent);
 
