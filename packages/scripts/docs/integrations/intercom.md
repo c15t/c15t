@@ -2,9 +2,18 @@
 title: Intercom
 description: Load the Intercom messenger only after functionality consent with
   the c15t intercom helper, set its region and check it in DevTools.
+seoTitle: Intercom cookie consent with c15t
+seoDescription: Show the Intercom Messenger only with functionality consent. Set
+  it up with the c15t intercom helper and its regional API settings.
 icon: intercom
 group: integrations
 ---
+
+The c15t `intercom` helper keeps the Intercom Messenger off the page until
+`functionality` has consent. Until then, c15t does not define `window.Intercom`
+or `window.intercomSettings`. If the visitor withdraws consent, the helper does
+not call an Intercom API, such as `shutdown`. The Messenger continues to work
+until c15t reloads the page, which c15t does by default.
 
 ## Configure Intercom
 
@@ -294,8 +303,8 @@ permission before each of your own event calls. The reload does not delete
 cookies the vendor already set; see
 [clear on revocation for your framework](./overview.md#vendor-switches-and-cookie-cleanup).
 
-The helper sets `vendor` to its script ID, so once you declare that vendor a
-visitor can turn it off inside an allowed category. See
+The helper lists its vendor by name in the preference dialog, so a visitor can
+turn it off inside an allowed category. See
 [vendor consent for your framework](./overview.md#vendor-switches-and-cookie-cleanup). The
 [consent verification guide](../guides/verify-consent.md) covers navigation,
 expiry and hosting checks.

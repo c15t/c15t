@@ -66,8 +66,20 @@ and may only fall. See `scripts/example-doc-sources.ts` for marker syntax.
 Lead each page with the answer and its deployment constraints. Use familiar
 navigation labels: "Quickstart" within each framework and for the general setup
 page. Put framework and deployment context in the description and opening text.
-Use required `title` and `description` frontmatter. The site renders both, so
-start the body at H2 and do not repeat the description as an intro.
+Use required `title` and `description` frontmatter. The site shows `title` as
+the page heading and in navigation. It does not show `description` on the page;
+docs search, `llms.txt`, agents and link cards use it. A page can open with a
+short paragraph before its first H2 that answers the reader's first question.
+Do not copy the description into that paragraph.
+
+Add the optional `seoTitle` and `seoDescription` when searchers use different
+words from the navigation label. Search results and social cards show them in
+place of `title` and `description`. Vendor guides use them, for example
+`seoTitle: PostHog cookie consent with c15t`. Write `seoTitle` as the complete
+title, with c15t in it, in 60 characters or fewer; the site adds no suffix. Keep
+`seoDescription` to 160 characters or fewer, lead with what the reader gets,
+and make it unique to the page. Both must match what the page and the source
+show.
 
 Use task headings readers would search for. Question headings help when the
 section answers a question; do not force every heading into a question. Include

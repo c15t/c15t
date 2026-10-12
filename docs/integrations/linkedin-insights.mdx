@@ -1,9 +1,17 @@
 ---
 title: LinkedIn Insight Tag
 description: Load the LinkedIn Insight Tag only after marketing consent with the c15t linkedinInsights helper, guard lintrk conversion calls, and check it in DevTools.
+seoTitle: LinkedIn Insight Tag cookie consent with c15t
+seoDescription: Load the LinkedIn Insight Tag only with marketing consent. The c15t linkedinInsights helper keeps insight.min.js off the page until then.
 icon: linkedin
 group: integrations
 ---
+
+The c15t `linkedinInsights` helper keeps the LinkedIn Insight Tag,
+`insight.min.js`, off the page until `marketing` has consent. Until then, c15t
+sets no LinkedIn globals. The helper sends no consent signal to LinkedIn. If the
+visitor withdraws consent, c15t removes the script element. By default, c15t
+also reloads the page.
 
 ## Configure the LinkedIn Insight Tag
 

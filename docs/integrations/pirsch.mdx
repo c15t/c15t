@@ -1,9 +1,16 @@
 ---
 title: Pirsch
 description: Load Pirsch Analytics only after measurement consent with the c15t pirsch helper, keep custom event bindings working, and check it in DevTools.
+seoTitle: Pirsch cookie consent with c15t
+seoDescription: Load Pirsch Analytics only with measurement consent. The c15t pirsch helper keeps pa.js and pirsch-extended.js off the page until then.
 icon: pirsch
 group: integrations
 ---
+
+The c15t `pirsch` helper keeps Pirsch Analytics off the page until `measurement`
+has consent. Until then, c15t loads neither `pa.js` nor `pirsch-extended.js`.
+The helper sends no consent signal to Pirsch. If the visitor withdraws consent,
+c15t removes the script element. By default, c15t also reloads the page.
 
 ## Configure Pirsch
 

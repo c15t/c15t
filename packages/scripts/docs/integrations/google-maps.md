@@ -3,9 +3,21 @@ title: Google Maps
 description: Gate a Google Maps iframe embed with c15t v3 so the map loads only
   after the visitor allows its consent category, in Next.js, TanStack Start,
   React, Nuxt, Vue, Astro, Svelte, SvelteKit, HTML or JavaScript.
+seoTitle: Google Maps embed cookie consent with c15t
+seoDescription: Show Google Maps embeds only with consent. c15t loads the map
+  iframe only when its category has consent, in Next.js, React, Vue, Svelte,
+  Astro and HTML.
 icon: google-maps
 group: integrations
 ---
+
+c15t has no Google Maps helper. This guide puts a Google Maps iframe inside each
+framework's `ConsentGate`, or uses `data-category` with the HTML script tag. The
+example uses the `functionality` category, but you can choose a different
+category. Until that category has consent, the page has no iframe that loads a
+Google Maps URL, so the browser does not connect to Google. If the visitor
+withdraws consent, `ConsentGate` removes the iframe. With `data-category`, c15t
+moves the URL from `src` to `data-src`.
 
 ## Configure the map
 
@@ -281,14 +293,15 @@ iframe.
 **HTML**
 
 The c15t script tag gates iframes that name a category. Put the embed's URL
-in `data-src` instead of `src`, using the values from the configuration on
-this page:
+in `data-src` instead of `src`. Replace `EMBED_URL`, `EMBED_CATEGORY` and
+`EMBED_TITLE` with `embedURL`, `embedCategory` and `embedTitle` from the
+configuration on this page:
 
 ```html
 <iframe
-  data-src="https://www.youtube-nocookie.com/embed/VIDEO_ID?playsinline=1"
-  data-category="measurement"
-  title="Product video"
+  data-src="EMBED_URL"
+  data-category="EMBED_CATEGORY"
+  title="EMBED_TITLE"
   loading="lazy"
   allowfullscreen
 ></iframe>

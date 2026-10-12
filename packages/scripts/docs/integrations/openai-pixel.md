@@ -3,9 +3,21 @@ title: OpenAI Pixel
 description: Load the ChatGPT Ads Measurement Pixel only after marketing consent
   with the c15t openaiPixel helper, guard oaiq conversion calls, and check it in
   DevTools.
+seoTitle: OpenAI Pixel cookie consent with c15t
+seoDescription: Load the OpenAI ChatGPT Ads Measurement Pixel only after
+  marketing consent. The c15t openaiPixel helper sends oaiq consent signals for
+  you.
 icon: chatgpt
 group: integrations
 ---
+
+The c15t `openaiPixel` helper keeps the OpenAI ChatGPT Ads Measurement Pixel off
+the page until `marketing` has consent. Until then, c15t does not define the
+`oaiq` queue. When `marketing` has consent, the helper queues
+`oaiq('consent', false)`, `init`, and `oaiq('consent', true)` before the SDK
+loads. If the visitor withdraws consent, the helper calls
+`oaiq('consent', false)`. The SDK stays on the page. By default, c15t also
+reloads the page.
 
 ## Configure the OpenAI Pixel
 
@@ -323,8 +335,8 @@ permission before each of your own event calls. The reload does not delete
 cookies the vendor already set; see
 [clear on revocation for your framework](./overview.md#vendor-switches-and-cookie-cleanup).
 
-The helper sets `vendor` to its script ID, so once you declare that vendor a
-visitor can turn it off inside an allowed category. See
+The helper lists its vendor by name in the preference dialog, so a visitor can
+turn it off inside an allowed category. See
 [vendor consent for your framework](./overview.md#vendor-switches-and-cookie-cleanup). The
 [consent verification guide](../guides/verify-consent.md) covers navigation,
 expiry and hosting checks.

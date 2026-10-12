@@ -1,9 +1,18 @@
 ---
 title: TikTok Pixel
 description: Load the TikTok Pixel only after marketing consent with the c15t tiktokPixel helper, guard ttq event calls, and check it in DevTools.
+seoTitle: TikTok Pixel cookie consent with c15t
+seoDescription: Load the TikTok Pixel only with marketing consent. The c15t tiktokPixel helper calls grantConsent and revokeConsent for you.
 icon: tiktok
 group: integrations
 ---
+
+The c15t `tiktokPixel` helper keeps the TikTok Pixel off the page until
+`marketing` has consent. Until then, c15t does not define the `ttq` queue. When
+`marketing` has consent, the helper queues `ttq.grantConsent()` and `ttq.page()`
+before the loader. If the visitor withdraws consent, the helper calls
+`ttq.revokeConsent()`. The pixel stays on the page. By default, c15t also
+reloads the page.
 
 ## Configure the TikTok Pixel
 

@@ -1,9 +1,19 @@
 ---
 title: RudderStack
 description: Load the RudderStack JavaScript SDK after measurement consent with the c15t rudderstack helper, or map c15t categories to destination consent IDs, and check each mode.
+seoTitle: RudderStack cookie consent with c15t
+seoDescription: Load RudderStack only after measurement consent, or use RudderStack consent management with mapped consent IDs. Set it up with the c15t rudderstack helper.
 icon: rudderstack
 group: integrations
 ---
+
+By default, the c15t `rudderstack` helper keeps the RudderStack JavaScript SDK
+off the page until `measurement` has consent. In this mode, the helper sends no
+consent signal to RudderStack. With `consentManagement`, the helper loads the
+SDK on every page in the RudderStack pre-consent mode, before the visitor
+chooses. In that mode, the SDK keeps events in a buffer and uses no persistent
+storage. The helper then calls `rudderanalytics.consent()` and puts each mapped
+consent ID in the allowed or denied list, from its c15t category.
 
 ## Configure RudderStack
 

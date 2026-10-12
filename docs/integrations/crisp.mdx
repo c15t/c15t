@@ -1,9 +1,17 @@
 ---
 title: Crisp
 description: Load the Crisp chat widget only after functionality consent with the c15t crisp helper, pass its runtime settings and check it in DevTools.
+seoTitle: Crisp chat cookie consent with c15t
+seoDescription: Show the Crisp chat widget only with functionality consent. Set it up with the c15t crisp helper and check it in DevTools.
 icon: crisp
 group: integrations
 ---
+
+The c15t `crisp` helper keeps the Crisp chat widget off the page until
+`functionality` has consent. Until then, c15t does not set
+`window.CRISP_WEBSITE_ID`, so no chat widget shows. If the visitor withdraws
+consent, c15t removes the script element. The widget stays on the page until
+c15t reloads the page, which c15t does by default.
 
 ## Configure Crisp
 

@@ -1,9 +1,18 @@
 ---
 title: Adobe Analytics
 description: Load an Adobe Data Collection Tags property only after measurement consent with the c15t adobeAnalytics helper, and check its extensions in DevTools.
+seoTitle: Adobe Analytics cookie consent with c15t
+seoDescription: Load Adobe Analytics only with measurement consent. The c15t adobeAnalytics helper gates your Adobe Data Collection Tags property.
 icon: adobe-analytics
 group: integrations
 ---
+
+The c15t `adobeAnalytics` helper keeps your Adobe Data Collection Tags property
+off the page until `measurement` has consent. This property loads Adobe
+Analytics. The helper sends no consent signal to Adobe, so every extension in
+the property runs under the consent for `measurement`. If the visitor withdraws
+consent, c15t removes the script element. By default, c15t also reloads the
+page.
 
 ## Configure Adobe Analytics
 

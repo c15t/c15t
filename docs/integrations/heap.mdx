@@ -1,9 +1,17 @@
 ---
 title: Heap
 description: Load the Heap config script and heap.js only after measurement consent with the c15t heap helper, and check it in DevTools.
+seoTitle: Heap cookie consent with c15t
+seoDescription: Load Heap only with measurement consent. The c15t heap helper keeps heap_config.js off the page and stops Heap when a visitor withdraws consent.
 icon: heap
 group: integrations
 ---
+
+The c15t `heap` helper keeps Heap off the page until `measurement` has consent.
+Until then, c15t does not define `window.heap` or load `heap_config.js`, which
+loads the heap.js runtime. The helper never calls `heap.stopTracking`. If the
+visitor withdraws consent, c15t removes the config script element. By default,
+c15t also reloads the page. The reload stops heap.js.
 
 ## Configure Heap
 

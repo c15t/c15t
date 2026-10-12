@@ -1,9 +1,18 @@
 ---
 title: Cloudflare Web Analytics
 description: Load the Cloudflare Web Analytics beacon only after measurement consent with the c15t cloudflareWebAnalytics helper, and check it in DevTools.
+seoTitle: Cloudflare Web Analytics cookie consent with c15t
+seoDescription: Load the Cloudflare Web Analytics beacon only with measurement consent. Set it up with the c15t cloudflareWebAnalytics helper.
 icon: cloudflare-web-analytics
 group: integrations
 ---
+
+The c15t `cloudflareWebAnalytics` helper keeps the Cloudflare Web Analytics
+beacon, `beacon.min.js`, off the page until `measurement` has consent.
+Cloudflare says that the beacon sets no cookies, but c15t still waits for
+consent. The helper sends no consent signal to Cloudflare. If the visitor
+withdraws consent, c15t removes the script element. By default, c15t also
+reloads the page.
 
 ## Configure Cloudflare Web Analytics
 

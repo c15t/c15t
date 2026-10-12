@@ -1,9 +1,19 @@
 ---
 title: YouTube
 description: Gate YouTube embeds with c15t v3 in Next.js, TanStack Start, React, Nuxt, Vue, Astro, Svelte, SvelteKit or JavaScript.
+seoTitle: YouTube embed cookie consent with c15t
+seoDescription: Show YouTube videos only with consent. c15t loads the video iframe only when its category has consent, in Next.js, React, Vue, Svelte, Astro and HTML.
 icon: youtube
 group: integrations
 ---
+
+c15t has no YouTube helper. This guide puts a YouTube iframe inside each
+framework's `ConsentGate`, or uses `data-category` with the HTML script tag. The
+example uses the `marketing` category, but you can choose a different category.
+Until that category has consent, the page has no iframe that loads a YouTube
+URL, so the browser does not connect to YouTube. If the visitor withdraws
+consent, `ConsentGate` removes the iframe. With `data-category`, c15t moves the
+URL from `src` to `data-src`.
 
 ## Configure the video
 

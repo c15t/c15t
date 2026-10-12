@@ -1,9 +1,19 @@
 ---
 title: Microsoft Clarity
 description: Load Microsoft Clarity only after measurement consent with the c15t clarity helper, send Consent V2 storage signals and check them in DevTools.
+seoTitle: Microsoft Clarity cookie consent with c15t
+seoDescription: Load Microsoft Clarity only after measurement consent. The c15t clarity helper sends Clarity consentv2 signals for analytics and ad storage.
 icon: microsoft-clarity
 group: integrations
 ---
+
+The c15t `clarity` helper keeps Microsoft Clarity off the page until
+`measurement` has consent. Before the script loads, and after each consent
+change, the helper calls `clarity('consentv2', ...)`. `measurement` controls
+`analytics_Storage`, and `marketing` controls `ad_Storage`. The `defaultConsent`
+option replaces the values in the first call. After the visitor withdraws
+consent, Clarity stays on the page and gets `analytics_Storage: 'denied'`. By
+default, c15t also reloads the page.
 
 ## Configure Microsoft Clarity
 

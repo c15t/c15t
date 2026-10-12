@@ -1,9 +1,19 @@
 ---
 title: Mixpanel
 description: Load the Mixpanel SDK on every page with the c15t mixpanelAnalytics helper, which switches Mixpanel tracking on and off with measurement consent, and check it in DevTools.
+seoTitle: Mixpanel cookie consent with c15t
+seoDescription: Opt Mixpanel out without measurement consent, and opt it in with consent. Set it up with the c15t mixpanelAnalytics helper.
 icon: mixpanel
 group: integrations
 ---
+
+The c15t `mixpanelAnalytics` helper loads the Mixpanel SDK on every page, before
+the visitor chooses. The helper uses `alwaysLoad`, but its category is
+`measurement`. After the SDK loads, the helper calls
+`mixpanel.opt_out_tracking()` while `measurement` has no consent. It calls
+`mixpanel.opt_in_tracking()` while `measurement` has consent. If the visitor
+withdraws consent, the helper calls `mixpanel.opt_out_tracking()` again. By
+default, c15t also reloads the page.
 
 ## Configure Mixpanel
 
