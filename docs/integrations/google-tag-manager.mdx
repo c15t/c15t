@@ -10,10 +10,12 @@ group: integrations
 The c15t `googleTagManager` helper loads your Google Tag Manager container,
 `gtm.js`. With the default `loadMode: 'always'`, the container loads on every
 page, before the visitor chooses, under the `necessary` category. With
-`loadMode: 'after-consent'`, c15t sends nothing to Google until `measurement` or
-`marketing` has consent. In both modes, the helper sends the Google Consent Mode
-v2 default with `gtag('consent', 'default', ...)` before the container starts.
-Each later consent change sends an `update`, and then a `consent-update` event.
+`loadMode: 'after-consent'`, c15t sends nothing to Google until the helper's
+`category` has consent, which defaults to `measurement` or `marketing`. In both
+modes, the helper sends the Google Consent Mode v2 default with
+`gtag('consent', 'default', ...)` before the container starts. Once the
+container runs, each later consent change sends an `update`, and then a
+`consent-update` event.
 `measurement` controls `analytics_storage`, and `marketing` controls
 `ad_storage`, `ad_user_data`, and `ad_personalization`. Tags in the container
 that are not from Google ignore these signals, unless you add consent checks in
