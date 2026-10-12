@@ -81,6 +81,25 @@ export const mixpanelAnalyticsManifest = {
 			type: 'loadScript',
 		},
 	],
+	// Queued before load so the SDK replays them during init. Mixpanel applies
+	// opt_out_tracking_by_default first, then replays opt-in and opt-out calls
+	// ahead of queued track calls, so a granted visitor keeps those events.
+	onBeforeLoadDenied: [
+		{
+			global: 'mixpanel',
+			method: 'opt_out_tracking',
+
+			type: 'callGlobal',
+		},
+	],
+	onBeforeLoadGranted: [
+		{
+			global: 'mixpanel',
+			method: 'opt_in_tracking',
+
+			type: 'callGlobal',
+		},
+	],
 	onConsentDenied: [
 		{
 			global: 'mixpanel',
@@ -90,22 +109,6 @@ export const mixpanelAnalyticsManifest = {
 		},
 	],
 	onConsentGranted: [
-		{
-			global: 'mixpanel',
-			method: 'opt_in_tracking',
-
-			type: 'callGlobal',
-		},
-	],
-	onLoadDenied: [
-		{
-			global: 'mixpanel',
-			method: 'opt_out_tracking',
-
-			type: 'callGlobal',
-		},
-	],
-	onLoadGranted: [
 		{
 			global: 'mixpanel',
 			method: 'opt_in_tracking',
@@ -127,6 +130,11 @@ export interface MixpanelAnalyticsOptions {
 	token: string;
 	/**
 	 * Mixpanel init options passed after the library loads.
+	 *
+	 * The helper sets `opt_out_tracking_by_default: true` and
+	 * `opt_out_persistence_by_default: true`, so the SDK neither tracks nor
+	 * stores a visitor ID before the first opt-in or opt-out call. Pass either
+	 * option as `false` to turn it off.
 	 *
 	 * The manifest engine serializes this object as a template variable, so use
 	 * JSON-serializable values only (no functions, class instances, prototypes,
@@ -178,7 +186,16 @@ export const mixpanelAnalytics = function mixpanelAnalytics({
 	}
 
 	return resolveManifest(mixpanelAnalyticsManifest, {
-		initOptions: initOptions ?? {},
+		// The SDK loads before consent and initializes before the helper's
+		// first opt-in or opt-out call lands, so start every visitor opted out
+		// of tracking and storage.
+		initOptions: {
+			...initOptions,
+			opt_out_persistence_by_default:
+				initOptions?.opt_out_persistence_by_default ?? true,
+			opt_out_tracking_by_default:
+				initOptions?.opt_out_tracking_by_default ?? true,
+		},
 		scriptUrl: resolveScriptUrl(
 			scriptUrl,
 			'https://cdn.mxpnl.com/libs/mixpanel-2-latest.min.js'

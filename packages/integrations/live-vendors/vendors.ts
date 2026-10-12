@@ -601,16 +601,16 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 			mixpanelAnalytics({
 				initOptions: {
 					api_host: 'https://api-js.mixpanel.com',
-					opt_out_tracking_by_default: true,
 				},
 
 				token: 'c15fc15fc15fc15fc15fc15fc15fc15f',
 			}),
 		deniedConsentProbe: {
 			// Denied consent replays opt_out_tracking through the queue, and the
-			// probe's initOptions set opt_out_tracking_by_default so the SDK
-			// never persists before that call lands — the configuration our docs
-			// recommend for alwaysLoad usage. The live SDK must produce zero
+			// helper's opt-out defaults keep the SDK from storing events or a
+			// visitor ID before that call lands. The SDK still writes an empty
+			// mp_* cookie at startup and removes it during init, which this
+			// end-of-load snapshot cannot see. The live SDK must produce zero
 			// collection traffic and no mp_* storage. Mixpanel's
 			// __mp_opt_in_out_* opt-out marker is legitimate consent-state
 			// storage and intentionally not a violation prefix.

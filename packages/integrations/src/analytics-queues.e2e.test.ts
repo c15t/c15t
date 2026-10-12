@@ -101,7 +101,7 @@ describe('analytics queue contracts', () => {
 		]);
 	});
 
-	it('boots Mixpanel snippet contract and load-time consent handoff', () => {
+	it('boots Mixpanel snippet contract and pre-load consent handoff', () => {
 		let methodTypes: Record<string, string> | undefined;
 		let snippetVersion: number | undefined;
 		let pendingInits: unknown[][] | undefined;
@@ -156,14 +156,25 @@ describe('analytics queue contracts', () => {
 			reset: 'function',
 			track: 'function',
 		});
-		expect(queueBeforeLoad).toEqual([['track', 'Signup', { plan: 'pro' }]]);
+		expect(queueBeforeLoad).toEqual([
+			['opt_in_tracking'],
+			['track', 'Signup', { plan: 'pro' }],
+		]);
 		expect(snippetVersion).toBe(1.2);
 		expect(pendingInits).toEqual([
-			['1234567890abcdef1234567890abcdef', { debug: true }, 'mixpanel'],
+			[
+				'1234567890abcdef1234567890abcdef',
+				{
+					debug: true,
+					opt_out_persistence_by_default: true,
+					opt_out_tracking_by_default: true,
+				},
+				'mixpanel',
+			],
 		]);
 		expect(queueAfterLoad).toEqual([
-			['track', 'Signup', { plan: 'pro' }],
 			['opt_in_tracking'],
+			['track', 'Signup', { plan: 'pro' }],
 		]);
 	});
 

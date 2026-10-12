@@ -26,18 +26,17 @@ where it is passed to `mixpanel.init`. Remove that snippet.
 import { mixpanelAnalytics } from '@c15t/integrations/mixpanel-analytics';
 
 export const scripts = [
-	mixpanelAnalytics({
-		token: '0123456789abcdef0123456789abcdef',
-		initOptions: { opt_out_tracking_by_default: true },
-	}),
+	mixpanelAnalytics({ token: '0123456789abcdef0123456789abcdef' }),
 ];
 ```
 
-Mixpanel initializes as soon as its SDK loads, before the helper's first
-opt-in or opt-out call. `opt_out_tracking_by_default` starts a visitor who has
-not opted in as opted out, so nothing is tracked during that gap. That
-includes `track` calls your code queued before the SDK loaded, which replay
-during initialization.
+The helper sets `opt_out_tracking_by_default` and
+`opt_out_persistence_by_default` to `true`, so the SDK starts a visitor with no
+stored Mixpanel opt-in as opted out. It then applies the opt-in or opt-out call
+the helper queued before load. A visitor without consent stays opted out:
+nothing is tracked, including `track` calls your code queued before the SDK
+loaded, and no visitor ID is stored. The SDK still writes an empty `mp_*`
+cookie as it starts and removes it during the same page load.
 
 <include src="../shared/integrations/register-scripts.mdx" />
 
@@ -46,16 +45,18 @@ during initialization.
 | Option | Default | Behavior |
 | --- | --- | --- |
 | `token` | Required | 32-character hexadecimal project token. Surrounding whitespace is trimmed. Any other value logs an error and the script does not load. |
-| `initOptions` | `{}` | Mixpanel config passed to `init`. Use JSON-serializable values only. |
+| `initOptions` | `{ opt_out_tracking_by_default: true, opt_out_persistence_by_default: true }` | Mixpanel config passed to `init`, merged over the defaults. Use JSON-serializable values only. |
 | `scriptUrl` | `https://cdn.mxpnl.com/libs/mixpanel-2-latest.min.js` | Loader URL override. |
 
 ## Loading and revocation
 
 `mixpanelAnalytics` uses the `measurement` category with `alwaysLoad`, so the
-Mixpanel SDK loads on every page, before any choice. When the SDK loads, the
-helper calls `mixpanel.opt_in_tracking()` if measurement is allowed and
-`mixpanel.opt_out_tracking()` if not. It calls the matching method again on
-each later consent change. The SDK stays on the page after revocation.
+Mixpanel SDK loads on every page, before any choice. Before the SDK loads, the
+helper queues `mixpanel.opt_in_tracking()` if measurement is allowed and
+`mixpanel.opt_out_tracking()` if not. Mixpanel runs that call during init,
+before any queued `track` calls, so a visitor who already consented keeps
+those events. The helper calls the matching method again on each later consent
+change. The SDK stays on the page after revocation.
 
 Before the SDK loads, the helper queues `track`, `identify`, `reset`,
 `register`, `opt_in_tracking` and `opt_out_tracking` on the default instance.

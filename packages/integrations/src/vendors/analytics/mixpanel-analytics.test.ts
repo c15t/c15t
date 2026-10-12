@@ -43,7 +43,16 @@ describe('mixpanelAnalytics', () => {
 
 		const mixpanel = globalRef.mixpanel as Window['mixpanel'];
 		expect(mixpanel?.__SV).toBe(1.2);
-		expect(mixpanel?._i).toEqual([[MOCK_MIXPANEL_TOKEN, {}, 'mixpanel']]);
+		expect(mixpanel?._i).toEqual([
+			[
+				MOCK_MIXPANEL_TOKEN,
+				{
+					opt_out_persistence_by_default: true,
+					opt_out_tracking_by_default: true,
+				},
+				'mixpanel',
+			],
+		]);
 	});
 
 	it('logs and skips the script for blank or malformed tokens', () => {
@@ -74,11 +83,110 @@ describe('mixpanelAnalytics', () => {
 		);
 
 		expect((globalRef.mixpanel as Window['mixpanel'])?._i).toEqual([
-			[MOCK_MIXPANEL_TOKEN, { debug: true }, 'mixpanel'],
+			[
+				MOCK_MIXPANEL_TOKEN,
+				{
+					debug: true,
+					opt_out_persistence_by_default: true,
+					opt_out_tracking_by_default: true,
+				},
+				'mixpanel',
+			],
 		]);
 	});
 
-	it('syncs consent state through the SDK opt methods', () => {
+	it('lets init options turn off the opt-out defaults', () => {
+		const globalRef = getTestGlobal();
+		const script = mixpanelAnalytics({
+			initOptions: {
+				opt_out_persistence_by_default: false,
+				opt_out_tracking_by_default: false,
+			},
+			token: MOCK_MIXPANEL_TOKEN,
+		});
+
+		script.onBeforeLoad?.(
+			createCallbackInfo({
+				consents: deniedConsentState,
+				id: script.id,
+			})
+		);
+
+		expect((globalRef.mixpanel as Window['mixpanel'])?._i).toEqual([
+			[
+				MOCK_MIXPANEL_TOKEN,
+				{
+					opt_out_persistence_by_default: false,
+					opt_out_tracking_by_default: false,
+				},
+				'mixpanel',
+			],
+		]);
+	});
+
+	it('keeps the opt-out defaults when init options set them to undefined', () => {
+		const globalRef = getTestGlobal();
+		const script = mixpanelAnalytics({
+			initOptions: {
+				opt_out_persistence_by_default: undefined,
+				opt_out_tracking_by_default: undefined,
+			},
+			token: MOCK_MIXPANEL_TOKEN,
+		});
+
+		script.onBeforeLoad?.(
+			createCallbackInfo({
+				consents: deniedConsentState,
+				id: script.id,
+			})
+		);
+
+		expect((globalRef.mixpanel as Window['mixpanel'])?._i).toEqual([
+			[
+				MOCK_MIXPANEL_TOKEN,
+				{
+					opt_out_persistence_by_default: true,
+					opt_out_tracking_by_default: true,
+				},
+				'mixpanel',
+			],
+		]);
+	});
+
+	it('queues the opt-in call before load when consent is granted', () => {
+		const globalRef = getTestGlobal();
+		const script = mixpanelAnalytics({ token: MOCK_MIXPANEL_TOKEN });
+
+		script.onBeforeLoad?.(
+			createCallbackInfo({
+				consents: grantedMeasurementConsentState,
+				hasConsent: true,
+				id: script.id,
+			})
+		);
+
+		expect(Array.from(globalRef.mixpanel as unknown[])).toEqual([
+			['opt_in_tracking'],
+		]);
+	});
+
+	it('queues the opt-out call before load when consent is denied', () => {
+		const globalRef = getTestGlobal();
+		const script = mixpanelAnalytics({ token: MOCK_MIXPANEL_TOKEN });
+
+		script.onBeforeLoad?.(
+			createCallbackInfo({
+				consents: deniedConsentState,
+				id: script.id,
+			})
+		);
+
+		expect(Array.from(globalRef.mixpanel as unknown[])).toEqual([
+			['opt_out_tracking'],
+		]);
+	});
+
+	it('syncs later consent changes through the SDK opt methods', () => {
 		const globalRef = getTestGlobal();
 		const optIn = vi.fn();
 		const optOut = vi.fn();
@@ -92,7 +200,7 @@ describe('mixpanelAnalytics', () => {
 			token: MOCK_MIXPANEL_TOKEN,
 		});
 
-		script.onLoad?.(
+		script.onBeforeLoad?.(
 			createCallbackInfo({
 				consents: deniedConsentState,
 				id: script.id,
