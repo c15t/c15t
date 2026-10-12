@@ -508,7 +508,10 @@
 		> [data-testid='consent-widget-accordion'] {
 		flex: 1 1 auto;
 		min-height: 0;
-		overflow-y: auto;
+		/* Important, so app CSS outside the layer, such as `overflow: hidden`
+		   to clip the list to rounded corners, cannot leave the visitor with
+		   a list they cannot scroll. `auto` clips to those corners too. */
+		overflow-y: auto !important;
 		/* Room for the focus ring on the first and last items, which the
 		   scroll box would otherwise clip. */
 		padding: 2px;
