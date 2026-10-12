@@ -1,38 +1,5 @@
 ---
 packages:
-  c15t:
-    replay:
-      - exit-prerelease(npm:c15t)
-  "@c15t/core":
-    replay:
-      - exit-prerelease(npm:@c15t/core)
-  "@c15t/ui":
-    replay:
-      - exit-prerelease(npm:@c15t/ui)
-  "@c15t/translations":
-    replay:
-      - exit-prerelease(npm:@c15t/translations)
-  "@c15t/schema":
-    replay:
-      - exit-prerelease(npm:@c15t/schema)
-  "@c15t/backend":
-    replay:
-      - exit-prerelease(npm:@c15t/backend)
-  "@c15t/react":
-    replay:
-      - exit-prerelease(npm:@c15t/react)
-  "@c15t/nextjs":
-    replay:
-      - exit-prerelease(npm:@c15t/nextjs)
-  "@c15t/tanstack-start":
-    replay:
-      - exit-prerelease(npm:@c15t/tanstack-start)
-  "@c15t/vue":
-    replay:
-      - exit-prerelease(npm:@c15t/vue)
-  "@c15t/svelte":
-    replay:
-      - exit-prerelease(npm:@c15t/svelte)
   "@c15t/react-native":
     replay:
       - exit-prerelease(npm:@c15t/react-native)

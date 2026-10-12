@@ -1,23 +1,5 @@
 ---
 packages:
-  "@c15t/core":
-    replay:
-      - exit-prerelease(npm:@c15t/core)
-  "@c15t/react":
-    replay:
-      - exit-prerelease(npm:@c15t/react)
-  "@c15t/svelte":
-    replay:
-      - exit-prerelease(npm:@c15t/svelte)
-  "@c15t/vue":
-    replay:
-      - exit-prerelease(npm:@c15t/vue)
-  "@c15t/browser":
-    replay:
-      - exit-prerelease(npm:@c15t/browser)
-  "@c15t/astro":
-    replay:
-      - exit-prerelease(npm:@c15t/astro)
   "@c15t/react-native":
     replay:
       - exit-prerelease(npm:@c15t/react-native)
