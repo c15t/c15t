@@ -23,10 +23,12 @@ export const scripts = [
 ```
 
 Mixpanel initializes as soon as its SDK loads, before the helper's first
-opt-in or opt-out call. The helper sets `opt_out_tracking_by_default: true`,
-so a visitor who has not opted in starts as opted out and nothing is tracked
-or stored during that gap. That includes `track` calls your code queued before
-the SDK loaded, which replay during initialization.
+opt-in or opt-out call. The helper sets `opt_out_tracking_by_default` and
+`opt_out_persistence_by_default` to `true`, so a visitor who has not opted in
+starts opted out. Nothing is tracked during that gap, including `track` calls
+your code queued before the SDK loaded, and no visitor ID is stored. The SDK
+still writes an empty `mp_*` cookie as it starts and removes it during the same
+page load.
 
 <include src="../shared/integrations/register-scripts.mdx" />
 
@@ -35,7 +37,7 @@ the SDK loaded, which replay during initialization.
 | Option | Default | Behavior |
 | --- | --- | --- |
 | `token` | Required | 32-character hexadecimal project token. Surrounding whitespace is trimmed. Any other value logs an error and the script does not load. |
-| `initOptions` | `{ opt_out_tracking_by_default: true }` | Mixpanel config passed to `init`, merged over the default. Use JSON-serializable values only. |
+| `initOptions` | `{ opt_out_tracking_by_default: true, opt_out_persistence_by_default: true }` | Mixpanel config passed to `init`, merged over the defaults. Use JSON-serializable values only. |
 | `scriptUrl` | `https://cdn.mxpnl.com/libs/mixpanel-2-latest.min.js` | Loader URL override. |
 
 ## Loading and revocation

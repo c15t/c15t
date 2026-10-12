@@ -128,9 +128,10 @@ export interface MixpanelAnalyticsOptions {
 	/**
 	 * Mixpanel init options passed after the library loads.
 	 *
-	 * The helper sets `opt_out_tracking_by_default: true` so the SDK neither
-	 * tracks nor persists before the first opt-in or opt-out call. Pass
-	 * `opt_out_tracking_by_default: false` to turn that off.
+	 * The helper sets `opt_out_tracking_by_default: true` and
+	 * `opt_out_persistence_by_default: true`, so the SDK neither tracks nor
+	 * stores a visitor ID before the first opt-in or opt-out call. Pass either
+	 * option as `false` to turn it off.
 	 *
 	 * The manifest engine serializes this object as a template variable, so use
 	 * JSON-serializable values only (no functions, class instances, prototypes,
@@ -183,8 +184,13 @@ export const mixpanelAnalytics = function mixpanelAnalytics({
 
 	return resolveManifest(mixpanelAnalyticsManifest, {
 		// The SDK loads before consent and initializes before the helper's
-		// first opt-in or opt-out call lands, so start every visitor opted out.
-		initOptions: { opt_out_tracking_by_default: true, ...initOptions },
+		// first opt-in or opt-out call lands, so start every visitor opted out
+		// of tracking and storage.
+		initOptions: {
+			opt_out_persistence_by_default: true,
+			opt_out_tracking_by_default: true,
+			...initOptions,
+		},
 		scriptUrl: resolveScriptUrl(
 			scriptUrl,
 			'https://cdn.mxpnl.com/libs/mixpanel-2-latest.min.js'

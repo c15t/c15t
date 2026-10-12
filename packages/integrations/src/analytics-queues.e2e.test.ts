@@ -161,7 +161,11 @@ describe('analytics queue contracts', () => {
 		expect(pendingInits).toEqual([
 			[
 				'1234567890abcdef1234567890abcdef',
-				{ debug: true, opt_out_tracking_by_default: true },
+				{
+					debug: true,
+					opt_out_persistence_by_default: true,
+					opt_out_tracking_by_default: true,
+				},
 				'mixpanel',
 			],
 		]);

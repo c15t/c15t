@@ -44,7 +44,14 @@ describe('mixpanelAnalytics', () => {
 		const mixpanel = globalRef.mixpanel as Window['mixpanel'];
 		expect(mixpanel?.__SV).toBe(1.2);
 		expect(mixpanel?._i).toEqual([
-			[MOCK_MIXPANEL_TOKEN, { opt_out_tracking_by_default: true }, 'mixpanel'],
+			[
+				MOCK_MIXPANEL_TOKEN,
+				{
+					opt_out_persistence_by_default: true,
+					opt_out_tracking_by_default: true,
+				},
+				'mixpanel',
+			],
 		]);
 	});
 
@@ -78,16 +85,23 @@ describe('mixpanelAnalytics', () => {
 		expect((globalRef.mixpanel as Window['mixpanel'])?._i).toEqual([
 			[
 				MOCK_MIXPANEL_TOKEN,
-				{ debug: true, opt_out_tracking_by_default: true },
+				{
+					debug: true,
+					opt_out_persistence_by_default: true,
+					opt_out_tracking_by_default: true,
+				},
 				'mixpanel',
 			],
 		]);
 	});
 
-	it('lets init options turn off opt_out_tracking_by_default', () => {
+	it('lets init options turn off the opt-out defaults', () => {
 		const globalRef = getTestGlobal();
 		const script = mixpanelAnalytics({
-			initOptions: { opt_out_tracking_by_default: false },
+			initOptions: {
+				opt_out_persistence_by_default: false,
+				opt_out_tracking_by_default: false,
+			},
 			token: MOCK_MIXPANEL_TOKEN,
 		});
 
@@ -99,7 +113,14 @@ describe('mixpanelAnalytics', () => {
 		);
 
 		expect((globalRef.mixpanel as Window['mixpanel'])?._i).toEqual([
-			[MOCK_MIXPANEL_TOKEN, { opt_out_tracking_by_default: false }, 'mixpanel'],
+			[
+				MOCK_MIXPANEL_TOKEN,
+				{
+					opt_out_persistence_by_default: false,
+					opt_out_tracking_by_default: false,
+				},
+				'mixpanel',
+			],
 		]);
 	});
 

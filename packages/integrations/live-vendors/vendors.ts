@@ -607,8 +607,10 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 			}),
 		deniedConsentProbe: {
 			// Denied consent replays opt_out_tracking through the queue, and the
-			// helper's default opt_out_tracking_by_default keeps the SDK from
-			// persisting before that call lands. The live SDK must produce zero
+			// helper's opt-out defaults keep the SDK from storing events or a
+			// visitor ID before that call lands. The SDK still writes an empty
+			// mp_* cookie at startup and removes it during init, which this
+			// end-of-load snapshot cannot see. The live SDK must produce zero
 			// collection traffic and no mp_* storage. Mixpanel's
 			// __mp_opt_in_out_* opt-out marker is legitimate consent-state
 			// storage and intentionally not a violation prefix.
