@@ -195,8 +195,8 @@ Run the conversion once. A second run shifts every row again.
 ## Apply and verify migrations
 
 ```bash
-npx @c15t/cli@alpha self-host migrate --config ./c15t-backend.config.ts --plan
-npx @c15t/cli@alpha self-host migrate --config ./c15t-backend.config.ts --apply
+npx @c15t/cli self-host migrate --config ./c15t-backend.config.ts --plan
+npx @c15t/cli self-host migrate --config ./c15t-backend.config.ts --apply
 ```
 
 Back up existing data first and review the plan. The plan also warns about

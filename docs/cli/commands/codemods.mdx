@@ -10,7 +10,7 @@ The v3 codemods run only when you name them; `--all` never selects them.
 Preview every change first, then run the same command without `--dry-run`:
 
 ```bash
-npx @c15t/cli@alpha codemods packages-to-c15t consent-provider-options root-exports-to-subpaths use-consent-manager-to-hooks callbacks-to-v3 policy-packs-to-policy-rules --dry-run --json
+npx @c15t/cli codemods packages-to-c15t consent-provider-options root-exports-to-subpaths use-consent-manager-to-hooks callbacks-to-v3 policy-packs-to-policy-rules --dry-run --json
 ```
 
 Name several codemods in one command and they run in a fixed order, whatever
@@ -97,7 +97,7 @@ leaves their stylesheet imports and mocks as they are too, since v2 components
 don't add their own styles. For a version that isn't a semver range, such as
 `catalog:`, it reads the installed package, and treats the package as v2 when
 nothing is installed. At v3, it still removes the stylesheet imports.
-Replace the packages with `c15t@alpha` and run it again.
+Replace the packages with `c15t` and run it again.
 
 ### Provider, transports and options
 
@@ -189,7 +189,7 @@ v3 removed `useConsentManager()`. The `use-consent-manager-to-hooks` codemod
 replaces each destructured field with the hook that reads it:
 
 ```bash
-npx @c15t/cli@alpha codemods use-consent-manager-to-hooks --dry-run --json
+npx @c15t/cli codemods use-consent-manager-to-hooks --dry-run --json
 ```
 
 Review the before and after contents in the JSON result, then run the same
@@ -227,7 +227,7 @@ calls, `require` functions made with Node's `createRequire()`, and import
 types. It scans `.mts`, `.cts`, `.mjs` and `.cjs` files too:
 
 ```bash
-npx @c15t/cli@alpha codemods scripts-to-integrations --dry-run --json
+npx @c15t/cli codemods scripts-to-integrations --dry-run --json
 ```
 
 It does not edit `package.json`, lockfiles, or imports inside `.vue`, `.svelte`
@@ -243,8 +243,8 @@ The other transforms migrate v1 source to the v2 API. Run them before you
 upgrade a v1 app to v3.
 
 ```bash
-npx @c15t/cli@alpha codemods --list --json
-npx @c15t/cli@alpha codemods --all --from 1.9.0 --to 2.0.0 --dry-run --json
+npx @c15t/cli codemods --list --json
+npx @c15t/cli codemods --all --from 1.9.0 --to 2.0.0 --dry-run --json
 ```
 
 | ID | Change |

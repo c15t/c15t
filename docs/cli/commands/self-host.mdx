@@ -7,7 +7,7 @@ group: cli
 ## Plan a migration
 
 ```bash
-npx @c15t/cli@alpha self-host migrate --config ./c15t-backend.config.ts --plan --json
+npx @c15t/cli self-host migrate --config ./c15t-backend.config.ts --plan --json
 ```
 
 The CLI reads the `database` option from the config file, loading `.env` from
@@ -23,7 +23,7 @@ shows.
 ## Apply it
 
 ```bash
-npx @c15t/cli@alpha self-host migrate --config ./c15t-backend.config.ts --apply --json
+npx @c15t/cli self-host migrate --config ./c15t-backend.config.ts --apply --json
 ```
 
 `--apply` is the only flag that writes. Without `--plan` or `--apply`, a

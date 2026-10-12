@@ -7,7 +7,7 @@ group: cli
 ## Read JSON results
 
 ```bash
-npx @c15t/cli@alpha setup offline --plan --json --no-telemetry
+npx @c15t/cli setup offline --plan --json --no-telemetry
 ```
 
 `--json` writes one JSON document to stdout. Human diagnostics go to stderr. Check `success` before consuming `data`; a completed process alone does not mean the command succeeded.
@@ -49,7 +49,7 @@ For Inth or another host, use explicit project inputs and inspect the returned r
 
 ## Reuse generation in another CLI
 
-Install `@c15t/cli@alpha` in the host project. Import the generation entry point to create a framework's quickstart files without loading the interactive runner:
+Install `@c15t/cli` in the host project. Import the generation entry point to create a framework's quickstart files without loading the interactive runner:
 
 {/* example: fragment */}
 
@@ -77,7 +77,7 @@ Both functions return `{ files, merge, dependencies, instructions }` synchronous
 
 `merge` says how to apply a file the project already has: `env` adds the generated `KEY=value` lines to an existing `.env` and keeps its other keys, but skips a `*_C15T_BACKEND_URL` line when the file already sets the matching `*_INTH_PROJECT_URL`, `insert` adds a snippet such as the privacy settings link to an existing `index.html`, and `keep` leaves the file alone. `mergeFile(existing, generated, merge)` applies one. Replace other existing files only when the user asks.
 
-`dependencies` contains installation arguments on the CLI's release line, such as `c15t@alpha` from an alpha CLI or `c15t@3` from a stable v3 CLI. `getInstallSpecifier` applies the same rule as the CLI's own installs to bare c15t package names and preserves explicit specifiers and external package names. The published source records the CLI version it shipped with, so vendored source keeps that release line. `generateBoilerplateTemplate` exposes the lower-level template with bare dependency names.
+`dependencies` contains installation arguments on the CLI's release line, such as `c15t@3` from the v3 CLI. `getInstallSpecifier` applies the same rule as the CLI's own installs to bare c15t package names and preserves explicit specifiers and external package names. The published source records the CLI version it shipped with, so vendored source keeps that release line. `generateBoilerplateTemplate` exposes the lower-level template with bare dependency names.
 
 The host CLI owns writing files, checking existing contents and symlinks, installing dependencies, diagnostics, and authentication. These functions do not read the application, detect its framework, prompt, write files, install packages, or access the network. Use the project's provisioned backend URL for hosted mode.
 
@@ -226,7 +226,7 @@ for (const entry of ['generate', 'frontend']) {
 }
 ```
 
-Copy both complete directories and keep them as siblings. Preserve the source contents; NodeNext hosts may add explicit `.ts` or `/index.ts` extensions to relative import specifiers during vendoring. The frontend source imports the generation source through a relative path. Regenerate them when updating the locked `@c15t/cli@alpha` dependency. The published source paths exist for this build step. Generation-only hosts can copy just the generation directory.
+Copy both complete directories and keep them as siblings. Preserve the source contents; NodeNext hosts may add explicit `.ts` or `/index.ts` extensions to relative import specifiers during vendoring. The frontend source imports the generation source through a relative path. Regenerate them when updating the locked `@c15t/cli` dependency. The published source paths exist for this build step. Generation-only hosts can copy just the generation directory.
 
 In the host's `cli.ts`, route the generation subcommand to the vendored parser. This example prints the plan; integrate it with Inth's own plan/apply and installation behavior to create application files:
 

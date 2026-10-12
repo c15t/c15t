@@ -40,7 +40,7 @@ c15t is used by [2,100+ sites](https://www.wappalyzer.com/technologies/cookie-co
 ## Installation
 
 ```bash
-pnpm add @c15t/svelte@alpha
+pnpm add @c15t/svelte
 ```
 
 `@c15t/svelte` is not part of the `c15t` package. Install it on its own.

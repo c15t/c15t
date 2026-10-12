@@ -39,7 +39,7 @@ c15t is used by [2,100+ sites](https://www.wappalyzer.com/technologies/cookie-co
 ## Installation
 
 ```bash
-pnpm add @c15t/node-sdk@alpha
+pnpm add @c15t/node-sdk
 ```
 
 ## Usage

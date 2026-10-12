@@ -7,25 +7,24 @@ group: cli
 
 ## Run the CLI
 
-The CLI ships as `@c15t/cli`. Its v3 release uses the `alpha` dist-tag, like the
-other c15t packages. Run it without installing:
+The CLI ships as `@c15t/cli`. Run it without installing:
 
 ```bash
-npx @c15t/cli@alpha --help
+npx @c15t/cli --help
 ```
 
-`bunx @c15t/cli@alpha`, `pnpm dlx @c15t/cli@alpha` and `yarn dlx @c15t/cli@alpha`
-work the same way. Keep `@alpha`; without it, npm resolves the v2 CLI.
+`bunx @c15t/cli`, `pnpm dlx @c15t/cli` and `yarn dlx @c15t/cli` work the same
+way.
 
 To pin the version in your repository, install it as a development dependency
 and run the `c15t` executable:
 
-| Package manager | Command                          |
-| :-------------- | :------------------------------- |
-| npm             | `npm install -D @c15t/cli@alpha` |
-| pnpm            | `pnpm add -D @c15t/cli@alpha`    |
-| yarn            | `yarn add -D @c15t/cli@alpha`    |
-| bun             | `bun add -D @c15t/cli@alpha`     |
+| Package manager | Command                    |
+| :-------------- | :------------------------- |
+| npm             | `npm install -D @c15t/cli` |
+| pnpm            | `pnpm add -D @c15t/cli`    |
+| yarn            | `yarn add -D @c15t/cli`    |
+| bun             | `bun add -D @c15t/cli`     |
 
 ```bash
 npx c15t --help
@@ -48,7 +47,7 @@ The package also installs the executable under its older name, `cli`.
 `setup --codex` hands frontend integration to your installed Codex CLI.
 `generate` keeps deterministic file generation.
 
-Run `npx @c15t/cli@alpha <command> --help` for a command's options.
+Run `npx @c15t/cli <command> --help` for a command's options.
 
 ## Pick the right command for your framework
 

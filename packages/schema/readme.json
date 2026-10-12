@@ -10,7 +10,7 @@
 		"",
 		"Most apps get this package through `c15t`, `@c15t/backend`, or `@c15t/node-sdk`. Install it directly to validate consent API payloads in your own code:",
 		"",
-		"```bash\npnpm add @c15t/schema@alpha\n```"
+		"```bash\npnpm add @c15t/schema\n```"
 	],
 	"docsLink": "https://c15t.com/docs/self-host/api/node-sdk",
 	"showCLIGeneration": false

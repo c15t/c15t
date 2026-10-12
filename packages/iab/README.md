@@ -41,7 +41,7 @@ c15t is used by [2,100+ sites](https://www.wappalyzer.com/technologies/cookie-co
 ## Installation
 
 ```bash
-pnpm add @c15t/iab@alpha
+pnpm add @c15t/iab
 ```
 
 For React UI components, use the @c15t/react IAB subpath and stylesheet:

@@ -15,7 +15,7 @@ The Markdown under `./docs` matches the installed version. Read it before writin
 
 ## Rules
 
-- Install with the `alpha` tag: `npm install c15t@alpha` and import the framework subpath, such as `c15t/next`. npm `latest` is still v2. Keep every c15t package on the same release.
+- Install with `npm install c15t` and import the framework subpath, such as `c15t/next`. Keep every c15t package on the same release.
 - The backend URL comes from the user's Inth project or self-hosted backend. It is public configuration. Never invent one; ask for it or read it from the environment.
 - Register analytics, pixels and embeds through c15t and remove the vendor's own loader or plugin. With a bundler, use `@c15t/integrations` helpers and `ConsentGate`. On a plain HTML page, change the vendor's `<script>` to `type="text/plain"` with `data-c15t-category`. A banner does not block code loaded elsewhere.
 - Gate features on the current permission. Never save a consent choice on page load or from code; only a visitor action records one.

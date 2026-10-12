@@ -42,12 +42,12 @@ Zaraz can still run before the bridge starts; audit them. Cloudflare documents
 [purpose assignment](https://developers.cloudflare.com/zaraz/consent-management/)
 and [pageview settings](https://developers.cloudflare.com/zaraz/reference/settings/).
 
-| Package manager | Command                                |
-| :-------------- | :------------------------------------- |
-| npm             | `npm install @c15t/integrations@alpha` |
-| pnpm            | `pnpm add @c15t/integrations@alpha`    |
-| yarn            | `yarn add @c15t/integrations@alpha`    |
-| bun             | `bun add @c15t/integrations@alpha`     |
+| Package manager | Command                          |
+| :-------------- | :------------------------------- |
+| npm             | `npm install @c15t/integrations` |
+| pnpm            | `pnpm add @c15t/integrations`    |
+| yarn            | `yarn add @c15t/integrations`    |
+| bun             | `bun add @c15t/integrations`     |
 
 ```ts title="src/consent-scripts.ts"
 import { cloudflareZaraz } from '@c15t/integrations/cloudflare-zaraz';

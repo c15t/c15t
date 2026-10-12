@@ -10,8 +10,8 @@ Pass `--framework` to `setup` to write your framework's quickstart: the same
 files the [framework quickstarts](/docs/frameworks) show, at the same paths.
 
 ```bash
-npx @c15t/cli@alpha setup hosted --framework react --backend-url https://your-project.inth.app --plan --json
-npx @c15t/cli@alpha setup hosted --framework react --backend-url https://your-project.inth.app --apply
+npx @c15t/cli setup hosted --framework react --backend-url https://your-project.inth.app --plan --json
+npx @c15t/cli setup hosted --framework react --backend-url https://your-project.inth.app --apply
 ```
 
 Run it from the app directory, which must contain a `package.json`, or pass
@@ -77,9 +77,9 @@ The error lists those files. Merge the quickstart into them by hand, or pass
 
 Generation never installs packages. The result lists them under
 `data.dependencies`, with each c15t package pinned to the CLI's release line.
-From `@c15t/cli@alpha`, that is the `alpha` dist-tag, for example for React:
+From the v3 CLI, that is the major version, for example for React:
 
-<CommandTabs command="c15t@alpha" mode="install" />
+<CommandTabs command="c15t@3" mode="install" />
 
 `data.instructions` lists the remaining steps. They can mention
 `--package-source`; skip that step unless you are testing a local c15t checkout.

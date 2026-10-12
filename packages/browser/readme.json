@@ -18,13 +18,13 @@
 		"",
 		"Paste before `</head>`, with the backend URL from your Inth project:",
 		"",
-		"```html\n<script\n  src=\"https://cdn.jsdelivr.net/npm/@c15t/browser@alpha/dist/c15t.js\"\n  data-backend-url=\"YOUR_INTH_BACKEND_URL\"\n  defer\n></script>\n```",
+		"```html\n<script\n  src=\"https://cdn.jsdelivr.net/npm/@c15t/browser/dist/c15t.js\"\n  data-backend-url=\"YOUR_INTH_BACKEND_URL\"\n  defer\n></script>\n```",
 		"",
-		"Replace `@alpha` with an exact version for production. The default `c15t.js` requires a backend URL. Load `dist/c15t.offline.js` for offline mode or `dist/c15t.headless.js` for the runtime without any UI.",
+		"A URL without a version loads the newest release, so pin an exact version, such as `@c15t/browser@3.0.0`, in production. The default `c15t.js` requires a backend URL. Load `dist/c15t.offline.js` for offline mode or `dist/c15t.headless.js` for the runtime without any UI.",
 		"",
 		"For bundled apps:",
 		"",
-		"```bash\nnpm install @c15t/browser@alpha\n```"
+		"```bash\nnpm install @c15t/browser\n```"
 	],
 	"usage": [
 		"Add the tag and reload. The banner appears when the visitor's policy asks for one",

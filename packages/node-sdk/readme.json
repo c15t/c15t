@@ -13,7 +13,7 @@
 		"Node.js 20.19 or later, or another runtime with `fetch`, `AbortSignal.any` and `crypto.randomUUID`",
 		"A hosted [c15t instance](https://inth.com) or a [self-hosted backend](https://c15t.com/docs/self-host/quickstart)"
 	],
-	"manualInstallation": ["", "```bash\npnpm add @c15t/node-sdk@alpha\n```"],
+	"manualInstallation": ["", "```bash\npnpm add @c15t/node-sdk\n```"],
 	"usage": [
 		"Create a client with the URL where the backend is mounted, path included. Pass `apiKey` for the key-only methods",
 		"Call a method and check `result.ok` before reading `result.data`, or use `unwrap(result)` to throw the error instead",

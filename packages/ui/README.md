@@ -33,7 +33,7 @@ c15t is used by [2,100+ sites](https://www.wappalyzer.com/technologies/cookie-co
 The framework packages (`c15t/react`, `c15t/vue`, `c15t/astro`, `@c15t/svelte`) depend on this package and re-export its stylesheets. Install it directly only to build your own adapter:
 
 ```bash
-pnpm add @c15t/ui@alpha
+pnpm add @c15t/ui
 ```
 
 ## Documentation

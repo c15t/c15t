@@ -10,8 +10,8 @@ group: self-host
   Read https://v3.c15t.com/docs/self-host/upgrade-v3.md first and follow it in order. Do not guess v3 APIs from memory.
 
   1. Find the `@c15t/backend` config and every use of `@c15t/node-sdk`.
-  2. Install `@c15t/backend@alpha` and the SQL driver for the database, plus `@c15t/node-sdk@alpha` if the app uses it.
-  3. Run `npx @c15t/cli@alpha codemods backend-config-to-v3 policy-packs-to-policy-rules node-sdk-to-v3 --dry-run --json`. Review the output, then run the same command without `--dry-run`. The codemods leave a `TODO(c15t v3)` comment wherever they need you to finish a change.
+  2. Install `@c15t/backend` and the SQL driver for the database, plus `@c15t/node-sdk` if the app uses it.
+  3. Run `npx @c15t/cli codemods backend-config-to-v3 policy-packs-to-policy-rules node-sdk-to-v3 --dry-run --json`. Review the output, then run the same command without `--dry-run`. The codemods leave a `TODO(c15t v3)` comment wherever they need you to finish a change.
   4. Replace `adapter` with `database`, split `iab` between `manifest.iab` and `gvl`, and update the other options as the guide describes.
   5. Do not run the schema migration yourself. Tell me to back up the database, and give me the `self-host migrate --plan` and `--apply` commands to run.
   6. List the client apps that call this backend. They have to move to v3 in the same release.
@@ -27,7 +27,7 @@ categories stay denied and no banner appears. Upgrade the client apps with the
 [React](/docs/frameworks/react/upgrade-v3) or
 [JavaScript](/docs/frameworks/javascript/upgrade-v3) guide.
 
-1. Install `@c15t/backend@alpha` and the SQL driver for your database.
+1. Install `@c15t/backend` and the SQL driver for your database.
 2. Replace `adapter` with `database` in your config. The Drizzle, Prisma,
    TypeORM and Kysely adapters are gone; point `database` at the same SQL
    database instead. MongoDB has no migration path.
@@ -37,8 +37,8 @@ categories stay denied and no banner appears. Upgrade the client apps with the
 4. Back up the database, then plan and apply the schema migration:
 
 ```bash
-npx @c15t/cli@alpha self-host migrate --config ./c15t-backend.config.ts --plan
-npx @c15t/cli@alpha self-host migrate --config ./c15t-backend.config.ts --apply
+npx @c15t/cli self-host migrate --config ./c15t-backend.config.ts --plan
+npx @c15t/cli self-host migrate --config ./c15t-backend.config.ts --apply
 ```
 
 The migrator recognizes the v2 schema, adopts it, and adds the v3 tables and
@@ -53,7 +53,7 @@ are, and leaves a `TODO(c15t v3)` comment on `adapter`, `iab`,
 `disableGeoLocation` and the other options in the table below:
 
 ```bash
-npx @c15t/cli@alpha codemods backend-config-to-v3 policy-packs-to-policy-rules --dry-run --json
+npx @c15t/cli codemods backend-config-to-v3 policy-packs-to-policy-rules --dry-run --json
 ```
 
 Preset calls such as `policyRulePresets.europeOptIn()` need no other change.
@@ -99,10 +99,10 @@ ignores it.
 
 ## Update the Node.js SDK
 
-Install `@c15t/node-sdk@alpha`. The v2 client is gone: create one with
+Install `@c15t/node-sdk`. The v2 client is gone: create one with
 `createC15tClient()` and pass the backend URL and API key yourself.
 
-<CommandTabs command="@c15t/node-sdk@alpha" mode="install" />
+<CommandTabs command="@c15t/node-sdk" mode="install" />
 
 {/* example: fragment */}
 
@@ -172,7 +172,7 @@ results are now `{ ok, data }` or `{ ok, error }`. It renames per-call
 built from environment variables:
 
 ```bash
-npx @c15t/cli@alpha codemods node-sdk-to-v3 --dry-run --json
+npx @c15t/cli codemods node-sdk-to-v3 --dry-run --json
 ```
 
 The new client also adds `manifest()`, `legalDocuments.publish()` and

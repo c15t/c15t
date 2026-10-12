@@ -69,7 +69,7 @@ export const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 		name: '@c15t/core',
 		outDir: 'packages/core',
 		skill: {
-			install: '`npm install c15t@alpha`',
+			install: '`npm install c15t`',
 			topic:
 				'the project uses the headless c15t engine, `createConsentRuntime` or custom consent UI',
 			umbrella: true,
@@ -88,7 +88,7 @@ export const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 		name: '@c15t/react',
 		outDir: 'packages/react',
 		skill: {
-			install: '`npm install c15t@alpha` and import `c15t/react`',
+			install: '`npm install c15t` and import `c15t/react`',
 			topic: 'the project is a React app, such as Vite or React Router',
 			umbrella: true,
 		},
@@ -106,7 +106,7 @@ export const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 		name: '@c15t/nextjs',
 		outDir: 'packages/nextjs',
 		skill: {
-			install: '`npm install c15t@alpha` and import `c15t/next`',
+			install: '`npm install c15t` and import `c15t/next`',
 			topic:
 				'the project is a Next.js app with the App Router, Pages Router or static export',
 			umbrella: true,
@@ -126,7 +126,7 @@ export const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 		name: '@c15t/vue',
 		outDir: 'packages/vue',
 		skill: {
-			install: '`npm install c15t@alpha` and import `c15t/vue`',
+			install: '`npm install c15t` and import `c15t/vue`',
 			topic: 'the project is a Vue or Nuxt app',
 			umbrella: true,
 		},
@@ -145,7 +145,7 @@ export const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 		name: '@c15t/svelte',
 		outDir: 'packages/svelte',
 		skill: {
-			install: '`npm install @c15t/svelte@alpha`',
+			install: '`npm install @c15t/svelte`',
 			topic: 'the project is a Svelte or SvelteKit app',
 		},
 		summary:
@@ -162,7 +162,7 @@ export const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 		name: '@c15t/astro',
 		outDir: 'packages/astro',
 		skill: {
-			install: '`npm install c15t@alpha` and import `c15t/astro`',
+			install: '`npm install c15t` and import `c15t/astro`',
 			topic: 'the project is an Astro site',
 			umbrella: true,
 		},
@@ -180,7 +180,7 @@ export const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 		name: '@c15t/tanstack-start',
 		outDir: 'packages/tanstack-start',
 		skill: {
-			install: '`npm install c15t@alpha` and import `c15t/tanstack-start`',
+			install: '`npm install c15t` and import `c15t/tanstack-start`',
 			topic: 'the project is a TanStack Start app',
 			umbrella: true,
 		},
@@ -200,7 +200,7 @@ export const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 		outDir: 'packages/c15t',
 		skill: {
 			install:
-				'`npm install c15t@alpha` and import the framework subpath, such as `c15t/next`',
+				'`npm install c15t` and import the framework subpath, such as `c15t/next`',
 			topic:
 				'the project uses c15t with Next.js, React, TanStack Start, Vue, Nuxt, Astro or plain JavaScript',
 		},
@@ -212,7 +212,7 @@ export const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 		name: '@c15t/backend',
 		outDir: 'packages/backend',
 		skill: {
-			install: '`npm install @c15t/backend@alpha`',
+			install: '`npm install @c15t/backend`',
 			topic: 'the project runs its own c15t consent backend',
 		},
 		summary:
@@ -232,7 +232,7 @@ export const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 		name: '@c15t/integrations',
 		outDir: 'packages/integrations',
 		skill: {
-			install: '`npm install @c15t/integrations@alpha` alongside `c15t@alpha`',
+			install: '`npm install @c15t/integrations` alongside `c15t`',
 			topic:
 				'the project loads analytics, pixels, tag managers or embeds that must wait for consent',
 		},
@@ -256,7 +256,7 @@ export const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 			// The compatibility package re-exports @c15t/integrations; new code
 			// installs the canonical package.
 			install:
-				'`npm install @c15t/integrations@alpha` alongside `c15t@alpha`, replacing the deprecated `@c15t/scripts`',
+				'`npm install @c15t/integrations` alongside `c15t`, replacing the deprecated `@c15t/scripts`',
 			topic:
 				'the project imports the deprecated `@c15t/scripts` vendor helpers, or loads analytics, pixels, tag managers or embeds that must wait for consent',
 		},
@@ -275,7 +275,7 @@ export const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 		outDir: 'packages/browser',
 		skill: {
 			install:
-				'a `<script>` tag for `@c15t/browser@alpha` from jsDelivr, or `npm install @c15t/browser@alpha`',
+				'a `<script>` tag for `@c15t/browser` from jsDelivr, or `npm install @c15t/browser`',
 			topic:
 				'the site is plain HTML, a CMS, a page builder or a static site generator, or a bundled app without a UI framework',
 		},
@@ -293,7 +293,7 @@ export const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 		name: '@c15t/cli',
 		outDir: 'packages/cli',
 		skill: {
-			install: '`npx @c15t/cli@alpha`',
+			install: '`npx @c15t/cli`',
 			topic:
 				'the task is scaffolding c15t, running codemods or migrating a self-hosted backend',
 		},
