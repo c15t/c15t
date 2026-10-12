@@ -111,16 +111,21 @@ them, so it stays out of their AC string until they save again.
 Pixels and ad requests that cannot call `__tcfapi` take the AC string in the
 `addtl_consent` URL parameter. Google's ad renderers replace the
 `${ADDTL_CONSENT}` macro, as in `&addtl_consent=${ADDTL_CONSENT}`. For
-requests your own code builds, read the string from `__tcfapi` and add it
-yourself:
+requests your own code builds, read the string from `__tcfapi`, add it next
+to the TC String, and then send the request. This pixel fires once the CMP
+answers:
 
 ```js
 window.__tcfapi('getTCData', 2, (data, success) => {
-	if (success && data.addtlConsent) {
-		const url = new URL('https://ads.example.com/pixel');
-		url.searchParams.set('gdpr_consent', data.tcString);
+	if (!success) {
+		return;
+	}
+	const url = new URL('https://ads.example.com/pixel');
+	url.searchParams.set('gdpr_consent', data.tcString);
+	if (data.addtlConsent) {
 		url.searchParams.set('addtl_consent', data.addtlConsent);
 	}
+	new Image().src = url.toString();
 });
 ```
 
