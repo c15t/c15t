@@ -1,6 +1,8 @@
 ---
 packages:
-  '@c15t/cli': patch
+  "@c15t/cli":
+    replay:
+      - exit-prerelease(npm:@c15t/cli)
 ---
 
 ### Name the CLI's release line in the packages-to-c15t warning

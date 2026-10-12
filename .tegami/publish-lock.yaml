@@ -1,49 +1,10 @@
 c15t:release:
   - branch: v3
-    id: npm:c15t
-    version: 3.0.0-alpha.12
-  - branch: v3
-    id: npm:@c15t/nextjs
-    version: 3.0.0-alpha.12
-  - branch: v3
-    id: npm:@c15t/schema
-    version: 3.0.0-alpha.9
-  - branch: v3
-    id: npm:@c15t/react
-    version: 3.0.0-alpha.12
-  - branch: v3
-    id: npm:@c15t/cli
-    version: 3.0.0-alpha.12
-  - branch: v3
-    id: npm:@c15t/tanstack-start
-    version: 3.0.0-alpha.12
-  - branch: v3
-    id: npm:@c15t/core
+    id: npm:@c15t/dev-tools
     version: 3.0.0-alpha.11
   - branch: v3
-    id: npm:@c15t/translations
-    version: 3.0.0-alpha.6
-  - branch: v3
-    id: npm:@c15t/scripts
-    version: 3.0.0-alpha.10
-  - branch: v3
-    id: npm:@c15t/svelte
+    id: npm:@c15t/backend
     version: 3.0.0-alpha.12
-  - branch: v3
-    id: npm:@c15t/node-sdk
-    version: 3.0.0-alpha.11
-  - branch: v3
-    id: npm:@c15t/astro
-    version: 3.0.0-alpha.12
-  - branch: v3
-    id: npm:@c15t/ui
-    version: 3.0.0-alpha.12
-  - branch: v3
-    id: npm:@c15t/browser
-    version: 3.0.0-alpha.12
-  - branch: v3
-    id: npm:@c15t/iab
-    version: 3.0.0-alpha.11
   - branch: v3
     id: npm:@c15t/vue
     version: 3.0.0-alpha.12
@@ -51,74 +12,120 @@ c15t:release:
     id: npm:@c15t/logger
     version: 3.0.0-alpha.1
   - branch: v3
-    id: npm:@c15t/backend
+    id: npm:@c15t/integrations
+    version: 3.0.0-alpha.13
+  - branch: v3
+    id: npm:@c15t/iab
+    version: 3.0.0-alpha.11
+  - branch: v3
+    id: npm:@c15t/scripts
+    version: 3.0.0-alpha.11
+  - branch: v3
+    id: npm:@c15t/svelte
     version: 3.0.0-alpha.12
   - branch: v3
-    id: npm:@c15t/integrations
+    id: npm:@c15t/astro
+    version: 3.0.0-alpha.12
+  - branch: v3
+    id: npm:@c15t/node-sdk
     version: 3.0.0-alpha.11
   - branch: v3
-    id: npm:@c15t/dev-tools
+    id: npm:@c15t/translations
+    version: 3.0.0-alpha.6
+  - branch: v3
+    id: npm:@c15t/ui
+    version: 3.0.0-alpha.12
+  - branch: v3
+    id: npm:@c15t/core
     version: 3.0.0-alpha.11
+  - branch: v3
+    id: npm:@c15t/browser
+    version: 3.0.0-alpha.12
+  - branch: v3
+    id: npm:@c15t/schema
+    version: 3.0.0-alpha.9
+  - branch: v3
+    id: npm:@c15t/nextjs
+    version: 3.0.0-alpha.12
+  - branch: v3
+    id: npm:@c15t/react
+    version: 3.0.0-alpha.12
+  - branch: v3
+    id: npm:@c15t/cli
+    version: 3.0.0-alpha.13
+  - branch: v3
+    id: npm:c15t
+    version: 3.0.0-alpha.12
+  - branch: v3
+    id: npm:@c15t/tanstack-start
+    version: 3.0.0-alpha.12
 core:changelogs:
-  - content: "---\npackages:\n  \"@c15t/ui\":\n    type: minor\n  \"@c15t/react\":\n    type: patch\n  \"@c15t/nextjs\":\n    type: patch\n  \"@c15t/tanstack-start\":\n    type: patch\n  \"@c15t/browser\":\n    type: patch\n  c15t:\n    type: patch\n---\n\n### Let clicks through the banner's empty space and lower its z-index\n\nA non-blocking banner no longer swallows clicks outside its card. The padding around a floating card and the strip beside the \"Secured by\" tag on a bar were part of the banner's fixed box, so page links and buttons under them did nothing. Clicks there now reach the page. The card and tag still take clicks, and a blocking banner still catches all of them.\n\nSet `--consent-banner-z-index` and `--consent-banner-overlay-z-index` to put a navbar, drawer or chat widget above the banner. The IAB banner takes `--iab-consent-banner-z-index` and `--iab-consent-banner-overlay-z-index`. Defaults are unchanged.\n\nA top bar now pads its card by `env(safe-area-inset-top)`, as a bottom bar already did for the bottom inset, so its content clears the notch on pages that set `viewport-fit=cover`.\n"
-    filename: 2026-10-11-banner-click-through-and-stacking.md
+  - content: "---\npackages:\n  \"@c15t/integrations\":\n    type: patch\n---\n\n### Start Mixpanel visitors opted out\n\n`mixpanelAnalytics()` now passes `opt_out_tracking_by_default: true` and `opt_out_persistence_by_default: true` to `mixpanel.init`. The SDK loads before consent and initializes before the helper's first opt-in or opt-out call. Without these options, that gap let it store queued `track` calls in localStorage and a visitor ID in an `mp_*` cookie. Your `initOptions` are merged over the defaults; pass either option as `false` to restore the old behavior. An option set to `undefined` keeps the default.\n\nThe helper now queues `opt_in_tracking` or `opt_out_tracking` before the SDK loads, instead of calling it after load. Mixpanel runs that call during init, ahead of queued `track` calls, so a visitor who already consented keeps the events your code queued while the SDK loaded.\n"
+    filename: 2026-10-12-mixpanel-opt-out-by-default.md
+    v: 0.0.0
+  - content: "---\npackages:\n  \"@c15t/cli\":\n    type: patch\n---\n\n### Name the CLI's release line in the packages-to-c15t warning\n\nWhen `package.json` lists `@c15t/react` or `@c15t/nextjs` without c15t 3, the `packages-to-c15t` warning now tells you to install `c15t` from the CLI's release line, such as `c15t@3`, instead of always naming `c15t@alpha`.\n"
+    filename: 2026-10-12-codemod-release-line-hint.md
     v: 0.0.0
 core:packages:
-  - changelogIds:
-      - 2026-10-11-banner-click-through-and-stacking.md
-    id: npm:c15t
-    updated: true
-  - changelogIds:
-      - 2026-10-11-banner-click-through-and-stacking.md
-    id: npm:@c15t/nextjs
-    updated: true
-  - id: npm:@c15t/schema
+  - id: npm:@c15t/dev-tools
+    updated: false
+  - id: npm:@c15t/backend
+    updated: false
+  - id: npm:@c15t/vue
+    updated: false
+  - id: npm:@c15t/logger
     updated: false
   - changelogIds:
-      - 2026-10-11-banner-click-through-and-stacking.md
-    id: npm:@c15t/react
-    updated: true
-  - id: npm:@c15t/cli
-    updated: true
-  - changelogIds:
-      - 2026-10-11-banner-click-through-and-stacking.md
-    id: npm:@c15t/tanstack-start
-    updated: true
-  - id: npm:@c15t/core
-    updated: false
-  - id: npm:@c15t/translations
-    updated: false
-  - id: npm:@c15t/scripts
-    updated: false
-  - id: npm:@c15t/svelte
-    updated: true
-  - id: npm:@c15t/node-sdk
-    updated: false
-  - id: npm:@c15t/astro
-    updated: true
-  - changelogIds:
-      - 2026-10-11-banner-click-through-and-stacking.md
-    id: npm:@c15t/ui
-    updated: true
-  - changelogIds:
-      - 2026-10-11-banner-click-through-and-stacking.md
-    id: npm:@c15t/browser
+      - 2026-10-12-mixpanel-opt-out-by-default.md
+    id: npm:@c15t/integrations
     updated: true
   - id: npm:@c15t/iab
     updated: false
-  - id: npm:@c15t/vue
+  - id: npm:@c15t/scripts
     updated: true
-  - id: npm:@c15t/logger
+  - id: npm:@c15t/svelte
     updated: false
-  - id: npm:@c15t/backend
+  - id: npm:@c15t/astro
+    updated: false
+  - id: npm:@c15t/node-sdk
+    updated: false
+  - id: npm:@c15t/translations
+    updated: false
+  - id: npm:@c15t/ui
+    updated: false
+  - id: npm:@c15t/core
+    updated: false
+  - id: npm:@c15t/browser
+    updated: false
+  - id: npm:@c15t/schema
+    updated: false
+  - id: npm:@c15t/nextjs
+    updated: false
+  - id: npm:@c15t/react
+    updated: false
+  - changelogIds:
+      - 2026-10-12-codemod-release-line-hint.md
+    id: npm:@c15t/cli
     updated: true
-  - id: npm:@c15t/integrations
+  - id: npm:c15t
     updated: false
-  - id: npm:@c15t/dev-tools
+  - id: npm:@c15t/tanstack-start
     updated: false
 npm:packages:
   - distTag: alpha
-    id: npm:c15t
+    id: npm:@c15t/dev-tools
+  - distTag: alpha
+    id: npm:@c15t/backend
+  - distTag: alpha
+    id: npm:@c15t/integrations
+  - distTag: alpha
+    id: npm:@c15t/iab
+  - distTag: alpha
+    id: npm:@c15t/node-sdk
+  - distTag: alpha
+    id: npm:@c15t/translations
+  - distTag: alpha
+    id: npm:@c15t/core
   - distTag: alpha
     id: npm:@c15t/nextjs
   - distTag: alpha
@@ -126,23 +133,13 @@ npm:packages:
   - distTag: alpha
     id: npm:@c15t/cli
   - distTag: alpha
+    id: npm:c15t
+  - distTag: alpha
     id: npm:@c15t/tanstack-start
   - distTag: alpha
-    id: npm:@c15t/core
+    id: npm:@c15t/vue
   - distTag: alpha
-    id: npm:@c15t/translations
-  - distTag: alpha
-    id: npm:@c15t/node-sdk
-  - distTag: alpha
-    id: npm:@c15t/iab
-  - distTag: alpha
-    id: npm:@c15t/backend
-  - distTag: alpha
-    id: npm:@c15t/integrations
-  - distTag: alpha
-    id: npm:@c15t/dev-tools
-  - distTag: alpha
-    id: npm:@c15t/schema
+    id: npm:@c15t/logger
   - distTag: alpha
     id: npm:@c15t/scripts
   - distTag: alpha
@@ -154,6 +151,4 @@ npm:packages:
   - distTag: alpha
     id: npm:@c15t/browser
   - distTag: alpha
-    id: npm:@c15t/vue
-  - distTag: alpha
-    id: npm:@c15t/logger
+    id: npm:@c15t/schema

@@ -1,6 +1,8 @@
 ---
 packages:
-  '@c15t/integrations': patch
+  "@c15t/integrations":
+    replay:
+      - exit-prerelease(npm:@c15t/integrations)
 ---
 
 ### Start Mixpanel visitors opted out

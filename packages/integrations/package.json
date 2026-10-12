@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/integrations",
-	"version": "3.0.0-alpha.11",
+	"version": "3.0.0-alpha.13",
 	"description": "Consent-aware integrations for third-party analytics, advertising, and chat tools.",
 	"keywords": [
 		"adobe-analytics",
