@@ -7,6 +7,8 @@ packages:
   '@c15t/svelte': patch
   '@c15t/browser': patch
   '@c15t/astro': patch
+  '@c15t/nextjs': patch
+  '@c15t/tanstack-start': patch
 ---
 
 ### Keep the preference dialog's category list scrollable
