@@ -161,6 +161,12 @@ export interface TCData {
 	/** TC String */
 	tcString: string;
 
+	/**
+	 * Google Additional Consent (ACv2) string, such as `2~1.10~dv.2.3.4`.
+	 * Present only beside a TC string, when Additional Consent is configured.
+	 */
+	addtlConsent?: string;
+
 	/** TCF policy version (e.g., 2 for TCF 2.0, 4 for TCF 2.2) */
 	tcfPolicyVersion?: number;
 

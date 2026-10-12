@@ -119,6 +119,8 @@ export interface ConsentRuntimeIABFactoryOptions {
 	vendors?: number[];
 	/** Non-IAB vendors declared by the publisher. */
 	customVendors?: IABConfig['customVendors'];
+	/** Google ad tech providers for the Additional Consent string. */
+	additionalConsent?: IABConfig['additionalConsent'];
 	/** Publisher country code used in the TC string. */
 	publisherCountryCode?: string;
 	/**
@@ -160,6 +162,8 @@ export interface ConsentRuntimeIABHandle {
 	setPurposeLegitimateInterest: (purposeId: number, value: boolean) => void;
 	/** Opt in/out of a special feature (1 = geo, 2 = device ID). */
 	setSpecialFeatureOptIn: (featureId: number, value: boolean) => void;
+	/** Set consent for a Google ad tech provider (Additional Consent). */
+	setAdTechProviderConsent?: (providerId: number, value: boolean) => void;
 	/** Flip every vendor + purpose consent to true. */
 	acceptAll: () => void;
 	/** Flip every vendor + purpose consent to false. */

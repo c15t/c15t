@@ -347,6 +347,78 @@ export const createIABPreferences = (
 		...(snapshot.iab?.customVendors ?? []),
 	];
 	const list = h('div', { class: css(styles.vendorListContent) });
+	// Google Additional Consent providers: few, outside the TCF, and listed
+	// with the privacy policy the spec requires before they count as shown.
+	const providerList = h('div', { class: css(styles.vendorSection) });
+	const renderAdTechProviders = (query: string): void => {
+		providerList.replaceChildren();
+		const shown = (snapshot.iab?.adTechProviders ?? []).filter((provider) =>
+			provider.name.toLocaleLowerCase().includes(query)
+		);
+		providerList.hidden = shown.length === 0;
+		if (shown.length === 0) {
+			return;
+		}
+		const { vendorList } = t.preferenceCenter;
+		providerList.append(
+			h(
+				'div',
+				{ class: css(styles.customVendorSectionHeader) },
+				h(
+					'h3',
+					{ class: css(styles.vendorSectionHeading) },
+					`${vendorList.adTechProvidersHeading} (${shown.length})`
+				),
+				h(
+					'p',
+					{ class: css(styles.customVendorNotice) },
+					vendorList.adTechProvidersNotice ?? ''
+				)
+			)
+		);
+		for (const provider of shown) {
+			const id = String(provider.id);
+			providerList.append(
+				h(
+					'div',
+					{
+						class: css(styles.vendorListItem),
+						'data-testid': `iab-ad-tech-provider-${id}`,
+					},
+					h(
+						'div',
+						{ class: css(styles.vendorListItemHeader) },
+						h(
+							'div',
+							{ class: css(styles.vendorListInfo) },
+							h('h4', { class: css(styles.vendorListName) }, provider.name),
+							h(
+								'a',
+								{
+									class: css(styles.vendorLink),
+									href: provider.policyUrl,
+									rel: 'noopener noreferrer',
+									target: '_blank',
+								},
+								vendorList.privacyPolicy
+							)
+						),
+						toggle(
+							t.preferenceCenter.purposeItem.withYourPermission,
+							`iab-ad-tech-provider-${id}-consent`,
+							(value) => value.iab?.adTechProviderConsents?.[id] === true,
+							(value) =>
+								client.runtime.iab?.setAdTechProviderConsent?.(
+									provider.id,
+									value
+								),
+							provider.name
+						)
+					)
+				)
+			);
+		}
+	};
 	const search = h('input', {
 		'aria-label': t.preferenceCenter.vendorList.search,
 		class: css(styles.searchInput),
@@ -376,6 +448,7 @@ export const createIABPreferences = (
 			.replace('{filtered}', String(Math.min(limit, filtered.length)))
 			.replace('{total}', String(filtered.length));
 		more.hidden = filtered.length <= limit;
+		renderAdTechProviders(query);
 		for (const vendor of filtered.slice(0, limit)) {
 			const id = String(vendor.id);
 			const custom = snapshot.iab?.customVendors.some(
@@ -451,7 +524,8 @@ export const createIABPreferences = (
 		h('div', { class: css(styles.searchContainer) }, search),
 		count,
 		list,
-		more
+		more,
+		providerList
 	);
 	let vendorsRendered = false;
 	const tabs = h('div', {

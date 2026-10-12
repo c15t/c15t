@@ -12,6 +12,8 @@ export interface KernelIABControls {
 	setPurposeConsent: (id: number, value: boolean) => void;
 	setPurposeLegitimateInterest: (id: number, value: boolean) => void;
 	setSpecialFeatureOptIn: (id: number, value: boolean) => void;
+	/** Set consent for a Google ad tech provider (Additional Consent). */
+	setAdTechProviderConsent?: (id: number, value: boolean) => void;
 	acceptAll: () => void;
 	rejectAll: () => void;
 	save: () => Promise<void>;

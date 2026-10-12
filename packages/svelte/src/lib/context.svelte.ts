@@ -62,6 +62,8 @@ export interface SvelteIABState extends KernelIABState {
 	setPurposeConsent: (purposeId: number, value: boolean) => void;
 	setPurposeLegitimateInterest: (purposeId: number, value: boolean) => void;
 	setSpecialFeatureOptIn: (featureId: number, value: boolean) => void;
+	/** Set consent for a Google ad tech provider (Additional Consent). */
+	setAdTechProviderConsent: (providerId: number, value: boolean) => void;
 	acceptAll: () => void;
 	rejectAll: () => void;
 	save: () => Promise<void>;

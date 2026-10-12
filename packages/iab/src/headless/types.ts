@@ -1,4 +1,5 @@
 import type {
+	AdTechProvider,
 	KernelIABState,
 	GlobalVendorList,
 	NonIABVendor,
@@ -28,6 +29,8 @@ export interface HeadlessIABStateInput {
 	isLoadingGVL?: boolean;
 	nonIABVendors?: NonIABVendor[];
 	customVendors?: NonIABVendor[];
+	/** Google ad tech providers disclosed for Additional Consent. */
+	adTechProviders?: AdTechProvider[];
 	/**
 	 * Publisher restrictions configured on the CMP. Vendors are listed under
 	 * the legal basis the restrictions leave them, so each control edits the
@@ -44,7 +47,7 @@ export interface HeadlessIABStateInput {
 export interface HeadlessIABBannerState {
 	/** Whether the banner summary is ready to display */
 	isReady: boolean;
-	/** Total vendor count (GVL + custom) */
+	/** Total vendor count (GVL + custom + Google ad tech providers) */
 	vendorCount: number;
 	/** Display items (stacks, standalone purposes, special features) */
 	displayItems: string[];

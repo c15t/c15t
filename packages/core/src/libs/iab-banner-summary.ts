@@ -10,7 +10,7 @@
 import type { KernelIABState } from '../types';
 
 type HeadlessIABStateInput = Pick<KernelIABState, 'gvl'> &
-	Partial<Pick<KernelIABState, 'customVendors'>> & {
+	Partial<Pick<KernelIABState, 'customVendors' | 'adTechProviders'>> & {
 		/** Server summary and list location, used while gvl is absent. */
 		gvlReference?: KernelIABState['gvlReference'];
 		nonIABVendors?: KernelIABState['customVendors'];
@@ -20,7 +20,10 @@ type HeadlessIABStateInput = Pick<KernelIABState, 'gvl'> &
 export interface HeadlessIABBannerState {
 	/** Whether sufficient vendor data is available to display the summary. */
 	isReady: boolean;
-	/** Number of registered and custom vendors disclosed by the banner. */
+	/**
+	 * Number of registered vendors, custom vendors and Google ad tech
+	 * providers disclosed by the banner.
+	 */
 	vendorCount: number;
 	/** Names of applicable purposes, stacks and special features. */
 	displayItems: string[];
@@ -57,7 +60,9 @@ const referencedSummary = (
 			isReady: true,
 			remainingCount: Math.max(0, items.length - maxItems),
 			vendorCount:
-				vendorCount + (iab.nonIABVendors ?? iab.customVendors ?? []).length,
+				vendorCount +
+				(iab.nonIABVendors ?? iab.customVendors ?? []).length +
+				(iab.adTechProviders?.length ?? 0),
 		};
 	}
 	return {
@@ -90,7 +95,10 @@ export const resolveIABBannerSummary = function resolveIABBannerSummary(
 
 	const { gvl } = iab;
 	const customVendors = iab.nonIABVendors ?? iab.customVendors ?? [];
-	const vendorCount = Object.keys(gvl.vendors).length + customVendors.length;
+	const vendorCount =
+		Object.keys(gvl.vendors).length +
+		customVendors.length +
+		(iab.adTechProviders?.length ?? 0);
 
 	const purposesWithVendors = Object.entries(gvl.purposes)
 		.filter(([id]) =>

@@ -1,6 +1,6 @@
 'use client';
 
-import type { GlobalVendorList } from '@c15t/core';
+import type { AdTechProvider, GlobalVendorList } from '@c15t/core';
 import { resolveIABVendorUrls } from '@c15t/iab/headless';
 import styles from '@c15t/ui/styles/components/iab-consent-dialog';
 import { useEffect, useState } from 'react';
@@ -15,10 +15,15 @@ import { mergeSlotProps } from '~/utils/merge-slot-props';
 
 import type { ProcessedPurpose, ProcessedVendor, VendorId } from '../types';
 import { useIABTranslations } from '../use-iab-translations';
+import {
+	AdTechProviderSection,
+	filterAdTechProviders,
+} from './ad-tech-provider-section';
 
 /** Custom vendor not registered with IAB */
 const EMPTY_CUSTOM_VENDORS: CustomVendor[] = [];
 const EMPTY_VENDOR_INTERESTS: Record<string, boolean> = {};
+const EMPTY_AD_TECH_PROVIDERS: AdTechProvider[] = [];
 
 interface CustomVendor {
 	id: string | number;
@@ -49,6 +54,12 @@ interface VendorListProps {
 		vendorId: VendorId,
 		value: boolean
 	) => void;
+	/** Google ad tech providers disclosed for Additional Consent. */
+	adTechProviders?: AdTechProvider[];
+	/** Consent switches for those providers, keyed by provider ID. */
+	adTechProviderConsents?: Record<string, boolean>;
+	/** Handler for an ad tech provider consent switch. */
+	onAdTechProviderToggle?: (providerId: number, value: boolean) => void;
 }
 
 export const VendorList: FC<VendorListProps> = ({
@@ -61,6 +72,9 @@ export const VendorList: FC<VendorListProps> = ({
 	customVendors = EMPTY_CUSTOM_VENDORS,
 	vendorLegitimateInterests = EMPTY_VENDOR_INTERESTS,
 	onVendorLegitimateInterestToggle,
+	adTechProviders = EMPTY_AD_TECH_PROVIDERS,
+	adTechProviderConsents = EMPTY_VENDOR_INTERESTS,
+	onAdTechProviderToggle,
 }) => {
 	const { components } = useUIConfig();
 	const { noStyle } = useTheme();
@@ -152,6 +166,13 @@ export const VendorList: FC<VendorListProps> = ({
 	// Separate IAB and custom vendors for display
 	const filteredIABVendors = filteredVendors.filter((v) => !v.isCustom);
 	const filteredCustomVendors = filteredVendors.filter((v) => v.isCustom);
+	const filteredAdTechProviders = filterAdTechProviders(
+		adTechProviders,
+		searchTerm,
+		selectedVendorId
+	);
+	const totalCount = vendors.length + adTechProviders.length;
+	const filteredCount = filteredVendors.length + filteredAdTechProviders.length;
 
 	const toggleVendor = (vendorId: VendorId) => {
 		setExpandedVendors((prev) => {
@@ -753,8 +774,8 @@ export const VendorList: FC<VendorListProps> = ({
 					</div>
 					<p className={styles.vendorCount}>
 						{iab.preferenceCenter.vendorList.showingCount
-							.replace('{filtered}', String(filteredVendors.length))
-							.replace('{total}', String(vendors.length))}
+							.replace('{filtered}', String(filteredCount))
+							.replace('{total}', String(totalCount))}
 					</p>
 				</div>
 			) : (
@@ -859,7 +880,13 @@ export const VendorList: FC<VendorListProps> = ({
 				</div>
 			)}
 
-			{filteredVendors.length === 0 && (
+			<AdTechProviderSection
+				providers={filteredAdTechProviders}
+				consents={adTechProviderConsents}
+				onToggle={onAdTechProviderToggle}
+			/>
+
+			{filteredCount === 0 && (
 				<div className={styles.emptyState}>
 					<p className={styles.emptyStateText}>
 						No vendors found matching &quot;{searchTerm}&quot;

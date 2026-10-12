@@ -164,6 +164,9 @@ export const copyIABAuthority = function copyIABAuthority(
 		specialFeatureOptIns: { ...authority.specialFeatureOptIns },
 		vendorConsents: { ...authority.vendorConsents },
 		vendorLegitimateInterests: { ...authority.vendorLegitimateInterests },
+		...(authority.adTechProviderConsents && {
+			adTechProviderConsents: { ...authority.adTechProviderConsents },
+		}),
 	};
 };
 

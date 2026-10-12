@@ -319,7 +319,10 @@ export const processGVLForDialog = function processGVLForDialog(
 		specialPurposes,
 		stacks,
 		standalonePurposes,
-		totalVendors: Object.keys(gvl.vendors).length + customVendors.length,
+		totalVendors:
+			Object.keys(gvl.vendors).length +
+			customVendors.length +
+			(iab.adTechProviders?.length ?? 0),
 	};
 };
 

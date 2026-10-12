@@ -107,6 +107,7 @@ const labels = computed(() => ({
 // `@c15t/iab/headless`, so the four banners list the same things.
 const bannerSummary = computed(() =>
 	resolveIABBannerSummary({
+		adTechProviders: snapshot.value.iab?.adTechProviders,
 		customVendors: customVendors.value,
 		gvl: gvl.value,
 		gvlReference: initValue.value?.gvlReference,

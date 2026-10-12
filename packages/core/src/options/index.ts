@@ -6,7 +6,13 @@ export type {
 	OnErrorPayload,
 	OnSurfaceShownPayload,
 } from './callbacks';
-export type { CMPApi, CMPApiConfig, FetchGVLResult, IABConfig } from './iab';
+export type {
+	AdditionalConsentConfig,
+	CMPApi,
+	CMPApiConfig,
+	FetchGVLResult,
+	IABConfig,
+} from './iab';
 export type {
 	CMPStatus,
 	DisplayStatus,

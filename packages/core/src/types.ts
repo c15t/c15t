@@ -211,6 +211,30 @@ export interface KernelIABAuthority {
 	 * the target's `vendorId`. Absent means none.
 	 */
 	publisherRestrictions?: PublisherRestriction[];
+	/**
+	 * Google ad tech provider switches at confirmation, keyed by provider ID.
+	 * Holds one entry for each provider shown to the visitor. Absent when
+	 * Additional Consent is not configured.
+	 */
+	adTechProviderConsents?: Record<string, boolean>;
+	/**
+	 * Google Additional Consent (ACv2) string published beside `tcString`,
+	 * such as `2~1.10~dv.2.3.4`. Absent when no provider was shown.
+	 */
+	addtlConsent?: string;
+}
+
+/**
+ * A Google ad tech provider (ATP) from Google's Additional Consent provider
+ * list: an ad tech company that is not on the IAB Global Vendor List.
+ */
+export interface AdTechProvider {
+	/** Google ATP ID. */
+	id: number;
+	/** Provider name as Google lists it. */
+	name: string;
+	/** Privacy policy URL as Google lists it. */
+	policyUrl: string;
 }
 
 export interface KernelIABState {
@@ -225,6 +249,13 @@ export interface KernelIABState {
 	gvlReference?: InitOutput['gvlReference'];
 	/** Non-IAB vendors declared by the publisher. */
 	customVendors: NonIABVendor[];
+	/**
+	 * Google ad tech providers the preference center discloses for
+	 * Additional Consent: the configured IDs Google currently lists.
+	 */
+	adTechProviders?: AdTechProvider[];
+	/** Per-provider consent switches (provider ID → boolean). */
+	adTechProviderConsents?: Record<string, boolean>;
 	/** CMP ID registered with IAB Europe. */
 	cmpId: number | null;
 	/** Per-vendor consent (vendorId → boolean). */
