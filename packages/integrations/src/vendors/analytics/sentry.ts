@@ -27,8 +27,9 @@ export type SentryReplayRecordingMode = 'session' | 'buffer';
 
 /**
  * The Sentry Replay methods the adapter uses. The integration returned by
- * `replayIntegration()` from `@sentry/browser` 10.67.0 or later, or from a
- * framework SDK built on it, matches this shape.
+ * `replayIntegration()` from `@sentry/browser` in the supported range
+ * `^10.67.0 || ^11.0.0`, or from a framework SDK built on it, matches this
+ * shape. These versions support stopping without flushing on withdrawal.
  */
 export interface SentryReplay {
 	name: string;

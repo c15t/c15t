@@ -4,7 +4,10 @@ import process from 'node:process';
 import { createConsentKernel } from '@c15t/core';
 import { createScriptLoader } from '@c15t/core/modules/script-loader';
 import * as sentry10 from 'sentry-browser-v10';
+// oxlint-disable-next-line import/no-duplicates -- Range and minimum fixtures may resolve to the same release.
+import * as sentry10Min from 'sentry-browser-v10-min';
 import * as sentry11 from 'sentry-browser-v11';
+import * as sentry11Min from 'sentry-browser-v11-min';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { deniedConsents, grantedMeasurementConsents } from './e2e-test-utils';
@@ -41,16 +44,31 @@ afterEach(async () => {
 	sessionStorage.clear();
 });
 
-describe.each([
+const sdkVersions = [
+	{
+		sdk: { ...sentry10Min, getClient: () => sentry10Min.getClient() },
+		version: sentry10Min.SDK_VERSION,
+	},
 	{
 		sdk: { ...sentry10, getClient: () => sentry10.getClient() },
-		version: '10.67.0',
+		version: sentry10.SDK_VERSION,
+	},
+	{
+		sdk: { ...sentry11Min, getClient: () => sentry11Min.getClient() },
+		version: sentry11Min.SDK_VERSION,
 	},
 	{
 		sdk: { ...sentry11, getClient: () => sentry11.getClient() },
-		version: '11.4.0',
+		version: sentry11.SDK_VERSION,
 	},
-])('Sentry $version CDN replacement with the real SDK', ({ sdk, version }) => {
+].filter(
+	({ sdk }, index, versions) =>
+		versions.findIndex(
+			(version) => version.sdk.SDK_VERSION === sdk.SDK_VERSION
+		) === index
+);
+
+describe.each(sdkVersions)('Sentry $version CDN', ({ sdk, version }) => {
 	it('moves the single Replay to changed clients and preserves consent guards', async () => {
 		const onError = vi.fn();
 		const replayIntegration = vi.fn(sdk.replayIntegration);
