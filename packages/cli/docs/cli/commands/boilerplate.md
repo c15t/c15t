@@ -12,8 +12,8 @@ Pass `--framework` to `setup` to write your framework's quickstart: the same
 files the [framework quickstarts](https://v3.c15t.com/docs/frameworks) show, at the same paths.
 
 ```bash
-npx @c15t/cli@alpha setup hosted --framework react --backend-url https://your-project.inth.app --plan --json
-npx @c15t/cli@alpha setup hosted --framework react --backend-url https://your-project.inth.app --apply
+npx @c15t/cli setup hosted --framework react --backend-url https://your-project.inth.app --plan --json
+npx @c15t/cli setup hosted --framework react --backend-url https://your-project.inth.app --apply
 ```
 
 Run it from the app directory, which must contain a `package.json`, or pass
@@ -79,14 +79,14 @@ The error lists those files. Merge the quickstart into them by hand, or pass
 
 Generation never installs packages. The result lists them under
 `data.dependencies`, with each c15t package pinned to the CLI's release line.
-From `@c15t/cli@alpha`, that is the `alpha` dist-tag, for example for React:
+From the v3 CLI, that is the major version, for example for React:
 
-| Package manager | Command                  |
-| :-------------- | :----------------------- |
-| npm             | `npm install c15t@alpha` |
-| pnpm            | `pnpm add c15t@alpha`    |
-| yarn            | `yarn add c15t@alpha`    |
-| bun             | `bun add c15t@alpha`     |
+| Package manager | Command              |
+| :-------------- | :------------------- |
+| npm             | `npm install c15t@3` |
+| pnpm            | `pnpm add c15t@3`    |
+| yarn            | `yarn add c15t@3`    |
+| bun             | `bun add c15t@3`     |
 
 `data.instructions` lists the remaining steps. They can mention
 `--package-source`; skip that step unless you are testing a local c15t checkout.

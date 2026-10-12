@@ -3,6 +3,7 @@ import { extname, join } from 'node:path';
 import { Node, SyntaxKind } from 'ts-morph';
 import type * as TsMorphTypes from 'ts-morph';
 
+import { withC15tRelease } from '../../generate/release.ts';
 import {
 	declaresTailwind3,
 	dependenciesOf,
@@ -898,7 +899,7 @@ export const runPackagesToC15tCodemod = async function runPackagesToC15tCodemod(
 			...(result.warnings ?? []),
 			{
 				filePath: join(options.projectRoot, 'package.json'),
-				message: `package.json lists ${listed} without c15t 3, so their imports were left as they are. Replace them with c15t@alpha and run packages-to-c15t again to point them at c15t/react or c15t/next.`,
+				message: `package.json lists ${listed} without c15t 3, so their imports were left as they are. Replace them with ${withC15tRelease('c15t')} and run packages-to-c15t again to point them at c15t/react or c15t/next.`,
 			},
 		];
 	}

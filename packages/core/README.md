@@ -39,7 +39,7 @@ c15t is used by [2,100+ sites](https://www.wappalyzer.com/technologies/cookie-co
 ## Installation
 
 ```bash
-pnpm add @c15t/core@alpha
+pnpm add @c15t/core
 ```
 
 The [`c15t`](https://www.npmjs.com/package/c15t) package ships the same engine at `c15t` and `c15t/runtime`, plus every framework adapter.

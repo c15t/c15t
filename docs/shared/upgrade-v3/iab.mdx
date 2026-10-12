@@ -15,8 +15,8 @@ the CMP doesn't mount, so there is no `__tcfapi` and no TC string.
 `@c15t/iab` no longer exports `createIABManager`, `decodeTCString`,
 `generateTCString` or `c15tToIabPurposes`. Use `createIAB({ kernel, cmpId })`,
 which returns a handle with `generateTCString()`, `acceptAll()`, `rejectAll()`
-and `save()`. If your app depends on `@c15t/iab` directly, upgrade it to
-`@c15t/iab@alpha` too, or your import resolves to the v2 package. Remove it if
+and `save()`. If your app depends on `@c15t/iab` directly, upgrade it to v3
+too, on the same release as `c15t`. Remove it if
 `IABProvider` now covers everything you used it for.
 
 Server integrations now send a reference to the Global Vendor List instead of

@@ -41,7 +41,7 @@ c15t is used by [2,100+ sites](https://www.wappalyzer.com/technologies/cookie-co
 ## Installation
 
 ```bash
-pnpm add c15t@alpha @astrojs/svelte svelte @astrojs/node
+pnpm add c15t @astrojs/svelte svelte @astrojs/node
 ```
 
 The `c15t` package re-exports this package at `c15t/astro`, and the docs use that path. For React or Vue dialogs, install `@astrojs/react react react-dom` or `@astrojs/vue vue` instead of Svelte. `@astrojs/node` is the server adapter in the example below. Use your host's adapter instead, or leave it out for static output.

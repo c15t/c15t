@@ -47,7 +47,7 @@ test('the umbrella bundle covers every framework directory', () => {
 test('package skills link only to pages in the bundle', () => {
 	const skill = renderPackageSkill(
 		'@c15t/vue',
-		{ install: '`npm install c15t@alpha`', topic: 'the project is a Vue app' },
+		{ install: '`npm install c15t`', topic: 'the project is a Vue app' },
 		new Set([
 			'concepts/choose-your-setup.md',
 			'frameworks/vue/quickstart.md',
@@ -61,7 +61,7 @@ test('package skills link only to pages in the bundle', () => {
 	expect(skill).not.toContain('frameworks/next/');
 	expect(skill).not.toContain('troubleshooting.md');
 	expect(skill).toContain('Not recommended for production environments.');
-	expect(skill).toContain('`npm install c15t@alpha`');
+	expect(skill).toContain('`npm install c15t`');
 });
 
 test('skills fit the package they ship in', () => {
@@ -78,7 +78,7 @@ test('skills fit the package they ship in', () => {
 
 	const next = renderPackageSkill(
 		'@c15t/nextjs',
-		{ install: '`npm install c15t@alpha`', topic: 'Next.js', umbrella: true },
+		{ install: '`npm install c15t`', topic: 'Next.js', umbrella: true },
 		new Set()
 	);
 	expect(next).toContain('New apps install `c15t`');
@@ -87,7 +87,7 @@ test('skills fit the package they ship in', () => {
 test('the umbrella skill names the package instead of repeating c15t', () => {
 	const skill = renderPackageSkill(
 		'c15t',
-		{ install: '`npm install c15t@alpha`', topic: 'the project uses c15t' },
+		{ install: '`npm install c15t`', topic: 'the project uses c15t' },
 		new Set()
 	);
 	expect(skill).toContain('\n# c15t (umbrella package)\n');

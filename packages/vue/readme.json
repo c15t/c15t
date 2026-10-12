@@ -17,9 +17,9 @@
 	],
 	"manualInstallation": [
 		"",
-		"```bash\npnpm add c15t@alpha\n```",
+		"```bash\npnpm add c15t\n```",
 		"",
-		"The `c15t` package re-exports this package at `c15t/vue`, and the docs use that path. To install this package on its own, run `pnpm add @c15t/vue@alpha` and import from `@c15t/vue` instead."
+		"The `c15t` package re-exports this package at `c15t/vue`, and the docs use that path. To install this package on its own, run `pnpm add @c15t/vue` and import from `@c15t/vue` instead."
 	],
 	"usage": [
 		"**Nuxt**: register the module and set `NUXT_PUBLIC_C15T_BACKEND_URL` to your Inth backend URL",

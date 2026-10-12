@@ -31,12 +31,12 @@ Copy the container ID, which starts with `GTM-`, from your GTM workspace.
 Remove the existing GTM snippet, its `<noscript>` iframe and any framework
 plugin that loads the same container.
 
-| Package manager | Command                                |
-| :-------------- | :------------------------------------- |
-| npm             | `npm install @c15t/integrations@alpha` |
-| pnpm            | `pnpm add @c15t/integrations@alpha`    |
-| yarn            | `yarn add @c15t/integrations@alpha`    |
-| bun             | `bun add @c15t/integrations@alpha`     |
+| Package manager | Command                          |
+| :-------------- | :------------------------------- |
+| npm             | `npm install @c15t/integrations` |
+| pnpm            | `pnpm add @c15t/integrations`    |
+| yarn            | `yarn add @c15t/integrations`    |
+| bun             | `bun add @c15t/integrations`     |
 
 ```ts title="src/consent-scripts.ts"
 import { googleTagManager } from '@c15t/integrations/google-tag-manager';

@@ -25,12 +25,12 @@ Copy the pixel ID from the conversions tab in OpenAI Ads Manager. Remove the
 standalone OpenAI installation snippet, because the helper creates the `oaiq`
 queue and initializes the pixel itself.
 
-| Package manager | Command                                |
-| :-------------- | :------------------------------------- |
-| npm             | `npm install @c15t/integrations@alpha` |
-| pnpm            | `pnpm add @c15t/integrations@alpha`    |
-| yarn            | `yarn add @c15t/integrations@alpha`    |
-| bun             | `bun add @c15t/integrations@alpha`     |
+| Package manager | Command                          |
+| :-------------- | :------------------------------- |
+| npm             | `npm install @c15t/integrations` |
+| pnpm            | `pnpm add @c15t/integrations`    |
+| yarn            | `yarn add @c15t/integrations`    |
+| bun             | `bun add @c15t/integrations`     |
 
 ```ts title="src/consent-scripts.ts"
 import { openaiPixel } from '@c15t/integrations/openai-pixel';

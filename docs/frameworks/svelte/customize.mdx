@@ -45,7 +45,7 @@ tokens and the page has no `<style id="c15t-theme">`.
 
 If your tokens come from data at runtime, `generateThemeCSS(theme)` from
 `@c15t/ui/theme` turns a theme object into the same CSS. Install
-`@c15t/ui@alpha` to use it, put the result in a `<style id="c15t-theme">`
+`@c15t/ui` to use it, put the result in a `<style id="c15t-theme">`
 element, and expect the generator to add to your bundle. Its selectors outrank
 the stock defaults, so the element works wherever it sits. They also outrank
 a plain `:root` rule of your own, so if you mix both, write your overrides on

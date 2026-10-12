@@ -112,8 +112,8 @@ Lead installation with `c15t` and use its actual exports: `c15t/react`,
 headless engine. The installed package name is `c15t`, not the import subpath.
 Use separate packages only for adapters and add-ons absent from its export map.
 Svelte currently requires `@c15t/svelte`, and the HTML script tag uses
-`@c15t/browser`. Install commands pin c15t packages to `@alpha` while npm
-`latest` is v2; `scripts/docs-validation.test.ts` enforces it. Never invent an umbrella
+`@c15t/browser`. Install commands use bare c15t package names, with no dist-tag;
+`scripts/docs-validation.test.ts` enforces it. Never invent an umbrella
 subpath or mechanically replace provider names across adapters.
 Migration pages may show old APIs only in clearly labelled before examples.
 

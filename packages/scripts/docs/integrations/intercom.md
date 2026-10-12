@@ -21,12 +21,12 @@ Copy the app ID from your Intercom installation snippet, where it is set as
 `app_id`. If your workspace is hosted in the EU or Australia, also set
 `apiBase`.
 
-| Package manager | Command                                |
-| :-------------- | :------------------------------------- |
-| npm             | `npm install @c15t/integrations@alpha` |
-| pnpm            | `pnpm add @c15t/integrations@alpha`    |
-| yarn            | `yarn add @c15t/integrations@alpha`    |
-| bun             | `bun add @c15t/integrations@alpha`     |
+| Package manager | Command                          |
+| :-------------- | :------------------------------- |
+| npm             | `npm install @c15t/integrations` |
+| pnpm            | `pnpm add @c15t/integrations`    |
+| yarn            | `yarn add @c15t/integrations`    |
+| bun             | `bun add @c15t/integrations`     |
 
 ```ts title="src/consent-scripts.ts"
 import { intercom } from '@c15t/integrations/intercom';

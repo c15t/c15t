@@ -66,7 +66,7 @@ The frontend code is the same for Inth and a self-hosted backend. Only the backe
 ## Installation
 
 ```bash
-pnpm add c15t@alpha @c15t/integrations@alpha
+pnpm add c15t @c15t/integrations
 ```
 
 `@c15t/integrations` has the vendor loaders, such as PostHog in the example below. Leave it out if you load no third-party scripts.

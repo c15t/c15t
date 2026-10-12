@@ -122,11 +122,10 @@ test('framework sidebars follow the shared group template', async () => {
 });
 
 /**
- * v3 is published under the `alpha` dist-tag while `latest` is still v2.
- * Set this to `undefined` when v3 becomes `latest`, then drop the tags.
+ * v3 is npm `latest`, so c15t install commands use bare package names. A
+ * major-version pin such as `c15t@3` is allowed where a page shows what the
+ * CLI installs; dist-tags such as `@alpha` are not.
  */
-const installTag: string | undefined = 'alpha';
-
 test('c15t install commands select the documented release', async () => {
 	const files = await fg('**/*.mdx', { cwd: docsRoot });
 	const wrong: string[] = [];
@@ -140,9 +139,8 @@ test('c15t install commands select the documented release', async () => {
 				if (!/^(?:c15t|@c15t\/.+)$/u.test(bare)) {
 					continue;
 				}
-				const expected = installTag ? `${bare}@${installTag}` : bare;
-				if (name !== expected) {
-					wrong.push(`${file}: ${name} (expected ${expected})`);
+				if (name !== bare && !/^\d+$/u.test(name.slice(bare.length + 1))) {
+					wrong.push(`${file}: ${name} (expected ${bare})`);
 				}
 			}
 		}
@@ -166,9 +164,9 @@ test('installation tabs flatten to usable umbrella-package commands', async () =
 		resolve(docsRoot, 'frameworks/react/quickstart.mdx'),
 		[remarkInclude, ...defaultRemarkPlugins]
 	);
-	expect(markdown).toContain(`npm install c15t@${installTag}`);
-	expect(markdown).toContain(`pnpm add c15t@${installTag}`);
-	expect(markdown).toContain(`bun add c15t@${installTag}`);
+	expect(markdown).toContain('npm install c15t');
+	expect(markdown).toContain('pnpm add c15t');
+	expect(markdown).toContain('bun add c15t');
 	expect(markdown).toContain("from 'c15t/react'");
 	expect(markdown).not.toContain('CommandTabs');
 	expect(markdown).not.toContain('package-install');

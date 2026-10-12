@@ -10,7 +10,7 @@
 		"",
 		"The framework packages (`c15t/react`, `c15t/vue`, `c15t/astro`, `@c15t/svelte`) depend on this package and re-export its stylesheets. Install it directly only to build your own adapter:",
 		"",
-		"```bash\npnpm add @c15t/ui@alpha\n```"
+		"```bash\npnpm add @c15t/ui\n```"
 	],
 	"docsLink": "https://c15t.com/docs/customization/tokens",
 	"showCLIGeneration": false

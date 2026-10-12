@@ -43,18 +43,18 @@ Paste before `</head>`, with the backend URL from your Inth project:
 
 ```html
 <script
-  src="https://cdn.jsdelivr.net/npm/@c15t/browser@alpha/dist/c15t.js"
+  src="https://cdn.jsdelivr.net/npm/@c15t/browser/dist/c15t.js"
   data-backend-url="YOUR_INTH_BACKEND_URL"
   defer
 ></script>
 ```
 
-Replace `@alpha` with an exact version for production. The default `c15t.js` requires a backend URL. Load `dist/c15t.offline.js` for offline mode or `dist/c15t.headless.js` for the runtime without any UI.
+A URL without a version loads the newest release, so pin an exact version, such as `@c15t/browser@3.0.0`, in production. The default `c15t.js` requires a backend URL. Load `dist/c15t.offline.js` for offline mode or `dist/c15t.headless.js` for the runtime without any UI.
 
 For bundled apps:
 
 ```bash
-npm install @c15t/browser@alpha
+npm install @c15t/browser
 ```
 
 ## Usage

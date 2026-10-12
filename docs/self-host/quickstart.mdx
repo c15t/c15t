@@ -16,7 +16,7 @@ hosted mode. Only the backend URL changes.
 
 ## Install the backend
 
-<CommandTabs command="@c15t/backend@alpha" mode="install" />
+<CommandTabs command="@c15t/backend" mode="install" />
 
 Also install the driver for your database. The backend declares each driver as
 an optional peer dependency pinned to one version; install that version.
@@ -53,8 +53,8 @@ covers rules for other regions.
 Run the migration with the same configuration the server uses:
 
 ```bash
-npx @c15t/cli@alpha self-host migrate --config ./c15t-backend.config.ts --plan
-npx @c15t/cli@alpha self-host migrate --config ./c15t-backend.config.ts --apply
+npx @c15t/cli self-host migrate --config ./c15t-backend.config.ts --plan
+npx @c15t/cli self-host migrate --config ./c15t-backend.config.ts --apply
 ```
 
 Review the plan before you apply it, and back up an existing database first.

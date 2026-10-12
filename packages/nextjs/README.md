@@ -43,7 +43,7 @@ c15t is used by [2,100+ sites](https://www.wappalyzer.com/technologies/cookie-co
 ## Installation
 
 ```bash
-pnpm add @c15t/nextjs@alpha
+pnpm add @c15t/nextjs
 ```
 
 Then add the prebuilt stylesheet to your app-level CSS entry point:

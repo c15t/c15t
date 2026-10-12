@@ -12,7 +12,7 @@ Run setup from the app directory with your Inth backend URL. Replace
 any path prefix:
 
 ```bash
-npx @c15t/cli@alpha setup hosted --backend-url https://your-project.inth.app --plan --json
+npx @c15t/cli setup hosted --backend-url https://your-project.inth.app --plan --json
 ```
 
 `--plan` writes nothing and installs nothing. The JSON result lists each file
@@ -29,7 +29,7 @@ platform. To choose a project from your Inth account instead, sign in with
 When the plan looks right, apply it:
 
 ```bash
-npx @c15t/cli@alpha setup hosted --backend-url https://your-project.inth.app --apply
+npx @c15t/cli setup hosted --backend-url https://your-project.inth.app --apply
 ```
 
 For a Next.js App Router app, setup adds a client provider component under
@@ -37,10 +37,10 @@ For a Next.js App Router app, setup adds a client provider component under
 The provider renders the stock banner and preferences dialog.
 
 Setup installs the c15t packages it needs, such as `c15t` and
-`@c15t/integrations`, from the CLI's own release line, so `@c15t/cli@alpha`
-installs `c15t@alpha`. It keeps packages
-that are already in `package.json`. Add `--skip-install` when your workspace
-tooling installs dependencies, and install `c15t@alpha` yourself.
+`@c15t/integrations`, from the CLI's own release line, so the v3 CLI installs
+`c15t@3`. It keeps packages that are already in `package.json`. Add
+`--skip-install` when your workspace tooling installs dependencies, and install
+`c15t` yourself.
 
 Setup refuses to overwrite a generated component that you have edited. To
 change an existing integration, edit its files rather than running setup again.
@@ -48,7 +48,7 @@ change an existing integration, edit its files rather than running setup again.
 ## Answer prompts instead
 
 ```bash
-npx @c15t/cli@alpha setup
+npx @c15t/cli setup
 ```
 
 In a terminal, setup asks for the backend mode, UI style, theme and scripts.
@@ -60,11 +60,11 @@ missing values. See [setup](./commands/setup.md) for every flag.
 Let your installed Codex CLI adapt the integration to an existing application:
 
 ```bash
-npx @c15t/cli@alpha setup --codex hosted --backend-url https://your-project.inth.app
+npx @c15t/cli setup --codex hosted --backend-url https://your-project.inth.app
 ```
 
 Replace the URL with your Inth project's backend URL. The agent receives the
-c15t v3 frontend task, installs required packages from `@alpha`, and reads their
+c15t v3 frontend task, installs the required v3 packages, and reads their
 bundled docs. Add `--plan` to inspect the prompt before launching Codex. See
 [agent setup](./automation.md#agent-setup-and-v3-migration-workflow).
 

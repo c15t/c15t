@@ -16,12 +16,12 @@ register with your c15t provider. Importing a helper installs nothing on its
 own. Set up consent with your [framework quickstart](https://v3.c15t.com/docs/frameworks) first,
 then follow the vendor guide.
 
-| Package manager | Command                                |
-| :-------------- | :------------------------------------- |
-| npm             | `npm install @c15t/integrations@alpha` |
-| pnpm            | `pnpm add @c15t/integrations@alpha`    |
-| yarn            | `yarn add @c15t/integrations@alpha`    |
-| bun             | `bun add @c15t/integrations@alpha`     |
+| Package manager | Command                          |
+| :-------------- | :------------------------------- |
+| npm             | `npm install @c15t/integrations` |
+| pnpm            | `pnpm add @c15t/integrations`    |
+| yarn            | `yarn add @c15t/integrations`    |
+| bun             | `bun add @c15t/integrations`     |
 
 `@c15t/integrations` is a separate package. Keep importing c15t itself from `c15t`,
 for example `c15t/react` or `c15t/next`.

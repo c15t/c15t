@@ -3,6 +3,7 @@ import { join } from 'node:path';
 
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { withC15tRelease } from '../../generate/release.ts';
 import { cleanupProjects, createProject } from './__tests__/helpers';
 import { runCssVariablesToV3Codemod as cssVariables } from './css-variables-to-v3';
 import { runPackagesToC15tCodemod as codemod } from './packages-to-c15t';
@@ -1465,8 +1466,7 @@ import 'c15t/react/styles.css';
 		expect(result.warnings).toEqual([
 			{
 				filePath: expect.stringMatching(/package\.json$/u),
-				message:
-					'package.json lists @c15t/react without c15t 3, so their imports were left as they are. Replace them with c15t@alpha and run packages-to-c15t again to point them at c15t/react or c15t/next.',
+				message: `package.json lists @c15t/react without c15t 3, so their imports were left as they are. Replace them with ${withC15tRelease('c15t')} and run packages-to-c15t again to point them at c15t/react or c15t/next.`,
 			},
 		]);
 	});
@@ -1502,8 +1502,7 @@ const path = require.resolve('@c15t/react/iab/styles.tw3.css');
 		expect(result.warnings).toEqual([
 			{
 				filePath: expect.stringMatching(/package\.json$/u),
-				message:
-					'package.json lists @c15t/react without c15t 3, so their imports were left as they are. Replace them with c15t@alpha and run packages-to-c15t again to point them at c15t/react or c15t/next.',
+				message: `package.json lists @c15t/react without c15t 3, so their imports were left as they are. Replace them with ${withC15tRelease('c15t')} and run packages-to-c15t again to point them at c15t/react or c15t/next.`,
 			},
 		]);
 	});

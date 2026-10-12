@@ -28,12 +28,12 @@ Copy the tag ID, for example `G-XXXXXXXXXX` for Google Analytics or
 `AW-XXXXXXXXX` for Google Ads. Remove any `gtag.js` snippet already in your
 HTML and any tag-manager entry that loads the same tag.
 
-| Package manager | Command                                |
-| :-------------- | :------------------------------------- |
-| npm             | `npm install @c15t/integrations@alpha` |
-| pnpm            | `pnpm add @c15t/integrations@alpha`    |
-| yarn            | `yarn add @c15t/integrations@alpha`    |
-| bun             | `bun add @c15t/integrations@alpha`     |
+| Package manager | Command                          |
+| :-------------- | :------------------------------- |
+| npm             | `npm install @c15t/integrations` |
+| pnpm            | `pnpm add @c15t/integrations`    |
+| yarn            | `yarn add @c15t/integrations`    |
+| bun             | `bun add @c15t/integrations`     |
 
 ```ts title="src/consent-scripts.ts"
 import { gtag } from '@c15t/integrations/google-tag';
