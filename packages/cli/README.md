@@ -20,6 +20,8 @@
 
 Generate c15t framework quickstarts, preview file edits, and configure supported applications.
 
+c15t is used by [2,100+ sites](https://www.wappalyzer.com/technologies/cookie-compliance/c15t/), including expo.dev, zed.dev, unkey.dev, mintlify.com, and sazabi.com.
+
 ## Key Features
 
 - V3 quickstart files for Next.js, Nuxt, TanStack Start, Astro, React, JavaScript, a script tag, Vue, Svelte, SvelteKit, and Solid
@@ -94,13 +96,19 @@ Disable telemetry by:
 
 ## Documentation
 
-For further information, guides, and examples visit the [reference documentation](https://c15t.com/docs/cli/overview).
+See the [documentation](https://c15t.com/docs/cli/overview) for guides, API reference, and examples.
 
 ## Setup Paths
 
 - **Hosted on inth.com**: Configure a hosted c15t instance
 - **Self-hosted backend**: Generate config and run database migrations for @c15t/backend
 - **Offline mode**: Generate browser-only consent setup for demos, local development, previews, or static sites
+
+## Docs for AI Agents
+
+This package ships its documentation as Markdown, matched to the installed version. After you install it, point your coding agent at `node_modules/@c15t/cli/AGENTS.md`. It indexes every guide in `node_modules/@c15t/cli/docs/`.
+
+On the web, every page of the [c15t docs](https://c15t.com/docs) has a Markdown version, and [llms.txt](https://c15t.com/docs/llms.txt) lists them all. Install the c15t agent skills with `npx skills add c15t/skills`.
 
 ## Support
 
@@ -111,26 +119,16 @@ For further information, guides, and examples visit the [reference documentation
 
 ## Contributing
 
-- We're open to all community contributions.
-- Read our [Contribution Guidelines](https://c15t.com/docs/oss/contributing)
-- Review our [Code of Conduct](https://c15t.com/docs/oss/code-of-conduct)
-- Fork the repository
-- Create a new branch for your feature
-- Submit a pull request
-- **All contributions, big or small, are welcome and appreciated.**
+- Read the [contribution guidelines](https://c15t.com/docs/oss/contributing) before you open a pull request
+- Follow the [code of conduct](https://c15t.com/docs/oss/code-of-conduct)
 
 ## Security
 
-If you believe you have found a security vulnerability in c15t, we encourage you to **_responsibly disclose this and NOT open a public issue_**. We will investigate all legitimate reports.
+Do not open a public issue for a security vulnerability. Report it privately through [GitHub's vulnerability reporting](https://github.com/c15t/c15t/security/advisories/new). We examine every valid report.
 
-Our preference is that you make use of GitHub's private vulnerability reporting feature to disclose potential security vulnerabilities in our open-source software. To do this, please visit [https://github.com/c15t/c15t/security](https://github.com/c15t/c15t/security) and click the "Report a vulnerability" button.
-
-### Security Policy
-
-- Please do not share security vulnerabilities in public forums, issues, or pull requests
-- Provide detailed information about the potential vulnerability
-- Allow reasonable time for us to address the issue before any public disclosure
-- We are committed to addressing security concerns promptly and transparently
+- Do not share the vulnerability in public forums, issues, or pull requests
+- Give the steps to reproduce it and the versions it affects
+- Give us time to release a fix before you disclose it
 
 ## License
 

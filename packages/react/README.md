@@ -7,7 +7,7 @@
   </a>
 </p>
 
-# @c15t/react: React Consent Components
+# @c15t/react: React Cookie Banner and Consent Components
 
 <p>
 <a href="https://www.npmjs.com/package/@c15t/react"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/npm/%40c15t%2Freact.svg?variant=outline&mode=dark"><img src="https://shieldcn.dev/npm/%40c15t%2Freact.svg?variant=outline&mode=light" alt="Latest NPM Version"></picture></a>
@@ -18,69 +18,46 @@
 <a href="https://inth.com?utm_source=npm&utm_medium=readme&utm_campaign=oss_readme&utm_content=%40c15t%2Freact"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/badge/Made%20By-Inth-ffc803.svg?color=ffc803&labelTextColor=000000&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGZpbGw9Im5vbmUiIHZpZXdCb3g9IjAgMCAzOTMgNDAwIj48cGF0aCBmaWxsPSIjMDAwIiBkPSJNMTgyLjY2MiAwdjM2Ljg5NWgtNTkuMDMxdjgyLjczM2g1OS4wMzF2MzYuODkzSDI3LjQ4MnYtMzYuODkzaDU5LjAzVjM2Ljg5NWgtNTkuMDNWMHpNMzIxLjk0MSA4OS44NVYwaDM1LjM1NXYxNTYuNTIxaC0yNS43MTNsLTg2LjEzNy05MC4zNjR2OTAuMzY0aC0zNS4zNTVWMGgyNi4zNTV6Ii8%2BPHBhdGggZmlsbD0iIzAwMCIgZmlsbC1ydWxlPSJldmVub2RkIiBkPSJNMzE4LjU3MSAxODUuNzE0aDc0LjI4NlY0MDBIMFYxODUuNzE0aDI3Mi44NTd2LTQ3LjE0M3ptLTI5MS4wOSAyOC45Njl2MzcuMTE4aDU4LjEzN3YxMTkuNjI4aDM2Ljg5NVYyNTEuODAxaDU4LjU4NHYtMzcuMTE4em0xODIuNjEuMjI0djE1Ni41MjJoMzYuODk0VjMxMy41OWg3My4zNDF2NTcuODM5aDM3LjExOFYyMTQuOTA3aC0zNy4xMTh2NjEuNzg4aC03My4zNDF2LTYxLjc4OHoiIGNsaXAtcnVsZT0iZXZlbm9kZCIvPjwvc3ZnPg%3D%3D&valueColor=000000&mode=dark"><img src="https://shieldcn.dev/badge/Made%20By-Inth-ffc803.svg?color=ffc803&labelTextColor=000000&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGZpbGw9Im5vbmUiIHZpZXdCb3g9IjAgMCAzOTMgNDAwIj48cGF0aCBmaWxsPSIjMDAwIiBkPSJNMTgyLjY2MiAwdjM2Ljg5NWgtNTkuMDMxdjgyLjczM2g1OS4wMzF2MzYuODkzSDI3LjQ4MnYtMzYuODkzaDU5LjAzVjM2Ljg5NWgtNTkuMDNWMHpNMzIxLjk0MSA4OS44NVYwaDM1LjM1NXYxNTYuNTIxaC0yNS43MTNsLTg2LjEzNy05MC4zNjR2OTAuMzY0aC0zNS4zNTVWMGgyNi4zNTV6Ii8%2BPHBhdGggZmlsbD0iIzAwMCIgZmlsbC1ydWxlPSJldmVub2RkIiBkPSJNMzE4LjU3MSAxODUuNzE0aDc0LjI4NlY0MDBIMFYxODUuNzE0aDI3Mi44NTd2LTQ3LjE0M3ptLTI5MS4wOSAyOC45Njl2MzcuMTE4aDU4LjEzN3YxMTkuNjI4aDM2Ljg5NVYyNTEuODAxaDU4LjU4NHYtMzcuMTE4em0xODIuNjEuMjI0djE1Ni41MjJoMzYuODk0VjMxMy41OWg3My4zNDF2NTcuODM5aDM3LjExOFYyMTQuOTA3aC0zNy4xMTh2NjEuNzg4aC03My4zNDF2LTYxLjc4OHoiIGNsaXAtcnVsZT0iZXZlbm9kZCIvPjwvc3ZnPg%3D%3D&valueColor=000000&mode=light" alt="Made by Inth"></picture></a>
 </p>
 
-React cookie banner, consent manager, preference center, and headless CMP components for modern React apps.
+React cookie banner, consent dialog, and preference center for React 18 and 19, with headless hooks when you want your own design.
+
+c15t is used by [2,100+ sites](https://www.wappalyzer.com/technologies/cookie-compliance/c15t/), including expo.dev, zed.dev, unkey.dev, mintlify.com, and sazabi.com.
 
 ## Key Features
 
-- Works with React 19, 18, 17, and 16.8
-- Full 'use client' support for React Server Components
-- Prebuilt and fully customizable cookie banner, consent dialog, and preference center UI
-- Headless hooks for custom consent flows
-- Minimal configuration with TypeScript-first design
-- Comprehensive Consent Management Platform (CMP)
-- IAB TCF 2.4 UI and hooks through the @c15t/react/iab subpath
-- Google Tag Manager, Google Consent Mode v2, Meta Pixel, and analytics integrations through @c15t/integrations
-- Built-in internationalization support
-- Seamless consent storage and tracking
+- Works with React 18 and 19, including React Server Components through 'use client' entry points
+- Prebuilt cookie banner, consent dialog, and preference center with a theme system
+- Headless hooks and compound components for a fully custom design
+- Analytics, ads, and pixels follow each visitor's choice through @c15t/integrations: Google Tag Manager, Google Consent Mode v2, GA4, Meta Pixel, PostHog, and more
+- IAB TCF 2.4 banner, dialog, and hooks through the @c15t/react/iab subpath
+- Translations for 35 languages through @c15t/translations
 
 ## Prerequisites
 
-- React 16.8 or later
+- React 18 or 19
 - Node.js 20.19 or later
-- A hosted [c15t instance](https://inth.com) (free sign-up), [self-hosted deployment](https://c15t.com/docs/self-host/quickstart), or offline mode for local-only storage
+- An [Inth project](https://inth.com) (free sign-up), a [self-hosted backend](https://c15t.com/docs/self-host/quickstart), or offline mode for local development
 
-## Quick Start
-
-Easiest setup with @c15t/cli:
-
-```bash
-# Set up c15t in your project
-pnpm dlx @c15t/cli setup
-# Alternatives:
-# npx @c15t/cli setup
-# bunx --bun @c15t/cli setup
-```
-
-The CLI will:
-
-- Install necessary packages
-- Configure your c15t instance
-- Set up environment variables
-- Add consent management components to your app
-
-## Manual Installation
+## Installation
 
 ```bash
 pnpm add @c15t/react
 ```
 
-Then add the prebuilt stylesheet to your app-level CSS entrypoint:
+Then add the prebuilt stylesheet to your app-level CSS entry point:
 
 ```css
 /* src/index.css */
 @import "@c15t/react/styles.css";
 ```
 
-If you use the prebuilt IAB TCF UI, also import `@c15t/react/iab/styles.css`. It is published separately so non-IAB apps do not ship those component rules.
+If you use the prebuilt IAB TCF UI, also import `@c15t/react/iab/styles.css`. It is published separately so apps without IAB do not ship those styles.
 
-To manually install, follow the [quickstart](https://c15t.com/docs/frameworks/react/quickstart).
+Using several c15t packages? Install [`c15t`](https://www.npmjs.com/package/c15t) and import `c15t/react` instead. It is the same code.
 
 ## Usage
 
 1. Wrap your app in `ConsentProvider` with the backend URL from your Inth project
 2. Render `ConsentBanner`, `ConsentDialog` and `ConsentDialogLink` inside the provider, and mount it once for the life of the app
-3. Customize styling and behavior to fit your app
-4. For full implementation details, see the [React quickstart docs](https://c15t.com/docs/frameworks/react/quickstart)
 
 ```tsx
 // src/consent.tsx
@@ -105,23 +82,27 @@ export const Consent = ({ children }: { children: ReactNode }) => (
 )
 ```
 
+3. For the full setup, see the [React quickstart](https://c15t.com/docs/frameworks/react/quickstart)
+
+## Hosting
+
+c15t needs somewhere to keep policies and consent records. Pick one:
+
+- **Hosted on [Inth](https://inth.com?utm_source=npm&utm_medium=readme&utm_campaign=oss_readme&utm_content=%40c15t%2Freact)**: Inth runs the backend for you. You get policy storage, consent records, audit history, and a dashboard, with no database or server to run. Sign-up is free.
+- **Self-hosted**: Run [`@c15t/backend`](https://www.npmjs.com/package/@c15t/backend) on your own server with PostgreSQL, MySQL, or SQLite. You own migrations, backups, and uptime. See the [self-hosting guide](https://c15t.com/docs/self-host/quickstart).
+- **Offline**: Choices stay in the browser, with no consent records. Use it for local development, previews, and demos, not production.
+
+The frontend code is the same for Inth and a self-hosted backend. Only the backend URL changes.
+
 ## Documentation
 
-For further information, guides, and examples visit the [reference documentation](https://c15t.com/docs/frameworks/react/quickstart).
+See the [documentation](https://c15t.com/docs/frameworks/react/quickstart) for guides, API reference, and examples.
 
-## Deployment Modes
+## Docs for AI Agents
 
-- **Hosted on inth.com**: Hosted c15t backend for policy storage, audit history, and hosted infrastructure
-- **Self-hosted backend**: Use @c15t/backend when you need full infrastructure control
-- **Offline mode**: Browser-only consent storage for local development, demos, previews, static sites, or fallback scenarios
+This package ships its documentation as Markdown, matched to the installed version. After you install it, point your coding agent at `node_modules/@c15t/react/AGENTS.md`. It indexes every guide in `node_modules/@c15t/react/docs/`.
 
-## Popular Integrations
-
-- Google Tag Manager with Google Consent Mode v2
-- Google Analytics 4 and Google Ads through gtag.js
-- Meta Pixel, TikTok Pixel, LinkedIn Insights, Microsoft UET, X Pixel, Reddit Pixel, and Snapchat Pixel
-- PostHog, Segment, Mixpanel, Microsoft Clarity, Hotjar, Plausible, Fathom, Matomo, Umami, and Vercel Analytics
-- Intercom and Crisp chat widgets
+On the web, every page of the [c15t docs](https://c15t.com/docs) has a Markdown version, and [llms.txt](https://c15t.com/docs/llms.txt) lists them all. Install the c15t agent skills with `npx skills add c15t/skills`.
 
 ## Support
 
@@ -132,26 +113,16 @@ For further information, guides, and examples visit the [reference documentation
 
 ## Contributing
 
-- We're open to all community contributions.
-- Read our [Contribution Guidelines](https://c15t.com/docs/oss/contributing)
-- Review our [Code of Conduct](https://c15t.com/docs/oss/code-of-conduct)
-- Fork the repository
-- Create a new branch for your feature
-- Submit a pull request
-- **All contributions, big or small, are welcome and appreciated.**
+- Read the [contribution guidelines](https://c15t.com/docs/oss/contributing) before you open a pull request
+- Follow the [code of conduct](https://c15t.com/docs/oss/code-of-conduct)
 
 ## Security
 
-If you believe you have found a security vulnerability in c15t, we encourage you to **_responsibly disclose this and NOT open a public issue_**. We will investigate all legitimate reports.
+Do not open a public issue for a security vulnerability. Report it privately through [GitHub's vulnerability reporting](https://github.com/c15t/c15t/security/advisories/new). We examine every valid report.
 
-Our preference is that you make use of GitHub's private vulnerability reporting feature to disclose potential security vulnerabilities in our open-source software. To do this, please visit [https://github.com/c15t/c15t/security](https://github.com/c15t/c15t/security) and click the "Report a vulnerability" button.
-
-### Security Policy
-
-- Please do not share security vulnerabilities in public forums, issues, or pull requests
-- Provide detailed information about the potential vulnerability
-- Allow reasonable time for us to address the issue before any public disclosure
-- We are committed to addressing security concerns promptly and transparently
+- Do not share the vulnerability in public forums, issues, or pull requests
+- Give the steps to reproduce it and the versions it affects
+- Give us time to release a fix before you disclose it
 
 ## License
 

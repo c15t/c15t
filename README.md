@@ -16,111 +16,193 @@
   <a href="https://inth.com?utm_source=github&utm_medium=repo_homepage"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/badge/Made%20By-Inth-ffc803.svg?size=xs&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGZpbGw9Im5vbmUiIHZpZXdCb3g9IjAgMCAzOTMgNDAwIj48cGF0aCBmaWxsPSIjMDAwIiBkPSJNMTgyLjY2MiAwdjM2Ljg5NWgtNTkuMDMxdjgyLjczM2g1OS4wMzF2MzYuODkzSDI3LjQ4MnYtMzYuODkzaDU5LjAzVjM2Ljg5NWgtNTkuMDNWMHpNMzIxLjk0MSA4OS44NVYwaDM1LjM1NXYxNTYuNTIxaC0yNS43MTNsLTg2LjEzNy05MC4zNjR2OTAuMzY0aC0zNS4zNTVWMGgyNi4zNTV6Ii8%2BPHBhdGggZmlsbD0iIzAwMCIgZmlsbC1ydWxlPSJldmVub2RkIiBkPSJNMzE4LjU3MSAxODUuNzE0aDc0LjI4NlY0MDBIMFYxODUuNzE0aDI3Mi44NTd2LTQ3LjE0M3ptLTI5MS4wOSAyOC45Njl2MzcuMTE4aDU4LjEzN3YxMTkuNjI4aDM2Ljg5NVYyNTEuODAxaDU4LjU4NHYtMzcuMTE4em0xODIuNjEuMjI0djE1Ni41MjJoMzYuODk0VjMxMy41OWg3My4zNDF2NTcuODM5aDM3LjExOFYyMTQuOTA3aC0zNy4xMTh2NjEuNzg4aC03My4zNDF2LTYxLjc4OHoiIGNsaXAtcnVsZT0iZXZlbm9kZCIvPjwvc3ZnPg%3D%3D&color=ffc803&labelTextColor=000000&valueColor=000000&mode=dark"><img src="https://shieldcn.dev/badge/Made%20By-Inth-ffc803.svg?size=xs&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGZpbGw9Im5vbmUiIHZpZXdCb3g9IjAgMCAzOTMgNDAwIj48cGF0aCBmaWxsPSIjMDAwIiBkPSJNMTgyLjY2MiAwdjM2Ljg5NWgtNTkuMDMxdjgyLjczM2g1OS4wMzF2MzYuODkzSDI3LjQ4MnYtMzYuODkzaDU5LjAzVjM2Ljg5NWgtNTkuMDNWMHpNMzIxLjk0MSA4OS44NVYwaDM1LjM1NXYxNTYuNTIxaC0yNS43MTNsLTg2LjEzNy05MC4zNjR2OTAuMzY0aC0zNS4zNTVWMGgyNi4zNTV6Ii8%2BPHBhdGggZmlsbD0iIzAwMCIgZmlsbC1ydWxlPSJldmVub2RkIiBkPSJNMzE4LjU3MSAxODUuNzE0aDc0LjI4NlY0MDBIMFYxODUuNzE0aDI3Mi44NTd2LTQ3LjE0M3ptLTI5MS4wOSAyOC45Njl2MzcuMTE4aDU4LjEzN3YxMTkuNjI4aDM2Ljg5NVYyNTEuODAxaDU4LjU4NHYtMzcuMTE4em0xODIuNjEuMjI0djE1Ni41MjJoMzYuODk0VjMxMy41OWg3My4zNDF2NTcuODM5aDM3LjExOFYyMTQuOTA3aC0zNy4xMTh2NjEuNzg4aC03My4zNDF2LTYxLjc4OHoiIGNsaXAtcnVsZT0iZXZlbm9kZCIvPjwvc3ZnPg%3D%3D&color=ffc803&labelTextColor=000000&valueColor=000000&mode=light" alt="Made by Inth"></picture></a>
 </p>
 
-c15t is a developer-first consent management platform (CMP) used by [2,100+ sites](https://www.wappalyzer.com/technologies/cookie-compliance/c15t/), including expo.dev, zed.dev, and unkey.dev. It helps JavaScript, React, and Next.js teams build cookie banners, preference centers, privacy preferences, and fully headless consent flows, with integrations for Google Tag Manager, Google Consent Mode v2, Meta Pixel, IAB TCF 2.4, and more.
+c15t is an open-source consent management platform (CMP) for JavaScript. It gives you a cookie banner, a preference dialog, and consent-gated scripts for React, Next.js, Vue, Nuxt, Svelte, Astro, TanStack Start, and plain HTML.
 
-## Overview
+c15t is used by [2,100+ sites](https://www.wappalyzer.com/technologies/cookie-compliance/c15t/), including expo.dev, zed.dev, unkey.dev, mintlify.com, and sazabi.com.
 
-c15t keeps consent management inside your application stack instead of a black-box third-party snippet. Use the prebuilt UI for cookie banners, consent dialogs, and preference centers, or use the headless APIs to build a fully custom consent experience.
-
-c15t can run with a hosted backend on [inth.com](https://inth.com), a self-hosted consent backend, or offline/local-only mode for development, previews, and static deployments. Hosted and self-hosted modes support durable consent records, backend policy state, audit logs, and server-side visibility.
+**[Docs](https://c15t.com/docs)** · **[Choose your setup](https://c15t.com/docs/concepts/choose-your-setup)** · **[Hosted on Inth](https://inth.com?utm_source=github&utm_medium=repo_homepage)** · **[Discord](https://c15t.link/discord)**
 
 ## Why c15t
 
-- Build cookie banners, consent dialogs, and preference centers for JavaScript, React, and Next.js
-- Use prebuilt UI components, headless hooks, or framework-native primitives
-- Gate analytics, ads, pixels, tag managers, and chat widgets behind consent
-- Support Google Tag Manager and Google Consent Mode v2 without hand-rolling consent updates
-- Manage Meta Pixel and other conversion pixels with marketing consent
-- Add IAB TCF 2.4 support for programmatic advertising workflows
-- Choose hosted on inth.com, a self-hosted backend, or offline mode
+- **Consent lives in your code.** The banner ships in your bundle and renders with your app, not from a third-party snippet that loads after your page.
+- **Analytics, ads, and pixels follow each visitor's choice.** Ready-made loaders cover 40+ vendors, such as Google Tag Manager, GA4, Meta Pixel, and PostHog.
+- **One setup for every region.** Policies decide who sees a banner: opt-in for visitors in the EU, opt-out for some US states, or rules that you write.
+- **On server-rendered pages, the banner is in the first HTML.** Next.js, Nuxt, Astro, TanStack Start, and SvelteKit resolve the policy on the server, so the banner does not appear late.
+- **Standards built in:** Google Consent Mode v2, IAB TCF 2.4, IAB GPP, and Global Privacy Control.
+- **Your design or ours.** Use the prebuilt components with a theme system, or build your own UI on headless hooks and composables.
+- **Your data where you want it.** Keep consent records on Inth, on a backend you run, or in the browser only.
+
+## Supported Frameworks
+
+| Framework | Install | Import from | Quickstart |
+| --- | --- | --- | --- |
+| React 18 and 19 (Vite, React Router) | `c15t` | `c15t/react` | [React](https://c15t.com/docs/frameworks/react/quickstart) |
+| Next.js 15 and 16 (App Router, Pages Router) | `c15t` | `c15t/next` | [Next.js](https://c15t.com/docs/frameworks/next/quickstart) |
+| Vue 3 | `c15t` | `c15t/vue/vue-plugin` | [Vue](https://c15t.com/docs/frameworks/vue/quickstart) |
+| Nuxt 3 and 4 | `c15t` | `c15t/vue` (Nuxt module) | [Nuxt](https://c15t.com/docs/frameworks/nuxt/quickstart) |
+| Astro 5, 6, and 7 | `c15t` | `c15t/astro` | [Astro](https://c15t.com/docs/frameworks/astro/quickstart) |
+| TanStack Start | `c15t` | `c15t/tanstack-start` | [TanStack Start](https://c15t.com/docs/frameworks/tanstack-start/quickstart) |
+| Svelte 5 and SvelteKit | `@c15t/svelte` | `@c15t/svelte` | [Svelte](https://c15t.com/docs/frameworks/svelte/quickstart), [SvelteKit](https://c15t.com/docs/frameworks/sveltekit/quickstart) |
+| JavaScript, headless | `c15t` | `c15t`, `c15t/runtime` | [Headless runtime](https://c15t.com/docs/frameworks/javascript/headless) |
+| Script tag, no build step (Webflow, WordPress, Framer, Squarespace) | `@c15t/browser` | `<script>` from a CDN | [HTML](https://c15t.com/docs/frameworks/html/quickstart) |
+
+## Hosting
+
+c15t needs somewhere to keep policies and consent records. Pick one:
+
+- **Hosted on [Inth](https://inth.com?utm_source=github&utm_medium=repo_homepage)**: Inth runs the backend for you. You get policy storage, consent records, audit history, and a dashboard, with no database or server to run. Sign-up is free.
+- **Self-hosted**: Run [`@c15t/backend`](./packages/backend) on your own server with PostgreSQL, MySQL, or SQLite. You own migrations, backups, and uptime. See the [self-hosting guide](https://c15t.com/docs/self-host/quickstart).
+- **Offline**: Choices stay in the browser, with no consent records. Use it for local development, previews, and demos, not production.
+
+The frontend code is the same for Inth and a self-hosted backend. Only the backend URL changes.
+
+## Example
+
+A Next.js App Router app with the prebuilt banner, the preference dialog, and PostHog held until the visitor allows measurement. Set `NEXT_PUBLIC_C15T_BACKEND_URL` to your Inth backend URL in `.env.local`, then add three files:
+
+```ts
+// next.config.ts
+import { withConsentManifest } from 'c15t/next/build'
+import type { NextConfig } from 'next'
+
+const nextConfig = {} satisfies NextConfig
+
+// Downloads your policy at build time and finds c15t.config.ts
+export default withConsentManifest(nextConfig)
+```
+
+```ts
+// c15t.config.ts
+import { posthog } from '@c15t/integrations/posthog'
+import { defineConsentConfig } from 'c15t/next'
+
+export default defineConsentConfig({
+  scripts: [
+    posthog({
+      id: 'phc_your_project_key',
+      initOptions: { cookieless_mode: 'never' },
+      loadMode: 'after-consent',
+    }),
+  ],
+})
+```
+
+```tsx
+// app/layout.tsx
+import {
+  ConsentBanner,
+  ConsentDialog,
+  ConsentDialogLink,
+  ConsentRoot,
+} from 'c15t/next'
+import { resolveConsent } from 'c15t/next/server'
+import type { ReactNode } from 'react'
+
+import './globals.css'
+
+const RootLayout = ({ children }: { children: ReactNode }) => (
+  <html lang="en">
+    <body>
+      {/* Not awaited: the page renders while consent resolves. */}
+      <ConsentRoot state={resolveConsent()}>
+        {children}
+        <ConsentBanner />
+        <ConsentDialog />
+        <footer>
+          <ConsentDialogLink>Privacy settings</ConsentDialogLink>
+        </footer>
+      </ConsentRoot>
+    </body>
+  </html>
+)
+
+export default RootLayout
+```
+
+The layout stays a Server Component. You write no `'use client'` wrapper and import no stylesheet. The [Next.js quickstart](https://c15t.com/docs/frameworks/next/quickstart) walks through each file. The quickstart for each other framework has the same example.
 
 ## Integrations
 
-Load analytics, pixels, tag managers, and widgets through c15t so consent state controls when they run. [@c15t/integrations](https://www.npmjs.com/package/@c15t/integrations) ships prebuilt, consent-aware loaders for dozens of tools, including:
+[`@c15t/integrations`](./packages/integrations) has a loader for each vendor below. Most wait until the visitor allows the vendor's consent category. A few, such as Google Tag Manager and Mixpanel, load at once and pass the choice to the vendor's own consent API. The [integrations overview](https://c15t.com/docs/integrations/overview) shows what each loader does.
 
-- **Google Tag Manager** - loads at page start with Google Consent Mode v2 defaults set to denied; GTM-managed tags fire only once matching consent is granted ([guide](https://c15t.com/docs/integrations/google-tag-manager))
-- **Google Analytics 4 + Google Ads (gtag.js)** - automatic Consent Mode v2 defaults and consent updates when users make a choice ([guide](https://c15t.com/docs/integrations/google-tag))
-- **Conversion pixels** gated behind marketing consent: Meta Pixel, OpenAI Pixel, TikTok Pixel, LinkedIn Insights, Microsoft UET (Microsoft Ads), X Pixel, Reddit Pixel, Snapchat Pixel
-- **Analytics** gated behind measurement consent: Adobe Analytics, Amplitude, PostHog, Segment, RudderStack, Hightouch, Mixpanel, Microsoft Clarity, Hotjar, LogRocket, Plausible, Pirsch, Fathom, Matomo, Umami, Vercel Analytics
-- **Enrichment** gated behind marketing consent: Clearbit
-- **Chat widgets** gated behind functional consent: Intercom, Crisp
+- **Tag managers**: Google Tag Manager, Cloudflare Zaraz
+- **Analytics**: Google tag (GA4 and Google Ads), Adobe Analytics, Ahrefs Analytics, Amplitude, Cloudflare Web Analytics, Databuddy, Fathom, Heap, Hightouch, Hotjar, LogRocket, Matomo, Microsoft Clarity, Mixpanel, OneDollarStats, Pirsch, Plausible, PostHog, Promptwatch, RudderStack, Rybbit, Segment, Umami, Vercel Analytics, Vercel Speed Insights
+- **Ads and pixels**: Meta Pixel, OpenAI Pixel, TikTok Pixel, LinkedIn Insight Tag, Microsoft UET, Pinterest Tag, Reddit Pixel, Snapchat Pixel, X Pixel
+- **Enrichment, email, and SMS**: Clearbit, Klaviyo
+- **Chat and support**: Intercom, Crisp, Front Chat
+- **Monitoring**: Sentry
+- **Embeds**: YouTube and Google Maps, with no extra package
 
-See the [full integrations list](https://c15t.com/docs/integrations).
+## Packages
 
-## Deployment Modes
+| Package | Use it for | Version |
+| --- | --- | --- |
+| [`c15t`](./packages/c15t) | The package most apps install. The consent engine plus the React, Next.js, Vue, Nuxt, Astro, and TanStack Start adapters | <a href="https://www.npmjs.com/package/c15t"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/npm/c15t.svg?variant=outline&size=sm&mode=dark"><img src="https://shieldcn.dev/npm/c15t.svg?variant=outline&size=sm&mode=light" alt="npm"></picture></a> |
+| [`@c15t/core`](./packages/core) | Headless consent engine: policies, storage, and script gating. Also in `c15t` | <a href="https://www.npmjs.com/package/@c15t/core"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/npm/@c15t/core.svg?variant=outline&size=sm&mode=dark"><img src="https://shieldcn.dev/npm/@c15t/core.svg?variant=outline&size=sm&mode=light" alt="npm"></picture></a> |
+| [`@c15t/react`](./packages/react) | React 18 and 19 components and hooks. Also at `c15t/react` | <a href="https://www.npmjs.com/package/@c15t/react"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/npm/@c15t/react.svg?variant=outline&size=sm&mode=dark"><img src="https://shieldcn.dev/npm/@c15t/react.svg?variant=outline&size=sm&mode=light" alt="npm"></picture></a> |
+| [`@c15t/nextjs`](./packages/nextjs) | Next.js 15 and 16, App Router and Pages Router, with server rendering. Also at `c15t/next` | <a href="https://www.npmjs.com/package/@c15t/nextjs"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/npm/@c15t/nextjs.svg?variant=outline&size=sm&mode=dark"><img src="https://shieldcn.dev/npm/@c15t/nextjs.svg?variant=outline&size=sm&mode=light" alt="npm"></picture></a> |
+| [`@c15t/vue`](./packages/vue) | Vue 3 plugin and Nuxt 3 and 4 module. Also at `c15t/vue` | <a href="https://www.npmjs.com/package/@c15t/vue"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/npm/@c15t/vue.svg?variant=outline&size=sm&mode=dark"><img src="https://shieldcn.dev/npm/@c15t/vue.svg?variant=outline&size=sm&mode=light" alt="npm"></picture></a> |
+| [`@c15t/astro`](./packages/astro) | Astro 5, 6, and 7, with a banner that ships no framework JavaScript. Also at `c15t/astro` | <a href="https://www.npmjs.com/package/@c15t/astro"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/npm/@c15t/astro.svg?variant=outline&size=sm&mode=dark"><img src="https://shieldcn.dev/npm/@c15t/astro.svg?variant=outline&size=sm&mode=light" alt="npm"></picture></a> |
+| [`@c15t/tanstack-start`](./packages/tanstack-start) | TanStack Start, with the banner in the first HTML. Also at `c15t/tanstack-start` | <a href="https://www.npmjs.com/package/@c15t/tanstack-start"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/npm/@c15t/tanstack-start.svg?variant=outline&size=sm&mode=dark"><img src="https://shieldcn.dev/npm/@c15t/tanstack-start.svg?variant=outline&size=sm&mode=light" alt="npm"></picture></a> |
+| [`@c15t/svelte`](./packages/svelte) | Svelte 5 and SvelteKit. A separate install | <a href="https://www.npmjs.com/package/@c15t/svelte"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/npm/@c15t/svelte.svg?variant=outline&size=sm&mode=dark"><img src="https://shieldcn.dev/npm/@c15t/svelte.svg?variant=outline&size=sm&mode=light" alt="npm"></picture></a> |
+| [`@c15t/browser`](./packages/browser) | One script tag for Webflow, WordPress, Framer, Squarespace, and plain HTML | <a href="https://www.npmjs.com/package/@c15t/browser"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/npm/@c15t/browser.svg?variant=outline&size=sm&mode=dark"><img src="https://shieldcn.dev/npm/@c15t/browser.svg?variant=outline&size=sm&mode=light" alt="npm"></picture></a> |
+| [`@c15t/integrations`](./packages/integrations) | Consent-aware loaders for 40+ analytics, ad, chat, and monitoring vendors | <a href="https://www.npmjs.com/package/@c15t/integrations"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/npm/@c15t/integrations.svg?variant=outline&size=sm&mode=dark"><img src="https://shieldcn.dev/npm/@c15t/integrations.svg?variant=outline&size=sm&mode=light" alt="npm"></picture></a> |
+| [`@c15t/iab`](./packages/iab) | IAB TCF 2.4 and GPP for programmatic advertising | <a href="https://www.npmjs.com/package/@c15t/iab"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/npm/@c15t/iab.svg?variant=outline&size=sm&mode=dark"><img src="https://shieldcn.dev/npm/@c15t/iab.svg?variant=outline&size=sm&mode=light" alt="npm"></picture></a> |
+| [`@c15t/translations`](./packages/translations) | Banner and dialog text in 35 languages | <a href="https://www.npmjs.com/package/@c15t/translations"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/npm/@c15t/translations.svg?variant=outline&size=sm&mode=dark"><img src="https://shieldcn.dev/npm/@c15t/translations.svg?variant=outline&size=sm&mode=light" alt="npm"></picture></a> |
+| [`@c15t/ui`](./packages/ui) | The primitives, CSS, and theme tokens behind the c15t components | <a href="https://www.npmjs.com/package/@c15t/ui"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/npm/@c15t/ui.svg?variant=outline&size=sm&mode=dark"><img src="https://shieldcn.dev/npm/@c15t/ui.svg?variant=outline&size=sm&mode=light" alt="npm"></picture></a> |
+| [`@c15t/backend`](./packages/backend) | The self-hosted consent backend, for PostgreSQL, MySQL, or SQLite | <a href="https://www.npmjs.com/package/@c15t/backend"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/npm/@c15t/backend.svg?variant=outline&size=sm&mode=dark"><img src="https://shieldcn.dev/npm/@c15t/backend.svg?variant=outline&size=sm&mode=light" alt="npm"></picture></a> |
+| [`@c15t/node-sdk`](./packages/node-sdk) | Read and write consent records from your server | <a href="https://www.npmjs.com/package/@c15t/node-sdk"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/npm/@c15t/node-sdk.svg?variant=outline&size=sm&mode=dark"><img src="https://shieldcn.dev/npm/@c15t/node-sdk.svg?variant=outline&size=sm&mode=light" alt="npm"></picture></a> |
+| [`@c15t/cli`](./packages/cli) | Set up c15t, run backend migrations, run codemods, and install agent skills | <a href="https://www.npmjs.com/package/@c15t/cli"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/npm/@c15t/cli.svg?variant=outline&size=sm&mode=dark"><img src="https://shieldcn.dev/npm/@c15t/cli.svg?variant=outline&size=sm&mode=light" alt="npm"></picture></a> |
+| [`@c15t/dev-tools`](./packages/dev-tools) | Inspect consent state while you develop | <a href="https://www.npmjs.com/package/@c15t/dev-tools"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/npm/@c15t/dev-tools.svg?variant=outline&size=sm&mode=dark"><img src="https://shieldcn.dev/npm/@c15t/dev-tools.svg?variant=outline&size=sm&mode=light" alt="npm"></picture></a> |
+| [`@c15t/schema`](./packages/schema) | Valibot schemas and TypeScript types for the consent API | <a href="https://www.npmjs.com/package/@c15t/schema"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/npm/@c15t/schema.svg?variant=outline&size=sm&mode=dark"><img src="https://shieldcn.dev/npm/@c15t/schema.svg?variant=outline&size=sm&mode=light" alt="npm"></picture></a> |
+| [`@c15t/logger`](./packages/logger) | The structured logger that c15t packages use | <a href="https://www.npmjs.com/package/@c15t/logger"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/npm/@c15t/logger.svg?variant=outline&size=sm&mode=dark"><img src="https://shieldcn.dev/npm/@c15t/logger.svg?variant=outline&size=sm&mode=light" alt="npm"></picture></a> |
 
-- **Hosted on inth.com** - use a hosted c15t backend with hosted infrastructure, policy storage, audit history, and dashboard workflows
-- **Self-hosted backend** - deploy [@c15t/backend](https://www.npmjs.com/package/@c15t/backend) with your own database and infrastructure for full control
-- **Offline mode** - store consent locally in the browser for local development, demos, previews, static sites, or controlled fallback scenarios
+[`@c15t/scripts`](./packages/scripts) is deprecated. It re-exports `@c15t/integrations` for older imports and goes away in v4.
+
+## Docs for AI Agents
+
+Every package that has docs ships them as Markdown, matched to the installed version. After you install c15t, point your coding agent at `node_modules/c15t/AGENTS.md`.
+
+On the web, every page of the [c15t docs](https://c15t.com/docs) has a Markdown version, and [llms.txt](https://c15t.com/docs/llms.txt) lists them all. Install the c15t agent skills with `npx skills add c15t/skills`.
 
 ## Talk
 
 Watch the Next.js Conf 2025 talk: [Why Your Consent Banner Should Be in Your Bundle](https://c15t.link/talk).
 
-## Packages
+## Develop c15t
 
-| Package | Description | Key Features | Version |
-|---------|-------------|--------------|---------|
-| `c15t` | Headless JavaScript consent management platform | Cookie consent, privacy preferences, local storage, SSR support, framework-agnostic APIs | <a href="https://www.npmjs.com/package/c15t"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/npm/c15t.svg?variant=outline&size=sm&mode=dark"><img src="https://shieldcn.dev/npm/c15t.svg?variant=outline&size=sm&mode=light" alt="npm"></picture></a> |
-| `@c15t/react` | React cookie banner and consent manager | React 19/18/17/16.8, prebuilt UI, headless hooks, RSC-compatible, IAB subpath support | <a href="https://www.npmjs.com/package/@c15t/react"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/npm/@c15t/react.svg?variant=outline&size=sm&mode=dark"><img src="https://shieldcn.dev/npm/@c15t/react.svg?variant=outline&size=sm&mode=light" alt="npm"></picture></a> |
-| `@c15t/nextjs` | Next.js cookie banner and CMP integration | App Router, Pages Router, SSR, React Server Components, same-origin backend proxy support | <a href="https://www.npmjs.com/package/@c15t/nextjs"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/npm/@c15t/nextjs.svg?variant=outline&size=sm&mode=dark"><img src="https://shieldcn.dev/npm/@c15t/nextjs.svg?variant=outline&size=sm&mode=light" alt="npm"></picture></a> |
-| `@c15t/translations` | Internationalization Support | Type-safe translation interfaces, Modular translation imports, Supports partial and complete translations, Defines translation types for consent components | <a href="https://www.npmjs.com/package/@c15t/translations"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/npm/@c15t/translations.svg?variant=outline&size=sm&mode=dark"><img src="https://shieldcn.dev/npm/@c15t/translations.svg?variant=outline&size=sm&mode=light" alt="npm"></picture></a> |
-| `@c15t/integrations` | Consent-aware script integrations | Google Tag Manager, Google Consent Mode v2, GA4, Google Ads, Meta Pixel, PostHog, Intercom, and more. [See full list ->](./docs/integrations/overview.mdx) | <a href="https://www.npmjs.com/package/@c15t/integrations"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/npm/@c15t/integrations.svg?variant=outline&size=sm&mode=dark"><img src="https://shieldcn.dev/npm/@c15t/integrations.svg?variant=outline&size=sm&mode=light" alt="npm"></picture></a> |
-| `@c15t/iab` | IAB TCF 2.4 addon | TC String generation, GVL support, TCF APIs, vendor and purpose controls for programmatic ads | <a href="https://www.npmjs.com/package/@c15t/iab"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/npm/@c15t/iab.svg?variant=outline&size=sm&mode=dark"><img src="https://shieldcn.dev/npm/@c15t/iab.svg?variant=outline&size=sm&mode=light" alt="npm"></picture></a> |
-| `@c15t/dev-tools` | Developer Tooling | Experimental developer utilities, React component library with utility tools, Radix UI and Tailwind CSS integration, State management and UI component helpers, Currently under active development | <a href="https://www.npmjs.com/package/@c15t/dev-tools"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/npm/@c15t/dev-tools.svg?variant=outline&size=sm&mode=dark"><img src="https://shieldcn.dev/npm/@c15t/dev-tools.svg?variant=outline&size=sm&mode=light" alt="npm"></picture></a> |
-| `@c15t/cli` | Command-line Interface | Configuration Generation, Database Migrations, Multi-Framework Support, Interactive Guided Workflows, GitHub Integration | <a href="https://www.npmjs.com/package/@c15t/cli"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/npm/@c15t/cli.svg?variant=outline&size=sm&mode=dark"><img src="https://shieldcn.dev/npm/@c15t/cli.svg?variant=outline&size=sm&mode=light" alt="npm"></picture></a> |
-| `@c15t/backend` | Self-hosted consent backend | Policy engine, geolocation, server-side translation, audit logs, domain management, storage adapters | <a href="https://www.npmjs.com/package/@c15t/backend"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/npm/@c15t/backend.svg?variant=outline&size=sm&mode=dark"><img src="https://shieldcn.dev/npm/@c15t/backend.svg?variant=outline&size=sm&mode=light" alt="npm"></picture></a> |
-| `@c15t/node-sdk` | Typed server client for the consent API | Consent checks, user linking, consent records, legal document releases, typed errors per method | <a href="https://www.npmjs.com/package/@c15t/node-sdk"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/npm/@c15t/node-sdk.svg?variant=outline&size=sm&mode=dark"><img src="https://shieldcn.dev/npm/@c15t/node-sdk.svg?variant=outline&size=sm&mode=light" alt="npm"></picture></a> |
+This repo uses [Bun](https://bun.sh) and Turborepo. [AGENTS.md](./AGENTS.md) has the full command list.
 
-## Documentation
-
-Comprehensive guides for different frameworks:
-
-- [Next.js Quickstart](https://c15t.link/next-js)
-- [React Quickstart](https://c15t.link/react)
-- [JavaScript Quickstart](https://c15t.link/javascript)
-
-## Local Workflows
-
-- `bun run dev` starts the main product demo in `apps/playground`
-- `bun run bench:ci` runs the benchmark suites that publish `.benchmarks/**` artifacts
-- `bun run bench:important-react -- --iterations 10` runs the key React v2/v3 banner visibility and script loading benchmarks in parallel
-- `bun run compat:styles:review` launches the Tailwind 3, Tailwind 4, plain CSS, and preview compatibility harnesses
+```bash
+bun install
+bun run dev          # the demo app in apps/playground
+bun run build        # every package
+bun run test         # packages affected by your changes
+```
 
 ## Support
 
 - Join our [Discord community](https://c15t.link/discord)
 - Open an issue on our [GitHub repository](https://github.com/c15t/c15t/issues)
-- Visit [inth.com](https://inth.com) and use the chat widget
-- Contact our support team via email [support@inth.com](mailto:support@inth.com)
+- Visit [inth.com](https://inth.com?utm_source=github&utm_medium=repo_homepage) and use the chat widget
+- Email our support team at [support@inth.com](mailto:support@inth.com)
 
 ## Contributing
 
-- We're open to all community contributions!
-- Read our [Contribution Guidelines](https://c15t.com/docs/oss/contributing)
-- Review our [Code of Conduct](https://c15t.com/docs/oss/code-of-conduct)
-- Fork the repository
-- Create a new branch for your feature
-- Submit a pull request
-- **All contributions, big or small, are welcome and appreciated!**
+- Read the [contribution guidelines](https://c15t.com/docs/oss/contributing) before you open a pull request
+- Follow the [code of conduct](https://c15t.com/docs/oss/code-of-conduct)
 
 ## Security
 
-If you believe you have found a security vulnerability in c15t, we encourage you to **_responsibly disclose this and NOT open a public issue_**. We will investigate all legitimate reports.
+Do not open a public issue for a security vulnerability. Report it privately through [GitHub's vulnerability reporting](https://github.com/c15t/c15t/security/advisories/new). We examine every valid report.
 
-Our preference is that you make use of GitHub's private vulnerability reporting feature to disclose potential security vulnerabilities in our Open Source Software. To do this, please visit [https://github.com/c15t/c15t/security](https://github.com/c15t/c15t/security) and click the "Report a vulnerability" button.
-
-### Security Policy
-
-- Please do not share security vulnerabilities in public forums, issues, or pull requests
-- Provide detailed information about the potential vulnerability
-- Allow reasonable time for us to address the issue before any public disclosure
-- We are committed to addressing security concerns promptly and transparently
+- Do not share the vulnerability in public forums, issues, or pull requests
+- Give the steps to reproduce it and the versions it affects
+- Give us time to release a fix before you disclose it
 
 ## License
 
 [Apache License 2.0](https://github.com/c15t/c15t/blob/main/LICENSE.md)
-
 
 ---
 

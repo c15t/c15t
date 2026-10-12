@@ -1,33 +1,31 @@
 {
-	"title": "@c15t/nextjs: Next.js Integration",
+	"title": "@c15t/nextjs: Next.js Cookie Banner and Consent Management",
 	"description": "Next.js cookie banner and consent management platform for App Router, Pages Router, SSR, and headless consent flows.",
 	"features": [
-		"Works with Next.js 16 and 15",
-		"Full 'use client' support for React Server Components",
-		"Server-side rendering support for both app and pages routers",
-		"Prebuilt and customizable cookie banner, consent dialog, and preference center UI",
-		"Headless hooks for custom consent flows",
-		"Minimal configuration with TypeScript-first design",
-		"IAB TCF 2.4 UI and hooks through the @c15t/react/iab subpath",
-		"Google Tag Manager, Google Consent Mode v2, Meta Pixel, and analytics integrations through @c15t/integrations",
-		"Built-in internationalization support",
-		"Seamless consent storage and tracking"
+		"Works with Next.js 15 and 16, on the App Router and the Pages Router",
+		"The server resolves each visitor's policy, so the banner is in the first HTML and does not appear late",
+		"Your policy downloads at build time with `withConsentManifest`, so rendering never waits on the consent backend",
+		"Prebuilt cookie banner, consent dialog, and preference center with a theme system",
+		"Headless hooks for a fully custom design",
+		"Analytics, ads, and pixels follow each visitor's choice through @c15t/integrations: Google Tag Manager, Google Consent Mode v2, GA4, Meta Pixel, PostHog, and more",
+		"IAB TCF 2.4 banner, dialog, and hooks through the @c15t/react/iab subpath",
+		"Translations for 35 languages through @c15t/translations"
 	],
 	"prerequisites": [
-		"Next.js 15.0.0 or later",
-		"React 18 or later",
+		"Next.js 15 or 16",
+		"React 18 or 19",
 		"Node.js 20.19 or later",
-		"A hosted [c15t instance](https://inth.com) (free sign-up), [self-hosted deployment](https://c15t.com/docs/self-host/quickstart), or offline mode for local-only storage"
+		"An [Inth project](https://inth.com) (free sign-up), a [self-hosted backend](https://c15t.com/docs/self-host/quickstart), or offline mode for local development"
 	],
 	"manualInstallation": [
 		"",
 		"```bash\npnpm add @c15t/nextjs\n```",
 		"",
-		"Then add the prebuilt stylesheet to your app-level CSS entrypoint:",
+		"Then add the prebuilt stylesheet to your app-level CSS entry point:",
 		"",
 		"```css\n/* app/globals.css */\n@import \"@c15t/nextjs/styles.css\";\n```",
 		"",
-		"To manually install, follow the [quickstart](https://c15t.com/docs/frameworks/next/quickstart)."
+		"Using several c15t packages? Install [`c15t`](https://www.npmjs.com/package/c15t) and import `c15t/next` instead. It is the same code."
 	],
 	"usage": [
 		"Set `NEXT_PUBLIC_C15T_BACKEND_URL` to your Inth backend URL in `.env`",
@@ -37,13 +35,10 @@
 		"```ts\n// c15t.config.ts\nimport { defineConsentConfig } from '@c15t/nextjs'\n\nexport default defineConsentConfig({})\n```",
 		"Render `ConsentRoot` with `ConsentBanner` and `ConsentDialog` in the root layout, and pass it `resolveConsent()`",
 		"```tsx\n// app/layout.tsx\nimport {\n  ConsentBanner,\n  ConsentDialog,\n  ConsentDialogLink,\n  ConsentRoot,\n} from '@c15t/nextjs'\nimport { resolveConsent } from '@c15t/nextjs/server'\nimport type { ReactNode } from 'react'\n\nimport './globals.css'\n\nexport default function RootLayout({ children }: { children: ReactNode }) {\n  return (\n    <html lang=\"en\">\n      <body>\n        {/* Not awaited: the page renders while consent resolves. */}\n        <ConsentRoot state={resolveConsent()}>\n          {children}\n          <ConsentBanner />\n          <ConsentDialog />\n          <ConsentDialogLink>Privacy settings</ConsentDialogLink>\n        </ConsentRoot>\n      </body>\n    </html>\n  )\n}\n```",
-		"For full implementation details, see the [Next.js quickstart docs](https://c15t.com/docs/frameworks/next/quickstart)"
+		"For the full setup, see the [Next.js quickstart](https://c15t.com/docs/frameworks/next/quickstart)"
 	],
 	"docsLink": "https://c15t.com/docs/frameworks/next/quickstart",
 	"quickStartLink": "https://c15t.com/docs/frameworks/next/quickstart",
-	"showCLIGeneration": true,
-	"customSections": {
-		"Deployment Modes": "- **Hosted on inth.com**: Hosted c15t backend for policy storage, audit history, and hosted infrastructure\n- **Self-hosted backend**: Use @c15t/backend with your own database and infrastructure\n- **Offline mode**: Browser-only consent storage for local development, demos, previews, static sites, or fallback scenarios",
-		"Popular Integrations": "- Google Tag Manager with Google Consent Mode v2\n- Google Analytics 4 and Google Ads through gtag.js\n- Meta Pixel, TikTok Pixel, LinkedIn Insights, Microsoft UET, X Pixel, Reddit Pixel, and Snapchat Pixel\n- PostHog, Segment, Mixpanel, Microsoft Clarity, Hotjar, Plausible, Fathom, Matomo, Umami, and Vercel Analytics\n- Intercom and Crisp chat widgets"
-	}
+	"showCLIGeneration": false,
+	"showHosting": true
 }
