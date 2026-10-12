@@ -7,7 +7,7 @@
   </a>
 </p>
 
-# c15t: Consent Management for Every JavaScript Framework
+# c15t: The Open Standard for Cookie Banners
 
 <p>
 <a href="https://www.npmjs.com/package/c15t"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/npm/c15t.svg?variant=outline&mode=dark"><img src="https://shieldcn.dev/npm/c15t.svg?variant=outline&mode=light" alt="Latest NPM Version"></picture></a>
