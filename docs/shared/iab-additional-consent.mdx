@@ -3,26 +3,56 @@
 Google's Additional Consent (AC) string carries consent for Google ad tech
 providers (ATPs) that are not on the IAB Global Vendor List. The TC String
 cannot name them, so without an AC string those providers get no consent
-signal and Google cannot serve personalised ads through them. List the
-providers you work with in `additionalConsent`, next to your other IAB
-options: the `IABProvider` props in React, Next.js and TanStack Start, the
-`createIAB` options in JavaScript, and the `iab` option of the Vue, Nuxt,
-Svelte, Astro and script-tag setups.
+signal and Google cannot serve personalised ads through them.
+
+Take the provider IDs from Google's
+[Additional Consent provider list](https://storage.googleapis.com/tcfac/additional-consent-providers.csv).
+c15t ignores IDs that Google does not list. When Google removes a provider
+from the list, usually because it joined the Global Vendor List, it leaves
+the AC string on the visitor's next page load.
+
+### List the providers on your backend
+
+A self-hosted backend lists the providers in its manifest's `iab` block,
+next to `customVendors`. It loads each provider's name and privacy policy the
+way it loads the vendor list, caches them, and sends them in `/init` to every
+visitor whose policy uses IAB TCF. Framework servers and browsers that
+resolve `/init` from the manifest load the same providers.
+
+{/* example: fragment */}
+
+```ts
+manifest: {
+	iab: {
+		enabled: true,
+		cmpId: 123,
+		additionalConsent: {
+			// Google ATP IDs: Meta and Snap Inc.
+			providers: [89, 2572],
+		},
+	},
+},
+```
+
+The backend's `additionalConsent` option sets the cache, which defaults to the
+`gvl` cache, and `enabled: false` stops `/init` from serving the providers. See
+[instance options](/docs/self-host/api/configuration#instance-options).
+
+### List the providers in the browser
+
+Offline mode has no backend, and some backends do not list providers. In
+those setups, pass `additionalConsent` with your other IAB options: the
+`IABProvider` props in React, Next.js and TanStack Start, the `createIAB`
+options in JavaScript, and the `iab` option of the Vue, Nuxt, Svelte, Astro
+and script-tag setups. A list passed here replaces the one the backend sent.
 
 {/* example: fragment */}
 
 ```ts
 additionalConsent: {
-	// Google ATP IDs: Meta and Snap Inc.
 	providers: [89, 2572],
 },
 ```
-
-Take the IDs from Google's
-[Additional Consent provider list](https://storage.googleapis.com/tcfac/additional-consent-providers.csv).
-c15t ignores IDs that Google does not list. When Google removes a provider
-from the list, usually because it joined the Global Vendor List, it leaves
-the AC string on the visitor's next page load.
 
 ### What the visitor sees
 
@@ -31,10 +61,12 @@ section. Each provider shows its name, a link to the privacy policy Google
 lists for it, and a consent switch. Accept All switches every provider on,
 and Reject All switches them off. The banner's partner count includes them.
 
-c15t fetches the names and links from
-`https://gvl.inth.app/additional-consent` when the CMP mounts, in parallel
-with the vendor list. To serve the list yourself, set `additionalConsent.url`.
-c15t requests `?providerIds=89,2572` and expects JSON in this shape:
+The names and links come from `https://gvl.inth.app/additional-consent`.
+The backend fetches them when the providers are listed in its manifest. When
+they are listed in the browser, c15t fetches them as the CMP mounts, in
+parallel with the vendor list. To serve the list yourself, set `endpoint` in
+the manifest's `additionalConsent`, or `url` in the browser option. c15t
+requests `?providerIds=89,2572` and expects JSON in this shape:
 
 ```json
 {
@@ -48,8 +80,8 @@ c15t requests `?providerIds=89,2572` and expects JSON in this shape:
 }
 ```
 
-If the list does not load, c15t logs a warning and writes no AC string. The
-TC String works as before.
+If the list does not load, the response carries no providers and c15t writes
+no AC string. The TC String works as before.
 
 ### What vendors receive
 

@@ -645,6 +645,41 @@ describe('vendor list deferral', () => {
 		);
 	});
 
+	test('manifest mode resolves Google Additional Consent providers into state', async () => {
+		const acURL = 'https://lists.example/ac-render';
+		const base = upstream({
+			...IAB_MANIFEST,
+			iab: {
+				...IAB_MANIFEST.iab,
+				additionalConsent: { providers: [89], url: acURL },
+			},
+		} as unknown as ConsentManifest);
+		const fetch = vi.fn<typeof globalThis.fetch>((input, init) =>
+			String(input).startsWith(acURL)
+				? Promise.resolve(
+						json({
+							providers: {
+								'89': {
+									id: 89,
+									name: 'Meta',
+									policyUrl: 'https://meta.example/privacy',
+								},
+							},
+						})
+					)
+				: base(input, init)
+		);
+		const state = await render({
+			backendURL: BACKEND,
+			fetch,
+			mode: 'manifest',
+			reportSessions: false,
+		});
+		expect(state.initialIab?.adTechProviders).toEqual([
+			{ id: 89, name: 'Meta', policyUrl: 'https://meta.example/privacy' },
+		]);
+	});
+
 	test('a caller fetch keeps the list inline', async () => {
 		const state = await render({
 			backendURL: BACKEND,

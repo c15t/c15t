@@ -897,18 +897,21 @@ export const createIAB = function createIAB(
 	};
 
 	const adTechProviderIds = options.additionalConsent?.providers ?? [];
-	let adTechProviderRequest: Promise<AdTechProvider[]> | null = null;
+	let adTechProviderRequest: Promise<AdTechProvider[] | null> | null = null;
+	/** Whether a provider request finished, so saves stop waiting for it. */
+	let adTechProvidersSettled = false;
 	/**
-	 * Loads names and privacy links for the configured ad tech providers,
-	 * once per handle. A failure turns Additional Consent off and leaves the
-	 * TC string working: the AC string only supplements it.
+	 * Loads names and privacy links for the ad tech providers this handle was
+	 * configured with, once per handle. `null` means nothing to publish: none
+	 * configured here (a backend's `/init` may already have put providers in
+	 * the kernel), no TC string coming, or a failed request. A failure leaves
+	 * the TC string working, since the AC string only supplements it.
 	 */
 	const loadAdTechProviders = (
 		preloaded: GlobalVendorList | null | undefined
-	): Promise<AdTechProvider[]> => {
-		// No TC string will be written, so no AC string either.
+	): Promise<AdTechProvider[] | null> => {
 		if (adTechProviderIds.length === 0 || preloaded === null) {
-			return Promise.resolve([]);
+			return Promise.resolve(null);
 		}
 		adTechProviderRequest ??= (async () => {
 			try {
@@ -922,7 +925,7 @@ export const createIAB = function createIAB(
 					'[c15t] Additional Consent is off: the ad tech provider list did not load.',
 					error
 				);
-				return [];
+				return null;
 			}
 		})();
 		return adTechProviderRequest;
@@ -1296,7 +1299,7 @@ export const createIAB = function createIAB(
 	const retainedAuthorityMatchesList = async (
 		snapshot: ConsentSnapshot,
 		gvl: GlobalVendorList,
-		adTechProviders: AdTechProvider[]
+		adTechProviders: AdTechProvider[] | null
 	): Promise<{ valid: boolean; restrictionsChanged: boolean }> => {
 		const { iab } = snapshot;
 		const retained = iab?.authority;
@@ -1309,7 +1312,14 @@ export const createIAB = function createIAB(
 				customConsents: retained.vendorConsents,
 				customLegitimateInterests: retained.vendorLegitimateInterests,
 			},
-			{ ...snapshot, iab: { ...iab, adTechProviders, gvl } },
+			{
+				...snapshot,
+				iab: {
+					...iab,
+					adTechProviders: adTechProviders ?? iab.adTechProviders,
+					gvl,
+				},
+			},
 			Date.now(),
 			publisherRestrictions
 		);
@@ -1318,7 +1328,7 @@ export const createIAB = function createIAB(
 	/** The kernel update that publishes a list, withdrawing authority if needed. */
 	const publishListPatch = (
 		gvl: GlobalVendorList,
-		adTechProviders: AdTechProvider[],
+		adTechProviders: AdTechProvider[] | null,
 		withdrawn: boolean
 	): Partial<KernelIABState> => {
 		const update: Partial<KernelIABState> = {
@@ -1326,7 +1336,8 @@ export const createIAB = function createIAB(
 			gvl,
 			gvlReference: undefined,
 		};
-		if (adTechProviderIds.length > 0) {
+		// Configured on the client: its list replaces the backend's.
+		if (adTechProviders) {
 			update.adTechProviders = adTechProviders;
 		}
 		if (withdrawn) {
@@ -1404,6 +1415,7 @@ export const createIAB = function createIAB(
 			publishedList = gvl;
 			const beforeUpdate = kernel.getSnapshot();
 			kernel.set.iab(update);
+			adTechProvidersSettled = true;
 			markListPublished(generation);
 			// Authority held under other restrictions, for example by a CMP
 			// mounted earlier with another configuration: ask again, as for a
@@ -1730,7 +1742,7 @@ export const createIAB = function createIAB(
 	 */
 	const pendingAdTechProviders = (): Promise<void> | null =>
 		adTechProviderIds.length > 0 &&
-		readIAB(kernel).adTechProviders === undefined &&
+		!adTechProvidersSettled &&
 		readIAB(kernel).gvl
 			? initialization
 			: null;

@@ -659,6 +659,7 @@ describe('init route', () => {
 				'gvlReference',
 				'cmpId',
 				'customVendors',
+				'adTechProviders',
 			]) {
 				expect(body).not.toHaveProperty(field);
 			}
@@ -669,6 +670,69 @@ describe('init route', () => {
 			);
 		}
 	);
+});
+
+describe('Google Additional Consent providers', () => {
+	const AC_URL = 'https://lists.example/ac-route';
+	const providerManifest = {
+		...IAB_MANIFEST,
+		iab: {
+			...IAB_MANIFEST.iab,
+			additionalConsent: { providers: [89], url: AC_URL },
+		},
+	} as unknown as ConsentManifest;
+	const withProviders = (manifest: ConsentManifest): FetchMock => {
+		const base = upstream(manifest);
+		return vi.fn<ManifestFetch>((input, init) => {
+			const url = String(input instanceof Request ? input.url : input);
+			return url.startsWith(AC_URL)
+				? Promise.resolve(
+						json({
+							providers: {
+								'89': {
+									id: 89,
+									name: 'Meta',
+									policyUrl: 'https://meta.example/privacy',
+								},
+							},
+						})
+					)
+				: base(input, init);
+		});
+	};
+
+	test('are served with the IAB init the manifest resolves', async () => {
+		const response = await route({
+			fetch: withProviders(providerManifest),
+			reportSessions: false,
+		})(request('/api/c15t/init'));
+		const body = (await response.json()) as InitOutput;
+		expect(body.adTechProviders).toEqual([
+			{ id: 89, name: 'Meta', policyUrl: 'https://meta.example/privacy' },
+		]);
+	});
+
+	test('are not loaded for a policy that is not IAB, or a failed contract', async () => {
+		const optIn = withProviders({
+			...MANIFEST,
+			iab: providerManifest.iab,
+		} as ConsentManifest);
+		const notIab = await route({ fetch: optIn, reportSessions: false })(
+			request('/api/c15t/init', { headers: { 'x-c15t-country': 'DE' } })
+		);
+		expect(await notIab.json()).not.toHaveProperty('adTechProviders');
+
+		const failed = await route({
+			fetch: withProviders(providerManifest),
+			reportSessions: false,
+		})(
+			request('/api/c15t/init', {
+				headers: { 'x-c15t-policy-contract': '99' },
+			})
+		);
+		expect(await failed.json()).not.toHaveProperty('adTechProviders');
+		expect(calledURLs(optIn).some((url) => url.startsWith(AC_URL))).toBe(false);
+	});
 });
 
 describe('vendor list', () => {

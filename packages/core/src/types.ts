@@ -1,4 +1,5 @@
 import type {
+	AdTechProvider,
 	ConsentJourneyScope,
 	InitOutput,
 	GlobalVendorList,
@@ -45,6 +46,7 @@ import type { PublisherRestriction } from './options/iab-tcf';
 // Re-export schema types that consumers need so they don't have to
 // import from @c15t/schema directly for routine work.
 export type {
+	AdTechProvider,
 	GlobalVendorList,
 	LocationResponse,
 	NonIABVendor,
@@ -222,19 +224,6 @@ export interface KernelIABAuthority {
 	 * such as `2~1.10~dv.2.3.4`. Absent when no provider was shown.
 	 */
 	addtlConsent?: string;
-}
-
-/**
- * A Google ad tech provider (ATP) from Google's Additional Consent provider
- * list: an ad tech company that is not on the IAB Global Vendor List.
- */
-export interface AdTechProvider {
-	/** Google ATP ID. */
-	id: number;
-	/** Provider name as Google lists it. */
-	name: string;
-	/** Privacy policy URL as Google lists it. */
-	policyUrl: string;
 }
 
 export interface KernelIABState {
@@ -643,6 +632,8 @@ export interface InitResponse {
 	gvlReference?: InitOutput['gvlReference'];
 	/** Non-IAB vendors configured on the backend. */
 	customVendors?: NonIABVendor[];
+	/** Google Additional Consent providers the backend resolved. */
+	adTechProviders?: AdTechProvider[];
 	/** CMP ID registered with IAB Europe. */
 	cmpId?: number;
 	/** Vendors the backend declares for vendor-level consent outside IAB. */

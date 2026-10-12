@@ -37,6 +37,10 @@ import type {
 	SaveResult,
 } from '../types';
 import {
+	adTechProviderReference,
+	fetchCachedAdTechProviders,
+} from './ad-tech-provider-cache';
+import {
 	buildDecisionAssertion,
 	rememberDecisionInputs,
 } from './decision-inputs';
@@ -454,6 +458,15 @@ export const createManifestTransport = function createManifestTransport(
 				baseTranslations: options.baseTranslations ?? baseTranslations,
 			});
 
+			// Google Additional Consent providers load beside the vendor list.
+			const providerReference = adTechProviderReference(manifest, payload);
+			const providers = providerReference
+				? fetchCachedAdTechProviders({
+						fetch: fetchImpl,
+						headers: c15tProtocolHeaders,
+						reference: providerReference,
+					})
+				: undefined;
 			if (shouldFetchGvl(manifest, payload) && manifest.iab?.gvl) {
 				const language = payload.translations.language.split('-')[0] || 'en';
 				payload.gvl = await (options.fetchGvl ?? defaultFetchGvl)({
@@ -461,6 +474,10 @@ export const createManifestTransport = function createManifestTransport(
 					language,
 					reference: manifest.iab.gvl,
 				});
+			}
+			const adTechProviders = await providers;
+			if (adTechProviders) {
+				payload.adTechProviders = adTechProviders;
 			}
 
 			if (

@@ -14,7 +14,6 @@ import {
 	decodeAdditionalConsent,
 	encodeAdditionalConsent,
 	fetchAdTechProviders,
-	readAdTechProviderList,
 } from '../tcf/additional-consent';
 import type { TCData } from '../tcf/iab-tcf-types';
 import { completeGVL } from './fixtures/gvl-sample';
@@ -82,16 +81,6 @@ describe('provider list', () => {
 			bad: { id: 5, name: 'No URL', policyUrl: 'ftp://files.example/privacy' },
 		},
 	};
-
-	test('keeps requested providers Google lists, sorted by ID', () => {
-		expect(
-			readAdTechProviderList(payload, [2577, 89, 5, 404]).map(({ id }) => id)
-		).toEqual([89, 2577]);
-	});
-
-	test('rejects a response without a provider map', () => {
-		expect(() => readAdTechProviderList({}, [89])).toThrow(/providers/u);
-	});
 
 	test('requests only the configured IDs and shares concurrent requests', async () => {
 		const fetchMock = vi.fn(() => Promise.resolve(Response.json(payload)));
@@ -314,6 +303,36 @@ describe('createIAB with Additional Consent', () => {
 			expect.stringContaining('Additional Consent is off'),
 			expect.any(Error)
 		);
+	});
+
+	test('uses providers the backend put in the kernel without fetching', async () => {
+		const kernel = makeKernel();
+		kernel.set.iab({
+			adTechProviders: [PROVIDERS.providers['89']],
+		});
+		const addon = createIAB({ cmpId: 28, gvl: completeGVL, kernel });
+		disposers.push(addon.dispose);
+		await addon.whenReady();
+		addon.acceptAll();
+		await addon.save();
+		expect((await tcData()).addtlConsent).toBe('2~89~dv.');
+		expect(fetchMock).not.toHaveBeenCalled();
+	});
+
+	test('keeps backend providers when the client list fails to load', async () => {
+		fetchMock.mockImplementation(() =>
+			Promise.resolve(new Response('', { status: 500 }))
+		);
+		vi.spyOn(console, 'warn').mockImplementation(() => {});
+		const kernel = makeKernel();
+		kernel.set.iab({ adTechProviders: [PROVIDERS.providers['2577']] });
+		const addon = await mount(kernel);
+		expect(kernel.getSnapshot().iab?.adTechProviders).toEqual([
+			PROVIDERS.providers['2577'],
+		]);
+		addon.rejectAll();
+		await addon.save();
+		expect((await tcData()).addtlConsent).toBe('2~~dv.2577');
 	});
 
 	test('fetches nothing without configured providers', async () => {

@@ -6,6 +6,7 @@ export {
 	type ConsentManifest,
 	type ConsentManifestBranding,
 	type ConsentManifestConfig,
+	type ConsentManifestAdditionalConsent,
 	type ConsentManifestGVLReference,
 	type ConsentManifestHosting,
 	type ConsentManifestIAB,
@@ -98,6 +99,15 @@ export {
 	gvlVendorSchema,
 	gvlVendorUrlSchema,
 } from './gvl';
+export {
+	AD_TECH_PROVIDERS_URL,
+	type AdTechProvider,
+	adTechProviderListUrl,
+	adTechProviderSchema,
+	MAX_AD_TECH_PROVIDER_QUERY_IDS,
+	normalizeAdTechProviderIds,
+	parseAdTechProviderList,
+} from './ad-tech-provider';
 export {
 	type NonIABVendor,
 	type NonIABVendorConsent,

@@ -295,7 +295,15 @@ describe('init GVL inclusion', () => {
 	it('clears all IAB authority and does not fetch GVL for an unsupported contract', async () => {
 		let requests = 0;
 		const result = await buildInitResponse(
-			{ ...iabConfig, iab: { cmpId: 123, customVendors: [], enabled: true } },
+			{
+				...iabConfig,
+				iab: {
+					additionalConsent: { providers: [89] },
+					cmpId: 123,
+					customVendors: [],
+					enabled: true,
+				},
+			},
 			new Headers({ 'x-c15t-policy-contract': '99' }),
 			{ signingKey: 'test-signing-key-at-least-32-chars-long' },
 			{
@@ -314,6 +322,7 @@ describe('init GVL inclusion', () => {
 			version: 1,
 		});
 		for (const field of [
+			'adTechProviders',
 			'cmpId',
 			'customVendors',
 			'gvl',

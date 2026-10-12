@@ -10,6 +10,12 @@
  */
 
 import type { AdTechProvider } from '@c15t/core';
+import {
+	AD_TECH_PROVIDERS_URL,
+	adTechProviderListUrl,
+	normalizeAdTechProviderIds,
+	parseAdTechProviderList,
+} from '@c15t/schema/types';
 
 /**
  * Default provider list endpoint. It serves Google's
@@ -17,8 +23,7 @@ import type { AdTechProvider } from '@c15t/core';
  *
  * @internal
  */
-export const AD_TECH_PROVIDERS_ENDPOINT =
-	'https://gvl.inth.app/additional-consent';
+export const AD_TECH_PROVIDERS_ENDPOINT = AD_TECH_PROVIDERS_URL;
 
 /**
  * TCF purposes a provider needs before the AC string lists it as consented.
@@ -142,54 +147,6 @@ export const additionalConsentFor = function additionalConsentFor(
 	});
 };
 
-const readProvider = (value: unknown): AdTechProvider | null => {
-	if (!value || typeof value !== 'object') {
-		return null;
-	}
-	const { id, name, policyUrl } = value as Record<string, unknown>;
-	if (
-		!isProviderId(id) ||
-		typeof name !== 'string' ||
-		name.trim() === '' ||
-		typeof policyUrl !== 'string' ||
-		!/^https?:\/\//iu.test(policyUrl)
-	) {
-		return null;
-	}
-	return { id, name, policyUrl };
-};
-
-/**
- * Reads a provider list response, keeping only the requested providers
- * Google still lists, sorted by ID.
- *
- * @internal
- */
-export const readAdTechProviderList = function readAdTechProviderList(
-	payload: unknown,
-	providerIds: readonly number[]
-): AdTechProvider[] {
-	const listed =
-		payload && typeof payload === 'object' && 'providers' in payload
-			? (payload as { providers: unknown }).providers
-			: null;
-	if (!listed || typeof listed !== 'object') {
-		throw new Error('Invalid ad tech provider list: missing providers');
-	}
-	const entries = Array.isArray(listed) ? listed : Object.values(listed);
-	const byId = new Map<number, AdTechProvider>();
-	for (const entry of entries) {
-		const provider = readProvider(entry);
-		if (provider) {
-			byId.set(provider.id, provider);
-		}
-	}
-	return sortedIds(providerIds).flatMap((id) => {
-		const provider = byId.get(id);
-		return provider ? [provider] : [];
-	});
-};
-
 const inflight = new Map<string, Promise<AdTechProvider[]>>();
 
 /**
@@ -207,29 +164,34 @@ export const fetchAdTechProviders = function fetchAdTechProviders(
 	providerIds: readonly number[],
 	endpoint: string = AD_TECH_PROVIDERS_ENDPOINT
 ): Promise<AdTechProvider[]> {
-	const ids = sortedIds(providerIds);
+	const ids = normalizeAdTechProviderIds(providerIds);
 	if (ids.length === 0) {
 		return Promise.resolve([]);
 	}
-	const url = new URL(
+	const base = new URL(
 		endpoint,
 		typeof window === 'undefined' ? undefined : window.location.href
-	);
-	url.searchParams.set('providerIds', ids.join(','));
-	const key = url.toString();
+	).toString();
+	const requestUrl = adTechProviderListUrl(base, ids);
+	// Keyed on the IDs too: past the query cap the URL alone no longer names them.
+	const key = `${requestUrl}|${ids.join(',')}`;
 	const existing = inflight.get(key);
 	if (existing) {
 		return existing;
 	}
 	const request = (async () => {
 		try {
-			const response = await fetch(key);
+			const response = await fetch(requestUrl);
 			if (!response.ok) {
 				throw new Error(
 					`Failed to fetch ad tech providers: ${response.status} ${response.statusText}`
 				);
 			}
-			return readAdTechProviderList(await response.json(), ids);
+			const providers = parseAdTechProviderList(await response.json(), ids);
+			if (!providers) {
+				throw new Error('Invalid ad tech provider list: missing providers');
+			}
+			return providers;
 		} finally {
 			inflight.delete(key);
 		}

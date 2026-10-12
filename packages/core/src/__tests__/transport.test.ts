@@ -1733,6 +1733,42 @@ describe('createManifestTransport: local init resolution', () => {
 		});
 	});
 
+	test('loads Google Additional Consent providers the manifest lists', async () => {
+		const fetchSpy = vi.fn().mockResolvedValue(
+			Response.json({
+				providers: {
+					'89': { id: 89, name: 'Meta', policyUrl: 'https://meta.example/p' },
+				},
+			})
+		);
+		const transport = createManifestTransport({
+			backendURL: 'https://api.example.com/c15t',
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+			fetchGvl: vi.fn().mockResolvedValue(REALISTIC_INIT_OUTPUT.gvl),
+			inputs: { country: 'DE', language: 'de', region: 'BE' },
+			snapshot: {
+				...MANIFEST_FIXTURE,
+				iab: {
+					...MANIFEST_FIXTURE.iab,
+					additionalConsent: {
+						providers: [89, 404],
+						url: 'https://lists.example/ac-manifest',
+					},
+				},
+			},
+		});
+
+		const response = await transport.init?.({ overrides: {}, user: null });
+
+		expect(response?.adTechProviders).toEqual([
+			{ id: 89, name: 'Meta', policyUrl: 'https://meta.example/p' },
+		]);
+		expect(fetchSpy).toHaveBeenCalledWith(
+			'https://lists.example/ac-manifest?providerIds=89%2C404',
+			expect.objectContaining({ method: 'GET' })
+		);
+	});
+
 	test('fetches manifestURL and sends asserted decision inputs on save', async () => {
 		const fetchSpy = vi
 			.fn()

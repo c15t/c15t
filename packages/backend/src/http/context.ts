@@ -34,6 +34,7 @@ import type { ObservabilityOptions } from '../observability/evlog';
 import { toRequestLog } from '../observability/evlog';
 import { layer as logLayer, silent } from '../observability/log';
 import type { Log } from '../observability/log';
+import type { AdditionalConsentConfig } from './ad-tech-providers';
 import { toHttp } from './errors';
 import type { RouteError } from './errors';
 import type { GvlConfig } from './gvl';
@@ -165,6 +166,18 @@ export interface AppOptions {
 	 * `enabled: false` refuses while keeping the rest in place.
 	 */
 	readonly gvl?: GvlConfig;
+	/**
+	 * Server-side Google Additional Consent provider loading.
+	 *
+	 * The providers are listed in the manifest's `iab.additionalConsent`.
+	 * Every request that resolves a matched IAB policy then gets the listed
+	 * providers Google still lists, with the name and privacy policy the
+	 * preference centre shows, and the browser CMP publishes an Additional
+	 * Consent string beside the TC String. This block only tunes loading:
+	 * the cache (the `gvl` cache by default) and its lifetime.
+	 * `enabled: false` refuses to serve providers the manifest lists.
+	 */
+	readonly additionalConsent?: AdditionalConsentConfig;
 	/**
 	 * Session reports: the per-visitor signal `/init` used to be.
 	 *

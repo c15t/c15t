@@ -28,12 +28,15 @@ import {
 	writePolicyResolutionWire,
 } from '@c15t/schema/types';
 import type {
+	AdTechProvider,
 	ConsentManifest,
 	ConsentManifestConfig,
 	InitOutput,
 } from '@c15t/schema/types';
 import { baseTranslations } from '@c15t/translations/all';
 
+import { resolveAdTechProviders } from './ad-tech-providers';
+import type { AdditionalConsentConfig } from './ad-tech-providers';
 import { parseVendorScopeHeader, resolveGvl, VENDOR_SCOPE_HEADER } from './gvl';
 import type { GvlConfig } from './gvl';
 import { createPolicySnapshotToken } from './policy-snapshot';
@@ -102,6 +105,32 @@ export const readInitSignals = function readInitSignals(
 	};
 };
 
+/**
+ * Google Additional Consent providers for a matched IAB response. They travel
+ * with the vendor list, because the preference centre must show each one
+ * with its privacy policy before the AC string lists it. The manifest names
+ * them, so a host resolving from it discloses the same providers.
+ */
+const loadAdTechProviders = function loadAdTechProviders(
+	manifest: ConsentManifest,
+	options: AdditionalConsentConfig | undefined,
+	gvl: GvlConfig | undefined
+): Promise<AdTechProvider[] | null> | undefined {
+	const listed = manifest.iab?.enabled
+		? manifest.iab.additionalConsent
+		: undefined;
+	if (!listed || options?.enabled === false) {
+		return undefined;
+	}
+	return resolveAdTechProviders({
+		cache: options?.cache ?? gvl?.cache,
+		fetch: options?.fetch,
+		providers: listed.providers,
+		ttlMs: options?.ttlMs,
+		url: listed.url,
+	});
+};
+
 /** Negotiation cannot revoke grants already running in cached original clients. */
 const isContractSupported = function isContractSupported(
 	declared: number | null | undefined
@@ -118,7 +147,9 @@ const isContractSupported = function isContractSupported(
  * The matched policy decides whether the response carries a vendor list: a
  * matched IAB rule gets one as long as the deployment configured `gvl`, because
  * an IAB banner without a list has no vendor to name. `gvl.enabled: false` is
- * the only refusal.
+ * the only refusal. Google Additional Consent providers the manifest lists in
+ * `iab.additionalConsent` follow the same rule; `additionalConsent.enabled:
+ * false` refuses them.
  */
 export const buildInitResponse = async function buildInitResponse(
 	config: ConsentManifestConfig,
@@ -130,7 +161,8 @@ export const buildInitResponse = async function buildInitResponse(
 	 * route verifying under `options.tenantId` and the init route minting
 	 * agree.
 	 */
-	tokenTenantId?: string
+	tokenTenantId?: string,
+	additionalConsent?: AdditionalConsentConfig
 ): Promise<{
 	body: InitOutput;
 	signals: InitRequestSignals;
@@ -174,18 +206,24 @@ export const buildInitResponse = async function buildInitResponse(
 	// scope may only cut that configured scope down, never reach past it, and
 	// it reaches the upstream not at all -- `resolveGvl` narrows the cached
 	// document per request.
-	const wantsGvl =
-		gvl !== undefined &&
-		gvl.enabled !== false &&
-		resolution.status === 'matched' &&
-		resolution.policy.model === 'iab';
-	const gvlDocument = wantsGvl
-		? await resolveGvl(signals.language, gvl, signals.declaredVendorIds)
-		: undefined;
-	const body =
-		gvlDocument === undefined
-			? negotiated
-			: { ...negotiated, gvl: gvlDocument };
+	const matchedIAB =
+		resolution.status === 'matched' && resolution.policy.model === 'iab';
+	const wantsGvl = matchedIAB && gvl !== undefined && gvl.enabled !== false;
+	const [gvlDocument, adTechProviders] = await Promise.all([
+		wantsGvl
+			? resolveGvl(signals.language, gvl, signals.declaredVendorIds)
+			: undefined,
+		matchedIAB
+			? loadAdTechProviders(manifest, additionalConsent, gvl)
+			: undefined,
+	]);
+	const body: InitOutput = {
+		...negotiated,
+		...(gvlDocument !== undefined && { gvl: gvlDocument }),
+		// An unavailable list is left out, never sent as empty: the client
+		// keeps what it holds rather than withdrawing disclosed providers.
+		...(adTechProviders && { adTechProviders }),
+	};
 	if (resolution.status !== 'matched' || !snapshot?.signingKey) {
 		return { body, manifest, signals };
 	}

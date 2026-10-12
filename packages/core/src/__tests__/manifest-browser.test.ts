@@ -141,6 +141,54 @@ describe('createBrowserManifestTransport()', () => {
 		expect(response?.gvl).toEqual(vendorList);
 	});
 
+	test('loads Google Additional Consent providers beside the vendor list', async () => {
+		const providers = {
+			providers: {
+				'89': { id: 89, name: 'Meta', policyUrl: 'https://meta.example/p' },
+			},
+		};
+		const fetchSpy = vi.fn<typeof fetch>((input) =>
+			Promise.resolve(
+				jsonResponse(
+					String(input).startsWith('https://lists.example/ac-browser')
+						? providers
+						: { vendorListVersion: 42, vendors: {} }
+				)
+			)
+		);
+		const transport = createBrowserManifestTransport({
+			backendURL: 'https://backend.example',
+			fetch: fetchSpy,
+			snapshot: {
+				...everywhereManifest,
+				iab: {
+					additionalConsent: {
+						providers: [89],
+						url: 'https://lists.example/ac-browser',
+					},
+					enabled: true,
+					gvl: { url: 'https://gvl.example/vendor-list', version: 42 },
+				},
+				policyPacks: [
+					createConsentManifestPolicyPack({
+						categories: ['*'],
+						id: 'everywhere-iab',
+						match: { isDefault: true },
+						model: 'iab',
+						prompt: 'choice',
+						scopeMode: 'strict',
+					}),
+				],
+			},
+		});
+
+		const response = await transport.init?.(initContext({ language: 'en' }));
+
+		expect(response?.adTechProviders).toEqual([
+			{ id: 89, name: 'Meta', policyUrl: 'https://meta.example/p' },
+		]);
+	});
+
 	test('asks geoURL for a location the policy needs', async () => {
 		const fetchSpy = vi.fn<typeof fetch>((input) =>
 			Promise.resolve(

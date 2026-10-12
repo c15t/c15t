@@ -192,6 +192,27 @@ describe('rich init: IAB passthrough', () => {
 		expect(snap.iab?.cmpId).toBe(28);
 	});
 
+	test('Additional Consent providers land on snapshot.iab and survive a response without them', async () => {
+		const adTechProviders = [
+			{ id: 89, name: 'Meta', policyUrl: 'https://meta.example/privacy' },
+		];
+		let responses = 0;
+		const transport: KernelTransport = {
+			init() {
+				responses += 1;
+				return Promise.resolve(
+					responses === 1 ? { adTechProviders, cmpId: 28 } : { cmpId: 28 }
+				);
+			},
+		};
+		const kernel = createConsentKernel({ transport });
+
+		await kernel.commands.init();
+		expect(kernel.getSnapshot().iab?.adTechProviders).toEqual(adTechProviders);
+		await kernel.commands.init();
+		expect(kernel.getSnapshot().iab?.adTechProviders).toEqual(adTechProviders);
+	});
+
 	test('gvl=null on 200 response → iab.enabled remains false', async () => {
 		const transport: KernelTransport = {
 			init() {
