@@ -1,24 +1,24 @@
 {
-	"title": "@c15t/svelte: Svelte Consent Components",
-	"description": "Developer-first CMP for Svelte: cookie banner, consent manager, preferences centre. GDPR ready with minimal setup and rich customization",
+	"title": "@c15t/svelte: Svelte and SvelteKit Consent Components",
+	"description": "Cookie banner, consent dialog, and preference center for Svelte 5 and SvelteKit, with headless state when you want your own design.",
 	"features": [
-		"Works with Svelte 5",
-		"Headless and fully customizable UI components",
-		"Automatic GDPR compliance",
-		"Minimal configuration with TypeScript-first design",
-		"Comprehensive Consent Management Platform (CMP)",
-		"Flexible Cookie Banner and Preference Center components",
-		"Built-in internationalization support",
-		"Seamless consent storage and tracking"
+		"Works with Svelte 5 and SvelteKit 2 and 3",
+		"On SvelteKit, `loadConsent` resolves the policy on the server, so the banner is in the first HTML",
+		"Prebuilt cookie banner, consent dialog, and preference center with a theme system",
+		"Headless state for a fully custom design",
+		"Analytics, ads, and pixels follow each visitor's choice through @c15t/integrations: Google Tag Manager, Google Consent Mode v2, GA4, Meta Pixel, PostHog, and more",
+		"Translations for 35 languages through @c15t/translations"
 	],
 	"prerequisites": [
-		"Svelte 5 or later",
+		"Svelte 5, or SvelteKit 2 or 3",
 		"Node.js 20.19 or later",
-		"A hosted [c15t instance](https://inth.com) (free sign-up) or [self-hosted deployment](https://c15t.com/docs/self-host/quickstart)"
+		"An [Inth project](https://inth.com) (free sign-up), a [self-hosted backend](https://c15t.com/docs/self-host/quickstart), or offline mode for local development"
 	],
 	"manualInstallation": [
 		"",
-		"```bash\npnpm add @c15t/svelte\n```",
+		"```bash\npnpm add @c15t/svelte@alpha\n```",
+		"",
+		"`@c15t/svelte` is not part of the `c15t` package. Install it on its own.",
 		"",
 		"To manually install, follow the [quickstart](https://c15t.com/docs/frameworks/svelte/quickstart)."
 	],
@@ -27,11 +27,11 @@
 		"Wrap your app with `ConsentProvider` in `manifest()` mode",
 		"Add `ConsentBanner` and `ConsentDialog` near the root",
 		"In SvelteKit, render `ConsentRoot` with the state `loadConsent` from `@c15t/svelte/kit` returns; see the [SvelteKit quickstart](https://c15t.com/docs/frameworks/sveltekit/quickstart)",
-		"For full implementation details, see the [Svelte quickstart docs](https://c15t.com/docs/frameworks/svelte/quickstart)",
-
-		"```svelte\n<!-- src/App.svelte -->\n<script lang=\"ts\">\n  import {\n    ConsentBanner,\n    ConsentDialog,\n    ConsentProvider,\n    manifest,\n  } from '@c15t/svelte';\n</script>\n\n<ConsentProvider mode={manifest()}>\n  <main>Your app goes here.</main>\n  <ConsentBanner />\n  <ConsentDialog />\n</ConsentProvider>\n```"
+		"For the full setup, see the [Svelte quickstart docs](https://c15t.com/docs/frameworks/svelte/quickstart)",
+		"```svelte\n<!-- src/App.svelte -->\n<script lang=\"ts\">\n  import {\n    ConsentBanner,\n    ConsentDialog,\n    ConsentDialogLink,\n    ConsentProvider,\n    manifest,\n  } from '@c15t/svelte';\n</script>\n\n<ConsentProvider mode={manifest()}>\n  <main>Your app goes here.</main>\n  <ConsentBanner />\n  <ConsentDialog />\n  <ConsentDialogLink>Privacy settings</ConsentDialogLink>\n</ConsentProvider>\n```"
 	],
 	"docsLink": "https://c15t.com/docs/frameworks/svelte/quickstart",
 	"quickStartLink": "https://c15t.com/docs/frameworks/svelte/quickstart",
-	"showCLIGeneration": true
+	"showCLIGeneration": false,
+	"showHosting": true
 }

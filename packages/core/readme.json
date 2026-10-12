@@ -1,41 +1,38 @@
 {
-	"title": "c15t: Developer-First Consent Management Platform",
-	"description": "Headless JavaScript consent management platform for cookie banners, privacy preferences, consent storage, and consent-aware script gating.",
+	"title": "@c15t/core: Headless Consent Engine",
+	"description": "The headless JavaScript engine behind every c15t adapter. It resolves consent policies, stores choices, and holds back scripts, iframes, and network requests until a visitor allows them. Use it to build your own consent UI or to connect a framework that has no c15t adapter.",
 	"features": [
-		"Cookie consent: Build consent flows for banners, dialogs, and preference centers",
-		"Headless APIs: Own the UI while c15t manages consent state and persistence",
-		"Framework agnostic: Works across JavaScript and TypeScript applications",
-		"Script gating: Connect to @c15t/integrations for Google Tag Manager, Consent Mode v2, Meta Pixel, and more",
-		"Server-side rendering support: Compatible with SSR frameworks",
-		"Internationalization: Built-in translation support"
+		"Bring your own UI: render from a consent snapshot, and c15t keeps state, storage, and policy resolution",
+		"Scripts, iframes, and network requests wait for the right consent category",
+		"Policies decide who sees a banner: opt-in for visitors in the EU, opt-out for some US states, or rules that you write",
+		"Google Consent Mode v2, IAB TCF 2.4, and Global Privacy Control support",
+		"Creating a runtime has no side effects, so the module is safe to import on the server",
+		"Vendor loaders for Google Tag Manager, Meta Pixel, PostHog, and more through @c15t/integrations"
 	],
 	"prerequisites": [
-		"JavaScript or TypeScript project",
 		"Node.js 20.19 or later",
-		"npm, pnpm, or yarn package manager",
-		"A hosted [c15t instance](https://inth.com) (free sign-up), [self-hosted deployment](https://c15t.com/docs/self-host/quickstart), or offline mode for local-only storage"
+		"An [Inth project](https://inth.com) (free sign-up), a [self-hosted backend](https://c15t.com/docs/self-host/quickstart), or offline mode for local development"
 	],
 	"manualInstallation": [
 		"",
-		"```bash\npnpm add @c15t/core\n```",
+		"```bash\npnpm add @c15t/core@alpha\n```",
 		"",
-		"To manually install, follow the [quickstart](https://c15t.com/docs/frameworks/javascript/quickstart)."
+		"The [`c15t`](https://www.npmjs.com/package/c15t) package ships the same engine at `c15t` and `c15t/runtime`, plus every framework adapter."
 	],
 	"usage": [
-		"Import the c15t core library",
-		"Configure your consent preferences",
-		"Manage user consent across your application",
-		"Customize consent banners and preference centers",
-		"For full implementation details, see the [JavaScript quickstart docs](https://c15t.com/docs/frameworks/javascript/quickstart)",
-		"```typescript\n// Example usage\nimport { ConsentManager } from '@c15t/core'\n\nconst consentManager = new ConsentManager({\n  // Your configuration\n})\n```"
+		"Create one runtime for the page with `createConsentRuntime` and a mode such as `hosted()`",
+		"Call `runtime.start()` in the browser",
+		"Render your banner from `runtime.kernel.getSnapshot()` and update it from `runtime.kernel.subscribe()`",
+		"Record choices with `runtime.kernel.commands.save('all')`, `save('none')`, or an object such as `{ measurement: true }`",
+		"For the full walkthrough, see the [headless runtime guide](https://c15t.com/docs/frameworks/javascript/headless)",
+		"```ts\n// src/consent-runtime.ts\nimport { hosted } from '@c15t/core'\nimport { createConsentRuntime } from '@c15t/core/runtime'\n\nexport const runtime = createConsentRuntime({\n  mode: hosted({ backendURL: 'https://your-project.inth.app' }),\n})\n```"
 	],
-	"docsLink": "https://c15t.com/docs/frameworks/javascript/quickstart",
-	"quickStartLink": "https://c15t.com/docs/frameworks/javascript/quickstart",
+	"docsLink": "https://c15t.com/docs/frameworks/javascript/headless",
+	"quickStartLink": "https://c15t.com/docs/frameworks/javascript/headless",
 	"githubLink": "https://github.com/c15t/c15t",
-	"showCLIGeneration": true,
-	"npmName": "@c15t/core",
+	"showCLIGeneration": false,
 	"customSections": {
-		"Deployment Modes": "- **Hosted on inth.com**: Hosted backend with policy storage, audit history, and hosted infrastructure\n- **Self-hosted backend**: Run @c15t/backend with your own database and infrastructure\n- **Offline mode**: Store consent locally in the browser for development, previews, static sites, or controlled fallback scenarios",
-		"Related Packages": "- [@c15t/react](https://www.npmjs.com/package/@c15t/react): React cookie banner, consent dialog, preference center, and headless hooks\n- [@c15t/nextjs](https://www.npmjs.com/package/@c15t/nextjs): Next.js App Router and Pages Router integration\n- [@c15t/integrations](https://www.npmjs.com/package/@c15t/integrations): Consent-aware analytics, tag manager, pixel, and widget loaders\n- [@c15t/backend](https://www.npmjs.com/package/@c15t/backend): Self-hostable consent backend"
-	}
+		"Related Packages": "- [c15t](https://www.npmjs.com/package/c15t): this engine plus the React, Next.js, Vue, Nuxt, Astro, and TanStack Start adapters in one install\n- [@c15t/browser](https://www.npmjs.com/package/@c15t/browser): a stock banner and preference dialog for plain JavaScript and script-tag sites\n- [@c15t/integrations](https://www.npmjs.com/package/@c15t/integrations): consent-aware analytics, tag manager, pixel, and widget loaders\n- [@c15t/backend](https://www.npmjs.com/package/@c15t/backend): the self-hosted consent backend"
+	},
+	"showHosting": true
 }

@@ -16,7 +16,7 @@
 		"",
 		"Framework adapters include this engine, so React, Next.js, Vue, and Svelte applications do not need to install it separately. Install it directly only for the imperative API:",
 		"",
-		"```bash\npnpm add -D @c15t/dev-tools\n```"
+		"```bash\npnpm add -D @c15t/dev-tools@alpha\n```"
 	],
 	"usage": [
 		"Create the engine with `createDevTools({ kernel })`",

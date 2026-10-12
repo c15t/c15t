@@ -1,0 +1,35 @@
+{
+	"title": "@c15t/astro: Astro Cookie Banner and Consent Management",
+	"description": "Cookie banner, preference dialog, and consent-gated scripts for Astro 5, 6, and 7. The banner is plain `.astro` markup with no framework JavaScript. The preference dialog loads as a Svelte, React, or Vue island only when a visitor opens it.",
+	"features": [
+		"Visitors download no UI framework for the banner. The dialog's framework loads only when a visitor opens it",
+		"Write the dialog island in Svelte, React, or Vue, so it uses the framework your site already ships",
+		"Static output works on any static host with `hosted()`. Server output resolves each visitor's policy, so the banner is in the first HTML",
+		"Geo-aware middleware reads location and language headers from your host",
+		"Analytics, ads, and pixels follow each visitor's choice through @c15t/integrations: Google Tag Manager, Google Consent Mode v2, GA4, Meta Pixel, PostHog, and more",
+		"IAB TCF 2.4 banner and dialog components"
+	],
+	"prerequisites": [
+		"Astro 5, 6, or 7",
+		"One of `@astrojs/svelte`, `@astrojs/react`, or `@astrojs/vue` for the preference dialog",
+		"A server adapter for server output, or none for static output",
+		"An [Inth project](https://inth.com) (free sign-up), a [self-hosted backend](https://c15t.com/docs/self-host/quickstart), or offline mode for local development"
+	],
+	"manualInstallation": [
+		"",
+		"```bash\npnpm add c15t@alpha @astrojs/svelte svelte @astrojs/node\n```",
+		"",
+		"The `c15t` package re-exports this package at `c15t/astro`, and the docs use that path. For React or Vue dialogs, install `@astrojs/react react react-dom` or `@astrojs/vue vue` instead of Svelte. `@astrojs/node` is the server adapter in the example below. Use your host's adapter instead, or leave it out for static output."
+	],
+	"usage": [
+		"Set `PUBLIC_C15T_BACKEND_URL` to your Inth backend URL in `.env`",
+		"Register your UI framework, then `c15t()`, in `astro.config.mjs`",
+		"```js\n// astro.config.mjs\nimport node from '@astrojs/node'\nimport svelte from '@astrojs/svelte'\nimport { defineConfig } from 'astro/config'\nimport c15t from 'c15t/astro'\n\nexport default defineConfig({\n  adapter: node({ mode: 'standalone' }),\n  integrations: [svelte(), c15t()],\n  output: 'server',\n})\n```",
+		"Add `ConsentScript` to `<head>`, and `ConsentBanner`, `ConsentDialog`, and `ConsentDialogLink` to your layout, from `c15t/astro/components`",
+		"For static output, the full layout, and island options, see the [Astro quickstart](https://c15t.com/docs/frameworks/astro/quickstart)"
+	],
+	"docsLink": "https://c15t.com/docs/frameworks/astro/quickstart",
+	"quickStartLink": "https://c15t.com/docs/frameworks/astro/quickstart",
+	"showCLIGeneration": false,
+	"showHosting": true
+}

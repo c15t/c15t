@@ -18,27 +18,36 @@ const DEFAULT_SUPPORT_SECTIONS = [
 ];
 
 const DEFAULT_CONTRIBUTING_SECTIONS = [
-	"We're open to all community contributions.",
-	'Read our [Contribution Guidelines](https://c15t.com/docs/oss/contributing)',
-	'Review our [Code of Conduct](https://c15t.com/docs/oss/code-of-conduct)',
-	'Fork the repository',
-	'Create a new branch for your feature',
-	'Submit a pull request',
-	'**All contributions, big or small, are welcome and appreciated.**',
+	'Read the [contribution guidelines](https://c15t.com/docs/oss/contributing) before you open a pull request',
+	'Follow the [code of conduct](https://c15t.com/docs/oss/code-of-conduct)',
 ];
 
 const DEFAULT_SECURITY_SECTION = `## Security
 
-If you believe you have found a security vulnerability in c15t, we encourage you to **_responsibly disclose this and NOT open a public issue_**. We will investigate all legitimate reports.
+Do not open a public issue for a security vulnerability. Report it privately through [GitHub's vulnerability reporting](https://github.com/c15t/c15t/security/advisories/new). We examine every valid report.
 
-Our preference is that you make use of GitHub's private vulnerability reporting feature to disclose potential security vulnerabilities in our open-source software. To do this, please visit [https://github.com/c15t/c15t/security](https://github.com/c15t/c15t/security) and click the "Report a vulnerability" button.
+- Do not share the vulnerability in public forums, issues, or pull requests
+- Give the steps to reproduce it and the versions it affects
+- Give us time to release a fix before you disclose it`;
 
-### Security Policy
+const SOCIAL_PROOF_LINE =
+	'c15t is used by [2,100+ sites](https://www.wappalyzer.com/technologies/cookie-compliance/c15t/), including expo.dev, zed.dev, unkey.dev, mintlify.com, and sazabi.com.';
 
-- Please do not share security vulnerabilities in public forums, issues, or pull requests
-- Provide detailed information about the potential vulnerability
-- Allow reasonable time for us to address the issue before any public disclosure
-- We are committed to addressing security concerns promptly and transparently`;
+/**
+ * Renders the shared hosting section with Inth links tagged for one package.
+ *
+ * @param npmBadgeName - URL-encoded package name used as the UTM content.
+ * @returns The Markdown for the Hosting section.
+ */
+const renderHostingSection = (npmBadgeName: string) => `## Hosting
+
+c15t needs somewhere to keep policies and consent records. Pick one:
+
+- **Hosted on [Inth](https://inth.com?utm_source=npm&utm_medium=readme&utm_campaign=oss_readme&utm_content=${npmBadgeName})**: Inth runs the backend for you. You get policy storage, consent records, audit history, and a dashboard, with no database or server to run. Sign-up is free.
+- **Self-hosted**: Run [\`@c15t/backend\`](https://www.npmjs.com/package/@c15t/backend) on your own server with PostgreSQL, MySQL, or SQLite. You own migrations, backups, and uptime. See the [self-hosting guide](https://c15t.com/docs/self-host/quickstart).
+- **Offline**: Choices stay in the browser, with no consent records. Use it for local development, previews, and demos, not production.
+
+The frontend code is the same for Inth and a self-hosted backend. Only the backend URL changes.`;
 
 // Types
 interface PackageReadmeConfig {
@@ -71,6 +80,15 @@ interface PackageReadmeConfig {
 	quickStartLink?: string;
 	showCLIGeneration?: boolean;
 	customSections?: Record<string, string>;
+	/** Sections rendered directly after Key Features, before setup steps. */
+	leadSections?: Record<string, string>;
+	/**
+	 * Renders the shared Hosting section: `'lead'` places it after Key
+	 * Features, `true` places it after Usage.
+	 */
+	showHosting?: boolean | 'lead';
+	/** Set from package.json: true when the published tarball includes AGENTS.md. */
+	shipsAgentDocs?: boolean;
 }
 
 // Helpers
@@ -223,8 +241,8 @@ ${[
 	const bannerBlock = `<p align="center">
   <a href="https://c15t.com?utm_source=npm&utm_medium=readme&utm_campaign=oss_readme&utm_content=${npmBadgeName}" target="_blank" rel="noopener noreferrer">
     <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="../../docs/assets/c15t-banner-readme-dark.svg" type="image/svg+xml">
-      <img src="../../docs/assets/c15t-banner-readme-light.svg" alt="c15t Banner" type="image/svg+xml">
+      <source media="(prefers-color-scheme: dark)" srcset="../../docs/assets/c15t-banner-readme-dark.png">
+      <img src="../../docs/assets/c15t-banner-readme-light.png" alt="c15t: the open standard for cookie banners">
     </picture>
   </a>
 </p>
@@ -253,10 +271,10 @@ Easiest setup with @c15t/cli:
 
 \`\`\`bash
 # Set up c15t in your project
-pnpm dlx @c15t/cli setup
+pnpm dlx @c15t/cli@alpha setup
 # Alternatives:
-# npx @c15t/cli setup
-# bunx --bun @c15t/cli setup
+# npx @c15t/cli@alpha setup
+# bunx --bun @c15t/cli@alpha setup
 \`\`\`
 
 The CLI will:
@@ -269,7 +287,7 @@ The CLI will:
 	}
 
 	const manualInstallationBlock = config.manualInstallation?.length
-		? `## Manual Installation
+		? `## ${config.showCLIGeneration ? 'Manual Installation' : 'Installation'}
 
 ${config.manualInstallation.map((step) => `${step}`).join('\n')}`
 		: '';
@@ -333,8 +351,28 @@ ${disableMethodsSection}`;
 	if (config.docsLink) {
 		docsBlock = `## Documentation
 
-For further information, guides, and examples visit the [reference documentation](${config.docsLink}).`;
+See the [documentation](${config.docsLink}) for guides, API reference, and examples.`;
 	}
+
+	let leadSectionsBlock = '';
+	if (config.leadSections) {
+		leadSectionsBlock = Object.entries(config.leadSections)
+			.map(([heading, content]) => `## ${heading}\n\n${content}`)
+			.join('\n\n');
+	}
+
+	let agentDocsBlock = '';
+	if (config.shipsAgentDocs) {
+		agentDocsBlock = `## Docs for AI Agents
+
+This package ships its documentation as Markdown, matched to the installed version. After you install it, point your coding agent at \`node_modules/${config.packageName}/AGENTS.md\`. It indexes every guide in \`node_modules/${config.packageName}/docs/\`.
+
+On the web, every page of the [c15t docs](https://c15t.com/docs) has a Markdown version, and [llms.txt](https://c15t.com/docs/llms.txt) lists them all. Install the c15t agent skills with \`npx skills add c15t/skills\`.`;
+	}
+
+	const hostingBlock = config.showHosting
+		? renderHostingSection(npmBadgeName)
+		: '';
 
 	let customSectionsBlock = '';
 	if (config.customSections) {
@@ -357,17 +395,22 @@ For further information, guides, and examples visit the [reference documentation
 	const readmeContent = [
 		bannerBlock,
 		config.description,
+		SOCIAL_PROOF_LINE,
 		featuresBlock,
+		leadSectionsBlock,
+		config.showHosting === 'lead' ? hostingBlock : '',
 		prerequisitesBlock,
 		quickStartBlock,
 		manualInstallationBlock,
 		installationBlock,
 		usageBlock,
+		config.showHosting === true ? hostingBlock : '',
 		commandsBlock,
 		globalFlagsBlock,
 		telemetryBlock,
 		docsBlock,
 		customSectionsBlock,
+		agentDocsBlock,
 		supportBlock,
 		contributingBlock,
 		config.security || DEFAULT_SECURITY_SECTION,
@@ -428,6 +471,10 @@ const generateReadmes = async function generateReadmes() {
 
 			// Set package name
 			readmeConfig.packageName = packageJson.name || packageName;
+
+			readmeConfig.shipsAgentDocs = Array.isArray(packageJson.files)
+				? packageJson.files.includes('AGENTS.md')
+				: false;
 
 			// Set description from package.json if not in readme.json
 			if (!readmeConfig.description) {

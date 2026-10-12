@@ -1,8 +1,8 @@
 <p align="center">
   <a href="https://c15t.com?utm_source=npm&utm_medium=readme&utm_campaign=oss_readme&utm_content=%40c15t%2Freact-native" target="_blank" rel="noopener noreferrer">
     <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="../../docs/assets/c15t-banner-readme-dark.svg" type="image/svg+xml">
-      <img src="../../docs/assets/c15t-banner-readme-light.svg" alt="c15t Banner" type="image/svg+xml">
+      <source media="(prefers-color-scheme: dark)" srcset="../../docs/assets/c15t-banner-readme-dark.png">
+      <img src="../../docs/assets/c15t-banner-readme-light.png" alt="c15t: the open standard for cookie banners">
     </picture>
   </a>
 </p>
@@ -19,6 +19,8 @@
 </p>
 
 Consent management for iOS and Android apps. The consent engine runs natively, so consent state survives cold starts, works offline, and is readable from native ad SDKs, while the React Native layer renders banners and preference centers from the same snapshot.
+
+c15t is used by [2,100+ sites](https://www.wappalyzer.com/technologies/cookie-compliance/c15t/), including expo.dev, zed.dev, unkey.dev, mintlify.com, and sazabi.com.
 
 ## Key Features
 
@@ -39,7 +41,7 @@ Consent management for iOS and Android apps. The consent engine runs natively, s
 - A custom native build: Expo Go cannot load this package's native module, so use a development build
 - A c15t project endpoint, or a self-hosted `@c15t/backend` URL
 
-## Manual Installation
+## Installation
 
 ```bash
 pnpm add @c15t/react-native
@@ -47,7 +49,7 @@ pnpm add @c15t/react-native
 
 ## Documentation
 
-For further information, guides, and examples visit the [reference documentation](https://c15t.com/docs/frameworks/react-native/quickstart).
+See the [documentation](https://c15t.com/docs/frameworks/react-native/quickstart) for guides, API reference, and examples.
 
 ## How it works
 
@@ -124,26 +126,16 @@ Expo Go cannot run this package: it ships a custom native module, and Expo Go co
 
 ## Contributing
 
-- We're open to all community contributions.
-- Read our [Contribution Guidelines](https://c15t.com/docs/oss/contributing)
-- Review our [Code of Conduct](https://c15t.com/docs/oss/code-of-conduct)
-- Fork the repository
-- Create a new branch for your feature
-- Submit a pull request
-- **All contributions, big or small, are welcome and appreciated.**
+- Read the [contribution guidelines](https://c15t.com/docs/oss/contributing) before you open a pull request
+- Follow the [code of conduct](https://c15t.com/docs/oss/code-of-conduct)
 
 ## Security
 
-If you believe you have found a security vulnerability in c15t, we encourage you to **_responsibly disclose this and NOT open a public issue_**. We will investigate all legitimate reports.
+Do not open a public issue for a security vulnerability. Report it privately through [GitHub's vulnerability reporting](https://github.com/c15t/c15t/security/advisories/new). We examine every valid report.
 
-Our preference is that you make use of GitHub's private vulnerability reporting feature to disclose potential security vulnerabilities in our open-source software. To do this, please visit [https://github.com/c15t/c15t/security](https://github.com/c15t/c15t/security) and click the "Report a vulnerability" button.
-
-### Security Policy
-
-- Please do not share security vulnerabilities in public forums, issues, or pull requests
-- Provide detailed information about the potential vulnerability
-- Allow reasonable time for us to address the issue before any public disclosure
-- We are committed to addressing security concerns promptly and transparently
+- Do not share the vulnerability in public forums, issues, or pull requests
+- Give the steps to reproduce it and the versions it affects
+- Give us time to release a fix before you disclose it
 
 ## License
 

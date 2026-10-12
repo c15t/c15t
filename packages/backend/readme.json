@@ -1,0 +1,38 @@
+{
+	"title": "@c15t/backend: Self-Hosted Consent Backend",
+	"description": "Run the c15t consent backend on your own server and database. It resolves consent policies, stores consent records and audit history, and serves every c15t frontend through one web `Request` handler.",
+	"features": [
+		"You own the data: consent records stay in your PostgreSQL, MySQL, or SQLite database",
+		"Policy rules by region, with presets such as `policyRulePresets.europeOptIn()`",
+		"One web-standard `Request` to `Response` handler that mounts in Next.js, Nuxt, SvelteKit, TanStack Start, or any server",
+		"Geolocation from host headers, server-side translations, and audit logs",
+		"IAB TCF configuration with the Global Vendor List and custom vendors",
+		"The same API as Inth, so frontends change only the backend URL"
+	],
+	"prerequisites": [
+		"Node.js 20.19 or later",
+		"A PostgreSQL, MySQL, or SQLite database, plus its driver: `@effect/sql-pg`, `@effect/sql-mysql2`, or `@effect/sql-sqlite-node`",
+		"A server that runs Node.js. A static export cannot run the backend"
+	],
+	"manualInstallation": [
+		"",
+		"```bash\npnpm add @c15t/backend@alpha @effect/sql-sqlite-node\n```",
+		"",
+		"Install the driver version that the backend lists as a peer dependency. Do not want to run a database? [Inth](https://inth.com) runs this backend for you."
+	],
+	"usage": [
+		"Create `c15t-backend.config.ts` with your database, trusted origins, and policy rules",
+		"```ts\n// c15t-backend.config.ts\nimport { defineConfig, policyRulePresets } from '@c15t/backend'\n\nexport default defineConfig({\n  database: { dialect: 'sqlite', filename: './consent.db' },\n  trustedOrigins: ['localhost'],\n  manifest: { policyRules: [policyRulePresets.europeOptIn()] },\n})\n```",
+		"Create the schema: `npx @c15t/cli@alpha self-host migrate --config ./c15t-backend.config.ts --plan`, then run it again with `--apply`",
+		"Mount the handler on a catch-all route for `GET`, `POST`, `PUT`, `PATCH`, and `OPTIONS`",
+		"```ts\n// app/api/c15t/[[...path]]/route.ts (Next.js)\nimport { c15tInstance } from '@c15t/backend'\n\nimport config from '../../../../c15t-backend.config'\n\nexport const runtime = 'nodejs'\nconst backend = c15tInstance({ ...config, basePath: '/api/c15t' })\n\nexport const GET = (request: Request) => backend.handler(request)\nexport const POST = GET\nexport const PUT = GET\nexport const PATCH = GET\nexport const OPTIONS = GET\n```",
+		"Point your frontend at the backend URL, such as `https://app.example.com/api/c15t`, where the quickstart asks for the Inth URL",
+		"For other servers, PostgreSQL, and deployment checks, see the [self-hosting guide](https://c15t.com/docs/self-host/quickstart)"
+	],
+	"docsLink": "https://c15t.com/docs/self-host/overview",
+	"quickStartLink": "https://c15t.com/docs/self-host/quickstart",
+	"showCLIGeneration": false,
+	"customSections": {
+		"Hosted or Self-Hosted": "Self-host when you need to run the service and its database yourself. You then own provisioning, migrations, backups, policy configuration, signing secrets, availability, and upgrades.\n\n[Inth](https://inth.com) runs the same backend for you, with a dashboard, audit history, and a managed IAB CMP ID. Your frontend code is the same either way."
+	}
+}
