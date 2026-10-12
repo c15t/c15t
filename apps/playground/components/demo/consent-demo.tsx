@@ -22,6 +22,7 @@ import { demoExperiment, parseSurfaceParams } from '../../lib/prompt-surface';
 import {
 	DEFAULT_SCENARIO_ID,
 	DEMO_CMP_ID,
+	DEMO_ADDITIONAL_CONSENT,
 	DEMO_CUSTOM_VENDORS,
 	DEMO_IAB_VENDOR_IDS,
 	DEMO_SCENARIO_HEADER,
@@ -269,6 +270,7 @@ export const ConsentDemo = ({ backend = 'hosted' }: ConsentDemoProps) => {
 				cmpId: DEMO_CMP_ID,
 				vendors: DEMO_IAB_VENDOR_IDS,
 				customVendors: DEMO_CUSTOM_VENDORS,
+				additionalConsent: DEMO_ADDITIONAL_CONSENT,
 			}),
 		[]
 	);
