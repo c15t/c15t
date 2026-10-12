@@ -20,7 +20,7 @@ c15t is an open-source consent management platform (CMP) for JavaScript. It give
 
 c15t is used by [2,100+ sites](https://www.wappalyzer.com/technologies/cookie-compliance/c15t/), including expo.dev, zed.dev, unkey.dev, mintlify.com, and sazabi.com.
 
-**[Docs](https://c15t.com/docs)** · **[Choose your setup](https://c15t.com/docs/concepts/choose-your-setup)** · **[Hosted on Inth](https://inth.com?utm_source=github&utm_medium=repo_homepage)** · **[Discord](https://c15t.link/discord)**
+**[Docs](https://c15t.com/docs)** · **[Hosted on Inth](https://inth.com?utm_source=github&utm_medium=repo_homepage)** · **[Discord](https://c15t.link/discord)**
 
 ## Why c15t
 
