@@ -208,6 +208,7 @@ const RULE_WIRE_KEYS = [
 	'scope',
 	'scopeMode',
 	'preselectedCategories',
+	'exemptCategories',
 	'actions',
 	'rights',
 	'validity',
@@ -495,6 +496,14 @@ const readResolvedPolicyRule = function readResolvedPolicyRule(
 	const i18n = readI18n(own(raw, 'i18n'));
 	if (i18n) {
 		rule.i18n = i18n;
+	}
+	const exemptCategories = own(raw, 'exemptCategories');
+	if (exemptCategories !== undefined) {
+		rule.exemptCategories = readStringSet(
+			exemptCategories,
+			'policy.exemptCategories',
+			isOptionalCategory
+		);
 	}
 	const issues = collectResolvedPolicyRuleIssues(rule);
 	if (issues.length > 0) {

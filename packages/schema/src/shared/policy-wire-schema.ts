@@ -58,6 +58,7 @@ const resolvedPolicyRuleFieldsSchema = v.pipe(
 	v.strictObject({
 		actions: policyActionConstraintsSchema,
 		copyRevision: v.nullable(v.string()),
+		exemptCategories: v.optional(v.array(policyOptionalCategorySchema)),
 		i18n: v.optional(
 			v.pipe(
 				plainObjectSchema,

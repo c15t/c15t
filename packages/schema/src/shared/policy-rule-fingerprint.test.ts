@@ -112,6 +112,18 @@ describe('fingerprint domains', () => {
 		expect(copy.notice).not.toBe(initial.notice);
 	});
 
+	test('an exemption changes the policy and choice hashes, its absence nothing', () => {
+		const preselected = withPatch({ preselectedCategories: ['measurement'] });
+		const exempt = withPatch({
+			exemptCategories: ['measurement'],
+			preselectedCategories: ['measurement'],
+		});
+		expect(exempt.policy).not.toBe(preselected.policy);
+		expect(exempt.choice).not.toBe(preselected.choice);
+		expect(exempt.notice).toBe(preselected.notice);
+		expect(withPatch({ exemptCategories: undefined })).toEqual(initial);
+	});
+
 	test('exact-policy inputs outside the prompt contract change only the policy hash', () => {
 		const preselected = withPatch({ preselectedCategories: ['marketing'] });
 		expect(preselected.policy).not.toBe(initial.policy);

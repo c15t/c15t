@@ -42,7 +42,9 @@ one.
 ## Lifecycle callbacks
 
 Each callback receives `{ id, elementId, hasConsent, consents, element?,
-error?, vendor? }`.
+error?, vendor?, consentSignals? }`. `consentSignals` is set under a rule with
+`exemptCategories` and reports those categories as denied; pass it to a
+vendor's own consent API.
 
 | Callback | When it runs |
 | --- | --- |

@@ -47,6 +47,14 @@ export const buildCallbackInfo = function buildCallbackInfo(
 	if (tools.registration) {
 		Object.defineProperty(info, 'registration', { value: tools.registration });
 	}
+	const exempt = snapshot.policyRule.exemptCategories;
+	if (exempt) {
+		const consentSignals = { ...info.consents };
+		for (const category of exempt) {
+			consentSignals[category] = false;
+		}
+		info.consentSignals = consentSignals;
+	}
 	if (script.vendor && snapshot.model !== 'iab') {
 		info.vendor = {
 			granted: !tools.deniedVendors(snapshot)?.has(script.vendor),

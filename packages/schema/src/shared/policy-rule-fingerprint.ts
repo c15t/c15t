@@ -67,6 +67,8 @@ export interface PolicyFingerprintInput {
 	scope: PolicyOptionalCategory[];
 	scopeMode: PolicyScopeMode;
 	preselectedCategories: PolicyOptionalCategory[];
+	/** Omitted when the rule exempts nothing, so older hashes stay stable. */
+	exemptCategories?: PolicyOptionalCategory[];
 	actions: {
 		allowed: PolicyPromptAction[];
 		required: PolicyPromptAction[];
@@ -88,6 +90,11 @@ export interface ChoicePromptFingerprintInput {
 	prompt: ResolvedPolicyRule['prompt'];
 	scope: PolicyOptionalCategory[];
 	scopeMode: PolicyScopeMode;
+	/**
+	 * Omitted when the rule exempts nothing. Adding or removing an exemption
+	 * changes what a stored decision meant, so it asks again.
+	 */
+	exemptCategories?: PolicyOptionalCategory[];
 	requiredActions: PolicyPromptAction[];
 	validityMs: number;
 	rights: PolicyRight[];
@@ -145,6 +152,7 @@ export const policyFingerprintInput = function policyFingerprintInput(
 		},
 		copyRevision: rule.copyRevision,
 		domain: 'policy',
+		exemptCategories: rule.exemptCategories && sorted(rule.exemptCategories),
 		model: rule.model,
 		preselectedCategories: sorted(rule.preselectedCategories),
 		privacySignals: {
@@ -172,10 +180,10 @@ export const policyFingerprintInput = function policyFingerprintInput(
  *
  * @remarks
  * Hashes the configured prompt, never the runtime prompt reason. Includes the
- * model, the prompt, required actions, scope and scope mode, choice validity,
- * rights, the GPC mapping (declared material for this version) and the copy
- * revision. Excludes cosmetic presentation, `id`, `match`, `i18n`, proof,
- * preselected categories and the notice validity.
+ * model, the prompt, required actions, scope and scope mode, exempt
+ * categories, choice validity, rights, the GPC mapping (declared material for
+ * this version) and the copy revision. Excludes cosmetic presentation, `id`,
+ * `match`, `i18n`, proof, preselected categories and the notice validity.
  */
 export const choicePromptFingerprintInput =
 	function choicePromptFingerprintInput(
@@ -184,6 +192,7 @@ export const choicePromptFingerprintInput =
 		return {
 			copyRevision: rule.copyRevision,
 			domain: 'choice',
+			exemptCategories: rule.exemptCategories && sorted(rule.exemptCategories),
 			model: rule.model,
 			privacySignals: {
 				gpc: {

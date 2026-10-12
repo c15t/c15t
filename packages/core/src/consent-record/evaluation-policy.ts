@@ -3,8 +3,8 @@
  *
  * Fingerprints arrive precomputed from policy resolution; this module
  * neither hashes nor imports a hash implementation. Its job is to reject
- * invalid model/prompt pairings, durations, scope entries and GPC
- * mappings before anything reaches the evaluator, and to canonicalize
+ * invalid model/prompt pairings, durations, scope entries, GPC mappings
+ * and exemptions before anything reaches the evaluator, and to canonicalize
  * the category sets it accepts.
  *
  * @internal
@@ -30,6 +30,8 @@ export interface EvaluationPolicyInput {
 	scopeMode: 'strict' | 'permissive';
 	/** Displayed categories required for a choice. Defaults to the policy scope. */
 	choiceScope?: readonly OptionalConsentCategory[];
+	/** In-scope categories an opt-in policy permits until the visitor objects. */
+	exemptCategories?: readonly OptionalConsentCategory[];
 	/** Choice prompt fingerprint and semantic validity. */
 	choice: RecordValidity;
 	/** Notice prompt fingerprint and semantic validity. */
@@ -129,7 +131,7 @@ const assertGpcMapping = function assertGpcMapping(
  * Validates and canonicalizes a policy projection.
  *
  * @throws {TypeError} when the model/prompt pairing, fingerprints,
- * durations, scope, or GPC mapping are invalid.
+ * durations, scope, GPC mapping or exemptions are invalid.
  */
 export const createEvaluationPolicy = function createEvaluationPolicy(
 	input: EvaluationPolicyInput
@@ -161,6 +163,16 @@ export const createEvaluationPolicy = function createEvaluationPolicy(
 	}
 	const gpcDenyCategories = input.gpcDenyCategories ?? [];
 	assertGpcMapping(gpcDenyCategories, scope);
+	const exemptCategories = input.exemptCategories ?? [];
+	assertScope(exemptCategories);
+	if (exemptCategories.length > 0 && model !== 'opt-in') {
+		throw new TypeError(
+			`Policy model "${model}" cannot exempt categories, only "opt-in" can`
+		);
+	}
+	if (exemptCategories.some((category) => !scope.includes(category))) {
+		throw new TypeError('Exempt categories must be inside the policy scope');
+	}
 
 	const policy: EvaluationPolicy = {
 		choice,
@@ -174,6 +186,9 @@ export const createEvaluationPolicy = function createEvaluationPolicy(
 	};
 	if (choiceScope) {
 		policy.choiceScope = canonicalizeCategories(choiceScope);
+	}
+	if (exemptCategories.length > 0) {
+		policy.exemptCategories = canonicalizeCategories(exemptCategories);
 	}
 	return policy;
 };

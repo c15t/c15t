@@ -71,3 +71,46 @@ test('Google Consent Mode updates each permission and follows the live GPC signa
 		kernel.dispose();
 	}
 });
+
+test('Google Consent Mode keeps an exempt category denied while it runs', async () => {
+	const transport = createOfflineTransport({
+		policyRules: [
+			{
+				exemptCategories: ['measurement'],
+				id: 'uk',
+				match: { isDefault: true },
+				model: 'opt-in',
+				prompt: 'choice',
+			},
+		],
+	});
+	const kernel = createConsentKernel({ now: Date.now(), transport });
+	const commands = vi.fn();
+	window.gtag = commands;
+	window.dataLayer = [];
+	const loader = createScriptLoader({
+		kernel,
+		scripts: [gtag({ category: 'measurement', id: 'G-TEST' })],
+	});
+	const consentStates = () =>
+		commands.mock.calls
+			.filter(([command]) => command === 'consent')
+			.map(([, , state]) => state);
+	try {
+		await kernel.commands.init();
+		expect(kernel.getSnapshot().effectivePermissions.measurement).toBe(true);
+		expect(document.querySelector('script[src*="G-TEST"]')).not.toBeNull();
+		expect(consentStates()).not.toHaveLength(0);
+		for (const state of consentStates()) {
+			expect(state).toMatchObject({ analytics_storage: 'denied' });
+		}
+		await kernel.commands.save({ marketing: true, measurement: true });
+		expect(consentStates().at(-1)).toMatchObject({
+			ad_storage: 'granted',
+			analytics_storage: 'denied',
+		});
+	} finally {
+		loader.dispose();
+		kernel.dispose();
+	}
+});

@@ -470,6 +470,61 @@ describe('evaluateConsentRecord: scope', () => {
 	});
 });
 
+describe('evaluateConsentRecord: exempt categories', () => {
+	it('permits an exempt category before a choice and asks about the rest', () => {
+		const result = evaluateConsentRecord({
+			choice: null,
+			noticeDismissal: null,
+			now: NOW,
+			policy: makePolicy({ exemptCategories: ['measurement'] }),
+		});
+		expect(result.permissions).toEqual({ ...allFalse, measurement: true });
+		expect(result.categories.measurement.source).toBe('default');
+		expect(result.promptRequirement).toEqual({
+			kind: 'choice',
+			reason: 'missing',
+		});
+	});
+
+	it('denies an exempt category the visitor objected to', () => {
+		const policy = makePolicy({ exemptCategories: ['measurement'] });
+		const result = evaluateConsentRecord({
+			choice: makeChoice(
+				{ marketing: true, measurement: false },
+				NOW,
+				currentBasis(policy)
+			),
+			noticeDismissal: null,
+			now: NOW,
+			policy,
+		});
+		expect(result.permissions.measurement).toBe(false);
+		expect(result.permissions.marketing).toBe(true);
+		expect(result.restrictions.measurement).toEqual(['explicit-denial']);
+	});
+
+	it('sets no deadline for an exempt grant whose expiry changes nothing', () => {
+		const policy = makePolicy({
+			choice: { fingerprint: 'choice-fp-1', maxAgeMs: 30 * DAY },
+			exemptCategories: ['measurement'],
+			scope: ['marketing', 'measurement'],
+			scopeMode: 'strict',
+		});
+		const result = evaluateConsentRecord({
+			choice: makeChoice(
+				{ marketing: false, measurement: true },
+				NOW,
+				currentBasis(policy)
+			),
+			noticeDismissal: null,
+			now: NOW,
+			policy,
+		});
+		expect(result.permissions.measurement).toBe(true);
+		expect(result.nextDeadline).toBeNull();
+	});
+});
+
 describe('evaluateConsentRecord: privacy signals', () => {
 	const policy = makePolicy({
 		gpcDenyCategories: ['marketing', 'measurement'],

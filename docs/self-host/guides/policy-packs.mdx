@@ -110,6 +110,7 @@ assumptions do not fit your application.
 | Japan | `japanOptIn()`, `japanOptOut()` |
 | Switzerland | `switzerlandOptIn()`, `switzerlandOptOutNoPrompt()` |
 | Restricted statistics profiles | `ukStatistics()`, `malaysiaStatistics()` |
+| UK consent with exempt statistics | `ukOptInWithStatistics()` |
 | Other regional opt-in | Singapore, Malaysia, Thailand, Indonesia, Philippines, Vietnam, Brunei, Laos, China, South Korea, India, Brazil, Turkey and more in `policyRulePresets`. |
 | Global defaults | `worldNone()`, `worldOptOutNoPrompt()` |
 
@@ -117,6 +118,34 @@ Statistics profiles are scoped configurations, not permission to run arbitrary
 analytics or marketing vendors. Inspect their allowed categories and required
 rights. Do not substitute them for a full consent configuration based only on a
 vendor calling its product analytics.
+
+## Exempt a category inside an opt-in rule
+
+Some rules let a category run without consent when the visitor is told about it
+and can object. The UK statistics exception in PECR Schedule A1 is one example.
+List those categories in `exemptCategories` on an `opt-in` rule:
+
+- An exempt category is permitted before the visitor chooses and shows as on in
+  the preference form. Every other category in scope still waits for consent.
+- Reject All or switching the category off records a refusal. It stops the
+  category like any other refusal.
+- Vendor consent APIs, such as Google Consent Mode and Microsoft Clarity,
+  receive an exempt category as denied, even after Accept All. The exemption
+  lets the script run; it is not consent. Tag managers that gate tools by
+  purpose, such as Cloudflare Zaraz, follow the effective permission, so only
+  put eligible tools behind an exempt purpose.
+- An exempt category is always part of the choice, even when the site does not
+  declare it, so the visitor can always object. `marketing` cannot be exempt.
+- Adding or removing an exemption changes the choice fingerprint. Earlier grants
+  stop counting until the visitor chooses again; earlier refusals still apply.
+
+`ukOptInWithStatistics()` is the UK version: it matches GB, exempts
+`measurement` and keeps every other category opt-in. Put it before
+`europeOptIn()` in `manifest.policyRules`, because the Europe preset also
+matches GB and the first matching rule wins. Use it only when every measurement
+script meets the conditions in its `review` assumptions. Keep analytics that
+also serves advertising, profiling or vendor reuse in a consent category. Use
+`ukStatistics()` instead when a UK site has nothing that needs consent.
 
 ## Compose custom rules
 

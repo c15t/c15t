@@ -429,6 +429,61 @@ describe('inspectPolicyRules pack validation', () => {
 	});
 });
 
+describe('exemptCategories', () => {
+	test('resolve sorted, preselected and only when set', () => {
+		const rule = normalizePolicyRule({
+			...optInChoice,
+			exemptCategories: [' measurement ', 'necessary', 'measurement'],
+			preselectedCategories: ['experience'],
+		});
+		expect(rule.exemptCategories).toEqual(['measurement']);
+		expect(rule.preselectedCategories).toEqual(['experience', 'measurement']);
+		expect(normalizePolicyRule(optInChoice)).not.toHaveProperty(
+			'exemptCategories'
+		);
+		expect(
+			normalizePolicyRule({ ...optInChoice, exemptCategories: [] })
+		).not.toHaveProperty('exemptCategories');
+	});
+
+	test('only an opt-in rule can exempt a known category in its scope', () => {
+		expect(
+			errorsFor({ ...optInChoice, exemptCategories: ['measurement'] })
+		).toEqual([]);
+		for (const model of ['opt-out', 'none'] as const) {
+			expect(
+				errorsFor({ ...optOutNone, exemptCategories: ['measurement'], model })
+			).toEqual([
+				`Policy 'review' can only define exemptCategories with model "opt-in".`,
+			]);
+		}
+		expect(
+			errorsFor(
+				{ ...optInChoice, exemptCategories: ['measurement'], model: 'iab' },
+				{ iabEnabled: true }
+			)
+		).toHaveLength(1);
+		expect(
+			errorsFor({
+				...optInChoice,
+				categories: ['marketing'],
+				exemptCategories: ['measurement'],
+				scopeMode: 'strict',
+			})
+		).toEqual([
+			`Policy 'review' exemptCategories "measurement" is outside the policy scope.`,
+		]);
+		expect(
+			errorsFor({ ...optInChoice, exemptCategories: ['analytics'] })
+		).toHaveLength(1);
+		expect(
+			errorsFor({ ...optInChoice, exemptCategories: ['marketing'] })
+		).toEqual([
+			`Policy 'review' cannot exempt "marketing"; advertising needs consent.`,
+		]);
+	});
+});
+
 describe('collectResolvedPolicyRuleIssues', () => {
 	const base = normalizePolicyRule(optInChoice);
 
@@ -505,6 +560,29 @@ describe('collectResolvedPolicyRuleIssues', () => {
 		{
 			label: 'iab preselection',
 			patch: { model: 'iab', preselectedCategories: ['marketing'] },
+		},
+		{
+			label: 'an exemption that is not preselected',
+			patch: { exemptCategories: ['measurement'] },
+		},
+		{
+			label: 'an empty exemption list',
+			patch: { exemptCategories: [] },
+		},
+		{
+			label: 'an exempt marketing category',
+			patch: {
+				exemptCategories: ['marketing'],
+				preselectedCategories: ['marketing'],
+			},
+		},
+		{
+			label: 'an exemption outside opt-in',
+			patch: {
+				exemptCategories: ['measurement'],
+				model: 'iab',
+				preselectedCategories: ['measurement'],
+			},
 		},
 		{
 			label: 'unsafe validity',

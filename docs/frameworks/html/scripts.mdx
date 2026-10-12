@@ -100,7 +100,8 @@ element again when the visitor withdraws it.
 
 Every callback receives the script's `id`, the created element's
 `elementId`, `hasConsent`, the current `consents`, and the `element` when
-there is one.
+there is one. Under a rule with `exemptCategories` it also receives
+`consentSignals`, the state to pass to a vendor's own consent API.
 
 For a plain vendor snippet, the `text/plain` tag is simpler and works in any
 CMS field that accepts HTML. The vendor helpers in `@c15t/integrations`, such as
