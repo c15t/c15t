@@ -28,6 +28,8 @@ export function ConsentDialog({ className }: { className?: string }) {
   return (
     <Dialog
       open={dialog.isVisible}
+      // Non-blocking preferences don't trap focus or lock page scroll.
+      modal={dialog.blocking}
       onOpenChange={(open) => {
         if (!open) {
           closeUI()
