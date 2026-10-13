@@ -1394,6 +1394,19 @@ export const createIAB = function createIAB(
 		return refreshed;
 	};
 	/**
+	 * The kernel update that withdraws the retained authority, or installs
+	 * `refreshed` in its place. Empty when neither applies.
+	 */
+	const retainedAuthorityPatch = (
+		withdrawn: boolean,
+		refreshed: KernelIABAuthority | null
+	): Partial<KernelIABState> => {
+		if (withdrawn) {
+			return { authority: null, tcString: '' };
+		}
+		return refreshed ? { authority: refreshed } : {};
+	};
+	/**
 	 * The kernel update that publishes a list, withdrawing authority if
 	 * needed, or installing `refreshed` in place of the retained one.
 	 */
@@ -1407,16 +1420,11 @@ export const createIAB = function createIAB(
 			enabled: true,
 			gvl,
 			gvlReference: undefined,
+			...retainedAuthorityPatch(withdrawn, refreshed),
 		};
 		// Configured on the client: its list replaces the backend's.
 		if (adTechProviders) {
 			update.adTechProviders = adTechProviders;
-		}
-		if (withdrawn) {
-			update.authority = null;
-			update.tcString = '';
-		} else if (refreshed) {
-			update.authority = refreshed;
 		}
 		return update;
 	};
@@ -1459,6 +1467,76 @@ export const createIAB = function createIAB(
 		retained: KernelIABAuthority | null | undefined,
 		valid: boolean
 	): boolean => !valid && readIAB(kernel).authority === retained;
+	/** The authority and provider list last checked against each other. */
+	let checkedAuthority: KernelIABAuthority | null | undefined;
+	let checkedProviders: AdTechProvider[] | null | undefined;
+	/** Record what `update` leaves held after checking `snapshot`'s authority. */
+	const noteChecked = (
+		snapshot: ConsentSnapshot,
+		update: Partial<KernelIABState>
+	): void => {
+		checkedProviders = update.adTechProviders ?? snapshot.iab?.adTechProviders;
+		checkedAuthority =
+			update.authority === undefined
+				? snapshot.iab?.authority
+				: update.authority;
+	};
+	/**
+	 * Checks the held authority again when the provider list changes while
+	 * the vendor list stays, as a re-init can return. A provider that left
+	 * the list must leave the published and stored AC string too, as it
+	 * does when a new vendor list is published.
+	 */
+	const recheckProviders = async (): Promise<void> => {
+		const snapshot = kernel.getSnapshot();
+		const { iab } = snapshot;
+		const retained = iab?.authority;
+		const providers = iab?.adTechProviders;
+		if (
+			disposed ||
+			!retained ||
+			!iab.gvl ||
+			// A list being published checks the authority itself.
+			publishedListGeneration !== listGeneration ||
+			(retained === checkedAuthority && providers === checkedProviders)
+		) {
+			return;
+		}
+		const generation = confirmationGeneration;
+		const list = listGeneration;
+		const check = await retainedAuthorityMatchesList(snapshot, iab.gvl, null);
+		const current = kernel.getSnapshot().iab;
+		if (
+			disposed ||
+			generation !== confirmationGeneration ||
+			list !== listGeneration ||
+			current?.gvl !== iab.gvl ||
+			current.adTechProviders !== providers
+		) {
+			// A new list checks the authority on publish, and a new provider
+			// list started its own check.
+			return;
+		}
+		if (current.authority !== retained) {
+			// Installed while this check ran, possibly from an older snapshot.
+			void recheckProviders();
+			return;
+		}
+		const withdrawn = retainedWithdrawn(retained, check.valid);
+		const update = retainedAuthorityPatch(
+			withdrawn,
+			refreshedProviderAuthority(retained, check.checked)
+		);
+		noteChecked(snapshot, update);
+		if (update.authority && retained === suppressedAuthority) {
+			// Same TC string: it stays held back until the receipt reload.
+			suppressedAuthority = update.authority;
+		}
+		if (update.authority !== undefined) {
+			kernel.set.iab(update);
+		}
+		promptForChangedRestrictions(withdrawn, check.restrictionsChanged);
+	};
 	const restrictionsForList = (gvl: GlobalVendorList) => {
 		try {
 			return validatePublisherRestrictions(configuredRestrictions, { gvl });
@@ -1523,6 +1601,7 @@ export const createIAB = function createIAB(
 				withdrawn,
 				refreshedProviderAuthority(retained, retainedCheck.checked)
 			);
+			noteChecked(beforePublish, update);
 			const existingApi = cmpApi;
 			existingApi?.updateVendorList(gvl);
 			publishedList = gvl;
@@ -1531,6 +1610,8 @@ export const createIAB = function createIAB(
 			adTechProvidersSettled = true;
 			applyProviderBlanket(adTechProviders);
 			markListPublished(generation);
+			// Providers the kernel received while the list loaded.
+			void recheckProviders();
 			// Authority held under other restrictions, for example by a CMP
 			// mounted earlier with another configuration: ask again, as for a
 			// returning visitor. Withdrawing it removed its TC string.
@@ -1746,6 +1827,14 @@ export const createIAB = function createIAB(
 			syncStoredAdditionalConsent(held.tcString, held.addtlConsent);
 		}
 	};
+	const recheckChangedProviders = (
+		previous: ConsentSnapshot,
+		snapshot: ConsentSnapshot
+	): void => {
+		if (snapshot.iab?.adTechProviders !== previous.iab?.adTechProviders) {
+			void recheckProviders();
+		}
+	};
 	let previousAuthority = kernel.getSnapshot().iab?.authority;
 	let previousSnapshot = kernel.getSnapshot();
 	let previousRecordsGeneration = kernel.getRecordsGeneration();
@@ -1780,6 +1869,7 @@ export const createIAB = function createIAB(
 			selectionRevision += 1;
 		}
 		syncList(previous, snapshot);
+		recheckChangedProviders(previous, snapshot);
 
 		const policyChanged = snapshot.resolution !== previous.resolution;
 		if (!policyChanged && changedIABDraft(previous, snapshot)) {

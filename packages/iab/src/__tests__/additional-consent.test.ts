@@ -356,6 +356,23 @@ describe('createIAB with Additional Consent', () => {
 		expect(document.cookie).toContain('addtl_consent=2~89~dv.');
 	});
 
+	test('a provider list replaced in place drops the removed provider', async () => {
+		const kernel = makeKernel();
+		const addon = await mount(kernel);
+		addon.acceptAll();
+		await addon.save();
+		expect((await tcData()).addtlConsent).toBe('2~89.2577~dv.');
+
+		// A re-init that returns a shorter list keeps the GVL and reference.
+		kernel.set.iab({ adTechProviders: [PROVIDERS.providers['89']] });
+		await vi.waitFor(() =>
+			expect(kernel.getSnapshot().iab?.authority?.addtlConsent).toBe('2~89~dv.')
+		);
+		expect((await tcData()).addtlConsent).toBe('2~89~dv.');
+		expect(localStorage.getItem('addtl_consent')).toBe('2~89~dv.');
+		expect(document.cookie).toContain('addtl_consent=2~89~dv.');
+	});
+
 	test('withdrawing the TC string removes the stored AC string', async () => {
 		const kernel = makeKernel();
 		const addon = await mount(kernel);
