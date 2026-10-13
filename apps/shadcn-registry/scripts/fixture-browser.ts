@@ -215,6 +215,7 @@ const dialogJourney = async (page: Page, url: string) => {
 	await step('banner opens the dialog', async () => {
 		await ui.banner.getByRole('button', { name: copy.customize }).click();
 		await ui.dialog.waitFor();
+		await expect(ui.dialog).toHaveAccessibleDescription(/\S/u, { timeout });
 		await checkBranding(
 			'dialog',
 			ui.dialog.getByRole('link', { name: copy.branding })
@@ -309,6 +310,7 @@ const sheetJourney = async (page: Page, url: string) => {
 		await page.goto(url);
 		await ui.banner.getByRole('button', { name: copy.customize }).click();
 		await ui.dialog.waitFor();
+		await expect(ui.dialog).toHaveAccessibleDescription(/\S/u, { timeout });
 		await checkBranding(
 			'sheet',
 			ui.dialog.getByRole('link', { name: copy.branding })
