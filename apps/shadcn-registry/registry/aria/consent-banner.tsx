@@ -7,6 +7,7 @@ import {
   useConsentLabels,
   useFocusTrap,
   useHeadlessConsentUI,
+  useScrollLock,
 } from "c15t/react/headless"
 
 import { ConsentBranding } from "@/components/c15t/consent-branding"
@@ -28,7 +29,10 @@ function ConsentBannerContent({ className }: { className?: string }) {
   const titleId = React.useId()
   const descriptionId = React.useId()
 
+  // A blocking banner, such as a consent wall, holds focus and stops the
+  // page scrolling until the visitor chooses.
   useFocusTrap(banner.isVisible && banner.blocking, ref)
+  useScrollLock(banner.isVisible && banner.blocking)
 
   if (!banner.isVisible) return null
 
