@@ -1,6 +1,6 @@
 ---
 title: Headless
-description: Build your own consent banner markup in a TanStack Start app with the c15t/tanstack-start/headless hooks inside ConsentRoot.
+description: Build your own consent banner or embed gate markup in a TanStack Start app with the c15t/tanstack-start/headless hooks inside ConsentRoot.
 group: frameworks
 ---
 
@@ -75,3 +75,14 @@ Check for a policy before rendering other custom surfaces. `useModel()` returns
 consent UI.
 
 <import src="../../shared/react/headless.mdx#banner-api" />
+
+## Build a custom consent gate
+
+<import src="../../shared/react/headless.mdx#consent-gate" />
+
+<include src="../../shared/examples/tanstack-start/headless-consent-gate.mdx" />
+
+Render `VideoGate` inside `ConsentRoot` around the embed, such as a YouTube
+`iframe`.
+
+<import src="../../shared/react/headless.mdx#consent-gate-api" />

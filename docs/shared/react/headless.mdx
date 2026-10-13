@@ -43,3 +43,65 @@ group: reference
   bar, widget, or wall choice the pre-built banner would make, and can trap
   focus and lock scroll exactly when `blocking` is true.
 </section>
+
+<section id="consent-gate">
+  `useConsentGate(category)` tells a custom gate what to render for one
+  consent category, with translated copy and an action that opens the
+  preference center. Use it when the stock `ConsentGate` placeholder does not
+  fit your design, for example a design system card in front of a video or
+  map embed. `ConsentGate` runs on the same hook, so both gates follow the
+  same rules.
+
+  This gate renders its children once `marketing` is granted and the page has
+  hydrated, the policy message when the policy blocks `marketing`, and
+  otherwise a placeholder with a button that opens the preference center:
+</section>
+
+<section id="consent-gate-api">
+  | Field | Type | Description |
+  | --- | --- | --- |
+  | `state` | `ConsentGateState` | `'granted'`, `'pending'`, `'denied'` or `'policy-blocked'`. |
+  | `categoryTitle` | `string` | `consentTypes.<category>.title` from your translations, or the category name when they have none. |
+  | `title` | `string` or `undefined` | `consentGate.title`, `Accept {category} consent to view this content.`, with `{category}` replaced by `categoryTitle`. |
+  | `actionLabel` | `string` or `undefined` | `consentGate.actionButton`, `Enable {category} consent`, with `{category}` replaced by `categoryTitle`. |
+  | `policyBlockedMessage` | `string` | `consentGate.policyBlocked`, or the English message when your translations have none. |
+  | `requestConsent` | `() => void` | Opens the preference center. |
+
+  The result type is exported as `UseConsentGateResult` and the state type as
+  `ConsentGateState`. Render from `state`:
+
+  - `'granted'`: the effective permission for the category is granted and
+    the page has hydrated. Render the content.
+  - `'pending'`: permission is granted but the page has not hydrated yet.
+    Render nothing.
+  - `'denied'`: permission is not granted. Render a placeholder with a
+    button that calls `requestConsent`.
+  - `'policy-blocked'`: the policy has `scopeMode: 'strict'` and its scope
+    leaves the category out, so the visitor cannot grant it. Render
+    `policyBlockedMessage` without a button. `necessary` is never blocked.
+
+  Permission is the value `useConsent(category)` returns. An opt-out policy
+  can grant it before the visitor chooses, and a privacy signal such as GPC
+  can withdraw a stored grant.
+
+  Granted content never appears in the server HTML. When the server snapshot
+  grants the category, `state` is `'pending'` in the server HTML and during
+  hydration, then turns `'granted'`, so an iframe inside a streamed
+  `Suspense` boundary loads once. Server rendering and hydration evaluate the
+  snapshot at its own evaluation time and never read the clock, so the gate
+  works in a statically prerendered page.
+
+  `requestConsent` does not grant the category, because the visitor still has
+  to save. The preference center opens on its usual view, not on the
+  category. Mount a `ConsentDialog` in the same provider so it has something
+  to open.
+
+  When it mounts, the hook registers the category with the provider, as
+  `ConsentGate` does, so the preference center can list it. If you set
+  `options.consentCategories` on the provider, list the category there too,
+  so the preference center shows it before a gate mounts, including on pages
+  without one.
+
+  The hook renders no wrapper element. Reserve the embed's space in your own
+  markup so the page does not shift when the placeholder is replaced.
+</section>

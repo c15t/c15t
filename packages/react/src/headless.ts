@@ -12,6 +12,11 @@ export {
 	prepareTranslationConfig,
 } from '@c15t/core';
 export {
+	type ConsentGateState,
+	type UseConsentGateResult,
+	useConsentGate,
+} from './component-hooks/use-consent-gate';
+export {
 	type ConsentDialogTriggerVisibility,
 	type UseConsentDialogTriggerOptions,
 	type UseConsentDialogTriggerResult,
