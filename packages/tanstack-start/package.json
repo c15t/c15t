@@ -139,8 +139,8 @@
 		"@c15t/conformance": "workspace:*",
 		"@c15t/typescript-config": "workspace:*",
 		"@c15t/vitest-config": "workspace:*",
-		"@tanstack/react-router": "1.170.41",
-		"@tanstack/react-start": "1.168.60",
+		"@tanstack/react-router": "1.170.44",
+		"@tanstack/react-start": "1.169.1",
 		"genversion": "3.2.0",
 		"typescript": "7.0.2"
 	},
