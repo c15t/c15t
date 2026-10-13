@@ -33,9 +33,10 @@ export const scripts: Script[] = [
 	metaPixel({ pixelId: '000000000000000' }),
 ];
 
-// Names and privacy links for the preference dialog, matched to each helper's
-// `vendor` slug. Visitors can switch off one vendor inside an allowed
-// category, and the dialog lists what each category turns on.
+// Optional. Declaring vendors turns on vendor switches: the preference dialog
+// lists each one under its category, and a visitor can switch off one vendor
+// inside an allowed category. Leave this out and the dialog shows categories
+// only. Each `id` matches the `vendor` slug on its helper's script.
 export const vendors: Vendor[] = [
 	{
 		category: 'necessary',

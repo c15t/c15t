@@ -75,7 +75,7 @@ Next.js apps.
 | Custom banner | `examples/showcase-custom-banner` | A banner and preferences sheet built on the headless hooks, with no c15t stylesheet |
 | Preference center | `examples/showcase-preference-center` | Consent settings as a page in account settings, with categories, vendors and the last saved time |
 | Gated embeds | `examples/showcase-gated-embeds` | YouTube, Google Maps and a support chat behind designed placeholders that load in place |
-| Analytics | `examples/showcase-analytics` | Google Tag Manager with Consent Mode v2, GA4, PostHog and the Meta Pixel, with DevTools showing each script's state |
+| Analytics | `examples/showcase-analytics` | Google Tag Manager with Consent Mode v2, GA4, PostHog and the Meta Pixel, with vendor switches in the dialog and DevTools showing each script's state |
 | IAB TCF | `examples/showcase-iab` | A publisher's ad slots filled from the TC string, with GPP |
 | Banner experiment | `examples/showcase-experiment` | An A/B test between two banner layouts, with exposure and choice events per arm |
 | Multilingual | `examples/showcase-multilingual` | Banner language from the route and policy from the visitor's region |
@@ -87,6 +87,11 @@ server. Not recommended for production environments. Each README shows the
 one-line swap to `hosted({ backendURL: 'https://your-project.inth.app' })`. The Nuxt
 module has no offline mode, so the Nuxt showcase talks to a demo Inth project
 and reads `NUXT_PUBLIC_C15T_BACKEND_URL` for your own.
+
+Vendor switches are optional. The analytics showcase turns them on in the
+preference dialog, the preference center lists vendors on its own page, and
+the IAB showcase lists its TCF vendors. The starters and the other showcases
+show categories only.
 
 The IAB showcase serves a three-vendor list from `public/vendor-list.json` and
 uses a demonstration CMP ID. Its README lists what changes for production.

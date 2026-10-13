@@ -288,7 +288,7 @@ Configure the storage mode (Storage mode above).${byMode(mode, {
 		offline: '',
 		unknown:
 			" In hosted mode, put the backend URL in the app's existing environment conventions as a public variable.",
-	})} Mount one consent provider at the app root, outside route components; two providers keep two separate choices. Render the banner and the preferences dialog. Add a persistent control that reopens preferences, such as a footer link. If the app already has one (from the old banner), rewire it instead of adding a second. Match the app's design, languages, keyboard access, narrow screens, color schemes and reduced motion.
+	})} Mount one consent provider at the app root, outside route components; two providers keep two separate choices. Render the banner and the preferences dialog. Gate tools by consent category only; per-vendor switches are an optional add-on, so do not declare \`vendors\` unless the site asks for per-vendor choices. Add a persistent control that reopens preferences, such as a footer link. If the app already has one (from the old banner), rewire it instead of adding a second. Match the app's design, languages, keyboard access, narrow screens, color schemes and reduced motion.
 
 ## ${tools}. Move every tool behind consent
 
@@ -328,7 +328,7 @@ Run the project's typecheck, tests and production build. Serve the production bu
 	)}; it survives a reload and a client-side navigation.
 3. Accept all: each tool loads once, its app events fire once per action, and the choice survives a reload.
 4. Withdraw: accept all, then reopen preferences and reject. c15t reloads the page; each tool then follows its guide's revocation behavior: it no longer loads, its SDK is opted out, or it signals denied consent.
-5. Granular choices, keyboard use and a narrow viewport.
+5. Allowing some categories and not others, keyboard use and a narrow viewport.
 
 Judge each tool by the loading behavior in the integrations overview and the revocation behavior in its guide. A helper that waits for consent sends no request until its category is allowed. A helper the overview says always loads (such as \`gtag\` and \`googleTagManager\`, and \`posthog\` by default) loads before a choice and stays loaded after a rejection; check that it signals denied consent or opts its SDK out, as its guide describes. That is correct only when the site's requirement allows requests with denied defaults; otherwise the tool needs a gated alternative (Move every tool behind consent above).
 

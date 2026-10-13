@@ -37,7 +37,7 @@ import { compareCanonical } from '@c15t/schema/types';
 
 import { displayedCategories as listDisplayed } from '../consent/consent-types';
 import type { AllConsentNames } from '../consent/consent-types';
-import { vendorRenders } from '../libs/vendors';
+import { listedVendors } from '../libs/vendors';
 import { deniedVendorIds } from '../modules/has';
 import type {
 	ConsentKernel,
@@ -201,8 +201,7 @@ const vendorSurface = function vendorSurface(
 		return '';
 	}
 	return JSON.stringify(
-		(snapshot.vendors?.declared ?? [])
-			.filter(vendorRenders)
+		listedVendors(snapshot.vendors?.declared ?? [])
 			.map((vendor) => [vendor.id, vendor.disabled === true, vendor.category])
 			.sort(([left], [right]) => compareCanonical(String(left), String(right)))
 	);

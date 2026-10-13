@@ -356,3 +356,63 @@ describe('consent widget vendor rows', () => {
 		});
 	});
 });
+
+describe('vendor switches are opt-in', () => {
+	// What an `@c15t/integrations` helper puts on its script: a vendor slug
+	// and the vendor's name and privacy policy.
+	const helperScript = {
+		category: 'measurement' as const,
+		id: 'posthog',
+		src: 'https://example.invalid/posthog.js',
+		vendor: 'posthog',
+		vendorDetails: {
+			name: 'PostHog',
+			privacyPolicyUrl: 'https://posthog.com/privacy',
+		},
+	};
+
+	const renderWithHelper = (vendors?: Vendor[]) =>
+		render(
+			<ConsentProvider
+				options={{
+					consentCategories: [...CATEGORIES],
+					mode: offline(),
+					persistence: false,
+					prefetch: policyFixture(
+						{ measurement: true },
+						{
+							categories: ['marketing', 'measurement'],
+							id: 'vendor-opt-in',
+							model: 'opt-in',
+							prompt: 'choice',
+						}
+					),
+					scripts: [helperScript],
+					vendors,
+				}}
+			>
+				<ConsentWidget />
+			</ConsentProvider>
+		);
+
+	test('a helper alone shows its category without a vendor switch', async () => {
+		renderWithHelper();
+		await openVendors('measurement');
+		await expect
+			.element(page.getByTestId('consent-widget-accordion-content-measurement'))
+			.toHaveAttribute('data-state', 'open');
+		expect(
+			document.querySelector(
+				'[data-testid="consent-widget-vendor-list-measurement"]'
+			)
+		).toBeNull();
+	});
+
+	test('declaring a vendor lists helpers by name too', async () => {
+		renderWithHelper([VENDORS[0] as Vendor]);
+		await openVendors('measurement');
+		await expect
+			.element(page.getByTestId('consent-widget-vendor-list-measurement'))
+			.toHaveTextContent('PostHog');
+	});
+});

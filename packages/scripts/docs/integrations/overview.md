@@ -129,9 +129,10 @@ on revocation and how to check it.
 
 ## Vendor switches and cookie cleanup
 
-Every helper sets a `vendor` slug and the vendor's name and privacy policy, so
-the preference dialog lists the vendor with its own switch. A visitor can allow
-a category and still switch one vendor off. c15t then does not load that
+Every helper sets a `vendor` slug and the vendor's name and privacy policy.
+Vendor switches are optional: the preference dialog shows only categories until
+you declare a vendor. Once you do, it lists each helper's vendor with its own
+switch, and a visitor can allow a category and still switch one vendor off. c15t then does not load that
 vendor's script. Helpers that load on every page, such as Google Tag Manager,
 Microsoft UET and Mixpanel, still load and send the vendor a denied signal
 instead. The dialog lists `necessary` helpers without a switch. Declare
