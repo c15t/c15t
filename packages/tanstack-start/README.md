@@ -24,7 +24,7 @@ c15t is used by [2,100+ sites](https://www.wappalyzer.com/technologies/cookie-co
 
 ## Key Features
 
-- Works with TanStack Start 1.168 and TanStack Router 1.170 or later, on React 18 or 19
+- Works with TanStack Start 1.0 and the 1.168 releases before it, on React 18 or 19
 - The root route loader resolves each visitor's policy on the server, so the banner is in the first HTML and does not appear late
 - Your policy downloads at build time with `consentManifest()` and stays on the server
 - Request middleware reads CDN location, language, and Global Privacy Control headers
@@ -37,7 +37,7 @@ c15t is used by [2,100+ sites](https://www.wappalyzer.com/technologies/cookie-co
 
 ## Prerequisites
 
-- TanStack Start 1.168 or later and TanStack Router 1.170 or later
+- `@tanstack/react-start` 1.168.60 or later, including TanStack Start 1.0, and `@tanstack/react-router` 1.170.41 or later
 - React 18 or 19
 - Node.js 20.19 or later
 - An [Inth project](https://inth.com) (free sign-up), a [self-hosted backend](https://c15t.com/docs/self-host/quickstart), or offline mode for local development

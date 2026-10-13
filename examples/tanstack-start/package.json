@@ -10,8 +10,8 @@
 	},
 	"dependencies": {
 		"@c15t/integrations": "workspace:*",
-		"@tanstack/react-router": "1.170.41",
-		"@tanstack/react-start": "1.168.60",
+		"@tanstack/react-router": "1.170.44",
+		"@tanstack/react-start": "1.169.1",
 		"c15t": "workspace:*",
 		"react": "19.2.7",
 		"react-dom": "19.2.7"
