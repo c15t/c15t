@@ -144,6 +144,25 @@ describe('buildRegistry', () => {
 		}
 	});
 
+	it('puts the c15t branding on every surface the stock UI brands', () => {
+		for (const { name: style } of styles) {
+			for (const framework of frameworks) {
+				const branding = `${baseUrl}/${style}/${itemName(framework, 'consent-branding')}.json`;
+				for (const name of [
+					'consent-banner',
+					'consent-dialog',
+					'consent-dialog-trigger',
+					'consent-sheet',
+				]) {
+					expect(
+						item(style, itemName(framework, name))?.registryDependencies,
+						`${style}/${itemName(framework, name)}`
+					).toContain(branding);
+				}
+			}
+		}
+	});
+
 	it("leaves the framework's own packages out of the dependencies", () => {
 		const manager = item('radix-nova', 'tanstack-start-consent-manager');
 		expect(manager?.files[0]?.content).toContain(

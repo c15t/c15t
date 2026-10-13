@@ -10,6 +10,7 @@ import {
 } from "c15t/react/headless"
 
 import { cn } from "@/lib/utils"
+import { ConsentBranding } from "@/components/c15t/consent-branding"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -45,10 +46,11 @@ function ConsentBannerContent({ className }: { className?: string }) {
         aria-labelledby={`${id}-title`}
         aria-describedby={`${id}-description`}
         className={cn(
-          "fixed start-4 end-4 bottom-4 z-50 outline-none sm:end-auto sm:w-full sm:max-w-md",
+          "fixed start-4 end-4 bottom-4 z-50 flex flex-col outline-none sm:end-auto sm:w-full sm:max-w-md",
           className
         )}
       >
+        <ConsentBranding className="relative z-10 me-3 -mb-px self-end rounded-b-none border-b-0" />
         <Card className="shadow-lg">
           <CardHeader>
             <CardTitle id={`${id}-title`}>{title}</CardTitle>

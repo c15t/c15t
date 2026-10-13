@@ -4,6 +4,7 @@ import { ConsentDraftProvider } from "c15t/react"
 import { useHeadlessConsentUI, useTranslations } from "c15t/react/headless"
 import { XIcon } from "lucide-react"
 
+import { ConsentBranding } from "@/components/c15t/consent-branding"
 import {
   ConsentPreferences,
   ConsentPreferencesActions,
@@ -45,6 +46,7 @@ export function ConsentDialog({ className }: { className?: string }) {
           <ConsentPreferencesActions className="flex-1" />
         </DialogFooter>
       </ConsentDraftProvider>
+      <ConsentBranding className="absolute top-full end-4 rounded-t-none border-t-0" />
       <DialogClose
         variant="ghost"
         size="icon-sm"

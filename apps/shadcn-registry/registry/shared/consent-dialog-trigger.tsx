@@ -4,9 +4,9 @@ import {
   useConsentDialogTrigger,
   useConsentLabels,
 } from "c15t/react/headless"
-import { CookieIcon } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { ConsentBrandingMark } from "@/components/c15t/consent-branding"
 import { Button } from "@/components/ui/button"
 
 export function ConsentDialogTrigger({ className }: { className?: string }) {
@@ -28,7 +28,7 @@ export function ConsentDialogTrigger({ className }: { className?: string }) {
       )}
       onClick={openDialog}
     >
-      <CookieIcon />
+      <ConsentBrandingMark className="size-5" />
     </Button>
   )
 }

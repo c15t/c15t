@@ -12,7 +12,8 @@
  * the way it would install a release.
  *
  * After `shadcn add`, the script makes the changes the install notes ask
- * for and renders the trigger, widget and gate on the home page.
+ * for, declares one marketing vendor, and renders the trigger, widget and
+ * gate on the home page.
  *
  *   bun scripts/fixtures.ts
  *   bun scripts/fixtures.ts --framework next --base aria
@@ -186,6 +187,16 @@ export default function Page() {
   return <C15tPage />
 }
 `;
+
+// Declared in each fixture so the dialog lists a vendor switch under
+// Marketing. fixture-browser.ts looks for its name.
+const fixtureVendor = `{
+    id: "x-pixel",
+    name: "X Pixel",
+    category: "marketing",
+    description: "Measures which ads lead to sign-ups.",
+    privacyPolicyUrl: "https://x.com/privacy",
+  }`;
 
 const pick = <Value extends string>(
 	all: readonly Value[],
@@ -399,6 +410,29 @@ const wire = (framework: Framework, dir: string) => {
 	writeFileSync(path.join(dir, 'src/routes/index.tsx'), startIndexRoute);
 };
 
+/** Declares {@link fixtureVendor} the way each framework's docs describe. */
+const declareVendor = (framework: Framework, dir: string, manager: string) => {
+	if (framework === 'next') {
+		edit(
+			path.join(dir, 'c15t.config.ts'),
+			'defineConsentConfig({})',
+			`defineConsentConfig({\n  vendors: [\n    ${fixtureVendor},\n  ],\n})`
+		);
+	} else if (framework === 'react') {
+		edit(
+			manager,
+			'mode: hosted(),',
+			`mode: hosted(),\n  vendors: [\n    ${fixtureVendor},\n  ],`
+		);
+	} else {
+		edit(
+			manager,
+			'<ConsentRoot state={state}>',
+			`<ConsentRoot\n      state={state}\n      vendors={[\n        ${fixtureVendor},\n      ]}\n    >`
+		);
+	}
+};
+
 interface FixtureOptions {
 	browser?: Browser;
 	fresh: boolean;
@@ -466,6 +500,8 @@ const checkFixture = async (
 	writeFileSync(path.join(componentsDir, 'c15t-props.tsx'), propsCheck);
 	writeFileSync(path.join(componentsDir, 'c15t-page.tsx'), page);
 	wire(framework, dir);
+	const manager = path.join(componentsDir, 'c15t/consent-manager.tsx');
+	declareVendor(framework, dir, manager);
 
 	const tsc = path.join(dir, 'node_modules/.bin/tsc');
 	const checkArgs = framework === 'react' ? ['-b'] : ['--noEmit'];
@@ -481,7 +517,7 @@ const checkFixture = async (
 			dir,
 			framework,
 			log,
-			manager: path.join(componentsDir, 'c15t/consent-manager.tsx'),
+			manager,
 			screenshots: path.join(fixturesDir, name),
 		},
 		options.browser

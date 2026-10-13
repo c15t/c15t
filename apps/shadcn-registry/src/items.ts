@@ -88,10 +88,17 @@ const component = (source: string): RegistryFile => ({
 export const uiItems: UiItem[] = [
 	{
 		description:
-			'Toggles for each consent category, used by the dialog, sheet and widget.',
+			'Toggles for each consent category and its vendors, used by the dialog, sheet and widget.',
 		files: [component('consent-preferences.tsx')],
 		name: 'consent-preferences',
 		title: 'Consent preferences',
+	},
+	{
+		description:
+			'The "Secured by c15t" tag on the banner, dialog and sheet, and the mark on the dialog trigger.',
+		files: [component('consent-branding.tsx')],
+		name: 'consent-branding',
+		title: 'Consent branding',
 	},
 	{
 		description:

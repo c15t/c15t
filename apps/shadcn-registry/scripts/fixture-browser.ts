@@ -1,7 +1,7 @@
 /**
  * Builds a fixture project for production, serves it and clicks through
- * the installed items in Chromium: banner, dialog, trigger, widget and
- * gate, then the sheet in place of the dialog.
+ * the installed items in Chromium: banner, dialog, vendor switch, trigger,
+ * widget and gate, then the sheet in place of the dialog.
  *
  * The fixture's consent manager talks to the demo backend in its env file,
  * so the run needs network access, and the banner only shows where that
@@ -29,7 +29,10 @@ export interface BrowserFixture {
 // English copy from @c15t/translations.
 const copy = {
 	acceptAll: 'Accept All',
+	allowVendor: 'Allow X Pixel',
 	bannerTitle: 'We value your privacy',
+	// The demo backend brands its projects INTH. Self-hosted ones show c15t.
+	branding: /^Secured by\s*(?:c15t|INTH)$/u,
 	close: 'Close',
 	// The demo policy picks one, depending on where the visitor is.
 	customize: /^(?:Customize|Manage preferences)$/u,
@@ -39,6 +42,8 @@ const copy = {
 	preferences: 'Manage preferences',
 	rejectAll: 'Reject All',
 	save: 'Save Settings',
+	// The fixture declares one marketing vendor. See fixtures.ts.
+	vendors: 'Vendors (1)',
 } as const;
 
 const timeout = 15_000;
@@ -120,11 +125,37 @@ const elements = (page: Page) => {
 		gateButton: main.getByRole('button', { name: copy.enableMarketing }),
 		main,
 		trigger: page.getByRole('button', { name: copy.preferences }),
+		vendorSwitch: dialog.getByRole('switch', { name: copy.allowVendor }),
+		vendors: dialog.getByText(copy.vendors, { exact: true }),
 		widgetSwitch: main.getByRole('switch', {
 			exact: true,
 			name: copy.marketing,
 		}),
 	};
+};
+
+/**
+ * The branding link points at the brand it names and the page it was on.
+ * The server HTML has no `ref`, so this waits for hydration to add it.
+ */
+const checkBranding = async (name: string, link: Locator) => {
+	const site = (await link.textContent())?.includes('INTH')
+		? 'https://inth.com'
+		: 'https://c15t.com';
+	const { hostname } = new URL(link.page().url());
+	const deadline = Date.now() + timeout;
+	for (;;) {
+		// oxlint-disable-next-line no-await-in-loop -- Polls the link's href.
+		const href = new URL((await link.getAttribute('href')) ?? '');
+		if (href.origin === site && href.searchParams.get('ref') === hostname) {
+			return;
+		}
+		if (Date.now() > deadline) {
+			throw new Error(`the ${name} branding links to ${href.toString()}`);
+		}
+		// oxlint-disable-next-line no-await-in-loop -- Polls the link's href.
+		await sleep(100);
+	}
 };
 
 /** Collects uncaught errors and console errors from every page in the context. */
@@ -173,15 +204,32 @@ const dialogJourney = async (page: Page, url: string) => {
 		if ((await ui.embed.count()) > 0) {
 			throw new Error('the marketing embed rendered before consent');
 		}
+		await checkBranding(
+			'banner',
+			ui.banner.getByRole('link', { name: copy.branding })
+		);
 	});
 	await step('banner opens the dialog', async () => {
 		await ui.banner.getByRole('button', { name: copy.customize }).click();
 		await ui.dialog.waitFor();
+		await checkBranding(
+			'dialog',
+			ui.dialog.getByRole('link', { name: copy.branding })
+		);
 	});
-	await step('dialog saves a switch', async () => {
+	await step('vendor switch waits for its category', async () => {
+		await ui.vendors.click();
+		if (!(await ui.vendorSwitch.isDisabled())) {
+			throw new Error('the vendor switch is on while Marketing is off');
+		}
+	});
+	await step('dialog saves a category and a vendor', async () => {
 		await waitForChecked('Marketing', ui.dialogSwitch, false);
 		await toggle(ui.dialogSwitch);
 		await waitForChecked('Marketing', ui.dialogSwitch, true);
+		await waitForChecked('X Pixel', ui.vendorSwitch, true);
+		await toggle(ui.vendorSwitch);
+		await waitForChecked('X Pixel', ui.vendorSwitch, false);
 		await ui.dialog.getByRole('button', { name: copy.save }).click();
 		await ui.dialog.waitFor({ state: 'hidden' });
 		await ui.banner.waitFor({ state: 'hidden' });
@@ -192,6 +240,8 @@ const dialogJourney = async (page: Page, url: string) => {
 		await ui.trigger.click();
 		await ui.dialog.waitFor();
 		await waitForChecked('Marketing', ui.dialogSwitch, true);
+		await ui.vendors.click();
+		await waitForChecked('X Pixel', ui.vendorSwitch, false);
 	});
 	await step('close button closes the dialog', async () => {
 		await ui.dialog.getByRole('button', { name: copy.close }).click();
@@ -256,6 +306,10 @@ const sheetJourney = async (page: Page, url: string) => {
 		await page.goto(url);
 		await ui.banner.getByRole('button', { name: copy.customize }).click();
 		await ui.dialog.waitFor();
+		await checkBranding(
+			'sheet',
+			ui.dialog.getByRole('link', { name: copy.branding })
+		);
 	});
 	await step('sheet saves a switch', async () => {
 		await toggle(ui.dialogSwitch);

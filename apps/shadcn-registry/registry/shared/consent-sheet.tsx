@@ -5,6 +5,7 @@ import { useHeadlessConsentUI } from "c15t/react/headless"
 import { XIcon } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { ConsentBranding } from "@/components/c15t/consent-branding"
 import {
   ConsentPreferences,
   ConsentPreferencesActions,
@@ -56,6 +57,7 @@ export function ConsentSheet({
           <ConsentPreferences className="flex-1 overflow-y-auto px-4" />
           <SheetFooter>
             <ConsentPreferencesActions />
+            <ConsentBranding className="self-center" />
           </SheetFooter>
         </ConsentDraftProvider>
         <SheetClose
