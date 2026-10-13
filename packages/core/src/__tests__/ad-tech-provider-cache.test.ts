@@ -58,7 +58,10 @@ describe('fetchCachedAdTechProviders', () => {
 
 	test('serves the last good list when a refresh stalls', async () => {
 		const cache: AdTechProviderCache = new Map([
-			[`${reference.url}|89`, { expiresAt: 1000, providers: [META] }],
+			[
+				`${reference.url}|89`,
+				{ expiresAt: 1000, providers: [META], staleUntil: 5000 },
+			],
 		]);
 		const { expire } = controlDeadline();
 		const pending = fetchCachedAdTechProviders({
@@ -69,5 +72,23 @@ describe('fetchCachedAdTechProviders', () => {
 		});
 		expire();
 		await expect(pending).resolves.toEqual([META]);
+	});
+
+	test('stops serving a list past its stale period', async () => {
+		const key = `${reference.url}|89`;
+		const cache: AdTechProviderCache = new Map([
+			[key, { expiresAt: 1000, providers: [META], staleUntil: 5000 }],
+		]);
+		const providers = await fetchCachedAdTechProviders({
+			cache,
+			fetch: (() =>
+				Promise.resolve(
+					new Response('', { status: 503 })
+				)) as unknown as typeof globalThis.fetch,
+			now: 6000,
+			reference,
+		});
+		expect(providers).toBeUndefined();
+		expect(cache.has(key)).toBe(false);
 	});
 });

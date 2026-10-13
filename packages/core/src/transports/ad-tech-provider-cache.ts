@@ -23,7 +23,10 @@ import type {
 
 interface CachedProviders {
 	providers: AdTechProvider[];
+	/** Until when the list is served without asking the endpoint again. */
 	expiresAt: number;
+	/** Until when the list is served when a refresh fails. */
+	staleUntil: number;
 }
 
 export type AdTechProviderCache = Map<string, CachedProviders>;
@@ -40,6 +43,12 @@ export interface FetchCachedAdTechProvidersOptions {
 }
 
 const TTL_MS = 86_400_000;
+/**
+ * How long a list is kept for failed refreshes, as long as the backend keeps
+ * its own. Past that, an endpoint that stays down stops disclosing providers
+ * Google may have removed.
+ */
+const STALE_TTL_MS = 30 * TTL_MS;
 const defaultCache: AdTechProviderCache = new Map();
 const inflight = new Map<string, Promise<AdTechProvider[] | undefined>>();
 
@@ -57,7 +66,7 @@ export const clearAdTechProviderCache = function clearAdTechProviderCache(
  *
  * @param options - The manifest reference and fetch implementation.
  * @returns The listed providers sorted by ID, the last good list when the
- *   endpoint fails, or `undefined` when there is none.
+ *   endpoint fails and that list is under 30 days old, or `undefined`.
  */
 export const fetchCachedAdTechProviders = function fetchCachedAdTechProviders(
 	options: FetchCachedAdTechProvidersOptions
@@ -69,6 +78,11 @@ export const fetchCachedAdTechProviders = function fetchCachedAdTechProviders(
 	const cached = cache.get(key);
 	if (cached && cached.expiresAt > now) {
 		return Promise.resolve(cached.providers);
+	}
+	const stale =
+		cached && cached.staleUntil > now ? cached.providers : undefined;
+	if (cached && !stale) {
+		cache.delete(key);
 	}
 	const pending = inflight.get(key);
 	if (pending) {
@@ -88,12 +102,16 @@ export const fetchCachedAdTechProviders = function fetchCachedAdTechProviders(
 				? parseAdTechProviderList(await response.json(), ids)
 				: null;
 			if (!providers) {
-				return cached?.providers;
+				return stale;
 			}
-			cache.set(key, { expiresAt: now + TTL_MS, providers });
+			cache.set(key, {
+				expiresAt: now + TTL_MS,
+				providers,
+				staleUntil: now + STALE_TTL_MS,
+			});
 			return providers;
 		} catch {
-			return cached?.providers;
+			return stale;
 		} finally {
 			inflight.delete(key);
 		}
