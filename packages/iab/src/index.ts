@@ -929,6 +929,11 @@ export const createIAB = function createIAB(
 	 */
 	let providerBlanket: boolean | undefined;
 	/**
+	 * Purpose consents as the pending blanket left them. A purpose that
+	 * differs when the providers land was changed by the visitor since.
+	 */
+	let blanketPurposeConsents: Record<number, boolean> = {};
+	/**
 	 * Loads names and privacy links for the ad tech providers this handle was
 	 * configured with, once per handle. A client list replaces the backend's,
 	 * so an empty one resolves to `[]` and clears it. `null` keeps what the
@@ -1432,11 +1437,14 @@ export const createIAB = function createIAB(
 	 * Gives providers that arrived after a pending Accept All or Reject All the
 	 * choice the visitor made. A provider they already switched keeps it.
 	 * Accept All also grants the purposes the providers need, as it does when
-	 * they are listed before the click.
+	 * they are listed before the click, except a purpose the visitor switched
+	 * since. When they switched one off, the providers are not granted.
 	 */
 	const applyProviderBlanket = (published: AdTechProvider[] | null): void => {
 		const value = providerBlanket;
+		const before = blanketPurposeConsents;
 		providerBlanket = undefined;
+		blanketPurposeConsents = {};
 		if (value === undefined || !published) {
 			return;
 		}
@@ -1446,13 +1454,21 @@ export const createIAB = function createIAB(
 			return;
 		}
 		const { gvl, purposeConsents } = readIAB(kernel);
-		const purposes = value
+		const needed = value
 			? adTechProviderPurposes(unseen).filter((id) => gvl?.purposes?.[id])
 			: [];
+		// A purpose the visitor switched after the blanket keeps their choice.
+		const changed = (id: number) =>
+			(purposeConsents[id] === true) !== (before[id] === true);
+		const purposes = needed.filter((id) => !changed(id));
+		// Providers need every one of these purposes, so one the visitor
+		// switched off leaves them disclosed but not consented.
+		const granted =
+			value && !needed.some((id) => changed(id) && !purposeConsents[id]);
 		kernel.set.iab({
 			adTechProviderConsents: {
 				...current,
-				...Object.fromEntries(unseen.map(({ id }) => [String(id), value])),
+				...Object.fromEntries(unseen.map(({ id }) => [String(id), granted])),
 			},
 			...(purposes.length > 0 && {
 				purposeConsents: {
@@ -1983,6 +1999,7 @@ export const createIAB = function createIAB(
 		applyBlanket(kernel, gvl, value, restrictionsForBlanket(gvl));
 		if (pendingAdTechProviders()) {
 			providerBlanket = value;
+			blanketPurposeConsents = { ...readIAB(kernel).purposeConsents };
 		}
 	};
 
