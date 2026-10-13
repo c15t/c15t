@@ -300,6 +300,24 @@ describe('createIAB with Additional Consent', () => {
 		expect((await tcData()).addtlConsent).toBe('2~89~dv.');
 	});
 
+	test('a handle remounted on a live kernel drops a provider Google removed', async () => {
+		const kernel = makeKernel();
+		const first = await mount(kernel);
+		first.acceptAll();
+		await first.save();
+		expect((await tcData()).addtlConsent).toBe('2~89.2577~dv.');
+		first.dispose();
+
+		fetchMock.mockImplementation(() =>
+			Promise.resolve(
+				Response.json({ providers: { '89': PROVIDERS.providers['89'] } })
+			)
+		);
+		await mount(kernel);
+		expect(kernel.getSnapshot().iab?.authority?.addtlConsent).toBe('2~89~dv.');
+		expect((await tcData()).addtlConsent).toBe('2~89~dv.');
+	});
+
 	test('withdrawing the TC string removes the stored AC string', async () => {
 		const kernel = makeKernel();
 		const addon = await mount(kernel);

@@ -1306,11 +1306,15 @@ export const createIAB = function createIAB(
 		snapshot: ConsentSnapshot,
 		gvl: GlobalVendorList,
 		adTechProviders: AdTechProvider[] | null
-	): Promise<{ valid: boolean; restrictionsChanged: boolean }> => {
+	): Promise<{
+		checked: KernelIABAuthority | null;
+		restrictionsChanged: boolean;
+		valid: boolean;
+	}> => {
 		const { iab } = snapshot;
 		const retained = iab?.authority;
 		if (!retained || !iab) {
-			return { restrictionsChanged: false, valid: true };
+			return { checked: null, restrictionsChanged: false, valid: true };
 		}
 		const { authority, restrictionsChanged } = await checkAuthority(
 			{
@@ -1329,13 +1333,48 @@ export const createIAB = function createIAB(
 			Date.now(),
 			publisherRestrictions
 		);
-		return { restrictionsChanged, valid: Boolean(authority) };
+		return {
+			checked: authority,
+			restrictionsChanged,
+			valid: Boolean(authority),
+		};
 	};
-	/** The kernel update that publishes a list, withdrawing authority if needed. */
+	/**
+	 * The retained authority with the AC string the check rebuilt for the new
+	 * list, when they differ: a provider Google dropped, or this handle no
+	 * longer lists, must leave the published string, not linger until the
+	 * visitor saves again.
+	 */
+	const refreshedProviderAuthority = (
+		retained: KernelIABAuthority | null | undefined,
+		checked: KernelIABAuthority | null
+	): KernelIABAuthority | null => {
+		if (
+			!retained ||
+			!checked ||
+			retained.addtlConsent === checked.addtlConsent
+		) {
+			return null;
+		}
+		const { addtlConsent: _stale, ...rest } = retained;
+		const refreshed: KernelIABAuthority = {
+			...rest,
+			adTechProviderConsents: checked.adTechProviderConsents,
+		};
+		if (checked.addtlConsent) {
+			refreshed.addtlConsent = checked.addtlConsent;
+		}
+		return refreshed;
+	};
+	/**
+	 * The kernel update that publishes a list, withdrawing authority if
+	 * needed, or installing `refreshed` in place of the retained one.
+	 */
 	const publishListPatch = (
 		gvl: GlobalVendorList,
 		adTechProviders: AdTechProvider[] | null,
-		withdrawn: boolean
+		withdrawn: boolean,
+		refreshed: KernelIABAuthority | null
 	): Partial<KernelIABState> => {
 		const update: Partial<KernelIABState> = {
 			enabled: true,
@@ -1349,6 +1388,8 @@ export const createIAB = function createIAB(
 		if (withdrawn) {
 			update.authority = null;
 			update.tcString = '';
+		} else if (refreshed) {
+			update.authority = refreshed;
 		}
 		return update;
 	};
@@ -1437,7 +1478,12 @@ export const createIAB = function createIAB(
 			const mayHydrate =
 				kernel.getSnapshot().iab === initializationSnapshot.iab;
 			const withdrawn = retainedWithdrawn(retained, retainedCheck.valid);
-			const update = publishListPatch(gvl, adTechProviders, withdrawn);
+			const update = publishListPatch(
+				gvl,
+				adTechProviders,
+				withdrawn,
+				refreshedProviderAuthority(retained, retainedCheck.checked)
+			);
 			const existingApi = cmpApi;
 			existingApi?.updateVendorList(gvl);
 			publishedList = gvl;
@@ -1472,6 +1518,15 @@ export const createIAB = function createIAB(
 					// Changed snapshots already publish through the kernel subscription.
 					existingApi.updateConsent(
 						readIAB(kernel).authority?.tcString ?? '',
+						undefined,
+						current.policyRule.model === 'iab'
+					);
+				} else if (!existingApi && publishedTcString()) {
+					// A handle mounted on a kernel that already holds authority, such
+					// as a remount: the list's notification ran before this API
+					// existed, so it would otherwise report no consent at all.
+					cmpApi.updateConsent(
+						publishedTcString(),
 						undefined,
 						current.policyRule.model === 'iab'
 					);
