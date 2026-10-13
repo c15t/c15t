@@ -236,16 +236,24 @@ const model = resolvePromptModel({
 							data-testid="consent-banner-description"
 						>
 							{model.copy.description}
-							{model.legalLinks.map((link) => (
-								<a
-									data-testid={`consent-banner-legal-link-${link.key}`}
-									href={link.href}
-									rel="noreferrer"
-									target="_blank"
-								>
-									{link.label}
-								</a>
-							))}
+							{
+								/*
+								 * The React banner's `InlineLegalLinks` shape: a space
+								 * first, and a comma inside every link but the last,
+								 * followed by a space outside it.
+								 */
+								model.legalLinks.length > 0 && (
+									<span>{' '}{model.legalLinks.map((link, index) => (
+										<span><a
+											class={model.classes.legalLink || undefined}
+											data-testid={`consent-banner-legal-link-${link.key}`}
+											href={link.href}
+											rel="noreferrer"
+											target="_blank"
+										>{link.label}{index < model.legalLinks.length - 1 ? ',' : ''}</a>{index < model.legalLinks.length - 1 ? ' ' : ''}</span>
+									))}</span>
+								)
+							}
 						</div>
 					</div>
 					<div
