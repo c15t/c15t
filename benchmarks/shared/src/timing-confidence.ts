@@ -68,6 +68,7 @@ export const evaluateBrowserTimingBudget = (
 	if (
 		observed.pass ||
 		observed.status !== 'evaluated' ||
+		(base?.median === 0 && head?.median !== 0) ||
 		head?.unit !== 'ms' ||
 		base?.unit !== 'ms' ||
 		![

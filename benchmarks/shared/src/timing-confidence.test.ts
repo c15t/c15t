@@ -88,6 +88,34 @@ describe('browser timing confidence', () => {
 		}
 	});
 
+	it.each([
+		'percent-lte',
+		'absolute-and-percent-lte',
+		'absolute-or-percent-lte',
+	] as const)(
+		'preserves an unbounded %s regression from a zero baseline',
+		(comparator) => {
+			const limit = {
+				...budget,
+				comparator,
+				metric: 'longTaskTotalMs',
+				threshold: 25,
+			};
+			const head = summarizeMetric(limit.metric, 'ms', [
+				...Array<number>(8).fill(0),
+				...Array<number>(22).fill(50),
+			]);
+			const base = summarizeMetric(
+				limit.metric,
+				'ms',
+				Array<number>(30).fill(0)
+			);
+			const observed = evaluateBudget(limit, head, base);
+			expect(observed.pass).toBe(false);
+			expect(evaluateBrowserTimingBudget(limit, head, base)).toEqual(observed);
+		}
+	);
+
 	it('never softens request-count or absolute behavior invariants', () => {
 		for (const comparator of ['count-eq', 'absolute-lte'] as const) {
 			expect(
