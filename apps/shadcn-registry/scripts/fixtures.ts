@@ -544,7 +544,8 @@ const fixtures = pick(frameworks, args.framework, '--framework').flatMap(
 
 let registry: RegistryOutput = new Map();
 const server = createServer((request, response) => {
-	const file = request.url?.replace(/^\/r\//u, '') ?? '';
+	const { pathname } = new URL(request.url ?? '/', 'http://127.0.0.1');
+	const file = pathname.replace(/^\/r\//u, '');
 	const json = registry.get(file);
 	response.writeHead(json ? 200 : 404, { 'content-type': 'application/json' });
 	response.end(JSON.stringify(json ?? { error: `No ${file}` }));
