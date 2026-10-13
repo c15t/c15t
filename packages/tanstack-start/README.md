@@ -37,7 +37,8 @@ c15t is used by [2,100+ sites](https://www.wappalyzer.com/technologies/cookie-co
 
 ## Prerequisites
 
-- `@tanstack/react-start` 1.168.60 or later, including TanStack Start 1.0, and `@tanstack/react-router` 1.170.41 or later
+- `@tanstack/react-start` 1.168.60 or later, including TanStack Start 1.0
+- `@tanstack/react-router` at the version your `@tanstack/react-start` release depends on: 1.170.41 or later, or 1.170.43 or later for TanStack Start 1.0
 - Vite 7 or later, or Vite 8 or later for TanStack Start 1.0
 - React 18 or 19
 - Node.js 20.19 or later
