@@ -1,0 +1,33 @@
+{
+	"name": "@c15t/shadcn-registry",
+	"private": true,
+	"description": "Source and build for the c15t shadcn registry served at c15t.com/r.",
+	"type": "module",
+	"scripts": {
+		"build": "bun scripts/build.ts",
+		"check-types": "tsc --noEmit && tsc -p tsconfig.radix.json && tsc -p tsconfig.base.json && tsc -p tsconfig.aria.json && bun scripts/check-next.ts",
+		"fixtures": "bun scripts/fixtures.ts",
+		"fmt": "oxfmt .",
+		"lint": "oxlint .",
+		"test": "vitest run"
+	},
+	"dependencies": {
+		"c15t": "workspace:*"
+	},
+	"devDependencies": {
+		"@base-ui/react": "^1.9.0",
+		"@c15t/typescript-config": "workspace:*",
+		"@types/node": "25.5.0",
+		"@types/react": "19.2.17",
+		"class-variance-authority": "^0.7.1",
+		"cn": "^0.4.0",
+		"lucide-react": "^1.23.0",
+		"radix-ui": "^1.4.3",
+		"react": "19.2.7",
+		"react-aria-components": "^1.22.1",
+		"react-dom": "19.2.7",
+		"shadcn": "4.21.4",
+		"typescript": "7.0.2",
+		"vitest": "4.1.10"
+	}
+}

@@ -1,0 +1,14 @@
+{
+	"extends": "@c15t/typescript-config/react-library.json",
+	"compilerOptions": {
+		"declaration": false,
+		"lib": ["ES2022", "DOM", "DOM.Iterable"],
+		"target": "ES2022",
+		"paths": {
+			"@/components/c15t/*": ["./registry/shared/*"],
+			"@/components/ui/*": ["./vendor/base/components/ui/*"],
+			"@/lib/utils": ["./vendor/base/lib/utils"]
+		}
+	},
+	"include": ["registry/shared", "registry/setup", "vendor/base"]
+}
