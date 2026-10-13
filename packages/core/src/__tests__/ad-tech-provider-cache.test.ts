@@ -25,6 +25,19 @@ const stalled = vi.fn(
 		})
 );
 
+const unavailable = () => Promise.resolve(new Response('', { status: 503 }));
+
+/** A fetch that answers with the given providers in the list's shape. */
+const listing = (...providers: (typeof META)[]) =>
+	(() =>
+		Promise.resolve(
+			Response.json({
+				providers: Object.fromEntries(
+					providers.map((provider) => [String(provider.id), provider])
+				),
+			})
+		)) as unknown as typeof globalThis.fetch;
+
 /** Replaces the request deadline with one the test fires. */
 const controlDeadline = () => {
 	const deadline = new AbortController();
@@ -75,46 +88,65 @@ describe('fetchCachedAdTechProviders', () => {
 	});
 
 	test('stops serving a list past its stale period', async () => {
-		const key = `${reference.url}|89`;
 		const cache: AdTechProviderCache = new Map([
-			[key, { expiresAt: 1000, providers: [META], staleUntil: 5000 }],
+			[
+				`${reference.url}|89`,
+				{ expiresAt: 1000, providers: [META], staleUntil: 5000 },
+			],
 		]);
 		const providers = await fetchCachedAdTechProviders({
 			cache,
-			fetch: (() =>
-				Promise.resolve(
-					new Response('', { status: 503 })
-				)) as unknown as typeof globalThis.fetch,
+			fetch: unavailable as unknown as typeof globalThis.fetch,
 			now: 6000,
 			reference,
 		});
 		expect(providers).toBeUndefined();
-		expect(cache.has(key)).toBe(false);
 	});
 
-	test('waits a minute after a failed refresh before asking again', async () => {
+	test('serves the last good list without refetching for a minute after a failed refresh', async () => {
 		const cache: AdTechProviderCache = new Map([
 			[
 				`${reference.url}|89`,
-				{ expiresAt: 1000, providers: [META], staleUntil: 999_999 },
+				{ expiresAt: 1000, providers: [META], staleUntil: 10_000_000 },
 			],
 		]);
-		const down = vi.fn(() =>
-			Promise.resolve(new Response('', { status: 503 }))
-		);
-		const options = {
-			cache,
-			fetch: down as unknown as typeof globalThis.fetch,
-			reference,
-		};
-		await expect(
-			fetchCachedAdTechProviders({ ...options, now: 2000 })
-		).resolves.toEqual([META]);
-		await expect(
-			fetchCachedAdTechProviders({ ...options, now: 2000 + 59_000 })
-		).resolves.toEqual([META]);
+		const load = (now: number, fetch: typeof globalThis.fetch) =>
+			fetchCachedAdTechProviders({ cache, fetch, now, reference });
+		const down = vi.fn(unavailable) as unknown as typeof globalThis.fetch;
+
+		await expect(load(2000, down)).resolves.toEqual([META]);
+		await expect(load(2000 + 59_000, down)).resolves.toEqual([META]);
 		expect(down).toHaveBeenCalledTimes(1);
-		await fetchCachedAdTechProviders({ ...options, now: 2000 + 61_000 });
-		expect(down).toHaveBeenCalledTimes(2);
+
+		const NEW = { id: 89, name: 'Meta Platforms', policyUrl: META.policyUrl };
+		await expect(load(2000 + 61_000, listing(NEW))).resolves.toEqual([NEW]);
 	});
+
+	test('waits a minute before retrying an endpoint that failed with nothing cached', async () => {
+		const cache: AdTechProviderCache = new Map();
+		const down = vi.fn(unavailable) as unknown as typeof globalThis.fetch;
+		const load = (now: number, fetch: typeof globalThis.fetch) =>
+			fetchCachedAdTechProviders({ cache, fetch, now, reference });
+
+		await expect(load(0, down)).resolves.toBeUndefined();
+		await expect(load(30_000, down)).resolves.toBeUndefined();
+		expect(down).toHaveBeenCalledTimes(1);
+		await expect(load(61_000, listing(META))).resolves.toEqual([META]);
+	});
+
+	test('does not stretch a stale list past its bound while backing off', async () => {
+		const cache: AdTechProviderCache = new Map([
+			[
+				`${reference.url}|89`,
+				{ expiresAt: 1000, providers: [META], staleUntil: 30_000 },
+			],
+		]);
+		const down = unavailable as unknown as typeof globalThis.fetch;
+		const load = (now: number) =>
+			fetchCachedAdTechProviders({ cache, fetch: down, now, reference });
+
+		await expect(load(2000)).resolves.toEqual([META]);
+		await expect(load(31_000)).resolves.toBeUndefined();
+	});
+
 });
