@@ -94,6 +94,55 @@ export const clearStoredTCString = function clearStoredTCString(
 };
 
 /**
+ * Rewrites the stored AC string beside `tcString` to `addtlConsent`, or
+ * removes it when there is none. A list that drops a provider changes the
+ * AC string of a TC string already saved, and vendors reading storage must
+ * not keep finding the provider in it. Like {@link clearStoredTCString},
+ * each store changes only while it still holds `tcString`.
+ *
+ * @param tcString - The TC string the AC string was saved beside.
+ * @param addtlConsent - The AC string it now carries, if any.
+ *
+ * @internal
+ */
+export const syncStoredAdditionalConsent = function syncStoredAdditionalConsent(
+	tcString: string,
+	addtlConsent: string | undefined
+): void {
+	try {
+		if (
+			typeof document !== 'undefined' &&
+			getCookie(IAB_STORAGE_KEYS.TC_STRING_COOKIE) === tcString &&
+			(getCookie(IAB_STORAGE_KEYS.AC_STRING_COOKIE) ?? undefined) !==
+				addtlConsent
+		) {
+			setCookie(
+				IAB_STORAGE_KEYS.AC_STRING_COOKIE,
+				addtlConsent ?? '',
+				addtlConsent ? 395 : 0
+			);
+		}
+	} catch {
+		// The cookie value can be malformed.
+	}
+	try {
+		if (
+			localStorage.getItem(IAB_STORAGE_KEYS.TC_STRING_LOCAL) === tcString &&
+			(localStorage.getItem(IAB_STORAGE_KEYS.AC_STRING_LOCAL) ?? undefined) !==
+				addtlConsent
+		) {
+			if (addtlConsent) {
+				localStorage.setItem(IAB_STORAGE_KEYS.AC_STRING_LOCAL, addtlConsent);
+			} else {
+				localStorage.removeItem(IAB_STORAGE_KEYS.AC_STRING_LOCAL);
+			}
+		}
+	} catch {
+		// Storage can be unavailable.
+	}
+};
+
+/**
  * Copies consent data down to its vectors, so the API's copy is never
  * shared with the caller.
  */

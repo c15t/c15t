@@ -50,7 +50,11 @@ import {
 	introducedLegitimateInterest,
 } from './headless/effective-vendor-list';
 import { fetchAdTechProviders } from './tcf/additional-consent';
-import { clearStoredTCString, createCMPApi } from './tcf/cmp-api';
+import {
+	clearStoredTCString,
+	createCMPApi,
+	syncStoredAdditionalConsent,
+} from './tcf/cmp-api';
 import { CMP_VERSION_NUMBER } from './tcf/cmp-defaults';
 import { assertValidCmpId, createCmpIdError, isValidCmpId } from './tcf/cmp-id';
 import { clearGVLCache, fetchGVL, narrowGVLToVendors } from './tcf/fetch-gvl';
@@ -1694,6 +1698,19 @@ export const createIAB = function createIAB(
 			cmpApi.setDisplayStatus(nextDisplay);
 		}
 	};
+	/**
+	 * Keeps the stored AC string in step with the held authority. A restored
+	 * or remounted authority is re-checked against today's provider list, so
+	 * its AC string can drop a provider the stored copy still names.
+	 */
+	const syncStoredAuthority = (
+		previous: KernelIABAuthority | null | undefined,
+		held: KernelIABAuthority | null | undefined
+	): void => {
+		if (options.persistence !== false && held && held !== previous) {
+			syncStoredAdditionalConsent(held.tcString, held.addtlConsent);
+		}
+	};
 	let previousAuthority = kernel.getSnapshot().iab?.authority;
 	let previousSnapshot = kernel.getSnapshot();
 	let previousRecordsGeneration = kernel.getRecordsGeneration();
@@ -1746,6 +1763,7 @@ export const createIAB = function createIAB(
 				clearStoredTCString(previousAuthority.tcString);
 			}
 		}
+		syncStoredAuthority(previousAuthority, snapshot.iab?.authority);
 		previousAuthority = snapshot.iab?.authority;
 		if (openedForRestrictions && snapshot.iab?.authority) {
 			closeRestrictionPrompt();

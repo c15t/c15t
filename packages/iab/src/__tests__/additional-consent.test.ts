@@ -298,6 +298,8 @@ describe('createIAB with Additional Consent', () => {
 			expect(kernel.getSnapshot().iab?.authority).not.toBeNull()
 		);
 		expect((await tcData()).addtlConsent).toBe('2~89~dv.');
+		expect(localStorage.getItem('addtl_consent')).toBe('2~89~dv.');
+		expect(document.cookie).toContain('addtl_consent=2~89~dv.');
 	});
 
 	test('a handle remounted on a live kernel drops a provider Google removed', async () => {
@@ -316,6 +318,8 @@ describe('createIAB with Additional Consent', () => {
 		await mount(kernel);
 		expect(kernel.getSnapshot().iab?.authority?.addtlConsent).toBe('2~89~dv.');
 		expect((await tcData()).addtlConsent).toBe('2~89~dv.');
+		expect(localStorage.getItem('addtl_consent')).toBe('2~89~dv.');
+		expect(document.cookie).toContain('addtl_consent=2~89~dv.');
 	});
 
 	test('withdrawing the TC string removes the stored AC string', async () => {
