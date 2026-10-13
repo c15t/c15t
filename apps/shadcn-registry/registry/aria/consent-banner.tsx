@@ -26,6 +26,7 @@ function ConsentBannerContent({ className }: { className?: string }) {
   const labels = useConsentLabels()
   const ref = React.useRef<HTMLDivElement>(null)
   const titleId = React.useId()
+  const descriptionId = React.useId()
 
   useFocusTrap(banner.isVisible && banner.blocking, ref)
 
@@ -40,6 +41,7 @@ function ConsentBannerContent({ className }: { className?: string }) {
         role={banner.blocking ? "dialog" : "region"}
         aria-modal={banner.blocking || undefined}
         aria-labelledby={titleId}
+        aria-describedby={descriptionId}
         className={cn(
           "fixed inset-x-4 bottom-4 z-50 flex flex-col outline-none sm:inset-x-auto sm:start-4 sm:w-full sm:max-w-md",
           className
@@ -49,7 +51,7 @@ function ConsentBannerContent({ className }: { className?: string }) {
         <Card className="shadow-lg">
           <CardHeader>
             <CardTitle id={titleId}>{title}</CardTitle>
-            <CardDescription>{description}</CardDescription>
+            <CardDescription id={descriptionId}>{description}</CardDescription>
           </CardHeader>
           <CardFooter className="flex-col items-stretch gap-2 sm:flex-row sm:flex-wrap sm:justify-between">
             {banner.preferenceControls.map((control) => (

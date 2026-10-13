@@ -12,6 +12,7 @@ import path from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 
 import type { Browser, BrowserContext, Locator, Page } from 'playwright';
+import { expect } from 'playwright/test';
 
 import type { Framework } from '../src/items';
 import { freePort, run, start } from './fixture-process';
@@ -200,6 +201,8 @@ const dialogJourney = async (page: Page, url: string) => {
 	await step('banner shows', async () => {
 		await page.goto(url);
 		await ui.banner.waitFor();
+		// The demo policy's copy depends on where the visitor is.
+		await expect(ui.banner).toHaveAccessibleDescription(/\S/u, { timeout });
 		await ui.gateButton.waitFor();
 		if ((await ui.embed.count()) > 0) {
 			throw new Error('the marketing embed rendered before consent');
