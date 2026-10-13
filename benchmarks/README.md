@@ -160,11 +160,13 @@ in force, and baselines that already include the rules use the normal 10% cap.
 Comparison reports retain the measured sizes and name any applied allowance.
 
 `quick` covers core operations, policy resolution and script lifecycle with
-15 browser samples after 3 warmups. Engine operations use 5,000 samples after
-1,000 warmups in both profiles. `full` uses 30 browser samples and adds React, Next, Nuxt,
-SvelteKit, Astro and TanStack Start browser scenarios. PRs run the quick
+16 pooled browser samples across four rounds. Each round measures four samples
+after three warmups. Engine operations use 5,000 samples after 1,000 warmups per
+round in both profiles. `full` uses 32 pooled browser samples, eight per round,
+and adds React, Next, Nuxt, SvelteKit, Astro and TanStack Start browser scenarios.
+PRs run the quick
 comparison when runtime benchmark consumers are affected. Full comparisons run
-separately on `v3` pushes, nightly, and manually through
+separately on `canary` pushes, nightly, and manually through
 `benchmark-regression.yml`. They also remain part of full validation and manual
 CI runs. Release checks skip runtime comparisons so publishing does not wait
 for them. Nightly scheduling requires the workflow on the default branch.
