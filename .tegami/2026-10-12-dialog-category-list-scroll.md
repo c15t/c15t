@@ -11,9 +11,11 @@ packages:
   '@c15t/tanstack-start': patch
 ---
 
-### Keep the preference dialog's category list scrollable
+### The preference dialog scrolls with your CSS
 
-The category list in the preference dialog scrolls again when your CSS sets
-`overflow: hidden` on the list or on its category rows, for example to clip
-them to rounded corners. Before, a category with vendors could be cut off in
-the capped dialog on a phone, with no way to scroll to the rest.
+Visitors can scroll to every category and vendor in the preference dialog
+again. Before this fix, the category list did not scroll with some app CSS.
+The cause was `overflow: hidden` on the category list or on a category row,
+for example to clip them to rounded corners. On a phone, a category with
+vendors then went past the bottom of the dialog. The visitor could not scroll
+to the rest.
