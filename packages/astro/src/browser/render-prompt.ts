@@ -47,6 +47,7 @@ const EMPTY_CLASS_NAMES: PromptClassNames = {
 	banner: {},
 	branding: {},
 	button: {},
+	legalLinks: {},
 };
 
 const readSlot = function readSlot(slot: HTMLElement): PromptSlotData {
@@ -138,6 +139,36 @@ const renderFooter = function renderFooter(
 };
 
 /**
+ * The legal links after the description, in the shape of the React
+ * banner's `InlineLegalLinks`: a space first, and a comma inside every link
+ * but the last, followed by a space outside it.
+ */
+const renderLegalLinks = function renderLegalLinks(
+	model: PromptModel
+): HTMLElement {
+	const last = model.legalLinks.length - 1;
+	return element('span', {}, [
+		' ',
+		...model.legalLinks.map((link, index) =>
+			element('span', {}, [
+				element(
+					'a',
+					{
+						class: model.classes.legalLink || undefined,
+						'data-testid': `consent-banner-legal-link-${link.key}`,
+						href: link.href,
+						rel: 'noreferrer',
+						target: '_blank',
+					},
+					[index < last ? `${link.label},` : link.label]
+				),
+				...(index < last ? [' '] : []),
+			])
+		),
+	]);
+};
+
+/**
  * Build the banner for a snapshot, without inserting it.
  *
  * @param snapshot - The resolved snapshot.
@@ -181,18 +212,7 @@ export const buildPrompt = function buildPrompt(
 		},
 		[
 			model.copy.description,
-			...model.legalLinks.map((link) =>
-				element(
-					'a',
-					{
-						'data-testid': `consent-banner-legal-link-${link.key}`,
-						href: link.href,
-						rel: 'noreferrer',
-						target: '_blank',
-					},
-					[link.label]
-				)
-			),
+			...(model.legalLinks.length > 0 ? [renderLegalLinks(model)] : []),
 		]
 	);
 	const card = element(

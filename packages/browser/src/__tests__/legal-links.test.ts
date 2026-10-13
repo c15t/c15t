@@ -131,6 +131,18 @@ describe.each(['ordinary', 'IAB'])('%s script-tag legal links', (variant) => {
 		}
 	);
 
+	it('separates the links from the copy and from each other', async () => {
+		const client = await start();
+		const linkGroup = (): Element | null | undefined =>
+			client.ui?.root.querySelector('[data-testid*="-legal-link-"]')
+				?.parentElement?.parentElement;
+		const expected = ' Privacy Policy, Cookie Policy, Terms of Service';
+
+		expect(linkGroup()?.textContent).toBe(expected);
+		client.openDialog();
+		expect(linkGroup()?.textContent).toBe(expected);
+	});
+
 	it('does not mount UI when the tag has data-no-ui', async () => {
 		const client = await start({ ...legalAttributes, 'data-no-ui': '' });
 		expect(client.ui).toBeNull();

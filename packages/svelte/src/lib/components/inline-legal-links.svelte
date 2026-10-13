@@ -56,9 +56,14 @@
 	);
 </script>
 
+<!--
+	A space before the links and after each comma, as in React's
+	`InlineLegalLinks`. Plain spaces collapse into one; a non-breaking space
+	would not, and widened the gaps.
+-->
 {#if linkEntries.length > 0}
 	<span>
-		&nbsp;
+		{' '}
 		{#each linkEntries as [type, link], index (type)}
 			{#if link}
 				<span>
@@ -77,7 +82,7 @@
 							type}{index < linkEntries.length - 1 ? ',' : ''}
 					</a>
 					{#if index < linkEntries.length - 1}
-						&nbsp;
+						{' '}
 					{/if}
 				</span>
 			{/if}

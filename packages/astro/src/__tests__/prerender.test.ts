@@ -171,6 +171,7 @@ describe('browser-rendered banner', () => {
 	])('matches the server markup for %s', async (_name, parityCase) => {
 		const options: C15tAstroOptions = {
 			legalLinks: {
+				cookiePolicy: { href: '/cookies', label: 'Cookies' },
 				privacyPolicy: { href: '/privacy', label: 'Privacy' },
 			},
 			mode: offlineMode({
@@ -179,7 +180,7 @@ describe('browser-rendered banner', () => {
 			...parityCase.options,
 		};
 		const props = {
-			legalLinks: ['privacyPolicy'],
+			legalLinks: ['privacyPolicy', 'cookiePolicy'],
 			title: 'Hi',
 			...parityCase.props,
 		};

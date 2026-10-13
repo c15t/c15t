@@ -14,6 +14,7 @@ import buttonStyles from '@c15t/ui/styles/components/button';
 import actionStyles from '@c15t/ui/styles/components/consent-actions';
 import bannerStyles from '@c15t/ui/styles/components/consent-banner';
 import iabBannerStyles from '@c15t/ui/styles/components/iab-consent-banner';
+import legalLinkStyles from '@c15t/ui/styles/components/legal-links';
 
 /** Class names for one component, keyed by the stylesheet's own names. */
 export type ClassNameMap = Record<string, string | undefined>;
@@ -24,6 +25,7 @@ export interface PromptClassNames {
 	actions: ClassNameMap;
 	button: ClassNameMap;
 	branding: ClassNameMap;
+	legalLinks: ClassNameMap;
 }
 
 /** The class maps the IAB banner and its branding tag read. */
@@ -75,6 +77,7 @@ export const promptClassNames: PromptClassNames = {
 		'brandingWordmarkLabel',
 	]),
 	button: pick(buttonStyles, ['button']),
+	legalLinks: pick(legalLinkStyles, ['legalLink']),
 };
 
 /** The IAB banner's class names, trimmed to the ones its markup uses. */
