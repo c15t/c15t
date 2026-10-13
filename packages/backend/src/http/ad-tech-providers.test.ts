@@ -8,7 +8,7 @@ import {
 	AD_TECH_PROVIDER_FETCH_TIMEOUT_MS,
 	policyRulePresets,
 } from '@c15t/schema/types';
-import type { ConsentManifestConfig } from '@c15t/schema/types';
+import type { AdTechProvider, ConsentManifestConfig } from '@c15t/schema/types';
 import { afterEach, assert, describe, expect, it, vi } from 'vitest';
 
 import {
@@ -250,6 +250,100 @@ describe('resolveAdTechProviders', () => {
 		);
 		assert.isNull(await pending);
 		assert.strictEqual(cache.store.size, 0);
+	});
+
+	describe('a relative endpoint', () => {
+		const RELATIVE = '/api/c15t/additional-consent';
+
+		/** A tenant's resolver: lists Meta under `name` until told to fail. */
+		const tenant = (name: string) => {
+			const server = { down: false, requests: 0 };
+			const fetch = (() => {
+				server.requests += 1;
+				const body = server.down
+					? { error: 'down' }
+					: { providers: { '89': { ...LIST.providers['89'], name } } };
+				return Promise.resolve(
+					new Response(JSON.stringify(body), {
+						status: server.down ? 503 : 200,
+					})
+				);
+			}) as unknown as typeof globalThis.fetch;
+			return { fetch, server };
+		};
+		const names = (providers: AdTechProvider[] | null) =>
+			providers?.map(({ name }) => name) ?? null;
+
+		it('loads each fetch implementation its own list', async () => {
+			const a = tenant('Meta (tenant A)');
+			const b = tenant('Meta (tenant B)');
+			const [fromA, fromB] = await Promise.all([
+				resolveAdTechProviders({
+					fetch: a.fetch,
+					providers: [89],
+					url: RELATIVE,
+				}),
+				resolveAdTechProviders({
+					fetch: b.fetch,
+					providers: [89],
+					url: RELATIVE,
+				}),
+			]);
+			assert.deepStrictEqual(names(fromA), ['Meta (tenant A)']);
+			assert.deepStrictEqual(names(fromB), ['Meta (tenant B)']);
+		});
+
+		it('backs off only the upstream that failed', async () => {
+			const a = tenant('Meta (tenant A)');
+			const b = tenant('Meta (tenant B)');
+			a.server.down = true;
+			assert.isNull(
+				await resolveAdTechProviders({
+					fetch: a.fetch,
+					providers: [89],
+					url: RELATIVE,
+				})
+			);
+			const fromB = await resolveAdTechProviders({
+				fetch: b.fetch,
+				providers: [89],
+				url: RELATIVE,
+			});
+			assert.deepStrictEqual(names(fromB), ['Meta (tenant B)']);
+		});
+
+		it('falls back to the last list its own fetch implementation loaded', async () => {
+			const a = tenant('Meta (tenant A)');
+			const b = tenant('Meta (tenant B)');
+			const fromA = { fetch: a.fetch, providers: [89], url: RELATIVE };
+			const fromB = { fetch: b.fetch, providers: [89], url: RELATIVE };
+			await resolveAdTechProviders(fromA);
+			await resolveAdTechProviders(fromB);
+
+			a.server.down = true;
+			b.server.down = true;
+			assert.deepStrictEqual(names(await resolveAdTechProviders(fromA)), [
+				'Meta (tenant A)',
+			]);
+			assert.deepStrictEqual(names(await resolveAdTechProviders(fromB)), [
+				'Meta (tenant B)',
+			]);
+		});
+	});
+
+	it('falls back across fetch implementations for an absolute endpoint', async () => {
+		const url = 'https://lists.example/ac-shared';
+		await resolveAdTechProviders({
+			fetch: listServer().fetch,
+			providers: [89],
+			url,
+		});
+		const providers = await resolveAdTechProviders({
+			fetch: listServer({ error: 'down' }, 503).fetch,
+			providers: [89],
+			url,
+		});
+		assert.deepStrictEqual(providers, [LIST.providers['89']]);
 	});
 });
 

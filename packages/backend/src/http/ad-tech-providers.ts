@@ -83,25 +83,61 @@ export const adTechProviderCacheKey = function adTechProviderCacheKey(
 	return `ac:${url}|${normalizeAdTechProviderIds(ids).join(',')}`;
 };
 
-/**
- * In-flight requests, keyed like the cache, so a cold cache under load costs
- * one upstream fetch.
- */
-const inflight = new Map<string, Promise<AdTechProvider[] | null>>();
+/** What this process remembers about provider lists between requests. */
+interface AdTechProviderState {
+	/**
+	 * In-flight requests, keyed like the cache, so a cold cache under load
+	 * costs one upstream fetch.
+	 */
+	readonly inflight: Map<string, Promise<AdTechProvider[] | null>>;
+	/**
+	 * The last list fetched per key, for when the upstream fails and the cache
+	 * has nothing either (no adapter configured, or its entries expired). Each
+	 * entry lasts as long as the cache's stale entry, so a long-running process
+	 * stops serving an outdated list when a restarted one would.
+	 */
+	readonly lastGood: Map<
+		string,
+		{ providers: AdTechProvider[]; staleUntil: number }
+	>;
+	/** When each key may next try the upstream after a failed fetch. */
+	readonly retryAfter: Map<string, number>;
+}
+
+const createState = function createState(): AdTechProviderState {
+	return { inflight: new Map(), lastGood: new Map(), retryAfter: new Map() };
+};
+
+/** State for absolute endpoints, which name the same list for every caller. */
+let sharedState = createState();
 
 /**
- * The last list fetched per key, for when the upstream fails and the cache
- * has nothing either (no adapter configured, or its entries expired). Each
- * entry lasts as long as the cache's stale entry, so a long-running process
- * stops serving an outdated list when a restarted one would.
+ * State for relative endpoints, one per fetch implementation. Which list a
+ * relative URL names depends on how that fetch resolves it, so two backends
+ * in one process (two tenants, say) must not share an entry.
  */
-const lastGood = new Map<
-	string,
-	{ providers: AdTechProvider[]; staleUntil: number }
+let relativeStates = new WeakMap<
+	typeof globalThis.fetch,
+	AdTechProviderState
 >();
 
-/** When each key may next try the upstream after a failed fetch. */
-const retryAfter = new Map<string, number>();
+const isAbsoluteUrl = (url: string): boolean =>
+	/^[a-z][a-z\d+.-]*:/iu.test(url);
+
+const stateFor = function stateFor(
+	options: AdTechProviderOptions
+): AdTechProviderState {
+	if (isAbsoluteUrl(options.url)) {
+		return sharedState;
+	}
+	const doFetch = options.fetch ?? globalThis.fetch;
+	let state = relativeStates.get(doFetch);
+	if (!state) {
+		state = createState();
+		relativeStates.set(doFetch, state);
+	}
+	return state;
+};
 
 /** The cache key that keeps a list past its freshness, for failed refreshes. */
 const staleCacheKey = function staleCacheKey(key: string): string {
@@ -114,6 +150,7 @@ const staleTtlMs = function staleTtlMs(options: AdTechProviderOptions): number {
 };
 
 const rememberLastGood = function rememberLastGood(
+	{ lastGood }: AdTechProviderState,
 	key: string,
 	providers: AdTechProvider[],
 	ttlMs: number
@@ -131,9 +168,8 @@ const rememberLastGood = function rememberLastGood(
 /** Clears in-memory lists and failure backoff. For tests. */
 export const resetAdTechProviderState =
 	function resetAdTechProviderState(): void {
-		inflight.clear();
-		lastGood.clear();
-		retryAfter.clear();
+		sharedState = createState();
+		relativeStates = new WeakMap();
 	};
 
 /**
@@ -190,6 +226,7 @@ const cacheProviders = async function cacheProviders(
 
 /** The last list fetched for a key, from memory or the cache's stale entry. */
 const readStaleProviders = function readStaleProviders(
+	{ lastGood }: AdTechProviderState,
 	cache: CacheAdapter | undefined,
 	key: string
 ): Promise<AdTechProvider[] | null> {
@@ -211,6 +248,9 @@ const readStaleProviders = function readStaleProviders(
  * string, and a thrown error would fail `/init` and leave the visitor with no
  * consent UI at all. For the same reason a broken cache only costs a fetch.
  *
+ * In-memory state for a relative endpoint is kept per fetch implementation,
+ * since each may resolve it to a different list.
+ *
  * @param options - Providers and endpoint from the manifest, plus loading options.
  * @returns The listed providers sorted by ID, `[]` when none of the
  *   configured IDs is listed, or null when no list could be loaded.
@@ -223,13 +263,15 @@ export const resolveAdTechProviders = async function resolveAdTechProviders(
 		return [];
 	}
 	const key = adTechProviderCacheKey(options.url, ids);
+	const state = stateFor(options);
+	const { inflight, retryAfter } = state;
 
 	const cached = await readCachedProviders(options.cache, key);
 	if (cached) {
 		return cached;
 	}
 	if (Date.now() < (retryAfter.get(key) ?? 0)) {
-		return readStaleProviders(options.cache, key);
+		return readStaleProviders(state, options.cache, key);
 	}
 	const existing = inflight.get(key);
 	if (existing) {
@@ -241,10 +283,10 @@ export const resolveAdTechProviders = async function resolveAdTechProviders(
 			const providers = await fetchAdTechProviderList(options, ids);
 			if (!providers) {
 				retryAfter.set(key, Date.now() + FAILURE_BACKOFF_MS);
-				return readStaleProviders(options.cache, key);
+				return readStaleProviders(state, options.cache, key);
 			}
 			retryAfter.delete(key);
-			rememberLastGood(key, providers, staleTtlMs(options));
+			rememberLastGood(state, key, providers, staleTtlMs(options));
 			await cacheProviders(options, key, providers);
 			return providers;
 		} finally {
