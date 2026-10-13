@@ -323,6 +323,40 @@ describe('a dialog opened before init resolves', () => {
 		kernel.dispose();
 	});
 
+	test('stays open through a failed init until a retry resolves', async () => {
+		vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+		const failed = Promise.withResolvers<InitResponse>();
+		const answers = [
+			failed.promise,
+			Promise.resolve<InitResponse>({
+				policyResolution: { ...matchedResolution(optInRule()), version: 1 },
+			}),
+		];
+		const kernel = createConsentKernel({
+			initRetry: false,
+			initialPolicyPending: true,
+			now: NOW,
+			transport: { init: () => answers.shift() ?? failed.promise },
+		});
+		const initialized = kernel.commands.init();
+		kernel.set.activeUI('dialog');
+		failed.reject(new Error('offline'));
+		await initialized;
+		// The policy stays pending for the retry, which shows the dialog.
+		expect(kernel.getSnapshot()).toMatchObject({
+			activeUI: 'dialog',
+			policyPending: true,
+			resolution: { status: 'failed' },
+		});
+		await kernel.commands.init();
+		expect(kernel.getSnapshot()).toMatchObject({
+			activeUI: 'dialog',
+			policyPending: false,
+			resolution: { status: 'matched' },
+		});
+		kernel.dispose();
+	});
+
 	test('stays open over the banner for a new visitor', async () => {
 		const kernel = await openDuringInit();
 		expect(kernel.getSnapshot().promptRequirement.kind).toBe('choice');
