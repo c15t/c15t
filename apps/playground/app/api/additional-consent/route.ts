@@ -27,6 +27,7 @@ export const GET = async function GET(request: Request): Promise<Response> {
 	);
 	const response = await fetch(GOOGLE_PROVIDER_LIST, {
 		next: { revalidate: 3600 },
+		signal: request.signal,
 	}).catch(() => null);
 	const listed = response?.ok ? parseProviderCsv(await response.text()) : null;
 	if (!listed) {

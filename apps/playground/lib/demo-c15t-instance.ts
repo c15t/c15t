@@ -2,8 +2,8 @@ import 'server-only';
 import { c15tInstance } from '@c15t/backend';
 import { createUpstashRedisAdapter } from '@c15t/backend/cache';
 
-import { GET as getAdditionalConsentProviders } from '../app/api/additional-consent/route';
 import { DEMO_LEGAL_DOCUMENT_SNAPSHOT } from './demo-legal-document-snapshot';
+import { fetchDemoProviders } from './demo-provider-fetch';
 import {
 	DEMO_ADDITIONAL_CONSENT,
 	DEMO_CMP_ID,
@@ -36,18 +36,6 @@ export const DEMO_TERMS_RELEASE = {
 	type: 'terms_and_conditions' as const,
 	version: '2026-04-13',
 };
-
-/**
- * Answers the backend's provider list requests with the playground's own
- * route, in process. Fetching the route over the network would need an
- * absolute URL, and building one from the request's host would let a forged
- * `Host` header point the server's fetch anywhere. The base only lets the
- * route parse the path; nothing is requested from it.
- */
-const fetchDemoProviders = ((input: RequestInfo | URL) =>
-	getAdditionalConsentProviders(
-		new Request(new URL(String(input), 'http://playground.invalid'))
-	)) as typeof globalThis.fetch;
 
 export const createDemoInstance = function createDemoInstance(
 	scenario: string
