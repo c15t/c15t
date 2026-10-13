@@ -40,7 +40,7 @@ c15t is used by [2,100+ sites](https://www.wappalyzer.com/technologies/cookie-co
 | React 18 and 19 (Vite, React Router) | `c15t/react` | [React](https://c15t.com/docs/frameworks/react/quickstart) |
 | Next.js 15 and 16 (App Router, Pages Router) | `c15t/next` | [Next.js](https://c15t.com/docs/frameworks/next/quickstart) |
 | Vue 3 | `c15t/vue/vue-plugin` | [Vue](https://c15t.com/docs/frameworks/vue/quickstart) |
-| Nuxt 3 and 4 | `c15t/vue` (Nuxt module) | [Nuxt](https://c15t.com/docs/frameworks/nuxt/quickstart) |
+| Nuxt 3+ | `c15t/vue` (Nuxt module) | [Nuxt](https://c15t.com/docs/frameworks/nuxt/quickstart) |
 | Astro 5, 6, and 7 | `c15t/astro` | [Astro](https://c15t.com/docs/frameworks/astro/quickstart) |
 | TanStack Start | `c15t/tanstack-start` | [TanStack Start](https://c15t.com/docs/frameworks/tanstack-start/quickstart) |
 | Svelte 5 and SvelteKit | [`@c15t/svelte`](https://www.npmjs.com/package/@c15t/svelte), a separate install | [Svelte](https://c15t.com/docs/frameworks/svelte/quickstart), [SvelteKit](https://c15t.com/docs/frameworks/sveltekit/quickstart) |

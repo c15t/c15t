@@ -10,8 +10,8 @@ import {
 	addComponent,
 	addImports,
 	addPlugin,
+	addNitroPlugin,
 	addServerHandler,
-	addServerPlugin,
 	addTemplate,
 	addVitePlugin,
 	addTypeTemplate,
@@ -95,7 +95,10 @@ const addDevToolsTab = (
 	nuxt: Nuxt,
 	resolve: (path: string) => string
 ): void => {
-	const handler = resolve('./runtime/server/devtools.get');
+	const handler = {
+		nitro2: resolve('./runtime/server/devtools.get.legacy'),
+		nuxt: resolve('./runtime/server/devtools.get'),
+	};
 	addServerHandler({ handler, method: 'get', route: DEVTOOLS_PAGE_ROUTE });
 	addServerHandler({ handler, method: 'get', route: DEVTOOLS_ICON_ROUTE });
 	// Appended so it runs after the consent plugin that provides the kernel;
@@ -490,7 +493,10 @@ const module: NuxtModule<ModuleOptions> = defineNuxtModule<ModuleOptions>({
 		// `${routePrefix}/manifest` in `manifest()` mode.
 		if (routePrefix !== undefined) {
 			addServerHandler({
-				handler: resolver.resolve('./runtime/server/consent-route'),
+				handler: {
+					nitro2: resolver.resolve('./runtime/server/consent-route.legacy'),
+					nuxt: resolver.resolve('./runtime/server/consent-route'),
+				},
 				route: `${routePrefix}/**`,
 			});
 		}
@@ -591,23 +597,30 @@ const module: NuxtModule<ModuleOptions> = defineNuxtModule<ModuleOptions>({
 		};
 		nuxt.options.nitro.virtual['#c15t/build-options'] = () =>
 			`export default ${JSON.stringify(built)};\n`;
-		addServerPlugin(resolver.resolve('./runtime/server/build-options.nuxt'));
+		addNitroPlugin({
+			nitro2: resolver.resolve('./runtime/server/build-options.nuxt'),
+			nitro3: resolver.resolve('./runtime/server/build-options.nitro3'),
+		});
 		// Nuxt applies `NUXT_PUBLIC_C15T_BACKEND_URL` on a running server by
 		// itself. The Inth variable needs a plugin, and only while neither the
 		// option nor the c15t variable gave the build its URL.
 		if (backendURLSource === 'inth-env' || backendURLSource === 'none') {
-			addServerPlugin(
-				resolver.resolve('./runtime/server/inth-project-url.nuxt')
-			);
+			addNitroPlugin({
+				nitro2: resolver.resolve('./runtime/server/inth-project-url.nuxt'),
+				nitro3: resolver.resolve('./runtime/server/inth-project-url.nitro3'),
+			});
 		}
 		if (initPrefetch !== false) {
 			// Starts `/init` from the HTML of `ssr: false` pages, before the
 			// app's JavaScript loads.
-			addServerPlugin(resolver.resolve('./runtime/server/init-prefetch.nuxt'));
-			// The plugin reads `app.config.ts` through this virtual, not
-			// `#imports`, which Nuxt 5 stops providing to server code. Nuxt 4
-			// builds the merged config as `#internal/nuxt/app-config`; Nuxt 3
-			// passes the files to Nitro, whose own `useAppConfig` reads them.
+			addNitroPlugin({
+				nitro2: resolver.resolve('./runtime/server/init-prefetch.nuxt'),
+				nitro3: resolver.resolve('./runtime/server/init-prefetch.nitro3'),
+			});
+			// The Nitro v2 plugin reads `app.config.ts` through this virtual.
+			// Nuxt 4 builds the merged config as `#internal/nuxt/app-config`;
+			// Nuxt 3 passes the files to Nitro, whose own `useAppConfig` reads
+			// them.
 			// Without Nitro auto-imports, `app.config.ts` cannot load on the
 			// server (its `defineAppConfig` is an auto-import), so the plugin
 			// gets no config and leaves `/init` to the browser.

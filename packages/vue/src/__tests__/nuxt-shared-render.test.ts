@@ -36,6 +36,10 @@ vi.mock('#imports', async () => {
 		}),
 		useHead: () => undefined,
 		useRequestEvent: () => nuxt.event,
+		useRequestFetch: () => ({
+			native: (input: RequestInfo | URL, init?: RequestInit) =>
+				fetch(input, init),
+		}),
 		useRequestHeaders: () => nuxt.headers,
 		useRequestURL: () => new URL('https://app.example/'),
 		useRuntimeConfig: () => ({

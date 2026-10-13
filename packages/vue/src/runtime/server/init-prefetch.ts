@@ -31,6 +31,7 @@
  * request, so prerendered and cached shells can hold it.
  */
 import { buildPrefetchScript } from '@c15t/core';
+import { defu } from 'defu';
 
 import type { RuntimeConsentConfig } from '../kernel';
 import { readNuxtMode } from '../nuxt-mode';
@@ -58,6 +59,25 @@ export interface InitPrefetchInput {
 	 * config's `nonce`.
 	 */
 	nonce?: string;
+}
+
+/** What a server render passes to {@link writeInitPrefetchTag}. */
+export interface InitPrefetchRender {
+	appConfig: { c15t?: Partial<RuntimeConsentConfig> } | undefined;
+	context: {
+		nuxt?: { noSSR?: boolean };
+		security?: { nonce?: string };
+	};
+	head: string[];
+	routeRules: {
+		c15t?: InitPrefetchRouteRule;
+		ssr?: boolean;
+	};
+	runtimeConfig: {
+		c15t?: { ssr?: boolean };
+		public: { c15t?: Partial<RuntimeConsentConfig> };
+	};
+	streaming?: boolean;
 }
 
 /** Matches the backend URLs the hosted transport fetches as written. */
@@ -125,4 +145,34 @@ export const insertInitPrefetchTag = function insertInitPrefetchTag(
 		}
 	}
 	head.unshift(tag);
+};
+
+/**
+ * Adds the `/init` script to one rendered page when it is an `ssr: false`
+ * shell whose browser request the server can predict.
+ *
+ * @param render - The render's HTML head, event context and config.
+ * @internal
+ */
+export const writeInitPrefetchTag = function writeInitPrefetchTag(
+	render: InitPrefetchRender
+): void {
+	// Nuxt streams server-rendered pages only, never a shell. A
+	// `consentSource` or `experiment` in `app.config.ts` rules the script out,
+	// so without that file the browser starts `/init`.
+	if (render.streaming || !render.appConfig) {
+		return;
+	}
+	const tag = buildInitPrefetchTag({
+		config: defu(render.appConfig.c15t, render.runtimeConfig.public.c15t),
+		nonce: render.context.security?.nonce,
+		routeRule: render.routeRules.c15t,
+		shell:
+			render.runtimeConfig.c15t?.ssr === false ||
+			render.routeRules.ssr === false ||
+			render.context.nuxt?.noSSR === true,
+	});
+	if (tag) {
+		insertInitPrefetchTag(render.head, tag);
+	}
 };
