@@ -3,7 +3,12 @@
 // `#prompt-actions` container, a `#preferences` dialog with `#categories`,
 // `#preferences-actions` and a `#close-preferences` button, a
 // `#consent-status` line and `[data-open-preferences]` buttons.
-import { resolveConsentPresentation } from 'c15t';
+import {
+	resolveActionLabels,
+	resolveConsentPresentation,
+	resolvePreferenceControlLabels,
+	resolvePromptCopy,
+} from 'c15t';
 import type { ConsentSnapshot, ConsentState, PresentationAction } from 'c15t';
 
 import { runtime } from './consent-runtime';
@@ -28,14 +33,6 @@ const preferencesActions = element<HTMLElement>('#preferences-actions');
 let latest = kernel.getSnapshot();
 
 // #region docs:actions title="src/consent-ui.ts"
-const label: Record<PresentationAction, string> = {
-	accept: 'Accept all',
-	customize: 'Choose cookies',
-	dismiss: 'OK',
-	reject: 'Reject optional',
-	save: 'Save preferences',
-};
-
 // Each button is a visitor action. Only these calls record a choice.
 const perform = async function perform(action: PresentationAction) {
 	if (action === 'customize') {
@@ -76,10 +73,14 @@ const renderActions = function renderActions(
 		policy: snapshot.policyRule,
 		surface,
 	});
+	// Labels in the active language, with English for any missing key.
+	const bundle = snapshot.translations?.translations;
+	const labels = resolveActionLabels(bundle);
+	const controls = resolvePreferenceControlLabels(bundle);
 	const buttons = presentation.orderedActions.map((action) => {
 		const button = document.createElement('button');
 		button.type = 'button';
-		button.textContent = label[action];
+		button.textContent = labels[action];
 		button.addEventListener('click', () => {
 			void perform(action);
 		});
@@ -90,9 +91,7 @@ const renderActions = function renderActions(
 			const button = document.createElement('button');
 			button.type = 'button';
 			button.textContent =
-				right === 'opt-out'
-					? 'Do not sell or share my data'
-					: 'Privacy settings';
+				right === 'opt-out' ? controls['opt-out'] : controls.preferences;
 			button.addEventListener('click', () => kernel.set.activeUI('dialog'));
 			buttons.push(button);
 		}
@@ -108,10 +107,10 @@ const render = function render(snapshot: ConsentSnapshot) {
 	prompt.hidden = !ready || snapshot.activeUI !== 'banner';
 	renderActions(actions, 'prompt', snapshot);
 	renderActions(preferencesActions, 'preferences', snapshot);
-	element<HTMLElement>('#prompt-title').textContent =
-		snapshot.promptRequirement.kind === 'notice'
-			? 'Your privacy choices'
-			: 'Choose your cookies';
+	element<HTMLElement>('#prompt-title').textContent = resolvePromptCopy(
+		snapshot.translations?.translations,
+		snapshot.policyRule.prompt
+	).title;
 	const dialogOpen = ready && snapshot.activeUI === 'dialog';
 	if (dialogOpen && !dialog.open) {
 		fields.replaceChildren(

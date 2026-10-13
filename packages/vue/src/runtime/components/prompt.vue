@@ -104,7 +104,7 @@ const {
 	direction,
 	position,
 	positionSource,
-	primaryActions: resolvedPrimaryActions,
+	primaryActions,
 	shouldFillActions,
 	preferenceControls,
 	variant,
@@ -127,19 +127,6 @@ const bundle = computed(
 
 const promptKind = computed(() => snapshot.value.policyRule.prompt);
 const isNotice = computed(() => promptKind.value === 'notice');
-
-/**
- * A notice offers dismiss alone. The resolver's default primary is
- * customize, which a notice never has, so the one action takes the
- * primary treatment instead of rendering every control as neutral.
- */
-const primaryActions = computed(() => {
-	if (resolvedPrimaryActions.value.length > 0) {
-		return resolvedPrimaryActions.value;
-	}
-	const ordered = actionGroups.value.flat();
-	return ordered.length === 1 && ordered[0] === 'dismiss' ? ordered : [];
-});
 
 const hasConsentUi = useHasConsentUi();
 const isOpen = computed(() => {

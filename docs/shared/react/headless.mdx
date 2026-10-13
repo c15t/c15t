@@ -22,8 +22,10 @@ group: reference
 <section id="banner-api">
   `banner.actionGroups` is the resolved layout: reject and accept share a group
   at equal prominence, and the rest follow. `banner.orderedActions` is the same
-  list flattened. Under a notice the only action is `dismiss`, and
-  `banner.preferenceControls` recommends additional buttons for opening
+  list flattened. `banner.primaryActions` lists the actions to style as
+  primary. Under a notice the only action is `dismiss`, and
+  `banner.primaryActions` contains it. `banner.preferenceControls` recommends
+  additional buttons for opening
   preferences. Under a notice it contains `opt-out`, which selects the
   "Do not sell or share my data" label. The example renders that button and
   an "OK" button. Both controls keep their own command: opening
@@ -31,6 +33,20 @@ group: reference
 
   The list is a rendering helper. It does not establish that your UI implements
   all policy rights. Provide disclosure and persistent preferences access.
+
+  `useBannerCopy()` returns the `title` and `description` for the active
+  prompt. A notice reads `cookieBanner.noticeTitle` and
+  `cookieBanner.noticeDescription`, then falls back to the choice copy in the
+  same language before English. `useConsentLabels()` returns
+  `actions`, a label for each action, and `preferenceControls`, a label for
+  each preference control. `dismiss` reads `common.acknowledge`, then
+  `common.dismiss`. Both hooks follow the active language and fill missing
+  keys from English, and they are the same strings the pre-built banner
+  renders.
+
+  The hooks wrap `resolvePromptCopy`, `resolveActionLabels`, and
+  `resolvePreferenceControlLabels`. Those take a translations object and
+  are exported from `c15t`, so code outside React can produce the same copy.
 
   `performAction` saves all categories for `accept`, none for `reject`, the
   current draft for `save`, records a dismissal for `dismiss`, and opens the

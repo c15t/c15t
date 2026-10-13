@@ -36,7 +36,6 @@ import {
 	ConsentBannerTitle,
 } from './components';
 import { ErrorBoundary } from './error-boundary';
-import { resolveBannerPrimaryActions } from './resolve-banner-primary-actions';
 
 /**
  * Identifiers for the available buttons in the consent banner.
@@ -278,10 +277,6 @@ const ConsentBannerContent: FC<ConsentBannerProps> = ({
 
 	const { orderedActions } = banner;
 	const allowedActions = new Set(orderedActions);
-	const effectivePrimaryButton = resolveBannerPrimaryActions(
-		banner.primaryActions,
-		orderedActions
-	);
 	const resolvedLayout = banner.actionGroups;
 	const resolvedDirection = banner.direction;
 	const { shouldFillActions } = banner;
@@ -291,7 +286,7 @@ const ConsentBannerContent: FC<ConsentBannerProps> = ({
 			return null;
 		}
 
-		const isPrimary = effectivePrimaryButton.includes(type);
+		const isPrimary = banner.primaryActions.includes(type);
 
 		switch (type) {
 			case 'reject':

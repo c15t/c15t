@@ -24,29 +24,28 @@ of the stock banner. Keep the dialog and persistent preferences control.
 ```tsx title="components/consent-banner.tsx"
 'use client';
 
-import { useHeadlessConsentUI, useTranslations } from 'c15t/next/headless';
-
-const ACTION_LABELS = {
-	accept: 'acceptAll',
-	reject: 'rejectAll',
-	customize: 'customize',
-	dismiss: 'acknowledge',
-	save: 'save',
-} as const;
+import {
+	useBannerCopy,
+	useConsentLabels,
+	useHeadlessConsentUI,
+} from 'c15t/next/headless';
 
 export function Banner() {
 	const { banner, performAction, openDialog } = useHeadlessConsentUI();
-	const { common, rights } = useTranslations();
+	const { title, description } = useBannerCopy();
+	const labels = useConsentLabels();
 
 	if (!banner.isVisible) {
 		return null;
 	}
 
 	return (
-		<section role="region" aria-label="Privacy">
+		<section role="region" aria-label={title}>
+			<h2>{title}</h2>
+			<p>{description}</p>
 			{banner.preferenceControls.map((right) => (
 				<button key={right} type="button" onClick={openDialog}>
-					{right === 'opt-out' ? rights?.optOut : rights?.preferences}
+					{labels.preferenceControls[right]}
 				</button>
 			))}
 			{banner.actionGroups.map((group) => (
@@ -58,7 +57,7 @@ export function Banner() {
 							data-primary={banner.primaryActions.includes(action) || undefined}
 							onClick={() => performAction(action)}
 						>
-							{common[ACTION_LABELS[action]]}
+							{labels.actions[action]}
 						</button>
 					))}
 				</div>

@@ -410,9 +410,17 @@ export const resolveConsentPresentation =
 		const defaultPrimary: PresentationAction[] = preferences
 			? ['save']
 			: ['customize'];
-		const primaryActions = (options.primaryActions ?? defaultPrimary).filter(
+		const hostPrimary = (options.primaryActions ?? defaultPrimary).filter(
 			(action) => orderedActions.includes(action)
 		);
+		// A notice never offers customize, so it would resolve with nothing
+		// primary. A lone dismiss leads instead.
+		const primaryActions =
+			hostPrimary.length === 0 &&
+			orderedActions.length === 1 &&
+			orderedActions[0] === 'dismiss'
+				? ['dismiss' as const]
+				: hostPrimary;
 		for (const group of equivalentActions) {
 			const primaryCount = group.filter((action) =>
 				primaryActions.includes(action)

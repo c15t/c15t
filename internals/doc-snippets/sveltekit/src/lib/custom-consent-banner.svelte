@@ -1,33 +1,36 @@
 <!-- #region docs:custom-banner -->
 <script lang="ts">
-	import { getHeadlessConsent } from '@c15t/svelte';
-	import type { PresentationAction } from '@c15t/svelte';
+	import {
+		getConsentManager,
+		getHeadlessConsent,
+		resolveActionLabels,
+		resolvePromptCopy,
+	} from '@c15t/svelte';
 
 	const consent = getHeadlessConsent();
+	const manager = getConsentManager();
 
-	const labels: Record<PresentationAction, string> = {
-		accept: 'Accept all',
-		customize: 'Customize',
-		dismiss: 'Got it',
-		reject: 'Reject all',
-		save: 'Save',
-	};
+	// The active language, with English for any missing key.
+	const bundle = $derived(manager.translations?.translations);
+	const copy = $derived(resolvePromptCopy(bundle, manager.policyRule.prompt));
+	const labels = $derived(resolveActionLabels(bundle));
 </script>
 
 {#if consent.banner.isVisible}
 	<section
 		class="custom-consent-banner"
-		aria-label="Cookie consent"
+		aria-label={copy.title}
 	>
-		<p>
-			We use cookies to measure traffic and show ads. Choose which ones can run.
-		</p>
+		<h2>{copy.title}</h2>
+		<p>{copy.description}</p>
 		<!-- The policy decides which actions this visitor gets, and in what order. -->
 		{#each consent.banner.actionGroups as group, index (index)}
 			<div>
 				{#each group as action (action)}
 					<button
 						type="button"
+						data-primary={consent.banner.primaryActions.includes(action) ||
+							undefined}
 						onclick={() => consent.performAction(action)}
 					>
 						{labels[action]}

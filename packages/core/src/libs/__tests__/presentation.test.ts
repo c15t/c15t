@@ -66,6 +66,7 @@ describe('host presentation', () => {
 			surface: 'prompt',
 		});
 		expect(result.actionGroups).toEqual([['dismiss']]);
+		expect(result.primaryActions).toEqual(['dismiss']);
 	});
 	it('keeps an explicit balanced profile filling and stacking', () => {
 		const result = resolveConsentPresentation({

@@ -1,31 +1,30 @@
 // #region docs:headless-banner
-import { useHeadlessConsentUI, useTranslations } from 'c15t/react/headless';
-
-const ACTION_LABELS = {
-	accept: 'acceptAll',
-	customize: 'customize',
-	dismiss: 'acknowledge',
-	reject: 'rejectAll',
-	save: 'save',
-} as const;
+import {
+	useBannerCopy,
+	useConsentLabels,
+	useHeadlessConsentUI,
+} from 'c15t/react/headless';
 
 export const Banner = () => {
 	const { banner, performAction, openDialog } = useHeadlessConsentUI();
-	const { common, rights } = useTranslations();
+	const { title, description } = useBannerCopy();
+	const labels = useConsentLabels();
 
 	if (!banner.isVisible) {
 		return null;
 	}
 
 	return (
-		<section aria-label="Privacy">
+		<section aria-label={title}>
+			<h2>{title}</h2>
+			<p>{description}</p>
 			{banner.preferenceControls.map((right) => (
 				<button
 					key={right}
 					type="button"
 					onClick={openDialog}
 				>
-					{right === 'opt-out' ? rights?.optOut : rights?.preferences}
+					{labels.preferenceControls[right]}
 				</button>
 			))}
 			{banner.actionGroups.map((group) => (
@@ -37,7 +36,7 @@ export const Banner = () => {
 							data-primary={banner.primaryActions.includes(action) || undefined}
 							onClick={() => performAction(action)}
 						>
-							{common[ACTION_LABELS[action]]}
+							{labels.actions[action]}
 						</button>
 					))}
 				</div>
