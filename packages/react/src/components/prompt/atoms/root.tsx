@@ -25,7 +25,7 @@ import { defaultTranslationConfig } from '~/utils/default-translation-config';
 import { mergeSlotProps } from '~/utils/merge-slot-props';
 
 import { FIRST_PAINT_SHEETS } from '../../shared/first-paint-sheets';
-import { StreamedSurface } from '../../shared/streamed-surface';
+import { StreamedConsentSurface } from '../../shared/streamed-surface';
 import {
 	SurfaceStyles,
 	useSurfaceSheetsReady,
@@ -436,12 +436,12 @@ ConsentBannerRootChildren.displayName = 'ConsentBannerRootChildren';
 
 /**
  * The banner, rendered where the server can stream it: see
- * `StreamedSurface`.
+ * `StreamedConsentSurface`.
  */
 const ConsentBannerRoot: FC<ConsentBannerRootProps> = (props) => (
-	<StreamedSurface>
+	<StreamedConsentSurface>
 		<ConsentBannerRootContent {...props} />
-	</StreamedSurface>
+	</StreamedConsentSurface>
 );
 
 const Root = ConsentBannerRoot;

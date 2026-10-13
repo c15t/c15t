@@ -20,7 +20,7 @@ import { BrandingLink } from '~/components/shared/ui/branding';
 import { useComponentConfig } from '~/hooks/use-component-config';
 import { useIABPolicyGuard } from '~/hooks/use-iab-policy-guard';
 
-import { StreamedSurface } from '../shared/streamed-surface';
+import { StreamedConsentSurface } from '../shared/streamed-surface';
 import { ConsentBannerRoot } from './atoms/root';
 import {
 	ConsentBannerAcceptButton,
@@ -425,12 +425,13 @@ const ConsentBannerContent: FC<ConsentBannerProps> = ({
 
 /**
  * The stock banner. It reads the policy to choose its buttons, so all of
- * it renders where the server can stream it: see `StreamedSurface`.
+ * it renders where the server can stream it: see
+ * `StreamedConsentSurface`.
  */
 export const ConsentBanner: FC<ConsentBannerProps> = (props) => (
-	<StreamedSurface>
+	<StreamedConsentSurface>
 		<ConsentBannerContent {...props} />
-	</StreamedSurface>
+	</StreamedConsentSurface>
 );
 
 /**

@@ -25,12 +25,13 @@ of the stock banner. Keep the dialog and persistent preferences control.
 'use client';
 
 import {
+	StreamedConsentSurface,
 	useBannerCopy,
 	useConsentLabels,
 	useHeadlessConsentUI,
 } from 'c15t/next/headless';
 
-export function Banner() {
+function BannerContent() {
 	const { banner, performAction, openDialog } = useHeadlessConsentUI();
 	const { title, description } = useBannerCopy();
 	const labels = useConsentLabels();
@@ -65,7 +66,24 @@ export function Banner() {
 		</section>
 	);
 }
+
+export function Banner() {
+	return (
+		<StreamedConsentSurface>
+			<BannerContent />
+		</StreamedConsentSurface>
+	);
+}
 ```
+
+With the [streamed layout](/docs/frameworks/next/rendering#stream-or-await-consent-in-the-app-router),
+`ConsentRoot` gets a pending promise. `StreamedConsentSurface` waits for it in
+its own `Suspense` boundary, so your banner follows in a later chunk of the
+same response and shows before hydration, like the stock one. Call the hooks
+in a component inside it. Hooks called above it read the state from before
+consent resolved, which has no banner. Without the surface, the banner shows
+after hydration. With an awaited layout, the surface renders its children as
+they are.
 
 <import src="../../shared/react/headless.mdx#banner-api" />
 

@@ -47,6 +47,10 @@ export {
 } from './component-hooks/use-headless-consent-ui';
 export { useTranslations } from './component-hooks/use-translations';
 export { useBannerCopy } from './components/prompt/use-banner-copy';
+export {
+	StreamedConsentSurface,
+	type StreamedConsentSurfaceProps,
+} from './components/shared/streamed-surface';
 export { useColorScheme } from './hooks/use-color-scheme';
 export { useFocusTrap } from './hooks/use-focus-trap';
 // IAB headless hook lives on the `@c15t/react/iab` subpath.
