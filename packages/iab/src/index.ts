@@ -1973,6 +1973,11 @@ export const createIAB = function createIAB(
 		readIAB(kernel).gvl
 			? initialization
 			: null;
+	/** IDs of the providers the preference center lists right now. */
+	const shownAdTechProviderIds = (): Set<string> =>
+		new Set(
+			(readIAB(kernel).adTechProviders ?? []).map(({ id }) => String(id))
+		);
 	/** Applies a blanket choice now, and again to providers still loading. */
 	const blanket = (gvl: GlobalVendorList, value: boolean): void => {
 		applyBlanket(kernel, gvl, value, restrictionsForBlanket(gvl));
@@ -2082,6 +2087,13 @@ export const createIAB = function createIAB(
 			}
 			rejectInvalidRestrictions();
 			const providersLoading = pendingAdTechProviders();
+			// Providers landing while the save waits were never shown, so the
+			// visitor discloses them on a later save. A pending Accept All or
+			// Reject All covers them by design.
+			const shown =
+				providersLoading && providerBlanket === undefined
+					? shownAdTechProviderIds()
+					: null;
 			if (providersLoading) {
 				await providersLoading;
 			}
@@ -2098,6 +2110,13 @@ export const createIAB = function createIAB(
 			}
 			const consentData = buildTCFConsentData();
 			const receipt = createAuthorityReceipt(snapshot, '', actionAt);
+			if (shown) {
+				receipt.adTechProviderConsents = Object.fromEntries(
+					Object.entries(receipt.adTechProviderConsents).filter(([id]) =>
+						shown.has(id)
+					)
+				);
+			}
 			const tcString = await generateTCString(consentData, snapshot.iab.gvl, {
 				cmpId,
 				cmpVersion,

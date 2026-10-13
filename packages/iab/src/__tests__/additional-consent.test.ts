@@ -533,6 +533,38 @@ describe('createIAB with Additional Consent', () => {
 		expect((await tcData()).addtlConsent).toBe('2~2577~dv.89');
 	});
 
+	test('Save Settings discloses only the providers shown when it was clicked', async () => {
+		const release = holdProviderList();
+		const kernel = makeKernel();
+		kernel.set.iab({ adTechProviders: [PROVIDERS.providers['89']] });
+		const addon = createIAB({
+			additionalConsent: {
+				providers: [89, 2577],
+				url: 'https://lists.example/ac',
+			},
+			cmpId: 28,
+			gvl: completeGVL,
+			kernel,
+		});
+		disposers.push(addon.dispose);
+		for (const purpose of [1, 3, 4]) {
+			addon.setPurposeConsent(purpose, true);
+		}
+		addon.setAdTechProviderConsent(89, true);
+		const saved = addon.save();
+		release();
+		await saved;
+		expect(
+			kernel.getSnapshot().iab?.adTechProviders?.map(({ id }) => id)
+		).toEqual([89, 2577]);
+		expect((await tcData()).addtlConsent).toBe('2~89~dv.');
+		expect(localStorage.getItem('addtl_consent')).toBe('2~89~dv.');
+
+		// Shown now, so the next save discloses it.
+		await addon.save();
+		expect((await tcData()).addtlConsent).toBe('2~89~dv.2577');
+	});
+
 	test('uses providers the backend put in the kernel without fetching', async () => {
 		const kernel = makeKernel();
 		kernel.set.iab({
