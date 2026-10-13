@@ -2,8 +2,20 @@ import path from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
-import { buildRegistry, scanImports, toNextSource } from '../build-registry';
-import { frameworks, itemName, styles, uiItems } from '../items';
+import {
+	buildRegistry,
+	scanImports,
+	toFrameworkSource,
+	uiC15tImports,
+} from '../build-registry';
+import {
+	c15tEntryByFramework,
+	c15tRange,
+	frameworks,
+	itemName,
+	styles,
+	uiItems,
+} from '../items';
 
 const appDir = path.resolve(import.meta.dirname, '../..');
 const baseUrl = 'https://registry.test/r';
@@ -15,31 +27,46 @@ interface BuiltItem {
 	files: { path: string; content: string; target?: string }[];
 }
 
-describe('toNextSource', () => {
-	it('points c15t/react and its headless entry at c15t/next', () => {
-		const source = [
-			'import { useConsentDraft } from "c15t/react"',
-			'import { useTranslations } from "c15t/react/headless"',
-			'import { Button } from "@/components/ui/button"',
-		].join('\n');
+describe('toFrameworkSource', () => {
+	const source = [
+		'import { useConsentDraft } from "c15t/react"',
+		'import { useTranslations } from "c15t/react/headless"',
+		'import { Button } from "@/components/ui/button"',
+	].join('\n');
 
-		expect(toNextSource(source, 'banner.tsx')).toBe(
-			[
-				'import { useConsentDraft } from "c15t/next"',
-				'import { useTranslations } from "c15t/next/headless"',
-				'import { Button } from "@/components/ui/button"',
-			].join('\n')
-		);
-	});
-
-	it.each(['c15t/react/iab', '@c15t/react', 'c15t/next'])(
-		'rejects %s, which has no Next.js twin',
-		(spec) => {
-			expect(() =>
-				toNextSource(`import { x } from "${spec}"`, 'banner.tsx')
-			).toThrow(`banner.tsx imports ${spec}`);
+	it.each([
+		['next', 'c15t/next'],
+		['react', 'c15t/react'],
+		['tanstack-start', 'c15t/tanstack-start'],
+	] as const)(
+		'points %s copies at %s and its headless entry',
+		(framework, entry) => {
+			expect(toFrameworkSource(source, 'banner.tsx', framework)).toBe(
+				[
+					`import { useConsentDraft } from "${entry}"`,
+					`import { useTranslations } from "${entry}/headless"`,
+					'import { Button } from "@/components/ui/button"',
+				].join('\n')
+			);
 		}
 	);
+
+	it.each([
+		'c15t/react/iab',
+		'@c15t/react',
+		'c15t/next',
+		'c15t/tanstack-start/server',
+	])('rejects %s, which some framework has no twin for', (spec) => {
+		for (const framework of frameworks) {
+			expect(() =>
+				toFrameworkSource(
+					`import { x } from "${spec}"`,
+					'banner.tsx',
+					framework
+				)
+			).toThrow(`banner.tsx imports ${spec}`);
+		}
+	});
 });
 
 describe('scanImports', () => {
@@ -97,26 +124,43 @@ describe('buildRegistry', () => {
 		}
 	});
 
-	it('gives Next.js items c15t/next imports and React items c15t/react ones', () => {
-		for (const { name } of uiItems) {
-			const next = item('radix-nova', itemName('next', name));
-			const react = item('radix-nova', itemName('react', name));
-			for (const { content } of next?.files ?? []) {
-				expect(content).not.toMatch(/["']c15t\/react/u);
-			}
-			for (const { content } of react?.files ?? []) {
-				expect(content).not.toMatch(/["']c15t\/next/u);
+	it('gives each framework UI files that import only its own c15t entry', () => {
+		for (const framework of frameworks) {
+			const allowed = uiC15tImports.map((spec) =>
+				spec.replace('c15t/react', c15tEntryByFramework[framework])
+			);
+			for (const { name } of uiItems) {
+				const built = item('radix-nova', itemName(framework, name));
+				for (const { content } of built?.files ?? []) {
+					const c15t = scanImports(content).filter((spec) =>
+						spec.startsWith('c15t')
+					);
+					expect(c15t.length).toBeGreaterThan(0);
+					for (const spec of c15t) {
+						expect(allowed).toContain(spec);
+					}
+				}
 			}
 		}
 	});
 
+	it("leaves the framework's own packages out of the dependencies", () => {
+		const manager = item('radix-nova', 'tanstack-start-consent-manager');
+		expect(manager?.files[0]?.content).toContain(
+			'from "@tanstack/react-start"'
+		);
+		expect(manager?.dependencies).toEqual([`c15t@${c15tRange}`]);
+	});
+
 	it('marks every UI file as a client component', () => {
-		for (const { name } of uiItems) {
-			for (const { content, path: file } of item(
-				'aria-nova',
-				itemName('next', name)
-			)?.files ?? []) {
-				expect(content.startsWith('"use client"'), file).toBe(true);
+		for (const framework of frameworks) {
+			for (const { name } of uiItems) {
+				for (const { content, path: file } of item(
+					'aria-nova',
+					itemName(framework, name)
+				)?.files ?? []) {
+					expect(content.startsWith('"use client"'), file).toBe(true);
+				}
 			}
 		}
 	});

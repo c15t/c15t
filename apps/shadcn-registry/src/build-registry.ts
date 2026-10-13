@@ -6,6 +6,7 @@ import { registryItemSchema, registrySchema } from 'shadcn/schema';
 
 import type { Base, Framework, RegistryFile, SetupItem, UiItem } from './items';
 import {
+	c15tEntryByFramework,
 	c15tRange,
 	frameworks,
 	itemName,
@@ -27,19 +28,24 @@ export interface BuildOptions {
 /** Output files keyed by path under `dist/r`. */
 export type RegistryOutput = Map<string, unknown>;
 
-const nextImports: Record<string, string> = {
-	'c15t/react': 'c15t/next',
-	'c15t/react/headless': 'c15t/next/headless',
-};
-
 // Named so the docs and tests can say which specifiers a UI item may use.
-export const uiC15tImports = Object.keys(nextImports);
+export const uiC15tImports = ['c15t/react', 'c15t/react/headless'];
 
 const fromPattern = /(?<start>\bfrom\s+["'])(?<spec>[^"']+)(?<end>["'])/gu;
 const sideEffectPattern = /^\s*import\s+["'](?<spec>[^"']+)["']/gmu;
 
-// Every shadcn project already has these.
-const providedPackages = new Set(['react', 'react-dom']);
+// Every project of the framework already has these. Listing one as a
+// dependency would make shadcn reinstall it at another version.
+const providedPackages: Record<Framework, string[]> = {
+	next: ['next', 'react', 'react-dom'],
+	react: ['react', 'react-dom'],
+	'tanstack-start': [
+		'@tanstack/react-router',
+		'@tanstack/react-start',
+		'react',
+		'react-dom',
+	],
+};
 
 const isC15tSpecifier = (spec: string): boolean =>
 	spec === 'c15t' || spec.startsWith('c15t/') || spec.startsWith('@c15t/');
@@ -61,22 +67,27 @@ export const scanImports = (content: string): string[] => {
 };
 
 /**
- * Turns a React UI source into its Next.js copy. The headless hooks and
- * components are the same modules under `c15t/next`, so only the import
- * paths change.
+ * Turns a React UI source into one framework's copy. The headless hooks
+ * and components are the same modules under each framework's c15t entry
+ * point, so only the import paths change.
  *
  * @param content - The React source.
  * @param file - The source path, for error messages.
- * @returns The source with `c15t/react` imports pointing at `c15t/next`.
- * @throws {Error} When the source imports a c15t entry point with no Next.js twin.
+ * @param framework - The framework the copy is for.
+ * @returns The source with `c15t/react` imports pointing at the framework's entry point.
+ * @throws {Error} When the source imports a c15t entry point other than {@link uiC15tImports}, which the other frameworks have no twin for.
  */
-export const toNextSource = (content: string, file: string): string =>
+export const toFrameworkSource = (
+	content: string,
+	file: string,
+	framework: Framework
+): string =>
 	content.replace(
 		fromPattern,
 		(match: string, start: string, spec: string, end: string) => {
-			const next = nextImports[spec];
-			if (next) {
-				return `${start}${next}${end}`;
+			if (uiC15tImports.includes(spec)) {
+				const entry = c15tEntryByFramework[framework];
+				return `${start}${spec.replace('c15t/react', entry)}${end}`;
 			}
 			if (isC15tSpecifier(spec)) {
 				throw new Error(
@@ -169,7 +180,9 @@ const collectDependencies = (
 				);
 			} else if (isC15tSpecifier(spec)) {
 				dependencies.add(context.c15tDependency);
-			} else if (!providedPackages.has(packageName(spec))) {
+			} else if (
+				!providedPackages[context.framework].includes(packageName(spec))
+			) {
 				dependencies.add(packageName(spec));
 			}
 		}
@@ -200,13 +213,10 @@ const readSources = (
 	return item.files.map((registryFile) => {
 		const file = `${sourceDir}/${registryFile.source}`;
 		const raw = readFileSync(path.join(context.appDir, file), 'utf8');
-		if (isSetup) {
-			return { content: raw, file, registryFile };
-		}
-		// Converting the React copy too means an import the Next.js copy
-		// can't follow fails both builds, not only the Next.js one.
-		const next = toNextSource(raw, file);
-		const content = context.framework === 'next' ? next : raw;
+		// Setup files already import their own framework's entry points.
+		const content = isSetup
+			? raw
+			: toFrameworkSource(raw, file, context.framework);
 		return { content, file, registryFile };
 	});
 };

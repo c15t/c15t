@@ -5,7 +5,7 @@
 	"type": "module",
 	"scripts": {
 		"build": "bun scripts/build.ts",
-		"check-types": "tsc --noEmit && tsc -p tsconfig.radix.json && tsc -p tsconfig.base.json && tsc -p tsconfig.aria.json && bun scripts/check-next.ts",
+		"check-types": "tsc --noEmit && tsc -p tsconfig.radix.json && tsc -p tsconfig.base.json && tsc -p tsconfig.aria.json && bun scripts/check-frameworks.ts",
 		"fixtures": "bun scripts/fixtures.ts",
 		"fmt": "oxfmt .",
 		"lint": "oxlint .",
@@ -17,6 +17,7 @@
 	"devDependencies": {
 		"@base-ui/react": "^1.9.0",
 		"@c15t/typescript-config": "workspace:*",
+		"@tanstack/react-start": "1.168.60",
 		"@types/node": "25.5.0",
 		"@types/react": "19.2.17",
 		"class-variance-authority": "^0.7.1",

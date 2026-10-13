@@ -10,8 +10,19 @@
  */
 export const c15tRange = '^3.1.0';
 
-export const frameworks = ['next', 'react'] as const;
+export const frameworks = ['next', 'react', 'tanstack-start'] as const;
 export type Framework = (typeof frameworks)[number];
+
+/**
+ * The c15t entry point each framework's UI items import. The Next.js and
+ * TanStack Start entries re-export the React one, so the build only
+ * rewrites import paths.
+ */
+export const c15tEntryByFramework = {
+	next: 'c15t/next',
+	react: 'c15t/react',
+	'tanstack-start': 'c15t/tanstack-start',
+} as const satisfies Record<Framework, string>;
 
 export const bases = ['radix', 'base', 'aria'] as const;
 export type Base = (typeof bases)[number];
@@ -160,6 +171,23 @@ export const setupItems: SetupItem[] = [
 		},
 		files: [component('consent-manager.tsx')],
 		framework: 'react',
+		name: 'consent-manager',
+		title: 'Consent manager',
+	},
+	{
+		description:
+			'Adds a getConsentState server function for the root loader and a ConsentManager that renders the banner and dialog.',
+		docs: [
+			'Add consentManifest() from c15t/tanstack-start/build to vite.config.ts, before tanstackStart().',
+			'In src/routes/__root.tsx, spread consentLoaderOptions from c15t/tanstack-start/server into createRootRoute, load { consent: await getConsentState() }, and render <ConsentManager state={consent}><Outlet /></ConsentManager> from the root component.',
+			'VITE_C15T_BACKEND_URL points at a demo project. Replace it with your Inth or self-hosted backend URL.',
+			'Guide: https://c15t.com/docs/frameworks/tanstack-start/shadcn',
+		].join('\n'),
+		envVars: {
+			VITE_C15T_BACKEND_URL: 'https://example-inth.inth.app',
+		},
+		files: [component('consent-manager.tsx')],
+		framework: 'tanstack-start',
 		name: 'consent-manager',
 		title: 'Consent manager',
 	},

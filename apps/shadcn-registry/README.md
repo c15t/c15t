@@ -28,14 +28,16 @@ entry in the project's `components.json`:
 | --- | --- |
 | `registry/shared` | UI items for Radix and Base UI projects |
 | `registry/aria` | UI items for React Aria projects |
-| `registry/setup/next`, `registry/setup/react` | The `consent-manager` item and, for Next.js, `c15t.config.ts` |
+| `registry/setup/<framework>` | The `consent-manager` item and, for Next.js, `c15t.config.ts` |
 | `src/items.ts` | Item names, titles, descriptions, install notes and the c15t range |
 | `src/build-registry.ts` | Turns the sources into one JSON file per item per style |
 | `vendor/<base>` | Copies of the shadcn components the items import, used only for type-checking |
 
-Every item ships twice, as `next-*` and `react-*`. The build writes the
-Next.js copy by pointing `c15t/react` imports at `c15t/next`. Nothing else
-changes.
+Every UI item ships three times, as `next-*`, `react-*` and
+`tanstack-start-*`. The build writes the Next.js and TanStack Start copies
+by pointing `c15t/react` imports at `c15t/next` or `c15t/tanstack-start`.
+Nothing else changes. Each framework has its own `consent-manager`, because
+that's where the setups differ.
 
 shadcn requests items at `{style}/{name}.json` using the project's raw
 `style` value, so the build writes a folder for each of the 26 styles. Items
@@ -48,7 +50,8 @@ the items they depend on.
   function declarations. Oxfmt skips `registry/`, and `oxlint.config.ts` has
   an override for it.
 - Import c15t only from `c15t/react` and `c15t/react/headless`. Any other
-  c15t entry point fails the build, because it has no Next.js twin.
+  c15t entry point fails the build, because the other frameworks have no
+  twin for it.
 - Import local code only from `@/components/ui/*`, `@/components/c15t/*` and
   `@/lib/utils`. shadcn rewrites those to the project's aliases.
 - A `@/components/ui/*` import must be vendored for every base, so
@@ -69,7 +72,7 @@ first.
 
 ```bash
 bun run build         # write dist/r for https://c15t.com/r
-bun run check-types   # each base against its vendored components, plus the Next.js copies
+bun run check-types   # each base against its vendored components, plus each framework's copies
 bun run test          # build output: names, dependency links, imports, install paths
 bun run lint
 bun run fixtures      # real shadcn projects, see below
@@ -77,8 +80,10 @@ bun run fixtures      # real shadcn projects, see below
 
 `fixtures` scaffolds a shadcn project for each framework and base with
 `shadcn init`, serves the registry from memory, runs `shadcn add` for every
-item, links the workspace `c15t` in, and type-checks the result. Projects live
-in `/tmp/c15t-shadcn-fixtures` and are reused between runs. Pass `--fresh` to
+item, links the workspace `c15t` in, and type-checks the result. The
+TanStack Start fixtures also replace `src/routes/__root.tsx` with the root
+route the install notes describe. Projects live in
+`/tmp/c15t-shadcn-fixtures` and are reused between runs. Pass `--fresh` to
 scaffold them again, or narrow the run:
 
 ```bash

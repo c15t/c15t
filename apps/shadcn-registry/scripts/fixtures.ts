@@ -46,29 +46,108 @@ const fixturesDir = path.join(tmpdir(), 'c15t-shadcn-fixtures');
 // no lockfile yet, and npm isn't always installed.
 const env = { ...process.env, npm_config_user_agent: 'bun/1.3.11' };
 
-const templates: Record<Framework, string> = { next: 'next', react: 'vite' };
+const templates: Record<Framework, string> = {
+	next: 'next',
+	react: 'vite',
+	'tanstack-start': 'start',
+};
 
 // Type-checks the item props a user is most likely to pass.
-const usage = `import { ConsentBanner } from "@/components/c15t/consent-banner"
+const usageImports = `import { ConsentBanner } from "@/components/c15t/consent-banner"
 import { ConsentDialog } from "@/components/c15t/consent-dialog"
 import { ConsentDialogTrigger } from "@/components/c15t/consent-dialog-trigger"
 import { ConsentGate } from "@/components/c15t/consent-gate"
-import { ConsentManager } from "@/components/c15t/consent-manager"
 import { ConsentSheet } from "@/components/c15t/consent-sheet"
-import { ConsentWidget } from "@/components/c15t/consent-widget"
+import { ConsentWidget } from "@/components/c15t/consent-widget"`;
 
-export function C15tFixture() {
-  return (
-    <ConsentManager>
-      <ConsentBanner className="sm:max-w-md" />
+const usageItems = `      <ConsentBanner className="sm:max-w-md" />
       <ConsentDialog className="sm:max-w-lg" />
       <ConsentDialogTrigger className="bottom-8" />
       <ConsentWidget className="max-w-xl" />
       <ConsentSheet side="left" />
       <ConsentGate category="marketing" className="aspect-video">
         <iframe title="Video" src="https://example.com/embed" />
-      </ConsentGate>
+      </ConsentGate>`;
+
+const usage = (framework: Framework): string =>
+	framework === 'tanstack-start'
+		? `${usageImports}
+
+export function C15tFixture() {
+  return (
+    <>
+${usageItems}
+    </>
+  )
+}
+`
+		: `${usageImports}
+import { ConsentManager } from "@/components/c15t/consent-manager"
+
+export function C15tFixture() {
+  return (
+    <ConsentManager>
+${usageItems}
     </ConsentManager>
+  )
+}
+`;
+
+// TanStack Start's consent manager takes the root loader's state. This is
+// the template's root route with the changes the install notes describe.
+// It has to be the real root route: Route.useLoaderData() reads its types
+// from the registered route tree.
+const startRootRoute = `import type { ReactNode } from "react"
+import {
+  HeadContent,
+  Outlet,
+  Scripts,
+  createRootRoute,
+} from "@tanstack/react-router"
+import { consentLoaderOptions } from "c15t/tanstack-start/server"
+
+import { C15tFixture } from "@/components/c15t-fixture"
+import {
+  ConsentManager,
+  getConsentState,
+} from "@/components/c15t/consent-manager"
+import appCss from "../styles.css?url"
+
+export const Route = createRootRoute({
+  ...consentLoaderOptions,
+  head: () => ({
+    meta: [
+      { charSet: "utf-8" },
+      { name: "viewport", content: "width=device-width, initial-scale=1" },
+    ],
+    links: [{ rel: "stylesheet", href: appCss }],
+  }),
+  loader: async () => ({ consent: await getConsentState() }),
+  component: RootComponent,
+  shellComponent: RootDocument,
+})
+
+function RootComponent() {
+  const { consent } = Route.useLoaderData()
+  return (
+    <ConsentManager state={consent}>
+      <Outlet />
+      <C15tFixture />
+    </ConsentManager>
+  )
+}
+
+function RootDocument({ children }: { children: ReactNode }) {
+  return (
+    <html lang="en">
+      <head>
+        <HeadContent />
+      </head>
+      <body>
+        {children}
+        <Scripts />
+      </body>
+    </html>
   )
 }
 `;
@@ -114,7 +193,8 @@ const run = (
 		});
 	});
 
-// Next.js keeps components at the project root and Vite keeps them in src.
+// Next.js keeps components at the project root. Vite and TanStack Start
+// keep them in src.
 const findFile = (dir: string, relative: string): string | undefined => {
 	if (existsSync(path.join(dir, relative))) {
 		return path.join(dir, relative);
@@ -181,8 +261,11 @@ const checkFixture = async (
 	}
 	writeFileSync(
 		path.join(path.dirname(path.dirname(banner)), 'c15t-fixture.tsx'),
-		usage
+		usage(framework)
 	);
+	if (framework === 'tanstack-start') {
+		writeFileSync(path.join(dir, 'src/routes/__root.tsx'), startRootRoute);
+	}
 
 	const installed = path.join(dir, 'node_modules/c15t');
 	rmSync(installed, { force: true, recursive: true });
