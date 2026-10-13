@@ -546,7 +546,10 @@ const ConsentIabDrawerTabs = (): ReactNode => {
 			label: withTotal(copy.purposes, model.purposeTabCount),
 			value: 'purposes',
 		},
-		{ label: withTotal(copy.vendors, model.vendorTabCount), value: 'vendors' },
+		// The count is the partners the vendors tab lists. The web's
+		// `vendorTabCount` also counts Google ad tech providers, which the drawer
+		// does not draw, so a model built on the web would over-count here.
+		{ label: withTotal(copy.vendors, model.vendors.length), value: 'vendors' },
 	];
 
 	return (

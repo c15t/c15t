@@ -124,7 +124,11 @@ export interface HeadlessIABDialogDisplayModel {
 	featuresStandardText: string | null;
 	/** The count next to the purposes tab. */
 	purposeTabCount: number;
-	/** The count next to the vendors tab. */
+	/**
+	 * The count next to the vendors tab: GVL vendors, custom vendors and
+	 * Google ad tech providers. A surface that does not list ad tech
+	 * providers should count the vendors it lists instead.
+	 */
 	vendorTabCount: number;
 	/** Distinct vendors named by the essential (special purpose) rows. */
 	essentialPartnerCount: number;

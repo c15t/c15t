@@ -147,6 +147,7 @@ export interface HeadlessIABDialogData {
 	features: HeadlessIABProcessedFeature[];
 	stacks: HeadlessIABProcessedStack[];
 	standalonePurposes: HeadlessIABProcessedPurpose[];
+	/** GVL vendors, custom vendors and Google ad tech providers. */
 	totalVendors: number;
 	isLoading: boolean;
 	isReady: boolean;

@@ -396,6 +396,7 @@ watch(
 		<section v-if="filteredAdTechProviders.length > 0">
 			<h3 :class="dialogStyles.vendorSectionHeading">
 				{{ iabT?.preferenceCenter?.vendorList?.adTechProvidersHeading }}
+				({{ filteredAdTechProviders.length }})
 			</h3>
 			<p :class="dialogStyles.customVendorNotice">
 				{{ iabT?.preferenceCenter?.vendorList?.adTechProvidersNotice }}
