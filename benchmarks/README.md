@@ -190,8 +190,9 @@ Reports retain the observed median change and show its supported lower bound,
 including changes that cannot be confirmed as budget breaches. Thresholds are
 unchanged. Missing metrics, fewer than eight samples per arm, invalid samples,
 absolute behavior allowances and count invariants retain strict evaluation.
-Failed percentage comparisons from a zero base median to a nonzero head median
-also stay strict, so new long tasks cannot pass through a zero confidence bound.
+A failed percentage comparison stays strict when the base median is zero and
+the head median is nonzero. New long tasks cannot pass just because the lower
+confidence bound on the head median is zero.
 Core, script-lifecycle, bundle and release-arm comparisons retain their existing
 budget evaluation.
 
