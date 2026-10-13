@@ -149,4 +149,31 @@ describe('fetchCachedAdTechProviders', () => {
 		await expect(load(31_000)).resolves.toBeUndefined();
 	});
 
+	test('keeps a relative endpoint apart for each fetch that resolves it', async () => {
+		const relative = { providers: [89], url: '/api/c15t/additional-consent' };
+		const TENANT_A = { ...META, name: 'Meta (tenant A)' };
+		const TENANT_B = { ...META, name: 'Meta (tenant B)' };
+		const tenantA = listing(TENANT_A);
+		const tenantB = listing(TENANT_B);
+
+		const [a, b] = await Promise.all([
+			fetchCachedAdTechProviders({ fetch: tenantA, reference: relative }),
+			fetchCachedAdTechProviders({ fetch: tenantB, reference: relative }),
+		]);
+		expect(a).toEqual([TENANT_A]);
+		expect(b).toEqual([TENANT_B]);
+		await expect(
+			fetchCachedAdTechProviders({ fetch: tenantB, reference: relative })
+		).resolves.toEqual([TENANT_B]);
+	});
+
+	test('shares an absolute endpoint across fetch implementations', async () => {
+		const first = vi.fn(listing(META)) as unknown as typeof globalThis.fetch;
+		const second = vi.fn(listing(META)) as unknown as typeof globalThis.fetch;
+		await fetchCachedAdTechProviders({ fetch: first, reference });
+		await expect(
+			fetchCachedAdTechProviders({ fetch: second, reference })
+		).resolves.toEqual([META]);
+		expect(second).not.toHaveBeenCalled();
+	});
 });

@@ -59,20 +59,72 @@ const STALE_TTL_MS = 30 * TTL_MS;
  * so without this an endpoint outage would slow every init, not one a minute.
  */
 const FAILURE_BACKOFF_MS = 60_000;
-const defaultCache: AdTechProviderCache = new Map();
-const inflight = new Map<string, Promise<AdTechProvider[] | undefined>>();
+/** Lists from absolute endpoints, which name the same list for every caller. */
+const sharedCache: AdTechProviderCache = new Map();
+/**
+ * Lists from relative endpoints, one cache per fetch implementation. Which
+ * list a relative URL names depends on how that fetch resolves it, so two
+ * resolvers in one process (two tenants, say) must not share an entry.
+ */
+let relativeCaches = new WeakMap<
+	typeof globalThis.fetch,
+	AdTechProviderCache
+>();
+const inflightByCache = new WeakMap<
+	AdTechProviderCache,
+	Map<string, Promise<AdTechProvider[] | undefined>>
+>();
 
-/** Drops every cached provider list; the next call fetches again. */
+const isAbsoluteUrl = (url: string): boolean =>
+	/^[a-z][a-z\d+.-]*:/iu.test(url);
+
+const cacheFor = function cacheFor(
+	options: FetchCachedAdTechProvidersOptions
+): AdTechProviderCache {
+	if (options.cache) {
+		return options.cache;
+	}
+	if (isAbsoluteUrl(options.reference.url)) {
+		return sharedCache;
+	}
+	let cache = relativeCaches.get(options.fetch);
+	if (!cache) {
+		cache = new Map();
+		relativeCaches.set(options.fetch, cache);
+	}
+	return cache;
+};
+
+const inflightFor = function inflightFor(cache: AdTechProviderCache) {
+	let inflight = inflightByCache.get(cache);
+	if (!inflight) {
+		inflight = new Map();
+		inflightByCache.set(cache, inflight);
+	}
+	return inflight;
+};
+
+/**
+ * Drops cached provider lists; the next call fetches again. Without an
+ * argument, drops every list this module holds.
+ */
 export const clearAdTechProviderCache = function clearAdTechProviderCache(
-	cache: AdTechProviderCache = defaultCache
+	cache?: AdTechProviderCache
 ): void {
-	cache.clear();
-	inflight.clear();
+	if (cache) {
+		cache.clear();
+		inflightByCache.delete(cache);
+		return;
+	}
+	sharedCache.clear();
+	inflightByCache.delete(sharedCache);
+	relativeCaches = new WeakMap();
 };
 
 /**
  * Loads the providers a manifest lists, through an in-process cache that
- * coalesces concurrent requests.
+ * coalesces concurrent requests. A relative endpoint is cached per fetch
+ * implementation, since each may resolve it to a different list.
  *
  * After a failed fetch the endpoint is not asked again for a minute; the
  * last good list, or nothing, is served meanwhile.
@@ -84,7 +136,8 @@ export const clearAdTechProviderCache = function clearAdTechProviderCache(
 export const fetchCachedAdTechProviders = function fetchCachedAdTechProviders(
 	options: FetchCachedAdTechProvidersOptions
 ): Promise<AdTechProvider[] | undefined> {
-	const cache = options.cache ?? defaultCache;
+	const cache = cacheFor(options);
+	const inflight = inflightFor(cache);
 	const now = options.now ?? Date.now();
 	const ids = normalizeAdTechProviderIds(options.reference.providers);
 	const key = `${options.reference.url}|${ids.join(',')}`;
