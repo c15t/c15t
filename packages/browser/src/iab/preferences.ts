@@ -350,11 +350,17 @@ export const createIABPreferences = (
 	// Google Additional Consent providers: few, outside the TCF, and listed
 	// with the privacy policy the spec requires before they count as shown.
 	const providerList = h('div', { class: css(styles.vendorSection) });
+	// The list rendered last, so a sync can tell when another one lands.
+	let renderedProviders = snapshot.iab?.adTechProviders;
 	// Returns how many providers match, all of which it shows: the list is
-	// short enough that it never pages.
+	// short enough that it never pages. It reads the current state, not the
+	// snapshot this panel was built from: a provider list from the backend
+	// can land after the dialog rendered without changing the vendor list,
+	// and then the surface syncs rather than rebuilds.
 	const renderAdTechProviders = (query: string): number => {
 		providerList.replaceChildren();
-		const shown = (snapshot.iab?.adTechProviders ?? []).filter((provider) =>
+		renderedProviders = client.getSnapshot().iab?.adTechProviders;
+		const shown = (renderedProviders ?? []).filter((provider) =>
 			provider.name.toLocaleLowerCase().includes(query)
 		);
 		providerList.hidden = shown.length === 0;
@@ -602,6 +608,18 @@ export const createIABPreferences = (
 	return {
 		element,
 		sync: (value) => {
+			const providers = value.iab?.adTechProviders;
+			if (providers !== renderedProviders) {
+				renderedProviders = providers;
+				vendorTab.textContent = `${t.preferenceCenter.tabs.vendors} (${
+					resolveIABDialogDisplayModel(value.iab).vendorTabCount
+				})`;
+				if (vendorsRendered) {
+					// Re-renders the providers, then runs every update below.
+					renderVendors();
+					return;
+				}
+			}
 			for (const update of updates) {
 				update(value);
 			}
