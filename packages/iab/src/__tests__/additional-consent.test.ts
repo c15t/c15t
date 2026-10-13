@@ -141,7 +141,7 @@ describe('createIAB with Additional Consent', () => {
 		vi.restoreAllMocks();
 	});
 
-	const makeKernel = function makeKernel(): ConsentKernel {
+	const makeKernel = function makeKernel(gvl = completeGVL): ConsentKernel {
 		const policy = normalizePolicyRule({
 			id: 'iab-test',
 			match: { isDefault: true },
@@ -150,7 +150,7 @@ describe('createIAB with Additional Consent', () => {
 			validity: { choiceDays: 30 },
 		});
 		const kernel = createConsentKernel({
-			initialIab: { cmpId: 28, enabled: true, gvl: completeGVL },
+			initialIab: { cmpId: 28, enabled: true, gvl },
 			initialPolicyResolution: {
 				fingerprints: createPolicyRuleFingerprints(policy),
 				matchedBy: 'default',
@@ -166,12 +166,13 @@ describe('createIAB with Additional Consent', () => {
 
 	const mount = async function mount(
 		kernel: ConsentKernel,
-		providers: number[] = [89, 2577, 404]
+		providers: number[] = [89, 2577, 404],
+		gvl = completeGVL
 	): Promise<IABHandle> {
 		const addon = createIAB({
 			additionalConsent: { providers, url: 'https://lists.example/ac' },
 			cmpId: 28,
-			gvl: completeGVL,
+			gvl,
 			kernel,
 		});
 		disposers.push(addon.dispose);
@@ -212,6 +213,39 @@ describe('createIAB with Additional Consent', () => {
 		expect(data.addtlConsent).toBe('2~89.2577~dv.');
 		expect(document.cookie).toContain('addtl_consent=2~89.2577~dv.');
 		expect(localStorage.getItem('addtl_consent')).toBe('2~89.2577~dv.');
+	});
+
+	/** The sample list with no vendor declaring personalised ads. */
+	const withoutPersonalisedAds = {
+		...completeGVL,
+		vendors: Object.fromEntries(
+			Object.entries(completeGVL.vendors).map(([id, vendor]) => [
+				id,
+				{
+					...vendor,
+					legIntPurposes: vendor.legIntPurposes.filter((p) => p !== 4),
+					purposes: vendor.purposes.filter((p) => p !== 4),
+				},
+			])
+		),
+	};
+
+	test('Accept All grants the purposes providers need when no vendor declares them', async () => {
+		const kernel = makeKernel(withoutPersonalisedAds);
+		const addon = await mount(kernel, undefined, withoutPersonalisedAds);
+		addon.acceptAll();
+		await addon.save();
+		expect(kernel.getSnapshot().iab?.purposeConsents[4]).toBe(true);
+		expect((await tcData()).addtlConsent).toBe('2~89.2577~dv.');
+	});
+
+	test('Accept All without providers leaves undeclared purposes off', async () => {
+		const kernel = makeKernel(withoutPersonalisedAds);
+		const addon = await mount(kernel, [404], withoutPersonalisedAds);
+		addon.acceptAll();
+		await addon.save();
+		expect(kernel.getSnapshot().iab?.purposeConsents[4]).toBe(false);
+		expect(kernel.getSnapshot().iab?.purposeConsents[1]).toBe(true);
 	});
 
 	test('Reject All discloses every provider and consents to none', async () => {
@@ -424,6 +458,27 @@ describe('createIAB with Additional Consent', () => {
 			'2577': true,
 			'89': true,
 		});
+		expect((await tcData()).addtlConsent).toBe('2~89.2577~dv.');
+	});
+
+	test('Accept All before the provider list lands grants the purposes providers need', async () => {
+		const release = holdProviderList();
+		const kernel = makeKernel(withoutPersonalisedAds);
+		const addon = createIAB({
+			additionalConsent: {
+				providers: [89, 2577],
+				url: 'https://lists.example/ac',
+			},
+			cmpId: 28,
+			gvl: withoutPersonalisedAds,
+			kernel,
+		});
+		disposers.push(addon.dispose);
+		addon.acceptAll();
+		const saved = addon.save();
+		release();
+		await saved;
+		expect(kernel.getSnapshot().iab?.purposeConsents[4]).toBe(true);
 		expect((await tcData()).addtlConsent).toBe('2~89.2577~dv.');
 	});
 

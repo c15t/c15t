@@ -10,6 +10,7 @@
  */
 
 import type { GlobalVendorList, NonIABVendor } from '@c15t/core';
+import { AD_TECH_PROVIDER_PURPOSES } from '@c15t/schema/types';
 
 import { applyPublisherRestrictionsToGVL } from './effective-vendor-list';
 import type {
@@ -105,11 +106,20 @@ const mapCustomVendor = function mapCustomVendor(
 	};
 };
 
+/**
+ * Purposes some vendor declares. Listed ad tech providers declare the
+ * purposes Google needs before it counts their consent, so Accept All can
+ * grant only what this list shows.
+ */
 const processPurposes = function processPurposes(
 	gvl: GlobalVendorList,
 	customVendors: NonIABVendor[],
-	language: string | undefined
+	language: string | undefined,
+	hasAdTechProviders: boolean
 ): HeadlessIABProcessedPurpose[] {
+	const providerPurposes = new Set<number>(
+		hasAdTechProviders ? AD_TECH_PROVIDER_PURPOSES : []
+	);
 	return Object.entries(gvl.purposes)
 		.map(([id, purpose]) => {
 			const purposeId = Number(id);
@@ -140,7 +150,10 @@ const processPurposes = function processPurposes(
 				vendors: [...iabVendorsForPurpose, ...customVendorsForPurpose],
 			};
 		})
-		.filter((purpose) => purpose.vendors.length > 0);
+		.filter(
+			(purpose) =>
+				purpose.vendors.length > 0 || providerPurposes.has(purpose.id)
+		);
 };
 
 const processSpecialPurposes = function processSpecialPurposes(
@@ -304,7 +317,12 @@ export const processGVLForDialog = function processGVLForDialog(
 	);
 	const customVendors = getCustomVendors(iab);
 	const { language } = iab;
-	const purposes = processPurposes(gvl, customVendors, language);
+	const purposes = processPurposes(
+		gvl,
+		customVendors,
+		language,
+		(iab.adTechProviders?.length ?? 0) > 0
+	);
 	const specialPurposes = processSpecialPurposes(gvl, language);
 	const specialFeatures = processSpecialFeatures(gvl, language);
 	const features = processFeatures(gvl, language);

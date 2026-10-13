@@ -119,3 +119,40 @@ test('counts custom vendors once before and after list deferral', () => {
 		1
 	);
 });
+test('lists the purposes ad tech providers need, and counts them once, before and after list deferral', () => {
+	const purpose = (id: number, name: string) => ({
+		description: name,
+		descriptionLegal: name,
+		id,
+		illustrations: [],
+		name,
+	});
+	const input = {
+		adTechProviders: [
+			{ id: 89, name: 'First', policyUrl: 'https://first.example/privacy' },
+			{ id: 2577, name: 'Second', policyUrl: 'https://second.example/p' },
+		],
+		gvl: {
+			...gvl,
+			purposes: {
+				1: purpose(1, 'Store and access'),
+				2: purpose(2, 'Basic ads'),
+				3: purpose(3, 'Ads profiles'),
+				4: purpose(4, 'Personalised ads'),
+			},
+			vendors: {
+				7: { id: 7, legIntPurposes: [], name: 'Vendor', purposes: [1] },
+			},
+		} as unknown as GlobalVendorList,
+	};
+	const live = resolveIABBannerSummary(input);
+	const deferred = deferInitGvl(input, '/list');
+
+	expect(live.displayItems).toEqual([
+		'Store and access',
+		'Ads profiles',
+		'Personalised ads',
+	]);
+	expect(live.vendorCount).toBe(3);
+	expect(resolveIABBannerSummary({ ...deferred, gvl: null })).toEqual(live);
+});

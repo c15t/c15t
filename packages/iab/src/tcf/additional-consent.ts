@@ -11,6 +11,7 @@
 
 import type { AdTechProvider } from '@c15t/core';
 import {
+	AD_TECH_PROVIDER_PURPOSES,
 	AD_TECH_PROVIDERS_URL,
 	adTechProviderFetchSignal,
 	adTechProviderListUrl,
@@ -29,13 +30,9 @@ export const AD_TECH_PROVIDERS_ENDPOINT = AD_TECH_PROVIDERS_URL;
 /**
  * TCF purposes a provider needs before the AC string lists it as consented.
  *
- * Google lists a provider as consented only when the visitor consented to
- * storage and access on the device, and to personal data use for
- * personalised ads: TCF purposes 1, 3 and 4.
- *
  * @internal
  */
-export const AD_TECH_PROVIDER_PURPOSES = [1, 3, 4] as const;
+export { AD_TECH_PROVIDER_PURPOSES };
 
 /** Consented and disclosed provider IDs read from an AC string. */
 export interface AdditionalConsentSignal {

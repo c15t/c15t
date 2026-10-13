@@ -27,6 +27,16 @@ export const adTechProviderSchema = v.object({
 export type AdTechProvider = v.InferOutput<typeof adTechProviderSchema>;
 
 /**
+ * TCF purposes a provider needs before the AC string lists it as consented.
+ *
+ * Google lists a provider as consented only when the visitor consented to
+ * storage and access on the device, and to personal data use for
+ * personalised ads: TCF purposes 1, 3 and 4. A CMP that shows providers
+ * shows these purposes too, so Accept All can grant them.
+ */
+export const AD_TECH_PROVIDER_PURPOSES = [1, 3, 4] as const;
+
+/**
  * Default provider list endpoint. It serves Google's provider CSV as JSON,
  * filtered by `?providerIds=1,2,3`.
  */

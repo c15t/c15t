@@ -101,6 +101,7 @@ export {
 } from './gvl';
 export {
 	AD_TECH_PROVIDER_FETCH_TIMEOUT_MS,
+	AD_TECH_PROVIDER_PURPOSES,
 	AD_TECH_PROVIDERS_URL,
 	type AdTechProvider,
 	adTechProviderFetchSignal,

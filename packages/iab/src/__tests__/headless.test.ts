@@ -270,6 +270,40 @@ describe('@c15t/iab headless vendor counts with Google ad tech providers', () =>
 		expect(model.vendorTabCount).toBe(gvlVendorCount + 1 + 2);
 	});
 
+	test('shows the purposes ad tech providers need even when no vendor declares them', () => {
+		const storageOnly: typeof completeGVL = {
+			...completeGVL,
+			// Vendor 755 alone, declaring only storage and access.
+			vendors: Object.fromEntries(
+				Object.entries(completeGVL.vendors)
+					.filter(([id]) => id === '755')
+					.map(([id, vendor]) => [
+						id,
+						{ ...vendor, legIntPurposes: [], purposes: [1] },
+					])
+			),
+		};
+		const purposeIds = (withProviders: boolean) =>
+			processGVLForDialog({
+				adTechProviders: withProviders ? adTechProviders : [],
+				gvl: storageOnly,
+			}).purposes.map((purpose) => purpose.id);
+		const bannerItems = (withProviders: boolean) =>
+			resolveIABBannerSummary({
+				adTechProviders: withProviders ? adTechProviders : [],
+				gvl: storageOnly,
+			}).displayItems;
+
+		expect(purposeIds(false)).toEqual([1]);
+		expect(purposeIds(true)).toEqual([1, 3, 4]);
+		// Purposes 3 and 4 make up most of the personalised advertising stack.
+		expect(bannerItems(true)).toEqual([
+			bannerItems(false)[0],
+			completeGVL.stacks[2]?.name,
+			...bannerItems(false).slice(1),
+		]);
+	});
+
 	test('counts ad tech providers in the banner partner count', () => {
 		expect(resolveIABBannerSummary(input).vendorCount).toBe(
 			gvlVendorCount + 1 + 2

@@ -7,6 +7,8 @@
  * @packageDocumentation
  */
 
+import { AD_TECH_PROVIDER_PURPOSES } from '@c15t/schema/types';
+
 import type { KernelIABState } from '../types';
 
 type HeadlessIABStateInput = Pick<KernelIABState, 'gvl'> &
@@ -74,6 +76,30 @@ const referencedSummary = (
 };
 
 /**
+ * Purposes some registered vendor declares, plus the purposes listed ad tech
+ * providers need, which Accept All grants for them.
+ */
+const declaredPurposes = (
+	gvl: NonNullable<HeadlessIABStateInput['gvl']>,
+	adTechProviders: HeadlessIABStateInput['adTechProviders']
+): { id: number; name: string }[] => {
+	const providerPurposes = new Set<number>(
+		adTechProviders?.length ? AD_TECH_PROVIDER_PURPOSES : []
+	);
+	return Object.entries(gvl.purposes)
+		.filter(
+			([id]) =>
+				providerPurposes.has(Number(id)) ||
+				Object.values(gvl.vendors).some(
+					(vendor) =>
+						vendor.purposes?.includes(Number(id)) ||
+						vendor.legIntPurposes?.includes(Number(id))
+				)
+		)
+		.map(([id, purpose]) => ({ id: Number(id), name: purpose.name }));
+};
+
+/**
  * Resolves the IAB banner summary from the current IAB state.
  *
  * Pure function — no framework reactivity. Each framework package
@@ -100,15 +126,7 @@ export const resolveIABBannerSummary = function resolveIABBannerSummary(
 		customVendors.length +
 		(iab.adTechProviders?.length ?? 0);
 
-	const purposesWithVendors = Object.entries(gvl.purposes)
-		.filter(([id]) =>
-			Object.values(gvl.vendors).some(
-				(vendor) =>
-					vendor.purposes?.includes(Number(id)) ||
-					vendor.legIntPurposes?.includes(Number(id))
-			)
-		)
-		.map(([id, purpose]) => ({ id: Number(id), name: purpose.name }));
+	const purposesWithVendors = declaredPurposes(gvl, iab.adTechProviders);
 
 	const standalonePurpose = purposesWithVendors.find(
 		(purpose) => purpose.id === STANDALONE_PURPOSE_ID

@@ -49,7 +49,10 @@ import {
 	applyPublisherRestrictionsToGVL,
 	introducedLegitimateInterest,
 } from './headless/effective-vendor-list';
-import { fetchAdTechProviders } from './tcf/additional-consent';
+import {
+	AD_TECH_PROVIDER_PURPOSES,
+	fetchAdTechProviders,
+} from './tcf/additional-consent';
 import {
 	clearStoredTCString,
 	createCMPApi,
@@ -313,8 +316,18 @@ const readIAB = function readIAB(kernel: ConsentKernel) {
 };
 
 /**
+ * Consent purposes Google ad tech providers process. The AC string lists a
+ * provider as consented only with all of them, so listed providers declare
+ * them the way a registered vendor declares its purposes.
+ */
+const adTechProviderPurposes = (
+	providers: readonly AdTechProvider[] | null | undefined
+): readonly number[] => (providers?.length ? AD_TECH_PROVIDER_PURPOSES : []);
+
+/**
  * Accept All grants only declared processing on each legal basis after
- * publisher restrictions, including custom vendors. Reject All clears vendor,
+ * publisher restrictions, including custom vendors and the purposes listed
+ * ad tech providers need. Reject All clears vendor,
  * purpose, legitimate-interest and special-feature signals.
  */
 const applyBlanket = function applyBlanket(
@@ -341,6 +354,9 @@ const applyBlanket = function applyBlanket(
 		pick: (vendor: (typeof vendors)[number]) => number[] | undefined
 	) => new Set(vendors.flatMap((vendor) => pick(vendor) ?? []));
 	const consentPurposes = declared((vendor) => vendor.purposes);
+	for (const id of adTechProviderPurposes(readIAB(kernel).adTechProviders)) {
+		consentPurposes.add(id);
+	}
 	const legitimateInterestPurposes = declared(
 		(vendor) => vendor.legIntPurposes
 	);
@@ -404,16 +420,18 @@ const restrictionsForDisplay = function restrictionsForDisplay(
 const consentBasisPurposes = function consentBasisPurposes(
 	gvl: GlobalVendorList,
 	restrictions: readonly PublisherRestriction[],
-	customVendors: readonly NonIABVendor[]
+	customVendors: readonly NonIABVendor[],
+	adTechProviders: readonly AdTechProvider[] | null | undefined
 ): Set<number> {
-	return new Set(
-		[
+	return new Set([
+		...[
 			...Object.values(
 				applyPublisherRestrictionsToGVL(gvl, restrictions).vendors ?? {}
 			),
 			...customVendors,
-		].flatMap((vendor) => vendor.purposes ?? [])
-	);
+		].flatMap((vendor) => vendor.purposes ?? []),
+		...adTechProviderPurposes(adTechProviders),
+	]);
 };
 
 /**
@@ -1400,6 +1418,8 @@ export const createIAB = function createIAB(
 	/**
 	 * Gives providers that arrived after a pending Accept All or Reject All the
 	 * choice the visitor made. A provider they already switched keeps it.
+	 * Accept All also grants the purposes the providers need, as it does when
+	 * they are listed before the click.
 	 */
 	const applyProviderBlanket = (published: AdTechProvider[] | null): void => {
 		const value = providerBlanket;
@@ -1412,11 +1432,21 @@ export const createIAB = function createIAB(
 		if (unseen.length === 0) {
 			return;
 		}
+		const { gvl, purposeConsents } = readIAB(kernel);
+		const purposes = value
+			? adTechProviderPurposes(unseen).filter((id) => gvl?.purposes?.[id])
+			: [];
 		kernel.set.iab({
 			adTechProviderConsents: {
 				...current,
 				...Object.fromEntries(unseen.map(({ id }) => [String(id), value])),
 			},
+			...(purposes.length > 0 && {
+				purposeConsents: {
+					...purposeConsents,
+					...Object.fromEntries(purposes.map((id) => [id, true])),
+				},
+			}),
 		});
 	};
 	/** Whether the retained authority is withdrawn for the new list. */
@@ -2000,7 +2030,8 @@ export const createIAB = function createIAB(
 				consentBasisPurposes(
 					snapshot.iab.gvl,
 					publisherRestrictions,
-					snapshot.iab.customVendors
+					snapshot.iab.customVendors,
+					snapshot.iab.adTechProviders
 				)
 			);
 			const scope = new Set<string>(snapshot.policyRule.scope);
