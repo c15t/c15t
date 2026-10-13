@@ -91,4 +91,30 @@ describe('fetchCachedAdTechProviders', () => {
 		expect(providers).toBeUndefined();
 		expect(cache.has(key)).toBe(false);
 	});
+
+	test('waits a minute after a failed refresh before asking again', async () => {
+		const cache: AdTechProviderCache = new Map([
+			[
+				`${reference.url}|89`,
+				{ expiresAt: 1000, providers: [META], staleUntil: 999_999 },
+			],
+		]);
+		const down = vi.fn(() =>
+			Promise.resolve(new Response('', { status: 503 }))
+		);
+		const options = {
+			cache,
+			fetch: down as unknown as typeof globalThis.fetch,
+			reference,
+		};
+		await expect(
+			fetchCachedAdTechProviders({ ...options, now: 2000 })
+		).resolves.toEqual([META]);
+		await expect(
+			fetchCachedAdTechProviders({ ...options, now: 2000 + 59_000 })
+		).resolves.toEqual([META]);
+		expect(down).toHaveBeenCalledTimes(1);
+		await fetchCachedAdTechProviders({ ...options, now: 2000 + 61_000 });
+		expect(down).toHaveBeenCalledTimes(2);
+	});
 });

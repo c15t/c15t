@@ -49,8 +49,28 @@ const TTL_MS = 86_400_000;
  * Google may have removed.
  */
 const STALE_TTL_MS = 30 * TTL_MS;
+/**
+ * How long a failed fetch is remembered before the next init tries again,
+ * as on the backend. A stalled endpoint holds an init for the request
+ * timeout, so without this every init would wait it out while a usable
+ * stale list sits in the cache.
+ */
+const FAILURE_BACKOFF_MS = 60_000;
 const defaultCache: AdTechProviderCache = new Map();
 const inflight = new Map<string, Promise<AdTechProvider[] | undefined>>();
+/** When each key may next ask the endpoint after a failure, per cache. */
+const retries = new WeakMap<AdTechProviderCache, Map<string, number>>();
+
+const retriesFor = function retriesFor(
+	cache: AdTechProviderCache
+): Map<string, number> {
+	let byKey = retries.get(cache);
+	if (!byKey) {
+		byKey = new Map();
+		retries.set(cache, byKey);
+	}
+	return byKey;
+};
 
 /** Drops every cached provider list; the next call fetches again. */
 export const clearAdTechProviderCache = function clearAdTechProviderCache(
@@ -58,11 +78,13 @@ export const clearAdTechProviderCache = function clearAdTechProviderCache(
 ): void {
 	cache.clear();
 	inflight.clear();
+	retries.delete(cache);
 };
 
 /**
  * Loads the providers a manifest lists, through an in-process cache that
- * coalesces concurrent requests.
+ * coalesces concurrent requests. After a failure the endpoint is not asked
+ * again for a minute; inits in that time get the stale list straight away.
  *
  * @param options - The manifest reference and fetch implementation.
  * @returns The listed providers sorted by ID, the last good list when the
@@ -84,6 +106,10 @@ export const fetchCachedAdTechProviders = function fetchCachedAdTechProviders(
 	if (cached && !stale) {
 		cache.delete(key);
 	}
+	const retry = retriesFor(cache);
+	if (now < (retry.get(key) ?? 0)) {
+		return Promise.resolve(stale);
+	}
 	const pending = inflight.get(key);
 	if (pending) {
 		return pending;
@@ -102,8 +128,10 @@ export const fetchCachedAdTechProviders = function fetchCachedAdTechProviders(
 				? parseAdTechProviderList(await response.json(), ids)
 				: null;
 			if (!providers) {
+				retry.set(key, now + FAILURE_BACKOFF_MS);
 				return stale;
 			}
+			retry.delete(key);
 			cache.set(key, {
 				expiresAt: now + TTL_MS,
 				providers,
@@ -111,6 +139,7 @@ export const fetchCachedAdTechProviders = function fetchCachedAdTechProviders(
 			});
 			return providers;
 		} catch {
+			retry.set(key, now + FAILURE_BACKOFF_MS);
 			return stale;
 		} finally {
 			inflight.delete(key);
