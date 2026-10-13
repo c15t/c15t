@@ -13,11 +13,13 @@ export {
 	resolveActionLabels,
 	resolvePreferenceControlLabels,
 	resolvePromptCopy,
+	vendorsListedUnder,
 } from '@c15t/core';
 export type {
 	PreferenceControl,
 	PresentationAction,
 	PromptCopy,
+	ResolvedVendor,
 } from '@c15t/core';
 export {
 	type ConsentLabels,
