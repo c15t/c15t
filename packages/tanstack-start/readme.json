@@ -15,6 +15,7 @@
 	],
 	"prerequisites": [
 		"`@tanstack/react-start` 1.168.60 or later, including TanStack Start 1.0, and `@tanstack/react-router` 1.170.41 or later",
+		"Vite 7 or later, or Vite 8 or later for TanStack Start 1.0",
 		"React 18 or 19",
 		"Node.js 20.19 or later",
 		"An [Inth project](https://inth.com) (free sign-up), a [self-hosted backend](https://c15t.com/docs/self-host/quickstart), or offline mode for local development"
