@@ -55,5 +55,6 @@ export {
 } from './components/shared/streamed-surface';
 export { useColorScheme } from './hooks/use-color-scheme';
 export { useFocusTrap } from './hooks/use-focus-trap';
+export { useScrollLock } from './hooks/use-scroll-lock';
 // IAB headless hook lives on the `@c15t/react/iab` subpath.
 export type { ReactUIOptions } from './types/manager';
