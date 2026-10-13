@@ -25,7 +25,8 @@ export interface PromptClassNames {
 	actions: ClassNameMap;
 	button: ClassNameMap;
 	branding: ClassNameMap;
-	legalLinks: ClassNameMap;
+	/** Optional: maps built against an earlier release do not carry it. */
+	legalLinks?: ClassNameMap;
 }
 
 /** The class maps the IAB banner and its branding tag read. */

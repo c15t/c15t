@@ -47,7 +47,6 @@ const EMPTY_CLASS_NAMES: PromptClassNames = {
 	banner: {},
 	branding: {},
 	button: {},
-	legalLinks: {},
 };
 
 const readSlot = function readSlot(slot: HTMLElement): PromptSlotData {

@@ -303,7 +303,7 @@ const resolveClasses = function resolveClasses(
 		footer: cls(actions.actionRoot, banner.footer),
 		header: cls(banner.header),
 		// The React, Vue and Svelte legal links take only this stock class.
-		legalLink: cls(legalLinks.legalLink),
+		legalLink: cls(legalLinks?.legalLink),
 		overlay: cls(
 			banner.overlay,
 			banner.overlayVisible,

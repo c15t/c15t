@@ -4,6 +4,8 @@ import { experimental_AstroContainer as AstroContainer } from 'astro/container';
 import { JSDOM } from 'jsdom';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 
+import { promptClassNames } from '../banner/class-names';
+import { resolvePromptModel } from '../banner/prompt-model';
 import ConsentDialogLink from '../components/panel-link.astro';
 import ConsentDialog from '../components/panel.astro';
 import ConsentBanner from '../components/prompt.astro';
@@ -455,6 +457,22 @@ describe('<ConsentBanner />', () => {
 			})
 		);
 		expect(unstyled.querySelector('a')?.hasAttribute('class')).toBe(false);
+	});
+
+	it('resolves a class map built before it carried legal links', async () => {
+		const { legalLinks: _omitted, ...olderClassNames } = promptClassNames;
+		const locals = await buildLocals({
+			legalLinks: { privacyPolicy: { href: '/privacy' } },
+			mode: offlineMode({ policyRules: [testRule] }),
+		});
+		const model = resolvePromptModel({
+			classNames: olderClassNames,
+			legalLinks: locals.options.legalLinks,
+			props: { legalLinks: ['privacyPolicy'] },
+			snapshot: locals.snapshot,
+		});
+		expect(model.classes.legalLink).toBe('');
+		expect(model.legalLinks.map((link) => link.key)).toEqual(['privacyPolicy']);
 	});
 
 	it('drops the branding tag with `hideBranding`', async () => {
