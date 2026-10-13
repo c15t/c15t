@@ -167,6 +167,12 @@ export interface SavePayload {
 	 * additive change the `iab` snapshot slot is reserved for.
 	 */
 	tcString?: string | null;
+	/**
+	 * Google Additional Consent string sent with `tcString`. Always absent on
+	 * device, for the same reason as `tcString`; carried so the body stays the
+	 * one the kernel describes.
+	 */
+	addtlConsent?: string;
 	/** Equals `confirmed.actionAt`. Kept for backends that read one time. */
 	givenAt?: number;
 	/**
