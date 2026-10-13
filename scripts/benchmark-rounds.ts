@@ -18,6 +18,16 @@ import {
 export type BenchmarkArm = 'base' | 'head';
 
 /**
+ * Runtime comparisons use an even number of rounds so each arm runs first
+ * equally often. Deterministic size measurements need only one pass.
+ *
+ * @param mode - Benchmark mode.
+ * @returns Number of measurement rounds.
+ */
+export const benchmarkRoundsForMode = (mode: string): number =>
+	mode === 'bundle' || mode === 'examples' ? 1 : 4;
+
+/**
  * Which arm runs first in a round. Alternating base-head, head-base, ...
  * spreads drift in runner speed over both arms instead of loading it all on
  * whichever arm measures second.

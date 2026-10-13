@@ -89,8 +89,8 @@ splits the package across three runners. That makes four parallel jobs for
 `quick` and ten for `full`. A planning job resolves both revisions to commit IDs before
 starting the matrix. Each runner measures base and head with `--concurrency=1`,
 so timing loops do not compete for CPU. Runtime modes split the iterations into
-three rounds that alternate base-head, head-base, base-head, then pool each
-scenario's samples across rounds before comparing. A runner that slows down or
+four rounds that alternate base-head, head-base, base-head, head-base, then pool
+each scenario's samples across rounds before comparing. A runner that slows down or
 speeds up mid-job then shifts both arms instead of whichever arm ran second;
 measuring all of base and then all of head failed the gate on docs-only pushes.
 `bundle` sizes do not drift and run once. Local commands still
@@ -116,8 +116,8 @@ The matrix `id` is the shard id, or the package name with `@c15t/` removed,
 for example `runtime-benchmarks-react-browser-bench` for
 `@c15t/react-browser-bench`. A failed job does not cancel the remaining matrix jobs.
 Rounds split browser and script-lifecycle iterations, so pooled sample counts
-match a single pass. Core microbenchmarks run their full 5,000 iterations every
-round, and warmups repeat every round. Budget thresholds are unchanged. Browser benches
+meet or exceed a single pass because each round rounds its count up. Core
+microbenchmarks run their full 5,000 iterations every round, and warmups repeat every round. Budget thresholds are unchanged. Browser benches
 run against the 200 ms backend described under the environment knobs below.
 
 `bundle` measures real Next route assets, publish tarballs and consumer import
@@ -173,7 +173,23 @@ durations use the browser clock from action start through confirmed completion;
 Playwright click transport and polling time are excluded. The three tiny
 empty-kernel percentage budgets also require more than 1µs of growth before
 failing, so sub-microsecond hosted-runner jitter stays visible in the report
-without blocking a PR. Other budget semantics remain unchanged.
+without blocking a PR.
+
+Browser-runtime timing comparisons use the raw visit samples as well as their
+medians. A median above its existing limit fails the gate only when a 99%
+lower confidence bound on the change also exceeds that limit. The bound uses
+binomial order statistics for each median, with a 0.5% one-sided error allowance
+per arm. This needs no normal-distribution assumption. Four balanced rounds
+reduce order bias; the confidence calculation treats the individual visit
+samples as independent and does not correct persistent differences between
+runners or revisions.
+
+Reports retain the observed median change and show its supported lower bound,
+including changes that cannot be confirmed as budget breaches. Thresholds are
+unchanged. Missing metrics, fewer than eight samples per arm, invalid samples,
+absolute behavior allowances and count invariants retain strict evaluation.
+Core, script-lifecycle, bundle and release-arm comparisons retain their existing
+budget evaluation.
 
 `BENCHMARK_PROFILE=regression` enforces same-revision-key regression budgets
 and invariants. `BENCHMARK_PROFILE=release`, the default for `bench:compare`,

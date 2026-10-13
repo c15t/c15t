@@ -24,6 +24,7 @@ import { replaceBenchmarkFixtures } from './benchmark-overlay';
 import { createBenchmarkPlan } from './benchmark-plan';
 import { resolveBenchmarkRevisions } from './benchmark-revisions';
 import {
+	benchmarkRoundsForMode,
 	iterationsPerRound,
 	poolRoundDirectories,
 	roundOrder,
@@ -66,7 +67,7 @@ mkdirSync(report, { recursive: true });
 // spread that drift over both arms, and their samples are pooled before the
 // comparison. Bundle and example payload sizes do not drift, so one pass
 // is enough.
-const rounds = mode === 'bundle' || mode === 'examples' ? 1 : 3;
+const rounds = benchmarkRoundsForMode(mode);
 const iterations = iterationsPerRound(mode === 'quick' ? 15 : 30, rounds);
 const env = {
 	...process.env,
