@@ -32,6 +32,7 @@ const nuxt = vi.hoisted(() => ({
 		options: Record<string, unknown>;
 		value: unknown;
 	}[],
+	eventFetch: true,
 	experiment: undefined as
 		| { arm?: string; arms: Record<string, object>; id: string }
 		| undefined,
@@ -46,6 +47,17 @@ const nuxt = vi.hoisted(() => ({
 vi.mock('#imports', async () => {
 	// Deep, like Nuxt's payload state (`toRef(reactive(payload.state), key)`).
 	const { ref: makeRef } = await import('vue');
+	const fetchRoute = (_input: string, init?: RequestInit) => {
+		const headers = Object.fromEntries(new Headers(init?.headers));
+		nuxt.fetchHeaders.push(headers);
+		expect(headers[C15T_POLICY_CONTRACT_HEADER]).toBe('1');
+		nuxt.requests += 1;
+		return Promise.resolve(
+			new Response(JSON.stringify(nuxt.response), {
+				headers: { [C15T_POLICY_CONTRACT_HEADER]: '1' },
+			})
+		);
+	};
 	return {
 		defineNuxtPlugin: (plugin: unknown) => plugin,
 		useAppConfig: () => ({
@@ -64,21 +76,9 @@ vi.mock('#imports', async () => {
 			return cookie;
 		},
 		useHead: () => undefined,
-		// Nitro's in-process fetch on the event answers the app's own routes.
-		useRequestEvent: () => ({
-			context: {},
-			fetch: (_input: string, init?: RequestInit) => {
-				const headers = Object.fromEntries(new Headers(init?.headers));
-				nuxt.fetchHeaders.push(headers);
-				expect(headers[C15T_POLICY_CONTRACT_HEADER]).toBe('1');
-				nuxt.requests += 1;
-				return Promise.resolve(
-					new Response(JSON.stringify(nuxt.response), {
-						headers: { [C15T_POLICY_CONTRACT_HEADER]: '1' },
-					})
-				);
-			},
-		}),
+		useRequestEvent: () =>
+			nuxt.eventFetch ? { context: {}, fetch: fetchRoute } : { context: {} },
+		useRequestFetch: () => ({ native: fetchRoute }),
 		useRequestHeaders: () => nuxt.headers,
 		useRequestURL: () => new URL('https://app.example/'),
 		// `mode` comes from nuxt.config.ts, through the public runtime config.
@@ -121,6 +121,7 @@ afterEach(() => {
 	nuxt.state.clear();
 	nuxt.cookies = [];
 	nuxt.consentSource = undefined;
+	nuxt.eventFetch = true;
 	nuxt.experiment = undefined;
 	nuxt.fetchHeaders = [];
 	document.body.replaceChildren();
@@ -426,6 +427,28 @@ test('the server init fetch carries a fixed experiment arm until the visitor cho
 		vueApp: createSSRApp(defineComponent({ render: () => null })),
 	});
 	expect(nuxt.fetchHeaders[0]?.['x-c15t-experiment']).toBe('banner-shape=wall');
+});
+
+test('the server render uses Nuxt request fetch when the event has none', async () => {
+	const { default: plugin } = await vi.importActual<{
+		default: (app: {
+			vueApp: App;
+			hook: (name: string, callback: () => void) => void;
+			payload: { prerenderedAt?: number; serverRendered?: boolean };
+		}) => Promise<void>;
+	}>('../runtime/plugin.nuxt');
+	nuxt.eventFetch = false;
+	nuxt.headers = { cookie: '' };
+	nuxt.manifest = true;
+	nuxt.requests = 0;
+	vi.stubGlobal('window', undefined);
+	vi.stubGlobal('document', undefined);
+	await plugin({
+		hook: () => undefined,
+		payload: {},
+		vueApp: createSSRApp(defineComponent({ render: () => null })),
+	});
+	expect(nuxt.requests).toBe(1);
 });
 
 test('an `ssr: false` route asks for the policy before the app mounts', async () => {
