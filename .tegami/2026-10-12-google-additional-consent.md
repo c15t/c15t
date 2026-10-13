@@ -31,3 +31,8 @@ c15t stores the string in the `addtl_consent` cookie and localStorage entry
 with the TC String, restores it for returning visitors, and removes it when it
 withdraws the TC String. Provider names and policy links load from
 `https://gvl.inth.app/additional-consent` unless an endpoint is configured.
+The backend keeps serving the last list it loaded when that endpoint fails.
+
+`IABPreferenceCenterTranslations.vendorList` gains two required keys,
+`adTechProvidersHeading` and `adTechProvidersNotice`, translated for every
+built-in locale. Custom translation sets need both.
