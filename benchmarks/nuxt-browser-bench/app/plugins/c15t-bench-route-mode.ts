@@ -17,7 +17,13 @@ export default defineNuxtPlugin({
 		};
 		const built = c15t.mode ?? { type: 'manifest' };
 		if (route.path === '/client-manifest') {
-			c15t.mode = { ...built, resolve: 'browser' };
+			c15t.mode = {
+				...built,
+				// Match the German visitor used by the fixture's /init response.
+				// Without a location, browser resolution falls back to /init.
+				inputs: { country: 'DE', language: 'en', region: 'BE' },
+				resolve: 'browser',
+			};
 		} else if (route.path !== '/ssr-manifest') {
 			c15t.mode = { type: 'hosted' };
 		}

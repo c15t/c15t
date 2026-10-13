@@ -20,6 +20,8 @@ import { pathToFileURL } from 'node:url';
 
 import { afterAll, beforeAll, expect, it } from 'vitest';
 
+import { c15tReleaseSpecifier } from '../../generate/release';
+
 const packageRoot = resolve(import.meta.dirname, '../../..');
 let directory = '';
 let host = '';
@@ -303,7 +305,7 @@ it.each([
 		expect(JSON.parse(native.stdout)).toEqual(JSON.parse(node.stdout));
 		expect(native.stderr).toBe(node.stderr);
 		expect(JSON.parse(native.stdout).dependencies).toContainEqual(
-			'@c15t/integrations@alpha'
+			`@c15t/integrations@${c15tReleaseSpecifier()}`
 		);
 	}
 });
@@ -471,7 +473,7 @@ it.each(['pending', 'missing', 'app'])(
 	}
 );
 
-it('plans and applies files natively, detects conflicts and installs alpha dependencies', async () => {
+it('plans and applies files natively, detects conflicts and installs release-line dependencies', async () => {
 	const app = join(directory, 'runtime-app');
 	await mkdir(app);
 	await writeFile(join(app, 'package.json'), '{}');
@@ -518,7 +520,7 @@ it('plans and applies files natively, detects conflicts and installs alpha depen
 		await realpath(app)
 	);
 	expect(await readFile(join(app, 'install-args'), 'utf8')).toContain(
-		'c15t@alpha'
+		`c15t@${c15tReleaseSpecifier()}`
 	);
 	// `.env` is merged, never refused, so the conflict is in a source file.
 	const edited = files.find((file: { path: string }) => file.path !== '.env');

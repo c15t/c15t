@@ -328,9 +328,10 @@ Direct-init browser benchmark arms intentionally fetch `/init` with
 Manifest arms intentionally keep their framework/server manifest caching: SSR
 manifest arms resolve init from the cached server manifest, Next's manifest
 client arm fetches the same-origin cached manifest route in the browser, and
-Nuxt's client-manifest arm uses the module's same-origin manifest-backed init
-route. A cached manifest pays the latency once per cache fill. This asymmetry
-is the benchmark subject, not a harness accident.
+Nuxt's client-manifest arm fetches the fixture manifest and resolves it in the
+browser. That arm supplies the same German visitor inputs as the fixture's
+`/init` response, so it measures browser resolution without an unknown-location
+fallback request. A cached manifest pays the latency once per cache fill.
 
 Bundle size is measured separately by `bundle-test-app` because it is build analysis rather than an iteration-based browser runtime benchmark.
 
