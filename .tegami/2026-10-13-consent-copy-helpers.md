@@ -1,7 +1,9 @@
 ---
 packages:
   "@c15t/core": minor
+  "@c15t/nextjs": minor
   "@c15t/react": minor
+  "@c15t/tanstack-start": minor
   "@c15t/svelte": minor
   "@c15t/vue": minor
   "@c15t/browser": minor

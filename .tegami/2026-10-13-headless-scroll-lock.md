@@ -1,6 +1,8 @@
 ---
 packages:
+  "@c15t/nextjs": minor
   "@c15t/react": minor
+  "@c15t/tanstack-start": minor
   c15t: minor
 ---
 
