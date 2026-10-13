@@ -64,8 +64,8 @@ import type {
 } from '../libs/manifest-cache-runtime';
 import { reportConsentSession } from '../libs/session-report';
 import {
-	adTechProviderReference,
 	fetchCachedAdTechProviders,
+	loadManifestAdTechProviders,
 } from '../transports/ad-tech-provider-cache';
 import {
 	deferInitGvlToRoute,
@@ -385,18 +385,18 @@ export const resolveConsentInit = async function resolveConsentInit(
 		options.clientContract
 	);
 	// Loaded beside the vendor list, never failing the resolution.
-	const providerReference = adTechProviderReference(manifest, payload);
 	const { loadAdTechProviders } = options;
-	const providers =
-		providerReference && loadAdTechProviders
-			? (async () => {
-					try {
-						return await loadAdTechProviders(providerReference);
-					} catch {
-						return undefined;
-					}
-				})()
-			: undefined;
+	const providers = loadManifestAdTechProviders(
+		manifest,
+		payload,
+		async (reference) => {
+			try {
+				return await loadAdTechProviders?.(reference);
+			} catch {
+				return undefined;
+			}
+		}
+	);
 	if (options.loadGvl && isIabMatch(manifest, payload)) {
 		payload.gvl = await options.loadGvl(
 			payload.translations.language.split('-')[0] || 'en'

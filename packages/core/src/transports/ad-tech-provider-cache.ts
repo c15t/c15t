@@ -147,20 +147,32 @@ export const fetchCachedAdTechProviders = function fetchCachedAdTechProviders(
 };
 
 /**
- * The manifest's provider reference when an init output resolved to an IAB
- * policy that should disclose providers, otherwise `undefined`.
+ * The Google Additional Consent providers to send with an init output.
+ *
+ * An output that resolved to an IAB policy always says which providers apply:
+ * `[]` when the manifest lists none, so a client that held providers from an
+ * earlier configuration withdraws them. Only a list that could not be loaded
+ * is left out, which the client reads as "keep what you hold".
  *
  * @param manifest - The manifest the output resolved from.
  * @param output - The resolved init output.
- * @returns The reference to load providers from.
+ * @param load - Loads the providers a manifest reference lists.
+ * @returns The providers to send, or `undefined` to leave the field out.
  */
-export const adTechProviderReference = function adTechProviderReference(
+export const loadManifestAdTechProviders = function loadManifestAdTechProviders(
 	manifest: ConsentManifest,
-	output: InitOutput
-): ConsentManifestAdditionalConsent | undefined {
-	return manifest.iab?.enabled === true &&
-		output.policyResolution?.status === 'matched' &&
-		output.policyResolution.policy.model === 'iab'
-		? manifest.iab.additionalConsent
-		: undefined;
+	output: InitOutput,
+	load: (
+		reference: ConsentManifestAdditionalConsent
+	) => Promise<AdTechProvider[] | undefined>
+): Promise<AdTechProvider[] | undefined> {
+	if (
+		manifest.iab?.enabled !== true ||
+		output.policyResolution?.status !== 'matched' ||
+		output.policyResolution.policy.model !== 'iab'
+	) {
+		return Promise.resolve(undefined);
+	}
+	const reference = manifest.iab.additionalConsent;
+	return reference ? load(reference) : Promise.resolve([]);
 };

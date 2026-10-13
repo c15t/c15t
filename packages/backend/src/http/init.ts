@@ -110,17 +110,22 @@ export const readInitSignals = function readInitSignals(
  * with the vendor list, because the preference centre must show each one
  * with its privacy policy before the AC string lists it. The manifest names
  * them, so a host resolving from it discloses the same providers.
+ *
+ * A deployment that lists none, or refuses them, answers `[]`: a client that
+ * held providers from an earlier configuration withdraws them. Only a list
+ * that could not be loaded answers null.
  */
 const loadAdTechProviders = function loadAdTechProviders(
 	manifest: ConsentManifest,
 	options: AdditionalConsentConfig | undefined,
 	gvl: GvlConfig | undefined
 ): Promise<AdTechProvider[] | null> | undefined {
-	const listed = manifest.iab?.enabled
-		? manifest.iab.additionalConsent
-		: undefined;
-	if (!listed || options?.enabled === false) {
+	if (!manifest.iab?.enabled) {
 		return undefined;
+	}
+	const listed = manifest.iab.additionalConsent;
+	if (!listed || options?.enabled === false) {
+		return Promise.resolve([]);
 	}
 	return resolveAdTechProviders({
 		cache: options?.cache ?? gvl?.cache,
@@ -221,7 +226,8 @@ export const buildInitResponse = async function buildInitResponse(
 		...negotiated,
 		...(gvlDocument !== undefined && { gvl: gvlDocument }),
 		// An unavailable list is left out, never sent as empty: the client
-		// keeps what it holds rather than withdrawing disclosed providers.
+		// keeps what it holds rather than withdrawing disclosed providers. An
+		// unconfigured or refused one is sent as `[]`, which withdraws them.
 		...(adTechProviders && { adTechProviders }),
 	};
 	if (resolution.status !== 'matched' || !snapshot?.signingKey) {

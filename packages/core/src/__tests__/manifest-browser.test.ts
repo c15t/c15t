@@ -196,6 +196,36 @@ describe('createBrowserManifestTransport()', () => {
 		expect(headers.has('x-c15t-policy-contract')).toBe(false);
 	});
 
+	test('withdraws ad tech providers once the manifest stops listing them', async () => {
+		const transport = createBrowserManifestTransport({
+			backendURL: 'https://backend.example',
+			fetch: vi.fn<typeof fetch>(() =>
+				Promise.resolve(jsonResponse({ vendorListVersion: 42, vendors: {} }))
+			),
+			snapshot: {
+				...everywhereManifest,
+				iab: {
+					enabled: true,
+					gvl: { url: 'https://gvl.example/vendor-list', version: 42 },
+				},
+				policyPacks: [
+					createConsentManifestPolicyPack({
+						categories: ['*'],
+						id: 'everywhere-iab',
+						match: { isDefault: true },
+						model: 'iab',
+						prompt: 'choice',
+						scopeMode: 'strict',
+					}),
+				],
+			},
+		});
+
+		const response = await transport.init?.(initContext({ language: 'en' }));
+
+		expect(response?.adTechProviders).toEqual([]);
+	});
+
 	test('asks geoURL for a location the policy needs', async () => {
 		const fetchSpy = vi.fn<typeof fetch>((input) =>
 			Promise.resolve(

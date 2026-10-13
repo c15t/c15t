@@ -8,8 +8,8 @@
 import type { ConsentManifest, InitOutput } from '@c15t/schema/types';
 
 import {
-	adTechProviderReference,
 	fetchCachedAdTechProviders,
+	loadManifestAdTechProviders,
 } from './ad-tech-provider-cache';
 import { fetchCachedGvl } from './gvl-cache';
 import { c15tProtocolHeaders } from './version-header';
@@ -28,15 +28,11 @@ export const attachVendorList = async function attachVendorList(
 	manifest: ConsentManifest,
 	fetchImpl: typeof globalThis.fetch
 ): Promise<void> {
-	const providerReference = adTechProviderReference(manifest, output);
 	// No c15t headers: a plain GET stays a CORS simple request, so a provider
 	// list on another origin needs no preflight.
-	const providers = providerReference
-		? fetchCachedAdTechProviders({
-				fetch: fetchImpl,
-				reference: providerReference,
-			})
-		: undefined;
+	const providers = loadManifestAdTechProviders(manifest, output, (reference) =>
+		fetchCachedAdTechProviders({ fetch: fetchImpl, reference })
+	);
 	if (
 		manifest.iab?.gvl &&
 		output.policyResolution?.status === 'matched' &&

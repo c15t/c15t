@@ -336,7 +336,7 @@ describe('/init serves Additional Consent providers with the vendor list', () =>
 		assert.strictEqual(urls.length, 0);
 	});
 
-	it('leaves the field out when refused or unavailable', async () => {
+	it('sends an empty list when the deployment refuses or stops listing providers', async () => {
 		const refused = listServer();
 		const { body: off } = await buildInitResponse(
 			manifest,
@@ -346,9 +346,23 @@ describe('/init serves Additional Consent providers with the vendor list', () =>
 			undefined,
 			{ enabled: false, fetch: refused.fetch }
 		);
-		assert.isUndefined(off.adTechProviders);
+		assert.deepStrictEqual(off.adTechProviders, []);
 		assert.strictEqual(refused.urls.length, 0);
 
+		const removed = listServer();
+		const { body: unlisted } = await buildInitResponse(
+			{ ...manifest, iab: { cmpId: 53, enabled: true } },
+			berlin(),
+			undefined,
+			undefined,
+			undefined,
+			{ fetch: removed.fetch }
+		);
+		assert.deepStrictEqual(unlisted.adTechProviders, []);
+		assert.strictEqual(removed.urls.length, 0);
+	});
+
+	it('leaves the field out when the list is unavailable', async () => {
 		const { body: down } = await buildInitResponse(
 			manifest,
 			berlin(),

@@ -733,6 +733,15 @@ describe('Google Additional Consent providers', () => {
 		expect(await failed.json()).not.toHaveProperty('adTechProviders');
 		expect(calledURLs(optIn).some((url) => url.startsWith(AC_URL))).toBe(false);
 	});
+
+	test('are withdrawn with an empty list once the manifest stops listing them', async () => {
+		const response = await route({
+			fetch: withProviders(IAB_MANIFEST as unknown as ConsentManifest),
+			reportSessions: false,
+		})(request('/api/c15t/init'));
+		const body = (await response.json()) as InitOutput;
+		expect(body.adTechProviders).toEqual([]);
+	});
 });
 
 describe('vendor list', () => {
