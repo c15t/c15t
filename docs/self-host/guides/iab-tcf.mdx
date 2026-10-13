@@ -53,6 +53,14 @@ when `/init` resolves a matched IAB rule. Setting one does not configure the
 other. Both endpoints default to `https://gvl.inth.app`; if you run a different
 compatible endpoint, set `manifest.iab.endpoint` and `gvl.endpoint`.
 
+In manifest mode the browser fetches the list from `manifest.iab.endpoint`
+itself, usually from another origin. It sends a plain `GET` with only an
+`Accept-Language` header, so the request is a CORS simple request and the
+browser sends no `OPTIONS` preflight. It does not send `x-c15t-version` or
+`x-c15t-policy-contract`, so your endpoint must not require them. Answer with
+an `Access-Control-Allow-Origin` header that covers the sites using the
+manifest.
+
 Adding a `gvl` block turns on list loading. Every `/init` that matches an IAB
 rule then carries the list. Set `gvl.enabled: false` to keep the block but serve the
 list from somewhere else. If your rules resolve as IAB and there is no `gvl`
