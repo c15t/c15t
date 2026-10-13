@@ -344,6 +344,11 @@ const foldInitResponse = function foldInitResponse(
 			// Server receipts merge by newest confirmation per category so a
 			// local action made before init resolved is never overwritten.
 			Object.assign(patch, foldServerRecords(current, validated.records, now));
+			// Adopting stored records is not the visitor's choice: a dialog they
+			// opened while init was in flight stays open until they save.
+			if (current.activeUI === 'dialog') {
+				patch.activeUI = 'dialog';
+			}
 		} else {
 			recordIssues = validated.issues;
 		}

@@ -226,7 +226,9 @@ export const derivePrivacySignals = function derivePrivacySignals(
  *
  * An open dialog closes only for a choice. A policy, experiment or clock
  * re-evaluation leaves it open: the visitor may have opened it before init
- * resolved, and closing it would drop their click.
+ * resolved, and closing it would drop their click. Stored records that init
+ * adopts change the choice too, so the init fold keeps the dialog
+ * explicitly.
  */
 const deriveNextActiveUI = function deriveNextActiveUI(input: {
 	current: ConsentSnapshot;

@@ -270,7 +270,8 @@ describe('init folds translations', () => {
 
 describe('a dialog opened before init resolves', () => {
 	const openDuringInit = async function openDuringInit(
-		config: KernelConfig = {}
+		config: KernelConfig = {},
+		fields: Partial<InitResponse> = {}
 	) {
 		const response = Promise.withResolvers<InitResponse>();
 		const kernel = createConsentKernel({
@@ -284,27 +285,39 @@ describe('a dialog opened before init resolves', () => {
 		kernel.set.activeUI('dialog');
 		response.resolve({
 			policyResolution: { ...matchedResolution(optInRule()), version: 1 },
+			...fields,
 		});
 		await initialized;
 		return kernel;
 	};
 
-	test('stays open for a returning visitor', async () => {
+	/** A stored refusal of every category under the opt-in rule. */
+	const storedRefusal = function storedRefusal() {
 		const { fingerprint } = createConsentKernel({
 			initialPolicyResolution: matchedResolution(optInRule()),
 			now: NOW,
 		}).getSnapshot().evaluationPolicy.choice;
-		const kernel = await openDuringInit({
-			initialRecords: choiceRecords(
-				{
-					experience: false,
-					functionality: false,
-					marketing: false,
-					measurement: false,
-				},
-				{ fingerprint }
-			),
-		});
+		return choiceRecords(
+			{
+				experience: false,
+				functionality: false,
+				marketing: false,
+				measurement: false,
+			},
+			{ fingerprint }
+		);
+	};
+
+	test('stays open for a returning visitor', async () => {
+		const kernel = await openDuringInit({ initialRecords: storedRefusal() });
+		expect(kernel.getSnapshot().promptRequirement).toEqual({ kind: 'none' });
+		expect(kernel.getSnapshot().activeUI).toBe('dialog');
+		kernel.dispose();
+	});
+
+	test('stays open when init brings the stored records', async () => {
+		const kernel = await openDuringInit({}, { records: storedRefusal() });
+		expect(kernel.getSnapshot().explicitChoice).not.toBeNull();
 		expect(kernel.getSnapshot().promptRequirement).toEqual({ kind: 'none' });
 		expect(kernel.getSnapshot().activeUI).toBe('dialog');
 		kernel.dispose();
