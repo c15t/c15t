@@ -2,6 +2,7 @@ import 'server-only';
 import { c15tInstance } from '@c15t/backend';
 import { createUpstashRedisAdapter } from '@c15t/backend/cache';
 
+import { GET as getAdditionalConsentProviders } from '../app/api/additional-consent/route';
 import { DEMO_LEGAL_DOCUMENT_SNAPSHOT } from './demo-legal-document-snapshot';
 import {
 	DEMO_ADDITIONAL_CONSENT,
@@ -36,9 +37,20 @@ export const DEMO_TERMS_RELEASE = {
 	version: '2026-04-13',
 };
 
+/**
+ * Answers the backend's provider list requests with the playground's own
+ * route, in process. Fetching the route over the network would need an
+ * absolute URL, and building one from the request's host would let a forged
+ * `Host` header point the server's fetch anywhere. The base only lets the
+ * route parse the path; nothing is requested from it.
+ */
+const fetchDemoProviders = ((input: RequestInfo | URL) =>
+	getAdditionalConsentProviders(
+		new Request(new URL(String(input), 'http://playground.invalid'))
+	)) as typeof globalThis.fetch;
+
 export const createDemoInstance = function createDemoInstance(
-	scenario: string,
-	origin: string
+	scenario: string
 ) {
 	const gvlCache =
 		process.env.REDIS_URL && process.env.REDIS_TOKEN
@@ -67,9 +79,9 @@ export const createDemoInstance = function createDemoInstance(
 			iab: {
 				// Resolved server-side and served on /init, like the vendor list.
 				// The playground serves Google's list itself until
-				// gvl.inth.app does, and a server fetch needs an absolute URL.
+				// gvl.inth.app does; see `fetchDemoProviders`.
 				additionalConsent: {
-					endpoint: new URL(DEMO_ADDITIONAL_CONSENT.url, origin).toString(),
+					endpoint: DEMO_ADDITIONAL_CONSENT.url,
 					providers: DEMO_ADDITIONAL_CONSENT.providers,
 				},
 				cmpId: DEMO_CMP_ID,
@@ -90,6 +102,7 @@ export const createDemoInstance = function createDemoInstance(
 		// The cache attaches to GVL resolution, which is the only thing in the
 		// backend worth caching across instances.
 		gvl: { cache: gvlCache, vendorIds: DEMO_IAB_VENDOR_IDS },
+		additionalConsent: { fetch: fetchDemoProviders },
 	});
 };
 
