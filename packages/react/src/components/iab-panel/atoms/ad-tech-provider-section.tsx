@@ -65,11 +65,11 @@ export const AdTechProviderSection: FC<AdTechProviderSectionProps> = ({
 	);
 
 	return (
-		<div className={styles.vendorSection}>
-			<div className={styles.customVendorSectionHeader}>
-				<h3 className={styles.vendorSectionHeading}>
+		<div className={noStyle ? undefined : styles.vendorSection}>
+			<div className={noStyle ? undefined : styles.customVendorSectionHeader}>
+				<h3 className={noStyle ? undefined : styles.vendorSectionHeading}>
 					<svg
-						className={styles.vendorSectionIcon}
+						className={noStyle ? undefined : styles.vendorSectionIcon}
 						viewBox="0 0 24 24"
 						fill="none"
 						stroke="currentColor"
@@ -106,7 +106,7 @@ export const AdTechProviderSection: FC<AdTechProviderSectionProps> = ({
 					</svg>
 					{vendorList.adTechProvidersHeading} ({providers.length})
 				</h3>
-				<p className={styles.customVendorNotice}>
+				<p className={noStyle ? undefined : styles.customVendorNotice}>
 					{vendorList.adTechProvidersNotice}
 				</p>
 			</div>
@@ -120,17 +120,19 @@ export const AdTechProviderSection: FC<AdTechProviderSectionProps> = ({
 							className={noStyle ? undefined : styles.vendorListItem}
 						>
 							<div {...rowHeaderProps}>
-								<div className={styles.vendorListInfo}>
-									<h3 className={styles.vendorListName}>{provider.name}</h3>
-									<div className={styles.vendorListMeta}>
+								<div className={noStyle ? undefined : styles.vendorListInfo}>
+									<h3 className={noStyle ? undefined : styles.vendorListName}>
+										{provider.name}
+									</h3>
+									<div className={noStyle ? undefined : styles.vendorListMeta}>
 										<a
 											href={provider.policyUrl}
 											target="_blank"
 											rel="noopener noreferrer"
-											className={styles.vendorLink}
+											className={noStyle ? undefined : styles.vendorLink}
 										>
 											<svg
-												className={styles.vendorLinkIcon}
+												className={noStyle ? undefined : styles.vendorLinkIcon}
 												viewBox="0 0 24 24"
 												fill="none"
 												stroke="currentColor"
@@ -150,10 +152,12 @@ export const AdTechProviderSection: FC<AdTechProviderSectionProps> = ({
 										</a>
 									</div>
 								</div>
-								<div className={styles.vendorConsentControl}>
+								<div
+									className={noStyle ? undefined : styles.vendorConsentControl}
+								>
 									<Switch.Root
 										aria-label={`Consent for ${provider.name}`}
-										className={styles.vendorConsentSwitch}
+										className={noStyle ? undefined : styles.vendorConsentSwitch}
 										checked={consents[providerKey] ?? false}
 										onCheckedChange={(value) => onToggle?.(provider.id, value)}
 									/>
