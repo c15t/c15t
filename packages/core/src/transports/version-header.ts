@@ -19,15 +19,16 @@
  * requires CMPs to self-host the GVL rather than hotlink IAB's), so the
  * headers are safe and version-gated manifest serving stays possible.
  *
- * Browser `GET` requests are the exception. A browser on another origin
- * sends them as CORS simple requests, because a header would add an
- * `OPTIONS` preflight to every first visit. On `GET /init` the version and
- * the contract travel as the `v` and `contract` query parameters instead
- * ({@link c15tProtocolParams}); the backend reads the parameter first and
- * the header second. The browser's GVL fetch carries neither, because the
- * vendor list host doesn't read them. Other requests keep the headers:
- * `/subjects` is a JSON `POST` and is preflighted anyway, and server-side
- * requests have no CORS.
+ * Two browser `GET` requests are the exception: `GET /init` and the GVL
+ * fetch. A browser on another origin sends them as CORS simple requests,
+ * because a header would add an `OPTIONS` preflight to every first visit.
+ * On `GET /init` the version and the contract travel as the `v` and
+ * `contract` query parameters instead ({@link c15tProtocolParams}); the
+ * backend reads the parameter first and the header second. The browser's
+ * GVL fetch carries neither, because the vendor list host doesn't read
+ * them. Other requests keep the headers: the browser's manifest fetch
+ * needs them for version-gated serving, `/subjects` is a JSON `POST` and
+ * is preflighted anyway, and server-side requests have no CORS.
  */
 import {
 	POLICY_CONTRACT_HEADER,
