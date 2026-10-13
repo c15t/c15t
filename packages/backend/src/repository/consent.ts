@@ -343,6 +343,35 @@ export const assertSameVendors = Effect.fn('consent.assertSameVendors')(
 );
 
 /**
+ * The AC string stored on an existing row must match the one resubmitted.
+ * Same hazard as the vendor map, and the same one asymmetry: a stored row
+ * with no AC string against a replay that carries one. The row can have been
+ * written before migration 9 or by a process that did not yet carry the
+ * column, so that replay is accepted as the same act and the row keeps no
+ * AC string. A stored AC string against a replay without one, or with a
+ * different one, stays a conflict.
+ *
+ * @internal
+ */
+export const assertSameAdditionalConsent = Effect.fn(
+	'consent.assertSameAdditionalConsent'
+)(function* assertSameAdditionalConsent(
+	stored: unknown,
+	submitted: string | null | undefined
+) {
+	const incoming = submitted ?? null;
+	if (stored === incoming || ((stored ?? null) === null && incoming)) {
+		return;
+	}
+	return yield* new ConsentPurposeConflictError({
+		message:
+			'A consent with this identity was already recorded with a different ' +
+			'Additional Consent string. Withdraw or supersede it rather than ' +
+			'resubmitting the same act with a different ad tech provider decision.',
+	});
+});
+
+/**
  * Every content check against a stored row, for the two paths that find
  * one.
  *
@@ -351,7 +380,12 @@ export const assertSameVendors = Effect.fn('consent.assertSameVendors')(
 export const assertSameSubmission = Effect.fn('consent.assertSameSubmission')(
 	function* assertSameSubmission(
 		stored:
-			| { purposeIds: unknown; choice: unknown; vendorChoice: unknown }
+			| {
+					addtlConsent: unknown;
+					purposeIds: unknown;
+					choice: unknown;
+					vendorChoice: unknown;
+			  }
 			| undefined,
 		submission: ConsentSubmission
 	) {
@@ -376,6 +410,10 @@ export const assertSameSubmission = Effect.fn('consent.assertSameSubmission')(
 			yield* assertSameChoice(stored?.choice, submission.choice);
 		}
 		yield* assertSameVendors(stored?.vendorChoice, submission.vendorChoice);
+		yield* assertSameAdditionalConsent(
+			stored?.addtlConsent,
+			submission.addtlConsent
+		);
 	}
 );
 
@@ -438,11 +476,12 @@ export const record = Effect.fn('consent.record')(function* record(
 	// straight to the legacy lookup made retries about twice as slow.
 	const existing = yield* sql<{
 		id: string;
+		addtlConsent: unknown;
 		purposeIds: unknown;
 		choice: unknown;
 		vendorChoice: unknown;
 	}>`
-		select ${sql('id')}, ${sql('purposeIds')}, ${sql('choice')}, ${sql('vendorChoice')}
+		select ${sql('id')}, ${sql('purposeIds')}, ${sql('choice')}, ${sql('vendorChoice')}, ${sql('addtlConsent')}
 		from ${sql('consent')}
 		where ${sql('id')} = ${id}
 	`;
@@ -491,11 +530,12 @@ export const record = Effect.fn('consent.record')(function* record(
 	// case a deterministic key makes possible, so it is checked rather than
 	// reasoned about.
 	const winner = yield* sql<{
+		addtlConsent: unknown;
 		purposeIds: unknown;
 		choice: unknown;
 		vendorChoice: unknown;
 	}>`
-		select ${sql('purposeIds')}, ${sql('choice')}, ${sql('vendorChoice')}
+		select ${sql('purposeIds')}, ${sql('choice')}, ${sql('vendorChoice')}, ${sql('addtlConsent')}
 		from ${sql('consent')}
 		where ${sql('id')} = ${id}
 	`;

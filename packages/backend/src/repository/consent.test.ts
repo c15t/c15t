@@ -21,6 +21,7 @@ import { up as verifiedExternalId } from '../db/migrations/8-verified-external-i
 import { up as additionalConsent } from '../db/migrations/9-additional-consent';
 import { singleTenant } from '../db/tenant';
 import {
+	assertSameAdditionalConsent,
 	assertSamePurposes,
 	assertSameSubmission,
 	assertSameVendors,
@@ -264,6 +265,7 @@ describe('assertSameSubmission against a row with no receipts', () => {
 		purposeIds: ['a', 'b'],
 	};
 	const row = (purposeIds: unknown) => ({
+		addtlConsent: null,
 		choice: null,
 		purposeIds,
 		vendorChoice: null,
@@ -471,6 +473,70 @@ describe('consent.record with vendor grants', () => {
 						typeof kept === 'string' ? JSON.parse(kept) : (kept ?? null)
 					);
 				}
+			}).pipe(Effect.provide(Pglite)),
+		{ timeout: 60_000 }
+	);
+});
+
+describe('assertSameAdditionalConsent', () => {
+	const run = <A>(effect: Effect.Effect<A, unknown, never>) =>
+		Effect.runPromise(Effect.result(effect));
+	const ac = '2~89~dv.2572';
+
+	it('accepts the same AC string, or none on both sides', async () => {
+		assert.strictEqual(
+			(await run(assertSameAdditionalConsent(ac, ac)))._tag,
+			'Success'
+		);
+		assert.strictEqual(
+			(await run(assertSameAdditionalConsent(null, undefined)))._tag,
+			'Success'
+		);
+	});
+
+	it('refuses a different AC string, or a replay without one', async () => {
+		assert.strictEqual(
+			(await run(assertSameAdditionalConsent(ac, '2~~dv.89.2572')))._tag,
+			'Failure'
+		);
+		assert.strictEqual(
+			(await run(assertSameAdditionalConsent(ac, null)))._tag,
+			'Failure'
+		);
+	});
+
+	it('accepts a replay carrying an AC string against a row without one', async () => {
+		// A row written before migration 9, met by the queued save's replay.
+		assert.strictEqual(
+			(await run(assertSameAdditionalConsent(null, ac)))._tag,
+			'Success'
+		);
+	});
+});
+
+describe('consent.record with an AC string', () => {
+	it.effect(
+		'refuses a retry that changed the AC string',
+		() =>
+			Effect.gen(function* gen() {
+				yield* setup;
+				const withAc = { ...submission, addtlConsent: '2~89~dv.2572' };
+				const first = yield* record(withAc);
+				assert.isTrue(first.created);
+
+				const retry = yield* record(withAc);
+				assert.isFalse(retry.created);
+				assert.strictEqual(retry.id, first.id);
+
+				const changed = yield* Effect.result(
+					record({ ...withAc, addtlConsent: '2~~dv.89.2572' })
+				);
+				assert.strictEqual(changed._tag, 'Failure');
+				const dropped = yield* Effect.result(
+					record({ ...withAc, addtlConsent: null })
+				);
+				assert.strictEqual(dropped._tag, 'Failure');
+				assert.strictEqual(yield* countConsents(), 1);
 			}).pipe(Effect.provide(Pglite)),
 		{ timeout: 60_000 }
 	);
