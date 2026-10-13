@@ -11,7 +11,7 @@ Use Bun 1.3.11 and Node.js 24 or later for release tooling. On a feature branch,
 set `RELEASE_BRANCH` to the PR target:
 
 ```sh
-RELEASE_BRANCH=v3 bun run tegami
+RELEASE_BRANCH=canary bun run tegami
 ```
 
 Or add `.tegami/YYYY-MM-DD-description.md` with explicit package bumps and a
@@ -35,20 +35,21 @@ changelogs and `.tegami/publish-lock.yaml` are outputs; do not edit them.
 
 ## Release channels
 
-| Branch | npm tag | Workflow |
+| Branch | npm tag | Versions |
 | --- | --- | --- |
-| `main` | `latest` | Version PR, then stable publication |
-| `v3` | `alpha` | Version PR, then `3.0.0-alpha.N` publication |
-| `2.0.0` | `rc` | Version PR, then RC publication |
-| `canary` | `canary` | Publish snapshots directly for each commit |
+| `main` | `latest` | Stable, such as `3.1.0` |
+| `canary` | `canary` | Prerelease, such as `3.1.0-canary.2` |
 
-Stable, alpha, and RC use separate `tegami/version-packages-<branch>` PR branches.
-CI runs `bun run tegami ci`. Pending notes produce a version PR containing
-manifests, dependency updates, the Bun lockfile, changelogs, and the publish lock.
-Merging the version PR triggers publication. The CLI wrapper checks for an
-unfinished publish lock before running `ci` and publishes that lock first,
-leaving any newer notes for the next run. A failed retry preserves the lock.
-Tegami's upstream `ci` command skips this check, so use `bun run tegami ci`.
+Both branches release the same way. A push runs `bun run tegami ci`, which opens
+or updates a version PR on `tegami/version-packages-<branch>` when release notes
+are pending. The PR contains manifests, dependency updates, the Bun lockfile,
+changelogs, and the publish lock. Merging it publishes. Pushes without pending
+notes or an unfinished lock do nothing.
+
+The CLI wrapper checks for an unfinished publish lock before running `ci` and
+publishes that lock first, leaving any newer notes for the next run. A failed
+retry preserves the lock. Tegami's upstream `ci` command skips this check, so
+use `bun run tegami ci`.
 
 To release without the CI suites, manually run `release.yml` on the release
 branch with `skip_tests` enabled:
@@ -66,11 +67,11 @@ The version hook explicitly refreshes workspace versions in `bun.lock`. Bun
 1.3.11 leaves them stale after version-only manifest changes, even when running
 `bun install --lockfile-only`. Packing uses the refreshed dependency versions.
 
-Canary versions include the full source commit SHA, for example
-`3.0.0-canary-<sha>.0`. Every public package gets a snapshot on each canary push,
-including pushes without release notes. Retrying the same source commit computes
-the same versions. Canary disables version PRs and replaces any publish lock
-inherited from another branch. Its temporary versions and notes are not committed.
+Canary versions count up from the stable version. A patch note on `3.0.0`
+produces `3.0.1-canary.0`, and later patch notes produce `3.0.1-canary.1` and so
+on. A bigger change raises the base: a minor note after `3.0.1-canary.1` produces
+`3.1.0-canary.0`, and a major note produces `4.0.0-canary.0`. Packages without
+notes keep their current version, even when it is stable.
 
 `scripts/tegami.ts` keeps the existing linked package list. Selected linked
 packages use the group's highest version and bump type; unchanged members do not
@@ -90,7 +91,8 @@ the release. Bun packs each package, resolves
 OIDC authentication. Existing package `prepack` checks still run.
 
 The publish lock records the release branch and exact package versions. Publishing
-rejects a mismatched branch, version, or npm tag. Only `main` uses `latest`.
+rejects a lock from another branch until it finishes, and rejects a mismatched
+version or npm tag. Only `main` uses `latest`.
 Keep publishing in `release.yml`; moving it to another top-level workflow changes
 the identity npm trusts. New package names still need npm trusted publishing set
 up for `c15t/c15t`, workflow `release.yml`, before their first release.
@@ -126,22 +128,21 @@ Do not hand-edit `.agents/skills/c15t/SKILL.md` here.
 To inspect a release, use a disposable checkout:
 
 ```sh
-RELEASE_BRANCH=v3 bun run tegami version
-RELEASE_BRANCH=v3 bun run tegami publish --dry-run
+RELEASE_BRANCH=canary bun run tegami version
+RELEASE_BRANCH=canary bun run tegami publish --dry-run
 ```
 
 Versioning changes files. The publish dry run validates the plan and queries
 registry/tag status without uploading packages or running the build hook.
 
-## Alpha migration
+## Promote canary to stable
 
-The Changesets migration preserves the existing `3.0.0-alpha.N` versions.
-Unconsumed changesets become ordinary Tegami notes. Consumed alpha notes become
-replay-only entries, so they do not cause another alpha bump and appear again
-when their package graduates to stable. Keep replay entries until Tegami removes
-them. New alpha notes acquire the same replay behavior automatically.
+Merge `canary` into `main` once the canary version PR has published. Tegami
+records published canary notes as replay-only entries. They do not cause
+another bump on canary, and they appear again in the changelog when their
+package graduates to stable on `main`. Keep replay entries until Tegami removes
+them. The notes from the Changesets migration and the `3.0.0-alpha.N` line work
+the same way.
 
-Moving an alpha release to `main` removes the prerelease identifier and replays
-its notes. Test that draft in a disposable checkout before merging the release
-line. Switching to beta requires a coordinated change to the release configuration
-and its version checks.
+Test a promotion draft in a disposable checkout with `RELEASE_BRANCH=main`
+before merging.

@@ -30,7 +30,6 @@ import {
 
 const roots: string[] = [];
 const repository = fileURLToPath(new URL('..', import.meta.url));
-const commit = 'a'.repeat(40);
 
 interface Manifest {
 	name: string;
@@ -90,8 +89,8 @@ const readManifest = function readManifest(
 	);
 };
 
-const release = function release(root: string, branch = 'v3') {
-	return createRelease({ branch, commit, cwd: root, github: false });
+const release = function release(root: string, branch = 'canary') {
+	return createRelease({ branch, cwd: root, github: false });
 };
 
 afterEach(() => {
@@ -105,25 +104,22 @@ afterEach(() => {
 describe('release channels', () => {
 	it.each([
 		['main', 'latest', undefined],
-		['v3', 'alpha', 'alpha'],
-		['2.0.0', 'rc', 'rc'],
-		['canary', 'canary', `canary-${commit}`],
+		['canary', 'canary', 'canary'],
 	])('maps %s to the %s npm tag', (branch, distTag, prerelease) => {
-		expect(releaseLine(branch, commit)).toEqual({ distTag, prerelease });
+		expect(releaseLine(branch)).toEqual({ distTag, prerelease });
 	});
-	it('rejects unknown branches and missing snapshot identities', () => {
-		expect(() => releaseLine('feature/test')).toThrow(
-			'Unsupported release branch'
-		);
-		expect(() => releaseLine('canary')).toThrow('commit SHA');
-	});
+	it.each(['feature/test', 'v3', '2.0.0'])(
+		'rejects the unsupported branch %s',
+		(branch) => {
+			expect(() => releaseLine(branch)).toThrow('Unsupported release branch');
+		}
+	);
 	it.each([
-		['v3', '3.0.0'],
-		['v3', '4.0.0-alpha.0'],
-		['v3', '3.0.0-rc.0'],
-		['main', '3.0.0-alpha.1'],
-		['2.0.0', '3.0.0'],
 		['canary', '3.0.0'],
+		['canary', '3.1.0-alpha.0'],
+		['canary', `3.0.1-canary-${'a'.repeat(40)}.0`],
+		['main', '3.1.0-canary.1'],
+		['v3', '3.0.0-alpha.1'],
 	])('rejects %s publishing %s', (branch, version) => {
 		expect(() => checkReleaseVersion(branch, version)).toThrow(
 			'not a valid release'
@@ -132,16 +128,16 @@ describe('release channels', () => {
 });
 
 describe('linked and independent versioning', () => {
-	it('aligns selected packages with the highest linked alpha and bumps dependents', async () => {
+	it('aligns selected packages with the highest linked canary and bumps dependents', async () => {
 		const root = fixture([
-			{ name: '@c15t/core', version: '3.0.0-alpha.1' },
-			{ name: '@c15t/backend', version: '3.0.0-alpha.5' },
-			{ name: '@c15t/translations', version: '3.0.0-alpha.0' },
-			{ name: '@c15t/logger', version: '3.0.0-alpha.0' },
+			{ name: '@c15t/core', version: '3.0.0-canary.1' },
+			{ name: '@c15t/backend', version: '3.0.0-canary.5' },
+			{ name: '@c15t/translations', version: '3.0.0-canary.0' },
+			{ name: '@c15t/logger', version: '3.0.0-canary.0' },
 			{
 				dependencies: { '@c15t/core': 'workspace:*' },
 				name: '@c15t/react',
-				version: '3.0.0-alpha.1',
+				version: '3.0.0-canary.1',
 			},
 			{
 				dependencies: { '@c15t/core': 'workspace:*' },
@@ -152,35 +148,35 @@ describe('linked and independent versioning', () => {
 		]);
 		change(root, { '@c15t/core': 'patch', '@c15t/logger': 'patch' });
 		await (await release(root).draft()).apply();
-		expect(readManifest(root, 'core').version).toBe('3.0.0-alpha.6');
-		expect(readManifest(root, 'react').version).toBe('3.0.0-alpha.6');
-		expect(readManifest(root, 'backend').version).toBe('3.0.0-alpha.5');
-		expect(readManifest(root, 'translations').version).toBe('3.0.0-alpha.0');
-		expect(readManifest(root, 'logger').version).toBe('3.0.0-alpha.1');
+		expect(readManifest(root, 'core').version).toBe('3.0.0-canary.6');
+		expect(readManifest(root, 'react').version).toBe('3.0.0-canary.6');
+		expect(readManifest(root, 'backend').version).toBe('3.0.0-canary.5');
+		expect(readManifest(root, 'translations').version).toBe('3.0.0-canary.0');
+		expect(readManifest(root, 'logger').version).toBe('3.0.0-canary.1');
 		expect(readManifest(root, 'private').version).toBe('1.0.0');
 		expect(readManifest(root, 'react').dependencies).toEqual({
 			'@c15t/core': 'workspace:*',
 		});
 		expect((await release(root).draft()).hasPending()).toBe(false);
-		change(root, { '@c15t/translations': 'major' }, 'next-alpha');
+		change(root, { '@c15t/translations': 'major' }, 'next-canary');
 		await (await release(root).draft()).apply();
-		expect(readManifest(root, 'translations').version).toBe('3.0.0-alpha.7');
+		expect(readManifest(root, 'translations').version).toBe('3.0.0-canary.7');
 	});
 
 	it('releases @c15t/integrations on the linked version of the core it depends on', async () => {
 		const root = fixture([
-			{ name: 'c15t', version: '3.0.0-alpha.9' },
-			{ name: '@c15t/core', version: '3.0.0-alpha.9' },
+			{ name: 'c15t', version: '3.0.0-canary.9' },
+			{ name: '@c15t/core', version: '3.0.0-canary.9' },
 			{
 				dependencies: { '@c15t/core': 'workspace:*' },
 				name: '@c15t/integrations',
-				version: '3.0.0-alpha.8',
+				version: '3.0.0-canary.8',
 			},
 		]);
 		change(root, { '@c15t/core': 'patch' });
 		await (await release(root).draft()).apply();
-		expect(readManifest(root, 'core').version).toBe('3.0.0-alpha.10');
-		expect(readManifest(root, 'integrations').version).toBe('3.0.0-alpha.10');
+		expect(readManifest(root, 'core').version).toBe('3.0.0-canary.10');
+		expect(readManifest(root, 'integrations').version).toBe('3.0.0-canary.10');
 	});
 
 	it('uses the highest stable bump regardless of changelog order', async () => {
@@ -215,8 +211,8 @@ describe('linked and independent versioning', () => {
 });
 
 describe('prereleases and migrated notes', () => {
-	it('keeps consumed notes without another alpha bump and replays them at stable', async () => {
-		const root = fixture([{ name: '@c15t/core', version: '3.0.0-alpha.1' }]);
+	it('keeps consumed notes without another canary bump and replays them at stable', async () => {
+		const root = fixture([{ name: '@c15t/core', version: '3.0.0-canary.1' }]);
 		change(
 			root,
 			{ '@c15t/core': { replay: ['exit-prerelease(@c15t/core)'] } },
@@ -225,20 +221,20 @@ describe('prereleases and migrated notes', () => {
 		expect((await release(root).draft()).hasPending()).toBe(false);
 		change(root, { '@c15t/core': 'patch' }, 'new-fix');
 		await (await release(root).draft()).apply();
-		expect(readManifest(root, 'core').version).toBe('3.0.0-alpha.2');
-		const alphaLog = readFileSync(
+		expect(readManifest(root, 'core').version).toBe('3.0.0-canary.2');
+		const canaryLog = readFileSync(
 			join(root, 'packages/core/CHANGELOG.md'),
 			'utf8'
 		);
-		expect(alphaLog).toContain('new-fix');
-		expect(alphaLog).not.toContain('already-released');
+		expect(canaryLog).toContain('new-fix');
+		expect(canaryLog).not.toContain('already-released');
 		await (await release(root, 'main').draft()).apply();
 		expect(readManifest(root, 'core').version).toBe('3.0.0');
 		const stableLog = readFileSync(
 			join(root, 'packages/core/CHANGELOG.md'),
 			'utf8'
 		);
-		expect(stableLog.split('## 3.0.0-alpha.2')[0]).toContain(
+		expect(stableLog.split('## 3.0.0-canary.2')[0]).toContain(
 			'already-released'
 		);
 		expect(stableLog).toContain('new-fix');
@@ -246,55 +242,53 @@ describe('prereleases and migrated notes', () => {
 		expect((await release(root, 'main').draft()).hasPending()).toBe(false);
 	});
 
-	it('advances RCs without moving to latest', async () => {
-		const root = fixture([{ name: '@c15t/core', version: '2.0.0-rc.4' }]);
-		change(root, { '@c15t/core': 'minor' });
-		await (await release(root, '2.0.0').draft()).apply();
-		expect(readManifest(root, 'core').version).toBe('2.0.0-rc.5');
-		expect(
-			readFileSync(join(root, '.tegami/publish-lock.yaml'), 'utf8')
-		).toContain('distTag: rc');
-	});
-
-	it('creates repeatable canary snapshots unique to each commit', async () => {
-		const manifests = [{ name: '@c15t/core', version: '3.0.0-alpha.1' }];
-		const root = fixture(manifests);
-		const retry = fixture(manifests);
-		const next = fixture(manifests);
-		await (await release(root, 'canary').draft()).apply();
-		await (await release(retry, 'canary').draft()).apply();
-		await (
-			await createRelease({
-				branch: 'canary',
-				commit: 'b'.repeat(40),
-				cwd: next,
-				github: false,
-			}).draft()
-		).apply();
-		expect(readManifest(root, 'core').version).toBe(`3.0.0-canary-${commit}.0`);
-		expect(readManifest(retry, 'core').version).toBe(
-			readManifest(root, 'core').version
-		);
-		expect(readManifest(next, 'core').version).not.toBe(
-			readManifest(root, 'core').version
-		);
-		expect(
-			readFileSync(join(root, '.tegami/publish-lock.yaml'), 'utf8')
-		).toContain('distTag: canary');
-	});
-
-	it('snapshots every public package from a stable baseline without pending notes', async () => {
+	it('raises the base version when a bigger change follows a prerelease', async () => {
 		const root = fixture([
 			{ name: '@c15t/core', version: '3.0.0' },
 			{ name: '@c15t/logger', version: '2.1.0' },
-			{ name: '@c15t/private', private: true, version: '1.0.0' },
 		]);
-		await (await release(root, 'canary').draft()).apply();
-		expect(readManifest(root, 'core').version).toBe(`3.0.1-canary-${commit}.0`);
-		expect(readManifest(root, 'logger').version).toBe(
-			`2.1.1-canary-${commit}.0`
+		const steps = [
+			['patch', '3.0.1-canary.0', '2.1.1-canary.0'],
+			['minor', '3.1.0-canary.0', '2.2.0-canary.0'],
+			['patch', '3.1.0-canary.1', '2.2.0-canary.1'],
+			['major', '4.0.0-canary.0', '3.0.0-canary.0'],
+			['minor', '4.0.0-canary.1', '3.0.0-canary.1'],
+		];
+		for (const [index, [type, core, logger]] of steps.entries()) {
+			change(
+				root,
+				{ '@c15t/core': type, '@c15t/logger': type },
+				`step-${index}`
+			);
+			// oxlint-disable-next-line no-await-in-loop -- Each step versions the previous one's output.
+			await (await release(root).draft()).apply();
+			expect(readManifest(root, 'core').version).toBe(core);
+			expect(readManifest(root, 'logger').version).toBe(logger);
+		}
+		expect(
+			readFileSync(join(root, '.tegami/publish-lock.yaml'), 'utf8')
+		).toContain('distTag: canary');
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(() =>
+				Promise.resolve(
+					Response.json({
+						versions: { '3.0.0-canary.1': {}, '4.0.0-canary.1': {} },
+					})
+				)
+			)
 		);
-		expect(readManifest(root, 'private').version).toBe('1.0.0');
+		change(root, { '@c15t/core': 'patch' }, 'stable-fix');
+		await (await release(root, 'main').draft()).apply();
+		expect(readManifest(root, 'core').version).toBe('4.0.0');
+		expect(
+			readFileSync(join(root, '.tegami/publish-lock.yaml'), 'utf8')
+		).toContain('distTag: latest');
+	});
+
+	it('leaves canary alone until a release note arrives', async () => {
+		const root = fixture([{ name: '@c15t/core', version: '3.0.0' }]);
+		expect((await release(root).draft()).hasPending()).toBe(false);
 	});
 });
 
@@ -302,17 +296,20 @@ describe('publish plan validation', () => {
 	it.each(['branch', 'version', 'tag', 'latest', 'missing'])(
 		'rejects a mismatched %s before querying registries',
 		async (kind) => {
-			const root = fixture([{ name: '@c15t/core', version: '3.0.0-alpha.1' }]);
+			const root = fixture([{ name: '@c15t/core', version: '3.0.0-canary.1' }]);
 			change(root, { '@c15t/core': 'patch' });
 			await (await release(root).draft()).apply();
 			const path = join(root, '.tegami/publish-lock.yaml');
 			let lock = readFileSync(path, 'utf8');
 			if (kind === 'branch') {
-				lock = lock.replace('branch: v3', 'branch: main');
+				lock = lock.replace('branch: canary', 'branch: main');
 			} else if (kind === 'version') {
-				lock = lock.replace('version: 3.0.0-alpha.2', 'version: 3.0.0-alpha.3');
+				lock = lock.replace(
+					'version: 3.0.0-canary.2',
+					'version: 3.0.0-canary.3'
+				);
 			} else if (kind === 'tag') {
-				lock = lock.replace('distTag: alpha', 'distTag: latest');
+				lock = lock.replace('distTag: canary', 'distTag: latest');
 			} else if (kind === 'latest') {
 				lock += '\nnpm:mark-latest:\n  - id: npm:@c15t/core\n';
 			} else {
@@ -327,14 +324,14 @@ describe('publish plan validation', () => {
 		}
 	);
 
-	it('allows a completed alpha lock to be inspected before stable graduation', async () => {
-		const root = fixture([{ name: '@c15t/core', version: '3.0.0-alpha.1' }]);
+	it('allows a completed canary lock to be inspected before stable graduation', async () => {
+		const root = fixture([{ name: '@c15t/core', version: '3.0.0-canary.1' }]);
 		change(root, { '@c15t/core': 'patch' });
 		await (await release(root).draft()).apply();
 		vi.stubGlobal(
 			'fetch',
 			vi.fn(() =>
-				Promise.resolve(Response.json({ versions: { '3.0.0-alpha.2': {} } }))
+				Promise.resolve(Response.json({ versions: { '3.0.0-canary.2': {} } }))
 			)
 		);
 		expect((await release(root, 'main').getPublishStatus()).status).toBe(
@@ -344,8 +341,8 @@ describe('publish plan validation', () => {
 		expect(readManifest(root, 'core').version).toBe('3.0.0');
 	});
 
-	it('refuses to publish an unfinished alpha lock on main, including dry runs', async () => {
-		const root = fixture([{ name: '@c15t/core', version: '3.0.0-alpha.1' }]);
+	it('refuses to publish an unfinished canary lock on main, including dry runs', async () => {
+		const root = fixture([{ name: '@c15t/core', version: '3.0.0-canary.1' }]);
 		change(root, { '@c15t/core': 'patch' });
 		await (await release(root).draft()).apply();
 		vi.stubGlobal(
@@ -361,8 +358,7 @@ describe('publish plan validation', () => {
 describe('CI release retries', () => {
 	it.each([
 		['main', '1.0.0'],
-		['v3', '3.0.0-alpha.1'],
-		['2.0.0', '2.0.0-rc.1'],
+		['canary', '3.0.0-canary.1'],
 	])(
 		'preserves the pending %s release when new notes arrive',
 		async (branch, version) => {
@@ -393,7 +389,7 @@ describe('CI release retries', () => {
 	);
 
 	it('versions new notes once the pending release is published', async () => {
-		const root = fixture([{ name: '@c15t/core', version: '3.0.0-alpha.1' }]);
+		const root = fixture([{ name: '@c15t/core', version: '3.0.0-canary.1' }]);
 		change(root, { '@c15t/core': 'patch' }, 'original');
 		await (await release(root).draft()).apply();
 		const pendingVersion = readManifest(root, 'core').version;
@@ -427,12 +423,12 @@ describe('CI release retries', () => {
 describe('publishing through npm', () => {
 	const publishFixture = function publishFixture(fail?: 'build' | 'artifacts') {
 		const root = fixture([
-			{ files: ['dist'], name: '@c15t/logger', version: '3.0.0-alpha.0' },
+			{ files: ['dist'], name: '@c15t/logger', version: '3.0.0-canary.0' },
 			{
 				dependencies: { '@c15t/logger': 'workspace:*' },
 				files: ['dist'],
 				name: '@c15t/core',
-				version: '3.0.0-alpha.1',
+				version: '3.0.0-canary.1',
 			},
 		]);
 		write(
@@ -503,7 +499,7 @@ appendFileSync(process.env.C15T_PUBLISH_LOG, JSON.stringify({ args: process.argv
 			'publish-fixture.ts',
 			`import { createRelease, runReleaseCli } from ${JSON.stringify(join(repository, 'scripts/tegami.ts'))};
 globalThis.fetch = async () => new Response(null, { status: 404 });
-await runReleaseCli(createRelease({ branch: 'v3', cwd: process.cwd(), github: false }), ['ci']);`
+await runReleaseCli(createRelease({ branch: 'canary', cwd: process.cwd(), github: false }), ['ci']);`
 		);
 		const env = {
 			...process.env,
@@ -537,7 +533,7 @@ await runReleaseCli(createRelease({ branch: 'v3', cwd: process.cwd(), github: fa
 		await (await release(root).draft()).apply();
 		change(root, { '@c15t/core': 'patch' }, 'later');
 		expect(readFileSync(join(root, 'bun.lock'), 'utf8')).toContain(
-			'3.0.0-alpha.0'
+			'3.0.0-canary.0'
 		);
 		publishInIsolation(root);
 		expect(
@@ -555,7 +551,7 @@ await runReleaseCli(createRelease({ branch: 'v3', cwd: process.cwd(), github: fa
 			JSON.parse(readFileSync(join(root, 'artifact-scope.json'), 'utf8')).sort()
 		).toEqual(['--built', '@c15t/core', '@c15t/logger']);
 		expect(readFileSync(join(root, 'bun.lock'), 'utf8')).not.toContain(
-			'3.0.0-alpha.0'
+			'3.0.0-canary.0'
 		);
 		const uploads = readFileSync(join(root, 'uploads.jsonl'), 'utf8')
 			.trim()
@@ -567,22 +563,22 @@ await runReleaseCli(createRelease({ branch: 'v3', cwd: process.cwd(), github: fa
 					'publish',
 					join(root, 'packages/logger/pkg.tgz'),
 					'--tag',
-					'alpha',
+					'canary',
 				],
 				name: '@c15t/logger',
 				provenance: 'true',
-				version: '3.0.0-alpha.1',
+				version: '3.0.0-canary.1',
 			},
 			{
 				args: [
 					'publish',
 					join(root, 'packages/core/pkg.tgz'),
 					'--tag',
-					'alpha',
+					'canary',
 				],
 				name: '@c15t/core',
 				provenance: 'true',
-				version: '3.0.0-alpha.2',
+				version: '3.0.0-canary.2',
 			},
 		]);
 		const packed: Manifest = JSON.parse(
@@ -592,7 +588,7 @@ await runReleaseCli(createRelease({ branch: 'v3', cwd: process.cwd(), github: fa
 				{ encoding: 'utf8' }
 			)
 		);
-		expect(packed.dependencies).toEqual({ '@c15t/logger': '3.0.0-alpha.1' });
+		expect(packed.dependencies).toEqual({ '@c15t/logger': '3.0.0-canary.1' });
 		expect(readManifest(root, 'core').dependencies).toEqual({
 			'@c15t/logger': 'workspace:*',
 		});
@@ -659,8 +655,8 @@ const versionPrBody = async function versionPrBody(root: string) {
 describe('version PR body', () => {
 	it('lists each bumped version and release note', async () => {
 		const root = fixture([
-			{ name: '@c15t/core', version: '3.0.0-alpha.2' },
-			{ name: '@c15t/react', version: '3.0.0-alpha.2' },
+			{ name: '@c15t/core', version: '3.0.0-canary.2' },
+			{ name: '@c15t/react', version: '3.0.0-canary.2' },
 		]);
 		change(root, { '@c15t/core': { type: 'minor' } }, 'core-change');
 		change(root, { '@c15t/react': { type: 'patch' } }, 'react-change');
@@ -668,7 +664,7 @@ describe('version PR body', () => {
 		const body = await versionPrBody(root);
 
 		expect(body).toContain(
-			'| `@c15t/core` | `3.0.0-alpha.2` | `3.0.0-alpha.3` |'
+			'| `@c15t/core` | `3.0.0-canary.2` | `3.0.0-canary.3` |'
 		);
 		expect(body).toContain('- **core-change** (`core-change.md`): @c15t/core');
 		expect(body).toContain(
@@ -677,7 +673,7 @@ describe('version PR body', () => {
 	});
 
 	it('drops note lines past GitHub’s size limit and says how many', async () => {
-		const root = fixture([{ name: '@c15t/core', version: '3.0.0-alpha.2' }]);
+		const root = fixture([{ name: '@c15t/core', version: '3.0.0-canary.2' }]);
 		// 300 notes with 200-character titles render well past 65,536 characters.
 		for (let index = 0; index < 300; index += 1) {
 			change(
@@ -692,41 +688,48 @@ describe('version PR body', () => {
 		expect(body.length).toBeLessThanOrEqual(versionPrBodyLimit);
 		expect(body).toMatch(/- …and \d+ more release notes\./u);
 		expect(body).toContain(
-			'| `@c15t/core` | `3.0.0-alpha.2` | `3.0.0-alpha.3` |'
+			'| `@c15t/core` | `3.0.0-canary.2` | `3.0.0-canary.3` |'
 		);
 	});
 });
 
-it('drafts the real workspace without bumping private packages or leaving its release channel', async () => {
-	const root = realWorkspace();
-	const branch = readManifest(root, 'c15t').version?.includes('-alpha.')
-		? 'v3'
-		: 'main';
-	const draft = await release(root, branch).draft();
-	const notes = readdirSync(join(root, '.tegami')).filter(
-		(file) => file.endsWith('.md') && file !== 'README.md'
-	);
-	// Tegami silently ignores malformed note files. Check that none were lost.
-	expect(draft.getChangelogs()).toHaveLength(notes.length);
-	await draft.apply();
-	const directories = readdirSync(join(root, 'packages'));
-	const manifests = directories.map((directory) =>
-		readManifest(root, directory)
-	);
-	// Private packages may carry a placeholder version so published packages
-	// can pack their workspace devDependencies. Tegami must leave it alone.
-	const privateDirectories = directories.filter(
-		(_, index) => manifests[index]?.private
-	);
-	for (const directory of privateDirectories) {
-		expect(readManifest(root, directory).version).toBe(
-			readManifest(repository, directory).version
+it.each(['main', 'canary'])(
+	'drafts the real workspace for %s without bumping private packages or leaving its release channel',
+	async (branch) => {
+		const root = realWorkspace();
+		const draft = await release(root, branch).draft();
+		const notes = readdirSync(join(root, '.tegami')).filter(
+			(file) => file.endsWith('.md') && file !== 'README.md'
 		);
+		// Tegami silently ignores malformed note files. Check that none were lost.
+		expect(draft.getChangelogs()).toHaveLength(notes.length);
+		await draft.apply();
+		const directories = readdirSync(join(root, 'packages'));
+		const manifests = directories.map((directory) =>
+			readManifest(root, directory)
+		);
+		// Private packages may carry a placeholder version so published packages
+		// can pack their workspace devDependencies. Tegami must leave it alone.
+		const privateDirectories = directories.filter(
+			(_, index) => manifests[index]?.private
+		);
+		for (const directory of privateDirectories) {
+			expect(readManifest(root, directory).version).toBe(
+				readManifest(repository, directory).version
+			);
+		}
+		// Packages without notes keep their version, which may be stable on canary.
+		const released = manifests.filter(
+			(pkg, index) =>
+				!pkg.private &&
+				pkg.version !==
+					readManifest(repository, directories[index] ?? '').version
+		);
+		for (const manifest of released) {
+			expect(() =>
+				checkReleaseVersion(branch, manifest.version ?? '')
+			).not.toThrow();
+		}
+		expect((await release(root, branch).draft()).hasPending()).toBe(false);
 	}
-	for (const manifest of manifests.filter((pkg) => !pkg.private)) {
-		expect(() =>
-			checkReleaseVersion(branch, manifest.version ?? '')
-		).not.toThrow();
-	}
-	expect((await release(root, branch).draft()).hasPending()).toBe(false);
-});
+);

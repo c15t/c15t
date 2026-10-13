@@ -10,7 +10,7 @@ on:
       - 'package.json'
       - '.github/workflows/cli-native.yml'
   push:
-    branches: [v3]
+    branches: [canary]
     paths:
       - 'packages/cli/**'
       - 'packages/shared/**'

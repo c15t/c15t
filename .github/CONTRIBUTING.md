@@ -124,8 +124,8 @@ We leverage several automated workflows to ensure code quality:
 ## Release Process
 
 Add a `.tegami/*.md` release note for changes to published packages. On a
-feature branch, run `RELEASE_BRANCH=v3 bun run tegami`, replacing `v3` with the
-PR target. Use explicit package bumps and include a Markdown heading:
+feature branch, run `RELEASE_BRANCH=canary bun run tegami`, replacing `canary`
+with the PR target if it differs. Use explicit package bumps and include a Markdown heading:
 
 ```md
 ---
@@ -140,12 +140,12 @@ Keep saved preferences after reloading the page.
 
 The existing `release.yml` workflow runs CI before Tegami opens a version PR.
 Merging that PR publishes packages and creates GitHub releases. `main` publishes
-stable releases, `v3` publishes alphas, and `2.0.0` publishes RCs. Canary pushes
-publish commit-specific snapshots directly, without a version PR.
+stable releases under the `latest` npm tag, and `canary` publishes
+`X.Y.Z-canary.N` prereleases under the `canary` tag.
 
 Keep generated package changelogs and the publish lock unchanged in feature PRs.
 Replay-only notes remain until the package graduates from prerelease to stable.
-See the [release guide](https://github.com/c15t/c15t/blob/v3/.tegami/README.md)
+See the [release guide](https://github.com/c15t/c15t/blob/canary/.tegami/README.md)
 for the versioning rules and npm trusted publishing setup.
 
 ## Development Guidelines

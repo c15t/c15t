@@ -63,8 +63,8 @@ add more commits.
 ## Add a release note
 
 Changes to published packages need a `.tegami/*.md` release note. Run
-`RELEASE_BRANCH=v3 bun run tegami`, replacing `v3` with your pull request's
-target branch. Give explicit package bumps and a Markdown heading, and write
+`RELEASE_BRANCH=canary bun run tegami`, replacing `canary` if your pull request
+targets another branch. Give explicit package bumps and a Markdown heading, and write
 the body as the changelog entry:
 
 ```md
@@ -81,10 +81,9 @@ Keep saved preferences after reloading the page.
 Do not edit package `CHANGELOG.md` files or the publish lock; Tegami generates
 them. The `release.yml` workflow runs CI, and Tegami opens a version pull
 request. Merging it publishes the packages and creates GitHub releases. `main`
-publishes stable releases, `v3` publishes alphas and `2.0.0` publishes release
-candidates. Pushes to `canary` publish commit-specific snapshots under the
-`canary` npm tag without a version pull request. The
-[release guide](https://github.com/c15t/c15t/blob/v3/.tegami/README.md) covers
+publishes stable releases under the `latest` npm tag, and `canary` publishes
+`X.Y.Z-canary.N` prereleases under the `canary` tag. The
+[release guide](https://github.com/c15t/c15t/blob/canary/.tegami/README.md) covers
 versioning rules and npm trusted publishing.
 
 ## Edit the documentation
