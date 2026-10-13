@@ -4,6 +4,8 @@ import { join } from 'node:path';
 
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { packageInfo } from '../../../package-info';
+import { withC15tRelease } from '../../../utils/c15t-release';
 import { checkInstalledDependencies } from './dependencies';
 
 const tempDirs: string[] = [];
@@ -147,7 +149,9 @@ describe('checkInstalledDependencies', () => {
 		});
 
 		expect(result.installed).toEqual([]);
-		expect(result.missing).toEqual(['@c15t/react@alpha']);
+		expect(result.missing).toEqual([
+			withC15tRelease('@c15t/react', packageInfo.version),
+		]);
 	});
 
 	it('keeps workspace, linked and dist-tag ranges', async () => {

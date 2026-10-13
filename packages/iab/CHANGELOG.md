@@ -1,3 +1,11 @@
+## @c15t/iab@3.0.0
+
+### c15t v3
+
+c15t v3 is stable and published under the `latest` tag. See the
+[3.0.0 changelog](https://c15t.com/changelog/3.0.0) for new features, breaking
+changes and upgrade guides.
+
 ## @c15t/iab@3.0.0-alpha.10 (alpha)
 
 ### Send cross-origin `/init` without a CORS preflight

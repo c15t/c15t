@@ -478,17 +478,19 @@ describe('c15t setup instructions', () => {
 		['hosted', 'https://consent.example.com'],
 		['custom', undefined],
 		[undefined, undefined],
-	] as const)(
-		'never links to the c15t.com docs in %s mode',
-		(mode, backendURL) => {
-			for (const prompt of [
-				createC15tSetupInstructions({ mode }),
-				createAgentSetupPlan({ backendURL, mode }).prompt,
-			]) {
-				expect(prompt).not.toMatch(/https:\/\/(?:www\.)?c15t\.com\/docs/u);
+	] as const)('uses the CLI release docs in %s mode', (mode, backendURL) => {
+		for (const prompt of [
+			createC15tSetupInstructions({ mode }),
+			createAgentSetupPlan({ backendURL, mode }).prompt,
+		]) {
+			const links =
+				prompt.match(/https:\/\/(?:(?:www\.|v3\.)?c15t\.com)\/docs\//gu) ?? [];
+			expect(links.length).toBeGreaterThan(0);
+			for (const link of links) {
+				expect(link).toBe(`${c15tDocsOrigin(packageInfo.version)}/docs/`);
 			}
 		}
-	);
+	});
 
 	it.each(['offline', 'hosted', 'custom', undefined] as const)(
 		'links only to docs pages that exist in %s mode',

@@ -4,6 +4,12 @@ name: Release
 on:
   push:
     branches: ['main', 'canary', '2.0.0', 'v3']
+  workflow_dispatch:
+    inputs:
+      skip_tests:
+        description: Skip CI and publish after building and checking package artifacts
+        type: boolean
+        default: false
 
 permissions: {}
 
@@ -26,7 +32,7 @@ jobs:
   # `ci.yml` as the workflow and npm rejects the token.
   checks:
     name: Checks
-    if: github.repository == 'c15t/c15t'
+    if: github.repository == 'c15t/c15t' && !(github.event_name == 'workflow_dispatch' && inputs.skip_tests)
     permissions:
       contents: read
       actions: read
@@ -51,7 +57,8 @@ jobs:
       pull-requests: write # Tegami opens version pull requests
       id-token: write # Required for OIDC trusted publishing with npm (bypasses 2FA requirement)
 
-    if: github.repository == 'c15t/c15t'
+    if: >-
+      !cancelled() && github.repository == 'c15t/c15t' && (needs.checks.result == 'success' || (github.event_name == 'workflow_dispatch' && inputs.skip_tests && needs.checks.result == 'skipped'))
     steps:
       - name: Check out code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5

@@ -29,12 +29,20 @@ The default SDK is 11.4.0 with subresource integrity: `bundle.min.js`, or
 `bundle.tracing.min.js` when traces are sampled. `replay.min.js` loads after
 consent when a Replay sample rate is above 0.
 
+CDN URLs need an exact release version. Keep the default to use its integrity
+hash, or set `version` to an exact release in the supported SDK range below.
+
 <include src="../shared/integrations/register-scripts.mdx" />
 
 ## Use your own Sentry SDK
 
-For `@sentry/*` 10.67.0 or later, pass your SDK's functions instead of `dsn`.
-Keep Replay in a separate module so it can load after consent:
+The supported browser SDK range is `^10.67.0 || ^11.0.0`, including framework
+SDKs built on those versions. Version 10.67.0 added Replay's
+`stop({ flush: false })`, which c15t uses to discard pending recordings when
+consent is withdrawn. Earlier versions flush those recordings when stopping.
+
+Pass your SDK's functions instead of `dsn`. Keep Replay in a separate module
+so it can load after consent:
 
 ```ts title="src/sentry-replay.ts"
 import { replayIntegration } from '@sentry/browser';

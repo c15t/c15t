@@ -5,7 +5,10 @@ import { createConsentKernel } from '@c15t/core';
 import type { ConsentState } from '@c15t/core';
 import { createScriptLoader } from '@c15t/core/modules/script-loader';
 import * as sentry10 from 'sentry-browser-v10';
+// oxlint-disable-next-line import/no-duplicates -- Range and minimum fixtures may resolve to the same release.
+import * as sentry10Min from 'sentry-browser-v10-min';
 import * as sentry11 from 'sentry-browser-v11';
+import * as sentry11Min from 'sentry-browser-v11-min';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { deniedConsents, grantedMeasurementConsents } from './e2e-test-utils';
@@ -16,21 +19,39 @@ import type {
 	SentrySdkOptions,
 } from './vendors/analytics/sentry';
 
-type BrowserSdk = Omit<typeof sentry10 | typeof sentry11, 'getClient'> & {
+type BrowserSdk = Omit<
+	typeof sentry10 | typeof sentry10Min | typeof sentry11 | typeof sentry11Min,
+	'getClient'
+> & {
 	getClient: () =>
 		| ReturnType<typeof sentry10.getClient>
-		| ReturnType<typeof sentry11.getClient>;
+		| ReturnType<typeof sentry10Min.getClient>
+		| ReturnType<typeof sentry11.getClient>
+		| ReturnType<typeof sentry11Min.getClient>;
 };
 const sdkVersions = [
 	{
+		sdk: { ...sentry10Min, getClient: () => sentry10Min.getClient() },
+		version: `${sentry10Min.SDK_VERSION} minimum`,
+	},
+	{
 		sdk: { ...sentry10, getClient: () => sentry10.getClient() },
-		version: '10.67.0',
+		version: sentry10.SDK_VERSION,
+	},
+	{
+		sdk: { ...sentry11Min, getClient: () => sentry11Min.getClient() },
+		version: `${sentry11Min.SDK_VERSION} minimum`,
 	},
 	{
 		sdk: { ...sentry11, getClient: () => sentry11.getClient() },
-		version: '11.4.0',
+		version: sentry11.SDK_VERSION,
 	},
-];
+].filter(
+	({ sdk }, index, versions) =>
+		versions.findIndex(
+			(version) => version.sdk.SDK_VERSION === sdk.SDK_VERSION
+		) === index
+);
 const disposers: (() => void | Promise<void>)[] = [];
 const privateUrl = '/account?email=visitor@example.test#secret';
 const processType = Object.getOwnPropertyDescriptor(process, 'type');
