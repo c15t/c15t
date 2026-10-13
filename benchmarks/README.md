@@ -89,8 +89,8 @@ splits the package across three runners. That makes four parallel jobs for
 `quick` and ten for `full`. A planning job resolves both revisions to commit IDs before
 starting the matrix. Each runner measures base and head with `--concurrency=1`,
 so timing loops do not compete for CPU. Runtime modes split the iterations into
-three rounds that alternate base-head, head-base, base-head, then pool each
-scenario's samples across rounds before comparing. A runner that slows down or
+four rounds that alternate base-head, head-base, base-head, head-base, then pool
+each scenario's samples across rounds before comparing. A runner that slows down or
 speeds up mid-job then shifts both arms instead of whichever arm ran second;
 measuring all of base and then all of head failed the gate on docs-only pushes.
 `bundle` sizes do not drift and run once. Local commands still
@@ -116,8 +116,8 @@ The matrix `id` is the shard id, or the package name with `@c15t/` removed,
 for example `runtime-benchmarks-react-browser-bench` for
 `@c15t/react-browser-bench`. A failed job does not cancel the remaining matrix jobs.
 Rounds split browser and script-lifecycle iterations, so pooled sample counts
-match a single pass. Core microbenchmarks run their full 5,000 iterations every
-round, and warmups repeat every round. Budget thresholds are unchanged. Browser benches
+meet or exceed a single pass because each round rounds its count up. Core
+microbenchmarks run their full 5,000 iterations every round, and warmups repeat every round. Budget thresholds are unchanged. Browser benches
 run against the 200 ms backend described under the environment knobs below.
 
 `bundle` measures real Next route assets, publish tarballs and consumer import
@@ -160,11 +160,13 @@ in force, and baselines that already include the rules use the normal 10% cap.
 Comparison reports retain the measured sizes and name any applied allowance.
 
 `quick` covers core operations, policy resolution and script lifecycle with
-15 browser samples after 3 warmups. Engine operations use 5,000 samples after
-1,000 warmups in both profiles. `full` uses 30 browser samples and adds React, Next, Nuxt,
-SvelteKit, Astro and TanStack Start browser scenarios. PRs run the quick
+16 pooled browser samples across four rounds. Each round measures four samples
+after three warmups. Engine operations use 5,000 samples after 1,000 warmups per
+round in both profiles. `full` uses 32 pooled browser samples, eight per round,
+and adds React, Next, Nuxt, SvelteKit, Astro and TanStack Start browser scenarios.
+PRs run the quick
 comparison when runtime benchmark consumers are affected. Full comparisons run
-separately on `v3` pushes, nightly, and manually through
+separately on `canary` pushes, nightly, and manually through
 `benchmark-regression.yml`. They also remain part of full validation and manual
 CI runs. Release checks skip runtime comparisons so publishing does not wait
 for them. Nightly scheduling requires the workflow on the default branch.
@@ -173,7 +175,26 @@ durations use the browser clock from action start through confirmed completion;
 Playwright click transport and polling time are excluded. The three tiny
 empty-kernel percentage budgets also require more than 1µs of growth before
 failing, so sub-microsecond hosted-runner jitter stays visible in the report
-without blocking a PR. Other budget semantics remain unchanged.
+without blocking a PR.
+
+Browser-runtime timing comparisons use the raw visit samples as well as their
+medians. A median above its existing limit fails the gate only when a 99%
+lower confidence bound on the change also exceeds that limit. The bound uses
+binomial order statistics for each median, with a 0.5% one-sided error allowance
+per arm. This needs no normal-distribution assumption. Four balanced rounds
+reduce order bias; the confidence calculation treats the individual visit
+samples as independent and does not correct persistent differences between
+runners or revisions.
+
+Reports retain the observed median change and show its supported lower bound,
+including changes that cannot be confirmed as budget breaches. Thresholds are
+unchanged. Missing metrics, fewer than eight samples per arm, invalid samples,
+absolute behavior allowances and count invariants retain strict evaluation.
+A failed percentage comparison stays strict when the base median is zero and
+the head median is nonzero. New long tasks cannot pass just because the lower
+confidence bound on the head median is zero.
+Core, script-lifecycle, bundle and release-arm comparisons retain their existing
+budget evaluation.
 
 `BENCHMARK_PROFILE=regression` enforces same-revision-key regression budgets
 and invariants. `BENCHMARK_PROFILE=release`, the default for `bench:compare`,
