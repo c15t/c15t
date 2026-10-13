@@ -267,3 +267,60 @@ describe('init folds translations', () => {
 		});
 	});
 });
+
+describe('a dialog opened before init resolves', () => {
+	const openDuringInit = async function openDuringInit(
+		config: KernelConfig = {}
+	) {
+		const response = Promise.withResolvers<InitResponse>();
+		const kernel = createConsentKernel({
+			initialPolicyPending: true,
+			now: NOW,
+			...config,
+			initRetry: false,
+			transport: { init: () => response.promise },
+		});
+		const initialized = kernel.commands.init();
+		kernel.set.activeUI('dialog');
+		response.resolve({
+			policyResolution: { ...matchedResolution(optInRule()), version: 1 },
+		});
+		await initialized;
+		return kernel;
+	};
+
+	test('stays open for a returning visitor', async () => {
+		const { fingerprint } = createConsentKernel({
+			initialPolicyResolution: matchedResolution(optInRule()),
+			now: NOW,
+		}).getSnapshot().evaluationPolicy.choice;
+		const kernel = await openDuringInit({
+			initialRecords: choiceRecords(
+				{
+					experience: false,
+					functionality: false,
+					marketing: false,
+					measurement: false,
+				},
+				{ fingerprint }
+			),
+		});
+		expect(kernel.getSnapshot().promptRequirement).toEqual({ kind: 'none' });
+		expect(kernel.getSnapshot().activeUI).toBe('dialog');
+		kernel.dispose();
+	});
+
+	test('stays open over the banner for a new visitor', async () => {
+		const kernel = await openDuringInit();
+		expect(kernel.getSnapshot().promptRequirement.kind).toBe('choice');
+		expect(kernel.getSnapshot().activeUI).toBe('dialog');
+		kernel.dispose();
+	});
+
+	test('closes when the visitor saves', async () => {
+		const kernel = await openDuringInit();
+		await kernel.commands.save('all');
+		expect(kernel.getSnapshot().activeUI).toBe('none');
+		kernel.dispose();
+	});
+});

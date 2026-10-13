@@ -223,11 +223,16 @@ export const derivePrivacySignals = function derivePrivacySignals(
  * Re-derive the surface only when the prompt or the visibility inputs
  * changed. An adapter that opened the dialog keeps it open across an
  * unrelated re-evaluation; an explicit patch always wins.
+ *
+ * An open dialog closes only for a choice. A policy, experiment or clock
+ * re-evaluation leaves it open: the visitor may have opened it before init
+ * resolved, and closing it would drop their click.
  */
 const deriveNextActiveUI = function deriveNextActiveUI(input: {
 	current: ConsentSnapshot;
 	patch: SnapshotPatch;
 	derive: boolean;
+	choiceChanged: boolean;
 	policyRule: ConsentSnapshot['policyRule'];
 	policyPending: boolean;
 	experimentPending: boolean;
@@ -236,6 +241,9 @@ const deriveNextActiveUI = function deriveNextActiveUI(input: {
 }): KernelActiveUI {
 	if (input.patch.activeUI !== undefined) {
 		return input.patch.activeUI;
+	}
+	if (input.current.activeUI === 'dialog' && !input.choiceChanged) {
+		return 'dialog';
 	}
 	if (input.derive) {
 		return deriveActiveUI({
@@ -369,6 +377,11 @@ export const buildNextSnapshot = function buildNextSnapshot(
 	const activeUI = externalPermissions
 		? 'none'
 		: deriveNextActiveUI({
+				choiceChanged:
+					explicitChoice !== current.explicitChoice ||
+					noticeDismissal !== current.noticeDismissal ||
+					pick(patch.vendorChoice, current.vendorChoice) !==
+						current.vendorChoice,
 				current,
 				derive: promptChanged || visibilityChanged,
 				experimentPending,
