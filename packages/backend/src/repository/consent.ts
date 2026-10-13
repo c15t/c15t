@@ -69,6 +69,11 @@ export interface ConsentSubmission extends ConsentSubmissionIdentity {
 	readonly userAgent?: string | null;
 	readonly jurisdictionModel?: string | null;
 	readonly tcString?: string | null;
+	/**
+	 * Google Additional Consent string sent with `tcString`, such as
+	 * `2~89.486~dv.2572`. Null without a TC string.
+	 */
+	readonly addtlConsent?: string | null;
 	readonly uiSource?: string | null;
 	readonly consentAction?: string | null;
 	readonly validUntil?: Date | null;
@@ -379,6 +384,7 @@ const rowValues = (
 	id: string,
 	submission: ConsentSubmission
 ): Record<string, unknown> => ({
+	addtlConsent: submission.addtlConsent ?? null,
 	choice:
 		submission.choice === undefined || submission.choice === null
 			? null

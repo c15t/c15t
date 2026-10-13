@@ -29,6 +29,23 @@ export const subjectIdSchema = v.pipe(
  * Note: subjectId is now required (client-generated)
  */
 const baseSubjectConsentSchema = v.object({
+	/**
+	 * Google Additional Consent v2 string, sent beside `tcString`. The
+	 * backend stores it only when a TC string comes with it.
+	 */
+	addtlConsent: v.optional(
+		v.pipe(
+			v.string(),
+			v.regex(
+				/^2~(?:\d+(?:\.\d+)*)?~dv(?:\.(?:\d+(?:\.\d+)*)?)?$/u,
+				'Invalid Additional Consent v2 string'
+			),
+			v.description(
+				'Google Additional Consent v2 string for ad tech providers outside the IAB Global Vendor List. Stored only with tcString.'
+			),
+			v.examples(['2~89.486~dv.2572'])
+		)
+	),
 	/** Consent action type (e.g., 'all', 'necessary', 'custom') */
 	consentAction: v.optional(
 		v.pipe(

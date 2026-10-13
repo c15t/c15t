@@ -47,6 +47,7 @@ import { up as dropIdentityAuthorityUp } from './migrations/5-drop-subject-ident
 import { up as attributionUp } from './migrations/6-experiment-attribution';
 import { up as optionalJurisdictionUp } from './migrations/7-optional-decision-jurisdiction';
 import { up as verifiedExternalIdUp } from './migrations/8-verified-external-id';
+import { up as additionalConsentUp } from './migrations/9-additional-consent';
 import { encodeRow, encoder } from './values';
 
 const DATABASE_CLASSIFICATION_KEY = 'shape' as const;
@@ -95,6 +96,7 @@ export const MIGRATIONS: readonly Migration[] = [
 		up: optionalJurisdictionUp,
 	},
 	{ id: 8, name: '8-verified-external-id', up: verifiedExternalIdUp },
+	{ id: 9, name: '9-additional-consent', up: additionalConsentUp },
 ];
 
 export interface MigrateOptions extends ApplyOptions {

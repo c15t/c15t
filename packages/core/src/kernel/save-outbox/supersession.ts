@@ -73,8 +73,11 @@ export const withoutSuperseded = function withoutSuperseded(
 				consents[category] = payload.consents[category];
 			}
 		}
+		// A narrowed save no longer matches the TC string, so neither it nor
+		// the AC string beside it goes with the replay.
+		const { addtlConsent: _addtlConsent, ...rest } = payload;
 		selected = {
-			...payload,
+			...rest,
 			choice: { categories: receipts, version: 3 },
 			confirmed: { ...payload.confirmed, categories },
 			consentAction: 'custom',

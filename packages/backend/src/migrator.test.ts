@@ -145,6 +145,7 @@ for (const [name, makeConfig] of CONFIGS) {
 					'6-experiment-attribution',
 					'7-optional-decision-jurisdiction',
 					'8-verified-external-id',
+					'9-additional-consent',
 				]);
 
 				const applied = await migrator.apply();

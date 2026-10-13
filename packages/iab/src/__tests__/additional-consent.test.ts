@@ -141,7 +141,10 @@ describe('createIAB with Additional Consent', () => {
 		vi.restoreAllMocks();
 	});
 
-	const makeKernel = function makeKernel(gvl = completeGVL): ConsentKernel {
+	const makeKernel = function makeKernel(
+		gvl = completeGVL,
+		save?: ReturnType<typeof vi.fn>
+	): ConsentKernel {
 		const policy = normalizePolicyRule({
 			id: 'iab-test',
 			match: { isDefault: true },
@@ -159,6 +162,7 @@ describe('createIAB with Additional Consent', () => {
 				status: 'matched',
 			},
 			now: NOW,
+			...(save && { transport: { save } }),
 		});
 		disposers.push(kernel.dispose);
 		return kernel;
@@ -213,6 +217,18 @@ describe('createIAB with Additional Consent', () => {
 		expect(data.addtlConsent).toBe('2~89.2577~dv.');
 		expect(document.cookie).toContain('addtl_consent=2~89.2577~dv.');
 		expect(localStorage.getItem('addtl_consent')).toBe('2~89.2577~dv.');
+	});
+
+	test('sends the AC string with the TC string to the backend', async () => {
+		const save = vi.fn().mockResolvedValue({ ok: true });
+		const kernel = makeKernel(completeGVL, save);
+		const addon = await mount(kernel);
+		addon.acceptAll();
+		await addon.save();
+		const payload = save.mock.calls.at(-1)?.[0];
+		expect(payload?.tcString).toBe(kernel.getSnapshot().iab?.tcString);
+		expect(payload?.tcString).toBeTruthy();
+		expect(payload?.addtlConsent).toBe('2~89.2577~dv.');
 	});
 
 	/** The sample list with no vendor declaring personalised ads. */

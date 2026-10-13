@@ -29,7 +29,9 @@ and a consent switch, and the banner's partner count includes them.
 when its switch is on and the visitor consented to TCF purposes 1, 3 and 4.
 c15t stores the string in the `addtl_consent` cookie and localStorage entry
 with the TC String, restores it for returning visitors, and removes it when it
-withdraws the TC String. Provider names and policy links load from
+withdraws the TC String. Consent saves send it with the TC String, and the
+self-hosted backend records it in a new `consent.addtlConsent` column. Run the
+backend migrations to add the column. Provider names and policy links load from
 `https://gvl.inth.app/additional-consent` unless an endpoint is configured.
 The backend keeps serving the last list it loaded when that endpoint fails.
 

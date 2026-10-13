@@ -698,6 +698,11 @@ export interface SavePayload {
 	journey?: Pick<KernelJourney, 'id' | 'scope'>;
 	/** TC string emitted by the IAB module; absent in non-IAB flows. */
 	tcString?: string | null;
+	/**
+	 * Google Additional Consent string published with `tcString`. Present
+	 * only when `tcString` is, since Google discards it alone.
+	 */
+	addtlConsent?: string;
 	/** Equals `confirmed.actionAt`. Kept for backends that read one time. */
 	givenAt?: number;
 	/**

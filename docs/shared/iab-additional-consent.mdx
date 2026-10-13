@@ -106,6 +106,11 @@ removes both when it withdraws the TC String. A returning visitor gets their
 saved provider choices back. A provider you add later has not been shown to
 them, so it stays out of their AC string until they save again.
 
+A self-hosted backend records the AC string with each consent, in the
+`addtlConsent` column of the `consent` table beside the TC String. Run the
+backend's migrations after upgrading to add the column. Consents recorded
+before then, and consents saved without a TC String, store `null`.
+
 ### Send the string with ad requests
 
 Pixels and ad requests that cannot call `__tcfapi` take the AC string in the

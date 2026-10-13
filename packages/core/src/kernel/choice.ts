@@ -1038,6 +1038,10 @@ export const createChoiceRecorder = function createChoiceRecorder({
 			if (vendorChoice) {
 				payload.vendorChoice = vendorChoice;
 			}
+			const addtlConsent = after.iab?.authority?.addtlConsent;
+			if (payload.tcString && addtlConsent) {
+				payload.addtlConsent = addtlConsent;
+			}
 
 			const result = await outbox.send(payload, {
 				confirmed: recorded.confirmed,
