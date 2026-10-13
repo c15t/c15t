@@ -11,7 +11,10 @@ import {
 import type { ConsentManifestConfig } from '@c15t/schema/types';
 import { afterEach, assert, describe, expect, it, vi } from 'vitest';
 
-import { resolveAdTechProviders } from './ad-tech-providers';
+import {
+	resetAdTechProviderState,
+	resolveAdTechProviders,
+} from './ad-tech-providers';
 import type { CacheAdapter } from './gvl';
 import { buildInitResponse } from './init';
 
@@ -63,11 +66,12 @@ const memoryCache = (): CacheAdapter & { store: Map<string, unknown> } => {
 	} as CacheAdapter & { store: Map<string, unknown> };
 };
 
-describe('resolveAdTechProviders', () => {
-	afterEach(() => {
-		vi.restoreAllMocks();
-	});
+afterEach(() => {
+	vi.restoreAllMocks();
+	resetAdTechProviderState();
+});
 
+describe('resolveAdTechProviders', () => {
 	it('keeps configured providers Google lists, sorted by ID', async () => {
 		const { fetch, urls } = listServer();
 		const providers = await resolveAdTechProviders({
@@ -100,7 +104,13 @@ describe('resolveAdTechProviders', () => {
 		]);
 		await resolveAdTechProviders(options);
 		assert.strictEqual(urls.length, 1);
-		assert.strictEqual(cache.store.size, 1);
+		assert.deepStrictEqual(
+			[...cache.store.keys()],
+			[
+				'ac:https://lists.example/ac-cache|89,2572',
+				'ac:https://lists.example/ac-cache|89,2572|stale',
+			]
+		);
 	});
 
 	it('returns null without caching when the list is unavailable', async () => {
@@ -110,6 +120,7 @@ describe('resolveAdTechProviders', () => {
 		assert.isNull(
 			await resolveAdTechProviders({ cache, fetch, providers: [89], url })
 		);
+		resetAdTechProviderState();
 		assert.isNull(
 			await resolveAdTechProviders({
 				cache,
@@ -136,6 +147,63 @@ describe('resolveAdTechProviders', () => {
 		});
 		assert.deepStrictEqual(providers, [LIST.providers['89']]);
 		assert.strictEqual(urls.length, 1);
+	});
+
+	it('serves the last list fetched when a refresh fails', async () => {
+		const url = 'https://lists.example/ac-refresh';
+		await resolveAdTechProviders({
+			fetch: listServer().fetch,
+			providers: [89],
+			url,
+		});
+
+		const providers = await resolveAdTechProviders({
+			fetch: listServer({ error: 'down' }, 503).fetch,
+			providers: [89],
+			url,
+		});
+
+		assert.deepStrictEqual(providers, [LIST.providers['89']]);
+	});
+
+	it('serves the stale cache entry after a restart once the fresh one expires', async () => {
+		const cache = memoryCache();
+		const url = 'https://lists.example/ac-restart';
+		await resolveAdTechProviders({
+			cache,
+			fetch: listServer().fetch,
+			providers: [89],
+			url,
+		});
+		cache.store.delete(`ac:${url}|89`);
+		resetAdTechProviderState();
+
+		const providers = await resolveAdTechProviders({
+			cache,
+			fetch: listServer({ error: 'down' }, 503).fetch,
+			providers: [89],
+			url,
+		});
+
+		assert.deepStrictEqual(providers, [LIST.providers['89']]);
+	});
+
+	it('waits a minute after a failed fetch before trying the upstream again', async () => {
+		const now = vi.spyOn(Date, 'now').mockReturnValue(1_000_000);
+		const { fetch, urls } = listServer({ error: 'down' }, 503);
+		const options = {
+			fetch,
+			providers: [89],
+			url: 'https://lists.example/ac-backoff',
+		};
+
+		await resolveAdTechProviders(options);
+		await resolveAdTechProviders(options);
+		assert.strictEqual(urls.length, 1);
+
+		now.mockReturnValue(1_000_000 + 60_001);
+		await resolveAdTechProviders(options);
+		assert.strictEqual(urls.length, 2);
 	});
 
 	it('gives up on a stalled list instead of holding /init open', async () => {
@@ -229,7 +297,10 @@ describe('/init serves Additional Consent providers with the vendor list', () =>
 		);
 		assert.deepStrictEqual(
 			[...store.keys()],
-			['ac:https://lists.example/ac-init|89,2572']
+			[
+				'ac:https://lists.example/ac-init|89,2572',
+				'ac:https://lists.example/ac-init|89,2572|stale',
+			]
 		);
 	});
 

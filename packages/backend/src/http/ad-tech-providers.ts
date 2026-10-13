@@ -55,6 +55,24 @@ export interface AdTechProviderOptions {
 const DEFAULT_TTL_MS = 86_400_000;
 
 /**
+ * How long the last list fetched is kept for when a refresh fails. Google
+ * rarely removes a provider, so a month-old list discloses the same names and
+ * policies as today's for nearly every site.
+ */
+const STALE_TTL_MS = 30 * DEFAULT_TTL_MS;
+
+/**
+ * How long a failed fetch is remembered before the next request tries again.
+ * A request that times out holds `/init` for
+ * `AD_TECH_PROVIDER_FETCH_TIMEOUT_MS`, so without this an upstream outage
+ * would slow every `/init` rather than one per minute.
+ */
+const FAILURE_BACKOFF_MS = 60_000;
+
+/** Most lists kept in memory. Each configuration resolves one set of IDs. */
+const MAX_LAST_GOOD_ENTRIES = 32;
+
+/**
  * Cache key. IDs are sorted first, so the same set in another order shares
  * an entry.
  */
@@ -70,6 +88,42 @@ export const adTechProviderCacheKey = function adTechProviderCacheKey(
  * one upstream fetch.
  */
 const inflight = new Map<string, Promise<AdTechProvider[] | null>>();
+
+/**
+ * The last list fetched per key, for when the upstream fails and the cache
+ * has nothing either (no adapter configured, or its entries expired).
+ */
+const lastGood = new Map<string, AdTechProvider[]>();
+
+/** When each key may next try the upstream after a failed fetch. */
+const retryAfter = new Map<string, number>();
+
+/** The cache key that keeps a list past its freshness, for failed refreshes. */
+const staleCacheKey = function staleCacheKey(key: string): string {
+	return `${key}|stale`;
+};
+
+const rememberLastGood = function rememberLastGood(
+	key: string,
+	providers: AdTechProvider[]
+): void {
+	lastGood.delete(key);
+	lastGood.set(key, providers);
+	if (lastGood.size > MAX_LAST_GOOD_ENTRIES) {
+		const oldest = lastGood.keys().next().value;
+		if (oldest !== undefined) {
+			lastGood.delete(oldest);
+		}
+	}
+};
+
+/** Clears in-memory lists and failure backoff. For tests. */
+export const resetAdTechProviderState =
+	function resetAdTechProviderState(): void {
+		inflight.clear();
+		lastGood.clear();
+		retryAfter.clear();
+	};
 
 /**
  * Loads the list from upstream.
@@ -112,25 +166,44 @@ const cacheProviders = async function cacheProviders(
 	key: string,
 	providers: AdTechProvider[]
 ): Promise<void> {
+	const ttlMs = options.ttlMs ?? DEFAULT_TTL_MS;
 	try {
-		await options.cache?.set(key, providers, options.ttlMs ?? DEFAULT_TTL_MS);
+		await Promise.all([
+			options.cache?.set(key, providers, ttlMs),
+			options.cache?.set(
+				staleCacheKey(key),
+				providers,
+				Math.max(ttlMs, STALE_TTL_MS)
+			),
+		]);
 	} catch {
 		// The list just fetched is still served.
 	}
+};
+
+/** The last list fetched for a key, from memory or the cache's stale entry. */
+const readStaleProviders = async function readStaleProviders(
+	cache: CacheAdapter | undefined,
+	key: string
+): Promise<AdTechProvider[] | null> {
+	return (
+		lastGood.get(key) ?? (await readCachedProviders(cache, staleCacheKey(key)))
+	);
 };
 
 /**
  * Fetches names and privacy policy links for the configured providers, from
  * cache where possible.
  *
- * Returns null rather than throwing when the upstream is unavailable: the
- * AC string only supplements the TC string, and a thrown error would fail
- * `/init` and leave the visitor with no consent UI at all. For the same
- * reason a broken cache only costs a fetch.
+ * When the upstream is unavailable, the last list fetched is served instead,
+ * and the upstream is not tried again for a minute. With no earlier list it
+ * returns null rather than throwing: the AC string only supplements the TC
+ * string, and a thrown error would fail `/init` and leave the visitor with no
+ * consent UI at all. For the same reason a broken cache only costs a fetch.
  *
  * @param options - Providers and endpoint from the manifest, plus loading options.
  * @returns The listed providers sorted by ID, `[]` when none of the
- *   configured IDs is listed, or null when the list could not be loaded.
+ *   configured IDs is listed, or null when no list could be loaded.
  */
 export const resolveAdTechProviders = async function resolveAdTechProviders(
 	options: AdTechProviderOptions
@@ -145,6 +218,9 @@ export const resolveAdTechProviders = async function resolveAdTechProviders(
 	if (cached) {
 		return cached;
 	}
+	if (Date.now() < (retryAfter.get(key) ?? 0)) {
+		return readStaleProviders(options.cache, key);
+	}
 	const existing = inflight.get(key);
 	if (existing) {
 		return existing;
@@ -153,9 +229,13 @@ export const resolveAdTechProviders = async function resolveAdTechProviders(
 	const request = (async () => {
 		try {
 			const providers = await fetchAdTechProviderList(options, ids);
-			if (providers) {
-				await cacheProviders(options, key, providers);
+			if (!providers) {
+				retryAfter.set(key, Date.now() + FAILURE_BACKOFF_MS);
+				return readStaleProviders(options.cache, key);
 			}
+			retryAfter.delete(key);
+			rememberLastGood(key, providers);
+			await cacheProviders(options, key, providers);
 			return providers;
 		} finally {
 			inflight.delete(key);
