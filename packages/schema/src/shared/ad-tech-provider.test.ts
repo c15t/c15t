@@ -1,6 +1,8 @@
-import { describe, expect, test } from 'vitest';
+import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import {
+	AD_TECH_PROVIDER_FETCH_TIMEOUT_MS,
+	adTechProviderFetchSignal,
 	adTechProviderListUrl,
 	MAX_AD_TECH_PROVIDER_QUERY_IDS,
 	normalizeAdTechProviderIds,
@@ -69,5 +71,23 @@ describe('manifest Additional Consent', () => {
 		});
 		expect(plain.iab).not.toHaveProperty('additionalConsent');
 		expect(empty.revision).toBe(plain.revision);
+	});
+});
+
+describe('provider list request timeout', () => {
+	afterEach(() => {
+		vi.useRealTimers();
+		vi.unstubAllGlobals();
+	});
+
+	test('aborts without AbortSignal.timeout, so the IAB runtime is not held', () => {
+		vi.useFakeTimers();
+		vi.stubGlobal('AbortSignal', { timeout: undefined });
+
+		const signal = adTechProviderFetchSignal();
+
+		expect(signal?.aborted).toBe(false);
+		vi.advanceTimersByTime(AD_TECH_PROVIDER_FETCH_TIMEOUT_MS);
+		expect(signal?.aborted).toBe(true);
 	});
 });

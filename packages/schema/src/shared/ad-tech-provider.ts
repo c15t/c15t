@@ -61,16 +61,28 @@ export const AD_TECH_PROVIDER_FETCH_TIMEOUT_MS = 5000;
  * A signal that aborts a provider list request after
  * {@link AD_TECH_PROVIDER_FETCH_TIMEOUT_MS}.
  *
- * @returns The signal, or `undefined` where the runtime has no
- *   `AbortSignal.timeout`.
+ * Browsers without `AbortSignal.timeout` (Safari before 15.4) get a timer
+ * instead. The IAB runtime waits for the list before it publishes the vendor
+ * list, so a request that never settles must still end.
+ *
+ * @returns The signal, or `undefined` where the runtime cannot abort a
+ *   request.
  */
 export const adTechProviderFetchSignal = function adTechProviderFetchSignal():
 	| AbortSignal
 	| undefined {
-	return typeof AbortSignal !== 'undefined' &&
+	if (
+		typeof AbortSignal !== 'undefined' &&
 		typeof AbortSignal.timeout === 'function'
-		? AbortSignal.timeout(AD_TECH_PROVIDER_FETCH_TIMEOUT_MS)
-		: undefined;
+	) {
+		return AbortSignal.timeout(AD_TECH_PROVIDER_FETCH_TIMEOUT_MS);
+	}
+	if (typeof AbortController === 'undefined') {
+		return undefined;
+	}
+	const controller = new AbortController();
+	setTimeout(() => controller.abort(), AD_TECH_PROVIDER_FETCH_TIMEOUT_MS);
+	return controller.signal;
 };
 
 /**
