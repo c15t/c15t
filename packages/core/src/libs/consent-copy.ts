@@ -1,7 +1,11 @@
 /** Resolve the copy a consent UI renders from the active translations. */
 import type { PolicyPrompt, PolicyRight } from '@c15t/schema/types';
 import type { Translations } from '@c15t/translations';
-import { enTranslations } from '@c15t/translations';
+// The `/en` entry, not the package root: the React components that share a
+// chunk with lazy surfaces call these helpers, and importing the root (with
+// its stock-language registry) from that chunk gives Rolldown a static cycle
+// that splits every shared module into its own file.
+import { translations as enTranslations } from '@c15t/translations/en';
 
 import type { PresentationAction } from './policy-actions';
 
