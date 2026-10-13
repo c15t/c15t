@@ -148,11 +148,13 @@ const processPurposes = function processPurposes(
 				illustrations: purpose.illustrations || [],
 				name: purpose.name,
 				vendors: [...iabVendorsForPurpose, ...customVendorsForPurpose],
+				...(providerPurposes.has(purposeId) && {
+					neededByAdTechProviders: true,
+				}),
 			};
 		})
 		.filter(
-			(purpose) =>
-				purpose.vendors.length > 0 || providerPurposes.has(purpose.id)
+			(purpose) => purpose.vendors.length > 0 || purpose.neededByAdTechProviders
 		);
 };
 

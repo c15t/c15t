@@ -101,6 +101,12 @@ export interface HeadlessIABProcessedPurpose {
 	illustrations: string[];
 	vendors: HeadlessIABProcessedVendor[];
 	isSpecialPurpose?: boolean;
+	/**
+	 * Whether listed Google ad tech providers need consent to this purpose
+	 * before the AC string counts theirs. Such a purpose offers consent even
+	 * when no vendor processes it on consent.
+	 */
+	neededByAdTechProviders?: boolean;
 }
 
 /**

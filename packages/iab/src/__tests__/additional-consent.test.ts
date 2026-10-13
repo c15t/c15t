@@ -239,6 +239,18 @@ describe('createIAB with Additional Consent', () => {
 		expect((await tcData()).addtlConsent).toBe('2~89.2577~dv.');
 	});
 
+	test('Save Settings grants a provider whose purposes no vendor declares', async () => {
+		const kernel = makeKernel(withoutPersonalisedAds);
+		const addon = await mount(kernel, undefined, withoutPersonalisedAds);
+		addon.rejectAll();
+		for (const purpose of [1, 3, 4]) {
+			addon.setPurposeConsent(purpose, true);
+		}
+		addon.setAdTechProviderConsent(89, true);
+		await addon.save();
+		expect((await tcData()).addtlConsent).toBe('2~89~dv.2577');
+	});
+
 	test('Accept All without providers leaves undeclared purposes off', async () => {
 		const kernel = makeKernel(withoutPersonalisedAds);
 		const addon = await mount(kernel, [404], withoutPersonalisedAds);

@@ -304,6 +304,68 @@ describe('@c15t/iab headless vendor counts with Google ad tech providers', () =>
 		]);
 	});
 
+	test.each([
+		['with providers', adTechProviders, true],
+		['without providers', [], false],
+	])(
+		'purposes providers need offer consent %s, even with LI-only vendors',
+		(_name, providers, expected) => {
+			// Vendor 755 alone, processing purposes 3 and 4 only on legitimate
+			// interest, so no vendor gives them a consent basis.
+			const liOnly: typeof completeGVL = {
+				...completeGVL,
+				vendors: Object.fromEntries(
+					Object.entries(completeGVL.vendors)
+						.filter(([id]) => id === '755')
+						.map(([id, vendor]) => [
+							id,
+							{ ...vendor, legIntPurposes: [3, 4], purposes: [1] },
+						])
+				),
+			};
+			const rows = resolveIABDialogDisplayModel({
+				adTechProviders: providers,
+				gvl: liOnly,
+			}).consentRows.flatMap((row) =>
+				row.kind === 'stack' ? row.purposes : [row]
+			);
+			const basis = (id: number) =>
+				rows.find((row) => row.kind === 'purpose' && row.id === id)
+					?.hasConsentBasis;
+			expect(basis(3)).toBe(expected);
+			expect(basis(4)).toBe(expected);
+		}
+	);
+
+	test('a purpose only providers need offers consent', () => {
+		const storageOnly: typeof completeGVL = {
+			...completeGVL,
+			vendors: Object.fromEntries(
+				Object.entries(completeGVL.vendors)
+					.filter(([id]) => id === '755')
+					.map(([id, vendor]) => [
+						id,
+						{ ...vendor, legIntPurposes: [], purposes: [1] },
+					])
+			),
+		};
+		const rows = resolveIABDialogDisplayModel({
+			adTechProviders,
+			gvl: storageOnly,
+		}).consentRows.flatMap((row) =>
+			row.kind === 'stack' ? row.purposes : [row]
+		);
+		expect(
+			rows
+				.filter((row) => row.kind === 'purpose')
+				.map(({ hasConsentBasis, id }) => [id, hasConsentBasis])
+		).toEqual([
+			[1, true],
+			[3, true],
+			[4, true],
+		]);
+	});
+
 	test('counts ad tech providers in the banner partner count', () => {
 		expect(resolveIABBannerSummary(input).vendorCount).toBe(
 			gvlVendorCount + 1 + 2
