@@ -115,14 +115,15 @@ When adding or changing user-facing package behavior:
 
 - Update or add docs in `docs/**/*.mdx` when the change affects public APIs, integration behavior, setup steps, configuration, migration paths, or user-visible defaults. Use the `writing-docs` skill for docs work, and the `leadtype` skill when touching docs components, navigation/config, MDX conversion, linting, or generated package docs.
 - If the docs are bundled into packages, regenerate with `bun run generate:package-docs` or the relevant package `build:docs` script.
-- Add a `.tegami/*.md` release note for user-facing published-package changes with `RELEASE_BRANCH=v3 bun run tegami`, using the PR target branch. Include explicit package bumps and a Markdown heading. Write the body as the changelog entry.
+- Add a `.tegami/*.md` release note for user-facing published-package changes with `RELEASE_BRANCH=canary bun run tegami`, using the PR target branch. Include explicit package bumps and a Markdown heading. Write the body as the changelog entry.
 - Do not hand-edit package `CHANGELOG.md` files during normal feature work; Tegami generates them. Only amend an unpublished generated changelog as part of release/version PR cleanup.
 
 ## Branches and releases
 
-- **`canary`** is the default branch and PR target; pushes auto-publish commit-specific snapshots with the `canary` npm tag.
-- **`main`** is stable; **`v3`** publishes alpha prereleases; **`2.0.0`** publishes RC pre-releases. `sync-canary.yml` syncs main → canary.
-- User-facing package changes need a `.tegami/*.md` release note. Read `scripts/tegami.ts` for the linked package list. Selected linked packages share a version; unchanged members do not release automatically. See `.tegami/README.md` for release channels, version PRs, and alpha note replay. Publishing stays in `release.yml` to preserve npm trusted publishing.
+- **`canary`** is the default branch and PR target. It publishes `X.Y.Z-canary.N` prereleases with the `canary` npm tag.
+- **`main`** is stable and publishes with the `latest` tag. `sync-canary.yml` syncs main → canary.
+- On both branches, a push opens or updates a version PR, and merging that PR publishes.
+- User-facing package changes need a `.tegami/*.md` release note. Read `scripts/tegami.ts` for the linked package list. Selected linked packages share a version; unchanged members do not release automatically. See `.tegami/README.md` for release channels, version PRs, and prerelease note replay. Publishing stays in `release.yml` to preserve npm trusted publishing.
 - See the `releasing` skill for the full flow.
 
 ## CI on pull requests
@@ -146,9 +147,10 @@ framework parity and Storybook interactions, SSR consent journeys, and CSS
 compatibility. `scripts/ci-plan.ts` selects the groups; `scripts/ci-browser.ts`
 runs them. See [.github/CI.md](.github/CI.md) for commands and assertion ownership.
 
-`release.yml` calls CI with runtime benchmarks skipped before publishing on
-`canary`, `main`, `2.0.0`, and `v3`, preserving its npm trusted-publisher identity.
-On `v3`, checks select changes since the last successful ancestor release run;
+`release.yml` calls CI with runtime benchmarks skipped before publishing,
+preserving its npm trusted-publisher identity. Pushes to `main` and `canary`
+start it.
+On `canary`, checks select changes since the last successful ancestor release run;
 unavailable history falls back to full validation. Version-only workspace manifests
 select forward builds, while version-only lockfile updates and publish-lock metadata
 do not select runtime suites. Real dependency changes still select full checks.
@@ -158,8 +160,8 @@ Affected React Native JavaScript tests run in the package job. Native toolchains
 select native, Codegen, mobile build and benchmark inputs. `mobile-device.yml`
 runs advisory app builds independently on release pushes and is called by PR
 and full validation CI, so release publication does not wait for it.
-`benchmark-regression.yml` runs full runtime comparisons independently on `v3`
-pushes, nightly, and manually. Scheduled runs explicitly check out `v3` and
+`benchmark-regression.yml` runs full runtime comparisons independently on `canary`
+pushes, nightly, and manually. Scheduled runs explicitly check out `canary` and
 activate once the workflow is on the default branch. `validation.yml` runs full
 CI nightly. `next-compat.yml` separately probes Next canary releases as advisory
 checks. Runtime benchmarks use one runner per package, except core-benchmarks,

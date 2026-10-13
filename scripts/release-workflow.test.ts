@@ -71,16 +71,8 @@ describe('release validation', () => {
 								GITHUB_TOKEN: `\${{ secrets.GITHUB_TOKEN }}`,
 								NPM_CONFIG_PROVENANCE: 'true',
 							},
-							if: "github.ref != 'refs/heads/canary' && steps.tip.outputs.current == 'true'",
+							if: "steps.tip.outputs.current == 'true'",
 							run: 'bun run tegami ci',
-						}),
-						expect.objectContaining({
-							env: {
-								GITHUB_TOKEN: `\${{ secrets.GITHUB_TOKEN }}`,
-								NPM_CONFIG_PROVENANCE: 'true',
-							},
-							if: "github.ref == 'refs/heads/canary'",
-							run: 'bun run tegami version --no-checks\nbun run tegami publish\n',
 						}),
 					]),
 				},
@@ -98,12 +90,10 @@ describe('release validation', () => {
 		});
 	});
 
-	it('queues only publishing outside canary, so release checks overlap', () => {
+	it('queues only publishing, so release checks overlap', () => {
 		expect(readWorkflow('release')).toMatchObject({
-			// Canary keeps whole runs queued so every commit's snapshot publishes.
 			concurrency: {
-				group: `release-run-\${{ github.ref == 'refs/heads/canary' && github.ref || github.run_id }}`,
-				// Without it, a third canary push cancels the second's waiting run.
+				group: `release-run-\${{ github.run_id }}`,
 				queue: 'max',
 			},
 			jobs: {
@@ -118,7 +108,6 @@ describe('release validation', () => {
 					steps: expect.arrayContaining([
 						expect.objectContaining({
 							id: 'tip',
-							if: "github.ref != 'refs/heads/canary'",
 							name: 'Skip superseded commits',
 						}),
 					]),
@@ -134,11 +123,24 @@ describe('release validation', () => {
 		});
 	});
 
+	it('opens version PRs on main and canary pushes and publishes nothing else', () => {
+		const workflow = readWorkflow('release') as {
+			jobs: { publish: { steps: { run?: string }[] } };
+			on: { push: { branches: string[] } };
+		};
+		expect(workflow.on.push.branches).toEqual(['main', 'canary']);
+		// Every publish goes through a merged version PR, canary included.
+		expect(
+			workflow.jobs.publish.steps.flatMap((step) =>
+				step.run?.includes('tegami') ? [step.run] : []
+			)
+		).toEqual(['bun run tegami ci']);
+	});
+
 	it('requires an explicit manual opt-in to bypass release CI', () => {
 		expect(readWorkflow('release')).toMatchObject({
 			jobs: { publish: { needs: 'checks' } },
 			on: {
-				push: { branches: ['main', 'canary', '2.0.0', 'v3'] },
 				workflow_dispatch: {
 					inputs: { skip_tests: { default: false, type: 'boolean' } },
 				},
@@ -237,12 +239,12 @@ describe('release validation', () => {
 		});
 	});
 
-	it('selects all v3 release checks since a successful ancestor and keeps full validation full', () => {
+	it('selects canary release checks since a successful ancestor and keeps full validation full', () => {
 		expect(readWorkflow('release')).toMatchObject({
 			jobs: {
 				checks: {
 					with: {
-						release_affected: `\${{ github.ref == 'refs/heads/v3' }}`,
+						release_affected: `\${{ github.ref == 'refs/heads/canary' }}`,
 					},
 				},
 			},
@@ -283,14 +285,14 @@ describe('release validation', () => {
 					]),
 				},
 			},
-			on: { push: { branches: ['main', 'canary', '2.0.0', 'v3'] } },
+			on: { push: { branches: ['main', 'canary'] } },
 		});
 		expect(readWorkflow('release')).toMatchObject({
 			jobs: { checks: { with: { skip_mobile_device: true } } },
 		});
 	});
 
-	it('runs full v3 comparisons separately on push, nightly, and manually', () => {
+	it('runs full canary comparisons separately on push, nightly, and manually', () => {
 		expect(readWorkflow('benchmark-regression')).toMatchObject({
 			jobs: {
 				benchmark: {
@@ -326,14 +328,14 @@ describe('release validation', () => {
 					steps: expect.arrayContaining([
 						expect.objectContaining({
 							with: expect.objectContaining({
-								ref: `\${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && 'v3' || github.sha }}`,
+								ref: `\${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && 'canary' || github.sha }}`,
 							}),
 						}),
 					]),
 				},
 			},
 			on: {
-				push: { branches: ['v3'] },
+				push: { branches: ['canary'] },
 				schedule: [{ cron: '43 2 * * *' }],
 				workflow_dispatch: {
 					inputs: {

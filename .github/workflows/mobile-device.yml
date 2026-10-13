@@ -2,7 +2,7 @@ name: Mobile device builds
 
 on:
   push:
-    branches: ['main', 'canary', '2.0.0', 'v3']
+    branches: ['main', 'canary']
   workflow_call:
     inputs:
       built:

@@ -2,7 +2,7 @@ name: Benchmark Regression
 
 on:
   push:
-    branches: ['v3']
+    branches: ['canary']
   schedule:
     - cron: '43 2 * * *'
   workflow_call:
@@ -46,9 +46,9 @@ jobs:
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
-          # Manual and scheduled comparisons use v3's measurement tooling.
+          # Manual and scheduled comparisons use canary's measurement tooling.
           # PR callers retain their event SHA and PR cache scope.
-          ref: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && 'v3' || github.sha }}
+          ref: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && 'canary' || github.sha }}
           fetch-depth: 0
           persist-credentials: false
       - uses: oven-sh/setup-bun@f4d14e03ff726c06358e5557344e1da148b56cf7
