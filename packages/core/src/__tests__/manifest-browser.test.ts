@@ -139,6 +139,9 @@ describe('createBrowserManifestTransport()', () => {
 			expect.objectContaining({ method: 'GET' })
 		);
 		expect(response?.gvl).toEqual(vendorList);
+		// A CORS simple request: only safelisted headers, so no preflight
+		const headers = new Headers(fetchSpy.mock.calls[0]?.[1]?.headers);
+		expect([...headers.keys()]).toEqual(['accept-language']);
 	});
 
 	test('asks geoURL for a location the policy needs', async () => {
