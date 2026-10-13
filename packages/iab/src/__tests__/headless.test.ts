@@ -1,4 +1,4 @@
-import type { NonIABVendor } from '@c15t/core';
+import type { AdTechProvider, NonIABVendor } from '@c15t/core';
 import { describe, expect, test } from 'vitest';
 
 import {
@@ -21,6 +21,11 @@ const customVendor: NonIABVendor = {
 	usesCookies: true,
 	usesNonCookieAccess: false,
 };
+
+const adTechProviders: AdTechProvider[] = [
+	{ id: 89, name: 'Meta', policyUrl: 'https://www.facebook.com/privacy' },
+	{ id: 2677, name: 'Seedtag', policyUrl: 'https://www.seedtag.com/privacy' },
+];
 
 describe('@c15t/iab headless dialog data', () => {
 	test('derives purposes, vendors, stacks, features, and special features from a GVL', () => {
@@ -247,5 +252,41 @@ describe('@c15t/iab headless banner summary', () => {
 			remainingCount: 2,
 			vendorCount: 5,
 		});
+	});
+});
+
+describe('@c15t/iab headless vendor counts with Google ad tech providers', () => {
+	const gvlVendorCount = Object.keys(completeGVL.vendors).length;
+	const input = {
+		adTechProviders,
+		customVendors: [customVendor],
+		gvl: completeGVL,
+	};
+
+	test('counts GVL vendors, custom vendors and ad tech providers on the vendors tab', () => {
+		const model = resolveIABDialogDisplayModel(input);
+
+		expect(model.data.totalVendors).toBe(gvlVendorCount + 1 + 2);
+		expect(model.vendorTabCount).toBe(gvlVendorCount + 1 + 2);
+	});
+
+	test('counts ad tech providers in the banner partner count', () => {
+		expect(resolveIABBannerSummary(input).vendorCount).toBe(
+			gvlVendorCount + 1 + 2
+		);
+	});
+
+	test('counts ad tech providers in a banner built from a server summary', () => {
+		const summary = resolveIABBannerSummary({
+			adTechProviders,
+			customVendors: [customVendor],
+			gvl: null,
+			gvlReference: {
+				summary: { items: ['Storage'], vendorCount: 100 },
+			},
+		});
+
+		expect(summary.isReady).toBe(true);
+		expect(summary.vendorCount).toBe(100 + 1 + 2);
 	});
 });

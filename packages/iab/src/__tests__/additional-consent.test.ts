@@ -221,6 +221,29 @@ describe('createIAB with Additional Consent', () => {
 		expect((await tcData()).addtlConsent).toBe('2~~dv.89.2577');
 	});
 
+	test('the useractioncomplete event carries the AC string', async () => {
+		const addon = await mount(makeKernel());
+		const events: TCData[] = [];
+		window.__tcfapi?.('addEventListener', 2, (data) => {
+			events.push(data as TCData);
+		});
+
+		addon.acceptAll();
+		addon.setAdTechProviderConsent(2577, false);
+		await addon.save();
+
+		await vi.waitFor(() =>
+			expect(
+				events.some(({ eventStatus }) => eventStatus === 'useractioncomplete')
+			).toBe(true)
+		);
+		const complete = events.find(
+			({ eventStatus }) => eventStatus === 'useractioncomplete'
+		);
+		expect(complete?.tcString).not.toBe('');
+		expect(complete?.addtlConsent).toBe('2~89~dv.2577');
+	});
+
 	test('a provider switched on without personalised-ads purposes is only disclosed', async () => {
 		const addon = await mount(makeKernel());
 		addon.acceptAll();
