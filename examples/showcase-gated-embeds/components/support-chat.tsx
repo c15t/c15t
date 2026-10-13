@@ -1,7 +1,5 @@
 'use client';
 
-import { useVendorAllowed } from 'c15t/next';
-
 import { ChatPreview } from './embed-previews';
 import { GatedEmbed } from './gated-embed';
 
@@ -12,37 +10,25 @@ const openChat = () => {
 	window.$crisp = queue;
 };
 
-const ChatReady = () => {
-	// Functionality can be on while the visitor switched Crisp itself off in
-	// Privacy settings. The script stays out then, so say so.
-	const crispAllowed = useVendorAllowed('crisp');
-
-	return (
-		<div className="chat-ready">
-			<ChatPreview />
-			<div className="chat-ready-body">
-				<p className="embed-label">Live chat, run by Crisp</p>
-				{crispAllowed ? (
-					<>
-						<p>
-							Chat is on. A roaster answers during café hours, usually within a
-							few minutes.
-						</p>
-						<button
-							type="button"
-							className="button button-primary"
-							onClick={openChat}
-						>
-							Open chat
-						</button>
-					</>
-				) : (
-					<p>Crisp is switched off in your Privacy settings.</p>
-				)}
-			</div>
+const ChatReady = () => (
+	<div className="chat-ready">
+		<ChatPreview />
+		<div className="chat-ready-body">
+			<p className="embed-label">Live chat, run by Crisp</p>
+			<p>
+				Chat is on. A roaster answers during café hours, usually within a few
+				minutes.
+			</p>
+			<button
+				type="button"
+				className="button button-primary"
+				onClick={openChat}
+			>
+				Open chat
+			</button>
 		</div>
-	);
-};
+	</div>
+);
 
 /**
  * The chat itself is the Crisp script registered in `consent.tsx`. This card
