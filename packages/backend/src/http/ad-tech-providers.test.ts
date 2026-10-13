@@ -166,6 +166,24 @@ describe('resolveAdTechProviders', () => {
 		assert.deepStrictEqual(providers, [LIST.providers['89']]);
 	});
 
+	it('stops serving the last list fetched after the stale period', async () => {
+		const now = vi.spyOn(Date, 'now').mockReturnValue(1_000_000);
+		const url = 'https://lists.example/ac-expired';
+		await resolveAdTechProviders({
+			fetch: listServer().fetch,
+			providers: [89],
+			url,
+		});
+		const down = { fetch: listServer({}, 503).fetch, providers: [89], url };
+
+		now.mockReturnValue(1_000_000 + 29 * 86_400_000);
+		assert.deepStrictEqual(await resolveAdTechProviders(down), [
+			LIST.providers['89'],
+		]);
+		now.mockReturnValue(1_000_000 + 31 * 86_400_000);
+		assert.isNull(await resolveAdTechProviders(down));
+	});
+
 	it('serves the stale cache entry after a restart once the fresh one expires', async () => {
 		const cache = memoryCache();
 		const url = 'https://lists.example/ac-restart';

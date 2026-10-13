@@ -91,9 +91,14 @@ const inflight = new Map<string, Promise<AdTechProvider[] | null>>();
 
 /**
  * The last list fetched per key, for when the upstream fails and the cache
- * has nothing either (no adapter configured, or its entries expired).
+ * has nothing either (no adapter configured, or its entries expired). Each
+ * entry lasts as long as the cache's stale entry, so a long-running process
+ * stops serving an outdated list when a restarted one would.
  */
-const lastGood = new Map<string, AdTechProvider[]>();
+const lastGood = new Map<
+	string,
+	{ providers: AdTechProvider[]; staleUntil: number }
+>();
 
 /** When each key may next try the upstream after a failed fetch. */
 const retryAfter = new Map<string, number>();
@@ -103,12 +108,18 @@ const staleCacheKey = function staleCacheKey(key: string): string {
 	return `${key}|stale`;
 };
 
+/** How long a fetched list may be served after a failed refresh. */
+const staleTtlMs = function staleTtlMs(options: AdTechProviderOptions): number {
+	return Math.max(options.ttlMs ?? DEFAULT_TTL_MS, STALE_TTL_MS);
+};
+
 const rememberLastGood = function rememberLastGood(
 	key: string,
-	providers: AdTechProvider[]
+	providers: AdTechProvider[],
+	ttlMs: number
 ): void {
 	lastGood.delete(key);
-	lastGood.set(key, providers);
+	lastGood.set(key, { providers, staleUntil: Date.now() + ttlMs });
 	if (lastGood.size > MAX_LAST_GOOD_ENTRIES) {
 		const oldest = lastGood.keys().next().value;
 		if (oldest !== undefined) {
@@ -170,11 +181,7 @@ const cacheProviders = async function cacheProviders(
 	try {
 		await Promise.all([
 			options.cache?.set(key, providers, ttlMs),
-			options.cache?.set(
-				staleCacheKey(key),
-				providers,
-				Math.max(ttlMs, STALE_TTL_MS)
-			),
+			options.cache?.set(staleCacheKey(key), providers, staleTtlMs(options)),
 		]);
 	} catch {
 		// The list just fetched is still served.
@@ -182,13 +189,16 @@ const cacheProviders = async function cacheProviders(
 };
 
 /** The last list fetched for a key, from memory or the cache's stale entry. */
-const readStaleProviders = async function readStaleProviders(
+const readStaleProviders = function readStaleProviders(
 	cache: CacheAdapter | undefined,
 	key: string
 ): Promise<AdTechProvider[] | null> {
-	return (
-		lastGood.get(key) ?? (await readCachedProviders(cache, staleCacheKey(key)))
-	);
+	const remembered = lastGood.get(key);
+	if (remembered && remembered.staleUntil > Date.now()) {
+		return Promise.resolve(remembered.providers);
+	}
+	lastGood.delete(key);
+	return readCachedProviders(cache, staleCacheKey(key));
 };
 
 /**
@@ -234,7 +244,7 @@ export const resolveAdTechProviders = async function resolveAdTechProviders(
 				return readStaleProviders(options.cache, key);
 			}
 			retryAfter.delete(key);
-			rememberLastGood(key, providers);
+			rememberLastGood(key, providers, staleTtlMs(options));
 			await cacheProviders(options, key, providers);
 			return providers;
 		} finally {
