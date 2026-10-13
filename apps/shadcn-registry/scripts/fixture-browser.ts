@@ -71,6 +71,32 @@ const waitForChecked = async (
 };
 
 /**
+ * Clicks a switch. React Aria puts its input inside a label that takes the
+ * pointer, so a visitor clicks the label.
+ */
+const toggle = async (control: Locator) => {
+	const isInput = await control.evaluate(
+		(element) => element.tagName === 'INPUT'
+	);
+	await (
+		isInput ? control.locator('xpath=ancestor::label[1]') : control
+	).click();
+};
+
+/** Waits for the consent cookie, which the server reads on the next request. */
+const waitForConsentCookie = async (context: BrowserContext) => {
+	const deadline = Date.now() + timeout;
+	// oxlint-disable-next-line no-await-in-loop -- Polls the cookie jar.
+	while (!(await context.cookies()).some((cookie) => cookie.name === 'c15t')) {
+		if (Date.now() > deadline) {
+			throw new Error(`no c15t cookie after ${timeout}ms`);
+		}
+		// oxlint-disable-next-line no-await-in-loop -- Polls the cookie jar.
+		await sleep(100);
+	}
+};
+
+/**
  * Whether the server rendered the banner, for a request with the context's
  * cookies. Next.js also serializes the translations into the page, so the
  * title only counts as element text.
@@ -128,6 +154,7 @@ const serverRenderJourney = async (page: Page, url: string) => {
 		await page.goto(url);
 		await ui.banner.getByRole('button', { name: copy.acceptAll }).click();
 		await ui.banner.waitFor({ state: 'hidden' });
+		await waitForConsentCookie(context);
 		if (await serverRendersBanner(context, url)) {
 			throw new Error('the HTML still has the banner');
 		}
@@ -153,16 +180,13 @@ const dialogJourney = async (page: Page, url: string) => {
 	});
 	await step('dialog saves a switch', async () => {
 		await waitForChecked('Marketing', ui.dialogSwitch, false);
-		await ui.dialogSwitch.click();
+		await toggle(ui.dialogSwitch);
 		await waitForChecked('Marketing', ui.dialogSwitch, true);
 		await ui.dialog.getByRole('button', { name: copy.save }).click();
 		await ui.dialog.waitFor({ state: 'hidden' });
 		await ui.banner.waitFor({ state: 'hidden' });
 		await ui.embed.waitFor();
-		const cookies = await context.cookies();
-		if (!cookies.some((cookie) => cookie.name === 'c15t')) {
-			throw new Error('no c15t cookie after saving');
-		}
+		await waitForConsentCookie(context);
 	});
 	await step('trigger reopens the dialog', async () => {
 		await ui.trigger.click();
@@ -179,11 +203,15 @@ const dialogJourney = async (page: Page, url: string) => {
 		await page.keyboard.press('Escape');
 		await ui.dialog.waitFor({ state: 'hidden' });
 	});
-	await step('widget withdraws consent', async () => {
+	await step('widget withdraws consent and the page reloads', async () => {
 		await waitForChecked('widget Marketing', ui.widgetSwitch, true);
-		await ui.widgetSwitch.click();
+		await toggle(ui.widgetSwitch);
 		await waitForChecked('widget Marketing', ui.widgetSwitch, false);
+		// Revoking a granted category reloads the page once the save settles
+		// (`reloadOnConsentRevoked`). Clicking the gate before then races it.
+		const reloaded = page.waitForEvent('load');
 		await ui.main.getByRole('button', { name: copy.save }).click();
+		await reloaded;
 		await ui.gateButton.waitFor();
 		await ui.embed.waitFor({ state: 'hidden' });
 	});
@@ -230,7 +258,7 @@ const sheetJourney = async (page: Page, url: string) => {
 		await ui.dialog.waitFor();
 	});
 	await step('sheet saves a switch', async () => {
-		await ui.dialogSwitch.click();
+		await toggle(ui.dialogSwitch);
 		await waitForChecked('Marketing', ui.dialogSwitch, true);
 		await ui.dialog.getByRole('button', { name: copy.save }).click();
 		await ui.dialog.waitFor({ state: 'hidden' });

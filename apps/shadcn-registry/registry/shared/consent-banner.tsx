@@ -2,6 +2,7 @@
 
 import { useId, useRef } from "react"
 import {
+  StreamedConsentSurface,
   useBannerCopy,
   useConsentLabels,
   useFocusTrap,
@@ -18,7 +19,7 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 
-export function ConsentBanner({ className }: { className?: string }) {
+function ConsentBannerContent({ className }: { className?: string }) {
   const id = useId()
   const ref = useRef<HTMLElement>(null)
   const { banner, openDialog, performAction } = useHeadlessConsentUI()
@@ -82,5 +83,15 @@ export function ConsentBanner({ className }: { className?: string }) {
         </Card>
       </section>
     </>
+  )
+}
+
+export function ConsentBanner({ className }: { className?: string }) {
+  // On a streamed server render, the banner is sent with the consent state
+  // instead of waiting for hydration.
+  return (
+    <StreamedConsentSurface>
+      <ConsentBannerContent className={className} />
+    </StreamedConsentSurface>
   )
 }

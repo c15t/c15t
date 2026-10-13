@@ -80,18 +80,33 @@ bun run fixtures      # real shadcn projects, see below
 
 `fixtures` scaffolds a shadcn project for each framework and base with
 `shadcn init`, serves the registry from memory, runs `shadcn add` for every
-item, links the workspace `c15t` in, and type-checks the result. The
-TanStack Start fixtures also replace `src/routes/__root.tsx` with the root
-route the install notes describe. Projects live in
-`/tmp/c15t-shadcn-fixtures` and are reused between runs. Pass `--fresh` to
-scaffold them again, or narrow the run:
+item, and type-checks the result. It packs the built workspace `c15t` and
+the `@c15t` packages it depends on, and the projects install those tarballs
+the way they would install a release. The TanStack Start fixtures also
+replace `src/routes/__root.tsx` with the root route the install notes
+describe. Projects live in `/tmp/c15t-shadcn-fixtures` and are reused
+between runs. Pass `--fresh` to scaffold them again, or narrow the run:
 
 ```bash
 bun run fixtures --framework next --base aria
 ```
 
+Pass `--browser` to also build each project for production and click
+through it in Chromium. The run accepts, rejects and saves through the
+banner, dialog, sheet, trigger, widget and gate, and checks that the choice
+survives a reload. For Next.js and TanStack Start it also checks that the
+server HTML has the banner on a first visit and not after a choice. The
+projects talk to the demo backend, so `--browser` needs network access.
+Install Chromium once first:
+
+```bash
+bunx playwright@1.61.1 install chromium
+bun run fixtures --browser
+```
+
 Each fixture writes its command output to
-`/tmp/c15t-shadcn-fixtures/<framework>-<base>.log`.
+`/tmp/c15t-shadcn-fixtures/<framework>-<base>.log`. A failed browser step
+saves a screenshot next to it.
 
 ## Refreshing the vendored components
 
