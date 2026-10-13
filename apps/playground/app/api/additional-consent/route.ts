@@ -28,16 +28,14 @@ export const GET = async function GET(request: Request): Promise<Response> {
 	const response = await fetch(GOOGLE_PROVIDER_LIST, {
 		next: { revalidate: 3600 },
 	}).catch(() => null);
-	if (!response?.ok) {
+	const listed = response?.ok ? parseProviderCsv(await response.text()) : null;
+	if (!listed) {
 		return Response.json(
 			{ error: 'Google provider list unavailable' },
 			{ headers: { ...CORS_HEADERS, 'Cache-Control': 'no-store' }, status: 502 }
 		);
 	}
-	const providers = selectProviders(
-		parseProviderCsv(await response.text()),
-		ids
-	);
+	const providers = selectProviders(listed, ids);
 	return Response.json(
 		{ providers },
 		{ headers: { ...CORS_HEADERS, 'Cache-Control': 'public, max-age=3600' } }

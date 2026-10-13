@@ -65,19 +65,22 @@ const parseCsvRecords = function parseCsvRecords(csv: string): string[][] {
  * Reads Google's provider CSV. Columns are found by header name
  * (`provider_id`, `provider_name`, `policy_url`), and rows without a positive
  * integer ID, a name or an http(s) policy URL are skipped.
+ *
+ * @returns The listed providers, or null when the text is not the provider
+ *   CSV, such as an error page served with a 200.
  */
 export const parseProviderCsv = function parseProviderCsv(
 	csv: string
-): Map<number, AdTechProvider> {
-	const providers = new Map<number, AdTechProvider>();
+): Map<number, AdTechProvider> | null {
 	const [header, ...rows] = parseCsvRecords(csv.replace(/^﻿/u, ''));
 	const columns = header?.map((name) => name.trim().toLowerCase()) ?? [];
 	const idColumn = columns.indexOf('provider_id');
 	const nameColumn = columns.indexOf('provider_name');
 	const policyColumn = columns.indexOf('policy_url');
 	if (idColumn === -1 || nameColumn === -1 || policyColumn === -1) {
-		return providers;
+		return null;
 	}
+	const providers = new Map<number, AdTechProvider>();
 	for (const row of rows) {
 		const rawId = row[idColumn]?.trim() ?? '';
 		const id = /^\d+$/u.test(rawId) ? Number(rawId) : Number.NaN;

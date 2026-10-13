@@ -14,9 +14,16 @@ const GOOGLE_CSV = [
 	'',
 ].join('\n');
 
+/** Providers from CSV that must parse. */
+const parsed = (csv: string) => {
+	const providers = parseProviderCsv(csv);
+	expect.assert(providers);
+	return providers;
+};
+
 describe('parseProviderCsv', () => {
 	it('reads Google provider rows', () => {
-		expect([...parseProviderCsv(GOOGLE_CSV).values()]).toEqual([
+		expect([...parsed(GOOGLE_CSV).values()]).toEqual([
 			{
 				id: 20,
 				name: 'Eacnur',
@@ -38,9 +45,11 @@ describe('parseProviderCsv', () => {
 			'3,"Split\r\nName","https://split.test/privacy",""',
 		].join('\r\n');
 
-		expect([...parseProviderCsv(csv).values()].map(({ name }) => name)).toEqual(
-			['Acme, Inc.', 'The "Best" Ads', 'Split\r\nName']
-		);
+		expect([...parsed(csv).values()].map(({ name }) => name)).toEqual([
+			'Acme, Inc.',
+			'The "Best" Ads',
+			'Split\r\nName',
+		]);
 	});
 
 	it('skips rows that are not usable providers', () => {
@@ -53,16 +62,16 @@ describe('parseProviderCsv', () => {
 			'6,Valid,https://valid.test/privacy,',
 		].join('\n');
 
-		expect([...parseProviderCsv(csv).keys()]).toEqual([6]);
+		expect([...parsed(csv).keys()]).toEqual([6]);
 	});
 
-	it('returns nothing for a response that is not the provider CSV', () => {
-		expect(parseProviderCsv('<html>Not found</html>').size).toBe(0);
+	it('rejects a response that is not the provider CSV', () => {
+		expect(parseProviderCsv('<html>Not found</html>')).toBeNull();
 	});
 });
 
 describe('selectProviders', () => {
-	const listed = parseProviderCsv(GOOGLE_CSV);
+	const listed = parsed(GOOGLE_CSV);
 
 	it('keeps the requested providers Google lists', () => {
 		expect(selectProviders(listed, parseProviderIds('89, 999'))).toEqual({
