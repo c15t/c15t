@@ -187,6 +187,13 @@ describe('createBrowserManifestTransport()', () => {
 		expect(response?.adTechProviders).toEqual([
 			{ id: 89, name: 'Meta', policyUrl: 'https://meta.example/p' },
 		]);
+		// A CORS simple request: no custom header that would need a preflight
+		const providerRequest = fetchSpy.mock.calls.find(([input]) =>
+			String(input).startsWith('https://lists.example/ac-browser')
+		);
+		const headers = new Headers(providerRequest?.[1]?.headers);
+		expect(headers.has('x-c15t-version')).toBe(false);
+		expect(headers.has('x-c15t-policy-contract')).toBe(false);
 	});
 
 	test('asks geoURL for a location the policy needs', async () => {

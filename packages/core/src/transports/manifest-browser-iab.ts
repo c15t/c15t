@@ -29,10 +29,11 @@ export const attachVendorList = async function attachVendorList(
 	fetchImpl: typeof globalThis.fetch
 ): Promise<void> {
 	const providerReference = adTechProviderReference(manifest, output);
+	// No c15t headers: a plain GET stays a CORS simple request, so a provider
+	// list on another origin needs no preflight.
 	const providers = providerReference
 		? fetchCachedAdTechProviders({
 				fetch: fetchImpl,
-				headers: c15tProtocolHeaders,
 				reference: providerReference,
 			})
 		: undefined;
