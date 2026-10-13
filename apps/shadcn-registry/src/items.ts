@@ -46,15 +46,18 @@ const styleNames = [
 ] as const;
 
 /**
- * Every `style` value a shadcn project can have in `components.json`.
- * shadcn puts the raw value in `{style}`, so each one needs its own folder.
- * `new-york` and `default` are the pre-base styles, which use Radix.
+ * Every value shadcn can put in `{style}`, so each one needs its own folder.
+ * shadcn passes the project's `style` through, except that it reads a
+ * `new-york` project on Tailwind v4, or one with no `style`, as
+ * `new-york-v4`. `new-york`, `new-york-v4` and `default` are the pre-base
+ * styles, which use Radix.
  */
 export const styles: readonly { name: string; base: Base }[] = [
 	...bases.flatMap((base) =>
 		styleNames.map((style) => ({ base, name: `${base}-${style}` }))
 	),
 	{ base: 'radix', name: 'new-york' },
+	{ base: 'radix', name: 'new-york-v4' },
 	{ base: 'radix', name: 'default' },
 ];
 

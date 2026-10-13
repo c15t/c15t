@@ -39,10 +39,11 @@ by pointing `c15t/react` imports at `c15t/next` or `c15t/tanstack-start`.
 Nothing else changes. Each framework has its own `consent-manager`, because
 that's where the setups differ.
 
-shadcn requests items at `{style}/{name}.json` using the project's raw
-`style` value, so the build writes a folder for each of the 26 styles. Items
-that share a base are identical apart from their file paths and the URLs of
-the items they depend on.
+shadcn requests items at `{style}/{name}.json` using the project's `style`
+value. A `new-york` project on Tailwind v4 requests `new-york-v4` instead.
+The build writes a folder for each of the 27 styles. Items that share a base
+are identical apart from their file paths and the URLs of the items they
+depend on.
 
 ## Writing items
 
