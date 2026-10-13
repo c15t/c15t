@@ -901,6 +901,12 @@ export const createIAB = function createIAB(
 	/** Whether a provider request finished, so saves stop waiting for it. */
 	let adTechProvidersSettled = false;
 	/**
+	 * Accept All or Reject All chosen while the provider list was loading.
+	 * The choice covers providers the visitor could not see yet, so it is
+	 * applied to them when the list lands.
+	 */
+	let providerBlanket: boolean | undefined;
+	/**
 	 * Loads names and privacy links for the ad tech providers this handle was
 	 * configured with, once per handle. `null` means nothing to publish: none
 	 * configured here (a backend's `/init` may already have put providers in
@@ -1346,6 +1352,28 @@ export const createIAB = function createIAB(
 		}
 		return update;
 	};
+	/**
+	 * Gives providers that arrived after a pending Accept All or Reject All the
+	 * choice the visitor made. A provider they already switched keeps it.
+	 */
+	const applyProviderBlanket = (published: AdTechProvider[] | null): void => {
+		const value = providerBlanket;
+		providerBlanket = undefined;
+		if (value === undefined || !published) {
+			return;
+		}
+		const current = readIAB(kernel).adTechProviderConsents ?? {};
+		const unseen = published.filter(({ id }) => !(String(id) in current));
+		if (unseen.length === 0) {
+			return;
+		}
+		kernel.set.iab({
+			adTechProviderConsents: {
+				...current,
+				...Object.fromEntries(unseen.map(({ id }) => [String(id), value])),
+			},
+		});
+	};
 	/** Whether the retained authority is withdrawn for the new list. */
 	const retainedWithdrawn = (
 		retained: KernelIABAuthority | null | undefined,
@@ -1416,6 +1444,7 @@ export const createIAB = function createIAB(
 			const beforeUpdate = kernel.getSnapshot();
 			kernel.set.iab(update);
 			adTechProvidersSettled = true;
+			applyProviderBlanket(adTechProviders);
 			markListPublished(generation);
 			// Authority held under other restrictions, for example by a CMP
 			// mounted earlier with another configuration: ask again, as for a
@@ -1746,6 +1775,13 @@ export const createIAB = function createIAB(
 		readIAB(kernel).gvl
 			? initialization
 			: null;
+	/** Applies a blanket choice now, and again to providers still loading. */
+	const blanket = (gvl: GlobalVendorList, value: boolean): void => {
+		applyBlanket(kernel, gvl, value, restrictionsForBlanket(gvl));
+		if (pendingAdTechProviders()) {
+			providerBlanket = value;
+		}
+	};
 
 	const generateTC = async function generateTC(): Promise<string> {
 		if (!readIAB(kernel).gvl && reference && !(await waitForReferencedList())) {
@@ -1794,7 +1830,7 @@ export const createIAB = function createIAB(
 			if (!gvl) {
 				return;
 			}
-			applyBlanket(kernel, gvl, true, restrictionsForBlanket(gvl));
+			blanket(gvl, true);
 		},
 		get cmpApi() {
 			return cmpApi;
@@ -1835,7 +1871,7 @@ export const createIAB = function createIAB(
 			if (!gvl) {
 				return;
 			}
-			applyBlanket(kernel, gvl, false, restrictionsForBlanket(gvl));
+			blanket(gvl, false);
 		},
 		// oxlint-disable-next-line complexity -- Keep the async save cancellation checks together.
 		async save() {

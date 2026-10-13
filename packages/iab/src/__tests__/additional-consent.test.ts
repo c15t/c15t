@@ -368,6 +368,65 @@ describe('createIAB with Additional Consent', () => {
 		);
 	});
 
+	/** Holds the provider list until the test releases it. */
+	const holdProviderList = () => {
+		let release!: () => void;
+		const released = new Promise<void>((resolve) => {
+			release = resolve;
+		});
+		fetchMock.mockImplementation(async () => {
+			await released;
+			return Response.json(PROVIDERS);
+		});
+		return release;
+	};
+
+	test('Accept All before the provider list lands consents to every provider', async () => {
+		const release = holdProviderList();
+		const kernel = makeKernel();
+		const addon = createIAB({
+			additionalConsent: {
+				providers: [89, 2577],
+				url: 'https://lists.example/ac',
+			},
+			cmpId: 28,
+			gvl: completeGVL,
+			kernel,
+		});
+		disposers.push(addon.dispose);
+		addon.acceptAll();
+		const saved = addon.save();
+		release();
+		await saved;
+		expect(kernel.getSnapshot().iab?.adTechProviderConsents).toEqual({
+			'2577': true,
+			'89': true,
+		});
+		expect((await tcData()).addtlConsent).toBe('2~89.2577~dv.');
+	});
+
+	test('a provider switched off before the list lands stays off', async () => {
+		const release = holdProviderList();
+		const kernel = makeKernel();
+		kernel.set.iab({ adTechProviders: [PROVIDERS.providers['89']] });
+		const addon = createIAB({
+			additionalConsent: {
+				providers: [89, 2577],
+				url: 'https://lists.example/ac',
+			},
+			cmpId: 28,
+			gvl: completeGVL,
+			kernel,
+		});
+		disposers.push(addon.dispose);
+		addon.acceptAll();
+		addon.setAdTechProviderConsent(89, false);
+		const saved = addon.save();
+		release();
+		await saved;
+		expect((await tcData()).addtlConsent).toBe('2~2577~dv.89');
+	});
+
 	test('uses providers the backend put in the kernel without fetching', async () => {
 		const kernel = makeKernel();
 		kernel.set.iab({
