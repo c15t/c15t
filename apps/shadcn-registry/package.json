@@ -23,6 +23,7 @@
 		"class-variance-authority": "^0.7.1",
 		"cn": "^0.4.0",
 		"lucide-react": "^1.23.0",
+		"playwright": "1.61.1",
 		"radix-ui": "^1.4.3",
 		"react": "19.2.7",
 		"react-aria-components": "^1.22.1",
