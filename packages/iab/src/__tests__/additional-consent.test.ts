@@ -518,6 +518,26 @@ describe('createIAB with Additional Consent', () => {
 		expect(fetchMock).not.toHaveBeenCalled();
 	});
 
+	test('an empty client list replaces the backend providers', async () => {
+		const kernel = makeKernel();
+		kernel.set.iab({ adTechProviders: [PROVIDERS.providers['89']] });
+		const backendOnly = createIAB({ cmpId: 28, gvl: completeGVL, kernel });
+		disposers.push(backendOnly.dispose);
+		await backendOnly.whenReady();
+		backendOnly.acceptAll();
+		await backendOnly.save();
+		expect((await tcData()).addtlConsent).toBe('2~89~dv.');
+		backendOnly.dispose();
+
+		const addon = await mount(kernel, []);
+		expect(kernel.getSnapshot().iab?.adTechProviders).toEqual([]);
+		expect(await tcData()).not.toHaveProperty('addtlConsent');
+		addon.acceptAll();
+		await addon.save();
+		expect(await tcData()).not.toHaveProperty('addtlConsent');
+		expect(fetchMock).not.toHaveBeenCalled();
+	});
+
 	test('keeps backend providers when the client list fails to load', async () => {
 		fetchMock.mockImplementation(() =>
 			Promise.resolve(new Response('', { status: 500 }))

@@ -930,16 +930,21 @@ export const createIAB = function createIAB(
 	let providerBlanket: boolean | undefined;
 	/**
 	 * Loads names and privacy links for the ad tech providers this handle was
-	 * configured with, once per handle. `null` means nothing to publish: none
-	 * configured here (a backend's `/init` may already have put providers in
-	 * the kernel), no TC string coming, or a failed request. A failure leaves
-	 * the TC string working, since the AC string only supplements it.
+	 * configured with, once per handle. A client list replaces the backend's,
+	 * so an empty one resolves to `[]` and clears it. `null` keeps what the
+	 * kernel holds: no list configured here (a backend's `/init` may already
+	 * have put providers in the kernel), no TC string coming, or a failed
+	 * request. A failure leaves the TC string working, since the AC string
+	 * only supplements it.
 	 */
 	const loadAdTechProviders = (
 		preloaded: GlobalVendorList | null | undefined
 	): Promise<AdTechProvider[] | null> => {
-		if (adTechProviderIds.length === 0 || preloaded === null) {
+		if (!options.additionalConsent || preloaded === null) {
 			return Promise.resolve(null);
+		}
+		if (adTechProviderIds.length === 0) {
+			return Promise.resolve([]);
 		}
 		adTechProviderRequest ??= (async () => {
 			try {
