@@ -951,7 +951,13 @@ export const createIAB = function createIAB(
 		if (adTechProviderIds.length === 0) {
 			return Promise.resolve([]);
 		}
-		adTechProviderRequest ??= (async () => {
+		if (adTechProviderRequest) {
+			return adTechProviderRequest;
+		}
+		// A retry after a failed request: saves and blanket choices wait for
+		// it again.
+		adTechProvidersSettled = false;
+		adTechProviderRequest = (async () => {
 			try {
 				return await fetchAdTechProviders(
 					adTechProviderIds,

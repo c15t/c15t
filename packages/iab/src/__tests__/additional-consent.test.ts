@@ -660,6 +660,42 @@ describe('createIAB with Additional Consent', () => {
 		expect((await tcData()).addtlConsent).toBe('2~~dv.2577');
 	});
 
+	test('a retried provider list holds Accept All and the save until it lands', async () => {
+		fetchMock.mockImplementation(() =>
+			Promise.resolve(new Response('', { status: 500 }))
+		);
+		vi.spyOn(console, 'warn').mockImplementation(() => {});
+		const kernel = makeKernel();
+		// No `gvl` option, so a new list in the kernel loads the providers again.
+		const addon = createIAB({
+			additionalConsent: {
+				providers: [89, 2577],
+				url: 'https://lists.example/ac',
+			},
+			cmpId: 28,
+			kernel,
+		});
+		disposers.push(addon.dispose);
+		await addon.whenReady();
+		expect(kernel.getSnapshot().iab?.adTechProviders ?? []).toEqual([]);
+
+		let land!: () => void;
+		fetchMock.mockImplementation(
+			() =>
+				new Promise<Response>((resolve) => {
+					land = () => resolve(Response.json(PROVIDERS));
+				})
+		);
+		kernel.set.iab({ gvl: { ...completeGVL, vendorListVersion: 999 } });
+		await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+
+		addon.acceptAll();
+		const saved = addon.save();
+		land();
+		await saved;
+		expect((await tcData()).addtlConsent).toBe('2~89.2577~dv.');
+	});
+
 	test('fetches nothing without configured providers', async () => {
 		const addon = createIAB({
 			cmpId: 28,
