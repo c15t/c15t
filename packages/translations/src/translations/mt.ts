@@ -125,6 +125,10 @@ export const translations: CompleteTranslations = {
 			},
 			title: 'Settings tal-privatezza',
 			vendorList: {
+				adTechProvidersHeading:
+					'Fornituri tat-Teknoloġija tar-Reklamar ta’ Google',
+				adTechProvidersNotice:
+					'Google jaħdem ma’ dawn il-fornituri tat-teknoloġija tar-reklamar barra mill-qafas tal-IAB. Il-kunsens tiegħek jasal għand fornitur biss jekk tixgħelu u tippermetti wkoll il-ħżin ta’ informazzjoni fuq l-apparat tiegħek u r-reklamar personalizzat.',
 				customVendorsHeading: 'Sħab Personalizzati',
 				customVendorsNotice:
 					'Dawn huma sħab personalizzati mhux reġistrati mal-IAB Transparency & Consent Framework (TCF). Huma jipproċessaw id-data abbażi tal-kunsens tiegħek u jista’ jkollhom prattiki ta’ privatezza differenti minn bejjiegħa reġistrati fl-IAB.',

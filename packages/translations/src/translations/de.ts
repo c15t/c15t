@@ -125,6 +125,9 @@ export const translations: CompleteTranslations = {
 			},
 			title: 'Datenschutz-Einstellungen',
 			vendorList: {
+				adTechProvidersHeading: 'Google-Anbieter für Werbetechnologie',
+				adTechProvidersNotice:
+					'Google arbeitet mit diesen Anbietern für Werbetechnologie außerhalb des IAB-Frameworks zusammen. Deine Einwilligung erreicht einen Anbieter nur, wenn du ihn aktivierst und außerdem das Speichern von Informationen auf deinem Gerät sowie personalisierte Werbung erlaubst.',
 				customVendorsHeading: 'Benutzerdefinierte Partner',
 				customVendorsNotice:
 					'Dies sind benutzerdefinierte Partner, die nicht beim IAB Transparency & Consent Framework (TCF) registriert sind. Sie verarbeiten Daten auf Grundlage deiner Einwilligung und können andere Datenschutzpraktiken haben als IAB-registrierte Anbieter.',

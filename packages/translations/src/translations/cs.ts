@@ -128,6 +128,9 @@ export const translations: CompleteTranslations = {
 			},
 			title: 'Nastavení soukromí',
 			vendorList: {
+				adTechProvidersHeading: 'Poskytovatelé reklamních technologií Google',
+				adTechProvidersNotice:
+					'Google spolupracuje s těmito poskytovateli reklamních technologií mimo rámec IAB. Váš souhlas se k poskytovateli dostane, jen pokud ho zapnete a zároveň povolíte ukládání informací na vašem zařízení a personalizovanou reklamu.',
 				customVendorsHeading: 'Vlastní partneři',
 				customVendorsNotice:
 					'Toto jsou vlastní partneři, kteří nejsou registrováni v rámci IAB Transparency & Consent Framework (TCF). Zpracovávají data na základě vašeho souhlasu a mohou mít odlišné postupy ochrany osobních údajů než partneři registrovaní v IAB.',

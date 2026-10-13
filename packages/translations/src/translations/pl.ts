@@ -125,6 +125,9 @@ export const translations: CompleteTranslations = {
 			},
 			title: 'Ustawienia prywatności',
 			vendorList: {
+				adTechProvidersHeading: 'Dostawcy technologii reklamowych Google',
+				adTechProvidersNotice:
+					'Google współpracuje z tymi dostawcami technologii reklamowych poza ramami IAB. Twoja zgoda trafia do dostawcy tylko wtedy, gdy go włączysz i dodatkowo zezwolisz na przechowywanie informacji na urządzeniu oraz spersonalizowane reklamy.',
 				customVendorsHeading: 'Partnerzy niestandardowi',
 				customVendorsNotice:
 					'Są to partnerzy niestandardowi, którzy nie są zarejestrowani w IAB Transparency & Consent Framework (TCF). Przetwarzają dane na podstawie Twojej zgody i mogą stosować inne praktyki prywatności niż dostawcy zarejestrowani w IAB.',

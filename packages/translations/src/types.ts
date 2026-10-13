@@ -177,12 +177,12 @@ export interface IABPreferenceCenterTranslations {
 		customVendorsHeading: string;
 		customVendorsNotice: string;
 		/** Heading of the Google Additional Consent provider section. */
-		adTechProvidersHeading?: string;
+		adTechProvidersHeading: string;
 		/**
 		 * Explains Google ad tech providers outside the TCF, and that consent
 		 * to one also needs device storage and personalised advertising.
 		 */
-		adTechProvidersNotice?: string;
+		adTechProvidersNotice: string;
 		purposes: string;
 		specialPurposes: string;
 		specialFeatures: string;

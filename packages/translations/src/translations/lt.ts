@@ -127,6 +127,9 @@ export const translations: CompleteTranslations = {
 			},
 			title: 'Privatumo nustatymai',
 			vendorList: {
+				adTechProvidersHeading: 'Google reklamos technologijų teikėjai',
+				adTechProvidersNotice:
+					'Google bendradarbiauja su šiais reklamos technologijų teikėjais už IAB sistemos ribų. Jūsų sutikimas pasiekia teikėją tik tada, jei jį įjungiate ir taip pat leidžiate saugoti informaciją jūsų įrenginyje bei rodyti jums pritaikytas reklamas.',
 				customVendorsHeading: 'Pasirinktiniai partneriai',
 				customVendorsNotice:
 					'Tai yra pasirinktiniai partneriai, kurie nėra užregistruoti IAB Transparency & Consent Framework (TCF). Jie tvarko duomenis remdamiesi jūsų sutikimu ir gali taikyti kitokią privatumo praktiką nei IAB registruoti tiekėjai.',
