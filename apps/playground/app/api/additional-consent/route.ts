@@ -1,96 +1,45 @@
 /**
- * Google Additional Consent provider list, in the shape `@c15t/iab` reads
- * from `https://gvl.inth.app/additional-consent`.
- *
- * Google publishes the list as a CSV without CORS headers, so browsers
- * cannot read it directly. This route converts it to JSON and filters it by
- * `?providerIds=1,2,3`, as the hosted endpoint does, so the demo works
- * without it.
+ * Google Additional Consent provider list as JSON, filtered by
+ * `?providerIds=1,2,3`, in the shape `@c15t/iab` reads from
+ * `https://gvl.inth.app/additional-consent`. See `lib/additional-consent.ts`.
  */
 
-const GOOGLE_PROVIDER_LIST =
-	'https://storage.googleapis.com/tcfac/additional-consent-providers.csv';
+import {
+	GOOGLE_PROVIDER_LIST,
+	parseProviderCsv,
+	parseProviderIds,
+	selectProviders,
+} from '../../../lib/additional-consent';
 
-interface AdTechProvider {
-	id: number;
-	name: string;
-	policyUrl: string;
-}
-
-/** Splits one CSV record into fields, honouring quotes and `""` escapes. */
-const parseRecord = function parseRecord(line: string): string[] {
-	const fields: string[] = [];
-	let field = '';
-	let quoted = false;
-	for (let index = 0; index < line.length; index += 1) {
-		const character = line[index];
-		if (quoted && character === '"' && line[index + 1] === '"') {
-			field += '"';
-			index += 1;
-		} else if (character === '"') {
-			quoted = !quoted;
-		} else if (character === ',' && !quoted) {
-			fields.push(field);
-			field = '';
-		} else {
-			field += character;
-		}
-	}
-	fields.push(field);
-	return fields;
+const CORS_HEADERS = {
+	'Access-Control-Allow-Headers': 'Content-Type',
+	'Access-Control-Allow-Methods': 'GET, OPTIONS',
+	'Access-Control-Allow-Origin': '*',
 };
 
-const parseProviders = function parseProviders(
-	csv: string
-): Map<number, AdTechProvider> {
-	const providers = new Map<number, AdTechProvider>();
-	// The first record is the header: provider_id, provider_name, policy_url, domains.
-	for (const line of csv.split(/\r?\n/u).slice(1)) {
-		const [id, name, policyUrl] = parseRecord(line);
-		const providerId = Number(id);
-		if (
-			Number.isSafeInteger(providerId) &&
-			providerId > 0 &&
-			name &&
-			policyUrl
-		) {
-			providers.set(providerId, { id: providerId, name, policyUrl });
-		}
-	}
-	return providers;
+export const OPTIONS = function OPTIONS(): Response {
+	return new Response(null, { headers: CORS_HEADERS, status: 204 });
 };
 
 export const GET = async function GET(request: Request): Promise<Response> {
-	const requested = new URL(request.url).searchParams
-		.get('providerIds')
-		?.split(',')
-		.map(Number)
-		.filter((id) => Number.isSafeInteger(id) && id > 0);
+	const ids = parseProviderIds(
+		new URL(request.url).searchParams.get('providerIds')
+	);
 	const response = await fetch(GOOGLE_PROVIDER_LIST, {
 		next: { revalidate: 3600 },
-	});
-	if (!response.ok) {
+	}).catch(() => null);
+	if (!response?.ok) {
 		return Response.json(
 			{ error: 'Google provider list unavailable' },
-			{ status: 502 }
+			{ headers: { ...CORS_HEADERS, 'Cache-Control': 'no-store' }, status: 502 }
 		);
 	}
-	const listed = parseProviders(await response.text());
-	const ids = requested?.length ? requested : [...listed.keys()];
-	const providers: Record<string, AdTechProvider> = {};
-	for (const id of ids) {
-		const provider = listed.get(id);
-		if (provider) {
-			providers[String(id)] = provider;
-		}
-	}
+	const providers = selectProviders(
+		parseProviderCsv(await response.text()),
+		ids
+	);
 	return Response.json(
 		{ providers },
-		{
-			headers: {
-				'Access-Control-Allow-Origin': '*',
-				'Cache-Control': 'public, max-age=3600',
-			},
-		}
+		{ headers: { ...CORS_HEADERS, 'Cache-Control': 'public, max-age=3600' } }
 	);
 };
