@@ -26,6 +26,17 @@ The setup bundles your policy into the server at build time, the
 recommended production setup. Rebuild after changing policies, translations
 or vendors.
 
+The adapter works with `@tanstack/react-start` 1.168.60 or later, including
+TanStack Start 1.0, on React 18 or 19. Keep `@tanstack/react-router` at the
+version your Start release depends on, or the app loads two copies of the
+router. That's 1.170.41 or later for 1.168.60, and 1.170.44 or later for Start
+1.0.
+
+If you're upgrading an existing app to TanStack Start 1.0, upgrade Vite to 8 or
+later first. Start 1.0 also renames `.inputValidator()` on `createServerFn()`
+and `createMiddleware()` to `.validator()`, so rename any calls in your app. c15t
+doesn't call it.
+
 ## Install c15t
 
 <CommandTabs command="c15t @c15t/integrations" mode="install" />
