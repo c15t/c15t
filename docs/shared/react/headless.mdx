@@ -94,7 +94,10 @@ group: reference
   `requestConsent` does not grant the category, because the visitor still has
   to save. The preference center opens on its usual view, not on the
   category. Mount a `ConsentDialog` in the same provider so it has something
-  to open.
+  to open. The stock gate button starts loading the pre-built dialog's code
+  on hover, focus and idle time. `requestConsent` doesn't, so without a
+  banner or dialog trigger on the page, the first open waits for that
+  download.
 
   When it mounts, the hook registers the category with the provider, as
   `ConsentGate` does, so the preference center can list it. If you set

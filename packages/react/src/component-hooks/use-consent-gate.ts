@@ -40,7 +40,11 @@ export interface UseConsentGateResult {
 	actionLabel: string | undefined;
 	/** Translated policy-blocked message, with the English fallback. */
 	policyBlockedMessage: string;
-	/** Open the consent dialog for this category, as the stock gate button does. */
+	/**
+	 * Opens the consent dialog on its usual view. Unlike the stock gate
+	 * button, it doesn't start loading a deferred `ConsentDialog` on hover,
+	 * focus or idle time.
+	 */
 	requestConsent: () => void;
 }
 
@@ -158,8 +162,7 @@ export const useConsentGate = function useConsentGate(
 		[translations, category]
 	);
 
-	// The dialog has no per-category view, so this opens it the way the
-	// stock gate button does.
+	// The dialog has no per-category view, so this opens its usual view.
 	const requestConsent = useCallback(() => {
 		setActiveUI('dialog');
 	}, [setActiveUI]);
