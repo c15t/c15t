@@ -125,6 +125,10 @@ export const translations: CompleteTranslations = {
 			},
 			title: 'Configuración de privacidad',
 			vendorList: {
+				adTechProvidersHeading:
+					'Proveedores de tecnología publicitaria de Google',
+				adTechProvidersNotice:
+					'Google trabaja con estos proveedores de tecnología publicitaria fuera del marco de IAB. Tu consentimiento solo llega a un proveedor si lo activas y además permites el almacenamiento de información en tu dispositivo y la publicidad personalizada.',
 				customVendorsHeading: 'Socios personalizados',
 				customVendorsNotice:
 					'Estos son socios personalizados no registrados en el Marco de Transparencia y Consentimiento de IAB (TCF). Procesan datos basándose en tu consentimiento y pueden tener prácticas de privacidad diferentes a las de los proveedores registrados en IAB.',

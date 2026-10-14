@@ -85,6 +85,14 @@ const manifestSchema: v.GenericSchema<unknown, ConsentManifest> = v.looseObject(
 		hosting: v.optional(hostingSchema),
 		iab: v.optional(
 			v.looseObject({
+				additionalConsent: v.optional(
+					v.object({
+						providers: v.array(
+							v.pipe(v.number(), v.safeInteger(), v.minValue(1))
+						),
+						url: v.string(),
+					})
+				),
 				customVendors: v.optional(v.array(nonIABVendorSchema)),
 				enabled: v.boolean(),
 				gvl: v.optional(

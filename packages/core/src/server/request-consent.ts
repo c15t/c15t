@@ -72,6 +72,7 @@ import type {
 import { resolveSessionReportBackendURL } from '../libs/session-report';
 import { readStoredRecordsFromCookieHeader } from '../modules/persistence/hydrate';
 import { resolveStorageKeys } from '../modules/persistence/record-storage';
+import { fetchCachedAdTechProviders } from '../transports/ad-tech-provider-cache';
 import { deferInitGvl, deferInitGvlToRoute } from '../transports/gvl-reference';
 import {
 	mapInitOutputToInitResponse,
@@ -921,6 +922,16 @@ export const resolveRequestConsent = async function resolveRequestConsent(
 			const reference = manifest.iab?.gvl;
 			const payload = await resolveConsentInit({
 				inputs: resolverInputs(),
+				loadAdTechProviders: (providerReference) => {
+					// A relative endpoint is this app's own route; resolve it as
+					// the manifest source is.
+					const target = resolveTarget(providerReference.url);
+					return fetchCachedAdTechProviders({
+						fetch: target.fetch as typeof globalThis.fetch,
+						headers: c15tProtocolHeaders,
+						reference: { ...providerReference, url: target.url },
+					});
+				},
 				loadGvl: loadGvlFor(manifest),
 				manifest,
 				report:

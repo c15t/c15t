@@ -125,6 +125,9 @@ export const translations: CompleteTranslations = {
 			},
 			title: 'Gosodiadau preifatrwydd',
 			vendorList: {
+				adTechProvidersHeading: 'Darparwyr Technoleg Hysbysebu Google',
+				adTechProvidersNotice:
+					'Mae Google yn gweithio gyda’r darparwyr technoleg hysbysebu hyn y tu allan i fframwaith yr IAB. Dim ond os byddwch yn ei droi ymlaen a hefyd yn caniatáu storio gwybodaeth ar eich dyfais a hysbysebu wedi’i bersonoli y bydd eich cydsyniad yn cyrraedd darparwr.',
 				customVendorsHeading: 'Partneriaid Personol',
 				customVendorsNotice:
 					'Partneriaid personol yw’r rhain nad ydynt wedi’u cofrestru gyda Fframwaith Tryloywder a Chydsyniad (TCF) yr IAB. Maent yn prosesu data yn seiliedig ar eich cydsyniad ac fe allant fod ag arferion preifatrwydd gwahanol i werthwyr cofrestredig IAB.',

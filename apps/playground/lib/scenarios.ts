@@ -40,6 +40,15 @@ export const DEMO_IAB_VENDOR_IDS = Array.from(
 	(_, index) => index + 1
 );
 
+/**
+ * Google Additional Consent providers: Meta, Tradedoubler and Snap. The
+ * playground serves Google's list itself; see `app/api/additional-consent`.
+ */
+export const DEMO_ADDITIONAL_CONSENT = {
+	providers: [89, 486, 2572],
+	url: '/api/additional-consent',
+};
+
 export const DEMO_CUSTOM_VENDORS = [
 	{
 		cookieMaxAgeSeconds: 31536000,

@@ -1,5 +1,6 @@
 import * as v from 'valibot';
 
+import { adTechProviderSchema } from '../shared/ad-tech-provider';
 import { brandingSchema } from '../shared/branding';
 import { globalVendorListSchema } from '../shared/gvl';
 import { hostingSchema } from '../shared/hosting';
@@ -106,6 +107,13 @@ export const locationSchema = v.object({
  * Output schema for init endpoint
  */
 export const initOutputSchema = v.object({
+	/**
+	 * Google Additional Consent providers: ad tech outside the IAB GVL, with
+	 * the name and privacy policy the preference centre discloses. Present
+	 * with the vendor list when the backend configures them. Absent means
+	 * keep the providers the client holds.
+	 */
+	adTechProviders: v.optional(v.array(adTechProviderSchema)),
 	branding: brandingSchema,
 	/**
 	 * CMP ID registered with IAB Europe.

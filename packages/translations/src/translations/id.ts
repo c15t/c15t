@@ -125,6 +125,9 @@ export const translations: CompleteTranslations = {
 			},
 			title: 'Pengaturan Privasi',
 			vendorList: {
+				adTechProvidersHeading: 'Penyedia Teknologi Iklan Google',
+				adTechProvidersNotice:
+					'Google bekerja sama dengan penyedia teknologi iklan ini di luar kerangka IAB. Persetujuan Anda hanya sampai ke penyedia jika Anda mengaktifkannya dan juga mengizinkan penyimpanan informasi di perangkat Anda serta iklan yang dipersonalisasi.',
 				customVendorsHeading: 'Mitra Kustom',
 				customVendorsNotice:
 					'Ini adalah mitra kustom yang tidak terdaftar di IAB Transparency & Consent Framework (TCF). Mereka memproses data berdasarkan persetujuan Anda dan mungkin memiliki praktik privasi yang berbeda dari vendor terdaftar IAB.',

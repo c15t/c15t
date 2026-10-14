@@ -46,6 +46,8 @@ export interface ReactIABState extends KernelIABState {
 	setPurposeConsent: (purposeId: number, value: boolean) => void;
 	setPurposeLegitimateInterest: (purposeId: number, value: boolean) => void;
 	setSpecialFeatureOptIn: (featureId: number, value: boolean) => void;
+	/** Set consent for a Google ad tech provider (Additional Consent). */
+	setAdTechProviderConsent: (providerId: number, value: boolean) => void;
 	acceptAll: () => void;
 	rejectAll: () => void;
 	save: () => Promise<void>;
@@ -320,6 +322,9 @@ export const useIAB = function useIAB(): ReactIABState | null {
 			preferenceCenterTab: iabContext?.tab ?? 'purposes',
 			rejectAll: act((mounted) => mounted.rejectAll),
 			save: () => deferred((mounted) => mounted.save()),
+			setAdTechProviderConsent: act(
+				(mounted) => mounted.setAdTechProviderConsent
+			),
 			setPreferenceCenterTab: iabContext?.setTab ?? noop,
 			setPurposeConsent: act((mounted) => mounted.setPurposeConsent),
 			setPurposeLegitimateInterest: act(

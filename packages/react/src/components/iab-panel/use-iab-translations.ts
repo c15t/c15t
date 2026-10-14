@@ -59,6 +59,8 @@ interface IABTranslations {
 			iabVendorsNotice: string;
 			customVendorsHeading: string;
 			customVendorsNotice: string;
+			adTechProvidersHeading: string;
+			adTechProvidersNotice: string;
 			purposes: string;
 			specialPurposes: string;
 			specialFeatures: string;

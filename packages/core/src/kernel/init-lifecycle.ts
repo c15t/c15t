@@ -261,6 +261,7 @@ const foldInitResponse = function foldInitResponse(
 		response.gvlReference !== undefined ||
 		response.gvl !== undefined ||
 		response.customVendors !== undefined ||
+		response.adTechProviders !== undefined ||
 		response.cmpId !== undefined
 	) {
 		const baseline = current.iab ?? DEFAULT_IAB;
@@ -277,6 +278,10 @@ const foldInitResponse = function foldInitResponse(
 					? baseline.gvlReference
 					: response.gvlReference,
 		};
+		// Absent keeps the providers held, as for custom vendors.
+		if (response.adTechProviders !== undefined) {
+			nextIab.adTechProviders = response.adTechProviders;
+		}
 		if (response.gvlReference !== undefined) {
 			nextIab.gvl = response.gvl ?? null;
 			nextIab.gvlReference = response.gvlReference;

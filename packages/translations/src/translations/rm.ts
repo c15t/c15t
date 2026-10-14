@@ -126,6 +126,9 @@ export const translations: CompleteTranslations = {
 			},
 			title: 'Configuraziuns da la sfera privata',
 			vendorList: {
+				adTechProvidersHeading: 'Proveders da tecnologia da reclama da Google',
+				adTechProvidersNotice:
+					'Google lavura cun quests proveders da tecnologia da reclama ordaifer il framework da l’IAB. Voss consentiment cuntanscha in proveder mo sche vus l’activais e lubis er la memorisaziun d’infurmaziuns sin voss apparat e la reclama persunalisada.',
 				customVendorsHeading: 'Partunaris persunalisads',
 				customVendorsNotice:
 					'Quai èn partunaris persunalisads che n’èn betg registrads tar l’IAB Transparency & Consent Framework (TCF). Els processan datas sa basond sin voss consentiment e pon avair autras praticas da protecziun da datas che proveders registrads tar l’IAB.',

@@ -126,6 +126,10 @@ export const translations: CompleteTranslations = {
 			},
 			title: 'Socruithe príobháideachais',
 			vendorList: {
+				adTechProvidersHeading:
+					'Soláthróirí teicneolaíochta fógraíochta Google',
+				adTechProvidersNotice:
+					'Oibríonn Google leis na soláthróirí teicneolaíochta fógraíochta seo lasmuigh de chreat IAB. Ní shroicheann do thoiliú soláthraí ach amháin má chasann tú air é agus má cheadaíonn tú freisin stóráil faisnéise ar do ghléas agus fógraíocht phearsantaithe.',
 				customVendorsHeading: 'Comhpháirtithe saincheaptha',
 				customVendorsNotice:
 					"Is comhpháirtithe saincheaptha iad seo nach bhfuil cláraithe le Creat Trédhearcachta agus Toilithe IAB (TCF). Próiseálann siad sonraí bunaithe ar do thoiliú agus d'fhéadfadh cleachtais phríobháideachta éagsúla a bheith acu ó dhíoltóirí cláraithe IAB.",

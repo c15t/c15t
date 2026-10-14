@@ -145,10 +145,15 @@ const labels = computed(() => ({
 const publisherRestrictions = computed(
 	() => snapshot.value.iab?.publisherRestrictions
 );
+const adTechProviders = computed(() => snapshot.value.iab?.adTechProviders);
+const adTechProviderConsents = computed(
+	() => snapshot.value.iab?.adTechProviderConsents
+);
 const display = computed(() =>
 	resolveIABDialogDisplayModel(
 		gvl.value
 			? {
+					adTechProviders: adTechProviders.value,
 					customVendors: customVendors.value,
 					gvl: gvl.value,
 					publisherRestrictions: publisherRestrictions.value,
@@ -173,6 +178,7 @@ const isStackRow = function isStackRow(
 const isLoading = computed(() => !gvl.value);
 const bannerSummary = computed(() =>
 	resolveIABBannerSummary({
+		adTechProviders: adTechProviders.value,
 		customVendors: customVendors.value,
 		gvl: gvl.value,
 		gvlReference: initValue.value?.gvlReference,
@@ -266,6 +272,17 @@ const setVendorLegitimateInterest = function setVendorLegitimateInterest(
 		vendorId,
 		value
 	);
+};
+
+/**
+ * Providers load only through the CMP handle, so a provider switch always
+ * has one to write to.
+ */
+const setAdTechProviderConsent = function setAdTechProviderConsent(
+	providerId: number,
+	value: boolean
+) {
+	kernelContext.iab?.setAdTechProviderConsent?.(providerId, value);
 };
 
 const setSpecialFeatureOptIn = function setSpecialFeatureOptIn(
@@ -820,9 +837,15 @@ useFocusTrap(card, () => shouldTrapFocus.value, {
 											@vendor-toggle="
 												(vendorId, value) => setVendorConsent(vendorId, value)
 											"
+											:ad-tech-providers="adTechProviders"
+											:ad-tech-provider-consents="adTechProviderConsents"
 											@vendor-legitimate-interest-toggle="
 												(vendorId, value) =>
 													setVendorLegitimateInterest(vendorId, value)
+											"
+											@ad-tech-provider-toggle="
+												(providerId, value) =>
+													setAdTechProviderConsent(providerId, value)
 											"
 											@clear-selection="selectedVendorId = null"
 										/>

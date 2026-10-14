@@ -201,6 +201,28 @@ describe('the mirror of the web display model', () => {
 		expect(IAB_DEMO_DISPLAY_MODEL.isReady).toBe(true);
 		expect(IAB_DEMO_DISPLAY_MODEL.isLoading).toBe(false);
 	});
+
+	// The drawer's vendors tab counts the partners it lists, because the web's
+	// `vendorTabCount` also counts Google ad tech providers and the drawer has
+	// no section for them. With no providers configured the two must agree.
+	test('lists as many partners as the web counts when no ad tech providers are configured', () => {
+		expect(IAB_DEMO_DISPLAY_MODEL.vendors).toHaveLength(
+			webModel.vendorTabCount
+		);
+	});
+
+	test('sees the web vendors tab count ad tech providers the drawer does not list', () => {
+		const withProviders = resolveIABDialogDisplayModel({
+			adTechProviders: [
+				{ id: 89, name: 'Meta', policyUrl: 'https://www.facebook.com/privacy' },
+			],
+			gvl: completeGVL,
+		});
+
+		expect(withProviders.vendorTabCount).toBe(
+			IAB_DEMO_DISPLAY_MODEL.vendors.length + 1
+		);
+	});
 });
 
 describe('the partner list the mirror adds', () => {

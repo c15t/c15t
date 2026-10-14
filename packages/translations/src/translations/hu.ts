@@ -127,6 +127,9 @@ export const translations: CompleteTranslations = {
 			},
 			title: 'Adatvédelmi beállítások',
 			vendorList: {
+				adTechProvidersHeading: 'Google hirdetéstechnológiai szolgáltatók',
+				adTechProvidersNotice:
+					'A Google ezekkel a hirdetéstechnológiai szolgáltatókkal az IAB keretrendszerén kívül dolgozik együtt. Az Ön hozzájárulása csak akkor jut el egy szolgáltatóhoz, ha bekapcsolja, és emellett engedélyezi az információk tárolását az eszközén, valamint a személyre szabott hirdetéseket.',
 				customVendorsHeading: 'Egyedi partnerek',
 				customVendorsNotice:
 					'Ezek olyan egyedi partnerek, akik nincsenek regisztrálva az IAB Transparency & Consent Framework (TCF) rendszerében. Az Ön hozzájárulása alapján kezelik az adatokat, és az IAB-regisztrált szolgáltatóktól eltérő adatvédelmi gyakorlatot folytathatnak.',

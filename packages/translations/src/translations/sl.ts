@@ -124,6 +124,9 @@ export const translations: CompleteTranslations = {
 			},
 			title: 'Nastavitve zasebnosti',
 			vendorList: {
+				adTechProvidersHeading: 'Googlovi ponudniki oglaševalske tehnologije',
+				adTechProvidersNotice:
+					'Google s temi ponudniki oglaševalske tehnologije sodeluje zunaj okvira IAB. Vaše soglasje doseže ponudnika le, če ga vklopite in hkrati dovolite shranjevanje informacij na vaši napravi ter prilagojene oglase.',
 				customVendorsHeading: 'Partnerji po meri',
 				customVendorsNotice:
 					'To so partnerji po meri, ki niso registrirani v okviru IAB Transparency & Consent Framework (TCF). Podatke obdelujejo na podlagi vašega soglasja in imajo lahko drugačne prakse zasebnosti kot ponudniki, registrirani v IAB.',

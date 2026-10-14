@@ -85,6 +85,7 @@ export type {
 	ConsentManifest,
 	ConsentManifestBranding,
 	ConsentManifestConfig,
+	ConsentManifestAdditionalConsent,
 	ConsentManifestGVLReference,
 	ConsentManifestHosting,
 	ConsentManifestIAB,
@@ -184,6 +185,19 @@ export {
 	type IpAddressConfig,
 	maskIpAddress,
 } from './shared/client-ip';
+// Google Additional Consent providers - ad tech outside the GVL
+export {
+	ADDITIONAL_CONSENT_V2_PATTERN,
+	AD_TECH_PROVIDER_FETCH_TIMEOUT_MS,
+	AD_TECH_PROVIDER_PURPOSES,
+	AD_TECH_PROVIDERS_URL,
+	type AdTechProvider,
+	adTechProviderFetchSignal,
+	adTechProviderListUrl,
+	adTechProviderSchema,
+	normalizeAdTechProviderIds,
+	parseAdTechProviderList,
+} from './shared/ad-tech-provider';
 // Non-IAB vendor types - Custom vendors not registered with IAB
 export type {
 	NonIABVendor,

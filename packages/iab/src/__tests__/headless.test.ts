@@ -1,8 +1,9 @@
-import type { NonIABVendor } from '@c15t/core';
+import type { AdTechProvider, NonIABVendor } from '@c15t/core';
 import { describe, expect, test } from 'vitest';
 
 import {
 	applyPublisherRestrictionsToGVL,
+	countIABPartners,
 	processGVLForDialog,
 	resolveIABBannerSummary,
 	resolveIABDialogDisplayModel,
@@ -21,6 +22,11 @@ const customVendor: NonIABVendor = {
 	usesCookies: true,
 	usesNonCookieAccess: false,
 };
+
+const adTechProviders: AdTechProvider[] = [
+	{ id: 89, name: 'Meta', policyUrl: 'https://www.facebook.com/privacy' },
+	{ id: 2677, name: 'Seedtag', policyUrl: 'https://www.seedtag.com/privacy' },
+];
 
 describe('@c15t/iab headless dialog data', () => {
 	test('derives purposes, vendors, stacks, features, and special features from a GVL', () => {
@@ -247,5 +253,179 @@ describe('@c15t/iab headless banner summary', () => {
 			remainingCount: 2,
 			vendorCount: 5,
 		});
+	});
+});
+
+describe('@c15t/iab headless vendor counts with Google ad tech providers', () => {
+	const gvlVendorCount = Object.keys(completeGVL.vendors).length;
+	const input = {
+		adTechProviders,
+		customVendors: [customVendor],
+		gvl: completeGVL,
+	};
+
+	test('counts GVL vendors, custom vendors and ad tech providers on the vendors tab', () => {
+		const model = resolveIABDialogDisplayModel(input);
+
+		expect(model.data.totalVendors).toBe(gvlVendorCount + 1 + 2);
+		expect(model.vendorTabCount).toBe(gvlVendorCount + 1 + 2);
+	});
+
+	test('shows the purposes ad tech providers need even when no vendor declares them', () => {
+		const storageOnly: typeof completeGVL = {
+			...completeGVL,
+			// Vendor 755 alone, declaring only storage and access.
+			vendors: Object.fromEntries(
+				Object.entries(completeGVL.vendors)
+					.filter(([id]) => id === '755')
+					.map(([id, vendor]) => [
+						id,
+						{ ...vendor, legIntPurposes: [], purposes: [1] },
+					])
+			),
+		};
+		const purposeIds = (withProviders: boolean) =>
+			processGVLForDialog({
+				adTechProviders: withProviders ? adTechProviders : [],
+				gvl: storageOnly,
+			}).purposes.map((purpose) => purpose.id);
+		const bannerItems = (withProviders: boolean) =>
+			resolveIABBannerSummary({
+				adTechProviders: withProviders ? adTechProviders : [],
+				gvl: storageOnly,
+			}).displayItems;
+
+		expect(purposeIds(false)).toEqual([1]);
+		expect(purposeIds(true)).toEqual([1, 3, 4]);
+		// Purposes 3 and 4 make up most of the personalised advertising stack.
+		expect(bannerItems(true)).toEqual([
+			bannerItems(false)[0],
+			completeGVL.stacks[2]?.name,
+			...bannerItems(false).slice(1),
+		]);
+	});
+
+	test.each([
+		['with providers', adTechProviders, true],
+		['without providers', [], false],
+	])(
+		'purposes providers need offer consent %s, even with LI-only vendors',
+		(_name, providers, expected) => {
+			// Vendor 755 alone, processing purposes 3 and 4 only on legitimate
+			// interest, so no vendor gives them a consent basis.
+			const liOnly: typeof completeGVL = {
+				...completeGVL,
+				vendors: Object.fromEntries(
+					Object.entries(completeGVL.vendors)
+						.filter(([id]) => id === '755')
+						.map(([id, vendor]) => [
+							id,
+							{ ...vendor, legIntPurposes: [3, 4], purposes: [1] },
+						])
+				),
+			};
+			const rows = resolveIABDialogDisplayModel({
+				adTechProviders: providers,
+				gvl: liOnly,
+			}).consentRows.flatMap((row) =>
+				row.kind === 'stack' ? row.purposes : [row]
+			);
+			const basis = (id: number) =>
+				rows.find((row) => row.kind === 'purpose' && row.id === id)
+					?.hasConsentBasis;
+			expect(basis(3)).toBe(expected);
+			expect(basis(4)).toBe(expected);
+		}
+	);
+
+	test('a purpose only providers need offers consent', () => {
+		const storageOnly: typeof completeGVL = {
+			...completeGVL,
+			vendors: Object.fromEntries(
+				Object.entries(completeGVL.vendors)
+					.filter(([id]) => id === '755')
+					.map(([id, vendor]) => [
+						id,
+						{ ...vendor, legIntPurposes: [], purposes: [1] },
+					])
+			),
+		};
+		const rows = resolveIABDialogDisplayModel({
+			adTechProviders,
+			gvl: storageOnly,
+		}).consentRows.flatMap((row) =>
+			row.kind === 'stack' ? row.purposes : [row]
+		);
+		expect(
+			rows
+				.filter((row) => row.kind === 'purpose')
+				.map(({ hasConsentBasis, id }) => [id, hasConsentBasis])
+		).toEqual([
+			[1, true],
+			[3, true],
+			[4, true],
+		]);
+	});
+
+	test('names the providers as partners of the purposes they need', () => {
+		const storageOnly: typeof completeGVL = {
+			...completeGVL,
+			vendors: Object.fromEntries(
+				Object.entries(completeGVL.vendors)
+					.filter(([id]) => id === '755')
+					.map(([id, vendor]) => [
+						id,
+						{ ...vendor, legIntPurposes: [], purposes: [1] },
+					])
+			),
+		};
+		const rows = resolveIABDialogDisplayModel({
+			adTechProviders,
+			gvl: storageOnly,
+		}).consentRows.flatMap((row) =>
+			row.kind === 'stack' ? row.purposes : [row]
+		);
+		const partners = (id: number) => {
+			const row = rows.find((item) => item.id === id);
+			return {
+				providers: row?.adTechProviders?.map((provider) => provider.id),
+				vendors: row?.vendors.length,
+			};
+		};
+		expect(partners(3)).toEqual({ providers: [89, 2677], vendors: 0 });
+		expect(partners(4)).toEqual({ providers: [89, 2677], vendors: 0 });
+		expect(partners(1)).toEqual({ providers: [89, 2677], vendors: 1 });
+	});
+
+	test('counts each vendor and provider once across purposes', () => {
+		const [meta, seedtag] = adTechProviders;
+		const vendor = { id: 89 } as never;
+		expect(
+			countIABPartners([
+				{ adTechProviders: [meta, seedtag], vendors: [vendor] },
+				{ adTechProviders: [meta], vendors: [vendor] },
+				{ vendors: [] },
+			])
+		).toBe(3);
+	});
+
+	test('counts ad tech providers in the banner partner count', () => {
+		expect(resolveIABBannerSummary(input).vendorCount).toBe(
+			gvlVendorCount + 1 + 2
+		);
+	});
+
+	test('counts ad tech providers in a banner built from a server summary', () => {
+		const summary = resolveIABBannerSummary({
+			adTechProviders,
+			customVendors: [customVendor],
+			gvl: null,
+			gvlReference: {
+				summary: { items: ['Storage'], vendorCount: 100 },
+			},
+		});
+
+		expect(summary.isReady).toBe(true);
+		expect(summary.vendorCount).toBe(100 + 1 + 2);
 	});
 });

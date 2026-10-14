@@ -37,6 +37,10 @@ import type {
 	SaveResult,
 } from '../types';
 import {
+	fetchCachedAdTechProviders,
+	loadManifestAdTechProviders,
+} from './ad-tech-provider-cache';
+import {
 	buildDecisionAssertion,
 	rememberDecisionInputs,
 } from './decision-inputs';
@@ -211,6 +215,26 @@ const deriveBackendURL = function deriveBackendURL(
 	return trimmed.endsWith('/manifest')
 		? trimmed.slice(0, -'/manifest'.length)
 		: trimmed;
+};
+
+/**
+ * Places a relative provider list endpoint on the manifest's location, the
+ * way a document resolves its own links. Node's fetch rejects a bare path.
+ * With no absolute base the endpoint is left for the supplied fetch, such as
+ * an in-process adapter, to resolve.
+ */
+const resolveEndpoint = function resolveEndpoint(
+	url: string,
+	base: string | undefined
+): string {
+	if (!base) {
+		return url;
+	}
+	try {
+		return new URL(url, base).href;
+	} catch {
+		return url;
+	}
 };
 
 const resolveDomain = function resolveDomain(
@@ -454,6 +478,23 @@ export const createManifestTransport = function createManifestTransport(
 				baseTranslations: options.baseTranslations ?? baseTranslations,
 			});
 
+			// Google Additional Consent providers load beside the vendor list.
+			const providers = loadManifestAdTechProviders(
+				manifest,
+				payload,
+				(reference) =>
+					fetchCachedAdTechProviders({
+						fetch: fetchImpl,
+						headers: c15tProtocolHeaders,
+						reference: {
+							...reference,
+							url: resolveEndpoint(
+								reference.url,
+								options.manifestURL ?? backendURL
+							),
+						},
+					})
+			);
 			if (shouldFetchGvl(manifest, payload) && manifest.iab?.gvl) {
 				const language = payload.translations.language.split('-')[0] || 'en';
 				payload.gvl = await (options.fetchGvl ?? defaultFetchGvl)({
@@ -461,6 +502,10 @@ export const createManifestTransport = function createManifestTransport(
 					language,
 					reference: manifest.iab.gvl,
 				});
+			}
+			const adTechProviders = await providers;
+			if (adTechProviders) {
+				payload.adTechProviders = adTechProviders;
 			}
 
 			if (
