@@ -134,3 +134,46 @@ test('a runtime dispatcher follows the provider: its scripts, live consent, and 
 	expect(globals.posthog.capture).toHaveBeenCalledTimes(2);
 	runtime.dispose();
 });
+
+test('dispatchers on one runtime with different pageviews each get every navigation', async () => {
+	const script = (vendor: string): Script => ({
+		callbackOnly: true,
+		category: 'measurement',
+		id: vendor,
+		vendor,
+	});
+	const runtime = createConsentProviderRuntime(
+		{
+			consentCategories: ['measurement'],
+			mode: custom({
+				init: vi.fn().mockResolvedValue({}),
+				save: vi.fn().mockResolvedValue({ ok: true }),
+			}),
+			scripts: [script('posthog'), script('segment')],
+		},
+		defaultRuntimeModules
+	);
+	await runtime.kernel.commands.save({ measurement: true });
+	const globals = {
+		analytics: { page: vi.fn() },
+		posthog: { capture: vi.fn() },
+	};
+	const product = getEventDispatcher(runtime, {
+		globals,
+		pageviews: ['posthog'],
+	});
+	const marketing = getEventDispatcher(runtime, {
+		globals,
+		pageviews: ['segment'],
+	});
+
+	for (const path of ['/', '/pricing', '/docs']) {
+		product.pageview(path);
+		marketing.pageview(path);
+	}
+	// The second dispatcher repeats the path, so neither vendor gets it twice.
+	marketing.pageview('/docs');
+	expect(globals.posthog.capture).toHaveBeenCalledTimes(2);
+	expect(globals.analytics.page).toHaveBeenCalledTimes(2);
+	runtime.dispose();
+});

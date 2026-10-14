@@ -17,7 +17,10 @@ export interface EventDispatcherOptions {
 
 /** Path state one or more dispatchers share for pageview de-duplication. */
 interface PageviewState {
-	previousPath?: string;
+	/** The first path seen. The vendor's own SDK records that page view. */
+	initialPath?: string;
+	/** The last path each `pageviews` vendor saw, sent or denied. */
+	vendorPaths: Map<string, string>;
 }
 
 /** {@link EventDispatcherOptions} with scripts read at call time. */
@@ -74,26 +77,28 @@ const dispatcher = (options: DispatcherInputs) => {
 		 * @returns Nothing. The first call and duplicate paths do not send events.
 		 */
 		pageview(path: string) {
-			const [next] = path.split('#');
+			const [next = ''] = path.split('#');
 			const { pageviewState } = options;
-			const changed =
-				pageviewState.previousPath !== undefined &&
-				pageviewState.previousPath !== next;
-			pageviewState.previousPath = next;
-			if (!changed) {
+			if (pageviewState.initialPath === undefined) {
+				pageviewState.initialPath = next;
 				return;
 			}
-			const sent = new Set<string>();
+			// Dispatchers with different `pageviews` share this state, so each
+			// vendor keeps its own last path.
+			const changed = new Set<string>();
+			for (const vendor of options.pageviews ?? []) {
+				const previous =
+					pageviewState.vendorPaths.get(vendor) ?? pageviewState.initialPath;
+				if (previous !== next) {
+					changed.add(vendor);
+				}
+				pageviewState.vendorPaths.set(vendor, next);
+			}
 			for (const script of permitted()) {
 				const vendor = script.vendor ?? script.id;
-				if (
-					!vendor ||
-					sent.has(vendor) ||
-					!options.pageviews?.includes(vendor)
-				) {
+				if (!vendor || !changed.delete(vendor)) {
 					continue;
 				}
-				sent.add(vendor);
 				try {
 					if (vendor === 'posthog') {
 						call('posthog.capture', ['$pageview']);
@@ -251,7 +256,7 @@ export const createEventDispatcher = (
 	dispatcher({
 		...options,
 		getScripts: () => options.scripts,
-		pageviewState: {},
+		pageviewState: { vendorPaths: new Map() },
 	});
 
 /** Options for {@link getEventDispatcher}. */
@@ -287,7 +292,7 @@ export const getEventDispatcher = (
 ): EventDispatcher => {
 	let pageviewState = pageviewStates.get(runtime);
 	if (!pageviewState) {
-		pageviewState = {};
+		pageviewState = { vendorPaths: new Map() };
 		pageviewStates.set(runtime, pageviewState);
 	}
 	return dispatcher({
