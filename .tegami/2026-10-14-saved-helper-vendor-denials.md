@@ -18,3 +18,6 @@ preference dialog when the site declares no vendors. The visitor can turn that
 vendor on without changing any category choices. Its saved denial continues to
 block loading until the visitor changes it and saves. Other helper vendors stay
 hidden until the site declares a vendor.
+
+The browser dialog updates helper rows when saved vendor consent changes while
+it is open.

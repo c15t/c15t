@@ -268,6 +268,50 @@ describe('vendor switches in the preference centre', () => {
 			root.querySelector('[data-testid^="consent-widget-vendor-list"]')
 		).toBeNull();
 	});
+
+	it.each([
+		{ initiallyDenied: false, label: 'adds a newly denied helper row' },
+		{
+			initiallyDenied: true,
+			label: 'removes a helper row after its denial clears',
+		},
+	])('$label while the dialog stays open', async ({ initiallyDenied }) => {
+		const client = await start({
+			scripts: [
+				{
+					category: 'measurement',
+					id: 'posthog',
+					src: 'https://example.invalid/posthog.js',
+					vendor: 'posthog',
+					vendorDetails: {
+						name: 'PostHog',
+						privacyPolicyUrl: 'https://posthog.com/privacy',
+					},
+				},
+			],
+			vendors: [],
+		});
+		await client.kernel.commands.save(
+			{ measurement: true },
+			{ vendors: { posthog: !initiallyDenied } }
+		);
+		const { root } = client.ui as ConsentUIHandle;
+		client.openDialog();
+		const selector =
+			'[data-testid="consent-widget-vendor-switch-measurement-posthog"]';
+		expect(root.querySelector(selector) !== null).toBe(initiallyDenied);
+
+		await client.kernel.commands.save(
+			{ measurement: true },
+			{ vendors: { posthog: initiallyDenied } }
+		);
+		expect(client.getSnapshot().activeUI).toBe('dialog');
+		const toggle = root.querySelector(selector);
+		expect(toggle !== null).toBe(!initiallyDenied);
+		expect(toggle?.getAttribute('aria-checked')).toBe(
+			initiallyDenied ? undefined : 'false'
+		);
+	});
 });
 
 describe('reading vendor consent', () => {
