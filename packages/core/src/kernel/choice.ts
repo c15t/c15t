@@ -620,17 +620,59 @@ const validPublisherRestrictions = function validPublisherRestrictions(
 	);
 };
 
-const isBooleanMap = (value: unknown): boolean =>
+const isBooleanMap = (value: unknown): value is Record<string, boolean> =>
 	isRecord(value) &&
 	Object.values(value).every((entry) => typeof entry === 'boolean');
 
-/** Absent, or the Additional Consent string and provider switches. */
-const validAdditionalConsent = (authority: Record<string, unknown>): boolean =>
-	(authority.addtlConsent === undefined ||
-		(typeof authority.addtlConsent === 'string' &&
-			ADDITIONAL_CONSENT_V2_PATTERN.test(authority.addtlConsent))) &&
-	(authority.adTechProviderConsents === undefined ||
-		isBooleanMap(authority.adTechProviderConsents));
+/** IDs in one section of an AC string, such as `1.10`. */
+const additionalConsentIds = (part: string): string[] =>
+	part === '' ? [] : part.split('.');
+
+/**
+ * Absent, or provider switches and an AC string that stand for the listed
+ * providers. Each switch is a provider the preference center lists, and the
+ * string discloses exactly those providers, once each, consenting only to
+ * ones switched on.
+ */
+const validAdditionalConsent = function validAdditionalConsent(
+	authority: Record<string, unknown>,
+	snapshot: ConsentSnapshot
+): boolean {
+	const { addtlConsent, adTechProviderConsents: switches } = authority;
+	if (switches === undefined) {
+		return addtlConsent === undefined;
+	}
+	const listed = new Set(
+		(snapshot.iab?.adTechProviders ?? []).map(({ id }) => String(id))
+	);
+	if (
+		!isBooleanMap(switches) ||
+		!Object.keys(switches).every((id) => listed.has(id))
+	) {
+		return false;
+	}
+	if (addtlConsent === undefined) {
+		return Object.keys(switches).length === 0;
+	}
+	if (
+		typeof addtlConsent !== 'string' ||
+		!ADDITIONAL_CONSENT_V2_PATTERN.test(addtlConsent)
+	) {
+		return false;
+	}
+	const [, consentedPart = '', disclosedPart = ''] = addtlConsent.split('~');
+	const consented = additionalConsentIds(consentedPart);
+	const disclosed = [
+		...consented,
+		...additionalConsentIds(disclosedPart.slice(3)),
+	];
+	return (
+		consented.every((id) => switches[id] === true) &&
+		new Set(disclosed).size === disclosed.length &&
+		disclosed.length === Object.keys(switches).length &&
+		disclosed.every((id) => Object.hasOwn(switches, id))
+	);
+};
 
 /** Validate addon metadata before the local action can mutate any state. */
 const validSaveAuthority = function validSaveAuthority(
@@ -663,7 +705,7 @@ const validSaveAuthority = function validSaveAuthority(
 					395 * 86400000
 				) &&
 		validPublisherRestrictions(authority.publisherRestrictions) &&
-		validAdditionalConsent(authority) &&
+		validAdditionalConsent(authority, snapshot) &&
 		[
 			authority.vendorConsents,
 			authority.vendorLegitimateInterests,

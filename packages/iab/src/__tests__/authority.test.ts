@@ -734,6 +734,75 @@ test.each([
 	expect(send).not.toHaveBeenCalled();
 });
 
+describe('Additional Consent on a saved authority', () => {
+	const providers = [
+		{ id: 89, name: 'Meta', policyUrl: 'https://meta.example/p' },
+		{ id: 2572, name: 'Seedtag', policyUrl: 'https://seedtag.example/p' },
+	];
+	const shown = { '2572': false, '89': true };
+
+	/**
+	 * Saves `all` with a valid authority carrying the given AC fields. The
+	 * save commits locally before it yields, so the snapshot shows the
+	 * outcome as soon as this returns.
+	 */
+	const saveWith = async function saveWith(
+		adTechProviderConsents: Record<string, boolean>,
+		addtlConsent: string
+	) {
+		const original = makeKernel();
+		const addon = createAddon(original);
+		addon.acceptAll();
+		await addon.save();
+		const authority = original.getSnapshot().iab?.authority;
+		if (!authority) {
+			throw new Error('Missing valid fixture authority');
+		}
+		const send = vi.fn().mockResolvedValue({ ok: true });
+		const kernel = makeKernel({ save: send });
+		kernel.set.iab({ adTechProviders: providers });
+		const before = kernel.getSnapshot();
+		const pending = kernel.commands.save('all', {
+			actionAt: NOW,
+			iabAuthority: { ...authority, adTechProviderConsents, addtlConsent },
+		});
+		return { before, kernel, pending, send };
+	};
+
+	test('accepts a string that discloses each listed provider once', async () => {
+		const { kernel, pending, send } = await saveWith(shown, '2~89~dv.2572');
+		expect(kernel.getSnapshot().iab?.authority?.addtlConsent).toBe(
+			'2~89~dv.2572'
+		);
+		await vi.waitFor(() => expect(send).toHaveBeenCalledOnce());
+		await expect(pending).resolves.toMatchObject({ ok: true });
+	});
+
+	test.each([
+		['a zero provider ID', shown, '2~0~dv.2572'],
+		[
+			'a provider the list does not show',
+			{ ...shown, '999': false },
+			'2~89~dv.2572.999',
+		],
+		['a provider twice', shown, '2~89~dv.89.2572'],
+		[
+			'consent to a provider switched off',
+			{ '2572': false, '89': false },
+			'2~89~dv.2572',
+		],
+		['a shown provider left out', shown, '2~89~dv.'],
+	])('rejects %s', async (_case, switches, addtlConsent) => {
+		const { before, kernel, pending, send } = await saveWith(
+			switches,
+			addtlConsent
+		);
+		await expect(pending).resolves.toMatchObject({ ok: false });
+		expect(send).not.toHaveBeenCalled();
+		expect(kernel.getSnapshot()).toBe(before);
+	});
+});
+
 test("reconciling another runtime's IAB save publishes that runtime's authority", async () => {
 	const first = makeKernel();
 	const firstStorage = createPersistence({ kernel: first, sync: false });
