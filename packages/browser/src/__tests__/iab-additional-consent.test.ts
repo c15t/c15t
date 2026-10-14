@@ -1,4 +1,5 @@
 import { clearGVLCache } from '@c15t/iab';
+import { iabDisplayTestId } from '@c15t/iab/headless';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 
 import { completeGVL } from '../../../iab/src/__tests__/fixtures/gvl-sample';
@@ -157,4 +158,53 @@ it('shows a provider list that lands after the dialog rendered', async () => {
 	expect(root?.textContent).toContain('Google Ad Tech Providers (2)');
 	expect(vendorsTab?.textContent).toContain(`(${vendorCount + 2})`);
 	expect(providerSwitch(root, 89).getAttribute('aria-checked')).toBe('true');
+});
+
+it('offers the purposes a provider needs when its list lands after the dialog rendered', async () => {
+	// No vendor here processes personalised ads (purpose 4) on consent.
+	const gvl = {
+		...completeGVL,
+		vendors: Object.fromEntries(
+			Object.entries(completeGVL.vendors).map(([id, vendor]) => [
+				id,
+				{
+					...vendor,
+					legIntPurposes: vendor.legIntPurposes.filter((p) => p !== 4),
+					purposes: vendor.purposes.filter((p) => p !== 4),
+				},
+			])
+		),
+	};
+	const client = init({
+		iab: { cmpId: 28, gvl },
+		mode: 'offline',
+		overrides: { country: 'DE' },
+		ui: { styles: false },
+	});
+	clients.push(client);
+	await client.ready();
+	await client.runtime.iab?.whenReady?.();
+	client.openDialog();
+	const root = client.ui?.root;
+	const switchFor = (purpose: number) =>
+		root?.querySelector<HTMLButtonElement>(
+			`[data-testid="${iabDisplayTestId('purpose', purpose)}-consent"]`
+		);
+	expect(switchFor(4)).toBeNull();
+
+	client.kernel.set.iab({
+		adTechProviders: [
+			{
+				id: 89,
+				name: 'Example Ad Tech',
+				policyUrl: 'https://ads.example/privacy',
+			},
+		],
+	});
+	expect(client.ui?.root).toBe(root);
+	const personalisedAds = switchFor(4);
+	expect(personalisedAds).not.toBeNull();
+	personalisedAds?.click();
+	expect(client.getSnapshot().iab?.purposeConsents[4]).toBe(true);
+	expect(personalisedAds?.getAttribute('aria-checked')).toBe('true');
 });
