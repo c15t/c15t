@@ -371,10 +371,9 @@ describe('Sentry adapter through the kernel and script loader', () => {
 		disposers.push(() => runtime.dispose());
 		expect(runtime.kernel.getSnapshot().vendors?.declared).toEqual([
 			expect.objectContaining({
+				...sentryManifest.vendorDetails,
 				id: 'sentry',
-				name: sentryManifest.vendorDetails.name,
 				presentable: true,
-				privacyPolicyUrl: sentryManifest.vendorDetails.privacyPolicyUrl,
 			}),
 		]);
 		expect(warn).not.toHaveBeenCalledWith(
