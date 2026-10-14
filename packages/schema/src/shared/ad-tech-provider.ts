@@ -43,6 +43,14 @@ export const AD_TECH_PROVIDER_PURPOSES = [1, 3, 4] as const;
 export const AD_TECH_PROVIDERS_URL = 'https://gvl.inth.app/additional-consent';
 
 /**
+ * Shape of a Google Additional Consent v2 string, such as `2~89.486~dv.2572`:
+ * consented provider IDs, then the IDs disclosed without consent. Either
+ * list may be empty.
+ */
+export const ADDITIONAL_CONSENT_V2_PATTERN =
+	/^2~(?:\d+(?:\.\d+)*)?~dv(?:\.(?:\d+(?:\.\d+)*)?)?$/u;
+
+/**
  * Most provider IDs put in a request URL, the same cap the vendor list uses.
  * Above it the whole list is requested and narrowed after parsing, so a long
  * configuration costs bytes rather than a failed request.

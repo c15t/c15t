@@ -670,6 +670,8 @@ test.each([
 	'restrictions',
 	'sparse restrictions',
 	'sparse vendor IDs',
+	'Additional Consent string',
+	'ad tech provider switches',
 ] as const)('invalid addon %s is an atomic no-op', async (field) => {
 	const original = makeKernel();
 	const addon = createAddon(original);
@@ -709,6 +711,12 @@ test.each([
 		Reflect.set(invalid, 'publisherRestrictions', [
 			{ purposeId: 2, restrictionType: 0, vendorIds },
 		]);
+	}
+	if (field === 'Additional Consent string') {
+		invalid.addtlConsent = '2~89~nope';
+	}
+	if (field === 'ad tech provider switches') {
+		Reflect.set(invalid, 'adTechProviderConsents', { '89': 'yes' });
 	}
 	const send = vi.fn();
 	const kernel = makeKernel({ save: send });

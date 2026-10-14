@@ -11,6 +11,7 @@ import {
 	legalDocumentPolicyTypeSchema,
 	policyTypeSchema,
 } from '../../domain/consent-policy';
+import { ADDITIONAL_CONSENT_V2_PATTERN } from '../../shared/ad-tech-provider';
 import { subjectChoiceWireSchema } from './choice-wire';
 import { vendorChoiceWireSchema } from './vendor-choice-wire';
 
@@ -37,7 +38,7 @@ const baseSubjectConsentSchema = v.object({
 		v.pipe(
 			v.string(),
 			v.regex(
-				/^2~(?:\d+(?:\.\d+)*)?~dv(?:\.(?:\d+(?:\.\d+)*)?)?$/u,
+				ADDITIONAL_CONSENT_V2_PATTERN,
 				'Invalid Additional Consent v2 string'
 			),
 			v.description(

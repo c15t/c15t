@@ -16,6 +16,8 @@
  * from that surface's first impression and the experiment arm it ran.
  */
 
+import { ADDITIONAL_CONSENT_V2_PATTERN } from '@c15t/schema/types';
+
 import { recordCategoryPatch } from '../consent-record/record';
 import type {
 	ConsentSubject,
@@ -618,6 +620,18 @@ const validPublisherRestrictions = function validPublisherRestrictions(
 	);
 };
 
+const isBooleanMap = (value: unknown): boolean =>
+	isRecord(value) &&
+	Object.values(value).every((entry) => typeof entry === 'boolean');
+
+/** Absent, or the Additional Consent string and provider switches. */
+const validAdditionalConsent = (authority: Record<string, unknown>): boolean =>
+	(authority.addtlConsent === undefined ||
+		(typeof authority.addtlConsent === 'string' &&
+			ADDITIONAL_CONSENT_V2_PATTERN.test(authority.addtlConsent))) &&
+	(authority.adTechProviderConsents === undefined ||
+		isBooleanMap(authority.adTechProviderConsents));
+
 /** Validate addon metadata before the local action can mutate any state. */
 const validSaveAuthority = function validSaveAuthority(
 	value: unknown,
@@ -649,6 +663,7 @@ const validSaveAuthority = function validSaveAuthority(
 					395 * 86400000
 				) &&
 		validPublisherRestrictions(authority.publisherRestrictions) &&
+		validAdditionalConsent(authority) &&
 		[
 			authority.vendorConsents,
 			authority.vendorLegitimateInterests,
