@@ -14,6 +14,10 @@ group: reference
   in `vendors` or on the backend. Add vendor switches when a visitor must be
   able to refuse one vendor inside a category they allow.
 
+  A helper vendor the visitor previously switched off stays visible, even
+  without a vendor declaration. Its saved denial still blocks loading until
+  the visitor turns it on and saves. Other helper vendors stay hidden.
+
   A visitor allows marketing, then switches off X Pixel. Other marketing
   scripts load; X Pixel does not. c15t loads a script, network request or
   iframe that names a vendor only when both are true:

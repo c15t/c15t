@@ -4,6 +4,7 @@ import {
 	applyExperimentTheme,
 	consentTypes as defaultConsentTypes,
 	defaultTranslationConfig,
+	deniedVendorIds,
 	has as evaluateHas,
 	isVendorAllowed,
 	resolveConsentPresentation,
@@ -326,7 +327,11 @@ const createConsentState = function createConsentState(
 			const snapshot = getSnapshotLocal();
 			return snapshot.model === 'iab'
 				? []
-				: vendorsListedUnder(snapshot.vendors?.declared ?? [], category);
+				: vendorsListedUnder(
+						snapshot.vendors?.declared ?? [],
+						category,
+						deniedVendorIds(snapshot)
+					);
 		},
 		has(condition: HasCondition<AllConsentNames>) {
 			const snapshot = getSnapshotLocal();

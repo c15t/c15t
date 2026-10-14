@@ -212,6 +212,17 @@ describe('script vendor details', () => {
 		).toEqual(['hotjar']);
 	});
 
+	test('a previously denied helper remains listed without opting in other helpers', () => {
+		const resolved = resolveVendors({
+			owners: [hotjar, { ...hotjar, vendor: 'other-helper' }],
+		});
+		expect(
+			vendorsListedUnder(resolved, 'measurement', new Set(['hotjar'])).map(
+				(vendor) => vendor.id
+			)
+		).toEqual(['hotjar']);
+	});
+
 	test('details are copied so freezing the snapshot leaves the script alone', () => {
 		const vendorDetails = { ...hotjarDetails, extra: 'ignored' };
 		const resolved = resolveVendors({

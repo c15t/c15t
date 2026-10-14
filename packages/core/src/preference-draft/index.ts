@@ -201,7 +201,7 @@ const vendorSurface = function vendorSurface(
 		return '';
 	}
 	return JSON.stringify(
-		listedVendors(snapshot.vendors?.declared ?? [])
+		listedVendors(snapshot.vendors?.declared ?? [], deniedVendorIds(snapshot))
 			.map((vendor) => [vendor.id, vendor.disabled === true, vendor.category])
 			.sort(([left], [right]) => compareCanonical(String(left), String(right)))
 	);

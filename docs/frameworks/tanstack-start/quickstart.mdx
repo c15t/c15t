@@ -33,10 +33,10 @@ app loads two copies of the router. That's 1.170.41 for Start 1.168.60 and
 1.170.43 for 1.169.0, the first Start 1.0 release. Later Start releases need
 later routers.
 
-If you're upgrading an existing app to TanStack Start 1.0, upgrade Vite to 8 or
-later first. Start 1.0 also renames `.inputValidator()` on `createServerFn()`
-and `createMiddleware()` to `.validator()`, so rename any calls in your app. c15t
-doesn't call it.
+If you're upgrading an existing app to TanStack Start 1.0, upgrade Node.js to
+22.12 or later and Vite to 8 or later first. Start 1.0 also renames
+`.inputValidator()` on `createServerFn()` and `createMiddleware()` to
+`.validator()`, so rename any calls in your app. c15t doesn't call it.
 
 ## Install c15t
 

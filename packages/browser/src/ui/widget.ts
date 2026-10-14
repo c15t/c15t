@@ -1,4 +1,4 @@
-import { consentTypes, vendorsListedUnder } from '@c15t/core';
+import { consentTypes, deniedVendorIds, vendorsListedUnder } from '@c15t/core';
 import type {
 	AllConsentNames,
 	ConsentSnapshot,
@@ -322,7 +322,11 @@ export const createWidget = function createWidget(
 			vendors:
 				snapshot.model === 'iab'
 					? []
-					: vendorsListedUnder(snapshot.vendors?.declared ?? [], name),
+					: vendorsListedUnder(
+							snapshot.vendors?.declared ?? [],
+							name,
+							deniedVendorIds(snapshot)
+						),
 		});
 		const content = buildContent(copy, ids, noStyle, vendorList);
 		const item = h(

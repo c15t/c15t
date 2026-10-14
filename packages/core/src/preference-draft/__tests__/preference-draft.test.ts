@@ -16,6 +16,8 @@ import {
 	optOutRule,
 } from '../../__tests__/fixtures/kernel-fixtures';
 import { createConsentKernel } from '../../kernel';
+import { vendorsListedUnder } from '../../libs/vendors';
+import { deniedVendorIds } from '../../modules/has';
 import type {
 	ConsentKernel,
 	KernelConfig,
@@ -189,6 +191,37 @@ describe('seeding', () => {
 });
 
 describe('staging', () => {
+	test('a saved helper denial can be changed without changing category choices', async () => {
+		const { kernel } = setup({
+			initialVendors: {
+				declared: [vendor('meta-pixel', { source: 'script' })],
+				listVersion: '1',
+			},
+		});
+		await kernel.commands.save(
+			{ marketing: true, measurement: false },
+			{ vendors: { 'meta-pixel': false } }
+		);
+		const snapshot = kernel.getSnapshot();
+		expect(
+			vendorsListedUnder(
+				snapshot.vendors?.declared ?? [],
+				'marketing',
+				deniedVendorIds(snapshot)
+			).map((entry) => entry.id)
+		).toEqual(['meta-pixel']);
+		const draft = createPreferenceDraft(kernel);
+		draft.setVendor('meta-pixel', true);
+		expect(kernel.getSnapshot().vendorChoice?.denied).toEqual(['meta-pixel']);
+		expect(draft.getState().isStale).toBe(false);
+		expect(await draft.save()).toMatchObject({ ok: true });
+		expect(kernel.getSnapshot().vendorChoice?.denied).toEqual([]);
+		expect(recorded(kernel)).toMatchObject({
+			marketing: true,
+			measurement: false,
+		});
+	});
+
 	test('set stages without touching the record; moving it back is clean again', () => {
 		const { kernel } = setup();
 		const draft = createPreferenceDraft(kernel);

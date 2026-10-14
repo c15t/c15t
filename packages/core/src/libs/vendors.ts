@@ -532,17 +532,22 @@ export const vendorRenders = function vendorRenders(
  * script's `vendor` slug, such as an integration helper's, gates loading
  * but gets no row, so the stock dialog shows categories only. Once any
  * vendor is declared, helpers are listed by name alongside it.
+ * A helper with a saved denial stays visible so the visitor can change it.
  *
  * @param declared - The kernel's declared vendors.
+ * @param denied - Vendor denials honored by the kernel's gates.
  * @returns The vendors that render, in declared order.
  * @internal
  */
 export const listedVendors = function listedVendors(
-	declared: readonly ResolvedVendor[]
+	declared: readonly ResolvedVendor[],
+	denied?: ReadonlySet<string> | null
 ): ResolvedVendor[] {
 	const optedIn = declared.some((vendor) => vendor.source !== 'script');
 	return declared.filter(
-		(vendor) => (optedIn || vendor.source !== 'script') && vendorRenders(vendor)
+		(vendor) =>
+			(optedIn || vendor.source !== 'script' || denied?.has(vendor.id)) &&
+			vendorRenders(vendor)
 	);
 };
 
@@ -556,14 +561,16 @@ export const listedVendors = function listedVendors(
  *
  * @param declared - The kernel's declared vendors.
  * @param category - The category row being rendered.
+ * @param denied - Vendor denials honored by the kernel's gates.
  * @returns The vendors to list, in declared order.
  * @public
  */
 export const vendorsListedUnder = function vendorsListedUnder(
 	declared: readonly ResolvedVendor[],
-	category: AllConsentNames
+	category: AllConsentNames,
+	denied?: ReadonlySet<string> | null
 ): ResolvedVendor[] {
-	return listedVendors(declared).filter((vendor) =>
+	return listedVendors(declared, denied).filter((vendor) =>
 		extractConsentNamesFromCondition(vendor.category).includes(category)
 	);
 };

@@ -18,7 +18,7 @@
 		"`@tanstack/react-router` 1.170.41 or a later 1.x release, at the version your `@tanstack/react-start` release depends on. TanStack Start 1.0 needs at least 1.170.43",
 		"Vite 7 or later, or Vite 8 or later for TanStack Start 1.0",
 		"React 18 or 19",
-		"Node.js 20.19 or later",
+		"Node.js 20.19 or later, or Node.js 22.12 or later for TanStack Start 1.0",
 		"An [Inth project](https://inth.com) (free sign-up), a [self-hosted backend](https://c15t.com/docs/self-host/quickstart), or offline mode for local development"
 	],
 	"manualInstallation": [
