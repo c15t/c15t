@@ -489,7 +489,7 @@ describe('createIAB with Additional Consent', () => {
 		return release;
 	};
 
-	test('Accept All before the provider list lands consents to every provider', async () => {
+	test('Accept All before the provider list lands discloses no provider it was not shown', async () => {
 		const release = holdProviderList();
 		const kernel = makeKernel();
 		const addon = createIAB({
@@ -506,14 +506,18 @@ describe('createIAB with Additional Consent', () => {
 		const saved = addon.save();
 		release();
 		await saved;
-		expect(kernel.getSnapshot().iab?.adTechProviderConsents).toEqual({
-			'2577': true,
-			'89': true,
-		});
+		expect(kernel.getSnapshot().iab?.adTechProviderConsents).toEqual({});
+		expect(await tcData()).not.toHaveProperty('addtlConsent');
+
+		// Shown now: a later save discloses them, Accept All consents to them.
+		await addon.save();
+		expect((await tcData()).addtlConsent).toBe('2~~dv.89.2577');
+		addon.acceptAll();
+		await addon.save();
 		expect((await tcData()).addtlConsent).toBe('2~89.2577~dv.');
 	});
 
-	test('Accept All before the provider list lands grants the purposes providers need', async () => {
+	test('Accept All before the provider list lands grants no purpose only unseen providers need', async () => {
 		const release = holdProviderList();
 		const kernel = makeKernel(withoutPersonalisedAds);
 		const addon = createIAB({
@@ -530,11 +534,10 @@ describe('createIAB with Additional Consent', () => {
 		const saved = addon.save();
 		release();
 		await saved;
-		expect(kernel.getSnapshot().iab?.purposeConsents[4]).toBe(true);
-		expect((await tcData()).addtlConsent).toBe('2~89.2577~dv.');
+		expect((await tcData()).purpose.consents[4]).toBe(false);
 	});
 
-	test('a provider switched off before the list lands stays off', async () => {
+	test('Accept All before the provider list lands covers only the providers shown', async () => {
 		const release = holdProviderList();
 		const kernel = makeKernel();
 		kernel.set.iab({ adTechProviders: [PROVIDERS.providers['89']] });
@@ -549,16 +552,16 @@ describe('createIAB with Additional Consent', () => {
 		});
 		disposers.push(addon.dispose);
 		addon.acceptAll();
-		addon.setAdTechProviderConsent(89, false);
 		const saved = addon.save();
 		release();
 		await saved;
-		expect((await tcData()).addtlConsent).toBe('2~2577~dv.89');
+		expect((await tcData()).addtlConsent).toBe('2~89~dv.');
 	});
 
-	test('a purpose switched off after Accept All stays off when the providers land', async () => {
+	test('Reject All before the provider list lands discloses only the providers shown', async () => {
 		const release = holdProviderList();
 		const kernel = makeKernel();
+		kernel.set.iab({ adTechProviders: [PROVIDERS.providers['89']] });
 		const addon = createIAB({
 			additionalConsent: {
 				providers: [89, 2577],
@@ -569,20 +572,11 @@ describe('createIAB with Additional Consent', () => {
 			kernel,
 		});
 		disposers.push(addon.dispose);
-		addon.acceptAll();
-		addon.setPurposeConsent(4, false);
+		addon.rejectAll();
 		const saved = addon.save();
 		release();
 		await saved;
-		const data = await tcData();
-		expect(data.purpose.consents[4]).toBe(false);
-		expect(data.purpose.consents[1]).toBe(true);
-		// Providers need purpose 4, so they are disclosed and not consented.
-		expect(kernel.getSnapshot().iab?.adTechProviderConsents).toEqual({
-			'2577': false,
-			'89': false,
-		});
-		expect(data.addtlConsent).toBe('2~~dv.89.2577');
+		expect((await tcData()).addtlConsent).toBe('2~~dv.89');
 	});
 
 	test('Save Settings discloses only the providers shown when it was clicked', async () => {
@@ -802,7 +796,7 @@ describe('createIAB with Additional Consent', () => {
 		expect((await tcData()).addtlConsent).toBe('2~~dv.2577');
 	});
 
-	test('a retried provider list holds Accept All and the save until it lands', async () => {
+	test('a retried provider list holds the save until it lands', async () => {
 		fetchMock.mockImplementation(() =>
 			Promise.resolve(new Response('', { status: 500 }))
 		);
@@ -835,7 +829,11 @@ describe('createIAB with Additional Consent', () => {
 		const saved = addon.save();
 		land();
 		await saved;
-		expect((await tcData()).addtlConsent).toBe('2~89.2577~dv.');
+		expect(
+			kernel.getSnapshot().iab?.adTechProviders?.map(({ id }) => id)
+		).toEqual([89, 2577]);
+		// Never shown before the click, so not disclosed in its name.
+		expect(await tcData()).not.toHaveProperty('addtlConsent');
 	});
 
 	test('fetches nothing without configured providers', async () => {

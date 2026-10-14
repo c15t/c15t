@@ -933,17 +933,6 @@ export const createIAB = function createIAB(
 	/** Whether a provider request finished, so saves stop waiting for it. */
 	let adTechProvidersSettled = false;
 	/**
-	 * Accept All or Reject All chosen while the provider list was loading.
-	 * The choice covers providers the visitor could not see yet, so it is
-	 * applied to them when the list lands.
-	 */
-	let providerBlanket: boolean | undefined;
-	/**
-	 * Purpose consents as the pending blanket left them. A purpose that
-	 * differs when the providers land was changed by the visitor since.
-	 */
-	let blanketPurposeConsents: Record<number, boolean> = {};
-	/**
 	 * The provider list this handle published from its own configuration.
 	 * It replaces the backend's, including after a later `/init` sends the
 	 * backend's again. `null` while none is published, or when the request
@@ -1458,51 +1447,6 @@ export const createIAB = function createIAB(
 		}
 		return update;
 	};
-	/**
-	 * Gives providers that arrived after a pending Accept All or Reject All the
-	 * choice the visitor made. A provider they already switched keeps it.
-	 * Accept All also grants the purposes the providers need, as it does when
-	 * they are listed before the click, except a purpose the visitor switched
-	 * since. When they switched one off, the providers are not granted.
-	 */
-	const applyProviderBlanket = (published: AdTechProvider[] | null): void => {
-		const value = providerBlanket;
-		const before = blanketPurposeConsents;
-		providerBlanket = undefined;
-		blanketPurposeConsents = {};
-		if (value === undefined || !published) {
-			return;
-		}
-		const current = readIAB(kernel).adTechProviderConsents ?? {};
-		const unseen = published.filter(({ id }) => !(String(id) in current));
-		if (unseen.length === 0) {
-			return;
-		}
-		const { gvl, purposeConsents } = readIAB(kernel);
-		const needed = value
-			? adTechProviderPurposes(unseen).filter((id) => gvl?.purposes?.[id])
-			: [];
-		// A purpose the visitor switched after the blanket keeps their choice.
-		const changed = (id: number) =>
-			(purposeConsents[id] === true) !== (before[id] === true);
-		const purposes = needed.filter((id) => !changed(id));
-		// Providers need every one of these purposes, so one the visitor
-		// switched off leaves them disclosed but not consented.
-		const granted =
-			value && !needed.some((id) => changed(id) && !purposeConsents[id]);
-		setOwnSelections({
-			adTechProviderConsents: {
-				...current,
-				...Object.fromEntries(unseen.map(({ id }) => [String(id), granted])),
-			},
-			...(purposes.length > 0 && {
-				purposeConsents: {
-					...purposeConsents,
-					...Object.fromEntries(purposes.map((id) => [id, true])),
-				},
-			}),
-		});
-	};
 	/** Whether the retained authority is withdrawn for the new list. */
 	const retainedWithdrawn = (
 		retained: KernelIABAuthority | null | undefined,
@@ -1649,7 +1593,6 @@ export const createIAB = function createIAB(
 			const beforeUpdate = kernel.getSnapshot();
 			kernel.set.iab(update);
 			adTechProvidersSettled = true;
-			applyProviderBlanket(adTechProviders);
 			markListPublished(generation);
 			// Providers the kernel received while the list loaded.
 			void recheckProviders();
@@ -2030,13 +1973,13 @@ export const createIAB = function createIAB(
 		new Set(
 			(readIAB(kernel).adTechProviders ?? []).map(({ id }) => String(id))
 		);
-	/** Applies a blanket choice now, and again to providers still loading. */
+	/**
+	 * Applies a blanket choice to the providers listed now. Providers still
+	 * loading were never shown, so the visitor chooses for them on a later
+	 * save.
+	 */
 	const blanket = (gvl: GlobalVendorList, value: boolean): void => {
 		applyBlanket(kernel, gvl, value, restrictionsForBlanket(gvl));
-		if (pendingAdTechProviders()) {
-			providerBlanket = value;
-			blanketPurposeConsents = { ...readIAB(kernel).purposeConsents };
-		}
 	};
 
 	const generateTC = async function generateTC(): Promise<string> {
@@ -2143,12 +2086,9 @@ export const createIAB = function createIAB(
 			const actionAt = Date.now();
 			const providersLoading = pendingAdTechProviders();
 			// Providers landing while the save waits were never shown, so the
-			// visitor discloses them on a later save. A pending Accept All or
-			// Reject All covers them by design.
-			const shown =
-				providersLoading && providerBlanket === undefined
-					? shownAdTechProviderIds()
-					: null;
+			// visitor discloses them on a later save, after Accept All or
+			// Reject All as after Save Settings.
+			const shown = providersLoading ? shownAdTechProviderIds() : null;
 			const visitorRevision = () => selectionRevision - ownSelectionRevisions;
 			const revisionAtClick = visitorRevision();
 			if (providersLoading) {
