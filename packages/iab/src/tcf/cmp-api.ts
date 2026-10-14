@@ -332,17 +332,23 @@ export const createCMPApi = function createCMPApi(
 		listenerId?: number
 	): Promise<TCData | TCDataOutsideTCF> {
 		// CMP API v2: when TCF does not apply, only these fields exist. The
-		// visitor's policy decides that, not their jurisdiction.
+		// visitor's policy decides that, not their jurisdiction. Listeners
+		// still get their status and ID, which removeEventListener needs.
 		if (!tcfApplies) {
-			return {
+			const outside: TCDataOutsideTCF = {
 				cmpId,
 				cmpStatus,
 				cmpVersion: cmpVersionNumber,
-				eventStatus,
 				gdprApplies: false,
-				listenerId,
 				tcfPolicyVersion: gvl.tcfPolicyVersion,
 			};
+			if (eventStatus) {
+				outside.eventStatus = eventStatus;
+			}
+			if (listenerId !== undefined) {
+				outside.listenerId = listenerId;
+			}
+			return outside;
 		}
 		// Use cached data if available and tc string hasn't changed. Callers
 		// get their own copy, down to the nested maps, so changing a result
@@ -366,8 +372,10 @@ export const createCMPApi = function createCMPApi(
 			listenerId
 		);
 		// An update can land while the string decodes. Never pair its string
-		// with the earlier vectors: build again from the newer state.
+		// with the earlier vectors, or publish it once the policy stops using
+		// TCF: build again from the newer state.
 		if (
+			!tcfApplies ||
 			tcString !== string ||
 			currentConsentData !== consentData ||
 			addtlConsent !== additional

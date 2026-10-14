@@ -146,3 +146,33 @@ test('switches TC data shape when the policy starts or stops using TCF', async (
 	api.updateConsent(tcString, undefined, true);
 	expect(await read()).toMatchObject({ gdprApplies: true, tcString });
 });
+
+test('getTCData has no unset status keys when the policy does not use TCF', async () => {
+	const api = createCMPApi({ cmpId: 28, gdprApplies: false, gvl: completeGVL });
+	disposers.push(api.destroy);
+	const callback = vi.fn();
+	window.__tcfapi?.('getTCData', 2, callback);
+	await vi.waitFor(() => expect(callback).toHaveBeenCalled());
+	expect(Object.keys(callback.mock.calls[0]?.[0]).toSorted()).toEqual([
+		'cmpId',
+		'cmpStatus',
+		'cmpVersion',
+		'gdprApplies',
+		'tcfPolicyVersion',
+	]);
+});
+
+test('withholds the TC string when the policy stops using TCF mid-decode', async () => {
+	const tcString = await savedString();
+	const api = createCMPApi({ cmpId: 28, gvl: completeGVL });
+	disposers.push(api.destroy);
+	api.updateConsent(tcString, undefined, true);
+	const callback = vi.fn();
+	window.__tcfapi?.('getTCData', 2, callback);
+	// The string is still decoding when the policy changes.
+	api.updateConsent(tcString, undefined, false);
+	await vi.waitFor(() => expect(callback).toHaveBeenCalled());
+	const [data] = callback.mock.calls[0] ?? [];
+	expect(data.gdprApplies).toBe(false);
+	expect(data).not.toHaveProperty('tcString');
+});
