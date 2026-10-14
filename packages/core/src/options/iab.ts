@@ -66,6 +66,11 @@ export interface CMPApiConfig {
 	cmpId?: number;
 	cmpVersion?: number | string;
 	gvl: GlobalVendorList;
+	/**
+	 * Whether the visitor's policy uses IAB TCF. Defaults to `true`. When
+	 * `false`, `__tcfapi` reports `gdprApplies: false` and TC data holds only
+	 * the CMP and policy fields, as CMP API v2 requires.
+	 */
 	gdprApplies?: boolean;
 	/**
 	 * Returns the Additional Consent string confirmed with a TC string, or
@@ -86,7 +91,10 @@ export interface CMPApi {
 	 * @returns Nothing.
 	 */
 	updateVendorList: (gvl: GlobalVendorList | null) => void;
-	/** Update the confirmed TC data and, when supplied, regional applicability. */
+	/**
+	 * Update the confirmed TC data and, when supplied, whether the visitor's
+	 * policy uses IAB TCF.
+	 */
 	updateConsent: (
 		tcString: string,
 		consentData?: TCFConsentData,

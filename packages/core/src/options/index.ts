@@ -20,6 +20,7 @@ export type {
 	PingData,
 	PublisherRestriction,
 	TCData,
+	TCDataOutsideTCF,
 	TCFConsentData,
 } from './iab-tcf';
 export type { LegalLink, LegalLinks } from './legal-links';

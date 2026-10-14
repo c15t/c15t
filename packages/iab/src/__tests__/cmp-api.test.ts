@@ -71,3 +71,78 @@ test.each(['replacement', 'withdrawal'] as const)(
 		);
 	}
 );
+
+const BASE_FIELDS = [
+	'cmpId',
+	'cmpStatus',
+	'cmpVersion',
+	'eventStatus',
+	'gdprApplies',
+	'listenerId',
+	'tcfPolicyVersion',
+];
+
+const savedString = () =>
+	generateTCString(
+		{
+			purposeConsents: { 1: true },
+			purposeLegitimateInterests: {},
+			specialFeatureOptIns: {},
+			vendorConsents: { '1': true },
+			vendorLegitimateInterests: {},
+			vendorsDisclosed: { '1': true },
+		},
+		completeGVL,
+		{ cmpId: 28 }
+	);
+
+test.each(['getTCData', 'addEventListener'] as const)(
+	'%s returns only the base fields when the policy does not use TCF',
+	async (command) => {
+		const tcString = await savedString();
+		const api = createCMPApi({
+			cmpId: 28,
+			gdprApplies: false,
+			getAddtlConsent: () => '2~89~dv.2572',
+			gvl: completeGVL,
+		});
+		disposers.push(api.destroy);
+		api.updateConsent(tcString);
+
+		const callback = vi.fn();
+		window.__tcfapi?.(command, 2, callback);
+		await vi.waitFor(() => expect(callback).toHaveBeenCalled());
+		const [data, success] = callback.mock.calls[0] ?? [];
+		expect(success).toBe(true);
+		expect(data).toMatchObject({
+			cmpId: 28,
+			gdprApplies: false,
+			tcfPolicyVersion: completeGVL.tcfPolicyVersion,
+		});
+		expect(
+			Object.keys(data).filter((key) => !BASE_FIELDS.includes(key))
+		).toEqual([]);
+	}
+);
+
+test('switches TC data shape when the policy starts or stops using TCF', async () => {
+	const tcString = await savedString();
+	const api = createCMPApi({ cmpId: 28, gvl: completeGVL });
+	disposers.push(api.destroy);
+	api.updateConsent(tcString, undefined, true);
+	const read = async () => {
+		const callback = vi.fn();
+		window.__tcfapi?.('getTCData', 2, callback);
+		await vi.waitFor(() => expect(callback).toHaveBeenCalled());
+		return callback.mock.calls[0]?.[0];
+	};
+
+	expect(await read()).toMatchObject({ gdprApplies: true, tcString });
+	api.updateConsent(tcString, undefined, false);
+	const outside = await read();
+	expect(outside.gdprApplies).toBe(false);
+	expect(outside).not.toHaveProperty('tcString');
+	expect(outside).not.toHaveProperty('purpose');
+	api.updateConsent(tcString, undefined, true);
+	expect(await read()).toMatchObject({ gdprApplies: true, tcString });
+});

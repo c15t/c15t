@@ -244,6 +244,7 @@ export type {
 	SSRInitRequestMetadata,
 	SSRSkippedReason,
 	TCData,
+	TCDataOutsideTCF,
 	TCFConsentData,
 	User,
 } from './options';

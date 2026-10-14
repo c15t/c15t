@@ -18,6 +18,7 @@ import type {
 	EventStatus,
 	PingData,
 	TCData,
+	TCDataOutsideTCF,
 	TCFApiCallback,
 	TCFConsentData,
 } from './iab-tcf-types';
@@ -201,7 +202,11 @@ export const createCMPApi = function createCMPApi(
 	const cmpId = assertValidCmpId(config.cmpId);
 	const cmpVersion = config.cmpVersion ?? CMP_VERSION_NUMBER;
 	let { gvl } = config;
-	let gdprApplies = config.gdprApplies ?? true;
+	/**
+	 * Whether the visitor's policy uses IAB TCF. `__tcfapi` reports it as
+	 * `gdprApplies`, the CMP API's name for it.
+	 */
+	let tcfApplies = config.gdprApplies ?? true;
 
 	let tcString = '';
 	/** The AC string confirmed with `tcString`, if any. */
@@ -210,12 +215,19 @@ export const createCMPApi = function createCMPApi(
 		string ? config.getAddtlConsent?.(string) : undefined;
 	let cmpStatus: CMPStatus = 'loading';
 	let displayStatus: DisplayStatus = 'hidden';
-	const eventListeners = new Map<number, TCFApiCallback<TCData>>();
+	const eventListeners = new Map<
+		number,
+		TCFApiCallback<TCData | TCDataOutsideTCF>
+	>();
 	let nextListenerId = 0;
 
 	// Decoded TC data cache
 	let cachedTCData: TCData | null = null;
 	let currentConsentData: TCFConsentData | null = null;
+	const cmpVersionNumber =
+		typeof cmpVersion === 'number'
+			? cmpVersion
+			: Number.parseInt(String(cmpVersion), 10) || 1;
 	/**
 	 * Builds TC Data for one TC string and the consent data published with it.
 	 */
@@ -269,16 +281,12 @@ export const createCMPApi = function createCMPApi(
 			}
 		}
 
-		const cmpVersionNum =
-			typeof cmpVersion === 'number'
-				? cmpVersion
-				: Number.parseInt(String(cmpVersion), 10) || 1;
 		const tcData: TCData = {
 			cmpId,
 			cmpStatus,
-			cmpVersion: cmpVersionNum,
+			cmpVersion: cmpVersionNumber,
 			eventStatus,
-			gdprApplies,
+			gdprApplies: true,
 			isServiceSpecific: true,
 			listenerId,
 			publisher: {
@@ -322,7 +330,20 @@ export const createCMPApi = function createCMPApi(
 	const buildTCData = async function buildTCData(
 		eventStatus?: EventStatus,
 		listenerId?: number
-	): Promise<TCData> {
+	): Promise<TCData | TCDataOutsideTCF> {
+		// CMP API v2: when TCF does not apply, only these fields exist. The
+		// visitor's policy decides that, not their jurisdiction.
+		if (!tcfApplies) {
+			return {
+				cmpId,
+				cmpStatus,
+				cmpVersion: cmpVersionNumber,
+				eventStatus,
+				gdprApplies: false,
+				listenerId,
+				tcfPolicyVersion: gvl.tcfPolicyVersion,
+			};
+		}
 		// Use cached data if available and tc string hasn't changed. Callers
 		// get their own copy, down to the nested maps, so changing a result
 		// never changes the next one.
@@ -376,7 +397,7 @@ export const createCMPApi = function createCMPApi(
 			cmpVersion:
 				typeof cmpVersion === 'string' ? cmpVersion : String(cmpVersion),
 			displayStatus,
-			gdprApplies,
+			gdprApplies: tcfApplies,
 			gvlVersion: gvl.vendorListVersion,
 			tcfPolicyVersion: gvl.tcfPolicyVersion,
 		};
@@ -388,7 +409,7 @@ export const createCMPApi = function createCMPApi(
 	 * Handles the 'getTCData' command.
 	 */
 	const handleGetTCData = async function handleGetTCData(
-		handler: TCFApiCallback<TCData>,
+		handler: TCFApiCallback<TCData | TCDataOutsideTCF>,
 		_vendorIds?: number[]
 	): Promise<void> {
 		const tcData = await buildTCData();
@@ -399,7 +420,7 @@ export const createCMPApi = function createCMPApi(
 	 * Handles the 'getInAppTCData' command (alias for getTCData).
 	 */
 	const handleGetInAppTCData = function handleGetInAppTCData(
-		handler: TCFApiCallback<TCData>
+		handler: TCFApiCallback<TCData | TCDataOutsideTCF>
 	): Promise<void> {
 		return handleGetTCData(handler);
 	};
@@ -416,9 +437,9 @@ export const createCMPApi = function createCMPApi(
 
 	/**
 	 * Whether vendors can act on the published state without the visitor:
-	 * a TC string is available, or GDPR does not apply.
+	 * a TC string is available, or the visitor's policy does not use TCF.
 	 */
-	const hasSignal = (): boolean => tcString !== '' || gdprApplies === false;
+	const hasSignal = (): boolean => tcString !== '' || !tcfApplies;
 
 	/**
 	 * The status a new listener is told. TCF CMP API v2: `tcloaded` means a
@@ -440,7 +461,7 @@ export const createCMPApi = function createCMPApi(
 	 * Handles the 'addEventListener' command.
 	 */
 	const handleAddEventListener = async function handleAddEventListener(
-		handler: TCFApiCallback<TCData>
+		handler: TCFApiCallback<TCData | TCDataOutsideTCF>
 	): Promise<void> {
 		nextListenerId += 1;
 		const listenerId = nextListenerId;
@@ -498,12 +519,14 @@ export const createCMPApi = function createCMPApi(
 					break;
 				case 'getTCData':
 					handleGetTCData(
-						handler as TCFApiCallback<TCData>,
+						handler as TCFApiCallback<TCData | TCDataOutsideTCF>,
 						parameter as number[] | undefined
 					);
 					break;
 				case 'getInAppTCData':
-					handleGetInAppTCData(handler as TCFApiCallback<TCData>);
+					handleGetInAppTCData(
+						handler as TCFApiCallback<TCData | TCDataOutsideTCF>
+					);
 					break;
 				case 'getVendorList':
 					handleGetVendorList(
@@ -512,7 +535,9 @@ export const createCMPApi = function createCMPApi(
 					);
 					break;
 				case 'addEventListener':
-					handleAddEventListener(handler as TCFApiCallback<TCData>);
+					handleAddEventListener(
+						handler as TCFApiCallback<TCData | TCDataOutsideTCF>
+					);
 					break;
 				case 'removeEventListener':
 					handleRemoveEventListener(
@@ -627,8 +652,8 @@ export const createCMPApi = function createCMPApi(
 			const changed =
 				newTcString !== tcString ||
 				additional !== addtlConsent ||
-				(applies !== undefined && applies !== gdprApplies);
-			gdprApplies = applies ?? gdprApplies;
+				(applies !== undefined && applies !== tcfApplies);
+			tcfApplies = applies ?? tcfApplies;
 			tcString = newTcString;
 			addtlConsent = additional;
 			// Keep a private copy: a caller changing its object in place must
