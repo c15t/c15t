@@ -787,6 +787,24 @@ describe('Google Additional Consent providers', () => {
 		expect(calledURLs(localFetch)).toEqual(['/api/ac-local?providerIds=89']);
 	});
 
+	test('from localFetch are cached per handler, not across apps', async () => {
+		const { answer, manifest } = relativeEndpoint('/api/ac-tenant');
+		const fetch = upstream(manifest);
+		const first = route({ fetch, reportSessions: false });
+		const second = route({ fetch, reportSessions: false });
+		const firstLocal = vi.fn<ManifestFetch>(() => answer());
+		const secondLocal = vi.fn<ManifestFetch>(() => answer());
+		const nextRequest = vi.fn<ManifestFetch>(() => answer());
+		await first(request('/api/c15t/init'), { localFetch: firstLocal });
+		await second(request('/api/c15t/init'), { localFetch: secondLocal });
+		await first(request('/api/c15t/init'), { localFetch: nextRequest });
+		expect(firstLocal).toHaveBeenCalledOnce();
+		expect(secondLocal).toHaveBeenCalledOnce();
+		// Adapters pass a new localFetch per request; the handler's cache
+		// still serves the list it loaded.
+		expect(nextRequest).not.toHaveBeenCalled();
+	});
+
 	test('are withdrawn with an empty list once the manifest stops listing them', async () => {
 		const response = await route({
 			fetch: withProviders(IAB_MANIFEST as unknown as ConsentManifest),

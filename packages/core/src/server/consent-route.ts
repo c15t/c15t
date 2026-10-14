@@ -67,6 +67,7 @@ import {
 	fetchCachedAdTechProviders,
 	loadManifestAdTechProviders,
 } from '../transports/ad-tech-provider-cache';
+import type { AdTechProviderCache } from '../transports/ad-tech-provider-cache';
 import {
 	deferInitGvlToRoute,
 	serveGvlReference,
@@ -568,6 +569,8 @@ const canFallBackToInit = function canFallBackToInit(cause: unknown): boolean {
 interface ResolvedTarget {
 	url: string;
 	fetch: ManifestFetch | undefined;
+	/** Set when `url` is an {@link IN_PROCESS_ORIGIN} URL for `localFetch`. */
+	inProcess?: true;
 }
 
 /** Sends {@link IN_PROCESS_ORIGIN} URLs to `localFetch` as paths. */
@@ -679,7 +682,11 @@ export const createConsentRouteHandler = function createConsentRouteHandler(
 				requestURL: IN_PROCESS_ORIGIN,
 			});
 			return resolved
-				? { fetch: toPathFetch(context.localFetch), url: resolved }
+				? {
+						fetch: toPathFetch(context.localFetch),
+						inProcess: true,
+						url: resolved,
+					}
 				: null;
 		}
 		const resolved = resolveRequestBackendURL(url, {
@@ -855,6 +862,10 @@ export const createConsentRouteHandler = function createConsentRouteHandler(
 		};
 	};
 
+	// Every app's in-process URLs share one origin, so lists fetched through
+	// `localFetch` stay out of the cache other handlers in the process read.
+	const inProcessProviderCache: AdTechProviderCache = new Map();
+
 	const createAdTechProviderLoader = function createAdTechProviderLoader(
 		request: Request,
 		budget: Budget,
@@ -868,6 +879,7 @@ export const createConsentRouteHandler = function createConsentRouteHandler(
 				return undefined;
 			}
 			const fill = fetchCachedAdTechProviders({
+				...(target.inProcess && { cache: inProcessProviderCache }),
 				fetch: (target.fetch ?? configuredFetch()) as typeof globalThis.fetch,
 				headers: c15tProtocolHeaders,
 				reference: { ...reference, url: target.url },
