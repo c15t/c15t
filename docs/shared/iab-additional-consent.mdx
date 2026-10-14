@@ -107,6 +107,11 @@ saved provider choices back. A provider you add later has not been shown to
 them, so it stays out of their AC string until they save again. A provider
 you remove and add back keeps the choice the visitor saved for it.
 
+When the visitor's policy does not use IAB TCF, `__tcfapi` reports
+`gdprApplies: false` and returns no `tcString` or `addtlConsent`. CMP API v2
+allows only `cmpId`, `cmpVersion` and `tcfPolicyVersion` beside it, plus the
+status fields.
+
 A self-hosted backend records the AC string with each consent, in the
 `addtlConsent` column of the `consent` table beside the TC String. Run the
 backend's migrations after upgrading to add the column. Consents recorded
@@ -119,11 +124,11 @@ Pixels and ad requests that cannot call `__tcfapi` take the AC string in the
 `${ADDTL_CONSENT}` macro, as in `&addtl_consent=${ADDTL_CONSENT}`. For
 requests your own code builds, read the string from `__tcfapi`, add it next
 to the TC String, and then send the request. This pixel fires once the CMP
-answers:
+answers with TCF data:
 
 ```js
 window.__tcfapi('getTCData', 2, (data, success) => {
-	if (!success) {
+	if (!success || !data.gdprApplies) {
 		return;
 	}
 	const url = new URL('https://ads.example.com/pixel');

@@ -176,8 +176,11 @@ export interface TCData {
 	/** CMP version */
 	cmpVersion?: number;
 
-	/** Whether GDPR applies */
-	gdprApplies: boolean;
+	/**
+	 * Always `true` here: the visitor's policy uses IAB TCF. Outside it,
+	 * `__tcfapi` returns {@link TCDataOutsideTCF} instead.
+	 */
+	gdprApplies: true;
 
 	/** Listener ID if from addEventListener */
 	listenerId?: number;
@@ -233,12 +236,47 @@ export interface TCData {
 }
 
 /**
+ * TC Data returned by `__tcfapi` when the visitor's policy does not use IAB
+ * TCF.
+ *
+ * CMP API v2 allows only `gdprApplies`, `tcfPolicyVersion`, `cmpId` and
+ * `cmpVersion` in that case, beside the status fields every response
+ * carries. There is no TC string, Additional Consent string, purpose or
+ * vendor data.
+ *
+ * @public
+ */
+export interface TCDataOutsideTCF {
+	/** Always `false`: the visitor's policy does not use IAB TCF. */
+	gdprApplies: false;
+
+	/** TCF policy version (e.g., 2 for TCF 2.0, 4 for TCF 2.2) */
+	tcfPolicyVersion: number;
+
+	/** CMP ID registered with IAB */
+	cmpId: number;
+
+	/** CMP version */
+	cmpVersion: number;
+
+	/** CMP status */
+	cmpStatus: CMPStatus;
+
+	/** Event status */
+	eventStatus?: EventStatus;
+
+	/** Listener ID if from addEventListener */
+	listenerId?: number;
+}
+
+/**
  * Callback function type for __tcfapi.
  *
  * @public
  */
-export type TCFApiCallback<T = TCData | PingData | GlobalVendorList | boolean> =
-	(data: T | null, success: boolean) => void;
+export type TCFApiCallback<
+	T = TCData | TCDataOutsideTCF | PingData | GlobalVendorList | boolean,
+> = (data: T | null, success: boolean) => void;
 
 /**
  * __tcfapi function signature.
@@ -250,13 +288,13 @@ export interface TCFApi {
 	(
 		command: 'getTCData',
 		version: number,
-		callback: TCFApiCallback<TCData>,
+		callback: TCFApiCallback<TCData | TCDataOutsideTCF>,
 		vendorIds?: number[]
 	): void;
 	(
 		command: 'getInAppTCData' | 'addEventListener',
 		version: number,
-		callback: TCFApiCallback<TCData>
+		callback: TCFApiCallback<TCData | TCDataOutsideTCF>
 	): void;
 	(
 		command: 'getVendorList',

@@ -751,8 +751,15 @@ const referenceEndpoint = (
 	});
 };
 
+/**
+ * Whether the visitor's resolved policy uses IAB TCF. `__tcfapi` reports TCF
+ * as applying only then, whatever the visitor's jurisdiction.
+ */
+const policyUsesIAB = (snapshot: ConsentSnapshot): boolean =>
+	snapshot.policyRule.model === 'iab';
+
 const cmpDisplayStatus = (snapshot: ConsentSnapshot): 'visible' | 'hidden' =>
-	snapshot.policyRule.model === 'iab' &&
+	policyUsesIAB(snapshot) &&
 	(snapshot.activeUI === 'banner' || snapshot.activeUI === 'dialog')
 		? 'visible'
 		: 'hidden';
@@ -1246,7 +1253,11 @@ export const createIAB = function createIAB(
 		const kept = readIAB(kernel).authority;
 		if (kept && kept === suppressedAuthority) {
 			suppressedAuthority = null;
-			cmpApi?.updateConsent(kept.tcString, undefined, true);
+			cmpApi?.updateConsent(
+				kept.tcString,
+				undefined,
+				policyUsesIAB(kernel.getSnapshot())
+			);
 		}
 	};
 	const unsubscribeSaveStart = kernel.events.on('command:save:started', () => {
@@ -1317,7 +1328,7 @@ export const createIAB = function createIAB(
 		}
 		holdBackUntilReload(held);
 		// No kernel notification follows, so publish the hold here.
-		cmpApi?.updateConsent('', undefined, snapshot.policyRule.model === 'iab');
+		cmpApi?.updateConsent('', undefined, policyUsesIAB(snapshot));
 	};
 	if (typeof window !== 'undefined') {
 		window.addEventListener('storage', onReceiptStored);
@@ -1606,7 +1617,7 @@ export const createIAB = function createIAB(
 				cmpApi ??= createCMPApi({
 					cmpId,
 					cmpVersion,
-					gdprApplies: kernel.getSnapshot().policyRule.model === 'iab',
+					gdprApplies: policyUsesIAB(kernel.getSnapshot()),
 					// The AC string confirmed with the published TC string.
 					getAddtlConsent: (tcString) => {
 						const authority = kernel.getSnapshot().iab?.authority;
@@ -1622,7 +1633,7 @@ export const createIAB = function createIAB(
 					existingApi.updateConsent(
 						readIAB(kernel).authority?.tcString ?? '',
 						undefined,
-						current.policyRule.model === 'iab'
+						policyUsesIAB(current)
 					);
 				} else if (!existingApi && publishedTcString()) {
 					// A handle mounted on a kernel that already holds authority, such
@@ -1631,7 +1642,7 @@ export const createIAB = function createIAB(
 					cmpApi.updateConsent(
 						publishedTcString(),
 						undefined,
-						current.policyRule.model === 'iab'
+						policyUsesIAB(current)
 					);
 				}
 				cmpApi.setDisplayStatus(cmpDisplayStatus(current));
@@ -1785,11 +1796,7 @@ export const createIAB = function createIAB(
 		// visitor's action to vendors as `tcloaded`.
 		const published = publishedTcString();
 		if (published === '' || published !== committingTcString) {
-			cmpApi.updateConsent(
-				published,
-				undefined,
-				snapshot.policyRule.model === 'iab'
-			);
+			cmpApi.updateConsent(published, undefined, policyUsesIAB(snapshot));
 		}
 		const nextDisplay = cmpDisplayStatus(snapshot);
 		if (nextDisplay !== previousDisplay) {
@@ -2179,7 +2186,11 @@ export const createIAB = function createIAB(
 					storeAuthority(authority);
 					cmpApi?.saveToStorage(tcString);
 				}
-				cmpApi?.updateConsent(tcString, consentData);
+				cmpApi?.updateConsent(
+					tcString,
+					consentData,
+					policyUsesIAB(kernel.getSnapshot())
+				);
 				// The saved selections are the authority's; nothing is unsaved.
 				revisionAtAuthority = selectionRevision;
 				armAuthorityTimer();
@@ -2189,7 +2200,7 @@ export const createIAB = function createIAB(
 				cmpApi.updateConsent(
 					publishedTcString(),
 					undefined,
-					kernel.getSnapshot().policyRule.model === 'iab'
+					policyUsesIAB(kernel.getSnapshot())
 				);
 			}
 			const result = await pendingSave;
