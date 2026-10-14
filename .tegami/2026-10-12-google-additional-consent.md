@@ -4,6 +4,7 @@ packages:
   "@c15t/core": minor
   "@c15t/iab": minor
   "@c15t/react": minor
+  "@c15t/react-native": minor
   "@c15t/schema": minor
   "@c15t/svelte": minor
   "@c15t/vue": minor
