@@ -237,15 +237,19 @@ export const createCiPlan = function createCiPlan(
 			'sveltekit'
 		);
 	}
-	// Starters are the `examples/` apps other than showcases, and each one's
-	// directory name is its smoke-test target. A new starter is selected
-	// without a second list here, and fails until it has a target.
-	const starterDirectory = /^examples\/(?!showcase-)[^/]+$/u;
+	// Starters are the `examples/` apps other than showcases, plus the Svelte
+	// compatibility apps, and each one's directory name is its smoke-test
+	// target. A new starter is selected without a second list here, and
+	// fails until it has a target.
+	const starterDirectory =
+		/^(?:examples\/(?!showcase-)|internals\/svelte-compat\/)(?<target>[^/]+)$/u;
+	const starterTarget = (directory: string) =>
+		starterDirectory.exec(directory)?.groups?.target;
 	const starters = (
 		affected.has('@c15t/fixture-acceptance') ? workspaces : selected
 	)
-		.filter((workspace) => starterDirectory.test(workspace.directory))
-		.map((workspace) => workspace.directory.replace('examples/', ''))
+		.map((workspace) => starterTarget(workspace.directory))
+		.filter((target) => target !== undefined)
 		.sort();
 	const parity = selected
 		.filter((workspace) =>
@@ -300,7 +304,7 @@ export const createCiPlan = function createCiPlan(
 		.map((workspace) => workspace.name);
 	for (const workspace of workspaces) {
 		if (
-			starters.some((target) => workspace.directory === `examples/${target}`) ||
+			starters.includes(starterTarget(workspace.directory) ?? '') ||
 			parity.some(
 				(target) => workspace.directory === `apps/storybook-${target}`
 			) ||
