@@ -10,3 +10,7 @@ Every CLI now installs linked c15t packages at its major version, such as
 prerelease builds of the CLI used to install from their own dist-tag, such as
 `c15t@canary`. Coding-agent setup instructions now resolve exact versions from
 the `latest` dist-tag by default.
+
+Setup also reinstalls a c15t package pinned to an exact prerelease, such as
+`"c15t": "3.0.0-alpha.3"`, because that pin cannot resolve to the stable
+release the CLI generates code for.

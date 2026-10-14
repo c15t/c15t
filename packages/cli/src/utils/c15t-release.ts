@@ -16,7 +16,7 @@ const LOCAL_RANGE_PREFIXES = ['workspace:', 'link:', 'file:', 'portal:'];
 
 /** One comparator: `>=2`, `<3.1`, `^3.0.0-alpha.1`, `~3`, `3.x`, `*`. */
 const COMPARATOR =
-	/^(?<operator><=|>=|<|>|=|\^|~)?v?(?<major>\d+|x|\*)(?:\.(?<minor>\d+|x|\*))?(?:\.(?<patch>\d+|x|\*))?(?:-[0-9a-z][0-9a-z.-]*)?(?:\+[0-9a-z.-]+)?$/iu;
+	/^(?<operator><=|>=|<|>|=|\^|~)?v?(?<major>\d+|x|\*)(?:\.(?<minor>\d+|x|\*))?(?:\.(?<patch>\d+|x|\*))?(?:-(?<prerelease>[0-9a-z][0-9a-z.-]*))?(?:\+[0-9a-z.-]+)?$/iu;
 
 type Version = readonly [number, number, number];
 
@@ -124,6 +124,22 @@ const parseComparator = function parseComparator(
 	}
 	const minor = readPart(groups.minor);
 	const patch = minor === undefined ? undefined : readPart(groups.patch);
+	if (groups.prerelease && minor !== undefined && patch !== undefined) {
+		// A prerelease sorts below its release, so `3.0.0-alpha.3` admits no
+		// stable version, and `<=3.0.0-alpha.3` stops before 3.0.0.
+		const base: Version = [major, minor, patch];
+		switch (groups.operator) {
+			case undefined:
+			case '=':
+				return { interval: { lower: from(base, false), upper: until(base) } };
+			case '>':
+				return { interval: { lower: from(base) } };
+			case '<=':
+				return { interval: { upper: until(base) } };
+			default:
+				break;
+		}
+	}
 	return {
 		interval: comparatorInterval(groups.operator, [major, minor, patch]),
 	};

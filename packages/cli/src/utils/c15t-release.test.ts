@@ -73,7 +73,12 @@ describe('c15t release specifier', () => {
 describe('declared c15t ranges', () => {
 	it.each([
 		['c15t', '^3.0.0-alpha.1', '3.1.0-canary.0', true],
-		['c15t', '3.0.0-alpha.3', '3.1.0-canary.0', true],
+		['c15t', '3.0.0-alpha.3', '3.1.0-canary.0', false],
+		['c15t', '=3.0.0-alpha.3', '3.2.1', false],
+		['c15t', '>3.0.0-alpha.3', '3.2.1', true],
+		['c15t', '>=2 <=3.0.0-alpha.3', '3.2.1', false],
+		['c15t', '>=2 <3.0.0-alpha.3', '3.2.1', false],
+		['c15t', '3.0.1', '3.1.0-canary.0', true],
 		['@c15t/react', '^3.0.0', '3.1.0-canary.0', true],
 		['@c15t/react', '^2.0.0', '3.1.0-canary.0', false],
 		['@c15t/react', '2.0.0-rc.4', '3.1.0-canary.0', false],

@@ -105,7 +105,7 @@ describe('checkInstalledDependencies', () => {
 
 	it('matches pinned requests to installed packages by name', async () => {
 		const root = await createProject({
-			dependencies: { '@c15t/scripts': '3.0.0-alpha.2', c15t: '3.0.0-alpha.3' },
+			dependencies: { '@c15t/scripts': '3.0.0', c15t: '3.0.0' },
 		});
 
 		const result = await checkInstalledDependencies({
