@@ -48,6 +48,7 @@ const alias = {
 		__dirname,
 		'../core/src/consent-record/index.ts'
 	),
+	'@c15t/core/events': resolve(__dirname, '../core/src/events.ts'),
 	'@c15t/core/server': resolve(__dirname, '../core/src/server/index.ts'),
 	'@c15t/core/static': resolve(__dirname, '../core/src/static.ts'),
 	'@c15t/core/build': resolve(__dirname, '../core/src/build.ts'),

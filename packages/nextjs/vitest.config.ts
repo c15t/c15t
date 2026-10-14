@@ -117,6 +117,7 @@ export default mergeConfig(
 					__dirname,
 					'../core/src/transports/index.ts'
 				),
+				'@c15t/core/events': resolve(__dirname, '../core/src/events.ts'),
 				'@c15t/core/server': resolve(__dirname, '../core/src/server/index.ts'),
 				'@c15t/core/build': resolve(__dirname, '../core/src/build.ts'),
 				'@c15t/core/static': resolve(__dirname, '../core/src/static.ts'),
