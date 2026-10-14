@@ -1,7 +1,8 @@
 /** @vitest-environment jsdom */
-import { createConsentKernel } from '@c15t/core';
+import { createConsentKernel, offline } from '@c15t/core';
 import type { AllConsentNames, HasCondition, Script } from '@c15t/core';
 import { createScriptLoader } from '@c15t/core/modules/script-loader';
+import { createConsentRuntime } from '@c15t/core/runtime';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { scripts as sentryExampleScripts } from '../../../internals/doc-snippets/javascript/src/sentry';
@@ -359,10 +360,16 @@ describe('Sentry adapter through the kernel and script loader', () => {
 	});
 
 	it('declares Sentry by name so the preference surface lists it', () => {
+		// The runtime is where core reports undeclared vendors, as in
+		// `ConsentRoot`.
 		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
 		const { client } = createClient();
-		const { kernel } = mount(sentry({ getClient: () => client }));
-		expect(kernel.getSnapshot().vendors?.declared).toEqual([
+		const runtime = createConsentRuntime({
+			mode: offline(),
+			scripts: [sentry({ getClient: () => client })],
+		});
+		disposers.push(() => runtime.dispose());
+		expect(runtime.kernel.getSnapshot().vendors?.declared).toEqual([
 			expect.objectContaining({
 				id: 'sentry',
 				name: sentryManifest.vendorDetails.name,
