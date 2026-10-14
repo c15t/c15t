@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { countIABPartners } from '@c15t/iab/headless';
 	import styles from '@c15t/ui/styles/components/iab-consent-dialog';
 	import switchStyles from '@c15t/ui/styles/components/switch';
 
@@ -82,9 +83,7 @@
 		}
 	};
 
-	const totalVendors = $derived(
-		new Set(stack.purposes.flatMap((p) => p.vendors.map((v) => v.id))).size
-	);
+	const totalVendors = $derived(countIABPartners(stack.purposes));
 </script>
 
 <PreferenceItem.Root

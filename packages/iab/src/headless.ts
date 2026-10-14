@@ -24,6 +24,7 @@ export {
 	type HeadlessIABDisplayRowKind,
 	type HeadlessIABDisplayStackRow,
 	type HeadlessIABDisplayToggle,
+	countIABPartners,
 	iabDisplayTestId,
 	resolveIABDialogDisplayModel,
 } from './headless/display-model';

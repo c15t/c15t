@@ -1,5 +1,6 @@
 'use client';
 
+import { countIABPartners } from '@c15t/iab/headless';
 import styles from '@c15t/ui/styles/components/iab-consent-dialog';
 import { useState } from 'react';
 import type { FC } from 'react';
@@ -92,9 +93,7 @@ export const StackItem: FC<StackItemProps> = ({
 		noStyle,
 	});
 
-	const totalVendors = new Set(
-		stack.purposes.flatMap((p) => p.vendors.map((v) => v.id))
-	).size;
+	const totalVendors = countIABPartners(stack.purposes);
 
 	return (
 		<PreferenceItem.Root

@@ -1,6 +1,7 @@
 import type { ConsentSnapshot } from '@c15t/core';
 import {
 	applyPublisherRestrictionsToGVL,
+	countIABPartners,
 	introducedLegitimateInterest,
 	resolveIABDialogDisplayModel,
 } from '@c15t/iab/headless';
@@ -216,13 +217,17 @@ export const createIABPreferences = (
 				{},
 				t.preferenceCenter.purposeItem.partners.replace(
 					'{count}',
-					String(row.vendors.length)
+					String(countIABPartners([row]))
 				)
 			)
 		);
 		const partners = h('ul');
 		for (const vendor of row.vendors) {
 			partners.append(h('li', {}, vendor.name));
+		}
+		// Google ad tech providers can be the only partners of a purpose.
+		for (const provider of row.adTechProviders ?? []) {
+			partners.append(h('li', {}, provider.name));
 		}
 		body.append(partners);
 		details.append(body);

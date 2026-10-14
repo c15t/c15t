@@ -9,7 +9,11 @@
  * @packageDocumentation
  */
 
-import type { GlobalVendorList, NonIABVendor } from '@c15t/core';
+import type {
+	AdTechProvider,
+	GlobalVendorList,
+	NonIABVendor,
+} from '@c15t/core';
 import { AD_TECH_PROVIDER_PURPOSES } from '@c15t/schema/types';
 
 import { applyPublisherRestrictionsToGVL } from './effective-vendor-list';
@@ -115,10 +119,10 @@ const processPurposes = function processPurposes(
 	gvl: GlobalVendorList,
 	customVendors: NonIABVendor[],
 	language: string | undefined,
-	hasAdTechProviders: boolean
+	adTechProviders: AdTechProvider[]
 ): HeadlessIABProcessedPurpose[] {
 	const providerPurposes = new Set<number>(
-		hasAdTechProviders ? AD_TECH_PROVIDER_PURPOSES : []
+		adTechProviders.length > 0 ? AD_TECH_PROVIDER_PURPOSES : []
 	);
 	return Object.entries(gvl.purposes)
 		.map(([id, purpose]) => {
@@ -149,6 +153,7 @@ const processPurposes = function processPurposes(
 				name: purpose.name,
 				vendors: [...iabVendorsForPurpose, ...customVendorsForPurpose],
 				...(providerPurposes.has(purposeId) && {
+					adTechProviders,
 					neededByAdTechProviders: true,
 				}),
 			};
@@ -323,7 +328,7 @@ export const processGVLForDialog = function processGVLForDialog(
 		gvl,
 		customVendors,
 		language,
-		(iab.adTechProviders?.length ?? 0) > 0
+		iab.adTechProviders ?? []
 	);
 	const specialPurposes = processSpecialPurposes(gvl, language);
 	const specialFeatures = processSpecialFeatures(gvl, language);

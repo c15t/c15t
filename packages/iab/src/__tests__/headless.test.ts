@@ -3,6 +3,7 @@ import { describe, expect, test } from 'vitest';
 
 import {
 	applyPublisherRestrictionsToGVL,
+	countIABPartners,
 	processGVLForDialog,
 	resolveIABBannerSummary,
 	resolveIABDialogDisplayModel,
@@ -364,6 +365,48 @@ describe('@c15t/iab headless vendor counts with Google ad tech providers', () =>
 			[3, true],
 			[4, true],
 		]);
+	});
+
+	test('names the providers as partners of the purposes they need', () => {
+		const storageOnly: typeof completeGVL = {
+			...completeGVL,
+			vendors: Object.fromEntries(
+				Object.entries(completeGVL.vendors)
+					.filter(([id]) => id === '755')
+					.map(([id, vendor]) => [
+						id,
+						{ ...vendor, legIntPurposes: [], purposes: [1] },
+					])
+			),
+		};
+		const rows = resolveIABDialogDisplayModel({
+			adTechProviders,
+			gvl: storageOnly,
+		}).consentRows.flatMap((row) =>
+			row.kind === 'stack' ? row.purposes : [row]
+		);
+		const partners = (id: number) => {
+			const row = rows.find((item) => item.id === id);
+			return {
+				providers: row?.adTechProviders?.map((provider) => provider.id),
+				vendors: row?.vendors.length,
+			};
+		};
+		expect(partners(3)).toEqual({ providers: [89, 2677], vendors: 0 });
+		expect(partners(4)).toEqual({ providers: [89, 2677], vendors: 0 });
+		expect(partners(1)).toEqual({ providers: [89, 2677], vendors: 1 });
+	});
+
+	test('counts each vendor and provider once across purposes', () => {
+		const [meta, seedtag] = adTechProviders;
+		const vendor = { id: 89 } as never;
+		expect(
+			countIABPartners([
+				{ adTechProviders: [meta, seedtag], vendors: [vendor] },
+				{ adTechProviders: [meta], vendors: [vendor] },
+				{ vendors: [] },
+			])
+		).toBe(3);
 	});
 
 	test('counts ad tech providers in the banner partner count', () => {

@@ -31,6 +31,8 @@
  * @packageDocumentation
  */
 
+import type { AdTechProvider } from '@c15t/core';
+
 import { processGVLForDialog } from './dialog-data';
 import type {
 	HeadlessIABDialogData,
@@ -70,6 +72,11 @@ export interface HeadlessIABDisplayRow {
 	description: string;
 	illustrations: string[];
 	vendors: HeadlessIABProcessedVendor[];
+	/**
+	 * The Google ad tech providers that need this purpose. Partners of the
+	 * row along with `vendors`.
+	 */
+	adTechProviders?: AdTechProvider[];
 	/**
 	 * Whether the row shows a toggle fixed on. `true` only for special
 	 * purposes. Feature rows are `false` and show no toggle.
@@ -168,6 +175,37 @@ export const iabDisplayTestId = function iabDisplayTestId(
 	return `${TEST_ID_PREFIX[kind]}-${id}`;
 };
 
+/**
+ * How many partners some purposes have: the distinct vendors that declare
+ * them and the distinct Google ad tech providers that need them. Providers
+ * have their own ID space, so a provider never merges with a vendor.
+ *
+ * @param purposes - The purposes of one row, or every purpose of a stack.
+ * @returns The partner count to show for those purposes.
+ * @example
+ * ```ts
+ * countIABPartners(stack.purposes);
+ * ```
+ */
+export const countIABPartners = function countIABPartners(
+	purposes: readonly {
+		readonly adTechProviders?: readonly Pick<AdTechProvider, 'id'>[];
+		readonly vendors: readonly Pick<HeadlessIABProcessedVendor, 'id'>[];
+	}[]
+): number {
+	const vendors = new Set<HeadlessIABProcessedVendor['id']>();
+	const providers = new Set<number>();
+	for (const purpose of purposes) {
+		for (const vendor of purpose.vendors) {
+			vendors.add(vendor.id);
+		}
+		for (const provider of purpose.adTechProviders ?? []) {
+			providers.add(provider.id);
+		}
+	}
+	return vendors.size + providers.size;
+};
+
 const toRow = function toRow(
 	purpose: HeadlessIABProcessedPurpose,
 	kind: Exclude<HeadlessIABDisplayRowKind, 'stack'>,
@@ -190,6 +228,9 @@ const toRow = function toRow(
 		testId: iabDisplayTestId(kind, purpose.id),
 		toggle,
 		vendors: purpose.vendors,
+		...(purpose.adTechProviders && {
+			adTechProviders: purpose.adTechProviders,
+		}),
 	};
 };
 

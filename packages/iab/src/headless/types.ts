@@ -107,6 +107,12 @@ export interface HeadlessIABProcessedPurpose {
 	 * when no vendor processes it on consent.
 	 */
 	neededByAdTechProviders?: boolean;
+	/**
+	 * The listed Google ad tech providers that need this purpose. Count and
+	 * list them with `vendors`, since they may be the only partners a
+	 * purpose has.
+	 */
+	adTechProviders?: AdTechProvider[];
 }
 
 /**
