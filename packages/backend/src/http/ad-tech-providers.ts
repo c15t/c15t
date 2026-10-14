@@ -69,7 +69,10 @@ const STALE_TTL_MS = 30 * DEFAULT_TTL_MS;
  */
 const FAILURE_BACKOFF_MS = 60_000;
 
-/** Most lists kept in memory. Each configuration resolves one set of IDs. */
+/**
+ * Most lists, and most failing configurations, kept in memory. Each
+ * configuration resolves one set of IDs.
+ */
 const MAX_LAST_GOOD_ENTRIES = 32;
 
 /**
@@ -205,6 +208,30 @@ const rememberLastGood = function rememberLastGood(
 	}
 };
 
+/**
+ * Holds a key off the upstream for a minute. Expired holds go first, then
+ * the oldest past the cap, so retired configurations do not pile up.
+ */
+const backOff = function backOff(
+	{ retryAfter }: AdTechProviderState,
+	key: string
+): void {
+	const now = Date.now();
+	for (const [held, until] of retryAfter) {
+		if (until <= now) {
+			retryAfter.delete(held);
+		}
+	}
+	retryAfter.delete(key);
+	retryAfter.set(key, now + FAILURE_BACKOFF_MS);
+	if (retryAfter.size > MAX_LAST_GOOD_ENTRIES) {
+		const oldest = retryAfter.keys().next().value;
+		if (oldest !== undefined) {
+			retryAfter.delete(oldest);
+		}
+	}
+};
+
 /** Clears in-memory lists and failure backoff. For tests. */
 export const resetAdTechProviderState =
 	function resetAdTechProviderState(): void {
@@ -325,7 +352,7 @@ export const resolveAdTechProviders = async function resolveAdTechProviders(
 		try {
 			const providers = await fetchAdTechProviderList(options, ids);
 			if (!providers) {
-				retryAfter.set(key, Date.now() + FAILURE_BACKOFF_MS);
+				backOff(state, key);
 				return readStaleProviders(state, cache, key);
 			}
 			retryAfter.delete(key);

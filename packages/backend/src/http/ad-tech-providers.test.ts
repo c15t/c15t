@@ -224,6 +224,27 @@ describe('resolveAdTechProviders', () => {
 		assert.strictEqual(urls.length, 2);
 	});
 
+	it('remembers at most 32 failed configurations', async () => {
+		vi.spyOn(Date, 'now').mockReturnValue(1_000_000);
+		const { fetch, urls } = listServer({ error: 'down' }, 503);
+		const fail = (id: number) =>
+			resolveAdTechProviders({
+				fetch,
+				providers: [id],
+				url: 'https://lists.example/ac-retired',
+			});
+
+		// One after another, so the first failure is the oldest.
+		await Array.from({ length: 33 }, (_, index) => index + 1).reduce(
+			(previous, id) => previous.then(() => fail(id)),
+			Promise.resolve<unknown>(null)
+		);
+		// Past the cap of 32, the oldest failure no longer holds its upstream.
+		await fail(1);
+		await fail(33);
+		assert.strictEqual(urls.length, 34);
+	});
+
 	it('gives up on a stalled list instead of holding /init open', async () => {
 		const deadline = new AbortController();
 		const timeout = vi
