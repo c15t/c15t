@@ -199,13 +199,30 @@ the new page contains it.
 
 ## Send analytics events after consent
 
-`createEventDispatcher` from `@c15t/integrations/events` sends your own events to
-the vendors you registered, and only while their consent allows it. Pass the
-same scripts and the page's `getConsent`:
+`getEventDispatcher()` from `c15t/astro/client` returns the page's event
+dispatcher. It sends your own events to the `scripts` in `c15t.client.ts`, and
+only while their consent allows it. Create it once at module level:
 
 <include src="../../shared/examples/astro/analytics-events.mdx" />
 
-Events sent while consent is denied are dropped, not queued. Keep search text
+Events sent while consent is denied are dropped, not queued. Calls before the
+integration starts are dropped too. For single-page-app pageviews with
+`ClientRouter`, pass `pageviews` and send one on each `astro:page-load`:
+
+{/* example: fragment */}
+
+```ts
+import { getEventDispatcher } from 'c15t/astro/client';
+
+const events = getEventDispatcher({ pageviews: ['posthog'] });
+
+document.addEventListener('astro:page-load', () => {
+	events.pageview(location.pathname + location.search);
+});
+```
+
+The first call records the path without sending, and the pageview history
+lives with the page, so every dispatcher shares it. Keep search text
 and other personal data out of event properties unless you have set up their
 collection on purpose.
 

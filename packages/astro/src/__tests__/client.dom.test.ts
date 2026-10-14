@@ -10,6 +10,7 @@ import {
 	boot,
 	getConsent,
 	getConsentClient,
+	getEventDispatcher,
 	registerDialogStyles,
 	registerIAB,
 	registerRuntimeModules,
@@ -107,6 +108,13 @@ beforeEach(() => {
 afterEach(() => {
 	client?.dispose();
 	client = null;
+	// The consent cookie outlives the localStorage reset between tests.
+	for (const cookie of document.cookie.split(';')) {
+		const name = cookie.split('=')[0]?.trim();
+		if (name) {
+			document.cookie = `${name}=; max-age=0; path=/`;
+		}
+	}
 });
 
 describe('boot', () => {
@@ -859,16 +867,42 @@ it('opens the external CMP and never records its decisions as c15t choices', asy
 	await expect(client.acceptAll()).rejects.toThrow('external CMP');
 });
 
+it('getEventDispatcher sends to the page scripts and keeps one pageview history across dispatchers', async () => {
+	const capture = vi.fn();
+	const dispatcherOptions = {
+		globals: { posthog: { capture } },
+		pageviews: ['posthog'],
+	};
+	// A module that runs before boot gets a dispatcher that drops calls.
+	const early = getEventDispatcher(dispatcherOptions);
+	early.track('before_boot');
+	(window as unknown as Record<string, unknown>).__c15tAstroConfig =
+		INLINE_CONFIG;
+	client = boot(resolveOptions(OPTIONS), {
+		scripts: [
+			{
+				callbackOnly: true,
+				category: 'measurement',
+				id: 'posthog',
+				vendor: 'posthog',
+			},
+		],
+	});
+	early.pageview('/');
+	await client.save({ measurement: true });
+	// What a second island would do on the next ClientRouter navigation.
+	getEventDispatcher(dispatcherOptions).pageview('/pricing');
+	early.pageview('/pricing');
+	early.track('search', { resultCount: 3 });
+	expect(capture.mock.calls).toEqual([
+		['$pageview'],
+		['search', { resultCount: 3 }],
+	]);
+});
+
 describe('networkBlocker', () => {
 	afterEach(() => {
 		vi.restoreAllMocks();
-		// The consent cookie outlives the localStorage reset between tests.
-		for (const cookie of document.cookie.split(';')) {
-			const name = cookie.split('=')[0]?.trim();
-			if (name) {
-				document.cookie = `${name}=; max-age=0; path=/`;
-			}
-		}
 	});
 
 	const TRACKER = 'https://tracker.example/collect';

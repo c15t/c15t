@@ -67,6 +67,21 @@ their vendor slug. See [vendor consent](/docs/frameworks/react/vendor-consent).
 To send your own events only to allowed integrations, see
 [send events only to allowed integrations](/docs/integrations/overview#send-events-only-to-allowed-integrations).
 
+## Send your own analytics events
+
+`useEventDispatcher()` returns the provider's event dispatcher. It sends to the
+`scripts` you registered and checks consent when an event goes out. Call
+`pageview` from your router with the current path:
+
+<include src="../../shared/examples/react/analytics-events.mdx" />
+
+`track` sends to every registered script with an event API and drops the
+event while measurement is denied. `pageview` sends only to the integrations
+named in `pageviews`, and the first call records the path without sending.
+Every dispatcher shares one pageview history for the provider's lifetime.
+See [send events only to allowed integrations](/docs/integrations/overview#send-events-only-to-allowed-integrations)
+for the supported vendors.
+
 ## Check the scripts
 
 Open DevTools Network in a private window, filter by each vendor's domain and

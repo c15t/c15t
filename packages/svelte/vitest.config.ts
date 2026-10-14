@@ -29,6 +29,10 @@ const workspaceAliases = [
 		replacement: resolve(__dirname, 'src/lib/__tests__/generated.ts'),
 	},
 	{
+		find: '@c15t/core/events',
+		replacement: resolve(__dirname, '../core/src/events.ts'),
+	},
+	{
 		find: '@c15t/core/modes',
 		replacement: resolve(__dirname, '../core/src/modes.ts'),
 	},

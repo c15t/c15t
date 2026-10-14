@@ -345,6 +345,7 @@
 		getSnapshot: () => snapshot,
 		getTheme: () => options.theme,
 		provideDraft,
+		runtime,
 		setLanguage: (code) => runtime.setLanguage(code),
 	});
 

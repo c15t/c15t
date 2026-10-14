@@ -156,33 +156,48 @@ and embeds group:
 
 ## Send events only to allowed integrations
 
-`createEventDispatcher` from `@c15t/integrations/events` sends one named event to
-every registered integration that has an event API and is allowed right now.
-It drops events while measurement is denied, and one vendor's error does not
-stop delivery to the others:
+The event dispatcher sends one named event to every registered integration
+that has an event API and is allowed right now. It drops events while
+measurement is denied, and one vendor's error does not stop delivery to the
+others. Each framework gives you the provider's dispatcher, so you don't pass
+the scripts or the consent snapshot yourself:
+
+| Framework                      | Get the dispatcher                                                             |
+| ------------------------------ | ------------------------------------------------------------------------------ |
+| React, Next.js, TanStack Start | `useEventDispatcher()` from `c15t/react`, `c15t/next` or `c15t/tanstack-start` |
+| Vue, Nuxt                      | `useEventDispatcher()` from `c15t/vue/vue-plugin`, auto-imported in Nuxt       |
+| Svelte, SvelteKit              | `getEventDispatcher()` from `@c15t/svelte`, called inside `ConsentProvider`    |
+| Astro                          | `getEventDispatcher()` from `c15t/astro/client`                                |
+| JavaScript                     | `getEventDispatcher(runtime)` from `@c15t/browser`                             |
 
 ```ts
-import { createEventDispatcher } from '@c15t/integrations/events';
+import { useEventDispatcher } from 'c15t/react';
 
-const events = createEventDispatcher({
-	scripts,
-	getSnapshot: () => runtime.kernel.getSnapshot(),
-	pageviews: ['segment'],
-});
+const events = useEventDispatcher({ pageviews: ['posthog'] });
 
 events.track('docs_search', { resultCount: 4 });
 events.pageview(location.pathname);
 ```
 
-Pass the same `scripts` you registered and a function that returns the live
-consent snapshot. `track` supports Google Tag Manager, Google Tag, PostHog,
-Mixpanel, Segment, Hightouch, Heap, Amplitude, LogRocket, Adobe Analytics,
-Databuddy, Plausible, Fathom, Pirsch, Microsoft Clarity, Hotjar, Vercel
-Analytics, OneDollarStats, Umami, Rybbit, RudderStack and Matomo.
-`pageview` sends single-page-app page views only to the integrations named in
-`pageviews`: PostHog, Segment or Hightouch. Call it from your router's
-navigation hook. The first call records the path without sending, and repeated
-paths or hash-only changes are skipped.
+The dispatcher sends to the scripts registered on the provider. Pass
+`scripts` to add more. It reads consent when an event goes out, so an event
+sent right after a visitor withdraws consent is dropped. Every dispatcher for
+the same provider shares one pageview history, so a component that remounts
+or a consent change does not resend or lose a pageview.
+
+`track` supports Google Tag Manager, Google Tag, PostHog, Mixpanel, Segment,
+Hightouch, Heap, Amplitude, LogRocket, Adobe Analytics, Databuddy, Plausible,
+Fathom, Pirsch, Microsoft Clarity, Hotjar, Vercel Analytics, OneDollarStats,
+Umami, Rybbit, RudderStack and Matomo. `pageview` sends single-page-app page
+views only to the integrations named in `pageviews`: PostHog, Segment or
+Hightouch. Call it from your router's navigation hook. The first call records
+the path without sending, and repeated paths or hash-only changes are skipped.
+Each framework's scripts page shows where to call it.
+
+Without a provider, `createEventDispatcher` from `@c15t/integrations/events`
+takes `scripts` and a `getSnapshot` function that returns the live consent
+snapshot. Create it once and keep it: a new dispatcher starts a new pageview
+history.
 
 ## Add a vendor without a helper
 

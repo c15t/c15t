@@ -1,16 +1,9 @@
-import { createEventDispatcher } from '@c15t/integrations/events';
-import { getConsentClient } from 'c15t/astro/client';
+import { getEventDispatcher } from 'c15t/astro/client';
 
-import consentClient from './consent-client';
+// One dispatcher for the page. It sends to the scripts in consent-client.ts
+// and checks consent each time an event goes out.
+const events = getEventDispatcher();
 
 export const trackSearch = function trackSearch(resultCount: number) {
-	const client = getConsentClient();
-	if (!client) {
-		return;
-	}
-	const events = createEventDispatcher({
-		getSnapshot: client.getConsent,
-		scripts: consentClient.scripts ?? [],
-	});
 	events.track('search', { resultCount });
 };

@@ -1,0 +1,17 @@
+// #region docs:analytics-events title="components/pageviews.tsx"
+'use client';
+
+import { useEventDispatcher } from 'c15t/next';
+import { usePathname } from 'next/navigation';
+import { useEffect } from 'react';
+
+/** Render once inside `ConsentRoot`, such as in the root layout. */
+export const Pageviews = () => {
+	const events = useEventDispatcher({ pageviews: ['posthog'] });
+	const pathname = usePathname();
+	useEffect(() => {
+		events.pageview(pathname);
+	}, [events, pathname]);
+	return null;
+};
+// #endregion docs:analytics-events

@@ -64,6 +64,11 @@
 			"import": "./dist/consent-record.js",
 			"default": "./dist/consent-record.js"
 		},
+		"./events": {
+			"types": "./dist-types/events.d.ts",
+			"import": "./dist/events.js",
+			"default": "./dist/events.js"
+		},
 		"./experiment": {
 			"types": "./dist-types/experiment.d.ts",
 			"import": "./dist/experiment.js",

@@ -217,8 +217,8 @@ custom `dataLayer` name on `googleTagManager`, push to `window[name]`
 instead.
 
 To send one event to every allowed integration rather than to Google alone,
-use [`createEventDispatcher`](/docs/integrations/overview#send-events-only-to-allowed-integrations).
-It drops the event while measurement is denied.
+use [`useEventDispatcher()`](#send-your-own-analytics-events). It drops the
+event while measurement is denied.
 
 ### Replace YouTubeEmbed and GoogleMapsEmbed
 
@@ -249,6 +249,23 @@ the production build in a private window under an opt-in policy. With
 choose. With the default, Google Tag Assistant shows a `consent` `default`
 command before any tag fires. No request goes to `cdn.jsdelivr.net`, YouTube
 or Google Maps until you allow the embed's category.
+
+## Send your own analytics events
+
+`useEventDispatcher()` from `c15t/next` returns the provider's event
+dispatcher. It sends to the `scripts` you passed to `ConsentRoot` and checks
+consent when an event goes out. For App Router pageviews, render a client
+component that watches `usePathname()`:
+
+<include src="../../shared/examples/nextjs/analytics-events.mdx" />
+
+Call `events.track('sign_up', { method: 'email' })` from an event handler for
+your own events. `track` sends to every registered script with an event API and drops the
+event while measurement is denied. `pageview` sends only to the integrations
+named in `pageviews`, and the first call records the path without sending.
+Every dispatcher shares one pageview history for the provider's lifetime.
+See [send events only to allowed integrations](/docs/integrations/overview#send-events-only-to-allowed-integrations)
+for the supported vendors.
 
 ## Verify the integration
 

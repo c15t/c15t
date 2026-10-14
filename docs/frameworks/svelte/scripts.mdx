@@ -21,4 +21,21 @@ single-page app has no server render to link the chunk from, so the browser
 requests it after your app's JavaScript has run. A SvelteKit app can preload
 it from the server-rendered page; the SvelteKit scripts guide shows how.
 
+## Send your own analytics events
+
+`getEventDispatcher()` from `@c15t/svelte` returns the provider's event
+dispatcher. It sends to the provider's `scripts` and checks consent when an
+event goes out. Call it while a component inside `ConsentProvider`
+initializes, and send a pageview when your router's path changes:
+
+<include src="../../shared/examples/svelte/analytics-events.mdx" />
+
+Call `events.track('sign_up', { method: 'email' })` from an event handler for
+your own events. `track` sends to every registered script with an event API and drops the
+event while measurement is denied. `pageview` sends only to the integrations
+named in `pageviews`, and the first call records the path without sending.
+Every dispatcher shares one pageview history for the provider's lifetime.
+See [send events only to allowed integrations](/docs/integrations/overview#send-events-only-to-allowed-integrations)
+for the supported vendors.
+
 <include src="../../shared/svelte/scripts.mdx" />

@@ -77,6 +77,7 @@ export default mergeConfig(
 					'@c15t/core/modules/window-debug',
 					resolve(__dirname, '../core/src/modules/window-debug/index.ts'),
 				],
+				['@c15t/core/events', resolve(__dirname, '../core/src/events.ts')],
 				[
 					'@c15t/core/runtime/controls',
 					resolve(__dirname, '../core/src/runtime/controls.ts'),

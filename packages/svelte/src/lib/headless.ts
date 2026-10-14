@@ -13,6 +13,12 @@ export {
 	type HeadlessConsentSurfaceState,
 	type SvelteIABState,
 } from './context.svelte';
+export {
+	getEventDispatcher,
+	type EventDispatcher,
+	type EventProperties,
+	type GetEventDispatcherOptions,
+} from './event-dispatcher';
 export { getIABTranslations, type IABTranslations } from './iab-translations';
 export {
 	getIABBannerDisplayItems,

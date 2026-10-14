@@ -29,6 +29,7 @@ import type {
 	TranslationConfig,
 } from '@c15t/core';
 import type { createPreferenceDraft } from '@c15t/core/preference-draft';
+import type { ConsentRuntime } from '@c15t/core/runtime';
 import {
 	hasConsentPreferences,
 	hasConsentUI,
@@ -203,6 +204,8 @@ export interface ConsentContextValue {
 	 */
 	readonly provideDraft: (create: typeof createPreferenceDraft) => void;
 	readonly kernel: ConsentKernel;
+	/** The runtime the provider renders, owned or borrowed. */
+	readonly runtime: ConsentRuntime;
 	readonly snapshot: ConsentSnapshot;
 	readonly state: ConsentManagerState;
 	readonly manager: ConsentKernel;
@@ -238,6 +241,8 @@ export interface ConsentControllerOptions {
 	getTheme?: () => Theme | undefined;
 	/** See {@link ConsentContextValue.provideDraft}. */
 	provideDraft: (create: typeof createPreferenceDraft) => void;
+	/** See {@link ConsentContextValue.runtime}. */
+	runtime: ConsentRuntime;
 }
 
 const toTranslationConfig = function toTranslationConfig(
@@ -521,6 +526,7 @@ export const setConsentContext = function setConsentContext(
 			return getKernel();
 		},
 		provideDraft: options.provideDraft,
+		runtime: options.runtime,
 		get snapshot() {
 			return options.getSnapshot();
 		},

@@ -31,6 +31,11 @@ import type {
 	Unsubscribe,
 	VendorChoice,
 } from '@c15t/core';
+import { getEventDispatcher as getRuntimeEventDispatcher } from '@c15t/core/events';
+import type {
+	EventDispatcher,
+	RuntimeEventDispatcherOptions,
+} from '@c15t/core/events';
 import { createIframeBlocker } from '@c15t/core/modules/iframe-blocker';
 import { createPersistence } from '@c15t/core/modules/persistence';
 import { createWindowDebug } from '@c15t/core/modules/window-debug';
@@ -1483,6 +1488,41 @@ export const openDialog = async function openDialog(
 };
 
 /**
+ * The page's event dispatcher.
+ *
+ * It delivers to the integration's `scripts`, plus any you pass, and checks
+ * consent when it sends. The pageview history lives with the page runtime,
+ * so it survives ClientRouter navigation and every dispatcher shares it.
+ * Calls before the integration boots are dropped.
+ *
+ * @param options - Extra `scripts`, SPA `pageviews` integrations and
+ * injectable `globals`.
+ * @returns A dispatcher with `track` and `pageview`.
+ * @example
+ * ```ts
+ * import { getEventDispatcher } from 'c15t/astro/client';
+ *
+ * const events = getEventDispatcher({ pageviews: ['posthog'] });
+ * // Fires on the first load and after each ClientRouter navigation.
+ * document.addEventListener('astro:page-load', () =>
+ * 	events.pageview(location.pathname + location.search)
+ * );
+ * ```
+ */
+export const getEventDispatcher = function getEventDispatcher(
+	options: RuntimeEventDispatcherOptions = {}
+): EventDispatcher {
+	const current = () => {
+		const client = getConsentClient();
+		return client ? getRuntimeEventDispatcher(client.runtime, options) : null;
+	};
+	return {
+		pageview: (path) => current()?.pageview(path),
+		track: (event, properties) => current()?.track(event, properties),
+	};
+};
+
+/**
  * Download the dialog surface's chunks without mounting it.
  *
  * Use it from an idle callback when the first open needs to feel instant;
@@ -1499,6 +1539,11 @@ export const preloadDialog = async function preloadDialog(): Promise<void> {
 
 export { activateGatedScripts } from './browser/inline-scripts';
 export type { ConsentRuntime } from '@c15t/core/runtime';
+export type {
+	EventDispatcher,
+	EventProperties,
+	RuntimeEventDispatcherOptions as GetEventDispatcherOptions,
+} from '@c15t/core/events';
 export type { ResolvedVendor, VendorChoice } from '@c15t/core';
 export type { ConsentDialogKind } from './ui/adapter';
 export { registerDialogAdapter, registerDialogSurface } from './ui/adapter';

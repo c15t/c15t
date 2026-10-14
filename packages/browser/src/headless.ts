@@ -49,6 +49,12 @@ export { custom } from '@c15t/core';
 export { ACTION_ATTRIBUTE, PREFERENCES_HASH } from './client';
 export type { PageAction } from './client';
 export { resolveRules } from './policy-rules';
+export { getEventDispatcher } from '@c15t/core/events';
+export type {
+	EventDispatcher,
+	EventProperties,
+	RuntimeEventDispatcherOptions as GetEventDispatcherOptions,
+} from '@c15t/core/events';
 export { hosted } from './transports/hosted';
 export type { HostedOptions } from './transports/hosted';
 export {

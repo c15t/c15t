@@ -18,8 +18,9 @@ so their dialogs show categories only.
 - `lib/scripts.ts` registers the four helpers and declares each vendor, which
   turns on vendor switches in the preference dialog. The IDs are placeholders, with a comment on where to
   find your own.
-- `lib/use-track-add-to-cart.ts` sends the cart event. `createEventDispatcher`
-  delivers it to GTM, GA4 and PostHog while measurement is allowed. The Meta
+- `lib/use-track-add-to-cart.ts` sends the cart event. `useEventDispatcher()`
+  uses the provider's scripts and delivers it to GTM, GA4 and PostHog while
+  measurement is allowed. The Meta
   `AddToCart` event goes out only while `useVendorAllowed('meta-pixel')` is
   true.
 - `components/consent.tsx` is the `ConsentRoot` with the scripts, the
