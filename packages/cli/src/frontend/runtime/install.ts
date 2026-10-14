@@ -22,7 +22,7 @@ const cancelled = (): Error =>
 /**
  * Install dependencies after successfully applying generation files.
  * @param projectRoot Application directory in which to install dependencies.
- * @param dependencies Registry specifiers, with bare c15t names mapped to alpha.
+ * @param dependencies Registry specifiers, with bare c15t names mapped to the CLI's release line.
  * @param manager Package manager chosen by the host.
  * @param signal Optional caller cancellation.
  * @returns Completion after the package manager closes successfully.

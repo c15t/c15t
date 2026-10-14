@@ -48,22 +48,20 @@ export const LINKED_C15T_PACKAGES: ReadonlySet<string> = new Set([
 
 /**
  * The npm specifier that selects the c15t release this CLI generates code
- * for. Prereleases use their dist-tag (`3.0.0-alpha.3` becomes `alpha`,
- * a canary snapshot becomes `canary`) because the linked packages do not
- * all share one version number. Stable releases use their major version,
- * so an older CLI keeps installing the API it writes code against.
+ * for. Linked packages use the CLI's major version, so an older CLI keeps
+ * installing the API it writes code against. A prerelease CLI, such as a
+ * canary build, installs the same stable release as its major.
  *
- * Pass `name` for a specific package: on a stable CLI, packages outside the
- * linked release group version on their own and get `latest` instead of
- * the CLI's major.
+ * Pass `name` for a specific package: packages outside the linked release
+ * group version on their own and get `latest` instead of the CLI's major.
  *
  * @param version - CLI version. Defaults to the CLI that published this source.
  * @param name - Package the specifier is for. Defaults to a linked package.
- * @returns A dist-tag or a major version range.
+ * @returns A major version range, or `latest`.
  *
  * @example
  * ```ts
- * c15tReleaseSpecifier('3.0.0-alpha.3'); // 'alpha'
+ * c15tReleaseSpecifier('3.1.0-canary.0'); // '3'
  * c15tReleaseSpecifier('3.2.1'); // '3'
  * c15tReleaseSpecifier('3.2.1', '@c15t/ui'); // 'latest'
  * ```
@@ -72,11 +70,6 @@ export const c15tReleaseSpecifier = function c15tReleaseSpecifier(
 	version: string = cliVersion,
 	name = 'c15t'
 ): string {
-	const separator = version.indexOf('-');
-	if (separator !== -1) {
-		const [tag = 'latest'] = version.slice(separator + 1).split(/[.-]/u);
-		return tag;
-	}
 	if (!LINKED_C15T_PACKAGES.has(name)) {
 		return 'latest';
 	}
@@ -90,7 +83,7 @@ export const c15tReleaseSpecifier = function c15tReleaseSpecifier(
  *
  * @param dependency - Package name to install.
  * @param version - CLI version. Defaults to the CLI that published this source.
- * @returns For example `c15t@alpha` for `c15t` from a `3.0.0-alpha.3` CLI.
+ * @returns For example `c15t@3` for `c15t` from a `3.2.1` CLI.
  */
 export const withC15tRelease = function withC15tRelease(
 	dependency: string,
@@ -113,8 +106,8 @@ export const withC15tRelease = function withC15tRelease(
  *
  * @example
  * ```ts
- * describeC15tRelease('3.0.0-alpha.3');
- * // 'Install every c15t package with the @alpha dist-tag.'
+ * describeC15tRelease('3.2.1');
+ * // 'Install c15t, …, @c15t/translations with @3, and other @c15t packages with @latest.'
  * ```
  */
 export const describeC15tRelease = function describeC15tRelease(
@@ -122,34 +115,10 @@ export const describeC15tRelease = function describeC15tRelease(
 ): string {
 	const linked = c15tReleaseSpecifier(version, 'c15t');
 	const other = c15tReleaseSpecifier(version, '@c15t/ui');
-	if (linked === other) {
-		return `Install every c15t package with the @${linked} dist-tag.`;
-	}
 	return `Install ${[...LINKED_C15T_PACKAGES].join(', ')} with @${linked}, and other @c15t packages with @${other}.`;
 };
 
 export { C15T_DOCS_ORIGIN } from './docs-origin.ts';
-
-/**
- * The npm dist-tag that publishes the c15t release a CLI belongs to.
- * Prereleases use their tag (`3.0.0-alpha.3` becomes `alpha`); stable
- * releases use `latest`. Unlike {@link c15tReleaseSpecifier}, the result is
- * always a tag, so `npm view c15t@<tag> version` prints one version.
- *
- * @param version - CLI version. Defaults to the CLI that published this source.
- * @returns A dist-tag such as `alpha`, `canary`, `rc` or `latest`.
- *
- * @example
- * ```ts
- * c15tDistTag('3.0.0-alpha.3'); // 'alpha'
- * c15tDistTag('3.2.1'); // 'latest'
- * ```
- */
-export const c15tDistTag = function c15tDistTag(
-	version: string = cliVersion
-): string {
-	return version.includes('-') ? c15tReleaseSpecifier(version) : 'latest';
-};
 
 /**
  * The docs site for the c15t release a CLI belongs to. Prereleases of a new

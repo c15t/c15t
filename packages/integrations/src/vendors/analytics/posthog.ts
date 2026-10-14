@@ -289,6 +289,31 @@ export const posthogManifest = {
 	},
 } as const satisfies VendorManifest;
 
+/**
+ * PostHog manifest for `loadMode: 'after-consent'`.
+ *
+ * Removing the `<script>` on a refusal does not cancel a download that has
+ * started, and `array.js` starts every instance listed in `_i` when it runs.
+ * Emptying `_i` while `window.posthog` is still the snippet queue leaves it
+ * nothing to start, so a refusal that lands mid-download sends no event and
+ * writes no storage. A later grant on the same page seeds `_i` again only
+ * while the global is still a queue; once `array.js` has run, PostHog starts
+ * on the next page load.
+ */
+const posthogAfterConsentManifest = {
+	...posthogManifest,
+	alwaysLoad: undefined,
+	onConsentDenied: [
+		{
+			ifGlobalIsQueue: true,
+			path: ['posthog', '_i'],
+			type: 'setGlobalPath',
+			value: [],
+		},
+		...posthogManifest.onConsentDenied,
+	],
+} as const satisfies VendorManifest;
+
 export interface PosthogConsentOptions {
 	/**
 	 * Your posthog id, begins with 'phc_'.
@@ -486,7 +511,11 @@ export const posthog = function posthog(
 	}
 
 	const { apiHost, uiHost, scriptUrl } = resolvePosthogHosts(options);
-	const resolved = resolveManifest(posthogManifest, {
+	const manifest =
+		options.loadMode === 'after-consent'
+			? posthogAfterConsentManifest
+			: posthogManifest;
+	return resolveManifest(manifest, {
 		apiHost,
 		id,
 		initOptions: {
@@ -500,10 +529,4 @@ export const posthog = function posthog(
 		scriptUrl,
 		uiHost,
 	});
-
-	if (options.loadMode === 'after-consent') {
-		resolved.alwaysLoad = undefined;
-	}
-
-	return resolved;
 };

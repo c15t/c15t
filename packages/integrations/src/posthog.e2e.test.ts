@@ -173,6 +173,39 @@ describe('posthog contract', () => {
 		]);
 	});
 
+	it('drops the queued init when consent is refused while array.js downloads', () => {
+		const script = posthog({ id: 'phc_race', loadMode: 'after-consent' });
+
+		loadScripts([script], grantedMeasurementConsents);
+		expect(window.posthog._i).toHaveLength(1);
+
+		updateScripts([script], deniedConsents);
+
+		// array.js can still run after the <script> is removed. With no init
+		// tuple left it starts nothing, so it sends no event and writes no
+		// storage.
+		expect(Array.isArray(window.posthog)).toBe(true);
+		expect(window.posthog._i).toEqual([]);
+
+		// A grant before array.js runs queues the init again.
+		updateScripts([script], grantedMeasurementConsents);
+		expect(window.posthog._i).toHaveLength(1);
+	});
+
+	it('keeps the queued init on refusal when PostHog always loads', () => {
+		const script = posthog({ id: 'phc_always' });
+
+		loadScripts([script], grantedMeasurementConsents);
+		updateScripts([script], deniedConsents);
+
+		// Always-on PostHog still starts, opted out, so cookieless mode applies.
+		expect(window.posthog._i).toHaveLength(1);
+		expect(Array.from(window.posthog as unknown as unknown[])).toEqual([
+			['opt_in_capturing', { captureEventName: null }],
+			['opt_out_capturing'],
+		]);
+	});
+
 	it('leaves an installed SDK intact when bootstrap runs again', () => {
 		const liveInit = () => undefined;
 		const liveCapture = () => undefined;
