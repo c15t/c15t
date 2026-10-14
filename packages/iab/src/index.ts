@@ -852,8 +852,15 @@ export const createIAB = function createIAB(
 	// revision means the visitor changed selections without saving.
 	let revisionAtAuthority = 0;
 	// Selection revisions this module made itself, not the visitor: a
-	// pending Accept All or Reject All reaching providers that arrived late.
+	// stored choice restored or withdrawn, or a pending Accept All or Reject
+	// All reaching providers that arrived late.
 	let ownSelectionRevisions = 0;
+	/** Writes `update` as this module, not as a visitor edit. */
+	const setOwnSelections = (update: Partial<KernelIABState>): void => {
+		const revisionBefore = selectionRevision;
+		kernel.set.iab(update);
+		ownSelectionRevisions += selectionRevision - revisionBefore;
+	};
 	// Set while this module withdraws an authority another runtime's
 	// receipt still backs, so the shared receipt is not deleted.
 	let keepReceipt = false;
@@ -1079,7 +1086,7 @@ export const createIAB = function createIAB(
 			// Reject All queued behind the list load is the visitor's newer
 			// action and keeps its selections.
 			const keepSelections = selectionRevision !== revisionAtAuthority;
-			kernel.set.iab({
+			setOwnSelections({
 				...(!keepSelections && selectionsOf(authority)),
 				authority,
 				tcString: authority.tcString,
@@ -1112,7 +1119,7 @@ export const createIAB = function createIAB(
 		}
 		keepReceipt = true;
 		try {
-			kernel.set.iab(update);
+			setOwnSelections(update);
 		} finally {
 			keepReceipt = false;
 		}
@@ -1168,7 +1175,7 @@ export const createIAB = function createIAB(
 			if (!keepSelections) {
 				Object.assign(update, selectionsOf(receipt));
 			}
-			kernel.set.iab(update);
+			setOwnSelections(update);
 		} else if (heldConflicts) {
 			withdrawAuthority(choice);
 			return;
@@ -1474,8 +1481,7 @@ export const createIAB = function createIAB(
 		// switched off leaves them disclosed but not consented.
 		const granted =
 			value && !needed.some((id) => changed(id) && !purposeConsents[id]);
-		const revisionBefore = selectionRevision;
-		kernel.set.iab({
+		setOwnSelections({
 			adTechProviderConsents: {
 				...current,
 				...Object.fromEntries(unseen.map(({ id }) => [String(id), granted])),
@@ -1487,7 +1493,6 @@ export const createIAB = function createIAB(
 				},
 			}),
 		});
-		ownSelectionRevisions += selectionRevision - revisionBefore;
 	};
 	/** Whether the retained authority is withdrawn for the new list. */
 	const retainedWithdrawn = (

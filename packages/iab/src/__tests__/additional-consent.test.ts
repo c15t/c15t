@@ -5,6 +5,7 @@ import {
 	AD_TECH_PROVIDER_FETCH_TIMEOUT_MS,
 	createPolicyRuleFingerprints,
 	normalizePolicyRule,
+	writePolicyResolutionWire,
 } from '@c15t/schema/types';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
@@ -640,6 +641,54 @@ describe('createIAB with Additional Consent', () => {
 		await expect(saved).rejects.toThrow('selections changed');
 		expect(kernel.getSnapshot().iab?.authority).toBeFalsy();
 		expect((await tcData()).tcString).toBe('');
+	});
+
+	test('a stored choice restored while the provider list loads does not cancel the save', async () => {
+		const first = makeKernel();
+		const earlier = await mount(first);
+		earlier.acceptAll();
+		earlier.setAdTechProviderConsent(2577, false);
+		await earlier.save();
+		const { resolution } = first.getSnapshot();
+		earlier.dispose();
+		first.dispose();
+
+		const release = holdProviderList();
+		const kernel = createConsentKernel({
+			initialIab: { cmpId: 28, enabled: true, gvl: completeGVL },
+			initialPolicyResolution: resolution,
+			now: NOW,
+			transport: {
+				init: () =>
+					Promise.resolve({
+						policyResolution: writePolicyResolutionWire(resolution),
+					}),
+			},
+		});
+		disposers.push(kernel.dispose);
+		const addon = createIAB({
+			additionalConsent: {
+				providers: [89, 2577],
+				url: 'https://lists.example/ac',
+			},
+			cmpId: 28,
+			gvl: completeGVL,
+			kernel,
+		});
+		disposers.push(addon.dispose);
+
+		const saved = addon.save();
+		// A fresh /init re-resolves the policy, and the module restores the
+		// returning visitor's stored choice while the save waits. The visitor
+		// changed nothing, so the save goes through.
+		await kernel.commands.init();
+		await Promise.resolve();
+		release();
+		await saved;
+		const data = await tcData();
+		expect(data.tcString).not.toBe('');
+		// No provider was listed when the visitor clicked, so none is disclosed.
+		expect(data).not.toHaveProperty('addtlConsent');
 	});
 
 	test('a save waiting for the provider list records the click time', async () => {
