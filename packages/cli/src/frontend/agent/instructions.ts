@@ -1,5 +1,5 @@
 import { isHiddenCharacter } from '../../generate/backend-url.ts';
-import { c15tDistTag, c15tDocsOrigin } from '../../generate/release.ts';
+import { c15tDocsOrigin } from '../../generate/release.ts';
 
 /** Where c15t stores consent choices. */
 export type C15tStorageMode = 'hosted' | 'offline' | 'custom';
@@ -12,8 +12,8 @@ export interface C15tSetupInstructionsOptions {
 	 */
 	origin?: string;
 	/**
-	 * npm dist-tag the agent resolves exact versions from, such as `alpha`.
-	 * Defaults to the tag that publishes this CLI's release line.
+	 * npm dist-tag the agent resolves exact versions from, such as `canary`.
+	 * Defaults to `latest`.
 	 */
 	distTag?: string;
 	/** Storage mode the host already chose. Omit to have the agent ask. */
@@ -178,8 +178,9 @@ export const createC15tIntegrationGuidance = (
  * their own account and backend steps before it, then pass `firstStep`.
  *
  * Every docs link uses `origin`, and versions resolve from `distTag`, so the
- * agent reads the docs for the release it installs. The defaults follow the
- * release line of the CLI that published this source.
+ * agent reads the docs for the release it installs. The docs origin defaults
+ * to the release line of the CLI that published this source, and the
+ * dist-tag defaults to `latest`.
  *
  * @param options Docs origin, dist-tag, storage mode and first step number.
  * @returns Markdown instructions without a title.
@@ -188,8 +189,8 @@ export const createC15tIntegrationGuidance = (
  * not a positive integer.
  * @example
  * const instructions = createC15tSetupInstructions({
- * 	origin: 'https://v3.c15t.com',
- * 	distTag: 'alpha',
+ * 	origin: 'https://c15t.com',
+ * 	distTag: 'canary',
  * 	mode: 'hosted',
  * 	firstStep: 4,
  * });
@@ -198,7 +199,7 @@ export const createC15tSetupInstructions = (
 	options: C15tSetupInstructionsOptions = {}
 ): string => {
 	const origin = readDocsOrigin(options.origin ?? c15tDocsOrigin());
-	const distTag = readDistTag(options.distTag ?? c15tDistTag());
+	const distTag = readDistTag(options.distTag ?? 'latest');
 	const { mode } = options;
 	if (mode && !['hosted', 'offline', 'custom'].includes(mode)) {
 		throw new Error('Choose hosted, offline, or custom mode.');
