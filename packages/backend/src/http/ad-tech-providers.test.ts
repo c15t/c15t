@@ -293,6 +293,33 @@ describe('resolveAdTechProviders', () => {
 			assert.deepStrictEqual(names(fromB), ['Meta (tenant B)']);
 		});
 
+		it('keeps each list out of a cache the tenants share', async () => {
+			const a = tenant('Meta (tenant A)');
+			const b = tenant('Meta (tenant B)');
+			const shared = memoryCache();
+			const fromA = {
+				cache: shared,
+				fetch: a.fetch,
+				providers: [89],
+				url: RELATIVE,
+			};
+			const fromB = { ...fromA, fetch: b.fetch };
+			assert.deepStrictEqual(names(await resolveAdTechProviders(fromA)), [
+				'Meta (tenant A)',
+			]);
+			assert.deepStrictEqual(names(await resolveAdTechProviders(fromB)), [
+				'Meta (tenant B)',
+			]);
+			assert.strictEqual(shared.store.size, 0);
+
+			// Each tenant still answers repeat requests from its own cache.
+			assert.deepStrictEqual(names(await resolveAdTechProviders(fromA)), [
+				'Meta (tenant A)',
+			]);
+			assert.strictEqual(a.server.requests, 1);
+			assert.strictEqual(b.server.requests, 1);
+		});
+
 		it('backs off only the upstream that failed', async () => {
 			const a = tenant('Meta (tenant A)');
 			const b = tenant('Meta (tenant B)');

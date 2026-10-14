@@ -102,10 +102,50 @@ interface AdTechProviderState {
 	>;
 	/** When each key may next try the upstream after a failed fetch. */
 	readonly retryAfter: Map<string, number>;
+	/**
+	 * The cache for a relative endpoint, in place of the configured one. A
+	 * shared adapter (Redis, KV) cannot tell two fetch implementations apart,
+	 * so it would hand one tenant another's list under the same key.
+	 */
+	readonly cache?: CacheAdapter;
 }
 
 const createState = function createState(): AdTechProviderState {
 	return { inflight: new Map(), lastGood: new Map(), retryAfter: new Map() };
+};
+
+/** An in-memory cache private to one relative endpoint's state. */
+const createStateCache = function createStateCache(): CacheAdapter {
+	const entries = new Map<string, { value: unknown; expiresAt: number }>();
+	const live = (key: string) => {
+		const entry = entries.get(key);
+		if (entry && entry.expiresAt <= Date.now()) {
+			entries.delete(key);
+			return undefined;
+		}
+		return entry;
+	};
+	return {
+		delete: (key) => {
+			entries.delete(key);
+			return Promise.resolve();
+		},
+		get: <ValueType>(key: string) =>
+			Promise.resolve((live(key)?.value as ValueType | undefined) ?? null),
+		has: (key) => Promise.resolve(live(key) !== undefined),
+		set: (key, value, ttlMs = DEFAULT_TTL_MS) => {
+			entries.delete(key);
+			entries.set(key, { expiresAt: Date.now() + ttlMs, value });
+			// A fresh and a stale entry per configuration.
+			if (entries.size > 2 * MAX_LAST_GOOD_ENTRIES) {
+				const oldest = entries.keys().next().value;
+				if (oldest !== undefined) {
+					entries.delete(oldest);
+				}
+			}
+			return Promise.resolve();
+		},
+	};
 };
 
 /** State for absolute endpoints, which name the same list for every caller. */
@@ -133,7 +173,7 @@ const stateFor = function stateFor(
 	const doFetch = options.fetch ?? globalThis.fetch;
 	let state = relativeStates.get(doFetch);
 	if (!state) {
-		state = createState();
+		state = { ...createState(), cache: createStateCache() };
 		relativeStates.set(doFetch, state);
 	}
 	return state;
@@ -210,14 +250,15 @@ const readCachedProviders = async function readCachedProviders(
 /** A cache write that throws costs the next request a fetch, nothing more. */
 const cacheProviders = async function cacheProviders(
 	options: AdTechProviderOptions,
+	cache: CacheAdapter | undefined,
 	key: string,
 	providers: AdTechProvider[]
 ): Promise<void> {
 	const ttlMs = options.ttlMs ?? DEFAULT_TTL_MS;
 	try {
 		await Promise.all([
-			options.cache?.set(key, providers, ttlMs),
-			options.cache?.set(staleCacheKey(key), providers, staleTtlMs(options)),
+			cache?.set(key, providers, ttlMs),
+			cache?.set(staleCacheKey(key), providers, staleTtlMs(options)),
 		]);
 	} catch {
 		// The list just fetched is still served.
@@ -248,8 +289,9 @@ const readStaleProviders = function readStaleProviders(
  * string, and a thrown error would fail `/init` and leave the visitor with no
  * consent UI at all. For the same reason a broken cache only costs a fetch.
  *
- * In-memory state for a relative endpoint is kept per fetch implementation,
- * since each may resolve it to a different list.
+ * A relative endpoint keeps its state and cache per fetch implementation,
+ * since each may resolve it to a different list. The configured cache is
+ * for absolute endpoints only.
  *
  * @param options - Providers and endpoint from the manifest, plus loading options.
  * @returns The listed providers sorted by ID, `[]` when none of the
@@ -265,13 +307,14 @@ export const resolveAdTechProviders = async function resolveAdTechProviders(
 	const key = adTechProviderCacheKey(options.url, ids);
 	const state = stateFor(options);
 	const { inflight, retryAfter } = state;
+	const cache = state.cache ?? options.cache;
 
-	const cached = await readCachedProviders(options.cache, key);
+	const cached = await readCachedProviders(cache, key);
 	if (cached) {
 		return cached;
 	}
 	if (Date.now() < (retryAfter.get(key) ?? 0)) {
-		return readStaleProviders(state, options.cache, key);
+		return readStaleProviders(state, cache, key);
 	}
 	const existing = inflight.get(key);
 	if (existing) {
@@ -283,11 +326,11 @@ export const resolveAdTechProviders = async function resolveAdTechProviders(
 			const providers = await fetchAdTechProviderList(options, ids);
 			if (!providers) {
 				retryAfter.set(key, Date.now() + FAILURE_BACKOFF_MS);
-				return readStaleProviders(state, options.cache, key);
+				return readStaleProviders(state, cache, key);
 			}
 			retryAfter.delete(key);
 			rememberLastGood(state, key, providers, staleTtlMs(options));
-			await cacheProviders(options, key, providers);
+			await cacheProviders(options, cache, key, providers);
 			return providers;
 		} finally {
 			inflight.delete(key);
