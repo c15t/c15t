@@ -56,6 +56,10 @@ export const AdTechProviderSection: FC<AdTechProviderSectionProps> = ({
 		return null;
 	}
 	const { vendorList } = iab.preferenceCenter;
+	const rowProps = mergeSlotProps(components?.['iab-vendor-list']?.row, {
+		baseClassName: styles.vendorListItem,
+		noStyle,
+	});
 	const rowHeaderProps = mergeSlotProps(
 		components?.['iab-vendor-list']?.rowHeader,
 		{
@@ -115,9 +119,9 @@ export const AdTechProviderSection: FC<AdTechProviderSectionProps> = ({
 					const providerKey = String(provider.id);
 					return (
 						<div
+							{...rowProps}
 							key={providerKey}
 							id={`ad-tech-provider-${providerKey}`}
-							className={noStyle ? undefined : styles.vendorListItem}
 						>
 							<div {...rowHeaderProps}>
 								<div className={noStyle ? undefined : styles.vendorListInfo}>

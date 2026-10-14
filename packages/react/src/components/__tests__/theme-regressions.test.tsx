@@ -254,6 +254,44 @@ describe('Theme regressions', () => {
 		});
 	});
 
+	test('applies the vendor list row slot to ad tech provider rows', async () => {
+		await render(
+			<ConsentProvider
+				options={{
+					components: {
+						'iab-vendor-list': {
+							row: {
+								className: 'regression-row',
+								'data-row': 'provider',
+								noStyle: true,
+							},
+						},
+					},
+					mode: offline(),
+				}}
+			>
+				<AdTechProviderSection
+					providers={[
+						{
+							id: 89,
+							name: 'Example Ad Tech',
+							policyUrl: 'https://ads.example/privacy',
+						},
+					]}
+					consents={{}}
+				/>
+			</ConsentProvider>
+		);
+
+		await vi.waitFor(() => {
+			const row = document.querySelector('#ad-tech-provider-89');
+			expect(row?.className).toContain('regression-row');
+			expect(row?.className).not.toContain(iabDialogStyles.vendorListItem);
+			expect(row).toHaveAttribute('data-row', 'provider');
+			expect(row).not.toHaveAttribute('noStyle');
+		});
+	});
+
 	test('provider noStyle strips stock classes from the ad tech provider section', async () => {
 		const stockClasses = new Set(
 			Object.values(iabDialogStyles)
