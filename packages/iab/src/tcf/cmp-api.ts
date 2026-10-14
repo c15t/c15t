@@ -223,6 +223,8 @@ export const createCMPApi = function createCMPApi(
 
 	// Decoded TC data cache
 	let cachedTCData: TCData | null = null;
+	/** Counts changes to the published state, so answers can detect them. */
+	let stateRevision = 0;
 	let currentConsentData: TCFConsentData | null = null;
 	const cmpVersionNumber =
 		typeof cmpVersion === 'number'
@@ -392,6 +394,24 @@ export const createCMPApi = function createCMPApi(
 	};
 
 	/**
+	 * Sends TC data that is still current when the callback runs. The state
+	 * can change while any build is pending, cached or not, so build again
+	 * until none landed, then call back in the same task as the check.
+	 */
+	const sendCurrentTCData = async function sendCurrentTCData(
+		handler: TCFApiCallback<TCData | TCDataOutsideTCF>,
+		eventStatus: () => EventStatus | undefined,
+		listenerId?: number
+	): Promise<void> {
+		const revision = stateRevision;
+		const tcData = await buildTCData(eventStatus(), listenerId);
+		if (revision !== stateRevision) {
+			return sendCurrentTCData(handler, eventStatus, listenerId);
+		}
+		handler(tcData, true);
+	};
+
+	/**
 	 * Handles the 'ping' command.
 	 */
 	const handlePing = function handlePing(
@@ -420,8 +440,7 @@ export const createCMPApi = function createCMPApi(
 		handler: TCFApiCallback<TCData | TCDataOutsideTCF>,
 		_vendorIds?: number[]
 	): Promise<void> {
-		const tcData = await buildTCData();
-		handler(tcData, true);
+		await sendCurrentTCData(handler, () => undefined);
 	};
 
 	/**
@@ -476,8 +495,7 @@ export const createCMPApi = function createCMPApi(
 		eventListeners.set(listenerId, handler);
 
 		// Registration always returns its ID, including while the list is loading.
-		const tcData = await buildTCData(currentStatus(), listenerId);
-		handler(tcData, true);
+		await sendCurrentTCData(handler, currentStatus, listenerId);
 	};
 
 	/**
@@ -499,10 +517,8 @@ export const createCMPApi = function createCMPApi(
 		eventStatus: EventStatus | undefined
 	): Promise<void> {
 		await forEachSequential(eventListeners, {
-			run: async ([listenerId, listener]) => {
-				const tcData = await buildTCData(eventStatus, listenerId);
-				listener(tcData, true);
-			},
+			run: ([listenerId, listener]) =>
+				sendCurrentTCData(listener, () => eventStatus, listenerId),
 		});
 	};
 
@@ -592,6 +608,7 @@ export const createCMPApi = function createCMPApi(
 				tcString = cookieValue;
 				addtlConsent = addtlConsentFor(cookieValue);
 				cachedTCData = null;
+				stateRevision += 1;
 				notifyEventListeners('tcloaded');
 				return cookieValue;
 			}
@@ -606,6 +623,7 @@ export const createCMPApi = function createCMPApi(
 						tcString = localValue;
 						addtlConsent = addtlConsentFor(localValue);
 						cachedTCData = null;
+						stateRevision += 1;
 						notifyEventListeners('tcloaded');
 						return localValue;
 					}
@@ -670,6 +688,7 @@ export const createCMPApi = function createCMPApi(
 				newTcString && consentData ? copyConsentData(consentData) : null;
 			// Invalidate cache
 			cachedTCData = null;
+			stateRevision += 1;
 			if (cmpStatus !== 'loaded') {
 				return;
 			}
@@ -696,6 +715,7 @@ export const createCMPApi = function createCMPApi(
 			addtlConsent = undefined;
 			currentConsentData = null;
 			cachedTCData = null;
+			stateRevision += 1;
 			// The owner publishes current confirmed TC data with updateConsent.
 		},
 	};

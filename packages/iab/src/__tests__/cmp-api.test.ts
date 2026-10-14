@@ -176,3 +176,38 @@ test('withholds the TC string when the policy stops using TCF mid-decode', async
 	expect(data.gdprApplies).toBe(false);
 	expect(data).not.toHaveProperty('tcString');
 });
+
+test('reports TCF when the policy starts using it before an outside-TCF answer', async () => {
+	const tcString = await savedString();
+	const api = createCMPApi({ cmpId: 28, gdprApplies: false, gvl: completeGVL });
+	disposers.push(api.destroy);
+	api.updateConsent(tcString);
+	const callback = vi.fn();
+	window.__tcfapi?.('getTCData', 2, callback);
+	// The base fields are ready at once, but the answer is not sent yet.
+	api.updateConsent(tcString, undefined, true);
+	await vi.waitFor(() => expect(callback).toHaveBeenCalled());
+	expect(callback.mock.calls[0]?.[0]).toMatchObject({
+		gdprApplies: true,
+		tcString,
+	});
+});
+
+test('withholds a cached TC string when the policy stops using TCF', async () => {
+	const tcString = await savedString();
+	const api = createCMPApi({ cmpId: 28, gvl: completeGVL });
+	disposers.push(api.destroy);
+	api.updateConsent(tcString, undefined, true);
+	const warm = vi.fn();
+	window.__tcfapi?.('getTCData', 2, warm);
+	await vi.waitFor(() => expect(warm).toHaveBeenCalled());
+
+	const callback = vi.fn();
+	window.__tcfapi?.('getTCData', 2, callback);
+	// The cached data is ready at once, but the answer is not sent yet.
+	api.updateConsent(tcString, undefined, false);
+	await vi.waitFor(() => expect(callback).toHaveBeenCalled());
+	const [data] = callback.mock.calls[0] ?? [];
+	expect(data.gdprApplies).toBe(false);
+	expect(data).not.toHaveProperty('tcString');
+});
