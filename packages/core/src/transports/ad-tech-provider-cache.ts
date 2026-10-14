@@ -59,6 +59,12 @@ const STALE_TTL_MS = 30 * TTL_MS;
  * so without this an endpoint outage would slow every init, not one a minute.
  */
 const FAILURE_BACKOFF_MS = 60_000;
+/**
+ * Most lists one cache keeps. Each configuration resolves one set of IDs, so
+ * this only bites a server resolving many tenants' or one-off configurations;
+ * the oldest goes first.
+ */
+const MAX_ENTRIES = 32;
 /** Lists from absolute endpoints, which name the same list for every caller. */
 const sharedCache: AdTechProviderCache = new Map();
 /**
@@ -93,6 +99,23 @@ const cacheFor = function cacheFor(
 		relativeCaches.set(options.fetch, cache);
 	}
 	return cache;
+};
+
+/** Stores `entry` as the newest under `key`, dropping the oldest past the cap. */
+const remember = function remember(
+	cache: AdTechProviderCache,
+	key: string,
+	entry: CachedProviders
+): void {
+	cache.delete(key);
+	cache.set(key, entry);
+	while (cache.size > MAX_ENTRIES) {
+		const oldest = cache.keys().next().value;
+		if (oldest === undefined) {
+			break;
+		}
+		cache.delete(oldest);
+	}
 };
 
 const inflightFor = function inflightFor(cache: AdTechProviderCache) {
@@ -136,10 +159,15 @@ export const clearAdTechProviderCache = function clearAdTechProviderCache(
 export const fetchCachedAdTechProviders = function fetchCachedAdTechProviders(
 	options: FetchCachedAdTechProvidersOptions
 ): Promise<AdTechProvider[] | undefined> {
+	const ids = normalizeAdTechProviderIds(options.reference.providers);
+	// No IDs means no providers, whatever the endpoint would answer, and the
+	// `[]` withdraws the ones a client still holds.
+	if (ids.length === 0) {
+		return Promise.resolve([]);
+	}
 	const cache = cacheFor(options);
 	const inflight = inflightFor(cache);
 	const now = options.now ?? Date.now();
-	const ids = normalizeAdTechProviderIds(options.reference.providers);
 	const key = `${options.reference.url}|${ids.join(',')}`;
 	const cached = cache.get(key);
 	if (cached && cached.expiresAt > now) {
@@ -158,7 +186,7 @@ export const fetchCachedAdTechProviders = function fetchCachedAdTechProviders(
 	// the list's own stale bound.
 	const backOff = () => {
 		const staleUntil = stale && cached ? cached.staleUntil : 0;
-		cache.set(key, {
+		remember(cache, key, {
 			expiresAt: stale
 				? Math.min(now + FAILURE_BACKOFF_MS, staleUntil)
 				: now + FAILURE_BACKOFF_MS,
@@ -183,7 +211,7 @@ export const fetchCachedAdTechProviders = function fetchCachedAdTechProviders(
 			if (!providers) {
 				return backOff();
 			}
-			cache.set(key, {
+			remember(cache, key, {
 				expiresAt: now + TTL_MS,
 				providers,
 				staleUntil: now + STALE_TTL_MS,

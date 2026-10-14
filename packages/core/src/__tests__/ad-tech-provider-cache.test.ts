@@ -57,6 +57,37 @@ describe('fetchCachedAdTechProviders', () => {
 		vi.restoreAllMocks();
 	});
 
+	test('answers an empty provider list without asking the endpoint', async () => {
+		const fetch = vi.fn(unavailable);
+		const providers = await fetchCachedAdTechProviders({
+			cache: new Map(),
+			fetch: fetch as unknown as typeof globalThis.fetch,
+			reference: { providers: [], url: reference.url },
+		});
+		// `[]`, not `undefined`: it withdraws the providers a client holds.
+		expect(providers).toEqual([]);
+		expect(fetch).not.toHaveBeenCalled();
+	});
+
+	test('keeps at most 32 lists, dropping the oldest', async () => {
+		const cache: AdTechProviderCache = new Map();
+		// One after another, so the first list is the oldest.
+		await Array.from({ length: 40 }, (_, index) => index + 1).reduce(
+			(previous, id) =>
+				previous.then(() =>
+					fetchCachedAdTechProviders({
+						cache,
+						fetch: listing({ ...META, id }),
+						reference: { providers: [id], url: reference.url },
+					})
+				),
+			Promise.resolve<unknown>(undefined)
+		);
+		expect(cache.size).toBe(32);
+		expect(cache.has(`${reference.url}|1`)).toBe(false);
+		expect(cache.has(`${reference.url}|40`)).toBe(true);
+	});
+
 	test('gives up on a stalled list with nothing cached', async () => {
 		const { expire, timeout } = controlDeadline();
 		const pending = fetchCachedAdTechProviders({
