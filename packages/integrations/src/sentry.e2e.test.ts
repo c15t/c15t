@@ -358,6 +358,23 @@ describe('Sentry adapter through the kernel and script loader', () => {
 		]);
 	});
 
+	it('declares Sentry by name so the preference surface lists it', () => {
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+		const { client } = createClient();
+		const { kernel } = mount(sentry({ getClient: () => client }));
+		expect(kernel.getSnapshot().vendors?.declared).toEqual([
+			expect.objectContaining({
+				id: 'sentry',
+				name: sentryManifest.vendorDetails.name,
+				presentable: true,
+				privacyPolicyUrl: sentryManifest.vendorDetails.privacyPolicyUrl,
+			}),
+		]);
+		expect(warn).not.toHaveBeenCalledWith(
+			expect.stringContaining('has no declaration')
+		);
+	});
+
 	it('downloads nothing and strips user data while measurement is denied', async () => {
 		const setUser = vi.fn();
 		const { client, load, processEvent, script } = setup({ setUser });

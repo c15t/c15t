@@ -1627,8 +1627,10 @@ const createSentryScript = (options: SentryOptions): Script => {
 		onDispose: gate.dispose,
 		onLoad: gate.update,
 		// Like the manifest helpers, the script ID doubles as the vendor slug,
-		// so visitors can turn Sentry off inside a granted category.
+		// so visitors can turn Sentry off inside a granted category. The
+		// details let the preference surface list it by name.
 		vendor: scriptId,
+		vendorDetails: sentryManifest.vendorDetails,
 	};
 };
 
