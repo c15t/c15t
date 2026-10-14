@@ -69,8 +69,9 @@ framework plugin or array snippet that also does, or follow
 With `'after-consent'`, a refusal can arrive while `array.js` is still
 downloading. The download keeps going after c15t removes the script, so c15t
 also clears PostHog's queued init. When `array.js` runs, it starts nothing, sends
-no events and writes no cookies. If the visitor allows measurement again on the
-same page after that, PostHog starts on the next page load. With the default
+no events and writes no cookies. If the visitor allows measurement again before
+`array.js` runs, PostHog starts on the same page. If `array.js` has already
+run, PostHog starts on the next page load. With the default
 `reloadOnConsentRevoked`, the page reloads after the refusal anyway.
 
 `posthog` uses the `measurement` category. With the default
