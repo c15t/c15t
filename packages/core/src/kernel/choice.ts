@@ -16,7 +16,10 @@
  * from that surface's first impression and the experiment arm it ran.
  */
 
-import { ADDITIONAL_CONSENT_V2_PATTERN } from '@c15t/schema/types';
+import {
+	AD_TECH_PROVIDER_PURPOSES,
+	ADDITIONAL_CONSENT_V2_PATTERN,
+} from '@c15t/schema/types';
 
 import { recordCategoryPatch } from '../consent-record/record';
 import type {
@@ -631,8 +634,9 @@ const additionalConsentIds = (part: string): string[] =>
 /**
  * Absent, or provider switches and an AC string that stand for the listed
  * providers. Each switch is a provider the preference center lists, and the
- * string discloses exactly those providers, once each, consenting only to
- * ones switched on.
+ * string discloses exactly those providers, once each. It consents to
+ * every provider switched on when the TC string grants each purpose in
+ * `AD_TECH_PROVIDER_PURPOSES`, and to none otherwise.
  */
 const validAdditionalConsent = function validAdditionalConsent(
 	authority: Record<string, unknown>,
@@ -666,7 +670,17 @@ const validAdditionalConsent = function validAdditionalConsent(
 		...consented,
 		...additionalConsentIds(disclosedPart.slice(3)),
 	];
+	const { purposeConsents } = authority;
+	const purposesGranted =
+		isRecord(purposeConsents) &&
+		AD_TECH_PROVIDER_PURPOSES.every(
+			(purpose) => purposeConsents[purpose] === true
+		);
+	const granted = purposesGranted
+		? Object.keys(switches).filter((id) => switches[id] === true)
+		: [];
 	return (
+		consented.length === granted.length &&
 		consented.every((id) => switches[id] === true) &&
 		new Set(disclosed).size === disclosed.length &&
 		disclosed.length === Object.keys(switches).length &&

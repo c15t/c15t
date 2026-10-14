@@ -742,13 +742,15 @@ describe('Additional Consent on a saved authority', () => {
 	const shown = { '2572': false, '89': true };
 
 	/**
-	 * Saves `all` with a valid authority carrying the given AC fields. The
-	 * save commits locally before it yields, so the snapshot shows the
-	 * outcome as soon as this returns.
+	 * Saves `all` with a valid authority carrying the given AC fields, and
+	 * purpose consents patched by `purposes`. The save commits locally
+	 * before it yields, so the snapshot shows the outcome as soon as this
+	 * returns.
 	 */
 	const saveWith = async function saveWith(
 		adTechProviderConsents: Record<string, boolean>,
-		addtlConsent: string
+		addtlConsent: string,
+		purposes: Record<number, boolean> = {}
 	) {
 		const original = makeKernel();
 		const addon = createAddon(original);
@@ -764,7 +766,12 @@ describe('Additional Consent on a saved authority', () => {
 		const before = kernel.getSnapshot();
 		const pending = kernel.commands.save('all', {
 			actionAt: NOW,
-			iabAuthority: { ...authority, adTechProviderConsents, addtlConsent },
+			iabAuthority: {
+				...authority,
+				adTechProviderConsents,
+				addtlConsent,
+				purposeConsents: { ...authority.purposeConsents, ...purposes },
+			},
 		});
 		return { before, kernel, pending, send };
 	};
@@ -778,24 +785,40 @@ describe('Additional Consent on a saved authority', () => {
 		await expect(pending).resolves.toMatchObject({ ok: true });
 	});
 
+	test('accepts disclosure without consent when purpose 1 is refused', async () => {
+		const { kernel, pending, send } = await saveWith(shown, '2~~dv.2572.89', {
+			1: false,
+		});
+		expect(kernel.getSnapshot().iab?.authority?.addtlConsent).toBe(
+			'2~~dv.2572.89'
+		);
+		await vi.waitFor(() => expect(send).toHaveBeenCalledOnce());
+		await expect(pending).resolves.toMatchObject({ ok: true });
+	});
+
 	test.each([
-		['a zero provider ID', shown, '2~0~dv.2572'],
+		['a zero provider ID', shown, '2~0~dv.2572', {}],
 		[
 			'a provider the list does not show',
 			{ ...shown, '999': false },
 			'2~89~dv.2572.999',
+			{},
 		],
-		['a provider twice', shown, '2~89~dv.89.2572'],
+		['a provider twice', shown, '2~89~dv.89.2572', {}],
 		[
 			'consent to a provider switched off',
 			{ '2572': false, '89': false },
 			'2~89~dv.2572',
+			{},
 		],
-		['a shown provider left out', shown, '2~89~dv.'],
-	])('rejects %s', async (_case, switches, addtlConsent) => {
+		['a shown provider left out', shown, '2~89~dv.', {}],
+		['a provider switched on but not consented', shown, '2~~dv.2572.89', {}],
+		['consent while purpose 1 is refused', shown, '2~89~dv.2572', { 1: false }],
+	])('rejects %s', async (_case, switches, addtlConsent, purposes) => {
 		const { before, kernel, pending, send } = await saveWith(
 			switches,
-			addtlConsent
+			addtlConsent,
+			purposes
 		);
 		await expect(pending).resolves.toMatchObject({ ok: false });
 		expect(send).not.toHaveBeenCalled();
