@@ -610,6 +610,48 @@ describe('createIAB with Additional Consent', () => {
 		expect((await tcData()).addtlConsent).toBe('2~89~dv.2577');
 	});
 
+	/** A handle whose provider list is still loading, and its release. */
+	const mountWithPendingProviders = function mountWithPendingProviders() {
+		const release = holdProviderList();
+		const kernel = makeKernel();
+		kernel.set.iab({ adTechProviders: [PROVIDERS.providers['89']] });
+		const addon = createIAB({
+			additionalConsent: {
+				providers: [89, 2577],
+				url: 'https://lists.example/ac',
+			},
+			cmpId: 28,
+			gvl: completeGVL,
+			kernel,
+		});
+		disposers.push(addon.dispose);
+		return { addon, kernel, release };
+	};
+
+	test('a selection changed while the provider list loads cancels the save', async () => {
+		const { addon, kernel, release } = mountWithPendingProviders();
+		for (const purpose of [1, 3, 4]) {
+			addon.setPurposeConsent(purpose, true);
+		}
+		const saved = addon.save();
+		// Not part of what the visitor confirmed with this save.
+		addon.setPurposeConsent(1, false);
+		release();
+		await expect(saved).rejects.toThrow('selections changed');
+		expect(kernel.getSnapshot().iab?.authority).toBeFalsy();
+		expect((await tcData()).tcString).toBe('');
+	});
+
+	test('a save waiting for the provider list records the click time', async () => {
+		const { addon, kernel, release } = mountWithPendingProviders();
+		addon.setAdTechProviderConsent(89, true);
+		const saved = addon.save();
+		vi.setSystemTime(NOW + 4000);
+		release();
+		await saved;
+		expect(kernel.getSnapshot().iab?.authority?.confirmedAt).toBe(NOW);
+	});
+
 	test('uses providers the backend put in the kernel without fetching', async () => {
 		const kernel = makeKernel();
 		kernel.set.iab({

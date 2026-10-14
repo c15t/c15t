@@ -851,6 +851,9 @@ export const createIAB = function createIAB(
 	// Selection revision when the held authority was installed. A later
 	// revision means the visitor changed selections without saving.
 	let revisionAtAuthority = 0;
+	// Selection revisions this module made itself, not the visitor: a
+	// pending Accept All or Reject All reaching providers that arrived late.
+	let ownSelectionRevisions = 0;
 	// Set while this module withdraws an authority another runtime's
 	// receipt still backs, so the shared receipt is not deleted.
 	let keepReceipt = false;
@@ -1471,6 +1474,7 @@ export const createIAB = function createIAB(
 		// switched off leaves them disclosed but not consented.
 		const granted =
 			value && !needed.some((id) => changed(id) && !purposeConsents[id]);
+		const revisionBefore = selectionRevision;
 		kernel.set.iab({
 			adTechProviderConsents: {
 				...current,
@@ -1483,6 +1487,7 @@ export const createIAB = function createIAB(
 				},
 			}),
 		});
+		ownSelectionRevisions += selectionRevision - revisionBefore;
 	};
 	/** Whether the retained authority is withdrawn for the new list. */
 	const retainedWithdrawn = (
@@ -2109,6 +2114,8 @@ export const createIAB = function createIAB(
 				throw new Error('IAB action cancelled while loading vendor data.');
 			}
 			rejectInvalidRestrictions();
+			// The visitor confirmed now, not when the provider list arrives.
+			const actionAt = Date.now();
 			const providersLoading = pendingAdTechProviders();
 			// Providers landing while the save waits were never shown, so the
 			// visitor discloses them on a later save. A pending Accept All or
@@ -2117,13 +2124,21 @@ export const createIAB = function createIAB(
 				providersLoading && providerBlanket === undefined
 					? shownAdTechProviderIds()
 					: null;
+			const visitorRevision = () => selectionRevision - ownSelectionRevisions;
+			const revisionAtClick = visitorRevision();
 			if (providersLoading) {
 				await providersLoading;
 			}
 			if (disposed) {
 				return;
 			}
-			const actionAt = Date.now();
+			// A selection changed during the wait was not confirmed by this
+			// save, so it is not committed in its name.
+			if (visitorRevision() !== revisionAtClick) {
+				throw new Error(
+					'IAB action cancelled: selections changed while loading ad tech providers.'
+				);
+			}
 			confirmationGeneration += 1;
 			const generation = confirmationGeneration;
 			const snapshot = kernel.getSnapshot();
