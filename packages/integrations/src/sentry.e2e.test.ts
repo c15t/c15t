@@ -1,5 +1,5 @@
 /** @vitest-environment jsdom */
-import { createConsentKernel, offline } from '@c15t/core';
+import { createConsentKernel, offline, vendorsListedUnder } from '@c15t/core';
 import type { AllConsentNames, HasCondition, Script } from '@c15t/core';
 import { createScriptLoader } from '@c15t/core/modules/script-loader';
 import { createConsentRuntime } from '@c15t/core/runtime';
@@ -379,6 +379,29 @@ describe('Sentry adapter through the kernel and script loader', () => {
 		expect(warn).not.toHaveBeenCalledWith(
 			expect.stringContaining('has no declaration')
 		);
+	});
+
+	it('lists Sentry by name once the site declares its own vendors', () => {
+		// Vendor switches are opt-in: helper vendors are listed only after the
+		// site declares a vendor itself.
+		const { client } = createClient();
+		const runtime = createConsentRuntime({
+			mode: offline(),
+			scripts: [sentry({ getClient: () => client })],
+			vendors: [
+				{
+					category: 'necessary',
+					id: 'acme',
+					name: 'Acme',
+					privacyPolicyUrl: 'https://example.com/privacy',
+				},
+			],
+		});
+		disposers.push(() => runtime.dispose());
+		const declared = runtime.kernel.getSnapshot().vendors?.declared ?? [];
+		expect(
+			vendorsListedUnder(declared, 'necessary').map(({ name }) => name)
+		).toContain(sentryManifest.vendorDetails.name);
 	});
 
 	it('downloads nothing and strips user data while measurement is denied', async () => {
