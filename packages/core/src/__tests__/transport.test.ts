@@ -1769,6 +1769,48 @@ describe('createManifestTransport: local init resolution', () => {
 		);
 	});
 
+	test.each([
+		[
+			'the backend',
+			'https://api.example.com/c15t',
+			'/api/additional-consent',
+			'https://api.example.com/api/additional-consent?providerIds=89',
+		],
+		[
+			'nothing absolute',
+			'/api/c15t',
+			'/api/additional-consent-local',
+			'/api/additional-consent-local?providerIds=89',
+		],
+	])(
+		'places a relative provider endpoint on %s',
+		async (_base, backendURL, url, fetched) => {
+			const fetchSpy = vi.fn().mockResolvedValue(
+				Response.json({
+					providers: {
+						'89': { id: 89, name: 'Meta', policyUrl: 'https://meta.example/p' },
+					},
+				})
+			);
+			const response = await createManifestTransport({
+				backendURL,
+				fetch: fetchSpy as unknown as typeof globalThis.fetch,
+				fetchGvl: vi.fn().mockResolvedValue(REALISTIC_INIT_OUTPUT.gvl),
+				inputs: { country: 'DE', language: 'de', region: 'BE' },
+				snapshot: {
+					...MANIFEST_FIXTURE,
+					iab: {
+						...MANIFEST_FIXTURE.iab,
+						additionalConsent: { providers: [89], url },
+					},
+				},
+			}).init?.({ overrides: {}, user: null });
+
+			expect(fetchSpy).toHaveBeenCalledWith(fetched, expect.anything());
+			expect(response?.adTechProviders).toHaveLength(1);
+		}
+	);
+
 	test('withdraws ad tech providers once the manifest stops listing them, but not when the list is down', async () => {
 		const init = (snapshot: ConsentManifest, fetch: typeof globalThis.fetch) =>
 			createManifestTransport({

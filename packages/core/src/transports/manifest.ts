@@ -217,6 +217,26 @@ const deriveBackendURL = function deriveBackendURL(
 		: trimmed;
 };
 
+/**
+ * Places a relative provider list endpoint on the manifest's location, the
+ * way a document resolves its own links. Node's fetch rejects a bare path.
+ * With no absolute base the endpoint is left for the supplied fetch, such as
+ * an in-process adapter, to resolve.
+ */
+const resolveEndpoint = function resolveEndpoint(
+	url: string,
+	base: string | undefined
+): string {
+	if (!base) {
+		return url;
+	}
+	try {
+		return new URL(url, base).href;
+	} catch {
+		return url;
+	}
+};
+
 const resolveDomain = function resolveDomain(
 	backendURL: string,
 	explicit: string | undefined
@@ -466,7 +486,13 @@ export const createManifestTransport = function createManifestTransport(
 					fetchCachedAdTechProviders({
 						fetch: fetchImpl,
 						headers: c15tProtocolHeaders,
-						reference,
+						reference: {
+							...reference,
+							url: resolveEndpoint(
+								reference.url,
+								options.manifestURL ?? backendURL
+							),
+						},
 					})
 			);
 			if (shouldFetchGvl(manifest, payload) && manifest.iab?.gvl) {
