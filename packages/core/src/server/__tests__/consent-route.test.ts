@@ -734,6 +734,59 @@ describe('Google Additional Consent providers', () => {
 		expect(calledURLs(optIn).some((url) => url.startsWith(AC_URL))).toBe(false);
 	});
 
+	/** The provider manifest with a relative endpoint, and its answer. */
+	const relativeEndpoint = (path: string) => {
+		const manifest = {
+			...IAB_MANIFEST,
+			iab: {
+				...IAB_MANIFEST.iab,
+				additionalConsent: { providers: [89], url: path },
+			},
+		} as unknown as ConsentManifest;
+		const answer = () =>
+			Promise.resolve(
+				json({
+					providers: {
+						'89': {
+							id: 89,
+							name: 'Meta',
+							policyUrl: 'https://meta.example/privacy',
+						},
+					},
+				})
+			);
+		return { answer, manifest };
+	};
+
+	test('load from a relative endpoint on the request origin', async () => {
+		const { answer, manifest } = relativeEndpoint('/api/ac-relative');
+		const base = upstream(manifest);
+		const fetch = vi.fn<ManifestFetch>((input, init) =>
+			String(input).includes('/api/ac-relative') ? answer() : base(input, init)
+		);
+		const response = await route({ fetch, reportSessions: false })(
+			request('/api/c15t/init')
+		);
+		const body = (await response.json()) as InitOutput;
+		expect(body.adTechProviders?.map(({ id }) => id)).toEqual([89]);
+		expect(calledURLs(fetch)).toContain(
+			`${APP}/api/ac-relative?providerIds=89`
+		);
+	});
+
+	test('load from a relative endpoint in-process with localFetch', async () => {
+		const { answer, manifest } = relativeEndpoint('/api/ac-local');
+		const fetch = upstream(manifest);
+		const localFetch = vi.fn<ManifestFetch>(() => answer());
+		const response = await route({ fetch, reportSessions: false })(
+			request('/api/c15t/init'),
+			{ localFetch }
+		);
+		const body = (await response.json()) as InitOutput;
+		expect(body.adTechProviders?.map(({ id }) => id)).toEqual([89]);
+		expect(calledURLs(localFetch)).toEqual(['/api/ac-local?providerIds=89']);
+	});
+
 	test('are withdrawn with an empty list once the manifest stops listing them', async () => {
 		const response = await route({
 			fetch: withProviders(IAB_MANIFEST as unknown as ConsentManifest),

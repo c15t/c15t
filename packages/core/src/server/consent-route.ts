@@ -856,14 +856,21 @@ export const createConsentRouteHandler = function createConsentRouteHandler(
 	};
 
 	const createAdTechProviderLoader = function createAdTechProviderLoader(
+		request: Request,
 		budget: Budget,
 		context: ConsentRouteRequestContext
 	): NonNullable<ResolveConsentInitOptions['loadAdTechProviders']> {
 		return async function loadAdTechProviders(reference) {
+			// A relative endpoint is this app's own route, which the global
+			// fetch cannot reach without an origin.
+			const target = resolveTarget(reference.url, request, context);
+			if (!target) {
+				return undefined;
+			}
 			const fill = fetchCachedAdTechProviders({
-				fetch: configuredFetch(),
+				fetch: (target.fetch ?? configuredFetch()) as typeof globalThis.fetch,
 				headers: c15tProtocolHeaders,
-				reference,
+				reference: { ...reference, url: target.url },
 			});
 			if (budget.budgetMs === undefined) {
 				return await fill;
@@ -1029,7 +1036,7 @@ export const createConsentRouteHandler = function createConsentRouteHandler(
 		const payload = await resolveConsentInit({
 			clientContract: request.headers.get(POLICY_CONTRACT_HEADER),
 			inputs,
-			loadAdTechProviders: createAdTechProviderLoader(budget, context),
+			loadAdTechProviders: createAdTechProviderLoader(request, budget, context),
 			loadGvl,
 			manifest,
 			report:

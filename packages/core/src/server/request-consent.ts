@@ -922,12 +922,16 @@ export const resolveRequestConsent = async function resolveRequestConsent(
 			const reference = manifest.iab?.gvl;
 			const payload = await resolveConsentInit({
 				inputs: resolverInputs(),
-				loadAdTechProviders: (providerReference) =>
-					fetchCachedAdTechProviders({
-						fetch: configuredFetch(),
+				loadAdTechProviders: (providerReference) => {
+					// A relative endpoint is this app's own route; resolve it as
+					// the manifest source is.
+					const target = resolveTarget(providerReference.url);
+					return fetchCachedAdTechProviders({
+						fetch: target.fetch as typeof globalThis.fetch,
 						headers: c15tProtocolHeaders,
-						reference: providerReference,
-					}),
+						reference: { ...providerReference, url: target.url },
+					});
+				},
 				loadGvl: loadGvlFor(manifest),
 				manifest,
 				report:
