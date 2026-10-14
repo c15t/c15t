@@ -186,6 +186,10 @@ describe('posthog contract', () => {
 		// storage.
 		expect(Array.isArray(window.posthog)).toBe(true);
 		expect(window.posthog._i).toEqual([]);
+
+		// A grant before array.js runs queues the init again.
+		updateScripts([script], grantedMeasurementConsents);
+		expect(window.posthog._i).toHaveLength(1);
 	});
 
 	it('keeps the queued init on refusal when PostHog always loads', () => {
