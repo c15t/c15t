@@ -77,6 +77,8 @@ describe('v3 dependency installation', () => {
 				await checkInstalledDependencies({
 					dependencies: ['@c15t/react@alpha', '@c15t/integrations@alpha'],
 					projectRoot: directory,
+					// The fixture describes an alpha CLI.
+					version: '3.0.0-alpha.3',
 				})
 			).toEqual({
 				installed: ['@c15t/react@alpha'],

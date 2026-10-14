@@ -4,9 +4,11 @@ import { join } from 'node:path';
 
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { packageInfo } from '../../../package-info';
 import { withC15tRelease } from '../../../utils/c15t-release';
 import { checkInstalledDependencies } from './dependencies';
+
+// The fixtures describe an alpha CLI, whatever version the repository is on.
+const CLI_VERSION = '3.0.0-alpha.3';
 
 const tempDirs: string[] = [];
 
@@ -42,6 +44,7 @@ describe('checkInstalledDependencies', () => {
 		const result = await checkInstalledDependencies({
 			dependencies: ['c15t'],
 			projectRoot: root,
+			version: CLI_VERSION,
 		});
 
 		expect(result.missing).toEqual(['c15t']);
@@ -56,6 +59,7 @@ describe('checkInstalledDependencies', () => {
 		const result = await checkInstalledDependencies({
 			dependencies: ['c15t'],
 			projectRoot: root,
+			version: CLI_VERSION,
 		});
 
 		expect(result.installed).toEqual(['c15t']);
@@ -70,6 +74,7 @@ describe('checkInstalledDependencies', () => {
 		const result = await checkInstalledDependencies({
 			dependencies: ['c15t', '@c15t/integrations'],
 			projectRoot: root,
+			version: CLI_VERSION,
 		});
 
 		expect(result.installed).toEqual(['c15t']);
@@ -84,6 +89,7 @@ describe('checkInstalledDependencies', () => {
 		const result = await checkInstalledDependencies({
 			dependencies: ['c15t'],
 			projectRoot: root,
+			version: CLI_VERSION,
 		});
 
 		expect(result.installed).toEqual(['c15t']);
@@ -98,6 +104,7 @@ describe('checkInstalledDependencies', () => {
 		const result = await checkInstalledDependencies({
 			dependencies: ['@c15t/dev-tools'],
 			projectRoot: root,
+			version: CLI_VERSION,
 		});
 
 		expect(result.missing).toEqual(['@c15t/dev-tools']);
@@ -115,6 +122,7 @@ describe('checkInstalledDependencies', () => {
 				'@c15t/dev-tools@alpha',
 			],
 			projectRoot: root,
+			version: CLI_VERSION,
 		});
 
 		expect(result.installed).toEqual(['c15t@alpha', '@c15t/scripts@alpha']);
@@ -132,6 +140,7 @@ describe('checkInstalledDependencies', () => {
 		const result = await checkInstalledDependencies({
 			dependencies: ['c15t@alpha', '@c15t/integrations@alpha'],
 			projectRoot: root,
+			version: CLI_VERSION,
 		});
 
 		expect(result.installed).toEqual([]);
@@ -146,11 +155,12 @@ describe('checkInstalledDependencies', () => {
 		const result = await checkInstalledDependencies({
 			dependencies: ['c15t@alpha'],
 			projectRoot: root,
+			version: CLI_VERSION,
 		});
 
 		expect(result.installed).toEqual([]);
 		expect(result.missing).toEqual([
-			withC15tRelease('@c15t/react', packageInfo.version),
+			withC15tRelease('@c15t/react', CLI_VERSION),
 		]);
 	});
 
@@ -170,6 +180,7 @@ describe('checkInstalledDependencies', () => {
 				'@c15t/dev-tools@alpha',
 			],
 			projectRoot: root,
+			version: CLI_VERSION,
 		});
 
 		expect(result.missing).toEqual([]);

@@ -256,6 +256,8 @@ export const getManualInstallCommand = function getManualInstallCommand(
 export interface CheckDepsInput {
 	projectRoot: string;
 	dependencies: string[];
+	/** CLI version whose release line to check against. Defaults to this CLI. */
+	version?: string;
 }
 
 export interface CheckDepsOutput {
@@ -270,7 +272,8 @@ export interface CheckDepsOutput {
  */
 const isDeclared = function isDeclared(
 	name: string,
-	allDeps: Record<string, unknown>
+	allDeps: Record<string, unknown>,
+	version: string | undefined
 ): boolean {
 	if (!(name in allDeps)) {
 		return false;
@@ -279,7 +282,7 @@ const isDeclared = function isDeclared(
 	return (
 		!isC15tPackage(name) ||
 		typeof range !== 'string' ||
-		isOnC15tRelease(name, range)
+		isOnC15tRelease(name, range, version)
 	);
 };
 
@@ -294,14 +297,16 @@ const isDeclared = function isDeclared(
  *
  * @param dep - Requested dependency, possibly with a version specifier
  * @param allDeps - Merged dependencies and devDependencies from package.json
+ * @param version - CLI version whose release line to check against
  * @returns The packages still to install; empty when the request is met
  */
 const missingFor = function missingFor(
 	dep: string,
-	allDeps: Record<string, unknown>
+	allDeps: Record<string, unknown>,
+	version: string | undefined
 ): string[] {
 	const name = dependencyName(dep);
-	if (isDeclared(name, allDeps)) {
+	if (isDeclared(name, allDeps, version)) {
 		return [];
 	}
 	if (name === UMBRELLA_PACKAGE && !(name in allDeps)) {
@@ -310,8 +315,8 @@ const missingFor = function missingFor(
 		);
 		if (scoped.length > 0) {
 			return scoped
-				.filter((scopedPackage) => !isDeclared(scopedPackage, allDeps))
-				.map((scopedPackage) => withC15tRelease(scopedPackage));
+				.filter((scopedPackage) => !isDeclared(scopedPackage, allDeps, version))
+				.map((scopedPackage) => withC15tRelease(scopedPackage, version));
 		}
 	}
 	return [dep];
@@ -329,7 +334,7 @@ export const checkInstalledDependencies =
 	async function checkInstalledDependencies(
 		input: CheckDepsInput
 	): Promise<CheckDepsOutput> {
-		const { projectRoot, dependencies } = input;
+		const { projectRoot, dependencies, version } = input;
 		const fs = await import('node:fs/promises');
 		const path = await import('node:path');
 
@@ -348,7 +353,7 @@ export const checkInstalledDependencies =
 			};
 
 			for (const dep of dependencies) {
-				const toInstall = missingFor(dep, allDeps);
+				const toInstall = missingFor(dep, allDeps, version);
 				if (toInstall.length === 0) {
 					installed.push(dep);
 				} else {
