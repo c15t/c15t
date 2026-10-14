@@ -1,7 +1,11 @@
 ---
 packages:
-  "@c15t/core": patch
-  "@c15t/iab": patch
+  "@c15t/core":
+    replay:
+      - exit-prerelease(npm:@c15t/core)
+  "@c15t/iab":
+    replay:
+      - exit-prerelease(npm:@c15t/iab)
 ---
 
 ### Return only base TC data when the policy does not use IAB TCF

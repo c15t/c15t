@@ -1,3 +1,80 @@
+## @c15t/core@3.1.0-canary.0 (canary)
+
+### Return only base TC data when the policy does not use IAB TCF
+
+When the visitor's resolved policy does not use IAB TCF, `__tcfapi`
+`getTCData`, `getInAppTCData` and `addEventListener` now return only
+`gdprApplies: false`, `tcfPolicyVersion`, `cmpId` and `cmpVersion`, beside
+`cmpStatus`, `eventStatus` and `listenerId`. CMP API v2 allows no other
+fields in that case, so no TC string, `addtlConsent`, purpose or vendor data
+reaches vendors. The policy decides this, not the visitor's jurisdiction.
+
+The new `TCDataOutsideTCF` type describes that response. `__tcfapi`
+callbacks now receive `TCData | TCDataOutsideTCF`, and `TCData.gdprApplies`
+is `true`, so check `gdprApplies` before reading `tcString`.
+
+### Vendor switches show only when you declare vendors
+
+The preference dialog shows only category switches until you declare a
+vendor. Your visitors make one choice for each category. You do not get
+vendor switches that you did not ask for.
+
+Since 3.0.0, the dialog showed a switch for the vendor of each
+`@c15t/integrations` helper. For example, a site that added only `posthog()`
+got a PostHog switch under Analytics. We did not intend this default.
+
+To show vendor switches, declare at least one vendor in the `vendors` option
+or on the backend. The dialog then also lists the vendors of your helpers by
+name, as before. This change affects only the dialog. It does not change when
+a script loads.
+
+### Keep saved helper vendor denials accessible
+
+A helper vendor the visitor previously switched off stays visible in the
+preference dialog when the site declares no vendors. The visitor can turn that
+vendor on without changing any category choices. Its saved denial continues to
+block loading until the visitor changes it and saves. Other helper vendors stay
+hidden until the site declares a vendor.
+
+The browser dialog updates helper rows when saved vendor consent changes while
+it is open.
+
+### Support Google Additional Consent
+
+IAB TCF setups can pass consent to Google ad tech providers that are not on
+the Global Vendor List. List their Google ATP IDs in the manifest's
+`iab.additionalConsent.providers`: the self-hosted backend loads their names
+and privacy policies like the vendor list, caches them and sends them in
+`/init`, and framework servers and browsers that resolve `/init` from the
+manifest load them the same way. Setups without such a backend can pass
+`additionalConsent.providers` to the browser instead. The React, Vue, Svelte
+and script-tag preference centres show each provider with its privacy policy
+and a consent switch, and the banner's partner count includes them.
+
+`__tcfapi` returns an Additional Consent v2 string as `addtlConsent` beside
+`tcString`, for example `2~89~dv.2572`. A provider counts as consented only
+when its switch is on and the visitor consented to TCF purposes 1, 3 and 4.
+c15t stores the string in the `addtl_consent` cookie and localStorage entry
+with the TC String, restores it for returning visitors, and removes it when it
+withdraws the TC String. Consent saves send it with the TC String, and the
+self-hosted backend records it in a new `consent.addtlConsent` column. Run the
+backend migrations to add the column. Provider names and policy links load from
+`https://gvl.inth.app/additional-consent` unless an endpoint is configured.
+The backend keeps serving the last list it loaded when that endpoint fails.
+
+`IABPreferenceCenterTranslations.vendorList` gains two required keys,
+`adTechProvidersHeading` and `adTechProvidersNotice`, translated for every
+built-in locale. Custom translation sets need both.
+
+### Load the vendor list without a CORS preflight
+
+In manifest mode, the browser no longer sends the `x-c15t-version` and
+`x-c15t-policy-contract` headers when it fetches the Global Vendor List. The
+request stays a CORS simple request, so a vendor list on another origin loads
+without an `OPTIONS` round trip, and a host that doesn't allow those headers
+no longer fails the fetch. The host must still answer with an
+`Access-Control-Allow-Origin` header that covers the requesting site.
+
 ## @c15t/core@3.0.0
 
 ### c15t v3

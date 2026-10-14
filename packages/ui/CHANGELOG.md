@@ -1,3 +1,14 @@
+## @c15t/ui@3.0.1-canary.0 (canary)
+
+### The preference dialog scrolls with your CSS
+
+Visitors can scroll to every category and vendor in the preference dialog
+again. Before this fix, the category list did not scroll with some app CSS.
+The cause was `overflow: hidden` on the category list or on a category row,
+for example to clip them to rounded corners. On a phone, a category with
+vendors then went past the bottom of the dialog. The visitor could not scroll
+to the rest.
+
 ## @c15t/ui@3.0.0
 
 ### c15t v3

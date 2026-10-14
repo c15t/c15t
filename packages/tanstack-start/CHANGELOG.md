@@ -1,3 +1,57 @@
+## @c15t/tanstack-start@3.1.0-canary.0 (canary)
+
+### The preference dialog scrolls with your CSS
+
+Visitors can scroll to every category and vendor in the preference dialog
+again. Before this fix, the category list did not scroll with some app CSS.
+The cause was `overflow: hidden` on the category list or on a category row,
+for example to clip them to rounded corners. On a phone, a category with
+vendors then went past the bottom of the dialog. The visitor could not scroll
+to the rest.
+
+### Vendor switches show only when you declare vendors
+
+The preference dialog shows only category switches until you declare a
+vendor. Your visitors make one choice for each category. You do not get
+vendor switches that you did not ask for.
+
+Since 3.0.0, the dialog showed a switch for the vendor of each
+`@c15t/integrations` helper. For example, a site that added only `posthog()`
+got a PostHog switch under Analytics. We did not intend this default.
+
+To show vendor switches, declare at least one vendor in the `vendors` option
+or on the backend. The dialog then also lists the vendors of your helpers by
+name, as before. This change affects only the dialog. It does not change when
+a script loads.
+
+### Keep saved helper vendor denials accessible
+
+A helper vendor the visitor previously switched off stays visible in the
+preference dialog when the site declares no vendors. The visitor can turn that
+vendor on without changing any category choices. Its saved denial continues to
+block loading until the visitor changes it and saves. Other helper vendors stay
+hidden until the site declares a vendor.
+
+The browser dialog updates helper rows when saved vendor consent changes while
+it is open.
+
+### Support TanStack Start 1.0
+
+`@c15t/tanstack-start` is now built and tested against TanStack Start 1.0
+(`@tanstack/react-start` 1.169 and `@tanstack/react-router` 1.170.44).
+`@tanstack/react-start` 1.168.60 and later 1.168 releases still work, and the
+peer ranges are unchanged: `@tanstack/react-start` `^1.168.60` and
+`@tanstack/react-router` `^1.170.41`.
+
+TanStack Start 1.0 needs Vite 8 or later, up from Vite 7, so upgrade Vite before
+you upgrade TanStack Start. Upgrade `@tanstack/react-router` with it: each
+`@tanstack/react-start` release depends on one exact router version, 1.170.43
+or later for 1.0, and an older router in your app installs a second copy.
+
+TanStack Start 1.0 also removes `.inputValidator()` from `createServerFn()` and
+`createMiddleware()`. If your app calls it, rename it to `.validator()` when you
+upgrade. The c15t integration and the code it generates don't call it.
+
 ## @c15t/tanstack-start@3.0.0
 
 ### c15t v3

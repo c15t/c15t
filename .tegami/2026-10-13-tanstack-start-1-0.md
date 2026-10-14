@@ -1,6 +1,8 @@
 ---
 packages:
-  '@c15t/tanstack-start': patch
+  "@c15t/tanstack-start":
+    replay:
+      - exit-prerelease(npm:@c15t/tanstack-start)
 ---
 
 ### Support TanStack Start 1.0
