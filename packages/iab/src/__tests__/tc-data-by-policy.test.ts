@@ -17,7 +17,7 @@ import type { TCData, TCDataOutsideTCF } from '../tcf/iab-tcf-types';
 import { completeGVL } from './fixtures/gvl-sample';
 
 const NOW = () => Date.parse('2026-10-14T12:00:00Z');
-const disposers: Array<() => void> = [];
+const disposers: (() => void)[] = [];
 
 beforeEach(() => {
 	localStorage.clear();
