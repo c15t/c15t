@@ -6,10 +6,11 @@ import { useEffect } from 'react';
 /** Render once inside `ConsentRoot`, such as in the root route. */
 export const Pageviews = () => {
 	const events = useEventDispatcher({ pageviews: ['posthog'] });
-	const pathname = useLocation({ select: (location) => location.pathname });
+	// The path with its query string, so search and filter changes count.
+	const href = useLocation({ select: (location) => location.href });
 	useEffect(() => {
-		events.pageview(pathname);
-	}, [events, pathname]);
+		events.pageview(href);
+	}, [events, href]);
 	return null;
 };
 // #endregion docs:analytics-events

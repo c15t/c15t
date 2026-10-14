@@ -255,7 +255,7 @@ or Google Maps until you allow the embed's category.
 `useEventDispatcher()` from `c15t/next` returns the provider's event
 dispatcher. It sends to the `scripts` you passed to `ConsentRoot` and checks
 consent when an event goes out. For App Router pageviews, render a client
-component that watches `usePathname()`:
+component that watches `usePathname()` and `useSearchParams()`:
 
 <include src="../../shared/examples/nextjs/analytics-events.mdx" />
 

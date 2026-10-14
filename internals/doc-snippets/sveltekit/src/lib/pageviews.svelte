@@ -7,7 +7,7 @@
 	const events = getEventDispatcher({ pageviews: ['posthog'] });
 
 	$effect(() => {
-		events.pageview(page.url.pathname);
+		events.pageview(page.url.pathname + page.url.search);
 	});
 </script>
 <!-- #endregion docs:pageviews -->

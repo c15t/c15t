@@ -164,13 +164,21 @@ the scripts or the consent snapshot yourself:
 
 {/* example: fragment */}
 
-```ts
+```tsx
 import { useEventDispatcher } from 'c15t/react';
+import { useEffect } from 'react';
 
-const events = useEventDispatcher({ pageviews: ['posthog'] });
-
-events.track('docs_search', { resultCount: 4 });
-events.pageview(location.pathname);
+export const DocsSearch = ({ path }: { path: string }) => {
+	const events = useEventDispatcher({ pageviews: ['posthog'] });
+	useEffect(() => {
+		events.pageview(path);
+	}, [events, path]);
+	return (
+		<button onClick={() => events.track('docs_search', { resultCount: 4 })}>
+			Search
+		</button>
+	);
+};
 ```
 
 The dispatcher sends to the scripts registered on the provider. Pass
