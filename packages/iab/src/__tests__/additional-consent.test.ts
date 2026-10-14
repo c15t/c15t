@@ -386,8 +386,14 @@ describe('createIAB with Additional Consent', () => {
 	});
 
 	test('a provider list replaced in place drops the removed provider', async () => {
+		// The backend lists the providers; this handle configures none.
 		const kernel = makeKernel();
-		const addon = await mount(kernel);
+		kernel.set.iab({
+			adTechProviders: [PROVIDERS.providers['89'], PROVIDERS.providers['2577']],
+		});
+		const addon = createIAB({ cmpId: 28, gvl: completeGVL, kernel });
+		disposers.push(addon.dispose);
+		await addon.whenReady();
 		addon.acceptAll();
 		await addon.save();
 		expect((await tcData()).addtlConsent).toBe('2~89.2577~dv.');
@@ -733,6 +739,51 @@ describe('createIAB with Additional Consent', () => {
 		await addon.save();
 		expect(await tcData()).not.toHaveProperty('addtlConsent');
 		expect(fetchMock).not.toHaveBeenCalled();
+	});
+
+	/** A kernel whose `/init` sends the backend's provider list. */
+	const kernelWithBackendProviders = function kernelWithBackendProviders() {
+		const { resolution } = makeKernel().getSnapshot();
+		const kernel = createConsentKernel({
+			initialIab: { cmpId: 28, enabled: true, gvl: completeGVL },
+			initialPolicyResolution: resolution,
+			now: NOW,
+			transport: {
+				init: () =>
+					Promise.resolve({
+						adTechProviders: [PROVIDERS.providers['2577']],
+						policyResolution: writePolicyResolutionWire(resolution),
+					}),
+			},
+		});
+		disposers.push(kernel.dispose);
+		return kernel;
+	};
+
+	test('a client list still replaces the backend providers after a later init', async () => {
+		const kernel = kernelWithBackendProviders();
+		const addon = await mount(kernel, [89]);
+		await kernel.commands.init();
+		await vi.waitFor(() =>
+			expect(
+				kernel.getSnapshot().iab?.adTechProviders?.map(({ id }) => id)
+			).toEqual([89])
+		);
+		addon.acceptAll();
+		await addon.save();
+		expect((await tcData()).addtlConsent).toBe('2~89~dv.');
+	});
+
+	test('an empty client list still clears the backend providers after a later init', async () => {
+		const kernel = kernelWithBackendProviders();
+		const addon = await mount(kernel, []);
+		await kernel.commands.init();
+		await vi.waitFor(() =>
+			expect(kernel.getSnapshot().iab?.adTechProviders).toEqual([])
+		);
+		addon.acceptAll();
+		await addon.save();
+		expect(await tcData()).not.toHaveProperty('addtlConsent');
 	});
 
 	test('keeps backend providers when the client list fails to load', async () => {

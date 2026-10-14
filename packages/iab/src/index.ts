@@ -944,6 +944,13 @@ export const createIAB = function createIAB(
 	 */
 	let blanketPurposeConsents: Record<number, boolean> = {};
 	/**
+	 * The provider list this handle published from its own configuration.
+	 * It replaces the backend's, including after a later `/init` sends the
+	 * backend's again. `null` while none is published, or when the request
+	 * failed and the backend's list stands.
+	 */
+	let clientAdTechProviders: AdTechProvider[] | null = null;
+	/**
 	 * Loads names and privacy links for the ad tech providers this handle was
 	 * configured with, once per handle. A client list replaces the backend's,
 	 * so an empty one resolves to `[]` and clears it. `null` keeps what the
@@ -1443,9 +1450,11 @@ export const createIAB = function createIAB(
 			gvlReference: undefined,
 			...retainedAuthorityPatch(withdrawn, refreshed),
 		};
-		// Configured on the client: its list replaces the backend's.
+		// Configured on the client: its list replaces the backend's, now and
+		// after any later `/init`.
 		if (adTechProviders) {
 			update.adTechProviders = adTechProviders;
+			clientAdTechProviders = adTechProviders;
 		}
 		return update;
 	};
@@ -1863,9 +1872,20 @@ export const createIAB = function createIAB(
 		previous: ConsentSnapshot,
 		snapshot: ConsentSnapshot
 	): void => {
-		if (snapshot.iab?.adTechProviders !== previous.iab?.adTechProviders) {
-			void recheckProviders();
+		const held = snapshot.iab?.adTechProviders;
+		if (held === previous.iab?.adTechProviders) {
+			return;
 		}
+		// A later `/init` put the backend's list back. The client's replaces
+		// it; the update notifies again, and that notification rechecks.
+		if (
+			clientAdTechProviders &&
+			JSON.stringify(held ?? null) !== JSON.stringify(clientAdTechProviders)
+		) {
+			kernel.set.iab({ adTechProviders: clientAdTechProviders });
+			return;
+		}
+		void recheckProviders();
 	};
 	let previousAuthority = kernel.getSnapshot().iab?.authority;
 	let previousSnapshot = kernel.getSnapshot();
