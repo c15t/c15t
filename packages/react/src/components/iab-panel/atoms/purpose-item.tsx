@@ -593,21 +593,23 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 							)}
 							{adTechProviders.length > 0 && (
 								<>
-									<h5 className={styles.vendorSectionTitle}>
+									<h5
+										className={noStyle ? undefined : styles.vendorSectionTitle}
+									>
 										{iab.preferenceCenter.vendorList.adTechProvidersHeading} (
 										{adTechProviders.length})
 									</h5>
 									{adTechProviders.map((provider) => (
 										<div
 											key={provider.id}
-											className={styles.vendorRow}
+											className={noStyle ? undefined : styles.vendorRow}
 										>
-											<div className={styles.vendorInfo}>
+											<div className={noStyle ? undefined : styles.vendorInfo}>
 												<a
 													href={provider.policyUrl}
 													target="_blank"
 													rel="noopener noreferrer"
-													className={styles.vendorName}
+													className={noStyle ? undefined : styles.vendorName}
 												>
 													{provider.name}
 												</a>
