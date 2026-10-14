@@ -9,7 +9,7 @@ benchmark should reuse an existing group unless it proves a different contract.
 | Package behavior and types | Kernel/storage/policy logic, adapter components, public types, test fixture types, external observers of packed exports, benchmark helper units | Every example journey |
 | Database behavior | SQLite, PGlite, real Postgres/MySQL, migrations and audit contracts | Browser acceptance |
 | Example acceptance | Production setup, vendor and iframe gating, revocation, navigation and outage recovery | Each benchmark timing loop |
-| Starter smoke tests | Each `examples/` starter builds for production, shows the banner (in the first HTML when server-rendered), keeps Accept across a reload, and opens the dialog from Privacy settings | Example acceptance journeys |
+| Starter smoke tests | Each `examples/` starter and `internals/svelte-compat/` app builds for production, shows the banner (in the first HTML when server-rendered), keeps Accept across a reload, and opens the dialog from Privacy settings | Example acceptance journeys |
 | Next compatibility | Packed exports, Next 15/16, App/Pages, Cache Components, static export, first HTML and request/cache contracts | A second version matrix |
 | Framework parity | DOM, accessibility, styles, geometry, live pixel comparisons and Storybook interactions | Example screenshot copies |
 | SSR journeys | Next/Nuxt/SvelteKit headers, language, GPC, stored choices, hydration and Nuxt route contracts | Separate standalone E2E runner |
@@ -62,7 +62,9 @@ TAILWIND_MATRIX_VERSIONS=v3 TAILWIND_MATRIX_FIXTURES=vue,nuxt bun run compat:sty
 
 The starters group runs `internals/fixtures/acceptance/src/starters.test.ts`
 once per starter. Every `examples/` directory except `showcase-*` is a
-starter, and its directory name is its target in
+starter, as is every `internals/svelte-compat/` app, which pins the oldest
+Svelte and SvelteKit that `@c15t/svelte` supports. Its directory name is its
+target in
 `internals/fixtures/acceptance/src/starter-targets.ts`. A starter is selected
 when its directory or a package it depends on changes, and every starter runs
 when the acceptance workspace changes. Starters hold no test code, so the
