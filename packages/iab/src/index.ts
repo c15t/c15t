@@ -852,8 +852,7 @@ export const createIAB = function createIAB(
 	// revision means the visitor changed selections without saving.
 	let revisionAtAuthority = 0;
 	// Selection revisions this module made itself, not the visitor: a
-	// stored choice restored or withdrawn, or a pending Accept All or Reject
-	// All reaching providers that arrived late.
+	// stored choice restored or withdrawn.
 	let ownSelectionRevisions = 0;
 	/** Writes `update` as this module, not as a visitor edit. */
 	const setOwnSelections = (update: Partial<KernelIABState>): void => {
