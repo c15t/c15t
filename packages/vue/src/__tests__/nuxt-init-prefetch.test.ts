@@ -36,6 +36,26 @@ vi.mock('nitropack/runtime', () => ({
 	getRouteRules: (event: TestEvent) => event.rules,
 	useRuntimeConfig,
 }));
+const nitro3Hooks = vi.hoisted(() => ({
+	renderHTML: undefined as RenderHTMLHook | undefined,
+}));
+// oxlint-disable-next-line anti-slop/no-module-mocking -- Nitro supplies this runtime; the test runs the plugin.
+vi.mock('nitro', () => ({
+	definePlugin: (plugin: unknown) => plugin,
+}));
+// oxlint-disable-next-line anti-slop/no-module-mocking -- Nuxt supplies this runtime; the test provides the config and hooks the plugin reads.
+vi.mock('nuxt/server', () => ({
+	getRouteRules: (event: TestEvent) => event.rules,
+	useAppConfig: () =>
+		nuxt.serverAppConfig ? { c15t: nuxt.appConfig } : undefined,
+	useRuntimeConfig,
+	useServerHooks: () => ({
+		hook: (name: string, hook: RenderHTMLHook) => {
+			expect(name).toBe('render:html');
+			nitro3Hooks.renderHTML = hook;
+		},
+	}),
+}));
 // oxlint-disable-next-line anti-slop/no-module-mocking -- The module registers this Nitro virtual; the test provides the app config it returns.
 vi.mock('#c15t/server-app-config', () => ({
 	useServerAppConfig: () =>
@@ -292,6 +312,18 @@ describe('which pages get the script', () => {
 	test('no page when the server cannot read the app config', async () => {
 		nuxt.serverAppConfig = false;
 		expect(await renderHead()).toBe(SHELL_HEAD);
+	});
+
+	test('an ssr: false page on Nitro v3', async () => {
+		const { default: plugin } = await vi.importActual<{
+			default: () => void;
+		}>('../runtime/server/init-prefetch.nitro3');
+		plugin();
+		const html = { head: [SHELL_HEAD] };
+		nitro3Hooks.renderHTML?.(html, {
+			event: { context: {}, headers: {}, rules: { ssr: false } },
+		});
+		expect(html.head.join('')).toContain('__c15tInitialDataPromises');
 	});
 
 	test('a shell Nuxt renders on request', async () => {

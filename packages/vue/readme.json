@@ -1,6 +1,6 @@
 {
 	"title": "@c15t/vue: Vue and Nuxt Cookie Banner and Consent Management",
-	"description": "Cookie banner, consent dialog, and preference center for Vue 3 and Nuxt 3 and 4. One package gives you a Vue plugin and a Nuxt module, with composables when you want your own design.",
+	"description": "Cookie banner, consent dialog, and preference center for Vue 3 and Nuxt 3+. One package gives you a Vue plugin and a Nuxt module, with composables when you want your own design.",
 	"features": [
 		"A Nuxt module: add `c15t/vue` to `modules` and the server resolves each visitor's policy, so the banner is in the first HTML",
 		"A Vue plugin for Vite apps, with `consentManifest()` to bundle your policy at build time",
@@ -11,7 +11,7 @@
 		"Translations for 35 languages through @c15t/translations"
 	],
 	"prerequisites": [
-		"Vue 3.5 or later, or Nuxt 3 or 4",
+		"Vue 3.5 or later, or Nuxt 3+",
 		"Node.js 20.19 or later",
 		"An [Inth project](https://inth.com) (free sign-up), a [self-hosted backend](https://c15t.com/docs/self-host/quickstart), or offline mode for local development"
 	],

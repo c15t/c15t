@@ -12,6 +12,7 @@ import {
 	useAppConfig,
 	useHead,
 	useRequestEvent,
+	useRequestFetch,
 	useRequestHeaders,
 	useRequestURL,
 	useRuntimeConfig,
@@ -62,6 +63,23 @@ const warnUnusedInitPrefetch = function warnUnusedInitPrefetch(
 			);
 		}
 	});
+};
+
+/**
+ * The in-process fetch for this render: Nitro v2's `event.fetch`, or the
+ * native fetch behind Nuxt's request fetch on newer server runtimes.
+ */
+const readLocalFetch = function readLocalFetch(
+	event: { fetch?: unknown } | undefined,
+	useFetch: () => unknown
+): typeof globalThis.fetch | undefined {
+	if (!event) {
+		return undefined;
+	}
+	if (typeof event.fetch === 'function') {
+		return event.fetch as typeof globalThis.fetch;
+	}
+	return (useFetch() as { native: typeof globalThis.fetch }).native;
 };
 
 /**
@@ -206,8 +224,10 @@ export default defineNuxtPlugin(async (nuxtApp) => {
 		!shared
 	) {
 		// Read before the first await, while the Nuxt context is current.
+		const event = useRequestEvent();
 		const request = {
-			event: useRequestEvent(),
+			event,
+			fetch: readLocalFetch(event, () => useRequestFetch()),
 			headers: useRequestHeaders(),
 			url: useRequestURL(),
 		};
