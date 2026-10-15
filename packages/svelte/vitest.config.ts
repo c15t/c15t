@@ -12,7 +12,13 @@ import { resolve } from 'node:path';
 
 import { baseConfig } from '@c15t/vitest-config/base';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
+import { transformWithEsbuild } from 'vite';
 import { defineConfig, mergeConfig } from 'vitest/config';
+
+const tracingRecipePath = resolve(
+	__dirname,
+	'../../internals/doc-snippets/sveltekit/src/lib/server/trace-consent.ts'
+);
 
 const workspaceAliases = [
 	// SvelteKit resolves `$app/env` in an app; tests read a stand-in.
@@ -178,7 +184,20 @@ export default mergeConfig(
 			},
 			projects: [
 				{
-					plugins: [svelte()],
+					oxc: { exclude: [tracingRecipePath] },
+					plugins: [
+						svelte(),
+						{
+							enforce: 'pre',
+							name: 'tracing-recipe-without-sveltekit-sync',
+							transform(code, id) {
+								if (id === tracingRecipePath) {
+									// Kit's generated $app/tsconfig is absent in package CI.
+									return transformWithEsbuild(code, id, { tsconfigRaw: '{}' });
+								}
+							},
+						},
+					],
 					resolve: {
 						alias: workspaceAliases,
 						conditions: ['browser'],

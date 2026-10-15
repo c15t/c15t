@@ -207,6 +207,73 @@ policy contract gets a failed `unsupported-contract` resolution, and a
 resolution that did not match carries no snapshot token, vendor list, CMP ID
 or custom vendors.
 
+### Trace consent requests
+
+Use this recipe with SvelteKit 3.1 or later when your app already collects
+server traces. A trace shows where a request spends time. Each timed operation
+in that trace is a span.
+
+SvelteKit 3.1 adds a `sveltekit.endpoint` span for each `+server.ts` handler
+when `tracing.server` is enabled. The consent route receives that span
+automatically. Follow SvelteKit's
+[observability guide](https://svelte.dev/docs/kit/observability) to enable tracing
+and configure a collector for your deployment. Enabling tracing alone does not
+send traces anywhere.
+
+The consent route uses one catch-all path for initialization, the manifest,
+and consent writes. Add an operation name so your collector can distinguish
+those requests. Also record the returned HTTP status. c15t returns `502` when
+it cannot reach the backend, `504` when the proxy times out, and forwards other
+upstream HTTP errors. These are responses, so SvelteKit's exception reporting
+does not mark the endpoint span as failed.
+
+Add this helper to your app. `SPAN_STATUS_ERROR` is OpenTelemetry's error status,
+`2`. The helper uses the span SvelteKit provides and needs no runtime
+OpenTelemetry import:
+
+<include src="../../shared/examples/sveltekit/trace-consent.mdx" />
+
+Wrap the handlers in `src/routes/api/c15t/[...path]/+server.ts`. This example
+uses the [consent proxy](./rendering#save-consent-through-your-own-origin).
+Keep the backend URL and `routePrefix` configured on `c15tHandle` as described
+there. The helper reads the `path` rest parameter, so keep that parameter name
+when you copy the route:
+
+<include src="../../shared/examples/sveltekit/traced-route-handlers.mdx" />
+
+The example uses `#lib/*` mapped to `./src/lib/*` in your `package.json`
+`imports`. If your app uses another alias, change the helper import to match.
+
+For a read-only route, keep `createConsentRoute()` without `proxy` and export
+only the wrapped `GET` handler.
+
+In your collector, check these requests:
+
+| Request | `c15t.operation` | `http.response.status_code` | Endpoint span status |
+| --- | --- | --- | --- |
+| `GET /api/c15t/init` | `init` | `200` | Unchanged |
+| `GET /api/c15t/manifest` | `manifest` | `200`, or `304` for a cached copy | Unchanged |
+| `POST /api/c15t/subjects` | `proxy` | The backend's status | Error for `500` or higher |
+| A proxy request with an unreachable backend | `proxy` | `502` | Error |
+| A proxy request that times out | `proxy` | `504` | Error |
+
+The operation attribute has only three values. The helper does not add request
+bodies, cookies, subject IDs, or query parameters to the span. It returns the
+original response, including its streaming body and headers. Thrown errors
+continue to SvelteKit's exception handling.
+
+With tracing disabled, the helper calls the handler without writing span
+attributes. c15t continues to support SvelteKit 2.63 and later in version 2,
+and SvelteKit 3.0. Those versions expose the same tracing API, but do not create
+a separate endpoint span. If you use the helper there with tracing enabled,
+its attributes describe the enclosing framework span. Upgrade to 3.1 or later
+for the endpoint spans shown in this recipe.
+
+This recipe covers requests to the consent route. Consent resolved during
+server rendering runs through `loadConsent` in `+layout.server.ts`, under
+SvelteKit's load tracing. Browser hydration, vendor scripts, and background
+manifest refreshes need separate instrumentation.
+
 ## resolveConsent
 
 `resolveConsent(options)` from `@c15t/svelte/server` does what `loadConsent`
