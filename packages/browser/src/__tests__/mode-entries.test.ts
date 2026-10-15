@@ -13,6 +13,7 @@ import { createConsentClient as createHostedClient, hosted } from '../hosted';
 import { createHostedConsentClient } from '../hosted-client';
 import {
 	createConsentClient as createOfflineClient,
+	getEventDispatcher,
 	offline,
 } from '../offline';
 import { createOfflineConsentClient } from '../offline-client';
@@ -438,6 +439,34 @@ describe('offline browser entry', () => {
 		expect(next.hasConsented()).toBe(true);
 		expect(next.getSnapshot().activeUI).toBe('none');
 		expect(fetchSpy).not.toHaveBeenCalled();
+	});
+
+	it('sends events to the client scripts once the visitor consents', async () => {
+		vi.stubGlobal('fetch', vi.fn<typeof fetch>());
+		const capture = vi.fn();
+		const client = track(
+			createOfflineClient({
+				policyRules: [authoredRule],
+				scripts: [
+					{
+						callbackOnly: true,
+						category: 'measurement',
+						id: 'posthog',
+						vendor: 'posthog',
+					},
+				],
+				ui: false,
+			})
+		);
+		client.start();
+		await client.ready();
+		const events = getEventDispatcher(client.runtime, {
+			globals: { posthog: { capture } },
+		});
+		events.track('search');
+		await client.save({ marketing: false, measurement: true });
+		events.track('search', { resultCount: 3 });
+		expect(capture.mock.calls).toEqual([['search', { resultCount: 3 }]]);
 	});
 });
 

@@ -239,6 +239,9 @@ export const assembleConsentRuntime = function assembleConsentRuntime(
 			return persistenceHandle?.reconcile() ?? false;
 		},
 		reinit: runInit,
+		get scripts() {
+			return options.scripts ?? [];
+		},
 		setConsentCategories(categories) {
 			kernel.set.consentCategories(categories);
 		},

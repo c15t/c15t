@@ -75,6 +75,11 @@
 			"import": "./shims/consent-record.js",
 			"default": "./shims/consent-record.js"
 		},
+		"./events": {
+			"types": "./shims/events.d.ts",
+			"import": "./shims/events.js",
+			"default": "./shims/events.js"
+		},
 		"./experiment": {
 			"types": "./shims/experiment.d.ts",
 			"import": "./shims/experiment.js",

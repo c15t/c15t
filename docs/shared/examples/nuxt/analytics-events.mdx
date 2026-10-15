@@ -1,0 +1,18 @@
+{/* Generated from internals/doc-snippets/nuxt/app/components/Pageviews.vue (docs:analytics-events) by scripts/sync-example-docs.ts. Edit the source file. */}
+
+```vue title="app/components/Pageviews.vue"
+<script setup lang="ts">
+// Render <Pageviews /> once in app.vue.
+const events = useEventDispatcher({ pageviews: ['posthog'] });
+const route = useRoute();
+watch(
+	() => route.fullPath,
+	(path) => events.pageview(path),
+	{ immediate: true }
+);
+</script>
+
+<template>
+	<slot />
+</template>
+```

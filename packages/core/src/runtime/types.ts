@@ -610,6 +610,11 @@ export interface ConsentRuntime {
 	 * See {@link ConsentRuntime.setConsentCategories}.
 	 */
 	readonly consentCategories: AllConsentNames[];
+	/**
+	 * The `scripts` option, as the runtime currently follows it. A provider
+	 * runtime returns what its latest `update()` passed.
+	 */
+	readonly scripts: readonly Script[];
 	/** Whether {@link ConsentRuntime.start} has run and not been disposed. */
 	readonly started: boolean;
 	/**
