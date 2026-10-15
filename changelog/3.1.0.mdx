@@ -29,8 +29,11 @@ Start 1.0. It also fixes problems found since 3.0.0. The dialog showed vendor
 switches nobody asked for, stopped scrolling under some app CSS, and ran legal
 links into the banner text.
 
-Read [Before you upgrade](#before-you-upgrade) if you show vendor switches,
-use `@c15t/iab` with custom translations, or type your `__tcfapi` callbacks.
+If you self-host the backend, run its migrations before you deploy 3.1. The
+3.1 backend reads and writes a new column on every consent save, so it can't
+record consent until migration 9 has run. Also read
+[Before you upgrade](#before-you-upgrade) if you show vendor switches, use
+`@c15t/iab` with custom translations, or type your `__tcfapi` callbacks.
 
 ## Highlights
 
