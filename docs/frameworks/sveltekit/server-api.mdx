@@ -247,6 +247,9 @@ The example uses `#lib/*` mapped to `./src/lib/*` in your `package.json`
 For a read-only route, keep `createConsentRoute()` without `proxy` and export
 only the wrapped `GET` handler.
 
+SvelteKit also uses `GET` for `HEAD` requests when the route exports no `HEAD`
+handler. The helper labels those consent reads as `init` or `manifest` too.
+
 In your collector, check these requests:
 
 | Request | `c15t.operation` | `http.response.status_code` | Endpoint span status |

@@ -53,14 +53,21 @@ const proxyRoute = (fetch: typeof globalThis.fetch) =>
 	createConsentRoute({ backendURL: BACKEND, fetch, proxy: true });
 
 describe('SvelteKit consent tracing recipe', () => {
-	test.each(['init', '', 'init/'])(
-		'records %s as init without changing the resolved policy or cache headers',
-		async (path) => {
+	test.each([
+		['GET', 'init'],
+		['GET', ''],
+		['GET', 'init/'],
+		['HEAD', 'init'],
+		['HEAD', ''],
+		['HEAD', 'init/'],
+	])(
+		'records %s %s as init without changing the resolved policy or cache headers',
+		async (method, path) => {
 			const { GET } = createConsentRoute({
 				reportSessions: false,
 				snapshot: MANIFEST_FIXTURE,
 			});
-			const input = { headers: { 'x-vercel-ip-country': 'DE' } };
+			const input = { headers: { 'x-vercel-ip-country': 'DE' }, method };
 			const { event, span } = tracedEvent(path, input);
 			const expected = await GET(tracedEvent(path, input).event);
 			const response = await traceConsent(GET)(event);
@@ -78,14 +85,19 @@ describe('SvelteKit consent tracing recipe', () => {
 		}
 	);
 
-	test.each(['manifest', 'manifest/'])(
-		'records %s and preserves the manifest response',
-		async (path) => {
+	test.each([
+		['GET', 'manifest'],
+		['GET', 'manifest/'],
+		['HEAD', 'manifest'],
+		['HEAD', 'manifest/'],
+	])(
+		'records %s %s and preserves the manifest response',
+		async (method, path) => {
 			const { GET } = createConsentRoute({
 				reportSessions: false,
 				snapshot: MANIFEST_FIXTURE,
 			});
-			const { event, span } = tracedEvent(path);
+			const { event, span } = tracedEvent(path, { method });
 			const response = await traceConsent(GET)(event);
 
 			expect(response.status).toBe(200);

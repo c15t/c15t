@@ -15,7 +15,7 @@ export const traceConsent =
 		const span = event.tracing.current;
 		const path = (event.params.path ?? '').split('/').filter(Boolean).join('/');
 		let operation = 'proxy';
-		if (event.request.method === 'GET') {
+		if (event.request.method === 'GET' || event.request.method === 'HEAD') {
 			if (path === '' || path === 'init') {
 				operation = 'init';
 			}
