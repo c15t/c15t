@@ -22,7 +22,7 @@ import {
 	isAgentNotStartedError,
 	launchAgentSetup,
 } from '../../frontend/agent';
-import { c15tDistTag, c15tDocsOrigin } from '../../generate/release';
+import { c15tDocsOrigin } from '../../generate/release';
 import { boilerplateFrameworks } from '../../generate/types';
 import { createCliLogger, runCli } from '../../index';
 import { packageInfo } from '../../package-info';
@@ -248,9 +248,7 @@ describe('agent setup', () => {
 		};
 		const plan = createAgentSetupPlan(options);
 		expect(plan.prompt).toContain('"mode": "hosted"');
-		expect(plan.prompt).toContain(
-			`npm view <package>@${c15tDistTag(packageInfo.version)} version`
-		);
+		expect(plan.prompt).toContain('npm view <package>@latest version');
 		expect(plan.prompt).toContain(
 			`${c15tDocsOrigin(packageInfo.version)}/docs/`
 		);
@@ -514,9 +512,7 @@ describe('c15t setup instructions', () => {
 		expect(instructions).toContain(
 			`${c15tDocsOrigin(packageInfo.version)}/docs/guides/verify-consent.md`
 		);
-		expect(instructions).toContain(
-			`npm view <package>@${c15tDistTag(packageInfo.version)} version`
-		);
+		expect(instructions).toContain('npm view <package>@latest version');
 	});
 
 	it('keeps the framework vendor package mapping table', () => {

@@ -110,6 +110,7 @@ packages/vue/playground/.output
 !/examples/sveltekit/.env
 !/examples/tanstack-start/.env
 !/examples/vue/.env
+!/internals/svelte-compat/*/.env
 
 # Agent worktrees
 .claude/worktrees/

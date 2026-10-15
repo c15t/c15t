@@ -99,7 +99,8 @@ vendors twice.
 
 ## Let visitors turn off one vendor
 
-A visitor can allow marketing and still switch off one vendor in it. Declare
+Optional: a visitor can allow marketing and still switch off one vendor in it.
+Skip this unless your site needs per-vendor choices. Declare
 the vendors in the `vendors` option and render the switch yourself; helpers
 from `@c15t/integrations` already carry their vendor slug. See
 [vendor consent](/docs/frameworks/javascript/vendor-consent).
@@ -112,9 +113,18 @@ to delete them when their category is denied.
 
 ## Send your own events to allowed vendors
 
-To send your own analytics events only to the vendors a visitor allows, use
-the event dispatcher from `@c15t/integrations`. See
-[send events only to allowed integrations](/docs/integrations/overview#send-events-only-to-allowed-integrations).
+`getEventDispatcher(runtime)` from `@c15t/browser` returns the client's event
+dispatcher. It sends to the client's `scripts` and checks consent when an
+event goes out:
+
+<include src="../../shared/examples/javascript/analytics-events.mdx" />
+
+`track` sends to every registered script with an event API and drops the
+event while measurement is denied. `pageview` sends only to the integrations
+named in `pageviews`, and the first call records the path without sending.
+Every dispatcher shares one pageview history for the provider's lifetime.
+See [send events only to allowed integrations](/docs/integrations/overview#send-events-only-to-allowed-integrations)
+for the supported vendors.
 
 ## Check it works
 

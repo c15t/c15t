@@ -7,10 +7,12 @@
  * @packageDocumentation
  */
 
+import { AD_TECH_PROVIDER_PURPOSES } from '@c15t/schema/types';
+
 import type { KernelIABState } from '../types';
 
 type HeadlessIABStateInput = Pick<KernelIABState, 'gvl'> &
-	Partial<Pick<KernelIABState, 'customVendors'>> & {
+	Partial<Pick<KernelIABState, 'customVendors' | 'adTechProviders'>> & {
 		/** Server summary and list location, used while gvl is absent. */
 		gvlReference?: KernelIABState['gvlReference'];
 		nonIABVendors?: KernelIABState['customVendors'];
@@ -20,7 +22,10 @@ type HeadlessIABStateInput = Pick<KernelIABState, 'gvl'> &
 export interface HeadlessIABBannerState {
 	/** Whether sufficient vendor data is available to display the summary. */
 	isReady: boolean;
-	/** Number of registered and custom vendors disclosed by the banner. */
+	/**
+	 * Number of registered vendors, custom vendors and Google ad tech
+	 * providers disclosed by the banner.
+	 */
 	vendorCount: number;
 	/** Names of applicable purposes, stacks and special features. */
 	displayItems: string[];
@@ -57,7 +62,9 @@ const referencedSummary = (
 			isReady: true,
 			remainingCount: Math.max(0, items.length - maxItems),
 			vendorCount:
-				vendorCount + (iab.nonIABVendors ?? iab.customVendors ?? []).length,
+				vendorCount +
+				(iab.nonIABVendors ?? iab.customVendors ?? []).length +
+				(iab.adTechProviders?.length ?? 0),
 		};
 	}
 	return {
@@ -66,6 +73,30 @@ const referencedSummary = (
 		remainingCount: 0,
 		vendorCount: 0,
 	};
+};
+
+/**
+ * Purposes some registered vendor declares, plus the purposes listed ad tech
+ * providers need, which Accept All grants for them.
+ */
+const declaredPurposes = (
+	gvl: NonNullable<HeadlessIABStateInput['gvl']>,
+	adTechProviders: HeadlessIABStateInput['adTechProviders']
+): { id: number; name: string }[] => {
+	const providerPurposes = new Set<number>(
+		adTechProviders?.length ? AD_TECH_PROVIDER_PURPOSES : []
+	);
+	return Object.entries(gvl.purposes)
+		.filter(
+			([id]) =>
+				providerPurposes.has(Number(id)) ||
+				Object.values(gvl.vendors).some(
+					(vendor) =>
+						vendor.purposes?.includes(Number(id)) ||
+						vendor.legIntPurposes?.includes(Number(id))
+				)
+		)
+		.map(([id, purpose]) => ({ id: Number(id), name: purpose.name }));
 };
 
 /**
@@ -90,17 +121,12 @@ export const resolveIABBannerSummary = function resolveIABBannerSummary(
 
 	const { gvl } = iab;
 	const customVendors = iab.nonIABVendors ?? iab.customVendors ?? [];
-	const vendorCount = Object.keys(gvl.vendors).length + customVendors.length;
+	const vendorCount =
+		Object.keys(gvl.vendors).length +
+		customVendors.length +
+		(iab.adTechProviders?.length ?? 0);
 
-	const purposesWithVendors = Object.entries(gvl.purposes)
-		.filter(([id]) =>
-			Object.values(gvl.vendors).some(
-				(vendor) =>
-					vendor.purposes?.includes(Number(id)) ||
-					vendor.legIntPurposes?.includes(Number(id))
-			)
-		)
-		.map(([id, purpose]) => ({ id: Number(id), name: purpose.name }));
+	const purposesWithVendors = declaredPurposes(gvl, iab.adTechProviders);
 
 	const standalonePurpose = purposesWithVendors.find(
 		(purpose) => purpose.id === STANDALONE_PURPOSE_ID

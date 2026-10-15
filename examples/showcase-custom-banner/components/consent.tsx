@@ -4,7 +4,7 @@ import { ConsentRoot, offline } from 'c15t/next';
 import type { ConsentPresentation } from 'c15t/next';
 import type { ReactNode } from 'react';
 
-import { scripts, vendors } from '@/lib/scripts';
+import { scripts } from '@/lib/scripts';
 
 import { ConsentDialog } from './consent-dialog';
 
@@ -27,7 +27,6 @@ export const Consent = ({ children }: { children: ReactNode }) => (
 	<ConsentRoot
 		state={{}}
 		scripts={scripts}
-		vendors={vendors}
 		options={{ mode, presentation }}
 	>
 		{children}

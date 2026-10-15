@@ -58,23 +58,18 @@ describe('completed CI task caches', () => {
 		expect(key).toContain('github.run_attempt');
 	});
 
-	it('saves publication results after both release channels finish', () => {
+	it('saves publication results after Tegami finishes', () => {
 		const release = read('.github/workflows/release.yml');
 		const { steps } = release.jobs.publish;
 		const save = steps.findIndex(
 			(step: { uses?: string }) =>
 				step.uses === './.github/actions/save-turbo-cache'
 		);
-		const commands = steps
-			.map((step: { run?: string }, index: number) => ({
-				index,
-				run: step.run,
-			}))
-			.filter((step: { run?: string }) => step.run?.includes('bun run tegami'));
-		expect(commands).toHaveLength(2);
-		for (const { index } of commands) {
-			expect(save).toBeGreaterThan(index);
-		}
+		const tegami = steps.findIndex((step: { run?: string }) =>
+			step.run?.includes('bun run tegami')
+		);
+		expect(tegami).toBeGreaterThanOrEqual(0);
+		expect(save).toBeGreaterThan(tegami);
 		expect(steps[save].with.scope).toBe('publish');
 	});
 });

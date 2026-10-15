@@ -4,6 +4,7 @@ import {
 	applyExperimentTheme,
 	consentTypes as defaultConsentTypes,
 	defaultTranslationConfig,
+	deniedVendorIds,
 	has as evaluateHas,
 	isVendorAllowed,
 	resolveConsentPresentation,
@@ -28,6 +29,7 @@ import type {
 	TranslationConfig,
 } from '@c15t/core';
 import type { createPreferenceDraft } from '@c15t/core/preference-draft';
+import type { ConsentRuntime } from '@c15t/core/runtime';
 import {
 	hasConsentPreferences,
 	hasConsentUI,
@@ -62,6 +64,8 @@ export interface SvelteIABState extends KernelIABState {
 	setPurposeConsent: (purposeId: number, value: boolean) => void;
 	setPurposeLegitimateInterest: (purposeId: number, value: boolean) => void;
 	setSpecialFeatureOptIn: (featureId: number, value: boolean) => void;
+	/** Set consent for a Google ad tech provider (Additional Consent). */
+	setAdTechProviderConsent: (providerId: number, value: boolean) => void;
 	acceptAll: () => void;
 	rejectAll: () => void;
 	save: () => Promise<void>;
@@ -200,6 +204,8 @@ export interface ConsentContextValue {
 	 */
 	readonly provideDraft: (create: typeof createPreferenceDraft) => void;
 	readonly kernel: ConsentKernel;
+	/** The runtime the provider renders, owned or borrowed. */
+	readonly runtime: ConsentRuntime;
 	readonly snapshot: ConsentSnapshot;
 	readonly state: ConsentManagerState;
 	readonly manager: ConsentKernel;
@@ -235,6 +241,8 @@ export interface ConsentControllerOptions {
 	getTheme?: () => Theme | undefined;
 	/** See {@link ConsentContextValue.provideDraft}. */
 	provideDraft: (create: typeof createPreferenceDraft) => void;
+	/** See {@link ConsentContextValue.runtime}. */
+	runtime: ConsentRuntime;
 }
 
 const toTranslationConfig = function toTranslationConfig(
@@ -326,7 +334,11 @@ const createConsentState = function createConsentState(
 			const snapshot = getSnapshotLocal();
 			return snapshot.model === 'iab'
 				? []
-				: vendorsListedUnder(snapshot.vendors?.declared ?? [], category);
+				: vendorsListedUnder(
+						snapshot.vendors?.declared ?? [],
+						category,
+						deniedVendorIds(snapshot)
+					);
 		},
 		has(condition: HasCondition<AllConsentNames>) {
 			const snapshot = getSnapshotLocal();
@@ -514,6 +526,7 @@ export const setConsentContext = function setConsentContext(
 			return getKernel();
 		},
 		provideDraft: options.provideDraft,
+		runtime: options.runtime,
 		get snapshot() {
 			return options.getSnapshot();
 		},

@@ -67,6 +67,7 @@ const QUEUED_METHODS = new Set<keyof ConsentRuntimeIABHandle>([
 	'generateTCString',
 	'rejectAll',
 	'save',
+	'setAdTechProviderConsent',
 	'setPurposeConsent',
 	'setPurposeLegitimateInterest',
 	'setSpecialFeatureOptIn',

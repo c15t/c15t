@@ -6,7 +6,13 @@ export type {
 	OnErrorPayload,
 	OnSurfaceShownPayload,
 } from './callbacks';
-export type { CMPApi, CMPApiConfig, FetchGVLResult, IABConfig } from './iab';
+export type {
+	AdditionalConsentConfig,
+	CMPApi,
+	CMPApiConfig,
+	FetchGVLResult,
+	IABConfig,
+} from './iab';
 export type {
 	CMPStatus,
 	DisplayStatus,
@@ -14,6 +20,7 @@ export type {
 	PingData,
 	PublisherRestriction,
 	TCData,
+	TCDataOutsideTCF,
 	TCFConsentData,
 } from './iab-tcf';
 export type { LegalLink, LegalLinks } from './legal-links';

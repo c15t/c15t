@@ -9,6 +9,7 @@
  */
 
 import type {
+	AdditionalConsentConfig,
 	AllConsentNames,
 	ClearOnRevocationConfig,
 	ConsentSnapshot,
@@ -385,6 +386,11 @@ export interface C15tIABOptions {
 	cmpVersion?: number;
 	/** Restricts the vendor list to these vendor IDs. */
 	vendors?: number[];
+	/**
+	 * Google ad tech providers for the Additional Consent string. The browser
+	 * fetches their names and privacy policies when the CMP mounts.
+	 */
+	additionalConsent?: AdditionalConsentConfig;
 	/** Publisher country code used in the TC string. */
 	publisherCountryCode?: string;
 	/**

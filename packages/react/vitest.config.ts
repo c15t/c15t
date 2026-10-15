@@ -36,6 +36,8 @@ export default mergeConfig(
 		resolve: {
 			alias: Object.fromEntries([
 				['~', resolve(__dirname, './src')],
+				// The showcase uses the React hooks re-exported by the Next adapter.
+				['c15t/next', resolve(__dirname, './src/index.ts')],
 				// Astro's source island must share this test suite's React contexts
 				// and coverage, rather than importing a second copy from dist.
 				['@c15t/react/iab', resolve(__dirname, './src/iab.ts')],
@@ -75,6 +77,7 @@ export default mergeConfig(
 					'@c15t/core/modules/window-debug',
 					resolve(__dirname, '../core/src/modules/window-debug/index.ts'),
 				],
+				['@c15t/core/events', resolve(__dirname, '../core/src/events.ts')],
 				[
 					'@c15t/core/runtime/controls',
 					resolve(__dirname, '../core/src/runtime/controls.ts'),

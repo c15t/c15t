@@ -187,6 +187,7 @@
 		resolveIABDialogDisplayModel(
 			iabState
 				? {
+						adTechProviders: iabState.adTechProviders,
 						customVendors: iabState.nonIABVendors ?? [],
 						gvl: iabState.gvl,
 						isLoadingGVL: iabState.isLoadingGVL,
@@ -228,6 +229,13 @@
 		value: boolean
 	) {
 		iabState?.setVendorConsent(vendorId, value);
+	};
+
+	const handleAdTechProviderToggle = function handleAdTechProviderToggle(
+		providerId: number,
+		value: boolean
+	) {
+		iabState?.setAdTechProviderConsent(providerId, value);
 	};
 
 	const handleVendorLegitimateInterestToggle =
@@ -587,6 +595,9 @@
 									customVendors={iabState.nonIABVendors}
 									vendorLegitimateInterests={iabState.vendorLegitimateInterests}
 									onVendorLegitimateInterestToggle={handleVendorLegitimateInterestToggle}
+									adTechProviders={iabState.adTechProviders}
+									adTechProviderConsents={iabState.adTechProviderConsents}
+									onAdTechProviderToggle={handleAdTechProviderToggle}
 									{noStyle}
 									{iabT}
 									language={consent.snapshot.translations?.language}

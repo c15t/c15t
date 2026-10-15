@@ -1,4 +1,5 @@
 import type {
+	AdTechProvider,
 	KernelIABState,
 	GlobalVendorList,
 	NonIABVendor,
@@ -28,6 +29,8 @@ export interface HeadlessIABStateInput {
 	isLoadingGVL?: boolean;
 	nonIABVendors?: NonIABVendor[];
 	customVendors?: NonIABVendor[];
+	/** Google ad tech providers disclosed for Additional Consent. */
+	adTechProviders?: AdTechProvider[];
 	/**
 	 * Publisher restrictions configured on the CMP. Vendors are listed under
 	 * the legal basis the restrictions leave them, so each control edits the
@@ -44,7 +47,7 @@ export interface HeadlessIABStateInput {
 export interface HeadlessIABBannerState {
 	/** Whether the banner summary is ready to display */
 	isReady: boolean;
-	/** Total vendor count (GVL + custom) */
+	/** Total vendor count (GVL + custom + Google ad tech providers) */
 	vendorCount: number;
 	/** Display items (stacks, standalone purposes, special features) */
 	displayItems: string[];
@@ -98,6 +101,18 @@ export interface HeadlessIABProcessedPurpose {
 	illustrations: string[];
 	vendors: HeadlessIABProcessedVendor[];
 	isSpecialPurpose?: boolean;
+	/**
+	 * Whether listed Google ad tech providers need consent to this purpose
+	 * before the AC string counts theirs. Such a purpose offers consent even
+	 * when no vendor processes it on consent.
+	 */
+	neededByAdTechProviders?: boolean;
+	/**
+	 * The listed Google ad tech providers that need this purpose. Count and
+	 * list them with `vendors`, since they may be the only partners a
+	 * purpose has.
+	 */
+	adTechProviders?: AdTechProvider[];
 }
 
 /**
@@ -144,6 +159,7 @@ export interface HeadlessIABDialogData {
 	features: HeadlessIABProcessedFeature[];
 	stacks: HeadlessIABProcessedStack[];
 	standalonePurposes: HeadlessIABProcessedPurpose[];
+	/** GVL vendors, custom vendors and Google ad tech providers. */
 	totalVendors: number;
 	isLoading: boolean;
 	isReady: boolean;

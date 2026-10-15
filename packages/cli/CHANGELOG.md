@@ -1,3 +1,20 @@
+## @c15t/cli@3.1.0-canary.0 (canary)
+
+### Vendor switches show only when you declare vendors
+
+The preference dialog shows only category switches until you declare a
+vendor. Your visitors make one choice for each category. You do not get
+vendor switches that you did not ask for.
+
+Since 3.0.0, the dialog showed a switch for the vendor of each
+`@c15t/integrations` helper. For example, a site that added only `posthog()`
+got a PostHog switch under Analytics. We did not intend this default.
+
+To show vendor switches, declare at least one vendor in the `vendors` option
+or on the backend. The dialog then also lists the vendors of your helpers by
+name, as before. This change affects only the dialog. It does not change when
+a script loads.
+
 ## @c15t/cli@3.0.0
 
 ### c15t v3

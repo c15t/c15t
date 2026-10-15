@@ -116,6 +116,9 @@ export const translations: CompleteTranslations = {
 			},
 			title: '隐私设置',
 			vendorList: {
+				adTechProvidersHeading: 'Google 广告技术提供商',
+				adTechProvidersNotice:
+					'Google 在 IAB 框架之外与这些广告技术提供商合作。只有在您开启某个提供商，并同时允许在您的设备上存储信息和个性化广告时，您的同意才会传达给该提供商。',
 				customVendorsHeading: '自定义合作伙伴',
 				customVendorsNotice:
 					'这些是未在 IAB 透明度与同意框架 (TCF) 注册的自定义合作伙伴。他们根据您的同意处理数据，并且可能具有与 IAB 注册供应商不同的隐私惯例。',

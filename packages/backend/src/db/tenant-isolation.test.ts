@@ -34,6 +34,7 @@ import { up as vendorChoice } from './migrations/4-vendor-choice';
 import { up as attribution } from './migrations/6-experiment-attribution';
 import { up as optionalJurisdiction } from './migrations/7-optional-decision-jurisdiction';
 import { up as verifiedExternalId } from './migrations/8-verified-external-id';
+import { up as additionalConsent } from './migrations/9-additional-consent';
 import { layer as tenantLayer } from './tenant';
 import { encodeRow, encoder, toBoolean } from './values';
 
@@ -49,6 +50,7 @@ const seedBothTenants = Effect.gen(function* seedBothTenants() {
 	yield* attribution;
 	yield* optionalJurisdiction;
 	yield* verifiedExternalId;
+	yield* additionalConsent;
 	const sql = yield* SqlClient.SqlClient;
 	// Seeds go through the same encoder as production writes: SQLite can bind
 	// neither a Date nor a boolean.
@@ -227,6 +229,7 @@ for (const engine of ENGINES) {
 					yield* attribution;
 					yield* optionalJurisdiction;
 					yield* verifiedExternalId;
+					yield* additionalConsent;
 					const sql = yield* SqlClient.SqlClient;
 					const encode = yield* encoder;
 					// One domain both tenants reference, so the *only* thing that

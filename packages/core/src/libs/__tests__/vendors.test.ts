@@ -173,7 +173,7 @@ describe('script vendor details', () => {
 		vendorDetails: hotjarDetails,
 	};
 
-	test('a script that carries details lists its vendor without a warning', () => {
+	test('a script that carries details resolves a presentable vendor without a warning', () => {
 		const onWarn = vi.fn();
 		const resolved = resolveVendors({ onWarn, owners: [hotjar] });
 		expect(resolved).toEqual([
@@ -186,8 +186,41 @@ describe('script vendor details', () => {
 				source: 'script',
 			},
 		]);
-		expect(vendorsListedUnder(resolved, 'measurement')).toHaveLength(1);
 		expect(onWarn).not.toHaveBeenCalled();
+	});
+
+	test('helper vendors get no row until the site declares a vendor', () => {
+		// Vendor switches are opt-in. A helper alone still gates loading by
+		// its slug, but the dialog shows only its category.
+		const helpersOnly = resolveVendors({ owners: [hotjar] });
+		expect(vendorsListedUnder(helpersOnly, 'measurement')).toEqual([]);
+
+		// Declaring any vendor opts in, and the helper is then listed by name.
+		const optedIn = resolveVendors({ config: [meta], owners: [hotjar] });
+		expect(
+			vendorsListedUnder(optedIn, 'measurement').map((vendor) => vendor.id)
+		).toEqual(['hotjar']);
+		expect(
+			vendorsListedUnder(optedIn, 'marketing').map((vendor) => vendor.id)
+		).toEqual(['meta-pixel']);
+	});
+
+	test('a backend declaration opts in the same as the vendors option', () => {
+		const resolved = resolveVendors({ manifest: [meta], owners: [hotjar] });
+		expect(
+			vendorsListedUnder(resolved, 'measurement').map((vendor) => vendor.id)
+		).toEqual(['hotjar']);
+	});
+
+	test('a previously denied helper remains listed without opting in other helpers', () => {
+		const resolved = resolveVendors({
+			owners: [hotjar, { ...hotjar, vendor: 'other-helper' }],
+		});
+		expect(
+			vendorsListedUnder(resolved, 'measurement', new Set(['hotjar'])).map(
+				(vendor) => vendor.id
+			)
+		).toEqual(['hotjar']);
 	});
 
 	test('details are copied so freezing the snapshot leaves the script alone', () => {

@@ -24,27 +24,27 @@ const authenticates = (
 	});
 
 describe('CI remote cache authentication', () => {
-	it.each(['main', 'canary', '2.0.0', 'v3'])(
-		'authenticates trusted runs on %s',
-		(branch) => {
-			for (const event of ['push', 'schedule', 'workflow_dispatch']) {
-				expect(authenticates(event, `refs/heads/${branch}`)).toBe(true);
-			}
+	it.each(['main', 'canary'])('authenticates trusted runs on %s', (branch) => {
+		for (const event of ['push', 'schedule', 'workflow_dispatch']) {
+			expect(authenticates(event, `refs/heads/${branch}`)).toBe(true);
 		}
-	);
+	});
 
 	it('denies PRs, forks, and other branches even if one identity field matches', () => {
+		for (const branch of ['v3', '2.0.0']) {
+			expect(authenticates('push', `refs/heads/${branch}`)).toBe(false);
+		}
 		for (const event of ['pull_request', 'pull_request_target']) {
-			expect(authenticates(event, 'refs/heads/v3')).toBe(false);
+			expect(authenticates(event, 'refs/heads/canary')).toBe(false);
 			expect(authenticates(event, 'refs/pull/1426/merge')).toBe(false);
 		}
-		expect(authenticates('push', 'refs/heads/v3', 'contributor/c15t')).toBe(
+		expect(authenticates('push', 'refs/heads/canary', 'contributor/c15t')).toBe(
 			false
 		);
 		expect(authenticates('workflow_dispatch', 'refs/heads/feature')).toBe(
 			false
 		);
-		expect(authenticates('issue_comment', 'refs/heads/v3')).toBe(false);
+		expect(authenticates('issue_comment', 'refs/heads/canary')).toBe(false);
 	});
 
 	it('selects a cache policy and revokes the short-lived token after the job', () => {

@@ -39,7 +39,9 @@ import {
 	writePolicyResolutionWire,
 } from '@c15t/schema/types';
 import type {
+	AdTechProvider,
 	ConsentManifest,
+	ConsentManifestAdditionalConsent,
 	ConsentManifestGVLReference,
 	ConsentSessionSource,
 	GlobalVendorList,
@@ -61,6 +63,11 @@ import type {
 	ManifestFetch,
 } from '../libs/manifest-cache-runtime';
 import { reportConsentSession } from '../libs/session-report';
+import {
+	fetchCachedAdTechProviders,
+	loadManifestAdTechProviders,
+} from '../transports/ad-tech-provider-cache';
+import type { AdTechProviderCache } from '../transports/ad-tech-provider-cache';
 import {
 	deferInitGvlToRoute,
 	serveGvlReference,
@@ -284,6 +291,15 @@ export interface ResolveConsentInitOptions {
 	 */
 	loadGvl?: (language: string) => Promise<GlobalVendorList | null>;
 	/**
+	 * Loads Google Additional Consent providers. Called only when the
+	 * manifest enables IAB, lists providers, and the resolved policy is the
+	 * IAB model. `undefined` leaves the field out; a rejection does too,
+	 * because the Additional Consent string only supplements the TC String.
+	 */
+	loadAdTechProviders?: (
+		reference: ConsentManifestAdditionalConsent
+	) => Promise<AdTechProvider[] | undefined>;
+	/**
 	 * The client's `x-c15t-policy-contract` header, if it sent one. A value
 	 * other than the supported version fails the resolution.
 	 */
@@ -298,8 +314,8 @@ export interface ResolveConsentInitOptions {
  * `unsupported-contract` resolution; a client that declares none is treated
  * as compatible. Whenever the resolution is not `matched`, every field that
  * only a matched policy may carry is removed (`policySnapshotToken`, `gvl`,
- * `gvlReference`, `cmpId`, `customVendors`), so no stale proof travels with
- * the new outcome.
+ * `gvlReference`, `cmpId`, `customVendors`, `adTechProviders`), so no stale
+ * proof travels with the new outcome.
  */
 const negotiateInit = function negotiateInit(
 	output: InitOutput,
@@ -323,6 +339,7 @@ const negotiateInit = function negotiateInit(
 		delete negotiated.gvlReference;
 		delete negotiated.cmpId;
 		delete negotiated.customVendors;
+		delete negotiated.adTechProviders;
 	}
 	return negotiated;
 };
@@ -368,10 +385,27 @@ export const resolveConsentInit = async function resolveConsentInit(
 		resolveManifestInit({ inputs, manifest }),
 		options.clientContract
 	);
+	// Loaded beside the vendor list, never failing the resolution.
+	const { loadAdTechProviders } = options;
+	const providers = loadManifestAdTechProviders(
+		manifest,
+		payload,
+		async (reference) => {
+			try {
+				return await loadAdTechProviders?.(reference);
+			} catch {
+				return undefined;
+			}
+		}
+	);
 	if (options.loadGvl && isIabMatch(manifest, payload)) {
 		payload.gvl = await options.loadGvl(
 			payload.translations.language.split('-')[0] || 'en'
 		);
+	}
+	const adTechProviders = await providers;
+	if (adTechProviders) {
+		payload.adTechProviders = adTechProviders;
 	}
 	const { report } = options;
 	if (report && !report.abandoned?.()) {
@@ -535,6 +569,8 @@ const canFallBackToInit = function canFallBackToInit(cause: unknown): boolean {
 interface ResolvedTarget {
 	url: string;
 	fetch: ManifestFetch | undefined;
+	/** Set when `url` is an {@link IN_PROCESS_ORIGIN} URL for `localFetch`. */
+	inProcess?: true;
 }
 
 /** Sends {@link IN_PROCESS_ORIGIN} URLs to `localFetch` as paths. */
@@ -646,7 +682,11 @@ export const createConsentRouteHandler = function createConsentRouteHandler(
 				requestURL: IN_PROCESS_ORIGIN,
 			});
 			return resolved
-				? { fetch: toPathFetch(context.localFetch), url: resolved }
+				? {
+						fetch: toPathFetch(context.localFetch),
+						inProcess: true,
+						url: resolved,
+					}
 				: null;
 		}
 		const resolved = resolveRequestBackendURL(url, {
@@ -822,6 +862,43 @@ export const createConsentRouteHandler = function createConsentRouteHandler(
 		};
 	};
 
+	// Every app's in-process URLs share one origin, so lists fetched through
+	// `localFetch` stay out of the cache other handlers in the process read.
+	const inProcessProviderCache: AdTechProviderCache = new Map();
+
+	const createAdTechProviderLoader = function createAdTechProviderLoader(
+		request: Request,
+		budget: Budget,
+		context: ConsentRouteRequestContext
+	): NonNullable<ResolveConsentInitOptions['loadAdTechProviders']> {
+		return async function loadAdTechProviders(reference) {
+			// A relative endpoint is this app's own route, which the global
+			// fetch cannot reach without an origin.
+			const target = resolveTarget(reference.url, request, context);
+			if (!target) {
+				return undefined;
+			}
+			const fill = fetchCachedAdTechProviders({
+				...(target.inProcess && { cache: inProcessProviderCache }),
+				fetch: (target.fetch ?? configuredFetch()) as typeof globalThis.fetch,
+				headers: c15tProtocolHeaders,
+				reference: { ...reference, url: target.url },
+			});
+			if (budget.budgetMs === undefined) {
+				return await fill;
+			}
+			try {
+				return await budget.bound(fill);
+			} catch (error) {
+				if (isBudgetTimeout(error)) {
+					// Let the list finish filling the cache for the next request.
+					keepAlive(context.waitUntil, fill);
+				}
+				return undefined;
+			}
+		};
+	};
+
 	const initHeaders = {
 		'cache-control': INIT_CACHE_CONTROL,
 		[POLICY_CONTRACT_HEADER]: String(POLICY_CONTRACT_VERSION),
@@ -895,6 +972,7 @@ export const createConsentRouteHandler = function createConsentRouteHandler(
 			producerContract: readProducerPolicyContract(response.headers),
 		});
 		const output: InitOutput = {
+			adTechProviders: mapped.adTechProviders,
 			branding: payload.branding,
 			cmpId: mapped.cmpId,
 			customVendors: mapped.customVendors,
@@ -970,6 +1048,7 @@ export const createConsentRouteHandler = function createConsentRouteHandler(
 		const payload = await resolveConsentInit({
 			clientContract: request.headers.get(POLICY_CONTRACT_HEADER),
 			inputs,
+			loadAdTechProviders: createAdTechProviderLoader(request, budget, context),
 			loadGvl,
 			manifest,
 			report:

@@ -287,7 +287,7 @@ public inputs section only when you supply configuration.
 Codex receives the default c15t v3 frontend task and named public inputs. The
 agent inventories the application and its analytics, pixels and embeds, then
 takes the install, upgrade or replace path. It resolves exact package versions
-from the CLI's npm dist-tag, reads the version-matched bundled docs, runs the
+from the `latest` npm dist-tag, reads the version-matched bundled docs, runs the
 upgrade guide's codemods, moves every tool behind consent, and verifies consent
 in a browser. Docs links in the task point at the site for the CLI's release
 line: `https://v3.c15t.com` for v3 prereleases, `https://c15t.com` otherwise.
@@ -359,8 +359,9 @@ Its options are `origin`, the docs site the agent reads; `distTag`, the npm
 dist-tag it resolves exact versions from; `mode`, which is `hosted`, `offline`
 or `custom`, or omitted so the agent asks; and `firstStep`, the number of the
 first c15t step when the host puts its own steps first. Steps refer to each
-other by name, so renumbering them breaks no reference. `origin` and `distTag`
-default to the CLI's release line. Invalid values throw.
+other by name, so renumbering them breaks no reference. `origin` defaults
+to the docs site for the CLI's release line, and `distTag` defaults to
+`latest`. Invalid values throw.
 
 `createC15tIntegrationGuidance({ origin })` returns only the rules for moving
 analytics, pixels, tag managers and embeds behind consent, including the

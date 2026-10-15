@@ -124,6 +124,9 @@ export const translations: CompleteTranslations = {
 			},
 			title: 'Tietosuoja-asetukset',
 			vendorList: {
+				adTechProvidersHeading: 'Googlen mainosteknologian tarjoajat',
+				adTechProvidersNotice:
+					'Google tekee yhteistyötä näiden mainosteknologian tarjoajien kanssa IAB-kehyksen ulkopuolella. Suostumuksesi välittyy tarjoajalle vain, jos otat sen käyttöön ja sallit myös tietojen tallentamisen laitteellesi ja yksilöidyn mainonnan.',
 				customVendorsHeading: 'Mukautetut kumppanit',
 				customVendorsNotice:
 					'Nämä ovat mukautettuja kumppaneita, jotka eivät ole rekisteröityneet IAB Transparency & Consent Framework (TCF) -järjestelmään. Ne käsittelevät tietoja suostumuksesi perusteella, ja niillä voi olla erilaiset tietosuojakäytännöt kuin IAB:hen rekisteröityneillä toimittajilla.',

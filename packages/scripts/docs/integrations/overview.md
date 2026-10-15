@@ -13,7 +13,7 @@ group: integrations
 
 Each vendor helper in `@c15t/integrations` returns a script configuration that you
 register with your c15t provider. Importing a helper installs nothing on its
-own. Set up consent with your [framework quickstart](https://v3.c15t.com/docs/frameworks) first,
+own. Set up consent with your [framework quickstart](https://c15t.com/docs/frameworks) first,
 then follow the vendor guide.
 
 | Package manager | Command                          |
@@ -129,9 +129,10 @@ on revocation and how to check it.
 
 ## Vendor switches and cookie cleanup
 
-Every helper sets a `vendor` slug and the vendor's name and privacy policy, so
-the preference dialog lists the vendor with its own switch. A visitor can allow
-a category and still switch one vendor off. c15t then does not load that
+Every helper sets a `vendor` slug and the vendor's name and privacy policy.
+Vendor switches are optional: the preference dialog shows only categories until
+you declare a vendor. Once you do, it lists each helper's vendor with its own
+switch, and a visitor can allow a category and still switch one vendor off. c15t then does not load that
 vendor's script. Helpers that load on every page, such as Google Tag Manager,
 Microsoft UET and Mixpanel, still load and send the vendor a denied signal
 instead. The dialog lists `necessary` helpers without a switch. Declare
@@ -140,48 +141,71 @@ self-host Matomo or PostHog. Gating also leaves behind the cookies a vendor
 already wrote; `clearOnRevocation` deletes them when their category is denied. Each framework documents both in its Scripts
 and embeds group:
 
-| Framework      | Vendor consent                                                                      | Clear on revocation                                                                           |
-| -------------- | ----------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| Next.js        | [Vendor consent](https://v3.c15t.com/docs/frameworks/next/vendor-consent)           | [Clear on revocation](https://v3.c15t.com/docs/frameworks/next/clear-on-revocation)           |
-| TanStack Start | [Vendor consent](https://v3.c15t.com/docs/frameworks/tanstack-start/vendor-consent) | [Clear on revocation](https://v3.c15t.com/docs/frameworks/tanstack-start/clear-on-revocation) |
-| React          | [Vendor consent](https://v3.c15t.com/docs/frameworks/react/vendor-consent)          | [Clear on revocation](https://v3.c15t.com/docs/frameworks/react/clear-on-revocation)          |
-| Nuxt           | [Vendor consent](https://v3.c15t.com/docs/frameworks/nuxt/vendor-consent)           | [Clear on revocation](https://v3.c15t.com/docs/frameworks/nuxt/clear-on-revocation)           |
-| Vue            | [Vendor consent](https://v3.c15t.com/docs/frameworks/vue/vendor-consent)            | [Clear on revocation](https://v3.c15t.com/docs/frameworks/vue/clear-on-revocation)            |
-| Astro          | [Vendor consent](https://v3.c15t.com/docs/frameworks/astro/vendor-consent)          | [Clear on revocation](https://v3.c15t.com/docs/frameworks/astro/clear-on-revocation)          |
-| Svelte         | [Vendor consent](https://v3.c15t.com/docs/frameworks/svelte/vendor-consent)         | [Clear on revocation](https://v3.c15t.com/docs/frameworks/svelte/clear-on-revocation)         |
-| SvelteKit      | [Vendor consent](https://v3.c15t.com/docs/frameworks/sveltekit/vendor-consent)      | [Clear on revocation](https://v3.c15t.com/docs/frameworks/sveltekit/clear-on-revocation)      |
-| HTML           | [Vendor consent](https://v3.c15t.com/docs/frameworks/html/vendor-consent)           | [Clear on revocation](https://v3.c15t.com/docs/frameworks/html/clear-on-revocation)           |
-| JavaScript     | [Vendor consent](https://v3.c15t.com/docs/frameworks/javascript/vendor-consent)     | [Clear on revocation](https://v3.c15t.com/docs/frameworks/javascript/clear-on-revocation)     |
+| Framework      | Vendor consent                                                                   | Clear on revocation                                                                        |
+| -------------- | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| Next.js        | [Vendor consent](https://c15t.com/docs/frameworks/next/vendor-consent)           | [Clear on revocation](https://c15t.com/docs/frameworks/next/clear-on-revocation)           |
+| TanStack Start | [Vendor consent](https://c15t.com/docs/frameworks/tanstack-start/vendor-consent) | [Clear on revocation](https://c15t.com/docs/frameworks/tanstack-start/clear-on-revocation) |
+| React          | [Vendor consent](https://c15t.com/docs/frameworks/react/vendor-consent)          | [Clear on revocation](https://c15t.com/docs/frameworks/react/clear-on-revocation)          |
+| Nuxt           | [Vendor consent](https://c15t.com/docs/frameworks/nuxt/vendor-consent)           | [Clear on revocation](https://c15t.com/docs/frameworks/nuxt/clear-on-revocation)           |
+| Vue            | [Vendor consent](https://c15t.com/docs/frameworks/vue/vendor-consent)            | [Clear on revocation](https://c15t.com/docs/frameworks/vue/clear-on-revocation)            |
+| Astro          | [Vendor consent](https://c15t.com/docs/frameworks/astro/vendor-consent)          | [Clear on revocation](https://c15t.com/docs/frameworks/astro/clear-on-revocation)          |
+| Svelte         | [Vendor consent](https://c15t.com/docs/frameworks/svelte/vendor-consent)         | [Clear on revocation](https://c15t.com/docs/frameworks/svelte/clear-on-revocation)         |
+| SvelteKit      | [Vendor consent](https://c15t.com/docs/frameworks/sveltekit/vendor-consent)      | [Clear on revocation](https://c15t.com/docs/frameworks/sveltekit/clear-on-revocation)      |
+| HTML           | [Vendor consent](https://c15t.com/docs/frameworks/html/vendor-consent)           | [Clear on revocation](https://c15t.com/docs/frameworks/html/clear-on-revocation)           |
+| JavaScript     | [Vendor consent](https://c15t.com/docs/frameworks/javascript/vendor-consent)     | [Clear on revocation](https://c15t.com/docs/frameworks/javascript/clear-on-revocation)     |
 
 ## Send events only to allowed integrations
 
-`createEventDispatcher` from `@c15t/integrations/events` sends one named event to
-every registered integration that has an event API and is allowed right now.
-It drops events while measurement is denied, and one vendor's error does not
-stop delivery to the others:
+The event dispatcher sends one named event to every registered integration
+that has an event API and is allowed right now. It drops events while
+measurement is denied, and one vendor's error does not stop delivery to the
+others. Each framework gives you the provider's dispatcher, so you don't pass
+the scripts or the consent snapshot yourself:
 
-```ts
-import { createEventDispatcher } from '@c15t/integrations/events';
+| Framework                      | Get the dispatcher                                                             |
+| ------------------------------ | ------------------------------------------------------------------------------ |
+| React, Next.js, TanStack Start | `useEventDispatcher()` from `c15t/react`, `c15t/next` or `c15t/tanstack-start` |
+| Vue, Nuxt                      | `useEventDispatcher()` from `c15t/vue/vue-plugin`, auto-imported in Nuxt       |
+| Svelte, SvelteKit              | `getEventDispatcher()` from `@c15t/svelte`, called inside `ConsentProvider`    |
+| Astro                          | `getEventDispatcher()` from `c15t/astro/client`                                |
+| JavaScript                     | `getEventDispatcher(runtime)` from `@c15t/browser`                             |
 
-const events = createEventDispatcher({
-	scripts,
-	getSnapshot: () => runtime.kernel.getSnapshot(),
-	pageviews: ['segment'],
-});
+```tsx
+import { useEventDispatcher } from 'c15t/react';
+import { useEffect } from 'react';
 
-events.track('docs_search', { resultCount: 4 });
-events.pageview(location.pathname);
+export const DocsSearch = ({ path }: { path: string }) => {
+	const events = useEventDispatcher({ pageviews: ['posthog'] });
+	useEffect(() => {
+		events.pageview(path);
+	}, [events, path]);
+	return (
+		<button onClick={() => events.track('docs_search', { resultCount: 4 })}>
+			Search
+		</button>
+	);
+};
 ```
 
-Pass the same `scripts` you registered and a function that returns the live
-consent snapshot. `track` supports Google Tag Manager, Google Tag, PostHog,
-Mixpanel, Segment, Hightouch, Heap, Amplitude, LogRocket, Adobe Analytics,
-Databuddy, Plausible, Fathom, Pirsch, Microsoft Clarity, Hotjar, Vercel
-Analytics, OneDollarStats, Umami, Rybbit, RudderStack and Matomo.
-`pageview` sends single-page-app page views only to the integrations named in
-`pageviews`: PostHog, Segment or Hightouch. Call it from your router's
-navigation hook. The first call records the path without sending, and repeated
-paths or hash-only changes are skipped.
+The dispatcher sends to the scripts registered on the provider. Pass
+`scripts` to add more. It reads consent when an event goes out, so an event
+sent right after a visitor withdraws consent is dropped. Every dispatcher for
+the same provider shares one pageview history, so a component that remounts
+or a consent change does not resend or lose a pageview.
+
+`track` supports Google Tag Manager, Google Tag, PostHog, Mixpanel, Segment,
+Hightouch, Heap, Amplitude, LogRocket, Adobe Analytics, Databuddy, Plausible,
+Fathom, Pirsch, Microsoft Clarity, Hotjar, Vercel Analytics, OneDollarStats,
+Umami, Rybbit, RudderStack and Matomo. `pageview` sends single-page-app page
+views only to the integrations named in `pageviews`: PostHog, Segment or
+Hightouch. Call it from your router's navigation hook. The first call records
+the path without sending, and repeated paths or hash-only changes are skipped.
+Each framework's scripts page shows where to call it.
+
+Without a provider, `createEventDispatcher` from `@c15t/integrations/events`
+takes `scripts` and a `getSnapshot` function that returns the live consent
+snapshot. Create it once and keep it: a new dispatcher starts a new pageview
+history.
 
 ## Add a vendor without a helper
 

@@ -124,6 +124,9 @@ export const translations: CompleteTranslations = {
 			},
 			title: 'Privatsphär Astellungen',
 			vendorList: {
+				adTechProvidersHeading: 'Google-Ubidder fir Reklammtechnologie',
+				adTechProvidersNotice:
+					'Google schafft ausserhalb vum IAB-Framework mat dësen Ubidder fir Reklammtechnologie zesummen. Är Zoustëmmung erreecht en Ubidder nëmmen, wann Dir en aktivéiert an och d’Späichere vun Informatiounen op Ärem Apparat a personaliséiert Reklammen erlaabt.',
 				customVendorsHeading: 'Benotzerdefinéiert Partner',
 				customVendorsNotice:
 					'Dëst si benotzerdefinéiert Partner déi net am IAB Transparency & Consent Framework (TCF) registréiert sinn. Si veraarbechten Daten op Basis vun Ärer Zoustëmmung a kënnen aner Dateschutzpraktiken hunn wéi IAB-registréiert Ubidder.',

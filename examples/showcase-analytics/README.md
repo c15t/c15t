@@ -7,13 +7,20 @@ Consent Mode set to `denied`. PostHog and Meta wait until they are allowed.
 Adding a coffee to the cart attempts to send an `add_to_cart` event to the
 tools the visitor allows. The toast shows tracking permissions for that action.
 
+This is also the showcase with vendor switches. It declares its four vendors,
+so the preference dialog lists them under their categories and a visitor can
+turn off one, such as the Meta Pixel, while keeping Marketing on. Vendor
+switches are optional. The starters and the other showcases declare no vendors,
+so their dialogs show categories only.
+
 ## Files
 
-- `lib/scripts.ts` registers the four helpers and declares each vendor for
-  the preference dialog. The IDs are placeholders, with a comment on where to
+- `lib/scripts.ts` registers the four helpers and declares each vendor, which
+  turns on vendor switches in the preference dialog. The IDs are placeholders, with a comment on where to
   find your own.
-- `lib/use-track-add-to-cart.ts` sends the cart event. `createEventDispatcher`
-  delivers it to GTM, GA4 and PostHog while measurement is allowed. The Meta
+- `lib/use-track-add-to-cart.ts` sends the cart event. `useEventDispatcher()`
+  uses the provider's scripts and delivers it to GTM, GA4 and PostHog while
+  measurement is allowed. The Meta
   `AddToCart` event goes out only while `useVendorAllowed('meta-pixel')` is
   true.
 - `components/consent.tsx` is the `ConsentRoot` with the scripts, the

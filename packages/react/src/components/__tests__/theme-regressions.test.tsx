@@ -3,6 +3,7 @@ import bannerStyles from '@c15t/ui/styles/components/consent-banner';
 import dialogStyles from '@c15t/ui/styles/components/consent-dialog';
 import triggerStyles from '@c15t/ui/styles/components/consent-dialog-trigger';
 import iabBannerStyles from '@c15t/ui/styles/components/iab-consent-banner';
+import iabDialogStyles from '@c15t/ui/styles/components/iab-consent-dialog';
 import switchStyles from '@c15t/ui/styles/components/switch';
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
@@ -12,6 +13,7 @@ import {
 	StableTriggerProvider,
 	StableV3UIConfigProvider,
 } from '~/__tests__/stable-context-providers';
+import { AdTechProviderSection } from '~/components/iab-panel/atoms/ad-tech-provider-section';
 import { IABConsentBannerFooter } from '~/components/iab-prompt/atoms/footer';
 import { IABConsentBannerHeader } from '~/components/iab-prompt/atoms/header';
 import { ConsentDialogTriggerToolbar } from '~/components/panel-trigger';
@@ -249,6 +251,79 @@ describe('Theme regressions', () => {
 			expect(switchRoot?.className).not.toContain(switchStyles.root);
 			expect(switchTrack?.className).not.toContain(switchStyles.track);
 			expect(switchThumb?.className).not.toContain(switchStyles.thumb);
+		});
+	});
+
+	test('applies the vendor list row slot to ad tech provider rows', async () => {
+		await render(
+			<ConsentProvider
+				options={{
+					components: {
+						'iab-vendor-list': {
+							row: {
+								className: 'regression-row',
+								'data-row': 'provider',
+								noStyle: true,
+							},
+						},
+					},
+					mode: offline(),
+				}}
+			>
+				<AdTechProviderSection
+					providers={[
+						{
+							id: 89,
+							name: 'Example Ad Tech',
+							policyUrl: 'https://ads.example/privacy',
+						},
+					]}
+					consents={{}}
+				/>
+			</ConsentProvider>
+		);
+
+		await vi.waitFor(() => {
+			const row = document.querySelector('#ad-tech-provider-89');
+			expect(row?.className).toContain('regression-row');
+			expect(row?.className).not.toContain(iabDialogStyles.vendorListItem);
+			expect(row).toHaveAttribute('data-row', 'provider');
+			expect(row).not.toHaveAttribute('noStyle');
+		});
+	});
+
+	test('provider noStyle strips stock classes from the ad tech provider section', async () => {
+		const stockClasses = new Set(
+			Object.values(iabDialogStyles)
+				.flatMap((value) => value.split(/\s+/u))
+				.filter(Boolean)
+		);
+		await render(
+			<ConsentProvider options={{ mode: offline(), noStyle: true }}>
+				<div data-testid="nostyle-ad-tech-providers">
+					<AdTechProviderSection
+						providers={[
+							{
+								id: 89,
+								name: 'Example Ad Tech',
+								policyUrl: 'https://ads.example/privacy',
+							},
+						]}
+						consents={{ '89': true }}
+					/>
+				</div>
+			</ConsentProvider>
+		);
+
+		await vi.waitFor(() => {
+			const section = document.querySelector(
+				'[data-testid="nostyle-ad-tech-providers"]'
+			);
+			expect(section?.textContent).toContain('Example Ad Tech');
+			const appliedStockClasses = [...(section?.querySelectorAll('*') ?? [])]
+				.flatMap((el) => (el.getAttribute('class') ?? '').split(/\s+/u))
+				.filter((name) => stockClasses.has(name));
+			expect(appliedStockClasses).toEqual([]);
 		});
 	});
 });

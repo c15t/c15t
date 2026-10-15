@@ -89,6 +89,12 @@ export {
 	type SvelteIABState,
 } from './context.svelte';
 export {
+	getEventDispatcher,
+	type EventDispatcher,
+	type EventProperties,
+	type GetEventDispatcherOptions,
+} from './event-dispatcher';
+export {
 	Accordion,
 	Collapsible,
 	Dialog,

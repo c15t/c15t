@@ -240,6 +240,13 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 		[iabState]
 	);
 
+	const handleAdTechProviderToggle = useCallback(
+		(providerId: number, value: boolean) => {
+			iabState?.setAdTechProviderConsent(providerId, value);
+		},
+		[iabState]
+	);
+
 	const handleVendorLegitimateInterestToggle = useCallback(
 		(vendorId: VendorId, value: boolean) => {
 			iabState?.setVendorLegitimateInterest(vendorId, value);
@@ -965,6 +972,9 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 												onVendorLegitimateInterestToggle={
 													handleVendorLegitimateInterestToggle
 												}
+												adTechProviders={iabState.adTechProviders}
+												adTechProviderConsents={iabState.adTechProviderConsents}
+												onAdTechProviderToggle={handleAdTechProviderToggle}
 											/>
 										</Tabs.Content>
 									</>

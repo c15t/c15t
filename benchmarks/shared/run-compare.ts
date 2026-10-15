@@ -58,6 +58,7 @@ import type {
 	MetricSampleSet,
 } from './src/schema';
 import { benchSelectionFromEnv, isBenchSelected } from './src/selection';
+import { evaluateBrowserTimingBudget } from './src/timing-confidence';
 import { listJsonFiles, readJson, writeJson } from './src/utils';
 
 const baseDir = process.env.BENCHMARK_BASE_DIR ?? '.benchmarks/base';
@@ -281,7 +282,11 @@ const evaluateBudgets = function evaluateBudgets(
 			if (budget.baseArm) {
 				return evaluateArmBudget(budget, headMetric, armResults, baseKey);
 			}
-			const result = evaluateBudget(
+			const evaluate =
+				headResult.suite === 'browser-runtime'
+					? evaluateBrowserTimingBudget
+					: evaluateBudget;
+			const result = evaluate(
 				budget,
 				headMetric,
 				indexedBaseMetrics.get(budget.metric)

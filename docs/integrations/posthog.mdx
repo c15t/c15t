@@ -66,6 +66,14 @@ framework plugin or array snippet that also does, or follow
 | `'after-consent'` | Only while measurement is allowed | Calls `opt_in_capturing` at load and `opt_out_capturing` on revocation |
 | `'disabled'` | Never | None. The helper returns an empty callback-only script |
 
+With `'after-consent'`, a refusal can arrive while `array.js` is still
+downloading. The download keeps going after c15t removes the script, so c15t
+also clears PostHog's queued init. When `array.js` runs, it starts nothing, sends
+no events and writes no cookies. If the visitor allows measurement again before
+`array.js` runs, PostHog starts on the same page. If `array.js` has already
+run, PostHog starts on the next page load. With the default
+`reloadOnConsentRevoked`, the page reloads after the refusal anyway.
+
 `posthog` uses the `measurement` category. With the default
 `cookieless_mode: 'on_reject'`, PostHog keeps capturing without cookies after a
 refusal. That mode needs cookieless server hashing turned on in your PostHog

@@ -250,6 +250,8 @@ const createStoredLists = function createStoredLists(
 			(value.tcString === undefined ||
 				value.tcString === null ||
 				typeof value.tcString === 'string') &&
+			(value.addtlConsent === undefined ||
+				typeof value.addtlConsent === 'string') &&
 			isVendorChoicePayload(value.vendorChoice)
 		);
 	};

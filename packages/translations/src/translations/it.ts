@@ -125,6 +125,10 @@ export const translations: CompleteTranslations = {
 			},
 			title: 'Impostazioni di privacy',
 			vendorList: {
+				adTechProvidersHeading:
+					'Fornitori di tecnologia pubblicitaria di Google',
+				adTechProvidersNotice:
+					'Google collabora con questi fornitori di tecnologia pubblicitaria al di fuori del framework IAB. Il tuo consenso raggiunge un fornitore solo se lo attivi e consenti anche l’archiviazione di informazioni sul dispositivo e la pubblicità personalizzata.',
 				customVendorsHeading: 'Partner personalizzati',
 				customVendorsNotice:
 					'Si tratta di partner personalizzati non registrati presso l’IAB Transparency & Consent Framework (TCF). Trattano i dati sulla base del tuo consenso e possono avere pratiche di privacy diverse rispetto ai fornitori registrati IAB.',

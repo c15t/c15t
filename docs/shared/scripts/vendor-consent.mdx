@@ -9,6 +9,15 @@ group: reference
 <section id="how">
   ## How vendor consent works
 
+  Vendor consent is optional. Most sites need only categories, and the stock
+  preference dialog shows only category switches until you declare a vendor
+  in `vendors` or on the backend. Add vendor switches when a visitor must be
+  able to refuse one vendor inside a category they allow.
+
+  A helper vendor the visitor previously switched off stays visible, even
+  without a vendor declaration. Its saved denial still blocks loading until
+  the visitor turns it on and saves. Other helper vendors stay hidden.
+
   A visitor allows marketing, then switches off X Pixel. Other marketing
   scripts load; X Pixel does not. c15t loads a script, network request or
   iframe that names a vendor only when both are true:
@@ -39,11 +48,13 @@ group: reference
   is `gtag` and `cloudflareZaraz()` is `cloudflare-zaraz`. Each
   [vendor guide](/docs/integrations/overview) names its slug.
 
-  You don't need to declare a helper's vendor. Each helper also sets
-  `vendorDetails` on its script: the vendor's name, privacy policy, homepage
-  and legal entity. The dialog lists the vendor with its own switch from
-  those. Declare the vendor in `vendors` to replace them, for example to link
-  your own data processing notice, or when you self-host a tool such as
+  Each helper also sets `vendorDetails` on its script: the vendor's name,
+  privacy policy, homepage and legal entity. Until you declare a vendor, a
+  helper's slug only gates loading and the dialog has no switch for it. Once
+  you declare any vendor, in `vendors` or on the backend, the dialog also lists
+  every helper's vendor by name with its own switch, so you don't need to
+  declare those. Declare a helper's vendor to replace its details, for example
+  to link your own data processing notice, or when you self-host a tool such as
   Matomo, Umami, Plausible or PostHog and the vendor's privacy policy doesn't
   cover your install. A declaration replaces `vendorDetails` as a whole and
   doesn't merge with it.
@@ -122,8 +133,8 @@ group: reference
   Test the production build in a private window with DevTools Network open and
   filtered to `ads-twitter.com`:
 
-  1. Register `xPixel()`. Open Privacy settings. The marketing row lists X
-     Pixel with a switch.
+  1. Register `xPixel()` and declare the vendors from this page. Open Privacy
+     settings. The marketing row lists X Pixel with a switch.
   2. Allow marketing and save. `uwt.js` loads.
   3. Open Privacy settings, switch X Pixel off and save. c15t reloads the
      page. After the reload there is no `uwt.js` request, and other marketing

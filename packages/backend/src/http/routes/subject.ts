@@ -58,6 +58,15 @@ const toConsentItem = (consent: ConsentRow): ConsentItem => ({
 });
 
 /**
+ * The AC string to store. It means nothing without the TC string it travels
+ * with, so one sent alone is not stored.
+ */
+const additionalConsentOf = (input: {
+	readonly addtlConsent?: string;
+	readonly tcString?: string;
+}): string | null => (input.tcString ? (input.addtlConsent ?? null) : null);
+
+/**
  * Checks what a request proves about the external id it links, and records
  * the outcome on the request's wide event.
  */
@@ -293,6 +302,7 @@ export const register = function register({
 					);
 
 					const submission = yield* submit({
+						addtlConsent: additionalConsentOf(input),
 						choice: prepared.choice ?? null,
 						choiceFromPreferences: prepared.choiceFromPreferences,
 						...prepared.attribution,

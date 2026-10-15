@@ -1,6 +1,8 @@
 import * as v from 'valibot';
 
 export const consentSchema = v.object({
+	/** Google Additional Consent v2 string, stored with `tcString` */
+	addtlConsent: v.nullish(v.string()),
 	/** Derived consent action (e.g., 'accept_all', 'reject_all', 'opt_out', 'custom') */
 	consentAction: v.nullish(v.string()),
 	domainId: v.string(),

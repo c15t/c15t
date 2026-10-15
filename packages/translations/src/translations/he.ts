@@ -119,6 +119,9 @@ export const translations: CompleteTranslations = {
 			},
 			title: 'הגדרות פרטיות',
 			vendorList: {
+				adTechProvidersHeading: 'ספקי טכנולוגיית פרסום של Google',
+				adTechProvidersNotice:
+					'Google עובדת עם ספקי טכנולוגיית הפרסום האלה מחוץ למסגרת של IAB. ההסכמה שלך מגיעה לספק רק אם תפעיל אותו ותאפשר גם אחסון מידע במכשיר שלך ופרסום מותאם אישית.',
 				customVendorsHeading: 'שותפים מותאמים אישית',
 				customVendorsNotice:
 					'אלו הם שותפים מותאמים אישית שאינם רשומים ב-IAB Transparency & Consent Framework (TCF). הם מעבדים נתונים על בסיס הסכמתך ועשויים להיות להם נהלי פרטיות שונים משותפים הרשומים ב-IAB.',

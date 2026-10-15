@@ -38,6 +38,7 @@ import { up as vendorChoice } from '../db/migrations/4-vendor-choice';
 import { up as attribution } from '../db/migrations/6-experiment-attribution';
 import { up as optionalJurisdiction } from '../db/migrations/7-optional-decision-jurisdiction';
 import { up as verifiedExternalId } from '../db/migrations/8-verified-external-id';
+import { up as additionalConsent } from '../db/migrations/9-additional-consent';
 import { layer as tenantLayer } from '../db/tenant';
 import { encodeRow, encoder } from '../db/values';
 import { syncCurrent } from './legal-document';
@@ -63,6 +64,7 @@ const setup = Effect.gen(function* setup() {
 	yield* attribution;
 	yield* optionalJurisdiction;
 	yield* verifiedExternalId;
+	yield* additionalConsent;
 	// Included because the index migration is itself engine-divergent — MySQL
 	// has no `create index if not exists` and cannot index a bare TEXT column.
 	yield* indexes;

@@ -16,6 +16,11 @@
  * from that surface's first impression and the experiment arm it ran.
  */
 
+import {
+	AD_TECH_PROVIDER_PURPOSES,
+	ADDITIONAL_CONSENT_V2_PATTERN,
+} from '@c15t/schema/types';
+
 import { recordCategoryPatch } from '../consent-record/record';
 import type {
 	ConsentSubject,
@@ -618,6 +623,71 @@ const validPublisherRestrictions = function validPublisherRestrictions(
 	);
 };
 
+const isBooleanMap = (value: unknown): value is Record<string, boolean> =>
+	isRecord(value) &&
+	Object.values(value).every((entry) => typeof entry === 'boolean');
+
+/** IDs in one section of an AC string, such as `1.10`. */
+const additionalConsentIds = (part: string): string[] =>
+	part === '' ? [] : part.split('.');
+
+/**
+ * Absent, or provider switches and an AC string that stand for the listed
+ * providers. Each switch is a provider the preference center lists, and the
+ * string discloses exactly those providers, once each. It consents to
+ * every provider switched on when the TC string grants each purpose in
+ * `AD_TECH_PROVIDER_PURPOSES`, and to none otherwise.
+ */
+const validAdditionalConsent = function validAdditionalConsent(
+	authority: Record<string, unknown>,
+	snapshot: ConsentSnapshot
+): boolean {
+	const { addtlConsent, adTechProviderConsents: switches } = authority;
+	if (switches === undefined) {
+		return addtlConsent === undefined;
+	}
+	const listed = new Set(
+		(snapshot.iab?.adTechProviders ?? []).map(({ id }) => String(id))
+	);
+	if (
+		!isBooleanMap(switches) ||
+		!Object.keys(switches).every((id) => listed.has(id))
+	) {
+		return false;
+	}
+	if (addtlConsent === undefined) {
+		return Object.keys(switches).length === 0;
+	}
+	if (
+		typeof addtlConsent !== 'string' ||
+		!ADDITIONAL_CONSENT_V2_PATTERN.test(addtlConsent)
+	) {
+		return false;
+	}
+	const [, consentedPart = '', disclosedPart = ''] = addtlConsent.split('~');
+	const consented = additionalConsentIds(consentedPart);
+	const disclosed = [
+		...consented,
+		...additionalConsentIds(disclosedPart.slice(3)),
+	];
+	const { purposeConsents } = authority;
+	const purposesGranted =
+		isRecord(purposeConsents) &&
+		AD_TECH_PROVIDER_PURPOSES.every(
+			(purpose) => purposeConsents[purpose] === true
+		);
+	const granted = purposesGranted
+		? Object.keys(switches).filter((id) => switches[id] === true)
+		: [];
+	return (
+		consented.length === granted.length &&
+		consented.every((id) => switches[id] === true) &&
+		new Set(disclosed).size === disclosed.length &&
+		disclosed.length === Object.keys(switches).length &&
+		disclosed.every((id) => Object.hasOwn(switches, id))
+	);
+};
+
 /** Validate addon metadata before the local action can mutate any state. */
 const validSaveAuthority = function validSaveAuthority(
 	value: unknown,
@@ -649,6 +719,7 @@ const validSaveAuthority = function validSaveAuthority(
 					395 * 86400000
 				) &&
 		validPublisherRestrictions(authority.publisherRestrictions) &&
+		validAdditionalConsent(authority, snapshot) &&
 		[
 			authority.vendorConsents,
 			authority.vendorLegitimateInterests,
@@ -1037,6 +1108,10 @@ export const createChoiceRecorder = function createChoiceRecorder({
 			const vendorChoice = vendorChoicePayload(after, before.vendorChoice);
 			if (vendorChoice) {
 				payload.vendorChoice = vendorChoice;
+			}
+			const addtlConsent = after.iab?.authority?.addtlConsent;
+			if (payload.tcString && addtlConsent) {
+				payload.addtlConsent = addtlConsent;
 			}
 
 			const result = await outbox.send(payload, {

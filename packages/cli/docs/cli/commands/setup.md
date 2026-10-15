@@ -16,9 +16,10 @@ Replace `https://your-project.inth.app` with the backend URL from your Inth
 project. Any explicit flag makes setup non-interactive and returns a read-only
 plan, even in a terminal. Add `--apply` or `--yes` to write files.
 
-Setup installs missing c15t packages from the CLI's release line. A stable CLI
-uses its major version, so the v3 CLI installs `c15t@3`. A prerelease CLI, such
-as a canary build, uses its dist-tag. A c15t package already in
+Setup installs missing c15t packages from the CLI's release line, which is its
+major version. The v3 CLI installs `c15t@3`, including canary builds of the
+CLI. Packages outside the linked release group, such as `@c15t/ui`, install
+from `@latest`. A c15t package already in
 `package.json` stays as it is when its range can resolve to that release line.
 A range on another major, such as `^2`, is installed again from the CLI's
 line.
@@ -43,11 +44,11 @@ for inputs and requirements. `generate` keeps the deterministic setup workflow.
 
 Pass the mode as the first argument or with `--mode`:
 
-| Mode      | Backend                                                                                                                                                                                                |
-| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `hosted`  | Inth or a [self-hosted backend](https://v3.c15t.com/docs/self-host/overview). Requires `--backend-url`, or an Inth project through `--project` or the application preference set by `projects select`. |
-| `offline` | No backend. Choices stay in the browser. Not recommended for production environments.                                                                                                                  |
-| `custom`  | Your own transport.                                                                                                                                                                                    |
+| Mode      | Backend                                                                                                                                                                                             |
+| --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `hosted`  | Inth or a [self-hosted backend](https://c15t.com/docs/self-host/overview). Requires `--backend-url`, or an Inth project through `--project` or the application preference set by `projects select`. |
+| `offline` | No backend. Choices stay in the browser. Not recommended for production environments.                                                                                                               |
+| `custom`  | Your own transport.                                                                                                                                                                                 |
 
 The older mode names `c15t` and `self-hosted` map to `hosted`. Setup refuses an
 Inth project that is still provisioning, because it has no backend URL yet.
@@ -112,7 +113,7 @@ Setup prints the PostCSS change to make by hand when it finds no config, finds
 several config files, finds the config in the `postcss` key of `package.json`,
 or cannot edit the plugin list, such as a YAML file. A non-interactive run
 logs these warnings and lists them in `warnings` in its result.
-[Tailwind CSS](https://v3.c15t.com/docs/customization/tailwind#set-up-tailwind-css-3) shows the
+[Tailwind CSS](https://c15t.com/docs/customization/tailwind#set-up-tailwind-css-3) shows the
 finished setup.
 
 Create React App ignores PostCSS config files, so Tailwind 3 cannot run the

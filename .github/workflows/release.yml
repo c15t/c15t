@@ -1,9 +1,10 @@
 # .github/workflows/release.yml
 name: Release
 
+# Pushes open or update a version PR. Merging that PR publishes.
 on:
   push:
-    branches: ['main', 'canary', '2.0.0', 'v3']
+    branches: ['main', 'canary']
   workflow_dispatch:
     inputs:
       skip_tests:
@@ -17,12 +18,11 @@ env:
   TURBO_TEAM: ${{ vars.TURBO_TEAM }}
   TURBO_CACHE_POLICY: ${{ vars.TURBO_CACHE_POLICY }}
 
-# Canary publishes a snapshot for every commit, so its runs stay queued whole,
-# in the order they start. Every other branch gets a group per run: checks for consecutive
-# pushes overlap, and only the publish job below waits its turn. `queue: max`
-# keeps every waiting run; by default a new one cancels the one already waiting.
+# Each run gets its own group, so checks for consecutive pushes overlap and
+# only the publish job below waits its turn. `queue: max` keeps every waiting
+# run; by default a new one cancels the one already waiting.
 concurrency:
-  group: release-run-${{ github.ref == 'refs/heads/canary' && github.ref || github.run_id }}
+  group: release-run-${{ github.run_id }}
   queue: max
 
 jobs:
@@ -40,11 +40,11 @@ jobs:
     uses: ./.github/workflows/ci.yml
     with:
       skip_performance: true
-      release_affected: ${{ github.ref == 'refs/heads/v3' }}
+      release_affected: ${{ github.ref == 'refs/heads/canary' }}
       skip_mobile_device: true
 
   publish:
-    name: Release ${{ github.ref == 'refs/heads/v3' && 'Alpha' || github.ref == 'refs/heads/canary' && 'Canary' || github.ref == 'refs/heads/2.0.0' && 'RC' || '' }}
+    name: Release ${{ github.ref == 'refs/heads/canary' && 'Canary' || '' }}
     needs: checks
     # Only one release per branch publishes at a time.
     concurrency:
@@ -77,14 +77,13 @@ jobs:
       - name: Upgrade npm for trusted publishing
         run: npm install -g npm@11.5.1
 
-      # Outside canary, checks overlap, so an older push can reach this job after
-      # a newer one. Releasing it would run Tegami on a stale tree, for example
-      # reopening a version PR the newer commit already merged, so a superseded
-      # run does not release. The check runs here, after this job holds the
-      # release group, so the tip it reads is as recent as possible.
+      # Checks overlap, so an older push can reach this job after a newer one.
+      # Releasing it would run Tegami on a stale tree, for example reopening a
+      # version PR the newer commit already merged, so a superseded run does
+      # not release. The check runs here, after this job holds the release
+      # group, so the tip it reads is as recent as possible.
       - name: Skip superseded commits
         id: tip
-        if: github.ref != 'refs/heads/canary'
         shell: bash
         env:
           REPOSITORY_URL: ${{ github.server_url }}/${{ github.repository }}
@@ -102,21 +101,12 @@ jobs:
           fi
 
       - name: Version or publish packages
-        if: github.ref != 'refs/heads/canary' && steps.tip.outputs.current == 'true'
+        if: steps.tip.outputs.current == 'true'
         run: bun run tegami ci
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_CONFIG_PROVENANCE: 'true'
 
-      # Each canary commit gets its own snapshot; never reuse a lock synced from main.
-      - name: Version and publish canary snapshot
-        if: github.ref == 'refs/heads/canary'
-        run: |
-          bun run tegami version --no-checks
-          bun run tegami publish
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_CONFIG_PROVENANCE: 'true'
       - uses: ./.github/actions/save-turbo-cache
         with:
           scope: publish

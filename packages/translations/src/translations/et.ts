@@ -125,6 +125,9 @@ export const translations: CompleteTranslations = {
 			},
 			title: 'Privaatsusseaded',
 			vendorList: {
+				adTechProvidersHeading: 'Google’i reklaamitehnoloogia teenusepakkujad',
+				adTechProvidersNotice:
+					'Google teeb nende reklaamitehnoloogia teenusepakkujatega koostööd väljaspool IAB raamistikku. Teie nõusolek jõuab teenusepakkujani ainult siis, kui lülitate selle sisse ning lubate ka teabe salvestamise teie seadmesse ja isikupärastatud reklaami.',
 				customVendorsHeading: 'Kohandatud partnerid',
 				customVendorsNotice:
 					'Need on kohandatud partnerid, kes ei ole registreeritud IAB läbipaistvuse ja nõusoleku raamistikus (TCF). Nad töötlevad andmeid teie nõusoleku alusel ning nende privaatsustavad võivad erineda IAB-sertifitseeritud partnerite omadest.',

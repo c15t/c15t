@@ -1,4 +1,4 @@
-import { consentTypes, vendorsListedUnder } from '@c15t/core';
+import { consentTypes, deniedVendorIds, vendorsListedUnder } from '@c15t/core';
 import type {
 	AllConsentNames,
 	ConsentSnapshot,
@@ -207,6 +207,7 @@ export const createWidget = function createWidget(
 		translations: ConsentSnapshot['translations'];
 		policyRule: ConsentSnapshot['policyRule'];
 		experiment: ConsentSnapshot['experiment'];
+		vendorChoice: ConsentSnapshot['vendorChoice'];
 		vendors: ConsentSnapshot['vendors'];
 	} | null = null;
 
@@ -322,7 +323,11 @@ export const createWidget = function createWidget(
 			vendors:
 				snapshot.model === 'iab'
 					? []
-					: vendorsListedUnder(snapshot.vendors?.declared ?? [], name),
+					: vendorsListedUnder(
+							snapshot.vendors?.declared ?? [],
+							name,
+							deniedVendorIds(snapshot)
+						),
 		});
 		const content = buildContent(copy, ids, noStyle, vendorList);
 		const item = h(
@@ -468,6 +473,7 @@ export const createWidget = function createWidget(
 			experiment: snapshot.experiment,
 			policyRule: snapshot.policyRule,
 			translations: snapshot.translations,
+			vendorChoice: snapshot.vendorChoice,
 			vendors: snapshot.vendors,
 		};
 	};
@@ -486,7 +492,8 @@ export const createWidget = function createWidget(
 				renderedFrom.translations !== snapshot.translations ||
 				renderedFrom.policyRule !== snapshot.policyRule ||
 				renderedFrom.experiment !== snapshot.experiment ||
-				renderedFrom.vendors !== snapshot.vendors
+				renderedFrom.vendors !== snapshot.vendors ||
+				renderedFrom.vendorChoice !== snapshot.vendorChoice
 			) {
 				rebuild(snapshot);
 				return;

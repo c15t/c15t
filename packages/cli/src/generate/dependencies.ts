@@ -1,9 +1,8 @@
 import { c15tReleaseSpecifier, withC15tRelease } from './release.ts';
 
 /**
- * npm specifier for the `c15t` package on this CLI's release line: the
- * dist-tag for a prerelease CLI (`alpha`, `canary`) and the major version for
- * a stable one. Other packages can resolve differently; use
+ * npm specifier for the `c15t` package on this CLI's release line: the CLI's
+ * major version. Other packages can resolve differently; use
  * `getInstallSpecifier` for a specific dependency.
  */
 export const packageTag = c15tReleaseSpecifier();

@@ -125,6 +125,9 @@ export const translations: CompleteTranslations = {
 			},
 			title: 'Personverninnstillinger',
 			vendorList: {
+				adTechProvidersHeading: 'Googles leverandører av annonseteknologi',
+				adTechProvidersNotice:
+					'Google samarbeider med disse leverandørene av annonseteknologi utenfor IAB-rammeverket. Samtykket ditt når bare frem til en leverandør hvis du slår den på og også tillater lagring av informasjon på enheten din og personlig tilpassede annonser.',
 				customVendorsHeading: 'Egendefinerte partnere',
 				customVendorsNotice:
 					'Dette er egendefinerte partnere som ikke er registrert i IAB Transparency & Consent Framework (TCF). De behandler data basert på ditt samtykke og kan ha annen personvernpraksis enn IAB-registrerte leverandører.',

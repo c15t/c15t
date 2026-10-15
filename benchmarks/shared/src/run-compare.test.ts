@@ -564,3 +564,44 @@ it('reports unselected packages as unexpected without evaluating their failures'
 	);
 	expect(summaryOf(run).results.compared).toBe(coreScenarios.length);
 });
+
+it('uses sample uncertainty for browser timings while retaining confirmed regressions', () => {
+	const expected = expectedBenchmarkResults.find((entry) =>
+		entry.key.startsWith('@c15t/vue:baseline:')
+	);
+	expect.assert(expected);
+	const browserResult = (timingSamples: number[]): BenchmarkResult => ({
+		...makeResult(expected.scenario, {}, expected.budgets),
+		framework: 'vue',
+		metrics: expected.budgets.map((budget) => {
+			const invariant = ['count-eq', 'truthy-eq'].includes(budget.comparator);
+			return summarizeMetric(
+				budget.metric,
+				invariant ? 'count' : 'ms',
+				invariant ? [budget.threshold] : timingSamples
+			);
+		}),
+		package: '@c15t/vue',
+		suite: 'browser-runtime',
+	});
+	const baseDir = writeResults([browserResult(Array<number>(30).fill(100))]);
+	const compare = (samples: number[]) =>
+		runCompare({
+			BENCHMARK_ARM_MAP: emptyArmMap(),
+			BENCHMARK_BASE_DIR: baseDir,
+			BENCHMARK_EXPECTED_PACKAGES: '@c15t/vue',
+			BENCHMARK_EXPECTED_SUITES: 'browser-runtime',
+			BENCHMARK_HEAD_DIR: writeResults([browserResult(samples)]),
+			BENCHMARK_PROFILE: 'regression',
+			C15T_BENCH_ONLY: `browser-runtime:${expected.scenario}`,
+		});
+	const noisy = compare([
+		...Array<number>(8).fill(80),
+		...Array<number>(22).fill(160),
+	]);
+	expect(noisy.code).toBe(0);
+	expect(summaryOf(noisy).budgets.failed).toBe(0);
+	const regressed = compare(Array<number>(30).fill(160));
+	expect(regressed.code).not.toBe(0);
+	expect(summaryOf(regressed).budgets.failed).toBeGreaterThan(0);
+});

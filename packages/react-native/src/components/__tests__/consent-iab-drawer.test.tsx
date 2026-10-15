@@ -12,9 +12,11 @@
  * ends: Save reports exactly once with everything in it, and Close reports never.
  */
 
+import { resolveIABDialogDisplayModel } from '@c15t/iab/headless';
 import { afterEach, describe, expect, test } from 'vitest';
 
 import { IAB_DEMO_DISPLAY_MODEL } from '../../../../../internals/fixtures/react-native-bare/src/fixtures/iab-display-model';
+import { completeGVL } from '../../../../iab/src/__tests__/fixtures/gvl-sample';
 import { flushPromises } from '../../__tests__/helpers/fake-native';
 import {
 	animationState,
@@ -23,7 +25,10 @@ import {
 } from '../../__tests__/helpers/react-native-stub';
 import { ConsentDialog } from '../consent-dialog';
 import { ConsentIabDrawer } from '../consent-iab-drawer';
-import type { ConsentIabSelection } from '../iab-display-model';
+import type {
+	ConsentIabDisplayModel,
+	ConsentIabSelection,
+} from '../iab-display-model';
 import { lightTheme } from '../theme/create-consent-theme';
 import type { SurfaceTree } from './harness';
 import { mountSurface, nodeStyle, roleNodes, tap } from './harness';
@@ -44,15 +49,19 @@ interface DrawerTree extends SurfaceTree {
  * Mount the drawer over the fixture.
  *
  * @param open - Whether it starts open.
+ * @param model - The disclosure to draw. Defaults to the fixture.
  * @returns The tree, with the writes it recorded.
  */
-const mountDrawer = function mountDrawer(open = true): DrawerTree {
+const mountDrawer = function mountDrawer(
+	open = true,
+	model: ConsentIabDisplayModel = IAB_DEMO_DISPLAY_MODEL
+): DrawerTree {
 	const saved: ConsentIabSelection[] = [];
 	let closes = 0;
 	const tree = mountSurface(
 		<ConsentIabDrawer.Root
 			initialSelection={{ vendorConsents: { '755': true } }}
-			model={IAB_DEMO_DISPLAY_MODEL}
+			model={model}
 			onClose={() => {
 				closes += 1;
 			}}
@@ -304,6 +313,40 @@ describe('the two tabs', () => {
 		tap(roleNodes(tree.container(), 'tab')[1] as HTMLElement);
 
 		expect(tree.text()).toContain('IAB Registered Vendors');
+		expect(
+			tree.container().querySelectorAll('[data-testid^="vendor-item-"]')
+		).toHaveLength(4);
+	});
+
+	// The drawer has no Google ad tech provider section, so a model the web
+	// built with providers must not leak them into the vendors tab count.
+	test('count only the partners the vendors tab lists', () => {
+		const webModel = resolveIABDialogDisplayModel({
+			adTechProviders: [
+				{ id: 89, name: 'Meta', policyUrl: 'https://www.facebook.com/privacy' },
+				{
+					id: 2677,
+					name: 'Seedtag',
+					policyUrl: 'https://www.seedtag.com/privacy',
+				},
+			],
+			gvl: completeGVL,
+		});
+		const tree = mountDrawer(true, {
+			...IAB_DEMO_DISPLAY_MODEL,
+			data: {
+				...IAB_DEMO_DISPLAY_MODEL.data,
+				totalVendors: webModel.data.totalVendors,
+			},
+			vendorTabCount: webModel.vendorTabCount,
+		});
+		const vendorsTab = roleNodes(tree.container(), 'tab')[1] as HTMLElement;
+
+		expect(webModel.vendorTabCount).toBe(6);
+		expect(vendorsTab.getAttribute('aria-label')).toBe('Vendors (4)');
+
+		tap(vendorsTab);
+
 		expect(
 			tree.container().querySelectorAll('[data-testid^="vendor-item-"]')
 		).toHaveLength(4);

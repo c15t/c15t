@@ -1,7 +1,11 @@
 <script setup lang="ts">
-import dialogStyles from '@c15t/ui/styles/components/iab-consent-dialog';
+import type { AdTechProvider } from '@c15t/core';
 
 import '@c15t/ui/styles/components/iab-consent-dialog.css';
+import { countIABPartners } from '@c15t/iab/headless';
+
+import '@c15t/ui/styles/components/switch.css';
+import dialogStyles from '@c15t/ui/styles/components/iab-consent-dialog';
 /**
  * One row in the IAB preference centre: a purpose, a special purpose or a
  * special feature. Features have their own informational row,
@@ -14,8 +18,6 @@ import '@c15t/ui/styles/components/iab-consent-dialog.css';
  * three-element content, same switch stylesheet.
  */
 import switchStyles from '@c15t/ui/styles/components/switch';
-
-import '@c15t/ui/styles/components/switch.css';
 import { computed, ref, toValue } from 'vue';
 
 import {
@@ -61,6 +63,11 @@ export interface IabProcessedPurpose {
 	illustrations: string[];
 	vendors: IabProcessedVendor[];
 	/**
+	 * The Google ad tech providers that need this purpose. They may be its
+	 * only partners.
+	 */
+	adTechProviders?: AdTechProvider[];
+	/**
 	 * From the shared display model: `false` when every vendor uses
 	 * legitimate interest, so only the objection control applies.
 	 */
@@ -105,6 +112,9 @@ const legIntVendors = computed(() =>
 const consentVendors = computed(() =>
 	props.purpose.vendors.filter((vendor) => !vendor.usesLegitimateInterest)
 );
+
+const adTechProviders = computed(() => props.purpose.adTechProviders ?? []);
+const partnerCount = computed(() => countIABPartners([props.purpose]));
 
 const iabConsentVendors = computed(() =>
 	consentVendors.value.filter((vendor) => !vendor.isCustom)
@@ -200,7 +210,7 @@ const interpolate = function interpolate(
 						{{
 							interpolate(
 								iabT?.preferenceCenter?.purposeItem?.partners,
-								purpose.vendors.length
+								partnerCount
 							)
 						}}
 					</PreferenceItemMeta>
@@ -335,7 +345,7 @@ const interpolate = function interpolate(
 							:expanded="showVendors"
 						/>
 						{{ iabT?.preferenceCenter?.purposeItem?.partnersUsingPurpose }} ({{
-							purpose.vendors.length
+							partnerCount
 						}})
 					</PreferenceItemTrigger>
 					<PreferenceItemContent
@@ -558,6 +568,29 @@ const interpolate = function interpolate(
 								</button>
 							</div>
 						</div>
+
+						<template v-if="adTechProviders.length > 0">
+							<h5 :class="dialogStyles.vendorSectionTitle">
+								{{ iabT?.preferenceCenter?.vendorList?.adTechProvidersHeading }}
+								({{ adTechProviders.length }})
+							</h5>
+							<div
+								v-for="provider in adTechProviders"
+								:key="provider.id"
+								:class="dialogStyles.vendorRow"
+							>
+								<div :class="dialogStyles.vendorInfo">
+									<a
+										:href="provider.policyUrl"
+										target="_blank"
+										rel="noopener noreferrer"
+										:class="dialogStyles.vendorName"
+									>
+										{{ provider.name }}
+									</a>
+								</div>
+							</div>
+						</template>
 					</PreferenceItemContent>
 				</PreferenceItemRoot>
 			</div>

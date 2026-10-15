@@ -16,10 +16,7 @@ const LOCAL_RANGE_PREFIXES = ['workspace:', 'link:', 'file:', 'portal:'];
 
 /** One comparator: `>=2`, `<3.1`, `^3.0.0-alpha.1`, `~3`, `3.x`, `*`. */
 const COMPARATOR =
-	/^(?<operator><=|>=|<|>|=|\^|~)?v?(?<major>\d+|x|\*)(?:\.(?<minor>\d+|x|\*))?(?:\.(?<patch>\d+|x|\*))?(?:-(?<channel>[0-9a-z]+)[0-9a-z.-]*)?(?:\+[0-9a-z.-]+)?$/iu;
-
-/** An npm dist-tag such as `latest`, `alpha` or `next`. */
-const DIST_TAG = /^[a-z][0-9a-z._-]*$/iu;
+	/^(?<operator><=|>=|<|>|=|\^|~)?v?(?<major>\d+|x|\*)(?:\.(?<minor>\d+|x|\*))?(?:\.(?<patch>\d+|x|\*))?(?:-(?<prerelease>[0-9a-z][0-9a-z.-]*))?(?:\+[0-9a-z.-]+)?$/iu;
 
 type Version = readonly [number, number, number];
 
@@ -36,8 +33,6 @@ interface Interval {
 
 interface Comparator {
 	interval: Interval;
-	/** Major and prerelease channel, when the comparator names one. */
-	channel?: { major: number; name: string };
 }
 
 const compareVersions = function compareVersions(a: Version, b: Version) {
@@ -69,7 +64,7 @@ const until = (version: Version, inclusive = false): Bound => ({
 /**
  * The version interval one comparator admits, following npm's desugaring of
  * partial versions, `~` and `^`. Prerelease ordering is ignored: only the
- * release line matters here, and the channel is checked separately.
+ * release line matters here.
  *
  * @param operator - Comparator operator, if any.
  * @param parts - Major, minor and patch; `undefined` past the pinned ones.
@@ -129,9 +124,25 @@ const parseComparator = function parseComparator(
 	}
 	const minor = readPart(groups.minor);
 	const patch = minor === undefined ? undefined : readPart(groups.patch);
-	const interval = comparatorInterval(groups.operator, [major, minor, patch]);
-	const name = groups.channel?.toLowerCase();
-	return name ? { channel: { major, name }, interval } : { interval };
+	if (groups.prerelease && minor !== undefined && patch !== undefined) {
+		// A prerelease sorts below its release, so `3.0.0-alpha.3` admits no
+		// stable version, and `<=3.0.0-alpha.3` stops before 3.0.0.
+		const base: Version = [major, minor, patch];
+		switch (groups.operator) {
+			case undefined:
+			case '=':
+				return { interval: { lower: from(base, false), upper: until(base) } };
+			case '>':
+				return { interval: { lower: from(base) } };
+			case '<=':
+				return { interval: { upper: until(base) } };
+			default:
+				break;
+		}
+	}
+	return {
+		interval: comparatorInterval(groups.operator, [major, minor, patch]),
+	};
 };
 
 const tighterLower = function tighterLower(a?: Bound, b?: Bound) {
@@ -193,44 +204,23 @@ const parseRange = function parseRange(
 };
 
 /**
- * Whether a comparator set admits a version on the CLI's major. For a
- * prerelease CLI the set must also name no other prerelease channel on that
- * major, and a set that names none at all must not reach below the major:
- * npm only picks a prerelease for a comparator that names one, so `>=2`
- * resolves to the last stable v2 rather than the v3 alpha.
+ * Whether a comparator set admits a version on the CLI's major.
  */
 const admitsRelease = function admitsRelease(
 	comparators: Comparator[],
-	cliMajor: number,
-	channel: string | undefined
+	cliMajor: number
 ): boolean {
 	let interval: Interval = {};
-	let namesChannel = false;
 	for (const comparator of comparators) {
 		interval = {
 			lower: tighterLower(interval.lower, comparator.interval.lower),
 			upper: tighterUpper(interval.upper, comparator.interval.upper),
 		};
-		if (channel === undefined || comparator.channel?.major !== cliMajor) {
-			continue;
-		}
-		if (comparator.channel.name !== channel) {
-			return false;
-		}
-		namesChannel = true;
-	}
-	const majorStart: Version = [cliMajor, 0, 0];
-	if (
-		channel !== undefined &&
-		!namesChannel &&
-		(!interval.lower || compareVersions(interval.lower.version, majorStart) < 0)
-	) {
-		return false;
 	}
 	return !isEmpty({
 		lower: tighterLower(interval.lower, {
 			inclusive: true,
-			version: majorStart,
+			version: [cliMajor, 0, 0],
 		}),
 		upper: tighterUpper(interval.upper, {
 			inclusive: false,
@@ -244,17 +234,12 @@ const admitsRelease = function admitsRelease(
  * release this CLI would install, so setup can keep it instead of
  * reinstalling. A range that admits no version on the CLI's major, such as
  * `^2` or `>=2 <3` under a v3 CLI, does not match: keeping it would leave
- * v2 installed under v3 code. On a prerelease CLI, a range that names
- * another prerelease channel on its major does not match either, nor does
- * one that names no prerelease and also admits an earlier major, such as
- * `>=2`, because npm resolves it to the earlier stable release. Neither
- * does a dist-tag other than the CLI's own, since `latest` still points at
- * the previous stable major.
+ * v2 installed under v3 code.
  *
  * Ranges the CLI cannot compare are kept as they are: `workspace:`,
- * `link:`, `file:` and `portal:` ranges, dist-tags on a stable CLI, and
- * anything it cannot parse. So are packages outside the linked group on a
- * stable CLI, which install `latest` and have no major to compare.
+ * `link:`, `file:` and `portal:` ranges, dist-tags, and anything it cannot
+ * parse. So are packages outside the linked group, which install `latest`
+ * and have no major to compare.
  *
  * @param name - Package name.
  * @param range - Range from the app's package.json.
@@ -270,24 +255,16 @@ export const isOnC15tRelease = function isOnC15tRelease(
 	if (LOCAL_RANGE_PREFIXES.some((prefix) => declared.startsWith(prefix))) {
 		return true;
 	}
-	const specifier = c15tReleaseSpecifier(version, name);
-	if (specifier === 'latest') {
+	if (c15tReleaseSpecifier(version, name) === 'latest') {
 		return true;
 	}
-	const isPrerelease = version.includes('-');
 	const sets = parseRange(declared);
 	if (!sets) {
-		if (isPrerelease && DIST_TAG.test(declared)) {
-			return declared.toLowerCase() === specifier;
-		}
 		return true;
 	}
 	const cliMajor = Number(version.split('.')[0]);
 	if (!Number.isInteger(cliMajor)) {
 		return true;
 	}
-	const channel = isPrerelease ? specifier : undefined;
-	return sets.some((comparators) =>
-		admitsRelease(comparators, cliMajor, channel)
-	);
+	return sets.some((comparators) => admitsRelease(comparators, cliMajor));
 };

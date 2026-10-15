@@ -1,0 +1,11 @@
+{
+	"extends": "./.svelte-kit/tsconfig.json",
+	"compilerOptions": {
+		// The workspace also holds the Svelte and SvelteKit that @c15t/svelte
+		// builds with, and their declarations clash with these pinned ones.
+		// An app has one copy of each.
+		"skipLibCheck": true,
+		"strict": true
+	},
+	"include": ["src", "vite.config.ts"]
+}

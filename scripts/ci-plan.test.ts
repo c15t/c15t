@@ -176,6 +176,16 @@ describe('CI selection', () => {
 		expect(browser.starters).toContain('javascript');
 		expect(plan(['internals/fixtures/vue/src/main.ts']).starters).toEqual([]);
 	});
+	it('smoke-tests the oldest supported Svelte with @c15t/svelte', () => {
+		expect(plan(['packages/svelte/src/lib/index.ts']).starters).toContain(
+			'svelte-5-20'
+		);
+		const fixture = plan([
+			'internals/svelte-compat/svelte-5-20/src/routes/+page.svelte',
+		]);
+		expect(fixture.starters).toEqual(['svelte-5-20']);
+		expect(fixture.build).toContain('@c15t/svelte');
+	});
 	it('runs every starter when the smoke harness changes', () => {
 		expect(
 			plan(['internals/fixtures/acceptance/src/starters.test.ts']).starters

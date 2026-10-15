@@ -4,7 +4,7 @@ import type {
 	ConsentPresentation,
 	ConsentSnapshot,
 } from '@c15t/core';
-import type { StreamedPrefetch } from '@c15t/core/runtime';
+import type { ConsentRuntime, StreamedPrefetch } from '@c15t/core/runtime';
 import { createContext } from 'react';
 
 /**
@@ -25,6 +25,8 @@ export interface ProviderServices {
 	getConsentCategories: () => readonly AllConsentNames[];
 	/** Whether the runtime has started: records hydrated, prefetch adopted. */
 	isStarted: () => boolean;
+	/** The runtime the provider renders, owned or borrowed. */
+	runtime: ConsentRuntime;
 	/**
 	 * Store a language override and load its copy: init runs again on the
 	 * provider's own kernel while it is enabled, and a borrowed runtime

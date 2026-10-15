@@ -1,0 +1,149 @@
+## Add Google Additional Consent
+
+Google's Additional Consent (AC) string carries consent for Google ad tech
+providers (ATPs) that are not on the IAB Global Vendor List. The TC String
+cannot name them, so without an AC string those providers get no consent
+signal and Google cannot serve personalised ads through them.
+
+Take the provider IDs from Google's
+[Additional Consent provider list](https://storage.googleapis.com/tcfac/additional-consent-providers.csv).
+c15t ignores IDs that Google does not list. When Google removes a provider
+from the list, usually because it joined the Global Vendor List, it leaves
+the AC string on the visitor's next page load.
+
+### List the providers on your backend
+
+A self-hosted backend lists the providers in its manifest's `iab` block,
+next to `customVendors`. It loads each provider's name and privacy policy the
+way it loads the vendor list, caches them, and sends them in `/init` to every
+visitor whose policy uses IAB TCF. Framework servers and browsers that
+resolve `/init` from the manifest load the same providers.
+
+{/* example: fragment */}
+
+```ts
+manifest: {
+	iab: {
+		enabled: true,
+		cmpId: 123,
+		additionalConsent: {
+			// Google ATP IDs: Meta and Snap Inc.
+			providers: [89, 2572],
+		},
+	},
+},
+```
+
+The backend's `additionalConsent` option sets the cache, which defaults to the
+`gvl` cache, and `enabled: false` stops `/init` from serving the providers. See
+[instance options](/docs/self-host/api/configuration#instance-options).
+
+### List the providers in the browser
+
+Offline mode has no backend, and some backends do not list providers. In
+those setups, pass `additionalConsent` with your other IAB options: the
+`IABProvider` props in React, Next.js and TanStack Start, the `createIAB`
+options in JavaScript, and the `iab` option of the Vue, Nuxt, Svelte, Astro
+and script-tag setups. A list passed here replaces the one the backend sent.
+
+{/* example: fragment */}
+
+```ts
+additionalConsent: {
+	providers: [89, 2572],
+},
+```
+
+### What the visitor sees
+
+The Vendors tab of the preference centre gets a Google Ad Tech Providers
+section. Each provider shows its name, a link to the privacy policy Google
+lists for it, and a consent switch. Accept All switches every provider on,
+and Reject All switches them off. The banner's partner count includes them.
+
+The names and links come from `https://gvl.inth.app/additional-consent`.
+The backend fetches them when the providers are listed in its manifest. When
+they are listed in the browser, c15t fetches them as the CMP mounts, in
+parallel with the vendor list. To serve the list yourself, set `endpoint` in
+the manifest's `additionalConsent`, or `url` in the browser option. c15t
+requests `?providerIds=89,2572` and expects JSON in this shape:
+
+```json
+{
+	"providers": {
+		"89": {
+			"id": 89,
+			"name": "Meta",
+			"policyUrl": "https://www.facebook.com/about/privacy/update"
+		}
+	}
+}
+```
+
+If the list does not load, the response carries no providers and c15t writes
+no AC string. The TC String works as before.
+
+### What vendors receive
+
+After the visitor saves, `__tcfapi` returns the AC string as `addtlConsent`,
+next to `tcString`, from `getTCData`, `getInAppTCData` and `addEventListener`
+callbacks. It uses version 2 of Google's format, for example `2~89~dv.2572`.
+The part before `~dv.` lists the providers the visitor consented to. The part
+after it lists the providers they were shown but did not consent to. After
+Reject All, every provider is in the second part: `2~~dv.89.2572`.
+
+A provider counts as consented only when its switch is on and the visitor
+also consented to TCF purposes 1, 3 and 4: storing information on the device,
+and creating and using profiles for personalised advertising. Google's spec
+requires consent to device storage and to personalised ads before a provider
+can be listed as consented. Without those purposes, the provider is listed as
+shown only.
+
+c15t writes an AC string only together with a TC String, because Google
+discards an AC string that arrives without one. It stores the string in the
+`addtl_consent` cookie and localStorage entry next to `euconsent-v2`, and
+removes both when it withdraws the TC String. A returning visitor gets their
+saved provider choices back. A provider you add later has not been shown to
+them, so it stays out of their AC string until they save again. A provider
+you remove and add back keeps the choice the visitor saved for it.
+
+When the visitor's policy does not use IAB TCF, `__tcfapi` reports
+`gdprApplies: false` and returns no `tcString` or `addtlConsent`. CMP API v2
+allows only `cmpId`, `cmpVersion` and `tcfPolicyVersion` beside it, plus the
+status fields.
+
+A self-hosted backend records the AC string with each consent, in the
+`addtlConsent` column of the `consent` table beside the TC String. Run the
+backend's migrations after upgrading to add the column. Consents recorded
+before then, and consents saved without a TC String, store `null`.
+
+### Send the string with ad requests
+
+Pixels and ad requests that cannot call `__tcfapi` take the AC string in the
+`addtl_consent` URL parameter. Google's ad renderers replace the
+`${ADDTL_CONSENT}` macro, as in `&addtl_consent=${ADDTL_CONSENT}`. For
+requests your own code builds, read the string from `__tcfapi`, add it next
+to the TC String, and then send the request. This pixel fires once the CMP
+answers with TCF data:
+
+```js
+window.__tcfapi('getTCData', 2, (data, success) => {
+	if (!success || !data.gdprApplies) {
+		return;
+	}
+	const url = new URL('https://ads.example.com/pixel');
+	url.searchParams.set('gdpr_consent', data.tcString);
+	if (data.addtlConsent) {
+		url.searchParams.set('addtl_consent', data.addtlConsent);
+	}
+	new Image().src = url.toString();
+});
+```
+
+### Ask Google to list your CMP ID
+
+Google accepts AC strings only from a CMP registered with IAB Europe, using
+its own CMP ID. It lists the CMPs it has certified on its
+[Additional Consent page](https://support.google.com/admanager/answer/9681920).
+Ask Google to list your CMP ID through its CMP intake form before you rely on
+the AC string in production.

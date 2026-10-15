@@ -64,6 +64,8 @@ export interface ConsentSubmissionRequest {
 	readonly userAgent: string | null;
 	readonly jurisdictionModel?: string | null;
 	readonly tcString?: string | null;
+	/** See `ConsentSubmission.addtlConsent`. */
+	readonly addtlConsent?: string | null;
 	readonly uiSource?: string | null;
 	readonly consentAction?: string | null;
 	readonly validUntil?: Date | null;
@@ -120,6 +122,7 @@ export const submit = Effect.fn('consent.submit')(function* submit(
 		: undefined;
 
 	const submission: ConsentSubmission = {
+		addtlConsent: request.addtlConsent,
 		choice: request.choice,
 		choiceFromPreferences: request.choiceFromPreferences,
 		consentAction: request.consentAction,

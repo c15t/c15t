@@ -1,5 +1,5 @@
 import { posthog } from '@c15t/integrations/posthog';
-import type { Script, Vendor } from 'c15t';
+import type { Script } from 'c15t';
 
 export const scripts: Script[] = [
 	// PostHog sits in the `measurement` category. With `after-consent`, its
@@ -9,14 +9,4 @@ export const scripts: Script[] = [
 		initOptions: { cookieless_mode: 'never' },
 		loadMode: 'after-consent',
 	}),
-];
-
-// Named vendors show up in the consent dialog under their category.
-export const vendors: Vendor[] = [
-	{
-		category: 'measurement',
-		id: 'posthog',
-		name: 'PostHog',
-		privacyPolicyUrl: 'https://posthog.com/privacy',
-	},
 ];

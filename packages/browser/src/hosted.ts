@@ -59,6 +59,12 @@ export type {
 	TriggerPosition,
 } from './types';
 export { mountConsentUI } from './ui/mount';
+export { getEventDispatcher } from '@c15t/core/events';
+export type {
+	EventDispatcher,
+	EventProperties,
+	RuntimeEventDispatcherOptions as GetEventDispatcherOptions,
+} from '@c15t/core/events';
 export { version } from './version';
 export type {
 	ConsentSnapshot,

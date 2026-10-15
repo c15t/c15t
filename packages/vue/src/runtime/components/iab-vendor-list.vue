@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { AdTechProvider } from '@c15t/core';
 import { resolveIABVendorUrls } from '@c15t/iab/headless';
 import type { GlobalVendorList, NonIABVendor } from '@c15t/schema/types';
 import dialogStyles from '@c15t/ui/styles/components/iab-consent-dialog';
@@ -22,11 +23,16 @@ const props = defineProps<{
 	selectedVendorId: IabVendorId | null;
 	customVendors?: NonIABVendor[];
 	vendorLegitimateInterests?: Record<string, boolean>;
+	/** Google ad tech providers disclosed for Additional Consent. */
+	adTechProviders?: AdTechProvider[];
+	/** Consent switches for those providers, keyed by provider ID. */
+	adTechProviderConsents?: Record<string, boolean>;
 }>();
 
 const emit = defineEmits<{
 	vendorToggle: [vendorId: IabVendorId, value: boolean];
 	vendorLegitimateInterestToggle: [vendorId: IabVendorId, value: boolean];
+	adTechProviderToggle: [providerId: number, value: boolean];
 	clearSelection: [];
 }>();
 
@@ -99,12 +105,33 @@ const filteredCustomVendors = computed(() => {
 	);
 });
 
+// A vendor selected from the Purposes tab is never an ad tech provider:
+// providers process no TCF purposes.
+const filteredAdTechProviders = computed(() => {
+	if (props.selectedVendorId !== null) {
+		return [];
+	}
+	const providers = props.adTechProviders ?? [];
+	const query = searchTerm.value.trim().toLowerCase();
+	return query
+		? providers.filter((provider) =>
+				provider.name.toLowerCase().includes(query)
+			)
+		: providers;
+});
+
 const totalCount = computed(
-	() => iabVendors.value.length + customVendorItems.value.length
+	() =>
+		iabVendors.value.length +
+		customVendorItems.value.length +
+		(props.adTechProviders?.length ?? 0)
 );
 
 const filteredCount = computed(
-	() => filteredIabVendors.value.length + filteredCustomVendors.value.length
+	() =>
+		filteredIabVendors.value.length +
+		filteredCustomVendors.value.length +
+		filteredAdTechProviders.value.length
 );
 
 const getVendorConsent = function getVendorConsent(vendorId: IabVendorId) {
@@ -355,6 +382,61 @@ watch(
 					>
 						<a
 							:href="vendor.policyUrl"
+							target="_blank"
+							rel="noopener noreferrer"
+							:class="dialogStyles.vendorListMetaText"
+						>
+							{{ iabT?.preferenceCenter?.vendorList?.privacyPolicy }}
+						</a>
+					</div>
+				</li>
+			</ul>
+		</section>
+
+		<section v-if="filteredAdTechProviders.length > 0">
+			<h3 :class="dialogStyles.vendorSectionHeading">
+				{{ iabT?.preferenceCenter?.vendorList?.adTechProvidersHeading }}
+				({{ filteredAdTechProviders.length }})
+			</h3>
+			<p :class="dialogStyles.customVendorNotice">
+				{{ iabT?.preferenceCenter?.vendorList?.adTechProvidersNotice }}
+			</p>
+			<ul>
+				<li
+					v-for="provider in filteredAdTechProviders"
+					:id="`ad-tech-provider-${String(provider.id)}`"
+					:key="String(provider.id)"
+					v-bind="config.components?.['iab-vendor-list']?.row"
+					:class="dialogStyles.vendorListItem"
+				>
+					<div
+						v-bind="config.components?.['iab-vendor-list']?.rowHeader"
+						:class="dialogStyles.vendorListItemHeader"
+					>
+						<div :class="dialogStyles.vendorListInfo">
+							<p :class="dialogStyles.vendorListName">{{ provider.name }}</p>
+						</div>
+						<div :class="dialogStyles.vendorConsentControl">
+							<ConsentSwitch
+								:test-id="null"
+								:aria-label="`Consent for ${provider.name}`"
+								:model-value="
+									adTechProviderConsents?.[String(provider.id)] ?? false
+								"
+								:class="dialogStyles.vendorConsentSwitch"
+								@update:model-value="
+									(value) =>
+										emit('adTechProviderToggle', provider.id, Boolean(value))
+								"
+							/>
+						</div>
+					</div>
+					<div
+						v-bind="config.components?.['iab-vendor-list']?.rowContent"
+						:class="dialogStyles.vendorListContent"
+					>
+						<a
+							:href="provider.policyUrl"
 							target="_blank"
 							rel="noopener noreferrer"
 							:class="dialogStyles.vendorListMetaText"

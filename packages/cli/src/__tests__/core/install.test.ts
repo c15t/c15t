@@ -70,7 +70,7 @@ describe('v3 dependency installation', () => {
 			await writeFile(
 				join(directory, 'package.json'),
 				JSON.stringify({
-					dependencies: { '@c15t/react': '3.0.0-alpha.3' },
+					dependencies: { '@c15t/react': '3.0.0' },
 				})
 			);
 			expect(
