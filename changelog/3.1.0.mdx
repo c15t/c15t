@@ -1,0 +1,192 @@
+---
+title: "v3.1.0 - Event Dispatchers, Google Additional Consent and TanStack Start 1.0"
+version: "3.1.0"
+date: 2026-10-15
+description: "Minor release adding an event dispatcher to every framework, Google Additional Consent for IAB TCF, and TanStack Start 1.0 support, with fixes for vendor switches, dialog scrolling, legal links, PostHog and the CLI."
+group: changelog
+tags:
+  - release
+  - stable
+  - react
+  - nextjs
+  - tanstack-start
+  - vue
+  - svelte
+  - astro
+  - backend
+  - iab
+  - integrations
+  - cli
+type: release
+breaking: false
+draft: false
+authors: [KayleeWilliams]
+---
+
+c15t 3.1 gives every framework one event dispatcher for your own analytics
+calls, adds Google Additional Consent to IAB TCF setups and supports TanStack
+Start 1.0. It also fixes problems found since 3.0.0. The dialog showed vendor
+switches nobody asked for, stopped scrolling under some app CSS, and ran legal
+links into the banner text.
+
+Read [Before you upgrade](#before-you-upgrade) if you show vendor switches,
+use `@c15t/iab` with custom translations, or type your `__tcfapi` callbacks.
+
+## Highlights
+
+- **Event dispatcher in every framework.** `useEventDispatcher()` and
+  `getEventDispatcher()` send your own events and pageviews to the scripts
+  you registered, and drop them when the visitor hasn't consented.
+- **Google Additional Consent.** IAB TCF setups can ask for consent for
+  Google ad tech providers that are not on the Global Vendor List.
+- **TanStack Start 1.0.** `@c15t/tanstack-start` builds and tests against
+  TanStack Start 1.0.
+- **Vendor switches only when you declare vendors.** Sites that add only
+  `@c15t/integrations` helpers get category switches, as in v2.
+- **Fixes.** The preference dialog scrolls again, legal links read the same in
+  every framework, and PostHog stays off after a refusal that arrives while
+  its script is still downloading.
+
+## Send your own events
+
+Each framework now gives you the provider's event dispatcher. It sends to the
+scripts registered with the provider and checks consent when the event goes
+out, not when you created the dispatcher.
+
+| Framework | Import |
+| --- | --- |
+| React, Next.js, TanStack Start | `useEventDispatcher()` from `c15t/react`, `c15t/next` or `c15t/tanstack-start` |
+| Vue and Nuxt | `useEventDispatcher()` from `c15t/vue/vue-plugin`, auto-imported in Nuxt |
+| Svelte and SvelteKit | `getEventDispatcher()` from `@c15t/svelte` |
+| Astro | `getEventDispatcher()` from `c15t/astro/client` |
+| Script tag | `getEventDispatcher(runtime)` from `@c15t/browser` |
+
+```tsx
+import { useEventDispatcher } from 'c15t/react';
+
+export const SearchButton = ({ resultCount }: { resultCount: number }) => {
+	const events = useEventDispatcher();
+	return (
+		<button
+			type="button"
+			onClick={() => {
+				events.track('search', { resultCount });
+			}}
+		>
+			Search
+		</button>
+	);
+};
+```
+
+All dispatchers for one provider share a pageview history. A consent change
+or a remount no longer drops or repeats a pageview, and an event sent right
+after the visitor withdraws consent is dropped. Pass `scripts` to add
+destinations and `pageviews` to choose which integrations get single-page-app
+pageviews. `createEventDispatcher` from `@c15t/integrations/events` still works
+for code outside a provider.
+
+→ [React](/docs/frameworks/react/scripts#send-your-own-analytics-events) ·
+[Next.js](/docs/frameworks/next/scripts) ·
+[Nuxt](/docs/frameworks/nuxt/scripts) ·
+[Svelte](/docs/frameworks/svelte/scripts) ·
+[Astro](/docs/frameworks/astro/scripts) ·
+[JavaScript](/docs/frameworks/javascript/scripts)
+
+## Google Additional Consent
+
+Google works with ad tech providers that are not on the IAB Global Vendor List.
+List their Google ATP IDs in the manifest's `iab.additionalConsent.providers`.
+The self-hosted backend loads their names and privacy policies, caches them
+and sends them in `/init`. Setups without a backend can pass
+`additionalConsent.providers` to the browser instead.
+
+The React, Vue, Svelte and script-tag preference centres list each provider
+with its privacy policy and a switch, and the banner's partner count includes
+them. `__tcfapi` returns an Additional Consent v2 string, such as
+`2~89~dv.2572`, as `addtlConsent` beside `tcString`. A provider counts as
+consented only when its switch is on and the visitor consented to TCF
+purposes 1, 3 and 4.
+
+c15t stores the string in the `addtl_consent` cookie and localStorage entry,
+restores it for returning visitors and removes it with the TC String. The
+self-hosted backend records it in a new `consent.addtlConsent` column.
+
+→ [React IAB](/docs/frameworks/react/iab#add-google-additional-consent) ·
+[Next.js IAB](/docs/frameworks/next/iab#add-google-additional-consent) ·
+[Backend configuration](/docs/self-host/api/configuration)
+
+## TanStack Start 1.0
+
+`@c15t/tanstack-start` now builds and tests against TanStack Start 1.0
+(`@tanstack/react-start` 1.169 and `@tanstack/react-router` 1.170.44). The
+peer ranges are unchanged, so later 1.168 releases still work.
+
+TanStack Start 1.0 needs Vite 8. Upgrade Vite first, then upgrade
+`@tanstack/react-router` with `@tanstack/react-start`, because each Start
+release depends on one exact router version. Start 1.0 also renames
+`.inputValidator()` to `.validator()` on `createServerFn()` and
+`createMiddleware()`. c15t and the code its CLI generates don't call either.
+
+## Fixes
+
+- **Vendor switches.** Since 3.0.0, the preference dialog showed a switch for
+  the vendor of each `@c15t/integrations` helper, so a site that added only
+  `posthog()` got a PostHog switch under Analytics. The dialog now shows only
+  category switches until you declare a vendor. A helper vendor the visitor
+  already switched off stays listed, so they can turn it back on, and its
+  saved denial keeps blocking it until they do.
+- **Dialog scrolling.** Visitors can scroll to every category and vendor
+  again. `overflow: hidden` on the category list or a category row, for
+  example to clip rounded corners, used to stop the list scrolling on phones.
+- **Legal links.** Astro, Vue, Nuxt, Svelte and the script tag now match
+  React: a space after the description, then the links separated by commas.
+- **Vendor list requests.** In manifest mode, the browser fetches the Global
+  Vendor List without the `x-c15t-version` and `x-c15t-policy-contract`
+  headers. The request skips the CORS preflight, and hosts that reject those
+  headers no longer fail it.
+- **TC data outside TCF.** When the visitor's policy doesn't use IAB TCF,
+  `__tcfapi` returns only the base fields CMP API v2 allows. No TC String,
+  `addtlConsent`, purpose or vendor data reaches vendors.
+- **PostHog.** With `posthog({ loadMode: 'after-consent' })`, a refusal that
+  arrived while `array.js` was downloading let PostHog start once the download
+  finished. The refusal now clears PostHog's queued init.
+- **Sentry.** `sentry({ getClient })` now declares the same vendor name and
+  privacy policy as `sentry({ dsn })`, so Sentry gets a vendor switch and core
+  stops warning about a missing declaration.
+- **CLI.** Canary builds of the CLI install `c15t@3` and other `@c15t/*`
+  packages from `@latest` instead of `@canary`. Setup also replaces a c15t
+  package pinned to an exact prerelease.
+- **Svelte.** `@c15t/svelte` declares `svelte@^5.20.0` as its peer. Earlier
+  Svelte 5 versions already failed to compile its components, and package
+  managers now warn at install time.
+
+## Before you upgrade
+
+**Vendor switches need a declared vendor.** If you relied on 3.0.0's helper
+vendor switches, declare at least one vendor in the `vendors` option or on
+your backend. The dialog then lists your helpers' vendors too. This changes
+only the dialog, not when scripts load.
+[Declare the vendors](/docs/frameworks/react/vendor-consent#declare-the-vendors).
+
+**Custom IAB translations need two keys.**
+`IABPreferenceCenterTranslations.vendorList` adds `adTechProvidersHeading` and
+`adTechProvidersNotice`. Every built-in locale has them. Custom translation
+sets fail type checks until you add both.
+
+**`__tcfapi` callbacks take a union.** Callbacks now receive
+`TCData | TCDataOutsideTCF`, and `TCData.gdprApplies` is `true`. Check
+`gdprApplies` before you read `tcString`.
+
+**Self-hosted backends run a migration.** Migration 9 adds the
+`consent.addtlConsent` column, and the backend reads it on every consent save.
+Run migrations before you deploy 3.1, whether or not you use Additional
+Consent.
+
+## Packages
+
+`c15t`, `@c15t/core`, `@c15t/react`, `@c15t/nextjs`, `@c15t/tanstack-start`,
+`@c15t/vue`, `@c15t/svelte`, `@c15t/astro`, `@c15t/browser`, `@c15t/iab`,
+`@c15t/integrations`, `@c15t/backend`, `@c15t/cli`, `@c15t/node-sdk`,
+`@c15t/schema`, `@c15t/translations` and `@c15t/dev-tools` release as 3.1.0.
+`@c15t/ui` and `@c15t/scripts` release as 3.0.1.
