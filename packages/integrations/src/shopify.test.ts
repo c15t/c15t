@@ -4,7 +4,10 @@ import type { ConsentKernel, KernelTransport } from '@c15t/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createShopifyCustomerPrivacy } from './shopify';
-import type { ShopifyConsentPreferences } from './shopify';
+import type {
+	ShopifyConsentPreferences,
+	ShopifyConsentSnapshot,
+} from './shopify';
 
 const ALL_DENIED: ShopifyConsentPreferences = {
 	analytics: false,
@@ -299,9 +302,51 @@ describe('Shopify Customer Privacy bridge', () => {
 		});
 		const bridge = createShopifyCustomerPrivacy();
 		bridge.connect(kernel);
-		await bridge.setup();
+		const setup = bridge.setup();
 
-		expect(shopify.sent).toEqual([ALL_DENIED]);
+		await vi.waitFor(() => expect(shopify.sent).toEqual([ALL_DENIED]));
+		// The visitor still owes a choice, so Hydrogen keeps holding events.
+		expect(await isSettled(setup)).toBe(false);
+	});
+
+	it('revokes grants Shopify reports when an IAB visitor owes a choice c15t has no record of', async () => {
+		const shopify = installCustomerPrivacy();
+		let held: Record<string, string> = {
+			analytics: '',
+			marketing: '',
+			preferences: '',
+			sale_of_data: '',
+		};
+		Object.assign(
+			(window as { Shopify: { customerPrivacy: object } }).Shopify
+				.customerPrivacy,
+			{ currentVisitorConsent: () => held }
+		);
+		// IAB consent confirmed through the CMP API leaves no explicit choice.
+		const owesChoice: ShopifyConsentSnapshot = {
+			effectivePermissions: {
+				functionality: false,
+				marketing: false,
+				measurement: false,
+				necessary: true,
+			},
+			explicitChoice: null,
+			model: 'iab',
+			policyPending: false,
+			promptRequirement: { kind: 'choice', reason: 'policy-changed' },
+		};
+		const bridge = createShopifyCustomerPrivacy();
+		const setup = bridge.setup();
+
+		bridge.update(owesChoice);
+		await isSettled(setup);
+		expect(shopify.sent).toEqual([]);
+
+		held = { ...held, analytics: 'yes', marketing: 'no' };
+		bridge.update({ ...owesChoice });
+
+		await vi.waitFor(() => expect(shopify.sent).toEqual([ALL_DENIED]));
+		expect(await isSettled(setup)).toBe(false);
 	});
 
 	it('reports a rejected choice and retries with the next update', async () => {

@@ -98,10 +98,12 @@ After the first choice, the bridge sends each change once. When a visitor
 revokes a category, c15t reloads the page and the bridge sends the stored
 choice on load. Under an opt-in or IAB policy, when an earlier choice has
 expired or a policy change asks the visitor again, the bridge sends the
-denials c15t now applies, during the visit or on the next page load, so
-Shopify stops using the old grants before the visitor answers. If the
-Customer Privacy API hasn't loaded yet, the bridge waits for Shopify's
-`consentTrackingApiLoaded` or `shopifyCustomerPrivacyApiLoaded` event.
+denials c15t now applies if Shopify may still hold grants: ones the bridge
+sent, a choice c15t stored, or a `yes` from Shopify's
+`currentVisitorConsent()`. Hydrogen keeps holding events until the visitor
+answers. If the Customer Privacy API hasn't loaded yet, the bridge waits for
+Shopify's `consentTrackingApiLoaded` or `shopifyCustomerPrivacyApiLoaded`
+event.
 
 `setup` resolves once Shopify has accepted the visitor's latest choice, and
 Hydrogen then delivers the events that choice allows. If the visitor changes
