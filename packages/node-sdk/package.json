@@ -1,7 +1,7 @@
 {
 	"name": "@c15t/node-sdk",
-	"version": "3.1.0-canary.0",
-	"description": "Typed client for the c15t consent API: check consent, link users, record consents and publish legal documents from server code.",
+	"version": "3.1.0",
+	"description": "Node.js SDK for the c15t consent API. Check GDPR consent before sending email, link users, record consents and publish legal documents from server code.",
 	"keywords": [
 		"c15t",
 		"ccpa",
@@ -10,6 +10,7 @@
 		"consent-api",
 		"consent-management",
 		"consent-records",
+		"cookie-consent",
 		"gdpr",
 		"lgpd",
 		"node",

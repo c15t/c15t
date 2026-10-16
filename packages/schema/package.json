@@ -1,7 +1,7 @@
 {
 	"name": "@c15t/schema",
-	"version": "3.1.0-canary.0",
-	"description": "Framework-agnostic Valibot schemas and TypeScript types for c15t consent management",
+	"version": "3.1.0",
+	"description": "Valibot schemas and TypeScript types for the c15t consent management API, shared by the backend, frontends and Node.js SDK.",
 	"keywords": [
 		"ccpa",
 		"consent",
@@ -19,7 +19,8 @@
 	"license": "Apache-2.0",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/c15t/c15t"
+		"url": "https://github.com/c15t/c15t.git",
+		"directory": "packages/schema"
 	},
 	"files": [
 		"dist",

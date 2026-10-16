@@ -135,6 +135,18 @@ writes the v3 format. The upgrade guides for
 [JavaScript](/docs/frameworks/javascript/upgrade-v3#keep-visitors-existing-choices)
 cover how v3 treats v2 records.
 
+## Retry interrupted saves
+
+Before sending a recorded choice to the backend, c15t puts it in a localStorage
+queue. If the page closes while the request is in flight, the next initialization
+retries it with the original decision time. A successful response removes the
+queued choice. A permanent rejection, such as a stale policy, removes it too.
+
+Queueing depends on the browser allowing storage. When storage is unavailable,
+c15t still attempts the request, but cannot preserve an interrupted request for
+the next page. A locally remembered choice alone does not prove that the backend
+received it; check the saved consent record in Inth.
+
 ## Keep open tabs in step
 
 Tabs and windows on the same origin (scheme, host and port) share the consent

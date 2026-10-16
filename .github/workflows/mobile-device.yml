@@ -31,7 +31,7 @@ jobs:
       id-token: write
     name: Select native app builds
     if: ${{ !inputs.built }}
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     outputs:
       selected: ${{ steps.plan.outputs.mobileBrowserOrDevice }}
     steps:

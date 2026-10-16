@@ -1,3 +1,24 @@
+## @c15t/ui@3.0.1
+
+### Clearer npm descriptions and keywords
+
+Each package's npm description now says what it does in the words people
+search for, such as cookie consent, cookie banner, GDPR, Google Consent Mode v2
+and IAB TCF. Keywords add common search terms while preserving existing
+framework, brand and integration terms. The schema and UI packages now link
+to their directories in the repository. Framework, browser and core READMEs
+now explain how consent policies handle GDPR and other privacy laws before
+the setup instructions.
+
+### The preference dialog scrolls with your CSS
+
+Visitors can scroll to every category and vendor in the preference dialog
+again. Before this fix, the category list did not scroll with some app CSS.
+The cause was `overflow: hidden` on the category list or on a category row,
+for example to clip them to rounded corners. On a phone, a category with
+vendors then went past the bottom of the dialog. The visitor could not scroll
+to the rest.
+
 ## @c15t/ui@3.0.1-canary.0 (canary)
 
 ### The preference dialog scrolls with your CSS

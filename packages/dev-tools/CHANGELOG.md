@@ -1,3 +1,15 @@
+## @c15t/dev-tools@3.1.0
+
+### Clearer npm descriptions and keywords
+
+Each package's npm description now says what it does in the words people
+search for, such as cookie consent, cookie banner, GDPR, Google Consent Mode v2
+and IAB TCF. Keywords add common search terms while preserving existing
+framework, brand and integration terms. The schema and UI packages now link
+to their directories in the repository. Framework, browser and core READMEs
+now explain how consent policies handle GDPR and other privacy laws before
+the setup instructions.
+
 ## @c15t/dev-tools@3.0.0
 
 ### c15t v3

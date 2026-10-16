@@ -11,11 +11,14 @@
  *
  * The send path loads with the kernel. Everything that reads the stored
  * queue (validation, replay, reassignment) is in `queue.ts`, imported the
- * first time it is needed, so a visitor with nothing queued never loads it.
- * A failed save never waits for it: until it has loaded, the entry is
+ * first time a visitor saves or replays a choice.
+ * Queueing never waits for it: until it has loaded, the entry is
  * appended as is and normalized on the next read.
  *
  * Interface:
+ * - Queue before send. An explicit action is stored before its transport
+ *   starts, so a page that unloads with an in-flight request leaves a replay
+ *   for the next page. Successful and permanently rejected saves remove it.
  * - Write before send. `send()` makes no transport call before the
  *   macrotask after it was called. `commands.save()` calls it once the
  *   action's commit has notified every listener, so a local writer that
@@ -157,6 +160,19 @@ export const createSaveOutbox = function createSaveOutbox({
 }: SaveOutboxOptions): SaveOutbox {
 	const { batch, commit, emit, getSnapshot } = runtime;
 	let worker: QueueWorker | undefined;
+	// Instance-local: another page must still recover a stranded request.
+	const directSends = new Set<SavePayload>();
+	const isSending = (payload: SavePayload): boolean =>
+		[...directSends].some(
+			(pending) =>
+				pending.subjectId === payload.subjectId &&
+				pending.confirmed.actionAt === payload.confirmed.actionAt &&
+				// A narrowed replay is still this action; disjoint confirmations
+				// sharing its timestamp remain free to retry independently.
+				Object.keys(payload.confirmed.categories).every((category) =>
+					Object.hasOwn(pending.confirmed.categories, category)
+				)
+		);
 	// What requests wait for after the pre-send macrotask: see `hold()`.
 	let held: Promise<unknown> | undefined;
 
@@ -167,7 +183,12 @@ export const createSaveOutbox = function createSaveOutbox({
 		if (!worker) {
 			try {
 				const { createQueueWorker } = await loadQueue();
-				worker ??= createQueueWorker({ runtime, store, tools: queueTools });
+				worker ??= createQueueWorker({
+					isSending,
+					runtime,
+					store,
+					tools: queueTools,
+				});
 			} catch {
 				// Offline and never loaded: callers fall back or skip.
 			}
@@ -212,8 +233,8 @@ export const createSaveOutbox = function createSaveOutbox({
 	};
 
 	/**
-	 * Drop queued saves `payload` superseded, so a later replay cannot
-	 * overwrite the newer receipts with stale ones.
+	 * Drop `payload` and the queued saves it superseded, so a later replay
+	 * cannot overwrite the newer receipts with stale ones.
 	 */
 	const discard = async function discard(payload: SavePayload): Promise<void> {
 		if (await hasQueued()) {
@@ -255,16 +276,16 @@ export const createSaveOutbox = function createSaveOutbox({
 	 * newer choice. The choice stays recorded locally either way.
 	 */
 	const settleThrownSave = async function settleThrownSave(
-		remaining: SavePayload,
-		current: () => SavePayload | null,
+		payload: SavePayload,
+		ensureQueued: () => Promise<EnqueueResult>,
 		error: unknown
 	): Promise<void> {
 		if (isConsentSaveRejection(error)) {
 			warnSaveFailed('rejected', error);
-			await discard(remaining);
+			await discard(payload);
 			return;
 		}
-		warnSaveFailed(await enqueue(current), error);
+		warnSaveFailed(await ensureQueued(), error);
 		retryWhenOnline();
 	};
 
@@ -291,13 +312,27 @@ export const createSaveOutbox = function createSaveOutbox({
 		});
 	};
 
+	const trackDirectSend = async function trackDirectSend(
+		payload: SavePayload,
+		send: () => Promise<SaveResult>
+	): Promise<SaveResult> {
+		// Register before enqueueing or waiting for local persistence. A replay
+		// must not bypass those waits or duplicate this request while pending.
+		directSends.add(payload);
+		try {
+			return await send();
+		} finally {
+			directSends.delete(payload);
+		}
+	};
+
 	/**
 	 * Transport phase of one action. The outcome only touches the queue
 	 * while the action's confirmed receipts are current. Disjoint category
 	 * actions remain independent. Only the newest action can map the subject
 	 * returned by the server; older outcomes cannot replace its identity.
 	 */
-	const sendAction = async function sendAction(
+	const performSendAction = async function performSendAction(
 		payload: SavePayload,
 		action: RecordedAction,
 		// False on the resend after a subject reassignment, so a backend that
@@ -320,12 +355,22 @@ export const createSaveOutbox = function createSaveOutbox({
 				liveSupersession(actionSnapshot, current)
 			);
 		};
+		const save = transport?.save;
+		let staged: EnqueueResult = 'unstored';
+		if (save) {
+			// A request may never settle when the document unloads. Waiting for
+			// its failure before queueing would lose this explicit action.
+			staged = await enqueue(currentPayload);
+		}
+		const ensureQueued = (): Promise<EnqueueResult> =>
+			staged === 'queued' && currentPayload() === payload
+				? Promise.resolve(staged)
+				: enqueue(currentPayload);
 		// A local write that is not ready yet holds the request, and without
 		// a request the save's completion, which a revocation reload waits for.
 		if (held) {
 			await held;
 		}
-		const save = transport?.save;
 		if (!save) {
 			return { confirmed, ok: true, subjectId: payload.subjectId };
 		}
@@ -337,17 +382,21 @@ export const createSaveOutbox = function createSaveOutbox({
 			});
 			const sending = currentPayload();
 			if (!sending) {
+				await discard(payload);
 				return { confirmed, ok: false };
 			}
 			const result = await save(sending);
 			const remaining = currentPayload();
 			if (!remaining) {
+				await discard(payload);
 				return { ...result, confirmed };
 			}
 			if (result.ok) {
-				await discard(remaining);
+				// The whole action, not the part still current: a newer choice
+				// that storage refused never narrowed the queued entry.
+				await discard(payload);
 			} else {
-				warnSaveFailed(await enqueue(currentPayload));
+				warnSaveFailed(await ensureQueued());
 				retryWhenOnline();
 			}
 			if (result.ok && currentPayload()) {
@@ -367,21 +416,26 @@ export const createSaveOutbox = function createSaveOutbox({
 			if (subjectId !== null) {
 				// The action's snapshot under the new subject, so a canonical id
 				// the resend returns is adopted like any other save's.
-				return sendAction(
-					withSubjectId(payload, subjectId),
-					{
-						...action,
-						snapshot: {
-							...actionSnapshot,
-							subject: { ...actionSnapshot.subject, subjectId },
+				const reassigned = withSubjectId(payload, subjectId);
+				return trackDirectSend(reassigned, () =>
+					performSendAction(
+						reassigned,
+						{
+							...action,
+							snapshot: {
+								...actionSnapshot,
+								subject: { ...actionSnapshot.subject, subjectId },
+							},
 						},
-					},
-					false
+						false
+					)
 				);
 			}
 			emit({ command: 'save', error, type: 'command:error' });
 			if (remaining) {
-				await settleThrownSave(remaining, currentPayload, error);
+				await settleThrownSave(payload, ensureQueued, error);
+			} else {
+				await discard(payload);
 			}
 			return { confirmed, ok: false };
 		}
@@ -393,6 +447,7 @@ export const createSaveOutbox = function createSaveOutbox({
 			held = Promise.allSettled([held, until]);
 		},
 		replay,
-		send: (payload, action) => sendAction(payload, action, true),
+		send: (payload, action) =>
+			trackDirectSend(payload, () => performSendAction(payload, action, true)),
 	};
 };
