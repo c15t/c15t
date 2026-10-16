@@ -477,9 +477,10 @@ export const checkInBrowser = async (
 	});
 
 	const manager = readFileSync(fixture.manager, 'utf8');
+	// Swaps the dialog for the sheet and keeps the dialog trigger.
 	const withSheet = manager
-		.replaceAll('ConsentDialog', 'ConsentSheet')
-		.replaceAll('consent-dialog', 'consent-sheet');
+		.replace(/\bConsentDialog\b/gu, 'ConsentSheet')
+		.replace(/\/consent-dialog"/gu, '/consent-sheet"');
 	writeFileSync(fixture.manager, withSheet);
 	try {
 		failures.push(

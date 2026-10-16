@@ -8,6 +8,7 @@ import {
 
 import { ConsentBanner } from "@/components/c15t/consent-banner"
 import { ConsentDialog } from "@/components/c15t/consent-dialog"
+import { ConsentDialogTrigger } from "@/components/c15t/consent-dialog-trigger"
 
 // Call from the root route's loader. Start's compiler finds server code by
 // this call site, which is why it lives in your project and not in c15t.
@@ -27,6 +28,7 @@ export function ConsentManager({
       {children}
       <ConsentBanner />
       <ConsentDialog />
+      <ConsentDialogTrigger />
     </ConsentRoot>
   )
 }

@@ -163,6 +163,17 @@ describe('buildRegistry', () => {
 		}
 	});
 
+	it('gives every consent manager a way back to the preferences', () => {
+		for (const framework of frameworks) {
+			expect(
+				item('radix-nova', itemName(framework, 'consent-manager'))
+					?.registryDependencies
+			).toContain(
+				`${baseUrl}/radix-nova/${itemName(framework, 'consent-dialog-trigger')}.json`
+			);
+		}
+	});
+
 	it("leaves the framework's own packages out of the dependencies", () => {
 		const manager = item('radix-nova', 'tanstack-start-consent-manager');
 		expect(manager?.files[0]?.content).toContain(
