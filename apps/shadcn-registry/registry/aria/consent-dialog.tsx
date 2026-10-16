@@ -34,9 +34,11 @@ export function ConsentDialog({ className }: { className?: string }) {
 
   return (
     <DialogContext.Provider value={dialogContext}>
-      {/* React Aria's Modal is always modal, so this ignores dialog.blocking. */}
+      {/* React Aria's Modal is always modal, so dialog.blocking only decides
+          whether an outside click closes it. */}
       <Dialog
         isOpen={dialog.isVisible}
+        isDismissable={!dialog.blocking}
         onOpenChange={(isOpen) => {
           if (!isOpen) closeUI()
         }}

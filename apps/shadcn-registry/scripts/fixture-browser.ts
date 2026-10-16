@@ -159,6 +159,19 @@ const checkBranding = async (name: string, link: Locator) => {
 	}
 };
 
+/**
+ * Clicks the page corner, outside the preferences. The demo policy leaves
+ * them blocking, which rules out outside dismissal, so they stay open.
+ */
+const clickOutside = async (page: Page, name: string, surface: Locator) => {
+	await page.mouse.click(5, 5);
+	// Long enough for a close animation to finish.
+	await sleep(500);
+	if (!(await surface.isVisible())) {
+		throw new Error(`an outside click closed the blocking ${name}`);
+	}
+};
+
 /** Collects uncaught errors and console errors from every page in the context. */
 const watchErrors = (context: BrowserContext): string[] => {
 	const errors: string[] = [];
@@ -251,9 +264,12 @@ const dialogJourney = async (page: Page, url: string) => {
 		await ui.dialog.getByRole('button', { name: copy.close }).click();
 		await ui.dialog.waitFor({ state: 'hidden' });
 	});
-	await step('Escape closes the dialog', async () => {
+	await step('outside click leaves the dialog open', async () => {
 		await ui.trigger.click();
 		await ui.dialog.waitFor();
+		await clickOutside(page, 'dialog', ui.dialog);
+	});
+	await step('Escape closes the dialog', async () => {
 		await page.keyboard.press('Escape');
 		await ui.dialog.waitFor({ state: 'hidden' });
 	});
@@ -329,6 +345,16 @@ const sheetJourney = async (page: Page, url: string) => {
 		await ui.dialog.getByRole('button', { name: copy.close }).click();
 		await ui.dialog.waitFor({ state: 'hidden' });
 	});
+	await step(
+		'outside click leaves the sheet open and Escape closes it',
+		async () => {
+			await ui.trigger.click();
+			await ui.dialog.waitFor();
+			await clickOutside(page, 'sheet', ui.dialog);
+			await page.keyboard.press('Escape');
+			await ui.dialog.waitFor({ state: 'hidden' });
+		}
+	);
 };
 
 type Journey = (page: Page, url: string) => Promise<void>;

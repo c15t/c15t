@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect } from "react"
 import { ConsentDraftProvider, useTranslations } from "c15t/react"
 import { useHeadlessConsentUI } from "c15t/react/headless"
 import { XIcon } from "lucide-react"
@@ -31,13 +32,31 @@ export function ConsentSheet({
   const { dialog, closeUI } = useHeadlessConsentUI()
   const { common, consentManagerDialog } = useTranslations()
 
+  // Blocking preferences stay open on an outside click. Radix and Base UI
+  // report that click as a close request, so onOpenChange ignores close
+  // requests while blocking, and Escape and the close button call closeUI.
+  // This listens on the document because the click can move focus out of
+  // the sheet.
+  useEffect(() => {
+    if (!dialog.isVisible || !dialog.blocking) {
+      return
+    }
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        closeUI()
+      }
+    }
+    document.addEventListener("keydown", closeOnEscape)
+    return () => document.removeEventListener("keydown", closeOnEscape)
+  }, [dialog.isVisible, dialog.blocking, closeUI])
+
   return (
     <Sheet
       open={dialog.isVisible}
       // Non-blocking preferences don't trap focus or lock page scroll.
       modal={dialog.blocking}
       onOpenChange={(open) => {
-        if (!open) {
+        if (!open && !dialog.blocking) {
           closeUI()
         }
       }}
@@ -64,6 +83,7 @@ export function ConsentSheet({
         </ConsentDraftProvider>
         <SheetClose
           aria-label={common.close}
+          onClick={closeUI}
           className={cn(
             buttonVariants({ variant: "ghost", size: "icon-sm" }),
             "absolute top-3 end-3"

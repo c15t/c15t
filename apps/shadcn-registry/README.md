@@ -65,15 +65,18 @@ depend on.
 When an item starts using a hook or prop from a newer c15t release, raise
 `c15tRange` in `src/items.ts`.
 
-One behavior differs by base, because shadcn's components don't expose it.
-The dialog and sheet pass `modal={dialog.blocking}`, so
-`presentation.preferences.blocking: false` should leave the page usable:
+Preferences are blocking by default. On every base, an outside click leaves
+blocking preferences open, and Escape and the close button close them.
+
+`presentation.preferences.blocking: false` differs by base, because shadcn's
+components don't expose all of it. The dialog and sheet pass
+`modal={dialog.blocking}`, and an outside click closes them:
 
 - Radix drops the overlay, the focus trap and the scroll lock.
 - Base UI drops the focus trap and the scroll lock. shadcn's `DialogContent`
-  and `SheetContent` still render the backdrop, and a click on it closes the
-  dialog.
-- React Aria's `Modal` is always modal, so the setting has no effect.
+  and `SheetContent` still render the backdrop.
+- React Aria's `Modal` is always modal, so the setting only lets an outside
+  click close it.
 
 ## Commands
 
