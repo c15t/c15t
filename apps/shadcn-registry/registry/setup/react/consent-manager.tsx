@@ -6,6 +6,7 @@ import { ConsentProvider, hosted } from "c15t/react"
 
 import { ConsentBanner } from "@/components/c15t/consent-banner"
 import { ConsentDialog } from "@/components/c15t/consent-dialog"
+import { ConsentDialogTrigger } from "@/components/c15t/consent-dialog-trigger"
 
 const options: ConsentProviderOptions = {
   // Asks VITE_C15T_BACKEND_URL for each visitor's policy.
@@ -18,6 +19,7 @@ export function ConsentManager({ children }: { children: ReactNode }) {
       {children}
       <ConsentBanner />
       <ConsentDialog />
+      <ConsentDialogTrigger showWhen="after-prompt" />
     </ConsentProvider>
   )
 }

@@ -85,8 +85,7 @@ export function C15tProps() {
 `;
 
 // The home page. fixture-browser.ts looks for this copy.
-const page = `import { ConsentDialogTrigger } from "@/components/c15t/consent-dialog-trigger"
-import { ConsentGate } from "@/components/c15t/consent-gate"
+const page = `import { ConsentGate } from "@/components/c15t/consent-gate"
 import { ConsentWidget } from "@/components/c15t/consent-widget"
 
 export function C15tPage() {
@@ -97,7 +96,6 @@ export function C15tPage() {
         <p>Marketing embed</p>
       </ConsentGate>
       <ConsentWidget />
-      <ConsentDialogTrigger />
     </main>
   )
 }

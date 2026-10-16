@@ -4,6 +4,7 @@ import { resolveConsent } from "c15t/next/server"
 
 import { ConsentBanner } from "@/components/c15t/consent-banner"
 import { ConsentDialog } from "@/components/c15t/consent-dialog"
+import { ConsentDialogTrigger } from "@/components/c15t/consent-dialog-trigger"
 
 export function ConsentManager({ children }: { children: ReactNode }) {
   return (
@@ -12,6 +13,7 @@ export function ConsentManager({ children }: { children: ReactNode }) {
       {children}
       <ConsentBanner />
       <ConsentDialog />
+      <ConsentDialogTrigger showWhen="after-prompt" />
     </ConsentRoot>
   )
 }

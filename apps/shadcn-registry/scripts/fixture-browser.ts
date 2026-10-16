@@ -234,6 +234,13 @@ const dialogJourney = async (page: Page, url: string) => {
 			'banner',
 			ui.banner.getByRole('link', { name: copy.branding })
 		);
+		// The banner's customize button can share the trigger's name.
+		const bannerButtons = ui.banner.getByRole('button', {
+			name: copy.preferences,
+		});
+		if ((await ui.trigger.count()) > (await bannerButtons.count())) {
+			throw new Error('the trigger shows while the banner is up');
+		}
 	});
 	await step('banner opens the dialog', async () => {
 		await ui.banner.getByRole('button', { name: copy.customize }).click();
@@ -477,9 +484,10 @@ export const checkInBrowser = async (
 	});
 
 	const manager = readFileSync(fixture.manager, 'utf8');
+	// Swaps the dialog for the sheet and keeps the dialog trigger.
 	const withSheet = manager
-		.replaceAll('ConsentDialog', 'ConsentSheet')
-		.replaceAll('consent-dialog', 'consent-sheet');
+		.replace(/\bConsentDialog\b/gu, 'ConsentSheet')
+		.replace(/\/consent-dialog"/gu, '/consent-sheet"');
 	writeFileSync(fixture.manager, withSheet);
 	try {
 		failures.push(
