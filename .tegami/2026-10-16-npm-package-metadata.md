@@ -25,6 +25,7 @@ packages:
 Each package's npm description now says what it does in the words people
 search for, such as cookie consent, cookie banner, GDPR, Google Consent Mode v2
 and IAB TCF. Keywords add common search terms while preserving existing
-framework, brand and integration terms. Every package links to its directory
-in the repository. Framework, browser and core READMEs now introduce cookie
-consent and GDPR policy support before the setup instructions.
+framework, brand and integration terms. The schema and UI packages now link
+to their directories in the repository. Framework, browser and core READMEs
+now introduce cookie consent and GDPR policy support before the setup
+instructions.
