@@ -67,11 +67,13 @@ export interface ConsentIabBannerProps {
 	/**
 	 * Take the subject's decision, once, as a whole selection. Accept all and
 	 * Reject all hand over everything moved one way; Save hands over the
-	 * switches as they stand. Close the sheet from here.
+	 * switches as they stand. Return the persistence promise and close the sheet
+	 * after it succeeds. Decision actions stay disabled until the promise settles;
+	 * a rejection keeps the draft for retry. The host reports persistence errors.
 	 *
 	 * @param selection - Every decision on the surface.
 	 */
-	readonly onSave: (selection: ConsentIabSelection) => void;
+	readonly onSave: (selection: ConsentIabSelection) => void | PromiseLike<void>;
 	/** Whether the sheet is showing. */
 	readonly open: boolean;
 	/** Per-part style overrides. */
@@ -87,9 +89,7 @@ export interface ConsentIabBannerProps {
  * ```tsx
  * <ConsentIabBanner
  *     model={model}
- *     onSave={(selection) => {
- *         void iab.save(selection);
- *     }}
+ *     onSave={(selection) => iab.save(selection)}
  *     open={iab.owed}
  * />
  * ```
@@ -176,6 +176,7 @@ export const ConsentIabBanner = ({
 
 	const manage = useMemo<IabManageState>(
 		() => ({
+			busy: draft.busy,
 			copy,
 			model,
 			onAction: draft.onAction,
@@ -209,6 +210,7 @@ export const ConsentIabBanner = ({
 							</View>
 						) : (
 							<FirstLayer
+								disabled={draft.busy}
 								labels={{ moreInfo: copy.moreInfo, ok: copy.ok }}
 								onAction={onFirstLayerAction}
 								onNavigate={onFirstLayerNavigate}

@@ -17,6 +17,7 @@ import {
 	useContext,
 	useEffect,
 	useMemo,
+	useRef,
 	useState,
 } from 'react';
 import type { ReactElement, ReactNode } from 'react';
@@ -107,6 +108,8 @@ export const buildIabRoute = function buildIabRoute({
 
 /** What the slots read from the flow they sit in. */
 export interface IabManageState {
+	/** Whether a decision is being written. */
+	readonly busy: boolean;
 	/** Copy in force. */
 	readonly copy: ConsentIabCopy;
 	/** Disclosure to render. */
@@ -152,14 +155,17 @@ export interface UseIabDraftOptions {
 	readonly model: ConsentIabDisplayModel;
 	/**
 	 * Take a whole selection, once, when the subject decides.
+	 * Return the persistence promise. A failed save keeps the draft for retry.
 	 *
 	 * @param selection - Every decision on the surface.
 	 */
-	readonly onSave: (selection: ConsentIabSelection) => void;
+	readonly onSave: (selection: ConsentIabSelection) => void | PromiseLike<void>;
 }
 
 /** What {@link useIabDraft} hands a surface. */
 export interface IabDraft {
+	/** Whether a decision is being written. */
+	readonly busy: boolean;
 	/**
 	 * Run a decision: `save` hands over the draft, `acceptAll` and `rejectAll`
 	 * hand over everything moved one way. Other ids do nothing here.
@@ -191,9 +197,9 @@ export interface IabDraft {
 /**
  * Hold the IAB draft and hand it over on a decision.
  *
- * After a decision the switches go back to `initialSelection`, so a surface
- * opened again shows what was written, once the caller passes it back in, and
- * not the draft that was.
+ * After a successful decision the switches go back to `initialSelection`.
+ * A surface opened again shows what was written, once the caller passes it
+ * back in. A failed save keeps the draft for retry.
  *
  * @param options - Disclosure, standing, and the write callback.
  * @returns The draft and its handlers.
@@ -207,6 +213,8 @@ export const useIabDraft = function useIabDraft({
 		seedConsentIabSelection(model, initialSelection)
 	);
 	const [query, setQuery] = useState('');
+	const [busy, setBusy] = useState(false);
+	const busyRef = useRef(false);
 
 	const reset = useCallback(() => {
 		setSelection(seedConsentIabSelection(model, initialSelection));
@@ -231,17 +239,32 @@ export const useIabDraft = function useIabDraft({
 				next = decideConsentIabSelection(model, false);
 			}
 
-			if (next === null) {
+			if (next === null || busyRef.current) {
 				return;
 			}
 
-			onSave(next);
-			setSelection(seedConsentIabSelection(model, initialSelection));
+			busyRef.current = true;
+			setBusy(true);
+
+			const save = async (): Promise<void> => {
+				try {
+					await onSave(next);
+				} catch {
+					// The host reports persistence errors. Keep the draft for retry.
+					busyRef.current = false;
+					setBusy(false);
+					return;
+				}
+				setSelection(seedConsentIabSelection(model, initialSelection));
+				busyRef.current = false;
+				setBusy(false);
+			};
+			void save();
 		},
 		[initialSelection, model, onSave, selection]
 	);
 
-	return { onAction, onToggle, query, reset, selection, setQuery };
+	return { busy, onAction, onToggle, query, reset, selection, setQuery };
 };
 
 /** `null` outside a flow, which is what makes the accessor throw. */
@@ -415,13 +438,14 @@ export const IabBody = (): ReactElement => (
  * @returns The footer slot.
  */
 export const IabFooter = (): ReactElement => {
-	const { onAction } = useIabManage();
+	const { busy, onAction } = useIabManage();
 	const stack = useNavStack();
 	const root = useIabScreen(stack.routes[0] ?? IAB_PURPOSES_SCREEN);
 
 	return (
 		<ActionFooter
 			actions={root?.actions ?? []}
+			disabled={busy}
 			onAction={onAction}
 		/>
 	);

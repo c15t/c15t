@@ -72,11 +72,13 @@ export interface ConsentIabPreferencesRootProps {
 	readonly onClose: () => void;
 	/**
 	 * Take the subject's decision, once, as a whole selection. Close the
-	 * centre from here.
+	 * centre after persistence succeeds. Return the persistence promise. Decision
+	 * actions stay disabled until it settles; a rejection keeps the draft for
+	 * retry. The host reports persistence errors.
 	 *
 	 * @param selection - Every decision on the surface.
 	 */
-	readonly onSave: (selection: ConsentIabSelection) => void;
+	readonly onSave: (selection: ConsentIabSelection) => void | PromiseLike<void>;
 	/** Whether the centre is open. */
 	readonly open: boolean;
 	/**
@@ -150,6 +152,7 @@ const ConsentIabPreferencesRoot = ({
 
 	const manage = useMemo<IabManageState>(
 		() => ({
+			busy: draft.busy,
 			copy,
 			model,
 			onAction: draft.onAction,
@@ -212,8 +215,8 @@ const ConsentIabPreferencesRoot = ({
  *     onClose={() => {
  *         setOpen(false);
  *     }}
- *     onSave={(selection) => {
- *         void iab.save(selection);
+ *     onSave={async (selection) => {
+ *         await iab.save(selection);
  *         setOpen(false);
  *     }}
  *     open={open}

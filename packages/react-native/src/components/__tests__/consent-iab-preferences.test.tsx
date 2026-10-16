@@ -31,6 +31,7 @@ const mountIab = (
 	options: {
 		initialTab?: 'purposes' | 'vendors';
 		model?: ConsentIabDisplayModel;
+		onSave?: (selection: ConsentIabSelection) => void | PromiseLike<void>;
 		open?: boolean;
 		presentation?: 'page' | 'sheet';
 	} = {}
@@ -42,7 +43,9 @@ const mountIab = (
 			initialSelection={{ vendorConsents: { '755': true } }}
 			model={MODEL}
 			onClose={close}
-			onSave={(selection) => saved.push(selection)}
+			onSave={(selection) => {
+				saved.push(selection);
+			}}
 			open={open}
 			{...options}
 		/>
@@ -74,6 +77,64 @@ afterEach(() => {
 });
 
 describe('IAB preferences', () => {
+	test.each(['Save Settings', 'Accept All', 'Reject All'])(
+		'%s prevents another decision until persistence succeeds',
+		async (label) => {
+			const save = vi.fn(() => Promise.resolve());
+			const tree = mountIab({ onSave: save });
+			tap(toggle(tree.container(), PURPOSE));
+			const action = button(tree.container(), label);
+			const reject = button(tree.container(), 'Reject All');
+			flush(() => {
+				action.click();
+				reject.click();
+			});
+			expect(save).toHaveBeenCalledTimes(1);
+			expect(
+				toggle(tree.container(), PURPOSE).getAttribute('aria-checked')
+			).toBe('true');
+			for (const name of ['Save Settings', 'Accept All', 'Reject All']) {
+				expect(
+					button(tree.container(), name).getAttribute('aria-disabled')
+				).toBe('true');
+			}
+			await flushPromises();
+			expect(action.getAttribute('aria-disabled')).not.toBe('true');
+			tree.unmount();
+		}
+	);
+
+	test.each(['synchronous', 'asynchronous'])(
+		'%s save failure preserves edits for retry',
+		async (failure) => {
+			const save = vi.fn<
+				(selection: ConsentIabSelection) => void | Promise<void>
+			>(() => {
+				const error = new Error('persistence unavailable');
+				if (failure === 'synchronous') {
+					throw error;
+				}
+				return Promise.reject(error);
+			});
+			const tree = mountIab({ onSave: save });
+			tap(toggle(tree.container(), PURPOSE));
+			tap(button(tree.container(), 'Save Settings'));
+			await flushPromises();
+			expect(
+				toggle(tree.container(), PURPOSE).getAttribute('aria-checked')
+			).toBe('true');
+			expect(
+				button(tree.container(), 'Save Settings').getAttribute('aria-disabled')
+			).not.toBe('true');
+			save.mockImplementation(() => undefined);
+			tap(button(tree.container(), 'Save Settings'));
+			expect(save).toHaveBeenCalledTimes(2);
+			expect(save.mock.calls[1]?.[0].purposeConsents['1']).toBe(true);
+			await flushPromises();
+			tree.unmount();
+		}
+	);
+
 	test('toggling one partner renders only its native switch', async () => {
 		const tree = mountIab({ initialTab: 'vendors' });
 		await flushPromises();
@@ -309,6 +370,63 @@ describe('IAB preferences', () => {
 });
 
 describe('IAB first layer', () => {
+	test('a failed save from Manage keeps the draft and permits retry', async () => {
+		const save = vi
+			.fn()
+			.mockRejectedValueOnce(new Error('persistence unavailable'));
+		const tree = mountSurface(
+			<ConsentIabBanner
+				model={MODEL}
+				onSave={save}
+				open
+			/>
+		);
+		tap(button(tree.container(), 'Manage options'));
+		await flushPromises();
+		tap(toggle(tree.container(), PURPOSE));
+		tap(button(tree.container(), 'Save Settings'));
+		expect(
+			button(tree.container(), 'Save Settings').getAttribute('aria-disabled')
+		).toBe('true');
+		await flushPromises();
+		expect(toggle(tree.container(), PURPOSE).getAttribute('aria-checked')).toBe(
+			'true'
+		);
+		tap(button(tree.container(), 'Save Settings'));
+		expect(save).toHaveBeenCalledTimes(2);
+		expect(save.mock.calls[1]?.[0].purposeConsents['1']).toBe(true);
+		await flushPromises();
+		tree.unmount();
+	});
+
+	test.each(['Accept All', 'Reject All'])(
+		'%s disables first-layer decisions until persistence settles',
+		async (label) => {
+			const save = vi.fn(() => Promise.resolve());
+			const tree = mountSurface(
+				<ConsentIabBanner
+					model={MODEL}
+					onSave={save}
+					open
+				/>
+			);
+			const action = button(tree.container(), label);
+			flush(() => {
+				action.click();
+				action.click();
+			});
+			expect(save).toHaveBeenCalledTimes(1);
+			for (const name of ['Accept All', 'Reject All', 'Manage options']) {
+				expect(
+					button(tree.container(), name).getAttribute('aria-disabled')
+				).toBe('true');
+			}
+			await flushPromises();
+			expect(action.getAttribute('aria-disabled')).not.toBe('true');
+			tree.unmount();
+		}
+	);
+
 	test('discloses partners and opens their tab inside the sheet', async () => {
 		const tree = mountSurface(
 			<ConsentIabBanner

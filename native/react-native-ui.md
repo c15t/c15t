@@ -100,6 +100,12 @@ through `C15tProvider`. Your IAB integration supplies the disclosure, any stored
 selection, and the persistence callback. It also controls `open` and closes the
 component after recording a decision.
 
+Return the persistence promise from `onSave`, for example
+`onSave={(selection) => iab.save(selection)}`. Decision buttons stay disabled
+while it is pending. If saving throws or the promise rejects, the draft stays
+available for retry. Your callback reports the error and closes the component
+only after persistence succeeds.
+
 ```tsx
 import {
 	ConsentIabPreferences,
@@ -110,7 +116,7 @@ import {
 interface IabSettingsProps {
 	model: ConsentIabDisplayModel;
 	onClose: () => void;
-	onSave: (selection: ConsentIabSelection) => void;
+	onSave: (selection: ConsentIabSelection) => void | PromiseLike<void>;
 	open: boolean;
 }
 
