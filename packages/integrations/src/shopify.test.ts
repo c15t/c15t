@@ -177,7 +177,7 @@ describe('Shopify Customer Privacy bridge', () => {
 		]);
 	});
 
-	it('waits for the policy, then sends opt-out defaults before the visitor clicks', async () => {
+	it('waits for the policy, then leaves an untouched opt-out visitor to Shopify', async () => {
 		const shopify = installCustomerPrivacy();
 		let resolveInit: () => void = () => {};
 		const transport: KernelTransport = {
@@ -197,12 +197,25 @@ describe('Shopify Customer Privacy bridge', () => {
 		const init = kernel.commands.init();
 
 		expect(await isSettled(setup)).toBe(false);
-		expect(shopify.sent).toEqual([]);
 
 		resolveInit();
 		await init;
-		await setup;
-		expect(shopify.sent).toEqual([ALL_GRANTED]);
+		// Shopify records consent only on a visitor interaction, and applies
+		// its own region defaults until then.
+		expect(await isSettled(setup)).toBe(true);
+		expect(shopify.sent).toEqual([]);
+
+		await kernel.commands.save({ marketing: false });
+		await vi.waitFor(() =>
+			expect(shopify.sent).toEqual([
+				{
+					analytics: true,
+					marketing: false,
+					preferences: true,
+					sale_of_data: false,
+				},
+			])
+		);
 	});
 
 	it.each(['consentTrackingApiLoaded', 'shopifyCustomerPrivacyApiLoaded'])(
@@ -312,6 +325,33 @@ describe('Shopify Customer Privacy bridge', () => {
 		await vi.advanceTimersByTimeAsync(60_000);
 		// The first try and three retries.
 		expect(shopify.sent).toHaveLength(7);
+	});
+
+	it('gives a choice that fails again after a success a fresh set of retries', async () => {
+		fakeRetryTimers();
+		let failuresLeft = 2;
+		installCustomerPrivacy(() => {
+			if (failuresLeft > 0) {
+				failuresLeft -= 1;
+				return Promise.reject(new Error('network'));
+			}
+			return Promise.resolve();
+		});
+		const kernel = kernelWith('opt-in');
+		const onSync = vi.fn();
+		const bridge = createShopifyCustomerPrivacy({ onError: vi.fn(), onSync });
+		bridge.connect(kernel);
+
+		await kernel.commands.save('all');
+		await vi.advanceTimersByTimeAsync(3000);
+		expect(onSync).toHaveBeenCalledTimes(1);
+		await kernel.commands.save('none');
+		await vi.waitFor(() => expect(onSync).toHaveBeenCalledTimes(2));
+
+		failuresLeft = 1;
+		await kernel.commands.save('all');
+		await vi.advanceTimersByTimeAsync(1000);
+		expect(onSync).toHaveBeenCalledTimes(3);
 	});
 
 	it('sends a choice made during a request that Shopify rejects', async () => {

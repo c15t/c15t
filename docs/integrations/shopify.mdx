@@ -83,11 +83,14 @@ your own code.
 
 ## When the bridge sends
 
-The bridge sends nothing while the policy is pending. Under an opt-in or IAB
-policy it also waits until the visitor answers the banner, including with
-Reject All, so Shopify never records a denial the visitor didn't make. Under
-an opt-out policy the effective permissions already say what the visitor
-allows, so the bridge sends them on load.
+Shopify records consent only when the visitor makes a choice, so the bridge
+sends nothing until then, or while the policy is pending.
+
+- **Opt-in or IAB policy:** `setup` waits until the visitor answers the
+  banner, including with Reject All, so Hydrogen holds events until then.
+- **Opt-out policy:** `setup` resolves without recording anything, and
+  Shopify applies its region defaults, including Global Privacy Control,
+  until the visitor saves a choice in c15t.
 
 After the first choice, the bridge sends each change once. When a visitor
 revokes a category, c15t reloads the page and the bridge sends the stored

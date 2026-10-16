@@ -25,7 +25,11 @@ export interface ShopifyCustomerPrivacyApi {
 /** The snapshot fields the bridge reads. A full `ConsentSnapshot` fits. */
 export type ShopifyConsentSnapshot = Pick<
 	ConsentSnapshot,
-	'effectivePermissions' | 'model' | 'policyPending' | 'promptRequirement'
+	| 'effectivePermissions'
+	| 'explicitChoice'
+	| 'model'
+	| 'policyPending'
+	| 'promptRequirement'
 >;
 
 /** A kernel, or anything else with the same snapshot store shape. */
@@ -55,7 +59,7 @@ export interface ShopifyCustomerPrivacyOptions {
 export interface ShopifyCustomerPrivacyBridge {
 	/**
 	 * Pass the latest consent snapshot. The bridge sends it to Shopify once the
-	 * visitor no longer has a choice to make.
+	 * visitor has made a choice and has no new one to make.
 	 */
 	update: (snapshot: ShopifyConsentSnapshot) => void;
 	/**
@@ -167,23 +171,38 @@ export const toShopifyConsent = (
 };
 
 /**
- * Whether the snapshot is safe to send. The policy has to be resolved. Under
- * opt-in and IAB, an open choice prompt also has to be answered, including
- * with Reject All. Under opt-out, effective permissions already describe what
- * the visitor allows, so they go out before any click.
+ * What the bridge can do with a snapshot. Shopify records consent only on a
+ * visitor interaction, so nothing goes out before the visitor chooses.
+ *
+ * - `wait`: the policy is pending, or an opt-in or IAB visitor has not
+ *   answered the banner. Hydrogen keeps holding events.
+ * - `shopify-defaults`: under opt-out, the visitor has not chosen yet.
+ *   Hydrogen runs under Shopify's region defaults, which also read GPC.
+ * - `send`: the visitor has chosen, including with Reject All.
  */
-const isSettled = (snapshot: ShopifyConsentSnapshot): boolean =>
-	!snapshot.policyPending &&
-	(snapshot.promptRequirement.kind !== 'choice' ||
-		(snapshot.model !== 'opt-in' && snapshot.model !== 'iab'));
+const nextStep = (
+	snapshot: ShopifyConsentSnapshot
+): 'wait' | 'shopify-defaults' | 'send' => {
+	if (snapshot.policyPending) {
+		return 'wait';
+	}
+	const owesChoice = snapshot.promptRequirement.kind === 'choice';
+	if (snapshot.model === 'opt-in' || snapshot.model === 'iab') {
+		return owesChoice ? 'wait' : 'send';
+	}
+	return owesChoice || snapshot.explicitChoice === null
+		? 'shopify-defaults'
+		: 'send';
+};
 
 /**
  * Send c15t consent to Shopify's Customer Privacy API, for Hydrogen
  * storefronts and Liquid themes. It does not load Shopify's scripts.
  *
- * Nothing is sent while the policy is pending, or while an opt-in visitor
- * has not answered the banner, so Shopify never records a denial the visitor
- * did not make. After that, each change is sent once.
+ * Nothing is sent until the visitor makes a choice, so Shopify never records
+ * one the visitor did not make. Under opt-in and IAB policies, Hydrogen holds
+ * events until then. Under opt-out, Shopify's region defaults apply until
+ * then. After that, each change is sent once.
  *
  * @param options - Category overrides and callbacks.
  * @returns A bridge to feed snapshots and pass to Hydrogen's `ShopifyScripts`.
@@ -280,6 +299,8 @@ export const createShopifyCustomerPrivacy = (
 		}
 		sending = false;
 		sentKey = key;
+		failedKey = undefined;
+		failures = 0;
 		try {
 			options.onSync?.(consent);
 		} catch (error) {
@@ -294,7 +315,14 @@ export const createShopifyCustomerPrivacy = (
 	};
 
 	const update = (snapshot: ShopifyConsentSnapshot): void => {
-		if (!isSettled(snapshot)) {
+		const step = nextStep(snapshot);
+		if (step === 'wait') {
+			return;
+		}
+		if (step === 'shopify-defaults') {
+			if (!latest) {
+				resolveReady?.();
+			}
 			return;
 		}
 		latest = toShopifyConsent(
