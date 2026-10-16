@@ -7,6 +7,7 @@
 		"ccpa",
 		"cmp",
 		"consent",
+		"consent-banner",
 		"consent-management-platform",
 		"consent-manager",
 		"consent-mode-v2",
@@ -20,10 +21,14 @@
 		"iab-tcf",
 		"lgpd",
 		"preference-center",
+		"privacy",
+		"privacy-compliance",
 		"svelte",
 		"svelte-cookie-consent",
 		"sveltekit",
-		"typescript"
+		"typescript",
+		"user-consent",
+		"web-privacy"
 	],
 	"homepage": "https://c15t.com/docs/frameworks/svelte/quickstart",
 	"bugs": {

@@ -10,6 +10,7 @@
 		"ccpa",
 		"cmp",
 		"consent",
+		"consent-banner",
 		"consent-management-platform",
 		"consent-manager",
 		"consent-mode-v2",
@@ -19,11 +20,17 @@
 		"gdpr",
 		"global-privacy-control",
 		"google-consent-mode",
+		"iab",
 		"iab-tcf",
 		"islands",
 		"lgpd",
+		"privacy",
+		"react",
 		"ssr",
-		"typescript"
+		"svelte",
+		"tcf",
+		"typescript",
+		"vue"
 	],
 	"homepage": "https://c15t.com/docs/frameworks/astro/quickstart",
 	"bugs": {
