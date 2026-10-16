@@ -19,7 +19,7 @@ export function ConsentManager({ children }: { children: ReactNode }) {
       {children}
       <ConsentBanner />
       <ConsentDialog />
-      <ConsentDialogTrigger />
+      <ConsentDialogTrigger showWhen="after-prompt" />
     </ConsentProvider>
   )
 }

@@ -28,7 +28,7 @@ export function ConsentManager({
       {children}
       <ConsentBanner />
       <ConsentDialog />
-      <ConsentDialogTrigger />
+      <ConsentDialogTrigger showWhen="after-prompt" />
     </ConsentRoot>
   )
 }

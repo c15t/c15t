@@ -1,6 +1,7 @@
 "use client"
 
 import {
+  type ConsentDialogTriggerVisibility,
   useConsentDialogTrigger,
   useConsentLabels,
 } from "c15t/react/headless"
@@ -9,8 +10,14 @@ import { ConsentBrandingMark } from "@/components/c15t/consent-branding"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
-export function ConsentDialogTrigger({ className }: { className?: string }) {
-  const { isVisible, openDialog } = useConsentDialogTrigger()
+export function ConsentDialogTrigger({
+  className,
+  showWhen,
+}: {
+  className?: string
+  showWhen?: ConsentDialogTriggerVisibility
+}) {
+  const { isVisible, openDialog } = useConsentDialogTrigger({ showWhen })
   const { preferenceControls } = useConsentLabels()
 
   if (!isVisible) return null
