@@ -427,6 +427,33 @@ describe('Shopify Customer Privacy bridge', () => {
 		]);
 	});
 
+	it('drops a queued choice when the visitor moves to untouched opt-out', async () => {
+		const kernel = kernelWith('opt-in');
+		const bridge = createShopifyCustomerPrivacy();
+		bridge.connect(kernel);
+		const setup = bridge.setup();
+
+		// The choice waits for the Customer Privacy API to load.
+		await kernel.commands.save('all');
+		bridge.update({
+			effectivePermissions: {
+				functionality: true,
+				marketing: true,
+				measurement: true,
+				necessary: true,
+			},
+			explicitChoice: null,
+			model: 'opt-out',
+			policyPending: false,
+			promptRequirement: { kind: 'none' },
+		});
+		const shopify = installCustomerPrivacy();
+		document.dispatchEvent(new Event('consentTrackingApiLoaded'));
+
+		await setup;
+		expect(shopify.sent).toEqual([]);
+	});
+
 	it('cancels a scheduled retry when the policy becomes pending', async () => {
 		fakeRetryTimers();
 		const shopify = installCustomerPrivacy(() =>
