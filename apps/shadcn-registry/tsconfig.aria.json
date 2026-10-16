@@ -1,0 +1,14 @@
+{
+	"extends": "@c15t/typescript-config/react-library.json",
+	"compilerOptions": {
+		"declaration": false,
+		"lib": ["ES2022", "DOM", "DOM.Iterable"],
+		"target": "ES2022",
+		"paths": {
+			"@/components/c15t/*": ["./registry/aria/*"],
+			"@/components/ui/*": ["./vendor/aria/components/ui/*"],
+			"@/lib/utils": ["./vendor/aria/lib/utils"]
+		}
+	},
+	"include": ["registry/aria", "registry/setup", "vendor/aria"]
+}

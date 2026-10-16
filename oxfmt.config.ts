@@ -13,6 +13,9 @@ export default defineConfig({
 		'.tmp-bun/**',
 		'**/*.md',
 		'**/*.mdx',
+		// Registry sources and vendored shadcn ui keep upstream shadcn formatting.
+		'apps/shadcn-registry/registry/**',
+		'apps/shadcn-registry/vendor/**',
 		'packages/c15t/shims/**',
 		'packages/ui/types/**',
 	],
