@@ -105,31 +105,40 @@ const getCustomerPrivacy = (): ShopifyCustomerPrivacyApi | undefined => {
 		: undefined;
 };
 
+const toError = (reason: unknown): Error => {
+	const error =
+		typeof reason === 'object' && reason !== null && 'error' in reason
+			? reason.error
+			: reason;
+	return error instanceof Error ? error : new Error(String(error));
+};
+
 /**
- * The v0.2 API returns a promise when Hydrogen turns on async consent, and
- * calls back otherwise. Either can report `{ error }`.
+ * Shopify calls back with `(null, response)` or `({ error })`, before its
+ * returned promise settles. Once it has a callback, that promise fulfills even
+ * on failure, so the callback decides the result.
  */
 const setTrackingConsent = async (
 	api: ShopifyCustomerPrivacyApi,
 	consent: ShopifyConsentPreferences
 ): Promise<void> => {
-	const result = await new Promise<unknown>((resolve) => {
-		const returned = api.setTrackingConsent(consent, resolve);
-		if (
-			typeof returned === 'object' &&
-			returned !== null &&
-			'then' in returned &&
-			typeof returned.then === 'function'
-		) {
-			// Resolving with a thenable adopts its result or rejection.
-			resolve(returned);
-		}
+	let reply: (result?: unknown) => void = () => undefined;
+	const replied = new Promise<unknown>((resolve) => {
+		reply = resolve;
 	});
-	if (typeof result === 'object' && result !== null && 'error' in result) {
-		const { error } = result;
-		if (error) {
-			throw error instanceof Error ? error : new Error(String(error));
-		}
+	try {
+		await api.setTrackingConsent(consent, reply);
+	} catch (error) {
+		throw toError(error);
+	}
+	const result = await replied;
+	if (
+		typeof result === 'object' &&
+		result !== null &&
+		'error' in result &&
+		result.error
+	) {
+		throw toError(result);
 	}
 };
 

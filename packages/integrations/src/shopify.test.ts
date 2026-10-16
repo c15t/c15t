@@ -65,20 +65,31 @@ const kernelWith = (
 	return kernel;
 };
 
-/** Installs `window.Shopify.customerPrivacy` the way the v0.2 script does. */
+/**
+ * Installs `window.Shopify.customerPrivacy` the way the v0.2 script does.
+ * `respond` stands in for Shopify's server: it throws or rejects to fail.
+ * Like the real script, the mock then calls back with `(null, response)` or
+ * `({ error: message })`, and its returned promise fulfills either way.
+ */
 const installCustomerPrivacy = (
-	respond: (
-		consent: ShopifyConsentPreferences,
-		reply: (result?: unknown) => void
-	) => unknown = (_consent, reply) => {
-		queueMicrotask(() => reply({}));
-	}
+	respond: (consent: ShopifyConsentPreferences) => unknown = () => undefined
 ) => {
 	const sent: ShopifyConsentPreferences[] = [];
 	const setTrackingConsent = vi.fn(
-		(consent: ShopifyConsentPreferences, reply: (result?: unknown) => void) => {
+		async (
+			consent: ShopifyConsentPreferences,
+			reply: (result: unknown, response?: unknown) => void
+		) => {
 			sent.push(consent);
-			return respond(consent, reply);
+			let response: unknown;
+			try {
+				response = await respond(consent);
+			} catch (error) {
+				reply({ error: error instanceof Error ? error.message : error });
+				return;
+			}
+			reply(null, response);
+			return response;
 		}
 	);
 	(window as { Shopify?: unknown }).Shopify = {
@@ -123,9 +134,12 @@ describe('Shopify Customer Privacy bridge', () => {
 
 	it('resolves setup only after Shopify accepts the choice', async () => {
 		let accept: () => void = () => {};
-		installCustomerPrivacy((_consent, reply) => {
-			accept = () => reply({});
-		});
+		installCustomerPrivacy(
+			() =>
+				new Promise<void>((resolve) => {
+					accept = resolve;
+				})
+		);
 		const kernel = kernelWith('opt-in');
 		const bridge = createShopifyCustomerPrivacy();
 		bridge.connect(kernel);
@@ -220,15 +234,15 @@ describe('Shopify Customer Privacy bridge', () => {
 		await bridge.setup();
 		bridge.update(kernel.getSnapshot());
 		await kernel.commands.save({ marketing: false });
-		await vi.waitFor(() => expect(shopify.sent).toHaveLength(2));
+		await vi.waitFor(() => expect(onSync).toHaveBeenCalledTimes(2));
 
+		expect(shopify.sent).toHaveLength(2);
 		expect(shopify.sent[1]).toEqual({
 			analytics: true,
 			marketing: false,
 			preferences: true,
 			sale_of_data: false,
 		});
-		expect(onSync).toHaveBeenCalledTimes(2);
 	});
 
 	it('reports a rejected choice and retries with the next update', async () => {
@@ -253,14 +267,13 @@ describe('Shopify Customer Privacy bridge', () => {
 		expect(shopify.sent).toEqual([ALL_GRANTED, ALL_GRANTED]);
 	});
 
-	it('reports an error the callback returns and keeps Hydrogen blocked', async () => {
+	it('reports an error Shopify calls back with and keeps Hydrogen blocked', async () => {
 		fakeRetryTimers();
-		installCustomerPrivacy((_consent, reply) => {
-			queueMicrotask(() => reply({ error: 'Invalid domain' }));
-		});
+		const onSync = vi.fn();
+		installCustomerPrivacy(() => Promise.reject(new Error('Invalid domain')));
 		const kernel = kernelWith('opt-in');
 		const onError = vi.fn();
-		const bridge = createShopifyCustomerPrivacy({ onError });
+		const bridge = createShopifyCustomerPrivacy({ onError, onSync });
 		bridge.connect(kernel);
 		const setup = bridge.setup();
 
@@ -269,6 +282,7 @@ describe('Shopify Customer Privacy bridge', () => {
 			expect(onError).toHaveBeenCalledWith(new Error('Invalid domain'))
 		);
 		expect(await isSettled(setup)).toBe(false);
+		expect(onSync).not.toHaveBeenCalled();
 	});
 
 	it('resends a rejected choice on its own, then stops after three retries', async () => {
@@ -325,9 +339,12 @@ describe('Shopify Customer Privacy bridge', () => {
 
 	it('releases Hydrogen only after Shopify accepts the newest choice', async () => {
 		const accepts: (() => void)[] = [];
-		const shopify = installCustomerPrivacy((_consent, reply) => {
-			accepts.push(() => reply({}));
-		});
+		const shopify = installCustomerPrivacy(
+			() =>
+				new Promise<void>((resolve) => {
+					accepts.push(resolve);
+				})
+		);
 		const kernel = kernelWith('opt-in');
 		const bridge = createShopifyCustomerPrivacy();
 		bridge.connect(kernel);
