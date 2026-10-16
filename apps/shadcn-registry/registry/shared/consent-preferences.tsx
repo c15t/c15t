@@ -3,16 +3,11 @@
 import { useId } from "react"
 import { ChevronDownIcon } from "lucide-react"
 import type { AllConsentNames, PresentationAction } from "c15t/react"
+import { useConsentDraft, useTranslations } from "c15t/react"
 import {
-  useConsentDraft,
-  useDeclaredVendors,
-  useTranslations,
-} from "c15t/react"
-import {
-  type ResolvedVendor,
   useConsentLabels,
   useHeadlessConsentUI,
-  vendorsListedUnder,
+  useVendorsListedUnder,
 } from "c15t/react/headless"
 
 import { cn } from "@/lib/utils"
@@ -29,24 +24,24 @@ const defaultVendorCopy = {
 }
 
 /**
- * The vendors declared under one category, each with its own switch. The
- * switches stage grants on the same draft as the category switches, so one
- * save records both. They're disabled while the category is off, since a
- * vendor grant never turns its category on.
+ * The vendors the stock dialog lists under one category, each with its own
+ * switch. The switches stage grants on the same draft as the category
+ * switches, so one save records both. They're disabled while the category is
+ * off, since a vendor grant never turns its category on. Renders nothing when
+ * the category lists no vendors.
  */
-function ConsentVendors({
-  category,
-  vendors,
-}: {
-  category: AllConsentNames
-  vendors: ResolvedVendor[]
-}) {
+function ConsentVendors({ category }: { category: AllConsentNames }) {
+  const vendors = useVendorsListedUnder(category)
   const id = useId()
   const draft = useConsentDraft()
   const { consentManagerDialog } = useTranslations()
   const copy = { ...defaultVendorCopy, ...consentManagerDialog.vendors }
   const categoryOn = draft.values[category] === true
   const title = copy.title.replace("{count}", String(vendors.length))
+
+  if (vendors.length === 0) {
+    return null
+  }
 
   return (
     <details className="group rounded-lg border">
@@ -116,7 +111,6 @@ function ConsentVendors({
 export function ConsentPreferences({ className }: { className?: string }) {
   const id = useId()
   const draft = useConsentDraft()
-  const declaredVendors = useDeclaredVendors()
   const { consentTypes } = useTranslations()
 
   return (
@@ -124,7 +118,6 @@ export function ConsentPreferences({ className }: { className?: string }) {
       {draft.displayedCategories.map((category) => {
         const titleId = `${id}-${category}-title`
         const descriptionId = `${id}-${category}-description`
-        const vendors = vendorsListedUnder(declaredVendors, category)
 
         return (
           <div key={category} className="grid gap-3">
@@ -151,9 +144,7 @@ export function ConsentPreferences({ className }: { className?: string }) {
                 onCheckedChange={(checked) => draft.set(category, checked)}
               />
             </div>
-            {vendors.length > 0 && (
-              <ConsentVendors category={category} vendors={vendors} />
-            )}
+            <ConsentVendors category={category} />
           </div>
         )
       })}
