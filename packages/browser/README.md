@@ -26,7 +26,7 @@ c15t is used by [2,100+ sites](https://www.wappalyzer.com/technologies/cookie-co
 
 - One script tag from a CDN, configured with data attributes or calls queued on `window.c15t`
 - Prebuilt banner and preference dialog in a shadow root, so your site's CSS does not change them
-- Vendor scripts wait as `<script type="text/plain" data-c15t-category>` until consent. Iframes wait with `data-src` and `data-category`
+- Vendor scripts use `<script type="text/plain" data-c15t-category>` and iframes use `data-src` and `data-category`. They load when the resolved policy allows their categories
 - Buttons with `data-c15t-action` and links to `#c15t-preferences` work without code
 - A headless build with the same runtime and `window.c15t` API, for your own banner
 - DevTools (`c15t.devtools.js`) and IAB GPP (`c15t.gpp.js`) load as a second tag. For IAB TCF 2.4, load `c15t.iab.js` instead of `c15t.js`
@@ -60,7 +60,7 @@ npm install @c15t/browser
 ## Usage
 
 1. Add the tag and reload. The banner appears when the visitor's policy asks for one
-2. Change vendor tags to `type="text/plain"` with `data-c15t-category="measurement"` so they wait for consent
+2. Change vendor tags to `type="text/plain"` with `data-c15t-category="measurement"` so they load when the resolved policy allows that category
 3. Link to `#c15t-preferences` so visitors can reopen the preference dialog
 4. For every attribute and method, see the [HTML docs](https://c15t.com/docs/frameworks/html/attributes-and-api)
 

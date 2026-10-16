@@ -24,7 +24,7 @@ c15t is used by [2,100+ sites](https://www.wappalyzer.com/technologies/cookie-co
 
 ## Key Features
 
-- Each loader follows the visitor's choice. Most wait until the visitor allows their consent category. A few, such as Google Tag Manager, load at once and pass the choice to the vendor's own consent API
+- Most loaders run when the visitor's consent policy allows their category. A few, such as Google Tag Manager, load immediately and pass permission updates to the vendor's consent API
 - Prebuilt script loaders for popular analytics, advertising, marketing, and functional tools
 - Google Tag Manager support with Google Consent Mode v2 defaults and consent updates
 - Google Analytics 4 and Google Ads support through gtag.js
@@ -37,7 +37,7 @@ See the [documentation](https://c15t.com/docs/integrations) for guides, API refe
 
 ## Integrations
 
-- **Google Tag Manager**: Loads with Google Consent Mode v2 defaults set to denied; GTM-managed tags fire only once matching consent is granted ([guide](https://c15t.com/docs/integrations/google-tag-manager))
+- **Google Tag Manager**: Sends current permissions through Google Consent Mode v2; configure consent checks for non-Google tags ([guide](https://c15t.com/docs/integrations/google-tag-manager))
 - **Cloudflare Zaraz**: Maps c15t effective permissions to Zaraz purpose IDs for tools managed in Cloudflare ([guide](https://c15t.com/docs/integrations/cloudflare-zaraz))
 - **Google Analytics 4 + Google Ads (gtag.js)**: Consent Mode v2 defaults and consent updates when users make a choice ([guide](https://c15t.com/docs/integrations/google-tag))
 - **Conversion pixels**: Meta Pixel, OpenAI Pixel, Pinterest Tag, TikTok Pixel, LinkedIn Insights, Microsoft UET (Microsoft Ads), X Pixel, Reddit Pixel, Snapchat Pixel

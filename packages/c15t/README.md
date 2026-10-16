@@ -76,7 +76,7 @@ Then follow the quickstart for your framework in [Supported Frameworks](#support
 ## Usage
 
 1. Wrap your app in `ConsentProvider` with the backend URL from your Inth project, and add the banner, the dialog, and a link that opens the dialog again
-2. Add vendor loaders to `scripts` so each one waits for its consent category
+2. Add vendor loaders to `scripts` to apply category permissions and vendor consent APIs
 
 ```tsx
 // src/consent.tsx (React)
