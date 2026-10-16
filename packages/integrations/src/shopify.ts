@@ -176,25 +176,29 @@ export const toShopifyConsent = (
  * What the bridge can do with a snapshot. Shopify records consent only on a
  * visitor interaction, so nothing goes out before the visitor chooses.
  *
- * - `wait`: the policy is pending, or an opt-in or IAB visitor has not
+ * - `wait`: the policy is pending, or an opt-in or IAB visitor has never
  *   answered the banner. Hydrogen keeps holding events.
  * - `shopify-defaults`: under opt-out, the visitor has not chosen yet.
  *   Hydrogen runs under Shopify's region defaults, which also read GPC.
  * - `send`: the visitor has chosen, including with Reject All. Also when an
- *   opt-in or IAB choice Shopify has expires or the policy asks again, so
- *   Shopify drops grants c15t no longer honors. Hydrogen has already
- *   released its events by then.
+ *   earlier opt-in or IAB choice has expired or the policy asks again, in
+ *   this session or a past one, so Shopify drops grants c15t no longer
+ *   honors.
+ *
+ * `choseBefore` covers choices this bridge sent and choices c15t stored on
+ * an earlier page. IAB consent set through the CMP API can leave
+ * `explicitChoice` empty, so the stored record alone is not enough.
  */
 const nextStep = (
 	snapshot: ShopifyConsentSnapshot,
-	shopifyHasChoice: boolean
+	choseBefore: boolean
 ): 'wait' | 'shopify-defaults' | 'send' => {
 	if (snapshot.policyPending) {
 		return 'wait';
 	}
 	const owesChoice = snapshot.promptRequirement.kind === 'choice';
 	if (snapshot.model === 'opt-in' || snapshot.model === 'iab') {
-		return owesChoice && !shopifyHasChoice ? 'wait' : 'send';
+		return owesChoice && !choseBefore ? 'wait' : 'send';
 	}
 	return owesChoice || snapshot.explicitChoice === null
 		? 'shopify-defaults'
@@ -331,7 +335,10 @@ export const createShopifyCustomerPrivacy = (
 	};
 
 	const update = (snapshot: ShopifyConsentSnapshot): void => {
-		const step = nextStep(snapshot, latest !== undefined);
+		const step = nextStep(
+			snapshot,
+			latest !== undefined || snapshot.explicitChoice !== null
+		);
 		if (step === 'wait') {
 			return;
 		}

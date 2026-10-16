@@ -282,6 +282,28 @@ describe('Shopify Customer Privacy bridge', () => {
 		expect(shopify.sent).toEqual([ALL_GRANTED, ALL_DENIED]);
 	});
 
+	it('revokes the grants Shopify has on a page load after an opt-in choice expired', async () => {
+		const shopify = installCustomerPrivacy();
+		const lastVisit = kernelWith('opt-in');
+		await lastVisit.commands.save('all');
+		const { explicitChoice } = lastVisit.getSnapshot();
+
+		// A new page builds a new bridge, with the stored choice now expired.
+		const twoYears = 2 * 365 * 24 * 60 * 60 * 1000;
+		const kernel = kernelWith('opt-in', {
+			initialRecords: { choice: explicitChoice, now: Date.now() + twoYears },
+		});
+		expect(kernel.getSnapshot().promptRequirement).toEqual({
+			kind: 'choice',
+			reason: 'expired',
+		});
+		const bridge = createShopifyCustomerPrivacy();
+		bridge.connect(kernel);
+		await bridge.setup();
+
+		expect(shopify.sent).toEqual([ALL_DENIED]);
+	});
+
 	it('reports a rejected choice and retries with the next update', async () => {
 		fakeRetryTimers();
 		let fail = true;
