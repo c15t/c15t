@@ -534,6 +534,32 @@ describe('Shopify Customer Privacy bridge', () => {
 		expect(await isSettled(setup)).toBe(true);
 	});
 
+	it('ignores a rejection that arrives after the policy turned pending', async () => {
+		fakeRetryTimers();
+		let rejectFirst: (error: Error) => void = () => undefined;
+		const shopify = installCustomerPrivacy(() =>
+			shopify.sent.length === 1
+				? new Promise((_resolve, reject) => {
+						rejectFirst = reject;
+					})
+				: Promise.reject(new Error('network'))
+		);
+		const kernel = kernelWith('opt-in');
+		const bridge = createShopifyCustomerPrivacy({ onError: vi.fn() });
+		bridge.connect(kernel);
+
+		await kernel.commands.save('all');
+		await vi.waitFor(() => expect(shopify.sent).toHaveLength(1));
+		bridge.update({ ...kernel.getSnapshot(), policyPending: true });
+		rejectFirst(new Error('network'));
+		await vi.advanceTimersByTimeAsync(0);
+
+		bridge.update(kernel.getSnapshot());
+		await vi.advanceTimersByTimeAsync(10_000);
+		// The stale request, then the first try and three retries.
+		expect(shopify.sent).toHaveLength(5);
+	});
+
 	it('gives a revocation fresh retries after the same choice ran out of them', async () => {
 		fakeRetryTimers();
 		let failuresLeft = 5;

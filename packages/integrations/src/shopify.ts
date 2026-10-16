@@ -377,7 +377,8 @@ export const createShopifyCustomerPrivacy = (
 			release();
 			return;
 		}
-		const isNewer = () => latest !== undefined && latestKey() !== target;
+		// Set when a newer choice or a pending policy replaced this work.
+		const isStale = () => latestKey() !== target;
 		clearTimeout(retryTimer);
 		sending = true;
 		try {
@@ -385,8 +386,8 @@ export const createShopifyCustomerPrivacy = (
 		} catch (error) {
 			sending = false;
 			reportError(error);
-			if (isNewer()) {
-				// A newer choice arrived while this one was in flight.
+			if (isStale()) {
+				// Send the newer choice, if any, without counting this failure.
 				await flush();
 				return;
 			}
@@ -415,7 +416,7 @@ export const createShopifyCustomerPrivacy = (
 		} catch (error) {
 			reportError(error);
 		}
-		if (isNewer()) {
+		if (isStale()) {
 			// Release Hydrogen only once Shopify has the newest choice.
 			await flush();
 			return;
