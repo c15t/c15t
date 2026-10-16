@@ -7,6 +7,7 @@ import { createShopifyCustomerPrivacy } from '@c15t/integrations/shopify';
 import type { ShopifyScriptsI18n, ShopifyScriptsShop } from '@shopify/hydrogen';
 import { ShopifyScripts } from '@shopify/hydrogen/react';
 import { useSnapshot } from 'c15t/next';
+import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
 // One bridge per page. It sends each c15t choice to Shopify's Customer
@@ -21,14 +22,19 @@ export const ShopifyAnalytics = ({
 }: {
 	i18n: ShopifyScriptsI18n;
 	shop: ShopifyScriptsShop;
-}) => (
-	<ShopifyScripts
-		analytics={{ channel: 'headless' }}
-		consent={{ mode: 'custom-banner', setup: shopifyPrivacy.setup }}
-		i18n={i18n}
-		shop={shop}
-	/>
-);
+}) => {
+	const router = useRouter();
+	return (
+		<ShopifyScripts
+			analytics={{ channel: 'headless' }}
+			consent={{ mode: 'custom-banner', setup: shopifyPrivacy.setup }}
+			i18n={i18n}
+			// Shopify's scripts route storefront links through Next's router.
+			navigate={(url) => router.push(url)}
+			shop={shop}
+		/>
+	);
+};
 
 /** Feeds each c15t snapshot to the bridge. Render it inside `ConsentRoot`. */
 export const ShopifyConsentSync = () => {
