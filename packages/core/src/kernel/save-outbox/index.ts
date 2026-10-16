@@ -160,6 +160,19 @@ export const createSaveOutbox = function createSaveOutbox({
 }: SaveOutboxOptions): SaveOutbox {
 	const { batch, commit, emit, getSnapshot } = runtime;
 	let worker: QueueWorker | undefined;
+	// Instance-local: another page must still recover a stranded request.
+	const directSends = new Set<SavePayload>();
+	const isSending = (payload: SavePayload): boolean =>
+		[...directSends].some(
+			(pending) =>
+				pending.subjectId === payload.subjectId &&
+				pending.confirmed.actionAt === payload.confirmed.actionAt &&
+				// A narrowed replay is still this action; disjoint confirmations
+				// sharing its timestamp remain free to retry independently.
+				Object.keys(payload.confirmed.categories).every((category) =>
+					Object.hasOwn(pending.confirmed.categories, category)
+				)
+		);
 	// What requests wait for after the pre-send macrotask: see `hold()`.
 	let held: Promise<unknown> | undefined;
 
@@ -170,7 +183,12 @@ export const createSaveOutbox = function createSaveOutbox({
 		if (!worker) {
 			try {
 				const { createQueueWorker } = await loadQueue();
-				worker ??= createQueueWorker({ runtime, store, tools: queueTools });
+				worker ??= createQueueWorker({
+					isSending,
+					runtime,
+					store,
+					tools: queueTools,
+				});
 			} catch {
 				// Offline and never loaded: callers fall back or skip.
 			}
@@ -294,13 +312,27 @@ export const createSaveOutbox = function createSaveOutbox({
 		});
 	};
 
+	const trackDirectSend = async function trackDirectSend(
+		payload: SavePayload,
+		send: () => Promise<SaveResult>
+	): Promise<SaveResult> {
+		// Register before enqueueing or waiting for local persistence. A replay
+		// must not bypass those waits or duplicate this request while pending.
+		directSends.add(payload);
+		try {
+			return await send();
+		} finally {
+			directSends.delete(payload);
+		}
+	};
+
 	/**
 	 * Transport phase of one action. The outcome only touches the queue
 	 * while the action's confirmed receipts are current. Disjoint category
 	 * actions remain independent. Only the newest action can map the subject
 	 * returned by the server; older outcomes cannot replace its identity.
 	 */
-	const sendAction = async function sendAction(
+	const performSendAction = async function performSendAction(
 		payload: SavePayload,
 		action: RecordedAction,
 		// False on the resend after a subject reassignment, so a backend that
@@ -382,16 +414,19 @@ export const createSaveOutbox = function createSaveOutbox({
 			if (subjectId !== null) {
 				// The action's snapshot under the new subject, so a canonical id
 				// the resend returns is adopted like any other save's.
-				return sendAction(
-					withSubjectId(payload, subjectId),
-					{
-						...action,
-						snapshot: {
-							...actionSnapshot,
-							subject: { ...actionSnapshot.subject, subjectId },
+				const reassigned = withSubjectId(payload, subjectId);
+				return trackDirectSend(reassigned, () =>
+					performSendAction(
+						reassigned,
+						{
+							...action,
+							snapshot: {
+								...actionSnapshot,
+								subject: { ...actionSnapshot.subject, subjectId },
+							},
 						},
-					},
-					false
+						false
+					)
 				);
 			}
 			emit({ command: 'save', error, type: 'command:error' });
@@ -410,6 +445,7 @@ export const createSaveOutbox = function createSaveOutbox({
 			held = Promise.allSettled([held, until]);
 		},
 		replay,
-		send: (payload, action) => sendAction(payload, action, true),
+		send: (payload, action) =>
+			trackDirectSend(payload, () => performSendAction(payload, action, true)),
 	};
 };

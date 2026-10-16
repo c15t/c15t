@@ -424,6 +424,8 @@ export interface QueueWorkerOptions {
 	runtime: KernelRuntime;
 	store: SaveOutboxStore;
 	tools: QueueTools;
+	/** Whether this instance already owns a direct send for the action. */
+	isSending?: (payload: SavePayload) => boolean;
 }
 
 /** The queue operations of one outbox. */
@@ -446,6 +448,7 @@ export const createQueueWorker = function createQueueWorker({
 	runtime,
 	store,
 	tools,
+	isSending = () => false,
 }: QueueWorkerOptions): QueueWorker {
 	const { batch, commit, emit, getSnapshot } = runtime;
 	const {
@@ -717,7 +720,7 @@ export const createQueueWorker = function createQueueWorker({
 				isSamePendingSave(candidate, entry)
 			)
 		);
-		if (!stillQueued) {
+		if (!stillQueued || isSending(entry.payload)) {
 			return null;
 		}
 

@@ -638,6 +638,65 @@ describe('save outbox: queue and replay', () => {
 });
 
 describe('save outbox: online retry', () => {
+	test.each([true, false])(
+		'online replay leaves a pending direct save alone while retrying older choices (direct success: %s)',
+		async (ok) => {
+			let finish: (result: SaveResult) => void = () => {};
+			let marketingAttempts = 0;
+			const delivered: SavePayload[] = [];
+			const save = vi.fn<NonNullable<KernelTransport['save']>>(
+				(payload, context) => {
+					if (
+						payload.confirmed.categories.measurement !== undefined &&
+						!context?.replay
+					) {
+						return new Promise((resolve) => {
+							finish = resolve;
+						});
+					}
+					if (payload.confirmed.categories.marketing !== undefined) {
+						marketingAttempts += 1;
+						if (marketingAttempts === 1) {
+							return Promise.reject(new Error('offline'));
+						}
+					}
+					delivered.push(payload);
+					return accepted(payload);
+				}
+			);
+			const kernel = kernelOn({ transport: { save } });
+			const actionAt = Date.now();
+			await kernel.commands.save({ marketing: true }, { actionAt });
+			const pending = kernel.commands.save({ measurement: true }, { actionAt });
+			await vi.waitFor(() => expect(save).toHaveBeenCalledTimes(2));
+			window.dispatchEvent(new Event('online'));
+			await vi.waitFor(() => expect(delivered).toHaveLength(1));
+			// Let the replay finish traversing the queue after the older receipt.
+			await new Promise((resolve) => {
+				setTimeout(resolve, 0);
+			});
+			expect(delivered[0]?.confirmed.categories).toEqual({ marketing: true });
+			expect(delivered).toHaveLength(1);
+			expect(await queued()).toMatchObject([
+				{
+					attempts: 0,
+					payload: { confirmed: { categories: { measurement: true } } },
+				},
+			]);
+			finish({ ok });
+			await pending;
+			window.dispatchEvent(new Event('online'));
+			await vi.waitFor(async () => expect(await queued()).toEqual([]));
+			expect(delivered.map((payload) => payload.confirmed.categories)).toEqual(
+				ok
+					? [{ marketing: true }]
+					: [{ marketing: true }, { measurement: true }]
+			);
+
+			kernel.dispose();
+		}
+	);
+
 	test('online event replays a failed save', async () => {
 		const saveSpy = vi
 			.fn()
