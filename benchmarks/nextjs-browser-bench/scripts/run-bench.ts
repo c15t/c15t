@@ -331,21 +331,21 @@ const nullableMedian = function nullableMedian(
 	return numbers.length > 0 ? Number(median(numbers).toFixed(3)) : null;
 };
 
-/**
- * Persistence writes are debounced behind the save; wait until the consent
- * cookie is actually present before a load that depends on it.
- */
-const waitForConsentCookie = async function waitForConsentCookie(
+const waitForConsentSaveResponse = (page: PlaywrightTypes.Page) =>
+	page.waitForResponse(
+		(response) =>
+			response.request().method() === 'POST' &&
+			new URL(response.url()).pathname.endsWith('/subjects') &&
+			response.ok()
+	);
+
+/** Wait for local persistence and outbox cleanup after the save response. */
+const waitForStoredConsent = async function waitForStoredConsent(
 	page: PlaywrightTypes.Page
 ) {
-	await page.waitForFunction(
-		() =>
-			document.cookie
-				.split(';')
-				.some((entry) => entry.trim().startsWith('c15t=')),
-		undefined,
-		{ timeout: 10_000 }
-	);
+	await page.waitForFunction(storedConsentReadyExpression, undefined, {
+		timeout: 10_000,
+	});
 };
 
 /**
@@ -1032,6 +1032,10 @@ const runFreshScenario = async function runFreshScenario(
 			if (scenario.name !== 'baseline') {
 				assertSampleBannerState(metrics, scenario.name, 'fresh');
 			}
+			const saved =
+				scenario.name === 'ssr' && index >= effectiveWarmupIterations
+					? waitForConsentSaveResponse(page)
+					: undefined;
 			// oxlint-disable-next-line no-await-in-loop -- Samples run sequentially.
 			const interactionLatencyMs = await measureInteractionLatency(
 				page,
@@ -1058,7 +1062,9 @@ const runFreshScenario = async function runFreshScenario(
 					// on the next request and must render no banner. The browser
 					// HTTP cache is warm here, unlike the saved-consent visits.
 					// oxlint-disable-next-line no-await-in-loop -- Samples run sequentially.
-					await waitForConsentCookie(page);
+					await saved;
+					// oxlint-disable-next-line no-await-in-loop -- Samples run sequentially.
+					await waitForStoredConsent(page);
 					// oxlint-disable-next-line no-await-in-loop -- Samples run sequentially.
 					const repeatMetrics = await collectScenarioMetrics(
 						page,
@@ -1145,12 +1151,7 @@ const recordChoice = async function recordChoice(
 			undefined,
 			{ timeout: 30_000 }
 		);
-		const saved = page.waitForResponse(
-			(response) =>
-				response.request().method() === 'POST' &&
-				new URL(response.url()).pathname.endsWith('/subjects') &&
-				response.ok()
-		);
+		const saved = waitForConsentSaveResponse(page);
 		await page.click(`[data-testid="${visit.buttonTestId}"]`);
 		await page.waitForFunction(
 			() => {
@@ -1165,9 +1166,7 @@ const recordChoice = async function recordChoice(
 			{ timeout: 30_000 }
 		);
 		await saved;
-		await page.waitForFunction(storedConsentReadyExpression, undefined, {
-			timeout: 10_000,
-		});
+		await waitForStoredConsent(page);
 		return await context.storageState();
 	} finally {
 		await context.close();
@@ -1280,6 +1279,7 @@ const runTypicalInstallScenario = async function runTypicalInstallScenario(
 			await page.evaluate(scriptQuietExpression(1000));
 			// oxlint-disable-next-line no-await-in-loop -- Samples run sequentially.
 			const beforeAccept = await readTypicalVendors(page);
+			const saved = waitForConsentSaveResponse(page);
 			// oxlint-disable-next-line no-await-in-loop -- Samples run sequentially.
 			const interactionLatencyMs = await measureInteractionLatency(page, name);
 			// oxlint-disable-next-line no-await-in-loop -- Samples run sequentially.
@@ -1296,7 +1296,9 @@ const runTypicalInstallScenario = async function runTypicalInstallScenario(
 			}
 
 			// oxlint-disable-next-line no-await-in-loop -- Samples run sequentially.
-			await waitForConsentCookie(page);
+			await saved;
+			// oxlint-disable-next-line no-await-in-loop -- Samples run sequentially.
+			await waitForStoredConsent(page);
 			// oxlint-disable-next-line no-await-in-loop -- Samples run sequentially.
 			storageState = await context.storageState();
 			lastCookie = toCookieHeader(storageState.cookies);
