@@ -1,7 +1,7 @@
 {
 	"name": "c15t",
 	"version": "3.1.0",
-	"description": "Cookie consent manager and cookie banner for React, Next.js, Vue and JavaScript. Open-source CMP with GDPR, Google Consent Mode v2 and IAB TCF.",
+	"description": "The open standard for cookie banners. Cookie consent manager and CMP for React, Next.js, Vue and JavaScript, with GDPR, Google Consent Mode v2 and IAB TCF.",
 	"keywords": [
 		"cmp",
 		"consent",
