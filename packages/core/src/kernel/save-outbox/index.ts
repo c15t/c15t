@@ -233,8 +233,8 @@ export const createSaveOutbox = function createSaveOutbox({
 	};
 
 	/**
-	 * Drop queued saves `payload` superseded, so a later replay cannot
-	 * overwrite the newer receipts with stale ones.
+	 * Drop `payload` and the queued saves it superseded, so a later replay
+	 * cannot overwrite the newer receipts with stale ones.
 	 */
 	const discard = async function discard(payload: SavePayload): Promise<void> {
 		if (await hasQueued()) {

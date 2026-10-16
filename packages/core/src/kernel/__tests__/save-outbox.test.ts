@@ -1445,6 +1445,27 @@ describe('save outbox: queue module loading', () => {
 		expect(save).toHaveBeenCalledTimes(1);
 		kernel.dispose();
 	});
+
+	test.each([
+		['accepts', () => Promise.resolve({ ok: true })],
+		['refuses', () => Promise.reject(refused('STALE_POLICY'))],
+	] as const)(
+		'a strictly necessary receipt the backend %s leaves nothing to replay',
+		async (_outcome, respond) => {
+			const save = vi.fn<NonNullable<KernelTransport['save']>>(respond);
+			const kernel = kernelOn({
+				consentCategories: ['necessary'],
+				transport: { save },
+			});
+			await kernel.commands.init();
+			await kernel.commands.save('all');
+			// Confirms no category and no vendors, so no newer save supersedes it.
+			expect(save.mock.calls[0]?.[0].confirmed.categories).toEqual({});
+			expect(save.mock.calls[0]?.[0].vendorChoice).toBeUndefined();
+			expect(await queued()).toEqual([]);
+			kernel.dispose();
+		}
+	);
 });
 
 describe('save outbox: clearing records', () => {

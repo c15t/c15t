@@ -432,7 +432,7 @@ export interface QueueWorkerOptions {
 export interface QueueWorker {
 	/** Queue what `current()` still holds, read inside the transaction. */
 	enqueue: (current: () => SavePayload | null) => Promise<EnqueueResult>;
-	/** Drop the queued saves `payload` superseded. */
+	/** Drop `payload` and the queued saves it superseded. */
 	discard: (payload: SavePayload) => Promise<void>;
 	/** Move the visitor off a subject id the backend refused. */
 	reassignSubject: (from: string) => Promise<string | null>;
@@ -524,14 +524,21 @@ export const createQueueWorker = function createQueueWorker({
 	};
 
 	/**
-	 * Drop the queued saves `payload` superseded, so a later replay cannot
-	 * overwrite the newer receipts with stale ones. Queued actions for other
-	 * categories keep waiting for their own replay.
+	 * Drop `payload` and the queued saves it superseded, so a later replay
+	 * cannot overwrite the newer receipts with stale ones. Queued actions
+	 * for other categories keep waiting for their own replay.
 	 */
 	const discard = function discard(payload: SavePayload): Promise<void> {
+		const settled = JSON.stringify(payload);
 		return store.transact((tx) => {
 			const pending = readPendingSaves(tx);
 			const remaining = pending.flatMap((candidate) => {
+				// A receipt for strictly necessary alone confirms no category
+				// and no vendors, so supersession never covers it, not even
+				// by itself.
+				if (JSON.stringify(candidate.payload) === settled) {
+					return [];
+				}
 				const kept = withoutSuperseded(
 					candidate.payload,
 					supersededBy(candidate.payload, payload)
