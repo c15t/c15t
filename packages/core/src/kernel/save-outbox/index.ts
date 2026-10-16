@@ -11,11 +11,14 @@
  *
  * The send path loads with the kernel. Everything that reads the stored
  * queue (validation, replay, reassignment) is in `queue.ts`, imported the
- * first time it is needed, so a visitor with nothing queued never loads it.
- * A failed save never waits for it: until it has loaded, the entry is
+ * first time a visitor saves or replays a choice.
+ * Queueing never waits for it: until it has loaded, the entry is
  * appended as is and normalized on the next read.
  *
  * Interface:
+ * - Queue before send. An explicit action is stored before its transport
+ *   starts, so a page that unloads with an in-flight request leaves a replay
+ *   for the next page. Successful and permanently rejected saves remove it.
  * - Write before send. `send()` makes no transport call before the
  *   macrotask after it was called. `commands.save()` calls it once the
  *   action's commit has notified every listener, so a local writer that
@@ -256,7 +259,7 @@ export const createSaveOutbox = function createSaveOutbox({
 	 */
 	const settleThrownSave = async function settleThrownSave(
 		remaining: SavePayload,
-		current: () => SavePayload | null,
+		ensureQueued: () => Promise<EnqueueResult>,
 		error: unknown
 	): Promise<void> {
 		if (isConsentSaveRejection(error)) {
@@ -264,7 +267,7 @@ export const createSaveOutbox = function createSaveOutbox({
 			await discard(remaining);
 			return;
 		}
-		warnSaveFailed(await enqueue(current), error);
+		warnSaveFailed(await ensureQueued(), error);
 		retryWhenOnline();
 	};
 
@@ -320,12 +323,22 @@ export const createSaveOutbox = function createSaveOutbox({
 				liveSupersession(actionSnapshot, current)
 			);
 		};
+		const save = transport?.save;
+		let staged: EnqueueResult = 'unstored';
+		if (save) {
+			// A request may never settle when the document unloads. Waiting for
+			// its failure before queueing would lose this explicit action.
+			staged = await enqueue(currentPayload);
+		}
+		const ensureQueued = (): Promise<EnqueueResult> =>
+			staged === 'queued' && currentPayload() === payload
+				? Promise.resolve(staged)
+				: enqueue(currentPayload);
 		// A local write that is not ready yet holds the request, and without
 		// a request the save's completion, which a revocation reload waits for.
 		if (held) {
 			await held;
 		}
-		const save = transport?.save;
 		if (!save) {
 			return { confirmed, ok: true, subjectId: payload.subjectId };
 		}
@@ -337,17 +350,19 @@ export const createSaveOutbox = function createSaveOutbox({
 			});
 			const sending = currentPayload();
 			if (!sending) {
+				await discard(payload);
 				return { confirmed, ok: false };
 			}
 			const result = await save(sending);
 			const remaining = currentPayload();
 			if (!remaining) {
+				await discard(payload);
 				return { ...result, confirmed };
 			}
 			if (result.ok) {
 				await discard(remaining);
 			} else {
-				warnSaveFailed(await enqueue(currentPayload));
+				warnSaveFailed(await ensureQueued());
 				retryWhenOnline();
 			}
 			if (result.ok && currentPayload()) {
@@ -381,7 +396,9 @@ export const createSaveOutbox = function createSaveOutbox({
 			}
 			emit({ command: 'save', error, type: 'command:error' });
 			if (remaining) {
-				await settleThrownSave(remaining, currentPayload, error);
+				await settleThrownSave(remaining, ensureQueued, error);
+			} else {
+				await discard(payload);
 			}
 			return { confirmed, ok: false };
 		}

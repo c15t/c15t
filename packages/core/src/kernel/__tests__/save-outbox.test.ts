@@ -98,6 +98,49 @@ const accepted = ({ subjectId }: { subjectId: string }) =>
 	Promise.resolve({ ok: true, subjectId });
 
 describe('save outbox: queue and replay', () => {
+	test('a new runtime replays a choice whose request never settled', async () => {
+		const firstSend = vi.fn(
+			(_payload: SavePayload) => new Promise<SaveResult>(() => {})
+		);
+		const first = kernelOn({ transport: { save: firstSend } });
+		void first.commands.save({ measurement: true });
+		await vi.waitFor(() => expect(firstSend).toHaveBeenCalledTimes(1));
+		const original = firstSend.mock.calls[0]?.[0];
+		first.dispose();
+
+		const receipts: SavePayload[] = [];
+		const next = kernelOn({
+			transport: {
+				save: (payload) => {
+					receipts.push(payload);
+					return accepted(payload);
+				},
+			},
+		});
+		await next.commands.init();
+		await vi.waitFor(() => expect(receipts).toEqual([original]));
+		expect(receipts[0]?.choice.categories.measurement?.value).toBe(true);
+		await vi.waitFor(async () => expect(await queued()).toEqual([]));
+		next.dispose();
+	});
+
+	test('a cleared in-flight choice is not replayed by a new runtime', async () => {
+		const firstSend = vi.fn(
+			(_payload: SavePayload) => new Promise<SaveResult>(() => {})
+		);
+		const first = kernelOn({ transport: { save: firstSend } });
+		void first.commands.save({ measurement: true });
+		await vi.waitFor(() => expect(firstSend).toHaveBeenCalledTimes(1));
+		clearRecords(first);
+		first.dispose();
+		const nextSend = vi.fn(accepted);
+		const next = kernelOn({ transport: { save: nextSend } });
+		await next.commands.init();
+		expect(await queued()).toEqual([]);
+		expect(nextSend).not.toHaveBeenCalled();
+		next.dispose();
+	});
+
 	test('successful init starts replay without waiting for it', async () => {
 		const lifecycle: string[] = [];
 		let resolveReplay: (
@@ -1115,7 +1158,12 @@ describe('save outbox: subject reassignment', () => {
 		const saveSpy = vi
 			.fn()
 			.mockRejectedValueOnce(new Error('save offline'))
-			.mockRejectedValue(refused('SUBJECT_CONFLICT'));
+			.mockImplementation(() => {
+				gate = new Promise((resolve) => {
+					openGate = resolve;
+				});
+				return Promise.reject(refused('SUBJECT_CONFLICT'));
+			});
 		const kernel = kernelOn(
 			{
 				initialRecords: { subject: { subjectId: 'sub_from' } },
@@ -1125,9 +1173,6 @@ describe('save outbox: subject reassignment', () => {
 		);
 
 		await kernel.commands.save({ marketing: true });
-		gate = new Promise((resolve) => {
-			openGate = resolve;
-		});
 		const refusedSave = kernel.commands.save({ measurement: false });
 		await vi.waitFor(() => expect(saveSpy).toHaveBeenCalledTimes(2));
 		await new Promise((resolve) => {
@@ -1329,18 +1374,16 @@ describe('save outbox: queue module loading', () => {
 		online.dispose();
 	});
 
-	test('a successful save with nothing queued never loads the queue module', async () => {
-		const loadOutboxQueue = vi.fn(() => import('../save-outbox/queue'));
+	test('a successful save leaves no receipt to replay', async () => {
 		const save = vi.fn().mockResolvedValue({ ok: true });
-		const kernel = createKernel(
-			{ transport: { init: vi.fn().mockResolvedValue({}), save } },
-			{ loadOutboxQueue, outboxStore: store }
-		);
+		const kernel = kernelOn({ transport: { save } });
 		await kernel.commands.init();
 		await expect(kernel.commands.save('all')).resolves.toMatchObject({
 			ok: true,
 		});
-		expect(loadOutboxQueue).not.toHaveBeenCalled();
+		expect(await queued()).toEqual([]);
+		await kernel.commands.init();
+		expect(save).toHaveBeenCalledTimes(1);
 		kernel.dispose();
 	});
 });
