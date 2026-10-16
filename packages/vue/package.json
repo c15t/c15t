@@ -7,7 +7,6 @@
 		"ccpa",
 		"cmp",
 		"consent",
-		"consent-banner",
 		"consent-management-platform",
 		"consent-manager",
 		"consent-mode-v2",
@@ -24,13 +23,9 @@
 		"nuxt-cookie-consent",
 		"nuxt-module",
 		"preference-center",
-		"privacy",
-		"privacy-compliance",
 		"typescript",
-		"user-consent",
 		"vue",
-		"vue-cookie-consent",
-		"web-privacy"
+		"vue-cookie-consent"
 	],
 	"homepage": "https://c15t.com",
 	"bugs": {

@@ -1,6 +1,6 @@
 {
-	"title": "@c15t/integrations: Consent-aware vendor integrations",
-	"description": "Consent-aware script integrations for Google Tag Manager, Google Consent Mode v2, GA4, Google Ads, Meta Pixel, analytics tools, pixels, tag managers, and widgets.",
+	"title": "@c15t/integrations: Cookie consent integrations for analytics, ads and widgets",
+	"description": "Cookie consent integrations for Google Tag Manager, GA4, Google Ads, Meta Pixel, analytics tools, pixels, tag managers, and widgets. Control when scripts load and send visitors' choices through Google Consent Mode v2 and other vendor consent APIs.",
 	"features": [
 		"Each loader follows the visitor's choice. Most wait until the visitor allows their consent category. A few, such as Google Tag Manager, load at once and pass the choice to the vendor's own consent API",
 		"Prebuilt script loaders for popular analytics, advertising, marketing, and functional tools",

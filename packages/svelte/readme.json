@@ -1,6 +1,6 @@
 {
-	"title": "@c15t/svelte: Svelte and SvelteKit Consent Components",
-	"description": "Cookie banner, consent dialog, and preference center for Svelte 5 and SvelteKit, with headless state when you want your own design.",
+	"title": "@c15t/svelte: Svelte and SvelteKit cookie consent components",
+	"description": "Cookie consent banner, consent dialog, and preference center for Svelte 5 and SvelteKit. Configure consent policies for GDPR and other privacy laws. Use headless state when you want your own design.",
 	"features": [
 		"Works with Svelte 5.20 and later, and SvelteKit 2 and 3",
 		"On SvelteKit, `loadConsent` resolves the policy on the server, so the banner is in the first HTML",

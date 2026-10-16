@@ -24,5 +24,7 @@ packages:
 
 Each package's npm description now says what it does in the words people
 search for, such as cookie consent, cookie banner, GDPR, Google Consent Mode v2
-and IAB TCF. Keywords cover the same terms, and every package links to its
-directory in the repository.
+and IAB TCF. Focused keywords retain the relevant frameworks and integrations,
+and every package links to its directory in the repository. Framework, browser
+and core READMEs now introduce cookie consent and GDPR policy support before
+the setup instructions.
