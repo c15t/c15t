@@ -49,6 +49,8 @@ export const uiState: {
 	accessibilityListeners: Map<string, Set<Listener>>;
 	/** Value reported by `StatusBar.currentHeight`, in density-independent pixels. */
 	statusBarHeight: number | null;
+	/** Native switch renders, counted by accessible label. */
+	switchRenders: Map<string, number>;
 } = {
 	accessibilityListeners: new Map(),
 	announcements: [],
@@ -57,6 +59,7 @@ export const uiState: {
 	reduceMotion: false,
 	screenReader: false,
 	statusBarHeight: null,
+	switchRenders: new Map(),
 	window: { fontScale: 1, height: 844, scale: 3, width: 390 },
 };
 
@@ -101,6 +104,7 @@ export interface GestureStub {
 
 /** The handlers handed to `PanResponder.create`. */
 export interface PanResponderConfigStub {
+	readonly onPanResponderGrant?: (event: unknown, gesture: GestureStub) => void;
 	readonly onMoveShouldSetPanResponder?: (
 		event: unknown,
 		gesture: GestureStub
@@ -145,6 +149,7 @@ export const dragResponder = function dragResponder(
 		return false;
 	}
 
+	responder.onPanResponderGrant?.(null, full);
 	responder.onPanResponderMove?.(null, full);
 	responder.onPanResponderRelease?.(null, full);
 
@@ -197,7 +202,10 @@ export const appState: {
 } = { listeners: [], state: 'active' };
 
 /** Recorded navigation state. */
-export const linking: { opened: string[] } = { opened: [] };
+export const linking: {
+	opened: string[];
+	listeners: Set<(event: { url: string }) => void>;
+} = { listeners: new Set(), opened: [] };
 
 /** Platform override, so an Android-only path can be exercised. */
 export const platform: { os: 'android' | 'ios' | 'web' } = { os: 'ios' };
@@ -222,6 +230,7 @@ export const resetUiStub = function resetUiStub(): void {
 	uiState.screenReader = false;
 	uiState.window = { fontScale: 1, height: 844, scale: 3, width: 390 };
 	uiState.statusBarHeight = null;
+	uiState.switchRenders = new Map();
 	animationState.durations = [];
 	animationState.starts = 0;
 	animationState.jsDriverStarts = 0;
@@ -234,6 +243,7 @@ export const resetUiStub = function resetUiStub(): void {
 	gestureState.layoutAnimations = 0;
 	gestureState.responders = [];
 	linking.opened = [];
+	linking.listeners.clear();
 	platform.os = 'ios';
 	// `Platform.OS` is a mutable property the components read directly, so it has
 	// to come back with everything else or the next case inherits the platform.
@@ -720,6 +730,8 @@ interface SwitchPropsStub extends AccessibilityProps {
 
 export const Switch = (props: SwitchPropsStub): ReactElement => {
 	const disabled = props.disabled === true;
+	const label = props.accessibilityLabel ?? '';
+	uiState.switchRenders.set(label, (uiState.switchRenders.get(label) ?? 0) + 1);
 
 	return createElement(
 		'button',
@@ -1287,7 +1299,19 @@ export const setAppState = function setAppState(state: AppStateStatus): void {
 };
 
 export const Linking = {
+	addEventListener(
+		_type: 'url',
+		listener: (event: { url: string }) => void
+	): { remove: () => void } {
+		linking.listeners.add(listener);
+		return {
+			remove: () => {
+				linking.listeners.delete(listener);
+			},
+		};
+	},
 	canOpenURL: (): Promise<boolean> => Promise.resolve(true),
+	getInitialURL: (): Promise<string | null> => Promise.resolve(null),
 	openURL(url: string): Promise<void> {
 		linking.opened.push(url);
 		uiState.opened.push(url);

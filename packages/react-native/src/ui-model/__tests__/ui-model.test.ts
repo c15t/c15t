@@ -132,11 +132,33 @@ describe('applyIabToggle', () => {
 		'stack.999',
 		'purpose.999',
 		'purpose.x',
+		'specialFeature.999',
+		'vendor..consent',
+		'vendor.999.consent',
+		'vendor.999.legitimateInterest',
 		'vendor.755',
 		'category.marketing',
 		'',
 	])('leaves the draft alone for %j', (rowId) => {
 		expect(applyIabToggle(model, seeded, rowId, true)).toBe(seeded);
+	});
+
+	test('ignores an objection for a vendor with no legitimate-interest purposes', () => {
+		const consentOnly = {
+			...model,
+			vendors: model.vendors.map((vendor) => ({
+				...vendor,
+				legIntPurposes: [],
+			})),
+		};
+		expect(
+			applyIabToggle(
+				consentOnly,
+				seeded,
+				'vendor.755.legitimateInterest',
+				false
+			)
+		).toBe(seeded);
 	});
 });
 
@@ -155,6 +177,34 @@ describe('decideConsentIabSelection', () => {
 });
 
 describe('IAB screens', () => {
+	test('locks stacks whose members have no consent basis', () => {
+		const withoutConsent = {
+			...model,
+			consentRows: model.consentRows.map((row) =>
+				row.kind === 'stack'
+					? {
+							...row,
+							purposes: row.purposes.map((purpose) => ({
+								...purpose,
+								hasConsentBasis: false,
+							})),
+						}
+					: row
+			),
+		};
+		const stack = buildIabPurposes({
+			copy: iabCopy,
+			model: withoutConsent,
+			selection: seeded,
+		})
+			.sections.flatMap((section) => section.rows)
+			.find((row) => row.id === 'stack.42');
+		expect(stack?.control).toEqual({
+			disabled: true,
+			kind: 'switch',
+			value: false,
+		});
+	});
 	test('first layer keeps Accept and Reject at parity and counts partners', () => {
 		const screen = buildIabFirstLayer({ copy: iabCopy, model });
 

@@ -47,15 +47,19 @@ export { ConsentWidget } from './consent-widget';
 export type { ConsentWidgetProps } from './consent-widget';
 export {
 	CONSENT_COLOR_SCHEMES,
+	CONSENT_PLATFORMS,
 	createConsentTheme,
 	darkTheme,
 	lightTheme,
 	resolveConsentColorScheme,
+	resolveConsentPlatform,
 } from './theme/create-consent-theme';
 export type {
 	ConsentColorScheme,
+	ConsentPlatform,
 	ConsentTheme,
 	ConsentThemeColors,
+	ConsentThemeMetrics,
 	ConsentThemeMotion,
 	ConsentThemeOptions,
 	ConsentThemeRadius,

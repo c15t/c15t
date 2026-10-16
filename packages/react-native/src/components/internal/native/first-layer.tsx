@@ -18,6 +18,8 @@ import { useAccessibilityFocus } from './use-accessibility-focus';
 
 /** Props for {@link FirstLayer}. */
 export interface FirstLayerProps {
+	/** Whether a decision is being written. */
+	readonly disabled?: boolean;
 	/** Labels the rows need. */
 	readonly labels: ListLabels;
 	/**
@@ -48,6 +50,7 @@ const ignoreToggle = (): void => undefined;
  * @returns The first layer.
  */
 export const FirstLayer = ({
+	disabled = false,
 	labels,
 	onAction,
 	onNavigate,
@@ -94,6 +97,7 @@ export const FirstLayer = ({
 			</ScrollView>
 			<ActionFooter
 				actions={screen.actions}
+				disabled={disabled}
 				onAction={onAction}
 			/>
 		</>

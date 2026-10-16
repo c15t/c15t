@@ -254,6 +254,16 @@ export const applyIabToggle = function applyIabToggle(
 	const feature = numericSuffix(rowId, 'specialFeature.');
 
 	if (feature !== null) {
+		if (
+			!model.consentRows.some(
+				(row) =>
+					row.kind !== 'stack' &&
+					row.toggle === 'special-feature' &&
+					row.id === feature
+			)
+		) {
+			return selection;
+		}
 		return {
 			...selection,
 			specialFeatureOptIns: {
@@ -266,6 +276,9 @@ export const applyIabToggle = function applyIabToggle(
 	if (rowId.startsWith('vendor.')) {
 		if (rowId.endsWith('.consent')) {
 			const key = rowId.slice('vendor.'.length, -'.consent'.length);
+			if (!model.vendors.some((vendor) => String(vendor.id) === key)) {
+				return selection;
+			}
 
 			return {
 				...selection,
@@ -275,6 +288,14 @@ export const applyIabToggle = function applyIabToggle(
 
 		if (rowId.endsWith('.legitimateInterest')) {
 			const key = rowId.slice('vendor.'.length, -'.legitimateInterest'.length);
+			if (
+				!model.vendors.some(
+					(vendor) =>
+						String(vendor.id) === key && vendor.legIntPurposes.length > 0
+				)
+			) {
+				return selection;
+			}
 
 			return {
 				...selection,

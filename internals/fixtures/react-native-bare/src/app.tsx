@@ -274,7 +274,6 @@ export const App = () => {
 	const closeSheets = (): void => {
 		setPreferencesOpen(false);
 		setIabOpen(false);
-		setIabBannerOpen(false);
 	};
 	const links = useDemoDeepLinks({
 		actions,

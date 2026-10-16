@@ -360,6 +360,7 @@ const IabRouteScreen = ({
 	const { copy, onToggle, query, setQuery } = useIabManage();
 	const stack = useNavStack();
 	const screen = useIabScreen(route);
+	const handleNavigate = stack.push;
 
 	useEffect(() => {
 		if (screen === null && stack.top === route) {
@@ -383,7 +384,7 @@ const IabRouteScreen = ({
 				) : undefined
 			}
 			labels={{ moreInfo: copy.moreInfo, ok: copy.ok }}
-			onNavigate={(nextRoute) => stack.push(nextRoute)}
+			onNavigate={handleNavigate}
 			onToggle={onToggle}
 			screen={screen}
 			testID={`c15t-iab-${route}`}

@@ -11,6 +11,7 @@ import {
 	pressBack,
 	resetNativeStub,
 	setPlatformOS,
+	uiState,
 } from '../../__tests__/helpers/react-native-stub';
 import { resetConsentClient } from '../../native/client';
 import { ConsentIabBanner } from '../consent-iab-banner';
@@ -73,6 +74,16 @@ afterEach(() => {
 });
 
 describe('IAB preferences', () => {
+	test('toggling one partner renders only its native switch', async () => {
+		const tree = mountIab({ initialTab: 'vendors' });
+		await flushPromises();
+		uiState.switchRenders.clear();
+		tap(toggle(tree.container(), 'Google Advertising Products'));
+		expect([...uiState.switchRenders.keys()]).toEqual([
+			'Google Advertising Products',
+		]);
+		tree.unmount();
+	});
 	test('a closed page has no controls', () => {
 		const tree = mountIab({ open: false });
 		expect(roleNodes(tree.container(), 'button')).toHaveLength(0);
@@ -359,6 +370,39 @@ test('an interrupted push cannot restore the screen that was popped', async () =
 	expect(
 		tree.container().querySelector('[data-testid="c15t-iab-purpose.1"]')
 	).toBeNull();
+	tree.unmount();
+});
+
+test('an iOS edge swipe follows the finger and finishes from its release position', async () => {
+	const { gestureState } =
+		await import('../../__tests__/helpers/react-native-stub');
+	const tree = mountIab();
+	tap(button(tree.container(), PURPOSE));
+	await flushPromises();
+	const responder = gestureState.responders.at(-1);
+	if (!responder) {
+		throw new Error('back gesture is missing');
+	}
+	const gesture = { dx: 180, dy: 0, vx: 1, vy: 0 };
+	flush(() => {
+		responder.onPanResponderGrant?.(null, gesture);
+		responder.onPanResponderMove?.(null, gesture);
+	});
+	const leavingLayer = () =>
+		tree.container().querySelector('[data-testid="c15t-iab-purpose.1"]')
+			?.parentElement;
+	const translate = () =>
+		JSON.parse(leavingLayer()?.getAttribute('data-animated') ?? '{}')
+			.transform?.[0]?.translateX;
+	expect(translate()).toBeCloseTo(180);
+	expect(
+		tree.container().querySelector('[data-testid="c15t-iab-iab.manage"]')
+	).not.toBeNull();
+	flush(() => responder.onPanResponderRelease?.(null, gesture));
+	expect(translate()).toBeCloseTo(180);
+	await flushPromises();
+	expect(roleNodes(tree.container(), 'tab')).toHaveLength(2);
+	expect(tree.saved).toEqual([]);
 	tree.unmount();
 });
 

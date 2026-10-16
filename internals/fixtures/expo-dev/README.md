@@ -17,6 +17,10 @@ The IAB model is shared with the bare fixture. Follow its
 Android. The [API guide](../../../native/react-native-ui.md) covers component
 props and migration. Device and simulator validation of the redesign is pending.
 
+IAB selections are held in memory for UI review and reset when the app restarts.
+This fixture does not encode or persist IAB consent. A production host must save
+the selection and restore it through `initialSelection`, as the API guide describes.
+
 ## Expo Go will not run this app
 
 `@c15t/react-native` is a custom native module: the consent kernel is Swift on iOS and

@@ -21,6 +21,10 @@ import {
 	useState,
 } from 'react';
 import type { ReactElement, ReactNode } from 'react';
+import type {
+	GestureResponderEvent,
+	PanResponderGestureState,
+} from 'react-native';
 import {
 	Animated,
 	Easing,
@@ -175,12 +179,17 @@ export const NavStackView = ({
 	const { width } = useWindowDimensions();
 	const ios = theme.platform === 'ios';
 	const progress = useMemo(() => new Animated.Value(1), []);
+	const [dragging, setDragging] = useState(false);
+	const draggingRef = useRef(false);
 	const [shown, setShown] = useState<{
 		readonly direction: 'push' | 'pop' | null;
 		readonly from: string | null;
 		readonly routes: readonly string[];
 	}>({ direction: null, from: null, routes: stack.routes });
 	const previous = useRef(stack.routes);
+	useEffect(() => {
+		draggingRef.current = dragging;
+	}, [dragging]);
 
 	useEffect(() => {
 		const before = previous.current;
@@ -194,6 +203,8 @@ export const NavStackView = ({
 
 		const pushed = after.length > before.length;
 		const popped = after.length < before.length;
+		const fromSwipe = draggingRef.current;
+		setDragging(false);
 
 		if (!pushed && !popped) {
 			// A replace swaps the screen in place, the way a segment does.
@@ -228,7 +239,9 @@ export const NavStackView = ({
 
 		// A pop keeps the leaving screen on top until it has slid away.
 		setShown({ direction: 'pop', from: before.at(-1) ?? null, routes: after });
-		progress.setValue(1);
+		if (!fromSwipe) {
+			progress.setValue(1);
+		}
 		const animation = Animated.timing(progress, {
 			duration,
 			easing,
@@ -244,34 +257,51 @@ export const NavStackView = ({
 		return () => animation.stop();
 	}, [progress, reduced, stack.routes, theme.motion]);
 
+	const cancelSwipe = useCallback(() => {
+		Animated.spring(progress, {
+			damping: theme.motion.springDamping,
+			stiffness: theme.motion.springStiffness,
+			toValue: 1,
+			useNativeDriver: true,
+		}).start(({ finished }) => {
+			if (finished) {
+				setDragging(false);
+			}
+		});
+	}, [progress, theme.motion]);
+
+	const handleSwipeRelease = useCallback(
+		(_event: GestureResponderEvent, gesture: PanResponderGestureState) => {
+			if (gesture.dx > width * 0.35 || gesture.vx > 0.5) {
+				if (!stack.pop()) {
+					cancelSwipe();
+				}
+				return;
+			}
+			cancelSwipe();
+		},
+		[cancelSwipe, stack, width]
+	);
+
 	const swipe = useMemo(
 		() =>
 			PanResponder.create({
 				onMoveShouldSetPanResponder: (_event, gesture) =>
 					gesture.dx > 8 && Math.abs(gesture.dy) < Math.abs(gesture.dx),
+				onPanResponderGrant: () => {
+					progress.stopAnimation();
+					setDragging(true);
+				},
 				onPanResponderMove: (_event, gesture) => {
-					progress.setValue(1 - Math.max(0, gesture.dx) / width);
+					progress.setValue(
+						1 - Math.min(width, Math.max(0, gesture.dx)) / width
+					);
 				},
-				onPanResponderRelease: (_event, gesture) => {
-					if (gesture.dx > width * 0.35 || gesture.vx > 0.5) {
-						progress.setValue(1);
-						stack.pop();
-						return;
-					}
-
-					Animated.spring(progress, {
-						damping: theme.motion.springDamping,
-						stiffness: theme.motion.springStiffness,
-						toValue: 1,
-						useNativeDriver: true,
-					}).start();
-				},
-				onPanResponderTerminate: () => {
-					progress.setValue(1);
-				},
+				onPanResponderRelease: handleSwipeRelease,
+				onPanResponderTerminate: cancelSwipe,
 				onStartShouldSetPanResponder: () => true,
 			}),
-		[progress, stack, theme.motion, width]
+		[cancelSwipe, handleSwipeRelease, progress, width]
 	);
 
 	const pushing = shown.direction === 'push';
@@ -283,6 +313,8 @@ export const NavStackView = ({
 		under = shown.from;
 	} else if (shown.from !== null) {
 		under = shown.routes.at(-1);
+	} else if (dragging) {
+		under = shown.routes.at(-2);
 	}
 
 	let topStyle;
@@ -378,7 +410,7 @@ export const NavStackView = ({
 					</ActiveScreenContext.Provider>
 				</Animated.View>
 			)}
-			{ios && stack.depth > 1 && !reduced ? (
+			{ios && stack.depth > 1 && !reduced && shown.direction === null ? (
 				<View
 					{...swipe.panHandlers}
 					accessible={false}

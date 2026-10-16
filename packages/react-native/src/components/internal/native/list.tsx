@@ -519,7 +519,43 @@ const ListRowComponent = ({
 	);
 };
 
-const ListRow = memo(ListRowComponent);
+const sameControl = (
+	before: ScreenRow['control'],
+	after: ScreenRow['control']
+): boolean => {
+	if (before === after) {
+		return true;
+	}
+	if (before?.kind === 'switch' && after?.kind === 'switch') {
+		return before.disabled === after.disabled && before.value === after.value;
+	}
+	if (before?.kind === 'link' && after?.kind === 'link') {
+		return before.url === after.url;
+	}
+	if (before?.kind === 'value' && after?.kind === 'value') {
+		return before.text === after.text;
+	}
+	return false;
+};
+
+const ListRow = memo(
+	ListRowComponent,
+	(before, after) =>
+		before.first === after.first &&
+		before.last === after.last &&
+		before.moreInfo === after.moreInfo &&
+		before.ok === after.ok &&
+		before.onNavigate === after.onNavigate &&
+		before.onToggle === after.onToggle &&
+		before.parts === after.parts &&
+		before.theme === after.theme &&
+		before.row.id === after.row.id &&
+		before.row.title === after.row.title &&
+		before.row.detail === after.row.detail &&
+		before.row.info === after.row.info &&
+		before.row.navigatesTo === after.row.navigatesTo &&
+		sameControl(before.row.control, after.row.control)
+);
 
 /** Props for {@link BrandingFootnote}. */
 interface BrandingFootnoteProps {

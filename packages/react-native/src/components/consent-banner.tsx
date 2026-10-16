@@ -16,7 +16,7 @@
  * made elsewhere in the app does not rerender it.
  */
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import type { ReactElement } from 'react';
 import { View } from 'react-native';
 
@@ -101,6 +101,8 @@ export const ConsentBanner = ({
 		isStatusPromptOwed(status) &&
 		(status.activeUI === null || status.activeUI === 'banner');
 	const [shown, setShown] = useState(owed);
+	const [busy, setBusy] = useState(false);
+	const busyRef = useRef(false);
 
 	// A prompt owed again later starts from the first layer, not from wherever
 	// the last one was left. Reset on the way in rather than out, so the sheet
@@ -118,13 +120,27 @@ export const ConsentBanner = ({
 		[copy, notice]
 	);
 	const managing = stack.top === PREFERENCES_SCREEN;
+	const write = useCallback(async (commit: () => Promise<unknown>) => {
+		if (busyRef.current) {
+			return;
+		}
+		busyRef.current = true;
+		setBusy(true);
+		try {
+			await commit();
+		} catch {
+			// The snapshot reports the error. Leave the prompt available for retry.
+		}
+		busyRef.current = false;
+		setBusy(false);
+	}, []);
 
 	const onAction = useCallback(
 		(id: ScreenActionId) => {
 			if (id === 'acceptAll') {
-				void actions.acceptAll();
+				void write(actions.acceptAll);
 			} else if (id === 'rejectAll') {
-				void actions.rejectAll();
+				void write(actions.rejectAll);
 			} else if (id === 'acknowledge') {
 				actions.dismissNotice();
 			} else if (id === 'manage') {
@@ -135,7 +151,7 @@ export const ConsentBanner = ({
 				}
 			}
 		},
-		[actions, onCustomize, stack]
+		[actions, onCustomize, stack, write]
 	);
 
 	const dismissNotice = useCallback(() => {
@@ -173,6 +189,7 @@ export const ConsentBanner = ({
 						</View>
 					) : (
 						<FirstLayer
+							disabled={busy}
 							labels={{ moreInfo: copy.moreInfo, ok: copy.ok }}
 							onAction={onAction}
 							open={owed}

@@ -205,7 +205,11 @@ const stackRow = function stackRow(
 	const state = stackState(stack, selection);
 
 	return {
-		control: { disabled: false, kind: 'switch', value: state === 'all' },
+		control: {
+			disabled: !stack.purposes.some((purpose) => purpose.hasConsentBasis),
+			kind: 'switch',
+			value: state === 'all',
+		},
 		detail:
 			state === 'some'
 				? copy.partiallyEnabled

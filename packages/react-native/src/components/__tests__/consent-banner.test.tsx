@@ -89,7 +89,7 @@ describe('ConsentBanner', () => {
 		tree.unmount();
 	});
 
-	test('accept all and reject all each reach the core once', () => {
+	test('accept all and reject all each reach the core once', async () => {
 		const tree = mountSurface(<ConsentBanner />);
 
 		tap(requireRole(tree.container(), 'button', 'Alle akzeptieren'));
@@ -98,6 +98,7 @@ describe('ConsentBanner', () => {
 		expect(JSON.parse(tree.fake.commitIntents[0] as string)).toEqual({
 			action: 'all',
 		});
+		await flushPromises();
 
 		tap(requireRole(tree.container(), 'button', 'Alle ablehnen'));
 
@@ -108,6 +109,40 @@ describe('ConsentBanner', () => {
 
 		tree.unmount();
 	});
+
+	test.each(['Alle akzeptieren', 'Alle ablehnen'])(
+		'%s cannot submit another choice while its write is pending',
+		async (label) => {
+			const tree = mountSurface(<ConsentBanner />);
+			const accept = requireRole(tree.container(), 'button', label);
+			flush(() => {
+				accept.click();
+				accept.click();
+			});
+			expect(tree.fake.commitIntents).toHaveLength(1);
+			expect(accept.getAttribute('aria-disabled')).toBe('true');
+			await flushPromises();
+			expect(accept.getAttribute('aria-disabled')).not.toBe('true');
+			tree.unmount();
+		}
+	);
+
+	test.each(['Alle akzeptieren', 'Alle ablehnen'])(
+		'a refused %s keeps the prompt and permits retry',
+		async (label) => {
+			const tree = mountSurface(<ConsentBanner />);
+			tree.fake.failCommitWith('unavailable');
+			tap(requireRole(tree.container(), 'button', label));
+			await flushPromises();
+			expect(tree.text()).toContain('Deine Privatsphaere');
+			const retry = requireRole(tree.container(), 'button', label);
+			expect(retry.getAttribute('aria-disabled')).not.toBe('true');
+			tap(retry);
+			await flushPromises();
+			expect(tree.fake.commitIntents).toHaveLength(2);
+			tree.unmount();
+		}
+	);
 
 	test('acknowledge records the dismissal and writes no consent', () => {
 		const tree = mountSurface(

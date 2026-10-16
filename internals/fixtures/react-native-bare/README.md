@@ -50,6 +50,10 @@ standalone preferences open. The IAB fixture shares its display model with the
 Expo app. See the [API guide](../../../native/react-native-ui.md) and
 [shared UI spec](../../../native/UI.md).
 
+IAB selections are held in memory for UI review and reset when the app restarts.
+This fixture does not encode or persist IAB consent. A production host must save
+the selection and restore it through `initialSelection`, as the API guide describes.
+
 Review these on both platforms, in light and dark mode:
 
 - Open the first-layer sheet, then Manage. The same sheet expands.
