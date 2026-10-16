@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/translations",
-	"version": "3.1.0-canary.0",
+	"version": "3.1.0",
 	"description": "Cookie banner and cookie consent translations for c15t in 35 languages. Typed i18n strings for consent banners, dialogs and preference centers.",
 	"keywords": [
 		"c15t",
