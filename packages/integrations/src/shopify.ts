@@ -296,19 +296,23 @@ export const createShopifyCustomerPrivacy = (
 		console.error('[c15t] Shopify Customer Privacy sync failed', error);
 	};
 
+	const reportedConsent = (
+		api: ShopifyCustomerPrivacyApi
+	): Partial<Record<string, string>> | undefined => {
+		try {
+			return api.currentVisitorConsent?.();
+		} catch {
+			// A report that throws counts as no report.
+		}
+	};
+
 	// What Shopify may grant: what the bridge sent and what Shopify reports.
 	// Without a report, a choice c15t stored may have granted anything. IAB
 	// consent set through the CMP API leaves `explicitChoice` empty, so the
 	// report matters there.
 	const heldGrants = (
-		api: ShopifyCustomerPrivacyApi
+		visitor: Partial<Record<string, string>> | undefined
 	): ShopifyConsentPreferences => {
-		let visitor: Partial<Record<string, string>> | undefined;
-		try {
-			visitor = api.currentVisitorConsent?.();
-		} catch {
-			visitor = undefined;
-		}
 		const held = (key: keyof ShopifyConsentPreferences): boolean =>
 			sent?.[key] === true || (visitor ? visitor[key] === 'yes' : storedChoice);
 		return {
@@ -349,14 +353,21 @@ export const createShopifyCustomerPrivacy = (
 			return;
 		}
 		const target = latestKey();
-		const consent = revoking ? revocation(heldGrants(api), latest) : latest;
+		const visitor = revoking ? reportedConsent(api) : undefined;
+		const consent = revoking ? revocation(heldGrants(visitor), latest) : latest;
 		if (!consent) {
 			// Shopify holds nothing c15t denies, so there is nothing to revoke.
 			release();
 			return;
 		}
 		const key = JSON.stringify(consent);
-		if (key === sentKey) {
+		// Shopify reports a grant this revocation drops, so it still holds it
+		// even if the bridge sent the same revocation before, for example
+		// after another tab granted it again.
+		const stillReported = consentKeys.some(
+			(name) => name in consent && visitor?.[name] === 'yes'
+		);
+		if (key === sentKey && !stillReported) {
 			// Shopify already has the latest choice, for example after the
 			// visitor went back to it while a newer request failed. That ends
 			// the failed choice's retries.
@@ -379,8 +390,10 @@ export const createShopifyCustomerPrivacy = (
 				await flush();
 				return;
 			}
-			if (key !== failedKey) {
-				failedKey = key;
+			// A revocation is new work even when its payload matches a choice
+			// that ran out of retries.
+			if (target !== failedKey) {
+				failedKey = target;
 				failures = 0;
 			}
 			const delay = retryDelays[failures];

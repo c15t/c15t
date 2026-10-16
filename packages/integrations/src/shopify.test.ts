@@ -423,6 +423,42 @@ describe('Shopify Customer Privacy bridge', () => {
 		expect(shopify.sent).toEqual([{ marketing: false, sale_of_data: false }]);
 	});
 
+	it('revokes a grant Shopify reports again after an earlier revocation', async () => {
+		const shopify = installCustomerPrivacy();
+		let reported = 'yes';
+		Object.assign(
+			(window as { Shopify: { customerPrivacy: object } }).Shopify
+				.customerPrivacy,
+			{ currentVisitorConsent: () => ({ marketing: reported }) }
+		);
+		const owesChoice: ShopifyConsentSnapshot = {
+			effectivePermissions: {
+				functionality: true,
+				marketing: false,
+				measurement: true,
+				necessary: true,
+			},
+			explicitChoice: null,
+			model: 'opt-out',
+			policyPending: false,
+			promptRequirement: { kind: 'choice', reason: 'policy-changed' },
+		};
+		const bridge = createShopifyCustomerPrivacy();
+		const setup = bridge.setup();
+		bridge.update(owesChoice);
+		await setup;
+		expect(shopify.sent).toEqual([{ marketing: false }]);
+		reported = 'no';
+
+		// Another tab grants marketing again.
+		reported = 'yes';
+		bridge.update({ ...owesChoice });
+
+		await vi.waitFor(() =>
+			expect(shopify.sent).toEqual([{ marketing: false }, { marketing: false }])
+		);
+	});
+
 	it('drops a queued choice when the visitor moves to untouched opt-out', async () => {
 		const kernel = kernelWith('opt-in');
 		const bridge = createShopifyCustomerPrivacy();
@@ -496,6 +532,42 @@ describe('Shopify Customer Privacy bridge', () => {
 
 		expect(shopify.sent).toHaveLength(6);
 		expect(await isSettled(setup)).toBe(true);
+	});
+
+	it('gives a revocation fresh retries after the same choice ran out of them', async () => {
+		fakeRetryTimers();
+		let failuresLeft = 5;
+		const shopify = installCustomerPrivacy(() => {
+			if (failuresLeft > 0) {
+				failuresLeft -= 1;
+				return Promise.reject(new Error('network'));
+			}
+			return Promise.resolve();
+		});
+		const kernel = kernelWith('opt-in');
+		const bridge = createShopifyCustomerPrivacy({ onError: vi.fn() });
+		bridge.connect(kernel);
+
+		await kernel.commands.save('none');
+		await vi.advanceTimersByTimeAsync(7000);
+		// The first try and three retries.
+		expect(shopify.sent).toEqual([
+			ALL_DENIED,
+			ALL_DENIED,
+			ALL_DENIED,
+			ALL_DENIED,
+		]);
+
+		// The choice expires, so the bridge now revokes what it may have
+		// granted before. That payload matches the failed choice.
+		bridge.update({
+			...kernel.getSnapshot(),
+			promptRequirement: { kind: 'choice', reason: 'expired' },
+		});
+		await vi.waitFor(() => expect(shopify.sent).toHaveLength(5));
+		await vi.advanceTimersByTimeAsync(1000);
+
+		expect(shopify.sent).toHaveLength(6);
 	});
 
 	it('reports a rejected choice and retries with the next update', async () => {
