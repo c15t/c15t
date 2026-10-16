@@ -1,6 +1,6 @@
 {
-	"title": "@c15t/react: React Cookie Banner and Consent Components",
-	"description": "React cookie banner, consent dialog, and preference center for React 18 and 19, with headless hooks when you want your own design.",
+	"title": "@c15t/react: React cookie banner and cookie consent components",
+	"description": "React cookie banner, consent dialog, and preference center for React 18 and 19. Each visitor's consent policy decides whether optional cookies wait for an opt-in, as EU cookie rules require, or load until the visitor opts out. Use headless hooks when you want your own design.",
 	"features": [
 		"Works with React 18 and 19, including React Server Components through 'use client' entry points",
 		"Prebuilt cookie banner, consent dialog, and preference center with a theme system",

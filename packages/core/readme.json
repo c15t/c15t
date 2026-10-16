@@ -1,9 +1,9 @@
 {
-	"title": "@c15t/core: Headless Consent Engine",
-	"description": "The headless JavaScript engine behind every c15t adapter. It resolves consent policies, stores choices, and holds back scripts, iframes, and network requests until a visitor allows them. Use it to build your own consent UI or to connect a framework that has no c15t adapter.",
+	"title": "@c15t/core: Headless JavaScript cookie consent engine",
+	"description": "The headless JavaScript cookie consent engine behind every c15t adapter. It resolves consent policies for GDPR and other privacy laws, stores choices, and holds back configured scripts, iframes, and network requests that the visitor's policy and choices do not allow. Use it to build your own consent UI or to connect a framework that has no c15t adapter.",
 	"features": [
 		"Bring your own UI: render from a consent snapshot, and c15t keeps state, storage, and policy resolution",
-		"Scripts, iframes, and network requests wait for the right consent category",
+		"Control configured scripts, iframes, and network requests with category permissions from the resolved policy",
 		"Policies decide who sees a banner: opt-in for visitors in the EU, opt-out for some US states, or rules that you write",
 		"Google Consent Mode v2, IAB TCF 2.4, and Global Privacy Control support",
 		"Creating a runtime has no side effects, so the module is safe to import on the server",

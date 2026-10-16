@@ -1,93 +1,203 @@
 c15t:release:
-  - branch: canary
-    id: npm:@c15t/scripts
-    version: 3.0.1-canary.0
-  - branch: canary
-    id: npm:@c15t/svelte
-    version: 3.1.0-canary.0
-  - branch: canary
-    id: npm:@c15t/node-sdk
-    version: 3.1.0-canary.0
-  - branch: canary
-    id: npm:@c15t/astro
-    version: 3.1.0-canary.0
-  - branch: canary
-    id: npm:@c15t/translations
-    version: 3.1.0-canary.0
-  - branch: canary
-    id: npm:@c15t/ui
-    version: 3.0.1-canary.0
-  - branch: canary
-    id: npm:@c15t/browser
-    version: 3.1.0-canary.0
-  - branch: canary
-    id: npm:@c15t/iab
-    version: 3.1.0-canary.0
-  - branch: canary
-    id: npm:@c15t/vue
-    version: 3.1.0-canary.0
-  - branch: canary
+  - branch: main
     id: npm:@c15t/backend
-    version: 3.1.0-canary.0
-  - branch: canary
+    version: 3.1.0
+  - branch: main
     id: npm:@c15t/integrations
-    version: 3.1.0-canary.0
-  - branch: canary
+    version: 3.1.0
+  - branch: main
     id: npm:@c15t/dev-tools
-    version: 3.1.0-canary.0
-  - branch: canary
+    version: 3.1.0
+  - branch: main
+    id: npm:@c15t/vue
+    version: 3.1.0
+  - branch: main
     id: npm:c15t
-    version: 3.1.0-canary.0
-  - branch: canary
+    version: 3.1.0
+  - branch: main
     id: npm:@c15t/nextjs
-    version: 3.1.0-canary.0
-  - branch: canary
+    version: 3.1.0
+  - branch: main
     id: npm:@c15t/schema
-    version: 3.1.0-canary.0
-  - branch: canary
+    version: 3.1.0
+  - branch: main
     id: npm:@c15t/react
-    version: 3.1.0-canary.0
-  - branch: canary
+    version: 3.1.0
+  - branch: main
     id: npm:@c15t/cli
-    version: 3.1.0-canary.0
-  - branch: canary
+    version: 3.1.0
+  - branch: main
     id: npm:@c15t/tanstack-start
-    version: 3.1.0-canary.0
-  - branch: canary
+    version: 3.1.0
+  - branch: main
     id: npm:@c15t/core
-    version: 3.1.0-canary.0
+    version: 3.1.0
+  - branch: main
+    id: npm:@c15t/translations
+    version: 3.1.0
+  - branch: main
+    id: npm:@c15t/scripts
+    version: 3.0.1
+  - branch: main
+    id: npm:@c15t/svelte
+    version: 3.1.0
+  - branch: main
+    id: npm:@c15t/node-sdk
+    version: 3.1.0
+  - branch: main
+    id: npm:@c15t/astro
+    version: 3.1.0
+  - branch: main
+    id: npm:@c15t/ui
+    version: 3.0.1
+  - branch: main
+    id: npm:@c15t/browser
+    version: 3.1.0
+  - branch: main
+    id: npm:@c15t/iab
+    version: 3.1.0
 core:changelogs:
-  - content: "---\npackages:\n  c15t:\n    type: patch\n  \"@c15t/astro\":\n    type: patch\n  \"@c15t/browser\":\n    type: patch\n  \"@c15t/vue\":\n    type: patch\n  \"@c15t/svelte\":\n    type: patch\n---\n\n### Space legal links after the banner description\n\nLegal links in the banner and dialog now read the same in every framework as\nthey do in React: a space after the description, then the links separated by\ncommas, for example \"…at any time. Privacy policy, Cookie policy\".\n\n- Astro: the links no longer run into the description or into each other, and\n  they take the stock legal link style.\n- Script tag (`@c15t/browser`): the links no longer run into the description\n  or into each other.\n- Vue and Nuxt: the links stay inline after the description. Before, they sat\n  on a row of their own with a gap on each side of the comma.\n- Svelte: the gaps around the links are one space wide.\n"
-    filename: 2026-10-13-inline-legal-links.md
+  - content: "---\npackages:\n  \"@c15t/astro\":\n    type: patch\n  \"@c15t/backend\":\n    type: patch\n  \"@c15t/browser\":\n    type: patch\n  c15t:\n    type: patch\n  \"@c15t/cli\":\n    type: patch\n  \"@c15t/core\":\n    type: patch\n  \"@c15t/dev-tools\":\n    type: patch\n  \"@c15t/iab\":\n    type: patch\n  \"@c15t/integrations\":\n    type: patch\n  \"@c15t/nextjs\":\n    type: patch\n  \"@c15t/node-sdk\":\n    type: patch\n  \"@c15t/react\":\n    type: patch\n  \"@c15t/schema\":\n    type: patch\n  \"@c15t/svelte\":\n    type: patch\n  \"@c15t/tanstack-start\":\n    type: patch\n  \"@c15t/translations\":\n    type: patch\n  \"@c15t/ui\":\n    type: patch\n  \"@c15t/vue\":\n    type: patch\n---\n\n### Clearer npm descriptions and keywords\n\nEach package's npm description now says what it does in the words people\nsearch for, such as cookie consent, cookie banner, GDPR, Google Consent Mode v2\nand IAB TCF. Keywords add common search terms while preserving existing\nframework, brand and integration terms. The schema and UI packages now link\nto their directories in the repository. Framework, browser and core READMEs\nnow explain how consent policies handle GDPR and other privacy laws before\nthe setup instructions.\n"
+    filename: 2026-10-16-npm-package-metadata.md
     v: 0.0.0
-  - content: "---\npackages:\n  \"@c15t/ui\":\n    type: patch\n  \"@c15t/react\":\n    type: patch\n  c15t:\n    type: patch\n  \"@c15t/vue\":\n    type: patch\n  \"@c15t/svelte\":\n    type: patch\n  \"@c15t/browser\":\n    type: patch\n  \"@c15t/astro\":\n    type: patch\n  \"@c15t/nextjs\":\n    type: patch\n  \"@c15t/tanstack-start\":\n    type: patch\n---\n\n### The preference dialog scrolls with your CSS\n\nVisitors can scroll to every category and vendor in the preference dialog\nagain. Before this fix, the category list did not scroll with some app CSS.\nThe cause was `overflow: hidden` on the category list or on a category row,\nfor example to clip them to rounded corners. On a phone, a category with\nvendors then went past the bottom of the dialog. The visitor could not scroll\nto the rest.\n"
-    filename: 2026-10-12-dialog-category-list-scroll.md
-    v: 0.0.0
-  - content: "---\npackages:\n  \"@c15t/core\":\n    type: patch\n  c15t:\n    type: patch\n  \"@c15t/react\":\n    type: patch\n  \"@c15t/nextjs\":\n    type: patch\n  \"@c15t/tanstack-start\":\n    type: patch\n  \"@c15t/vue\":\n    type: patch\n  \"@c15t/svelte\":\n    type: patch\n  \"@c15t/browser\":\n    type: patch\n  \"@c15t/astro\":\n    type: patch\n  \"@c15t/cli\":\n    type: patch\n---\n\n### Vendor switches show only when you declare vendors\n\nThe preference dialog shows only category switches until you declare a\nvendor. Your visitors make one choice for each category. You do not get\nvendor switches that you did not ask for.\n\nSince 3.0.0, the dialog showed a switch for the vendor of each\n`@c15t/integrations` helper. For example, a site that added only `posthog()`\ngot a PostHog switch under Analytics. We did not intend this default.\n\nTo show vendor switches, declare at least one vendor in the `vendors` option\nor on the backend. The dialog then also lists the vendors of your helpers by\nname, as before. This change affects only the dialog. It does not change when\na script loads.\n"
-    filename: 2026-10-12-vendor-switches-opt-in.md
-    v: 0.0.0
-  - content: "---\npackages:\n  \"@c15t/core\":\n    type: patch\n  \"@c15t/react\":\n    type: patch\n  \"@c15t/vue\":\n    type: patch\n  \"@c15t/svelte\":\n    type: patch\n  \"@c15t/browser\":\n    type: patch\n  \"@c15t/astro\":\n    type: patch\n  \"@c15t/nextjs\":\n    type: patch\n  \"@c15t/tanstack-start\":\n    type: patch\n  c15t:\n    type: patch\n---\n\n### Keep saved helper vendor denials accessible\n\nA helper vendor the visitor previously switched off stays visible in the\npreference dialog when the site declares no vendors. The visitor can turn that\nvendor on without changing any category choices. Its saved denial continues to\nblock loading until the visitor changes it and saves. Other helper vendors stay\nhidden until the site declares a vendor.\n\nThe browser dialog updates helper rows when saved vendor consent changes while\nit is open.\n"
-    filename: 2026-10-14-saved-helper-vendor-denials.md
-    v: 0.0.0
-  - content: "---\npackages:\n  \"@c15t/backend\":\n    type: minor\n  \"@c15t/core\":\n    type: minor\n  \"@c15t/iab\":\n    type: minor\n  \"@c15t/react\":\n    type: minor\n  \"@c15t/react-native\":\n    type: minor\n  \"@c15t/schema\":\n    type: minor\n  \"@c15t/svelte\":\n    type: minor\n  \"@c15t/vue\":\n    type: minor\n  \"@c15t/browser\":\n    type: minor\n  \"@c15t/astro\":\n    type: minor\n  \"@c15t/translations\":\n    type: minor\n---\n\n### Support Google Additional Consent\n\nIAB TCF setups can pass consent to Google ad tech providers that are not on\nthe Global Vendor List. List their Google ATP IDs in the manifest's\n`iab.additionalConsent.providers`: the self-hosted backend loads their names\nand privacy policies like the vendor list, caches them and sends them in\n`/init`, and framework servers and browsers that resolve `/init` from the\nmanifest load them the same way. Setups without such a backend can pass\n`additionalConsent.providers` to the browser instead. The React, Vue, Svelte\nand script-tag preference centres show each provider with its privacy policy\nand a consent switch, and the banner's partner count includes them.\n\n`__tcfapi` returns an Additional Consent v2 string as `addtlConsent` beside\n`tcString`, for example `2~89~dv.2572`. A provider counts as consented only\nwhen its switch is on and the visitor consented to TCF purposes 1, 3 and 4.\nc15t stores the string in the `addtl_consent` cookie and localStorage entry\nwith the TC String, restores it for returning visitors, and removes it when it\nwithdraws the TC String. Consent saves send it with the TC String, and the\nself-hosted backend records it in a new `consent.addtlConsent` column. Run the\nbackend migrations to add the column. Provider names and policy links load from\n`https://gvl.inth.app/additional-consent` unless an endpoint is configured.\nThe backend keeps serving the last list it loaded when that endpoint fails.\n\n`IABPreferenceCenterTranslations.vendorList` gains two required keys,\n`adTechProvidersHeading` and `adTechProvidersNotice`, translated for every\nbuilt-in locale. Custom translation sets need both.\n"
+  - content: "---\npackages:\n  \"@c15t/backend\":\n    replay:\n      - exit-prerelease(npm:@c15t/backend)\n  \"@c15t/core\":\n    replay:\n      - exit-prerelease(npm:@c15t/core)\n  \"@c15t/iab\":\n    replay:\n      - exit-prerelease(npm:@c15t/iab)\n  \"@c15t/react\":\n    replay:\n      - exit-prerelease(npm:@c15t/react)\n  \"@c15t/schema\":\n    replay:\n      - exit-prerelease(npm:@c15t/schema)\n  \"@c15t/svelte\":\n    replay:\n      - exit-prerelease(npm:@c15t/svelte)\n  \"@c15t/vue\":\n    replay:\n      - exit-prerelease(npm:@c15t/vue)\n  \"@c15t/browser\":\n    replay:\n      - exit-prerelease(npm:@c15t/browser)\n  \"@c15t/astro\":\n    replay:\n      - exit-prerelease(npm:@c15t/astro)\n  \"@c15t/translations\":\n    replay:\n      - exit-prerelease(npm:@c15t/translations)\n---\n\n### Support Google Additional Consent\n\nIAB TCF setups can pass consent to Google ad tech providers that are not on\nthe Global Vendor List. List their Google ATP IDs in the manifest's\n`iab.additionalConsent.providers`: the self-hosted backend loads their names\nand privacy policies like the vendor list, caches them and sends them in\n`/init`, and framework servers and browsers that resolve `/init` from the\nmanifest load them the same way. Setups without such a backend can pass\n`additionalConsent.providers` to the browser instead. The React, Vue, Svelte\nand script-tag preference centres show each provider with its privacy policy\nand a consent switch, and the banner's partner count includes them.\n\n`__tcfapi` returns an Additional Consent v2 string as `addtlConsent` beside\n`tcString`, for example `2~89~dv.2572`. A provider counts as consented only\nwhen its switch is on and the visitor consented to TCF purposes 1, 3 and 4.\nc15t stores the string in the `addtl_consent` cookie and localStorage entry\nwith the TC String, restores it for returning visitors, and removes it when it\nwithdraws the TC String. Consent saves send it with the TC String, and the\nself-hosted backend records it in a new `consent.addtlConsent` column. Run the\nbackend migrations to add the column. Provider names and policy links load from\n`https://gvl.inth.app/additional-consent` unless an endpoint is configured.\nThe backend keeps serving the last list it loaded when that endpoint fails.\n\n`IABPreferenceCenterTranslations.vendorList` gains two required keys,\n`adTechProvidersHeading` and `adTechProvidersNotice`, translated for every\nbuilt-in locale. Custom translation sets need both.\n"
     filename: 2026-10-12-google-additional-consent.md
     v: 0.0.0
-  - content: "---\npackages:\n  \"@c15t/svelte\":\n    type: patch\n---\n\n### State the Svelte 5.20 requirement in the peer range\n\n`@c15t/svelte` now declares `svelte@^5.20.0` as its peer dependency. The\ncomponents use `$props.id()`, which Svelte added in 5.20, so earlier Svelte 5\nversions already failed to compile them. Package managers now warn at install\ntime instead. CI builds and smoke-tests a SvelteKit 2.63 app on Svelte 5.20 to\nkeep this floor accurate.\n"
-    filename: 2026-10-14-svelte-peer-range.md
+  - content: "---\npackages:\n  \"@c15t/integrations\":\n    type: patch\n---\n\n### PostHog no longer starts after a refusal that lands mid-download\n\nWith `posthog({ loadMode: 'after-consent' })`, a refusal that arrived while\n`array.js` was still downloading did not stop PostHog. When the download\nfinished, PostHog started, sent a `$pageview` and a `/flags` request, and with\n`cookieless_mode: 'never'` wrote its cookie and storage.\n\nA refusal now clears PostHog's queued init, so `array.js` starts nothing. If the\nvisitor allows measurement again on the same page after `array.js` has run,\nPostHog starts on the next page load.\n"
+    filename: 2026-10-14-posthog-refusal-during-download.md
     v: 0.0.0
-  - content: "---\npackages:\n  \"@c15t/core\":\n    type: patch\n  \"@c15t/iab\":\n    type: patch\n---\n\n### Return only base TC data when the policy does not use IAB TCF\n\nWhen the visitor's resolved policy does not use IAB TCF, `__tcfapi`\n`getTCData`, `getInAppTCData` and `addEventListener` now return only\n`gdprApplies: false`, `tcfPolicyVersion`, `cmpId` and `cmpVersion`, beside\n`cmpStatus`, `eventStatus` and `listenerId`. CMP API v2 allows no other\nfields in that case, so no TC string, `addtlConsent`, purpose or vendor data\nreaches vendors. The policy decides this, not the visitor's jurisdiction.\n\nThe new `TCDataOutsideTCF` type describes that response. `__tcfapi`\ncallbacks now receive `TCData | TCDataOutsideTCF`, and `TCData.gdprApplies`\nis `true`, so check `gdprApplies` before reading `tcString`.\n"
-    filename: 2026-10-14-tcdata-outside-iab-policy.md
+  - content: "---\npackages:\n  \"@c15t/integrations\":\n    type: patch\n---\n\n### List Sentry in the preference dialog when the app runs the Sentry SDK\n\n`sentry({ getClient })` declared the `sentry` vendor without a name or privacy\npolicy URL. Core logged a missing-declaration warning, and a site that shows\nvendor switches could not list Sentry, so visitors could not turn it off inside\na granted category. The script now carries the same vendor details as\n`sentry({ dsn })`.\n"
+    filename: 2026-10-14-sentry-sdk-vendor-details.md
     v: 0.0.0
-  - content: "---\npackages:\n  \"@c15t/tanstack-start\":\n    type: patch\n---\n\n### Support TanStack Start 1.0\n\n`@c15t/tanstack-start` is now built and tested against TanStack Start 1.0\n(`@tanstack/react-start` 1.169 and `@tanstack/react-router` 1.170.44).\n`@tanstack/react-start` 1.168.60 and later 1.168 releases still work, and the\npeer ranges are unchanged: `@tanstack/react-start` `^1.168.60` and\n`@tanstack/react-router` `^1.170.41`.\n\nTanStack Start 1.0 needs Vite 8 or later, up from Vite 7, so upgrade Vite before\nyou upgrade TanStack Start. Upgrade `@tanstack/react-router` with it: each\n`@tanstack/react-start` release depends on one exact router version, 1.170.43\nor later for 1.0, and an older router in your app installs a second copy.\n\nTanStack Start 1.0 also removes `.inputValidator()` from `createServerFn()` and\n`createMiddleware()`. If your app calls it, rename it to `.validator()` when you\nupgrade. The c15t integration and the code it generates don't call it.\n"
+  - content: "---\npackages:\n  \"@c15t/core\":\n    type: minor\n  c15t:\n    type: minor\n  \"@c15t/react\":\n    type: minor\n  \"@c15t/nextjs\":\n    type: minor\n  \"@c15t/tanstack-start\":\n    type: minor\n  \"@c15t/vue\":\n    type: minor\n  \"@c15t/svelte\":\n    type: minor\n  \"@c15t/astro\":\n    type: minor\n  \"@c15t/browser\":\n    type: minor\n  \"@c15t/integrations\":\n    type: patch\n---\n\n### Get the provider's event dispatcher in every framework\n\nEach framework now hands you one event dispatcher that sends to the provider's\nregistered scripts and reads consent when an event goes out:\n\n- `useEventDispatcher()` from `c15t/react`, `c15t/next` and\n  `c15t/tanstack-start`\n- `useEventDispatcher()` from `c15t/vue/vue-plugin`, auto-imported in Nuxt\n- `getEventDispatcher()` from `@c15t/svelte`\n- `getEventDispatcher()` from `c15t/astro/client`\n- `getEventDispatcher(runtime)` from `@c15t/browser`\n\nAll dispatchers for one provider share a pageview history, so a consent change\nor a remount no longer drops or resends a pageview, and an event sent right\nafter a visitor withdraws consent is dropped. Pass `scripts` to add more\ndestinations and `pageviews` to choose which integrations get single-page-app\npageviews. `createEventDispatcher` from `@c15t/integrations/events` still works\nfor code without a provider.\n"
+    filename: 2026-10-14-event-dispatcher-helpers.md
+    v: 0.0.0
+  - content: "---\npackages:\n  c15t:\n    replay:\n      - exit-prerelease(npm:c15t)\n  \"@c15t/astro\":\n    replay:\n      - exit-prerelease(npm:@c15t/astro)\n  \"@c15t/browser\":\n    replay:\n      - exit-prerelease(npm:@c15t/browser)\n  \"@c15t/vue\":\n    replay:\n      - exit-prerelease(npm:@c15t/vue)\n  \"@c15t/svelte\":\n    replay:\n      - exit-prerelease(npm:@c15t/svelte)\n---\n\n### Space legal links after the banner description\n\nLegal links in the banner and dialog now read the same in every framework as\nthey do in React: a space after the description, then the links separated by\ncommas, for example \"…at any time. Privacy policy, Cookie policy\".\n\n- Astro: the links no longer run into the description or into each other, and\n  they take the stock legal link style.\n- Script tag (`@c15t/browser`): the links no longer run into the description\n  or into each other.\n- Vue and Nuxt: the links stay inline after the description. Before, they sat\n  on a row of their own with a gap on each side of the comma.\n- Svelte: the gaps around the links are one space wide.\n"
+    filename: 2026-10-13-inline-legal-links.md
+    v: 0.0.0
+  - content: "---\npackages:\n  \"@c15t/ui\":\n    replay:\n      - exit-prerelease(npm:@c15t/ui)\n  \"@c15t/react\":\n    replay:\n      - exit-prerelease(npm:@c15t/react)\n  c15t:\n    replay:\n      - exit-prerelease(npm:c15t)\n  \"@c15t/vue\":\n    replay:\n      - exit-prerelease(npm:@c15t/vue)\n  \"@c15t/svelte\":\n    replay:\n      - exit-prerelease(npm:@c15t/svelte)\n  \"@c15t/browser\":\n    replay:\n      - exit-prerelease(npm:@c15t/browser)\n  \"@c15t/astro\":\n    replay:\n      - exit-prerelease(npm:@c15t/astro)\n  \"@c15t/nextjs\":\n    replay:\n      - exit-prerelease(npm:@c15t/nextjs)\n  \"@c15t/tanstack-start\":\n    replay:\n      - exit-prerelease(npm:@c15t/tanstack-start)\n---\n\n### The preference dialog scrolls with your CSS\n\nVisitors can scroll to every category and vendor in the preference dialog\nagain. Before this fix, the category list did not scroll with some app CSS.\nThe cause was `overflow: hidden` on the category list or on a category row,\nfor example to clip them to rounded corners. On a phone, a category with\nvendors then went past the bottom of the dialog. The visitor could not scroll\nto the rest.\n"
+    filename: 2026-10-12-dialog-category-list-scroll.md
+    v: 0.0.0
+  - content: "---\npackages:\n  \"@c15t/core\":\n    replay:\n      - exit-prerelease(npm:@c15t/core)\n  c15t:\n    replay:\n      - exit-prerelease(npm:c15t)\n  \"@c15t/react\":\n    replay:\n      - exit-prerelease(npm:@c15t/react)\n  \"@c15t/nextjs\":\n    replay:\n      - exit-prerelease(npm:@c15t/nextjs)\n  \"@c15t/tanstack-start\":\n    replay:\n      - exit-prerelease(npm:@c15t/tanstack-start)\n  \"@c15t/vue\":\n    replay:\n      - exit-prerelease(npm:@c15t/vue)\n  \"@c15t/svelte\":\n    replay:\n      - exit-prerelease(npm:@c15t/svelte)\n  \"@c15t/browser\":\n    replay:\n      - exit-prerelease(npm:@c15t/browser)\n  \"@c15t/astro\":\n    replay:\n      - exit-prerelease(npm:@c15t/astro)\n  \"@c15t/cli\":\n    replay:\n      - exit-prerelease(npm:@c15t/cli)\n---\n\n### Vendor switches show only when you declare vendors\n\nThe preference dialog shows only category switches until you declare a\nvendor. Your visitors make one choice for each category. You do not get\nvendor switches that you did not ask for.\n\nSince 3.0.0, the dialog showed a switch for the vendor of each\n`@c15t/integrations` helper. For example, a site that added only `posthog()`\ngot a PostHog switch under Analytics. We did not intend this default.\n\nTo show vendor switches, declare at least one vendor in the `vendors` option\nor on the backend. The dialog then also lists the vendors of your helpers by\nname, as before. This change affects only the dialog. It does not change when\na script loads.\n"
+    filename: 2026-10-12-vendor-switches-opt-in.md
+    v: 0.0.0
+  - content: "---\npackages:\n  \"@c15t/core\":\n    replay:\n      - exit-prerelease(npm:@c15t/core)\n  \"@c15t/react\":\n    replay:\n      - exit-prerelease(npm:@c15t/react)\n  \"@c15t/vue\":\n    replay:\n      - exit-prerelease(npm:@c15t/vue)\n  \"@c15t/svelte\":\n    replay:\n      - exit-prerelease(npm:@c15t/svelte)\n  \"@c15t/browser\":\n    replay:\n      - exit-prerelease(npm:@c15t/browser)\n  \"@c15t/astro\":\n    replay:\n      - exit-prerelease(npm:@c15t/astro)\n  \"@c15t/nextjs\":\n    replay:\n      - exit-prerelease(npm:@c15t/nextjs)\n  \"@c15t/tanstack-start\":\n    replay:\n      - exit-prerelease(npm:@c15t/tanstack-start)\n  c15t:\n    replay:\n      - exit-prerelease(npm:c15t)\n---\n\n### Keep saved helper vendor denials accessible\n\nA helper vendor the visitor previously switched off stays visible in the\npreference dialog when the site declares no vendors. The visitor can turn that\nvendor on without changing any category choices. Its saved denial continues to\nblock loading until the visitor changes it and saves. Other helper vendors stay\nhidden until the site declares a vendor.\n\nThe browser dialog updates helper rows when saved vendor consent changes while\nit is open.\n"
+    filename: 2026-10-14-saved-helper-vendor-denials.md
+    v: 0.0.0
+  - content: "---\npackages:\n  \"@c15t/cli\":\n    type: patch\n---\n\n### Canary CLI builds install the stable c15t release\n\nEvery CLI now installs linked c15t packages at its major version, such as\n`c15t@3`, and other `@c15t/*` packages from `@latest`. Canary and other\nprerelease builds of the CLI used to install from their own dist-tag, such as\n`c15t@canary`. Coding-agent setup instructions now resolve exact versions from\nthe `latest` dist-tag by default.\n\nSetup also reinstalls a c15t package pinned to an exact prerelease, such as\n`\"c15t\": \"3.0.0-alpha.3\"`, because that pin cannot resolve to the stable\nrelease the CLI generates code for.\n"
+    filename: 2026-10-14-cli-installs-stable-release.md
+    v: 0.0.0
+  - content: "---\npackages:\n  \"@c15t/tanstack-start\":\n    replay:\n      - exit-prerelease(npm:@c15t/tanstack-start)\n---\n\n### Support TanStack Start 1.0\n\n`@c15t/tanstack-start` is now built and tested against TanStack Start 1.0\n(`@tanstack/react-start` 1.169 and `@tanstack/react-router` 1.170.44).\n`@tanstack/react-start` 1.168.60 and later 1.168 releases still work, and the\npeer ranges are unchanged: `@tanstack/react-start` `^1.168.60` and\n`@tanstack/react-router` `^1.170.41`.\n\nTanStack Start 1.0 needs Vite 8 or later, up from Vite 7, so upgrade Vite before\nyou upgrade TanStack Start. Upgrade `@tanstack/react-router` with it: each\n`@tanstack/react-start` release depends on one exact router version, 1.170.43\nor later for 1.0, and an older router in your app installs a second copy.\n\nTanStack Start 1.0 also removes `.inputValidator()` from `createServerFn()` and\n`createMiddleware()`. If your app calls it, rename it to `.validator()` when you\nupgrade. The c15t integration and the code it generates don't call it.\n"
     filename: 2026-10-13-tanstack-start-1-0.md
     v: 0.0.0
-  - content: "---\npackages:\n  \"@c15t/core\":\n    type: patch\n---\n\n### Load the vendor list without a CORS preflight\n\nIn manifest mode, the browser no longer sends the `x-c15t-version` and\n`x-c15t-policy-contract` headers when it fetches the Global Vendor List. The\nrequest stays a CORS simple request, so a vendor list on another origin loads\nwithout an `OPTIONS` round trip, and a host that doesn't allow those headers\nno longer fails the fetch. The host must still answer with an\n`Access-Control-Allow-Origin` header that covers the requesting site.\n"
+  - content: "---\npackages:\n  \"@c15t/core\":\n    type: patch\n  \"@c15t/browser\":\n    type: patch\n---\n\n### Retry consent saves interrupted by navigation\n\nStore explicit choices in the save queue before sending them, so the next page\ncan retry an interrupted request with its original decision time. Successful\nsaves and permanent rejections remove queued entries. Clearing consent still\nremoves pending saves, and newer category choices supersede older ones.\n"
+    filename: 2026-10-16-interrupted-consent-saves.md
+    v: 0.0.0
+  - content: "---\npackages:\n  \"@c15t/core\":\n    replay:\n      - exit-prerelease(npm:@c15t/core)\n  \"@c15t/iab\":\n    replay:\n      - exit-prerelease(npm:@c15t/iab)\n---\n\n### Return only base TC data when the policy does not use IAB TCF\n\nWhen the visitor's resolved policy does not use IAB TCF, `__tcfapi`\n`getTCData`, `getInAppTCData` and `addEventListener` now return only\n`gdprApplies: false`, `tcfPolicyVersion`, `cmpId` and `cmpVersion`, beside\n`cmpStatus`, `eventStatus` and `listenerId`. CMP API v2 allows no other\nfields in that case, so no TC string, `addtlConsent`, purpose or vendor data\nreaches vendors. The policy decides this, not the visitor's jurisdiction.\n\nThe new `TCDataOutsideTCF` type describes that response. `__tcfapi`\ncallbacks now receive `TCData | TCDataOutsideTCF`, and `TCData.gdprApplies`\nis `true`, so check `gdprApplies` before reading `tcString`.\n"
+    filename: 2026-10-14-tcdata-outside-iab-policy.md
+    v: 0.0.0
+  - content: "---\npackages:\n  \"@c15t/core\":\n    replay:\n      - exit-prerelease(npm:@c15t/core)\n---\n\n### Load the vendor list without a CORS preflight\n\nIn manifest mode, the browser no longer sends the `x-c15t-version` and\n`x-c15t-policy-contract` headers when it fetches the Global Vendor List. The\nrequest stays a CORS simple request, so a vendor list on another origin loads\nwithout an `OPTIONS` round trip, and a host that doesn't allow those headers\nno longer fails the fetch. The host must still answer with an\n`Access-Control-Allow-Origin` header that covers the requesting site.\n"
     filename: 2026-10-13-browser-gvl-simple-request.md
     v: 0.0.0
+  - content: "---\npackages:\n  \"@c15t/svelte\":\n    replay:\n      - exit-prerelease(npm:@c15t/svelte)\n---\n\n### State the Svelte 5.20 requirement in the peer range\n\n`@c15t/svelte` now declares `svelte@^5.20.0` as its peer dependency. The\ncomponents use `$props.id()`, which Svelte added in 5.20, so earlier Svelte 5\nversions already failed to compile them. Package managers now warn at install\ntime instead. CI builds and smoke-tests a SvelteKit 2.63 app on Svelte 5.20 to\nkeep this floor accurate.\n"
+    filename: 2026-10-14-svelte-peer-range.md
+    v: 0.0.0
 core:packages:
+  - id: npm:@c15t/logger
+    updated: false
+  - changelogIds:
+      - 2026-10-16-npm-package-metadata.md
+      - 2026-10-12-google-additional-consent.md
+    id: npm:@c15t/backend
+    updated: true
+  - changelogIds:
+      - 2026-10-14-posthog-refusal-during-download.md
+      - 2026-10-14-sentry-sdk-vendor-details.md
+      - 2026-10-14-event-dispatcher-helpers.md
+      - 2026-10-16-npm-package-metadata.md
+    id: npm:@c15t/integrations
+    updated: true
+  - changelogIds:
+      - 2026-10-16-npm-package-metadata.md
+    id: npm:@c15t/dev-tools
+    updated: true
+  - changelogIds:
+      - 2026-10-14-event-dispatcher-helpers.md
+      - 2026-10-16-npm-package-metadata.md
+      - 2026-10-13-inline-legal-links.md
+      - 2026-10-12-dialog-category-list-scroll.md
+      - 2026-10-12-vendor-switches-opt-in.md
+      - 2026-10-14-saved-helper-vendor-denials.md
+      - 2026-10-12-google-additional-consent.md
+    id: npm:@c15t/vue
+    updated: true
+  - changelogIds:
+      - 2026-10-14-event-dispatcher-helpers.md
+      - 2026-10-16-npm-package-metadata.md
+      - 2026-10-13-inline-legal-links.md
+      - 2026-10-12-dialog-category-list-scroll.md
+      - 2026-10-12-vendor-switches-opt-in.md
+      - 2026-10-14-saved-helper-vendor-denials.md
+    id: npm:c15t
+    updated: true
+  - changelogIds:
+      - 2026-10-14-event-dispatcher-helpers.md
+      - 2026-10-16-npm-package-metadata.md
+      - 2026-10-12-dialog-category-list-scroll.md
+      - 2026-10-12-vendor-switches-opt-in.md
+      - 2026-10-14-saved-helper-vendor-denials.md
+    id: npm:@c15t/nextjs
+    updated: true
+  - changelogIds:
+      - 2026-10-16-npm-package-metadata.md
+      - 2026-10-12-google-additional-consent.md
+    id: npm:@c15t/schema
+    updated: true
+  - changelogIds:
+      - 2026-10-14-event-dispatcher-helpers.md
+      - 2026-10-16-npm-package-metadata.md
+      - 2026-10-12-dialog-category-list-scroll.md
+      - 2026-10-12-vendor-switches-opt-in.md
+      - 2026-10-14-saved-helper-vendor-denials.md
+      - 2026-10-12-google-additional-consent.md
+    id: npm:@c15t/react
+    updated: true
+  - changelogIds:
+      - 2026-10-14-cli-installs-stable-release.md
+      - 2026-10-16-npm-package-metadata.md
+      - 2026-10-12-vendor-switches-opt-in.md
+    id: npm:@c15t/cli
+    updated: true
+  - changelogIds:
+      - 2026-10-14-event-dispatcher-helpers.md
+      - 2026-10-16-npm-package-metadata.md
+      - 2026-10-12-dialog-category-list-scroll.md
+      - 2026-10-12-vendor-switches-opt-in.md
+      - 2026-10-14-saved-helper-vendor-denials.md
+      - 2026-10-13-tanstack-start-1-0.md
+    id: npm:@c15t/tanstack-start
+    updated: true
+  - changelogIds:
+      - 2026-10-14-event-dispatcher-helpers.md
+      - 2026-10-16-interrupted-consent-saves.md
+      - 2026-10-16-npm-package-metadata.md
+      - 2026-10-14-tcdata-outside-iab-policy.md
+      - 2026-10-12-vendor-switches-opt-in.md
+      - 2026-10-14-saved-helper-vendor-denials.md
+      - 2026-10-12-google-additional-consent.md
+      - 2026-10-13-browser-gvl-simple-request.md
+    id: npm:@c15t/core
+    updated: true
+  - changelogIds:
+      - 2026-10-16-npm-package-metadata.md
+      - 2026-10-12-google-additional-consent.md
+    id: npm:@c15t/translations
+    updated: true
   - id: npm:@c15t/scripts
     updated: true
   - changelogIds:
+      - 2026-10-14-event-dispatcher-helpers.md
+      - 2026-10-16-npm-package-metadata.md
       - 2026-10-13-inline-legal-links.md
       - 2026-10-12-dialog-category-list-scroll.md
       - 2026-10-12-vendor-switches-opt-in.md
@@ -96,9 +206,13 @@ core:packages:
       - 2026-10-14-svelte-peer-range.md
     id: npm:@c15t/svelte
     updated: true
-  - id: npm:@c15t/node-sdk
+  - changelogIds:
+      - 2026-10-16-npm-package-metadata.md
+    id: npm:@c15t/node-sdk
     updated: true
   - changelogIds:
+      - 2026-10-14-event-dispatcher-helpers.md
+      - 2026-10-16-npm-package-metadata.md
       - 2026-10-13-inline-legal-links.md
       - 2026-10-12-dialog-category-list-scroll.md
       - 2026-10-12-vendor-switches-opt-in.md
@@ -107,14 +221,14 @@ core:packages:
     id: npm:@c15t/astro
     updated: true
   - changelogIds:
-      - 2026-10-12-google-additional-consent.md
-    id: npm:@c15t/translations
-    updated: true
-  - changelogIds:
+      - 2026-10-16-npm-package-metadata.md
       - 2026-10-12-dialog-category-list-scroll.md
     id: npm:@c15t/ui
     updated: true
   - changelogIds:
+      - 2026-10-14-event-dispatcher-helpers.md
+      - 2026-10-16-interrupted-consent-saves.md
+      - 2026-10-16-npm-package-metadata.md
       - 2026-10-13-inline-legal-links.md
       - 2026-10-12-dialog-category-list-scroll.md
       - 2026-10-12-vendor-switches-opt-in.md
@@ -123,109 +237,49 @@ core:packages:
     id: npm:@c15t/browser
     updated: true
   - changelogIds:
+      - 2026-10-16-npm-package-metadata.md
       - 2026-10-14-tcdata-outside-iab-policy.md
       - 2026-10-12-google-additional-consent.md
     id: npm:@c15t/iab
-    updated: true
-  - changelogIds:
-      - 2026-10-13-inline-legal-links.md
-      - 2026-10-12-dialog-category-list-scroll.md
-      - 2026-10-12-vendor-switches-opt-in.md
-      - 2026-10-14-saved-helper-vendor-denials.md
-      - 2026-10-12-google-additional-consent.md
-    id: npm:@c15t/vue
-    updated: true
-  - id: npm:@c15t/logger
-    updated: false
-  - changelogIds:
-      - 2026-10-12-google-additional-consent.md
-    id: npm:@c15t/backend
-    updated: true
-  - id: npm:@c15t/integrations
-    updated: true
-  - id: npm:@c15t/dev-tools
-    updated: true
-  - changelogIds:
-      - 2026-10-13-inline-legal-links.md
-      - 2026-10-12-dialog-category-list-scroll.md
-      - 2026-10-12-vendor-switches-opt-in.md
-      - 2026-10-14-saved-helper-vendor-denials.md
-    id: npm:c15t
-    updated: true
-  - changelogIds:
-      - 2026-10-12-dialog-category-list-scroll.md
-      - 2026-10-12-vendor-switches-opt-in.md
-      - 2026-10-14-saved-helper-vendor-denials.md
-    id: npm:@c15t/nextjs
-    updated: true
-  - changelogIds:
-      - 2026-10-12-google-additional-consent.md
-    id: npm:@c15t/schema
-    updated: true
-  - changelogIds:
-      - 2026-10-12-dialog-category-list-scroll.md
-      - 2026-10-12-vendor-switches-opt-in.md
-      - 2026-10-14-saved-helper-vendor-denials.md
-      - 2026-10-12-google-additional-consent.md
-    id: npm:@c15t/react
-    updated: true
-  - changelogIds:
-      - 2026-10-12-vendor-switches-opt-in.md
-    id: npm:@c15t/cli
-    updated: true
-  - changelogIds:
-      - 2026-10-12-dialog-category-list-scroll.md
-      - 2026-10-12-vendor-switches-opt-in.md
-      - 2026-10-14-saved-helper-vendor-denials.md
-      - 2026-10-13-tanstack-start-1-0.md
-    id: npm:@c15t/tanstack-start
-    updated: true
-  - changelogIds:
-      - 2026-10-14-tcdata-outside-iab-policy.md
-      - 2026-10-12-vendor-switches-opt-in.md
-      - 2026-10-14-saved-helper-vendor-denials.md
-      - 2026-10-12-google-additional-consent.md
-      - 2026-10-13-browser-gvl-simple-request.md
-    id: npm:@c15t/core
     updated: true
 npm:packages:
-  - distTag: canary
-    id: npm:@c15t/scripts
-  - distTag: canary
-    id: npm:@c15t/svelte
-  - distTag: canary
-    id: npm:@c15t/node-sdk
-  - distTag: canary
-    id: npm:@c15t/astro
-  - distTag: canary
-    id: npm:@c15t/translations
-  - distTag: canary
-    id: npm:@c15t/ui
-  - distTag: canary
-    id: npm:@c15t/browser
-  - distTag: canary
-    id: npm:@c15t/iab
-  - distTag: canary
-    id: npm:@c15t/vue
-  - distTag: canary
+  - distTag: latest
     id: npm:@c15t/logger
-  - distTag: canary
+  - distTag: latest
     id: npm:@c15t/backend
-  - distTag: canary
-    id: npm:@c15t/integrations
-  - distTag: canary
-    id: npm:@c15t/dev-tools
-  - distTag: canary
-    id: npm:c15t
-  - distTag: canary
-    id: npm:@c15t/nextjs
-  - distTag: canary
-    id: npm:@c15t/schema
-  - distTag: canary
-    id: npm:@c15t/react
-  - distTag: canary
+  - distTag: latest
     id: npm:@c15t/cli
-  - distTag: canary
+  - distTag: latest
+    id: npm:@c15t/integrations
+  - distTag: latest
+    id: npm:@c15t/scripts
+  - distTag: latest
+    id: npm:@c15t/dev-tools
+  - distTag: latest
+    id: npm:@c15t/vue
+  - distTag: latest
+    id: npm:c15t
+  - distTag: latest
+    id: npm:@c15t/react
+  - distTag: latest
+    id: npm:@c15t/nextjs
+  - distTag: latest
     id: npm:@c15t/tanstack-start
-  - distTag: canary
+  - distTag: latest
+    id: npm:@c15t/svelte
+  - distTag: latest
+    id: npm:@c15t/astro
+  - distTag: latest
+    id: npm:@c15t/browser
+  - distTag: latest
+    id: npm:@c15t/schema
+  - distTag: latest
     id: npm:@c15t/core
+  - distTag: latest
+    id: npm:@c15t/ui
+  - distTag: latest
+    id: npm:@c15t/iab
+  - distTag: latest
+    id: npm:@c15t/node-sdk
+  - distTag: latest
+    id: npm:@c15t/translations

@@ -1,6 +1,6 @@
 {
-	"title": "@c15t/ui: Consent UI Primitives and Theme System",
-	"description": "The framework-agnostic primitives, CSS, and theme tokens behind the c15t React, Vue, Svelte, and Astro components. Most apps get this package through a framework adapter and do not install it directly.",
+	"title": "@c15t/ui: Cookie consent UI primitives and theme system",
+	"description": "The framework-agnostic cookie consent UI primitives, CSS, and theme tokens behind the c15t React, Vue, Svelte, and Astro components. Most apps get this package through a framework adapter and do not install it directly.",
 	"features": [
 		"One theme system for every c15t framework: set `--c15t-*` tokens once and the banner, dialog, and preference center follow",
 		"Stylesheets for plain CSS and Tailwind CSS, with a separate file for Tailwind CSS 3",

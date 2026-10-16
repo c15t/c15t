@@ -1,3 +1,53 @@
+## @c15t/integrations@3.1.0
+
+### PostHog no longer starts after a refusal that lands mid-download
+
+With `posthog({ loadMode: 'after-consent' })`, a refusal that arrived while
+`array.js` was still downloading did not stop PostHog. When the download
+finished, PostHog started, sent a `$pageview` and a `/flags` request, and with
+`cookieless_mode: 'never'` wrote its cookie and storage.
+
+A refusal now clears PostHog's queued init, so `array.js` starts nothing. If the
+visitor allows measurement again on the same page after `array.js` has run,
+PostHog starts on the next page load.
+
+### List Sentry in the preference dialog when the app runs the Sentry SDK
+
+`sentry({ getClient })` declared the `sentry` vendor without a name or privacy
+policy URL. Core logged a missing-declaration warning, and a site that shows
+vendor switches could not list Sentry, so visitors could not turn it off inside
+a granted category. The script now carries the same vendor details as
+`sentry({ dsn })`.
+
+### Get the provider's event dispatcher in every framework
+
+Each framework now hands you one event dispatcher that sends to the provider's
+registered scripts and reads consent when an event goes out:
+
+- `useEventDispatcher()` from `c15t/react`, `c15t/next` and
+  `c15t/tanstack-start`
+- `useEventDispatcher()` from `c15t/vue/vue-plugin`, auto-imported in Nuxt
+- `getEventDispatcher()` from `@c15t/svelte`
+- `getEventDispatcher()` from `c15t/astro/client`
+- `getEventDispatcher(runtime)` from `@c15t/browser`
+
+All dispatchers for one provider share a pageview history, so a consent change
+or a remount no longer drops or resends a pageview, and an event sent right
+after a visitor withdraws consent is dropped. Pass `scripts` to add more
+destinations and `pageviews` to choose which integrations get single-page-app
+pageviews. `createEventDispatcher` from `@c15t/integrations/events` still works
+for code without a provider.
+
+### Clearer npm descriptions and keywords
+
+Each package's npm description now says what it does in the words people
+search for, such as cookie consent, cookie banner, GDPR, Google Consent Mode v2
+and IAB TCF. Keywords add common search terms while preserving existing
+framework, brand and integration terms. The schema and UI packages now link
+to their directories in the repository. Framework, browser and core READMEs
+now explain how consent policies handle GDPR and other privacy laws before
+the setup instructions.
+
 ## @c15t/integrations@3.0.0
 
 ### c15t v3
