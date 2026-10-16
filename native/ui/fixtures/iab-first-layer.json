@@ -1,0 +1,74 @@
+{
+	"builder": "buildIabFirstLayer",
+	"description": "IAB first layer: the partner count, every purpose and stack by name, and Accept all and Reject all at parity.",
+	"expected": {
+		"actions": [
+			{
+				"emphasis": "parity",
+				"id": "acceptAll",
+				"label": "Accept All"
+			},
+			{
+				"emphasis": "parity",
+				"id": "rejectAll",
+				"label": "Reject All"
+			},
+			{
+				"emphasis": "text",
+				"id": "manage",
+				"label": "Manage options"
+			}
+		],
+		"id": "iab.firstLayer",
+		"intro": "We and our 4 partners store and/or access information on your device and process personal data, such as unique identifiers and usage data, for this app, to:",
+		"sections": [
+			{
+				"footer": "Some partners claim a legitimate interest to process your data. You have the right to object to this processing, customize your choices, and withdraw your consent at any time.",
+				"id": "summary",
+				"rows": [
+					{
+						"id": "purpose.1",
+						"title": "Store and/or access information on a device"
+					},
+					{
+						"id": "purpose.2",
+						"title": "Use limited data to select advertising"
+					},
+					{
+						"id": "stack.42",
+						"title": "Personalised advertising and measurement"
+					},
+					{
+						"id": "purpose.8",
+						"title": "Measure content performance"
+					},
+					{
+						"id": "specialFeature.1",
+						"title": "Use precise geolocation data"
+					}
+				]
+			},
+			{
+				"id": "partners",
+				"rows": [
+					{
+						"id": "partners",
+						"navigatesTo": "iab.vendors",
+						"title": "4 partners"
+					}
+				]
+			}
+		],
+		"title": "We value your privacy"
+	},
+	"id": "iab-first-layer",
+	"input": {
+		"copy": {
+			"$ref": "iab-copy"
+		},
+		"model": {
+			"$ref": "iab-model"
+		}
+	},
+	"version": 1
+}

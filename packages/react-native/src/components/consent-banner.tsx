@@ -2,66 +2,76 @@
  * The first-layer prompt: a notice where the policy allows notice, an opt-in
  * choice where it does not.
  *
- * The banner is an absolutely positioned layer over the app, never a row in its
- * layout, so the moment a policy resolves a prompt nothing on screen moves. It
- * reads the four lifecycle fields and the copy, and nothing else, so a grant
+ * It is a bottom sheet over the app, never a row in its layout, so the moment a
+ * policy resolves a prompt nothing on screen moves. "Manage preferences" grows
+ * the same sheet to full height and pushes the category list into it, the way a
+ * system sheet changes detent, instead of stacking a second modal on the first.
+ *
+ * A choice cannot be swiped away. Dragging rubber-bands, the scrim ignores
+ * taps, and hardware back only pops back to the first layer: a prompt the
+ * subject has not answered stays asked. A notice can be swiped away, and that
+ * acknowledges it, because a notice has nothing to decide.
+ *
+ * It reads the four lifecycle fields and the copy, and nothing else, so a grant
  * made elsewhere in the app does not rerender it.
  */
 
-import { useState } from 'react';
-import type { ReactNode } from 'react';
-import { Text, View } from 'react-native';
+import { useCallback, useMemo, useState } from 'react';
+import type { ReactElement } from 'react';
+import { View } from 'react-native';
 
 import { useConsentActions } from '../hooks/use-consent-actions';
 import { useConsentSelector } from '../hooks/use-consent-selector';
 import { useConsentStatus } from '../hooks/use-consent-status';
 import { isStatusPromptOwed } from '../lib/selectors';
-import { ConsentDialog } from './consent-dialog';
-import { ConsentBrandingTag } from './internal/branding-tag';
 import {
-	CONSENT_BUTTON_ROW_ITEM,
-	ConsentButton,
-} from './internal/consent-button';
-import {
-	ConsentSurface,
-	ConsentSurfaceBody,
-	ConsentSurfaceFooter,
-	ConsentSurfaceHeader,
-} from './internal/consent-surface';
+	buildFirstLayer,
+	FIRST_LAYER_SCREEN,
+	PREFERENCES_SCREEN,
+} from '../ui-model/standard';
+import type { ScreenActionId } from '../ui-model/types';
 import { isConsentCopyEqual, selectConsentCopy } from './internal/copy';
+import { FirstLayer } from './internal/native/first-layer';
+import { NativeSheet } from './internal/native/native-sheet';
+import {
+	NavStackProvider,
+	useNavStackState,
+} from './internal/native/nav-stack';
+import { PreferencesScreen } from './internal/native/preferences-screen';
+import { ConsentStylesProvider } from './internal/native/styles-context';
 import type { ConsentPartStyles } from './theme/consent-theme-parts';
-import type { ConsentTheme } from './theme/create-consent-theme';
+import type { ConsentThemeOptions } from './theme/create-consent-theme';
 import { useConsentStyles } from './theme/use-consent-styles';
 
 /** Props for {@link ConsentBanner}. */
 export interface ConsentBannerProps {
 	/**
-	 * Hide the "Secured by c15t" tab.
+	 * Hide the "Secured by c15t" footnote on the preferences screen.
 	 *
-	 * Off by default, which is what the web surfaces do: the tab is what tells a
-	 * subject who is holding their consent, and a plan that has already paid for
-	 * removing it is the only reason to.
+	 * Off by default: the footnote tells a subject who is holding their consent,
+	 * and a plan that has already paid for removing it is the only reason to.
 	 */
 	readonly hideBranding?: boolean;
 	/**
-	 * Open the app's own finer controls.
+	 * Open the app's own finer controls instead of the built-in list.
 	 *
-	 * When omitted, the banner opens the built-in {@link ConsentDialog} itself,
-	 * which is what makes `<ConsentBanner />` on its own a complete prompt.
+	 * When omitted, "Manage preferences" grows the sheet and shows the category
+	 * list inside it, which is what makes `<ConsentBanner />` on its own a
+	 * complete prompt.
 	 */
 	readonly onCustomize?: () => void;
 	/** Per-part style overrides. */
 	readonly styles?: ConsentPartStyles;
-	/** Theme to render with, instead of the platform scheme. */
-	readonly theme?: ConsentTheme;
+	/** Theme overrides, such as `darkTheme` or a brand `primary`. */
+	readonly theme?: ConsentThemeOptions;
 }
 
 /**
  * Render the consent banner.
  *
  * Mount it once, inside the view that holds your screen. It shows itself while
- * the policy owes an interaction and unmounts itself once the subject has acted,
- * and it picks notice or opt-in copy from `promptRequirement.kind`.
+ * the policy owes an interaction and leaves once the subject has acted, and it
+ * picks notice or opt-in copy from `promptRequirement.kind`.
  *
  * @example
  * ```tsx
@@ -79,132 +89,98 @@ export const ConsentBanner = ({
 	onCustomize,
 	styles,
 	theme,
-}: ConsentBannerProps): ReactNode => {
+}: ConsentBannerProps): ReactElement => {
 	const actions = useConsentActions();
 	const status = useConsentStatus();
 	const copy = useConsentSelector(selectConsentCopy, isConsentCopyEqual);
-	// The banner's own type roles: its heading is larger than the copy under it,
-	// which is the opposite of the sheet this component can open.
-	const surface = useConsentStyles({ presentation: 'banner', styles, theme });
-	const [customizing, setCustomizing] = useState(false);
+	const surface = useConsentStyles({ styles, theme });
+	const stack = useNavStackState(FIRST_LAYER_SCREEN);
 
 	const notice = status.promptRequirement.kind === 'notice';
-	const title = notice ? copy.noticeTitle : copy.bannerTitle;
-	const description = notice ? copy.noticeDescription : copy.bannerDescription;
 	const owed =
 		isStatusPromptOwed(status) &&
 		(status.activeUI === null || status.activeUI === 'banner');
+	const [shown, setShown] = useState(owed);
 
-	const customize = (): void => {
-		if (onCustomize === undefined) {
-			setCustomizing(true);
-			return;
+	// A prompt owed again later starts from the first layer, not from wherever
+	// the last one was left. Reset on the way in rather than out, so the sheet
+	// does not snap back to the first layer while it is still sliding away.
+	if (owed !== shown) {
+		setShown(owed);
+
+		if (owed && stack.depth > 1) {
+			stack.reset();
 		}
+	}
 
-		onCustomize();
-	};
+	const screen = useMemo(
+		() => buildFirstLayer({ copy, notice }),
+		[copy, notice]
+	);
+	const managing = stack.top === PREFERENCES_SCREEN;
 
-	const { parts } = surface;
-
-	const branding = hideBranding ? undefined : (
-		<ConsentBrandingTag
-			label={copy.securedBy}
-			parts={parts}
-			presentation="banner"
-			radius={surface.theme.radius.surface}
-		/>
+	const onAction = useCallback(
+		(id: ScreenActionId) => {
+			if (id === 'acceptAll') {
+				void actions.acceptAll();
+			} else if (id === 'rejectAll') {
+				void actions.rejectAll();
+			} else if (id === 'acknowledge') {
+				actions.dismissNotice();
+			} else if (id === 'manage') {
+				if (onCustomize === undefined) {
+					stack.push(PREFERENCES_SCREEN);
+				} else {
+					onCustomize();
+				}
+			}
+		},
+		[actions, onCustomize, stack]
 	);
 
+	const dismissNotice = useCallback(() => {
+		actions.dismissNotice();
+	}, [actions]);
+
+	const back = useCallback(() => {
+		if (!stack.pop() && notice) {
+			actions.dismissNotice();
+		}
+	}, [actions, notice, stack]);
+
+	const collapse = useCallback(() => {
+		stack.pop();
+	}, [stack]);
+
 	return (
-		<>
-			<ConsentSurface
-				branding={branding}
-				dismissLabel={copy.dismiss}
-				label={title}
-				open={owed && !customizing}
-				presentation="banner"
-				styles={surface}
-			>
-				<ConsentSurfaceHeader>
-					<Text
-						accessibilityRole="header"
-						style={parts.title}
-					>
-						{title}
-					</Text>
-				</ConsentSurfaceHeader>
-				<ConsentSurfaceBody>
-					<Text style={parts.description}>{description}</Text>
-				</ConsentSurfaceBody>
-				<ConsentSurfaceFooter>
-					{notice ? (
-						<View style={parts.row}>
-							<ConsentButton
-								label={copy.acknowledge}
-								onPress={() => {
-									actions.dismissNotice();
-								}}
-								parts={parts}
-								style={CONSENT_BUTTON_ROW_ITEM}
-							/>
-							<ConsentButton
-								kind="secondary"
-								label={copy.customize}
-								onPress={customize}
-								parts={parts}
-								style={CONSENT_BUTTON_ROW_ITEM}
+		<ConsentStylesProvider value={surface}>
+			<NavStackProvider value={stack}>
+				<NativeSheet
+					detent={managing ? 'full' : 'content'}
+					label={managing ? copy.dialogTitle : screen.title}
+					onBack={back}
+					onCollapse={collapse}
+					onDismiss={notice ? dismissNotice : undefined}
+					open={owed}
+					testID="c15t-banner"
+				>
+					{managing ? (
+						<View style={{ flex: 1 }}>
+							<PreferencesScreen
+								copy={copy}
+								hideBranding={hideBranding}
 							/>
 						</View>
 					) : (
-						<>
-							{/*
-							 * The two decisions share a row at equal width, and Customize takes the row
-							 * below it on its own. The accent is on Customize rather than on the decisions:
-							 * `policy-actions.ts` defaults `primaryActions` to `customize` so that reject
-							 * and accept stay neutral together, which stops the prompt leaning on a subject
-							 * either way. With all three in one flex row the labels decided the arithmetic
-							 * instead: measured on a device, reject came out 724px wide against customize's
-							 * 167, which left the action that opens the choices reading as a caption.
-							 */}
-							<View style={parts.row}>
-								<ConsentButton
-									kind="secondary"
-									label={copy.rejectAll}
-									onPress={() => {
-										void actions.rejectAll();
-									}}
-									parts={parts}
-									style={CONSENT_BUTTON_ROW_ITEM}
-								/>
-								<ConsentButton
-									kind="secondary"
-									label={copy.acceptAll}
-									onPress={() => {
-										void actions.acceptAll();
-									}}
-									parts={parts}
-									style={CONSENT_BUTTON_ROW_ITEM}
-								/>
-							</View>
-							<ConsentButton
-								label={copy.customize}
-								onPress={customize}
-								parts={parts}
-							/>
-						</>
+						<FirstLayer
+							labels={{ moreInfo: copy.moreInfo, ok: copy.ok }}
+							onAction={onAction}
+							open={owed}
+							screen={screen}
+						/>
 					)}
-				</ConsentSurfaceFooter>
-			</ConsentSurface>
-			{onCustomize === undefined ? (
-				<ConsentDialog
-					onRequestClose={() => {
-						setCustomizing(false);
-					}}
-					open={customizing}
-					styles={styles}
-					theme={theme}
-				/>
-			) : null}
-		</>
+				</NativeSheet>
+			</NavStackProvider>
+		</ConsentStylesProvider>
 	);
 };

@@ -8,20 +8,19 @@
 
 export { ConsentBanner } from './consent-banner';
 export type { ConsentBannerProps } from './consent-banner';
-export { ConsentDialog } from './consent-dialog';
-export type { ConsentDialogProps } from './consent-dialog';
-export {
-	ConsentIabDrawer,
-	seedConsentIabSelection,
-} from './consent-iab-drawer';
+export { ConsentIabBanner } from './consent-iab-banner';
+export type { ConsentIabBannerProps } from './consent-iab-banner';
+export { ConsentIabPreferences } from './consent-iab-preferences';
 export type {
-	ConsentIabDrawerRootProps,
-	ConsentIabInitialSelection,
-} from './consent-iab-drawer';
+	ConsentIabPreferencesPresentation,
+	ConsentIabPreferencesRootProps,
+} from './consent-iab-preferences';
+export { seedConsentIabSelection } from '../ui-model/iab-selection';
+export type { ConsentIabInitialSelection } from '../ui-model/iab-selection';
 export type {
 	ConsentIabCopy,
 	ConsentIabCopyOverrides,
-} from './consent-iab-drawer';
+} from './internal/iab-copy';
 export type {
 	ConsentIabDialogData,
 	ConsentIabDisplayConsentRow,
@@ -40,7 +39,12 @@ export type {
 	ConsentIabVendorId,
 } from './iab-display-model';
 export { ConsentPreferences } from './consent-preferences';
-export type { ConsentPreferencesProps } from './consent-preferences';
+export type {
+	ConsentPreferencesPresentation,
+	ConsentPreferencesProps,
+} from './consent-preferences';
+export { ConsentWidget } from './consent-widget';
+export type { ConsentWidgetProps } from './consent-widget';
 export {
 	CONSENT_COLOR_SCHEMES,
 	createConsentTheme,

@@ -1,0 +1,35 @@
+{
+	"builder": "seedConsentIabSelection",
+	"description": "The draft before any choice: every consent off, every legitimate interest standing.",
+	"expected": {
+		"purposeConsents": {
+			"1": false,
+			"2": false,
+			"3": false,
+			"4": false,
+			"7": false,
+			"8": false
+		},
+		"specialFeatureOptIns": {
+			"1": false
+		},
+		"vendorConsents": {
+			"1": false,
+			"42": false,
+			"755": false,
+			"acme-analytics": false
+		},
+		"vendorLegitimateInterests": {
+			"1": true,
+			"42": true,
+			"755": true
+		}
+	},
+	"id": "iab-seed-default",
+	"input": {
+		"model": {
+			"$ref": "iab-model"
+		}
+	},
+	"version": 1
+}

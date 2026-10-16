@@ -16,7 +16,8 @@ surfaces are visibly one design, but nothing here is a starter kit.
   binary, with the mismatch error surfaced on screen instead of a red box.
 - The headless surface: `useConsent`, `useConsentActions`, `useC15tBootstrap`,
   `useIsAllowed`, `ConsentGate`, `ConsentReady`, `ConsentPrompt`.
-- The built-in `ConsentBanner`, `ConsentDialog`, and `ConsentPreferences`.
+- The built-in `ConsentBanner`, `ConsentPreferences`, `ConsentWidget`,
+  `ConsentIabBanner`, and `ConsentIabPreferences`.
 - `useTrackingRequest`, the Apple tracking journey on the Privacy screen: the sheet, the
   centre that opens when the subject taps Additional Information, and the second sheet
   that follows while Marketing is still granted. The committed iOS project carries no
@@ -41,6 +42,30 @@ surfaces are visibly one design, but nothing here is a starter kit.
 Only the public package entry point is imported. There are no imports from
 `packages/react-native/src`, so what breaks here breaks for a developer who installs
 the package from the registry.
+
+## Native UI review
+
+The Standard/IAB control selects the consent flow. Page/Sheet selects how
+standalone preferences open. The IAB fixture shares its display model with the
+Expo app. See the [API guide](../../../native/react-native-ui.md) and
+[shared UI spec](../../../native/UI.md).
+
+Review these on both platforms, in light and dark mode:
+
+- Open the first-layer sheet, then Manage. The same sheet expands.
+- Drag a choice prompt down and tap its scrim. It stays open without recording
+  a decision. A notice may dismiss without granting categories.
+- Open preferences as a page and as a sheet. Move a switch, close without saving,
+  and reopen. The abandoned draft must be gone.
+- Open IAB purpose and partner details. Search partners, inspect retention and
+  storage disclosures, and test the explanation alerts and policy links.
+- On Android, Back pops detail screens before closing preferences. On iOS,
+  swipe from the left edge to return to the list.
+- With VoiceOver or TalkBack, verify title focus after push and pop, separate
+  navigation and consent controls, locked Necessary, and large text.
+- Enable reduced motion and verify fades replace navigation slides.
+
+No device or simulator validation of this redesign has been recorded yet.
 
 ## Setup
 
@@ -142,8 +167,10 @@ on Android: `?` and `&` belong to the shell otherwise.
 | `reject` | `rejectAll()`, strictly necessary only |
 | `save?experience=1&marketing=0` | `save()` with one boolean per category named; unmentioned categories keep their receipts, and a `save` that names none writes experience on, marketing off |
 | `dismiss` | closes any open sheet, then `dismissNotice()` |
-| `customize` | opens `ConsentDialog`, the path the banner's Customize button takes |
+| `customize` | opens `ConsentPreferences` as a page |
 | `preferences` | opens `ConsentPreferences`, with no prompt owed |
+| `preferences?presentation=sheet` | opens full-height preferences as a bottom sheet |
+| `iab`, `iab/purposes` | opens IAB preferences on Partners or Purposes |
 | `scheme/light`, `scheme/dark`, `scheme/system` | forces that palette on every surface, or gives the choice back to the platform |
 | `identify?id=runner-42` | `identify()` |
 | `logout` | `logout()` |
@@ -175,7 +202,12 @@ Three things worth knowing:
   given link once per JavaScript instance. That also means a Metro reload replays the link
   that launched the app: kill it first when the next step starts from a clean run.
 
-## Prove the iOS journey in one command
+## Archived iOS journey
+
+The journey and surface-metrics scripts below still grade the previous
+web-style UI. They have not been migrated to native sheets and pages. Use the
+[native UI checklist](#native-ui-review) for the current components. Retain these
+commands only for reproducing older captures.
 
 `scripts/ios-journey.sh` builds the fixture, erases a simulator so the subject has never
 answered before, walks first run through a saved preference, a relaunch, the preference
@@ -223,7 +255,7 @@ to the device durably and tells the backend afterwards, so no synchronous answer
 the server has it.
 
 
-## Prove the Android journey in one command
+## Archived Android journey
 
 `scripts/android-journey.sh` walks the same route on a connected device or emulator. It clears
 the app with `pm clear`, sends each verb as a real `c15t-demo://` deep link, and asserts the
@@ -239,27 +271,10 @@ it takes a lock per serial, because two runs driving one device read each other'
 one of them reports a step that never happened. Frames and the hierarchies behind them land in
 `JOURNEY_OUT`, which defaults to `/tmp/android-journey/<worktree>`.
 
-The geometry half of that proof is `scripts/android-surface-metrics.py`, which the journey
-runs for the banner and the consent manager:
-
-```sh
-ANDROID_SERIAL=emulator-5554 scripts/android-surface-metrics.py --mode dialog
-```
-
-It reads the two bands rather than assuming them, which is the part that is easy to get
-wrong. The status band comes out of the dump, because with no host measurement the SDK takes
-it from `StatusBar.currentHeight`, which is the status bar window the system reports. The
-bottom band defaults to the SDK's `RESERVED_BOTTOM_INSET` floor and not to this device's
-navigation bar, because the bare example passes no insets to the provider; wire
-`react-native-safe-area-context` into the provider and pass `--nav-inset` with the device's
-real number instead. Both bands are printed on every run, and a run that cannot read them
-exits 2 rather than measuring against a guess. A saved hierarchy grades too, so the evidence
-stays re-runnable after the device is gone:
-
-```sh
-ANDROID_SERIAL=emulator-5554 scripts/android-surface-metrics.py --mode dialog \
-    --from-xml /tmp/android-journey/v3-3/02-customize-dialog.xml
-```
+The surface-metrics scripts grade the previous web-style cards. They do not
+validate the native sheets, grouped lists, or page presentations. The journey
+scripts also depend on those old geometry assumptions. Keep them for archived
+captures and use the native UI checklist below for the current design.
 
 To confirm a decision reached the backend rather than only the device, read the consent table
 the demo writes to:

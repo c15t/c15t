@@ -14,7 +14,6 @@ import {
 	uiState,
 } from '../../__tests__/helpers/react-native-stub';
 import { resetConsentClient } from '../../native/client';
-import { ConsentDialog } from '../consent-dialog';
 import { ConsentPreferences } from '../consent-preferences';
 import {
 	CONTROL_ROLES,
@@ -43,13 +42,11 @@ const checked = function checked(
 
 /** Open the built-in manager over a given snapshot. */
 const mountDialog = function mountDialog(
-	snapshot = translatedSnapshot(),
-	props: { readonly onOpenPreferences?: () => void } = {}
+	snapshot = translatedSnapshot()
 ): SurfaceTree {
 	const tree = mountSurface(
-		<ConsentDialog
-			onOpenPreferences={props.onOpenPreferences}
-			onRequestClose={() => {
+		<ConsentPreferences
+			onClose={() => {
 				// The host owns the open flag; these cases assert what it was asked.
 			}}
 			open
@@ -60,7 +57,7 @@ const mountDialog = function mountDialog(
 	return tree;
 };
 
-describe('ConsentDialog', () => {
+describe('ConsentPreferences', () => {
 	test('shows one switch per category in scope', () => {
 		const tree = mountDialog();
 
@@ -197,10 +194,10 @@ describe('ConsentDialog', () => {
 	});
 
 	test('a save the core rejects leaves the sheet open', async () => {
-		const onRequestClose = vi.fn();
+		const onClose = vi.fn();
 		const tree = mountSurface(
-			<ConsentDialog
-				onRequestClose={onRequestClose}
+			<ConsentPreferences
+				onClose={onClose}
 				open
 			/>
 		);
@@ -210,7 +207,7 @@ describe('ConsentDialog', () => {
 		await flushPromises();
 
 		expect(tree.text()).toContain('Zustimmung verwalten');
-		expect(onRequestClose).not.toHaveBeenCalled();
+		expect(onClose).not.toHaveBeenCalled();
 
 		tree.unmount();
 	});
@@ -219,10 +216,10 @@ describe('ConsentDialog', () => {
 		// The label promises everything, so the switches the subject had been
 		// flicking are dropped rather than carried into the decision: the write is
 		// the blanket grant and nothing else.
-		const onRequestClose = vi.fn();
+		const onClose = vi.fn();
 		const tree = mountSurface(
-			<ConsentDialog
-				onRequestClose={onRequestClose}
+			<ConsentPreferences
+				onClose={onClose}
 				open
 			/>
 		);
@@ -232,16 +229,16 @@ describe('ConsentDialog', () => {
 		await flushPromises();
 
 		expect(tree.fake.commitIntents).toEqual(['{"action":"all"}']);
-		expect(onRequestClose).toHaveBeenCalledTimes(1);
+		expect(onClose).toHaveBeenCalledTimes(1);
 
 		tree.unmount();
 	});
 
 	test('reject all writes the minimum and closes the sheet', async () => {
-		const onRequestClose = vi.fn();
+		const onClose = vi.fn();
 		const tree = mountSurface(
-			<ConsentDialog
-				onRequestClose={onRequestClose}
+			<ConsentPreferences
+				onClose={onClose}
 				open
 			/>
 		);
@@ -251,16 +248,16 @@ describe('ConsentDialog', () => {
 		await flushPromises();
 
 		expect(tree.fake.commitIntents).toEqual(['{"action":"necessary"}']);
-		expect(onRequestClose).toHaveBeenCalledTimes(1);
+		expect(onClose).toHaveBeenCalledTimes(1);
 
 		tree.unmount();
 	});
 
 	test('a decision the core rejects leaves the draft where it was', async () => {
-		const onRequestClose = vi.fn();
+		const onClose = vi.fn();
 		const tree = mountSurface(
-			<ConsentDialog
-				onRequestClose={onRequestClose}
+			<ConsentPreferences
+				onClose={onClose}
 				open
 			/>
 		);
@@ -274,30 +271,9 @@ describe('ConsentDialog', () => {
 		// through switches they already set.
 		expect(tree.text()).toContain('Zustimmung verwalten');
 		expect(checked(tree, 'Werbung')).toBe('true');
-		expect(onRequestClose).not.toHaveBeenCalled();
+		expect(onClose).not.toHaveBeenCalled();
 
 		tree.unmount();
-	});
-
-	test('offers the host preference centre only when it has one', () => {
-		const onOpenPreferences = vi.fn();
-		const withEntry = mountDialog(translatedSnapshot(), { onOpenPreferences });
-
-		tap(requireRole(withEntry.container(), 'link', 'Einstellungen'));
-		expect(onOpenPreferences).toHaveBeenCalledTimes(1);
-		withEntry.unmount();
-
-		// The sheet's remaining link is the branding tab, which every surface carries
-		// unless the host asks otherwise. Asserting "no links at all" would have been
-		// true only while the sheet had exactly one kind of link, and what this case
-		// is actually about is the entry point: absent here, present above.
-		const withoutEntry = mountDialog();
-		expect(
-			roleNodes(withoutEntry.container(), 'link').map((node) =>
-				node.getAttribute('aria-label')
-			)
-		).toEqual(['Secured by c15t']);
-		withoutEntry.unmount();
 	});
 
 	test('labels every control and announces itself', () => {
@@ -319,7 +295,7 @@ describe('ConsentPreferences', () => {
 	test('opens when the policy owes nothing', () => {
 		const tree = mountSurface(
 			<ConsentPreferences
-				onRequestClose={() => {
+				onClose={() => {
 					// The app owns the flag.
 				}}
 				open
@@ -334,10 +310,10 @@ describe('ConsentPreferences', () => {
 	});
 
 	test('closing without saving writes nothing', () => {
-		const onRequestClose = vi.fn();
+		const onClose = vi.fn();
 		const tree = mountSurface(
 			<ConsentPreferences
-				onRequestClose={onRequestClose}
+				onClose={onClose}
 				open
 			/>
 		);
@@ -346,10 +322,10 @@ describe('ConsentPreferences', () => {
 		// three actions, and leaving is what the scrim, the back gesture, and the
 		// escape key are for. The scrim is the one of those a test can reach.
 		tap(requireRole(tree.container(), 'switch', 'Werbung'));
-		tap(requireRole(tree.container(), 'button', 'Einstellungen: Schliessen'));
+		tap(requireRole(tree.container(), 'button', 'Close'));
 
 		expect(tree.fake.commitIntents).toEqual([]);
-		expect(onRequestClose).toHaveBeenCalledTimes(1);
+		expect(onClose).toHaveBeenCalledTimes(1);
 
 		tree.unmount();
 	});
@@ -357,10 +333,10 @@ describe('ConsentPreferences', () => {
 	test('a standing grant can be rewritten without the switches', async () => {
 		// The centre opens long after the prompt was answered, and the same two
 		// decisions the web manager offers have to be reachable from here too.
-		const onRequestClose = vi.fn();
+		const onClose = vi.fn();
 		const tree = mountSurface(
 			<ConsentPreferences
-				onRequestClose={onRequestClose}
+				onClose={onClose}
 				open
 			/>
 		);
@@ -369,16 +345,16 @@ describe('ConsentPreferences', () => {
 		await flushPromises();
 
 		expect(tree.fake.commitIntents).toEqual(['{"action":"all"}']);
-		expect(onRequestClose).toHaveBeenCalledTimes(1);
+		expect(onClose).toHaveBeenCalledTimes(1);
 
 		tree.unmount();
 	});
 
 	test('saves the toggles the subject made', async () => {
-		const onRequestClose = vi.fn();
+		const onClose = vi.fn();
 		const tree = mountSurface(
 			<ConsentPreferences
-				onRequestClose={onRequestClose}
+				onClose={onClose}
 				open
 			/>
 		);
@@ -398,7 +374,7 @@ describe('ConsentPreferences', () => {
 				measurement: false,
 			},
 		});
-		expect(onRequestClose).toHaveBeenCalledTimes(1);
+		expect(onClose).toHaveBeenCalledTimes(1);
 
 		tree.unmount();
 	});
@@ -406,7 +382,7 @@ describe('ConsentPreferences', () => {
 	test('labels every control', () => {
 		const tree = mountSurface(
 			<ConsentPreferences
-				onRequestClose={vi.fn()}
+				onClose={vi.fn()}
 				open
 			/>
 		);
@@ -417,7 +393,7 @@ describe('ConsentPreferences', () => {
 			}
 		}
 
-		expect(uiState.announcements).toContain('Einstellungen');
+		expect(uiState.announcements).toContain('Zustimmung verwalten');
 
 		tree.unmount();
 	});

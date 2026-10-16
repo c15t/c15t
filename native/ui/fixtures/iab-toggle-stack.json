@@ -1,0 +1,61 @@
+{
+	"builder": "applyIabToggle",
+	"description": "Turning a stack on turns every purpose it covers on, and nothing else.",
+	"expected": {
+		"purposeConsents": {
+			"1": true,
+			"2": false,
+			"3": true,
+			"4": true,
+			"7": false,
+			"8": true
+		},
+		"specialFeatureOptIns": {
+			"1": false
+		},
+		"vendorConsents": {
+			"1": true,
+			"42": false,
+			"755": false,
+			"acme-analytics": false
+		},
+		"vendorLegitimateInterests": {
+			"1": true,
+			"42": true,
+			"755": false
+		}
+	},
+	"id": "iab-toggle-stack",
+	"input": {
+		"model": {
+			"$ref": "iab-model"
+		},
+		"rowId": "stack.42",
+		"selection": {
+			"purposeConsents": {
+				"1": true,
+				"2": false,
+				"3": true,
+				"4": false,
+				"7": false,
+				"8": true
+			},
+			"specialFeatureOptIns": {
+				"1": false
+			},
+			"vendorConsents": {
+				"1": true,
+				"42": false,
+				"755": false,
+				"acme-analytics": false
+			},
+			"vendorLegitimateInterests": {
+				"1": true,
+				"42": true,
+				"755": false
+			}
+		},
+		"value": true
+	},
+	"version": 1
+}

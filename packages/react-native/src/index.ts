@@ -38,9 +38,10 @@
 
 export {
 	ConsentBanner,
-	ConsentDialog,
-	ConsentIabDrawer,
+	ConsentIabBanner,
+	ConsentIabPreferences,
 	ConsentPreferences,
+	ConsentWidget,
 	CONSENT_COLOR_SCHEMES,
 	CONSENT_THEME_PARTS,
 	createConsentTheme,
@@ -54,20 +55,22 @@ export {
 export type {
 	ConsentBannerProps,
 	ConsentColorScheme,
-	ConsentDialogProps,
 	ConsentPartStyles,
+	ConsentPreferencesPresentation,
 	ConsentPreferencesProps,
+	ConsentIabBannerProps,
 	ConsentIabCopy,
 	ConsentIabCopyOverrides,
 	ConsentIabDialogData,
 	ConsentIabDisplayConsentRow,
 	ConsentIabDisplayModel,
-	ConsentIabDrawerRootProps,
 	ConsentIabDisplayRow,
 	ConsentIabDisplayRowKind,
 	ConsentIabDisplayStackRow,
 	ConsentIabDisplayToggle,
 	ConsentIabInitialSelection,
+	ConsentIabPreferencesPresentation,
+	ConsentIabPreferencesRootProps,
 	ConsentIabProcessedFeature,
 	ConsentIabProcessedPurpose,
 	ConsentIabProcessedSpecialFeature,
@@ -86,6 +89,7 @@ export type {
 	ConsentThemeSpacing,
 	ConsentThemeTypography,
 	ConsentTypeStyle,
+	ConsentWidgetProps,
 } from './components';
 export { ConsentGate, ConsentPrompt, ConsentReady } from './headless';
 export type {
