@@ -63,6 +63,19 @@ group: reference
   `banner.isVisible && banner.blocking` and `ref` attached to your banner's
   root element. Scroll locks are counted, so the page scrolls again once the
   banner and any open dialog have both let go.
+
+  c15t can show consent copy in the visitor's browser language, which may run
+  right to left on a left-to-right page. `useConsentTextDirection()` returns
+  `'rtl'` or `'ltr'` for the language the copy is in. Set it as `dir` on your
+  banner and preference center roots, as the pre-built ones do.
+
+  The pre-built banner and dialog render nothing under the IAB model, and
+  the TCF surfaces inside `<IABProvider>` take over. A
+  custom surface that handles only opt-in and opt-out should do the same:
+  return `null` when `useModel()` is `'iab'`. Call `useIABPolicyGuard()` in
+  it as well. It throws `IABUnavailableError` while rendering when the
+  policy needs IAB and the app never loaded `<IABProvider>`, so the gap
+  shows up in your error boundary instead of as a missing banner.
 </section>
 
 <section id="consent-gate">
