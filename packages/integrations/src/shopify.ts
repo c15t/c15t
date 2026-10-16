@@ -390,7 +390,12 @@ export const createShopifyCustomerPrivacy = (
 			return;
 		}
 		if (step === 'shopify-defaults') {
-			if (!latest) {
+			if (!latest || revoking) {
+				// Shopify's defaults replace a pending revocation, so stop its
+				// retries and release Hydrogen.
+				clearTimeout(retryTimer);
+				latest = undefined;
+				revoking = false;
 				resolveReady?.();
 			}
 			return;

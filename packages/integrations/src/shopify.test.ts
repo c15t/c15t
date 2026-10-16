@@ -349,6 +349,42 @@ describe('Shopify Customer Privacy bridge', () => {
 		expect(await isSettled(setup)).toBe(false);
 	});
 
+	it('releases Hydrogen when a policy change drops a pending revocation for untouched opt-out', async () => {
+		const shopify = installCustomerPrivacy();
+		const bridge = createShopifyCustomerPrivacy();
+		const setup = bridge.setup();
+
+		bridge.update({
+			effectivePermissions: {
+				functionality: false,
+				marketing: false,
+				measurement: false,
+				necessary: true,
+			},
+			explicitChoice: null,
+			model: 'opt-in',
+			policyPending: false,
+			promptRequirement: { kind: 'choice', reason: 'policy-changed' },
+		});
+		expect(await isSettled(setup)).toBe(false);
+
+		bridge.update({
+			effectivePermissions: {
+				functionality: true,
+				marketing: true,
+				measurement: true,
+				necessary: true,
+			},
+			explicitChoice: null,
+			model: 'opt-out',
+			policyPending: false,
+			promptRequirement: { kind: 'none' },
+		});
+
+		expect(await isSettled(setup)).toBe(true);
+		expect(shopify.sent).toEqual([]);
+	});
+
 	it('reports a rejected choice and retries with the next update', async () => {
 		fakeRetryTimers();
 		let fail = true;
