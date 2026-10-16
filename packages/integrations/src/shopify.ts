@@ -59,7 +59,9 @@ export interface ShopifyCustomerPrivacyOptions {
 export interface ShopifyCustomerPrivacyBridge {
 	/**
 	 * Pass the latest consent snapshot. The bridge sends it to Shopify once the
-	 * visitor has made a choice and has no new one to make.
+	 * visitor has made a choice and has no new one to make. After that, under
+	 * opt-in and IAB policies, it also sends the denials c15t applies while it
+	 * asks the visitor again.
 	 */
 	update: (snapshot: ShopifyConsentSnapshot) => void;
 	/**
@@ -178,17 +180,21 @@ export const toShopifyConsent = (
  *   answered the banner. Hydrogen keeps holding events.
  * - `shopify-defaults`: under opt-out, the visitor has not chosen yet.
  *   Hydrogen runs under Shopify's region defaults, which also read GPC.
- * - `send`: the visitor has chosen, including with Reject All.
+ * - `send`: the visitor has chosen, including with Reject All. Also when an
+ *   opt-in or IAB choice Shopify has expires or the policy asks again, so
+ *   Shopify drops grants c15t no longer honors. Hydrogen has already
+ *   released its events by then.
  */
 const nextStep = (
-	snapshot: ShopifyConsentSnapshot
+	snapshot: ShopifyConsentSnapshot,
+	shopifyHasChoice: boolean
 ): 'wait' | 'shopify-defaults' | 'send' => {
 	if (snapshot.policyPending) {
 		return 'wait';
 	}
 	const owesChoice = snapshot.promptRequirement.kind === 'choice';
 	if (snapshot.model === 'opt-in' || snapshot.model === 'iab') {
-		return owesChoice ? 'wait' : 'send';
+		return owesChoice && !shopifyHasChoice ? 'wait' : 'send';
 	}
 	return owesChoice || snapshot.explicitChoice === null
 		? 'shopify-defaults'
@@ -325,7 +331,7 @@ export const createShopifyCustomerPrivacy = (
 	};
 
 	const update = (snapshot: ShopifyConsentSnapshot): void => {
-		const step = nextStep(snapshot);
+		const step = nextStep(snapshot, latest !== undefined);
 		if (step === 'wait') {
 			return;
 		}

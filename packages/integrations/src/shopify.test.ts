@@ -258,6 +258,30 @@ describe('Shopify Customer Privacy bridge', () => {
 		});
 	});
 
+	it('revokes the grants Shopify has when an opt-in choice expires', async () => {
+		const shopify = installCustomerPrivacy();
+		const kernel = kernelWith('opt-in');
+		const onSync = vi.fn();
+		const bridge = createShopifyCustomerPrivacy({ onSync });
+		bridge.connect(kernel);
+
+		await kernel.commands.save('all');
+		await bridge.setup();
+		expect(shopify.sent).toEqual([ALL_GRANTED]);
+
+		// Hydrogen has released its events, so Shopify would keep using the
+		// expired grants until the visitor answers the banner again.
+		const twoYears = 2 * 365 * 24 * 60 * 60 * 1000;
+		const expired = kernel.refresh(Date.now() + twoYears);
+		expect(expired.promptRequirement).toEqual({
+			kind: 'choice',
+			reason: 'expired',
+		});
+		await vi.waitFor(() => expect(onSync).toHaveBeenCalledTimes(2));
+
+		expect(shopify.sent).toEqual([ALL_GRANTED, ALL_DENIED]);
+	});
+
 	it('reports a rejected choice and retries with the next update', async () => {
 		fakeRetryTimers();
 		let fail = true;

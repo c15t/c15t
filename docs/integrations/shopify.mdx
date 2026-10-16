@@ -96,7 +96,10 @@ sends nothing until then, or while the policy is pending.
 
 After the first choice, the bridge sends each change once. When a visitor
 revokes a category, c15t reloads the page and the bridge sends the stored
-choice on load. If the Customer Privacy API hasn't loaded yet, the bridge
+choice on load. Under an opt-in or IAB policy, when the choice Shopify has
+expires or a policy change asks the visitor again, the bridge sends the
+denials c15t now applies, so Shopify stops using the old grants before the
+visitor answers. If the Customer Privacy API hasn't loaded yet, the bridge
 waits for Shopify's `consentTrackingApiLoaded` or
 `shopifyCustomerPrivacyApiLoaded` event.
 
