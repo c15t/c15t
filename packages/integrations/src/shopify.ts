@@ -239,8 +239,14 @@ export const createShopifyCustomerPrivacy = (
 
 	const reportError = (error: unknown): void => {
 		if (options.onError) {
-			options.onError(error);
-			return;
+			try {
+				options.onError(error);
+				return;
+			} catch (callbackError) {
+				// Keep retrying and sending newer choices when the callback throws.
+				// oxlint-disable-next-line no-console -- Nowhere else to report it.
+				console.error('[c15t] Shopify onError threw', callbackError);
+			}
 		}
 		// oxlint-disable-next-line no-console -- Default surface for a failed sync.
 		console.error('[c15t] Shopify Customer Privacy sync failed', error);

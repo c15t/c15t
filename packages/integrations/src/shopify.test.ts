@@ -428,6 +428,37 @@ describe('Shopify Customer Privacy bridge', () => {
 		expect(shopify.sent).toEqual([ALL_GRANTED, ALL_DENIED]);
 	});
 
+	it('keeps retrying when onError throws', async () => {
+		fakeRetryTimers();
+		const consoleError = vi
+			.spyOn(console, 'error')
+			.mockImplementation(() => undefined);
+		let failuresLeft = 1;
+		const shopify = installCustomerPrivacy(() => {
+			if (failuresLeft > 0) {
+				failuresLeft -= 1;
+				return Promise.reject(new Error('network'));
+			}
+			return Promise.resolve();
+		});
+		const kernel = kernelWith('opt-in');
+		const failure = new Error('app callback');
+		const bridge = createShopifyCustomerPrivacy({
+			onError: () => {
+				throw failure;
+			},
+		});
+		bridge.connect(kernel);
+		const setup = bridge.setup();
+
+		await kernel.commands.save('all');
+		await vi.advanceTimersByTimeAsync(1000);
+
+		expect(await isSettled(setup)).toBe(true);
+		expect(shopify.sent).toEqual([ALL_GRANTED, ALL_GRANTED]);
+		expect(consoleError).toHaveBeenCalledWith(expect.any(String), failure);
+	});
+
 	it('releases Hydrogen when onSync throws', async () => {
 		installCustomerPrivacy();
 		const kernel = kernelWith('opt-in');
