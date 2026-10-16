@@ -8,7 +8,7 @@
  * The c15t range every item installs. Raise it when an item starts using a
  * hook or prop that older releases don't have.
  */
-export const c15tRange = '^3.1.0';
+export const c15tRange = '^3.2.0';
 
 export const frameworks = ['next', 'react', 'tanstack-start'] as const;
 export type Framework = (typeof frameworks)[number];

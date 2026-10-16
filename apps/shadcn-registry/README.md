@@ -131,8 +131,9 @@ and copy `components/ui` and `lib/utils.ts` from each
 
 ## Deploying
 
-The items pin `c15t@^3.1.0`. Publish that release before deploying, or
-installs fail to resolve the dependency.
+The items pin `c15t@^3.2.0`, the first stable release with the headless
+hooks they use. 3.1.0 shipped without them. Publish 3.2.0 before deploying,
+or installs fail to resolve the dependency.
 
 ```bash
 bun run build
