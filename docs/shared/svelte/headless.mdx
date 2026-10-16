@@ -50,6 +50,14 @@ Render from `actionGroups` or `orderedActions` rather than a fixed list. A
 policy can require a reject button next to accept, or offer only a dismiss
 button for a notice, and a hard-coded pair of buttons breaks those rules.
 
+The example takes its text from `resolvePromptCopy` and `resolveActionLabels`,
+which `@c15t/svelte` exports. Pass them
+`getConsentManager().translations?.translations` and they return the banner's
+title, description and button labels in the active language, with English for
+any missing key. Under a notice, `resolvePromptCopy` reads the
+notice copy and `banner.primaryActions` contains `dismiss`.
+`resolvePreferenceControlLabels` labels an opt-out or preferences button.
+
 ## Build your own preferences
 
 For a custom dialog or settings page, read the category list and the unsaved

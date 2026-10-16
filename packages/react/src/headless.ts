@@ -10,7 +10,21 @@ export {
 	detectBrowserLanguage,
 	mergeTranslationConfigs,
 	prepareTranslationConfig,
+	resolveActionLabels,
+	resolvePreferenceControlLabels,
+	resolvePromptCopy,
 } from '@c15t/core';
+export type {
+	PreferenceControl,
+	PresentationAction,
+	PromptCopy,
+	ResolvedVendor,
+} from '@c15t/core';
+export {
+	type ConsentLabels,
+	useConsentLabels,
+} from './component-hooks/use-consent-labels';
+export { useConsentTextDirection } from './component-hooks/use-consent-text-direction';
 export {
 	type ConsentGateState,
 	type UseConsentGateResult,
@@ -34,7 +48,15 @@ export {
 	useHeadlessConsentUI,
 } from './component-hooks/use-headless-consent-ui';
 export { useTranslations } from './component-hooks/use-translations';
+export { useVendorsListedUnder } from './component-hooks/use-vendors-listed-under';
+export { useBannerCopy } from './components/prompt/use-banner-copy';
+export {
+	StreamedConsentSurface,
+	type StreamedConsentSurfaceProps,
+} from './components/shared/streamed-surface';
 export { useColorScheme } from './hooks/use-color-scheme';
 export { useFocusTrap } from './hooks/use-focus-trap';
+export { useIABPolicyGuard } from './hooks/use-iab-policy-guard';
+export { useScrollLock } from './hooks/use-scroll-lock';
 // IAB headless hook lives on the `@c15t/react/iab` subpath.
 export type { ReactUIOptions } from './types/manager';

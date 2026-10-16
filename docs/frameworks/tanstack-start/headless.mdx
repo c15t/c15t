@@ -19,31 +19,28 @@ component inside `ConsentRoot` in place of `ConsentBanner`, and keep
 
 ```tsx title="src/components/consent-banner.tsx"
 import {
+	StreamedConsentSurface,
+	useBannerCopy,
+	useConsentLabels,
 	useHeadlessConsentUI,
-	useTranslations,
 } from 'c15t/tanstack-start/headless';
 
-const ACTION_LABELS = {
-	accept: 'acceptAll',
-	reject: 'rejectAll',
-	customize: 'customize',
-	dismiss: 'acknowledge',
-	save: 'save',
-} as const;
-
-export function Banner() {
+function BannerContent() {
 	const { banner, performAction, openDialog } = useHeadlessConsentUI();
-	const { common, rights } = useTranslations();
+	const { title, description } = useBannerCopy();
+	const labels = useConsentLabels();
 
 	if (!banner.isVisible) {
 		return null;
 	}
 
 	return (
-		<section role="region" aria-label="Privacy">
+		<section role="region" aria-label={title}>
+			<h2>{title}</h2>
+			<p>{description}</p>
 			{banner.preferenceControls.map((right) => (
 				<button key={right} type="button" onClick={openDialog}>
-					{right === 'opt-out' ? rights?.optOut : rights?.preferences}
+					{labels.preferenceControls[right]}
 				</button>
 			))}
 			{banner.actionGroups.map((group) => (
@@ -55,7 +52,7 @@ export function Banner() {
 							data-primary={banner.primaryActions.includes(action) || undefined}
 							onClick={() => performAction(action)}
 						>
-							{common[ACTION_LABELS[action]]}
+							{labels.actions[action]}
 						</button>
 					))}
 				</div>
@@ -63,12 +60,26 @@ export function Banner() {
 		</section>
 	);
 }
+
+export function Banner() {
+	return (
+		<StreamedConsentSurface>
+			<BannerContent />
+		</StreamedConsentSurface>
+	);
+}
 ```
 
 With an awaited root loader, `banner.isVisible` is already `true` on the server
 for a visitor who owes a choice, so your banner is in the first HTML like the
-stock one. With a streamed loader or a prerendered page it turns `true` after
-hydration.
+stock one. With a
+[streamed loader](/docs/frameworks/tanstack-start/rendering#stream-the-page-while-consent-resolves),
+`StreamedConsentSurface` waits for the consent promise in its own `Suspense`
+boundary, so your banner follows in a later chunk of the same response and
+shows before hydration. Call the hooks in a component inside it. Hooks called
+above it read the state from before consent resolved, which has no banner.
+`streamBanner: false` turns this off for your banner as it does for the stock
+one. On a prerendered page, the banner shows after hydration.
 
 Check for a policy before rendering other custom surfaces. `useModel()` returns
 `null` while no policy has resolved and `'none'` under a policy that owes no

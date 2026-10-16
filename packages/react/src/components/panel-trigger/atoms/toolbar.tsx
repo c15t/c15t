@@ -12,7 +12,7 @@ import { followDevToolsDock } from '@c15t/ui/utils/devtools-launcher';
 import type { KeyboardEvent, MouseEvent, ReactNode } from 'react';
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 
-import { useTranslations } from '~/component-hooks/use-translations';
+import { useConsentLabels } from '~/component-hooks/use-consent-labels';
 import { useDevToolsLauncher } from '~/devtools-launcher';
 import { usePolicyRule } from '~/hooks';
 import { useTheme } from '~/hooks/use-theme';
@@ -129,15 +129,15 @@ interface PreferencesActionDefaults {
 const usePreferencesActionDefaults =
 	function usePreferencesActionDefaults(): PreferencesActionDefaults {
 		const policy = usePolicyRule();
-		const { rights: rightsTranslations } = useTranslations();
+		const { preferenceControls } = useConsentLabels();
 		return useMemo(() => {
 			const right = resolvePreferencesRight(policy.rights);
 			const label =
 				right === 'opt-out' && policy.i18n?.messageProfile !== 'preferences'
-					? (rightsTranslations?.optOut ?? 'Do not sell or share my data')
-					: (rightsTranslations?.preferences ?? 'Manage preferences');
+					? preferenceControls['opt-out']
+					: preferenceControls.preferences;
 			return { label, right, rights: policy.rights.join(' ') };
-		}, [policy.rights, policy.i18n?.messageProfile, rightsTranslations]);
+		}, [policy.rights, policy.i18n?.messageProfile, preferenceControls]);
 	};
 
 const createToolbarItems = function createToolbarItems(

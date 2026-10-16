@@ -277,12 +277,6 @@
 	const primaryActions = $derived(presentation.primaryActions);
 	// Additional buttons that open preferences, styled as underlined text.
 	const preferenceControls = $derived(presentation.preferenceControls);
-	// A notice offers dismiss alone; with no primary resolved it takes the lead.
-	const dismissIsPrimary = $derived(
-		primaryActions.length === 0 &&
-			presentation.orderedActions.length === 1 &&
-			presentation.orderedActions[0] === 'dismiss'
-	);
 	const promptKind = $derived(consent.snapshot.policyRule.prompt);
 	const isNotice = $derived(promptKind === 'notice');
 	const direction = $derived(presentation.direction);
@@ -499,7 +493,7 @@
 								<ConsentButton
 									action="dismiss-notice"
 									variant={themedActions.dismiss.variant ??
-										(isPrimary || dismissIsPrimary ? 'primary' : 'neutral')}
+										(isPrimary ? 'primary' : 'neutral')}
 									mode={themedActions.dismiss.mode ?? 'stroke'}
 									data-action="dismiss"
 									data-testid="consent-banner-dismiss-button"

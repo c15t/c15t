@@ -22,8 +22,10 @@ group: reference
 <section id="banner-api">
   `banner.actionGroups` is the resolved layout: reject and accept share a group
   at equal prominence, and the rest follow. `banner.orderedActions` is the same
-  list flattened. Under a notice the only action is `dismiss`, and
-  `banner.preferenceControls` recommends additional buttons for opening
+  list flattened. `banner.primaryActions` lists the actions to style as
+  primary. Under a notice the only action is `dismiss`, and
+  `banner.primaryActions` contains it. `banner.preferenceControls` recommends
+  additional buttons for opening
   preferences. Under a notice it contains `opt-out`, which selects the
   "Do not sell or share my data" label. The example renders that button and
   an "OK" button. Both controls keep their own command: opening
@@ -31,6 +33,20 @@ group: reference
 
   The list is a rendering helper. It does not establish that your UI implements
   all policy rights. Provide disclosure and persistent preferences access.
+
+  `useBannerCopy()` returns the `title` and `description` for the active
+  prompt. A notice reads `cookieBanner.noticeTitle` and
+  `cookieBanner.noticeDescription`, then falls back to the choice copy in the
+  same language before English. `useConsentLabels()` returns
+  `actions`, a label for each action, and `preferenceControls`, a label for
+  each preference control. `dismiss` reads `common.acknowledge`, then
+  `common.dismiss`. Both hooks follow the active language and fill missing
+  keys from English, and they are the same strings the pre-built banner
+  renders.
+
+  The hooks wrap `resolvePromptCopy`, `resolveActionLabels`, and
+  `resolvePreferenceControlLabels`. Those take a translations object and
+  are exported from `c15t`, so code outside React can produce the same copy.
 
   `performAction` saves all categories for `accept`, none for `reject`, the
   current draft for `save`, records a dismissal for `dismiss`, and opens the
@@ -40,8 +56,26 @@ group: reference
 
   `banner.variant`, `banner.position`, and `banner.blocking` carry the resolved
   shape from `presentation.prompt`, so a headless surface can follow the same
-  bar, widget, or wall choice the pre-built banner would make, and can trap
-  focus and lock scroll exactly when `blocking` is true.
+  bar, widget, or wall choice the pre-built banner would make. The pre-built
+  banner traps focus and locks page scroll while `blocking` is true. To do
+  the same, call `useFocusTrap(blocking, ref)` and `useScrollLock(blocking)`
+  from the headless entry, with `blocking` set to
+  `banner.isVisible && banner.blocking` and `ref` attached to your banner's
+  root element. Scroll locks are counted, so the page scrolls again once the
+  banner and any open dialog have both let go.
+
+  c15t can show consent copy in the visitor's browser language, which may run
+  right to left on a left-to-right page. `useConsentTextDirection()` returns
+  `'rtl'` or `'ltr'` for the language the copy is in. Set it as `dir` on your
+  banner and preference center roots, as the pre-built ones do.
+
+  The pre-built banner and dialog render nothing under the IAB model, and
+  the TCF surfaces inside `<IABProvider>` take over. A
+  custom surface that handles only opt-in and opt-out should do the same:
+  return `null` when `useModel()` is `'iab'`. Call `useIABPolicyGuard()` in
+  it as well. It throws `IABUnavailableError` while rendering when the
+  policy needs IAB and the app never loaded `<IABProvider>`, so the gap
+  shows up in your error boundary instead of as a missing banner.
 </section>
 
 <section id="consent-gate">

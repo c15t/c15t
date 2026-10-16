@@ -73,6 +73,13 @@ surfaces without recording anything. `kernel.commands.save()` records a choice:
 `{ measurement: true }` saves those categories. `dismissNotice()` records that
 the visitor saw a notice, not that they consented.
 
+`resolveActionLabels` and `resolvePreferenceControlLabels` take
+`snapshot.translations?.translations` and return button labels in the
+visitor's language, with English for any missing key. `resolvePromptCopy`
+does the same for the prompt's title and description, and reads the notice copy
+when `policyRule.prompt` is `'notice'`. All three come from `c15t` and
+`@c15t/browser/headless`.
+
 ## Build a preference form with a draft
 
 A preference form shows switches the visitor can move and keep moving before
@@ -161,8 +168,8 @@ A custom UI takes on everything the stock banner does:
   click or key press, never on load or during rendering.
 - **Accessibility.** Focus, keyboard use, labels, error states and narrow
   screens are yours. The example uses a native `<dialog>` for focus handling.
-- **Copy.** `snapshot.translations` carries the resolved language's copy,
-  if you want the same text as the stock UI. See
+- **Copy.** `snapshot.translations` carries the resolved language's copy.
+  The label and copy helpers above read it for you. See
   [translations](/docs/frameworks/javascript/translations).
 
 Read [how consent works](/docs/concepts/how-consent-works) for the difference

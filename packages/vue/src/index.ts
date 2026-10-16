@@ -14,6 +14,16 @@ import type { RuntimeConsentConfig } from './runtime/kernel';
 import { mountTokensStyle } from './runtime/theme-tokens';
 
 export type { AllConsentNames, ClearOnRevocationConfig } from '@c15t/core';
+export {
+	resolveActionLabels,
+	resolvePreferenceControlLabels,
+	resolvePromptCopy,
+} from '@c15t/core';
+export type {
+	PreferenceControl,
+	PresentationAction,
+	PromptCopy,
+} from '@c15t/core';
 export type * from '@c15t/schema/config';
 export { defineTheme, type Theme } from '@c15t/ui/theme';
 export * from './runtime/components/index';

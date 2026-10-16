@@ -49,9 +49,25 @@ export const missingIABProviderError =
  * around them, so a missing IAB context alone does not prove the app has
  * none. The check also passes once `@c15t/react/iab` has loaded.
  *
+ * A custom banner or preference center that only handles opt-in and
+ * opt-out should call this too, and render nothing when `useModel()` is
+ * `'iab'`, as the standard surfaces do.
+ *
  * @throws {IABUnavailableError} When the policy needs IAB and neither an
  * IAB context nor `@c15t/react/iab` is present.
- * @internal
+ *
+ * @example
+ * ```tsx
+ * function Banner() {
+ *   useIABPolicyGuard();
+ *   const model = useModel();
+ *   const { banner } = useHeadlessConsentUI();
+ *   const copy = useBannerCopy();
+ *   if (model === 'iab' || !banner.isVisible) return null;
+ *   return <section>{copy.title}</section>;
+ * }
+ * ```
+ * @public
  */
 export const useIABPolicyGuard = function useIABPolicyGuard(): void {
 	const iab = useContext(IABContext);

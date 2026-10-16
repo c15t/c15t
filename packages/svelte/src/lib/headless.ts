@@ -1,5 +1,15 @@
 export type { AllConsentNames } from '@c15t/core';
 export type { ConsentState, KernelActiveUI, KernelConfig } from '@c15t/core';
+export {
+	resolveActionLabels,
+	resolvePreferenceControlLabels,
+	resolvePromptCopy,
+} from '@c15t/core';
+export type {
+	PreferenceControl,
+	PresentationAction,
+	PromptCopy,
+} from '@c15t/core';
 export { focusTrap } from './actions/focus-trap';
 export { portal } from './actions/portal';
 export { scrollLock } from './actions/scroll-lock';

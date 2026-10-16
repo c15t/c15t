@@ -10,8 +10,8 @@ import styles from '@c15t/ui/styles/components/consent-banner';
 import { forwardRef as createForwardRef, isValidElement, useRef } from 'react';
 import type { ButtonHTMLAttributes, MouseEvent, ReactNode, Ref } from 'react';
 
+import { useConsentLabels } from '~/component-hooks/use-consent-labels';
 import { useHeadlessConsentUI } from '~/component-hooks/use-headless-consent-ui';
-import { useTranslations } from '~/component-hooks/use-translations';
 import { useComposedRefs } from '~/components/shared/libs/compose-refs';
 import { Slot } from '~/components/shared/libs/slot';
 import { usePolicyRule, useSetActiveUI } from '~/hooks';
@@ -41,12 +41,6 @@ const CONSENT_BANNER_ACCEPT_BUTTON_NAME = 'ConsentBannerAcceptButton';
 const CONSENT_BANNER_DISMISS_BUTTON_NAME = 'ConsentBannerDismissButton';
 const CONSENT_BANNER_RIGHTS_NAME = 'ConsentBannerRights';
 const CONSENT_BANNER_RIGHT_LINK_NAME = 'ConsentBannerRightLink';
-
-/** English labels used when a language bundle has no `rights` section. */
-const FALLBACK_RIGHT_LABELS: Record<ConsentBannerRight, string> = {
-	'opt-out': 'Do not sell or share my data',
-	preferences: 'Manage preferences',
-};
 
 /** Rights the banner can expose as links. `disclosure` is carried by legal links. */
 export type ConsentBannerRight = Exclude<PolicyRight, 'disclosure'>;
@@ -327,7 +321,7 @@ const ConsentBannerRejectButton = createForwardRef<
 	HTMLButtonElement,
 	ConsentButtonProps
 >(({ children, ...props }, ref) => {
-	const { common } = useTranslations();
+	const labels = useConsentLabels();
 	return (
 		<ConsentButton
 			ref={ref as Ref<HTMLButtonElement>}
@@ -337,7 +331,7 @@ const ConsentBannerRejectButton = createForwardRef<
 			closeConsentBanner
 			{...props}
 		>
-			{children ?? common.rejectAll}
+			{children ?? labels.actions.reject}
 		</ConsentButton>
 	);
 });
@@ -355,7 +349,7 @@ const ConsentBannerCustomizeButton = createForwardRef<
 	HTMLButtonElement,
 	ConsentButtonProps
 >(({ children, ...props }, ref) => {
-	const { common } = useTranslations();
+	const labels = useConsentLabels();
 	return (
 		<ConsentButton
 			ref={ref as Ref<HTMLButtonElement>}
@@ -364,7 +358,7 @@ const ConsentBannerCustomizeButton = createForwardRef<
 			data-testid="consent-banner-customize-button"
 			{...props}
 		>
-			{children ?? common.customize}
+			{children ?? labels.actions.customize}
 		</ConsentButton>
 	);
 });
@@ -390,7 +384,7 @@ const ConsentBannerAcceptButton = createForwardRef<
 	HTMLButtonElement,
 	ConsentButtonProps
 >(({ children, ...props }, ref) => {
-	const { common } = useTranslations();
+	const labels = useConsentLabels();
 	const { noStyle } = useTheme();
 	return (
 		<ConsentButton
@@ -402,7 +396,7 @@ const ConsentBannerAcceptButton = createForwardRef<
 			noStyle={noStyle}
 			{...props}
 		>
-			{children ?? common.acceptAll}
+			{children ?? labels.actions.accept}
 		</ConsentButton>
 	);
 });
@@ -430,7 +424,7 @@ const ConsentBannerDismissButton = createForwardRef<
 	HTMLButtonElement,
 	ConsentButtonProps
 >(({ children, ...props }, ref) => {
-	const { common } = useTranslations();
+	const labels = useConsentLabels();
 	const { noStyle } = useTheme();
 	return (
 		<ConsentButton
@@ -442,7 +436,7 @@ const ConsentBannerDismissButton = createForwardRef<
 			noStyle={noStyle}
 			{...props}
 		>
-			{children ?? common.acknowledge ?? common.dismiss}
+			{children ?? labels.actions.dismiss}
 		</ConsentButton>
 	);
 });
@@ -494,14 +488,12 @@ const ConsentBannerRightLink = createForwardRef<
 		{ right, children, asChild, className, style, noStyle, onClick, ...props },
 		ref
 	) => {
-		const { rights } = useTranslations();
+		const labels = useConsentLabels();
 		const policy = usePolicyRule();
 		const { components } = useUIConfig();
 		const { noStyle: contextNoStyle } = useTheme();
 		const setActiveUI = useSetActiveUI();
-		const label =
-			(right === 'opt-out' ? rights?.optOut : rights?.preferences) ??
-			FALLBACK_RIGHT_LABELS[right];
+		const label = labels.preferenceControls[right];
 		const mergedProps = mergeSlotProps(
 			getSlotProps(components, 'banner.rightLink'),
 			{

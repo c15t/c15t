@@ -350,6 +350,12 @@ export type {
 	PresentationDiagnostic,
 	ResolvedConsentPresentation,
 } from './libs/policy-actions';
+export {
+	resolveActionLabels,
+	resolvePreferenceControlLabels,
+	resolvePromptCopy,
+} from './libs/consent-copy';
+export type { PreferenceControl, PromptCopy } from './libs/consent-copy';
 
 export {
 	deniedVendorIds,

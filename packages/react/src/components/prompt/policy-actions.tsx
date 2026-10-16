@@ -16,7 +16,6 @@ import {
 	ConsentBannerRejectButton,
 	ConsentBannerRights,
 } from './components';
-import { resolveBannerPrimaryActions } from './resolve-banner-primary-actions';
 
 export type ConsentBannerPolicyActionRenderProps =
 	PolicyActionRenderProps<HeadlessConsentBannerAction>;
@@ -87,19 +86,10 @@ export const ConsentBannerPolicyActions = ({
 	renderAction,
 }: ConsentBannerPolicyActionsProps) => {
 	const { banner } = useHeadlessConsentUI();
-	const state = {
-		...banner,
-		primaryActions: [
-			...resolveBannerPrimaryActions(
-				banner.primaryActions,
-				banner.orderedActions
-			),
-		],
-	};
 
 	return (
 		<PolicyActionsRenderer
-			state={state}
+			state={banner}
 			leading={
 				children === undefined ? (
 					<ConsentBannerRights rights={banner.preferenceControls} />

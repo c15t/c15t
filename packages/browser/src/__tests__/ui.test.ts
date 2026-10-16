@@ -237,6 +237,21 @@ describe('mountConsentUI', () => {
 		expect(client.getSnapshot().effectivePermissions).toEqual(before);
 	});
 
+	it('styles the lone dismiss on a notice as primary', async () => {
+		const { root } = await mount(
+			{},
+			{
+				overrides: { country: 'US', region: 'CA' },
+				policyRules: [
+					{ ...policyRulePresets.usPrivacyStatesOptOut(), prompt: 'notice' },
+				],
+			}
+		);
+		expect(query(root, 'consent-banner-dismiss-button').dataset.variant).toBe(
+			'primary'
+		);
+	});
+
 	it('uses prompt geometry and blocking from presentation', async () => {
 		const { root } = await mount(
 			{},
