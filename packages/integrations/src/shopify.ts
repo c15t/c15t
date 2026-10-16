@@ -45,8 +45,9 @@ export interface ShopifyCustomerPrivacyOptions {
 	/** Called after Shopify accepts each choice. */
 	onSync?: (preferences: ShopifyConsentPreferences) => void;
 	/**
-	 * Called when Shopify rejects a choice. The bridge tries again on the next
-	 * consent update or when the API loads again. Logs to the console when unset.
+	 * Called when Shopify rejects a choice or `onSync` throws. The bridge
+	 * resends a rejected choice after 1, 2 and 4 seconds, then waits for the
+	 * next consent update. Logs to the console when unset.
 	 */
 	onError?: (error: unknown) => void;
 }
@@ -63,9 +64,9 @@ export interface ShopifyCustomerPrivacyBridge {
 	 */
 	connect: (source: ShopifyConsentSource) => () => void;
 	/**
-	 * Hydrogen's `consent.setup` for `mode: 'custom-banner'`. Resolves after
-	 * Shopify accepts the first choice, so Hydrogen delivers buffered events
-	 * only once the visitor has decided.
+	 * Hydrogen's `consent.setup` for `mode: 'custom-banner'`. Resolves once
+	 * Shopify has accepted the visitor's latest choice, so Hydrogen delivers
+	 * buffered events only under that choice.
 	 */
 	setup: () => Promise<void>;
 }
@@ -79,7 +80,16 @@ export const DEFAULT_SHOPIFY_CONSENT_CATEGORIES: Readonly<ShopifyConsentCategori
 		sale_of_data: 'marketing',
 	};
 
-const apiLoadedEvent = 'consentTrackingApiLoaded';
+// Hydrogen's framework-agnostic `ShopifyScripts` waits for the first, and
+// Shopify's docs and Hydrogen React's `useCustomerPrivacy` for the second.
+const apiLoadedEvents = [
+	'consentTrackingApiLoaded',
+	'shopifyCustomerPrivacyApiLoaded',
+] as const;
+
+// Waits before resending a choice Shopify rejected, while nothing newer
+// arrives. After the last one, the bridge waits for the next update.
+const retryDelays = [1000, 2000, 4000] as const;
 
 const getCustomerPrivacy = (): ShopifyCustomerPrivacyApi | undefined => {
 	if (typeof window === 'undefined') {
@@ -191,6 +201,9 @@ export const createShopifyCustomerPrivacy = (
 	let sentKey: string | undefined;
 	let sending = false;
 	let listening = false;
+	let failedKey: string | undefined;
+	let failures = 0;
+	let retryTimer: ReturnType<typeof setTimeout> | undefined;
 	let resolveReady: (() => void) | undefined;
 	const ready = new Promise<void>((resolve) => {
 		resolveReady = resolve;
@@ -213,9 +226,11 @@ export const createShopifyCustomerPrivacy = (
 		if (!api) {
 			if (!listening && typeof document !== 'undefined') {
 				listening = true;
-				document.addEventListener(apiLoadedEvent, () => {
-					void flush();
-				});
+				for (const event of apiLoadedEvents) {
+					document.addEventListener(event, () => {
+						void flush();
+					});
+				}
 			}
 			return;
 		}
@@ -224,20 +239,46 @@ export const createShopifyCustomerPrivacy = (
 		if (key === sentKey) {
 			return;
 		}
+		const isNewer = () =>
+			latest !== undefined && JSON.stringify(latest) !== key;
+		clearTimeout(retryTimer);
 		sending = true;
 		try {
 			await setTrackingConsent(api, consent);
 		} catch (error) {
 			sending = false;
 			reportError(error);
+			if (isNewer()) {
+				// A newer choice arrived while this one was in flight.
+				await flush();
+				return;
+			}
+			if (key !== failedKey) {
+				failedKey = key;
+				failures = 0;
+			}
+			const delay = retryDelays[failures];
+			failures += 1;
+			if (delay !== undefined) {
+				retryTimer = setTimeout(() => {
+					void flush();
+				}, delay);
+			}
 			return;
 		}
 		sending = false;
 		sentKey = key;
-		options.onSync?.(consent);
+		try {
+			options.onSync?.(consent);
+		} catch (error) {
+			reportError(error);
+		}
+		if (isNewer()) {
+			// Release Hydrogen only once Shopify has the newest choice.
+			await flush();
+			return;
+		}
 		resolveReady?.();
-		// A newer choice may have arrived while this one was in flight.
-		await flush();
 	};
 
 	const update = (snapshot: ShopifyConsentSnapshot): void => {

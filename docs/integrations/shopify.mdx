@@ -92,12 +92,15 @@ allows, so the bridge sends them on load.
 After the first choice, the bridge sends each change once. When a visitor
 revokes a category, c15t reloads the page and the bridge sends the stored
 choice on load. If the Customer Privacy API hasn't loaded yet, the bridge
-waits for Shopify's `consentTrackingApiLoaded` event.
+waits for Shopify's `consentTrackingApiLoaded` or
+`shopifyCustomerPrivacyApiLoaded` event.
 
-`setup` resolves after Shopify accepts the first choice, and Hydrogen then
-delivers the events that choice allows. It never rejects: Hydrogen stops
-calling `setup` after a rejection, so the bridge keeps events blocked and
-retries with the next update instead.
+`setup` resolves once Shopify has accepted the visitor's latest choice, and
+Hydrogen then delivers the events that choice allows. If the visitor changes
+their mind while the first request is in flight, `setup` waits for the newer
+one. It never rejects, because Hydrogen stops calling `setup` after a
+rejection. When Shopify rejects a choice, the bridge keeps events blocked and
+sends it again after 1, 2 and 4 seconds, then on the next update.
 
 ## Options
 
@@ -105,7 +108,7 @@ retries with the next update instead.
 | --- | --- | --- |
 | `categories` | The table above | Overrides the c15t category for any of the four Shopify values. |
 | `onSync` | None | Called with the four values after Shopify accepts each choice. |
-| `onError` | Logs to the console | Called when Shopify rejects a choice. The bridge retries on the next update or when the API loads again. |
+| `onError` | Logs to the console | Called when Shopify rejects a choice or `onSync` throws. |
 
 The bridge returns `update(snapshot)`, `connect(source)` and `setup()`.
 `connect` follows anything with `getSnapshot` and `subscribe`, such as a c15t

@@ -66,9 +66,15 @@ const CartViewed = ({ cart }: { cart: Cart }) => {
 		if (!settled || published.current) {
 			return;
 		}
+		const analyticsCart = toAnalyticsCart(cart);
+		// An empty cart Shopify hasn't created yet is `null`. A cart with lines
+		// waits until Shopify confirms them.
+		if (!analyticsCart && cart.lines.nodes.length > 0) {
+			return;
+		}
 		published.current = true;
 		getAnalytics()?.publish(AnalyticsEvent.CART_VIEWED, {
-			cart: toAnalyticsCart(cart),
+			cart: analyticsCart,
 		});
 	}, [cart, settled]);
 

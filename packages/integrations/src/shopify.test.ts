@@ -26,7 +26,15 @@ afterEach(() => {
 	}
 	delete (window as { Shopify?: unknown }).Shopify;
 	vi.restoreAllMocks();
+	vi.clearAllTimers();
+	vi.useRealTimers();
 });
+
+// Retries wait on timers. Faking them keeps a pending retry from firing
+// during a later test.
+const fakeRetryTimers = () => {
+	vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+};
 
 const rule = (model: 'opt-in' | 'opt-out') =>
 	resolvePolicyRules({
@@ -84,9 +92,13 @@ const isSettled = async (promise: Promise<unknown>) => {
 	void promise.then(() => {
 		settled = true;
 	});
-	await new Promise((resolve) => {
-		setTimeout(resolve, 0);
-	});
+	if (vi.isFakeTimers()) {
+		await vi.advanceTimersByTimeAsync(0);
+	} else {
+		await new Promise((resolve) => {
+			setTimeout(resolve, 0);
+		});
+	}
 	return settled;
 };
 
@@ -179,19 +191,23 @@ describe('Shopify Customer Privacy bridge', () => {
 		expect(shopify.sent).toEqual([ALL_GRANTED]);
 	});
 
-	it('waits for the Customer Privacy API to load', async () => {
-		const kernel = kernelWith('opt-in');
-		const bridge = createShopifyCustomerPrivacy();
-		bridge.connect(kernel);
-		await kernel.commands.save('all');
+	it.each(['consentTrackingApiLoaded', 'shopifyCustomerPrivacyApiLoaded'])(
+		'waits for the Customer Privacy API to load (%s)',
+		async (event) => {
+			const kernel = kernelWith('opt-in');
+			const bridge = createShopifyCustomerPrivacy();
+			bridge.connect(kernel);
+			await kernel.commands.save('all');
 
-		const shopify = installCustomerPrivacy();
-		expect(shopify.sent).toEqual([]);
+			const shopify = installCustomerPrivacy();
+			expect(shopify.sent).toEqual([]);
 
-		document.dispatchEvent(new Event('consentTrackingApiLoaded'));
-		await bridge.setup();
-		expect(shopify.sent).toEqual([ALL_GRANTED]);
-	});
+			document.dispatchEvent(new Event(event));
+			await vi.waitFor(() => expect(shopify.sent).toEqual([ALL_GRANTED]));
+			await bridge.setup();
+			expect(shopify.sent).toEqual([ALL_GRANTED]);
+		}
+	);
 
 	it('sends each later change once', async () => {
 		const shopify = installCustomerPrivacy();
@@ -216,6 +232,7 @@ describe('Shopify Customer Privacy bridge', () => {
 	});
 
 	it('reports a rejected choice and retries with the next update', async () => {
+		fakeRetryTimers();
 		let fail = true;
 		const shopify = installCustomerPrivacy(() =>
 			fail ? Promise.reject(new Error('consent domain')) : Promise.resolve()
@@ -237,6 +254,7 @@ describe('Shopify Customer Privacy bridge', () => {
 	});
 
 	it('reports an error the callback returns and keeps Hydrogen blocked', async () => {
+		fakeRetryTimers();
 		installCustomerPrivacy((_consent, reply) => {
 			queueMicrotask(() => reply({ error: 'Invalid domain' }));
 		});
@@ -251,5 +269,96 @@ describe('Shopify Customer Privacy bridge', () => {
 			expect(onError).toHaveBeenCalledWith(new Error('Invalid domain'))
 		);
 		expect(await isSettled(setup)).toBe(false);
+	});
+
+	it('resends a rejected choice on its own, then stops after three retries', async () => {
+		fakeRetryTimers();
+		let failuresLeft = 2;
+		const shopify = installCustomerPrivacy(() => {
+			if (failuresLeft > 0) {
+				failuresLeft -= 1;
+				return Promise.reject(new Error('network'));
+			}
+			return Promise.resolve();
+		});
+		const kernel = kernelWith('opt-in');
+		const bridge = createShopifyCustomerPrivacy({ onError: vi.fn() });
+		bridge.connect(kernel);
+		const setup = bridge.setup();
+
+		await kernel.commands.save('all');
+		await vi.advanceTimersByTimeAsync(1000);
+		expect(await isSettled(setup)).toBe(false);
+		await vi.advanceTimersByTimeAsync(2000);
+		expect(await isSettled(setup)).toBe(true);
+		expect(shopify.sent).toEqual([ALL_GRANTED, ALL_GRANTED, ALL_GRANTED]);
+
+		failuresLeft = Number.POSITIVE_INFINITY;
+		await kernel.commands.save({ marketing: false });
+		await vi.advanceTimersByTimeAsync(60_000);
+		// The first try and three retries.
+		expect(shopify.sent).toHaveLength(7);
+	});
+
+	it('sends a choice made during a request that Shopify rejects', async () => {
+		fakeRetryTimers();
+		let rejectFirst: () => void = () => {};
+		const shopify = installCustomerPrivacy((consent) =>
+			consent.marketing
+				? new Promise((_resolve, reject) => {
+						rejectFirst = () => reject(new Error('network'));
+					})
+				: Promise.resolve()
+		);
+		const kernel = kernelWith('opt-in');
+		const bridge = createShopifyCustomerPrivacy({ onError: vi.fn() });
+		bridge.connect(kernel);
+		const setup = bridge.setup();
+
+		await kernel.commands.save('all');
+		await kernel.commands.save('none');
+		rejectFirst();
+
+		await setup;
+		expect(shopify.sent).toEqual([ALL_GRANTED, ALL_DENIED]);
+	});
+
+	it('releases Hydrogen only after Shopify accepts the newest choice', async () => {
+		const accepts: (() => void)[] = [];
+		const shopify = installCustomerPrivacy((_consent, reply) => {
+			accepts.push(() => reply({}));
+		});
+		const kernel = kernelWith('opt-in');
+		const bridge = createShopifyCustomerPrivacy();
+		bridge.connect(kernel);
+		const setup = bridge.setup();
+
+		await kernel.commands.save('all');
+		await kernel.commands.save('none');
+		accepts[0]?.();
+		expect(await isSettled(setup)).toBe(false);
+		expect(shopify.sent).toEqual([ALL_GRANTED, ALL_DENIED]);
+
+		accepts[1]?.();
+		expect(await isSettled(setup)).toBe(true);
+	});
+
+	it('releases Hydrogen when onSync throws', async () => {
+		installCustomerPrivacy();
+		const kernel = kernelWith('opt-in');
+		const failure = new Error('app callback');
+		const onError = vi.fn();
+		const bridge = createShopifyCustomerPrivacy({
+			onError,
+			onSync: () => {
+				throw failure;
+			},
+		});
+		bridge.connect(kernel);
+		const setup = bridge.setup();
+
+		await kernel.commands.save('all');
+		await setup;
+		expect(onError).toHaveBeenCalledWith(failure);
 	});
 });
