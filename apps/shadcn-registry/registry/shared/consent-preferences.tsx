@@ -174,15 +174,23 @@ export function ConsentPreferencesActions({
     }
   }
 
+  // A column direction, or the strict and balanced profiles, stack the
+  // actions at full width.
+  const stacked = dialog.direction === "column" || dialog.shouldFillActions
+
   return (
     <div
       className={cn(
-        "flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-between",
+        "flex flex-col gap-2",
+        !stacked && "sm:flex-row sm:flex-wrap sm:justify-between",
         className
       )}
     >
       {dialog.actionGroups.map((group) => (
-        <div key={group.join("-")} className="flex flex-col gap-2 sm:flex-row">
+        <div
+          key={group.join("-")}
+          className={cn("flex flex-col gap-2", !stacked && "sm:flex-row")}
+        >
           {group.map((action) => (
             <Button
               key={action}

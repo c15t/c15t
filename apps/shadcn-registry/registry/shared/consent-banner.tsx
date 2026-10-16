@@ -37,6 +37,10 @@ function ConsentBannerContent({ className }: { className?: string }) {
     return null
   }
 
+  // A column direction, or the strict and balanced profiles, stack the
+  // actions at full width.
+  const stacked = banner.direction === "column" || banner.shouldFillActions
+
   return (
     <>
       {banner.blocking && <div className="fixed inset-0 z-50 bg-black/10" />}
@@ -60,7 +64,12 @@ function ConsentBannerContent({ className }: { className?: string }) {
               {description}
             </CardDescription>
           </CardHeader>
-          <CardFooter className="flex-wrap justify-between gap-2">
+          <CardFooter
+            className={cn(
+              "gap-2",
+              stacked ? "flex-col items-stretch" : "flex-wrap justify-between"
+            )}
+          >
             {banner.preferenceControls.map((right) => (
               <Button
                 key={right}
@@ -72,7 +81,10 @@ function ConsentBannerContent({ className }: { className?: string }) {
               </Button>
             ))}
             {banner.actionGroups.map((group) => (
-              <div key={group.join("-")} className="flex flex-wrap gap-2">
+              <div
+                key={group.join("-")}
+                className={cn("flex gap-2", stacked ? "flex-col" : "flex-wrap")}
+              >
                 {group.map((action) => (
                   <Button
                     key={action}
