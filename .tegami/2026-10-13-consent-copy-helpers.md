@@ -18,7 +18,7 @@ description, and reads the notice copy when the prompt is a notice.
 `resolvePreferenceControlLabels(translations)` labels the opt-out and
 preferences buttons. All three use the active language and fall back to
 English for a missing key. Import them from `c15t`, `@c15t/svelte`,
-`@c15t/svelte/headless`, `c15t/vue` or `@c15t/browser/headless`.
+`@c15t/svelte/headless`, `c15t/vue/vue-plugin` or `@c15t/browser/headless`.
 `@c15t/browser/headless` also exports `resolveConsentPresentation` now.
 
 React adds `useBannerCopy()` and `useConsentLabels()` to
