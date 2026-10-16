@@ -90,18 +90,26 @@ sends nothing until then, or while the policy is pending.
 
 - **Opt-in or IAB policy:** `setup` waits until the visitor answers the
   banner, including with Reject All, so Hydrogen holds events until then.
-- **Opt-out policy:** `setup` resolves without recording anything, and
+- **Opt-out policy:** `setup` resolves without recording a choice, and
   Shopify applies its region defaults, including Global Privacy Control,
-  until the visitor saves a choice in c15t.
+  until the visitor saves a choice in c15t. A stale grant is the exception,
+  below.
 
 After the first choice, the bridge sends each change once. When a visitor
 revokes a category, c15t reloads the page and the bridge sends the stored
-choice on load. Under an opt-in or IAB policy, when an earlier choice has
-expired or a policy change asks the visitor again, the bridge sends the
-denials c15t now applies if Shopify may still hold grants: ones the bridge
-sent, a choice c15t stored, or a `yes` from Shopify's
-`currentVisitorConsent()`. Hydrogen keeps holding events until the visitor
-answers. If the Customer Privacy API hasn't loaded yet, the bridge waits for
+choice on load.
+
+While the visitor has no current choice, Shopify may still hold grants from
+an earlier one, for example after that choice expired or a policy change
+asks again. If c15t now denies any of them, the bridge sends a revocation:
+the earlier grants c15t still allows, and `false` for the rest. It counts
+grants the bridge sent and each `yes` from Shopify's
+`currentVisitorConsent()`. If that function isn't available, it assumes a
+choice c15t stored may have granted anything. Under an opt-in or IAB policy,
+Hydrogen keeps holding events until the visitor answers. Under opt-out,
+`setup` resolves once Shopify accepts the revocation.
+
+If the Customer Privacy API hasn't loaded yet, the bridge waits for
 Shopify's `consentTrackingApiLoaded` or `shopifyCustomerPrivacyApiLoaded`
 event.
 
@@ -110,7 +118,8 @@ Hydrogen then delivers the events that choice allows. If the visitor changes
 their mind while the first request is in flight, `setup` waits for the newer
 one. It never rejects, because Hydrogen stops calling `setup` after a
 rejection. When Shopify rejects a choice, the bridge keeps events blocked and
-sends it again after 1, 2 and 4 seconds, then on the next update.
+sends it again after 1, 2 and 4 seconds, then on the next update. If the
+policy turns pending meanwhile, the bridge drops those retries.
 
 ## Options
 

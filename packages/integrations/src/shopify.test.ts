@@ -385,6 +385,67 @@ describe('Shopify Customer Privacy bridge', () => {
 		expect(shopify.sent).toEqual([]);
 	});
 
+	it('drops only the grants c15t denies before releasing an opt-out visitor to Shopify', async () => {
+		const shopify = installCustomerPrivacy();
+		Object.assign(
+			(window as { Shopify: { customerPrivacy: object } }).Shopify
+				.customerPrivacy,
+			{
+				currentVisitorConsent: () => ({
+					analytics: 'yes',
+					marketing: 'yes',
+					preferences: 'no',
+					sale_of_data: 'yes',
+				}),
+			}
+		);
+		const bridge = createShopifyCustomerPrivacy();
+		const setup = bridge.setup();
+
+		// GPC denies marketing under opt-out, and the visitor owes a choice.
+		bridge.update({
+			effectivePermissions: {
+				functionality: true,
+				marketing: false,
+				measurement: true,
+				necessary: true,
+			},
+			explicitChoice: null,
+			model: 'opt-out',
+			policyPending: false,
+			promptRequirement: { kind: 'choice', reason: 'policy-changed' },
+		});
+
+		await setup;
+		expect(shopify.sent).toEqual([
+			{
+				analytics: true,
+				marketing: false,
+				preferences: false,
+				sale_of_data: false,
+			},
+		]);
+	});
+
+	it('cancels a scheduled retry when the policy becomes pending', async () => {
+		fakeRetryTimers();
+		const shopify = installCustomerPrivacy(() =>
+			Promise.reject(new Error('consent domain'))
+		);
+		const kernel = kernelWith('opt-in');
+		const bridge = createShopifyCustomerPrivacy({ onError: () => {} });
+		bridge.connect(kernel);
+		const setup = bridge.setup();
+
+		await kernel.commands.save('all');
+		await vi.waitFor(() => expect(shopify.sent).toHaveLength(1));
+		bridge.update({ ...kernel.getSnapshot(), policyPending: true });
+		await vi.advanceTimersByTimeAsync(10_000);
+
+		expect(shopify.sent).toHaveLength(1);
+		expect(await isSettled(setup)).toBe(false);
+	});
+
 	it('reports a rejected choice and retries with the next update', async () => {
 		fakeRetryTimers();
 		let fail = true;

@@ -63,9 +63,9 @@ export interface ShopifyCustomerPrivacyOptions {
 export interface ShopifyCustomerPrivacyBridge {
 	/**
 	 * Pass the latest consent snapshot. The bridge sends it to Shopify once the
-	 * visitor has made a choice and has no new one to make. Under opt-in and
-	 * IAB policies, while the visitor owes a choice, it sends c15t's denials
-	 * only if Shopify may still hold grants from an earlier one.
+	 * visitor has made a choice and has no new one to make. Until then, it
+	 * sends something only if Shopify may still hold a grant c15t denies, and
+	 * then only drops that grant.
 	 */
 	update: (snapshot: ShopifyConsentSnapshot) => void;
 	/**
@@ -183,15 +183,24 @@ const consentKeys = [
 	'sale_of_data',
 ] as const;
 
-/** Whether `held` grants anything `consent` denies. */
-const grantsDenied = (
-	held: Partial<Record<keyof ShopifyConsentPreferences, unknown>> | undefined,
+/**
+ * The grants in `held` that `consent` still allows, or `undefined` when
+ * `held` grants nothing `consent` denies.
+ */
+const revocation = (
+	held: ShopifyConsentPreferences,
 	consent: ShopifyConsentPreferences
-): boolean =>
-	held !== undefined &&
-	consentKeys.some(
-		(key) => !consent[key] && (held[key] === true || held[key] === 'yes')
-	);
+): ShopifyConsentPreferences | undefined => {
+	if (!consentKeys.some((key) => held[key] && !consent[key])) {
+		return;
+	}
+	return {
+		analytics: held.analytics && consent.analytics,
+		marketing: held.marketing && consent.marketing,
+		preferences: held.preferences && consent.preferences,
+		sale_of_data: held.sale_of_data && consent.sale_of_data,
+	};
+};
 
 /**
  * What the bridge can do with a snapshot. Shopify records consent only on a
@@ -199,11 +208,13 @@ const grantsDenied = (
  *
  * - `wait`: the policy is pending.
  * - `revoke`: an opt-in or IAB visitor owes a choice. Hydrogen keeps holding
- *   events. If Shopify may still hold grants from an earlier choice, the
- *   bridge sends c15t's denials so Shopify drops them.
- * - `shopify-defaults`: under opt-out, the visitor has not chosen yet.
- *   Hydrogen runs under Shopify's region defaults, which also read GPC.
+ *   events.
+ * - `shopify-defaults`: an opt-out visitor has no current choice. Hydrogen
+ *   runs under Shopify's region defaults, which also read GPC.
  * - `send`: the visitor has chosen, including with Reject All.
+ *
+ * In `revoke` and `shopify-defaults`, the bridge sends something only if
+ * Shopify may still hold a grant c15t denies, and then only drops it.
  */
 const nextStep = (
 	snapshot: ShopifyConsentSnapshot
@@ -251,10 +262,12 @@ export const createShopifyCustomerPrivacy = (
 	options: ShopifyCustomerPrivacyOptions = {}
 ): ShopifyCustomerPrivacyBridge => {
 	let latest: ShopifyConsentPreferences | undefined;
-	// Set while `latest` only revokes earlier grants. The visitor still owes
-	// a choice, so Shopify gets it only if it may hold grants, and Hydrogen
-	// keeps holding events.
+	// Set while the visitor has no current choice. Shopify then gets only
+	// revocations of grants `latest` denies.
 	let revoking = false;
+	// Set while an opt-in or IAB visitor owes a choice, so Hydrogen keeps
+	// holding events.
+	let holding = false;
 	let storedChoice = false;
 	let sent: ShopifyConsentPreferences | undefined;
 	let sentKey: string | undefined;
@@ -283,26 +296,38 @@ export const createShopifyCustomerPrivacy = (
 		console.error('[c15t] Shopify Customer Privacy sync failed', error);
 	};
 
-	// Whether Shopify may hold grants from an earlier choice that `consent`
-	// denies.
-	const mayHoldGrants = (
-		api: ShopifyCustomerPrivacyApi,
-		consent: ShopifyConsentPreferences
-	): boolean => {
-		if (storedChoice || grantsDenied(sent, consent)) {
-			return true;
-		}
+	// What Shopify may grant: what the bridge sent and what Shopify reports.
+	// Without a report, a choice c15t stored may have granted anything. IAB
+	// consent set through the CMP API leaves `explicitChoice` empty, so the
+	// report matters there.
+	const heldGrants = (
+		api: ShopifyCustomerPrivacyApi
+	): ShopifyConsentPreferences => {
+		let visitor: Partial<Record<string, string>> | undefined;
 		try {
-			return grantsDenied(api.currentVisitorConsent?.(), consent);
+			visitor = api.currentVisitorConsent?.();
 		} catch {
-			return false;
+			visitor = undefined;
 		}
+		const held = (key: keyof ShopifyConsentPreferences): boolean =>
+			sent?.[key] === true || (visitor ? visitor[key] === 'yes' : storedChoice);
+		return {
+			analytics: held('analytics'),
+			marketing: held('marketing'),
+			preferences: held('preferences'),
+			sale_of_data: held('sale_of_data'),
+		};
 	};
 
-	// A revocation alone does not release Hydrogen. The visitor still owes a
-	// choice.
+	// Identifies the work `latest` asks for, so a request can tell whether
+	// it is still current.
+	const latestKey = (): string | undefined =>
+		latest && JSON.stringify([latest, revoking]);
+
+	// Nothing is released while the policy is pending or an opt-in or IAB
+	// visitor owes a choice.
 	const release = (): void => {
-		if (!revoking) {
+		if (latest && !holding) {
 			resolveReady?.();
 		}
 	};
@@ -323,7 +348,13 @@ export const createShopifyCustomerPrivacy = (
 			}
 			return;
 		}
-		const consent = latest;
+		const target = latestKey();
+		const consent = revoking ? revocation(heldGrants(api), latest) : latest;
+		if (!consent) {
+			// Shopify holds nothing c15t denies, so there is nothing to revoke.
+			release();
+			return;
+		}
 		const key = JSON.stringify(consent);
 		if (key === sentKey) {
 			// Shopify already has the latest choice, for example after the
@@ -335,12 +366,7 @@ export const createShopifyCustomerPrivacy = (
 			release();
 			return;
 		}
-		if (revoking && !mayHoldGrants(api, consent)) {
-			// Shopify holds nothing c15t denies, so there is nothing to revoke.
-			return;
-		}
-		const isNewer = () =>
-			latest !== undefined && JSON.stringify(latest) !== key;
+		const isNewer = () => latest !== undefined && latestKey() !== target;
 		clearTimeout(retryTimer);
 		sending = true;
 		try {
@@ -387,22 +413,13 @@ export const createShopifyCustomerPrivacy = (
 	const update = (snapshot: ShopifyConsentSnapshot): void => {
 		const step = nextStep(snapshot);
 		if (step === 'wait') {
+			// Drop queued and in-flight work for the old policy.
+			clearTimeout(retryTimer);
+			latest = undefined;
 			return;
 		}
-		if (step === 'shopify-defaults') {
-			if (!latest || revoking) {
-				// Shopify's defaults replace a pending revocation, so stop its
-				// retries and release Hydrogen.
-				clearTimeout(retryTimer);
-				latest = undefined;
-				revoking = false;
-				resolveReady?.();
-			}
-			return;
-		}
-		// IAB consent set through the CMP API leaves `explicitChoice` empty, so
-		// `revoke` also asks Shopify what it holds.
-		revoking = step === 'revoke';
+		revoking = step !== 'send';
+		holding = step === 'revoke';
 		storedChoice = snapshot.explicitChoice !== null;
 		latest = toShopifyConsent(
 			snapshot.effectivePermissions,
