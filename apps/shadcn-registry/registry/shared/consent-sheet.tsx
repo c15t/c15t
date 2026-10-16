@@ -36,7 +36,8 @@ export function ConsentSheet({
   // report that click as a close request, so onOpenChange ignores close
   // requests while blocking, and Escape and the close button call closeUI.
   // This listens on the document because the click can move focus out of
-  // the sheet.
+  // the sheet, and in the capture phase because Base UI stops Escape from
+  // propagating when focus is inside.
   useEffect(() => {
     if (!dialog.isVisible || !dialog.blocking) {
       return
@@ -46,8 +47,8 @@ export function ConsentSheet({
         closeUI()
       }
     }
-    document.addEventListener("keydown", closeOnEscape)
-    return () => document.removeEventListener("keydown", closeOnEscape)
+    document.addEventListener("keydown", closeOnEscape, true)
+    return () => document.removeEventListener("keydown", closeOnEscape, true)
   }, [dialog.isVisible, dialog.blocking, closeUI])
 
   return (

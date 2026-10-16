@@ -172,6 +172,16 @@ const clickOutside = async (page: Page, name: string, surface: Locator) => {
 	}
 };
 
+/**
+ * Presses Escape with focus inside the preferences. Base UI stops the key
+ * from propagating there, unlike a press after an outside click.
+ */
+const pressEscapeInside = async (surface: Locator) => {
+	await surface.focus();
+	await surface.press('Escape');
+	await surface.waitFor({ state: 'hidden' });
+};
+
 /** Collects uncaught errors and console errors from every page in the context. */
 const watchErrors = (context: BrowserContext): string[] => {
 	const errors: string[] = [];
@@ -264,15 +274,21 @@ const dialogJourney = async (page: Page, url: string) => {
 		await ui.dialog.getByRole('button', { name: copy.close }).click();
 		await ui.dialog.waitFor({ state: 'hidden' });
 	});
-	await step('outside click leaves the dialog open', async () => {
+	await step('Escape closes the dialog', async () => {
 		await ui.trigger.click();
 		await ui.dialog.waitFor();
-		await clickOutside(page, 'dialog', ui.dialog);
+		await pressEscapeInside(ui.dialog);
 	});
-	await step('Escape closes the dialog', async () => {
-		await page.keyboard.press('Escape');
-		await ui.dialog.waitFor({ state: 'hidden' });
-	});
+	await step(
+		'outside click leaves the dialog open and Escape closes it',
+		async () => {
+			await ui.trigger.click();
+			await ui.dialog.waitFor();
+			await clickOutside(page, 'dialog', ui.dialog);
+			await page.keyboard.press('Escape');
+			await ui.dialog.waitFor({ state: 'hidden' });
+		}
+	);
 	await step('widget withdraws consent and the page reloads', async () => {
 		await waitForChecked('widget Marketing', ui.widgetSwitch, true);
 		await toggle(ui.widgetSwitch);
@@ -344,6 +360,11 @@ const sheetJourney = async (page: Page, url: string) => {
 		await ui.dialog.waitFor();
 		await ui.dialog.getByRole('button', { name: copy.close }).click();
 		await ui.dialog.waitFor({ state: 'hidden' });
+	});
+	await step('Escape closes the sheet', async () => {
+		await ui.trigger.click();
+		await ui.dialog.waitFor();
+		await pressEscapeInside(ui.dialog);
 	});
 	await step(
 		'outside click leaves the sheet open and Escape closes it',
