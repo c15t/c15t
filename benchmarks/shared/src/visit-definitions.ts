@@ -45,6 +45,16 @@ export const savedConsentVisits: readonly SavedConsentVisitDefinition[] = [
 	},
 ] as const;
 
+/**
+ * Page-context predicate for a completed saved-consent setup visit. Use after
+ * the successful save response: the choice cookie can exist while the save
+ * is still queued. Copying storage then measures replay on the next visit.
+ */
+export const storedConsentReadyExpression = `(() =>
+	document.cookie.split(';').some((entry) => entry.trim().startsWith('c15t=')) &&
+	localStorage.getItem('c15t-v3-pending-consent-saves:v1') === null
+)()`;
+
 /** Whether this visit should show the first-layer banner. */
 export const expectsBanner = function expectsBanner(
 	visit: BenchVisitKind
