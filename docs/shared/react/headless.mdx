@@ -58,9 +58,11 @@ group: reference
   shape from `presentation.prompt`, so a headless surface can follow the same
   bar, widget, or wall choice the pre-built banner would make. The pre-built
   banner traps focus and locks page scroll while `blocking` is true. To do
-  the same, pass `banner.isVisible && banner.blocking` to `useFocusTrap` and
-  `useScrollLock` from the headless entry. Scroll locks are counted, so the
-  page scrolls again once the banner and any open dialog have both let go.
+  the same, call `useFocusTrap(blocking, ref)` and `useScrollLock(blocking)`
+  from the headless entry, with `blocking` set to
+  `banner.isVisible && banner.blocking` and `ref` attached to your banner's
+  root element. Scroll locks are counted, so the page scrolls again once the
+  banner and any open dialog have both let go.
 </section>
 
 <section id="consent-gate">
