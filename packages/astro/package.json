@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/astro",
-	"version": "3.1.0-canary.0",
+	"version": "3.1.0",
 	"description": "Astro cookie consent banner and GDPR consent management platform (CMP). Server-rendered banner, preference center islands, geo-aware middleware, Google Consent Mode v2 and IAB TCF.",
 	"keywords": [
 		"astro",

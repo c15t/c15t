@@ -1,3 +1,42 @@
+## @c15t/cli@3.1.0
+
+### Canary CLI builds install the stable c15t release
+
+Every CLI now installs linked c15t packages at its major version, such as
+`c15t@3`, and other `@c15t/*` packages from `@latest`. Canary and other
+prerelease builds of the CLI used to install from their own dist-tag, such as
+`c15t@canary`. Coding-agent setup instructions now resolve exact versions from
+the `latest` dist-tag by default.
+
+Setup also reinstalls a c15t package pinned to an exact prerelease, such as
+`"c15t": "3.0.0-alpha.3"`, because that pin cannot resolve to the stable
+release the CLI generates code for.
+
+### Clearer npm descriptions and keywords
+
+Each package's npm description now says what it does in the words people
+search for, such as cookie consent, cookie banner, GDPR, Google Consent Mode v2
+and IAB TCF. Keywords add common search terms while preserving existing
+framework, brand and integration terms. The schema and UI packages now link
+to their directories in the repository. Framework, browser and core READMEs
+now explain how consent policies handle GDPR and other privacy laws before
+the setup instructions.
+
+### Vendor switches show only when you declare vendors
+
+The preference dialog shows only category switches until you declare a
+vendor. Your visitors make one choice for each category. You do not get
+vendor switches that you did not ask for.
+
+Since 3.0.0, the dialog showed a switch for the vendor of each
+`@c15t/integrations` helper. For example, a site that added only `posthog()`
+got a PostHog switch under Analytics. We did not intend this default.
+
+To show vendor switches, declare at least one vendor in the `vendors` option
+or on the backend. The dialog then also lists the vendors of your helpers by
+name, as before. This change affects only the dialog. It does not change when
+a script loads.
+
 ## @c15t/cli@3.1.0-canary.0 (canary)
 
 ### Vendor switches show only when you declare vendors

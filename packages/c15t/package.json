@@ -1,6 +1,6 @@
 {
 	"name": "c15t",
-	"version": "3.1.0-canary.0",
+	"version": "3.1.0",
 	"description": "The open standard for cookie banners. Open-source cookie consent management platform (CMP) for React, Next.js, Vue and more, with GDPR, Google Consent Mode v2 and IAB TCF support.",
 	"keywords": [
 		"astro",
