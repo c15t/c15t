@@ -557,6 +557,8 @@ const getPublicScriptExportSubpaths =
 					key !== './*' &&
 					key !== './package.json' &&
 					key !== './events' &&
+					// A consent bridge, not a script integration.
+					key !== './shopify' &&
 					key !== './registry'
 			)
 			.map((key) => key.replace('./', ''));

@@ -220,6 +220,11 @@
 			"import": "./dist/vendors/tag-managers/cloudflare-zaraz.js",
 			"default": "./dist/vendors/tag-managers/cloudflare-zaraz.js"
 		},
+		"./shopify": {
+			"types": "./dist-types/shopify.d.ts",
+			"import": "./dist/shopify.js",
+			"default": "./dist/shopify.js"
+		},
 		"./google-tag-manager": {
 			"types": "./dist-types/vendors/tag-managers/google-tag-manager.d.ts",
 			"import": "./dist/vendors/tag-managers/google-tag-manager.js",

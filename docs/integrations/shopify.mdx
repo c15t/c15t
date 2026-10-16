@@ -1,0 +1,130 @@
+---
+title: Shopify
+description: Send c15t consent to Shopify's Customer Privacy API from a Hydrogen storefront, so Shopify analytics wait for the visitor's choice and follow each later change.
+seoTitle: Shopify Hydrogen cookie consent with c15t
+seoDescription: Use your c15t banner as a custom consent banner in Shopify Hydrogen. The c15t Shopify bridge passes each choice to Shopify's Customer Privacy API.
+group: integrations
+---
+
+The c15t Shopify bridge sends each consent choice to Shopify's Customer
+Privacy API. Shopify's analytics, and the apps and pixels that read that API,
+then follow your c15t banner instead of Shopify's own. The bridge loads no
+script. Hydrogen's `ShopifyScripts` loads the Customer Privacy API, and the
+bridge's `setup` function holds Hydrogen's analytics events until Shopify has
+the visitor's choice.
+
+The [Shopify example](https://github.com/c15t/c15t/tree/v3/examples/shopify-nextjs)
+runs the code on this page in a Next.js app against mock.shop.
+
+## Add the bridge
+
+Set up c15t with the [Next.js quickstart](/docs/frameworks/next/quickstart)
+first, then install the integrations package:
+
+<CommandTabs command="@c15t/integrations" mode="install" />
+
+Create the bridge once per page, feed it each snapshot, and pass its `setup`
+to `ShopifyScripts` with `mode: 'custom-banner'`:
+
+<include src="../shared/examples/shopify-nextjs/shopify-analytics.mdx" />
+
+Render the component inside `ConsentRoot`, with your shop's details:
+
+<include src="../shared/examples/shopify-nextjs/shopify-layout.mdx" />
+
+## Declare the categories
+
+c15t's dialog offers only the categories that something on the page uses.
+Shopify's scripts load through `ShopifyScripts`, not through c15t's `scripts`
+option, so c15t cannot find them. Declare the categories the bridge maps, or
+the dialog shows only Necessary and Shopify receives a denial for everything:
+
+<include src="../shared/examples/shopify-nextjs/shopify-config.mdx" />
+
+The categories must also be in your policy's scope.
+
+## Serve the Storefront API route
+
+The Customer Privacy API saves each choice by posting to the storefront's own
+`/api/<version>/graphql.json`. Hydrogen's `handleShopifyRoutes` serves that
+route, forwards it to your shop and keeps the cookies Shopify sets. In
+Next.js, call it from `proxy.ts`:
+
+<include src="../shared/examples/shopify-nextjs/shopify-proxy.mdx" />
+
+The consent route needs no handlers. The example adds Hydrogen's cart
+handlers for its cart, and its `lib/shop.ts` holds the store domain and
+market. It has no customer accounts, so it passes a session manager that
+stores nothing. Pass your own if your storefront signs customers in.
+
+## How categories map
+
+| Shopify consent | c15t category |
+| --- | --- |
+| `analytics` | `measurement` |
+| `marketing` | `marketing` |
+| `preferences` | `functionality` |
+| `sale_of_data` | `marketing` |
+
+Each Shopify value is `true` only while its c15t category is allowed in the
+effective permissions, which include policy restrictions. Pass `categories`
+to change the mapping:
+
+{/* example: fragment */}
+
+```ts
+const shopifyPrivacy = createShopifyCustomerPrivacy({
+	categories: { sale_of_data: 'measurement' },
+});
+```
+
+`toShopifyConsent(permissions, categories)` returns the same four values for
+your own code.
+
+## When the bridge sends
+
+The bridge sends nothing while the policy is pending. Under an opt-in or IAB
+policy it also waits until the visitor answers the banner, including with
+Reject All, so Shopify never records a denial the visitor didn't make. Under
+an opt-out policy the effective permissions already say what the visitor
+allows, so the bridge sends them on load.
+
+After the first choice, the bridge sends each change once. When a visitor
+revokes a category, c15t reloads the page and the bridge sends the stored
+choice on load. If the Customer Privacy API hasn't loaded yet, the bridge
+waits for Shopify's `consentTrackingApiLoaded` event.
+
+`setup` resolves after Shopify accepts the first choice, and Hydrogen then
+delivers the events that choice allows. It never rejects: Hydrogen stops
+calling `setup` after a rejection, so the bridge keeps events blocked and
+retries with the next update instead.
+
+## Options
+
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `categories` | The table above | Overrides the c15t category for any of the four Shopify values. |
+| `onSync` | None | Called with the four values after Shopify accepts each choice. |
+| `onError` | Logs to the console | Called when Shopify rejects a choice. The bridge retries on the next update or when the API loads again. |
+
+The bridge returns `update(snapshot)`, `connect(source)` and `setup()`.
+`connect` follows anything with `getSnapshot` and `subscribe`, such as a c15t
+kernel, and returns a function that stops following it.
+
+## Limits
+
+- Checkout runs on Shopify's domain and doesn't render your storefront code.
+  Shopify reads the stored choice there.
+- Shopify's analytics need a real shop. mock.shop accepts the consent request
+  but sets no consent cookie, so `currentVisitorConsent()` stays empty.
+- The bridge maps categories only; it doesn't translate IAB TCF choices.
+
+## Verify the bridge
+
+1. In a private window with an opt-in policy, load the page. The network panel
+   shows no `graphql.json` request with `visitorConsent`.
+2. Click Reject All. One request goes out with every value `false`.
+3. Open the dialog, allow Marketing and save. One request goes out with
+   `marketing` and `saleOfData` set to `true`.
+4. On a real shop, run `window.Shopify.customerPrivacy.currentVisitorConsent()`
+   in the console and check it matches your choice.

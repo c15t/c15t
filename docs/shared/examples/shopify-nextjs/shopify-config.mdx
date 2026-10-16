@@ -1,0 +1,13 @@
+{/* Generated from examples/shopify-nextjs/c15t.config.ts (docs:shopify-config) by scripts/sync-example-docs.ts. Edit the source file. */}
+
+```ts title="c15t.config.ts"
+import { defineConsentConfig } from 'c15t/next';
+
+export default defineConsentConfig({
+	options: {
+		// The categories the Shopify bridge maps. Shopify's scripts load through
+		// Hydrogen's `ShopifyScripts`, not `scripts`, so c15t can't discover them.
+		consentCategories: ['measurement', 'marketing', 'functionality'],
+	},
+});
+```

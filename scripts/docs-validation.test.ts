@@ -172,7 +172,7 @@ test('installation tabs flatten to usable umbrella-package commands', async () =
 	expect(markdown).not.toContain('package-install');
 });
 
-test('integration navigation covers every vendor helper and both embeds', async () => {
+test('integration navigation covers every vendor helper, both embeds and Shopify', async () => {
 	const navigation = await resolveDocsNavigation({
 		groups: docsConfig.groups,
 		nav: docsConfig.navigation,
@@ -188,6 +188,7 @@ test('integration navigation covers every vendor helper and both embeds', async 
 		'chat-and-support',
 		'email-and-sms',
 		'ads-and-pixels',
+		'commerce',
 	]);
 	const vendors = Object.entries(scriptsPackage.exports)
 		.filter(([, entry]) => entry.types.includes('/vendors/'))
@@ -196,6 +197,7 @@ test('integration navigation covers every vendor helper and both embeds', async 
 		...vendors,
 		'google-maps',
 		'youtube',
+		'shopify',
 		'overview',
 		'building-integrations',
 	].map((slug) => `/docs/integrations/${slug}`);
