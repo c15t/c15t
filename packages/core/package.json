@@ -1,7 +1,7 @@
 {
 	"name": "@c15t/core",
 	"version": "3.1.0-canary.0",
-	"description": "Headless JavaScript cookie consent engine and consent management platform (CMP). Stores GDPR consent, decides who sees a cookie banner, and blocks scripts until consent.",
+	"description": "Headless JavaScript cookie consent engine and consent management platform (CMP). Stores GDPR consent, decides who sees a cookie banner, and gates scripts on each visitor's consent policy.",
 	"keywords": [
 		"banner",
 		"ccpa",

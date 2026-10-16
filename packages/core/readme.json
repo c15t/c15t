@@ -1,6 +1,6 @@
 {
 	"title": "@c15t/core: Headless JavaScript cookie consent engine",
-	"description": "The headless JavaScript cookie consent engine behind every c15t adapter. It resolves consent policies for GDPR and other privacy laws, stores choices, and holds back scripts, iframes, and network requests until a visitor allows them. Use it to build your own consent UI or to connect a framework that has no c15t adapter.",
+	"description": "The headless JavaScript cookie consent engine behind every c15t adapter. It resolves consent policies for GDPR and other privacy laws, stores choices, and holds back scripts, iframes, and network requests that the visitor's policy and choices do not allow. Use it to build your own consent UI or to connect a framework that has no c15t adapter.",
 	"features": [
 		"Bring your own UI: render from a consent snapshot, and c15t keeps state, storage, and policy resolution",
 		"Scripts, iframes, and network requests wait for the right consent category",
