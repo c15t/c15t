@@ -11,7 +11,10 @@ import { Suspense } from 'react';
 import type { ReactNode } from 'react';
 
 import { PageViewTracker } from '@/components/page-view-tracker';
-import { ShopifyAnalytics } from '@/components/shopify-analytics';
+import {
+	ShopifyAnalytics,
+	ShopifyConsentSync,
+} from '@/components/shopify-analytics';
 import { SiteHeader } from '@/components/site-header';
 import { StoreProviders } from '@/components/store-providers';
 import { currency, i18n, shop } from '@/lib/shop';
@@ -25,14 +28,16 @@ const RootLayout = async ({ children }: { children: ReactNode }) => {
 
 	return (
 		<html lang="en">
+			<head>
+				{/* Hydrogen's scripts belong in the head, once per page. */}
+				<ShopifyAnalytics
+					i18n={{ ...i18n, currency }}
+					shop={shop}
+				/>
+			</head>
 			<body>
 				<ConsentRoot state={resolveConsent()}>
-					{/* Puts Hydrogen's analytics bus on the page. Render it before
-				    anything that publishes events. */}
-					<ShopifyAnalytics
-						i18n={{ ...i18n, currency }}
-						shop={shop}
-					/>
+					<ShopifyConsentSync />
 					<StoreProviders cart={getCart()}>
 						<SiteHeader />
 						<Suspense fallback={null}>

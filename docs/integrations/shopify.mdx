@@ -23,12 +23,14 @@ first, then install the integrations package:
 
 <CommandTabs command="@c15t/integrations" mode="install" />
 
-Create the bridge once per page, feed it each snapshot, and pass its `setup`
-to `ShopifyScripts` with `mode: 'custom-banner'`:
+Create the bridge once per page and pass its `setup` to `ShopifyScripts` with
+`mode: 'custom-banner'`. A second component feeds the bridge each c15t
+snapshot:
 
 <include src="../shared/examples/shopify-nextjs/shopify-analytics.mdx" />
 
-Render the component inside `ConsentRoot`, with your shop's details:
+Render `ShopifyAnalytics` in the document head, as Hydrogen requires, with
+your shop's details. Render `ShopifyConsentSync` inside `ConsentRoot`:
 
 <include src="../shared/examples/shopify-nextjs/shopify-layout.mdx" />
 
