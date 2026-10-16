@@ -354,6 +354,31 @@ describe('Shopify Customer Privacy bridge', () => {
 		expect(onSync).toHaveBeenCalledTimes(3);
 	});
 
+	it('gives a failed choice fresh retries after the visitor returns to the accepted one', async () => {
+		fakeRetryTimers();
+		const shopify = installCustomerPrivacy((consent) =>
+			consent.marketing
+				? Promise.resolve()
+				: Promise.reject(new Error('network'))
+		);
+		const kernel = kernelWith('opt-in');
+		const bridge = createShopifyCustomerPrivacy({ onError: vi.fn() });
+		bridge.connect(kernel);
+
+		await kernel.commands.save('all');
+		await vi.waitFor(() => expect(shopify.sent).toHaveLength(1));
+		await kernel.commands.save('none');
+		// The first try and three retries.
+		await vi.advanceTimersByTimeAsync(60_000);
+		expect(shopify.sent).toHaveLength(5);
+
+		await kernel.commands.save('all');
+		await kernel.commands.save('none');
+		await vi.waitFor(() => expect(shopify.sent).toHaveLength(6));
+		await vi.advanceTimersByTimeAsync(1000);
+		expect(shopify.sent).toHaveLength(7);
+	});
+
 	it('sends a choice made during a request that Shopify rejects', async () => {
 		fakeRetryTimers();
 		let rejectFirst: () => void = () => {};

@@ -272,7 +272,11 @@ export const createShopifyCustomerPrivacy = (
 		const key = JSON.stringify(consent);
 		if (key === sentKey) {
 			// Shopify already has the latest choice, for example after the
-			// visitor went back to it while a newer request failed.
+			// visitor went back to it while a newer request failed. That ends
+			// the failed choice's retries.
+			clearTimeout(retryTimer);
+			failedKey = undefined;
+			failures = 0;
 			resolveReady?.();
 			return;
 		}
