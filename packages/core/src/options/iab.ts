@@ -2,6 +2,28 @@ import type { GlobalVendorList, NonIABVendor } from '../types';
 import type { PublisherRestriction, TCFConsentData } from './iab-tcf';
 
 /**
+ * Google Additional Consent (ACv2) configuration.
+ *
+ * Lists Google ad tech providers that are not on the IAB Global Vendor
+ * List. The preference center shows each one with its privacy policy, and
+ * the CMP publishes an AC string (`addtlConsent`) beside the TC string.
+ */
+export interface AdditionalConsentConfig {
+	/**
+	 * Google ATP IDs from Google's Additional Consent provider list
+	 * (`additional-consent-providers.csv`). IDs Google does not list are
+	 * ignored.
+	 */
+	providers: number[];
+	/**
+	 * Provider list endpoint. Receives `?providerIds=1,2,3` and returns
+	 * `{ providers: { [id]: { id, name, policyUrl } } }`.
+	 * Default: `https://gvl.inth.app/additional-consent`.
+	 */
+	url?: string;
+}
+
+/**
  * Configuration for the IAB TCF 2.4 integration.
  */
 export interface IABConfig {
@@ -15,6 +37,8 @@ export interface IABConfig {
 	vendors?: number[];
 	/** Additional vendors outside the Global Vendor List. */
 	customVendors?: NonIABVendor[];
+	/** Google ad tech providers for the Additional Consent string. */
+	additionalConsent?: AdditionalConsentConfig;
 	/** Publisher country code used in the TC string. */
 	publisherCountryCode?: string;
 	/**
@@ -42,7 +66,18 @@ export interface CMPApiConfig {
 	cmpId?: number;
 	cmpVersion?: number | string;
 	gvl: GlobalVendorList;
+	/**
+	 * Whether the visitor's policy uses IAB TCF. Defaults to `true`. When
+	 * `false`, `__tcfapi` reports `gdprApplies: false` and TC data holds only
+	 * the CMP and policy fields, as CMP API v2 requires.
+	 */
 	gdprApplies?: boolean;
+	/**
+	 * Returns the Additional Consent string confirmed with a TC string, or
+	 * `undefined` when there is none. Read whenever a TC string is
+	 * published or saved, so `addtlConsent` always travels with its TC string.
+	 */
+	getAddtlConsent?: (tcString: string) => string | undefined;
 }
 
 /**
@@ -56,7 +91,10 @@ export interface CMPApi {
 	 * @returns Nothing.
 	 */
 	updateVendorList: (gvl: GlobalVendorList | null) => void;
-	/** Update the confirmed TC data and, when supplied, regional applicability. */
+	/**
+	 * Update the confirmed TC data and, when supplied, whether the visitor's
+	 * policy uses IAB TCF.
+	 */
 	updateConsent: (
 		tcString: string,
 		consentData?: TCFConsentData,

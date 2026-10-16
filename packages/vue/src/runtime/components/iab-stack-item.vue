@@ -1,7 +1,10 @@
 <script setup lang="ts">
-import dialogStyles from '@c15t/ui/styles/components/iab-consent-dialog';
+import { countIABPartners } from '@c15t/iab/headless';
 
 import '@c15t/ui/styles/components/iab-consent-dialog.css';
+import dialogStyles from '@c15t/ui/styles/components/iab-consent-dialog';
+
+import '@c15t/ui/styles/components/switch.css';
 /**
  * A TCF stack: one toggle standing for the purposes it absorbed.
  *
@@ -10,8 +13,6 @@ import '@c15t/ui/styles/components/iab-consent-dialog.css';
  * lets the four adapters be compared row for row.
  */
 import switchStyles from '@c15t/ui/styles/components/switch';
-
-import '@c15t/ui/styles/components/switch.css';
 import { computed, ref, toValue } from 'vue';
 
 import {
@@ -83,14 +84,7 @@ const someEnabled = computed(
 		) && !allEnabled.value
 );
 
-const totalVendors = computed(
-	() =>
-		new Set(
-			props.stack.purposes.flatMap((purpose) =>
-				purpose.vendors.map((vendor) => vendor.id)
-			)
-		).size
-);
+const totalVendors = computed(() => countIABPartners(props.stack.purposes));
 
 const partnerLabel = computed(() =>
 	totalVendors.value === 1

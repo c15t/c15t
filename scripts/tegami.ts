@@ -8,7 +8,7 @@ import {
 	modify,
 	parseTree,
 } from 'jsonc-parser';
-import { inc, prerelease, rcompare, valid } from 'semver';
+import { inc, parse, prerelease, rcompare, valid } from 'semver';
 import { tegami } from 'tegami';
 import type {
 	BumpType,
@@ -41,22 +41,12 @@ export const linkedPackages = new Set([
 ]);
 
 /** Resolve a supported branch to an explicit npm tag and prerelease identifier. */
-export const releaseLine = function releaseLine(
-	branch: string,
-	commit?: string
-) {
+export const releaseLine = function releaseLine(branch: string) {
 	switch (branch) {
 		case 'main':
 			return { distTag: 'latest', prerelease: undefined };
-		case 'v3':
-			return { distTag: 'alpha', prerelease: 'alpha' };
-		case '2.0.0':
-			return { distTag: 'rc', prerelease: 'rc' };
 		case 'canary':
-			if (!commit || !/^[a-f\d]{40}$/u.test(commit)) {
-				throw new Error('Canary releases require a full Git commit SHA.');
-			}
-			return { distTag: 'canary', prerelease: `canary-${commit}` };
+			return { distTag: 'canary', prerelease: 'canary' };
 		default:
 			throw new Error(
 				`Unsupported release branch: ${branch}. Set RELEASE_BRANCH to the PR target when running Tegami locally.`
@@ -64,7 +54,12 @@ export const releaseLine = function releaseLine(
 	}
 };
 
-const linkedVersion = function linkedVersion(
+/**
+ * Bump a version, keeping prereleases semver-correct for the stable release
+ * they lead to. Semver's `prerelease` increment never raises the base version,
+ * so a minor note after `3.0.1-canary.0` would otherwise stay on `3.0.1`.
+ */
+export const nextVersion = function nextVersion(
 	version: string,
 	type: BumpType,
 	tag?: string
@@ -72,10 +67,14 @@ const linkedVersion = function linkedVersion(
 	if (!tag) {
 		return inc(version, type) ?? undefined;
 	}
-	if (prerelease(version)) {
-		return inc(version, 'prerelease', tag) ?? undefined;
+	const parsed = parse(version);
+	if (!parsed?.prerelease.length) {
+		return inc(version, `pre${type}`, tag) ?? undefined;
 	}
-	return inc(version, `pre${type}`, tag) ?? undefined;
+	const raises =
+		(type === 'major' && (parsed.minor > 0 || parsed.patch > 0)) ||
+		(type === 'minor' && parsed.patch > 0);
+	return inc(version, raises ? `pre${type}` : 'prerelease', tag) ?? undefined;
 };
 
 const alignLinkedPackages = function alignLinkedPackages(): TegamiPlugin {
@@ -87,6 +86,18 @@ const alignLinkedPackages = function alignLinkedPackages(): TegamiPlugin {
 			const [highest] = members
 				.flatMap((pkg) => (pkg.version ? [pkg.version] : []))
 				.sort(rcompare);
+			for (const pkg of this.graph.getPackages()) {
+				// Linked members bump from the group's highest version.
+				const base = linkedPackages.has(pkg.name) ? highest : pkg.version;
+				draft.dispatchPackage(pkg, (entry) => {
+					const original = entry.bumpVersion;
+					entry.bumpVersion = function bumpVersion(current) {
+						return this.type && base
+							? nextVersion(base, this.type, this.prerelease)
+							: original.call(this, current);
+					};
+				});
+			}
 			if (!highest) {
 				return;
 			}
@@ -111,16 +122,6 @@ const alignLinkedPackages = function alignLinkedPackages(): TegamiPlugin {
 					}
 				},
 			});
-			for (const member of members) {
-				draft.dispatchPackage(member, (entry) => {
-					const original = entry.bumpVersion;
-					entry.bumpVersion = function bumpVersion(pkg) {
-						return this.type
-							? linkedVersion(highest, this.type, this.prerelease)
-							: original.call(this, pkg);
-					};
-				});
-			}
 		},
 		name: 'c15t-linked-packages',
 	};
@@ -131,12 +132,9 @@ export const checkReleaseVersion = function checkReleaseVersion(
 	branch: string,
 	version: string
 ) {
-	const tag = prerelease(version);
 	const channels: Record<string, boolean> = {
-		'2.0.0': tag?.[0] === 'rc',
-		canary: /^\d+\.\d+\.\d+-canary-[a-f\d]{40}\.\d+$/u.test(version),
-		main: tag === null,
-		v3: /^3\.0\.0-alpha\.(?:0|[1-9]\d*)$/u.test(version),
+		canary: /^\d+\.\d+\.\d+-canary\.(?:0|[1-9]\d*)$/u.test(version),
+		main: prerelease(version) === null,
 	};
 	if (!valid(version) || !channels[branch]) {
 		throw new Error(`${version} is not a valid release for ${branch}.`);
@@ -169,6 +167,7 @@ const releaseChecks = function releaseChecks(
 	distTag: string
 ): TegamiPlugin {
 	const planBranches = new WeakMap<PublishPlan, string>();
+	const baselines = new WeakMap<Draft, Map<string, string | undefined>>();
 	return {
 		beforePublishAll({ plan }) {
 			if (planBranches.get(plan) !== branch) {
@@ -212,9 +211,21 @@ const releaseChecks = function releaseChecks(
 			);
 		},
 		enforce: 'post',
+		initDraft(draft) {
+			baselines.set(
+				draft,
+				new Map(this.graph.getPackages().map((pkg) => [pkg.id, pkg.version]))
+			);
+		},
 		initPublishLock({ lock, draft }) {
+			const baseline = baselines.get(draft);
 			for (const pkg of this.graph.getPackages()) {
-				if (!pkg.version || !draft.getPackageDraft(pkg.id)) {
+				// Packages without notes keep their version, which may be stable on canary.
+				if (
+					!pkg.version ||
+					!draft.getPackageDraft(pkg.id) ||
+					baseline?.get(pkg.id) === pkg.version
+				) {
 					continue;
 				}
 				checkReleaseVersion(branch, pkg.version);
@@ -251,15 +262,9 @@ const releaseChecks = function releaseChecks(
 					throw new Error(`Publish lock version does not match ${id}.`);
 				}
 				checkReleaseVersion(lockBranch ?? '', pkg.version);
-				const tags: Record<string, string> = {
-					'2.0.0': 'rc',
-					canary: 'canary',
-					main: 'latest',
-					v3: 'alpha',
-				};
 				if (
 					!pkgPlan.npm ||
-					pkgPlan.npm.distTag !== tags[lockBranch ?? ''] ||
+					pkgPlan.npm.distTag !== releaseLine(lockBranch ?? '').distTag ||
 					pkgPlan.npm.markLatest
 				) {
 					throw new Error(
@@ -282,7 +287,6 @@ const releaseChecks = function releaseChecks(
 interface ReleaseOptions {
 	cwd?: string;
 	branch: string;
-	commit?: string;
 	github?: boolean;
 }
 
@@ -421,10 +425,9 @@ export const syncBunLockVersions = function syncBunLockVersions(
 export const createRelease = function createRelease({
 	cwd = process.cwd(),
 	branch,
-	commit,
 	github: withGithub = true,
 }: ReleaseOptions) {
-	const line = releaseLine(branch, commit);
+	const line = releaseLine(branch);
 	return tegami({
 		cwd,
 		npm: {
@@ -443,16 +446,6 @@ export const createRelease = function createRelease({
 		}),
 		plugins: [
 			alignLinkedPackages(),
-			{
-				initDraft(draft) {
-					if (branch === 'canary') {
-						for (const pkg of this.graph.getPackages()) {
-							draft.bumpPackage(pkg, { type: 'patch' });
-						}
-					}
-				},
-				name: 'c15t-canary-snapshots',
-			},
 			releaseChecks(branch, line.distTag),
 			{
 				applyCliDraft() {
@@ -477,16 +470,13 @@ export const createRelease = function createRelease({
 			...(withGithub
 				? github({
 						repo: 'c15t/c15t',
-						versionPr:
-							branch === 'canary'
-								? false
-								: {
-										base: branch,
-										branch: `tegami/version-packages-${branch}`,
-										create(options) {
-											return { body: renderVersionPrBody(this.graph, options) };
-										},
-									},
+						versionPr: {
+							base: branch,
+							branch: `tegami/version-packages-${branch}`,
+							create(options) {
+								return { body: renderVersionPrBody(this.graph, options) };
+							},
+						},
 					})
 				: []),
 		],
@@ -527,8 +517,5 @@ if (import.meta.main) {
 		execFileSync('git', ['branch', '--show-current'], {
 			encoding: 'utf8',
 		}).trim();
-	const commit = execFileSync('git', ['rev-parse', 'HEAD'], {
-		encoding: 'utf8',
-	}).trim();
-	await runReleaseCli(createRelease({ branch, commit }));
+	await runReleaseCli(createRelease({ branch }));
 }

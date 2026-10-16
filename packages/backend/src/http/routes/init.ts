@@ -48,7 +48,8 @@ export const register = function register({
 				headers,
 				options.policySnapshot,
 				options.gvl,
-				options.tenantId
+				options.tenantId,
+				options.additionalConsent
 			);
 			// The same event a manifest host reports through `POST /sessions`,
 			// so one sink sees every visitor regardless of which path served

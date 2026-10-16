@@ -9,7 +9,12 @@
  * @packageDocumentation
  */
 
-import type { GlobalVendorList, NonIABVendor } from '@c15t/core';
+import type {
+	AdTechProvider,
+	GlobalVendorList,
+	NonIABVendor,
+} from '@c15t/core';
+import { AD_TECH_PROVIDER_PURPOSES } from '@c15t/schema/types';
 
 import { applyPublisherRestrictionsToGVL } from './effective-vendor-list';
 import type {
@@ -105,11 +110,20 @@ const mapCustomVendor = function mapCustomVendor(
 	};
 };
 
+/**
+ * Purposes some vendor declares. Listed ad tech providers declare the
+ * purposes Google needs before it counts their consent, so Accept All can
+ * grant only what this list shows.
+ */
 const processPurposes = function processPurposes(
 	gvl: GlobalVendorList,
 	customVendors: NonIABVendor[],
-	language: string | undefined
+	language: string | undefined,
+	adTechProviders: AdTechProvider[]
 ): HeadlessIABProcessedPurpose[] {
+	const providerPurposes = new Set<number>(
+		adTechProviders.length > 0 ? AD_TECH_PROVIDER_PURPOSES : []
+	);
 	return Object.entries(gvl.purposes)
 		.map(([id, purpose]) => {
 			const purposeId = Number(id);
@@ -138,9 +152,15 @@ const processPurposes = function processPurposes(
 				illustrations: purpose.illustrations || [],
 				name: purpose.name,
 				vendors: [...iabVendorsForPurpose, ...customVendorsForPurpose],
+				...(providerPurposes.has(purposeId) && {
+					adTechProviders,
+					neededByAdTechProviders: true,
+				}),
 			};
 		})
-		.filter((purpose) => purpose.vendors.length > 0);
+		.filter(
+			(purpose) => purpose.vendors.length > 0 || purpose.neededByAdTechProviders
+		);
 };
 
 const processSpecialPurposes = function processSpecialPurposes(
@@ -304,7 +324,12 @@ export const processGVLForDialog = function processGVLForDialog(
 	);
 	const customVendors = getCustomVendors(iab);
 	const { language } = iab;
-	const purposes = processPurposes(gvl, customVendors, language);
+	const purposes = processPurposes(
+		gvl,
+		customVendors,
+		language,
+		iab.adTechProviders ?? []
+	);
 	const specialPurposes = processSpecialPurposes(gvl, language);
 	const specialFeatures = processSpecialFeatures(gvl, language);
 	const features = processFeatures(gvl, language);
@@ -319,7 +344,10 @@ export const processGVLForDialog = function processGVLForDialog(
 		specialPurposes,
 		stacks,
 		standalonePurposes,
-		totalVendors: Object.keys(gvl.vendors).length + customVendors.length,
+		totalVendors:
+			Object.keys(gvl.vendors).length +
+			customVendors.length +
+			(iab.adTechProviders?.length ?? 0),
 	};
 };
 

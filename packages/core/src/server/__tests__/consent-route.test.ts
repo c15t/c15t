@@ -659,6 +659,7 @@ describe('init route', () => {
 				'gvlReference',
 				'cmpId',
 				'customVendors',
+				'adTechProviders',
 			]) {
 				expect(body).not.toHaveProperty(field);
 			}
@@ -669,6 +670,149 @@ describe('init route', () => {
 			);
 		}
 	);
+});
+
+describe('Google Additional Consent providers', () => {
+	const AC_URL = 'https://lists.example/ac-route';
+	const providerManifest = {
+		...IAB_MANIFEST,
+		iab: {
+			...IAB_MANIFEST.iab,
+			additionalConsent: { providers: [89], url: AC_URL },
+		},
+	} as unknown as ConsentManifest;
+	const withProviders = (manifest: ConsentManifest): FetchMock => {
+		const base = upstream(manifest);
+		return vi.fn<ManifestFetch>((input, init) => {
+			const url = String(input instanceof Request ? input.url : input);
+			return url.startsWith(AC_URL)
+				? Promise.resolve(
+						json({
+							providers: {
+								'89': {
+									id: 89,
+									name: 'Meta',
+									policyUrl: 'https://meta.example/privacy',
+								},
+							},
+						})
+					)
+				: base(input, init);
+		});
+	};
+
+	test('are served with the IAB init the manifest resolves', async () => {
+		const response = await route({
+			fetch: withProviders(providerManifest),
+			reportSessions: false,
+		})(request('/api/c15t/init'));
+		const body = (await response.json()) as InitOutput;
+		expect(body.adTechProviders).toEqual([
+			{ id: 89, name: 'Meta', policyUrl: 'https://meta.example/privacy' },
+		]);
+	});
+
+	test('are not loaded for a policy that is not IAB, or a failed contract', async () => {
+		const optIn = withProviders({
+			...MANIFEST,
+			iab: providerManifest.iab,
+		} as ConsentManifest);
+		const notIab = await route({ fetch: optIn, reportSessions: false })(
+			request('/api/c15t/init', { headers: { 'x-c15t-country': 'DE' } })
+		);
+		expect(await notIab.json()).not.toHaveProperty('adTechProviders');
+
+		const failed = await route({
+			fetch: withProviders(providerManifest),
+			reportSessions: false,
+		})(
+			request('/api/c15t/init', {
+				headers: { 'x-c15t-policy-contract': '99' },
+			})
+		);
+		expect(await failed.json()).not.toHaveProperty('adTechProviders');
+		expect(calledURLs(optIn).some((url) => url.startsWith(AC_URL))).toBe(false);
+	});
+
+	/** The provider manifest with a relative endpoint, and its answer. */
+	const relativeEndpoint = (path: string) => {
+		const manifest = {
+			...IAB_MANIFEST,
+			iab: {
+				...IAB_MANIFEST.iab,
+				additionalConsent: { providers: [89], url: path },
+			},
+		} as unknown as ConsentManifest;
+		const answer = () =>
+			Promise.resolve(
+				json({
+					providers: {
+						'89': {
+							id: 89,
+							name: 'Meta',
+							policyUrl: 'https://meta.example/privacy',
+						},
+					},
+				})
+			);
+		return { answer, manifest };
+	};
+
+	test('load from a relative endpoint on the request origin', async () => {
+		const { answer, manifest } = relativeEndpoint('/api/ac-relative');
+		const base = upstream(manifest);
+		const fetch = vi.fn<ManifestFetch>((input, init) =>
+			String(input).includes('/api/ac-relative') ? answer() : base(input, init)
+		);
+		const response = await route({ fetch, reportSessions: false })(
+			request('/api/c15t/init')
+		);
+		const body = (await response.json()) as InitOutput;
+		expect(body.adTechProviders?.map(({ id }) => id)).toEqual([89]);
+		expect(calledURLs(fetch)).toContain(
+			`${APP}/api/ac-relative?providerIds=89`
+		);
+	});
+
+	test('load from a relative endpoint in-process with localFetch', async () => {
+		const { answer, manifest } = relativeEndpoint('/api/ac-local');
+		const fetch = upstream(manifest);
+		const localFetch = vi.fn<ManifestFetch>(() => answer());
+		const response = await route({ fetch, reportSessions: false })(
+			request('/api/c15t/init'),
+			{ localFetch }
+		);
+		const body = (await response.json()) as InitOutput;
+		expect(body.adTechProviders?.map(({ id }) => id)).toEqual([89]);
+		expect(calledURLs(localFetch)).toEqual(['/api/ac-local?providerIds=89']);
+	});
+
+	test('from localFetch are cached per handler, not across apps', async () => {
+		const { answer, manifest } = relativeEndpoint('/api/ac-tenant');
+		const fetch = upstream(manifest);
+		const first = route({ fetch, reportSessions: false });
+		const second = route({ fetch, reportSessions: false });
+		const firstLocal = vi.fn<ManifestFetch>(() => answer());
+		const secondLocal = vi.fn<ManifestFetch>(() => answer());
+		const nextRequest = vi.fn<ManifestFetch>(() => answer());
+		await first(request('/api/c15t/init'), { localFetch: firstLocal });
+		await second(request('/api/c15t/init'), { localFetch: secondLocal });
+		await first(request('/api/c15t/init'), { localFetch: nextRequest });
+		expect(firstLocal).toHaveBeenCalledOnce();
+		expect(secondLocal).toHaveBeenCalledOnce();
+		// Adapters pass a new localFetch per request; the handler's cache
+		// still serves the list it loaded.
+		expect(nextRequest).not.toHaveBeenCalled();
+	});
+
+	test('are withdrawn with an empty list once the manifest stops listing them', async () => {
+		const response = await route({
+			fetch: withProviders(IAB_MANIFEST as unknown as ConsentManifest),
+			reportSessions: false,
+		})(request('/api/c15t/init'));
+		const body = (await response.json()) as InitOutput;
+		expect(body.adTechProviders).toEqual([]);
+	});
 });
 
 describe('vendor list', () => {

@@ -1,7 +1,6 @@
 'use client';
 
 import { crisp } from '@c15t/integrations/crisp';
-import type { Vendor } from 'c15t';
 import { ConsentBanner, ConsentDialog, ConsentRoot, offline } from 'c15t/next';
 import type { ReactNode } from 'react';
 
@@ -22,22 +21,10 @@ const scripts = [
 	}),
 ];
 
-// Names the vendor the Crisp helper loads, so Privacy settings lists Crisp
-// under Functionality.
-const vendors: Vendor[] = [
-	{
-		category: 'functionality',
-		id: 'crisp',
-		name: 'Crisp',
-		privacyPolicyUrl: 'https://crisp.chat/en/privacy/',
-	},
-];
-
 export const Consent = ({ children }: { children: ReactNode }) => (
 	<ConsentRoot
 		state={{}}
 		scripts={scripts}
-		vendors={vendors}
 		options={{ mode, theme: brandTheme }}
 	>
 		{children}

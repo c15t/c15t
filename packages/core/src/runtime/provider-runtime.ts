@@ -633,6 +633,9 @@ export const createConsentProviderRuntime =
 					await runtime.reinit();
 				}
 			},
+			get scripts() {
+				return current.scripts ?? [];
+			},
 			setConsentCategories,
 			setEnabled,
 			setLanguage(language) {

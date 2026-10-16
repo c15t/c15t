@@ -1,5 +1,6 @@
 import type { ConsentSnapshot, KernelIABAuthority } from '@c15t/core';
 
+import { additionalConsentFor } from './tcf/additional-consent';
 import type { PublisherRestriction } from './tcf/iab-tcf-types';
 import { sameListedRestrictions } from './tcf/publisher-restrictions';
 import { decodeTCString } from './tcf/tc-string';
@@ -17,6 +18,8 @@ interface StoredAuthority {
 	choiceFingerprint: string;
 	customConsents: Record<string, boolean>;
 	customLegitimateInterests: Record<string, boolean>;
+	/** Ad tech provider switches, one per provider shown at confirmation. */
+	adTechProviderConsents: Record<string, boolean>;
 }
 
 const ownBooleanMap = function ownBooleanMap(
@@ -76,7 +79,16 @@ export const createAuthorityReceipt = function createAuthorityReceipt(
 	tcString: string,
 	confirmedAt: number
 ): StoredAuthority {
+	const providerChoices = snapshot.iab?.adTechProviderConsents ?? {};
 	return {
+		// Every provider the preference center lists is disclosed, switched
+		// on or not.
+		adTechProviderConsents: Object.fromEntries(
+			(snapshot.iab?.adTechProviders ?? []).map(({ id }) => [
+				String(id),
+				providerChoices[String(id)] === true,
+			])
+		),
 		choiceFingerprint: snapshot.evaluationPolicy.choice.fingerprint,
 		confirmedAt,
 		customConsents: { ...snapshot.iab?.vendorConsents },
@@ -118,6 +130,7 @@ const readReceipt = function readReceipt(
 		return null;
 	}
 	return {
+		adTechProviderConsents: ownBooleanMap(value.adTechProviderConsents),
 		choiceFingerprint,
 		confirmedAt,
 		customConsents: ownBooleanMap(value.customConsents),
@@ -175,6 +188,38 @@ const listedRestrictions = function listedRestrictions(
 			),
 		}))
 		.filter((restriction) => restriction.vendorIds.length > 0);
+};
+
+/**
+ * Ad tech provider choices a receipt can still stand for, and the AC string
+ * they make with the TC string's purpose consents. Only providers the
+ * preference center lists now are kept: one Google dropped from its file,
+ * or the publisher stopped configuring, must not appear in the AC string,
+ * and one added since the save was never shown to the visitor.
+ */
+const adTechProviderAuthority = function adTechProviderAuthority(
+	stored: Record<string, boolean>,
+	snapshot: ConsentSnapshot,
+	purposeConsents: Record<number, boolean>
+): Pick<KernelIABAuthority, 'adTechProviderConsents' | 'addtlConsent'> {
+	const providers = snapshot.iab?.adTechProviders;
+	if (!providers?.length) {
+		return {};
+	}
+	const adTechProviderConsents: Record<string, boolean> = {};
+	for (const { id } of providers) {
+		const key = String(id);
+		if (Object.hasOwn(stored, key)) {
+			adTechProviderConsents[key] = stored[key] === true;
+		}
+	}
+	const addtlConsent = additionalConsentFor(
+		adTechProviderConsents,
+		purposeConsents
+	);
+	return addtlConsent
+		? { adTechProviderConsents, addtlConsent }
+		: { adTechProviderConsents };
 };
 
 /** Result of checking a stored receipt, with the reason it failed. */
@@ -246,6 +291,11 @@ export const checkAuthority = async function checkAuthority(
 			});
 		}
 		const authority: KernelIABAuthority = {
+			...adTechProviderAuthority(
+				receipt.adTechProviderConsents,
+				snapshot,
+				decoded.purposeConsents
+			),
 			choiceFingerprint,
 			confirmedAt,
 			expiresAt,

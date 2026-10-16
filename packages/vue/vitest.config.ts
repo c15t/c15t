@@ -163,6 +163,7 @@ export default mergeConfig(
 						'../core/src/runtime/provider.ts'
 					),
 				},
+				{ '@c15t/core/events': resolve(__dirname, '../core/src/events.ts') },
 				{
 					'@c15t/core/preference-draft': resolve(
 						__dirname,

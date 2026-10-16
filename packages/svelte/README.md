@@ -24,7 +24,7 @@ c15t is used by [2,100+ sites](https://www.wappalyzer.com/technologies/cookie-co
 
 ## Key Features
 
-- Works with Svelte 5 and SvelteKit 2 and 3
+- Works with Svelte 5.20 and later, and SvelteKit 2 and 3
 - On SvelteKit, `loadConsent` resolves the policy on the server, so the banner is in the first HTML
 - Prebuilt cookie banner, consent dialog, and preference center with a theme system
 - Headless state for a fully custom design
@@ -33,7 +33,7 @@ c15t is used by [2,100+ sites](https://www.wappalyzer.com/technologies/cookie-co
 
 ## Prerequisites
 
-- Svelte 5, or SvelteKit 2 or 3
+- Svelte 5.20 or later, or SvelteKit 2 or 3
 - Node.js 20.19 or later
 - An [Inth project](https://inth.com) (free sign-up), a [self-hosted backend](https://c15t.com/docs/self-host/quickstart), or offline mode for local development
 

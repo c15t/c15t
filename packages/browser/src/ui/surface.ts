@@ -47,8 +47,11 @@ export interface LegalLinksParams {
 /**
  * Render the inline legal links a surface shows after its description.
  *
+ * Matches the React banner's `InlineLegalLinks`: a space first, then each
+ * link, with a comma inside every link but the last and a space after it.
+ *
  * @param params - Which links, their config and labels.
- * @returns The link elements, possibly empty.
+ * @returns A wrapper holding the links, or nothing when there are none.
  */
 export const renderLegalLinks = function renderLegalLinks(
 	params: LegalLinksParams
@@ -57,26 +60,39 @@ export const renderLegalLinks = function renderLegalLinks(
 	if (!(keys && legalLinks)) {
 		return [];
 	}
-	const links: HTMLElement[] = [];
-	for (const key of keys) {
+	const entries = keys.flatMap((key) => {
 		const link = legalLinks[key];
-		if (!link?.href) {
-			continue;
-		}
-		const target = link.target ?? '_blank';
-		links.push(
-			h(
-				'a',
-				{
-					class: noStyle ? '' : classes.legalLinks.legalLink,
-					'data-testid': `${params.testIdPrefix}-${key}`,
-					href: link.href,
-					rel: link.rel ?? (target === '_blank' ? 'noreferrer' : undefined),
-					target,
-				},
-				link.label ?? params.labels[key] ?? key
-			)
-		);
+		return link?.href ? [{ key, link }] : [];
+	});
+	if (entries.length === 0) {
+		return [];
 	}
-	return links;
+	const last = entries.length - 1;
+	return [
+		h(
+			'span',
+			{},
+			' ',
+			...entries.map(({ key, link }, index) => {
+				const target = link.target ?? '_blank';
+				const label = link.label ?? params.labels[key] ?? key;
+				return h(
+					'span',
+					{},
+					h(
+						'a',
+						{
+							class: noStyle ? '' : classes.legalLinks.legalLink,
+							'data-testid': `${params.testIdPrefix}-${key}`,
+							href: link.href,
+							rel: link.rel ?? (target === '_blank' ? 'noreferrer' : undefined),
+							target,
+						},
+						index < last ? `${label},` : label
+					),
+					index < last ? ' ' : null
+				);
+			})
+		),
+	];
 };

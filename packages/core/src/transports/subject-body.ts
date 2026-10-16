@@ -78,6 +78,8 @@ export interface SubjectPostBody {
 	consentAction: SavePayload['consentAction'];
 	policySnapshotToken?: string;
 	tcString?: string;
+	/** Google Additional Consent string; sent only with `tcString`. */
+	addtlConsent?: string;
 	/** Granted flag per declared vendor after this act, when vendors exist. */
 	vendorChoice?: VendorChoiceWire;
 	/** Free-form audit metadata. `userProperties`, `timeToDecisionMs` and `experiment` are the keys c15t sets. */
@@ -185,6 +187,8 @@ export const buildSubjectPostBody = function buildSubjectPostBody(
 		type: 'cookie_banner',
 		uiSource: payload.uiSource ?? undefined,
 		...(choice !== undefined && { choice }),
+		...(payload.tcString &&
+			payload.addtlConsent && { addtlConsent: payload.addtlConsent }),
 		...(payload.vendorChoice !== undefined && {
 			vendorChoice: {
 				confirmedAt: payload.vendorChoice.confirmedAt,

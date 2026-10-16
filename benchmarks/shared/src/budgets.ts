@@ -211,6 +211,21 @@ const BROWSER_LANGUAGE_CHUNKS_GZIP_BYTES = 87_040;
 const BROWSER_MANIFEST_ENTRIES = new Set(['browser-full', 'browser-headless']);
 
 /**
+ * Google Additional Consent (#1478) added a heading and a notice for the ad
+ * tech provider section to every built-in language. `createManifestTransport`
+ * bundles every language on first load, so the copy lands in that entry's
+ * initial JavaScript: 3,579 bytes gzip, measured as the change between the
+ * PR's commits before and after the translations. Entries that load
+ * languages on demand carry it in chunks they cannot reach. The budgets
+ * below carry it once; they return to their previous values after the
+ * feature is on the base branch.
+ */
+const ADDITIONAL_CONSENT_COPY_GZIP_BYTES = 3584;
+
+/** Bundle entries that bundle every built-in language on first load. */
+const ALL_LANGUAGE_ENTRIES = new Set(['manifest-transport']);
+
+/**
  * `clientMode()` loads hosted mode, offline mode and the browser resolver
  * from self-contained bundles (`dist/runtime/lazy-*.js`), so Rolldown does
  * not split shared modules out of a page's first-load chunk. Each bundle
@@ -1253,13 +1268,20 @@ export const bundleEntryBudgets = function bundleEntryBudgets(
 	const languageChunks = BROWSER_MANIFEST_ENTRIES.has(scenario)
 		? BROWSER_LANGUAGE_CHUNKS_GZIP_BYTES
 		: 0;
+	const allLanguageCopy = ALL_LANGUAGE_ENTRIES.has(scenario)
+		? ADDITIONAL_CONSENT_COPY_GZIP_BYTES
+		: 0;
 	return [
 		{
 			comparator: 'delta-bytes-lte',
 			description:
-				'Consumer entry initial JavaScript may grow by at most 2 KiB gzip, plus the vendor consent allowance and, for entries with a stock surface, its styles.',
+				'Consumer entry initial JavaScript may grow by at most 2 KiB gzip, plus the vendor consent allowance, the Additional Consent copy for entries that bundle every language and, for entries with a stock surface, its styles.',
 			metric: 'initialGzip',
-			threshold: 2048 + VENDOR_CONSENT_GZIP_BYTES + surfaceStyles.initial,
+			threshold:
+				2048 +
+				VENDOR_CONSENT_GZIP_BYTES +
+				allLanguageCopy +
+				surfaceStyles.initial,
 		},
 		{
 			// Moving code out of first load grows the deferred chunks by as much
@@ -1279,10 +1301,11 @@ export const bundleEntryBudgets = function bundleEntryBudgets(
 		{
 			comparator: 'delta-bytes-lte',
 			description:
-				'Initial plus reachable deferred JavaScript may grow by at most 3 KiB gzip, plus the ordinary or IAB style allowance for this entry.',
+				'Initial plus reachable deferred JavaScript may grow by at most 3 KiB gzip, plus the ordinary or IAB style allowance and the Additional Consent copy for entries that bundle every language.',
 			metric: 'gzipSize',
 			threshold:
 				3072 +
+				allLanguageCopy +
 				surfaceStyles.initial +
 				surfaceStyles.deferred +
 				additionalDeferredStyles,

@@ -1,5 +1,5 @@
 import { isHiddenCharacter } from '../../generate/backend-url.ts';
-import { c15tDistTag, c15tDocsOrigin } from '../../generate/release.ts';
+import { c15tDocsOrigin } from '../../generate/release.ts';
 
 /** Where c15t stores consent choices. */
 export type C15tStorageMode = 'hosted' | 'offline' | 'custom';
@@ -12,8 +12,8 @@ export interface C15tSetupInstructionsOptions {
 	 */
 	origin?: string;
 	/**
-	 * npm dist-tag the agent resolves exact versions from, such as `alpha`.
-	 * Defaults to the tag that publishes this CLI's release line.
+	 * npm dist-tag the agent resolves exact versions from, such as `canary`.
+	 * Defaults to `latest`.
 	 */
 	distTag?: string;
 	/** Storage mode the host already chose. Omit to have the agent ask. */
@@ -178,8 +178,9 @@ export const createC15tIntegrationGuidance = (
  * their own account and backend steps before it, then pass `firstStep`.
  *
  * Every docs link uses `origin`, and versions resolve from `distTag`, so the
- * agent reads the docs for the release it installs. The defaults follow the
- * release line of the CLI that published this source.
+ * agent reads the docs for the release it installs. The docs origin defaults
+ * to the release line of the CLI that published this source, and the
+ * dist-tag defaults to `latest`.
  *
  * @param options Docs origin, dist-tag, storage mode and first step number.
  * @returns Markdown instructions without a title.
@@ -188,8 +189,8 @@ export const createC15tIntegrationGuidance = (
  * not a positive integer.
  * @example
  * const instructions = createC15tSetupInstructions({
- * 	origin: 'https://v3.c15t.com',
- * 	distTag: 'alpha',
+ * 	origin: 'https://c15t.com',
+ * 	distTag: 'canary',
  * 	mode: 'hosted',
  * 	firstStep: 4,
  * });
@@ -198,7 +199,7 @@ export const createC15tSetupInstructions = (
 	options: C15tSetupInstructionsOptions = {}
 ): string => {
 	const origin = readDocsOrigin(options.origin ?? c15tDocsOrigin());
-	const distTag = readDistTag(options.distTag ?? c15tDistTag());
+	const distTag = readDistTag(options.distTag ?? 'latest');
 	const { mode } = options;
 	if (mode && !['hosted', 'offline', 'custom'].includes(mode)) {
 		throw new Error('Choose hosted, offline, or custom mode.');
@@ -288,7 +289,7 @@ Configure the storage mode (Storage mode above).${byMode(mode, {
 		offline: '',
 		unknown:
 			" In hosted mode, put the backend URL in the app's existing environment conventions as a public variable.",
-	})} Mount one consent provider at the app root, outside route components; two providers keep two separate choices. Render the banner and the preferences dialog. Add a persistent control that reopens preferences, such as a footer link. If the app already has one (from the old banner), rewire it instead of adding a second. Match the app's design, languages, keyboard access, narrow screens, color schemes and reduced motion.
+	})} Mount one consent provider at the app root, outside route components; two providers keep two separate choices. Render the banner and the preferences dialog. Gate tools by consent category only; per-vendor switches are an optional add-on, so do not declare \`vendors\` unless the site asks for per-vendor choices. Add a persistent control that reopens preferences, such as a footer link. If the app already has one (from the old banner), rewire it instead of adding a second. Match the app's design, languages, keyboard access, narrow screens, color schemes and reduced motion.
 
 ## ${tools}. Move every tool behind consent
 
@@ -328,7 +329,7 @@ Run the project's typecheck, tests and production build. Serve the production bu
 	)}; it survives a reload and a client-side navigation.
 3. Accept all: each tool loads once, its app events fire once per action, and the choice survives a reload.
 4. Withdraw: accept all, then reopen preferences and reject. c15t reloads the page; each tool then follows its guide's revocation behavior: it no longer loads, its SDK is opted out, or it signals denied consent.
-5. Granular choices, keyboard use and a narrow viewport.
+5. Allowing some categories and not others, keyboard use and a narrow viewport.
 
 Judge each tool by the loading behavior in the integrations overview and the revocation behavior in its guide. A helper that waits for consent sends no request until its category is allowed. A helper the overview says always loads (such as \`gtag\` and \`googleTagManager\`, and \`posthog\` by default) loads before a choice and stays loaded after a rejection; check that it signals denied consent or opts its SDK out, as its guide describes. That is correct only when the site's requirement allows requests with denied defaults; otherwise the tool needs a gated alternative (Move every tool behind consent above).
 

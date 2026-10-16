@@ -313,6 +313,8 @@
 			preferenceCenterTab: iabTab,
 			rejectAll: readyHandle?.rejectAll ?? noop,
 			save: readyHandle?.save ?? noopAsync,
+			setAdTechProviderConsent: (providerId, value) =>
+				readyHandle?.setAdTechProviderConsent?.(providerId, value),
 			setPreferenceCenterTab(tab) {
 				iabTab = tab;
 			},
@@ -343,6 +345,7 @@
 		getSnapshot: () => snapshot,
 		getTheme: () => options.theme,
 		provideDraft,
+		runtime,
 		setLanguage: (code) => runtime.setLanguage(code),
 	});
 

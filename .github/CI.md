@@ -9,13 +9,13 @@ benchmark should reuse an existing group unless it proves a different contract.
 | Package behavior and types | Kernel/storage/policy logic, adapter components, public types, test fixture types, external observers of packed exports, benchmark helper units | Every example journey |
 | Database behavior | SQLite, PGlite, real Postgres/MySQL, migrations and audit contracts | Browser acceptance |
 | Example acceptance | Production setup, vendor and iframe gating, revocation, navigation and outage recovery | Each benchmark timing loop |
-| Starter smoke tests | Each `examples/` starter builds for production, shows the banner (in the first HTML when server-rendered), keeps Accept across a reload, and opens the dialog from Privacy settings | Example acceptance journeys |
+| Starter smoke tests | Each `examples/` starter and `internals/svelte-compat/` app builds for production, shows the banner (in the first HTML when server-rendered), keeps Accept across a reload, and opens the dialog from Privacy settings | Example acceptance journeys |
 | Next compatibility | Packed exports, Next 15/16, App/Pages, Cache Components, static export, first HTML and request/cache contracts | A second version matrix |
 | Framework parity | DOM, accessibility, styles, geometry, live pixel comparisons and Storybook interactions | Example screenshot copies |
 | SSR journeys | Next/Nuxt/SvelteKit headers, language, GPC, stored choices, hydration and Nuxt route contracts | Separate standalone E2E runner |
 | CSS compatibility | Tailwind 3 important overrides, Tailwind 4 layers, plain CSS, the Tailwind 3 and 4 framework matrix | Runtime performance suites |
 | Consumer bundles | Initial/deferred JS, CSS, compressed sizes, import boundaries and tarballs | Per-package Rsdoctor comments |
-| Runtime comparisons | Public operation costs, policy resolution, script lifecycle; full browser metrics in separate v3 runs and full validation | Routine microbench runs |
+| Runtime comparisons | Public operation costs, policy resolution, script lifecycle; full browser metrics in separate canary runs and full validation | Routine microbench runs |
 | Mobile SDK | Swift and Kotlin kernel builds and tests, both Android assemblies, the binding's autolinking as a host app resolves it, the mobile JS boundary, mobile budgets and their required-row contract | Example app builds |
 | Mobile device builds (advisory) | Expo config-plugin resolution, CocoaPods resolution and the two example apps built for iOS and Android | A second native unit-test run |
 
@@ -62,7 +62,9 @@ TAILWIND_MATRIX_VERSIONS=v3 TAILWIND_MATRIX_FIXTURES=vue,nuxt bun run compat:sty
 
 The starters group runs `internals/fixtures/acceptance/src/starters.test.ts`
 once per starter. Every `examples/` directory except `showcase-*` is a
-starter, and its directory name is its target in
+starter, as is every `internals/svelte-compat/` app, which pins the oldest
+Svelte and SvelteKit that `@c15t/svelte` supports. Its directory name is its
+target in
 `internals/fixtures/acceptance/src/starter-targets.ts`. A starter is selected
 when its directory or a package it depends on changes, and every starter runs
 when the acceptance workspace changes. Starters hold no test code, so the
@@ -114,7 +116,7 @@ changes and remains useful during development.
 Docs and generated package docs do not select runtime work. Runtime changes
 follow reverse dependencies, while builds include forward dependencies of all
 selected hosts. Unknown paths, root config, lockfiles and removed packages
-select everything. Nightly runs, manual full runs, and releases outside `v3`
+select everything. Nightly runs, manual full runs, and releases on `main`
 cover the entire graph. Stable check `CI complete` fails if any required selected
 job fails or cancels.
 Release runs skip runtime benchmarks so publishing does not wait for timing
@@ -122,7 +124,7 @@ measurements. Tests, builds, consumer bundle budgets, and package validation
 remain required. Quick runtime comparisons still gate affected PRs. Full
 validation and manual CI runs still include full runtime comparisons.
 
-On `v3`, release checks compare with the last successful ancestor run of
+On `canary`, release checks compare with the last successful ancestor run of
 `release.yml`. Failed and superseded pushes stay in that range until a later
 run validates them. Missing history, API errors, and unreadable revisions fall
 back to full checks. Release selection ignores workspace-version-only changes
@@ -138,15 +140,16 @@ plus their build dependencies, then checks only those packages' tarballs. The
 guard reuses completed standard docs preparation; custom packing hooks and the
 actual publication's `prepack` checks still run.
 
-Outside `canary`, release checks for consecutive pushes run side by side. Only
+Pushes to `main` and `canary` start `release.yml`. A push opens or updates
+the branch's version PR, and merging that PR publishes.
+
+Release checks for consecutive runs overlap. Only
 the publish job waits for the previous release on the same branch. Once it gets
 its turn, a publish job whose commit is no longer the branch tip skips
 releasing. The newer run releases both commits if its checks pass; if they fail,
 nothing releases until a later push passes. After publishing a pending version
 PR merge, Tegami goes on to open the next version PR for notes that arrived
-since. `canary` runs stay queued whole, and `queue: max` keeps every waiting
-run, so every commit publishes its own snapshot. Runs publish in the order they
-start, which normally matches push order.
+since.
 
 Mobile work selects on paths, not on the dependency graph alone. The mobile
 SDK group runs for native sources and app fixtures, the React Native Codegen
@@ -239,10 +242,9 @@ versioned bundle. The package behavior group owns the SDK's Vitest suite, so
 it runs once and a JavaScript regression does not wait on a native toolchain.
 
 `benchmark-regression.yml` also runs full comparisons independently on pushes
-to `v3`, nightly at 02:43 UTC, and manually. Scheduled runs check out `v3`;
-manual runs also check out `v3` and accept a different `base_ref`.
-Both use the measurement tooling on `v3`; other published branches do not
-contain it. Manual runs cannot execute an arbitrary head revision with
+to `canary`, nightly at 02:43 UTC, and manually. Scheduled runs check out
+`canary`; manual runs also check out `canary` and accept a different `base_ref`.
+Both use the measurement tooling on `canary`. Manual runs cannot execute an arbitrary head revision with
 default-branch cache access.
 The base must belong to the selected head's commit history.
 Runtime comparisons use one runner per package, except core-benchmarks, which
@@ -253,7 +255,7 @@ result and budget in its share. Browser benches answer every consent-backend
 request after 200 ms on both revisions. Jobs upload separate reports and keep
 running if another package fails. Failures fail the benchmark workflow and
 preserve its summaries and artifacts without blocking publishing. GitHub activates schedules only once the workflow is on
-the default branch; push runs work as soon as this change lands on `v3`.
+the default branch.
 Repository branch-protection settings must require `CI complete` when replacing
 the old required checks.
 
@@ -270,8 +272,7 @@ Remote caching uses GitHub OIDC. The shared setup action exchanges each job's
 identity for a Vercel token with only `read-write:remote-cache`. Tokens expire
 after 30 minutes, and the action requests revocation when the job ends. The
 Vercel Turborepo CLI policy checks the repository
-name and immutable repository/owner IDs, restricts refs to `main`, `canary`,
-`2.0.0`, and `v3`, and allows only push, scheduled, and manual runs of the CI,
+name and immutable repository/owner IDs, restricts refs to `main` and `canary`, and allows only push, scheduled, and manual runs of the CI,
 release, validation, mobile-device, bundle-analysis, and benchmark workflows.
 The audience is `https://vercel.com/inth`. Calling workflows map repository
 variables `TURBO_TEAM` and `TURBO_CACHE_POLICY` into environment variables for the
@@ -300,7 +301,7 @@ local SDK mocks cannot prove a real vendor's tracking behavior.
 See [benchmark commands and profiles](../benchmarks/README.md#ci-comparisons).
 
 `cli-native.yml` runs the packed CLI frontend suite on Linux and macOS 15 or newer for CLI
-changes and v3 pushes. It installs `@scriptc/compiler@0.2.0` in the runner's
+changes and canary pushes. It installs `@scriptc/compiler@0.2.0` in the runner's
 temporary directory, compiles with dynamic support disabled, and exercises
 plans, file apply, conflicts, symlinks, interrupted recovery and alpha installer
 arguments. It does not compile the standalone interactive Node executable or

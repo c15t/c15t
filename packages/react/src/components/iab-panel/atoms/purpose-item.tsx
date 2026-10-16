@@ -1,6 +1,6 @@
 'use client';
 
-import { iabDisplayTestId } from '@c15t/iab/headless';
+import { countIABPartners, iabDisplayTestId } from '@c15t/iab/headless';
 import styles from '@c15t/ui/styles/components/iab-consent-dialog';
 import { useState } from 'react';
 import type { FC } from 'react';
@@ -191,6 +191,10 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 		}
 	};
 
+	// Ad tech providers can be the only partners of a purpose they need.
+	const adTechProviders = purpose.adTechProviders ?? [];
+	const partnerCount = countIABPartners([purpose]);
+
 	// Separate IAB and custom vendors
 	const iabConsentVendors = consentVendors.filter((v) => !v.isCustom);
 	const customConsentVendors = consentVendors.filter((v) => v.isCustom);
@@ -300,7 +304,7 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 						>
 							{iab.preferenceCenter.purposeItem.partners.replace(
 								'{count}',
-								String(purpose.vendors.length)
+								String(partnerCount)
 							)}
 						</PreferenceItem.Meta>
 						{legIntVendors.length > 0 && (
@@ -463,7 +467,7 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 								)}
 							</svg>
 							{iab.preferenceCenter.purposeItem.partnersUsingPurpose} (
-							{purpose.vendors.length})
+							{partnerCount})
 						</PreferenceItem.Trigger>
 						<PreferenceItem.Content
 							innerClassName={styles.vendorSection}
@@ -586,6 +590,33 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 										/>
 									))}
 								</div>
+							)}
+							{adTechProviders.length > 0 && (
+								<>
+									<h5
+										className={noStyle ? undefined : styles.vendorSectionTitle}
+									>
+										{iab.preferenceCenter.vendorList.adTechProvidersHeading} (
+										{adTechProviders.length})
+									</h5>
+									{adTechProviders.map((provider) => (
+										<div
+											key={provider.id}
+											className={noStyle ? undefined : styles.vendorRow}
+										>
+											<div className={noStyle ? undefined : styles.vendorInfo}>
+												<a
+													href={provider.policyUrl}
+													target="_blank"
+													rel="noopener noreferrer"
+													className={noStyle ? undefined : styles.vendorName}
+												>
+													{provider.name}
+												</a>
+											</div>
+										</div>
+									))}
+								</>
 							)}
 						</PreferenceItem.Content>
 					</PreferenceItem.Root>

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { countIABPartners } from '@c15t/iab/headless';
 	import styles from '@c15t/ui/styles/components/iab-consent-dialog';
 	import switchStyles from '@c15t/ui/styles/components/switch';
 
@@ -64,6 +65,10 @@
 	let showExamples = $state(false);
 	let showVendors = $state(false);
 	let purposeChecked = $state(false);
+
+	// Ad tech providers can be the only partners of a purpose they need.
+	const adTechProviders = $derived(purpose.adTechProviders ?? []);
+	const partnerCount = $derived(countIABPartners([purpose]));
 
 	const legIntVendors = $derived(
 		purpose.vendors.filter((v) => v.usesLegitimateInterest)
@@ -152,7 +157,7 @@
 				<PreferenceItem.Meta class={noStyle ? '' : styles.purposeMeta || ''}>
 					{iabT.preferenceCenter.purposeItem.partners.replace(
 						'{count}',
-						String(purpose.vendors.length)
+						String(partnerCount)
 					)}
 				</PreferenceItem.Meta>
 				{#if legIntVendors.length > 0}
@@ -288,7 +293,7 @@
 						expanded={showVendors}
 					/>
 					{iabT.preferenceCenter.purposeItem.partnersUsingPurpose}
-					({purpose.vendors.length})
+					({partnerCount})
 				</PreferenceItem.Trigger>
 				<PreferenceItem.Content
 					innerClassName={noStyle ? '' : styles.vendorSection || ''}
@@ -515,6 +520,27 @@
 								</div>
 							{/each}
 						</div>
+					{/if}
+
+					{#if adTechProviders.length > 0}
+						<h5 class={noStyle ? '' : styles.vendorSectionTitle || ''}>
+							{iabT.preferenceCenter.vendorList.adTechProvidersHeading}
+							({adTechProviders.length})
+						</h5>
+						{#each adTechProviders as provider (provider.id)}
+							<div class={noStyle ? '' : styles.vendorRow || ''}>
+								<div class={noStyle ? '' : styles.vendorInfo || ''}>
+									<a
+										href={provider.policyUrl}
+										target="_blank"
+										rel="noopener noreferrer"
+										class={noStyle ? '' : styles.vendorName || ''}
+									>
+										{provider.name}
+									</a>
+								</div>
+							</div>
+						{/each}
 					{/if}
 				</PreferenceItem.Content>
 			</PreferenceItem.Root>

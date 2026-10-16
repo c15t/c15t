@@ -1,13 +1,17 @@
 /** @vitest-environment jsdom */
-import type { TCData } from 'c15t';
+import type { TCData, TCDataOutsideTCF } from 'c15t';
 import { act, createElement } from 'react';
 import { createRoot } from 'react-dom/client';
 import type { Root } from 'react-dom/client';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 
-import { useTcfData } from './use-tcf-data';
+import { adPartners } from './ad-partners';
+import { canServe, useTcfData } from './use-tcf-data';
 
-type Listener = (data: TCData | null, success: boolean) => void;
+type Listener = (
+	data: TCData | TCDataOutsideTCF | null,
+	success: boolean
+) => void;
 
 const savedChoice = (listenerId: number): TCData => ({
 	cmpStatus: 'loaded',
@@ -35,7 +39,11 @@ let container: HTMLDivElement;
 
 const Probe = () => {
 	const data = useTcfData();
-	return createElement('output', null, data?.tcString ?? 'no choice');
+	let text = 'no choice';
+	if (data) {
+		text = data.gdprApplies ? data.tcString : 'outside TCF';
+	}
+	return createElement('output', null, text);
 };
 
 const mount = async () => {
@@ -110,4 +118,24 @@ test('keeps a saved choice while the preferences UI is open', async () => {
 	);
 
 	expect(container.textContent).toBe('saved-choice');
+});
+
+test('serves every partner when the policy does not use TCF', async () => {
+	const api = vi.fn();
+	window.__tcfapi = api;
+	await mount();
+	const notify = api.mock.calls[0]?.[2] as Listener;
+	const outside: TCDataOutsideTCF = {
+		cmpId: 490,
+		cmpStatus: 'loaded',
+		cmpVersion: 1,
+		eventStatus: 'tcloaded',
+		gdprApplies: false,
+		listenerId: 10,
+		tcfPolicyVersion: 5,
+	};
+	await act(() => notify(outside, true));
+
+	expect(container.textContent).toBe('outside TCF');
+	expect(canServe(outside, adPartners.rectangle)).toBe(true);
 });

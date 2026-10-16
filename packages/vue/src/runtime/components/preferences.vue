@@ -11,7 +11,7 @@
  * runner sees identical DOM.
  */
 import type { PresentationAction } from '@c15t/core';
-import { vendorsListedUnder } from '@c15t/core';
+import { deniedVendorIds, vendorsListedUnder } from '@c15t/core';
 import type { CONSENT_CATEGORY } from '@c15t/core/consent-record';
 import accordionStyles from '@c15t/ui/styles/components/accordion';
 
@@ -135,7 +135,11 @@ const declaredVendors = computed(() =>
 	snapshot.value.model === 'iab' ? [] : (snapshot.value.vendors?.declared ?? [])
 );
 const displayedVendors = function displayedVendors(category: CONSENT_CATEGORY) {
-	return vendorsListedUnder(declaredVendors.value, category);
+	return vendorsListedUnder(
+		declaredVendors.value,
+		category,
+		deniedVendorIds(snapshot.value)
+	);
 };
 
 /** Single-open accordion state (opening one category closes the rest). */

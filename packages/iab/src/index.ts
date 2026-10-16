@@ -22,6 +22,8 @@
 
 import { c15tProtocolParams, registerIABControls } from '@c15t/core';
 import type {
+	AdditionalConsentConfig,
+	AdTechProvider,
 	CMPApi,
 	ConsentKernel,
 	ConsentSnapshot,
@@ -47,7 +49,15 @@ import {
 	applyPublisherRestrictionsToGVL,
 	introducedLegitimateInterest,
 } from './headless/effective-vendor-list';
-import { clearStoredTCString, createCMPApi } from './tcf/cmp-api';
+import {
+	AD_TECH_PROVIDER_PURPOSES,
+	fetchAdTechProviders,
+} from './tcf/additional-consent';
+import {
+	clearStoredTCString,
+	createCMPApi,
+	syncStoredAdditionalConsent,
+} from './tcf/cmp-api';
 import { CMP_VERSION_NUMBER } from './tcf/cmp-defaults';
 import { assertValidCmpId, createCmpIdError, isValidCmpId } from './tcf/cmp-id';
 import { clearGVLCache, fetchGVL, narrowGVLToVendors } from './tcf/fetch-gvl';
@@ -88,6 +98,14 @@ export interface CreateIABOptions {
 	vendors?: number[];
 	/** Non-IAB vendors declared by the publisher. */
 	customVendors?: NonIABVendor[];
+	/**
+	 * Google ad tech providers that are not on the GVL. The preference center
+	 * lists each one with its privacy policy, and `__tcfapi` returns an
+	 * Additional Consent string (`addtlConsent`) beside every TC string.
+	 * Providers count as consented only with consent to TCF purposes 1, 3
+	 * and 4.
+	 */
+	additionalConsent?: AdditionalConsentConfig;
 	/** Publisher country code (ISO 3166-1 alpha-2). Default: 'US'. */
 	publisherCountryCode?: string;
 	/**
@@ -215,6 +233,11 @@ export interface IABHandle {
 	/** Opt in/out of a special feature (1 = geo, 2 = device ID). */
 	setSpecialFeatureOptIn: (featureId: number, value: boolean) => void;
 	/**
+	 * Set consent for a Google ad tech provider listed for Additional
+	 * Consent. Call `save()` to publish it in the AC string.
+	 */
+	setAdTechProviderConsent: (providerId: number, value: boolean) => void;
+	/**
 	 * Grant vendor and purpose consent for declared consent purposes,
 	 * legitimate-interest signals for declared legitimate-interest purposes,
 	 * and opt-ins for declared special features. Includes custom vendors and
@@ -293,8 +316,18 @@ const readIAB = function readIAB(kernel: ConsentKernel) {
 };
 
 /**
+ * Consent purposes Google ad tech providers process. The AC string lists a
+ * provider as consented only with all of them, so listed providers declare
+ * them the way a registered vendor declares its purposes.
+ */
+const adTechProviderPurposes = (
+	providers: readonly AdTechProvider[] | null | undefined
+): readonly number[] => (providers?.length ? AD_TECH_PROVIDER_PURPOSES : []);
+
+/**
  * Accept All grants only declared processing on each legal basis after
- * publisher restrictions, including custom vendors. Reject All clears vendor,
+ * publisher restrictions, including custom vendors and the purposes listed
+ * ad tech providers need. Reject All clears vendor,
  * purpose, legitimate-interest and special-feature signals.
  */
 const applyBlanket = function applyBlanket(
@@ -321,6 +354,9 @@ const applyBlanket = function applyBlanket(
 		pick: (vendor: (typeof vendors)[number]) => number[] | undefined
 	) => new Set(vendors.flatMap((vendor) => pick(vendor) ?? []));
 	const consentPurposes = declared((vendor) => vendor.purposes);
+	for (const id of adTechProviderPurposes(readIAB(kernel).adTechProviders)) {
+		consentPurposes.add(id);
+	}
 	const legitimateInterestPurposes = declared(
 		(vendor) => vendor.legIntPurposes
 	);
@@ -348,8 +384,12 @@ const applyBlanket = function applyBlanket(
 	for (const id of specialFeatureIds) {
 		specialFeatureOptIns[id] = value && declaredSpecialFeatures.has(id);
 	}
+	const adTechProviderConsents: Record<string, boolean> = Object.fromEntries(
+		(readIAB(kernel).adTechProviders ?? []).map(({ id }) => [String(id), value])
+	);
 
 	kernel.set.iab({
+		adTechProviderConsents,
 		purposeConsents,
 		purposeLegitimateInterests,
 		specialFeatureOptIns,
@@ -380,16 +420,18 @@ const restrictionsForDisplay = function restrictionsForDisplay(
 const consentBasisPurposes = function consentBasisPurposes(
 	gvl: GlobalVendorList,
 	restrictions: readonly PublisherRestriction[],
-	customVendors: readonly NonIABVendor[]
+	customVendors: readonly NonIABVendor[],
+	adTechProviders: readonly AdTechProvider[] | null | undefined
 ): Set<number> {
-	return new Set(
-		[
+	return new Set([
+		...[
 			...Object.values(
 				applyPublisherRestrictionsToGVL(gvl, restrictions).vendors ?? {}
 			),
 			...customVendors,
-		].flatMap((vendor) => vendor.purposes ?? [])
-	);
+		].flatMap((vendor) => vendor.purposes ?? []),
+		...adTechProviderPurposes(adTechProviders),
+	]);
 };
 
 /**
@@ -400,13 +442,19 @@ const receiptIdentity = function receiptIdentity(value: unknown): string {
 	if (!value || typeof value !== 'object') {
 		return '';
 	}
-	const { tcString, confirmedAt, customConsents, customLegitimateInterests } =
-		value as Record<string, unknown>;
+	const {
+		tcString,
+		confirmedAt,
+		customConsents,
+		customLegitimateInterests,
+		adTechProviderConsents,
+	} = value as Record<string, unknown>;
 	return JSON.stringify([
 		tcString,
 		confirmedAt,
 		customConsents,
 		customLegitimateInterests,
+		adTechProviderConsents,
 	]);
 };
 
@@ -433,6 +481,8 @@ const changedIABDraft = function changedIABDraft(
 		current.iab?.gvl === previous.iab?.gvl &&
 		current.iab?.enabled === previous.iab?.enabled &&
 		current.iab?.gvlReference === previous.iab?.gvlReference &&
+		// A provider list arriving is list data, not a visitor's edit.
+		current.iab?.adTechProviders === previous.iab?.adTechProviders &&
 		!current.iab?.authority
 	);
 };
@@ -480,6 +530,7 @@ const grantsDeniedCategory = function grantsDeniedCategory(
 /** The editable selections a confirmed authority records. */
 const selectionsOf = function selectionsOf(authority: KernelIABAuthority) {
 	return {
+		adTechProviderConsents: { ...authority.adTechProviderConsents },
 		purposeConsents: { ...authority.purposeConsents },
 		purposeLegitimateInterests: { ...authority.purposeLegitimateInterests },
 		specialFeatureOptIns: { ...authority.specialFeatureOptIns },
@@ -558,7 +609,9 @@ const sameVendorSelections = function sameVendorSelections(
 		selectionText(left.vendorConsents) ===
 			selectionText(right.vendorConsents) &&
 		selectionText(left.vendorLegitimateInterests) ===
-			selectionText(right.vendorLegitimateInterests)
+			selectionText(right.vendorLegitimateInterests) &&
+		selectionText(left.adTechProviderConsents ?? {}) ===
+			selectionText(right.adTechProviderConsents ?? {})
 	);
 };
 
@@ -588,6 +641,7 @@ const shouldInstallReceipt = function shouldInstallReceipt(
 };
 
 const SELECTION_MAPS = [
+	'adTechProviderConsents',
 	'purposeConsents',
 	'purposeLegitimateInterests',
 	'specialFeatureOptIns',
@@ -601,8 +655,8 @@ const grantsBeyond = function grantsBeyond(
 	other: KernelIABAuthority
 ): boolean {
 	return SELECTION_MAPS.some((name) => {
-		const theirs = other[name] as Record<string, boolean>;
-		return Object.entries(authority[name]).some(
+		const theirs = (other[name] ?? {}) as Record<string, boolean>;
+		return Object.entries(authority[name] ?? {}).some(
 			([id, granted]) => granted === true && theirs[id] !== true
 		);
 	});
@@ -651,7 +705,8 @@ const changedSelections = (
 	current.iab?.vendorConsents !== previous.iab?.vendorConsents ||
 	current.iab?.vendorLegitimateInterests !==
 		previous.iab?.vendorLegitimateInterests ||
-	current.iab?.specialFeatureOptIns !== previous.iab?.specialFeatureOptIns;
+	current.iab?.specialFeatureOptIns !== previous.iab?.specialFeatureOptIns ||
+	current.iab?.adTechProviderConsents !== previous.iab?.adTechProviderConsents;
 
 const changedReference = (
 	previous: ConsentSnapshot['iab'],
@@ -696,8 +751,15 @@ const referenceEndpoint = (
 	});
 };
 
+/**
+ * Whether the visitor's resolved policy uses IAB TCF. `__tcfapi` reports TCF
+ * as applying only then, whatever the visitor's jurisdiction.
+ */
+const policyUsesIAB = (snapshot: ConsentSnapshot): boolean =>
+	snapshot.policyRule.model === 'iab';
+
 const cmpDisplayStatus = (snapshot: ConsentSnapshot): 'visible' | 'hidden' =>
-	snapshot.policyRule.model === 'iab' &&
+	policyUsesIAB(snapshot) &&
 	(snapshot.activeUI === 'banner' || snapshot.activeUI === 'dialog')
 		? 'visible'
 		: 'hidden';
@@ -796,6 +858,15 @@ export const createIAB = function createIAB(
 	// Selection revision when the held authority was installed. A later
 	// revision means the visitor changed selections without saving.
 	let revisionAtAuthority = 0;
+	// Selection revisions this module made itself, not the visitor: a
+	// stored choice restored or withdrawn.
+	let ownSelectionRevisions = 0;
+	/** Writes `update` as this module, not as a visitor edit. */
+	const setOwnSelections = (update: Partial<KernelIABState>): void => {
+		const revisionBefore = selectionRevision;
+		kernel.set.iab(update);
+		ownSelectionRevisions += selectionRevision - revisionBefore;
+	};
 	// Set while this module withdraws an authority another runtime's
 	// receipt still backs, so the shared receipt is not deleted.
 	let keepReceipt = false;
@@ -861,6 +932,59 @@ export const createIAB = function createIAB(
 			);
 		}
 		return list && vendors?.length ? narrowGVLToVendors(list, vendors) : list;
+	};
+
+	const adTechProviderIds = options.additionalConsent?.providers ?? [];
+	let adTechProviderRequest: Promise<AdTechProvider[] | null> | null = null;
+	/** Whether a provider request finished, so saves stop waiting for it. */
+	let adTechProvidersSettled = false;
+	/**
+	 * The provider list this handle published from its own configuration.
+	 * It replaces the backend's, including after a later `/init` sends the
+	 * backend's again. `null` while none is published, or when the request
+	 * failed and the backend's list stands.
+	 */
+	let clientAdTechProviders: AdTechProvider[] | null = null;
+	/**
+	 * Loads names and privacy links for the ad tech providers this handle was
+	 * configured with, once per handle. A client list replaces the backend's,
+	 * so an empty one resolves to `[]` and clears it. `null` keeps what the
+	 * kernel holds: no list configured here (a backend's `/init` may already
+	 * have put providers in the kernel), no TC string coming, or a failed
+	 * request. A failure leaves the TC string working, since the AC string
+	 * only supplements it.
+	 */
+	const loadAdTechProviders = (
+		preloaded: GlobalVendorList | null | undefined
+	): Promise<AdTechProvider[] | null> => {
+		if (!options.additionalConsent || preloaded === null) {
+			return Promise.resolve(null);
+		}
+		if (adTechProviderIds.length === 0) {
+			return Promise.resolve([]);
+		}
+		if (adTechProviderRequest) {
+			return adTechProviderRequest;
+		}
+		// A retry after a failed request: saves and blanket choices wait for
+		// it again.
+		adTechProvidersSettled = false;
+		adTechProviderRequest = (async () => {
+			try {
+				return await fetchAdTechProviders(
+					adTechProviderIds,
+					options.additionalConsent?.url
+				);
+			} catch (error) {
+				adTechProviderRequest = null;
+				console.warn(
+					'[c15t] Additional Consent is off: the ad tech provider list did not load.',
+					error
+				);
+				return null;
+			}
+		})();
+		return adTechProviderRequest;
 	};
 
 	let restoredFingerprint: string | null = null;
@@ -964,7 +1088,7 @@ export const createIAB = function createIAB(
 			// Reject All queued behind the list load is the visitor's newer
 			// action and keeps its selections.
 			const keepSelections = selectionRevision !== revisionAtAuthority;
-			kernel.set.iab({
+			setOwnSelections({
 				...(!keepSelections && selectionsOf(authority)),
 				authority,
 				tcString: authority.tcString,
@@ -997,7 +1121,7 @@ export const createIAB = function createIAB(
 		}
 		keepReceipt = true;
 		try {
-			kernel.set.iab(update);
+			setOwnSelections(update);
 		} finally {
 			keepReceipt = false;
 		}
@@ -1053,7 +1177,7 @@ export const createIAB = function createIAB(
 			if (!keepSelections) {
 				Object.assign(update, selectionsOf(receipt));
 			}
-			kernel.set.iab(update);
+			setOwnSelections(update);
 		} else if (heldConflicts) {
 			withdrawAuthority(choice);
 			return;
@@ -1129,7 +1253,11 @@ export const createIAB = function createIAB(
 		const kept = readIAB(kernel).authority;
 		if (kept && kept === suppressedAuthority) {
 			suppressedAuthority = null;
-			cmpApi?.updateConsent(kept.tcString, undefined, true);
+			cmpApi?.updateConsent(
+				kept.tcString,
+				undefined,
+				policyUsesIAB(kernel.getSnapshot())
+			);
 		}
 	};
 	const unsubscribeSaveStart = kernel.events.on('command:save:started', () => {
@@ -1200,7 +1328,7 @@ export const createIAB = function createIAB(
 		}
 		holdBackUntilReload(held);
 		// No kernel notification follows, so publish the hold here.
-		cmpApi?.updateConsent('', undefined, snapshot.policyRule.model === 'iab');
+		cmpApi?.updateConsent('', undefined, policyUsesIAB(snapshot));
 	};
 	if (typeof window !== 'undefined') {
 		window.addEventListener('storage', onReceiptStored);
@@ -1230,12 +1358,17 @@ export const createIAB = function createIAB(
 	let initializationError: unknown;
 	const retainedAuthorityMatchesList = async (
 		snapshot: ConsentSnapshot,
-		gvl: GlobalVendorList
-	): Promise<{ valid: boolean; restrictionsChanged: boolean }> => {
+		gvl: GlobalVendorList,
+		adTechProviders: AdTechProvider[] | null
+	): Promise<{
+		checked: KernelIABAuthority | null;
+		restrictionsChanged: boolean;
+		valid: boolean;
+	}> => {
 		const { iab } = snapshot;
 		const retained = iab?.authority;
 		if (!retained || !iab) {
-			return { restrictionsChanged: false, valid: true };
+			return { checked: null, restrictionsChanged: false, valid: true };
 		}
 		const { authority, restrictionsChanged } = await checkAuthority(
 			{
@@ -1243,25 +1376,84 @@ export const createIAB = function createIAB(
 				customConsents: retained.vendorConsents,
 				customLegitimateInterests: retained.vendorLegitimateInterests,
 			},
-			{ ...snapshot, iab: { ...iab, gvl } },
+			{
+				...snapshot,
+				iab: {
+					...iab,
+					adTechProviders: adTechProviders ?? iab.adTechProviders,
+					gvl,
+				},
+			},
 			Date.now(),
 			publisherRestrictions
 		);
-		return { restrictionsChanged, valid: Boolean(authority) };
+		return {
+			checked: authority,
+			restrictionsChanged,
+			valid: Boolean(authority),
+		};
 	};
-	/** The kernel update that publishes a list, withdrawing authority if needed. */
+	/**
+	 * The retained authority with the AC string the check rebuilt for the new
+	 * list, when they differ: a provider Google dropped, or this handle no
+	 * longer lists, must leave the published string, not linger until the
+	 * visitor saves again.
+	 */
+	const refreshedProviderAuthority = (
+		retained: KernelIABAuthority | null | undefined,
+		checked: KernelIABAuthority | null
+	): KernelIABAuthority | null => {
+		if (
+			!retained ||
+			!checked ||
+			retained.addtlConsent === checked.addtlConsent
+		) {
+			return null;
+		}
+		const { addtlConsent: _stale, ...rest } = retained;
+		const refreshed: KernelIABAuthority = {
+			...rest,
+			adTechProviderConsents: checked.adTechProviderConsents,
+		};
+		if (checked.addtlConsent) {
+			refreshed.addtlConsent = checked.addtlConsent;
+		}
+		return refreshed;
+	};
+	/**
+	 * The kernel update that withdraws the retained authority, or installs
+	 * `refreshed` in its place. Empty when neither applies.
+	 */
+	const retainedAuthorityPatch = (
+		withdrawn: boolean,
+		refreshed: KernelIABAuthority | null
+	): Partial<KernelIABState> => {
+		if (withdrawn) {
+			return { authority: null, tcString: '' };
+		}
+		return refreshed ? { authority: refreshed } : {};
+	};
+	/**
+	 * The kernel update that publishes a list, withdrawing authority if
+	 * needed, or installing `refreshed` in place of the retained one.
+	 */
 	const publishListPatch = (
 		gvl: GlobalVendorList,
-		withdrawn: boolean
+		adTechProviders: AdTechProvider[] | null,
+		withdrawn: boolean,
+		refreshed: KernelIABAuthority | null
 	): Partial<KernelIABState> => {
 		const update: Partial<KernelIABState> = {
 			enabled: true,
 			gvl,
 			gvlReference: undefined,
+			...retainedAuthorityPatch(withdrawn, refreshed),
 		};
-		if (withdrawn) {
-			update.authority = null;
-			update.tcString = '';
+		// Configured on the client: its list replaces the backend's, now and
+		// after any later `/init`.
+		if (adTechProviders) {
+			update.adTechProviders = adTechProviders;
+			clientAdTechProviders = adTechProviders;
 		}
 		return update;
 	};
@@ -1270,6 +1462,76 @@ export const createIAB = function createIAB(
 		retained: KernelIABAuthority | null | undefined,
 		valid: boolean
 	): boolean => !valid && readIAB(kernel).authority === retained;
+	/** The authority and provider list last checked against each other. */
+	let checkedAuthority: KernelIABAuthority | null | undefined;
+	let checkedProviders: AdTechProvider[] | null | undefined;
+	/** Record what `update` leaves held after checking `snapshot`'s authority. */
+	const noteChecked = (
+		snapshot: ConsentSnapshot,
+		update: Partial<KernelIABState>
+	): void => {
+		checkedProviders = update.adTechProviders ?? snapshot.iab?.adTechProviders;
+		checkedAuthority =
+			update.authority === undefined
+				? snapshot.iab?.authority
+				: update.authority;
+	};
+	/**
+	 * Checks the held authority again when the provider list changes while
+	 * the vendor list stays, as a re-init can return. A provider that left
+	 * the list must leave the published and stored AC string too, as it
+	 * does when a new vendor list is published.
+	 */
+	const recheckProviders = async (): Promise<void> => {
+		const snapshot = kernel.getSnapshot();
+		const { iab } = snapshot;
+		const retained = iab?.authority;
+		const providers = iab?.adTechProviders;
+		if (
+			disposed ||
+			!retained ||
+			!iab.gvl ||
+			// A list being published checks the authority itself.
+			publishedListGeneration !== listGeneration ||
+			(retained === checkedAuthority && providers === checkedProviders)
+		) {
+			return;
+		}
+		const generation = confirmationGeneration;
+		const list = listGeneration;
+		const check = await retainedAuthorityMatchesList(snapshot, iab.gvl, null);
+		const current = kernel.getSnapshot().iab;
+		if (
+			disposed ||
+			generation !== confirmationGeneration ||
+			list !== listGeneration ||
+			current?.gvl !== iab.gvl ||
+			current.adTechProviders !== providers
+		) {
+			// A new list checks the authority on publish, and a new provider
+			// list started its own check.
+			return;
+		}
+		if (current.authority !== retained) {
+			// Installed while this check ran, possibly from an older snapshot.
+			void recheckProviders();
+			return;
+		}
+		const withdrawn = retainedWithdrawn(retained, check.valid);
+		const update = retainedAuthorityPatch(
+			withdrawn,
+			refreshedProviderAuthority(retained, check.checked)
+		);
+		noteChecked(snapshot, update);
+		if (update.authority && retained === suppressedAuthority) {
+			// Same TC string: it stays held back until the receipt reload.
+			suppressedAuthority = update.authority;
+		}
+		if (update.authority !== undefined) {
+			kernel.set.iab(update);
+		}
+		promptForChangedRestrictions(withdrawn, check.restrictionsChanged);
+	};
 	const restrictionsForList = (gvl: GlobalVendorList) => {
 		try {
 			return validatePublisherRestrictions(configuredRestrictions, { gvl });
@@ -1301,7 +1563,10 @@ export const createIAB = function createIAB(
 		initializationError = undefined;
 		cmpApi?.updateVendorList(null);
 		try {
-			const gvl = await loadList(preloaded, requested);
+			const [gvl, adTechProviders] = await Promise.all([
+				loadList(preloaded, requested),
+				loadAdTechProviders(preloaded),
+			]);
 			if (disposed || generation !== listGeneration) {
 				return;
 			}
@@ -1316,7 +1581,8 @@ export const createIAB = function createIAB(
 			const retained = beforePublish.iab?.authority;
 			const retainedCheck = await retainedAuthorityMatchesList(
 				beforePublish,
-				gvl
+				gvl,
+				adTechProviders
 			);
 			if (disposed || generation !== listGeneration) {
 				return;
@@ -1324,13 +1590,22 @@ export const createIAB = function createIAB(
 			const mayHydrate =
 				kernel.getSnapshot().iab === initializationSnapshot.iab;
 			const withdrawn = retainedWithdrawn(retained, retainedCheck.valid);
-			const update = publishListPatch(gvl, withdrawn);
+			const update = publishListPatch(
+				gvl,
+				adTechProviders,
+				withdrawn,
+				refreshedProviderAuthority(retained, retainedCheck.checked)
+			);
+			noteChecked(beforePublish, update);
 			const existingApi = cmpApi;
 			existingApi?.updateVendorList(gvl);
 			publishedList = gvl;
 			const beforeUpdate = kernel.getSnapshot();
 			kernel.set.iab(update);
+			adTechProvidersSettled = true;
 			markListPublished(generation);
+			// Providers the kernel received while the list loaded.
+			void recheckProviders();
 			// Authority held under other restrictions, for example by a CMP
 			// mounted earlier with another configuration: ask again, as for a
 			// returning visitor. Withdrawing it removed its TC string.
@@ -1342,7 +1617,14 @@ export const createIAB = function createIAB(
 				cmpApi ??= createCMPApi({
 					cmpId,
 					cmpVersion,
-					gdprApplies: kernel.getSnapshot().policyRule.model === 'iab',
+					gdprApplies: policyUsesIAB(kernel.getSnapshot()),
+					// The AC string confirmed with the published TC string.
+					getAddtlConsent: (tcString) => {
+						const authority = kernel.getSnapshot().iab?.authority;
+						return authority?.tcString === tcString
+							? authority.addtlConsent
+							: undefined;
+					},
 					gvl,
 				});
 				const current = kernel.getSnapshot();
@@ -1351,7 +1633,16 @@ export const createIAB = function createIAB(
 					existingApi.updateConsent(
 						readIAB(kernel).authority?.tcString ?? '',
 						undefined,
-						current.policyRule.model === 'iab'
+						policyUsesIAB(current)
+					);
+				} else if (!existingApi && publishedTcString()) {
+					// A handle mounted on a kernel that already holds authority, such
+					// as a remount: the list's notification ran before this API
+					// existed, so it would otherwise report no consent at all.
+					cmpApi.updateConsent(
+						publishedTcString(),
+						undefined,
+						policyUsesIAB(current)
 					);
 				}
 				cmpApi.setDisplayStatus(cmpDisplayStatus(current));
@@ -1505,17 +1796,45 @@ export const createIAB = function createIAB(
 		// visitor's action to vendors as `tcloaded`.
 		const published = publishedTcString();
 		if (published === '' || published !== committingTcString) {
-			cmpApi.updateConsent(
-				published,
-				undefined,
-				snapshot.policyRule.model === 'iab'
-			);
+			cmpApi.updateConsent(published, undefined, policyUsesIAB(snapshot));
 		}
 		const nextDisplay = cmpDisplayStatus(snapshot);
 		if (nextDisplay !== previousDisplay) {
 			previousDisplay = nextDisplay;
 			cmpApi.setDisplayStatus(nextDisplay);
 		}
+	};
+	/**
+	 * Keeps the stored AC string in step with the held authority. A restored
+	 * or remounted authority is re-checked against today's provider list, so
+	 * its AC string can drop a provider the stored copy still names.
+	 */
+	const syncStoredAuthority = (
+		previous: KernelIABAuthority | null | undefined,
+		held: KernelIABAuthority | null | undefined
+	): void => {
+		if (options.persistence !== false && held && held !== previous) {
+			syncStoredAdditionalConsent(held.tcString, held.addtlConsent);
+		}
+	};
+	const recheckChangedProviders = (
+		previous: ConsentSnapshot,
+		snapshot: ConsentSnapshot
+	): void => {
+		const held = snapshot.iab?.adTechProviders;
+		if (held === previous.iab?.adTechProviders) {
+			return;
+		}
+		// A later `/init` put the backend's list back. The client's replaces
+		// it; the update notifies again, and that notification rechecks.
+		if (
+			clientAdTechProviders &&
+			JSON.stringify(held ?? null) !== JSON.stringify(clientAdTechProviders)
+		) {
+			kernel.set.iab({ adTechProviders: clientAdTechProviders });
+			return;
+		}
+		void recheckProviders();
 	};
 	let previousAuthority = kernel.getSnapshot().iab?.authority;
 	let previousSnapshot = kernel.getSnapshot();
@@ -1551,6 +1870,7 @@ export const createIAB = function createIAB(
 			selectionRevision += 1;
 		}
 		syncList(previous, snapshot);
+		recheckChangedProviders(previous, snapshot);
 
 		const policyChanged = snapshot.resolution !== previous.resolution;
 		if (!policyChanged && changedIABDraft(previous, snapshot)) {
@@ -1569,6 +1889,7 @@ export const createIAB = function createIAB(
 				clearStoredTCString(previousAuthority.tcString);
 			}
 		}
+		syncStoredAuthority(previousAuthority, snapshot.iab?.authority);
 		previousAuthority = snapshot.iab?.authority;
 		if (openedForRestrictions && snapshot.iab?.authority) {
 			closeRestrictionPrompt();
@@ -1641,6 +1962,32 @@ export const createIAB = function createIAB(
 		}
 	};
 
+	/**
+	 * The load a save waits for before it captures its snapshot, or `null`.
+	 * The receipt records the ad tech providers the visitor was shown, and a
+	 * provider list landing during encoding would otherwise cancel the save.
+	 * Without one pending, the save keeps its synchronous start.
+	 */
+	const pendingAdTechProviders = (): Promise<void> | null =>
+		adTechProviderIds.length > 0 &&
+		!adTechProvidersSettled &&
+		readIAB(kernel).gvl
+			? initialization
+			: null;
+	/** IDs of the providers the preference center lists right now. */
+	const shownAdTechProviderIds = (): Set<string> =>
+		new Set(
+			(readIAB(kernel).adTechProviders ?? []).map(({ id }) => String(id))
+		);
+	/**
+	 * Applies a blanket choice to the providers listed now. Providers still
+	 * loading were never shown, so the visitor chooses for them on a later
+	 * save.
+	 */
+	const blanket = (gvl: GlobalVendorList, value: boolean): void => {
+		applyBlanket(kernel, gvl, value, restrictionsForBlanket(gvl));
+	};
+
 	const generateTC = async function generateTC(): Promise<string> {
 		if (!readIAB(kernel).gvl && reference && !(await waitForReferencedList())) {
 			throw new Error('IAB action cancelled while loading vendor data.');
@@ -1688,7 +2035,7 @@ export const createIAB = function createIAB(
 			if (!gvl) {
 				return;
 			}
-			applyBlanket(kernel, gvl, true, restrictionsForBlanket(gvl));
+			blanket(gvl, true);
 		},
 		get cmpApi() {
 			return cmpApi;
@@ -1729,7 +2076,7 @@ export const createIAB = function createIAB(
 			if (!gvl) {
 				return;
 			}
-			applyBlanket(kernel, gvl, false, restrictionsForBlanket(gvl));
+			blanket(gvl, false);
 		},
 		// oxlint-disable-next-line complexity -- Keep the async save cancellation checks together.
 		async save() {
@@ -1741,10 +2088,28 @@ export const createIAB = function createIAB(
 				throw new Error('IAB action cancelled while loading vendor data.');
 			}
 			rejectInvalidRestrictions();
+			// The visitor confirmed now, not when the provider list arrives.
+			const actionAt = Date.now();
+			const providersLoading = pendingAdTechProviders();
+			// Providers landing while the save waits were never shown, so the
+			// visitor discloses them on a later save, after Accept All or
+			// Reject All as after Save Settings.
+			const shown = providersLoading ? shownAdTechProviderIds() : null;
+			const visitorRevision = () => selectionRevision - ownSelectionRevisions;
+			const revisionAtClick = visitorRevision();
+			if (providersLoading) {
+				await providersLoading;
+			}
 			if (disposed) {
 				return;
 			}
-			const actionAt = Date.now();
+			// A selection changed during the wait was not confirmed by this
+			// save, so it is not committed in its name.
+			if (visitorRevision() !== revisionAtClick) {
+				throw new Error(
+					'IAB action cancelled: selections changed while loading ad tech providers.'
+				);
+			}
 			confirmationGeneration += 1;
 			const generation = confirmationGeneration;
 			const snapshot = kernel.getSnapshot();
@@ -1754,6 +2119,13 @@ export const createIAB = function createIAB(
 			}
 			const consentData = buildTCFConsentData();
 			const receipt = createAuthorityReceipt(snapshot, '', actionAt);
+			if (shown) {
+				receipt.adTechProviderConsents = Object.fromEntries(
+					Object.entries(receipt.adTechProviderConsents).filter(([id]) =>
+						shown.has(id)
+					)
+				);
+			}
 			const tcString = await generateTCString(consentData, snapshot.iab.gvl, {
 				cmpId,
 				cmpVersion,
@@ -1781,7 +2153,8 @@ export const createIAB = function createIAB(
 				consentBasisPurposes(
 					snapshot.iab.gvl,
 					publisherRestrictions,
-					snapshot.iab.customVendors
+					snapshot.iab.customVendors,
+					snapshot.iab.adTechProviders
 				)
 			);
 			const scope = new Set<string>(snapshot.policyRule.scope);
@@ -1813,7 +2186,11 @@ export const createIAB = function createIAB(
 					storeAuthority(authority);
 					cmpApi?.saveToStorage(tcString);
 				}
-				cmpApi?.updateConsent(tcString, consentData);
+				cmpApi?.updateConsent(
+					tcString,
+					consentData,
+					policyUsesIAB(kernel.getSnapshot())
+				);
 				// The saved selections are the authority's; nothing is unsaved.
 				revisionAtAuthority = selectionRevision;
 				armAuthorityTimer();
@@ -1823,13 +2200,23 @@ export const createIAB = function createIAB(
 				cmpApi.updateConsent(
 					publishedTcString(),
 					undefined,
-					kernel.getSnapshot().policyRule.model === 'iab'
+					policyUsesIAB(kernel.getSnapshot())
 				);
 			}
 			const result = await pendingSave;
 			if (!result.ok) {
 				throw new Error('Unable to save IAB preferences.');
 			}
+		},
+		setAdTechProviderConsent(id, value) {
+			const key = String(id);
+			const current = readIAB(kernel).adTechProviderConsents ?? {};
+			if (current[key] === value) {
+				return;
+			}
+			kernel.set.iab({
+				adTechProviderConsents: { ...current, [key]: value },
+			});
 		},
 		setPurposeConsent(id, value) {
 			const current = readIAB(kernel).purposeConsents;

@@ -1,6 +1,10 @@
 import type { BaseTranslations, Translations } from '@c15t/translations';
 
 import type { InitOutput } from '../api/init';
+import {
+	AD_TECH_PROVIDERS_URL,
+	normalizeAdTechProviderIds,
+} from './ad-tech-provider';
 import type { brandingValues, hostingValues } from './constants';
 import { createDeterministicFingerprintSync } from './policy-fingerprint';
 import {
@@ -46,10 +50,23 @@ export interface ConsentManifestTranslationInputs {
 	i18n?: I18nOptions;
 }
 
+/**
+ * Google Additional Consent providers a manifest discloses. Whoever resolves
+ * `/init` from the manifest fetches their names and privacy policies from
+ * `url`, as it fetches the vendor list from `gvl.url`.
+ */
+export interface ConsentManifestAdditionalConsent {
+	/** Google ATP IDs, deduplicated and sorted. */
+	providers: number[];
+	/** Provider list endpoint, filtered with `?providerIds=`. */
+	url: string;
+}
+
 export interface ConsentManifestIAB {
 	enabled: boolean;
 	customVendors?: InitOutput['customVendors'];
 	gvl?: ConsentManifestGVLReference;
+	additionalConsent?: ConsentManifestAdditionalConsent;
 }
 
 export interface ConsentManifest {
@@ -361,6 +378,17 @@ export interface ConsentManifestConfig {
 			ConsentManifest['iab']
 		>['customVendors'];
 		readonly endpoint?: string;
+		/**
+		 * Google ad tech providers outside the GVL. A matched IAB policy
+		 * discloses them in the preference centre, and the browser CMP
+		 * publishes an Additional Consent string beside the TC String.
+		 */
+		readonly additionalConsent?: {
+			/** Google ATP IDs from Google's Additional Consent provider list. */
+			readonly providers: readonly number[];
+			/** Provider list endpoint. Defaults to `https://gvl.inth.app/additional-consent`. */
+			readonly endpoint?: string;
+		};
 	};
 	/** Vendors declared for vendor-level consent outside IAB. */
 	readonly vendors?: readonly Vendor[];
@@ -377,7 +405,17 @@ const buildGvlReference = function buildGvlReference(
 		return undefined;
 	}
 
+	const providers = normalizeAdTechProviderIds(
+		config.iab.additionalConsent?.providers ?? []
+	);
 	return {
+		// Left out when unconfigured, so existing manifests keep their revision.
+		...(providers.length > 0 && {
+			additionalConsent: {
+				providers,
+				url: config.iab.additionalConsent?.endpoint ?? AD_TECH_PROVIDERS_URL,
+			},
+		}),
 		customVendors: config.iab.customVendors,
 		enabled: true,
 		gvl: { url: config.iab.endpoint ?? DEFAULT_GVL_ENDPOINT },

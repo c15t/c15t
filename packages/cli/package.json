@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/cli",
-	"version": "3.0.0",
+	"version": "3.1.0-canary.0",
 	"description": "CLI for c15t setup. Scaffold React and Next.js cookie banners, choose hosted/self-hosted/offline mode, and add consent integrations.",
 	"keywords": [
 		"c15t",
@@ -106,7 +106,7 @@
 		"pretest": "bun prebuild",
 		"start": "node ./dist/bin.mjs",
 		"test": "vitest run",
-		"test:native": "vitest run --config vitest.native.config.ts",
+		"test:native": "bun prebuild && vitest run --config vitest.native.config.ts",
 		"test:watch": "vitest"
 	},
 	"dependencies": {

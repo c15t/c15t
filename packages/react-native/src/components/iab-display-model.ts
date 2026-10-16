@@ -294,7 +294,7 @@ export interface ConsentIabDialogData {
 	stacks: ConsentIabProcessedStack[];
 	/** Purpose 1 and whatever no stack absorbed. */
 	standalonePurposes: ConsentIabProcessedPurpose[];
-	/** GVL vendors plus custom vendors. */
+	/** GVL vendors, custom vendors and Google ad tech providers. */
 	totalVendors: number;
 }
 
@@ -345,7 +345,11 @@ export interface ConsentIabDisplayModel {
 	 * list rather than a mobile restatement of it.
 	 */
 	vendors: ConsentIabProcessedVendor[];
-	/** The count next to the vendors tab. */
+	/**
+	 * The web's count next to its vendors tab: GVL vendors, custom vendors and
+	 * Google ad tech providers. The drawer does not list ad tech providers, so
+	 * its vendors tab counts {@link ConsentIabDisplayModel.vendors} instead.
+	 */
 	vendorTabCount: number;
 }
 

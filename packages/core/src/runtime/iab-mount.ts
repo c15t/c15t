@@ -37,6 +37,7 @@ const normalizeIABOptions = function normalizeIABOptions(
 		return null;
 	}
 	return {
+		additionalConsent: iab.additionalConsent,
 		cmpId,
 		cmpVersion:
 			typeof iab.cmpVersion === 'string'

@@ -32,7 +32,7 @@ runs:
     # PRs keep using local caches without a credential for the shared remote cache.
     - name: Authenticate to Turborepo Remote Cache
       if: >-
-        github.repository == 'c15t/c15t' && contains(fromJSON('["push", "schedule", "workflow_dispatch"]'), github.event_name) && contains(fromJSON('["refs/heads/main", "refs/heads/canary", "refs/heads/2.0.0", "refs/heads/v3"]'), github.ref)
+        github.repository == 'c15t/c15t' && contains(fromJSON('["push", "schedule", "workflow_dispatch"]'), github.event_name) && contains(fromJSON('["refs/heads/main", "refs/heads/canary"]'), github.ref)
       uses: vercel/setup-turborepo-remote-cache-action@49d7b1b46ba4c9251e1977986bfe18336feabc8f # v1.1.0
       with:
         team: ${{ env.TURBO_TEAM }}

@@ -1,5 +1,9 @@
 import { extractConsentRequestInputs } from '@c15t/schema/types';
-import type { GlobalVendorList, InitOutput } from '@c15t/schema/types';
+import type {
+	AdTechProvider,
+	GlobalVendorList,
+	InitOutput,
+} from '@c15t/schema/types';
 
 import { resolveIABBannerSummary } from '../libs/iab-banner-summary';
 
@@ -21,6 +25,7 @@ export const deferInitGvl = <
 		translations?: { language: string } | null;
 		location?: { countryCode?: string | null; regionCode?: string | null };
 		resolvedPrivacySignals?: { gpc?: boolean };
+		adTechProviders?: AdTechProvider[];
 	},
 >(
 	payload: Payload,
@@ -42,10 +47,15 @@ export const deferInitGvl = <
 		format === 'init'
 			? extractConsentRequestInputs(new Headers(requestHeaders))
 			: undefined;
-	// Custom vendors stay in the payload and are added by the display resolver.
-	// The reference count covers registered vendors only to avoid double counting.
+	// Custom vendors and ad tech providers stay in the payload and are added
+	// by the display resolver. The reference count covers registered vendors
+	// only to avoid double counting, but the items include the purposes the
+	// providers need.
 	const summary = resolveIABBannerSummary(
-		{ gvl: payload.gvl },
+		{
+			adTechProviders: payload.adTechProviders,
+			gvl: payload.gvl,
+		},
 		{ maxItems: Number.POSITIVE_INFINITY }
 	);
 	return {
@@ -63,7 +73,7 @@ export const deferInitGvl = <
 			language: normalizeLanguage(payload.translations?.language),
 			summary: {
 				items: summary.displayItems,
-				vendorCount: summary.vendorCount,
+				vendorCount: Object.keys(payload.gvl.vendors).length,
 			},
 			url,
 			vendorListVersion: payload.gvl.vendorListVersion,

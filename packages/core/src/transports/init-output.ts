@@ -167,6 +167,9 @@ export const mapInitOutputToInitResponse = function mapInitOutputToInitResponse(
 	if (payload.customVendors !== undefined) {
 		mapped.customVendors = payload.customVendors;
 	}
+	if (payload.adTechProviders !== undefined) {
+		mapped.adTechProviders = payload.adTechProviders;
+	}
 	if (payload.cmpId !== undefined) {
 		mapped.cmpId = payload.cmpId;
 	}
@@ -263,6 +266,7 @@ export const mergeInitResponseIntoKernelConfig =
 			response.gvlReference !== undefined ||
 			response.gvl !== undefined ||
 			response.customVendors !== undefined ||
+			response.adTechProviders !== undefined ||
 			response.cmpId !== undefined
 		) {
 			const nextIab: Partial<KernelIABState> = {
@@ -276,6 +280,9 @@ export const mergeInitResponseIntoKernelConfig =
 			}
 			if (response.customVendors !== undefined) {
 				nextIab.customVendors = response.customVendors;
+			}
+			if (response.adTechProviders !== undefined) {
+				nextIab.adTechProviders = response.adTechProviders;
 			}
 			if (response.cmpId !== undefined) {
 				nextIab.cmpId = response.cmpId;
@@ -404,6 +411,9 @@ export const kernelConfigToInitResponse = function kernelConfigToInitResponse(
 		}
 		if (iab.customVendors !== undefined) {
 			response.customVendors = iab.customVendors;
+		}
+		if (iab.adTechProviders !== undefined) {
+			response.adTechProviders = iab.adTechProviders;
 		}
 		if (iab.cmpId !== undefined && iab.cmpId !== null) {
 			response.cmpId = iab.cmpId;

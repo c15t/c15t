@@ -112,6 +112,13 @@ on the page stops itself when its category is withdrawn. Stop your own code
 from the `onPermissionsChanged` callback. See
 [Callbacks](/docs/frameworks/astro/callbacks).
 
+## Send your own analytics events
+
+`getEventDispatcher()` from `c15t/astro/client` sends your own events and
+pageviews to these scripts while consent allows them. See
+[send analytics events after consent](./client-api#send-analytics-events-after-consent)
+for an example and where to send pageviews with `ClientRouter`.
+
 ## Check script loading
 
 Build the site and open it in a private window with DevTools Network open:

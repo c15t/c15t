@@ -1,3 +1,81 @@
+## @c15t/browser@3.1.0-canary.0 (canary)
+
+### Space legal links after the banner description
+
+Legal links in the banner and dialog now read the same in every framework as
+they do in React: a space after the description, then the links separated by
+commas, for example "…at any time. Privacy policy, Cookie policy".
+
+- Astro: the links no longer run into the description or into each other, and
+  they take the stock legal link style.
+- Script tag (`@c15t/browser`): the links no longer run into the description
+  or into each other.
+- Vue and Nuxt: the links stay inline after the description. Before, they sat
+  on a row of their own with a gap on each side of the comma.
+- Svelte: the gaps around the links are one space wide.
+
+### The preference dialog scrolls with your CSS
+
+Visitors can scroll to every category and vendor in the preference dialog
+again. Before this fix, the category list did not scroll with some app CSS.
+The cause was `overflow: hidden` on the category list or on a category row,
+for example to clip them to rounded corners. On a phone, a category with
+vendors then went past the bottom of the dialog. The visitor could not scroll
+to the rest.
+
+### Vendor switches show only when you declare vendors
+
+The preference dialog shows only category switches until you declare a
+vendor. Your visitors make one choice for each category. You do not get
+vendor switches that you did not ask for.
+
+Since 3.0.0, the dialog showed a switch for the vendor of each
+`@c15t/integrations` helper. For example, a site that added only `posthog()`
+got a PostHog switch under Analytics. We did not intend this default.
+
+To show vendor switches, declare at least one vendor in the `vendors` option
+or on the backend. The dialog then also lists the vendors of your helpers by
+name, as before. This change affects only the dialog. It does not change when
+a script loads.
+
+### Keep saved helper vendor denials accessible
+
+A helper vendor the visitor previously switched off stays visible in the
+preference dialog when the site declares no vendors. The visitor can turn that
+vendor on without changing any category choices. Its saved denial continues to
+block loading until the visitor changes it and saves. Other helper vendors stay
+hidden until the site declares a vendor.
+
+The browser dialog updates helper rows when saved vendor consent changes while
+it is open.
+
+### Support Google Additional Consent
+
+IAB TCF setups can pass consent to Google ad tech providers that are not on
+the Global Vendor List. List their Google ATP IDs in the manifest's
+`iab.additionalConsent.providers`: the self-hosted backend loads their names
+and privacy policies like the vendor list, caches them and sends them in
+`/init`, and framework servers and browsers that resolve `/init` from the
+manifest load them the same way. Setups without such a backend can pass
+`additionalConsent.providers` to the browser instead. The React, Vue, Svelte
+and script-tag preference centres show each provider with its privacy policy
+and a consent switch, and the banner's partner count includes them.
+
+`__tcfapi` returns an Additional Consent v2 string as `addtlConsent` beside
+`tcString`, for example `2~89~dv.2572`. A provider counts as consented only
+when its switch is on and the visitor consented to TCF purposes 1, 3 and 4.
+c15t stores the string in the `addtl_consent` cookie and localStorage entry
+with the TC String, restores it for returning visitors, and removes it when it
+withdraws the TC String. Consent saves send it with the TC String, and the
+self-hosted backend records it in a new `consent.addtlConsent` column. Run the
+backend migrations to add the column. Provider names and policy links load from
+`https://gvl.inth.app/additional-consent` unless an endpoint is configured.
+The backend keeps serving the last list it loaded when that endpoint fails.
+
+`IABPreferenceCenterTranslations.vendorList` gains two required keys,
+`adTechProvidersHeading` and `adTechProvidersNotice`, translated for every
+built-in locale. Custom translation sets need both.
+
 ## @c15t/browser@3.0.0
 
 ### c15t v3

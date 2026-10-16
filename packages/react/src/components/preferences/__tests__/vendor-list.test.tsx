@@ -8,6 +8,7 @@
  * draft disables its vendor switches. Accept all clears the denial.
  */
 import type { Vendor } from '@c15t/core';
+import { useEffect } from 'react';
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 import { page } from 'vitest/browser';
@@ -16,6 +17,7 @@ import { ComponentFixtureProvider as ConsentProvider } from '~/__tests__/compone
 import { policyFixture } from '~/__tests__/policy-fixture';
 import { ConsentWidget } from '~/components/preferences';
 import { useConsent, useVendorAllowed, useVendorChoice } from '~/hooks';
+import { useKernel } from '~/kernel-selector';
 import { offline } from '~/transports/offline';
 
 const CATEGORIES = ['necessary', 'marketing', 'measurement'] as const;
@@ -353,6 +355,94 @@ describe('consent widget vendor rows', () => {
 				marketing: true,
 				meta: true,
 			});
+		});
+	});
+});
+
+describe('vendor switches are opt-in', () => {
+	// What an `@c15t/integrations` helper puts on its script: a vendor slug
+	// and the vendor's name and privacy policy.
+	const helperScript = {
+		category: 'measurement' as const,
+		id: 'posthog',
+		src: 'https://example.invalid/posthog.js',
+		vendor: 'posthog',
+		vendorDetails: {
+			name: 'PostHog',
+			privacyPolicyUrl: 'https://posthog.com/privacy',
+		},
+	};
+
+	const SavedHelperDenial = () => {
+		const kernel = useKernel();
+		useEffect(() => {
+			void kernel.commands.save(
+				{ marketing: false, measurement: true },
+				{ vendors: { posthog: false } }
+			);
+		}, [kernel]);
+		return <Probe />;
+	};
+
+	const renderWithHelper = (vendors?: Vendor[], savedDenial = false) =>
+		render(
+			<ConsentProvider
+				options={{
+					consentCategories: [...CATEGORIES],
+					mode: offline(),
+					persistence: false,
+					prefetch: policyFixture(
+						{ measurement: true },
+						{
+							categories: ['marketing', 'measurement'],
+							id: 'vendor-opt-in',
+							model: 'opt-in',
+							prompt: 'choice',
+						}
+					),
+					scripts: [helperScript],
+					vendors,
+				}}
+			>
+				<ConsentWidget />
+				{savedDenial ? <SavedHelperDenial /> : null}
+			</ConsentProvider>
+		);
+
+	test('a helper alone shows its category without a vendor switch', async () => {
+		renderWithHelper();
+		await openVendors('measurement');
+		await expect
+			.element(page.getByTestId('consent-widget-accordion-content-measurement'))
+			.toHaveAttribute('data-state', 'open');
+		expect(
+			document.querySelector(
+				'[data-testid="consent-widget-vendor-list-measurement"]'
+			)
+		).toBeNull();
+	});
+
+	test('declaring a vendor lists helpers by name too', async () => {
+		renderWithHelper([VENDORS[0] as Vendor]);
+		await openVendors('measurement');
+		await expect
+			.element(page.getByTestId('consent-widget-vendor-list-measurement'))
+			.toHaveTextContent('PostHog');
+	});
+
+	test('a saved helper denial remains editable without changing category choices', async () => {
+		renderWithHelper(undefined, true);
+		await vi.waitFor(() => expect(readProbe().denied).toEqual(['posthog']));
+		await openVendors('measurement');
+		const toggle = page.getByRole('switch', { name: 'Allow PostHog' });
+		await expect.element(toggle).toHaveAttribute('aria-checked', 'false');
+		await toggle.click();
+		await expect.element(toggle).toHaveAttribute('aria-checked', 'true');
+		expect(readProbe().denied).toEqual(['posthog']);
+		await page.getByTestId('consent-widget-footer-save-button').click();
+		await vi.waitFor(() => {
+			expect(readProbe().denied).toEqual([]);
+			expect(readProbe().marketing).toBe(false);
 		});
 	});
 });

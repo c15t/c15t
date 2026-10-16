@@ -14,6 +14,7 @@ import {
 	IABConsentDialog,
 	IABProvider,
 } from 'c15t/react/iab';
+import type { IABProviderProps } from 'c15t/react/iab';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useMemo } from 'react';
 
@@ -22,6 +23,7 @@ import { demoExperiment, parseSurfaceParams } from '../../lib/prompt-surface';
 import {
 	DEFAULT_SCENARIO_ID,
 	DEMO_CMP_ID,
+	DEMO_ADDITIONAL_CONSENT,
 	DEMO_CUSTOM_VENDORS,
 	DEMO_IAB_VENDOR_IDS,
 	DEMO_SCENARIO_HEADER,
@@ -260,18 +262,22 @@ export const ConsentDemo = ({ backend = 'hosted' }: ConsentDemoProps) => {
 		[navigate]
 	);
 
-	const iabConfig = useMemo(
-		() =>
-			// oxlint-disable-next-line sort-keys -- Preserve declaration order, interface shape, and public compatibility.
-			({
-				// Offline mode has no server to supply a CMP ID, so the client
-				// config must provide one. Matches the self-host backend.
-				cmpId: DEMO_CMP_ID,
-				vendors: DEMO_IAB_VENDOR_IDS,
-				customVendors: DEMO_CUSTOM_VENDORS,
-			}),
-		[]
-	);
+	const iabConfig = useMemo(() => {
+		// oxlint-disable-next-line sort-keys -- Preserve declaration order, interface shape, and public compatibility.
+		const config: Omit<IABProviderProps, 'children'> = {
+			// Offline mode has no server to supply a CMP ID, so the client
+			// config must provide one. Matches the self-host backend.
+			cmpId: DEMO_CMP_ID,
+			vendors: DEMO_IAB_VENDOR_IDS,
+			customVendors: DEMO_CUSTOM_VENDORS,
+		};
+		// A backend serves its own providers on /init; only offline mode
+		// lists them in the browser.
+		if (params.mode !== 'hosted') {
+			config.additionalConsent = DEMO_ADDITIONAL_CONSENT;
+		}
+		return config;
+	}, [params.mode]);
 
 	const overrides = useMemo(() => {
 		const nextOverrides: { country?: string; region?: string } = {};

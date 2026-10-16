@@ -124,6 +124,7 @@ export interface PromptModel {
 		rightLink: string;
 		actionGroup: string;
 		button: string;
+		legalLink: string;
 	};
 	/** Inline styles from `theme.slots`, by the same element names. */
 	styles: Partial<Record<keyof PromptModel['classes'], string>>;
@@ -287,7 +288,7 @@ const resolveClasses = function resolveClasses(
 	theme: Theme | undefined,
 	disableAnimation: boolean
 ): Pick<PromptModel, 'classes' | 'styles'> {
-	const { actions, banner, button } = classNames;
+	const { actions, banner, button, legalLinks } = classNames;
 	const noStyle = props.noStyle === true;
 	const cls = (...names: (string | undefined)[]): string =>
 		noStyle ? '' : joinClasses(...names);
@@ -301,6 +302,8 @@ const resolveClasses = function resolveClasses(
 		description: cls(banner.description),
 		footer: cls(actions.actionRoot, banner.footer),
 		header: cls(banner.header),
+		// The React, Vue and Svelte legal links take only this stock class.
+		legalLink: cls(legalLinks?.legalLink),
 		overlay: cls(
 			banner.overlay,
 			banner.overlayVisible,

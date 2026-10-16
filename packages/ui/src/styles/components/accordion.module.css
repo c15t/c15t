@@ -4,6 +4,11 @@
 @layer components {
 	.list:not(:global(.headless)) {
 		display: grid;
+		/* Rows take each item's full height. With auto rows, an item whose
+		   overflow is hidden can shrink to fit a capped list, such as the
+		   dialog's scrolling category list. Its content then clips and the
+		   list has nothing left to scroll. */
+		grid-auto-rows: max-content;
 		gap: var(--accordion-stack-gap, 0.75rem);
 	}
 

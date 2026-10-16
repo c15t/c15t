@@ -1,4 +1,5 @@
 import type {
+	AdTechProvider,
 	ConsentJourneyScope,
 	InitOutput,
 	GlobalVendorList,
@@ -45,6 +46,7 @@ import type { PublisherRestriction } from './options/iab-tcf';
 // Re-export schema types that consumers need so they don't have to
 // import from @c15t/schema directly for routine work.
 export type {
+	AdTechProvider,
 	GlobalVendorList,
 	LocationResponse,
 	NonIABVendor,
@@ -211,6 +213,17 @@ export interface KernelIABAuthority {
 	 * the target's `vendorId`. Absent means none.
 	 */
 	publisherRestrictions?: PublisherRestriction[];
+	/**
+	 * Google ad tech provider switches at confirmation, keyed by provider ID.
+	 * Holds one entry for each provider shown to the visitor. Absent when
+	 * Additional Consent is not configured.
+	 */
+	adTechProviderConsents?: Record<string, boolean>;
+	/**
+	 * Google Additional Consent (ACv2) string published beside `tcString`,
+	 * such as `2~1.10~dv.2.3.4`. Absent when no provider was shown.
+	 */
+	addtlConsent?: string;
 }
 
 export interface KernelIABState {
@@ -225,6 +238,13 @@ export interface KernelIABState {
 	gvlReference?: InitOutput['gvlReference'];
 	/** Non-IAB vendors declared by the publisher. */
 	customVendors: NonIABVendor[];
+	/**
+	 * Google ad tech providers the preference center discloses for
+	 * Additional Consent: the configured IDs Google currently lists.
+	 */
+	adTechProviders?: AdTechProvider[];
+	/** Per-provider consent switches (provider ID → boolean). */
+	adTechProviderConsents?: Record<string, boolean>;
 	/** CMP ID registered with IAB Europe. */
 	cmpId: number | null;
 	/** Per-vendor consent (vendorId → boolean). */
@@ -612,6 +632,8 @@ export interface InitResponse {
 	gvlReference?: InitOutput['gvlReference'];
 	/** Non-IAB vendors configured on the backend. */
 	customVendors?: NonIABVendor[];
+	/** Google Additional Consent providers the backend resolved. */
+	adTechProviders?: AdTechProvider[];
 	/** CMP ID registered with IAB Europe. */
 	cmpId?: number;
 	/** Vendors the backend declares for vendor-level consent outside IAB. */
@@ -676,6 +698,11 @@ export interface SavePayload {
 	journey?: Pick<KernelJourney, 'id' | 'scope'>;
 	/** TC string emitted by the IAB module; absent in non-IAB flows. */
 	tcString?: string | null;
+	/**
+	 * Google Additional Consent string published with `tcString`. Present
+	 * only when `tcString` is, since Google discards it alone.
+	 */
+	addtlConsent?: string;
 	/** Equals `confirmed.actionAt`. Kept for backends that read one time. */
 	givenAt?: number;
 	/**

@@ -18,6 +18,7 @@ import type {
 	EventStatus,
 	PingData,
 	TCData,
+	TCDataOutsideTCF,
 	TCFApiCallback,
 	TCFConsentData,
 } from './iab-tcf-types';
@@ -71,12 +72,14 @@ export const clearStoredTCString = function clearStoredTCString(
 ): void {
 	// Each store is cleared on its own: a malformed cookie must not keep the
 	// localStorage copy alive.
+	// The AC string goes with the TC string it was saved beside.
 	try {
 		if (
 			typeof document !== 'undefined' &&
 			getCookie(IAB_STORAGE_KEYS.TC_STRING_COOKIE) === tcString
 		) {
 			document.cookie = `${IAB_STORAGE_KEYS.TC_STRING_COOKIE}=; max-age=0; path=/; SameSite=Lax`;
+			document.cookie = `${IAB_STORAGE_KEYS.AC_STRING_COOKIE}=; max-age=0; path=/; SameSite=Lax`;
 		}
 	} catch {
 		// The cookie value can be malformed.
@@ -84,6 +87,56 @@ export const clearStoredTCString = function clearStoredTCString(
 	try {
 		if (localStorage.getItem(IAB_STORAGE_KEYS.TC_STRING_LOCAL) === tcString) {
 			localStorage.removeItem(IAB_STORAGE_KEYS.TC_STRING_LOCAL);
+			localStorage.removeItem(IAB_STORAGE_KEYS.AC_STRING_LOCAL);
+		}
+	} catch {
+		// Storage can be unavailable.
+	}
+};
+
+/**
+ * Rewrites the stored AC string beside `tcString` to `addtlConsent`, or
+ * removes it when there is none. A list that drops a provider changes the
+ * AC string of a TC string already saved, and vendors reading storage must
+ * not keep finding the provider in it. Like {@link clearStoredTCString},
+ * each store changes only while it still holds `tcString`.
+ *
+ * @param tcString - The TC string the AC string was saved beside.
+ * @param addtlConsent - The AC string it now carries, if any.
+ *
+ * @internal
+ */
+export const syncStoredAdditionalConsent = function syncStoredAdditionalConsent(
+	tcString: string,
+	addtlConsent: string | undefined
+): void {
+	try {
+		if (
+			typeof document !== 'undefined' &&
+			getCookie(IAB_STORAGE_KEYS.TC_STRING_COOKIE) === tcString &&
+			(getCookie(IAB_STORAGE_KEYS.AC_STRING_COOKIE) ?? undefined) !==
+				addtlConsent
+		) {
+			setCookie(
+				IAB_STORAGE_KEYS.AC_STRING_COOKIE,
+				addtlConsent ?? '',
+				addtlConsent ? 395 : 0
+			);
+		}
+	} catch {
+		// The cookie value can be malformed.
+	}
+	try {
+		if (
+			localStorage.getItem(IAB_STORAGE_KEYS.TC_STRING_LOCAL) === tcString &&
+			(localStorage.getItem(IAB_STORAGE_KEYS.AC_STRING_LOCAL) ?? undefined) !==
+				addtlConsent
+		) {
+			if (addtlConsent) {
+				localStorage.setItem(IAB_STORAGE_KEYS.AC_STRING_LOCAL, addtlConsent);
+			} else {
+				localStorage.removeItem(IAB_STORAGE_KEYS.AC_STRING_LOCAL);
+			}
 		}
 	} catch {
 		// Storage can be unavailable.
@@ -149,23 +202,41 @@ export const createCMPApi = function createCMPApi(
 	const cmpId = assertValidCmpId(config.cmpId);
 	const cmpVersion = config.cmpVersion ?? CMP_VERSION_NUMBER;
 	let { gvl } = config;
-	let gdprApplies = config.gdprApplies ?? true;
+	/**
+	 * Whether the visitor's policy uses IAB TCF. `__tcfapi` reports it as
+	 * `gdprApplies`, the CMP API's name for it.
+	 */
+	let tcfApplies = config.gdprApplies ?? true;
 
 	let tcString = '';
+	/** The AC string confirmed with `tcString`, if any. */
+	let addtlConsent: string | undefined;
+	const addtlConsentFor = (string: string): string | undefined =>
+		string ? config.getAddtlConsent?.(string) : undefined;
 	let cmpStatus: CMPStatus = 'loading';
 	let displayStatus: DisplayStatus = 'hidden';
-	const eventListeners = new Map<number, TCFApiCallback<TCData>>();
+	const eventListeners = new Map<
+		number,
+		TCFApiCallback<TCData | TCDataOutsideTCF>
+	>();
 	let nextListenerId = 0;
 
 	// Decoded TC data cache
 	let cachedTCData: TCData | null = null;
+	/** Counts changes to the published state, so answers can detect them. */
+	let stateRevision = 0;
 	let currentConsentData: TCFConsentData | null = null;
+	const cmpVersionNumber =
+		typeof cmpVersion === 'number'
+			? cmpVersion
+			: Number.parseInt(String(cmpVersion), 10) || 1;
 	/**
 	 * Builds TC Data for one TC string and the consent data published with it.
 	 */
 	const composeTCData = async function composeTCData(
 		string: string,
 		consentData: TCFConsentData | null,
+		additional: string | undefined,
 		eventStatus?: EventStatus,
 		listenerId?: number
 	): Promise<TCData> {
@@ -212,16 +283,12 @@ export const createCMPApi = function createCMPApi(
 			}
 		}
 
-		const cmpVersionNum =
-			typeof cmpVersion === 'number'
-				? cmpVersion
-				: Number.parseInt(String(cmpVersion), 10) || 1;
 		const tcData: TCData = {
 			cmpId,
 			cmpStatus,
-			cmpVersion: cmpVersionNum,
+			cmpVersion: cmpVersionNumber,
 			eventStatus,
-			gdprApplies,
+			gdprApplies: true,
 			isServiceSpecific: true,
 			listenerId,
 			publisher: {
@@ -251,6 +318,10 @@ export const createCMPApi = function createCMPApi(
 				legitimateInterests: vendorLegitInterests,
 			},
 		};
+		// Google discards an AC string sent without a TC string.
+		if (string && additional) {
+			tcData.addtlConsent = additional;
+		}
 
 		return tcData;
 	};
@@ -261,24 +332,56 @@ export const createCMPApi = function createCMPApi(
 	const buildTCData = async function buildTCData(
 		eventStatus?: EventStatus,
 		listenerId?: number
-	): Promise<TCData> {
+	): Promise<TCData | TCDataOutsideTCF> {
+		// CMP API v2: when TCF does not apply, only these fields exist. The
+		// visitor's policy decides that, not their jurisdiction. Listeners
+		// still get their status and ID, which removeEventListener needs.
+		if (!tcfApplies) {
+			const outside: TCDataOutsideTCF = {
+				cmpId,
+				cmpStatus,
+				cmpVersion: cmpVersionNumber,
+				gdprApplies: false,
+				tcfPolicyVersion: gvl.tcfPolicyVersion,
+			};
+			if (eventStatus) {
+				outside.eventStatus = eventStatus;
+			}
+			if (listenerId !== undefined) {
+				outside.listenerId = listenerId;
+			}
+			return outside;
+		}
 		// Use cached data if available and tc string hasn't changed. Callers
 		// get their own copy, down to the nested maps, so changing a result
 		// never changes the next one.
-		if (cachedTCData && cachedTCData.tcString === tcString && !eventStatus) {
+		if (
+			cachedTCData &&
+			cachedTCData.tcString === tcString &&
+			cachedTCData.addtlConsent === addtlConsent &&
+			!eventStatus
+		) {
 			return { ...structuredClone(cachedTCData), listenerId };
 		}
 		const string = tcString;
 		const consentData = currentConsentData;
+		const additional = addtlConsent;
 		const tcData = await composeTCData(
 			string,
 			consentData,
+			additional,
 			eventStatus,
 			listenerId
 		);
 		// An update can land while the string decodes. Never pair its string
-		// with the earlier vectors: build again from the newer state.
-		if (tcString !== string || currentConsentData !== consentData) {
+		// with the earlier vectors, or publish it once the policy stops using
+		// TCF: build again from the newer state.
+		if (
+			!tcfApplies ||
+			tcString !== string ||
+			currentConsentData !== consentData ||
+			addtlConsent !== additional
+		) {
 			return buildTCData(eventStatus, listenerId);
 		}
 
@@ -288,6 +391,24 @@ export const createCMPApi = function createCMPApi(
 		}
 
 		return tcData;
+	};
+
+	/**
+	 * Sends TC data that is still current when the callback runs. The state
+	 * can change while any build is pending, cached or not, so build again
+	 * until none landed, then call back in the same task as the check.
+	 */
+	const sendCurrentTCData = async function sendCurrentTCData(
+		handler: TCFApiCallback<TCData | TCDataOutsideTCF>,
+		eventStatus: () => EventStatus | undefined,
+		listenerId?: number
+	): Promise<void> {
+		const revision = stateRevision;
+		const tcData = await buildTCData(eventStatus(), listenerId);
+		if (revision !== stateRevision) {
+			return sendCurrentTCData(handler, eventStatus, listenerId);
+		}
+		handler(tcData, true);
 	};
 
 	/**
@@ -304,7 +425,7 @@ export const createCMPApi = function createCMPApi(
 			cmpVersion:
 				typeof cmpVersion === 'string' ? cmpVersion : String(cmpVersion),
 			displayStatus,
-			gdprApplies,
+			gdprApplies: tcfApplies,
 			gvlVersion: gvl.vendorListVersion,
 			tcfPolicyVersion: gvl.tcfPolicyVersion,
 		};
@@ -316,18 +437,17 @@ export const createCMPApi = function createCMPApi(
 	 * Handles the 'getTCData' command.
 	 */
 	const handleGetTCData = async function handleGetTCData(
-		handler: TCFApiCallback<TCData>,
+		handler: TCFApiCallback<TCData | TCDataOutsideTCF>,
 		_vendorIds?: number[]
 	): Promise<void> {
-		const tcData = await buildTCData();
-		handler(tcData, true);
+		await sendCurrentTCData(handler, () => undefined);
 	};
 
 	/**
 	 * Handles the 'getInAppTCData' command (alias for getTCData).
 	 */
 	const handleGetInAppTCData = function handleGetInAppTCData(
-		handler: TCFApiCallback<TCData>
+		handler: TCFApiCallback<TCData | TCDataOutsideTCF>
 	): Promise<void> {
 		return handleGetTCData(handler);
 	};
@@ -344,9 +464,9 @@ export const createCMPApi = function createCMPApi(
 
 	/**
 	 * Whether vendors can act on the published state without the visitor:
-	 * a TC string is available, or GDPR does not apply.
+	 * a TC string is available, or the visitor's policy does not use TCF.
 	 */
-	const hasSignal = (): boolean => tcString !== '' || gdprApplies === false;
+	const hasSignal = (): boolean => tcString !== '' || !tcfApplies;
 
 	/**
 	 * The status a new listener is told. TCF CMP API v2: `tcloaded` means a
@@ -368,15 +488,14 @@ export const createCMPApi = function createCMPApi(
 	 * Handles the 'addEventListener' command.
 	 */
 	const handleAddEventListener = async function handleAddEventListener(
-		handler: TCFApiCallback<TCData>
+		handler: TCFApiCallback<TCData | TCDataOutsideTCF>
 	): Promise<void> {
 		nextListenerId += 1;
 		const listenerId = nextListenerId;
 		eventListeners.set(listenerId, handler);
 
 		// Registration always returns its ID, including while the list is loading.
-		const tcData = await buildTCData(currentStatus(), listenerId);
-		handler(tcData, true);
+		await sendCurrentTCData(handler, currentStatus, listenerId);
 	};
 
 	/**
@@ -398,10 +517,8 @@ export const createCMPApi = function createCMPApi(
 		eventStatus: EventStatus | undefined
 	): Promise<void> {
 		await forEachSequential(eventListeners, {
-			run: async ([listenerId, listener]) => {
-				const tcData = await buildTCData(eventStatus, listenerId);
-				listener(tcData, true);
-			},
+			run: ([listenerId, listener]) =>
+				sendCurrentTCData(listener, () => eventStatus, listenerId),
 		});
 	};
 
@@ -426,12 +543,14 @@ export const createCMPApi = function createCMPApi(
 					break;
 				case 'getTCData':
 					handleGetTCData(
-						handler as TCFApiCallback<TCData>,
+						handler as TCFApiCallback<TCData | TCDataOutsideTCF>,
 						parameter as number[] | undefined
 					);
 					break;
 				case 'getInAppTCData':
-					handleGetInAppTCData(handler as TCFApiCallback<TCData>);
+					handleGetInAppTCData(
+						handler as TCFApiCallback<TCData | TCDataOutsideTCF>
+					);
 					break;
 				case 'getVendorList':
 					handleGetVendorList(
@@ -440,7 +559,9 @@ export const createCMPApi = function createCMPApi(
 					);
 					break;
 				case 'addEventListener':
-					handleAddEventListener(handler as TCFApiCallback<TCData>);
+					handleAddEventListener(
+						handler as TCFApiCallback<TCData | TCDataOutsideTCF>
+					);
 					break;
 				case 'removeEventListener':
 					handleRemoveEventListener(
@@ -485,7 +606,9 @@ export const createCMPApi = function createCMPApi(
 			const cookieValue = getCookie(IAB_STORAGE_KEYS.TC_STRING_COOKIE);
 			if (cookieValue) {
 				tcString = cookieValue;
+				addtlConsent = addtlConsentFor(cookieValue);
 				cachedTCData = null;
+				stateRevision += 1;
 				notifyEventListeners('tcloaded');
 				return cookieValue;
 			}
@@ -498,7 +621,9 @@ export const createCMPApi = function createCMPApi(
 					);
 					if (localValue) {
 						tcString = localValue;
+						addtlConsent = addtlConsentFor(localValue);
 						cachedTCData = null;
+						stateRevision += 1;
 						notifyEventListeners('tcloaded');
 						return localValue;
 					}
@@ -511,13 +636,26 @@ export const createCMPApi = function createCMPApi(
 		},
 
 		saveToStorage: (newTcString: string) => {
+			const additional = addtlConsentFor(newTcString);
 			// Save to cookie (per TCF spec, 13 month expiry)
 			setCookie(IAB_STORAGE_KEYS.TC_STRING_COOKIE, newTcString, 395);
+			// The AC string is stored beside its TC string, or removed so an
+			// older one is never read with the new TC string.
+			if (additional) {
+				setCookie(IAB_STORAGE_KEYS.AC_STRING_COOKIE, additional, 395);
+			} else {
+				setCookie(IAB_STORAGE_KEYS.AC_STRING_COOKIE, '', 0);
+			}
 
 			// Also save to localStorage as backup
 			if (typeof localStorage !== 'undefined') {
 				try {
 					localStorage.setItem(IAB_STORAGE_KEYS.TC_STRING_LOCAL, newTcString);
+					if (additional) {
+						localStorage.setItem(IAB_STORAGE_KEYS.AC_STRING_LOCAL, additional);
+					} else {
+						localStorage.removeItem(IAB_STORAGE_KEYS.AC_STRING_LOCAL);
+					}
 				} catch {
 					// Storage full or disabled
 				}
@@ -536,17 +674,21 @@ export const createCMPApi = function createCMPApi(
 			consentData?: TCFConsentData,
 			applies?: boolean
 		) => {
+			const additional = addtlConsentFor(newTcString);
 			const changed =
 				newTcString !== tcString ||
-				(applies !== undefined && applies !== gdprApplies);
-			gdprApplies = applies ?? gdprApplies;
+				additional !== addtlConsent ||
+				(applies !== undefined && applies !== tcfApplies);
+			tcfApplies = applies ?? tcfApplies;
 			tcString = newTcString;
+			addtlConsent = additional;
 			// Keep a private copy: a caller changing its object in place must
 			// not change, or half change, the vectors published for this string.
 			currentConsentData =
 				newTcString && consentData ? copyConsentData(consentData) : null;
 			// Invalidate cache
 			cachedTCData = null;
+			stateRevision += 1;
 			if (cmpStatus !== 'loaded') {
 				return;
 			}
@@ -570,8 +712,10 @@ export const createCMPApi = function createCMPApi(
 			}
 			cmpStatus = nextGvl ? 'loaded' : 'loading';
 			tcString = '';
+			addtlConsent = undefined;
 			currentConsentData = null;
 			cachedTCData = null;
+			stateRevision += 1;
 			// The owner publishes current confirmed TC data with updateConsent.
 		},
 	};

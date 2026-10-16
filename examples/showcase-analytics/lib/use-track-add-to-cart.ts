@@ -1,12 +1,10 @@
 'use client';
 
-import { createEventDispatcher } from '@c15t/integrations/events';
 import { metaPixelEvent } from '@c15t/integrations/meta-pixel';
-import { useSnapshot, useVendorAllowed } from 'c15t/next';
-import { useCallback, useMemo } from 'react';
+import { useEventDispatcher, useSnapshot, useVendorAllowed } from 'c15t/next';
+import { useCallback } from 'react';
 
 import type { Product } from './products';
-import { scripts } from './scripts';
 
 /** Tracking permissions at the time of an add-to-cart action. */
 export interface TrackedAddToCart {
@@ -26,13 +24,12 @@ export const useTrackAddToCart = () => {
 	// Meta off on its own.
 	const metaAllowed = useVendorAllowed('meta-pixel');
 
-	// The dispatcher drops the event while measurement is denied. Otherwise
-	// it sends it to each script the visitor allows: a `dataLayer` push for
-	// GTM, `gtag('event')` for GA4 and `posthog.capture` for PostHog.
-	const events = useMemo(
-		() => createEventDispatcher({ getSnapshot: () => snapshot, scripts }),
-		[snapshot]
-	);
+	// The dispatcher uses the scripts registered on the provider and reads
+	// consent when an event is sent. It drops the event while measurement is
+	// denied. Otherwise it sends it to each script the visitor allows: a
+	// `dataLayer` push for GTM, `gtag('event')` for GA4 and `posthog.capture`
+	// for PostHog.
+	const events = useEventDispatcher();
 
 	return useCallback(
 		(product: Product): TrackedAddToCart => {

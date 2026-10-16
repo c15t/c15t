@@ -670,6 +670,8 @@ test.each([
 	'restrictions',
 	'sparse restrictions',
 	'sparse vendor IDs',
+	'Additional Consent string',
+	'ad tech provider switches',
 ] as const)('invalid addon %s is an atomic no-op', async (field) => {
 	const original = makeKernel();
 	const addon = createAddon(original);
@@ -710,6 +712,12 @@ test.each([
 			{ purposeId: 2, restrictionType: 0, vendorIds },
 		]);
 	}
+	if (field === 'Additional Consent string') {
+		invalid.addtlConsent = '2~89~nope';
+	}
+	if (field === 'ad tech provider switches') {
+		Reflect.set(invalid, 'adTechProviderConsents', { '89': 'yes' });
+	}
 	const send = vi.fn();
 	const kernel = makeKernel({ save: send });
 	const before = kernel.getSnapshot();
@@ -724,6 +732,98 @@ test.each([
 	expect(kernel.getSnapshot()).toBe(before);
 	expect(emit).not.toHaveBeenCalled();
 	expect(send).not.toHaveBeenCalled();
+});
+
+describe('Additional Consent on a saved authority', () => {
+	const providers = [
+		{ id: 89, name: 'Meta', policyUrl: 'https://meta.example/p' },
+		{ id: 2572, name: 'Seedtag', policyUrl: 'https://seedtag.example/p' },
+	];
+	const shown = { '2572': false, '89': true };
+
+	/**
+	 * Saves `all` with a valid authority carrying the given AC fields, and
+	 * purpose consents patched by `purposes`. The save commits locally
+	 * before it yields, so the snapshot shows the outcome as soon as this
+	 * returns.
+	 */
+	const saveWith = async function saveWith(
+		adTechProviderConsents: Record<string, boolean>,
+		addtlConsent: string,
+		purposes: Record<number, boolean> = {}
+	) {
+		const original = makeKernel();
+		const addon = createAddon(original);
+		addon.acceptAll();
+		await addon.save();
+		const authority = original.getSnapshot().iab?.authority;
+		if (!authority) {
+			throw new Error('Missing valid fixture authority');
+		}
+		const send = vi.fn().mockResolvedValue({ ok: true });
+		const kernel = makeKernel({ save: send });
+		kernel.set.iab({ adTechProviders: providers });
+		const before = kernel.getSnapshot();
+		const pending = kernel.commands.save('all', {
+			actionAt: NOW,
+			iabAuthority: {
+				...authority,
+				adTechProviderConsents,
+				addtlConsent,
+				purposeConsents: { ...authority.purposeConsents, ...purposes },
+			},
+		});
+		return { before, kernel, pending, send };
+	};
+
+	test('accepts a string that discloses each listed provider once', async () => {
+		const { kernel, pending, send } = await saveWith(shown, '2~89~dv.2572');
+		expect(kernel.getSnapshot().iab?.authority?.addtlConsent).toBe(
+			'2~89~dv.2572'
+		);
+		await vi.waitFor(() => expect(send).toHaveBeenCalledOnce());
+		await expect(pending).resolves.toMatchObject({ ok: true });
+	});
+
+	test('accepts disclosure without consent when purpose 1 is refused', async () => {
+		const { kernel, pending, send } = await saveWith(shown, '2~~dv.2572.89', {
+			1: false,
+		});
+		expect(kernel.getSnapshot().iab?.authority?.addtlConsent).toBe(
+			'2~~dv.2572.89'
+		);
+		await vi.waitFor(() => expect(send).toHaveBeenCalledOnce());
+		await expect(pending).resolves.toMatchObject({ ok: true });
+	});
+
+	test.each([
+		['a zero provider ID', shown, '2~0~dv.2572', {}],
+		[
+			'a provider the list does not show',
+			{ ...shown, '999': false },
+			'2~89~dv.2572.999',
+			{},
+		],
+		['a provider twice', shown, '2~89~dv.89.2572', {}],
+		[
+			'consent to a provider switched off',
+			{ '2572': false, '89': false },
+			'2~89~dv.2572',
+			{},
+		],
+		['a shown provider left out', shown, '2~89~dv.', {}],
+		['a provider switched on but not consented', shown, '2~~dv.2572.89', {}],
+		['consent while purpose 1 is refused', shown, '2~89~dv.2572', { 1: false }],
+	])('rejects %s', async (_case, switches, addtlConsent, purposes) => {
+		const { before, kernel, pending, send } = await saveWith(
+			switches,
+			addtlConsent,
+			purposes
+		);
+		await expect(pending).resolves.toMatchObject({ ok: false });
+		expect(send).not.toHaveBeenCalled();
+		expect(kernel.getSnapshot()).toBe(before);
+	});
 });
 
 test("reconciling another runtime's IAB save publishes that runtime's authority", async () => {

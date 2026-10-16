@@ -152,6 +152,23 @@ describe('mergeInitResponseIntoKernelConfig', () => {
 		expect(disabled.initialIab?.enabled).toBe(false);
 	});
 
+	test('Additional Consent providers survive the server round trip', () => {
+		const adTechProviders = [
+			{ id: 89, name: 'Meta', policyUrl: 'https://meta.example/privacy' },
+		];
+		const response = mapInitOutputToInitResponse(
+			{ ...BASE_PAYLOAD, adTechProviders, policyResolution: POLICY },
+			{}
+		);
+		expect(response.adTechProviders).toEqual(adTechProviders);
+
+		const config = mergeInitResponseIntoKernelConfig({}, response);
+		expect(config.initialIab?.adTechProviders).toEqual(adTechProviders);
+		expect(kernelConfigToInitResponse(config)?.adTechProviders).toEqual(
+			adTechProviders
+		);
+	});
+
 	test('initOutputToKernelConfig wraps the full pipeline', () => {
 		const config = initOutputToKernelConfig(
 			{

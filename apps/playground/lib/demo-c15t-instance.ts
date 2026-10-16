@@ -3,8 +3,9 @@ import { c15tInstance } from '@c15t/backend';
 import { createUpstashRedisAdapter } from '@c15t/backend/cache';
 
 import { DEMO_LEGAL_DOCUMENT_SNAPSHOT } from './demo-legal-document-snapshot';
+import { fetchDemoProviders } from './demo-provider-fetch';
 import {
-	DEFAULT_SCENARIO_ID,
+	DEMO_ADDITIONAL_CONSENT,
 	DEMO_CMP_ID,
 	DEMO_CUSTOM_VENDORS,
 	DEMO_IAB_VENDOR_IDS,
@@ -37,7 +38,7 @@ export const DEMO_TERMS_RELEASE = {
 };
 
 export const createDemoInstance = function createDemoInstance(
-	scenario = DEFAULT_SCENARIO_ID
+	scenario: string
 ) {
 	const gvlCache =
 		process.env.REDIS_URL && process.env.REDIS_TOKEN
@@ -64,6 +65,13 @@ export const createDemoInstance = function createDemoInstance(
 				messages: demoI18nMessages,
 			},
 			iab: {
+				// Resolved server-side and served on /init, like the vendor list.
+				// The playground serves Google's list itself until
+				// gvl.inth.app does; see `fetchDemoProviders`.
+				additionalConsent: {
+					endpoint: DEMO_ADDITIONAL_CONSENT.url,
+					providers: DEMO_ADDITIONAL_CONSENT.providers,
+				},
 				cmpId: DEMO_CMP_ID,
 				customVendors: DEMO_CUSTOM_VENDORS,
 				enabled: true,
@@ -82,6 +90,7 @@ export const createDemoInstance = function createDemoInstance(
 		// The cache attaches to GVL resolution, which is the only thing in the
 		// backend worth caching across instances.
 		gvl: { cache: gvlCache, vendorIds: DEMO_IAB_VENDOR_IDS },
+		additionalConsent: { fetch: fetchDemoProviders },
 	});
 };
 

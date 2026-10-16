@@ -124,6 +124,9 @@ export const translations: CompleteTranslations = {
 			},
 			title: 'Privacy Settings',
 			vendorList: {
+				adTechProvidersHeading: 'Google Ad Tech Providers',
+				adTechProvidersNotice:
+					'Google works with these ad tech providers outside the IAB framework. Your consent reaches a provider only if you switch it on and also allow device storage and personalised advertising.',
 				customVendorsHeading: 'Custom Partners',
 				customVendorsNotice:
 					'These are custom partners not registered with IAB Transparency & Consent Framework (TCF). They process data based on your consent and may have different privacy practices than IAB-registered vendors.',

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { GlobalVendorList } from '@c15t/core';
+	import type { AdTechProvider, GlobalVendorList } from '@c15t/core';
 	import { resolveIABVendorUrls } from '@c15t/iab/headless';
 	import styles from '@c15t/ui/styles/components/iab-consent-dialog';
 	import switchStyles from '@c15t/ui/styles/components/switch';
@@ -23,6 +23,7 @@
 	import LegitimateInterestIcon from './icons/legitimate-interest-icon.svelte';
 	import LockIcon from './icons/lock-icon.svelte';
 	import SearchIcon from './icons/search-icon.svelte';
+	import ShareIcon from './icons/share-icon.svelte';
 
 	const sw = switchVariants();
 
@@ -36,6 +37,9 @@
 		customVendors = [],
 		vendorLegitimateInterests = {},
 		onVendorLegitimateInterestToggle,
+		adTechProviders = [],
+		adTechProviderConsents = {},
+		onAdTechProviderToggle,
 		noStyle = false,
 		iabT,
 		language,
@@ -52,6 +56,11 @@
 			vendorId: VendorId,
 			value: boolean
 		) => void;
+		/** Google ad tech providers disclosed for Additional Consent. */
+		adTechProviders?: AdTechProvider[];
+		/** Consent switches for those providers, keyed by provider ID. */
+		adTechProviderConsents?: Record<string, boolean>;
+		onAdTechProviderToggle?: (providerId: number, value: boolean) => void;
 		noStyle?: boolean;
 		iabT: IABTranslations;
 		/** The UI language, which picks each vendor's privacy links. */
@@ -149,6 +158,19 @@
 	);
 	const filteredCustomVendors = $derived(
 		filteredVendors.filter((v) => v.isCustom)
+	);
+	// A vendor selected from the Purposes tab is never an ad tech provider:
+	// providers process no TCF purposes.
+	const filteredAdTechProviders = $derived(
+		selectedVendorId === null
+			? adTechProviders.filter((provider) =>
+					provider.name.toLowerCase().includes(searchTerm.toLowerCase())
+				)
+			: []
+	);
+	const totalCount = $derived(vendors.length + adTechProviders.length);
+	const filteredCount = $derived(
+		filteredVendors.length + filteredAdTechProviders.length
 	);
 
 	const handleVendorOpenChange = function handleVendorOpenChange(
@@ -315,8 +337,8 @@
 			</div>
 			<p class={noStyle ? '' : styles.vendorCount || ''}>
 				{iabT.preferenceCenter.vendorList.showingCount
-					.replace('{filtered}', String(filteredVendors.length))
-					.replace('{total}', String(vendors.length))}
+					.replace('{filtered}', String(filteredCount))
+					.replace('{total}', String(totalCount))}
 			</p>
 		</div>
 	{/if}
@@ -891,7 +913,75 @@
 		</div>
 	{/if}
 
-	{#if filteredVendors.length === 0}
+	<!-- Google Additional Consent providers -->
+	{#if filteredAdTechProviders.length > 0}
+		<div class={noStyle ? '' : styles.vendorSection || ''}>
+			<div class={noStyle ? '' : styles.customVendorSectionHeader || ''}>
+				<h3 class={noStyle ? '' : styles.vendorSectionHeading || ''}>
+					<ShareIcon
+						class={noStyle ? '' : styles.vendorSectionIcon || ''}
+						aria-hidden={true}
+					/>
+					{iabT.preferenceCenter.vendorList.adTechProvidersHeading}
+					({filteredAdTechProviders.length})
+				</h3>
+				<p class={noStyle ? '' : styles.customVendorNotice || ''}>
+					{iabT.preferenceCenter.vendorList.adTechProvidersNotice}
+				</p>
+			</div>
+			<div>
+				{#each filteredAdTechProviders as provider (provider.id)}
+					{@const providerKey = String(provider.id)}
+					<div
+						id={`ad-tech-provider-${providerKey}`}
+						class={noStyle ? '' : styles.vendorListItem || ''}
+					>
+						<div class={noStyle ? '' : styles.vendorListItemHeader || ''}>
+							<div class={noStyle ? '' : styles.vendorListInfo || ''}>
+								<h3 class={noStyle ? '' : styles.vendorListName || ''}>
+									{provider.name}
+								</h3>
+								<div class={noStyle ? '' : styles.vendorListMeta || ''}>
+									<a
+										href={provider.policyUrl}
+										target="_blank"
+										rel="noopener noreferrer"
+										class={noStyle ? '' : styles.vendorLink || ''}
+									>
+										<ExternalLinkIcon
+											class={noStyle ? '' : styles.vendorLinkIcon || ''}
+										/>
+										{iabT.preferenceCenter.vendorList.privacyPolicy}
+									</a>
+								</div>
+							</div>
+							<div class={noStyle ? '' : styles.vendorConsentControl || ''}>
+								<Switch.Root
+									aria-label={`Consent for ${provider.name}`}
+									checked={adTechProviderConsents[providerKey] ?? false}
+									onclick={() =>
+										onAdTechProviderToggle?.(
+											provider.id,
+											!(adTechProviderConsents[providerKey] ?? false)
+										)}
+									class={noStyle
+										? ''
+										: `${switchStyles.root} ${styles.vendorConsentSwitch || ''}`}
+									data-size="medium"
+								>
+									<Switch.Control class={noStyle ? '' : sw.track()}>
+										<Switch.Thumb class={noStyle ? '' : sw.thumb()} />
+									</Switch.Control>
+								</Switch.Root>
+							</div>
+						</div>
+					</div>
+				{/each}
+			</div>
+		</div>
+	{/if}
+
+	{#if filteredCount === 0}
 		<div class={noStyle ? '' : styles.emptyState || ''}>
 			<p class={noStyle ? '' : styles.emptyStateText || ''}>
 				{iabT.preferenceCenter.vendorList.noVendorsFound.replace(

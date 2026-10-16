@@ -1,6 +1,7 @@
 import type { ConsentSnapshot } from '@c15t/core';
 import {
 	applyPublisherRestrictionsToGVL,
+	countIABPartners,
 	introducedLegitimateInterest,
 	resolveIABDialogDisplayModel,
 } from '@c15t/iab/headless';
@@ -44,6 +45,10 @@ export const createIABPreferences = (
 	const styles = classes.dialog;
 	const css = (value: string): string => (noStyle ? '' : value);
 	const updates: ((value: ConsentSnapshot) => void)[] = [];
+	// The purposes tab is rebuilt on its own, so its controls keep their
+	// own list. `collect` is the list new controls join.
+	const purposeUpdates: ((value: ConsentSnapshot) => void)[] = [];
+	let collect = updates;
 	const element = h('div', { class: css(styles.body) });
 	const purposes = h('div', {
 		'aria-labelledby': 'c15t-iab-purposes-tab',
@@ -99,8 +104,8 @@ export const createIABPreferences = (
 			button.setAttribute('aria-checked', mixed ? 'mixed' : String(checked));
 			button.setAttribute('data-state', checked ? 'checked' : 'unchecked');
 		};
-		updates.push(update);
-		update(snapshot);
+		collect.push(update);
+		update(client.getSnapshot());
 		return h(
 			'div',
 			{ class: css(styles.purposeHeader) },
@@ -212,7 +217,7 @@ export const createIABPreferences = (
 				{},
 				t.preferenceCenter.purposeItem.partners.replace(
 					'{count}',
-					String(row.vendors.length)
+					String(countIABPartners([row]))
 				)
 			)
 		);
@@ -220,117 +225,147 @@ export const createIABPreferences = (
 		for (const vendor of row.vendors) {
 			partners.append(h('li', {}, vendor.name));
 		}
+		// Google ad tech providers can be the only partners of a purpose.
+		for (const provider of row.adTechProviders ?? []) {
+			partners.append(h('li', {}, provider.name));
+		}
 		body.append(partners);
 		details.append(body);
 		return details;
 	};
-	for (const row of model.consentRows) {
-		if (row.kind === 'stack') {
-			// The stack switch covers the purposes some vendor processes on
-			// consent. The others offer only their own objection control.
-			const consentPurposes = row.purposes.filter(
-				(purpose) => purpose.hasConsentBasis
-			);
-			const stackToggle = consentPurposes.length
-				? [
-						toggle(
-							t.preferenceCenter.purposeItem.withYourPermission,
-							`${row.testId}-consent`,
-							(value) =>
-								consentPurposes.every((purpose) => readConsent(purpose, value)),
-							(value) => {
-								for (const purpose of consentPurposes) {
-									writeConsent(purpose, value);
-								}
-							},
-							row.name,
-							(value) =>
-								consentPurposes.some((purpose) =>
-									readConsent(purpose, value)
-								) &&
-								!consentPurposes.every((purpose) => readConsent(purpose, value))
+	/**
+	 * Which purposes offer a consent switch. Google ad tech providers add
+	 * one for the purposes they need, so this changes when they land.
+	 */
+	const consentSwitches = (current: ConsentSnapshot): string =>
+		JSON.stringify(
+			resolveIABDialogDisplayModel(current.iab).consentRows.map((row) =>
+				row.kind === 'stack'
+					? row.purposes.map((purpose) => [purpose.id, purpose.hasConsentBasis])
+					: [row.id, row.hasConsentBasis]
+			)
+		);
+	let renderedSwitches = consentSwitches(snapshot);
+	const renderPurposes = (current: ConsentSnapshot): void => {
+		const display = resolveIABDialogDisplayModel(current.iab);
+		renderedSwitches = consentSwitches(current);
+		purposes.replaceChildren();
+		purposeUpdates.splice(0);
+		collect = purposeUpdates;
+		for (const row of display.consentRows) {
+			if (row.kind === 'stack') {
+				// The stack switch covers the purposes some vendor processes on
+				// consent. The others offer only their own objection control.
+				const consentPurposes = row.purposes.filter(
+					(purpose) => purpose.hasConsentBasis
+				);
+				const stackToggle = consentPurposes.length
+					? [
+							toggle(
+								t.preferenceCenter.purposeItem.withYourPermission,
+								`${row.testId}-consent`,
+								(value) =>
+									consentPurposes.every((purpose) =>
+										readConsent(purpose, value)
+									),
+								(value) => {
+									for (const purpose of consentPurposes) {
+										writeConsent(purpose, value);
+									}
+								},
+								row.name,
+								(value) =>
+									consentPurposes.some((purpose) =>
+										readConsent(purpose, value)
+									) &&
+									!consentPurposes.every((purpose) =>
+										readConsent(purpose, value)
+									)
+							),
+						]
+					: [];
+				purposes.append(
+					h(
+						'details',
+						{
+							class: css(styles.stackItem),
+							'data-c15t-iab-disclosure': '',
+							'data-testid': row.testId,
+						},
+						h(
+							'summary',
+							{ class: css(styles.stackHeader) },
+							h(
+								'span',
+								{ 'aria-hidden': 'true', 'data-c15t-iab-chevron': '' },
+								'›'
+							),
+							h('span', { class: css(styles.stackName) }, row.name)
 						),
-					]
-				: [];
+						h('p', {}, row.description),
+						...stackToggle,
+						...row.purposes.map(renderPurpose)
+					)
+				);
+			} else {
+				purposes.append(renderPurpose(row));
+			}
+		}
+		if (display.essentialRows.length) {
 			purposes.append(
 				h(
-					'details',
-					{
-						class: css(styles.stackItem),
-						'data-c15t-iab-disclosure': '',
-						'data-testid': row.testId,
-					},
-					h(
-						'summary',
-						{ class: css(styles.stackHeader) },
-						h(
-							'span',
-							{ 'aria-hidden': 'true', 'data-c15t-iab-chevron': '' },
-							'›'
-						),
-						h('span', { class: css(styles.stackName) }, row.name)
-					),
-					h('p', {}, row.description),
-					...stackToggle,
-					...row.purposes.map(renderPurpose)
+					'section',
+					{},
+					h('h3', {}, t.preferenceCenter.specialPurposes.title),
+					...display.essentialRows.map(renderPurpose)
 				)
 			);
-		} else {
-			purposes.append(renderPurpose(row));
 		}
-	}
-	if (model.essentialRows.length) {
-		purposes.append(
-			h(
-				'section',
-				{},
-				h('h3', {}, t.preferenceCenter.specialPurposes.title),
-				...model.essentialRows.map(renderPurpose)
-			)
-		);
-	}
-	// Features are informational: TCF Policies v5.0.b forbid showing them
-	// next to a control that cannot be disabled, so they get their own
-	// section under the IAB standard text, and their rows carry no toggle.
-	if (model.featureRows.length) {
-		const featuresTitle =
-			t.preferenceCenter.features?.title ??
-			t.preferenceCenter.vendorList.features;
-		purposes.append(
-			h(
-				'section',
-				{
-					'aria-label': featuresTitle,
-					class: css(styles.featuresSection),
-					'data-testid': 'iab-consent-dialog-features',
-				},
+		// Features are informational: TCF Policies v5.0.b forbid showing them
+		// next to a control that cannot be disabled, so they get their own
+		// section under the IAB standard text, and their rows carry no toggle.
+		if (display.featureRows.length) {
+			const featuresTitle =
+				t.preferenceCenter.features?.title ??
+				t.preferenceCenter.vendorList.features;
+			purposes.append(
 				h(
-					'div',
-					{ class: css(styles.featuresHeader) },
-					h('h3', { class: css(styles.featuresTitle) }, featuresTitle),
+					'section',
+					{
+						'aria-label': featuresTitle,
+						class: css(styles.featuresSection),
+						'data-testid': 'iab-consent-dialog-features',
+					},
 					h(
-						'p',
-						{ class: css(styles.featuresDescription) },
-						model.featuresStandardText ??
-							t.preferenceCenter.features?.description ??
-							''
+						'div',
+						{ class: css(styles.featuresHeader) },
+						h('h3', { class: css(styles.featuresTitle) }, featuresTitle),
+						h(
+							'p',
+							{ class: css(styles.featuresDescription) },
+							display.featuresStandardText ??
+								t.preferenceCenter.features?.description ??
+								''
+						)
+					),
+					h(
+						'div',
+						{ class: css(styles.featuresList) },
+						...display.featureRows.map(renderPurpose)
 					)
-				),
-				h(
-					'div',
-					{ class: css(styles.featuresList) },
-					...model.featureRows.map(renderPurpose)
 				)
+			);
+		}
+		purposes.append(
+			h(
+				'p',
+				{ class: css(styles.consentNotice) },
+				t.preferenceCenter.footer.consentStorage
 			)
 		);
-	}
-	purposes.append(
-		h(
-			'p',
-			{ class: css(styles.consentNotice) },
-			t.preferenceCenter.footer.consentStorage
-		)
-	);
+		collect = updates;
+	};
+	renderPurposes(snapshot);
 
 	// Declarations after publisher restrictions, so each vendor gets the
 	// consent or objection control for the basis it actually uses.
@@ -347,6 +382,87 @@ export const createIABPreferences = (
 		...(snapshot.iab?.customVendors ?? []),
 	];
 	const list = h('div', { class: css(styles.vendorListContent) });
+	// Google Additional Consent providers: few, outside the TCF, and listed
+	// with the privacy policy the spec requires before they count as shown.
+	const providerList = h('div', { class: css(styles.vendorSection) });
+	// The list rendered last, so a sync can tell when another one lands.
+	let renderedProviders = snapshot.iab?.adTechProviders;
+	// Returns how many providers match, all of which it shows: the list is
+	// short enough that it never pages. It reads the current state, not the
+	// snapshot this panel was built from: a provider list from the backend
+	// can land after the dialog rendered without changing the vendor list,
+	// and then the surface syncs rather than rebuilds.
+	const renderAdTechProviders = (query: string): number => {
+		providerList.replaceChildren();
+		renderedProviders = client.getSnapshot().iab?.adTechProviders;
+		const shown = (renderedProviders ?? []).filter((provider) =>
+			provider.name.toLocaleLowerCase().includes(query)
+		);
+		providerList.hidden = shown.length === 0;
+		if (shown.length === 0) {
+			return 0;
+		}
+		const { vendorList } = t.preferenceCenter;
+		providerList.append(
+			h(
+				'div',
+				{ class: css(styles.customVendorSectionHeader) },
+				h(
+					'h3',
+					{ class: css(styles.vendorSectionHeading) },
+					`${vendorList.adTechProvidersHeading} (${shown.length})`
+				),
+				h(
+					'p',
+					{ class: css(styles.customVendorNotice) },
+					vendorList.adTechProvidersNotice ?? ''
+				)
+			)
+		);
+		for (const provider of shown) {
+			const id = String(provider.id);
+			providerList.append(
+				h(
+					'div',
+					{
+						class: css(styles.vendorListItem),
+						'data-testid': `iab-ad-tech-provider-${id}`,
+					},
+					h(
+						'div',
+						{ class: css(styles.vendorListItemHeader) },
+						h(
+							'div',
+							{ class: css(styles.vendorListInfo) },
+							h('h4', { class: css(styles.vendorListName) }, provider.name),
+							h(
+								'a',
+								{
+									class: css(styles.vendorLink),
+									href: provider.policyUrl,
+									rel: 'noopener noreferrer',
+									target: '_blank',
+								},
+								vendorList.privacyPolicy
+							)
+						),
+						toggle(
+							t.preferenceCenter.purposeItem.withYourPermission,
+							`iab-ad-tech-provider-${id}-consent`,
+							(value) => value.iab?.adTechProviderConsents?.[id] === true,
+							(value) =>
+								client.runtime.iab?.setAdTechProviderConsent?.(
+									provider.id,
+									value
+								),
+							provider.name
+						)
+					)
+				)
+			);
+		}
+		return shown.length;
+	};
 	const search = h('input', {
 		'aria-label': t.preferenceCenter.vendorList.search,
 		class: css(styles.searchInput),
@@ -372,9 +488,13 @@ export const createIABPreferences = (
 		const filtered = vendorRows.filter((vendor) =>
 			vendor.name.toLocaleLowerCase().includes(query)
 		);
+		const providers = renderAdTechProviders(query);
 		count.textContent = t.preferenceCenter.vendorList.showingCount
-			.replace('{filtered}', String(Math.min(limit, filtered.length)))
-			.replace('{total}', String(filtered.length));
+			.replace(
+				'{filtered}',
+				String(Math.min(limit, filtered.length) + providers)
+			)
+			.replace('{total}', String(filtered.length + providers));
 		more.hidden = filtered.length <= limit;
 		for (const vendor of filtered.slice(0, limit)) {
 			const id = String(vendor.id);
@@ -451,7 +571,8 @@ export const createIABPreferences = (
 		h('div', { class: css(styles.searchContainer) }, search),
 		count,
 		list,
-		more
+		more,
+		providerList
 	);
 	let vendorsRendered = false;
 	const tabs = h('div', {
@@ -522,7 +643,22 @@ export const createIABPreferences = (
 	return {
 		element,
 		sync: (value) => {
-			for (const update of updates) {
+			const providers = value.iab?.adTechProviders;
+			if (providers !== renderedProviders) {
+				renderedProviders = providers;
+				const display = resolveIABDialogDisplayModel(value.iab);
+				purposeTab.textContent = `${t.preferenceCenter.tabs.purposes} (${display.purposeTabCount})`;
+				vendorTab.textContent = `${t.preferenceCenter.tabs.vendors} (${display.vendorTabCount})`;
+				// Providers can add the consent switch a purpose they need
+				// lacked, and without it Save could not grant them.
+				if (consentSwitches(value) !== renderedSwitches) {
+					renderPurposes(value);
+				}
+				if (vendorsRendered) {
+					renderVendors();
+				}
+			}
+			for (const update of [...purposeUpdates, ...updates]) {
 				update(value);
 			}
 		},

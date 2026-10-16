@@ -526,8 +526,34 @@ export const vendorRenders = function vendorRenders(
 };
 
 /**
- * The vendors a preference center lists under one category: presentable,
- * naming that category in their condition, and without a negation. A
+ * The declared vendors a preference surface can show as rows. Vendor
+ * switches are opt-in: a site turns them on by declaring a vendor in
+ * `vendors` or on the backend. Until then a vendor known only from a
+ * script's `vendor` slug, such as an integration helper's, gates loading
+ * but gets no row, so the stock dialog shows categories only. Once any
+ * vendor is declared, helpers are listed by name alongside it.
+ * A helper with a saved denial stays visible so the visitor can change it.
+ *
+ * @param declared - The kernel's declared vendors.
+ * @param denied - Vendor denials honored by the kernel's gates.
+ * @returns The vendors that render, in declared order.
+ * @internal
+ */
+export const listedVendors = function listedVendors(
+	declared: readonly ResolvedVendor[],
+	denied?: ReadonlySet<string> | null
+): ResolvedVendor[] {
+	const optedIn = declared.some((vendor) => vendor.source !== 'script');
+	return declared.filter(
+		(vendor) =>
+			(optedIn || vendor.source !== 'script' || denied?.has(vendor.id)) &&
+			vendorRenders(vendor)
+	);
+};
+
+/**
+ * The vendors a preference center lists under one category: listed (see
+ * {@link listedVendors}) and naming that category in their condition. A
  * vendor under `{ not: 'marketing' }` gates on marketing but cannot sit in
  * the marketing row, since turning the category on would switch it off.
  * Every framework's preference center uses this one filter so their rows
@@ -535,17 +561,17 @@ export const vendorRenders = function vendorRenders(
  *
  * @param declared - The kernel's declared vendors.
  * @param category - The category row being rendered.
+ * @param denied - Vendor denials honored by the kernel's gates.
  * @returns The vendors to list, in declared order.
  * @public
  */
 export const vendorsListedUnder = function vendorsListedUnder(
 	declared: readonly ResolvedVendor[],
-	category: AllConsentNames
+	category: AllConsentNames,
+	denied?: ReadonlySet<string> | null
 ): ResolvedVendor[] {
-	return declared.filter(
-		(vendor) =>
-			vendorRenders(vendor) &&
-			extractConsentNamesFromCondition(vendor.category).includes(category)
+	return listedVendors(declared, denied).filter((vendor) =>
+		extractConsentNamesFromCondition(vendor.category).includes(category)
 	);
 };
 

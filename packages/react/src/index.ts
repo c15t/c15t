@@ -92,6 +92,11 @@ export type {
 	VendorDraftHandle,
 } from './draft';
 export type {
+	EventDispatcher,
+	EventProperties,
+	UseEventDispatcherOptions,
+} from './event-dispatcher';
+export type {
 	UseIframeBlockerOptions,
 	UseNetworkBlockerOptions,
 	UsePersistenceOptions,
@@ -134,6 +139,7 @@ export * from './index-parts/consent-dialog-trigger';
 export * from './index-parts/consent-gate';
 export * from './index-parts/frame';
 export * from './index-parts/draft';
+export * from './index-parts/event-dispatcher';
 export * from './index-parts/translations';
 export * from './index-parts/module-hooks';
 export * from './index-parts/provider';

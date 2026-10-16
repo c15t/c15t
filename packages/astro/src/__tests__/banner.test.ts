@@ -1,7 +1,11 @@
 import bannerStyles from '@c15t/ui/styles/components/consent-banner';
+import legalLinkStyles from '@c15t/ui/styles/components/legal-links';
 import { experimental_AstroContainer as AstroContainer } from 'astro/container';
+import { JSDOM } from 'jsdom';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 
+import { promptClassNames } from '../banner/class-names';
+import { resolvePromptModel } from '../banner/prompt-model';
 import ConsentDialogLink from '../components/panel-link.astro';
 import ConsentDialog from '../components/panel.astro';
 import ConsentBanner from '../components/prompt.astro';
@@ -406,7 +410,7 @@ describe('<ConsentBanner />', () => {
 		const english = await render(await buildLocals(options), {
 			legalLinks: ['privacyPolicy', 'cookiePolicy'],
 		});
-		expect(english).toContain('>Privacy Policy</a>');
+		expect(english).toContain('>Privacy Policy,</a>');
 		expect(english).toContain('>Our cookies</a>');
 		expect(english).not.toContain('>privacyPolicy</a>');
 
@@ -415,6 +419,60 @@ describe('<ConsentBanner />', () => {
 			{ legalLinks: ['privacyPolicy'] }
 		);
 		expect(german).toContain('>Datenschutzerklärung</a>');
+	});
+
+	it('separates legal links from the description and each other', async () => {
+		const options: C15tAstroOptions = {
+			legalLinks: {
+				cookiePolicy: { href: '/cookies', label: 'Cookies' },
+				privacyPolicy: { href: '/privacy', label: 'Privacy' },
+			},
+			mode: offlineMode({ policyRules: [testRule] }),
+		};
+		const description = (html: string) => {
+			const found = new JSDOM(html).window.document.querySelector(
+				'[data-testid="consent-banner-description"]'
+			);
+			if (!found) {
+				throw new Error('Missing consent-banner-description');
+			}
+			return found;
+		};
+
+		const styled = description(
+			await render(await buildLocals(options), {
+				description: 'Copy.',
+				legalLinks: ['privacyPolicy', 'cookiePolicy'],
+			})
+		);
+		expect(styled.textContent).toBe('Copy. Privacy, Cookies');
+		for (const link of styled.querySelectorAll('a')) {
+			expect(link.className).toBe(legalLinkStyles.legalLink);
+		}
+
+		const unstyled = description(
+			await render(await buildLocals(options), {
+				legalLinks: ['privacyPolicy'],
+				noStyle: true,
+			})
+		);
+		expect(unstyled.querySelector('a')?.hasAttribute('class')).toBe(false);
+	});
+
+	it('resolves a class map built before it carried legal links', async () => {
+		const { legalLinks: _omitted, ...olderClassNames } = promptClassNames;
+		const locals = await buildLocals({
+			legalLinks: { privacyPolicy: { href: '/privacy' } },
+			mode: offlineMode({ policyRules: [testRule] }),
+		});
+		const model = resolvePromptModel({
+			classNames: olderClassNames,
+			legalLinks: locals.options.legalLinks,
+			props: { legalLinks: ['privacyPolicy'] },
+			snapshot: locals.snapshot,
+		});
+		expect(model.classes.legalLink).toBe('');
+		expect(model.legalLinks.map((link) => link.key)).toEqual(['privacyPolicy']);
 	});
 
 	it('drops the branding tag with `hideBranding`', async () => {

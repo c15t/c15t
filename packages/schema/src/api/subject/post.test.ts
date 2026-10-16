@@ -41,3 +41,31 @@ describe('postSubjectInputSchema givenAt', () => {
 		expect(parseGivenAt(1e18).success).toBe(false);
 	});
 });
+
+describe('postSubjectInputSchema addtlConsent', () => {
+	const parseAddtlConsent = (addtlConsent: string) =>
+		v.safeParse(postSubjectInputSchema, {
+			...baseInput,
+			addtlConsent,
+			givenAt: 1_735_689_600_000,
+			tcString: 'CQ',
+		});
+
+	it.each([
+		['consented and disclosed providers', '2~89.486~dv.2572'],
+		['no consented provider', '2~~dv.2572'],
+		['nothing disclosed beyond the consented', '2~89~dv.'],
+		['a bare dv', '2~~dv'],
+	])('accepts %s', (_label, addtlConsent) => {
+		expect(parseAddtlConsent(addtlConsent).success).toBe(true);
+	});
+
+	it.each([
+		['a version 1 string', '1~89.486'],
+		['a missing dv part', '2~89.486'],
+		['a non-numeric provider', '2~89.abc~dv.'],
+		['an empty string', ''],
+	])('rejects %s', (_label, addtlConsent) => {
+		expect(parseAddtlConsent(addtlConsent).success).toBe(false);
+	});
+});

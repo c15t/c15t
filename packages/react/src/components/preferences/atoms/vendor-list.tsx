@@ -1,5 +1,5 @@
 import type { AllConsentNames, ResolvedVendor } from '@c15t/core';
-import { vendorsListedUnder } from '@c15t/core';
+import { deniedVendorIds, vendorsListedUnder } from '@c15t/core';
 import vendorListStyles from '@c15t/ui/styles/components/vendor-list';
 import { useId, useMemo, useState } from 'react';
 
@@ -9,7 +9,7 @@ import type { BoxProps } from '~/components/shared/primitives/box';
 import * as PreferenceItem from '~/components/shared/ui/preference-item';
 import * as RadixSwitch from '~/components/shared/ui/switch';
 import { useConsentDraftSlice, useConsentDraftStore } from '~/draft';
-import { useDeclaredVendors } from '~/hooks';
+import { useDeclaredVendors, useVendorChoice } from '~/hooks';
 import { useTheme } from '~/hooks/use-theme';
 
 export interface ConsentWidgetVendorListProps extends Omit<
@@ -204,10 +204,19 @@ export const ConsentWidgetVendorList = ({
 	...props
 }: ConsentWidgetVendorListProps) => {
 	const declaredVendors = useDeclaredVendors();
+	const vendorChoice = useVendorChoice();
 	// Presentable vendors whose category condition names this category.
 	const vendors = useMemo(
-		() => vendorsListedUnder(declaredVendors, category),
-		[declaredVendors, category]
+		() =>
+			vendorsListedUnder(
+				declaredVendors,
+				category,
+				deniedVendorIds({
+					vendorChoice,
+					vendors: { declared: declaredVendors, listVersion: null },
+				})
+			),
+		[declaredVendors, category, vendorChoice]
 	);
 	const draft = useConsentDraftStore();
 	const categoryOn = useConsentDraftSlice(

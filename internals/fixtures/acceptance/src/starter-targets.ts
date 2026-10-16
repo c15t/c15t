@@ -1,5 +1,6 @@
 /**
- * Starters in `examples/` and how to run each one in production. Starters
+ * Starters in `examples/` and `internals/svelte-compat/`, and how to run
+ * each one in production. Starters
  * hold no test code, so everything that points them at the test backend
  * lives here.
  */
@@ -134,6 +135,16 @@ export const starterTargets: StarterTarget[] = [
 			String(port),
 			'--strictPort',
 		],
+	},
+	{
+		// The oldest Svelte and SvelteKit `@c15t/svelte` supports, with the
+		// SvelteKit starter's environment. The Node adapter reads PORT and
+		// HOST.
+		directory: 'internals/svelte-compat/svelte-5-20',
+		id: 'svelte-5-20',
+		routes: ['/'],
+		serverRendered: true,
+		start: () => ['run', 'start'],
 	},
 	// VITE_C15T_BACKEND_URL from the shared environment is where the
 	// React, Vue and Svelte starters send `/init` and saves, and where the

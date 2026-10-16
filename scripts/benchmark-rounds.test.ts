@@ -15,6 +15,7 @@ import {
 	writeJson,
 } from '../benchmarks/shared/src/utils';
 import {
+	benchmarkRoundsForMode,
 	iterationsPerRound,
 	poolRoundDirectories,
 	poolRoundResults,
@@ -53,6 +54,31 @@ describe('roundOrder', () => {
 			['base', 'head'],
 		]);
 	});
+
+	it.each(['quick', 'full'])(
+		'does not attribute linear runner drift to head in %s mode',
+		(mode) => {
+			const samples = { base: [] as number[], head: [] as number[] };
+			for (let round = 0; round < benchmarkRoundsForMode(mode); round += 1) {
+				for (const arm of roundOrder(round)) {
+					// The runner slows by 10 ms each pass, with no product regression.
+					samples[arm].push(
+						100 + (samples.base.length + samples.head.length) * 10
+					);
+				}
+			}
+			expect(summarizeMetric('duration', 'ms', samples.head).median).toBe(
+				summarizeMetric('duration', 'ms', samples.base).median
+			);
+		}
+	);
+
+	it.each(['bundle', 'examples'])(
+		'measures deterministic %s sizes once',
+		(mode) => {
+			expect(benchmarkRoundsForMode(mode)).toBe(1);
+		}
+	);
 });
 
 describe('iterationsPerRound', () => {

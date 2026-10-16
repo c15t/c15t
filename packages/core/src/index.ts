@@ -127,6 +127,7 @@ export {
 	c15tVersionHeaders,
 } from './transports/version-header';
 export type {
+	AdTechProvider,
 	ConfirmedCoverage,
 	ConsentKernel,
 	ConsentSnapshot,
@@ -219,6 +220,7 @@ export {
 
 // -- Provider option types -----------------------------------------------------
 export type {
+	AdditionalConsentConfig,
 	Callback,
 	Callbacks,
 	CMPApi,
@@ -242,6 +244,7 @@ export type {
 	SSRInitRequestMetadata,
 	SSRSkippedReason,
 	TCData,
+	TCDataOutsideTCF,
 	TCFConsentData,
 	User,
 } from './options';

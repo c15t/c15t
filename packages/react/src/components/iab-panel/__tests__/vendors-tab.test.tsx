@@ -515,3 +515,86 @@ describe('IAB stack switch without an objection handler', () => {
 		expect(onToggle).toHaveBeenCalledWith(7, true);
 	});
 });
+
+describe('IAB vendors tab with Google ad tech providers', () => {
+	beforeEach(() => {
+		window.localStorage.clear();
+		vi.clearAllMocks();
+		delete (window as { __tcfapi?: unknown }).__tcfapi;
+	});
+
+	test('lists each provider with its privacy policy and a consent switch', async () => {
+		const gvlFetch = globalThis.fetch;
+		globalThis.fetch = vi.fn((input: RequestInfo | URL) =>
+			String(input).startsWith('https://lists.example/ac')
+				? Promise.resolve(
+						Response.json({
+							providers: {
+								'89': {
+									id: 89,
+									name: 'Example Ad Tech',
+									policyUrl: 'https://ads.example/privacy',
+								},
+							},
+						})
+					)
+				: gvlFetch(input)
+		) as typeof fetch;
+		try {
+			render(
+				<ConsentProvider
+					options={{
+						...defaultIABOptions,
+						iab: {
+							...defaultIABOptions.iab,
+							additionalConsent: {
+								providers: [89],
+								url: 'https://lists.example/ac',
+							},
+						},
+					}}
+				>
+					<IABConsentDialog open />
+				</ConsentProvider>
+			);
+
+			const vendorsTab = await vi.waitFor(
+				() => {
+					const el = Array.from(
+						document.querySelectorAll<HTMLButtonElement>('[role="tab"]')
+					).find((button) =>
+						button.textContent?.toLowerCase().includes('vendor')
+					);
+					return getDefined(el);
+				},
+				{ timeout: 5000 }
+			);
+			await userEvent.click(vendorsTab);
+
+			const row = await vi.waitFor(
+				() => getDefined(document.getElementById('ad-tech-provider-89')),
+				{ timeout: 5000 }
+			);
+			expect(row.textContent).toContain('Example Ad Tech');
+			expect(row.querySelector('a')?.getAttribute('href')).toBe(
+				'https://ads.example/privacy'
+			);
+			expect(document.body.textContent).toContain(
+				'Google Ad Tech Providers (1)'
+			);
+
+			const providerSwitch = getDefined(
+				row.querySelector<HTMLElement>('[role="switch"]')
+			);
+			expect(providerSwitch.getAttribute('aria-label')).toBe(
+				'Consent for Example Ad Tech'
+			);
+			await userEvent.click(providerSwitch);
+			await vi.waitFor(() => {
+				expect(providerSwitch.getAttribute('aria-checked')).toBe('true');
+			});
+		} finally {
+			globalThis.fetch = gvlFetch;
+		}
+	});
+});

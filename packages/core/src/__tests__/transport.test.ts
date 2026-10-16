@@ -1733,6 +1733,123 @@ describe('createManifestTransport: local init resolution', () => {
 		});
 	});
 
+	test('loads Google Additional Consent providers the manifest lists', async () => {
+		const fetchSpy = vi.fn().mockResolvedValue(
+			Response.json({
+				providers: {
+					'89': { id: 89, name: 'Meta', policyUrl: 'https://meta.example/p' },
+				},
+			})
+		);
+		const transport = createManifestTransport({
+			backendURL: 'https://api.example.com/c15t',
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+			fetchGvl: vi.fn().mockResolvedValue(REALISTIC_INIT_OUTPUT.gvl),
+			inputs: { country: 'DE', language: 'de', region: 'BE' },
+			snapshot: {
+				...MANIFEST_FIXTURE,
+				iab: {
+					...MANIFEST_FIXTURE.iab,
+					additionalConsent: {
+						providers: [89, 404],
+						url: 'https://lists.example/ac-manifest',
+					},
+				},
+			},
+		});
+
+		const response = await transport.init?.({ overrides: {}, user: null });
+
+		expect(response?.adTechProviders).toEqual([
+			{ id: 89, name: 'Meta', policyUrl: 'https://meta.example/p' },
+		]);
+		expect(fetchSpy).toHaveBeenCalledWith(
+			'https://lists.example/ac-manifest?providerIds=89%2C404',
+			expect.objectContaining({ method: 'GET' })
+		);
+	});
+
+	test.each([
+		[
+			'the backend',
+			'https://api.example.com/c15t',
+			'/api/additional-consent',
+			'https://api.example.com/api/additional-consent?providerIds=89',
+		],
+		[
+			'nothing absolute',
+			'/api/c15t',
+			'/api/additional-consent-local',
+			'/api/additional-consent-local?providerIds=89',
+		],
+	])(
+		'places a relative provider endpoint on %s',
+		async (_base, backendURL, url, fetched) => {
+			const fetchSpy = vi.fn().mockResolvedValue(
+				Response.json({
+					providers: {
+						'89': { id: 89, name: 'Meta', policyUrl: 'https://meta.example/p' },
+					},
+				})
+			);
+			const response = await createManifestTransport({
+				backendURL,
+				fetch: fetchSpy as unknown as typeof globalThis.fetch,
+				fetchGvl: vi.fn().mockResolvedValue(REALISTIC_INIT_OUTPUT.gvl),
+				inputs: { country: 'DE', language: 'de', region: 'BE' },
+				snapshot: {
+					...MANIFEST_FIXTURE,
+					iab: {
+						...MANIFEST_FIXTURE.iab,
+						additionalConsent: { providers: [89], url },
+					},
+				},
+			}).init?.({ overrides: {}, user: null });
+
+			expect(fetchSpy).toHaveBeenCalledWith(fetched, expect.anything());
+			expect(response?.adTechProviders).toHaveLength(1);
+		}
+	);
+
+	test('withdraws ad tech providers once the manifest stops listing them, but not when the list is down', async () => {
+		const init = (snapshot: ConsentManifest, fetch: typeof globalThis.fetch) =>
+			createManifestTransport({
+				backendURL: 'https://api.example.com/c15t',
+				fetch,
+				fetchGvl: vi.fn().mockResolvedValue(REALISTIC_INIT_OUTPUT.gvl),
+				inputs: { country: 'DE', language: 'de', region: 'BE' },
+				snapshot,
+			}).init?.({ overrides: {}, user: null });
+
+		const unlisted = await init(
+			{
+				...MANIFEST_FIXTURE,
+				iab: { ...MANIFEST_FIXTURE.iab, additionalConsent: undefined },
+			},
+			vi.fn() as unknown as typeof globalThis.fetch
+		);
+		expect(unlisted?.adTechProviders).toEqual([]);
+
+		const down = await init(
+			{
+				...MANIFEST_FIXTURE,
+				iab: {
+					...MANIFEST_FIXTURE.iab,
+					additionalConsent: {
+						providers: [89],
+						url: 'https://lists.example/ac-down',
+					},
+				},
+			},
+			(() =>
+				Promise.resolve(
+					new Response('', { status: 503 })
+				)) as unknown as typeof globalThis.fetch
+		);
+		expect(down).toBeDefined();
+		expect(down).not.toHaveProperty('adTechProviders');
+	});
+
 	test('fetches manifestURL and sends asserted decision inputs on save', async () => {
 		const fetchSpy = vi
 			.fn()
