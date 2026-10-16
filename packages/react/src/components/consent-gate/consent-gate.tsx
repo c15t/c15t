@@ -1,16 +1,9 @@
 'use client';
 
 import type { AllConsentNames } from '@c15t/core';
-import { forwardRef as createForwardRef, useEffect } from 'react';
+import { forwardRef as createForwardRef } from 'react';
 
-import { useTranslations } from '~/component-hooks/use-translations';
-import {
-	usePolicyCategories,
-	usePolicyScopeMode,
-	useRegisterConsentCategories,
-} from '~/hooks';
-import { useIsHydrated } from '~/hooks/use-is-hydrated';
-import { useCategoryAllowed } from '~/kernel-selector';
+import { useConsentGate } from '~/component-hooks/use-consent-gate';
 
 import { ConsentGateButton, ConsentGateRoot, ConsentGateTitle } from './atoms';
 import type { ConsentGateProps } from './types';
@@ -22,14 +15,11 @@ const DefaultPlaceholder = ({
 }: {
 	category: AllConsentNames;
 	policyBlocked: boolean;
-	policyBlockedMessage?: string;
+	policyBlockedMessage: string;
 }) => (
 	<ConsentGateRoot>
 		<ConsentGateTitle category={category}>
-			{policyBlocked
-				? (policyBlockedMessage ??
-					"This content is unavailable under your region's consent policy.")
-				: undefined}
+			{policyBlocked ? policyBlockedMessage : undefined}
 		</ConsentGateTitle>
 		{policyBlocked ? null : <ConsentGateButton category={category} />}
 	</ConsentGateRoot>
@@ -48,35 +38,16 @@ const ConsentGateComponent = createForwardRef<HTMLDivElement, ConsentGateProps>(
 		ref
 	) => {
 		// Never reads the clock while server rendering, so the gate can sit in
-		// a statically prerendered page.
-		const hasConsent = useCategoryAllowed(category);
-		const isHydrated = useIsHydrated();
-		const policyScope = usePolicyCategories();
-		const policyScopeMode = usePolicyScopeMode();
-		const updateConsentCategories = useRegisterConsentCategories();
-		const { consentGate } = useTranslations();
-
-		// `necessary` is always in scope; a wildcard scope covers every category.
-		const isOutOfPolicyCategory =
-			category !== 'necessary' &&
-			!(policyScope as readonly string[]).includes('*') &&
-			!policyScope.includes(category);
-		const isStrictPolicyBlocked =
-			policyScopeMode === 'strict' && isOutOfPolicyCategory;
-
-		useEffect(() => {
-			updateConsentCategories([category]);
-		}, [category, updateConsentCategories]);
+		// a statically prerendered page. Registers the category on mount.
+		const { state, policyBlockedMessage } = useConsentGate(category);
 
 		const renderContent = () => {
-			// The kernel supplies the same permission snapshot for SSR and hydration.
-			if (hasConsent) {
-				// Granted children mount after hydration, never in the server
-				// HTML. When the gate streams inside a Suspense boundary, React
-				// parses that HTML into a hidden segment and then moves it into
-				// place, and moving an iframe reloads it: an embed in the server
-				// HTML would load twice.
-				return isHydrated ? children : null;
+			if (state === 'granted') {
+				return children;
+			}
+			// Granted children wait for hydration; see `useConsentGate`.
+			if (state === 'pending') {
+				return null;
 			}
 
 			// Otherwise show placeholder
@@ -84,8 +55,8 @@ const ConsentGateComponent = createForwardRef<HTMLDivElement, ConsentGateProps>(
 				placeholder || (
 					<DefaultPlaceholder
 						category={category}
-						policyBlocked={isStrictPolicyBlocked}
-						policyBlockedMessage={consentGate?.policyBlocked}
+						policyBlocked={state === 'policy-blocked'}
+						policyBlockedMessage={policyBlockedMessage}
 					/>
 				)
 			);

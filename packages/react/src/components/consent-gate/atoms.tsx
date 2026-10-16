@@ -3,6 +3,7 @@ import styles from '@c15t/ui/styles/components/consent-gate';
 import { forwardRef as createForwardRef } from 'react';
 import type { Ref } from 'react';
 
+import { resolveConsentGateCopy } from '~/component-hooks/use-consent-gate';
 import { useTranslations } from '~/component-hooks/use-translations';
 import { useUIConfig } from '~/ui-config-context';
 import { getSlotProps, mergeSlotProps } from '~/utils/merge-slot-props';
@@ -47,16 +48,10 @@ const ConsentGateTitle = createForwardRef<
 	HTMLDivElement,
 	Omit<BoxProps, 'slotKey'> & { category?: AllConsentNames }
 >(({ children, category, ...props }, ref) => {
-	const { consentGate, consentTypes } = useTranslations();
-
-	const defaultTitle =
-		category && consentGate?.title
-			? consentGate.title.replace(
-					'{category}',
-					consentTypes?.[category as keyof typeof consentTypes]?.title ??
-						category
-				)
-			: undefined;
+	const translations = useTranslations();
+	const defaultTitle = category
+		? resolveConsentGateCopy(translations, category).title
+		: undefined;
 
 	return (
 		<Box
@@ -75,7 +70,7 @@ const ConsentGateButton = createForwardRef<
 	HTMLButtonElement,
 	Omit<ConsentButtonProps, 'slotKey'> & { category: AllConsentNames }
 >(({ children, category, className, style, ...props }, ref) => {
-	const { consentGate, consentTypes } = useTranslations();
+	const translations = useTranslations();
 	const { components } = useUIConfig();
 	// The gate's slot goes on top of `button.primary`, which the button
 	// applies itself. The button's own class and style win over both.
@@ -84,12 +79,10 @@ const ConsentGateButton = createForwardRef<
 		{ className, style }
 	);
 
-	const categoryTitle =
-		consentTypes?.[category as keyof typeof consentTypes]?.title ?? category;
-	const defaultText = consentGate?.actionButton?.replace(
-		'{category}',
-		categoryTitle
-	);
+	const defaultText = resolveConsentGateCopy(
+		translations,
+		category
+	).actionLabel;
 
 	return (
 		<ConsentButton

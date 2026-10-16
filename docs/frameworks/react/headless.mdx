@@ -1,6 +1,6 @@
 ---
 title: Headless
-description: Build a custom consent banner in React with the c15t/react/headless hooks inside your ConsentProvider.
+description: Build a custom consent banner or embed gate in React with the c15t/react/headless hooks inside your ConsentProvider.
 group: frameworks
 ---
 
@@ -22,3 +22,14 @@ banner, and keep the dialog and persistent preferences control.
 <include src="../../shared/examples/react/headless-banner.mdx" />
 
 <import src="../../shared/react/headless.mdx#banner-api" />
+
+## Build a custom consent gate
+
+<import src="../../shared/react/headless.mdx#consent-gate" />
+
+<include src="../../shared/examples/react/headless-consent-gate.mdx" />
+
+Render `VideoGate` inside your `ConsentProvider` around the embed, such as a
+YouTube `iframe`.
+
+<import src="../../shared/react/headless.mdx#consent-gate-api" />

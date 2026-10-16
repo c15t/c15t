@@ -16,7 +16,9 @@
  *   the kernel's outbox for replay.
  * - A save that records nothing new (an unchanged selection) closes once it
  *   resolves successfully, unless the visitor navigated, a newer action
- *   started, or the policy changed underneath it.
+ *   started, or its surface is gone. A policy change can replace the
+ *   banner but leaves an open dialog open, so a save pending across one
+ *   still closes the dialog.
  * - The surface left behind is the one the kernel itself derives: the
  *   banner while a choice or notice is still owed, nothing while the policy
  *   is pending, the resolution failed, or nothing is owed.

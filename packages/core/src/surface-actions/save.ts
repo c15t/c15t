@@ -23,8 +23,9 @@ const settleSurface = (kernel: ConsentKernel): void => {
  * through a draft). When that call records the choice, the surface settles
  * before this returns. Otherwise it settles once `save` resolves `ok`, if
  * `canClose` agrees, no newer action or navigation came first, and the
- * surface is still the one the visitor acted on (a policy change re-derives
- * the surface, so a dialog open across one stays for review).
+ * surface is still the one the visitor acted on. A policy change can
+ * replace the banner, but an open dialog stays open across one, so the
+ * save still settles it.
  *
  * @param kernel - The kernel the choice is recorded in.
  * @param save - Starts the save and returns its result.

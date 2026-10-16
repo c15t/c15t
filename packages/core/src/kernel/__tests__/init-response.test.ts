@@ -267,3 +267,107 @@ describe('init folds translations', () => {
 		});
 	});
 });
+
+describe('a dialog opened before init resolves', () => {
+	const openDuringInit = async function openDuringInit(
+		config: KernelConfig = {},
+		fields: Partial<InitResponse> = {}
+	) {
+		const response = Promise.withResolvers<InitResponse>();
+		const kernel = createConsentKernel({
+			initialPolicyPending: true,
+			now: NOW,
+			...config,
+			initRetry: false,
+			transport: { init: () => response.promise },
+		});
+		const initialized = kernel.commands.init();
+		kernel.set.activeUI('dialog');
+		response.resolve({
+			policyResolution: { ...matchedResolution(optInRule()), version: 1 },
+			...fields,
+		});
+		await initialized;
+		return kernel;
+	};
+
+	/** A stored refusal of every category under the opt-in rule. */
+	const storedRefusal = function storedRefusal() {
+		const { fingerprint } = createConsentKernel({
+			initialPolicyResolution: matchedResolution(optInRule()),
+			now: NOW,
+		}).getSnapshot().evaluationPolicy.choice;
+		return choiceRecords(
+			{
+				experience: false,
+				functionality: false,
+				marketing: false,
+				measurement: false,
+			},
+			{ fingerprint }
+		);
+	};
+
+	test('stays open for a returning visitor', async () => {
+		const kernel = await openDuringInit({ initialRecords: storedRefusal() });
+		expect(kernel.getSnapshot().promptRequirement).toEqual({ kind: 'none' });
+		expect(kernel.getSnapshot().activeUI).toBe('dialog');
+		kernel.dispose();
+	});
+
+	test('stays open when init brings the stored records', async () => {
+		const kernel = await openDuringInit({}, { records: storedRefusal() });
+		expect(kernel.getSnapshot().explicitChoice).not.toBeNull();
+		expect(kernel.getSnapshot().promptRequirement).toEqual({ kind: 'none' });
+		expect(kernel.getSnapshot().activeUI).toBe('dialog');
+		kernel.dispose();
+	});
+
+	test('stays open through a failed init until a retry resolves', async () => {
+		vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+		const failed = Promise.withResolvers<InitResponse>();
+		const answers = [
+			failed.promise,
+			Promise.resolve<InitResponse>({
+				policyResolution: { ...matchedResolution(optInRule()), version: 1 },
+			}),
+		];
+		const kernel = createConsentKernel({
+			initRetry: false,
+			initialPolicyPending: true,
+			now: NOW,
+			transport: { init: () => answers.shift() ?? failed.promise },
+		});
+		const initialized = kernel.commands.init();
+		kernel.set.activeUI('dialog');
+		failed.reject(new Error('offline'));
+		await initialized;
+		// The policy stays pending for the retry, which shows the dialog.
+		expect(kernel.getSnapshot()).toMatchObject({
+			activeUI: 'dialog',
+			policyPending: true,
+			resolution: { status: 'failed' },
+		});
+		await kernel.commands.init();
+		expect(kernel.getSnapshot()).toMatchObject({
+			activeUI: 'dialog',
+			policyPending: false,
+			resolution: { status: 'matched' },
+		});
+		kernel.dispose();
+	});
+
+	test('stays open over the banner for a new visitor', async () => {
+		const kernel = await openDuringInit();
+		expect(kernel.getSnapshot().promptRequirement.kind).toBe('choice');
+		expect(kernel.getSnapshot().activeUI).toBe('dialog');
+		kernel.dispose();
+	});
+
+	test('closes when the visitor saves', async () => {
+		const kernel = await openDuringInit();
+		await kernel.commands.save('all');
+		expect(kernel.getSnapshot().activeUI).toBe('none');
+		kernel.dispose();
+	});
+});

@@ -1,6 +1,6 @@
 ---
 title: Headless
-description: Build a custom consent banner in Next.js with the c15t/next/headless hooks inside your existing ConsentRoot.
+description: Build a custom consent banner or embed gate in Next.js with the c15t/next/headless hooks inside your existing ConsentRoot.
 group: frameworks
 ---
 
@@ -69,3 +69,16 @@ export function Banner() {
 ```
 
 <import src="../../shared/react/headless.mdx#banner-api" />
+
+## Build a custom consent gate
+
+<import src="../../shared/react/headless.mdx#consent-gate" />
+
+<include src="../../shared/examples/nextjs/headless-consent-gate.mdx" />
+
+The hook reads the runtime from `ConsentRoot`, so the gate is a Client
+Component. Render `VideoGate` inside your existing `ConsentRoot` around the
+embed, such as a YouTube `iframe`. A Server Component can render it and pass
+the embed as children.
+
+<import src="../../shared/react/headless.mdx#consent-gate-api" />
