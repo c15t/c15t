@@ -142,6 +142,11 @@ release depends on one exact router version. Start 1.0 also renames
 - **Dialog scrolling.** Visitors can scroll to every category and vendor
   again. `overflow: hidden` on the category list or a category row, for
   example to clip rounded corners, used to stop the list scrolling on phones.
+- **Saves interrupted by navigation.** When a visitor made a choice and then
+  reloaded or left the page before the backend answered, the browser kept the
+  choice but the backend never recorded it. c15t now queues each choice before
+  sending it, and the next page load resends it with the original decision
+  time.
 - **Legal links.** Astro, Vue, Nuxt, Svelte and the script tag now match
   React: a space after the description, then the links separated by commas.
 - **Vendor list requests.** In manifest mode, the browser fetches the Global

@@ -24,7 +24,7 @@
  * - `createConsentKernel()` has zero side effects. No window writes, no
  *   DOM observers, no network, no localStorage, no hashing, no timers.
  *   Storage is reached only through the save outbox's store, and only when
- *   a save fails, a replay runs or the records are cleared.
+ *   a save starts, a replay runs or the records are cleared.
  * - `getSnapshot()` is non-allocating in the steady state and derived
  *   fields keep their reference when their value did not change.
  * - Only `commands.save()` records an explicit choice. Hydration,
