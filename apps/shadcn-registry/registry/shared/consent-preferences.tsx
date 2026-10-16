@@ -3,7 +3,12 @@
 import { useId } from "react"
 import { ChevronDownIcon } from "lucide-react"
 import type { AllConsentNames, PresentationAction } from "c15t/react"
-import { useConsentDraft, useTranslations } from "c15t/react"
+import {
+  useConsentDraft,
+  useExplicitChoice,
+  useRestrictions,
+  useTranslations,
+} from "c15t/react"
 import {
   useConsentLabels,
   useHeadlessConsentUI,
@@ -111,6 +116,8 @@ function ConsentVendors({ category }: { category: AllConsentNames }) {
 export function ConsentPreferences({ className }: { className?: string }) {
   const id = useId()
   const draft = useConsentDraft()
+  const explicitChoice = useExplicitChoice()
+  const restrictions = useRestrictions()
   const { consentTypes } = useTranslations()
 
   return (
@@ -118,6 +125,21 @@ export function ConsentPreferences({ className }: { className?: string }) {
       {draft.displayedCategories.map((category) => {
         const titleId = `${id}-${category}-title`
         const descriptionId = `${id}-${category}-description`
+        const restrictionId = `${id}-${category}-restriction`
+        const description = consentTypes[category]?.description
+        // A privacy signal or the current policy overrides the saved grant,
+        // so the category stays off while its switch shows the grant. An
+        // unsaved toggle doesn't count.
+        const restricted =
+          category !== "necessary" &&
+          explicitChoice?.categories[category]?.value === true &&
+          (restrictions[category]?.length ?? 0) > 0
+        const describedBy = [
+          description && descriptionId,
+          restricted && restrictionId,
+        ]
+          .filter(Boolean)
+          .join(" ")
 
         return (
           <div key={category} className="grid gap-3">
@@ -126,24 +148,29 @@ export function ConsentPreferences({ className }: { className?: string }) {
                 <span id={titleId} className="font-medium">
                   {consentTypes[category]?.title ?? category}
                 </span>
-                {consentTypes[category]?.description && (
+                {description && (
                   <span id={descriptionId} className="text-muted-foreground">
-                    {consentTypes[category].description}
+                    {description}
                   </span>
                 )}
               </div>
               <Switch
                 aria-labelledby={titleId}
-                aria-describedby={
-                  consentTypes[category]?.description
-                    ? descriptionId
-                    : undefined
-                }
+                aria-describedby={describedBy || undefined}
                 checked={draft.values[category]}
                 disabled={category === "necessary"}
                 onCheckedChange={(checked) => draft.set(category, checked)}
               />
             </div>
+            {restricted && (
+              <output
+                id={restrictionId}
+                className="text-start text-xs text-muted-foreground"
+              >
+                Your saved choice is restricted by the current privacy
+                settings.
+              </output>
+            )}
             <ConsentVendors category={category} />
           </div>
         )

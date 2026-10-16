@@ -6,6 +6,8 @@ import {
   type AllConsentNames,
   type PresentationAction,
   useConsentDraft,
+  useExplicitChoice,
+  useRestrictions,
 } from "c15t/react"
 import {
   useConsentLabels,
@@ -112,6 +114,8 @@ function ConsentVendors({ category }: { category: AllConsentNames }) {
 
 export function ConsentPreferences({ className }: { className?: string }) {
   const { displayedCategories, values, set } = useConsentDraft()
+  const explicitChoice = useExplicitChoice()
+  const restrictions = useRestrictions()
   const { consentTypes } = useTranslations()
   const id = React.useId()
 
@@ -121,6 +125,20 @@ export function ConsentPreferences({ className }: { className?: string }) {
         const copy = consentTypes[category]
         const titleId = `${id}-${category}-title`
         const descriptionId = `${id}-${category}-description`
+        const restrictionId = `${id}-${category}-restriction`
+        // A privacy signal or the current policy overrides the saved grant,
+        // so the category stays off while its switch shows the grant. An
+        // unsaved toggle doesn't count.
+        const restricted =
+          category !== "necessary" &&
+          explicitChoice?.categories[category]?.value === true &&
+          (restrictions[category]?.length ?? 0) > 0
+        const describedBy = [
+          copy?.description && descriptionId,
+          restricted && restrictionId,
+        ]
+          .filter(Boolean)
+          .join(" ")
 
         return (
           <div key={category} className="grid gap-3">
@@ -137,13 +155,22 @@ export function ConsentPreferences({ className }: { className?: string }) {
               </div>
               <Switch
                 aria-labelledby={titleId}
-                aria-describedby={copy?.description ? descriptionId : undefined}
+                aria-describedby={describedBy || undefined}
                 isSelected={values[category]}
                 isDisabled={category === "necessary"}
                 onChange={(isSelected) => set(category, isSelected)}
                 className="mt-0.5"
               />
             </div>
+            {restricted && (
+              <output
+                id={restrictionId}
+                className="text-start text-xs text-muted-foreground"
+              >
+                Your saved choice is restricted by the current privacy
+                settings.
+              </output>
+            )}
             <ConsentVendors category={category} />
           </div>
         )
