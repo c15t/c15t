@@ -13,7 +13,6 @@ export {
 	resolveActionLabels,
 	resolvePreferenceControlLabels,
 	resolvePromptCopy,
-	vendorsListedUnder,
 } from '@c15t/core';
 export type {
 	PreferenceControl,
@@ -48,6 +47,7 @@ export {
 	useHeadlessConsentUI,
 } from './component-hooks/use-headless-consent-ui';
 export { useTranslations } from './component-hooks/use-translations';
+export { useVendorsListedUnder } from './component-hooks/use-vendors-listed-under';
 export { useBannerCopy } from './components/prompt/use-banner-copy';
 export {
 	StreamedConsentSurface,

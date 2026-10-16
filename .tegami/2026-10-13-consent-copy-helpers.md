@@ -25,8 +25,8 @@ React adds `useBannerCopy()` and `useConsentLabels()` to
 `c15t/react/headless`, `c15t/next/headless` and
 `c15t/tanstack-start/headless`. They return the same strings the stock
 banner renders and update when the language changes. The same headless
-entries now export `vendorsListedUnder`, which picks the declared vendors the
-stock dialog lists under a category.
+entries now export `useVendorsListedUnder(category)`, which returns the
+vendors the stock dialog lists under a category.
 
 When a notice offers only a dismiss button, `primaryActions` from
 `resolveConsentPresentation` now contains `dismiss`, so a headless banner can
