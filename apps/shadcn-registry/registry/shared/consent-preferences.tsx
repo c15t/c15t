@@ -186,6 +186,7 @@ export function ConsentPreferencesActions({
           {group.map((action) => (
             <Button
               key={action}
+              type="button"
               variant={
                 dialog.primaryActions.includes(action) ? "default" : "outline"
               }

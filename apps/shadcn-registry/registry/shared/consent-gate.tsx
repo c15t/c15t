@@ -36,7 +36,7 @@ export function ConsentGate({
       {gate.state === "denied" ? (
         <>
           <p className="font-medium">{gate.title ?? gate.categoryTitle}</p>
-          <Button onClick={gate.requestConsent}>
+          <Button type="button" onClick={gate.requestConsent}>
             {gate.actionLabel ?? gate.categoryTitle}
           </Button>
         </>

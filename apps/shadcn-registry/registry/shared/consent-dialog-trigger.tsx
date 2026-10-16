@@ -19,6 +19,7 @@ export function ConsentDialogTrigger({ className }: { className?: string }) {
 
   return (
     <Button
+      type="button"
       variant="outline"
       size="icon-lg"
       aria-label={preferenceControls.preferences}

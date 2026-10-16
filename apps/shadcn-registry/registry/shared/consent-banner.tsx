@@ -62,7 +62,12 @@ function ConsentBannerContent({ className }: { className?: string }) {
           </CardHeader>
           <CardFooter className="flex-wrap justify-between gap-2">
             {banner.preferenceControls.map((right) => (
-              <Button key={right} variant="link" onClick={openDialog}>
+              <Button
+                key={right}
+                type="button"
+                variant="link"
+                onClick={openDialog}
+              >
                 {labels.preferenceControls[right]}
               </Button>
             ))}
@@ -71,6 +76,7 @@ function ConsentBannerContent({ className }: { className?: string }) {
                 {group.map((action) => (
                   <Button
                     key={action}
+                    type="button"
                     variant={
                       banner.primaryActions.includes(action)
                         ? "default"
