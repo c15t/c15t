@@ -38,7 +38,7 @@ env:
 jobs:
   plan:
     name: Select benchmark packages and revisions
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.plan.outputs.matrix }}
       head_sha: ${{ steps.plan.outputs.head_sha }}
@@ -70,7 +70,7 @@ jobs:
       id-token: write
     name: Runtime regression budgets (${{ matrix.id }})
     needs: plan
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     timeout-minutes: 90
     strategy:
       fail-fast: false
