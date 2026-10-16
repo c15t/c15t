@@ -1,12 +1,15 @@
 "use client"
 
 import { useId, useRef } from "react"
+import { useModel } from "c15t/react"
 import {
   StreamedConsentSurface,
   useBannerCopy,
   useConsentLabels,
+  useConsentTextDirection,
   useFocusTrap,
   useHeadlessConsentUI,
+  useIABPolicyGuard,
   useScrollLock,
 } from "c15t/react/headless"
 import type { HeadlessConsentBannerState } from "c15t/react/headless"
@@ -61,18 +64,25 @@ function placementClassName({
 }
 
 function ConsentBannerContent({ className }: { className?: string }) {
+  // Under an IAB policy the TCF banner from <IABProvider> takes over. This
+  // throws if the app never loaded it.
+  useIABPolicyGuard()
+  const model = useModel() ?? "opt-in"
   const id = useId()
   const ref = useRef<HTMLElement>(null)
   const { banner, openDialog, performAction } = useHeadlessConsentUI()
   const { title, description } = useBannerCopy()
   const labels = useConsentLabels()
+  const dir = useConsentTextDirection()
+  const visible =
+    banner.isVisible && (model === "opt-in" || model === "opt-out")
 
   // A blocking banner, such as a consent wall, holds focus and stops the
   // page scrolling until the visitor chooses.
-  useFocusTrap(banner.isVisible && banner.blocking, ref)
-  useScrollLock(banner.isVisible && banner.blocking)
+  useFocusTrap(visible && banner.blocking, ref)
+  useScrollLock(visible && banner.blocking)
 
-  if (!banner.isVisible) {
+  if (!visible) {
     return null
   }
 
@@ -87,6 +97,7 @@ function ConsentBannerContent({ className }: { className?: string }) {
       {banner.blocking && <div className="fixed inset-0 z-50 bg-black/10" />}
       <section
         ref={ref}
+        dir={dir}
         tabIndex={-1}
         role={banner.blocking ? "dialog" : "region"}
         aria-modal={banner.blocking || undefined}

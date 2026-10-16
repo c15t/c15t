@@ -1,8 +1,13 @@
 "use client"
 
 import * as React from "react"
-import { ConsentDraftProvider } from "c15t/react"
-import { useHeadlessConsentUI, useTranslations } from "c15t/react/headless"
+import { ConsentDraftProvider, useModel } from "c15t/react"
+import {
+  useConsentTextDirection,
+  useHeadlessConsentUI,
+  useIABPolicyGuard,
+  useTranslations,
+} from "c15t/react/headless"
 import { XIcon } from "lucide-react"
 import { DialogContext } from "react-aria-components"
 
@@ -27,8 +32,13 @@ export function ConsentSheet({
   className?: string
   side?: "left" | "right"
 }) {
+  // Under an IAB policy the TCF preferences from <IABProvider> take over.
+  // This throws if the app never loaded it.
+  useIABPolicyGuard()
+  const model = useModel()
   const { dialog, closeUI } = useHeadlessConsentUI()
   const { common, consentManagerDialog } = useTranslations()
+  const dir = useConsentTextDirection()
   const descriptionId = React.useId()
   // shadcn's Sheet gives the inner React Aria dialog no props, so the
   // description reaches it through context.
@@ -43,7 +53,8 @@ export function ConsentSheet({
           whether an outside click closes it. */}
       <Sheet
         side={side}
-        isOpen={dialog.isVisible}
+        isOpen={dialog.isVisible && model !== "iab"}
+        dir={dir}
         isDismissable={!dialog.blocking}
         onOpenChange={(isOpen) => {
           if (!isOpen) closeUI()

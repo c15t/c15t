@@ -5,6 +5,7 @@ import {
   useHasConsentUI,
   useTranslations,
 } from "c15t/react"
+import { useConsentTextDirection } from "c15t/react/headless"
 
 import {
   ConsentPreferences,
@@ -22,6 +23,7 @@ import {
 export function ConsentWidget({ className }: { className?: string }) {
   const hasConsentUI = useHasConsentUI()
   const { consentManagerDialog } = useTranslations()
+  const dir = useConsentTextDirection()
 
   // Regions with no consent requirement have nothing to manage.
   if (!hasConsentUI) {
@@ -29,7 +31,7 @@ export function ConsentWidget({ className }: { className?: string }) {
   }
 
   return (
-    <Card className={className}>
+    <Card dir={dir} className={className}>
       <ConsentDraftProvider>
         <CardHeader>
           <CardTitle>{consentManagerDialog.title}</CardTitle>

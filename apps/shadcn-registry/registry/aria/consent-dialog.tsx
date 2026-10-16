@@ -1,8 +1,13 @@
 "use client"
 
 import * as React from "react"
-import { ConsentDraftProvider } from "c15t/react"
-import { useHeadlessConsentUI, useTranslations } from "c15t/react/headless"
+import { ConsentDraftProvider, useModel } from "c15t/react"
+import {
+  useConsentTextDirection,
+  useHeadlessConsentUI,
+  useIABPolicyGuard,
+  useTranslations,
+} from "c15t/react/headless"
 import { XIcon } from "lucide-react"
 import { DialogContext } from "react-aria-components"
 
@@ -22,8 +27,13 @@ import {
 import { cn } from "@/lib/utils"
 
 export function ConsentDialog({ className }: { className?: string }) {
+  // Under an IAB policy the TCF preferences from <IABProvider> take over.
+  // This throws if the app never loaded it.
+  useIABPolicyGuard()
+  const model = useModel()
   const { dialog, closeUI } = useHeadlessConsentUI()
   const { common, consentManagerDialog } = useTranslations()
+  const dir = useConsentTextDirection()
   const descriptionId = React.useId()
   // shadcn's Dialog gives the inner React Aria dialog no props, so the
   // description reaches it through context.
@@ -37,7 +47,8 @@ export function ConsentDialog({ className }: { className?: string }) {
       {/* React Aria's Modal is always modal, so dialog.blocking only decides
           whether an outside click closes it. */}
       <Dialog
-        isOpen={dialog.isVisible}
+        isOpen={dialog.isVisible && model !== "iab"}
+        dir={dir}
         isDismissable={!dialog.blocking}
         onOpenChange={(isOpen) => {
           if (!isOpen) closeUI()
