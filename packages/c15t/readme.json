@@ -1,6 +1,6 @@
 {
 	"title": "c15t: The Open Standard for Cookie Banners",
-	"description": "c15t is an open-source consent management platform (CMP). One package gives you a cookie banner, a preference dialog, and consent-gated scripts for React, Next.js, Vue, Nuxt, Astro, TanStack Start, and plain JavaScript. Keep consent records on [Inth](https://inth.com?utm_source=github&utm_medium=readme&utm_content=c15t), on a backend you run, or in the browser only.",
+	"description": "c15t is the open standard for cookie banners. It's an open-source cookie consent manager and consent management platform (CMP). One package gives you a GDPR cookie banner, a preference dialog, and consent-gated scripts for React, Next.js, Vue, Nuxt, Astro, TanStack Start, and plain JavaScript. Keep consent records on [Inth](https://inth.com?utm_source=github&utm_medium=readme&utm_content=c15t), on a backend you run, or in the browser only.",
 	"features": [
 		"One install for every framework: `c15t` brings the consent engine and the React, Next.js, Vue, Nuxt, Astro, and TanStack Start adapters, always at the same version",
 		"Analytics, ads, pixels, and embeds follow each visitor's choice. Ready-made loaders cover 40+ vendors, such as Google Tag Manager, GA4, Meta Pixel, and PostHog",
