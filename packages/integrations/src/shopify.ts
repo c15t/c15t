@@ -16,8 +16,9 @@ export type ShopifyConsentCategories = Record<
 
 /** The part of `window.Shopify.customerPrivacy` the bridge calls. */
 export interface ShopifyCustomerPrivacyApi {
+	/** Signals left out keep the value Shopify holds. */
 	setTrackingConsent: (
-		consent: ShopifyConsentPreferences,
+		consent: Partial<ShopifyConsentPreferences>,
 		callback?: (result?: unknown) => void
 	) => unknown;
 	/** The choice Shopify holds for this visitor: `'yes'`, `'no'` or `''`. */
@@ -50,8 +51,11 @@ export interface ShopifyCustomerPrivacyOptions {
 	 * @default { analytics: 'measurement', marketing: 'marketing', preferences: 'functionality', sale_of_data: 'marketing' }
 	 */
 	categories?: Partial<ShopifyConsentCategories>;
-	/** Called after Shopify accepts each choice. */
-	onSync?: (preferences: ShopifyConsentPreferences) => void;
+	/**
+	 * Called with what Shopify accepted: all four values for a choice, or only
+	 * the dropped grants for a revocation.
+	 */
+	onSync?: (preferences: Partial<ShopifyConsentPreferences>) => void;
 	/**
 	 * Called when Shopify rejects a choice or `onSync` throws. The bridge
 	 * resends a rejected choice after 1, 2 and 4 seconds, then waits for the
@@ -130,7 +134,7 @@ const toError = (reason: unknown): Error => {
  */
 const setTrackingConsent = async (
 	api: ShopifyCustomerPrivacyApi,
-	consent: ShopifyConsentPreferences
+	consent: Partial<ShopifyConsentPreferences>
 ): Promise<void> => {
 	let reply: (result?: unknown) => void = () => undefined;
 	const replied = new Promise<unknown>((resolve) => {
@@ -184,22 +188,18 @@ const consentKeys = [
 ] as const;
 
 /**
- * The grants in `held` that `consent` still allows, or `undefined` when
- * `held` grants nothing `consent` denies.
+ * `false` for each grant in `held` that `consent` denies, or `undefined` when
+ * there is none. Shopify keeps the signals left out, including unset ones.
  */
 const revocation = (
 	held: ShopifyConsentPreferences,
 	consent: ShopifyConsentPreferences
-): ShopifyConsentPreferences | undefined => {
-	if (!consentKeys.some((key) => held[key] && !consent[key])) {
+): Partial<ShopifyConsentPreferences> | undefined => {
+	const denied = consentKeys.filter((key) => held[key] && !consent[key]);
+	if (denied.length === 0) {
 		return;
 	}
-	return {
-		analytics: held.analytics && consent.analytics,
-		marketing: held.marketing && consent.marketing,
-		preferences: held.preferences && consent.preferences,
-		sale_of_data: held.sale_of_data && consent.sale_of_data,
-	};
+	return Object.fromEntries(denied.map((key) => [key, false]));
 };
 
 /**
@@ -269,7 +269,7 @@ export const createShopifyCustomerPrivacy = (
 	// holding events.
 	let holding = false;
 	let storedChoice = false;
-	let sent: ShopifyConsentPreferences | undefined;
+	let sent: Partial<ShopifyConsentPreferences> | undefined;
 	let sentKey: string | undefined;
 	let sending = false;
 	let listening = false;
@@ -393,7 +393,7 @@ export const createShopifyCustomerPrivacy = (
 			return;
 		}
 		sending = false;
-		sent = consent;
+		sent = { ...sent, ...consent };
 		sentKey = key;
 		failedKey = undefined;
 		failures = 0;
@@ -415,6 +415,8 @@ export const createShopifyCustomerPrivacy = (
 		if (step === 'wait') {
 			// Drop queued and in-flight work for the old policy.
 			clearTimeout(retryTimer);
+			failedKey = undefined;
+			failures = 0;
 			latest = undefined;
 			return;
 		}

@@ -101,9 +101,9 @@ choice on load.
 
 While the visitor has no current choice, Shopify may still hold grants from
 an earlier one, for example after that choice expired or a policy change
-asks again. If c15t now denies any of them, the bridge sends a revocation:
-the earlier grants c15t still allows, and `false` for the rest. It counts
-grants the bridge sent and each `yes` from Shopify's
+asks again. If c15t now denies any of them, the bridge sends `false` for
+those grants only, so Shopify keeps the other signals, including unset ones.
+It counts grants the bridge sent and each `yes` from Shopify's
 `currentVisitorConsent()`. If that function isn't available, it assumes a
 choice c15t stored may have granted anything. Under an opt-in or IAB policy,
 Hydrogen keeps holding events until the visitor answers. Under opt-out,
@@ -126,7 +126,7 @@ policy turns pending meanwhile, the bridge drops those retries.
 | Option | Default | Behavior |
 | --- | --- | --- |
 | `categories` | The table above | Overrides the c15t category for any of the four Shopify values. |
-| `onSync` | None | Called with the four values after Shopify accepts each choice. |
+| `onSync` | None | Called with what Shopify accepted: the four values for a choice, or the dropped grants for a revocation. |
 | `onError` | Logs to the console | Called when Shopify rejects a choice or `onSync` throws. |
 
 The bridge returns `update(snapshot)`, `connect(source)` and `setup()`.

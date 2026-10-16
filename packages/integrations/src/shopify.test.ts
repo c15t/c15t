@@ -345,7 +345,9 @@ describe('Shopify Customer Privacy bridge', () => {
 		held = { ...held, analytics: 'yes', marketing: 'no' };
 		bridge.update({ ...owesChoice });
 
-		await vi.waitFor(() => expect(shopify.sent).toEqual([ALL_DENIED]));
+		await vi.waitFor(() =>
+			expect(shopify.sent).toEqual([{ analytics: false }])
+		);
 		expect(await isSettled(setup)).toBe(false);
 	});
 
@@ -391,10 +393,11 @@ describe('Shopify Customer Privacy bridge', () => {
 			(window as { Shopify: { customerPrivacy: object } }).Shopify
 				.customerPrivacy,
 			{
+				// Unset signals keep Shopify's region defaults.
 				currentVisitorConsent: () => ({
-					analytics: 'yes',
+					analytics: '',
 					marketing: 'yes',
-					preferences: 'no',
+					preferences: '',
 					sale_of_data: 'yes',
 				}),
 			}
@@ -417,14 +420,7 @@ describe('Shopify Customer Privacy bridge', () => {
 		});
 
 		await setup;
-		expect(shopify.sent).toEqual([
-			{
-				analytics: true,
-				marketing: false,
-				preferences: false,
-				sale_of_data: false,
-			},
-		]);
+		expect(shopify.sent).toEqual([{ marketing: false, sale_of_data: false }]);
 	});
 
 	it('drops a queued choice when the visitor moves to untouched opt-out', async () => {
@@ -471,6 +467,35 @@ describe('Shopify Customer Privacy bridge', () => {
 
 		expect(shopify.sent).toHaveLength(1);
 		expect(await isSettled(setup)).toBe(false);
+	});
+
+	it('gives a choice fresh retries after the policy was pending', async () => {
+		fakeRetryTimers();
+		let failuresLeft = 5;
+		const shopify = installCustomerPrivacy(() => {
+			if (failuresLeft > 0) {
+				failuresLeft -= 1;
+				return Promise.reject(new Error('network'));
+			}
+			return Promise.resolve();
+		});
+		const kernel = kernelWith('opt-in');
+		const bridge = createShopifyCustomerPrivacy({ onError: vi.fn() });
+		bridge.connect(kernel);
+		const setup = bridge.setup();
+
+		await kernel.commands.save('all');
+		await vi.advanceTimersByTimeAsync(7000);
+		// The first try and three retries.
+		expect(shopify.sent).toHaveLength(4);
+
+		bridge.update({ ...kernel.getSnapshot(), policyPending: true });
+		bridge.update(kernel.getSnapshot());
+		await vi.waitFor(() => expect(shopify.sent).toHaveLength(5));
+		await vi.advanceTimersByTimeAsync(1000);
+
+		expect(shopify.sent).toHaveLength(6);
+		expect(await isSettled(setup)).toBe(true);
 	});
 
 	it('reports a rejected choice and retries with the next update', async () => {
