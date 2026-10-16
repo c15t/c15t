@@ -1,6 +1,6 @@
 {
-	"title": "@c15t/cli: c15t's CLI",
-	"description": "Generate c15t framework quickstarts, preview file edits, and configure supported applications.",
+	"title": "@c15t/cli: Cookie consent setup CLI",
+	"description": "Set up a c15t cookie consent banner for React, Next.js, and other supported frameworks, preview file edits, and configure consent integrations. Choose a hosted backend, a self-hosted backend, or offline mode for local development.",
 	"features": [
 		"V3 quickstart files for Next.js, Nuxt, TanStack Start, Astro, React, JavaScript, a script tag, Vue, Svelte, SvelteKit, and Solid",
 		"Preview and apply integration files with explicit framework wiring instructions",

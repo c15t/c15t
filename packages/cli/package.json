@@ -1,7 +1,7 @@
 {
 	"name": "@c15t/cli",
 	"version": "3.1.0-canary.0",
-	"description": "CLI for c15t setup. Scaffold React and Next.js cookie banners, choose hosted/self-hosted/offline mode, and add consent integrations.",
+	"description": "Cookie consent setup CLI for c15t. Scaffolds GDPR cookie banners for React, Next.js and other frameworks, configures hosted, self-hosted or offline mode, and adds consent integrations.",
 	"keywords": [
 		"c15t",
 		"ccpa",
@@ -12,9 +12,11 @@
 		"consent",
 		"consent-management",
 		"consent-mode-v2",
+		"cookie",
 		"cookie-banner",
 		"cookie-consent",
 		"gdpr",
+		"iab-tcf",
 		"lgpd",
 		"migrations",
 		"nextjs",

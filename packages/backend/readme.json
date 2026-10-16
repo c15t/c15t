@@ -1,6 +1,6 @@
 {
-	"title": "@c15t/backend: Self-Hosted Consent Backend",
-	"description": "Run the c15t consent backend on your own server and database. It resolves consent policies, stores consent records and audit history, and serves every c15t frontend through one web `Request` handler.",
+	"title": "@c15t/backend: Self-hosted consent management backend",
+	"description": "Run the c15t cookie consent backend on your own server and database. It resolves consent policies for GDPR and other privacy laws, stores consent records and audit history, and serves every c15t frontend through one web `Request` handler.",
 	"features": [
 		"You own the data: consent records stay in your PostgreSQL, MySQL, or SQLite database",
 		"Policy rules by region, with presets such as `policyRulePresets.europeOptIn()`",

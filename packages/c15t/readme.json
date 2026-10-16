@@ -1,6 +1,6 @@
 {
 	"title": "c15t: The Open Standard for Cookie Banners",
-	"description": "c15t is an open-source consent management platform (CMP). One package gives you a cookie banner, a preference dialog, and consent-gated scripts for React, Next.js, Vue, Nuxt, Astro, TanStack Start, and plain JavaScript. Keep consent records on [Inth](https://inth.com?utm_source=github&utm_medium=readme&utm_content=c15t), on a backend you run, or in the browser only.",
+	"description": "c15t is the open standard for cookie banners. It's an open-source cookie consent manager and consent management platform (CMP). One package gives you a GDPR cookie banner, a preference dialog, and consent-gated scripts for React, Next.js, Vue, Nuxt, Astro, TanStack Start, and plain JavaScript. Keep consent records on [Inth](https://inth.com?utm_source=github&utm_medium=readme&utm_content=c15t), on a backend you run, or in the browser only.",
 	"features": [
 		"One install for every framework: `c15t` brings the consent engine and the React, Next.js, Vue, Nuxt, Astro, and TanStack Start adapters, always at the same version",
 		"Analytics, ads, pixels, and embeds follow each visitor's choice. Ready-made loaders cover 40+ vendors, such as Google Tag Manager, GA4, Meta Pixel, and PostHog",
@@ -27,7 +27,7 @@
 	],
 	"usage": [
 		"Wrap your app in `ConsentProvider` with the backend URL from your Inth project, and add the banner, the dialog, and a link that opens the dialog again",
-		"Add vendor loaders to `scripts` so each one waits for its consent category",
+		"Add vendor loaders to `scripts` to apply category permissions and vendor consent APIs",
 		"```tsx\n// src/consent.tsx (React)\nimport { posthog } from '@c15t/integrations/posthog'\nimport {\n  ConsentBanner,\n  ConsentDialog,\n  ConsentDialogLink,\n  ConsentProvider,\n  hosted,\n} from 'c15t/react'\nimport type { ReactNode } from 'react'\n\nimport 'c15t/react/styles.css'\n\nconst options = {\n  mode: hosted({ backendURL: 'https://your-project.inth.app' }),\n  scripts: [posthog({ id: 'phc_your_project_key', loadMode: 'after-consent' })],\n}\n\nexport const Consent = ({ children }: { children: ReactNode }) => (\n  <ConsentProvider options={options}>\n    {children}\n    <ConsentBanner />\n    <ConsentDialog />\n    <ConsentDialogLink>Privacy settings</ConsentDialogLink>\n  </ConsentProvider>\n)\n```"
 	],
 	"docsLink": "https://c15t.com/docs",
