@@ -1,6 +1,6 @@
 {
-	"title": "@c15t/astro: Astro cookie consent banner and consent management",
-	"description": "Cookie consent banner, preference dialog, and consent-gated scripts for Astro 5, 6, and 7, with consent policies for GDPR and other privacy laws. The banner is plain `.astro` markup with no framework JavaScript. The preference dialog loads as a Svelte, React, or Vue island only when a visitor opens it.",
+	"title": "@c15t/astro: Astro cookie banner and cookie consent management",
+	"description": "Cookie banner, preference dialog, and consent-gated scripts for Astro 5, 6, and 7. Middleware resolves each request's consent policy, such as GDPR opt-in in the EU. The banner is plain `.astro` markup with no framework JavaScript. The preference dialog loads as a Svelte, React, or Vue island only when a visitor opens it.",
 	"features": [
 		"Visitors download no UI framework for the banner. The dialog's framework loads only when a visitor opens it",
 		"Write the dialog island in Svelte, React, or Vue, so it uses the framework your site already ships",

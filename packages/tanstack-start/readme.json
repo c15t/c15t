@@ -1,6 +1,6 @@
 {
-	"title": "@c15t/tanstack-start: TanStack Start cookie consent banner and consent management",
-	"description": "Cookie consent banner, consent dialog, and preference center for TanStack Start, with consent policies for GDPR and other privacy laws. A server function in the root loader resolves each visitor's policy, so the banner is in the first HTML.",
+	"title": "@c15t/tanstack-start: TanStack Start cookie banner and cookie consent management",
+	"description": "Cookie banner, consent dialog, and preference center for TanStack Start. A server function in the root loader resolves each visitor's consent policy, such as GDPR opt-in in the EU, so the banner is in the first HTML.",
 	"features": [
 		"Works with `@tanstack/react-start` 1.168.60 or a later 1.x release, including TanStack Start 1.0, on React 18 or 19",
 		"The root route loader resolves each visitor's policy on the server, so the banner is in the first HTML and does not appear late",

@@ -1,6 +1,6 @@
 {
-	"title": "@c15t/nextjs: Next.js cookie consent banner and consent management",
-	"description": "Next.js cookie consent banner, consent dialog, and preference center for the App Router and Pages Router. Resolve consent policies for GDPR and other privacy laws on the server, render the banner in the first HTML, or use headless hooks for your own UI.",
+	"title": "@c15t/nextjs: Next.js cookie banner and cookie consent management",
+	"description": "Next.js cookie banner, consent dialog, and preference center for the App Router and Pages Router. The server resolves each visitor's consent policy, such as GDPR opt-in in the EU, and renders the banner in the first HTML. Use headless hooks for your own UI.",
 	"features": [
 		"Works with Next.js 15 and 16, on the App Router and the Pages Router",
 		"On dynamic pages, the server resolves each visitor's policy and sends it in the same response. Await `resolveConsent()` to put the banner in the first HTML",

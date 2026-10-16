@@ -1,6 +1,6 @@
 {
-	"title": "@c15t/browser: Cookie consent banner for any website, with one script tag",
-	"description": "Cookie consent banner, preference center, and consent-gated scripts for sites without a build step: Webflow, WordPress, Framer, Squarespace, and plain HTML. Configure consent policies for GDPR and other privacy laws, then paste one script tag. Bundled apps can import the same runtime as an ES module.",
+	"title": "@c15t/browser: Cookie banner and cookie consent for any website, with one script tag",
+	"description": "Cookie banner, preference center, and consent-gated scripts for sites without a build step: Webflow, WordPress, Framer, Squarespace, and plain HTML. Configure consent policies for GDPR and other privacy laws, then paste one script tag. Bundled apps can import the same runtime as an ES module.",
 	"features": [
 		"One script tag from a CDN, configured with data attributes or calls queued on `window.c15t`",
 		"Prebuilt banner and preference dialog in a shadow root, so your site's CSS does not change them",

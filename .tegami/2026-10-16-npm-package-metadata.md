@@ -27,5 +27,5 @@ search for, such as cookie consent, cookie banner, GDPR, Google Consent Mode v2
 and IAB TCF. Keywords add common search terms while preserving existing
 framework, brand and integration terms. The schema and UI packages now link
 to their directories in the repository. Framework, browser and core READMEs
-now introduce cookie consent and GDPR policy support before the setup
-instructions.
+now explain how consent policies handle GDPR and other privacy laws before
+the setup instructions.
