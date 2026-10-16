@@ -276,13 +276,13 @@ export const createSaveOutbox = function createSaveOutbox({
 	 * newer choice. The choice stays recorded locally either way.
 	 */
 	const settleThrownSave = async function settleThrownSave(
-		remaining: SavePayload,
+		payload: SavePayload,
 		ensureQueued: () => Promise<EnqueueResult>,
 		error: unknown
 	): Promise<void> {
 		if (isConsentSaveRejection(error)) {
 			warnSaveFailed('rejected', error);
-			await discard(remaining);
+			await discard(payload);
 			return;
 		}
 		warnSaveFailed(await ensureQueued(), error);
@@ -392,7 +392,9 @@ export const createSaveOutbox = function createSaveOutbox({
 				return { ...result, confirmed };
 			}
 			if (result.ok) {
-				await discard(remaining);
+				// The whole action, not the part still current: a newer choice
+				// that storage refused never narrowed the queued entry.
+				await discard(payload);
 			} else {
 				warnSaveFailed(await ensureQueued());
 				retryWhenOnline();
@@ -431,7 +433,7 @@ export const createSaveOutbox = function createSaveOutbox({
 			}
 			emit({ command: 'save', error, type: 'command:error' });
 			if (remaining) {
-				await settleThrownSave(remaining, ensureQueued, error);
+				await settleThrownSave(payload, ensureQueued, error);
 			} else {
 				await discard(payload);
 			}

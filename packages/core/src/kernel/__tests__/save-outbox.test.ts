@@ -1466,6 +1466,53 @@ describe('save outbox: queue module loading', () => {
 			kernel.dispose();
 		}
 	);
+
+	test.each([
+		['accepts', () => Promise.resolve({ ok: true })],
+		['refuses', () => Promise.reject(refused('STALE_POLICY'))],
+	] as const)(
+		'a save the backend %s leaves no part queued when a newer choice was not stored',
+		async (_outcome, respond) => {
+			let full = false;
+			const filling: SaveOutboxStore = {
+				clear: store.clear,
+				transact: (run) =>
+					store.transact((tx) =>
+						run({
+							...tx,
+							write: (slot, value) => !full && tx.write(slot, value),
+						})
+					),
+			};
+			let answer: () => void = () => undefined;
+			const save = vi
+				.fn<NonNullable<KernelTransport['save']>>()
+				.mockImplementationOnce(
+					() =>
+						new Promise((resolve) => {
+							answer = () => {
+								resolve(respond());
+							};
+						})
+				)
+				.mockResolvedValue({ ok: true });
+			vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+			const kernel = kernelOn({ transport: { save } }, filling);
+
+			const grant = kernel.commands.save('all');
+			await vi.waitFor(() => expect(save).toHaveBeenCalledOnce());
+			// Storage fills up before the visitor opts out of marketing.
+			full = true;
+			await kernel.commands.save({ marketing: false });
+			full = false;
+			answer();
+			await grant;
+
+			// The queued grant would replay marketing over the newer opt-out.
+			expect(await queued()).toEqual([]);
+			kernel.dispose();
+		}
+	);
 });
 
 describe('save outbox: clearing records', () => {
