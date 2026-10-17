@@ -356,6 +356,62 @@ settings, or fire it from a Custom Event trigger on `consent-update`. If a
 vendor must make no request before consent, remove it from the container and
 register its own c15t helper instead.
 
+## Use the GTM template instead
+
+Use the `googleTagManager` helper where you can. It sends the Consent Mode
+default before `gtm.js` starts, and it can hold the container back until
+consent. The c15t Consent Management template in the GTM Community Template
+Gallery is for sites that manage scripts only through GTM. It loads the c15t
+script-tag build, `@c15t/browser`, from inside the container and forwards
+c15t's permissions to Google. Use the helper or the template on a page, never
+both, or Google receives two sets of consent commands.
+
+To add it:
+
+1. In GTM, open Templates, search the gallery for **c15t Consent
+   Management** and add it. If it is not listed yet, download
+   [`template.tpl`](https://github.com/c15t/c15t/blob/canary/packages/browser/gtm-template/template.tpl),
+   then under Tag Templates choose New, open the ⋮ menu, choose Import and
+   select the file.
+2. Create a tag from it with the **Consent Initialization - All Pages**
+   trigger, so it runs before your other tags.
+3. Set **c15t script URL** to one of:
+   * `https://your-project.inth.app/c15t.js` for an Inth project, which
+     serves the script with its backend URL already set.
+   * `https://cdn.jsdelivr.net/npm/@c15t/browser@<version>/dist/c15t.js`,
+     with **Backend URL** set to your backend. The tag fails without it.
+   * `https://cdn.jsdelivr.net/npm/@c15t/browser@<version>/dist/c15t.offline.js`
+     for offline mode, with **Backend URL** left blank.
+4. Under **Consent categories**, tick each purpose your container's tags
+   serve. c15t asks the visitor about these, besides strictly necessary.
+   Analytics and Marketing are ticked by default. With none ticked, c15t
+   asks only about categories that your c15t setup sets, and a container
+   loaded only through this tag has none.
+5. Leave **Default consent state** empty to deny every type except
+   `security_storage`, or add rows per region. If you add region rows, also
+   add a row with **Region** blank. Without it, visitors outside those regions
+   get no default from the tag. **Wait for update** defaults to 500
+   milliseconds.
+
+Use an exact version, such as `3.1.0`. The template rejects tags such as
+`latest` and ranges such as `3.1`, which jsDelivr would move to each new
+release without a change to your container. It accepts only Inth and jsDelivr
+URLs. For a self-hosted backend,
+add its script tag to your page source and untick **Load c15t from this tag**.
+The tag then subscribes to the c15t already on the page. It also does this
+when it finds c15t loaded, whichever setting you choose.
+
+Once c15t starts, the tag sends an `update` with the visitor's permissions,
+then pushes a `consent-update` event. It does both again after each change. It
+uses the same category mapping as the helper, shown above, and cannot change
+it. Unlike the helper, it also pushes the event when c15t starts, because c15t
+usually starts after your page-view triggers have fired.
+
+A tag that its consent settings block does not fire again by itself when the
+visitor allows it. Give each non-Google tag a consent requirement and a Custom
+Event trigger on `consent-update`. If the tag should fire once per page, set
+its firing option to Once per page.
+
 ## Measure opt-in rate
 
 If you run a banner experiment, the backend already counts visitors and
