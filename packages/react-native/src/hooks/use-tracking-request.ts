@@ -38,7 +38,7 @@ export interface UseTrackingRequestOptions {
 	 * The props the host already passes to its own {@link ConsentPreferences}.
 	 *
 	 * Pass them and one centre serves both purposes: `open` comes back true when either
-	 * the host opened it or this journey asked for it, and `onRequestClose` runs the
+	 * the host opened it or this journey asked for it, and `onClose` runs the
 	 * host's alongside the journey's. A host that already renders a preference centre
 	 * from its own state needs this, because spreading without it would replace the
 	 * host's `open` and leave a centre only this journey can close.
@@ -61,7 +61,7 @@ export interface UseTrackingRequestOptions {
  */
 export interface TrackingRequestPreferences {
 	/** Called when the subject closes the centre, saved or not. */
-	readonly onRequestClose: () => void;
+	readonly onClose: () => void;
 	/** Whether the centre should be open for this journey. */
 	readonly open: boolean;
 }
@@ -180,12 +180,12 @@ export const useTrackingRequest = function useTrackingRequest(
 
 	/** The host's own centre state, so one card serves the app and this journey. */
 	const hostOpen = options.preferences?.open ?? false;
-	const hostRequestClose = options.preferences?.onRequestClose;
+	const hostClose = options.preferences?.onClose;
 
 	const [open, setOpen] = useState(false);
 	const [pending, setPending] = useState(false);
 
-	/** Resolves the wait on the preference centre, from `onRequestClose` or unmount. */
+	/** Resolves the wait on the preference centre, from `onClose` or unmount. */
 	const resolvePreferences = useRef<(() => void) | null>(null);
 	/** The journey in flight, so a second press joins it rather than stacking a prompt. */
 	const inFlight = useRef<Promise<TrackingRequestPayload> | null>(null);
@@ -219,8 +219,8 @@ export const useTrackingRequest = function useTrackingRequest(
 
 		// The card this journey opened may be the host's own. Leaving their `open` true
 		// would trap a sheet the subject has already dismissed, so both closes run.
-		hostRequestClose?.();
-	}, [hostRequestClose]);
+		hostClose?.();
+	}, [hostClose]);
 
 	useEffect((): void => {
 		requestedCategories.current = categories;
@@ -315,7 +315,7 @@ export const useTrackingRequest = function useTrackingRequest(
 	}, [client, decisionsForRequest]);
 
 	const preferences = useMemo<TrackingRequestPreferences>(
-		() => ({ onRequestClose: closePreferences, open: open || hostOpen }),
+		() => ({ onClose: closePreferences, open: open || hostOpen }),
 		[closePreferences, hostOpen, open]
 	);
 
