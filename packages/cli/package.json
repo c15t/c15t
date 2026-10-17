@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/cli",
-	"version": "3.1.0",
+	"version": "3.2.0-canary.0",
 	"description": "Cookie consent setup CLI for c15t. Scaffolds GDPR cookie banners for React, Next.js and other frameworks, configures hosted, self-hosted or offline mode, and adds consent integrations.",
 	"keywords": [
 		"c15t",
