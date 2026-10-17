@@ -378,9 +378,8 @@ To add it:
 3. Set **c15t script URL** to one of:
    * `https://your-project.inth.app/c15t.js` for an Inth project, which
      serves the script with its backend URL already set.
-   * `https://cdn.jsdelivr.net/npm/@c15t/browser@<version>/dist/c15t.js`, pinned
-     to a version, with **Backend URL** set to your backend. The tag fails
-     without it.
+   * `https://cdn.jsdelivr.net/npm/@c15t/browser@<version>/dist/c15t.js`,
+     with **Backend URL** set to your backend. The tag fails without it.
    * `https://cdn.jsdelivr.net/npm/@c15t/browser@<version>/dist/c15t.offline.js`
      for offline mode, with **Backend URL** left blank.
 4. Leave **Default consent state** empty to deny every type except
@@ -389,7 +388,10 @@ To add it:
    get no default from the tag. **Wait for update** defaults to 500
    milliseconds.
 
-The template accepts only Inth and jsDelivr URLs. For a self-hosted backend,
+Use an exact version, such as `3.1.0`. The template rejects tags such as
+`latest` and ranges such as `3.1`, which jsDelivr would move to each new
+release without a change to your container. It accepts only Inth and jsDelivr
+URLs. For a self-hosted backend,
 add its script tag to your page source and untick **Load c15t from this tag**.
 The tag then subscribes to the c15t already on the page. It also does this
 when it finds c15t loaded, whichever setting you choose.

@@ -549,7 +549,6 @@ describe('GTM template', () => {
 
 	it.each([
 		['https://acme.inth.app/c15t.js', true],
-		['https://acme.inth.app/c15t.offline.js', true],
 		['https://acme.inth.app/c15t.headless.js', true],
 		['https://acme.inth.app/c15t.iab.js', true],
 		['https://cdn.jsdelivr.net/npm/@c15t/browser@3.1.0/dist/c15t.js', true],
@@ -577,6 +576,17 @@ describe('GTM template', () => {
 		['https://cdn.jsdelivr.net/npm/@c15t/browser@3.1.0/x/dist/c15t.js', false],
 		['https://acme.inth.app/c15t/c15t.js', false],
 		['https://acme.inth.app/c15t.gpp.js', false],
+		['https://acme.inth.app/c15t.offline.js', false],
+		[
+			'https://cdn.jsdelivr.net/npm/@c15t/browser@3.2.0-canary.4/dist/c15t.headless.js',
+			true,
+		],
+		['https://cdn.jsdelivr.net/npm/@c15t/browser@latest/dist/c15t.js', false],
+		['https://cdn.jsdelivr.net/npm/@c15t/browser@3/dist/c15t.js', false],
+		['https://cdn.jsdelivr.net/npm/@c15t/browser@3.1/dist/c15t.js', false],
+		['https://cdn.jsdelivr.net/npm/@c15t/browser@3.1.x/dist/c15t.js', false],
+		['https://cdn.jsdelivr.net/npm/@c15t/browser@3.1.0.1/dist/c15t.js', false],
+		['https://cdn.jsdelivr.net/npm/@c15t/browser@3.1.0-/dist/c15t.js', false],
 	])('treats %s as allowed: %s', (scriptUrl, allowed) => {
 		const page = createPage();
 		// jsDelivr's hosted c15t.js needs a backend; see the cases below.
@@ -641,6 +651,7 @@ describe('GTM template', () => {
 			'https://acme.inth.app/c15t.iab.js',
 			'https://cdn.jsdelivr.net/npm/@c15t/browser@3.1.0/dist/c15t.offline.js',
 			'https://cdn.jsdelivr.net/npm/@c15t/browser@3.1.0/dist/c15t.headless.js',
+			'https://cdn.jsdelivr.net/npm/@c15t/browser@3.2.0-canary.4/dist/c15t.js',
 		]) {
 			expect(pattern.test(url)).toBe(true);
 		}
@@ -649,6 +660,9 @@ describe('GTM template', () => {
 			'https://acme.inth.app.example.com/c15t.js',
 			'https://acme.inth.app/c15t.gpp.js',
 			'https://cdn.jsdelivr.net/npm/@c15t/browser@3.1.0/dist/c15t.devtools.js',
+			'https://acme.inth.app/c15t.offline.js',
+			'https://cdn.jsdelivr.net/npm/@c15t/browser@latest/dist/c15t.js',
+			'https://cdn.jsdelivr.net/npm/@c15t/browser@3.1/dist/c15t.js',
 		]) {
 			expect(pattern.test(url)).toBe(false);
 		}
