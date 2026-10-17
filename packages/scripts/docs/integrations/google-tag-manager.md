@@ -397,10 +397,15 @@ The tag then subscribes to the c15t already on the page. It also does this
 when it finds c15t loaded, whichever setting you choose.
 
 Once c15t starts, the tag sends an `update` with the visitor's permissions,
-then another after each change. It uses the same category mapping as the
-helper, shown above, and cannot change it. The tag does not push a
-`consent-update` event, so give each non-Google tag a consent requirement in
-its consent settings instead of a `consent-update` trigger.
+then pushes a `consent-update` event. It does both again after each change. It
+uses the same category mapping as the helper, shown above, and cannot change
+it. Unlike the helper, it also pushes the event when c15t starts, because c15t
+usually starts after your page-view triggers have fired.
+
+A tag that its consent settings block does not fire again by itself when the
+visitor allows it. Give each non-Google tag a consent requirement and a Custom
+Event trigger on `consent-update`. If the tag should fire once per page, set
+its firing option to Once per page.
 
 ## Measure opt-in rate
 

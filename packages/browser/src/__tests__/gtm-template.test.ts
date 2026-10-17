@@ -317,7 +317,7 @@ const options: ConsentClientOptions = {
 	ui: false,
 };
 
-const testWindow = window as Window & { c15t?: unknown };
+const testWindow = window as Window & { c15t?: unknown; dataLayer?: unknown };
 
 /** What the c15t script tag does when it runs, configured for this test. */
 const loadC15t = function loadC15t(): C15tGlobal {
@@ -352,6 +352,7 @@ const denied = {
 afterEach(() => {
 	(testWindow.c15t as C15tGlobal | undefined)?.dispose?.();
 	testWindow.c15t = undefined;
+	testWindow.dataLayer = undefined;
 	vi.restoreAllMocks();
 	localStorage.clear();
 	for (const entry of document.cookie.split(';')) {
@@ -437,6 +438,33 @@ describe('GTM template', () => {
 				...denied,
 				security_storage: 'granted',
 			});
+		});
+	});
+
+	it('pushes consent-update after each update', async () => {
+		// How many updates GTM had when each event arrived.
+		const updatesAtEvent: number[] = [];
+		const dataLayer: unknown[] = [];
+		let api: C15tGlobal | undefined;
+		const page = createPage(() => {
+			api = loadC15t();
+		});
+		dataLayer.push = (...entries: unknown[]) => {
+			for (const entry of entries) {
+				expect(entry).toEqual({ event: 'consent-update' });
+				updatesAtEvent.push(page.recorded.updates.length);
+			}
+			return Array.prototype.push.apply(dataLayer, entries);
+		};
+		testWindow.dataLayer = dataLayer;
+
+		page.run(tagData);
+		await vi.waitFor(() => {
+			expect(updatesAtEvent).toEqual([1]);
+		});
+		await api?.acceptAll();
+		await vi.waitFor(() => {
+			expect(updatesAtEvent).toEqual([1, 2]);
 		});
 	});
 

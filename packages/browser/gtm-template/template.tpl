@@ -451,6 +451,9 @@ const applySnapshot = (snapshot) => {
     return;
   }
   updateConsentState(toGoogleConsent(permissions));
+  // A tag blocked by its consent settings does not fire again by itself, so
+  // tags that wait for consent use this event as their trigger.
+  createQueue('dataLayer')({ event: 'consent-update' });
 };
 
 const onReady = (snapshot) => {
@@ -605,6 +608,21 @@ ___WEB_PERMISSIONS___
                   {"type": 1, "string": "c15t.pkg"},
                   {"type": 8, "boolean": true},
                   {"type": 8, "boolean": false},
+                  {"type": 8, "boolean": false}
+                ]
+              },
+              {
+                "type": 3,
+                "mapKey": [
+                  {"type": 1, "string": "key"},
+                  {"type": 1, "string": "read"},
+                  {"type": 1, "string": "write"},
+                  {"type": 1, "string": "execute"}
+                ],
+                "mapValue": [
+                  {"type": 1, "string": "dataLayer"},
+                  {"type": 8, "boolean": true},
+                  {"type": 8, "boolean": true},
                   {"type": 8, "boolean": false}
                 ]
               }
@@ -840,6 +858,24 @@ scenarios:
       personalization_storage: 'granted',
       security_storage: 'granted'
     });
+- name: Each update is followed by a consent-update event
+  code: |-
+    mock('templateStorage', freshStorage());
+    mock('copyFromWindow', () => undefined);
+    const listeners = {};
+    const order = [];
+    mock('createQueue', (key) => (call) => {
+      if (key === 'dataLayer') order.push(call.event);
+      else if (call[0] === 'on') listeners[call[1]] = call[2];
+    });
+    mock('updateConsentState', () => { order.push('update'); });
+
+    runCode({ loadScript: false, waitForUpdate: '500' });
+    listeners.ready({ effectivePermissions: { necessary: true } });
+    listeners.consent({ effectivePermissions: { necessary: true } });
+
+    assertThat(order).isEqualTo(
+      ['update', 'consent-update', 'update', 'consent-update']);
 - name: A consent event before ready is ignored
   code: |-
     mock('templateStorage', freshStorage());
