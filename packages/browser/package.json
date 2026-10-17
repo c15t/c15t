@@ -1,7 +1,7 @@
 {
 	"name": "@c15t/browser",
 	"version": "3.1.0",
-	"description": "Cookie consent banner and GDPR consent manager for Webflow, WordPress, Framer, Squarespace and plain HTML. One script tag, script blocking and an optional IAB TCF build.",
+	"description": "Script-tag build of c15t for Webflow, WordPress, Framer, Squarespace and plain HTML. One script tag, script blocking and an optional IAB TCF build.",
 	"keywords": [
 		"banner",
 		"c15t",
