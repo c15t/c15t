@@ -794,7 +794,7 @@ ___TESTS___
 scenarios:
 - name: An empty defaults table denies everything but security storage
   code: |-
-    mock('templateStorage', freshStorage());
+    mockObject('templateStorage', freshStorage());
     mock('createQueue', () => () => {});
     mock('copyFromWindow', () => undefined);
 
@@ -813,7 +813,7 @@ scenarios:
     assertApi('gtmOnSuccess').wasCalled();
 - name: A region cell becomes a list of uppercase codes
   code: |-
-    mock('templateStorage', freshStorage());
+    mockObject('templateStorage', freshStorage());
     mock('createQueue', () => () => {});
     mock('copyFromWindow', () => undefined);
 
@@ -831,7 +831,7 @@ scenarios:
     assertThat(seen.wait_for_update).isEqualTo(500);
 - name: The ready snapshot updates every consent type
   code: |-
-    mock('templateStorage', freshStorage());
+    mockObject('templateStorage', freshStorage());
     mock('copyFromWindow', () => undefined);
     const listeners = {};
     mock('createQueue', () => (call) => {
@@ -860,7 +860,7 @@ scenarios:
     });
 - name: Each update is followed by a consent-update event
   code: |-
-    mock('templateStorage', freshStorage());
+    mockObject('templateStorage', freshStorage());
     mock('copyFromWindow', () => undefined);
     const listeners = {};
     const order = [];
@@ -878,7 +878,7 @@ scenarios:
       ['update', 'consent-update', 'update', 'consent-update']);
 - name: A consent event before ready is ignored
   code: |-
-    mock('templateStorage', freshStorage());
+    mockObject('templateStorage', freshStorage());
     mock('copyFromWindow', () => undefined);
     const listeners = {};
     mock('createQueue', () => (call) => {
@@ -891,7 +891,7 @@ scenarios:
     assertApi('updateConsentState').wasNotCalled();
 - name: The tag queues the backend URL and loads the script
   code: |-
-    mock('templateStorage', freshStorage());
+    mockObject('templateStorage', freshStorage());
     mock('copyFromWindow', () => undefined);
     const calls = [];
     mock('createQueue', () => (call) => { calls.push(call); });
@@ -913,7 +913,7 @@ scenarios:
     assertApi('gtmOnSuccess').wasCalled();
 - name: c15t already on the page is not loaded again
   code: |-
-    mock('templateStorage', freshStorage());
+    mockObject('templateStorage', freshStorage());
     mock('createQueue', () => () => {});
     mock('copyFromWindow', (key) => key === 'c15t.pkg' ? '@c15t/browser' : undefined);
 
@@ -927,7 +927,7 @@ scenarios:
     assertApi('gtmOnSuccess').wasCalled();
 - name: A URL outside the allowed hosts fails the tag
   code: |-
-    mock('templateStorage', freshStorage());
+    mockObject('templateStorage', freshStorage());
     mock('createQueue', () => () => {});
     mock('copyFromWindow', () => undefined);
 
@@ -939,9 +939,9 @@ scenarios:
 
     assertApi('injectScript').wasNotCalled();
     assertApi('gtmOnFailure').wasCalled();
-- name: jsDelivr c15t.js without a backend URL fails the tag
+- name: The jsDelivr main bundle without a backend URL fails the tag
   code: |-
-    mock('templateStorage', freshStorage());
+    mockObject('templateStorage', freshStorage());
     const calls = [];
     mock('createQueue', () => (call) => { calls.push(call); });
     mock('copyFromWindow', () => undefined);
@@ -956,9 +956,9 @@ scenarios:
     assertThat(calls.length).isEqualTo(0);
     assertApi('injectScript').wasNotCalled();
     assertApi('gtmOnFailure').wasCalled();
-- name: c15t.offline.js with a backend URL fails the tag
+- name: The jsDelivr offline bundle with a backend URL fails the tag
   code: |-
-    mock('templateStorage', freshStorage());
+    mockObject('templateStorage', freshStorage());
     mock('createQueue', () => () => {});
     mock('copyFromWindow', () => undefined);
 
@@ -973,7 +973,7 @@ scenarios:
     assertApi('gtmOnFailure').wasCalled();
 - name: A second firing on the same page does not subscribe again
   code: |-
-    mock('templateStorage', freshStorage());
+    mockObject('templateStorage', freshStorage());
     mock('copyFromWindow', () => undefined);
     let queued = 0;
     mock('createQueue', () => () => { queued += 1; });
@@ -984,7 +984,7 @@ scenarios:
     assertThat(queued).isEqualTo(2);
 - name: A firing after a failed load tries again without subscribing again
   code: |-
-    mock('templateStorage', freshStorage());
+    mockObject('templateStorage', freshStorage());
     mock('copyFromWindow', () => undefined);
     const calls = [];
     mock('createQueue', () => (call) => { calls.push(call); });
@@ -993,14 +993,14 @@ scenarios:
       attempts += 1;
       if (attempts === 1) onFailure(); else onSuccess();
     });
-    const data = {
+    const mockData = {
       loadScript: true,
       scriptUrl: 'https://your-project.inth.app/c15t.js',
       waitForUpdate: '500'
     };
 
-    runCode(data);
-    runCode(data);
+    runCode(mockData);
+    runCode(mockData);
 
     assertThat(attempts).isEqualTo(2);
     assertThat(calls.length).isEqualTo(2);

@@ -701,7 +701,9 @@ describe('GTM template', () => {
 
 /**
  * GTM's test runner, enough for the template's scenarios: `mock`,
- * `runCode`, `assertApi` and `assertThat`.
+ * `mockObject`, `runCode`, `assertApi` and `assertThat`. It follows GTM's
+ * rules where they differ from plain JavaScript, so a scenario that fails in
+ * GTM fails here first.
  */
 describe('GTM template scenarios', () => {
 	const tests = section('TESTS');
@@ -718,6 +720,10 @@ describe('GTM template scenarios', () => {
 
 	it('has scenarios', () => {
 		expect(scenarios.length).toBeGreaterThan(0);
+	});
+
+	it('names scenarios without dots, which GTM rejects on import', () => {
+		expect(scenarios.filter(({ name }) => name.includes('.'))).toEqual([]);
 	});
 
 	it.each(scenarios)('$name', ({ code }) => {
@@ -758,13 +764,19 @@ describe('GTM template scenarios', () => {
 		const assertThat = (actual: unknown) => ({
 			isEqualTo: (expected: unknown) => expect(actual).toEqual(expected),
 		});
+		// A value that is not a function becomes the API's return value, so
+		// object APIs such as templateStorage need mockObject.
 		const mock = (name: string, impl: unknown) => {
-			mocks.set(name, impl);
+			mocks.set(name, typeof impl === 'function' ? impl : () => impl);
+		};
+		const mockObject = (name: string, object: unknown) => {
+			mocks.set(name, object);
 		};
 
+		// GTM already declares `data` in test code, so redeclaring it fails.
 		compile(
-			['mock', 'runCode', 'assertApi', 'assertThat'],
+			['mock', 'mockObject', 'runCode', 'assertApi', 'assertThat', 'data'],
 			`${setup}\n${code}`
-		)(mock, runCode, assertApi, assertThat);
+		)(mock, mockObject, runCode, assertApi, assertThat, {});
 	});
 });
