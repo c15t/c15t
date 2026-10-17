@@ -612,6 +612,8 @@ describe('GTM template', () => {
 		['https://cdn.jsdelivr.net/npm/@c15t/browser@latest/dist/c15t.js', false],
 		['https://cdn.jsdelivr.net/npm/@c15t/browser@3/dist/c15t.js', false],
 		['https://cdn.jsdelivr.net/npm/@c15t/browser@3.1/dist/c15t.js', false],
+		['https://cdn.jsdelivr.net/npm/@c15t/browser@^3.1.0/dist/c15t.js', false],
+		['https://cdn.jsdelivr.net/npm/@c15t/browser@~3.1.0/dist/c15t.js', false],
 		['https://cdn.jsdelivr.net/npm/@c15t/browser@3.1.x/dist/c15t.js', false],
 		['https://cdn.jsdelivr.net/npm/@c15t/browser@3.1.0.1/dist/c15t.js', false],
 		['https://cdn.jsdelivr.net/npm/@c15t/browser@3.1.0-/dist/c15t.js', false],
