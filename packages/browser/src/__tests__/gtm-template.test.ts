@@ -320,11 +320,13 @@ const options: ConsentClientOptions = {
 const testWindow = window as Window & { c15t?: unknown; dataLayer?: unknown };
 
 /** What the c15t script tag does when it runs, configured for this test. */
-const loadC15t = function loadC15t(): C15tGlobal {
+const loadC15t = function loadC15t(
+	pageOptions: ConsentClientOptions = options
+): C15tGlobal {
 	if (Array.isArray(testWindow.c15t)) {
-		testWindow.c15t.push(['config', options]);
+		testWindow.c15t.push(['config', pageOptions]);
 	} else {
-		testWindow.c15t = [['config', options]];
+		testWindow.c15t = [['config', pageOptions]];
 	}
 	const api = installGlobal(createGlobal({ pkg: '@c15t/browser/test' }));
 	api.init();
@@ -534,6 +536,37 @@ describe('GTM template', () => {
 			'ready',
 			'consent',
 		]);
+	});
+
+	it('asks c15t about the ticked categories only', async () => {
+		// The page sets no categories and registers no scripts, as on a site
+		// that loads c15t only through the tag.
+		const { consentCategories: _, ...pageOptions } = options;
+		let api: C15tGlobal | undefined;
+		const page = createPage(() => {
+			api = loadC15t(pageOptions);
+		});
+		page.run({
+			...tagData,
+			categoryMarketing: false,
+			categoryMeasurement: true,
+		});
+
+		expect(api?.client?.consentCategories).toEqual([
+			'necessary',
+			'measurement',
+		]);
+		await vi.waitFor(() => {
+			expect(page.recorded.updates).toHaveLength(1);
+		});
+		await api?.acceptAll();
+		await vi.waitFor(() => {
+			expect(page.recorded.updates.at(-1)).toEqual({
+				...denied,
+				analytics_storage: 'granted',
+				security_storage: 'granted',
+			});
+		});
 	});
 
 	it('fails the tag when the script does not load', () => {

@@ -84,6 +84,50 @@ ___TEMPLATE_PARAMETERS___
   },
   {
     "type": "GROUP",
+    "name": "categoriesGroup",
+    "displayName": "Consent categories",
+    "groupStyle": "NO_ZIPPY",
+    "enablingConditions": [
+      {
+        "paramName": "loadScript",
+        "paramValue": true,
+        "type": "EQUALS"
+      }
+    ],
+    "help": "What c15t asks the visitor about, besides strictly necessary. Tick each purpose your container's tags serve. Untick all to keep the categories your c15t setup already sets.",
+    "subParams": [
+      {
+        "type": "CHECKBOX",
+        "name": "categoryMeasurement",
+        "checkboxText": "Analytics (analytics_storage)",
+        "simpleValueType": true,
+        "defaultValue": true
+      },
+      {
+        "type": "CHECKBOX",
+        "name": "categoryMarketing",
+        "checkboxText": "Marketing (ad_storage, ad_user_data, ad_personalization)",
+        "simpleValueType": true,
+        "defaultValue": true
+      },
+      {
+        "type": "CHECKBOX",
+        "name": "categoryFunctionality",
+        "checkboxText": "Functionality (functionality_storage)",
+        "simpleValueType": true,
+        "defaultValue": false
+      },
+      {
+        "type": "CHECKBOX",
+        "name": "categoryExperience",
+        "checkboxText": "Experience (personalization_storage)",
+        "simpleValueType": true,
+        "defaultValue": false
+      }
+    ]
+  },
+  {
+    "type": "GROUP",
     "name": "consentModeGroup",
     "displayName": "Google Consent Mode",
     "groupStyle": "NO_ZIPPY",
@@ -279,6 +323,14 @@ const CONSENT_MAPPING = {
   experience: ['personalization_storage']
 };
 
+// c15t category -> the checkbox that asks about it.
+const CATEGORY_FIELDS = {
+  functionality: 'categoryFunctionality',
+  measurement: 'categoryMeasurement',
+  marketing: 'categoryMarketing',
+  experience: 'categoryExperience'
+};
+
 const INTH_HOST_SUFFIX = '.inth.app';
 const JSDELIVR_PREFIX = 'cdn.jsdelivr.net/npm/@c15t/browser@';
 const DIGITS = '0123456789';
@@ -391,6 +443,14 @@ const readWaitForUpdate = () => {
   return value === value && value >= 0 ? value : 500;
 };
 
+const readCategories = () => {
+  const categories = [];
+  for (const category in CATEGORY_FIELDS) {
+    if (data[CATEGORY_FIELDS[category]] === true) categories.push(category);
+  }
+  return categories;
+};
+
 const toGoogleConsent = (permissions) => {
   const state = {};
   for (let i = 0; i < CONSENT_TYPES.length; i += 1) {
@@ -491,8 +551,14 @@ if (inject && !isAllowedScriptUrl(scriptUrl)) {
   log('c15t: ' + backendUrlProblem(scriptUrl, backendUrl));
   data.gtmOnFailure();
 } else {
-  if (inject && backendUrl !== '') {
-    c15t(['config', { backendURL: backendUrl }]);
+  if (inject) {
+    // A page that loads c15t only through this tag registers no scripts for
+    // c15t to infer its categories from, so it would ask about none.
+    const config = {};
+    const categories = readCategories();
+    if (backendUrl !== '') config.backendURL = backendUrl;
+    if (categories.length > 0) config.consentCategories = categories;
+    if (config.backendURL || config.consentCategories) c15t(['config', config]);
   }
   // The queue keeps these through a failed load, so a retry reuses them.
   if (templateStorage.getItem('c15tSubscribed') !== true) {
@@ -911,6 +977,42 @@ scenarios:
     assertThat(injected).isEqualTo(
       'https://cdn.jsdelivr.net/npm/@c15t/browser@3.1.0/dist/c15t.js');
     assertApi('gtmOnSuccess').wasCalled();
+- name: The tag queues the ticked categories with the backend URL
+  code: |-
+    mockObject('templateStorage', freshStorage());
+    mock('copyFromWindow', () => undefined);
+    const calls = [];
+    mock('createQueue', () => (call) => { calls.push(call); });
+    mock('injectScript', (url, onSuccess) => { onSuccess(); });
+
+    runCode({
+      loadScript: true,
+      scriptUrl: 'https://your-project.inth.app/c15t.js',
+      categoryMeasurement: true,
+      categoryMarketing: false,
+      categoryExperience: true,
+      waitForUpdate: '500'
+    });
+
+    assertThat(calls[0]).isEqualTo(
+      ['config', { consentCategories: ['measurement', 'experience'] }]);
+    assertThat(calls[1][1]).isEqualTo('ready');
+- name: No ticked categories and no backend URL queue no config
+  code: |-
+    mockObject('templateStorage', freshStorage());
+    mock('copyFromWindow', () => undefined);
+    const calls = [];
+    mock('createQueue', () => (call) => { calls.push(call); });
+    mock('injectScript', (url, onSuccess) => { onSuccess(); });
+
+    runCode({
+      loadScript: true,
+      scriptUrl: 'https://your-project.inth.app/c15t.js',
+      waitForUpdate: '500'
+    });
+
+    assertThat(calls[0][0]).isEqualTo('on');
+    assertThat(calls.length).isEqualTo(2);
 - name: c15t already on the page is not loaded again
   code: |-
     mockObject('templateStorage', freshStorage());
