@@ -369,7 +369,10 @@ both, or Google receives two sets of consent commands.
 To add it:
 
 1. In GTM, open Templates, search the gallery for **c15t Consent
-   Management** and add it.
+   Management** and add it. If it is not listed yet, download
+   [`template.tpl`](https://github.com/c15t/c15t/blob/canary/packages/browser/gtm-template/template.tpl),
+   then under Tag Templates choose New, open the ⋮ menu, choose Import and
+   select the file.
 2. Create a tag from it with the **Consent Initialization - All Pages**
    trigger, so it runs before your other tags.
 3. Set **c15t script URL** to one of:
