@@ -382,7 +382,12 @@ To add it:
      with **Backend URL** set to your backend. The tag fails without it.
    * `https://cdn.jsdelivr.net/npm/@c15t/browser@<version>/dist/c15t.offline.js`
      for offline mode, with **Backend URL** left blank.
-4. Leave **Default consent state** empty to deny every type except
+4. Under **Consent categories**, tick each purpose your container's tags
+   serve. c15t asks the visitor about these, besides strictly necessary.
+   Analytics and Marketing are ticked by default. With none ticked, c15t
+   asks only about categories that your c15t setup sets, and a container
+   loaded only through this tag has none.
+5. Leave **Default consent state** empty to deny every type except
    `security_storage`, or add rows per region. If you add region rows, also
    add a row with **Region** blank. Without it, visitors outside those regions
    get no default from the tag. **Wait for update** defaults to 500
