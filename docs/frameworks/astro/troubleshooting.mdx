@@ -90,6 +90,35 @@ can reach it. To deploy while the backend is down, build with
 fetch at build time, set `mode: manifest({ source: 'runtime' })`. Either way,
 the server fetches the policy at runtime.
 
+## The build is slow during consent setup
+
+**Check.** On Astro 7.4 or later, run the project's installed Astro CLI with
+`build --timings`. If your `build` script runs `astro build`, use:
+
+```sh
+npm run build -- --timings
+```
+
+After a successful build, find `@c15t/astro` in the report's `Integrations`
+section. Read the `astro:config:setup` duration in its row. In `manifest()`
+mode with build-time fetching, this includes the manifest download and other
+c15t setup work. It does not time the request separately. Compare it with the
+report's `Vite plugins` and `Page rendering` sections to locate the build delay.
+
+Astro omits the `Integrations` section when integration hooks take less than
+1% of the build, and shows at most eight integrations. A missing c15t row
+does not mean the integration failed to run. If the build fails before the
+report prints, use the
+[manifest-fetch error guidance](/docs/frameworks/astro/troubleshooting#astro-build-or-astro-dev-cant-fetch-the-manifest).
+
+**Fix.** If `astro:config:setup` takes a long time in `manifest()` mode, check
+how long the build machine takes to reach `${backendURL}/manifest`, or your
+`manifestURL`. The download can wait up to 10 seconds. See
+[build-time manifests](/docs/frameworks/astro/rendering#bundle-the-manifest-during-builds)
+before choosing `manifest({ source: 'runtime' })`, which skips the build-time
+download and loads the policy at runtime instead. `onBuildError: 'runtime'`
+still attempts the download before falling back.
+
 ## A component says `Astro.locals.c15t` is missing
 
 **Check.** `ConsentBanner` and `IABConsentBanner` read the consent context that
