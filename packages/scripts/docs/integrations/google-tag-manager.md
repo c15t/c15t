@@ -380,8 +380,10 @@ To add it:
    * `https://cdn.jsdelivr.net/npm/@c15t/browser@<version>/dist/c15t.offline.js`
      for offline mode, which needs no backend.
 4. Leave **Default consent state** empty to deny every type except
-   `security_storage`, or add rows per region. **Wait for update** defaults to
-   500 milliseconds.
+   `security_storage`, or add rows per region. If you add region rows, also
+   add a row with **Region** blank. Without it, visitors outside those regions
+   get no default from the tag. **Wait for update** defaults to 500
+   milliseconds.
 
 The template accepts only Inth and jsDelivr URLs. For a self-hosted backend,
 add its script tag to your page source and untick **Load c15t from this tag**.
@@ -390,7 +392,9 @@ when it finds c15t loaded, whichever setting you choose.
 
 Once c15t starts, the tag sends an `update` with the visitor's permissions,
 then another after each change. It uses the same category mapping as the
-helper, shown above, and cannot change it.
+helper, shown above, and cannot change it. The tag does not push a
+`consent-update` event, so give each non-Google tag a consent requirement in
+its consent settings instead of a `consent-update` trigger.
 
 ## Measure opt-in rate
 

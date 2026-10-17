@@ -179,7 +179,8 @@ const copy = function copy(value: unknown, seen = new Map()): unknown {
 	return result;
 };
 
-type Loader = (url: string) => void;
+/** Runs the script. Throw to fail the load, or return 'pending' to leave it in flight. */
+type Loader = (url: string) => 'pending' | undefined;
 
 interface Recorded {
 	defaults: Record<string, unknown>[];
@@ -244,13 +245,16 @@ const createPage = function createPage(load: Loader = () => undefined) {
 				throw new Error(`inject_script does not allow ${url}`);
 			}
 			recorded.injected.push(url);
+			let state: 'pending' | undefined;
 			try {
-				load(url);
+				state = load(url);
 			} catch {
 				onFailure();
 				return;
 			}
-			onSuccess();
+			if (state !== 'pending') {
+				onSuccess();
+			}
 		},
 		logToConsole: (...args: unknown[]) => {
 			permission('logging');
@@ -514,9 +518,40 @@ describe('GTM template', () => {
 		expect(page.recorded.logs).toEqual([`c15t: could not load ${inthUrl}`]);
 	});
 
+	it('tries again on a later firing after the script fails to load', async () => {
+		let attempts = 0;
+		const page = createPage(() => {
+			attempts += 1;
+			if (attempts === 1) {
+				throw new Error('network');
+			}
+			loadC15t();
+		});
+		const first = page.run(tagData);
+		const second = page.run(tagData);
+
+		expect(first.failure).toHaveBeenCalledOnce();
+		expect(second.success).toHaveBeenCalledOnce();
+		expect(page.recorded.injected).toEqual([inthUrl, inthUrl]);
+		await vi.waitFor(() => {
+			expect(page.recorded.updates).toHaveLength(1);
+		});
+	});
+
+	it('does not load the script twice while a load is in flight', () => {
+		const page = createPage(() => 'pending');
+		page.run(tagData);
+		const second = page.run(tagData);
+
+		expect(page.recorded.injected).toEqual([inthUrl]);
+		expect(second.success).toHaveBeenCalledOnce();
+	});
+
 	it.each([
 		['https://acme.inth.app/c15t.js', true],
 		['https://acme.inth.app/c15t.offline.js', true],
+		['https://acme.inth.app/c15t.headless.js', true],
+		['https://acme.inth.app/c15t.iab.js', true],
 		['https://cdn.jsdelivr.net/npm/@c15t/browser@3.1.0/dist/c15t.js', true],
 		[
 			'https://cdn.jsdelivr.net/npm/@c15t/browser@3.1.0/dist/c15t.offline.js',
@@ -530,6 +565,18 @@ describe('GTM template', () => {
 		['http://acme.inth.app/c15t.js', false],
 		['https://acme.inth.app/c15t.js?v=1', false],
 		['https://cdn.jsdelivr.net/npm/@c15t/browser@3.1.0/dist/other.js', false],
+		[
+			'https://cdn.jsdelivr.net/npm/@c15t/browser@3.1.0/dist/c15t.gpp.js',
+			false,
+		],
+		[
+			'https://cdn.jsdelivr.net/npm/@c15t/browser@3.1.0/dist/c15t.devtools.js',
+			false,
+		],
+		['https://cdn.jsdelivr.net/npm/@c15t/browser@3.1.0/c15t.js', false],
+		['https://cdn.jsdelivr.net/npm/@c15t/browser@3.1.0/x/dist/c15t.js', false],
+		['https://acme.inth.app/c15t/c15t.js', false],
+		['https://acme.inth.app/c15t.gpp.js', false],
 	])('treats %s as allowed: %s', (scriptUrl, allowed) => {
 		const page = createPage();
 		const result = page.run({ ...tagData, scriptUrl });
@@ -550,13 +597,17 @@ describe('GTM template', () => {
 
 		for (const url of [
 			'https://acme.inth.app/c15t.js',
+			'https://acme.inth.app/c15t.iab.js',
 			'https://cdn.jsdelivr.net/npm/@c15t/browser@3.1.0/dist/c15t.offline.js',
+			'https://cdn.jsdelivr.net/npm/@c15t/browser@3.1.0/dist/c15t.headless.js',
 		]) {
 			expect(pattern.test(url)).toBe(true);
 		}
 		for (const url of [
 			'https://example.com/c15t.js',
 			'https://acme.inth.app.example.com/c15t.js',
+			'https://acme.inth.app/c15t.gpp.js',
+			'https://cdn.jsdelivr.net/npm/@c15t/browser@3.1.0/dist/c15t.devtools.js',
 		]) {
 			expect(pattern.test(url)).toBe(false);
 		}

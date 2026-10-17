@@ -53,9 +53,9 @@ ___TEMPLATE_PARAMETERS___
       {
         "type": "REGEX",
         "args": [
-          "^https://([a-z0-9-]+\\.inth\\.app/c15t(\\.[a-z]+)?\\.js|cdn\\.jsdelivr\\.net/npm/@c15t/browser@[0-9A-Za-z.-]+/dist/c15t(\\.[a-z]+)?\\.js)$"
+          "^https://([a-z0-9-]+\\.inth\\.app|cdn\\.jsdelivr\\.net/npm/@c15t/browser@[0-9A-Za-z.-]+/dist)/c15t(\\.offline|\\.headless|\\.iab)?\\.js$"
         ],
-        "errorMessage": "Use your Inth project URL with /c15t.js on the end, or a pinned jsDelivr URL for @c15t/browser."
+        "errorMessage": "Use your Inth project URL with /c15t.js on the end, or a pinned jsDelivr URL for c15t.js, c15t.offline.js, c15t.headless.js or c15t.iab.js from @c15t/browser."
       }
     ],
     "enablingConditions": [
@@ -203,7 +203,7 @@ ___TEMPLATE_PARAMETERS___
           }
         ],
         "newRowButtonText": "Add a region",
-        "help": "What Google's tags may do before c15t reports the visitor's permissions. With no rows, every type is denied except security storage, which follows c15t's necessary category."
+        "help": "What Google's tags may do before c15t reports the visitor's permissions. With no rows, every type is denied except security storage, which follows c15t's necessary category. If you add region rows, add one with Region blank for everyone else."
       },
       {
         "type": "TEXT",
@@ -280,7 +280,15 @@ const CONSENT_MAPPING = {
 };
 
 const INTH_HOST_SUFFIX = '.inth.app';
-const JSDELIVR_PREFIX = 'https://cdn.jsdelivr.net/npm/@c15t/browser@';
+const JSDELIVR_PREFIX = 'cdn.jsdelivr.net/npm/@c15t/browser@';
+// Bundles that install c15t. Add-ons such as c15t.gpp.js wait for one of
+// these, so loading one alone would show nothing and never send an update.
+const SCRIPT_FILES = [
+  'c15t.js',
+  'c15t.offline.js',
+  'c15t.headless.js',
+  'c15t.iab.js'
+];
 
 const isType = (key) => CONSENT_TYPES.indexOf(key) !== -1;
 const isValue = (value) => value === 'granted' || value === 'denied';
@@ -291,26 +299,25 @@ const endsWith = (value, suffix) =>
   value.length >= suffix.length &&
   value.substring(value.length - suffix.length) === suffix;
 
-const isScriptFile = (path) => {
-  const file = path.substring(path.lastIndexOf('/') + 1);
-  return file.indexOf('c15t') === 0 && endsWith(file, '.js');
-};
-
-// Mirrors the inject_script permission, so a wrong URL fails with a message
-// instead of a permission error.
+// Matches the script URL field's validator: an Inth project's /c15t.js, or
+// a bundle from a pinned @c15t/browser version on jsDelivr.
 const isAllowedScriptUrl = (url) => {
   if (typeof url !== 'string' || url.indexOf('https://') !== 0) return false;
   if (url.indexOf('?') !== -1 || url.indexOf('#') !== -1) return false;
-  if (url.indexOf(JSDELIVR_PREFIX) === 0) return isScriptFile(url);
   const rest = url.substring('https://'.length);
-  const slash = rest.indexOf('/');
+  const slash = rest.lastIndexOf('/');
   if (slash === -1) return false;
-  const host = rest.substring(0, slash);
+  if (SCRIPT_FILES.indexOf(rest.substring(slash + 1)) === -1) return false;
+  const dir = rest.substring(0, slash);
+  if (dir.indexOf(JSDELIVR_PREFIX) === 0) {
+    const version = dir.substring(JSDELIVR_PREFIX.length);
+    const dist = version.indexOf('/');
+    return dist > 0 && version.substring(dist) === '/dist';
+  }
   return (
-    endsWith(host, INTH_HOST_SUFFIX) &&
-    host.length > INTH_HOST_SUFFIX.length &&
-    rest.substring(slash).indexOf('/c15t') === 0 &&
-    isScriptFile(rest.substring(slash))
+    endsWith(dir, INTH_HOST_SUFFIX) &&
+    dir.length > INTH_HOST_SUFFIX.length &&
+    dir.indexOf('/') === -1
   );
 };
 
@@ -411,40 +418,46 @@ const onConsent = (snapshot) => {
 
 // 3. Subscribe once per page and load c15t if asked to.
 
-if (templateStorage.getItem('c15tSubscribed') === true) {
-  data.gtmOnSuccess();
+// `window.c15t` is the queue array until the script runs, then the API,
+// whose push() takes the same calls.
+const c15t = createQueue('c15t');
+const loaded = typeof copyFromWindow('c15t.pkg') === 'string';
+// Another firing may already be loading the script.
+const inject =
+  data.loadScript === true &&
+  !loaded &&
+  templateStorage.getItem('c15tLoading') !== true;
+const scriptUrl =
+  typeof data.scriptUrl === 'string' ? data.scriptUrl.trim() : '';
+const backendUrl =
+  typeof data.backendUrl === 'string' ? data.backendUrl.trim() : '';
+
+if (inject && !isAllowedScriptUrl(scriptUrl)) {
+  log('c15t: "c15t script URL" must be an Inth project /c15t.js URL or a ' +
+      'jsDelivr @c15t/browser URL for c15t.js, c15t.offline.js, ' +
+      'c15t.headless.js or c15t.iab.js. Got: ' + scriptUrl);
+  data.gtmOnFailure();
 } else {
-  templateStorage.setItem('c15tSubscribed', true);
-
-  // `window.c15t` is the queue array until the script runs, then the API,
-  // whose push() takes the same calls.
-  const c15t = createQueue('c15t');
-  const loaded = typeof copyFromWindow('c15t.pkg') === 'string';
-  const inject = data.loadScript === true && !loaded;
-  const scriptUrl =
-    typeof data.scriptUrl === 'string' ? data.scriptUrl.trim() : '';
-  const backendUrl =
-    typeof data.backendUrl === 'string' ? data.backendUrl.trim() : '';
-
-  if (inject && !isAllowedScriptUrl(scriptUrl)) {
-    log('c15t: "c15t script URL" must be an Inth project /c15t.js URL or a ' +
-        'jsDelivr @c15t/browser URL. Got: ' + scriptUrl);
-    data.gtmOnFailure();
-  } else {
-    if (inject && backendUrl !== '') {
-      c15t(['config', { backendURL: backendUrl }]);
-    }
+  if (inject && backendUrl !== '') {
+    c15t(['config', { backendURL: backendUrl }]);
+  }
+  // The queue keeps these through a failed load, so a retry reuses them.
+  if (templateStorage.getItem('c15tSubscribed') !== true) {
+    templateStorage.setItem('c15tSubscribed', true);
     c15t(['on', 'ready', onReady]);
     c15t(['on', 'consent', onConsent]);
+  }
 
-    if (inject) {
-      injectScript(scriptUrl, data.gtmOnSuccess, () => {
-        log('c15t: could not load ' + scriptUrl);
-        data.gtmOnFailure();
-      }, scriptUrl);
-    } else {
-      data.gtmOnSuccess();
-    }
+  if (inject) {
+    templateStorage.setItem('c15tLoading', true);
+    injectScript(scriptUrl, data.gtmOnSuccess, () => {
+      // Let a later firing try again.
+      templateStorage.setItem('c15tLoading', false);
+      log('c15t: could not load ' + scriptUrl);
+      data.gtmOnFailure();
+    });
+  } else {
+    data.gtmOnSuccess();
   }
 }
 
@@ -851,6 +864,30 @@ scenarios:
     runCode({ loadScript: false, waitForUpdate: '500' });
 
     assertThat(queued).isEqualTo(2);
+- name: A firing after a failed load tries again without subscribing again
+  code: |-
+    mock('templateStorage', freshStorage());
+    mock('copyFromWindow', () => undefined);
+    const calls = [];
+    mock('createQueue', () => (call) => { calls.push(call); });
+    let attempts = 0;
+    mock('injectScript', (url, onSuccess, onFailure) => {
+      attempts += 1;
+      if (attempts === 1) onFailure(); else onSuccess();
+    });
+    const data = {
+      loadScript: true,
+      scriptUrl: 'https://your-project.inth.app/c15t.js',
+      waitForUpdate: '500'
+    };
+
+    runCode(data);
+    runCode(data);
+
+    assertThat(attempts).isEqualTo(2);
+    assertThat(calls.length).isEqualTo(2);
+    assertApi('gtmOnFailure').wasCalled();
+    assertApi('gtmOnSuccess').wasCalled();
 setup: |-
   // templateStorage lives for the page, so each scenario needs its own.
   const freshStorage = () => {
