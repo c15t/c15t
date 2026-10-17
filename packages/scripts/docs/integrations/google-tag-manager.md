@@ -356,6 +356,42 @@ settings, or fire it from a Custom Event trigger on `consent-update`. If a
 vendor must make no request before consent, remove it from the container and
 register its own c15t helper instead.
 
+## Use the GTM template instead
+
+Use the `googleTagManager` helper where you can. It sends the Consent Mode
+default before `gtm.js` starts, and it can hold the container back until
+consent. The c15t Consent Management template in the GTM Community Template
+Gallery is for sites that manage scripts only through GTM. It loads the c15t
+script-tag build, `@c15t/browser`, from inside the container and forwards
+c15t's permissions to Google. Use the helper or the template on a page, never
+both, or Google receives two sets of consent commands.
+
+To add it:
+
+1. In GTM, open Templates, search the gallery for **c15t Consent
+   Management** and add it.
+2. Create a tag from it with the **Consent Initialization - All Pages**
+   trigger, so it runs before your other tags.
+3. Set **c15t script URL** to one of:
+   * `https://your-project.inth.app/c15t.js` for an Inth project, which
+     serves the script with its backend URL already set.
+   * `https://cdn.jsdelivr.net/npm/@c15t/browser@<version>/dist/c15t.js`, pinned
+     to a version, with **Backend URL** set to your backend.
+   * `https://cdn.jsdelivr.net/npm/@c15t/browser@<version>/dist/c15t.offline.js`
+     for offline mode, which needs no backend.
+4. Leave **Default consent state** empty to deny every type except
+   `security_storage`, or add rows per region. **Wait for update** defaults to
+   500 milliseconds.
+
+The template accepts only Inth and jsDelivr URLs. For a self-hosted backend,
+add its script tag to your page source and untick **Load c15t from this tag**.
+The tag then subscribes to the c15t already on the page. It also does this
+when it finds c15t loaded, whichever setting you choose.
+
+Once c15t starts, the tag sends an `update` with the visitor's permissions,
+then another after each change. It uses the same category mapping as the
+helper, shown above, and cannot change it.
+
 ## Measure opt-in rate
 
 If you run a banner experiment, the backend already counts visitors and
