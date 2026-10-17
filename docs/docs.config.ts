@@ -900,6 +900,11 @@ export default defineDocsConfig({
 					slug: 'ads-and-pixels',
 					title: 'Ads and pixels',
 				},
+				{
+					pages: ['shopify'],
+					slug: 'commerce',
+					title: 'Commerce',
+				},
 			],
 			pages: ['overview', 'building-integrations'],
 			slug: 'integrations',

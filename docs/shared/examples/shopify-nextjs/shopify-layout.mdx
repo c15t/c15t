@@ -1,0 +1,59 @@
+{/* Generated from examples/shopify-nextjs/app/layout.tsx (docs:shopify-layout) by scripts/sync-example-docs.ts. Edit the source file. */}
+
+```tsx title="app/layout.tsx"
+import {
+	ConsentBanner,
+	ConsentDialog,
+	ConsentDialogLink,
+	ConsentRoot,
+} from 'c15t/next';
+import { resolveConsent } from 'c15t/next/server';
+import { connection } from 'next/server';
+import { Suspense } from 'react';
+import type { ReactNode } from 'react';
+
+import { PageViewTracker } from '@/components/page-view-tracker';
+import {
+	ShopifyAnalytics,
+	ShopifyConsentSync,
+} from '@/components/shopify-analytics';
+import { SiteHeader } from '@/components/site-header';
+import { StoreProviders } from '@/components/store-providers';
+import { currency, i18n, shop } from '@/lib/shop';
+import { getCart } from '@/lib/storefront';
+
+import './globals.css';
+
+const RootLayout = async ({ children }: { children: ReactNode }) => {
+	// The cart comes from the visitor's cookie, so every page renders per request.
+	await connection();
+
+	return (
+		<html lang="en">
+			<head>
+				{/* Hydrogen's scripts belong in the head, once per page. */}
+				<ShopifyAnalytics i18n={{ ...i18n, currency }} shop={shop} />
+			</head>
+			<body>
+				<ConsentRoot state={resolveConsent()}>
+					<ShopifyConsentSync />
+					<StoreProviders cart={getCart()}>
+						<SiteHeader />
+						<Suspense fallback={null}>
+							<PageViewTracker />
+						</Suspense>
+						{children}
+					</StoreProviders>
+					<ConsentBanner />
+					<ConsentDialog />
+					<footer className="site-footer">
+						<ConsentDialogLink>Privacy settings</ConsentDialogLink>
+					</footer>
+				</ConsentRoot>
+			</body>
+		</html>
+	);
+};
+
+export default RootLayout;
+```
