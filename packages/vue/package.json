@@ -1,7 +1,7 @@
 {
 	"name": "@c15t/vue",
 	"version": "3.1.0",
-	"description": "Vue and Nuxt cookie consent banner, consent dialog and preference center. A GDPR consent management platform (CMP) with a Nuxt module, Google Consent Mode v2 and IAB TCF.",
+	"description": "Vue cookie consent banner and Nuxt cookie consent module for c15t, with a consent dialog and preference center.",
 	"keywords": [
 		"banner",
 		"ccpa",

@@ -1,7 +1,7 @@
 {
 	"name": "@c15t/react",
 	"version": "3.1.0",
-	"description": "React cookie consent banner and consent manager with a preference center and headless hooks. GDPR CMP with Google Consent Mode v2 and IAB TCF.",
+	"description": "React cookie consent banner and React consent dialog for c15t, plus a React cookie banner, preference center and headless hooks.",
 	"keywords": [
 		"cmp",
 		"consent",
