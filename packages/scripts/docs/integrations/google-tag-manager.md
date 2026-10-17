@@ -379,9 +379,10 @@ To add it:
    * `https://your-project.inth.app/c15t.js` for an Inth project, which
      serves the script with its backend URL already set.
    * `https://cdn.jsdelivr.net/npm/@c15t/browser@<version>/dist/c15t.js`, pinned
-     to a version, with **Backend URL** set to your backend.
+     to a version, with **Backend URL** set to your backend. The tag fails
+     without it.
    * `https://cdn.jsdelivr.net/npm/@c15t/browser@<version>/dist/c15t.offline.js`
-     for offline mode, which needs no backend.
+     for offline mode, with **Backend URL** left blank.
 4. Leave **Default consent state** empty to deny every type except
    `security_storage`, or add rows per region. If you add region rows, also
    add a row with **Region** blank. Without it, visitors outside those regions

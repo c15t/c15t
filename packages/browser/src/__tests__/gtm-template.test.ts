@@ -579,10 +579,51 @@ describe('GTM template', () => {
 		['https://acme.inth.app/c15t.gpp.js', false],
 	])('treats %s as allowed: %s', (scriptUrl, allowed) => {
 		const page = createPage();
-		const result = page.run({ ...tagData, scriptUrl });
+		// jsDelivr's hosted c15t.js needs a backend; see the cases below.
+		const backendUrl = scriptUrl.endsWith('/dist/c15t.js')
+			? 'https://acme.inth.app'
+			: '';
+		const result = page.run({ ...tagData, backendUrl, scriptUrl });
 
 		expect(page.recorded.injected).toEqual(allowed ? [scriptUrl] : []);
 		expect(result.failure).toHaveBeenCalledTimes(allowed ? 0 : 1);
+	});
+
+	it.each([
+		[
+			'https://cdn.jsdelivr.net/npm/@c15t/browser@3.1.0/dist/c15t.js',
+			'',
+			'needs a "Backend URL"',
+		],
+		[
+			'https://cdn.jsdelivr.net/npm/@c15t/browser@3.1.0/dist/c15t.offline.js',
+			'https://acme.inth.app',
+			'uses no backend',
+		],
+	])('fails %s with Backend URL "%s"', (scriptUrl, backendUrl, message) => {
+		const page = createPage();
+		const result = page.run({ ...tagData, backendUrl, scriptUrl });
+
+		expect(result.failure).toHaveBeenCalledOnce();
+		expect(page.recorded.injected).toEqual([]);
+		expect(page.recorded.logs.join('\n')).toContain(message);
+		expect(testWindow.c15t).toEqual([]);
+	});
+
+	it.each([
+		['https://acme.inth.app/c15t.js', ''],
+		['https://acme.inth.app/c15t.js', 'https://other.inth.app'],
+		[
+			'https://cdn.jsdelivr.net/npm/@c15t/browser@3.1.0/dist/c15t.headless.js',
+			'',
+		],
+		['https://cdn.jsdelivr.net/npm/@c15t/browser@3.1.0/dist/c15t.iab.js', ''],
+	])('loads %s with Backend URL "%s"', (scriptUrl, backendUrl) => {
+		const page = createPage();
+		const result = page.run({ ...tagData, backendUrl, scriptUrl });
+
+		expect(result.success).toHaveBeenCalledOnce();
+		expect(page.recorded.injected).toEqual([scriptUrl]);
 	});
 
 	it('matches the script URL field validator', () => {

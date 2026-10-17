@@ -80,7 +80,7 @@ ___TEMPLATE_PARAMETERS___
         "type": "EQUALS"
       }
     ],
-    "help": "Only needed for jsDelivr's c15t.js. Inth serves its /c15t.js with the backend URL already set, and c15t.offline.js uses none."
+    "help": "Required for jsDelivr's c15t.js. Leave it blank for c15t.offline.js, which uses no backend. Inth serves its /c15t.js with the backend URL already set. jsDelivr's c15t.headless.js and c15t.iab.js run offline without one."
   },
   {
     "type": "GROUP",
@@ -321,6 +321,19 @@ const isAllowedScriptUrl = (url) => {
   );
 };
 
+// c15t.js from jsDelivr runs in hosted mode and stops without a backend URL.
+// c15t.offline.js stops when it gets one. Inth bundles carry their own.
+const backendUrlProblem = (url, backend) => {
+  if (url.indexOf('https://' + JSDELIVR_PREFIX) !== 0) return '';
+  if (endsWith(url, '/c15t.js') && backend === '') {
+    return 'jsDelivr\'s c15t.js needs a "Backend URL".';
+  }
+  if (endsWith(url, '/c15t.offline.js') && backend !== '') {
+    return 'c15t.offline.js uses no backend. Clear "Backend URL".';
+  }
+  return '';
+};
+
 const splitRegions = (raw) => {
   const regions = [];
   if (typeof raw !== 'string') return regions;
@@ -436,6 +449,9 @@ if (inject && !isAllowedScriptUrl(scriptUrl)) {
   log('c15t: "c15t script URL" must be an Inth project /c15t.js URL or a ' +
       'jsDelivr @c15t/browser URL for c15t.js, c15t.offline.js, ' +
       'c15t.headless.js or c15t.iab.js. Got: ' + scriptUrl);
+  data.gtmOnFailure();
+} else if (inject && backendUrlProblem(scriptUrl, backendUrl) !== '') {
+  log('c15t: ' + backendUrlProblem(scriptUrl, backendUrl));
   data.gtmOnFailure();
 } else {
   if (inject && backendUrl !== '') {
@@ -848,6 +864,38 @@ scenarios:
     runCode({
       loadScript: true,
       scriptUrl: 'https://example.com/c15t.js',
+      waitForUpdate: '500'
+    });
+
+    assertApi('injectScript').wasNotCalled();
+    assertApi('gtmOnFailure').wasCalled();
+- name: jsDelivr c15t.js without a backend URL fails the tag
+  code: |-
+    mock('templateStorage', freshStorage());
+    const calls = [];
+    mock('createQueue', () => (call) => { calls.push(call); });
+    mock('copyFromWindow', () => undefined);
+
+    runCode({
+      loadScript: true,
+      scriptUrl: 'https://cdn.jsdelivr.net/npm/@c15t/browser@3.1.0/dist/c15t.js',
+      backendUrl: '',
+      waitForUpdate: '500'
+    });
+
+    assertThat(calls.length).isEqualTo(0);
+    assertApi('injectScript').wasNotCalled();
+    assertApi('gtmOnFailure').wasCalled();
+- name: c15t.offline.js with a backend URL fails the tag
+  code: |-
+    mock('templateStorage', freshStorage());
+    mock('createQueue', () => () => {});
+    mock('copyFromWindow', () => undefined);
+
+    runCode({
+      loadScript: true,
+      scriptUrl: 'https://cdn.jsdelivr.net/npm/@c15t/browser@3.1.0/dist/c15t.offline.js',
+      backendUrl: 'https://your-project.inth.app',
       waitForUpdate: '500'
     });
 
