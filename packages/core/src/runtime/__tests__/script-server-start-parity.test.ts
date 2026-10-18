@@ -21,6 +21,7 @@ import { serverScriptStart } from '../script-server-start';
 import type { ConsentRuntimeOptions, RuntimePrefetch } from '../types';
 
 type SignalWindow = Window & {
+	__c15tLoaderRan?: boolean;
 	__c15tStarted?: unknown;
 	__signals?: boolean[];
 };
@@ -175,6 +176,7 @@ const resetPage = function resetPage(): void {
 	}
 	document.head.innerHTML = '';
 	const page = window as SignalWindow;
+	delete page.__c15tLoaderRan;
 	delete page.__c15tStarted;
 	delete page.__signals;
 };
@@ -201,8 +203,11 @@ const runPage = async function runPage(
 	if (withServerStart) {
 		const code = serverScriptStart(options);
 		if (code) {
+			// A hidden page runs the work at once, before the loader mounts.
+			const hidden = vi.spyOn(document, 'hidden', 'get').mockReturnValue(true);
 			// oxlint-disable-next-line no-new-func -- Runs the inline script, as the page would.
 			new Function(code)();
+			hidden.mockRestore();
 		}
 	}
 	const runtime = createConsentRuntime(options);
@@ -229,4 +234,37 @@ test.each(cases)('$name', async (scenario) => {
 
 	expect(withStart).toEqual(loaderOnly);
 	expect(withStart.elements).toBeLessThanOrEqual(1);
+});
+
+test('a loader that mounts before the first frame starts the script once', async () => {
+	resetPage();
+	const options: ConsentRuntimeOptions = {
+		mode,
+		prefetch: prefetchFor({ marketing: true }),
+		scripts: [pixel],
+	};
+	vi.spyOn(document, 'hidden', 'get').mockReturnValue(false);
+	const frames: FrameRequestCallback[] = [];
+	vi.spyOn(window, 'requestAnimationFrame').mockImplementation((frame) => {
+		frames.push(frame);
+		return frames.length;
+	});
+	// oxlint-disable-next-line no-new-func -- Runs the inline script, as the page would.
+	new Function(serverScriptStart(options) ?? '')();
+	const runtime = createConsentRuntime(options);
+	runtime.start();
+	await new Promise((resolve) => {
+		setTimeout(resolve, 50);
+	});
+	for (const frame of frames) {
+		frame(performance.now());
+	}
+	await new Promise((resolve) => {
+		setTimeout(resolve, 50);
+	});
+
+	expect(document.querySelectorAll(`script[src="${SRC}"]`)).toHaveLength(1);
+	expect((window as SignalWindow).__signals).toEqual([true]);
+	runtime.dispose();
+	vi.restoreAllMocks();
 });

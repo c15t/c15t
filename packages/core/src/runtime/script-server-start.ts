@@ -128,6 +128,15 @@ const AFTER_PRIORITY_IMAGES = `function(f){var h=[].filter.call(document.querySe
 const INSERT_SCRIPT = `function(id,src,o){var e=document.createElement('script');e.src=src;e.__c15tConsent=o.consent;if(o.async!=null)e.async=o.async;if(o.defer)e.defer=true;if(o.fetchPriority)e.fetchPriority=o.fetchPriority;if(o.nonce||n)e.nonce=o.nonce||n;for(var k in o.attributes||{})e.setAttribute(k,o.attributes[k]);e.addEventListener('load',function(){e.__c15tDone='load'});e.addEventListener('error',function(){e.__c15tDone='error'});s[id]=e;var g=e.__c15tInsert=function(){if(e.__c15tInsert!==g)return;delete e.__c15tInsert;if(!e.__c15tAdopted&&z()){e.__c15tHeld=true;return}(o.target==='body'?document.body||document.head:document.head).appendChild(e)};w(g)}`;
 
 /**
+ * Runs `r` in a task after the next frame. The start script streams in
+ * with the page, often in the task that paints it first; setup and
+ * inserts there push first paint back. A hidden document paints no
+ * frames, so it runs `r` at once.
+ */
+const AFTER_FIRST_PAINT =
+	'document.hidden?r():requestAnimationFrame(function(){setTimeout(r)})';
+
+/**
  * What the client seeds from the server's records: each category's
  * decision as `[value, confirmedAt]`, the vendor choice's time, and the
  * earliest of those times.
@@ -217,6 +226,10 @@ const newerStoredDecision = function newerStoredDecision(
  * mounts them once. A host must not call this for cached or prerendered
  * HTML.
  *
+ * The work waits until after first paint. When the loader mounts first,
+ * it sets `__c15tLoaderRan` and the code does nothing: the loader has
+ * started those scripts itself.
+ *
  * @param options - The runtime's options, with a resolved `prefetch`.
  * @returns The script's code, or `undefined` when no script starts.
  * @internal
@@ -299,5 +312,6 @@ export const serverScriptStart = function serverScriptStart(
 	if (starts.length === 0) {
 		return;
 	}
-	return `(function(){${newerStoredDecision(snapshot, resolveStorageKeys(storageFor(options)))}var n=document.currentScript&&document.currentScript.nonce,s=window.__c15tStarted=window.__c15tStarted||{},w=${AFTER_PRIORITY_IMAGES},i=${INSERT_SCRIPT};${[...preludes].join(';')};${starts.join('')}})()`;
+	// `document.currentScript` is only set while the script first runs.
+	return `(function(){var n=document.currentScript&&document.currentScript.nonce,r=function(){if(window.__c15tLoaderRan)return;${newerStoredDecision(snapshot, resolveStorageKeys(storageFor(options)))}var s=window.__c15tStarted=window.__c15tStarted||{},w=${AFTER_PRIORITY_IMAGES},i=${INSERT_SCRIPT};${[...preludes].join(';')};${starts.join('')}};${AFTER_FIRST_PAINT}})()`;
 };

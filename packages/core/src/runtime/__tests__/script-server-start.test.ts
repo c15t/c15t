@@ -25,6 +25,7 @@ import { serverScriptStart } from '../script-server-start';
 import type { RuntimePrefetch } from '../types';
 
 type StartedWindow = Window & {
+	__c15tLoaderRan?: boolean;
 	__c15tSetup?: number;
 	__c15tStarted?: Record<string, HTMLScriptElement>;
 };
@@ -62,8 +63,16 @@ const prefetchFor = function prefetchFor(
 	};
 };
 
-const run = function run(code: string | undefined): void {
+/**
+ * Runs the generated inline script, as the page would. The page is hidden
+ * unless `visible`, so the work runs at once rather than after a frame.
+ */
+const run = function run(
+	code: string | undefined,
+	{ visible = false }: { visible?: boolean } = {}
+): void {
 	expect(code).toBeDefined();
+	vi.spyOn(document, 'hidden', 'get').mockReturnValue(!visible);
 	// oxlint-disable-next-line no-new-func -- Runs the generated inline script, as the page would.
 	new Function(code ?? '')();
 };
@@ -78,6 +87,7 @@ const clearCookies = function clearCookies(): void {
 afterEach(() => {
 	vi.restoreAllMocks();
 	const started = window as StartedWindow;
+	delete started.__c15tLoaderRan;
 	delete started.__c15tSetup;
 	delete started.__c15tStarted;
 	localStorage.clear();
@@ -447,6 +457,64 @@ describe('serverScriptStart', () => {
 			startPixel();
 
 			expect(document.head.querySelectorAll('script')).toHaveLength(1);
+		});
+	});
+
+	describe('in a visible page', () => {
+		const startVisible = function startVisible(): void {
+			vi.useFakeTimers();
+			run(
+				serverScriptStart({
+					mode,
+					prefetch: prefetchFor({ marketing: true }),
+					scripts: [pixel],
+				}),
+				{ visible: true }
+			);
+		};
+
+		test('waits for the task after the next frame', () => {
+			startVisible();
+			expect((window as StartedWindow).__c15tSetup).toBeUndefined();
+
+			vi.advanceTimersToNextFrame();
+			expect((window as StartedWindow).__c15tSetup).toBeUndefined();
+
+			vi.runOnlyPendingTimers();
+			expect((window as StartedWindow).__c15tSetup).toBe(1);
+			expect((window as StartedWindow).__c15tStarted?.pixel?.isConnected).toBe(
+				true
+			);
+		});
+
+		test('leaves the scripts to a loader that mounted first', () => {
+			startVisible();
+			(window as StartedWindow).__c15tLoaderRan = true;
+
+			vi.advanceTimersToNextFrame();
+			vi.runOnlyPendingTimers();
+
+			expect((window as StartedWindow).__c15tSetup).toBeUndefined();
+			expect((window as StartedWindow).__c15tStarted).toBeUndefined();
+		});
+
+		test("keeps the inline script's nonce after it ran", () => {
+			const currentScript = vi
+				.spyOn(document, 'currentScript', 'get')
+				.mockReturnValue(
+					Object.assign(document.createElement('script'), {
+						nonce: 'page-nonce',
+					})
+				);
+			startVisible();
+			currentScript.mockReturnValue(null);
+
+			vi.advanceTimersToNextFrame();
+			vi.runOnlyPendingTimers();
+
+			expect((window as StartedWindow).__c15tStarted?.pixel?.nonce).toBe(
+				'page-nonce'
+			);
 		});
 	});
 

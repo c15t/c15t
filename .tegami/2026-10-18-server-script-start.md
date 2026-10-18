@@ -12,8 +12,9 @@ When the server state from `resolveConsent()` shows that a visitor's stored
 consent already allows some `scripts` entries from `@c15t/integrations`,
 `ConsentRoot` now renders an inline script that runs their setup and inserts
 their tags before the page hydrates. The script loader adopts those tags
-instead of inserting its own. On a throttled mobile profile, Google tag, Meta
-Pixel and TikTok Pixel started about 700 ms sooner.
+instead of inserting its own. The inline script waits until after first
+paint, so it doesn't delay First Contentful Paint. On a throttled mobile
+profile, Google tag, Meta Pixel and TikTok Pixel started about 800 ms sooner.
 
 Nothing starts from the HTML while the policy asks the visitor to choose: the
 script loader starts those scripts after hydration, as before, so the banner

@@ -339,10 +339,14 @@ const completeMount = (deps: MountDeps, pending: PendingMount): void => {
  * resource, keyed like the loader's element id by `resourceKey ?? id`.
  * It may still be waiting to be inserted, or held. An element that is
  * none of these, such as one a loader removed, is dropped.
+ *
+ * Sets `__c15tLoaderRan`, so HTML code that hasn't run yet leaves the
+ * script to this loader.
  */
 const serverStartedFor = function serverStartedFor(
 	script: Script
 ): ServerStartedElement | undefined {
+	(globalThis as { __c15tLoaderRan?: boolean }).__c15tLoaderRan = true;
 	const started = serverStartedRegistry();
 	const key = script.resourceKey ?? script.id;
 	const element = started?.[key];
