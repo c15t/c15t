@@ -31,9 +31,8 @@ whether the HTML belongs to one visitor or to everyone.
 
 By default, every server render reads the visitor's consent cookie and
 location headers, resolves their policy from the bundled snapshot, and sends
-the result with the page. The browser reuses it during hydration, so
-consent-gated scripts can start right after hydration and the banner needs no
-extra request. The browser bundle holds no resolver, snapshot or policy
+the result with the page. The browser reuses it during hydration, so the
+banner needs no extra request. The browser bundle holds no resolver, snapshot or policy
 rules. The [quickstart](/docs/frameworks/nuxt/quickstart) sets this up, and
 `examples/nuxt` in the c15t repository runs it.
 
