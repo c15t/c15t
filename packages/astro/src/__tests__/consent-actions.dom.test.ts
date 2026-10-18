@@ -119,7 +119,11 @@ const renderReactBanner = async function renderReactBanner(
 	// The React banner loads its code once the policy shows it; wait for
 	// the buttons rather than a fixed number of ticks.
 	await vi.waitFor(async () => {
-		await act(() => new Promise((resolve) => setTimeout(resolve, 10)));
+		await act(async () => {
+			await new Promise((resolve) => {
+				setTimeout(resolve, 10);
+			});
+		});
 		if (!host.querySelector('button')) {
 			throw new Error('The React banner has not rendered');
 		}
