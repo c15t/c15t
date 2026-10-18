@@ -262,7 +262,11 @@ describe('serverScriptStart', () => {
 		] as const)('reads the keys %s names', (_, extra) => {
 			localStorage.setItem(
 				'site-consent-vendors',
-				encodeVendorChoice({ confirmedAt: CONFIRMED_AT + 1, denied: ['pixel'] })
+				encodeVendorChoice({
+					confirmedAt: CONFIRMED_AT + 1,
+					denied: ['pixel'],
+					version: 1,
+				})
 			);
 
 			startPixel(undefined, extra);

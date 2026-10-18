@@ -102,7 +102,16 @@ const cases: Case[] = [
 	},
 	{
 		name: 'category granted, vendor denied',
-		options: { vendors: [{ category: 'marketing', id: 'acme' }] },
+		options: {
+			vendors: [
+				{
+					category: 'marketing',
+					id: 'acme',
+					name: 'Acme',
+					privacyPolicyUrl: 'https://acme.example/privacy',
+				},
+			],
+		},
 		prefetch: prefetchFor({ marketing: true }, {}, {}, ['acme']),
 		script: { vendor: 'acme' },
 	},
@@ -150,7 +159,7 @@ const storeDenial = async function storeDenial(at: number): Promise<void> {
 		prefetch: { initialPolicyResolution: matchedResolution(optInRule()) },
 	});
 	writer.start();
-	await writer.kernel.commands.save('necessary');
+	await writer.kernel.commands.save('none');
 	await new Promise((resolve) => {
 		setTimeout(resolve, 20);
 	});
