@@ -14,6 +14,14 @@ import type { ScriptServerStart } from '@c15t/core';
 import { RUNTIME_VALUE_KIND } from '../types';
 import type { ManifestStep } from '../types';
 
+/** JSON safe inside a `<script>` element. */
+const inlineJSON = function inlineJSON(value: unknown): string {
+	return JSON.stringify(value)
+		.replace(/</gu, '\\u003c')
+		.replace(/\u2028/gu, '\\u2028')
+		.replace(/\u2029/gu, '\\u2029');
+};
+
 /** The global name of the shared runner the prelude defines. */
 const RUNNER = '__c15tRunSteps';
 
@@ -22,7 +30,7 @@ const RUNNER = '__c15tRunSteps';
  * callGlobal, pushToQueue, setGlobalPath and defineQueueMethods with the
  * default queue format. Keep it in step with `runtime.ts`.
  */
-const RUNNER_SOURCE = `function(steps){var w=window,K=${JSON.stringify(RUNTIME_VALUE_KIND)};
+const RUNNER_SOURCE = `function(steps){var w=window,K=${inlineJSON(RUNTIME_VALUE_KIND)};
 function c(v){if(v&&typeof v==='object'){if(!Array.isArray(v)&&v.kind===K&&(v.value==='date'||v.value==='timestamp'))return v.value==='date'?new Date():Date.now();if(Array.isArray(v))return v.map(c);var o={};for(var k in v)o[k]=c(v[k]);return o}return v}
 function q(queue,owner){var t='global' in queue&&typeof queue.global==='string'?w[queue.global]:owner?owner[queue.property]:undefined;return Array.isArray(t)?t:undefined}
 for(var i=0;i<steps.length;i++){var s=steps[i];(function(s){switch(s.type){
@@ -55,14 +63,6 @@ const runsInline = function runsInline(step: ManifestStep): boolean {
 			return false;
 		}
 	}
-};
-
-/** JSON safe inside a `<script>` element. */
-const inlineJSON = function inlineJSON(value: unknown): string {
-	return JSON.stringify(value)
-		.replace(/</gu, '\\u003c')
-		.replace(/\u2028/gu, '\\u2028')
-		.replace(/\u2029/gu, '\\u2029');
 };
 
 /**
