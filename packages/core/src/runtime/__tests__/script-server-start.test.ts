@@ -165,6 +165,26 @@ describe('serverScriptStart', () => {
 			expect(element?.isConnected).toBe(false);
 			expect(element).toHaveProperty('__c15tHeld', true);
 		});
+
+		test('inserts the element a loader adopted, which owns the consent check', () => {
+			const { element, hero } = startWithHero();
+			Object.assign(element ?? {}, { __c15tAdopted: true });
+			const { choice } = choiceRecords(
+				{ marketing: false },
+				{ confirmedAt: CONFIRMED_AT + 1 }
+			);
+			localStorage.setItem(
+				'c15t',
+				encodeStoredConsentEnvelopeJson({
+					categories: choice?.categories ?? {},
+					version: 3,
+				})
+			);
+
+			hero.dispatchEvent(new Event('load'));
+
+			expect(element?.isConnected).toBe(true);
+		});
 	});
 
 	test.each([

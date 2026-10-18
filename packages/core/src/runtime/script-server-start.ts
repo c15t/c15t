@@ -116,14 +116,16 @@ const AFTER_PRIORITY_IMAGES = `function(f){var h=[].filter.call(document.querySe
  * the loader to adopt under `__c15tStarted[key]`, keyed like the loader's
  * element id by `resourceKey ?? id`, then inserts it after the page's
  * priority images; until then `__c15tInsert` holds the insert, and the
- * loader cancels it by deleting it. The insert checks the stored consent
- * again first: when it changed during the wait, it sets `__c15tHeld` and
- * leaves the insert to a loader that runs the script. `__c15tConsent`
+ * loader cancels it by deleting it. Until a loader adopts it, the insert
+ * checks the stored consent again first: when it changed during the wait,
+ * it sets `__c15tHeld` and leaves the insert to a loader that runs the
+ * script. An adopted element skips that check, since its loader decides
+ * consent and cancels a revoked insert itself. `__c15tConsent`
  * records whether its setup ran with consent. The script's own `nonce`
  * wins over the inline script's. No DOM id or marker, so the anonymized id
  * the loader gives it later is the only one it has.
  */
-const INSERT_SCRIPT = `function(id,src,o){var e=document.createElement('script');e.src=src;e.__c15tConsent=o.consent;if(o.async!=null)e.async=o.async;if(o.defer)e.defer=true;if(o.fetchPriority)e.fetchPriority=o.fetchPriority;if(o.nonce||n)e.nonce=o.nonce||n;for(var k in o.attributes||{})e.setAttribute(k,o.attributes[k]);e.addEventListener('load',function(){e.__c15tDone='load'});e.addEventListener('error',function(){e.__c15tDone='error'});s[id]=e;var g=e.__c15tInsert=function(){if(e.__c15tInsert!==g)return;delete e.__c15tInsert;if(z()){e.__c15tHeld=true;return}(o.target==='body'?document.body||document.head:document.head).appendChild(e)};w(g)}`;
+const INSERT_SCRIPT = `function(id,src,o){var e=document.createElement('script');e.src=src;e.__c15tConsent=o.consent;if(o.async!=null)e.async=o.async;if(o.defer)e.defer=true;if(o.fetchPriority)e.fetchPriority=o.fetchPriority;if(o.nonce||n)e.nonce=o.nonce||n;for(var k in o.attributes||{})e.setAttribute(k,o.attributes[k]);e.addEventListener('load',function(){e.__c15tDone='load'});e.addEventListener('error',function(){e.__c15tDone='error'});s[id]=e;var g=e.__c15tInsert=function(){if(e.__c15tInsert!==g)return;delete e.__c15tInsert;if(!e.__c15tAdopted&&z()){e.__c15tHeld=true;return}(o.target==='body'?document.body||document.head:document.head).appendChild(e)};w(g)}`;
 
 /**
  * What the client seeds from the server's records: each category's
