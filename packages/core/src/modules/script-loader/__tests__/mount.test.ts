@@ -194,6 +194,278 @@ describe('mountScript', () => {
 	});
 });
 
+describe('mountScript with a server-started element', () => {
+	type StartedWindow = Window & {
+		__c15tStarted?: Record<string, HTMLScriptElement>;
+	};
+
+	const startOnServer = function startOnServer(
+		id: string,
+		src: string,
+		done?: 'load' | 'error'
+	): HTMLScriptElement {
+		const element = document.createElement('script');
+		element.setAttribute('src', src);
+		if (done) {
+			Object.assign(element, { __c15tDone: done });
+		}
+		document.head.appendChild(element);
+		const started = window as StartedWindow;
+		started.__c15tStarted = { ...started.__c15tStarted, [id]: element };
+		return element;
+	};
+
+	afterEach(() => {
+		delete (window as StartedWindow).__c15tStarted;
+	});
+
+	test('adopts the element instead of inserting another', async () => {
+		const { deps, emitted } = makeDeps();
+		const onBeforeLoad = vi.fn();
+		const onLoad = vi.fn();
+		const script: Script = {
+			category: 'marketing',
+			id: 's',
+			onBeforeLoad,
+			onLoad,
+			src: 'https://x/s.js',
+		};
+		const element = startOnServer('s', script.src ?? '', 'load');
+
+		mountScript(deps, script, createConsentKernel().getSnapshot(), true, null);
+		await Promise.resolve();
+
+		expect(document.head.querySelectorAll('script')).toHaveLength(1);
+		expect(deps.loadedElements.get('s')).toBe(element);
+		expect(element.id).toBe(deps.elementIds.resolve(script));
+		expect(onBeforeLoad).toHaveBeenCalledWith(
+			expect.objectContaining({ hasConsent: true, startedOnServer: true })
+		);
+		expect(onLoad).toHaveBeenCalledOnce();
+		expect(emitted).toContainEqual({ action: 'already_loaded', scriptId: 's' });
+		expect((window as StartedWindow).__c15tStarted).toEqual({});
+	});
+
+	test('fires onLoad when the adopted element finishes later', () => {
+		const { deps } = makeDeps();
+		const onLoad = vi.fn();
+		const script: Script = {
+			category: 'marketing',
+			id: 's',
+			onLoad,
+			src: 'https://x/s.js',
+		};
+		const element = startOnServer('s', script.src ?? '');
+
+		mountScript(deps, script, createConsentKernel().getSnapshot(), true, null);
+		element.dispatchEvent(new Event('load'));
+
+		expect(onLoad).toHaveBeenCalledOnce();
+	});
+
+	test('adopts the element when the src differs, and says so', () => {
+		const { deps } = makeDeps();
+		const emit = vi.spyOn(deps, 'emit');
+		const script: Script = {
+			category: 'marketing',
+			id: 's',
+			src: 'https://x/s.js',
+		};
+		const started = startOnServer('s', 'https://x/old.js');
+
+		mountScript(deps, script, createConsentKernel().getSnapshot(), true, null);
+
+		expect(document.head.querySelectorAll('script')).toHaveLength(1);
+		expect(deps.loadedElements.get('s')).toBe(started);
+		expect(emit).toHaveBeenCalledWith(
+			expect.objectContaining({
+				action: 'already_loaded',
+				data: { serverSrc: 'https://x/old.js' },
+			})
+		);
+	});
+
+	describe('still waiting to be inserted', () => {
+		type PendingElement = HTMLScriptElement & { __c15tInsert?: () => void };
+
+		/** Mirrors the inline start's pending insert. */
+		const startPending = function startPending(src: string): {
+			element: PendingElement;
+			insert: () => void;
+		} {
+			const element: PendingElement = document.createElement('script');
+			element.setAttribute('src', src);
+			const insert = () => {
+				if (element.__c15tInsert !== insert) {
+					return;
+				}
+				delete element.__c15tInsert;
+				document.head.appendChild(element);
+			};
+			element.__c15tInsert = insert;
+			const started = window as StartedWindow;
+			started.__c15tStarted = { ...started.__c15tStarted, s: element };
+			return { element, insert };
+		};
+
+		const pendingScript = (extra: Partial<Script> = {}): Script => ({
+			category: 'marketing',
+			id: 's',
+			src: 'https://x/s.js',
+			...extra,
+		});
+
+		test('adopts the element and leaves the insert to the start', () => {
+			const { deps } = makeDeps();
+			const onLoad = vi.fn();
+			const script = pendingScript({ onLoad });
+			const { element, insert } = startPending(script.src ?? '');
+
+			mountScript(
+				deps,
+				script,
+				createConsentKernel().getSnapshot(),
+				true,
+				null
+			);
+
+			expect(deps.loadedElements.get('s')).toBe(element);
+			expect(document.head.querySelector('script')).toBeNull();
+
+			insert();
+			element.dispatchEvent(new Event('load'));
+
+			expect(document.head.querySelectorAll('script')).toHaveLength(1);
+			expect(onLoad).toHaveBeenCalledOnce();
+		});
+
+		test.each([
+			['a script', {}],
+			[
+				'a persistAfterConsentRevoked script',
+				{ persistAfterConsentRevoked: true },
+			],
+		])(
+			'cancels the insert when consent is withdrawn first, for %s',
+			(_, extra) => {
+				const { deps } = makeDeps();
+				const script = pendingScript(extra);
+				const { insert } = startPending(script.src ?? '');
+				const snapshot = createConsentKernel().getSnapshot();
+
+				mountScript(deps, script, snapshot, true, null);
+				unmountScript(deps, script, snapshot, false);
+				insert();
+
+				expect(document.head.querySelector('script')).toBeNull();
+				expect(deps.loadedElements.has('s')).toBe(false);
+				expect(deps.retainedElements.has('s')).toBe(false);
+			}
+		);
+	});
+
+	test('adopts an alwaysLoad element the server started without consent', () => {
+		const { deps } = makeDeps();
+		const onBeforeLoad = vi.fn();
+		const onConsentChange = vi.fn();
+		const script: Script = {
+			alwaysLoad: true,
+			category: 'marketing',
+			id: 's',
+			onBeforeLoad,
+			onConsentChange,
+			src: 'https://x/s.js',
+		};
+		const started = startOnServer('s', script.src ?? '');
+		Object.assign(started, { __c15tConsent: false });
+
+		mountScript(deps, script, createConsentKernel().getSnapshot(), false, null);
+
+		expect(document.head.querySelectorAll('script')).toHaveLength(1);
+		expect(deps.loadedElements.get('s')).toBe(started);
+		expect(onBeforeLoad).toHaveBeenCalledWith(
+			expect.objectContaining({ hasConsent: false, startedOnServer: true })
+		);
+		expect(onConsentChange).not.toHaveBeenCalled();
+	});
+
+	test('tells the script when consent changed since the server started it', () => {
+		const { deps } = makeDeps();
+		const calls: [string, boolean][] = [];
+		const script: Script = {
+			alwaysLoad: true,
+			category: 'marketing',
+			id: 's',
+			onBeforeLoad: (info) => calls.push(['onBeforeLoad', info.hasConsent]),
+			onConsentChange: (info) =>
+				calls.push(['onConsentChange', info.hasConsent]),
+			src: 'https://x/s.js',
+		};
+		startOnServer('s', script.src ?? '');
+
+		mountScript(deps, script, createConsentKernel().getSnapshot(), false, null);
+
+		expect(calls).toEqual([
+			['onBeforeLoad', true],
+			['onConsentChange', false],
+		]);
+	});
+
+	describe('when the client will not run it', () => {
+		const grantedScript = (extra: Partial<Script> = {}): Script => ({
+			category: 'marketing',
+			id: 's',
+			src: 'https://x/s.js',
+			...extra,
+		});
+
+		test('cancels an insert still waiting', () => {
+			const { deps } = makeDeps();
+			const element: HTMLScriptElement & { __c15tInsert?: () => void } =
+				document.createElement('script');
+			// Mirrors the inline start's pending insert.
+			const insert = () => {
+				if (element.__c15tInsert === insert) {
+					document.head.appendChild(element);
+				}
+			};
+			element.__c15tInsert = insert;
+			(window as StartedWindow).__c15tStarted = { s: element };
+
+			unmountScript(
+				deps,
+				grantedScript(),
+				createConsentKernel().getSnapshot(),
+				false
+			);
+			insert();
+
+			expect(document.head.querySelector('script')).toBeNull();
+			expect((window as StartedWindow).__c15tStarted).toEqual({});
+		});
+
+		test('removes an inserted element and tells the script', () => {
+			const { deps } = makeDeps();
+			const calls: [string, boolean][] = [];
+			const script = grantedScript({
+				onBeforeLoad: (info) => calls.push(['onBeforeLoad', info.hasConsent]),
+				onConsentChange: (info) =>
+					calls.push(['onConsentChange', info.hasConsent]),
+			});
+			startOnServer('s', script.src ?? '');
+
+			unmountScript(deps, script, createConsentKernel().getSnapshot(), false);
+
+			expect(document.head.querySelector('script')).toBeNull();
+			expect(deps.loadedElements.has('s')).toBe(false);
+			expect(calls).toEqual([
+				['onBeforeLoad', true],
+				['onConsentChange', false],
+			]);
+		});
+	});
+});
+
 describe('unmountScript', () => {
 	test('persistAfterConsentRevoked keeps DOM but drops registry reference', () => {
 		const { deps } = makeDeps();

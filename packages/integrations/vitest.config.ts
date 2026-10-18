@@ -12,6 +12,9 @@ export default mergeConfig(
 	defineConfig({
 		resolve: {
 			alias: {
+				// The server runner, not the browser stub the `imports` field
+				// picks for browser bundles.
+				'#inline-start': resolve(__dirname, './src/engine/inline-start.ts'),
 				// Exercise the docs example against the source under test.
 				'@c15t/integrations/sentry': resolve(
 					__dirname,
