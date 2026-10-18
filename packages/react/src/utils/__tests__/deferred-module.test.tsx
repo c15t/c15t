@@ -1,7 +1,7 @@
 import { Component, useState } from 'react';
 import type { ReactNode } from 'react';
 import { createRoot, hydrateRoot } from 'react-dom/client';
-import { renderToReadableStream } from 'react-dom/server';
+import { renderToReadableStream, renderToString } from 'react-dom/server';
 import { expect, test, vi } from 'vitest';
 
 import { createDeferredModule } from '../deferred-module';
@@ -220,5 +220,26 @@ test('reveals the first lazy export after its module was fully preloaded', async
 	} finally {
 		root.unmount();
 		container.remove();
+	}
+});
+
+test('renders a loaded module in the first server pass', async () => {
+	const fixture = deferred();
+	const Deferred = fixture.module.component((module) => module.Content);
+	const preload = fixture.module.preload();
+	fixture.resolve(exports);
+	await preload;
+	const errors: unknown[] = [];
+	const error = vi
+		.spyOn(console, 'error')
+		.mockImplementation((...args) => errors.push(...args));
+	try {
+		// renderToString cannot wait: a suspended part is left to the client.
+		const container = document.createElement('div');
+		container.innerHTML = renderToString(<Deferred label="Server" />);
+		expect(container.textContent).toBe('Server: 0');
+		expect(errors).toEqual([]);
+	} finally {
+		error.mockRestore();
 	}
 });

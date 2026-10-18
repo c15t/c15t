@@ -46,6 +46,13 @@ an underlined text appearance. They do not submit an opt-out by themselves.
 It does not verify disclosure or access to rights. Configure your legal links
 and keep preferences reachable after the banner closes.
 
+The banner's code is a separate chunk. `ConsentBanner` loads it when the
+banner shows, or when no choice is stored and the policy is still resolving.
+A visitor whose earlier choice still stands doesn't download it. A
+server-rendered banner keeps its HTML on the page until the code arrives, and
+taps on its buttons before then still count. Composed layouts built from
+`ConsentBanner.<Part>` load the code whenever they render.
+
 ## Props
 
 <import src="../../../shared/react/components/consent-banner.mdx#props" />

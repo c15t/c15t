@@ -518,6 +518,14 @@ export const createFrameworkPolicyDriver = ({
 					now: setup.clock.now(),
 				});
 				const app = tree(true);
+				// A server loads the banner's code when it starts. This server
+				// render runs in a browser: the first pass starts loading the
+				// code, and a pass without it leaves a boundary to the client.
+				await vi.waitFor(() => {
+					if (renderToString(app).includes('<!--$!-->')) {
+						throw new Error('The banner code has not loaded');
+					}
+				});
 				container.innerHTML = renderToString(app);
 				const serializedEvidence = container.querySelector(
 					'[data-testid="policy-server-evidence"]'
@@ -586,6 +594,24 @@ export const createFrameworkPolicyDriver = ({
 				await waitForKernel();
 				await kernel.commands.init();
 				await settle();
+				// The banner's code loads once the policy shows it, which can
+				// take longer than a fixed settle under load.
+				const { activeUI, model } = kernel.getSnapshot();
+				if (
+					activeUI === 'banner' &&
+					(model === 'opt-in' || model === 'opt-out')
+				) {
+					await vi.waitFor(
+						() => {
+							if (
+								!container?.querySelector('[data-testid="consent-banner-root"]')
+							) {
+								throw new Error('The banner has not rendered');
+							}
+						},
+						{ interval: 25, timeout: 5000 }
+					);
+				}
 			}
 		};
 		const click = async (testId: string) => {

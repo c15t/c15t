@@ -1,5 +1,8 @@
 'use client';
 
+import type * as C15tCoreTypes from '@c15t/core';
+import type { ConsentSnapshot } from '@c15t/core';
+import { useEffect } from 'react';
 import type { ComponentType } from 'react';
 
 import {
@@ -14,9 +17,16 @@ import type {
 	ConsentWidgetCompoundComponent,
 	ConsentWidgetProps,
 } from './components/preferences';
+import type {
+	ConsentBannerCompoundComponent,
+	ConsentBannerProps,
+} from './components/prompt';
 import { FIRST_PAINT_SHEETS } from './components/shared/first-paint-sheets';
+import { StreamedConsentSurface } from './components/shared/streamed-surface';
 import { preloadSurfaceSheets } from './components/shared/surface-styles';
 import { useActiveUI } from './hooks';
+import { useIABPolicyGuard } from './hooks/use-iab-policy-guard';
+import { useKernelSelector } from './kernel-selector';
 import { createDeferredModule } from './utils/deferred-module';
 
 type AnyComponent = ComponentType<Record<string, unknown>>;
@@ -33,6 +43,12 @@ const dialogModule = createDeferredModule(() => {
 const widgetModule = createDeferredModule(
 	() => import('./components/preferences')
 );
+const bannerModule = createDeferredModule(() => import('./components/prompt'));
+// The server renders a banner the policy shows into the first HTML. Load
+// its code at startup, so that render has it.
+if (typeof document === 'undefined') {
+	void bannerModule.preload();
+}
 const lazyDialogExport = (name: string) =>
 	dialogModule.component(
 		(module) => (module as Record<string, unknown>)[name] as AnyComponent
@@ -40,6 +56,13 @@ const lazyDialogExport = (name: string) =>
 const lazyWidgetExport = (name: string) =>
 	widgetModule.component(
 		(module) => (module as Record<string, unknown>)[name] as AnyComponent
+	);
+const lazyBannerExport = (name: string) =>
+	bannerModule.component(
+		(module) =>
+			(module.ConsentBanner as unknown as Record<string, unknown>)[
+				name
+			] as AnyComponent
 	);
 
 registerDialogChunkWarmer(() => {
@@ -66,6 +89,59 @@ const LazyConsentDialog = (props: ConsentDialogProps) => {
 
 const LazyConsentWidget = (props: ConsentWidgetProps) => (
 	<LazyConsentWidgetComponent {...props} />
+);
+
+const LazyConsentBannerComponent = bannerModule.component(
+	(module) => module.ConsentBanner
+);
+
+/** Matches the default of the banner root's own `models` prop. */
+const DEFAULT_BANNER_MODELS: readonly C15tCoreTypes.Model[] = [
+	'opt-in',
+	'opt-out',
+];
+
+/**
+ * Whether a banner may show before the policy has resolved: nothing says
+ * otherwise until the visitor has made or dismissed a choice.
+ */
+const bannerLikely = (snap: ConsentSnapshot): boolean =>
+	snap.activeUI === 'banner' ||
+	(snap.resolution.status !== 'matched' &&
+		snap.explicitChoice === null &&
+		snap.noticeDismissal === null);
+
+const ConsentBannerGate = (props: ConsentBannerProps) => {
+	// Here as well as in the banner: it throws without the banner's code.
+	useIABPolicyGuard();
+	const models = props.models ?? DEFAULT_BANNER_MODELS;
+	const show = useKernelSelector(
+		(snap) =>
+			snap.activeUI === 'banner' &&
+			snap.resolution.status === 'matched' &&
+			models.includes(snap.model)
+	);
+	const likely = useKernelSelector(bannerLikely);
+	// A banner the browser shows later, once the policy resolves, needs its
+	// code then. Load it meanwhile, unless a stored choice makes it unlikely.
+	useEffect(() => {
+		if (likely) {
+			void bannerModule.preload();
+		}
+	}, [likely]);
+	return show ? <LazyConsentBannerComponent {...props} /> : null;
+};
+
+/**
+ * The banner's code loads only when it shows, or may show soon. A returning
+ * visitor whose choice stands downloads none of it. A server-rendered
+ * banner keeps its HTML until the code arrives, and an early tap on it is
+ * replayed then.
+ */
+const LazyConsentBanner = (props: ConsentBannerProps) => (
+	<StreamedConsentSurface>
+		<ConsentBannerGate {...props} />
+	</StreamedConsentSurface>
 );
 
 const withLazyProperties = function withLazyProperties<T extends AnyComponent>(
@@ -131,3 +207,27 @@ export const ConsentWidget = withLazyProperties(
 	],
 	lazyWidgetExport
 ) as ConsentWidgetCompoundComponent;
+
+export const ConsentBanner = withLazyProperties(
+	LazyConsentBanner,
+	[
+		'AcceptButton',
+		'Actions',
+		'Card',
+		'Content',
+		'CustomizeButton',
+		'Description',
+		'DismissButton',
+		'Footer',
+		'FooterSubGroup',
+		'Header',
+		'Overlay',
+		'PolicyActions',
+		'RejectButton',
+		'RightLink',
+		'Rights',
+		'Root',
+		'Title',
+	],
+	lazyBannerExport
+) as ConsentBannerCompoundComponent;

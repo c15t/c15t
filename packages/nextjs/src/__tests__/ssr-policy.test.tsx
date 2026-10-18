@@ -100,6 +100,14 @@ const hydrate = async (config: KernelConfig) => {
 	);
 	container = document.createElement('div');
 	document.body.append(container);
+	// A server loads the banner's code when it starts. This server
+	// render runs in a browser: the first pass starts loading the
+	// code, and a pass without it leaves a boundary to the client.
+	await vi.waitFor(() => {
+		if (renderToString(app).includes('<!--$!-->')) {
+			throw new Error('The banner code has not loaded');
+		}
+	});
 	container.innerHTML = renderToString(app);
 	const server = container.innerHTML;
 	const prompts: boolean[] = [server.includes('consent-banner-root')];

@@ -78,6 +78,19 @@ export const createDeferredModule = <ModuleType,>(
 			select: (module: ModuleType) => ComponentType<Props>
 		): ComponentType<Props> {
 			const LazyComponent = lazy(() => {
+				// A thenable that settles inside `then` lets React render the
+				// loaded module at once. A promise would suspend this first
+				// render, which drops the part from `renderToString` output and
+				// moves it out of a streamed shell.
+				if (snapshot.status === 'ready') {
+					const loaded = { default: select(snapshot.module) };
+					return {
+						// oxlint-disable-next-line unicorn/no-thenable -- React.lazy reads a thenable.
+						then: (onReady: (value: typeof loaded) => void) => {
+							onReady(loaded);
+						},
+					} as unknown as Promise<typeof loaded>;
+				}
 				const selected = (async () => {
 					const module = await load(true);
 					return { default: select(module) };

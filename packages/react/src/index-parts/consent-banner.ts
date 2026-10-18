@@ -4,4 +4,5 @@
  * (esbuild) does not treat every module the index names as part of an app
  * that imports one hook: only the groups it uses are live.
  */
-export { ConsentBanner, useConsentBannerSurface } from '../components/prompt';
+export { ConsentBanner } from '../aggregate-components';
+export { useConsentBannerSurface } from '../components/prompt/surface-context';
