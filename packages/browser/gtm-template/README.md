@@ -27,8 +27,9 @@ the real sandbox.
 ## Publish to the gallery
 
 The gallery reads templates from a public GitHub repository with
-`template.tpl`, `metadata.yaml` and a `LICENSE` at its root. Keep that
-repository, such as `c15t/gtm-template`, as a copy of this directory:
+`template.tpl`, `metadata.yaml` and a `LICENSE` at its root.
+[`inthhq/c15t-gtm-template`](https://github.com/inthhq/c15t-gtm-template) is
+that repository. Keep it as a copy of this directory:
 
 1. Copy `template.tpl` and the root `LICENSE` into the mirror repository and
    commit.
@@ -43,6 +44,10 @@ repository, such as `c15t/gtm-template`, as a copy of this directory:
        changeNotes: Initial release.
    ```
 
-3. Commit `metadata.yaml`. For the first release, open the gallery in GTM,
-   choose Submit Template from the ⋮ menu and enter the repository URL. Later
-   versions appear once a new SHA is added to `metadata.yaml`.
+3. Commit `metadata.yaml` and push. Later versions appear in the gallery once
+   a new SHA is added to `metadata.yaml`.
+
+The template was first submitted from the
+[standalone gallery](https://tagmanager.google.com/gallery/) through
+⋮ (More actions) → Submit template. The gallery inside a GTM workspace has no
+submit option.
