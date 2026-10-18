@@ -453,6 +453,86 @@ describe('lazyBrowserManifest()', () => {
 		expect(response?.policyResolution).toMatchObject({ status: 'matched' });
 	});
 
+	const resolvedPrefetch = {
+		initialPolicyResolution: { status: 'matched' },
+	} as unknown as ProviderTransportContext['prefetch'];
+
+	const routeManifest = () =>
+		fetchSpy.mockImplementation((url: string) =>
+			Promise.resolve(
+				String(url) === '/api/c15t/manifest'
+					? jsonResponse(everywhereManifest)
+					: jsonResponse({ subjectId: 'sub_saved' })
+			)
+		);
+
+	const build = (
+		transportContext: ProviderTransportContext,
+		load: LoadManifestBrowserModule
+	) =>
+		lazyBrowserManifest(
+			{
+				backendURL: 'https://backend.example',
+				manifestURL: '/api/c15t/manifest',
+			},
+			load
+		)(transportContext);
+
+	test('a server state with a policy starts neither until an init needs them', async () => {
+		routeManifest();
+		const load = vi.fn<LoadManifestBrowserModule>(() =>
+			Promise.resolve({ createBrowserManifestTransport })
+		);
+		const built = build({ ...context, prefetch: resolvedPrefetch }, load);
+
+		expect(load).not.toHaveBeenCalled();
+		expect(fetchSpy).not.toHaveBeenCalled();
+
+		const response = await built.init?.(initContext());
+
+		expect(load).toHaveBeenCalledTimes(1);
+		expect(response?.policyResolution).toMatchObject({ status: 'matched' });
+	});
+
+	test('a streamed state with a policy starts neither', async () => {
+		const load = vi.fn<LoadManifestBrowserModule>(() =>
+			Promise.resolve({ createBrowserManifestTransport })
+		);
+		const stream = Promise.withResolvers<typeof resolvedPrefetch>();
+		build({ ...context, pendingPrefetch: stream.promise }, load);
+		stream.resolve(resolvedPrefetch);
+		await stream.promise;
+		await Promise.resolve();
+
+		expect(load).not.toHaveBeenCalled();
+		expect(fetchSpy).not.toHaveBeenCalled();
+	});
+
+	test('a streamed state without a policy starts both once it arrives', async () => {
+		routeManifest();
+		const load = vi.fn<LoadManifestBrowserModule>(() =>
+			Promise.resolve({ createBrowserManifestTransport })
+		);
+		const stream = Promise.withResolvers<undefined>();
+		const built = build({ ...context, pendingPrefetch: stream.promise }, load);
+
+		expect(load).not.toHaveBeenCalled();
+		expect(fetchSpy).not.toHaveBeenCalled();
+
+		stream.resolve(undefined);
+		await vi.waitFor(() => expect(load).toHaveBeenCalledTimes(1));
+		expect(fetchSpy.mock.calls.map(([url]) => String(url))).toEqual([
+			'/api/c15t/manifest',
+		]);
+
+		const response = await built.init?.(initContext());
+
+		// The resolver read the early manifest response.
+		expect(load).toHaveBeenCalledTimes(1);
+		expect(fetchSpy).toHaveBeenCalledTimes(1);
+		expect(response?.policyResolution).toMatchObject({ status: 'matched' });
+	});
+
 	test('a snapshot needs no manifest request', async () => {
 		const transport = lazyBrowserManifest(
 			{ backendURL: 'https://backend.example', snapshot: everywhereManifest },

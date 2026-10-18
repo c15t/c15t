@@ -53,6 +53,7 @@ export const createStreamedMode = function createStreamedMode(
 		let resolved: KernelConfig | undefined;
 		const transport = mode({
 			...context,
+			pendingPrefetch: prefetch,
 			get prefetch() {
 				return resolved ?? context.prefetch;
 			},
