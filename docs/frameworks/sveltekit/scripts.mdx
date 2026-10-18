@@ -44,6 +44,11 @@ app's own chunks first. It does nothing in `vite dev`.
 Without the plugin, or without `c15tHandle` in `hooks.server.ts`, scripts
 still load, one request later.
 
+For a returning visitor whose stored consent already allows an entry, a page
+rendered for that request starts the entry before hydration, and the loader
+adopts its tag. See
+[Rendering](/docs/frameworks/sveltekit/rendering#resolve-request-context-once-with-c15thandle).
+
 ## Send your own analytics events
 
 `getEventDispatcher()` from `@c15t/svelte` returns the provider's event

@@ -26,6 +26,7 @@
 	} from '@c15t/core/runtime/provider';
 	import type { IABHandle } from '@c15t/iab';
 	import { setupColorScheme } from '@c15t/ui/utils';
+	import { BROWSER } from 'esm-env';
 	import type { Snippet } from 'svelte';
 	import { onDestroy, onMount, untrack } from 'svelte';
 
@@ -33,6 +34,7 @@
 	import type { ConsentDraftState, SvelteIABState } from '../context.svelte';
 	import { isIABConfigured, lazyCreateIAB, loadGPP } from '../iab-loader';
 	import { modulePreloadMarker } from '../module-preload';
+	import { SERVER_START_MARKER, serverStartCode } from '../server-script-start';
 	import { warnOnUnappliedThemeTokens } from '../theme-warning';
 	import type { ConsentManagerOptions } from '../types';
 
@@ -129,6 +131,19 @@
 	const preloadMarker = ownsRuntime
 		? untrack(() => modulePreloadMarker(options))
 		: '';
+	// For a returning visitor whose stored consent already lets some
+	// `scripts` run, the server render starts them from the HTML, before
+	// hydration: `c15tHandle` turns this marker's code into a `<script>`
+	// at the end of `<body>`, and the loader adopts the tags. The marker
+	// renders in the browser too, without the code, so hydration keeps it.
+	const hasServerStart =
+		ownsRuntime && Boolean(untrack(() => options.scripts?.length));
+	const serverStart =
+		hasServerStart && !BROWSER
+			? untrack(() =>
+					serverStartCode(options as Parameters<typeof serverStartCode>[0])
+				)
+			: '';
 	const runtime: ConsentRuntime =
 		externalRuntime ?? (ownedRuntime as ConsentRuntime);
 	// The runtime validated and assigned from the experiment it was created
@@ -502,6 +517,13 @@
 		<meta
 			name="c15t-modulepreload"
 			content={preloadMarker}
+		/>
+	{/if}
+	{#if hasServerStart}
+		<meta
+			name={SERVER_START_MARKER}
+			content={serverStart}
+			data-nonce={options.nonce}
 		/>
 	{/if}
 </svelte:head>

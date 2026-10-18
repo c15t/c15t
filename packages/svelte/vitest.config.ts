@@ -66,6 +66,13 @@ const workspaceAliases = [
 		replacement: resolve(__dirname, '../core/src/runtime/on-demand.ts'),
 	},
 	{
+		find: '@c15t/core/runtime/script-server-start',
+		replacement: resolve(
+			__dirname,
+			'../core/src/runtime/script-server-start.ts'
+		),
+	},
+	{
 		find: '@c15t/core/runtime',
 		replacement: resolve(__dirname, '../core/src/runtime/index.ts'),
 	},
