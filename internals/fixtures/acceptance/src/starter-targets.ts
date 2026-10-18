@@ -61,6 +61,14 @@ export const starterTargets: StarterTarget[] = [
 		start: nextStart,
 	},
 	{
+		// A mock.shop store with Hydrogen's cart and Shopify scripts.
+		directory: 'examples/shopify-nextjs',
+		id: 'shopify-nextjs',
+		routes: ['/'],
+		serverRendered: false,
+		start: nextStart,
+	},
+	{
 		directory: 'examples/nextjs-pages-router',
 		id: 'nextjs-pages-router',
 		routes: ['/'],

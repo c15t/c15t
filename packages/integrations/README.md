@@ -46,6 +46,7 @@ See the [documentation](https://c15t.com/docs/integrations) for guides, API refe
 - **Sentry**: Loads Sentry from its CDN or works with your own SDK; Session Replay and user data wait for measurement, and error monitoring can too ([guide](https://c15t.com/docs/integrations/sentry))
 - **Email and SMS**: Klaviyo, loaded only once marketing and measurement are both allowed
 - **Chat widgets**: Intercom, Crisp, Front Chat
+- **Shopify**: Sends c15t consent to Shopify's Customer Privacy API from a Hydrogen storefront ([guide](https://c15t.com/docs/integrations/shopify))
 
 ## Example
 

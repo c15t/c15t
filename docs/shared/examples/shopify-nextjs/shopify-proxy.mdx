@@ -1,0 +1,57 @@
+{/* Generated from examples/shopify-nextjs/proxy.ts (docs:shopify-proxy) by scripts/sync-example-docs.ts. Edit the source file. */}
+
+```ts title="proxy.ts"
+import {
+	createShopifyRequestContext,
+	createStorefrontClient,
+	handleShopifyRoutes,
+} from '@shopify/hydrogen';
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+
+import { cartHandlers } from '@/lib/cart-handlers';
+import { i18n, storeDomain } from '@/lib/shop';
+
+// This store has no customer accounts, so nothing keeps a session.
+const noSession = {
+	getSessionItem: () => undefined,
+	getSessionOrigin: () => '',
+	removeSessionItem: () => undefined,
+	setSessionItem: () => undefined,
+};
+
+/**
+ * Serves Hydrogen's routes: `/api/cart` for the cart, and the Storefront API
+ * at `/api/<version>/graphql.json`, where Shopify's Customer Privacy API
+ * saves each consent choice.
+ */
+export const proxy = (request: NextRequest) => {
+	const requestContext = createShopifyRequestContext({ i18n, request });
+	const storefrontClient = createStorefrontClient({
+		config: { publicStorefrontToken: undefined, storeDomain },
+		requestContext,
+		type: 'public',
+	});
+
+	const shopifyRoute = handleShopifyRoutes({
+		handlers: [cartHandlers],
+		request,
+		requestContext,
+		sessionManager: noSession,
+		storefrontClient,
+	});
+	if (shopifyRoute) {
+		return shopifyRoute;
+	}
+
+	const response = NextResponse.next({
+		request: { headers: requestContext.getForwardedRequestHeaders() },
+	});
+	requestContext.applyResponseHeaders(response.headers);
+	return response;
+};
+
+export const config = {
+	matcher: ['/((?!_next/static|_next/image|_next/data|favicon.ico).*)'],
+};
+```

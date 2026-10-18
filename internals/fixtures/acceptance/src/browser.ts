@@ -97,6 +97,16 @@ export const openBrowserContext = async function openBrowserContext(
 			});
 			return;
 		}
+		if (url.hostname === 'cdn.shopify.com') {
+			// The Shopify starter's scripts and product images. Empty scripts
+			// keep Shopify's analytics from loading.
+			await route.fulfill(
+				url.pathname.endsWith('.js')
+					? { body: '', contentType: 'application/javascript' }
+					: { status: 204 }
+			);
+			return;
+		}
 		// No vendor collection endpoint or remote font escapes the harness.
 		requests.unexpected.push(url.toString());
 		await route.abort();

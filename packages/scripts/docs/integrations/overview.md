@@ -109,6 +109,12 @@ kernel to control its DOM lifecycle. Embeds do not require `@c15t/integrations`.
 | [Snapchat Pixel](./snapchat-pixel.md)          | `snapchatPixel`    | `marketing` | Waits for effective permission                                   |
 | [X Pixel](./x-pixel.md)                        | `xPixel`           | `marketing` | Waits for effective permission                                   |
 
+## Commerce
+
+| Integration             | Helper                         | Category                                    | Loading behavior                                                   |
+| ----------------------- | ------------------------------ | ------------------------------------------- | ------------------------------------------------------------------ |
+| [Shopify](./shopify.md) | `createShopifyCustomerPrivacy` | `measurement`, `marketing`, `functionality` | Loads nothing; sends each choice to Shopify's Customer Privacy API |
+
 ## Load each vendor once
 
 Remove the vendor's own snippet, tracking image, framework plugin or tag
