@@ -194,22 +194,19 @@ const ServerScriptStart = ({
 			? use(settledState(prefetch as Promise<ConsentState>))
 			: (prefetch as ConsentState | undefined);
 	const module = use(importScriptServerStart());
-	if (!module) {
-		return null;
-	}
-	const { serverScriptStart } = module;
-	const serverOptions = {
-		...(options as unknown as Parameters<typeof serverScriptStart>[0]),
+	// A failed import still renders the empty script the browser hydrates.
+	const code = module?.serverScriptStart({
+		...(options as unknown as Parameters<
+			ScriptServerStartModule['serverScriptStart']
+		>[0]),
 		prefetch: state,
-	};
+	});
 	return (
 		// Runs a granted vendor's setup and inserts its tag before the page
 		// hydrates. The script loader adopts the tag.
 		<script
 			// oxlint-disable-next-line react/no-danger -- c15t's own code; serverScriptStart escapes `<` in every value.
-			dangerouslySetInnerHTML={{
-				__html: serverScriptStart(serverOptions) ?? '',
-			}}
+			dangerouslySetInnerHTML={{ __html: code ?? '' }}
 			nonce={options.nonce}
 			suppressHydrationWarning
 		/>

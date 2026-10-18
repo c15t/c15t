@@ -81,3 +81,36 @@ test('renders without a server start when the state promise rejects', async () =
 	expect(html).toContain('<main id="page">Page</main>');
 	expect(html).not.toContain(JSON.stringify(pixel.src));
 });
+
+test('renders the empty script the browser hydrates when the start module fails to load', async () => {
+	// The browser always renders an empty script here; rendering nothing on
+	// the server would fail hydration.
+	vi.resetModules();
+	// oxlint-disable-next-line anti-slop/no-module-mocking -- The property under test is a failed load of this module; no interface stands in for a dynamic import.
+	vi.doMock('@c15t/core/runtime/script-server-start', () => {
+		throw new Error('chunk missing');
+	});
+	try {
+		const { ConsentRoot: FreshRoot } = await import('../root');
+		const onError = vi.fn();
+		const stream = await renderToReadableStream(
+			<FreshRoot
+				options={{ mode: custom({ init: () => Promise.resolve({}) }) }}
+				scripts={[pixel]}
+				state={grantedState()}
+			>
+				<main id="page">Page</main>
+			</FreshRoot>,
+			{ onError }
+		);
+		await stream.allReady;
+		const html = await new Response(stream).text();
+
+		expect(onError).not.toHaveBeenCalled();
+		expect(html).toMatch(/<\/main><!--\$--><script[^>]*><\/script>/u);
+		expect(html).not.toContain(JSON.stringify(pixel.src));
+	} finally {
+		vi.doUnmock('@c15t/core/runtime/script-server-start');
+		vi.resetModules();
+	}
+});
