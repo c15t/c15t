@@ -1,5 +1,6 @@
 ---
 packages:
+  'c15t': patch
   '@c15t/core': patch
   '@c15t/integrations': patch
   '@c15t/nextjs': patch
