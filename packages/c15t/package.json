@@ -189,6 +189,11 @@
 			"import": "./shims/runtime/provider.js",
 			"default": "./shims/runtime/provider.js"
 		},
+		"./runtime/script-server-start": {
+			"types": "./shims/runtime/script-server-start.d.ts",
+			"import": "./shims/runtime/script-server-start.js",
+			"default": "./shims/runtime/script-server-start.js"
+		},
 		"./build": {
 			"types": "./shims/build.d.ts",
 			"import": "./shims/build.js",
