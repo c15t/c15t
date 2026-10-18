@@ -113,14 +113,17 @@ const AFTER_PRIORITY_IMAGES = `function(f){var h=[].filter.call(document.querySe
 
 /**
  * Creates one script the way the loader does and leaves the element for
- * the loader to adopt under `__c15tStarted[id]`, then inserts it after the
- * page's priority images; until then `__c15tInsert` holds the insert, and
- * the loader cancels it by deleting it. `__c15tConsent` records whether
- * its setup ran with consent. The script's own `nonce` wins over the
- * inline script's. No DOM id or marker, so the anonymized id the loader
- * gives it later is the only one it has.
+ * the loader to adopt under `__c15tStarted[key]`, keyed like the loader's
+ * element id by `resourceKey ?? id`, then inserts it after the page's
+ * priority images; until then `__c15tInsert` holds the insert, and the
+ * loader cancels it by deleting it. The insert checks the stored consent
+ * again first: when it changed during the wait, it sets `__c15tHeld` and
+ * leaves the insert to a loader that runs the script. `__c15tConsent`
+ * records whether its setup ran with consent. The script's own `nonce`
+ * wins over the inline script's. No DOM id or marker, so the anonymized id
+ * the loader gives it later is the only one it has.
  */
-const INSERT_SCRIPT = `function(id,src,o){var e=document.createElement('script');e.src=src;e.__c15tConsent=o.consent;if(o.async!=null)e.async=o.async;if(o.defer)e.defer=true;if(o.fetchPriority)e.fetchPriority=o.fetchPriority;if(o.nonce||n)e.nonce=o.nonce||n;for(var k in o.attributes||{})e.setAttribute(k,o.attributes[k]);e.addEventListener('load',function(){e.__c15tDone='load'});e.addEventListener('error',function(){e.__c15tDone='error'});(window.__c15tStarted=window.__c15tStarted||{})[id]=e;var g=e.__c15tInsert=function(){if(e.__c15tInsert!==g)return;delete e.__c15tInsert;(o.target==='body'?document.body||document.head:document.head).appendChild(e)};w(g)}`;
+const INSERT_SCRIPT = `function(id,src,o){var e=document.createElement('script');e.src=src;e.__c15tConsent=o.consent;if(o.async!=null)e.async=o.async;if(o.defer)e.defer=true;if(o.fetchPriority)e.fetchPriority=o.fetchPriority;if(o.nonce||n)e.nonce=o.nonce||n;for(var k in o.attributes||{})e.setAttribute(k,o.attributes[k]);e.addEventListener('load',function(){e.__c15tDone='load'});e.addEventListener('error',function(){e.__c15tDone='error'});s[id]=e;var g=e.__c15tInsert=function(){if(e.__c15tInsert!==g)return;delete e.__c15tInsert;if(z()){e.__c15tHeld=true;return}(o.target==='body'?document.body||document.head:document.head).appendChild(e)};w(g)}`;
 
 /**
  * What the client seeds from the server's records: each category's
@@ -165,20 +168,32 @@ const seedOf = function seedOf(snapshot: ConsentSnapshot): {
  * seeded decision, and for a record it can't read, such as an older
  * format: the loader then decides from the stored state, as it would
  * without this script.
+ *
+ * Two things change the state without a stored record: the browser's
+ * Global Privacy Control signal, when the server didn't see one and no
+ * override decides it, and the time passing the snapshot's
+ * `nextDeadline`, when a decision expires.
  */
 const newerStoredDecision = function newerStoredDecision(
 	snapshot: ConsentSnapshot,
 	keys: ReturnType<typeof resolveStorageKeys>
 ): string {
 	const seed = seedOf(snapshot);
+	const { gpc } = snapshot.privacySignals;
+	// The client honors a browser signal the server didn't see.
+	const gpcCheck =
+		gpc.override === undefined && !gpc.active
+			? 'try{if(navigator.globalPrivacyControl===true)return true}catch(x){}'
+			: '';
 	const names = Object.fromEntries(
 		CATEGORY_CODES.map(([category, code]) => [code, category])
 	);
 	// `z()` is true when the stored state differs. `c(name)` reads a
 	// cookie, unwrapping one URI-encoding layer as the client does; `l(key)`
 	// reads localStorage. `d` tests one decision against the seed, `p` the
-	// fields of a compact record, `o` a parsed JSON one.
-	return `var S=${inlineJSON(seed.categories)},V=${seed.vendorsAt},M=${inlineJSON(seed.earliest)},N=${inlineJSON(names)},K=${inlineJSON({ consent: keys.consent, epoch: keys.epoch, legacyConsent: keys.legacyConsent, vendors: keys.vendors })},z=function(){var c=function(n){try{for(var a=document.cookie.split(/;\\s*/),j=0;j<a.length;j++){var m=a[j].indexOf('=');if(a[j].slice(0,m)===n){var v=a[j].slice(m+1);if(v.indexOf('v=')&&v.indexOf('%')>=0)try{v=decodeURIComponent(v)}catch(x){}return v}}}catch(x){}return null},l=function(n){try{return localStorage.getItem(n)}catch(x){return null}},d=function(n,v,t){var s=S[n];return v!==true&&(!s||!(t<=s[1])||t===s[1]&&s[0])},e=function(t){return M!==null&&!(+t<M)},o=function(v,f){try{v=JSON.parse(v)}catch(x){return true}return!v||typeof v!=='object'||f(v)},p=function(v,h,f){if(v===null||v==='')return false;v=v.split('&');if(v[0]!==h)return true;for(var j=1;j<v.length;j++){var q=v[j].split('=');if(f(q[0],q[1]))return true}return false},r=function(v,f){return v!==null&&v!==''&&o(v,f)},a=c(K.consent),b=l(K.consent),g;if(p(a,'v=3',function(k,v){if(k==='e')return e(v);if(N[k]){v=v.split('.');return d(N[k],v[0]==='1',+v[1])}})||r(b,function(v){if(v.version!==3||v.epoch&&e(v.epoch))return true;for(g in v.categories||{})if(v.categories[g]&&d(g,v.categories[g].value,+v.categories[g].confirmedAt))return true})||!(a||b)&&K.legacyConsent&&l(K.legacyConsent))return true;if(p(c(K.vendors),'v=1',function(k,v){return k==='t'&&!(+v<=V)})||r(l(K.vendors),function(v){return v.version!==1||!(+v.confirmedAt<=V)}))return true;a=[c(K.epoch),l(K.epoch)];for(g=0;g<2;g++)if(a[g]&&e(a[g]))return true;return false};if(z())return;`;
+	// fields of a compact record, `o` a parsed JSON one. `D` is the time
+	// the server's decisions can next change.
+	return `var D=${inlineJSON(snapshot.nextDeadline)},S=${inlineJSON(seed.categories)},V=${seed.vendorsAt},M=${inlineJSON(seed.earliest)},N=${inlineJSON(names)},K=${inlineJSON({ consent: keys.consent, epoch: keys.epoch, legacyConsent: keys.legacyConsent, vendors: keys.vendors })},z=function(){${gpcCheck}if(D!==null&&!(Date.now()<D))return true;var c=function(n){try{for(var a=document.cookie.split(/;\\s*/),j=0;j<a.length;j++){var m=a[j].indexOf('=');if(a[j].slice(0,m)===n){var v=a[j].slice(m+1);if(v.indexOf('v=')&&v.indexOf('%')>=0)try{v=decodeURIComponent(v)}catch(x){}return v}}}catch(x){}return null},l=function(n){try{return localStorage.getItem(n)}catch(x){return null}},d=function(n,v,t){var s=S[n];return v!==true&&(!s||!(t<=s[1])||t===s[1]&&s[0])},e=function(t){return M!==null&&!(+t<M)},o=function(v,f){try{v=JSON.parse(v)}catch(x){return true}return!v||typeof v!=='object'||f(v)},p=function(v,h,f){if(v===null||v==='')return false;v=v.split('&');if(v[0]!==h)return true;for(var j=1;j<v.length;j++){var q=v[j].split('=');if(f(q[0],q[1]))return true}return false},r=function(v,f){return v!==null&&v!==''&&o(v,f)},a=c(K.consent),b=l(K.consent),g;if(p(a,'v=3',function(k,v){if(k==='e')return e(v);if(N[k]){v=v.split('.');return d(N[k],v[0]==='1',+v[1])}})||r(b,function(v){if(v.version!==3||v.epoch&&e(v.epoch))return true;for(g in v.categories||{})if(v.categories[g]&&d(g,v.categories[g].value,+v.categories[g].confirmedAt))return true})||!(a||b)&&K.legacyConsent&&l(K.legacyConsent))return true;if(p(c(K.vendors),'v=1',function(k,v){return k==='t'&&!(+v<=V)})||r(l(K.vendors),function(v){return v.version!==1||!(+v.confirmedAt<=V)}))return true;a=[c(K.epoch),l(K.epoch)];for(g=0;g<2;g++)if(a[g]&&e(a[g]))return true;return false};if(z())return;`;
 };
 
 /**
@@ -193,8 +208,12 @@ const newerStoredDecision = function newerStoredDecision(
  *
  * The server can't see a decision stored only in the browser, so the code
  * checks `localStorage` and the consent cookies first and does nothing
- * when they hold a decision newer than the server's. A host must not call
- * this for cached or prerendered HTML.
+ * when they hold a decision newer than the server's, and checks them
+ * again before each insert. It does the same for a Global Privacy Control
+ * signal the server didn't see and for a decision that expired since the
+ * render. Scripts that share a `resourceKey` start once, as the loader
+ * mounts them once. A host must not call this for cached or prerendered
+ * HTML.
  *
  * @param options - The runtime's options, with a resolved `prefetch`.
  * @returns The script's code, or `undefined` when no script starts.
@@ -203,11 +222,14 @@ const newerStoredDecision = function newerStoredDecision(
 export const serverScriptStart = function serverScriptStart(
 	options: ServerScriptOptions
 ): string | undefined {
+	const elementScripts = (options.scripts ?? []).filter(
+		(script) => !script.callbackOnly
+	);
 	const { scripts, snapshot } = serverRunnableScripts(
 		options,
-		(options.scripts ?? []).filter(
-			(script) => script.serverStart && script.src && !script.callbackOnly
-		)
+		elementScripts.some((script) => script.serverStart && script.src)
+			? elementScripts
+			: []
 	);
 	// A visitor the policy asks to choose sees the banner as the page
 	// hydrates, and a script's first run would hold the main thread while
@@ -223,7 +245,19 @@ export const serverScriptStart = function serverScriptStart(
 	const denied = snapshot.model === 'iab' ? null : deniedVendorIds(snapshot);
 	const preludes = new Set<string>();
 	const starts: string[] = [];
+	const keys = new Set<string>();
 	for (const { hasConsent, script } of scripts) {
+		// The loader's element identity: the first script it runs with a
+		// resource mounts it, and the rest reuse that element. Only that
+		// first script may start it.
+		const key = script.resourceKey ?? script.id;
+		if (keys.has(key)) {
+			continue;
+		}
+		keys.add(key);
+		if (!(script.serverStart && script.src)) {
+			continue;
+		}
 		let start: ReturnType<NonNullable<Script['serverStart']>>;
 		try {
 			start = script.serverStart?.(
@@ -257,11 +291,11 @@ export const serverScriptStart = function serverScriptStart(
 			target: script.target,
 		};
 		starts.push(
-			`try{${start.code};i(${inlineJSON(script.id)},${inlineJSON(script.src)},${inlineJSON(insertOptions)})}catch(x){}`
+			`try{if(!s[${inlineJSON(key)}]){${start.code};i(${inlineJSON(key)},${inlineJSON(script.src)},${inlineJSON(insertOptions)})}}catch(x){}`
 		);
 	}
 	if (starts.length === 0) {
 		return;
 	}
-	return `(function(){${newerStoredDecision(snapshot, resolveStorageKeys(storageFor(options)))}var n=document.currentScript&&document.currentScript.nonce,w=${AFTER_PRIORITY_IMAGES},i=${INSERT_SCRIPT};${[...preludes].join(';')};${starts.join('')}})()`;
+	return `(function(){${newerStoredDecision(snapshot, resolveStorageKeys(storageFor(options)))}var n=document.currentScript&&document.currentScript.nonce,s=window.__c15tStarted=window.__c15tStarted||{},w=${AFTER_PRIORITY_IMAGES},i=${INSERT_SCRIPT};${[...preludes].join(';')};${starts.join('')}})()`;
 };

@@ -145,6 +145,105 @@ describe('serverScriptStart', () => {
 			vi.advanceTimersByTime(1);
 			expect(element?.isConnected).toBe(true);
 		});
+
+		test('holds the element when a denial is stored before the image loads', () => {
+			const { element, hero } = startWithHero();
+			const { choice } = choiceRecords(
+				{ marketing: false },
+				{ confirmedAt: CONFIRMED_AT + 1 }
+			);
+			localStorage.setItem(
+				'c15t',
+				encodeStoredConsentEnvelopeJson({
+					categories: choice?.categories ?? {},
+					version: 3,
+				})
+			);
+
+			hero.dispatchEvent(new Event('load'));
+
+			expect(element?.isConnected).toBe(false);
+			expect(element).toHaveProperty('__c15tHeld', true);
+		});
+	});
+
+	test.each([
+		['scripts that share a resourceKey', 'shared', 'b'],
+		['a repeated script', undefined, 'pixel'],
+	])('starts the resource once for %s', (_, resourceKey, secondId) => {
+		run(
+			serverScriptStart({
+				mode,
+				prefetch: prefetchFor({ marketing: true }),
+				scripts: [
+					{ ...pixel, resourceKey },
+					{ ...pixel, id: secondId, resourceKey },
+				],
+			})
+		);
+
+		const started = window as StartedWindow;
+		expect(started.__c15tSetup).toBe(1);
+		expect(document.head.querySelectorAll('script')).toHaveLength(1);
+		expect(Object.keys(started.__c15tStarted ?? {})).toEqual([
+			resourceKey ?? 'pixel',
+		]);
+	});
+
+	test('leaves a resource to its first script when that one has no serverStart', () => {
+		const { serverStart: _, ...plain } = pixel;
+
+		expect(
+			serverScriptStart({
+				mode,
+				prefetch: prefetchFor({ marketing: true }),
+				scripts: [
+					{ ...plain, resourceKey: 'shared' },
+					{ ...pixel, id: 'b', resourceKey: 'shared' },
+				],
+			})
+		).toBeUndefined();
+	});
+
+	test('does nothing when the browser sends a GPC signal the server did not read', () => {
+		const code = serverScriptStart({
+			mode,
+			prefetch: prefetchFor(
+				{ marketing: true },
+				{ privacySignals: { gpc: { denyCategories: ['marketing'] } } }
+			),
+			scripts: [pixel],
+		});
+		Object.defineProperty(navigator, 'globalPrivacyControl', {
+			configurable: true,
+			value: true,
+		});
+		try {
+			run(code);
+		} finally {
+			Reflect.deleteProperty(navigator, 'globalPrivacyControl');
+		}
+
+		expect((window as StartedWindow).__c15tSetup).toBeUndefined();
+		expect(document.head.querySelector('script')).toBeNull();
+	});
+
+	test('does nothing once the decision the server read has expired', () => {
+		vi.useFakeTimers({ now: NOW });
+		const code = serverScriptStart({
+			mode,
+			prefetch: prefetchFor(
+				{ marketing: true },
+				{ validity: { choiceDays: 1 } }
+			),
+			scripts: [pixel],
+		});
+		vi.setSystemTime(CONFIRMED_AT + 86_400_000);
+
+		run(code);
+
+		expect((window as StartedWindow).__c15tSetup).toBeUndefined();
+		expect(document.head.querySelector('script')).toBeNull();
 	});
 
 	test('runs the shared prelude once', () => {

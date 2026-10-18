@@ -218,13 +218,45 @@ const observeElement = (
 /**
  * An element the page's inline `serverStart` code created. `__c15tInsert`
  * is set while it waits for the page's priority images; deleting it
- * cancels the insert. `__c15tConsent` is whether its setup ran with
- * consent.
+ * cancels the insert. `__c15tHeld` is set when the stored consent changed
+ * during that wait: its setup ran, and only a loader that runs the script
+ * inserts it. `__c15tConsent` is whether its setup ran with consent, and
+ * `__c15tAdopted` that a loader took it over.
  */
 type ServerStartedElement = HTMLScriptElement & {
+	__c15tAdopted?: boolean;
 	__c15tConsent?: boolean;
 	__c15tDone?: ElementCompletion;
+	__c15tHeld?: boolean;
 	__c15tInsert?: () => void;
+};
+
+type ServerStartedRegistry = Record<string, ServerStartedElement>;
+
+/** A server-started element that is waiting to be inserted, or held. */
+const notYetInserted = function notYetInserted(
+	element: ServerStartedElement | null | undefined
+): boolean {
+	return Boolean(element?.__c15tInsert || element?.__c15tHeld);
+};
+
+const serverStartedRegistry = function serverStartedRegistry():
+	| ServerStartedRegistry
+	| undefined {
+	return (globalThis as { __c15tStarted?: ServerStartedRegistry })
+		.__c15tStarted;
+};
+
+/** Drops a removed server-started element from the page's registry. */
+const forgetServerStarted = function forgetServerStarted(
+	element: ServerStartedElement
+): void {
+	const started = serverStartedRegistry();
+	for (const key of Object.keys(started ?? {})) {
+		if (started?.[key] === element) {
+			Reflect.deleteProperty(started, key);
+		}
+	}
 };
 
 /** Release a loader's listeners and transfer its resource to a surviving loader. @internal */
@@ -250,7 +282,10 @@ export const releaseScriptElement = (
 				nextDeps.ownedScriptIds.add(nextObserver.scriptId);
 			}
 		} else {
-			delete (element as ServerStartedElement).__c15tInsert;
+			const started = element as ServerStartedElement;
+			delete started.__c15tInsert;
+			delete started.__c15tHeld;
+			forgetServerStarted(started);
 			element.parentNode?.removeChild(element);
 		}
 	}
@@ -300,21 +335,24 @@ const completeMount = (deps: MountDeps, pending: PendingMount): void => {
 };
 
 /**
- * Removes and returns the element the HTML's `serverStart` code started
- * for `script`. It may still be waiting to be inserted.
+ * The element the HTML's `serverStart` code started for `script`'s
+ * resource, keyed like the loader's element id by `resourceKey ?? id`.
+ * It may still be waiting to be inserted, or held. An element that is
+ * none of these, such as one a loader removed, is dropped.
  */
-const takeServerStarted = function takeServerStarted(
+const serverStartedFor = function serverStartedFor(
 	script: Script
 ): ServerStartedElement | undefined {
-	const started = (
-		globalThis as { __c15tStarted?: Record<string, ServerStartedElement> }
-	).__c15tStarted;
-	const element = started?.[script.id];
+	const started = serverStartedRegistry();
+	const key = script.resourceKey ?? script.id;
+	const element = started?.[key];
 	if (!(started && element)) {
 		return;
 	}
-	Reflect.deleteProperty(started, script.id);
-	return element.isConnected || element.__c15tInsert ? element : undefined;
+	if (element.isConnected || notYetInserted(element)) {
+		return element;
+	}
+	Reflect.deleteProperty(started, key);
 };
 
 /**
@@ -337,6 +375,7 @@ const adoptServerStarted = function adoptServerStarted(
 	element: ServerStartedElement
 ): void {
 	const startedWithConsent = element.__c15tConsent ?? true;
+	element.__c15tAdopted = true;
 	element.id = elementId;
 	if (element.__c15tDone) {
 		elementCompletions.set(element, element.__c15tDone);
@@ -399,17 +438,18 @@ const adoptToRevoke = function adoptToRevoke(
 	script: Script,
 	snapshot: ConsentSnapshot
 ): ServerStartedElement | undefined {
-	const started = takeServerStarted(script);
-	if (started) {
-		adoptServerStarted(
-			deps,
-			script,
-			snapshot,
-			started.__c15tConsent ?? true,
-			deps.elementIds.resolve(script),
-			started
-		);
+	const started = serverStartedFor(script);
+	if (!started || started.__c15tAdopted) {
+		return;
 	}
+	adoptServerStarted(
+		deps,
+		script,
+		snapshot,
+		started.__c15tConsent ?? true,
+		deps.elementIds.resolve(script),
+		started
+	);
 	return started;
 };
 
@@ -505,16 +545,28 @@ export const mountScript = function mountScript(
 		);
 	}
 
-	const started = takeServerStarted(script);
-	if (started) {
+	const started = serverStartedFor(script);
+	if (started && !started.__c15tAdopted) {
 		adoptServerStarted(deps, script, snapshot, hasConsent, elementId, started);
+		// Its setup ran, but the stored consent changed before its insert.
+		// This loader runs the script, so it inserts the element.
+		if (started.__c15tHeld && !deps.isDisposed()) {
+			delete started.__c15tHeld;
+			(script.target === 'body'
+				? (document.body ?? document.head)
+				: document.head
+			).appendChild(started);
+		}
 		return;
 	}
 
+	// Another script with the same resource adopted the server's element,
+	// which may not be in the document yet.
 	const existingElement =
-		typeof document.getElementById === 'function'
+		started ??
+		(typeof document.getElementById === 'function'
 			? document.getElementById(elementId)
-			: null;
+			: null);
 	if (existingElement) {
 		const element = existingElement as HTMLScriptElement;
 		deps.loadedElements.set(script.id, element);
@@ -689,11 +741,9 @@ export const unmountScript = function unmountScript(
 
 	const elementId = deps.elementIds.resolve(script);
 
-	// A server-started element still waiting to be inserted never ran, so
-	// there is nothing to keep.
-	const neverInserted = Boolean(
-		(element as ServerStartedElement | null | undefined)?.__c15tInsert
-	);
+	// A server-started element still waiting to be inserted, or held, never
+	// loaded, so there is nothing to keep.
+	const neverInserted = notYetInserted(element);
 	if (
 		script.persistAfterConsentRevoked &&
 		!removeConfiguration &&

@@ -243,7 +243,23 @@ describe('mountScript with a server-started element', () => {
 		);
 		expect(onLoad).toHaveBeenCalledOnce();
 		expect(emitted).toContainEqual({ action: 'already_loaded', scriptId: 's' });
-		expect((window as StartedWindow).__c15tStarted).toEqual({});
+	});
+
+	test('adopts the element started for its resourceKey, not its id', () => {
+		const { deps } = makeDeps();
+		const other = startOnServer('s', 'https://x/other.js');
+		const own = startOnServer('shared', 'https://x/s.js');
+
+		mountScript(
+			deps,
+			{ category: 'marketing', id: 's', resourceKey: 'shared', src: own.src },
+			createConsentKernel().getSnapshot(),
+			true,
+			null
+		);
+
+		expect(deps.loadedElements.get('s')).toBe(own);
+		expect(other.id).toBe('');
 	});
 
 	test('fires onLoad when the adopted element finishes later', () => {
@@ -289,7 +305,10 @@ describe('mountScript with a server-started element', () => {
 		type PendingElement = HTMLScriptElement & { __c15tInsert?: () => void };
 
 		/** Mirrors the inline start's pending insert. */
-		const startPending = function startPending(src: string): {
+		const startPending = function startPending(
+			src: string,
+			key = 's'
+		): {
 			element: PendingElement;
 			insert: () => void;
 		} {
@@ -304,7 +323,7 @@ describe('mountScript with a server-started element', () => {
 			};
 			element.__c15tInsert = insert;
 			const started = window as StartedWindow;
-			started.__c15tStarted = { ...started.__c15tStarted, s: element };
+			started.__c15tStarted = { ...started.__c15tStarted, [key]: element };
 			return { element, insert };
 		};
 
@@ -362,6 +381,67 @@ describe('mountScript with a server-started element', () => {
 				expect(deps.retainedElements.has('s')).toBe(false);
 			}
 		);
+
+		test('gives a second script with the same resource the same element', () => {
+			const { deps } = makeDeps();
+			const first = pendingScript({ resourceKey: 'shared' });
+			const second = pendingScript({ id: 't', resourceKey: 'shared' });
+			const { element, insert } = startPending(first.src ?? '', 'shared');
+			const snapshot = createConsentKernel().getSnapshot();
+
+			mountScript(deps, first, snapshot, true, null);
+			mountScript(deps, second, snapshot, true, null);
+			insert();
+
+			expect(document.head.querySelectorAll('script')).toHaveLength(1);
+			expect(deps.loadedElements.get('t')).toBe(element);
+		});
+	});
+
+	describe('held after the stored consent changed', () => {
+		const startHeld = function startHeld(): HTMLScriptElement {
+			const element = document.createElement('script');
+			element.setAttribute('src', 'https://x/s.js');
+			Object.assign(element, { __c15tHeld: true });
+			(window as StartedWindow).__c15tStarted = { s: element };
+			return element;
+		};
+
+		test('inserts the element when the loader runs the script', () => {
+			const { deps } = makeDeps();
+			const onBeforeLoad = vi.fn();
+			const element = startHeld();
+
+			mountScript(
+				deps,
+				{ category: 'marketing', id: 's', onBeforeLoad, src: element.src },
+				createConsentKernel().getSnapshot(),
+				true,
+				null
+			);
+
+			expect(element.isConnected).toBe(true);
+			expect(document.head.querySelectorAll('script')).toHaveLength(1);
+			expect(onBeforeLoad).toHaveBeenCalledWith(
+				expect.objectContaining({ startedOnServer: true })
+			);
+		});
+
+		test('never inserts it when the loader revokes the script', () => {
+			const { deps } = makeDeps();
+			const element = startHeld();
+			const script: Script = {
+				category: 'marketing',
+				id: 's',
+				persistAfterConsentRevoked: true,
+				src: element.src,
+			};
+
+			unmountScript(deps, script, createConsentKernel().getSnapshot(), false);
+
+			expect(element.isConnected).toBe(false);
+			expect(deps.retainedElements.has('s')).toBe(false);
+		});
 	});
 
 	test('adopts an alwaysLoad element the server started without consent', () => {
