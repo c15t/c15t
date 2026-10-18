@@ -6,7 +6,7 @@ import type { Script } from '@c15t/core';
  */
 import { custom } from '@c15t/react';
 import { renderToReadableStream } from 'react-dom/server';
-import { expect, test } from 'vitest';
+import { expect, test, vi } from 'vitest';
 
 import {
 	choiceRecords,
@@ -15,6 +15,7 @@ import {
 	optInRule,
 } from '../../../core/src/__tests__/fixtures/kernel-fixtures';
 import { ConsentRoot } from '../root';
+import type { ConsentRootProps } from '../root';
 
 const pixel: Script = {
 	category: 'marketing',
@@ -23,26 +24,34 @@ const pixel: Script = {
 	src: 'https://cdn.example.com/pixel.js',
 };
 
-const render = async (): Promise<string> => {
+const grantedState = () => {
 	const resolution = matchedResolution(optInRule());
+	return {
+		initialPolicyResolution: resolution,
+		initialRecords: choiceRecords(
+			{ marketing: true },
+			{
+				confirmedAt: NOW - 1000,
+				fingerprint: resolution.fingerprints.choice,
+			}
+		),
+		now: NOW,
+	};
+};
+
+const render = async (
+	state: ConsentRootProps['state'] = grantedState(),
+	onError?: (error: unknown) => void
+): Promise<string> => {
 	const stream = await renderToReadableStream(
 		<ConsentRoot
 			options={{ mode: custom({ init: () => Promise.resolve({}) }) }}
 			scripts={[pixel]}
-			state={{
-				initialPolicyResolution: resolution,
-				initialRecords: choiceRecords(
-					{ marketing: true },
-					{
-						confirmedAt: NOW - 1000,
-						fingerprint: resolution.fingerprints.choice,
-					}
-				),
-				now: NOW,
-			}}
+			state={state}
 		>
 			<main id="page">Page</main>
-		</ConsentRoot>
+		</ConsentRoot>,
+		{ onError }
 	);
 	await stream.allReady;
 	return new Response(stream).text();
@@ -57,4 +66,18 @@ test('renders the server start script after the page content', async () => {
 	const start = html.indexOf(JSON.stringify(pixel.src));
 	expect(start).toBeGreaterThan(-1);
 	expect(start).toBeGreaterThan(html.indexOf('</main>'));
+});
+
+test('renders without a server start when the state promise rejects', async () => {
+	// The provider falls back to the transport for a rejected state; the
+	// server start has to skip quietly, not fail the server render.
+	const state = Promise.reject(new Error('backend unreachable'));
+	state.catch(() => undefined);
+	const onError = vi.fn();
+
+	const html = await render(state, onError);
+
+	expect(onError).not.toHaveBeenCalled();
+	expect(html).toContain('<main id="page">Page</main>');
+	expect(html).not.toContain(JSON.stringify(pixel.src));
 });

@@ -100,15 +100,54 @@ const mergeOptions = function mergeOptions(
 
 type ScriptServerStartModule = typeof ScriptServerStart;
 
-let scriptServerStartModule: Promise<ScriptServerStartModule> | undefined;
+let scriptServerStartModule:
+	| Promise<ScriptServerStartModule | undefined>
+	| undefined;
 
-/** Loaded on the server only, so no browser chunk requests it. */
-const importScriptServerStart =
-	function importScriptServerStart(): Promise<ScriptServerStartModule> {
-		scriptServerStartModule ??=
-			import('@c15t/core/runtime/script-server-start');
-		return scriptServerStartModule;
-	};
+/**
+ * Loaded on the server only, so no browser chunk requests it. A failed
+ * import skips the server start and lets the next render retry.
+ */
+const importScriptServerStart = function importScriptServerStart(): Promise<
+	ScriptServerStartModule | undefined
+> {
+	scriptServerStartModule ??= (async () => {
+		try {
+			return await import('@c15t/core/runtime/script-server-start');
+		} catch {
+			scriptServerStartModule = undefined;
+			return undefined;
+		}
+	})();
+	return scriptServerStartModule;
+};
+
+const settledStates = new WeakMap<
+	Promise<ConsentState>,
+	Promise<ConsentState | undefined>
+>();
+
+/**
+ * `state` with a rejection as `undefined`: the provider falls back to its
+ * transport then, and the server start has nothing to start. One promise
+ * per input, so `use` sees the same value on a retry.
+ */
+const settledState = function settledState(
+	state: Promise<ConsentState>
+): Promise<ConsentState | undefined> {
+	let settled = settledStates.get(state);
+	if (!settled) {
+		settled = (async () => {
+			try {
+				return await state;
+			} catch {
+				return undefined;
+			}
+		})();
+		settledStates.set(state, settled);
+	}
+	return settled;
+};
 
 /** React 19's `use`, absent from the React 18 a Pages Router app may run. */
 const { use } = React as {
@@ -152,9 +191,13 @@ const ServerScriptStart = ({
 	const { prefetch } = options;
 	const state =
 		typeof (prefetch as PromiseLike<unknown> | undefined)?.then === 'function'
-			? use(prefetch as Promise<ConsentState>)
+			? use(settledState(prefetch as Promise<ConsentState>))
 			: (prefetch as ConsentState | undefined);
-	const { serverScriptStart } = use(importScriptServerStart());
+	const module = use(importScriptServerStart());
+	if (!module) {
+		return null;
+	}
+	const { serverScriptStart } = module;
 	const serverOptions = {
 		...(options as unknown as Parameters<typeof serverScriptStart>[0]),
 		prefetch: state,
