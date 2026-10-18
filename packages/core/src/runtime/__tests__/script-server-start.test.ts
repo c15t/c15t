@@ -13,6 +13,7 @@ import {
 	matchedResolution,
 	NOW,
 	optInRule,
+	optOutRule,
 } from '../../__tests__/fixtures/kernel-fixtures';
 import type { Script } from '../../libs/script-loader/types';
 import {
@@ -639,6 +640,24 @@ describe('serverScriptStart', () => {
 		test('without a server-resolved policy', () => {
 			expect(
 				serverScriptStart({ mode, prefetch: { now: NOW }, scripts: [pixel] })
+			).toBeUndefined();
+		});
+
+		test('for a shared render, which carries no request clock', () => {
+			// Prerendered HTML goes to every visitor; an opt-out policy that
+			// needs no prompt still grants nobody in particular.
+			const shared: RuntimePrefetch = {
+				initialPolicyResolution: matchedResolution(
+					optOutRule({ categories: ['marketing'], prompt: 'none' })
+				),
+			};
+			const options = { mode, scripts: [pixel] };
+			expect(
+				serverScriptStart({ ...options, prefetch: { ...shared, now: NOW } })
+			).toBeDefined();
+
+			expect(
+				serverScriptStart({ ...options, prefetch: shared })
 			).toBeUndefined();
 		});
 

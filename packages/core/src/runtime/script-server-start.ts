@@ -41,18 +41,21 @@ interface ServerRunnable {
 /**
  * The scripts in `scripts` the loader would run with the server-resolved
  * `prefetch`: `alwaysLoad`, or consent for their category and vendor, and
- * the snapshot that decided it. None without a server-resolved policy,
- * under a `consentSource`, or when anything throws.
+ * the snapshot that decided it. None without a server-resolved policy or
+ * a request clock, under a `consentSource`, or when anything throws.
  */
 const serverRunnableScripts = function serverRunnableScripts(
 	options: ServerScriptOptions,
 	scripts: Script[]
 ): ServerRunnable {
 	const { prefetch } = options;
+	// A shared render, for prerendered or cached HTML, carries no request
+	// clock: its state is no one visitor's.
 	if (
 		scripts.length === 0 ||
 		options.consentSource ||
-		!prefetch?.initialPolicyResolution
+		!prefetch?.initialPolicyResolution ||
+		prefetch.now === undefined
 	) {
 		return { scripts: [] };
 	}
@@ -224,7 +227,7 @@ const newerStoredDecision = function newerStoredDecision(
  * signal the server didn't see and for a decision that expired since the
  * render. Scripts that share a `resourceKey` start once, as the loader
  * mounts them once. A host must not call this for cached or prerendered
- * HTML.
+ * HTML; a state from a shared render carries no `now` and starts nothing.
  *
  * The work waits until after first paint. When the loader mounts first,
  * it sets `__c15tLoaderRan` and the code does nothing: the loader has
