@@ -38,7 +38,7 @@ import type {
 	ProviderTransportKind,
 } from '../transports/mode';
 import type * as OfflineModule from '../transports/offline';
-import type { InitContext, KernelTransport } from '../types';
+import type { InitContext, KernelConfig, KernelTransport } from '../types';
 
 /** Where a client root's transport sends requests. */
 export interface ClientModeOptions {
@@ -382,11 +382,25 @@ export type LazyBrowserManifestOptions = BrowserManifestOptions & {
 };
 
 /**
+ * Whether a server state already holds the policy, the test the runtime
+ * uses to skip the first init (`hasResolvedPrefetch`).
+ */
+const hasPolicy = function hasPolicy(
+	config: Partial<KernelConfig> | undefined
+): boolean {
+	return Boolean(
+		config?.initialPolicyResolution && config.initialPolicyPending !== true
+	);
+};
+
+/**
  * Manifest mode resolved in the browser. The resolver chunk and the
  * manifest request both start when the transport is built, so they load in
  * parallel with the rest of the page; the resolver reads the early
- * response. Saves before the first init go out through the record
- * transport.
+ * response. A server state with a policy answers the first init, so with
+ * one neither starts until an init needs them; with a streamed state they
+ * start once it arrives without one. Saves before the first init go out
+ * through the record transport.
  *
  * @param options - Manifest source and backend.
  * @param load - Loads the browser resolver's module.
@@ -405,28 +419,54 @@ export const lazyBrowserManifest = function lazyBrowserManifest(
 					: undefined);
 			const manifestURL =
 				options.manifestURL ?? `${trimSlash(options.backendURL)}/manifest`;
-			const inBrowser = typeof window !== 'undefined';
-			const early =
-				inBrowser && fetch && !options.snapshot
-					? sendEarly(
-							fetch,
-							manifestURL,
-							createManifestRequestInit({
-								credentials: options.credentials,
-								headers: options.headers,
-							})
-						)
-					: undefined;
-			const loading = inBrowser ? load() : undefined;
-			// Read when init awaits it; until then a failed chunk is handled.
-			void (async () => {
-				try {
-					await loading;
-				} catch {
-					// Init retries the import.
+			let early: EarlyRequest | undefined;
+			let firstLoad: ReturnType<LoadManifestBrowserModule> | undefined;
+			let initStarted = false;
+			const warm = (): void => {
+				if (initStarted || typeof window === 'undefined') {
+					return;
 				}
-			})();
-			let firstLoad = loading;
+				early =
+					fetch && !options.snapshot
+						? sendEarly(
+								fetch,
+								manifestURL,
+								createManifestRequestInit({
+									credentials: options.credentials,
+									headers: options.headers,
+								})
+							)
+						: undefined;
+				const loading = load();
+				// Read when init awaits it; until then a failed chunk is handled.
+				void (async () => {
+					try {
+						await loading;
+					} catch {
+						// Init retries the import.
+					}
+				})();
+				firstLoad = loading;
+			};
+			// A server state with a policy answers the first init, so the
+			// resolver and the manifest are only needed for a later one.
+			if (!hasPolicy(context?.prefetch)) {
+				const pending = context?.pendingPrefetch;
+				if (pending) {
+					void (async () => {
+						try {
+							if (hasPolicy(await pending)) {
+								return;
+							}
+						} catch {
+							// The transport's init answers a rejected state.
+						}
+						warm();
+					})();
+				} else {
+					warm();
+				}
+			}
 			return createLazyInitTransport(
 				createHostedRecordTransport({
 					backendURL: options.backendURL,
@@ -434,6 +474,7 @@ export const lazyBrowserManifest = function lazyBrowserManifest(
 					fetch,
 				}),
 				async () => {
+					initStarted = true;
 					const pending = firstLoad ?? load();
 					firstLoad = undefined;
 					const { createBrowserManifestTransport } = await pending;
