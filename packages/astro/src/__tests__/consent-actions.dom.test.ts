@@ -5,7 +5,15 @@ import type { Theme } from '@c15t/ui/theme';
 import { act, createElement } from 'react';
 import { createRoot } from 'react-dom/client';
 import type { Root } from 'react-dom/client';
-import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import {
+	afterEach,
+	beforeAll,
+	beforeEach,
+	describe,
+	expect,
+	it,
+	vi,
+} from 'vitest';
 
 import { promptClassNames } from '../banner/class-names';
 import { PROMPT_SLOT_ATTRIBUTE } from '../banner/slot';
@@ -107,6 +115,14 @@ const renderReactBanner = async function renderReactBanner(
 			)
 		);
 		await Promise.resolve();
+	});
+	// The React banner loads its code once the policy shows it; wait for
+	// the buttons rather than a fixed number of ticks.
+	await vi.waitFor(async () => {
+		await act(() => new Promise((resolve) => setTimeout(resolve, 10)));
+		if (!host.querySelector('button')) {
+			throw new Error('The React banner has not rendered');
+		}
 	});
 	return readButtons(document.body);
 };
