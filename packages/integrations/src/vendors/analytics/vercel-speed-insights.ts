@@ -182,10 +182,27 @@ export const vercelSpeedInsights = function vercelSpeedInsights(
 	};
 
 	const manifestOnBeforeLoad = resolved.onBeforeLoad;
-	resolved.onBeforeLoad = (info) => {
+	const onBeforeLoad: Script['onBeforeLoad'] = (info) => {
 		manifestOnBeforeLoad?.(info);
 		applyConsent(info);
 	};
+	resolved.onBeforeLoad = onBeforeLoad;
+
+	// The HTML starts the collector only when consent allows it, and nothing
+	// can revoke consent before hydration registers the gate, so until then
+	// the gate would pass every report. A `beforeSend` must see every report,
+	// so with one the script loader starts the collector after hydration.
+	const manifestServerStart = resolved.serverStart;
+	resolved.serverStart =
+		beforeSend || !manifestServerStart
+			? undefined
+			: (info, started) =>
+					started.onBeforeLoad === onBeforeLoad
+						? manifestServerStart(info, {
+								...started,
+								onBeforeLoad: manifestOnBeforeLoad,
+							})
+						: undefined;
 
 	const manifestOnConsentChange = resolved.onConsentChange;
 	resolved.onConsentChange = (info) => {

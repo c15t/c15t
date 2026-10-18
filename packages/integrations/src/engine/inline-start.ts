@@ -26,9 +26,8 @@ const inlineJSON = function inlineJSON(value: unknown): string {
 const RUNNER = '__c15tRunSteps';
 
 /**
- * `executeStep` for setGlobal, defineQueueFunction, defineStubFunction,
- * callGlobal, pushToQueue, setGlobalPath and defineQueueMethods with the
- * default queue format. Keep it in step with `runtime.ts`.
+ * `executeStep` for every step type except constructGlobal, which only runs
+ * after a vendor's script loads. Keep it in step with `runtime.ts`.
  */
 const RUNNER_SOURCE = `function(steps){var w=window,K=${inlineJSON(RUNTIME_VALUE_KIND)};
 function c(v){if(v&&typeof v==='object'){if(!Array.isArray(v)&&v.kind===K&&(v.value==='date'||v.value==='timestamp'))return v.value==='date'?new Date():Date.now();if(Array.isArray(v))return v.map(c);var o={};for(var k in v)o[k]=c(v[k]);return o}return v}
@@ -41,7 +40,11 @@ if('property' in s.queue&&typeof s.queue.property==='string'&&f[s.queue.property
 case 'callGlobal':var g=w[s.global];if(!g)return;var a=(s.args||[]).map(c);if(s.method){if(typeof g[s.method]==='function')g[s.method].apply(g,a)}else if(typeof g==='function')g.apply(undefined,a);return;
 case 'pushToQueue':if(Array.isArray(w[s.queue]))w[s.queue].push(c(s.value));return;
 case 'setGlobalPath':var r=s.path[0];if(s.ifGlobalIsQueue&&(!r||!Array.isArray(w[r])))return;if(s.path.length===0)return;var o=w;for(var j=0;j<s.path.length-1;j++){o=o[s.path[j]];if(o===null||typeof o!=='object')return}var k=s.path[s.path.length-1];if(s.ifUndefined&&o[k]!==undefined)return;o[k]=c(s.value);return;
-case 'defineQueueMethods':var t=w[s.target];if(t===null||(typeof t!=='object'&&typeof t!=='function'))return;if(!s.queue&&!Array.isArray(t))return;s.methods.forEach(function(m){if(s.preserveExisting&&typeof t[m]==='function')return;t[m]=function(){var u=q(s.queue||{global:s.target},t);if(u)u.push([m].concat(Array.prototype.slice.call(arguments)))}});return;
+case 'defineQueueMethods':var t=w[s.target];if(t===null||(typeof t!=='object'&&typeof t!=='function'))return;if(!s.queue&&!Array.isArray(t))return;var F=s.queueFormat;s.methods.forEach(function(m){if(s.preserveExisting&&typeof t[m]==='function')return;t[m]=function(){var u=q(s.queue||{global:s.target},t);if(!u)return;var a=Array.prototype.slice.call(arguments);if(F==='methodCall'||F==='wrappedMethodCall'||F==='voidMethodCall'){var p=new Promise(function(r){u.push({args:a,name:m,resolve:r})});return F==='wrappedMethodCall'?{promise:p}:F==='voidMethodCall'?undefined:p}if(F==='callback'){u.push({fn:function(){var l=w[s.target];if(l===null||(typeof l!=='object'&&typeof l!=='function'))return;if(typeof l[m]==='function')l[m].apply(l,a)},name:m});return}u.push([m].concat(a))}});return;
+case 'defineQueueClass':var t=w[s.target];if(t===null||(typeof t!=='object'&&typeof t!=='function'))return;var Q=s.queueProperty==null?'_q':s.queueProperty,C=function(){this[Q]=[]};s.methods.forEach(function(m){C.prototype[m]=function(){var u=this[Q];if(Array.isArray(u))u.push({args:Array.prototype.slice.call(arguments),name:m});return this}});t[s.name]=C;return;
+case 'defineGlobalMethods':var t=w[s.target];if(t===null||(typeof t!=='object'&&typeof t!=='function'))return;if(s.ifGlobalIsQueue&&!Array.isArray(t))return;s.methods.forEach(function(m){t[m.name]=m.behavior==='return'?function(){return c(m.value)}:function(){}});return;
+case 'setCookie':document.cookie=s.cookie;return;
+case 'defineQueueProxy':if(w[s.name])return;w[s.queue]=w[s.queue]||[];w[s.name]=new Proxy({},{get:function(t,m){if(typeof m!=='string'||m==='then'||m==='toJSON'||m in t)return t[m];if(m==='push')return function(){var u=w[s.queue];if(u)return u.push.apply(u,arguments)};return function(){var a=Array.prototype.slice.call(arguments),b=typeof a[a.length-1]==='function'?a.pop():undefined;return new Promise(function(r){var u=w[s.queue];if(u)u.push([m].concat(a,[function(x){if(b)b(x);r(x)}]))})}}});return;
 }})(s)}}`;
 
 /** Whether the inline runner runs `step` exactly as `executeStep` would. */
@@ -53,11 +56,13 @@ const runsInline = function runsInline(step: ManifestStep): boolean {
 		case 'callGlobal':
 		case 'pushToQueue':
 		case 'setGlobalPath':
+		case 'defineQueueMethods':
+		case 'defineQueueClass':
+		case 'defineGlobalMethods':
+		case 'setCookie':
+		case 'defineQueueProxy':
 		case 'loadScript': {
 			return true;
-		}
-		case 'defineQueueMethods': {
-			return step.queueFormat === undefined || step.queueFormat === 'tuple';
 		}
 		default: {
 			return false;

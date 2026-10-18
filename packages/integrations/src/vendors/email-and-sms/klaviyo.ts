@@ -19,9 +19,17 @@ declare global {
  * Klaviyo serves signup forms and Active on Site tracking from the same
  * account-keyed bundle, and the bundle has no feature-level consent switch,
  * so the whole bundle waits for the configured category condition.
+ *
+ * The bootstrap installs the `klaviyo` object from Klaviyo's "load the
+ * klaviyo object" snippet when the page has none. Calls made before
+ * Klaviyo.js loads are queued on `_klOnsite`, and each returns a promise the
+ * bundle resolves when it replays the call.
  */
 export const klaviyoManifest = {
 	...vendorManifestContract,
+	bootstrap: [
+		{ name: 'klaviyo', queue: '_klOnsite', type: 'defineQueueProxy' },
+	],
 	category: '{{category}}',
 	install: [
 		{
@@ -124,61 +132,16 @@ const validateScriptUrl = function validateScriptUrl(
 };
 
 /**
- * Installs the `klaviyo` object from Klaviyo's "load the klaviyo object"
- * snippet when the page has none. Calls made before Klaviyo.js loads are
- * queued on `_klOnsite`, and each returns a promise the bundle resolves when
- * it replays the call.
+ * Klaviyo.js in forms-only mode. Klaviyo.js reads the `__kla_off` opt-out
+ * cookie when it starts, so the bootstrap sets it before the loader runs.
  */
-const installKlaviyoObject = function installKlaviyoObject(): void {
-	if (window.klaviyo) {
-		return;
-	}
-
-	window._klOnsite ||= [];
-	// The proxy answers every method name with a queueing function.
-	window.klaviyo = new Proxy(
-		{},
-		{
-			get(target: Record<PropertyKey, unknown>, method) {
-				// Unlike Klaviyo's snippet, leave symbols, `then`, `toJSON` and
-				// Object.prototype members alone. Queuing them when something
-				// awaits, serializes or stringifies the object makes Klaviyo.js
-				// throw during replay, and every queued call after them hangs.
-				if (
-					typeof method !== 'string' ||
-					method === 'then' ||
-					method === 'toJSON' ||
-					method in target
-				) {
-					return target[method];
-				}
-
-				if (method === 'push') {
-					return (...items: unknown[]) => window._klOnsite?.push(...items);
-				}
-
-				return (...args: unknown[]) => {
-					const callback =
-						typeof args.at(-1) === 'function'
-							? (args.pop() as (result: unknown) => void)
-							: undefined;
-
-					return new Promise((resolve) => {
-						window._klOnsite?.push([
-							method,
-							...args,
-							(result: unknown) => {
-								// oxlint-disable-next-line promise/prefer-await-to-callbacks, node/callback-return -- Klaviyo's object API takes an optional trailing callback.
-								callback?.(result);
-								resolve(result);
-							},
-						]);
-					});
-				};
-			},
-		}
-	) as Window['klaviyo'];
-};
+export const klaviyoFormsOnlyManifest = {
+	...klaviyoManifest,
+	bootstrap: [
+		{ cookie: '__kla_off=true; path=/; SameSite=Lax', type: 'setCookie' },
+		...klaviyoManifest.bootstrap,
+	],
+} as const satisfies VendorManifest;
 
 /**
  * Creates a Klaviyo onsite script.
@@ -223,23 +186,13 @@ export const klaviyo = function klaviyo(options: KlaviyoOptions): Script {
 		return skipScript(problem, { category, manifest: klaviyoManifest });
 	}
 
-	const script = resolveManifest(klaviyoManifest, {
-		category,
-		scriptUrl:
-			validateScriptUrl(options.scriptUrl) ??
-			`https://static.klaviyo.com/onsite/js/${publicApiKey}/klaviyo.js`,
-	});
-
-	return {
-		...script,
-		onBeforeLoad() {
-			if (mode === 'forms-only') {
-				// Klaviyo.js reads this cookie when it starts, so it must exist
-				// before the loader is inserted.
-				// oxlint-disable-next-line unicorn/no-document-cookie -- Klaviyo documents this cookie as its opt-out switch.
-				document.cookie = '__kla_off=true; path=/; SameSite=Lax';
-			}
-			installKlaviyoObject();
-		},
-	};
+	return resolveManifest(
+		mode === 'forms-only' ? klaviyoFormsOnlyManifest : klaviyoManifest,
+		{
+			category,
+			scriptUrl:
+				validateScriptUrl(options.scriptUrl) ??
+				`https://static.klaviyo.com/onsite/js/${publicApiKey}/klaviyo.js`,
+		}
+	);
 };
