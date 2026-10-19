@@ -132,12 +132,15 @@ test('passes a style with a body end in its text through before the last chunk',
 	);
 });
 
-test('takes the nonce from a script, not one in a comment', () => {
+test.each([
+	['a comment', '<!-- <script nonce="old"> -->'],
+	['a template', '<template><script nonce="old"></script></template>'],
+])('takes the nonce from a script, not one in %s', (_name, inert) => {
 	const inject = renderPage('go()');
 
 	expect(
 		inject(
-			'<head><!-- <script nonce="old"> --></head><body><script nonce="kit">boot()</script></body>',
+			`<head>${inert}</head><body><script nonce="kit">boot()</script></body>`,
 			true
 		)
 	).toContain('<script nonce="kit">go()</script></body>');

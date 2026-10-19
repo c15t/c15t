@@ -18,12 +18,12 @@ const NONCE = /^[\w+/=-]+$/u;
 const NONCE_ATTRIBUTE = /\snonce="(?<nonce>[\w+/=-]+)"/u;
 /**
  * A body end tag, the name in any case with space before `>`, or a comment
- * or an element whose text is not markup, such as a script or a style, so
- * its text can't hold one. A comment or element a chunk ends in runs to
+ * or an element whose text is not markup, such as a script or a style, or
+ * not rendered, a template, so its text can't hold one. A comment or element a chunk ends in runs to
  * the end of the chunk.
  */
 const PAGE_TOKEN =
-	/<!--[\s\S]*?(?:-->|$)|<(?<tag>script|style|textarea|title|xmp|iframe|noembed|noframes|noscript)(?=[\s/>])(?<attributes>[^>]*)>[\s\S]*?(?:<\/\k<tag>\s*>|$)|<\/body\s*>/giu;
+	/<!--[\s\S]*?(?:-->|$)|<(?<tag>script|style|template|textarea|title|xmp|iframe|noembed|noframes|noscript)(?=[\s/>])(?<attributes>[^>]*)>[\s\S]*?(?:<\/\k<tag>\s*>|$)|<\/body\s*>/giu;
 /**
  * The most a chunk's end is held for a tag it ends partway through: more
  * than a script tag with its nonce. Text a chunk ends in, such as `a < b`
