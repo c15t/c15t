@@ -31,7 +31,7 @@ export interface HttpHarness {
 	/** A second app over the same database with different options. */
 	readonly appWith: (options: AppOptions) => ReturnType<typeof createApp>;
 	readonly json: (
-		method: 'GET' | 'POST' | 'PATCH',
+		method: 'GET' | 'POST' | 'PATCH' | 'PUT',
 		path: string,
 		body?: unknown,
 		headers?: Record<string, string>,

@@ -38,10 +38,16 @@ import type { SqlError } from 'effect/sql';
 import * as v from 'valibot';
 
 import { insertOnce } from '../db/insert-once';
+import { currentTenantId } from '../db/tenant';
+import type { Tenant, TenantRow } from '../db/tenant';
 import { encoder } from '../db/values';
 import { isLegacyJsonEnvelope, unwrapLegacyJson } from './subject-choice';
 
-export interface ConsentSubmission extends ConsentSubmissionIdentity {
+/** A consent to record. The tenant comes from the `Tenant` scope. */
+export interface ConsentSubmission extends Omit<
+	ConsentSubmissionIdentity,
+	'tenantId'
+> {
 	readonly purposeIds: readonly string[];
 	/**
 	 * v3 receipts this submission confirmed, in wire form. Only the confirmed
@@ -418,10 +424,7 @@ export const assertSameSubmission = Effect.fn('consent.assertSameSubmission')(
 );
 
 /** The column values one submission writes, absent fields as SQL NULL. */
-const rowValues = (
-	id: string,
-	submission: ConsentSubmission
-): Record<string, unknown> => ({
+const rowValues = (id: string, submission: ConsentSubmission): TenantRow => ({
 	addtlConsent: submission.addtlConsent ?? null,
 	choice:
 		submission.choice === undefined || submission.choice === null
@@ -446,7 +449,6 @@ const rowValues = (
 	runtimePolicySource: submission.runtimePolicySource ?? null,
 	subjectId: submission.subjectId,
 	tcString: submission.tcString ?? null,
-	tenantId: submission.tenantId ?? null,
 	timeToDecisionMs: submission.timeToDecisionMs ?? null,
 	uiSource: submission.uiSource ?? null,
 	userAgent: submission.userAgent ?? null,
@@ -463,12 +465,14 @@ export const record = Effect.fn('consent.record')(function* record(
 	Effect.Effect<
 		unknown,
 		SqlError.SqlError | ConsentPurposeConflictError,
-		SqlClient.SqlClient
+		SqlClient.SqlClient | Tenant
 	>,
 	RecordedConsent
 > {
 	const sql = yield* SqlClient.SqlClient;
-	const id = yield* Effect.promise(() => buildConsentId(submission));
+	// The id covers the tenant, so it has to be the one the row is stored under.
+	const identity = { ...submission, tenantId: yield* currentTenantId };
+	const id = yield* Effect.promise(() => buildConsentId(identity));
 
 	// Primary-key lookup first. A retry — a client retrying, or a visitor
 	// double-clicking — is the common case in production, and this answers it
@@ -505,7 +509,7 @@ export const record = Effect.fn('consent.record')(function* record(
 	// Only now check for a row written by an older process. It has a random
 	// primary key, so the conflict target below cannot see it — but this costs
 	// a query, so it must not run on the hot retry path above.
-	const legacyId = yield* findLegacySubmission(submission);
+	const legacyId = yield* findLegacySubmission(identity);
 	if (legacyId !== undefined) {
 		return { created: false, id: legacyId };
 	}

@@ -39,8 +39,8 @@ import { SqlClient, Statement } from 'effect/sql';
 import type { SqlError } from 'effect/sql';
 
 import { insertOnce } from '../db/insert-once';
-import { tenantScope } from '../db/tenant';
-import { encodeRow, encoder, toDate, toDateOrNull } from '../db/values';
+import { currentTenantId, tenantScope } from '../db/tenant';
+import { encodeTenantRow, encoder, toDate, toDateOrNull } from '../db/values';
 import { purposeCodesById } from './consent-purpose';
 import {
 	decodePreferences,
@@ -579,7 +579,7 @@ export const linkExternalId = Effect.fn('repository.linkExternalId')(
 				// request.
 				yield* sql`
 					insert into ${sql('auditLog')} ${sql.insert(
-						encodeRow(encode, {
+						yield* encodeTenantRow({
 							actionType: 'identify_user',
 							changes: JSON.stringify({
 								externalId: { from: before.externalId, to: input.externalId },
@@ -637,9 +637,9 @@ export const findOrCreate = Effect.fn('repository.findOrCreate')(
 		identityProvider?: string | null;
 		/** Whether the caller proved `externalId`. See {@link linkExternalId}. */
 		externalIdVerified?: boolean;
-		tenantId?: string | null;
 	}) {
 		const sql = yield* SqlClient.SqlClient;
+		const tenantId = yield* currentTenantId;
 		const now = new Date();
 
 		const created = yield* insertOnce({
@@ -652,7 +652,6 @@ export const findOrCreate = Effect.fn('repository.findOrCreate')(
 				identityProvider: input.externalId
 					? (input.identityProvider ?? 'external')
 					: 'anonymous',
-				tenantId: input.tenantId ?? null,
 				updatedAt: now,
 				verifiedExternalId:
 					input.externalId && input.externalIdVerified
@@ -679,7 +678,7 @@ export const findOrCreate = Effect.fn('repository.findOrCreate')(
 			where ${sql('id')} = ${input.subjectId}
 		`;
 		const ownerTenant = owner[0]?.tenantId ?? null;
-		const mine = input.tenantId ?? null;
+		const mine = tenantId ?? null;
 
 		if (owner.length > 0 && ownerTenant !== mine) {
 			return yield* new SubjectTenantConflictError({
