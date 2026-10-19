@@ -494,6 +494,48 @@ describe('lazyBrowserManifest()', () => {
 		expect(response?.policyResolution).toMatchObject({ status: 'matched' });
 	});
 
+	test('a later init sends the manifest request while the resolver loads', async () => {
+		routeManifest();
+		const chunk =
+			Promise.withResolvers<Awaited<ReturnType<LoadManifestBrowserModule>>>();
+		const built = build(
+			{ ...context, prefetch: resolvedPrefetch },
+			() => chunk.promise
+		);
+
+		const response = built.init?.(initContext());
+
+		expect(fetchSpy.mock.calls.map(([url]) => String(url))).toEqual([
+			'/api/c15t/manifest',
+		]);
+		chunk.resolve({ createBrowserManifestTransport });
+		expect((await response)?.policyResolution).toMatchObject({
+			status: 'matched',
+		});
+		// The resolver read the early manifest response.
+		expect(fetchSpy).toHaveBeenCalledTimes(1);
+	});
+
+	// The streamed init answers from the policy whether or not the state
+	// is marked pending, so neither would be read.
+	test('a streamed state with a policy marked pending starts neither', async () => {
+		const load = vi.fn<LoadManifestBrowserModule>(() =>
+			Promise.resolve({ createBrowserManifestTransport })
+		);
+		const pendingPolicy = {
+			...resolvedPrefetch,
+			initialPolicyPending: true,
+		} as ProviderTransportContext['prefetch'];
+		const stream = Promise.withResolvers<typeof pendingPolicy>();
+		build({ ...context, pendingPrefetch: stream.promise }, load);
+		stream.resolve(pendingPolicy);
+		await stream.promise;
+		await Promise.resolve();
+
+		expect(load).not.toHaveBeenCalled();
+		expect(fetchSpy).not.toHaveBeenCalled();
+	});
+
 	test('a streamed state with a policy starts neither', async () => {
 		const load = vi.fn<LoadManifestBrowserModule>(() =>
 			Promise.resolve({ createBrowserManifestTransport })

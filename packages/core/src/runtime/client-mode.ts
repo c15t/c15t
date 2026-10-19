@@ -422,21 +422,22 @@ export const lazyBrowserManifest = function lazyBrowserManifest(
 			let early: EarlyRequest | undefined;
 			let firstLoad: ReturnType<LoadManifestBrowserModule> | undefined;
 			let initStarted = false;
+			const request = (): EarlyRequest | undefined =>
+				fetch && !options.snapshot
+					? sendEarly(
+							fetch,
+							manifestURL,
+							createManifestRequestInit({
+								credentials: options.credentials,
+								headers: options.headers,
+							})
+						)
+					: undefined;
 			const warm = (): void => {
 				if (initStarted || typeof window === 'undefined') {
 					return;
 				}
-				early =
-					fetch && !options.snapshot
-						? sendEarly(
-								fetch,
-								manifestURL,
-								createManifestRequestInit({
-									credentials: options.credentials,
-									headers: options.headers,
-								})
-							)
-						: undefined;
+				early = request();
 				const loading = load();
 				// Read when init awaits it; until then a failed chunk is handled.
 				void (async () => {
@@ -455,7 +456,9 @@ export const lazyBrowserManifest = function lazyBrowserManifest(
 				if (pending) {
 					void (async () => {
 						try {
-							if (hasPolicy(await pending)) {
+							// The streamed init answers from any state with a
+							// policy (`kernelConfigToInitResponse`), pending or not.
+							if ((await pending)?.initialPolicyResolution !== undefined) {
 								return;
 							}
 						} catch {
@@ -475,6 +478,11 @@ export const lazyBrowserManifest = function lazyBrowserManifest(
 				}),
 				async () => {
 					initStarted = true;
+					// Not warmed: the manifest request goes out while the
+					// resolver loads, not after.
+					if (!firstLoad) {
+						early = request();
+					}
 					const pending = firstLoad ?? load();
 					firstLoad = undefined;
 					const { createBrowserManifestTransport } = await pending;
