@@ -104,6 +104,8 @@ test('keeps the body end when only comments follow it before the last chunk', ()
 test.each([
 	['a comment after it', '</html><!-- </body> -->'],
 	['a script after it', '<script>"</body>"</script>'],
+	['a style after it', '<style>body::after{content:"</body>"}</style>'],
+	['a textarea after it', '<textarea></body></textarea>'],
 ])('ignores a body end in %s', (_name, after) => {
 	const inject = renderPage('go()');
 
@@ -118,6 +120,27 @@ test('finds the body end after a script with a comment opener in its text', () =
 	expect(inject('<body><script>a<!--b</script></body>', true)).toBe(
 		'<body><script>a<!--b</script><script>go()</script></body>'
 	);
+});
+
+test('passes a style with a body end in its text through before the last chunk', () => {
+	const inject = renderPage('go()');
+	const style = '<body><style>body::after{content:"</body>"}</style><main>';
+
+	expect(inject(style, false)).toBe(style);
+	expect(inject('</main></body>', true)).toBe(
+		'</main><script>go()</script></body>'
+	);
+});
+
+test('takes the nonce from a script, not one in a comment', () => {
+	const inject = renderPage('go()');
+
+	expect(
+		inject(
+			'<head><!-- <script nonce="old"> --></head><body><script nonce="kit">boot()</script></body>',
+			true
+		)
+	).toContain('<script nonce="kit">go()</script></body>');
 });
 
 test('keeps the body end when more than 1 KB follows it before the last chunk', () => {

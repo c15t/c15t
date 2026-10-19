@@ -15,14 +15,15 @@ import { registerServerScriptStart } from '../server-script-start';
 import type { ServerStartOptions } from '../server-script-start';
 
 const NONCE = /^[\w+/=-]+$/u;
-const SCRIPT_NONCE = /<script\b[^>]*\snonce="(?<nonce>[\w+/=-]+)"/u;
+const NONCE_ATTRIBUTE = /\snonce="(?<nonce>[\w+/=-]+)"/u;
 /**
  * A body end tag, the name in any case with space before `>`, or a comment
- * or script whose text can't hold one. A comment or script a chunk ends
- * in runs to the end of the chunk.
+ * or an element whose text is not markup, such as a script or a style, so
+ * its text can't hold one. A comment or element a chunk ends in runs to
+ * the end of the chunk.
  */
-const BODY_END =
-	/<!--[\s\S]*?(?:-->|$)|<script\b[^>]*>[\s\S]*?(?:<\/script\s*>|$)|<\/body\s*>/giu;
+const PAGE_TOKEN =
+	/<!--[\s\S]*?(?:-->|$)|<(?<tag>script|style|textarea|title|xmp|iframe|noembed|noframes|noscript)(?=[\s/>])(?<attributes>[^>]*)>[\s\S]*?(?:<\/\k<tag>\s*>|$)|<\/body\s*>/giu;
 /**
  * The most a chunk's end is held for a tag it ends partway through: more
  * than a script tag with its nonce. Text a chunk ends in, such as `a < b`
@@ -97,27 +98,38 @@ export const loadServerScriptStart =
 		return loading;
 	};
 
+/** What a page's markup holds, outside comments and text. */
+interface PageScan {
+	/** Where the last body end tag starts, else `-1`. */
+	bodyEnd: number;
+	/** The nonce on the first script that has one. */
+	nonce?: string;
+}
+
 /**
- * Where the last body end tag in `text` starts, else `-1`. One in a
- * comment or a script's text is not the end of the body.
+ * Finds the last body end tag in `text` and the first script nonce. A body
+ * end or a script in a comment or another element's text is neither.
  */
-const lastBodyEnd = (text: string): number => {
-	let last = -1;
-	for (const match of text.matchAll(BODY_END)) {
-		if (match[0][1] === '/') {
-			last = match.index;
+const scanPage = (text: string): PageScan => {
+	const scan: PageScan = { bodyEnd: -1 };
+	for (const match of text.matchAll(PAGE_TOKEN)) {
+		const { tag, attributes = '' } = match.groups ?? {};
+		if (tag?.toLowerCase() === 'script') {
+			scan.nonce ??= NONCE_ATTRIBUTE.exec(attributes)?.groups?.nonce;
+		} else if (match[0][1] === '/') {
+			scan.bodyEnd = match.index;
 		}
 	}
-	return last;
+	return scan;
 };
 
 /**
- * The end of `text` to hold for the next chunk: from the last `</body>`,
- * which may be the end of the body, however much follows it, else a tag
- * `text` ends partway through within its last `MAX_HELD` characters.
+ * The end of `text` to hold for the next chunk: from the last `</body>`
+ * at `body`, which may be the end of the body, however much follows it,
+ * else a tag `text` ends partway through within its last `MAX_HELD`
+ * characters.
  */
-const heldEnd = (text: string): string => {
-	const body = lastBodyEnd(text);
+const heldEnd = (text: string, body: number): string => {
 	if (body !== -1) {
 		return text.slice(body);
 	}
@@ -132,8 +144,8 @@ const heldEnd = (text: string): string => {
  *
  * It adds the script to the last chunk (`done`), before the last `</body>`:
  * SvelteKit's page template closes the body after everything the app
- * renders, so an earlier `</body>`, in a script's text or a comment, is
- * not the end. Until the last chunk, the transform holds the page from
+ * renders, so an earlier `</body>` is not the end, and one in a comment or
+ * a script's or style's text is not a tag. Until the last chunk, the transform holds the page from
  * the last `</body>`, else up to 1 KB of a tag a chunk ends partway
  * through, such as a script with its nonce.
  *
@@ -156,13 +168,13 @@ export const createServerStartInjector = function createServerStartInjector(
 	let held = '';
 	return (html, done) => {
 		const text = held + html;
-		pageNonce ??= SCRIPT_NONCE.exec(text)?.groups?.nonce;
+		const { bodyEnd: end, nonce: scriptNonce } = scanPage(text);
+		pageNonce ??= scriptNonce;
 		if (!done) {
-			held = heldEnd(text);
+			held = heldEnd(text, end);
 			return text.slice(0, text.length - held.length);
 		}
 		held = '';
-		const end = lastBodyEnd(text);
 		if (!start.code || end === -1) {
 			return text;
 		}
