@@ -101,6 +101,25 @@ test('keeps the body end when only comments follow it before the last chunk', ()
 	).toBe('<body><script>go()</script></body></html><!-- served -->');
 });
 
+test.each([
+	['a comment after it', '</html><!-- </body> -->'],
+	['a script after it', '<script>"</body>"</script>'],
+])('ignores a body end in %s', (_name, after) => {
+	const inject = renderPage('go()');
+
+	expect(inject(`<body></body>${after}`, true)).toBe(
+		`<body><script>go()</script></body>${after}`
+	);
+});
+
+test('finds the body end after a script with a comment opener in its text', () => {
+	const inject = renderPage('go()');
+
+	expect(inject('<body><script>a<!--b</script></body>', true)).toBe(
+		'<body><script>a<!--b</script><script>go()</script></body>'
+	);
+});
+
 test('keeps the body end when more than 1 KB follows it before the last chunk', () => {
 	const inject = renderPage('go()');
 	const after = `</html><!-- ${'x'.repeat(2000)} -->`;

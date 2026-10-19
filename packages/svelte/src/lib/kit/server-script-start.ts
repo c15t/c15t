@@ -16,8 +16,13 @@ import type { ServerStartOptions } from '../server-script-start';
 
 const NONCE = /^[\w+/=-]+$/u;
 const SCRIPT_NONCE = /<script\b[^>]*\snonce="(?<nonce>[\w+/=-]+)"/u;
-/** A body end tag: the name in any case, with space before `>`. */
-const BODY_END = /<\/body\s*>/giu;
+/**
+ * A body end tag, the name in any case with space before `>`, or a comment
+ * or script whose text can't hold one. A comment or script a chunk ends
+ * in runs to the end of the chunk.
+ */
+const BODY_END =
+	/<!--[\s\S]*?(?:-->|$)|<script\b[^>]*>[\s\S]*?(?:<\/script\s*>|$)|<\/body\s*>/giu;
 /**
  * The most a chunk's end is held for a tag it ends partway through: more
  * than a script tag with its nonce. Text a chunk ends in, such as `a < b`
@@ -92,11 +97,16 @@ export const loadServerScriptStart =
 		return loading;
 	};
 
-/** Where the last body end tag in `text` starts, else `-1`. */
+/**
+ * Where the last body end tag in `text` starts, else `-1`. One in a
+ * comment or a script's text is not the end of the body.
+ */
 const lastBodyEnd = (text: string): number => {
 	let last = -1;
 	for (const match of text.matchAll(BODY_END)) {
-		last = match.index;
+		if (match[0][1] === '/') {
+			last = match.index;
+		}
 	}
 	return last;
 };
