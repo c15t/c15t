@@ -22,7 +22,11 @@ import {
 	getEffectiveGateState,
 } from '../modules/has';
 import { resolveStorageKeys } from '../modules/persistence/record-storage';
-import { CATEGORY_CODES } from '../modules/persistence/writer/encode';
+import {
+	CATEGORY_CODES,
+	IAB_CODES,
+	SUBJECT_CODES,
+} from '../modules/persistence/writer/encode';
 import type { ConsentSnapshot } from '../types';
 import { storageFor } from './assemble';
 import { createRuntimeKernel } from './runtime-kernel';
@@ -210,12 +214,45 @@ const newerStoredDecision = function newerStoredDecision(
 	const names = Object.fromEntries(
 		CATEGORY_CODES.map(([category, code]) => [code, category])
 	);
+	const subject = SUBJECT_CODES.map(([, code]) => code);
+	const fields = {
+		c: [...subject, ...IAB_CODES.map(([, code]) => code), 'b'],
+		v: [...subject, 'd'],
+	};
 	// `z()` is true when the stored state differs. `c(name)` reads a
 	// cookie, unwrapping one URI-encoding layer as the client does; `l(key)`
 	// reads localStorage. `d` tests one decision against the seed, `p` the
-	// fields of a compact record, `o` a parsed JSON one. `D` is the time
-	// the server's decisions can next change.
-	return `var D=${inlineJSON(snapshot.nextDeadline)},S=${inlineJSON(seed.categories)},V=${seed.vendorsAt},M=${inlineJSON(seed.earliest)},N=${inlineJSON(names)},K=${inlineJSON({ consent: keys.consent, epoch: keys.epoch, legacyConsent: keys.legacyConsent, vendors: keys.vendors })},z=function(){${gpcCheck}if(D!==null&&!(Date.now()<D))return true;var c=function(n){try{for(var a=document.cookie.split(/;\\s*/),j=0;j<a.length;j++){var m=a[j].indexOf('=');if(a[j].slice(0,m)===n){var v=a[j].slice(m+1);if(v.indexOf('v=')&&v.indexOf('%')>=0)try{v=decodeURIComponent(v)}catch(x){}return v}}}catch(x){}return null},l=function(n){try{return localStorage.getItem(n)}catch(x){return null}},d=function(n,v,t){var s=S[n];return v!==true&&(!s||!(t<=s[1])||t===s[1]&&s[0])},e=function(t){return M!==null&&!(+t<M)},o=function(v,f){try{v=JSON.parse(v)}catch(x){return true}return!v||typeof v!=='object'||f(v)},p=function(v,h,f){if(v===null||v==='')return false;v=v.split('&');if(v[0]!==h)return true;for(var j=1;j<v.length;j++){var q=v[j].split('=');if(f(q[0],q[1]))return true}return false},r=function(v,f){return v!==null&&v!==''&&o(v,f)},a=c(K.consent),b=l(K.consent),g;if(p(a,'v=3',function(k,v){if(k==='e')return e(v);if(N[k]){v=v.split('.');return d(N[k],v[0]==='1',+v[1])}})||r(b,function(v){if(v.version!==3||v.epoch&&e(v.epoch))return true;for(g in v.categories||{})if(v.categories[g]&&d(g,v.categories[g].value,+v.categories[g].confirmedAt))return true})||!(a&&M!==null)&&K.legacyConsent&&l(K.legacyConsent))return true;if(p(c(K.vendors),'v=1',function(k,v){return k==='t'&&!(+v<=V)})||r(l(K.vendors),function(v){return v.version!==1||!(+v.confirmedAt<=V)}))return true;a=[c(K.epoch),l(K.epoch)];for(g=0;g<2;g++)if(a[g]&&e(a[g]))return true;return false};if(z())return;`;
+	// fields of a compact record, `o` a parsed JSON one. `p` is also true
+	// for a field the client's decoder rejects: a field without a value,
+	// a repeated one, a malformed decision, or one outside `F`, the other
+	// fields each record may hold. `D` is the time the server's decisions
+	// can next change.
+	return `var D=${inlineJSON(snapshot.nextDeadline)},S=${inlineJSON(seed.categories)},V=${seed.vendorsAt},M=${inlineJSON(seed.earliest)},N=${inlineJSON(names)},F=${inlineJSON(fields)},K=${inlineJSON({ consent: keys.consent, epoch: keys.epoch, legacyConsent: keys.legacyConsent, vendors: keys.vendors })},z=function(){${gpcCheck}if(D!==null&&!(Date.now()<D))return true;var c=function(n){try{for(var a=document.cookie.split(/;\\s*/),j=0;j<a.length;j++){var m=a[j].indexOf('=');if(a[j].slice(0,m)===n){var v=a[j].slice(m+1);if(v.indexOf('v=')&&v.indexOf('%')>=0)try{v=decodeURIComponent(v)}catch(x){}return v}}}catch(x){}return null},l=function(n){try{return localStorage.getItem(n)}catch(x){return null}},d=function(n,v,t){var s=S[n];return v!==true&&(!s||!(t<=s[1])||t===s[1]&&s[0])},e=function(t){return M!==null&&!(+t<M)},o=function(v,f){try{v=JSON.parse(v)}catch(x){return true}return!v||typeof v!=='object'||f(v)},p=function(v,h,f){if(v===null||v==='')return false;v=v.split('&');if(v[0]!==h)return true;for(var u=[],j=1;j<v.length;j++){var m=v[j].indexOf('='),k=v[j].slice(0,m);if(m<1||u.indexOf(k)>=0||f(k,v[j].slice(m+1)))return true;u.push(k)}return false},r=function(v,f){return v!==null&&v!==''&&o(v,f)},a=c(K.consent),b=l(K.consent),g;if(p(a,'v=3',function(k,v){if(k==='e')return e(v);if(N.hasOwnProperty(k)){if(!/^[01]\\.\\d+\\.\\d+$/.test(v))return true;v=v.split('.');return d(N[k],v[0]==='1',+v[1])}return F.c.indexOf(k)<0})||r(b,function(v){if(v.version!==3||v.epoch&&e(v.epoch))return true;for(g in v.categories||{})if(v.categories[g]&&d(g,v.categories[g].value,+v.categories[g].confirmedAt))return true})||!(a&&M!==null)&&K.legacyConsent&&l(K.legacyConsent))return true;if(p(c(K.vendors),'v=1',function(k,v){return k==='t'?!(+v<=V):F.v.indexOf(k)<0})||r(l(K.vendors),function(v){return v.version!==1||!(+v.confirmedAt<=V)}))return true;a=[c(K.epoch),l(K.epoch)];for(g=0;g<2;g++)if(a[g]&&e(a[g]))return true;return false};if(z())return;`;
+};
+
+/** The loader's element identity for `script`. */
+const resourceOf = (script: Script): string => script.resourceKey ?? script.id;
+
+/**
+ * The resources two scripts with different ids share. On an element it
+ * inserts, the loader runs the `onBeforeLoad` of every script that shares
+ * it, but on one it adopts, only the first script's, so these are left to
+ * the loader.
+ */
+const sharedResources = function sharedResources(
+	scripts: ServerRunnable['scripts']
+): Set<string> {
+	const owners = new Map<string, string>();
+	const shared = new Set<string>();
+	for (const { script } of scripts) {
+		const owner = owners.get(resourceOf(script));
+		if (owner === undefined) {
+			owners.set(resourceOf(script), script.id);
+		} else if (owner !== script.id) {
+			shared.add(resourceOf(script));
+		}
+	}
+	return shared;
 };
 
 /**
@@ -233,8 +270,8 @@ const newerStoredDecision = function newerStoredDecision(
  * when they hold a decision newer than the server's, and checks them
  * again before each insert. It does the same for a Global Privacy Control
  * signal the server didn't see and for a decision that expired since the
- * render. Scripts that share a `resourceKey` start once, as the loader
- * mounts them once. A host must not call this for cached or prerendered
+ * render. Scripts that share a `resourceKey` start from the loader, which
+ * runs each one's setup. A host must not call this for cached or prerendered
  * HTML; a state from a shared render carries no `now` and starts nothing.
  *
  * The work waits until after first paint. When the loader mounts first,
@@ -271,13 +308,11 @@ export const serverScriptStart = function serverScriptStart(
 	const denied = snapshot.model === 'iab' ? null : deniedVendorIds(snapshot);
 	const preludes = new Set<string>();
 	const starts: string[] = [];
+	const shared = sharedResources(scripts);
 	const keys = new Set<string>();
 	for (const { hasConsent, script } of scripts) {
-		// The loader's element identity: the first script it runs with a
-		// resource mounts it, and the rest reuse that element. Only that
-		// first script may start it.
-		const key = script.resourceKey ?? script.id;
-		if (keys.has(key)) {
+		const key = resourceOf(script);
+		if (keys.has(key) || shared.has(key)) {
 			continue;
 		}
 		keys.add(key);

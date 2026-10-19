@@ -200,27 +200,34 @@ describe('serverScriptStart', () => {
 		});
 	});
 
-	test.each([
-		['scripts that share a resourceKey', 'shared', 'b'],
-		['a repeated script', undefined, 'pixel'],
-	])('starts the resource once for %s', (_, resourceKey, secondId) => {
+	test('starts a repeated script once', () => {
 		run(
 			serverScriptStart({
 				mode,
 				prefetch: prefetchFor({ marketing: true }),
-				scripts: [
-					{ ...pixel, resourceKey },
-					{ ...pixel, id: secondId, resourceKey },
-				],
+				scripts: [pixel, pixel],
 			})
 		);
 
 		const started = window as StartedWindow;
 		expect(started.__c15tSetup).toBe(1);
 		expect(document.head.querySelectorAll('script')).toHaveLength(1);
-		expect(Object.keys(started.__c15tStarted ?? {})).toEqual([
-			resourceKey ?? 'pixel',
-		]);
+		expect(Object.keys(started.__c15tStarted ?? {})).toEqual(['pixel']);
+	});
+
+	// The loader runs only the first script's `onBeforeLoad` on an element
+	// it adopts, so the second would miss its setup.
+	test('leaves a resource two scripts share to the loader', () => {
+		expect(
+			serverScriptStart({
+				mode,
+				prefetch: prefetchFor({ marketing: true }),
+				scripts: [
+					{ ...pixel, resourceKey: 'shared' },
+					{ ...pixel, id: 'b', resourceKey: 'shared' },
+				],
+			})
+		).toBeUndefined();
 	});
 
 	test('leaves a resource to its first script when that one has no serverStart', () => {
@@ -479,6 +486,26 @@ describe('serverScriptStart', () => {
 				`c15t-vendors=${encodeURIComponent(`v=1&t=${CONFIRMED_AT + 1}&d=pixel`)}`,
 			],
 		])('does nothing for %s', (_, cookie) => {
+			// oxlint-disable-next-line unicorn/no-document-cookie -- Stores the record under test.
+			document.cookie = `${cookie}; path=/`;
+
+			startPixel();
+
+			expect(document.head.querySelector('script')).toBeNull();
+		});
+
+		// The client's decoder rejects the whole record, then falls back to
+		// another copy, which may hold a denial.
+		test.each([
+			['an unknown field', `c15t=v=3&mk=1.${CONFIRMED_AT}.0&x=1`],
+			['a field without a value', `c15t=v=3&mk`],
+			[
+				'a repeated field',
+				`c15t=v=3&mk=1.${CONFIRMED_AT}.0&mk=1.${CONFIRMED_AT}.0`,
+			],
+			['a malformed decision', `c15t=v=3&mk=1.${CONFIRMED_AT}`],
+			['an unknown vendor field', 'c15t-vendors=v=1&d=&x=1'],
+		])('does nothing for a compact record with %s', (_, cookie) => {
 			// oxlint-disable-next-line unicorn/no-document-cookie -- Stores the record under test.
 			document.cookie = `${cookie}; path=/`;
 
