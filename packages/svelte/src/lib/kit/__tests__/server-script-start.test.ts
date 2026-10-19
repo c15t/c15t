@@ -72,12 +72,20 @@ test('finds the end of the body however the chunks split it', () => {
 test('ignores a body end in the text of an earlier chunk', () => {
 	const inject = renderPage('go()');
 
-	expect(inject('<body><script>"</body>"</script>', false)).toBe(
-		'<body><script>"</body>"</script>'
+	expect(
+		inject('<body><script>"</body>"</script>', false) +
+			inject('<main></main></body></html>', true)
+	).toBe(
+		'<body><script>"</body>"</script><main></main><script>go()</script></body></html>'
 	);
-	expect(inject('<main></main></body></html>', true)).toBe(
-		'<main></main><script>go()</script></body></html>'
-	);
+});
+
+test('keeps the body end when only comments follow it before the last chunk', () => {
+	const inject = renderPage('go()');
+
+	expect(
+		inject('<body></body></html><!-- served -->', false) + inject('', true)
+	).toBe('<body><script>go()</script></body></html><!-- served -->');
 });
 
 test('passes a long unfinished region through instead of holding it', () => {

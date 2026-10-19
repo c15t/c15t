@@ -17,8 +17,6 @@ import type { ServerStartOptions } from '../server-script-start';
 const NONCE = /^[\w+/=-]+$/u;
 const SCRIPT_NONCE = /<script\b[^>]*\snonce="(?<nonce>[\w+/=-]+)"/u;
 const BODY_END = '</body>';
-/** What follows the end of the body: the end of the page. */
-const PAGE_END = /^<\/body>\s*(?:<\/html>\s*)?(?:<[^>]*)?$/u;
 /**
  * The most a chunk's end is held: more than a script tag with its nonce or
  * the end of a page. Text a chunk ends in, such as `a < b` in a long
@@ -94,14 +92,14 @@ export const loadServerScriptStart =
 	};
 
 /**
- * The end of `text` to hold for the next chunk: the end of the page from
- * `</body>`, or a tag `text` ends partway through, within its last
- * `MAX_HELD` characters.
+ * The end of `text` to hold for the next chunk, within its last `MAX_HELD`
+ * characters: from the last `</body>`, which may be the end of the body,
+ * else a tag `text` ends partway through.
  */
 const heldEnd = (text: string): string => {
 	const tail = text.slice(-MAX_HELD);
 	const body = tail.lastIndexOf(BODY_END);
-	if (body !== -1 && PAGE_END.test(tail.slice(body))) {
+	if (body !== -1) {
 		return tail.slice(body);
 	}
 	const start = tail.lastIndexOf('<');
@@ -115,8 +113,8 @@ const heldEnd = (text: string): string => {
  * It adds the script to the last chunk (`done`), before the last `</body>`:
  * SvelteKit's page template closes the body after everything the app
  * renders, so an earlier `</body>`, in a script's text or a comment, is
- * not the end. Until the last chunk, the transform holds the end of the
- * page from `</body>`, and a tag a chunk ends partway through, such as a
+ * not the end. Until the last chunk, the transform holds up to 1 KB from
+ * the last `</body>`, else a tag a chunk ends partway through, such as a
  * script with its nonce.
  *
  * The script takes the provider's `nonce` option, else the nonce SvelteKit
