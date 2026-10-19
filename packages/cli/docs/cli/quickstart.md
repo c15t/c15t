@@ -7,10 +7,16 @@ group: cli
 
 ## Install and sign in
 
-Install the Inth CLI, then sign in:
+Install the Inth CLI:
 
 ```bash
 curl -fsSL https://inth.com/cli/install.sh | sh
+```
+
+If the installer says its directory is not on your `PATH`, run the command it
+prints and open a new terminal. Then sign in:
+
+```bash
 inth login
 ```
 
