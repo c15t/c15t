@@ -1,16 +1,23 @@
 ---
 title: Codemods
-description: Migrate source from c15t v2 to v3 with the c15t CLI codemods command, covering package imports, the provider, transports, moved exports, dev tools, policy presets, CSS variables, Tailwind CSS 3, callbacks, the Node.js SDK and backend config, and run the v1 to v2 source transforms.
+description: Migrate source from c15t v2 to v3 with inth c15t codemods, covering package imports, the provider, transports, moved exports, dev tools, policy presets, CSS variables, Tailwind CSS 3 and callbacks, and run the v1 to v2 source transforms.
 group: cli
 ---
 
 ## Run the v3 codemods
 
+Run the codemods through the Inth CLI. See
+[install the Inth CLI](/docs/cli/overview#install-the-inth-cli).
+
+Replace the v2 packages with `c15t` in `package.json` first. Until it lists
+`c15t` v3, `packages-to-c15t` leaves the `@c15t/*` imports alone, and the
+codemods after it see v2 imports.
+
 The v3 codemods run only when you name them; `--all` never selects them.
 Preview every change first, then run the same command without `--dry-run`:
 
 ```bash
-npx @c15t/cli codemods packages-to-c15t consent-provider-options root-exports-to-subpaths use-consent-manager-to-hooks callbacks-to-v3 policy-packs-to-policy-rules --dry-run --json
+inth c15t codemods packages-to-c15t consent-provider-options root-exports-to-subpaths use-consent-manager-to-hooks callbacks-to-v3 policy-packs-to-policy-rules --dry-run --json
 ```
 
 Name several codemods in one command and they run in a fixed order, whatever
@@ -33,8 +40,6 @@ place, so type-checking fails at each one until you resolve it.
 | `callbacks-to-v3` | `onConsentChanged` to `onChoiceRecorded` | The `onChoiceRecorded` payload, `onConsentSet` and `onBannerFetched` |
 | `theme-to-consent-theme` | `theme.slots.consentDialogFooter` to `consentWidgetFooter` | Theme tokens, which need `ConsentTheme` or `generateThemeCSS()`, and `theme.slots.frame` |
 | `iab-option-to-iab-provider` | Nothing | The `iab` provider option, which moves to `IABProvider` |
-| `node-sdk-to-v3` | `c15tClient()` and `new C15TClient()` to `createC15tClient()`, client and per-call options, method names, type and error names | Each call site, `prefix`, `debug`, dropped retry options, and per-call `throw`, `onSuccess`, `onError`, `body`, `query` and `method` |
-| `backend-config-to-v3` | `policyPacks` (as `policyRules`), `branding`, `customTranslations`, `i18n` and `appName` into `manifest` | `adapter`, `disableGeoLocation`, `iab`, `cache`, `logger`, `telemetry`, `tablePrefix`, `background` and removed entries |
 
 v2 still accepted the deprecated `translations` option, and v3 removes it.
 The v1 to v2 transform `translations-to-i18n` moves it to `i18n`; name it to
@@ -137,7 +142,7 @@ to `useColorScheme` imported from its new entry, and leaves a
 and Next.js entries to `c15t`, or `@c15t/core` for scoped packages, because
 the v3 React and Next.js entries don't export presets. Calls to presets need
 no other change. Hand-written policy packs use a different format in v3;
-`consent-provider-options` and `backend-config-to-v3` flag them.
+`consent-provider-options` flags them.
 
 `dev-tools-to-c15t` picks `c15t/next/devtools` when `package.json` lists
 `next` or `@c15t/nextjs`, and `c15t/react/devtools` otherwise. If
@@ -167,21 +172,9 @@ shows.
 
 ### Node.js SDK and backend
 
-`node-sdk-to-v3` follows clients created in the same file, including class
-properties, parameters typed as `C15TClient`, and clients made through
-`import * as sdk from '@c15t/node-sdk'`. It rewrites client options written
-in the call or in a variable in the same file; options from anywhere else
-get a `TODO(c15t v3)` comment. It turns `type: 'a,b'`
-strings into `types: ['a', 'b']`, and moves a v2 `init(options)` argument to
-`init(undefined, options)`. In per-call options it renames `timeout` to
-`timeoutMs` and `retryConfig` to `retry`. Call options passed as a variable
-or spread get a `TODO(c15t v3)` comment. A file that receives the client
-from another module keeps its old method names; search for them by hand.
-
-`backend-config-to-v3` reads objects passed to `defineConfig()` or
-`c15tInstance()` from `@c15t/backend`, and variables typed as `C15TOptions`.
-It merges the moved keys into an existing `manifest` object, and rewrites
-imports from the removed `@c15t/backend/define-config` entry.
+A self-hosted backend and the Node.js SDK have their own codemods,
+`backend-config-to-v3` and `node-sdk-to-v3`. See
+[Upgrade a self-hosted backend](/docs/self-host/upgrade-v3).
 
 ## Migrate `useConsentManager()` to v3 hooks
 
@@ -189,7 +182,7 @@ v3 removed `useConsentManager()`. The `use-consent-manager-to-hooks` codemod
 replaces each destructured field with the hook that reads it:
 
 ```bash
-npx @c15t/cli codemods use-consent-manager-to-hooks --dry-run --json
+inth c15t codemods use-consent-manager-to-hooks --dry-run --json
 ```
 
 Review the before and after contents in the JSON result, then run the same
@@ -227,7 +220,7 @@ calls, `require` functions made with Node's `createRequire()`, and import
 types. It scans `.mts`, `.cts`, `.mjs` and `.cjs` files too:
 
 ```bash
-npx @c15t/cli codemods scripts-to-integrations --dry-run --json
+inth c15t codemods scripts-to-integrations --dry-run --json
 ```
 
 It does not edit `package.json`, lockfiles, or imports inside `.vue`, `.svelte`
@@ -243,8 +236,8 @@ The other transforms migrate v1 source to the v2 API. Run them before you
 upgrade a v1 app to v3.
 
 ```bash
-npx @c15t/cli codemods --list --json
-npx @c15t/cli codemods --all --from 1.9.0 --to 2.0.0 --dry-run --json
+inth c15t codemods --list --json
+inth c15t codemods --all --from 1.9.0 --to 2.0.0 --dry-run --json
 ```
 
 | ID | Change |

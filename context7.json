@@ -18,7 +18,7 @@
 	"excludeFiles": [],
 	"rules": [
 		"Package selection: Use @c15t/react for React apps, @c15t/nextjs for Next.js (App Router & Pages Router), or c15t for vanilla JavaScript",
-		"Use @c15t/cli generate for the easiest setup - it installs packages, configures your instance, sets up environment variables, and adds components automatically",
+		"Use the Inth CLI (`inth c15t`) for the easiest setup - it creates or selects an Inth project, then starts a coding agent with the c15t setup prompt or writes the framework quickstart files with `inth c15t scaffold`",
 		"Configuration modes: Use mode: 'c15t' with backendURL for hosted/managed inth.com instances (recommended), mode: 'offline' for client-side only with localStorage, or custom client for full control",
 		"For production, use inth.com (hosted) or self-hosted @c15t/backend. Offline mode is only for development or simple implementations",
 		"Consent categories: Use 'necessary' (always required), 'measurement' (analytics like GA4), 'marketing' (advertising like Google Ads, Meta Pixel), and 'functional' (optional features)",

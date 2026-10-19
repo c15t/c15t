@@ -130,7 +130,7 @@ The scoped packages stay published and supported. Use them when you want to pin 
 - [@c15t/iab](https://www.npmjs.com/package/@c15t/iab): IAB TCF 2.4 and GPP for programmatic advertising
 - [@c15t/backend](https://www.npmjs.com/package/@c15t/backend): the self-hosted consent backend
 - [@c15t/node-sdk](https://www.npmjs.com/package/@c15t/node-sdk): read and write consent records from your server
-- [@c15t/cli](https://www.npmjs.com/package/@c15t/cli): set up c15t, run migrations, and install agent skills
+- [Inth CLI](https://www.npmjs.com/package/@inth/cli): run `inth c15t` to set up c15t with a coding agent or quickstart files
 
 ## Docs for AI Agents
 

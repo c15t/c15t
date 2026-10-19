@@ -1,70 +1,72 @@
 ---
 title: CLI overview
-description: Run the c15t CLI from @c15t/cli to add c15t to an app, migrate v2
-  code, manage Inth projects and migrate a self-hosted database.
+description: Install the Inth CLI and run inth c15t to add c15t to an app with a
+  coding agent or quickstart files, create or select an Inth project, and run
+  the v3 codemods.
 group: cli
 ---
 
-## Run the CLI
+## Install the Inth CLI
 
-The CLI ships as `@c15t/cli`. Run it without installing:
-
-```bash
-npx @c15t/cli --help
-```
-
-`bunx @c15t/cli`, `pnpm dlx @c15t/cli` and `yarn dlx @c15t/cli` work the same
-way.
-
-To pin the version in your repository, install it as a development dependency
-and run the `c15t` executable:
-
-| Package manager | Command                    |
-| :-------------- | :------------------------- |
-| npm             | `npm install -D @c15t/cli` |
-| pnpm            | `pnpm add -D @c15t/cli`    |
-| yarn            | `yarn add -D @c15t/cli`    |
-| bun             | `bun add -D @c15t/cli`     |
+c15t setup runs through `inth c15t` in the Inth CLI. On macOS and Linux, the
+install script needs no Node.js:
 
 ```bash
-npx c15t --help
+curl -fsSL https://inth.com/cli/install.sh | sh
+inth --version
 ```
 
-The package also installs the executable under its older name, `cli`.
+On any supported platform, including Windows, install the npm package
+globally. Keep optional dependencies enabled, because they hold the native
+executable:
+
+```bash
+npm install -g @inth/cli
+```
+
+To run it once without installing, use `npx @inth/cli c15t`. Run `inth update`
+to move to the latest release. The
+[Inth CLI docs](https://inth.com/docs/cli/getting-started) list supported
+platforms.
 
 ## Commands
 
-| Command                                               | Purpose                                                                                                                                                              |
-| ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `setup`                                               | Add c15t to a Next.js or React app, or generate framework files for any supported framework. `generate` is an alias.                                                 |
-| `codemods`                                            | Rewrite `useConsentManager()` calls for v3, or run the v1 to v2 transforms.                                                                                          |
-| `login`, `logout`, `status`                           | Sign in to Inth in a browser or by email approval, sign out of the shared Inth session, and check local session status. See [hosted projects](./commands/hosted.md). |
-| `projects list`, `projects select`, `projects create` | Manage Inth projects and the application project preference used by setup. `instances` is an alias.                                                                  |
-| `self-host migrate`                                   | Plan and apply database migrations for a self-hosted backend.                                                                                                        |
-| `skills`                                              | Install c15t agent skills through the external skills CLI.                                                                                                           |
-| `docs`, `changelog`, `github`                         | Open the URL in a browser, or print it when there is no terminal.                                                                                                    |
+| Command                                                       | Purpose                                                                    |
+| ------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `inth c15t`                                                   | Ask how to set up c15t in this app, then create or select an Inth project. |
+| `inth c15t --codex`, `--claude`, `--cursor`, `--grok`, `--fx` | Start that coding agent here with the c15t setup prompt.                   |
+| `inth c15t prompt`                                            | Print the setup prompt for any other agent.                                |
+| `inth c15t scaffold`                                          | Write the framework's quickstart files and install the c15t packages.      |
+| `inth c15t codemods`                                          | Rewrite v2 source for v3. See [codemods](./commands/codemods.md).          |
 
-`setup --codex` hands frontend integration to your installed Codex CLI.
-`generate` keeps deterministic file generation.
+Inth owns sign-in, organizations and projects. `inth c15t` asks you to sign in
+when it needs an Inth project. See `inth login --help` for browser and email
+sign-in.
 
-Run `npx @c15t/cli <command> --help` for a command's options.
+Add `--json` to any command for one JSON result on stdout. It also turns off
+prompts and browser login. `--non-interactive` turns off prompts without
+changing the output. Run `inth c15t --help` for the options your installed
+version supports.
 
-## Pick the right command for your framework
+## Pick a setup path
 
-`setup` edits an existing app layout for Next.js App Router, Next.js Pages Router
-and React apps with a recognizable root component. It also writes configuration
-for plain JavaScript. See [setup](./commands/setup.md).
+A coding agent adapts c15t to your existing layout, moves your analytics and
+embeds behind consent, and checks the result in a browser. Use it for an app
+that already has a root layout and third-party scripts.
 
-For TanStack Start, Vue, Nuxt, Svelte, SvelteKit, Solid and Astro, `setup` with
-`--framework` writes integration files and wiring instructions, and leaves your
-entry point unchanged. See [framework boilerplate](./commands/boilerplate.md).
+`scaffold` writes the framework's quickstart files and leaves the rest of the
+app unchanged. It supports `next-app`, `next-pages`, `react`, `javascript`,
+`tanstack-start`, `vue`, `nuxt`, `svelte`, `sveltekit`, `solid`, `astro`,
+`astro-static` and `html`.
 
-Remix and Gatsby have no CLI support. Follow the
+`inth c15t` connects the app to an Inth project. For an offline or
+self-hosted backend, follow your [framework quickstart](https://c15t.com/docs/frameworks)
+instead. Remix and Gatsby have no CLI support. Follow the
 [React guide](https://c15t.com/docs/frameworks/react/quickstart); see
 [Choose your setup](../concepts/choose-your-setup.md) for the rendering mode.
 
 ## Next steps
 
-* [Quickstart](./quickstart.md): plan and apply setup in an existing app.
-* [Codemods](./commands/codemods.md): migrate `useConsentManager()` to v3 hooks.
-* [Agents and automation](./automation.md): JSON results and calling the CLI from code.
+* [Quickstart](./quickstart.md): set up c15t in an existing app.
+* [inth c15t](./commands/setup.md): every action and option.
+* [Codemods](./commands/codemods.md): migrate v2 source to v3.

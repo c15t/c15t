@@ -12,7 +12,7 @@ group: frameworks
   1. List every c15t dependency and import: `@c15t/react`, `@c15t/scripts`, `@c15t/dev-tools` and `c15t`.
   2. Check that React is 18 or later. Stop and tell me if it needs a major upgrade.
   3. Replace the packages with `c15t`, plus `@c15t/integrations` if the app uses vendor helpers.
-  4. Run `npx @c15t/cli codemods packages-to-c15t consent-provider-options root-exports-to-subpaths use-consent-manager-to-hooks scripts-to-integrations dev-tools-to-c15t policy-packs-to-policy-rules callbacks-to-v3 theme-to-consent-theme iab-option-to-iab-provider css-variables-to-v3 postcss-tailwind3 --dry-run --json`. Review the output, then run the same command without `--dry-run`. The codemods leave a `TODO(c15t v3)` comment wherever they need you to finish a change.
+  4. Install the Inth CLI with `npm install -g @inth/cli` if `inth` is missing, then run `inth c15t codemods packages-to-c15t consent-provider-options root-exports-to-subpaths use-consent-manager-to-hooks scripts-to-integrations dev-tools-to-c15t policy-packs-to-policy-rules callbacks-to-v3 theme-to-consent-theme iab-option-to-iab-provider css-variables-to-v3 postcss-tailwind3 --dry-run --json`. Review the output, then run the same command without `--dry-run`. The codemods leave a `TODO(c15t v3)` comment wherever they need you to finish a change.
   5. Check that `ConsentManagerProvider` is now `ConsentProvider` from `c15t/react`, with a transport such as `hosted()` as `mode`. Finish any custom mode the codemod marked.
   6. Update callbacks, policy presets, renamed options and components, theme CSS, CSS variables and IAB setup as the guide describes.
   7. Keep the existing backend URL. If the app runs its own c15t backend, stop and tell me, because it has to be upgraded in the same release with https://v3.c15t.com/docs/self-host/upgrade-v3.md.
@@ -28,6 +28,8 @@ group: frameworks
   client can't read a v2 backend. See
   [Upgrade a self-hosted backend](/docs/self-host/upgrade-v3).
   Inth-hosted backends need no change.
+- Install the [Inth CLI](/docs/cli/overview#install-the-inth-cli). The
+  codemods run through `inth c15t codemods`.
 
 ## Replace the packages
 
@@ -85,7 +87,7 @@ and adds the transport import. It can't translate `endpointHandlers`, so it
 leaves a `TODO(c15t v3)` comment on a custom mode:
 
 ```bash
-npx @c15t/cli codemods consent-provider-options --dry-run --json
+inth c15t codemods consent-provider-options --dry-run --json
 ```
 
 Keep your backend URL. An existing hosted URL such as
@@ -139,7 +141,7 @@ The `dev-tools-to-c15t` codemod points the imports at `c15t/react/devtools` and
 removes the `namespace` prop:
 
 ```bash
-npx @c15t/cli codemods dev-tools-to-c15t --dry-run --json
+inth c15t codemods dev-tools-to-c15t --dry-run --json
 ```
 
 <include src="../../shared/upgrade-v3/earlier-alpha-intro.mdx" />

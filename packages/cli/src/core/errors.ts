@@ -33,7 +33,7 @@ export const ERROR_CATALOG = {
 	// --- Auth Errors ---
 	AUTH_FAILED: {
 		code: 'AUTH_FAILED',
-		docs: `${URLS.DOCS}/cli/commands/hosted`,
+		docs: `${URLS.DOCS}/cli/overview`,
 		hint: 'Try running `c15t login` again',
 		message: 'Authentication failed',
 	},
@@ -168,13 +168,13 @@ export const ERROR_CATALOG = {
 	},
 	INTH_UNAVAILABLE: {
 		code: 'INTH_UNAVAILABLE',
-		docs: `${URLS.DOCS}/cli/commands/hosted`,
+		docs: `${URLS.DOCS}/cli/overview`,
 		hint: 'Follow the details above to restore the Inth executable, or pass --backend-url to `c15t setup` to skip hosted account commands',
 		message: 'The Inth executable for hosted account commands is unavailable',
 	},
 	INTH_UNSUPPORTED_PLATFORM: {
 		code: 'INTH_UNSUPPORTED_PLATFORM',
-		docs: `${URLS.DOCS}/cli/commands/hosted`,
+		docs: `${URLS.DOCS}/cli/overview`,
 		hint: 'Login, status and projects are unavailable here, and INTH_TOKEN cannot help without the executable. Pass --backend-url to `c15t setup`, or use `c15t setup offline`',
 		message: 'Hosted account commands are not supported on this platform',
 	},
@@ -216,7 +216,7 @@ export const ERROR_CATALOG = {
 	},
 	PROJECT_PREFERENCE_INVALID: {
 		code: 'PROJECT_PREFERENCE_INVALID',
-		docs: `${URLS.DOCS}/cli/commands/hosted`,
+		docs: `${URLS.DOCS}/cli/overview`,
 		hint: 'Delete .c15t/project.json (and .c15t itself if it is a symlink), then run `c15t projects select`',
 		message: 'Invalid project selection in .c15t/project.json',
 	},
