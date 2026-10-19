@@ -55,7 +55,6 @@ describe('toSaveScripts', () => {
 	test('drops invalid fields and scripts the backend would refuse', () => {
 		const scripts = [
 			{ category: 'marketing', id: 'bad-vendor', vendor: 'Not A Slug' },
-			{ category: 'marketing', iabPurposes: [0, 1.5], id: 'bad-iab' },
 			{ category: 'advertising', id: 'unknown-category' },
 			{ category: { or: [] }, id: 'empty-or' },
 			{ category: 'marketing', id: '' },
@@ -63,7 +62,20 @@ describe('toSaveScripts', () => {
 		] as unknown as Script[];
 		expect(toSaveScripts(scripts)).toEqual([
 			{ category: 'marketing', id: 'bad-vendor' },
-			{ category: 'marketing', id: 'bad-iab' },
+		]);
+	});
+
+	test('leaves out a script whose IAB gating it cannot send', () => {
+		// The loader gates each of these as an IAB script. Without the bad
+		// field the backend would read it as a category-only one.
+		const scripts = [
+			{ category: 'marketing', iabPurposes: [0, 1.5], id: 'bad-iab' },
+			{ category: 'marketing', iabSpecialFeatures: '1', id: 'not-a-list' },
+			{ category: 'marketing', id: 'bad-vendor-id', vendorId: 0 },
+			{ category: 'marketing', iabLegIntPurposes: [], id: 'empty-list' },
+		] as unknown as Script[];
+		expect(toSaveScripts(scripts)).toEqual([
+			{ category: 'marketing', id: 'empty-list' },
 		]);
 	});
 

@@ -161,8 +161,11 @@ export const isSaveScripts = (value: unknown): value is SaveScript[] =>
 
 /**
  * The gating fields of each script, leaving out any the backend would
- * reject. An invalid optional field is left off its entry; a script whose
- * id or category is invalid is left out.
+ * reject. An invalid vendor slug is left off its entry, since the vendor
+ * gate ignores it too. A script is left out when its id or category is
+ * invalid, or when its `vendorId` or a nonempty IAB list is: the loader
+ * still gates it as an IAB script, and the backend would read the rest as
+ * a category-only one.
  *
  * @param scripts - Configured scripts.
  * @returns One entry per valid script, in input order.
@@ -177,18 +180,31 @@ export const toSaveScripts = function toSaveScripts(
 		if (typeof script.vendor === 'string' && isValidVendorId(script.vendor)) {
 			entry.vendor = script.vendor;
 		}
-		if (isVendorId(script.vendorId)) {
+		if (script.vendorId !== undefined) {
+			if (!isVendorId(script.vendorId)) {
+				continue;
+			}
 			entry.vendorId = script.vendorId;
 		}
+		let unreadable = false;
 		for (const key of [
 			'iabPurposes',
 			'iabLegIntPurposes',
 			'iabSpecialFeatures',
 		] as const) {
-			const ids = script[key];
-			if (isIabIds(ids) && ids.length > 0) {
-				entry[key] = [...ids];
+			const ids: unknown = script[key];
+			// Same test as the loader's `hasIabMeta`: an empty list gates nothing.
+			if (!ids || (ids as { length?: unknown }).length === 0) {
+				continue;
 			}
+			if (!isIabIds(ids)) {
+				unreadable = true;
+				break;
+			}
+			entry[key] = [...ids];
+		}
+		if (unreadable) {
+			continue;
 		}
 		for (const key of [
 			'alwaysLoad',
