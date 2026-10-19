@@ -39,7 +39,7 @@ import { SqlClient, Statement } from 'effect/sql';
 import type { SqlError } from 'effect/sql';
 
 import { insertOnce } from '../db/insert-once';
-import { tenantScope } from '../db/tenant';
+import { currentTenantId, tenantScope } from '../db/tenant';
 import { encodeRow, encoder, toDate, toDateOrNull } from '../db/values';
 import { purposeCodesById } from './consent-purpose';
 import {
@@ -480,6 +480,7 @@ export const linkExternalId = Effect.fn('repository.linkExternalId')(
 		const sql = yield* SqlClient.SqlClient;
 		const encode = yield* encoder;
 		const scope = yield* tenantScope();
+		const tenantId = yield* currentTenantId;
 
 		const found = yield* sql<{
 			externalId: string | null;
@@ -603,6 +604,7 @@ export const linkExternalId = Effect.fn('repository.linkExternalId')(
 								verifiedBy: input.verifiedBy,
 							}),
 							subjectId: input.subjectId,
+							tenantId: tenantId ?? null,
 							userAgent: input.userAgent,
 						})
 					)}

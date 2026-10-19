@@ -145,6 +145,25 @@ for (const engine of ENGINES) {
 			);
 		});
 
+		it('logs an identity link under the configured tenant', async () => {
+			const app = appFor('tenant_a');
+			await post(app, { ...submission, externalSubjectId: undefined });
+
+			const response = await app.request(`/subjects/${submission.subjectId}`, {
+				body: JSON.stringify({ externalId: 'ext_linked' }),
+				headers: { 'Content-Type': 'application/json' },
+				method: 'PATCH',
+			});
+			assert.strictEqual(response.status, 200, await response.text());
+
+			// The consent's `consent_given` entry and the link's `identify_user`
+			// entry: the second is written by a different repository function.
+			assert.deepStrictEqual(await rowTenants('auditLog'), [
+				'tenant_a',
+				'tenant_a',
+			]);
+		});
+
 		it('reads back what it recorded', async () => {
 			const app = appFor('tenant_a');
 			await post(app, submission);
