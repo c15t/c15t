@@ -35,7 +35,10 @@ const resolve = async function resolve(
 	return await resolveConsentContext({
 		headers: new Headers(cookieHeader ? { cookie: cookieHeader } : {}),
 		options: resolveOptions({
-			mode: offlineMode({ policyRules: [testRule] }),
+			mode: offlineMode({
+				acknowledgeNoRecords: true,
+				policyRules: [testRule],
+			}),
 			...options,
 		}),
 	});

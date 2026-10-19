@@ -37,6 +37,7 @@ it.each(['direct init', 'queued config'])(
 	'clears denied browser data through %s and preserves granted categories',
 	async (configuration) => {
 		const options: ConsentClientOptions = {
+			acknowledgeNoRecords: true,
 			clearOnRevocation: {
 				marketing: { localStorage: ['marketing:visitor'] },
 				measurement: {

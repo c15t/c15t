@@ -18,7 +18,7 @@ const renderBanner = async function renderBanner() {
 	await render(
 		<ConsentProvider
 			options={{
-				mode: offline(),
+				mode: offline({ acknowledgeNoRecords: true }),
 				persistence: false,
 				prefetch: policyFixture(undefined, { id: 'banner-footer-layout' }),
 			}}

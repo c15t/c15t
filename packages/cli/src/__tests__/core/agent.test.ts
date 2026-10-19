@@ -669,7 +669,7 @@ describe('c15t setup instructions', () => {
 	});
 
 	it.each([
-		['offline', 'Use offline mode.', 'written to browser storage'],
+		['offline', 'Use local mode, `local()`.', 'written to browser storage'],
 		[
 			'hosted',
 			'Use hosted mode',

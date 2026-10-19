@@ -55,7 +55,7 @@ exports[`expanded component templates > generates a React v3 provider with its D
 "'use client';
 
 import type { ReactNode } from 'react';
-import { ConsentProvider, ConsentTheme, offline } from 'c15t/react';
+import { ConsentProvider, ConsentTheme, local } from 'c15t/react';
 
 
 import { lazy, Suspense } from 'react';
@@ -79,7 +79,7 @@ export default function ConsentManagerClient({ children }: Props) {
 	return (
 		<ConsentProvider
 			options={{
-				mode: offline(),
+				mode: local(),
 				theme,
 				components,
 				// Add your scripts here:

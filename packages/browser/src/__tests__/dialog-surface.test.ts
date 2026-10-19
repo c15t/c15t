@@ -26,6 +26,7 @@ const setup = async function setup(): Promise<{
 }> {
 	const client = createConsentClient(
 		{
+			acknowledgeNoRecords: true,
 			consentCategories: ['measurement'],
 			policyRules: [
 				{

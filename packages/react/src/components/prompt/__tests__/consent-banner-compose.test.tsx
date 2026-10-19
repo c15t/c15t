@@ -22,7 +22,7 @@ const renderComposed = function renderComposed(
 		<ConsentProvider
 			options={{
 				components,
-				mode: offline(),
+				mode: offline({ acknowledgeNoRecords: true }),
 				persistence: false,
 				prefetch: policyFixture(undefined, { id: 'banner-compose-test' }),
 			}}
@@ -250,7 +250,7 @@ describe('composed ConsentDialog', () => {
 			<ConsentProvider
 				options={{
 					initialUI: 'dialog',
-					mode: offline(),
+					mode: offline({ acknowledgeNoRecords: true }),
 					persistence: false,
 					prefetch: policyFixture(undefined, { id: 'dialog-compose-test' }),
 				}}

@@ -84,7 +84,7 @@ const runBench = async function runBench(): Promise<Run> {
 	const { getByTestId } = await render(
 		<ConsentProvider
 			options={{
-				mode: offline(),
+				mode: offline({ acknowledgeNoRecords: true }),
 				persistence: false,
 				prefetch: policyFixture(),
 			}}

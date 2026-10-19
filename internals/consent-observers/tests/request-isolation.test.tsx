@@ -62,7 +62,12 @@ const visitorCookie = async function visitorCookie(
 	clearBrowserStorage();
 	const runtime = createConsentRuntime({
 		iframeBlocker: false,
-		mode: custom(createOfflineTransport({ policyRules: [OBSERVED_RULE] })),
+		mode: custom(
+			createOfflineTransport({
+				acknowledgeNoRecords: true,
+				policyRules: [OBSERVED_RULE],
+			})
+		),
 		prefetch: { initialPolicyResolution: observedPolicy() },
 		windowDebug: false,
 	});

@@ -13,7 +13,7 @@ import { testResolution, testRule } from './policy-fixture';
 
 const OPTIONS: C15tAstroOptions = {
 	consentCategories: ['necessary', 'measurement', 'marketing'],
-	mode: offlineMode({ policyRules: [testRule] }),
+	mode: offlineMode({ acknowledgeNoRecords: true, policyRules: [testRule] }),
 };
 
 let client: AstroConsentClient | null = null;

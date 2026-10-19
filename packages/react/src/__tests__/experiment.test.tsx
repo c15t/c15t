@@ -272,6 +272,7 @@ test('the arm goes out on /init and on the callbacks', async () => {
 	// Impressions are stamped once init marks the kernel live, so this
 	// transport answers init instead of relying on a prepared prefetch.
 	const offline = createOfflineTransport({
+		acknowledgeNoRecords: true,
 		policyRules: [
 			{
 				categories: ['marketing', 'measurement'],

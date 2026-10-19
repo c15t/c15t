@@ -617,7 +617,10 @@ describe('offline transport resolution', () => {
 	];
 
 	test('resolves v3 rules once per init with precomputed fingerprints', async () => {
-		const transport = createOfflineTransport({ policyRules: rules });
+		const transport = createOfflineTransport({
+			acknowledgeNoRecords: true,
+			policyRules: rules,
+		});
 		const response = await transport.init?.({
 			overrides: { country: 'US', region: 'CA' },
 			user: null,
@@ -645,18 +648,40 @@ describe('offline transport resolution', () => {
 			);
 
 		expect(
-			await read(createOfflineTransport({ policyRules: undefined }), 'DE')
+			await read(
+				createOfflineTransport({
+					acknowledgeNoRecords: true,
+					policyRules: undefined,
+				}),
+				'DE'
+			)
 		).toMatchObject({ policyId: 'europe_opt_in', status: 'matched' });
 		expect(
-			await read(createOfflineTransport({ policyRules: [] }), 'DE')
+			await read(
+				createOfflineTransport({ acknowledgeNoRecords: true, policyRules: [] }),
+				'DE'
+			)
 		).toEqual({
 			policy: null,
 			status: 'no-match',
 		});
 		expect(
-			await read(createOfflineTransport({ policyRules: rules }), 'BR')
+			await read(
+				createOfflineTransport({
+					acknowledgeNoRecords: true,
+					policyRules: rules,
+				}),
+				'BR'
+			)
 		).toEqual({ policy: null, status: 'no-match' });
-		expect(await read(createOfflineTransport({ policyRules: rules }))).toEqual({
+		expect(
+			await read(
+				createOfflineTransport({
+					acknowledgeNoRecords: true,
+					policyRules: rules,
+				})
+			)
+		).toEqual({
 			policy: null,
 			reason: 'insufficient-inputs',
 			status: 'failed',
@@ -664,6 +689,7 @@ describe('offline transport resolution', () => {
 		expect(
 			await read(
 				createOfflineTransport({
+					acknowledgeNoRecords: true,
 					policyRules: [
 						{
 							id: 'bad',
@@ -684,6 +710,7 @@ describe('offline transport resolution', () => {
 
 	test('offline rules retain the explicit GPC mapping', async () => {
 		const transport = createOfflineTransport({
+			acknowledgeNoRecords: true,
 			policyRules: [
 				{
 					id: 'local',
@@ -703,7 +730,11 @@ describe('offline transport resolution', () => {
 	});
 
 	test('removed policy packs cannot override configured rules', async () => {
-		const options = { policyPacks: [], policyRules: rules };
+		const options = {
+			acknowledgeNoRecords: true,
+			policyPacks: [],
+			policyRules: rules,
+		};
 		const response = await createOfflineTransport(options).init({
 			overrides: { country: 'DE' },
 			user: null,

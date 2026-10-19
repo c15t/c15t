@@ -409,6 +409,7 @@ describe('lazyOffline()', () => {
 
 		expect(load).toHaveBeenCalledTimes(1);
 		expect(offlineFactory).toHaveBeenCalledWith({
+			acknowledgeNoRecords: true,
 			policyRules: providerRules,
 		});
 		expect(transportInit).toHaveBeenCalledTimes(2);

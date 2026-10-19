@@ -60,7 +60,7 @@ const sequencedTransport = function sequencedTransport(
 	rules: PolicyRule[][]
 ): KernelTransport {
 	const offline = rules.map((policyRules) =>
-		createOfflineTransport({ policyRules })
+		createOfflineTransport({ acknowledgeNoRecords: true, policyRules })
 	);
 	let attempt = 0;
 	return {
@@ -103,7 +103,10 @@ const heldKernel = function heldKernel(
 		initialExperiment: arm ? { ...hostWall, ...arm } : undefined,
 		initialExperimentPending: true,
 		initialPolicyPending: true,
-		transport: createOfflineTransport({ policyRules: rules }),
+		transport: createOfflineTransport({
+			acknowledgeNoRecords: true,
+			policyRules: rules,
+		}),
 	});
 };
 

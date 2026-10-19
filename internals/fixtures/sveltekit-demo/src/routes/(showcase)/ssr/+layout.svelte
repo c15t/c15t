@@ -22,7 +22,7 @@
 
 <ConsentProvider
 	options={{
-		mode: offline({ policyRules: rules }),
+		mode: offline({ acknowledgeNoRecords: true, policyRules: rules }),
 		prefetch: { initialPolicyResolution: resolution },
 		consentCategories: ['necessary', 'marketing', 'measurement'],
 		iab: {

@@ -13,4 +13,5 @@ export const TEST_OPT_IN_RULE: PolicyRule = {
 };
 
 /** Offline mode with the shared opt-in rule, for tests that render surfaces. */
-export const testOffline = () => offline({ policyRules: [TEST_OPT_IN_RULE] });
+export const testOffline = () =>
+	offline({ acknowledgeNoRecords: true, policyRules: [TEST_OPT_IN_RULE] });

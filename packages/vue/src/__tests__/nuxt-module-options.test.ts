@@ -620,9 +620,7 @@ describe('mode and routePrefix', () => {
 		const transport = Object.assign(() => ({}), { kind: 'hosted' });
 		await expect(
 			setUpModule({ backendURL: '/api/self-host', mode: transport })
-		).rejects.toThrow(
-			"Import `manifest`, `hosted` or `offline` from 'c15t/vue'"
-		);
+		).rejects.toThrow("Import `manifest`, `hosted` or `local` from 'c15t/vue'");
 	});
 
 	test('nuxt generate warns that the server cannot resolve the policy', async () => {

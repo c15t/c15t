@@ -15,7 +15,7 @@ afterEach(() => {
 test('Frame renders the ConsentGate and warns once that it is deprecated', async () => {
 	const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 	const options = {
-		mode: offline(),
+		mode: offline({ acknowledgeNoRecords: true }),
 		persistence: false,
 		prefetch: policyFixture(),
 	};

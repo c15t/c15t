@@ -36,7 +36,7 @@ const mountBanner = async function mountBanner(disableAnimation: boolean) {
 			},
 			options: {
 				disableAnimation,
-				mode: offline(),
+				mode: offline({ acknowledgeNoRecords: true }),
 				prefetch: policyFixture({}),
 			},
 		},

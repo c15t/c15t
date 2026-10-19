@@ -17,7 +17,7 @@ import { createConsentRuntime } from '../runtime';
 
 describe('createOfflineTransport: basic behavior', () => {
 	test('no rules resolve the recommended pack', async () => {
-		const transport = createOfflineTransport();
+		const transport = createOfflineTransport({ acknowledgeNoRecords: true });
 		const unknown = await transport.init?.({ overrides: {}, user: null });
 		expect(unknown?.policyResolution).toMatchObject({
 			matchedBy: 'fallback',
@@ -44,7 +44,10 @@ describe('createOfflineTransport: basic behavior', () => {
 	});
 
 	test('iabEnabled selects the IAB Europe rule in the recommended pack', async () => {
-		const transport = createOfflineTransport({ iabEnabled: true });
+		const transport = createOfflineTransport({
+			acknowledgeNoRecords: true,
+			iabEnabled: true,
+		});
 		const response = await transport.init?.({
 			overrides: { country: 'FR' },
 			user: null,
@@ -55,7 +58,9 @@ describe('createOfflineTransport: basic behavior', () => {
 	});
 
 	test('a missing US state uses opt-out with persistent preferences and GPC', async () => {
-		const response = await createOfflineTransport().init({
+		const response = await createOfflineTransport({
+			acknowledgeNoRecords: true,
+		}).init({
 			overrides: { country: 'US' },
 			user: null,
 		});
@@ -74,7 +79,10 @@ describe('createOfflineTransport: basic behavior', () => {
 	});
 
 	test('empty rules report no-match', async () => {
-		const transport = createOfflineTransport({ policyRules: [] });
+		const transport = createOfflineTransport({
+			acknowledgeNoRecords: true,
+			policyRules: [],
+		});
 		const response = await transport.init?.({
 			overrides: {},
 			user: null,
@@ -88,6 +96,7 @@ describe('createOfflineTransport: basic behavior', () => {
 
 	test('custom defaultLanguage + branding honored', async () => {
 		const transport = createOfflineTransport({
+			acknowledgeNoRecords: true,
 			branding: 'consent',
 			defaultLanguage: 'de',
 		});
@@ -100,7 +109,7 @@ describe('createOfflineTransport: basic behavior', () => {
 	});
 
 	test('location reflects the overrides', async () => {
-		const transport = createOfflineTransport();
+		const transport = createOfflineTransport({ acknowledgeNoRecords: true });
 		const response = await transport.init?.({
 			overrides: { country: 'DE', region: 'BE' },
 			user: null,
@@ -112,7 +121,10 @@ describe('createOfflineTransport: basic behavior', () => {
 	});
 
 	test('ctx.overrides.language overrides default language', async () => {
-		const transport = createOfflineTransport({ defaultLanguage: 'en' });
+		const transport = createOfflineTransport({
+			acknowledgeNoRecords: true,
+			defaultLanguage: 'en',
+		});
 		const response = await transport.init?.({
 			overrides: { language: 'fr' },
 			user: null,
@@ -124,6 +136,7 @@ describe('createOfflineTransport: basic behavior', () => {
 describe('createOfflineTransport: policy-pack resolution', () => {
 	test('matching rule drives model and prompt', async () => {
 		const transport = createOfflineTransport({
+			acknowledgeNoRecords: true,
 			policyRules: [
 				{
 					id: 'gdpr',
@@ -145,6 +158,7 @@ describe('createOfflineTransport: policy-pack resolution', () => {
 
 	test('non-matching location reports no-match', async () => {
 		const transport = createOfflineTransport({
+			acknowledgeNoRecords: true,
 			policyRules: [
 				{
 					id: 'gdpr',
@@ -171,6 +185,7 @@ describe('createOfflineTransport: kernel integration', () => {
 		const kernel = createConsentKernel({
 			initialOverrides: { country: 'DE' },
 			transport: createOfflineTransport({
+				acknowledgeNoRecords: true,
 				policyRules: [
 					{
 						id: 'gdpr',
@@ -192,7 +207,7 @@ describe('createOfflineTransport: kernel integration', () => {
 
 	test('save() succeeds without a backend', async () => {
 		const kernel = createConsentKernel({
-			transport: createOfflineTransport(),
+			transport: createOfflineTransport({ acknowledgeNoRecords: true }),
 		});
 		const result = await kernel.commands.save('all');
 		expect(result.ok).toBe(true);
@@ -213,6 +228,7 @@ describe('offline(): language changes', () => {
 
 	test('createOfflineTransport resolves copy for a requested language', async () => {
 		const transport = createOfflineTransport({
+			acknowledgeNoRecords: true,
 			translations: resolveLocalTranslations('en', messages),
 			translationsFor: (language) =>
 				resolveLocalTranslations(language, messages),
@@ -237,7 +253,7 @@ describe('offline(): language changes', () => {
 	test('a language set through the kernel switches the copy', async () => {
 		const runtime = createConsentRuntime({
 			i18n: { messages } as never,
-			mode: offline(),
+			mode: offline({ acknowledgeNoRecords: true }),
 			persistence: false,
 			windowDebug: false,
 		});
@@ -264,6 +280,7 @@ describe('offline(): language changes', () => {
 
 	test('a regional language skips an undefined entry for its primary language', async () => {
 		const transport = createOfflineTransport({
+			acknowledgeNoRecords: true,
 			translations: resolveLocalTranslations('en', messages),
 			translationsFor: (language) =>
 				resolveLocalTranslations(language, {
@@ -286,7 +303,7 @@ describe('offline(): language changes', () => {
 	test('the detected language switches the copy once the app chose another', async () => {
 		const runtime = createConsentRuntime({
 			i18n: { locale: 'en', messages } as never,
-			mode: offline(),
+			mode: offline({ acknowledgeNoRecords: true }),
 			persistence: false,
 			prefetch: { initialOverrides: { language: 'de' } },
 			windowDebug: false,
@@ -308,7 +325,7 @@ describe('offline(): language changes', () => {
 
 	test('a prefetch that resolves after the transport is built still counts as detected', async () => {
 		let prefetch: { initialOverrides?: { language?: string } } = {};
-		const transport = offline()({
+		const transport = offline({ acknowledgeNoRecords: true })({
 			get prefetch() {
 				return prefetch;
 			},
@@ -329,7 +346,7 @@ describe('offline(): language changes', () => {
 	test('a language a server prefetch detected does not switch the copy', async () => {
 		const runtime = createConsentRuntime({
 			i18n: { locale: 'en', messages } as never,
-			mode: offline(),
+			mode: offline({ acknowledgeNoRecords: true }),
 			persistence: false,
 			prefetch: { initialOverrides: { language: 'de' } },
 			windowDebug: false,

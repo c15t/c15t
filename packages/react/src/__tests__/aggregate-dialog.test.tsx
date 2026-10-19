@@ -32,7 +32,7 @@ test('reveals a cold aggregate dialog as soon as its module is ready', async () 
 		root.render(
 			<ConsentProvider
 				options={{
-					mode: offline(),
+					mode: offline({ acknowledgeNoRecords: true }),
 					persistence: false,
 					prefetch: policyFixture(),
 				}}

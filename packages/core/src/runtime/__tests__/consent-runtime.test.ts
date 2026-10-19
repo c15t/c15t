@@ -462,7 +462,9 @@ describe('offline copy with every bundled language loaded', () => {
 	});
 
 	test('a language set through the kernel switches to the bundled copy', async () => {
-		const kernel = createRuntimeKernel({ mode: offline() });
+		const kernel = createRuntimeKernel({
+			mode: offline({ acknowledgeNoRecords: true }),
+		});
 		await kernel.commands.init();
 
 		kernel.set.language('de');

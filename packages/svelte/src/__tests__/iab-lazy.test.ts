@@ -45,7 +45,7 @@ const mountProvider = function mountProvider(
 	const app = mount(ProviderOnlyFixture, {
 		props: {
 			options: {
-				mode: offline(),
+				mode: offline({ acknowledgeNoRecords: true }),
 				persistence: false,
 				...options,
 			} as ConsentManagerOptions,

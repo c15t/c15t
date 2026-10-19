@@ -25,7 +25,12 @@ const longestTransition = (element: Element | null): number =>
 describe.each([false, true])('disableAnimation %s', (disableAnimation) => {
 	test('sets the trigger and toolbar motion', async () => {
 		const { unmount } = await render(
-			<ConsentProvider options={{ disableAnimation, mode: offline() }}>
+			<ConsentProvider
+				options={{
+					disableAnimation,
+					mode: offline({ acknowledgeNoRecords: true }),
+				}}
+			>
 				<ConsentDialogTrigger showWhen="always" />
 				<ConsentDialogTriggerToolbar showWhen="always" />
 			</ConsentProvider>

@@ -19,7 +19,7 @@ const posthog: Script = {
 
 test('useEventDispatcher follows the runtime scripts, live consent and one pageview history', async () => {
 	const runtime = createConsentRuntime({
-		mode: offline(),
+		mode: offline({ acknowledgeNoRecords: true }),
 		prefetch: {
 			initialPolicyResolution: resolvePolicyRules({
 				countryCode: null,

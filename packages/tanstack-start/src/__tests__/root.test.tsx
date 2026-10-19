@@ -63,7 +63,7 @@ describe('ConsentRoot: state is honored', () => {
 			<ConsentRoot
 				state={{
 					initialOverrides: { country: 'DE', language: 'de' },
-					mode: offline(),
+					mode: offline({ acknowledgeNoRecords: true }),
 				}}
 				persistence={false}
 			>

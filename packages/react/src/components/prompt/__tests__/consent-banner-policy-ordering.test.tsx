@@ -80,7 +80,7 @@ const renderBanner = function renderBanner(
 					},
 					...componentOverrides,
 				},
-				mode: offline(),
+				mode: offline({ acknowledgeNoRecords: true }),
 				persistence: false,
 				prefetch: {
 					...policyFixture(undefined, {

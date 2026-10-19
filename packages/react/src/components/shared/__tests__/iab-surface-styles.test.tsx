@@ -14,7 +14,7 @@ const fixture = (
 	options: Partial<ComponentFixtureOptions> = {}
 ): ComponentFixtureOptions => ({
 	iab: { cmpId: 160, gvl: mockGVL },
-	mode: offline(),
+	mode: offline({ acknowledgeNoRecords: true }),
 	nonce: 'iab-style-nonce',
 	prefetch: {
 		...policyFixture(undefined, {

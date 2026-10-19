@@ -48,7 +48,7 @@ const buildOptions = function buildOptions(
 	presentation?: ConsentPresentation
 ): ConsentManagerOptions {
 	return {
-		mode: offline(),
+		mode: offline({ acknowledgeNoRecords: true }),
 		persistence: false,
 		prefetch,
 		presentation,

@@ -72,6 +72,7 @@ const customizeOpensDialog: Story['play'] = async () => {
 const noticeOptions: Partial<ConsentProviderOptions> = {
 	...editableConsentOptions,
 	mode: offline({
+		acknowledgeNoRecords: true,
 		policyRules: [
 			{
 				...storybookPolicy,

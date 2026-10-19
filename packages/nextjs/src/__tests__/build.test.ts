@@ -403,7 +403,7 @@ describe('Next.js build-time manifest', () => {
 
 	test.each([
 		['hosted()', "{ mode: { type: 'hosted' } }", 'uses hosted()'],
-		['offline()', "{ mode: { type: 'offline' } }", 'uses offline()'],
+		['offline()', "{ mode: { type: 'offline' } }", 'uses local()'],
 		[
 			'manifest({ snapshot })',
 			"{ mode: { type: 'manifest', snapshot: { revision: 'own' } } }",

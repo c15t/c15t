@@ -24,7 +24,7 @@ const Provider = ({ children }: { children: ReactNode }) => (
 	<ConsentProvider
 		options={{
 			enabled: false,
-			mode: offline(),
+			mode: offline({ acknowledgeNoRecords: true }),
 			persistence: false,
 		}}
 	>
@@ -63,7 +63,7 @@ describe('v3 React DevTools adapter', () => {
 							'necessary',
 							measurement ? 'measurement' : 'marketing',
 						],
-						mode: offline(),
+						mode: offline({ acknowledgeNoRecords: true }),
 						presentation: measurement
 							? { preferences: { primaryActions: ['accept'] } }
 							: undefined,
@@ -184,7 +184,7 @@ describe('v3 React DevTools adapter', () => {
 				<ConsentProvider
 					options={{
 						consentCategories: ['measurement', 'marketing'],
-						mode: offline(),
+						mode: offline({ acknowledgeNoRecords: true }),
 						presentation: { preferences: { primaryActions: ['accept'] } },
 						storageConfig: { storageKey },
 					}}

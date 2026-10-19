@@ -65,7 +65,7 @@ const start = function start(
 	client = boot(
 		resolveOptions({
 			consentCategories: ['necessary', 'marketing'],
-			mode: offlineMode({ policyRules: [RULE] }),
+			mode: offlineMode({ acknowledgeNoRecords: true, policyRules: [RULE] }),
 			...options,
 		})
 	);

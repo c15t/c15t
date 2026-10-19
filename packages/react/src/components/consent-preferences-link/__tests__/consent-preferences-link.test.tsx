@@ -21,7 +21,7 @@ describe('ConsentDialogLink', () => {
 			render(
 				<ConsentProvider
 					options={{
-						mode: offline(),
+						mode: offline({ acknowledgeNoRecords: true }),
 						prefetch: policyFixture({}, { model }),
 					}}
 				>
@@ -49,7 +49,9 @@ describe('ConsentDialogLink', () => {
 
 	test('renders custom text and opens the dialog when clicked', async () => {
 		render(
-			<ConsentProvider options={{ mode: offline() }}>
+			<ConsentProvider
+				options={{ mode: offline({ acknowledgeNoRecords: true }) }}
+			>
 				<ConsentDialog />
 				<ConsentDialogLink>Your privacy settings</ConsentDialogLink>
 			</ConsentProvider>
@@ -85,7 +87,9 @@ describe('ConsentDialogLink', () => {
 
 	test('supports asChild for anchor-based footer links', async () => {
 		render(
-			<ConsentProvider options={{ mode: offline() }}>
+			<ConsentProvider
+				options={{ mode: offline({ acknowledgeNoRecords: true }) }}
+			>
 				<ConsentDialog />
 				<ConsentDialogLink asChild>
 					<a

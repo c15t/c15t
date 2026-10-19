@@ -8,7 +8,7 @@ import {
 	ConsentDialog,
 	ConsentProvider,
 	ConsentBanner,
-	offline,
+	local,
 } from 'c15t/react';
 import { lazy, Suspense } from 'react';
 
@@ -22,7 +22,7 @@ const DevTools = import.meta.env.DEV
 export function ConsentManager({ children }: { children: ReactNode }) {
 	return (
 		<ConsentProvider options={{
-			mode: offline(),
+			mode: local(),
 			// Add your scripts here:
 				// import { googleTagManager } from '@c15t/integrations/google-tag-manager';
 				// scripts: [

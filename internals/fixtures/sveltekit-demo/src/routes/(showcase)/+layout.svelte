@@ -141,6 +141,7 @@
 	<!-- The IAB playground resolves in the browser and keeps saves in memory. -->
 	<ConsentProvider
 		mode={offline({
+			acknowledgeNoRecords: true,
 			policyRules: [
 				{
 					id: 'devtools-iab-playground',

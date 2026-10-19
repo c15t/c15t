@@ -24,6 +24,7 @@ const start = function start(
 ): ConsentClient {
 	const client = createConsentClient(
 		{
+			acknowledgeNoRecords: true,
 			consentCategories: ['measurement', 'marketing'],
 			policyRules: [
 				{

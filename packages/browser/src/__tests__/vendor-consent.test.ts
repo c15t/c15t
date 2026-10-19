@@ -42,6 +42,7 @@ const clearCookies = function clearCookies(): void {
 };
 
 const baseOptions = {
+	acknowledgeNoRecords: true,
 	consentCategories: ['measurement', 'marketing'],
 	policyRules: [
 		{

@@ -63,7 +63,7 @@ const renderWithBeacons = (
 				/>
 				<ConsentProvider
 					options={{
-						mode: offline(),
+						mode: offline({ acknowledgeNoRecords: true }),
 						networkBlocker: { logBlockedRequests: false, rules },
 						persistence: false,
 						prefetch,

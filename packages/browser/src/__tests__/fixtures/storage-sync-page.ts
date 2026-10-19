@@ -19,6 +19,7 @@ export interface StorageSyncPage {
 }
 
 const client = createConsentClient({
+	acknowledgeNoRecords: true,
 	consentCategories: ['necessary', 'measurement', 'marketing'],
 	mode: 'offline',
 	overrides: { country: 'DE' },

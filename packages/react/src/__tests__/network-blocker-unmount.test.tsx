@@ -81,7 +81,7 @@ test('unmounting before the blocker loads fails held requests closed', async () 
 	const view = await render(
 		<ConsentProvider
 			options={{
-				mode: offline(),
+				mode: offline({ acknowledgeNoRecords: true }),
 				networkBlocker: { logBlockedRequests: false, rules },
 				persistence: false,
 				// Stored consent allows it: still unchecked, so still blocked.

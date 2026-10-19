@@ -20,7 +20,7 @@ describe('expanded component templates', () => {
 			enableDevTools: false,
 			enableSSR: false,
 			framework: NEXTJS_CONFIG,
-			optionsText: 'mode: offline(),',
+			optionsText: 'mode: local(),',
 		});
 		expect(template).toContain('<ConsentTheme theme={theme} />');
 	});
@@ -121,7 +121,7 @@ describe('expanded component templates', () => {
 			enableDevTools: true,
 			enableSSR: false,
 			framework: REACT_CONFIG,
-			optionsText: 'mode: offline(),',
+			optionsText: 'mode: local(),',
 		});
 
 		expect(template).toContain("from 'c15t/react';");

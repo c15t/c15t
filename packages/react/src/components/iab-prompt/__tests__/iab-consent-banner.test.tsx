@@ -117,7 +117,7 @@ const defaultIABOptions: ConsentProviderOptions = {
 		cmpVersion: 1,
 		gvl: mockGVL,
 	},
-	mode: offline(),
+	mode: offline({ acknowledgeNoRecords: true }),
 	prefetch: policyFixture(undefined, {
 		categories: undefined,
 		id: 'iab_test',
@@ -373,7 +373,7 @@ describe('IAB Consent Banner Unit Tests', () => {
 			// but no `IABProvider` effect has run, so there is no handle yet.
 			const options: ConsentProviderOptions = {
 				iab: { cmpId: 160, cmpVersion: 1 },
-				mode: offline(),
+				mode: offline({ acknowledgeNoRecords: true }),
 				prefetch: {
 					...defaultIABOptions.prefetch,
 					initialIab: {

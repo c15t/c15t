@@ -228,7 +228,7 @@ export const defaultProviderIABOptions: ConsentProviderOptions = {
 		cmpVersion: 1,
 		gvl: mockGVL,
 	},
-	mode: offline(),
+	mode: offline({ acknowledgeNoRecords: true }),
 	prefetch: policyFixture(undefined, {
 		categories: undefined,
 		id: 'iab_default',

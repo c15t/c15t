@@ -39,7 +39,12 @@ describe('ConsentProvider theme tokens', () => {
 
 	test('the provider injects no theme style', async () => {
 		const { unmount } = await render(
-			<ConsentProvider options={{ mode: offline(), persistence: false }}>
+			<ConsentProvider
+				options={{
+					mode: offline({ acknowledgeNoRecords: true }),
+					persistence: false,
+				}}
+			>
 				<div data-testid="themed-child" />
 			</ConsentProvider>
 		);
@@ -54,7 +59,7 @@ describe('ConsentProvider theme tokens', () => {
 				<ConsentProvider
 					options={{
 						enabled: false,
-						mode: offline(),
+						mode: offline({ acknowledgeNoRecords: true }),
 						nonce: 'csp-nonce',
 						persistence: false,
 						scripts: [
@@ -87,7 +92,11 @@ describe('ConsentProvider theme tokens', () => {
 			<>
 				<ConsentTheme theme={theme} />
 				<ConsentProvider
-					options={{ mode: offline(), persistence: false, theme }}
+					options={{
+						mode: offline({ acknowledgeNoRecords: true }),
+						persistence: false,
+						theme,
+					}}
 				>
 					<div />
 				</ConsentProvider>
@@ -109,7 +118,7 @@ describe('ConsentProvider theme tokens', () => {
 			const { unmount } = await render(
 				<ConsentProvider
 					options={{
-						mode: offline(),
+						mode: offline({ acknowledgeNoRecords: true }),
 						persistence: false,
 						theme: { colors: { surface: 'rgb(1, 2, 3)' } },
 					}}
