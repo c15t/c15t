@@ -22,6 +22,41 @@ import {
 /** Most entries one save may carry. */
 export const MAX_SUBJECT_SCRIPTS = 256;
 
+/** Deepest category condition an entry may carry. Matches core. */
+export const MAX_SCRIPT_CONDITION_DEPTH = 16;
+
+/**
+ * Whether a condition nests no deeper than core lets a script's. Checked
+ * before the recursive schema runs, so a deep tree cannot exhaust the
+ * stack of an unauthenticated request.
+ */
+const withinConditionDepth = function withinConditionDepth(
+	value: unknown,
+	depth = 0
+): boolean {
+	if (typeof value !== 'object' || value === null) {
+		return true;
+	}
+	if (depth >= MAX_SCRIPT_CONDITION_DEPTH) {
+		return false;
+	}
+	return Object.values(value).every((operand) =>
+		Array.isArray(operand)
+			? operand.every((item) => withinConditionDepth(item, depth + 1))
+			: withinConditionDepth(operand, depth + 1)
+	);
+};
+
+// `lazy` sees the input first. OpenAPI generation calls the getter with
+// `undefined` and gets the condition schema.
+const scriptConditionSchema = v.lazy((input) =>
+	withinConditionDepth(input)
+		? vendorCategoryConditionSchema
+		: v.never(
+				`Category condition nests deeper than ${MAX_SCRIPT_CONDITION_DEPTH} levels.`
+			)
+);
+
 const iabIdsSchema = v.pipe(
 	v.array(v.pipe(v.number(), v.safeInteger(), v.minValue(1))),
 	v.maxLength(64)
@@ -39,7 +74,7 @@ export const subjectScriptWireSchema = v.object({
 		)
 	),
 	category: v.pipe(
-		vendorCategoryConditionSchema,
+		scriptConditionSchema,
 		v.description('Category condition the script loads under.')
 	),
 	iabLegIntPurposes: v.optional(

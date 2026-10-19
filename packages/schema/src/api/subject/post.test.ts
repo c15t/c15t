@@ -121,4 +121,27 @@ describe('postSubjectInputSchema scripts', () => {
 	])('rejects %s', (_label, scripts) => {
 		expect(parseScripts(scripts).success).toBe(false);
 	});
+
+	const nested = (depth: number): unknown => {
+		let condition: unknown = 'marketing';
+		for (let level = 0; level < depth; level += 1) {
+			condition = { not: condition };
+		}
+		return condition;
+	};
+
+	it('accepts a condition as deep as core sends', () => {
+		expect(parseScripts([{ category: nested(16), id: 'a' }]).success).toBe(
+			true
+		);
+	});
+
+	it('rejects a deeper condition without exhausting the stack', () => {
+		expect(parseScripts([{ category: nested(17), id: 'a' }]).success).toBe(
+			false
+		);
+		expect(parseScripts([{ category: nested(100_000), id: 'a' }]).success).toBe(
+			false
+		);
+	});
 });

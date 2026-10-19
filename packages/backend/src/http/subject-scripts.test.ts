@@ -151,6 +151,19 @@ for (const engine of ENGINES) {
 			assert.strictEqual(refused.status, 400, JSON.stringify(refused.body));
 			assert.strictEqual(await harness.count('consent'), 0);
 		});
+
+		it('refuses a condition nested deeper than a browser sends', async () => {
+			let category: unknown = 'marketing';
+			for (let level = 0; level < 20_000; level += 1) {
+				category = { not: category };
+			}
+			const refused = await harness.json('POST', '/subjects', {
+				...base,
+				scripts: [{ category, id: 'deep' }],
+			});
+			assert.strictEqual(refused.status, 400, JSON.stringify(refused.body));
+			assert.strictEqual(await harness.count('consent'), 0);
+		});
 	});
 }
 
