@@ -131,11 +131,11 @@
 	const preloadMarker = ownsRuntime
 		? untrack(() => modulePreloadMarker(options))
 		: '';
-	// For a returning visitor whose stored consent already lets some
-	// `scripts` run, the server render starts them from the HTML, before
-	// hydration: `c15tHandle` turns this marker's code into a `<script>`
-	// at the end of `<body>`, and the loader adopts the tags. The marker
-	// renders in the browser too, without the code, so hydration keeps it.
+	// When the visitor's consent already lets some `scripts` run, the
+	// server render starts them from the HTML, before hydration:
+	// `c15tHandle` turns this marker's code into a `<script>` at the end of
+	// `<body>`, and the loader adopts the tags. The marker renders in the
+	// browser too, without the code, so hydration keeps it.
 	const hasServerStart =
 		ownsRuntime && Boolean(untrack(() => options.scripts?.length));
 	const serverStart =

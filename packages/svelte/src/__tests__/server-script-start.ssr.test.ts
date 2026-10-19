@@ -1,6 +1,6 @@
 /**
- * For a returning visitor whose stored consent already lets a script run,
- * the server render starts it from the end of `<body>`, before hydration.
+ * When the visitor's consent already lets a script run, the server render
+ * starts it from the end of `<body>`, before hydration.
  * Nothing starts while the policy asks the visitor to choose, or from a
  * shared render, which carries no request clock.
  *

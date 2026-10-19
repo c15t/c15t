@@ -245,12 +245,13 @@ Without it, a server-rendered banner shows unstyled until the page hydrates,
 unless `ConsentRoot` sets `styles={false}` and the app imports
 `@c15t/svelte/styles.css`.
 
-When a returning visitor's stored consent already allows some `scripts`
-entries, `c15tHandle` adds an inline script at the end of `<body>`. After
-first paint, it runs those entries' setup and inserts their tags, so they
-start loading before the page hydrates. The script loader adopts those tags
-instead of inserting its own. Nothing starts from the HTML while the policy
-asks the visitor to choose, and a prerendered page starts nothing.
+When the visitor's consent already allows some `scripts` entries, through a
+stored choice or a policy that asks for none, `c15tHandle` adds an inline script
+at the end of `<body>`. After first paint, it runs those entries' setup and
+inserts their tags, so they start loading before the page hydrates. The script
+loader adopts those tags instead of inserting its own. Nothing starts from the
+HTML while the policy asks the visitor to choose, and a prerendered page starts
+nothing.
 
 Type `event.locals.c15t` in `src/app.d.ts`:
 

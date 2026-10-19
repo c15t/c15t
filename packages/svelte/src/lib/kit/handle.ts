@@ -207,10 +207,10 @@ export const c15tHandle = function c15tHandle(
 		}
 		(event.locals as { c15t?: C15tLocals }).c15t = locals;
 
-		// For a returning visitor whose consent already lets some `scripts`
-		// run, the provider renders a start for them; it goes at the end of
-		// `<body>`, so they start before the page hydrates. Never in
-		// prerendered HTML, which is no one visitor's.
+		// When the visitor's consent already lets some `scripts` run, the
+		// provider renders a start for them; it goes at the end of `<body>`,
+		// so they start before the page hydrates. Never in prerendered HTML,
+		// which is no one visitor's.
 		const injectServerStart = building
 			? undefined
 			: (await loadServerScriptStart(), createServerStartInjector());

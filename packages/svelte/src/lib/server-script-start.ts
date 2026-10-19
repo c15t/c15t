@@ -1,13 +1,13 @@
 /**
  * Hands `serverScriptStart` from `c15tHandle` to the provider.
  *
- * For a returning visitor whose stored consent already lets some `scripts`
- * run, the server render can run their setup and insert their tags from the
- * HTML, before the app hydrates. A Svelte component renders synchronously
- * and cannot load the server-only code itself, and a static import would
- * ship it to the browser. So `c15tHandle` loads it once, before it resolves
- * the request, and registers it here; the provider reads it while it
- * renders on the server.
+ * When the visitor's consent already lets some `scripts` run, the server
+ * render can run their setup and insert their tags from the HTML, before the
+ * app hydrates. A Svelte component renders synchronously and cannot load
+ * the server-only code itself, and a static import would ship it to the
+ * browser. So `c15tHandle` loads it once, before it resolves the request,
+ * and registers it here; the provider reads it while it renders on the
+ * server.
  *
  * The provider writes the code into a `<meta name="c15t-server-start">`
  * marker in `<svelte:head>`, which the handle's page transform blanks and
