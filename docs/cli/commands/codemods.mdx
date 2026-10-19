@@ -12,8 +12,9 @@ Run the codemods through the Inth CLI. See
 Replace `@c15t/react` and `@c15t/nextjs` with `c15t` in `package.json` first.
 Until it lists `c15t` v3, `packages-to-c15t` leaves their imports alone, and
 the codemods after it see v2 imports. `@c15t/scripts`, `@c15t/backend` and
-`@c15t/node-sdk` don't move into `c15t`; their steps are further down this
-page.
+`@c15t/node-sdk` don't move into `c15t`. The `@c15t/scripts` rename is further
+down this page, and the SDK and backend codemods are in
+[Upgrade a self-hosted backend](/docs/self-host/upgrade-v3).
 
 The v3 codemods run only when you name them; `--all` never selects them.
 Preview every change first, then run the same command without `--dry-run`:

@@ -169,7 +169,7 @@ export const ERROR_CATALOG = {
 	INTH_UNAVAILABLE: {
 		code: 'INTH_UNAVAILABLE',
 		docs: `${URLS.DOCS}/cli/overview`,
-		hint: 'Follow the details above to restore the Inth executable, or pass --backend-url to `c15t setup` to skip hosted account commands',
+		hint: 'Follow the details above to restore the Inth executable, install the Inth CLI and run `inth c15t` instead, or pass --backend-url to `c15t setup` to skip hosted account commands',
 		message: 'The Inth executable for hosted account commands is unavailable',
 	},
 	INTH_UNSUPPORTED_PLATFORM: {
