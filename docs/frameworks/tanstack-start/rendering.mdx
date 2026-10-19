@@ -53,8 +53,8 @@ renders an inline script after your page content. After first paint, it runs
 those entries' setup and inserts their tags, so they start loading before the
 page hydrates. Entries with `alwaysLoad` start this way whatever the visitor
 chose. The script loader adopts those tags instead of inserting its own. Nothing
-starts from the HTML while the policy asks the visitor to choose, and a
-prerendered page starts nothing.
+starts from the HTML while the policy asks the visitor to choose, not even
+`alwaysLoad` entries, and a prerendered page starts nothing.
 
 This needs React 19. On React 18, every entry starts after hydration. The vendor
 helpers from `@c15t/integrations` start this way, except Amplitude, Heap,
