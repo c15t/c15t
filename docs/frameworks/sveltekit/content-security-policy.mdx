@@ -50,8 +50,9 @@ own origin, so `'self'` covers it too.
 When the visitor's consent already allows some `scripts` entries, through a
 stored choice or a policy that asks for none, `c15tHandle` adds an inline
 `<script>` at the end of `<body>`. It runs those entries' setup and inserts
-their tags before the page hydrates, and the script loader adopts the tags. Its
-content changes with each visitor's consent, so a hash can't allow it.
+their tags before the page hydrates, and the script loader adopts the tags.
+Entries with `alwaysLoad` start this way whatever the visitor chose. Its content
+changes with each visitor's consent, so a hash can't allow it.
 
 The script takes the provider's `nonce`, or else the nonce SvelteKit put on
 its own scripts, and the tags it inserts carry the same nonce. Under
