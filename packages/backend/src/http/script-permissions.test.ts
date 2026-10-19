@@ -100,7 +100,7 @@ describe('recordScriptPermissions', () => {
 			measurement: true,
 		};
 		const confirmed = new Set(['measurement']);
-		// Opt-in: a lapsed grant falls back to denied, a lapsed refusal too.
+		// Opt-in: a lapsed grant falls back to denied. A refusal always restricts.
 		expect(
 			allowed(scripts, { confirmed, preferences, rule: rule({}) })
 		).toEqual({
@@ -109,7 +109,8 @@ describe('recordScriptPermissions', () => {
 			'earlier-refusal': false,
 			either: true,
 		});
-		// Opt-out: a lapsed grant falls back to allowed, a lapsed refusal too.
+		// Opt-out: a lapsed grant falls back to allowed. A refusal still restricts,
+		// because the browser applies it whether or not its receipt counts.
 		expect(
 			allowed(scripts, {
 				confirmed,
@@ -120,7 +121,7 @@ describe('recordScriptPermissions', () => {
 		).toEqual({
 			both: true,
 			'earlier-grant': true,
-			'earlier-refusal': undefined,
+			'earlier-refusal': false,
 			either: true,
 		});
 	});

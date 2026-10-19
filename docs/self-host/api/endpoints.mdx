@@ -215,9 +215,10 @@ it, the backend reads the request's `Sec-GPC` header. `allowed` is
 permission, not proof of execution: an allowed script can still fail to load.
 Under an `iab` policy, entries with IAB TCF fields have no `allowed`, because
 their gate reads the TC string. An entry also has no `allowed` when the answer
-depends on an earlier value in `preferences` that this save's `choice` did not
-confirm: the browser ignores a value whose receipt has expired or belongs to an
-older policy, and the backend only sees this save's receipts. Without a
+depends on an earlier grant in `preferences` that this save's `choice` did not
+confirm: the browser ignores a grant whose receipt has expired or belongs to an
+older policy, and the backend only sees this save's receipts. An earlier
+refusal always counts, because the browser applies it either way. Without a
 resolved policy, only an explicit grant allows a category.
 
 A retry with a different list is not a `CONFLICT`: the list describes the

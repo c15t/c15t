@@ -269,7 +269,7 @@ export const subjectCookieBannerInputSchema = v.object({
 	 * acted. The backend drops unknown keys, stores each entry with `allowed`
 	 * when it can tell whether this consent permitted the script, and omits
 	 * `allowed` for IAB-field entries under an `iab` policy or when the answer
-	 * turns on an earlier preference this save's `choice` did not confirm.
+	 * turns on an earlier grant this save's `choice` did not confirm.
 	 */
 	scripts: v.optional(subjectScriptsWireSchema),
 	type: v.literal('cookie_banner'),

@@ -15,11 +15,12 @@
  * - Scripts with IAB TCF fields under an `iab` policy. Their gate reads the
  *   TC string and the Global Vendor List, which the backend does not
  *   evaluate.
- * - Scripts whose answer turns on a category value this save did not
+ * - Scripts whose answer turns on a category grant this save did not
  *   confirm. `preferences` also carries earlier values, and the browser
- *   ignores one whose receipt has expired or was made under another policy.
- *   Only the receipts this save confirmed reach the backend, so it cannot
- *   tell whether an earlier value still counts.
+ *   ignores a grant whose receipt has expired or was made under another
+ *   policy. Only the receipts this save confirmed reach the backend, so it
+ *   cannot tell whether an earlier grant still counts. A refusal restricts
+ *   either way.
  */
 
 import {
@@ -89,7 +90,7 @@ const permitted = (
 
 /**
  * One category's permission, or `undefined` when it depends on whether an
- * earlier value still counts. The browser treats a lapsed value as absent,
+ * earlier grant still counts. The browser treats a lapsed grant as absent,
  * so the answer is known when both readings agree.
  */
 const categoryPermission = (
@@ -101,7 +102,9 @@ const categoryPermission = (
 	if (
 		value === undefined ||
 		facts.confirmed === undefined ||
-		facts.confirmed.has(category)
+		facts.confirmed.has(category) ||
+		// A refusal restricts whether or not its receipt still counts.
+		value === false
 	) {
 		return current;
 	}

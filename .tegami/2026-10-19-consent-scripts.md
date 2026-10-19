@@ -21,8 +21,8 @@ load, worked out with the browser's script-loader rules from the resolved
 policy, the submitted preferences, vendor grants and Global Privacy Control.
 It means permitted, not executed. Under an `iab` policy, scripts with IAB TCF
 fields have no `allowed`, because their gate reads the TC string. Neither do
-entries whose answer depends on an earlier category value the save did not
-confirm, since the backend can't tell whether that value has lapsed. Run
+entries whose answer depends on an earlier category grant the save did not
+confirm, since the backend can't tell whether that grant has lapsed. Run
 migration `10-consent-scripts` before deploying. A retried save with a
 different list keeps the first one and is not a conflict. Network blocker
 rules and iframes are not listed, and `GET /subjects/:id` does not return
