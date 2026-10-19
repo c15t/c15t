@@ -7,11 +7,10 @@ packages:
 ### PostHog, Amplitude, Heap, Clarity, Klaviyo and Speed Insights start from the server HTML
 
 The server start now covers every snippet vendor in `@c15t/integrations`
-except Sentry. For a returning visitor whose stored consent already allows
-them, PostHog, Amplitude, Heap, Microsoft Clarity, Klaviyo and Vercel Speed
-Insights now run their setup from the server-rendered HTML and start loading
-before the app hydrates, as the Google tag, Google Tag Manager and Meta Pixel
-already did. Calls made before the script loads queue the same way they do
+except Sentry. When the visitor's consent already allows them, PostHog,
+Amplitude, Heap, Microsoft Clarity, Klaviyo and Vercel Speed Insights now run
+their setup from the server-rendered HTML and start loading before the app
+hydrates, as the Google tag, Google Tag Manager and Meta Pixel already did. Calls made before the script loads queue the same way they do
 after hydration.
 
 Microsoft Clarity's consent signal now runs from the manifest. A subject who
