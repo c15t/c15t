@@ -269,6 +269,17 @@ Options passed to one `loadConsent` call, such as `country`, override the
 handle's values for that call. Without the handle, `loadConsent` resolves
 with `manifest()` and reads the request itself.
 
+## Cache policy, never visitor state
+
+A manifest is public policy configuration, so your server and CDN can cache it.
+A resolved state, a stored record and HTML rendered with them belong to one
+visitor. Keep them out of shared caches: don't send a public `Cache-Control`
+with `setHeaders` on a server-rendered page under `loadConsent`, and don't
+store `loadConsent` results under a shared key. That HTML also starts the
+scripts the visitor's consent allows, so a cached copy would start them for
+the next visitor. A prerendered page holds no visitor state, so it can be
+cached.
+
 ## Prerender some pages
 
 A prerendered page is built once and sent to every visitor, so it cannot
