@@ -15,7 +15,7 @@ allow them:
 | The c15t stylesheet, only if you link it yourself with `styles: false` | `style-src 'self'` |
 | The `<style id="c15t-theme">` element, if you render `ConsentTheme` | `style-src` with the request nonce |
 | `<script>` elements the script loader creates for `scripts` entries, both `src` and inline | `script-src` with the request nonce, or each vendor's host |
-| The inline `<script>` that `ConsentRoot` renders when a returning visitor's stored consent already allows some `scripts` entries | `script-src` with the request nonce |
+| The inline `<script>` that `ConsentRoot` renders when the visitor's consent already allows some `scripts` entries | `script-src` with the request nonce |
 | The inline `consentPrefetchHead` script, on prerendered pages that use it | `script-src` with its hash |
 | Browser requests to `/api/c15t/*`, when you mount the consent route | `connect-src 'self'` |
 | Browser requests to your backend's `/init` and `/subjects` | `connect-src` with the backend origin |
@@ -107,8 +107,8 @@ If you render `ConsentTheme`, pass it the same value:
 stamps it on every `<script>` it creates. A `nonce` on a single `scripts` entry
 takes precedence for that element.
 
-For a returning visitor whose stored consent already allows some `scripts`
-entries, `ConsentRoot` also renders an inline `<script>` with
+When the visitor's consent already allows some `scripts` entries,
+`ConsentRoot` also renders an inline `<script>` with
 `options.nonce`. It runs those entries' setup and inserts their tags before the
 page hydrates, with the same nonce or the entry's own. Its content changes with
 each visitor's consent, so a hash can't allow it. If the policy blocks it, the

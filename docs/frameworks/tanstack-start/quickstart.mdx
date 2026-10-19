@@ -10,8 +10,8 @@ This guide sets up the recommended path for a TanStack Start app with server
 rendering. On each request, a server function in the root loader reads the
 visitor's consent cookie and location headers, resolves their policy from a
 build-time policy manifest, and hands the result to `ConsentRoot`. The banner is
-part of the first HTML, and a returning visitor's allowed scripts start before
-the page hydrates.
+part of the first HTML, and the scripts the visitor's consent allows start
+before the page hydrates.
 
 It needs a running Start server. For SPA mode, prerendered pages or a static
 host, or to stream the page before consent resolves, see
