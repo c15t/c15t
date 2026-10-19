@@ -1,7 +1,7 @@
 {
 	"name": "@c15t/tanstack-start",
 	"version": "3.1.0",
-	"description": "TanStack Start cookie consent banner and consent management platform (CMP), with a server-rendered GDPR banner, request middleware, Google Consent Mode v2 and IAB TCF.",
+	"description": "TanStack cookie consent banner for TanStack Start, built on c15t. Server-rendered banner, request middleware and a preference center.",
 	"keywords": [
 		"banner",
 		"ccpa",
