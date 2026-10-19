@@ -46,9 +46,9 @@ Open <http://localhost:3115> and the browser console. You'll see lines like:
 [analytics] consent_choice_made { arm: 'bar', assigned_by: 'c15t', consent_action: 'all', experiment_id: 'banner-layout', surface: 'banner', time_to_decision_ms: 2140 }
 ```
 
-The app runs in offline mode, so it needs no backend. c15t's bundled policy
+The app runs in local mode, so it needs no backend. c15t's bundled policy
 rules ask for opt-in consent, and choices stay in the browser. For
-production, replace `offline()` in `components/consent.tsx` with
+production, replace `local()` in `components/consent.tsx` with
 `hosted({ backendURL: 'https://your-project.inth.app' })`. The backend then counts
 impressions and choices per arm on its own, including those of visitors your
 analytics never loads for.

@@ -1,13 +1,13 @@
 // #region docs:astro-config title="astro.config.mjs"
 import svelte from '@astrojs/svelte';
 import { defineConfig } from 'astro/config';
-import c15t, { offline } from 'c15t/astro';
+import c15t, { local } from 'c15t/astro';
 
 export default defineConfig({
 	integrations: [
 		svelte(),
 		c15t({
-			mode: offline({
+			mode: local({
 				policyRules: [
 					{
 						id: 'tailwind-matrix',

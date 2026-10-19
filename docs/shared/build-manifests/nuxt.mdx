@@ -17,7 +17,7 @@ browser then resolves the policy itself. Production server startup does not
 fetch another manifest.
 
 The module skips the fetch for `manifest({ source: 'runtime' })`, a
-`manifest({ snapshot })` you supply, and the `hosted()` and `offline()`
+`manifest({ snapshot })` you supply, and the `hosted()` and `local()`
 modes. A relative backend URL is also skipped, unless `onBuildError` is
 `'fail'`.
 

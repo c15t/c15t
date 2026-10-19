@@ -1,14 +1,14 @@
 import node from '@astrojs/node';
 import svelte from '@astrojs/svelte';
 import { defineConfig } from 'astro/config';
-import c15t, { offline } from 'c15t/astro';
+import c15t, { local } from 'c15t/astro';
 
 export default defineConfig({
 	adapter: node({ mode: 'standalone' }),
 	integrations: [
 		svelte(),
 		c15t({
-			mode: offline(),
+			mode: local(),
 			// #region docs:vendors-option title="astro.config.mjs (partial)"
 			vendors: [
 				{

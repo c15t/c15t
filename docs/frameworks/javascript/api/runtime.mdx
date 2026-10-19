@@ -25,7 +25,7 @@ Only `mode` is required.
 
 | Option | Type | Default | What it does |
 | --- | --- | --- | --- |
-| `mode` | transport factory | required | Where the policy comes from and where choices go: `hosted()`, `offline()`, `manifest()` or `custom()`. `offline()` switches copy when the kernel's language changes. See [transports](/docs/frameworks/javascript/transports). Read once. |
+| `mode` | transport factory | required | Where the policy comes from and where choices go: `hosted()`, `local()`, `manifest()` or `custom()`. `local()` switches copy when the kernel's language changes. See [transports](/docs/frameworks/javascript/transports). Read once. |
 | `scripts` | `Script[]` | none | Vendor scripts the loader mounts as categories are allowed. See [script loader](/docs/frameworks/javascript/modules/script-loader). |
 | `consentCategories` | category names | inferred | Categories to offer alongside those your scripts, rules and vendors use, within the policy's scope. |
 | `networkBlocker` | `{ rules, enabled?, logBlockedRequests?, onRequestBlocked? }` or `false` | off | Hold matching `fetch` and XHR requests until their category is allowed. See [network blocker](/docs/frameworks/javascript/modules/network-blocker). |

@@ -13,7 +13,7 @@ provider's `mode`:
 | Mode | Copy comes from |
 | --- | --- |
 | `hosted()` | The backend's `/init` response for the visitor's language, from the translations in your Inth project or your self-hosted backend's configuration, with your `i18n` messages for that language on top |
-| `offline()` | Your `i18n` messages, merged over bundled English |
+| `local()` | Your `i18n` messages, merged over bundled English |
 
 With a backend, edit wording in your Inth project first, so it changes without
 a deploy. Code can override that copy in two places:
@@ -33,7 +33,7 @@ When your project has no copy for it, the backend returns its fallback
 language. Set `overrides.language` in the provider options to request a
 specific language instead.
 
-In `offline()` mode, `i18n.locale` picks the language, `en` by default. The
+In `local()` mode, `i18n.locale` picks the language, `en` by default. The
 browser's language is not read.
 
 The banner, dialog and widget set `dir` from the active language. Right-to-left
@@ -57,7 +57,7 @@ Pass them to the provider in the file that renders it, such as
 
 For the visitor's language, your messages replace the backend's copy key by
 key. Keys you leave out keep the project's wording, and messages for other
-languages are not applied. In `offline()` mode c15t bundles only English, so
+languages are not applied. In `local()` mode c15t bundles only English, so
 keys you leave out for another language show in English.
 
 The provider reads `i18n` once, when it mounts. In development it logs a
@@ -91,7 +91,7 @@ Setting the language without calling `init()` changes nothing on screen. Your
 `i18n` messages for the new language apply on top of the copy that arrives.
 Render the switcher anywhere inside `ConsentProvider`.
 
-Switching needs a backend. In `offline()` mode the copy stays in the
+Switching needs a backend. In `local()` mode the copy stays in the
 `i18n.locale` language.
 
 If your site changes language through its own i18n library, you can instead

@@ -1,6 +1,6 @@
 ---
 title: Transports
-description: Choose where a JavaScript app's c15t policy comes from and where choices go, with the hosted, manifest, offline and custom transports for @c15t/browser, createConsentRuntime and your own kernel.
+description: Choose where a JavaScript app's c15t policy comes from and where choices go, with the hosted, manifest, local and custom transports for @c15t/browser, createConsentRuntime and your own kernel.
 group: frameworks
 ---
 
@@ -14,7 +14,7 @@ to record their choice.
 | `manifest()` with a build-time snapshot, recommended | Public policy bundled during the build, resolved in the browser | The backend's `/subjects` | You use Vite and can rebuild after policy edits. Regional policies may still request location. |
 | `hosted()` | The backend's `/init`, per visit | The backend's `/subjects` | Policy changes must apply without rebuilding, or you need backend resolution on every visit. |
 | `manifest()` at runtime | The backend's public `/manifest`, resolved in the browser | The backend's `/subjects` | You want the banner to render without a per-visit `/init` request and cannot bundle the policy. |
-| Offline | Rules bundled in your app | Nowhere; the browser only | Prototypes and tests. Not recommended for production environments. |
+| Local | Rules bundled in your app | Nowhere; the browser only | Prototypes and tests. Not recommended for production environments. |
 | Custom | Your own `init` function | Your own `save` function | You run your own consent API. |
 
 [Consent modes](/docs/concepts/modes) covers the same factories in every
@@ -27,9 +27,9 @@ Each setup takes the transport in a slightly different form:
 
 | Setup | Where it goes |
 | --- | --- |
-| `@c15t/browser` | `init({ mode })`, a factory such as `manifest()`, `hosted()` or `offline()` from `@c15t/browser`. Required. |
+| `@c15t/browser` | `init({ mode })`, a factory such as `manifest()`, `hosted()` or `local()` from `@c15t/browser`. Required. |
 | `createConsentRuntime` | `mode`, a factory such as `hosted({ backendURL })`. Required. |
-| Script tag | `data-mode="hosted"`, `"manifest"` or `"offline"`. Mode names work only in the script-tag builds. |
+| Script tag | `data-mode="hosted"`, `"manifest"` or `"offline"`, the name for local mode. Mode names work only in the script-tag builds. |
 | `createConsentKernel` | `transport`, the transport object itself, such as `createHostedTransport({ backendURL })`. |
 
 A factory is created once. To switch transports, dispose the client or
@@ -39,7 +39,7 @@ runtime and create a new one.
 only the factory you import. Passing a name throws:
 
 ```txt
-@c15t/browser: `mode` must be a factory, such as manifest(), hosted() or offline() from @c15t/browser. Mode names like "hosted" work only in the script-tag builds.
+@c15t/browser: `mode` must be a factory, such as manifest(), hosted() or local() from @c15t/browser. Mode names like "hosted" work only in the script-tag builds.
 ```
 
 ## Hosted
@@ -134,10 +134,10 @@ The [quickstart](/docs/frameworks/javascript/quickstart) and
 
 <include src="../../shared/build-manifests/javascript.mdx" />
 
-## Offline
+## Local
 
-`offline()` resolves bundled rules in the browser and sends nothing. `c15t`
-and `@c15t/browser` export the same `offline()`, so it works with `init()` and
+`local()` resolves bundled rules in the browser and sends nothing. `c15t`
+and `@c15t/browser` export the same `local()`, so it works with `init()` and
 with `createConsentRuntime`:
 
 <include src="../../shared/examples/javascript/transport-offline.mdx" />
@@ -146,16 +146,24 @@ Without `policyRules`, it uses c15t's recommended rules. They are strict
 opt-in for Europe, the UK, Quebec and unknown locations, opt-out for US
 states with a privacy law, and no prompt elsewhere. The browser cannot see the visitor's
 country, so without a `country` override every visitor gets the strict
-opt-in fallback. Choices stay in that browser and there are no consent
-records. Not recommended for production environments.
+opt-in fallback. Choices stay in that browser, and c15t keeps no server-side
+record of consent. Not recommended for production environments.
 
-`init()` from `@c15t/browser` takes `mode: offline({ policyRules })` with rule
+| Option | Default | What it does |
+| --- | --- | --- |
+| `policyRules` | the recommended rules | Rules to resolve. Passing rules replaces the recommended pack. |
+| `acknowledgeNoRecords` | `false` | `true` hides the development warning that c15t keeps no server-side record of consent. It changes nothing else. See [the development warning](/docs/concepts/modes#the-development-warning). |
+
+`local()` was called `offline()` before c15t 3.2. `offline()` still works,
+with the same options, until c15t v4 removes it.
+
+`init()` from `@c15t/browser` takes `mode: local({ policyRules })` with rule
 objects from `policyRulePresets`. Preset names such as
 `['europeOptIn', 'worldNone']` work only in the script-tag builds, through
 `data-policy-rules` or a queued `policyRules`.
 [Policies](/docs/concepts/policies) lists the presets.
 
-In offline mode, a language your app sets with `overrides.language`,
+In local mode, a language your app sets with `overrides.language`,
 `setLanguage()` or `kernel.set.language()` switches the copy when the bundle
 or `i18n.messages` has that language. A language with no copy shows the
 default copy. The language a server prefetch detected from `Accept-Language`
@@ -195,5 +203,5 @@ endpoint handlers such as `setConsent`.
 2. With a build-time manifest, it shows no `/manifest` request. With runtime
    manifest mode, it shows a `/manifest` request. Neither calls `/init`, unless
    the policy needs a country the page did not supply.
-3. With offline mode, it shows no c15t request at all, and the choice survives
+3. With local mode, it shows no c15t request at all, and the choice survives
    a reload.

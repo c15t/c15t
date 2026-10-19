@@ -53,19 +53,19 @@ at a time, and `options.callbacks` one callback at a time, so
 - `manifest({ resolve: 'browser' })`: the browser loads the resolver on first
   use and fetches `${routePrefix}/manifest`, else `${backendURL}/manifest`.
 - `hosted()`: the browser calls `${backendURL}/init` when it needs a policy.
-- `offline()`: the browser resolves bundled rules. Choices stay in the
+- `local()`: the browser resolves bundled rules. Choices stay in the
   browser and nothing is recorded. Not recommended for production
   environments.
 
-Choices post to `${backendURL}/subjects` in every mode but `offline()`. With
+Choices post to `${backendURL}/subjects` in every mode but `local()`. With
 no backend URL anywhere, `ConsentRoot` throws
 ``@c15t/nextjs: manifest() needs a backend URL. Set NEXT_PUBLIC_C15T_BACKEND_URL (or NEXT_PUBLIC_INTH_PROJECT_URL), or `backendURL` in c15t.config.ts.``
 instead of running a mode you did not choose. See
-[offline configuration](/docs/frameworks/next/data-fetching-reference#offline-configuration)
+[local configuration](/docs/frameworks/next/data-fetching-reference#local-configuration)
 and [consent modes](/docs/concepts/modes).
 
 `options.mode` also takes a transport, such as `custom(transport)`. A
-`hosted()` or `offline()` transport from `c15t/react` works there, but
+`hosted()` or `local()` transport from `c15t/react` works there, but
 outside production it warns that its code is now in the first-load bundle.
 Use the data factories from `c15t/next` instead.
 
@@ -81,7 +81,7 @@ switch visitors or backends after mounting.
 
 | Option | Purpose |
 | --- | --- |
-| `mode` | `manifest()`, `hosted()` or `offline()` from `c15t/next`, or a transport such as `custom(transport)`. Replaces the config's `mode` |
+| `mode` | `manifest()`, `hosted()` or `local()` from `c15t/next`, or a transport such as `custom(transport)`. Replaces the config's `mode` |
 | `callbacks` | Choice, permission and error events |
 | `theme`, `components` | Consent-action styles, theme slots and component slot attributes. Tokens render through `ConsentTheme` |
 | `presentation` | Prompt and preferences layout behavior |

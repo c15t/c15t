@@ -8,14 +8,14 @@ backend:
   change a hosted policy.
 - **Self-hosted**: move the backend's `policyPacks` to `manifest.policyRules`.
   See [policy configuration](/docs/self-host/guides/policy-packs).
-- **Offline**: move `offlinePolicy.policyPacks` to `offline({ policyRules })`.
+- **No backend**: move `offlinePolicy.policyPacks` to `local({ policyRules })`.
 
 {/* example: fragment */}
 
-```tsx title="After (v3): offline policy rules"
-import { offline, policyRulePresets } from 'c15t';
+```tsx title="After (v3): local policy rules"
+import { local, policyRulePresets } from 'c15t';
 
-const mode = offline({
+const mode = local({
 	policyRules: [
 		policyRulePresets.europeOptIn(),
 		policyRulePresets.worldOptOutNoPrompt(),
@@ -23,7 +23,7 @@ const mode = offline({
 });
 ```
 
-In Next.js, import `offline` from `c15t/next` instead and set the result as
+In Next.js, import `local` from `c15t/next` instead and set the result as
 `mode` in `c15t.config.ts`. Both take the same `policyRules`.
 
 | v2 preset | v3 preset |
@@ -44,7 +44,7 @@ no other change, but a hand-written v2 pack uses `consent` and `ui` keys,
 which v3 rules replace with flat keys such as `model` and `prompt`; the
 codemods mark those with a `TODO(c15t v3)` comment.
 
-v3 adds presets for more regions. `offline()` without `policyRules` uses
+v3 adds presets for more regions. `local()` without `policyRules` uses
 `recommendedPolicyRules()`. Read [policies](/docs/concepts/policies) before you
 change a rule's model or prompt, and
 [how consent works](/docs/concepts/how-consent-works) for the difference

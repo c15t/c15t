@@ -1,6 +1,6 @@
 'use client';
 
-import { ConsentRoot, offline, policyRulePresets } from 'c15t/next';
+import { ConsentRoot, local, policyRulePresets } from 'c15t/next';
 import { ConsentGPP } from 'c15t/react/gpp';
 import {
 	IABConsentBanner,
@@ -13,11 +13,11 @@ import { brandTheme } from '@/lib/consent-theme';
 
 // Runs without a backend. The Europe IAB preset is the rule c15t's
 // recommended pack uses for the EEA and the UK, and it is also the fallback
-// for an unknown location, which is every visitor in offline mode. Choices
+// for an unknown location, which is every visitor in local mode. Choices
 // stay in this browser. In production, swap this line for your backend,
 // which resolves the visitor's region and sends the vendor list with it:
 // const mode = hosted({ backendURL: 'https://your-project.inth.app' });
-const mode = offline({ policyRules: [policyRulePresets.europeIab()] });
+const mode = local({ policyRules: [policyRulePresets.europeIab()] });
 
 // A demonstration CMP ID, the same one c15t's own IAB demos use. Every TC
 // string names the CMP that wrote it, so a real site uses the ID IAB Europe

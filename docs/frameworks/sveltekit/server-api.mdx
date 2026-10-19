@@ -17,13 +17,13 @@ the browser bundle. Components import from `@c15t/svelte`.
 | `c15tHandle(options)` | `@c15t/svelte/kit` | `hooks.server.ts` | [c15tHandle](#c15thandle) |
 | `loadConsent` | `@c15t/svelte/kit` | `+layout.server.ts`, as `load` | [loadConsent](#loadconsent) |
 | `createConsentRoute(options)` | `@c15t/svelte/kit` | `+server.ts` | [createConsentRoute](#createconsentroute) |
-| `manifest()`, `hosted()`, `offline()` | `@c15t/svelte/kit` | `hooks.server.ts`, as `c15tHandle({ mode })` | [Rendering](./rendering#pick-a-rendering-path) |
+| `manifest()`, `hosted()`, `local()` | `@c15t/svelte/kit` | `hooks.server.ts`, as `c15tHandle({ mode })` | [Rendering](./rendering#pick-a-rendering-path) |
 | `resolveConsent(options)` | `@c15t/svelte/server` | Any server code | [resolveConsent](#resolveconsent) |
 | `consentManifest(options)` | `@c15t/svelte/vite` | `vite.config.ts` | [consentManifest](#consentmanifest) |
 
 The modes from `@c15t/svelte/kit` return plain data that reaches the browser
 through `loadConsent`. `@c15t/svelte/server` re-exports the browser
-transports `hosted`, `offline` and `custom` from `@c15t/core`, for code that
+transports `hosted`, `local` and `custom` from `@c15t/core`, for code that
 builds a provider itself.
 
 ## c15tHandle
@@ -47,7 +47,7 @@ goes to every visitor.
 
 | Option | Type | Default | Behavior |
 | --- | --- | --- | --- |
-| `mode` | `ConsentMode` | `manifest()` | How `loadConsent` resolves the visitor. `manifest()`, `hosted()` or `offline()` from `@c15t/svelte/kit`. A `custom()` transport throws; pass it to `ConsentRoot`'s `mode` prop instead. |
+| `mode` | `ConsentMode` | `manifest()` | How `loadConsent` resolves the visitor. `manifest()`, `hosted()` or `local()` from `@c15t/svelte/kit`. A `custom()` transport throws; pass it to `ConsentRoot`'s `mode` prop instead. |
 | `routePrefix` | `string` | none | Where `createConsentRoute()` is mounted, such as `/api/c15t`. The browser then resolves consent on pages the server did not, through that route. Without it, the browser asks the backend's `/init`. `'/'` throws ``@c15t/svelte: `routePrefix` can't be '/': a consent route at the site root would catch every page. Use a path such as '/api/c15t'.`` when the hook is created. |
 | `backendURL` | `string` | the URL `consentManifest()` read | The backend. Consent saves go here. A `hosted({ backendURL })` mode's own URL wins. |
 | `snapshot` | `ConsentManifest` | the manifest `consentManifest()` downloaded | A manifest to resolve with. `createConsentRoute()` reads it too. |
@@ -87,7 +87,7 @@ Privacy Control, then resolves the policy with the handle's `mode`:
 | `manifest({ source: 'runtime' })` | From the manifest at `${backendURL}/manifest`, or `manifestURL`, fetched and cached in memory. |
 | `manifest({ resolve: 'browser' })` | Reads the cookie only. The browser resolves the policy. |
 | `hosted()` | Calls the backend's `/init`. |
-| `offline()` | From the mode's `policyRules`, or c15t's recommended rules. |
+| `local()` | From the mode's `policyRules`, or c15t's recommended rules. |
 
 `consent` holds the resolved state, the mode as data, the backend URL and the
 handle's `routePrefix`. It is plain, serializable data; pass it to

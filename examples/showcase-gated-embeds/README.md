@@ -46,9 +46,9 @@ bun run --cwd examples/showcase-gated-embeds dev
 
 Open <http://localhost:3112>.
 
-The app runs in offline mode, so it needs no backend: c15t's bundled policy
+The app runs in local mode, so it needs no backend: c15t's bundled policy
 rules ask for opt-in consent and choices stay in the browser. For production,
-replace `offline()` in `components/consent.tsx` with
+replace `local()` in `components/consent.tsx` with
 `hosted({ backendURL: 'https://your-project.inth.app' })` and add your site's origin
 to the project's trusted origins.
 

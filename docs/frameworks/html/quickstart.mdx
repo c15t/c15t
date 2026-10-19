@@ -33,8 +33,8 @@ A returning visitor who already chose sees no banner. Attributes from the
 [attribute reference](/docs/frameworks/html/attributes-and-api), such as
 `data-language`, still work on this tag.
 
-`c15t.js` keeps the stock UI and consent behavior while excluding offline
-policy presets, offline resolution and manifest transport code. `/init`
+`c15t.js` keeps the stock UI and consent behavior while excluding local
+policy presets, local resolution and manifest transport code. `/init`
 returns the policy resolved for this visitor.
 
 ### Where to paste it
@@ -117,12 +117,15 @@ If no banner appears, the policy for your location may not ask for one. See
 
 ## Other ways to run the tag
 
-- **Offline mode.** Load `c15t.offline.js` from a CDN, without
+- **Local mode.** Load `c15t.local.js` from a CDN, without
   `data-backend-url`, and c15t resolves the policy in the browser from
   `data-policy-rules` or its recommended rules. The browser does not know
   the visitor's country, so without `data-country` every visitor gets the
-  strict opt-in fallback. Choices stay in that browser and there are no
-  consent records. Not recommended for production environments.
+  strict opt-in fallback. Choices stay in that browser, and c15t keeps no
+  server-side record of consent. On development hosts such as `localhost`,
+  the tag logs a warning saying so; `data-acknowledge-no-records` hides it.
+  Not recommended for production environments. Before c15t 3.2 this file
+  was `c15t.offline.js`. The old name still works until c15t v4.
 - **A self-hosted backend.** A [self-hosted c15t backend](/docs/self-host/overview)
   serves the hosted bundle at `/c15t.js` with its backend URL already
   configured, so the tag needs only a `src`:
@@ -131,7 +134,7 @@ If no banner appears, the policy for your location may not ask for one. See
 - **From a CDN.** Load a pinned version from jsDelivr. Use `c15t.js` with
   `data-backend-url` for hosted mode:
   `<script src="https://cdn.jsdelivr.net/npm/@c15t/browser@<version>/dist/c15t.js" data-backend-url="https://your-project.inth.app" defer></script>`.
-  For offline mode, use `dist/c15t.offline.js` without `data-backend-url`.
+  For local mode, use `dist/c15t.local.js` without `data-backend-url`.
   Replace `<version>` with the exact version listed on
   [npm](https://www.npmjs.com/package/@c15t/browser?activeTab=versions).
   A URL without a version loads the newest release, so a new release can

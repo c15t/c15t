@@ -28,7 +28,7 @@ policy itself. Change the budget with `middleware: { timeoutMs }`. See
 
 On a prerendered page, the middleware reads no request headers or cookie,
 because the build has no visitor. `hosted()` and `manifest()` leave the
-policy for the browser. `offline()` resolves it at build time, because it
+policy for the browser. `local()` resolves it at build time, because it
 needs no request.
 
 In `hosted()` mode the render's `/init` request carries the resolved
@@ -136,7 +136,7 @@ the backend URL directly, not to this route.
 Change the path with `routePrefix: '/consent'`. With
 `manifest({ resolve: 'browser' })` and no adapter, the integration prerenders
 the route and writes only `${routePrefix}/manifest`, which the browser
-fetches. `hosted()` and `offline()` inject no route.
+fetches. `hosted()` and `local()` inject no route.
 
 ### Serve the routes yourself
 

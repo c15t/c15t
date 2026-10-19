@@ -53,8 +53,8 @@ as opt-in.
 | `vendors` | Limits the vendor list to these vendor IDs |
 | `publisherCountryCode` | Publisher country written into the TC String |
 | `publisherRestrictions` | Restrictions written into the TC String and applied to vendors |
-| `gvl` | A vendor list to use as-is, for offline mode |
-| `gvlURL` | Where the server fetches the vendor list, for offline mode |
+| `gvl` | A vendor list to use as-is, for local mode |
+| `gvlURL` | Where the server fetches the vendor list, for local mode |
 | `enabled` | Set `false` to keep the configuration but turn IAB off |
 
 ## Render the IAB banner and dialog
@@ -79,7 +79,7 @@ get an IAB policy, render the IAB pair when
 | --- | --- |
 | `manifest()` | The server resolves it, and the browser reads it through the same-origin `/api/c15t/init` route |
 | `hosted()` | The browser fetches it from the backend's `/init` after the page loads |
-| `offline()` | The `gvl` or `gvlURL` option |
+| `local()` | The `gvl` or `gvlURL` option |
 
 In hosted mode, the backend's `/init` must be reachable from the browser and
 accept requests from your site's origin without server-only credentials. For a

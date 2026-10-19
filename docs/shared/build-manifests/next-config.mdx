@@ -13,7 +13,7 @@ and the snapshot point at the same
 project.
 
 The wrapper reads `c15t.config.ts` the way Next.js reads `next.config.ts`, and
-skips the fetch for `mode: hosted()`, `mode: offline()`,
+skips the fetch for `mode: hosted()`, `mode: local()`,
 `manifest({ snapshot })` and `manifest({ source: 'runtime' })`, which read no
 build-time manifest. Those builds never contact the backend. If the file can't
 be read at build time, for example because it imports something Node can't

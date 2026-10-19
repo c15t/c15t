@@ -15,7 +15,7 @@ Import the mode from `c15t/vue/vue-plugin`:
 | Vue with Vite, served as static files | [`hosted()`](#ask-the-backend-for-each-visitors-policy), as in the [quickstart](/docs/frameworks/vue/quickstart). The backend resolves each visitor's policy from their location. |
 | A policy without location rules, or a page that already knows the visitor's location | [`manifest()`](#bundle-the-manifest-during-builds). The build bundles the policy and the browser resolves it. |
 | Browser resolution, with policy edits that apply without a rebuild | [`manifest({ source: 'runtime' })`](#fetch-the-manifest-at-runtime) |
-| A prototype with no backend | [`offline()`](#resolve-the-policy-without-a-backend). Not recommended for production environments. |
+| A prototype with no backend | [`local()`](#resolve-the-policy-without-a-backend). Not recommended for production environments. |
 | Vue rendered on the server without Nuxt | Any of the above; the banner mounts after hydration. For the banner in server HTML, [use Nuxt](#server-rendering-without-nuxt). |
 
 `mode` is required. Without it, `app.use()` throws and asks for one. Each
@@ -124,20 +124,20 @@ still go to the backend.
 
 ## Resolve the policy without a backend
 
-`offline()` resolves policy rules in the browser and stores choices in the
+`local()` resolves policy rules in the browser and stores choices in the
 visitor's cookie and localStorage. There is no backend, so no consent
 records are kept. Not recommended for production environments.
 
 {/* example: fragment */}
 
 ```ts title="src/main.ts"
-import { c15tVue, offline } from 'c15t/vue/vue-plugin';
+import { c15tVue, local } from 'c15t/vue/vue-plugin';
 
-app.use(c15tVue, { mode: offline(), scripts });
+app.use(c15tVue, { mode: local(), scripts });
 ```
 
-Without options, `offline()` uses c15t's recommended policy rules. Pass
-`offline({ policyRules })` to replace them.
+Without options, `local()` uses c15t's recommended policy rules. Pass
+`local({ policyRules })` to replace them.
 
 ## Server rendering without Nuxt
 
@@ -174,7 +174,7 @@ Serve the production build and open the Network tab:
 | `manifest()` with a build snapshot | None to the backend when the policy has no location rules or the browser knows the location, otherwise one `GET` to `${backendURL}/init`. A language other than English loads its text from your site. |
 | `manifest({ source: 'runtime' })` | One `GET` to `${backendURL}/manifest` |
 | `manifest({ manifestURL })` | One `GET` to `manifestURL` |
-| `offline()` | None |
+| `local()` | None |
 
 Reject, reload, and confirm the banner stays closed. Then follow
 [verify consent](/docs/guides/verify-consent) for the vendor checks.

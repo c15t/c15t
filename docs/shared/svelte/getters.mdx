@@ -181,7 +181,7 @@ call it and does not update.
 | --- | --- |
 | `manifest()` | The `mode` that resolves the policy in the browser from the manifest `consentManifest()` downloaded. |
 | `hosted({ backendURL })` | The `mode` that asks an Inth or self-hosted backend's `/init` for every visitor. |
-| `offline({ policyRules })` | The `mode` that resolves policies in the browser with no backend. Not recommended for production environments. |
+| `local({ policyRules })` | The `mode` that resolves policies in the browser with no backend. Not recommended for production environments. |
 | `custom(transport)` | The `mode` for your own transport. |
 | `createConsentRuntime(options)` | Creates a runtime to share between providers, through their `runtime` prop. |
 | `resolveConsentPresentation(input)` | Resolves the banner or dialog shape and actions a policy asks for, as `getHeadlessConsent()` does. |

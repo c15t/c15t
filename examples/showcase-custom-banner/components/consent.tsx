@@ -1,6 +1,6 @@
 'use client';
 
-import { ConsentRoot, offline } from 'c15t/next';
+import { ConsentRoot, local } from 'c15t/next';
 import type { ConsentPresentation } from 'c15t/next';
 import type { ReactNode } from 'react';
 
@@ -12,7 +12,7 @@ import { ConsentDialog } from './consent-dialog';
 // so the demo runs without an account. In production, point it at your
 // backend instead:
 // const mode = hosted({ backendURL: 'https://your-project.inth.app' });
-const mode = offline();
+const mode = local();
 
 // A wall blocks the page until the visitor answers. c15t reports it as
 // `banner.blocking`, and refuses it for a notice, which must never block.

@@ -20,7 +20,7 @@ is down, run the build with `C15T_ON_BUILD_ERROR=runtime`. `snapshot` is then
 
 Only a build that uses `manifest()` downloads the manifest. The plugin
 fetches after Vite has dropped the code the app does not use, so a `hosted()`
-or `offline()` build never contacts the backend and never fails this way.
+or `local()` build never contacts the backend and never fails this way.
 
 An error or warning that says `no backend URL is set` means the plugin found
 no `backendURL` option and no variable. Set `VITE_C15T_BACKEND_URL` (or

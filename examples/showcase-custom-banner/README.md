@@ -53,7 +53,7 @@ bun run --cwd examples/showcase-custom-banner dev
 
 Then open http://localhost:3110.
 
-The app runs c15t in offline mode, so you don't need an account. The policy
+The app runs c15t in local mode, so you don't need an account. The policy
 ships in the bundle, and choices are stored in the browser with no consent
 records. For production, replace the `mode` line in `components/consent.tsx`
 with `hosted({ backendURL: 'https://your-project.inth.app' })`.
@@ -67,4 +67,4 @@ allow Analytics, and PostHog's config request returns a 404.
 - [Headless](https://c15t.com/docs/frameworks/next/headless)
 - [Hooks](https://c15t.com/docs/frameworks/next/hooks)
 - [Banner designs](https://c15t.com/docs/customization/recipes)
-- [Offline configuration](https://c15t.com/docs/frameworks/next/data-fetching-reference#offline-configuration)
+- [Local configuration](https://c15t.com/docs/frameworks/next/data-fetching-reference#local-configuration)

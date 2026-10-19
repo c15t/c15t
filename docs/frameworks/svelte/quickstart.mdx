@@ -22,7 +22,7 @@ Create an Inth project, then:
    origins.
 3. Copy the project's backend URL.
 
-A self-hosted backend or offline mode works too; see
+A self-hosted backend or local mode works too; see
 [other setups](#other-setups).
 
 The guide uses `hosted()` mode. The browser asks your backend for each
@@ -119,22 +119,22 @@ If the banner does not appear, check the `/init` request, then see
 
 ## Other setups
 
-**Offline mode** resolves policies in the browser and keeps choices in the
+**Local mode** resolves policies in the browser and keeps choices in the
 browser's cookie and local storage, with no backend and no consent records. Use it for local development
 and tests. Not recommended for production environments.
 
 {/* example: fragment */}
 
 ```ts
-import { offline } from '@c15t/svelte';
+import { local } from '@c15t/svelte';
 
-const mode = offline();
+const mode = local();
 ```
 
-With no arguments, `offline()` uses the recommended rules. They ask for
+With no arguments, `local()` uses the recommended rules. They ask for
 opt-in in Europe and unknown locations, use opt-out in US privacy states, and
-show no banner where no consent law applies. Pass `offline({ policyRules })` to use your own.
-[Data fetching](/docs/concepts/data-fetching#when-should-i-use-offline-mode)
+show no banner where no consent law applies. Pass `local({ policyRules })` to use your own.
+[Data fetching](/docs/concepts/data-fetching#when-should-i-use-local-mode)
 explains the trade-offs.
 
 **A self-hosted backend** uses the same setup with your own backend URL. See
