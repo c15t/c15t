@@ -82,6 +82,24 @@ test('renders without a server start when the state promise rejects', async () =
 	expect(html).not.toContain(JSON.stringify(pixel.src));
 });
 
+test('renders no inline script without a state', async () => {
+	// A static or cached page has no state. An empty inline script there
+	// would still need a CSP nonce.
+	const stream = await renderToReadableStream(
+		<ConsentRoot
+			options={{ mode: custom({ init: () => Promise.resolve({}) }) }}
+			scripts={[pixel]}
+		>
+			<main id="page">Page</main>
+		</ConsentRoot>
+	);
+	await stream.allReady;
+	const html = await new Response(stream).text();
+
+	expect(html).toContain('<main id="page">Page</main>');
+	expect(html).not.toContain('<script');
+});
+
 test('renders the empty script the browser hydrates when the start module fails to load', async () => {
 	// The browser always renders an empty script here; rendering nothing on
 	// the server would fail hydration.
