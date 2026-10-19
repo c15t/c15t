@@ -16,6 +16,8 @@ import {
 	optOutRule,
 } from '../../__tests__/fixtures/kernel-fixtures';
 import type { Script } from '../../libs/script-loader/types';
+import { STORAGE_KEY } from '../../libs/storage-keys';
+import { validateStoredConsentEnvelope } from '../../modules/persistence/record-codec';
 import {
 	encodeStoredConsentEnvelopeCompact,
 	encodeStoredConsentEnvelopeJson,
@@ -378,6 +380,42 @@ describe('serverScriptStart', () => {
 			startPixel();
 
 			expect(document.head.querySelector('script')).toBeNull();
+		});
+
+		describe('and a legacy record', () => {
+			const legacyDenial = JSON.stringify({
+				consentInfo: { time: CONFIRMED_AT + 1 },
+				consents: { marketing: false },
+			});
+
+			test('does nothing when the configured copy is one the client rejects', () => {
+				// The client then reads the legacy record, and its denial.
+				const rejected = { categories: {}, unknown: true, version: 3 };
+				expect(validateStoredConsentEnvelope(rejected, NOW).ok).toBe(false);
+				localStorage.setItem('c15t', JSON.stringify(rejected));
+				localStorage.setItem(STORAGE_KEY, legacyDenial);
+
+				startPixel();
+
+				expect(document.head.querySelector('script')).toBeNull();
+			});
+
+			test('starts when the cookie holds the decision the server read', () => {
+				const { choice } = choiceRecords(
+					{ marketing: true },
+					{ confirmedAt: CONFIRMED_AT }
+				);
+				// oxlint-disable-next-line unicorn/no-document-cookie -- Stores the record under test.
+				document.cookie = `c15t=${encodeStoredConsentEnvelopeCompact({
+					categories: choice?.categories ?? {},
+					version: 3,
+				})}; path=/`;
+				localStorage.setItem(STORAGE_KEY, legacyDenial);
+
+				startPixel();
+
+				expect(document.head.querySelectorAll('script')).toHaveLength(1);
+			});
 		});
 
 		test.each([
