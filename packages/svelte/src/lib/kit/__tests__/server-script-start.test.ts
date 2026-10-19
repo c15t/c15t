@@ -80,6 +80,16 @@ test('ignores a body end in the text of an earlier chunk', () => {
 	);
 });
 
+test('passes a long unfinished region through instead of holding it', () => {
+	const inject = renderPage('go()');
+	const script = `<body><script>if (a < b) {${'x'.repeat(5000)}`;
+
+	expect(inject(script, false)).toBe(script);
+	expect(inject(`${'y'.repeat(5000)}}</script></body>`, true)).toBe(
+		`${'y'.repeat(5000)}}</script><script>go()</script></body>`
+	);
+});
+
 test('drops a nonce that is not one', () => {
 	expect(renderPage('go()', 'a" onload="x')('<body></body>', true)).toBe(
 		'<body><script>go()</script></body>'

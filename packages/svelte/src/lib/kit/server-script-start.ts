@@ -19,6 +19,12 @@ const SCRIPT_NONCE = /<script\b[^>]*\snonce="(?<nonce>[\w+/=-]+)"/u;
 const BODY_END = '</body>';
 /** What follows the end of the body: the end of the page. */
 const PAGE_END = /^<\/body>\s*(?:<\/html>\s*)?(?:<[^>]*)?$/u;
+/**
+ * The most a chunk's end is held: more than a script tag with its nonce or
+ * the end of a page. Text a chunk ends in, such as `a < b` in a long
+ * inline script, passes through instead of piling up.
+ */
+const MAX_HELD = 1024;
 
 /** The start a request's render keeps for its page transform. */
 interface PageStart {
@@ -89,15 +95,17 @@ export const loadServerScriptStart =
 
 /**
  * The end of `text` to hold for the next chunk: the end of the page from
- * `</body>`, or a tag `text` ends partway through.
+ * `</body>`, or a tag `text` ends partway through, within its last
+ * `MAX_HELD` characters.
  */
 const heldEnd = (text: string): string => {
-	const body = text.lastIndexOf(BODY_END);
-	if (body !== -1 && PAGE_END.test(text.slice(body))) {
-		return text.slice(body);
+	const tail = text.slice(-MAX_HELD);
+	const body = tail.lastIndexOf(BODY_END);
+	if (body !== -1 && PAGE_END.test(tail.slice(body))) {
+		return tail.slice(body);
 	}
-	const start = text.lastIndexOf('<');
-	return start === -1 || text.includes('>', start) ? '' : text.slice(start);
+	const start = tail.lastIndexOf('<');
+	return start === -1 || tail.includes('>', start) ? '' : tail.slice(start);
 };
 
 /**
