@@ -222,9 +222,9 @@ export const c15tHandle = function c15tHandle(
 		// stylesheet request holds back the first paint. Prerendered pages
 		// too: both are the same for every visitor.
 		return await resolve(event, {
-			transformPageChunk: ({ html }) => {
+			transformPageChunk: ({ done, html }) => {
 				const page = injectModulePreloads(injectSurfaceStyles(html));
-				return injectServerStart ? injectServerStart(page) : page;
+				return injectServerStart ? injectServerStart(page, done) : page;
 			},
 		});
 	};

@@ -56,6 +56,11 @@ export const loadServerScriptStart =
  * marker to the end of `<body>`. It keeps the script until the chunk with
  * `</body>` when the page streams.
  *
+ * A chunk can end partway through a tag, so the transform holds the text
+ * from the chunk's last `<` until the next chunk, and returns it with the
+ * last one (`done`). A tag it matches has no `<` after its first character:
+ * Svelte escapes `<` in attribute values.
+ *
  * The script takes the marker's nonce (the provider's `nonce` option), else
  * the nonce SvelteKit put on its own scripts, so a nonce-based `script-src`
  * admits it. The tags it inserts take the same nonce.
@@ -65,14 +70,16 @@ export const loadServerScriptStart =
  * @internal
  */
 export const createServerStartInjector = function createServerStartInjector(): (
-	html: string
+	html: string,
+	done: boolean
 ) => string {
 	let code: string | undefined;
 	let markerNonce: string | undefined;
 	let pageNonce: string | undefined;
-	let done = false;
-	return (html) => {
-		if (done) {
+	let held = '';
+	let injected = false;
+	const transform = (html: string): string => {
+		if (injected) {
 			return html;
 		}
 		pageNonce ??= SCRIPT_NONCE.exec(html)?.groups?.nonce;
@@ -91,10 +98,20 @@ export const createServerStartInjector = function createServerStartInjector(): (
 		if (!code || end === -1) {
 			return out;
 		}
-		done = true;
+		injected = true;
 		const nonce = markerNonce ?? pageNonce;
 		const nonceAttribute =
 			nonce && NONCE.test(nonce) ? ` nonce="${nonce}"` : '';
 		return `${out.slice(0, end)}<script${nonceAttribute}>${code}</script>${out.slice(end)}`;
+	};
+	return (html, done) => {
+		const text = held + html;
+		if (done || injected) {
+			held = '';
+			return transform(text);
+		}
+		const cut = text.lastIndexOf('<');
+		held = cut === -1 ? text : text.slice(cut);
+		return cut === -1 ? '' : transform(text.slice(0, cut));
 	};
 };

@@ -14,17 +14,44 @@ const marker = (content: string, nonce?: string): string =>
 test('keeps the script for the chunk that closes the body', () => {
 	const inject = createServerStartInjector();
 
-	expect(inject(`<head>${marker('go()')}</head><body><main>`)).toBe(
-		`<head>${marker('')}</head><body><main>`
+	expect(inject(`<head>${marker('go()')}</head><body><main>`, false)).toBe(
+		`<head>${marker('')}</head><body>`
 	);
-	expect(inject('</main></body></html>')).toBe(
-		'</main><script>go()</script></body></html>'
+	expect(inject('</main></body></html>', true)).toBe(
+		'<main></main><script>go()</script></body></html>'
 	);
 });
 
+test.each([
+	['the marker', marker('a=>b&quot;', 'own'), 'own'],
+	["SvelteKit's script", marker('a=>b&quot;'), 'kit'],
+])(
+	'reads a marker split across chunks, with the nonce of %s',
+	(_source, meta, nonce) => {
+		const page = `<html><head>${meta}</head><body><script nonce="kit">boot()</script></body></html>`;
+		const whole = createServerStartInjector()(page, true);
+
+		expect(whole).toContain(`<script nonce="${nonce}">a=>b"</script></body>`);
+		for (let at = 0; at <= page.length; at += 1) {
+			const inject = createServerStartInjector();
+
+			expect(
+				inject(page.slice(0, at), false) + inject(page.slice(at), true)
+			).toBe(whole);
+		}
+		const inject = createServerStartInjector();
+
+		expect(
+			[...page].map((character) => inject(character, false)).join('') +
+				inject('', true)
+		).toBe(whole);
+	}
+);
+
 test("takes SvelteKit's script nonce without one on the marker", () => {
 	const page = createServerStartInjector()(
-		`<head>${marker('go()')}</head><body><script nonce="kit-nonce">boot()</script></body>`
+		`<head>${marker('go()')}</head><body><script nonce="kit-nonce">boot()</script></body>`,
+		true
 	);
 
 	expect(page).toContain('<script nonce="kit-nonce">go()</script></body>');
@@ -33,12 +60,14 @@ test("takes SvelteKit's script nonce without one on the marker", () => {
 test("prefers the marker's nonce and drops one that is not a nonce", () => {
 	expect(
 		createServerStartInjector()(
-			`<head>${marker('go()', 'own')}</head><body><script nonce="kit">boot()</script></body>`
+			`<head>${marker('go()', 'own')}</head><body><script nonce="kit">boot()</script></body>`,
+			true
 		)
 	).toContain('<script nonce="own">go()</script></body>');
 	expect(
 		createServerStartInjector()(
-			`<head>${marker('go()', 'a&quot; onload=&quot;x')}</head><body></body>`
+			`<head>${marker('go()', 'a&quot; onload=&quot;x')}</head><body></body>`,
+			true
 		)
 	).toContain('<script>go()</script></body>');
 });
@@ -46,5 +75,5 @@ test("prefers the marker's nonce and drops one that is not a nonce", () => {
 test('adds nothing for an empty marker', () => {
 	const page = `<head>${marker('')}</head><body></body>`;
 
-	expect(createServerStartInjector()(page)).toBe(page);
+	expect(createServerStartInjector()(page, true)).toBe(page);
 });

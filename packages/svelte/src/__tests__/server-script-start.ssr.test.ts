@@ -64,7 +64,8 @@ const renderPage = function renderPage({
 		},
 	});
 	return createServerStartInjector()(
-		`<html><head>${head}</head><body>${body}</body></html>`
+		`<html><head>${head}</head><body>${body}</body></html>`,
+		true
 	);
 };
 
