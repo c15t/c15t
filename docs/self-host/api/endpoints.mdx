@@ -209,8 +209,11 @@ policy's scope and defaults, the submitted preferences, vendor grants, and
 Global Privacy Control from the body or the `Sec-GPC` header. `allowed` is
 permission, not proof of execution: an allowed script can still fail to load.
 Under an `iab` policy, entries with IAB TCF fields have no `allowed`, because
-their gate reads the TC string. Without a resolved policy, only an explicit
-grant allows a category.
+their gate reads the TC string. An entry also has no `allowed` when the answer
+depends on an earlier value in `preferences` that this save's `choice` did not
+confirm: the browser ignores a value whose receipt has expired or belongs to an
+older policy, and the backend only sees this save's receipts. Without a
+resolved policy, only an explicit grant allows a category.
 
 A retry with a different list is not a `CONFLICT`: the list describes the
 page, not the decision, so the row keeps the first one. `GET /subjects/:id`

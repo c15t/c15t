@@ -17,6 +17,7 @@ const rule = (overrides: Partial<PolicyRule>) =>
 const facts = (
 	overrides: Partial<ScriptPermissionFacts>
 ): ScriptPermissionFacts => ({
+	confirmed: undefined,
 	gpc: false,
 	model: 'opt-in',
 	preferences: undefined,
@@ -84,6 +85,44 @@ describe('recordScriptPermissions', () => {
 			// The TC string speaks for vendors in IAB mode, not vendor grants.
 			{ allowed: true, category: 'marketing', id: 'plain', vendor: 'plain' },
 		]);
+	});
+
+	it('only vouches for earlier values when either reading agrees', () => {
+		const scripts: SubjectScriptsWire = [
+			{ category: 'marketing', id: 'earlier-grant' },
+			{ category: 'experience', id: 'earlier-refusal' },
+			{ category: { or: ['measurement', 'marketing'] }, id: 'either' },
+			{ category: { and: ['measurement', 'marketing'] }, id: 'both' },
+		];
+		const preferences = {
+			experience: false,
+			marketing: true,
+			measurement: true,
+		};
+		const confirmed = new Set(['measurement']);
+		// Opt-in: a lapsed grant falls back to denied, a lapsed refusal too.
+		expect(
+			allowed(scripts, { confirmed, preferences, rule: rule({}) })
+		).toEqual({
+			both: undefined,
+			'earlier-grant': undefined,
+			'earlier-refusal': false,
+			either: true,
+		});
+		// Opt-out: a lapsed grant falls back to allowed, a lapsed refusal too.
+		expect(
+			allowed(scripts, {
+				confirmed,
+				model: 'opt-out',
+				preferences,
+				rule: rule({ model: 'opt-out' }),
+			})
+		).toEqual({
+			both: true,
+			'earlier-grant': true,
+			'earlier-refusal': undefined,
+			either: true,
+		});
 	});
 
 	it('loads alwaysLoad scripts even when their category is denied', () => {

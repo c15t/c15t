@@ -270,6 +270,29 @@ for (const engine of ENGINES) {
 			});
 		});
 
+		it('leaves allowed unset when it turns on a grant the save did not confirm', async () => {
+			// The marketing grant is an earlier one. The browser ignores it if
+			// its receipt has lapsed, and only this save's receipts arrive.
+			await saveAfterInit('DE', {
+				choice: {
+					categories: {
+						measurement: {
+							basis: { fingerprint: 'fp', kind: 'choice-v1' },
+							confirmedAt: T0,
+							value: true,
+						},
+					},
+					version: 3,
+				},
+				preferences: { marketing: true, measurement: true, necessary: true },
+			});
+			assert.deepStrictEqual(await storedAllowed(), {
+				'meta-pixel': undefined,
+				posthog: true,
+				'support-chat': false,
+			});
+		});
+
 		it('allows what an opt-out policy permits by default', async () => {
 			await saveAfterInit('US', {
 				preferences: { marketing: false, necessary: true },

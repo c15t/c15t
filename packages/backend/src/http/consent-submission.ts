@@ -875,6 +875,14 @@ export const prepareSubmission = Effect.fn('submission.prepare')(
 		const scripts =
 			cookieBanner?.scripts &&
 			recordScriptPermissions(cookieBanner.scripts, {
+				confirmed:
+					choice && !choiceFromPreferences
+						? new Set(
+								Object.entries(choice.categories)
+									.filter(([, receipt]) => receipt)
+									.map(([category]) => category)
+							)
+						: undefined,
 				// Manifest-mode saves assert the signal they resolved under.
 				gpc: cookieBanner.gpc ?? readGpcHeader(context.headers),
 				model,

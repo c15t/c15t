@@ -255,8 +255,7 @@ const createStoredLists = function createStoredLists(
 				typeof value.tcString === 'string') &&
 			(value.addtlConsent === undefined ||
 				typeof value.addtlConsent === 'string') &&
-			isVendorChoicePayload(value.vendorChoice) &&
-			(value.scripts === undefined || isSaveScripts(value.scripts))
+			isVendorChoicePayload(value.vendorChoice)
 		);
 	};
 
@@ -313,7 +312,17 @@ const createStoredLists = function createStoredLists(
 			) {
 				continue;
 			}
-			entries.push(entry);
+			// The script list describes the page, not the decision: an entry
+			// this version cannot read is dropped and the choice still replays.
+			if (
+				entry.payload.scripts === undefined ||
+				isSaveScripts(entry.payload.scripts)
+			) {
+				entries.push(entry);
+			} else {
+				const { scripts: _unreadable, ...payload } = entry.payload;
+				entries.push({ ...entry, payload });
+			}
 		}
 		entries.sort(
 			(left, right) =>

@@ -1039,6 +1039,9 @@ export const createChoiceRecorder = function createChoiceRecorder({
 			}
 			applyNoticeAcknowledgement(patch, before, actionAt);
 			applySaveAuthority(patch, before, context?.iabAuthority);
+			// Read before listeners run: one could reconfigure the loader in
+			// response, and the save records what the visitor acted on.
+			const configuredScripts = scripts?.();
 			// Listeners run when the batch closes, after this action's events
 			// are queued: `after` and the events carry this action's snapshot
 			// even when a listener records another choice in response.
@@ -1117,7 +1120,6 @@ export const createChoiceRecorder = function createChoiceRecorder({
 			if (payload.tcString && addtlConsent) {
 				payload.addtlConsent = addtlConsent;
 			}
-			const configuredScripts = scripts?.();
 			if (configuredScripts) {
 				payload.scripts = configuredScripts;
 			}

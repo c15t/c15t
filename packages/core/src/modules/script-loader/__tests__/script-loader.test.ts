@@ -1221,6 +1221,18 @@ describe('script-loader: configured scripts on saves', () => {
 		kernel.dispose();
 	});
 
+	test('lists the scripts configured when the visitor acted', async () => {
+		const { kernel, save } = kernelWithSave();
+		const loader = createScriptLoader({
+			kernel,
+			scripts: [{ category: 'measurement', id: 'ga', src: 'https://a/ga.js' }],
+		});
+		kernel.events.on('choice:recorded', () => loader.dispose());
+		await kernel.commands.save({ measurement: true });
+		expect(lastScripts(save)).toEqual([{ category: 'measurement', id: 'ga' }]);
+		kernel.dispose();
+	});
+
 	test('a disposed loader no longer lists its scripts', async () => {
 		const { kernel, save } = kernelWithSave();
 		const loader = createScriptLoader({

@@ -10,9 +10,16 @@
  *
  * The rules mirror core's (`evaluateCategory` for the category permissions,
  * `isEligible` for each script). Where the backend cannot see what the
- * browser saw, it leaves `allowed` out rather than guess. That is every
- * script with IAB TCF fields under an `iab` policy: their gate reads the TC
- * string and the Global Vendor List, which the backend does not evaluate.
+ * browser saw, it leaves `allowed` out rather than guess:
+ *
+ * - Scripts with IAB TCF fields under an `iab` policy. Their gate reads the
+ *   TC string and the Global Vendor List, which the backend does not
+ *   evaluate.
+ * - Scripts whose answer turns on a category value this save did not
+ *   confirm. `preferences` also carries earlier values, and the browser
+ *   ignores one whose receipt has expired or was made under another policy.
+ *   Only the receipts this save confirmed reach the backend, so it cannot
+ *   tell whether an earlier value still counts.
  */
 
 import {
@@ -37,6 +44,12 @@ export interface ScriptPermissionFacts {
 	readonly model: string | undefined;
 	/** The explicit preference map after scope filtering. */
 	readonly preferences: Readonly<Record<string, boolean>> | undefined;
+	/**
+	 * Categories this save confirmed. Values in `preferences` outside it are
+	 * earlier ones the backend cannot vouch for. `undefined` when every value
+	 * is this save's own, as in a 2.x body without receipts.
+	 */
+	readonly confirmed: ReadonlySet<string> | undefined;
 	/** Per-vendor grants the save carried. */
 	readonly vendorGrants: Readonly<Record<string, boolean>> | undefined;
 	/** Global Privacy Control as the save saw it. */
@@ -44,15 +57,15 @@ export interface ScriptPermissionFacts {
 }
 
 /**
- * One optional category's permission, as core's `evaluateCategory` computes
- * it. Without a policy there is no scope or default to apply, so only an
- * explicit grant counts.
+ * One optional category's permission for an explicit `value`, as core's
+ * `evaluateCategory` computes it. Without a policy there is no scope or
+ * default to apply, so only an explicit grant counts.
  */
 const permitted = (
 	category: PolicyOptionalCategory,
-	{ gpc, preferences, rule }: ScriptPermissionFacts
+	value: boolean | undefined,
+	{ gpc, rule }: ScriptPermissionFacts
 ): boolean => {
-	const value = preferences?.[category];
 	if (!rule) {
 		return value === true;
 	}
@@ -74,17 +87,56 @@ const permitted = (
 	return rule.model === 'opt-out' || rule.model === 'none';
 };
 
-const categoryPermissions = (
+/**
+ * One category's permission, or `undefined` when it depends on whether an
+ * earlier value still counts. The browser treats a lapsed value as absent,
+ * so the answer is known when both readings agree.
+ */
+const categoryPermission = (
+	category: PolicyOptionalCategory,
 	facts: ScriptPermissionFacts
-): Record<PolicyConsentCategory, boolean> => {
-	const permissions = { necessary: true } as Record<
-		PolicyConsentCategory,
-		boolean
-	>;
-	for (const category of POLICY_OPTIONAL_CATEGORIES) {
-		permissions[category] = permitted(category, facts);
+): boolean | undefined => {
+	const value = facts.preferences?.[category];
+	const current = permitted(category, value, facts);
+	if (
+		value === undefined ||
+		facts.confirmed === undefined ||
+		facts.confirmed.has(category)
+	) {
+		return current;
 	}
-	return permissions;
+	return current === permitted(category, undefined, facts)
+		? current
+		: undefined;
+};
+
+type Permissions = Record<PolicyConsentCategory, boolean>;
+
+/**
+ * Every permission set the facts allow: one when each category is known,
+ * and one per combination of the unknown ones otherwise.
+ */
+const possiblePermissions = (facts: ScriptPermissionFacts): Permissions[] =>
+	POLICY_OPTIONAL_CATEGORIES.reduce<Permissions[]>(
+		(sets, category) => {
+			const permission = categoryPermission(category, facts);
+			const options = permission === undefined ? [false, true] : [permission];
+			return sets.flatMap((set) =>
+				options.map((option) => ({ ...set, [category]: option }))
+			);
+		},
+		[{ necessary: true } as Permissions]
+	);
+
+/** The condition's value if every possible permission set agrees on it. */
+const conditionHolds = (
+	condition: SubjectScriptWire['category'],
+	possible: readonly Permissions[]
+): boolean | undefined => {
+	const [first, ...rest] = possible.map((permissions) =>
+		satisfiesCategoryCondition(condition, permissions)
+	);
+	return rest.every((result) => result === first) ? first : undefined;
 };
 
 const hasIabFields = (script: SubjectScriptWire): boolean =>
@@ -99,7 +151,7 @@ const hasIabFields = (script: SubjectScriptWire): boolean =>
  */
 const scriptAllowed = (
 	script: SubjectScriptWire,
-	permissions: Readonly<Record<PolicyConsentCategory, boolean>>,
+	possible: readonly Permissions[],
 	facts: ScriptPermissionFacts
 ): boolean | undefined => {
 	if (script.alwaysLoad) {
@@ -110,8 +162,9 @@ const scriptAllowed = (
 		// Outside IAB mode the browser refuses IAB-gated scripts outright.
 		return iabModel ? undefined : false;
 	}
-	if (!satisfiesCategoryCondition(script.category, permissions)) {
-		return false;
+	const holds = conditionHolds(script.category, possible);
+	if (holds !== true) {
+		return holds;
 	}
 	// A vendor the subject turned off blocks its scripts, except in IAB mode,
 	// where the TC string speaks for vendors instead.
@@ -133,9 +186,9 @@ export const recordScriptPermissions = (
 	scripts: SubjectScriptsWire,
 	facts: ScriptPermissionFacts
 ): RecordedScript[] => {
-	const permissions = categoryPermissions(facts);
+	const possible = possiblePermissions(facts);
 	return scripts.map((script) => {
-		const allowed = scriptAllowed(script, permissions, facts);
+		const allowed = scriptAllowed(script, possible, facts);
 		return allowed === undefined ? script : { ...script, allowed };
 	});
 };
