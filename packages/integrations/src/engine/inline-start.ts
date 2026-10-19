@@ -66,8 +66,60 @@ const runsInline = function runsInline(step: ManifestStep): boolean {
 };
 
 /**
+ * Whether JSON carries `value` unchanged. `cloneStepValue` keeps
+ * `undefined`, a `Date`, a function, a non-finite number, `-0`, an array
+ * hole and a class instance; JSON drops or converts each of them.
+ */
+const survivesJSON = function survivesJSON(value: unknown): boolean {
+	if (
+		value === null ||
+		typeof value === 'string' ||
+		typeof value === 'boolean'
+	) {
+		return true;
+	}
+	if (typeof value === 'number') {
+		return Number.isFinite(value) && !Object.is(value, -0);
+	}
+	if (Array.isArray(value)) {
+		// Spreading turns a hole into `undefined`, which fails.
+		return [...value].every(survivesJSON);
+	}
+	if (typeof value !== 'object') {
+		return false;
+	}
+	const prototype = Object.getPrototypeOf(value);
+	return (
+		(prototype === Object.prototype || prototype === null) &&
+		Object.values(value).every(survivesJSON)
+	);
+};
+
+/** The values a step passes to the page, which the runner gets as JSON. */
+const stepValues = function stepValues(step: ManifestStep): unknown[] {
+	switch (step.type) {
+		case 'setGlobal':
+		case 'pushToQueue':
+		case 'setGlobalPath': {
+			// JSON drops an `undefined` value, and the runner reads the
+			// missing key as `undefined`, as Hightouch's `loadOptions` needs.
+			return step.value === undefined ? [] : [step.value];
+		}
+		case 'callGlobal': {
+			return step.args ?? [];
+		}
+		case 'defineStubFunction': {
+			return Object.values(step.properties ?? {});
+		}
+		default: {
+			return [];
+		}
+	}
+};
+
+/**
  * `steps` as inline code for `Script.serverStart`, or `undefined` when a
- * step has no inline form.
+ * step has no inline form or passes a value JSON can't carry unchanged.
  *
  * @param steps - The steps `onBeforeLoad` would run, in order.
  * @returns The code and the shared runner it calls.
@@ -76,7 +128,11 @@ const runsInline = function runsInline(step: ManifestStep): boolean {
 export const inlineStepsStart = function inlineStepsStart(
 	steps: ManifestStep[]
 ): ScriptServerStart | undefined {
-	if (!steps.every(runsInline)) {
+	if (
+		!steps.every(
+			(step) => runsInline(step) && stepValues(step).every(survivesJSON)
+		)
+	) {
 		return;
 	}
 	const run = steps.filter((step) => step.type !== 'loadScript');

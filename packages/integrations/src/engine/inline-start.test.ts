@@ -194,7 +194,7 @@ describe('inlineStepsStart', () => {
 					vendor: { granted: true, id: script.id },
 				});
 
-				expect(fromInline).toEqual(fromCallback);
+				expect(fromInline).toStrictEqual(fromCallback);
 			}
 		);
 	});
@@ -271,6 +271,62 @@ describe('inlineStepsStart', () => {
 				},
 			])
 		).toBeUndefined();
+	});
+
+	it('has no inline form for a value JSON would change', () => {
+		const date = new Date(0);
+		for (const value of [
+			date,
+			Number.NaN,
+			Number.POSITIVE_INFINITY,
+			-0,
+			() => {},
+			10n,
+			new Map(),
+			[1, undefined],
+			// oxlint-disable-next-line no-sparse-arrays -- The hole is the case.
+			[1, , 3],
+			{ sent: date },
+		]) {
+			expect(
+				inlineStepsStart([{ name: 'x', type: 'setGlobal', value }])
+			).toBeUndefined();
+		}
+		expect(
+			inlineStepsStart([
+				{
+					args: ['config', { id: undefined }],
+					global: 'g',
+					type: 'callGlobal',
+				},
+			])
+		).toBeUndefined();
+		expect(
+			inlineStepsStart([
+				{
+					name: 'f',
+					properties: { loaded: date },
+					queue: { property: 'q' },
+					type: 'defineStubFunction',
+				},
+			])
+		).toBeUndefined();
+	});
+
+	it('starts inline when every value is plain JSON', () => {
+		// The runner reads a dropped `undefined` value as `undefined`.
+		expect(
+			inlineStepsStart([{ name: 'x', type: 'setGlobal', value: undefined }])
+		).toBeDefined();
+		expect(
+			inlineStepsStart([
+				{
+					name: 'x',
+					type: 'setGlobal',
+					value: { list: [1, 'a', true, null], nested: { n: 1.5 } },
+				},
+			])
+		).toBeDefined();
 	});
 
 	it('keeps step values from closing the inline script', () => {

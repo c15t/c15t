@@ -411,9 +411,10 @@ export const hightouch = function hightouch({
 			manifest: hightouchManifest,
 		});
 	}
-	const loadOptions = {
-		apiHost: normalizeApiHost(apiHost),
-	};
+	const normalizedApiHost = normalizeApiHost(apiHost);
+	// No `apiHost` key without a host, so the SDK keeps its default.
+	const loadOptions =
+		normalizedApiHost === undefined ? {} : { apiHost: normalizedApiHost };
 
 	let manifest: VendorManifest = hightouchManifest;
 
