@@ -220,8 +220,9 @@ const observeElement = (
  * is set while it waits for the page's priority images; deleting it
  * cancels the insert. `__c15tHeld` is set when the stored consent changed
  * during that wait: its setup ran, and only a loader that runs the script
- * inserts it. `__c15tConsent` is whether its setup ran with consent, and
- * `__c15tAdopted` that a loader took it over.
+ * inserts it. `__c15tConsent` is whether its setup ran with consent,
+ * `__c15tScript` the id of the script whose setup ran, and `__c15tAdopted`
+ * that a loader took it over.
  */
 type ServerStartedElement = HTMLScriptElement & {
 	__c15tAdopted?: boolean;
@@ -229,6 +230,7 @@ type ServerStartedElement = HTMLScriptElement & {
 	__c15tDone?: ElementCompletion;
 	__c15tHeld?: boolean;
 	__c15tInsert?: () => void;
+	__c15tScript?: string;
 };
 
 type ServerStartedRegistry = Record<string, ServerStartedElement>;
@@ -435,7 +437,8 @@ const adoptServerStarted = function adoptServerStarted(
 /**
  * The element the server started for `script`, for a client that won't run
  * it: adopted as the server left it, so it can be revoked like any loaded
- * script.
+ * script. An element another script with the same `resourceKey` started is
+ * left for that script's loader.
  */
 const adoptToRevoke = function adoptToRevoke(
 	deps: MountDeps,
@@ -443,7 +446,7 @@ const adoptToRevoke = function adoptToRevoke(
 	snapshot: ConsentSnapshot
 ): ServerStartedElement | undefined {
 	const started = serverStartedFor(script);
-	if (!started || started.__c15tAdopted) {
+	if (!started || started.__c15tAdopted || started.__c15tScript !== script.id) {
 		return;
 	}
 	adoptServerStarted(

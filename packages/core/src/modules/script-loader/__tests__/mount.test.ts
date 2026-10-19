@@ -202,10 +202,12 @@ describe('mountScript with a server-started element', () => {
 	const startOnServer = function startOnServer(
 		id: string,
 		src: string,
-		done?: 'load' | 'error'
+		done?: 'load' | 'error',
+		scriptId = id
 	): HTMLScriptElement {
 		const element = document.createElement('script');
 		element.setAttribute('src', src);
+		Object.assign(element, { __c15tScript: scriptId });
 		if (done) {
 			Object.assign(element, { __c15tDone: done });
 		}
@@ -510,6 +512,7 @@ describe('mountScript with a server-started element', () => {
 				}
 			};
 			element.__c15tInsert = insert;
+			Object.assign(element, { __c15tScript: 's' });
 			(window as StartedWindow).__c15tStarted = { s: element };
 
 			unmountScript(
@@ -542,6 +545,36 @@ describe('mountScript with a server-started element', () => {
 				['onBeforeLoad', true],
 				['onConsentChange', false],
 			]);
+		});
+
+		test('leaves an element started for another script with its resource', () => {
+			const { deps } = makeDeps();
+			const snapshot = createConsentKernel().getSnapshot();
+			const shared = { category: 'marketing', resourceKey: 'shared' } as const;
+			const element = startOnServer(
+				'shared',
+				'https://x/s.js',
+				undefined,
+				'runs'
+			);
+
+			unmountScript(
+				deps,
+				{ ...shared, id: 'skipped', src: 'https://x/s.js' },
+				snapshot,
+				false
+			);
+			mountScript(
+				deps,
+				{ ...shared, id: 'runs', src: 'https://x/s.js' },
+				snapshot,
+				true,
+				null
+			);
+
+			expect(element.isConnected).toBe(true);
+			expect(deps.loadedElements.get('runs')).toBe(element);
+			expect(document.head.querySelectorAll('script')).toHaveLength(1);
 		});
 	});
 });
