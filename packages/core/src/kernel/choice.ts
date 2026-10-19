@@ -31,6 +31,7 @@ import type { ExperimentAssignment } from '../libs/experiment';
 import { generateSubjectId } from '../libs/generate-subject-id';
 import { extractConsentNamesFromCondition, has } from '../libs/has';
 import type { HasCondition } from '../libs/has';
+import { withHonoredVendors } from '../libs/save-scripts';
 import type { SaveScript } from '../libs/save-scripts';
 import { presentedSelection, scopeSelection } from '../policy';
 import type { PresentedSelection } from '../policy';
@@ -1121,7 +1122,7 @@ export const createChoiceRecorder = function createChoiceRecorder({
 				payload.addtlConsent = addtlConsent;
 			}
 			if (configuredScripts) {
-				payload.scripts = configuredScripts;
+				payload.scripts = withHonoredVendors(configuredScripts, after);
 			}
 
 			const result = await outbox.send(payload, {

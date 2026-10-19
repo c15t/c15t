@@ -6,11 +6,14 @@
 import { subjectScriptsWireSchema } from '@c15t/schema';
 import { describe, expect, test } from 'vitest';
 
+import { isVendorDenied } from '../../modules/has';
+import type { ResolvedVendor } from '../../types';
 import {
 	isSaveScripts,
 	MAX_SAVE_SCRIPTS,
 	mergeSaveScripts,
 	toSaveScripts,
+	withHonoredVendors,
 } from '../save-scripts';
 import type { Script } from '../script-loader/types';
 
@@ -136,5 +139,52 @@ describe('mergeSaveScripts', () => {
 		expect(mergeSaveScripts([many])).toHaveLength(MAX_SAVE_SCRIPTS);
 		expect(mergeSaveScripts([])).toBeUndefined();
 		expect(mergeSaveScripts([[]])).toBeUndefined();
+	});
+});
+
+describe('withHonoredVendors', () => {
+	const vendor = (id: string, disabled?: boolean): ResolvedVendor => ({
+		category: 'marketing',
+		disabled,
+		id,
+		presentable: true,
+		source: 'config',
+	});
+	const snapshot = {
+		vendorChoice: {
+			confirmedAt: 1_700_000_000_000,
+			denied: ['live', 'locked', 'stale'],
+			version: 1 as const,
+		},
+		vendors: {
+			declared: [vendor('live'), vendor('locked', true), vendor('open')],
+			listVersion: null,
+		},
+	};
+
+	test('keeps a vendor slug only where the gate honors its denial', () => {
+		const scripts = ['live', 'locked', 'open', 'stale'].map((id) => ({
+			category: 'marketing' as const,
+			id,
+			vendor: id,
+		}));
+
+		const sent = withHonoredVendors(scripts, snapshot);
+
+		expect(sent).toEqual([
+			{ category: 'marketing', id: 'live', vendor: 'live' },
+			{ category: 'marketing', id: 'locked' },
+			{ category: 'marketing', id: 'open', vendor: 'open' },
+			{ category: 'marketing', id: 'stale' },
+		]);
+		// A slug the save keeps blocks the script on the backend exactly when
+		// it is denied there, which must match the browser gate.
+		for (const [index, entry] of sent.entries()) {
+			const id = scripts[index]?.vendor ?? '';
+			const backendDenies =
+				entry.vendor !== undefined &&
+				snapshot.vendorChoice.denied.includes(entry.vendor);
+			expect(backendDenies).toBe(isVendorDenied(snapshot, id));
+		}
 	});
 });

@@ -1233,6 +1233,59 @@ describe('script-loader: configured scripts on saves', () => {
 		kernel.dispose();
 	});
 
+	test('leaves off a vendor whose denial the gate ignores', async () => {
+		const { kernel, save } = kernelWithSave();
+		kernel.hydrate({
+			now: Date.now(),
+			vendorChoice: {
+				confirmedAt: Date.now() - 5,
+				denied: ['ads', 'chat'],
+				version: 1,
+			},
+		});
+		kernel.set.vendors({
+			declared: [
+				{
+					category: 'functionality',
+					disabled: true,
+					id: 'chat',
+					name: 'Chat',
+					presentable: true,
+					source: 'config',
+				},
+			],
+		});
+		createScriptLoader({
+			kernel,
+			scripts: [
+				{
+					category: 'marketing',
+					id: 'ads',
+					src: 'https://a/ads.js',
+					vendor: 'ads',
+				},
+				{
+					category: 'functionality',
+					id: 'chat',
+					src: 'https://a/chat.js',
+					vendor: 'chat',
+				},
+			],
+		});
+		await kernel.commands.save({ functionality: true, marketing: true });
+		// The disabled vendor's denial still travels, but the browser loads
+		// its script, so the entry must not name it for the backend to block.
+		expect(save.mock.lastCall?.[0].vendorChoice?.grants).toEqual({
+			ads: false,
+			chat: false,
+		});
+		expect(lastScripts(save)).toEqual([
+			{ category: 'marketing', id: 'ads', vendor: 'ads' },
+			{ category: 'functionality', id: 'chat' },
+		]);
+		kernel.dispose();
+	});
+
 	test('a disposed loader no longer lists its scripts', async () => {
 		const { kernel, save } = kernelWithSave();
 		const loader = createScriptLoader({

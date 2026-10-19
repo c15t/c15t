@@ -197,7 +197,10 @@ When the page registers scripts with the script loader, a save also carries
 load. Each entry holds the fields that decide whether the script may run:
 `id`, `category`, `vendor`, `vendorId`, the IAB purpose and special feature
 lists, and the `alwaysLoad`, `callbackOnly` and `persistAfterConsentRevoked`
-flags. No source URL or inline code is sent. The list leaves out network
+flags. No source URL or inline code is sent. An entry leaves out `vendor`
+when the browser ignores the visitor's denial of that vendor because it is
+declared `disabled` or not declared at all, even though `vendorChoice` still
+carries the denial. The list leaves out network
 blocker rules and iframes, and a save sent before the script loader starts
 has none.
 

@@ -14,6 +14,7 @@
  */
 import { allConsentNames } from '../consent/consent-types';
 import type { AllConsentNames } from '../consent/consent-types';
+import type { ConsentSnapshot } from '../types';
 import type { HasCondition } from './has';
 import type { Script } from './script-loader/types';
 import { isValidVendorId } from './vendors';
@@ -35,7 +36,10 @@ export interface SaveScript {
 	id: string;
 	/** The category condition the script loads under. */
 	category: HasCondition<AllConsentNames>;
-	/** Vendor slug for vendor-level consent outside IAB. */
+	/**
+	 * Vendor slug for vendor-level consent outside IAB. Left off when the
+	 * gate ignores the visitor's denial of it; see {@link withHonoredVendors}.
+	 */
 	vendor?: string;
 	/** IAB TCF vendor ID. */
 	vendorId?: number | string;
@@ -225,4 +229,38 @@ export const mergeSaveScripts = function mergeSaveScripts(
 		}
 	}
 	return merged.length > 0 ? merged : undefined;
+};
+
+/**
+ * The entries with the vendor slug left off where the vendor gate ignores
+ * the visitor's denial: the vendor is not declared, or is declared
+ * `disabled`. The save still sends that denial so other devices keep it,
+ * and a backend reading the slug would block a script the browser loaded.
+ *
+ * @param scripts - Entries to send.
+ * @param snapshot - The snapshot the save records.
+ * @returns The entries as the vendor gate reads them.
+ * @internal
+ */
+export const withHonoredVendors = function withHonoredVendors(
+	scripts: readonly SaveScript[],
+	snapshot: Pick<ConsentSnapshot, 'vendorChoice' | 'vendors'>
+): SaveScript[] {
+	// Same rule as `deniedVendorIds`: a denial counts only for a vendor the
+	// visitor can still see and switch.
+	const toggleable = new Set(
+		(snapshot.vendors?.declared ?? [])
+			.filter((vendor) => vendor.disabled !== true)
+			.map((vendor) => vendor.id)
+	);
+	const ignored = new Set(
+		(snapshot.vendorChoice?.denied ?? []).filter((id) => !toggleable.has(id))
+	);
+	return scripts.map((entry) => {
+		if (entry.vendor === undefined || !ignored.has(entry.vendor)) {
+			return entry;
+		}
+		const { vendor: _ignored, ...rest } = entry;
+		return rest;
+	});
 };
