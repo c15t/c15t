@@ -11,10 +11,11 @@ group: cli
 inth c15t [scaffold | prompt | --codex | --claude | --cursor | --grok | --fx] [options]
 ```
 
-Without an action, `inth c15t` asks in the terminal. Every action needs an
-Inth project, because the project supplies the backend URL. Without
+Without an action, `inth c15t` asks in the terminal. Every setup action needs
+an Inth project, because the project supplies the backend URL. Without
 `--project` or `--name`, it asks you to pick or create one. With `--json` or
-`--non-interactive`, it fails with `interaction_required` instead.
+`--non-interactive`, it fails with `interaction_required` instead. `codemods`
+only rewrites source files and needs no project or sign-in.
 
 ## Actions
 
