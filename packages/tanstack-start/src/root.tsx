@@ -289,13 +289,12 @@ const settledState = function settledState(
 const startsFromHTML = function startsFromHTML(
 	state: ConsentState | Promise<ConsentState> | undefined
 ): boolean {
-	if (state === undefined) {
-		return false;
-	}
-	if (isPending(state)) {
+	if (state !== undefined && isPending(state)) {
 		return true;
 	}
-	return state.initialPolicyResolution !== undefined && state.now !== undefined;
+	return (
+		state?.initialPolicyResolution !== undefined && state.now !== undefined
+	);
 };
 
 /** React 19's `use`, absent from React 18. */
@@ -309,8 +308,8 @@ const { use } = React as {
  * inserts it after first paint, before hydration, and the loader adopts
  * it. In the browser it only hydrates the inline script.
  *
- * It suspends on a streamed state inside its own boundary, so the rest of
- * the page streams without it.
+ * It suspends on a streamed state inside its own boundary, on the server and
+ * in the browser, so the rest of the page streams and hydrates without it.
  */
 const ServerScriptStart = ({
 	options,
@@ -318,6 +317,15 @@ const ServerScriptStart = ({
 	options: ConsentProviderOptions;
 }): ReactNode => {
 	if (!use) {
+		return null;
+	}
+	const { prefetch } = options;
+	const state = isPending(prefetch as ConsentState | Promise<ConsentState>)
+		? use(settledState(prefetch as Promise<ConsentState>))
+		: (prefetch as ConsentState | undefined);
+	// A streamed state that rejects, or resolves to a shared one, renders no
+	// start script, on the server and in the browser alike.
+	if (!startsFromHTML(state)) {
 		return null;
 	}
 	if (typeof document !== 'undefined') {
@@ -330,10 +338,6 @@ const ServerScriptStart = ({
 			/>
 		);
 	}
-	const { prefetch } = options;
-	const state = isPending(prefetch as ConsentState | Promise<ConsentState>)
-		? use(settledState(prefetch as Promise<ConsentState>))
-		: (prefetch as ConsentState | undefined);
 	const module = use(importScriptServerStart());
 	// A failed import still renders the empty script the browser hydrates.
 	const code = module?.serverScriptStart({

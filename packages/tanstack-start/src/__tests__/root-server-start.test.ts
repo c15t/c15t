@@ -99,6 +99,22 @@ test("renders no start script for a state that is no one visitor's", async () =>
 	}
 });
 
+test('renders no start script for a streamed state that starts nothing', async () => {
+	vi.stubEnv('TSS_PRERENDERING', 'true');
+	const prerendered = Promise.resolve(await optOutState());
+	vi.unstubAllEnvs();
+	const rejected = Promise.reject(new Error('backend unreachable'));
+	rejected.catch(() => undefined);
+
+	await render(await optOutState());
+	const pages = await Promise.all([render(prerendered), render(rejected)]);
+
+	for (const html of pages) {
+		expect(html).toContain('<main id="page">Page</main>');
+		expect(html).not.toContain('<script');
+	}
+});
+
 test('renders without a server start when the state promise rejects', async () => {
 	// The provider falls back to the transport for a rejected state; the
 	// server start has to skip quietly, not fail the server render.
