@@ -699,6 +699,19 @@ describe('serverScriptStart', () => {
 			).toBeUndefined();
 		});
 
+		// The client then reads storage back over the seed, so an older
+		// stored denial, which the inline check lets through, wins.
+		test('when the client rereads storage over the seed', () => {
+			expect(
+				serverScriptStart({
+					mode,
+					persistence: { skipHydration: false },
+					prefetch: prefetchFor({ marketing: true }),
+					scripts: [pixel],
+				})
+			).toBeUndefined();
+		});
+
 		test('when an external consent source owns consent', () => {
 			expect(
 				serverScriptStart({

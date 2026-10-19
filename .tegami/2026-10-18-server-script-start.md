@@ -20,6 +20,8 @@ Google tag, Meta Pixel and TikTok Pixel started about 800 ms sooner.
 Nothing starts from the HTML while the policy asks the visitor to choose: the
 script loader starts those scripts after hydration, as before, so the banner
 stays responsive. A state from a shared render, for prerendered or cached
-HTML, starts nothing, since that HTML goes to every visitor. The inline script
+HTML, starts nothing, since that HTML goes to every visitor. Neither does a
+client with `persistence: { skipHydration: false }`, which reads storage back
+over the server's state. The inline script
 takes `options.nonce`. If a Content Security Policy blocks it, the script
 loader starts the scripts after hydration.

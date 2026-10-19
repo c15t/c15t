@@ -54,6 +54,11 @@ const serverRunnableScripts = function serverRunnableScripts(
 	if (
 		scripts.length === 0 ||
 		options.consentSource ||
+		// The client then replaces the server's records with whatever the
+		// browser stores, even an older decision, which the inline check
+		// can't tell apart.
+		(typeof options.persistence === 'object' &&
+			options.persistence.skipHydration === false) ||
 		!prefetch?.initialPolicyResolution ||
 		prefetch.now === undefined
 	) {

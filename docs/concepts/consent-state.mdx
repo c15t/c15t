@@ -347,6 +347,9 @@ When a server render seeded the page from the consent cookie
 localStorage is still applied on top of it when the page mounts, since it can
 only restrict, if it is newer than the seeded decision or from the same
 millisecond as a seeded grant. A stored grant is not.
+`persistence: { skipHydration: false }` reads storage back over the seed
+instead, so an older stored decision replaces it. A server render then starts
+no scripts from the HTML, since it can't tell what that read will return.
 
 The notice dismissal and vendor denials are stored twice as well. A vendor
 list in localStorage at least as new as the cookie's adds its denials but never
