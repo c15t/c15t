@@ -229,10 +229,17 @@ To count the consents that allowed PostHog on Postgres:
 
 ```sql
 select count(*)
-from consent, json_array_elements(consent.scripts) as script
-where script->>'id' = 'posthog'
-  and script->>'allowed' = 'true';
+from consent
+where exists (
+  select 1
+  from json_array_elements(consent.scripts) as script
+  where script->>'id' = 'posthog'
+    and script->>'allowed' = 'true'
+);
 ```
+
+A list can hold the same `id` more than once when the page configured it with
+different gating, so the query checks each consent once.
 
 ### Late saves
 
