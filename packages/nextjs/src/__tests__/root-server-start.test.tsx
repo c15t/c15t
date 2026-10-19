@@ -133,7 +133,11 @@ test('renders the empty script the browser hydrates when the start module fails 
 	}
 });
 
-/** The root as React 18 runs it: React without `use`. */
+/**
+ * The root as React 18 runs it: React without `use`. React 19's renderer
+ * still renders it, retrying on the thrown promise as React 18's does;
+ * React 18.3.1's own renderer is checked outside CI.
+ */
 const importRootWithoutUse = async (): Promise<typeof ConsentRoot> => {
 	vi.resetModules();
 	// oxlint-disable-next-line anti-slop/no-module-mocking -- The repo installs only React 19; React 18 is React without `use`.
