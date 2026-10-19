@@ -61,7 +61,7 @@ Where consent resolves decides what the visitor's first HTML contains.
 
 | Rendering | What the visitor gets |
 | --- | --- |
-| The server resolves consent for each request | The server reads the visitor's cookie and location headers, so the browser starts with the answer. Gated scripts can run right after hydration, and the banner can be part of the HTML. |
+| The server resolves consent for each request | The server reads the visitor's cookie and location headers, so the browser starts with the answer. The banner can be part of the HTML. In Next.js, TanStack Start, Nuxt and SvelteKit, scripts the visitor's consent already allows start before hydration. |
 | The browser resolves consent | The HTML is the same for everyone. After the page loads, the browser requests the policy, then shows the banner or runs gated scripts. |
 
 A static or prerendered page cannot contain one visitor's consent, because the

@@ -245,6 +245,22 @@ Without it, a server-rendered banner shows unstyled until the page hydrates,
 unless `ConsentRoot` sets `styles={false}` and the app imports
 `@c15t/svelte/styles.css`.
 
+When the visitor's consent already allows some `scripts` entries, through a
+stored choice or a policy that asks for none, `c15tHandle` adds an inline script
+at the end of `<body>`. After first paint, it runs those entries' setup and
+inserts their tags, so they start loading before the page hydrates. Entries with
+`alwaysLoad` start this way whatever the visitor chose. The script loader adopts
+those tags instead of inserting its own. Nothing starts from the HTML while the
+policy asks the visitor to choose, not even `alwaysLoad` entries, and a
+prerendered page starts nothing.
+
+The vendor helpers from `@c15t/integrations` start this way, except Amplitude,
+Cloudflare Zaraz, Heap, Klaviyo, Microsoft Clarity, PostHog, Sentry and Vercel
+Speed Insights. Those helpers, and `scripts` entries you write yourself, start
+after hydration.
+A `ConsentProvider` given a `runtime` starts nothing from the HTML: its scripts
+start after hydration.
+
 Type `event.locals.c15t` in `src/app.d.ts`:
 
 <include src="../../shared/examples/sveltekit/app-locals.mdx" />
@@ -252,6 +268,17 @@ Type `event.locals.c15t` in `src/app.d.ts`:
 Options passed to one `loadConsent` call, such as `country`, override the
 handle's values for that call. Without the handle, `loadConsent` resolves
 with `manifest()` and reads the request itself.
+
+## Cache policy, never visitor state
+
+A manifest is public policy configuration, so your server and CDN can cache it.
+A resolved state, a stored record and HTML rendered with them belong to one
+visitor. Keep them out of shared caches: don't send a public `Cache-Control`
+with `setHeaders` on a server-rendered page under `loadConsent`, and don't
+store `loadConsent` results under a shared key. That HTML also starts the
+scripts the visitor's consent allows, so a cached copy would start them for
+the next visitor. A prerendered page holds no visitor state, so it can be
+cached.
 
 ## Prerender some pages
 
