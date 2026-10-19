@@ -12,6 +12,10 @@ import { expect, test } from 'vitest';
 import docsConfig from '../docs/docs.config';
 import umbrellaPackage from '../packages/c15t/package.json';
 import scriptsPackage from '../packages/integrations/package.json';
+import {
+	BUILT_IN_INTEGRATION_CATEGORIES,
+	builtInScriptIntegrations,
+} from '../packages/integrations/src/registry';
 
 const docsRoot = fileURLToPath(new URL('../docs', import.meta.url));
 
@@ -222,6 +226,35 @@ test('integration navigation covers every vendor helper, both embeds and Shopify
 	expect(pages.map((page) => page.urlPath).sort()).toEqual(
 		expectedRoutes.sort()
 	);
+});
+
+test('each registry integration category is the overview group that lists it', () => {
+	const overview = readFileSync(
+		resolve(docsRoot, 'integrations/overview.mdx'),
+		'utf8'
+	);
+	const groupOf = new Map<string, string>();
+	for (const section of overview.split(/^## /mu).slice(1)) {
+		const title = section.slice(0, section.indexOf('\n'));
+		for (const match of section.matchAll(
+			/^\| \[[^\]]+\]\(\/docs\/integrations\/(?<slug>[a-z0-9-]+)\)/gmu
+		)) {
+			if (match.groups?.slug) {
+				groupOf.set(match.groups.slug, title);
+			}
+		}
+	}
+	const labels = new Map(
+		BUILT_IN_INTEGRATION_CATEGORIES.map((category) => [
+			category.key,
+			category.label,
+		])
+	);
+	for (const integration of builtInScriptIntegrations) {
+		expect(groupOf.get(integration.docsSlug), integration.docsSlug).toBe(
+			labels.get(integration.integrationCategory)
+		);
+	}
 });
 
 test('vendor registration tabs survive package Markdown conversion', async () => {
