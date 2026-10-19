@@ -164,3 +164,54 @@ test('starts the scripts from a streamed state on React 18, which has no `use`',
 		vi.resetModules();
 	}
 });
+
+test('finishes concurrent React 18 renders while a failed start module reloads', async () => {
+	// Both renders wait on the first, failed load. The second load waits
+	// for the test; a render that waited on the first must not wait on it.
+	let loads = 0;
+	let release: () => void = () => undefined;
+	const released = new Promise<void>((resolve) => {
+		release = resolve;
+	});
+	// oxlint-disable-next-line anti-slop/no-module-mocking -- The property under test is a failed load of this module; no interface stands in for a dynamic import.
+	vi.doMock('@c15t/core/runtime/script-server-start', async () => {
+		loads += 1;
+		if (loads > 1) {
+			await released;
+		}
+		throw new Error('chunk missing');
+	});
+	try {
+		const Root = await importRootWithoutUse();
+		const state = await optOutState();
+		const renderPage = async () => {
+			const stream = await renderToReadableStream(
+				createElement(
+					Root,
+					{ scripts: [pixel], state },
+					createElement('main', { id: 'page' }, 'Page')
+				)
+			);
+			await stream.allReady;
+			return new Response(stream).text();
+		};
+
+		const pages = await Promise.race([
+			Promise.all([renderPage(), renderPage()]),
+			new Promise<'waiting on the reload'>((resolve) => {
+				setTimeout(() => resolve('waiting on the reload'), 1000);
+			}),
+		]);
+
+		expect(pages).toHaveLength(2);
+		for (const html of pages) {
+			expect(html).toContain('<main id="page">Page</main>');
+			expect(html).not.toContain(JSON.stringify(pixel.src));
+		}
+	} finally {
+		release();
+		vi.doUnmock('@c15t/core/runtime/script-server-start');
+		vi.doUnmock('react');
+		vi.resetModules();
+	}
+});

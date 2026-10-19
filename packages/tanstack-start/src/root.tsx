@@ -256,26 +256,10 @@ const record = function record<Value>(
 	return recorded;
 };
 
-let scriptServerStartModule:
-	| Recorded<ScriptServerStartModule | undefined>
-	| undefined;
-
-/**
- * Loaded on the server only, so no browser chunk requests it. A failed
- * import skips the server start and lets the next render retry.
- */
-const importScriptServerStart = function importScriptServerStart(): Recorded<
+const loadScriptServerStart = function loadScriptServerStart(): Recorded<
 	ScriptServerStartModule | undefined
 > {
-	const loaded = scriptServerStartModule;
-	if (loaded?.status === 'fulfilled' && !loaded.value) {
-		// The failed load still answers the render that waited for it: on
-		// React 18 that render calls again, and a new import would suspend
-		// it again.
-		scriptServerStartModule = undefined;
-		return loaded;
-	}
-	scriptServerStartModule ??= record(
+	return record(
 		(async () => {
 			try {
 				return await import('@c15t/core/runtime/script-server-start');
@@ -284,6 +268,35 @@ const importScriptServerStart = function importScriptServerStart(): Recorded<
 			}
 		})()
 	);
+};
+
+let scriptServerStartModule:
+	| Recorded<ScriptServerStartModule | undefined>
+	| undefined;
+let retriedScriptServerStart:
+	| Recorded<ScriptServerStartModule | undefined>
+	| undefined;
+
+/**
+ * Loaded on the server only, so no browser chunk requests it. A failed
+ * import skips the server start and retries on the side for later renders.
+ */
+const importScriptServerStart = function importScriptServerStart(): Recorded<
+	ScriptServerStartModule | undefined
+> {
+	const loaded = scriptServerStartModule;
+	if (loaded?.status === 'fulfilled' && !loaded.value) {
+		// Every render gets the failed load until the retry settles. On
+		// React 18 a render that waited for the load calls again, and a
+		// pending import there would suspend it again.
+		retriedScriptServerStart ??= loadScriptServerStart();
+		if (retriedScriptServerStart.status !== 'fulfilled') {
+			return loaded;
+		}
+		scriptServerStartModule = retriedScriptServerStart;
+		retriedScriptServerStart = undefined;
+	}
+	scriptServerStartModule ??= loadScriptServerStart();
 	return scriptServerStartModule;
 };
 
