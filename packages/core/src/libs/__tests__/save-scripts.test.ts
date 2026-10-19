@@ -79,6 +79,16 @@ describe('toSaveScripts', () => {
 		]);
 	});
 
+	test('records the condition as it was when the list was read', () => {
+		const category = { and: ['marketing', 'measurement'] };
+		const scripts = [{ category, id: 'pixel' }] as unknown as Script[];
+		const saved = toSaveScripts(scripts);
+		category.and.pop();
+		expect(saved).toEqual([
+			{ category: { and: ['marketing', 'measurement'] }, id: 'pixel' },
+		]);
+	});
+
 	test('produces a list the POST /subjects schema accepts unchanged', () => {
 		const saved = toSaveScripts([
 			{

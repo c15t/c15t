@@ -167,6 +167,8 @@ export const isSaveScripts = (value: unknown): value is SaveScript[] =>
  * still gates it as an IAB script, and the backend would read the rest as
  * a category-only one.
  *
+ * The entries share no objects with `scripts`.
+ *
  * @param scripts - Configured scripts.
  * @returns One entry per valid script, in input order.
  * @internal
@@ -176,7 +178,15 @@ export const toSaveScripts = function toSaveScripts(
 ): SaveScript[] {
 	const entries: SaveScript[] = [];
 	for (const script of scripts) {
-		const entry: SaveScript = { category: script.category, id: script.id };
+		if (!isCondition(script.category)) {
+			continue;
+		}
+		// A copy, so a listener that edits the condition in place after the
+		// save does not change what it records.
+		const entry: SaveScript = {
+			category: structuredClone(script.category),
+			id: script.id,
+		};
 		if (typeof script.vendor === 'string' && isValidVendorId(script.vendor)) {
 			entry.vendor = script.vendor;
 		}
