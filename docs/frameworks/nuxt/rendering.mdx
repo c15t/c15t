@@ -49,6 +49,10 @@ The vendor helpers from `@c15t/integrations` start this way, except Cloudflare
 Zaraz and Sentry. Those two helpers, and `scripts` entries you write yourself,
 start after hydration.
 
+To start every `scripts` entry after hydration instead, set
+`scriptLoader: { serverStart: false }` under `c15t` in `nuxt.config.ts` or
+`app.config.ts`.
+
 The module adds one catch-all route at `${routePrefix}/**`, `/api/c15t/**` by
 default. It answers `GET /api/c15t/init`, the visitor's resolved policy, and
 `GET /api/c15t/manifest`, the deployment's manifest. The server render

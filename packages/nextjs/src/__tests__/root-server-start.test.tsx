@@ -100,6 +100,25 @@ test('renders no inline script without a state', async () => {
 	expect(html).not.toContain('<script');
 });
 
+test('renders no inline script when the app turns the server start off', async () => {
+	await render();
+	const stream = await renderToReadableStream(
+		<ConsentRoot
+			options={{ mode: custom({ init: () => Promise.resolve({}) }) }}
+			scriptLoader={{ serverStart: false }}
+			scripts={[pixel]}
+			state={grantedState()}
+		>
+			<main id="page">Page</main>
+		</ConsentRoot>
+	);
+	await stream.allReady;
+	const html = await new Response(stream).text();
+
+	expect(html).toContain('<main id="page">Page</main>');
+	expect(html).not.toContain('<script');
+});
+
 test('renders the empty script the browser hydrates when the start module fails to load', async () => {
 	// The browser always renders an empty script here; rendering nothing on
 	// the server would fail hydration.

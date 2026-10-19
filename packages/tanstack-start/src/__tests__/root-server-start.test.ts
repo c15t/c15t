@@ -115,6 +115,26 @@ test('renders no start script for a streamed state that starts nothing', async (
 	}
 });
 
+test('renders no start script when the app turns the server start off', async () => {
+	await render(await optOutState());
+	const stream = await renderToReadableStream(
+		createElement(
+			ConsentRoot,
+			{
+				scriptLoader: { serverStart: false },
+				scripts: [pixel],
+				state: await optOutState(),
+			},
+			createElement('main', { id: 'page' }, 'Page')
+		)
+	);
+	await stream.allReady;
+	const html = await new Response(stream).text();
+
+	expect(html).toContain('<main id="page">Page</main>');
+	expect(html).not.toContain('<script');
+});
+
 test('renders without a server start when the state promise rejects', async () => {
 	// The provider falls back to the transport for a rejected state; the
 	// server start has to skip quietly, not fail the server render.

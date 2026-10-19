@@ -702,6 +702,17 @@ describe('serverScriptStart', () => {
 			).toBeUndefined();
 		});
 
+		test('when the app turns the server start off', () => {
+			expect(
+				serverScriptStart({
+					mode,
+					prefetch: prefetchFor({ marketing: true }),
+					scriptLoader: { serverStart: false },
+					scripts: [pixel],
+				})
+			).toBeUndefined();
+		});
+
 		test('without a server-resolved policy', () => {
 			expect(
 				serverScriptStart({ mode, prefetch: { now: NOW }, scripts: [pixel] })

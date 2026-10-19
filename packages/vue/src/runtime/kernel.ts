@@ -166,6 +166,12 @@ export type RuntimeConsentConfig = ConsentConfig & {
 	nonce?: string;
 	storageConfig?: StorageConfig;
 	/**
+	 * `serverStart: false` starts every `scripts` entry after hydration. By
+	 * default a server render starts the entries the visitor's consent
+	 * already allows from its HTML, before the app hydrates.
+	 */
+	scriptLoader?: { serverStart?: boolean };
+	/**
 	 * Block matching network requests until the mapped consent category is
 	 * granted. Same shape as the react/svelte `networkBlocker` option;
 	 * omitted/`false` disables the module.

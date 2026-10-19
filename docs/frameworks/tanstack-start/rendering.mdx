@@ -60,6 +60,10 @@ This works on React 18 and 19. The vendor helpers from `@c15t/integrations`
 start this way, except Cloudflare Zaraz and Sentry. Those two helpers, and
 `scripts` entries you write yourself, start after hydration.
 
+To start every `scripts` entry after hydration instead, pass
+`scriptLoader={{ serverStart: false }}` to `ConsentRoot`. It then renders no
+inline script.
+
 ## Stream the page while consent resolves
 
 With runtime fetching, return the pending server function call instead of

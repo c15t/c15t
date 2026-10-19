@@ -256,6 +256,24 @@ const sharedResources = function sharedResources(
 };
 
 /**
+ * The scripts a server start considers: every element script when one of
+ * them can start from the HTML, and none when the app turns it off.
+ */
+const serverStartCandidates = function serverStartCandidates(
+	options: ServerScriptOptions
+): Script[] {
+	if (options.scriptLoader?.serverStart === false) {
+		return [];
+	}
+	const elementScripts = (options.scripts ?? []).filter(
+		(script) => !script.callbackOnly
+	);
+	return elementScripts.some((script) => script.serverStart && script.src)
+		? elementScripts
+		: [];
+};
+
+/**
  * One inline script that runs the setup of every script the loader would
  * run with the server-resolved `prefetch` and that has a `serverStart`,
  * then inserts its element once the page's priority images have loaded.
@@ -285,14 +303,9 @@ const sharedResources = function sharedResources(
 export const serverScriptStart = function serverScriptStart(
 	options: ServerScriptOptions
 ): string | undefined {
-	const elementScripts = (options.scripts ?? []).filter(
-		(script) => !script.callbackOnly
-	);
 	const { scripts, snapshot } = serverRunnableScripts(
 		options,
-		elementScripts.some((script) => script.serverStart && script.src)
-			? elementScripts
-			: []
+		serverStartCandidates(options)
 	);
 	// A visitor the policy asks to choose sees the banner as the page
 	// hydrates, and a script's first run would hold the main thread while

@@ -88,6 +88,11 @@ per-request part and the page content stays in the static shell.
 The inline script takes `options.nonce`; see
 [Content Security Policy](/docs/frameworks/next/content-security-policy).
 
+To start every `scripts` entry after hydration instead, set
+`scriptLoader: { serverStart: false }` in `c15t.config.ts` or pass
+`scriptLoader={{ serverStart: false }}` to `ConsentRoot`. `ConsentRoot` then
+renders no inline script.
+
 ## Use Cache Components
 
 With `cacheComponents: true`, Next.js prerenders a static shell and fills
