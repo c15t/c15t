@@ -130,7 +130,6 @@ export const recordDecision = Effect.fn('decision.record')(
 				preselectedCategories: json(input.preselectedCategories),
 				proofConfig: json(input.proofConfig),
 				regionCode: input.regionCode ?? null,
-				tenantId: tenantId ?? null,
 				uiMode: input.uiMode ?? null,
 			},
 		});

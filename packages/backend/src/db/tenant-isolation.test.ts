@@ -36,7 +36,7 @@ import { up as optionalJurisdiction } from './migrations/7-optional-decision-jur
 import { up as verifiedExternalId } from './migrations/8-verified-external-id';
 import { up as additionalConsent } from './migrations/9-additional-consent';
 import { layer as tenantLayer } from './tenant';
-import { encodeRow, encoder, toBoolean } from './values';
+import { encodeRow, encodeTenantRow, encoder, toBoolean } from './values';
 
 /**
  * Two tenants whose data collides on every natural key: same external id, same
@@ -160,6 +160,19 @@ for (const engine of ENGINES) {
 
 	describe('tenant isolation: writes', () => {
 		it.effect(
+			'a row cannot name another tenant',
+			() =>
+				Effect.gen(function* gen() {
+					// `TenantRow` rejects a literal `tenantId`, but not one spread in
+					// from a wider record. The scope's tenant is written last for that.
+					const widened: Record<string, unknown> = { tenantId: 'tenant_b' };
+					const row = yield* encodeTenantRow({ id: 'x', ...widened });
+					assert.strictEqual(row.tenantId, 'tenant_a');
+				}).pipe(Effect.provide(engine.asTenant('tenant_a'))),
+			{ timeout: 60_000 }
+		);
+
+		it.effect(
 			'syncing a release does not deactivate another tenant policy',
 			() =>
 				Effect.gen(function* gen() {
@@ -168,7 +181,6 @@ for (const engine of ENGINES) {
 					yield* syncCurrent({
 						effectiveDate: new Date(),
 						hash: 'sha256-new',
-						tenantId: 'tenant_a',
 						type: 'cookie',
 						version: '2.0',
 					});

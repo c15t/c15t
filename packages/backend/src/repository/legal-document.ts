@@ -169,13 +169,12 @@ export const syncCurrent = Effect.fn('legalDocument.syncCurrent')(
 
 				yield* sql`
 				insert into ${sql('consentPolicy')} ${sql.insert(
-					encodeTenantRow(encode, {
+					yield* encodeTenantRow({
 						createdAt: new Date(),
 						effectiveDate: release.effectiveDate,
 						hash: release.hash,
 						id,
 						isActive: true,
-						tenantId: tenantId ?? null,
 						type: release.type,
 						version: release.version,
 					})

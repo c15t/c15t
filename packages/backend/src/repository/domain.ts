@@ -62,7 +62,6 @@ export const findOrCreateDomain = Effect.fn('domain.findOrCreate')(
 				createdAt: now,
 				id,
 				name,
-				tenantId: tenantId ?? null,
 				updatedAt: now,
 			},
 		});

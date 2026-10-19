@@ -55,7 +55,6 @@ const findOrCreatePurpose = Effect.fn('purpose.findOrCreate')(
 				code,
 				createdAt: now,
 				id,
-				tenantId: tenantId ?? null,
 				updatedAt: now,
 			},
 		});

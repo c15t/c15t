@@ -311,7 +311,6 @@ suite('insert-once only suppresses the duplicate', () => {
 							externalId: null,
 							id: 'x'.repeat(300),
 							identityProvider: 'anonymous',
-							tenantId: null,
 							updatedAt: new Date(1_800_000_000_000),
 						},
 					})
@@ -340,7 +339,6 @@ suite('insert-once only suppresses the duplicate', () => {
 					externalId: null,
 					id: 'sub_dup',
 					identityProvider: 'anonymous',
-					tenantId: null,
 					updatedAt: new Date(1_800_000_000_000),
 				};
 

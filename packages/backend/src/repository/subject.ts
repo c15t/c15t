@@ -480,7 +480,6 @@ export const linkExternalId = Effect.fn('repository.linkExternalId')(
 		const sql = yield* SqlClient.SqlClient;
 		const encode = yield* encoder;
 		const scope = yield* tenantScope();
-		const tenantId = yield* currentTenantId;
 
 		const found = yield* sql<{
 			externalId: string | null;
@@ -580,7 +579,7 @@ export const linkExternalId = Effect.fn('repository.linkExternalId')(
 				// request.
 				yield* sql`
 					insert into ${sql('auditLog')} ${sql.insert(
-						encodeTenantRow(encode, {
+						yield* encodeTenantRow({
 							actionType: 'identify_user',
 							changes: JSON.stringify({
 								externalId: { from: before.externalId, to: input.externalId },
@@ -604,7 +603,6 @@ export const linkExternalId = Effect.fn('repository.linkExternalId')(
 								verifiedBy: input.verifiedBy,
 							}),
 							subjectId: input.subjectId,
-							tenantId: tenantId ?? null,
 							userAgent: input.userAgent,
 						})
 					)}
@@ -639,9 +637,9 @@ export const findOrCreate = Effect.fn('repository.findOrCreate')(
 		identityProvider?: string | null;
 		/** Whether the caller proved `externalId`. See {@link linkExternalId}. */
 		externalIdVerified?: boolean;
-		tenantId?: string | null;
 	}) {
 		const sql = yield* SqlClient.SqlClient;
+		const tenantId = yield* currentTenantId;
 		const now = new Date();
 
 		const created = yield* insertOnce({
@@ -654,7 +652,6 @@ export const findOrCreate = Effect.fn('repository.findOrCreate')(
 				identityProvider: input.externalId
 					? (input.identityProvider ?? 'external')
 					: 'anonymous',
-				tenantId: input.tenantId ?? null,
 				updatedAt: now,
 				verifiedExternalId:
 					input.externalId && input.externalIdVerified
@@ -681,7 +678,7 @@ export const findOrCreate = Effect.fn('repository.findOrCreate')(
 			where ${sql('id')} = ${input.subjectId}
 		`;
 		const ownerTenant = owner[0]?.tenantId ?? null;
-		const mine = input.tenantId ?? null;
+		const mine = tenantId ?? null;
 
 		if (owner.length > 0 && ownerTenant !== mine) {
 			return yield* new SubjectTenantConflictError({

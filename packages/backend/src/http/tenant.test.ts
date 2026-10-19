@@ -25,6 +25,7 @@
 import type { PolicyRule } from '@c15t/schema';
 import { Effect, ManagedRuntime } from 'effect';
 import { SqlClient } from 'effect/sql';
+import { SignJWT } from 'jose';
 import { afterEach, assert, beforeEach, describe, it } from 'vitest';
 
 import { ENGINES, resetDatabase } from '../__tests__/engines';
@@ -44,6 +45,7 @@ import { createApp } from './app';
 
 const API_KEY = 'sk_test_key';
 const SIGNING_KEY = 'test-signing-key-at-least-32-chars-long';
+const IDENTITY_KEY = 'identity-signing-key-for-backend-tests';
 const GIVEN_AT = new Date(1_800_000_000_000);
 /** A moment that has already happened; later-than-server times are refused. */
 const ACTED_AT = new Date(1_700_000_000_000);
@@ -65,6 +67,17 @@ const RULES: PolicyRule[] = [
 		prompt: 'none',
 	},
 ];
+
+/** An identity token as `@c15t/node-sdk`'s `createIdentityToken` signs it. */
+const identityTokenFor = (externalId: string) =>
+	new SignJWT({})
+		.setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
+		.setIssuer('c15t')
+		.setAudience('c15t-identity')
+		.setSubject(externalId)
+		.setIssuedAt()
+		.setExpirationTime(Math.floor(Date.now() / 1000) + 600)
+		.sign(new TextEncoder().encode(IDENTITY_KEY));
 
 const submission = {
 	domain: 'example.com',
@@ -378,13 +391,102 @@ for (const engine of ENGINES) {
 	describe(`every write under a tenant (${engine.name})`, () => {
 		let harness: HttpHarness;
 
+		const appOptions = {
+			apiKeys: [API_KEY],
+			identityToken: { signingKey: IDENTITY_KEY },
+			manifest: { appName: 'Tenanted', policyRules: RULES },
+			policySnapshot: { signingKey: SIGNING_KEY },
+		};
+
+		/** Every write route, with the branches that write differently. */
+		const writeAll = async (
+			app: ReturnType<typeof createApp>,
+			subjectId: string
+		) => {
+			const auth = { Authorization: `Bearer ${API_KEY}` };
+			const expect = (
+				step: string,
+				result: { body: unknown; status: number },
+				status = 200
+			) =>
+				assert.strictEqual(
+					result.status,
+					status,
+					`${subjectId} ${step}: ${JSON.stringify(result.body)}`
+				);
+
+			const init = await harness.json(
+				'GET',
+				'/init',
+				undefined,
+				{ 'x-c15t-country': 'DE' },
+				app
+			);
+			const save = {
+				...submission,
+				externalSubjectId: undefined,
+				policySnapshotToken: init.body.policySnapshotToken,
+				preferences: { marketing: true, necessary: true },
+				subjectId,
+			};
+			const post = (body: unknown) =>
+				harness.json('POST', '/subjects', body, auth, app);
+			expect('save', await post(save));
+			expect('replay', await post(save));
+			expect(
+				'conflicting resubmission',
+				await post({ ...save, preferences: { necessary: true } }),
+				409
+			);
+
+			// Unverified, then by identity token, then by API key: each takes a
+			// different path through `linkExternalId`. The external ids are the
+			// same for every tenant, so an unscoped conflict check refuses one.
+			const link = (body: unknown, headers = {}) =>
+				harness.json('PATCH', `/subjects/${subjectId}`, body, headers, app);
+			expect('unverified link', await link({ externalId: 'ext_unverified' }));
+			expect(
+				'token link',
+				await link({
+					externalId: 'ext_token',
+					identityToken: await identityTokenFor('ext_token'),
+				})
+			);
+			expect('api key link', await link({ externalId: 'ext_key' }, auth));
+
+			// Publish, supersede, then bring the first back: the last two update
+			// rows by type, which is where another tenant's policy would change.
+			const publish = (version: string, hash: string) =>
+				harness.json(
+					'PUT',
+					'/legal-documents/terms/current',
+					{ effectiveDate: GIVEN_AT.toISOString(), hash, version },
+					auth,
+					app
+				);
+			expect('publish', await publish('1.0', 'sha256-terms-1'));
+			expect('supersede', await publish('2.0', 'sha256-terms-2'));
+			expect('reactivate', await publish('1.0', 'sha256-terms-1'));
+			expect('resync', await publish('1.0', 'sha256-terms-1'));
+		};
+
+		const allRows = () =>
+			harness.runtime.runPromise(
+				Effect.forEach(TABLES, (table) =>
+					Effect.gen(function* tableRows() {
+						const sql = yield* SqlClient.SqlClient;
+						const rows = yield* sql<Record<string, unknown>>`
+							select * from ${sql(table.name)} order by ${sql('id')}
+						`;
+						return [table.name, rows] as const;
+					})
+				)
+			);
+
 		beforeEach(async () => {
-			// Nothing seeded: every row in the database afterwards was written by
-			// a route, so any row without the tenant is a write that dropped it.
+			// Nothing seeded: every row in the database was written by a route.
 			harness = await createHttpHarness(engine, {
-				apiKeys: [API_KEY],
-				manifest: { appName: 'Tenanted', policyRules: RULES },
-				policySnapshot: { signingKey: SIGNING_KEY },
+				...appOptions,
 				tenantId: 'tenant_a',
 			});
 		});
@@ -393,69 +495,44 @@ for (const engine of ENGINES) {
 			await harness.dispose();
 		});
 
-		it('leaves no table holding a row without the tenant', async () => {
+		it('writes only its own tenant rows', async () => {
 			// The column defaults to NULL, so a write that forgets the tenant
-			// succeeds and only shows up here. `identify_user` audit entries did
-			// exactly that while every other write carried it.
-			const auth = { Authorization: `Bearer ${API_KEY}` };
-			const init = await harness.json('GET', '/init', undefined, {
-				'x-c15t-country': 'DE',
-			});
-			const saved = await harness.json(
-				'POST',
-				'/subjects',
-				{
-					...submission,
-					externalSubjectId: undefined,
-					policySnapshotToken: init.body.policySnapshotToken,
-					preferences: { marketing: true, necessary: true },
-				},
-				auth
+			// succeeds and only shows up as a row under the wrong one.
+			// `identify_user` audit entries did exactly that while every other
+			// write carried it. The neighbours write first, so an unscoped update
+			// or lookup has someone else's row to land on.
+			await writeAll(harness.appWith(appOptions), 'sub_untenanted');
+			await writeAll(
+				harness.appWith({ ...appOptions, tenantId: 'tenant_b' }),
+				'sub_tenantB'
 			);
-			assert.strictEqual(saved.status, 200, JSON.stringify(saved.body));
+			const before = await allRows();
 
-			const linked = await harness.json(
-				'PATCH',
-				`/subjects/${submission.subjectId}`,
-				{ externalId: 'ext_linked' },
-				auth
-			);
-			assert.strictEqual(linked.status, 200, JSON.stringify(linked.body));
+			await writeAll(harness.app, 'sub_tenantA');
+			const after = await allRows();
 
-			const published = await harness.json(
-				'PUT',
-				'/legal-documents/terms/current',
-				{
-					effectiveDate: GIVEN_AT.toISOString(),
-					hash: 'sha256-terms',
-					version: '2.0',
-				},
-				auth
-			);
-			assert.strictEqual(published.status, 200, JSON.stringify(published.body));
-
-			const tenants = await harness.runtime.runPromise(
-				Effect.forEach(TABLES, (table) =>
-					Effect.gen(function* tableTenants() {
-						const sql = yield* SqlClient.SqlClient;
-						const rows = yield* sql<{ tenantId: string | null }>`
-							select ${sql('tenantId')} from ${sql(table.name)}
-						`;
-						return [table.name, rows.map((row) => row.tenantId)] as const;
-					})
-				)
-			);
-
-			for (const [table, values] of tenants) {
+			for (const [index, [table, rows]] of after.entries()) {
+				const mine = rows.filter((row) => row.tenantId === 'tenant_a');
 				// An empty table proves nothing, so a new table fails here until
 				// the writes above reach it.
-				assert.isNotEmpty(values, `no write above reaches ${table}`);
+				assert.isNotEmpty(mine, `no write above reaches ${table}`);
 				assert.deepStrictEqual(
-					values.filter((value) => value !== 'tenant_a'),
-					[],
-					`${table} holds a row without the configured tenant`
+					rows.filter((row) => row.tenantId !== 'tenant_a'),
+					before[index]?.[1],
+					`${table}: a tenant_a write added or changed another tenant's row`
 				);
 			}
+
+			// The PATCH's own entries, which the save's would otherwise hide.
+			const audit = after
+				.find(([table]) => table === 'auditLog')?.[1]
+				.filter((row) => row.tenantId === 'tenant_a')
+				.map((row) => row.actionType);
+			assert.includeMembers(audit ?? [], ['consent_given', 'identify_user']);
+			assert.lengthOf(
+				audit?.filter((action) => action === 'identify_user') ?? [],
+				3
+			);
 		});
 	});
 }

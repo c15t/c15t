@@ -19,7 +19,7 @@ import { up as attribution } from '../db/migrations/6-experiment-attribution';
 import { up as optionalJurisdiction } from '../db/migrations/7-optional-decision-jurisdiction';
 import { up as verifiedExternalId } from '../db/migrations/8-verified-external-id';
 import { up as additionalConsent } from '../db/migrations/9-additional-consent';
-import { singleTenant } from '../db/tenant';
+import { singleTenant, layer as tenantLayer } from '../db/tenant';
 import {
 	assertSameAdditionalConsent,
 	assertSamePurposes,
@@ -172,8 +172,10 @@ describe('consent.record', () => {
 		() =>
 			Effect.gen(function* gen() {
 				yield* setup;
-				yield* record({ ...submission, tenantId: 'tenant_a' });
-				const other = yield* record({ ...submission, tenantId: 'tenant_b' });
+				yield* record(submission).pipe(Effect.provide(tenantLayer('tenant_a')));
+				const other = yield* record(submission).pipe(
+					Effect.provide(tenantLayer('tenant_b'))
+				);
 
 				// Two tenants recording structurally identical consent are two
 				// separate legal records, not a duplicate.
