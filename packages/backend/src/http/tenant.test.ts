@@ -22,11 +22,14 @@
  * takes a test at this boundary, so that is what this is.
  */
 
+import type { PolicyRule } from '@c15t/schema';
 import { Effect, ManagedRuntime } from 'effect';
 import { SqlClient } from 'effect/sql';
 import { afterEach, assert, beforeEach, describe, it } from 'vitest';
 
 import { ENGINES, resetDatabase } from '../__tests__/engines';
+import { createHttpHarness } from '../__tests__/http-harness';
+import type { HttpHarness } from '../__tests__/http-harness';
 import { up as baseline } from '../db/migrations/1-baseline';
 import { up as indexes } from '../db/migrations/2-hot-path-indexes';
 import { up as receipts } from '../db/migrations/3-consent-receipts-and-privacy-directives';
@@ -35,13 +38,33 @@ import { up as attribution } from '../db/migrations/6-experiment-attribution';
 import { up as optionalJurisdiction } from '../db/migrations/7-optional-decision-jurisdiction';
 import { up as verifiedExternalId } from '../db/migrations/8-verified-external-id';
 import { up as additionalConsent } from '../db/migrations/9-additional-consent';
+import { TABLES } from '../db/schema';
 import { encodeRow, encoder } from '../db/values';
 import { createApp } from './app';
 
 const API_KEY = 'sk_test_key';
+const SIGNING_KEY = 'test-signing-key-at-least-32-chars-long';
 const GIVEN_AT = new Date(1_800_000_000_000);
 /** A moment that has already happened; later-than-server times are refused. */
 const ACTED_AT = new Date(1_700_000_000_000);
+
+/** A matched rule, so the save records a runtime policy decision. */
+const RULES: PolicyRule[] = [
+	{
+		categories: ['marketing'],
+		id: 'eu_opt_in',
+		match: { countries: ['DE'] },
+		model: 'opt-in',
+		prompt: 'choice',
+		scopeMode: 'strict',
+	},
+	{
+		id: 'world_opt_out',
+		match: { isDefault: true },
+		model: 'opt-out',
+		prompt: 'none',
+	},
+];
 
 const submission = {
 	domain: 'example.com',
@@ -349,6 +372,90 @@ for (const engine of ENGINES) {
 				1,
 				'leaked another tenant consent through the join'
 			);
+		});
+	});
+
+	describe(`every write under a tenant (${engine.name})`, () => {
+		let harness: HttpHarness;
+
+		beforeEach(async () => {
+			// Nothing seeded: every row in the database afterwards was written by
+			// a route, so any row without the tenant is a write that dropped it.
+			harness = await createHttpHarness(engine, {
+				apiKeys: [API_KEY],
+				manifest: { appName: 'Tenanted', policyRules: RULES },
+				policySnapshot: { signingKey: SIGNING_KEY },
+				tenantId: 'tenant_a',
+			});
+		});
+
+		afterEach(async () => {
+			await harness.dispose();
+		});
+
+		it('leaves no table holding a row without the tenant', async () => {
+			// The column defaults to NULL, so a write that forgets the tenant
+			// succeeds and only shows up here. `identify_user` audit entries did
+			// exactly that while every other write carried it.
+			const auth = { Authorization: `Bearer ${API_KEY}` };
+			const init = await harness.json('GET', '/init', undefined, {
+				'x-c15t-country': 'DE',
+			});
+			const saved = await harness.json(
+				'POST',
+				'/subjects',
+				{
+					...submission,
+					externalSubjectId: undefined,
+					policySnapshotToken: init.body.policySnapshotToken,
+					preferences: { marketing: true, necessary: true },
+				},
+				auth
+			);
+			assert.strictEqual(saved.status, 200, JSON.stringify(saved.body));
+
+			const linked = await harness.json(
+				'PATCH',
+				`/subjects/${submission.subjectId}`,
+				{ externalId: 'ext_linked' },
+				auth
+			);
+			assert.strictEqual(linked.status, 200, JSON.stringify(linked.body));
+
+			const published = await harness.json(
+				'PUT',
+				'/legal-documents/terms/current',
+				{
+					effectiveDate: GIVEN_AT.toISOString(),
+					hash: 'sha256-terms',
+					version: '2.0',
+				},
+				auth
+			);
+			assert.strictEqual(published.status, 200, JSON.stringify(published.body));
+
+			const tenants = await harness.runtime.runPromise(
+				Effect.forEach(TABLES, (table) =>
+					Effect.gen(function* tableTenants() {
+						const sql = yield* SqlClient.SqlClient;
+						const rows = yield* sql<{ tenantId: string | null }>`
+							select ${sql('tenantId')} from ${sql(table.name)}
+						`;
+						return [table.name, rows.map((row) => row.tenantId)] as const;
+					})
+				)
+			);
+
+			for (const [table, values] of tenants) {
+				// An empty table proves nothing, so a new table fails here until
+				// the writes above reach it.
+				assert.isNotEmpty(values, `no write above reaches ${table}`);
+				assert.deepStrictEqual(
+					values.filter((value) => value !== 'tenant_a'),
+					[],
+					`${table} holds a row without the configured tenant`
+				);
+			}
 		});
 	});
 }

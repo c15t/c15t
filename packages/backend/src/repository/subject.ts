@@ -40,7 +40,7 @@ import type { SqlError } from 'effect/sql';
 
 import { insertOnce } from '../db/insert-once';
 import { currentTenantId, tenantScope } from '../db/tenant';
-import { encodeRow, encoder, toDate, toDateOrNull } from '../db/values';
+import { encodeTenantRow, encoder, toDate, toDateOrNull } from '../db/values';
 import { purposeCodesById } from './consent-purpose';
 import {
 	decodePreferences,
@@ -580,7 +580,7 @@ export const linkExternalId = Effect.fn('repository.linkExternalId')(
 				// request.
 				yield* sql`
 					insert into ${sql('auditLog')} ${sql.insert(
-						encodeRow(encode, {
+						encodeTenantRow(encode, {
 							actionType: 'identify_user',
 							changes: JSON.stringify({
 								externalId: { from: before.externalId, to: input.externalId },

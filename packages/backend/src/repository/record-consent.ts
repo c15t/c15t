@@ -28,7 +28,7 @@ import type { SqlError } from 'effect/sql';
 
 import { currentTenantId } from '../db/tenant';
 import type { Tenant } from '../db/tenant';
-import { encodeRow, encoder } from '../db/values';
+import { encodeTenantRow, encoder } from '../db/values';
 import { record } from './consent';
 import type { ConsentPurposeConflictError, ConsentSubmission } from './consent';
 import { recordDecision } from './runtime-policy-decision';
@@ -154,7 +154,7 @@ export const submit = Effect.fn('consent.submit')(function* submit(
 		// twice, which is precisely the claim the trail exists to get right.
 		yield* sql`
 			insert into ${sql('auditLog')} ${sql.insert(
-				encodeRow(yield* encoder, {
+				encodeTenantRow(yield* encoder, {
 					actionType: 'consent_given',
 					changes: JSON.stringify({
 						choice: request.choice ?? null,

@@ -31,6 +31,8 @@
 import { Effect } from 'effect';
 import { SqlClient } from 'effect/sql';
 
+import type { TenantRow } from './tenant';
+
 /** Encodes one value for the connected engine. */
 export type Encoder = (value: unknown) => unknown;
 
@@ -75,6 +77,16 @@ export const encodeRow = (
 	}
 	return encoded;
 };
+
+/**
+ * As `encodeRow`, for a tenant-scoped table: the row must name its tenant.
+ *
+ * `encodeRow` stays untyped for the migration ledger and test fixtures.
+ */
+export const encodeTenantRow = (
+	encode: Encoder,
+	values: TenantRow
+): Record<string, unknown> => encodeRow(encode, values);
 
 /**
  * A timestamp column, whichever way the engine returned it.

@@ -38,6 +38,7 @@ import type { SqlError } from 'effect/sql';
 import * as v from 'valibot';
 
 import { insertOnce } from '../db/insert-once';
+import type { TenantRow } from '../db/tenant';
 import { encoder } from '../db/values';
 import { isLegacyJsonEnvelope, unwrapLegacyJson } from './subject-choice';
 
@@ -418,10 +419,7 @@ export const assertSameSubmission = Effect.fn('consent.assertSameSubmission')(
 );
 
 /** The column values one submission writes, absent fields as SQL NULL. */
-const rowValues = (
-	id: string,
-	submission: ConsentSubmission
-): Record<string, unknown> => ({
+const rowValues = (id: string, submission: ConsentSubmission): TenantRow => ({
 	addtlConsent: submission.addtlConsent ?? null,
 	choice:
 		submission.choice === undefined || submission.choice === null

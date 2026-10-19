@@ -22,6 +22,10 @@
  * The remaining hole is a query that simply never asks for `Tenant`. That is
  * what `tenant-isolation.test.ts` covers: it seeds two tenants and asserts
  * every read and write observes only its own.
+ *
+ * Inserts are typed instead: `TenantRow` makes `tenantId` a required key on
+ * `insertOnce` and `encodeTenantRow`, and `http/tenant.test.ts` drives every
+ * write route under a tenant and checks no table holds a row without it.
  */
 
 import { Context, Effect, Layer } from 'effect';
@@ -86,3 +90,19 @@ export const tenantScope = Effect.fn('tenant.scope')(function* tenantScope(
 
 /** The tenant id, for writes that store it rather than filter on it. */
 export const currentTenantId = Effect.map(Tenant, (scope) => scope.tenantId);
+
+/**
+ * Column values for a row in a tenant-scoped table.
+ *
+ * `tenantId` is required, so an insert that leaves it out does not typecheck.
+ * Reads get this from the `Tenant` requirement; writes have no such hook,
+ * because the column simply defaults to NULL. That is how `identify_user`
+ * audit entries were written under NULL on a tenanted instance while every
+ * other write carried the tenant.
+ *
+ * Nullable rather than optional: a single-tenant deployment stores NULL, and
+ * the row has to say so.
+ */
+export type TenantRow = Readonly<Record<string, unknown>> & {
+	readonly tenantId: string | null;
+};

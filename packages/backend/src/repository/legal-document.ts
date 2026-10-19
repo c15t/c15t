@@ -18,7 +18,7 @@ import type { SqlError } from 'effect/sql';
 
 import { currentTenantId, tenantScope } from '../db/tenant';
 import type { Tenant } from '../db/tenant';
-import { encodeRow, encoder, toBoolean, toDate } from '../db/values';
+import { encodeTenantRow, encoder, toBoolean, toDate } from '../db/values';
 
 export interface LegalDocumentRelease {
 	readonly type: string;
@@ -169,7 +169,7 @@ export const syncCurrent = Effect.fn('legalDocument.syncCurrent')(
 
 				yield* sql`
 				insert into ${sql('consentPolicy')} ${sql.insert(
-					encodeRow(encode, {
+					encodeTenantRow(encode, {
 						createdAt: new Date(),
 						effectiveDate: release.effectiveDate,
 						hash: release.hash,
