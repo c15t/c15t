@@ -168,13 +168,13 @@ export const ERROR_CATALOG = {
 	INTH_UNAVAILABLE: {
 		code: 'INTH_UNAVAILABLE',
 		docs: `${URLS.DOCS}/cli/overview`,
-		hint: 'Follow the details above to restore the Inth executable, install the Inth CLI and run `inth c15t` instead, or pass --backend-url to `c15t setup` to skip hosted account commands',
+		hint: 'Follow the details above to restore the Inth executable, install the Inth CLI and run `inth c15t` instead, or pass --backend-url to `c15t setup hosted` to skip hosted account commands',
 		message: 'The Inth executable for hosted account commands is unavailable',
 	},
 	INTH_UNSUPPORTED_PLATFORM: {
 		code: 'INTH_UNSUPPORTED_PLATFORM',
 		docs: `${URLS.DOCS}/cli/overview`,
-		hint: 'Login, status and projects are unavailable here, and INTH_TOKEN cannot help without the executable. Pass --backend-url to `c15t setup`, or use `c15t setup offline`',
+		hint: 'Login, status and projects are unavailable here, and INTH_TOKEN cannot help without the executable. Pass --backend-url to `c15t setup hosted`, or use `c15t setup offline`',
 		message: 'Hosted account commands are not supported on this platform',
 	},
 	LAYOUT_NOT_FOUND: {
