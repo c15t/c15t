@@ -12,6 +12,7 @@
 
 import type { AllConsentNames } from '../../consent/consent-types';
 import type { extractConsentNamesFromCondition } from '../../libs/has';
+import type { toSaveScripts } from '../../libs/save-scripts';
 import type {
 	Script,
 	ScriptCallbackInfo,
@@ -62,6 +63,8 @@ export interface ScriptLoaderTools {
 	has: typeof has;
 	/** `isValidVendorId`. */
 	isVendorId: typeof isValidVendorId;
+	/** `toSaveScripts`. */
+	saveScripts: typeof toSaveScripts;
 }
 
 /**

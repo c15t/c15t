@@ -39,7 +39,9 @@ const ledger = Effect.gen(function* ledger() {
 	return yield* sql<{ id: number | string }>`
 		select * from ${sql(LEDGER_TABLE)}
 	`.pipe(
-		Effect.map((rows) => rows.map((row) => Number(row.id)).sort()),
+		Effect.map((rows) =>
+			rows.map((row) => Number(row.id)).sort((a, b) => a - b)
+		),
 		Effect.orElseSucceed(() => [] as number[])
 	);
 });
@@ -137,8 +139,12 @@ for (const engine of ENGINES) {
 						'7-optional-decision-jurisdiction',
 						'8-verified-external-id',
 						'9-additional-consent',
+						'10-consent-scripts',
 					]);
-					assert.deepStrictEqual(yield* ledger, [1, 2, 3, 4, 5, 6, 7, 8, 9]);
+					assert.deepStrictEqual(
+						yield* ledger,
+						[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+					);
 				}).pipe(Effect.provide(engine.layer)),
 			{ timeout: 120_000 }
 		);
@@ -203,6 +209,7 @@ for (const engine of ENGINES) {
 						'7-optional-decision-jurisdiction',
 						'8-verified-external-id',
 						'9-additional-consent',
+						'10-consent-scripts',
 					]);
 
 					// The assertion that makes the flag mean something: no tables, no

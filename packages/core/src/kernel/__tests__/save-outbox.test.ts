@@ -466,6 +466,11 @@ describe('save outbox: queue and replay', () => {
 			}),
 			entry({ ...validPayload, subjectId: 'sub_tc', tcString: 5 }),
 			entry({ ...validPayload, addtlConsent: 5, subjectId: 'sub_ac' }),
+			entry({
+				...validPayload,
+				scripts: [{ category: 'advertising', id: 'ads' }],
+				subjectId: 'sub_scripts',
+			}),
 			entry({ ...validPayload, subjectId: 42 }),
 			entry({ ...validPayload, subjectId: 'sub_queued' }, { queuedAt: -1 }),
 			entry({ ...validPayload, subjectId: 'sub_attempts' }, { attempts: 1.5 }),

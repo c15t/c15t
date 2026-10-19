@@ -52,3 +52,21 @@ describe('save body: Additional Consent', () => {
 		expect(body).not.toHaveProperty('addtlConsent');
 	});
 });
+
+describe('save body: configured scripts', () => {
+	test('sends the scripts the payload carries', () => {
+		const scripts = [
+			{ category: 'measurement' as const, id: 'ga', vendorId: 755 },
+		];
+		const body = buildSubjectPostBody(
+			{ ...payload, scripts },
+			{ domain: 'example.com' }
+		);
+		expect(body.scripts).toEqual(scripts);
+	});
+
+	test('omits the key when the payload has no scripts', () => {
+		const body = buildSubjectPostBody(payload, { domain: 'example.com' });
+		expect(body).not.toHaveProperty('scripts');
+	});
+});

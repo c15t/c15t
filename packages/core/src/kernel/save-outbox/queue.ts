@@ -27,6 +27,7 @@ import type {
 } from '../../consent-record/validation';
 import { isExperimentAssignment } from '../../libs/experiment-record';
 import type { generateSubjectId } from '../../libs/generate-subject-id';
+import type { isSaveScripts } from '../../libs/save-scripts';
 import type {
 	isConsentSaveRejection,
 	isSubjectConflict,
@@ -55,6 +56,7 @@ export interface QueueTools {
 	generateSubjectId: typeof generateSubjectId;
 	isConsentSaveRejection: typeof isConsentSaveRejection;
 	isPlainRecord: typeof isPlainRecord;
+	isSaveScripts: typeof isSaveScripts;
 	isSubjectConflict: typeof isSubjectConflict;
 	optionalCategories: typeof OPTIONAL_CONSENT_CATEGORIES;
 	supersededBy: typeof supersededBy;
@@ -87,6 +89,7 @@ const createStoredLists = function createStoredLists(
 ) {
 	const {
 		isPlainRecord,
+		isSaveScripts,
 		optionalCategories,
 		supersededBy,
 		validateExplicitChoice,
@@ -252,7 +255,8 @@ const createStoredLists = function createStoredLists(
 				typeof value.tcString === 'string') &&
 			(value.addtlConsent === undefined ||
 				typeof value.addtlConsent === 'string') &&
-			isVendorChoicePayload(value.vendorChoice)
+			isVendorChoicePayload(value.vendorChoice) &&
+			(value.scripts === undefined || isSaveScripts(value.scripts))
 		);
 	};
 

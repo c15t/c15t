@@ -105,7 +105,9 @@ When a visitor clicks Accept, Reject or Save, c15t:
    Scripts, embeds and network rules follow the new permissions immediately.
 2. Writes the choice to the cookie and localStorage.
 3. Sends the choice to the consent backend. If the request fails, the choice
-   stays saved in the browser and the request is retried later.
+   stays saved in the browser and the request is retried later. The request
+   also lists the scripts the page configured, so the backend can record
+   which ones the choice allowed.
 4. Reloads the page if the visitor turned off something they had allowed.
    Code that already ran cannot be unloaded, so the reload starts a page with
    only permitted code. Set `reloadOnConsentRevoked: false` to handle revocation

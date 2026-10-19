@@ -1,3 +1,4 @@
+import type { SaveScript } from '../libs/save-scripts';
 /**
  * Kernel verbs that only core's own modules call: the runtime, persistence
  * and the records clear. They exist on every kernel `createConsentKernel()`
@@ -54,6 +55,13 @@ export interface InternalKernel extends ConsentKernel {
 	 * first save after page load is stored before it is sent.
 	 */
 	holdSaves: (until: Promise<unknown>) => void;
+	/**
+	 * Replace the scripts `source` has configured, as later saves carry them
+	 * in `SavePayload.scripts`. An empty list withdraws the source. The
+	 * script loader declares its scripts when it is created or updated and
+	 * withdraws them when it is disposed.
+	 */
+	declareSaveScripts: (source: symbol, scripts: readonly SaveScript[]) => void;
 	readonly events: ConsentKernel['events'] & {
 		/** Announce an event the kernel did not produce itself. */
 		emit: (event: KernelEvent) => void;

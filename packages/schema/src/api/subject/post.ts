@@ -13,6 +13,7 @@ import {
 } from '../../domain/consent-policy';
 import { ADDITIONAL_CONSENT_V2_PATTERN } from '../../shared/ad-tech-provider';
 import { subjectChoiceWireSchema } from './choice-wire';
+import { subjectScriptsWireSchema } from './scripts-wire';
 import { vendorChoiceWireSchema } from './vendor-choice-wire';
 
 /**
@@ -257,6 +258,11 @@ export const subjectCookieBannerInputSchema = v.object({
 		v.description('Consent preferences keyed by category.'),
 		v.examples([{ marketing: false, measurement: true, necessary: true }])
 	),
+	/**
+	 * Gating fields of every script the page had configured when the subject
+	 * acted. Stored as sent; the backend does not evaluate it.
+	 */
+	scripts: v.optional(subjectScriptsWireSchema),
 	type: v.literal('cookie_banner'),
 	/**
 	 * Per-vendor grants confirmed by this action, when the publisher declares

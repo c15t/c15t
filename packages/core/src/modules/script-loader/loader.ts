@@ -3,6 +3,7 @@
  * nothing the first-load graph has, so it can load on demand as one chunk.
  * `index.ts` is the public entry and passes the shared implementations.
  */
+import type { InternalKernel } from '../../kernel/internals';
 import type { ConsentSnapshot } from '../../types';
 import { buildCallbackInfo, invokeCallback } from './callbacks';
 import { createDebugEmitter } from './debug';
@@ -45,8 +46,14 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 	options: ScriptLoaderOptions,
 	tools: ScriptLoaderTools
 ): ScriptLoaderHandle {
-	const { categoriesOf, declareOwners, forgetOwners, gateState, isVendorId } =
-		tools;
+	const {
+		categoriesOf,
+		declareOwners,
+		forgetOwners,
+		gateState,
+		isVendorId,
+		saveScripts,
+	} = tools;
 	const { kernel, onDebug } = options;
 	const emitToV2 = options.emitToV2DebugListeners ?? true;
 	const emitDebug = createDebugEmitter({ emitToV2, onDebug });
@@ -76,11 +83,14 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 
 	const ownerSource = Symbol('script-loader');
 	const callbackTools = { ...tools, registration: ownerSource };
+	// Kernels built outside `createConsentKernel()` may not record scripts.
+	const { declareSaveScripts } = kernel as Partial<InternalKernel>;
 	const registerCategories = (scripts: Script[]) => {
 		kernel.set.registerConsentCategories(
 			scripts.flatMap((script) => categoriesOf(script.category))
 		);
 		declareOwners(kernel, scripts, ownerSource);
+		declareSaveScripts?.(ownerSource, saveScripts(scripts));
 	};
 	registerCategories(options.scripts);
 	let normalized: NormalizedScript[] = normalizeScripts(
@@ -326,6 +336,7 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 		normalized = [];
 		pendingScripts = undefined;
 		forgetOwners(kernel, ownerSource);
+		declareSaveScripts?.(ownerSource, []);
 		for (const script of scripts) {
 			disposeScript(script);
 		}

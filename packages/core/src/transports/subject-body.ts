@@ -24,9 +24,17 @@
  * `vendorChoice` travels alongside when the publisher declares vendors: the
  * complete granted-or-denied map with one confirmation time, so the backend
  * stores the vendor decision without knowing the vendor list.
+ *
+ * `scripts` lists the gating fields of every script the page had
+ * configured when the visitor acted, for the backend to store beside the
+ * record.
  */
 import { appendJourneyParams } from '@c15t/schema/types';
-import type { SubjectChoiceWire, VendorChoiceWire } from '@c15t/schema/types';
+import type {
+	SubjectChoiceWire,
+	SubjectScriptsWire,
+	VendorChoiceWire,
+} from '@c15t/schema/types';
 
 import { OPTIONAL_CONSENT_CATEGORIES } from '../consent-record/types';
 import type {
@@ -82,6 +90,8 @@ export interface SubjectPostBody {
 	addtlConsent?: string;
 	/** Granted flag per declared vendor after this act, when vendors exist. */
 	vendorChoice?: VendorChoiceWire;
+	/** Gating fields of every script the page had configured. */
+	scripts?: SubjectScriptsWire;
 	/** Free-form audit metadata. `userProperties`, `timeToDecisionMs` and `experiment` are the keys c15t sets. */
 	metadata?: Record<string, unknown> & {
 		userProperties?: NonNullable<SavePayload['user']>['properties'];
@@ -195,6 +205,9 @@ export const buildSubjectPostBody = function buildSubjectPostBody(
 				grants: { ...payload.vendorChoice.grants },
 				version: 1 as const,
 			},
+		}),
+		...(payload.scripts !== undefined && {
+			scripts: payload.scripts.map((script) => ({ ...script })),
 		}),
 	};
 };

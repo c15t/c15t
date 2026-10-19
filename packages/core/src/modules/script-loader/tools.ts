@@ -10,6 +10,7 @@
  * @internal
  */
 import { extractConsentNamesFromCondition } from '../../libs/has';
+import { toSaveScripts } from '../../libs/save-scripts';
 import {
 	declareOwnedVendors,
 	forgetOwnedVendors,
@@ -33,4 +34,5 @@ export const scriptLoaderTools: ScriptLoaderTools = {
 	gateState: getEffectiveGateState,
 	has,
 	isVendorId: isValidVendorId,
+	saveScripts: toSaveScripts,
 };

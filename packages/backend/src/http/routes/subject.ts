@@ -319,6 +319,7 @@ export const register = function register({
 						policyId: policy.id,
 						purposeIds,
 						runtimePolicySource: prepared.decision?.source,
+						scripts: prepared.scripts ?? null,
 						subjectId: input.subjectId,
 						tcString: input.tcString ?? null,
 						uiSource: input.uiSource ?? null,

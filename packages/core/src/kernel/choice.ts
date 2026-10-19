@@ -31,6 +31,7 @@ import type { ExperimentAssignment } from '../libs/experiment';
 import { generateSubjectId } from '../libs/generate-subject-id';
 import { extractConsentNamesFromCondition, has } from '../libs/has';
 import type { HasCondition } from '../libs/has';
+import type { SaveScript } from '../libs/save-scripts';
 import { presentedSelection, scopeSelection } from '../policy';
 import type { PresentedSelection } from '../policy';
 import type {
@@ -825,6 +826,8 @@ export interface ChoiceRecorderOptions {
 	outbox: Pick<SaveOutbox, 'send'>;
 	/** Draft values staged by config. */
 	initialDraft: PresentedSelection | null;
+	/** The scripts the page has configured, or `undefined` when none. */
+	scripts?: () => SaveScript[] | undefined;
 }
 
 /**
@@ -836,6 +839,7 @@ export const createChoiceRecorder = function createChoiceRecorder({
 	runtime,
 	outbox,
 	initialDraft,
+	scripts,
 }: ChoiceRecorderOptions) {
 	const { batch, getSnapshot, commit, emit } = runtime;
 	const draft = createBoundDraft<PresentedSelection>(getSnapshot, initialDraft);
@@ -1112,6 +1116,10 @@ export const createChoiceRecorder = function createChoiceRecorder({
 			const addtlConsent = after.iab?.authority?.addtlConsent;
 			if (payload.tcString && addtlConsent) {
 				payload.addtlConsent = addtlConsent;
+			}
+			const configuredScripts = scripts?.();
+			if (configuredScripts) {
+				payload.scripts = configuredScripts;
 			}
 
 			const result = await outbox.send(payload, {
