@@ -78,6 +78,27 @@ test('starts nothing from a prerender', async () => {
 	expect(html).not.toContain(JSON.stringify(pixel.src));
 });
 
+test("renders no start script for a state that is no one visitor's", async () => {
+	// Prerendered HTML, and the static root's `state={{}}`, would carry an
+	// empty inline script that a hash-based policy has to allow.
+	vi.stubEnv('TSS_PRERENDERING', 'true');
+	const prerendered = await optOutState();
+	vi.unstubAllEnvs();
+
+	// `{}` as the static root passes it; the backend URL stands in for the
+	// one `consentManifest()` supplies.
+	const empty = { backendURL: 'https://consent.example.com' };
+
+	// A first render loads the start module, as in the tests above.
+	await render(prerendered);
+	const pages = await Promise.all([render(prerendered), render(empty)]);
+
+	for (const html of pages) {
+		expect(html).toContain('<main id="page">Page</main>');
+		expect(html).not.toContain('<script');
+	}
+});
+
 test('renders without a server start when the state promise rejects', async () => {
 	// The provider falls back to the transport for a rejected state; the
 	// server start has to skip quietly, not fail the server render.

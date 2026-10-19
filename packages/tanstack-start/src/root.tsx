@@ -281,6 +281,23 @@ const settledState = function settledState(
 	return settled;
 };
 
+/**
+ * Whether `state` can start a script from the HTML: a streamed one, or one
+ * resolved for this request. A prerendered state, or the static root's
+ * `{}`, renders no start script, so shared HTML carries no inline script.
+ */
+const startsFromHTML = function startsFromHTML(
+	state: ConsentState | Promise<ConsentState> | undefined
+): boolean {
+	if (state === undefined) {
+		return false;
+	}
+	if (isPending(state)) {
+		return true;
+	}
+	return state.initialPolicyResolution !== undefined && state.now !== undefined;
+};
+
 /** React 19's `use`, absent from React 18. */
 const { use } = React as {
 	use?: <Value>(value: Promise<Value>) => Value;
@@ -293,8 +310,7 @@ const { use } = React as {
  * it. In the browser it only hydrates the inline script.
  *
  * It suspends on a streamed state inside its own boundary, so the rest of
- * the page streams without it. A prerendered render's state carries no
- * request clock, so its HTML gets an empty script.
+ * the page streams without it.
  */
 const ServerScriptStart = ({
 	options,
@@ -412,7 +428,7 @@ export const ConsentRoot = ({
 			{children}
 			{/* After the page: an inline script waits for the stylesheets,
 			so ahead of the content it would hold back first paint. */}
-			{scripts?.length ? (
+			{scripts?.length && startsFromHTML(state) ? (
 				<Suspense fallback={null}>
 					<ServerScriptStart options={providerOptions} />
 				</Suspense>
