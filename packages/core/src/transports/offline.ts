@@ -175,13 +175,14 @@ const createOfflineTranslationSelector =
  * Build an offline transport. The returned object is plain — no
  * listeners, no caches, no state. Safe to create per request.
  *
- * In development builds it warns once per page that c15t keeps no
- * server-side record of consent, unless `acknowledgeNoRecords` is set.
+ * In development builds its first `save` warns once per page that c15t
+ * keeps no server-side record of consent, unless `acknowledgeNoRecords` is
+ * set. A custom transport that uses only its `init` and saves elsewhere
+ * never warns.
  */
 export const createOfflineTransport = function createOfflineTransport(
 	options: OfflineTransportOptions = {}
 ): OfflineKernelTransport {
-	warnNoConsentRecordsInDevelopment(options.acknowledgeNoRecords);
 	const defaultLanguage = options.defaultLanguage ?? 'en';
 	const branding: KernelBranding = options.branding ?? 'c15t';
 	const iabEnabled = options.iabEnabled === true;
@@ -225,6 +226,7 @@ export const createOfflineTransport = function createOfflineTransport(
 		},
 
 		save(payload: SavePayload): Promise<SaveResult> {
+			warnNoConsentRecordsInDevelopment(options.acknowledgeNoRecords);
 			// Offline mode — no server to acknowledge the save. The caller's
 			// persistence module handles client-side storage. Echo the kernel's
 			// subject ID so save results stay consistent across transports.
