@@ -181,15 +181,29 @@ test('integration navigation covers every vendor helper, both embeds and Shopify
 	const integrations = navigation.groups.find(
 		(group) => group.slug === 'integrations'
 	);
-	expect(integrations?.children.map((group) => group.slug)).toEqual([
-		'embeds',
-		'tag-managers',
-		'analytics',
-		'chat-and-support',
-		'email-and-sms',
-		'ads-and-pixels',
-		'commerce',
-	]);
+	// The sidebar groups the guides as the overview's tables do, in its order
+	const overviewTables = readFileSync(
+		resolve(docsRoot, 'integrations/overview.mdx'),
+		'utf8'
+	)
+		.split(/^## /mu)
+		.slice(1)
+		.map((section) => ({
+			pages: Array.from(
+				section.matchAll(
+					/^\| \[[^\]]+\]\((?<route>\/docs\/integrations\/[a-z0-9-]+)\)/gmu
+				),
+				(match) => match.groups?.route
+			),
+			title: section.slice(0, section.indexOf('\n')),
+		}))
+		.filter((table) => table.pages.length > 0);
+	expect(
+		integrations?.children.map((group) => ({
+			pages: group.pages.map((page) => page.urlPath),
+			title: group.title,
+		}))
+	).toEqual(overviewTables);
 	const vendors = Object.entries(scriptsPackage.exports)
 		.filter(([, entry]) => entry.types.includes('/vendors/'))
 		.map(([subpath]) => subpath.slice(2));

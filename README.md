@@ -131,13 +131,12 @@ The layout stays a Server Component. You write no `'use client'` wrapper and nee
 
 [`@c15t/integrations`](./packages/integrations) has a loader for each vendor below. Most wait until the visitor allows the vendor's consent category. A few, such as Google Tag Manager and Mixpanel, load at once and pass the choice to the vendor's own consent API. The [integrations overview](https://c15t.com/docs/integrations/overview) shows what each loader does.
 
-- **Tag managers**: Google Tag Manager, Cloudflare Zaraz
-- **Analytics**: Google tag (GA4 and Google Ads), Adobe Analytics, Ahrefs Analytics, Amplitude, Cloudflare Web Analytics, Databuddy, Fathom, Heap, Hightouch, Hotjar, LogRocket, Matomo, Microsoft Clarity, Mixpanel, OneDollarStats, Pirsch, Plausible, PostHog, Promptwatch, RudderStack, Rybbit, Segment, Umami, Vercel Analytics, Vercel Speed Insights
-- **Ads and pixels**: Meta Pixel, OpenAI Pixel, TikTok Pixel, LinkedIn Insight Tag, Microsoft UET, Pinterest Tag, Reddit Pixel, Snapchat Pixel, X Pixel
-- **Enrichment, email, and SMS**: Clearbit, Klaviyo
-- **Chat and support**: Intercom, Crisp, Front Chat
-- **Monitoring**: Sentry
-- **Embeds**: YouTube and Google Maps, with no extra package
+- **Web analytics**: Plausible, Fathom, Umami, Vercel Analytics, Google tag (GA4 and Google Ads), Cloudflare Web Analytics, Matomo, Adobe Analytics, Ahrefs Analytics, Databuddy, Pirsch, Rybbit, OneDollarStats, Promptwatch
+- **Product analytics**: PostHog, Mixpanel, Amplitude, Heap
+- **Replay and monitoring**: Microsoft Clarity, Hotjar, LogRocket, Sentry, Vercel Speed Insights
+- **Ads and growth**: Meta Pixel, TikTok Pixel, Klaviyo, Clearbit, LinkedIn Insight Tag, Microsoft UET, Pinterest Tag, Reddit Pixel, Snapchat Pixel, X Pixel, OpenAI Pixel
+- **Data and tags**: Segment, RudderStack, Hightouch, Google Tag Manager, Cloudflare Zaraz, Shopify Customer Privacy
+- **Chat and embeds**: Intercom, Crisp, Front Chat, and YouTube and Google Maps embeds with no extra package
 
 ## Packages
 
