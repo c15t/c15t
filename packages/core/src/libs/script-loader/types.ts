@@ -56,6 +56,31 @@ export interface ScriptCallbackInfo {
 
 	/** Error information (for error callbacks) */
 	error?: Error;
+
+	/**
+	 * `true` in `onBeforeLoad` when the page's HTML already ran the script's
+	 * `serverStart` code and inserted the element. The callback should only
+	 * record state: the setup it would run has run.
+	 * @internal
+	 */
+	startedOnServer?: true;
+}
+
+/**
+ * Inline JavaScript that starts a script from the HTML, before hydration.
+ * @internal
+ */
+export interface ScriptServerStart {
+	/**
+	 * Setup the script needs before its element runs, such as a queue stub
+	 * and its consent default. Runs inside a `try` block of its own.
+	 */
+	code: string;
+	/**
+	 * Code shared by several scripts, emitted once ahead of every `code`.
+	 * Scripts that pass the same string share one copy.
+	 */
+	prelude?: string;
 }
 
 /**
@@ -140,6 +165,23 @@ export interface Script {
 
 	/** Priority hint for browser resource loading */
 	fetchPriority?: 'high' | 'low' | 'auto';
+
+	/**
+	 * Lets a server render that already resolved consent run the script's
+	 * setup and insert its element from the HTML, for a visitor whose stored
+	 * consent lets it run. It doesn't run while the policy asks the visitor
+	 * to choose, so the banner gets the main thread. The loader then adopts
+	 * a started element and calls `onBeforeLoad` with `startedOnServer`.
+	 * Return `undefined` when the setup can't run as inline code; the loader
+	 * then starts the script.
+	 * `script` is the script being started, which may be a copy of the one
+	 * that defined `serverStart` with other callbacks.
+	 * @internal
+	 */
+	serverStart?: (
+		info: Pick<ScriptCallbackInfo, 'consents' | 'hasConsent' | 'id' | 'vendor'>,
+		script: Script
+	) => ScriptServerStart | undefined;
 
 	/** Additional attributes to add to the script element */
 	attributes?: Record<string, string>;

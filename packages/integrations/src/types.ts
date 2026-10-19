@@ -44,6 +44,8 @@ export interface LoadScriptStep {
 	async?: boolean;
 	defer?: boolean;
 	attributes?: Record<string, string>;
+	/** Priority hint for the script request. */
+	fetchPriority?: 'high' | 'low' | 'auto';
 }
 
 export interface SetGlobalStep {

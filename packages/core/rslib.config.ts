@@ -10,16 +10,19 @@ import {
 import { getRsdoctorPlugins } from '../shared/rslib-utils';
 
 /**
- * Chunks `clientMode()` loads with `import()`. Each is bundled with every
- * module it imports, so a page's lazy chunk shares no module with its
- * first-load graph: Rolldown (Vite 8) splits shared modules out of the
- * page's chunk into many small ones. Per-language translations stay
- * external, so a resolver loads only the language it needs.
+ * Chunks `clientMode()` loads with `import()`, and the server start a
+ * framework root imports on the server from a component the browser also
+ * builds. Each is bundled with every module it imports, so a page's lazy
+ * chunk shares no module with its first-load graph: Rolldown (Vite 8)
+ * splits shared modules out of the page's chunk into many small ones.
+ * Per-language translations stay external, so a resolver loads only the
+ * language it needs.
  */
 const selfContainedEntries = {
 	'runtime/lazy-hosted': './src/runtime/lazy-hosted.ts',
 	'runtime/lazy-manifest-browser': './src/runtime/lazy-manifest-browser.ts',
 	'runtime/lazy-offline': './src/runtime/lazy-offline.ts',
+	'runtime/script-server-start': './src/runtime/script-server-start.ts',
 };
 
 // `tsconfig.json` maps these packages to their type declarations for the

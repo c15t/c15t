@@ -6,6 +6,8 @@ import type {
 	ScriptLifecycleCallback,
 } from '@c15t/core';
 
+import { inlineStepsStart } from '#inline-start';
+
 import { RUNTIME_VALUE_KIND } from '../types';
 import type { ManifestStep, ResolvedManifest, RuntimeValue } from '../types';
 
@@ -588,7 +590,7 @@ const ALL_DENIED: ConsentState = {
  * category state, so its own consent API cannot re-enable tracking.
  */
 const signalConsents = function signalConsents(
-	info: ScriptCallbackInfo
+	info: Pick<ScriptCallbackInfo, 'consents' | 'vendor'>
 ): ConsentState {
 	return info.vendor?.granted === false ? ALL_DENIED : info.consents;
 };
@@ -648,6 +650,37 @@ const getConsentSignalSteps = function getConsentSignalSteps(
 	}
 };
 
+/**
+ * What the manifest's `onBeforeLoad` runs, as inline code for a server
+ * render that starts the vendor from the HTML. A helper that wraps
+ * `onBeforeLoad` runs code the steps don't have, so a script whose
+ * `onBeforeLoad` isn't `manifestOnBeforeLoad` gets none. `undefined` for a
+ * manifest that loads no script.
+ */
+const manifestServerStart = function manifestServerStart(
+	resolvedManifest: ResolvedManifest,
+	manifestOnBeforeLoad: Script['onBeforeLoad']
+): Script['serverStart'] {
+	if (!resolvedManifest.loadScript) {
+		return;
+	}
+	return (info, started) =>
+		started.onBeforeLoad === manifestOnBeforeLoad
+			? inlineStepsStart([
+					...resolvedManifest.bootstrapSteps,
+					...getConsentSignalSteps(
+						resolvedManifest,
+						'default',
+						signalConsents(info)
+					),
+					...resolvedManifest.setupSteps,
+					...(info.hasConsent
+						? resolvedManifest.onBeforeLoadGrantedSteps
+						: resolvedManifest.onBeforeLoadDeniedSteps),
+				])
+			: undefined;
+};
+
 export const resolvedManifestToScript = function resolvedManifestToScript(
 	resolvedManifest: ResolvedManifest
 ): Script {
@@ -677,6 +710,7 @@ export const resolvedManifestToScript = function resolvedManifestToScript(
 		callbackOnly: resolvedManifest.loadScript ? undefined : true,
 		category: resolvedManifest.category as Script['category'],
 		defer: resolvedManifest.loadScript?.defer,
+		fetchPriority: resolvedManifest.loadScript?.fetchPriority,
 		id: resolvedManifest.vendor,
 		persistAfterConsentRevoked: resolvedManifest.persistAfterConsentRevoked,
 		src: resolvedManifest.loadScript?.src,
@@ -695,6 +729,10 @@ export const resolvedManifestToScript = function resolvedManifestToScript(
 	) {
 		script.onBeforeLoad = (info: ScriptCallbackInfo) => {
 			lastHasConsent = info.hasConsent;
+			// The HTML already ran these steps through `serverStart`.
+			if (info.startedOnServer) {
+				return;
+			}
 			const baseContext = {
 				callback: 'onBeforeLoad' as const,
 				elementId: info.elementId,
@@ -732,6 +770,11 @@ export const resolvedManifestToScript = function resolvedManifestToScript(
 			);
 		};
 	}
+
+	script.serverStart = manifestServerStart(
+		resolvedManifest,
+		script.onBeforeLoad
+	);
 
 	if (resolvedManifest.afterLoadSteps.length > 0) {
 		script.onLoad = (info: ScriptCallbackInfo) => {

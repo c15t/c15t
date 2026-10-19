@@ -209,6 +209,11 @@
 			"import": "./dist/runtime/script-loader-preload.js",
 			"default": "./dist/runtime/script-loader-preload.js"
 		},
+		"./runtime/script-server-start": {
+			"types": "./dist-types/runtime/script-server-start.d.ts",
+			"import": "./dist/runtime/script-server-start.js",
+			"default": "./dist/runtime/script-server-start.js"
+		},
 		"./runtime/streamed-init": {
 			"types": "./dist-types/runtime/streamed-init.d.ts",
 			"import": "./dist/runtime/streamed-init.js",
