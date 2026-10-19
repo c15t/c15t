@@ -78,11 +78,11 @@ The vendor helpers from `@c15t/integrations` start this way, except Amplitude,
 Heap, Klaviyo, Microsoft Clarity, PostHog, Sentry and Vercel Speed Insights.
 Those helpers, and `scripts` entries you write yourself, start after hydration.
 
-Nothing starts from the HTML while the policy asks the visitor to choose. A
-page without `state` renders no inline script, so static, ISR and `'use cache'`
-pages stay static and start scripts after hydration as before. With Cache
-Components, the inline script renders in the per-request part and the page
-content stays in the static shell.
+Nothing starts from the HTML while the policy asks the visitor to choose, not
+even `alwaysLoad` entries. A page without `state` renders no inline script, so
+static, ISR and `'use cache'` pages stay static and start scripts after
+hydration as before. With Cache Components, the inline script renders in the
+per-request part and the page content stays in the static shell.
 
 The inline script takes `options.nonce`; see
 [Content Security Policy](/docs/frameworks/next/content-security-policy).
