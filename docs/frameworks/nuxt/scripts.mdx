@@ -18,11 +18,11 @@ Register the helpers from `@c15t/integrations` under the `c15t` key in
 
 <include src="../../shared/examples/nuxt/app-config.mdx" />
 
-The module starts one script loader in the browser after hydration, once it
-has applied the visitor's stored choice and privacy signals. Do not also call
+The module starts one script loader in the browser after hydration, once it has
+applied the visitor's stored choice and privacy signals. Do not also call
 `createScriptLoader` yourself, or each script loads twice. When the visitor's
-consent already allows an entry, a server-rendered page starts that entry
-before hydration, and the loader adopts its tag. See
+consent or `alwaysLoad` already allows an entry, a server-rendered page starts
+that entry before hydration, and the loader adopts its tag. See
 [Rendering](/docs/frameworks/nuxt/rendering#render-each-request-on-the-server).
 
 `scripts` must go in `app.config.ts`. Module options in `nuxt.config.ts`
