@@ -19,9 +19,9 @@ const SCRIPT_NONCE = /<script\b[^>]*\snonce="(?<nonce>[\w+/=-]+)"/u;
 /** A body end tag: the name in any case, with space before `>`. */
 const BODY_END = /<\/body\s*>/giu;
 /**
- * The most a chunk's end is held: more than a script tag with its nonce or
- * the end of a page. Text a chunk ends in, such as `a < b` in a long
- * inline script, passes through instead of piling up.
+ * The most a chunk's end is held for a tag it ends partway through: more
+ * than a script tag with its nonce. Text a chunk ends in, such as `a < b`
+ * in a long inline script, passes through instead of piling up.
  */
 const MAX_HELD = 1024;
 
@@ -92,11 +92,6 @@ export const loadServerScriptStart =
 		return loading;
 	};
 
-/**
- * The end of `text` to hold for the next chunk, within its last `MAX_HELD`
- * characters: from the last `</body>`, which may be the end of the body,
- * else a tag `text` ends partway through.
- */
 /** Where the last body end tag in `text` starts, else `-1`. */
 const lastBodyEnd = (text: string): number => {
 	let last = -1;
@@ -106,12 +101,17 @@ const lastBodyEnd = (text: string): number => {
 	return last;
 };
 
+/**
+ * The end of `text` to hold for the next chunk: from the last `</body>`,
+ * which may be the end of the body, however much follows it, else a tag
+ * `text` ends partway through within its last `MAX_HELD` characters.
+ */
 const heldEnd = (text: string): string => {
-	const tail = text.slice(-MAX_HELD);
-	const body = lastBodyEnd(tail);
+	const body = lastBodyEnd(text);
 	if (body !== -1) {
-		return tail.slice(body);
+		return text.slice(body);
 	}
+	const tail = text.slice(-MAX_HELD);
 	const start = tail.lastIndexOf('<');
 	return start === -1 || tail.includes('>', start) ? '' : tail.slice(start);
 };
@@ -123,9 +123,9 @@ const heldEnd = (text: string): string => {
  * It adds the script to the last chunk (`done`), before the last `</body>`:
  * SvelteKit's page template closes the body after everything the app
  * renders, so an earlier `</body>`, in a script's text or a comment, is
- * not the end. Until the last chunk, the transform holds up to 1 KB from
- * the last `</body>`, else a tag a chunk ends partway through, such as a
- * script with its nonce.
+ * not the end. Until the last chunk, the transform holds the page from
+ * the last `</body>`, else up to 1 KB of a tag a chunk ends partway
+ * through, such as a script with its nonce.
  *
  * The script takes the provider's `nonce` option, else the nonce SvelteKit
  * put on its own scripts, so a nonce-based `script-src` admits it. The tags

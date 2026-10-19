@@ -101,6 +101,15 @@ test('keeps the body end when only comments follow it before the last chunk', ()
 	).toBe('<body><script>go()</script></body></html><!-- served -->');
 });
 
+test('keeps the body end when more than 1 KB follows it before the last chunk', () => {
+	const inject = renderPage('go()');
+	const after = `</html><!-- ${'x'.repeat(2000)} -->`;
+
+	expect(inject(`<body></body>${after}`, false) + inject('', true)).toBe(
+		`<body><script>go()</script></body>${after}`
+	);
+});
+
 test('passes a long unfinished region through instead of holding it', () => {
 	const inject = renderPage('go()');
 	const script = `<body><script>if (a < b) {${'x'.repeat(5000)}`;
