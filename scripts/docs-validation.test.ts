@@ -16,6 +16,28 @@ import { builtInScriptIntegrations } from '../packages/integrations/src/registry
 
 const docsRoot = fileURLToPath(new URL('../docs', import.meta.url));
 
+function getIntegrationOverviewGroups() {
+	return readFileSync(resolve(docsRoot, 'integrations/overview.mdx'), 'utf8')
+		.split(/^## /mu)
+		.slice(1)
+		.map((section) => ({
+			pages: Array.from(
+				section.matchAll(
+					/^\| \[[^\]]+\]\((?<route>\/docs\/integrations\/[a-z0-9-]+)\)/gmu
+				),
+				(match) => {
+					const route = match.groups?.route;
+					if (!route) {
+						throw new Error('Missing integration route in overview row');
+					}
+					return route;
+				}
+			),
+			title: section.slice(0, section.indexOf('\n')),
+		}))
+		.filter((group) => group.pages.length > 0);
+}
+
 test('documented umbrella imports exist in the package export map', async () => {
 	const exports = Object.keys(umbrellaPackage.exports);
 	const files = await fg('**/*.mdx', { cwd: docsRoot });
@@ -182,16 +204,12 @@ test('integration navigation covers every vendor helper, both embeds and Shopify
 	const integrations = navigation.groups.find(
 		(group) => group.slug === 'integrations'
 	);
-	expect(integrations?.children.map((group) => group.slug)).toEqual([
-		'embeds',
-		'tag-managers',
-		'analytics',
-		'experience',
-		'chat-and-support',
-		'email-and-sms',
-		'ads-and-pixels',
-		'commerce',
-	]);
+	expect(
+		integrations?.children.map((group) => ({
+			pages: group.pages.map((page) => page.urlPath),
+			title: group.title,
+		}))
+	).toEqual(getIntegrationOverviewGroups());
 	const vendors = Object.entries(scriptsPackage.exports)
 		.filter(([, entry]) => entry.types.includes('/vendors/'))
 		.map(([subpath]) => subpath.slice(2));
