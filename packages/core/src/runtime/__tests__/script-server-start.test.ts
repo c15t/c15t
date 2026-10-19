@@ -1,9 +1,9 @@
 /**
  * @vitest-environment jsdom
  *
- * For a returning visitor the server render runs a granted script's setup
- * and inserts its element before hydration, unless the browser holds a
- * newer decision than the one the server read.
+ * When the consent the server read grants a script, the server render runs
+ * its setup and inserts its element before hydration, unless the browser
+ * holds a newer decision than the one the server read.
  */
 import type { PolicyRule } from '@c15t/schema/types';
 import { afterEach, describe, expect, test, vi } from 'vitest';

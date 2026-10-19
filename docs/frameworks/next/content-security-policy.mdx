@@ -93,8 +93,8 @@ c15t stamps a nonce on these DOM nodes:
   buttons gets `options.nonce`. It holds a tap the visitor makes before the
   page hydrates. If the policy blocks it, the banner still works after
   hydration, but a tap before then does nothing.
-- The inline `<script>` that `ConsentRoot` renders for a returning visitor
-  whose stored consent already allows some of your `scripts` entries gets
+- The inline `<script>` that `ConsentRoot` renders when the visitor's
+  consent already allows some of your `scripts` entries gets
   `options.nonce`. It runs those entries' setup and inserts their tags before
   the page hydrates. The script elements it inserts take the same nonce, or
   the entry's own `nonce`. Its content changes with each visitor's consent, so

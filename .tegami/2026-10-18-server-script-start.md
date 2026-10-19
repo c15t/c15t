@@ -6,10 +6,11 @@ packages:
   '@c15t/nextjs': patch
 ---
 
-### Next.js starts a returning visitor's allowed scripts from the HTML
+### Next.js starts allowed scripts from the HTML
 
-When the server state from `resolveConsent()` shows that a visitor's stored
+When the server state from `resolveConsent()` shows that the visitor's
 consent already allows some `scripts` entries from `@c15t/integrations`,
+through a stored choice or a policy that asks for none,
 `ConsentRoot` now renders an inline script that runs their setup and inserts
 their tags before the page hydrates. The script loader adopts those tags
 instead of inserting its own. The inline script waits until after first paint,

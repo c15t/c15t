@@ -28,8 +28,8 @@ policy changes require a rebuild.
 | Edge runtime | Not covered by an example or test | Not covered | [Edge runtime](#edge-runtime) |
 
 Server rendering puts the visitor's answer in the first response. The browser
-then applies it without another request, and a returning visitor's allowed
-scripts start before the page hydrates. Browser rendering sends the same HTML to every visitor and
+then applies it without another request, and the scripts it allows start
+before the page hydrates. Browser rendering sends the same HTML to every visitor and
 resolves consent after the page loads. In both cases optional categories stay
 denied, and the banner stays hidden, until a policy has resolved.
 [Choose your setup](/docs/concepts/choose-your-setup) explains this across
@@ -66,10 +66,11 @@ the response starts only after consent resolves.
 
 ## Start allowed scripts before hydration
 
-When the state from `resolveConsent` shows that a returning visitor's stored
-consent already allows some `scripts` entries, `ConsentRoot` renders an inline
-script after your page content. After first paint, it runs those entries'
-setup and inserts their tags, so they start loading before the page hydrates.
+When the state from `resolveConsent` shows that the visitor's consent already
+allows some `scripts` entries, through a stored choice or a policy that asks
+for none, `ConsentRoot` renders an inline script after your page content.
+After first paint, it runs those entries' setup and inserts their tags, so
+they start loading before the page hydrates.
 The script loader adopts those tags instead of inserting its own. Both App
 Router layouts do this, including the streamed one.
 
