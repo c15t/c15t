@@ -26,6 +26,11 @@ const workspaceAliases = [
 		find: '$app/env',
 		replacement: resolve(__dirname, 'src/lib/kit/__tests__/app-env.ts'),
 	},
+	// And `$app/server`, whose `getRequestEvent()` a test sets.
+	{
+		find: '$app/server',
+		replacement: resolve(__dirname, 'src/lib/kit/__tests__/app-server.ts'),
+	},
 	{
 		find: '@c15t/core/build',
 		replacement: resolve(__dirname, '../core/src/build.ts'),

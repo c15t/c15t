@@ -1,79 +1,125 @@
 /**
- * `c15tHandle`'s page transform moves the provider's server start from its
- * `<head>` marker to a `<script>` at the end of `<body>`.
+ * `c15tHandle`'s page transform adds the start its request's render kept
+ * to a `<script>` at the end of `<body>`.
  */
-import { expect, test } from 'vitest';
+import { afterEach, beforeAll, expect, test } from 'vitest';
 
-import { createServerStartInjector } from '../server-script-start';
+import { startOnServer } from '../../server-script-start';
+import type { ServerStartOptions } from '../../server-script-start';
+import {
+	createServerStartInjector,
+	registerPageStart,
+} from '../server-script-start';
+import { setRequestEvent } from './app-server';
+import { createEvent } from './event';
 
-const marker = (content: string, nonce?: string): string =>
-	`<meta name="c15t-server-start" content="${content}"${
-		nonce === undefined ? '' : ` data-nonce="${nonce}"`
-	}>`;
+/** Renders a provider for `event`, as SvelteKit does inside a request. */
+const renderProvider = (
+	event: ReturnType<typeof createEvent>,
+	code: string,
+	nonce?: string
+): void => {
+	setRequestEvent(event);
+	startOnServer({ code, nonce } as unknown as ServerStartOptions);
+	setRequestEvent(undefined);
+};
 
-test('keeps the script for the chunk that closes the body', () => {
-	const inject = createServerStartInjector();
+/** A transform whose request's render started `code`, with `nonce`. */
+const renderPage = (
+	code: string,
+	nonce?: string
+): ((html: string, done: boolean) => string) => {
+	const event = createEvent();
+	const inject = createServerStartInjector(event.locals);
+	renderProvider(event, code, nonce);
+	return inject;
+};
 
-	expect(inject(`<head>${marker('go()')}</head><body><main>`, false)).toBe(
-		`<head>${marker('')}</head><body>`
+beforeAll(() => {
+	// The start's code comes from the options, so each test picks it.
+	registerPageStart((options) => (options as { code?: string }).code);
+});
+
+afterEach(() => {
+	setRequestEvent(undefined);
+});
+
+test('adds the start before the last chunk closes the body', () => {
+	const inject = renderPage('go()', 'own');
+
+	expect(inject('<html><head></head><body><main>Loading', false)).toBe(
+		'<html><head></head><body><main>Loading'
 	);
 	expect(inject('</main></body></html>', true)).toBe(
+		'</main><script nonce="own">go()</script></body></html>'
+	);
+});
+
+test('finds the end of the body however the chunks split it', () => {
+	const page = '<html><body><script nonce="kit">boot()</script></body></html>';
+	const whole = renderPage('go()')(page, true);
+
+	expect(whole).toContain('<script nonce="kit">go()</script></body>');
+	for (let at = 0; at <= page.length; at += 1) {
+		const inject = renderPage('go()');
+
+		expect(
+			inject(page.slice(0, at), false) + inject(page.slice(at), true)
+		).toBe(whole);
+	}
+});
+
+test('ignores a body end in the text of an earlier chunk', () => {
+	const inject = renderPage('go()');
+
+	expect(inject('<body><script>"</body>"</script>', false)).toBe(
+		'<body><script>"</body>"</script>'
+	);
+	expect(inject('<main></main></body></html>', true)).toBe(
 		'<main></main><script>go()</script></body></html>'
 	);
 });
 
-test.each([
-	['the marker', marker('a=>b&quot;', 'own'), 'own'],
-	["SvelteKit's script", marker('a=>b&quot;'), 'kit'],
-])(
-	'reads a marker split across chunks, with the nonce of %s',
-	(_source, meta, nonce) => {
-		const page = `<html><head>${meta}</head><body><script nonce="kit">boot()</script></body></html>`;
-		const whole = createServerStartInjector()(page, true);
-
-		expect(whole).toContain(`<script nonce="${nonce}">a=>b"</script></body>`);
-		for (let at = 0; at <= page.length; at += 1) {
-			const inject = createServerStartInjector();
-
-			expect(
-				inject(page.slice(0, at), false) + inject(page.slice(at), true)
-			).toBe(whole);
-		}
-		const inject = createServerStartInjector();
-
-		expect(
-			[...page].map((character) => inject(character, false)).join('') +
-				inject('', true)
-		).toBe(whole);
-	}
-);
-
-test("takes SvelteKit's script nonce without one on the marker", () => {
-	const page = createServerStartInjector()(
-		`<head>${marker('go()')}</head><body><script nonce="kit-nonce">boot()</script></body>`,
-		true
+test('drops a nonce that is not one', () => {
+	expect(renderPage('go()', 'a" onload="x')('<body></body>', true)).toBe(
+		'<body><script>go()</script></body>'
 	);
-
-	expect(page).toContain('<script nonce="kit-nonce">go()</script></body>');
 });
 
-test("prefers the marker's nonce and drops one that is not a nonce", () => {
-	expect(
-		createServerStartInjector()(
-			`<head>${marker('go()', 'own')}</head><body><script nonce="kit">boot()</script></body>`,
-			true
-		)
-	).toContain('<script nonce="own">go()</script></body>');
-	expect(
-		createServerStartInjector()(
-			`<head>${marker('go()', 'a&quot; onload=&quot;x')}</head><body></body>`,
-			true
-		)
-	).toContain('<script>go()</script></body>');
+test('starts nothing from markup in the page', () => {
+	// What an earlier version read its code from, rendered here from content
+	// a visitor wrote.
+	const page =
+		'<html><head><meta name="c15t-server-start" content="alert(1)" data-nonce="n"></head><body><script nonce="kit">boot()</script></body></html>';
+	const event = createEvent();
+	const inject = createServerStartInjector(event.locals);
+	renderProvider(event, '');
+
+	expect(inject(page, true)).toBe(page);
 });
 
-test('adds nothing for an empty marker', () => {
-	const page = `<head>${marker('')}</head><body></body>`;
+test("keeps each request's start to its own page", () => {
+	const first = createEvent();
+	const second = createEvent();
+	const injectFirst = createServerStartInjector(first.locals);
+	const injectSecond = createServerStartInjector(second.locals);
+	renderProvider(second, 'second()');
+	renderProvider(first, 'first()');
+	// A second provider on the page starts nothing more.
+	renderProvider(first, 'again()');
 
-	expect(createServerStartInjector()(page, true)).toBe(page);
+	expect(injectFirst('<body></body>', true)).toBe(
+		'<body><script>first()</script></body>'
+	);
+	expect(injectSecond('<body></body>', true)).toBe(
+		'<body><script>second()</script></body>'
+	);
+});
+
+test('starts nothing for a render outside a request', () => {
+	const event = createEvent();
+	const inject = createServerStartInjector(event.locals);
+	startOnServer({ code: 'go()' } as unknown as ServerStartOptions);
+
+	expect(inject('<body></body>', true)).toBe('<body></body>');
 });

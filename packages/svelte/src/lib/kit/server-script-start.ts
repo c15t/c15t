@@ -1,39 +1,75 @@
 /**
  * Writes the provider's server start into the page as a `<script>` at the
- * end of `<body>`.
+ * end of `<body>`, where it runs before the app's JavaScript hydrates the
+ * page.
  *
- * The provider renders the start's code into a
- * `<meta name="c15t-server-start">` marker in `<svelte:head>` (see
- * `../server-script-start.ts`). This blanks the marker, so the HTML matches
- * what the browser hydrates, and adds the script before `</body>`, where it
- * runs before the app's JavaScript hydrates the page.
+ * The provider hands its options to the start registered here (see
+ * `../server-script-start.ts`), which keeps the code for the request it
+ * renders. The page transform for that request adds it before `</body>`.
+ * Nothing in the HTML decides what runs.
  */
-import {
-	registerServerScriptStart,
-	SERVER_START_MARKER,
-} from '../server-script-start';
+import { getRequestEvent } from '$app/server';
+import type { RequestEvent } from '@sveltejs/kit';
 
-const MARKER = new RegExp(
-	`(?<open><meta name="${SERVER_START_MARKER}" content=")(?<code>[^"]*)(?<close>"(?: data-nonce="(?<nonce>[^"]*)")?)`,
-	'gu'
-);
+import { registerServerScriptStart } from '../server-script-start';
+import type { ServerStartOptions } from '../server-script-start';
+
 const NONCE = /^[\w+/=-]+$/u;
 const SCRIPT_NONCE = /<script\b[^>]*\snonce="(?<nonce>[\w+/=-]+)"/u;
 const BODY_END = '</body>';
+/** What follows the end of the body: the end of the page. */
+const PAGE_END = /^<\/body>\s*(?:<\/html>\s*)?(?:<[^>]*)?$/u;
 
-/** The marker's attribute value as Svelte escaped it, unescaped. */
-const unescapeAttribute = (value: string): string =>
-	value
-		.replaceAll('&quot;', '"')
-		.replaceAll('&lt;', '<')
-		.replaceAll('&amp;', '&');
+/** The start a request's render keeps for its page transform. */
+interface PageStart {
+	code?: string;
+	nonce?: string;
+}
+
+type Locals = RequestEvent['locals'];
+
+/** Each request's start, by its `event.locals`. */
+const pageStarts = new WeakMap<Locals, PageStart>();
+
+/** The start for the request being rendered, if its handle made one. */
+const currentPageStart = (): PageStart | undefined => {
+	let locals: Locals | undefined;
+	try {
+		({ locals } = getRequestEvent());
+	} catch {
+		// Rendered outside a SvelteKit request.
+	}
+	return locals && pageStarts.get(locals);
+};
+
+/**
+ * Registers a start that keeps the code `serverScriptStart` builds for the
+ * request being rendered. The first provider on the page starts the
+ * scripts.
+ *
+ * @param serverScriptStart - Builds the start's code from the provider's
+ * options.
+ * @internal
+ */
+export const registerPageStart = function registerPageStart(
+	serverScriptStart: (options: ServerStartOptions) => string | undefined
+): void {
+	registerServerScriptStart((options) => {
+		const start = currentPageStart();
+		if (!start || start.code) {
+			return;
+		}
+		start.code = serverScriptStart(options) || undefined;
+		start.nonce = options.nonce;
+	});
+};
 
 let loading: Promise<void> | undefined;
 
 /**
- * Loads `serverScriptStart` once and registers it for providers rendering
- * on the server. A failed import skips the start, and the loader starts
- * the scripts after hydration; the next request retries.
+ * Loads `serverScriptStart` once and registers a start for providers
+ * rendering on the server. A failed import skips the start, and the loader
+ * starts the scripts after hydration; the next request retries.
  *
  * @internal
  */
@@ -43,7 +79,7 @@ export const loadServerScriptStart =
 			try {
 				const { serverScriptStart } =
 					await import('@c15t/core/runtime/script-server-start');
-				registerServerScriptStart(serverScriptStart);
+				registerPageStart(serverScriptStart);
 			} catch {
 				loading = undefined;
 			}
@@ -52,66 +88,61 @@ export const loadServerScriptStart =
 	};
 
 /**
- * A page transform for one response that moves the server start from its
- * marker to the end of `<body>`. It keeps the script until the chunk with
- * `</body>` when the page streams.
+ * The end of `text` to hold for the next chunk: the end of the page from
+ * `</body>`, or a tag `text` ends partway through.
+ */
+const heldEnd = (text: string): string => {
+	const body = text.lastIndexOf(BODY_END);
+	if (body !== -1 && PAGE_END.test(text.slice(body))) {
+		return text.slice(body);
+	}
+	const start = text.lastIndexOf('<');
+	return start === -1 || text.includes('>', start) ? '' : text.slice(start);
+};
+
+/**
+ * A page transform for one request that adds the start its render kept to
+ * the end of `<body>`.
  *
- * A chunk can end partway through a tag, so the transform holds the text
- * from the chunk's last `<` until the next chunk, and returns it with the
- * last one (`done`). A tag it matches has no `<` after its first character:
- * Svelte escapes `<` in attribute values.
+ * It adds the script to the last chunk (`done`), before the last `</body>`:
+ * SvelteKit's page template closes the body after everything the app
+ * renders, so an earlier `</body>`, in a script's text or a comment, is
+ * not the end. Until the last chunk, the transform holds the end of the
+ * page from `</body>`, and a tag a chunk ends partway through, such as a
+ * script with its nonce.
  *
- * The script takes the marker's nonce (the provider's `nonce` option), else
- * the nonce SvelteKit put on its own scripts, so a nonce-based `script-src`
- * admits it. The tags it inserts take the same nonce.
+ * The script takes the provider's `nonce` option, else the nonce SvelteKit
+ * put on its own scripts, so a nonce-based `script-src` admits it. The tags
+ * it inserts take the same nonce.
  *
- * @returns The transform, which returns each chunk with the marker blanked
- * and the script added.
+ * @param locals - The request's `event.locals`, which the render reaches
+ * through `getRequestEvent()`.
+ * @returns The transform, which returns each chunk with the script added
+ * to the last.
  * @internal
  */
-export const createServerStartInjector = function createServerStartInjector(): (
-	html: string,
-	done: boolean
-) => string {
-	let code: string | undefined;
-	let markerNonce: string | undefined;
+export const createServerStartInjector = function createServerStartInjector(
+	locals: Locals
+): (html: string, done: boolean) => string {
+	const start: PageStart = {};
+	pageStarts.set(locals, start);
 	let pageNonce: string | undefined;
 	let held = '';
-	let injected = false;
-	const transform = (html: string): string => {
-		if (injected) {
-			return html;
-		}
-		pageNonce ??= SCRIPT_NONCE.exec(html)?.groups?.nonce;
-		let out = html;
-		if (html.includes(`<meta name="${SERVER_START_MARKER}"`)) {
-			out = html.replace(MARKER, (...match) => {
-				const groups = match.at(-1) as Record<string, string | undefined>;
-				if (!code && groups.code) {
-					code = unescapeAttribute(groups.code);
-					markerNonce = groups.nonce;
-				}
-				return `${groups.open}${groups.close}`;
-			});
-		}
-		const end = out.lastIndexOf(BODY_END);
-		if (!code || end === -1) {
-			return out;
-		}
-		injected = true;
-		const nonce = markerNonce ?? pageNonce;
-		const nonceAttribute =
-			nonce && NONCE.test(nonce) ? ` nonce="${nonce}"` : '';
-		return `${out.slice(0, end)}<script${nonceAttribute}>${code}</script>${out.slice(end)}`;
-	};
 	return (html, done) => {
 		const text = held + html;
-		if (done || injected) {
-			held = '';
-			return transform(text);
+		pageNonce ??= SCRIPT_NONCE.exec(text)?.groups?.nonce;
+		if (!done) {
+			held = heldEnd(text);
+			return text.slice(0, text.length - held.length);
 		}
-		const cut = text.lastIndexOf('<');
-		held = cut === -1 ? text : text.slice(cut);
-		return cut === -1 ? '' : transform(text.slice(0, cut));
+		held = '';
+		const end = text.lastIndexOf(BODY_END);
+		if (!start.code || end === -1) {
+			return text;
+		}
+		const nonce = start.nonce ?? pageNonce;
+		const nonceAttribute =
+			nonce && NONCE.test(nonce) ? ` nonce="${nonce}"` : '';
+		return `${text.slice(0, end)}<script${nonceAttribute}>${start.code}</script>${text.slice(end)}`;
 	};
 };

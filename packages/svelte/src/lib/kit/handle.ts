@@ -213,7 +213,8 @@ export const c15tHandle = function c15tHandle(
 		// which is no one visitor's.
 		const injectServerStart = building
 			? undefined
-			: (await loadServerScriptStart(), createServerStartInjector());
+			: (await loadServerScriptStart(),
+				createServerStartInjector(event.locals));
 
 		// A page whose provider configures scripts or blocker rules names
 		// their on-demand chunks in its head; link them so the browser

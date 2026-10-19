@@ -9,15 +9,18 @@
  */
 import { offline } from '@c15t/core';
 import type { Script } from '@c15t/core';
-import { serverScriptStart } from '@c15t/core/runtime/script-server-start';
 import type { PolicyRule } from '@c15t/schema/types';
 import { resolvePolicyRules } from '@c15t/schema/types';
 import { render } from 'svelte/server';
-import { beforeAll, expect, test } from 'vitest';
+import { afterEach, beforeAll, expect, test } from 'vitest';
 
 import ConsentProvider from '../lib/components/consent-provider.svelte';
-import { createServerStartInjector } from '../lib/kit/server-script-start';
-import { registerServerScriptStart } from '../lib/server-script-start';
+import { setRequestEvent } from '../lib/kit/__tests__/app-server';
+import { createEvent } from '../lib/kit/__tests__/event';
+import {
+	createServerStartInjector,
+	loadServerScriptStart,
+} from '../lib/kit/server-script-start';
 import type { ConsentManagerOptions } from '../lib/types';
 
 const pixel: Script = {
@@ -44,6 +47,10 @@ const renderPage = function renderPage({
 	rule?: PolicyRule;
 	shared?: boolean;
 }): string {
+	// `c15tHandle` makes the transform before SvelteKit renders the page.
+	const event = createEvent();
+	const inject = createServerStartInjector(event.locals);
+	setRequestEvent(event);
 	const { body, head } = render(ConsentProvider, {
 		props: {
 			options: {
@@ -63,10 +70,8 @@ const renderPage = function renderPage({
 			} as ConsentManagerOptions,
 		},
 	});
-	return createServerStartInjector()(
-		`<html><head>${head}</head><body>${body}</body></html>`,
-		true
-	);
+	setRequestEvent(undefined);
+	return inject(`<html><head>${head}</head><body>${body}</body></html>`, true);
 };
 
 /** The inline scripts the page ends its body with. */
@@ -75,8 +80,12 @@ const startScripts = (page: string): string[] =>
 		([tag]) => tag
 	);
 
-beforeAll(() => {
-	registerServerScriptStart(serverScriptStart);
+beforeAll(async () => {
+	await loadServerScriptStart();
+});
+
+afterEach(() => {
+	setRequestEvent(undefined);
 });
 
 test('starts an allowed script from the end of the body, with the nonce', () => {
@@ -86,10 +95,11 @@ test('starts an allowed script from the end of the body, with the nonce', () => 
 	expect(rest).toEqual([]);
 	expect(start).toMatch(/^<script nonce="request-nonce">/u);
 	expect(start).toContain(JSON.stringify(pixel.src));
-	// The marker's escaping is undone, and the marker left empty for
-	// hydration.
 	expect(start).toContain('window.__pixel="a&b<c"');
-	expect(page).toContain('<meta name="c15t-server-start" content=""');
+	// The code never passes through the rendered markup.
+	expect(page.indexOf('window.__pixel')).toBe(
+		page.lastIndexOf('window.__pixel')
+	);
 });
 
 test('starts nothing while the policy asks the visitor to choose', () => {
@@ -102,6 +112,6 @@ test('starts nothing from a shared render', () => {
 	expect(startScripts(renderPage({ shared: true }))).toEqual([]);
 });
 
-test('renders no marker without scripts', () => {
-	expect(renderPage({ scripts: [] })).not.toContain('c15t-server-start');
+test('starts nothing without scripts', () => {
+	expect(startScripts(renderPage({ scripts: [] }))).toEqual([]);
 });
