@@ -56,6 +56,11 @@ chose. The script loader adopts those tags instead of inserting its own. Nothing
 starts from the HTML while the policy asks the visitor to choose, and a
 prerendered page starts nothing.
 
+This needs React 19. On React 18, every entry starts after hydration. The vendor
+helpers from `@c15t/integrations` start this way, except Amplitude, Heap,
+Klaviyo, Microsoft Clarity, PostHog, Sentry and Vercel Speed Insights. Those
+helpers, and `scripts` entries you write yourself, start after hydration.
+
 ## Stream the page while consent resolves
 
 With runtime fetching, return the pending server function call instead of
