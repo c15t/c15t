@@ -65,7 +65,6 @@ export const ERROR_CATALOG = {
 	},
 	CONFIG_INVALID: {
 		code: 'CONFIG_INVALID',
-		docs: `${URLS.DOCS}/cli/commands/setup`,
 		hint: 'Check your c15t.config.ts file for errors',
 		message: 'Invalid c15t configuration',
 	},
