@@ -72,7 +72,8 @@ none, `ConsentRoot` renders an inline script after your page content. After
 first paint, it runs those entries' setup and inserts their tags, so they start
 loading before the page hydrates. Entries with `alwaysLoad` start this way
 whatever the visitor chose. The script loader adopts those tags instead of
-inserting its own. Both App Router layouts do this, including the streamed one.
+inserting its own. Both App Router layouts do this, including the streamed one,
+and so does the Pages Router `ConsentRoot` on React 18 or 19.
 
 The vendor helpers from `@c15t/integrations` start this way, except Cloudflare
 Zaraz and Sentry. Those two helpers, and `scripts` entries you write yourself,

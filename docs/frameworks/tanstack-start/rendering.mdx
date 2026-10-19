@@ -56,10 +56,9 @@ chose. The script loader adopts those tags instead of inserting its own. Nothing
 starts from the HTML while the policy asks the visitor to choose, not even
 `alwaysLoad` entries, and a prerendered page starts nothing.
 
-This needs React 19. On React 18, every entry starts after hydration. The vendor
-helpers from `@c15t/integrations` start this way, except Cloudflare Zaraz and
-Sentry. Those two helpers, and `scripts` entries you write yourself, start after
-hydration.
+This works on React 18 and 19. The vendor helpers from `@c15t/integrations`
+start this way, except Cloudflare Zaraz and Sentry. Those two helpers, and
+`scripts` entries you write yourself, start after hydration.
 
 ## Stream the page while consent resolves
 

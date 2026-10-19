@@ -100,31 +100,77 @@ const mergeOptions = function mergeOptions(
 
 type ScriptServerStartModule = typeof ScriptServerStart;
 
+/** A promise that keeps its result where React 18 reads it on a retry. */
+type Recorded<Value> = Promise<Value> & {
+	status?: 'fulfilled';
+	value?: Value;
+};
+
+/** `promise`, which must not reject, recording its result on itself. */
+const record = function record<Value>(
+	promise: Promise<Value>
+): Recorded<Value> {
+	const holder: { recorded?: Recorded<Value> } = {};
+	const recorded: Recorded<Value> = (async () => {
+		const value = await promise;
+		// Set by now: the await above yields.
+		if (holder.recorded) {
+			holder.recorded.status = 'fulfilled';
+			holder.recorded.value = value;
+		}
+		return value;
+	})();
+	holder.recorded = recorded;
+	return recorded;
+};
+
+const loadScriptServerStart = function loadScriptServerStart(): Recorded<
+	ScriptServerStartModule | undefined
+> {
+	return record(
+		(async () => {
+			try {
+				return await import('@c15t/core/runtime/script-server-start');
+			} catch {
+				return undefined;
+			}
+		})()
+	);
+};
+
 let scriptServerStartModule:
-	| Promise<ScriptServerStartModule | undefined>
+	| Recorded<ScriptServerStartModule | undefined>
+	| undefined;
+let retriedScriptServerStart:
+	| Recorded<ScriptServerStartModule | undefined>
 	| undefined;
 
 /**
  * Loaded on the server only, so no browser chunk requests it. A failed
- * import skips the server start and lets the next render retry.
+ * import skips the server start and retries on the side for later renders.
  */
-const importScriptServerStart = function importScriptServerStart(): Promise<
+const importScriptServerStart = function importScriptServerStart(): Recorded<
 	ScriptServerStartModule | undefined
 > {
-	scriptServerStartModule ??= (async () => {
-		try {
-			return await import('@c15t/core/runtime/script-server-start');
-		} catch {
-			scriptServerStartModule = undefined;
-			return undefined;
+	const loaded = scriptServerStartModule;
+	if (loaded?.status === 'fulfilled' && !loaded.value) {
+		// Every render gets the failed load until the retry settles. On
+		// React 18 a render that waited for the load calls again, and a
+		// pending import there would suspend it again.
+		retriedScriptServerStart ??= loadScriptServerStart();
+		if (retriedScriptServerStart.status !== 'fulfilled') {
+			return loaded;
 		}
-	})();
+		scriptServerStartModule = retriedScriptServerStart;
+		retriedScriptServerStart = undefined;
+	}
+	scriptServerStartModule ??= loadScriptServerStart();
 	return scriptServerStartModule;
 };
 
 const settledStates = new WeakMap<
 	Promise<ConsentState>,
-	Promise<ConsentState | undefined>
+	Recorded<ConsentState | undefined>
 >();
 
 /**
@@ -134,16 +180,18 @@ const settledStates = new WeakMap<
  */
 const settledState = function settledState(
 	state: Promise<ConsentState>
-): Promise<ConsentState | undefined> {
+): Recorded<ConsentState | undefined> {
 	let settled = settledStates.get(state);
 	if (!settled) {
-		settled = (async () => {
-			try {
-				return await state;
-			} catch {
-				return undefined;
-			}
-		})();
+		settled = record(
+			(async () => {
+				try {
+					return await state;
+				} catch {
+					return undefined;
+				}
+			})()
+		);
 		settledStates.set(state, settled);
 	}
 	return settled;
@@ -152,6 +200,21 @@ const settledState = function settledState(
 /** React 19's `use`, absent from the React 18 a Pages Router app may run. */
 const { use } = React as {
 	use?: <Value>(value: Promise<Value>) => Value;
+};
+
+/**
+ * `use` where React has it. React 18 suspends on a thrown promise and
+ * reads its recorded result on the retry.
+ */
+const read = function read<Value>(promise: Recorded<Value>): Value {
+	if (use) {
+		// oxlint-disable-next-line react-hooks/rules-of-hooks -- `read` is `use` with a React 18 fallback, so it keeps `use`'s rules: render only, conditions allowed.
+		return use(promise);
+	}
+	if (promise.status === 'fulfilled') {
+		return promise.value as Value;
+	}
+	throw promise;
 };
 
 /**
@@ -175,9 +238,6 @@ const ServerScriptStart = ({
 }: {
 	options: ConsentProviderOptions;
 }): ReactNode => {
-	if (!use) {
-		return null;
-	}
 	if (typeof document !== 'undefined') {
 		// Hydrates the server's start script without running or replacing it.
 		return (
@@ -191,9 +251,9 @@ const ServerScriptStart = ({
 	const { prefetch } = options;
 	const state =
 		typeof (prefetch as PromiseLike<unknown> | undefined)?.then === 'function'
-			? use(settledState(prefetch as Promise<ConsentState>))
+			? read(settledState(prefetch as Promise<ConsentState>))
 			: (prefetch as ConsentState | undefined);
-	const module = use(importScriptServerStart());
+	const module = read(importScriptServerStart());
 	// A failed import still renders the empty script the browser hydrates.
 	const code = module?.serverScriptStart({
 		...(options as unknown as Parameters<
