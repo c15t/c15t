@@ -254,12 +254,10 @@ those tags instead of inserting its own. Nothing starts from the HTML while the
 policy asks the visitor to choose, not even `alwaysLoad` entries, and a
 prerendered page starts nothing.
 
-The vendor helpers from `@c15t/integrations` start this way, except Amplitude,
-Cloudflare Zaraz, Heap, Klaviyo, Microsoft Clarity, PostHog, Sentry and Vercel
-Speed Insights. Those helpers, and `scripts` entries you write yourself, start
-after hydration.
-A `ConsentProvider` given a `runtime` starts nothing from the HTML: its scripts
-start after hydration.
+The vendor helpers from `@c15t/integrations` start this way, except Cloudflare
+Zaraz and Sentry. Those two helpers, and `scripts` entries you write yourself,
+start after hydration. A `ConsentProvider` given a `runtime` starts nothing
+from the HTML: its scripts start after hydration.
 
 Type `event.locals.c15t` in `src/app.d.ts`:
 
