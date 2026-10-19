@@ -14,7 +14,7 @@ A Nuxt app with c15t adds these to the page, and your policy must allow them:
 | The components' CSS: inline `<style>` tags Nuxt writes for the server-rendered banner, and stylesheets Nuxt bundles with your app | `style-src` |
 | On `ssr: false` pages in `hosted()` mode, an inline `<script>` in the page head that starts `/init` | `script-src` |
 | On server-rendered pages with a banner, an inline `<script>` before its buttons that holds a tap made before hydration | `script-src` |
-| On server-rendered pages for a returning visitor whose stored consent already allows some `scripts` entries, an inline `<script>` at the end of `<body>` that starts them | `script-src` |
+| On server-rendered pages when the visitor's consent already allows some `scripts` entries, an inline `<script>` at the end of `<body>` that starts them | `script-src` |
 | Browser requests to `/api/c15t/init` and `/api/c15t/manifest` in the default `manifest()` mode | `connect-src 'self'` |
 | Consent saves to your backend's `/subjects`, plus `/init` in `hosted()` mode | `connect-src` |
 | Chunks Nuxt splits out, such as the browser resolver with `manifest({ resolve: 'browser' })` and the copy for a language other than English | `script-src 'self'` |
@@ -72,11 +72,11 @@ after hydration, but a tap before then does nothing.
 
 ## Allow the server start script
 
-For a returning visitor whose stored consent already allows some `scripts`
-entries, the server render adds an inline `<script>` at the end of `<body>`.
-It runs those entries' setup and inserts their tags before the app hydrates,
-and the script loader adopts the tags. Its content changes with each
-visitor's consent, so a hash can't allow it.
+When the visitor's consent already allows some `scripts` entries, through a
+stored choice or a policy that asks for none, the server render adds an inline
+`<script>` at the end of `<body>`. It runs those entries' setup and inserts
+their tags before the app hydrates, and the script loader adopts the tags. Its
+content changes with each visitor's consent, so a hash can't allow it.
 
 - **With `nuxt-security`**, the script and the tags it inserts carry its
   per-request nonce. Nothing more is needed.

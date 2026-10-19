@@ -96,7 +96,7 @@ export const withClientData = function withClientData(
 
 /**
  * The `<body>`-end script that starts the `scripts` entries a visitor's
- * stored consent already allows, or `undefined` when it starts nothing. A
+ * consent already allows, or `undefined` when it starts nothing. A
  * failed import renders the page without it; the script loader then starts
  * those entries after hydration.
  *
