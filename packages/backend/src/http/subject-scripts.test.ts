@@ -254,6 +254,27 @@ for (const engine of ENGINES) {
 			});
 		});
 
+		it('judges a replayed save by the GPC signal the visitor acted under', async () => {
+			// The browser stopped sending GPC between the action and the replay.
+			await saveAfterInit(
+				'DE',
+				{
+					gpc: true,
+					preferences: {
+						marketing: true,
+						measurement: true,
+						necessary: true,
+					},
+				},
+				{ 'sec-gpc': '0' }
+			);
+			assert.deepStrictEqual(await storedAllowed(), {
+				'meta-pixel': false,
+				posthog: true,
+				'support-chat': false,
+			});
+		});
+
 		it('denies a script whose vendor the subject turned off', async () => {
 			await saveAfterInit('DE', {
 				preferences: { marketing: true, measurement: true, necessary: true },

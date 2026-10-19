@@ -209,7 +209,9 @@ when the save has none, and drops keys it does not know. It adds `allowed` to
 each entry: whether the consent permitted the script to load, worked out with
 the same rules the browser's script loader uses. It applies the resolved
 policy's scope and defaults, the submitted preferences, vendor grants, and
-Global Privacy Control from the body or the `Sec-GPC` header. `allowed` is
+Global Privacy Control. The browser sends the GPC value the visitor acted
+under as `gpc` in the body, so a retried save is judged by that value. Without
+it, the backend reads the request's `Sec-GPC` header. `allowed` is
 permission, not proof of execution: an allowed script can still fail to load.
 Under an `iab` policy, entries with IAB TCF fields have no `allowed`, because
 their gate reads the TC string. An entry also has no `allowed` when the answer

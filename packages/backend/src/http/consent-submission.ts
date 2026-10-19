@@ -883,7 +883,9 @@ export const prepareSubmission = Effect.fn('submission.prepare')(
 									.map(([category]) => category)
 							)
 						: undefined,
-				// Manifest-mode saves assert the signal they resolved under.
+				// The signal the visitor acted under. Manifest-mode saves assert it
+				// as a decision input, and token-backed saves send it with
+				// `scripts` so a replay is not judged by the header at replay time.
 				gpc: cookieBanner.gpc ?? readGpcHeader(context.headers),
 				model,
 				preferences: appliedPreferences,

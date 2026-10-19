@@ -202,11 +202,17 @@ const manifestDecisionInputEntries = {
 			)
 		)
 	),
-	/** Global Privacy Control input used by the manifest resolver */
+	/**
+	 * Global Privacy Control as the visitor acted. Manifest-mode saves assert
+	 * it as a decision input. Token-backed saves send it with `scripts`, and
+	 * the backend reads it only to work out `allowed`.
+	 */
 	gpc: v.optional(
 		v.pipe(
 			v.boolean(),
-			v.description('Global Privacy Control input used by manifest-mode saves.')
+			v.description(
+				'Global Privacy Control as the visitor acted. A manifest-mode decision input; with a policy snapshot token, used only to work out which `scripts` were allowed.'
+			)
 		)
 	),
 	/** Language input used by the manifest resolver */

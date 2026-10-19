@@ -92,6 +92,11 @@ export interface SubjectPostBody {
 	vendorChoice?: VendorChoiceWire;
 	/** Gating fields of every script the page had configured. */
 	scripts?: SubjectScriptsWire;
+	/**
+	 * Global Privacy Control as the visitor acted. A manifest-mode save sends
+	 * it as a decision input; a token-backed save sends it with `scripts`.
+	 */
+	gpc?: boolean;
 	/** Free-form audit metadata. `userProperties`, `timeToDecisionMs` and `experiment` are the keys c15t sets. */
 	metadata?: Record<string, unknown> & {
 		userProperties?: NonNullable<SavePayload['user']>['properties'];
@@ -209,5 +214,11 @@ export const buildSubjectPostBody = function buildSubjectPostBody(
 		...(payload.scripts !== undefined && {
 			scripts: payload.scripts.map((script) => ({ ...script })),
 		}),
+		// The backend reads GPC to tell which scripts the choice allowed. A
+		// token-backed save asserts no decision inputs, so without this a
+		// replay would be judged by the signal at replay time.
+		...(payload.scripts !== undefined &&
+			payload.policySnapshotToken &&
+			payload.decisionInputs && { gpc: payload.decisionInputs.gpc }),
 	};
 };

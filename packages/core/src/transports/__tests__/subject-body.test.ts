@@ -69,4 +69,24 @@ describe('save body: configured scripts', () => {
 		const body = buildSubjectPostBody(payload, { domain: 'example.com' });
 		expect(body).not.toHaveProperty('scripts');
 	});
+
+	test('sends the GPC signal the visitor acted under with a token-backed save', () => {
+		const body = buildSubjectPostBody(
+			{
+				...payload,
+				decisionInputs: {
+					country: 'US',
+					fingerprint: 'fp_1',
+					gpc: true,
+					language: 'en',
+					policyId: 'policy_us',
+					region: 'CA',
+				},
+				policySnapshotToken: 'token',
+				scripts: [{ category: 'marketing', id: 'ads' }],
+			},
+			{ domain: 'example.com' }
+		);
+		expect(body.gpc).toBe(true);
+	});
 });
