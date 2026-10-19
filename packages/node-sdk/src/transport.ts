@@ -139,7 +139,10 @@ interface ErrorBody {
 	reason?: StalePolicyReason;
 }
 
-/** The backend's error body: `{ message, cause: { code, reason? } }`. */
+/**
+ * The backend's error body: `{ message, cause: { code, reason? } }`, or
+ * `{ message, code }` from a proxy or gateway in front of it.
+ */
 const readErrorBody = (text: string): ErrorBody => {
 	let body: unknown;
 	try {
@@ -150,9 +153,10 @@ const readErrorBody = (text: string): ErrorBody => {
 	if (typeof body !== 'object' || body === null) {
 		return {};
 	}
-	const { message, cause } = body as {
+	const { message, cause, code } = body as {
 		message?: unknown;
-		cause?: { code?: unknown; reason?: unknown };
+		cause?: { code?: unknown; reason?: unknown } | null;
+		code?: unknown;
 	};
 	const parsed: ErrorBody = {};
 	if (typeof message === 'string') {
@@ -160,6 +164,8 @@ const readErrorBody = (text: string): ErrorBody => {
 	}
 	if (typeof cause?.code === 'string') {
 		parsed.code = cause.code;
+	} else if (typeof code === 'string') {
+		parsed.code = code;
 	}
 	if (isStalePolicyReason(cause?.reason)) {
 		parsed.reason = cause.reason;

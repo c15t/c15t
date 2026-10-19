@@ -918,6 +918,49 @@ describe('hosted transport: save refusals', () => {
 	);
 
 	test.each([
+		[
+			{ code: 'CONSENTS_EXHAUSTED', message: 'Out of consents.' },
+			'CONSENTS_EXHAUSTED',
+			'Out of consents.',
+			': Out of consents. (CONSENTS_EXHAUSTED)',
+		],
+		[
+			{ cause: { code: 'BILLING' }, message: 'Pay first.' },
+			'BILLING',
+			'Pay first.',
+			': Pay first. (BILLING)',
+		],
+		['not json', 'PAYMENT_REQUIRED', undefined, ' Payment Required'],
+	])(
+		'a 402 is a refusal the kernel does not retry (%j)',
+		async (body, code, reason, said) => {
+			const transport = createHostedTransport({
+				backendURL: 'https://backend.test',
+				domain: 'example.com',
+				fetch: (() =>
+					Promise.resolve(
+						typeof body === 'string'
+							? new Response(body, {
+									status: 402,
+									statusText: 'Payment Required',
+								})
+							: Response.json(body, { status: 402 })
+					)) as unknown as typeof globalThis.fetch,
+			});
+			const error = await transport
+				.save(payload)
+				.catch((caught: unknown) => caught);
+			expect(isConsentSaveRejection(error)).toBe(true);
+			expect(error).toMatchObject({
+				code,
+				message: `c15t hosted transport: /subjects responded 402${said}`,
+				reason,
+				status: 402,
+			});
+		}
+	);
+
+	test.each([
 		[400, { code: 'INPUT_VALIDATION_FAILED' }],
 		[409, { code: 'SOMETHING_ELSE' }],
 		[500, { code: 'DATABASE_ERROR' }],
@@ -1665,6 +1708,47 @@ describe('createHostedTransport: request shape', () => {
 		await expect(
 			transport.init?.({ overrides: {}, user: null })
 		).rejects.toThrow(/\/init responded 500/u);
+	});
+
+	test('a 402 says what the backend said and is not retried', async () => {
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+		const fetchSpy = vi.fn(() =>
+			Promise.resolve(
+				Response.json(
+					{
+						code: 'CONSENT_SESSIONS_EXHAUSTED',
+						message: 'This project is out of consent sessions.',
+					},
+					{ status: 402 }
+				)
+			)
+		);
+		const kernel = createConsentKernel({
+			initialPolicyPending: true,
+			transport: createHostedTransport({
+				backendURL: 'https://backend.test',
+				fetch: fetchSpy as unknown as typeof globalThis.fetch,
+			}),
+		});
+		const failures: { error: unknown; nextRetryMs: number | null }[] = [];
+		kernel.events.on('init:failed', ({ error, nextRetryMs }) => {
+			failures.push({ error, nextRetryMs });
+		});
+
+		await kernel.commands.init();
+
+		expect(failures).toHaveLength(1);
+		expect(failures[0]?.nextRetryMs).toBeNull();
+		expect(failures[0]?.error).toMatchObject({
+			code: 'CONSENT_SESSIONS_EXHAUSTED',
+			message:
+				'c15t hosted transport: /init responded 402: This project is out of consent sessions. (CONSENT_SESSIONS_EXHAUSTED)',
+			status: 402,
+		});
+		expect(warn).toHaveBeenCalledWith(
+			expect.stringContaining('This project is out of consent sessions.')
+		);
+		kernel.dispose();
 	});
 });
 

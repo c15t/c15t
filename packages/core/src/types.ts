@@ -532,7 +532,8 @@ export interface KernelConfig {
 	 * Retry policy for failed transport initialization. The first call is
 	 * attempt 1. Defaults to 5 total attempts, a 1,000 ms base delay, and a
 	 * 30,000 ms cap with exponential backoff and jitter. Set to `false` to
-	 * disable background retries.
+	 * disable background retries. A failure whose error has `status: 402`
+	 * (payment required) is not retried.
 	 */
 	initRetry?:
 		| {
