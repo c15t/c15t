@@ -55,6 +55,19 @@ test('adds the start before the last chunk closes the body', () => {
 	);
 });
 
+// HTML tag names ignore case and allow space before `>`, and `app.html`
+// is the app's own markup.
+test('finds a body end tag in any case or spacing', () => {
+	const inject = renderPage('go()', 'own');
+
+	expect(inject('<body><main></main></BODY', false)).toBe(
+		'<body><main></main>'
+	);
+	expect(inject(' ></html>', true)).toBe(
+		'<script nonce="own">go()</script></BODY ></html>'
+	);
+});
+
 test('finds the end of the body however the chunks split it', () => {
 	const page = '<html><body><script nonce="kit">boot()</script></body></html>';
 	const whole = renderPage('go()')(page, true);

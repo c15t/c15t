@@ -16,7 +16,8 @@ import type { ServerStartOptions } from '../server-script-start';
 
 const NONCE = /^[\w+/=-]+$/u;
 const SCRIPT_NONCE = /<script\b[^>]*\snonce="(?<nonce>[\w+/=-]+)"/u;
-const BODY_END = '</body>';
+/** A body end tag: the name in any case, with space before `>`. */
+const BODY_END = /<\/body\s*>/giu;
 /**
  * The most a chunk's end is held: more than a script tag with its nonce or
  * the end of a page. Text a chunk ends in, such as `a < b` in a long
@@ -96,9 +97,18 @@ export const loadServerScriptStart =
  * characters: from the last `</body>`, which may be the end of the body,
  * else a tag `text` ends partway through.
  */
+/** Where the last body end tag in `text` starts, else `-1`. */
+const lastBodyEnd = (text: string): number => {
+	let last = -1;
+	for (const match of text.matchAll(BODY_END)) {
+		last = match.index;
+	}
+	return last;
+};
+
 const heldEnd = (text: string): string => {
 	const tail = text.slice(-MAX_HELD);
-	const body = tail.lastIndexOf(BODY_END);
+	const body = lastBodyEnd(tail);
 	if (body !== -1) {
 		return tail.slice(body);
 	}
@@ -142,7 +152,7 @@ export const createServerStartInjector = function createServerStartInjector(
 			return text.slice(0, text.length - held.length);
 		}
 		held = '';
-		const end = text.lastIndexOf(BODY_END);
+		const end = lastBodyEnd(text);
 		if (!start.code || end === -1) {
 			return text;
 		}
