@@ -45,6 +45,10 @@ adopts those tags instead of inserting its own. Nothing starts from the HTML
 while the policy asks the visitor to choose, and a prerendered route starts
 nothing.
 
+The vendor helpers from `@c15t/integrations` start this way, except Amplitude,
+Heap, Klaviyo, Microsoft Clarity, PostHog, Sentry and Vercel Speed Insights.
+Those helpers, and `scripts` entries you write yourself, start after hydration.
+
 The module adds one catch-all route at `${routePrefix}/**`, `/api/c15t/**` by
 default. It answers `GET /api/c15t/init`, the visitor's resolved policy, and
 `GET /api/c15t/manifest`, the deployment's manifest. The server render
