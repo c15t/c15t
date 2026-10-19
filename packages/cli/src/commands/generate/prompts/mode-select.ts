@@ -23,9 +23,9 @@ export const MODE_OPTIONS = [
 	},
 	{
 		description:
-			'Store consent in browser cookies/localStorage (GDPR-compatible)',
-		hint: 'No backend needed',
-		label: 'Browser-Only',
+			'Consent stays in the browser. c15t keeps no server-side record of it.',
+		hint: 'Development and tests only, no consent records',
+		label: 'Local',
 		value: STORAGE_MODES.OFFLINE,
 	},
 	{

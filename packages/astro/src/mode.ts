@@ -9,4 +9,4 @@
  * browser's side is `./transport.ts`.
  */
 
-export { hosted, manifest, offline } from '@c15t/core/modes';
+export { hosted, local, manifest, offline } from '@c15t/core/modes';

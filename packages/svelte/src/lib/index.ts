@@ -2,6 +2,7 @@ export {
 	custom,
 	defaultTranslationConfig,
 	detectBrowserLanguage,
+	local,
 	mergeTranslationConfigs,
 	offline,
 	policyRulePresets,

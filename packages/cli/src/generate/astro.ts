@@ -51,7 +51,7 @@ const { title } = Astro.props;
  */
 const integrationCall = (options: BoilerplateOptions, server: boolean) => {
 	if (options.mode === 'offline') {
-		return { call: 'c15t({ mode: offline() })', factory: 'offline' };
+		return { call: 'c15t({ mode: local() })', factory: 'local' };
 	}
 	return server
 		? { call: 'c15t()', factory: '' }

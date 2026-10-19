@@ -27,12 +27,12 @@ const consentConfig = (
 	routePrefix: boolean
 ): string => {
 	const offline = options.mode === 'offline';
-	const body = `${offline ? '\tmode: offline(),\n' : ''}${
+	const body = `${offline ? '\tmode: local(),\n' : ''}${
 		routePrefix ? "\troutePrefix: '/api/c15t',\n" : ''
 	}${scriptsProperty(options.scripts, '\t')}`;
 	return `${sortImports([
 		...scriptImports(options.scripts),
-		`import { defineConsentConfig${offline ? ', offline' : ''} } from 'c15t/next';`,
+		`import { defineConsentConfig${offline ? ', local' : ''} } from 'c15t/next';`,
 	])}
 
 export default defineConsentConfig(${body ? `{\n${body}}` : '{}'});
@@ -124,7 +124,7 @@ export const generateNextBoilerplate = (
 	options: BoilerplateOptions
 ): BoilerplateTemplate => {
 	const pages = options.framework === 'next-pages';
-	// Offline mode has no backend for a consent route to answer from.
+	// Local mode has no backend for a consent route to answer from.
 	const route = pages && options.mode === 'hosted';
 	const files: Record<string, string> = {
 		...envFile(BACKEND_URL_ENV.next, options),

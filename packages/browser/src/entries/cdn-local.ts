@@ -1,0 +1,17 @@
+/**
+ * `dist/c15t.local.js`, the local-mode one-tag install.
+ *
+ * Installs `window.c15t`, then initialises from the tag's `data-*`
+ * attributes and queued configuration unless the tag carries `data-manual`.
+ */
+
+import { publishDevToolsLauncher } from '@c15t/ui/utils/devtools-launcher';
+
+import { autoInit, installGlobal } from '../global-base';
+import { createOfflineGlobal } from '../offline-global';
+import { mountConsentUI } from '../ui/mount';
+
+const api = installGlobal(
+	createOfflineGlobal({ mountUI: mountConsentUI, publishDevToolsLauncher })
+);
+autoInit(api);

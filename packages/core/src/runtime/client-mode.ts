@@ -1,4 +1,5 @@
 import { isProductionBuild } from '../libs/is-production';
+import { warnNoConsentRecordsInDevelopment } from '../libs/no-records-warning';
 /**
  * `@c15t/core/runtime/client-mode` — turn a consent mode into the transport
  * a server-framework client root uses, keeping every path that page doesn't
@@ -348,12 +349,15 @@ export const lazyOffline = function lazyOffline(
 ): ProviderTransportFactory {
 	return Object.assign(
 		(context: ProviderTransportContext): KernelTransport => {
+			// Here, not in `local()`: a page the server resolved never loads it.
+			warnNoConsentRecordsInDevelopment(options.acknowledgeNoRecords);
 			let transportPromise: Promise<KernelTransport> | undefined;
 			const loadTransport = function loadTransport(): Promise<KernelTransport> {
 				transportPromise ??= (async () => {
 					try {
 						const { offline } = await load();
 						return offline({
+							acknowledgeNoRecords: true,
 							policyRules: options.policyRules ?? context.policyRules,
 						})(context);
 					} catch (error) {
@@ -500,7 +504,13 @@ export const clientMode = function clientMode(
 			? undefined
 			: trimSlash(options.routePrefix);
 	if (data.type === 'offline') {
-		return Object.assign(lazyOffline({ policyRules: data.policyRules }), data);
+		return Object.assign(
+			lazyOffline({
+				acknowledgeNoRecords: data.acknowledgeNoRecords,
+				policyRules: data.policyRules,
+			}),
+			data
+		);
 	}
 	if (data.type === 'hosted') {
 		const backendURL = data.backendURL ?? options.backendURL;

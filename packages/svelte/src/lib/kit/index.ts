@@ -60,4 +60,4 @@ export type {
 	OfflineMode,
 	OfflineModeOptions,
 } from '@c15t/core/modes';
-export { hosted, manifest, offline } from '@c15t/core/modes';
+export { hosted, local, manifest, offline } from '@c15t/core/modes';

@@ -313,7 +313,7 @@ export interface ConsentClientBaseOptions extends Pick<
  */
 export interface ConsentClientOptions extends ConsentClientBaseOptions {
 	/**
-	 * Transport: a factory from `manifest()`, `hosted()`, `offline()` or
+	 * Transport: a factory from `manifest()`, `hosted()`, `local()` or
 	 * `custom()`. Import only the one you use, so the bundler leaves the
 	 * others out. Mode names such as `'hosted'` work only in the
 	 * script-tag builds.
@@ -330,7 +330,7 @@ export interface ConsentClientOptions extends ConsentClientBaseOptions {
 export interface ScriptTagClientOptions extends ConsentClientBaseOptions {
 	/**
 	 * Transport. A name picks one of the built-in modes; a factory from
-	 * `c15t.hosted()`, `c15t.offline()`, `c15t.manifest()` or
+	 * `c15t.hosted()`, `c15t.local()`, `c15t.manifest()` or
 	 * `c15t.custom()` is used as is. Defaults to `manifest` when a manifest
 	 * is given, `hosted` when a `backendURL` is given, otherwise `offline`.
 	 */
@@ -350,12 +350,18 @@ export interface ScriptTagClientOptions extends ConsentClientBaseOptions {
 	 * JSON config or a `data-policy-rules` attribute can name them.
 	 */
 	policyRules?: (PolicyRule | PolicyPresetName)[];
+	/**
+	 * Hide the warning that `offline` mode keeps no consent records. The
+	 * script-tag files show it once per page on development hosts such as
+	 * `localhost`. `data-acknowledge-no-records` on the tag sets it.
+	 */
+	acknowledgeNoRecords?: boolean;
 }
 
 /** Options for `@c15t/browser/hosted` and the default `c15t.js` bundle. */
 export interface HostedConsentClientOptions extends Omit<
 	ScriptTagClientOptions,
-	'mode' | 'manifest' | 'manifestURL' | 'policyRules'
+	'acknowledgeNoRecords' | 'mode' | 'manifest' | 'manifestURL' | 'policyRules'
 > {
 	/** Defaults to hosted. Factories must have `kind: 'hosted'`. */
 	mode?: 'hosted' | ProviderTransportFactory;
@@ -367,7 +373,7 @@ export interface HostedConsentClientOptions extends Omit<
 	policyRules?: PolicyRule[];
 }
 
-/** Options for `@c15t/browser/offline` and `c15t.offline.js`. */
+/** Options for `@c15t/browser/offline` and `c15t.local.js`. */
 export interface OfflineConsentClientOptions extends Omit<
 	ScriptTagClientOptions,
 	'mode' | 'backendURL' | 'manifest' | 'manifestURL'

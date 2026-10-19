@@ -15,7 +15,10 @@ import type {
 	ProviderTransportContext,
 	ProviderTransportFactory,
 } from '@c15t/core';
-import { createHostedTransport } from '@c15t/core';
+import {
+	createHostedTransport,
+	warnNoConsentRecordsInDevelopment,
+} from '@c15t/core';
 import { clientMode } from '@c15t/core/runtime/client-mode';
 
 import type { C15tResolvedOptions } from './types';
@@ -50,12 +53,17 @@ export type ResolveTransport = (
 export const offlineTransport: ResolveTransport = ({ mode }) =>
 	Object.assign(
 		(context: ProviderTransportContext): KernelTransport => {
+			const acknowledgeNoRecords =
+				mode.type === 'offline' ? mode.acknowledgeNoRecords : undefined;
+			// Here, not in the chunk: a page the server resolved never loads it.
+			warnNoConsentRecordsInDevelopment(acknowledgeNoRecords);
 			let loading: Promise<KernelTransport> | undefined;
 			const load = function load(): Promise<KernelTransport> {
 				loading ??= (async () => {
 					try {
 						const { createOfflineTransport } = await import('./offline-mode');
 						return createOfflineTransport({
+							acknowledgeNoRecords: true,
 							iabEnabled: context.iabEnabled,
 							policyRules:
 								(mode.type === 'offline' ? mode.policyRules : undefined) ??

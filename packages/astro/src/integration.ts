@@ -235,7 +235,7 @@ const resolveMode = function resolveMode(
 		!MODE_TYPES.has((mode as { type?: unknown }).type as string)
 	) {
 		throw new Error(
-			'@c15t/astro: `mode` must be manifest(), hosted() or offline() from c15t/astro. A transport function cannot be serialized into the page.'
+			'@c15t/astro: `mode` must be manifest(), hosted() or local() from c15t/astro. A transport function cannot be serialized into the page.'
 		);
 	}
 	const envHint =
@@ -800,7 +800,7 @@ const injectsRoute = function injectsRoute(
 const missingAdapterMessage = function missingAdapterMessage(
 	routePrefix: string
 ): string {
-	return `@c15t/astro: manifest() resolves each visitor on the server and injects an on-demand route at ${routePrefix}/[...path], which needs a server adapter to build. For a static site, use hosted(), offline() or manifest({ resolve: 'browser' }), or set \`routePrefix: false\`.`;
+	return `@c15t/astro: manifest() resolves each visitor on the server and injects an on-demand route at ${routePrefix}/[...path], which needs a server adapter to build. For a static site, use hosted(), local() or manifest({ resolve: 'browser' }), or set \`routePrefix: false\`.`;
 };
 
 /**

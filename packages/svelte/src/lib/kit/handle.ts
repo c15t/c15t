@@ -121,7 +121,7 @@ const modeData = function modeData(mode: ConsentMode): ConsentMode {
 	}
 	if (!(mode as Partial<ConsentMode>).type) {
 		throw new TypeError(
-			'c15t: c15tHandle() takes manifest(), hosted() or offline() from @c15t/svelte/kit. Pass custom() to <ConsentRoot mode> instead.'
+			'c15t: c15tHandle() takes manifest(), hosted() or local() from @c15t/svelte/kit. Pass custom() to <ConsentRoot mode> instead.'
 		);
 	}
 	const { kind: _kind, ...data } = mode as ConsentMode & { kind?: string };

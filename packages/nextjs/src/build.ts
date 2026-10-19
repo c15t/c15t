@@ -216,7 +216,7 @@ const modeSkipReason = function modeSkipReason(
 		return 'c15t.config.ts uses hosted(), which asks the backend for each visitor';
 	}
 	if (mode?.type === 'offline') {
-		return 'c15t.config.ts uses offline(), which needs no backend';
+		return 'c15t.config.ts uses local(), which needs no backend';
 	}
 	if (mode?.snapshot) {
 		return 'c15t.config.ts passes manifest({ snapshot })';

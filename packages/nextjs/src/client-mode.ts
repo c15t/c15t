@@ -83,7 +83,13 @@ export const createClientMode = function createClientMode(
 	const { routePrefix } = options;
 	const data: ConsentMode = mode ?? { type: 'manifest' };
 	if (data.type === 'offline') {
-		return Object.assign(lazyOffline({ policyRules: data.policyRules }), data);
+		return Object.assign(
+			lazyOffline({
+				acknowledgeNoRecords: data.acknowledgeNoRecords,
+				policyRules: data.policyRules,
+			}),
+			data
+		);
 	}
 	// Saves never fall back to `routePrefix`: the route takes writes only
 	// with `proxy`. Of the modes left, only `hosted()` has a `backendURL`.

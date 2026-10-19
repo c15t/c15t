@@ -113,7 +113,12 @@ export type {
 	OfflineKernelTransport,
 	OfflineTransportOptions,
 } from './transports/offline';
-export { createOfflineTransport, offline } from './transports/offline';
+export { createOfflineTransport, local, offline } from './transports/offline';
+export {
+	NO_RECORDS_WARNING,
+	warnNoConsentRecords,
+	warnNoConsentRecordsInDevelopment,
+} from './libs/no-records-warning';
 export type {
 	OfflineModeFactory,
 	OfflineModeOptions,

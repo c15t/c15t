@@ -39,6 +39,7 @@ export type {
 export {
 	custom,
 	hosted,
+	local,
 	manifest,
 	offline,
 	type BrowserManifestModeFactory,
@@ -71,7 +72,7 @@ export type C15tVuePluginOptions = C15tVuePluginConfig &
 		| {
 				/**
 				 * Where the visitor's policy comes from: `manifest()`, `hosted()`,
-				 * `offline()` or `custom()` from `c15t/vue/vue-plugin`.
+				 * `local()` or `custom()` from `c15t/vue/vue-plugin`.
 				 *
 				 * @example
 				 * ```ts

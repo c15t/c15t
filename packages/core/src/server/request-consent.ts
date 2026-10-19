@@ -1108,7 +1108,11 @@ export const resolveRequestConsent = async function resolveRequestConsent(
 
 	const resolveOffline =
 		async function resolveOffline(): Promise<RequestConsentState> {
-			const transport = createOfflineTransport(options.offline ?? {});
+			// The page's own local-mode transport warns in the browser.
+			const transport = createOfflineTransport({
+				...options.offline,
+				acknowledgeNoRecords: true,
+			});
 			const response = await transport.init?.({
 				overrides: base.initialOverrides ?? {},
 				user: base.initialUser ?? null,

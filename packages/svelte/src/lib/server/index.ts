@@ -72,4 +72,4 @@ export const resolveConsent = function resolveConsent(
 
 export type { KernelConfig } from '@c15t/core';
 export type { ConsentRequestOptions, ConsentState, ResolveConsentOptions };
-export { custom, hosted, offline } from '@c15t/core';
+export { custom, hosted, local, offline } from '@c15t/core';

@@ -5,5 +5,5 @@
  * The language a server prefetch detected from `Accept-Language` keeps the
  * startup copy.
  */
-export { offline } from '@c15t/core';
+export { local, offline } from '@c15t/core';
 export type { OfflineModeOptions } from '@c15t/core';

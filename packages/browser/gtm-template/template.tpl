@@ -53,9 +53,9 @@ ___TEMPLATE_PARAMETERS___
       {
         "type": "REGEX",
         "args": [
-          "^https://([a-z0-9-]+\\.inth\\.app/c15t(\\.headless|\\.iab)?|cdn\\.jsdelivr\\.net/npm/@c15t/browser@[0-9]+\\.[0-9]+\\.[0-9]+(-[0-9A-Za-z.-]+)?/dist/c15t(\\.offline|\\.headless|\\.iab)?)\\.js$"
+          "^https://([a-z0-9-]+\\.inth\\.app/c15t(\\.headless|\\.iab)?|cdn\\.jsdelivr\\.net/npm/@c15t/browser@[0-9]+\\.[0-9]+\\.[0-9]+(-[0-9A-Za-z.-]+)?/dist/c15t(\\.local|\\.offline|\\.headless|\\.iab)?)\\.js$"
         ],
-        "errorMessage": "Use your Inth project URL with /c15t.js on the end, or a jsDelivr URL for an exact @c15t/browser version, such as 3.1.0, and c15t.js, c15t.offline.js, c15t.headless.js or c15t.iab.js."
+        "errorMessage": "Use your Inth project URL with /c15t.js on the end, or a jsDelivr URL for an exact @c15t/browser version, such as 3.1.0, and c15t.js, c15t.local.js, c15t.headless.js or c15t.iab.js."
       }
     ],
     "enablingConditions": [
@@ -80,7 +80,7 @@ ___TEMPLATE_PARAMETERS___
         "type": "EQUALS"
       }
     ],
-    "help": "Required for jsDelivr's c15t.js. Leave it blank for c15t.offline.js, which uses no backend. Inth serves its /c15t.js with the backend URL already set. jsDelivr's c15t.headless.js and c15t.iab.js run offline without one."
+    "help": "Required for jsDelivr's c15t.js. Leave it blank for c15t.local.js, which uses no backend. Inth serves its /c15t.js with the backend URL already set. jsDelivr's c15t.headless.js and c15t.iab.js run offline without one."
   },
   {
     "type": "GROUP",
@@ -340,8 +340,10 @@ const PRERELEASE_CHARS =
 // these, so loading one alone would show nothing and never send an update.
 // Inth serves no offline bundle.
 const INTH_FILES = ['c15t.js', 'c15t.headless.js', 'c15t.iab.js'];
+// c15t.offline.js is the old name for c15t.local.js, before 3.2.0.
 const JSDELIVR_FILES = [
   'c15t.js',
+  'c15t.local.js',
   'c15t.offline.js',
   'c15t.headless.js',
   'c15t.iab.js'
@@ -408,11 +410,14 @@ const isAllowedScriptUrl = (url) => {
 };
 
 // c15t.js from jsDelivr runs in hosted mode and stops without a backend URL.
-// c15t.offline.js stops when it gets one. Inth bundles carry their own.
+// c15t.local.js stops when it gets one. Inth bundles carry their own.
 const backendUrlProblem = (url, backend) => {
   if (url.indexOf('https://' + JSDELIVR_PREFIX) !== 0) return '';
   if (endsWith(url, '/c15t.js') && backend === '') {
     return 'jsDelivr\'s c15t.js needs a "Backend URL".';
+  }
+  if (endsWith(url, '/c15t.local.js') && backend !== '') {
+    return 'c15t.local.js uses no backend. Clear "Backend URL".';
   }
   if (endsWith(url, '/c15t.offline.js') && backend !== '') {
     return 'c15t.offline.js uses no backend. Clear "Backend URL".';
@@ -545,7 +550,7 @@ const backendUrl =
 if (inject && !isAllowedScriptUrl(scriptUrl)) {
   log('c15t: "c15t script URL" must be an Inth project /c15t.js URL or a ' +
       'jsDelivr URL for an exact @c15t/browser version and c15t.js, ' +
-      'c15t.offline.js, c15t.headless.js or c15t.iab.js. Got: ' + scriptUrl);
+      'c15t.local.js, c15t.headless.js or c15t.iab.js. Got: ' + scriptUrl);
   data.gtmOnFailure();
 } else if (inject && backendUrlProblem(scriptUrl, backendUrl) !== '') {
   log('c15t: ' + backendUrlProblem(scriptUrl, backendUrl));
