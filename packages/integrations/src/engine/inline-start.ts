@@ -119,6 +119,15 @@ const stepValues = function stepValues(step: ManifestStep): unknown[] {
 		case 'defineStubFunction': {
 			return Object.values(step.properties ?? {});
 		}
+		case 'defineGlobalMethods': {
+			// As with `setGlobal`, the runner returns `undefined` for a
+			// dropped `undefined` value.
+			return step.methods.flatMap((method) =>
+				method.behavior === 'return' && method.value !== undefined
+					? [method.value]
+					: []
+			);
+		}
 		default: {
 			return [];
 		}

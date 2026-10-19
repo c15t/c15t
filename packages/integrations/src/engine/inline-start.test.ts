@@ -356,6 +356,15 @@ describe('inlineStepsStart', () => {
 				},
 			])
 		).toBeUndefined();
+		expect(
+			inlineStepsStart([
+				{
+					methods: [{ behavior: 'return', name: 'sentAt', value: date }],
+					target: 'g',
+					type: 'defineGlobalMethods',
+				},
+			])
+		).toBeUndefined();
 	});
 
 	it('starts inline when every value is plain JSON', () => {
