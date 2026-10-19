@@ -47,6 +47,21 @@ consent UI and lets the browser resolve consent. Later requests read the cached
 manifest and add little time. Change the wait with `timeoutMs` in
 `createConsentStateHandler`.
 
+When the state shows that the visitor's consent already allows some `scripts`
+entries, through a stored choice or a policy that asks for none, `ConsentRoot`
+renders an inline script after your page content. After first paint, it runs
+those entries' setup and inserts their tags, so they start loading before the
+page hydrates. Entries with `alwaysLoad` start this way whatever the visitor
+chose. The script loader adopts those tags instead of inserting its own. Nothing
+starts from the HTML while the policy asks the visitor to choose, not even
+`alwaysLoad` entries, and a prerendered page starts nothing.
+
+This needs React 19. On React 18, every entry starts after hydration. The vendor
+helpers from `@c15t/integrations` start this way, except Amplitude, Cloudflare
+Zaraz, Heap, Klaviyo, Microsoft Clarity, PostHog, Sentry and Vercel Speed
+Insights. Those helpers, and `scripts` entries you write yourself, start after
+hydration.
+
 ## Stream the page while consent resolves
 
 With runtime fetching, return the pending server function call instead of
@@ -67,6 +82,9 @@ visitor:
   arrives.
 - If the backend does not answer in time, the promise resolves to the cookie
   and header state and the browser resolves consent itself.
+- The `scripts` entries the state allows start from the chunk that carries the
+  state, as soon as it arrives. When that chunk comes after the app's
+  JavaScript, the rest of the page may already be hydrating.
 
 Stream when a slow or unreachable backend must never delay your page, for
 example on serverless hosts where many requests start with an empty manifest
