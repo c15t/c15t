@@ -94,6 +94,50 @@ export const withClientData = function withClientData(
 	return mode;
 };
 
+/**
+ * The `<body>`-end script that starts the `scripts` entries a visitor's
+ * consent already allows, or `undefined` when it starts nothing. A
+ * failed import renders the page without it; the script loader then starts
+ * those entries after hydration.
+ *
+ * @param config - The merged c15t config.
+ * @param state - The state the server resolved, with its clock.
+ * @returns The head entry for the script.
+ * @internal
+ */
+export const serverScriptStartHead = async function serverScriptStartHead(
+	config: Partial<RuntimeConsentConfig>,
+	state: RequestConsentState
+) {
+	if (!config.scripts?.length) {
+		return;
+	}
+	let code: string | undefined;
+	try {
+		const { serverScriptStart } =
+			await import('@c15t/core/runtime/script-server-start');
+		code = serverScriptStart({
+			...(config as unknown as Parameters<typeof serverScriptStart>[0]),
+			prefetch: state,
+		});
+	} catch {
+		return;
+	}
+	if (!code) {
+		return;
+	}
+	const tag: {
+		innerHTML: string;
+		key: string;
+		nonce?: string;
+		tagPosition: 'bodyClose';
+	} = { innerHTML: code, key: 'c15t-server-start', tagPosition: 'bodyClose' };
+	if (config.nonce) {
+		tag.nonce = config.nonce;
+	}
+	return { script: [tag] };
+};
+
 export default defineNuxtPlugin(async (nuxtApp) => {
 	const appConfig = useAppConfig();
 	const runtimeConfig = useRuntimeConfig();
@@ -228,6 +272,13 @@ export default defineNuxtPlugin(async (nuxtApp) => {
 			prefetched.value = markRaw(
 				subject ? { ...rest, initialRecords: { subject } } : rest
 			);
+			// Runs a granted vendor's setup and inserts its tag before the page
+			// hydrates. The script loader adopts the tag. The client registers
+			// no such tag, so its head leaves the element alone.
+			const startHead = await serverScriptStartHead(config.value, state);
+			if (startHead) {
+				nuxtApp.runWithContext(() => useHead(startHead));
+			}
 		}
 	}
 	const prefetch = prefetched.value ? toRaw(prefetched.value) : undefined;

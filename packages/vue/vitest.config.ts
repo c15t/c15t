@@ -162,6 +162,10 @@ export default mergeConfig(
 						__dirname,
 						'../core/src/runtime/provider.ts'
 					),
+					'@c15t/core/runtime/script-server-start': resolve(
+						__dirname,
+						'../core/src/runtime/script-server-start.ts'
+					),
 				},
 				{ '@c15t/core/events': resolve(__dirname, '../core/src/events.ts') },
 				{
