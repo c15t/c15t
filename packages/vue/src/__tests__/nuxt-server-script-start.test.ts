@@ -28,6 +28,7 @@ const pixel: Script = {
 };
 
 const nuxt = vi.hoisted(() => ({
+	appConfig: {} as Record<string, unknown>,
 	heads: [] as unknown[],
 	response: undefined as unknown,
 	state: new Map<string, ShallowRef<unknown>>(),
@@ -44,6 +45,7 @@ vi.mock('#imports', async () => {
 				iframeBlocker: false,
 				nonce: 'request-nonce',
 				scripts: [pixel],
+				...nuxt.appConfig,
 			},
 		}),
 		useHead: (input: unknown) => {
@@ -144,6 +146,7 @@ const renderStartScripts = async function renderStartScripts(
 
 afterEach(() => {
 	vi.unstubAllGlobals();
+	nuxt.appConfig = {};
 	nuxt.heads = [];
 	nuxt.state.clear();
 });
@@ -163,4 +166,10 @@ test('starts nothing while the policy asks the visitor to choose', async () => {
 
 test('starts nothing from prerendered HTML', async () => {
 	expect(await renderStartScripts(optOut, { prerenderedAt: 1 })).toEqual([]);
+});
+
+test('starts nothing when the app turns the server start off', async () => {
+	nuxt.appConfig = { scriptLoader: { serverStart: false } };
+
+	expect(await renderStartScripts(optOut)).toEqual([]);
 });

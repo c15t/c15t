@@ -367,7 +367,9 @@ export const ConsentRoot = (props: ConsentRootProps) => {
 			so ahead of the content it would hold back first paint. Without
 			`state` there is nothing to start, and a static page keeps its
 			HTML free of inline scripts. */}
-			{scripts?.length && state !== undefined ? (
+			{scripts?.length &&
+			state !== undefined &&
+			scriptLoader?.serverStart !== false ? (
 				<Suspense fallback={null}>
 					<ServerScriptStart options={providerOptions} />
 				</Suspense>

@@ -112,6 +112,12 @@ test('starts nothing from a shared render', () => {
 	expect(startScripts(renderPage({ shared: true }))).toEqual([]);
 });
 
+test('starts nothing when the app turns the server start off', () => {
+	expect(
+		startScripts(renderPage({ scriptLoader: { serverStart: false } }))
+	).toEqual([]);
+});
+
 test('starts nothing without scripts', () => {
 	expect(startScripts(renderPage({ scripts: [] }))).toEqual([]);
 });

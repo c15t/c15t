@@ -259,6 +259,9 @@ Zaraz and Sentry. Those two helpers, and `scripts` entries you write yourself,
 start after hydration. A `ConsentProvider` given a `runtime` starts nothing
 from the HTML: its scripts start after hydration.
 
+To start every `scripts` entry after hydration instead, pass
+`scriptLoader={{ serverStart: false }}` to `ConsentRoot`.
+
 Type `event.locals.c15t` in `src/app.d.ts`:
 
 <include src="../../shared/examples/sveltekit/app-locals.mdx" />

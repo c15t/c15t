@@ -492,7 +492,9 @@ export const ConsentRoot = ({
 			{children}
 			{/* After the page: an inline script waits for the stylesheets,
 			so ahead of the content it would hold back first paint. */}
-			{scripts?.length && startsFromHTML(state) ? (
+			{scripts?.length &&
+			startsFromHTML(state) &&
+			scriptLoader?.serverStart !== false ? (
 				<Suspense fallback={null}>
 					<ServerScriptStart options={providerOptions} />
 				</Suspense>
