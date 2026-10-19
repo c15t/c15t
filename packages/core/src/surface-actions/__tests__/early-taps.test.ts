@@ -30,7 +30,8 @@ import { replayEarlyConsentTaps } from '../early-taps';
 let policy = matchedResolution(optInRule());
 let unavailable = false;
 const runtimes: ConsentRuntime[] = [];
-const saves: string[] = [];
+/** Request bodies the current test's runtimes sent to `/subjects`. */
+let saves: string[] = [];
 
 const queue = () =>
 	(window as unknown as Record<string, EarlyConsentTapQueue>)[
@@ -40,7 +41,7 @@ const queue = () =>
 beforeEach(() => {
 	policy = matchedResolution(optInRule());
 	unavailable = false;
-	saves.length = 0;
+	saves = [];
 	localStorage.clear();
 	clearStoredConsentRecords();
 	vi.spyOn(console, 'warn').mockImplementation(() => {});
@@ -88,6 +89,11 @@ const nextFrame = () =>
 	});
 
 const createRuntime = () => {
+	// An init near the end of a test starts an outbox replay that can
+	// outlive `dispose()`. Every runtime shares the outbox in localStorage,
+	// so that replay can resend the save the next test just queued. A
+	// runtime's requests count for the test that created it.
+	const sent = saves;
 	const runtime = createConsentRuntime({
 		consentCategories: ['necessary', 'measurement', 'marketing'],
 		mode: hosted({
@@ -98,7 +104,7 @@ const createRuntime = () => {
 					return Promise.resolve(new Response(null, { status: 503 }));
 				}
 				if (path.endsWith('/subjects')) {
-					saves.push(String(init?.body));
+					sent.push(String(init?.body));
 				}
 				return Promise.resolve(
 					Response.json(
