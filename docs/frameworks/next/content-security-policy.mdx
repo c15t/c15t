@@ -94,9 +94,10 @@ c15t stamps a nonce on these DOM nodes:
   page hydrates. If the policy blocks it, the banner still works after
   hydration, but a tap before then does nothing.
 - The inline `<script>` that `ConsentRoot` renders when the visitor's consent or
-  `alwaysLoad` already lets some of your `scripts` entries run gets
+  `alwaysLoad` already lets some vendor helper entries in `scripts` run gets
   `options.nonce`. It runs those entries' setup and inserts their tags before
-  the page hydrates. The script elements it inserts take the same nonce, or the
+  the page hydrates. [Rendering](/docs/frameworks/next/rendering#start-allowed-scripts-before-hydration)
+  lists the helpers that start this way. The script elements it inserts take the same nonce, or the
   entry's own `nonce`. Its content changes with each visitor's consent, so a
   hash-based policy can't allow it. If the policy blocks it, the script loader
   starts those entries after hydration instead.
