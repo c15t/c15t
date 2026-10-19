@@ -132,3 +132,70 @@ test('renders the empty script the browser hydrates when the start module fails 
 		vi.resetModules();
 	}
 });
+
+/** The root as React 18 runs it: React without `use`. */
+const importRootWithoutUse = async (): Promise<typeof ConsentRoot> => {
+	vi.resetModules();
+	// oxlint-disable-next-line anti-slop/no-module-mocking -- The repo installs only React 19; React 18 is React without `use`.
+	vi.doMock('react', async (importOriginal) => {
+		const actual = await importOriginal<Record<string, unknown>>();
+		const react18 = { ...actual, use: undefined };
+		return { ...react18, default: react18 };
+	});
+	return (await import('../root')).ConsentRoot;
+};
+
+test('renders the server start on React 18, which has no `use`', async () => {
+	try {
+		const Root = await importRootWithoutUse();
+		const onError = vi.fn();
+		const stream = await renderToReadableStream(
+			<Root
+				options={{ mode: custom({ init: () => Promise.resolve({}) }) }}
+				scripts={[pixel]}
+				state={Promise.resolve(grantedState())}
+			>
+				<main id="page">Page</main>
+			</Root>,
+			{ onError }
+		);
+		await stream.allReady;
+		const html = await new Response(stream).text();
+
+		expect(onError).not.toHaveBeenCalled();
+		const start = html.indexOf(JSON.stringify(pixel.src));
+		expect(start).toBeGreaterThan(html.indexOf('</main>'));
+	} finally {
+		vi.doUnmock('react');
+		vi.resetModules();
+	}
+});
+
+test('finishes the render on React 18 when the start module fails to load', async () => {
+	// Without `use`, the retry calls the loader again. A new import there
+	// would suspend the render again, on every retry.
+	// oxlint-disable-next-line anti-slop/no-module-mocking -- The property under test is a failed load of this module; no interface stands in for a dynamic import.
+	vi.doMock('@c15t/core/runtime/script-server-start', () => {
+		throw new Error('chunk missing');
+	});
+	try {
+		const Root = await importRootWithoutUse();
+		const stream = await renderToReadableStream(
+			<Root
+				options={{ mode: custom({ init: () => Promise.resolve({}) }) }}
+				scripts={[pixel]}
+				state={grantedState()}
+			>
+				<main id="page">Page</main>
+			</Root>
+		);
+		await stream.allReady;
+		const html = await new Response(stream).text();
+
+		expect(html).toMatch(/<\/main><!--\$--><script[^>]*><\/script>/u);
+	} finally {
+		vi.doUnmock('@c15t/core/runtime/script-server-start');
+		vi.doUnmock('react');
+		vi.resetModules();
+	}
+});

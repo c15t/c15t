@@ -128,3 +128,39 @@ test('renders without a server start when the state promise rejects', async () =
 	expect(html).toContain('<main id="page">Page</main>');
 	expect(html).not.toContain(JSON.stringify(pixel.src));
 });
+
+/** The root as React 18 runs it: React without `use`. */
+const importRootWithoutUse = async (): Promise<typeof ConsentRoot> => {
+	vi.resetModules();
+	// oxlint-disable-next-line anti-slop/no-module-mocking -- The repo installs only React 19; React 18 is React without `use`.
+	vi.doMock('react', async (importOriginal) => {
+		const actual = await importOriginal<Record<string, unknown>>();
+		const react18 = { ...actual, use: undefined };
+		return { ...react18, default: react18 };
+	});
+	return (await import('../root')).ConsentRoot;
+};
+
+test('starts the scripts from a streamed state on React 18, which has no `use`', async () => {
+	try {
+		const Root = await importRootWithoutUse();
+		const onError = vi.fn();
+		const stream = await renderToReadableStream(
+			createElement(
+				Root,
+				{ scripts: [pixel], state: optOutState() },
+				createElement('main', { id: 'page' }, 'Page')
+			),
+			{ onError }
+		);
+		await stream.allReady;
+		const html = await new Response(stream).text();
+
+		expect(onError).not.toHaveBeenCalled();
+		const start = html.indexOf(JSON.stringify(pixel.src));
+		expect(start).toBeGreaterThan(html.indexOf('</main>'));
+	} finally {
+		vi.doUnmock('react');
+		vi.resetModules();
+	}
+});

@@ -232,31 +232,64 @@ const resolveMode = function resolveMode(
 
 type ScriptServerStartModule = typeof ScriptServerStart;
 
+/** A promise that keeps its result where React 18 reads it on a retry. */
+type Recorded<Value> = Promise<Value> & {
+	status?: 'fulfilled';
+	value?: Value;
+};
+
+/** `promise`, which must not reject, recording its result on itself. */
+const record = function record<Value>(
+	promise: Promise<Value>
+): Recorded<Value> {
+	const holder: { recorded?: Recorded<Value> } = {};
+	const recorded: Recorded<Value> = (async () => {
+		const value = await promise;
+		// Set by now: the await above yields.
+		if (holder.recorded) {
+			holder.recorded.status = 'fulfilled';
+			holder.recorded.value = value;
+		}
+		return value;
+	})();
+	holder.recorded = recorded;
+	return recorded;
+};
+
 let scriptServerStartModule:
-	| Promise<ScriptServerStartModule | undefined>
+	| Recorded<ScriptServerStartModule | undefined>
 	| undefined;
 
 /**
  * Loaded on the server only, so no browser chunk requests it. A failed
  * import skips the server start and lets the next render retry.
  */
-const importScriptServerStart = function importScriptServerStart(): Promise<
+const importScriptServerStart = function importScriptServerStart(): Recorded<
 	ScriptServerStartModule | undefined
 > {
-	scriptServerStartModule ??= (async () => {
-		try {
-			return await import('@c15t/core/runtime/script-server-start');
-		} catch {
-			scriptServerStartModule = undefined;
-			return undefined;
-		}
-	})();
+	const loaded = scriptServerStartModule;
+	if (loaded?.status === 'fulfilled' && !loaded.value) {
+		// The failed load still answers the render that waited for it: on
+		// React 18 that render calls again, and a new import would suspend
+		// it again.
+		scriptServerStartModule = undefined;
+		return loaded;
+	}
+	scriptServerStartModule ??= record(
+		(async () => {
+			try {
+				return await import('@c15t/core/runtime/script-server-start');
+			} catch {
+				return undefined;
+			}
+		})()
+	);
 	return scriptServerStartModule;
 };
 
 const settledStates = new WeakMap<
 	Promise<ConsentState>,
-	Promise<ConsentState | undefined>
+	Recorded<ConsentState | undefined>
 >();
 
 /**
@@ -266,16 +299,18 @@ const settledStates = new WeakMap<
  */
 const settledState = function settledState(
 	state: Promise<ConsentState>
-): Promise<ConsentState | undefined> {
+): Recorded<ConsentState | undefined> {
 	let settled = settledStates.get(state);
 	if (!settled) {
-		settled = (async () => {
-			try {
-				return await state;
-			} catch {
-				return undefined;
-			}
-		})();
+		settled = record(
+			(async () => {
+				try {
+					return await state;
+				} catch {
+					return undefined;
+				}
+			})()
+		);
 		settledStates.set(state, settled);
 	}
 	return settled;
@@ -303,6 +338,21 @@ const { use } = React as {
 };
 
 /**
+ * `use` where React has it. React 18 suspends on a thrown promise and
+ * reads its recorded result on the retry.
+ */
+const read = function read<Value>(promise: Recorded<Value>): Value {
+	if (use) {
+		// oxlint-disable-next-line react-hooks/rules-of-hooks -- `read` is `use` with a React 18 fallback, so it keeps `use`'s rules: render only, conditions allowed.
+		return use(promise);
+	}
+	if (promise.status === 'fulfilled') {
+		return promise.value as Value;
+	}
+	throw promise;
+};
+
+/**
  * Starts the scripts the server's consent state already lets run. An
  * inline script runs the setup of each one with a `serverStart` and
  * inserts it after first paint, before hydration, and the loader adopts
@@ -316,12 +366,9 @@ const ServerScriptStart = ({
 }: {
 	options: ConsentProviderOptions;
 }): ReactNode => {
-	if (!use) {
-		return null;
-	}
 	const { prefetch } = options;
 	const state = isPending(prefetch as ConsentState | Promise<ConsentState>)
-		? use(settledState(prefetch as Promise<ConsentState>))
+		? read(settledState(prefetch as Promise<ConsentState>))
 		: (prefetch as ConsentState | undefined);
 	// A streamed state that rejects, or resolves to a shared one, renders no
 	// start script, on the server and in the browser alike.
@@ -338,7 +385,7 @@ const ServerScriptStart = ({
 			/>
 		);
 	}
-	const module = use(importScriptServerStart());
+	const module = read(importScriptServerStart());
 	// A failed import still renders the empty script the browser hydrates.
 	const code = module?.serverScriptStart({
 		...(options as unknown as Parameters<
