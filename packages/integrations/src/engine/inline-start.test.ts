@@ -287,6 +287,9 @@ describe('inlineStepsStart', () => {
 			// oxlint-disable-next-line no-sparse-arrays -- The hole is the case.
 			[1, , 3],
 			{ sent: date },
+			// An own `__proto__` key, which an object literal reads as the
+			// prototype.
+			{ config: JSON.parse('{"__proto__":{"debug":true}}') },
 		]) {
 			expect(
 				inlineStepsStart([{ name: 'x', type: 'setGlobal', value }])

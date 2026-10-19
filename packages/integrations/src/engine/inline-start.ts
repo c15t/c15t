@@ -68,7 +68,9 @@ const runsInline = function runsInline(step: ManifestStep): boolean {
 /**
  * Whether JSON carries `value` unchanged. `cloneStepValue` keeps
  * `undefined`, a `Date`, a function, a non-finite number, `-0`, an array
- * hole and a class instance; JSON drops or converts each of them.
+ * hole and a class instance; JSON drops or converts each of them. It also
+ * keeps an own `__proto__` key, which the inline code, an object literal,
+ * reads as the object's prototype.
  */
 const survivesJSON = function survivesJSON(value: unknown): boolean {
 	if (
@@ -91,6 +93,7 @@ const survivesJSON = function survivesJSON(value: unknown): boolean {
 	const prototype = Object.getPrototypeOf(value);
 	return (
 		(prototype === Object.prototype || prototype === null) &&
+		!Object.hasOwn(value, '__proto__') &&
 		Object.values(value).every(survivesJSON)
 	);
 };
