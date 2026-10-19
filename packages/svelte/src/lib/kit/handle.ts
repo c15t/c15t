@@ -30,7 +30,7 @@ export interface C15tHandleOptions extends ConsentRequestOptions {
 	backendURL?: string;
 	/**
 	 * How `loadConsent` resolves the visitor: `manifest()` (the default),
-	 * `hosted()` or `offline()` from `@c15t/svelte/kit`. They are plain
+	 * `hosted()` or `local()` from `@c15t/svelte/kit`. They are plain
 	 * data; `ConsentRoot` loads the code a mode needs in the browser only
 	 * when it runs.
 	 *

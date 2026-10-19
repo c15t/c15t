@@ -1,5 +1,5 @@
 /**
- * Offline mode for the script tag: core's `offline()`, which resolves policy
+ * Local mode for the script tag: core's `local()`, which resolves policy
  * rules locally and switches copy when `data-language`, `overrides` or
  * `setLanguage()` names a language the bundle or `i18n.messages` has.
  */

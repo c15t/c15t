@@ -787,7 +787,7 @@ const GENERATED_IMPORTERS = [
  * value. The c15t variables come before the Inth ones.
  *
  * The manifest is fetched only for a bundle that reads `snapshot`, which
- * `hosted()` and `offline()` never do. The mode is chosen in app code, so
+ * `hosted()` and `local()` never do. The mode is chosen in app code, so
  * the plugin cannot know it from the Vite config:
  *
  * - `vite build` gives the exports stand-ins and fills them in after
@@ -1098,7 +1098,7 @@ export const createConsentManifestPlugin = (
  * single-page apps (React, Solid, plain JavaScript). Import `snapshot` from
  * there; no file is written into the app. The manifest is fetched only when
  * the bundle reads `snapshot`, as `manifest()` does, so `hosted()` and
- * `offline()` builds never depend on the backend.
+ * `local()` builds never depend on the backend.
  *
  * A failed fetch stops `vite build` and warns in `vite dev`, where
  * `snapshot` is `undefined`. Set `onBuildError` or `C15T_ON_BUILD_ERROR` to

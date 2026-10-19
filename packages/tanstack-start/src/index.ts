@@ -46,7 +46,7 @@
  * `createConsentRoute({ proxy: true })`, also pass `proxy: true` there;
  * init and saves then both go through the route.
  *
- * `manifest()`, `hosted()` and `offline()` here are plain data for
+ * `manifest()`, `hosted()` and `local()` here are plain data for
  * `createConsentStateHandler({ mode })`. `ConsentRoot` loads the code for a
  * mode only when the browser runs it.
  *

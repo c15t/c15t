@@ -15,7 +15,7 @@
  *   rendered page already carries the visitor's policy.
  * - The app calls the backend's `/init`: `hosted()` mode, without init
  *   `headers`. `manifest()` asks the Nuxt consent route, which core's
- *   script does not address, or resolves in the browser; `offline()` makes
+ *   script does not address, or resolves in the browser; `local()` makes
  *   no request.
  * - Nothing replaces the request: no `consentSource`, `experiment` (the
  *   arm travels with `/init`) or `prefetch`.

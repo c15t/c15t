@@ -1,6 +1,6 @@
 {
 	"title": "@c15t/cli: Cookie consent setup CLI",
-	"description": "Set up a c15t cookie consent banner for React, Next.js, and other supported frameworks, preview file edits, and configure consent integrations. Choose a hosted backend, a self-hosted backend, or offline mode for local development.",
+	"description": "Set up a c15t cookie consent banner for React, Next.js, and other supported frameworks, preview file edits, and configure consent integrations. Choose a hosted backend, a self-hosted backend, or local mode for development and tests.",
 	"features": [
 		"V3 quickstart files for Next.js, Nuxt, TanStack Start, Astro, React, JavaScript, a script tag, Vue, Svelte, SvelteKit, and Solid",
 		"Preview and apply integration files with explicit framework wiring instructions",
@@ -83,6 +83,6 @@
 	"githubLink": "https://github.com/c15t/c15t",
 	"showCLIGeneration": true,
 	"customSections": {
-		"Setup Paths": "- **Hosted on inth.com**: Configure a hosted c15t instance\n- **Self-hosted backend**: Generate config and run database migrations for @c15t/backend\n- **Offline mode**: Generate browser-only consent setup for demos, local development, previews, or static sites"
+		"Setup Paths": "- **Hosted on inth.com**: Configure a hosted c15t instance\n- **Self-hosted backend**: Generate config and run database migrations for @c15t/backend\n- **Local mode**: Generate a browser-only setup for development and tests. c15t keeps no server-side record of consent"
 	}
 }

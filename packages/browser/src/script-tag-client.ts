@@ -85,7 +85,9 @@ export const createScriptTagConsentClient =
 		context: CreateConsentClientContext = {}
 	): ConsentClient {
 		const mode = resolveMode(options);
-		warnNoConsentRecordsOnDevelopmentHost(mode, options.acknowledgeNoRecords);
+		if (context.scriptTag) {
+			warnNoConsentRecordsOnDevelopmentHost(mode, options.acknowledgeNoRecords);
+		}
 		return createConsentClientWith(
 			options,
 			mode,

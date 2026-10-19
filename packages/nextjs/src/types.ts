@@ -62,7 +62,7 @@ export interface ConsentClientOptions {
 
 	/**
 	 * Additional React provider options. `options.mode` replaces the
-	 * config's `mode`: `manifest()`, `hosted()` or `offline()` from
+	 * config's `mode`: `manifest()`, `hosted()` or `local()` from
 	 * `c15t/next`, or a transport such as `custom(transport)`.
 	 */
 	options?: Omit<

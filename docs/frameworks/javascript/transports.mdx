@@ -177,6 +177,11 @@ function that returns the copy for a language or `undefined`, and
 `translationsFor`, the transport serves its starting copy under whatever
 language the kernel asks for.
 
+Its `save` keeps the choice in the browser only, so in development builds
+the first save warns that c15t keeps no server-side record of consent.
+Pass `acknowledgeNoRecords: true` to hide it. A custom transport that uses
+only its `init` and saves elsewhere never warns.
+
 ## Custom
 
 `custom(transport)` from `c15t` wraps your own `init` and `save`. This one

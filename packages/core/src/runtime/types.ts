@@ -386,7 +386,7 @@ export interface ConsentRuntimeOptions {
 	/**
 	 * Transport factory the runtime builds its kernel with. Required.
 	 *
-	 * Pass `hosted()` to talk to a c15t backend, `offline()` to resolve
+	 * Pass `hosted()` to talk to a c15t backend, `local()` to resolve
 	 * policies locally with no network, or `custom()` to supply your own
 	 * kernel transport or v2 endpoint handlers. This is an initial-only
 	 * option: create a new runtime to change it.
@@ -699,7 +699,7 @@ export interface ConsentRuntime {
 	 * ```ts
 	 * const runtime = createConsentRuntime({
 	 *   iframeBlocker: { disableAutomaticBlocking: true },
-	 *   mode: offline(),
+	 *   mode: local(),
 	 * });
 	 * runtime.start();
 	 * container.append(embed);

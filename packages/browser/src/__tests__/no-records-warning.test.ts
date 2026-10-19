@@ -101,6 +101,19 @@ describe('local mode warning in the script tag', () => {
 		expect(warnings(warn)).toEqual([]);
 	});
 
+	// `vite preview` and `next start` serve production builds on localhost.
+	it('follows NODE_ENV, not the host, in the ES module entry', async () => {
+		const { createConsentClient } = await import('../offline');
+		createConsentClient({ ui: false }).dispose();
+
+		expect(warnings(warn)).toEqual([]);
+
+		vi.stubEnv('NODE_ENV', 'development');
+		createConsentClient({ ui: false }).dispose();
+
+		expect(warnings(warn)).toEqual([NO_RECORDS_WARNING]);
+	});
+
 	it('names the new file when the page loads c15t.offline.js', async () => {
 		await loadTag('cdn-offline');
 

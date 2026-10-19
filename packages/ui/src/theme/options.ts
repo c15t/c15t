@@ -24,7 +24,7 @@ export interface CommonTransportOptions {
 	 * Transport factory the provider builds its kernel with.
 	 *
 	 * @remarks
-	 * Pass `hosted()` to talk to a c15t backend, `offline()` to resolve
+	 * Pass `hosted()` to talk to a c15t backend, `local()` to resolve
 	 * policies locally with no network, or `custom()` to supply your own
 	 * kernel transport. Framework providers require this; it is optional
 	 * here so the base type can also describe partial option fragments.

@@ -209,7 +209,7 @@ export interface ResolveConsentOptions extends ConsentRequestOptions {
 	 * How the visitor's policy is resolved, as data from
 	 * `@c15t/tanstack-start`: `manifest()` (the default) resolves it here
 	 * from the policy snapshot, `manifest({ resolve: 'browser' })` leaves it
-	 * to the browser, `hosted()` asks the backend's `/init`, and `offline()`
+	 * to the browser, `hosted()` asks the backend's `/init`, and `local()`
 	 * resolves bundled rules. The state carries the mode to `ConsentRoot`.
 	 */
 	mode?: ConsentMode;

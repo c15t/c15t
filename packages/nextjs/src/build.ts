@@ -204,7 +204,7 @@ const loadUserConfig = async function loadUserConfig(
 
 /**
  * Why the config's mode needs no build-time manifest, as Nuxt and Astro
- * decide: `hosted()` and `offline()` have none to fetch, a `snapshot` is
+ * decide: `hosted()` and `local()` have none to fetch, a `snapshot` is
  * already one, and `manifest({ source: 'runtime' })` always fetches at
  * runtime. `undefined` when the build should fetch it.
  */
@@ -372,7 +372,7 @@ const withConsentAliases = function withConsentAliases(
  * environment variable, to use one behaviour in both. The fetch is skipped
  * for a `backendURL` that is not absolute http(s), for `output: 'export'`,
  * which has no server, and when `c15t.config.ts` sets a mode that reads no
- * build-time manifest: `hosted()`, `offline()`, `manifest({ snapshot })` or
+ * build-time manifest: `hosted()`, `local()`, `manifest({ snapshot })` or
  * `manifest({ source: 'runtime' })`. The wrapper evaluates the file with the
  * loader Next.js uses for `next.config.ts` to read its `mode` and
  * `backendURL`.

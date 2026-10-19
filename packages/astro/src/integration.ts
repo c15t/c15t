@@ -207,7 +207,7 @@ const MODE_TYPES = new Set(['manifest', 'hosted', 'offline']);
 
 /**
  * Check the mode is plain data from `manifest()`, `hosted()` or
- * `offline()`, and that it has a backend to talk to.
+ * `local()`, and that it has a backend to talk to.
  *
  * `manifest()` reads `${backendURL}/manifest` on the server and the
  * browser saves consent at `${backendURL}/subjects`, so without a backend
@@ -584,7 +584,7 @@ const pageRuntimeModules = function pageRuntimeModules(
  * The transport export of `@c15t/astro/client` the page registers, so it
  * ships only the code its mode runs.
  *
- * - `offline()` loads its transport on the first init.
+ * - `local()` loads its transport on the first init.
  * - `hosted()` on a site with no adapter: every page is prerendered and
  *   every first visit inits, so the whole hosted transport ships with it.
  * - Otherwise the server resolved the visitor, so only the save path ships
@@ -805,7 +805,7 @@ const missingAdapterMessage = function missingAdapterMessage(
 
 /**
  * Fetch the manifest for `astro build` or `astro dev` and put it in the
- * resolved mode as its `snapshot`. `hosted()` and `offline()` have no
+ * resolved mode as its `snapshot`. `hosted()` and `local()` have no
  * manifest to fetch, a `snapshot` is already one, and
  * `manifest({ source: 'runtime' })` always fetches at runtime.
  *

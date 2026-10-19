@@ -46,6 +46,12 @@ export const createOfflineConsentClient = function createOfflineConsentClient(
 					}),
 		name: 'offline',
 	};
-	warnNoConsentRecordsOnDevelopmentHost(resolved, options.acknowledgeNoRecords);
+	// The ES module entry follows its bundler's NODE_ENV, through `local()`.
+	if (context.scriptTag) {
+		warnNoConsentRecordsOnDevelopmentHost(
+			resolved,
+			options.acknowledgeNoRecords
+		);
+	}
 	return createConsentClientWith(options, resolved, policyRules, context);
 };

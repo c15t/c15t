@@ -40,7 +40,7 @@ export type ResolveTransport = (
 ) => ProviderTransportFactory;
 
 /**
- * `offline()`: resolve policy rules in the browser.
+ * `local()`: resolve policy rules in the browser.
  *
  * The transport and the recommended rule pack load on the first init, so a
  * page the server already resolved never loads them. Saves need nothing

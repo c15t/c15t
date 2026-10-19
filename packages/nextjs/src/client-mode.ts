@@ -52,7 +52,7 @@ export interface NextClientModeOptions {
  *   first init, reading `${routePrefix}/manifest`, else
  *   `${backendURL}/manifest`.
  * - `hosted()`: the hosted transport, loaded on first init.
- * - `offline()`: the offline transport, loaded on first init.
+ * - `local()`: the offline transport, loaded on first init.
  *
  * @param mode - The mode as data, or a transport factory, used as is.
  * @param options - Backend URL, route prefix and `proxy`.

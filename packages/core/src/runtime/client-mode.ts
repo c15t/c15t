@@ -17,7 +17,7 @@ import { warnNoConsentRecordsInDevelopment } from '../libs/no-records-warning';
  * - `manifest({ resolve: 'browser' })` loads the browser resolver with
  *   `import()`, starting when the transport is built, alongside the
  *   manifest request.
- * - `offline()` loads the offline transport and its policy pack with
+ * - `local()` loads the offline transport and its policy pack with
  *   `import()` on first init.
  *
  * No path here statically imports the resolver, a policy pack, the server

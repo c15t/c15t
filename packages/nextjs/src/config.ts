@@ -64,7 +64,7 @@ export interface ConsentConfig extends ConsentClientOptions {
 
 	/**
 	 * How the visitor's policy is resolved: `manifest()`, `hosted()` or
-	 * `offline()` from `c15t/next`. They are plain data, so the browser only
+	 * `local()` from `c15t/next`. They are plain data, so the browser only
 	 * loads the code of the mode it runs.
 	 *
 	 * @default manifest()

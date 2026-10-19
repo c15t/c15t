@@ -268,7 +268,7 @@ const reportPrefetchError = function reportPrefetchError(
  * 2. Resolves the visitor's policy for the config's `mode`: `manifest()`
  *    (the default) from the snapshot `withConsentManifest` downloaded, or
  *    `${backendURL}/manifest` through the in-process cache without one;
- *    `hosted()` from `${backendURL}/init`. `offline()` leaves it to the
+ *    `hosted()` from `${backendURL}/init`. `local()` leaves it to the
  *    browser.
  * 3. Folds the result into a `ConsentState` so first paint is correct
  *    without waiting for a client roundtrip.
