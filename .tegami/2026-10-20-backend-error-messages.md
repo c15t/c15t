@@ -18,7 +18,9 @@ message too.
 
 A consent save refused with 402 (payment required) is no longer resent. The
 choice stays in the browser, as it does for other permanent rejections. A 402
-on init is not retried.
+on init is not retried. A 409 or 422 save is also no longer resent when its
+permanent code, such as `SUBJECT_CONFLICT`, is at the top level of the body
+instead of under `cause`.
 
 `@c15t/node-sdk` now reads a top-level `code` when the body has no
 `cause.code`, so `serverCode` is set for `{ message, code }` bodies.

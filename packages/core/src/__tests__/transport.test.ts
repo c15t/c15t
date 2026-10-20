@@ -917,6 +917,25 @@ describe('hosted transport: save refusals', () => {
 		}
 	);
 
+	test('a permanent code at the top level of the body is also a refusal', async () => {
+		const transport = createHostedTransport({
+			backendURL: 'https://backend.test',
+			domain: 'example.com',
+			fetch: (() =>
+				Promise.resolve(
+					Response.json(
+						{ code: 'SUBJECT_CONFLICT', message: 'refused' },
+						{ status: 409 }
+					)
+				)) as unknown as typeof globalThis.fetch,
+		});
+		const error = await transport
+			.save(payload)
+			.catch((caught: unknown) => caught);
+		expect(isConsentSaveRejection(error)).toBe(true);
+		expect(error).toMatchObject({ code: 'SUBJECT_CONFLICT', status: 409 });
+	});
+
 	test.each([
 		[
 			{ code: 'CONSENTS_EXHAUSTED', message: 'Out of consents.' },
