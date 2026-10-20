@@ -144,6 +144,7 @@ export function ConsentManagerProvider({
 				mode: 'offline',
 				store,
 				storageConfig: options.storageConfig,
+				acknowledgeNoRecords: options.acknowledgeNoRecords,
 			});
 		} else if (mode === 'custom' && 'endpointHandlers' in options) {
 			newManager = configureConsentManager({
