@@ -56,6 +56,7 @@ const SOURCE_RANK: Record<VendorSource, number> = {
  * The slug shape the wire accepts as a `vendorChoice.grants` key. A script
  * or rule slug that does not match would make every save fail backend
  * validation, so it is dropped at declaration with a warning instead.
+ * `vendor-id.ts` keeps a copy for the save path.
  */
 const VENDOR_ID_PATTERN = /^[a-z0-9][a-z0-9._-]{0,63}$/u;
 

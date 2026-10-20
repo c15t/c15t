@@ -10,14 +10,19 @@
  * An entry the backend would reject is dropped here rather than sent, so a
  * malformed script config never costs the visitor their consent record.
  *
+ * The kernel imports this module, so its runtime imports are modules with
+ * no imports of their own. Anything heavier lets the bundler split extra
+ * chunks onto the first page load.
+ *
  * @packageDocumentation
  */
-import { allConsentNames } from '../consent/consent-types';
+
+import { CONSENT_CATEGORIES } from '../consent-record/types';
 import type { AllConsentNames } from '../consent/consent-types';
 import type { ConsentSnapshot } from '../types';
 import type { HasCondition } from './has';
 import type { Script } from './script-loader/types';
-import { isValidVendorId } from './vendors';
+import { isValidVendorId } from './vendor-id';
 
 /** Most entries one save carries. Matches the POST /subjects limit. */
 export const MAX_SAVE_SCRIPTS = 256;
@@ -71,7 +76,7 @@ const everyIndex = (
 
 const isCondition = function isCondition(value: unknown, depth = 0): boolean {
 	if (typeof value === 'string') {
-		return (allConsentNames as readonly string[]).includes(value);
+		return (CONSENT_CATEGORIES as readonly string[]).includes(value);
 	}
 	if (!isRecord(value) || depth >= MAX_CONDITION_DEPTH) {
 		return false;
