@@ -12,6 +12,10 @@ import { expect, test } from 'vitest';
 import docsConfig from '../docs/docs.config';
 import umbrellaPackage from '../packages/c15t/package.json';
 import scriptsPackage from '../packages/integrations/package.json';
+import {
+	BUILT_IN_INTEGRATION_CATEGORIES,
+	builtInScriptIntegrations,
+} from '../packages/integrations/src/registry';
 
 const docsRoot = fileURLToPath(new URL('../docs', import.meta.url));
 
@@ -181,15 +185,29 @@ test('integration navigation covers every vendor helper, both embeds and Shopify
 	const integrations = navigation.groups.find(
 		(group) => group.slug === 'integrations'
 	);
-	expect(integrations?.children.map((group) => group.slug)).toEqual([
-		'embeds',
-		'tag-managers',
-		'analytics',
-		'chat-and-support',
-		'email-and-sms',
-		'ads-and-pixels',
-		'commerce',
-	]);
+	// The sidebar groups the guides as the overview's tables do, in its order
+	const overviewTables = readFileSync(
+		resolve(docsRoot, 'integrations/overview.mdx'),
+		'utf8'
+	)
+		.split(/^## /mu)
+		.slice(1)
+		.map((section) => ({
+			pages: Array.from(
+				section.matchAll(
+					/^\| \[[^\]]+\]\((?<route>\/docs\/integrations\/[a-z0-9-]+)\)/gmu
+				),
+				(match) => match.groups?.route
+			),
+			title: section.slice(0, section.indexOf('\n')),
+		}))
+		.filter((table) => table.pages.length > 0);
+	expect(
+		integrations?.children.map((group) => ({
+			pages: group.pages.map((page) => page.urlPath),
+			title: group.title,
+		}))
+	).toEqual(overviewTables);
 	const vendors = Object.entries(scriptsPackage.exports)
 		.filter(([, entry]) => entry.types.includes('/vendors/'))
 		.map(([subpath]) => subpath.slice(2));
@@ -208,6 +226,35 @@ test('integration navigation covers every vendor helper, both embeds and Shopify
 	expect(pages.map((page) => page.urlPath).sort()).toEqual(
 		expectedRoutes.sort()
 	);
+});
+
+test('each registry integration category is the overview group that lists it', () => {
+	const overview = readFileSync(
+		resolve(docsRoot, 'integrations/overview.mdx'),
+		'utf8'
+	);
+	const groupOf = new Map<string, string>();
+	for (const section of overview.split(/^## /mu).slice(1)) {
+		const title = section.slice(0, section.indexOf('\n'));
+		for (const match of section.matchAll(
+			/^\| \[[^\]]+\]\(\/docs\/integrations\/(?<slug>[a-z0-9-]+)\)/gmu
+		)) {
+			if (match.groups?.slug) {
+				groupOf.set(match.groups.slug, title);
+			}
+		}
+	}
+	const labels = new Map(
+		BUILT_IN_INTEGRATION_CATEGORIES.map((category) => [
+			category.key,
+			category.label,
+		])
+	);
+	for (const integration of builtInScriptIntegrations) {
+		expect(groupOf.get(integration.docsSlug), integration.docsSlug).toBe(
+			labels.get(integration.integrationCategory)
+		);
+	}
 });
 
 test('vendor registration tabs survive package Markdown conversion', async () => {
