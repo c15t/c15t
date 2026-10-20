@@ -441,15 +441,15 @@ await runReleaseCli(createRelease({ branch: 'release/v1', cwd: process.cwd(), gi
 			env,
 			stdio: 'pipe',
 		});
-		if (syncLock) {
-			syncBunLockVersions(
-				root,
-				['c15t', 'translations'].map((name) => ({
-					path: join(root, 'packages', name),
-					version: readManifest(root, name).version,
-				}))
-			);
-		}
+		// Newer Bun refreshes workspace versions on install and 1.3.11 does not,
+		// so set the lock explicitly either way.
+		syncBunLockVersions(
+			root,
+			['c15t', 'translations'].map((name) => ({
+				path: join(root, 'packages', name),
+				version: syncLock ? readManifest(root, name).version : '0.0.0-stale',
+			}))
+		);
 		execFileSync('bun', ['publish-fixture.ts'], {
 			cwd: root,
 			env,
@@ -527,8 +527,14 @@ await runReleaseCli(createRelease({ branch: 'release/v1', cwd: process.cwd(), gi
 		try {
 			publishInIsolation(root, { syncLock: false });
 		} catch (error) {
-			// Tegami's CLI prints the failure to stdout.
-			output = String((error as { stdout?: Buffer }).stdout);
+			// Tegami's CLI prints the failure to stdout locally; keep stderr and
+			// the error so a different failure shows its own message.
+			const { message, stderr, stdout } = error as {
+				message: string;
+				stderr?: Buffer;
+				stdout?: Buffer;
+			};
+			output = [stdout, stderr, message].map(String).join('\n');
 		}
 		expect(output).toContain('bun.lock has stale workspace versions for');
 		expect(existsSync(join(root, 'uploads.jsonl'))).toBe(false);
