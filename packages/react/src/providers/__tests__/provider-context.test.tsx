@@ -72,6 +72,7 @@ describe('ConsentManagerProvider Context Values', () => {
 			<ConsentManagerProvider
 				options={{
 					mode: 'offline',
+					acknowledgeNoRecords: true,
 					theme: { slots: { bannerCard: 'dark' } },
 				}}
 			>

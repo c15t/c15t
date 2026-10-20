@@ -46,6 +46,7 @@ Object.defineProperty(window, 'localStorage', {
 
 const optInOptions: ConsentManagerOptions = {
 	mode: 'offline',
+	acknowledgeNoRecords: true,
 };
 
 describe('models Prop E2E Tests', () => {

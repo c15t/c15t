@@ -37,6 +37,7 @@ describe('Client Factory Tests', () => {
 	it('should create OfflineClient when mode is offline', () => {
 		const client = configureConsentManager({
 			mode: 'offline',
+			acknowledgeNoRecords: true,
 		});
 
 		expect(client).toBeInstanceOf(OfflineClient);
@@ -68,6 +69,7 @@ describe('Client Factory Tests', () => {
 	it('reuses the offline client for semantically equivalent policy packs', () => {
 		const first = configureConsentManager({
 			mode: 'offline',
+			acknowledgeNoRecords: true,
 			store: {
 				offlinePolicy: {
 					policyPacks: [
@@ -84,6 +86,7 @@ describe('Client Factory Tests', () => {
 
 		const second = configureConsentManager({
 			mode: 'offline',
+			acknowledgeNoRecords: true,
 			store: {
 				offlinePolicy: {
 					policyPacks: [

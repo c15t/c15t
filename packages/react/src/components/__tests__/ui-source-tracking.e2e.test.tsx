@@ -42,6 +42,7 @@ Object.defineProperty(window, 'localStorage', {
 
 const defaultOptions: ConsentManagerOptions = {
 	mode: 'offline',
+	acknowledgeNoRecords: true,
 };
 
 describe('UI Source Tracking E2E Tests', () => {

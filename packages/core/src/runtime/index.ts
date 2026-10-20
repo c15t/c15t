@@ -9,6 +9,7 @@ import {
 	clearClientRegistry,
 	configureConsentManager,
 } from '../client';
+import { warnNoConsentRecordsInDevelopment } from '../libs/no-records-warning';
 import { getMatchingPrefetchedInitialData } from '../libs/prefetch/prefetch';
 import { createConsentManagerStore } from '../store';
 import type { StoreOptions } from '../store/type';
@@ -121,6 +122,7 @@ export function getOrCreateConsentRuntime(
 ): ConsentRuntimeResult {
 	const optionBag = options as ConsentRuntimeOptions & {
 		headers?: Record<string, string>;
+		acknowledgeNoRecords?: boolean;
 		customFetch?: typeof fetch;
 		retryConfig?: unknown;
 		endpointHandlers?: unknown;
@@ -146,6 +148,7 @@ export function getOrCreateConsentRuntime(
 		debug,
 		headers,
 		nonce,
+		acknowledgeNoRecords,
 		customFetch: _unusedCustomFetch,
 		retryConfig: _unusedRetryConfig,
 		endpointHandlers: _unusedEndpointHandlers,
@@ -212,6 +215,12 @@ export function getOrCreateConsentRuntime(
 		enabled: resolvedEnabled,
 	});
 
+	// Before the cache: the key leaves out `acknowledgeNoRecords`, so a cached
+	// acknowledged runtime must not hide the warning from a later caller.
+	if (mode === 'offline') {
+		warnNoConsentRecordsInDevelopment(acknowledgeNoRecords);
+	}
+
 	let consentManager = managerCache.get(cacheKey);
 	if (!consentManager) {
 		const normalizedStoreOptions = {
@@ -226,6 +235,7 @@ export function getOrCreateConsentRuntime(
 				mode: 'offline',
 				store: normalizedStoreOptions,
 				storageConfig: resolvedStorageConfig,
+				acknowledgeNoRecords,
 			});
 		} else if (mode === 'custom' && 'endpointHandlers' in options) {
 			consentManager = configureConsentManager({

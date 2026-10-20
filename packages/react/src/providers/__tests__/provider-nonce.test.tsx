@@ -29,6 +29,7 @@ describe('ConsentManagerProvider CSP nonce', () => {
 			<ConsentManagerProvider
 				options={{
 					mode: 'offline',
+					acknowledgeNoRecords: true,
 					nonce: 'test-nonce-value',
 					theme: {
 						colors: {
@@ -57,6 +58,7 @@ describe('ConsentManagerProvider CSP nonce', () => {
 			<ConsentManagerProvider
 				options={{
 					mode: 'offline',
+					acknowledgeNoRecords: true,
 					store: { nonce: 'nested-store-nonce' },
 				}}
 			>
@@ -76,6 +78,7 @@ describe('ConsentManagerProvider CSP nonce', () => {
 			<ConsentManagerProvider
 				options={{
 					mode: 'offline',
+					acknowledgeNoRecords: true,
 					nonce: 'top-level-nonce',
 					store: { nonce: 'nested-store-nonce' },
 				}}
@@ -100,6 +103,7 @@ describe('ConsentManagerProvider CSP nonce', () => {
 			<ConsentManagerProvider
 				options={{
 					mode: 'offline',
+					acknowledgeNoRecords: true,
 					nonce: 'shared-nonce',
 					scripts: [
 						{
@@ -130,7 +134,9 @@ describe('ConsentManagerProvider CSP nonce', () => {
 
 	it('omits the nonce attribute when no nonce is configured', async () => {
 		const { getByText } = await render(
-			<ConsentManagerProvider options={{ mode: 'offline' }}>
+			<ConsentManagerProvider
+				options={{ mode: 'offline', acknowledgeNoRecords: true }}
+			>
 				<div>Test Component</div>
 			</ConsentManagerProvider>
 		);

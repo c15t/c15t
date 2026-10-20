@@ -33,6 +33,7 @@ describe('ConsentManagerProvider Hydration Behavior', () => {
 			<ConsentManagerProvider
 				options={{
 					mode: 'offline',
+					acknowledgeNoRecords: true,
 					consentCategories: ['necessary', 'marketing'],
 				}}
 			>
@@ -56,6 +57,7 @@ describe('ConsentManagerProvider Hydration Behavior', () => {
 			<ConsentManagerProvider
 				options={{
 					mode: 'offline',
+					acknowledgeNoRecords: true,
 					consentCategories: ['necessary', 'marketing'],
 				}}
 			>
@@ -84,6 +86,7 @@ describe('ConsentManagerProvider Hydration Behavior', () => {
 				<ConsentManagerProvider
 					options={{
 						mode: 'offline',
+						acknowledgeNoRecords: true,
 						consentCategories: ['necessary', 'marketing'],
 					}}
 				>
@@ -112,6 +115,7 @@ describe('ConsentManagerProvider Hydration Behavior', () => {
 			<ConsentManagerProvider
 				options={{
 					mode: 'offline',
+					acknowledgeNoRecords: true,
 					consentCategories: ['necessary'],
 				}}
 			>
@@ -128,6 +132,7 @@ describe('ConsentManagerProvider Hydration Behavior', () => {
 				<ConsentManagerProvider
 					options={{
 						mode: 'offline',
+						acknowledgeNoRecords: true,
 						consentCategories: ['necessary', 'marketing'],
 					}}
 				>
@@ -154,6 +159,7 @@ describe('ConsentManagerProvider Hydration Behavior', () => {
 			<ConsentManagerProvider
 				options={{
 					mode: 'offline',
+					acknowledgeNoRecords: true,
 					consentCategories: ['necessary'],
 				}}
 			>

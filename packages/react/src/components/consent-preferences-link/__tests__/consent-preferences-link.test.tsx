@@ -17,7 +17,9 @@ describe('ConsentDialogLink', () => {
 
 	test('renders custom text and opens the dialog when clicked', async () => {
 		render(
-			<ConsentManagerProvider options={{ mode: 'offline' }}>
+			<ConsentManagerProvider
+				options={{ mode: 'offline', acknowledgeNoRecords: true }}
+			>
 				<ConsentDialog />
 				<ConsentDialogLink>Your privacy settings</ConsentDialogLink>
 			</ConsentManagerProvider>
@@ -53,7 +55,9 @@ describe('ConsentDialogLink', () => {
 
 	test('supports asChild for anchor-based footer links', async () => {
 		render(
-			<ConsentManagerProvider options={{ mode: 'offline' }}>
+			<ConsentManagerProvider
+				options={{ mode: 'offline', acknowledgeNoRecords: true }}
+			>
 				<ConsentDialog />
 				<ConsentDialogLink asChild>
 					<a href="#privacy-settings" data-testid="consent-preferences-anchor">

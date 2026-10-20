@@ -116,6 +116,7 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 			<ConsentManagerProvider
 				options={{
 					mode: 'offline', // Use offline mode to prevent additional fetches
+					acknowledgeNoRecords: true,
 					theme: { slots: { bannerCard: 'light' } },
 				}}
 			>
@@ -134,6 +135,7 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 			<ConsentManagerProvider
 				options={{
 					mode: 'offline',
+					acknowledgeNoRecords: true,
 					theme: { slots: { bannerCard: 'dark' } },
 				}}
 			>
@@ -202,6 +204,7 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 			<ConsentManagerProvider
 				options={{
 					mode: 'offline', // Use offline mode to avoid fetch calls
+					acknowledgeNoRecords: true,
 				}}
 			>
 				<div>Counter: 0</div>
@@ -220,6 +223,7 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 				<ConsentManagerProvider
 					options={{
 						mode: 'offline',
+						acknowledgeNoRecords: true,
 					}}
 				>
 					<div>Counter: {i}</div>
@@ -247,6 +251,7 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 			<ConsentManagerProvider
 				options={{
 					mode: 'offline',
+					acknowledgeNoRecords: true,
 					offlinePolicy: {
 						policyPacks: [
 							{
@@ -290,6 +295,7 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 			<ConsentManagerProvider
 				options={{
 					mode: 'offline',
+					acknowledgeNoRecords: true,
 					callbacks: {
 						onConsentChanged: firstOnConsentChanged,
 					},
@@ -317,6 +323,7 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 			<ConsentManagerProvider
 				options={{
 					mode: 'offline',
+					acknowledgeNoRecords: true,
 					callbacks: {
 						onConsentChanged: secondOnConsentChanged,
 					},
