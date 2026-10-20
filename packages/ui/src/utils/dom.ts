@@ -27,19 +27,54 @@ const RTL_LANGUAGES = new Set([
 ]);
 
 /**
- * ISO 15924 script subtags written right to left. A script subtag overrides
- * the language default, so `ku-Arab` is RTL and `sd-Deva` is LTR.
+ * ISO 15924 script subtags written right to left: the scripts CLDR marks RTL,
+ * plus the variant codes it leaves out (`Aran` Nastaliq, the `Syre`, `Syrj`
+ * and `Syrn` Syriac forms, and `Phlv` Book Pahlavi). A script subtag
+ * overrides the language default, so `ku-Arab` is RTL and `sd-Deva` is LTR.
  */
 const RTL_SCRIPTS = new Set([
 	'adlm',
 	'arab',
+	'aran',
+	'armi',
+	'avst',
+	'chrs',
+	'cprt',
+	'elym',
+	'gara',
+	'hatr',
 	'hebr',
+	'hung',
+	'khar',
+	'lydi',
 	'mand',
+	'mani',
+	'mend',
+	'merc',
+	'mero',
+	'narb',
+	'nbat',
 	'nkoo',
+	'orkh',
+	'ougr',
+	'palm',
+	'phli',
+	'phlp',
+	'phlv',
+	'phnx',
+	'prti',
 	'rohg',
 	'samr',
+	'sarb',
+	'sidt',
+	'sogd',
+	'sogo',
 	'syrc',
+	'syre',
+	'syrj',
+	'syrn',
 	'thaa',
+	'yezi',
 ]);
 
 let lastFocusedElement: HTMLElement | null = null;

@@ -157,6 +157,13 @@ describe('getTextDirection', () => {
 		expect(getTextDirection('uz-Latn')).toBe('ltr');
 	});
 
+	test('keeps RTL for script variants CLDR leaves out', () => {
+		// Urdu in Nastaliq
+		expect(getTextDirection('ur-Aran')).toBe('rtl');
+		expect(getTextDirection('syr-Syre')).toBe('rtl');
+		expect(getTextDirection('pal-Phlv')).toBe('rtl');
+	});
+
 	test('ignores extension values that look like scripts', () => {
 		expect(getTextDirection('en-u-nu-arab')).toBe('ltr');
 		expect(getTextDirection('ar-u-nu-latn')).toBe('rtl');
