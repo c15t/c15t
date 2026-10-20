@@ -48,6 +48,10 @@ export {
 	type IframeBlocker,
 	type IframeBlockerConfig,
 } from './libs/iframe-blocker';
+export {
+	NO_RECORDS_WARNING,
+	warnOfflineModeKeepsNoRecords,
+} from './libs/no-records-warning';
 // Export script loader
 export {
 	getLoadedScriptIds,

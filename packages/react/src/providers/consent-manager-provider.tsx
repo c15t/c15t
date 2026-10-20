@@ -5,6 +5,7 @@ import {
 	createConsentManagerStore,
 	type PrivacyConsentState,
 	type StorageConfig,
+	warnOfflineModeKeepsNoRecords,
 } from 'c15t';
 import { startTransition, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -132,6 +133,11 @@ export function ConsentManagerProvider({
 
 	// Get or create consent manager with caching
 	const consentManager = useMemo(() => {
+		// Before the cache: its key leaves out `acknowledgeNoRecords`, so a cached
+		// acknowledged manager must not hide the warning from this provider.
+		if (mode === 'offline') {
+			warnOfflineModeKeepsNoRecords(options.acknowledgeNoRecords);
+		}
 		const cachedManager = managerCache.get(cacheKey);
 
 		if (cachedManager) {

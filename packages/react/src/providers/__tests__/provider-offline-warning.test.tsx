@@ -68,4 +68,26 @@ describe('ConsentManagerProvider offline no-records warning', () => {
 
 		expect(warn.mock.calls.filter(isNoRecordsWarning)).toHaveLength(0);
 	});
+
+	// React caches managers by a key that leaves the flag out, so the second
+	// provider gets the first one's manager.
+	it('warns a later unacknowledged provider that reuses a cached manager', async () => {
+		const storageConfig = nextStorageConfig();
+		const first = await render(
+			<ConsentManagerProvider
+				options={{ acknowledgeNoRecords: true, mode: 'offline', storageConfig }}
+			>
+				<div>app</div>
+			</ConsentManagerProvider>
+		);
+		await first.unmount();
+
+		await render(
+			<ConsentManagerProvider options={{ mode: 'offline', storageConfig }}>
+				<div>app</div>
+			</ConsentManagerProvider>
+		);
+
+		expect(warn.mock.calls.filter(isNoRecordsWarning)).toHaveLength(1);
+	});
 });
