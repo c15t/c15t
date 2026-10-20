@@ -14,6 +14,7 @@ describe('Offline Client Tests', () => {
 		// Configure the client
 		const client = configureConsentManager({
 			mode: 'offline',
+			acknowledgeNoRecords: true,
 		});
 
 		// Call the API without headers (defaults to GB)
@@ -30,6 +31,7 @@ describe('Offline Client Tests', () => {
 	it('should respect country header for jurisdiction determination', async () => {
 		const client = configureConsentManager({
 			mode: 'offline',
+			acknowledgeNoRecords: true,
 		});
 
 		// Test with GDPR country (DE)
@@ -56,6 +58,7 @@ describe('Offline Client Tests', () => {
 	it('should handle region header', async () => {
 		const client = configureConsentManager({
 			mode: 'offline',
+			acknowledgeNoRecords: true,
 		});
 
 		const response = await client.showConsentBanner({
@@ -73,6 +76,7 @@ describe('Offline Client Tests', () => {
 	it('should handle language header', async () => {
 		const client = configureConsentManager({
 			mode: 'offline',
+			acknowledgeNoRecords: true,
 		});
 
 		const response = await client.showConsentBanner({
@@ -89,6 +93,7 @@ describe('Offline Client Tests', () => {
 	it('should default to GB when no country header is provided', async () => {
 		const client = configureConsentManager({
 			mode: 'offline',
+			acknowledgeNoRecords: true,
 		});
 
 		const response = await client.showConsentBanner();
@@ -130,6 +135,7 @@ describe('Offline Client Tests', () => {
 		// Configure the client
 		const client = configureConsentManager({
 			mode: 'offline',
+			acknowledgeNoRecords: true,
 		});
 
 		// Call the API - should work regardless of localStorage
@@ -146,6 +152,7 @@ describe('Offline Client Tests', () => {
 		// Configure the client
 		const client = configureConsentManager({
 			mode: 'offline',
+			acknowledgeNoRecords: true,
 		});
 
 		// Call verify consent

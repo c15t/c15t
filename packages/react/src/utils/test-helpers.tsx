@@ -40,6 +40,7 @@ export async function testComponentStyles({
 		<ConsentManagerProvider
 			options={{
 				mode: 'offline',
+				acknowledgeNoRecords: true,
 				react: {
 					noStyle,
 				},

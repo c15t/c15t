@@ -3,6 +3,7 @@
  * This module provides the main factory function for creating
  * client instances based on configuration options.
  */
+import { warnOfflineModeKeepsNoRecords } from '../libs/no-records-warning';
 import type { StoreOptions } from '../store';
 import { C15tClient } from './c15t';
 import type { ConsentManagerInterface } from './client-interface';
@@ -124,6 +125,11 @@ export type CustomClientOptions = {
 	 * Backend URL is not used in custom mode
 	 */
 	backendURL?: never;
+
+	/**
+	 * Only used in offline mode
+	 */
+	acknowledgeNoRecords?: never;
 };
 
 export type C15TClientOptions = {
@@ -151,6 +157,11 @@ export type C15TClientOptions = {
 	 * Retry configuration
 	 */
 	retryConfig?: RetryConfig;
+
+	/**
+	 * Only used in offline mode
+	 */
+	acknowledgeNoRecords?: never;
 };
 
 export type OfflineClientOptions = {
@@ -173,6 +184,29 @@ export type OfflineClientOptions = {
 	 * Custom fetch implementation (not used in offline mode)
 	 */
 	customFetch?: never;
+
+	/**
+	 * Hide the development warning that offline mode keeps no consent records.
+	 *
+	 * @remarks
+	 * Offline mode stores consent only in the visitor's browser, so c15t keeps
+	 * no server-side record of it, and it has no geolocation, so every visitor
+	 * gets the same policy. In development builds, creating an offline client
+	 * in the browser logs a `console.warn` about this once per page. Production
+	 * builds never log it. Set this to `true` once you have chosen offline mode
+	 * on purpose, such as in tests.
+	 *
+	 * @default false
+	 *
+	 * @example
+	 * ```typescript
+	 * const client = configureConsentManager({
+	 *   mode: 'offline',
+	 *   acknowledgeNoRecords: true,
+	 * });
+	 * ```
+	 */
+	acknowledgeNoRecords?: boolean;
 };
 
 /**
@@ -270,6 +304,12 @@ export type ConsentManagerOptions = {
 export function configureConsentManager(
 	options: ConsentManagerOptions
 ): ConsentManagerInterface {
+	// Before the registry: its key leaves out `acknowledgeNoRecords`, so a cached
+	// acknowledged client must not hide the warning from a later caller.
+	if (options.mode === 'offline') {
+		warnOfflineModeKeepsNoRecords(options.acknowledgeNoRecords);
+	}
+
 	const cacheKey = getClientCacheKey(options);
 
 	// Return existing client if found

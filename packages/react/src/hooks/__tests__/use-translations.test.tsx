@@ -19,6 +19,7 @@ describe('useTranslations', () => {
 				<ConsentManagerProvider
 					options={{
 						mode: 'offline',
+						acknowledgeNoRecords: true,
 						react: {
 							noStyle: false,
 						},
@@ -51,6 +52,7 @@ describe('useTranslations', () => {
 				<ConsentManagerProvider
 					options={{
 						mode: 'offline',
+						acknowledgeNoRecords: true,
 						react: {
 							noStyle: false,
 						},
@@ -121,6 +123,7 @@ describe('useTranslations', () => {
 				<ConsentManagerProvider
 					options={{
 						mode: 'offline',
+						acknowledgeNoRecords: true,
 						react: {
 							noStyle: false,
 						},
@@ -152,6 +155,7 @@ describe('useTranslations', () => {
 				<ConsentManagerProvider
 					options={{
 						mode: 'offline',
+						acknowledgeNoRecords: true,
 						react: {
 							noStyle: false,
 						},
@@ -185,6 +189,7 @@ describe('useTranslations', () => {
 				<ConsentManagerProvider
 					options={{
 						mode: 'offline',
+						acknowledgeNoRecords: true,
 						react: {
 							noStyle: false,
 						},

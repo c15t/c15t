@@ -51,6 +51,7 @@ describe('useConsentManager', () => {
 				<ConsentManagerProvider
 					options={{
 						mode: 'offline',
+						acknowledgeNoRecords: true,
 						react: {
 							noStyle: false,
 						},
@@ -71,6 +72,7 @@ describe('useConsentManager', () => {
 				<ConsentManagerProvider
 					options={{
 						mode: 'offline',
+						acknowledgeNoRecords: true,
 						react: {
 							noStyle: false,
 						},

@@ -38,4 +38,17 @@ availableIn:
   2. **Network**: No network requests are made, all operations happen locally
   3. **Consent Banner**: The banner visibility is determined by checking if a value exists in localStorage
   4. **Consent Verification**: Always returns a successful response
+
+  ### Development warning
+
+  Offline mode keeps consent only in the visitor's browser, so c15t has no server-side record of what each visitor chose. Offline mode also has no geolocation, so every visitor gets the same policy. To make this visible, c15t logs a `console.warn` once per page when it creates an offline client in a development build. Production builds never log it, and the warning never blocks consent.
+
+  If you use offline mode on purpose, such as in tests, set `acknowledgeNoRecords: true` to hide the message:
+
+  ```ts
+  const options = {
+    mode: 'offline',
+    acknowledgeNoRecords: true,
+  };
+  ```
 </section>

@@ -160,6 +160,7 @@ describe('Offline Client Browser Tests', () => {
 		// Configure the client
 		const client = configureConsentManager({
 			mode: 'offline',
+			acknowledgeNoRecords: true,
 		}) as OfflineClient;
 
 		// First check that localStorage doesn't have consent data
@@ -197,6 +198,7 @@ describe('Offline Client Browser Tests', () => {
 		// Configure the client
 		const client = configureConsentManager({
 			mode: 'offline',
+			acknowledgeNoRecords: true,
 		}) as OfflineClient;
 
 		// Call without headers (defaults to GB - GDPR jurisdiction)
