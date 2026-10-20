@@ -123,15 +123,54 @@ describe('getTextDirection', () => {
 		expect(getTextDirection('ps')).toBe('rtl');
 		// Sindhi
 		expect(getTextDirection('sd')).toBe('rtl');
-		// Kurdish
-		expect(getTextDirection('ku')).toBe('rtl');
 		// Divehi
 		expect(getTextDirection('dv')).toBe('rtl');
+		// Yiddish
+		expect(getTextDirection('yi')).toBe('rtl');
+		expect(getTextDirection('yi-US')).toBe('rtl');
+		// Central Kurdish (Sorani)
+		expect(getTextDirection('ckb')).toBe('rtl');
+		// Uyghur
+		expect(getTextDirection('ug')).toBe('rtl');
+		// Syriac
+		expect(getTextDirection('syr')).toBe('rtl');
+		// N'Ko
+		expect(getTextDirection('nqo')).toBe('rtl');
+	});
+
+	test('returns rtl for deprecated Hebrew and Yiddish codes', () => {
+		expect(getTextDirection('iw')).toBe('rtl');
+		expect(getTextDirection('ji')).toBe('rtl');
+	});
+
+	test('returns ltr for Kurdish without a script, which is usually Kurmanji', () => {
+		expect(getTextDirection('ku')).toBe('ltr');
+		expect(getTextDirection('ku-TR')).toBe('ltr');
+	});
+
+	test('uses the script subtag when present', () => {
+		expect(getTextDirection('ku-Arab')).toBe('rtl');
+		expect(getTextDirection('ku-Arab-IQ')).toBe('rtl');
+		expect(getTextDirection('pa-Arab')).toBe('rtl');
+		expect(getTextDirection('az-Arab')).toBe('rtl');
+		expect(getTextDirection('sd-Deva')).toBe('ltr');
+		expect(getTextDirection('uz-Latn')).toBe('ltr');
+	});
+
+	test('ignores extension values that look like scripts', () => {
+		expect(getTextDirection('en-u-nu-arab')).toBe('ltr');
+		expect(getTextDirection('ar-u-nu-latn')).toBe('rtl');
+	});
+
+	test('accepts underscore separators', () => {
+		expect(getTextDirection('he_IL')).toBe('rtl');
+		expect(getTextDirection('en_US')).toBe('ltr');
 	});
 
 	test('handles case insensitively', () => {
 		expect(getTextDirection('AR')).toBe('rtl');
 		expect(getTextDirection('Ar-SA')).toBe('rtl');
+		expect(getTextDirection('YI')).toBe('rtl');
 	});
 });
 

@@ -3,7 +3,44 @@
  * Framework-agnostic.
  */
 
-const RTL_LANGUAGES = ['ar', 'he', 'fa', 'ur', 'ps', 'sd', 'ku', 'dv'];
+/**
+ * Primary language subtags written right to left by default. `iw` and `ji`
+ * are the deprecated codes for Hebrew and Yiddish that some systems still
+ * emit. `ku` is absent: it usually means Kurmanji, which uses Latin script.
+ * Sorani is `ckb`, and `ku-Arab` resolves through its script subtag.
+ */
+const RTL_LANGUAGES = new Set([
+	'ar',
+	'ckb',
+	'dv',
+	'fa',
+	'he',
+	'iw',
+	'ji',
+	'nqo',
+	'ps',
+	'sd',
+	'syr',
+	'ug',
+	'ur',
+	'yi',
+]);
+
+/**
+ * ISO 15924 script subtags written right to left. A script subtag overrides
+ * the language default, so `ku-Arab` is RTL and `sd-Deva` is LTR.
+ */
+const RTL_SCRIPTS = new Set([
+	'adlm',
+	'arab',
+	'hebr',
+	'mand',
+	'nkoo',
+	'rohg',
+	'samr',
+	'syrc',
+	'thaa',
+]);
 
 let lastFocusedElement: HTMLElement | null = null;
 
@@ -25,14 +62,28 @@ if (typeof document !== 'undefined') {
 
 /**
  * Gets text direction based on the language.
+ *
+ * @param language - A BCP 47 language tag, such as `ar`, `yi-US` or `ku-Arab`.
+ * @returns `'rtl'` when the tag's script subtag, or its language when it has
+ * no script subtag, is written right to left. Otherwise `'ltr'`.
  */
 export const getTextDirection = function getTextDirection(
 	language?: string
 ): 'rtl' | 'ltr' {
-	const normalizedLanguage = language
-		? language.split('-')[0]?.toLowerCase()
-		: 'en';
-	return RTL_LANGUAGES.includes(normalizedLanguage || '') ? 'rtl' : 'ltr';
+	if (!language) {
+		return 'ltr';
+	}
+	const [primary = '', ...subtags] = language.toLowerCase().split(/[-_]/u);
+	// Extensions and private use start at a single-letter subtag, and their
+	// values (`en-u-nu-arab`) can look like scripts. Stop before them.
+	const extensionStart = subtags.findIndex((subtag) => subtag.length === 1);
+	const script = (
+		extensionStart === -1 ? subtags : subtags.slice(0, extensionStart)
+	).find((subtag) => /^[a-z]{4}$/u.test(subtag));
+	if (script) {
+		return RTL_SCRIPTS.has(script) ? 'rtl' : 'ltr';
+	}
+	return RTL_LANGUAGES.has(primary) ? 'rtl' : 'ltr';
 };
 
 /**
