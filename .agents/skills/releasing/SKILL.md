@@ -1,46 +1,62 @@
 ---
 name: releasing
 description: |
-  Version and release c15t packages with Changesets. Use when adding a
-  changeset to a PR, deciding bump types for the linked package group,
-  publishing canary/RC/stable releases, or debugging release CI failures
-  (publish artifacts check, workspace dependency resolution).
+  Version and release c15t 2.x maintenance packages with Tegami. Use when
+  adding release notes, choosing bumps for linked packages, publishing from
+  release/v2 under the v2-legacy npm tag, or debugging version PRs, publish
+  locks, artifact checks, or npm OIDC.
 ---
 
-# Releasing c15t Packages
+# Releasing c15t 2.x packages
 
-Publishing is automated by `.github/workflows/release.yml` via Changesets. Your job in a PR is usually just to add the right changeset.
+Read [the release guide](../../../.tegami/README.md) before changing release
+behavior. `scripts/tegami.ts` owns the release line, linked packages, and
+publishing hooks.
 
-## Adding a changeset
+## Add release notes
 
-```bash
-bun run changeset
-```
+1. Read the changed packages' manifests to identify public packages. Private
+   packages do not version or publish. Internal tooling, tests, benchmarks,
+   `internals/`, and docs-site changes do not need release notes.
+2. Run `RELEASE_BRANCH=release/v2 bun run tegami`, or write
+   `.tegami/YYYY-MM-DD-description.md` directly.
+3. Put explicit `patch` or `minor` entries under `packages` in YAML
+   frontmatter. A `major` note would leave 2.x and fails. Include a Markdown
+   heading and describe the user-visible change.
+4. Check `linkedPackages` in `scripts/tegami.ts`. Only selected linked packages
+   and affected dependents release. Name every intended package for a
+   group-wide release.
+5. Do not name `@c15t/backend`. It does not release from this line, and a note
+   that names it fails.
 
-Pick the affected packages and a bump. Rules:
+Do not hand-edit package `CHANGELOG.md` files or `.tegami/publish-lock.yaml`.
+Tegami generates both.
 
-- Any user-facing change to a published package needs a changeset; internal-only changes (tests, benchmarks, `internals/`, docs-site-only) do not.
-- These packages are **linked** and always version together — bumping one bumps all: `c15t`, `@c15t/backend`, `@c15t/cli`, `@c15t/dev-tools`, `@c15t/iab`, `@c15t/nextjs`, `@c15t/node-sdk`, `@c15t/react`, `@c15t/translations`. Choose the bump for the *most significant* change in the group.
-- `@c15t/scripts`, `@c15t/ui`, `@c15t/schema`, and `@c15t/logger` version independently. `@c15t/vue`, `@c15t/svelte`, and `@c15t/solid` are currently private and unversioned.
-- Write the changeset summary like a changelog entry (it becomes one): imperative, user-facing, mentions migration steps for breaking changes.
+## Validate release changes
 
-## Release channels
+Use a disposable checkout for `RELEASE_BRANCH=release/v2 bun run tegami version`.
+It updates manifests, changelogs, the lockfile, and the publish lock.
 
-| Branch | Channel | How it publishes |
-| --- | --- | --- |
-| `canary` (default, PR target) | `--tag canary` snapshots | Automatically on every merge (`version:canary` + `release:canary`) |
-| `2.0.0` | RC pre-release | Release workflow versions with `bun run version` and publishes via `release:rc`; `version:rc`/`version:rc:exit` toggle changeset pre mode manually when needed |
-| `main` | stable | Changesets opens a "Version Packages" PR; merging it publishes |
+Run `bun run test:scripts tegami.test.ts release-workflow.test.ts` after
+changing release code.
 
-`sync-canary.yml` keeps canary in sync with main.
+## Preserve the publishing contract
 
-## What the release scripts do
-
-`bun run release` = build → `check:publish-artifacts` → `resolve-workspace-deps` → `changeset publish`.
-
-- `scripts/check-publish-artifacts.ts` fails if test/snapshot/screenshot/MSW/Rsdoctor files would be packed. Fix by keeping tests in `__tests__/` or `*.test.*`/`*.spec.*` (rslib excludes those) — don't widen the allowlist casually.
-- `scripts/resolve-workspace-deps.ts` rewrites `workspace:*` ranges to real versions before publish. If a new workspace dependency breaks publishing, check it's declared with a `workspace:` protocol.
-- The core SDK packages (`c15t`, `@c15t/react`, `@c15t/nextjs`, `@c15t/backend`) also run `scripts/verify-package-artifacts.ts` via `prepack` as a final tarball sanity check.
+- Keep publishing in `.github/workflows/release.yml` on `ubuntu-latest`, with
+  `id-token: write`, npm 11.5.1 or newer, and `NPM_CONFIG_PROVENANCE=true`.
+  npm trusted publishing binds to the workflow filename. Do not move publishing
+  into the reusable CI workflow or add an npm token.
+- Only `release/v2` releases, under the `v2-legacy` tag. Never `latest`, which
+  stays on 3.x. Every publishable package sets `publishConfig.tag` to
+  `v2-legacy` as a second guard.
+- Tegami runs `build:libs` and `check:publish-artifacts` before any upload. Bun
+  packs each package and resolves `workspace:` ranges in the tarball; npm
+  publishes the tarball with OIDC. Package `prepack` checks still run.
+- `scripts/check-publish-artifacts.ts` fails if test/snapshot/screenshot/MSW/
+  Rsdoctor files would be packed. Keep tests in `__tests__/` or
+  `*.test.*`/`*.spec.*` (rslib excludes those).
+- Retry failed releases from the same commit. Do not discard an unfinished
+  publish lock to force a new version PR.
 
 ## Verifying locally
 

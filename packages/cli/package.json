@@ -91,6 +91,7 @@
 		"access": "public",
 		"executableFiles": [
 			"./dist/index.mjs"
-		]
+		],
+		"tag": "v2-legacy"
 	}
 }

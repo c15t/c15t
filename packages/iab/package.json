@@ -66,6 +66,7 @@
 		"genversion": "3.2.0"
 	},
 	"publishConfig": {
-		"access": "public"
+		"access": "public",
+		"tag": "v2-legacy"
 	}
 }

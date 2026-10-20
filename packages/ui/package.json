@@ -130,6 +130,7 @@
 		"vitest": "4.1.10"
 	},
 	"publishConfig": {
-		"access": "public"
+		"access": "public",
+		"tag": "v2-legacy"
 	}
 }

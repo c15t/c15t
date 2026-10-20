@@ -28,7 +28,7 @@ This file is the canonical agent guide. `CLAUDE.md` imports it. Deeper task guid
 
 ## Toolchain
 
-Bun `1.3.11` is the package manager and script runner. Turborepo orchestrates tasks. Packages build with **rslib** (ESM + CJS into `dist/`, types into `dist-types/`). Tests run with **Vitest — not `bun test`** — including Playwright-backed browser tests. Lint/format is **Biome**. Versioning/publishing is **Changesets**. Lefthook installs a pre-commit hook (Biome format on staged files) on `bun install`.
+Bun `1.3.11` is the package manager and script runner. Turborepo orchestrates tasks. Packages build with **rslib** (ESM + CJS into `dist/`, types into `dist-types/`). Tests run with **Vitest — not `bun test`** — including Playwright-backed browser tests. Lint/format is **Biome**. Versioning/publishing is **Tegami** (see `.tegami/README.md`). Lefthook installs a pre-commit hook (Biome format on staged files) on `bun install`.
 
 ## Commands
 
@@ -105,19 +105,19 @@ When adding or changing user-facing package behavior:
 
 - Update or add docs in `docs/**/*.mdx` when the change affects public APIs, integration behavior, setup steps, configuration, migration paths, or user-visible defaults. Use the `writing-docs` skill for docs work, and the `leadtype` skill when touching docs components, navigation/config, MDX conversion, linting, or generated package docs.
 - If the docs are bundled into packages, regenerate with `bun run generate:package-docs` or the relevant package `build:docs` script.
-- Add a changeset for user-facing published-package changes with `bun run changeset`. Write the summary as the changelog entry.
-- Do not hand-edit package `CHANGELOG.md` files during normal feature work; Changesets generates them. Only amend an unpublished generated changelog as part of release/version PR cleanup.
+- Add a `.tegami/*.md` release note for user-facing published-package changes with `RELEASE_BRANCH=release/v2 bun run tegami`. Include explicit package bumps and a Markdown heading. Write the body as the changelog entry.
+- Do not hand-edit package `CHANGELOG.md` files during normal feature work; Tegami generates them. Only amend an unpublished generated changelog as part of release/version PR cleanup.
 
 ## Branches and releases
 
-- **`canary`** is the default branch and PR target; merges auto-publish `--tag canary` snapshots.
-- **`main`** is stable; **`2.0.0`** publishes RC pre-releases. `sync-canary.yml` syncs main → canary.
-- User-facing package changes need a changeset (`bun run changeset`). `c15t`, `@c15t/react`, `@c15t/nextjs`, `@c15t/backend`, `@c15t/cli`, `@c15t/iab`, `@c15t/node-sdk`, `@c15t/translations`, and `@c15t/dev-tools` are **linked** — they version together.
-- See the `releasing` skill for the full flow.
+- This checkout is the **2.x maintenance line**. **`release/v2`** is its PR target and its only release branch. It publishes stable 2.x versions under the npm tag **`v2-legacy`**, never `latest` (3.x keeps `latest`). 3.x development happens on `canary` and `main`. `bun run test` diffs against `origin/canary` by default, so use `TURBO_SCM_BASE=origin/release/v2 bun run test` here.
+- A push to `release/v2` opens or updates a Tegami version PR; merging it publishes.
+- User-facing package changes need a `.tegami/*.md` release note. `c15t`, `@c15t/react`, `@c15t/nextjs`, `@c15t/backend`, `@c15t/cli`, `@c15t/iab`, `@c15t/node-sdk`, `@c15t/translations`, and `@c15t/dev-tools` are **linked**: selected members share the group's version. `@c15t/backend` does not release from this line.
+- See `.tegami/README.md` and the `releasing` skill for the full flow.
 
 ## CI on pull requests
 
-- **CI** (`ci.yml`) contains reusable typecheck, lint, build, root script test, and package test jobs. It runs directly for pull requests, with build and package tests scoped by `--affected`; a separate coverage workflow posts per-package coverage comments afterward. **Release** (`release.yml`) calls the same CI checks in full on pushes to `canary`, `main`, and `2.0.0`, then publishes only after every check passes. Keeping `release.yml` as the top-level publishing workflow also preserves its npm trusted-publisher identity. `check-types` and root script tests always run in full as cross-package backstops. A PR that affects no package tests nothing and posts no coverage comment — that is expected, not a failure.
+- **CI** (`ci.yml`) contains reusable typecheck, lint, build, root script test, and package test jobs. It runs directly for pull requests, with build and package tests scoped by `--affected`; a separate coverage workflow posts per-package coverage comments afterward. **Release** (`release.yml`) calls the same CI checks in full on pushes to `release/v2`, then runs Tegami only after every check passes. Keeping `release.yml` as the top-level publishing workflow also preserves its npm trusted-publisher identity. `check-types` and root script tests always run in full as cross-package backstops. A PR that affects no package tests nothing and posts no coverage comment — that is expected, not a failure.
 - **autofix.ci**: runs `bun fmt` + `bun fmt:docs` and pushes fixes to your branch — pull before adding commits after CI runs.
 - **Bundle Analysis** (every PR) and **Benchmark Regression** (path-filtered: core/react/nextjs/translations/ui/benchmarks/lockfile/turbo.json) post bundle-size and perf comparisons. For perf work, include before/after benchmark numbers (`bun run bench`).
 - **PR Preview**: publishes preview packages to pkg.pr.new for package-path changes, but only for org members or PRs labeled `deploy:preview`.
