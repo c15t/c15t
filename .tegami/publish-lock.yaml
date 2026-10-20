@@ -1,0 +1,79 @@
+c15t:release:
+  - branch: release/v2
+    id: npm:@c15t/dev-tools
+    version: 2.4.0
+  - branch: release/v2
+    id: npm:@c15t/ui
+    version: 2.2.3
+  - branch: release/v2
+    id: npm:@c15t/iab
+    version: 2.4.0
+  - branch: release/v2
+    id: npm:c15t
+    version: 2.4.0
+  - branch: release/v2
+    id: npm:@c15t/nextjs
+    version: 2.4.0
+  - branch: release/v2
+    id: npm:@c15t/react
+    version: 2.4.0
+core:changelogs:
+  - content: "---\npackages:\n  c15t:\n    type: minor\n---\n\n### Warn that offline mode keeps no consent records\n\nIn a development build, offline mode now logs one `console.warn` per page in\nthe browser. The message says that consent stays in this browser, that c15t\nkeeps no server-side record of it, and that every visitor gets the same policy\nbecause offline mode has no geolocation. It does not block the banner or change\nconsent, and production builds do not log it.\n\nIf you chose offline mode on purpose, for example for tests or a static demo,\nset `acknowledgeNoRecords: true` next to `mode: 'offline'` to hide the message.\nThe option works in `configureConsentManager()`, `getOrCreateConsentRuntime()`,\nand the `@c15t/react` and `@c15t/nextjs` provider options.\n"
+    filename: 2026-10-20-offline-mode-warning.md
+    v: 0.0.0
+core:packages:
+  - id: npm:@c15t/backend
+    updated: false
+  - id: npm:@c15t/dev-tools
+    updated: true
+  - id: npm:@c15t/logger
+    updated: false
+  - id: npm:@c15t/translations
+    updated: false
+  - id: npm:@c15t/scripts
+    updated: false
+  - id: npm:@c15t/node-sdk
+    updated: false
+  - id: npm:@c15t/ui
+    updated: true
+  - id: npm:@c15t/iab
+    updated: true
+  - changelogIds:
+      - 2026-10-20-offline-mode-warning.md
+    id: npm:c15t
+    updated: true
+  - id: npm:@c15t/nextjs
+    updated: true
+  - id: npm:@c15t/schema
+    updated: false
+  - id: npm:@c15t/react
+    updated: true
+  - id: npm:@c15t/cli
+    updated: false
+npm:packages:
+  - distTag: v2-legacy
+    id: npm:@c15t/backend
+  - distTag: v2-legacy
+    id: npm:@c15t/dev-tools
+  - distTag: v2-legacy
+    id: npm:@c15t/logger
+  - distTag: v2-legacy
+    id: npm:@c15t/translations
+  - distTag: v2-legacy
+    id: npm:@c15t/scripts
+  - distTag: v2-legacy
+    id: npm:@c15t/node-sdk
+  - distTag: v2-legacy
+    id: npm:@c15t/ui
+  - distTag: v2-legacy
+    id: npm:@c15t/iab
+  - distTag: v2-legacy
+    id: npm:c15t
+  - distTag: v2-legacy
+    id: npm:@c15t/nextjs
+  - distTag: v2-legacy
+    id: npm:@c15t/schema
+  - distTag: v2-legacy
+    id: npm:@c15t/react
+  - distTag: v2-legacy
+    id: npm:@c15t/cli
