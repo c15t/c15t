@@ -940,19 +940,12 @@ export default defineDocsConfig({
 			base: 'cli',
 			children: [
 				{
-					pages: [
-						'commands/setup',
-						'commands/boilerplate',
-						'commands/codemods',
-						'commands/hosted',
-						'commands/self-host',
-						'global-flags',
-					],
+					pages: ['commands/setup', 'commands/codemods', 'commands/self-host'],
 					slug: 'commands',
 					title: 'Commands',
 				},
 			],
-			pages: ['overview', 'quickstart', 'automation'],
+			pages: ['overview', 'quickstart'],
 			slug: 'cli',
 			title: 'CLI',
 		},

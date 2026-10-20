@@ -69,6 +69,14 @@ import type { RuntimeIABMountOptions } from './iab-mount';
 export interface RuntimeScriptLoaderOptions {
 	/** Receives every script-loader lifecycle event, for debugging. */
 	onDebug?: (event: ScriptLoaderDebugEvent) => void;
+	/**
+	 * Set `false` to start every `scripts` entry after hydration. By default
+	 * a server render starts the entries the visitor's consent already
+	 * allows from its HTML, before the page hydrates.
+	 *
+	 * @default true
+	 */
+	serverStart?: boolean;
 }
 
 /** Network-blocker configuration accepted by {@link ConsentRuntimeOptions}. */

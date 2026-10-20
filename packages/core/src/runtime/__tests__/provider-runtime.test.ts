@@ -12,6 +12,7 @@ import { choiceRecords, NOW } from '../../__tests__/fixtures/kernel-fixtures';
 import { createNetworkBlocker } from '../../modules/network-blocker';
 import type { NetworkHold } from '../../modules/network-blocker/hold';
 import { custom } from '../../transports/mode';
+import type { ProviderTransportContext } from '../../transports/mode';
 import type { KernelTransport } from '../../types';
 import {
 	createConsentProviderRuntime,
@@ -850,6 +851,26 @@ describe('a streamed prefetch', () => {
 		);
 		expect(runtime.kernel.getSnapshot().policyRule.id).toBe('policy_1');
 		expect(transport.init).not.toHaveBeenCalled();
+	});
+
+	test('hands the transport the pending state, so it can wait before warming up', async () => {
+		const transport = createTransport();
+		const factory = Object.assign(
+			vi.fn((_context: ProviderTransportContext) => transport),
+			{ kind: 'manifest' as const }
+		);
+		const stream = Promise.withResolvers<RuntimePrefetch>();
+		const runtime = create(
+			{ mode: factory, prefetch: stream.promise },
+			streaming
+		);
+		runtime.start();
+		const pending = factory.mock.calls[0]?.[0].pendingPrefetch;
+		expect(pending).toBeDefined();
+
+		stream.resolve(RESOLVED_PREFETCH);
+
+		await expect(pending).resolves.toBe(RESOLVED_PREFETCH);
 	});
 
 	test('a config with a policy keeps its records, and runtime overrides win over its overrides', async () => {

@@ -360,6 +360,27 @@ describe('fetchCachedManifest', () => {
 			fetchCachedManifest({ fetch: fetchMock, sourceURL: SOURCE_URL })
 		).rejects.toThrow('c15t manifest cache: backend /manifest responded 503');
 	});
+
+	test('a refusal carries the backend message, status and code', async () => {
+		const fetchMock = createFetchMock(() =>
+			Response.json(
+				{
+					code: 'CONSENT_SESSIONS_EXHAUSTED',
+					message: 'This project is out of consent sessions.',
+				},
+				{ status: 402 }
+			)
+		);
+
+		await expect(
+			fetchCachedManifest({ fetch: fetchMock, sourceURL: SOURCE_URL })
+		).rejects.toMatchObject({
+			code: 'CONSENT_SESSIONS_EXHAUSTED',
+			message:
+				'c15t manifest cache: backend /manifest responded 402: This project is out of consent sessions. (CONSENT_SESSIONS_EXHAUSTED)',
+			status: 402,
+		});
+	});
 });
 
 describe('manifest source URLs', () => {
@@ -2206,6 +2227,11 @@ describe('failures on a cold cache', () => {
 		// Inside stale-while-revalidate the stale copy is served.
 		await expect(read(15_000)).resolves.toMatchObject({
 			manifest: minimalManifest,
+		});
+		// Let that read's background refresh settle, as it would in the 16 s
+		// before the next read.
+		await new Promise((resolve) => {
+			setTimeout(resolve, 0);
 		});
 		// Past it, the read waits on the upstream and its failure surfaces,
 		// then the floor holds without serving the expired copy either.

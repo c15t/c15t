@@ -26,6 +26,7 @@
 	} from '@c15t/core/runtime/provider';
 	import type { IABHandle } from '@c15t/iab';
 	import { setupColorScheme } from '@c15t/ui/utils';
+	import { BROWSER } from 'esm-env';
 	import type { Snippet } from 'svelte';
 	import { onDestroy, onMount, untrack } from 'svelte';
 
@@ -33,6 +34,7 @@
 	import type { ConsentDraftState, SvelteIABState } from '../context.svelte';
 	import { isIABConfigured, lazyCreateIAB, loadGPP } from '../iab-loader';
 	import { modulePreloadMarker } from '../module-preload';
+	import { startOnServer } from '../server-script-start';
 	import { warnOnUnappliedThemeTokens } from '../theme-warning';
 	import type { ConsentManagerOptions } from '../types';
 
@@ -129,6 +131,19 @@
 	const preloadMarker = ownsRuntime
 		? untrack(() => modulePreloadMarker(options))
 		: '';
+	// When the visitor's consent already lets some `scripts` run, the
+	// server render starts them from the HTML, before hydration:
+	// `c15tHandle` adds a `<script>` for them at the end of `<body>`, and the
+	// loader adopts the tags.
+	if (
+		ownsRuntime &&
+		!BROWSER &&
+		untrack(() => Boolean(options.scripts?.length))
+	) {
+		untrack(() =>
+			startOnServer(options as Parameters<typeof startOnServer>[0])
+		);
+	}
 	const runtime: ConsentRuntime =
 		externalRuntime ?? (ownedRuntime as ConsentRuntime);
 	// The runtime validated and assigned from the experiment it was created

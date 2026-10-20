@@ -31,11 +31,27 @@ whether the HTML belongs to one visitor or to everyone.
 
 By default, every server render reads the visitor's consent cookie and
 location headers, resolves their policy from the bundled snapshot, and sends
-the result with the page. The browser reuses it during hydration, so
-consent-gated scripts can start right after hydration and the banner needs no
-extra request. The browser bundle holds no resolver, snapshot or policy
+the result with the page. The browser reuses it during hydration, so the
+banner needs no extra request. The browser bundle holds no resolver, snapshot or policy
 rules. The [quickstart](/docs/frameworks/nuxt/quickstart) sets this up, and
 `examples/nuxt` in the c15t repository runs it.
+
+When the visitor's consent already allows some `scripts` entries, through a
+stored choice or a policy that asks for none, the server render adds an inline
+script at the end of `<body>`. After first paint, it runs those entries' setup
+and inserts their tags, so they start loading before the app hydrates. Entries
+with `alwaysLoad` start this way whatever the visitor chose. The script loader
+adopts those tags instead of inserting its own. Nothing starts from the HTML
+while the policy asks the visitor to choose, not even `alwaysLoad` entries, and
+a prerendered route starts nothing.
+
+The vendor helpers from `@c15t/integrations` start this way, except Cloudflare
+Zaraz and Sentry. Those two helpers, and `scripts` entries you write yourself,
+start after hydration.
+
+To start every `scripts` entry after hydration instead, set
+`scriptLoader: { serverStart: false }` under `c15t` in `nuxt.config.ts` or
+`app.config.ts`.
 
 The module adds one catch-all route at `${routePrefix}/**`, `/api/c15t/**` by
 default. It answers `GET /api/c15t/init`, the visitor's resolved policy, and

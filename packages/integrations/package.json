@@ -63,6 +63,15 @@
 	],
 	"type": "module",
 	"sideEffects": false,
+	"imports": {
+		"#inline-start": {
+			"types": "./dist-types/engine/inline-start.d.ts",
+			"edge-light": "./dist/engine/inline-start.js",
+			"workerd": "./dist/engine/inline-start.js",
+			"browser": "./dist/engine/inline-start-browser.js",
+			"default": "./dist/engine/inline-start.js"
+		}
+	},
 	"exports": {
 		"./adobe-analytics": {
 			"types": "./dist-types/vendors/analytics/adobe-analytics.d.ts",

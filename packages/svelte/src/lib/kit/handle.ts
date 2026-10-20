@@ -17,6 +17,10 @@ import type {
 import type { RequestEvent } from '@sveltejs/kit';
 
 import { injectModulePreloads } from './module-preload';
+import {
+	createServerStartInjector,
+	loadServerScriptStart,
+} from './server-script-start';
 import { injectSurfaceStyles } from './surface-styles';
 import type { C15tLocals, ConsentRequestOptions } from './types';
 
@@ -203,6 +207,15 @@ export const c15tHandle = function c15tHandle(
 		}
 		(event.locals as { c15t?: C15tLocals }).c15t = locals;
 
+		// When the visitor's consent already lets some `scripts` run, the
+		// provider renders a start for them; it goes at the end of `<body>`,
+		// so they start before the page hydrates. Never in prerendered HTML,
+		// which is no one visitor's.
+		const injectServerStart = building
+			? undefined
+			: (await loadServerScriptStart(),
+				createServerStartInjector(event.locals));
+
 		// A page whose provider configures scripts or blocker rules names
 		// their on-demand chunks in its head; link them so the browser
 		// fetches them with the app's code. A server-rendered banner names
@@ -210,8 +223,10 @@ export const c15tHandle = function c15tHandle(
 		// stylesheet request holds back the first paint. Prerendered pages
 		// too: both are the same for every visitor.
 		return await resolve(event, {
-			transformPageChunk: ({ html }) =>
-				injectModulePreloads(injectSurfaceStyles(html)),
+			transformPageChunk: ({ done, html }) => {
+				const page = injectModulePreloads(injectSurfaceStyles(html));
+				return injectServerStart ? injectServerStart(page, done) : page;
+			},
 		});
 	};
 };

@@ -75,6 +75,14 @@ for (const [name, config] of [
 				.map((lib) => ({ ...lib, dts: false })),
 			output: { ...config.output, distPath: { root: output } },
 		};
+		// Public entries a bundled lib emits, such as core's server start.
+		const bundledFiles = new Set(
+			config.lib
+				?.filter((lib) => lib.bundle !== false)
+				.flatMap((lib) =>
+					Object.keys(lib.source?.entry ?? {}).map((entry) => `${entry}.js`)
+				)
+		);
 		const first = await createRslib({ config: buildConfig, cwd });
 		builds.push(await first.build());
 		const original = inventory(output);
@@ -82,6 +90,9 @@ for (const [name, config] of [
 			manifest.exports
 		)) {
 			const publicFile = conditions.import.replace('./dist/', '');
+			if (bundledFiles.has(publicFile)) {
+				continue;
+			}
 			const canonical = conditions.types
 				.replace('./dist-types/', '')
 				.replace(/\.d\.ts$/u, '.js');

@@ -55,15 +55,11 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 
 ## CLI
 
-- [Agents and automation](./cli/automation.md): Read JSON results from the c15t CLI, call it from another program with runCli, and give a coding agent a v3 setup or migration task.
-- [Framework boilerplate](./cli/commands/boilerplate.md): Generate the c15t quickstart files for Next.js, Nuxt, TanStack Start, Astro, React, JavaScript, a script tag, Vue, Svelte, SvelteKit or Solid with the c15t CLI.
-- [Codemods](./cli/commands/codemods.md): Migrate source from c15t v2 to v3 with the c15t CLI codemods command, covering package imports, the provider, transports, moved exports, dev tools, policy presets, CSS variables, Tailwind CSS 3, callbacks, the Node.js SDK and backend config, and run the v1 to v2 source transforms.
-- [Hosted projects and authentication](./cli/commands/hosted.md): Use Inth authentication and provisioning from the c15t setup workflow.
+- [Codemods](./cli/commands/codemods.md): Migrate source from c15t v2 to v3 with inth c15t codemods, covering package imports, the provider, transports, moved exports, dev tools, policy presets, CSS variables, Tailwind CSS 3 and callbacks.
 - [Self-hosted migrations](./cli/commands/self-host.md): Plan and apply database migrations for a self-hosted c15t backend with the c15t CLI self-host migrate command.
-- [setup](./cli/commands/setup.md): Flags and file handling for c15t setup, which plans and applies c15t integration files in Next.js, React and JavaScript apps.
-- [Global flags](./cli/global-flags.md): Flags every c15t CLI command accepts, for JSON output, the project directory, prompts and telemetry, plus exit codes.
-- [CLI overview](./cli/overview.md): Run the c15t CLI from @c15t/cli to add c15t to an app, migrate v2 code, manage Inth projects and migrate a self-hosted database.
-- [CLI quickstart](./cli/quickstart.md): Use the c15t CLI to plan, review and apply c15t setup in an existing Next.js or React app, connected to an Inth backend.
+- [inth c15t](./cli/commands/setup.md): Actions and options for inth c15t, the Inth CLI command that sets up c15t with a coding agent, a setup prompt or framework quickstart files.
+- [CLI overview](./cli/overview.md): Install the Inth CLI and run inth c15t to add c15t to an app with a coding agent or quickstart files, create or select an Inth project, and run the v3 codemods.
+- [CLI quickstart](./cli/quickstart.md): Use inth c15t from the Inth CLI to set up c15t in an existing app with a coding agent or quickstart files, connected to an Inth project.
 
 ## Backend
 

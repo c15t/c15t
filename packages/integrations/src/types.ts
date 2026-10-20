@@ -44,6 +44,8 @@ export interface LoadScriptStep {
 	async?: boolean;
 	defer?: boolean;
 	attributes?: Record<string, string>;
+	/** Priority hint for the script request. */
+	fetchPriority?: 'high' | 'low' | 'auto';
 }
 
 export interface SetGlobalStep {
@@ -232,6 +234,33 @@ export interface DefineGlobalMethodsStep {
 	ifGlobalIsQueue?: boolean;
 }
 
+export interface SetCookieStep {
+	type: 'setCookie';
+	/**
+	 * The whole `document.cookie` assignment, attributes included.
+	 * @example `'__kla_off=true; path=/; SameSite=Lax'`
+	 */
+	cookie: string;
+}
+
+/**
+ * Defines `window[name]` as an object that answers any method name with a
+ * function queueing the call on `window[queue]`, unless the global exists.
+ *
+ * Each call pushes `[method, ...args, done]` and returns a promise `done`
+ * resolves. A trailing function argument is taken off the call and gets the
+ * result too. `push` forwards its items to the queue. Symbols, `then`,
+ * `toJSON` and `Object.prototype` members are left alone, so awaiting or
+ * serializing the object queues nothing.
+ */
+export interface DefineQueueProxyStep {
+	type: 'defineQueueProxy';
+	/** Global name of the proxy (e.g. `klaviyo`) */
+	name: string;
+	/** Global queue that receives the calls; an array when missing */
+	queue: string;
+}
+
 export interface ConstructGlobalStep {
 	type: 'constructGlobal';
 	/** Global constructor name (e.g. `UET`) */
@@ -258,6 +287,8 @@ export type ManifestStep =
 	| DefineQueueMethodsStep
 	| DefineQueueClassStep
 	| DefineGlobalMethodsStep
+	| SetCookieStep
+	| DefineQueueProxyStep
 	| ConstructGlobalStep;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -272,8 +303,10 @@ export type ManifestStep =
  *   `rudderanalytics.consent({ consentManagement: { enabled, provider: 'custom',
  *   allowedConsentIds, deniedConsentIds } })` with the mapping's consent IDs
  *   partitioned by the current c15t consent state
+ * - `'clarity'` — Microsoft Clarity Consent V2: calls
+ *   `clarity('consentv2', state)` with the mapping's storage names
  */
-export type ConsentSignalType = 'gtag' | 'rudderstack';
+export type ConsentSignalType = 'gtag' | 'rudderstack' | 'clarity';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Vendor Manifest — declarative vendor integration definition
@@ -386,6 +419,15 @@ export interface VendorManifest extends ManifestContract {
 
 	/** Target global for consent signaling (defaults based on signal type) */
 	consentSignalTarget?: string;
+
+	/**
+	 * Vendor consent types the `'default'` signal of a `'gtag'` or
+	 * `'clarity'` manifest sets whatever the c15t consent state says.
+	 * Updates and a vendor the subject turned off ignore them.
+	 */
+	consentSignalDefaults?:
+		| Record<string, 'granted' | 'denied'>
+		| ManifestInterpolationToken;
 }
 
 /**
@@ -413,4 +455,5 @@ export interface ResolvedManifest extends ManifestContract {
 	consentMapping?: Record<string, string[]>;
 	consentSignal?: ConsentSignalType;
 	consentSignalTarget?: string;
+	consentSignalDefaults?: Record<string, 'granted' | 'denied'>;
 }

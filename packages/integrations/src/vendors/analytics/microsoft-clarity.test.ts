@@ -49,6 +49,25 @@ describe('microsoft-clarity', () => {
 		]);
 	});
 
+	it('ignores default consent while the subject has the vendor turned off', () => {
+		const globalRef = getTestGlobal();
+		const script = clarity({ defaultConsent: true, id: 'abcdef1234' });
+
+		script.onBeforeLoad?.(
+			createCallbackInfo({
+				id: script.id,
+				vendor: { granted: false, id: 'microsoft-clarity' },
+			})
+		);
+
+		const stub = globalRef.clarity as
+			| (((...args: unknown[]) => void) & { q?: unknown[][] })
+			| undefined;
+		expect(stub?.q).toEqual([
+			consentv2Call({ ad_Storage: 'denied', analytics_Storage: 'denied' }),
+		]);
+	});
+
 	it('maps consent updates to Clarity Consent V2 calls', () => {
 		const globalRef = getTestGlobal();
 		const script = clarity({ id: 'abcdef1234' });

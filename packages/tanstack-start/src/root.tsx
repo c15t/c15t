@@ -29,6 +29,7 @@ import type { ConsentMode } from '@c15t/core/modes';
 import type { Script } from '@c15t/core/modules/script-loader';
 import { clientMode } from '@c15t/core/runtime/client-mode';
 import { preloadScriptLoaderWith } from '@c15t/core/runtime/script-loader-preload';
+import type * as ScriptServerStart from '@c15t/core/runtime/script-server-start';
 import { resolveStreamedInit } from '@c15t/core/runtime/streamed-init';
 import type {
 	UseNetworkBlockerOptions,
@@ -37,8 +38,9 @@ import type {
 } from '@c15t/react/module-hooks';
 import { ConsentProvider } from '@c15t/react/provider';
 import type { ConsentProviderOptions } from '@c15t/react/provider';
+import * as React from 'react';
+import { Suspense, useState } from 'react';
 import type { ReactNode } from 'react';
-import { useState } from 'react';
 
 import { readPrefetchedInitialData } from './libs/prefetch-head';
 import type { ConsentState } from './server';
@@ -228,6 +230,194 @@ const resolveMode = function resolveMode(
 	return deferredTransport(state, mode, overrides);
 };
 
+type ScriptServerStartModule = typeof ScriptServerStart;
+
+/** A promise that keeps its result where React 18 reads it on a retry. */
+type Recorded<Value> = Promise<Value> & {
+	status?: 'fulfilled';
+	value?: Value;
+};
+
+/** `promise`, which must not reject, recording its result on itself. */
+const record = function record<Value>(
+	promise: Promise<Value>
+): Recorded<Value> {
+	const holder: { recorded?: Recorded<Value> } = {};
+	const recorded: Recorded<Value> = (async () => {
+		const value = await promise;
+		// Set by now: the await above yields.
+		if (holder.recorded) {
+			holder.recorded.status = 'fulfilled';
+			holder.recorded.value = value;
+		}
+		return value;
+	})();
+	holder.recorded = recorded;
+	return recorded;
+};
+
+const loadScriptServerStart = function loadScriptServerStart(): Recorded<
+	ScriptServerStartModule | undefined
+> {
+	return record(
+		(async () => {
+			try {
+				return await import('@c15t/core/runtime/script-server-start');
+			} catch {
+				return undefined;
+			}
+		})()
+	);
+};
+
+let scriptServerStartModule:
+	| Recorded<ScriptServerStartModule | undefined>
+	| undefined;
+let retriedScriptServerStart:
+	| Recorded<ScriptServerStartModule | undefined>
+	| undefined;
+
+/**
+ * Loaded on the server only, so no browser chunk requests it. A failed
+ * import skips the server start and retries on the side for later renders.
+ */
+const importScriptServerStart = function importScriptServerStart(): Recorded<
+	ScriptServerStartModule | undefined
+> {
+	const loaded = scriptServerStartModule;
+	if (loaded?.status === 'fulfilled' && !loaded.value) {
+		// Every render gets the failed load until the retry settles. On
+		// React 18 a render that waited for the load calls again, and a
+		// pending import there would suspend it again.
+		retriedScriptServerStart ??= loadScriptServerStart();
+		if (retriedScriptServerStart.status !== 'fulfilled') {
+			return loaded;
+		}
+		scriptServerStartModule = retriedScriptServerStart;
+		retriedScriptServerStart = undefined;
+	}
+	scriptServerStartModule ??= loadScriptServerStart();
+	return scriptServerStartModule;
+};
+
+const settledStates = new WeakMap<
+	Promise<ConsentState>,
+	Recorded<ConsentState | undefined>
+>();
+
+/**
+ * `state` with a rejection as `undefined`: the provider falls back to its
+ * transport then, and the server start has nothing to start. One promise
+ * per input, so `use` sees the same value on a retry.
+ */
+const settledState = function settledState(
+	state: Promise<ConsentState>
+): Recorded<ConsentState | undefined> {
+	let settled = settledStates.get(state);
+	if (!settled) {
+		settled = record(
+			(async () => {
+				try {
+					return await state;
+				} catch {
+					return undefined;
+				}
+			})()
+		);
+		settledStates.set(state, settled);
+	}
+	return settled;
+};
+
+/**
+ * Whether `state` can start a script from the HTML: a streamed one, or one
+ * resolved for this request. A prerendered state, or the static root's
+ * `{}`, renders no start script, so shared HTML carries no inline script.
+ */
+const startsFromHTML = function startsFromHTML(
+	state: ConsentState | Promise<ConsentState> | undefined
+): boolean {
+	if (state !== undefined && isPending(state)) {
+		return true;
+	}
+	return (
+		state?.initialPolicyResolution !== undefined && state.now !== undefined
+	);
+};
+
+/** React 19's `use`, absent from React 18. */
+const { use } = React as {
+	use?: <Value>(value: Promise<Value>) => Value;
+};
+
+/**
+ * `use` where React has it. React 18 suspends on a thrown promise and
+ * reads its recorded result on the retry.
+ */
+const read = function read<Value>(promise: Recorded<Value>): Value {
+	if (use) {
+		// oxlint-disable-next-line react-hooks/rules-of-hooks -- `read` is `use` with a React 18 fallback, so it keeps `use`'s rules: render only, conditions allowed.
+		return use(promise);
+	}
+	if (promise.status === 'fulfilled') {
+		return promise.value as Value;
+	}
+	throw promise;
+};
+
+/**
+ * Starts the scripts the server's consent state already lets run. An
+ * inline script runs the setup of each one with a `serverStart` and
+ * inserts it after first paint, before hydration, and the loader adopts
+ * it. In the browser it only hydrates the inline script.
+ *
+ * It suspends on a streamed state inside its own boundary, on the server and
+ * in the browser, so the rest of the page streams and hydrates without it.
+ */
+const ServerScriptStart = ({
+	options,
+}: {
+	options: ConsentProviderOptions;
+}): ReactNode => {
+	const { prefetch } = options;
+	const state = isPending(prefetch as ConsentState | Promise<ConsentState>)
+		? read(settledState(prefetch as Promise<ConsentState>))
+		: (prefetch as ConsentState | undefined);
+	// A streamed state that rejects, or resolves to a shared one, renders no
+	// start script, on the server and in the browser alike.
+	if (!startsFromHTML(state)) {
+		return null;
+	}
+	if (typeof document !== 'undefined') {
+		// Hydrates the server's start script without running or replacing it.
+		return (
+			<script
+				// oxlint-disable-next-line react/no-danger -- Empty: keeps the server's script.
+				dangerouslySetInnerHTML={{ __html: '' }}
+				suppressHydrationWarning
+			/>
+		);
+	}
+	const module = read(importScriptServerStart());
+	// A failed import still renders the empty script the browser hydrates.
+	const code = module?.serverScriptStart({
+		...(options as unknown as Parameters<
+			ScriptServerStartModule['serverScriptStart']
+		>[0]),
+		prefetch: state,
+	});
+	return (
+		// Runs a granted vendor's setup and inserts its tag before the page
+		// hydrates. The script loader adopts the tag.
+		<script
+			// oxlint-disable-next-line react/no-danger -- c15t's own code; serverScriptStart escapes `<` in every value.
+			dangerouslySetInnerHTML={{ __html: code ?? '' }}
+			nonce={options.nonce}
+			suppressHydrationWarning
+		/>
+	);
+};
+
 /**
  * Wraps the app in a consent provider seeded with the server-resolved state.
  *
@@ -276,30 +466,39 @@ export const ConsentRoot = ({
 	// Initial-only, like the provider's own `mode`.
 	void setMode;
 
+	const providerOptions: ConsentProviderOptions = {
+		...options,
+		__debugPkg: '@c15t/tanstack-start',
+		// A returning visitor's state often lets a script run. Start the
+		// script loader's download during the first render, not after
+		// hydration, a round trip later.
+		__preloadScriptLoader: preloadScriptLoaderWith,
+		// `state` is often a promise the server streams in. Apply it
+		// with code from the first-load chunk: loading that code after
+		// hydration would hold the banner back by a round trip.
+		__resolveStreamedInit: resolveStreamedInit,
+		clearOnRevocation,
+		mode,
+		networkBlocker,
+		persistence,
+		prefetch: state,
+		scriptLoader,
+		scripts,
+		vendors,
+	};
+
 	return (
-		<ConsentProvider
-			options={{
-				...options,
-				__debugPkg: '@c15t/tanstack-start',
-				// A returning visitor's state often lets a script run. Start the
-				// script loader's download during the first render, not after
-				// hydration, a round trip later.
-				__preloadScriptLoader: preloadScriptLoaderWith,
-				// `state` is often a promise the server streams in. Apply it
-				// with code from the first-load chunk: loading that code after
-				// hydration would hold the banner back by a round trip.
-				__resolveStreamedInit: resolveStreamedInit,
-				clearOnRevocation,
-				mode,
-				networkBlocker,
-				persistence,
-				prefetch: state,
-				scriptLoader,
-				scripts,
-				vendors,
-			}}
-		>
+		<ConsentProvider options={providerOptions}>
 			{children}
+			{/* After the page: an inline script waits for the stylesheets,
+			so ahead of the content it would hold back first paint. */}
+			{scripts?.length &&
+			startsFromHTML(state) &&
+			scriptLoader?.serverStart !== false ? (
+				<Suspense fallback={null}>
+					<ServerScriptStart options={providerOptions} />
+				</Suspense>
+			) : null}
 		</ConsentProvider>
 	);
 };

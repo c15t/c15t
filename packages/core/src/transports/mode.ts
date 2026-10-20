@@ -28,6 +28,15 @@ export interface ProviderTransportContext {
 	gppEnabled?: boolean;
 	/** Server-prefetched kernel configuration. */
 	prefetch: KernelConfig;
+	/**
+	 * The server's state while it still streams in; `prefetch` holds it
+	 * once it arrives. A transport that warms up ahead of `init()` can wait
+	 * for it: when it carries a policy, the first `init()` never reaches
+	 * the transport.
+	 *
+	 * @internal
+	 */
+	pendingPrefetch?: PromiseLike<Partial<KernelConfig> | undefined>;
 	/** Translations resolved from the provider's i18n configuration. */
 	translations: KernelTranslations;
 	/**

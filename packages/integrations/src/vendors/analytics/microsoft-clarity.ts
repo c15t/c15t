@@ -1,4 +1,4 @@
-import type { ConsentState, Script, ScriptCallbackInfo } from '@c15t/core';
+import type { Script } from '@c15t/core';
 
 import { resolveManifest } from '../../resolve';
 import { vendorManifestContract } from '../../types';
@@ -110,42 +110,17 @@ const getConsentValue = function getConsentValue(
 	return undefined;
 };
 
-const getConsentPayloadFromState = function getConsentPayloadFromState(
-	consents: ConsentState
-): ClarityConsentV2Payload {
-	let adStorage: ClarityConsentState;
-	if (consents.marketing) {
-		adStorage = 'granted';
-	} else {
-		adStorage = 'denied';
-	}
-
-	let analyticsStorage: ClarityConsentState;
-	if (consents.measurement) {
-		analyticsStorage = 'granted';
-	} else {
-		analyticsStorage = 'denied';
-	}
-
-	return {
-		ad_Storage: adStorage,
-		analytics_Storage: analyticsStorage,
-	};
-};
-
 /**
- * Builds the Consent V2 payload for Clarity from c15t state and overrides.
+ * The Consent V2 values `defaultConsent` sets, over the ones c15t's consent
+ * state gives.
  *
  * @internal
  */
-const getClarityConsentPayload = function getClarityConsentPayload(
-	consents: ConsentState,
-	defaultConsent?: ClarityConsentValue
-): ClarityConsentV2Payload {
-	const fallback = getConsentPayloadFromState(consents);
-
+const getClarityConsentDefaults = function getClarityConsentDefaults(
+	defaultConsent: ClarityConsentValue | undefined
+): Partial<ClarityConsentV2Payload> | undefined {
 	if (defaultConsent === undefined) {
-		return fallback;
+		return undefined;
 	}
 
 	const booleanConsent = toClarityConsentState(defaultConsent);
@@ -156,44 +131,25 @@ const getClarityConsentPayload = function getClarityConsentPayload(
 		};
 	}
 
-	if (defaultConsent !== null && typeof defaultConsent === 'object') {
-		return {
-			ad_Storage:
-				getConsentValue(defaultConsent, [
-					'ad_Storage',
-					'ad_storage',
-					'marketing',
-				]) ?? fallback.ad_Storage,
-			analytics_Storage:
-				getConsentValue(defaultConsent, [
-					'analytics_Storage',
-					'analytics_storage',
-					'measurement',
-					'analytics',
-				]) ?? fallback.analytics_Storage,
-		};
+	if (defaultConsent === null || typeof defaultConsent !== 'object') {
+		return undefined;
 	}
 
-	return fallback;
-};
-
-/**
- * Queues or sends the current Clarity Consent V2 payload.
- *
- * @internal
- */
-const syncClarityConsent = function syncClarityConsent(
-	info: ScriptCallbackInfo,
-	defaultConsent?: ClarityConsentValue
-): void {
-	// A vendor the subject turned off is told nothing is granted, whatever
-	// the category state or the configured default says.
-	window.clarity?.(
-		'consentv2',
-		info.vendor?.granted === false
-			? { ad_Storage: 'denied', analytics_Storage: 'denied' }
-			: getClarityConsentPayload(info.consents, defaultConsent)
-	);
+	const adStorage = getConsentValue(defaultConsent, [
+		'ad_Storage',
+		'ad_storage',
+		'marketing',
+	]);
+	const analyticsStorage = getConsentValue(defaultConsent, [
+		'analytics_Storage',
+		'analytics_storage',
+		'measurement',
+		'analytics',
+	]);
+	return {
+		...(adStorage && { ad_Storage: adStorage }),
+		...(analyticsStorage && { analytics_Storage: analyticsStorage }),
+	};
 };
 
 /**
@@ -201,6 +157,8 @@ const syncClarityConsent = function syncClarityConsent(
  *
  * Seeds the global queue stub before loading the vendor bundle and uses
  * Clarity's Consent V2 API for granular analytics and ad storage transitions.
+ * A vendor the subject turned off is told nothing is granted, whatever the
+ * category state or the configured default says.
  */
 export const clarityManifest = {
 	...vendorManifestContract,
@@ -217,6 +175,12 @@ export const clarityManifest = {
 		},
 	],
 	category: 'measurement',
+	consentMapping: {
+		marketing: ['ad_Storage'],
+		measurement: ['analytics_Storage'],
+	},
+	consentSignal: 'clarity',
+	consentSignalDefaults: '{{consentDefaults}}',
 	install: [
 		{
 			async: true,
@@ -278,24 +242,11 @@ export const clarity = function clarity({
 		});
 	}
 
-	const resolved = resolveManifest(clarityManifest, {
+	return resolveManifest(clarityManifest, {
+		consentDefaults: getClarityConsentDefaults(defaultConsent),
 		scriptUrl: resolveScriptUrl(
 			scriptUrlOverride,
 			`https://www.clarity.ms/tag/${normalizedId ?? ''}`
 		),
 	});
-	const { onBeforeLoad } = resolved;
-	const { onConsentChange } = resolved;
-
-	return {
-		...resolved,
-		onBeforeLoad: (info) => {
-			onBeforeLoad?.(info);
-			syncClarityConsent(info, defaultConsent);
-		},
-		onConsentChange: (info) => {
-			onConsentChange?.(info);
-			syncClarityConsent(info);
-		},
-	};
 };

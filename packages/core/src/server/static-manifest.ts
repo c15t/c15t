@@ -1,5 +1,6 @@
 import type { ConsentManifest } from '@c15t/schema/types';
 
+import { failedResponseError } from '../libs/failed-response';
 import { c15tProtocolHeaders } from '../transports/version-header';
 
 /** Names that parse but cannot be bound with `export const`. */
@@ -81,9 +82,7 @@ export const loadStaticManifest = async (
 		method: 'GET',
 	});
 	if (!response.ok) {
-		throw new Error(
-			`${label}: /manifest responded ${response.status} ${response.statusText}`
-		);
+		throw await failedResponseError(`${label}: /manifest`, response);
 	}
 	try {
 		// Build/static loading owns validation; request resolvers need no schemas.

@@ -1,19 +1,28 @@
 ---
 title: Codemods
-description: Migrate source from c15t v2 to v3 with the c15t CLI codemods
-  command, covering package imports, the provider, transports, moved exports,
-  dev tools, policy presets, CSS variables, Tailwind CSS 3, callbacks, the
-  Node.js SDK and backend config, and run the v1 to v2 source transforms.
+description: Migrate source from c15t v2 to v3 with inth c15t codemods, covering
+  package imports, the provider, transports, moved exports, dev tools, policy
+  presets, CSS variables, Tailwind CSS 3 and callbacks.
 group: cli
 ---
 
 ## Run the v3 codemods
 
-The v3 codemods run only when you name them; `--all` never selects them.
-Preview every change first, then run the same command without `--dry-run`:
+Run the codemods through the Inth CLI. See
+[install the Inth CLI](../overview.md#install-the-inth-cli).
+
+Replace `@c15t/react` and `@c15t/nextjs` with `c15t` in `package.json` first.
+Until it lists `c15t` v3, `packages-to-c15t` leaves their imports alone, and
+the codemods after it see v2 imports. `@c15t/scripts`, `@c15t/backend` and
+`@c15t/node-sdk` don't move into `c15t`. The `@c15t/scripts` rename is further
+down this page, and the SDK and backend codemods are in
+[Upgrade a self-hosted backend](../../self-host/upgrade-v3.md).
+
+The codemods run only when you name them. Preview every change first, then
+run the same command without `--dry-run`:
 
 ```bash
-npx @c15t/cli codemods packages-to-c15t consent-provider-options root-exports-to-subpaths use-consent-manager-to-hooks callbacks-to-v3 policy-packs-to-policy-rules --dry-run --json
+inth c15t codemods packages-to-c15t consent-provider-options root-exports-to-subpaths use-consent-manager-to-hooks callbacks-to-v3 policy-packs-to-policy-rules --dry-run --json
 ```
 
 Name several codemods in one command and they run in a fixed order, whatever
@@ -22,26 +31,23 @@ order you name them in, each seeing the previous one's edits.
 leave a `TODO(c15t v3)` comment next to it. Most also leave the v2 code in
 place, so type-checking fails at each one until you resolve it.
 
-| ID                             | Rewrites                                                                                                                                                                                                                                                                                                                                                                | Leaves a `TODO(c15t v3)` for                                                                                                                    |
-| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| `packages-to-c15t`             | `@c15t/react` and `@c15t/nextjs` imports to `c15t/react`, `c15t/next` and their subpaths, and removes `styles.css` imports                                                                                                                                                                                                                                              | Stylesheet imports Tailwind CSS 3 or a cascade layer needs, and `components/integrations` imports                                               |
-| `consent-provider-options`     | `ConsentManagerProvider`, `ConsentManagerOptions` and `ConsentManagerProviderProps` to the `ConsentProvider` names; `mode: 'hosted'` with `backendURL`, `headers` and `customFetch` to `mode: hosted({ backendURL, headers, fetch })`; `mode: 'offline'` with `offlinePolicy.policyPacks` to `mode: offline({ policyRules })`; `iframeBlockerConfig` to `iframeBlocker` | `mode: 'custom'` with `endpointHandlers`, a `mode` set from a variable, `retryConfig`, other `offlinePolicy` keys and hand-written policy packs |
-| `root-exports-to-subpaths`     | Imports of names that left the `c15t/react`, `c15t/next`, `@c15t/react` and `@c15t/nextjs` roots, moved to `/headless`, `/consent-dialog-trigger`, `/types` or `/components/consent-banner`                                                                                                                                                                             | Removed names such as `useConsentScript`, `YouTubeEmbed` and `ConsentButton`                                                                    |
-| `use-consent-manager-to-hooks` | `useConsentManager()` fields to one hook each                                                                                                                                                                                                                                                                                                                           | Fields with no one-call replacement                                                                                                             |
-| `scripts-to-integrations`      | `@c15t/scripts` imports to `@c15t/integrations`                                                                                                                                                                                                                                                                                                                         | Nothing                                                                                                                                         |
-| `dev-tools-to-c15t`            | `@c15t/dev-tools/react` and `@c15t/dev-tools/tanstack` imports to `c15t/next/devtools` or `c15t/react/devtools`, and removes the `namespace` prop                                                                                                                                                                                                                       | Removed store helpers such as `getC15tStore`                                                                                                    |
-| `policy-packs-to-policy-rules` | `policyPackPresets` to `policyRulePresets` and `worldNoBanner()` to `worldOptOutNoPrompt()`                                                                                                                                                                                                                                                                             | Nothing                                                                                                                                         |
-| `css-variables-to-v3`          | `--consent-widget-*` to `--consent-manager-*` and `--frame-*` to `--consent-gate-*`                                                                                                                                                                                                                                                                                     | `--consent-widget-accordion-*`                                                                                                                  |
-| `postcss-tailwind3`            | Adds the c15t Tailwind CSS 3 plugin before `tailwindcss` in `postcss.config`                                                                                                                                                                                                                                                                                            | Nothing; prints a warning for configs it can't edit                                                                                             |
-| `callbacks-to-v3`              | `onConsentChanged` to `onChoiceRecorded`                                                                                                                                                                                                                                                                                                                                | The `onChoiceRecorded` payload, `onConsentSet` and `onBannerFetched`                                                                            |
-| `theme-to-consent-theme`       | `theme.slots.consentDialogFooter` to `consentWidgetFooter`                                                                                                                                                                                                                                                                                                              | Theme tokens, which need `ConsentTheme` or `generateThemeCSS()`, and `theme.slots.frame`                                                        |
-| `iab-option-to-iab-provider`   | Nothing                                                                                                                                                                                                                                                                                                                                                                 | The `iab` provider option, which moves to `IABProvider`                                                                                         |
-| `node-sdk-to-v3`               | `c15tClient()` and `new C15TClient()` to `createC15tClient()`, client and per-call options, method names, type and error names                                                                                                                                                                                                                                          | Each call site, `prefix`, `debug`, dropped retry options, and per-call `throw`, `onSuccess`, `onError`, `body`, `query` and `method`            |
-| `backend-config-to-v3`         | `policyPacks` (as `policyRules`), `branding`, `customTranslations`, `i18n` and `appName` into `manifest`                                                                                                                                                                                                                                                                | `adapter`, `disableGeoLocation`, `iab`, `cache`, `logger`, `telemetry`, `tablePrefix`, `background` and removed entries                         |
+| ID                             | Rewrites                                                                                                                                                                                                                                                                        | Leaves a `TODO(c15t v3)` for                                                                                                                                |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `packages-to-c15t`             | `@c15t/react` and `@c15t/nextjs` imports to `c15t/react`, `c15t/next` and their subpaths, and removes `styles.css` imports                                                                                                                                                      | Stylesheet imports Tailwind CSS 3 or a cascade layer needs, and `components/integrations` imports                                                           |
+| `consent-provider-options`     | `ConsentManagerProvider`, `ConsentManagerOptions` and `ConsentManagerProviderProps` to the `ConsentProvider` names; `mode: 'hosted'` with `backendURL`, `headers` and `customFetch` to `mode: hosted({ backendURL, headers, fetch })`; `iframeBlockerConfig` to `iframeBlocker` | `mode: 'offline'` with `offlinePolicy`, `mode: 'custom'` with `endpointHandlers`, a `mode` set from a variable, `retryConfig` and hand-written policy packs |
+| `root-exports-to-subpaths`     | Imports of names that left the `c15t/react`, `c15t/next`, `@c15t/react` and `@c15t/nextjs` roots, moved to `/headless`, `/consent-dialog-trigger`, `/types` or `/components/consent-banner`                                                                                     | Removed names such as `useConsentScript`, `YouTubeEmbed` and `ConsentButton`                                                                                |
+| `use-consent-manager-to-hooks` | `useConsentManager()` fields to one hook each                                                                                                                                                                                                                                   | Fields with no one-call replacement                                                                                                                         |
+| `scripts-to-integrations`      | `@c15t/scripts` imports to `@c15t/integrations`                                                                                                                                                                                                                                 | Nothing                                                                                                                                                     |
+| `dev-tools-to-c15t`            | `@c15t/dev-tools/react` and `@c15t/dev-tools/tanstack` imports to `c15t/next/devtools` or `c15t/react/devtools`, and removes the `namespace` prop                                                                                                                               | Removed store helpers such as `getC15tStore`                                                                                                                |
+| `policy-packs-to-policy-rules` | `policyPackPresets` to `policyRulePresets` and `worldNoBanner()` to `worldOptOutNoPrompt()`                                                                                                                                                                                     | Nothing                                                                                                                                                     |
+| `css-variables-to-v3`          | `--consent-widget-*` to `--consent-manager-*` and `--frame-*` to `--consent-gate-*`                                                                                                                                                                                             | `--consent-widget-accordion-*`                                                                                                                              |
+| `postcss-tailwind3`            | Adds the c15t Tailwind CSS 3 plugin before `tailwindcss` in `postcss.config`                                                                                                                                                                                                    | Nothing; prints a warning for configs it can't edit                                                                                                         |
+| `callbacks-to-v3`              | `onConsentChanged` to `onChoiceRecorded`                                                                                                                                                                                                                                        | The `onChoiceRecorded` payload, `onConsentSet` and `onBannerFetched`                                                                                        |
+| `theme-to-consent-theme`       | `theme.slots.consentDialogFooter` to `consentWidgetFooter`                                                                                                                                                                                                                      | Theme tokens, which need `ConsentTheme` or `generateThemeCSS()`, and `theme.slots.frame`                                                                    |
+| `iab-option-to-iab-provider`   | Nothing                                                                                                                                                                                                                                                                         | The `iab` provider option, which moves to `IABProvider`                                                                                                     |
 
 v2 still accepted the deprecated `translations` option, and v3 removes it.
-The v1 to v2 transform `translations-to-i18n` moves it to `i18n`; name it to
-run it on a v2 app.
+No codemod moves it; rename it to `i18n` by hand.
 
 The codemods edit `.ts`, `.tsx`, `.js`, `.jsx`, `.mts`, `.cts`, `.mjs` and
 `.cjs` files. `packages-to-c15t` and `css-variables-to-v3` also edit `.css`,
@@ -107,15 +113,18 @@ Replace the packages with `c15t` and run it again.
 `consent-provider-options` finds option objects passed to the provider's
 `options` prop, variables typed as `ConsentManagerOptions` or
 `ConsentProviderOptions`, and objects passed to `getOrCreateConsentRuntime()`
-from `c15t`. It imports `hosted` or `offline` from the entry the provider
-comes from. A provider from `c15t/next` or `c15t/tanstack-start` gets them
-from `c15t/react`, and one from `@c15t/nextjs` or `@c15t/tanstack-start`
+from `c15t`. It imports `hosted` from the entry the provider comes from. A
+provider from `c15t/next` or `c15t/tanstack-start` gets it from `c15t/react`, and one from `@c15t/nextjs` or `@c15t/tanstack-start`
 from `@c15t/react`: those framework entries export `hosted()` as plain data
 for `defineConsentConfig`, and `ConsentProvider` needs the transport. A
 hosted mode without `backendURL` gets v2's default,
 `hosted({ backendURL: '/api/c15t' })`. A `mode` set from a variable or expression
 gets a `TODO(c15t v3)` comment, unless it already holds a transport such as
-`manifest()` or `hosted()`. A module that re-exports
+`manifest()` or `hosted()`. An offline mode keeps its v2 shape with a
+`TODO(c15t v3)` comment; move `offlinePolicy.policyPacks` to
+`local({ policyRules })` as
+[Move policy packs to policy rules](../../frameworks/react/upgrade-v3.md#move-policy-packs-to-policy-rules) shows. A
+module that re-exports
 `ConsentManagerProvider` keeps that name as an alias, so its importers still
 resolve.
 
@@ -140,7 +149,7 @@ to `useColorScheme` imported from its new entry, and leaves a
 and Next.js entries to `c15t`, or `@c15t/core` for scoped packages, because
 the v3 React and Next.js entries don't export presets. Calls to presets need
 no other change. Hand-written policy packs use a different format in v3;
-`consent-provider-options` and `backend-config-to-v3` flag them.
+`consent-provider-options` flags them.
 
 `dev-tools-to-c15t` picks `c15t/next/devtools` when `package.json` lists
 `next` or `@c15t/nextjs`, and `c15t/react/devtools` otherwise. If
@@ -170,21 +179,9 @@ shows.
 
 ### Node.js SDK and backend
 
-`node-sdk-to-v3` follows clients created in the same file, including class
-properties, parameters typed as `C15TClient`, and clients made through
-`import * as sdk from '@c15t/node-sdk'`. It rewrites client options written
-in the call or in a variable in the same file; options from anywhere else
-get a `TODO(c15t v3)` comment. It turns `type: 'a,b'`
-strings into `types: ['a', 'b']`, and moves a v2 `init(options)` argument to
-`init(undefined, options)`. In per-call options it renames `timeout` to
-`timeoutMs` and `retryConfig` to `retry`. Call options passed as a variable
-or spread get a `TODO(c15t v3)` comment. A file that receives the client
-from another module keeps its old method names; search for them by hand.
-
-`backend-config-to-v3` reads objects passed to `defineConfig()` or
-`c15tInstance()` from `@c15t/backend`, and variables typed as `C15TOptions`.
-It merges the moved keys into an existing `manifest` object, and rewrites
-imports from the removed `@c15t/backend/define-config` entry.
+A self-hosted backend and the Node.js SDK have their own codemods,
+`backend-config-to-v3` and `node-sdk-to-v3`. See
+[Upgrade a self-hosted backend](../../self-host/upgrade-v3.md).
 
 ## Migrate `useConsentManager()` to v3 hooks
 
@@ -192,7 +189,7 @@ v3 removed `useConsentManager()`. The `use-consent-manager-to-hooks` codemod
 replaces each destructured field with the hook that reads it:
 
 ```bash
-npx @c15t/cli codemods use-consent-manager-to-hooks --dry-run --json
+inth c15t codemods use-consent-manager-to-hooks --dry-run --json
 ```
 
 Review the before and after contents in the JSON result, then run the same
@@ -230,7 +227,7 @@ calls, `require` functions made with Node's `createRequire()`, and import
 types. It scans `.mts`, `.cts`, `.mjs` and `.cjs` files too:
 
 ```bash
-npx @c15t/cli codemods scripts-to-integrations --dry-run --json
+inth c15t codemods scripts-to-integrations --dry-run --json
 ```
 
 It does not edit `package.json`, lockfiles, or imports inside `.vue`, `.svelte`
@@ -240,46 +237,12 @@ or `.astro` files. Update those by hand, as the upgrade guides for
 and [JavaScript](../../frameworks/javascript/upgrade-v3.md#rename-the-integrations-dependency)
 describe.
 
-## Run the v1 to v2 transforms
-
-The other transforms migrate v1 source to the v2 API. Run them before you
-upgrade a v1 app to v3.
-
-```bash
-npx @c15t/cli codemods --list --json
-npx @c15t/cli codemods --all --from 1.9.0 --to 2.0.0 --dry-run --json
-```
-
-| ID                                    | Change                                                                            |
-| ------------------------------------- | --------------------------------------------------------------------------------- |
-| `active-ui-api`                       | `showPopup` and `isPrivacyDialogOpen` to `activeUI`                               |
-| `component-renames`                   | `CookieBanner`, `ConsentManagerDialog` and `ConsentManagerWidget` to the v2 names |
-| `gdpr-types-to-consent-categories`    | `gdprTypes` and `initialGDPRTypes` to `consentCategories`                         |
-| `ignore-geo-location-to-overrides`    | `ignoreGeoLocation` to `overrides` with `country: 'DE'`                           |
-| `mode-c15t-to-hosted`                 | `mode: 'c15t'` to `mode: 'hosted'`                                                |
-| `react-options-to-top-level`          | `react.theme`, `colorScheme` and `disableAnimation` to top-level options          |
-| `tracking-blocker-to-network-blocker` | Tracking blocker configuration to network blocker rules                           |
-| `translations-to-i18n`                | `translations` to the v2 `i18n` shape                                             |
-| `add-stylesheet-imports`              | Styled c15t imports moved into the app's CSS entry point                          |
-
-`--all` picks the transforms that apply to the version you start from. Without
-`--from`, it reads the `c15t` or framework package version declared in
-`package.json`, or the installed version for a specifier such as `catalog:`
-that names none. If you already upgraded the dependency but the source still
-uses v1, pass the old version with `--from 1.9.0` or name the transforms. v2
-prereleases such as `2.0.0-rc.4` count as v2, so `--all` skips every v1
-transform for them.
-
-Component renames follow imported symbols and keep local aliases. The hosted
-mode rename only changes options passed to a c15t API it can identify, so check
-custom wrappers by hand.
-
 ## Review before writing
 
-`--dry-run` reports each file's original and proposed contents in JSON. The
-stylesheet transform reports paths and a summary instead. Transforms in one run
-share a parser, so later transforms see earlier proposed changes.
+Add `--dry-run --json` to get each changed file's original and proposed
+contents without writing. Codemods in one run see the earlier ones' proposed
+changes.
 
-The command fails if a transform reports file errors. Writing is not a single
-transaction across transforms. If a later transform fails, earlier ones may
-already have saved files, so review the working tree before running again.
+The command stops at the first codemod that fails on a file. Writing is not a
+single transaction across codemods, so earlier ones may already have saved
+files. Review the working tree before running again.

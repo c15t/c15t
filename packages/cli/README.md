@@ -63,7 +63,6 @@ The CLI will:
 2. Preview unpublished v3 boilerplate: node packages/cli/dist/bin.mjs generate offline --framework react --cwd /path/to/app --plan --json
 3. Repeat with --apply to create files, then follow the generated README to connect them to your application
 4. Use --package-source with prepared local snapshots to avoid fetching unpublished v3 packages
-5. Read docs/cli/commands/boilerplate.md in the CLI documentation bundle for the complete local workflow
 
 ## Available Commands
 

@@ -31,6 +31,19 @@ export default defineConfig({
 						)
 					);
 				}
+				// The `imports` field points at the build; use the server runner's
+				// source instead.
+				if (
+					source === '#inline-start' &&
+					importer?.endsWith('/packages/integrations/src/engine/runtime.ts')
+				) {
+					return fileURLToPath(
+						new URL(
+							'../packages/integrations/src/engine/inline-start.ts',
+							import.meta.url
+						)
+					);
+				}
 			},
 			transform(code, id) {
 				if (id === demoScriptPath) {

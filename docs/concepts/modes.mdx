@@ -195,7 +195,7 @@ runs:
 | Mode | First-load JavaScript | Loaded with `import()` when it runs |
 | --- | --- | --- |
 | `manifest()` | The code that saves choices and builds an init request | The hosted init path, if the browser has to resolve consent again |
-| `manifest({ resolve: 'browser' })` | The code that saves choices | The browser resolver, English copy and the fetch of `${routePrefix}/manifest` or `${backendURL}/manifest`. Other languages load per language. |
+| `manifest({ resolve: 'browser' })` | The code that saves choices | The browser resolver, English copy and the fetch of `${routePrefix}/manifest` or `${backendURL}/manifest`, unless the server state already holds the policy. Other languages load per language. |
 | `hosted()` | The code that saves choices | The hosted init path |
 | `local()` | Nothing mode-specific | The local transport, the rule pack and its copy |
 

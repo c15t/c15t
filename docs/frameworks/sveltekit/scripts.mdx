@@ -13,9 +13,11 @@ as the `scripts` prop in `src/routes/+layout.svelte`. The
 <include src="../../shared/examples/sveltekit/scripts.mdx" />
 
 Create the scripts in the layout component, not in `+layout.server.ts`. Script
-configurations hold functions, which a server load cannot send to the
-browser. Scripts load only in the browser, after hydration, so they never
-appear in server HTML.
+configurations hold functions, which a server load cannot send to the browser.
+The script loader runs only in the browser, after hydration. Entries from most
+vendor helpers that the visitor's consent or `alwaysLoad` already allows can
+start earlier, from the server HTML; see
+[Rendering](/docs/frameworks/sveltekit/rendering#resolve-request-context-once-with-c15thandle).
 
 ## Preload the script loader
 
@@ -43,6 +45,11 @@ app's own chunks first. It does nothing in `vite dev`.
 
 Without the plugin, or without `c15tHandle` in `hooks.server.ts`, scripts
 still load, one request later.
+
+When the visitor's consent or `alwaysLoad` already allows an entry from most
+vendor helpers, a page rendered for that request starts the entry before
+hydration, and the loader adopts its tag. See
+[Rendering](/docs/frameworks/sveltekit/rendering#resolve-request-context-once-with-c15thandle).
 
 ## Send your own analytics events
 

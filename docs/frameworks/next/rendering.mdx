@@ -28,8 +28,8 @@ policy changes require a rebuild.
 | Edge runtime | Not covered by an example or test | Not covered | [Edge runtime](#edge-runtime) |
 
 Server rendering puts the visitor's answer in the first response. The browser
-then applies it without another request, so gated scripts can load as soon as
-the page hydrates. Browser rendering sends the same HTML to every visitor and
+then applies it without another request, and the scripts it allows start
+before the page hydrates. Browser rendering sends the same HTML to every visitor and
 resolves consent after the page loads. In both cases optional categories stay
 denied, and the banner stays hidden, until a policy has resolved.
 [Choose your setup](/docs/concepts/choose-your-setup) explains this across
@@ -42,7 +42,7 @@ root layout. They differ in what waits for it.
 
 | Layout | What the visitor gets | Cost |
 | --- | --- | --- |
-| Streamed, the default | The page renders at once. The banner follows in a later chunk of the same response and shows before hydration. The dialog, gated scripts and embeds wait for the browser to apply the result. | The banner is a separate streamed reveal, which React can hold for up to 300 ms after an earlier one. |
+| Streamed, the default | The page renders at once. The banner follows in a later chunk of the same response and shows before hydration. Allowed `scripts` entries start before hydration. The dialog and embeds wait for the browser to apply the result. | The banner is a separate streamed reveal, which React can hold for up to 300 ms after an earlier one. |
 | Awaited inside `Suspense` | The banner is in the server HTML and does not change after hydration. | The page content streams after consent resolves, in a later chunk of the same response. |
 
 The streamed layout passes the pending promise to `ConsentRoot`, so a slow or
@@ -64,13 +64,42 @@ Without `cacheComponents`, you can also make the root layout itself async and
 await `resolveConsent` there. The page and the banner then arrive together, but
 the response starts only after consent resolves.
 
+## Start allowed scripts before hydration
+
+When the state from `resolveConsent` shows that the visitor's consent already
+allows some `scripts` entries, through a stored choice or a policy that asks for
+none, `ConsentRoot` renders an inline script after your page content. After
+first paint, it runs those entries' setup and inserts their tags, so they start
+loading before the page hydrates. Entries with `alwaysLoad` start this way
+whatever the visitor chose. The script loader adopts those tags instead of
+inserting its own. Both App Router layouts do this, including the streamed one,
+and so does the Pages Router `ConsentRoot` on React 18 or 19.
+
+The vendor helpers from `@c15t/integrations` start this way, except Cloudflare
+Zaraz and Sentry. Those two helpers, and `scripts` entries you write yourself,
+start after hydration.
+
+Nothing starts from the HTML while the policy asks the visitor to choose, not
+even `alwaysLoad` entries. A page without `state` renders no inline script, so
+static, ISR and `'use cache'` pages stay static and start scripts after
+hydration as before. With Cache Components, the inline script renders in the
+per-request part and the page content stays in the static shell.
+
+The inline script takes `options.nonce`; see
+[Content Security Policy](/docs/frameworks/next/content-security-policy).
+
+To start every `scripts` entry after hydration instead, set
+`scriptLoader: { serverStart: false }` in `c15t.config.ts` or pass
+`scriptLoader={{ serverStart: false }}` to `ConsentRoot`. `ConsentRoot` then
+renders no inline script.
+
 ## Use Cache Components
 
 With `cacheComponents: true`, Next.js prerenders a static shell and fills
 request-time parts per request. Both App Router layouts work:
 
 - The streamed layout stays synchronous. The page content stays in the static
-  shell and consent resolves per request.
+  shell, and consent resolves and allowed scripts start per request.
 - The awaited layout needs its `Suspense` boundary. Awaiting request data in
   the root layout without one fails the build with a
   `blocking-prerender-dynamic` error. The page content moves into the
