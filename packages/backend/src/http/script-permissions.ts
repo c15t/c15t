@@ -165,17 +165,16 @@ const scriptAllowed = (
 		// Outside IAB mode the browser refuses IAB-gated scripts outright.
 		return iabModel ? undefined : false;
 	}
-	const holds = conditionHolds(script.category, possible);
-	if (holds !== true) {
-		return holds;
+	// A vendor the subject turned off blocks its scripts whatever the category
+	// says, except in IAB mode, where the TC string speaks for vendors instead.
+	if (
+		!iabModel &&
+		script.vendor !== undefined &&
+		facts.vendorGrants?.[script.vendor] === false
+	) {
+		return false;
 	}
-	// A vendor the subject turned off blocks its scripts, except in IAB mode,
-	// where the TC string speaks for vendors instead.
-	return (
-		iabModel ||
-		script.vendor === undefined ||
-		facts.vendorGrants?.[script.vendor] !== false
-	);
+	return conditionHolds(script.category, possible);
 };
 
 /**

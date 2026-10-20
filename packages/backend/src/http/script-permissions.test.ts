@@ -126,6 +126,23 @@ describe('recordScriptPermissions', () => {
 		});
 	});
 
+	it('denies a script whose vendor is off even when its category is unknown', () => {
+		expect(
+			allowed(
+				[
+					{ category: 'marketing', id: 'off', vendor: 'off' },
+					{ category: 'marketing', id: 'on', vendor: 'on' },
+				],
+				{
+					confirmed: new Set(),
+					preferences: { marketing: true },
+					rule: rule({}),
+					vendorGrants: { off: false, on: true },
+				}
+			)
+		).toEqual({ off: false, on: undefined });
+	});
+
 	it('loads alwaysLoad scripts even when their category is denied', () => {
 		expect(
 			allowed([{ alwaysLoad: true, category: 'marketing', id: 'always' }], {
