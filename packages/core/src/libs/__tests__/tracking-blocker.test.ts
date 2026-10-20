@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test, vi } from 'vitest';
 import { createTrackingBlocker } from '../tracking-blocker';
 
 describe('TrackingBlocker', () => {
@@ -31,5 +31,31 @@ describe('TrackingBlocker', () => {
 
 		// Clean up
 		blocker.destroy();
+	});
+
+	// Another library's fetch wrapper can expose a property through a getter.
+	test('wraps a fetch with a getter-only property', () => {
+		const wrapped = Object.assign(async () => new Response(), {
+			preconnect: () => undefined,
+		});
+		Object.defineProperty(wrapped, 'instrumented', {
+			enumerable: true,
+			get: () => true,
+		});
+		vi.stubGlobal('fetch', wrapped);
+		window.fetch = wrapped as typeof window.fetch;
+
+		const blocker = createTrackingBlocker();
+
+		expect(window.fetch).not.toBe(wrapped);
+		expect(
+			(window.fetch as unknown as { instrumented: boolean }).instrumented
+		).toBe(true);
+		expect(
+			(window.fetch as unknown as { preconnect: unknown }).preconnect
+		).toBe(wrapped.preconnect);
+
+		blocker.destroy();
+		vi.unstubAllGlobals();
 	});
 });

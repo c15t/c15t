@@ -208,9 +208,11 @@ export function createTrackingBlocker(
 
 				return await originalFetch.call(window, input, init);
 			};
-			// Preserve properties from original fetch (e.g., preconnect in Bun)
-			Object.setPrototypeOf(newFetch, originalFetch);
+			// Preserve properties from original fetch (e.g., preconnect in Bun).
+			// Copy first: once `originalFetch` is the prototype, a getter-only
+			// property on it, such as a test double's `mock`, makes the copy throw.
 			Object.assign(newFetch, originalFetch);
+			Object.setPrototypeOf(newFetch, originalFetch);
 			window.fetch = newFetch as typeof window.fetch;
 		}
 

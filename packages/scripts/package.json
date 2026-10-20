@@ -41,6 +41,7 @@
 		"c15t": "workspace:*"
 	},
 	"publishConfig": {
-		"access": "public"
+		"access": "public",
+		"tag": "v1-legacy"
 	}
 }

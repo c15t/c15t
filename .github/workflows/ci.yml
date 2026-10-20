@@ -5,6 +5,8 @@ on:
     branches: ["main"]
   pull_request:
     types: [opened, synchronize]
+  # release.yml runs these checks before publishing the 1.x line.
+  workflow_call:
 
 env:
   # Do not pass Turbo remote-cache creds when running untrusted PR code (same-repo
@@ -101,6 +103,9 @@ jobs:
 
       - name: 🧪 Run Tests
         run: bun turbo run test
+
+      - name: 🧪 Run Repository Script Tests
+        run: bun run test:scripts
 
       - name: ⬆️ Upload Individual Coverage Reports
         uses: actions/upload-artifact@v4

@@ -50,6 +50,7 @@
 		"lingo.dev": "^0.133.2"
 	},
 	"publishConfig": {
-		"access": "public"
+		"access": "public",
+		"tag": "v1-legacy"
 	}
 }

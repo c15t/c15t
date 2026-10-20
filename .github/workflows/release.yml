@@ -1,119 +1,105 @@
 # .github/workflows/release.yml
 name: Release
 
+# 1.x maintenance line. Pushes to release/v1 open or update a version PR.
+# Merging that PR publishes under the npm dist-tag `v1-legacy`.
 on:
   push:
-    branches:
-      - main # Matches your config.json baseBranch
-      - canary # Canary releases
-      - 2.0.0 # RC pre-releases
+    branches: ['release/v1']
+  workflow_dispatch:
+    inputs:
+      skip_tests:
+        description: Skip CI and publish after building the packages
+        type: boolean
+        default: false
 
-# Prevent multiple concurrent release workflows
-concurrency: ${{ github.workflow }}-${{ github.ref }}
-
-permissions:
-  contents: write # Needed by changesets/action to create releases/tags and commit version bumps
-  pull-requests: write # Needed by changesets/action to create the "Version Packages" PR
-  id-token: write # Required for OIDC trusted publishing with npm (bypasses 2FA requirement)
+permissions: {}
 
 jobs:
-  release:
-    name: Release ${{ github.ref == 'refs/heads/canary' && 'Canary' || github.ref == 'refs/heads/2.0.0' && 'RC' || '' }}
-    runs-on: ubuntu-latest
+  # npm trusted publishing binds the OIDC identity to the *top-level* workflow
+  # file. Publishing must therefore start here and pull the checks in, rather
+  # than `ci.yml` calling this file — the reverse arrangement presents
+  # `ci.yml` as the workflow and npm rejects the token.
+  checks:
+    name: Checks
+    if: github.repository == 'c15t/c15t' && github.ref == 'refs/heads/release/v1' && !(github.event_name == 'workflow_dispatch' && inputs.skip_tests)
+    # A called workflow's jobs cannot get more than this. ci.yml's lint job
+    # reports Biome results through reviewdog.
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
+    uses: ./.github/workflows/ci.yml
 
-    if: github.repository == 'c15t/c15t'
+  publish:
+    name: Release 1.x
+    needs: checks
+    # Only one release per branch publishes at a time. Checks for consecutive
+    # pushes overlap; `queue: max` keeps every waiting publish job.
+    concurrency:
+      group: release-${{ github.ref }}
+      queue: max
+    # npm trusted publishing requires a GitHub-hosted runner.
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Tegami creates releases, tags, and version commits
+      pull-requests: write # Tegami opens version pull requests
+      id-token: write # Required for OIDC trusted publishing with npm (bypasses 2FA requirement)
+
+    if: >-
+      !cancelled() && github.repository == 'c15t/c15t' && github.ref == 'refs/heads/release/v1' && (needs.checks.result == 'success' || (github.event_name == 'workflow_dispatch' && inputs.skip_tests && needs.checks.result == 'skipped'))
     steps:
       - name: Check out code
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
-          # Fetch entire history is required for changesets to correctly determine version bumps
+          # Tegami uses release tags and changelog history.
           fetch-depth: 0
-          # Optionally persist credentials for commit/push by the action
-          # persist-credentials: false # Uncomment if you have issues with GITHUB_TOKEN permissions
 
-      # Setup Bun using versions consistent with your ci.yml
       - name: Setup Bun
-        uses: oven-sh/setup-bun@v1
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
-          bun-version: latest
+          # Reads `packageManager`.
+          bun-version-file: package.json
 
-      - name: Setup Node.js environment
-        uses: actions/setup-node@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
-          node-version: 22
+          node-version: '24'
           registry-url: 'https://registry.npmjs.org'
 
-      # Upgrade npm for trusted publishing (OIDC provenance requires npm 11+).
-      # Node.js 22.22.2's bundled npm has a missing promise-retry module that
-      # breaks `npm install -g`, so we install it first as a workaround.
-      - name: Upgrade npm for provenance publishing
-        run: |
-          npm install -g promise-retry 2>/dev/null || true
-          npm install -g npm@latest
+      # Keep npm's OIDC support explicit even if the Node runner image changes.
+      - name: Upgrade npm for trusted publishing
+        run: npm install -g npm@11.5.1
 
       - name: Install dependencies
-        run: bun install --frozen-lockfile # Use frozen lockfile for reliability in CI
+        run: bun install --frozen-lockfile
 
-      # Canary release: Create and publish snapshot release
-      - name: Create and publish canary snapshot release
-        if: github.ref == 'refs/heads/canary'
-        id: changesets-canary
-        uses: changesets/action@e0145edc7d9d8679003495b11f87bd8ef63c0cba # v1
-        with:
-          version: bun run version:canary
-          publish: bun run release:canary
-          commit: "chore: publish canary snapshot"
-          title: "chore: publish canary snapshot"
+      # Checks overlap, so an older push can reach this job after a newer one.
+      # Releasing it would run Tegami on a stale tree, for example reopening a
+      # version PR the newer commit already merged, so a superseded run does
+      # not release. The check runs here, after this job holds the release
+      # group, so the tip it reads is as recent as possible.
+      - name: Skip superseded commits
+        id: tip
+        shell: bash
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_RELEASE_TOKEN }}
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_RELEASE_TOKEN }}
-          NPM_CONFIG_PROVENANCE: "true"
-
-      # RC release: Publish pre-release versions from 2.0.0 branch
-      - name: Publish RC pre-release
-        if: github.ref == 'refs/heads/2.0.0'
-        id: changesets-rc
-        uses: changesets/action@e0145edc7d9d8679003495b11f87bd8ef63c0cba # v1
-        with:
-          version: bun run version
-          publish: bun run release:rc
-          commit: "chore: version rc packages"
-          title: "chore: version rc packages"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_RELEASE_TOKEN }}
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_RELEASE_TOKEN }}
-          NPM_CONFIG_PROVENANCE: "true"
-
-      # Regular release: Create Release Pull Request or Publish to npm
-      - name: Create Release Pull Request or Publish to npm
-        if: github.ref != 'refs/heads/canary' && github.ref != 'refs/heads/2.0.0'
-        id: changesets-production
-        uses: changesets/action@e0145edc7d9d8679003495b11f87bd8ef63c0cba # v1
-        with:
-          # The command to run for publishing. It matches your root package.json script.
-          publish: bun run release
-          # Optional: If you want the action to commit the version changes
-          # commit: "chore: update versions"
-          # Optional: If you want the action to create tags
-          # version: bun run version # Add a 'version' script to package.json if needed for this
-        env:
-          # GITHUB_TOKEN is used by the action to create PRs, releases, comments
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # NPM_TOKEN is used by changesets action to create ~/.npmrc
-          NPM_TOKEN: ${{ secrets.NPM_RELEASE_TOKEN }}
-          # NODE_AUTH_TOKEN is used by actions/setup-node's .npmrc (takes precedence via NPM_CONFIG_USERCONFIG)
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_RELEASE_TOKEN }}
-          # Enable npm provenance (automatic with trusted publishing, but explicit for compatibility)
-          NPM_CONFIG_PROVENANCE: "true"
-
-      # Optional: Output the results for debugging or confirmation (only for regular releases)
-      - name: Print changeset outputs
-        if: |
-          github.ref != 'refs/heads/canary' &&
-          steps.changesets-production.outputs.published == 'true'
+          REPOSITORY_URL: ${{ github.server_url }}/${{ github.repository }}
         run: |
-          echo "Published: ${{ steps.changesets-production.outputs.published }}"
-          echo "Published packages: ${{ steps.changesets-production.outputs.publishedPackages }}"
-          echo "New versions: ${{ steps.changesets-production.outputs.newVersions }}"
+          tip=$(git ls-remote --exit-code "$REPOSITORY_URL" "$GITHUB_REF" | cut -f1)
+          if [ -z "$tip" ]; then
+            echo "::error::Could not read $GITHUB_REF from $REPOSITORY_URL."
+            exit 1
+          fi
+          if [ "$tip" = "$GITHUB_SHA" ]; then
+            echo "current=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::Not releasing $GITHUB_SHA: $GITHUB_REF is now at $tip, and that run releases this commit if its checks pass."
+            echo "current=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Version or publish packages
+        if: steps.tip.outputs.current == 'true'
+        run: bun run tegami ci
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_CONFIG_PROVENANCE: 'true'
