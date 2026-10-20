@@ -38,6 +38,19 @@ describe('offline mode no-records warning', () => {
 		);
 	});
 
+	// The registry key leaves the flag out, so the second call is a cache hit.
+	it('warns a later unacknowledged caller that gets a cached client', () => {
+		const storageConfig = nextStorageConfig();
+		configureConsentManager({
+			mode: 'offline',
+			acknowledgeNoRecords: true,
+			storageConfig,
+		});
+		configureConsentManager({ mode: 'offline', storageConfig });
+
+		expect(warn).toHaveBeenCalledOnce();
+	});
+
 	it('stays silent with acknowledgeNoRecords: true', () => {
 		configureConsentManager({
 			mode: 'offline',

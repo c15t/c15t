@@ -304,6 +304,12 @@ export type ConsentManagerOptions = {
 export function configureConsentManager(
 	options: ConsentManagerOptions
 ): ConsentManagerInterface {
+	// Before the registry: its key leaves out `acknowledgeNoRecords`, so a cached
+	// acknowledged client must not hide the warning from a later caller.
+	if (options.mode === 'offline') {
+		warnOfflineModeKeepsNoRecords(options.acknowledgeNoRecords);
+	}
+
 	const cacheKey = getClientCacheKey(options);
 
 	// Return existing client if found
@@ -352,7 +358,6 @@ export function configureConsentManager(
 		}
 		case 'offline':
 			client = new OfflineClient(options.storageConfig);
-			warnOfflineModeKeepsNoRecords(options.acknowledgeNoRecords);
 			break;
 		default: {
 			const c15tOptions = options as {
