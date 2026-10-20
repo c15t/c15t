@@ -60,6 +60,15 @@ export interface SaveScript {
 const isRecord = (value: unknown): value is Record<string, unknown> =>
 	typeof value === 'object' && value !== null && !Array.isArray(value);
 
+/**
+ * `Array.prototype.every` over every index. `every` skips holes, which
+ * `JSON.stringify` writes as `null` and the backend refuses.
+ */
+const everyIndex = (
+	items: readonly unknown[],
+	test: (item: unknown) => boolean
+): boolean => Array.from(items).every(test);
+
 const isCondition = function isCondition(value: unknown, depth = 0): boolean {
 	if (typeof value === 'string') {
 		return (allConsentNames as readonly string[]).includes(value);
@@ -81,14 +90,17 @@ const isCondition = function isCondition(value: unknown, depth = 0): boolean {
 	}
 	return Array.isArray(operand)
 		? operand.length > 0 &&
-				operand.every((item) => isCondition(item, depth + 1))
+				everyIndex(operand, (item) => isCondition(item, depth + 1))
 		: isCondition(operand, depth + 1);
 };
 
 const isIabIds = (value: unknown): value is number[] =>
 	Array.isArray(value) &&
 	value.length <= MAX_IAB_IDS &&
-	value.every((id) => Number.isSafeInteger(id) && id >= 1);
+	everyIndex(
+		value,
+		(id) => typeof id === 'number' && Number.isSafeInteger(id) && id >= 1
+	);
 
 const isVendorId = (value: unknown): value is number | string =>
 	(typeof value === 'number' && Number.isSafeInteger(value) && value >= 1) ||

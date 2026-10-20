@@ -65,6 +65,25 @@ describe('toSaveScripts', () => {
 		]);
 	});
 
+	test('leaves out a script with a hole in a list', () => {
+		// `JSON.stringify` writes a hole as `null`, which the backend refuses.
+		const scripts = [
+			{ category: { and: new Array(1) }, id: 'sparse-and' },
+			{
+				category: 'marketing',
+				iabPurposes: Object.assign(new Array(3), { 0: 1, 2: 2 }),
+				id: 'sparse-iab',
+			},
+			{ category: 'marketing', id: 'kept' },
+		] as unknown as Script[];
+		expect(toSaveScripts(scripts)).toEqual([
+			{ category: 'marketing', id: 'kept' },
+		]);
+		expect(isSaveScripts([{ category: { or: new Array(2) }, id: 'a' }])).toBe(
+			false
+		);
+	});
+
 	test('leaves out a script whose IAB gating it cannot send', () => {
 		// The loader gates each of these as an IAB script. Without the bad
 		// field the backend would read it as a category-only one.
