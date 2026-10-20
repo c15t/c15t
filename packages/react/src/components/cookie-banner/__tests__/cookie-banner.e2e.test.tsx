@@ -54,6 +54,7 @@ Object.defineProperty(window, 'localStorage', {
 // Default consent manager options
 const defaultOptions: ConsentManagerOptions = {
 	mode: 'offline',
+	acknowledgeNoRecords: true,
 };
 
 describe('CookieBanner E2E Tests', () => {

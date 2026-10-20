@@ -71,6 +71,7 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 			<ConsentManagerProvider
 				options={{
 					mode: 'offline', // Use offline mode to prevent additional fetches
+					acknowledgeNoRecords: true,
 					react: { theme: { 'banner.root': 'light' } },
 				}}
 			>
@@ -89,6 +90,7 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 			<ConsentManagerProvider
 				options={{
 					mode: 'offline',
+					acknowledgeNoRecords: true,
 					react: { theme: { 'banner.root': 'dark' } },
 				}}
 			>
@@ -157,6 +159,7 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 			<ConsentManagerProvider
 				options={{
 					mode: 'offline', // Use offline mode to avoid fetch calls
+					acknowledgeNoRecords: true,
 				}}
 			>
 				<div>Counter: 0</div>
@@ -175,6 +178,7 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 				<ConsentManagerProvider
 					options={{
 						mode: 'offline',
+						acknowledgeNoRecords: true,
 					}}
 				>
 					<div>Counter: {i}</div>

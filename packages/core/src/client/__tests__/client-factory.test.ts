@@ -24,6 +24,7 @@ describe('Client Factory Tests', () => {
 	it('should create OfflineClient when mode is offline', () => {
 		const client = configureConsentManager({
 			mode: 'offline',
+			acknowledgeNoRecords: true,
 		});
 
 		expect(client).toBeInstanceOf(OfflineClient);
