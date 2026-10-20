@@ -9,6 +9,7 @@ import {
 	clearClientRegistry,
 	configureConsentManager,
 } from '../client';
+import { warnNoConsentRecordsInDevelopment } from '../libs/no-records-warning';
 import { getMatchingPrefetchedInitialData } from '../libs/prefetch/prefetch';
 import { createConsentManagerStore } from '../store';
 import type { StoreOptions } from '../store/type';
@@ -213,6 +214,12 @@ export function getOrCreateConsentRuntime(
 		headersKey: generateHeadersKey(headers),
 		enabled: resolvedEnabled,
 	});
+
+	// Before the cache: the key leaves out `acknowledgeNoRecords`, so a cached
+	// acknowledged runtime must not hide the warning from a later caller.
+	if (mode === 'offline') {
+		warnNoConsentRecordsInDevelopment(acknowledgeNoRecords);
+	}
 
 	let consentManager = managerCache.get(cacheKey);
 	if (!consentManager) {

@@ -79,6 +79,17 @@ describe('the offline mode warning', () => {
 		expect(noRecordsWarnings()).toHaveLength(1);
 	});
 
+	// The runtime cache key leaves the flag out, so the second call is a hit.
+	test('warns a later unacknowledged runtime that hits the cache', () => {
+		getOrCreateConsentRuntime({
+			mode: 'offline',
+			acknowledgeNoRecords: true,
+		});
+		getOrCreateConsentRuntime({ mode: 'offline' });
+
+		expect(noRecordsWarnings()).toHaveLength(1);
+	});
+
 	test('stays silent in a production build', () => {
 		vi.stubEnv('NODE_ENV', 'production');
 
