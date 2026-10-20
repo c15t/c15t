@@ -62,7 +62,8 @@ blockers. Until then nothing is gated.
 
 The `consent-provider-options` codemod rewrites `mode`, `backendURL` and
 `iframeBlockerConfig` in the object you pass to `getOrCreateConsentRuntime()`
-and adds the `hosted` or `offline` import from `c15t`. Rename the call to
+and adds the `hosted` import from `c15t`. It leaves an offline mode with a
+`TODO(c15t v3)` comment. Rename the call to
 `createConsentRuntime()` from `c15t/runtime` yourself.
 
 ## Replace store calls

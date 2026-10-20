@@ -55,7 +55,7 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 
 ## CLI
 
-- [Codemods](./docs/cli/commands/codemods.md): Migrate source from c15t v2 to v3 with inth c15t codemods, covering package imports, the provider, transports, moved exports, dev tools, policy presets, CSS variables, Tailwind CSS 3 and callbacks, and run the v1 to v2 source transforms.
+- [Codemods](./docs/cli/commands/codemods.md): Migrate source from c15t v2 to v3 with inth c15t codemods, covering package imports, the provider, transports, moved exports, dev tools, policy presets, CSS variables, Tailwind CSS 3 and callbacks.
 - [Self-hosted migrations](./docs/cli/commands/self-host.md): Plan and apply database migrations for a self-hosted c15t backend with the c15t CLI self-host migrate command.
 - [inth c15t](./docs/cli/commands/setup.md): Actions and options for inth c15t, the Inth CLI command that sets up c15t with a coding agent, a setup prompt or framework quickstart files.
 - [CLI overview](./docs/cli/overview.md): Install the Inth CLI and run inth c15t to add c15t to an app with a coding agent or quickstart files, create or select an Inth project, and run the v3 codemods.

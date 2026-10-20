@@ -142,8 +142,9 @@ The other v2 modes map to transports:
 | `mode: 'offline'` with `offlinePolicy` | `mode: offline({ policyRules })` |
 | `mode: 'custom'` with `endpointHandlers` | `mode: custom(transport)`, where `transport` implements the v3 transport interface. `endpointHandlers` throws. |
 
-The codemod rewrites the offline mode too. It can't translate
-`endpointHandlers`, so it leaves a `TODO(c15t v3)` comment on a custom mode.
+The codemod leaves offline and custom modes as they are, with a
+`TODO(c15t v3)` comment. Move `offlinePolicy.policyPacks` to
+`offline({ policyRules })` by hand. It can't translate `endpointHandlers`.
 
 Offline mode keeps choices in the browser and records nothing on a server. Not
 recommended for production environments.

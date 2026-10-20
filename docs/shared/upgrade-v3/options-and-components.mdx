@@ -21,13 +21,12 @@
 | `iab: iab({ ... })` | `IABProvider`. See [Move IAB setup](#move-iab-setup-to-iabprovider). |
 
 The `consent-provider-options` codemod renames `ConsentManagerProvider` and
-its option and prop types, turns `mode` and `backendURL` into `hosted()` or
-`offline()`, and renames `iframeBlockerConfig`. v2 still accepted the
-deprecated `translations` option; the `translations-to-i18n` codemod moves it
-to `i18n`.
+its option and prop types, turns `mode` and `backendURL` into `hosted()`, and
+renames `iframeBlockerConfig`. v2 still accepted the deprecated `translations`
+option; rename it to `i18n` by hand.
 
 ```bash
-inth c15t codemods consent-provider-options translations-to-i18n --dry-run --json
+inth c15t codemods consent-provider-options --dry-run --json
 ```
 
 `ConsentBanner`, `ConsentDialog`, `ConsentDialogLink`, `ConsentDialogTrigger`

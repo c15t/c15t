@@ -82,9 +82,10 @@ import { ConsentBanner, ConsentDialog, ConsentProvider, hosted } from 'c15t/reac
 >
 ```
 
-The `consent-provider-options` codemod rewrites the hosted and offline modes
-and adds the transport import. It can't translate `endpointHandlers`, so it
-leaves a `TODO(c15t v3)` comment on a custom mode:
+The `consent-provider-options` codemod rewrites the hosted mode and adds the
+`hosted` import. It leaves offline and custom modes as they are, with a
+`TODO(c15t v3)` comment. Move `offlinePolicy.policyPacks` to
+`offline({ policyRules })` by hand. It can't translate `endpointHandlers`:
 
 ```bash
 inth c15t codemods consent-provider-options --dry-run --json
