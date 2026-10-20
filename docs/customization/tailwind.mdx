@@ -190,17 +190,9 @@ class. Add the important modifier to utilities you pass to c15t parts:
 `!bg-red-500`, `hover:!bg-red-500`. A bare `bg-red-500` has no effect. Theme
 tokens work the same on Tailwind 3 and 4.
 
-In React and Next.js apps, `c15t setup` adds the plugin and the stylesheet
-import when it finds Tailwind 3, but does not set `styles: false`. Add that
-yourself. It replaces an existing
-`styles.tw3.css` import from an earlier setup with `styles.css`. When it
-cannot edit your PostCSS config, it prints the step to do by hand. See
-[setup](/docs/cli/commands/setup#set-up-styles-and-tailwind-css).
-
 Create React App ignores PostCSS config files, so Tailwind 3 cannot run the
-plugin and the build fails on c15t's stylesheet. `c15t setup` warns
-about this. Add the plugin before `tailwindcss` through CRACO, eject, or move
-the app to Vite.
+plugin and the build fails on c15t's stylesheet. Add the plugin before
+`tailwindcss` through CRACO, eject, or move the app to Vite.
 
 <Tabs items={['Next.js', 'TanStack Start', 'React', 'Nuxt', 'Vue', 'Astro', 'Svelte', 'SvelteKit', 'HTML', 'JavaScript']}>
   <Tab value="Next.js">

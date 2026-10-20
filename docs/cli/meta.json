@@ -9,7 +9,6 @@
 		"quickstart",
 		"--- Commands ---",
 		"./commands/setup",
-		"--- Reference ---",
-		"global-flags"
+		"./commands/codemods"
 	]
 }
