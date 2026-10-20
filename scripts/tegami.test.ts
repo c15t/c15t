@@ -354,7 +354,9 @@ describe('CI release retries', () => {
 	});
 });
 
-describe('publishing through npm', () => {
+// These run Bun, Turbo and npm in subprocesses, which outlast Vitest's 5 s
+// default on a slow runner.
+describe('publishing through npm', { timeout: 60_000 }, () => {
 	const publishFixture = function publishFixture(fail?: 'build') {
 		const root = fixture([
 			{ files: ['dist'], name: '@c15t/translations', version: '1.8.5' },
@@ -613,26 +615,30 @@ describe('version PR body', () => {
 	});
 });
 
-it('drafts the real workspace without bumping private or frozen packages or leaving the 1.x line', async () => {
-	const root = realWorkspace();
-	const draft = await release(root).draft();
-	const notes = readdirSync(join(root, '.tegami')).filter(
-		(file) => file.endsWith('.md') && file !== 'README.md'
-	);
-	// Tegami silently ignores malformed note files. Check that none were lost.
-	expect(draft.getChangelogs()).toHaveLength(notes.length);
-	await draft.apply();
-	const directories = readdirSync(join(root, 'packages'));
-	for (const directory of directories) {
-		const manifest = readManifest(root, directory);
-		const original = readManifest(repository, directory);
-		if (manifest.private || manifest.name === '@c15t/backend') {
-			expect(manifest.version).toBe(original.version);
-		} else if (manifest.version !== original.version) {
-			expect(() =>
-				checkReleaseVersion(branch, manifest.version ?? '')
-			).not.toThrow();
+it(
+	'drafts the real workspace without bumping private or frozen packages or leaving the 1.x line',
+	{ timeout: 60_000 },
+	async () => {
+		const root = realWorkspace();
+		const draft = await release(root).draft();
+		const notes = readdirSync(join(root, '.tegami')).filter(
+			(file) => file.endsWith('.md') && file !== 'README.md'
+		);
+		// Tegami silently ignores malformed note files. Check that none were lost.
+		expect(draft.getChangelogs()).toHaveLength(notes.length);
+		await draft.apply();
+		const directories = readdirSync(join(root, 'packages'));
+		for (const directory of directories) {
+			const manifest = readManifest(root, directory);
+			const original = readManifest(repository, directory);
+			if (manifest.private || manifest.name === '@c15t/backend') {
+				expect(manifest.version).toBe(original.version);
+			} else if (manifest.version !== original.version) {
+				expect(() =>
+					checkReleaseVersion(branch, manifest.version ?? '')
+				).not.toThrow();
+			}
 		}
+		expect((await release(root).draft()).hasPending()).toBe(false);
 	}
-	expect((await release(root).draft()).hasPending()).toBe(false);
-});
+);
