@@ -167,6 +167,8 @@ describe('getTextDirection', () => {
 	test('ignores extension values that look like scripts', () => {
 		expect(getTextDirection('en-u-nu-arab')).toBe('ltr');
 		expect(getTextDirection('ar-u-nu-latn')).toBe('rtl');
+		expect(getTextDirection('x-arab')).toBe('ltr');
+		expect(getTextDirection('en-x-arab')).toBe('ltr');
 	});
 
 	test('accepts underscore separators', () => {

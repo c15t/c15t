@@ -108,13 +108,14 @@ export const getTextDirection = function getTextDirection(
 	if (!language) {
 		return 'ltr';
 	}
-	const [primary = '', ...subtags] = language.toLowerCase().split(/[-_]/u);
+	const parts = language.toLowerCase().split(/[-_]/u);
 	// Extensions and private use start at a single-letter subtag, and their
-	// values (`en-u-nu-arab`) can look like scripts. Stop before them.
-	const extensionStart = subtags.findIndex((subtag) => subtag.length === 1);
-	const script = (
-		extensionStart === -1 ? subtags : subtags.slice(0, extensionStart)
-	).find((subtag) => /^[a-z]{4}$/u.test(subtag));
+	// values (`en-u-nu-arab`, `x-arab`) can look like scripts. Stop before
+	// them. A tag that starts with one has no language to read.
+	const extensionStart = parts.findIndex((part) => part.length === 1);
+	const [primary = '', ...subtags] =
+		extensionStart === -1 ? parts : parts.slice(0, extensionStart);
+	const script = subtags.find((subtag) => /^[a-z]{4}$/u.test(subtag));
 	if (script) {
 		return RTL_SCRIPTS.has(script) ? 'rtl' : 'ltr';
 	}
