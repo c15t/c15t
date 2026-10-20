@@ -121,6 +121,7 @@ export function getOrCreateConsentRuntime(
 ): ConsentRuntimeResult {
 	const optionBag = options as ConsentRuntimeOptions & {
 		headers?: Record<string, string>;
+		acknowledgeNoRecords?: boolean;
 		customFetch?: typeof fetch;
 		retryConfig?: unknown;
 		endpointHandlers?: unknown;
@@ -146,6 +147,7 @@ export function getOrCreateConsentRuntime(
 		debug,
 		headers,
 		nonce,
+		acknowledgeNoRecords,
 		customFetch: _unusedCustomFetch,
 		retryConfig: _unusedRetryConfig,
 		endpointHandlers: _unusedEndpointHandlers,
@@ -226,6 +228,7 @@ export function getOrCreateConsentRuntime(
 				mode: 'offline',
 				store: normalizedStoreOptions,
 				storageConfig: resolvedStorageConfig,
+				acknowledgeNoRecords,
 			});
 		} else if (mode === 'custom' && 'endpointHandlers' in options) {
 			consentManager = configureConsentManager({

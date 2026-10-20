@@ -86,6 +86,12 @@ group: reference
   - Works without any backend infrastructure
 
   **Best for:** Local development, Storybook/static demos, resilience fallback, or simpler sites that explicitly accept browser-only consent storage.
+
+  ### Development warning
+
+  In a development build, offline mode logs one warning per page to the browser console. It says that consent stays in this browser, that c15t keeps no server-side record of it, and that every visitor gets the same policy because offline mode has no geolocation. The warning does not block the banner or change consent, and production builds do not log it.
+
+  If you chose offline mode on purpose, for example for tests or a static demo, add `acknowledgeNoRecords: true` next to `mode: 'offline'` to hide the message.
 </section>
 
 <section id="custom-mode">

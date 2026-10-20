@@ -4,6 +4,7 @@
  * client instances based on configuration options.
  */
 import { createDeterministicFingerprintSync } from '@c15t/schema/types';
+import { warnNoConsentRecordsInDevelopment } from '../libs/no-records-warning';
 import type { StoreOptions } from '../store/type';
 import type { ConsentManagerInterface } from './client-interface';
 import { CustomClient, type EndpointHandlers } from './custom';
@@ -281,6 +282,22 @@ export type OfflineClientOptions = {
 	 * Custom fetch implementation (not used in offline mode)
 	 */
 	customFetch?: never;
+
+	/**
+	 * Hide the development warning that offline mode keeps no consent records.
+	 *
+	 * @remarks
+	 * Offline mode stores consent only in the visitor's browser. c15t keeps
+	 * no server-side record of it, and every visitor gets the same policy
+	 * because there is no geolocation. In a development build, c15t logs
+	 * this once per page with `console.warn`. Set this to `true` once you
+	 * have chosen offline mode on purpose, for example in tests. Production
+	 * builds never log the warning.
+	 *
+	 * @default false
+	 * @see {@link https://c15t.com/docs/concepts/modes}
+	 */
+	acknowledgeNoRecords?: boolean;
 };
 
 /**
@@ -357,9 +374,15 @@ export type C15TClientOptions = HostedClientOptions;
  * Offline client (for testing):
  * ```typescript
  * const client = configureConsentManager({
- *   mode: 'offline'
+ *   mode: 'offline',
+ *   acknowledgeNoRecords: true,
  * });
  * ```
+ *
+ * @remarks
+ * In a development build in the browser, offline mode logs a one-time
+ * `console.warn` that it keeps no consent records, unless
+ * `acknowledgeNoRecords` is `true`.
  *
  * @example
  * Custom client with handler functions:
@@ -392,6 +415,10 @@ export type C15TClientOptions = HostedClientOptions;
 export function configureConsentManager(
 	options: ConsentManagerOptions
 ): ConsentManagerInterface {
+	if (options.mode === 'offline') {
+		warnNoConsentRecordsInDevelopment(options.acknowledgeNoRecords);
+	}
+
 	const cacheKey = getClientCacheKey(options);
 
 	// Return existing client if found
