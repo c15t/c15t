@@ -6,7 +6,8 @@ group: frameworks
 
 ## What every platform needs
 
-Whatever builds your pages, three pieces go in three places:
+Unless your platform has c15t built in, like [Notra](#notra), three pieces go
+in three places:
 
 | Piece | Where it goes |
 | --- | --- |
@@ -95,11 +96,12 @@ turns MDX files in a GitHub repository into a hosted blog and changelog. Its
 builder renders the banner and dialog with `@c15t/astro`, so you skip the
 script tag, and the theme's footer already includes the privacy settings link.
 
-To connect a backend, open your site's Integrations page in Notra and choose
-Inth under Cookie banner. Connect your Inth account and pick the project the
-site should use. Notra adds every domain the site uses to the project's
-trusted origins and saves the backend URL to the site's `blog.json` as a
-draft, which goes live when you publish it.
+Before you connect a backend, turn on Consent in your Inth project and add
+policy rules that cover the `measurement` category. Then open your site's
+Integrations page in Notra and choose Inth under Cookie banner. Connect your
+Inth account and pick the project the site should use. Notra adds every domain
+the site uses to the project's trusted origins and saves the backend URL to
+the site's `blog.json` as a draft, which goes live when you publish it.
 
 Analytics that Notra loads for the site wait for the `measurement` category.
 Custom scripts wait only when you map their paths to a category in
