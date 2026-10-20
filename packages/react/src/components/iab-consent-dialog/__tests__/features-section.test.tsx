@@ -53,6 +53,7 @@ function renderDialog(gvl: GlobalVendorList) {
 		<ConsentManagerProvider
 			options={{
 				mode: 'offline',
+				acknowledgeNoRecords: true,
 				iab: iab({ cmpId: 160, cmpVersion: 1, gvl }),
 				offlinePolicy: { policy: { id: 'iab_test', model: 'iab' } },
 			}}

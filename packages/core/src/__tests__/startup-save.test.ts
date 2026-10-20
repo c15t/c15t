@@ -56,7 +56,10 @@ test.each([
 		},
 		consentInfo: { subjectId: 'sub_2VZxR7YmNpKq3WfLs8TgHd', time: oldTime },
 	});
-	const manager = configureConsentManager({ mode: 'offline' });
+	const manager = configureConsentManager({
+		mode: 'offline',
+		acknowledgeNoRecords: true,
+	});
 	const options = { reloadOnConsentRevoked: false };
 	const store = createConsentManagerStore(manager, options);
 	await gate.entered.promise;

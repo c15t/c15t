@@ -38,6 +38,7 @@ function Provider({ children }: { children: ReactNode }) {
 		<ConsentManagerProvider
 			options={{
 				mode: 'offline',
+				acknowledgeNoRecords: true,
 				noStyle: true,
 			}}
 		>

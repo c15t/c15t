@@ -42,6 +42,7 @@ Object.defineProperty(window, 'localStorage', {
 
 const defaultOptions: ConsentManagerOptions = {
 	mode: 'offline',
+	acknowledgeNoRecords: true,
 };
 
 describe('Consent Flow E2E Tests', () => {

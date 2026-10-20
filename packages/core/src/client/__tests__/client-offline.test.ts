@@ -27,6 +27,7 @@ describe('Offline Client Tests', () => {
 		// Configure the client
 		const client = configureConsentManager({
 			mode: 'offline',
+			acknowledgeNoRecords: true,
 		});
 
 		// Call the API without headers (defaults to GB)
@@ -45,6 +46,7 @@ describe('Offline Client Tests', () => {
 	it('should respect country header for jurisdiction determination', async () => {
 		const client = configureConsentManager({
 			mode: 'offline',
+			acknowledgeNoRecords: true,
 		});
 
 		// Test with GDPR country (DE)
@@ -71,6 +73,7 @@ describe('Offline Client Tests', () => {
 	it('should handle region header', async () => {
 		const client = configureConsentManager({
 			mode: 'offline',
+			acknowledgeNoRecords: true,
 		});
 
 		const response = await client.init({
@@ -88,6 +91,7 @@ describe('Offline Client Tests', () => {
 	it('should keep offline language selection within configured translations', async () => {
 		const client = configureConsentManager({
 			mode: 'offline',
+			acknowledgeNoRecords: true,
 			store: {
 				initialTranslationConfig: {
 					defaultLanguage: 'fr',
@@ -118,6 +122,7 @@ describe('Offline Client Tests', () => {
 	it('should resolve offline policy profile languages with hosted parity', async () => {
 		const client = configureConsentManager({
 			mode: 'offline',
+			acknowledgeNoRecords: true,
 			store: {
 				offlinePolicy: {
 					i18n: {
@@ -184,6 +189,7 @@ describe('Offline Client Tests', () => {
 	it('should honor offline policy fallbackLanguage inside the active profile', async () => {
 		const client = configureConsentManager({
 			mode: 'offline',
+			acknowledgeNoRecords: true,
 			store: {
 				offlinePolicy: {
 					i18n: {
@@ -228,6 +234,7 @@ describe('Offline Client Tests', () => {
 	it('should include configured offline policy payload in init response', async () => {
 		const client = configureConsentManager({
 			mode: 'offline',
+			acknowledgeNoRecords: true,
 			store: {
 				offlinePolicy: {
 					policy: {
@@ -320,6 +327,7 @@ describe('Offline Client Tests', () => {
 		];
 		const client = configureConsentManager({
 			mode: 'offline',
+			acknowledgeNoRecords: true,
 			store: {
 				offlinePolicy: {
 					policyPacks: policies,
@@ -357,6 +365,7 @@ describe('Offline Client Tests', () => {
 	it('should reject offline policy packs that use IAB without offline IAB config', async () => {
 		const client = configureConsentManager({
 			mode: 'offline',
+			acknowledgeNoRecords: true,
 			store: {
 				offlinePolicy: {
 					policyPacks: [
@@ -382,6 +391,7 @@ describe('Offline Client Tests', () => {
 	it('should treat unmatched offline policy packs as no-banner mode', async () => {
 		const client = configureConsentManager({
 			mode: 'offline',
+			acknowledgeNoRecords: true,
 			store: {
 				offlinePolicy: {
 					policyPacks: [
@@ -410,6 +420,7 @@ describe('Offline Client Tests', () => {
 	it('should treat an explicit empty offline policy pack as no-banner mode', async () => {
 		const client = configureConsentManager({
 			mode: 'offline',
+			acknowledgeNoRecords: true,
 			store: {
 				offlinePolicy: {
 					policyPacks: [],
@@ -431,6 +442,7 @@ describe('Offline Client Tests', () => {
 	it('should default to an opt-in banner when no offline pack is provided', async () => {
 		const client = configureConsentManager({
 			mode: 'offline',
+			acknowledgeNoRecords: true,
 			store: {
 				iab: {
 					enabled: true,
@@ -450,6 +462,7 @@ describe('Offline Client Tests', () => {
 	it('should not include preloaded GVL when the resolved offline policy is not iab', async () => {
 		const client = configureConsentManager({
 			mode: 'offline',
+			acknowledgeNoRecords: true,
 			store: {
 				iab: {
 					enabled: true,
@@ -485,6 +498,7 @@ describe('Offline Client Tests', () => {
 		} as never;
 		const client = configureConsentManager({
 			mode: 'offline',
+			acknowledgeNoRecords: true,
 			store: {
 				iab: {
 					enabled: true,
@@ -514,6 +528,7 @@ describe('Offline Client Tests', () => {
 	it('should reject offline policy i18n profiles that do not exist', async () => {
 		const client = configureConsentManager({
 			mode: 'offline',
+			acknowledgeNoRecords: true,
 			store: {
 				offlinePolicy: {
 					i18n: {
@@ -547,6 +562,7 @@ describe('Offline Client Tests', () => {
 	it('should reject offline policy i18n languages without configured translations', async () => {
 		const client = configureConsentManager({
 			mode: 'offline',
+			acknowledgeNoRecords: true,
 			store: {
 				offlinePolicy: {
 					i18n: {
@@ -583,6 +599,7 @@ describe('Offline Client Tests', () => {
 	it('should handle language header', async () => {
 		const client = configureConsentManager({
 			mode: 'offline',
+			acknowledgeNoRecords: true,
 			store: {
 				initialTranslationConfig: {
 					translations: {
@@ -606,6 +623,7 @@ describe('Offline Client Tests', () => {
 	it('should default to GB when no country header is provided', async () => {
 		const client = configureConsentManager({
 			mode: 'offline',
+			acknowledgeNoRecords: true,
 		});
 
 		const response = await client.init();
@@ -647,6 +665,7 @@ describe('Offline Client Tests', () => {
 		// Configure the client
 		const client = configureConsentManager({
 			mode: 'offline',
+			acknowledgeNoRecords: true,
 		});
 
 		// Call the API - should work regardless of localStorage

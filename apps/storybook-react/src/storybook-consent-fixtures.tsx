@@ -60,6 +60,7 @@ export function seedTCString(tcString: string | null) {
 
 export const defaultConsentOptions: ConsentManagerOptions = {
 	mode: 'offline',
+	acknowledgeNoRecords: true,
 	translations: {
 		language: 'en',
 		translations: enTranslations,

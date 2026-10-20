@@ -113,6 +113,7 @@ globalThis.fetch = vi.fn(() =>
 
 const defaultIABOptions: ConsentManagerOptions = {
 	mode: 'offline',
+	acknowledgeNoRecords: true,
 	iab: iab({
 		cmpId: 160,
 		cmpVersion: 1,
