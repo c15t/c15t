@@ -110,7 +110,7 @@
     },
     "packages/cli": {
       "name": "@c15t/cli",
-      "version": "1.8.6",
+      "version": "1.9.0",
       "bin": {
         "cli": "dist/index.mjs",
       },
@@ -143,7 +143,7 @@
     },
     "packages/core": {
       "name": "c15t",
-      "version": "1.8.6",
+      "version": "1.9.0",
       "dependencies": {
         "@c15t/backend": "workspace:*",
         "@c15t/translations": "workspace:*",
@@ -160,7 +160,7 @@
     },
     "packages/dev-tools": {
       "name": "@c15t/dev-tools",
-      "version": "1.8.6",
+      "version": "1.9.0",
       "dependencies": {
         "@radix-ui/react-accordion": "1.2.12",
         "@radix-ui/react-scroll-area": "^1.2.10",
@@ -204,7 +204,7 @@
     },
     "packages/nextjs": {
       "name": "@c15t/nextjs",
-      "version": "1.8.6",
+      "version": "1.9.0",
       "dependencies": {
         "@c15t/react": "workspace:*",
         "@c15t/translations": "workspace:*",
@@ -248,7 +248,7 @@
     },
     "packages/react": {
       "name": "@c15t/react",
-      "version": "1.8.6",
+      "version": "1.9.0",
       "dependencies": {
         "@radix-ui/react-accordion": "1.2.12",
         "@radix-ui/react-slot": "1.2.4",
