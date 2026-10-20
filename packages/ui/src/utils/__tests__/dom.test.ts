@@ -171,11 +171,6 @@ describe('getTextDirection', () => {
 		expect(getTextDirection('en-x-arab')).toBe('ltr');
 	});
 
-	test('accepts underscore separators', () => {
-		expect(getTextDirection('he_IL')).toBe('rtl');
-		expect(getTextDirection('en_US')).toBe('ltr');
-	});
-
 	test('handles case insensitively', () => {
 		expect(getTextDirection('AR')).toBe('rtl');
 		expect(getTextDirection('Ar-SA')).toBe('rtl');

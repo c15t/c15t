@@ -108,7 +108,7 @@ export const getTextDirection = function getTextDirection(
 	if (!language) {
 		return 'ltr';
 	}
-	const parts = language.toLowerCase().split(/[-_]/u);
+	const parts = language.toLowerCase().split('-');
 	// Extensions and private use start at a single-letter subtag, and their
 	// values (`en-u-nu-arab`, `x-arab`) can look like scripts. Stop before
 	// them. A tag that starts with one has no language to read.
