@@ -198,7 +198,7 @@ describe('CookieBanner E2E Tests', () => {
 		await new Promise((resolve) => setTimeout(resolve, 100));
 
 		const dialog = document.querySelector(
-			'[data-testid="consent-manager-dialog-root"]'
+			'[data-testid="consent-manager-dialog-card"]'
 		);
 		expect(dialog).toBeInTheDocument();
 
