@@ -24,6 +24,7 @@ import {
 } from '../../../__tests__/fixtures/kernel-fixtures';
 import { createConsentKernel } from '../../../index';
 import type { KernelTransport } from '../../../index';
+import { createKernel } from '../../../kernel';
 import { createScriptLoader } from '../index';
 import type { Script } from '../index';
 
@@ -1166,7 +1167,8 @@ describe('script-loader: configured scripts on saves', () => {
 		const save = vi.fn<NonNullable<KernelTransport['save']>>(() =>
 			Promise.resolve({ ok: true })
 		);
-		return { kernel: createConsentKernel({ transport: { save } }), save };
+		// The internal kernel, so a test can seed records with `hydrate`.
+		return { kernel: createKernel({ transport: { save } }), save };
 	};
 	const lastScripts = (save: ReturnType<typeof kernelWithSave>['save']) =>
 		save.mock.lastCall?.[0].scripts;
