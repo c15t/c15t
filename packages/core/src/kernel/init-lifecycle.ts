@@ -8,6 +8,7 @@
  * - `init()` runs one attempt against the transport, folds the complete
  *   `/init` response into one commit, and on failure applies the safe
  *   fallback and schedules a retry with exponential backoff and jitter.
+ *   A 402 (payment required) is not retried.
  *   Every explicit `init()` fences older attempts: a response that resolves
  *   after a newer `init()` started applies nothing. Records the response
  *   carries apply only when the records generation, subject and user are
@@ -105,8 +106,19 @@ const getRetryDelay = function getRetryDelay(
 	return Math.floor(cappedDelay * jitterMultiplier);
 };
 
+/**
+ * Whether a failed init is worth retrying soon. A backend that answered
+ * 402 wants payment first, which seconds of backoff will not bring.
+ */
+const isRetryableInitFailure = function isRetryableInitFailure(
+	error: unknown
+): boolean {
+	return (error as { status?: unknown } | null)?.status !== 402;
+};
+
 const warnInitFailure = function warnInitFailure(
-	nextRetryMs: number | null
+	nextRetryMs: number | null,
+	error: unknown
 ): void {
 	if (isProductionBuild()) {
 		return;
@@ -116,8 +128,12 @@ const warnInitFailure = function warnInitFailure(
 		nextRetryMs === null
 			? 'No retry is scheduled.'
 			: `A retry is scheduled in ${nextRetryMs} ms.`;
+	// The transport's error carries the backend's own explanation, when it
+	// gave one, such as a closed account or a rate limit.
+	const cause = (error as { message?: unknown } | null)?.message;
+	const detail = typeof cause === 'string' && cause ? `\n${cause}` : '';
 	console.warn(
-		`[c15t] Backend/manifest init failed. The consent banner is withheld and optional categories stay denied. ${retryMessage}`
+		`[c15t] Backend/manifest init failed. The consent banner is withheld and optional categories stay denied. ${retryMessage}${detail}`
 	);
 };
 
@@ -614,11 +630,14 @@ export const createInitLifecycle = function createInitLifecycle({
 			emit({ command: 'init', error, type: 'command:error' });
 			commit(failedResolutionPatch(getSnapshot(), runtime.now()));
 			const nextRetryMs =
-				retryPolicy && attempt < retryPolicy.maxAttempts && !disposed
+				retryPolicy &&
+				attempt < retryPolicy.maxAttempts &&
+				!disposed &&
+				isRetryableInitFailure(error)
 					? getRetryDelay(retryPolicy, attempt)
 					: null;
 			emit({ attempt, error, nextRetryMs, type: 'init:failed' });
-			warnInitFailure(nextRetryMs);
+			warnInitFailure(nextRetryMs, error);
 			if (nextRetryMs !== null) {
 				// oxlint-disable-next-line no-use-before-define -- Retry and attempt call each other.
 				scheduleRetry(attempt + 1, nextRetryMs);

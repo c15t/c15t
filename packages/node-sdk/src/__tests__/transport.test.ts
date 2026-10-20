@@ -577,6 +577,26 @@ describe('response classification', () => {
 		expect(error.message).toContain('TEAPOT');
 	});
 
+	it('reads the message and code of a { message, code } body', async () => {
+		const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
+			json(
+				{
+					code: 'USAGE_LIMIT_REACHED',
+					message: 'This project is out of its usage allowance.',
+				},
+				{ status: 402 }
+			)
+		);
+		const client = createClient(fetchMock);
+
+		const error = errorOf(await client.subjects.get('sub_abc'));
+
+		expect(error.code).toBe('UNEXPECTED_RESPONSE');
+		expect(error.serverCode).toBe('USAGE_LIMIT_REACHED');
+		expect(error.status).toBe(402);
+		expect(error.message).toBe('This project is out of its usage allowance.');
+	});
+
 	it('a plain-text 500 is UNEXPECTED_RESPONSE', async () => {
 		const fetchMock = vi
 			.fn<typeof fetch>()

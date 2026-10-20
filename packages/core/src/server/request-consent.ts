@@ -57,6 +57,7 @@ import type {
 import type { StorageConfig } from '../libs/cookie/types';
 import { experimentArmRef } from '../libs/experiment';
 import type { ExperimentState, ServerExperiment } from '../libs/experiment';
+import { failedResponseError } from '../libs/failed-response';
 import { createJourneyId } from '../libs/journey';
 import type { ConsentJourneyOption, JourneyState } from '../libs/journey';
 import {
@@ -1080,9 +1081,7 @@ export const resolveRequestConsent = async function resolveRequestConsent(
 					init
 				);
 				if (!response.ok) {
-					throw new Error(
-						`/init responded ${response.status} ${response.statusText}`
-					);
+					throw await failedResponseError('/init', response);
 				}
 				payload = (await response.json()) as InitOutput;
 			} catch (error) {

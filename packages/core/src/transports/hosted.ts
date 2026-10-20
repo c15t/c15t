@@ -43,6 +43,7 @@ import {
 } from '@c15t/schema/types';
 import type { InitOutput } from '@c15t/schema/types';
 
+import { failedResponseError } from '../libs/failed-response';
 import { consumePrefetchedInitialData } from '../libs/prefetch/prefetch';
 import { DEFAULT_INIT_CREDENTIALS } from '../libs/request-context-headers';
 import type { SSRInitialData } from '../options/ssr';
@@ -343,9 +344,7 @@ export const createHostedTransport = function createHostedTransport(
 		const response = await fetchImpl(request.url, request.init);
 
 		if (!response.ok) {
-			throw new Error(
-				`c15t hosted transport: /init responded ${response.status} ${response.statusText}`
-			);
+			throw await failedResponseError('c15t hosted transport: /init', response);
 		}
 
 		const payload = (await response.json()) as InitOutput;

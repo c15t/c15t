@@ -11,6 +11,7 @@
  * Reading a subject record back is rare (a user switch or an explicit
  * reload), so its reviver loads on first use.
  */
+import { failedResponseError } from '../libs/failed-response';
 import type { KernelTransport, KernelUser, SaveResult } from '../types';
 import { buildDecisionAssertion } from './decision-inputs';
 import type { RememberedDecisionInputs } from './decision-inputs';
@@ -162,10 +163,11 @@ export const createHostedRecordTransport = function createHostedRecordTransport(
 	const subjectURL = (subjectId: string): string =>
 		`${base}/subjects/${encodeURIComponent(subjectId)}`;
 
-	const failed = function failed(route: string, response: Response): Error {
-		return new Error(
-			`c15t hosted transport: ${route} responded ${response.status} ${response.statusText}`
-		);
+	const failed = function failed(
+		route: string,
+		response: Response
+	): Promise<Error> {
+		return failedResponseError(`c15t hosted transport: ${route}`, response);
 	};
 
 	return {
@@ -186,7 +188,7 @@ export const createHostedRecordTransport = function createHostedRecordTransport(
 				method: 'PATCH',
 			});
 			if (!response.ok) {
-				throw failed('/subjects/:id', response);
+				throw await failed('/subjects/:id', response);
 			}
 		},
 
@@ -202,7 +204,7 @@ export const createHostedRecordTransport = function createHostedRecordTransport(
 				return null;
 			}
 			if (!response.ok) {
-				throw failed('/subjects/:id', response);
+				throw await failed('/subjects/:id', response);
 			}
 			const [
 				body,

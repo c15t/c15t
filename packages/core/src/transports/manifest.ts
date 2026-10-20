@@ -23,6 +23,7 @@ import type {
 import { baseTranslations } from '@c15t/translations/all';
 import type { BaseTranslations } from '@c15t/translations/all';
 
+import { failedResponseError } from '../libs/failed-response';
 import { createUnreportedJourneys } from '../libs/journey';
 import {
 	reportConsentSession,
@@ -429,8 +430,9 @@ export const createManifestTransport = function createManifestTransport(
 					});
 
 					if (!response.ok) {
-						throw new Error(
-							`c15t manifest transport: /manifest responded ${response.status} ${response.statusText}`
+						throw await failedResponseError(
+							'c15t manifest transport: /manifest',
+							response
 						);
 					}
 
@@ -463,8 +465,9 @@ export const createManifestTransport = function createManifestTransport(
 				method: 'PATCH',
 			});
 			if (!response.ok) {
-				throw new Error(
-					`c15t manifest transport: /subjects/:id responded ${response.status} ${response.statusText}`
+				throw await failedResponseError(
+					'c15t manifest transport: /subjects/:id',
+					response
 				);
 			}
 		},
@@ -560,8 +563,9 @@ export const createManifestTransport = function createManifestTransport(
 				return null;
 			}
 			if (!response.ok) {
-				throw new Error(
-					`c15t manifest transport: /subjects/:id responded ${response.status} ${response.statusText}`
+				throw await failedResponseError(
+					'c15t manifest transport: /subjects/:id',
+					response
 				);
 			}
 			const record = reviveSubjectRecord(await response.json());
