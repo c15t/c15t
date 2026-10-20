@@ -28,7 +28,7 @@ const start = async (
 ): Promise<ConsentClient> => {
 	const client = init({
 		iab: { cmpId: 28, gvl: completeGVL },
-		mode: offline({ policyRules: [iabRule] }),
+		mode: offline({ acknowledgeNoRecords: true, policyRules: [iabRule] }),
 		overrides: { country: 'DE' },
 		ui: { styles: false },
 		...options,
@@ -45,7 +45,10 @@ const query = (client: ConsentClient, id: string): Element | null | undefined =>
 const pendingTransport = () => {
 	const response = Promise.withResolvers<{ ok: boolean }>();
 	const started = Promise.withResolvers<undefined>();
-	const factory = offline({ policyRules: [iabRule] });
+	const factory = offline({
+		acknowledgeNoRecords: true,
+		policyRules: [iabRule],
+	});
 	const mode: typeof factory = Object.assign(
 		(context: Parameters<typeof factory>[0]) => ({
 			...factory(context),
@@ -77,6 +80,7 @@ describe('browser IAB policy and pending confirmations', () => {
 	it('confirms IAB preferences with a strict partial-category policy scope', async () => {
 		const client = await start({
 			mode: offline({
+				acknowledgeNoRecords: true,
 				policyRules: [{ ...iabRule, categories: [...POLICY_CHOICE.scope] }],
 			}),
 		});
@@ -97,6 +101,7 @@ describe('browser IAB policy and pending confirmations', () => {
 		}
 		const client = await start({
 			mode: offline({
+				acknowledgeNoRecords: true,
 				policyRules: [
 					{
 						...iabRule,

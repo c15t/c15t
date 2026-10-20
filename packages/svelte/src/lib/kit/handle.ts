@@ -34,7 +34,7 @@ export interface C15tHandleOptions extends ConsentRequestOptions {
 	backendURL?: string;
 	/**
 	 * How `loadConsent` resolves the visitor: `manifest()` (the default),
-	 * `hosted()` or `offline()` from `@c15t/svelte/kit`. They are plain
+	 * `hosted()` or `local()` from `@c15t/svelte/kit`. They are plain
 	 * data; `ConsentRoot` loads the code a mode needs in the browser only
 	 * when it runs.
 	 *
@@ -125,7 +125,7 @@ const modeData = function modeData(mode: ConsentMode): ConsentMode {
 	}
 	if (!(mode as Partial<ConsentMode>).type) {
 		throw new TypeError(
-			'c15t: c15tHandle() takes manifest(), hosted() or offline() from @c15t/svelte/kit. Pass custom() to <ConsentRoot mode> instead.'
+			'c15t: c15tHandle() takes manifest(), hosted() or local() from @c15t/svelte/kit. Pass custom() to <ConsentRoot mode> instead.'
 		);
 	}
 	const { kind: _kind, ...data } = mode as ConsentMode & { kind?: string };

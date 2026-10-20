@@ -36,7 +36,7 @@ const VENDORS: Vendor[] = [
 
 const OPTIONS: C15tAstroOptions = {
 	consentCategories: ['necessary', 'measurement'],
-	mode: offlineMode({ policyRules: [testRule] }),
+	mode: offlineMode({ acknowledgeNoRecords: true, policyRules: [testRule] }),
 	reloadOnConsentRevoked: false,
 	vendors: VENDORS,
 };

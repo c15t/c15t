@@ -29,7 +29,7 @@ const renderWithRule = function renderWithRule(
 	return render(
 		<ComponentFixtureProvider
 			options={{
-				mode: offline(),
+				mode: offline({ acknowledgeNoRecords: true }),
 				persistence: false,
 				prefetch: policyFixture(undefined, {
 					id: 'trigger-rights-test',

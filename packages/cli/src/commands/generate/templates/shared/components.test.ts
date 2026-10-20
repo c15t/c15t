@@ -9,7 +9,7 @@ describe('consent component template', () => {
 			const template = generateConsentComponent({
 				importSource,
 				includeTheme: true,
-				optionsText: 'mode: offline(),',
+				optionsText: 'mode: local(),',
 			});
 			expect(template).toContain(
 				"import { components, theme } from './theme';"
@@ -23,7 +23,7 @@ describe('consent component template', () => {
 	it('does not render theme CSS without a preset', () => {
 		const template = generateConsentComponent({
 			importSource: 'c15t/next',
-			optionsText: 'mode: offline(),',
+			optionsText: 'mode: local(),',
 		});
 		expect(template).not.toContain('ConsentTheme');
 	});
@@ -34,7 +34,7 @@ describe('consent component template', () => {
 			docsSlug: 'react',
 			enableDevTools: true,
 			importSource: 'c15t/react',
-			optionsText: 'mode: offline(),',
+			optionsText: 'mode: local(),',
 			useClientDirective: true,
 		});
 

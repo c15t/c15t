@@ -136,7 +136,7 @@ const buildProviderOptions = function buildProviderOptions(
 		...provided,
 		consentCategories: consentCategoriesFor(provided),
 		disableAnimation: provided.disableAnimation ?? true,
-		mode: provided.mode ?? offline(),
+		mode: provided.mode ?? offline({ acknowledgeNoRecords: true }),
 		persistence: opts.persistence ?? provided.persistence ?? false,
 		prefetch,
 		trapFocus: provided.trapFocus ?? false,

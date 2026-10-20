@@ -26,7 +26,7 @@ const renderBanner = function renderBanner(
 	return render(
 		<ConsentProvider
 			options={{
-				mode: offline(),
+				mode: offline({ acknowledgeNoRecords: true }),
 				persistence: false,
 				prefetch: options.language
 					? {

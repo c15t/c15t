@@ -13,7 +13,7 @@ outside the bundle, and which source wins depends on the transport:
 | --- | --- |
 | Hosted | Your Inth project. The backend picks the language from the browser's `Accept-Language` header or your `language` override, and sends that copy with the policy. |
 | Manifest | The manifest's translations for the visitor's language. |
-| Offline or custom | English, or the `locale` and `messages` you set in `i18n`. |
+| Local or custom | English, or the `locale` and `messages` you set in `i18n`. |
 
 In every mode, your `i18n.messages` for the language in use override that copy
 key by key. Text you set in `ui.banner`, such as `title` or
@@ -27,7 +27,7 @@ keeps every default you leave out:
 
 <include src="../../shared/examples/javascript/translations.mdx" />
 
-This example runs offline, so the German copy shows as written. With a
+This example runs in local mode, so the German copy shows as written. With a
 backend, the `/init` response, a server prefetch or the manifest carries your
 Inth project's copy for the visitor's language. Your `i18n.messages` for that
 language override it key by key, and keys you leave out keep the project's
@@ -42,7 +42,7 @@ while a key you actually reworded stays pinned in code. Core bundles only
 English; for other languages, import `@c15t/translations/all` so c15t can
 recognize its stock wording.
 
-Offline mode is shown here to keep the example short. Not recommended for
+Local mode is shown here to keep the example short. Not recommended for
 production environments.
 
 ## Switch language at runtime
@@ -55,11 +55,11 @@ The banner and dialog re-render. With a runtime or kernel, call
 To follow your app's own language setting from the first render, pass it as
 an override: `init({ mode, overrides: { language: 'fr' } })`.
 
-In offline mode there is no copy to fetch. With `offline()` from `c15t` or
+In local mode there is no copy to fetch. With `local()` from `c15t` or
 `@c15t/browser`, a language set with the `language` override,
 `setLanguage()` or `kernel.set.language()` switches to that language's copy
 from the bundle or `i18n.messages`. This works for `@c15t/browser` and for a
-headless `createConsentRuntime({ mode: offline() })`. A language with no copy
+headless `createConsentRuntime({ mode: local() })`. A language with no copy
 shows the default copy, and the language a server prefetch detected from
 `Accept-Language` does not switch the copy. The bundle has English only, so
 put every other language in `messages`.
@@ -79,7 +79,7 @@ init({ i18n: { locale: 'de', messages: { de: baseTranslations.de } } });
 ```
 
 Importing `baseTranslations` adds every language to your bundle. Import it
-only where you need offline copy in many languages. Install
+only where you need bundled copy in many languages. Install
 `@c15t/translations` to use it.
 
 ## Message keys the stock UI reads

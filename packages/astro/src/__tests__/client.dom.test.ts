@@ -36,7 +36,7 @@ registerIAB(pageIAB);
 
 const OPTIONS: C15tAstroOptions = {
 	consentCategories: ['necessary', 'measurement', 'marketing'],
-	mode: offlineMode({ policyRules: [testRule] }),
+	mode: offlineMode({ acknowledgeNoRecords: true, policyRules: [testRule] }),
 };
 
 const INLINE_CONFIG = {
@@ -588,7 +588,7 @@ describe('opening without an inlined resolution', () => {
 		// the recommended pack instead.
 		const booted = startPending({
 			consentCategories: OPTIONS.consentCategories,
-			mode: offlineMode({ policyRules: [] }),
+			mode: offlineMode({ acknowledgeNoRecords: true, policyRules: [] }),
 		});
 		await booted.openDialog();
 
@@ -613,6 +613,7 @@ describe('opening without an inlined resolution', () => {
 		const booted = startPending({
 			consentCategories: OPTIONS.consentCategories,
 			mode: offlineMode({
+				acknowledgeNoRecords: true,
 				policyRules: [
 					{
 						id: 'none',
@@ -646,6 +647,7 @@ describe('opening without an inlined resolution', () => {
 		const booted = startPending({
 			consentCategories: OPTIONS.consentCategories,
 			mode: offlineMode({
+				acknowledgeNoRecords: true,
 				policyRules: [
 					{
 						id: 'none-with-preferences',

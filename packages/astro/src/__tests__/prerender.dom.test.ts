@@ -31,7 +31,7 @@ import '../browser/render-prompt';
  */
 
 const OPTIONS: C15tAstroOptions = {
-	mode: offlineMode({ policyRules: [testRule] }),
+	mode: offlineMode({ acknowledgeNoRecords: true, policyRules: [testRule] }),
 };
 
 // The boot script registers this for a site that sets `iab`.
@@ -272,6 +272,7 @@ describe('the spot <IABConsentBanner /> leaves', () => {
 		consentCategories: ['necessary', 'marketing'],
 		iab: { cmpId: 160, gvl: MINIMAL_GVL as never },
 		mode: offlineMode({
+			acknowledgeNoRecords: true,
 			policyRules: [
 				{
 					categories: ['marketing'],

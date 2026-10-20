@@ -1,10 +1,20 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { activateGatedScripts } from '../gated-scripts';
-import { createScriptTagConsentClient as createConsentClient } from '../script-tag-client';
+import { createScriptTagConsentClient } from '../script-tag-client';
 import type { ConsentClient } from '../types';
 
 const clients: ConsentClient[] = [];
+
+/** An offline script-tag client that skips the no-records warning. */
+const createConsentClient: typeof createScriptTagConsentClient = (
+	options,
+	context
+) =>
+	createScriptTagConsentClient(
+		{ acknowledgeNoRecords: true, ...options },
+		context
+	);
 
 const clearCookies = function clearCookies(): void {
 	for (const entry of document.cookie.split(';')) {

@@ -42,7 +42,7 @@ describe('TanStack Start boilerplate', () => {
 	it('resolves offline mode on the server without a backend', () => {
 		const template = generate('offline', []);
 		expect(template.files['src/routes/__root.tsx']).toContain(
-			'createConsentStateHandler({ mode: offline() })'
+			'createConsentStateHandler({ mode: local() })'
 		);
 		expect(template.files['vite.config.ts']).toContain(
 			"consentManifest({ onBuildError: 'runtime' })"

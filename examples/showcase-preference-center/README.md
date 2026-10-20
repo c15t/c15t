@@ -32,9 +32,9 @@ bun run build:libs
 bun run --cwd examples/showcase-preference-center dev
 ```
 
-Open http://localhost:3111. The app runs in offline mode: the policy resolves
+Open http://localhost:3111. The app runs in local mode: the policy resolves
 in the browser and choices stay in that browser, so it works without an
-account. For production, replace `offline()` in `components/consent.tsx`
+account. For production, replace `local()` in `components/consent.tsx`
 with `hosted({ backendURL: 'https://your-project.inth.app' })` and use your own
 PostHog and Meta Pixel IDs in `lib/vendors.ts`.
 

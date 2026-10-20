@@ -174,20 +174,20 @@ export interface ConsentProviderOptions
 	/**
 	 * Transport factory the provider builds its kernel with. Required.
 	 *
-	 * Pass `hosted()` to talk to a c15t backend, `offline()` to resolve
+	 * Pass `hosted()` to talk to a c15t backend, `local()` to resolve
 	 * policies locally with no network, or `custom()` to supply your own
 	 * kernel transport. This is an initial-only
 	 * option: remount the provider to change it.
 	 *
 	 * @example
 	 * ```tsx
-	 * import { ConsentProvider, hosted, offline } from '@c15t/react';
+	 * import { ConsentProvider, hosted, local } from '@c15t/react';
 	 *
 	 * <ConsentProvider options={{ mode: hosted({ backendURL: '/api/c15t' }) }}>
 	 *   {children}
 	 * </ConsentProvider>
 	 *
-	 * <ConsentProvider options={{ mode: offline() }}>{children}</ConsentProvider>
+	 * <ConsentProvider options={{ mode: local() }}>{children}</ConsentProvider>
 	 * ```
 	 */
 	mode: ProviderTransportFactory;
@@ -457,7 +457,7 @@ const reactRuntimeModules = function reactRuntimeModules(
  * React renders IAB through `IABProvider` in the tree, not through the
  * runtime's `iab` option, so the provider cannot tell the transport whether
  * IAB is on. Leave the transport's `iabEnabled` unset rather than `false`:
- * with `false`, `offline()` rejects a policy pack that uses `model: 'iab'`
+ * with `false`, `local()` rejects a policy pack that uses `model: 'iab'`
  * and no banner shows. The context keeps its other members, live getters
  * included, through its prototype.
  *

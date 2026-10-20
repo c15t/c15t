@@ -17,7 +17,8 @@ import { modeBundleBoundary } from './scripts/mode-bundle-boundary';
  * - `dist/c15t.js` — a self-contained hosted script-tag build: runtime, the
  *   vanilla banner and preference centre, the stylesheet, and auto-init
  *   from the `<script>` tag's `data-*` attributes.
- * - `dist/c15t.offline.js` — the stock UI with local policy resolution.
+ * - `dist/c15t.local.js` — the stock UI with local policy resolution.
+ *   `dist/c15t.offline.js` is its deprecated old name.
  * - `dist/c15t.headless.js` — the same without any UI or CSS, for sites
  *   that render their own banner against `window.c15t`.
  * - `dist/c15t.iab.js` — an optional replacement with the CMP and IAB UI.
@@ -26,6 +27,9 @@ import { modeBundleBoundary } from './scripts/mode-bundle-boundary';
  */
 /** Script builds allowed to contain `@c15t/iab` code. */
 const IAB_BUNDLES = new Set(['c15t.iab', 'c15t.gpp']);
+
+/** Script builds that run local mode only. */
+const LOCAL_BUNDLES = new Set(['c15t.local', 'c15t.offline']);
 
 /**
  * The ESM build loads the preference centre on demand
@@ -74,7 +78,7 @@ const scriptTagLib = function scriptTagLib(name: string, entry: string) {
 					),
 					...(IAB_BUNDLES.has(name) ? [] : [iabBundleBoundary()]),
 					...(name === 'c15t' ? [modeBundleBoundary('hosted')] : []),
-					...(name === 'c15t.offline' ? [modeBundleBoundary('offline')] : []),
+					...(LOCAL_BUNDLES.has(name) ? [modeBundleBoundary('offline')] : []),
 				],
 			},
 		},
@@ -103,6 +107,7 @@ export default defineConfig({
 			},
 		},
 		scriptTagLib('c15t', './src/entries/cdn.ts'),
+		scriptTagLib('c15t.local', './src/entries/cdn-local.ts'),
 		scriptTagLib('c15t.offline', './src/entries/cdn-offline.ts'),
 		scriptTagLib('c15t.headless', './src/entries/cdn-headless.ts'),
 		scriptTagLib('c15t.iab', './src/entries/cdn-iab.ts'),

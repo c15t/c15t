@@ -84,6 +84,7 @@ describe.each(['react', 'vue'] as const)('the %s dialog island', (ui) => {
 						'functionality',
 					],
 					mode: offlineMode({
+						acknowledgeNoRecords: true,
 						policyRules: [
 							{
 								...testRule,

@@ -60,7 +60,7 @@ test('the lazy dialog renders styled from its first frame', async () => {
 		root.render(
 			<ConsentProvider
 				options={{
-					mode: offline(),
+					mode: offline({ acknowledgeNoRecords: true }),
 					persistence: false,
 					prefetch: policyFixture(),
 				}}

@@ -36,7 +36,7 @@ describe('showcase support chat', () => {
 			<ComponentFixtureProvider
 				options={{
 					consentCategories: ['necessary', 'functionality'],
-					mode: offline(),
+					mode: offline({ acknowledgeNoRecords: true }),
 					persistence: false,
 					prefetch: policyFixture(
 						{ functionality: true },

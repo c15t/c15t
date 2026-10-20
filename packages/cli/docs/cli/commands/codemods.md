@@ -122,7 +122,7 @@ hosted mode without `backendURL` gets v2's default,
 gets a `TODO(c15t v3)` comment, unless it already holds a transport such as
 `manifest()` or `hosted()`. An offline mode keeps its v2 shape with a
 `TODO(c15t v3)` comment; move `offlinePolicy.policyPacks` to
-`offline({ policyRules })` as
+`local({ policyRules })` as
 [Move policy packs to policy rules](../../frameworks/react/upgrade-v3.md#move-policy-packs-to-policy-rules) shows. A
 module that re-exports
 `ConsentManagerProvider` keeps that name as an alias, so its importers still

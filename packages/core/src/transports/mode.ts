@@ -58,7 +58,7 @@ export type ProviderTransportKind =
  * Creates a kernel transport from provider runtime context.
  *
  * Providers require one of these as their `mode` option. Build it with
- * `hosted()`, `offline()`, `manifest()` or `custom()` rather than
+ * `hosted()`, `local()`, `manifest()` or `custom()` rather than
  * by hand so the `kind` property stays accurate. `kind` lets adapters
  * report the selected transport through `window.c15t.mode` without
  * importing every transport implementation.

@@ -54,7 +54,7 @@ describe('generateOptionsText', () => {
 
 	test('offline starter explicitly requires a choice before optional processing', () => {
 		const options = runInNewContext(`({${generateOptionsText('offline')}})`, {
-			offline: (value: unknown) => value,
+			local: (value: unknown) => value,
 		}) as { mode: { policyRules: object[] } };
 		expect(options.mode.policyRules).toEqual([
 			expect.objectContaining({

@@ -10,6 +10,7 @@ import { init } from './fixtures/factory-init';
 
 const testWindow = window as Window & { c15t?: unknown };
 const options: ScriptTagClientOptions = {
+	acknowledgeNoRecords: true,
 	overrides: { country: 'US', region: 'CA' },
 	persistence: false,
 	policyRules: [

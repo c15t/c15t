@@ -76,14 +76,14 @@ describe('Solid boilerplate', () => {
 		expect(template.dependencies).not.toContain('@c15t/solid');
 	});
 
-	it("offline mode uses core's offline() so language changes switch the copy", () => {
+	it("offline mode uses core's local() so language changes switch the copy", () => {
 		const runtime = generateSolidBoilerplate({
 			framework: 'solid',
 			mode: 'offline',
 			scripts: [],
 		}).files['src/consent/consent-runtime.ts'];
-		expect(runtime).toContain("import { offline } from '@c15t/core';");
-		expect(runtime).toMatch(/mode: offline\(\{ policyRules: /u);
+		expect(runtime).toContain("import { local } from '@c15t/core';");
+		expect(runtime).toMatch(/mode: local\(\{ policyRules: /u);
 		expect(runtime).not.toContain('createOfflineTransport');
 	});
 });

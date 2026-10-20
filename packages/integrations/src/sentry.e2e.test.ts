@@ -365,7 +365,7 @@ describe('Sentry adapter through the kernel and script loader', () => {
 		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
 		const { client } = createClient();
 		const runtime = createConsentRuntime({
-			mode: offline(),
+			mode: offline({ acknowledgeNoRecords: true }),
 			scripts: [sentry({ getClient: () => client })],
 		});
 		disposers.push(() => runtime.dispose());
@@ -386,7 +386,7 @@ describe('Sentry adapter through the kernel and script loader', () => {
 		// site declares a vendor itself.
 		const { client } = createClient();
 		const runtime = createConsentRuntime({
-			mode: offline(),
+			mode: offline({ acknowledgeNoRecords: true }),
 			scripts: [sentry({ getClient: () => client })],
 			vendors: [
 				{

@@ -32,7 +32,7 @@ test('the widget lists categories in the draft order, not the policy or configur
 					'measurement',
 					'functionality',
 				],
-				mode: offline(),
+				mode: offline({ acknowledgeNoRecords: true }),
 				persistence: false,
 				prefetch: policyFixture(
 					{},

@@ -23,7 +23,7 @@
 export { c15t, c15t as default, resolveOptions } from './integration';
 export { createConsentMiddleware } from './middleware-handler';
 export type { ConsentMiddlewareOptions } from './middleware-handler';
-export { hosted, manifest, offline } from './mode';
+export { hosted, local, manifest, offline } from './mode';
 export type {
 	ConsentMode,
 	HostedMode,

@@ -17,7 +17,7 @@ const mount = (
 	render(
 		<ConsentProvider
 			options={{
-				mode: offline(),
+				mode: offline({ acknowledgeNoRecords: true }),
 				persistence: false,
 				prefetch: policyFixture(),
 				presentation,

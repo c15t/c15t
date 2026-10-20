@@ -20,7 +20,7 @@ test('a rerender with the same option values loads no update module', async () =
 	// Vite's module graph can fill the browser's default resource buffer.
 	performance.setResourceTimingBufferSize(5000);
 	performance.clearResourceTimings();
-	const mode = offline();
+	const mode = offline({ acknowledgeNoRecords: true });
 	const prefetch = policyFixture();
 	const first = { externalId: 'user_1' };
 	const provider = (user: { externalId: string }) => (

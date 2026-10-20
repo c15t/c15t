@@ -48,7 +48,7 @@ test('loads scripts only when added and preserves cleanup ordering and initial c
 	const replacementCleanup: ClearOnRevocationConfig = {
 		measurement: { localStorage: ['analytics:replacement'] },
 	};
-	const mode = offline();
+	const mode = offline({ acknowledgeNoRecords: true });
 	const prefetch = policyFixture({ measurement: true });
 	const provider = (scripts: Script[], clearOnRevocation = initialCleanup) => (
 		<ConsentProvider

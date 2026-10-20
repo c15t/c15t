@@ -52,10 +52,10 @@ Then open http://localhost:3114.
 
 ## Before you ship
 
-This demo runs in offline mode, with a local vendor list and a demonstration
+This demo runs in local mode, with a local vendor list and a demonstration
 CMP ID. A real site changes three things in `components/consent.tsx`:
 
-- **Mode.** Swap `offline()` for `hosted({ backendURL: 'https://your-project.inth.app' })`.
+- **Mode.** Swap `local()` for `hosted({ backendURL: 'https://your-project.inth.app' })`.
   Your backend then resolves the visitor's region, so only visitors under an
   IAB policy see the TCF banner, and sends the official vendor list with it.
 - **Vendor list.** Remove `gvlURL`. c15t loads the official Global Vendor

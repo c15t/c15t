@@ -30,7 +30,15 @@ test('offline() gives the dialog its English title without a request', async () 
 		{
 			attachTo: document.body,
 			global: {
-				plugins: [[c15tVue, { disableAnimation: true, mode: offline() }]],
+				plugins: [
+					[
+						c15tVue,
+						{
+							disableAnimation: true,
+							mode: offline({ acknowledgeNoRecords: true }),
+						},
+					],
+				],
 			},
 		}
 	);

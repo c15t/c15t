@@ -40,7 +40,10 @@ export const toFactoryOptions = function toFactoryOptions(
 	}
 	return {
 		...rest,
-		mode: offline({ policyRules: resolveRules(policyRules) }),
+		mode: offline({
+			acknowledgeNoRecords: true,
+			policyRules: resolveRules(policyRules),
+		}),
 	};
 };
 

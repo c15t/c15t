@@ -233,7 +233,7 @@ describe('offline()', () => {
 
 describe('offline() transport', () => {
 	test('answers init with the location it resolved for, as /init does', async () => {
-		const transport = offline()(context);
+		const transport = offline({ acknowledgeNoRecords: true })(context);
 		const response = await transport.init?.({
 			overrides: { country: 'DE', region: 'BE' },
 		} as Parameters<NonNullable<KernelTransport['init']>>[0]);

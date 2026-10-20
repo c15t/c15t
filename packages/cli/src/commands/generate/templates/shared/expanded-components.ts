@@ -74,7 +74,7 @@ export const generateExpandedProviderTemplate =
 				)
 			: '';
 		const reactNodeImport = "import type { ReactNode } from 'react';\n";
-		const modeImport = ['custom', 'hosted', 'offline'].find((name) =>
+		const modeImport = ['custom', 'hosted', 'local'].find((name) =>
 			optionsText.includes(`${name}(`)
 		);
 

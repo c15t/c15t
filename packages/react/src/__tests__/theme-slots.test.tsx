@@ -42,7 +42,7 @@ describe('theme.slots in React', () => {
 							card: { className: 'app-card', style: { color: 'rgb(4, 5, 6)' } },
 						},
 					},
-					mode: offline(),
+					mode: offline({ acknowledgeNoRecords: true }),
 					persistence: false,
 					prefetch: policyFixture(),
 					theme: {
@@ -83,7 +83,7 @@ describe('theme.slots in React', () => {
 					components: {
 						banner: { card: { className: 'app-card' } },
 					},
-					mode: offline(),
+					mode: offline({ acknowledgeNoRecords: true }),
 					persistence: false,
 					prefetch: policyFixture(),
 					theme: {
@@ -122,7 +122,7 @@ describe('theme.slots in React', () => {
 							root: { style: { color: 'rgb(4, 5, 6)' } },
 						},
 					},
-					mode: offline(),
+					mode: offline({ acknowledgeNoRecords: true }),
 					persistence: false,
 					prefetch: policyFixture(),
 					theme: {

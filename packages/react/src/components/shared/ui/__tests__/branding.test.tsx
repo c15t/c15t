@@ -74,7 +74,7 @@ const createConsentTree = function createConsentTree(
 			options={{
 				components: providerOverrides.components,
 				initialUI: state.activeUI === 'dialog' ? 'dialog' : 'banner',
-				mode: offline(),
+				mode: offline({ acknowledgeNoRecords: true }),
 				persistence: false,
 				prefetch: {
 					...policyFixture(undefined, {

@@ -35,7 +35,7 @@ banner into the HTML. To apply policy updates without rebuilding, pass
 and caches it in memory. Keep the plugin: it still supplies the backend URL.
 
 `createConsentStateHandler({ mode })` takes `manifest()`, `hosted()` or
-`offline()` from `c15t/tanstack-start`. They are plain data, so the state
+`local()` from `c15t/tanstack-start`. They are plain data, so the state
 carries the mode to `ConsentRoot`, and the browser loads only that mode's
 code. A mode's `snapshot` stays on the server.
 [Consent modes](/docs/concepts/modes) compares them.
@@ -154,7 +154,7 @@ resolve consent from the backend URL `consentManifest()` read:
   every optional category stays denied until the browser has the policy.
   `ConsentRoot` takes the backend URL from `consentManifest()`; without the
   plugin, an empty state throws, because there is no backend to ask. Pass
-  `state={{ mode: offline() }}` to resolve without one.
+  `state={{ mode: local() }}` to resolve without one.
 - The browser sends its `/init` request straight to your backend URL, so the
   host needs no server route or server function. Add the site's origin to
   your Inth project's trusted origins.

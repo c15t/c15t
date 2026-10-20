@@ -38,7 +38,7 @@ export type VueConsentManifestPlugin = Omit<ConsentManifestPlugin, 'config'> & {
  * reads the same value.
  *
  * `vite build` fetches the manifest only when the bundle uses `manifest()`,
- * so a `hosted()` or `offline()` build never depends on the backend. With
+ * so a `hosted()` or `local()` build never depends on the backend. With
  * `manifest()`, a missing URL or a failed fetch stops `vite build`. `vite
  * dev` fetches when the app first loads the module and only warns, and
  * `manifest()` then fetches the manifest when the app starts. Set

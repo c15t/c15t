@@ -51,7 +51,7 @@ Install `c15t` for the runtime or the kernel:
 <CommandTabs command="c15t" mode="install" />
 
 The runtime takes the same kind of options v2 did. `mode` and `backendURL`
-become one transport, such as `hosted({ backendURL })` or `offline({ policyRules })`,
+become one transport, such as `hosted({ backendURL })` or `local({ policyRules })`,
 exported from `c15t`. `translations` becomes `i18n`, and
 `iframeBlockerConfig` becomes `iframeBlocker`. See the
 [runtime reference](/docs/frameworks/javascript/api/runtime) for every option.
@@ -104,7 +104,7 @@ choice, so don't treat a `true` permission as a recorded grant. See
 | `loadScripts`, `unloadScripts`, `updateScripts`, `isScriptLoaded`, `getLoadedScriptIds` | Removed. Pass `scripts` to `createConsentRuntime()`, which mounts the loader on `start()`. To run a loader yourself, `createScriptLoader({ kernel, scripts })` from `c15t/modules/script-loader` returns `updateScripts(next)`, `getLoadedScriptIds()` and `dispose()`. Use `getLoadedScriptIds().includes(id)` for `isScriptLoaded(id)`. |
 | `createIframeBlocker` | `c15t/modules/iframe-blocker` |
 | `getEffectivePolicy`, `filterConsentCategoriesByPolicy` and the other policy helpers | `resolveConsentPresentation()` from `c15t` and the helpers in `c15t/surface-actions` |
-| `C15tClient`, `OfflineClient`, `CustomClient`, `API_ENDPOINTS` | Transports: `hosted()`, `offline()` and `custom()` from `c15t` |
+| `C15tClient`, `OfflineClient`, `CustomClient`, `API_ENDPOINTS` | Transports: `hosted()`, `local()` and `custom()` from `c15t` |
 | `policyPackPresets` | `policyRulePresets` |
 | `configureConsentManager`, `createConsentManagerStore`, `clearConsentRuntimeCache` | Removed |
 
@@ -138,9 +138,9 @@ Modes and build integrations:
 | Removed | Use instead |
 | --- | --- |
 | `init({ backendURL })` | `init({ mode: hosted() })`, or `init({ mode: manifest() })` with `consentManifest()` from `c15t/build` |
-| `init({ mode: 'hosted' })`, `'manifest'`, `'offline'` | `init({ mode: hosted() })`, `manifest()`, `offline()`. Names work only in the script-tag builds. |
+| `init({ mode: 'hosted' })`, `'manifest'`, `'offline'` | `init({ mode: hosted() })`, `manifest()`, `local()`. Names work only in the script-tag builds. |
 | `init({ manifest, manifestURL })` | `init({ mode: manifest({ snapshot, manifestURL }) })` |
-| `init({ policyRules: ['europeOptIn'] })` | `init({ mode: offline({ policyRules: [policyRulePresets.europeOptIn()] }) })` |
+| `init({ policyRules: ['europeOptIn'] })` | `init({ mode: local({ policyRules: [policyRulePresets.europeOptIn()] }) })` |
 | `manifest({ manifest })` | `manifest({ snapshot })` |
 
 The script-tag builds and the `@c15t/browser/hosted` and

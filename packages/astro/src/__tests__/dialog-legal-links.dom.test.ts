@@ -81,7 +81,10 @@ const openReactDialog = async function openReactDialog(): Promise<void> {
 				cookiePolicy: { href: '/cookies' },
 				privacyPolicy: { href: '/privacy', label: 'Privacy' },
 			},
-			mode: offlineMode({ policyRules: [testRule] }),
+			mode: offlineMode({
+				acknowledgeNoRecords: true,
+				policyRules: [testRule],
+			}),
 			ui: 'react',
 		})
 	);
@@ -134,7 +137,10 @@ describe('the Vue preferences dialog', () => {
 					cookiePolicy: { href: '/cookies' },
 					privacyPolicy: { href: '/privacy', label: 'Privacy' },
 				},
-				mode: offlineMode({ policyRules: [testRule] }),
+				mode: offlineMode({
+					acknowledgeNoRecords: true,
+					policyRules: [testRule],
+				}),
 				ui: 'vue',
 			})
 		);

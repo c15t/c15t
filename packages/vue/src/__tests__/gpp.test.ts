@@ -104,7 +104,7 @@ test('without gpp the plugin installs no __gpp', async () => {
 
 test('a borrowed runtime keeps GPP to itself', async () => {
 	const runtime = createConsentRuntime({
-		mode: offline(),
+		mode: offline({ acknowledgeNoRecords: true }),
 		persistence: false,
 	});
 	runtime.start();

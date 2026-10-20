@@ -16,7 +16,7 @@ import { offline } from '~/transports/offline';
 import { policyFixture } from './policy-fixture';
 
 const fresh = {
-	mode: offline(),
+	mode: offline({ acknowledgeNoRecords: true }),
 	persistence: false,
 	prefetch: policyFixture(),
 } satisfies ConsentProviderOptions;

@@ -61,7 +61,7 @@ The frontend code is the same for Inth and a self-hosted backend. Only the backe
 ## Prerequisites
 
 - Node.js 20.19 or later
-- An [Inth project](https://inth.com) (free sign-up), a [self-hosted backend](https://c15t.com/docs/self-host/quickstart), or offline mode for local development
+- An [Inth project](https://inth.com) (free sign-up), a [self-hosted backend](https://c15t.com/docs/self-host/quickstart), or local mode for development and tests
 
 ## Installation
 

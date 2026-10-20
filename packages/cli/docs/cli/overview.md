@@ -59,7 +59,7 @@ app unchanged. It supports `next-app`, `next-pages`, `react`, `javascript`,
 `tanstack-start`, `vue`, `nuxt`, `svelte`, `sveltekit`, `solid`, `astro`,
 `astro-static` and `html`.
 
-`inth c15t` connects the app to an Inth project. For an offline or
+`inth c15t` connects the app to an Inth project. For local mode or a
 self-hosted backend, follow your [framework quickstart](https://c15t.com/docs/frameworks)
 instead. Remix and Gatsby have no CLI support. Follow the
 [React guide](https://c15t.com/docs/frameworks/react/quickstart); see

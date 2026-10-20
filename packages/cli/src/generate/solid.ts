@@ -112,14 +112,14 @@ function ConsentControls() {
 	);
 }
 `,
-			'src/consent/consent-runtime.ts': `import { ${hosted ? 'hosted' : 'offline'} } from '@c15t/core';
+			'src/consent/consent-runtime.ts': `import { ${hosted ? 'hosted' : 'local'} } from '@c15t/core';
 import { createConsentRuntime } from '@c15t/core/runtime';
 ${generateScriptsImport(options.scripts)}
 
 // Construction is pure; the Solid component starts this only after mounting.
 export function createSiteConsent() {
 	return createConsentRuntime({
-		mode: ${hosted ? `hosted({ backendURL: ${JSON.stringify(options.backendURL)} })` : `offline({ policyRules: ${DEFAULT_OFFLINE_RULES} })`},
+		mode: ${hosted ? `hosted({ backendURL: ${JSON.stringify(options.backendURL)} })` : `local({ policyRules: ${DEFAULT_OFFLINE_RULES} })`},
 		scripts: ${generateScriptsArrayValue(options.scripts)},
 	});
 }

@@ -29,6 +29,7 @@ test('offline rules resolve after mount and expose canonical state', async () =>
 		<ConsentProvider
 			options={{
 				mode: offline({
+					acknowledgeNoRecords: true,
 					policyRules: [
 						{
 							id: 'local',
@@ -56,7 +57,12 @@ test('offline rules resolve after mount and expose canonical state', async () =>
 
 test('offline mode without rules resolves the recommended pack: strict opt-in for an unknown location', async () => {
 	await render(
-		<ConsentProvider options={{ mode: offline(), persistence: false }}>
+		<ConsentProvider
+			options={{
+				mode: offline({ acknowledgeNoRecords: true }),
+				persistence: false,
+			}}
+		>
 			<Capture />
 			<ConsentBanner />
 		</ConsentProvider>
@@ -69,7 +75,12 @@ test('offline mode without rules resolves the recommended pack: strict opt-in fo
 
 test('exposes only the window.c15t debug object, not the kernel', async () => {
 	const screen = await render(
-		<ConsentProvider options={{ mode: offline(), persistence: false }}>
+		<ConsentProvider
+			options={{
+				mode: offline({ acknowledgeNoRecords: true }),
+				persistence: false,
+			}}
+		>
 			<ConsentBanner />
 		</ConsentProvider>
 	);
@@ -190,7 +201,7 @@ test('an offline IAB policy resolves: IAB renders in the tree, so the transport 
 	await render(
 		<ConsentProvider
 			options={{
-				mode: offline({ policyRules: [iabPolicy] }),
+				mode: offline({ acknowledgeNoRecords: true, policyRules: [iabPolicy] }),
 				persistence: false,
 			}}
 		>
@@ -207,7 +218,7 @@ test('disposes the kernel on unmount', async () => {
 	const screen = await render(
 		<ConsentProvider
 			options={{
-				mode: offline(),
+				mode: offline({ acknowledgeNoRecords: true }),
 				persistence: false,
 				prefetch: policyFixture(),
 			}}
@@ -373,7 +384,7 @@ test('prepared receipts remain authoritative when persistence is disabled', asyn
 	await render(
 		<ConsentProvider
 			options={{
-				mode: offline(),
+				mode: offline({ acknowledgeNoRecords: true }),
 				persistence: false,
 				prefetch: policyFixture({ marketing: true }),
 			}}
@@ -477,7 +488,7 @@ test('onSurfaceShown fires once init resolves the policy', async () => {
 test('uses current callback props without replacing the kernel', async () => {
 	const first = vi.fn();
 	const second = vi.fn();
-	const mode = offline();
+	const mode = offline({ acknowledgeNoRecords: true });
 	const prefetch = policyFixture();
 	const screen = await render(
 		<ConsentProvider
@@ -519,7 +530,7 @@ test('passes host presentation through UI context', async () => {
 	const screen = await render(
 		<ConsentProvider
 			options={{
-				mode: offline(),
+				mode: offline({ acknowledgeNoRecords: true }),
 				persistence: false,
 				prefetch: policyFixture(),
 				presentation: { prompt: { direction: 'column' } },
@@ -541,7 +552,7 @@ test('merges selected i18n messages with English defaults', async () => {
 					locale: 'en',
 					messages: { en: { cookieBanner: { title: 'Your privacy' } } },
 				},
-				mode: offline(),
+				mode: offline({ acknowledgeNoRecords: true }),
 				persistence: false,
 				prefetch: policyFixture(),
 			}}
@@ -600,7 +611,7 @@ test('StrictMode remount keeps persistence subscriptions active', async () => {
 		<StrictMode>
 			<ConsentProvider
 				options={{
-					mode: offline(),
+					mode: offline({ acknowledgeNoRecords: true }),
 					prefetch: policyFixture(),
 					storageConfig: { storageKey: key },
 				}}
@@ -717,7 +728,7 @@ test('clears configured storage on revocation after stopping scripts', async () 
 					marketing: { localStorage: ['cleanup:ready'] },
 					measurement: { localStorage: ['analytics:visitor'] },
 				},
-				mode: offline(),
+				mode: offline({ acknowledgeNoRecords: true }),
 				persistence: false,
 				prefetch: policyFixture({ measurement: true }),
 				scripts: [
@@ -759,7 +770,7 @@ test('disabled providers leave configured browser data alone', async () => {
 					measurement: { localStorage: ['analytics:visitor'] },
 				},
 				enabled: false,
-				mode: offline(),
+				mode: offline({ acknowledgeNoRecords: true }),
 				persistence: false,
 			}}
 		>
@@ -775,7 +786,7 @@ test('storage is read once: a new storage key warns and records stay where they 
 	const firstKey = 'cleanup-first';
 	const nextKey = 'cleanup-next';
 	const prefetch = policyFixture({ measurement: true });
-	const mode = offline();
+	const mode = offline({ acknowledgeNoRecords: true });
 	const clearOnRevocation = {
 		measurement: { localStorage: ['cleanup-*'] },
 	};
@@ -831,7 +842,7 @@ test('starts cleanup when an initially disabled provider with scripts is enabled
 			marketing: { localStorage: ['cleanup:ready'] },
 			measurement: { localStorage: ['analytics:visitor'] },
 		},
-		mode: offline(),
+		mode: offline({ acknowledgeNoRecords: true }),
 		persistence: false as const,
 		prefetch: policyFixture({ measurement: true }),
 		scripts: [

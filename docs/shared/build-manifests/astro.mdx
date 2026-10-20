@@ -14,7 +14,7 @@ The build fetches only from an absolute upstream backend URL or
 compiling. `c15t()` without a `backendURL` reads `PUBLIC_C15T_BACKEND_URL`, then
 `PUBLIC_INTH_PROJECT_URL`.
 With a relative URL, `manifest({ source: 'runtime' })`,
-`manifest({ snapshot })`, `hosted()` or `offline()`, the integration skips
+`manifest({ snapshot })`, `hosted()` or `local()`, the integration skips
 the fetch. If the fetch fails, or no backend URL is set, `astro build` stops.
 `astro dev` logs a warning instead, and the server fetches and caches the
 policy at runtime. The config is read once at build time, so the built server

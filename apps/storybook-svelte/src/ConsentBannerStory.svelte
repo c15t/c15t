@@ -25,6 +25,7 @@
 	// A notice under an opt-out model: an opt-out link plus a primary Accept All.
 	const noticeOptions = {
 		mode: offline({
+			acknowledgeNoRecords: true,
 			policyRules: [
 				{
 					...storybookPolicy,

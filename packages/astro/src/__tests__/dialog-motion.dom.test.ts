@@ -83,7 +83,10 @@ const bootClient = function bootClient(
 ): AstroConsentClient {
 	const client = boot(
 		resolveOptions({
-			mode: offlineMode({ policyRules: [testRule] }),
+			mode: offlineMode({
+				acknowledgeNoRecords: true,
+				policyRules: [testRule],
+			}),
 			...options,
 		})
 	);

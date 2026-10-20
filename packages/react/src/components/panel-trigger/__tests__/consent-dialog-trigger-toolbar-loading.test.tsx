@@ -30,7 +30,9 @@ const PublishLauncher = () => {
 describe('ConsentDialogTrigger toolbar loading', () => {
 	test('keeps the single button until a launcher is published', async () => {
 		await render(
-			<ComponentFixtureProvider options={{ mode: offline() }}>
+			<ComponentFixtureProvider
+				options={{ mode: offline({ acknowledgeNoRecords: true }) }}
+			>
 				<ConsentDialogTrigger showWhen="always" />
 			</ComponentFixtureProvider>
 		);
@@ -44,7 +46,9 @@ describe('ConsentDialogTrigger toolbar loading', () => {
 
 	test('loads the toolbar when a launcher appears without the DevTools adapter', async () => {
 		await render(
-			<ComponentFixtureProvider options={{ mode: offline() }}>
+			<ComponentFixtureProvider
+				options={{ mode: offline({ acknowledgeNoRecords: true }) }}
+			>
 				<PublishLauncher />
 				<ConsentDialogTrigger showWhen="always" />
 			</ComponentFixtureProvider>

@@ -11,7 +11,7 @@ Next.js build bundles the project's public policy manifest. The server resolves 
 for each visitor. The browser sends consent choices to Inth.
 
 A [self-hosted backend](/docs/self-host/quickstart) uses the same files with
-its own URL. [Offline mode](/docs/frameworks/next/data-fetching-reference#offline-configuration)
+its own URL. [Local mode](/docs/frameworks/next/data-fetching-reference#local-configuration)
 keeps policy in your code and choices in the browser, with no consent records.
 Not recommended for production environments.
 
@@ -74,7 +74,7 @@ so it can hold `scripts` but must hold no secrets.
 | Option | Default | Behavior |
 | --- | --- | --- |
 | `backendURL` | `NEXT_PUBLIC_C15T_BACKEND_URL`, then `NEXT_PUBLIC_INTH_PROJECT_URL` | Backend base URL. Choices post to `${backendURL}/subjects`. |
-| `mode` | `manifest()` | `manifest()`, `hosted()` or `offline()` from `c15t/next`. See [consent modes](/docs/concepts/modes). |
+| `mode` | `manifest()` | `manifest()`, `hosted()` or `local()` from `c15t/next`. See [consent modes](/docs/concepts/modes). |
 | `routePrefix` | none | Where you mount the [consent route](#initialize-in-the-browser). Set it only when some pages resolve consent in the browser. |
 | `proxy` | `false` | Send browser saves through the consent route too. See [optimization](/docs/frameworks/next/optimization#keep-browser-consent-requests-on-your-origin). |
 | `journey` | `'page'` | The consent journey scope. |

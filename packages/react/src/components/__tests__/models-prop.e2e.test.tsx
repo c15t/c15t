@@ -52,7 +52,7 @@ const optInOptions: ConsentProviderOptions = {
 		'marketing',
 		'measurement',
 	],
-	mode: offline(),
+	mode: offline({ acknowledgeNoRecords: true }),
 	prefetch: policyFixture(undefined, {
 		categories: [
 			'necessary',

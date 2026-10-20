@@ -147,7 +147,7 @@ describe('ConsentRoot: backendURL triggers auto-init', () => {
 		try {
 			const { getByTestId } = await render(
 				<ConsentRoot
-					config={{ mode: offline() }}
+					config={{ mode: offline({ acknowledgeNoRecords: true }) }}
 					state={{}}
 					persistence={false}
 				>

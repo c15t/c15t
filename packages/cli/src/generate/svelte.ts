@@ -62,7 +62,7 @@ const withScripts = (
 	options.scripts.length ? [...attributes, '{scripts}'] : attributes;
 
 const svelteFiles = (options: BoilerplateOptions): Record<string, string> => {
-	const mode = options.mode === 'offline' ? 'offline' : 'hosted';
+	const mode = options.mode === 'offline' ? 'local' : 'hosted';
 	return {
 		...envFile(BACKEND_URL_ENV.vite, options),
 		'src/App.svelte': `${scriptBlock(
@@ -117,9 +117,9 @@ declare global {
 
 export {};
 `,
-		'src/hooks.server.ts': `import { c15tHandle${offline ? ', offline' : ''} } from '@c15t/svelte/kit';
+		'src/hooks.server.ts': `import { c15tHandle${offline ? ', local' : ''} } from '@c15t/svelte/kit';
 
-export const handle = c15tHandle(${offline ? '{ mode: offline() }' : ''});
+export const handle = c15tHandle(${offline ? '{ mode: local() }' : ''});
 `,
 		'src/routes/+layout.server.ts':
 			"export { loadConsent as load } from '@c15t/svelte/kit';\n",

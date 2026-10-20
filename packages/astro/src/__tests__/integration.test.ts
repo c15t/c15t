@@ -515,7 +515,7 @@ describe('resolveOptions', () => {
 		const transport = Object.assign(() => ({}), { kind: 'custom' });
 		expect(() =>
 			resolveOptions({ mode: transport as unknown as C15tAstroOptions['mode'] })
-		).toThrowError(/`mode` must be manifest\(\), hosted\(\) or offline\(\)/u);
+		).toThrowError(/`mode` must be manifest\(\), hosted\(\) or local\(\)/u);
 	});
 
 	it.each(['solid', 'constructor', '__proto__'])(
@@ -1265,7 +1265,7 @@ describe('astro:config:done', () => {
 	it('names the injected route when a build has no adapter', async () => {
 		const done = await runForCommand(MANIFEST, 'build');
 		await expect(done()).rejects.toThrowError(
-			/on-demand route at \/api\/c15t\/\[\.\.\.path\], which needs a server adapter.*hosted\(\), offline\(\) or manifest\(\{ resolve: 'browser' \}\)/u
+			/on-demand route at \/api\/c15t\/\[\.\.\.path\], which needs a server adapter.*hosted\(\), local\(\) or manifest\(\{ resolve: 'browser' \}\)/u
 		);
 	});
 

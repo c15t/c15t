@@ -145,6 +145,9 @@ export const readScriptOptions = function readScriptOptions(
 	if (nonce) {
 		options.nonce = nonce;
 	}
+	if (readFlag(element, 'data-acknowledge-no-records')) {
+		options.acknowledgeNoRecords = true;
+	}
 	if (readFlag(element, 'data-no-ui')) {
 		options.ui = false;
 		return options;

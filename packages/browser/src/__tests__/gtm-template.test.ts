@@ -308,6 +308,7 @@ const policy = {
 	scopeMode: 'strict' as const,
 };
 const options: ConsentClientOptions = {
+	acknowledgeNoRecords: true,
 	consentCategories: [...categories],
 	policyRules: [policy],
 	prefetch: {
@@ -617,6 +618,10 @@ describe('GTM template', () => {
 			'https://cdn.jsdelivr.net/npm/@c15t/browser@3.1.0/dist/c15t.offline.js',
 			true,
 		],
+		[
+			'https://cdn.jsdelivr.net/npm/@c15t/browser@3.2.0/dist/c15t.local.js',
+			true,
+		],
 		['https://example.com/c15t.js', false],
 		['https://acme.inth.app.example.com/c15t.js', false],
 		['https://inth.app/c15t.js', false],
@@ -638,6 +643,7 @@ describe('GTM template', () => {
 		['https://acme.inth.app/c15t/c15t.js', false],
 		['https://acme.inth.app/c15t.gpp.js', false],
 		['https://acme.inth.app/c15t.offline.js', false],
+		['https://acme.inth.app/c15t.local.js', false],
 		[
 			'https://cdn.jsdelivr.net/npm/@c15t/browser@3.2.0-canary.4/dist/c15t.headless.js',
 			true,
@@ -670,6 +676,11 @@ describe('GTM template', () => {
 		],
 		[
 			'https://cdn.jsdelivr.net/npm/@c15t/browser@3.1.0/dist/c15t.offline.js',
+			'https://acme.inth.app',
+			'uses no backend',
+		],
+		[
+			'https://cdn.jsdelivr.net/npm/@c15t/browser@3.2.0/dist/c15t.local.js',
 			'https://acme.inth.app',
 			'uses no backend',
 		],
@@ -713,6 +724,7 @@ describe('GTM template', () => {
 			'https://acme.inth.app/c15t.js',
 			'https://acme.inth.app/c15t.iab.js',
 			'https://cdn.jsdelivr.net/npm/@c15t/browser@3.1.0/dist/c15t.offline.js',
+			'https://cdn.jsdelivr.net/npm/@c15t/browser@3.2.0/dist/c15t.local.js',
 			'https://cdn.jsdelivr.net/npm/@c15t/browser@3.1.0/dist/c15t.headless.js',
 			'https://cdn.jsdelivr.net/npm/@c15t/browser@3.2.0-canary.4/dist/c15t.js',
 		]) {
@@ -724,6 +736,7 @@ describe('GTM template', () => {
 			'https://acme.inth.app/c15t.gpp.js',
 			'https://cdn.jsdelivr.net/npm/@c15t/browser@3.1.0/dist/c15t.devtools.js',
 			'https://acme.inth.app/c15t.offline.js',
+			'https://acme.inth.app/c15t.local.js',
 			'https://cdn.jsdelivr.net/npm/@c15t/browser@latest/dist/c15t.js',
 			'https://cdn.jsdelivr.net/npm/@c15t/browser@3.1/dist/c15t.js',
 		]) {

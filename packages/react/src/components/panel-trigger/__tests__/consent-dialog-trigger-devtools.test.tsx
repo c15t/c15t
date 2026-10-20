@@ -11,7 +11,9 @@ import { ConsentDialogTrigger, ConsentDialogTriggerToolbar } from '../index';
 
 const renderWithDevTools = function renderWithDevTools(trigger: ReactNode) {
 	return render(
-		<ComponentFixtureProvider options={{ mode: offline() }}>
+		<ComponentFixtureProvider
+			options={{ mode: offline({ acknowledgeNoRecords: true }) }}
+		>
 			<ConsentDevTools />
 			{trigger}
 		</ComponentFixtureProvider>
@@ -132,7 +134,9 @@ describe('DevTools launcher in the consent trigger', () => {
 		});
 
 		await screen.rerender(
-			<ComponentFixtureProvider options={{ mode: offline() }}>
+			<ComponentFixtureProvider
+				options={{ mode: offline({ acknowledgeNoRecords: true }) }}
+			>
 				<ConsentDevTools />
 			</ComponentFixtureProvider>
 		);

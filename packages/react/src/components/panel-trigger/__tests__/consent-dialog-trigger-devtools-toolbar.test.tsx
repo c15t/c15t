@@ -40,7 +40,9 @@ describe('ConsentDialogTrigger with ConsentDevTools', () => {
 		async () => {
 			const seen: boolean[] = [];
 			await render(
-				<ComponentFixtureProvider options={{ mode: offline() }}>
+				<ComponentFixtureProvider
+					options={{ mode: offline({ acknowledgeNoRecords: true }) }}
+				>
 					<ConsentDevTools />
 					<ConsentDialogTrigger showWhen="always" />
 					<LauncherProbe seen={seen} />

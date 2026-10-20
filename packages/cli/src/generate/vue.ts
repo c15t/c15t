@@ -23,8 +23,8 @@ const nuxtFiles = (options: BoilerplateOptions): Record<string, string> => {
 	</footer>
 </template>
 `,
-		'nuxt.config.ts': `${offline ? "import { offline } from 'c15t/vue';\n\n" : ''}export default defineNuxtConfig({
-${offline ? '\tc15t: { mode: offline() },\n' : ''}	compatibilityDate: '2026-07-04',
+		'nuxt.config.ts': `${offline ? "import { local } from 'c15t/vue';\n\n" : ''}export default defineNuxtConfig({
+${offline ? '\tc15t: { mode: local() },\n' : ''}	compatibilityDate: '2026-07-04',
 	modules: ['c15t/vue'],
 });
 `,
@@ -42,7 +42,7 @@ ${scriptsProperty(options.scripts, '\t\t')}	},
 };
 
 const vueFiles = (options: BoilerplateOptions): Record<string, string> => {
-	const mode = options.mode === 'offline' ? 'offline' : 'hosted';
+	const mode = options.mode === 'offline' ? 'local' : 'hosted';
 	const build = spaBuildOptions(options);
 	return {
 		...envFile(BACKEND_URL_ENV.vite, options),

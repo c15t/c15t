@@ -54,7 +54,7 @@ const renderPage = function renderPage({
 	const { body, head } = render(ConsentProvider, {
 		props: {
 			options: {
-				mode: offline(),
+				mode: offline({ acknowledgeNoRecords: true }),
 				persistence: false,
 				prefetch: {
 					initialPolicyResolution: resolvePolicyRules({

@@ -41,7 +41,11 @@ const createWrapper = function createWrapper({
 	return function Wrapper({ children }: { children: ReactNode }) {
 		return (
 			<ComponentFixtureProvider
-				options={{ mode: offline(), persistence: false, prefetch }}
+				options={{
+					mode: offline({ acknowledgeNoRecords: true }),
+					persistence: false,
+					prefetch,
+				}}
 			>
 				{children}
 			</ComponentFixtureProvider>

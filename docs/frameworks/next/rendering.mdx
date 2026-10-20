@@ -201,7 +201,7 @@ The rendering path decides when consent resolves. The `mode` in
 | Build-time manifest, recommended | `manifest()`, the default, with `withConsentManifest` | Your app has a Next.js server and policy changes ship with a rebuild. |
 | Cached manifest | `manifest({ source: 'runtime' })` | Policy changes must apply without a rebuild. |
 | Backend `/init` | `hosted()` | You want the fewest moving parts, or you export a static site. |
-| Offline | `offline()` | Local development and tests. Not recommended for production environments. |
+| Local | `local()` | Local development and tests. Not recommended for production environments. |
 
 With a build-time manifest, your Next.js server resolves each visitor locally
 without fetching policy. With runtime caching, warm requests make no policy
@@ -210,10 +210,10 @@ With backend `/init`, every server render or browser initialization
 asks the backend to resolve the visitor. Consent saves go to
 `${backendURL}/subjects` either way.
 
-Offline mode keeps policy in your code and choices in the browser, with no
-consent records. It runs only with `mode: offline()`; without a backend URL,
+Local mode keeps policy in your code and choices in the browser, with no
+consent records. It runs only with `mode: local()`; without a backend URL,
 `manifest()` and `hosted()` throw. See
-[offline configuration](/docs/frameworks/next/data-fetching-reference#offline-configuration).
+[local configuration](/docs/frameworks/next/data-fetching-reference#local-configuration).
 
 The [fetching reference](/docs/frameworks/next/data-fetching-reference#mode-combinations)
 lists what each mode does on the server and in the browser, and
@@ -275,7 +275,7 @@ a baseline state without a policy. The page still renders, optional categories
 stay denied, and the browser retries after hydration. See
 [troubleshooting](/docs/frameworks/next/troubleshooting).
 
-With `mode: offline()`, or with no backend URL at all, `resolveConsent()`
+With `mode: local()`, or with no backend URL at all, `resolveConsent()`
 makes no backend request. It returns the visitor's stored records, location,
 language and privacy signals, with no resolved policy.
 

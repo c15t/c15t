@@ -26,7 +26,7 @@ beforeEach(() => {
 });
 
 test('turning `enabled` off grants every category and hides the UI; on restores the policy', async () => {
-	const mode = offline();
+	const mode = offline({ acknowledgeNoRecords: true });
 	const { rerender } = render(EnabledToggleFixture, { enabled: true, mode });
 	await vi.waitFor(() =>
 		expect(screen.getByTestId('active-ui').textContent).toBe('banner')

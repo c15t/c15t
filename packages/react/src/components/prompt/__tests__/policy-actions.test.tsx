@@ -76,7 +76,7 @@ const PolicyTestProvider = ({
 	<ConsentProvider
 		options={{
 			components: providerOverrides?.components,
-			mode: offline(),
+			mode: offline({ acknowledgeNoRecords: true }),
 			persistence: false,
 			prefetch: {
 				...policyFixture(undefined, {

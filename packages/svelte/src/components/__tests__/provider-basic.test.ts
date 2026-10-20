@@ -230,6 +230,7 @@ describe('ConsentProvider Basic Request Behavior', () => {
 		const { getByTestId } = render(ContextConsumerFixture, {
 			options: {
 				mode: offline({
+					acknowledgeNoRecords: true,
 					policyRules: [
 						{
 							id: 'policy_region_us_ca',

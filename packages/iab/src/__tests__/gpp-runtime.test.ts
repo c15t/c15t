@@ -23,6 +23,7 @@ test('the runtime gpp option mounts __gpp from @c15t/iab/gpp and removes it on d
 		gpp: { usFallback: 'none' },
 		loadGPP: () => import('../gpp'),
 		mode: offline({
+			acknowledgeNoRecords: true,
 			policyRules: [
 				{ ...policyRulePresets.californiaOptOut(), match: { isDefault: true } },
 			],

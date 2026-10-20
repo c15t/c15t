@@ -84,7 +84,10 @@ const openDialog = async function openDialog(
 	const client: AstroConsentClient = boot(
 		resolveOptions({
 			consentCategories: ['necessary', 'marketing'],
-			mode: offlineMode({ policyRules: [testRule] }),
+			mode: offlineMode({
+				acknowledgeNoRecords: true,
+				policyRules: [testRule],
+			}),
 			theme: THEME,
 			ui,
 		})
@@ -130,7 +133,10 @@ describe.each(['react', 'vue'] as const)('the %s dialog island', (ui) => {
 describe('the svelte dialog island', () => {
 	it('receives theme.slots on the provider theme', () => {
 		const options = resolveOptions({
-			mode: offlineMode({ policyRules: [testRule] }),
+			mode: offlineMode({
+				acknowledgeNoRecords: true,
+				policyRules: [testRule],
+			}),
 			theme: THEME,
 			ui: 'svelte' satisfies C15tUIAdapterName,
 		});

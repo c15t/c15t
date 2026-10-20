@@ -38,7 +38,7 @@ export const init = (options: ConsentClientOptions): ConsentClient => {
 
 export { custom } from '@c15t/core';
 export { hosted } from './transports/hosted';
-export { offline } from './transports/offline';
+export { local, offline } from './transports/offline';
 export { manifest } from './transports/manifest';
 export { mountIABConsentUI } from './iab/mount';
 export type {

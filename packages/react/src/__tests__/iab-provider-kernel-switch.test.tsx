@@ -63,7 +63,7 @@ const runtimes: ConsentRuntime[] = [];
 
 const createKernel = function createKernel(): ConsentKernel {
 	const runtime = createConsentRuntime({
-		mode: offline(),
+		mode: offline({ acknowledgeNoRecords: true }),
 		persistence: false,
 		prefetch: {
 			...policyFixture({}, { model: 'iab' }),

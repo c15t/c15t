@@ -64,7 +64,7 @@ const optionsFor = function optionsFor(
 	return {
 		...(mode === 'hosted'
 			? { backendURL: 'https://consent.example.test' }
-			: { policyRules: [policy] }),
+			: { acknowledgeNoRecords: true, policyRules: [policy] }),
 		consentCategories: ['measurement'],
 		prefetch: { initialPolicyResolution: resolution },
 		reloadOnConsentRevoked: false,
@@ -83,7 +83,7 @@ const loadTag = async function loadTag(
 	if (mode === 'hosted') {
 		await import('../entries/cdn');
 	} else {
-		await import('../entries/cdn-offline');
+		await import('../entries/cdn-local');
 	}
 	return installed();
 };
@@ -144,7 +144,10 @@ describe.each(entries)('$mode browser global', ({ create, mode }) => {
 		const script = scriptWith({
 			...(mode === 'hosted'
 				? { 'data-backend-url': 'https://consent.example.test' }
-				: { 'data-policy-rules': 'europeOptIn' }),
+				: {
+						'data-acknowledge-no-records': '',
+						'data-policy-rules': 'europeOptIn',
+					}),
 			'data-categories': 'marketing',
 			'data-color-scheme': 'dark',
 			'data-manual': '',
@@ -442,6 +445,7 @@ describe('offline CDN entry', () => {
 			[
 				'config',
 				{
+					acknowledgeNoRecords: true,
 					consentCategories: ['measurement'],
 					overrides: { country: 'DE' },
 					policyRules: ['europeOptIn'],

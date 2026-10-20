@@ -33,7 +33,10 @@ pageWriterLoader.load = async () => {
 	return loadWriter();
 };
 
-const mode = offline({ policyRules: [policyRulePresets.europeOptIn()] });
+const mode = offline({
+	acknowledgeNoRecords: true,
+	policyRules: [policyRulePresets.europeOptIn()],
+});
 const ChoiceProbe = () => {
 	const allowed = useConsent('marketing');
 	const choice = useExplicitChoice();

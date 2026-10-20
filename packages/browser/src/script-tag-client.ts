@@ -3,11 +3,12 @@
  * every transport so a script tag can pick one by name with `data-mode`.
  * ES module entries take a factory instead (`./client`).
  */
-import { hosted, offline } from '@c15t/core';
+import { hosted, local } from '@c15t/core';
 import { manifest } from '@c15t/core/transports/manifest-browser';
 
 import { createConsentClientWith } from './client-base';
 import type { CreateConsentClientContext, ResolvedMode } from './client-base';
+import { warnNoConsentRecordsOnDevelopmentHost } from './no-records-warning';
 import { resolveRules } from './policy-rules';
 import type {
 	ConsentClient,
@@ -61,7 +62,10 @@ const resolveMode = function resolveMode(
 		};
 	}
 	return {
-		factory: offline({ policyRules: resolveRules(options.policyRules) }),
+		factory: local({
+			acknowledgeNoRecords: options.acknowledgeNoRecords,
+			policyRules: resolveRules(options.policyRules),
+		}),
 		name,
 	};
 };
@@ -80,9 +84,13 @@ export const createScriptTagConsentClient =
 		options: ScriptTagClientOptions = {},
 		context: CreateConsentClientContext = {}
 	): ConsentClient {
+		const mode = resolveMode(options);
+		if (context.scriptTag) {
+			warnNoConsentRecordsOnDevelopmentHost(mode, options.acknowledgeNoRecords);
+		}
 		return createConsentClientWith(
 			options,
-			resolveMode(options),
+			mode,
 			resolveRules(options.policyRules),
 			context
 		);

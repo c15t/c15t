@@ -25,7 +25,7 @@ describe('ConsentProvider Context Values', () => {
 	test('should provide correct context values to children', async () => {
 		render(ContextConsumerFixture, {
 			options: {
-				mode: offline(),
+				mode: offline({ acknowledgeNoRecords: true }),
 			},
 		});
 
@@ -37,7 +37,7 @@ describe('ConsentProvider Context Values', () => {
 	test('should provide activeUI state', async () => {
 		render(ContextConsumerFixture, {
 			options: {
-				mode: offline(),
+				mode: offline({ acknowledgeNoRecords: true }),
 			},
 		});
 
@@ -49,7 +49,7 @@ describe('ConsentProvider Context Values', () => {
 	test('should provide model state', async () => {
 		render(ContextConsumerFixture, {
 			options: {
-				mode: offline(),
+				mode: offline({ acknowledgeNoRecords: true }),
 			},
 		});
 

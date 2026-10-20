@@ -17,7 +17,7 @@ const resolveMode = function resolveMode(
 	const { mode } = options as { mode?: unknown };
 	if (typeof mode !== 'function') {
 		throw new Error(
-			`${pkg}: \`mode\` must be a factory, such as manifest(), hosted() or offline() from ${pkg}. Mode names like ${JSON.stringify(mode ?? 'hosted')} work only in the script-tag builds.`
+			`${pkg}: \`mode\` must be a factory, such as manifest(), hosted() or local() from ${pkg}. Mode names like ${JSON.stringify(mode ?? 'hosted')} work only in the script-tag builds.`
 		);
 	}
 	const factory = mode as ConsentClientOptions['mode'];

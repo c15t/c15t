@@ -19,7 +19,7 @@ import type {
 	BrowserManifestOptions,
 } from '@c15t/core/transports/manifest-browser';
 
-export { custom, offline } from '@c15t/core';
+export { custom, local, offline } from '@c15t/core';
 export type {
 	HostedModeFactory,
 	OfflineModeFactory,

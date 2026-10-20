@@ -99,7 +99,7 @@ describe('consent surfaces under a none rule', () => {
 			<ComponentFixtureProvider
 				options={{
 					initialUI: 'dialog',
-					mode: offline(),
+					mode: offline({ acknowledgeNoRecords: true }),
 					persistence: false,
 					prefetch: noneRule(),
 				}}
@@ -134,7 +134,7 @@ describe('consent surfaces under a none rule', () => {
 		render(
 			<ComponentFixtureProvider
 				options={{
-					mode: offline(),
+					mode: offline({ acknowledgeNoRecords: true }),
 					persistence: false,
 					prefetch: noneRule(['preferences']),
 				}}

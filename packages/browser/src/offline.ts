@@ -43,7 +43,7 @@ export {
 	activateGatedScripts,
 	CATEGORY_ATTRIBUTE,
 } from './gated-scripts';
-export { offline } from './transports/offline';
+export { local, offline } from './transports/offline';
 export type { OfflineModeOptions } from './transports/offline';
 export { resolveRules } from './policy-rules';
 export type {

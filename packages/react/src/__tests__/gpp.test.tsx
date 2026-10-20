@@ -14,6 +14,7 @@ import { offline } from '../index';
 import { ConsentProvider } from '../provider';
 
 const mode = offline({
+	acknowledgeNoRecords: true,
 	policyRules: [
 		{ ...policyRulePresets.californiaOptOut(), match: { isDefault: true } },
 	],

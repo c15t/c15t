@@ -8,7 +8,7 @@ import { policyFixture } from './policy-fixture';
 
 test('retains an external-runtime child and its draft after the IAB bridge loads', async () => {
 	const runtime = createConsentRuntime({
-		mode: offline(),
+		mode: offline({ acknowledgeNoRecords: true }),
 		persistence: false,
 		prefetch: policyFixture(),
 	});

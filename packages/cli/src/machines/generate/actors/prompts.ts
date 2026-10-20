@@ -89,15 +89,15 @@ export const modeSelectionActor = fromPromise<
 		message: 'How would you like to store consent decisions?',
 		options: [
 			{
-				hint: 'inth.com or self-hosted backend URL',
+				hint: 'Inth (recommended) or a self-hosted backend',
 
 				label: 'Hosted',
 				value: 'hosted',
 			},
 			{
-				hint: 'Store in browser, no backend needed',
+				hint: 'Development and tests only, no consent records',
 
-				label: 'Offline',
+				label: 'Local',
 				value: 'offline',
 			},
 			{

@@ -31,7 +31,7 @@ Then the plugin, in order:
    blocker and the iframe blocker.
 4. Resolves the visitor's policy with the `mode` you passed: from the
    backend's `/init` with `hosted()`, from the manifest in the browser with
-   `manifest()`, or from local rules with `offline()`.
+   `manifest()`, or from local rules with `local()`.
 5. With the `iab` option set, loads the IAB TCF module once a policy uses the
    `iab` model.
 
@@ -51,7 +51,7 @@ runs in the browser.
 
 | Option | Default | What it does |
 | --- | --- | --- |
-| `mode` | Required | Where the visitor's policy comes from: `hosted()`, `manifest()`, `offline()` or `custom()`, all from `c15t/vue/vue-plugin`. See [rendering](/docs/frameworks/vue/rendering). |
+| `mode` | Required | Where the visitor's policy comes from: `hosted()`, `manifest()`, `local()` or `custom()`, all from `c15t/vue/vue-plugin`. See [rendering](/docs/frameworks/vue/rendering). |
 | `consentCategories` | The policy's categories | Limits the categories the dialog and widget show, within the policy's scope. |
 | `vendors` | Unset | Vendors listed under their category with their own switch. See [vendor consent](/docs/frameworks/vue/vendor-consent). |
 | `storageConfig` | `{ storageKey: 'c15t' }` | Cookie and localStorage name, `crossSubdomain`, `defaultDomain` and `defaultExpiryDays`, 365 by default. |
@@ -63,7 +63,7 @@ mode, not the plugin:
 | --- | --- |
 | `hosted()` | `backendURL`, by default the one `consentManifest()` read from `VITE_C15T_BACKEND_URL` or `VITE_INTH_PROJECT_URL`. `headers`, `fetch`, `domain`. |
 | `manifest()` | `backendURL` and the build snapshot default to what `consentManifest()` downloaded. `source: 'runtime'` fetches the manifest when the app starts; `manifestURL` fetches it from that URL instead of using the snapshot; `snapshot` takes one you supply. `geoURL`, `inputs`, `initFallback`, `headers`, `credentials`, `fetch`, `domain`. |
-| `offline()` | `policyRules`. Omitted, c15t's recommended rules. |
+| `local()` | `policyRules`. Omitted, c15t's recommended rules. `acknowledgeNoRecords: true` hides the [development warning](/docs/concepts/modes#the-development-warning). |
 
 `hosted()` and `manifest()` throw when they have no backend URL: add
 `consentManifest()` to `vite.config.ts` and set `VITE_C15T_BACKEND_URL` (or

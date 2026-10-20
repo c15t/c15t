@@ -35,7 +35,7 @@ const createWrapper = function createWrapper(vendors?: Vendor[]) {
 			<ConsentProvider
 				options={{
 					consentCategories: ['necessary', 'marketing', 'measurement'],
-					mode: offline(),
+					mode: offline({ acknowledgeNoRecords: true }),
 					persistence: false,
 					prefetch: policyFixture(
 						{ measurement: true },

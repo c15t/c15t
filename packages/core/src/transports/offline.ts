@@ -27,6 +27,7 @@ import {
 	writePolicyResolutionWire,
 } from '@c15t/schema/types';
 
+import { warnNoConsentRecordsInDevelopment } from '../libs/no-records-warning';
 import type { OfflineModeOptions as OfflineModeDataOptions } from '../modes';
 import type {
 	InitContext,
@@ -95,6 +96,12 @@ export interface OfflineTransportOptions {
 	 * resolve to `model: 'iab'` or `'opt-in'`. Defaults to false.
 	 */
 	iabEnabled?: boolean;
+
+	/**
+	 * Hide the development warning that this transport keeps no consent
+	 * records. See `acknowledgeNoRecords` on `local()`.
+	 */
+	acknowledgeNoRecords?: boolean;
 }
 
 /**
@@ -167,6 +174,11 @@ const createOfflineTranslationSelector =
 /**
  * Build an offline transport. The returned object is plain — no
  * listeners, no caches, no state. Safe to create per request.
+ *
+ * In development builds its first `save` warns once per page that c15t
+ * keeps no server-side record of consent, unless `acknowledgeNoRecords` is
+ * set. A custom transport that uses only its `init` and saves elsewhere
+ * never warns.
  */
 export const createOfflineTransport = function createOfflineTransport(
 	options: OfflineTransportOptions = {}
@@ -214,6 +226,7 @@ export const createOfflineTransport = function createOfflineTransport(
 		},
 
 		save(payload: SavePayload): Promise<SaveResult> {
+			warnNoConsentRecordsInDevelopment(options.acknowledgeNoRecords);
 			// Offline mode — no server to acknowledge the save. The caller's
 			// persistence module handles client-side storage. Echo the kernel's
 			// subject ID so save results stay consistent across transports.
@@ -224,7 +237,7 @@ export const createOfflineTransport = function createOfflineTransport(
 	};
 };
 
-/** Options for {@link offline}. */
+/** Options for {@link local}. */
 export interface OfflineModeOptions extends OfflineModeDataOptions {
 	/**
 	 * Rules to resolve locally. Omit them to use `recommendedPolicyRules()`:
@@ -236,7 +249,7 @@ export interface OfflineModeOptions extends OfflineModeDataOptions {
 }
 
 /**
- * What `offline()` returns: a transport factory that also carries its
+ * What `local()` returns: a transport factory that also carries its
  * options as enumerable data, so it satisfies `OfflineMode` from
  * `@c15t/core/modes`.
  */
@@ -248,6 +261,9 @@ export type OfflineModeFactory = ProviderTransportFactory &
 
 /**
  * Selects a transport that resolves policy rules locally, with no network.
+ * Consent stays in the visitor's browser, and c15t keeps no server-side
+ * record of it. Use it for development and tests. In development builds it
+ * warns once per page until you set `acknowledgeNoRecords: true`.
  *
  * A language the app sets through the kernel (`overrides.language`,
  * `kernel.set.language()`) switches the copy when c15t's built-in copy or
@@ -256,29 +272,34 @@ export type OfflineModeFactory = ProviderTransportFactory &
  * language a server prefetch detected from `Accept-Language` does not switch
  * the copy until the app has asked for a different language.
  *
- * @param options - Explicit policy rules; absence resolves the recommended pack.
+ * @param options - Explicit policy rules, absent for the recommended pack,
+ *   and `acknowledgeNoRecords`.
  * @returns A provider transport factory with no network requests.
  * @example
  * ```ts
- * import { offline } from '@c15t/core';
+ * import { local } from '@c15t/core';
  * import { createConsentRuntime } from '@c15t/core/runtime';
  *
  * const runtime = createConsentRuntime({
  * 	i18n: { messages: { de: { cookieBanner: { title: 'Datenschutz' } } } },
- * 	mode: offline(),
+ * 	mode: local({ acknowledgeNoRecords: true }),
  * });
  * runtime.kernel.set.language('de');
  * ```
  */
-export const offline = function offline(
+export const local = function local(
 	options: OfflineModeOptions = {}
 ): OfflineModeFactory {
-	const settings: OfflineModeOptions =
-		options.policyRules === undefined
-			? {}
-			: { policyRules: options.policyRules };
+	const settings: OfflineModeOptions = {};
+	if (options.policyRules !== undefined) {
+		settings.policyRules = options.policyRules;
+	}
+	if (options.acknowledgeNoRecords !== undefined) {
+		settings.acknowledgeNoRecords = options.acknowledgeNoRecords;
+	}
 	return Object.assign(
 		(context: Parameters<ProviderTransportFactory>[0]): KernelTransport => {
+			warnNoConsentRecordsInDevelopment(settings.acknowledgeNoRecords);
 			const rules =
 				settings.policyRules ??
 				recommendedPolicyRules({ iab: context.iabEnabled });
@@ -315,3 +336,10 @@ export const offline = function offline(
 		{ kind: 'offline' as const, type: 'offline' as const }
 	);
 };
+
+/**
+ * The old name for {@link local}.
+ *
+ * @deprecated Use `local()`. c15t v4 removes `offline()`.
+ */
+export const offline = local;

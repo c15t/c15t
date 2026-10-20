@@ -64,7 +64,7 @@ export interface ConsentConfig extends ConsentClientOptions {
 
 	/**
 	 * How the visitor's policy is resolved: `manifest()`, `hosted()` or
-	 * `offline()` from `c15t/next`. They are plain data, so the browser only
+	 * `local()` from `c15t/next`. They are plain data, so the browser only
 	 * loads the code of the mode it runs.
 	 *
 	 * @default manifest()
@@ -185,7 +185,7 @@ const assertConsentConfig = function assertConsentConfig(
 	const mode = config.mode ?? { type: 'manifest' as const };
 	if (!MODE_TYPES.has(mode.type)) {
 		throw new TypeError(
-			'@c15t/nextjs: defineConsentConfig `mode` must be manifest(), hosted() or offline() from c15t/next. Pass a custom transport through ConsentRoot `options.mode`.'
+			'@c15t/nextjs: defineConsentConfig `mode` must be manifest(), hosted() or local() from c15t/next. Pass a custom transport through ConsentRoot `options.mode`.'
 		);
 	}
 	if (backendURL === undefined && !modeHasBackend(mode)) {

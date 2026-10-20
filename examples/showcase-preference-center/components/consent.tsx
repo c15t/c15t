@@ -1,6 +1,6 @@
 'use client';
 
-import { ConsentDialog, ConsentRoot, offline } from 'c15t/next';
+import { ConsentDialog, ConsentRoot, local } from 'c15t/next';
 import type { ReactNode } from 'react';
 
 import { northwindTheme } from '@/lib/theme';
@@ -12,7 +12,7 @@ import { CookieBanner } from './cookie-banner';
 // browser only, so the demo runs without an account. In production, point
 // it at your backend instead:
 //   const mode = hosted({ backendURL: 'https://your-project.inth.app' });
-const mode = offline();
+const mode = local();
 
 export const Consent = ({ children }: { children: ReactNode }) => (
 	<ConsentRoot

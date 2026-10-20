@@ -25,5 +25,5 @@ export type {
 	BrowserManifestModeFactory,
 	ManifestModeOptions,
 } from './transports/manifest';
-export { offline } from './transports/offline';
+export { local, offline } from './transports/offline';
 export type { OfflineModeOptions } from './transports/offline';

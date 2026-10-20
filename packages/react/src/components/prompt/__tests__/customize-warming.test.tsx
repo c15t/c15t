@@ -13,7 +13,7 @@ import { offline } from '~/transports/offline';
 // Intent only: idle warming would otherwise call the warmer on its own
 // schedule while the banner is shown.
 const options = {
-	mode: offline(),
+	mode: offline({ acknowledgeNoRecords: true }),
 	persistence: false,
 	prefetch: policyFixture(),
 	preloadDialog: 'intent',

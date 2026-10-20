@@ -95,6 +95,7 @@ describe('policyNeedsIAB', () => {
 		async (_label, policyRules) => {
 			const kernel = createConsentKernel({
 				transport: createOfflineTransport({
+					acknowledgeNoRecords: true,
 					policyRules: policyRules ? [...policyRules] : undefined,
 				}),
 			});

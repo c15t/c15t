@@ -61,7 +61,11 @@ describe.each(startupCases)('%s client startup', (_name, options) => {
 		'removes page handlers and observers when a %s ready listener disposes',
 		async (eventSource) => {
 			trackObservers();
-			const client = createConsentClient({ ...options, ui: false });
+			const client = createConsentClient({
+				...options,
+				acknowledgeNoRecords: true,
+				ui: false,
+			});
 			clients.push(client);
 			const onReady = vi.fn(() => client.dispose());
 			if (eventSource === 'client') {

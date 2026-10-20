@@ -29,7 +29,7 @@ describe('consent widget restriction notice', () => {
 			<ConsentProvider
 				options={{
 					consentCategories: [...CATEGORIES],
-					mode: offline(),
+					mode: offline({ acknowledgeNoRecords: true }),
 					prefetch: policyFixture(undefined, {
 						categories: [...CATEGORIES],
 						id: 'draft-toggle',
@@ -60,7 +60,7 @@ describe('consent widget restriction notice', () => {
 			<ConsentProvider
 				options={{
 					consentCategories: [...CATEGORIES],
-					mode: offline(),
+					mode: offline({ acknowledgeNoRecords: true }),
 					overrides: { gpc: true },
 					prefetch: policyFixture(
 						{ marketing: true, measurement: true },

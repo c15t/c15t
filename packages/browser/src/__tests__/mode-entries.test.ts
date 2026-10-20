@@ -12,7 +12,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createConsentClient as createHostedClient, hosted } from '../hosted';
 import { createHostedConsentClient } from '../hosted-client';
 import {
-	createConsentClient as createOfflineClient,
+	createConsentClient as createOfflineEntryClient,
 	getEventDispatcher,
 	offline,
 } from '../offline';
@@ -43,6 +43,10 @@ const pathOf = (url: unknown): string => {
 };
 
 const clients: ConsentClient[] = [];
+
+/** The offline entry's client, without the no-records warning. */
+const createOfflineClient: typeof createOfflineEntryClient = (options) =>
+	createOfflineEntryClient({ acknowledgeNoRecords: true, ...options });
 const backendURL = 'https://consent.example.test';
 const authoredRule: PolicyRule = {
 	...policyRulePresets.europeOptIn(),
@@ -390,6 +394,7 @@ describe('offline browser entry', () => {
 					messages: { de: { cookieBanner: { title: 'Ihre Privatsphäre' } } },
 				},
 				mode: offline({
+					acknowledgeNoRecords: true,
 					policyRules: [
 						{
 							...authoredRule,

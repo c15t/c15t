@@ -284,7 +284,7 @@ const ServerScriptStart = ({
  * @throws {Error} When `manifest()` or `hosted()` has no backend URL: no
  * `c15t.config.ts` sets one and neither `NEXT_PUBLIC_C15T_BACKEND_URL` nor
  * `NEXT_PUBLIC_INTH_PROJECT_URL` is set.
- * `offline()` needs none.
+ * `local()` needs none.
  *
  * @example
  * ```tsx

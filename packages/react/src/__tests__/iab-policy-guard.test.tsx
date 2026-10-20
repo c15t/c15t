@@ -164,6 +164,7 @@ describe('an `iab` policy without <IABProvider>', () => {
 	it('shows the standard banner for an offline `iab` rule, which has no vendor list', async () => {
 		const { errors } = await mount({
 			mode: offline({
+				acknowledgeNoRecords: true,
 				policyRules: [
 					{
 						categories: ['marketing'],

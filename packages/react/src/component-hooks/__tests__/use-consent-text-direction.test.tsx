@@ -13,7 +13,11 @@ const createWrapper = function createWrapper(
 	return function Wrapper({ children }: { children: React.ReactNode }) {
 		return (
 			<ConsentProvider
-				options={{ mode: offline(), persistence: false, ...options }}
+				options={{
+					mode: offline({ acknowledgeNoRecords: true }),
+					persistence: false,
+					...options,
+				}}
 			>
 				{children}
 			</ConsentProvider>

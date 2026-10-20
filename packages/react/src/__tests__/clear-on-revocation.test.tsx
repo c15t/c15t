@@ -15,7 +15,10 @@ const consentKey = 'cleanup-browser-consent';
 const exactKey = 'cleanup-browser-id';
 const prefixKeys = ['cleanup-browser-event-1', 'cleanup-browser-event-2'];
 const unrelatedKey = 'application-setting';
-const mode = offline({ policyRules: [policyRulePresets.europeOptIn()] });
+const mode = offline({
+	acknowledgeNoRecords: true,
+	policyRules: [policyRulePresets.europeOptIn()],
+});
 
 const writeIntegrationData = () => {
 	for (const key of [exactKey, ...prefixKeys, unrelatedKey]) {

@@ -222,7 +222,7 @@ const buildProviderOptions = (opts: MountOptions): ConsentProviderOptions => {
 	return {
 		...provided,
 		disableAnimation: true,
-		mode: offline(),
+		mode: offline({ acknowledgeNoRecords: true }),
 		persistence: opts.persistence ?? false,
 		prefetch: {
 			...prepared,

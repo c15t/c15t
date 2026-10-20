@@ -31,6 +31,7 @@ const mount = async function mount(
 }> {
 	const client = createConsentClient(
 		{
+			acknowledgeNoRecords: true,
 			consentCategories: ['measurement', 'marketing'],
 			legalLinks: { privacyPolicy: { href: '/privacy' } },
 			policyRules: [

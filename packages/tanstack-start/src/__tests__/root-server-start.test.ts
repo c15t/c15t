@@ -26,6 +26,7 @@ const pixel: Script = {
 const optOutState = () =>
 	resolveConsent({
 		mode: offline({
+			acknowledgeNoRecords: true,
 			policyRules: [optOutRule({ prompt: 'none' })],
 		}),
 		request: new Request('https://app.example.com/'),

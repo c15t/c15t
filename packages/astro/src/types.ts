@@ -108,7 +108,7 @@ export interface C15tAstroOptions {
 	backendURL?: string;
 	/**
 	 * Where the visitor's policy comes from. Build it with `manifest()`,
-	 * `hosted()` or `offline()` from `c15t/astro`.
+	 * `hosted()` or `local()` from `c15t/astro`.
 	 *
 	 * `manifest()` downloads your project's policy when `astro build` or
 	 * `astro dev` starts and resolves each visitor on the server.
@@ -126,7 +126,7 @@ export interface C15tAstroOptions {
 	 * never calls a route of your own at that path.
 	 *
 	 * The route renders on demand, so `astro build` needs a server adapter.
-	 * A static site uses `hosted()` or `offline()`, or
+	 * A static site uses `hosted()` or `local()`, or
 	 * `manifest({ resolve: 'browser' })`, which prerenders only
 	 * `${routePrefix}/manifest`. `/` is rejected: a catch-all route at the
 	 * site root would catch every page.

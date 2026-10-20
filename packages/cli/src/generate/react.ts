@@ -13,7 +13,7 @@ import type { BoilerplateOptions, BoilerplateTemplate } from './types.ts';
 
 const consent = (options: BoilerplateOptions): string => {
 	const offline = options.mode === 'offline';
-	const mode = offline ? 'offline' : 'hosted';
+	const mode = offline ? 'local' : 'hosted';
 	return `${sortImports([
 		...scriptImports(options.scripts),
 		`import {

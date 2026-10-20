@@ -8,9 +8,9 @@ group: frameworks
 
 | Import | What it gives you |
 | --- | --- |
-| `@c15t/browser` | `init`, `createConsentClient` and `mountConsentUI`, with the stock banner, dialog and trigger. `mode` is required: a factory from `manifest()`, `hosted()`, `offline()` or `custom()`. |
+| `@c15t/browser` | `init`, `createConsentClient` and `mountConsentUI`, with the stock banner, dialog and trigger. `mode` is required: a factory from `manifest()`, `hosted()`, `local()` or `custom()`. |
 | `@c15t/browser/hosted` | The stock UI and client for hosted mode only. Requires a backend URL or a hosted transport factory. |
-| `@c15t/browser/offline` | The stock UI and client for offline mode only, with bundled policy rules and presets. |
+| `@c15t/browser/offline` | The stock UI and client for local mode only, with bundled policy rules and presets. |
 | `@c15t/browser/headless` | The same client with no UI and no CSS. `mountUI()` throws. |
 | `@c15t/browser/iab` | The client with the IAB TCF CMP and the IAB banner and dialog. See [IAB TCF](/docs/frameworks/javascript/iab). |
 | `@c15t/browser/devtools` | `mountDevTools(client, options)`. See [DevTools](/docs/frameworks/javascript/dev-tools). |
@@ -25,10 +25,10 @@ starts loading in idle time once the banner or trigger is on screen, and at
 the latest when the dialog opens. Idle preloading can download it even when
 the visitor never opens preferences.
 
-The script-tag files `c15t.js`, `c15t.offline.js` and `c15t.iab.js` each carry
+The script-tag files `c15t.js`, `c15t.local.js` and `c15t.iab.js` each carry
 their complete stylesheet in one file. The default `c15t.js` uses the hosted
-client and requires a backend URL or hosted factory. `c15t.offline.js` uses
-the offline client. For manifest or custom mode with the stock UI, use the
+client and requires a backend URL or hosted factory. `c15t.local.js` uses
+the local client. For manifest or custom mode with the stock UI, use the
 ES module root `@c15t/browser`, which takes any mode factory.
 
 `@c15t/browser` is not part of the `c15t` package. Use one entry per page.
@@ -38,16 +38,16 @@ script loader and blockers.
 ### Choose a bundle for one mode
 
 Use `@c15t/browser/hosted` when Inth or a self-hosted backend supplies the
-policy. It excludes offline policy presets, offline resolution and manifest
+policy. It excludes local policy presets, local resolution and manifest
 transport code. Hosted mode already resolves the visitor's policy on the
 server through `/init`; this entry removes unused client code without
 changing that request.
 
 Use `@c15t/browser/offline` when the browser resolves bundled rules. It
-excludes hosted and manifest transport code. The default offline transport
-keeps choices in the browser's consent cookie and localStorage, with no
-consent backend requests or server records. Not recommended for production
-environments.
+excludes hosted and manifest transport code. The local transport keeps
+choices in the browser's consent cookie and localStorage, with no consent
+backend requests, and c15t keeps no server-side record of consent. Not
+recommended for production environments.
 
 Both entries keep the banner, preference dialog, page hooks, script gating,
 blockers, callbacks and persistence. Their `init()` and
@@ -56,7 +56,7 @@ blockers, callbacks and persistence. Their `init()` and
 | Entry | Accepted configuration | Configuration that throws |
 | --- | --- | --- |
 | `@c15t/browser/hosted` | `backendURL`, optional `mode: 'hosted'`, or a factory from `hosted()`. `policyRules` accepts authored `PolicyRule` objects. | Missing backend URL without a hosted factory; a different mode; `manifest` or `manifestURL`; preset-name strings in `policyRules`. |
-| `@c15t/browser/offline` | Optional `mode: 'offline'` or a factory from `offline()`. `policyRules` accepts authored rules and preset names, or defaults to the recommended rules. | `backendURL`, `manifest` or `manifestURL`; a different mode. |
+| `@c15t/browser/offline` | Optional `mode: 'offline'` or a factory from `local()`. `policyRules` accepts authored rules and preset names, or defaults to the recommended rules. `acknowledgeNoRecords: true` hides the [development warning](/docs/concepts/modes#the-development-warning). | `backendURL`, `manifest` or `manifestURL`; a different mode. |
 
 Use `@c15t/browser` for manifest or custom mode, or when an application
 chooses its mode at runtime. Use `@c15t/browser/iab` for IAB TCF. The general
@@ -130,7 +130,7 @@ the choice stays in effect and c15t retries the request later.
 | Method | What it does |
 | --- | --- |
 | `showBanner()`, `openDialog()`, `closeDialog()` | Change the surface c15t wants shown. Records nothing. |
-| `setLanguage(code)` | Sets the language and resolves the policy again, which fetches that language's copy from the backend. In offline mode the copy comes from the bundled translations and `i18n.messages`. See [translations](/docs/frameworks/javascript/translations). |
+| `setLanguage(code)` | Sets the language and resolves the policy again, which fetches that language's copy from the backend. In local mode the copy comes from the bundled translations and `i18n.messages`. See [translations](/docs/frameworks/javascript/translations). |
 | `setOverrides(overrides)` | Merges into the country, region, language and GPC inputs to policy matching. A key you pass replaces its value, `undefined` clears it, and a key you leave out stays. |
 | `mountUI(options?)` | Removes the stock UI and mounts it again with new UI options. Throws in the headless entry. |
 | `processIframes()` | Pauses gated iframes that consent does not allow and restores the ones it allows. Needed only with `iframeBlocker: { disableAutomaticBlocking: true }`. See [iframe blocker](/docs/frameworks/javascript/modules/iframe-blocker#check-iframes-on-demand). |
@@ -144,7 +144,7 @@ the choice stays in effect and c15t retries the request later.
 | `started` | Whether `start()` has run and the client is not disposed. |
 | `dispose()` | Removes the UI, page listeners, blockers and the scripts c15t added, then disposes the runtime. Code that already ran keeps running. |
 | `options` | The options the client was created with. |
-| `mode` | `hosted`, `offline`, `manifest` or `custom`. |
+| `mode` | `hosted`, `offline`, `manifest` or `custom`. Local mode reports `offline`. |
 | `runtime` | The [consent runtime](/docs/frameworks/javascript/api/runtime) that owns the kernel and modules. `runtime.iab` is the CMP handle under IAB. |
 | `kernel` | The [consent kernel](/docs/frameworks/javascript/api/kernel): snapshot, commands and events. |
 
@@ -178,13 +178,14 @@ A started client also wires markup on the page, with no code:
 ## Helper exports
 
 The general `@c15t/browser` entry exports all the helpers below. The hosted
-entry exports `hosted`; the offline entry exports `offline` and
+entry exports `hosted`; the `/offline` entry exports `local`, `offline` and
 `resolveRules`. Both include the page action constants, gated script
 helpers, `mountConsentUI` and `version`.
 
 | Export | What it does |
 | --- | --- |
-| `hosted`, `offline`, `manifest`, `custom` | Transport factories for the `mode` option. See [transports](/docs/frameworks/javascript/transports). |
+| `hosted`, `local`, `manifest`, `custom` | Transport factories for the `mode` option. See [transports](/docs/frameworks/javascript/transports). |
+| `offline` | Deprecated. The old name for `local`, exported next to it. c15t v4 removes it. |
 | `manifestNeedsLocation(manifest)` | Whether some location gets a different banner, or none, under this manifest, so a page knows it must supply a country to resolve it without `/init`. `false` when every country and region rule gives the same banner. |
 | `resolveRules(rules)` | Turns preset names such as `'europeOptIn'` into policy rules. Throws on an unknown name. |
 | `activateGatedScripts(snapshot, root?, options?)` | Runs allowed `text/plain` scripts under `root` yourself, for a setup without a client. `options.nonce` runs only tags that carry that nonce. Returns how many ran. |
@@ -197,7 +198,7 @@ The package also exports the `ConsentClient`, `ConsentClientOptions`,
 `ConsentTriggerOptions`, `ConsentClientEventMap`, `ConsentSnapshot` and
 `ConsentState` types.
 
-The hosted and offline entries export `HostedConsentClientOptions` and
+The `/hosted` and `/offline` entries export `HostedConsentClientOptions` and
 `OfflineConsentClientOptions`, respectively. These types restrict connection
 options to the entry's mode. Runtime validation also checks a supplied
 transport factory's `kind`.

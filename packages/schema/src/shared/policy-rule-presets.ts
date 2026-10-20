@@ -787,7 +787,7 @@ export interface RecommendedPolicyRulesOptions {
  * and the geo fallback for an unknown location) opt-in or IAB, Quebec
  * opt-in, the US privacy states and missing US states opt-out with GPC, and
  * `none` for every other known location. A missing Canadian province remains
- * strict. `offline()` resolves this pack when the host passes no rules.
+ * strict. `local()` resolves this pack when the host passes no rules.
  *
  * @example
  * ```ts
