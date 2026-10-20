@@ -315,7 +315,9 @@ describe('CI release retries', () => {
 	});
 });
 
-describe('publishing through npm', () => {
+// These run Bun, Turbo and npm in subprocesses, which outlast Vitest's 5 s
+// default on a slow runner.
+describe('publishing through npm', { timeout: 60_000 }, () => {
 	const publishFixture = function publishFixture(fail?: 'build' | 'artifacts') {
 		const root = fixture([
 			{ files: ['dist'], name: '@c15t/translations', version: '2.3.0' },
@@ -564,7 +566,7 @@ describe('version PR body', () => {
 	});
 });
 
-describe('the real workspace', () => {
+describe('the real workspace', { timeout: 60_000 }, () => {
 	it('drafts pending notes without bumping private packages or leaving 2.x', async () => {
 		const root = realWorkspace();
 		const draft = await release(root).draft();
