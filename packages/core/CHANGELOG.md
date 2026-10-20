@@ -1,3 +1,29 @@
+## c15t@1.9.0 (v1-legacy)
+
+### Warn that offline mode keeps no consent records
+
+Offline mode keeps consent only in the visitor's browser, so c15t has no
+server-side record of it, and it has no geolocation, so every visitor gets the
+same policy. In development builds, c15t now logs a `console.warn` once per
+page when it creates an offline client in the browser. Production builds never
+log it, and it never blocks consent.
+
+Set `acknowledgeNoRecords: true` in the offline options to hide the message,
+for example in tests:
+
+```ts
+configureConsentManager({ mode: 'offline', acknowledgeNoRecords: true });
+```
+
+`ConsentManagerProvider` in `@c15t/react` and `@c15t/nextjs` passes the option
+through.
+
+### Keep the tracking blocker working with wrapped `fetch`
+
+The tracking blocker threw when the page's `fetch` came from another library
+that exposes a property through a getter, so the consent store failed to start.
+It now copies the original `fetch`'s properties before wrapping it.
+
 # c15t
 
 ## 1.8.6
