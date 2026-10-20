@@ -69,5 +69,8 @@
 		"kysely-pglite": "^0.6.1",
 		"msw": "^2.7.6",
 		"typescript": "^5.8.3"
+	},
+	"publishConfig": {
+		"tag": "v1-legacy"
 	}
 }

@@ -68,6 +68,7 @@
 		"vitest-localstorage-mock": "^0.1.2"
 	},
 	"publishConfig": {
-		"access": "public"
+		"access": "public",
+		"tag": "v1-legacy"
 	}
 }
