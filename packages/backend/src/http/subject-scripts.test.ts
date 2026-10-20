@@ -153,15 +153,20 @@ for (const engine of ENGINES) {
 		});
 
 		it('refuses a condition nested deeper than a browser sends', async () => {
-			let category: unknown = 'marketing';
-			for (let level = 0; level < 20_000; level += 1) {
-				category = { not: category };
-			}
-			const refused = await harness.json('POST', '/subjects', {
+			// Written as text: `JSON.stringify` overflows on a tree this deep
+			// in some runtimes, and the server is what this test is about.
+			const depth = 20_000;
+			const category = `${'{"not":'.repeat(depth)}"marketing"${'}'.repeat(depth)}`;
+			const body = JSON.stringify({
 				...base,
-				scripts: [{ category, id: 'deep' }],
+				scripts: [{ category: 'DEEP', id: 'deep' }],
+			}).replace('"DEEP"', category);
+			const refused = await harness.app.request('/subjects', {
+				body,
+				headers: { 'Content-Type': 'application/json' },
+				method: 'POST',
 			});
-			assert.strictEqual(refused.status, 400, JSON.stringify(refused.body));
+			assert.strictEqual(refused.status, 400, await refused.text());
 			assert.strictEqual(await harness.count('consent'), 0);
 		});
 	});
