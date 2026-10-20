@@ -1,6 +1,6 @@
 ---
 title: Install on your platform
-description: Where to paste the c15t script tag, gated vendor snippets and the privacy settings link in WordPress, Webflow, Shopify, Squarespace, Wix, Framer, Ghost, Hugo, Eleventy and Jekyll.
+description: Where to paste the c15t script tag, gated vendor snippets and the privacy settings link in WordPress, Webflow, Shopify, Squarespace, Wix, Framer, Ghost, Notra, Hugo, Eleventy and Jekyll.
 group: frameworks
 ---
 
@@ -85,6 +85,27 @@ footer. Publish to see it on the live site.
 Paste the tag in Settings, Code injection, Site header. Add a navigation item
 with the URL `#c15t-preferences` to the secondary navigation, which most
 themes render in the footer.
+
+## Notra
+
+[Notra](https://www.usenotra.com) is a generative engine optimization (GEO)
+tool that asks ChatGPT, Claude and Gemini the questions your buyers ask and
+shows whether you appear. [Notra Sites](https://www.usenotra.com/docs/sites/overview)
+turns MDX files in a GitHub repository into a hosted blog and changelog. Its
+builder renders the banner and dialog with `@c15t/astro`, so you skip the
+script tag, and the theme's footer already includes the privacy settings link.
+
+To connect a backend, open your site's Integrations page in Notra and choose
+Inth under Cookie banner. Connect your Inth account and pick the project the
+site should use. Notra adds every domain the site uses to the project's
+trusted origins and saves the backend URL to the site's `blog.json` as a
+draft, which goes live when you publish it.
+
+Analytics that Notra loads for the site wait for the `measurement` category.
+Custom scripts wait only when you map their paths to a category in
+`blog.json`, and a custom `footer.mdx` needs the `<PrivacySettings />`
+component to show the link. The [Notra c15t guide](https://www.usenotra.com/docs/sites/integrations/consent/c15t)
+covers these options, the banner's appearance and self-hosted backends.
 
 ## Hugo
 
