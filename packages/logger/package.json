@@ -61,6 +61,7 @@
 		"@c15t/vitest-config": "workspace:*"
 	},
 	"publishConfig": {
-		"access": "public"
+		"access": "public",
+		"tag": "v2-legacy"
 	}
 }
