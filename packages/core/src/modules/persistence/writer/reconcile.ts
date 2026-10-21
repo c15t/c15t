@@ -339,6 +339,18 @@ const adoptNewer = function adoptNewer<RecordType>(
 };
 
 /**
+ * The subject a clear leaves: the ID alone. The kernel's
+ * `subjectAfterClear` does the same; the write code cannot import it.
+ *
+ * @internal
+ */
+export const subjectAfterClear = function subjectAfterClear(
+	subject: ConsentSubject | null | undefined
+): ConsentSubject | null {
+	return subject?.subjectId ? { subjectId: subject.subjectId } : null;
+};
+
+/**
  * Whether a stored subject should replace the one in memory, given the
  * time of the newest decision each side carries. A subject that yields (see
  * {@link subjectToWrite}) is replaced by a stored one at least as recent; an
@@ -361,7 +373,8 @@ const prefersStoredSubject = function prefersStoredSubject(
 
 /**
  * The subject once the stored choice was removed. With no identity left in
- * storage the subject goes with the choice. A subject the vendor record
+ * storage the identity goes with the choice and the ID stays, as a clear
+ * leaves it. A subject the vendor record
  * still carries follows the usual precedence, so it never replaces an id
  * the server resolved or an identity from `identify()` it should yield to.
  */
@@ -372,7 +385,7 @@ const subjectAfterRemoval = function subjectAfterRemoval(
 	subjectYields: boolean
 ): HydrationRecords['subject'] {
 	if (!stored.subject) {
-		return null;
+		return subjectAfterClear(snapshot.subject);
 	}
 	return movement.changed('vendors') &&
 		prefersStoredSubject(
@@ -425,7 +438,7 @@ const reconcileSubject = function reconcileSubject(
 		// No choice on either side, or an unreadable one: the vendor record
 		// carries the subject.
 		if (stored.choice === null && movement.removed('vendors')) {
-			candidate = null;
+			candidate = subjectAfterClear(snapshot.subject);
 		} else if (
 			prefersStoredSubject(
 				snapshot.subject,
@@ -491,9 +504,10 @@ export interface ReconciledRecords {
 /**
  * The in-memory records as the clear epoch leaves them: decisions confirmed
  * before `epoch` are void. When the epoch moved past the one this runtime
- * last saw, another runtime cleared the records and the subject in memory
- * belongs to the cleared history, so it does not survive either, unless a
- * save made after the epoch generated it (`subjectSurvives`).
+ * last saw, another runtime cleared the records and the identity linked to
+ * the subject in memory belongs to the cleared history, so only its ID
+ * survives, as it does in the runtime that cleared. A subject a save made
+ * after the epoch generated survives whole (`subjectSurvives`).
  */
 const sinceEpoch = function sinceEpoch(
 	snapshot: ConsentSnapshot,
@@ -510,7 +524,10 @@ const sinceEpoch = function sinceEpoch(
 			!clearMissed
 		),
 		noticeDismissal: rules.noticeSince(snapshot.noticeDismissal, epoch),
-		subject: clearMissed && !subjectSurvives ? null : snapshot.subject,
+		subject:
+			clearMissed && !subjectSurvives
+				? subjectAfterClear(snapshot.subject)
+				: snapshot.subject,
 		vendorChoice: rules.vendorsSince(snapshot.vendorChoice, epoch),
 	};
 };

@@ -98,6 +98,12 @@ export interface ResolvedStorageKeys {
 	 * {@link readStoredConsentRecord}.
 	 */
 	cookieMiss: string;
+	/**
+	 * The visitor's subject ID on its own, stored from first load so it
+	 * exists before any choice. Never removed by a clear, and never read as
+	 * a recorded choice.
+	 */
+	subject: string;
 }
 
 export const resolveStorageKeys = function resolveStorageKeys(
@@ -110,6 +116,7 @@ export const resolveStorageKeys = function resolveStorageKeys(
 		epoch: `${consent}-epoch`,
 		legacyConsent: consent === STORAGE_KEY ? null : STORAGE_KEY,
 		notice: `${consent}-notice`,
+		subject: `${consent}-sid`,
 		vendors: `${consent}-vendors`,
 	};
 };
@@ -896,6 +903,75 @@ export const readStoredClearEpochFromCookieHeader =
 		return newerEpoch(
 			readRawEpoch(readCookieValueFromHeader(cookieHeader, keys.epoch), now),
 			0
+		);
+	};
+
+/** Longest subject ID the `<key>-sid` record holds. */
+const MAX_SUBJECT_ID_LENGTH = 256;
+
+/** Whether `text` holds a control character, which no subject ID does. */
+const hasControlCharacter = function hasControlCharacter(
+	text: string
+): boolean {
+	for (let index = 0; index < text.length; index += 1) {
+		const code = text.charCodeAt(index);
+		if (code < 0x20 || code === 0x7f) {
+			return true;
+		}
+	}
+	return false;
+};
+
+/**
+ * The subject ID a stored copy holds, `null` when it holds none. Any ID a
+ * record may carry is accepted, not only generated `sub_` IDs, so an ID a
+ * backend assigned survives a clear too.
+ */
+const validSubjectId = function validSubjectId(
+	text: string | null | undefined
+): string | null {
+	const trimmed = text?.trim();
+	return trimmed &&
+		trimmed.length <= MAX_SUBJECT_ID_LENGTH &&
+		!hasControlCharacter(trimmed)
+		? trimmed
+		: null;
+};
+
+/** The ID a `<key>-sid` cookie holds: URI-encoded, as it is written. */
+const cookieSubjectId = function cookieSubjectId(
+	raw: string | null | undefined
+): string | null {
+	return raw ? validSubjectId(decodeComponent(raw)) : null;
+};
+
+/**
+ * Reads the stored subject ID: the cookie copy, else the localStorage copy.
+ * The cookie wins because a server may have set it for this request. An
+ * invalid copy counts as absent. `null` when neither holds a valid ID.
+ */
+export const readStoredSubjectId = function readStoredSubjectId(
+	config: StorageConfig | undefined,
+	onUnavailable?: () => void
+): string | null {
+	const keys = resolveStorageKeys(config);
+	return (
+		cookieSubjectId(getRawCookieValue(keys.subject, onUnavailable)) ??
+		validSubjectId(readLocalStorageText(keys.subject, onUnavailable))
+	);
+};
+
+/** Server read of the subject ID cookie from a request `Cookie` header. */
+export const readStoredSubjectIdFromCookieHeader =
+	function readStoredSubjectIdFromCookieHeader(
+		cookieHeader: string | undefined,
+		config: StorageConfig | undefined
+	): string | null {
+		return cookieSubjectId(
+			readCookieValueFromHeader(
+				cookieHeader,
+				resolveStorageKeys(config).subject
+			)
 		);
 	};
 

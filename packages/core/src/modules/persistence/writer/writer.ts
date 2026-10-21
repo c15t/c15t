@@ -29,6 +29,7 @@ import {
 	mayWriteVendorChoice,
 	sameRecord,
 	selectReconciledRecords,
+	subjectAfterClear,
 	subjectToWrite,
 } from './reconcile';
 import type { StorageFingerprints, StoredRecordKind } from './reconcile';
@@ -165,10 +166,10 @@ export const createPersistenceWriter = function createPersistenceWriter(
 	};
 
 	/**
-	 * The subject a write stores. After a clear this runtime missed, a
-	 * subject from before it belongs to the cleared history: only what
-	 * storage holds now is kept, or none. A subject a save generated after
-	 * the clear follows the usual rules.
+	 * The subject a write stores. After a clear this runtime missed, the
+	 * identity linked to a subject from before it belongs to the cleared
+	 * history: what storage holds now is kept, or else the ID alone. A
+	 * subject a save generated after the clear follows the usual rules.
 	 */
 	const writtenSubject = function writtenSubject(
 		snapshot: ConsentSnapshot,
@@ -180,7 +181,7 @@ export const createPersistenceWriter = function createPersistenceWriter(
 			return snapshot.subject;
 		}
 		if (read.epoch > memoryEpoch && !subjectBornAfter(read.epoch)) {
-			return stored ?? null;
+			return stored ?? subjectAfterClear(snapshot.subject);
 		}
 		return subjectToWrite(snapshot.subject, stored, subjectYields());
 	};

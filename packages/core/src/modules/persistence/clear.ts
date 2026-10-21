@@ -110,6 +110,30 @@ export const writeStoredClearEpoch = function writeStoredClearEpoch(
 };
 
 /**
+ * Writes the subject ID to localStorage and its cookie, URI-encoded in the
+ * cookie. First-load code so an ID generated at startup survives a reload
+ * straight away, before the writer chunk loads. A clear leaves it in place.
+ *
+ * @internal
+ */
+export const writeStoredSubjectId = function writeStoredSubjectId(
+	subjectId: string,
+	config: StorageConfig | undefined,
+	cookie?: CookieOptions
+): void {
+	if (typeof document === 'undefined') {
+		return;
+	}
+	const key = resolveStorageKeys(config).subject;
+	try {
+		window.localStorage?.setItem(key, subjectId);
+	} catch {
+		// Blocked or full storage: the cookie copy still carries the ID.
+	}
+	writeCookie(key, encodeURIComponent(subjectId), cookie, config);
+};
+
+/**
  * Remove every stored record and store the clear epoch for a clear made at
  * `at`. A no-op without a document.
  *

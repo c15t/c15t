@@ -308,7 +308,11 @@ export const createSaveOutbox = function createSaveOutbox({
 		}
 		batch(() => {
 			commit({ subject: { ...current.subject, subjectId } });
-			emit({ snapshot: getSnapshot(), type: 'subject:resolved' });
+			emit({
+				previousSubjectId: current.subject?.subjectId,
+				snapshot: getSnapshot(),
+				type: 'subject:resolved',
+			});
 		});
 	};
 

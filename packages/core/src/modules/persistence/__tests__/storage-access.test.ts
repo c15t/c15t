@@ -26,9 +26,10 @@ beforeEach(() => {
 	vi.setSystemTime(NOW);
 	localStorage.clear();
 	clearStoredConsentRecords();
-	// A clear keeps its epoch; start every test without one.
-	document.cookie =
-		'c15t-epoch=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
+	// A clear keeps its epoch and the subject ID; start every test without.
+	for (const key of ['c15t-epoch', 'c15t-sid']) {
+		document.cookie = `${key}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
+	}
 	vi.spyOn(console, 'warn').mockImplementation(() => {});
 });
 
@@ -103,11 +104,13 @@ test('distinguishes unreadable records from readable empty storage', async () =>
 	await kernel.commands.save({ measurement: false });
 	await kernel.commands.dismissNotice();
 	vi.advanceTimersByTime(0);
+	const subjectId = kernel.getSnapshot().subject?.subjectId;
 	clearStoredConsentRecords();
 
 	expect(handle.hydrate()).toBe(false);
 	expect(kernel.getSnapshot().explicitChoice).toBeNull();
-	expect(kernel.getSnapshot().subject).toBeNull();
+	// The subject ID is not a record: clearing records keeps it.
+	expect(kernel.getSnapshot().subject).toEqual({ subjectId });
 	expect(kernel.getSnapshot().noticeDismissal).toBeNull();
 });
 
@@ -188,8 +191,8 @@ test.each(['getter', 'methods', 'missing'] as const)(
 		expect(document.cookie).toBe(cookie);
 
 		reader.clear();
-		// The clear epoch is the only thing left.
-		expect(document.cookie).toMatch(/^c15t-epoch=\d+$/u);
+		// The subject ID and the clear epoch are the only things left.
+		expect(document.cookie).toMatch(/^c15t-sid=sub_\w+; c15t-epoch=\d+$/u);
 		expect(restored.getSnapshot().explicitChoice).toBeNull();
 		expect(restored.getSnapshot().noticeDismissal).toBeNull();
 	}

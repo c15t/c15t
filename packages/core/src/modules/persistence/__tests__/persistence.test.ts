@@ -7,7 +7,8 @@
  * - Hydration from cookie / localStorage through the kernel boundary
  * - Writing only on explicit kernel events (choice, notice, vendors)
  * - skipHydration option
- * - clear() removes every record and resets the kernel
+ * - clear() removes every record and resets the kernel, keeping the
+ *   subject ID
  * - dispose stops further writes
  */
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
@@ -40,8 +41,10 @@ beforeEach(() => {
 	vi.setSystemTime(NOW);
 	localStorage.clear();
 	clearStoredConsentRecords();
-	// A clear keeps its epoch; start every test without one.
+	// A clear keeps its epoch and the subject ID; start every test without
+	// either.
 	document.cookie = `${STORAGE_KEY_V2}-epoch=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
+	document.cookie = `${STORAGE_KEY_V2}-sid=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
 });
 
 afterEach(() => {
@@ -127,7 +130,8 @@ describe('persistence: write path', () => {
 		kernel.set.draft({ marketing: true });
 		flushWrites();
 		expect(localStorage.getItem(STORAGE_KEY_V2)).toBeNull();
-		expect(document.cookie).toBe('');
+		// Only the subject ID startup stored, which records no choice.
+		expect(cookieNames()).toEqual([`${STORAGE_KEY_V2}-sid`]);
 	});
 
 	test('writes the v3 envelope after save()', async () => {
@@ -216,7 +220,10 @@ describe('persistence: write path', () => {
 		expect(localStorage.getItem(`${STORAGE_KEY_V2}-notice`)).toContain(
 			'"version":1'
 		);
-		expect(cookieNames()).toEqual([`${STORAGE_KEY_V2}-notice`]);
+		expect(cookieNames()).toEqual([
+			`${STORAGE_KEY_V2}-notice`,
+			`${STORAGE_KEY_V2}-sid`,
+		]);
 
 		const read = createConsentKernel({
 			initialPolicyResolution: matchedResolution(noticeRule()),
@@ -242,8 +249,8 @@ describe('persistence: write path', () => {
 
 		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);
 		expect(kernel.getSnapshot().restrictions.marketing).toEqual(['gpc']);
-		expect(Object.keys(localStorage)).toEqual([]);
-		expect(cookieNames()).toEqual([]);
+		expect(Object.keys(localStorage)).toEqual([`${STORAGE_KEY_V2}-sid`]);
+		expect(cookieNames()).toEqual([`${STORAGE_KEY_V2}-sid`]);
 
 		// The browser stops sending the signal: the restriction goes with it.
 		kernel.set.privacySignals({ gpc: false });
@@ -293,6 +300,7 @@ describe('persistence: clear', () => {
 			})
 		);
 		document.cookie = `${STORAGE_KEY_V2}-privacy=v=1&d=gpc.${NOW - 1}.mk; path=/`;
+		const subjectId = kernel.getSnapshot().subject?.subjectId;
 		// Writes are still queued: clear must cancel them, not flush them.
 		handle.clear();
 		flushWrites();
@@ -304,16 +312,22 @@ describe('persistence: clear', () => {
 		const snap = kernel.getSnapshot();
 		expect(snap.explicitChoice).toBeNull();
 		expect(snap.noticeDismissal).toBeNull();
-		expect(snap.subject).toBeNull();
-		expect(snap.explicitChoice).toBeNull();
+		// The subject ID stays, so the visitor can still be reached.
+		expect(snap.subject).toEqual({ subjectId });
 		expect(snap.promptRequirement).toEqual({
 			kind: 'notice',
 			reason: 'missing',
 		});
-		// Only the clear epoch stays behind, so no record comes back. The live
-		// signal alone keeps masking the permission.
-		expect(Object.keys(localStorage)).toEqual([`${STORAGE_KEY_V2}-epoch`]);
-		expect(document.cookie).toBe(`${STORAGE_KEY_V2}-epoch=${NOW}`);
+		// Only the subject ID and the clear epoch stay behind, so no record
+		// comes back. The live signal alone keeps masking the permission.
+		expect(Object.keys(localStorage).sort()).toEqual([
+			`${STORAGE_KEY_V2}-epoch`,
+			`${STORAGE_KEY_V2}-sid`,
+		]);
+		expect(cookieNames()).toEqual([
+			`${STORAGE_KEY_V2}-epoch`,
+			`${STORAGE_KEY_V2}-sid`,
+		]);
 		expect(snap.effectivePermissions.marketing).toBe(false);
 		expect(snap.restrictions.marketing).toEqual(['gpc']);
 	});
@@ -327,12 +341,22 @@ describe('persistence: clear', () => {
 		await kernel.commands.save({ marketing: false });
 		await kernel.commands.dismissNotice();
 		flushWrites();
-		expect(cookieNames()).toEqual([STORAGE_KEY_V2, `${STORAGE_KEY_V2}-notice`]);
+		expect(cookieNames()).toEqual([
+			STORAGE_KEY_V2,
+			`${STORAGE_KEY_V2}-notice`,
+			`${STORAGE_KEY_V2}-sid`,
+		]);
 
 		handle.clear();
 		flushWrites();
-		expect(Object.keys(localStorage)).toEqual([`${STORAGE_KEY_V2}-epoch`]);
-		expect(document.cookie).toBe(`${STORAGE_KEY_V2}-epoch=${NOW}`);
+		expect(Object.keys(localStorage).sort()).toEqual([
+			`${STORAGE_KEY_V2}-epoch`,
+			`${STORAGE_KEY_V2}-sid`,
+		]);
+		expect(cookieNames()).toEqual([
+			`${STORAGE_KEY_V2}-epoch`,
+			`${STORAGE_KEY_V2}-sid`,
+		]);
 		expect(kernel.getSnapshot().explicitChoice).toBeNull();
 	});
 });
@@ -409,7 +433,8 @@ test('clear cancels a queued canonical subject write', async () => {
 	const restored = createConsentKernel();
 	const reader = createPersistence({ kernel: restored });
 	expect(restored.getSnapshot().explicitChoice).toBeNull();
-	expect(restored.getSnapshot().subject).toBeNull();
+	// The clear keeps the subject ID, and nothing else of the subject.
+	expect(restored.getSnapshot().subject).toEqual({ subjectId: 'canonical' });
 	reader.dispose();
 	restored.dispose();
 	persistence.dispose();

@@ -6,11 +6,20 @@
  */
 import { clearKernelRecords } from '../../kernel/clear-records';
 import type { InternalKernel } from '../../kernel/internals';
-import type { ConsentSnapshot, HydrationRecords } from '../../types';
-import { clearStoredRecords } from './clear';
+import { generateSubjectId } from '../../libs/generate-subject-id';
+import type {
+	ConsentSnapshot,
+	ConsentSubject,
+	HydrationRecords,
+} from '../../types';
+import { clearStoredRecords, writeStoredSubjectId } from './clear';
 import { hydrateFromStorage, readStoredRecordsForReconcile } from './hydrate';
 import type { StoredRecords } from './hydrate';
-import { isNewerDenial, resolveStorageKeys } from './record-storage';
+import {
+	isNewerDenial,
+	readStoredSubjectId,
+	resolveStorageKeys,
+} from './record-storage';
 import { persistenceTools } from './tools';
 import type { PersistenceHandle, PersistenceOptions } from './types';
 import { pageWriterLoader, preloadWriter } from './writer-loader';
@@ -90,6 +99,17 @@ export const mountPersistence = function mountPersistence(
 	});
 	let retries = 0;
 	let retryTimer: ReturnType<typeof setTimeout> | undefined;
+	// The subject ID the kernel holds, as this handle last saw it.
+	let subjectId: string | undefined;
+	// The ID `<key>-sid` was last read as or written with.
+	let storedSubjectId: string | null = null;
+	// An ID this runtime generated or read from `<key>-sid` that no save or
+	// `identify()` has used yet. Another tab's stored ID replaces it, so two
+	// tabs opened together settle on one ID.
+	let unusedSubjectId: string | undefined;
+	// Set while this handle announces a subject change it only followed. The
+	// change came from records or a response, so there is nothing to write.
+	let followingSubject = false;
 
 	const land = function land(module: WriterModule): void {
 		if (writer) {
@@ -206,6 +226,10 @@ export const mountPersistence = function mountPersistence(
 	const unsubscribers = [
 		kernel.events.on('command:save:started', () => {
 			state.subjectBeforeSave = kernel.getSnapshot().subject?.subjectId;
+			unusedSubjectId = undefined;
+		}),
+		kernel.events.on('user:identified', () => {
+			unusedSubjectId = undefined;
 		}),
 		kernel.events.on('choice:recorded', ({ actionAt, snapshot }) => {
 			noteGeneratedSubject(snapshot, actionAt);
@@ -214,13 +238,22 @@ export const mountPersistence = function mountPersistence(
 			request('choice', 'notice');
 		}),
 		kernel.events.on('subject:resolved', ({ snapshot }) => {
+			if (followingSubject) {
+				return;
+			}
 			// The vendor record carries the subject only once a vendor decision
 			// exists. Scheduling without one would run the writer's clear branch
-			// and delete a stored denial this kernel never hydrated.
-			if (snapshot.vendorChoice === null) {
-				request('choice');
-			} else {
-				request('choice', 'vendors');
+			// and delete a stored denial this kernel never hydrated. Without
+			// either record, `<key>-sid` alone holds the subject.
+			const kinds: WriteKind[] = [];
+			if (snapshot.explicitChoice) {
+				kinds.push('choice');
+			}
+			if (snapshot.vendorChoice) {
+				kinds.push('vendors');
+			}
+			if (kinds.length > 0) {
+				request(...kinds);
 			}
 		}),
 		kernel.events.on('notice:dismissed', () => {
@@ -294,7 +327,8 @@ export const mountPersistence = function mountPersistence(
 		}
 	};
 
-	const hydrate = function hydrate(): boolean {
+	/** Hydrates from storage and returns the read, `null` when none ran. */
+	const hydrateStored = function hydrateStored(): StoredRecords | null {
 		// An explicit choice may still be queued. Land it first so
 		// rehydration reads the new choice back instead of overwriting it
 		// with whatever storage held before the user acted.
@@ -305,20 +339,138 @@ export const mountPersistence = function mountPersistence(
 			// Its write code has not landed yet: hydrate once it has.
 			hydrateRequested = true;
 			void withWriter();
-			return false;
+			return null;
 		}
 		// What another handle queued wins over what storage holds; the
 		// writer still starts from storage.
 		const stored = hydrateFromStorage(kernel, storageConfig, now(), withQueued);
 		if (!stored) {
-			return false;
+			return null;
 		}
 		if (landed) {
 			landed.adopt(stored, true);
 		} else {
 			baseline = [stored, true];
 		}
-		return stored.found;
+		return stored;
+	};
+
+	const hydrate = function hydrate(): boolean {
+		return hydrateStored()?.found ?? false;
+	};
+
+	const storeSubjectId = function storeSubjectId(id: string): void {
+		if (id !== storedSubjectId) {
+			writeStoredSubjectId(id, storageConfig);
+			storedSubjectId = id;
+		}
+	};
+
+	/**
+	 * Follows the kernel's subject ID into `<key>-sid`. An ID removed with
+	 * `set.subjectId(null)` is replaced with a new one: a browser runtime
+	 * always has an ID. When an unused ID is replaced, `subject:resolved`
+	 * names it, so anything that referred to it can follow.
+	 */
+	const followSubjectId = function followSubjectId(
+		snapshot: ConsentSnapshot
+	): void {
+		const id = snapshot.subject?.subjectId;
+		if (id === subjectId) {
+			return;
+		}
+		const previous = subjectId;
+		subjectId = id;
+		if (!id) {
+			const next = generateSubjectId();
+			unusedSubjectId =
+				snapshot.explicitChoice || snapshot.vendorChoice ? undefined : next;
+			state.freshSubjectId = next;
+			state.freshSubjectAt = now();
+			kernel.hydrate({ subject: { ...snapshot.subject, subjectId: next } });
+			return;
+		}
+		storeSubjectId(id);
+		if (previous !== undefined && previous === unusedSubjectId) {
+			unusedSubjectId = id;
+			state.freshSubjectId = id;
+			followingSubject = true;
+			try {
+				kernel.events.emit({
+					previousSubjectId: previous,
+					snapshot,
+					type: 'subject:resolved',
+				});
+			} finally {
+				followingSubject = false;
+			}
+		}
+	};
+
+	/**
+	 * Gives the kernel a subject ID at startup, before anything binds to
+	 * it. Records storage held keep the ID they carry. Otherwise a subject
+	 * the server named is kept, then the ID in `<key>-sid`, then a new one.
+	 * The ID is stored in `<key>-sid` at once so a reload keeps it. The ID
+	 * alone records no choice.
+	 */
+	const startSubject = function startSubject(
+		before: ConsentSubject | null,
+		recordedSubjectId: string | null
+	): void {
+		storedSubjectId = readStoredSubjectId(storageConfig);
+		const snapshot = kernel.getSnapshot();
+		let { subject } = snapshot;
+		let local = false;
+		if (!recordedSubjectId && before?.subjectId) {
+			subject = { ...subject, ...before };
+		} else if (!(recordedSubjectId && subject?.subjectId)) {
+			subject = {
+				...subject,
+				subjectId: subject?.subjectId ?? storedSubjectId ?? generateSubjectId(),
+			};
+			local = true;
+		}
+		const id = subject.subjectId as string;
+		subjectId = id;
+		if (local) {
+			// Like an ID a save generated: it yields to a subject another
+			// runtime stored.
+			state.freshSubjectId = id;
+			state.freshSubjectAt = now();
+			if (!snapshot.explicitChoice && !snapshot.vendorChoice) {
+				unusedSubjectId = id;
+			}
+		}
+		if (id !== snapshot.subject?.subjectId) {
+			kernel.hydrate({ subject });
+		}
+		storeSubjectId(id);
+	};
+
+	/**
+	 * Takes the ID another tab stored when this runtime's is unused, and
+	 * stores this runtime's again when storage lost it.
+	 */
+	const adoptStoredSubjectId = function adoptStoredSubjectId(): void {
+		if (subjectId === undefined || disposed) {
+			return;
+		}
+		const stored = readStoredSubjectId(storageConfig);
+		storedSubjectId = stored;
+		if (!stored) {
+			storeSubjectId(subjectId);
+			return;
+		}
+		const snapshot = kernel.getSnapshot();
+		if (
+			stored !== subjectId &&
+			subjectId === unusedSubjectId &&
+			!snapshot.explicitChoice &&
+			!snapshot.vendorChoice
+		) {
+			kernel.hydrate({ subject: { ...snapshot.subject, subjectId: stored } });
+		}
 	};
 
 	const installListeners = function installListeners(): () => void {
@@ -330,6 +482,10 @@ export const mountPersistence = function mountPersistence(
 			[window, 'pagehide', () => writer?.flush()],
 		];
 		if (options.sync !== false) {
+			const watchStorage = function watchStorage(): void {
+				adoptStoredSubjectId();
+				scheduleReconcile();
+			};
 			const watched = new Set<string | null>([
 				consentKey,
 				keys.legacyConsent,
@@ -344,18 +500,21 @@ export const mountPersistence = function mountPersistence(
 					window,
 					'storage',
 					(event) => {
-						if (watched.has((event as StorageEvent).key)) {
-							scheduleReconcile();
+						const { key } = event as StorageEvent;
+						if (key === keys.subject) {
+							adoptStoredSubjectId();
+						} else if (watched.has(key)) {
+							watchStorage();
 						}
 					},
 				],
-				[window, 'focus', scheduleReconcile],
+				[window, 'focus', watchStorage],
 				[
 					document,
 					'visibilitychange',
 					() => {
 						if (document.visibilityState !== 'hidden') {
-							scheduleReconcile();
+							watchStorage();
 						}
 					},
 				]
@@ -373,13 +532,21 @@ export const mountPersistence = function mountPersistence(
 		return () => toggle(false);
 	};
 
-	if (!browser) {
-		// Nothing to read, and every write is a no-op without a document.
-	} else if (options.skipHydration) {
-		applyNewerStoredRecords();
-	} else {
-		hydrate();
+	if (browser) {
+		const before = kernel.getSnapshot().subject;
+		let recordedSubjectId: string | null = null;
+		if (options.skipHydration) {
+			applyNewerStoredRecords();
+		} else {
+			recordedSubjectId = hydrateStored()?.recordedSubjectId ?? null;
+		}
+		if (!options.keepSubject && !kernel.getSnapshot().externalPermissions) {
+			startSubject(before, recordedSubjectId);
+			unsubscribers.push(kernel.subscribe(followSubjectId));
+		}
 	}
+	// Without a document there is nothing to read, and every write is a
+	// no-op.
 
 	if (!landedWriter() && listenable) {
 		// See `preloadWriter` for when the write code loads.
@@ -400,8 +567,9 @@ export const mountPersistence = function mountPersistence(
 			queuedWrites.delete(consentKey);
 			state.choiceRecorded = false;
 			state.vendorsRecorded = false;
-			// The cleared subject is gone: an id generated by a save already
-			// under way is a new local id, not one the server resolved.
+			// The cleared records' identity is gone, and the ID stays: an ID
+			// a save already under way generates is a new local one, not one
+			// the server resolved.
 			state.subjectBeforeSave = undefined;
 			state.freshSubjectId = undefined;
 			const at = now();

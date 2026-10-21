@@ -24,6 +24,8 @@ import {
 	readStoredConsentRecordFromCookieHeader,
 	readStoredNoticeDismissal,
 	readStoredNoticeDismissalFromCookieHeader,
+	readStoredSubjectId,
+	readStoredSubjectIdFromCookieHeader,
 	readStoredVendorChoice,
 	readStoredVendorChoiceFromCookieHeader,
 } from './record-storage';
@@ -45,6 +47,12 @@ export interface StoredRecords {
 	 * `records.subject`, so this is the only place the vendor copy shows.
 	 */
 	vendorSubject: ConsentSubject | null;
+	/**
+	 * The subject ID the records themselves carry, `null` when they carry
+	 * none. `records.subject` falls back to the stored subject ID; this
+	 * does not.
+	 */
+	recordedSubjectId: string | null;
 	/**
 	 * The clear epoch in force: the newer of the stored epoch and the one
 	 * the envelope records, `0` when no clear was ever recorded. Records
@@ -85,16 +93,43 @@ const envelopeSinceEpoch = function envelopeSinceEpoch(
 };
 
 /**
+ * The subject the records carry. The envelope's subject wins; the vendor
+ * record's copy covers a visitor whose only act so far decided vendors;
+ * the stored subject ID covers a visitor who has decided nothing yet, or
+ * whose records were cleared. A record subject without an ID takes the
+ * stored one.
+ */
+const composeSubject = function composeSubject(
+	recorded: ConsentSubject | null,
+	storedSubjectId: string | null
+): ConsentSubject | null {
+	if (recorded?.subjectId || !storedSubjectId) {
+		return recorded;
+	}
+	return { ...recorded, subjectId: storedSubjectId };
+};
+
+/** The subject the surviving records carry: the envelope's, else the vendor record's. */
+const recordedSubject = function recordedSubject(
+	selected: StoredConsentSelection['selected'],
+	vendorRecord: StoredVendorChoice | null
+): ConsentSubject | null {
+	return selected?.subject ?? vendorRecord?.subject ?? null;
+};
+
+/**
  * Builds the records from decoded reads. Anything confirmed before the
  * clear epoch (the newer of the stored epoch and the envelope's own) was
  * cleared and reads as absent, so a record written back by a runtime that
- * missed the clear cannot bring it back.
+ * missed the clear cannot bring it back. The stored subject ID is not cut
+ * to the epoch: a clear keeps it.
  */
 const composeRecords = function composeRecords(
 	selection: StoredConsentSelection,
 	notice: ReturnType<typeof readStoredNoticeDismissal>,
 	vendors: ReturnType<typeof readStoredVendorChoice>,
 	clearEpoch: number,
+	storedSubjectId: string | null,
 	now: number
 ): StoredRecords {
 	const envelopeEpoch = selection.selected?.epoch ?? 0;
@@ -113,13 +148,12 @@ const composeRecords = function composeRecords(
 		vendors?.ok ? vendors.record : null,
 		epoch
 	);
+	const recorded = recordedSubject(selected, vendorRecord);
 	const records: HydrationRecords = {
 		choice,
 		noticeDismissal: noticeSinceEpoch(notice?.ok ? notice.record : null, epoch),
 		now,
-		// The envelope's subject wins; the vendor record's copy covers a visitor
-		// whose only act so far decided vendors.
-		subject: selected?.subject ?? vendorRecord?.subject ?? null,
+		subject: composeSubject(recorded, storedSubjectId),
 		vendorChoice: kernelVendorChoice(vendorRecord),
 	};
 	return {
@@ -130,6 +164,7 @@ const composeRecords = function composeRecords(
 			vendorRecord !== null ||
 			records.noticeDismissal !== null,
 		iab: selected?.iab ?? null,
+		recordedSubjectId: recorded?.subjectId ?? null,
 		records,
 		vendorSubject: vendorRecord?.subject ?? null,
 	};
@@ -199,6 +234,7 @@ const readRecords = function readRecords(
 		},
 		Math.max(clearEpoch, selection.selected?.epoch ?? 0)
 	);
+	const storedSubjectId = readStoredSubjectId(storageConfig);
 	if (preserveUndecodable) {
 		markUndecodable(unreadable, selection, { notice, vendors });
 	}
@@ -207,7 +243,14 @@ const readRecords = function readRecords(
 		notice: noticeUnavailable,
 		vendors: vendorsUnavailable,
 	} = unreadable;
-	const stored = composeRecords(selection, notice, vendors, clearEpoch, now);
+	const stored = composeRecords(
+		selection,
+		notice,
+		vendors,
+		clearEpoch,
+		storedSubjectId,
+		now
+	);
 	// An absent value only clears memory when every candidate was readable.
 	// A valid record from an available source can still hydrate normally.
 	if (!selection.selected && choiceUnavailable) {
@@ -272,6 +315,7 @@ export const readStoredRecordsFromCookieHeader =
 			),
 			readStoredVendorChoiceFromCookieHeader(cookieHeader, storageConfig, now),
 			readStoredClearEpochFromCookieHeader(cookieHeader, storageConfig, now),
+			readStoredSubjectIdFromCookieHeader(cookieHeader, storageConfig),
 			now
 		).records;
 	};
