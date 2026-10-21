@@ -1,5 +1,6 @@
 import type { Script, ScriptCallbackInfo } from '@c15t/core';
 
+import type { IntegrationConsentCondition } from '../../registry';
 import { resolveManifest } from '../../resolve';
 import { vendorManifestContract } from '../../types';
 import type { VendorManifest } from '../../types';
@@ -20,6 +21,17 @@ export type DefaultComAutoDisplayScheduler =
 export interface DefaultComPixelOptions {
 	/** Scheduler display setting forwarded to Default without modification. */
 	autoDisplayScheduler?: DefaultComAutoDisplayScheduler;
+	/**
+	 * Consent required to permit tracking and, by default, load the Pixel.
+	 * @default 'measurement'
+	 */
+	category?: IntegrationConsentCondition;
+	/**
+	 * `always` loads before consent and forwards the current consent state.
+	 * Default can still fetch its form list, capture forms and show a scheduler.
+	 * @default 'after-consent'
+	 */
+	loadMode?: 'after-consent' | 'always';
 	/** Public key from your Default workspace. Whitespace is trimmed. */
 	publicKey: string;
 	/** Scheduler origins allowed by your Default workspace. */
@@ -33,7 +45,15 @@ export interface DefaultComPixelOptions {
 }
 
 /** Options for a standalone Default Forms SDK installation. */
-export interface DefaultComFormsSdkOptions extends DefaultComPixelOptions {
+export interface DefaultComFormsSdkOptions extends Omit<
+	DefaultComPixelOptions,
+	'category' | 'loadMode'
+> {
+	/**
+	 * Consent required to load and initialize the standalone Forms SDK.
+	 * @default 'functionality'
+	 */
+	category?: IntegrationConsentCondition;
 	/** Default API endpoint override, for example a configured same-origin proxy. */
 	endpoint?: string;
 	/**
@@ -146,7 +166,7 @@ export interface DefaultComScheduler {
 	onMeetingTimeout: DefaultComSchedulerSubscription<'meeting_timeout'>;
 }
 
-/** Public standalone Forms SDK API, loaded after marketing consent. */
+/** Public standalone Forms SDK API, loaded after its configured consent. */
 export interface DefaultComFormsSdkClient {
 	/** Configure the SDK and start it on the first call. */
 	init: (options: DefaultComFormsSdkInitOptions) => void;
@@ -189,7 +209,7 @@ const vendorDetails = {
 /** Current Default Pixel loader. The helper supplies its runtime bootstrap. */
 export const defaultComPixelManifest = {
 	...vendorManifestContract,
-	category: 'marketing',
+	category: '{{category}}',
 	install: [{ async: true, src: '{{scriptUrl}}', type: 'loadScript' }],
 	persistAfterConsentRevoked: true,
 	vendor: 'default-com',
@@ -199,7 +219,7 @@ export const defaultComPixelManifest = {
 /** Standalone Forms SDK loader. Shares the Pixel's preference-center vendor. */
 export const defaultComFormsSdkManifest = {
 	...vendorManifestContract,
-	category: 'marketing',
+	category: '{{category}}',
 	install: [{ async: true, src: '{{scriptUrl}}', type: 'loadScript' }],
 	persistAfterConsentRevoked: true,
 	vendor: 'default-com',
@@ -213,13 +233,13 @@ const blockedLoaderType = 'application/x-c15t-default-conflict';
 
 const claimLoader = function claimLoader(
 	info: ScriptCallbackInfo,
-	helper: DefaultComLoader
+	helper: DefaultComLoader,
+	alwaysLoad = false
 ): boolean {
 	if (
 		typeof document === 'undefined' ||
 		!info.element ||
-		!info.hasConsent ||
-		info.vendor?.granted === false
+		(!alwaysLoad && (!info.hasConsent || info.vendor?.granted === false))
 	) {
 		return false;
 	}
@@ -272,12 +292,12 @@ const forwardPixelConsent = function forwardPixelConsent(
 };
 
 /**
- * Loads the current Default Pixel after marketing consent.
+ * Loads the current Default Pixel after measurement consent by default.
  *
- * @param options - Public workspace key, scheduler configuration and loader URL.
- * @returns A marketing-gated script, or a skipped script for an invalid key.
+ * @param options - Workspace key, consent gate, load mode and Pixel configuration.
+ * @returns A consent-aware script, or a skipped script for an invalid key.
  * @remarks
- * Use one Default helper per page. The first permitted helper claims the page.
+ * Use one Default helper per page. The first helper to load claims the page.
  * A conflicting helper logs an error and disables its loader before insertion.
  * The claim lasts until navigation, including after withdrawal or disposal.
  * A pre-existing Forms SDK global also prevents the Pixel loader from running.
@@ -286,6 +306,9 @@ const forwardPixelConsent = function forwardPixelConsent(
  * as `marketing`. Effective helper or vendor denial sends both values as false.
  * Keep c15t's default revocation reload enabled. Default's consent API does not
  * stop form capture, scheduler activity or an already loaded Vector script.
+ * `loadMode: 'always'` explicitly permits the loader and form-list requests
+ * before consent, plus form capture and scheduling while tracking is denied.
+ * The helper queues the current mapped state before inserting the loader.
  * Missing, blank or non-string keys log an error and skip loading.
  * @example defaultComPixel({ publicKey: 'YOUR_PUBLIC_KEY' });
  * @see https://docs.os.default.com/settings/pixel
@@ -294,25 +317,29 @@ const forwardPixelConsent = function forwardPixelConsent(
 export const defaultComPixel = function defaultComPixel(
 	options: DefaultComPixelOptions
 ): Script {
+	const category = options?.category ?? 'measurement';
+	const alwaysLoad = options?.loadMode === 'always';
+	const script = resolveManifest(defaultComPixelManifest, {
+		category,
+		scriptUrl: resolveScriptUrl(
+			options?.scriptUrl,
+			'https://handshake.default.com/index.js'
+		),
+	});
 	const publicKey = readId(
 		typeof options?.publicKey === 'string' ? options.publicKey : undefined
 	);
 	if (publicKey === undefined) {
 		return skipMissingId('defaultComPixel', 'publicKey', {
-			category: 'marketing',
+			category: script.category,
 			manifest: defaultComPixelManifest,
 		});
 	}
-	const script = resolveManifest(defaultComPixelManifest, {
-		scriptUrl: resolveScriptUrl(
-			options.scriptUrl,
-			'https://handshake.default.com/index.js'
-		),
-	});
 	return {
 		...script,
+		alwaysLoad: alwaysLoad || undefined,
 		onBeforeLoad(info) {
-			if (!claimLoader(info, 'defaultComPixel')) {
+			if (!claimLoader(info, 'defaultComPixel', alwaysLoad)) {
 				return;
 			}
 			window.__defaultPixel__ ??= {};
@@ -342,10 +369,10 @@ export const defaultComPixel = function defaultComPixel(
 };
 
 /**
- * Loads the current standalone Default Forms SDK after marketing consent.
+ * Loads the standalone Default Forms SDK after functionality consent by default.
  *
  * @param options - Public workspace key, SDK endpoint and scheduler options.
- * @returns A marketing-gated SDK script, or a skipped script for an invalid key.
+ * @returns A consent-gated SDK script, or a skipped script for an invalid key.
  * @remarks
  * Use one Default helper per page. The first permitted helper claims the page.
  * A conflicting helper logs an error and disables its loader before insertion.
@@ -367,24 +394,26 @@ export const defaultComPixel = function defaultComPixel(
 export const defaultComFormsSdk = function defaultComFormsSdk(
 	options: DefaultComFormsSdkOptions
 ): Script {
+	const category = options?.category ?? 'functionality';
+	const script = resolveManifest(defaultComFormsSdkManifest, {
+		category,
+		scriptUrl: resolveScriptUrl(
+			options?.scriptUrl,
+			'https://handshake.default.com/sdk.js'
+		),
+	});
 	const publicKey = readId(
 		typeof options?.publicKey === 'string' ? options.publicKey : undefined
 	);
 	if (publicKey === undefined) {
 		return {
 			...skipMissingId('defaultComFormsSdk', 'publicKey', {
-				category: 'marketing',
+				category: script.category,
 				manifest: defaultComFormsSdkManifest,
 			}),
 			id: 'default-com-forms-sdk',
 		};
 	}
-	const script = resolveManifest(defaultComFormsSdkManifest, {
-		scriptUrl: resolveScriptUrl(
-			options.scriptUrl,
-			'https://handshake.default.com/sdk.js'
-		),
-	});
 	const initOptions: DefaultComFormsSdkInitOptions = { publicKey };
 	const endpoint = trimToUndefined(options.endpoint);
 	if (endpoint !== undefined) {
@@ -410,7 +439,11 @@ export const defaultComFormsSdk = function defaultComFormsSdk(
 		}
 		const consent = mapConsent(info);
 		sdk.setConsent(consent);
-		if (consent.marketing && !initializedSdks.has(sdk)) {
+		if (
+			info.hasConsent &&
+			info.vendor?.granted !== false &&
+			!initializedSdks.has(sdk)
+		) {
 			sdk.init(initOptions);
 			initializedSdks.add(sdk);
 		}

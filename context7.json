@@ -41,6 +41,6 @@
 		"TypeScript-first: All APIs are fully typed. Use TypeScript for best experience with autocomplete and type safety",
 		"Performance: c15t is lightweight with minimal bundle impact. Scripts load/unload dynamically based on consent changes",
 		"Privacy by design: GDPR-compliant by default with granular consent controls and complete audit trail for compliance",
-		"Default: choose defaultComPixel or defaultComFormsSdk from @c15t/integrations/default-com, one helper per page, gated on marketing consent. Keep c15t's default reload on revocation to stop code already running."
+		"Default: choose defaultComPixel or defaultComFormsSdk from @c15t/integrations/default-com, one helper per page. Pixel defaults to measurement consent and supports an explicit loadMode: 'always' opt-in. Forms SDK defaults to functionality consent. Both accept a category override. Always mode permits pre-consent loader, form-list and form-capture requests. Keep c15t's default reload on revocation for code already running; an always-mode Pixel loads again after reload. Full shutdown needs a new document without the helper or with denied gated loading."
 	]
 }

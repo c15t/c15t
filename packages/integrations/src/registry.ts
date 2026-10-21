@@ -535,7 +535,7 @@ export const builtInScriptIntegrations = [
 		vendor: 'x-pixel',
 	},
 	{
-		consentCategory: 'marketing',
+		consentCategory: 'measurement',
 		docsSlug: 'default-com',
 		hint: 'Form capture, scheduling and visitor identification',
 		integrationCategory: 'analytics',

@@ -67,7 +67,7 @@ const requiredIdCases: {
 		helper: 'defaultComFormsSdk',
 		option: 'publicKey',
 		script: {
-			category: 'marketing',
+			category: 'functionality',
 			id: 'default-com-forms-sdk',
 			vendor: 'default-com',
 		},
@@ -76,7 +76,7 @@ const requiredIdCases: {
 		create: (id) => defaultComPixel({ publicKey: asId(id) }),
 		helper: 'defaultComPixel',
 		option: 'publicKey',
-		script: { category: 'marketing', id: 'default-com' },
+		script: { category: 'measurement', id: 'default-com' },
 	},
 	{
 		create: (id) => linkedinInsights({ id: asId(id) }),

@@ -24,7 +24,7 @@ describe('defaultComPixel', () => {
 		for (const id of ['', ' ', undefined, null, {}]) {
 			expectSkippedScript(
 				() => defaultComPixel({ publicKey: id as string }),
-				{ category: 'marketing', id: 'default-com' },
+				{ category: 'measurement', id: 'default-com' },
 				'defaultComPixel: missing or invalid publicKey'
 			);
 		}

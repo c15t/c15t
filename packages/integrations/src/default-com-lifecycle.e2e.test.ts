@@ -16,9 +16,9 @@ import type * as DefaultCom from './vendors/analytics/default-com';
 
 let helpers: typeof DefaultCom;
 const defaultComPixel = (options: DefaultCom.DefaultComPixelOptions) =>
-	helpers.defaultComPixel(options);
+	helpers.defaultComPixel({ category: 'marketing', ...options });
 const defaultComFormsSdk = (options: DefaultCom.DefaultComFormsSdkOptions) =>
-	helpers.defaultComFormsSdk(options);
+	helpers.defaultComFormsSdk({ category: 'marketing', ...options });
 
 const fullConsent = {
 	...grantedMarketingConsents,
@@ -44,7 +44,7 @@ const callbackInfo = (
 	...overrides,
 });
 
-describe('Default core loader consent contract', () => {
+describe('Default explicit marketing gate lifecycle', () => {
 	registerVendorContractCleanup();
 	beforeEach(async () => {
 		// Each test represents a fresh page, including its per-page loader claim.

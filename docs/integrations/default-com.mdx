@@ -1,16 +1,18 @@
 ---
 title: Default
-description: Load either the Default Pixel or standalone Forms SDK after marketing consent with c15t, map consent updates and understand withdrawal limits.
+description: Load the Default Pixel after measurement consent or the standalone Forms SDK after functionality consent, configure loading and understand withdrawal limits.
 seoTitle: Default Pixel and Forms SDK consent with c15t
-seoDescription: Gate the Default Pixel or Forms SDK on marketing consent, forward measurement and marketing choices, and prevent conflicting installations with c15t.
+seoDescription: Gate Default Pixel on measurement or the Forms SDK on functionality, opt into early Pixel loading, and forward consent with c15t.
 icon: radar
 group: integrations
 ---
 
-The `defaultComPixel` and `defaultComFormsSdk` helpers wait for `marketing`
-consent before loading Default. Default captures forms, identifies companies
-and can load Vector for people identification. Measurement or functionality
-consent alone does not load either helper.
+The `defaultComPixel` helper waits for `measurement` consent by default. The
+standalone `defaultComFormsSdk` helper waits for `functionality` consent. Both
+accept a custom consent condition. The Pixel also offers an opt-in
+`loadMode: 'always'` that loads before consent and keeps form capture available.
+Default identifies companies under its analytics permission and can load Vector
+for people identification under its marketing permission.
 
 ## Choose one helper
 
@@ -19,11 +21,13 @@ handoff. The current Pixel detects embedded HubSpot and Marketo forms. Use
 `defaultComFormsSdk` for a standalone SDK installation, such as a custom form,
 Pardot integration or a configured API proxy.
 
-Use exactly one helper on a page. The first helper whose consent gate passes
-claims the page. If both are registered, the helper encountered second logs an
-error and disables its loader before insertion. The conflicting helper makes no
-loader request and does not initialize the SDK. The claim lasts until navigation,
-including after consent withdrawal or configuration removal.
+Use exactly one helper per document. The first helper that starts loading claims
+the document. This includes a Pixel with `loadMode: 'always'` before consent.
+If both helpers are registered, the conflicting helper logs an error and disables
+its loader before insertion. It makes no loader request and does not initialize
+the SDK. The claim lasts for that document, including after consent withdrawal,
+configuration removal or a client-side route change. A full page navigation or
+reload starts a new document.
 
 The SDK loader is also blocked when `window.__defaultPixel__.key` already exists.
 The Pixel loader is blocked when `window.DefaultPixelSDK` already exists.
@@ -73,6 +77,8 @@ Both helpers use the vendor ID `default-com`. The Pixel script ID is
 | Option | Default | Behavior |
 | --- | --- | --- |
 | `publicKey` | Required | Public workspace key. The helper trims strings. Missing, blank or non-string values log an error and skip loading while keeping Default listed as a vendor. |
+| `category` | Pixel: `'measurement'`; SDK: `'functionality'` | Optional `IntegrationConsentCondition` on both helpers. Accepts a category or an `and`, `or` or `not` condition. Controls loading and the helper's effective permission. With Pixel `loadMode: 'always'`, it controls permission without delaying the loader. |
+| `loadMode` | Pixel only: `'after-consent'` | `'after-consent'` waits for the chosen category. `'always'` loads before consent and forwards the current permission. The Forms SDK helper has no `loadMode` option. |
 | `scriptUrl` | Pixel: `https://handshake.default.com/index.js`; SDK: `https://handshake.default.com/sdk.js` | Override for a compatible current-generation loader or proxy. Whitespace is trimmed. Blank values use the default. |
 | `schedulerOrigins` | Default's setting | Allowed scheduler origins, forwarded to the selected script. |
 | `autoDisplayScheduler` | Default's setting | Boolean or an object with a `target` CSS selector or `HTMLElement` and optional `loader` boolean. Forwarded to Default. |
@@ -80,9 +86,20 @@ Both helpers use the vendor ID `default-com`. The Pixel script ID is
 
 ## Loading and consent forwarding
 
-Before marketing consent, the helpers create no Default globals or queues and
-insert no Default loader. After effective marketing consent, the Pixel helper
-sets its public key and scheduler options, then queues one initial
+With the default settings, the Pixel creates no Default globals or queues and
+inserts no loader until effective `measurement` consent. The standalone SDK
+waits for effective `functionality` consent. A declared Default vendor switch
+must also be allowed. Override `category` to change either helper's condition.
+For example, require marketing consent before loading the Pixel:
+
+{/* example: fragment */}
+
+```ts
+defaultComPixel({ publicKey: 'YOUR_PUBLIC_KEY', category: 'marketing' });
+```
+
+When the Pixel starts loading, the helper sets its public key and scheduler
+options, then queues one initial
 `['setConsent', { analytics, marketing }]` command before inserting `index.js`.
 It preserves existing queue entries and an existing consent setter.
 
@@ -90,16 +107,19 @@ The standalone SDK helper does not create `window.__defaultPixel__` or set its
 key. After `sdk.js` loads, the helper calls `DefaultPixelSDK.setConsent()` before
 `DefaultPixelSDK.init()`. It initializes each SDK client once per page. If the
 visitor withdraws consent during the download, the helper forwards denial and
-waits for a later marketing grant before calling `init()`.
+waits until the configured category and vendor allow the SDK again before
+calling `init()`.
 
-After the SDK loads and marketing consent still applies, the typed
+After the SDK loads and its effective permission still applies, the typed
 `window.DefaultPixelSDK` API exposes `submitForm()`, `recordFormInteraction()`,
 `on()` and `scheduler` helpers. `submitForm()` accepts a Pixel form ID, an HTML
-form ID, or both, and resolves with a result containing `success` and `status`.
-A successful request does not prove that Default saved a submission or ran a
-workflow. Verify those results in your own workspace. Scheduler subscriptions
-and `scheduler.display()` return cleanup functions. See the
-[SDK API reference](https://docs.os.default.com/pixel-sdk-reference) for the
+form ID, or both, and returns a promise for a result containing `success` and
+`status`. The promise can reject, and any returned `workflow` is unvalidated
+data typed as `unknown`. A successful request does not prove that Default saved
+a submission or ran a workflow. Verify those results in your own workspace.
+`recordFormInteraction()` returns `Promise<void>` without a result value.
+Scheduler subscriptions and `scheduler.display()` return cleanup functions.
+See the [SDK API reference](https://docs.os.default.com/pixel-sdk-reference) for the
 method options and scheduler event payloads.
 
 Every update includes both of Default's consent fields. The helper maps c15t
@@ -108,13 +128,46 @@ When the script lacks effective consent, or the visitor turns the Default vendor
 off, both fields are false. A returning visitor whose grants still apply does
 not receive a temporary denial during bootstrap.
 
-Default's documented recommendation to load outside the consent gate does not
-apply to these helpers. A visitor who declines marketing cannot use Default's
-form handling or scheduler through this installation. Provide a form submission
-path that works without Default if visitors must be able to submit while denied.
+With the default Pixel category, granting measurement while denying marketing
+loads the Pixel with `{ analytics: true, marketing: false }`. Default's company
+identification can run, while the forwarded marketing denial prevents new
+Vector loads. To require marketing for the Pixel loader itself, set
+`category: 'marketing'` as shown above.
 
 The helpers start through c15t's browser script loader. They do not supply
 pre-hydration server startup code or add Default's generated loader retries.
+
+## Choose when the Pixel loads
+
+The Pixel defaults to `loadMode: 'after-consent'`. On a new document, this
+installation sends no Default requests until its category is allowed. A visitor
+who declines or ignores that category cannot use the Pixel's form capture or
+scheduler handoff. Provide a form submission path that works without Default
+if visitors must be able to submit while denied.
+
+To follow Default's recommendation to keep form capture available before a
+choice, opt into `loadMode: 'always'` on the Pixel:
+
+{/* example: fragment */}
+
+```ts
+defaultComPixel({ publicKey: 'YOUR_PUBLIC_KEY', loadMode: 'always' });
+```
+
+This mode requests `https://handshake.default.com/index.js` before consent. The
+Pixel requests its form catalogue from `https://api.default.com` and can capture
+and send form submissions before consent too. Default's analytics and marketing
+permissions do not gate those requests, form capture or scheduler handoffs.
+
+c15t still queues both consent fields before inserting the loader. With no
+effective permission, both are false. Subsequent measurement, marketing and
+vendor changes update the forwarded values separately from the loading rule.
+Turning the Default vendor off does not prevent an `always` loader request.
+It sends both fields as false instead.
+
+The standalone Forms SDK always waits for its configured category and has no
+`loadMode` option. The Pixel and Forms SDK examples remain alternatives in
+either Pixel loading mode.
 
 ## Withdrawal and storage
 
@@ -136,6 +189,13 @@ requests or scheduler handoffs. Keep c15t's default `reloadOnConsentRevoked`
 behavior enabled. With reload disabled, loaded scripts and form or partner
 activity can continue until navigation.
 
+A reload is required to stop code that already executed. With gated loading,
+the next document does not load Default while its category or vendor is denied.
+With Pixel `loadMode: 'always'`, the next document loads the Pixel again with
+the denied consent values, so reloading does not stop Default requests or form
+capture. Full shutdown requires a new document where the helper is absent or
+uses `loadMode: 'after-consent'` with its permission denied.
+
 The scheduler on `book.default.com` has its own storage, including
 `default.reservation`, `_dflt_*` entries and `ph_*` PostHog entries. Default says
 this storage does not follow Pixel consent today. The host page cannot clear
@@ -146,29 +206,36 @@ storage on that origin.
 Use your own workspace key and test both a new visit and a returning visit.
 Filter browser Network by `default.com`, then check the following:
 
-- Before marketing consent, neither helper should insert a loader or create
-  `__defaultPixel__` or `DefaultPixelSDK`. Measurement-only and
-  functionality-only grants should still leave both scripts blocked.
-- After marketing consent, the Pixel should have one `index.js` loader, or a
-  standalone SDK installation should have one `sdk.js` loader. Inspect the
-  Pixel queue before its bundle executes, or instrument the SDK setter to check
-  that consent arrives before `init()`.
-- Change measurement consent while marketing remains granted. Default's
-  `analytics` value should follow measurement. Turn off the Default vendor and
-  check that both forwarded values become false.
-- Withdraw marketing and confirm the default revocation reload. On the next
-  page, Default should remain blocked. With reload disabled for a test, confirm
-  that a later grant reuses the original loader and does not initialize the SDK
-  again.
+- With the default Pixel settings, no loader or `__defaultPixel__` global
+  should appear before measurement permission. Grant measurement while keeping
+  marketing denied. Expect one `index.js` loader and
+  `{ analytics: true, marketing: false }`. Marketing alone should not load it.
+- With the default standalone SDK settings, no `sdk.js` loader or
+  `DefaultPixelSDK` global should appear before functionality permission.
+  Functionality alone should load and initialize it with both tracking fields
+  false. Inspect the Pixel queue before its bundle executes, or instrument the
+  SDK setter to check that consent arrives before `init()`.
+- Test any custom `category` against that condition. With Pixel
+  `loadMode: 'always'`, expect the loader and form-catalogue requests before
+  consent, even when the vendor is denied. Confirm that both forwarded fields
+  are false until the helper has effective permission.
+- Once the chosen category allows the helper, change measurement and marketing
+  separately. Their mapped values should follow the choices. Turn off the
+  Default vendor and check that both forwarded values become false.
+- Withdraw the chosen category and confirm the default revocation reload.
+  Gated loaders should remain blocked in the next document. An `always` Pixel
+  should load again with both fields false. With reload disabled for a test,
+  confirm that a later grant reuses the original loader and does not initialize
+  the SDK again.
 
 Default's own homepage key can establish that a loader executes. It does not
 verify your domain configuration, form submission, lead routing, scheduler
 handoff or identification results. Those checks need an owned Default workspace.
+The key's public appearance does not establish authorization to collect against
+that workspace.
 
 Sources: [Pixel installation](https://docs.os.default.com/settings/pixel),
 [SDK API reference](https://docs.os.default.com/pixel-sdk-reference),
 [consent behavior](https://docs.os.default.com/forms/privacy),
 [cookies and storage](https://docs.os.default.com/forms/cookies), and
 [Default privacy policy](https://www.default.com/legal/privacy).
-
-<include src="../shared/integrations/vendor-revocation-and-verify.mdx" />

@@ -5,7 +5,6 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import {
 	deniedConsents,
-	grantedMarketingConsents,
 	grantedMeasurementConsents,
 	loadScripts,
 	updateScripts,
@@ -23,32 +22,32 @@ describe('Default core loader consent contract', () => {
 	it('creates no vendor globals, requests or storage before mapped consent', () => {
 		const scripts = [defaultComPixel({ publicKey: 'c15tfake' })];
 		loadScripts(scripts, deniedConsents);
-		updateScripts(scripts, grantedMeasurementConsents);
+		updateScripts(scripts, { ...deniedConsents, marketing: true });
 		expect(document.querySelector('script')).toBeNull();
 		for (const key of ['__defaultPixel__', 'DefaultPixelSDK']) {
 			expect(key in window).toBe(false);
 		}
 		expect(document.cookie).toBe('');
-		updateScripts(scripts, grantedMarketingConsents);
+		updateScripts(scripts, grantedMeasurementConsents);
 		const element = document.querySelector('script');
 		expect(element?.src).toBe('https://handshake.default.com/index.js');
 		element?.dispatchEvent(new Event('load'));
-		updateScripts(scripts, grantedMarketingConsents);
+		updateScripts(scripts, grantedMeasurementConsents);
 		expect(document.querySelectorAll('script')).toHaveLength(1);
 	});
 	it('retains one loader across in-flight revoke and regrant', () => {
 		const scripts = [defaultComPixel({ publicKey: 'c15tfake' })];
-		loadScripts(scripts, grantedMarketingConsents);
+		loadScripts(scripts, grantedMeasurementConsents);
 		const old = document.querySelector('script');
 		updateScripts(scripts, deniedConsents);
 		expect(old?.isConnected).toBe(true);
 		old?.dispatchEvent(new Event('load'));
 		expect(document.querySelector('script')).toBe(old);
-		updateScripts(scripts, grantedMarketingConsents);
+		updateScripts(scripts, grantedMeasurementConsents);
 		const current = document.querySelector('script');
 		expect(current).toBe(old);
 		current?.dispatchEvent(new Event('load'));
-		updateScripts(scripts, grantedMarketingConsents);
+		updateScripts(scripts, grantedMeasurementConsents);
 		expect(document.querySelectorAll('script')).toHaveLength(1);
 	});
 });

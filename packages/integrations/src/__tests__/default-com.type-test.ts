@@ -1,9 +1,40 @@
 import { expectTypeOf } from 'vitest';
 
+import type { IntegrationConsentCondition } from '../registry';
 import {
 	defaultComFormsSdk,
 	defaultComPixel,
 } from '../vendors/analytics/default-com';
+import type {
+	DefaultComFormsSdkOptions,
+	DefaultComPixelOptions,
+} from '../vendors/analytics/default-com';
+
+expectTypeOf<DefaultComPixelOptions['category']>().toEqualTypeOf<
+	IntegrationConsentCondition | undefined
+>();
+expectTypeOf<DefaultComFormsSdkOptions['category']>().toEqualTypeOf<
+	IntegrationConsentCondition | undefined
+>();
+expectTypeOf<DefaultComPixelOptions['loadMode']>().toEqualTypeOf<
+	'after-consent' | 'always' | undefined
+>();
+defaultComPixel({
+	category: { and: ['measurement', { not: 'experience' }] },
+	loadMode: 'always',
+	publicKey: 'workspace-key',
+});
+defaultComFormsSdk({ category: 'functionality', publicKey: 'workspace-key' });
+defaultComFormsSdk({
+	// @ts-expect-error Always loading is a Pixel option, not a Forms SDK option.
+	loadMode: 'always',
+	publicKey: 'workspace-key',
+});
+defaultComPixel({
+	// @ts-expect-error The Pixel supports only these two load modes.
+	loadMode: 'disabled',
+	publicKey: 'workspace-key',
+});
 
 // The package's check-types command compiles this file without executing it.
 declare const target: HTMLElement;
