@@ -18,9 +18,9 @@ export const subjectAfterClear = function subjectAfterClear(
  *
  * The one clear sequence: `hydrate()` with every record `null` and the
  * subject cut to its ID (which bumps the records generation, so any read or
- * save started before it is stale), then `records:cleared`. The kernel's save outbox listens for that event
- * and drops the queued saves of the cleared subject, with or without
- * persistence. Persistence wraps this with its storage clear; the runtime
+ * save started before it is stale), then `records:cleared`. The kernel's
+ * save outbox listens for that event and drops the queued saves of the
+ * cleared subject, with or without persistence. Persistence wraps this with its storage clear; the runtime
  * calls it directly when nothing is persisted.
  *
  * @param kernel - The kernel whose records to clear.

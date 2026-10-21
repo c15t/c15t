@@ -74,9 +74,10 @@
  *   `writer-loader-static.ts`.
  * - `clear()` needs no write code: it clears the kernel's records and
  *   storage except `<key>-sid`, and stores the clear epoch, before it
- *   returns, so a reload right after it cannot restore a cleared grant. It cancels queued writes
- *   first, so a pending flush cannot recreate what was just cleared. Its
- *   `records:cleared` event makes the kernel drop its queued saves.
+ *   returns, so a reload right after it cannot restore a cleared grant. It
+ *   cancels queued writes first, so a pending flush cannot recreate what
+ *   was just cleared. Its `records:cleared` event makes the kernel drop its
+ *   queued saves.
  * - Writes and `reconcile()` follow the ordering rules in
  *   `writer/reconcile.ts`: choices merge per category, a notice or vendor
  *   write never replaces a newer stored record, a subject-only rewrite
