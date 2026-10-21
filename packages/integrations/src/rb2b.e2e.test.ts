@@ -95,6 +95,9 @@ describe('RB2B official bootstrap', () => {
 		});
 		try {
 			const original = document.querySelector('script');
+			expect(original?.src).toBe(
+				'https://ddwl4m2hdecbv.cloudfront.net/b/c15tfake/c15tfake.js.gz'
+			);
 			original?.dispatchEvent(new Event('load'));
 			const client = Object.freeze({ collect: vi.fn(), identify: vi.fn() });
 			Object.defineProperty(window, 'reb2b', {

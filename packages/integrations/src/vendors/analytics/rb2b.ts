@@ -70,19 +70,23 @@ const supportedScriptPrefixes = [
 
 const isSupportedScriptUrl = function isSupportedScriptUrl(
 	scriptUrl: string,
-	key: string
+	accountKey: string
 ): boolean {
 	try {
 		const normalized = new URL(scriptUrl);
 		const prefix = supportedScriptPrefixes.find((supportedPrefix) =>
 			normalized.href.startsWith(supportedPrefix)
 		);
+		if (prefix === undefined) {
+			return false;
+		}
+		const accountPath = normalized.pathname.slice(
+			new URL(prefix).pathname.length
+		);
+		const segmentEnd = accountPath.indexOf('/');
 		return (
-			prefix !== undefined &&
-			normalized.pathname
-				.slice(new URL(prefix).pathname.length)
-				.toLowerCase()
-				.startsWith(`${key.toLowerCase()}/`)
+			segmentEnd > 0 &&
+			decodeURIComponent(accountPath.slice(0, segmentEnd)) === accountKey
 		);
 	} catch {
 		return false;
@@ -112,7 +116,7 @@ export const rb2b = function rb2b(options: Rb2bOptions): Script {
 		trimToUndefined(options.scriptUrl),
 		`https://ddwl4m2hdecbv.cloudfront.net/b/${key}/${key}.js.gz`
 	);
-	if (!isSupportedScriptUrl(scriptUrl, key)) {
+	if (!isSupportedScriptUrl(scriptUrl, accountKey)) {
 		return skipScript(
 			'rb2b: scriptUrl must use a supported HTTPS CloudFront or S3 prefix and /b/<accountKey>/ path',
 			{ category: 'marketing', manifest: rb2bManifest }
