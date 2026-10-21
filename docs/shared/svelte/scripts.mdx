@@ -30,7 +30,7 @@ yourself:
 | `id` | required | A unique name. The loader uses it to add and remove the script once. |
 | `category` | required | The category or condition, such as `'measurement'` or `{ and: ['measurement', 'marketing'] }`, that must be allowed. |
 | `src` or `textContent` | none | The script's URL, or inline code. |
-| `callbackOnly` | `false` | Adds no `<script>` element and only runs the callbacks. Use it to switch an SDK you load yourself on and off. |
+| `callbackOnly` | `false` | `true` or a zero-argument predicate returning `true` adds no `<script>` element and only runs callbacks. Predicates run before new mounts, for diagnostics and for server startup; keep them free of side effects and safe on the server. |
 | `alwaysLoad` | `false` | Loads at once, whatever the consent state. Only for scripts that apply consent themselves, such as a tag manager with Consent Mode. |
 | `persistAfterConsentRevoked` | `false` | `true` keeps the element after withdrawal, including pending downloads. `'loaded'` keeps only elements whose load event completed; pending and failed loads are removed. |
 | `target` | `'head'` | Where the element goes: `'head'` or `'body'`. |

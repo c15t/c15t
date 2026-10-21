@@ -101,6 +101,35 @@ afterEach(() => {
 });
 
 describe('serverScriptStart', () => {
+	test.each([undefined, false, () => false])(
+		'starts element scripts when callbackOnly=%s',
+		(callbackOnly) => {
+			run(
+				serverScriptStart({
+					mode,
+					prefetch: prefetchFor({ marketing: true }),
+					scripts: [{ ...pixel, callbackOnly }],
+				})
+			);
+			expect((window as StartedWindow).__c15tSetup).toBe(1);
+			expect(document.head.querySelector('script')?.src).toBe(pixel.src);
+		}
+	);
+
+	test.each([true, () => true])(
+		'skips server startup when callbackOnly=%s',
+		(callbackOnly) => {
+			expect(
+				serverScriptStart({
+					mode,
+					prefetch: prefetchFor({ marketing: true }),
+					scripts: [{ ...pixel, callbackOnly }],
+				})
+			).toBeUndefined();
+			expect((window as StartedWindow).__c15tSetup).toBeUndefined();
+		}
+	);
+
 	test('runs setup, then inserts the element for the loader to adopt', () => {
 		run(
 			serverScriptStart({

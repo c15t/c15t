@@ -288,12 +288,8 @@ export const gainsightPx = function gainsightPx(
 		createGainsightPxScript
 	);
 	// Reuse resets its callbacks after final disposal, but cannot unload PX.
-	// Read at mount time so retained script objects and fresh helpers both work.
-	Object.defineProperty(script, 'callbackOnly', {
-		configurable: true,
-		enumerable: true,
-		get: hasStartedGainsightPx,
-	});
+	// Keep the runtime check intact when callers customize the script with spread.
+	script.callbackOnly = hasStartedGainsightPx;
 	script.observeConsentBeforeLoad = true;
 	return script;
 };

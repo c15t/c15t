@@ -22,6 +22,7 @@ import {
 	optInRule,
 } from '../../../__tests__/fixtures/kernel-fixtures';
 import { createConsentKernel } from '../../../index';
+import { getScriptDiagnostics } from '../diagnostics';
 import { createScriptLoader } from '../index';
 import type { Script } from '../index';
 
@@ -518,6 +519,35 @@ describe('script-loader: persistAfterConsentRevoked', () => {
 });
 
 describe('script-loader: callbackOnly skips DOM mount', () => {
+	test.each([false, true])(
+		'reevaluates a retained predicate on remount, initially=%s',
+		(initial) => {
+			let started = initial;
+			const script: Script = {
+				callbackOnly: () => started,
+				category: 'necessary',
+				id: 'runtime-check',
+				src: 'https://example.com/sdk.js',
+			};
+			const kernel = createConsentKernel();
+			const first = createScriptLoader({ kernel, scripts: [{ ...script }] });
+			expect(head.children).toHaveLength(initial ? 0 : 1);
+			expect(getScriptDiagnostics(kernel)[0]?.callbackOnly).toBe(initial);
+			started = !initial;
+			expect(getScriptDiagnostics(kernel)[0]?.callbackOnly).toBe(started);
+			expect(head.children).toHaveLength(initial ? 0 : 1);
+			first.dispose();
+			const second = createScriptLoader({ kernel, scripts: [{ ...script }] });
+			try {
+				expect(head.children).toHaveLength(started ? 0 : 1);
+				expect(getScriptDiagnostics(kernel)[0]?.callbackOnly).toBe(started);
+			} finally {
+				second.dispose();
+				kernel.dispose();
+			}
+		}
+	);
+
 	test('no element appended, onLoad still fires', () => {
 		const onLoad = vi.fn();
 		const kernel = createConsentKernel({

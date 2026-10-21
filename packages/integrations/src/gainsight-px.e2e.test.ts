@@ -368,6 +368,74 @@ describe('Gainsight PX production loader contract', () => {
 		}
 	});
 
+	it.each([false, true])(
+		'shares equivalent clones retained before startup, original owner first=%s',
+		async (originalOwner) => {
+			const options = { productKey: 'AP-CLONED-OWNERS-2' };
+			const scripts = [0, 1, 2].map(() => ({
+				...gainsightPx(options),
+				anonymizeId: false,
+			}));
+			const runtime = Object.assign(vi.fn(), { __sdkBundleStarted: true });
+			const executeSdk = vi.fn((element: HTMLScriptElement) => {
+				Reflect.set(window, 'aptrinsic', runtime);
+				element.dispatchEvent(new Event('load'));
+			});
+			installHeadProbe(executeSdk);
+			const kernel = createConsentKernel();
+			await kernel.commands.save(grantedConsents);
+			const first = createScriptLoader({
+				kernel,
+				scripts: scripts.slice(0, 1),
+			});
+			const second = createScriptLoader({
+				kernel,
+				scripts: scripts.slice(1, 2),
+			});
+			try {
+				await kernel.commands.save(deniedConsents);
+				expect(runtime).toHaveBeenLastCalledWith('reset');
+				(originalOwner ? first : second).dispose();
+				(originalOwner ? second : first).dispose();
+				expect(document.head.querySelector('script')).toBeNull();
+				await kernel.commands.save(grantedConsents);
+				const third = createScriptLoader({ kernel, scripts: scripts.slice(2) });
+				try {
+					expect(executeSdk).toHaveBeenCalledTimes(1);
+					expect(runtime).toHaveBeenLastCalledWith('config', 'enableTag', true);
+				} finally {
+					third.dispose();
+				}
+			} finally {
+				first.dispose();
+				second.dispose();
+				kernel.dispose();
+			}
+		}
+	);
+
+	it('retries a retained clone with a fresh queue when its SDK never started', () => {
+		const script = {
+			...gainsightPx({
+				productKey: 'AP-CLONE-PENDING-2',
+				user: { id: 'current' },
+			}),
+			anonymizeId: false,
+		};
+		loadScripts([script], grantedConsents);
+		const previous = getAptrinsic();
+		clearAllScripts();
+		loadScripts([script], deniedConsents);
+		expect(document.head.querySelector('script')).toBeNull();
+		updateScripts([script], grantedConsents);
+		expect(getAptrinsic()).not.toBe(previous);
+		expect(getAptrinsic().q.map((entry) => Array.from(entry))).toEqual([
+			['config', 'enableTag', true],
+			['identify', { id: 'current' }],
+		]);
+		expect(document.head.querySelectorAll('script')).toHaveLength(1);
+	});
+
 	describe.each(['revocation', 'disposal'])(
 		'pending setup after %s',
 		(ending) => {
@@ -438,14 +506,20 @@ describe('Gainsight PX production loader contract', () => {
 		}
 	);
 
-	it.each([true, false])(
-		'preserves pending server setup during hydration, client consent=%s',
-		async (allow) => {
-			const script = gainsightPx({
+	it.each([
+		{ allow: true, cloned: false },
+		{ allow: false, cloned: false },
+		{ allow: true, cloned: true },
+		{ allow: false, cloned: true },
+	])(
+		'preserves pending server setup during hydration, client consent=$allow, cloned=$cloned',
+		async ({ allow, cloned }) => {
+			const original = gainsightPx({
 				config: { fullDomainCookie: true },
 				productKey: 'AP-SERVER-HYDRATION-2',
 				user: { id: 'server-user' },
 			});
+			const script = cloned ? { ...original, anonymizeId: false } : original;
 			const start = script.serverStart?.(
 				{ consents: grantedConsents, hasConsent: true, id: script.id },
 				script
@@ -601,6 +675,52 @@ describe('Gainsight PX production loader contract', () => {
 			updateScripts([script], deniedConsents);
 			updateScripts([script], grantedConsents);
 			expect(executeSdk).toHaveBeenCalledTimes(1);
+		}
+	);
+
+	it.each([
+		{ denied: false, loaded: false },
+		{ denied: true, loaded: false },
+		{ denied: false, loaded: true },
+		{ denied: true, loaded: true },
+	])(
+		'reuses a retained spread clone after final disposal, denied remount=$denied, load completed=$loaded',
+		({ denied, loaded }) => {
+			const script = {
+				...gainsightPx({
+					productKey: 'AP-CLONE-2',
+					user: { id: 'clone-user' },
+				}),
+				anonymizeId: false,
+			};
+			const runtime = Object.assign(vi.fn(), { __sdkBundleStarted: true });
+			const executeSdk = vi.fn((element: HTMLScriptElement) => {
+				Reflect.set(window, 'aptrinsic', runtime);
+				if (loaded) {
+					element.dispatchEvent(new Event('load'));
+				}
+			});
+			installHeadProbe(executeSdk);
+			loadScripts([script], grantedConsents);
+			clearAllScripts();
+			expect(document.head.querySelector('script')).toBeNull();
+			runtime.mockClear();
+			loadScripts([script], denied ? deniedConsents : grantedConsents);
+			expect(runtime.mock.calls).toEqual(
+				denied
+					? [['config', 'enableTag', false], ['reset']]
+					: [
+							['config', 'enableTag', true],
+							['identify', { id: 'clone-user' }],
+						]
+			);
+			updateScripts([script], grantedConsents);
+			expect(executeSdk).toHaveBeenCalledTimes(1);
+			expect(document.head.querySelector('script')).toBeNull();
+			expect(runtime.mock.calls.slice(denied ? 2 : 0)).toEqual([
+				['config', 'enableTag', true],
+				['identify', { id: 'clone-user' }],
+			]);
 		}
 	);
 

@@ -26,7 +26,7 @@ one.
 | `src` | `string` | none | The URL to load. |
 | `resourceKey` | `string` | `id` | The DOM resource identity. Matching keys share one element within and across loaders, while each logical script keeps its callbacks and consent state. Use different keys for different resources under the same script ID. |
 | `textContent` | `string` | none | Inline code to run instead of `src`. |
-| `callbackOnly` | `boolean` | `false` | Add no element, run only the callbacks. For a vendor already on the page. |
+| `callbackOnly` | `boolean` or `() => boolean` | `false` | Add no element when `true` or when the predicate returns `true`. Evaluated before each new mount, for diagnostics and for server startup. Keep predicates free of side effects and safe on the server. |
 | `alwaysLoad` | `boolean` | `false` | Load whatever the consent state, for tags that manage consent themselves through the vendor's API. |
 | `observeConsentBeforeLoad` | `boolean` | `false` | Notify `onConsentChange` during initial denial and subsequent updates before the resource loads. Useful for integrations that coordinate a shared SDK. |
 | `persistAfterConsentRevoked` | `boolean` or `'loaded'` | `false` | `true` keeps the element after withdrawal, including pending downloads. `'loaded'` keeps only elements whose load event completed; pending and failed loads are removed. |

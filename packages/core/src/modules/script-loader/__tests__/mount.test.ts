@@ -132,6 +132,58 @@ describe('mountScript', () => {
 		expect(onLoad).toHaveBeenCalledOnce();
 	});
 
+	test.each([
+		{ callbackOnly: undefined, skipsElement: false },
+		{ callbackOnly: false, skipsElement: false },
+		{ callbackOnly: true, skipsElement: true },
+		{ callbackOnly: () => false, skipsElement: false },
+		{ callbackOnly: () => true, skipsElement: true },
+	])(
+		'resolves callbackOnly=$callbackOnly to $skipsElement',
+		({ callbackOnly, skipsElement }) => {
+			const { deps } = makeDeps();
+			const onBeforeLoad = vi.fn();
+			const script: Script = {
+				callbackOnly,
+				category: 'necessary',
+				id: 'runtime-check',
+				onBeforeLoad,
+				src: 'https://example.com/sdk.js',
+			};
+			mountScript(
+				deps,
+				script,
+				createConsentKernel().getSnapshot(),
+				true,
+				null
+			);
+			expect(document.head.querySelectorAll('script')).toHaveLength(
+				skipsElement ? 0 : 1
+			);
+			expect(onBeforeLoad).toHaveBeenCalledOnce();
+			expect(deps.loadedElements.get(script.id)).toBe(
+				skipsElement ? null : document.head.querySelector('script')
+			);
+		}
+	);
+
+	test('a false callback-only predicate still requires a script source', () => {
+		const { deps } = makeDeps();
+		expect(() =>
+			mountScript(
+				deps,
+				{
+					callbackOnly: () => false,
+					category: 'necessary',
+					id: 'missing-source',
+				},
+				createConsentKernel().getSnapshot(),
+				true,
+				null
+			)
+		).toThrow(/either 'src'/u);
+	});
+
 	test('queues the element when a batch is provided', () => {
 		const { deps } = makeDeps();
 		const snap = createConsentKernel().getSnapshot();

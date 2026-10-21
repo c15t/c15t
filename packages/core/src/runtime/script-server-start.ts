@@ -27,6 +27,7 @@ import {
 	IAB_CODES,
 	SUBJECT_CODES,
 } from '../modules/persistence/writer/encode';
+import { isCallbackOnly } from '../modules/script-loader/callback-only';
 import type { ConsentSnapshot } from '../types';
 import { storageFor } from './assemble';
 import { createRuntimeKernel } from './runtime-kernel';
@@ -266,7 +267,7 @@ const serverStartCandidates = function serverStartCandidates(
 		return [];
 	}
 	const elementScripts = (options.scripts ?? []).filter(
-		(script) => !script.callbackOnly
+		(script) => !isCallbackOnly(script)
 	);
 	return elementScripts.some((script) => script.serverStart && script.src)
 		? elementScripts

@@ -4,6 +4,7 @@
  * `index.ts` is the public entry and passes the shared implementations.
  */
 import type { ConsentSnapshot } from '../../types';
+import { isCallbackOnly } from './callback-only';
 import { buildCallbackInfo, invokeCallback } from './callbacks';
 import { createDebugEmitter } from './debug';
 import { registerScriptDiagnostics } from './diagnostics';
@@ -276,7 +277,7 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 				}
 				return {
 					alwaysLoad: script.alwaysLoad ?? false,
-					callbackOnly: script.callbackOnly ?? false,
+					callbackOnly: isCallbackOnly(script),
 					category: script.category,
 					elementId,
 					eligible,

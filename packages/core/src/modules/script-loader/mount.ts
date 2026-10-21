@@ -13,6 +13,7 @@
  * fires `onConsentChange` if wired.
  */
 import type { ConsentSnapshot } from '../../types';
+import { isCallbackOnly } from './callback-only';
 import { buildCallbackInfo, hasAnyCallback, invokeCallback } from './callbacks';
 import type { ElementIdResolver } from './normalize';
 import type {
@@ -513,7 +514,7 @@ export const mountScript = function mountScript(
 		return;
 	}
 
-	if (script.callbackOnly === true) {
+	if (isCallbackOnly(script)) {
 		const info = buildCallbackInfo(
 			deps.tools,
 			script,

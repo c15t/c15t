@@ -118,6 +118,10 @@ export interface Script {
 	/**
 	 * Whether this is a callback-only script that doesn't need to load an external resource.
 	 * When true, no script tag will be added to the DOM, only callbacks will be executed.
+	 * A zero-argument predicate checks the current runtime before each new mount,
+	 * when reading diagnostics, and when selecting scripts for server startup.
+	 * Keep it free of side effects and safe to call on the server. It may run
+	 * more than once and does not change an already mounted registration.
 	 *
 	 * This is useful for:
 	 * - Managing consent for libraries already loaded on the page
@@ -131,7 +135,7 @@ export interface Script {
 	 *
 	 * @default false
 	 */
-	callbackOnly?: boolean;
+	callbackOnly?: boolean | (() => boolean);
 
 	/**
 	 * Keep the element after consent is revoked. `true` also keeps pending

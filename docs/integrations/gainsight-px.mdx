@@ -94,7 +94,10 @@ remains in the page. Later mounts check PX's own bundle execution marker and
 use the existing API without requesting the bundle again. A denied mount sends
 disable and reset commands without enabling PX or identifying the user. A later
 grant enables the tag and repeats the optional identify call. An `aptrinsic`
-queue alone does not prove that the SDK ran.
+queue alone does not prove that the SDK ran. The runtime check also survives
+customization with object spread, such as
+`{ ...gainsightPx(options), anonymizeId: false }`, even when the copy was made
+before PX started and the same copy is mounted again after disposal.
 
 Once this helper starts the SDK, use the same `productKey` for the rest of the
 page's lifetime, including after disposal. Constructing a helper with another
