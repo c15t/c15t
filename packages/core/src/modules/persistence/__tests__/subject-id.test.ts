@@ -128,6 +128,27 @@ test('a clear keeps the ID through a reload', async () => {
 	expect(kernel.getSnapshot().activeUI).toBe('banner');
 });
 
+test.each([
+	['cookie', () => expire(SID_KEY)],
+	['localStorage', () => localStorage.removeItem(SID_KEY)],
+] as const)(
+	'a lost %s copy of the ID comes back at startup and on focus',
+	(_, lose) => {
+		const first = boot();
+		const subjectId = subjectIdOf(first.kernel);
+		first.handle.dispose();
+
+		lose();
+		const { kernel } = boot();
+		expect(subjectIdOf(kernel)).toBe(subjectId);
+		expect(storedSid()).toEqual({ cookie: subjectId, local: subjectId });
+
+		lose();
+		window.dispatchEvent(new Event('focus'));
+		expect(storedSid()).toEqual({ cookie: subjectId, local: subjectId });
+	}
+);
+
 test('removing the ID starts a new one', () => {
 	const { kernel } = boot();
 	const subjectId = subjectIdOf(kernel);

@@ -961,6 +961,36 @@ export const readStoredSubjectId = function readStoredSubjectId(
 	);
 };
 
+/**
+ * The subject ID when every readable copy of `<key>-sid` holds it, `null`
+ * when a copy is missing or the copies differ, so the caller writes both
+ * again. A store the browser blocks does not count as missing.
+ */
+export const readSyncedSubjectId = function readSyncedSubjectId(
+	config: StorageConfig | undefined
+): string | null {
+	const keys = resolveStorageKeys(config);
+	let cookieBlocked = false;
+	let localBlocked = false;
+	const cookie = cookieSubjectId(
+		getRawCookieValue(keys.subject, () => {
+			cookieBlocked = true;
+		})
+	);
+	const local = validSubjectId(
+		readLocalStorageText(keys.subject, () => {
+			localBlocked = true;
+		})
+	);
+	if (cookieBlocked) {
+		return local;
+	}
+	if (localBlocked) {
+		return cookie;
+	}
+	return cookie === local ? cookie : null;
+};
+
 /** Server read of the subject ID cookie from a request `Cookie` header. */
 export const readStoredSubjectIdFromCookieHeader =
 	function readStoredSubjectIdFromCookieHeader(

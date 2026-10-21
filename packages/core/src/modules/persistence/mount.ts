@@ -18,6 +18,7 @@ import type { StoredRecords } from './hydrate';
 import {
 	isNewerDenial,
 	readStoredSubjectId,
+	readSyncedSubjectId,
 	resolveStorageKeys,
 } from './record-storage';
 import { persistenceTools } from './tools';
@@ -101,7 +102,8 @@ export const mountPersistence = function mountPersistence(
 	let retryTimer: ReturnType<typeof setTimeout> | undefined;
 	// The subject ID the kernel holds, as this handle last saw it.
 	let subjectId: string | undefined;
-	// The ID `<key>-sid` was last read as or written with.
+	// The ID both copies of `<key>-sid` were last read as or written with;
+	// `null` when a copy was missing, so the next store writes both.
 	let storedSubjectId: string | null = null;
 	// An ID this runtime generated or read from `<key>-sid` that no save or
 	// `identify()` has used yet. Another tab's stored ID replaces it, so two
@@ -422,7 +424,8 @@ export const mountPersistence = function mountPersistence(
 		before: ConsentSubject | null,
 		recordedSubjectId: string | null
 	): void {
-		storedSubjectId = readStoredSubjectId(storageConfig);
+		const stored = readStoredSubjectId(storageConfig);
+		storedSubjectId = readSyncedSubjectId(storageConfig);
 		const snapshot = kernel.getSnapshot();
 		let { subject } = snapshot;
 		let local = false;
@@ -434,7 +437,7 @@ export const mountPersistence = function mountPersistence(
 		} else if (!(recordedSubjectId && subject?.subjectId)) {
 			subject = {
 				...subject,
-				subjectId: subject?.subjectId ?? storedSubjectId ?? generateSubjectId(),
+				subjectId: subject?.subjectId ?? stored ?? generateSubjectId(),
 			};
 			local = true;
 		}
@@ -468,14 +471,14 @@ export const mountPersistence = function mountPersistence(
 			return;
 		}
 		const stored = readStoredSubjectId(storageConfig);
-		storedSubjectId = stored;
-		if (!stored) {
+		storedSubjectId = readSyncedSubjectId(storageConfig);
+		if (!stored || stored === subjectId) {
+			// Restores a copy the browser dropped.
 			storeSubjectId(subjectId);
 			return;
 		}
 		const snapshot = kernel.getSnapshot();
 		if (
-			stored !== subjectId &&
 			subjectId === unusedSubjectId &&
 			!snapshot.explicitChoice &&
 			!snapshot.vendorChoice
