@@ -5,7 +5,7 @@ packages:
   "@c15t/schema": patch
 ---
 
-### Add Japanese, Thai, Malay, Vietnamese, Turkish and five Indian languages
+### Add Japanese, Thai, Malay, Vietnamese, Turkish and six Indian languages
 
 `@c15t/translations` now ships consent copy for Japanese (`ja`), Thai
 (`th`), Malay (`ms`), Vietnamese (`vi`), Turkish (`tr`), Tamil (`ta`),
