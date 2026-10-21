@@ -330,6 +330,48 @@ describe('ActiveCampaign helper recreation', () => {
 			['setEmail', 'restored@example.com'],
 		]);
 	});
+	it('rejects a foreign dispatcher when a loaded SDK is adopted after an ownerless gap', async () => {
+		const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+		loadScripts(
+			[
+				activeCampaignTracking({
+					accountId: '123456',
+					email: 'old@example.com',
+				}),
+			],
+			granted
+		);
+		const loader = getLoader();
+		const pgo = vi.fn();
+		window.pgo = pgo;
+		loader.dispatchEvent(new Event('load'));
+		expect(pgo.mock.calls).toEqual([
+			['setEmail', 'old@example.com'],
+			['process', 'allowTracking'],
+		]);
+		updateScripts([], granted);
+		await Promise.resolve();
+		const foreign = vi.fn();
+		window.pgo = foreign;
+		updateScripts(
+			[
+				activeCampaignTracking({
+					accountId: '123456',
+					email: 'new@example.com',
+				}),
+			],
+			granted
+		);
+		await Promise.resolve();
+		expect(foreign).not.toHaveBeenCalled();
+		expect(pgo).toHaveBeenCalledTimes(2);
+		expect(error).toHaveBeenCalledWith(
+			'activeCampaignTracking: tracker ownership was lost; reload the page'
+		);
+		expect(window.pgo).toBe(foreign);
+		expect(getLoader()).toBe(loader);
+		expect(document.querySelectorAll('script[src]')).toHaveLength(1);
+	});
 	it('ignores an ownerless late load and reuses it on remount', async () => {
 		loadScripts(
 			[

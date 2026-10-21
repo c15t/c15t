@@ -14,4 +14,6 @@ Load the Diffuser SDK directly from ActiveCampaign's CDN by default, bypassing t
 
 Keep one SDK mounted when options change or a registration remounts. Update or clear the email used by future requests without sending another page request. Require a new page for account or loader changes and withhold helper commands when registrations conflict, preserving activation state when a conflict resolves.
 
+Preserve the captured `pgo` dispatcher when a registration remounts. Require a page reload if another script replaces it, without sending email or tracking commands to the replacement.
+
 Add opt-in `Script.persistAfterDispose` so integrations whose SDK outlives its registration can retain the original tag and its completion, including inline scripts that dispose their loader during execution. Other scripts still remove their owned elements on disposal.

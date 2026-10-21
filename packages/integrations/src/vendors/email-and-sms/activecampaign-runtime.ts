@@ -243,7 +243,7 @@ export const withActiveCampaignRuntime = (
 				return;
 			}
 			runtime.status = 'loaded';
-			runtime.command = browser.pgo;
+			runtime.command ??= browser.pgo;
 			reconcile(state);
 		},
 		persistAfterDispose: true,
