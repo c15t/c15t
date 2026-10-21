@@ -27,6 +27,11 @@ import type { VueConsentKernelContext } from '../runtime/kernel';
 
 const nuxt = vi.hoisted(() => ({
 	consentSource: undefined as ExternalConsentSource | undefined,
+	cookies: [] as {
+		name: string;
+		options: Record<string, unknown>;
+		value: unknown;
+	}[],
 	experiment: undefined as
 		| { arm?: string; arms: Record<string, object>; id: string }
 		| undefined,
@@ -53,6 +58,11 @@ vi.mock('#imports', async () => {
 				iframeBlocker: false,
 			},
 		}),
+		useCookie: (name: string, options: Record<string, unknown>) => {
+			const cookie = { name, options, value: undefined as unknown };
+			nuxt.cookies.push(cookie);
+			return cookie;
+		},
 		useHead: () => undefined,
 		// Nitro's in-process fetch on the event answers the app's own routes.
 		useRequestEvent: () => ({
@@ -95,6 +105,7 @@ afterEach(() => {
 	vi.unstubAllGlobals();
 	vi.restoreAllMocks();
 	nuxt.state.clear();
+	nuxt.cookies = [];
 	nuxt.consentSource = undefined;
 	nuxt.experiment = undefined;
 	nuxt.fetchHeaders = [];
@@ -164,6 +175,7 @@ test.each([false, true])('Nuxt hydrates GPC: manifest=%s', async (manifest) => {
 		default: (app: {
 			vueApp: App;
 			hook: (name: string, callback: () => void) => void;
+			runWithContext: <Result>(run: () => Result) => Result;
 			payload: { prerenderedAt?: number; serverRendered?: boolean };
 		}) => Promise<void>;
 	}>('../runtime/plugin.nuxt');
@@ -194,6 +206,7 @@ test.each([false, true])('Nuxt hydrates GPC: manifest=%s', async (manifest) => {
 			throw new Error('Server must not start browser lifecycle');
 		},
 		payload: {},
+		runWithContext: (run) => run(),
 		vueApp: serverApp,
 	});
 	const html = await renderToString(serverApp);
@@ -228,6 +241,7 @@ test.each([false, true])('Nuxt hydrates GPC: manifest=%s', async (manifest) => {
 			mounted = lifecycle;
 		},
 		payload: { serverRendered: true },
+		runWithContext: (run) => run(),
 		vueApp: clientApp,
 	});
 	const container = document.createElement('div');
@@ -295,6 +309,7 @@ test('Nuxt external authority skips server fetch and records, then connects only
 		default: (app: {
 			vueApp: App;
 			hook: (name: string, callback: () => void) => void;
+			runWithContext: <Result>(run: () => Result) => Result;
 			payload: { prerenderedAt?: number; serverRendered?: boolean };
 		}) => Promise<void>;
 	}>('../runtime/plugin.nuxt');
@@ -315,6 +330,7 @@ test('Nuxt external authority skips server fetch and records, then connects only
 			}
 		},
 		payload: { serverRendered: true },
+		runWithContext: (run) => run(),
 		vueApp: app,
 	});
 	expect(nuxt.requests).toBe(0);
@@ -348,6 +364,7 @@ test('the server init fetch carries a fixed experiment arm until the visitor cho
 		default: (app: {
 			vueApp: App;
 			hook: (name: string, callback: () => void) => void;
+			runWithContext: <Result>(run: () => Result) => Result;
 			payload: { prerenderedAt?: number; serverRendered?: boolean };
 		}) => Promise<void>;
 	}>('../runtime/plugin.nuxt');
@@ -383,6 +400,7 @@ test('the server init fetch carries a fixed experiment arm until the visitor cho
 	await plugin({
 		hook: () => undefined,
 		payload: {},
+		runWithContext: (run) => run(),
 		vueApp: createSSRApp(defineComponent({ render: () => null })),
 	});
 	expect(nuxt.fetchHeaders[0]?.['x-c15t-experiment']).toBe('banner-shape=wall');
@@ -428,6 +446,7 @@ test('an `ssr: false` route asks for the policy before the app mounts', async ()
 		default: (app: {
 			vueApp: App;
 			hook: (name: string, callback: () => void) => void;
+			runWithContext: <Result>(run: () => Result) => Result;
 			payload: { serverRendered?: boolean };
 		}) => Promise<void>;
 	}>('../runtime/plugin.nuxt');
@@ -437,6 +456,7 @@ test('an `ssr: false` route asks for the policy before the app mounts', async ()
 	await plugin({
 		hook: (name) => hooks.push(name),
 		payload: {},
+		runWithContext: (run) => run(),
 		vueApp: app,
 	});
 	// `/init` is on its way before the app mounts, and nothing waits for mount.
@@ -475,6 +495,7 @@ test('an `ssr: false` route that resolves in the browser starts once the app mou
 		default: (app: {
 			vueApp: App;
 			hook: (name: string, callback: () => void) => void;
+			runWithContext: <Result>(run: () => Result) => Result;
 			payload: { serverRendered?: boolean };
 		}) => Promise<void>;
 	}>('../runtime/plugin.nuxt');
@@ -483,6 +504,7 @@ test('an `ssr: false` route that resolves in the browser starts once the app mou
 	await plugin({
 		hook: (name) => hooks.push(name),
 		payload: {},
+		runWithContext: (run) => run(),
 		vueApp: app,
 	});
 	// The manifest request left when the runtime was built; starting before
@@ -491,4 +513,132 @@ test('an `ssr: false` route that resolves in the browser starts once the app mou
 		expect(requests.some((url) => url.includes('/manifest'))).toBe(true)
 	);
 	expect(hooks).toContain('app:mounted');
+});
+
+test('the server render gives a new visitor a subject ID the browser starts with', async () => {
+	const { default: plugin } = await vi.importActual<{
+		default: (app: {
+			vueApp: App;
+			hook: (name: string, callback: () => void) => void;
+			runWithContext: <Result>(run: () => Result) => Result;
+			payload: { prerenderedAt?: number; serverRendered?: boolean };
+		}) => Promise<void>;
+	}>('../runtime/plugin.nuxt');
+	nuxt.manifest = false;
+	const policy = normalizePolicyRule({
+		categories: ['marketing'],
+		id: 'nuxt-subject',
+		match: { fallback: true },
+		model: 'opt-in',
+		prompt: 'choice',
+		scopeMode: 'permissive',
+	});
+	nuxt.response = {
+		branding: 'none',
+		location: { countryCode: 'DE', regionCode: null },
+		policyResolution: writePolicyResolutionWire({
+			fingerprints: createPolicyRuleFingerprints(policy),
+			matchedBy: 'fallback',
+			policy,
+			policyId: policy.id,
+			status: 'matched',
+		}),
+		translations: { language: 'en', translations },
+	};
+	let context!: VueConsentKernelContext;
+	const Probe = defineComponent({
+		setup() {
+			context = useConsentKernelContext();
+			return () => h('div', [h(ConsentBanner)]);
+		},
+	});
+	const renderOnServer = async function renderOnServer(
+		headers: Record<string, string>
+	) {
+		nuxt.state.clear();
+		nuxt.cookies = [];
+		nuxt.headers = headers;
+		const app = createSSRApp(Probe);
+		vi.stubGlobal('window', undefined);
+		vi.stubGlobal('document', undefined);
+		await plugin({
+			hook: () => {
+				throw new Error('Server must not start browser lifecycle');
+			},
+			payload: {},
+			runWithContext: (run) => run(),
+			vueApp: app,
+		});
+		const html = await renderToString(app);
+		const subjectId = context.snapshot.value.subject?.subjectId;
+		const { explicitChoice } = context.snapshot.value;
+		context.dispose();
+		vi.unstubAllGlobals();
+		return { explicitChoice, html, subjectId };
+	};
+
+	const first = await renderOnServer({ cookie: 'theme=dark' });
+	expect(first.subjectId).toMatch(/^sub_/u);
+	expect(first.explicitChoice).toBeNull();
+	expect(nuxt.cookies).toEqual([
+		{
+			name: 'c15t-sid',
+			options: {
+				httpOnly: false,
+				maxAge: 365 * 86_400,
+				path: '/',
+				sameSite: 'lax',
+				secure: true,
+			},
+			value: first.subjectId,
+		},
+	]);
+
+	// The browser now holds the cookie the response set.
+	const payload = JSON.stringify(
+		[...nuxt.state].map(([key, value]) => [key, value.value])
+	);
+	nuxt.state = new Map(
+		(JSON.parse(payload) as [string, unknown][]).map(([key, value]) => [
+			key,
+			ref(value),
+		])
+	);
+	nuxt.headers = {};
+	document.cookie = `c15t-sid=${first.subjectId}; path=/`;
+	const clientApp = createSSRApp(Probe);
+	await plugin({
+		hook: () => undefined,
+		payload: { serverRendered: true },
+		runWithContext: (run) => run(),
+		vueApp: clientApp,
+	});
+	const container = document.createElement('div');
+	container.innerHTML = first.html;
+	document.body.append(container);
+	clientApp.mount(container);
+	await nextTick();
+	try {
+		expect(context.snapshot.value.subject?.subjectId).toBe(first.subjectId);
+		expect(context.snapshot.value.explicitChoice).toBeNull();
+		expect(
+			document.querySelector('[data-testid="consent-banner-root"]')
+		).not.toBeNull();
+	} finally {
+		clientApp.unmount();
+		document.cookie = 'c15t-sid=; path=/; max-age=0';
+	}
+
+	const returning = await renderOnServer({
+		cookie: `c15t-sid=${first.subjectId}`,
+	});
+	expect(returning.subjectId).toBe(first.subjectId);
+	expect(nuxt.cookies).toEqual([]);
+
+	const prefetch = await renderOnServer({
+		cookie: '',
+		'sec-purpose': 'prefetch',
+	});
+	expect(prefetch.subjectId).toBeUndefined();
+	expect(nuxt.cookies).toEqual([]);
 });
