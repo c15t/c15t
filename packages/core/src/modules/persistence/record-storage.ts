@@ -815,13 +815,25 @@ export const readStoredNoticeDismissal = function readStoredNoticeDismissal(
 		(value) => decodeNoticeDismissal(value, now),
 		onUnavailable
 	);
-	// The newer dismissal wins, the cookie on a tie. A dismissal only hides
+	// The newer dismissal wins; same-acknowledgement identity is resolved below.
+	// A dismissal only hides
 	// the notice for the fingerprint it names, which the evaluator checks,
 	// and it never grants a category.
 	if (fromCookie?.ok && fromLocal?.ok) {
-		return fromLocal.record.dismissedAt > fromCookie.record.dismissedAt
-			? fromLocal
-			: fromCookie;
+		if (fromLocal.record.dismissedAt > fromCookie.record.dismissedAt) {
+			return fromLocal;
+		}
+		// A canonical subject rewrite keeps the acknowledgement time. The
+		// local copy can therefore carry the new identity when the cookie
+		// write was dropped, but must still describe the same acknowledgement.
+		if (
+			fromLocal.record.dismissedAt === fromCookie.record.dismissedAt &&
+			fromLocal.record.fingerprint === fromCookie.record.fingerprint &&
+			fromLocal.record.subject
+		) {
+			return fromLocal;
+		}
+		return fromCookie;
 	}
 	if (fromCookie?.ok) {
 		return fromCookie;

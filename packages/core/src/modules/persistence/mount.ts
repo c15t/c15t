@@ -210,10 +210,14 @@ export const mountPersistence = function mountPersistence(
 		kernel.events.on('choice:recorded', ({ actionAt, snapshot }) => {
 			noteGeneratedSubject(snapshot, actionAt);
 			state.choiceRecorded = true;
+			state.noticeRecorded = snapshot.noticeDismissal !== null;
 			// A choice under a notice prompt acknowledges the notice too.
 			request('choice', 'notice');
 		}),
 		kernel.events.on('subject:resolved', ({ snapshot }) => {
+			if (snapshot.noticeDismissal) {
+				request('notice');
+			}
 			// The vendor record carries the subject only once a vendor decision
 			// exists. Scheduling without one would run the writer's clear branch
 			// and delete a stored denial this kernel never hydrated.
@@ -223,7 +227,9 @@ export const mountPersistence = function mountPersistence(
 				request('choice', 'vendors');
 			}
 		}),
-		kernel.events.on('notice:dismissed', () => {
+		kernel.events.on('notice:dismissed', ({ snapshot, dismissal }) => {
+			noteGeneratedSubject(snapshot, dismissal.dismissedAt);
+			state.noticeRecorded = true;
 			request('notice');
 		}),
 		kernel.events.on('vendors:recorded', ({ actionAt, snapshot }) => {

@@ -355,8 +355,10 @@ The notice dismissal and vendor denials are stored twice as well. A vendor
 list in localStorage at least as new as the cookie's adds its denials but never
 lifts one the cookie holds; a copy confirmed before the last clear is ignored, so its
 denials never come back. The newer notice dismissal applies; it still only hides a
-notice with the fingerprint it names. The consent record follows the rules
-below.
+notice with the fingerprint it names. When a visitor acknowledges a necessary-only
+prompt, the notice record also preserves their subject ID across reloads. This
+does not create optional consent. Clearing the stored records removes that ID
+with the acknowledgement. The consent record follows the rules below.
 
 The consent record is stored twice: as a cookie, which a server render reads,
 and in localStorage. The cookie is authoritative. A well-formed cookie wins

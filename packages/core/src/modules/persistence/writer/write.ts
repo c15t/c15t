@@ -12,6 +12,7 @@ import type { ConsentSnapshot } from '../../../types';
 import type {
 	StoredConsentEnvelope,
 	StoredIabMetadata,
+	StoredNoticeDismissal,
 	StoredVendorChoice,
 } from '../record-codec';
 import type { StorageConfig } from '../types';
@@ -80,11 +81,11 @@ export const writeNoticeToStorage = function writeNoticeToStorage(
 	if (typeof document === 'undefined' || !snapshot.noticeDismissal) {
 		return;
 	}
-	store.writeStoredNoticeDismissal(
-		snapshot.noticeDismissal,
-		storageConfig,
-		now
-	);
+	const record: StoredNoticeDismissal = { ...snapshot.noticeDismissal };
+	if (snapshot.subject) {
+		record.subject = { ...snapshot.subject };
+	}
+	store.writeStoredNoticeDismissal(record, storageConfig, now);
 };
 
 /**

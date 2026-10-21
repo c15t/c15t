@@ -57,7 +57,7 @@ type Rules = Pick<
 /** The parts of a storage read that reconciliation consults. */
 export type StoredRead = Pick<
 	StoredRecords,
-	'records' | 'vendorSubject' | 'epoch'
+	'records' | 'vendorSubject' | 'noticeSubject' | 'epoch'
 >;
 
 const canonical = function canonical(value: unknown): unknown {
@@ -275,7 +275,7 @@ const fingerprint = function fingerprint(value: unknown): string {
 /** Fingerprints of readable storage holding none of the records. */
 const ABSENT: Record<StoredRecordKind, string> = {
 	choice: fingerprint(null),
-	notice: fingerprint(null),
+	notice: fingerprint([null, null]),
 	vendors: fingerprint([null, null]),
 };
 
@@ -300,7 +300,10 @@ export const fingerprintStoredRecords = function fingerprintStoredRecords(
 				: fingerprint([stored.choice, stored.subject ?? null]);
 	}
 	if (stored.noticeDismissal !== undefined) {
-		prints.notice = fingerprint(stored.noticeDismissal);
+		prints.notice = fingerprint([
+			stored.noticeDismissal,
+			read.noticeSubject ?? null,
+		]);
 	}
 	if (stored.vendorChoice !== undefined) {
 		prints.vendors = fingerprint([
@@ -386,11 +389,42 @@ const subjectAfterRemoval = function subjectAfterRemoval(
 		: undefined;
 };
 
+/** A notice-only identity follows the acknowledgement that carries it. */
+const reconcileNoticeSubject = function reconcileNoticeSubject(
+	snapshot: ConsentSnapshot,
+	stored: HydrationRecords,
+	movement: Movement,
+	subjectYields: boolean,
+	candidate: HydrationRecords['subject']
+): HydrationRecords['subject'] {
+	if (
+		snapshot.explicitChoice === null &&
+		!stored.choice &&
+		!stored.vendorChoice &&
+		movement.changed('notice')
+	) {
+		if (movement.removed('notice')) {
+			return null;
+		} else if (
+			prefersStoredSubject(
+				snapshot.subject,
+				stored.subject,
+				stored.noticeDismissal?.dismissedAt ?? Number.NEGATIVE_INFINITY,
+				snapshot.noticeDismissal?.dismissedAt ?? Number.NEGATIVE_INFINITY,
+				subjectYields
+			)
+		) {
+			return stored.subject;
+		}
+	}
+	return candidate;
+};
+
 /**
  * The subject to apply, or `undefined` to keep the one in memory.
  *
- * The subject belongs to the record it was stored with: the envelope, or
- * the vendor record for a visitor whose only decision is about vendors. It
+ * The subject belongs to the record it was stored with: the envelope,
+ * a vendor decision, or a notice acknowledgement. It
  * is only considered when that record changed in storage, so focus or an
  * unrelated key never moves the subject, and follows
  * {@link prefersStoredSubject}. Only the removal of the record that carried
@@ -438,6 +472,13 @@ const reconcileSubject = function reconcileSubject(
 			candidate = stored.subject;
 		}
 	}
+	candidate = reconcileNoticeSubject(
+		snapshot,
+		stored,
+		movement,
+		subjectYields,
+		candidate
+	);
 	return candidate !== undefined && !sameRecord(snapshot.subject, candidate)
 		? candidate
 		: undefined;

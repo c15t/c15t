@@ -221,11 +221,15 @@ export const encodeStoredConsentEnvelopeCompact =
 export const encodeNoticeDismissal = function encodeNoticeDismissal(
 	record: StoredNoticeDismissal
 ): string {
-	return JSON.stringify({
+	const encoded: StoredNoticeDismissal = {
 		dismissedAt: record.dismissedAt,
 		fingerprint: record.fingerprint,
 		version: 1,
-	});
+	};
+	if (record.subject) {
+		encoded.subject = record.subject;
+	}
+	return JSON.stringify(encoded);
 };
 
 /**
@@ -238,6 +242,7 @@ export const encodeNoticeDismissalCompact =
 			field('v', 1),
 			field('t', record.dismissedAt),
 			field('f', encodeURIComponent(record.fingerprint)),
+			...subjectFields(record.subject),
 		].join(FIELD_SEPARATOR);
 	};
 
