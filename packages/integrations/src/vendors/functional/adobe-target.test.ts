@@ -329,6 +329,7 @@ describe('adobeTarget', () => {
 		});
 		win.alloy = unrelated;
 		script.onConsentChange?.({ ...info, hasConsent: false });
+		await Promise.resolve();
 		expect(unrelated).not.toHaveBeenCalled();
 		expect(runtime).toHaveBeenLastCalledWith('setConsent', {
 			consent: [

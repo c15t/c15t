@@ -4,7 +4,10 @@ import { resolveManifest } from '../../resolve';
 import { vendorManifestContract } from '../../types';
 import type { VendorManifest } from '../../types';
 import { readId, skipMissingId } from '../_shared/required-id';
-import { createScriptReuse } from '../_shared/reuse-script';
+import {
+	createScriptReuse,
+	getScriptRegistrations,
+} from '../_shared/reuse-script';
 import { trimToUndefined } from '../_shared/script-url';
 
 /** Supported at.js settings. The helper always enables Adobe's opt-in support. */
@@ -146,13 +149,14 @@ const createAtJsScript = function createAtJsScript(
 	return {
 		...script,
 		nonce: trimToUndefined(options.nonce),
+		observeConsentBeforeLoad: true,
 		onBeforeLoad(info) {
-			if (!info.hasConsent) {
+			if (!getScriptRegistrations(info).some((state) => state.hasConsent)) {
 				return;
 			}
 			script.onBeforeLoad?.(info);
-			granted = true;
-			signalAtJsConsent(true);
+			granted = info.hasConsent;
+			signalAtJsConsent(granted);
 		},
 		onConsentChange(info) {
 			if (granted !== info.hasConsent) {
@@ -207,31 +211,46 @@ const createWebSdkScript = function createWebSdkScript(
 	});
 	let loaded = false;
 	let alloy: AlloyFunction | undefined;
-	let configuring = false;
+	let configureAttempted = false;
 	let configured = false;
 	let currentConsent = false;
-	let lastConsent: boolean | undefined;
+	let acknowledgedConsent: boolean | undefined;
+	let sendingConsent = false;
 	const sendConsent = async (): Promise<void> => {
-		if (!configured || !alloy || lastConsent === currentConsent) {
+		if (
+			!configured ||
+			!alloy ||
+			sendingConsent ||
+			acknowledgedConsent === currentConsent
+		) {
 			return;
 		}
-		lastConsent = currentConsent;
+		const requestedConsent = currentConsent;
+		sendingConsent = true;
 		try {
 			await alloy('setConsent', {
 				consent: [
 					{
 						standard: 'Adobe',
-						value: { general: currentConsent ? 'in' : 'out' },
+						value: { general: requestedConsent ? 'in' : 'out' },
 						version: '1.0',
 					},
 				],
 			});
+			acknowledgedConsent = requestedConsent;
 		} catch (error) {
+			// A rejected request can still change Adobe's persisted consent.
+			acknowledgedConsent = undefined;
 			reportAlloyError('setConsent', error);
+		}
+		sendingConsent = false;
+		if (requestedConsent !== currentConsent) {
+			void sendConsent();
 		}
 	};
 	const configure = async (runtime: AlloyFunction): Promise<void> => {
-		configuring = true;
+		// Alloy retains a rejected configure promise; recovery needs a reload.
+		configureAttempted = true;
 		try {
 			await runtime('configure', {
 				datastreamId: options.datastreamId,
@@ -252,15 +271,16 @@ const createWebSdkScript = function createWebSdkScript(
 		}
 		if (configured) {
 			void sendConsent();
-		} else if (!configuring && granted) {
+		} else if (!configureAttempted && granted) {
 			void configure(alloy);
 		}
 	};
 	return {
 		...script,
 		nonce: trimToUndefined(options.nonce),
+		observeConsentBeforeLoad: true,
 		onBeforeLoad(info) {
-			if (info.hasConsent) {
+			if (getScriptRegistrations(info).some((state) => state.hasConsent)) {
 				alloy = installAlloyStub();
 			}
 		},

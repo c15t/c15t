@@ -3,7 +3,7 @@ title: Adobe Target
 description: Gate a self-hosted Adobe Target at.js download or Adobe Experience Platform Web SDK on experience consent, send consent updates and check revocation limits.
 seoTitle: Adobe Target cookie consent with c15t
 seoDescription: Load Adobe Target after experience consent with c15t. Configure at.js opt-in or Web SDK setConsent, and understand what revocation can stop.
-icon: target
+icon: 'bullseye'
 group: integrations
 ---
 
@@ -63,6 +63,15 @@ After the SDK loads, it calls `alloy('configure')` with your IDs and
 `alloy('setConsent')` using Adobe 1.0 consent with the latest permitted state.
 If consent was withdrawn during configuration, that state is `'out'`.
 
+Consent updates run one at a time. If the choice changes while a command is
+pending, the helper sends the latest choice after that command settles. A
+rejected `setConsent` command logs an error and can retry on a later consent
+notification. The helper does not schedule automatic retries and cannot
+recover an operation stalled inside Adobe. Reload if commands stay pending.
+Failed configuration also logs an error and requires a page reload. Web SDK
+retains an asynchronously rejected configuration, so another configure call
+on the same instance cannot recover it.
+
 The helper configures the SDK and updates consent. It does not send a page
 view, request offers or render decisions. Keep your own
 [`sendEvent` personalization code](https://experienceleague.adobe.com/en/docs/experience-platform/collection/js/commands/sendevent/personalization)
@@ -100,6 +109,10 @@ Before the first permitted grant, neither mode creates Adobe globals, requests
 a loader or writes Adobe storage. Rejecting the mapped consent keeps it that
 way. The Adobe Target vendor switch can also prevent loading inside an
 allowed category.
+
+When multiple loaders share the same helper options, every registration must
+permit Adobe Target before the shared runtime opts in. An initially denied
+registration counts toward that decision too.
 
 After the first grant, at.js stays installed. On revocation, the helper calls
 the Opt-in service's Target denial API if available. A later grant approves

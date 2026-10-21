@@ -366,7 +366,9 @@ describe('Adobe Target core-loader contracts', () => {
 			element.dispatchEvent(new Event('load'));
 			await vi.runOnlyPendingTimersAsync();
 			await vi.runOnlyPendingTimersAsync();
+			expect(commands).toEqual([]);
 			await secondKernel.commands.save({ experience: true });
+			await vi.runOnlyPendingTimersAsync();
 			await vi.runOnlyPendingTimersAsync();
 			expect(document.head.querySelectorAll('script')).toHaveLength(1);
 			expect((window as TargetWindow).alloy).toBe(stub);
