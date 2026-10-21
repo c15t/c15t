@@ -40,6 +40,42 @@ describe('rb2b', () => {
 		'https://b2bjsstore.s3.us-west-2.amazonaws.com/b/',
 	])('account path under %s', (prefix) => {
 		it.each([
+			'c15tfake/',
+			'c15tfake/?file=loader.js',
+			'c15tfake/#loader.js',
+			'c15tfake/?file=loader.js#loader.js',
+			'c15tfake//',
+			'c15tfake/nested/',
+			'c15tfake/nested/?file=loader.js#loader.js',
+			'c15tfake/./',
+			'c15tfake/loader/..',
+			'%6315tfake/',
+		])('skips an account path without a script filename: %s', (suffix) => {
+			expectSkippedScript(
+				() => rb2b({ accountKey: 'c15tfake', scriptUrl: `${prefix}${suffix}` }),
+				{ category: 'marketing', id: 'rb2b' },
+				'rb2b: scriptUrl must use a supported HTTPS CloudFront or S3 prefix and /b/<accountKey>/<filename> path'
+			);
+		});
+		it('skips an encoded account directory without a script filename', () => {
+			expectSkippedScript(
+				() => rb2b({ accountKey: 'a/b?c', scriptUrl: `${prefix}a%2fb%3fc/` }),
+				{ category: 'marketing', id: 'rb2b' },
+				'rb2b: scriptUrl must use a supported HTTPS CloudFront or S3 prefix and /b/<accountKey>/<filename> path'
+			);
+		});
+		it.each([
+			'loader',
+			'loader.custom?cache=1#loader',
+			'nested/loader?cache=1#loader',
+		])(
+			'accepts a script filename without extension restrictions: %s',
+			(filename) => {
+				const scriptUrl = `${prefix}c15tfake/${filename}`;
+				expect(rb2b({ accountKey: 'c15tfake', scriptUrl }).src).toBe(scriptUrl);
+			}
+		);
+		it.each([
 			'OTHER/OTHER.js.gz?next=/b/c15tfake/',
 			'OTHER/OTHER.js.gz#next=/b/c15tfake/',
 			'OTHER/b/c15tfake/custom.js',
@@ -55,7 +91,7 @@ describe('rb2b', () => {
 			expectSkippedScript(
 				() => rb2b({ accountKey: 'c15tfake', scriptUrl: `${prefix}${suffix}` }),
 				{ category: 'marketing', id: 'rb2b' },
-				'rb2b: scriptUrl must use a supported HTTPS CloudFront or S3 prefix and /b/<accountKey>/ path'
+				'rb2b: scriptUrl must use a supported HTTPS CloudFront or S3 prefix and /b/<accountKey>/<filename> path'
 			);
 		});
 		it('accepts the encoded account with a custom filename and URL metadata', () => {
@@ -89,7 +125,7 @@ describe('rb2b', () => {
 			expectSkippedScript(
 				() => rb2b({ accountKey, scriptUrl: `${prefix}${segment}/custom.js` }),
 				{ category: 'marketing', id: 'rb2b' },
-				'rb2b: scriptUrl must use a supported HTTPS CloudFront or S3 prefix and /b/<accountKey>/ path'
+				'rb2b: scriptUrl must use a supported HTTPS CloudFront or S3 prefix and /b/<accountKey>/<filename> path'
 			);
 		});
 	});
@@ -112,7 +148,7 @@ describe('rb2b', () => {
 		expectSkippedScript(
 			() => rb2b({ accountKey: 'c15tfake', scriptUrl }),
 			{ category: 'marketing', id: 'rb2b' },
-			'rb2b: scriptUrl must use a supported HTTPS CloudFront or S3 prefix and /b/<accountKey>/ path'
+			'rb2b: scriptUrl must use a supported HTTPS CloudFront or S3 prefix and /b/<accountKey>/<filename> path'
 		);
 	});
 });

@@ -58,7 +58,7 @@ export const rb2bManifest = {
 export interface Rb2bOptions {
 	/** Account key in reb2b.load on the Script Setup page. */
 	accountKey: string;
-	/** HTTPS CloudFront or S3 URL with accountKey after its supported base path. */
+	/** Supported HTTPS CloudFront or S3 URL with an account segment and filename. */
 	scriptUrl?: string;
 }
 
@@ -86,6 +86,7 @@ const isSupportedScriptUrl = function isSupportedScriptUrl(
 		const segmentEnd = accountPath.indexOf('/');
 		return (
 			segmentEnd > 0 &&
+			!accountPath.endsWith('/') &&
 			decodeURIComponent(accountPath.slice(0, segmentEnd)) === accountKey
 		);
 	} catch {
@@ -118,7 +119,7 @@ export const rb2b = function rb2b(options: Rb2bOptions): Script {
 	);
 	if (!isSupportedScriptUrl(scriptUrl, accountKey)) {
 		return skipScript(
-			'rb2b: scriptUrl must use a supported HTTPS CloudFront or S3 prefix and /b/<accountKey>/ path',
+			'rb2b: scriptUrl must use a supported HTTPS CloudFront or S3 prefix and /b/<accountKey>/<filename> path',
 			{ category: 'marketing', manifest: rb2bManifest }
 		);
 	}
