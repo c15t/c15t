@@ -181,7 +181,7 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 	},
 	'salesforce-pardot': {
 		example:
-			"pardotTracking({ piCId: '654321', piDomain: 'pi.pardot.com', piAId: 'YOUR_PIAID' })",
+			"pardotTracking({ piAId: 'YOUR_ACCOUNT_ID', piCId: 'YOUR_CAMPAIGN_ID', piDomain: 'go.example.com' })",
 		importName: 'pardotTracking',
 	},
 	segment: {
