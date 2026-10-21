@@ -534,6 +534,16 @@ export const builtInScriptIntegrations = [
 		packageSubpath: 'x-pixel',
 		vendor: 'x-pixel',
 	},
+	{
+		consentCategory: 'marketing',
+		docsSlug: 'default-com',
+		hint: 'Form capture, scheduling and visitor identification',
+		integrationCategory: 'analytics',
+		key: 'defaultComPixel',
+		label: 'Default',
+		packageSubpath: 'default-com',
+		vendor: 'default-com',
+	},
 ] as const satisfies readonly IntegrationRegistryEntry[];
 
 /**

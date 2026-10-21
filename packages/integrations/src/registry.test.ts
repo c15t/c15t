@@ -27,6 +27,7 @@ import { amplitudeManifest } from './vendors/analytics/amplitude';
 import { clearbitManifest } from './vendors/analytics/clearbit';
 import { cloudflareWebAnalyticsManifest } from './vendors/analytics/cloudflare-web-analytics';
 import { databuddyManifest } from './vendors/analytics/databuddy';
+import { defaultComPixelManifest } from './vendors/analytics/default-com';
 import { fathomAnalyticsManifest } from './vendors/analytics/fathom-analytics';
 import { gtagManifest } from './vendors/analytics/google-tag';
 import { heapManifest } from './vendors/analytics/heap';
@@ -63,6 +64,7 @@ const validConsentCategories = [
 ] as const satisfies readonly AllConsentNames[];
 
 const vendorManifests = [
+	defaultComPixelManifest,
 	googleTagManagerManifest,
 	gtagManifest,
 	ahrefsAnalyticsManifest,

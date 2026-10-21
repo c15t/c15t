@@ -17,6 +17,10 @@ import { amplitude } from './vendors/analytics/amplitude';
 import { clearbit } from './vendors/analytics/clearbit';
 import { cloudflareWebAnalytics } from './vendors/analytics/cloudflare-web-analytics';
 import { databuddy } from './vendors/analytics/databuddy';
+import {
+	defaultComPixel,
+	defaultComFormsSdk,
+} from './vendors/analytics/default-com';
 import { fathomAnalytics } from './vendors/analytics/fathom-analytics';
 import { gtag } from './vendors/analytics/google-tag';
 import { heap } from './vendors/analytics/heap';
@@ -56,8 +60,24 @@ const requiredIdCases: {
 	helper: string;
 	option: string;
 	create: (id: unknown) => Script;
-	script: Pick<Script, 'category' | 'id'>;
+	script: Pick<Script, 'category' | 'id'> & Partial<Pick<Script, 'vendor'>>;
 }[] = [
+	{
+		create: (id) => defaultComFormsSdk({ publicKey: asId(id) }),
+		helper: 'defaultComFormsSdk',
+		option: 'publicKey',
+		script: {
+			category: 'marketing',
+			id: 'default-com-forms-sdk',
+			vendor: 'default-com',
+		},
+	},
+	{
+		create: (id) => defaultComPixel({ publicKey: asId(id) }),
+		helper: 'defaultComPixel',
+		option: 'publicKey',
+		script: { category: 'marketing', id: 'default-com' },
+	},
 	{
 		create: (id) => linkedinInsights({ id: asId(id) }),
 		helper: 'linkedinInsights',
@@ -333,6 +353,18 @@ const blankScriptUrlCases: {
 	create: (scriptUrl: string) => Script;
 	expectedSrc: string;
 }[] = [
+	{
+		create: (scriptUrl) =>
+			defaultComPixel({ publicKey: 'workspace-key', scriptUrl }),
+		expectedSrc: 'https://handshake.default.com/index.js',
+		helper: 'defaultComPixel',
+	},
+	{
+		create: (scriptUrl) =>
+			defaultComFormsSdk({ publicKey: 'workspace-key', scriptUrl }),
+		expectedSrc: 'https://handshake.default.com/sdk.js',
+		helper: 'defaultComFormsSdk',
+	},
 	{
 		create: (scriptUrl) => hotjar({ scriptUrl, siteId: 123 }),
 		expectedSrc: 'https://static.hotjar.com/c/hotjar-123.js?sv=6',

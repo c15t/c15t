@@ -15,6 +15,7 @@
 		"consent-mode",
 		"consent-mode-v2",
 		"cookie-consent",
+		"default-com",
 		"ga4",
 		"gdpr",
 		"google-ads",
@@ -302,6 +303,11 @@
 			"types": "./dist-types/events.d.ts",
 			"import": "./dist/events.js",
 			"default": "./dist/events.js"
+		},
+		"./default-com": {
+			"types": "./dist-types/vendors/analytics/default-com.d.ts",
+			"import": "./dist/vendors/analytics/default-com.js",
+			"default": "./dist/vendors/analytics/default-com.js"
 		}
 	},
 	"publishConfig": {
