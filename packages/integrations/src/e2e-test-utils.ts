@@ -327,6 +327,7 @@ const resetVendorGlobals = function resetVendorGlobals() {
 		'_linkedin_data_partner_ids',
 		'_linkedin_partner_id',
 		'_fbq',
+		'_elqQ',
 		'_hjSettings',
 		'_paq',
 		'_satellite',
