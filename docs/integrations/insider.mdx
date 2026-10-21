@@ -117,6 +117,13 @@ account-specific `custom` data. Cart and purchase items accept these fields too.
 Insider's Web SDK guide specifies strings for `identifier_exists` and
 `omnibus_price`.
 
+Page values must be JSON-serializable. The helper passes custom data as literal
+JSON, including objects with `kind: 'c15t.runtime-value'` and `value: 'date'` or
+`'timestamp'`. It does not interpret those objects as runtime instructions.
+Normal JSON serialization rules apply, so a JavaScript `Date` becomes a string
+and object properties with `undefined` values are omitted. Queue consumers
+receive a copy; their mutations do not change the supplied page data.
+
 <include src="../shared/examples/javascript/insider-product.mdx" />
 
 The helper queues the page object followed by `init`. Insider documents that

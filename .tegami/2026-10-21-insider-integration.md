@@ -13,4 +13,6 @@ Supports the documented optional product attributes. Purchase setup requires a d
 
 Accepts current user attributes, including checkout identifiers and custom data, in the final grant push with helper-controlled `gdpr_optin`. Each configuration snapshots nested user data independently. Optional currency is queued before the page and `init`. The app must keep user and currency context current; these options do not guarantee identity matching or deduplicate purchases.
 
+Preserves page custom data as literal JSON, including objects that resemble c15t runtime-value markers. Normal JSON serialization rules apply to page values.
+
 On withdrawal, the helper queues `gdpr_optin: false`, a neutral `other` page and `init` so the withdrawal init does not reuse a purchase page, including one pushed manually during SPA navigation. This does not cancel earlier queued purchases or deduplicate orders. Keep the per-order guard and reload-on-revocation behavior.

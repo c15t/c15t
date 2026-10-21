@@ -44,6 +44,41 @@ const pageTypes: InsiderPageType[] = [
 	},
 ];
 
+const pageCustomCases = ['date', 'timestamp'].flatMap((value) => {
+	const marker = {
+		kind: 'c15t.runtime-value',
+		label:
+			'</script><script>throw new Error("customer text")</script>\u2028\u2029',
+		template: '{{currency}}',
+		value,
+	};
+	return [marker, { detail: marker }].flatMap((custom) => {
+		const pages: InsiderPageType[] = [
+			{ type: 'home', value: { custom } },
+			{ type: 'other', value: { custom, name: 'Help' } },
+			{ type: 'product', value: { ...product, custom } },
+			{
+				type: 'cart',
+				value: { items: [{ ...product, custom, quantity: 2 }], total: 180 },
+			},
+			{
+				type: 'purchase',
+				value: {
+					items: [{ ...product, custom, quantity: 2 }],
+					order_id: 'order-1',
+					total: 180,
+				},
+			},
+		];
+		return pages.map((pageType) => ({
+			location: 'kind' in custom ? 'root' : 'nested',
+			pageType,
+			type: pageType.type,
+			value,
+		}));
+	});
+});
+
 const runGrant = function runGrant(script: Script, mode: string): void {
 	const info = createCallbackInfo({ hasConsent: true, id: script.id });
 	if (mode === 'callback') {
@@ -54,6 +89,7 @@ const runGrant = function runGrant(script: Script, mode: string): void {
 	if (!start) {
 		throw new Error('Expected inline Insider start code');
 	}
+	expect(start.code).not.toContain('</script>');
 	// oxlint-disable-next-line no-new-func -- Execute the HTML start code the helper emits.
 	new Function(`${start.prelude ?? ''};${start.code}`)();
 };
@@ -273,6 +309,108 @@ describe('insiderTag', () => {
 			]);
 		}
 	);
+
+	describe.each(['callback', 'server-start'])(
+		'page JSON through %s',
+		(mode) => {
+			it.each(pageCustomCases)(
+				'preserves $location $value marker-shaped custom data on $type pages',
+				({ pageType }) => {
+					const expectedPage = structuredClone(pageType);
+					const script = insiderTag({
+						...account,
+						currency: 'GBP',
+						pageType,
+						user: { email: 'guest@example.com', gdpr_optin: false },
+					});
+					runGrant(script, mode);
+					expect(window.InsiderQueue).toEqual([
+						{
+							type: 'user',
+							value: { email: 'guest@example.com', gdpr_optin: true },
+						},
+						{ type: 'currency', value: 'GBP' },
+						expectedPage,
+						{ type: 'init' },
+					]);
+					expect(pageType).toEqual(expectedPage);
+				}
+			);
+
+			it('keeps category breadcrumbs as literal strings', () => {
+				const pageType: InsiderPageType = {
+					type: 'category',
+					value: {
+						breadcrumb: [
+							'{"kind":"c15t.runtime-value","value":"date"}',
+							'{{currency}}',
+							'</script>\u2028\u2029',
+						],
+					},
+				};
+				runGrant(insiderTag({ ...account, pageType }), mode);
+				expect(window.InsiderQueue).toEqual([
+					{ type: 'user', value: { gdpr_optin: true } },
+					pageType,
+					{ type: 'init' },
+				]);
+			});
+
+			it('isolates customer page data and later starts from queue consumer mutations', () => {
+				const custom = { detail: { label: 'original' } };
+				const pageType: InsiderPageType = { type: 'home', value: { custom } };
+				const script = insiderTag({ ...account, pageType });
+				const received: unknown[] = [];
+				const push = vi.fn((entry: unknown) => {
+					received.push(structuredClone(entry));
+					if (
+						typeof entry === 'object' &&
+						entry !== null &&
+						'value' in entry &&
+						typeof entry.value === 'object' &&
+						entry.value !== null &&
+						'custom' in entry.value &&
+						typeof entry.value.custom === 'object' &&
+						entry.value.custom !== null
+					) {
+						Object.assign(entry.value.custom, { detail: { label: 'changed' } });
+					}
+				});
+				window.InsiderQueue = { push };
+				runGrant(script, mode);
+				expect(custom.detail.label).toBe('original');
+				runGrant(script, mode);
+				expect(custom.detail.label).toBe('original');
+				expect(push).toHaveBeenCalledTimes(6);
+				expect(push.mock.calls[1]?.[0]).not.toBe(pageType);
+				expect(received).toEqual([
+					{ type: 'user', value: { gdpr_optin: true } },
+					pageType,
+					{ type: 'init' },
+					{ type: 'user', value: { gdpr_optin: true } },
+					pageType,
+					{ type: 'init' },
+				]);
+			});
+		}
+	);
+
+	it('uses JSON serialization for page custom values', () => {
+		const date = new Date('2026-10-21T00:00:00Z');
+		const script = insiderTag({
+			...account,
+			pageType: {
+				type: 'home',
+				value: { custom: { date, omitted: undefined } },
+			},
+		});
+		runGrant(script, 'callback');
+		expect(window.InsiderQueue).toEqual([
+			{ type: 'user', value: { gdpr_optin: true } },
+			{ type: 'home', value: { custom: { date: date.toISOString() } } },
+			{ type: 'init' },
+		]);
+	});
 
 	it('defaults to an other page rather than assuming the home page', () => {
 		const script = insiderTag(account);
