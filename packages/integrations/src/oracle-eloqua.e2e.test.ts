@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 import { createConsentKernel } from '@c15t/core';
 import { createScriptLoader } from '@c15t/core/modules/script-loader';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
 	clearAllScripts,
@@ -11,7 +11,14 @@ import {
 	registerVendorContractCleanup,
 	updateScripts,
 } from './e2e-test-utils';
-import { eloquaTracking } from './vendors/analytics/oracle-eloqua';
+import type { eloquaTracking as EloquaTrackingFactory } from './vendors/analytics/oracle-eloqua';
+
+let eloquaTracking: typeof EloquaTrackingFactory;
+
+beforeEach(async () => {
+	vi.resetModules();
+	({ eloquaTracking } = await import('./vendors/analytics/oracle-eloqua'));
+});
 
 const GLOBALS = ['_elqQ'];
 const granted = { ...deniedConsents, marketing: true };

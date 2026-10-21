@@ -45,82 +45,168 @@ export const eloquaTrackingManifest = {
 } as const satisfies VendorManifest;
 
 export interface EloquaTrackingOptions {
-	/** Eloqua site ID from the installation snippet. */
+	/** Eloqua site ID. Use one site/domain configuration per page; reload to change it. */
 	siteId: string | number;
-	/** First-party tracking hostname configured in Eloqua. */
+	/** First-party tracking hostname. Shared providers must use the same domain. */
 	firstPartyCookieDomain?: string;
 	/** Consent condition required before loading. @default 'marketing' */
 	category?: Script['category'];
-	/** Custom loader URL. Must preserve Eloqua's consent response scripts. */
+	/**
+	 * Custom loader URL. Consent commands must synchronously append a matching
+	 * pps=41/42 script with the installed siteid. Deferred or unmatched responses
+	 * block tracking until reload.
+	 */
 	scriptUrl?: string;
 }
 
-interface ConsentOwner {
+const defaultScriptUrl = 'https://img.en25.com/i/elqCfg.min.js';
+
+interface AccountIdentity {
+	siteId: string;
+	firstPartyCookieDomain?: string;
+}
+
+interface ConsentOwner extends AccountIdentity {
 	hasConsent: boolean;
 	loaded: boolean;
+	initialize: () => void;
+	invalidateTracking: () => void;
 	track: (dispatcher: NonNullable<Window['_elqQ']>) => boolean;
 }
+
+interface CapturedDispatcher {
+	queue: NonNullable<Window['_elqQ']>;
+	synchronous: boolean;
+}
+
+const sameAccount = (left: AccountIdentity, right: AccountIdentity): boolean =>
+	left.siteId === right.siteId &&
+	left.firstPartyCookieDomain === right.firstPartyCookieDomain;
+
+// Removing a tag cannot unload its dispatcher or cancel a detached download.
+// A different account therefore needs a new document, even after disposal.
+const installedAccounts = new WeakMap<Document, AccountIdentity>();
+const failedWithdrawals = new WeakMap<Document, CapturedDispatcher>();
 
 // Keep one consent request in flight, including across provider remounts.
 // A response can update OPTIN before its load event, so removing its handlers
 // cannot cancel it. Reconcile the latest choice after that response completes.
-const createConsentDispatcher = (siteId: string, onIdle: () => void) => {
+const createConsentDispatcher = (onIdle: () => void) => {
 	const owners = new Set<ConsentOwner>();
-	let dispatcher: Window['_elqQ'];
+	const reportedConflicts = new WeakSet<ConsentOwner>();
+	let dispatcher: CapturedDispatcher | undefined;
 	let desired = false;
 	let pending = false;
+	let executions = 0;
+	let indeterminate = false;
+	let conflicting = false;
 	let settledDispatcher: Window['_elqQ'];
 	let settledConsent: boolean | undefined;
+	const account = (): AccountIdentity | undefined =>
+		installedAccounts.get(document) ?? owners.values().next().value;
+	const compatible = (owner: AccountIdentity): boolean => {
+		const installed = account();
+		return !installed || sameAccount(installed, owner);
+	};
 	const permitted = (): boolean =>
-		owners.size > 0 && [...owners].every((owner) => owner.hasConsent);
+		owners.size > 0 &&
+		[...owners].every((owner) => owner.hasConsent && compatible(owner));
 	const retire = (): void => {
-		if (owners.size === 0 && !pending) {
+		if (owners.size === 0 && !pending && executions === 0 && !indeterminate) {
 			onIdle();
 		}
 	};
+	const block = (error: unknown): void => {
+		indeterminate = true;
+		console.error(
+			'eloquaTracking: dispatcher failed. Reload before tracking again.',
+			error
+		);
+	};
 	const reconcile = (): void => {
-		if (!dispatcher || pending) {
+		if (!dispatcher || pending || indeterminate) {
 			return;
 		}
-		if (settledDispatcher === dispatcher && settledConsent === desired) {
+		if (settledDispatcher === dispatcher.queue && settledConsent === desired) {
 			return;
 		}
 		const currentDispatcher = dispatcher;
 		const requested = desired;
 		const before = new Set(document.scripts);
-		currentDispatcher.push([requested ? 'elqOptIn' : 'elqOptOut']);
-		const response = Array.from(document.scripts).find((candidate) => {
-			if (before.has(candidate) || !candidate.src) {
+		let dispatchError: unknown;
+		try {
+			currentDispatcher.queue.push([requested ? 'elqOptIn' : 'elqOptOut']);
+		} catch (error) {
+			dispatchError = error;
+		}
+		const added = Array.from(document.scripts).filter(
+			(candidate) => !before.has(candidate) && candidate.src
+		);
+		const response = added.find((candidate) => {
+			let url: URL;
+			try {
+				url = new URL(candidate.src);
+			} catch {
 				return false;
 			}
-			const url = new URL(candidate.src);
 			return (
 				url.searchParams.get('pps') === (requested ? '41' : '42') &&
-				url.searchParams.get('siteid') === siteId
+				url.searchParams.get('siteid') === account()?.siteId
 			);
 		});
-		if (!response) {
-			throw new Error(
-				'eloquaTracking: the loader did not create a consent response script'
+		if (!response || dispatchError || added.length !== 1) {
+			// The stock SDK appends synchronously and swallows insertion errors.
+			// An unknown loader may still execute a deferred or unmatched response.
+			indeterminate =
+				!currentDispatcher.synchronous ||
+				added.length > 0 ||
+				Array.isArray(currentDispatcher.queue);
+			console.error(
+				`eloquaTracking: consent dispatch failed; no consent was confirmed.${indeterminate ? ' Reload before tracking again.' : ''}`,
+				dispatchError ??
+					new Error(
+						'The loader did not create one matching consent response script'
+					)
 			);
+			if (!requested && !indeterminate) {
+				failedWithdrawals.set(document, currentDispatcher);
+			}
+			if (!response) {
+				return;
+			}
 		}
 		pending = true;
+		let completed = false;
 		const complete = (event: Event): void => {
+			if (completed) {
+				return;
+			}
+			completed = true;
 			response.removeEventListener('load', complete);
 			response.removeEventListener('error', complete);
 			pending = false;
-			settledDispatcher = currentDispatcher;
-			settledConsent = requested;
+			if (!indeterminate) {
+				settledDispatcher = currentDispatcher.queue;
+				settledConsent = requested;
+				if (!requested) {
+					failedWithdrawals.delete(document);
+				}
+			}
 			if (
+				!indeterminate &&
 				event.type === 'load' &&
 				requested &&
 				desired &&
 				dispatcher === currentDispatcher
 			) {
-				for (const candidate of [...owners].reverse()) {
-					if (candidate.loaded && candidate.track(currentDispatcher)) {
-						break;
+				try {
+					for (const candidate of [...owners].reverse()) {
+						if (candidate.loaded && candidate.track(currentDispatcher.queue)) {
+							break;
+						}
 					}
+				} catch (error) {
+					block(error);
 				}
 			}
 			reconcile();
@@ -129,58 +215,95 @@ const createConsentDispatcher = (siteId: string, onIdle: () => void) => {
 		response.addEventListener('load', complete, { once: true });
 		response.addEventListener('error', complete, { once: true });
 	};
+	const refresh = (): void => {
+		if (!permitted()) {
+			dispatcher ??= failedWithdrawals.get(document);
+		}
+		const nextConflicting = [...owners].some((owner) => !compatible(owner));
+		if (nextConflicting && !conflicting) {
+			for (const owner of owners) {
+				owner.invalidateTracking();
+			}
+		}
+		conflicting = nextConflicting;
+		for (const owner of owners) {
+			if (!compatible(owner) && !reportedConflicts.has(owner)) {
+				reportedConflicts.add(owner);
+				console.error(
+					'eloquaTracking: conflicting site ID or first-party cookie domain. ' +
+						'Use one account configuration per page; reload to change it.'
+				);
+			}
+		}
+		if (permitted() && !indeterminate) {
+			for (const owner of owners) {
+				owner.initialize();
+			}
+		}
+		desired = permitted() && [...owners].some((owner) => owner.loaded);
+		reconcile();
+	};
 	return {
-		release(owner: ConsentOwner): void {
-			owners.delete(owner);
-			desired =
-				permitted() && [...owners].some((candidate) => candidate.loaded);
-			reconcile();
+		block,
+		compatible,
+		completeExecution(): void {
+			executions -= 1;
 			retire();
 		},
-		update(owner: ConsentOwner, nextDispatcher?: Window['_elqQ']): void {
+		release(owner: ConsentOwner): void {
+			owners.delete(owner);
+			refresh();
+			retire();
+		},
+		start(identity: AccountIdentity): boolean {
+			if (!permitted() || !compatible(identity) || indeterminate) {
+				return false;
+			}
+			installedAccounts.set(document, {
+				firstPartyCookieDomain: identity.firstPartyCookieDomain,
+				siteId: identity.siteId,
+			});
+			executions += 1;
+			return true;
+		},
+		update(owner: ConsentOwner, nextDispatcher?: CapturedDispatcher): void {
 			owners.add(owner);
-			dispatcher = nextDispatcher ?? dispatcher;
-			desired =
-				permitted() && [...owners].some((candidate) => candidate.loaded);
-			reconcile();
+			if (nextDispatcher && compatible(owner)) {
+				dispatcher = nextDispatcher;
+			}
+			refresh();
 		},
 	};
 };
 
-// Weak script reservations can disappear while a response still writes cookies.
-// Retain account coordination until its owners and outstanding responses finish.
+// All registrations share the physical global SDK, even across site IDs.
 const consentDispatchers = new WeakMap<
 	Document,
-	Map<string, ReturnType<typeof createConsentDispatcher>>
+	ReturnType<typeof createConsentDispatcher>
 >();
-const getConsentDispatcher = (siteId: string) => {
-	let entries = consentDispatchers.get(document);
-	if (!entries) {
-		entries = new Map();
-		consentDispatchers.set(document, entries);
-	}
-	let dispatcher = entries.get(siteId);
+const getConsentDispatcher = () => {
+	let dispatcher = consentDispatchers.get(document);
 	if (!dispatcher) {
-		const accounts = entries;
-		dispatcher = createConsentDispatcher(siteId, () => accounts.delete(siteId));
-		entries.set(siteId, dispatcher);
+		const ownerDocument = document;
+		dispatcher = createConsentDispatcher(() =>
+			consentDispatchers.delete(ownerDocument)
+		);
+		consentDispatchers.set(document, dispatcher);
 	}
 	return dispatcher;
 };
 
 const reuseEloquaTracking = createScriptReuse<EloquaTrackingOptions>();
-// Another configuration can adopt a tag that a surviving provider still owns.
-// Only a new physical tag needs a fresh queue and SDK setup.
 const initializedElements = new WeakSet<HTMLScriptElement>();
-const elementDispatchers = new WeakMap<
-	HTMLScriptElement,
-	NonNullable<Window['_elqQ']>
->();
+const elementAccounts = new WeakMap<HTMLScriptElement, AccountIdentity>();
+const elementDispatchers = new WeakMap<HTMLScriptElement, CapturedDispatcher>();
 
 /**
  * Loads Eloqua and enables page tracking only after consent.
  * Keep reloadOnConsentRevoked enabled. Eloqua opt-out does not stop its
- * runtime or cancel an outstanding consent response.
+ * runtime or cancel an outstanding consent response. Compatible providers share
+ * one installed site/domain. Conflicting providers block tracking until removed;
+ * changing the installed account requires reload.
  * @param options - Site ID and first-party cookie configuration.
  * @returns The gated Eloqua script, or an inactive script for a missing ID.
  * @example eloquaTracking({ siteId: '123456' });
@@ -202,10 +325,7 @@ export const eloquaTracking = function eloquaTracking(
 		firstPartyCookieDomain: trimToUndefined(
 			options.firstPartyCookieDomain
 		)?.toLowerCase(),
-		scriptUrl: resolveScriptUrl(
-			options.scriptUrl,
-			'https://img.en25.com/i/elqCfg.min.js'
-		),
+		scriptUrl: resolveScriptUrl(options.scriptUrl, defaultScriptUrl),
 		siteId,
 	};
 	return reuseEloquaTracking(effectiveOptions, (config) => {
@@ -235,31 +355,38 @@ export const eloquaTracking = function eloquaTracking(
 		let generation = 0;
 		let trackedGeneration = -1;
 		let element: HTMLScriptElement | undefined;
+		let latestInfo: ScriptCallbackInfo | undefined;
 		const track = (dispatcher: NonNullable<Window['_elqQ']>): boolean => {
 			if (
 				hasConsent &&
 				element?.isConnected &&
 				trackedGeneration !== generation
 			) {
-				trackedGeneration = generation;
 				dispatcher.push(['elqTrackPageView', window.location.href]);
+				trackedGeneration = generation;
 				return true;
 			}
 			return false;
 		};
-		const owner: ConsentOwner = { hasConsent, loaded, track };
-		const updateConsent = (dispatcher?: Window['_elqQ']): void => {
-			consent ??= getConsentDispatcher(siteId);
-			Object.assign(owner, { hasConsent, loaded });
-			consent.update(owner, dispatcher);
-		};
 		const captureDispatcher = (loadedElement: HTMLScriptElement) => {
 			let dispatcher = elementDispatchers.get(loadedElement);
-			if (!dispatcher && window._elqQ) {
-				dispatcher = window._elqQ;
-				dispatcher.push(['elqSetSiteId', siteId]);
-				if (firstPartyCookieDomain) {
-					dispatcher.push(['elqUseFirstPartyCookie', firstPartyCookieDomain]);
+			const installed = elementAccounts.get(loadedElement);
+			if (!dispatcher && window._elqQ && installed) {
+				dispatcher = {
+					queue: window._elqQ,
+					synchronous: config.scriptUrl === defaultScriptUrl,
+				};
+				try {
+					dispatcher.queue.push(['elqSetSiteId', installed.siteId]);
+					if (installed.firstPartyCookieDomain) {
+						dispatcher.queue.push([
+							'elqUseFirstPartyCookie',
+							installed.firstPartyCookieDomain,
+						]);
+					}
+				} catch (error) {
+					consent?.block(error);
+					return;
 				}
 				elementDispatchers.set(loadedElement, dispatcher);
 			}
@@ -272,10 +399,16 @@ export const eloquaTracking = function eloquaTracking(
 				loaded = false;
 				generation += 1;
 			}
-			if (initialized || !hasConsent || !element) {
+			if (
+				initialized ||
+				!hasConsent ||
+				!element ||
+				!consent?.start({ firstPartyCookieDomain, siteId })
+			) {
 				return;
 			}
 			initialized = true;
+			elementAccounts.set(element, { firstPartyCookieDomain, siteId });
 			script.onBeforeLoad?.(info);
 			initializedElements.add(element);
 			const pendingElement = element;
@@ -287,10 +420,32 @@ export const eloquaTracking = function eloquaTracking(
 				if (event.type === 'load') {
 					captureDispatcher(pendingElement);
 				}
+				consent?.completeExecution();
 			};
 			element.addEventListener('load', complete, { once: true });
 			element.addEventListener('error', complete, { once: true });
 			element.src = script.src ?? '';
+		};
+		const owner: ConsentOwner = {
+			firstPartyCookieDomain,
+			hasConsent,
+			initialize: () => {
+				if (latestInfo) {
+					initialize(latestInfo);
+					owner.loaded = loaded;
+				}
+			},
+			invalidateTracking: () => {
+				generation += 1;
+			},
+			loaded,
+			siteId,
+			track,
+		};
+		const updateConsent = (dispatcher?: CapturedDispatcher): void => {
+			consent ??= getConsentDispatcher();
+			Object.assign(owner, { hasConsent, loaded });
+			consent.update(owner, dispatcher);
 		};
 		return {
 			...script,
@@ -301,7 +456,7 @@ export const eloquaTracking = function eloquaTracking(
 					generation += 1;
 				}
 				({ hasConsent } = info);
-				initialize(info);
+				latestInfo = info;
 				updateConsent();
 				if (!initialized) {
 					info.element?.removeAttribute('src');
@@ -312,16 +467,17 @@ export const eloquaTracking = function eloquaTracking(
 					generation += 1;
 				}
 				({ hasConsent } = info);
-				initialize(info);
+				latestInfo = info;
 				updateConsent();
 			},
 			onDispose() {
 				hasConsent = false;
+				loaded = false;
 				generation += 1;
 				consent?.release(owner);
 			},
 			onLoad(info) {
-				if (initialized) {
+				if (initialized && consent?.compatible(owner)) {
 					loaded = true;
 					element = info.element ?? element;
 					updateConsent(element && captureDispatcher(element));
