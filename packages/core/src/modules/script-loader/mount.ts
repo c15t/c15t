@@ -325,6 +325,19 @@ export const releaseScriptElement = (
 /** Finalize an append, dropping any batch entry skipped by an interrupted pass. */
 const completeMount = (deps: MountDeps, pending: PendingMount): void => {
 	const { script, element, elementId, hasConsent } = pending;
+	if (pending.appended && element.isConnected && !script.src) {
+		// Inline execution can dispose its loader inside appendChild. Remember
+		// physical completion even after that registration has been released.
+		setTimeout(() => {
+			elementCompletions.set(element, 'load');
+			for (const registrations of elementObservers.get(element)?.values() ??
+				[]) {
+				for (const observer of registrations.values()) {
+					observer.complete('load');
+				}
+			}
+		}, 0);
+	}
 	if (deps.loadedElements.get(script.id) !== element) {
 		return;
 	}
@@ -336,18 +349,6 @@ const completeMount = (deps: MountDeps, pending: PendingMount): void => {
 	}
 	if (deps.isDisposed()) {
 		return;
-	}
-	if (!script.src) {
-		// Inline adopters share completion even if the original loader is gone.
-		setTimeout(() => {
-			elementCompletions.set(element, 'load');
-			for (const registrations of elementObservers.get(element)?.values() ??
-				[]) {
-				for (const observer of registrations.values()) {
-					observer.complete('load');
-				}
-			}
-		}, 0);
 	}
 	deps.emit({
 		action: 'loaded',

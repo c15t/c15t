@@ -86,6 +86,55 @@ test.each(['load', 'error'] as const)(
 	}
 );
 
+test.each([false, true])(
+	'replays self-disposing inline completion to an adopter afterTimer=%s',
+	async (afterTimer) => {
+		vi.useFakeTimers();
+		const kernel = createConsentKernel();
+		const loader = createScriptLoader({ kernel, scripts: [] });
+		const oldLoad = vi.fn();
+		const adoptedLoad = vi.fn();
+		const execute = vi.fn(() => loader.dispose());
+		const listener = () => execute();
+		window.addEventListener('retained-inline-executed', listener);
+		const script: Script = {
+			category: 'necessary',
+			id: 'retained-self-disposing-inline',
+			onLoad: oldLoad,
+			persistAfterDispose: true,
+			textContent:
+				"window.dispatchEvent(new Event('retained-inline-executed'));",
+		};
+		try {
+			loader.updateScripts([script]);
+			const element = document.querySelector('script');
+			expect(execute).toHaveBeenCalledOnce();
+			expect(element?.isConnected).toBe(true);
+			if (afterTimer) {
+				await vi.runAllTimersAsync();
+			}
+			const adopter = createScriptLoader({
+				kernel,
+				scripts: [{ ...script, onLoad: adoptedLoad }],
+			});
+			disposers.push(() => adopter.dispose());
+			expect(adoptedLoad).not.toHaveBeenCalled();
+			await vi.runAllTimersAsync();
+			expect(adoptedLoad).toHaveBeenCalledOnce();
+			expect(adoptedLoad.mock.calls[0]?.[0].element).toBe(element);
+			expect(oldLoad).not.toHaveBeenCalled();
+			expect(execute).toHaveBeenCalledOnce();
+			expect(document.querySelector('script')).toBe(element);
+			expect(document.querySelectorAll('script')).toHaveLength(1);
+		} finally {
+			window.removeEventListener('retained-inline-executed', listener);
+			loader.dispose();
+			kernel.dispose();
+			vi.useRealTimers();
+		}
+	}
+);
+
 test('releases callbacks while retaining the element on configuration removal', async () => {
 	const oldLoad = vi.fn();
 	const onDispose = vi.fn();

@@ -28,7 +28,7 @@ interface ScriptSnippet {
  */
 export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 	activecampaign: {
-		example: "activeCampaignTracking({ accountId: 'YOUR_ACCOUNTID' })",
+		example: "activeCampaignTracking({ accountId: 'YOUR_ACCOUNT_ID' })",
 		importName: 'activeCampaignTracking',
 	},
 	'adobe-analytics': {

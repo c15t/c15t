@@ -95,7 +95,7 @@ describe('ActiveCampaign tracking lifecycle', () => {
 		delete window.pgo;
 		delete window.prismGlobalObjectAlias;
 	});
-	it('starts disabled and sends one allowTracking call after load and regrant', async () => {
+	it('starts disabled and requires reload before reactivating after withdrawal', async () => {
 		const scripts = [
 			activeCampaignTracking({
 				accountId: '123456',
@@ -120,12 +120,11 @@ describe('ActiveCampaign tracking lifecycle', () => {
 		expect(pgo).toHaveBeenCalledTimes(2);
 		updateScripts(scripts, deniedConsents);
 		await Promise.resolve();
-		expect(pgo.mock.calls.at(-1)).toEqual(['setTrackByDefault', false]);
+		expect(pgo.mock.calls.at(-1)).toEqual(['process', 'allowTracking']);
 		updateScripts(scripts, granted);
 		await Promise.resolve();
 		expect(getLoader()).toBe(loader);
 		expect(pgo.mock.calls.filter(([name]) => name === 'process')).toEqual([
-			['process', 'allowTracking'],
 			['process', 'allowTracking'],
 		]);
 	});
@@ -152,7 +151,7 @@ describe('ActiveCampaign helper recreation', () => {
 		delete window.pgo;
 		delete window.prismGlobalObjectAlias;
 	});
-	it('retains lifecycle state when the helper is called again', async () => {
+	it('retains a settled withdrawal when the helper is called again', async () => {
 		const create = () =>
 			activeCampaignTracking({ accountId: 'recreated-account' });
 		const scripts = [create()];
@@ -165,7 +164,6 @@ describe('ActiveCampaign helper recreation', () => {
 		updateScripts([create()], granted);
 		await Promise.resolve();
 		expect(pgo.mock.calls.filter(([name]) => name === 'process')).toEqual([
-			['process', 'allowTracking'],
 			['process', 'allowTracking'],
 		]);
 		expect(document.querySelectorAll('script[src]')).toHaveLength(1);
@@ -192,12 +190,16 @@ describe('ActiveCampaign helper recreation', () => {
 			['setEmail', 'person@example.com'],
 		]);
 	});
-	it('normalizes same options and clears or replaces email without another page request', async () => {
+	it('keeps activation across remounts and normalized email changes', async () => {
 		loadScripts([activeCampaignTracking({ accountId: 123456 })], granted);
 		const loader = getLoader();
 		const pgo = vi.fn();
 		window.pgo = pgo;
 		loader.dispatchEvent(new Event('load'));
+		updateScripts([], granted);
+		await Promise.resolve();
+		updateScripts([activeCampaignTracking({ accountId: 123456 })], granted);
+		await Promise.resolve();
 		for (const email of [
 			' person@example.com ',
 			'person@example.com',
@@ -259,7 +261,8 @@ describe('ActiveCampaign helper recreation', () => {
 			['process', 'allowTracking'],
 		]);
 	});
-	it('does not apply email while denied and clears the old email before regrant', async () => {
+	it('requires reload after a running helper changes to a denied category', async () => {
+		const error = vi.spyOn(console, 'error').mockImplementation(() => {});
 		loadScripts(
 			[
 				activeCampaignTracking({
@@ -278,7 +281,9 @@ describe('ActiveCampaign helper recreation', () => {
 			granted
 		);
 		await Promise.resolve();
-		expect(pgo.mock.calls.at(-1)).toEqual(['setTrackByDefault', false]);
+		expect(error).toHaveBeenCalledWith(
+			expect.stringContaining('reload the page')
+		);
 		expect(pgo.mock.calls.filter(([name]) => name === 'setEmail')).toHaveLength(
 			1
 		);
@@ -288,8 +293,8 @@ describe('ActiveCampaign helper recreation', () => {
 		);
 		await Promise.resolve();
 		expect(getLoader()).toBe(loader);
-		expect(pgo.mock.calls.slice(-2)).toEqual([
-			['setEmail', ''],
+		expect(pgo.mock.calls).toEqual([
+			['setEmail', 'person@example.com'],
 			['process', 'allowTracking'],
 		]);
 	});
@@ -306,13 +311,24 @@ describe('ActiveCampaign helper recreation', () => {
 		updateScripts([activeCampaignTracking(options)], granted);
 		await Promise.resolve();
 		expect(getLoader()).toBe(loader);
-		expect(pgo.mock.calls).toEqual([
-			['process', 'allowTracking'],
-			['setTrackByDefault', false],
-		]);
+		expect(pgo.mock.calls).toEqual([['process', 'allowTracking']]);
 		expect(error).toHaveBeenCalledWith(
 			expect.stringContaining('requires a new page')
 		);
+		updateScripts(
+			[
+				activeCampaignTracking({
+					accountId: '123456',
+					email: 'restored@example.com',
+				}),
+			],
+			granted
+		);
+		await Promise.resolve();
+		expect(pgo.mock.calls).toEqual([
+			['process', 'allowTracking'],
+			['setEmail', 'restored@example.com'],
+		]);
 	});
 	it('ignores an ownerless late load and reuses it on remount', async () => {
 		loadScripts(
@@ -530,7 +546,7 @@ describe('ActiveCampaign registration ownership', () => {
 			second.dispose();
 		}
 	});
-	it('requires all registrations to consent and releases a disposed denial', async () => {
+	it('requires all registrations to consent and retains a settled denial', async () => {
 		const first = createConsentKernel();
 		const second = createConsentKernel();
 		await first.commands.save(deniedConsents);
@@ -555,15 +571,16 @@ describe('ActiveCampaign registration ownership', () => {
 			expect(pgo.mock.calls).toEqual([['process', 'allowTracking']]);
 			await second.commands.save(deniedConsents);
 			await Promise.resolve();
-			expect(pgo.mock.calls.at(-1)).toEqual(['setTrackByDefault', false]);
+			expect(pgo.mock.calls.at(-1)).toEqual(['process', 'allowTracking']);
 			secondLoader.dispose();
 			await Promise.resolve();
 			expect(getLoader()).toBe(loader);
 			expect(pgo.mock.calls.at(-1)).toEqual(['process', 'allowTracking']);
 			firstLoader.dispose();
 			await Promise.resolve();
-			expect(pgo.mock.calls.at(-1)).toEqual(['setTrackByDefault', false]);
+			expect(pgo.mock.calls.at(-1)).toEqual(['process', 'allowTracking']);
 			expect(loader.isConnected).toBe(true);
+			expect(pgo).toHaveBeenCalledOnce();
 		} finally {
 			firstLoader.dispose();
 			secondLoader.dispose();

@@ -124,9 +124,16 @@ const reconcile = (state: TrackingState): void => {
 	}
 	const permitted = permittedRegistration(state);
 	if (!permitted) {
-		if (runtime.allowed) {
-			command('setTrackByDefault', false);
-			runtime.allowed = false;
+		if (
+			runtime.allowed &&
+			[...state.registrations.values()].some(({ info }) => !info.hasConsent)
+		) {
+			// Diffuser cannot revoke allowTracking. A regrant must use a new page.
+			runtime.status = 'error';
+			reportProblem(
+				state,
+				'tracking permission was lost; reload the page to stop the running SDK'
+			);
 		}
 		return;
 	}
