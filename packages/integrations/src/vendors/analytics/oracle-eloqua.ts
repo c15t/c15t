@@ -171,6 +171,10 @@ const reuseEloquaTracking = createScriptReuse<EloquaTrackingOptions>();
 // Another configuration can adopt a tag that a surviving provider still owns.
 // Only a new physical tag needs a fresh queue and SDK setup.
 const initializedElements = new WeakSet<HTMLScriptElement>();
+const elementDispatchers = new WeakMap<
+	HTMLScriptElement,
+	NonNullable<Window['_elqQ']>
+>();
 
 /**
  * Loads Eloqua and enables page tracking only after consent.
@@ -246,6 +250,18 @@ export const eloquaTracking = function eloquaTracking(
 			Object.assign(owner, { hasConsent, loaded });
 			consent.update(owner, dispatcher);
 		};
+		const captureDispatcher = (loadedElement: HTMLScriptElement) => {
+			let dispatcher = elementDispatchers.get(loadedElement);
+			if (!dispatcher && window._elqQ) {
+				dispatcher = window._elqQ;
+				dispatcher.push(['elqSetSiteId', siteId]);
+				if (firstPartyCookieDomain) {
+					dispatcher.push(['elqUseFirstPartyCookie', firstPartyCookieDomain]);
+				}
+				elementDispatchers.set(loadedElement, dispatcher);
+			}
+			return dispatcher;
+		};
 		const initialize = (info: ScriptCallbackInfo): void => {
 			if (info.element && info.element !== element) {
 				({ element } = info);
@@ -259,6 +275,18 @@ export const eloquaTracking = function eloquaTracking(
 			initialized = true;
 			script.onBeforeLoad?.(info);
 			initializedElements.add(element);
+			const pendingElement = element;
+			// Detached downloads can still execute and consume another tag's queue.
+			// Configure and capture each actual execution before core's load callback.
+			const complete = (event: Event): void => {
+				pendingElement.removeEventListener('load', complete);
+				pendingElement.removeEventListener('error', complete);
+				if (event.type === 'load') {
+					captureDispatcher(pendingElement);
+				}
+			};
+			element.addEventListener('load', complete, { once: true });
+			element.addEventListener('error', complete, { once: true });
 			element.src = script.src ?? '';
 		};
 		return {
@@ -293,7 +321,7 @@ export const eloquaTracking = function eloquaTracking(
 				if (initialized) {
 					loaded = true;
 					element = info.element ?? element;
-					updateConsent(window._elqQ);
+					updateConsent(element && captureDispatcher(element));
 				}
 			},
 			serverStart: undefined,

@@ -98,7 +98,17 @@ describe('Eloqua dispatcher lifecycle', () => {
 				document.head.append(response);
 			}
 		});
-		window._elqQ = { push };
+		window._elqQ = {
+			push(command) {
+				// Configuration is replayed on each SDK execution; record consent and tracking.
+				if (
+					command[0] !== 'elqSetSiteId' &&
+					command[0] !== 'elqUseFirstPartyCookie'
+				) {
+					return push(command);
+				}
+			},
+		};
 		return push;
 	};
 	it.each([
@@ -353,6 +363,86 @@ describe('Eloqua dispatcher lifecycle', () => {
 			} finally {
 				for (const loader of loaders) {
 					loader.dispose();
+				}
+				for (const kernel of kernels) {
+					kernel.dispose();
+				}
+			}
+		}
+	);
+	it.each([false, true])(
+		'keeps a configured dispatcher after a detached SDK executes, old first: %s',
+		async (oldFirst) => {
+			const kernels = [
+				createConsentKernel(),
+				createConsentKernel(),
+				createConsentKernel(),
+			] as const;
+			await Promise.all(kernels.map((kernel) => kernel.commands.save(granted)));
+			const create = () => eloquaTracking({ siteId: '1973398186' });
+			const loaders = kernels.map((kernel, index) =>
+				index === 0
+					? createScriptLoader({ kernel, scripts: [create()] })
+					: undefined
+			);
+			const execute = (element: HTMLScriptElement) => {
+				const queue = window._elqQ;
+				let configured = false;
+				const dispatcher = {
+					push: (command: unknown[]) => {
+						if (command[0] === 'elqSetSiteId') {
+							configured = command[1] === '1973398186';
+						}
+						if (
+							configured &&
+							['elqOptIn', 'elqOptOut'].includes(String(command[0]))
+						) {
+							const response = document.createElement('script');
+							response.src = `https://s1973398186.t.eloqua.com/visitor/v200/svrGP?pps=${command[0] === 'elqOptIn' ? '41' : '42'}&siteid=1973398186`;
+							document.head.append(response);
+						}
+					},
+				};
+				window._elqQ = dispatcher;
+				if (Array.isArray(queue)) {
+					for (const command of queue) {
+						dispatcher.push(command);
+					}
+				}
+				element.dispatchEvent(new Event('load'));
+			};
+			try {
+				const retired = getLoader();
+				loaders[0]?.dispose();
+				loaders[1] = createScriptLoader({
+					kernel: kernels[1],
+					scripts: [create()],
+				});
+				const active = getLoader();
+				expect(active).not.toBe(retired);
+				for (const element of oldFirst
+					? [retired, active]
+					: [active, retired]) {
+					execute(element);
+				}
+				const optIn = document.querySelector('script[src*="pps=41"]');
+				expect(optIn).not.toBeNull();
+				document.cookie = 'OPTIN=1; path=/';
+				optIn?.dispatchEvent(new Event('load'));
+				loaders[2] = createScriptLoader({
+					kernel: kernels[2],
+					scripts: [create()],
+				});
+				await Promise.resolve();
+				await kernels[1]?.commands.save(deniedConsents);
+				const optOut = document.querySelector('script[src*="pps=42"]');
+				expect(optOut).not.toBeNull();
+				document.cookie = 'OPTIN=0; path=/';
+				optOut?.dispatchEvent(new Event('load'));
+				expect(document.cookie).toContain('OPTIN=0');
+			} finally {
+				for (const loader of loaders) {
+					loader?.dispose();
 				}
 				for (const kernel of kernels) {
 					kernel.dispose();
