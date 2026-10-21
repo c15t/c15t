@@ -24,6 +24,7 @@ import { baseTranslations } from '@c15t/translations/all';
 import type { BaseTranslations } from '@c15t/translations/all';
 
 import { failedResponseError } from '../libs/failed-response';
+import { isValidSubjectId } from '../libs/generate-subject-id';
 import { createUnreportedJourneys } from '../libs/journey';
 import {
 	reportConsentSession,
@@ -466,7 +467,8 @@ export const createManifestTransport = function createManifestTransport(
 			});
 			// A backend older than first-load subject IDs only knows subjects
 			// a save created. The identity then travels with the next save.
-			if (response.status === 404) {
+			// The backend rejects an ID of another form, and so would the save.
+			if (response.status === 404 && isValidSubjectId(subjectId)) {
 				return;
 			}
 			if (!response.ok) {

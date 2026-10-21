@@ -1387,6 +1387,10 @@ describe('createHostedTransport: request shape', () => {
 			await expect(
 				transportFor(500).identify?.(user, 'sub_unsaved')
 			).rejects.toThrow();
+			// The backend rejects an ID of another form, and so would the save.
+			await expect(
+				transportFor(404).identify?.(user, 'canonical id/1')
+			).rejects.toThrow();
 		}
 	);
 
