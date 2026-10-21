@@ -363,7 +363,7 @@ const executeStep = function executeStep(step: ManifestStep): void {
 					}
 
 					queueTarget.push([methodName, ...args]);
-					return step.returnQueue ? queueTarget : undefined;
+					return step.returnTarget ? targetRecord : undefined;
 				};
 			}
 			break;

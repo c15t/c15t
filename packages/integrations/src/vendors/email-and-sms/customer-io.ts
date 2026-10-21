@@ -51,7 +51,7 @@ export const customerIoManifest = {
 		{
 			methods: [...CUSTOMER_IO_METHODS],
 			preserveExisting: true,
-			returnQueue: true,
+			returnTarget: true,
 			target: 'cioanalytics',
 			type: 'defineQueueMethods',
 		},

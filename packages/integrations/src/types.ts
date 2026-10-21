@@ -189,10 +189,11 @@ export interface DefineQueueMethodsStep {
 		| 'voidMethodCall'
 		| 'callback';
 	/**
-	 * Return the queue after a tuple call so vendor stubs can be chained.
+	 * Return the target that owns the methods after a tuple call, even when
+	 * storage uses a separate queue. Other formats keep their return values.
 	 * @default false
 	 */
-	returnQueue?: boolean;
+	returnTarget?: boolean;
 	/**
 	 * Leave a method alone when the target already has a function under that
 	 * name. Setup runs again when consent is granted after a revocation
