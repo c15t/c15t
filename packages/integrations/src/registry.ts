@@ -115,6 +115,16 @@ export const BUILT_IN_INTEGRATION_CATEGORIES = [
  */
 export const builtInScriptIntegrations = [
 	{
+		consentCategory: 'functionality',
+		docsSlug: 'zendesk',
+		hint: 'Customer support through Zendesk Messaging',
+		integrationCategory: 'functional',
+		key: 'zendeskWidget',
+		label: 'Zendesk Messaging',
+		packageSubpath: 'zendesk',
+		vendor: 'zendesk',
+	},
+	{
 		consentCategory: 'necessary',
 		docsSlug: 'cloudflare-zaraz',
 		hint: 'Consent bridge for tools managed by Zaraz',

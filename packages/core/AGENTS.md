@@ -126,3 +126,4 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 - [Vercel Speed Insights](./docs/integrations/vercel-speed-insights.md): Load the Vercel Speed Insights collector only after measurement consent with the c15t vercelSpeedInsights helper, drop Web Vitals reports on revocation, and check it in DevTools.
 - [X Pixel](./docs/integrations/x-pixel.md): Load the X Pixel only after marketing consent with the c15t xPixel helper, guard twq conversion events, and check it in DevTools.
 - [YouTube](./docs/integrations/youtube.md): Gate YouTube embeds with c15t v3 in Next.js, TanStack Start, React, Nuxt, Vue, Astro, Svelte, SvelteKit or JavaScript.
+- [Zendesk Messaging](./docs/integrations/zendesk.md): Load the Zendesk Messaging Web Widget after functionality consent, map measurement consent to its cookie ranges and clear widget storage on revocation.

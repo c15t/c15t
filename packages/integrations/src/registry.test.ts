@@ -52,6 +52,7 @@ import { klaviyoManifest } from './vendors/email-and-sms/klaviyo';
 import { crispManifest } from './vendors/functional/crisp';
 import { frontChatManifest } from './vendors/functional/front-chat';
 import { intercomManifest } from './vendors/functional/intercom';
+import { zendeskWidgetManifest } from './vendors/functional/zendesk';
 import { googleTagManagerManifest } from './vendors/tag-managers/google-tag-manager';
 
 const validConsentCategories = [
@@ -63,6 +64,7 @@ const validConsentCategories = [
 ] as const satisfies readonly AllConsentNames[];
 
 const vendorManifests = [
+	zendeskWidgetManifest,
 	googleTagManagerManifest,
 	gtagManifest,
 	ahrefsAnalyticsManifest,

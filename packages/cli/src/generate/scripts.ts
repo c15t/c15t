@@ -212,6 +212,10 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 		example: "xPixel({ pixelId: 'oXXXX' })",
 		importName: 'xPixel',
 	},
+	zendesk: {
+		example: "zendeskWidget({ key: 'YOUR_ZENDESK_WIDGET_KEY' })",
+		importName: 'zendeskWidget',
+	},
 };
 
 /**

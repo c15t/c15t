@@ -1,0 +1,93 @@
+---
+title: Zendesk Messaging
+description: Load the Zendesk Messaging Web Widget after functionality consent, map measurement consent to its cookie ranges and clear widget storage on revocation.
+seoTitle: Zendesk Messaging cookie consent with c15t
+seoDescription: Gate Zendesk Messaging on functionality consent. Map measurement consent to analytics storage and send Zendesk's none range when consent is withdrawn.
+icon: messages-square
+group: integrations
+---
+
+The c15t `zendeskWidget` helper waits for `functionality` consent before it
+creates Zendesk globals or requests the Messaging Web Widget. It queues
+Zendesk's storage setting before the loader runs. Measurement consent enables
+analytics storage; functionality consent alone permits functional storage.
+
+This integration targets Zendesk Messaging. Web Widget Classic uses a
+different API.
+
+## Configure Zendesk Messaging
+
+Copy your widget key from **Admin Center > Channels > Messaging > Installation**.
+Remove the original Zendesk snippet from your page or tag manager.
+
+<CommandTabs command="@c15t/integrations" mode="install" />
+
+<include src="../shared/examples/javascript/zendesk-scripts.mdx" />
+
+<include src="../shared/integrations/register-scripts.mdx" />
+
+## Options
+
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `key` | Required | Public Messaging widget key. Surrounding whitespace is trimmed. A missing or blank value logs an error and the widget does not load. |
+| `category` | `functionality` | c15t consent category or condition required to load the widget. Measurement consent still controls its analytics storage. |
+
+## Loading and revocation
+
+The loader URL is `https://static.zdassets.com/ekr/snippet.js?key=YOUR_KEY`.
+c15t creates the vendor's `zE` command queue only after the configured consent
+condition passes. The helper sends
+`zE('messenger:set', 'cookies', range)` before inserting the loader and on
+subsequent consent updates:
+
+| Mapped consent | Measurement consent | Zendesk range |
+| --- | --- | --- |
+| Granted | Granted | `all` |
+| Granted | Denied | `functional` |
+| Denied after loading | Either | `none` |
+
+With `functional`, Zendesk disables analytics used for Pages viewed and
+Proactive messages analytics. With `none`, Zendesk hides the widget and deletes
+its local and session storage. These effects come from Zendesk's
+[Set cookies API](https://developer.zendesk.com/api-reference/widget-messaging/web/core/#set-cookies).
+
+c15t removes the loader on revocation. The `none` call does not unload the SDK
+or promise that all existing network activity stops. Keep
+`reloadOnConsentRevoked` enabled to stop code already running on the page.
+
+## Cookies and storage
+
+Zendesk's [in-product cookie policy](https://support.zendesk.com/hc/en-us/articles/4408824378650-Zendesk-In-Product-Cookie-Policy)
+lists these entries for the Web Widget. Check your own widget configuration
+for additional product storage.
+
+| Name | Zendesk category | Lifetime |
+| --- | --- | --- |
+| `<integrationId>.appUserId`, `<integrationId>.clientId`, `<integrationId>.sessionToken` | Essential | Local or session storage, subject to the browser's policy |
+| `ZD-suid` | Analytics | 20 minutes |
+| `ZD-buid` | Analytics | Forever |
+| `ZD-widgetOpen`, `ZD-launcherLabelRemoved` | Functionality | Forever |
+| `ZD-soundNotificationDisabledKey`, `ZD-campaigns`, `<integrationId>.conversationStartedAt` | Functionality | Subject to the browser's policy |
+
+## Verify Zendesk Messaging
+
+Filter Network by `zdassets.com` and your Zendesk subdomain. Before mapped
+consent, there should be no Zendesk loader request and `window.zE` should be
+absent, provided you removed other Zendesk installations. Grant functionality
+without measurement and check that widget analytics storage stays disabled.
+Grant measurement while the widget is open, then revoke measurement and
+check that the widget remains available with analytics disabled.
+
+Revoke functionality and check that Zendesk hides the widget. After c15t's
+reload, the loader should stay absent. A successful HTTP response for
+`snippet.js` alone does not prove your widget key or Messaging configuration
+works. Open a conversation with your configured widget to verify that.
+
+<include src="../shared/integrations/vendor-revocation-and-verify.mdx" />
+
+## Official snippet and API
+
+- [Install and show the Web Widget](https://developer.zendesk.com/documentation/zendesk-web-widget-sdks/sdks/web/messaging-show-web-widget/)
+- [Messaging core API](https://developer.zendesk.com/api-reference/widget-messaging/web/core/)
+- [Zendesk privacy notice](https://www.zendesk.com/company/agreements-and-terms/privacy-notice/)

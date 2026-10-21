@@ -370,6 +370,8 @@ const resetVendorGlobals = function resetVendorGlobals() {
 		'uetq',
 		'va',
 		'vaq',
+		'zE',
+		'zEmbed',
 	] as const) {
 		Reflect.deleteProperty(win, key);
 	}
