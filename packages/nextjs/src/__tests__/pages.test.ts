@@ -584,18 +584,30 @@ describe('@c15t/nextjs/pages: API bridge', () => {
 	});
 });
 
-describe('withConsentProps', () => {
+/** A `getServerSideProps` context whose `res` records its headers. */
+const createPageContext = function createPageContext(
+	headers: Record<string, string>
+) {
+	const responseHeaders = new Map<string, unknown>();
 	const context = {
 		query: {},
-		req: {
-			headers: {
-				cookie: 'c15t=c.necessary:1,c.marketing:1,i.t:1',
-				host: 'app.example.com',
-				'x-vercel-ip-country': 'DE',
+		req: { headers: { host: 'app.example.com', ...headers } },
+		res: {
+			getHeader: (name: string) => responseHeaders.get(name),
+			setHeader: (name: string, value: unknown) => {
+				responseHeaders.set(name, value);
 			},
 		},
 		resolvedUrl: '/',
 	} as never;
+	return { context, responseHeaders };
+};
+
+describe('withConsentProps', () => {
+	const { context } = createPageContext({
+		cookie: 'c15t=c.necessary:1,c.marketing:1,i.t:1',
+		'x-vercel-ip-country': 'DE',
+	});
 
 	test('adds the visitor state as a JSON-safe consent prop', async () => {
 		const result = await withConsentProps(undefined, {
@@ -639,5 +651,53 @@ describe('withConsentProps', () => {
 				context
 			)
 		).resolves.toEqual({ notFound: true });
+	});
+
+	test('a first visit gets a c15t-sid cookie, and the state carries the same ID', async () => {
+		const page = createPageContext({ cookie: 'theme=dark' });
+		page.responseHeaders.set('set-cookie', 'session=1; Path=/');
+		const result = await withConsentProps(undefined, {
+			reportSessions: false,
+		})(page.context);
+
+		if (!('props' in result)) {
+			throw new Error('expected props');
+		}
+		const { consent } = await result.props;
+		const subjectId = consent?.initialRecords?.subject?.subjectId;
+		expect(subjectId).toMatch(/^sub_/u);
+		expect(consent?.initialRecords?.choice).toBeNull();
+		expect(page.responseHeaders.get('set-cookie')).toEqual([
+			'session=1; Path=/',
+			`c15t-sid=${subjectId}; Max-Age=31536000; Path=/; Secure; SameSite=Lax`,
+		]);
+	});
+
+	test('a returning visitor keeps their ID and gets no new cookie', async () => {
+		const page = createPageContext({ cookie: 'c15t-sid=sub_returning' });
+		const result = await withConsentProps(undefined, {
+			reportSessions: false,
+		})(page.context);
+
+		if (!('props' in result)) {
+			throw new Error('expected props');
+		}
+		const { consent } = await result.props;
+		expect(consent?.initialRecords?.subject?.subjectId).toBe('sub_returning');
+		expect(page.responseHeaders.has('set-cookie')).toBe(false);
+	});
+
+	test('cookieName names the subject cookie', async () => {
+		const page = createPageContext({});
+		await withConsentProps(undefined, {
+			cookieName: 'consent',
+			reportSessions: false,
+			storage: { crossSubdomain: true },
+		})(page.context);
+		expect(page.responseHeaders.get('set-cookie')).toEqual([
+			expect.stringMatching(
+				/^consent-sid=sub_\w+; .*; Domain=\.example\.com;/u
+			),
+		]);
 	});
 });

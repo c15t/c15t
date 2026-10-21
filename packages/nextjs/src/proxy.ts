@@ -1,3 +1,5 @@
+import type { StorageConfig } from '@c15t/core';
+import { resolveRequestSubject } from '@c15t/core/server';
 import { extractConsentRequestInputs } from '@c15t/schema/types';
 import { NextResponse } from 'next/server.js';
 import type { NextRequest } from 'next/server.js';
@@ -8,18 +10,43 @@ export interface C15tProxyOptions {
 	 * middleware request headers visible to RSC.
 	 */
 	cookie?: boolean | { countryName?: string; regionName?: string };
+
+	/**
+	 * The client's `storageConfig`, so the subject cookie this sets matches
+	 * the one the browser would: `storageKey` names it (`<storageKey>-sid`),
+	 * and `defaultDomain`, `crossSubdomain` and `defaultExpiryDays` set its
+	 * domain and lifetime. Set it only if you changed those client-side.
+	 */
+	storage?: Pick<
+		StorageConfig,
+		'crossSubdomain' | 'defaultDomain' | 'defaultExpiryDays' | 'storageKey'
+	>;
+
+	/**
+	 * Read the request's scheme and host from `forwarded` and
+	 * `x-forwarded-*` headers when deciding the subject cookie's `Secure`
+	 * flag and cross-subdomain domain. Any client can send those headers, so
+	 * set this only behind a proxy that sets them and drops incoming ones.
+	 *
+	 * @default false
+	 */
+	trustForwardedHeaders?: boolean;
 }
 
 const DEFAULT_COUNTRY_COOKIE = 'c15t-country';
 const DEFAULT_REGION_COOKIE = 'c15t-region';
 
 /**
- * Creates a `NextResponse.next()` that forwards normalized consent headers.
+ * Creates a `NextResponse.next()` that forwards normalized consent headers
+ * and gives a new visitor a subject ID.
  *
- * Use from `proxy.ts` (Next 16) or `middleware.ts` (Next 15) when the
- * deployment platform exposes geo to the proxy but strips it before Server
- * Components or Route Handlers. `@c15t/nextjs/middleware` exports the same
- * function as `c15tMiddleware`.
+ * Use from `proxy.ts` (Next 16) or `middleware.ts` (Next 15). It forwards
+ * geo the deployment platform exposes to the proxy but strips before Server
+ * Components or Route Handlers. A visitor with no subject ID gets one in a
+ * `c15t-sid` cookie on this response, and the render in the same request
+ * reads it, so the server render and the browser start with the same ID.
+ * Prefetches get none. `@c15t/nextjs/middleware` exports the same function
+ * as `c15tMiddleware`.
  *
  * @example
  * ```ts
@@ -50,6 +77,14 @@ export const c15tProxy = function c15tProxy(
 	if (inputs.gpc !== undefined) {
 		requestHeaders.set('sec-gpc', inputs.gpc ? '1' : '0');
 	}
+	const subject = resolveRequestSubject({
+		request: { headers: request.headers, url: request.url },
+		storage: options.storage,
+		trustForwardedHeaders: options.trustForwardedHeaders,
+	});
+	if (subject?.setCookie) {
+		requestHeaders.set('cookie', subject.cookie);
+	}
 
 	const response = NextResponse.next({
 		request: {
@@ -78,6 +113,11 @@ export const c15tProxy = function c15tProxy(
 			path: '/',
 			sameSite: 'lax',
 		});
+	}
+
+	if (subject?.setCookie) {
+		const { header: _header, name, value, ...attributes } = subject.setCookie;
+		response.cookies.set(name, value, attributes);
 	}
 
 	return response;

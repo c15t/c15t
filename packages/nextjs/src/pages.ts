@@ -15,6 +15,8 @@
  * ```
  */
 
+import type { StorageConfig } from '@c15t/core';
+import { resolveRequestSubject } from '@c15t/core/server';
 import type { GetServerSideProps, GetServerSidePropsContext } from 'next';
 
 import type {
@@ -202,7 +204,31 @@ export interface ConsentPageProps {
 }
 
 /** Options for {@link withConsentProps}: `resolveConsent` without `req`. */
-export type WithConsentPropsOptions = Omit<PagesResolveConsentOptions, 'req'>;
+export type WithConsentPropsOptions = Omit<
+	PagesResolveConsentOptions,
+	'req'
+> & {
+	/**
+	 * The client's `storageConfig`, so the subject cookie this sets matches
+	 * the one the browser would: `defaultDomain`, `crossSubdomain` and
+	 * `defaultExpiryDays` set its domain and lifetime. `storageKey` defaults
+	 * to `cookieName`. Set it only if you changed those client-side.
+	 */
+	storage?: Pick<
+		StorageConfig,
+		'crossSubdomain' | 'defaultDomain' | 'defaultExpiryDays' | 'storageKey'
+	>;
+};
+
+/** Adds `header` to the response's `Set-Cookie` headers. */
+const appendSetCookie = function appendSetCookie(
+	res: GetServerSidePropsContext['res'],
+	header: string
+): void {
+	const existing = res.getHeader('set-cookie') ?? [];
+	const cookies = Array.isArray(existing) ? existing : [String(existing)];
+	res.setHeader('set-cookie', [...cookies, header]);
+};
 
 /**
  * `getServerSideProps` that resolves the visitor's consent from
@@ -212,6 +238,10 @@ export type WithConsentPropsOptions = Omit<PagesResolveConsentOptions, 'req'>;
  *
  * Wraps the page's own `getServerSideProps` when given: consent resolves
  * while it runs, and its redirects and `notFound` pass through unchanged.
+ *
+ * A visitor with no subject ID gets one in a `c15t-sid` cookie on this
+ * response, and the state carries it, so the server render and the browser
+ * start with the same ID.
  *
  * @param getServerSideProps - The page's own `getServerSideProps`.
  * @param options - `resolveConsent` options, such as `timeoutMs`.
@@ -236,9 +266,23 @@ export const withConsentProps = function withConsentProps<
 	getServerSideProps?: GetServerSideProps<Props>,
 	options: WithConsentPropsOptions = {}
 ): GetServerSideProps<Props & ConsentPageProps> {
+	const { storage, ...resolveOptions } = options;
 	return async (context: GetServerSidePropsContext) => {
+		const subject = resolveRequestSubject({
+			request: { headers: context.req.headers },
+			storage: {
+				storageKey: options.cookieName,
+				...storage,
+			},
+			trustForwardedHeaders: options.trustForwardedHeaders,
+		});
+		let req: NodeRequestLike = context.req;
+		if (subject?.setCookie) {
+			appendSetCookie(context.res, subject.setCookie.header);
+			req = { headers: { ...context.req.headers, cookie: subject.cookie } };
+		}
 		const [state, result] = await Promise.all([
-			resolveConsent({ ...options, req: context.req }),
+			resolveConsent({ ...resolveOptions, req }),
 			getServerSideProps ? getServerSideProps(context) : { props: {} as Props },
 		]);
 		if (!('props' in result)) {
