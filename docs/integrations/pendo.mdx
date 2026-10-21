@@ -36,7 +36,7 @@ Missing or blank required values log an error and never load.
 
 The helper downloads Pendo only after consent and initializes it while consent is still granted. Revocation calls `stopSendingEvents`; regrant calls `startSendingEvents` without initializing a second time.
 
-It does not call `clearSession()` automatically. That method creates an anonymous visitor and can trigger identification. Stop/start preserves the identity for reversible consent changes. Use your own account's data deletion or Do Not Process controls when you need to remove data already collected.
+It does not call `clearSession()` automatically for consent changes. That method creates an anonymous visitor and can trigger identification. Stop/start preserves the identity for reversible consent changes. If your application signs out while Pendo remains loaded and consent is active, call `clearSession()` before identifying the next visitor. Do not call it for consent revocation or while consent is denied. Use your own account's data deletion or Do Not Process controls when you need to remove data already collected.
 
 Stopping event sending does not erase storage or remove in-app guides and running vendor code. Keep `reloadOnConsentRevoked` enabled if your policy requires the next page without Pendo loaded. Pendo storage keys commonly start with `_pendo_` and include the app ID. Cookie behavior depends on options including `cookieDomain`.
 
