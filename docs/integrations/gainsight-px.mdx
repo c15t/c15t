@@ -1,0 +1,117 @@
+---
+title: Gainsight PX
+description: Gate Gainsight PX product analytics and in-app engagements on consent, configure the aptrinsic snippet and disable tracking when consent is withdrawn.
+seoTitle: Gainsight PX cookie consent with c15t
+seoDescription: Load Gainsight PX after analytics consent. Configure user and account identity, choose a consent category and disable the tag when consent is withdrawn.
+icon: chart-no-axes-combined
+group: integrations
+---
+
+The `gainsightPx` helper waits for `measurement` consent before it creates
+`window.aptrinsic` or requests the PX SDK. This gate covers both product
+analytics and in-app engagements. On revocation, the helper disables the tag
+through PX's config API and requests a session reset.
+
+## Configure Gainsight PX
+
+Copy the product/channel key from **Administration > Products** in Gainsight PX.
+Remove any existing PX snippet or tag-manager installation so it cannot load
+outside c15t.
+
+<CommandTabs command="@c15t/integrations" mode="install" />
+
+<include src="../shared/examples/javascript/gainsight-px-scripts.mdx" />
+
+<include src="../shared/integrations/register-scripts.mdx" />
+
+## Options
+
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `productKey` | Required | Product/channel key assigned to `aptrinsic.p` and the loader's `a` query parameter. Blank values log an error and skip installation. |
+| `category` | `measurement` | Consent category or condition for the whole SDK. Choose `experience` if it fits your use of analytics and engagements. |
+| `config` | None | JSON-serializable PX configuration assigned to `aptrinsic.c`. c15t owns `enableTag`; do not set it yourself. |
+| `user` | None | User identify payload with a required `id`. The helper queues it only after mapped consent. |
+| `account` | None | Optional account identify payload with a required `id`. Sent only when `user` is also supplied. |
+| `scriptUrl` | `https://web-sdk.aptrinsic.com/api/aptrinsic.js?a=<productKey>` | Full loader override. Other PX requests still use the endpoints configured by the SDK. |
+
+`config` supports PX options such as `fullDomainCookie`, `localStorageCookie`,
+`usePOST` and `htmlSanitization`. Keep configuration and identity data
+JSON-serializable. Send dates as epoch milliseconds. For custom attributes,
+use the API names from **Administration > Attributes**.
+
+{/* example: fragment */}
+
+```ts
+// Options for gainsightPx in src/consent-scripts.ts.
+{
+	productKey: 'AP-PRODUCT-KEY-2',
+	category: 'experience',
+	config: { fullDomainCookie: true },
+	user: { id: 'user-123', plan: 'paid' },
+	account: { id: 'account-456' },
+}
+```
+
+The optional identity is part of the script configuration. For a later login or
+account change, call PX's `identify` API only while the visitor still permits
+this vendor. c15t does not gate event calls made elsewhere in your application.
+
+## Loading and revocation
+
+Before mapped consent, the helper creates no PX global, loader, cookies or
+localStorage entries. It does not load PX with `enableTag: false` as an
+early-loading mode.
+
+After consent, the helper creates the official function queue with `p` for the
+product key and `c` for configuration. It enables the tag, optionally queues
+`identify`, then appends the asynchronous loader. PX may begin anonymous
+tracking before its queued identify call completes.
+
+When mapped consent is withdrawn, the helper sends
+`aptrinsic('config', 'enableTag', false)` followed by `aptrinsic('reset')` and
+removes the loader element. Gainsight documents `enableTag: false` as stopping
+PX cookies, network calls and engagements. Its current SDK resets the session
+inside the disable call and ignores a separate `reset` while disabled.
+
+Keep `reloadOnConsentRevoked` enabled. Removing the loader does not unload PX's
+code or cancel requests that already started. A load that finishes after
+revocation may still execute vendor code. The helper queues the stop request,
+but a page reload ends the SDK's timers and listeners. This helper does not
+promise that an SDK already running will fully restart after another grant
+without a reload.
+
+## Cookies and storage
+
+Gainsight documents these first-party cookies:
+
+| Name | Lifetime | Purpose |
+| --- | --- | --- |
+| `apt.uid` | 1 year | Persistent visitor identity. |
+| `apt.sid` | 30 minutes of inactivity | Current session identity. |
+
+`fullDomainCookie: true` scopes cookie data to the full hostname rather than
+the top-level domain. `localStorageCookie: true` moves cookie data to
+localStorage. These settings change where PX persists data; they do not replace
+the consent gate. Inspect storage for your configured PX version and features.
+
+## Verify Gainsight PX
+
+In a private window, deny analytics and confirm there is no request to
+`web-sdk.aptrinsic.com` or `esp.aptrinsic.com`, no `window.aptrinsic`, and no
+`apt.uid` or `apt.sid` storage. Allow the category selected by `category`, then
+check that the SDK loads and your PX product receives the expected events.
+Revoke that category and confirm the reloaded page makes no PX request.
+
+The helper already sends PX's documented opt-out command. The shared advice
+about adding a custom stop callback applies when you need more cleanup than
+this command provides.
+
+<include src="../shared/integrations/vendor-revocation-and-verify.mdx" />
+
+## Official sources
+
+- [PX Web SDK snippet, identify and reset](https://support.gainsight.com/PX/API_for_Developers/01About/Work_with_Gainsight_PX_Web_SDK)
+- [Config API and tracking opt-out](https://support.gainsight.com/PX/API_for_Developers/02Usage_of_Different_APIs/Use_Config_API)
+- [JavaScript SDK configuration](https://support.gainsight.com/PX/Administration/General/Javascript_SDK_Configuration)
+- [PX analytics cookies](https://support.gainsight.com/PX/Install_PX/Install_PX_Web/Analytics_Cookies)

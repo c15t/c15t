@@ -18,6 +18,7 @@ import { clearbit } from './vendors/analytics/clearbit';
 import { cloudflareWebAnalytics } from './vendors/analytics/cloudflare-web-analytics';
 import { databuddy } from './vendors/analytics/databuddy';
 import { fathomAnalytics } from './vendors/analytics/fathom-analytics';
+import { gainsightPx } from './vendors/analytics/gainsight-px';
 import { gtag } from './vendors/analytics/google-tag';
 import { heap } from './vendors/analytics/heap';
 import { hightouch } from './vendors/analytics/hightouch';
@@ -58,6 +59,16 @@ const requiredIdCases: {
 	create: (id: unknown) => Script;
 	script: Pick<Script, 'category' | 'id'>;
 }[] = [
+	{
+		create: (id) =>
+			gainsightPx({
+				...{ productKey: 'AP-PRODUCT-KEY-2' },
+				productKey: asId(id),
+			}),
+		helper: 'gainsightPx',
+		option: 'productKey',
+		script: { category: 'measurement', id: 'gainsight-px' },
+	},
 	{
 		create: (id) => linkedinInsights({ id: asId(id) }),
 		helper: 'linkedinInsights',
@@ -333,6 +344,13 @@ const blankScriptUrlCases: {
 	create: (scriptUrl: string) => Script;
 	expectedSrc: string;
 }[] = [
+	{
+		create: (url) =>
+			gainsightPx({ ...{ productKey: 'AP-PRODUCT-KEY-2' }, scriptUrl: url }),
+		expectedSrc:
+			'https://web-sdk.aptrinsic.com/api/aptrinsic.js?a=AP-PRODUCT-KEY-2',
+		helper: 'gainsightPx',
+	},
 	{
 		create: (scriptUrl) => hotjar({ scriptUrl, siteId: 123 }),
 		expectedSrc: 'https://static.hotjar.com/c/hotjar-123.js?sv=6',

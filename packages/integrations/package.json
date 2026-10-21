@@ -302,6 +302,11 @@
 			"types": "./dist-types/events.d.ts",
 			"import": "./dist/events.js",
 			"default": "./dist/events.js"
+		},
+		"./gainsight-px": {
+			"types": "./dist-types/vendors/analytics/gainsight-px.d.ts",
+			"import": "./dist/vendors/analytics/gainsight-px.js",
+			"default": "./dist/vendors/analytics/gainsight-px.js"
 		}
 	},
 	"publishConfig": {
