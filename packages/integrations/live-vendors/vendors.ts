@@ -246,7 +246,9 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 		createScript: () =>
 			defaultComPixel({
 				// Public Pixel bootstrap at https://www.default.com/, checked 2026-10-21.
-				// Collection and Vector requests stay blocked in this loader-only probe.
+				// Full-tier probe executes index.js and checks its live consent setter.
+				// Collection and Vector endpoints remain outside the loader allowlist.
+				// Workspace monitoring authorization remains unverified.
 				publicKey: '39af45d7-093f-4efe-a5d1-5bdb462fc4e0',
 			}),
 		loaderUrlSubstring: 'https://handshake.default.com/index.js',

@@ -49,6 +49,8 @@ export interface DefaultComFormsSdkOptions extends Omit<
 	DefaultComPixelOptions,
 	'category' | 'loadMode'
 > {
+	/** Scheduler display setting. Omission restores the default `true`. */
+	autoDisplayScheduler?: DefaultComAutoDisplayScheduler;
 	/**
 	 * Consent required to load and initialize the standalone Forms SDK.
 	 * @default 'functionality'
@@ -74,7 +76,8 @@ interface DefaultComPixelBootstrap {
 	key?: string;
 	q?: unknown[];
 	schedulerOrigins?: string[];
-	setConsent?: (consent: DefaultComConsent) => void;
+	/** Update either or both permissions. Omitted fields retain their value. */
+	setConsent?: (consent: Partial<DefaultComConsent>) => void;
 }
 
 /** Configuration accepted by DefaultPixelSDK.init(). */
@@ -185,7 +188,8 @@ export interface DefaultComFormsSdkClient {
 		options: DefaultComFormInteractionOptions
 	) => Promise<void>;
 	scheduler: DefaultComScheduler;
-	setConsent: (consent: DefaultComConsent) => void;
+	/** Update either or both permissions. Omitted fields retain their value. */
+	setConsent: (consent: Partial<DefaultComConsent>) => void;
 	/** Submit form values and return Default's request result. */
 	submitForm: (
 		options: DefaultComSubmitFormOptions
@@ -195,6 +199,10 @@ export interface DefaultComFormsSdkClient {
 declare global {
 	interface Window {
 		__defaultPixel__?: DefaultComPixelBootstrap;
+		DefaultPixel?: Pick<
+			DefaultComFormsSdkClient,
+			'on' | 'scheduler' | 'submitForm'
+		>;
 		DefaultPixelSDK?: DefaultComFormsSdkClient;
 	}
 }
@@ -226,7 +234,91 @@ export const defaultComFormsSdkManifest = {
 	vendorDetails,
 } satisfies VendorManifest;
 
-const initializedSdks = new WeakSet<DefaultComFormsSdkClient>();
+type SdkRegistration = symbol | HTMLScriptElement;
+interface SdkState {
+	options?: DefaultComFormsSdkInitOptions;
+	registrations: Map<SdkRegistration, DefaultComConsent>;
+}
+const sdkStates = new WeakMap<DefaultComFormsSdkClient, SdkState>();
+const sdkOwners = new Map<SdkRegistration, DefaultComFormsSdkClient>();
+const formsElements = new WeakSet<HTMLScriptElement>();
+const loadedFormsElements = new WeakSet<HTMLScriptElement>();
+
+const registrationOf = (
+	info: ScriptCallbackInfo
+): SdkRegistration | undefined => info.registration ?? info.element;
+
+const forwardSdkConsent = (sdk: DefaultComFormsSdkClient): void => {
+	const states = [...(sdkStates.get(sdk)?.registrations.values() ?? [])];
+	sdk.setConsent({
+		analytics: states.length > 0 && states.every((state) => state.analytics),
+		marketing: states.length > 0 && states.every((state) => state.marketing),
+	});
+};
+
+// Stable identity lets core retain the resource across configuration updates.
+const disposeFormsSdk = (info: ScriptCallbackInfo): void => {
+	const registration = registrationOf(info);
+	const sdk =
+		registration === undefined ? undefined : sdkOwners.get(registration);
+	if (registration !== undefined && sdk) {
+		sdkOwners.delete(registration);
+		sdkStates.get(sdk)?.registrations.delete(registration);
+		forwardSdkConsent(sdk);
+	}
+};
+
+const denyDetachedFormsSdk = (info: ScriptCallbackInfo): void => {
+	const registration = registrationOf(info);
+	if (registration === undefined) {
+		return;
+	}
+	const sdk = sdkOwners.get(registration);
+	if (sdk) {
+		sdkStates.get(sdk)?.registrations.set(registration, {
+			analytics: false,
+			marketing: false,
+		});
+		forwardSdkConsent(sdk);
+	}
+};
+
+const snapshotSdkOptions = (
+	options: DefaultComFormsSdkInitOptions
+): DefaultComFormsSdkInitOptions => ({
+	...options,
+	autoDisplayScheduler:
+		typeof options.autoDisplayScheduler === 'object'
+			? { ...options.autoDisplayScheduler }
+			: (options.autoDisplayScheduler ?? true),
+	schedulerOrigins: options.schedulerOrigins?.slice(),
+});
+
+const sameSdkOptions = (
+	previous: DefaultComFormsSdkInitOptions | undefined,
+	next: DefaultComFormsSdkInitOptions
+): boolean => {
+	if (!previous) {
+		return false;
+	}
+	const previousDisplay = previous.autoDisplayScheduler;
+	const nextDisplay = next.autoDisplayScheduler;
+	return (
+		previous.publicKey === next.publicKey &&
+		(previous.endpoint ?? 'https://api.default.com') ===
+			(next.endpoint ?? 'https://api.default.com') &&
+		previous.schedulerOrigins?.length === next.schedulerOrigins?.length &&
+		(previous.schedulerOrigins?.every(
+			(origin, index) => origin === next.schedulerOrigins?.[index]
+		) ??
+			true) &&
+		(previousDisplay === nextDisplay ||
+			(typeof previousDisplay === 'object' &&
+				typeof nextDisplay === 'object' &&
+				previousDisplay.target === nextDisplay.target &&
+				(previousDisplay.loader ?? false) === (nextDisplay.loader ?? false)))
+	);
+};
 type DefaultComLoader = 'defaultComPixel' | 'defaultComFormsSdk';
 const pageLoaders = new WeakMap<Document, DefaultComLoader>();
 const blockedLoaderType = 'application/x-c15t-default-conflict';
@@ -382,9 +474,14 @@ export const defaultComPixel = function defaultComPixel(
  * navigation, including after withdrawal or disposal.
  *
  * For a standalone installation, the helper calls `setConsent` before `init`
- * and initializes each SDK client once per page. A load that finishes while
- * denied receives both consent values as false and waits for a later grant
- * before initialization. Keep c15t's default revocation reload enabled because
+ * and starts each SDK client once per page. Later permitted configuration
+ * changes call `init` again without restarting identity or session warmup.
+ * Omitted endpoint and scheduler origins restore the SDK defaults; an omitted
+ * scheduler display option restores `true`. This does not isolate workspace
+ * identities. A load that finishes while denied receives both consent values
+ * as false and waits for a later grant before initialization.
+ * Removal and disposal withdraw consent from the owned SDK after its final
+ * registration leaves. Keep c15t's default revocation reload enabled because
  * Default does not offer a complete form or scheduler shutdown API.
  * Missing, blank or non-string keys log an error and skip loading.
  * @example defaultComFormsSdk({ publicKey: 'YOUR_PUBLIC_KEY' });
@@ -414,7 +511,10 @@ export const defaultComFormsSdk = function defaultComFormsSdk(
 			id: 'default-com-forms-sdk',
 		};
 	}
-	const initOptions: DefaultComFormsSdkInitOptions = { publicKey };
+	const initOptions: DefaultComFormsSdkInitOptions = {
+		autoDisplayScheduler: options.autoDisplayScheduler ?? true,
+		publicKey,
+	};
 	const endpoint = trimToUndefined(options.endpoint);
 	if (endpoint !== undefined) {
 		initOptions.endpoint = endpoint;
@@ -422,40 +522,64 @@ export const defaultComFormsSdk = function defaultComFormsSdk(
 	if (options.schedulerOrigins !== undefined) {
 		initOptions.schedulerOrigins = options.schedulerOrigins;
 	}
-	if (options.autoDisplayScheduler !== undefined) {
-		initOptions.autoDisplayScheduler = options.autoDisplayScheduler;
-	}
 	const synchronize = (info: ScriptCallbackInfo): void => {
+		const registration = registrationOf(info);
+		if (!info.element?.isConnected) {
+			if (info.element) {
+				denyDetachedFormsSdk(info);
+			} else {
+				disposeFormsSdk(info);
+			}
+			return;
+		}
 		if (
 			typeof window === 'undefined' ||
 			!ownsLoader(info, 'defaultComFormsSdk') ||
-			!info.element?.isConnected
+			!formsElements.has(info.element) ||
+			!loadedFormsElements.has(info.element) ||
+			registration === undefined
 		) {
 			return;
 		}
-		const sdk = window.DefaultPixelSDK;
+		const previous = sdkOwners.get(registration);
+		const permitted = info.hasConsent && info.vendor?.granted !== false;
+		const sdk = !permitted && previous ? previous : window.DefaultPixelSDK;
 		if (!sdk) {
 			return;
 		}
-		const consent = mapConsent(info);
-		sdk.setConsent(consent);
-		if (
-			info.hasConsent &&
-			info.vendor?.granted !== false &&
-			!initializedSdks.has(sdk)
-		) {
-			sdk.init(initOptions);
-			initializedSdks.add(sdk);
+		if (previous && previous !== sdk) {
+			disposeFormsSdk(info);
+		}
+		let state = sdkStates.get(sdk);
+		if (!state) {
+			state = { registrations: new Map() };
+			sdkStates.set(sdk, state);
+		}
+		sdkOwners.set(registration, sdk);
+		state.registrations.set(registration, mapConsent(info));
+		forwardSdkConsent(sdk);
+		if (permitted && !sameSdkOptions(state.options, initOptions)) {
+			const applied = snapshotSdkOptions(initOptions);
+			sdk.init(applied);
+			state.options = snapshotSdkOptions(applied);
 		}
 	};
 	return {
 		...script,
 		id: 'default-com-forms-sdk',
 		onBeforeLoad(info) {
-			claimLoader(info, 'defaultComFormsSdk');
+			if (claimLoader(info, 'defaultComFormsSdk') && info.element) {
+				formsElements.add(info.element);
+			}
 		},
 		onConsentChange: synchronize,
-		onLoad: synchronize,
+		onDispose: disposeFormsSdk,
+		onLoad(info) {
+			if (info.element?.isConnected && formsElements.has(info.element)) {
+				loadedFormsElements.add(info.element);
+				synchronize(info);
+			}
+		},
 		serverStart: undefined,
 	};
 };

@@ -283,8 +283,10 @@ export interface Script {
 
 	/**
 	 * Release listeners and other resources when this configuration is removed,
-	 * replaced by a different object, or its loader is disposed. Adding this hook
-	 * opts into object-owned lifecycles; keep the config stable across rerenders.
+	 * replaced by a different resource or disposal callback, or its loader is
+	 * disposed. Recreating a DOM script config with the same resource and callback
+	 * preserves its lifecycle. Callback-only scripts with this hook retain an
+	 * object-owned lifecycle. Use a new callback when replacement needs cleanup.
 	 * Called even if the script never loaded.
 	 * Consent revocation alone does not call this hook. It does not revoke vendor
 	 * consent or undo code that has already executed. Must be safe to call before

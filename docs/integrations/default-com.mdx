@@ -81,8 +81,8 @@ Both helpers use the vendor ID `default-com`. The Pixel script ID is
 | `loadMode` | Pixel only: `'after-consent'` | `'after-consent'` waits for the chosen category. `'always'` loads before consent and forwards the current permission. The Forms SDK helper has no `loadMode` option. |
 | `scriptUrl` | Pixel: `https://handshake.default.com/index.js`; SDK: `https://handshake.default.com/sdk.js` | Override for a compatible current-generation loader or proxy. Whitespace is trimmed. Blank values use the default. |
 | `schedulerOrigins` | Default's setting | Allowed scheduler origins, forwarded to the selected script. |
-| `autoDisplayScheduler` | Default's setting | Boolean or an object with a `target` CSS selector or `HTMLElement` and optional `loader` boolean. Forwarded to Default. |
-| `endpoint` | SDK only: Default's setting | API endpoint override for the standalone Forms SDK. Whitespace is trimmed; blank values leave Default's setting in place. The Pixel helper does not accept this option. |
+| `autoDisplayScheduler` | Pixel: Default's setting; SDK: `true` | Boolean or an object with a `target` CSS selector or `HTMLElement` and optional `loader` boolean. Forwarded to Default. |
+| `endpoint` | SDK only: Default's setting | API endpoint override for the standalone Forms SDK. Whitespace is trimmed; blank or omitted values use the SDK default. The Pixel helper does not accept this option. |
 
 ## Loading and consent forwarding
 
@@ -105,10 +105,22 @@ It preserves existing queue entries and an existing consent setter.
 
 The standalone SDK helper does not create `window.__defaultPixel__` or set its
 key. After `sdk.js` loads, the helper calls `DefaultPixelSDK.setConsent()` before
-`DefaultPixelSDK.init()`. It initializes each SDK client once per page. If the
-visitor withdraws consent during the download, the helper forwards denial and
-waits until the configured category and vendor allow the SDK again before
-calling `init()`.
+the first `DefaultPixelSDK.init()`. If the visitor withdraws consent during the
+download, the helper forwards denial and waits until the configured category
+and vendor allow the SDK again before calling `init()`.
+
+For a live registration whose category and vendor are allowed, changes to
+`publicKey`, `endpoint`, `schedulerOrigins` or `autoDisplayScheduler` call
+`init()` again with consent forwarded first. Recreating the helper with the same
+effective options or changing consent alone does not repeat `init()`. Changes
+made while denied wait for permission.
+
+Later `init()` calls update the SDK's configuration without repeating identity
+or session startup. They preserve the current identity and session; changing
+the workspace key does not isolate workspaces. Omitting `endpoint` or
+`schedulerOrigins` on an update restores the SDK defaults. Omitting
+`autoDisplayScheduler` restores `true`, including after an explicit `false` or
+display target.
 
 After the SDK loads and its effective permission still applies, the typed
 `window.DefaultPixelSDK` API exposes `submitForm()`, `recordFormInteraction()`,
@@ -176,6 +188,12 @@ The helpers keep the loader element after withdrawal so they can forward
 grant reuses the loader and preserves the Pixel's live setter. Removing a loader
 element would not stop JavaScript that has already executed.
 
+Removing or replacing a standalone SDK registration, or disposing its loader,
+releases that registration's permission. When the final registration leaves,
+the helper forwards denial to the SDK client it owns, even after the loader
+element is detached. A surviving shared registration retains its permission.
+Removing or disposing a pending helper does not initialize the SDK.
+
 Default says analytics withdrawal clears its visitor and session identity
 cookies and their session-storage copies. The current bundles also remove
 `_dflt_attr` attribution data from local storage. Default retains its
@@ -226,13 +244,21 @@ Filter browser Network by `default.com`, then check the following:
   Gated loaders should remain blocked in the next document. An `always` Pixel
   should load again with both fields false. With reload disabled for a test,
   confirm that a later grant reuses the original loader and does not initialize
-  the SDK again.
+  the SDK again when its effective options are unchanged.
+- With a live, permitted SDK helper, change its supported configuration and
+  verify that later submissions use the new key and endpoint and scheduler
+  messages use the new allowed origins. After explicit overrides, omit
+  `endpoint` and `schedulerOrigins` to restore SDK defaults, and omit
+  `autoDisplayScheduler` to restore `true`. Check that identity and session
+  startup do not repeat. Repeat the change while denied and confirm that it
+  waits for permission.
 
 Default's own homepage key can establish that a loader executes. It does not
 verify your domain configuration, form submission, lead routing, scheduler
 handoff or identification results. Those checks need an owned Default workspace.
-The key's public appearance does not establish authorization to collect against
-that workspace.
+The key's public appearance does not establish authorization to monitor or
+collect against that workspace. Monitoring authorization for the live probe
+remains unverified.
 
 Sources: [Pixel installation](https://docs.os.default.com/settings/pixel),
 [SDK API reference](https://docs.os.default.com/pixel-sdk-reference),

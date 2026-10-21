@@ -284,6 +284,7 @@ describe('Default explicit marketing gate lifecycle', () => {
 			config.setConsent = setConsent;
 		} else {
 			window.DefaultPixelSDK = createDefaultComFormsSdkMock({ setConsent });
+			getLoader().dispatchEvent(new Event('load'));
 		}
 		script.onConsentChange?.(
 			callbackInfo({

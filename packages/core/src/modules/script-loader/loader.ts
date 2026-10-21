@@ -360,12 +360,12 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 			}
 			const replacement = nextById.get(script.id);
 			// Existing vendor helpers are recreated on framework rerenders. Keep
-			// their resource mounted unless it changed. onDispose opts into an
-			// object-owned lifecycle, used by integrations with attached listeners.
+			// their resource mounted unless it or the disposal callback changed.
+			// A stable disposer retains a DOM resource's registration lifecycle.
 			if (
 				replacement &&
-				!script.onDispose &&
-				!replacement.onDispose &&
+				script.onDispose === replacement.onDispose &&
+				(!script.onDispose || !script.callbackOnly) &&
 				hasSameResource(script, replacement)
 			) {
 				continue;

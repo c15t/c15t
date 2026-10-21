@@ -341,7 +341,8 @@ describe('Default loader options', () => {
 				name === 'defaultComPixel'
 					? window.__defaultPixel__?.autoDisplayScheduler
 					: init.mock.calls[0]?.[0].autoDisplayScheduler;
-			expect(forwarded).toBe(autoDisplayScheduler);
+			expect(forwarded).toEqual(autoDisplayScheduler);
+			expect(typeof forwarded === 'object' && forwarded.target).toBe(target);
 			expect(init).toHaveBeenCalledTimes(name === 'defaultComPixel' ? 0 : 1);
 		}
 	);
