@@ -137,8 +137,8 @@ only the ID, so the banner still shows. If you changed `storageConfig`, pass
 the same values as `storage` in the second argument so the cookie has the
 same name, domain and lifetime. The cookie is `Secure` when the request came
 over TLS or `X-Forwarded-Proto` says `https`, the rule Next.js uses for an
-App Router request's URL. With `persistence={false}` on `ConsentRoot`, pass
-`subjectCookie: false` so no cookie is set. See
+App Router request's URL. With `persistence={false}` or a `consentSource` on
+`ConsentRoot`, pass `subjectCookie: false` so no cookie is set. See
 [the subject ID](/docs/concepts/consent-state#a-subject-id-from-the-first-page-load).
 
 Add `withConsentProps` to every page that should render consent on the

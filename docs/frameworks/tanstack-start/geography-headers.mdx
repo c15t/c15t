@@ -72,9 +72,9 @@ never open. See
 [the subject ID](/docs/concepts/consent-state#a-subject-id-from-the-first-page-load)
 for how long it lasts and when it changes.
 
-If `ConsentRoot` runs with `persistence={false}`, pass
-`subjectCookie: false` too. The middleware then sets no `c15t-sid`, and each
-page load gets a new ID, as it does without storage.
+If `ConsentRoot` runs with `persistence={false}` or a `consentSource`, pass
+`subjectCookie: false` too. The middleware then sets no `c15t-sid`. A subject
+ID or choice the visitor's cookies already hold is still read.
 
 If you changed `storageConfig` in the browser, pass the same values as
 `storage` so the cookie has the same name, domain and lifetime:

@@ -81,9 +81,9 @@ export interface C15tHandleOptions extends ConsentRequestOptions {
 	 */
 	trustForwardedHeaders?: boolean;
 	/**
-	 * Set `false` when `ConsentProvider` runs with `persistence: false`, so
-	 * no `c15t-sid` cookie is set and each page load gets a new subject ID,
-	 * as it does without storage.
+	 * Set `false` when `ConsentProvider` runs with `persistence: false` or a
+	 * `consentSource`, so no `c15t-sid` cookie is set. A subject ID or
+	 * choice the visitor's cookies already hold is still read.
 	 *
 	 * @default true
 	 */
