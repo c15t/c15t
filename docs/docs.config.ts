@@ -888,6 +888,7 @@ export default defineDocsConfig({
 				{
 					pages: [
 						'meta-pixel',
+						'adroll',
 						'openai-pixel',
 						'pinterest-tag',
 						'reddit-pixel',

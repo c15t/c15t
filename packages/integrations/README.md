@@ -47,6 +47,7 @@ See the [documentation](https://c15t.com/docs/integrations) for guides, API refe
 - **Email and SMS**: Klaviyo, loaded only once marketing and measurement are both allowed
 - **Chat widgets**: Intercom, Crisp, Front Chat
 - **Shopify**: Sends c15t consent to Shopify's Customer Privacy API from a Hydrogen storefront ([guide](https://c15t.com/docs/integrations/shopify))
+- **AdRoll**: Loads after marketing consent ([guide](https://c15t.com/docs/integrations/adroll))
 
 ## Example
 

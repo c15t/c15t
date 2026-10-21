@@ -2,7 +2,9 @@
  * One script per built-in integration, built from its public helper with
  * sample options, and the fields the helper must set.
  */
+
 import type { BuiltInScriptIntegrationKey } from '../registry';
+import { adrollPixel } from '../vendors/ads-and-pixels/adroll';
 import { linkedinInsights } from '../vendors/ads-and-pixels/linkedin-insights';
 import { metaPixel } from '../vendors/ads-and-pixels/meta-pixel';
 import { microsoftUet } from '../vendors/ads-and-pixels/microsoft-uet';
@@ -58,6 +60,14 @@ export const helperParityCases = {
 			scriptUrl:
 				'https://assets.adobedtm.com/c15tfake/c15tfake/launch-c15tfake.min.js',
 		}),
+	},
+	adrollPixel: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: true,
+			src: 'https://s.adroll.com/j/c15tfake/roundtrip.js',
+		},
+		script: adrollPixel({ advertiserId: 'c15tfake', pixelId: 'c15tfake' }),
 	},
 	ahrefsAnalytics: {
 		expected: {

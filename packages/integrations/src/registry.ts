@@ -534,6 +534,16 @@ export const builtInScriptIntegrations = [
 		packageSubpath: 'x-pixel',
 		vendor: 'x-pixel',
 	},
+	{
+		consentCategory: 'marketing',
+		docsSlug: 'adroll',
+		hint: 'Retargeting audiences and conversion tracking',
+		integrationCategory: 'ads-and-pixels',
+		key: 'adrollPixel',
+		label: 'AdRoll',
+		packageSubpath: 'adroll',
+		vendor: 'adroll',
+	},
 ] as const satisfies readonly IntegrationRegistryEntry[];
 
 /**
