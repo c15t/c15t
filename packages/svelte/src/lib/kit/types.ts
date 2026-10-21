@@ -1,3 +1,4 @@
+import type { StorageConfig } from '@c15t/core';
 import type { ConsentMode } from '@c15t/core/modes';
 import type {
 	ConsentManifest,
@@ -36,6 +37,14 @@ export interface C15tLocals {
 	 * silently re-read the default `c15t` key and lose persisted consent.
 	 */
 	cookieName?: string;
+	/**
+	 * The handle's `storage` cookie attributes, for a `loadConsent` call
+	 * that sets the subject cookie under its own `cookieName`.
+	 */
+	storage?: Pick<
+		StorageConfig,
+		'crossSubdomain' | 'defaultDomain' | 'defaultExpiryDays'
+	>;
 	/**
 	 * The request `Cookie` header with the subject ID the handle just set,
 	 * which the browser does not send until its next request. `loadConsent`

@@ -269,6 +269,27 @@ describe('loadConsent', () => {
 		);
 	});
 
+	test("a per-call cookieName gets its own subject cookie, with the handle's attributes", async () => {
+		const setCookie = vi.fn();
+		const event = await withHandle(
+			createEvent({ setCookie, url: 'https://app.example.com/' }),
+			{ mode: offline(), storage: { crossSubdomain: true } }
+		);
+		setCookie.mockClear();
+
+		const { consent } = await loadConsent(event, { cookieName: 'my-consent' });
+
+		expect(setCookie).toHaveBeenCalledOnce();
+		const [name, subjectId, attributes] = setCookie.mock.calls[0] as [
+			string,
+			string,
+			unknown,
+		];
+		expect(name).toBe('my-consent-sid');
+		expect(attributes).toMatchObject({ domain: '.example.com' });
+		expect(consent.prefetch.initialRecords?.subject?.subjectId).toBe(subjectId);
+	});
+
 	test('a prerender or a prefetch gets no subject cookie', async () => {
 		const setCookie = vi.fn();
 		await withHandle(

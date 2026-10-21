@@ -15,7 +15,11 @@ import {
 	snapshot as builtSnapshot,
 } from '@c15t/core/generated';
 import type { ConsentMode } from '@c15t/core/modes';
-import { readWaitUntil, resolveRequestConsent } from '@c15t/core/server';
+import {
+	readWaitUntil,
+	resolveRequestConsent,
+	resolveRequestSubject,
+} from '@c15t/core/server';
 import type { ResolveRequestConsentOptions } from '@c15t/core/server';
 import type { RequestEvent } from '@sveltejs/kit';
 
@@ -157,16 +161,46 @@ const browserMode = function browserMode(mode: ConsentMode): ConsentMode {
 };
 
 /**
+ * The request cookie header the resolution reads. The handle set the subject
+ * cookie under its own name; a call that reads another name sets that one's
+ * cookie here, with the handle's attributes.
+ */
+const requestCookie = function requestCookie(
+	event: RequestEvent,
+	locals: C15tLocals | undefined,
+	cookieName: string | undefined,
+	shared: boolean,
+	options: LoadConsentOptions
+): string | undefined {
+	if (!locals || cookieName === locals.cookieName) {
+		return locals?.cookie;
+	}
+	const subject = resolveRequestSubject({
+		request: { headers: event.request.headers, url: event.url },
+		shared,
+		storage: { ...locals.storage, storageKey: cookieName },
+		trustForwardedHeaders: options.trustForwardedHeaders,
+	});
+	if (!subject?.setCookie) {
+		return undefined;
+	}
+	const { header: _header, name, value, ...attributes } = subject.setCookie;
+	event.cookies.set(name, value, attributes);
+	return subject.cookie;
+};
+
+/**
  * The request as `c15tHandle` left it: its inputs, unless this call
  * overrides them, and the cookie header with the subject ID it set.
  */
 const requestFrom = function requestFrom(
 	event: RequestEvent,
 	locals: C15tLocals | undefined,
-	overridesPerCall: boolean
+	overridesPerCall: boolean,
+	cookie: string | undefined
 ) {
 	return {
-		cookie: locals?.cookie,
+		cookie,
 		headers: event.request.headers,
 		inputs: locals && !overridesPerCall ? locals.inputs : undefined,
 		url: event.url,
@@ -220,6 +254,7 @@ export const loadConsent = async function loadConsent(
 		options.language !== undefined ||
 		options.region !== undefined;
 	const cookieName = options.cookieName ?? locals?.cookieName;
+	const shared = building || locals?.shared === true;
 	const state = await resolveRequestConsent({
 		adapter: '@c15t/svelte',
 		...serverResolution(mode, locals, backendURL),
@@ -235,9 +270,14 @@ export const loadConsent = async function loadConsent(
 			region: options.region,
 		},
 		reportSessions: options.reportSessions,
-		request: requestFrom(event, locals, overridesPerCall),
+		request: requestFrom(
+			event,
+			locals,
+			overridesPerCall,
+			requestCookie(event, locals, cookieName, shared, options)
+		),
 		// A prerendered page is one HTML file for every visitor.
-		shared: building || locals?.shared === true,
+		shared,
 		storage: cookieName ? { storageKey: cookieName } : undefined,
 		timeoutMs: options.timeoutMs,
 		trustForwardedHeaders: options.trustForwardedHeaders,

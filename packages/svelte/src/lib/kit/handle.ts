@@ -246,6 +246,9 @@ export const c15tHandle = function c15tHandle(
 		if (options.cookieName !== undefined) {
 			locals.cookieName = options.cookieName;
 		}
+		if (options.storage !== undefined) {
+			locals.storage = options.storage;
+		}
 		if (subject?.setCookie) {
 			locals.cookie = subject.cookie;
 		}
