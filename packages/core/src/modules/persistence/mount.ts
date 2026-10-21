@@ -486,8 +486,13 @@ export const mountPersistence = function mountPersistence(
 		let local = false;
 		if (!recordedSubjectId && before?.subjectId) {
 			subject = { ...subject, ...before };
-		} else if (recordedSubjectId && !subject?.subjectId) {
-			// Hydration is deferred: take the ID it will bring.
+		} else if (
+			recordedSubjectId &&
+			(!subject?.subjectId || recordedSubjectId === stored)
+		) {
+			// Hydration is deferred: take the ID it will bring. A seed from a
+			// consent cookie older than storage, such as one whose rewrite
+			// the browser dropped, yields to the ID storage agrees on.
 			subject = { ...subject, subjectId: recordedSubjectId };
 		} else if (!(recordedSubjectId && subject?.subjectId)) {
 			subject = {

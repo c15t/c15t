@@ -242,6 +242,44 @@ test('a refused cookie write does not bring the old ID back', () => {
 	expect(subjectIdOf(boot().kernel)).toBe('sub_next');
 });
 
+test('a seed from a stale consent cookie keeps the newer stored ID', async () => {
+	const first = boot();
+	await first.kernel.commands.save({ measurement: true });
+	vi.advanceTimersByTime(0);
+	const old = subjectIdOf(first.kernel) as string;
+	const choice = first.kernel.getSnapshot().explicitChoice;
+	const cookie = Object.getOwnPropertyDescriptor(Document.prototype, 'cookie');
+	// The browser drops the rewritten consent cookie, so a server render
+	// still reads the old ID from it.
+	Object.defineProperty(document, 'cookie', {
+		configurable: true,
+		get: () => cookie?.get?.call(document),
+		set: (value: string) => {
+			if (value.startsWith(`${STORAGE_KEY_V2}=`)) {
+				return;
+			}
+			cookie?.set?.call(document, value);
+		},
+	});
+	try {
+		first.kernel.set.subjectId('sub_next');
+		vi.advanceTimersByTime(0);
+		first.handle.dispose();
+	} finally {
+		Reflect.deleteProperty(document, 'cookie');
+	}
+
+	const kernel = createConsentKernel({
+		initialPolicyResolution: matchedResolution(optInRule()),
+		initialRecords: { choice, subject: { subjectId: old } },
+		now: NOW,
+	});
+	disposers.push(createPersistence({ kernel, skipHydration: true }).dispose);
+
+	expect(subjectIdOf(kernel)).toBe('sub_next');
+	expect(storedSid()).toEqual({ cookie: 'sub_next', local: 'sub_next' });
+});
+
 test('an unused ID follows the one another tab stored and names the one it replaced', () => {
 	const { kernel } = boot();
 	const subjectId = subjectIdOf(kernel);
