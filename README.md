@@ -132,7 +132,7 @@ The layout stays a Server Component. You write no `'use client'` wrapper and nee
 [`@c15t/integrations`](./packages/integrations) has a loader for each vendor below. Most wait until the visitor allows the vendor's consent category. A few, such as Google Tag Manager and Mixpanel, load at once and pass the choice to the vendor's own consent API. The [integrations overview](https://c15t.com/docs/integrations/overview) shows what each loader does.
 
 - **Tag managers**: Google Tag Manager, Cloudflare Zaraz
-- **Analytics**: Google tag (GA4 and Google Ads), Adobe Analytics, Ahrefs Analytics, Amplitude, Cloudflare Web Analytics, Databuddy, Fathom, Heap, Hightouch, Hotjar, LogRocket, Matomo, Microsoft Clarity, Mixpanel, OneDollarStats, Pirsch, Plausible, PostHog, Promptwatch, RudderStack, Rybbit, Segment, Umami, Vercel Analytics, Vercel Speed Insights
+- **Analytics**: Google tag (GA4 and Google Ads), Adobe Analytics, Ahrefs Analytics, Amplitude, Cloudflare Web Analytics, Databuddy, Fathom, Heap, Hightouch, Hotjar, LogRocket, Matomo, Microsoft Clarity, Mixpanel, OneDollarStats, Pirsch, Plausible, PostHog, Promptwatch, RudderStack, Rybbit, Salesforce Account Engagement, Segment, Umami, Vercel Analytics, Vercel Speed Insights
 - **Ads and pixels**: Meta Pixel, OpenAI Pixel, TikTok Pixel, LinkedIn Insight Tag, Microsoft UET, Pinterest Tag, Reddit Pixel, Snapchat Pixel, X Pixel
 - **Enrichment, email, and SMS**: Clearbit, Klaviyo
 - **Chat and support**: Intercom, Crisp, Front Chat
