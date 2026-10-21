@@ -202,6 +202,46 @@ test('an ID with surrounding spaces is read back exactly as stored', () => {
 	expect(subjectIdOf(boot().kernel)).toBe(' sub_padded ');
 });
 
+test.each([
+	['longer than 256 characters', `sub_${'a'.repeat(300)}`],
+	['with a control character', 'sub_line\nbreak'],
+	['with a lone surrogate', 'sub_\uD800'],
+])('an ID the app names %s survives a reload', (_, subjectId) => {
+	const first = boot();
+	first.kernel.set.subjectId(subjectId);
+	first.handle.dispose();
+
+	expect(subjectIdOf(boot().kernel)).toBe(subjectId);
+});
+
+test('a refused cookie write does not bring the old ID back', () => {
+	const first = boot();
+	const old = subjectIdOf(first.kernel);
+	const cookie = Object.getOwnPropertyDescriptor(Document.prototype, 'cookie');
+	// The browser drops the new `-sid` cookie, as it would one over its size
+	// limit, and still applies deletions.
+	Object.defineProperty(document, 'cookie', {
+		configurable: true,
+		get: () => cookie?.get?.call(document),
+		set: (value: string) => {
+			if (value.startsWith(`${SID_KEY}=sub_`)) {
+				return;
+			}
+			cookie?.set?.call(document, value);
+		},
+	});
+	try {
+		first.kernel.set.subjectId('sub_next');
+		first.handle.dispose();
+	} finally {
+		Reflect.deleteProperty(document, 'cookie');
+	}
+
+	expect(old).not.toBe('sub_next');
+	expect(storedSid()).toEqual({ cookie: null, local: 'sub_next' });
+	expect(subjectIdOf(boot().kernel)).toBe('sub_next');
+});
+
 test('an unused ID follows the one another tab stored and names the one it replaced', () => {
 	const { kernel } = boot();
 	const subjectId = subjectIdOf(kernel);

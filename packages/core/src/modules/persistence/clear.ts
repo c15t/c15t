@@ -12,7 +12,11 @@
 import type { CookieOptions } from '../../libs/cookie';
 import { deleteCookie, writeCookie } from '../../libs/cookie';
 import { EPOCH_CLOCK_TOLERANCE_MS } from './record-codec';
-import { readStoredClearEpoch, resolveStorageKeys } from './record-storage';
+import {
+	readStoredClearEpoch,
+	readStoredCookieSubjectId,
+	resolveStorageKeys,
+} from './record-storage';
 import type { StorageConfig } from './types';
 
 const removeLocalStorageKey = function removeLocalStorageKey(
@@ -125,12 +129,27 @@ export const writeStoredSubjectId = function writeStoredSubjectId(
 		return;
 	}
 	const key = resolveStorageKeys(config).subject;
+	let storedLocally = false;
 	try {
-		window.localStorage?.setItem(key, subjectId);
+		const storage = window.localStorage;
+		if (storage) {
+			storage.setItem(key, subjectId);
+			storedLocally = true;
+		}
 	} catch {
 		// Blocked or full storage: the cookie copy still carries the ID.
 	}
-	writeCookie(key, encodeURIComponent(subjectId), cookie, config);
+	try {
+		writeCookie(key, encodeURIComponent(subjectId), cookie, config);
+	} catch {
+		// An ID with a lone surrogate has no URI encoding, so no cookie copy.
+	}
+	// The cookie copy wins on the next read. If the browser refused the new
+	// cookie, for example one over its size limit, the old ID would come
+	// back, so remove the cookie and let the localStorage copy be read.
+	if (storedLocally && readStoredCookieSubjectId(config) !== subjectId) {
+		deleteCookie(key, cookie, config);
+	}
 };
 
 /**

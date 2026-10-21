@@ -37,7 +37,11 @@ import type {
 	ConsentSubject,
 	ExplicitChoice,
 } from '../../consent-record/types';
-import { isPlainRecord, ownValue } from '../../consent-record/validation';
+import {
+	isNonEmptyString,
+	isPlainRecord,
+	ownValue,
+} from '../../consent-record/validation';
 import {
 	expandFlatKeys,
 	getRawCookieValue,
@@ -906,37 +910,18 @@ export const readStoredClearEpochFromCookieHeader =
 		);
 	};
 
-/** Longest subject ID the `<key>-sid` record holds. */
-const MAX_SUBJECT_ID_LENGTH = 256;
-
-/** Whether `text` holds a control character, which no subject ID does. */
-const hasControlCharacter = function hasControlCharacter(
-	text: string
-): boolean {
-	for (let index = 0; index < text.length; index += 1) {
-		const code = text.charCodeAt(index);
-		if (code < 0x20 || code === 0x7f) {
-			return true;
-		}
-	}
-	return false;
-};
-
 /**
- * The subject ID a stored copy holds, `null` when it holds none. Any ID a
- * record may carry is accepted, not only generated `sub_` IDs, so an ID a
- * backend assigned survives a clear too.
+ * The subject ID a stored copy holds, `null` when it holds none. It accepts
+ * every ID the kernel does, any non-empty string, not only generated `sub_`
+ * IDs: an ID the app or a backend assigned may be the only copy, and
+ * rejecting it here would replace the subject on the next load.
  */
 const validSubjectId = function validSubjectId(
 	text: string | null | undefined
 ): string | null {
 	// The ID is opaque: it is returned as written, never normalized, so a
 	// reload keeps the exact subject a save or identity link targeted.
-	return text?.trim() &&
-		text.length <= MAX_SUBJECT_ID_LENGTH &&
-		!hasControlCharacter(text)
-		? text
-		: null;
+	return isNonEmptyString(text) ? text : null;
 };
 
 /** The ID a `<key>-sid` cookie holds: URI-encoded, as it is written. */
@@ -944,6 +929,13 @@ const cookieSubjectId = function cookieSubjectId(
 	raw: string | null | undefined
 ): string | null {
 	return raw ? validSubjectId(decodeComponent(raw)) : null;
+};
+
+/** The subject ID the `<key>-sid` cookie holds, `null` when it holds none. */
+export const readStoredCookieSubjectId = function readStoredCookieSubjectId(
+	config: StorageConfig | undefined
+): string | null {
+	return cookieSubjectId(getRawCookieValue(resolveStorageKeys(config).subject));
 };
 
 /**
