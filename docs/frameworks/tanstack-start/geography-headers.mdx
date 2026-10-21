@@ -83,6 +83,18 @@ consentRequestMiddleware({
 });
 ```
 
+`resolveConsent` takes its cookie names from its own `cookieName` option, not
+from the middleware, and it needs that option anyway to read the visitor's
+consent cookie under a custom key. Pass the same key there too. Without it,
+the render looks for `c15t-sid`, misses the ID the middleware set, and the
+browser starts with a second ID:
+
+{/* example: fragment */}
+
+```ts title="resolveConsent call (partial)"
+resolveConsent({ cookieName: 'my-consent' });
+```
+
 The cookie is `Secure` when the request URL is `https`. If a proxy in front
 of the server terminates TLS and the request arrives over `http`, set
 `trustForwardedHeaders: true` to read the scheme from `X-Forwarded-Proto`.

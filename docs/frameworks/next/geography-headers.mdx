@@ -192,6 +192,18 @@ c15tProxy(request, {
 });
 ```
 
+`resolveConsent` takes its cookie names from its own `cookieName` option, not
+from the proxy, and it needs that option anyway to read the visitor's consent
+cookie under a custom key. Pass the same key there too. Without it, the render
+looks for `c15t-sid`, misses the ID the proxy set, and the browser starts
+with a second ID:
+
+{/* example: fragment */}
+
+```tsx title="app/layout.tsx (partial)"
+resolveConsent({ cookieName: 'my-consent' });
+```
+
 The cookie is `Secure` when the request URL is `https`. If a proxy in front
 of Next.js terminates TLS and the request reaches Next.js over `http`, set
 `trustForwardedHeaders: true` to read the scheme from `X-Forwarded-Proto`.
