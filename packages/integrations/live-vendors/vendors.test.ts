@@ -62,6 +62,45 @@ describe('live vendor probe configs', () => {
 		expect(isAllowed('https://ct.pinterest.com/stats/')).toBe(false);
 	});
 
+	it('allows Ada rollout assets while blocking Agent and collection endpoints', () => {
+		const [config] = configsForVendor('ada');
+		const allowedUrls = [
+			config?.loaderUrlSubstring,
+			...(config?.allowUrlSubstrings ?? []),
+		].filter((value): value is string => Boolean(value));
+		const isAllowed = (url: string) =>
+			allowedUrls.some((substring) => url.includes(substring));
+		const assets = 'https://messaging-assets.ada.support';
+		const futureVersion = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+
+		for (const path of [
+			'/sdk.js',
+			'/messaging-manifest.json',
+			'/messaging-stable-version.txt',
+			`/${futureVersion}/sdk/index.js`,
+			`/${futureVersion}/sdk/core.html?ada_handle=c15t-live-probe-placeholder`,
+			`/${futureVersion}/sdk/button.html?ada_handle=c15t-live-probe-placeholder`,
+			`/${futureVersion}/core/index.js`,
+			`/${futureVersion}/core/chunk-future.js`,
+			`/${futureVersion}/core/styles.css`,
+			`/${futureVersion}/core/font.woff2`,
+		]) {
+			expect.soft(isAllowed(`${assets}${path}`), path).toBe(true);
+		}
+
+		for (const url of [
+			'https://c15t-live-probe-placeholder.ada.support/api/?ada_request_origin=embed',
+			'https://c15t-live-probe-placeholder.eu.ada.support/api/',
+			'https://c15t-live-probe-placeholder.us2.ada.support/api/',
+			'https://rollout.ada.support/c15t-live-probe-placeholder/client.json',
+			'https://api.ada.support/collect',
+			'https://o38990.ingest.us.sentry.io/api/4510980191027200/envelope/',
+			'https://messaging-assets.ada.support.example.com/collect',
+		]) {
+			expect.soft(isAllowed(url), url).toBe(false);
+		}
+	});
+
 	it('documents every vendor that asserts no runtime behavior', () => {
 		// A vendor whose loader answers placeholder credentials with an error
 		// page cannot prove its SDK started, so the probe reduces to "the

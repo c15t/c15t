@@ -211,12 +211,7 @@ type PosthogProbeWindow = Window & {
  */
 export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 	{
-		allowUrlSubstrings: [
-			'https://messaging-assets.ada.support/messaging-manifest.json',
-			'https://messaging-assets.ada.support/messaging-stable-version.txt',
-			'https://messaging-assets.ada.support/d74685e3a1214fd118e9a9bb79611d068aa1a834/sdk/',
-			'https://messaging-assets.ada.support/90433c8407c7aeecf5f03f661136b86b9e5d5593/sdk/',
-		],
+		allowUrlSubstrings: ['https://messaging-assets.ada.support/'],
 		createScript: () => ada({ handle: 'c15t-live-probe-placeholder' }),
 		loaderUrlSubstring: 'messaging-assets.ada.support/sdk.js',
 		notes:
