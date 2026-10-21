@@ -2,7 +2,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
+	clearAllScripts,
 	deniedConsents,
+	installHeadProbe,
 	loadScripts,
 	registerVendorContractCleanup,
 	updateScripts,
@@ -34,6 +36,8 @@ describe('Oracle Eloqua consent loader', () => {
 		const cookies = document.cookie;
 		const local = { ...localStorage };
 		const session = { ...sessionStorage };
+		const cookieWrite = vi.spyOn(document, 'cookie', 'set');
+		const storageWrite = vi.spyOn(Storage.prototype, 'setItem');
 		loadScripts(scripts, deniedConsents);
 		updateScripts(scripts, unrelated);
 		expect(document.querySelector('script[src]')).toBeNull();
@@ -45,6 +49,8 @@ describe('Oracle Eloqua consent loader', () => {
 		expect(document.cookie).toBe(cookies);
 		expect({ ...localStorage }).toEqual(local);
 		expect({ ...sessionStorage }).toEqual(session);
+		expect(cookieWrite).not.toHaveBeenCalled();
+		expect(storageWrite).not.toHaveBeenCalled();
 		updateScripts(scripts, granted);
 		const first = getLoader();
 		expect(first.src).toBe('https://img.en25.com/i/elqCfg.min.js');
@@ -84,6 +90,31 @@ describe('Eloqua dispatcher lifecycle', () => {
 		window._elqQ = { push };
 		return push;
 	};
+	it('keeps the current grant across helper recreation and ignores stale responses', () => {
+		const create = () => eloquaTracking({ siteId: '1973398186' });
+		loadScripts([create()], granted);
+		const loader = getLoader();
+		const push = installDispatcher();
+		const dispatcher = window._elqQ;
+		loader.dispatchEvent(new Event('load'));
+		const stale = document.querySelector('script[src*="pps=41"]');
+		updateScripts([create()], unrelated);
+		updateScripts([create()], granted);
+		updateScripts([create()], { ...granted, measurement: true });
+		const responses = document.querySelectorAll('script[src*="pps=41"]');
+		expect(responses).toHaveLength(2);
+		stale?.dispatchEvent(new Event('load'));
+		expect(push).not.toHaveBeenCalledWith(['elqTrackPageView']);
+		responses[1]?.dispatchEvent(new Event('load'));
+		expect(push.mock.calls).toEqual([
+			[['elqOptIn']],
+			[['elqOptOut']],
+			[['elqOptIn']],
+			[['elqTrackPageView']],
+		]);
+		expect(window._elqQ).toBe(dispatcher);
+		expect(getLoader()).toBe(loader);
+	});
 	it('waits for opt-in response, preserves the dispatcher, and deduplicates regrant', () => {
 		const scripts = [
 			eloquaTracking({
@@ -135,12 +166,56 @@ describe('Eloqua dispatcher lifecycle', () => {
 		).toHaveLength(1);
 	});
 	it('does not opt in when revoked before the SDK finishes loading', () => {
-		const scripts = [eloquaTracking({ siteId: '1973398186' })];
-		loadScripts(scripts, granted);
+		const create = () => eloquaTracking({ siteId: '1973398186' });
+		loadScripts([create()], granted);
 		const loader = getLoader();
-		updateScripts(scripts, deniedConsents);
+		updateScripts([create()], deniedConsents);
 		const push = installDispatcher();
 		loader.dispatchEvent(new Event('load'));
 		expect(push).not.toHaveBeenCalled();
+	});
+	it('discards a pending opt-in response on disposal', () => {
+		loadScripts([eloquaTracking({ siteId: '1973398186' })], granted);
+		const push = installDispatcher();
+		getLoader().dispatchEvent(new Event('load'));
+		const response = document.querySelector('script[src*="pps=41"]');
+		clearAllScripts();
+		response?.dispatchEvent(new Event('load'));
+		expect(push).not.toHaveBeenCalledWith(['elqTrackPageView']);
+	});
+	it('configures a fresh SDK after provider disposal and remount', () => {
+		const responses: HTMLScriptElement[] = [];
+		installHeadProbe((element) => {
+			if (!element.src.endsWith('/elqCfg.min.js')) {
+				return;
+			}
+			const commands: unknown[] = Array.isArray(window._elqQ)
+				? window._elqQ
+				: [];
+			const configured = commands.some(
+				(command) =>
+					Array.isArray(command) &&
+					command[0] === 'elqSetSiteId' &&
+					command[1] === '1973398186'
+			);
+			window._elqQ = {
+				push(command) {
+					if (configured && command[0] === 'elqOptIn') {
+						const response = document.createElement('script');
+						response.src =
+							'https://s1973398186.t.eloqua.com/visitor/v200/svrGP?pps=41&siteid=1973398186';
+						document.head.append(response);
+						responses.push(response);
+					}
+				},
+			};
+			element.dispatchEvent(new Event('load'));
+		});
+		const create = () => eloquaTracking({ siteId: '1973398186' });
+		loadScripts([create()], granted);
+		expect(responses).toHaveLength(1);
+		clearAllScripts();
+		loadScripts([create()], granted);
+		expect(responses).toHaveLength(2);
 	});
 });

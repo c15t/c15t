@@ -4,6 +4,7 @@ import { resolveManifest } from '../../resolve';
 import { vendorManifestContract } from '../../types';
 import type { VendorManifest } from '../../types';
 import { readId, skipMissingId } from '../_shared/required-id';
+import { createScriptReuse } from '../_shared/reuse-script';
 import { resolveScriptUrl, trimToUndefined } from '../_shared/script-url';
 
 declare global {
@@ -17,7 +18,7 @@ export const eloquaTrackingManifest = {
 	...vendorManifestContract,
 	category: 'marketing',
 	install: [
-		{ name: '_elqQ', type: 'setGlobal', value: [] },
+		{ ifUndefined: false, name: '_elqQ', type: 'setGlobal', value: [] },
 		{
 			queue: '_elqQ',
 			type: 'pushToQueue',
@@ -50,9 +51,11 @@ export interface EloquaTrackingOptions {
 	firstPartyCookieDomain?: string;
 	/** Consent condition required before loading. @default 'marketing' */
 	category?: Script['category'];
-	/** Custom or proxied loader URL. */
+	/** Custom loader URL. Must preserve Eloqua's opt-in response scripts. */
 	scriptUrl?: string;
 }
+
+const reuseEloquaTracking = createScriptReuse<EloquaTrackingOptions>();
 
 /**
  * Loads Eloqua and enables page tracking only after consent.
@@ -74,123 +77,125 @@ export const eloquaTracking = function eloquaTracking(
 			manifest: eloquaTrackingManifest,
 		});
 	}
-	const firstPartyCookieDomain = trimToUndefined(
-		options.firstPartyCookieDomain
-	);
-	const manifest: VendorManifest = firstPartyCookieDomain
-		? {
-				...eloquaTrackingManifest,
-				install: [
-					...eloquaTrackingManifest.install,
-					{
-						queue: '_elqQ',
-						type: 'pushToQueue',
-						value: ['elqUseFirstPartyCookie', '{{firstPartyCookieDomain}}'],
-					},
-				],
-			}
-		: eloquaTrackingManifest;
-	const script = resolveManifest(manifest, {
-		firstPartyCookieDomain,
-		scriptUrl: resolveScriptUrl(
-			options.scriptUrl,
-			'https://img.en25.com/i/elqCfg.min.js'
-		),
-		siteId,
-	});
-	let hasConsent = false;
-	let loaded = false;
-	let generation = 0;
-	let startedGeneration = -1;
-	let cancelOptIn: (() => void) | undefined;
-	const grant = (element: HTMLScriptElement | undefined): void => {
-		if (
-			!loaded ||
-			!hasConsent ||
-			!element?.isConnected ||
-			startedGeneration === generation
-		) {
-			return;
-		}
-		startedGeneration = generation;
-		const currentGeneration = generation;
-		const before = new Set(document.scripts);
-		window._elqQ?.push(['elqOptIn']);
-		// Eloqua appends its opt-in response script synchronously. Its load event
-		// follows response execution, including the first-party OPTIN cookie update.
-		const response = Array.from(document.scripts).find((candidate) => {
-			if (before.has(candidate) || !candidate.src) {
-				return false;
-			}
-			const url = new URL(candidate.src);
-			return (
-				url.searchParams.get('pps') === '41' &&
-				url.searchParams.get('siteid') === siteId
-			);
+	return reuseEloquaTracking(options, (config) => {
+		const firstPartyCookieDomain = trimToUndefined(
+			config.firstPartyCookieDomain
+		);
+		const manifest: VendorManifest = firstPartyCookieDomain
+			? {
+					...eloquaTrackingManifest,
+					install: [
+						...eloquaTrackingManifest.install,
+						{
+							queue: '_elqQ',
+							type: 'pushToQueue',
+							value: ['elqUseFirstPartyCookie', '{{firstPartyCookieDomain}}'],
+						},
+					],
+				}
+			: eloquaTrackingManifest;
+		const script = resolveManifest(manifest, {
+			firstPartyCookieDomain,
+			scriptUrl: resolveScriptUrl(
+				config.scriptUrl,
+				'https://img.en25.com/i/elqCfg.min.js'
+			),
+			siteId,
 		});
-		if (!response) {
-			throw new Error(
-				'eloquaTracking: the loader did not create an opt-in response script'
-			);
-		}
-		const handlers = {
-			cleanup(): void {
-				response.removeEventListener('load', handlers.load);
-				response.removeEventListener('error', handlers.cleanup);
-				if (cancelOptIn === handlers.cleanup) {
-					cancelOptIn = undefined;
+		let hasConsent = false;
+		let loaded = false;
+		let generation = 0;
+		let startedGeneration = -1;
+		let cancelOptIn: (() => void) | undefined;
+		const grant = (element: HTMLScriptElement | undefined): void => {
+			if (
+				!loaded ||
+				!hasConsent ||
+				!element?.isConnected ||
+				startedGeneration === generation
+			) {
+				return;
+			}
+			startedGeneration = generation;
+			const currentGeneration = generation;
+			const before = new Set(document.scripts);
+			window._elqQ?.push(['elqOptIn']);
+			// Eloqua appends its opt-in response script synchronously. Its load event
+			// follows response execution, including the first-party OPTIN cookie update.
+			const response = Array.from(document.scripts).find((candidate) => {
+				if (before.has(candidate) || !candidate.src) {
+					return false;
 				}
-			},
-			load(): void {
-				handlers.cleanup();
-				if (
-					hasConsent &&
-					generation === currentGeneration &&
-					element.isConnected
-				) {
-					window._elqQ?.push(['elqTrackPageView']);
-				}
-			},
+				const url = new URL(candidate.src);
+				return (
+					url.searchParams.get('pps') === '41' &&
+					url.searchParams.get('siteid') === siteId
+				);
+			});
+			if (!response) {
+				throw new Error(
+					'eloquaTracking: the loader did not create an opt-in response script'
+				);
+			}
+			const handlers = {
+				cleanup(): void {
+					response.removeEventListener('load', handlers.load);
+					response.removeEventListener('error', handlers.cleanup);
+					if (cancelOptIn === handlers.cleanup) {
+						cancelOptIn = undefined;
+					}
+				},
+				load(): void {
+					handlers.cleanup();
+					if (
+						hasConsent &&
+						generation === currentGeneration &&
+						element.isConnected
+					) {
+						window._elqQ?.push(['elqTrackPageView']);
+					}
+				},
+			};
+			cancelOptIn = handlers.cleanup;
+			response.addEventListener('load', handlers.load, { once: true });
+			response.addEventListener('error', handlers.cleanup, { once: true });
 		};
-		cancelOptIn = handlers.cleanup;
-		response.addEventListener('load', handlers.load, { once: true });
-		response.addEventListener('error', handlers.cleanup, { once: true });
-	};
-	return {
-		...script,
-		category,
-		onBeforeLoad(info) {
-			if (hasConsent !== info.hasConsent) {
-				generation += 1;
-			}
-			({ hasConsent } = info);
-			if (hasConsent) {
-				script.onBeforeLoad?.(info);
-			}
-		},
-		onConsentChange(info) {
-			const changed = hasConsent !== info.hasConsent;
-			({ hasConsent } = info);
-			if (changed) {
+		return {
+			...script,
+			category: config.category ?? 'marketing',
+			onBeforeLoad(info) {
+				if (hasConsent !== info.hasConsent) {
+					generation += 1;
+				}
+				({ hasConsent } = info);
+				if (hasConsent) {
+					script.onBeforeLoad?.(info);
+				}
+			},
+			onConsentChange(info) {
+				const changed = hasConsent !== info.hasConsent;
+				({ hasConsent } = info);
+				if (changed) {
+					generation += 1;
+					cancelOptIn?.();
+				}
+				script.onConsentChange?.(info);
+				if (changed && hasConsent) {
+					grant(info.element);
+				}
+			},
+			onDispose() {
+				hasConsent = false;
 				generation += 1;
 				cancelOptIn?.();
-			}
-			script.onConsentChange?.(info);
-			if (changed && hasConsent) {
-				grant(info.element);
-			}
-		},
-		onDispose() {
-			hasConsent = false;
-			generation += 1;
-			cancelOptIn?.();
-		},
-		onLoad(info) {
-			loaded = true;
-			if (info.hasConsent) {
-				grant(info.element);
-			}
-		},
-		serverStart: undefined,
-	};
+			},
+			onLoad(info) {
+				loaded = true;
+				if (info.hasConsent) {
+					grant(info.element);
+				}
+			},
+			serverStart: undefined,
+		};
+	});
 };

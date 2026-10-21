@@ -30,9 +30,13 @@ Copy your site ID from Eloqua and remove the original asynchronous tracking snip
 
 Missing or blank required values log an error and never load.
 
+Custom loaders must preserve Eloqua's opt-in response scripts, including the `pps=41` and matching `siteid` query parameters. If a proxy changes this response format, the helper reports a load error and does not send a page view.
+
 ## Loading and revocation
 
 After consent, the helper creates `_elqQ`, sets the site ID and optional first-party cookie domain, and downloads the SDK. After loading, it queues `elqOptIn` and waits for its response script before `elqTrackPageView`. A pending response cannot trigger a page view after withdrawal. Revocation queues `elqOptOut`. Regrant preserves Eloqua's installed dispatcher rather than replacing it with an array.
+
+Calling `eloquaTracking` again with the same options preserves the active consent lifecycle, including pending opt-in handling.
 
 Keep `reloadOnConsentRevoked` enabled. Eloqua's opt-in and opt-out commands make asynchronous requests; opt-out does not disable every SDK request method or cancel requests already in flight. The helper waits for the first-party opt-in response so a regrant page view does not run while the opt-in cookie still reads `0`. The loader stays in the DOM for same-page regrant because Eloqua replaces its array queue with a dispatcher. Reload gives the next page a fresh tracking lifecycle. Removing a script tag cannot unload the SDK.
 
