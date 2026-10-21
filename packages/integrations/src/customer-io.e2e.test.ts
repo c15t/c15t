@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 import { createConsentKernel } from '@c15t/core';
 import { createScriptLoader } from '@c15t/core/modules/script-loader';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, assert, describe, expect, it, vi } from 'vitest';
 
 import {
 	deniedConsents,
@@ -9,16 +9,11 @@ import {
 	registerVendorContractCleanup,
 	updateScripts,
 } from './e2e-test-utils';
+import type { CustomerIoQueue } from './vendors/email-and-sms/customer-io';
 import {
 	CUSTOMER_IO_METHODS,
 	customerIo,
 } from './vendors/email-and-sms/customer-io';
-
-type CustomerIoQueue = unknown[][] &
-	Record<
-		(typeof CUSTOMER_IO_METHODS)[number],
-		(...args: unknown[]) => CustomerIoQueue
-	>;
 
 const GLOBALS = ['cioanalytics'];
 const granted = { ...deniedConsents, marketing: true };
@@ -139,7 +134,8 @@ describe('Customer.io loading and identity', () => {
 		expect(window.cioanalytics).toBeUndefined();
 		updateScripts(scripts, granted);
 
-		const queue = window.cioanalytics as unknown as CustomerIoQueue;
+		const queue = window.cioanalytics;
+		assert(queue && Array.isArray(queue));
 		const traits = { email: 'person@example.com' };
 		const properties = { plan: 'pro' };
 		const result = queue
@@ -152,7 +148,8 @@ describe('Customer.io loading and identity', () => {
 			['track', 'Signed up', properties],
 		]);
 		for (const method of CUSTOMER_IO_METHODS) {
-			expect(queue[method]('argument')).toBe(queue);
+			const stub = queue[method] as (...args: unknown[]) => CustomerIoQueue;
+			expect(stub('argument')).toBe(queue);
 			expect(queue.at(-1)).toEqual([method, 'argument']);
 		}
 	});
@@ -163,7 +160,7 @@ describe('Customer.io loading and identity', () => {
 			reset: vi.fn(),
 			track: vi.fn(),
 		};
-		window.cioanalytics = runtime;
+		Reflect.set(window, 'cioanalytics', runtime);
 		loadScripts([customerIo({ writeKey: 'existing-runtime-key' })], granted);
 
 		expect(window.cioanalytics).toBe(runtime);
@@ -218,7 +215,7 @@ describe('Customer.io loading and identity', () => {
 				}
 			},
 		};
-		window.cioanalytics = runtime;
+		Reflect.set(window, 'cioanalytics', runtime);
 		getLoader().dispatchEvent(new Event('load'));
 		expect(initialized).toBe(true);
 		expect(runtime.page).toHaveBeenCalledTimes(1);
@@ -233,7 +230,7 @@ describe('Customer.io loading and identity', () => {
 			ready: vi.fn<(callback: () => void) => void>(),
 			reset: vi.fn(),
 		};
-		window.cioanalytics = runtime;
+		Reflect.set(window, 'cioanalytics', runtime);
 		loader.dispatchEvent(new Event('load'));
 		expect(runtime.page).toHaveBeenCalledTimes(1);
 		loader.dispatchEvent(new Event('load'));
@@ -255,7 +252,7 @@ describe('Customer.io loading and identity', () => {
 		const loader = getLoader();
 		updateScripts(scripts, deniedConsents);
 		const runtime = { page: vi.fn(), ready: vi.fn(), reset: vi.fn() };
-		window.cioanalytics = runtime;
+		Reflect.set(window, 'cioanalytics', runtime);
 		loader.dispatchEvent(new Event('load'));
 		expect(runtime.page).not.toHaveBeenCalled();
 		expect(runtime.ready).not.toHaveBeenCalled();
@@ -268,7 +265,7 @@ describe('Customer.io loading and identity', () => {
 		const loader = getLoader();
 		updateScripts([], granted);
 		const runtime = { page: vi.fn(), ready: vi.fn() };
-		window.cioanalytics = runtime;
+		Reflect.set(window, 'cioanalytics', runtime);
 		loader.dispatchEvent(new Event('load'));
 		expect(loader.isConnected).toBe(false);
 		expect(runtime.page).not.toHaveBeenCalled();
@@ -289,7 +286,7 @@ describe('Customer.io loading and identity', () => {
 		try {
 			const loader = getLoader();
 			const runtime = { page: vi.fn(), ready: vi.fn(), reset: vi.fn() };
-			window.cioanalytics = runtime;
+			Reflect.set(window, 'cioanalytics', runtime);
 			loader.dispatchEvent(new Event('load'));
 			expect(runtime.page).toHaveBeenCalledTimes(1);
 			void firstKernel.commands.save(deniedConsents);

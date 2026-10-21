@@ -46,8 +46,14 @@ describe('customerIo', () => {
 		'https://user:pass@proxy.example.com',
 		'ftp://proxy.example.com',
 		'proxy.example.com',
+		'//proxy.example.com',
+		'https://',
+		'https://[invalid',
+		'https://proxy.example.com:invalid',
 	])('rejects a CDN value that is not an HTTP(S) origin: %s', (cdnUrl) => {
-		expect(() => customerIo({ cdnUrl, writeKey: 'test-key' })).toThrow();
+		expect(() => customerIo({ cdnUrl, writeKey: 'test-key' })).toThrow(
+			new Error('customerIo: cdnUrl must be an HTTP(S) origin')
+		);
 	});
 	it('skips a blank key before validating or reusing the CDN configuration', () => {
 		for (let attempt = 0; attempt < 2; attempt += 1) {
