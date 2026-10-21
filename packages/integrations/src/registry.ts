@@ -115,6 +115,16 @@ export const BUILT_IN_INTEGRATION_CATEGORIES = [
  */
 export const builtInScriptIntegrations = [
 	{
+		consentCategory: 'experience',
+		docsSlug: 'adobe-target',
+		hint: 'Website experiments and personalized offers',
+		integrationCategory: 'functional',
+		key: 'adobeTarget',
+		label: 'Adobe Target',
+		packageSubpath: 'adobe-target',
+		vendor: 'adobe-target',
+	},
+	{
 		consentCategory: 'necessary',
 		docsSlug: 'cloudflare-zaraz',
 		hint: 'Consent bridge for tools managed by Zaraz',

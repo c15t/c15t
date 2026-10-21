@@ -876,6 +876,11 @@ export default defineDocsConfig({
 					title: 'Analytics',
 				},
 				{
+					pages: ['adobe-target'],
+					slug: 'experience',
+					title: 'Experience and personalization',
+				},
+				{
 					pages: ['crisp', 'front-chat', 'intercom'],
 					slug: 'chat-and-support',
 					title: 'Chat and support',

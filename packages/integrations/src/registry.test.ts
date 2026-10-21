@@ -49,6 +49,7 @@ import { umamiAnalyticsManifest } from './vendors/analytics/umami-analytics';
 import { vercelAnalyticsManifest } from './vendors/analytics/vercel-analytics';
 import { vercelSpeedInsightsManifest } from './vendors/analytics/vercel-speed-insights';
 import { klaviyoManifest } from './vendors/email-and-sms/klaviyo';
+import { adobeTargetManifest } from './vendors/functional/adobe-target';
 import { crispManifest } from './vendors/functional/crisp';
 import { frontChatManifest } from './vendors/functional/front-chat';
 import { intercomManifest } from './vendors/functional/intercom';
@@ -63,6 +64,7 @@ const validConsentCategories = [
 ] as const satisfies readonly AllConsentNames[];
 
 const vendorManifests = [
+	adobeTargetManifest,
 	googleTagManagerManifest,
 	gtagManifest,
 	ahrefsAnalyticsManifest,

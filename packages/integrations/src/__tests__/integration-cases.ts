@@ -2,6 +2,7 @@
  * One script per built-in integration, built from its public helper with
  * sample options, and the fields the helper must set.
  */
+
 import type { BuiltInScriptIntegrationKey } from '../registry';
 import { linkedinInsights } from '../vendors/ads-and-pixels/linkedin-insights';
 import { metaPixel } from '../vendors/ads-and-pixels/meta-pixel';
@@ -40,6 +41,7 @@ import { umamiAnalytics } from '../vendors/analytics/umami-analytics';
 import { vercelAnalytics } from '../vendors/analytics/vercel-analytics';
 import { vercelSpeedInsights } from '../vendors/analytics/vercel-speed-insights';
 import { klaviyo } from '../vendors/email-and-sms/klaviyo';
+import { adobeTarget } from '../vendors/functional/adobe-target';
 import { crisp } from '../vendors/functional/crisp';
 import { frontChat } from '../vendors/functional/front-chat';
 import { intercom } from '../vendors/functional/intercom';
@@ -58,6 +60,14 @@ export const helperParityCases = {
 			scriptUrl:
 				'https://assets.adobedtm.com/c15tfake/c15tfake/launch-c15tfake.min.js',
 		}),
+	},
+	adobeTarget: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: true,
+			src: '/scripts/at.js',
+		},
+		script: adobeTarget({ mode: 'atjs', scriptUrl: '/scripts/at.js' }),
 	},
 	ahrefsAnalytics: {
 		expected: {

@@ -59,6 +59,7 @@ import { umamiAnalytics } from '../src/vendors/analytics/umami-analytics';
 import { vercelAnalytics } from '../src/vendors/analytics/vercel-analytics';
 import { vercelSpeedInsights } from '../src/vendors/analytics/vercel-speed-insights';
 import { klaviyo } from '../src/vendors/email-and-sms/klaviyo';
+import { adobeTarget } from '../src/vendors/functional/adobe-target';
 import { crisp } from '../src/vendors/functional/crisp';
 import { frontChat } from '../src/vendors/functional/front-chat';
 import { intercom } from '../src/vendors/functional/intercom';
@@ -209,6 +210,34 @@ type PosthogProbeWindow = Window & {
  * Probe configs for every built-in integration, ordered by registry vendor id.
  */
 export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
+	{
+		bootstrapCheck: () => {
+			const adobeWindow = window as Window & {
+				alloy?: { (...args: unknown[]): Promise<unknown>; q?: unknown[] };
+				__alloyNS?: string[];
+			};
+			const { alloy } = adobeWindow;
+			return check(
+				typeof alloy === 'function' &&
+					Array.isArray(alloy.q) &&
+					adobeWindow.__alloyNS?.includes('alloy') === true,
+				'Adobe promise-queue stub and alloy namespace exist after consent, before SDK execution'
+			);
+		},
+		createScript: () =>
+			adobeTarget({
+				datastreamId: '00000000-0000-4000-8000-000000000000',
+				mode: 'websdk',
+				orgId: 'C15TFAKE@AdobeOrg',
+				version: '2.30.0',
+			}),
+		loaderUrlSubstring: 'cdn1.adoberesources.net/alloy/2.30.0/alloy.min.js',
+		notes:
+			'Web SDK 2.30.0 has a public CDN loader. Placeholder organization and datastream IDs and blocked collection cannot validate configuration, setConsent delivery or Target offers. This monitor asserts bootstrap and loader reachability only; customer-hosted at.js is not covered.',
+		tier: 'loader-only',
+		vendor: 'adobe-target',
+	},
+
 	{
 		skipReason:
 			'Requires a configured Cloudflare zone and purpose IDs. This bridge does not fetch a public vendor loader.',

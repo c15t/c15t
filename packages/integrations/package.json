@@ -302,6 +302,11 @@
 			"types": "./dist-types/events.d.ts",
 			"import": "./dist/events.js",
 			"default": "./dist/events.js"
+		},
+		"./adobe-target": {
+			"types": "./dist-types/vendors/functional/adobe-target.d.ts",
+			"import": "./dist/vendors/functional/adobe-target.js",
+			"default": "./dist/vendors/functional/adobe-target.js"
 		}
 	},
 	"publishConfig": {
