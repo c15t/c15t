@@ -400,6 +400,103 @@ describe('amazonAdsTag production loader', () => {
 		}
 	);
 
+	describe.each<[string, Partial<AmazonAdsTagOptions>]>([
+		['explicit default region', { region: 'NA' }],
+		['another region', { region: 'EU' }],
+		['disabled PageView', { trackPageView: false }],
+		['another country and GPP', { countryCode: 'GB', gpp: 'existing-gpp' }],
+		[
+			'another helper URL',
+			{ consentScriptUrl: 'https://tags.example.com/acs.js' },
+		],
+		['another main URL', { scriptUrl: 'https://tags.example.com/amazon.js' }],
+	])('shared helper with %s', (_difference, options) => {
+		it.each(['pending', 'loaded'] as const)(
+			'keeps the %s element until its distinct borrower disposes',
+			async (state) => {
+				const first = mount(amazonAdsTag({ countryCode: 'DE', tagId }));
+				await first.kernel.commands.save(grantedMarketingConsents);
+				const second = mount(
+					amazonAdsTag({ countryCode: 'DE', tagId, ...options })
+				);
+				await second.kernel.commands.save(grantedMarketingConsents);
+				const helper = findScript(helperUrl);
+				expect(
+					Array.from(document.scripts).filter((node) => node.id === helper.id)
+				).toEqual([helper]);
+				const consent = vi.fn();
+				if (state === 'loaded') {
+					window.amznConsent = consent;
+					helper.dispatchEvent(new Event('load'));
+				}
+				first.loader.dispose();
+				expect(helper.isConnected).toBe(true);
+				expect(document.getElementById(helper.id)).toBe(helper);
+				consent.mockClear();
+				if (state === 'pending') {
+					window.amznConsent = consent;
+					helper.dispatchEvent(new Event('load'));
+				}
+				const expectedConsent: AmazonAdsConsent = {
+					countryCode: options.countryCode ?? 'DE',
+					enableAdStorage: true,
+					enableUserData: true,
+				};
+				if (options.gpp !== undefined) {
+					expectedConsent.gpp = options.gpp;
+				}
+				expect(consent.mock.calls).toEqual(
+					state === 'pending' ? [[expectedConsent]] : []
+				);
+				expect(commands()).toEqual(expectedCommands(options));
+				second.loader.dispose();
+				expect(helper.isConnected).toBe(false);
+				consent.mockClear();
+				helper.dispatchEvent(new Event('load'));
+				expect(consent).not.toHaveBeenCalled();
+			}
+		);
+	});
+
+	it('keeps ownership across equivalent registrations and distinct borrowers', async () => {
+		const first = mount(amazonAdsTag({ countryCode: 'DE', tagId }));
+		await first.kernel.commands.save(grantedMarketingConsents);
+		const equivalent = mount(amazonAdsTag({ countryCode: 'DE', tagId }));
+		await equivalent.kernel.commands.save(grantedMarketingConsents);
+		const borrower = mount(
+			amazonAdsTag({ countryCode: 'DE', region: 'NA', tagId })
+		);
+		await borrower.kernel.commands.save(grantedMarketingConsents);
+		const last = mount(
+			amazonAdsTag({ countryCode: 'DE', tagId, trackPageView: false })
+		);
+		await last.kernel.commands.save(grantedMarketingConsents);
+		const helper = findScript(helperUrl);
+		borrower.loader.dispose();
+		expect(helper.isConnected).toBe(true);
+		first.loader.dispose();
+		expect(helper.isConnected).toBe(true);
+		equivalent.loader.dispose();
+		expect(helper.isConnected).toBe(true);
+		await last.kernel.commands.save(deniedConsents);
+		const consent = vi.fn();
+		window.amznConsent = consent;
+		helper.dispatchEvent(new Event('load'));
+		expect(consent).toHaveBeenCalledExactlyOnceWith({
+			countryCode: 'DE',
+			enableAdStorage: false,
+			enableUserData: false,
+		});
+		expect(commands()).toEqual([]);
+		await last.kernel.commands.save(grantedMarketingConsents);
+		expect(commands()).toEqual(expectedCommands({ trackPageView: false }));
+		consent.mockImplementation(() => {
+			throw new Error('Vendor denial failed');
+		});
+		last.loader.dispose();
+		expect(helper.isConnected).toBe(false);
+	});
+
 	it('replaces the helper with its same-ID configuration and ignores stale completion', async () => {
 		const { kernel, loader } = mount(
 			amazonAdsTag({ countryCode: 'DE', tagId })
@@ -476,7 +573,15 @@ describe('amazonAdsTag production loader', () => {
 		});
 		await kernel.commands.save(grantedMarketingConsents);
 		expect(document.scripts).toHaveLength(2);
+		const borrower = mount({
+			...amazonAdsTag({ countryCode: 'DE', region: 'NA', tagId }),
+			anonymizeId: false,
+			id: 'external-amazon',
+		});
+		await borrower.kernel.commands.save(grantedMarketingConsents);
 		loader.dispose();
+		expect(external.isConnected).toBe(true);
+		borrower.loader.dispose();
 
 		expect(external.isConnected).toBe(true);
 		const consent = vi.fn();
@@ -497,9 +602,22 @@ describe('amazonAdsTag production loader', () => {
 		unrelated.id = helper.id;
 		unrelated.src = 'https://tags.example.com/unrelated.js';
 		helper.replaceWith(unrelated);
+		const borrower = mount(
+			amazonAdsTag({ countryCode: 'DE', region: 'NA', tagId })
+		);
+		await borrower.kernel.commands.save(grantedMarketingConsents);
+		const loaded = vi.fn();
+		unrelated.addEventListener('load', loaded);
 		loader.dispose();
+		expect(unrelated.isConnected).toBe(true);
+		borrower.loader.dispose();
 
 		expect(unrelated.isConnected).toBe(true);
+		const consent = vi.fn();
+		window.amznConsent = consent;
+		unrelated.dispatchEvent(new Event('load'));
+		expect(loaded).toHaveBeenCalledOnce();
+		expect(consent).not.toHaveBeenCalled();
 	});
 
 	it('uses explicit URLs and skips ACS when country is absent instead of assuming US', async () => {

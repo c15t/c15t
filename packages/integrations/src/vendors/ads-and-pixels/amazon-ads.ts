@@ -80,6 +80,9 @@ export const amazonAdsTagManifest = {
 	},
 } satisfies VendorManifest;
 
+// Different configurations can borrow the same c15t-created ACS element.
+const helperOwners = new WeakMap<HTMLScriptElement, number>();
+
 const createAmazonAdsTag = (options: AmazonAdsTagOptions): Script => {
 	const countryCode = trimToUndefined(options.countryCode)?.toUpperCase();
 	const script = resolveManifest(amazonAdsTagManifest, {
@@ -191,6 +194,9 @@ const createAmazonAdsTag = (options: AmazonAdsTagOptions): Script => {
 			}
 		}
 		const element = helper;
+		if (!existingHelper || helperOwners.has(element)) {
+			helperOwners.set(element, (helperOwners.get(element) ?? 0) + 1);
+		}
 		const completed = (event: Event) => {
 			element.removeEventListener('load', completed);
 			element.removeEventListener('error', completed);
@@ -209,8 +215,12 @@ const createAmazonAdsTag = (options: AmazonAdsTagOptions): Script => {
 		releaseHelper = () => {
 			element.removeEventListener('load', completed);
 			element.removeEventListener('error', completed);
-			if (!existingHelper) {
+			const owners = helperOwners.get(element);
+			if (owners === 1) {
+				helperOwners.delete(element);
 				element.remove();
+			} else if (owners !== undefined) {
+				helperOwners.set(element, owners - 1);
 			}
 			helper = undefined;
 		};

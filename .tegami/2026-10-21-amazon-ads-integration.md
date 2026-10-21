@@ -9,4 +9,4 @@ packages:
 
 Load Amazon Ads after marketing consent with the `amazonAdsTag` helper, with vendor metadata, framework registration examples and CLI setup.
 
-Remove the c15t-created consent helper and its listeners on final disposal or configuration replacement, while preserving active equivalent registrations and external helper elements.
+Remove the c15t-created consent helper and its listeners on final disposal or configuration replacement, while preserving active registrations that share the helper and external helper elements.
