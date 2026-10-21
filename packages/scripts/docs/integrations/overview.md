@@ -172,7 +172,7 @@ the scripts or the consent snapshot yourself:
 | ------------------------------ | ------------------------------------------------------------------------------ |
 | React, Next.js, TanStack Start | `useEventDispatcher()` from `c15t/react`, `c15t/next` or `c15t/tanstack-start` |
 | Vue, Nuxt                      | `useEventDispatcher()` from `c15t/vue/vue-plugin`, auto-imported in Nuxt       |
-| Svelte, SvelteKit              | `getEventDispatcher()` from `@c15t/svelte`, called inside `ConsentProvider`    |
+| Svelte, SvelteKit              | `getEventDispatcher()` from `c15t/svelte`, called inside `ConsentProvider`     |
 | Astro                          | `getEventDispatcher()` from `c15t/astro/client`                                |
 | JavaScript                     | `getEventDispatcher(runtime)` from `@c15t/browser`                             |
 
