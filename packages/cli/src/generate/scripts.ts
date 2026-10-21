@@ -112,6 +112,10 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 		example: "logRocket({ appId: 'org-slug/app-slug' })",
 		importName: 'logRocket',
 	},
+	marketo: {
+		example: "marketoMunchkin({ munchkinId: 'YOUR_MUNCHKINID' })",
+		importName: 'marketoMunchkin',
+	},
 	'matomo-analytics': {
 		example:
 			"matomoAnalytics({ matomoUrl: 'https://analytics.example.com', siteId: 1 })",

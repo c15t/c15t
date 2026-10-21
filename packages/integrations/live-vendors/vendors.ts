@@ -39,6 +39,7 @@ import {
 } from '../src/vendors/analytics/hightouch';
 import { hotjar } from '../src/vendors/analytics/hotjar';
 import { logRocket } from '../src/vendors/analytics/logrocket';
+import { marketoMunchkin } from '../src/vendors/analytics/marketo';
 import { matomoAnalytics } from '../src/vendors/analytics/matomo-analytics';
 import { clarity } from '../src/vendors/analytics/microsoft-clarity';
 import { mixpanelAnalytics } from '../src/vendors/analytics/mixpanel-analytics';
@@ -209,6 +210,20 @@ type PosthogProbeWindow = Window & {
  * Probe configs for every built-in integration, ordered by registry vendor id.
  */
 export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
+	{
+		allowUrlSubstrings: ['munchkin.marketo.net/'],
+		createScript: () => marketoMunchkin({ munchkinId: 'AAA-BBB-CCC' }),
+		loaderUrlSubstring: 'munchkin.marketo.net/munchkin.js',
+		notes:
+			'Uses a placeholder Munchkin ID. Collection is blocked. This validates SDK installation, not attribution to a configured Marketo account.',
+		runtimeCheck: () =>
+			check(
+				typeof window.MunchkinTracker?.init === 'function',
+				'Munchkin runtime methods installed by the real loader'
+			),
+		tier: 'full',
+		vendor: 'marketo',
+	},
 	{
 		skipReason:
 			'Requires a configured Cloudflare zone and purpose IDs. This bridge does not fetch a public vendor loader.',

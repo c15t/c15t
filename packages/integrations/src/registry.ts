@@ -115,6 +115,15 @@ export const BUILT_IN_INTEGRATION_CATEGORIES = [
  */
 export const builtInScriptIntegrations = [
 	{
+		consentCategory: 'marketing',
+		docsSlug: 'marketo',
+		integrationCategory: 'analytics',
+		key: 'marketoMunchkin',
+		label: 'Marketo Munchkin',
+		packageSubpath: 'marketo',
+		vendor: 'marketo',
+	},
+	{
 		consentCategory: 'necessary',
 		docsSlug: 'cloudflare-zaraz',
 		hint: 'Consent bridge for tools managed by Zaraz',

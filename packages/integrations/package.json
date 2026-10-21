@@ -302,6 +302,11 @@
 			"types": "./dist-types/events.d.ts",
 			"import": "./dist/events.js",
 			"default": "./dist/events.js"
+		},
+		"./marketo": {
+			"types": "./dist-types/vendors/analytics/marketo.d.ts",
+			"import": "./dist/vendors/analytics/marketo.js",
+			"default": "./dist/vendors/analytics/marketo.js"
 		}
 	},
 	"publishConfig": {

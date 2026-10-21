@@ -47,6 +47,7 @@ kernel to control its DOM lifecycle. Embeds do not require `@c15t/integrations`.
 | Integration                                   | Helper             | Category                                             | Loading behavior                                                                                     |
 | --------------------------------------------- | ------------------ | ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
 | [Cloudflare Zaraz](./cloudflare-zaraz.md)     | `cloudflareZaraz`  | `necessary`                                          | Always runs; syncs purposes, Zaraz runs the tools                                                    |
+| [Marketo Munchkin](./marketo.md)              | `marketoMunchkin`  | `marketing`                                          | Waits for effective permission                                                                       |
 | [Google Tag Manager](./google-tag-manager.md) | `googleTagManager` | `necessary`; `measurement` or `marketing` when gated | Always loads and signals Google consent by default; `loadMode: 'after-consent'` waits for permission |
 
 ## Analytics
