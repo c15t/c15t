@@ -56,6 +56,19 @@ c15t removes the loader on revocation. The `none` call does not unload the SDK
 or promise that all existing network activity stops. Keep
 `reloadOnConsentRevoked` enabled to stop code already running on the page.
 
+Equivalent helper calls with the same key and consent condition share the
+active script. Recreating the helper on a render keeps its loader and consent
+updates active. If several loaders share that configuration, the widget stays
+available while any registration grants its mapped consent. Analytics storage
+requires measurement consent from every granted registration.
+
+Removing a configuration or unmounting its provider releases that loader's
+registration. Once the last registration leaves, c15t removes the script
+element, but preserves the granted Zendesk conversation and storage. Cleanup
+does not send `none` or unload code that already ran. With no remaining
+registration, later consent changes no longer reach the widget. Revoke consent
+before removal, or reload the page, when you need to stop the loaded SDK.
+
 ## Cookies and storage
 
 Zendesk's [in-product cookie policy](https://support.zendesk.com/hc/en-us/articles/4408824378650-Zendesk-In-Product-Cookie-Policy)

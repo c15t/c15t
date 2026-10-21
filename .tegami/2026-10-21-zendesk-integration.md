@@ -8,3 +8,5 @@ packages:
 ### Add Zendesk Messaging consent integration
 
 `zendeskWidget()` loads Zendesk Messaging only after `functionality` consent. Includes configuration and revocation guidance, loader contract tests, and CLI setup support.
+
+Equivalent configurations share the active widget lifecycle. Provider cleanup preserves granted conversations. Consent withdrawal sends the `none` storage range once no shared registration grants the widget.

@@ -102,7 +102,11 @@ describe('zendeskWidget', () => {
 			consents: { ...allowedConsents, measurement: true },
 		});
 		script.onConsentChange?.(info);
-		script.onConsentChange?.({ ...info, hasConsent: false });
+		script.onConsentChange?.({
+			...info,
+			consents: { ...allowedConsents, functionality: false },
+			hasConsent: false,
+		});
 		expect(window.zE).toBe(api);
 		expect(api.mock.calls).toEqual([
 			['messenger:set', 'cookies', 'functional'],
@@ -112,7 +116,7 @@ describe('zendeskWidget', () => {
 		]);
 	});
 
-	it('requests none on disposal and ignores later updates', () => {
+	it('preserves granted storage on disposal and waits for a new load', () => {
 		const script = zendeskWidget({ key: 'widget-key' });
 		const info = createCallbackInfo({
 			consents: allowedConsents,
@@ -125,7 +129,6 @@ describe('zendeskWidget', () => {
 		script.onConsentChange?.(info);
 		expect(window.zE?._?.map(toArgs)).toEqual([
 			['messenger:set', 'cookies', 'functional'],
-			['messenger:set', 'cookies', 'none'],
 		]);
 	});
 

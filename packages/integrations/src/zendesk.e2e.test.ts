@@ -176,4 +176,158 @@ describe('Zendesk Messaging loader contract', () => {
 			'functional',
 		]);
 	});
+
+	it.each(['remove', 'dispose'] as const)(
+		'does not send none on granted %s and resumes updates on remount',
+		async (cleanup) => {
+			const kernel = createConsentKernel();
+			await kernel.commands.save(functionalityConsents);
+			const script = zendeskWidget({ key: 'widget-key' });
+			const loader = createScriptLoader({
+				kernel,
+				scripts: [script],
+			});
+			try {
+				const element = getLoader();
+				element.dispatchEvent(new Event('load'));
+				const api = vi.fn();
+				window.zE = api;
+				if (cleanup === 'remove') {
+					loader.updateScripts([]);
+				} else {
+					loader.dispose();
+				}
+				expect(element.isConnected).toBe(false);
+				expect(api).not.toHaveBeenCalledWith(
+					'messenger:set',
+					'cookies',
+					'none'
+				);
+				expect(window.zE).toBe(api);
+				const callsAfterCleanup = api.mock.calls.length;
+				await kernel.commands.save(deniedConsents);
+				expect(api).toHaveBeenCalledTimes(callsAfterCleanup);
+				await kernel.commands.save(functionalityConsents);
+				const remounted = createScriptLoader({ kernel, scripts: [script] });
+				try {
+					expect(getLoader()).not.toBe(element);
+					expect(window.zE?.s).toBe(getLoader());
+					expect(api).toHaveBeenLastCalledWith(
+						'messenger:set',
+						'cookies',
+						'functional'
+					);
+				} finally {
+					remounted.dispose();
+				}
+			} finally {
+				loader.dispose();
+				kernel.dispose();
+			}
+		}
+	);
+
+	it.each([false, true])(
+		'keeps an equivalent helper active across updates and regrant, loaded=%s',
+		(loaded) => {
+			loadScripts(
+				[zendeskWidget({ key: 'widget-key' })],
+				functionalityConsents
+			);
+			const element = getLoader();
+			if (loaded) {
+				element.dispatchEvent(new Event('load'));
+			}
+			const api = vi.fn();
+			window.zE = api;
+			const replacement = [zendeskWidget({ key: ' widget-key ' })];
+			updateScripts(replacement, allWidgetConsents);
+			expect(getLoader()).toBe(element);
+			expect(api).toHaveBeenLastCalledWith('messenger:set', 'cookies', 'all');
+			expect(api).not.toHaveBeenCalledWith('messenger:set', 'cookies', 'none');
+
+			updateScripts(replacement, deniedConsents);
+			expect(element.isConnected).toBe(false);
+			expect(api).toHaveBeenLastCalledWith('messenger:set', 'cookies', 'none');
+			updateScripts(replacement, functionalityConsents);
+			expect(getLoader()).not.toBe(element);
+			expect(window.zE).toBe(api);
+			expect(window.zE?.s).toBe(getLoader());
+			expect(api).toHaveBeenLastCalledWith(
+				'messenger:set',
+				'cookies',
+				'functional'
+			);
+		}
+	);
+
+	it.each([
+		['remove', false],
+		['remove', true],
+		['dispose', false],
+		['dispose', true],
+		['revoke', false],
+		['revoke', true],
+	] as const)(
+		'keeps a shared granted owner active on %s, reverse owners=%s',
+		async (cleanup, reverse) => {
+			const firstKernel = createConsentKernel();
+			const secondKernel = createConsentKernel();
+			await firstKernel.commands.save(functionalityConsents);
+			await secondKernel.commands.save(functionalityConsents);
+			const first = createScriptLoader({
+				kernel: firstKernel,
+				scripts: [zendeskWidget({ key: 'widget-key' })],
+			});
+			const element = getLoader();
+			element.dispatchEvent(new Event('load'));
+			const second = createScriptLoader({
+				kernel: secondKernel,
+				scripts: [zendeskWidget({ key: 'widget-key' })],
+			});
+			const removed = reverse ? second : first;
+			const removedKernel = reverse ? secondKernel : firstKernel;
+			const survivingKernel = reverse ? firstKernel : secondKernel;
+			try {
+				const api = vi.fn();
+				window.zE = api;
+				if (cleanup === 'remove') {
+					removed.updateScripts([]);
+				} else if (cleanup === 'dispose') {
+					removed.dispose();
+				} else {
+					await removedKernel.commands.save(deniedConsents);
+				}
+				expect(getLoader()).toBe(element);
+				expect(api).not.toHaveBeenCalledWith(
+					'messenger:set',
+					'cookies',
+					'none'
+				);
+				await survivingKernel.commands.save(allWidgetConsents);
+				expect(api).toHaveBeenLastCalledWith('messenger:set', 'cookies', 'all');
+				await survivingKernel.commands.save(deniedConsents);
+				expect(element.isConnected).toBe(false);
+				expect(api).toHaveBeenLastCalledWith(
+					'messenger:set',
+					'cookies',
+					'none'
+				);
+				await survivingKernel.commands.save(functionalityConsents);
+				expect(getLoader()).not.toBe(element);
+				expect(window.zE?.s).toBe(getLoader());
+				expect(window.zE).toBe(api);
+				expect(api).toHaveBeenLastCalledWith(
+					'messenger:set',
+					'cookies',
+					'functional'
+				);
+			} finally {
+				first.dispose();
+				second.dispose();
+				firstKernel.dispose();
+				secondKernel.dispose();
+			}
+		}
+	);
 });
