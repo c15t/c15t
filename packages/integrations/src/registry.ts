@@ -115,6 +115,16 @@ export const BUILT_IN_INTEGRATION_CATEGORIES = [
  */
 export const builtInScriptIntegrations = [
 	{
+		consentCategory: 'marketing',
+		docsSlug: 'attentive',
+		hint: 'SMS and email signup units with on-site event tracking',
+		integrationCategory: 'email-and-sms',
+		key: 'attentiveTag',
+		label: 'Attentive',
+		packageSubpath: 'attentive',
+		vendor: 'attentive',
+	},
+	{
 		consentCategory: 'necessary',
 		docsSlug: 'cloudflare-zaraz',
 		hint: 'Consent bridge for tools managed by Zaraz',

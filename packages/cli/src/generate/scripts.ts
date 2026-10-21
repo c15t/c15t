@@ -40,6 +40,10 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 		example: "amplitude({ apiKey: 'YOUR_API_KEY' })",
 		importName: 'amplitude',
 	},
+	attentive: {
+		example: "attentiveTag({ siteSlug: 'YOUR_SITESLUG' })",
+		importName: 'attentiveTag',
+	},
 	clearbit: {
 		example: "clearbit({ publishableKey: 'pk_XXXXXXXXXX' })",
 		importName: 'clearbit',

@@ -1,0 +1,86 @@
+/** @vitest-environment jsdom */
+import { afterEach, describe, expect, it } from 'vitest';
+
+import {
+	deniedConsents,
+	loadScripts,
+	registerVendorContractCleanup,
+	updateScripts,
+} from './e2e-test-utils';
+import { attentiveTag } from './vendors/email-and-sms/attentive';
+
+const GLOBALS = ['attentive', 'attentiveOptions'];
+const granted = { ...deniedConsents, marketing: true };
+const unrelated = { ...deniedConsents, measurement: true };
+const getLoader = (): HTMLScriptElement => {
+	const loader = document.querySelector<HTMLScriptElement>('script[src]');
+	if (!loader) {
+		throw new Error('Expected Attentive loader');
+	}
+	return loader;
+};
+
+describe('Attentive consent loader', () => {
+	registerVendorContractCleanup();
+	afterEach(() => {
+		for (const name of GLOBALS) {
+			Reflect.deleteProperty(window, name);
+		}
+		localStorage.clear();
+		sessionStorage.clear();
+	});
+	it('creates no vendor requests, globals or storage before mapped consent', () => {
+		const scripts = [attentiveTag({ siteSlug: 'allbirds' })];
+		const cookies = document.cookie;
+		const local = { ...localStorage };
+		const session = { ...sessionStorage };
+		loadScripts(scripts, deniedConsents);
+		updateScripts(scripts, unrelated);
+		expect(document.querySelector('script[src]')).toBeNull();
+		for (const name of GLOBALS) {
+			expect(
+				(window as unknown as Record<string, unknown>)[name]
+			).toBeUndefined();
+		}
+		expect(document.cookie).toBe(cookies);
+		expect({ ...localStorage }).toEqual(local);
+		expect({ ...sessionStorage }).toEqual(session);
+		updateScripts(scripts, granted);
+		const first = getLoader();
+		expect(first.src).toBe('https://cdn.attn.tv/allbirds/dtag.js');
+		updateScripts(scripts, granted);
+		expect(getLoader()).toBe(first);
+		updateScripts(scripts, deniedConsents);
+		expect(first.isConnected).toBe(true);
+		updateScripts(scripts, granted);
+		expect(getLoader()).toBe(first);
+		expect(document.querySelectorAll('script[src]')).toHaveLength(1);
+	});
+	it('honors an overridden category', () => {
+		const scripts = [
+			attentiveTag({ category: 'experience', siteSlug: 'allbirds' }),
+		];
+		loadScripts(scripts, granted);
+		expect(document.querySelector('script[src]')).toBeNull();
+		updateScripts(scripts, { ...deniedConsents, experience: true });
+		expect(getLoader()).toBeDefined();
+	});
+});
+
+describe('Attentive body tag lifecycle', () => {
+	registerVendorContractCleanup();
+	it('uses one body tag across pending withdrawal and helper recreation', () => {
+		const create = () => attentiveTag({ siteSlug: 'allbirds' });
+		loadScripts([create()], granted);
+		const loader = getLoader();
+		expect(loader.parentElement).toBe(document.body);
+		updateScripts([create()], deniedConsents);
+		loader.dispatchEvent(new Event('load'));
+		updateScripts([create()], granted);
+		expect(getLoader()).toBe(loader);
+		expect(document.querySelectorAll('script[src]')).toHaveLength(1);
+		expect(
+			document.querySelector('script[src*="dtag.js"]')?.getAttribute('src')
+		).toBe('https://cdn.attn.tv/allbirds/dtag.js');
+	});
+});

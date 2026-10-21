@@ -58,6 +58,7 @@ import type { SentryClient } from '../src/vendors/analytics/sentry';
 import { umamiAnalytics } from '../src/vendors/analytics/umami-analytics';
 import { vercelAnalytics } from '../src/vendors/analytics/vercel-analytics';
 import { vercelSpeedInsights } from '../src/vendors/analytics/vercel-speed-insights';
+import { attentiveTag } from '../src/vendors/email-and-sms/attentive';
 import { klaviyo } from '../src/vendors/email-and-sms/klaviyo';
 import { crisp } from '../src/vendors/functional/crisp';
 import { frontChat } from '../src/vendors/functional/front-chat';
@@ -209,6 +210,18 @@ type PosthogProbeWindow = Window & {
  * Probe configs for every built-in integration, ordered by registry vendor id.
  */
 export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
+	{
+		allowUrlSubstrings: ['cdn.attn.tv/tag/'],
+		bootstrapCheck: () =>
+			check(!Object.hasOwn(window, 'attentive'), 'No custom Attentive stub'),
+		createScript: () => attentiveTag({ siteSlug: 'allbirds' }),
+		loaderUrlSubstring: 'cdn.attn.tv/allbirds/dtag.js',
+		notes:
+			'Public Allbirds tag and chained vendor JavaScript prove real tag execution. Collection, iframe/config origins and signup submissions are blocked; account conversion and complete runtime shutdown are not verified.',
+		runtimeReplacedGlobals: ['attentive'],
+		tier: 'full',
+		vendor: 'attentive',
+	},
 	{
 		skipReason:
 			'Requires a configured Cloudflare zone and purpose IDs. This bridge does not fetch a public vendor loader.',

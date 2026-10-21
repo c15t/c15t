@@ -302,6 +302,11 @@
 			"types": "./dist-types/events.d.ts",
 			"import": "./dist/events.js",
 			"default": "./dist/events.js"
+		},
+		"./attentive": {
+			"types": "./dist-types/vendors/email-and-sms/attentive.d.ts",
+			"import": "./dist/vendors/email-and-sms/attentive.js",
+			"default": "./dist/vendors/email-and-sms/attentive.js"
 		}
 	},
 	"publishConfig": {

@@ -39,6 +39,7 @@ import { sentry } from '../vendors/analytics/sentry';
 import { umamiAnalytics } from '../vendors/analytics/umami-analytics';
 import { vercelAnalytics } from '../vendors/analytics/vercel-analytics';
 import { vercelSpeedInsights } from '../vendors/analytics/vercel-speed-insights';
+import { attentiveTag } from '../vendors/email-and-sms/attentive';
 import { klaviyo } from '../vendors/email-and-sms/klaviyo';
 import { crisp } from '../vendors/functional/crisp';
 import { frontChat } from '../vendors/functional/front-chat';
@@ -74,6 +75,14 @@ export const helperParityCases = {
 			src: 'https://cdn.amplitude.com/libs/analytics-browser-2.44.4-min.js.gz',
 		},
 		script: amplitude({ apiKey: 'AMPLITUDE-CONTRACT' }),
+	},
+	attentiveTag: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: true,
+			src: 'https://cdn.attn.tv/allbirds/dtag.js',
+		},
+		script: attentiveTag({ siteSlug: 'allbirds' }),
 	},
 	clearbit: {
 		expected: {
