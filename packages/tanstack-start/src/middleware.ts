@@ -1,8 +1,14 @@
+import type { StorageConfig } from '@c15t/core';
+import { resolveRequestSubject } from '@c15t/core/server';
 import { extractConsentRequestInputs } from '@c15t/schema/types';
 import type { ConsentRequestHeaderInputs as ConsentRequestInputs } from '@c15t/schema/types';
 import { createMiddleware } from '@tanstack/react-start';
 
-import { rememberConsentInputs } from './libs/request-inputs';
+import { isPrerendering } from './libs/prerendering';
+import {
+	rememberConsentInputs,
+	rememberSubjectCookieHeader,
+} from './libs/request-inputs';
 
 /** Options for {@link consentRequestMiddleware}. */
 export interface ConsentRequestMiddlewareOptions {
@@ -34,6 +40,27 @@ export interface ConsentRequestMiddlewareOptions {
 	 * @default true
 	 */
 	normalizeHeaders?: boolean;
+
+	/**
+	 * The client's `storageConfig`, so the subject cookie this sets matches
+	 * the one the browser would: `storageKey` names it (`<storageKey>-sid`),
+	 * and `defaultDomain`, `crossSubdomain` and `defaultExpiryDays` set its
+	 * domain and lifetime. Set it only if you changed those client-side.
+	 */
+	storage?: Pick<
+		StorageConfig,
+		'crossSubdomain' | 'defaultDomain' | 'defaultExpiryDays' | 'storageKey'
+	>;
+
+	/**
+	 * Read the request's scheme and host from `forwarded` and
+	 * `x-forwarded-*` headers when deciding the subject cookie's `Secure`
+	 * flag and cross-subdomain domain. Any client can send those headers, so
+	 * set this only behind a proxy that sets them and drops incoming ones.
+	 *
+	 * @default false
+	 */
+	trustForwardedHeaders?: boolean;
 }
 
 /** Request context contributed by {@link consentRequestMiddleware}. */
@@ -69,6 +96,22 @@ const writeNormalizedHeaders = function writeNormalizedHeaders(
 };
 
 /**
+ * `result` with `header` added to its response's `Set-Cookie` headers. The
+ * handler's response can have immutable headers, so the cookie goes on a
+ * copy.
+ */
+const withSetCookie = function withSetCookie<
+	Result extends { response: Response },
+>(result: Result, header: string | undefined): Result {
+	if (!header) {
+		return result;
+	}
+	const response = new Response(result.response.body, result.response);
+	response.headers.append('set-cookie', header);
+	return { ...result, response };
+};
+
+/**
  * Request middleware that normalizes consent inputs for the whole request.
  *
  * It reads the CDN geo headers (Cloudflare, Vercel, CloudFront, generic
@@ -76,6 +119,11 @@ const writeNormalizedHeaders = function writeNormalizedHeaders(
  * rewrites them onto the canonical `x-c15t-country`, `x-c15t-region`, and
  * `sec-gpc` request headers, and exposes the same values as
  * `context.consent` for server routes and server functions.
+ *
+ * A visitor with no subject ID gets one in a `c15t-sid` cookie on the
+ * response, and `resolveConsent` in the same request reads it, so the server
+ * render and the browser start with the same ID. Prerenders and prefetches
+ * get none.
  *
  * Register it once for every request in `src/start.ts`:
  *
@@ -108,7 +156,7 @@ const writeNormalizedHeaders = function writeNormalizedHeaders(
 export const consentRequestMiddleware = function consentRequestMiddleware(
 	options: ConsentRequestMiddlewareOptions = {}
 ) {
-	return createMiddleware().server(({ next, request }) => {
+	return createMiddleware().server(async ({ next, request }) => {
 		const inputs: ConsentRequestInputs = extractConsentRequestInputs(
 			request.headers,
 			{
@@ -121,8 +169,20 @@ export const consentRequestMiddleware = function consentRequestMiddleware(
 		if (options.normalizeHeaders !== false) {
 			writeNormalizedHeaders(request.headers, inputs, options.language);
 		}
-		return next({
-			context: { consent: inputs } satisfies ConsentRequestContext,
+		const subject = resolveRequestSubject({
+			request: { headers: request.headers, url: request.url },
+			shared: isPrerendering(),
+			storage: options.storage,
+			trustForwardedHeaders: options.trustForwardedHeaders,
 		});
+		if (subject?.setCookie) {
+			rememberSubjectCookieHeader(request, subject.cookie);
+		}
+		return withSetCookie(
+			await next({
+				context: { consent: inputs } satisfies ConsentRequestContext,
+			}),
+			subject?.setCookie?.header
+		);
 	});
 };

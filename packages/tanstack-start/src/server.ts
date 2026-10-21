@@ -81,7 +81,11 @@ import type {
 } from '@c15t/core/server';
 import type { ConsentManifest, InitOutput } from '@c15t/schema/types';
 
-import { readConsentInputs } from './libs/request-inputs';
+import { isPrerendering } from './libs/prerendering';
+import {
+	readConsentInputs,
+	readSubjectCookieHeader,
+} from './libs/request-inputs';
 
 type Awaitable<Value> = Promise<Value> | Value;
 
@@ -103,18 +107,6 @@ const stripTransport = function stripTransport({
 	...config
 }: KernelConfig): ConsentState {
 	return config;
-};
-
-/**
- * Whether this render is TanStack Start's build-time prerender, which writes
- * HTML every visitor is served. The Start plugin sets `TSS_PRERENDERING`
- * for the whole prerender run.
- */
-const isPrerendering = function isPrerendering(): boolean {
-	const env = (
-		globalThis as { process?: { env?: Record<string, string | undefined> } }
-	).process?.env;
-	return env?.TSS_PRERENDERING === 'true';
 };
 
 const readCurrentRequest = async function readCurrentRequest(
@@ -486,6 +478,9 @@ const resolveConsentState = async function resolveConsentState(
 		ownRoutes: [routePrefix ?? DEFAULT_CONSENT_ROUTE_PREFIX],
 		reportSessions: options.reportSessions,
 		request: {
+			// The cookie header with the subject ID the middleware set on this
+			// response, which the browser has not sent yet.
+			cookie: readSubjectCookieHeader(request),
 			headers: request.headers,
 			// What `consentRequestMiddleware` normalized for this request, so
 			// overrides survive runtimes with immutable headers.

@@ -22,3 +22,29 @@ export const readConsentInputs = function readConsentInputs(
 ): ConsentRequestInputs | undefined {
 	return inputsByRequest.get(request);
 };
+
+/**
+ * The request `Cookie` header with the subject ID the middleware set on the
+ * response, keyed by the request. The browser sends that cookie only from
+ * its next request, so the render in this one reads it from here.
+ */
+const subjectCookieByRequest = new WeakMap<Request, string>();
+
+/** Records the cookie header carrying the subject ID minted for `request`. */
+export const rememberSubjectCookieHeader = function rememberSubjectCookieHeader(
+	request: Request,
+	cookie: string
+): void {
+	subjectCookieByRequest.set(request, cookie);
+};
+
+/**
+ * Reads the cookie header the middleware recorded for `request`, or
+ * `undefined` when it minted no subject ID, so the request's own header is
+ * read.
+ */
+export const readSubjectCookieHeader = function readSubjectCookieHeader(
+	request: Request
+): string | undefined {
+	return subjectCookieByRequest.get(request);
+};

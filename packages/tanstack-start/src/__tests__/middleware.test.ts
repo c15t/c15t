@@ -17,19 +17,29 @@ const serverHandlerOf = function serverHandlerOf(
 		.options.server;
 };
 
+/** What the route handler returns: the page and its request. */
+const pageResult = function pageResult(request: Request) {
+	return {
+		context: {},
+		pathname: '/',
+		request,
+		response: new Response('page', { headers: { 'set-cookie': 'session=1' } }),
+	};
+};
+
 const run = async function run(
 	middleware: ReturnType<typeof consentRequestMiddleware>,
 	headers: Record<string, string>
 ) {
 	const request = new Request('https://app.example.com/', { headers });
-	const next = vi.fn().mockResolvedValue({ ok: true });
-	await serverHandlerOf(middleware)({
+	const next = vi.fn().mockResolvedValue(pageResult(request));
+	const result = (await serverHandlerOf(middleware)({
 		context: {},
 		next,
 		pathname: '/',
 		request,
-	});
-	return { next, request };
+	})) as { response: Response };
+	return { next, request, response: result.response };
 };
 
 describe('consentRequestMiddleware', () => {
@@ -115,7 +125,7 @@ describe('consentRequestMiddleware: immutable request headers', () => {
 		vi.spyOn(request.headers, 'set').mockImplementation(() => {
 			throw new TypeError('immutable');
 		});
-		const next = vi.fn().mockResolvedValue({ ok: true });
+		const next = vi.fn().mockResolvedValue(pageResult(request));
 		await serverHandlerOf(
 			consentRequestMiddleware({ country: 'FR', language: 'fr' })
 		)({
@@ -131,5 +141,58 @@ describe('consentRequestMiddleware: immutable request headers', () => {
 			country: 'FR',
 			language: 'fr',
 		});
+	});
+});
+
+describe('consentRequestMiddleware: subject ID', () => {
+	test('a first visit gets a c15t-sid cookie, and resolveConsent reads the same ID', async () => {
+		const { request, response } = await run(consentRequestMiddleware(), {
+			cookie: 'theme=dark',
+		});
+		const subjectId = /c15t-sid=(?<id>sub_\w+);/u.exec(
+			response.headers.getSetCookie().join('\n')
+		)?.groups?.id;
+		expect(subjectId).toBeDefined();
+		expect(response.headers.getSetCookie()).toEqual([
+			'session=1',
+			`c15t-sid=${subjectId}; Max-Age=31536000; Path=/; Secure; SameSite=Lax`,
+		]);
+		expect(await response.text()).toBe('page');
+
+		const state = await resolveConsent({ request });
+		expect(state.initialRecords?.subject?.subjectId).toBe(subjectId);
+		expect(state.initialRecords?.choice).toBeNull();
+	});
+
+	test('a returning visitor keeps their ID and gets no new cookie', async () => {
+		const { request, response } = await run(consentRequestMiddleware(), {
+			cookie: 'c15t-sid=sub_returning',
+		});
+		expect(response.headers.getSetCookie()).toEqual(['session=1']);
+		const state = await resolveConsent({ request });
+		expect(state.initialRecords?.subject?.subjectId).toBe('sub_returning');
+	});
+
+	test('a prefetch or a prerender gets no subject', async () => {
+		const prefetch = await run(consentRequestMiddleware(), {
+			'sec-purpose': 'prefetch',
+		});
+		expect(prefetch.response.headers.getSetCookie()).toEqual(['session=1']);
+
+		vi.stubEnv('TSS_PRERENDERING', 'true');
+		try {
+			const prerender = await run(consentRequestMiddleware(), {});
+			expect(prerender.response.headers.getSetCookie()).toEqual(['session=1']);
+		} finally {
+			vi.unstubAllEnvs();
+		}
+	});
+
+	test('the storage option names the cookie', async () => {
+		const { response } = await run(
+			consentRequestMiddleware({ storage: { storageKey: 'consent' } }),
+			{}
+		);
+		expect(response.headers.getSetCookie()[1]).toMatch(/^consent-sid=sub_/u);
 	});
 });
