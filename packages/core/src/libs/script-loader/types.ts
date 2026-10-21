@@ -134,10 +134,11 @@ export interface Script {
 	callbackOnly?: boolean;
 
 	/**
-	 * Whether the script should persist after consent is revoked.
+	 * Keep the element after consent is revoked. `true` also keeps pending
+	 * downloads; `'loaded'` keeps only elements whose load event completed.
 	 * @default false
 	 */
-	persistAfterConsentRevoked?: boolean;
+	persistAfterConsentRevoked?: boolean | 'loaded';
 
 	/**
 	 * Whether the script should always load regardless of consent state.

@@ -29,7 +29,7 @@ one.
 | `callbackOnly` | `boolean` | `false` | Add no element, run only the callbacks. For a vendor already on the page. |
 | `alwaysLoad` | `boolean` | `false` | Load whatever the consent state, for tags that manage consent themselves through the vendor's API. |
 | `observeConsentBeforeLoad` | `boolean` | `false` | Notify `onConsentChange` during initial denial and subsequent updates before the resource loads. Useful for integrations that coordinate a shared SDK. |
-| `persistAfterConsentRevoked` | `boolean` | `false` | Keep the element after withdrawal instead of removing it. |
+| `persistAfterConsentRevoked` | `boolean` or `'loaded'` | `false` | `true` keeps the element after withdrawal, including pending downloads. `'loaded'` keeps only elements whose load event completed; pending and failed loads are removed. |
 | `target` | `'head' \| 'body'` | `'head'` | Where the element goes. |
 | `async`, `defer` | `boolean` | none | Attributes on the created element. |
 | `nonce` | `string` | the runtime's `nonce` | CSP nonce for this element. |

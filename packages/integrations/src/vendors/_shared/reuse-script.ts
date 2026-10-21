@@ -165,8 +165,18 @@ export const createScriptReuse = <OptionsType extends object>() => {
 			register();
 			return current;
 		};
-		script.onBeforeLoad = (info) =>
+		const originalBeforeLoad = script.onBeforeLoad;
+		const originalServerStart = script.serverStart;
+		const onBeforeLoad: Script['onBeforeLoad'] = (info) =>
 			activate(info).onBeforeLoad?.(combine(info));
+		script.onBeforeLoad = onBeforeLoad;
+		script.serverStart = (info, started) =>
+			started.onBeforeLoad === onBeforeLoad
+				? originalServerStart?.(info, {
+						...started,
+						onBeforeLoad: originalBeforeLoad,
+					})
+				: undefined;
 		script.onConsentChange = (info) =>
 			activate(info).onConsentChange?.(combine(info));
 		script.onDispose = (info) => {

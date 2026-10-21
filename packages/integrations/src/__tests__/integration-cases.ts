@@ -141,7 +141,7 @@ export const helperParityCases = {
 	gainsightPx: {
 		expected: {
 			alwaysLoad: undefined,
-			persistAfterConsentRevoked: undefined,
+			persistAfterConsentRevoked: 'loaded',
 			src: 'https://web-sdk.aptrinsic.com/api/aptrinsic.js?a=AP-PRODUCT-KEY-2',
 		},
 		script: gainsightPx({ productKey: 'AP-PRODUCT-KEY-2' }),

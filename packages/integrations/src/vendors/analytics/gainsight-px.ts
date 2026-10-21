@@ -4,6 +4,7 @@ import { resolveManifest } from '../../resolve';
 import { vendorManifestContract } from '../../types';
 import type { VendorManifest } from '../../types';
 import { readId, skipMissingId } from '../_shared/required-id';
+import { createScriptReuse } from '../_shared/reuse-script';
 import { resolveScriptUrl } from '../_shared/script-url';
 
 /** JSON values accepted by the Gainsight PX configuration and identify APIs. */
@@ -87,6 +88,14 @@ export const gainsightPxManifest = {
 		},
 		{ args: ['reset'], global: 'aptrinsic', type: 'callGlobal' },
 	],
+	onConsentGranted: [
+		{
+			args: ['config', 'enableTag', true],
+			global: 'aptrinsic',
+			type: 'callGlobal',
+		},
+	],
+	persistAfterConsentRevoked: 'loaded',
 	vendor: 'gainsight-px',
 	vendorDetails: {
 		homepageUrl: 'https://www.gainsight.com/product-experience/',
@@ -96,41 +105,29 @@ export const gainsightPxManifest = {
 	},
 } as const satisfies VendorManifest;
 
-/**
- * Creates a Gainsight PX script that waits for mapped consent.
- *
- * On grant, creates the official `aptrinsic` queue with `p` and `c`, enables
- * the tag and optionally queues `identify`. On revocation, disables the tag
- * and requests a reset. PX currently resets internally when disabled and
- * ignores a subsequent reset command while disabled.
- *
- * @param options - PX product, identity and configuration values.
- * @returns The consent-gated PX script.
- * @remarks A missing or blank `productKey` logs an error and returns a script
- * that never loads. Keep `reloadOnConsentRevoked` enabled to end the loaded
- * SDK's listeners and timers, including an in-flight installation.
- * @example
- * gainsightPx({ productKey: 'AP-PRODUCT-KEY-2' });
- * @see https://support.gainsight.com/PX/API_for_Developers/01About/Work_with_Gainsight_PX_Web_SDK
- * @see https://support.gainsight.com/PX/API_for_Developers/02Usage_of_Different_APIs/Use_Config_API
- */
-export const gainsightPx = function gainsightPx(
+const reuseGainsightPxScript = createScriptReuse<GainsightPxOptions>();
+
+const createGainsightPxScript = function createGainsightPxScript(
 	options: GainsightPxOptions
 ): Script {
-	const category = options?.category ?? 'measurement';
-	const productKey = readId(options?.productKey);
-	if (productKey === undefined) {
-		return skipMissingId('gainsightPx', 'productKey', {
-			category,
-			manifest: gainsightPxManifest,
-		});
-	}
+	const category = options.category ?? 'measurement';
+	const { productKey } = options;
 
 	const manifest: VendorManifest = options.user
 		? {
 				...gainsightPxManifest,
 				onBeforeLoadGranted: [
 					...gainsightPxManifest.onBeforeLoadGranted,
+					{
+						args: options.account
+							? ['identify', '{{user}}', '{{account}}']
+							: ['identify', '{{user}}'],
+						global: 'aptrinsic',
+						type: 'callGlobal',
+					},
+				],
+				onConsentGranted: [
+					...gainsightPxManifest.onConsentGranted,
 					{
 						args: options.account
 							? ['identify', '{{user}}', '{{account}}']
@@ -153,4 +150,40 @@ export const gainsightPx = function gainsightPx(
 		),
 		user: options.user,
 	});
+};
+
+/**
+ * Creates a Gainsight PX script that waits for mapped consent.
+ *
+ * On grant, creates the official `aptrinsic` queue with `p` and `c`, enables
+ * the tag and optionally queues `identify`. On revocation, disables the tag
+ * and requests a reset. PX currently resets internally when disabled and
+ * ignores a subsequent reset command while disabled.
+ *
+ * @param options - PX product, identity and configuration values.
+ * @returns The consent-gated PX script.
+ * @remarks A missing or blank `productKey` logs an error and returns a script
+ * that never loads. Keep `reloadOnConsentRevoked` enabled to end the loaded
+ * SDK's listeners and timers, including an in-flight installation. Completed
+ * loaders are retained so another grant uses the same SDK without executing
+ * its bundle twice. Pending loaders are removed on revocation.
+ * @example
+ * gainsightPx({ productKey: 'AP-PRODUCT-KEY-2' });
+ * @see https://support.gainsight.com/PX/API_for_Developers/01About/Work_with_Gainsight_PX_Web_SDK
+ * @see https://support.gainsight.com/PX/API_for_Developers/02Usage_of_Different_APIs/Use_Config_API
+ */
+export const gainsightPx = function gainsightPx(
+	options: GainsightPxOptions
+): Script {
+	const productKey = readId(options?.productKey);
+	if (productKey === undefined) {
+		return skipMissingId('gainsightPx', 'productKey', {
+			category: options?.category ?? 'measurement',
+			manifest: gainsightPxManifest,
+		});
+	}
+	return reuseGainsightPxScript(
+		{ ...options, productKey },
+		createGainsightPxScript
+	);
 };

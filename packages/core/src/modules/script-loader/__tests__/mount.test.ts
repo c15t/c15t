@@ -221,6 +221,24 @@ describe('mountScript with a server-started element', () => {
 		delete (window as StartedWindow).__c15tStarted;
 	});
 
+	test.each(['load', 'error', undefined] as const)(
+		'retains a completed server load before callback replay, completion=%s',
+		(done) => {
+			const { deps } = makeDeps();
+			const script: Script = {
+				category: 'marketing',
+				id: 's',
+				persistAfterConsentRevoked: 'loaded',
+				src: 'https://x/s.js',
+			};
+			const element = startOnServer('s', script.src ?? '', done);
+			const snapshot = createConsentKernel().getSnapshot();
+			mountScript(deps, script, snapshot, true, null);
+			unmountScript(deps, script, snapshot, false);
+			expect(element.isConnected).toBe(done === 'load');
+		}
+	);
+
 	test('adopts the element instead of inserting another', async () => {
 		const { deps, emitted } = makeDeps();
 		const onBeforeLoad = vi.fn();
@@ -365,6 +383,10 @@ describe('mountScript with a server-started element', () => {
 			[
 				'a persistAfterConsentRevoked script',
 				{ persistAfterConsentRevoked: true },
+			],
+			[
+				'a completed-load retention script',
+				{ persistAfterConsentRevoked: 'loaded' as const },
 			],
 		])(
 			'cancels the insert when consent is withdrawn first, for %s',

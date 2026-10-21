@@ -32,7 +32,7 @@ describe('gainsightPx', () => {
 			vendorDetails: { name: 'Gainsight PX' },
 		});
 		expect(script.alwaysLoad).toBeUndefined();
-		expect(script.persistAfterConsentRevoked).toBeUndefined();
+		expect(script.persistAfterConsentRevoked).toBe('loaded');
 		expect(getTestGlobal().aptrinsic).toBeUndefined();
 	});
 

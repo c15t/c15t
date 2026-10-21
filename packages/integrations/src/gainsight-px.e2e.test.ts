@@ -63,7 +63,11 @@ describe('Gainsight PX production loader contract', () => {
 	it('prepares the exact vendor queue and config before appending the loader', () => {
 		let beforeAppend: unknown;
 		installHeadProbe((element) => {
-			if (!element.src.includes('web-sdk.aptrinsic.com')) {
+			const url = new URL(element.src);
+			if (
+				url.hostname !== 'web-sdk.aptrinsic.com' ||
+				url.pathname !== '/api/aptrinsic.js'
+			) {
 				return;
 			}
 			const stub = getAptrinsic();
@@ -94,30 +98,75 @@ describe('Gainsight PX production loader contract', () => {
 		});
 	});
 
-	it('disables the running SDK on revoke and reuses its API on a later grant', () => {
-		const scripts = [gainsightPx({ productKey: 'AP-PRODUCT-KEY-2' })];
-		loadScripts(scripts, grantedConsents);
-		const initial = document.head.querySelector('script');
-		expect(initial).not.toBeNull();
-		updateScripts(scripts, grantedConsents);
-		expect(document.head.querySelectorAll('script')).toHaveLength(1);
-		const runtime = vi.fn();
-		Reflect.set(window, 'aptrinsic', runtime);
-		initial?.dispatchEvent(new Event('load'));
+	it.each([false, true])(
+		'executes the SDK once and forwards enable and identify on regrant, recreated=%s',
+		(recreated) => {
+			const user = { id: 'user-123', plan: 'paid' };
+			const account = { id: 'account-123' };
+			const runtime = vi.fn();
+			const executeSdk = vi.fn((element: HTMLScriptElement) => {
+				const stub = getAptrinsic();
+				if (stub === runtime) {
+					return;
+				}
+				expect(stub.p).toBe('AP-PRODUCT-KEY-2');
+				expect(stub.c).toEqual({ enableTag: true, fullDomainCookie: true });
+				for (const entry of stub.q) {
+					runtime(...Array.from(entry));
+				}
+				Reflect.set(window, 'aptrinsic', runtime);
+				element.dispatchEvent(new Event('load'));
+			});
+			installHeadProbe(executeSdk);
+			const createScript = () =>
+				gainsightPx({
+					account,
+					config: { fullDomainCookie: true },
+					productKey: 'AP-PRODUCT-KEY-2',
+					user,
+				});
+			let scripts = [createScript()];
+			loadScripts(scripts, grantedConsents);
+			const initial = document.head.querySelector('script');
+			expect(initial).not.toBeNull();
+			updateScripts(scripts, grantedConsents);
+			expect(document.head.querySelectorAll('script')).toHaveLength(1);
+			if (recreated) {
+				for (let render = 0; render < 3; render += 1) {
+					updateScripts([createScript()], grantedConsents);
+				}
+				scripts = [createScript()];
+			}
+			expect(runtime.mock.calls).toEqual([
+				['config', 'enableTag', true],
+				['identify', user, account],
+			]);
 
-		updateScripts(scripts, deniedConsents);
-		expect(initial?.isConnected).toBe(false);
-		expect(runtime.mock.calls).toEqual([
-			['config', 'enableTag', false],
-			['reset'],
-		]);
-		updateScripts(scripts, deniedConsents);
-		expect(runtime).toHaveBeenCalledTimes(2);
+			updateScripts(scripts, deniedConsents);
+			expect(runtime.mock.calls).toEqual([
+				['config', 'enableTag', true],
+				['identify', user, account],
+				['config', 'enableTag', false],
+				['reset'],
+			]);
+			updateScripts(scripts, deniedConsents);
+			expect(runtime).toHaveBeenCalledTimes(4);
+			if (recreated) {
+				scripts = [createScript()];
+			}
 
-		updateScripts(scripts, grantedConsents);
-		expect((window as PxWindow).aptrinsic).toBe(runtime);
-		expect(runtime).toHaveBeenLastCalledWith('config', 'enableTag', true);
-	});
+			updateScripts(scripts, grantedConsents);
+			expect(executeSdk).toHaveBeenCalledTimes(1);
+			expect(document.head.querySelector('script')).toBe(initial);
+			expect((window as PxWindow).aptrinsic).toBe(runtime);
+			expect(runtime.mock.calls.slice(4)).toEqual([
+				['config', 'enableTag', true],
+				['identify', user, account],
+			]);
+			updateScripts(scripts, { ...grantedConsents, functionality: true });
+			expect(runtime).toHaveBeenCalledTimes(6);
+		}
+	);
 
 	it('queues opt-out for an in-flight loader and ignores its detached load event', () => {
 		const scripts = [gainsightPx({ productKey: 'AP-PRODUCT-KEY-2' })];

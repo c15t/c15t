@@ -70,16 +70,24 @@ tracking before its queued identify call completes.
 
 When mapped consent is withdrawn, the helper sends
 `aptrinsic('config', 'enableTag', false)` followed by `aptrinsic('reset')` and
-removes the loader element. Gainsight documents `enableTag: false` as stopping
-PX cookies, network calls and engagements. Its current SDK resets the session
+removes the loader element if it is still downloading or failed to load.
+After the loader's load event, the helper retains the element. Gainsight
+documents `enableTag: false` as stopping PX cookies, network calls and
+engagements. Its current SDK resets the session
 inside the disable call and ignores a separate `reset` while disabled.
 
-Keep `reloadOnConsentRevoked` enabled. Removing the loader does not unload PX's
-code or cancel requests that already started. A load that finishes after
+If `reloadOnConsentRevoked` is disabled, granting consent again after a completed
+load sends `aptrinsic('config', 'enableTag', true)` and repeats the optional
+`identify` call through the existing API. The helper reuses the loaded SDK
+because PX rejects a second execution of its bundle. A loader removed before
+completion can be requested again on a later grant.
+
+Keep `reloadOnConsentRevoked` enabled. Removing a pending loader does not unload
+PX's code or cancel requests that already started. A load that finishes after
 revocation may still execute vendor code. The helper queues the stop request,
 but a page reload ends the SDK's timers and listeners. This helper does not
-promise that an SDK already running will fully restart after another grant
-without a reload.
+guarantee that every PX feature resumes after another grant without a reload.
+Verify recovery with your product key, SDK version and enabled features.
 
 ## Cookies and storage
 

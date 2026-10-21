@@ -27,6 +27,82 @@ const mount = (scripts: Script[]) => {
 	return { kernel, loader };
 };
 
+test.each(['pending', 'error', 'load'] as const)(
+	'retains only completed loads across recreated configs, completion=%s',
+	async (completion) => {
+		const onLoad = vi.fn();
+		const config = (): Script => ({
+			category: 'measurement',
+			id: 'retain-completed',
+			onLoad,
+			persistAfterConsentRevoked: 'loaded',
+			src: 'https://example.com/vendor.js',
+		});
+		const { kernel, loader } = mount([config()]);
+		const element = document.head.querySelector('script');
+		if (completion !== 'pending') {
+			element?.dispatchEvent(new Event(completion));
+		}
+		loader.updateScripts([config()]);
+		await kernel.commands.save({ measurement: false });
+		loader.updateScripts([config()]);
+		expect(element?.isConnected).toBe(completion === 'load');
+		expect(getScriptDiagnostics(kernel)[0]?.status).toBe(
+			completion === 'load' ? 'retained' : 'blocked'
+		);
+		element?.dispatchEvent(new Event('load'));
+		expect(onLoad).toHaveBeenCalledTimes(completion === 'load' ? 1 : 0);
+		await kernel.commands.save({ measurement: true });
+		expect(document.head.querySelector('script') === element).toBe(
+			completion === 'load'
+		);
+		await kernel.commands.save({ measurement: false });
+		loader.updateScripts([]);
+		expect(document.head.querySelector('script')).toBeNull();
+	}
+);
+
+test.each([true, 'loaded'] as const)(
+	'does not repeat revocation callbacks for retained elements, retention=%s',
+	async (persistAfterConsentRevoked) => {
+		const onConsentChange = vi.fn();
+		const script: Script = {
+			category: 'measurement',
+			id: 'retain-callbacks',
+			onConsentChange,
+			persistAfterConsentRevoked,
+			src: 'https://example.com/vendor.js',
+		};
+		const { kernel, loader } = mount([script]);
+		document.head.querySelector('script')?.dispatchEvent(new Event('load'));
+		await kernel.commands.save({ measurement: false });
+		expect(onConsentChange).toHaveBeenCalledOnce();
+		loader.updateScripts([{ ...script }]);
+		expect(onConsentChange).toHaveBeenCalledOnce();
+		await kernel.commands.save({ functionality: true, measurement: false });
+		expect(onConsentChange).toHaveBeenCalledOnce();
+	}
+);
+
+test('cancels a retained pending download when retention changes to loaded', async () => {
+	const onLoad = vi.fn();
+	const script: Script = {
+		category: 'measurement',
+		id: 'change-retention',
+		onLoad,
+		persistAfterConsentRevoked: true,
+		src: 'https://example.com/vendor.js',
+	};
+	const { kernel, loader } = mount([script]);
+	const element = document.head.querySelector('script');
+	await kernel.commands.save({ measurement: false });
+	loader.updateScripts([{ ...script, persistAfterConsentRevoked: 'loaded' }]);
+	expect(element?.isConnected).toBe(false);
+	expect(getScriptDiagnostics(kernel)[0]?.status).toBe('blocked');
+	element?.dispatchEvent(new Event('load'));
+	expect(onLoad).not.toHaveBeenCalled();
+});
+
 test.each([true, false])(
 	'coalesces resource keys within one loader with anonymizeId=%s',
 	(anonymizeId) => {
