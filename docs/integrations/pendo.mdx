@@ -1,0 +1,49 @@
+---
+title: Pendo
+description: Load Pendo after measurement consent, configure its tracking settings, and verify loading and withdrawal with c15t.
+seoTitle: Pendo cookie consent with c15t
+seoDescription: Gate Pendo on measurement consent with c15t. Configure the loader, understand withdrawal limits, and verify vendor requests and storage.
+icon: chart-line
+group: integrations
+---
+
+`pendo` waits for `measurement` consent before creating vendor globals or downloading Pendo.
+
+## Configure Pendo
+
+Copy the web agent API key from Pendo and remove the original install snippet. Supply visitor and account metadata only when your application has permission to identify the visitor.
+
+<CommandTabs command="@c15t/integrations" mode="install" />
+
+<include src="../shared/examples/javascript/pendo-configuration.mdx" />
+
+<include src="../shared/integrations/register-scripts.mdx" />
+
+## Options
+
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `apiKey` | Required | Pendo web agent key. |
+| `visitor` | Unset | Visitor metadata for `initialize`. |
+| `account` | Unset | Account metadata for `initialize`. |
+| `initializeOptions` | Unset | Vendor options such as `disableCookies`, `localStorageOnly`, `excludeAllText` and `cookieDomain`. |
+| `category` | `measurement` | Consent condition for the whole loader. |
+| `scriptUrl` | `https://cdn.pendo.io/agent/static/<apiKey>/pendo.js` | Custom or proxied loader URL. Blank values use the default. |
+
+Missing or blank required values log an error and never load.
+
+## Loading and revocation
+
+The helper downloads Pendo only after consent and initializes it while consent is still granted. Revocation calls `stopSendingEvents`; regrant calls `startSendingEvents` without initializing a second time.
+
+It does not call `clearSession()` automatically. That method creates an anonymous visitor and can trigger identification. Stop/start preserves the identity for reversible consent changes. Use your own account's data deletion or Do Not Process controls when you need to remove data already collected.
+
+Stopping event sending does not erase storage or remove in-app guides and running vendor code. Keep `reloadOnConsentRevoked` enabled if your policy requires the next page without Pendo loaded. Pendo storage keys commonly start with `_pendo_` and include the app ID. Cookie behavior depends on options including `cookieDomain`.
+
+## Verify Pendo
+
+Check for no Pendo request, `pendo`, cookies or browser storage before consent and after unrelated consent. Grant measurement and verify the real agent initializes once. Revoke, inspect `isSendingEvents()`, then regrant and confirm event sending resumes without a new anonymous identity. Exercise guide behavior with your own account.
+
+Sources: [installation](https://support.pendo.io/hc/en-us/articles/360031862272-Install-Pendo-on-a-single-page-web-application), [collection prevention](https://support.pendo.io/hc/en-us/articles/17541315915035-Data-collection-prevention-strategies), [event controls](https://web-sdk.pendo.io/public/events), and [cookies](https://web-sdk.pendo.io/cookies/).
+
+<include src="../shared/integrations/vendor-revocation-and-verify.mdx" />

@@ -115,6 +115,16 @@ export const BUILT_IN_INTEGRATION_CATEGORIES = [
  */
 export const builtInScriptIntegrations = [
 	{
+		consentCategory: 'measurement',
+		docsSlug: 'pendo',
+		hint: 'Product analytics and in-app guides',
+		integrationCategory: 'analytics',
+		key: 'pendo',
+		label: 'Pendo',
+		packageSubpath: 'pendo',
+		vendor: 'pendo',
+	},
+	{
 		consentCategory: 'necessary',
 		docsSlug: 'cloudflare-zaraz',
 		hint: 'Consent bridge for tools managed by Zaraz',

@@ -37,6 +37,7 @@ import { matomoAnalyticsManifest } from './vendors/analytics/matomo-analytics';
 import { clarityManifest } from './vendors/analytics/microsoft-clarity';
 import { mixpanelAnalyticsManifest } from './vendors/analytics/mixpanel-analytics';
 import { oneDollarStatsManifest } from './vendors/analytics/one-dollar-stats';
+import { pendoManifest } from './vendors/analytics/pendo';
 import { pirschManifest } from './vendors/analytics/pirsch';
 import { plausibleAnalyticsManifest } from './vendors/analytics/plausible-analytics';
 import { posthogManifest } from './vendors/analytics/posthog';
@@ -63,6 +64,7 @@ const validConsentCategories = [
 ] as const satisfies readonly AllConsentNames[];
 
 const vendorManifests = [
+	pendoManifest,
 	googleTagManagerManifest,
 	gtagManifest,
 	ahrefsAnalyticsManifest,

@@ -302,6 +302,11 @@
 			"types": "./dist-types/events.d.ts",
 			"import": "./dist/events.js",
 			"default": "./dist/events.js"
+		},
+		"./pendo": {
+			"types": "./dist-types/vendors/analytics/pendo.d.ts",
+			"import": "./dist/vendors/analytics/pendo.js",
+			"default": "./dist/vendors/analytics/pendo.js"
 		}
 	},
 	"publishConfig": {

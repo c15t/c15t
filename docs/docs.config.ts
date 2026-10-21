@@ -845,6 +845,7 @@ export default defineDocsConfig({
 				{
 					pages: [
 						'google-tag',
+						'pendo',
 						'ahrefs-analytics',
 						'adobe-analytics',
 						'amplitude',
