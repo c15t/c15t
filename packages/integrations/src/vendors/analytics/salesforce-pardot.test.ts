@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+	createCallbackInfo,
 	expectScriptMatchesIntegration,
 	expectSkippedScript,
 } from '../../__tests__/helpers';
@@ -17,10 +18,30 @@ describe('pardotTracking', () => {
 			}),
 			{
 				alwaysLoad: undefined,
-				persistAfterConsentRevoked: undefined,
+				persistAfterConsentRevoked: true,
 				src: 'https://pi.pardot.com/pdt.js?aid=123456',
 			}
 		);
+	});
+	it('waits for client readiness in consent mode and supports server starts in classic mode', () => {
+		expect(
+			pardotTracking({
+				piAId: '123456',
+				piCId: '654321',
+				piDomain: 'pi.pardot.com',
+			}).serverStart
+		).toBeUndefined();
+		const classic = pardotTracking({
+			mode: 'classic',
+			piAId: '123456',
+			piCId: '654321',
+		});
+		expect(
+			classic.serverStart?.(
+				createCallbackInfo({ hasConsent: true, id: classic.id }),
+				classic
+			)
+		).toMatchObject({ code: expect.any(String) });
 	});
 	it.each(['', '   ', undefined, null, {}])(
 		'skips missing required ID %s',

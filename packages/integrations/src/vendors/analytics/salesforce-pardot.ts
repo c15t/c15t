@@ -1,9 +1,10 @@
-import type { Script } from '@c15t/core';
+import type { Script, ScriptCallbackInfo } from '@c15t/core';
 
 import { resolveManifest } from '../../resolve';
 import { vendorManifestContract } from '../../types';
 import type { VendorManifest } from '../../types';
 import { readId, skipMissingId, skipScript } from '../_shared/required-id';
+import { createScriptReuse } from '../_shared/reuse-script';
 import { resolveScriptUrl } from '../_shared/script-url';
 
 declare global {
@@ -39,7 +40,12 @@ export const pardotTrackingManifest = {
 			type: 'setGlobal',
 			value: '{{piDomain}}',
 		},
-		{ name: 'pdt', queue: { property: 'cq' }, type: 'defineStubFunction' },
+		{
+			ifUndefined: false,
+			name: 'pdt',
+			queue: { property: 'cq' },
+			type: 'defineStubFunction',
+		},
 		{
 			args: ['create', '{{piAId}}', '{{piCId}}', '{{piDomain}}'],
 			global: 'pdt',
@@ -56,6 +62,7 @@ export const pardotTrackingManifest = {
 		{ args: ['setOptIn', true], global: 'pdt', type: 'callGlobal' },
 		{ args: ['sendPageView'], global: 'pdt', type: 'callGlobal' },
 	],
+	persistAfterConsentRevoked: true,
 	vendor: 'salesforce-pardot',
 	vendorDetails: {
 		homepageUrl: 'https://www.salesforce.com/marketing/b2b-automation/',
@@ -81,6 +88,16 @@ export interface PardotTrackingOptions {
 	/** Custom or proxied loader URL. */
 	scriptUrl?: string;
 }
+
+const reusePardotTracking = createScriptReuse<PardotTrackingOptions>();
+
+interface PardotSdkLifecycle {
+	queue: IArguments[];
+	queueConsumed: boolean;
+	restoreConsent?: () => void;
+}
+
+const sdkLifecycles = new WeakMap<Document, PardotSdkLifecycle>();
 
 /**
  * Loads Account Engagement after the mapped consent is granted.
@@ -121,7 +138,7 @@ export const pardotTracking = function pardotTracking(
 		mode === 'classic'
 			? (options.piHostname ?? 'pi.pardot.com')
 			: options.piDomain
-	);
+	)?.toLowerCase();
 	if (!domain) {
 		return skipMissingId('pardotTracking', 'piDomain', skipped);
 	}
@@ -131,60 +148,132 @@ export const pardotTracking = function pardotTracking(
 			skipped
 		);
 	}
-	const manifest: VendorManifest =
+	const scriptUrl = resolveScriptUrl(
+		options.scriptUrl,
 		mode === 'classic'
-			? {
-					...pardotTrackingManifest,
-					install: [
-						{
-							ifUndefined: false,
-							name: 'piAId',
-							type: 'setGlobal',
-							value: '{{piAId}}',
-						},
-						{
-							ifUndefined: false,
-							name: 'piCId',
-							type: 'setGlobal',
-							value: '{{piCId}}',
-						},
-						{
-							ifUndefined: false,
-							name: 'piHostname',
-							type: 'setGlobal',
-							value: '{{piDomain}}',
-						},
-						{ async: true, src: '{{scriptUrl}}', type: 'loadScript' },
-					],
-					onConsentDenied: [],
-					onLoadGranted: [],
-				}
-			: pardotTrackingManifest;
-	const script = resolveManifest(manifest, {
-		piAId: Number(piAId),
-		piCId: Number(piCId),
-		piDomain: domain,
-		scriptUrl: resolveScriptUrl(
-			options.scriptUrl,
+			? 'https://pi.pardot.com/pd.js'
+			: `https://${domain}/pdt.js?aid=${Number(piAId)}`
+	);
+	const create = (config: PardotTrackingOptions): Script => {
+		const manifest: VendorManifest =
 			mode === 'classic'
-				? 'https://pi.pardot.com/pd.js'
-				: `https://${domain}/pdt.js?aid=${encodeURIComponent(piAId)}`
-		),
-	});
-	let initialized = false;
-	return {
-		...script,
-		category,
-		onBeforeLoad(info) {
-			if (!initialized) {
-				script.onBeforeLoad?.(info);
+				? {
+						...pardotTrackingManifest,
+						install: [
+							{
+								ifUndefined: false,
+								name: 'piAId',
+								type: 'setGlobal',
+								value: '{{piAId}}',
+							},
+							{
+								ifUndefined: false,
+								name: 'piCId',
+								type: 'setGlobal',
+								value: '{{piCId}}',
+							},
+							{
+								ifUndefined: false,
+								name: 'piHostname',
+								type: 'setGlobal',
+								value: '{{piDomain}}',
+							},
+							{ async: true, src: '{{scriptUrl}}', type: 'loadScript' },
+						],
+						onConsentDenied: [],
+						onLoadGranted: [],
+						persistAfterConsentRevoked: undefined,
+					}
+				: pardotTrackingManifest;
+		const script = resolveManifest(manifest, {
+			piAId: Number(piAId),
+			piCId: Number(piCId),
+			piDomain: domain,
+			scriptUrl,
+		});
+		if (mode === 'classic') {
+			return { ...script, category: config.category ?? 'marketing' };
+		}
+		let hasConsent = false;
+		let loaded = false;
+		let started = false;
+		let sdkLifecycle: PardotSdkLifecycle | undefined;
+		const restoreConsent = () => {
+			if (loaded && hasConsent && started) {
+				window.pdt?.('setOptIn', true);
 			}
-		},
-		onLoad(info) {
-			if (info.hasConsent && info.element?.isConnected) {
+		};
+		const grant = (info: ScriptCallbackInfo): void => {
+			if (loaded && hasConsent && info.element?.isConnected && !started) {
+				started = true;
 				script.onLoad?.(info);
-				initialized = true;
 			}
-		},
+		};
+		return {
+			...script,
+			category: config.category ?? 'marketing',
+			onBeforeLoad(info) {
+				({ hasConsent } = info);
+				if (hasConsent) {
+					script.onBeforeLoad?.(info);
+					sdkLifecycle = sdkLifecycles.get(document);
+					if (!sdkLifecycle) {
+						sdkLifecycle = { queue: [], queueConsumed: false };
+						sdkLifecycles.set(document, sdkLifecycle);
+					}
+					sdkLifecycle.queue = window.pdt?.cq?.slice() ?? [];
+					sdkLifecycle.queueConsumed = false;
+					sdkLifecycle.restoreConsent = restoreConsent;
+					const lifecycle = sdkLifecycle;
+					// A disposed download can still execute after a replacement loads.
+					// Every execution after the first needs its own tracker configuration.
+					info.element?.addEventListener(
+						'load',
+						() => {
+							if (lifecycle.queueConsumed) {
+								for (const args of lifecycle.queue) {
+									window.pdt?.(...Array.from(args));
+								}
+							}
+							lifecycle.queueConsumed = true;
+							lifecycle.restoreConsent?.();
+						},
+						{ once: true }
+					);
+				}
+			},
+			onConsentChange(info) {
+				({ hasConsent } = info);
+				if (!hasConsent) {
+					started = false;
+				}
+				script.onConsentChange?.(info);
+				grant(info);
+			},
+			onDispose() {
+				if (sdkLifecycle?.restoreConsent === restoreConsent) {
+					sdkLifecycle.restoreConsent = undefined;
+				}
+			},
+			onLoad(info) {
+				loaded = true;
+				if (info.hasConsent) {
+					grant(info);
+				}
+			},
+			serverStart: undefined,
+		};
 	};
+	return mode === 'classic'
+		? create(options)
+		: reusePardotTracking(
+				{
+					category,
+					piAId: Number(piAId),
+					piCId: Number(piCId),
+					piDomain: domain,
+					scriptUrl,
+				},
+				create
+			);
 };

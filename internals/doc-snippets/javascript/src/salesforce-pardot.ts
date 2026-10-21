@@ -1,4 +1,4 @@
-// #region docs:salesforce-pardot-configuration
+// #region docs:salesforce-pardot-configuration title="src/consent-scripts.ts"
 import { pardotTracking } from '@c15t/integrations/salesforce-pardot';
 
 export const scripts = [

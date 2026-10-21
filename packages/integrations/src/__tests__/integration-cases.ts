@@ -273,7 +273,7 @@ export const helperParityCases = {
 	pardotTracking: {
 		expected: {
 			alwaysLoad: undefined,
-			persistAfterConsentRevoked: undefined,
+			persistAfterConsentRevoked: true,
 			src: 'https://pi.pardot.com/pdt.js?aid=123456',
 		},
 		script: pardotTracking({

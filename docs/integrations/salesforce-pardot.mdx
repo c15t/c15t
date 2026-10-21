@@ -43,6 +43,8 @@ must be hostnames, and account and campaign IDs must be safe positive integers.
 
 ## Loading and revocation
 
+Consent mode starts after hydration, including when consent was granted on a previous visit. It needs the client loader to wait for SDK readiness before granting tracking. Classic mode supports starting from server-rendered HTML.
+
 After consent, the helper creates the `pdt.cq` queue, configures the tracker
 with numeric IDs, hides Salesforce's banner without changing consent, and
 starts with `setOptIn(false)`. After the SDK loads, it calls `setOptIn(true)`
@@ -52,7 +54,11 @@ A detached in-flight load cannot run this grant callback.
 Revocation calls `pdt('revokeConsent')`. It intentionally does not call
 `clearTrackingCookies`, which also deletes the false-consent cookie and can
 allow later page views. Regrant reuses the tracker configuration and enables
-a new page view. Classic mode cannot stop its running SDK through this helper.
+a new page view through the loaded SDK. The consent loader stays in the DOM
+because downloading `pdt.js` again replaces its configured dispatcher.
+Calling `pardotTracking` again with the same options preserves
+the tracker configuration across regrant. Classic mode cannot stop its running
+SDK through this helper.
 
 Keep `reloadOnConsentRevoked` enabled in both modes. Consent clearing makes
 vendor requests, and late in-flight responses can restore cookies. Removing a
