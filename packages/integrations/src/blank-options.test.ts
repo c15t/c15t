@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import { expectSkippedScript } from './__tests__/helpers';
 import { linkedinInsights } from './vendors/ads-and-pixels/linkedin-insights';
+import { liveIntentTag } from './vendors/ads-and-pixels/liveintent';
 import { metaPixel } from './vendors/ads-and-pixels/meta-pixel';
 import { microsoftUet } from './vendors/ads-and-pixels/microsoft-uet';
 import { openaiPixel } from './vendors/ads-and-pixels/openai-pixel';
@@ -58,6 +59,12 @@ const requiredIdCases: {
 	create: (id: unknown) => Script;
 	script: Pick<Script, 'category' | 'id'>;
 }[] = [
+	{
+		create: (id) => liveIntentTag({ tagId: asId(id) }),
+		helper: 'liveIntentTag',
+		option: 'tagId',
+		script: { category: 'marketing', id: 'liveintent' },
+	},
 	{
 		create: (id) => linkedinInsights({ id: asId(id) }),
 		helper: 'linkedinInsights',

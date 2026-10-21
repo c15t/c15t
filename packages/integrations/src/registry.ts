@@ -534,6 +534,16 @@ export const builtInScriptIntegrations = [
 		packageSubpath: 'x-pixel',
 		vendor: 'x-pixel',
 	},
+	{
+		consentCategory: 'marketing',
+		docsSlug: 'liveintent',
+		hint: 'LiveConnect identity resolution and conversion events',
+		integrationCategory: 'ads-and-pixels',
+		key: 'liveIntentTag',
+		label: 'LiveIntent',
+		packageSubpath: 'liveintent',
+		vendor: 'liveintent',
+	},
 ] as const satisfies readonly IntegrationRegistryEntry[];
 
 /**

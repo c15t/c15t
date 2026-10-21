@@ -108,6 +108,10 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 		example: "linkedinInsights({ id: 'XXXXXXX' })",
 		importName: 'linkedinInsights',
 	},
+	liveintent: {
+		example: "liveIntentTag({ tagId: 'YOUR_TAG_ID' })",
+		importName: 'liveIntentTag',
+	},
 	logrocket: {
 		example: "logRocket({ appId: 'org-slug/app-slug' })",
 		importName: 'logRocket',

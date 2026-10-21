@@ -13,6 +13,7 @@ import {
 } from './registry';
 import type { IntegrationConsentCondition } from './registry';
 import { linkedinInsightsManifest } from './vendors/ads-and-pixels/linkedin-insights';
+import { liveIntentTagManifest } from './vendors/ads-and-pixels/liveintent';
 import { metaPixelManifest } from './vendors/ads-and-pixels/meta-pixel';
 import { microsoftUetManifest } from './vendors/ads-and-pixels/microsoft-uet';
 import { openaiPixelManifest } from './vendors/ads-and-pixels/openai-pixel';
@@ -63,6 +64,7 @@ const validConsentCategories = [
 ] as const satisfies readonly AllConsentNames[];
 
 const vendorManifests = [
+	liveIntentTagManifest,
 	googleTagManagerManifest,
 	gtagManifest,
 	ahrefsAnalyticsManifest,

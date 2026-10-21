@@ -28,6 +28,7 @@
 		"klaviyo",
 		"lgpd",
 		"linkedin-insights",
+		"liveintent",
 		"logrocket",
 		"meta-pixel",
 		"microsoft-uet",
@@ -302,6 +303,11 @@
 			"types": "./dist-types/events.d.ts",
 			"import": "./dist/events.js",
 			"default": "./dist/events.js"
+		},
+		"./liveintent": {
+			"types": "./dist-types/vendors/ads-and-pixels/liveintent.d.ts",
+			"import": "./dist/vendors/ads-and-pixels/liveintent.js",
+			"default": "./dist/vendors/ads-and-pixels/liveintent.js"
 		}
 	},
 	"publishConfig": {

@@ -888,6 +888,7 @@ export default defineDocsConfig({
 				{
 					pages: [
 						'meta-pixel',
+						'liveintent',
 						'openai-pixel',
 						'pinterest-tag',
 						'reddit-pixel',
