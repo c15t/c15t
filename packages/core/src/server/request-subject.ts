@@ -80,7 +80,7 @@ export interface SubjectCookie {
 	secure: boolean;
 	/** The browser reads the ID, so the cookie is never HTTP-only. */
 	httpOnly: false;
-	/** `defaultDomain`, or the request's root domain with `crossSubdomain`. */
+	/** The request's root domain with `crossSubdomain`, else `defaultDomain`. */
 	domain?: string;
 	/** The whole cookie as a `Set-Cookie` header value. */
 	header: string;
@@ -162,10 +162,14 @@ const subjectCookie = function subjectCookie(
 	});
 	const url = origin ? new URL(origin) : null;
 	const secure = url?.protocol === 'https:';
-	let domain = storage?.defaultDomain || undefined;
-	if (!domain && storage?.crossSubdomain && url) {
-		domain = rootDomainOf(url.hostname);
-	}
+	// The browser's `writeCookie` puts the cookie on the root domain
+	// whenever `crossSubdomain` is set, even with a `defaultDomain`. Two
+	// cookies of one name on different domains could bring back an old ID,
+	// so this follows the same rule.
+	const domain =
+		storage?.crossSubdomain && url
+			? rootDomainOf(url.hostname)
+			: storage?.defaultDomain || undefined;
 	const maxAge = Math.round(
 		(storage?.defaultExpiryDays ?? 365) * SECONDS_PER_DAY
 	);

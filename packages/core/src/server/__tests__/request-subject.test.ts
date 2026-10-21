@@ -102,6 +102,12 @@ describe('resolveRequestSubject', () => {
 				request: {},
 				storage: { crossSubdomain: true, defaultDomain: '.example.org' },
 			})?.setCookie?.header
+		).toContain('; Domain=.example.com;');
+		expect(
+			resolve(undefined, {
+				request: {},
+				storage: { defaultDomain: '.example.org' },
+			})?.setCookie?.header
 		).toContain('; Domain=.example.org;');
 	});
 
