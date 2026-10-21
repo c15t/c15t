@@ -114,17 +114,17 @@ What follows the direction:
 
 - Text, headings and the button row in the banner, the preference dialog and
   the preference widget flow right to left.
-- A floating or widget banner in its default corner moves to the mirrored
-  corner, so `bottom-left` becomes `bottom-right`. A `position` you set
-  yourself stays where you put it.
 - The HTML script tag, `@c15t/browser` and Astro's banner also set `lang` on
   their surfaces. React, Vue and Svelte set `dir` only, so set `lang` on
   `<html>` yourself.
 
+The banner and the floating `ConsentDialogTrigger` stay in their corners. A
+`bottom-left` banner is still at the bottom left in Hebrew, so it doesn't
+jump across the page when the visitor's language changes.
+
 What does not follow yet:
 
 - The IAB TCF dialog aligns several labels, indents and borders to the left.
-- The floating `ConsentDialogTrigger` keeps the corner you give it.
 
 Test right-to-left pages with a real translation before you ship them.
 
