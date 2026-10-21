@@ -75,7 +75,7 @@ Both helpers use the vendor ID `default-com`. The Pixel script ID is
 | `publicKey` | Required | Public workspace key. The helper trims strings. Missing, blank or non-string values log an error and skip loading while keeping Default listed as a vendor. |
 | `scriptUrl` | Pixel: `https://handshake.default.com/index.js`; SDK: `https://handshake.default.com/sdk.js` | Override for a compatible current-generation loader or proxy. Whitespace is trimmed. Blank values use the default. |
 | `schedulerOrigins` | Default's setting | Allowed scheduler origins, forwarded to the selected script. |
-| `autoDisplayScheduler` | Default's setting | Boolean or an object with a `target` selector and optional `loader` boolean. Forwarded to Default. |
+| `autoDisplayScheduler` | Default's setting | Boolean or an object with a `target` CSS selector or `HTMLElement` and optional `loader` boolean. Forwarded to Default. |
 | `endpoint` | SDK only: Default's setting | API endpoint override for the standalone Forms SDK. Whitespace is trimmed; blank values leave Default's setting in place. The Pixel helper does not accept this option. |
 
 ## Loading and consent forwarding
@@ -91,6 +91,16 @@ key. After `sdk.js` loads, the helper calls `DefaultPixelSDK.setConsent()` befor
 `DefaultPixelSDK.init()`. It initializes each SDK client once per page. If the
 visitor withdraws consent during the download, the helper forwards denial and
 waits for a later marketing grant before calling `init()`.
+
+After the SDK loads and marketing consent still applies, the typed
+`window.DefaultPixelSDK` API exposes `submitForm()`, `recordFormInteraction()`,
+`on()` and `scheduler` helpers. `submitForm()` accepts a Pixel form ID, an HTML
+form ID, or both, and resolves with a result containing `success` and `status`.
+A successful request does not prove that Default saved a submission or ran a
+workflow. Verify those results in your own workspace. Scheduler subscriptions
+and `scheduler.display()` return cleanup functions. See the
+[SDK API reference](https://docs.os.default.com/pixel-sdk-reference) for the
+method options and scheduler event payloads.
 
 Every update includes both of Default's consent fields. The helper maps c15t
 `measurement` to Default `analytics` and c15t `marketing` to Default `marketing`.

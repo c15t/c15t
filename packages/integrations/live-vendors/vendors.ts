@@ -245,11 +245,13 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 		},
 		createScript: () =>
 			defaultComPixel({
+				// Public Pixel bootstrap at https://www.default.com/, checked 2026-10-21.
+				// Collection and Vector requests stay blocked in this loader-only probe.
 				publicKey: '39af45d7-093f-4efe-a5d1-5bdb462fc4e0',
 			}),
 		loaderUrlSubstring: 'https://handshake.default.com/index.js',
 		notes:
-			'Public Default homepage key explicitly authorized for this monitor. Collection endpoints and Vector scripts remain blocked; do not broaden the loader allowlist. This checks Pixel bootstrap, queue drain and real consent-setter installation. It does not validate account configuration, event delivery or complete shutdown after withdrawal. The standalone Forms SDK has no separate probe.',
+			"The key comes from Default's public homepage Pixel bootstrap; public visibility does not establish collection authorization. Collection endpoints and Vector scripts remain blocked; do not broaden the loader allowlist. This checks Pixel bootstrap, queue drain and real consent-setter installation. It does not validate account configuration, event delivery or complete shutdown after withdrawal. The standalone Forms SDK has no separate probe.",
 		runtimeCheck: () => {
 			const pixel = (window as DefaultComProbeWindow).__defaultPixel__;
 			const setter = pixel?.setConsent;

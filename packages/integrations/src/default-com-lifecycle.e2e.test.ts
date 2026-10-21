@@ -2,6 +2,7 @@
 import type { ScriptCallbackInfo } from '@c15t/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { createDefaultComFormsSdkMock } from './__tests__/default-com-sdk';
 import {
 	deniedConsents,
 	grantedMarketingConsents,
@@ -205,10 +206,10 @@ describe('Default core loader consent contract', () => {
 		];
 		loadScripts(scripts, grantedMarketingConsents);
 		expect('__defaultPixel__' in window).toBe(false);
-		window.DefaultPixelSDK = {
+		window.DefaultPixelSDK = createDefaultComFormsSdkMock({
 			init: (options) => events.push(['init', options]),
 			setConsent: (consent) => events.push(['setConsent', consent]),
-		};
+		});
 		getLoader().dispatchEvent(new Event('load'));
 		expect(events).toEqual([
 			['setConsent', { analytics: false, marketing: true }],
@@ -232,7 +233,7 @@ describe('Default core loader consent contract', () => {
 		updateScripts(scripts, grantedMeasurementConsents);
 		const init = vi.fn();
 		const setConsent = vi.fn();
-		window.DefaultPixelSDK = { init, setConsent };
+		window.DefaultPixelSDK = createDefaultComFormsSdkMock({ init, setConsent });
 		element.dispatchEvent(new Event('load'));
 		expect(setConsent).toHaveBeenLastCalledWith({
 			analytics: false,
@@ -259,7 +260,7 @@ describe('Default core loader consent contract', () => {
 			[defaultComFormsSdk({ publicKey: 'workspace-key' })],
 			fullConsent
 		);
-		window.DefaultPixelSDK = { init, setConsent };
+		window.DefaultPixelSDK = createDefaultComFormsSdkMock({ init, setConsent });
 		getLoader().dispatchEvent(new Event('load'));
 		updateScripts(
 			[defaultComFormsSdk({ publicKey: 'workspace-key' })],
@@ -282,7 +283,7 @@ describe('Default core loader consent contract', () => {
 			}
 			config.setConsent = setConsent;
 		} else {
-			window.DefaultPixelSDK = { init: vi.fn(), setConsent };
+			window.DefaultPixelSDK = createDefaultComFormsSdkMock({ setConsent });
 		}
 		script.onConsentChange?.(
 			callbackInfo({
@@ -345,7 +346,10 @@ describe('Default core loader consent contract', () => {
 			);
 			const init = vi.fn();
 			const setConsent = vi.fn();
-			window.DefaultPixelSDK = { init, setConsent };
+			window.DefaultPixelSDK = createDefaultComFormsSdkMock({
+				init,
+				setConsent,
+			});
 			blocked?.dispatchEvent(new Event('load'));
 			expect(init).not.toHaveBeenCalled();
 			expect(setConsent).not.toHaveBeenCalled();
@@ -373,7 +377,7 @@ describe('Default core loader consent contract', () => {
 
 	it('blocks a Pixel loader when a Forms SDK global already exists', () => {
 		vi.spyOn(console, 'error').mockImplementation(() => undefined);
-		const sdk = { init: vi.fn(), setConsent: vi.fn() };
+		const sdk = createDefaultComFormsSdkMock();
 		window.DefaultPixelSDK = sdk;
 		loadScripts([defaultComPixel({ publicKey: 'workspace-key' })], fullConsent);
 		expect(getLoader().getAttribute('src')).toBeNull();

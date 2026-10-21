@@ -3,6 +3,7 @@ import { createConsentKernel } from '@c15t/core';
 import { createScriptLoader } from '@c15t/core/modules/script-loader';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { createDefaultComFormsSdkMock } from './__tests__/default-com-sdk';
 import {
 	grantedMarketingConsents,
 	loadScripts,
@@ -78,7 +79,7 @@ describe('Default loader options', () => {
 				grantedMarketingConsents
 			);
 			const init = vi.fn();
-			window.DefaultPixelSDK = { init, setConsent: vi.fn() };
+			window.DefaultPixelSDK = createDefaultComFormsSdkMock({ init });
 			document.querySelector('script')?.dispatchEvent(new Event('load'));
 			expect(init).toHaveBeenCalledOnce();
 			const options: unknown = init.mock.calls[0]?.[0];
@@ -90,6 +91,29 @@ describe('Default loader options', () => {
 			});
 		}
 	);
+	it.each(['defaultComPixel', 'defaultComFormsSdk'] as const)(
+		'%s preserves an HTMLElement scheduler target through loading',
+		(name) => {
+			const target = document.createElement('div');
+			const autoDisplayScheduler = { loader: true, target };
+			loadScripts(
+				[helpers[name]({ autoDisplayScheduler, publicKey: 'workspace-key' })],
+				grantedMarketingConsents
+			);
+			const init = vi.fn<DefaultCom.DefaultComFormsSdkClient['init']>();
+			if (name === 'defaultComFormsSdk') {
+				window.DefaultPixelSDK = createDefaultComFormsSdkMock({ init });
+			}
+			document.querySelector('script')?.dispatchEvent(new Event('load'));
+			const forwarded =
+				name === 'defaultComPixel'
+					? window.__defaultPixel__?.autoDisplayScheduler
+					: init.mock.calls[0]?.[0].autoDisplayScheduler;
+			expect(forwarded).toBe(autoDisplayScheduler);
+			expect(init).toHaveBeenCalledTimes(name === 'defaultComPixel' ? 0 : 1);
+		}
+	);
+
 	it.each(['defaultComPixel', 'defaultComFormsSdk'] as const)(
 		'%s follows the shared vendor permission through the production kernel',
 		async (name) => {
@@ -119,7 +143,7 @@ describe('Default loader options', () => {
 					}
 					pixel.setConsent = setConsent;
 				} else {
-					window.DefaultPixelSDK = { init: vi.fn(), setConsent };
+					window.DefaultPixelSDK = createDefaultComFormsSdkMock({ setConsent });
 				}
 				element?.dispatchEvent(new Event('load'));
 				await kernel.commands.save(grantedMarketingConsents, {

@@ -12,8 +12,8 @@ export type DefaultComAutoDisplayScheduler =
 	| {
 			/** Show Default's loading indicator while opening the scheduler. */
 			loader?: boolean;
-			/** CSS selector for the scheduler container. */
-			target: string;
+			/** CSS selector or element for the scheduler container. */
+			target: string | HTMLElement;
 	  };
 
 /** Options for the current Default Pixel. */
@@ -57,16 +57,119 @@ interface DefaultComPixelBootstrap {
 	setConsent?: (consent: DefaultComConsent) => void;
 }
 
-interface DefaultComFormsSdkInitOptions {
+/** Configuration accepted by DefaultPixelSDK.init(). */
+export interface DefaultComFormsSdkInitOptions {
 	autoDisplayScheduler?: DefaultComAutoDisplayScheduler;
 	endpoint?: string;
 	publicKey: string;
 	schedulerOrigins?: string[];
 }
 
-interface DefaultComFormsSdkClient {
+/** Field values accepted by Default's manual form submission API. */
+export type DefaultComFormResponses = Record<
+	string,
+	string | number | boolean | string[] | null
+>;
+
+/** Manual submission to a Pixel form ID, an HTML form ID, or both. */
+export type DefaultComSubmitFormOptions = {
+	autoDisplayScheduler?: DefaultComAutoDisplayScheduler;
+	metadata?: Record<string, unknown>;
+	responses: DefaultComFormResponses;
+} & (
+	| { formId: string; pixelFormId?: string }
+	| { formId?: string; pixelFormId: string }
+);
+
+/** Result of a submission request, which does not prove workflow delivery. */
+export type DefaultComSubmitFormResult =
+	| {
+			error: string;
+			/** HTTP status, or zero when the request never reached Default. */
+			status: number;
+			success: false;
+	  }
+	| {
+			redirect?: { url: string };
+			scheduler?: { url: string };
+			status: number;
+			success: true;
+			/** Unvalidated server response. Narrow before reading workflow fields. */
+			workflow?: unknown;
+	  };
+
+/** Email-field warmup for hosts without a native form element. */
+export interface DefaultComFormInteractionOptions {
+	eventType?: string;
+	fieldName: string;
+	fieldType?: string;
+	fieldValue: string;
+	formId?: string;
+	formName?: string;
+	responses?: Record<string, string>;
+}
+
+/** Scheduler event payloads documented by Default. */
+export interface DefaultComSchedulerEventMap {
+	closed: undefined;
+	displayed: { bookingParam: string; orgSlug: string };
+	meeting_booked: {
+		meetingId: string;
+		personEmail: string;
+		startTime: string;
+	};
+	meeting_cancelled: { meetingId: string };
+	/** Reserved by Default; delivery is not guaranteed. */
+	meeting_timeout: { meetingId?: string };
+}
+
+/** Subscribe to a scheduler event and receive an unsubscribe function. */
+export type DefaultComSchedulerSubscription<
+	EventType extends keyof DefaultComSchedulerEventMap,
+> = (
+	handler: (payload: DefaultComSchedulerEventMap[EventType]) => void
+) => () => void;
+
+/** Scheduler display and event helpers available on DefaultPixelSDK. */
+export interface DefaultComScheduler {
+	/**
+	 * Display a scheduler URL using modal, inline or disabled behavior.
+	 * @param url - Scheduler URL returned by Default.
+	 * @param option - Display configuration. Defaults to a modal.
+	 * @returns A function that removes the displayed scheduler.
+	 */
+	display: (url: string, option?: DefaultComAutoDisplayScheduler) => () => void;
+	onClosed: DefaultComSchedulerSubscription<'closed'>;
+	onDisplayed: DefaultComSchedulerSubscription<'displayed'>;
+	onMeetingBooked: DefaultComSchedulerSubscription<'meeting_booked'>;
+	onMeetingCancelled: DefaultComSchedulerSubscription<'meeting_cancelled'>;
+	onMeetingTimeout: DefaultComSchedulerSubscription<'meeting_timeout'>;
+}
+
+/** Public standalone Forms SDK API, loaded after marketing consent. */
+export interface DefaultComFormsSdkClient {
+	/** Configure the SDK and start it on the first call. */
 	init: (options: DefaultComFormsSdkInitOptions) => void;
+	/**
+	 * Subscribe to an event from an allowed scheduler origin.
+	 * @param eventType - Scheduler event name.
+	 * @param handler - Callback receiving that event's payload.
+	 * @returns A function that removes the subscription.
+	 */
+	on: <EventType extends keyof DefaultComSchedulerEventMap>(
+		eventType: EventType,
+		handler: (payload: DefaultComSchedulerEventMap[EventType]) => void
+	) => () => void;
+	/** Warm form context for pre-enrichment, swallowing request failures. */
+	recordFormInteraction: (
+		options: DefaultComFormInteractionOptions
+	) => Promise<void>;
+	scheduler: DefaultComScheduler;
 	setConsent: (consent: DefaultComConsent) => void;
+	/** Submit form values and return Default's request result. */
+	submitForm: (
+		options: DefaultComSubmitFormOptions
+	) => Promise<DefaultComSubmitFormResult>;
 }
 
 declare global {
