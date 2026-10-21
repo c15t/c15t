@@ -168,6 +168,9 @@ const getConsentDispatcher = (siteId: string) => {
 };
 
 const reuseEloquaTracking = createScriptReuse<EloquaTrackingOptions>();
+// Another configuration can adopt a tag that a surviving provider still owns.
+// Only a new physical tag needs a fresh queue and SDK setup.
+const initializedElements = new WeakSet<HTMLScriptElement>();
 
 /**
  * Loads Eloqua and enables page tracking only after consent.
@@ -246,7 +249,7 @@ export const eloquaTracking = function eloquaTracking(
 		const initialize = (info: ScriptCallbackInfo): void => {
 			if (info.element && info.element !== element) {
 				({ element } = info);
-				initialized = false;
+				initialized = initializedElements.has(info.element);
 				loaded = false;
 				generation += 1;
 			}
@@ -255,6 +258,7 @@ export const eloquaTracking = function eloquaTracking(
 			}
 			initialized = true;
 			script.onBeforeLoad?.(info);
+			initializedElements.add(element);
 			element.src = script.src ?? '';
 		};
 		return {

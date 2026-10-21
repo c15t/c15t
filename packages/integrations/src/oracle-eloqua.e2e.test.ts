@@ -294,6 +294,72 @@ describe('Eloqua dispatcher lifecycle', () => {
 			deniedKernel.dispose();
 		}
 	});
+	it.each([false, true])(
+		'preserves shared setup across category replacement, SDK already loaded: %s',
+		async (alreadyLoaded) => {
+			const kernels = [createConsentKernel(), createConsentKernel()];
+			const consents = { ...granted, experience: true };
+			await Promise.all(
+				kernels.map((kernel) => kernel.commands.save(consents))
+			);
+			const events: { action: string }[] = [];
+			const loaders = kernels.map((kernel) =>
+				createScriptLoader({
+					kernel,
+					onDebug: (event) => events.push(event),
+					scripts: [eloquaTracking({ siteId: '1973398186' })],
+				})
+			);
+			try {
+				const element = getLoader();
+				let push: ReturnType<typeof installDispatcher> | undefined;
+				let dispatcher = window._elqQ;
+				if (alreadyLoaded) {
+					push = installDispatcher();
+					dispatcher = window._elqQ;
+					element.dispatchEvent(new Event('load'));
+					document
+						.querySelector('script[src*="pps=41"]')
+						?.dispatchEvent(new Event('load'));
+				}
+				loaders[0]?.updateScripts([
+					eloquaTracking({ category: 'experience', siteId: '1973398186' }),
+				]);
+				await Promise.resolve();
+				expect(getLoader()).toBe(element);
+				expect(window._elqQ).toBe(dispatcher);
+				if (!alreadyLoaded) {
+					push = installDispatcher();
+					element.dispatchEvent(new Event('load'));
+				}
+				for (let count = 0; count < 4; count += 1) {
+					const response = document.querySelector<HTMLScriptElement>(
+						'script[src*="pps="]'
+					);
+					if (!response) {
+						break;
+					}
+					const permitted =
+						new URL(response.src).searchParams.get('pps') === '41';
+					document.cookie = `OPTIN=${permitted ? '1' : '0'}; path=/`;
+					response.dispatchEvent(new Event('load'));
+					response.remove();
+				}
+				expect(document.cookie).toContain('OPTIN=1');
+				expect(push?.mock.calls.at(-1)).toEqual([
+					['elqTrackPageView', window.location.href],
+				]);
+				expect(events.filter((event) => event.action === 'error')).toEqual([]);
+			} finally {
+				for (const loader of loaders) {
+					loader.dispose();
+				}
+				for (const kernel of kernels) {
+					kernel.dispose();
+				}
+			}
+		}
+	);
 	it('waits for outstanding consent responses before sending the opposite choice', () => {
 		const scripts = [eloquaTracking({ siteId: '1973398186' })];
 		loadScripts(scripts, granted);
