@@ -1,4 +1,6 @@
 /** @vitest-environment jsdom */
+import { createConsentKernel } from '@c15t/core';
+import { createScriptLoader } from '@c15t/core/modules/script-loader';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
@@ -30,7 +32,12 @@ describe('Customer.io consent loader', () => {
 		sessionStorage.clear();
 	});
 	it('creates no vendor requests, globals or storage before mapped consent', () => {
-		const scripts = [customerIo({ writeKey: 'test-key' })];
+		const scripts = [
+			customerIo({
+				cdnUrl: 'https://analytics.example.com/',
+				writeKey: 'test-key',
+			}),
+		];
 		const cookies = document.cookie;
 		const local = { ...localStorage };
 		const session = { ...sessionStorage };
@@ -48,7 +55,7 @@ describe('Customer.io consent loader', () => {
 		updateScripts(scripts, granted);
 		const first = getLoader();
 		expect(first.src).toBe(
-			'https://cdp.customer.io/v1/analytics-js/snippet/test-key/analytics.min.js'
+			'https://analytics.example.com/v1/analytics-js/snippet/test-key/analytics.min.js'
 		);
 		updateScripts(scripts, granted);
 		expect(getLoader()).toBe(first);
@@ -67,9 +74,49 @@ describe('Customer.io consent loader', () => {
 		updateScripts(scripts, { ...deniedConsents, experience: true });
 		expect(getLoader()).toBeDefined();
 	});
+	it.each([
+		{ cdnUrl: undefined, expected: 'https://cdp.customer.io', region: 'us' },
+		{ cdnUrl: '', expected: 'https://cdp-eu.customer.io', region: 'eu' },
+		{ cdnUrl: '   ', expected: 'https://cdp.customer.io', region: 'us' },
+		{
+			cdnUrl: ' https://ANALYTICS.example.com:443/// ',
+			expected: 'https://analytics.example.com',
+			region: 'eu',
+		},
+	] as const)('uses CDN origin $expected for the loader and SDK', (options) => {
+		loadScripts([customerIo({ ...options, writeKey: 'proxy-key' })], granted);
+		expect(window.cioanalytics?._cdn).toBe(options.expected);
+		expect(getLoader().src).toBe(
+			`${options.expected}/v1/analytics-js/snippet/proxy-key/analytics.min.js`
+		);
+	});
+	it('keeps the CDN origin and collection options when overriding the initial loader', () => {
+		const loadOptions = {
+			integrations: {
+				'Customer.io Data Pipelines': {
+					apiHost: 'collect.example.com/v1',
+					protocol: 'https',
+				},
+			},
+		};
+		loadScripts(
+			[
+				customerIo({
+					cdnUrl: 'https://assets.example.com/',
+					loadOptions,
+					scriptUrl: ' https://assets.example.com/custom-loader.js ',
+					writeKey: 'proxy-key',
+				}),
+			],
+			granted
+		);
+		expect(getLoader().src).toBe('https://assets.example.com/custom-loader.js');
+		expect(window.cioanalytics?._cdn).toBe('https://assets.example.com');
+		expect(window.cioanalytics?._loadOptions).toEqual(loadOptions);
+	});
 });
 
-describe('Customer.io readiness and identity', () => {
+describe('Customer.io loading and identity', () => {
 	registerVendorContractCleanup();
 	afterEach(() => {
 		delete window.cioanalytics;
@@ -88,6 +135,7 @@ describe('Customer.io readiness and identity', () => {
 		loadScripts(scripts, granted);
 		expect(Array.isArray(window.cioanalytics)).toBe(true);
 		expect(window.cioanalytics?._writeKey).toBe('key/with spaces');
+		expect(window.cioanalytics?._cdn).toBe('https://cdp-eu.customer.io');
 		expect(window.cioanalytics?._loadOptions).toEqual({
 			integrations: { All: false },
 		});
@@ -99,7 +147,32 @@ describe('Customer.io readiness and identity', () => {
 		).toBe('cioanalytics');
 		expect(window.analytics).toBe(sentinel);
 	});
-	it('ignores old ready callbacks across revoke and regrant, including helper recreation', () => {
+	it('starts a destination that needs page before it can become ready', () => {
+		const scripts = [customerIo({ writeKey: 'page-initializes-destination' })];
+		loadScripts(scripts, granted);
+		let initialized = false;
+		const waiting: (() => void)[] = [];
+		const runtime = {
+			page: vi.fn(() => {
+				initialized = true;
+				for (const onReady of waiting.splice(0)) {
+					onReady();
+				}
+			}),
+			ready(onReady: () => void) {
+				if (initialized) {
+					onReady();
+				} else {
+					waiting.push(onReady);
+				}
+			},
+		};
+		window.cioanalytics = runtime;
+		getLoader().dispatchEvent(new Event('load'));
+		expect(initialized).toBe(true);
+		expect(runtime.page).toHaveBeenCalledTimes(1);
+	});
+	it('pages once per load or regrant even when a destination never becomes ready', () => {
 		const create = () => customerIo({ writeKey: 'ready-key' });
 		const scripts = [create()];
 		loadScripts(scripts, granted);
@@ -111,20 +184,18 @@ describe('Customer.io readiness and identity', () => {
 		};
 		window.cioanalytics = runtime;
 		loader.dispatchEvent(new Event('load'));
-		expect(runtime.ready).toHaveBeenCalledTimes(1);
-		expect(runtime.page).not.toHaveBeenCalled();
+		expect(runtime.page).toHaveBeenCalledTimes(1);
+		loader.dispatchEvent(new Event('load'));
+		expect(runtime.page).toHaveBeenCalledTimes(1);
 		updateScripts([create()], deniedConsents);
 		expect(runtime.reset).toHaveBeenCalledTimes(1);
-		runtime.ready.mock.calls[0]?.[0]();
-		expect(runtime.page).not.toHaveBeenCalled();
-		updateScripts([create()], granted);
-		expect(getLoader()).toBe(loader);
-		runtime.ready.mock.calls[0]?.[0]();
-		expect(runtime.page).not.toHaveBeenCalled();
-		runtime.ready.mock.calls[1]?.[0]();
 		expect(runtime.page).toHaveBeenCalledTimes(1);
 		updateScripts([create()], granted);
-		expect(runtime.ready).toHaveBeenCalledTimes(2);
+		expect(getLoader()).toBe(loader);
+		expect(runtime.page).toHaveBeenCalledTimes(2);
+		updateScripts([create()], granted);
+		expect(runtime.page).toHaveBeenCalledTimes(2);
+		expect(runtime.ready).not.toHaveBeenCalled();
 		expect(window.cioanalytics).toBe(runtime);
 	});
 	it('does not queue a page when the download finishes after withdrawal', () => {
@@ -137,5 +208,55 @@ describe('Customer.io readiness and identity', () => {
 		loader.dispatchEvent(new Event('load'));
 		expect(runtime.page).not.toHaveBeenCalled();
 		expect(runtime.ready).not.toHaveBeenCalled();
+		updateScripts(scripts, granted);
+		expect(getLoader()).toBe(loader);
+		expect(runtime.page).toHaveBeenCalledTimes(1);
+	});
+	it('cancels the pending load callback on disposal', () => {
+		loadScripts([customerIo({ writeKey: 'disposed-key' })], granted);
+		const loader = getLoader();
+		updateScripts([], granted);
+		const runtime = { page: vi.fn(), ready: vi.fn() };
+		window.cioanalytics = runtime;
+		loader.dispatchEvent(new Event('load'));
+		expect(loader.isConnected).toBe(false);
+		expect(runtime.page).not.toHaveBeenCalled();
+	});
+	it('shares one page across owners and waits for every owner to regrant', () => {
+		const firstKernel = createConsentKernel();
+		const secondKernel = createConsentKernel();
+		void firstKernel.commands.save(granted);
+		void secondKernel.commands.save(granted);
+		const first = createScriptLoader({
+			kernel: firstKernel,
+			scripts: [customerIo({ writeKey: 'shared-key' })],
+		});
+		const second = createScriptLoader({
+			kernel: secondKernel,
+			scripts: [customerIo({ writeKey: 'shared-key' })],
+		});
+		try {
+			const loader = getLoader();
+			const runtime = { page: vi.fn(), ready: vi.fn(), reset: vi.fn() };
+			window.cioanalytics = runtime;
+			loader.dispatchEvent(new Event('load'));
+			expect(runtime.page).toHaveBeenCalledTimes(1);
+			void firstKernel.commands.save(deniedConsents);
+			void secondKernel.commands.save(deniedConsents);
+			expect(runtime.reset).toHaveBeenCalledTimes(1);
+			void firstKernel.commands.save(granted);
+			expect(runtime.page).toHaveBeenCalledTimes(1);
+			void secondKernel.commands.save(granted);
+			expect(runtime.page).toHaveBeenCalledTimes(2);
+			first.dispose();
+			expect(loader.isConnected).toBe(true);
+			expect(runtime.page).toHaveBeenCalledTimes(2);
+			expect(document.querySelectorAll('script[src]')).toHaveLength(1);
+		} finally {
+			first.dispose();
+			second.dispose();
+			firstKernel.dispose();
+			secondKernel.dispose();
+		}
 	});
 });

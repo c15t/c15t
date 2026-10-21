@@ -5,7 +5,7 @@ import { vendorManifestContract } from '../../types';
 import type { VendorManifest } from '../../types';
 import { readId, skipMissingId } from '../_shared/required-id';
 import { createScriptReuse } from '../_shared/reuse-script';
-import { resolveScriptUrl } from '../_shared/script-url';
+import { resolveScriptUrl, stripTrailingSlashes } from '../_shared/script-url';
 
 /** Customer.io's callable analytics.js queue methods. */
 export const CUSTOMER_IO_METHODS = [
@@ -62,6 +62,12 @@ export const customerIoManifest = {
 		},
 		{
 			ifGlobalIsQueue: true,
+			path: ['cioanalytics', '_cdn'],
+			type: 'setGlobalPath',
+			value: '{{cdnUrl}}',
+		},
+		{
+			ifGlobalIsQueue: true,
 			path: ['cioanalytics', '_loadOptions'],
 			type: 'setGlobalPath',
 			value: '{{loadOptions}}',
@@ -98,7 +104,12 @@ export interface CustomerIoOptions {
 	loadOptions?: Record<string, unknown>;
 	/** Consent condition required before loading. @default 'marketing' */
 	category?: Script['category'];
-	/** Custom or proxied loader URL. */
+	/**
+	 * HTTP(S) CDN origin for the loader, settings and SDK assets.
+	 * Defaults to the region's CDN. Collection routing uses loadOptions.
+	 */
+	cdnUrl?: string;
+	/** Override only the initial loader URL. Use cdnUrl for a CDN proxy. */
 	scriptUrl?: string;
 }
 
@@ -118,11 +129,25 @@ const createCustomerIo = function createCustomerIo(
 		throw new Error("customerIo: region must be 'us' or 'eu'");
 	}
 	const host = region === 'eu' ? 'cdp-eu.customer.io' : 'cdp.customer.io';
+	const cdn = new URL(
+		stripTrailingSlashes(resolveScriptUrl(options.cdnUrl, `https://${host}`))
+	);
+	if (
+		!['https:', 'http:'].includes(cdn.protocol) ||
+		cdn.username ||
+		cdn.password ||
+		cdn.pathname !== '/' ||
+		cdn.search ||
+		cdn.hash
+	) {
+		throw new Error('customerIo: cdnUrl must be an HTTP(S) origin');
+	}
 	const script = resolveManifest(customerIoManifest, {
+		cdnUrl: cdn.origin,
 		loadOptions: options.loadOptions ?? {},
 		scriptUrl: resolveScriptUrl(
 			options.scriptUrl,
-			`https://${host}/v1/analytics-js/snippet/${encodeURIComponent(writeKey)}/analytics.min.js`
+			`${cdn.origin}/v1/analytics-js/snippet/${encodeURIComponent(writeKey)}/analytics.min.js`
 		),
 		writeKey,
 	});
@@ -130,7 +155,7 @@ const createCustomerIo = function createCustomerIo(
 	let loaded = false;
 	let generation = 0;
 	let requestedGeneration = -1;
-	const pageWhenReady = (element: HTMLScriptElement | undefined): void => {
+	const pageAfterLoad = (element: HTMLScriptElement | undefined): void => {
 		if (
 			!loaded ||
 			!hasConsent ||
@@ -140,16 +165,7 @@ const createCustomerIo = function createCustomerIo(
 			return;
 		}
 		requestedGeneration = generation;
-		const currentGeneration = generation;
-		window.cioanalytics?.ready?.(() => {
-			if (
-				hasConsent &&
-				generation === currentGeneration &&
-				element.isConnected
-			) {
-				window.cioanalytics?.page?.();
-			}
-		});
+		window.cioanalytics?.page?.();
 	};
 	return {
 		...script,
@@ -171,7 +187,7 @@ const createCustomerIo = function createCustomerIo(
 			}
 			generation += 1;
 			if (hasConsent) {
-				pageWhenReady(info.element);
+				pageAfterLoad(info.element);
 			} else {
 				window.cioanalytics?.reset?.();
 			}
@@ -183,7 +199,7 @@ const createCustomerIo = function createCustomerIo(
 		onLoad(info) {
 			loaded = true;
 			if (info.hasConsent) {
-				pageWhenReady(info.element);
+				pageAfterLoad(info.element);
 			}
 		},
 		serverStart: undefined,
@@ -196,8 +212,9 @@ const reuseCustomerIo = createScriptReuse<CustomerIoOptions>();
  * Loads Customer.io once after consent and resets identity on revoke.
  * reset is not an opt-out. Keep reloadOnConsentRevoked enabled to stop the
  * running source and any destination SDKs.
- * @param options - Source write key, workspace region and loader options.
+ * @param options - Source write key, workspace region, CDN and loader options.
  * @returns A gated script, or an inactive script for a missing key.
+ * @throws If the region or CDN origin is invalid.
  * @example customerIo({ writeKey: 'YOUR_WRITE_KEY', region: 'eu' });
  * @see https://docs.customer.io/integrations/data-in/connections/javascript/in-app/
  */

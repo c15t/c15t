@@ -27,13 +27,24 @@ Create a JavaScript source in Customer.io Data Pipelines and copy its write key.
 | `region` | `us` | `us` uses `cdp.customer.io`; `eu` uses `cdp-eu.customer.io`. |
 | `loadOptions` | Unset | Vendor loader options, including destination integration settings. |
 | `category` | `marketing` | Consent condition for the whole loader. |
-| `scriptUrl` | Region-specific snippet URL | Custom or proxied loader URL. Blank values use the default. |
+| `cdnUrl` | Region-specific HTTPS origin | Origin for the loader, source settings and SDK assets. Trims whitespace and trailing slashes. Blank values use the regional default. |
+| `scriptUrl` | Snippet URL under `cdnUrl` | Overrides only the initial loader URL. Blank values use the default. |
 
 Missing or blank required values log an error and never load.
 
+## Use a proxy
+
+Set `cdnUrl` to your proxy's full HTTP(S) origin, with no path, query, fragment or credentials. It sets `cioanalytics._cdn` as well as the default snippet URL, so settings and SDK assets use that origin. The proxy must preserve Customer.io's paths and forward to the source's regional host. A `scriptUrl` override alone does not configure the SDK's CDN origin.
+
+Collection uses separate vendor options. To proxy Data Pipelines events, set `loadOptions.integrations['Customer.io Data Pipelines'].apiHost` to the collection proxy host plus `/v1`, without a scheme, and set `protocol` to `https`.
+
+<include src="../shared/examples/javascript/customer-io-proxy.mdx" />
+
+Replace both example domains with configured proxies. `cdnUrl` does not redirect collection or every destination's own traffic. Configure each destination separately where supported.
+
 ## Loading and revocation
 
-After consent, the helper creates Customer.io's array queue and method stubs, sets `_writeKey` and `_loadOptions`, and loads the region-specific SDK. The script carries the namespace attribute required by Customer.io. Page tracking starts only after the load completes with consent still granted.
+After consent, the helper creates Customer.io's array queue and method stubs, sets `_writeKey`, `_cdn` and `_loadOptions`, and loads the SDK. The script carries the namespace attribute required by Customer.io. The helper calls `page()` once after the load completes with consent still granted, and once on each regrant after loading. It does not wait for `ready()`: a device-mode destination can fail to initialize, and some destinations need `page()` to initialize. A revoked or disposed loader cannot send a pending initial page.
 
 Revocation calls `reset()` to clear identity. It does not stop SDK dispatch, retries or destination SDKs. Keep `reloadOnConsentRevoked` enabled. The SDK loads once per page; regrant reuses it instead of injecting another copy. On the next denied page the helper creates no queue or vendor requests.
 
@@ -43,6 +54,8 @@ Customer.io can use analytics identity cookies and localStorage keys including `
 
 Check for no Customer.io snippet request, `cioanalytics`, vendor cookies or browser storage before consent and after unrelated consent. Grant marketing and verify the real SDK initialized, then revoke and check identity reset. Keep withdrawal reload enabled and confirm the next denied page stays quiet. A 200 JSON response for an invalid key is not evidence of SDK initialization.
 
-Sources: [JavaScript source](https://docs.customer.io/cdp/sources/connections/javascript/js-source/), [in-app snippet](https://docs.customer.io/integrations/data-in/connections/javascript/in-app/), and [utility methods](https://docs.customer.io/integrations/data-in/connections/javascript/utility-methods/).
+With a proxy, check the snippet, `/v1/projects/<writeKey>/settings` and SDK assets use the CDN proxy. Check collection separately against the configured `apiHost`. Successful loading does not prove event delivery to your workspace or destinations.
+
+Sources: [JavaScript source](https://docs.customer.io/cdp/sources/connections/javascript/js-source/), [in-app snippet](https://docs.customer.io/integrations/data-in/connections/javascript/in-app/), [proxy setup](https://docs.customer.io/integrations/data-in/connections/javascript/js-source-proxy/), and [utility methods](https://docs.customer.io/integrations/data-in/connections/javascript/utility-methods/).
 
 <include src="../shared/integrations/vendor-revocation-and-verify.mdx" />

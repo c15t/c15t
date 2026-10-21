@@ -1,0 +1,18 @@
+{/* Generated from internals/doc-snippets/javascript/src/customer-io.ts (docs:customer-io-proxy) by scripts/sync-example-docs.ts. Edit the source file. */}
+
+```ts title="src/customer-io.ts"
+export const proxiedScripts = [
+	customerIo({
+		writeKey: 'YOUR_WRITE_KEY',
+		cdnUrl: 'https://analytics.example.com',
+		loadOptions: {
+			integrations: {
+				'Customer.io Data Pipelines': {
+					apiHost: 'collect.example.com/v1',
+					protocol: 'https',
+				},
+			},
+		},
+	}),
+];
+```

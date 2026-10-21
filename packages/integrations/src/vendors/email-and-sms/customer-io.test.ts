@@ -39,6 +39,25 @@ describe('customerIo', () => {
 			'https://cdp.customer.io/v1/analytics-js/snippet/test-key/analytics.min.js'
 		);
 	});
+	it.each([
+		'https://proxy.example.com/path',
+		'https://proxy.example.com?query=1',
+		'https://proxy.example.com#fragment',
+		'https://user:pass@proxy.example.com',
+		'ftp://proxy.example.com',
+		'proxy.example.com',
+	])('rejects a CDN value that is not an HTTP(S) origin: %s', (cdnUrl) => {
+		expect(() => customerIo({ cdnUrl, writeKey: 'test-key' })).toThrow();
+	});
+	it('skips a blank key before validating or reusing the CDN configuration', () => {
+		for (let attempt = 0; attempt < 2; attempt += 1) {
+			expectSkippedScript(
+				() => customerIo({ cdnUrl: 'invalid', writeKey: ' ' }),
+				{ category: 'marketing', id: 'customer-io' },
+				'customerIo: missing or invalid writeKey'
+			);
+		}
+	});
 });
 
 it('uses the selected region and escapes the write key as a path segment', () => {
