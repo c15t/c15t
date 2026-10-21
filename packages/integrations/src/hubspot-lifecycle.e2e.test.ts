@@ -203,6 +203,7 @@ describe('HubSpot core loader consent contract', () => {
 	});
 
 	it('retains one loader across withdrawal, regrant and provider remount', () => {
+		const warning = vi.spyOn(console, 'warn').mockImplementation(() => {});
 		const scripts = [hubspot({ portalId: '53' })];
 		loadScripts(scripts, allConsents);
 		const original = document.getElementById('hs-script-loader');
@@ -215,6 +216,7 @@ describe('HubSpot core loader consent contract', () => {
 		loadScripts(scripts, allConsents);
 		expect(document.querySelectorAll('#hs-script-loader')).toHaveLength(1);
 		expect(document.getElementById('hs-script-loader')).toBe(original);
+		expect(warning).not.toHaveBeenCalled();
 		expect(window._hsp).toEqual(
 			expect.arrayContaining([
 				[
@@ -240,7 +242,76 @@ describe('HubSpot core loader consent contract', () => {
 		expect(document.querySelectorAll('script')).toHaveLength(1);
 		expect(document.getElementById('hs-script-loader')).toBe(existing);
 		expect(existing.src).toBe('https://js-na1.hs-scripts.com/53.js');
-		expect(warning).toHaveBeenCalledOnce();
+		expect(warning).toHaveBeenCalledExactlyOnceWith(
+			'hubspot: #hs-script-loader already exists. Reusing it; remove other HubSpot installations to keep loading consent-gated.'
+		);
+	});
+
+	it.each([false, true])(
+		'diagnoses a non-script loader ID collision with a saved grant: %s',
+		(savedGrant) => {
+			const existing = document.createElement('div');
+			existing.id = 'hs-script-loader';
+			existing.textContent = 'Application content';
+			document.body.appendChild(existing);
+			const originalMarkup = existing.outerHTML;
+			const warning = vi.spyOn(console, 'warn').mockImplementation(() => {});
+			const scripts = [hubspot({ portalId: '53' })];
+			loadScripts(scripts, deniedConsents);
+			updateScripts(scripts, grantedMeasurementConsents);
+			expect(warning).not.toHaveBeenCalled();
+			expect(window._hsp).toBeUndefined();
+			if (savedGrant) {
+				clearAllScripts();
+			}
+			loadScripts(scripts, grantedMarketingConsents);
+			expect(warning).toHaveBeenCalledExactlyOnceWith(
+				'hubspot: #hs-script-loader belongs to a non-script element. HubSpot will not load; remove or rename the conflicting ID.'
+			);
+			updateScripts(scripts, grantedMarketingConsents);
+			updateScripts(scripts, deniedConsents);
+			updateScripts(scripts, grantedMarketingConsents);
+			clearAllScripts();
+			loadScripts([hubspot({ portalId: '53' })], grantedMarketingConsents);
+			expect(warning).toHaveBeenCalledOnce();
+			expect(document.querySelector('script')).toBeNull();
+			expect(document.querySelectorAll('#hs-script-loader')).toHaveLength(1);
+			expect(document.getElementById('hs-script-loader')).toBe(existing);
+			expect(existing.outerHTML).toBe(originalMarkup);
+			expect(existing.parentElement).toBe(document.body);
+		}
+	);
+
+	it('keeps a loader ID collision silent while the vendor is denied', async () => {
+		const existing = document.createElement('div');
+		existing.id = 'hs-script-loader';
+		document.body.appendChild(existing);
+		const warning = vi.spyOn(console, 'warn').mockImplementation(() => {});
+		const kernel = createConsentKernel();
+		const loader = createScriptLoader({
+			kernel,
+			scripts: [hubspot({ portalId: '53' })],
+		});
+		try {
+			await kernel.commands.save(grantedMarketingConsents, {
+				vendors: { hubspot: false },
+			});
+			expect(warning).not.toHaveBeenCalled();
+			for (const key of hubspotGlobals) {
+				expect(key in window).toBe(false);
+			}
+			await kernel.commands.save(grantedMarketingConsents, {
+				vendors: { hubspot: true },
+			});
+			expect(warning).toHaveBeenCalledExactlyOnceWith(
+				'hubspot: #hs-script-loader belongs to a non-script element. HubSpot will not load; remove or rename the conflicting ID.'
+			);
+			expect(document.querySelector('script')).toBeNull();
+			expect(document.getElementById('hs-script-loader')).toBe(existing);
+		} finally {
+			loader.dispose();
+			kernel.dispose();
+		}
 	});
 
 	it('requires the entire custom condition and denies every field when it fails', () => {

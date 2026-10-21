@@ -48,9 +48,14 @@ owns consent callbacks and chat listeners for that configuration.
 | `nonce` | None | CSP nonce for this helper's inserted loader. Pass it here when required; the provider nonce is not forwarded to a callback-only controller. |
 
 The helper inserts an HTTPS loader with `async`, `defer` and the literal ID
-`hs-script-loader`. It reuses an existing element with that ID and warns about
+`hs-script-loader`. It reuses an existing script with that ID and warns about
 an external installation or conflicting URL. It does not replace that element
 to switch portal IDs. Register one HubSpot portal per page.
+
+If a non-script element has that ID, the helper leaves it untouched and does
+not insert a loader. It warns once for that element after consent permits
+loading. Remove or rename the conflicting ID so the helper can insert its
+loader.
 
 Core load and error callbacks describe controller setup, not the external
 download. Check the actual HubSpot request in Network to diagnose download

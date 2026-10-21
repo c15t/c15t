@@ -48,7 +48,7 @@ const DENIED_CONSENT: HubSpotConsent = {
 const PORTAL_ID_PATTERN = /^\d+$/u;
 const REGION_PATTERN = /^[a-z]{2}\d+$/u;
 const ownedLoaders = new WeakSet<HTMLScriptElement>();
-const warnedLoaders = new WeakSet<HTMLScriptElement>();
+const warnedLoaders = new WeakSet<Element>();
 
 /** HubSpot's complete loader, gated on marketing consent by default. */
 export const hubspotManifest = {
@@ -156,8 +156,10 @@ const hasLostConsent = function hasLostConsent(
  * widget removal cannot unload HubSpot's child scripts. Keep c15t's default
  * reload on revocation enabled to stop the current page's running code.
  *
- * Remove other HubSpot installations. An existing `hs-script-loader` element is
+ * Remove other HubSpot installations. An existing `hs-script-loader` script is
  * reused, but the helper cannot control requests that installation already sent.
+ * A non-script element with that ID blocks loading and logs a warning once.
+ * Remove or rename the conflicting ID to allow the helper to insert its loader.
  * Wrapped setup runs in the browser after hydration, including returning grants.
  *
  * Missing, blank or non-numeric IDs log `hubspot: missing or invalid portalId`
@@ -272,8 +274,16 @@ export const hubspot = function hubspot(options: HubSpotOptions): Script {
 		}
 		const existing = document.getElementById('hs-script-loader');
 		if (existing) {
+			if (!(existing instanceof HTMLScriptElement)) {
+				if (!warnedLoaders.has(existing)) {
+					warnedLoaders.add(existing);
+					console.warn(
+						'hubspot: #hs-script-loader belongs to a non-script element. HubSpot will not load; remove or rename the conflicting ID.'
+					);
+				}
+				return;
+			}
 			if (
-				existing instanceof HTMLScriptElement &&
 				(!ownedLoaders.has(existing) || existing.src !== script.src) &&
 				!warnedLoaders.has(existing)
 			) {
