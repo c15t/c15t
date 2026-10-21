@@ -77,10 +77,19 @@ export const eloquaTracking = function eloquaTracking(
 			manifest: eloquaTrackingManifest,
 		});
 	}
-	return reuseEloquaTracking(options, (config) => {
-		const firstPartyCookieDomain = trimToUndefined(
-			config.firstPartyCookieDomain
-		);
+	const effectiveOptions = {
+		category,
+		firstPartyCookieDomain: trimToUndefined(
+			options.firstPartyCookieDomain
+		)?.toLowerCase(),
+		scriptUrl: resolveScriptUrl(
+			options.scriptUrl,
+			'https://img.en25.com/i/elqCfg.min.js'
+		),
+		siteId,
+	};
+	return reuseEloquaTracking(effectiveOptions, (config) => {
+		const { firstPartyCookieDomain } = config;
 		const manifest: VendorManifest = firstPartyCookieDomain
 			? {
 					...eloquaTrackingManifest,
@@ -96,10 +105,7 @@ export const eloquaTracking = function eloquaTracking(
 			: eloquaTrackingManifest;
 		const script = resolveManifest(manifest, {
 			firstPartyCookieDomain,
-			scriptUrl: resolveScriptUrl(
-				config.scriptUrl,
-				'https://img.en25.com/i/elqCfg.min.js'
-			),
+			scriptUrl: config.scriptUrl,
 			siteId,
 		});
 		let hasConsent = false;

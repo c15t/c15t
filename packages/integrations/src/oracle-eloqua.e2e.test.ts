@@ -1,4 +1,6 @@
 /** @vitest-environment jsdom */
+import { createConsentKernel } from '@c15t/core';
+import { createScriptLoader } from '@c15t/core/modules/script-loader';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
@@ -90,6 +92,69 @@ describe('Eloqua dispatcher lifecycle', () => {
 		window._elqQ = { push };
 		return push;
 	};
+	it.each([
+		[{}, {}],
+		[{}, { category: 'marketing' }],
+		[{}, { siteId: 1973398186 }],
+		[
+			{},
+			{
+				firstPartyCookieDomain: '   ',
+				scriptUrl: ' https://img.en25.com/i/elqCfg.min.js ',
+				siteId: ' 1973398186 ',
+			},
+		],
+		[
+			{ firstPartyCookieDomain: 'tracking.example.com' },
+			{ firstPartyCookieDomain: 'Tracking.Example.COM' },
+		],
+		[
+			{ firstPartyCookieDomain: 'Tracking.Example.COM' },
+			{ firstPartyCookieDomain: 'tracking.example.com' },
+		],
+	] as const)(
+		'shares opt-in and page tracking for equivalent registrations, case %#',
+		(base, overrides) => {
+			const kernel = createConsentKernel();
+			void kernel.commands.save(granted);
+			const options = { siteId: '1973398186', ...base };
+			const first = createScriptLoader({
+				kernel,
+				scripts: [eloquaTracking(options)],
+			});
+			const second = createScriptLoader({
+				kernel,
+				scripts: [eloquaTracking({ ...options, ...overrides })],
+			});
+			try {
+				const loader = getLoader();
+				const push = installDispatcher();
+				loader.dispatchEvent(new Event('load'));
+				expect(push.mock.calls).toEqual([[['elqOptIn']]]);
+				first.dispose();
+				document
+					.querySelector('script[src*="pps=41"]')
+					?.dispatchEvent(new Event('load'));
+				void kernel.commands.save(deniedConsents);
+				void kernel.commands.save(granted);
+				Array.from(document.querySelectorAll('script[src*="pps=41"]'))
+					.at(-1)
+					?.dispatchEvent(new Event('load'));
+				expect(push.mock.calls).toEqual([
+					[['elqOptIn']],
+					[['elqTrackPageView']],
+					[['elqOptOut']],
+					[['elqOptIn']],
+					[['elqTrackPageView']],
+				]);
+				expect(getLoader()).toBe(loader);
+			} finally {
+				second.dispose();
+				first.dispose();
+				kernel.dispose();
+			}
+		}
+	);
 	it('keeps the current grant across helper recreation and ignores stale responses', () => {
 		const create = () => eloquaTracking({ siteId: '1973398186' });
 		loadScripts([create()], granted);
