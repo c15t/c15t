@@ -618,6 +618,18 @@
 		},
 		"@c15t/integrations#test": {
 			"dependsOn": ["build", "^build", "transit"],
+			"inputs": [
+				"$TURBO_DEFAULT$",
+				"$TURBO_ROOT$/internals/doc-snippets/javascript/package.json",
+				"$TURBO_ROOT$/internals/doc-snippets/javascript/src/customer-io.ts",
+				"$TURBO_ROOT$/internals/doc-snippets/javascript/src/customer-io-proxy.ts",
+				"$TURBO_ROOT$/internals/doc-snippets/javascript/src/sentry.ts",
+				"$TURBO_ROOT$/docs/shared/examples/javascript/customer-io-configuration.mdx",
+				"$TURBO_ROOT$/docs/shared/examples/javascript/customer-io-proxy.mdx",
+				"$TURBO_ROOT$/scripts/example-doc-sources.ts",
+				"$TURBO_ROOT$/scripts/docs-code-format.ts",
+				"$TURBO_ROOT$/oxfmt.config.ts"
+			],
 			"outputs": [
 				"coverage/coverage-summary.json",
 				"coverage/coverage-final.json",

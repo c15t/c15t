@@ -7,20 +7,23 @@ import { assert, expect, test } from 'vitest';
 // This package uses TypeScript 7's CLI; the root has TypeScript 6's compiler API.
 import ts from '../../../node_modules/typescript/lib/typescript.js';
 import {
-	collectExampleRegions,
+	findRegions,
 	renderExampleRegion,
 } from '../../../scripts/example-doc-sources';
 
 const root = fileURLToPath(new URL('../../..', import.meta.url));
 
-test.each(['customer-io-configuration', 'customer-io-proxy'])(
+test.each([
+	['customer-io-configuration', 'customer-io'],
+	['customer-io-proxy', 'customer-io-proxy'],
+])(
 	'%s compiles as a standalone rendered example',
-	async (name) => {
-		const region = collectExampleRegions(root).find(
-			(candidate) =>
-				candidate.app === 'internals/doc-snippets/javascript' &&
-				candidate.name === name
-		);
+	async (name, sourceFileName) => {
+		const source = `internals/doc-snippets/javascript/src/${sourceFileName}.ts`;
+		const region = findRegions(
+			source,
+			readFileSync(resolve(root, source), 'utf8')
+		).find((candidate) => candidate.name === name);
 		assert(region, `Missing docs:${name} region.`);
 		const rendered = await renderExampleRegion(root, region);
 		expect(readFileSync(resolve(root, region.destination), 'utf8')).toBe(
