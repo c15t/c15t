@@ -192,6 +192,10 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 		example: "snapchatPixel({ pixelId: 'XXXXXXXXXXXXXXX' })",
 		importName: 'snapchatPixel',
 	},
+	'statable-analytics': {
+		example: "statableAnalytics({ siteId: '12345' })",
+		importName: 'statableAnalytics',
+	},
 	'tiktok-pixel': {
 		example: "tiktokPixel({ pixelId: 'XXXXXXXXXXXXXXXXX' })",
 		importName: 'tiktokPixel',

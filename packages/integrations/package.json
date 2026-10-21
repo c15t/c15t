@@ -39,6 +39,7 @@
 		"script-loader",
 		"sentry",
 		"session-replay",
+		"statable",
 		"tiktok-pixel",
 		"vercel-speed-insights",
 		"x-pixel"
@@ -192,6 +193,11 @@
 			"types": "./dist-types/vendors/analytics/rybbit-analytics.d.ts",
 			"import": "./dist/vendors/analytics/rybbit-analytics.js",
 			"default": "./dist/vendors/analytics/rybbit-analytics.js"
+		},
+		"./statable-analytics": {
+			"types": "./dist-types/vendors/analytics/statable-analytics.d.ts",
+			"import": "./dist/vendors/analytics/statable-analytics.js",
+			"default": "./dist/vendors/analytics/statable-analytics.js"
 		},
 		"./umami-analytics": {
 			"types": "./dist-types/vendors/analytics/umami-analytics.d.ts",

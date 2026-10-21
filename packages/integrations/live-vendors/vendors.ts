@@ -55,6 +55,7 @@ import { rybbitAnalytics } from '../src/vendors/analytics/rybbit-analytics';
 import { segment } from '../src/vendors/analytics/segment';
 import { sentry } from '../src/vendors/analytics/sentry';
 import type { SentryClient } from '../src/vendors/analytics/sentry';
+import { statableAnalytics } from '../src/vendors/analytics/statable-analytics';
 import { umamiAnalytics } from '../src/vendors/analytics/umami-analytics';
 import { vercelAnalytics } from '../src/vendors/analytics/vercel-analytics';
 import { vercelSpeedInsights } from '../src/vendors/analytics/vercel-speed-insights';
@@ -209,6 +210,27 @@ type PosthogProbeWindow = Window & {
  * Probe configs for every built-in integration, ordered by registry vendor id.
  */
 export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
+	{
+		bootstrapCheck: () =>
+			check(
+				window.statable === undefined,
+				'Statable event API left absent before the real tracker loads'
+			),
+		createScript: () => statableAnalytics({ siteId: 123456789 }),
+		loaderUrlSubstring: 'statable.com/js/123456789/s.js',
+		notes:
+			'The public loader serves JavaScript for a placeholder site ID. Collection requests are blocked; this does not verify dashboard attribution.',
+		runtimeCheck: () =>
+			check(
+				typeof window.statable?.t === 'function' &&
+					document.cookie === '' &&
+					localStorage.length === 0 &&
+					sessionStorage.length === 0,
+				'Statable initialized its event API without cookies or browser storage'
+			),
+		tier: 'full',
+		vendor: 'statable-analytics',
+	},
 	{
 		skipReason:
 			'Requires a configured Cloudflare zone and purpose IDs. This bridge does not fetch a public vendor loader.',

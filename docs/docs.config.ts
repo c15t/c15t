@@ -868,6 +868,7 @@ export default defineDocsConfig({
 						'segment',
 						'sentry',
 						'rybbit-analytics',
+						'statable-analytics',
 						'umami-analytics',
 						'vercel-analytics',
 						'vercel-speed-insights',
