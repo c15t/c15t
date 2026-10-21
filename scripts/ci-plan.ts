@@ -384,6 +384,7 @@ export const createCiPlan = function createCiPlan(
 				'@c15t/nextjs',
 				'@c15t/tanstack-start',
 				'@c15t/browser',
+				'@c15t/integrations',
 			].includes(name)
 		),
 		testTypes: selected
