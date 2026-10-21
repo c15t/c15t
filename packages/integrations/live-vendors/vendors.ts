@@ -1,14 +1,16 @@
 /**
  * Live probe definitions for built-in `@c15t/integrations` integrations.
  *
- * Each entry pairs a registry vendor with safe placeholder configuration and
+ * Each entry pairs a registry vendor with probe configuration and
  * the checks used by the live monitor. This module is imported by the Node
  * runner and bundled into the browser harness, so check callbacks run inside
  * the probed page.
  *
  * Placeholder ids must be obviously fake and must never point at a real
- * account. Collection endpoints are blocked by the runner, so probes cannot
- * send real analytics data even when a vendor runtime initializes.
+ * account, except for the Attentive customer-tag probe documented below.
+ * The runner allows literal URL substring matches and answers other intercepted
+ * HTTP requests with empty 204 responses. Allowlisted requests reach upstream;
+ * these routing rules do not establish complete isolation or account delivery.
  */
 
 import { linkedinInsights } from '../src/vendors/ads-and-pixels/linkedin-insights';
@@ -211,13 +213,19 @@ type PosthogProbeWindow = Window & {
  */
 export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 	{
+		// Attentive-only exception: saved demo/EXAMPLE CDN responses were empty
+		// 204s and YOUR_DOMAIN returned HTML, so those synthetic slugs could not
+		// install the tag. The customer loader was publicly served at
+		// https://cdn.attn.tv/allbirds/dtag.js; the saved vendor installation
+		// guide does not identify Allbirds as a test tenant. Public availability
+		// does not establish customer authorization.
 		allowUrlSubstrings: ['cdn.attn.tv/tag/'],
 		bootstrapCheck: () =>
 			check(!Object.hasOwn(window, 'attentive'), 'No custom Attentive stub'),
 		createScript: () => attentiveTag({ siteSlug: 'allbirds' }),
 		loaderUrlSubstring: 'cdn.attn.tv/allbirds/dtag.js',
 		notes:
-			'Public Allbirds tag and chained vendor JavaScript prove real tag execution. Collection, iframe/config origins and signup submissions are blocked; account conversion and complete runtime shutdown are not verified.',
+			'Attentive customer-tag exception. Checks tag execution and creation of window.attentive; chained static tag bundles are allowlisted. Known collection, iframe/config and signup URLs do not match the configured literal substrings. Full SDK initialization, complete isolation, account conversion and complete runtime shutdown are not verified.',
 		runtimeReplacedGlobals: ['attentive'],
 		tier: 'full',
 		vendor: 'attentive',

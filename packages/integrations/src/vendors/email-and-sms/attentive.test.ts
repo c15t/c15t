@@ -28,6 +28,21 @@ describe('attentiveTag', () => {
 			);
 		}
 	);
+	it.each([undefined, null])('skips absent runtime options %s', (options) => {
+		expectSkippedScript(
+			// @ts-expect-error JavaScript callers can omit the required options.
+			() => attentiveTag(options),
+			{ category: 'marketing', id: 'attentive' },
+			'attentiveTag: missing or invalid siteSlug'
+		);
+	});
+	it('preserves the category when rejecting a malformed slug', () => {
+		expectSkippedScript(
+			() => attentiveTag({ category: 'experience', siteSlug: 'site/path' }),
+			{ category: 'experience', id: 'attentive' },
+			'attentiveTag: invalid siteSlug, use the single site slug from Attentive'
+		);
+	});
 	it('trims identifiers and custom loader URLs', () => {
 		expect(
 			attentiveTag({

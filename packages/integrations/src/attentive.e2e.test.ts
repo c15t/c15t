@@ -2,6 +2,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
 import {
+	clearAllScripts,
 	deniedConsents,
 	loadScripts,
 	registerVendorContractCleanup,
@@ -69,6 +70,23 @@ describe('Attentive consent loader', () => {
 
 describe('Attentive body tag lifecycle', () => {
 	registerVendorContractCleanup();
+	it('retains the validated configuration across caller mutation and remount', () => {
+		const options = { siteSlug: ' c15t-test_site-123 ' };
+		const script = attentiveTag(options);
+		options.siteSlug = 'invalid/path';
+		loadScripts([script], deniedConsents);
+		expect(document.querySelector('script[src]')).toBeNull();
+		updateScripts([script], granted);
+		expect(getLoader().src).toBe(
+			'https://cdn.attn.tv/c15t-test_site-123/dtag.js'
+		);
+		clearAllScripts();
+		loadScripts([script], granted);
+		expect(getLoader().src).toBe(
+			'https://cdn.attn.tv/c15t-test_site-123/dtag.js'
+		);
+		expect(document.querySelectorAll('script[src]')).toHaveLength(1);
+	});
 	it('uses one body tag across pending withdrawal and helper recreation', () => {
 		const create = () => attentiveTag({ siteSlug: 'allbirds' });
 		loadScripts([create()], granted);

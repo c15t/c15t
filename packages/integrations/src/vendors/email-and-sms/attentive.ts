@@ -36,18 +36,8 @@ const reuseAttentiveTag = createScriptReuse<AttentiveTagOptions>();
 const createAttentiveTag = function createAttentiveTag(
 	options: AttentiveTagOptions
 ): Script {
-	const category = options?.category ?? 'marketing';
-	const skipped = { category, manifest: attentiveTagManifest };
-	const siteSlug = readId(options?.siteSlug);
-	if (!siteSlug) {
-		return skipMissingId('attentiveTag', 'siteSlug', skipped);
-	}
-	if (!/^[\w-]+$/u.test(siteSlug)) {
-		return skipScript(
-			'attentiveTag: invalid siteSlug, use the single site slug from Attentive',
-			skipped
-		);
-	}
+	const category = options.category ?? 'marketing';
+	const siteSlug = String(options.siteSlug).trim();
 	return {
 		...resolveManifest(attentiveTagManifest, {
 			scriptUrl: resolveScriptUrl(
@@ -73,20 +63,18 @@ const createAttentiveTag = function createAttentiveTag(
 export const attentiveTag = function attentiveTag(
 	options: AttentiveTagOptions
 ): Script {
-	if (!readId(options?.siteSlug)) {
-		return skipMissingId('attentiveTag', 'siteSlug', {
-			category: options?.category ?? 'marketing',
-			manifest: attentiveTagManifest,
-		});
+	const siteSlug = readId(options?.siteSlug);
+	const skipped = {
+		category: options?.category ?? 'marketing',
+		manifest: attentiveTagManifest,
+	};
+	if (!siteSlug) {
+		return skipMissingId('attentiveTag', 'siteSlug', skipped);
 	}
-	const slug = readId(options.siteSlug);
-	if (slug && !/^[\w-]+$/u.test(slug)) {
+	if (!/^[\w-]+$/u.test(siteSlug)) {
 		return skipScript(
 			'attentiveTag: invalid siteSlug, use the single site slug from Attentive',
-			{
-				category: options.category ?? 'marketing',
-				manifest: attentiveTagManifest,
-			}
+			skipped
 		);
 	}
 	return reuseAttentiveTag(options, createAttentiveTag);
