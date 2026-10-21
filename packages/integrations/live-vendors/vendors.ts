@@ -19,6 +19,7 @@ import { openaiPixel } from '../src/vendors/ads-and-pixels/openai-pixel';
 import { pinterestTag } from '../src/vendors/ads-and-pixels/pinterest-tag';
 import { redditPixel } from '../src/vendors/ads-and-pixels/reddit-pixel';
 import { snapchatPixel } from '../src/vendors/ads-and-pixels/snapchat-pixel';
+import { theTradeDeskPixel } from '../src/vendors/ads-and-pixels/the-trade-desk';
 import { tiktokPixel } from '../src/vendors/ads-and-pixels/tiktok-pixel';
 import { xPixel } from '../src/vendors/ads-and-pixels/x-pixel';
 import { adobeAnalytics } from '../src/vendors/analytics/adobe-analytics';
@@ -209,6 +210,31 @@ type PosthogProbeWindow = Window & {
  * Probe configs for every built-in integration, ordered by registry vendor id.
  */
 export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
+	{
+		bootstrapCheck: () =>
+			check(
+				typeof window.ttdConversionEvents === 'function' &&
+					Array.isArray(window.ttdConversionEventsLayer) &&
+					window.ttdConversionEventsLayer.length === 2,
+				'Official init and event arguments queue'
+			),
+		createScript: () =>
+			theTradeDeskPixel({
+				advertiserId: 'rt7ftg2',
+				enableCookieSyncing: false,
+				pixelIds: ['ejs57s6'],
+			}),
+		loaderUrlSubstring: 'js.adsrvr.org/up_loader.3.0.0.js',
+		notes:
+			'Official sample advertiser and pixel IDs. Real SDK executes with collection and sync frames blocked. Account delivery and TDID creation are not verified by this monitor.',
+		runtimeCheck: () =>
+			check(
+				typeof window.ttdConversionEvents?.dumpConfigs === 'function',
+				'Real Trade Desk SDK added dumpConfigs'
+			),
+		tier: 'full',
+		vendor: 'the-trade-desk',
+	},
 	{
 		skipReason:
 			'Requires a configured Cloudflare zone and purpose IDs. This bridge does not fetch a public vendor loader.',

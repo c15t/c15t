@@ -534,6 +534,16 @@ export const builtInScriptIntegrations = [
 		packageSubpath: 'x-pixel',
 		vendor: 'x-pixel',
 	},
+	{
+		consentCategory: 'marketing',
+		docsSlug: 'the-trade-desk',
+		hint: 'Universal Pixel conversions and advertising audiences',
+		integrationCategory: 'ads-and-pixels',
+		key: 'theTradeDeskPixel',
+		label: 'The Trade Desk',
+		packageSubpath: 'the-trade-desk',
+		vendor: 'the-trade-desk',
+	},
 ] as const satisfies readonly IntegrationRegistryEntry[];
 
 /**

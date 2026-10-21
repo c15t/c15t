@@ -2,6 +2,7 @@
  * One script per built-in integration, built from its public helper with
  * sample options, and the fields the helper must set.
  */
+
 import type { BuiltInScriptIntegrationKey } from '../registry';
 import { linkedinInsights } from '../vendors/ads-and-pixels/linkedin-insights';
 import { metaPixel } from '../vendors/ads-and-pixels/meta-pixel';
@@ -10,6 +11,7 @@ import { openaiPixel } from '../vendors/ads-and-pixels/openai-pixel';
 import { pinterestTag } from '../vendors/ads-and-pixels/pinterest-tag';
 import { redditPixel } from '../vendors/ads-and-pixels/reddit-pixel';
 import { snapchatPixel } from '../vendors/ads-and-pixels/snapchat-pixel';
+import { theTradeDeskPixel } from '../vendors/ads-and-pixels/the-trade-desk';
 import { tiktokPixel } from '../vendors/ads-and-pixels/tiktok-pixel';
 import { xPixel } from '../vendors/ads-and-pixels/x-pixel';
 import { adobeAnalytics } from '../vendors/analytics/adobe-analytics';
@@ -362,6 +364,17 @@ export const helperParityCases = {
 			src: 'https://sc-static.net/scevent.min.js',
 		},
 		script: snapchatPixel({ pixelId: '123456789012345' }),
+	},
+	theTradeDeskPixel: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: true,
+			src: 'https://js.adsrvr.org/up_loader.3.0.0.js',
+		},
+		script: theTradeDeskPixel({
+			advertiserId: 'c15tfake',
+			pixelIds: ['c15tfake'],
+		}),
 	},
 	tiktokPixel: {
 		expected: {

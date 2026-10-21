@@ -19,6 +19,7 @@ import { openaiPixelManifest } from './vendors/ads-and-pixels/openai-pixel';
 import { pinterestTagManifest } from './vendors/ads-and-pixels/pinterest-tag';
 import { redditPixelManifest } from './vendors/ads-and-pixels/reddit-pixel';
 import { snapchatPixelManifest } from './vendors/ads-and-pixels/snapchat-pixel';
+import { theTradeDeskPixelManifest } from './vendors/ads-and-pixels/the-trade-desk';
 import { tiktokPixelManifest } from './vendors/ads-and-pixels/tiktok-pixel';
 import { xPixelManifest } from './vendors/ads-and-pixels/x-pixel';
 import { adobeAnalyticsManifest } from './vendors/analytics/adobe-analytics';
@@ -63,6 +64,7 @@ const validConsentCategories = [
 ] as const satisfies readonly AllConsentNames[];
 
 const vendorManifests = [
+	theTradeDeskPixelManifest,
 	googleTagManagerManifest,
 	gtagManifest,
 	ahrefsAnalyticsManifest,
