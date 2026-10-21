@@ -143,7 +143,7 @@ describe('insiderTag', () => {
 		]);
 	});
 
-	it('sends false and init to an existing runtime push method on revocation', () => {
+	it('sends false, a neutral page and init to an existing runtime push method on revocation', () => {
 		const push = vi.fn();
 		const runtime = { push };
 		window.InsiderQueue = runtime;
@@ -159,6 +159,7 @@ describe('insiderTag', () => {
 		expect(window.InsiderQueue).toBe(runtime);
 		expect(push.mock.calls).toEqual([
 			[{ type: 'user', value: { gdpr_optin: false } }],
+			[{ type: 'other' }],
 			[{ type: 'init' }],
 		]);
 	});
@@ -181,7 +182,7 @@ describe('insiderTag', () => {
 		script.onConsentChange?.(
 			createCallbackInfo({ hasConsent: false, id: script.id })
 		);
-		expect(push).toHaveBeenCalledTimes(2);
+		expect(push).toHaveBeenCalledTimes(3);
 	});
 
 	it('can create its configuration during SSR', () => {

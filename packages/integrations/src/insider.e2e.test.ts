@@ -17,9 +17,77 @@ import {
 	updateScripts,
 } from './e2e-test-utils';
 import { insiderTag } from './vendors/email-and-sms/insider';
+import type { InsiderPageType } from './vendors/email-and-sms/insider';
 
 const account = { partnerId: '123456', partnerName: 'yourpartner' };
 const LOADER_SRC = 'https://yourpartner.api.useinsider.com/ins.js?id=123456';
+const purchasePage: InsiderPageType = {
+	type: 'purchase',
+	value: {
+		items: [
+			{
+				id: 'product-1',
+				name: 'Blue dress',
+				product_image_url: 'https://example.com/blue-dress.png',
+				quantity: 1,
+				taxonomy: ['Dresses'],
+				unit_price: 100,
+				unit_sale_price: 90,
+				url: 'https://example.com/blue-dress',
+			},
+		],
+		order_id: 'order-1',
+		total: 90,
+	},
+};
+
+// Models the guide's last-page-on-init rule, not the SDK or remote delivery.
+const installSdkModel = function installSdkModel() {
+	const pageViews: {
+		gdprOptin: unknown;
+		page: { type: unknown } | undefined;
+	}[] = [];
+	let page: { type: unknown } | undefined;
+	let gdprOptin: unknown = true;
+	const push = vi.fn((...entries: unknown[]) => {
+		for (const entry of entries) {
+			if (typeof entry !== 'object' || entry === null || !('type' in entry)) {
+				throw new Error('Expected an Insider queue entry');
+			}
+			switch (entry.type) {
+				case 'user':
+					if (
+						'value' in entry &&
+						typeof entry.value === 'object' &&
+						entry.value !== null &&
+						'gdpr_optin' in entry.value
+					) {
+						gdprOptin = entry.value.gdpr_optin;
+					}
+					break;
+				case 'init':
+					pageViews.push({ gdprOptin, page: structuredClone(page) });
+					break;
+				case 'home':
+				case 'other':
+				case 'category':
+				case 'product':
+				case 'cart':
+				case 'purchase':
+					page = entry;
+					break;
+				default:
+					throw new Error('Unexpected Insider queue entry type');
+			}
+		}
+	});
+	if (Array.isArray(window.InsiderQueue)) {
+		push(...window.InsiderQueue);
+	}
+	const runtime = { pageViews, push };
+	window.InsiderQueue = runtime;
+	return runtime;
+};
 
 const getLoader = function getLoader(): HTMLScriptElement | null {
 	return document.querySelector<HTMLScriptElement>(
@@ -119,7 +187,7 @@ describe('Insider loader contract', () => {
 		expect(window.InsiderQueue).toEqual(beforeAppend);
 	});
 
-	it('sends the documented false and init updates to a running SDK and removes the loader', () => {
+	it('sends false, a neutral page and init to a running SDK and removes the loader', () => {
 		const scripts = [insiderTag(account)];
 		loadScripts(scripts, grantedMarketingConsents);
 		const element = getLoader();
@@ -137,17 +205,98 @@ describe('Insider loader contract', () => {
 		expect(window.InsiderQueue).toBe(runtime);
 		expect(push.mock.calls).toEqual([
 			[{ type: 'user', value: { gdpr_optin: false } }],
+			[{ type: 'other' }],
 			[{ type: 'init' }],
 		]);
-		expect(push.mock.contexts).toEqual([runtime, runtime]);
+		expect(push.mock.contexts).toEqual([runtime, runtime, runtime]);
 
 		updateScripts(scripts, grantedMarketingConsents);
 		expect(window.InsiderQueue).toBe(runtime);
 		expect(getLoader()).not.toBe(element);
-		expect(push.mock.calls.slice(2)).toEqual([
+		expect(push.mock.calls.slice(3)).toEqual([
 			[{ type: 'user', value: { gdpr_optin: true } }],
 			[{ type: 'other' }],
 			[{ type: 'init' }],
+		]);
+	});
+
+	it.each(['configured', 'manual SPA'])(
+		'does not replay a %s purchase on withdrawal or repeat denial',
+		(source) => {
+			const scripts = [
+				insiderTag({
+					...account,
+					pageType: source === 'configured' ? purchasePage : { type: 'other' },
+				}),
+			];
+			loadScripts(scripts, grantedMarketingConsents);
+			getLoader()?.dispatchEvent(new Event('load'));
+			const runtime = installSdkModel();
+			if (source === 'manual SPA') {
+				runtime.push(purchasePage);
+				runtime.push({ type: 'init' });
+			}
+			const initialViews = [...runtime.pageViews];
+			expect(initialViews.at(-1)).toEqual({
+				gdprOptin: true,
+				page: purchasePage,
+			});
+			updateScripts(scripts, {
+				...grantedMarketingConsents,
+				measurement: true,
+			});
+			expect(runtime.pageViews).toEqual(initialViews);
+
+			updateScripts(scripts, deniedConsents);
+			updateScripts(scripts, deniedConsents);
+			updateScripts(scripts, grantedMeasurementConsents);
+
+			expect(runtime.pageViews).toEqual([
+				...initialViews,
+				{ gdprOptin: false, page: { type: 'other' } },
+			]);
+			expect(
+				runtime.pageViews.filter(({ page }) => page?.type === 'purchase')
+			).toHaveLength(1);
+			expect(getLoader()).toBeNull();
+		}
+	);
+
+	it('processes an earlier queued purchase once if the SDK starts after withdrawal', () => {
+		const scripts = [insiderTag({ ...account, pageType: purchasePage })];
+		loadScripts(scripts, grantedMarketingConsents);
+		const stale = getLoader();
+		updateScripts(scripts, deniedConsents);
+		expect(stale?.isConnected).toBe(false);
+		expect(window.InsiderQueue).toEqual([
+			{ type: 'user', value: { gdpr_optin: true } },
+			purchasePage,
+			{ type: 'init' },
+			{ type: 'user', value: { gdpr_optin: false } },
+			{ type: 'other' },
+			{ type: 'init' },
+		]);
+
+		const runtime = installSdkModel();
+		stale?.dispatchEvent(new Event('load'));
+		expect(runtime.pageViews).toEqual([
+			{ gdprOptin: true, page: purchasePage },
+			{ gdprOptin: false, page: { type: 'other' } },
+		]);
+		expect(getLoader()).toBeNull();
+	});
+
+	it('reuses the supplied purchase on regrant, requiring a guarded configuration rebuild', () => {
+		const scripts = [insiderTag({ ...account, pageType: purchasePage })];
+		loadScripts(scripts, grantedMarketingConsents);
+		getLoader()?.dispatchEvent(new Event('load'));
+		const runtime = installSdkModel();
+		updateScripts(scripts, deniedConsents);
+		updateScripts(scripts, grantedMarketingConsents);
+		expect(runtime.pageViews).toEqual([
+			{ gdprOptin: true, page: purchasePage },
+			{ gdprOptin: false, page: { type: 'other' } },
+			{ gdprOptin: true, page: purchasePage },
 		]);
 	});
 
@@ -165,6 +314,7 @@ describe('Insider loader contract', () => {
 			{ type: 'home' },
 			{ type: 'init' },
 			{ type: 'user', value: { gdpr_optin: false } },
+			{ type: 'other' },
 			{ type: 'init' },
 		]);
 		// Exercises loader completion only. It does not execute a late vendor SDK.
@@ -207,6 +357,7 @@ describe('Insider loader contract', () => {
 			{ type: 'other' },
 			{ type: 'init' },
 			{ type: 'user', value: { gdpr_optin: false } },
+			{ type: 'other' },
 			{ type: 'init' },
 		]);
 	});
@@ -215,7 +366,7 @@ describe('Insider loader contract', () => {
 		const kernel = createConsentKernel();
 		const loader = createScriptLoader({
 			kernel,
-			scripts: [insiderTag(account)],
+			scripts: [insiderTag({ ...account, pageType: purchasePage })],
 		});
 		try {
 			await kernel.commands.save(
@@ -230,16 +381,26 @@ describe('Insider loader contract', () => {
 				{ vendors: { insider: true } }
 			);
 			expect(getLoader()).not.toBeNull();
-			const push = vi.fn();
-			window.InsiderQueue = { push };
+			getLoader()?.dispatchEvent(new Event('load'));
+			const runtime = installSdkModel();
+			runtime.push.mockClear();
 			await kernel.commands.save(
 				{ marketing: true },
 				{ vendors: { insider: false } }
 			);
 			expect(getLoader()).toBeNull();
-			expect(push.mock.calls).toEqual([
+			expect(runtime.push.mock.calls).toEqual([
 				[{ type: 'user', value: { gdpr_optin: false } }],
+				[{ type: 'other' }],
 				[{ type: 'init' }],
+			]);
+			await kernel.commands.save(
+				{ marketing: true, measurement: true },
+				{ vendors: { insider: false } }
+			);
+			expect(runtime.pageViews).toEqual([
+				{ gdprOptin: true, page: purchasePage },
+				{ gdprOptin: false, page: { type: 'other' } },
 			]);
 		} finally {
 			loader.dispose();

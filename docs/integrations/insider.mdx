@@ -10,9 +10,9 @@ group: integrations
 The c15t `insiderTag` helper waits for `marketing` consent before creating
 `InsiderQueue` or requesting Insider's `ins.js`. It queues
 `user.gdpr_optin: true`, the current page definition, and `init` before the
-loader starts. On revocation it sends `gdpr_optin: false` followed by `init`
-and removes the loader. Keep c15t's default reload-on-revocation behavior
-enabled to stop code the SDK already ran.
+loader starts. On revocation it sends `gdpr_optin: false`, a neutral
+`{ type: 'other' }` page, and `init`, then removes the loader. Keep c15t's
+default reload-on-revocation behavior enabled to stop code the SDK already ran.
 
 ## Configure Insider
 
@@ -121,17 +121,23 @@ That guarantee requires removing other Insider installations and applies to
 this helper's work.
 
 If the category or the Insider vendor switch is revoked after installation,
-the helper pushes `{ type: 'user', value: { gdpr_optin: false } }` followed by
-`{ type: 'init' }` through `InsiderQueue.push`. c15t sends these updates; you
-do not need to call the queue yourself.
+the helper pushes `{ type: 'user', value: { gdpr_optin: false } }`, then
+`{ type: 'other' }`, then `{ type: 'init' }` through `InsiderQueue.push`.
+The neutral page replaces the SDK's last page definition before the withdrawal
+`init`, so that init does not replay a purchase. The helper replaces the page
+on every withdrawal, including when your app manually pushed a purchase during
+SPA navigation. c15t sends these updates; you do not need to call the queue
+yourself.
 
 This updates the user's consent through the same `user` and `init` lifecycle
 used on grant. It is not an SDK unload or a promise that all requests stop.
 Insider says `gdpr_optin: false` prevents campaigns except cookieless cases
 and prevents Insider messages. It does not document a shutdown or unload
-method in the integration guide. The final `init` can trigger page processing,
-so the helper does not promise zero traffic after revocation on the running
-page.
+method in the integration guide. The final `init` can trigger an Other Page
+View, so the helper does not promise zero traffic after revocation on the
+running page. Replacing the page does not deduplicate purchases or remove
+earlier queued purchase entries. The durable per-order guard and guarded
+configuration rebuild on reload or regrant are still required.
 
 c15t removes the loader, but a download already in flight can still finish,
 and code that already ran can keep listeners or timers. If consent is revoked

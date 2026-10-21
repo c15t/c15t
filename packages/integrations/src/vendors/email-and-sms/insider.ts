@@ -146,6 +146,12 @@ export const insiderManifest = {
 			type: 'callGlobal',
 		},
 		{
+			args: [{ type: 'other' }],
+			global: 'InsiderQueue',
+			method: 'push',
+			type: 'callGlobal',
+		},
+		{
 			args: [{ type: 'init' }],
 			global: 'InsiderQueue',
 			method: 'push',
@@ -188,8 +194,10 @@ const PARTNER_NAME_PATTERN = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/u;
  *
  * The helper always pushes `user.gdpr_optin: true`, page context, and `init`
  * before inserting the loader. Revocation pushes `user.gdpr_optin: false`
- * followed by `init`. Keep reload-on-revocation enabled: Insider can still
- * show cookieless campaigns, and removing a loader does not unload its SDK.
+ * followed by a neutral `other` page and `init` so the withdrawal init does
+ * not reuse a purchase page. Keep reload-on-revocation enabled: Insider can
+ * still show cookieless campaigns, and removing a loader does not unload its
+ * SDK or cancel earlier queued entries.
  *
  * @param options - Insider account, page context, and consent configuration.
  * @returns The consent-gated Insider script configuration.
