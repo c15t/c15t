@@ -1359,6 +1359,37 @@ describe('createHostedTransport: request shape', () => {
 		expect((patchInit as RequestInit).method).toBe('PATCH');
 	});
 
+	test.each(['hosted', 'manifest'] as const)(
+		'the %s transport leaves the identity for the next save when an older backend does not know the subject',
+		async (kind) => {
+			const fetchFor = (status: number) =>
+				(() =>
+					Promise.resolve(
+						Response.json({ message: 'nope' }, { status })
+					)) as unknown as typeof globalThis.fetch;
+			const transportFor = (status: number) =>
+				kind === 'hosted'
+					? createHostedTransport({
+							backendURL: 'https://backend.test',
+							fetch: fetchFor(status),
+						})
+					: createManifestTransport({
+							backendURL: 'https://backend.test',
+							domain: 'example.com',
+							fetch: fetchFor(status),
+							snapshot: MANIFEST_FIXTURE,
+						});
+			const user = { externalId: 'user-42' };
+
+			await expect(
+				transportFor(404).identify?.(user, 'sub_unsaved')
+			).resolves.toBeUndefined();
+			await expect(
+				transportFor(500).identify?.(user, 'sub_unsaved')
+			).rejects.toThrow();
+		}
+	);
+
 	test('initURL overrides init without changing the save endpoint', async () => {
 		const fetchSpy = vi
 			.fn()

@@ -26,6 +26,16 @@
  *   causes never schedule a write, so startup does not renew a receipt or
  *   recreate a missing cookie or localStorage mirror. A `hydrate()` call
  *   flushes any queued write first.
+ * - Every runtime has a subject ID from startup, before the visitor
+ *   decides anything. Startup takes the one the records carry, else the
+ *   one the server named, else the one stored under `<key>-sid`, else a
+ *   new one. When `<key>-sid` (cookie and localStorage) does not hold that
+ *   ID yet, it is stored there at once; this is the only startup write.
+ *   `<key>-sid` is never read as a choice, so an ID alone still shows the
+ *   banner. Until a save uses it, an ID this runtime made follows one
+ *   another tab stores. Every later subject change is stored there too,
+ *   and `clear()` keeps it. Only `set.subjectId(null)` replaces it with a
+ *   new one. `keepSubject` and external permissions turn all of this off.
  * - Choice envelope writes follow `choice:recorded` and `subject:resolved`.
  *   The vendor record follows `subject:resolved` too, since it carries the
  *   subject for a visitor with no category choice yet.
@@ -63,8 +73,8 @@
  *   synchronously. Script-tag builds bundle it and swap in
  *   `writer-loader-static.ts`.
  * - `clear()` needs no write code: it clears the kernel's records and
- *   storage, and stores the clear epoch, before it returns, so a reload
- *   right after it cannot restore a cleared grant. It cancels queued writes
+ *   storage except `<key>-sid`, and stores the clear epoch, before it
+ *   returns, so a reload right after it cannot restore a cleared grant. It cancels queued writes
  *   first, so a pending flush cannot recreate what was just cleared. Its
  *   `records:cleared` event makes the kernel drop its queued saves.
  * - Writes and `reconcile()` follow the ordering rules in

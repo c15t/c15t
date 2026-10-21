@@ -187,6 +187,11 @@ export const createHostedRecordTransport = function createHostedRecordTransport(
 				headers: jsonHeaders,
 				method: 'PATCH',
 			});
+			// A backend older than first-load subject IDs only knows subjects
+			// a save created. The identity then travels with the next save.
+			if (response.status === 404) {
+				return;
+			}
 			if (!response.ok) {
 				throw await failed('/subjects/:id', response);
 			}
