@@ -4,8 +4,8 @@ import { resolveManifest } from '../../resolve';
 import { vendorManifestContract, runtimeTimestampValue } from '../../types';
 import type { VendorManifest } from '../../types';
 import { readId, skipMissingId } from '../_shared/required-id';
-import { createScriptReuse } from '../_shared/reuse-script';
 import { resolveScriptUrl, trimToUndefined } from '../_shared/script-url';
+import { withActiveCampaignRuntime } from './activecampaign-runtime';
 
 declare global {
 	interface Window {
@@ -58,81 +58,13 @@ export const activeCampaignTrackingManifest = {
 export interface ActiveCampaignTrackingOptions {
 	/** ActiveCampaign account ID from the tracking snippet. */
 	accountId: string | number;
-	/** Contact email, sent only after the mapped consent. */
+	/** Email for future requests. Removing it clears the email field after consent. */
 	email?: string;
 	/** Consent condition required before loading. @default 'marketing' */
 	category?: Script['category'];
-	/** Regional or proxied ActiveCampaign loader URL. */
+	/** Regional or proxied loader URL. Fixed after loading starts on this page. */
 	scriptUrl?: string;
 }
-
-const createActiveCampaignTracking = function createActiveCampaignTracking(
-	options: ActiveCampaignTrackingOptions
-): Script {
-	const category = options?.category ?? 'marketing';
-	const accountId = readId(options?.accountId);
-	if (!accountId) {
-		return skipMissingId('activeCampaignTracking', 'accountId', {
-			category,
-			manifest: activeCampaignTrackingManifest,
-		});
-	}
-	const email = trimToUndefined(options.email);
-	const manifest: VendorManifest = email
-		? {
-				...activeCampaignTrackingManifest,
-				onLoadGranted: [
-					{
-						args: ['setEmail', '{{email}}'],
-						global: 'pgo',
-						type: 'callGlobal',
-					},
-					...activeCampaignTrackingManifest.onLoadGranted,
-				],
-			}
-		: activeCampaignTrackingManifest;
-	const script = resolveManifest(manifest, {
-		accountId,
-		email,
-		scriptUrl: resolveScriptUrl(
-			options.scriptUrl,
-			'https://diffuser-cdn.app-us1.com/diffuser/diffuser.js'
-		),
-	});
-	let hasConsent = false;
-	let loaded = false;
-	return {
-		...script,
-		category,
-		onBeforeLoad(info) {
-			({ hasConsent } = info);
-			if (hasConsent) {
-				script.onBeforeLoad?.(info);
-			}
-		},
-		onConsentChange(info) {
-			const changed = hasConsent !== info.hasConsent;
-			({ hasConsent } = info);
-			script.onConsentChange?.(info);
-			if (changed && hasConsent && loaded && info.element?.isConnected) {
-				script.onLoad?.(info);
-			}
-		},
-		onDispose() {
-			hasConsent = false;
-		},
-		onLoad(info) {
-			loaded = true;
-			if (hasConsent && info.hasConsent && info.element?.isConnected) {
-				script.onLoad?.(info);
-			}
-		},
-		serverStart: undefined,
-	};
-};
-
-const reuseActiveCampaignTracking =
-	createScriptReuse<ActiveCampaignTrackingOptions>();
 
 /**
  * Loads ActiveCampaign site tracking only after consent.
@@ -146,11 +78,25 @@ const reuseActiveCampaignTracking =
 export const activeCampaignTracking = function activeCampaignTracking(
 	options: ActiveCampaignTrackingOptions
 ): Script {
-	if (!readId(options?.accountId)) {
+	const category = options?.category ?? 'marketing';
+	const accountId = readId(options?.accountId);
+	if (!accountId) {
 		return skipMissingId('activeCampaignTracking', 'accountId', {
-			category: options?.category ?? 'marketing',
+			category,
 			manifest: activeCampaignTrackingManifest,
 		});
 	}
-	return reuseActiveCampaignTracking(options, createActiveCampaignTracking);
+	const email = trimToUndefined(options.email);
+	const scriptUrl = resolveScriptUrl(
+		options.scriptUrl,
+		'https://diffuser-cdn.app-us1.com/diffuser/diffuser.js'
+	);
+	const script = resolveManifest(activeCampaignTrackingManifest, {
+		accountId,
+		scriptUrl,
+	});
+	return withActiveCampaignRuntime(
+		{ ...script, category },
+		{ accountId, email, scriptUrl }
+	);
 };
