@@ -372,7 +372,12 @@ export const assertPolicyObservation = function assertPolicyObservation(
 	if (expected.choice !== undefined) {
 		api.expect(snapshot.explicitChoice).toEqual(expected.choice);
 	}
-	if (expected.subject !== undefined) {
+	if (expected.subject === 'generated') {
+		api.expect(Object.keys(snapshot.subject ?? {})).toEqual(['subjectId']);
+		api
+			.expect(snapshot.subject?.subjectId?.startsWith('sub_'), 'subject ID')
+			.toBe(true);
+	} else if (expected.subject !== undefined) {
 		api.expect(snapshot.subject).toEqual(expected.subject);
 	}
 	if (expected.resolution !== undefined) {
