@@ -2,9 +2,12 @@
  * @vitest-environment jsdom
  */
 
+import { createConsentKernel } from '@c15t/core';
+import { createScriptLoader } from '@c15t/core/modules/script-loader';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
+	clearAllScripts,
 	deniedConsents,
 	installHeadProbe,
 	loadScripts,
@@ -168,6 +171,94 @@ describe('Gainsight PX production loader contract', () => {
 		}
 	);
 
+	it.each([false, true])(
+		'keeps the SDK across owner disposal, original owner first=%s',
+		async (originalOwner) => {
+			const runtime = Object.assign(vi.fn(), { __sdkBundleStarted: true });
+			const executeSdk = vi.fn((element: HTMLScriptElement) => {
+				Reflect.set(window, 'aptrinsic', runtime);
+				element.dispatchEvent(new Event('load'));
+			});
+			installHeadProbe(executeSdk);
+			const createScript = () => gainsightPx({ productKey: 'AP-SHARED-KEY-2' });
+			const kernel = createConsentKernel();
+			await kernel.commands.save(grantedConsents);
+			const first = createScriptLoader({ kernel, scripts: [createScript()] });
+			const second = createScriptLoader({ kernel, scripts: [createScript()] });
+			try {
+				(originalOwner ? first : second).dispose();
+				await kernel.commands.save(deniedConsents);
+				expect(runtime).toHaveBeenLastCalledWith('reset');
+				await kernel.commands.save(grantedConsents);
+				expect(runtime).toHaveBeenLastCalledWith('config', 'enableTag', true);
+				(originalOwner ? second : first).dispose();
+				const third = createScriptLoader({ kernel, scripts: [createScript()] });
+				try {
+					expect(executeSdk).toHaveBeenCalledTimes(1);
+					expect(runtime).toHaveBeenLastCalledWith('config', 'enableTag', true);
+				} finally {
+					third.dispose();
+				}
+			} finally {
+				first.dispose();
+				second.dispose();
+				kernel.dispose();
+			}
+		}
+	);
+
+	it('honors a denied shared owner until that owner disposes', async () => {
+		const runtime = Object.assign(vi.fn(), { __sdkBundleStarted: true });
+		Reflect.set(window, 'aptrinsic', runtime);
+		const granted = createConsentKernel();
+		const denied = createConsentKernel();
+		await granted.commands.save(grantedConsents);
+		await denied.commands.save(deniedConsents);
+		const createScript = () =>
+			gainsightPx({ productKey: 'AP-SHARED-DENIED-2' });
+		const first = createScriptLoader({
+			kernel: granted,
+			scripts: [createScript()],
+		});
+		const second = createScriptLoader({
+			kernel: denied,
+			scripts: [createScript()],
+		});
+		try {
+			expect(runtime.mock.calls).toEqual([
+				['config', 'enableTag', true],
+				['config', 'enableTag', false],
+				['reset'],
+			]);
+			first.updateScripts([createScript()]);
+			expect(runtime).toHaveBeenCalledTimes(3);
+			second.dispose();
+			expect(runtime.mock.calls.slice(3)).toEqual([
+				['config', 'enableTag', true],
+			]);
+			expect(document.head.querySelector('script')).toBeNull();
+		} finally {
+			first.dispose();
+			second.dispose();
+			granted.dispose();
+			denied.dispose();
+		}
+	});
+
+	it('requests a pending SDK again after disposal when only its queue exists', () => {
+		const append = vi.spyOn(document.head, 'appendChild');
+		const script = gainsightPx({ productKey: 'AP-PENDING-KEY-2' });
+		loadScripts([script], grantedConsents);
+		const queue = getAptrinsic();
+		clearAllScripts();
+		loadScripts([script], deniedConsents);
+		expect(getAptrinsic()).toBe(queue);
+		expect(document.head.querySelector('script')).toBeNull();
+		updateScripts([script], grantedConsents);
+		expect(append).toHaveBeenCalledTimes(2);
+		expect(document.head.querySelector('script')).not.toBeNull();
+	});
+
 	it('queues opt-out for an in-flight loader and ignores its detached load event', () => {
 		const scripts = [gainsightPx({ productKey: 'AP-PRODUCT-KEY-2' })];
 		loadScripts(scripts, grantedConsents);
@@ -183,6 +274,55 @@ describe('Gainsight PX production loader contract', () => {
 		expect(getAptrinsic().q.map((entry) => Array.from(entry))).toEqual(queue);
 		expect(document.head.querySelector('script')).toBeNull();
 	});
+
+	it.each([false, true])(
+		'does not execute a completed SDK again after final disposal, recreated=%s',
+		(recreated) => {
+			const runtime = Object.assign(vi.fn(), {
+				__sdkBundleStarted: true,
+				init: false,
+				q: [],
+			});
+			const executeSdk = vi.fn((element: HTMLScriptElement) => {
+				Reflect.set(window, 'aptrinsic', runtime);
+				element.dispatchEvent(new Event('load'));
+			});
+			installHeadProbe(executeSdk);
+			const createScript = () =>
+				gainsightPx({
+					productKey: 'AP-PRODUCT-KEY-2',
+					user: { id: 'remount-user' },
+				});
+			let script = createScript();
+			loadScripts([script], grantedConsents);
+			if (recreated) {
+				updateScripts([script], deniedConsents);
+			}
+			clearAllScripts();
+			expect(document.head.querySelector('script')).toBeNull();
+			if (recreated) {
+				script = createScript();
+			}
+			runtime.mockClear();
+
+			loadScripts([script], deniedConsents);
+			expect(runtime.mock.calls).toEqual([
+				['config', 'enableTag', false],
+				['reset'],
+			]);
+			updateScripts([script], { ...deniedConsents, functionality: true });
+			expect(runtime).toHaveBeenCalledTimes(2);
+			updateScripts([script], grantedConsents);
+			expect(executeSdk).toHaveBeenCalledTimes(1);
+			expect(runtime.mock.calls.slice(2)).toEqual([
+				['config', 'enableTag', true],
+				['identify', { id: 'remount-user' }],
+			]);
+			updateScripts([script], deniedConsents);
+			updateScripts([script], grantedConsents);
+			expect(executeSdk).toHaveBeenCalledTimes(1);
+		}
+	);
 
 	it('uses the overridden category for both installation and revocation', () => {
 		const scripts = [

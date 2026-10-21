@@ -80,12 +80,25 @@ If `reloadOnConsentRevoked` is disabled, granting consent again after a complete
 load sends `aptrinsic('config', 'enableTag', true)` and repeats the optional
 `identify` call through the existing API. The helper reuses the loaded SDK
 because PX rejects a second execution of its bundle. A loader removed before
-completion can be requested again on a later grant.
+completion can be requested again on a later grant if PX has not started
+executing it.
+
+Disposing the last provider or script loader removes its element, but PX's code
+remains in the page. Later mounts check PX's own bundle execution marker and
+use the existing API without requesting the bundle again. A denied mount sends
+disable and reset commands without enabling PX or identifying the user. A later
+grant enables the tag and repeats the optional identify call. An `aptrinsic`
+queue alone does not prove that the SDK ran.
+
+Disposal itself does not disable PX or stop its timers and listeners. Keep a
+consent owner mounted while the SDK is in use so it can forward revocation.
 
 Keep `reloadOnConsentRevoked` enabled. Removing a pending loader does not unload
 PX's code or cancel requests that already started. A load that finishes after
 revocation may still execute vendor code. The helper queues the stop request,
-but a page reload ends the SDK's timers and listeners. This helper does not
+but a page reload ends the SDK's timers and listeners. If consent returns before
+that detached download executes, a new loader can race with it and PX can reject
+the duplicate bundle. This helper does not
 guarantee that every PX feature resumes after another grant without a reload.
 Verify recovery with your product key, SDK version and enabled features.
 

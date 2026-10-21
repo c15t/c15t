@@ -107,6 +107,19 @@ export const gainsightPxManifest = {
 
 const reuseGainsightPxScript = createScriptReuse<GainsightPxOptions>();
 
+const hasStartedGainsightPx = (): boolean => {
+	if (typeof window === 'undefined' || !('aptrinsic' in window)) {
+		return false;
+	}
+	const { aptrinsic } = window;
+	// PX sets this before initialization and checks it to reject a second bundle.
+	return (
+		typeof aptrinsic === 'function' &&
+		'__sdkBundleStarted' in aptrinsic &&
+		aptrinsic.__sdkBundleStarted === true
+	);
+};
+
 const createGainsightPxScript = function createGainsightPxScript(
 	options: GainsightPxOptions
 ): Script {
@@ -166,7 +179,9 @@ const createGainsightPxScript = function createGainsightPxScript(
  * that never loads. Keep `reloadOnConsentRevoked` enabled to end the loaded
  * SDK's listeners and timers, including an in-flight installation. Completed
  * loaders are retained so another grant uses the same SDK without executing
- * its bundle twice. Pending loaders are removed on revocation.
+ * its bundle twice. After disposal, PX's execution marker lets later mounts
+ * use its existing API without another loader. Disposal does not stop the SDK.
+ * Pending loaders are removed on revocation.
  * @example
  * gainsightPx({ productKey: 'AP-PRODUCT-KEY-2' });
  * @see https://support.gainsight.com/PX/API_for_Developers/01About/Work_with_Gainsight_PX_Web_SDK
@@ -182,8 +197,17 @@ export const gainsightPx = function gainsightPx(
 			manifest: gainsightPxManifest,
 		});
 	}
-	return reuseGainsightPxScript(
+	const script = reuseGainsightPxScript(
 		{ ...options, productKey },
 		createGainsightPxScript
 	);
+	// Reuse resets its callbacks after final disposal, but cannot unload PX.
+	// Read at mount time so retained script objects and fresh helpers both work.
+	Object.defineProperty(script, 'callbackOnly', {
+		configurable: true,
+		enumerable: true,
+		get: hasStartedGainsightPx,
+	});
+	script.observeConsentBeforeLoad = true;
+	return script;
 };

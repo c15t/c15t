@@ -8,4 +8,4 @@ packages:
 
 ### Add Gainsight PX consent integration
 
-`gainsightPx()` loads Gainsight PX only after `measurement` consent. Includes configuration and revocation guidance, loader contract tests, and CLI setup support. Regrant reuses the completed SDK and restores enable and optional identify calls. The script loader supports retaining completed loads while removing pending loader elements on revocation.
+`gainsightPx()` loads Gainsight PX only after `measurement` consent. Includes configuration and revocation guidance, loader contract tests, and CLI setup support. Regrant and provider remounts reuse the executed SDK and restore enable and optional identify calls only after consent. Denied remounts forward disable and reset commands. The script loader supports retaining completed loads while removing pending loader elements on revocation.
