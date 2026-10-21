@@ -2,7 +2,9 @@
  * One script per built-in integration, built from its public helper with
  * sample options, and the fields the helper must set.
  */
+
 import type { BuiltInScriptIntegrationKey } from '../registry';
+import { amazonAdsTag } from '../vendors/ads-and-pixels/amazon-ads';
 import { linkedinInsights } from '../vendors/ads-and-pixels/linkedin-insights';
 import { metaPixel } from '../vendors/ads-and-pixels/meta-pixel';
 import { microsoftUet } from '../vendors/ads-and-pixels/microsoft-uet';
@@ -66,6 +68,14 @@ export const helperParityCases = {
 			src: 'https://analytics.ahrefs.com/analytics.js',
 		},
 		script: ahrefsAnalytics({ key: 'ahrefs-key' }),
+	},
+	amazonAdsTag: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: true,
+			src: 'https://c.amazon-adsystem.com/aat/amzn.js',
+		},
+		script: amazonAdsTag({ tagId: '00000000-0000-0000-0000-000000000000' }),
 	},
 	amplitude: {
 		expected: {

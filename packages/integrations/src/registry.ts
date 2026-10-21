@@ -534,6 +534,16 @@ export const builtInScriptIntegrations = [
 		packageSubpath: 'x-pixel',
 		vendor: 'x-pixel',
 	},
+	{
+		consentCategory: 'marketing',
+		docsSlug: 'amazon-ads',
+		hint: 'Amazon conversion tracking and advertising audiences',
+		integrationCategory: 'ads-and-pixels',
+		key: 'amazonAdsTag',
+		label: 'Amazon Ads',
+		packageSubpath: 'amazon-ads',
+		vendor: 'amazon-ads',
+	},
 ] as const satisfies readonly IntegrationRegistryEntry[];
 
 /**
