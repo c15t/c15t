@@ -4,6 +4,10 @@ import { resolveManifest } from '../../resolve';
 import { vendorManifestContract } from '../../types';
 import type { VendorManifest } from '../../types';
 import { readId, skipMissingId } from '../_shared/required-id';
+import {
+	createScriptReuse,
+	getScriptRegistrations,
+} from '../_shared/reuse-script';
 
 /** Dynamic Yield page context from its Web implementation guide. */
 export interface DynamicYieldRecommendationContext {
@@ -27,7 +31,7 @@ declare global {
 
 interface DynamicYieldStaticLoader {
 	element?: HTMLScriptElement;
-	owners: Set<symbol | string>;
+	owners: Set<symbol>;
 }
 
 // Core can share one dynamic loader across independent registrations.
@@ -85,6 +89,111 @@ export interface DynamicYieldOptions {
 	nonce?: string;
 }
 
+const createDynamicYieldScript = (options: DynamicYieldOptions): Script => {
+	const { category = 'experience', nonce, sectionId } = options;
+	const hostname =
+		options.region === 'eu'
+			? 'cdn-eu.dynamicyield.com'
+			: 'cdn.dynamicyield.com';
+	const base = `https://${hostname}/api/${encodeURIComponent(sectionId)}`;
+	const manifest: VendorManifest = options.recommendationContext
+		? {
+				...dynamicYieldManifest,
+				install: [
+					...dynamicYieldManifest.install,
+					{
+						path: ['DY', 'recommendationContext'],
+						type: 'setGlobalPath',
+						value: options.recommendationContext,
+					},
+				],
+			}
+		: dynamicYieldManifest;
+	const resolved = resolveManifest(manifest, {
+		scriptSrc: `${base}/api_dynamic.js`,
+	});
+	// Equal configurations share a lifecycle; any granted registration retains it.
+	const owner = Symbol('dynamic-yield');
+	let shared: DynamicYieldStaticLoader | undefined;
+	const retainStatic = (info: ScriptCallbackInfo) => {
+		if (!info.element) {
+			return;
+		}
+		shared = staticLoaders.get(info.element);
+		if (!shared) {
+			shared = { owners: new Set() };
+			staticLoaders.set(info.element, shared);
+		}
+		shared.owners.add(owner);
+		return shared;
+	};
+	const removeStatic = () => {
+		const removed = shared?.owners.delete(owner) ?? false;
+		if (removed && shared?.owners.size === 0) {
+			shared.element?.remove();
+		}
+		return removed;
+	};
+	const grantedRegistration = (info: ScriptCallbackInfo) =>
+		getScriptRegistrations(info).find((state) => state.hasConsent);
+	const updateConsent = (info: ScriptCallbackInfo) => {
+		const granted = grantedRegistration(info);
+		if (granted) {
+			retainStatic(granted);
+		} else if (!removeStatic() && shared) {
+			// A revoked lifecycle must not change a later loader's consent.
+			return;
+		}
+		resolved.onConsentChange?.({
+			...info,
+			hasConsent: !!granted || !!shared?.owners.size,
+		});
+	};
+
+	return {
+		...resolved,
+		category,
+		nonce,
+		onBeforeLoad(info) {
+			const granted = grantedRegistration(info);
+			if (granted) {
+				retainStatic(granted);
+				resolved.onBeforeLoad?.({ ...info, hasConsent: true });
+			}
+		},
+		onConsentChange: updateConsent,
+		onDispose(info) {
+			if (removeStatic() && shared) {
+				resolved.onConsentChange?.({
+					...info,
+					hasConsent: shared.owners.size > 0,
+				});
+			}
+		},
+		onLoad(info) {
+			const granted = grantedRegistration(info);
+			if (!granted?.element?.isConnected) {
+				return;
+			}
+			const staticLoader = retainStatic(granted);
+			if (!staticLoader || staticLoader.element?.isConnected) {
+				return;
+			}
+			const element = document.createElement('script');
+			element.async = false;
+			element.src = `${base}/api_static.js`;
+			const loaderNonce = granted.element.nonce || nonce;
+			if (loaderNonce) {
+				element.nonce = loaderNonce;
+			}
+			staticLoader.element = element;
+			document.head.appendChild(element);
+		},
+	};
+};
+
+const reuseDynamicYieldScript = createScriptReuse<DynamicYieldOptions>();
+
 /**
  * Creates a Dynamic Yield script gated on experience consent.
  *
@@ -115,88 +224,14 @@ export const dynamicYield = function dynamicYield(
 			manifest: dynamicYieldManifest,
 		});
 	}
-
-	const hostname =
-		options.region === 'eu'
-			? 'cdn-eu.dynamicyield.com'
-			: 'cdn.dynamicyield.com';
-	const base = `https://${hostname}/api/${encodeURIComponent(sectionId)}`;
-	const nonce = options.nonce?.trim() || undefined;
-	const manifest: VendorManifest = options.recommendationContext
-		? {
-				...dynamicYieldManifest,
-				install: [
-					...dynamicYieldManifest.install,
-					{
-						path: ['DY', 'recommendationContext'],
-						type: 'setGlobalPath',
-						value: options.recommendationContext,
-					},
-				],
-			}
-		: dynamicYieldManifest;
-	const resolved = resolveManifest(manifest, {
-		scriptSrc: `${base}/api_dynamic.js`,
-	});
-	const registrations = new Map<symbol | string, DynamicYieldStaticLoader>();
-	const keyOf = (info: ScriptCallbackInfo) =>
-		info.registration ?? info.elementId;
-	const retainStatic = (info: ScriptCallbackInfo) => {
-		if (!info.element) {
-			return;
-		}
-		let shared = staticLoaders.get(info.element);
-		if (!shared) {
-			shared = { owners: new Set() };
-			staticLoaders.set(info.element, shared);
-		}
-		const key = keyOf(info);
-		shared.owners.add(key);
-		registrations.set(key, shared);
-		return shared;
-	};
-	const removeStatic = (info: ScriptCallbackInfo) => {
-		const key = keyOf(info);
-		const shared = registrations.get(key);
-		registrations.delete(key);
-		if (shared?.owners.delete(key) && shared.owners.size === 0) {
-			shared.element?.remove();
-		}
-	};
-
-	return {
-		...resolved,
-		category,
-		nonce,
-		onConsentChange(info) {
-			if (info.hasConsent) {
-				retainStatic(info);
-			}
-			resolved.onConsentChange?.(info);
-			if (!info.hasConsent) {
-				removeStatic(info);
-			}
+	return reuseDynamicYieldScript(
+		{
+			...options,
+			category,
+			nonce: options.nonce?.trim() || undefined,
+			region: options.region ?? 'us',
+			sectionId,
 		},
-		onDispose(info) {
-			removeStatic(info);
-		},
-		onLoad(info) {
-			if (!info.hasConsent || !info.element?.isConnected) {
-				return;
-			}
-			const shared = retainStatic(info);
-			if (!shared || shared.element?.isConnected) {
-				return;
-			}
-			const element = document.createElement('script');
-			element.async = false;
-			element.src = `${base}/api_static.js`;
-			const loaderNonce = info.element.nonce || nonce;
-			if (loaderNonce) {
-				element.nonce = loaderNonce;
-			}
-			shared.element = element;
-			document.head.appendChild(element);
-		},
-	};
+		createDynamicYieldScript
+	);
 };

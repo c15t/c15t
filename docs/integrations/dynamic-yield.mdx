@@ -61,13 +61,19 @@ consent before making your own Dynamic Yield calls.
 Before consent, neither loader runs and `window.DY` stays absent unless another
 part of your app created it. Granting the mapped consent creates `DY` if needed,
 sets `DY.userActiveConsent = { accepted: true }`, and starts the dynamic loader.
-The static loader starts after the dynamic loader finishes. Registrations that
-share the dynamic loader also share its static loader. Removing one registration
-keeps both elements for any remaining owner. If consent is withdrawn while the
-dynamic loader is downloading, the helper skips the static loader.
+The static loader starts after the dynamic loader finishes. Equivalent helper
+options reuse the same scripts across framework renders. Registrations that
+share the dynamic loader also share its static loader. The consent signal stays
+granted while any of those registrations has consent. Removing or revoking one
+registration keeps both elements for any remaining granted owner.
 
-On withdrawal, the helper assigns `DY.userActiveConsent = { accepted: false }`
-and removes both loader elements. The SDK's consent setter applies only when
+When the last granted registration loses consent, the helper assigns
+`DY.userActiveConsent = { accepted: false }` and removes both loader elements.
+Removing the final registration also sends the denied signal. If consent is
+withdrawn while the dynamic loader is downloading, the helper skips the static
+loader. Granting consent again starts a new loader sequence.
+
+The SDK's consent setter applies only when
 Active Cookie Consent is enabled for the section. It changes data collection
 and personalization behavior. It does not unload the SDK or guarantee zero
 requests from code that already ran. Keep c15t's default

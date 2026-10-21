@@ -44,6 +44,7 @@ describe('Dynamic Yield real-core loader contract', () => {
 		vi.stubGlobal('fetch', fetch);
 		loadScripts(scripts, deniedConsents);
 		updateScripts(scripts, { ...deniedConsents, marketing: true });
+		clearAllScripts();
 		expect(window.DY).toBeUndefined();
 		expect(document.head.querySelector('script')).toBeNull();
 		expect(document.head.querySelector('link[rel="preconnect"]')).toBeNull();
@@ -129,6 +130,161 @@ describe('Dynamic Yield real-core loader contract', () => {
 		expect(loader('dynamic')).toBeTruthy();
 	});
 
+	it.each([false, true])(
+		'preserves equivalent helper replacements with dynamic loaded=%s',
+		async (loaded) => {
+			const kernel = createConsentKernel();
+			await kernel.commands.save({ experience: true });
+			const handle = createScriptLoader({
+				kernel,
+				scripts: [dynamicYield({ sectionId: '1234567' })],
+			});
+			try {
+				const dynamic = loader('dynamic');
+				if (loaded) {
+					dynamic.dispatchEvent(new Event('load'));
+				}
+				const staticElement = document.head.querySelector(
+					'script[src$="api_static.js"]'
+				);
+				const appended = vi.spyOn(document.head, 'appendChild');
+				handle.updateScripts([
+					dynamicYield({
+						category: 'experience',
+						nonce: ' ',
+						region: 'us',
+						sectionId: ' 1234567 ',
+					}),
+				]);
+				expect(loader('dynamic')).toBe(dynamic);
+				expect(
+					document.head.querySelector('script[src$="api_static.js"]')
+				).toBe(staticElement);
+				expect(appended).not.toHaveBeenCalled();
+				expect(window.DY?.userActiveConsent).toEqual({ accepted: true });
+				if (!loaded) {
+					dynamic.dispatchEvent(new Event('load'));
+				}
+				expect(loader('static')).toBeTruthy();
+			} finally {
+				handle.dispose();
+				kernel.dispose();
+			}
+		}
+	);
+
+	it.each([false, true])(
+		'keeps shared consent through revoke/regrant with peer=%s',
+		async (withPeer) => {
+			const kernel = createConsentKernel();
+			await kernel.commands.save({ experience: true, marketing: true });
+			const first = createScriptLoader({
+				kernel,
+				scripts: [dynamicYield({ sectionId: '1234567' })],
+			});
+			const second = createScriptLoader({
+				kernel,
+				scripts: [
+					dynamicYield({ category: 'marketing', sectionId: '1234567' }),
+				],
+			});
+			const peer = withPeer
+				? createScriptLoader({
+						kernel,
+						scripts: [dynamicYield({ sectionId: '1234567' })],
+					})
+				: undefined;
+			try {
+				const dynamic = loader('dynamic');
+				dynamic.dispatchEvent(new Event('load'));
+				const staticElement = loader('static');
+				await kernel.commands.save({ experience: false, marketing: true });
+				expect(window.DY?.userActiveConsent).toEqual({ accepted: true });
+				expect(loader('dynamic')).toBe(dynamic);
+				expect(loader('static')).toBe(staticElement);
+				await kernel.commands.save({ experience: false, marketing: false });
+				expect(window.DY?.userActiveConsent).toEqual({ accepted: false });
+				expect(document.head.querySelector('script')).toBeNull();
+				await kernel.commands.save({ experience: false, marketing: true });
+				const regrantedDynamic = loader('dynamic');
+				regrantedDynamic.dispatchEvent(new Event('load'));
+				const regrantedStatic = loader('static');
+				first.dispose();
+				peer?.dispose();
+				expect(window.DY?.userActiveConsent).toEqual({ accepted: true });
+				expect(loader('dynamic')).toBe(regrantedDynamic);
+				expect(loader('static')).toBe(regrantedStatic);
+			} finally {
+				first.dispose();
+				peer?.dispose();
+				second.dispose();
+				kernel.dispose();
+			}
+		}
+	);
+
+	it('keeps an equal registration granted when another kernel revokes', async () => {
+		const firstKernel = createConsentKernel();
+		const secondKernel = createConsentKernel();
+		await firstKernel.commands.save({ experience: true });
+		await secondKernel.commands.save({ experience: true });
+		const first = createScriptLoader({
+			kernel: firstKernel,
+			scripts: [dynamicYield({ sectionId: '1234567' })],
+		});
+		const second = createScriptLoader({
+			kernel: secondKernel,
+			scripts: [dynamicYield({ sectionId: '1234567' })],
+		});
+		try {
+			const dynamic = loader('dynamic');
+			dynamic.dispatchEvent(new Event('load'));
+			const staticElement = loader('static');
+			await firstKernel.commands.save({ experience: false });
+			expect(window.DY?.userActiveConsent).toEqual({ accepted: true });
+			expect(loader('dynamic')).toBe(dynamic);
+			expect(loader('static')).toBe(staticElement);
+			first.dispose();
+			expect(window.DY?.userActiveConsent).toEqual({ accepted: true });
+			await secondKernel.commands.save({ experience: false });
+			expect(window.DY?.userActiveConsent).toEqual({ accepted: false });
+			expect(document.head.querySelector('script')).toBeNull();
+		} finally {
+			first.dispose();
+			second.dispose();
+			firstKernel.dispose();
+			secondKernel.dispose();
+		}
+	});
+
+	it('starts a fresh lifecycle after full disposal and ignores old load events', async () => {
+		const kernel = createConsentKernel();
+		await kernel.commands.save({ experience: true });
+		const script = dynamicYield({ sectionId: '1234567' });
+		const first = createScriptLoader({ kernel, scripts: [script] });
+		const oldDynamic = loader('dynamic');
+		first.dispose();
+		expect(window.DY?.userActiveConsent).toEqual({ accepted: false });
+		expect(document.head.querySelector('script')).toBeNull();
+		await kernel.commands.save({ experience: false });
+		const second = createScriptLoader({ kernel, scripts: [script] });
+		try {
+			expect(document.head.querySelector('script')).toBeNull();
+			expect(window.DY?.userActiveConsent).toEqual({ accepted: false });
+			await kernel.commands.save({ experience: true });
+			const currentDynamic = loader('dynamic');
+			expect(currentDynamic).not.toBe(oldDynamic);
+			oldDynamic.dispatchEvent(new Event('load'));
+			expect(document.head.querySelectorAll('script')).toHaveLength(1);
+			currentDynamic.dispatchEvent(new Event('load'));
+			expect(loader('static')).toBeTruthy();
+			expect(window.DY?.userActiveConsent).toEqual({ accepted: true });
+		} finally {
+			second.dispose();
+			kernel.dispose();
+		}
+	});
+
 	it('revokes both loaders through the vendor switch inside an allowed category', async () => {
 		const kernel = createConsentKernel();
 		const handle = createScriptLoader({
@@ -160,33 +316,57 @@ describe('Dynamic Yield real-core loader contract', () => {
 		}
 	});
 
-	it('shares both loaders across registrations and retains the surviving owner', async () => {
-		const kernel = createConsentKernel();
-		await kernel.commands.save({ experience: true });
-		const first = createScriptLoader({
-			kernel,
-			scripts: [dynamicYield({ sectionId: '1234567' })],
-		});
-		const second = createScriptLoader({
-			kernel,
-			scripts: [dynamicYield({ sectionId: '1234567' })],
-		});
-		try {
-			expect(document.head.querySelectorAll('script')).toHaveLength(1);
-			loader('dynamic').dispatchEvent(new Event('load'));
-			expect(document.head.querySelectorAll('script')).toHaveLength(2);
-			const sharedStatic = loader('static');
-			first.dispose();
-			expect(loader('static')).toBe(sharedStatic);
-			expect(document.head.querySelectorAll('script')).toHaveLength(2);
-			second.dispose();
-			expect(document.head.querySelector('script')).toBeNull();
-		} finally {
-			first.dispose();
-			second.dispose();
-			kernel.dispose();
+	it.each([
+		{ loaded: false, remove: false },
+		{ loaded: true, remove: false },
+		{ loaded: false, remove: true },
+		{ loaded: true, remove: true },
+	])(
+		'retains shared consent with dynamic loaded=$loaded, remove=$remove',
+		async ({ loaded, remove }) => {
+			const kernel = createConsentKernel();
+			await kernel.commands.save({ experience: true });
+			const first = createScriptLoader({
+				kernel,
+				scripts: [dynamicYield({ sectionId: '1234567' })],
+			});
+			const second = createScriptLoader({
+				kernel,
+				scripts: [dynamicYield({ sectionId: '1234567' })],
+			});
+			try {
+				expect(document.head.querySelectorAll('script')).toHaveLength(1);
+				const dynamic = loader('dynamic');
+				if (loaded) {
+					dynamic.dispatchEvent(new Event('load'));
+				}
+				const sharedStatic = document.head.querySelector(
+					'script[src$="api_static.js"]'
+				);
+				if (remove) {
+					first.updateScripts([]);
+				} else {
+					first.dispose();
+				}
+				expect(loader('dynamic')).toBe(dynamic);
+				expect(window.DY?.userActiveConsent).toEqual({ accepted: true });
+				expect(
+					document.head.querySelector('script[src$="api_static.js"]')
+				).toBe(sharedStatic);
+				if (!loaded) {
+					dynamic.dispatchEvent(new Event('load'));
+				}
+				expect(document.head.querySelectorAll('script')).toHaveLength(2);
+				second.dispose();
+				expect(document.head.querySelector('script')).toBeNull();
+				expect(window.DY?.userActiveConsent).toEqual({ accepted: false });
+			} finally {
+				first.dispose();
+				second.dispose();
+				kernel.dispose();
+			}
 		}
-	});
+	);
 
 	it('keeps the static loader while a late adopter awaits completion replay', async () => {
 		const kernel = createConsentKernel();
