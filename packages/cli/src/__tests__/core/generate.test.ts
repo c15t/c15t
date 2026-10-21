@@ -21,6 +21,35 @@ import { version as cliVersion } from '../../generate/version';
 import { packageInfo } from '../../package-info';
 
 describe('reusable generation', () => {
+	it.each(['svelte', 'sveltekit'] as const)(
+		'installs the umbrella package for %s',
+		(framework) => {
+			const template = generateBoilerplateTemplate({
+				framework,
+				mode: 'offline',
+				scripts: [],
+			});
+			expect(template.dependencies).toEqual(['c15t']);
+		}
+	);
+	it.each(['c15t/svelte', '@c15t/svelte'])(
+		'preserves an existing %s locals reference',
+		(packageName) => {
+			const template = generateBoilerplateTemplate({
+				framework: 'sveltekit',
+				mode: 'offline',
+				scripts: [],
+			});
+			const existing = `/// <reference types="${packageName}/kit/locals" />\nexport {};\n`;
+			expect(
+				mergeFile(
+					existing,
+					template.files['src/app.d.ts'] ?? '',
+					template.merge['src/app.d.ts']
+				)
+			).toBe(existing);
+		}
+	);
 	it.each([
 		'react',
 		'next-app',

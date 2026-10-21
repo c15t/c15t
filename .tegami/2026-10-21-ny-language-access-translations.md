@@ -3,7 +3,6 @@ packages:
   "@c15t/translations": minor
   "@c15t/core": patch
   "@c15t/schema": patch
-  "@c15t/ui": patch
 ---
 
 ### Add Arabic, Bangla, Haitian Creole, Korean, Russian, Urdu and Yiddish
@@ -17,4 +16,4 @@ Import one with `@c15t/translations/<code>`, or load them all with
 `@c15t/translations/all`. `manifest()` loads them on demand like the other
 languages, and the backend serves them from `/init`.
 
-Yiddish now renders right to left, like Arabic and Urdu.
+Arabic, Urdu and Yiddish render right to left.

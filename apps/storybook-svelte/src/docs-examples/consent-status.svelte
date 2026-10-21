@@ -1,6 +1,6 @@
 <!-- #region docs:consent-status title="src/lib/consent-status.svelte" -->
 <script lang="ts">
-	import { getConsentManager } from '@c15t/svelte';
+	import { getConsentManager } from 'c15t/svelte';
 
 	// Call getters at the top level of the component, inside the provider.
 	const consent = getConsentManager();
