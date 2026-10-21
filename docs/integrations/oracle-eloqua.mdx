@@ -52,6 +52,8 @@ Eloqua can set `ELOQUA`, `ELQSTATUS`, `ELQOPTOUT` and first-party `OPTIN` cookie
 
 ## Verify Oracle Eloqua
 
+Use a clean browser profile for the initial-state checks.
+
 Before consent and after unrelated consent, check for no `elqCfg.min.js`, `_elqQ`, Eloqua cookies or browser storage. Grant the mapped category, which defaults to `marketing`, and allow Oracle Eloqua as a vendor. Confirm the real dispatcher replaces the array, then revoke and inspect the opt-out request. Regrant with your configured account and verify page tracking after the asynchronous opt-in completes.
 
 Sources: [basic tracking](https://docs.oracle.com/en/cloud/saas/marketing/eloqua-user/Help/EloquaAsynchronousTrackingScripts/Tasks/BasicPageTracking.htm), [first-party tracking](https://docs.oracle.com/en/cloud/saas/marketing/eloqua-user/Help/EloquaAsynchronousTrackingScripts/Tasks/BasicPageTrackingFirst.htm), and [opt-in and opt-out commands](https://docs.oracle.com/cloud/latest/marketingcs_gs/OMCAA/Help/EloquaAsynchronousTrackingScripts/Tasks/OptingInAndOut.htm).
