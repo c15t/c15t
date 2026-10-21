@@ -122,6 +122,7 @@ interface Recorder {
 	element?: HTMLScriptElement;
 	configuration: string;
 	inserted: boolean;
+	insertionObserver?: MutationObserver;
 	loaded: boolean;
 	started: boolean;
 	appliedConsent?: boolean;
@@ -133,6 +134,26 @@ interface Gate {
 }
 const recorders = new WeakMap<FullStoryApi, Recorder>();
 const gates = new WeakMap<Document, Set<Gate>>();
+const markRecorderInserted = (recorder: Recorder): void => {
+	recorder.inserted = true;
+	recorder.insertionObserver?.disconnect();
+	recorder.insertionObserver = undefined;
+};
+const readRecorderInsertions = (
+	recorder: Recorder,
+	records = recorder.insertionObserver?.takeRecords() ?? []
+): void => {
+	const { element } = recorder;
+	if (
+		element &&
+		(element.isConnected ||
+			records.some(({ addedNodes }) =>
+				Array.from(addedNodes).includes(element)
+			))
+	) {
+		markRecorderInserted(recorder);
+	}
+};
 const reloadError = (): Error =>
 	new Error(
 		'fullStory: reload the page to change the recorder configuration or replace an existing FS installation'
@@ -171,6 +192,21 @@ const observeRecorderElement = (
 	element: HTMLScriptElement | undefined
 ): void => {
 	recorder.element = element;
+	if (!recorder.inserted) {
+		if (typeof MutationObserver === 'undefined') {
+			markRecorderInserted(recorder);
+		} else {
+			recorder.insertionObserver ??= new MutationObserver((records) => {
+				readRecorderInsertions(recorder, records);
+			});
+			// Start before core appends, including body-targeted shallow copies.
+			for (const target of [document.head, document.body]) {
+				if (target) {
+					recorder.insertionObserver.observe(target, { childList: true });
+				}
+			}
+		}
+	}
 	// An interrupted append can transfer the bootstrap to a new element.
 	// Only the current SDK element can make this recorder ready.
 	element?.addEventListener(
@@ -179,7 +215,7 @@ const observeRecorderElement = (
 			if (recorder.element !== element) {
 				return;
 			}
-			recorder.inserted = true;
+			markRecorderInserted(recorder);
 			recorder.loaded = true;
 			applyRecorderConsent(recorder);
 		},
@@ -326,7 +362,9 @@ const createFullStory = function createFullStory(
 			ownedRecorder = existing;
 			updateGate(hasConsent);
 			if (existing) {
+				readRecorderInsertions(existing);
 				if (!existing.inserted && !existing.element?.isConnected && element) {
+					existing.element?.removeAttribute('src');
 					observeRecorderElement(existing, element);
 				}
 				if (element === existing.element && src) {
@@ -374,8 +412,9 @@ const createFullStory = function createFullStory(
 			const recorder = ownedRecorder ?? current;
 			if (recorder) {
 				// Core supplies registered elements even after replacement detaches them.
-				recorder.inserted ||=
-					element !== undefined && element === recorder.element;
+				if (element !== undefined && element === recorder.element) {
+					markRecorderInserted(recorder);
+				}
 				applyRecorderConsent(recorder);
 			}
 		},
@@ -424,8 +463,8 @@ export const fullStory = function fullStory(options: FullStoryOptions): Script {
 			if (!recorder || recorder.configuration !== configuration) {
 				return true;
 			}
+			readRecorderInsertions(recorder);
 			if (recorder.element?.isConnected) {
-				recorder.inserted = true;
 				return false;
 			}
 			return recorder.inserted;

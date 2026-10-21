@@ -50,12 +50,35 @@ const loaderElement = () => {
 	}
 	return element;
 };
+// Count insertions even when core removes the element before the next task.
+const sdkInsertions = () => {
+	const elements: HTMLScriptElement[] = [];
+	const record = (records: MutationRecord[]) => {
+		for (const mutation of records) {
+			for (const node of mutation.addedNodes) {
+				if (node instanceof HTMLScriptElement && node.src.includes('fs.js')) {
+					elements.push(node);
+				}
+			}
+		}
+	};
+	const observer = new MutationObserver(record);
+	observer.observe(document, { childList: true, subtree: true });
+	disposals.push(() => observer.disconnect());
+	return () => {
+		record(observer.takeRecords());
+		return elements;
+	};
+};
 // Models the documented controls: start is a one-time operation, restart resumes.
 const recorder = (element = loaderElement()) => {
 	const api = apiOf();
 	let started = false;
 	let capturing = false;
 	const dispatch = vi.fn((...call: FullStoryCall) => {
+		if (call[0] === 'getSession') {
+			call[3]?.('session-url');
+		}
 		if (call[0] === 'start' && !started) {
 			started = true;
 			capturing = true;
@@ -81,6 +104,7 @@ afterEach(() => {
 		dispose();
 	}
 	document.head.innerHTML = '';
+	document.body.innerHTML = '';
 	for (const key of [
 		'FS',
 		'_fs_org',
@@ -174,9 +198,137 @@ describe('FullStory Async contract', () => {
 });
 
 describe('FullStory retained recorder', () => {
+	it.each(['head', 'body'] as const)(
+		'keeps a pending shallow copy in %s after observer delivery',
+		async (target) => {
+			const insertions = sdkInsertions();
+			const options = { orgId: `pending-target-${target}` };
+			const originalScript = fullStory(options);
+			const denier = mount(options, false, originalScript);
+			const script = { ...originalScript, nonce: 'sdk-nonce', target };
+			const owner = mount(options, true, script);
+			const original = loaderElement();
+			expect(original.parentNode).toBe(document[target]);
+			expect(original.nonce).toBe('sdk-nonce');
+			await new Promise((resolve) => {
+				setTimeout(resolve, 0);
+			});
+			owner.loader.updateScripts([]);
+			owner.loader.updateScripts([script]);
+			expect(insertions()).toEqual([original]);
+			expect(original.isConnected).toBe(false);
+			const placeholder = document.querySelector('script');
+			expect(placeholder?.getAttribute('src')).toBeNull();
+			placeholder?.dispatchEvent(new Event('load'));
+			expect(apiOf().q?.map(([name]) => name)).toEqual(['init']);
+			const model = recorder(original);
+			expect(model.dispatch.mock.calls.map(([name]) => name)).toEqual([
+				'init',
+				'setIdentity',
+				'shutdown',
+			]);
+			void denier.kernel.commands.save(granted);
+			expect(model.capturing()).toBe(true);
+		}
+	);
+	it('loads in the head before a body exists', () => {
+		const { body } = document;
+		body.remove();
+		try {
+			const insertions = sdkInsertions();
+			const owner = mount({ orgId: 'no-body' });
+			const original = loaderElement();
+			expect(insertions()).toEqual([original]);
+			expect(recorder(original).capturing()).toBe(true);
+			expect(owner.events).toEqual([]);
+		} finally {
+			document.documentElement.appendChild(body);
+		}
+	});
+	it('retains a pending SDK when MutationObserver is unavailable', () => {
+		const insertions = sdkInsertions();
+		vi.stubGlobal('MutationObserver', undefined);
+		try {
+			const options = { orgId: 'no-observer' };
+			const denier = mount(options, false);
+			const owner = mount(options);
+			const original = loaderElement();
+			expect(insertions()).toEqual([original]);
+			owner.loader.updateScripts([]);
+			owner.loader.updateScripts([fullStory(options)]);
+			expect(insertions()).toEqual([original]);
+			const model = recorder(original);
+			expect(model.capturing()).toBe(false);
+			void denier.kernel.commands.save(granted);
+			expect(model.capturing()).toBe(true);
+			expect(owner.events).toEqual([]);
+		} finally {
+			vi.unstubAllGlobals();
+		}
+	});
+	it.each([
+		{ action: 'remount', deniedFirst: false, flow: 'R1' },
+		{ action: 'remount', deniedFirst: true, flow: 'R1b' },
+		{ action: 'grant', deniedFirst: false, flow: 'R2' },
+		{ action: 'remount-both', deniedFirst: false, flow: 'R3' },
+		{ action: 'update', deniedFirst: false, flow: 'R4' },
+		{ action: 'update', deniedFirst: true, flow: 'R4b' },
+	])(
+		'retains the first pending SDK with a same-options denier, $flow',
+		({ flow, deniedFirst, action }) => {
+			const insertions = sdkInsertions();
+			const options = { orgId: `pending-multi-owner-${flow}` };
+			const script = fullStory(options);
+			let denier = deniedFirst ? mount(options, false, script) : undefined;
+			const owner = mount(options, true, script);
+			denier ??= mount(options, false, script);
+			const original = loaderElement();
+			expect(insertions()).toEqual([original]);
+			const api = apiOf();
+			if (action === 'update') {
+				owner.loader.updateScripts([]);
+				owner.loader.updateScripts([script]);
+			} else {
+				owner.loader.dispose();
+				if (action === 'grant') {
+					void denier.kernel.commands.save(granted);
+				} else {
+					if (action === 'remount-both') {
+						denier.loader.dispose();
+					}
+					mount(options, true, script);
+					if (action === 'remount-both') {
+						denier = mount(options, false, script);
+					}
+				}
+			}
+			expect(original.isConnected).toBe(false);
+			expect(insertions()).toEqual([original]);
+			expect(apiOf()).toBe(api);
+			for (const element of document.querySelectorAll('script')) {
+				element.dispatchEvent(new Event('load'));
+			}
+			expect(api.q?.map(([name]) => name)).toEqual(['init']);
+			const model = recorder(original);
+			expect(model.dispatch.mock.calls.map(([name]) => name)).toEqual([
+				'init',
+				'setIdentity',
+				action === 'grant' ? 'start' : 'shutdown',
+			]);
+			void denier.kernel.commands.save(granted);
+			expect(model.capturing()).toBe(true);
+			expect(
+				model.dispatch.mock.calls.filter(([name]) => name === 'start')
+			).toHaveLength(1);
+			expect(owner.events).toEqual([]);
+			expect(denier.events).toEqual([]);
+		}
+	);
+
 	it.each([false, true])(
 		'retries an interrupted bootstrap without a second init, shallow-copy=%s',
-		(shallowCopy) => {
+		async (shallowCopy) => {
+			const insertions = sdkInsertions();
 			const options = { orgId: `interrupted-${shallowCopy}` };
 			const original = fullStory(options);
 			const script = shallowCopy ? { ...original, nonce: 'retry' } : original;
@@ -205,14 +357,25 @@ describe('FullStory retained recorder', () => {
 			void owner.kernel.commands.save(granted);
 			expect(interrupted).toBe(true);
 			const element = loaderElement();
-			expect(document.querySelectorAll('script[src*="fs.js"]')).toHaveLength(1);
+			expect(insertions()).toEqual([element]);
 			expect(apiOf().q?.map(([name]) => name)).toEqual(['init']);
+			const pending = apiOf()('getSessionAsync');
+			expect(pending).toBeInstanceOf(Promise);
 			expect(prepared).toHaveLength(2);
 			expect(prepared[0]).not.toBe(element);
+			expect(prepared[0]?.hasAttribute('src')).toBe(false);
 			prepared[0]?.dispatchEvent(new Event('load'));
-			expect(apiOf().q?.map(([name]) => name)).toEqual(['init']);
+			prepared[0]?.dispatchEvent(new Event('error'));
+			expect(apiOf().q?.map(([name]) => name)).toEqual(['init', 'getSession']);
+			const denied = mount(options, false, script);
+			owner.loader.dispose();
+			mount(options, true, script);
+			expect(insertions()).toEqual([element]);
 			const model = recorder(element);
+			expect(model.capturing()).toBe(false);
+			void denied.kernel.commands.save(granted);
 			expect(model.capturing()).toBe(true);
+			await expect(pending).resolves.toBe('session-url');
 			element.dispatchEvent(new Event('load'));
 			expect(
 				model.dispatch.mock.calls.filter(([name]) => name === 'start')
