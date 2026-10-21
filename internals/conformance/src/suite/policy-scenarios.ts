@@ -170,6 +170,12 @@ const assertStorage = function assertStorage(
 	after: PolicyEvidence
 ): void {
 	const bytes = after.storage;
+	const expectedNotice: Record<string, unknown> = {
+		...after.snapshot.noticeDismissal,
+	};
+	if (after.snapshot.subject) {
+		expectedNotice.subject = after.snapshot.subject;
+	}
 	if (expected === 'unchanged') {
 		api.expect(bytes).toEqual(before);
 	}
@@ -188,10 +194,7 @@ const assertStorage = function assertStorage(
 			.toBe(false);
 		api.expect(bytes.notice.localStorage).not.toBeNull();
 		const persisted: unknown = JSON.parse(bytes.notice.localStorage ?? 'null');
-		api.expect(persisted).toEqual({
-			...after.snapshot.noticeDismissal,
-			...(after.snapshot.subject ? { subject: after.snapshot.subject } : {}),
-		});
+		api.expect(persisted).toEqual(expectedNotice);
 	}
 	if (expected === 'choice-v3' || expected === 'choice-and-notice') {
 		api.expect(bytes.choice.localStorage).not.toBeNull();
@@ -218,10 +221,9 @@ const assertStorage = function assertStorage(
 		}
 		// The same save acknowledged the owed notice.
 		api.expect(bytes.notice.localStorage).not.toBeNull();
-		api.expect(JSON.parse(bytes.notice.localStorage ?? 'null')).toEqual({
-			...after.snapshot.noticeDismissal,
-			...(after.snapshot.subject ? { subject: after.snapshot.subject } : {}),
-		});
+		api
+			.expect(JSON.parse(bytes.notice.localStorage ?? 'null'))
+			.toEqual(expectedNotice);
 	}
 };
 
