@@ -2,6 +2,7 @@
 packages:
   '@c15t/integrations': minor
   '@c15t/cli': patch
+  '@c15t/scripts': patch
 ---
 
 ### Add Statable analytics
