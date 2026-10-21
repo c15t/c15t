@@ -40,6 +40,7 @@
 		"Translations: Import from @c15t/translations package. Supports partial or complete translations with type-safe interfaces",
 		"TypeScript-first: All APIs are fully typed. Use TypeScript for best experience with autocomplete and type safety",
 		"Performance: c15t is lightweight with minimal bundle impact. Scripts load/unload dynamically based on consent changes",
-		"Privacy by design: GDPR-compliant by default with granular consent controls and complete audit trail for compliance"
+		"Privacy by design: GDPR-compliant by default with granular consent controls and complete audit trail for compliance",
+		"HubSpot: use hubspot from @c15t/integrations/hubspot to gate loading on marketing consent. Keep c15t's default reload on revocation to stop code already running."
 	]
 }

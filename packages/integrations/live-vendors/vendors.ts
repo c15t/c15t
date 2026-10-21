@@ -1,14 +1,14 @@
 /**
  * Live probe definitions for built-in `@c15t/integrations` integrations.
  *
- * Each entry pairs a registry vendor with safe placeholder configuration and
+ * Each entry pairs a registry vendor with a probe configuration and
  * the checks used by the live monitor. This module is imported by the Node
  * runner and bundled into the browser harness, so check callbacks run inside
  * the probed page.
  *
- * Placeholder ids must be obviously fake and must never point at a real
- * account. Collection endpoints are blocked by the runner, so probes cannot
- * send real analytics data even when a vendor runtime initializes.
+ * Use placeholder IDs by default. Explicitly authorized public sample IDs are
+ * documented in each entry. Collection and non-loader third-party requests
+ * remain blocked when a vendor runtime initializes.
  */
 
 import { linkedinInsights } from '../src/vendors/ads-and-pixels/linkedin-insights';
@@ -38,6 +38,7 @@ import {
 	hightouch,
 } from '../src/vendors/analytics/hightouch';
 import { hotjar } from '../src/vendors/analytics/hotjar';
+import { hubspot } from '../src/vendors/analytics/hubspot';
 import { logRocket } from '../src/vendors/analytics/logrocket';
 import { matomoAnalytics } from '../src/vendors/analytics/matomo-analytics';
 import { clarity } from '../src/vendors/analytics/microsoft-clarity';
@@ -71,6 +72,12 @@ interface OpenAIPixelRuntime extends OpenAIPixelFunction {
 	measure?: (...args: unknown[]) => void;
 	consent?: (granted: boolean) => void;
 }
+
+type HubSpotProbeWindow = Window & {
+	hsCookieBanner?: {
+		getPerfMetrics?: () => unknown;
+	};
+};
 
 const check = function check(
 	ok: boolean,
@@ -209,6 +216,67 @@ type PosthogProbeWindow = Window & {
  * Probe configs for every built-in integration, ordered by registry vendor id.
  */
 export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
+	{
+		// The public portal-53 loader inserts this exact banner bundle. Other
+		// HubSpot modules and collection requests remain blocked.
+		allowUrlSubstrings: ['https://js.hs-banner.com/v2/53/banner.js'],
+		bootstrapCheck: () => {
+			const queue = window._hsp;
+			const hasQueuedConsent =
+				Array.isArray(queue) &&
+				queue.some((command: unknown) => {
+					if (!Array.isArray(command) || command[0] !== 'setHubSpotConsent') {
+						return false;
+					}
+					const consent: unknown = command[1];
+					return (
+						typeof consent === 'object' &&
+						consent !== null &&
+						'analytics' in consent &&
+						consent.analytics === true &&
+						'advertisement' in consent &&
+						consent.advertisement === true &&
+						'functionality' in consent &&
+						consent.functionality === true
+					);
+				});
+
+			// All fields come from the helper before any remote code executes.
+			// Both monitor harnesses grant every category for this phase.
+			return check(
+				Array.isArray(window._hsq) &&
+					Array.isArray(queue) &&
+					queue.push === Array.prototype.push &&
+					hasQueuedConsent &&
+					window.disableHubSpotCookieBanner === true &&
+					window.hsConversationsSettings?.loadImmediately === false,
+				'HubSpot queues, granted consent, disabled banner and deferred chat seeded before load'
+			);
+		},
+		createScript: () => hubspot({ chat: false, portalId: 53 }),
+		loaderUrlSubstring: 'https://js.hs-scripts.com/53.js',
+		notes:
+			"Uses HubSpot's public production portal 53 and its real banner runtime. Other child modules and collection requests receive empty 204 responses. This checks consent gating and banner startup; it does not verify chat, analytics delivery or shutdown.",
+		runtimeCheck: () => {
+			const probeWindow: HubSpotProbeWindow = window;
+			const hasMetricsFunction =
+				typeof probeWindow.hsCookieBanner?.getPerfMetrics === 'function';
+			const hasCommandDispatcher =
+				Array.isArray(window._hsp) && window._hsp.push !== Array.prototype.push;
+
+			// The banner installs getPerfMetrics, keeps the array, drains
+			// queued commands and replaces only its push method. Do not require
+			// runtimeReplacedGlobals: ['_hsp'], because its identity is preserved.
+			// Disabled banners can return undefined from getPerfMetrics.
+			// Read the function without invoking it or registering listeners.
+			return check(
+				hasMetricsFunction && hasCommandDispatcher,
+				`HubSpot banner metrics function=${hasMetricsFunction}; _hsp array dispatcher=${hasCommandDispatcher}`
+			);
+		},
+		tier: 'full',
+		vendor: 'hubspot',
+	},
 	{
 		skipReason:
 			'Requires a configured Cloudflare zone and purpose IDs. This bridge does not fetch a public vendor loader.',

@@ -1,0 +1,162 @@
+---
+title: HubSpot
+description: Gate HubSpot's tracking code on marketing consent, forward c15t categories and enable chat only after functionality consent.
+seoTitle: HubSpot cookie consent with c15t
+seoDescription: Load HubSpot after marketing consent, disable its banner and forward consent categories. Enable chat separately and understand revocation limits.
+icon: radar
+group: integrations
+---
+
+The `hubspot` helper keeps HubSpot's tracking-code loader off the page until
+marketing consent is granted. Measurement or functionality consent alone does
+not load it. HubSpot can connect browsing history to CRM contacts and use
+tracking data for partner profiling, so the default gates the whole loader on
+marketing consent.
+
+After consent, the helper disables HubSpot's banner and sends c15t's categories
+to HubSpot before inserting the loader. c15t remains the consent interface.
+
+## Configure HubSpot
+
+Copy the numeric portal ID from the filename in your HubSpot tracking snippet.
+For a snippet ending in `js-eu1.hs-scripts.com/123456.js`, the `portalId` is
+`123456` and the `region` is `eu1`. The portal ID is public configuration.
+
+Remove hand-installed tracking snippets, tag-manager copies and the WordPress
+plugin's tracking code before using this helper. HubSpot-hosted CMS pages
+already include the tracking code. Adding this helper cannot gate requests
+that another installation already sent.
+
+<CommandTabs command="@c15t/integrations" mode="install" />
+
+<include src="../shared/examples/javascript/hubspot-scripts.mdx" />
+
+<include src="../shared/integrations/register-scripts.mdx" />
+
+Keep the returned script configuration stable across rerenders. The helper
+owns consent callbacks and chat listeners for that configuration.
+
+## Options
+
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `portalId` | Required | Numeric string or number. Surrounding string whitespace is trimmed. Missing, blank or non-numeric values log `hubspot: missing or invalid portalId` and load nothing. |
+| `region` | None | Lowercase code from the tracking snippet, such as `na1` or `eu1`. Invalid values log an error and use `js.hs-scripts.com`. Copy the actual account code; matching the format does not verify that a region exists. |
+| `scriptUrl` | `https://js.hs-scripts.com/<portalId>.js`, or its regional host | Custom loader URL. Whitespace-only values fall back to the default. This does not proxy child scripts or other HubSpot requests. |
+| `category` | `marketing` | An `IntegrationConsentCondition` for the entire loader. A condition such as `{ and: ['marketing', 'measurement'] }` requires both categories. Replacing it with a weaker condition permits the whole loader and its child requests under that condition. |
+| `chat` | `false` | Set `true` to request the widget only while functionality consent and the loader condition are both granted. |
+| `nonce` | None | CSP nonce for this helper's inserted loader. Pass it here when required; the provider nonce is not forwarded to a callback-only controller. |
+
+The helper inserts an HTTPS loader with `async`, `defer` and the literal ID
+`hs-script-loader`. It reuses an existing element with that ID and warns about
+an external installation or conflicting URL. It does not replace that element
+to switch portal IDs. Register one HubSpot portal per page.
+
+Core load and error callbacks describe controller setup, not the external
+download. Check the actual HubSpot request in Network to diagnose download
+failures.
+
+The helper starts in the browser after hydration, including when the visitor
+has a saved grant. It does not use an inline server-start snippet.
+
+## Consent categories
+
+| c15t category | HubSpot consent field |
+| --- | --- |
+| `measurement` | `analytics` |
+| `marketing` | `advertisement` |
+| `functionality` | `functionality` |
+
+Missing categories become `false`. If the configured loader condition fails or
+the visitor turns off the HubSpot vendor, all three HubSpot fields become
+`false`, even when other c15t categories remain granted.
+
+The helper forwards these values through `_hsp.push(['setHubSpotConsent', ...])`
+before the first loader insertion and on later changes. HubSpot does not save
+these values in its consent cookies, so the helper sends them again on each
+consented page load. Before the first grant, it creates no HubSpot globals or
+queues. Existing queues and conversation settings are preserved after grant.
+
+The HubSpot loader can inject analytics, ads pixels, forms, surveys, chat and
+other modules according to your portal settings. Its internal consent fields
+do not provide separate request gates for those modules. A category override
+that permits the loader under functionality alone also permits its other
+network requests. HubSpot documents anonymous aggregate analytics after
+analytics refusal.
+
+## Chat
+
+The helper always sets `hsConversationsSettings.loadImmediately = false`
+before inserting the loader. With `chat: true`, it calls
+`HubSpotConversations.widget.load()` only while functionality and the loader
+condition are granted. If the conversations SDK becomes ready later, the
+helper checks the latest consent before loading the widget.
+
+On functionality withdrawal, the helper requests widget removal and calls
+`HubSpotConversations.clear({ resetWidget: false })` to clear chat cookies.
+It also checks a late `widgetLoaded` event while the configuration is active.
+It does not recreate the widget during cleanup. Removal and cookie cleanup
+do not guarantee that remote chat requests have stopped.
+
+Chat visitor identification needs a server-generated token and is outside
+this helper's configuration. Follow the
+[HubSpot conversations SDK documentation](https://developers.hubspot.com/docs/api-reference/latest/conversations/chat-configuration/chat-widget-sdk)
+for that separate setup.
+
+## Withdrawal and page reload
+
+When effective measurement consent changes from granted to denied, the helper
+queues `revokeCookieConsent`, then sends the current consent categories again.
+Cookie revocation resets HubSpot's categories too, so this order restores any
+remaining grants. If the helper condition or vendor is denied, the final
+state denies every field.
+
+`revokeCookieConsent` asks HubSpot to remove tracking and consent cookies. It
+can itself trigger a revocation request. It does not remove every browser
+storage entry or unload the child scripts.
+
+The helper retains its loader through consent withdrawal and provider
+remounts to avoid running HubSpot's bootstrap again. Keep c15t's default
+`reloadOnConsentRevoked` enabled. Reload ends the running page, and the saved
+denial prevents a fresh load. With reload disabled, previously loaded HubSpot
+code and child requests can continue despite the denied consent signal.
+Reload also cannot undo data already sent.
+
+## Identification and route changes
+
+HubSpot's analytics script sends its initial page view. The helper does not
+add another page view or identify the visitor. If your app identifies a known
+contact, call HubSpot's `identify` API only after the configured condition and
+vendor consent allow it. Never use a shared placeholder email for anonymous
+visitors.
+
+For SPA navigation, HubSpot uses `setPath` followed by `trackPageView`. Gate
+those application calls on the current consent and vendor permission too.
+See the [tracking-code API](https://developers.hubspot.com/docs/api/events/tracking-code).
+
+Review your portal's non-HubSpot forms collection, ads pixels and tracking-data
+use for Breeze Intelligence. These settings change the data and modules that
+HubSpot loads. [Clearbit](/docs/integrations/clearbit) is a separate tag with a
+separate helper and publishable key.
+
+## Verify HubSpot
+
+Start with a fresh browser session and open DevTools Network. Before deciding,
+then with only measurement or functionality allowed, check that no HubSpot
+loader or child requests appear. Allow marketing and check for exactly one
+`hs-script-loader`, the expected portal URL and no HubSpot banner.
+
+Check HubSpot's consent state with measurement and functionality toggled
+independently. With `chat: true`, verify that chat appears only after
+functionality is allowed. Test functionality withdrawal while the SDK and
+widget are still loading, then test regrant and provider remounts.
+
+The portal can contact `*.hs-scripts.com`, `*.hs-analytics.net`,
+`*.hs-banner.com`, `*.hscollectedforms.net`, `*.usemessages.com`,
+`*.hsadspixel.net`, `*.hubspot.com`, `*.hubspotfeedback.com` and
+`*.hubapi.com`. Consult
+[HubSpot's CSP guidance](https://knowledge.hubspot.com/domains-and-urls/ssl-and-domain-security-in-hubspot)
+for the products your account uses. The loader URL alone is not a complete
+CSP allowlist.
+
+<include src="../shared/integrations/vendor-revocation-and-verify.mdx" />

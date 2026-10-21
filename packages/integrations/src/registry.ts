@@ -534,6 +534,16 @@ export const builtInScriptIntegrations = [
 		packageSubpath: 'x-pixel',
 		vendor: 'x-pixel',
 	},
+	{
+		consentCategory: 'marketing',
+		docsSlug: 'hubspot',
+		hint: 'CRM tracking with consent signals and optional chat',
+		integrationCategory: 'analytics',
+		key: 'hubspot',
+		label: 'HubSpot',
+		packageSubpath: 'hubspot',
+		vendor: 'hubspot',
+	},
 ] as const satisfies readonly IntegrationRegistryEntry[];
 
 /**
