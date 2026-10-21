@@ -302,6 +302,11 @@
 			"types": "./dist-types/events.d.ts",
 			"import": "./dist/events.js",
 			"default": "./dist/events.js"
+		},
+		"./lucky-orange": {
+			"types": "./dist-types/vendors/analytics/lucky-orange.d.ts",
+			"import": "./dist/vendors/analytics/lucky-orange.js",
+			"default": "./dist/vendors/analytics/lucky-orange.js"
 		}
 	},
 	"publishConfig": {

@@ -845,6 +845,7 @@ export default defineDocsConfig({
 				{
 					pages: [
 						'google-tag',
+						'lucky-orange',
 						'ahrefs-analytics',
 						'adobe-analytics',
 						'amplitude',

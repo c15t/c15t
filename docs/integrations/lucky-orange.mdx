@@ -1,0 +1,46 @@
+---
+title: Lucky Orange
+description: Load Lucky Orange after measurement consent, configure its tracking settings, and verify loading and withdrawal with c15t.
+seoTitle: Lucky Orange cookie consent with c15t
+seoDescription: Gate Lucky Orange on measurement consent with c15t. Configure the loader, understand withdrawal limits, and verify vendor requests and storage.
+icon: chart-line
+group: integrations
+---
+
+`luckyOrange` waits for `measurement` consent before creating vendor globals or downloading Lucky Orange.
+
+## Configure Lucky Orange
+
+Enable **Require Consent** in your Lucky Orange dashboard before using this helper. Copy your site ID and remove the original Lucky Orange snippet.
+
+<CommandTabs command="@c15t/integrations" mode="install" />
+
+<include src="../shared/examples/javascript/lucky-orange-configuration.mdx" />
+
+<include src="../shared/integrations/register-scripts.mdx" />
+
+## Options
+
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `siteId` | Required | Lucky Orange site ID. |
+| `category` | `measurement` | Consent condition for the whole loader. |
+| `scriptUrl` | `https://tools.luckyorange.com/core/lo.js?site-id=<siteId>` | Custom or proxied loader URL. Blank values use the default. |
+
+Missing or blank required values log an error and never load. A proxy must preserve the site-ID discovery used by the vendor loader, which currently inspects script URLs containing `lo.js`. An arbitrary renamed proxy path is not verified.
+
+## Loading and revocation
+
+After consent, the helper creates `LOQ`, loads the SDK and waits for its ready callback and privacy module. It rechecks the current consent before `LO.privacy.setConsentStatus(true)`. Revocation calls `setConsentStatus(false)` when privacy is ready; a pending ready callback cannot restore consent after withdrawal.
+
+The helper does not call `optOut()`, which persists a two-year opt-out cookie and complicates regrant. Keep `reloadOnConsentRevoked` enabled. Complete teardown of an active recording through `setConsentStatus(false)` has not been verified, and removing a script cannot unload recording code. The next denied page does not load Lucky Orange.
+
+Lucky Orange can set `lo-domain-check`, `lo-opt-out`, `lo-uid` and `lo-visits` cookies, plus `lo-session`, `lo-messenger` and `lo-visitor` in localStorage. Some cookies last two years. Lucky Orange documents Do Not Track support. Verify Do Not Track and existing vendor opt-out choices with your own account; these interactions have not been verified here.
+
+## Verify Lucky Orange
+
+Before consent and after unrelated consent, check for no Lucky Orange loader, `LOQ`, `LO`, cookies or browser storage. Grant measurement and wait for privacy readiness. Revoke during loading and verify no late callback grants privacy consent. With your own account, inspect recording state after revoke and regrant. Keep Require Consent enabled.
+
+Sources: [browser library](https://developers.luckyorange.com/libraries/browser), [privacy tools](https://developers.luckyorange.com/libraries/browser/privacy-tools), and [cookies and storage](https://developers.luckyorange.com/libraries/browser/cookies-storage).
+
+<include src="../shared/integrations/vendor-revocation-and-verify.mdx" />

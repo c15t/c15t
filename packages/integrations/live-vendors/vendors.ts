@@ -39,6 +39,7 @@ import {
 } from '../src/vendors/analytics/hightouch';
 import { hotjar } from '../src/vendors/analytics/hotjar';
 import { logRocket } from '../src/vendors/analytics/logrocket';
+import { luckyOrange } from '../src/vendors/analytics/lucky-orange';
 import { matomoAnalytics } from '../src/vendors/analytics/matomo-analytics';
 import { clarity } from '../src/vendors/analytics/microsoft-clarity';
 import { mixpanelAnalytics } from '../src/vendors/analytics/mixpanel-analytics';
@@ -209,6 +210,28 @@ type PosthogProbeWindow = Window & {
  * Probe configs for every built-in integration, ordered by registry vendor id.
  */
 export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
+	{
+		allowUrlSubstrings: [
+			'tools.luckyorange.com/core/',
+			'settings.luckyorange.com/a4e370c0',
+		],
+		bootstrapCheck: () =>
+			check(Array.isArray(window.LOQ), 'Lucky Orange ready callback queue'),
+		createScript: () => luckyOrange({ siteId: 'a4e370c0' }),
+		loaderUrlSubstring: 'tools.luckyorange.com/core/lo.js',
+		notes:
+			'Public vendor site ID proves real loader and privacy API installation with a regular Chrome user agent; settings reject the headless default. The sample account has Require Consent disabled, so its account-specific Require Consent behavior is not verified. Require Consent must be enabled in the account. Collection is blocked; complete stop of active recordings and behavior with DNT or existing vendor opt-out are not verified. Keep reload on withdrawal.',
+		runtimeCheck: () =>
+			check(
+				typeof window.LO?.privacy?.setConsentStatus === 'function',
+				'Lucky Orange installed its privacy API'
+			),
+		runtimeReplacedGlobals: ['LO'],
+		tier: 'full',
+		userAgent:
+			'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36',
+		vendor: 'lucky-orange',
+	},
 	{
 		skipReason:
 			'Requires a configured Cloudflare zone and purpose IDs. This bridge does not fetch a public vendor loader.',

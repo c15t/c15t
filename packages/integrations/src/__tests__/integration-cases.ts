@@ -2,6 +2,7 @@
  * One script per built-in integration, built from its public helper with
  * sample options, and the fields the helper must set.
  */
+
 import type { BuiltInScriptIntegrationKey } from '../registry';
 import { linkedinInsights } from '../vendors/ads-and-pixels/linkedin-insights';
 import { metaPixel } from '../vendors/ads-and-pixels/meta-pixel';
@@ -24,6 +25,7 @@ import { heap } from '../vendors/analytics/heap';
 import { hightouch } from '../vendors/analytics/hightouch';
 import { hotjar } from '../vendors/analytics/hotjar';
 import { logRocket } from '../vendors/analytics/logrocket';
+import { luckyOrange } from '../vendors/analytics/lucky-orange';
 import { matomoAnalytics } from '../vendors/analytics/matomo-analytics';
 import { clarity } from '../vendors/analytics/microsoft-clarity';
 import { mixpanelAnalytics } from '../vendors/analytics/mixpanel-analytics';
@@ -207,6 +209,14 @@ export const helperParityCases = {
 			src: 'https://cdn.logrocket.io/LogRocket.min.js',
 		},
 		script: logRocket({ appId: 'c15tfake/c15tfake' }),
+	},
+	luckyOrange: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: true,
+			src: 'https://tools.luckyorange.com/core/lo.js?site-id=YOUR_SITE_ID',
+		},
+		script: luckyOrange({ siteId: 'YOUR_SITE_ID' }),
 	},
 	matomoAnalytics: {
 		expected: {

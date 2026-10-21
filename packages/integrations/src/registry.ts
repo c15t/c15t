@@ -115,6 +115,16 @@ export const BUILT_IN_INTEGRATION_CATEGORIES = [
  */
 export const builtInScriptIntegrations = [
 	{
+		consentCategory: 'measurement',
+		docsSlug: 'lucky-orange',
+		hint: 'Session recordings, heatmaps, chat and surveys',
+		integrationCategory: 'analytics',
+		key: 'luckyOrange',
+		label: 'Lucky Orange',
+		packageSubpath: 'lucky-orange',
+		vendor: 'lucky-orange',
+	},
+	{
 		consentCategory: 'necessary',
 		docsSlug: 'cloudflare-zaraz',
 		hint: 'Consent bridge for tools managed by Zaraz',

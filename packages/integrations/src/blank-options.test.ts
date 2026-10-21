@@ -23,6 +23,7 @@ import { heap } from './vendors/analytics/heap';
 import { hightouch } from './vendors/analytics/hightouch';
 import { hotjar } from './vendors/analytics/hotjar';
 import { logRocket } from './vendors/analytics/logrocket';
+import { luckyOrange } from './vendors/analytics/lucky-orange';
 import { matomoAnalytics } from './vendors/analytics/matomo-analytics';
 import { clarity } from './vendors/analytics/microsoft-clarity';
 import { mixpanelAnalytics } from './vendors/analytics/mixpanel-analytics';
@@ -58,6 +59,12 @@ const requiredIdCases: {
 	create: (id: unknown) => Script;
 	script: Pick<Script, 'category' | 'id'>;
 }[] = [
+	{
+		create: (id) => luckyOrange({ siteId: asId(id) }),
+		helper: 'luckyOrange',
+		option: 'siteId',
+		script: { category: 'measurement', id: 'lucky-orange' },
+	},
 	{
 		create: (id) => linkedinInsights({ id: asId(id) }),
 		helper: 'linkedinInsights',
