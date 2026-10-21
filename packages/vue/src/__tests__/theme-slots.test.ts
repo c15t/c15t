@@ -127,6 +127,7 @@ test('drops the stock classes of a part whose slot sets noStyle', async () => {
 		hideBranding: true,
 		theme: {
 			slots: {
+				consentBanner: { className: 'theme-root', noStyle: true },
 				consentBannerCard: { className: 'theme-card', noStyle: true },
 				consentBannerFooter: { className: 'theme-footer', noStyle: true },
 				consentBannerTitle: { noStyle: true },
@@ -153,6 +154,15 @@ test('drops the stock classes of a part whose slot sets noStyle', async () => {
 	await flushPromises();
 	await vi.waitFor(() => expect(part('consent-banner-card')).not.toBeNull());
 
+	const root = part('consent-banner-root');
+	const marker = root?.querySelector<HTMLSpanElement>(
+		':scope > span[data-c15t-stream-end]'
+	);
+	expect(root?.className).toBe('theme-root');
+	expect(root?.hasAttribute('data-c15t-streamed')).toBe(true);
+	expect(root?.querySelectorAll('[data-c15t-stream-end]')).toHaveLength(1);
+	expect(marker?.hidden).toBe(true);
+	expect(root?.lastChild).toBe(marker);
 	const card = part('consent-banner-card');
 	expect(card?.className).toBe('theme-card app-card');
 	expect(card?.hasAttribute('nostyle')).toBe(false);

@@ -49,6 +49,15 @@ the first page load. A server-rendered banner puts its rules in the HTML.
 shared rules it needs when rendered without a banner. IAB setups need no
 stylesheet imports with automatic styling enabled.
 
+Styled React, Vue/Nuxt and Svelte consent banners become visible once the
+browser parses all their serialized contents, without waiting for hydration.
+This prevents movement caused by painting a partially received banner.
+The guard requires CSS `:has()` support; other browsers show the banner as
+it parses.
+Headless-hook banners and roots using `noStyle` keep their own visibility
+behavior. Custom styles and content that resolves later need their own
+layout handling.
+
 Streamed React IAB banners become visible once their complete card markup
 arrives. This prevents the centered card from moving as the browser parses
 its remaining content, without waiting for hydration.

@@ -9,7 +9,7 @@ import {
 } from '@c15t/schema/types';
 import type { InitOutput, PolicyRule } from '@c15t/schema/types';
 import { translations } from '@c15t/translations/en';
-import { afterEach, expect, test, vi } from 'vitest';
+import { afterEach, expect, onTestFinished, test, vi } from 'vitest';
 import {
 	createApp,
 	createSSRApp,
@@ -90,6 +90,20 @@ vi.mock('#imports', async () => {
 		},
 	};
 });
+
+const expectCompleteBanner = (scope: ParentNode) => {
+	const root = scope.querySelector('[data-testid="consent-banner-root"]');
+	const card = root?.querySelector('[data-testid="consent-banner-card"]');
+	const marker = root?.querySelector<HTMLSpanElement>(
+		':scope > span[data-c15t-stream-end]'
+	);
+	expect(root?.getAttribute('data-c15t-streamed')).toBe('');
+	expect(root?.querySelectorAll('[data-c15t-stream-end]')).toHaveLength(1);
+	expect(marker?.hidden).toBe(true);
+	expect(root?.lastChild).toBe(marker);
+	expect(marker?.previousElementSibling?.contains(card ?? null)).toBe(true);
+	return { card, marker, root };
+};
 
 afterEach(() => {
 	vi.unstubAllGlobals();
@@ -220,6 +234,10 @@ test.each([false, true])('Nuxt hydrates GPC: manifest=%s', async (manifest) => {
 	const writes = vi.spyOn(Storage.prototype, 'setItem');
 	const beforeCookie = document.cookie;
 	const warnings: string[] = [];
+	const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
+	const consoleWarnings = vi
+		.spyOn(console, 'warn')
+		.mockImplementation(() => {});
 	let mounted: (() => void) | undefined;
 	const clientApp = createSSRApp(Probe);
 	clientApp.config.warnHandler = (message) => warnings.push(message);
@@ -233,6 +251,9 @@ test.each([false, true])('Nuxt hydrates GPC: manifest=%s', async (manifest) => {
 	const container = document.createElement('div');
 	container.innerHTML = html;
 	document.body.append(container);
+	onTestFinished(() => container.remove());
+	const { root, card, marker } = expectCompleteBanner(container);
+	expect(card?.textContent).toContain('Privacy notice');
 	clientApp.mount(container);
 	await nextTick();
 	try {
@@ -248,16 +269,17 @@ test.each([false, true])('Nuxt hydrates GPC: manifest=%s', async (manifest) => {
 		expect(container.querySelector('output')?.textContent).toBe(
 			JSON.stringify({ gpc: true, now, prompt: expected.promptRequirement })
 		);
-		expect(
-			document.querySelector('[data-testid="consent-banner-root"]')
-		).not.toBeNull();
-		const notice = document.querySelector(
-			'[data-testid="consent-banner-card"]'
-		);
+		const hydrated = expectCompleteBanner(document);
+		expect(hydrated.root).toBe(root);
+		expect(hydrated.marker).toBe(marker);
+		const notice = hydrated.card;
+		expect(notice).toBe(card);
 		expect(notice?.getAttribute('role')).toBe('region');
 		expect(notice?.getAttribute('aria-modal')).toBeNull();
 		expect(document.body.style.overflow).not.toBe('hidden');
 		expect(warnings).toEqual([]);
+		expect(consoleWarnings).not.toHaveBeenCalled();
+		expect(errors).not.toHaveBeenCalled();
 		expect(writes).not.toHaveBeenCalled();
 		expect(document.cookie).toBe(beforeCookie);
 		mounted?.();

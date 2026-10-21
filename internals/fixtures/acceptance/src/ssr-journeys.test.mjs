@@ -13,6 +13,10 @@ import {
 	stopProcess,
 	waitForServer,
 } from '../../../../scripts/browser-process';
+import {
+	streamedBannerCases,
+	verifyStreamedBanner,
+} from './streamed-banner.mjs';
 
 const repository = fileURLToPath(new URL('../../../../', import.meta.url));
 
@@ -527,6 +531,16 @@ for (const app of selected) {
 		});
 		test('first HTML, consent persistence and reload', () =>
 			verifyFreshVisit(browser, app));
+		test.each(streamedBannerCases)(
+			'streamed ordinary banner: $name',
+			(scenario) =>
+				verifyStreamedBanner(
+					browser,
+					app,
+					scenario,
+					join(repository, '.ci-reports', 'streamed-banner')
+				)
+		);
 		test('forwarded jurisdiction headers', () =>
 			verifyOverrideHeaders(browser, app));
 		test('global privacy control', () => verifyGpc(browser, app));
