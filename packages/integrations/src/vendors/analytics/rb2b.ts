@@ -58,7 +58,7 @@ export const rb2bManifest = {
 export interface Rb2bOptions {
 	/** Account key in reb2b.load on the Script Setup page. */
 	accountKey: string;
-	/** HTTPS CloudFront or S3 loader URL with this account's /b/<key>/ path. */
+	/** HTTPS CloudFront or S3 URL with accountKey after its supported base path. */
 	scriptUrl?: string;
 }
 
@@ -73,11 +73,16 @@ const isSupportedScriptUrl = function isSupportedScriptUrl(
 	key: string
 ): boolean {
 	try {
-		// The SDK validates the browser-normalized document.currentScript.src.
-		const normalized = new URL(scriptUrl).href;
+		const normalized = new URL(scriptUrl);
+		const prefix = supportedScriptPrefixes.find((supportedPrefix) =>
+			normalized.href.startsWith(supportedPrefix)
+		);
 		return (
-			supportedScriptPrefixes.some((prefix) => normalized.startsWith(prefix)) &&
-			normalized.toLowerCase().includes(`/b/${key.toLowerCase()}/`)
+			prefix !== undefined &&
+			normalized.pathname
+				.slice(new URL(prefix).pathname.length)
+				.toLowerCase()
+				.startsWith(`${key.toLowerCase()}/`)
 		);
 	} catch {
 		return false;

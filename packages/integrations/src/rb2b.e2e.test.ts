@@ -17,6 +17,23 @@ import { rb2b } from './vendors/analytics/rb2b';
 
 describe('RB2B core loader consent contract', () => {
 	registerVendorContractCleanup();
+	it('blocks another account despite matching query data and marketing consent', () => {
+		vi.spyOn(console, 'error').mockImplementation(() => undefined);
+		loadScripts(
+			[
+				rb2b({
+					accountKey: 'c15tfake',
+					scriptUrl:
+						'https://ddwl4m2hdecbv.cloudfront.net/b/OTHER/OTHER.js.gz?next=/b/c15tfake/',
+				}),
+			],
+			grantedMarketingConsents
+		);
+		expect(document.querySelector('script')).toBeNull();
+		expect('reb2b' in window).toBe(false);
+		expect(document.cookie).toBe('');
+		expect(console.error).toHaveBeenCalledOnce();
+	});
 	it('creates no vendor globals, requests or storage before mapped consent', () => {
 		const scripts = [rb2b({ accountKey: 'c15tfake' })];
 		loadScripts(scripts, deniedConsents);

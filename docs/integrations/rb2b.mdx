@@ -35,8 +35,9 @@ marketing consent even though some RB2B guidance calls its cookies functional.
 
 Supported HTTPS prefixes are `ddwl4m2hdecbv.cloudfront.net/b/`,
 `s3-us-west-2.amazonaws.com/b2bjsstore/b/` and
-`b2bjsstore.s3.us-west-2.amazonaws.com/b/`. The URL must include
-`/b/<accountKey>/`, ignoring account-key case. Custom filenames, query strings
+`b2bjsstore.s3.us-west-2.amazonaws.com/b/`. The account segment in the URL
+pathname must appear immediately after the supported base path and match the
+URL-encoded `accountKey`, ignoring case. Custom filenames, query strings
 and fragments are allowed. An unchanged SDK served from an arbitrary proxy
 fails RB2B's check of `document.currentScript.src`.
 
