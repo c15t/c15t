@@ -19,6 +19,10 @@ Remove direct snippets and tag manager copies so they cannot bypass c15t.
 <include src="../shared/integrations/register-scripts.mdx" />
 
 Copy the account key from Script Setup, where the snippet calls `reb2b.load`.
+Before installing the helper, open [Script in RB2B](https://app.rb2b.com/script),
+choose **Add a Domain**, enter the site's domain and save it. RB2B requires
+domain authorization before its script can run. A root domain includes its
+subdomains; an individual hostname authorizes only that hostname.
 RB2B identifies companies and US visitors for sales outreach. This helper uses
 marketing consent even though some RB2B guidance calls its cookies functional.
 
@@ -27,7 +31,14 @@ marketing consent even though some RB2B guidance calls its cookies functional.
 | Option | Default | Behavior |
 | --- | --- | --- |
 | `accountKey` | Required | Public account key, trimmed and URL-encoded. Invalid or blank values log an error and skip loading. |
-| `scriptUrl` | `https://ddwl4m2hdecbv.cloudfront.net/b/<key>/<key>.js.gz` | Override for the URL in your dashboard snippet. Blank values use the default. RB2B checks its own URL; preserve a supported CloudFront or S3 prefix and the `/b/<key>/` path. An arbitrary proxy may fail that check. |
+| `scriptUrl` | `https://ddwl4m2hdecbv.cloudfront.net/b/<key>/<key>.js.gz` | Override for the URL in your dashboard snippet. Blank values use the default. Unsupported URLs log an error and skip loading. |
+
+Supported HTTPS prefixes are `ddwl4m2hdecbv.cloudfront.net/b/`,
+`s3-us-west-2.amazonaws.com/b2bjsstore/b/` and
+`b2bjsstore.s3.us-west-2.amazonaws.com/b/`. The URL must include
+`/b/<accountKey>/`, ignoring account-key case. Custom filenames, query strings
+and fragments are allowed. An unchanged SDK served from an arbitrary proxy
+fails RB2B's check of `document.currentScript.src`.
 
 ## Loading and revocation
 
@@ -37,9 +48,7 @@ account script asynchronously. The currently served account script does not
 replay queued identification calls. The helper sends no identification calls and
 sets no `rb2bConfig` itself.
 
-RB2B can delay startup by three seconds. It sends once per script execution;
-the helper does not reload the script on SPA navigation. Configure route behavior
-with RB2B before adding manual page tracking.
+RB2B can delay startup by three seconds. It sends once per script execution.
 
 The loader stays registered across withdrawal and regrant to avoid duplicate
 execution. RB2B has no documented stop or opt-out API. Keep c15t's default page
@@ -52,6 +61,33 @@ CloudFront or S3 loader, `b-code.liadm.com`, `pro.ip-api.com`,
 `a.usbrowserspeed.com`, `alocdn.com` and account-specific
 `*.execute-api.us-west-2.amazonaws.com` endpoints.
 
+## Page views in client-routed apps
+
+[RB2B's installation guide](https://support.rb2b.com/en/articles/10126115-installing-your-rb2b-tracking-script)
+asks modern apps to run its script on every page view. This helper runs once
+per document and does not rerun on client-side route changes.
+
+For a new RB2B execution on each destination, use full-document navigation.
+In Next.js, use a native `<a href="/pricing">` instead of `next/link` for these
+links. In Vue or Nuxt, use a native anchor instead of a router link. For a
+button or imperative navigation, call this function from its click handler:
+
+<include src="../shared/examples/javascript/rb2b-document-navigation.mdx" />
+
+Register c15t and the same `rb2b` configuration on every destination. Keep the
+framework quickstart's consent persistence. Each new document lets c15t evaluate
+effective marketing permission and any vendor choice before creating the RB2B
+global or loading the SDK. Visitors who deny permission can still navigate;
+RB2B stays blocked on their destination pages.
+
+Full-document navigation resets page-local application state. Hash-only changes
+and back/forward cache restores do not create a fresh document, so this recipe
+does not promise a new RB2B page view for those transitions. If you retain SPA
+navigation, this helper covers only the initial document. Do not change
+`accountKey` or `scriptUrl`, delete the global, or call `collect()` in a route
+hook to force another page view. The observed SDK freezes its client and keeps
+per-execution state; safe teardown and reinitialization have not been verified.
+
 ## Cookies and storage
 
 RB2B documents `_reb2bgeo`, `_reb2bloaded`, `_reb2bref`, `_reb2sessionID`,
@@ -61,10 +97,10 @@ and `_reb2beid`. Some builds mirror `_reb2buid`, `_reb2bref`, `_reb2bec`,
 `_reb2butk` and `_reb2beid` in local storage. Check the current account script
 rather than treating this list as exhaustive.
 
-The monitor uses a public key from RB2B's own homepage. Its loader returns real
-JavaScript, but domain restrictions and automation checks prevent identification
-verification. Placeholder keys return access denied. Collection remains blocked
-in the monitor.
+The scheduled monitor uses a fake account key and checks loader reachability
+only. An access-denied response can pass that check. It does not verify SDK
+execution, domain authorization or visitor identification. Collection remains
+blocked in the monitor.
 
 Sources: [RB2B TypeScript installation](https://support.rb2b.com/en/articles/9503690-rb2b-install-guide-for-typescript),
 [cookie information](https://support.rb2b.com/en/articles/9910029-rb2b-cookie-information),

@@ -7,4 +7,4 @@ packages:
 
 ### Add RB2B consent integration
 
-Load RB2B after marketing consent with the `rb2b` helper, with vendor metadata, framework registration examples and CLI setup.
+Load RB2B after marketing consent with the `rb2b` helper. Includes vendor metadata, framework registration examples and CLI setup. Validate supported loader URLs and document domain authorization, full-document navigation and revocation limits.

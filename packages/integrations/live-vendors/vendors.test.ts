@@ -62,6 +62,16 @@ describe('live vendor probe configs', () => {
 		expect(isAllowed('https://ct.pinterest.com/stats/')).toBe(false);
 	});
 
+	it('uses an obvious placeholder account for the RB2B reachability probe', () => {
+		const [config] = configsForVendor('rb2b');
+		const loaderPath =
+			'ddwl4m2hdecbv.cloudfront.net/b/C15TFAKERB2BKEY/C15TFAKERB2BKEY.js.gz';
+
+		expect(config?.createScript?.().src).toBe(`https://${loaderPath}`);
+		expect(config?.loaderUrlSubstring).toBe(loaderPath);
+		expect(config?.tier).toBe('loader-only');
+	});
+
 	it('documents every vendor that asserts no runtime behavior', () => {
 		// A vendor whose loader answers placeholder credentials with an error
 		// page cannot prove its SDK started, so the probe reduces to "the

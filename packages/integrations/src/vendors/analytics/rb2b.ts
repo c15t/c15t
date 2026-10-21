@@ -3,7 +3,7 @@ import type { Script } from '@c15t/core';
 import { resolveManifest } from '../../resolve';
 import { vendorManifestContract } from '../../types';
 import type { VendorManifest } from '../../types';
-import { readId, skipMissingId } from '../_shared/required-id';
+import { readId, skipMissingId, skipScript } from '../_shared/required-id';
 import { resolveScriptUrl, trimToUndefined } from '../_shared/script-url';
 
 interface Rb2bQueue extends Array<unknown[]> {
@@ -29,8 +29,14 @@ export const rb2bManifest = {
 			target: 'reb2b',
 			type: 'defineQueueMethods',
 		},
-		{ path: ['reb2b', 'invoked'], type: 'setGlobalPath', value: true },
 		{
+			ifGlobalIsQueue: true,
+			path: ['reb2b', 'invoked'],
+			type: 'setGlobalPath',
+			value: true,
+		},
+		{
+			ifGlobalIsQueue: true,
 			path: ['reb2b', 'SNIPPET_VERSION'],
 			type: 'setGlobalPath',
 			value: '1.0.1',
@@ -52,14 +58,36 @@ export const rb2bManifest = {
 export interface Rb2bOptions {
 	/** Account key in reb2b.load on the Script Setup page. */
 	accountKey: string;
-	/** Override URL. Preserve the vendor's accepted host and /b/<key>/ path. */
+	/** HTTPS CloudFront or S3 loader URL with this account's /b/<key>/ path. */
 	scriptUrl?: string;
 }
+
+const supportedScriptPrefixes = [
+	'https://ddwl4m2hdecbv.cloudfront.net/b/',
+	'https://s3-us-west-2.amazonaws.com/b2bjsstore/b/',
+	'https://b2bjsstore.s3.us-west-2.amazonaws.com/b/',
+];
+
+const isSupportedScriptUrl = function isSupportedScriptUrl(
+	scriptUrl: string,
+	key: string
+): boolean {
+	try {
+		// The SDK validates the browser-normalized document.currentScript.src.
+		const normalized = new URL(scriptUrl).href;
+		return (
+			supportedScriptPrefixes.some((prefix) => normalized.startsWith(prefix)) &&
+			normalized.toLowerCase().includes(`/b/${key.toLowerCase()}/`)
+		);
+	} catch {
+		return false;
+	}
+};
 
 /**
  * Loads RB2B after marketing consent, once per page.
  * @param options - Public account key and optional loader URL.
- * @returns A gated script, or a skipped script for an invalid account key.
+ * @returns A gated script, or a skipped script for an invalid key or loader URL.
  * @remarks RB2B has no documented stop API. Keep reload on revocation enabled.
  * @example rb2b({ accountKey: 'YOUR_RB2B_KEY' });
  * @see https://support.rb2b.com/en/articles/9503690-rb2b-install-guide-for-typescript
@@ -75,10 +103,17 @@ export const rb2b = function rb2b(options: Rb2bOptions): Script {
 		});
 	}
 	const key = encodeURIComponent(accountKey);
+	const scriptUrl = resolveScriptUrl(
+		trimToUndefined(options.scriptUrl),
+		`https://ddwl4m2hdecbv.cloudfront.net/b/${key}/${key}.js.gz`
+	);
+	if (!isSupportedScriptUrl(scriptUrl, key)) {
+		return skipScript(
+			'rb2b: scriptUrl must use a supported HTTPS CloudFront or S3 prefix and /b/<accountKey>/ path',
+			{ category: 'marketing', manifest: rb2bManifest }
+		);
+	}
 	return resolveManifest(rb2bManifest, {
-		scriptUrl: resolveScriptUrl(
-			trimToUndefined(options.scriptUrl),
-			`https://ddwl4m2hdecbv.cloudfront.net/b/${key}/${key}.js.gz`
-		),
+		scriptUrl,
 	});
 };

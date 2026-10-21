@@ -1,7 +1,9 @@
 /**
  * @vitest-environment jsdom
  */
-import { afterEach, describe, expect, it } from 'vitest';
+import { createConsentKernel } from '@c15t/core';
+import { createScriptLoader } from '@c15t/core/modules/script-loader';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
 	deniedConsents,
@@ -15,11 +17,6 @@ import { rb2b } from './vendors/analytics/rb2b';
 
 describe('RB2B core loader consent contract', () => {
 	registerVendorContractCleanup();
-	afterEach(() => {
-		for (const key of ['reb2b']) {
-			Reflect.deleteProperty(window, key);
-		}
-	});
 	it('creates no vendor globals, requests or storage before mapped consent', () => {
 		const scripts = [rb2b({ accountKey: 'c15tfake' })];
 		loadScripts(scripts, deniedConsents);
@@ -57,7 +54,6 @@ describe('RB2B core loader consent contract', () => {
 
 describe('RB2B official bootstrap', () => {
 	registerVendorContractCleanup();
-	afterEach(() => Reflect.deleteProperty(window, 'reb2b'));
 	it('keeps the snippet guard and tuple methods behind consent', () => {
 		const scripts = [rb2b({ accountKey: 'c15tfake' })];
 		loadScripts(scripts, grantedMarketingConsents);
@@ -70,5 +66,51 @@ describe('RB2B official bootstrap', () => {
 		updateScripts(scripts, deniedConsents);
 		updateScripts(scripts, grantedMarketingConsents);
 		expect(window.reb2b).toBe(client);
+	});
+	it('preserves a frozen runtime client when a changed source remounts', () => {
+		const kernel = createConsentKernel();
+		void kernel.commands.save(grantedMarketingConsents);
+		const debug = vi.fn();
+		const loader = createScriptLoader({
+			kernel,
+			onDebug: debug,
+			scripts: [rb2b({ accountKey: 'c15tfake' })],
+		});
+		try {
+			const original = document.querySelector('script');
+			original?.dispatchEvent(new Event('load'));
+			const client = Object.freeze({ collect: vi.fn(), identify: vi.fn() });
+			Object.defineProperty(window, 'reb2b', {
+				configurable: true,
+				value: client,
+				writable: true,
+			});
+			debug.mockClear();
+			loader.updateScripts([rb2b({ accountKey: 'anotherfake' })]);
+			expect(document.querySelector('script')).not.toBe(original);
+			expect(document.querySelector('script')?.src).toBe(
+				'https://ddwl4m2hdecbv.cloudfront.net/b/anotherfake/anotherfake.js.gz'
+			);
+			expect(window.reb2b).toBe(client);
+			expect(debug).not.toHaveBeenCalledWith(
+				expect.objectContaining({ action: 'callback_error' })
+			);
+		} finally {
+			loader.dispose();
+			kernel.dispose();
+		}
+	});
+});
+
+describe('RB2B shared cleanup', () => {
+	afterEach(() => {
+		expect('reb2b' in window).toBe(false);
+	});
+	describe('after bootstrap', () => {
+		registerVendorContractCleanup();
+		it('clears bootstrapped globals with shared vendor cleanup', () => {
+			loadScripts([rb2b({ accountKey: 'c15tfake' })], grantedMarketingConsents);
+			expect(window.reb2b?.invoked).toBe(true);
+		});
 	});
 });

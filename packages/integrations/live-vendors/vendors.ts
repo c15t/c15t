@@ -220,11 +220,11 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 					typeof window.reb2b.collect === 'function',
 				'Official RB2B array and snippet guard'
 			),
-		createScript: () => rb2b({ accountKey: '1VN080HQL06J' }),
+		createScript: () => rb2b({ accountKey: 'C15TFAKERB2BKEY' }),
 		loaderUrlSubstring:
-			'ddwl4m2hdecbv.cloudfront.net/b/1VN080HQL06J/1VN080HQL06J.js.gz',
+			'ddwl4m2hdecbv.cloudfront.net/b/C15TFAKERB2BKEY/C15TFAKERB2BKEY.js.gz',
 		notes:
-			'Public RB2B homepage account key serves real JavaScript. Domain restrictions and automation checks prevent identification verification; collection is blocked.',
+			'Placeholder account key provides consent gating, bootstrap, and endpoint reachability coverage only. Runtime initialization and visitor identification are not verified; collection is blocked.',
 		tier: 'loader-only',
 		vendor: 'rb2b',
 	},
