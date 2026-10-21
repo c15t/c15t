@@ -105,7 +105,7 @@ so you don't need a `'use client'` wrapper. `ConsentRoot` already wraps
 `ConsentProvider`, so don't mount both.
 
 Because the layout doesn't await `resolveConsent()`, Next.js sends the page
-straight away and streams the consent result later in the same response. Until
+without waiting for it and streams the consent result later in the same response. Until
 it arrives, the banner stays hidden and every optional category stays denied,
 so nothing loads early. If you want the banner in the first HTML, see
 [render the banner in the server HTML](/docs/frameworks/next/app-router#render-the-banner-in-the-server-html).

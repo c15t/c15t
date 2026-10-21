@@ -8,7 +8,7 @@ group: reference
 
 Pick OneTrust if consent is one part of a larger privacy programme run by a
 legal or privacy team. It scans your site for cookies, and separate OneTrust
-products cover the rest of that programme, so the team deals with one vendor.
+products cover more of that programme.
 
 Pick c15t if your engineers own consent. The banner, the engine that decides
 what may run and the backend that stores records are all code your team can
@@ -36,9 +36,9 @@ Sources: [Cookie Consent](https://www.onetrust.com/products/cookie-consent/), [J
 
 ## What owning the code gets you
 
-c15t is [Apache-2.0](https://github.com/c15t/c15t/blob/v3/LICENSE.md). Your developers can read it, patch it and pin versions like any other dependency. Consent changes go through the same code review as the features that depend on them.
+c15t is [Apache-2.0](https://github.com/c15t/c15t/blob/v3/LICENSE.md). Your developers can read it, patch it and pin versions like any other dependency. Consent changes can go through the same code review as the features that depend on them.
 
-The banner and your app share one consent state. A privacy settings screen in your account area reads the same permissions that gate a video embed or your analytics. If the stock components don't fit, build your own on the [headless APIs](/docs/frameworks/react/headless).
+The banner and your app share one consent state. A privacy settings screen in your account area can read the same permissions that gate a video embed or your analytics. If the stock components don't fit, build your own on the [headless APIs](/docs/frameworks/react/headless).
 
 ## How consent affects page load
 
@@ -50,8 +50,8 @@ This page doesn't claim c15t is faster than OneTrust. That would need a side-by-
 
 ## What c15t does not include
 
-- **Site scanning.** c15t doesn't crawl your site, signed-in pages included, to find trackers for you. You register each vendor yourself.
-- **Privacy operations.** Data-subject request handling, data discovery and organisation-wide assessments are outside c15t.
+- **Site scanning.** c15t doesn't crawl signed-in pages or find every tracker for you. Register each vendor you need.
+- **Privacy operations.** Data-subject request handling, data discovery and organisation-wide assessments are outside the c15t packages.
 - **A drop-in replacement for your current setup.** If you're moving from OneTrust, check identity, record retention, admin access and migration before you switch.
 - **Free backend operations.** Inth has its own service terms. Self-hosting means you run the database, backups and maintenance.
 
