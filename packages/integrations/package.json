@@ -302,6 +302,11 @@
 			"types": "./dist-types/events.d.ts",
 			"import": "./dist/events.js",
 			"default": "./dist/events.js"
+		},
+		"./salesforce-pardot": {
+			"types": "./dist-types/vendors/analytics/salesforce-pardot.d.ts",
+			"import": "./dist/vendors/analytics/salesforce-pardot.js",
+			"default": "./dist/vendors/analytics/salesforce-pardot.js"
 		}
 	},
 	"publishConfig": {

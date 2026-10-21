@@ -1,0 +1,78 @@
+---
+title: Salesforce Account Engagement
+description: Gate Salesforce Account Engagement tracking on marketing consent, configure its consent API or classic Pardot snippet, and verify revocation with c15t.
+seoTitle: Salesforce Pardot cookie consent with c15t
+seoDescription: Load Account Engagement only after marketing consent. Configure Pardot tracking, revoke consent and verify vendor requests with c15t.
+icon: chart-line
+group: integrations
+---
+
+`pardotTracking` waits for `marketing` consent before creating Pardot globals
+or downloading its tracker. The default mode uses Account Engagement's
+Tracking and Consent API. Classic `pd.js` tracking is also supported.
+
+## Configure Account Engagement
+
+Enable the Tracking and Consent API in Account Engagement and use its verified
+tracker domain. Copy the account and campaign IDs from the generated snippet;
+the helper does not add Salesforce's ID offset a second time. Remove the
+original tracking snippet.
+
+<CommandTabs command="@c15t/integrations" mode="install" />
+
+<include src="../shared/examples/javascript/salesforce-pardot-configuration.mdx" />
+
+Replace `pi.pardot.com` in the example with your verified tracker hostname.
+
+<include src="../shared/integrations/register-scripts.mdx" />
+
+## Options
+
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `piAId` | Required | Positive numeric account ID from the tracking snippet. Strings and numbers are accepted. |
+| `piCId` | Required | Positive numeric campaign ID from the tracking snippet. |
+| `piDomain` | Required in consent mode | Verified tracker hostname without a scheme or path. |
+| `mode` | `consent` | Use `classic` for the older `pd.js` snippet. It has no runtime revocation API. |
+| `piHostname` | `pi.pardot.com` | Tracker hostname for classic mode. |
+| `category` | `marketing` | Consent condition for the whole loader. |
+| `scriptUrl` | Tracker's HTTPS `pdt.js?aid=...` URL | Loader override. Classic mode defaults to `https://pi.pardot.com/pd.js`. Blank overrides use the default. |
+
+Missing or blank required values log an error and never load. Tracker domains
+must be hostnames, and account and campaign IDs must be safe positive integers.
+
+## Loading and revocation
+
+After consent, the helper creates the `pdt.cq` queue, configures the tracker
+with numeric IDs, hides Salesforce's banner without changing consent, and
+starts with `setOptIn(false)`. After the SDK loads, it calls `setOptIn(true)`
+and sends one page view. Unrelated consent changes do not send another view.
+A detached in-flight load cannot run this grant callback.
+
+Revocation calls `pdt('revokeConsent')`. It intentionally does not call
+`clearTrackingCookies`, which also deletes the false-consent cookie and can
+allow later page views. Regrant reuses the tracker configuration and enables
+a new page view. Classic mode cannot stop its running SDK through this helper.
+
+Keep `reloadOnConsentRevoked` enabled in both modes. Consent clearing makes
+vendor requests, and late in-flight responses can restore cookies. Removing a
+script does not stop pending requests. The next page does not load Pardot
+while its mapped consent is denied.
+
+Pardot can set `visitor_id<id>`, `visitor_id<id>-hash`, `pi_opt_in<id>`,
+`lpv<id>` and `pardot` cookies. Cookie suffixes can use the account ID minus
+1000\. Reloading is not a promise to erase all vendor cookies.
+
+## Verify Account Engagement
+
+Before consent, check for no `pdt.js`, `pd.js`, `pdt`, `piAId`, cookies or vendor
+browser storage. Grant an unrelated category and check again. Grant marketing
+to load the consent dispatcher, then revoke it and confirm the false-consent
+cookie remains until your configured cleanup or expiry. Regrant and check for
+one new page view with your own configured account.
+
+Sources: Salesforce's [setup guide](https://developer.salesforce.com/docs/marketing/pardot/guide/tracking-and-consent-getting-started.html),
+[consent functions](https://developer.salesforce.com/docs/marketing/pardot/guide/tracking-and-consent-functions.html)
+and [classic snippet](https://help.salesforce.com/s/articleView?id=000381476\&language=en_US\&type=1).
+
+<include src="../shared/integrations/vendor-revocation-and-verify.mdx" />

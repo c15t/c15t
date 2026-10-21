@@ -34,6 +34,7 @@ import { posthog } from '../vendors/analytics/posthog';
 import { promptwatch } from '../vendors/analytics/promptwatch';
 import { rudderstack } from '../vendors/analytics/rudderstack';
 import { rybbitAnalytics } from '../vendors/analytics/rybbit-analytics';
+import { pardotTracking } from '../vendors/analytics/salesforce-pardot';
 import { segment } from '../vendors/analytics/segment';
 import { sentry } from '../vendors/analytics/sentry';
 import { umamiAnalytics } from '../vendors/analytics/umami-analytics';
@@ -268,6 +269,18 @@ export const helperParityCases = {
 			src: 'https://bzrcdn.openai.com/sdk/oaiq.min.js',
 		},
 		script: openaiPixel({ pixelId: 'OPENAI-CONTRACT' }),
+	},
+	pardotTracking: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://pi.pardot.com/pdt.js?aid=123456',
+		},
+		script: pardotTracking({
+			piAId: '123456',
+			piCId: '654321',
+			piDomain: 'pi.pardot.com',
+		}),
 	},
 	pinterestTag: {
 		expected: {

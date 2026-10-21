@@ -845,6 +845,7 @@ export default defineDocsConfig({
 				{
 					pages: [
 						'google-tag',
+						'salesforce-pardot',
 						'ahrefs-analytics',
 						'adobe-analytics',
 						'amplitude',

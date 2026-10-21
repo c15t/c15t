@@ -43,6 +43,7 @@ import { posthogManifest } from './vendors/analytics/posthog';
 import { promptwatchManifest } from './vendors/analytics/promptwatch';
 import { rudderstackManifest } from './vendors/analytics/rudderstack';
 import { rybbitAnalyticsManifest } from './vendors/analytics/rybbit-analytics';
+import { pardotTrackingManifest } from './vendors/analytics/salesforce-pardot';
 import { segmentManifest } from './vendors/analytics/segment';
 import { sentryManifest } from './vendors/analytics/sentry';
 import { umamiAnalyticsManifest } from './vendors/analytics/umami-analytics';
@@ -63,6 +64,7 @@ const validConsentCategories = [
 ] as const satisfies readonly AllConsentNames[];
 
 const vendorManifests = [
+	pardotTrackingManifest,
 	googleTagManagerManifest,
 	gtagManifest,
 	ahrefsAnalyticsManifest,

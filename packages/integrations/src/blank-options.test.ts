@@ -32,6 +32,7 @@ import { posthog } from './vendors/analytics/posthog';
 import { promptwatch } from './vendors/analytics/promptwatch';
 import { rudderstack } from './vendors/analytics/rudderstack';
 import { rybbitAnalytics } from './vendors/analytics/rybbit-analytics';
+import { pardotTracking } from './vendors/analytics/salesforce-pardot';
 import { segment } from './vendors/analytics/segment';
 import { sentry } from './vendors/analytics/sentry';
 import { umamiAnalytics } from './vendors/analytics/umami-analytics';
@@ -58,6 +59,17 @@ const requiredIdCases: {
 	create: (id: unknown) => Script;
 	script: Pick<Script, 'category' | 'id'>;
 }[] = [
+	{
+		create: (id) =>
+			pardotTracking({
+				piAId: asId(id),
+				piCId: '654321',
+				piDomain: 'pi.pardot.com',
+			}),
+		helper: 'pardotTracking',
+		option: 'piAId',
+		script: { category: 'marketing', id: 'salesforce-pardot' },
+	},
 	{
 		create: (id) => linkedinInsights({ id: asId(id) }),
 		helper: 'linkedinInsights',

@@ -115,6 +115,16 @@ export const BUILT_IN_INTEGRATION_CATEGORIES = [
  */
 export const builtInScriptIntegrations = [
 	{
+		consentCategory: 'marketing',
+		docsSlug: 'salesforce-pardot',
+		hint: 'B2B visitor tracking with the Account Engagement consent API',
+		integrationCategory: 'analytics',
+		key: 'pardotTracking',
+		label: 'Salesforce Account Engagement',
+		packageSubpath: 'salesforce-pardot',
+		vendor: 'salesforce-pardot',
+	},
+	{
 		consentCategory: 'necessary',
 		docsSlug: 'cloudflare-zaraz',
 		hint: 'Consent bridge for tools managed by Zaraz',
