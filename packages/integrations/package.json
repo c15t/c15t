@@ -302,6 +302,11 @@
 			"types": "./dist-types/events.d.ts",
 			"import": "./dist/events.js",
 			"default": "./dist/events.js"
+		},
+		"./gorgias": {
+			"types": "./dist-types/vendors/functional/gorgias.d.ts",
+			"import": "./dist/vendors/functional/gorgias.js",
+			"default": "./dist/vendors/functional/gorgias.js"
 		}
 	},
 	"publishConfig": {

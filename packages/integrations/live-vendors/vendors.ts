@@ -61,6 +61,7 @@ import { vercelSpeedInsights } from '../src/vendors/analytics/vercel-speed-insig
 import { klaviyo } from '../src/vendors/email-and-sms/klaviyo';
 import { crisp } from '../src/vendors/functional/crisp';
 import { frontChat } from '../src/vendors/functional/front-chat';
+import { gorgiasChat } from '../src/vendors/functional/gorgias';
 import { intercom } from '../src/vendors/functional/intercom';
 import { googleTagManager } from '../src/vendors/tag-managers/google-tag-manager';
 import type { LiveProbeCheckResult, LiveVendorProbeConfig } from './types';
@@ -209,6 +210,21 @@ type PosthogProbeWindow = Window & {
  * Probe configs for every built-in integration, ordered by registry vendor id.
  */
 export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
+	{
+		bootstrapCheck: () =>
+			check(
+				window.GorgiasChat === undefined,
+				'GorgiasChat is absent before the loader so its duplicate-install guard permits initialization'
+			),
+		createScript: () => gorgiasChat({ appKey: 'XXXXXXXXXXXXXXXXXXXXXXXXXX' }),
+		loaderUrlSubstring:
+			'config.gorgias.chat/bundle-loader/XXXXXXXXXXXXXXXXXXXXXXXXXX',
+		notes:
+			'The placeholder v3 loader returns HTTP 200 with a 145-byte warning and creates no runtime. This checks the empty pre-load global and endpoint reachability only. A real pre-init proxy already exposes init, so that method cannot prove SDK readiness. Collection stays blocked.',
+		tier: 'loader-only',
+		vendor: 'gorgias',
+	},
+
 	{
 		skipReason:
 			'Requires a configured Cloudflare zone and purpose IDs. This bridge does not fetch a public vendor loader.',

@@ -83,11 +83,12 @@ kernel to control its DOM lifecycle. Embeds do not require `@c15t/integrations`.
 
 ## Chat and support
 
-| Integration                   | Helper      | Category        | Loading behavior               |
-| ----------------------------- | ----------- | --------------- | ------------------------------ |
-| [Crisp](./crisp.md)           | `crisp`     | `functionality` | Waits for effective permission |
-| [Front Chat](./front-chat.md) | `frontChat` | `functionality` | Waits for effective permission |
-| [Intercom](./intercom.md)     | `intercom`  | `functionality` | Waits for effective permission |
+| Integration                   | Helper        | Category        | Loading behavior               |
+| ----------------------------- | ------------- | --------------- | ------------------------------ |
+| [Crisp](./crisp.md)           | `crisp`       | `functionality` | Waits for effective permission |
+| [Gorgias Chat](./gorgias.md)  | `gorgiasChat` | `functionality` | Waits for effective permission |
+| [Front Chat](./front-chat.md) | `frontChat`   | `functionality` | Waits for effective permission |
+| [Intercom](./intercom.md)     | `intercom`    | `functionality` | Waits for effective permission |
 
 ## Email and SMS
 

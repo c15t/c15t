@@ -51,6 +51,7 @@ import { vercelSpeedInsightsManifest } from './vendors/analytics/vercel-speed-in
 import { klaviyoManifest } from './vendors/email-and-sms/klaviyo';
 import { crispManifest } from './vendors/functional/crisp';
 import { frontChatManifest } from './vendors/functional/front-chat';
+import { gorgiasChatManifest } from './vendors/functional/gorgias';
 import { intercomManifest } from './vendors/functional/intercom';
 import { googleTagManagerManifest } from './vendors/tag-managers/google-tag-manager';
 
@@ -63,6 +64,7 @@ const validConsentCategories = [
 ] as const satisfies readonly AllConsentNames[];
 
 const vendorManifests = [
+	gorgiasChatManifest,
 	googleTagManagerManifest,
 	gtagManifest,
 	ahrefsAnalyticsManifest,

@@ -40,6 +40,7 @@ import { vercelSpeedInsights } from './vendors/analytics/vercel-speed-insights';
 import { klaviyo } from './vendors/email-and-sms/klaviyo';
 import { crisp } from './vendors/functional/crisp';
 import { frontChat } from './vendors/functional/front-chat';
+import { gorgiasChat } from './vendors/functional/gorgias';
 import { intercom } from './vendors/functional/intercom';
 import { googleTagManager } from './vendors/tag-managers/google-tag-manager';
 
@@ -58,6 +59,16 @@ const requiredIdCases: {
 	create: (id: unknown) => Script;
 	script: Pick<Script, 'category' | 'id'>;
 }[] = [
+	{
+		create: (id) =>
+			gorgiasChat({
+				...{ appKey: 'XXXXXXXXXXXXXXXXXXXXXXXXXX' },
+				appKey: asId(id),
+			}),
+		helper: 'gorgiasChat',
+		option: 'appKey',
+		script: { category: 'functionality', id: 'gorgias' },
+	},
 	{
 		create: (id) => linkedinInsights({ id: asId(id) }),
 		helper: 'linkedinInsights',

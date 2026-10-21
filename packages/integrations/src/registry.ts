@@ -115,6 +115,16 @@ export const BUILT_IN_INTEGRATION_CATEGORIES = [
  */
 export const builtInScriptIntegrations = [
 	{
+		consentCategory: 'functionality',
+		docsSlug: 'gorgias',
+		hint: 'Customer support through Gorgias Chat',
+		integrationCategory: 'functional',
+		key: 'gorgiasChat',
+		label: 'Gorgias Chat',
+		packageSubpath: 'gorgias',
+		vendor: 'gorgias',
+	},
+	{
 		consentCategory: 'necessary',
 		docsSlug: 'cloudflare-zaraz',
 		hint: 'Consent bridge for tools managed by Zaraz',

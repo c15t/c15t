@@ -876,7 +876,7 @@ export default defineDocsConfig({
 					title: 'Analytics',
 				},
 				{
-					pages: ['crisp', 'front-chat', 'intercom'],
+					pages: ['gorgias', 'crisp', 'front-chat', 'intercom'],
 					slug: 'chat-and-support',
 					title: 'Chat and support',
 				},
