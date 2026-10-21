@@ -178,6 +178,9 @@ const resolveMiddleware = function resolveMiddleware(
 	if (raw.trustForwardedHeaders !== undefined) {
 		resolved.trustForwardedHeaders = raw.trustForwardedHeaders;
 	}
+	if (raw.subjectCookie !== undefined) {
+		resolved.subjectCookie = raw.subjectCookie;
+	}
 	return resolved;
 };
 

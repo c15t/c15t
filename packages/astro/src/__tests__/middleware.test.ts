@@ -287,6 +287,19 @@ describe('consent middleware', () => {
 		expect(setCookie).not.toHaveBeenCalled();
 	});
 
+	it('middleware.subjectCookie: false sets no subject cookie', async () => {
+		const setCookie = vi.fn();
+		const c15t = await run({
+			options: {
+				middleware: { subjectCookie: false },
+				mode: offlineMode({ policyRules: [testRule] }),
+			},
+			setCookie,
+		});
+		expect(setCookie).not.toHaveBeenCalled();
+		expect(c15t.config.initialRecords?.subject?.subjectId).toBeUndefined();
+	});
+
 	it('skips the network prefetch on a prerendered route', async () => {
 		const fetchImpl = vi.fn();
 		const c15t = await run({

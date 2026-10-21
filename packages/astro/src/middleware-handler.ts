@@ -81,7 +81,8 @@ const resolveSkipPaths = function resolveSkipPaths(
  * A visitor with no subject ID gets one in a `c15t-sid` cookie (named after
  * `storageConfig.storageKey`) on this response, and the render reads it, so
  * the page and the browser start with the same ID. The cookie holds only the
- * ID, so the banner still shows. Prerendered routes and prefetches get none.
+ * ID, so the banner still shows. Prerendered routes and prefetches get none,
+ * and nothing does with `middleware.subjectCookie: false`.
  *
  * So is the integration's own route under `routePrefix`, and anything
  * listed in `middleware.skip` — those run `next()` with `Astro.locals.c15t`
@@ -107,13 +108,14 @@ export const createConsentMiddleware = function createConsentMiddleware(
 		// Astro warns on any read of a prerendered request's headers, and at
 		// build time they hold nothing about a visitor anyway.
 		let headers = prerendered ? new Headers() : context.request.headers;
-		const subject = prerendered
-			? null
-			: resolveRequestSubject({
-					request: { headers, url: context.request.url },
-					storage: options.storageConfig,
-					trustForwardedHeaders: options.middleware?.trustForwardedHeaders,
-				});
+		const subject =
+			prerendered || options.middleware?.subjectCookie === false
+				? null
+				: resolveRequestSubject({
+						request: { headers, url: context.request.url },
+						storage: options.storageConfig,
+						trustForwardedHeaders: options.middleware?.trustForwardedHeaders,
+					});
 		if (subject?.setCookie) {
 			const { header: _header, name, value, ...attributes } = subject.setCookie;
 			context.cookies.set(name, value, attributes);

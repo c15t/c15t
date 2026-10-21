@@ -66,6 +66,8 @@ for how long it lasts and when it changes.
   `middleware: { trustForwardedHeaders: true }` to read the scheme from
   `X-Forwarded-Proto`. Only do that when the proxy overwrites the forwarding
   headers clients send.
+- When a `consentSource` in `clientEntrypoint` owns consent, set
+  `middleware: { subjectCookie: false }` so the middleware sets no cookie.
 
 ## Type `Astro.locals.c15t`
 

@@ -24,19 +24,21 @@ decides.
 - TanStack Start: `consentRequestMiddleware` sets it and accepts the same
   options. Prerendered pages get none.
 - Astro: the c15t middleware sets it on server-rendered pages, named from
-  `storageConfig`. `middleware.trustForwardedHeaders` is new.
+  `storageConfig`. `middleware.trustForwardedHeaders` and
+  `middleware.subjectCookie` are new. With a `consentSource`, pass
+  `subjectCookie: false`.
 - SvelteKit: `c15tHandle` sets it and exposes the request cookie as
   `locals.c15t.cookie`. `storage`, `trustForwardedHeaders` and
-  `subjectCookie` are new options. With `persistence: false` on
-  `ConsentProvider`, pass `subjectCookie: false`.
+  `subjectCookie` are new options. With `persistence: false` or a
+  `consentSource` on `ConsentProvider`, pass `subjectCookie: false`.
 - Nuxt: the plugin sets it during server rendering, except for prerendered
   and cached routes.
 
 Prefetch and prerender requests, and responses marked as shared, never get
 a cookie, because every visitor who received it would share the ID. Pass the
 same `storage` options as the browser so the cookie has the same name, domain
-and lifetime. With `persistence={false}` on `ConsentRoot`, pass
-`subjectCookie: false` so the ID still changes on every page load.
+and lifetime. With `persistence={false}` or a `consentSource` on `ConsentRoot`,
+pass `subjectCookie: false` so the server sets no cookie.
 
 On another server, `resolveRequestSubject()` from `c15t/server` returns the
 visitor's ID, the `Set-Cookie` value to send and the request `Cookie` header

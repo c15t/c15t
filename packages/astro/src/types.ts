@@ -100,6 +100,15 @@ export interface C15tMiddlewareOptions {
 	 * @default false
 	 */
 	trustForwardedHeaders?: boolean;
+	/**
+	 * Set `false` when a `consentSource` in
+	 * {@link C15tAstroOptions.clientEntrypoint} owns consent, so the
+	 * middleware sets no `c15t-sid` cookie. A subject ID or choice the
+	 * visitor's cookies already hold is still read.
+	 *
+	 * @default true
+	 */
+	subjectCookie?: boolean;
 }
 
 /** Options accepted by the `c15t()` Astro integration. */
@@ -493,9 +502,15 @@ export interface C15tResolvedOptions extends Omit<
 	ui: C15tUIAdapterName;
 	colorScheme: C15tColorScheme;
 	middleware: Required<
-		Omit<C15tMiddlewareOptions, 'timeoutMs' | 'trustForwardedHeaders'>
+		Omit<
+			C15tMiddlewareOptions,
+			'subjectCookie' | 'timeoutMs' | 'trustForwardedHeaders'
+		>
 	> &
-		Pick<C15tMiddlewareOptions, 'timeoutMs' | 'trustForwardedHeaders'>;
+		Pick<
+			C15tMiddlewareOptions,
+			'subjectCookie' | 'timeoutMs' | 'trustForwardedHeaders'
+		>;
 	/**
 	 * Whether the components inline the first-paint rules and the client
 	 * links the dialog's when it opens. `false` with `styles: false`, and on
