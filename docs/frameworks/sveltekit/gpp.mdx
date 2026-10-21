@@ -25,7 +25,7 @@ and other props:
 `gpp={{ usFallback: 'none' }}`; the options are listed below. Omit `gpp`, or
 pass `gpp={false}`, to leave it off.
 
-`@c15t/svelte` loads the GPP code from `@c15t/iab/gpp`, which it installs as a
+`c15t/svelte` loads the GPP code from `@c15t/iab/gpp`, which it installs as a
 dependency. It is a separate chunk that apps without `gpp` never download.
 `__gpp` exists only in the browser: the server render does not install it.
 The provider installs it once the chunk arrives and removes it when the
