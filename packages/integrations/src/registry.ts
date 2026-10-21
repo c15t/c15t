@@ -117,6 +117,7 @@ export const builtInScriptIntegrations = [
 	{
 		consentCategory: 'marketing',
 		docsSlug: 'marketo',
+		hint: 'Lead scoring and marketing analytics',
 		integrationCategory: 'analytics',
 		key: 'marketoMunchkin',
 		label: 'Marketo Munchkin',

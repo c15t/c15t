@@ -39,7 +39,6 @@ kernel to control its DOM lifecycle. Embeds do not require `@c15t/integrations`.
 | Integration | Helper | Category | Loading behavior |
 | --- | --- | --- | --- |
 | [Cloudflare Zaraz](/docs/integrations/cloudflare-zaraz) | `cloudflareZaraz` | `necessary` | Always runs; syncs purposes, Zaraz runs the tools |
-| [Marketo Munchkin](/docs/integrations/marketo) | `marketoMunchkin` | `marketing` | Waits for effective permission |
 | [Google Tag Manager](/docs/integrations/google-tag-manager) | `googleTagManager` | `necessary`; `measurement` or `marketing` when gated | Always loads and signals Google consent by default; `loadMode: 'after-consent'` waits for permission |
 
 ## Analytics
@@ -56,6 +55,7 @@ kernel to control its DOM lifecycle. Embeds do not require `@c15t/integrations`.
 | [Databuddy](/docs/integrations/databuddy) | `databuddy` | `measurement` | Always loads; switches the SDK's disabled flag |
 | [Fathom Analytics](/docs/integrations/fathom-analytics) | `fathomAnalytics` | `measurement` | Waits for effective permission |
 | [Heap](/docs/integrations/heap) | `heap` | `measurement` | Waits for effective permission |
+| [Marketo Munchkin](/docs/integrations/marketo) | `marketoMunchkin` | `marketing` | Waits for effective permission |
 | [Matomo Analytics](/docs/integrations/matomo-analytics) | `matomoAnalytics` | `measurement` | Gated by default; optional consent mode |
 | [Mixpanel](/docs/integrations/mixpanel-analytics) | `mixpanelAnalytics` | `measurement` | Always loads; calls opt-in and opt-out APIs |
 | [OneDollarStats](/docs/integrations/one-dollar-stats) | `oneDollarStats` | `measurement` | Waits for effective permission |

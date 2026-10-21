@@ -47,7 +47,6 @@ kernel to control its DOM lifecycle. Embeds do not require `@c15t/integrations`.
 | Integration                                   | Helper             | Category                                             | Loading behavior                                                                                     |
 | --------------------------------------------- | ------------------ | ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
 | [Cloudflare Zaraz](./cloudflare-zaraz.md)     | `cloudflareZaraz`  | `necessary`                                          | Always runs; syncs purposes, Zaraz runs the tools                                                    |
-| [Marketo Munchkin](./marketo.md)              | `marketoMunchkin`  | `marketing`                                          | Waits for effective permission                                                                       |
 | [Google Tag Manager](./google-tag-manager.md) | `googleTagManager` | `necessary`; `measurement` or `marketing` when gated | Always loads and signals Google consent by default; `loadMode: 'after-consent'` waits for permission |
 
 ## Analytics
@@ -64,6 +63,7 @@ kernel to control its DOM lifecycle. Embeds do not require `@c15t/integrations`.
 | [Databuddy](./databuddy.md)                               | `databuddy`              | `measurement`                                   | Always loads; switches the SDK's disabled flag                                                       |
 | [Fathom Analytics](./fathom-analytics.md)                 | `fathomAnalytics`        | `measurement`                                   | Waits for effective permission                                                                       |
 | [Heap](./heap.md)                                         | `heap`                   | `measurement`                                   | Waits for effective permission                                                                       |
+| [Marketo Munchkin](./marketo.md)                          | `marketoMunchkin`        | `marketing`                                     | Waits for effective permission                                                                       |
 | [Matomo Analytics](./matomo-analytics.md)                 | `matomoAnalytics`        | `measurement`                                   | Gated by default; optional consent mode                                                              |
 | [Mixpanel](./mixpanel-analytics.md)                       | `mixpanelAnalytics`      | `measurement`                                   | Always loads; calls opt-in and opt-out APIs                                                          |
 | [OneDollarStats](./one-dollar-stats.md)                   | `oneDollarStats`         | `measurement`                                   | Waits for effective permission                                                                       |
