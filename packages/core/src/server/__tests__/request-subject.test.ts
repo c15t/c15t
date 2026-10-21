@@ -71,12 +71,13 @@ describe('resolveRequestSubject', () => {
 
 	test('a shared render or a speculative request gets no subject', () => {
 		expect(resolve(undefined, { request: {}, shared: true })).toBeNull();
-		for (const headers of [
+		const speculative: Record<string, string>[] = [
 			{ 'sec-purpose': 'prefetch' },
 			{ purpose: 'prefetch' },
 			{ 'sec-purpose': 'prefetch;prerender' },
 			{ 'next-router-prefetch': '1' },
-		]) {
+		];
+		for (const headers of speculative) {
 			expect(
 				resolve(undefined, { request: { headers: new Headers(headers) } })
 			).toBeNull();
