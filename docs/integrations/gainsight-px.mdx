@@ -28,7 +28,7 @@ outside c15t.
 
 | Option | Default | Behavior |
 | --- | --- | --- |
-| `productKey` | Required | Product/channel key assigned to `aptrinsic.p` and the loader's `a` query parameter. Blank values log an error and skip installation. |
+| `productKey` | Required | Product/channel key assigned to `aptrinsic.p` and the loader's `a` query parameter. Changing the key after this helper starts PX throws an error and requires a page reload. Blank values log an error and skip installation. |
 | `category` | `measurement` | Consent category or condition for the whole SDK. Choose `experience` if it fits your use of analytics and engagements. |
 | `config` | None | JSON-serializable PX configuration assigned to `aptrinsic.c`. c15t owns `enableTag`; do not set it yourself. |
 | `user` | None | User identify payload with a required `id`. The helper queues it only after mapped consent. |
@@ -89,6 +89,16 @@ use the existing API without requesting the bundle again. A denied mount sends
 disable and reset commands without enabling PX or identifying the user. A later
 grant enables the tag and repeats the optional identify call. An `aptrinsic`
 queue alone does not prove that the SDK ran.
+
+Once this helper starts the SDK, use the same `productKey` for the rest of the
+page's lifetime, including after disposal. Constructing a helper with another
+key throws an error. Reload the page before installing a different product.
+PX's asynchronous `tagKey` API queues commands during reconfiguration and can
+defer opt-out until after queued identity calls, so c15t does not use it.
+
+PX has one global SDK per window. Mount one configuration at a time. Owners
+with different options still control the same SDK and do not share a consent
+veto. Equivalent configurations can share owners.
 
 Disposal itself does not disable PX or stop its timers and listeners. Keep a
 consent owner mounted while the SDK is in use so it can forward revocation.

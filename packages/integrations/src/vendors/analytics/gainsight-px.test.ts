@@ -20,6 +20,7 @@ describe('gainsightPx', () => {
 	setupScriptHelperTest();
 	afterEach(() => {
 		delete getTestGlobal().aptrinsic;
+		delete getTestGlobal().__c15tGainsightPxProductKey;
 	});
 
 	it('returns metadata and a blocked loader without browser side effects', () => {
@@ -113,6 +114,28 @@ describe('gainsightPx', () => {
 		expect(gainsightPx({ productKey: 'AP-test&other=value' }).src).toBe(
 			'https://web-sdk.aptrinsic.com/api/aptrinsic.js?a=AP-test%26other%3Dvalue'
 		);
+	});
+
+	it('rejects a pre-created different key when its granted lifecycle runs after SDK startup', () => {
+		const original = gainsightPx({ productKey: 'AP-ORIGINAL-2' });
+		const replacement = gainsightPx({ productKey: 'AP-REPLACEMENT-2' });
+		const granted = createCallbackInfo({ hasConsent: true, id: original.id });
+		original.onBeforeLoad?.(granted);
+		Reflect.set(getAptrinsic(), '__sdkBundleStarted', true);
+		expect(() => replacement.onBeforeLoad?.(granted)).toThrow(
+			'cannot change productKey after the SDK has started'
+		);
+		expect(() => replacement.onConsentChange?.(granted)).toThrow(
+			'cannot change productKey after the SDK has started'
+		);
+		replacement.onConsentChange?.(
+			createCallbackInfo({ hasConsent: false, id: original.id })
+		);
+		expect(getAptrinsic().q.map((entry) => Array.from(entry))).toEqual([
+			['config', 'enableTag', true],
+			['config', 'enableTag', false],
+			['reset'],
+		]);
 	});
 
 	it('skips missing keys while preserving the configured consent category', () => {

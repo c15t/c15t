@@ -58,6 +58,9 @@ export interface GainsightPxOptions {
 	scriptUrl?: string;
 }
 
+// Keep the installed key across server startup and PX replacing its stub.
+const productKeyGlobal = '__c15tGainsightPxProductKey';
+
 /** PX's official snippet queue, created only after mapped consent. */
 export const gainsightPxManifest = {
 	...vendorManifestContract,
@@ -70,6 +73,11 @@ export const gainsightPxManifest = {
 			queue: { property: 'q' },
 			queueFormat: 'arguments',
 			type: 'defineStubFunction',
+		},
+		{
+			name: productKeyGlobal,
+			type: 'setGlobal',
+			value: '{{productKey}}',
 		},
 		{ async: true, src: '{{scriptUrl}}', type: 'loadScript' },
 	],
@@ -120,6 +128,26 @@ const hasStartedGainsightPx = (): boolean => {
 	);
 };
 
+const assertProductKey = (productKey: string): void => {
+	if (typeof window === 'undefined') {
+		return;
+	}
+	if (!('aptrinsic' in window)) {
+		Reflect.deleteProperty(window, productKeyGlobal);
+	}
+	const previous =
+		productKeyGlobal in window ? window[productKeyGlobal] : undefined;
+	if (
+		hasStartedGainsightPx() &&
+		typeof previous === 'string' &&
+		previous !== productKey
+	) {
+		throw new Error(
+			'gainsightPx: cannot change productKey after the SDK has started. Reload the page to switch PX products.'
+		);
+	}
+};
+
 const createGainsightPxScript = function createGainsightPxScript(
 	options: GainsightPxOptions
 ): Script {
@@ -152,7 +180,7 @@ const createGainsightPxScript = function createGainsightPxScript(
 			}
 		: gainsightPxManifest;
 
-	return resolveManifest(manifest, {
+	const script = resolveManifest(manifest, {
 		account: options.account,
 		category,
 		config: { ...options.config, enableTag: true },
@@ -163,6 +191,28 @@ const createGainsightPxScript = function createGainsightPxScript(
 		),
 		user: options.user,
 	});
+	const originalBeforeLoad = script.onBeforeLoad;
+	const originalServerStart = script.serverStart;
+	const onBeforeLoad: Script['onBeforeLoad'] = (info) => {
+		assertProductKey(productKey);
+		originalBeforeLoad?.(info);
+	};
+	script.onBeforeLoad = onBeforeLoad;
+	script.serverStart = (info, started) =>
+		started.onBeforeLoad === onBeforeLoad
+			? originalServerStart?.(info, {
+					...started,
+					onBeforeLoad: originalBeforeLoad,
+				})
+			: undefined;
+	const { onConsentChange } = script;
+	script.onConsentChange = (info) => {
+		if (info.hasConsent) {
+			assertProductKey(productKey);
+		}
+		onConsentChange?.(info);
+	};
+	return script;
 };
 
 /**
@@ -182,6 +232,8 @@ const createGainsightPxScript = function createGainsightPxScript(
  * its bundle twice. After disposal, PX's execution marker lets later mounts
  * use its existing API without another loader. Disposal does not stop the SDK.
  * Pending loaders are removed on revocation.
+ * @throws {Error} If a different product key is supplied after this helper starts PX.
+ * Reload the page to switch products.
  * @example
  * gainsightPx({ productKey: 'AP-PRODUCT-KEY-2' });
  * @see https://support.gainsight.com/PX/API_for_Developers/01About/Work_with_Gainsight_PX_Web_SDK
@@ -197,6 +249,7 @@ export const gainsightPx = function gainsightPx(
 			manifest: gainsightPxManifest,
 		});
 	}
+	assertProductKey(productKey);
 	const script = reuseGainsightPxScript(
 		{ ...options, productKey },
 		createGainsightPxScript

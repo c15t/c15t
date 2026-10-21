@@ -16,7 +16,7 @@ import {
 } from './e2e-test-utils';
 import { gainsightPx } from './vendors/analytics/gainsight-px';
 
-type PxWindow = Window & { aptrinsic: AptrinsicStub };
+type PxWindow = Window & typeof globalThis & { aptrinsic: AptrinsicStub };
 
 interface AptrinsicStub {
 	(...args: unknown[]): unknown;
@@ -33,8 +33,10 @@ const grantedConsents = { ...deniedConsents, measurement: true };
 
 describe('Gainsight PX production loader contract', () => {
 	registerVendorContractCleanup();
+
 	afterEach(() => {
 		Reflect.deleteProperty(window, 'aptrinsic');
+		Reflect.deleteProperty(window, '__c15tGainsightPxProductKey');
 	});
 
 	it('creates no PX global, loader or storage until the mapped category is granted', () => {
@@ -61,6 +63,125 @@ describe('Gainsight PX production loader contract', () => {
 		loadScripts(scripts, grantedConsents);
 		expect(document.head.querySelector('script')).toBeNull();
 		expect((window as PxWindow).aptrinsic).toBeUndefined();
+	});
+
+	it.each([false, true])(
+		'rejects a loaded product-key replacement without changing the SDK, denied=%s',
+		(denied) => {
+			const runtime = Object.assign(vi.fn(), { __sdkBundleStarted: true });
+			const executeSdk = vi.fn((element: HTMLScriptElement) => {
+				Reflect.set(window, 'aptrinsic', runtime);
+				element.dispatchEvent(new Event('load'));
+			});
+			installHeadProbe(executeSdk);
+			const original = gainsightPx({ productKey: 'AP-ORIGINAL-2' });
+			loadScripts([original], grantedConsents);
+			const consents = denied ? deniedConsents : grantedConsents;
+			updateScripts([original], consents);
+			runtime.mockClear();
+			expect(() =>
+				updateScripts(
+					[gainsightPx({ productKey: 'AP-REPLACEMENT-2' })],
+					consents
+				)
+			).toThrow('cannot change productKey after the SDK has started');
+			expect(runtime).not.toHaveBeenCalled();
+			updateScripts([original], { ...consents, functionality: true });
+			expect(runtime).not.toHaveBeenCalled();
+			updateScripts([original], deniedConsents);
+			updateScripts([original], grantedConsents);
+			expect(runtime).toHaveBeenLastCalledWith('config', 'enableTag', true);
+			expect(executeSdk).toHaveBeenCalledTimes(1);
+		}
+	);
+
+	it('keeps the loaded product key after final disposal and permits same-key remounts', () => {
+		const runtime = Object.assign(vi.fn(), { __sdkBundleStarted: true });
+		const executeSdk = vi.fn((element: HTMLScriptElement) => {
+			Reflect.set(window, 'aptrinsic', runtime);
+			element.dispatchEvent(new Event('load'));
+		});
+		installHeadProbe(executeSdk);
+		loadScripts(
+			[gainsightPx({ productKey: 'AP-REMOUNT-ORIGINAL-2' })],
+			grantedConsents
+		);
+		clearAllScripts();
+		runtime.mockClear();
+		expect(() =>
+			gainsightPx({ productKey: 'AP-REMOUNT-REPLACEMENT-2' })
+		).toThrow('Reload the page to switch PX products');
+		expect(runtime).not.toHaveBeenCalled();
+		const original = gainsightPx({ productKey: 'AP-REMOUNT-ORIGINAL-2' });
+		loadScripts([original], deniedConsents);
+		expect(runtime.mock.calls).toEqual([
+			['config', 'enableTag', false],
+			['reset'],
+		]);
+		updateScripts([original], grantedConsents);
+		expect(runtime).toHaveBeenLastCalledWith('config', 'enableTag', true);
+		expect(executeSdk).toHaveBeenCalledTimes(1);
+	});
+
+	it('rejects a different key after server startup before client hydration', () => {
+		const original = gainsightPx({ productKey: 'AP-SERVER-2' });
+		const start = original.serverStart?.(
+			{ consents: grantedConsents, hasConsent: true, id: original.id },
+			original
+		);
+		expect(start).toBeDefined();
+		// oxlint-disable-next-line no-new-func -- Executes the generated server snippet.
+		new Function(`${start?.prelude ?? ''};${start?.code}`)();
+		expect(getAptrinsic().p).toBe('AP-SERVER-2');
+		const runtime = Object.assign(vi.fn(), { __sdkBundleStarted: true });
+		Reflect.set(window, 'aptrinsic', runtime);
+		expect(() => gainsightPx({ productKey: 'AP-CLIENT-2' })).toThrow(
+			'cannot change productKey after the SDK has started'
+		);
+		expect(runtime).not.toHaveBeenCalled();
+		loadScripts([gainsightPx({ productKey: 'AP-SERVER-2' })], deniedConsents);
+		expect(runtime.mock.calls).toEqual([
+			['config', 'enableTag', false],
+			['reset'],
+		]);
+		expect(document.head.querySelector('script')).toBeNull();
+	});
+
+	it('keeps the product key when a denied shared owner disposes after startup', async () => {
+		const runtime = Object.assign(vi.fn(), { __sdkBundleStarted: true });
+		installHeadProbe((element) => {
+			expect(getAptrinsic().p).toBe('AP-SHARED-START-2');
+			Reflect.set(window, 'aptrinsic', runtime);
+			element.dispatchEvent(new Event('load'));
+		});
+		const denied = createConsentKernel();
+		const granted = createConsentKernel();
+		await denied.commands.save(deniedConsents);
+		await granted.commands.save(grantedConsents);
+		const createScript = () => gainsightPx({ productKey: 'AP-SHARED-START-2' });
+		const deniedOwner = createScriptLoader({
+			kernel: denied,
+			scripts: [createScript()],
+		});
+		const grantedOwner = createScriptLoader({
+			kernel: granted,
+			scripts: [createScript()],
+		});
+		try {
+			deniedOwner.dispose();
+			expect(runtime).toHaveBeenLastCalledWith('config', 'enableTag', true);
+			runtime.mockClear();
+			expect(() => gainsightPx({ productKey: 'AP-SHARED-OTHER-2' })).toThrow(
+				'cannot change productKey after the SDK has started'
+			);
+			expect(runtime).not.toHaveBeenCalled();
+			expect(createScript()).toBeDefined();
+		} finally {
+			deniedOwner.dispose();
+			grantedOwner.dispose();
+			denied.dispose();
+			granted.dispose();
+		}
 	});
 
 	it('prepares the exact vendor queue and config before appending the loader', () => {
@@ -109,7 +230,7 @@ describe('Gainsight PX production loader contract', () => {
 			const runtime = vi.fn();
 			const executeSdk = vi.fn((element: HTMLScriptElement) => {
 				const stub = getAptrinsic();
-				if (stub === runtime) {
+				if (Object.is(stub, runtime)) {
 					return;
 				}
 				expect(stub.p).toBe('AP-PRODUCT-KEY-2');
