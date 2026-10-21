@@ -330,7 +330,7 @@ export const hydrateFromStorage = function hydrateFromStorage(
 	kernel: InternalKernel,
 	storageConfig: StorageConfig | undefined,
 	now: number,
-	apply: (records: HydrationRecords) => HydrationRecords
+	apply: (records: HydrationRecords, stored: StoredRecords) => HydrationRecords
 ): StoredRecords | null {
 	if (typeof document === 'undefined') {
 		return null;
@@ -338,7 +338,7 @@ export const hydrateFromStorage = function hydrateFromStorage(
 	// Cookies can remain usable when localStorage is blocked. Let each
 	// storage reader guard its own access, including property getters.
 	const stored = readStoredRecords(storageConfig, now);
-	const result = kernel.hydrate(apply(stored.records));
+	const result = kernel.hydrate(apply(stored.records, stored));
 	if (result.ok === false) {
 		// The storage layer already validated; a rejection here means the
 		// records changed shape between read and apply. Nothing is applied.

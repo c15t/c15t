@@ -114,6 +114,10 @@ export const mountPersistence = function mountPersistence(
 	let followingSubject = false;
 	// Set while this handle takes the unused ID another tab stored.
 	let adopting = false;
+	// The stored ID this handle last refused, with its own ID at the time.
+	// It republishes its ID once per refusal, so two tabs that both used
+	// their IDs stop overwriting each other.
+	let refused: [own: string, stored: string] | undefined;
 
 	const land = function land(module: WriterModule): void {
 		if (writer) {
@@ -339,6 +343,33 @@ export const mountPersistence = function mountPersistence(
 		return read.recordedSubjectId;
 	};
 
+	/**
+	 * Whether this handle gives the kernel a subject ID. A throwaway kernel
+	 * keeps whatever subject it has, and an app that owns permissions owns
+	 * the subject too.
+	 */
+	const handlesSubject = function handlesSubject(): boolean {
+		return !options.keepSubject && !kernel.getSnapshot().externalPermissions;
+	};
+
+	/**
+	 * `records` without the ID only `<key>-sid` holds, for a kernel whose
+	 * subject this handle leaves alone. An ID a record carries stays.
+	 */
+	const withoutStoredSubjectId = function withoutStoredSubjectId(
+		records: HydrationRecords,
+		read: StoredRecords
+	): HydrationRecords {
+		if (handlesSubject() || read.recordedSubjectId || !records.subject) {
+			return records;
+		}
+		const { subjectId: _subjectId, ...subject } = records.subject;
+		return {
+			...records,
+			subject: Object.keys(subject).length > 0 ? subject : null,
+		};
+	};
+
 	/** Hydrates from storage and returns the read, `null` when none ran. */
 	const hydrateStored = function hydrateStored(): StoredRecords | null {
 		// An explicit choice may still be queued. Land it first so
@@ -355,7 +386,12 @@ export const mountPersistence = function mountPersistence(
 		}
 		// What another handle queued wins over what storage holds; the
 		// writer still starts from storage.
-		const stored = hydrateFromStorage(kernel, storageConfig, now(), withQueued);
+		const stored = hydrateFromStorage(
+			kernel,
+			storageConfig,
+			now(),
+			(records, read) => withQueued(withoutStoredSubjectId(records, read))
+		);
 		if (!stored) {
 			return null;
 		}
@@ -483,7 +519,9 @@ export const mountPersistence = function mountPersistence(
 
 	/**
 	 * Takes the ID another tab stored when this runtime's is unused, and
-	 * stores this runtime's again when storage lost it.
+	 * stores this runtime's again when storage lost it. A runtime whose ID
+	 * is used stores it over another tab's, so a tab still holding an
+	 * unused ID takes it instead.
 	 */
 	const adoptStoredSubjectId = function adoptStoredSubjectId(): void {
 		if (subjectId === undefined || disposed) {
@@ -508,6 +546,11 @@ export const mountPersistence = function mountPersistence(
 			} finally {
 				adopting = false;
 			}
+			return;
+		}
+		if (refused?.[0] !== subjectId || refused[1] !== stored) {
+			refused = [subjectId, stored];
+			storeSubjectId(subjectId);
 		}
 	};
 
@@ -578,7 +621,7 @@ export const mountPersistence = function mountPersistence(
 		} else {
 			recordedSubjectId = hydrateStored()?.recordedSubjectId ?? null;
 		}
-		if (!options.keepSubject && !kernel.getSnapshot().externalPermissions) {
+		if (handlesSubject()) {
 			startSubject(before, recordedSubjectId);
 			unsubscribers.push(kernel.subscribe(followSubjectId));
 		}

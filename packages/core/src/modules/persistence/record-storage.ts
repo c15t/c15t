@@ -930,11 +930,12 @@ const hasControlCharacter = function hasControlCharacter(
 const validSubjectId = function validSubjectId(
 	text: string | null | undefined
 ): string | null {
-	const trimmed = text?.trim();
-	return trimmed &&
-		trimmed.length <= MAX_SUBJECT_ID_LENGTH &&
-		!hasControlCharacter(trimmed)
-		? trimmed
+	// The ID is opaque: it is returned as written, never normalized, so a
+	// reload keeps the exact subject a save or identity link targeted.
+	return text?.trim() &&
+		text.length <= MAX_SUBJECT_ID_LENGTH &&
+		!hasControlCharacter(text)
+		? text
 		: null;
 };
 

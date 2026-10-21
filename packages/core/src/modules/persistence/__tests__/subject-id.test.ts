@@ -194,6 +194,14 @@ test('an ID that is not a generated one survives a clear and a reload', () => {
 	expect(subjectIdOf(boot().kernel)).toBe('canonical id/1');
 });
 
+test('an ID with surrounding spaces is read back exactly as stored', () => {
+	const first = boot();
+	first.kernel.set.subjectId(' sub_padded ');
+	first.handle.dispose();
+
+	expect(subjectIdOf(boot().kernel)).toBe(' sub_padded ');
+});
+
 test('an unused ID follows the one another tab stored and names the one it replaced', () => {
 	const { kernel } = boot();
 	const subjectId = subjectIdOf(kernel);
@@ -242,4 +250,50 @@ test('a runtime that keeps its subject neither creates nor stores one', () => {
 
 	expect(kernel.getSnapshot().subject).toBeNull();
 	expect(storedSid()).toEqual({ cookie: null, local: null });
+});
+
+test('a runtime that keeps its subject does not take the stored ID', () => {
+	localStorage.setItem(SID_KEY, 'sub_stored');
+	document.cookie = `${SID_KEY}=sub_stored; path=/`;
+	const kernel = createConsentKernel({ now: NOW });
+	disposers.push(createPersistence({ keepSubject: true, kernel }).dispose);
+
+	expect(kernel.getSnapshot().subject).toBeNull();
+});
+
+/** Boots a second tab that raced the first: it read no stored ID. */
+const bootRacingTab = function bootRacingTab() {
+	localStorage.removeItem(SID_KEY);
+	expire(SID_KEY);
+	return boot();
+};
+
+test('a tab whose ID is used stores it again, and an unused tab takes it', async () => {
+	const first = boot();
+	const used = subjectIdOf(first.kernel);
+	const second = bootRacingTab();
+	expect(subjectIdOf(second.kernel)).not.toBe(used);
+	await first.kernel.commands.identify({ externalId: 'user-1' });
+
+	window.dispatchEvent(new StorageEvent('storage', { key: SID_KEY }));
+
+	expect(subjectIdOf(first.kernel)).toBe(used);
+	expect(subjectIdOf(second.kernel)).toBe(used);
+	expect(storedSid()).toEqual({ cookie: used, local: used });
+});
+
+test('two tabs whose IDs are both used stop overwriting each other', async () => {
+	const first = boot();
+	const second = bootRacingTab();
+	await first.kernel.commands.identify({ externalId: 'user-1' });
+	await second.kernel.commands.identify({ externalId: 'user-1' });
+	window.dispatchEvent(new StorageEvent('storage', { key: SID_KEY }));
+	const setCookie = vi.spyOn(document, 'cookie', 'set');
+
+	window.dispatchEvent(new StorageEvent('storage', { key: SID_KEY }));
+
+	expect(setCookie).not.toHaveBeenCalledWith(
+		expect.stringMatching(new RegExp(`^${SID_KEY}=`, 'u'))
+	);
+	setCookie.mockRestore();
 });
