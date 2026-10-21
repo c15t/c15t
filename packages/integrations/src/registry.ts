@@ -115,6 +115,16 @@ export const BUILT_IN_INTEGRATION_CATEGORIES = [
  */
 export const builtInScriptIntegrations = [
 	{
+		consentCategory: 'measurement',
+		docsSlug: 'fullstory',
+		hint: 'Session replay and behavioral analytics',
+		integrationCategory: 'analytics',
+		key: 'fullStory',
+		label: 'FullStory',
+		packageSubpath: 'fullstory',
+		vendor: 'fullstory',
+	},
+	{
 		consentCategory: 'necessary',
 		docsSlug: 'cloudflare-zaraz',
 		hint: 'Consent bridge for tools managed by Zaraz',

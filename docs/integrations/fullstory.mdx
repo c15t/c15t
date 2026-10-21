@@ -1,0 +1,49 @@
+---
+title: FullStory
+description: Load FullStory after measurement consent, configure its tracking settings, and verify loading and withdrawal with c15t.
+seoTitle: FullStory cookie consent with c15t
+seoDescription: Gate FullStory on measurement consent with c15t. Configure the loader, understand withdrawal limits, and verify vendor requests and storage.
+icon: chart-line
+group: integrations
+---
+
+`fullStory` waits for `measurement` consent before creating vendor globals or downloading FullStory.
+
+## Configure FullStory
+
+Copy your organization ID from FullStory setup and remove the original snippet. Keep the host and script settings aligned with your FullStory environment.
+
+<CommandTabs command="@c15t/integrations" mode="install" />
+
+<include src="../shared/examples/javascript/fullstory-configuration.mdx" />
+
+<include src="../shared/integrations/register-scripts.mdx" />
+
+## Options
+
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `orgId` | Required | FullStory organization ID. |
+| `host` | `fullstory.com` | FullStory host. |
+| `script` | `edge.fullstory.com/s/fs.js` | FullStory script host and path. |
+| `elementConsent` | `false` | Also set consent for elements marked capture with consent. |
+| `category` | `measurement` | Consent condition for the whole loader. |
+| `scriptUrl` | HTTPS URL from `script` | Custom or proxied loader URL. Blank values use the default. |
+
+Missing or blank required values log an error and never load.
+
+## Loading and revocation
+
+After consent, the helper creates FullStory's v2 callable queue with six-field command records. It configures `captureOnStartup: false` and downloads the SDK. After loading it calls `start`; revocation calls `shutdown`, and regrant calls `restart`. Optional element consent follows the mapped permission through `setIdentity`.
+
+Shutdown stops capture, but does not erase cookies or unload the SDK. Keep `reloadOnConsentRevoked` enabled when your policy also requires a fresh page without loaded vendor code. Capture state is reapplied on every page.
+
+FullStory can set `fs_uid` and `fs_cid` cookies for one year, `fs_lua` for 30 minutes, and `_fs_tab_id` in sessionStorage. Inspect your account configuration for additional storage.
+
+## Verify FullStory
+
+Check for no FullStory request, `FS`, FullStory configuration globals, cookies or browser storage before consent and after unrelated consent. Grant measurement and verify the real v2 dispatcher installed. With your own account, verify capture starts, shutdown stops it, and regrant restarts it once.
+
+Sources: [getting started](https://developer.fullstory.com/browser/getting-started/), [capture controls](https://developer.fullstory.com/browser/fullcapture/capture-data/), [element consent](https://developer.fullstory.com/browser/fullcapture/user-consent/), and [cookie consent](https://help.fullstory.com/hc/en-us/articles/35988237543191-Cookie-Consent-Management-with-Fullstory).
+
+<include src="../shared/integrations/vendor-revocation-and-verify.mdx" />

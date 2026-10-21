@@ -28,6 +28,7 @@ import { clearbitManifest } from './vendors/analytics/clearbit';
 import { cloudflareWebAnalyticsManifest } from './vendors/analytics/cloudflare-web-analytics';
 import { databuddyManifest } from './vendors/analytics/databuddy';
 import { fathomAnalyticsManifest } from './vendors/analytics/fathom-analytics';
+import { fullStoryManifest } from './vendors/analytics/fullstory';
 import { gtagManifest } from './vendors/analytics/google-tag';
 import { heapManifest } from './vendors/analytics/heap';
 import { hightouchManifest } from './vendors/analytics/hightouch';
@@ -63,6 +64,7 @@ const validConsentCategories = [
 ] as const satisfies readonly AllConsentNames[];
 
 const vendorManifests = [
+	fullStoryManifest,
 	googleTagManagerManifest,
 	gtagManifest,
 	ahrefsAnalyticsManifest,
