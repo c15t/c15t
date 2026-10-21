@@ -337,6 +337,8 @@ const createController = (host: Window, installation: HubSpotInstallation) => {
 			}
 			client = conversations;
 			chatRequested = false;
+			// A retained client may have emitted widgetLoaded before attachment.
+			chatClearPending = true;
 			const callback = () => {
 				if (widgetLoaded !== callback || client !== conversations || !started) {
 					return;

@@ -405,6 +405,8 @@ describe('HubSpot core loader consent contract', () => {
 			ready();
 		}
 		expect(api.widget.load).not.toHaveBeenCalled();
+		expect(api.widget.remove).toHaveBeenCalledOnce();
+		expect(api.clear).toHaveBeenCalledExactlyOnceWith({ resetWidget: false });
 		updateScripts(scripts, {
 			...grantedMarketingConsents,
 			functionality: true,
@@ -413,10 +415,10 @@ describe('HubSpot core loader consent contract', () => {
 		updateScripts(scripts, allConsents);
 		expect(api.widget.load).toHaveBeenCalledOnce();
 		updateScripts(scripts, grantedMarketingConsents);
-		expect(api.widget.remove).toHaveBeenCalledOnce();
+		expect(api.widget.remove).toHaveBeenCalledTimes(2);
 		expect(api.clear).toHaveBeenCalledWith({ resetWidget: false });
 		api.emitWidgetLoaded();
-		expect(api.widget.remove).toHaveBeenCalledTimes(2);
+		expect(api.widget.remove).toHaveBeenCalledTimes(3);
 		expect(api.widget.load).toHaveBeenCalledOnce();
 	});
 

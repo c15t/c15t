@@ -143,6 +143,13 @@ remaining consent permits. Global cookie revocation can still clear chat
 identity cookies. Your application must enforce subsequent manual widget
 consent.
 
+When automatic chat attaches to a Conversations client, the controller checks
+current shared permissions and requests removal and chat-cookie cleanup if
+chat is denied. This includes a matching external client whose `widgetLoaded`
+event already fired, a late SDK, a replacement client and a manual-to-automatic
+handoff. Initially permitted attachment skips cleanup. A fresh controller whose
+loader or vendor gate is denied remains inactive.
+
 While automatic chat is active, loss of shared functionality consent or a
 loader or vendor gate requests widget removal and calls
 `HubSpotConversations.clear({ resetWidget: false })` to clear chat cookies.
@@ -245,7 +252,9 @@ loader or child requests appear. Allow marketing and check for exactly one
 Check HubSpot's consent state with measurement and functionality toggled
 independently. With `chat: true`, verify that chat appears only after
 functionality is allowed. Test functionality withdrawal while the SDK and
-widget are still loading, then test regrant and provider remounts.
+widget are still loading, then test regrant and provider remounts. If adopting
+an existing SDK with automatic chat initially denied, check that removal and
+cleanup are requested without waiting for another `widgetLoaded` event.
 
 If you share the configuration across loaders or use compatible helpers,
 check that an initially denied owner restricts all shared fields. Remove one

@@ -22,4 +22,6 @@ Leave chat manual unless an active owner opts in. Any `chat: true` owner request
 
 Recheck current shared permissions and chat opt-in before deferred SDK-ready cleanup. Skip stale removal and chat-cookie cleanup after permission returns, including across remounts and replacements. Keep cleanup for withdrawals that still deny automatic chat at readiness.
 
+Reconcile current chat permission when automatic management attaches to a Conversations client, including an already-loaded external client, late SDK readiness, client replacement and a manual-to-automatic handoff. Request widget removal and chat-cookie cleanup while shared permission denies chat, without waiting for another load event. Skip cleanup on permitted attachment and keep fresh loader- or vendor-denied controllers inactive.
+
 Reserve the first configuration's portal, effective loader URL and nonce until reload. Warn and ignore incompatible configurations instead of sending grants to the wrong account. Reuse compatible external loaders with a warning and block control of incompatible external installations.

@@ -835,6 +835,138 @@ describe('HubSpot shared chat lifecycle', () => {
 	});
 });
 
+describe('HubSpot automatic chat attachment', () => {
+	it.each(['available', 'late'])(
+		'removes initially denied chat from an already-loaded %s SDK',
+		async (readiness) => {
+			const api = conversations();
+			api.widget.load();
+			api.completeLoad();
+			api.widget.load.mockClear();
+			const external = document.createElement('script');
+			external.id = 'hs-script-loader';
+			external.src = 'https://js.hs-scripts.com/53.js';
+			document.head.appendChild(external);
+			if (readiness === 'available') {
+				window.HubSpotConversations = api;
+			}
+			const owner = await ownerOf(hubspot({ chat: true, portalId: '53' }), {
+				...granted,
+				functionality: false,
+			});
+			if (readiness === 'late') {
+				window.HubSpotConversations = api;
+				for (const ready of [...(window.hsConversationsOnReady ?? [])]) {
+					ready();
+				}
+			}
+			expect(api.on).toHaveBeenCalledOnce();
+			expect(api.widget.load).not.toHaveBeenCalled();
+			expect(api.widget.remove).toHaveBeenCalledOnce();
+			expect(api.clear).toHaveBeenCalledExactlyOnceWith({ resetWidget: false });
+			expect(document.getElementById('hs-script-loader')).toBe(external);
+			await owner.save({ ...granted, experience: true, functionality: false });
+			expect(api.widget.remove).toHaveBeenCalledOnce();
+			expect(api.clear).toHaveBeenCalledOnce();
+		}
+	);
+
+	it('reconciles initial denial when manual chat gains an automatic owner', async () => {
+		const api = conversations();
+		api.widget.load();
+		api.completeLoad();
+		api.widget.load.mockClear();
+		window.HubSpotConversations = api;
+		await ownerOf(hubspot({ chat: false, portalId: '53' }), {
+			...granted,
+			functionality: false,
+		});
+		expect(api.on).not.toHaveBeenCalled();
+		expect(api.widget.remove).not.toHaveBeenCalled();
+		expect(api.clear).not.toHaveBeenCalled();
+		await ownerOf(hubspot({ chat: true, portalId: '53' }));
+		expect(api.on).toHaveBeenCalledOnce();
+		expect(api.widget.load).not.toHaveBeenCalled();
+		expect(api.widget.remove).toHaveBeenCalledOnce();
+		expect(api.clear).toHaveBeenCalledExactlyOnceWith({ resetWidget: false });
+	});
+
+	it('reconciles a replacement client while functionality remains denied', async () => {
+		const previous = conversations();
+		window.HubSpotConversations = previous;
+		const owner = await ownerOf(hubspot({ chat: true, portalId: '53' }), {
+			...granted,
+			functionality: false,
+		});
+		const [listener] = previous.listeners;
+		const replacement = conversations();
+		replacement.widget.load();
+		replacement.completeLoad();
+		replacement.widget.load.mockClear();
+		window.HubSpotConversations = replacement;
+		await owner.save({ ...granted, experience: true, functionality: false });
+		expect(previous.off).toHaveBeenCalledExactlyOnceWith(
+			'widgetLoaded',
+			listener
+		);
+		expect(previous.listeners.size).toBe(0);
+		expect(replacement.listeners.size).toBe(1);
+		expect(replacement.widget.load).not.toHaveBeenCalled();
+		expect(replacement.widget.remove).toHaveBeenCalledOnce();
+		expect(replacement.clear).toHaveBeenCalledExactlyOnceWith({
+			resetWidget: false,
+		});
+	});
+
+	it.each([false, true])(
+		'reads consent saved inside SDK on before callback delivery, regrant: %s',
+		async (regrant) => {
+			const script = hubspot({ chat: true, portalId: '53' });
+			let delivered = 0;
+			const original = script.onConsentChange;
+			script.onConsentChange = (info) => {
+				delivered += 1;
+				original?.(info);
+			};
+			const withoutFunctionality = { ...granted, functionality: false };
+			const owner = await ownerOf(script, withoutFunctionality);
+			if (!regrant) {
+				await owner.save();
+			}
+			const api = conversations();
+			api.on.mockImplementation((_event, listener) => {
+				api.listeners.add(listener);
+				const before = delivered;
+				void owner.save(regrant ? granted : withoutFunctionality);
+				expect(
+					owner.kernel.getSnapshot().effectivePermissions.functionality
+				).toBe(regrant);
+				expect(delivered).toBe(before);
+			});
+			window.HubSpotConversations = api;
+			await owner.save({
+				...(regrant ? withoutFunctionality : granted),
+				experience: true,
+			});
+			expect(api.on).toHaveBeenCalledOnce();
+			const removalCalls = expect.arrayContaining([[]]);
+			const clearCalls = expect.arrayContaining([[{ resetWidget: false }]]);
+			expect(api.widget.remove.mock.calls).toEqual(regrant ? [] : removalCalls);
+			expect(api.clear.mock.calls).toEqual(regrant ? [] : clearCalls);
+			expect(api.widget.load).toHaveBeenCalledTimes(regrant ? 1 : 0);
+		}
+	);
+
+	it('leaves initially permitted chat intact when attaching a client', async () => {
+		const api = conversations();
+		window.HubSpotConversations = api;
+		await ownerOf(hubspot({ chat: true, portalId: '53' }));
+		expect(api.widget.load).toHaveBeenCalledOnce();
+		expect(api.widget.remove).not.toHaveBeenCalled();
+		expect(api.clear).not.toHaveBeenCalled();
+	});
+});
+
 describe('Independent review reentrant boundary probes', () => {
 	it('keeps replacement load restriction through restored-consent API reentry', async () => {
 		const api = conversations();
