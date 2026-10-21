@@ -45,9 +45,11 @@ const DEFAULT_REGION_COOKIE = 'c15t-region';
  * Components or Route Handlers. A visitor with no subject ID gets one in a
  * `c15t-sid` cookie on this response, and the render in the same request
  * reads it, so the server render and the browser start with the same ID.
- * A prefetch marked with `Sec-Purpose` or `Purpose` gets none. In the
- * Node.js runtime Next.js hides its own `<Link>` prefetch header from the
- * proxy, so those can set the cookie a request early, in the same browser.
+ * A prefetch marked with `Sec-Purpose` or `Purpose` gets none. Next.js
+ * hides the header that marks its own `<Link>` prefetches from the proxy,
+ * so one of those can set the cookie. It comes from a page that has usually
+ * stored the ID already; otherwise the ID arrives one request early, in the
+ * same browser.
  * `@c15t/nextjs/middleware` exports the same function
  * as `c15tMiddleware`.
  *

@@ -39,9 +39,9 @@ describe('c15tProxy subject ID', () => {
 		expect(renderedCookie(response)).toBe(`c15t-sid=${first}`);
 	});
 
-	// Next.js strips `next-router-prefetch` before a Node.js-runtime proxy
-	// runs, so only the edge runtime and `Sec-Purpose` prefetches reach here.
-	test.each([{ 'next-router-prefetch': '1' }, { 'sec-purpose': 'prefetch' }])(
+	// Next.js strips `next-router-prefetch` before any proxy runs, so only
+	// prefetches the browser marks reach here with a mark.
+	test.each([{ 'sec-purpose': 'prefetch' }, { purpose: 'prefetch' }])(
 		'a prefetch gets no subject: %o',
 		(headers) => {
 			const response = c15tProxy(request(headers));
