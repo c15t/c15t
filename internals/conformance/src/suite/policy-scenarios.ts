@@ -188,7 +188,10 @@ const assertStorage = function assertStorage(
 			.toBe(false);
 		api.expect(bytes.notice.localStorage).not.toBeNull();
 		const persisted: unknown = JSON.parse(bytes.notice.localStorage ?? 'null');
-		api.expect(persisted).toEqual(after.snapshot.noticeDismissal);
+		api.expect(persisted).toEqual({
+			...after.snapshot.noticeDismissal,
+			...(after.snapshot.subject ? { subject: after.snapshot.subject } : {}),
+		});
 	}
 	if (expected === 'choice-v3' || expected === 'choice-and-notice') {
 		api.expect(bytes.choice.localStorage).not.toBeNull();
@@ -215,9 +218,10 @@ const assertStorage = function assertStorage(
 		}
 		// The same save acknowledged the owed notice.
 		api.expect(bytes.notice.localStorage).not.toBeNull();
-		api
-			.expect(JSON.parse(bytes.notice.localStorage ?? 'null'))
-			.toEqual(after.snapshot.noticeDismissal);
+		api.expect(JSON.parse(bytes.notice.localStorage ?? 'null')).toEqual({
+			...after.snapshot.noticeDismissal,
+			...(after.snapshot.subject ? { subject: after.snapshot.subject } : {}),
+		});
 	}
 };
 
