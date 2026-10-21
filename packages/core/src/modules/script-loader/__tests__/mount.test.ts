@@ -42,6 +42,75 @@ afterEach(() => {
 });
 
 describe('mountScript', () => {
+	test.each([
+		['remote', 'load'],
+		['remote', 'error'],
+		['inline', 'load'],
+		['inline', 'error'],
+	] as const)(
+		'observes every shared %s registration after a later hook adds a source, event=%s',
+		async (source, event) => {
+			const { deps } = makeDeps();
+			const snapshot = deps.getSnapshot();
+			const firstLoad = vi.fn();
+			const secondLoad = vi.fn();
+			const firstError = vi.fn();
+			const secondError = vi.fn();
+			const config =
+				source === 'remote'
+					? { src: 'https://example.com/vendor.js' }
+					: { textContent: 'void 0;' };
+			const batch: PendingMount[] = [];
+			mountScript(
+				deps,
+				{
+					...config,
+					category: 'necessary',
+					id: 'first',
+					onBeforeLoad: ({ element }) => element?.removeAttribute('src'),
+					onError: firstError,
+					onLoad: firstLoad,
+					resourceKey: 'mutable-shared',
+				},
+				snapshot,
+				true,
+				batch
+			);
+			mountScript(
+				deps,
+				{
+					...config,
+					category: 'necessary',
+					id: 'second',
+					onBeforeLoad: ({ element }) => {
+						element?.setAttribute('src', 'https://example.com/vendor.js');
+					},
+					onError: secondError,
+					onLoad: secondLoad,
+					resourceKey: 'mutable-shared',
+				},
+				snapshot,
+				true,
+				batch
+			);
+			flushPendingMounts(deps, batch);
+			await new Promise((resolve) => {
+				setTimeout(resolve, 0);
+			});
+			expect(firstLoad).not.toHaveBeenCalled();
+			expect(secondLoad).not.toHaveBeenCalled();
+			const element = deps.loadedElements.get('first');
+			expect(element).toBe(deps.loadedElements.get('second'));
+			expect(document.querySelectorAll('script')).toHaveLength(1);
+			element?.dispatchEvent(new Event(event));
+			element?.dispatchEvent(new Event('load'));
+			element?.dispatchEvent(new Event('error'));
+			expect(firstLoad).toHaveBeenCalledTimes(event === 'load' ? 1 : 0);
+			expect(secondLoad).toHaveBeenCalledTimes(event === 'load' ? 1 : 0);
+			expect(firstError).toHaveBeenCalledTimes(event === 'error' ? 1 : 0);
+			expect(secondError).toHaveBeenCalledTimes(event === 'error' ? 1 : 0);
+		}
+	);
 	test('completes an inline element when onBeforeLoad removes its external source', async () => {
 		const { deps } = makeDeps();
 		const onLoad = vi.fn();
@@ -243,6 +312,43 @@ describe('mountScript with a server-started element', () => {
 		delete (window as StartedWindow).__c15tStarted;
 	});
 
+	test.each(['load', 'error'] as const)(
+		'observes a server download after the adoption hook removes src, event=%s',
+		async (event) => {
+			const { deps } = makeDeps();
+			const onLoad = vi.fn();
+			const onError = vi.fn();
+			const element = startOnServer(
+				'mutable-server',
+				'https://example.com/server.js'
+			);
+			mountScript(
+				deps,
+				{
+					category: 'necessary',
+					id: 'mutable-server',
+					onBeforeLoad: ({ element: adopted }) =>
+						adopted?.removeAttribute('src'),
+					onError,
+					onLoad,
+					textContent: 'void 0;',
+				},
+				deps.getSnapshot(),
+				true,
+				null
+			);
+			await new Promise((resolve) => {
+				setTimeout(resolve, 0);
+			});
+			expect(onLoad).not.toHaveBeenCalled();
+			expect(onError).not.toHaveBeenCalled();
+			element.dispatchEvent(new Event(event));
+			element.dispatchEvent(new Event('load'));
+			element.dispatchEvent(new Event('error'));
+			expect(onLoad).toHaveBeenCalledTimes(event === 'load' ? 1 : 0);
+			expect(onError).toHaveBeenCalledTimes(event === 'error' ? 1 : 0);
+		}
+	);
 	test('adopts the element instead of inserting another', async () => {
 		const { deps, emitted } = makeDeps();
 		const onBeforeLoad = vi.fn();

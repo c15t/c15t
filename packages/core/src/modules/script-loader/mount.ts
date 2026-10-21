@@ -195,10 +195,9 @@ const observeElement = (
 		elementCompletions.set(element, 'error');
 		complete('error');
 	};
-	if (element.src) {
-		element.addEventListener('load', onLoad);
-		element.addEventListener('error', onError);
-	}
+	// A later shared registration can add a source after this owner's hook.
+	element.addEventListener('load', onLoad);
+	element.addEventListener('error', onError);
 	registrations.set(script.id, {
 		complete,
 		scriptId: script.id,

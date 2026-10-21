@@ -174,6 +174,128 @@ describe('FullStory Async contract', () => {
 });
 
 describe('FullStory retained recorder', () => {
+	it.each([false, true])(
+		'retries an interrupted bootstrap without a second init, shallow-copy=%s',
+		(shallowCopy) => {
+			const options = { orgId: `interrupted-${shallowCopy}` };
+			const original = fullStory(options);
+			const script = shallowCopy ? { ...original, nonce: 'retry' } : original;
+			const prepared: HTMLScriptElement[] = [];
+			const beforeLoad = script.onBeforeLoad;
+			script.onBeforeLoad = (info) => {
+				if (info.element) {
+					prepared.push(info.element);
+				}
+				beforeLoad?.(info);
+			};
+			const owner = mount(options, false, script);
+			let interrupted = false;
+			const sibling = {
+				category: 'measurement',
+				id: 'interrupting-sibling',
+				onBeforeLoad: () => {
+					if (!interrupted) {
+						interrupted = true;
+						owner.loader.updateScripts([script, sibling]);
+					}
+				},
+				src: 'https://example.com/sibling.js',
+			} as const;
+			owner.loader.updateScripts([script, sibling]);
+			void owner.kernel.commands.save(granted);
+			expect(interrupted).toBe(true);
+			const element = loaderElement();
+			expect(document.querySelectorAll('script[src*="fs.js"]')).toHaveLength(1);
+			expect(apiOf().q?.map(([name]) => name)).toEqual(['init']);
+			expect(prepared).toHaveLength(2);
+			expect(prepared[0]).not.toBe(element);
+			prepared[0]?.dispatchEvent(new Event('load'));
+			expect(apiOf().q?.map(([name]) => name)).toEqual(['init']);
+			const model = recorder(element);
+			expect(model.capturing()).toBe(true);
+			element.dispatchEvent(new Event('load'));
+			expect(
+				model.dispatch.mock.calls.filter(([name]) => name === 'start')
+			).toHaveLength(1);
+		}
+	);
+	it.each([false, true])(
+		'reapplies consent when a separate denied lifecycle is disposed, denied-first=%s',
+		(deniedFirst) => {
+			const options = { orgId: `separate-denier-${deniedFirst}` };
+			const deniedOptions = { ...options, elementConsent: true };
+			const first = mount(deniedFirst ? deniedOptions : options, !deniedFirst);
+			const second = mount(deniedFirst ? options : deniedOptions, deniedFirst);
+			const denied = deniedFirst ? first : second;
+			const model = recorder();
+			expect(model.capturing()).toBe(false);
+			denied.loader.dispose();
+			expect(model.capturing()).toBe(true);
+			expect(
+				model.dispatch.mock.calls.filter(([name]) => name === 'start')
+			).toHaveLength(1);
+			expect(model.dispatch.mock.calls.at(-2)?.slice(0, 2)).toEqual([
+				'setIdentity',
+				{ consent: false },
+			]);
+		}
+	);
+	it('reapplies document consent after removing a pre-bootstrap incompatible denier', () => {
+		const options = { orgId: 'separate-denier-endpoint' };
+		const denied = mount({ ...options, host: 'eu1.fullstory.com' }, false);
+		mount(options);
+		const api = apiOf();
+		const model = recorder();
+		expect(model.capturing()).toBe(false);
+		denied.loader.dispose();
+		expect(model.capturing()).toBe(true);
+		expect(window.FS).toBe(api);
+		expect(window._fs_host).toBe('fullstory.com');
+		expect(() => fullStory({ ...options, host: 'eu1.fullstory.com' })).toThrow(
+			/reload/u
+		);
+		expect(denied.events).toEqual([]);
+	});
+	it('preserves a foreign replacement when a pre-bootstrap denier is disposed', () => {
+		const options = { orgId: 'separate-denier-foreign' };
+		const denied = mount({ ...options, elementConsent: true }, false);
+		mount(options);
+		const model = recorder();
+		expect(model.capturing()).toBe(false);
+		const foreign = vi.fn();
+		window.FS = foreign;
+		denied.loader.dispose();
+		expect(model.capturing()).toBe(false);
+		expect(window.FS).toBe(foreign);
+		expect(foreign).not.toHaveBeenCalled();
+		expect(denied.events).toEqual([]);
+	});
+	it('completes a remount placeholder without making its detached pending SDK ready', async () => {
+		const options = { orgId: 'placeholder-readiness' };
+		const script = { ...fullStory(options), nonce: 'placeholder' };
+		const first = mount(options, true, script);
+		const original = loaderElement();
+		first.loader.dispose();
+		const completed = vi.fn();
+		const { onLoad } = script;
+		script.onLoad = (info) => {
+			completed();
+			onLoad?.(info);
+		};
+		mount(options, true, script);
+		const placeholder = document.querySelector('script');
+		expect(placeholder?.getAttribute('src')).toBeNull();
+		await new Promise((resolve) => {
+			setTimeout(resolve, 0);
+		});
+		expect(completed).toHaveBeenCalledOnce();
+		expect(apiOf().q?.map(([name]) => name)).toEqual(['init']);
+		placeholder?.dispatchEvent(new Event('load'));
+		expect(completed).toHaveBeenCalledOnce();
+		expect(apiOf().q?.map(([name]) => name)).toEqual(['init']);
+		const model = recorder(original);
+		expect(model.capturing()).toBe(true);
+	});
 	it('leaves all-denied registrations without globals, fetch changes, or a download', () => {
 		const before = window.fetch;
 		mount({ orgId: 'denied-owners' }, false);

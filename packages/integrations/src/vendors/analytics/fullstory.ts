@@ -121,6 +121,7 @@ interface Recorder {
 	api: FullStoryApi;
 	element?: HTMLScriptElement;
 	configuration: string;
+	inserted: boolean;
 	loaded: boolean;
 	started: boolean;
 	appliedConsent?: boolean;
@@ -164,6 +165,38 @@ const applyRecorderConsent = (recorder: Recorder): void => {
 	}
 	recorder.appliedConsent = consent;
 	recorder.appliedElementConsent = elementConsent;
+};
+const observeRecorderElement = (
+	recorder: Recorder,
+	element: HTMLScriptElement | undefined
+): void => {
+	recorder.element = element;
+	// An interrupted append can transfer the bootstrap to a new element.
+	// Only the current SDK element can make this recorder ready.
+	element?.addEventListener(
+		'load',
+		() => {
+			if (recorder.element !== element) {
+				return;
+			}
+			recorder.inserted = true;
+			recorder.loaded = true;
+			applyRecorderConsent(recorder);
+		},
+		{ once: true }
+	);
+	element?.addEventListener(
+		'error',
+		() => {
+			if (recorder.element === element) {
+				rejectQueue(
+					recorder.api,
+					new Error(`fullStory: error loading ${element?.src}`)
+				);
+			}
+		},
+		{ once: true }
+	);
 };
 const configurationOf = (options: FullStoryOptions): string =>
 	JSON.stringify([
@@ -293,6 +326,9 @@ const createFullStory = function createFullStory(
 			ownedRecorder = existing;
 			updateGate(hasConsent);
 			if (existing) {
+				if (!existing.inserted && !existing.element?.isConnected && element) {
+					observeRecorderElement(existing, element);
+				}
 				if (element === existing.element && src) {
 					element?.setAttribute('src', src);
 				}
@@ -312,6 +348,7 @@ const createFullStory = function createFullStory(
 				api,
 				configuration,
 				element,
+				inserted: false,
 				loaded: false,
 				started: false,
 			};
@@ -320,21 +357,7 @@ const createFullStory = function createFullStory(
 			window.FS = api;
 			// Removing an async script cannot guarantee that its execution stops.
 			// Keep completion across disposal so remounts reuse even a pending SDK.
-			element?.addEventListener(
-				'load',
-				() => {
-					recorder.loaded = true;
-					applyRecorderConsent(recorder);
-				},
-				{ once: true }
-			);
-			element?.addEventListener(
-				'error',
-				() => {
-					rejectQueue(api, new Error(`fullStory: error loading ${script.src}`));
-				},
-				{ once: true }
-			);
+			observeRecorderElement(recorder, element);
 			api('init', {
 				env: { captureOnStartup: false, host, orgId, script: scriptPath },
 			});
@@ -345,10 +368,15 @@ const createFullStory = function createFullStory(
 		onConsentChange({ hasConsent }) {
 			update(hasConsent);
 		},
-		onDispose() {
+		onDispose({ element }) {
 			gates.get(document)?.delete(gate);
-			if (ownedRecorder) {
-				applyRecorderConsent(ownedRecorder);
+			const current = window.FS ? recorders.get(window.FS) : undefined;
+			const recorder = ownedRecorder ?? current;
+			if (recorder) {
+				// Core supplies registered elements even after replacement detaches them.
+				recorder.inserted ||=
+					element !== undefined && element === recorder.element;
+				applyRecorderConsent(recorder);
 			}
 		},
 		onLoad({ hasConsent }) {
@@ -393,10 +421,14 @@ export const fullStory = function fullStory(options: FullStoryOptions): Script {
 				return false;
 			}
 			const recorder = recorders.get(window.FS);
-			return (
-				!recorder?.element?.isConnected ||
-				recorder.configuration !== configuration
-			);
+			if (!recorder || recorder.configuration !== configuration) {
+				return true;
+			}
+			if (recorder.element?.isConnected) {
+				recorder.inserted = true;
+				return false;
+			}
+			return recorder.inserted;
 		},
 	});
 	return script;
