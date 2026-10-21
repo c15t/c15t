@@ -105,8 +105,12 @@ production. Rename the section to `consentGate` to remove the warning.
 ## Show right-to-left languages
 
 c15t sets `dir="rtl"` on its surfaces when the resolved language is Arabic,
-Hebrew, Persian, Urdu, Pashto, Sindhi, Kurdish or Dhivehi. It matches the
-primary language, so `ar-EG` counts as Arabic. Hebrew is the only
+Hebrew, Yiddish, Persian, Urdu, Pashto, Sindhi, Central Kurdish (`ckb`),
+Uyghur, Dhivehi, Syriac or N'Ko. It matches the primary language, so `ar-EG`
+counts as Arabic, and accepts the older codes `iw` and `ji`. A script subtag
+decides over the language: `ku-Arab` and `pa-Arab` are right to left, and
+`sd-Deva` is left to right. Plain `ku` is left to right because it usually
+means Kurmanji, which uses Latin script. Hebrew is the only
 right-to-left translation c15t ships. For the others, supply your own
 messages or the copy from your Inth project.
 
