@@ -41,6 +41,7 @@ import { klaviyo } from './vendors/email-and-sms/klaviyo';
 import { crisp } from './vendors/functional/crisp';
 import { frontChat } from './vendors/functional/front-chat';
 import { intercom } from './vendors/functional/intercom';
+import { optimizelyWeb } from './vendors/functional/optimizely';
 import { googleTagManager } from './vendors/tag-managers/google-tag-manager';
 
 const BLANK_VALUES = ['', '   '] as const;
@@ -58,6 +59,13 @@ const requiredIdCases: {
 	create: (id: unknown) => Script;
 	script: Pick<Script, 'category' | 'id'>;
 }[] = [
+	{
+		create: (id) =>
+			optimizelyWeb({ ...{ projectId: '12345678' }, projectId: asId(id) }),
+		helper: 'optimizelyWeb',
+		option: 'projectId',
+		script: { category: 'experience', id: 'optimizely' },
+	},
 	{
 		create: (id) => linkedinInsights({ id: asId(id) }),
 		helper: 'linkedinInsights',
@@ -333,6 +341,12 @@ const blankScriptUrlCases: {
 	create: (scriptUrl: string) => Script;
 	expectedSrc: string;
 }[] = [
+	{
+		create: (url) =>
+			optimizelyWeb({ ...{ projectId: '12345678' }, scriptSrc: url }),
+		expectedSrc: 'https://cdn.optimizely.com/js/12345678.js',
+		helper: 'optimizelyWeb',
+	},
 	{
 		create: (scriptUrl) => hotjar({ scriptUrl, siteId: 123 }),
 		expectedSrc: 'https://static.hotjar.com/c/hotjar-123.js?sv=6',

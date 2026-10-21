@@ -115,6 +115,16 @@ export const BUILT_IN_INTEGRATION_CATEGORIES = [
  */
 export const builtInScriptIntegrations = [
 	{
+		consentCategory: 'experience',
+		docsSlug: 'optimizely',
+		hint: 'Website experiments and personalization',
+		integrationCategory: 'functional',
+		key: 'optimizelyWeb',
+		label: 'Optimizely Web Experimentation',
+		packageSubpath: 'optimizely',
+		vendor: 'optimizely',
+	},
+	{
 		consentCategory: 'necessary',
 		docsSlug: 'cloudflare-zaraz',
 		hint: 'Consent bridge for tools managed by Zaraz',

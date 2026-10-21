@@ -141,6 +141,10 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 		example: "openaiPixel({ pixelId: 'YOUR_PIXEL_ID' })",
 		importName: 'openaiPixel',
 	},
+	optimizely: {
+		example: "optimizelyWeb({ projectId: 'YOUR_PROJECT_ID' })",
+		importName: 'optimizelyWeb',
+	},
 	'pinterest-tag': {
 		example: "pinterestTag({ tagId: 'XXXXXXXX' })",
 		importName: 'pinterestTag',

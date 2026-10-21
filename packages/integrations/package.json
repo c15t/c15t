@@ -302,6 +302,11 @@
 			"types": "./dist-types/events.d.ts",
 			"import": "./dist/events.js",
 			"default": "./dist/events.js"
+		},
+		"./optimizely": {
+			"types": "./dist-types/vendors/functional/optimizely.d.ts",
+			"import": "./dist/vendors/functional/optimizely.js",
+			"default": "./dist/vendors/functional/optimizely.js"
 		}
 	},
 	"publishConfig": {

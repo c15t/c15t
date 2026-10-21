@@ -1,0 +1,164 @@
+---
+title: Optimizely
+description: Load Optimizely Web Experimentation and Personalization after experience consent with c15t, choose a consent category and understand revocation limits.
+seoTitle: Optimizely cookie consent with c15t
+seoDescription: Gate Optimizely Web Experimentation on experience consent with c15t. Configure the project snippet, handle page flicker and understand reload limits.
+icon: flask-conical
+group: integrations
+---
+
+The c15t `optimizelyWeb` helper waits for `experience` consent before loading
+Optimizely Web Experimentation or Personalization. Until consent is granted,
+the helper creates no Optimizely global and makes no Optimizely request. The
+`category` option replaces the default consent condition.
+
+## Configure Optimizely
+
+In Optimizely, open **Settings > Implementation** and copy the project number
+immediately before `.js` in the snippet URL. Replace the example project
+number below with yours. Use one Optimizely snippet per page.
+
+<CommandTabs command="@c15t/integrations" mode="install" />
+
+<include src="../shared/examples/javascript/optimizely-web-scripts.mdx" />
+
+The default loader URL is
+`https://cdn.optimizely.com/js/PROJECT_ID.js`. Remove the original Optimizely
+snippet and any tag-manager copy so c15t controls when it loads.
+
+<include src="../shared/integrations/register-scripts.mdx" />
+
+## Options
+
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `projectId` | Required | Public project number as a string or safe integer. Surrounding whitespace is trimmed. Use a string above `Number.MAX_SAFE_INTEGER`. Missing, blank, nonnumeric or unsafe numeric values log an error and skip the loader. |
+| `category` | `'experience'` | Consent category or condition required before loading, such as `'measurement'` or `{ and: ['experience', 'measurement'] }`. |
+| `scriptSrc` | `https://cdn.optimizely.com/js/PROJECT_ID.js` | Custom snippet or proxy URL. The project ID remains required. This does not proxy the SDK's other requests. |
+| `nonce` | None | CSP nonce for the loader element. You can also supply the nonce through your consent provider. |
+
+Optimizely leaves cookie classification to the site owner. The helper uses
+`experience` because the snippet changes and tests user experiences. If your
+policy also requires measurement consent, pass both categories in an `and`
+condition.
+
+## Loading and page flicker
+
+After consent, c15t inserts the loader into `<head>` with `async: false`.
+Optimizely activates the configured experiments when the snippet executes.
+The helper does not call `sendEvents`, initialize a second SDK or override an
+existing `window.optimizely`.
+
+Optimizely recommends a synchronous snippet near the start of `<head>` and
+warns against loading it through a tag manager. A dynamically inserted script
+with `async: false` does not block the HTML parser. Waiting for consent can
+show the original page before Optimizely applies a variation. Plan your
+experiments for this page flicker and for visitors who do not grant consent.
+
+The helper has no early-load or event-holding mode. Optimizely's `holdEvents`
+API holds event delivery, but the SDK still runs and queues events in
+localStorage. `sendEvents` releases those queued events, including events
+stored on earlier pages. Loading the snippet early would not preserve this
+helper's consent gate.
+
+## Revocation
+
+Keep your provider's `reloadOnConsentRevoked` enabled. When a visitor revokes
+the mapped category or turns off the Optimizely vendor, c15t removes the
+loader and reloads the page after pending saves settle. The new page keeps
+the snippet blocked until consent is granted again.
+
+The standalone core `createScriptLoader` removes script elements but does
+not reload the page. If you use it directly, your application must persist
+the denied choice and reload. Permission changes caused by expiry or policy
+updates also do not trigger the provider's visitor-action reload.
+
+Removing the loader does not unload the running SDK, undo its page changes or
+delete its cookies and localStorage. A browser can also finish executing an
+in-flight script after its element is removed. The helper sends no commands
+from a delayed load callback. Optimizely can keep running until the page
+unloads, including while c15t waits for a save to finish. Use the reload to
+end execution in the current document.
+
+If you disable reloads, the helper cannot guarantee that Optimizely stops
+tracking or changing the page after revocation.
+
+Optimizely documents `disable` for calls made before the snippet loads. It is
+not a documented way to stop an already-running snippet. `holdEvents` also
+leaves local collection active, so it is not a full stop API.
+
+## Persistent Optimizely opt-out
+
+For a deliberate persistent opt-out, import `optOutOptimizely` from
+`@c15t/integrations/optimizely` and call `optOutOptimizely()`. It sends
+`window.optimizely.push({ type: 'optOut', isOptOut: true })` through an
+existing SDK or queue and does nothing if neither exists.
+
+Optimizely records this choice in the ten-year `optimizelyOptOut` cookie.
+Its API cannot opt that visitor back in. Granting consent again in c15t does
+not reverse that Optimizely choice. The helper therefore does not call this
+utility during ordinary consent revocation. The command also provides no
+completion promise and does not promise to undo changes already applied to
+the page. Keep the page reload enabled when you use it.
+
+## Cookies and localStorage
+
+Optimizely's [storage reference](https://docs.optimizely.com/web-experimentation/docs/cookies-and-localstorage-in-snippets)
+lists these first-party cookies. Browser policies can shorten their lifetimes.
+
+| Cookie | Documented lifetime | Purpose |
+| --- | --- | --- |
+| `optimizelyEndUserId` | Six months from the last visit, configurable | Visitor identifier. |
+| `optimizelySession` | Six months | New or returning session detection. |
+| `optimizelyRedirectData` | Five seconds | Data passed across redirect experiments. |
+| `optimizelyDomainTestCookie` | Removed immediately after a successful test | Domain detection. |
+| `optimizelyOptOut` | Ten years | Persistent Optimizely opt-out. The helper sets no opt-out cookie itself. |
+
+The SDK stores events, experiment assignments, visitor profiles and pending
+requests under localStorage keys beginning with `optimizely_data$$`. The full
+format includes the visitor ID and the project or account namespace, followed
+by a name such as `events`, `event_queue`, `variation_map`, `session_state`,
+`visitor_profile`, `layer_states`, `layer_map`, `tracker_optimizely`,
+`pending_events` or `contextual_mab`.
+
+Cross-origin tracking can use origin-specific prefixes and sync through an
+account-specific `cdn.optimizely.com` origin. Edge Delivery can add
+`OPTY$$...$$VPROF` and `OPTY$$...$$VMAP` cookies with six-month lifetimes.
+Sampled Real User Monitoring uses session cookies on `rum.optimizely.com`,
+including `AWSELB`, `AWSELBCORS` and `optimizelyRumLB`. This helper loads the
+browser snippet; it does not configure an Edge Delivery worker.
+
+A reload keeps existing storage. Use your framework's clear-on-revocation
+configuration to remove the storage your site uses. Check the actual names
+and domains in DevTools. Cleanup on your origin cannot clear cookies or
+localStorage on an Optimizely-owned origin. Optimizely warns that cookie and localStorage
+formats can change, so do not use their contents as an application API.
+
+## Verify Optimizely
+
+Use your own configured test project. With consent denied in a clean browser
+profile, filter Network by `optimizely.com` and check that the snippet does
+not load. The `optimizely` global, Optimizely cookies and localStorage keys
+should be absent.
+
+Grant the mapped consent and check for the project `.js` request. After a
+valid snippet runs, `window.optimizely.get` is a function. That confirms an
+SDK API exists, not that a particular experiment activated or an event was
+accepted. Check experiment targeting and behavior in your configured test
+project. Deny the vendor inside an allowed category and confirm that the
+reload blocks its snippet too. Test a later grant to confirm
+that ordinary revocation has not created a persistent opt-out.
+
+Check [consent verification](/docs/guides/verify-consent) for navigation,
+expiry and hosting tests. Use [vendor switches and cleanup](/docs/integrations/overview#vendor-switches-and-cookie-cleanup)
+for your framework's revocation configuration. Keep automatic reloads enabled
+for Optimizely; its persistent opt-out cannot be used as a reversible pause.
+
+<include src="../shared/integrations/vendor-revocation-and-verify.mdx" />
+
+## Optimizely references
+
+- [Implement the one-line snippet](https://docs.optimizely.com/web-experimentation/docs/implement-the-one-line-javascript-snippet)
+- [Hold and send event timing](https://docs.optimizely.com/web-experimentation/docs/control-the-timing-of-optimizely-web-experimentation-event-dispatch-with-holdevents-and-sendevents)
+- [Disable API](https://docs.optimizely.com/web-experimentation/api/Ops8-disable)
+- [Persistent opt-out API](https://docs.optimizely.com/web-experimentation/api/d8Gy-opt-out)

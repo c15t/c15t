@@ -2,6 +2,7 @@
  * One script per built-in integration, built from its public helper with
  * sample options, and the fields the helper must set.
  */
+
 import type { BuiltInScriptIntegrationKey } from '../registry';
 import { linkedinInsights } from '../vendors/ads-and-pixels/linkedin-insights';
 import { metaPixel } from '../vendors/ads-and-pixels/meta-pixel';
@@ -43,6 +44,7 @@ import { klaviyo } from '../vendors/email-and-sms/klaviyo';
 import { crisp } from '../vendors/functional/crisp';
 import { frontChat } from '../vendors/functional/front-chat';
 import { intercom } from '../vendors/functional/intercom';
+import { optimizelyWeb } from '../vendors/functional/optimizely';
 import { cloudflareZaraz } from '../vendors/tag-managers/cloudflare-zaraz';
 import { googleTagManager } from '../vendors/tag-managers/google-tag-manager';
 import type { expectScriptMatchesIntegration } from './helpers';
@@ -268,6 +270,14 @@ export const helperParityCases = {
 			src: 'https://bzrcdn.openai.com/sdk/oaiq.min.js',
 		},
 		script: openaiPixel({ pixelId: 'OPENAI-CONTRACT' }),
+	},
+	optimizelyWeb: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://cdn.optimizely.com/js/12345678.js',
+		},
+		script: optimizelyWeb({ projectId: '12345678' }),
 	},
 	pinterestTag: {
 		expected: {
