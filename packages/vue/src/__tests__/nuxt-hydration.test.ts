@@ -584,6 +584,7 @@ test('the server render gives a new visitor a subject ID the browser starts with
 		{
 			name: 'c15t-sid',
 			options: {
+				encode: expect.any(Function),
 				httpOnly: false,
 				maxAge: 365 * 86_400,
 				path: '/',
@@ -593,6 +594,10 @@ test('the server render gives a new visitor a subject ID the browser starts with
 			value: first.subjectId,
 		},
 	]);
+
+	// The response holds the raw ID, the same bytes the render's request had.
+	const encode = nuxt.cookies[0]?.options.encode as (value: string) => string;
+	expect(encode(first.subjectId as string)).toBe(first.subjectId);
 
 	// The browser now holds the cookie the response set.
 	const payload = JSON.stringify(

@@ -173,7 +173,12 @@ const withSubjectCookie = async function withSubjectCookie(
 	}
 	const { header: _header, name, value, ...attributes } = subject.setCookie;
 	nuxtApp.runWithContext(() => {
-		useCookie<string>(name, attributes).value = value;
+		// Encode like `header` does, so the cookie holds the same bytes as
+		// the request below, whatever Nuxt's default encoder does.
+		useCookie<string>(name, {
+			...attributes,
+			encode: encodeURIComponent,
+		}).value = value;
 	});
 	return {
 		...request,
