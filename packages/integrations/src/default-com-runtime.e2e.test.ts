@@ -536,27 +536,66 @@ test('updates real scheduler origin filtering', async () => {
 });
 
 test('changes scheduler display target and loader through the real SDK', async () => {
-	schedulerResponse = true;
-	await start({ autoDisplayScheduler: { loader: false, target: '#one' } });
-	await page.evaluate(() => window.__defaultComRuntime.submit(true));
-	await expect.poll(() => page.locator('#one iframe').count()).toBe(1);
-	expect(
-		await page.locator('#one .dftDefaultLoadingModal--contained').count()
-	).toBe(0);
-	await page.evaluate((publicKey) => {
-		document.querySelector('#one')?.replaceChildren();
-		window.__defaultComRuntime.replace({
-			autoDisplayScheduler: { loader: true, target: '#two' },
-			publicKey,
+	const schedulerUrl = 'https://book.default.com/embed/**';
+	const schedulerDocuments: Route[] = [];
+	const completeScheduler = async () => {
+		const [route] = schedulerDocuments;
+		if (!route) {
+			throw new Error('Expected a pending scheduler document.');
+		}
+		await route.fulfill({ body: '{}', contentType: 'application/json' });
+		schedulerDocuments.shift();
+	};
+	await page.route(schedulerUrl, (route) => {
+		schedulerDocuments.push(route);
+	});
+	try {
+		schedulerResponse = true;
+		await start({ autoDisplayScheduler: { loader: false, target: '#one' } });
+		await page.evaluate(() => window.__defaultComRuntime.submit(true));
+		await expect.poll(() => schedulerDocuments.length).toBe(1);
+		await expect.poll(() => page.locator('#one iframe').count()).toBe(1);
+		expect(
+			await page.locator('#one .dftDefaultLoadingModal--contained').count()
+		).toBe(0);
+		await completeScheduler();
+		await page.evaluate((publicKey) => {
+			document.querySelector('#one')?.replaceChildren();
+			window.__defaultComRuntime.replace({
+				autoDisplayScheduler: { loader: true, target: '#two' },
+				publicKey,
+			});
+		}, keyA);
+		await page.evaluate(() => window.__defaultComRuntime.submit(true));
+		await expect.poll(() => schedulerDocuments.length).toBe(1);
+		await expect.poll(() => page.locator('#two iframe').count()).toBe(1);
+		expect(await page.locator('#one iframe').count()).toBe(0);
+		expect(
+			await page.locator('#two .dftDefaultLoadingModal--contained').count()
+		).toBe(1);
+		await page.locator('#two iframe').evaluate((iframe) => {
+			iframe.addEventListener(
+				'load',
+				() => iframe.setAttribute('data-loaded', 'true'),
+				{ once: true }
+			);
 		});
-	}, keyA);
-	await page.evaluate(() => window.__defaultComRuntime.submit(true));
-	await expect.poll(() => page.locator('#two iframe').count()).toBe(1);
-	expect(
-		await page.locator('#two .dftDefaultLoadingModal--contained').count()
-	).toBe(1);
-	expect(reconfigured()).toHaveLength(1);
-	expect(loaderRequests).toBe(1);
+		await completeScheduler();
+		await expect
+			.poll(() => page.locator('#two iframe').getAttribute('data-loaded'))
+			.toBe('true');
+		await expect
+			.poll(() =>
+				page.locator('#two .dftDefaultLoadingModal--contained').count()
+			)
+			.toBe(0);
+		expect(await page.locator('#two iframe').count()).toBe(1);
+		expect(reconfigured()).toHaveLength(1);
+		expect(loaderRequests).toBe(1);
+	} finally {
+		await page.unroute(schedulerUrl);
+		await Promise.all(schedulerDocuments.map((route) => route.abort()));
+	}
 });
 
 test('omitted options restore endpoint origins and automatic display defaults', async () => {
