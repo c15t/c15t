@@ -1,7 +1,7 @@
 ---
 packages:
   '@c15t/integrations': minor
-  '@c15t/scripts': patch
+  '@c15t/scripts': minor
   '@c15t/cli': patch
 ---
 
