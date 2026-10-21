@@ -232,6 +232,68 @@ describe('Eloqua dispatcher lifecycle', () => {
 			}
 		}
 	);
+	it('configures a fresh SDK when a denied provider survives the loaded provider', async () => {
+		const grantedKernel = createConsentKernel();
+		const deniedKernel = createConsentKernel();
+		await grantedKernel.commands.save(granted);
+		const options = {
+			firstPartyCookieDomain: 'tracking.example.com',
+			siteId: '1973398186',
+		};
+		const first = createScriptLoader({
+			kernel: grantedKernel,
+			scripts: [eloquaTracking(options)],
+		});
+		let second: ReturnType<typeof createScriptLoader> | undefined;
+		try {
+			const initial = getLoader();
+			const retired = installDispatcher();
+			initial.dispatchEvent(new Event('load'));
+			document
+				.querySelector('script[src*="pps=41"]')
+				?.dispatchEvent(new Event('load'));
+			second = createScriptLoader({
+				kernel: deniedKernel,
+				scripts: [eloquaTracking(options)],
+			});
+			document
+				.querySelector('script[src*="pps=42"]')
+				?.dispatchEvent(new Event('load'));
+			first.dispose();
+			expect(initial.isConnected).toBe(false);
+			await deniedKernel.commands.save(granted);
+			expect(window._elqQ).toEqual([
+				['elqSetSiteId', '1973398186'],
+				['elqUseFirstPartyCookie', 'tracking.example.com'],
+			]);
+			expect(retired.mock.calls.at(-1)).toEqual([['elqOptOut']]);
+			const replacement = document.querySelector(
+				'script[src="https://img.en25.com/i/elqCfg.min.js"]'
+			);
+			expect(replacement).not.toBeNull();
+			const active = installDispatcher();
+			replacement?.dispatchEvent(new Event('load'));
+			document.cookie = 'OPTIN=1; path=/';
+			Array.from(document.querySelectorAll('script[src*="pps=41"]'))
+				.at(-1)
+				?.dispatchEvent(new Event('load'));
+			expect(active.mock.calls.at(-1)).toEqual([
+				['elqTrackPageView', window.location.href],
+			]);
+			await deniedKernel.commands.save(deniedConsents);
+			expect(active.mock.calls.at(-1)).toEqual([['elqOptOut']]);
+			document.cookie = 'OPTIN=0; path=/';
+			Array.from(document.querySelectorAll('script[src*="pps=42"]'))
+				.at(-1)
+				?.dispatchEvent(new Event('load'));
+			expect(document.cookie).toContain('OPTIN=0');
+		} finally {
+			second?.dispose();
+			first.dispose();
+			grantedKernel.dispose();
+			deniedKernel.dispose();
+		}
+	});
 	it('waits for outstanding consent responses before sending the opposite choice', () => {
 		const scripts = [eloquaTracking({ siteId: '1973398186' })];
 		loadScripts(scripts, granted);

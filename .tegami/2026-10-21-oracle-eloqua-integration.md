@@ -7,4 +7,4 @@ packages:
 
 ### Add consent-gated Oracle Eloqua loading
 
-Add `eloquaTracking` to load Oracle Eloqua only after marketing consent. Include vendor settings, ordered consent responses across revocation and remount, shared provider permission checks, full page URLs, a CLI snippet and setup documentation.
+Add `eloquaTracking` to load Oracle Eloqua only after marketing consent. Include vendor settings, ordered consent responses across revocation and remount, shared provider permission checks, fresh setup for replacement loaders, full page URLs, a CLI snippet and setup documentation.

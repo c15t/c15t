@@ -244,7 +244,12 @@ export const eloquaTracking = function eloquaTracking(
 			consent.update(owner, dispatcher);
 		};
 		const initialize = (info: ScriptCallbackInfo): void => {
-			element = info.element ?? element;
+			if (info.element && info.element !== element) {
+				({ element } = info);
+				initialized = false;
+				loaded = false;
+				generation += 1;
+			}
 			if (initialized || !hasConsent || !element) {
 				return;
 			}
@@ -261,8 +266,8 @@ export const eloquaTracking = function eloquaTracking(
 					generation += 1;
 				}
 				({ hasConsent } = info);
-				updateConsent();
 				initialize(info);
+				updateConsent();
 				if (!initialized) {
 					info.element?.removeAttribute('src');
 				}
@@ -272,8 +277,8 @@ export const eloquaTracking = function eloquaTracking(
 					generation += 1;
 				}
 				({ hasConsent } = info);
-				updateConsent();
 				initialize(info);
+				updateConsent();
 			},
 			onDispose() {
 				hasConsent = false;
