@@ -90,8 +90,10 @@ const createAmazonAdsTag = (options: AmazonAdsTagOptions): Script => {
 	});
 	let allowed = false;
 	let initialized = false;
+	let disposed = false;
 	let lastConsent: boolean | undefined;
 	let helper: HTMLScriptElement | undefined;
+	let releaseHelper: (() => void) | undefined;
 	const pendingCommands = new Set<AmazonAdsQueueEntry>();
 
 	const ensureQueue = () => {
@@ -188,9 +190,13 @@ const createAmazonAdsTag = (options: AmazonAdsTagOptions): Script => {
 				helper.nonce = info.element.nonce;
 			}
 		}
+		const element = helper;
 		const completed = (event: Event) => {
-			helper?.removeEventListener('load', completed);
-			helper?.removeEventListener('error', completed);
+			element.removeEventListener('load', completed);
+			element.removeEventListener('error', completed);
+			if (disposed) {
+				return;
+			}
 			if (event.type === 'error') {
 				console.error(
 					'amazonAdsTag: consent helper failed to load. Reload to retry.'
@@ -199,6 +205,14 @@ const createAmazonAdsTag = (options: AmazonAdsTagOptions): Script => {
 			}
 			forwardConsent();
 			initialize();
+		};
+		releaseHelper = () => {
+			element.removeEventListener('load', completed);
+			element.removeEventListener('error', completed);
+			if (!existingHelper) {
+				element.remove();
+			}
+			helper = undefined;
 		};
 		helper.addEventListener('load', completed, { once: true });
 		helper.addEventListener('error', completed, { once: true });
@@ -230,8 +244,10 @@ const createAmazonAdsTag = (options: AmazonAdsTagOptions): Script => {
 		onBeforeLoad: update,
 		onConsentChange: update,
 		onDispose: () => {
+			disposed = true;
 			allowed = false;
 			discardPendingCommands();
+			releaseHelper?.();
 			forwardConsent();
 		},
 		// The custom bootstrap must run in the client consent lifecycle.

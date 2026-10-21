@@ -102,6 +102,14 @@ initialization before Amazon consumed the queue, it queues initialization
 once for the new grant. Changes to unrelated consent categories do not
 repeat these calls.
 
+Full loader disposal or configuration replacement removes the ACS element
+c15t created and its load and error listeners after the final equivalent
+registration releases it. An active equivalent registration keeps the helper.
+c15t leaves externally supplied helper elements in place. A disposed helper's
+late completion cannot initialize the tag or forward an old consent state.
+Removing an element does not abort code already downloaded or stop a running
+Amazon runtime. Keep the default revocation reload enabled.
+
 If the ACS library fails to load, c15t reports the failure and withholds the
 tag registration and initial PageView. The main library remains a normal
 core script resource with its own load and error events. Reload to retry a

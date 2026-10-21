@@ -305,6 +305,203 @@ describe('amazonAdsTag production loader', () => {
 		expect(document.scripts).toHaveLength(2);
 	});
 
+	it.each(['pending', 'loaded'] as const)(
+		'removes its %s helper and listeners when the final owner disposes',
+		async (state) => {
+			const { kernel, loader } = mount(
+				amazonAdsTag({ countryCode: 'DE', tagId })
+			);
+			await kernel.commands.save(grantedMarketingConsents);
+			const helper = findScript(helperUrl);
+			const main = findScript(mainUrl);
+			const consent = vi.fn();
+			if (state === 'loaded') {
+				window.amznConsent = consent;
+				helper.dispatchEvent(new Event('load'));
+			}
+			window.amzn?.('trackEvent', 'ApplicationQueuedEvent', {});
+			loader.dispose();
+
+			expect(helper.isConnected).toBe(false);
+			expect(main.isConnected).toBe(false);
+			expect(commands()).toEqual([
+				['trackEvent', 'ApplicationQueuedEvent', {}],
+			]);
+			consent.mockClear();
+			window.amznConsent = consent;
+			const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+			helper.dispatchEvent(new Event('load'));
+			helper.dispatchEvent(new Event('error'));
+			expect(consent).not.toHaveBeenCalled();
+			expect(error).not.toHaveBeenCalled();
+		}
+	);
+
+	it('releases the helper even if the vendor throws during disposal', async () => {
+		const { kernel, loader } = mount(
+			amazonAdsTag({ countryCode: 'DE', tagId })
+		);
+		await kernel.commands.save(grantedMarketingConsents);
+		const helper = findScript(helperUrl);
+		const consent = vi.fn();
+		window.amznConsent = consent;
+		helper.dispatchEvent(new Event('load'));
+		consent.mockImplementation(() => {
+			throw new Error('Vendor consent update failed');
+		});
+		loader.dispose();
+
+		expect(helper.isConnected).toBe(false);
+	});
+
+	it.each(['pending', 'loaded'] as const)(
+		'keeps a %s helper for a surviving equivalent owner',
+		async (state) => {
+			const first = mount(amazonAdsTag({ countryCode: 'DE', tagId }));
+			await first.kernel.commands.save(grantedMarketingConsents);
+			const second = mount(amazonAdsTag({ countryCode: 'DE', tagId }));
+			await second.kernel.commands.save(grantedMarketingConsents);
+			const helper = findScript(helperUrl);
+			const consent = vi.fn();
+			if (state === 'loaded') {
+				window.amznConsent = consent;
+				helper.dispatchEvent(new Event('load'));
+			}
+			consent.mockClear();
+			first.loader.dispose();
+
+			expect(findScript(helperUrl)).toBe(helper);
+			expect(consent).not.toHaveBeenCalled();
+			if (state === 'pending') {
+				window.amznConsent = consent;
+				helper.dispatchEvent(new Event('load'));
+			}
+			expect(consent.mock.calls).toEqual(
+				state === 'pending'
+					? [
+							[
+								{
+									countryCode: 'DE',
+									enableAdStorage: true,
+									enableUserData: true,
+								},
+							],
+						]
+					: []
+			);
+			expect(commands()).toEqual(expectedCommands());
+			second.loader.dispose();
+			expect(helper.isConnected).toBe(false);
+			expect(consent).toHaveBeenLastCalledWith({
+				countryCode: 'DE',
+				enableAdStorage: false,
+				enableUserData: false,
+			});
+		}
+	);
+
+	it('replaces the helper with its same-ID configuration and ignores stale completion', async () => {
+		const { kernel, loader } = mount(
+			amazonAdsTag({ countryCode: 'DE', tagId })
+		);
+		await kernel.commands.save(grantedMarketingConsents);
+		const oldHelper = findScript(helperUrl);
+		const oldMain = findScript(mainUrl);
+		const customHelper = 'https://tags.example.com/replacement-consent.js';
+		loader.updateScripts([
+			amazonAdsTag({
+				consentScriptUrl: customHelper,
+				countryCode: 'GB',
+				region: 'EU',
+				tagId,
+			}),
+		]);
+
+		expect(oldHelper.isConnected).toBe(false);
+		expect(oldMain.isConnected).toBe(false);
+		const helper = findScript(customHelper);
+		expect(helper.id).toBe(oldHelper.id);
+		const consent = vi.fn();
+		window.amznConsent = consent;
+		oldHelper.dispatchEvent(new Event('load'));
+		expect(consent).not.toHaveBeenCalled();
+		expect(commands()).toEqual([]);
+		helper.dispatchEvent(new Event('load'));
+		expect(consent).toHaveBeenCalledExactlyOnceWith({
+			countryCode: 'GB',
+			enableAdStorage: true,
+			enableUserData: true,
+		});
+		expect(commands()).toEqual(expectedCommands({ region: 'EU' }));
+		oldHelper.dispatchEvent(new Event('error'));
+		expect(consent).toHaveBeenCalledOnce();
+	});
+
+	it('ignores a pending helper from a disposed lifecycle after remount', async () => {
+		const script = amazonAdsTag({ countryCode: 'DE', tagId });
+		const first = mount(script);
+		await first.kernel.commands.save(grantedMarketingConsents);
+		const oldHelper = findScript(helperUrl);
+		first.loader.dispose();
+		const second = mount(script);
+		await second.kernel.commands.save(grantedMarketingConsents);
+		const helper = findScript(helperUrl);
+		const consent = vi.fn();
+		window.amznConsent = consent;
+		oldHelper.dispatchEvent(new Event('load'));
+
+		expect(consent).not.toHaveBeenCalled();
+		expect(commands()).toEqual([]);
+		expect(helper).not.toBe(oldHelper);
+		helper.dispatchEvent(new Event('load'));
+		expect(consent).toHaveBeenCalledExactlyOnceWith({
+			countryCode: 'DE',
+			enableAdStorage: true,
+			enableUserData: true,
+		});
+		expect(commands()).toEqual(expectedCommands());
+	});
+
+	it('preserves an external helper and removes only its own listeners', async () => {
+		const external = document.createElement('script');
+		external.id = 'c15t-script-external-amazon-consent';
+		external.src = helperUrl;
+		const externalLoaded = vi.fn();
+		external.addEventListener('load', externalLoaded);
+		document.head.appendChild(external);
+		const { kernel, loader } = mount({
+			...amazonAdsTag({ countryCode: 'DE', tagId }),
+			anonymizeId: false,
+			id: 'external-amazon',
+		});
+		await kernel.commands.save(grantedMarketingConsents);
+		expect(document.scripts).toHaveLength(2);
+		loader.dispose();
+
+		expect(external.isConnected).toBe(true);
+		const consent = vi.fn();
+		window.amznConsent = consent;
+		external.dispatchEvent(new Event('load'));
+		expect(externalLoaded).toHaveBeenCalledOnce();
+		expect(consent).not.toHaveBeenCalled();
+		expect(commands()).toEqual([]);
+	});
+
+	it('does not remove an unrelated element replacing its helper ID', async () => {
+		const { kernel, loader } = mount(
+			amazonAdsTag({ countryCode: 'DE', tagId })
+		);
+		await kernel.commands.save(grantedMarketingConsents);
+		const helper = findScript(helperUrl);
+		const unrelated = document.createElement('script');
+		unrelated.id = helper.id;
+		unrelated.src = 'https://tags.example.com/unrelated.js';
+		helper.replaceWith(unrelated);
+		loader.dispose();
+
+		expect(unrelated.isConnected).toBe(true);
+	});
+
 	it('uses explicit URLs and skips ACS when country is absent instead of assuming US', async () => {
 		const customMain = 'https://tags.example.com/amazon.js';
 		const { kernel } = mount(
