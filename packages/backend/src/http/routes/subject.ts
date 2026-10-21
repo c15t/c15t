@@ -13,7 +13,11 @@
  * `../consent-submission.ts`; this file is transport only.
  */
 
-import { getSubjectOutputSchema, listSubjectsOutputSchema } from '@c15t/schema';
+import {
+	getSubjectOutputSchema,
+	listSubjectsOutputSchema,
+	subjectIdSchema,
+} from '@c15t/schema';
 import type { ConsentItem } from '@c15t/schema';
 import { getIpAddress } from '@c15t/schema/geo';
 import { Effect } from 'effect';
@@ -27,6 +31,7 @@ import { findOrCreateDomain } from '../../repository/domain';
 import { submit } from '../../repository/record-consent';
 import {
 	findById,
+	findOrCreate,
 	linkExternalId,
 	listByExternalId,
 } from '../../repository/subject';
@@ -442,6 +447,12 @@ export const register = function register({
 						});
 					}
 
+					// A browser has its subject ID from its first page load, so it
+					// can identify before it saves anything. The subject is created
+					// here then, the same way a first save creates it.
+					if (v.is(subjectIdSchema, subjectId)) {
+						yield* findOrCreate({ subjectId });
+					}
 					const linked = yield* linkExternalId({
 						externalId: body.externalId,
 						identityProvider,
@@ -460,6 +471,15 @@ export const register = function register({
 
 					return { subject: linked };
 				}).pipe(
+					// See the consent route: the ID is another tenant's.
+					Effect.catchTag('SubjectTenantConflictError', (error) =>
+						Effect.fail(
+							new ConflictError({
+								code: 'SUBJECT_CONFLICT',
+								message: error.message,
+							})
+						)
+					),
 					Effect.catchTag('IdentityConflictError', (error) =>
 						Effect.fail(
 							new ConflictError({

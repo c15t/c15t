@@ -1196,8 +1196,36 @@ describe.each(ENGINES)('HTTP app ($name)', (engine) => {
 			assert.strictEqual(entries[0]?.ipAddress, '203.0.113.0');
 		});
 
-		it('404s for a subject that does not exist', async () => {
+		it('creates a subject that has not saved yet and links it', async () => {
+			// A browser has its subject ID from first load, so it can identify
+			// before its first save.
 			const response = await patch('sub_absent', { externalId: 'ext_new' });
+			assert.strictEqual(response.status, 200);
+			assert.deepStrictEqual(await response.json(), {
+				subject: {
+					externalId: 'ext_new',
+					id: 'sub_absent',
+					identityProvider: 'external',
+				},
+			});
+
+			const rows = await runtime.runPromise(
+				Effect.gen(function* rows() {
+					const sql = yield* SqlClient.SqlClient;
+					return yield* sql<{ externalId: string | null }>`
+						select ${sql('externalId')} from ${sql('subject')}
+						where ${sql('id')} = ${'sub_absent'}
+					`;
+				})
+			);
+			assert.deepStrictEqual(
+				rows.map((row) => row.externalId),
+				['ext_new']
+			);
+		});
+
+		it('404s for a missing subject whose id it would not create', async () => {
+			const response = await patch('not-a-subject', { externalId: 'ext_new' });
 			assert.strictEqual(response.status, 404);
 		});
 
@@ -1208,7 +1236,7 @@ describe.each(ENGINES)('HTTP app ($name)', (engine) => {
 		});
 
 		it('writes no audit entry when the subject is missing', async () => {
-			await patch('sub_absent', { externalId: 'ext_new' });
+			await patch('not-a-subject', { externalId: 'ext_new' });
 			const entries = await runtime.runPromise(
 				Effect.gen(function* entries() {
 					const sql = yield* SqlClient.SqlClient;
