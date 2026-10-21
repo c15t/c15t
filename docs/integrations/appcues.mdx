@@ -15,10 +15,22 @@ or tag-manager entry so it cannot load outside c15t.
 
 Copy your account ID from the [Appcues installation snippet](https://docs.appcues.com/install-appcues-web/install-the-appcues-sdk).
 Choose `region: 'eu'` for an EU account.
-Replace the user and group placeholders with values read from your authentication
-state inside `onReady`. Skip those calls when nobody is signed in. The callback
-runs when the loader finishes, including when consent was already granted on
-page startup.
+Read the current signed-in user from your authentication state inside `onReady`.
+Replace the `identify` placeholder with that user's real, unique, stable ID
+before enabling the call. Enable `group` after `identify` with their real group
+ID, if needed. Send `track` only for an event that actually happened. Skip these
+calls when nobody is signed in.
+`onReady` runs once per successful loader load, including when consent was
+already granted on page startup.
+
+If sign-in completes after `onReady`, identify the user from your app's
+authentication-change handler. Immediately before calling
+`window.Appcues.identify`, check that the method is available, the user is still
+signed in, and c15t's current effective consent allows both the script's
+configured category and the `appcues` vendor. The category defaults to
+`experience`; check your override instead if you changed it. Use the current
+user's real, unique, stable ID. Skip identification if any check fails.
+If Appcues has not loaded yet, let `onReady` read the current user when it runs.
 
 <CommandTabs command="@c15t/integrations" mode="install" />
 

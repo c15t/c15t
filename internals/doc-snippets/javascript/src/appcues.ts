@@ -6,10 +6,12 @@ export const scripts = [
 		accountId: 'YOUR_APPCUES_ID',
 		onReady: () => {
 			// Read the signed-in visitor from your auth state here.
-			// Replace these placeholders and skip calls when nobody is signed in.
-			window.Appcues?.identify?.('CURRENT_USER_ID');
-			window.Appcues?.group?.('CURRENT_GROUP_ID');
-			window.Appcues?.track?.('Started onboarding');
+			// Enable only with their real, unique, stable ID; skip if signed out.
+			// window.Appcues?.identify?.('CURRENT_USER_ID');
+			// After identify, enable with the visitor's real group ID if needed.
+			// window.Appcues?.group?.('CURRENT_GROUP_ID');
+			// After identify, track only an event that actually happened.
+			// window.Appcues?.track?.('Started onboarding');
 		},
 	}),
 ];
