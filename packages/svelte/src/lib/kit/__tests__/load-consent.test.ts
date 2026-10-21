@@ -290,6 +290,21 @@ describe('loadConsent', () => {
 		expect(consent.prefetch.initialRecords?.subject?.subjectId).toBe(subjectId);
 	});
 
+	test('a per-call cookieName that names the default cookie reuses the handle subject', async () => {
+		const setCookie = vi.fn();
+		const event = await withHandle(
+			createEvent({ setCookie, url: 'https://app.example.com/' }),
+			{ mode: offline() }
+		);
+		const subjectId = setCookie.mock.calls[0]?.[1];
+		setCookie.mockClear();
+
+		const { consent } = await loadConsent(event, { cookieName: 'c15t' });
+
+		expect(setCookie).not.toHaveBeenCalled();
+		expect(consent.prefetch.initialRecords?.subject?.subjectId).toBe(subjectId);
+	});
+
 	test('a prerender or a prefetch gets no subject cookie', async () => {
 		const setCookie = vi.fn();
 		await withHandle(

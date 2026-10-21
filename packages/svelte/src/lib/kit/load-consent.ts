@@ -160,6 +160,17 @@ const browserMode = function browserMode(mode: ConsentMode): ConsentMode {
 	return data;
 };
 
+/** The consent cookie core reads when no `cookieName` is given. */
+const DEFAULT_COOKIE_NAME = 'c15t';
+
+/** Whether two `cookieName` options name the same cookie once defaulted. */
+const sameCookieName = function sameCookieName(
+	left: string | undefined,
+	right: string | undefined
+): boolean {
+	return (left ?? DEFAULT_COOKIE_NAME) === (right ?? DEFAULT_COOKIE_NAME);
+};
+
 /**
  * The request cookie header the resolution reads. The handle set the subject
  * cookie under its own name; a call that reads another name sets that one's
@@ -172,7 +183,7 @@ const requestCookie = function requestCookie(
 	shared: boolean,
 	options: LoadConsentOptions
 ): string | undefined {
-	if (!locals || cookieName === locals.cookieName) {
+	if (!locals || sameCookieName(cookieName, locals.cookieName)) {
 		return locals?.cookie;
 	}
 	const subject = resolveRequestSubject({

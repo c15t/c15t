@@ -56,7 +56,7 @@ gets no subject ID cookie either.
 | `backendURL` | `string` | the URL `consentManifest()` read | The backend. Consent saves go here. A `hosted({ backendURL })` mode's own URL wins. |
 | `snapshot` | `ConsentManifest` | the manifest `consentManifest()` downloaded | A manifest to resolve with. `createConsentRoute()` reads it too. |
 | `cookieName` | `string` | `c15t` | The consent cookie. Match the provider's `storageConfig.storageKey`. |
-| `storage` | `{ storageKey?, defaultDomain?, crossSubdomain?, defaultExpiryDays? }` | the browser defaults | The provider's `storageConfig`, so the subject ID cookie gets the same domain and lifetime as the one the browser writes. `cookieName` wins over `storageKey`. |
+| `storage` | `{ defaultDomain?, crossSubdomain?, defaultExpiryDays? }` | the browser defaults | The provider's `storageConfig` cookie attributes, so the subject ID cookie gets the same domain and lifetime as the one the browser writes. `cookieName` names the cookie. |
 | `trustForwardedHeaders` | `boolean` | `false` | Reads the scheme and host from `X-Forwarded-*` and `Forwarded` headers for the subject ID cookie's `Secure` flag and cross-subdomain domain. Set it only behind a proxy that overwrites those headers. |
 | `country`, `region`, `language` | `string` | from headers | Forces the input for every request. |
 
