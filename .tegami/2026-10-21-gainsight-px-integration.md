@@ -15,3 +15,5 @@ Retries before SDK startup rebuild the pending queue from the current product, c
 Gainsight PX runtime detection survives object-spread customization made before startup, so retaining the same script copy across disposal and remount does not execute the SDK again. Core's `callbackOnly` also accepts a zero-argument boolean predicate, evaluated at mount time, for diagnostics and for server startup.
 
 Script diagnostics report completed callback-only registrations as loaded, including configurations with a fallback script URL.
+
+A failing callback-only predicate no longer aborts unrelated server starts. Scripts sharing its resource stay with the client loader so every owner's setup runs. Predicate results enable callback-only mode only when they are exactly `true`.

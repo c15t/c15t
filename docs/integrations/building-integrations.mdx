@@ -144,6 +144,10 @@ free of side effects and safe to call on the server. It can run more than once,
 and it does not remove an element already mounted by that registration.
 A function survives script customization with object spread, so later mounts
 check the current runtime instead of a value captured when the copy was made.
+Keep the function reference stable across script updates, for example by
+defining it at module level. A new function counts as a resource change and
+remounts the registration. If a predicate throws during server startup, c15t
+leaves that script to the client loader and starts unrelated scripts normally.
 
 ## Revocation and verification
 

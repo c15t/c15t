@@ -122,6 +122,8 @@ export interface Script {
 	 * when reading diagnostics, and when selecting scripts for server startup.
 	 * Keep it free of side effects and safe to call on the server. It may run
 	 * more than once and does not change an already mounted registration.
+	 * Keep the function reference stable across script updates. A new function
+	 * counts as a resource change and remounts the registration.
 	 *
 	 * This is useful for:
 	 * - Managing consent for libraries already loaded on the page

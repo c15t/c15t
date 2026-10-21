@@ -138,6 +138,10 @@ describe('mountScript', () => {
 		{ callbackOnly: true, skipsElement: true },
 		{ callbackOnly: () => false, skipsElement: false },
 		{ callbackOnly: () => true, skipsElement: true },
+		{
+			callbackOnly: (() => ({ sdk: true })) as unknown as () => boolean,
+			skipsElement: false,
+		},
 	])(
 		'resolves callbackOnly=$callbackOnly to $skipsElement',
 		({ callbackOnly, skipsElement }) => {

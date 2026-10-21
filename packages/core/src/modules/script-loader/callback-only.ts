@@ -9,6 +9,6 @@ import type { Script } from './types';
 export const isCallbackOnly = (script: Script): boolean => {
 	const { callbackOnly } = script;
 	return typeof callbackOnly === 'function'
-		? callbackOnly()
+		? callbackOnly() === true
 		: callbackOnly === true;
 };

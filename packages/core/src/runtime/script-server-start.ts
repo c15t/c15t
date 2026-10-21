@@ -261,17 +261,25 @@ const sharedResources = function sharedResources(
  * them can start from the HTML, and none when the app turns it off.
  */
 const serverStartCandidates = function serverStartCandidates(
-	options: ServerScriptOptions
+	options: ServerScriptOptions,
+	failedPredicates: Set<Script>
 ): Script[] {
-	if (options.scriptLoader?.serverStart === false) {
+	const scripts = options.scripts ?? [];
+	if (
+		options.scriptLoader?.serverStart === false ||
+		!scripts.some((script) => script.serverStart && script.src)
+	) {
 		return [];
 	}
-	const elementScripts = (options.scripts ?? []).filter(
-		(script) => !isCallbackOnly(script)
-	);
-	return elementScripts.some((script) => script.serverStart && script.src)
-		? elementScripts
-		: [];
+	return scripts.filter((script) => {
+		try {
+			return !isCallbackOnly(script);
+		} catch {
+			// Keep its resource ownership, but leave its setup to the loader.
+			failedPredicates.add(script);
+			return true;
+		}
+	});
 };
 
 /**
@@ -304,9 +312,10 @@ const serverStartCandidates = function serverStartCandidates(
 export const serverScriptStart = function serverScriptStart(
 	options: ServerScriptOptions
 ): string | undefined {
+	const failedPredicates = new Set<Script>();
 	const { scripts, snapshot } = serverRunnableScripts(
 		options,
-		serverStartCandidates(options)
+		serverStartCandidates(options, failedPredicates)
 	);
 	// A visitor the policy asks to choose sees the banner as the page
 	// hydrates, and a script's first run would hold the main thread while
@@ -330,7 +339,7 @@ export const serverScriptStart = function serverScriptStart(
 			continue;
 		}
 		keys.add(key);
-		if (!(script.serverStart && script.src)) {
+		if (failedPredicates.has(script) || !(script.serverStart && script.src)) {
 			continue;
 		}
 		let start: ReturnType<NonNullable<Script['serverStart']>>;
