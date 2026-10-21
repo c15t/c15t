@@ -29,6 +29,7 @@ it('measures the real cookie projections and hydrates without writes', async () 
 	expect(cookies.map((cookie) => cookie.split('=')[0]).sort()).toEqual([
 		'c15t',
 		'c15t-notice',
+		'c15t-sid',
 	]);
 	const bytes = Object.fromEntries(
 		cookies.map((cookie) => {
