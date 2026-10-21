@@ -111,6 +111,28 @@ describe('insiderTag', () => {
 		);
 	});
 
+	it.each([null, 123, {}, '', '   '])(
+		'rejects invalid optional currency %s',
+		(currency) => {
+			expect(() =>
+				insiderTag({ ...account, currency: currency as string })
+			).toThrow('insiderTag: currency must be a non-blank string');
+		}
+	);
+
+	it('passes currency unchanged without a code whitelist or case conversion', () => {
+		const script = insiderTag({ ...account, currency: 'usd' });
+		script.onBeforeLoad?.(
+			createCallbackInfo({ hasConsent: true, id: script.id })
+		);
+		expect(window.InsiderQueue).toEqual([
+			{ type: 'user', value: { gdpr_optin: true } },
+			{ type: 'currency', value: 'usd' },
+			{ type: 'other' },
+			{ type: 'init' },
+		]);
+	});
+
 	it('does not create a vendor global while creating the configuration', () => {
 		insiderTag(account);
 		expect(window.InsiderQueue).toBeUndefined();

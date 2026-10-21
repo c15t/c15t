@@ -115,7 +115,7 @@ export const insiderManifest = {
 	category: '{{category}}',
 	install: [
 		{
-			args: [{ type: 'user', value: { gdpr_optin: true } }],
+			args: [{ type: 'user', value: '{{user}}' }],
 			global: 'InsiderQueue',
 			method: 'push',
 			type: 'callGlobal',
@@ -167,14 +167,44 @@ export const insiderManifest = {
 	},
 } as const satisfies VendorManifest;
 
-/** Account, page context, and consent condition for the Insider tag. */
+const insiderCurrencyManifest = {
+	...insiderManifest,
+	install: [
+		insiderManifest.install[0],
+		{
+			args: [{ type: 'currency', value: '{{currency}}' }],
+			global: 'InsiderQueue',
+			method: 'push',
+			type: 'callGlobal',
+		},
+		...insiderManifest.install.slice(1),
+	],
+} as const satisfies VendorManifest;
+
+/** Account, current user, page context, and consent for the Insider tag. */
 export interface InsiderTagOptions {
 	/** Public partner name supplied by Insider. Trimmed and lowercased. */
 	partnerName: string;
 	/** Public partner ID supplied by Insider. Surrounding spaces are trimmed. */
 	partnerId: string;
 	/**
-	 * Complete page definition pushed between `user` and `init`.
+	 * Complete current user attributes for the final grant `user` push.
+	 * Pass current checkout identifiers, such as `email` and `phone_number`,
+	 * and account-specific attributes under `custom`. No historical queue
+	 * identity is reused. The helper overrides `gdpr_optin` with actual consent
+	 * and sends no supplied attributes on denial. Values must be serializable
+	 * and follow your Insider account's attribute and identifier definitions.
+	 */
+	user?: Record<string, unknown>;
+	/**
+	 * Current currency, for example `GBP`, pushed before page context and init.
+	 * Required for multi-currency storefronts. If omitted, the helper sends no
+	 * currency push and does not reset Insider's preserved or default currency.
+	 */
+	currency?: string;
+	/**
+	 * Complete page definition pushed after `user` and optional currency,
+	 * before `init`.
 	 * Only use `purchase` after a durable per-order guard permits the attempt.
 	 * Use `other` on confirmation-page revisits and keep reload on revocation.
 	 * @default { type: 'other' }
@@ -192,15 +222,17 @@ const PARTNER_NAME_PATTERN = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/u;
 /**
  * Creates an Insider tag gated on marketing consent by default.
  *
- * The helper always pushes `user.gdpr_optin: true`, page context, and `init`
- * before inserting the loader. Revocation pushes `user.gdpr_optin: false`
+ * The helper pushes current `user` attributes with `gdpr_optin: true`,
+ * optional currency, page context, and `init` before inserting the loader.
+ * Revocation pushes only `user.gdpr_optin: false`
  * followed by a neutral `other` page and `init` so the withdrawal init does
  * not reuse a purchase page. Keep reload-on-revocation enabled: Insider can
  * still show cookieless campaigns, and removing a loader does not unload its
  * SDK or cancel earlier queued entries.
  *
- * @param options - Insider account, page context, and consent configuration.
+ * @param options - Insider account, current user, currency, page, and consent.
  * @returns The consent-gated Insider script configuration.
+ * @throws {TypeError} When a supplied currency is not a non-blank string.
  * @remarks A missing or blank required ID, or an invalid partner hostname,
  *   logs `insiderTag: missing or invalid <option>` with `console.error` and
  *   returns a script that never loads. Insider must enable Web SDK support
@@ -233,9 +265,22 @@ export const insiderTag = function insiderTag(
 		});
 	}
 
-	return resolveManifest(insiderManifest, {
-		category,
-		pageType: options.pageType ?? { type: 'other' },
-		scriptSrc: `https://${partnerName}.api.useinsider.com/ins.js?id=${encodeURIComponent(partnerId)}`,
-	});
+	const { currency } = options;
+	if (
+		currency !== undefined &&
+		(typeof currency !== 'string' || currency.trim().length === 0)
+	) {
+		throw new TypeError('insiderTag: currency must be a non-blank string');
+	}
+
+	return resolveManifest(
+		currency === undefined ? insiderManifest : insiderCurrencyManifest,
+		{
+			category,
+			currency,
+			pageType: options.pageType ?? { type: 'other' },
+			scriptSrc: `https://${partnerName}.api.useinsider.com/ins.js?id=${encodeURIComponent(partnerId)}`,
+			user: { ...options.user, gdpr_optin: true },
+		}
+	);
 };

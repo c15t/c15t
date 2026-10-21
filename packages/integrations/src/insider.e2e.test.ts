@@ -21,28 +21,34 @@ import type { InsiderPageType } from './vendors/email-and-sms/insider';
 
 const account = { partnerId: '123456', partnerName: 'yourpartner' };
 const LOADER_SRC = 'https://yourpartner.api.useinsider.com/ins.js?id=123456';
+const product = {
+	id: 'product-1',
+	name: 'Blue dress',
+	product_image_url: 'https://example.com/blue-dress.png',
+	taxonomy: ['Dresses'],
+	unit_price: 100,
+	unit_sale_price: 90,
+	url: 'https://example.com/blue-dress',
+};
 const purchasePage: InsiderPageType = {
 	type: 'purchase',
 	value: {
-		items: [
-			{
-				id: 'product-1',
-				name: 'Blue dress',
-				product_image_url: 'https://example.com/blue-dress.png',
-				quantity: 1,
-				taxonomy: ['Dresses'],
-				unit_price: 100,
-				unit_sale_price: 90,
-				url: 'https://example.com/blue-dress',
-			},
-		],
+		items: [{ ...product, quantity: 1 }],
 		order_id: 'order-1',
 		total: 90,
 	},
 };
 
-// Models the guide's last-page-on-init rule, not the SDK or remote delivery.
+// Models last user/page and preserved currency on init, not IRM or delivery.
 const installSdkModel = function installSdkModel() {
+	const events: {
+		currency: unknown;
+		profileEmail: unknown;
+		user: Record<string, unknown> | undefined;
+	}[] = [];
+	let user: Record<string, unknown> | undefined;
+	let currency: unknown = 'USD';
+	let profileEmail: unknown = 'previous@example.com';
 	const pageViews: {
 		gdprOptin: unknown;
 		page: { type: unknown } | undefined;
@@ -54,18 +60,22 @@ const installSdkModel = function installSdkModel() {
 			if (typeof entry !== 'object' || entry === null || !('type' in entry)) {
 				throw new Error('Expected an Insider queue entry');
 			}
+			const value = 'value' in entry ? entry.value : undefined;
 			switch (entry.type) {
 				case 'user':
-					if (
-						'value' in entry &&
-						typeof entry.value === 'object' &&
-						entry.value !== null &&
-						'gdpr_optin' in entry.value
-					) {
-						gdprOptin = entry.value.gdpr_optin;
+					if (typeof value === 'object' && value !== null) {
+						user = { ...value };
+						gdprOptin = user.gdpr_optin ?? true;
 					}
 					break;
+				case 'currency':
+					currency = value;
+					break;
 				case 'init':
+					if (typeof user?.email === 'string') {
+						profileEmail = user.email;
+					}
+					events.push({ currency, profileEmail, user: structuredClone(user) });
 					pageViews.push({ gdprOptin, page: structuredClone(page) });
 					break;
 				case 'home':
@@ -84,7 +94,7 @@ const installSdkModel = function installSdkModel() {
 	if (Array.isArray(window.InsiderQueue)) {
 		push(...window.InsiderQueue);
 	}
-	const runtime = { pageViews, push };
+	const runtime = { events, pageViews, push };
 	window.InsiderQueue = runtime;
 	return runtime;
 };
@@ -108,7 +118,12 @@ describe('Insider loader contract', () => {
 		vi.stubGlobal('fetch', fetch);
 		const storageWrite = vi.spyOn(Storage.prototype, 'setItem');
 		const cookieWrite = vi.spyOn(Document.prototype, 'cookie', 'set');
-		const scripts = [insiderTag(account)];
+		const options = {
+			...account,
+			currency: 'GBP',
+			user: { email: 'guest@example.com' },
+		};
+		const scripts = [insiderTag(options)];
 
 		loadScripts(scripts, deniedConsents);
 		updateScripts(scripts, grantedMeasurementConsents);
@@ -118,6 +133,119 @@ describe('Insider loader contract', () => {
 		expect(window.InsiderQueue).toBeUndefined();
 		expect(storageWrite).not.toHaveBeenCalled();
 		expect(cookieWrite).not.toHaveBeenCalled();
+	});
+
+	it.each(['callback', 'server-start'])(
+		'uses the current checkout user instead of a queued previous user through %s',
+		(mode) => {
+			const user = {
+				custom: { loyalty_id: 'guest-loyalty', preferences: { size: 'M' } },
+				email: 'guest@example.com',
+				gdpr_optin: false,
+				phone_number: '+905551234567',
+			};
+			const options = {
+				...account,
+				currency: 'GBP',
+				pageType: purchasePage,
+				user,
+			};
+			const script = insiderTag(options);
+			window.InsiderQueue = [
+				{
+					type: 'user',
+					value: { email: 'previous@example.com', uuid: 'previous-user' },
+				},
+			];
+			const start = script.serverStart?.(
+				{
+					consents: grantedMarketingConsents,
+					hasConsent: true,
+					id: script.id,
+				},
+				script
+			);
+			expect(start).toBeDefined();
+			if (mode === 'callback') {
+				loadScripts([script], grantedMarketingConsents);
+			} else {
+				// oxlint-disable-next-line no-new-func -- Execute the HTML start code the helper actually emits.
+				new Function(`${start?.prelude ?? ''};${start?.code}`)();
+			}
+			const runtime = installSdkModel();
+			expect(runtime.events).toEqual([
+				{
+					currency: 'GBP',
+					profileEmail: 'guest@example.com',
+					user: { ...user, gdpr_optin: true },
+				},
+			]);
+			expect(runtime.pageViews).toEqual([
+				{ gdprOptin: true, page: purchasePage },
+			]);
+			expect(user.gdpr_optin).toBe(false);
+		}
+	);
+
+	it.each<InsiderPageType>([
+		{ type: 'product', value: product },
+		{ type: 'cart', value: purchasePage.value },
+		purchasePage,
+	])(
+		'sets current currency before the $type page and init instead of using stale currency',
+		(pageType) => {
+			const options = { ...account, currency: 'GBP', pageType };
+			window.InsiderQueue = [{ type: 'currency', value: 'EUR' }];
+			let beforeAppend: unknown;
+			installHeadProbe(() => {
+				beforeAppend = structuredClone(window.InsiderQueue);
+			});
+			loadScripts([insiderTag(options)], grantedMarketingConsents);
+			expect(beforeAppend).toEqual([
+				{ type: 'currency', value: 'EUR' },
+				{ type: 'user', value: { gdpr_optin: true } },
+				{ type: 'currency', value: 'GBP' },
+				pageType,
+				{ type: 'init' },
+			]);
+			const runtime = installSdkModel();
+			expect(runtime.events.at(-1)?.currency).toBe('GBP');
+		}
+	);
+
+	it('does not recover historical identity or reset preserved currency when the caller omits them', () => {
+		window.InsiderQueue = [
+			{ type: 'user', value: { email: 'previous@example.com' } },
+			{ type: 'currency', value: 'EUR' },
+		];
+		loadScripts([insiderTag(account)], grantedMarketingConsents);
+		const runtime = installSdkModel();
+		expect(runtime.events).toEqual([
+			{
+				currency: 'EUR',
+				profileEmail: 'previous@example.com',
+				user: { gdpr_optin: true },
+			},
+		]);
+	});
+
+	it('sends only false user consent on denial even when caller attributes contain true', () => {
+		const options = {
+			...account,
+			currency: 'GBP',
+			user: { email: 'guest@example.com', gdpr_optin: true },
+		};
+		const scripts = [insiderTag(options)];
+		loadScripts(scripts, grantedMarketingConsents);
+		const runtime = installSdkModel();
+		runtime.push.mockClear();
+		updateScripts(scripts, deniedConsents);
+		expect(runtime.push.mock.calls).toEqual([
+			[{ type: 'user', value: { gdpr_optin: false } }],
+			[{ type: 'other' }],
+			[{ type: 'init' }],
+		]);
+		expect(runtime.events.at(-1)?.user).toEqual({ gdpr_optin: false });
 	});
 
 	it.each([

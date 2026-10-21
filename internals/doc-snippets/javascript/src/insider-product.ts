@@ -3,6 +3,7 @@ import { insiderTag } from '@c15t/integrations/insider';
 
 export const scripts = [
 	insiderTag({
+		currency: 'GBP',
 		pageType: {
 			type: 'product',
 			value: {

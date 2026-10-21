@@ -1,6 +1,6 @@
 ---
 title: Insider One
-description: Load Insider One after marketing consent, send gdpr_optin through its Web SDK queue, and define the current page with the c15t insiderTag helper.
+description: Load Insider One after consent with current user attributes, currency and page context through the c15t insiderTag helper.
 seoTitle: Insider One cookie consent with c15t
 seoDescription: Load Insider One after marketing consent. Send gdpr_optin on grant and revocation, set page context, and check requests and storage with c15t.
 icon: insider
@@ -9,7 +9,8 @@ group: integrations
 
 The c15t `insiderTag` helper waits for `marketing` consent before creating
 `InsiderQueue` or requesting Insider's `ins.js`. It queues
-`user.gdpr_optin: true`, the current page definition, and `init` before the
+the supplied current user attributes with `gdpr_optin: true`, optional currency,
+the current page definition, and `init` before the
 loader starts. On revocation it sends `gdpr_optin: false`, a neutral
 `{ type: 'other' }` page, and `init`, then removes the loader. Keep c15t's
 default reload-on-revocation behavior enabled to stop code the SDK already ran.
@@ -40,12 +41,57 @@ page. The helper defaults to `{ type: 'other' }` when you omit page context.
 | --- | --- | --- |
 | `partnerName` | Required | Public partner name from Insider. Trimmed, lowercased, and checked as a single DNS label for `<partnerName>.api.useinsider.com`. A missing, blank, or invalid value logs an error and skips the integration. |
 | `partnerId` | Required | Public partner ID from Insider. Trimmed and encoded as one query value. A missing or blank value logs an error and skips the integration. |
+| `user` | Omitted | Complete current user attributes for the final grant push, including checkout identifiers and account-specific `custom` data. The helper controls `gdpr_optin` and sends no supplied attributes on denial. |
+| `currency` | Omitted | Current currency string, such as `'GBP'`. Queued as `{ type: 'currency', value: 'GBP' }` before the page and `init`. A supplied value must be a non-blank string or the helper throws `TypeError`. No code whitelist or case conversion is applied. |
 | `pageType` | `{ type: 'other' }` | Complete page push, including any required `value` fields. A purchase requires the per-order guard described below. |
 | `category` | `'marketing'` | Consent condition required before creating the queue or loading the tag. Accepts a category or an `and`/`or`/`not` condition. |
 
 For an account classified as personalization, you can replace the default
 condition with `category: 'experience'`. The same condition controls both
 loading and the `gdpr_optin` value sent on revocation.
+
+## Supply the current user and currency
+
+Insider uses the last successful `user` push when `init` runs. Pass the complete
+current user's attributes in `user`; a separate earlier queue entry is not a
+way to supply them to the helper. The helper merges these attributes into its
+final grant push and sets `gdpr_optin: true` after them, so caller data cannot
+override effective consent. It never recovers identity from historical queue
+entries. Without `user`, it sends only `{ gdpr_optin: true }` on grant.
+
+Use Insider's attribute names and types. For example, `email`, `phone_number`
+and `uuid` are strings; `age` is a number; `email_optin` is a boolean; and
+`custom` contains account-specific attributes. Keep custom identifiers inside
+`custom`, configure them in Insider's Identity Resolution Management settings,
+and send their values as strings. Follow the Web SDK guide for field formats,
+including E.164 phone numbers. Nested objects pass through without flattening;
+the helper does not validate their support or schema in your account. Use
+serializable data matching Insider's definitions.
+
+Insider documents that logging out does not reset the browser's Insider ID.
+For a guest purchase, supply the current guest's available checkout identifiers,
+such as email and phone number, in `user` before purchase initialization. Do
+not reuse the previous customer's identifiers or invent an ID from an order.
+Insider's matching and merging still depend on those identifiers and your
+account settings; the option alone does not guarantee correct unification.
+
+<include src="../shared/examples/javascript/insider-current-user.mdx" />
+
+Build this configuration from the current checkout or session data, current
+storefront currency, and guarded page definition before registering it with
+your consent adapter. Keep the returned scripts stable while those values are
+current. The helper does not watch login, logout, checkout, currency, or route
+changes. Rebuild stale configuration through the app's session and order logic
+before a fresh registration or page load. Recreating an already active helper
+does not itself send new user data or restart it.
+
+Multi-currency sites must supply the currency used for the configured prices.
+The helper queues `user`, then optional `currency`, then the page, then `init`.
+Insider preserves user data and currency between initializations. Omitting
+`currency` sends no currency update, so an earlier or account-default value can
+remain active. For a single-currency site, confirm with Insider that omitting
+the currency push is appropriate. The helper neither converts prices nor
+clears Insider's stored identity or currency.
 
 ## Define the page context
 
@@ -79,9 +125,11 @@ The helper defines the initial page only. It does not watch client-side route
 changes. For single-page navigation, follow Insider's
 [Web SDK guide](https://academy.insiderone.com/docs/insider-web-sdk-integration-guide)
 to push the new page definition followed by `init`, only while the configured
-consent condition and the Insider vendor switch are allowed. Keep your own
-`user` pushes consistent with the current consent. Insider treats an omitted
-`gdpr_optin` as `true`.
+consent condition and the Insider vendor switch are allowed. Push complete
+current user attributes and the current currency before the page and `init`
+when that context changes. Your app owns these updates and the handling of stale
+identity, currency and cart context. Keep manual `user` pushes consistent with
+current consent. Insider treats an omitted `gdpr_optin` as `true`.
 
 ### Prevent duplicate purchases
 
@@ -110,6 +158,7 @@ This limits purchase attempts; it does not guarantee delivery. A claimed order
 may never reach Insider if the visitor denies consent or the loader fails.
 The guard must not itself create Insider globals or send Insider requests
 before effective consent. c15t still gates the configured purchase and loader.
+The `user` and `currency` options do not provide at-most-once purchase handling.
 
 ## Loading and revocation
 
@@ -128,6 +177,11 @@ The neutral page replaces the SDK's last page definition before the withdrawal
 on every withdrawal, including when your app manually pushed a purchase during
 SPA navigation. c15t sends these updates; you do not need to call the queue
 yourself.
+
+The denial user payload contains only `gdpr_optin: false`. The helper does not
+resend caller attributes or currency on withdrawal, even if `user` contains
+`gdpr_optin: true`. This avoids forwarding new checkout or identity data after
+withdrawal. It does not clear identity or currency already held by Insider.
 
 This updates the user's consent through the same `user` and `init` lifecycle
 used on grant. It is not an SDK unload or a promise that all requests stop.
@@ -168,8 +222,11 @@ JavaScript cannot remove HttpOnly or inaccessible third-party cookies.
 Use an opt-in policy in a fresh private window and filter Network by
 `useinsider.com`. Before grant, including after a rejection and reload, there
 should be no Insider request and `window.InsiderQueue` should be undefined.
-After grant, check the partner-specific `ins.js` request and verify that your
-Insider account receives the correct page context. Test both category
+After grant, check the partner-specific `ins.js` request. Verify the final user
+push contains the current identifiers, followed by the supplied currency, page,
+and `init`. In your Insider account, verify the resulting profile, page context,
+and price currency, including a guest checkout after a previous customer's
+logout. Queue contents alone do not prove profile matching or delivery. Test both category
 revocation and the Insider vendor switch. The next denied page should make no
 Insider request. Check existing storage separately; a removed loader does not
 prove cleanup.
