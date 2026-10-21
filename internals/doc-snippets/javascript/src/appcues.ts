@@ -1,5 +1,16 @@
 // #region docs:appcues-scripts title="src/consent-scripts.ts"
 import { appcues } from '@c15t/integrations/appcues';
 
-export const scripts = [appcues({ accountId: 'YOUR_APPCUES_ID' })];
+export const scripts = [
+	appcues({
+		accountId: 'YOUR_APPCUES_ID',
+		onReady: () => {
+			// Read the signed-in visitor from your auth state here.
+			// Replace these placeholders and skip calls when nobody is signed in.
+			window.Appcues?.identify?.('CURRENT_USER_ID');
+			window.Appcues?.group?.('CURRENT_GROUP_ID');
+			window.Appcues?.track?.('Started onboarding');
+		},
+	}),
+];
 // #endregion docs:appcues-scripts

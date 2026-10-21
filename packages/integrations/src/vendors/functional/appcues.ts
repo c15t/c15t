@@ -12,6 +12,8 @@ declare global {
 		Appcues?: {
 			reset?: () => void;
 			identify?: (userId: string, properties?: Record<string, unknown>) => void;
+			group?: (groupId: string, properties?: Record<string, unknown>) => void;
+			track?: (eventName: string, properties?: Record<string, unknown>) => void;
 			page?: () => void;
 		};
 	}
@@ -49,6 +51,12 @@ export interface AppcuesOptions {
 	settings?: Record<string, unknown>;
 	/** Custom or proxied account loader URL. */
 	scriptUrl?: string;
+	/**
+	 * Runs synchronously once the account loader exposes Appcues, with consent.
+	 * Read the current visitor here before calling identify, group or track.
+	 * Revoked or removed loaders do not notify; a new grant can notify again.
+	 */
+	onReady?: () => void;
 }
 
 /**
@@ -73,11 +81,24 @@ export const appcues = function appcues(options: AppcuesOptions): Script {
 	}
 	const domain =
 		options.region === 'eu' ? 'fast.eu.appcues.com' : 'fast.appcues.com';
-	return resolveManifest(appcuesManifest, {
+	const script = resolveManifest(appcuesManifest, {
 		scriptUrl: resolveScriptUrl(
 			options.scriptUrl,
 			`https://${domain}/${encodeURIComponent(accountId)}.js`
 		),
 		settings: { enableURLDetection: true, ...options.settings },
 	});
+	const { onReady } = options;
+	if (onReady) {
+		const { onLoad } = script;
+		// Core checks current consent and ignores detached loader completions.
+		// Keep visitor callbacks out of the cached manifest and global queues.
+		script.onLoad = (info) => {
+			onLoad?.(info);
+			if (info.hasConsent && window.Appcues) {
+				onReady();
+			}
+		};
+	}
+	return script;
 };

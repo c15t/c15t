@@ -15,6 +15,10 @@ or tag-manager entry so it cannot load outside c15t.
 
 Copy your account ID from the [Appcues installation snippet](https://docs.appcues.com/install-appcues-web/install-the-appcues-sdk).
 Choose `region: 'eu'` for an EU account.
+Replace the user and group placeholders with values read from your authentication
+state inside `onReady`. Skip those calls when nobody is signed in. The callback
+runs when the loader finishes, including when consent was already granted on
+page startup.
 
 <CommandTabs command="@c15t/integrations" mode="install" />
 
@@ -30,6 +34,7 @@ Choose `region: 'eu'` for an EU account.
 | `region` | `'us'` | Uses `fast.appcues.com` or, for `'eu'`, `fast.eu.appcues.com`. |
 | `settings` | `{ enableURLDetection: true }` | JSON-serializable `AppcuesSettings` merged with the default URL detection setting. Set `enableURLDetection: false` to handle page changes yourself. |
 | `scriptUrl` | Account loader URL | Override for a proxy or custom loader. Blank overrides use the default. This changes only the account loader, not subsequent SDK requests. |
+| `onReady` | None | Synchronous callback after the account loader installs `window.Appcues`, while the script still has consent. Runs once per successful loader load. Use it for `identify`, `group` and `track`. |
 
 To change the consent mapping, override the returned script's `category` when
 registering it. The helper exposes no mode that loads before consent.
@@ -38,8 +43,18 @@ registering it. The helper exposes no mode that loads before consent.
 
 After experience consent, c15t sets `AppcuesSettings` and loads
 `https://fast.appcues.com/ACCOUNT_ID.js`. The account loader requests the
-Appcues runtime. Identify visitors through `Appcues.identify()` only while
-experience consent remains granted and the SDK is ready.
+Appcues runtime. Put startup calls to `identify`, `group` and `track` inside
+`onReady`. The account loader exposes these methods and buffers calls until
+the runtime finishes loading, as in Appcues' documented `AppcuesReady` pattern.
+c15t does not create an `AppcuesReady` global or queue visitor callbacks.
+
+Revocation or removal of a pending loader prevents its readiness callback from
+running. A new grant starts a new loader. Recreating the helper before completion
+uses the current callback. Recreating it after completion does not replay
+`onReady`. Read the current visitor inside the callback. For later application
+calls, check consent again. If you start asynchronous work inside `onReady`,
+check current consent and authentication before calling Appcues after an
+`await`, timer or event.
 
 On revocation, c15t calls the documented
 [`Appcues.reset()`](https://docs.appcues.com/dev-api-data/javascript-api-developer)
@@ -61,10 +76,12 @@ Reset is not a promise to erase every Appcues key.
 ## Verify Appcues
 
 In a fresh browser profile, deny all optional consent and allow measurement
-alone. Check that neither Appcues host is requested, `window.Appcues` and
-`window.AppcuesSettings` are absent, and no Appcues cookie, localStorage or
-sessionStorage key appears. Grant experience and check the account loader,
-runtime and your onboarding flow. Revoke experience and confirm the page
+alone. Check that neither Appcues host is requested, `window.Appcues`,
+`window.AppcuesSettings` and `window.AppcuesReady` are absent, and no Appcues
+cookie, localStorage or sessionStorage key appears. Grant experience and check the account loader,
+runtime and `onReady`. Revoke consent while the loader is still downloading and
+confirm that `onReady` does not run when that download finishes. Verify your
+onboarding flow with your own account. Revoke experience and confirm the page
 reloads and the loader stays absent until a new grant.
 
 The automated monitor uses a fake account and checks loader reachability.
