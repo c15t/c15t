@@ -249,6 +249,9 @@ export const c15tHandle = function c15tHandle(
 		if (options.storage !== undefined) {
 			locals.storage = options.storage;
 		}
+		if (options.trustForwardedHeaders !== undefined) {
+			locals.trustForwardedHeaders = options.trustForwardedHeaders;
+		}
 		if (subject?.setCookie) {
 			locals.cookie = subject.cookie;
 		}

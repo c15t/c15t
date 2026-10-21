@@ -174,7 +174,7 @@ const sameCookieName = function sameCookieName(
 /**
  * The request cookie header the resolution reads. The handle set the subject
  * cookie under its own name; a call that reads another name sets that one's
- * cookie here, with the handle's attributes.
+ * cookie here, with the handle's attributes and forwarded-header trust.
  */
 const requestCookie = function requestCookie(
 	event: RequestEvent,
@@ -190,7 +190,8 @@ const requestCookie = function requestCookie(
 		request: { headers: event.request.headers, url: event.url },
 		shared,
 		storage: { ...locals.storage, storageKey: cookieName },
-		trustForwardedHeaders: options.trustForwardedHeaders,
+		trustForwardedHeaders:
+			options.trustForwardedHeaders ?? locals.trustForwardedHeaders,
 	});
 	if (!subject?.setCookie) {
 		return undefined;

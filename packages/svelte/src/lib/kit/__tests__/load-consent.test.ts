@@ -290,6 +290,27 @@ describe('loadConsent', () => {
 		expect(consent.prefetch.initialRecords?.subject?.subjectId).toBe(subjectId);
 	});
 
+	test("a per-call cookieName keeps the handle's forwarded scheme", async () => {
+		const setCookie = vi.fn();
+		const event = await withHandle(
+			createEvent({
+				headers: { 'x-forwarded-proto': 'https' },
+				setCookie,
+				url: 'http://app.example.com/',
+			}),
+			{ mode: offline(), trustForwardedHeaders: true }
+		);
+		setCookie.mockClear();
+
+		await loadConsent(event, { cookieName: 'my-consent' });
+
+		expect(setCookie).toHaveBeenCalledWith(
+			'my-consent-sid',
+			expect.stringMatching(/^sub_/u),
+			expect.objectContaining({ secure: true })
+		);
+	});
+
 	test('a per-call cookieName that names the default cookie reuses the handle subject', async () => {
 		const setCookie = vi.fn();
 		const event = await withHandle(

@@ -46,6 +46,11 @@ export interface C15tLocals {
 		'crossSubdomain' | 'defaultDomain' | 'defaultExpiryDays'
 	>;
 	/**
+	 * The handle's `trustForwardedHeaders`, so that cookie is `Secure` behind
+	 * the same TLS-terminating proxy.
+	 */
+	trustForwardedHeaders?: boolean;
+	/**
 	 * The request `Cookie` header with the subject ID the handle just set,
 	 * which the browser does not send until its next request. `loadConsent`
 	 * reads it in place of the request's own.
