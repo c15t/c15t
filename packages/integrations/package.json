@@ -302,6 +302,11 @@
 			"types": "./dist-types/events.d.ts",
 			"import": "./dist/events.js",
 			"default": "./dist/events.js"
+		},
+		"./dynamic-yield": {
+			"types": "./dist-types/vendors/functional/dynamic-yield.d.ts",
+			"import": "./dist/vendors/functional/dynamic-yield.js",
+			"default": "./dist/vendors/functional/dynamic-yield.js"
 		}
 	},
 	"publishConfig": {

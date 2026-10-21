@@ -185,6 +185,7 @@ test('integration navigation covers every vendor helper, both embeds and Shopify
 		'embeds',
 		'tag-managers',
 		'analytics',
+		'experience',
 		'chat-and-support',
 		'email-and-sms',
 		'ads-and-pixels',

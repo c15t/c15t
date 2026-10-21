@@ -92,6 +92,7 @@ describe('live vendor probe configs', () => {
 			'adobe-analytics',
 			'clearbit',
 			'crisp',
+			'dynamic-yield',
 			'google-tag-manager',
 			'hotjar',
 			'intercom',

@@ -60,6 +60,7 @@ import { vercelAnalytics } from '../src/vendors/analytics/vercel-analytics';
 import { vercelSpeedInsights } from '../src/vendors/analytics/vercel-speed-insights';
 import { klaviyo } from '../src/vendors/email-and-sms/klaviyo';
 import { crisp } from '../src/vendors/functional/crisp';
+import { dynamicYield } from '../src/vendors/functional/dynamic-yield';
 import { frontChat } from '../src/vendors/functional/front-chat';
 import { intercom } from '../src/vendors/functional/intercom';
 import { googleTagManager } from '../src/vendors/tag-managers/google-tag-manager';
@@ -209,6 +210,20 @@ type PosthogProbeWindow = Window & {
  * Probe configs for every built-in integration, ordered by registry vendor id.
  */
 export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
+	{
+		bootstrapCheck: () =>
+			check(
+				window.DY?.userActiveConsent?.accepted === true,
+				'Active Cookie Consent is granted only after the mapped gate'
+			),
+		createScript: () => dynamicYield({ sectionId: '1234567' }),
+		loaderUrlSubstring: 'cdn.dynamicyield.com/api/1234567/api_dynamic.js',
+		notes:
+			'Placeholder sections return HTTP403. This checks endpoint reachability and the consent bootstrap, not a configured section or SDK runtime.',
+		tier: 'loader-only',
+		vendor: 'dynamic-yield',
+	},
+
 	{
 		skipReason:
 			'Requires a configured Cloudflare zone and purpose IDs. This bridge does not fetch a public vendor loader.',

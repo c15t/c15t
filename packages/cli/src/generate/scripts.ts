@@ -68,6 +68,10 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 		example: "databuddy({ clientId: 'YOUR_CLIENT_ID' })",
 		importName: 'databuddy',
 	},
+	'dynamic-yield': {
+		example: "dynamicYield({ sectionId: 'YOUR_SECTION_ID' })",
+		importName: 'dynamicYield',
+	},
 	'fathom-analytics': {
 		example: "fathomAnalytics({ site: 'YOUR_SITE_ID' })",
 		importName: 'fathomAnalytics',

@@ -115,6 +115,16 @@ export const BUILT_IN_INTEGRATION_CATEGORIES = [
  */
 export const builtInScriptIntegrations = [
 	{
+		consentCategory: 'experience',
+		docsSlug: 'dynamic-yield',
+		hint: 'On-site personalization and recommendations',
+		integrationCategory: 'functional',
+		key: 'dynamicYield',
+		label: 'Dynamic Yield',
+		packageSubpath: 'dynamic-yield',
+		vendor: 'dynamic-yield',
+	},
+	{
 		consentCategory: 'necessary',
 		docsSlug: 'cloudflare-zaraz',
 		hint: 'Consent bridge for tools managed by Zaraz',

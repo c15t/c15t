@@ -2,6 +2,7 @@
  * One script per built-in integration, built from its public helper with
  * sample options, and the fields the helper must set.
  */
+
 import type { BuiltInScriptIntegrationKey } from '../registry';
 import { linkedinInsights } from '../vendors/ads-and-pixels/linkedin-insights';
 import { metaPixel } from '../vendors/ads-and-pixels/meta-pixel';
@@ -41,6 +42,7 @@ import { vercelAnalytics } from '../vendors/analytics/vercel-analytics';
 import { vercelSpeedInsights } from '../vendors/analytics/vercel-speed-insights';
 import { klaviyo } from '../vendors/email-and-sms/klaviyo';
 import { crisp } from '../vendors/functional/crisp';
+import { dynamicYield } from '../vendors/functional/dynamic-yield';
 import { frontChat } from '../vendors/functional/front-chat';
 import { intercom } from '../vendors/functional/intercom';
 import { cloudflareZaraz } from '../vendors/tag-managers/cloudflare-zaraz';
@@ -119,6 +121,14 @@ export const helperParityCases = {
 
 			configWhenGranted: { clientId: 'db_123', disabled: false },
 		}),
+	},
+	dynamicYield: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://cdn.dynamicyield.com/api/1234567/api_dynamic.js',
+		},
+		script: dynamicYield({ sectionId: '1234567' }),
 	},
 	fathomAnalytics: {
 		expected: {
