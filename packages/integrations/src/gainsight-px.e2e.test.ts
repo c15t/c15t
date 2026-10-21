@@ -15,6 +15,7 @@ import {
 	updateScripts,
 } from './e2e-test-utils';
 import { gainsightPx } from './vendors/analytics/gainsight-px';
+import type { GainsightPxOptions } from './vendors/analytics/gainsight-px';
 
 type PxWindow = Window & typeof globalThis & { aptrinsic: AptrinsicStub };
 
@@ -37,6 +38,7 @@ describe('Gainsight PX production loader contract', () => {
 	afterEach(() => {
 		Reflect.deleteProperty(window, 'aptrinsic');
 		Reflect.deleteProperty(window, '__c15tGainsightPxProductKey');
+		Reflect.deleteProperty(globalThis, '__c15tStarted');
 	});
 
 	it('creates no PX global, loader or storage until the mapped category is granted', () => {
@@ -364,6 +366,163 @@ describe('Gainsight PX production loader contract', () => {
 			granted.dispose();
 			denied.dispose();
 		}
+	});
+
+	describe.each(['revocation', 'disposal'])(
+		'pending setup after %s',
+		(ending) => {
+			const replacements: { name: string; options: GainsightPxOptions }[] = [
+				{
+					name: 'product',
+					options: { productKey: 'AP-REPLACEMENT-2' },
+				},
+				{
+					name: 'configuration',
+					options: {
+						config: { localStorageCookie: true },
+						productKey: 'AP-PENDING-2',
+					},
+				},
+				{
+					name: 'identity',
+					options: {
+						account: { id: 'current-account' },
+						productKey: 'AP-PENDING-2',
+						user: { id: 'current-user' },
+					},
+				},
+			];
+			it.each(replacements)(
+				'uses only the current $name setup before requesting the replacement',
+				({ options }) => {
+					const initial = gainsightPx({
+						account: { id: 'previous-account' },
+						config: { fullDomainCookie: true },
+						productKey: 'AP-PENDING-2',
+						user: { id: 'previous-user' },
+					});
+					loadScripts([initial], grantedConsents);
+					if (ending === 'revocation') {
+						updateScripts([initial], deniedConsents);
+					} else {
+						clearAllScripts();
+					}
+					const replacement = gainsightPx(options);
+					loadScripts([replacement], deniedConsents);
+					expect(document.head.querySelector('script')).toBeNull();
+					const atAppend = vi.fn(() => {
+						const stub = getAptrinsic();
+						return {
+							config: stub.c,
+							key: stub.p,
+							queue: stub.q.map((entry) => Array.from(entry)),
+						};
+					});
+					installHeadProbe(atAppend);
+					updateScripts([replacement], grantedConsents);
+					expect(atAppend).toHaveBeenCalledTimes(1);
+					expect(atAppend.mock.results[0]?.value).toEqual({
+						config: { ...options.config, enableTag: true },
+						key: options.productKey,
+						queue: [
+							['config', 'enableTag', true],
+							...(options.user
+								? [['identify', options.user, options.account]]
+								: []),
+						],
+					});
+					Reflect.set(getAptrinsic(), '__sdkBundleStarted', true);
+					expect(() => gainsightPx(options)).not.toThrow();
+				}
+			);
+		}
+	);
+
+	it.each([true, false])(
+		'preserves pending server setup during hydration, client consent=%s',
+		async (allow) => {
+			const script = gainsightPx({
+				config: { fullDomainCookie: true },
+				productKey: 'AP-SERVER-HYDRATION-2',
+				user: { id: 'server-user' },
+			});
+			const start = script.serverStart?.(
+				{ consents: grantedConsents, hasConsent: true, id: script.id },
+				script
+			);
+			expect(start).toBeDefined();
+			// oxlint-disable-next-line no-new-func -- Executes the generated server snippet.
+			new Function(`${start?.prelude ?? ''};${start?.code}`)();
+			const pending = getAptrinsic();
+			const element = Object.assign(document.createElement('script'), {
+				__c15tConsent: true,
+				__c15tScript: script.id,
+				src: script.src,
+			});
+			document.head.appendChild(element);
+			Reflect.set(globalThis, '__c15tStarted', { [script.id]: element });
+			const kernel = createConsentKernel();
+			await kernel.commands.save(allow ? grantedConsents : deniedConsents);
+			const loader = createScriptLoader({ kernel, scripts: [script] });
+			try {
+				expect(getAptrinsic()).toBe(pending);
+				expect(pending.p).toBe('AP-SERVER-HYDRATION-2');
+				expect(pending.c).toEqual({
+					enableTag: true,
+					fullDomainCookie: true,
+				});
+				expect(window).toHaveProperty(
+					'__c15tGainsightPxProductKey',
+					'AP-SERVER-HYDRATION-2'
+				);
+				expect(document.head.querySelectorAll('script')).toHaveLength(
+					allow ? 1 : 0
+				);
+				expect(pending.q.map((entry) => Array.from(entry))).toEqual([
+					['config', 'enableTag', true],
+					['identify', { id: 'server-user' }],
+					...(allow ? [] : [['config', 'enableTag', false], ['reset']]),
+				]);
+			} finally {
+				loader.dispose();
+				kernel.dispose();
+			}
+		}
+	);
+
+	it('refreshes a pending setup in generated server startup code', () => {
+		loadScripts(
+			[
+				gainsightPx({
+					config: { fullDomainCookie: true },
+					productKey: 'AP-SERVER-PREVIOUS-2',
+					user: { id: 'previous-user' },
+				}),
+			],
+			grantedConsents
+		);
+		clearAllScripts();
+		const replacement = gainsightPx({
+			productKey: 'AP-SERVER-CURRENT-2',
+			user: { id: 'current-user' },
+		});
+		const start = replacement.serverStart?.(
+			{ consents: grantedConsents, hasConsent: true, id: replacement.id },
+			replacement
+		);
+		expect(start).toBeDefined();
+		// oxlint-disable-next-line no-new-func -- Executes the generated server snippet.
+		new Function(`${start?.prelude ?? ''};${start?.code}`)();
+		expect(getAptrinsic().p).toBe('AP-SERVER-CURRENT-2');
+		expect(getAptrinsic().c).toEqual({ enableTag: true });
+		expect(getAptrinsic().q.map((entry) => Array.from(entry))).toEqual([
+			['config', 'enableTag', true],
+			['identify', { id: 'current-user' }],
+		]);
+		Reflect.set(getAptrinsic(), '__sdkBundleStarted', true);
+		expect(() =>
+			gainsightPx({ productKey: 'AP-SERVER-CURRENT-2' })
+		).not.toThrow();
 	});
 
 	it('requests a pending SDK again after disposal when only its queue exists', () => {

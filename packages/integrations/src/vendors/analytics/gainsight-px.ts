@@ -128,6 +128,27 @@ const hasStartedGainsightPx = (): boolean => {
 	);
 };
 
+const clearPendingGainsightPx = (): void => {
+	if (typeof window === 'undefined' || !('aptrinsic' in window)) {
+		return;
+	}
+	const { aptrinsic } = window;
+	if (
+		typeof aptrinsic === 'function' &&
+		'q' in aptrinsic &&
+		Array.isArray(aptrinsic.q) &&
+		!(
+			'__sdkBundleStarted' in aptrinsic && aptrinsic.__sdkBundleStarted === true
+		)
+	) {
+		Reflect.deleteProperty(window, 'aptrinsic');
+		Reflect.deleteProperty(window, '__c15tGainsightPxProductKey');
+	}
+};
+
+// Match clearPendingGainsightPx without serializing instrumented or bundled code.
+const clearPendingGainsightPxSource = `(function(){if(typeof window==='undefined')return;var px=window.aptrinsic;if(typeof px==='function'&&Array.isArray(px.q)&&px.__sdkBundleStarted!==true){Reflect.deleteProperty(window,'aptrinsic');Reflect.deleteProperty(window,'__c15tGainsightPxProductKey')}})();`;
+
 const assertProductKey = (productKey: string): void => {
 	if (typeof window === 'undefined') {
 		return;
@@ -195,16 +216,27 @@ const createGainsightPxScript = function createGainsightPxScript(
 	const originalServerStart = script.serverStart;
 	const onBeforeLoad: Script['onBeforeLoad'] = (info) => {
 		assertProductKey(productKey);
+		if (info.hasConsent && !info.startedOnServer) {
+			clearPendingGainsightPx();
+		}
 		originalBeforeLoad?.(info);
 	};
 	script.onBeforeLoad = onBeforeLoad;
-	script.serverStart = (info, started) =>
-		started.onBeforeLoad === onBeforeLoad
-			? originalServerStart?.(info, {
-					...started,
-					onBeforeLoad: originalBeforeLoad,
-				})
+	script.serverStart = (info, started) => {
+		if (started.onBeforeLoad !== onBeforeLoad) {
+			return;
+		}
+		const start = originalServerStart?.(info, {
+			...started,
+			onBeforeLoad: originalBeforeLoad,
+		});
+		return start
+			? {
+					...start,
+					code: `${info.hasConsent ? clearPendingGainsightPxSource : ''}${start.code}`,
+				}
 			: undefined;
+	};
 	const { onConsentChange } = script;
 	script.onConsentChange = (info) => {
 		if (info.hasConsent) {
@@ -231,7 +263,8 @@ const createGainsightPxScript = function createGainsightPxScript(
  * loaders are retained so another grant uses the same SDK without executing
  * its bundle twice. After disposal, PX's execution marker lets later mounts
  * use its existing API without another loader. Disposal does not stop the SDK.
- * Pending loaders are removed on revocation.
+ * Pending loaders are removed on revocation. A retry before SDK startup
+ * rebuilds the pending queue from the current options.
  * @throws {Error} If a different product key is supplied after this helper starts PX.
  * Reload the page to switch products.
  * @example

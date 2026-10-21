@@ -83,6 +83,12 @@ because PX rejects a second execution of its bundle. A loader removed before
 completion can be requested again on a later grant if PX has not started
 executing it.
 
+Before requesting another pending load, the helper rebuilds its function queue
+from the current options. The new queue contains only the current product,
+configuration and optional identity, so an interrupted setup cannot replay an
+earlier user's identify call. This also applies to server-generated startup.
+It does not cancel a detached download that may still execute later.
+
 Disposing the last provider or script loader removes its element, but PX's code
 remains in the page. Later mounts check PX's own bundle execution marker and
 use the existing API without requesting the bundle again. A denied mount sends
