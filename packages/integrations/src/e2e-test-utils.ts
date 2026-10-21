@@ -324,6 +324,7 @@ const resetVendorGlobals = function resetVendorGlobals() {
 		'CRISP_TOKEN_ID',
 		'CRISP_WEBSITE_ID',
 		'Intercom',
+		'__vector_manager',
 		'_linkedin_data_partner_ids',
 		'_linkedin_partner_id',
 		'_fbq',
@@ -370,6 +371,7 @@ const resetVendorGlobals = function resetVendorGlobals() {
 		'uetq',
 		'va',
 		'vaq',
+		'vector',
 	] as const) {
 		Reflect.deleteProperty(win, key);
 	}

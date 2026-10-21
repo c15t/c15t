@@ -1,7 +1,7 @@
 /**
  * @vitest-environment jsdom
  */
-import { afterEach, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import {
 	deniedConsents,
@@ -15,11 +15,6 @@ import { vector } from './vendors/ads-and-pixels/vector';
 
 describe('Vector core loader consent contract', () => {
 	registerVendorContractCleanup();
-	afterEach(() => {
-		for (const key of ['vector', '__vector_manager']) {
-			Reflect.deleteProperty(window, key);
-		}
-	});
 	it('creates no vendor globals, requests or storage before mapped consent', () => {
 		const scripts = [
 			vector({ pixelId: '00000000-0000-0000-0000-000000000000' }),
