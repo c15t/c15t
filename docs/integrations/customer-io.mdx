@@ -46,6 +46,8 @@ Replace both example domains with configured proxies. `cdnUrl` does not redirect
 
 After consent, the helper creates Customer.io's array queue and method stubs, sets `_writeKey`, `_cdn` and `_loadOptions`, and loads the SDK. The script carries the namespace attribute required by Customer.io. The helper calls `page()` once after the load completes with consent still granted, and once on each regrant after loading. It does not wait for `ready()`: a device-mode destination can fail to initialize, and some destinations need `page()` to initialize. A revoked or disposed loader cannot send a pending initial page.
 
+While the SDK downloads, each method stub returns the same `cioanalytics` queue. Calls such as `cioanalytics.identify('customer-123').track('Signed up')` queue both operations in order. Wait for mapped consent before calling these methods, because the helper creates no `cioanalytics` global before consent.
+
 Revocation calls `reset()` to clear identity. It does not stop SDK dispatch, retries or destination SDKs. Keep `reloadOnConsentRevoked` enabled. The SDK loads once per page; regrant reuses it instead of injecting another copy. On the next denied page the helper creates no queue or vendor requests.
 
 Customer.io can use analytics identity cookies and localStorage keys including `ack`, `reclaimStart`, `reclaimEnd`, `inProgress` and `queue`. Destination integrations can add storage of their own. Reset is not a promise to erase all destination data.

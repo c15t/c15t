@@ -51,6 +51,7 @@ export const customerIoManifest = {
 		{
 			methods: [...CUSTOMER_IO_METHODS],
 			preserveExisting: true,
+			returnQueue: true,
 			target: 'cioanalytics',
 			type: 'defineQueueMethods',
 		},
@@ -214,7 +215,7 @@ const reuseCustomerIo = createScriptReuse<CustomerIoOptions>();
  * running source and any destination SDKs.
  * @param options - Source write key, workspace region, CDN and loader options.
  * @returns A gated script, or an inactive script for a missing key.
- * @throws If the region or CDN origin is invalid.
+ * @throws {Error} If the region or CDN origin is invalid.
  * @example customerIo({ writeKey: 'YOUR_WRITE_KEY', region: 'eu' });
  * @see https://docs.customer.io/integrations/data-in/connections/javascript/in-app/
  */

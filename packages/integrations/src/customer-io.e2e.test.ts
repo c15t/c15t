@@ -9,7 +9,16 @@ import {
 	registerVendorContractCleanup,
 	updateScripts,
 } from './e2e-test-utils';
-import { customerIo } from './vendors/email-and-sms/customer-io';
+import {
+	CUSTOMER_IO_METHODS,
+	customerIo,
+} from './vendors/email-and-sms/customer-io';
+
+type CustomerIoQueue = unknown[][] &
+	Record<
+		(typeof CUSTOMER_IO_METHODS)[number],
+		(...args: unknown[]) => CustomerIoQueue
+	>;
 
 const GLOBALS = ['cioanalytics'];
 const granted = { ...deniedConsents, marketing: true };
@@ -121,6 +130,48 @@ describe('Customer.io loading and identity', () => {
 	afterEach(() => {
 		delete window.cioanalytics;
 		Reflect.deleteProperty(window, 'analytics');
+	});
+	it('chains calls on the same queue while the SDK download is pending', () => {
+		const scripts = [customerIo({ writeKey: 'chain-key' })];
+		loadScripts(scripts, deniedConsents);
+		expect(window.cioanalytics).toBeUndefined();
+		updateScripts(scripts, unrelated);
+		expect(window.cioanalytics).toBeUndefined();
+		updateScripts(scripts, granted);
+
+		const queue = window.cioanalytics as unknown as CustomerIoQueue;
+		const traits = { email: 'person@example.com' };
+		const properties = { plan: 'pro' };
+		const result = queue
+			.identify('customer-123', traits)
+			.track('Signed up', properties);
+
+		expect(result).toBe(queue);
+		expect([...queue]).toEqual([
+			['identify', 'customer-123', traits],
+			['track', 'Signed up', properties],
+		]);
+		for (const method of CUSTOMER_IO_METHODS) {
+			expect(queue[method]('argument')).toBe(queue);
+			expect(queue.at(-1)).toEqual([method, 'argument']);
+		}
+	});
+	it('preserves loaded runtime methods when consent installs the bootstrap', () => {
+		const runtime = {
+			identify: vi.fn(),
+			page: vi.fn(),
+			reset: vi.fn(),
+			track: vi.fn(),
+		};
+		window.cioanalytics = runtime;
+		loadScripts([customerIo({ writeKey: 'existing-runtime-key' })], granted);
+
+		expect(window.cioanalytics).toBe(runtime);
+		expect(window.cioanalytics?.identify).toBe(runtime.identify);
+		expect(window.cioanalytics?.track).toBe(runtime.track);
+		expect(runtime).not.toHaveProperty('_writeKey');
+		expect(runtime).not.toHaveProperty('_cdn');
+		expect(runtime).not.toHaveProperty('_loadOptions');
 	});
 	it('seeds the array, namespace attribute, region and loader options', () => {
 		const sentinel = { unrelated: true };

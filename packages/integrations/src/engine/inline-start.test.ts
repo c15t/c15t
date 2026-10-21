@@ -7,6 +7,8 @@ import {
 	setupScriptHelperTest,
 } from '../__tests__/helpers';
 import { helperParityCases } from '../__tests__/integration-cases';
+import { resolveManifest } from '../resolve';
+import { vendorManifestContract } from '../types';
 import { metaPixel } from '../vendors/ads-and-pixels/meta-pixel';
 import { gtag } from '../vendors/analytics/google-tag';
 import { vercelSpeedInsights } from '../vendors/analytics/vercel-speed-insights';
@@ -204,6 +206,47 @@ describe('inlineStepsStart', () => {
 			])
 		);
 	});
+	it.each([undefined, false, true])(
+		'returns the queue only when returnQueue is %s in both runners',
+		(returnQueue) => {
+			const script = resolveManifest(
+				{
+					...vendorManifestContract,
+					bootstrap: [
+						{ name: 'chainQueue', type: 'setGlobal', value: [] },
+						{
+							methods: ['identify', 'track'],
+							returnQueue,
+							target: 'chainQueue',
+							type: 'defineQueueMethods',
+						},
+					],
+					category: 'measurement',
+					install: [{ src: 'https://example.com/sdk.js', type: 'loadScript' }],
+					vendor: 'chain-queue',
+				},
+				{}
+			);
+			const pages = runBoth(
+				script,
+				{ consents: granted, hasConsent: true, id: script.id },
+				() => {
+					const queue = getTestGlobal().chainQueue as unknown as {
+						identify: (id: string) => unknown;
+						track: (event: string) => unknown;
+					};
+					expect(queue.identify('customer-123')).toBe(
+						returnQueue ? queue : undefined
+					);
+					expect(queue.track('Signed up')).toBe(
+						returnQueue ? queue : undefined
+					);
+					return queue;
+				}
+			);
+			expect(pages[1]).toStrictEqual(pages[0]);
+		}
+	);
 
 	// Speed Insights registers its consent gate at hydration; see below.
 	describe.each(inlineCases.filter(([key]) => key !== 'vercelSpeedInsights'))(

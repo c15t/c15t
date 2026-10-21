@@ -1,9 +1,10 @@
-{/* Generated from internals/doc-snippets/javascript/src/customer-io.ts (docs:customer-io-proxy) by scripts/sync-example-docs.ts. Edit the source file. */}
+{/* Generated from internals/doc-snippets/javascript/src/customer-io-proxy.ts (docs:customer-io-proxy) by scripts/sync-example-docs.ts. Edit the source file. */}
 
-```ts title="src/customer-io.ts"
+```ts title="src/customer-io-proxy.ts"
+import { customerIo } from '@c15t/integrations/customer-io';
+
 export const proxiedScripts = [
 	customerIo({
-		writeKey: 'YOUR_WRITE_KEY',
 		cdnUrl: 'https://analytics.example.com',
 		loadOptions: {
 			integrations: {
@@ -13,6 +14,7 @@ export const proxiedScripts = [
 				},
 			},
 		},
+		writeKey: 'YOUR_WRITE_KEY',
 	}),
 ];
 ```

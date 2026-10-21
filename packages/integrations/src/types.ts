@@ -189,6 +189,11 @@ export interface DefineQueueMethodsStep {
 		| 'voidMethodCall'
 		| 'callback';
 	/**
+	 * Return the queue after a tuple call so vendor stubs can be chained.
+	 * @default false
+	 */
+	returnQueue?: boolean;
+	/**
 	 * Leave a method alone when the target already has a function under that
 	 * name. Setup runs again when consent is granted after a revocation
 	 * without a page reload; this keeps the methods of an SDK that is still
