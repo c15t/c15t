@@ -115,6 +115,16 @@ export const BUILT_IN_INTEGRATION_CATEGORIES = [
  */
 export const builtInScriptIntegrations = [
 	{
+		consentCategory: 'marketing',
+		docsSlug: 'oracle-eloqua',
+		hint: 'Oracle Eloqua consent-gated loader',
+		integrationCategory: 'analytics',
+		key: 'eloquaTracking',
+		label: 'Oracle Eloqua',
+		packageSubpath: 'oracle-eloqua',
+		vendor: 'oracle-eloqua',
+	},
+	{
 		consentCategory: 'necessary',
 		docsSlug: 'cloudflare-zaraz',
 		hint: 'Consent bridge for tools managed by Zaraz',

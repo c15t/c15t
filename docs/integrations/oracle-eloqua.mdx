@@ -1,0 +1,47 @@
+---
+title: Oracle Eloqua
+description: Load Oracle Eloqua after marketing consent, configure its tracking settings, and verify loading and withdrawal with c15t.
+seoTitle: Oracle Eloqua cookie consent with c15t
+seoDescription: Gate Oracle Eloqua on marketing consent with c15t. Configure the loader, understand withdrawal limits, and verify vendor requests and storage.
+icon: chart-line
+group: integrations
+---
+
+`eloquaTracking` waits for `marketing` consent before creating vendor globals or downloading Oracle Eloqua.
+
+## Configure Oracle Eloqua
+
+Copy your site ID from Eloqua and remove the original asynchronous tracking snippet. Configure a first-party tracking hostname in Eloqua before setting `firstPartyCookieDomain`.
+
+<CommandTabs command="@c15t/integrations" mode="install" />
+
+<include src="../shared/examples/javascript/oracle-eloqua-configuration.mdx" />
+
+<include src="../shared/integrations/register-scripts.mdx" />
+
+## Options
+
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `siteId` | Required | Eloqua site ID. |
+| `firstPartyCookieDomain` | Unset | First-party tracking hostname configured in Eloqua. |
+| `category` | `marketing` | Consent condition for the whole loader. |
+| `scriptUrl` | `https://img.en25.com/i/elqCfg.min.js` | Custom or proxied loader URL. Blank values use the default. |
+
+Missing or blank required values log an error and never load.
+
+## Loading and revocation
+
+After consent, the helper creates `_elqQ`, sets the site ID and optional first-party cookie domain, and downloads the SDK. After loading, it queues `elqOptIn` and waits for its response script before `elqTrackPageView`. A pending response cannot trigger a page view after withdrawal. Revocation queues `elqOptOut`. Regrant preserves Eloqua's installed dispatcher rather than replacing it with an array.
+
+Keep `reloadOnConsentRevoked` enabled. Eloqua's opt-in and opt-out commands make asynchronous requests; opt-out does not disable every SDK request method or cancel requests already in flight. The helper waits for the first-party opt-in response so a regrant page view does not run while the opt-in cookie still reads `0`. The loader stays in the DOM for same-page regrant because Eloqua replaces its array queue with a dispatcher. Reload gives the next page a fresh tracking lifecycle. Removing a script tag cannot unload the SDK.
+
+Eloqua can set `ELOQUA`, `ELQSTATUS`, `ELQOPTOUT` and first-party `OPTIN` cookies. Oracle documents 13-month tracking cookie lifetimes. Reload does not erase every vendor cookie.
+
+## Verify Oracle Eloqua
+
+Before consent and after unrelated consent, check for no `elqCfg.min.js`, `_elqQ`, Eloqua cookies or browser storage. Grant marketing, confirm the real dispatcher replaces the array, then revoke and inspect the opt-out request. Regrant with your configured account and verify page tracking after the asynchronous opt-in completes.
+
+Sources: [basic tracking](https://docs.oracle.com/en/cloud/saas/marketing/eloqua-user/Help/EloquaAsynchronousTrackingScripts/Tasks/BasicPageTracking.htm), [first-party tracking](https://docs.oracle.com/en/cloud/saas/marketing/eloqua-user/Help/EloquaAsynchronousTrackingScripts/Tasks/BasicPageTrackingFirst.htm), and [opt-in and opt-out commands](https://docs.oracle.com/cloud/latest/marketingcs_gs/OMCAA/Help/EloquaAsynchronousTrackingScripts/Tasks/OptingInAndOut.htm).
+
+<include src="../shared/integrations/vendor-revocation-and-verify.mdx" />

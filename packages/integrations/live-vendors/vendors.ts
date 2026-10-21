@@ -1,3 +1,4 @@
+import { linkedinInsights } from '../src/vendors/ads-and-pixels/linkedin-insights';
 /**
  * Live probe definitions for built-in `@c15t/integrations` integrations.
  *
@@ -10,8 +11,6 @@
  * account. Collection endpoints are blocked by the runner, so probes cannot
  * send real analytics data even when a vendor runtime initializes.
  */
-
-import { linkedinInsights } from '../src/vendors/ads-and-pixels/linkedin-insights';
 import { metaPixel } from '../src/vendors/ads-and-pixels/meta-pixel';
 import { microsoftUet } from '../src/vendors/ads-and-pixels/microsoft-uet';
 import type { OpenAIPixelFunction } from '../src/vendors/ads-and-pixels/openai-pixel';
@@ -43,6 +42,7 @@ import { matomoAnalytics } from '../src/vendors/analytics/matomo-analytics';
 import { clarity } from '../src/vendors/analytics/microsoft-clarity';
 import { mixpanelAnalytics } from '../src/vendors/analytics/mixpanel-analytics';
 import { oneDollarStats } from '../src/vendors/analytics/one-dollar-stats';
+import { eloquaTracking } from '../src/vendors/analytics/oracle-eloqua';
 import { pirsch } from '../src/vendors/analytics/pirsch';
 import { plausibleAnalytics } from '../src/vendors/analytics/plausible-analytics';
 import { posthog } from '../src/vendors/analytics/posthog';
@@ -209,6 +209,23 @@ type PosthogProbeWindow = Window & {
  * Probe configs for every built-in integration, ordered by registry vendor id.
  */
 export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
+	{
+		bootstrapCheck: () =>
+			check(Array.isArray(window._elqQ), 'Eloqua command array'),
+		createScript: () => eloquaTracking({ siteId: '1973398186' }),
+		loaderUrlSubstring: 'img.en25.com/i/elqCfg.min.js',
+		notes:
+			'Public Oracle site ID proves real dispatcher execution. All opt-in, opt-out and collection endpoints are blocked; cookie response behavior and account reporting are not verified.',
+		runtimeCheck: () =>
+			check(
+				!Array.isArray(window._elqQ) &&
+					typeof window._elqQ?.push === 'function',
+				'Eloqua installed its dispatcher'
+			),
+		runtimeReplacedGlobals: ['_elqQ'],
+		tier: 'full',
+		vendor: 'oracle-eloqua',
+	},
 	{
 		skipReason:
 			'Requires a configured Cloudflare zone and purpose IDs. This bridge does not fetch a public vendor loader.',

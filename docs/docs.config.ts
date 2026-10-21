@@ -845,6 +845,7 @@ export default defineDocsConfig({
 				{
 					pages: [
 						'google-tag',
+						'oracle-eloqua',
 						'ahrefs-analytics',
 						'adobe-analytics',
 						'amplitude',

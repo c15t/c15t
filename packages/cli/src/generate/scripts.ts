@@ -141,6 +141,10 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 		example: "openaiPixel({ pixelId: 'YOUR_PIXEL_ID' })",
 		importName: 'openaiPixel',
 	},
+	'oracle-eloqua': {
+		example: "eloquaTracking({ siteId: 'YOUR_SITEID' })",
+		importName: 'eloquaTracking',
+	},
 	'pinterest-tag': {
 		example: "pinterestTag({ tagId: 'XXXXXXXX' })",
 		importName: 'pinterestTag',

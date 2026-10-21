@@ -26,6 +26,7 @@ import { logRocket } from './vendors/analytics/logrocket';
 import { matomoAnalytics } from './vendors/analytics/matomo-analytics';
 import { clarity } from './vendors/analytics/microsoft-clarity';
 import { mixpanelAnalytics } from './vendors/analytics/mixpanel-analytics';
+import { eloquaTracking } from './vendors/analytics/oracle-eloqua';
 import { pirsch } from './vendors/analytics/pirsch';
 import { plausibleAnalytics } from './vendors/analytics/plausible-analytics';
 import { posthog } from './vendors/analytics/posthog';
@@ -58,6 +59,12 @@ const requiredIdCases: {
 	create: (id: unknown) => Script;
 	script: Pick<Script, 'category' | 'id'>;
 }[] = [
+	{
+		create: (id) => eloquaTracking({ siteId: asId(id) }),
+		helper: 'eloquaTracking',
+		option: 'siteId',
+		script: { category: 'marketing', id: 'oracle-eloqua' },
+	},
 	{
 		create: (id) => linkedinInsights({ id: asId(id) }),
 		helper: 'linkedinInsights',
