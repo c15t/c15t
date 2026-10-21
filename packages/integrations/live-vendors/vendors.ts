@@ -59,6 +59,7 @@ import { umamiAnalytics } from '../src/vendors/analytics/umami-analytics';
 import { vercelAnalytics } from '../src/vendors/analytics/vercel-analytics';
 import { vercelSpeedInsights } from '../src/vendors/analytics/vercel-speed-insights';
 import { klaviyo } from '../src/vendors/email-and-sms/klaviyo';
+import { ada } from '../src/vendors/functional/ada';
 import { crisp } from '../src/vendors/functional/crisp';
 import { frontChat } from '../src/vendors/functional/front-chat';
 import { intercom } from '../src/vendors/functional/intercom';
@@ -209,6 +210,21 @@ type PosthogProbeWindow = Window & {
  * Probe configs for every built-in integration, ordered by registry vendor id.
  */
 export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
+	{
+		allowUrlSubstrings: [
+			'https://messaging-assets.ada.support/messaging-manifest.json',
+			'https://messaging-assets.ada.support/messaging-stable-version.txt',
+			'https://messaging-assets.ada.support/d74685e3a1214fd118e9a9bb79611d068aa1a834/sdk/',
+			'https://messaging-assets.ada.support/90433c8407c7aeecf5f03f661136b86b9e5d5593/sdk/',
+		],
+		createScript: () => ada({ handle: 'c15t-live-probe-placeholder' }),
+		loaderUrlSubstring: 'messaging-assets.ada.support/sdk.js',
+		notes:
+			'Ada is callback-only and imports the real SDK entry after consent; there is no Script.src or loader element. The entry returns HTTP 200 and can fetch rollout modules and write rollout storage during evaluation. A placeholder handle with blocked Agent APIs cannot prove start, stop, a usable conversation or data erasure. This probe records module reachability only; collection stays blocked.',
+		tier: 'loader-only',
+		vendor: 'ada',
+	},
+
 	{
 		skipReason:
 			'Requires a configured Cloudflare zone and purpose IDs. This bridge does not fetch a public vendor loader.',

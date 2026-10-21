@@ -115,6 +115,16 @@ export const BUILT_IN_INTEGRATION_CATEGORIES = [
  */
 export const builtInScriptIntegrations = [
 	{
+		consentCategory: 'functionality',
+		docsSlug: 'ada',
+		hint: 'Customer support through Ada Messaging',
+		integrationCategory: 'functional',
+		key: 'ada',
+		label: 'Ada',
+		packageSubpath: 'ada',
+		vendor: 'ada',
+	},
+	{
 		consentCategory: 'necessary',
 		docsSlug: 'cloudflare-zaraz',
 		hint: 'Consent bridge for tools managed by Zaraz',

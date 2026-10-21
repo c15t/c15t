@@ -302,6 +302,11 @@
 			"types": "./dist-types/events.d.ts",
 			"import": "./dist/events.js",
 			"default": "./dist/events.js"
+		},
+		"./ada": {
+			"types": "./dist-types/vendors/functional/ada.d.ts",
+			"import": "./dist/vendors/functional/ada.js",
+			"default": "./dist/vendors/functional/ada.js"
 		}
 	},
 	"publishConfig": {

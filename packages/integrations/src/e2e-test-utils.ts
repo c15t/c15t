@@ -370,6 +370,7 @@ const resetVendorGlobals = function resetVendorGlobals() {
 		'uetq',
 		'va',
 		'vaq',
+		'__AdaMessagingSdkBootstrap',
 	] as const) {
 		Reflect.deleteProperty(win, key);
 	}
