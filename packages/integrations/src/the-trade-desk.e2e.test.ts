@@ -16,12 +16,7 @@ import { theTradeDeskPixel } from './vendors/ads-and-pixels/the-trade-desk';
 describe('The Trade Desk core loader consent contract', () => {
 	registerVendorContractCleanup();
 	afterEach(() => {
-		for (const key of [
-			'ttdConversionEvents',
-			'ttdConversionEventsLayer',
-			'TTDConversionEvents',
-			'TTDUniversalPixelApi',
-		]) {
+		for (const key of ['TTDConversionEvents', 'TTDUniversalPixelApi']) {
 			Reflect.deleteProperty(window, key);
 		}
 	});
@@ -69,10 +64,6 @@ describe('The Trade Desk core loader consent contract', () => {
 
 describe('Trade Desk SDK queue contract', () => {
 	registerVendorContractCleanup();
-	afterEach(() => {
-		Reflect.deleteProperty(window, 'ttdConversionEvents');
-		Reflect.deleteProperty(window, 'ttdConversionEventsLayer');
-	});
 	it('queues init and event with processing policy before loading', () => {
 		const scripts = [
 			theTradeDeskPixel({

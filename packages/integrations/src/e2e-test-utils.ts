@@ -311,7 +311,7 @@ export const installBodyProbe = function installBodyProbe(
 	return installAppendProbe(document.body, onAppend);
 };
 
-const resetVendorGlobals = function resetVendorGlobals() {
+export const resetVendorGlobals = function resetVendorGlobals() {
 	const win = window as TestWindow;
 
 	for (const key of [
@@ -365,6 +365,8 @@ const resetVendorGlobals = function resetVendorGlobals() {
 		'sil',
 		'siq',
 		'snaptr',
+		'ttdConversionEvents',
+		'ttdConversionEventsLayer',
 		'ttq',
 		'twq',
 		'uetq',
