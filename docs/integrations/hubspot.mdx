@@ -150,6 +150,13 @@ The shared `widgetLoaded` listener also removes a late completion when the
 current permissions deny it. Ordinary nonfinal owner departure keeps this
 guard attached while automatic chat remains active.
 
+Deferred removal and chat-cookie cleanup check the current shared permissions
+and chat opt-in when the SDK becomes ready. If permission returns before
+readiness, the controller skips that cleanup, including after a remount or
+replacement. A withdrawal that still denies automatic chat clears it when the
+SDK becomes ready. Earlier global cookie revocation can still have cleared
+chat identity cookies.
+
 Widget removal does not confirm cancellation of a pending load. The controller
 retains that pending-load state through removal, final teardown and remounts
 to avoid issuing a duplicate load. Final teardown detaches the controller's

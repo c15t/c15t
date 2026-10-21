@@ -203,8 +203,14 @@ const createController = (host: Window, installation: HubSpotInstallation) => {
 		};
 	};
 
+	const allowsChat = (state: ReturnType<typeof aggregate>) =>
+		state.chat && state.gate && state.consent.functionality;
 	const removeChat = (conversations: HubSpotConversationsClient) => {
+		const latest = aggregate();
 		chatClearPending = false;
+		if (!latest.chat || allowsChat(latest)) {
+			return;
+		}
 		chatRequested = false;
 		conversations.widget.remove();
 		conversations.clear({ resetWidget: false });
@@ -288,8 +294,6 @@ const createController = (host: Window, installation: HubSpotInstallation) => {
 		host.document.head.appendChild(element);
 	};
 
-	const allowsChat = (state: ReturnType<typeof aggregate>) =>
-		state.chat && state.gate && state.consent.functionality;
 	const syncChat = (refresh: () => void, allowLoad: boolean) => {
 		const token = revision;
 		if (!started) {

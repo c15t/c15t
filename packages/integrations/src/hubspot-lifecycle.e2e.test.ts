@@ -538,6 +538,31 @@ describe('HubSpot core loader consent contract', () => {
 		expect(api.widget.load).toHaveBeenCalledOnce();
 	});
 
+	it.each([false, true])(
+		'rechecks deferred chat cleanup after functionality regrant: %s',
+		(regrant) => {
+			const scripts = [hubspot({ chat: true, portalId: '53' })];
+			loadScripts(scripts, allConsents);
+			updateScripts(scripts, { ...allConsents, functionality: false });
+			if (regrant) {
+				updateScripts(scripts, allConsents);
+			}
+			const callbacks = [...(window.hsConversationsOnReady ?? [])];
+			expect(callbacks).toHaveLength(1);
+			const api = conversationsApi();
+			window.HubSpotConversations = api;
+			for (const ready of callbacks) {
+				ready();
+				ready();
+			}
+			expect(api.widget.remove).toHaveBeenCalledTimes(regrant ? 0 : 1);
+			expect(api.clear.mock.calls).toEqual(
+				regrant ? [] : [[{ resetWidget: false }]]
+			);
+			expect(api.widget.load).toHaveBeenCalledTimes(regrant ? 1 : 0);
+		}
+	);
+
 	it.each([false, undefined])('keeps chat manual when chat is %s', (chat) => {
 		const api = conversationsApi();
 		window.HubSpotConversations = api;

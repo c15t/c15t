@@ -720,6 +720,55 @@ describe('HubSpot shared chat lifecycle', () => {
 		expect(externalReady).not.toHaveBeenCalled();
 	});
 
+	it.each(['remount', 'replacement', 'shared departure', 'manual interval'])(
+		'rechecks deferred chat cleanup after %s before SDK readiness',
+		async (transition) => {
+			const script = hubspot({ chat: true, portalId: '53' });
+			const owner = await ownerOf(script);
+			const loader = document.getElementById('hs-script-loader');
+			const oldReady = [...(window.hsConversationsOnReady ?? [])];
+			await owner.save({ ...granted, functionality: false });
+			if (
+				transition === 'shared departure' ||
+				transition === 'manual interval'
+			) {
+				await ownerOf(
+					hubspot({ chat: transition === 'shared departure', portalId: '53' })
+				);
+				owner.loader?.dispose();
+				if (transition === 'manual interval') {
+					await owner.save();
+					owner.mount();
+				}
+			} else {
+				if (transition === 'remount') {
+					owner.loader?.dispose();
+				}
+				await owner.save();
+				if (transition === 'remount') {
+					owner.mount();
+				} else {
+					owner.loader?.updateScripts([
+						hubspot({ chat: true, portalId: '53' }),
+					]);
+				}
+			}
+			const currentReady = [...(window.hsConversationsOnReady ?? [])];
+			expect(currentReady).toHaveLength(1);
+			const api = conversations();
+			window.HubSpotConversations = api;
+			for (const ready of [...oldReady, ...currentReady]) {
+				ready();
+			}
+			expect(api.widget.remove).not.toHaveBeenCalled();
+			expect(api.clear).not.toHaveBeenCalled();
+			expect(api.widget.load).toHaveBeenCalledOnce();
+			api.completeLoad();
+			expect(api.visible).toBe(true);
+			expect(document.getElementById('hs-script-loader')).toBe(loader);
+		}
+	);
+
 	it.each(['regrant', 'remount'] as const)(
 		'does not reload a permitted pending completion after %s',
 		async (transition) => {
