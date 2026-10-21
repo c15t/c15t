@@ -133,10 +133,12 @@ const createConsentDispatcher = (onIdle: () => void) => {
 		const currentDispatcher = dispatcher;
 		const requested = desired;
 		const before = new Set(document.scripts);
+		let dispatchFailed = false;
 		let dispatchError: unknown;
 		try {
 			currentDispatcher.queue.push([requested ? 'elqOptIn' : 'elqOptOut']);
 		} catch (error) {
+			dispatchFailed = true;
 			dispatchError = error;
 		}
 		const added = Array.from(document.scripts).filter(
@@ -154,7 +156,7 @@ const createConsentDispatcher = (onIdle: () => void) => {
 				url.searchParams.get('siteid') === account()?.siteId
 			);
 		});
-		if (!response || dispatchError || added.length !== 1) {
+		if (!response || dispatchFailed || added.length !== 1) {
 			// The stock SDK appends synchronously and swallows insertion errors.
 			// An unknown loader may still execute a deferred or unmatched response.
 			indeterminate =

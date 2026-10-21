@@ -96,7 +96,12 @@ const getLoader = (url = defaultUrl): HTMLScriptElement => {
 	return element;
 };
 
-const installSdk = (element: HTMLScriptElement) => {
+const installSdk = (
+	element: HTMLScriptElement,
+	postResponseFailure: { value: unknown } = {
+		value: new Error('SDK consent push failed after insertion'),
+	}
+) => {
 	let siteId: string | undefined;
 	let domain: string | undefined;
 	const commands: Command[] = [];
@@ -157,7 +162,7 @@ const installSdk = (element: HTMLScriptElement) => {
 						mode === 'malformed'
 					);
 					if (mode === 'throw-after-response') {
-						throw new Error('SDK consent push failed after insertion');
+						throw postResponseFailure.value;
 					}
 				}
 			}
@@ -201,6 +206,45 @@ const actions = (sdk: ReturnType<typeof installSdk>) =>
 		.map(({ args }) => args);
 
 describe('Eloqua consent response failures through the core loader', () => {
+	it.each(
+		[undefined, null, false, 0, ''].flatMap((value) => [
+			{ corrective: false, value },
+			{ corrective: true, value },
+		])
+	)(
+		'quarantines a matching response followed by throw $value, corrective=$corrective',
+		async ({ corrective, value }) => {
+			const scriptUrl = 'https://tracking-a.example.com/eloqua.js';
+			const owner = await register({ ...account, scriptUrl });
+			const sdk = installSdk(getLoader(scriptUrl), { value });
+			sdk.behavior[corrective ? 'elqOptOut' : 'elqOptIn'] =
+				'throw-after-response';
+			sdk.load();
+			if (corrective) {
+				owner.loader.dispose();
+				finish('41');
+			}
+			const dispatched = corrective
+				? [['elqOptIn'], ['elqOptOut']]
+				: [['elqOptIn']];
+			expect(actions(sdk)).toEqual(dispatched);
+			expect(report.mock.calls.flat().join(' ')).toContain(
+				'Reload before tracking again.'
+			);
+			finish(corrective ? '42' : '41');
+			sdk.behavior.elqOptIn = 'response';
+			sdk.behavior.elqOptOut = 'response';
+			owner.loader.updateScripts([owner.script]);
+			await owner.kernel.commands.save(denied);
+			await owner.kernel.commands.save(granted);
+			owner.loader.dispose();
+			const remount = await register({ ...account, scriptUrl });
+			remount.loader.updateScripts([remount.script]);
+			expect(actions(sdk)).toEqual(dispatched);
+			expect(responses).toHaveLength(corrective ? 2 : 1);
+		}
+	);
+
 	it.each([false, true])(
 		'quarantines a malformed response without escaping the listener, pending 41=%s',
 		async (pendingOptIn) => {

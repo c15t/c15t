@@ -32,6 +32,8 @@ Missing or blank required values log an error and never load.
 
 Custom loaders must synchronously append one matching consent response script when `elqOptIn` or `elqOptOut` runs. Preserve `pps=41` for opt-in, `pps=42` for opt-out, and the installed account's `siteid` query parameter. The response itself can complete asynchronously. A deferred or unmatched custom response leaves consent indeterminate. The helper reports the problem and blocks tracking and further consent commands until reload.
 
+A custom dispatcher that throws also blocks tracking and further consent commands until reload, even if it appended a matching response before throwing.
+
 ## Loading and revocation
 
 After consent, the helper creates `_elqQ`, sets the site ID and optional first-party cookie domain, and downloads the SDK. After loading, it queues `elqOptIn` and waits for its response script before `elqTrackPageView`. The page view uses the full current page URL, including its path, query and fragment, when the response completes.
