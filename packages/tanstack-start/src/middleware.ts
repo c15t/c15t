@@ -61,6 +61,15 @@ export interface ConsentRequestMiddlewareOptions {
 	 * @default false
 	 */
 	trustForwardedHeaders?: boolean;
+
+	/**
+	 * Set `false` when `ConsentRoot` runs with `persistence={false}`, so
+	 * no `c15t-sid` cookie is set and each page load gets a new subject ID,
+	 * as it does without storage.
+	 *
+	 * @default true
+	 */
+	subjectCookie?: boolean;
 }
 
 /** Request context contributed by {@link consentRequestMiddleware}. */
@@ -169,12 +178,15 @@ export const consentRequestMiddleware = function consentRequestMiddleware(
 		if (options.normalizeHeaders !== false) {
 			writeNormalizedHeaders(request.headers, inputs, options.language);
 		}
-		const subject = resolveRequestSubject({
-			request: { headers: request.headers, url: request.url },
-			shared: isPrerendering(),
-			storage: options.storage,
-			trustForwardedHeaders: options.trustForwardedHeaders,
-		});
+		const subject =
+			options.subjectCookie === false
+				? null
+				: resolveRequestSubject({
+						request: { headers: request.headers, url: request.url },
+						shared: isPrerendering(),
+						storage: options.storage,
+						trustForwardedHeaders: options.trustForwardedHeaders,
+					});
 		if (subject?.setCookie) {
 			rememberSubjectCookieHeader(request, subject.cookie);
 		}

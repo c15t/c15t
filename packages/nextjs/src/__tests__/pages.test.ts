@@ -584,14 +584,21 @@ describe('@c15t/nextjs/pages: API bridge', () => {
 	});
 });
 
-/** A `getServerSideProps` context whose `res` records its headers. */
+/**
+ * A `getServerSideProps` context whose `res` records its headers. The
+ * request arrives over TLS unless `encrypted` is `false`.
+ */
 const createPageContext = function createPageContext(
-	headers: Record<string, string>
+	headers: Record<string, string>,
+	encrypted = true
 ) {
 	const responseHeaders = new Map<string, unknown>();
 	const context = {
 		query: {},
-		req: { headers: { host: 'app.example.com', ...headers } },
+		req: {
+			headers: { host: 'app.example.com', ...headers },
+			socket: { encrypted },
+		},
 		res: {
 			getHeader: (name: string) => responseHeaders.get(name),
 			setHeader: (name: string, value: unknown) => {
@@ -728,6 +735,39 @@ describe('withConsentProps', () => {
 		expect(page.responseHeaders.get('set-cookie')).toEqual([
 			expect.stringMatching(/^my-consent-sid=sub_/u),
 		]);
+	});
+
+	test('a plain-HTTP request gets a subject cookie without Secure', async () => {
+		const page = createPageContext({}, false);
+		await withConsentProps(undefined, { reportSessions: false })(page.context);
+		expect(page.responseHeaders.get('set-cookie')).toEqual([
+			expect.stringMatching(
+				/^c15t-sid=sub_\w+; Max-Age=31536000; Path=\/; SameSite=Lax$/u
+			),
+		]);
+	});
+
+	test('a request a TLS proxy forwarded gets a Secure subject cookie', async () => {
+		const page = createPageContext({ 'x-forwarded-proto': 'https' }, false);
+		await withConsentProps(undefined, { reportSessions: false })(page.context);
+		expect(page.responseHeaders.get('set-cookie')).toEqual([
+			expect.stringMatching(/; Secure; SameSite=Lax$/u),
+		]);
+	});
+
+	test('subjectCookie: false sets no cookie and carries no subject', async () => {
+		const page = createPageContext({});
+		const result = await withConsentProps(undefined, {
+			reportSessions: false,
+			subjectCookie: false,
+		})(page.context);
+
+		if (!('props' in result)) {
+			throw new Error('expected props');
+		}
+		const { consent } = await result.props;
+		expect(consent?.initialRecords?.subject?.subjectId).toBeUndefined();
+		expect(page.responseHeaders.has('set-cookie')).toBe(false);
 	});
 
 	test('cookieName names the subject cookie', async () => {

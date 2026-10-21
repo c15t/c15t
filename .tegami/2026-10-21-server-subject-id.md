@@ -18,10 +18,11 @@ decides.
 
 - Next.js: `c15tProxy` sets the cookie and forwards it on the request, so
   `resolveConsent` in the same request reads it. `withConsentProps` sets it
-  for Pages Router pages. Both accept `storage` and `trustForwardedHeaders`.
-  Without the proxy, App Router pages leave it to the browser.
-- TanStack Start: `consentRequestMiddleware` sets it. Prerendered pages get
-  none.
+  for Pages Router pages. Both accept `storage`, `trustForwardedHeaders`
+  and `subjectCookie`. Without the proxy, App Router pages leave it to the
+  browser.
+- TanStack Start: `consentRequestMiddleware` sets it and accepts the same
+  options. Prerendered pages get none.
 - Astro: the c15t middleware sets it on server-rendered pages, named from
   `storageConfig`. `middleware.trustForwardedHeaders` is new.
 - SvelteKit: `c15tHandle` sets it and exposes the request cookie as
@@ -33,7 +34,8 @@ decides.
 Prefetch and prerender requests, and responses marked as shared, never get
 a cookie, because every visitor who received it would share the ID. Pass the
 same `storage` options as the browser so the cookie has the same name, domain
-and lifetime.
+and lifetime. With `persistence={false}` on `ConsentRoot`, pass
+`subjectCookie: false` so the ID still changes on every page load.
 
 On another server, `resolveRequestSubject()` from `c15t/server` returns the
 visitor's ID, the `Set-Cookie` value to send and the request `Cookie` header

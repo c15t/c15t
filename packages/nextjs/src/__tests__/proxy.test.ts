@@ -49,6 +49,12 @@ describe('c15tProxy subject ID', () => {
 		}
 	);
 
+	test('subjectCookie: false sets no cookie', () => {
+		const response = c15tProxy(request(), { subjectCookie: false });
+		expect(response.cookies.get('c15t-sid')).toBeUndefined();
+		expect(renderedCookie(response)).toBeNull();
+	});
+
 	test('the storage configuration names the cookie and sets its domain', () => {
 		const response = c15tProxy(request(), {
 			storage: { crossSubdomain: true, storageKey: 'consent' },

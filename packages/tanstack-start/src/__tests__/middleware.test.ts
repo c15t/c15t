@@ -188,6 +188,16 @@ describe('consentRequestMiddleware: subject ID', () => {
 		}
 	});
 
+	test('subjectCookie: false sets no cookie and resolveConsent finds no subject', async () => {
+		const { request, response } = await run(
+			consentRequestMiddleware({ subjectCookie: false }),
+			{}
+		);
+		expect(response.headers.getSetCookie()).toEqual(['session=1']);
+		const state = await resolveConsent({ request });
+		expect(state.initialRecords?.subject?.subjectId).toBeUndefined();
+	});
+
 	test('the storage option names the cookie', async () => {
 		const { response } = await run(
 			consentRequestMiddleware({ storage: { storageKey: 'consent' } }),

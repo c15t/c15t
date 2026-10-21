@@ -180,6 +180,10 @@ arrives one request early, in the visitor's own browser. See
 [the subject ID](/docs/concepts/consent-state#a-subject-id-from-the-first-page-load)
 for how long it lasts and when it changes.
 
+If `ConsentRoot` runs with `persistence={false}`, pass `subjectCookie: false`
+too. The proxy then sets no `c15t-sid`, and each page load gets a new ID, as
+it does without storage.
+
 If you changed `storageConfig` in your consent config, pass the same values
 as `storage` so the cookie has the same name, domain and lifetime as the one
 the browser writes:

@@ -135,9 +135,10 @@ the request has none, it sets the `c15t-sid` cookie on the response and puts
 the ID in `consent`, so the browser starts with the same ID. The cookie holds
 only the ID, so the banner still shows. If you changed `storageConfig`, pass
 the same values as `storage` in the second argument so the cookie has the
-same name, domain and lifetime. `trustForwardedHeaders: true` reads the
-scheme for the cookie's `Secure` flag from `X-Forwarded-Proto`; set it only
-behind a proxy that overwrites that header. See
+same name, domain and lifetime. The cookie is `Secure` when the request came
+over TLS or `X-Forwarded-Proto` says `https`, the rule Next.js uses for an
+App Router request's URL. With `persistence={false}` on `ConsentRoot`, pass
+`subjectCookie: false` so no cookie is set. See
 [the subject ID](/docs/concepts/consent-state#a-subject-id-from-the-first-page-load).
 
 Add `withConsentProps` to every page that should render consent on the

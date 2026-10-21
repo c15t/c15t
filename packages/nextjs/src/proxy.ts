@@ -31,6 +31,15 @@ export interface C15tProxyOptions {
 	 * @default false
 	 */
 	trustForwardedHeaders?: boolean;
+
+	/**
+	 * Set `false` when `ConsentRoot` runs with `persistence={false}`, so
+	 * no `c15t-sid` cookie is set and each page load gets a new subject ID,
+	 * as it does without storage.
+	 *
+	 * @default true
+	 */
+	subjectCookie?: boolean;
 }
 
 const DEFAULT_COUNTRY_COOKIE = 'c15t-country';
@@ -82,11 +91,14 @@ export const c15tProxy = function c15tProxy(
 	if (inputs.gpc !== undefined) {
 		requestHeaders.set('sec-gpc', inputs.gpc ? '1' : '0');
 	}
-	const subject = resolveRequestSubject({
-		request: { headers: request.headers, url: request.url },
-		storage: options.storage,
-		trustForwardedHeaders: options.trustForwardedHeaders,
-	});
+	const subject =
+		options.subjectCookie === false
+			? null
+			: resolveRequestSubject({
+					request: { headers: request.headers, url: request.url },
+					storage: options.storage,
+					trustForwardedHeaders: options.trustForwardedHeaders,
+				});
 	if (subject?.setCookie) {
 		requestHeaders.set('cookie', subject.cookie);
 	}

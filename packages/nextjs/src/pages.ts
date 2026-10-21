@@ -219,6 +219,36 @@ export type WithConsentPropsOptions = Omit<
 		StorageConfig,
 		'crossSubdomain' | 'defaultDomain' | 'defaultExpiryDays' | 'storageKey'
 	>;
+
+	/**
+	 * Set `false` when `ConsentRoot` runs with `persistence={false}`, so
+	 * no `c15t-sid` cookie is set and each page load gets a new subject ID,
+	 * as it does without storage.
+	 *
+	 * @default true
+	 */
+	subjectCookie?: boolean;
+};
+
+/**
+ * The origin Next.js gives an App Router request's URL: `https` over TLS
+ * or when `x-forwarded-proto` says so, else `http`. The subject cookie is
+ * `Secure` only over `https`, so a plain-HTTP site keeps it.
+ */
+const requestOriginOf = function requestOriginOf(
+	req: GetServerSidePropsContext['req']
+): string | undefined {
+	const { host } = req.headers;
+	if (!host) {
+		return undefined;
+	}
+	const encrypted =
+		(req.socket as { encrypted?: boolean } | undefined)?.encrypted === true;
+	const { 'x-forwarded-proto': proto } = req.headers;
+	const forwarded = (Array.isArray(proto) ? proto[0] : proto)?.includes(
+		'https'
+	);
+	return `${encrypted || forwarded ? 'https' : 'http'}://${host}`;
 };
 
 /** Adds `header` to the response's `Set-Cookie` headers. */
@@ -267,16 +297,22 @@ export const withConsentProps = function withConsentProps<
 	getServerSideProps?: GetServerSideProps<Props>,
 	options: WithConsentPropsOptions = {}
 ): GetServerSideProps<Props & ConsentPageProps> {
-	const { storage, ...resolveOptions } = options;
+	const { storage, subjectCookie, ...resolveOptions } = options;
 	// One key for the consent cookie and the subject cookie, whichever
 	// option named it.
 	const cookieName = storage?.storageKey ?? options.cookieName;
 	return async (context: GetServerSidePropsContext) => {
-		const subject = resolveRequestSubject({
-			request: { headers: context.req.headers },
-			storage: { ...storage, storageKey: cookieName },
-			trustForwardedHeaders: options.trustForwardedHeaders,
-		});
+		const subject =
+			subjectCookie === false
+				? null
+				: resolveRequestSubject({
+						request: {
+							headers: context.req.headers,
+							url: requestOriginOf(context.req),
+						},
+						storage: { ...storage, storageKey: cookieName },
+						trustForwardedHeaders: options.trustForwardedHeaders,
+					});
 		const req: NodeRequestLike = subject?.setCookie
 			? { headers: { ...context.req.headers, cookie: subject.cookie } }
 			: context.req;
