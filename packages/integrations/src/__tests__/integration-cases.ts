@@ -53,7 +53,7 @@ export const helperParityCases = {
 		expected: {
 			alwaysLoad: undefined,
 			persistAfterConsentRevoked: true,
-			src: 'https://prism.app-us1.com/prism.js',
+			src: 'https://diffuser-cdn.app-us1.com/diffuser/diffuser.js',
 		},
 		script: activeCampaignTracking({ accountId: '123456' }),
 	},

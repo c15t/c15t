@@ -1,4 +1,4 @@
-// #region docs:activecampaign-configuration
+// #region docs:activecampaign-configuration title="src/consent-scripts.ts"
 import { activeCampaignTracking } from '@c15t/integrations/activecampaign';
 
 export const scripts = [

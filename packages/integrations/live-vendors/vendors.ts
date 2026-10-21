@@ -210,7 +210,6 @@ type PosthogProbeWindow = Window & {
  */
 export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 	{
-		allowUrlSubstrings: ['diffuser-cdn.app-us1.com/diffuser/diffuser.js,'],
 		bootstrapCheck: () =>
 			check(
 				typeof window.pgo === 'function' &&
@@ -220,10 +219,16 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 				'ActiveCampaign callable q queue and timestamp'
 			),
 		createScript: () => activeCampaignTracking({ accountId: '123456' }),
-		loaderUrlSubstring: 'prism.app-us1.com/prism.js',
+		loaderUrlSubstring: 'diffuser-cdn.app-us1.com/diffuser/diffuser.js',
 		notes:
-			'The official endpoint redirects to a malformed comma URL and returns 403 XML, so this default probe proves reachability only. A separate explicit scriptUrl override probe exercises the real diffuser CDN runtime; it does not establish account delivery.',
-		tier: 'loader-only',
+			"The default uses ActiveCampaign's direct CDN loader, bypassing the malformed prism.js redirect. Collection and account configuration requests are blocked; SDK construction does not establish account delivery.",
+		runtimeCheck: () =>
+			check(
+				typeof window.pgo === 'function' && !window.pgo.q,
+				'ActiveCampaign runtime replaced its queue'
+			),
+		runtimeReplacedGlobals: ['pgo'],
+		tier: 'full',
 		vendor: 'activecampaign',
 	},
 	{

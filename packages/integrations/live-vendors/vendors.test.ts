@@ -62,6 +62,31 @@ describe('live vendor probe configs', () => {
 		expect(isAllowed('https://ct.pinterest.com/stats/')).toBe(false);
 	});
 
+	it('checks the default ActiveCampaign runtime and blocks collection', () => {
+		const [config] = configsForVendor('activecampaign');
+		expect(config?.createScript?.().src).toBe(
+			'https://diffuser-cdn.app-us1.com/diffuser/diffuser.js'
+		);
+		expect(config?.loaderUrlSubstring).toBe(
+			'diffuser-cdn.app-us1.com/diffuser/diffuser.js'
+		);
+		expect(config?.tier).toBe('full');
+		expect(config?.runtimeReplacedGlobals).toEqual(['pgo']);
+		const allowedUrls = [
+			config?.loaderUrlSubstring,
+			...(config?.allowUrlSubstrings ?? []),
+		].filter((value): value is string => Boolean(value));
+		for (const url of [
+			'https://prism.app-us1.com/?a=123456',
+			'https://trackcmp.net/visit',
+			'https://diffuser-cdn.app-us1.com/telemetry',
+		]) {
+			expect(allowedUrls.some((substring) => url.includes(substring))).toBe(
+				false
+			);
+		}
+	});
+
 	it('documents every vendor that asserts no runtime behavior', () => {
 		// A vendor whose loader answers placeholder credentials with an error
 		// page cannot prove its SDK started, so the probe reduces to "the
@@ -89,7 +114,6 @@ describe('live vendor probe configs', () => {
 		// Snapshot the gap list so shrinking it is deliberate and growing it is
 		// impossible to land unnoticed.
 		expect(gaps.sort()).toEqual([
-			'activecampaign',
 			'adobe-analytics',
 			'clearbit',
 			'crisp',

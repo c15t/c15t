@@ -14,7 +14,7 @@ describe('activeCampaignTracking', () => {
 			{
 				alwaysLoad: undefined,
 				persistAfterConsentRevoked: true,
-				src: 'https://prism.app-us1.com/prism.js',
+				src: 'https://diffuser-cdn.app-us1.com/diffuser/diffuser.js',
 			}
 		);
 	});
@@ -37,6 +37,6 @@ describe('activeCampaignTracking', () => {
 		).toBe('https://example.com/vendor.js');
 		expect(
 			activeCampaignTracking({ accountId: '123456', scriptUrl: '   ' }).src
-		).toBe('https://prism.app-us1.com/prism.js');
+		).toBe('https://diffuser-cdn.app-us1.com/diffuser/diffuser.js');
 	});
 });

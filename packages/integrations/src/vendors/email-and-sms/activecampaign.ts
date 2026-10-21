@@ -62,7 +62,7 @@ export interface ActiveCampaignTrackingOptions {
 	email?: string;
 	/** Consent condition required before loading. @default 'marketing' */
 	category?: Script['category'];
-	/** Regional or proxied Prism loader URL. */
+	/** Regional or proxied ActiveCampaign loader URL. */
 	scriptUrl?: string;
 }
 
@@ -96,7 +96,7 @@ const createActiveCampaignTracking = function createActiveCampaignTracking(
 		email,
 		scriptUrl: resolveScriptUrl(
 			options.scriptUrl,
-			'https://prism.app-us1.com/prism.js'
+			'https://diffuser-cdn.app-us1.com/diffuser/diffuser.js'
 		),
 	});
 	let hasConsent = false;

@@ -47,7 +47,9 @@ describe('ActiveCampaign consent loader', () => {
 		expect({ ...sessionStorage }).toEqual(session);
 		updateScripts(scripts, granted);
 		const first = getLoader();
-		expect(first.src).toBe('https://prism.app-us1.com/prism.js');
+		expect(first.src).toBe(
+			'https://diffuser-cdn.app-us1.com/diffuser/diffuser.js'
+		);
 		updateScripts(scripts, granted);
 		expect(getLoader()).toBe(first);
 		updateScripts(scripts, deniedConsents);
