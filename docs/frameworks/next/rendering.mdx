@@ -279,6 +279,12 @@ With `mode: local()`, or with no backend URL at all, `resolveConsent()`
 makes no backend request. It returns the visitor's stored records, location,
 language and privacy signals, with no resolved policy.
 
+The server render and the browser also share the visitor's subject ID. In
+the App Router, [`c15tProxy`](/docs/frameworks/next/geography-headers#give-each-visitor-a-subject-id)
+sets it in the `c15t-sid` cookie on the first request, because Server
+Components cannot set cookies. In the Pages Router, `withConsentProps` does
+the same. Without either, the browser creates the ID when the page loads.
+
 ## Taps before hydration
 
 A banner in the server HTML shows before the page's JavaScript runs. On a slow

@@ -62,6 +62,23 @@ If your own scripts depend on such a category, do one of these:
 Check `effectivePermissions` after Accept All on a fresh visit to see which
 categories your vendor list leaves denied.
 
+## A subject ID from the first page load
+
+Every visitor gets a subject ID (`sub_…`) before they decide anything, so
+you can link activity to the visitor from the first page load and still
+find it when they opt out later. It is in `snapshot.subject.subjectId` from
+the first snapshot.
+
+- A framework server sets the ID in the `c15t-sid` cookie on the first
+  response, where the adapter's server hook runs. Otherwise the browser
+  creates it when c15t starts and stores it in `c15t-sid` at once.
+- The ID stays the same across reloads. The first save records the same ID
+  with the choice.
+- `c15t-sid` is not a choice. A visitor with only an ID still sees the
+  banner.
+- Clearing choices and revoking consent keep the ID. Only setting the subject
+  to `null` starts over with a new one.
+
 ## When a choice is saved
 
 A save records the choice in the browser first and sends it to the backend

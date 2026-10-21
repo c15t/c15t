@@ -47,13 +47,46 @@ middleware:
 - writes the result back onto the request as `x-c15t-country`,
   `x-c15t-region` and `sec-gpc`, so later code sees one format whichever CDN
   sent the value,
-- and exposes the same values as `context.consent` to server routes and server
-  functions.
+- exposes the same values as `context.consent` to server routes and server
+  functions,
+- and gives a visitor with no subject ID one, in the `c15t-sid` cookie. See
+  [Set the subject ID on the server](#set-the-subject-id-on-the-server).
 
 Some runtimes hand middleware a request whose headers cannot change. The
 middleware also keeps the values for that request, and the c15t helpers read
 them from there first, so they still see the location. Pass
 `normalizeHeaders: false` to leave the request headers untouched.
+
+## Set the subject ID on the server
+
+When a request has no subject ID (`sub_…`), `consentRequestMiddleware`
+creates one and sets it in the `c15t-sid` cookie on the response.
+`resolveConsent` in the same request reads it, so the server render and the
+browser start with the same ID in `snapshot.subject.subjectId`. Without the
+middleware, the browser creates the ID when the page loads.
+
+`c15t-sid` holds only the ID, so the banner still shows until the visitor
+makes a choice. A prerender (`TSS_PRERENDERING`) and a prefetch request get
+no cookie: prerendered HTML reaches every visitor, and a prefetched page may
+never open. See
+[the subject ID](/docs/concepts/consent-state#a-subject-id-from-the-first-page-load)
+for how long it lasts and when it changes.
+
+If you changed `storageConfig` in the browser, pass the same values as
+`storage` so the cookie has the same name, domain and lifetime:
+
+{/* example: fragment */}
+
+```ts title="src/start.ts (partial)"
+consentRequestMiddleware({
+	storage: { storageKey: 'my-consent', crossSubdomain: true },
+});
+```
+
+The cookie is `Secure` when the request URL is `https`. If a proxy in front
+of the server terminates TLS and the request arrives over `http`, set
+`trustForwardedHeaders: true` to read the scheme from `X-Forwarded-Proto`.
+Only do that when the proxy overwrites the forwarding headers clients send.
 
 ## Where the location goes
 

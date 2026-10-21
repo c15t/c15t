@@ -36,6 +36,14 @@ banner needs no extra request. The browser bundle holds no resolver, snapshot or
 rules. The [quickstart](/docs/frameworks/nuxt/quickstart) sets this up, and
 `examples/nuxt` in the c15t repository runs it.
 
+The server render also gives a visitor with no subject ID (`sub_…`) one, in
+the `c15t-sid` cookie, and sends it with the page. The browser starts with
+the same ID in `snapshot.subject.subjectId`. The cookie holds only the ID, so
+the banner still shows until the visitor makes a choice. It is named from
+`storageConfig.storageKey` and takes its domain and lifetime from
+`storageConfig`, the same as the cookie the browser writes. See
+[the subject ID](/docs/concepts/consent-state#a-subject-id-from-the-first-page-load).
+
 When the visitor's consent already allows some `scripts` entries, through a
 stored choice or a policy that asks for none, the server render adds an inline
 script at the end of `<body>`. After first paint, it runs those entries' setup
@@ -139,7 +147,8 @@ for the fetch, up to `timeoutMs`.
 A prerendered route, or one with a `prerender`, `swr`, `isr` or `cache` route
 rule, sends the same HTML to every visitor. The module renders that HTML
 without any visitor's consent record, location or request headers, so it has
-no banner. After hydration the browser requests the visitor's policy from
+no banner. It sets no `c15t-sid` cookie either, since every visitor would get
+the same ID; the browser creates one when the page loads. After hydration the browser requests the visitor's policy from
 `/api/c15t/init` and reads their stored choice, then shows the banner if the
 policy asks for one. With `hosted()`, or `routePrefix: false`, the browser
 asks the backend's `/init` instead.

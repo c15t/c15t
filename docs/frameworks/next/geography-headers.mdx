@@ -159,6 +159,40 @@ when your code signs the value and verifies the signature before passing it
 as `country`. Where you can do neither, keep the cookie out of policy
 resolution and use it only for non-policy code such as display defaults.
 
+## Give each visitor a subject ID
+
+`c15tProxy` also gives a visitor a subject ID (`sub_…`) on their first
+request. Server Components cannot set cookies, so in the App Router only the
+proxy can do this. When the request has no ID, the proxy:
+
+1. Creates one and sets it in the `c15t-sid` cookie on the response.
+2. Adds the cookie to the forwarded request, so `resolveConsent` in the same
+   request reads the ID.
+
+The browser then starts with that ID in `snapshot.subject.subjectId` instead
+of creating its own. Without the proxy, the browser creates the ID when the
+page loads. `c15t-sid` holds only the ID, so the banner still shows until the
+visitor makes a choice. Prefetch requests get no cookie. See
+[the subject ID](/docs/concepts/consent-state#a-subject-id-from-the-first-page-load)
+for how long it lasts and when it changes.
+
+If you changed `storageConfig` in your consent config, pass the same values
+as `storage` so the cookie has the same name, domain and lifetime as the one
+the browser writes:
+
+{/* example: fragment */}
+
+```ts title="proxy.ts (partial)"
+c15tProxy(request, {
+	storage: { storageKey: 'my-consent', crossSubdomain: true },
+});
+```
+
+The cookie is `Secure` when the request URL is `https`. If a proxy in front
+of Next.js terminates TLS and the request reaches Next.js over `http`, set
+`trustForwardedHeaders: true` to read the scheme from `X-Forwarded-Proto`.
+Only do that when that proxy overwrites the forwarding headers clients send.
+
 ## Which headers are read?
 
 `c15tProxy` and the server helpers use the same extraction from

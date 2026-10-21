@@ -36,14 +36,18 @@ it:
 2. writes them back as `x-c15t-country`, `x-c15t-region`, `accept-language`
    and `sec-gpc`, so later code sees one normalized form,
 3. reads the consent cookie,
-4. stores the result and its own options on `event.locals.c15t`,
-5. writes a server-rendered banner's styles into the page `<head>`, and
-6. on pages whose provider has `scripts` or network blocker rules, links
+4. gives a visitor with no subject ID one, in the `<cookieName>-sid` cookie
+   (`c15t-sid` by default), so the server render and the browser start with
+   the same ID,
+5. stores the result and its own options on `event.locals.c15t`,
+6. writes a server-rendered banner's styles into the page `<head>`, and
+7. on pages whose provider has `scripts` or network blocker rules, links
    the chunk that holds both with `<link rel="modulepreload">`, once
    `consentManifest()` has written its URL into the build.
 
-While SvelteKit prerenders, the handle reads no cookie or headers: the page
-goes to every visitor.
+While SvelteKit prerenders, the handle reads no cookie or headers and sets
+no subject ID cookie: the page goes to every visitor. A prefetch request
+gets no subject ID cookie either.
 
 | Option | Type | Default | Behavior |
 | --- | --- | --- | --- |
@@ -52,6 +56,8 @@ goes to every visitor.
 | `backendURL` | `string` | the URL `consentManifest()` read | The backend. Consent saves go here. A `hosted({ backendURL })` mode's own URL wins. |
 | `snapshot` | `ConsentManifest` | the manifest `consentManifest()` downloaded | A manifest to resolve with. `createConsentRoute()` reads it too. |
 | `cookieName` | `string` | `c15t` | The consent cookie. Match the provider's `storageConfig.storageKey`. |
+| `storage` | `{ storageKey?, defaultDomain?, crossSubdomain?, defaultExpiryDays? }` | the browser defaults | The provider's `storageConfig`, so the subject ID cookie gets the same domain and lifetime as the one the browser writes. `cookieName` wins over `storageKey`. |
+| `trustForwardedHeaders` | `boolean` | `false` | Reads the scheme and host from `X-Forwarded-*` and `Forwarded` headers for the subject ID cookie's `Secure` flag and cross-subdomain domain. Set it only behind a proxy that overwrites those headers. |
 | `country`, `region`, `language` | `string` | from headers | Forces the input for every request. |
 
 `event.locals.c15t` has this shape, exported as `C15tLocals`:
@@ -63,6 +69,7 @@ goes to every visitor.
 | `mode` | The handle's mode, as data. |
 | `backendURL`, `routePrefix`, `snapshot`, `cookieName` | The handle's options, when you passed them. |
 | `shared` | `true` while SvelteKit prerenders. |
+| `cookie` | The request `Cookie` header with the new subject ID cookie, set only when the handle created one. `loadConsent` reads it so the render sees the ID. |
 
 Some runtimes refuse to change request headers. The handle then skips step
 2, and `event.locals.c15t.inputs` still carries the values. Compose it with

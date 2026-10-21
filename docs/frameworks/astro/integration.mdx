@@ -173,6 +173,7 @@ field.
 | `enabled` | `boolean` | `true` | Registers the middleware that sets `Astro.locals.c15t` |
 | `skip` | `string[]` | `[]` | Path prefixes the middleware leaves alone. `'/api'` covers `/api/health` but not `/apidocs` |
 | `timeoutMs` | `number \| false` | `500` | Longest a server render waits for the policy. `false` or `Infinity` waits however long the backend takes; any other value that is not a finite, non-negative number uses the default |
+| `trustForwardedHeaders` | `boolean` | `false` | Reads the request scheme and host from `X-Forwarded-*` and `Forwarded` headers when setting the subject ID cookie's `Secure` flag and cross-subdomain domain. Set it only behind a proxy that overwrites those headers. See [the subject ID cookie](/docs/frameworks/astro/server#set-the-subject-id-cookie) |
 
 The integration's own route under `routePrefix` is always skipped. On a
 skipped route, `Astro.locals.c15t` is unset and `ConsentBanner` throws, so

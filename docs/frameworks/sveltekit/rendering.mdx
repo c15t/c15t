@@ -238,6 +238,16 @@ own handles through `sequence(c15tHandle(), yourHandle)` from
 | `snapshot` | The manifest `consentManifest` downloaded | A manifest of your own to resolve with. |
 | `cookieName` | `c15t` | The consent cookie. Match the provider's `storageConfig.storageKey`. |
 | `country`, `region`, `language` | from headers | Forces one input for every request. |
+| `storage`, `trustForwardedHeaders` | none | Set the subject ID cookie's domain, lifetime and `Secure` flag. See [the server API](/docs/frameworks/sveltekit/server-api#c15thandle). |
+
+`c15tHandle` also gives a visitor with no subject ID (`sub_…`) one, in the
+`c15t-sid` cookie, and `loadConsent` in the same request reads it. The server
+render and the browser then start with the same ID in
+`snapshot.subject.subjectId`. The cookie holds only the ID, so the banner
+still shows until the visitor makes a choice. Prerendered pages and prefetch
+requests get no cookie; there the browser creates the ID when the page loads.
+See
+[the subject ID](/docs/concepts/consent-state#a-subject-id-from-the-first-page-load).
 
 `c15tHandle` also writes a server-rendered banner's rules into the HTML
 `<head>` as `<style>` elements, so the banner is styled before hydration.
