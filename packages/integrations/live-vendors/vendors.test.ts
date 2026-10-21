@@ -89,6 +89,7 @@ describe('live vendor probe configs', () => {
 		// Snapshot the gap list so shrinking it is deliberate and growing it is
 		// impossible to land unnoticed.
 		expect(gaps.sort()).toEqual([
+			'activecampaign',
 			'adobe-analytics',
 			'clearbit',
 			'crisp',

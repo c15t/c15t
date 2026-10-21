@@ -1,3 +1,4 @@
+import { linkedinInsights } from '../src/vendors/ads-and-pixels/linkedin-insights';
 /**
  * Live probe definitions for built-in `@c15t/integrations` integrations.
  *
@@ -10,8 +11,6 @@
  * account. Collection endpoints are blocked by the runner, so probes cannot
  * send real analytics data even when a vendor runtime initializes.
  */
-
-import { linkedinInsights } from '../src/vendors/ads-and-pixels/linkedin-insights';
 import { metaPixel } from '../src/vendors/ads-and-pixels/meta-pixel';
 import { microsoftUet } from '../src/vendors/ads-and-pixels/microsoft-uet';
 import type { OpenAIPixelFunction } from '../src/vendors/ads-and-pixels/openai-pixel';
@@ -58,6 +57,7 @@ import type { SentryClient } from '../src/vendors/analytics/sentry';
 import { umamiAnalytics } from '../src/vendors/analytics/umami-analytics';
 import { vercelAnalytics } from '../src/vendors/analytics/vercel-analytics';
 import { vercelSpeedInsights } from '../src/vendors/analytics/vercel-speed-insights';
+import { activeCampaignTracking } from '../src/vendors/email-and-sms/activecampaign';
 import { klaviyo } from '../src/vendors/email-and-sms/klaviyo';
 import { crisp } from '../src/vendors/functional/crisp';
 import { frontChat } from '../src/vendors/functional/front-chat';
@@ -209,6 +209,23 @@ type PosthogProbeWindow = Window & {
  * Probe configs for every built-in integration, ordered by registry vendor id.
  */
 export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
+	{
+		allowUrlSubstrings: ['diffuser-cdn.app-us1.com/diffuser/diffuser.js,'],
+		bootstrapCheck: () =>
+			check(
+				typeof window.pgo === 'function' &&
+					Array.isArray(window.pgo.q) &&
+					typeof window.pgo.l === 'number' &&
+					window.prismGlobalObjectAlias === 'pgo',
+				'ActiveCampaign callable q queue and timestamp'
+			),
+		createScript: () => activeCampaignTracking({ accountId: '123456' }),
+		loaderUrlSubstring: 'prism.app-us1.com/prism.js',
+		notes:
+			'The official endpoint redirects to a malformed comma URL and returns 403 XML, so this default probe proves reachability only. A separate explicit scriptUrl override probe exercises the real diffuser CDN runtime; it does not establish account delivery.',
+		tier: 'loader-only',
+		vendor: 'activecampaign',
+	},
 	{
 		skipReason:
 			'Requires a configured Cloudflare zone and purpose IDs. This bridge does not fetch a public vendor loader.',

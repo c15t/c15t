@@ -302,6 +302,11 @@
 			"types": "./dist-types/events.d.ts",
 			"import": "./dist/events.js",
 			"default": "./dist/events.js"
+		},
+		"./activecampaign": {
+			"types": "./dist-types/vendors/email-and-sms/activecampaign.d.ts",
+			"import": "./dist/vendors/email-and-sms/activecampaign.js",
+			"default": "./dist/vendors/email-and-sms/activecampaign.js"
 		}
 	},
 	"publishConfig": {
