@@ -81,6 +81,12 @@ kernel to control its DOM lifecycle. Embeds do not require `@c15t/integrations`.
 | [Vercel Analytics](./vercel-analytics.md)                 | `vercelAnalytics`        | `measurement`                                   | Waits for effective permission                                                                       |
 | [Vercel Speed Insights](./vercel-speed-insights.md)       | `vercelSpeedInsights`    | `measurement`                                   | Waits for effective permission; drops reports after revocation                                       |
 
+## Experience and personalization
+
+| Integration               | Helper     | Default consent | Loading                        |
+| ------------------------- | ---------- | --------------- | ------------------------------ |
+| [Wisepops](./wisepops.md) | `wisepops` | `marketing`     | Waits for effective permission |
+
 ## Chat and support
 
 | Integration                   | Helper      | Category        | Loading behavior               |

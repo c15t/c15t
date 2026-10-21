@@ -2,6 +2,7 @@
  * One script per built-in integration, built from its public helper with
  * sample options, and the fields the helper must set.
  */
+
 import type { BuiltInScriptIntegrationKey } from '../registry';
 import { linkedinInsights } from '../vendors/ads-and-pixels/linkedin-insights';
 import { metaPixel } from '../vendors/ads-and-pixels/meta-pixel';
@@ -43,6 +44,7 @@ import { klaviyo } from '../vendors/email-and-sms/klaviyo';
 import { crisp } from '../vendors/functional/crisp';
 import { frontChat } from '../vendors/functional/front-chat';
 import { intercom } from '../vendors/functional/intercom';
+import { wisepops } from '../vendors/functional/wisepops';
 import { cloudflareZaraz } from '../vendors/tag-managers/cloudflare-zaraz';
 import { googleTagManager } from '../vendors/tag-managers/google-tag-manager';
 import type { expectScriptMatchesIntegration } from './helpers';
@@ -394,6 +396,14 @@ export const helperParityCases = {
 			src: 'https://va.vercel-scripts.com/v1/speed-insights/script.js',
 		},
 		script: vercelSpeedInsights(),
+	},
+	wisepops: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://wisepops.net/loader.js?v=3&h=c15tfake',
+		},
+		script: wisepops({ siteId: 'c15tfake' }),
 	},
 	xPixel: {
 		expected: {

@@ -41,6 +41,7 @@ import { klaviyo } from './vendors/email-and-sms/klaviyo';
 import { crisp } from './vendors/functional/crisp';
 import { frontChat } from './vendors/functional/front-chat';
 import { intercom } from './vendors/functional/intercom';
+import { wisepops } from './vendors/functional/wisepops';
 import { googleTagManager } from './vendors/tag-managers/google-tag-manager';
 
 const BLANK_VALUES = ['', '   '] as const;
@@ -58,6 +59,12 @@ const requiredIdCases: {
 	create: (id: unknown) => Script;
 	script: Pick<Script, 'category' | 'id'>;
 }[] = [
+	{
+		create: (id) => wisepops({ ...{ siteId: 'c15tfake' }, siteId: asId(id) }),
+		helper: 'wisepops',
+		option: 'siteId',
+		script: { category: 'marketing', id: 'wisepops' },
+	},
 	{
 		create: (id) => linkedinInsights({ id: asId(id) }),
 		helper: 'linkedinInsights',

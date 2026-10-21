@@ -115,6 +115,16 @@ export const BUILT_IN_INTEGRATION_CATEGORIES = [
  */
 export const builtInScriptIntegrations = [
 	{
+		consentCategory: 'marketing',
+		docsSlug: 'wisepops',
+		hint: 'Onsite popups, campaigns and signup forms',
+		integrationCategory: 'functional',
+		key: 'wisepops',
+		label: 'Wisepops',
+		packageSubpath: 'wisepops',
+		vendor: 'wisepops',
+	},
+	{
 		consentCategory: 'necessary',
 		docsSlug: 'cloudflare-zaraz',
 		hint: 'Consent bridge for tools managed by Zaraz',

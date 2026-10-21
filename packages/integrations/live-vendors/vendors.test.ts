@@ -99,6 +99,7 @@ describe('live vendor probe configs', () => {
 			'matomo-analytics',
 			'segment',
 			'vercel-analytics',
+			'wisepops',
 		]);
 	});
 

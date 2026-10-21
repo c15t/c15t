@@ -62,6 +62,7 @@ import { klaviyo } from '../src/vendors/email-and-sms/klaviyo';
 import { crisp } from '../src/vendors/functional/crisp';
 import { frontChat } from '../src/vendors/functional/front-chat';
 import { intercom } from '../src/vendors/functional/intercom';
+import { wisepops } from '../src/vendors/functional/wisepops';
 import { googleTagManager } from '../src/vendors/tag-managers/google-tag-manager';
 import type { LiveProbeCheckResult, LiveVendorProbeConfig } from './types';
 
@@ -209,6 +210,27 @@ type PosthogProbeWindow = Window & {
  * Probe configs for every built-in integration, ordered by registry vendor id.
  */
 export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
+	{
+		allowUrlSubstrings: ['wisepops.net/h/c15tfake/loader.js?v=3'],
+		bootstrapCheck: () => {
+			const api = window.wisepops;
+			const options = api?.q?.find((args) => args[0] === 'options');
+			return check(
+				typeof api === 'function' &&
+					typeof api.l === 'number' &&
+					Array.isArray(api.q) &&
+					options?.[1]?.defaultConsent === 'denied',
+				'Wisepops arguments queue, snippet timestamp and denied default exist before loader execution'
+			);
+		},
+		createScript: () => wisepops({ siteId: 'c15tfake' }),
+		loaderUrlSubstring: 'wisepops.net/loader.js?v=3&h=c15tfake',
+		notes:
+			'The placeholder loader redirects with HTTP 301, then returns HTTP 404. This checks the denied-default bootstrap and endpoint response only; the runner can record the redirect. It cannot validate runtime startup or a campaign. Stored grants can override the denied default, and no supported consent-denied API exists. Collection stays blocked.',
+		tier: 'loader-only',
+		vendor: 'wisepops',
+	},
+
 	{
 		skipReason:
 			'Requires a configured Cloudflare zone and purpose IDs. This bridge does not fetch a public vendor loader.',

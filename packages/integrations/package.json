@@ -302,6 +302,11 @@
 			"types": "./dist-types/events.d.ts",
 			"import": "./dist/events.js",
 			"default": "./dist/events.js"
+		},
+		"./wisepops": {
+			"types": "./dist-types/vendors/functional/wisepops.d.ts",
+			"import": "./dist/vendors/functional/wisepops.js",
+			"default": "./dist/vendors/functional/wisepops.js"
 		}
 	},
 	"publishConfig": {
