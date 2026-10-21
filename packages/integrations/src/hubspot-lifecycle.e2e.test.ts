@@ -5,6 +5,7 @@ import { createConsentKernel } from '@c15t/core';
 import { createScriptLoader } from '@c15t/core/modules/script-loader';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { isolateHubSpotPage } from './__tests__/hubspot-page';
 import {
 	clearAllScripts,
 	deniedConsents,
@@ -53,7 +54,11 @@ const conversationsApi = () => {
 			listeners.add(listener);
 		}),
 		widget: {
-			load: vi.fn(),
+			load: vi.fn(() => {
+				for (const listener of listeners) {
+					listener();
+				}
+			}),
 			remove: vi.fn(),
 		},
 	};
@@ -66,6 +71,8 @@ describe('HubSpot core loader consent contract', () => {
 			Reflect.deleteProperty(window, key);
 		}
 	});
+
+	isolateHubSpotPage();
 
 	it('creates no HubSpot globals or elements before marketing consent', () => {
 		const scripts = [hubspot({ chat: true, portalId: '53' })];
@@ -248,8 +255,13 @@ describe('HubSpot core loader consent contract', () => {
 		const warning = vi
 			.spyOn(console, 'warn')
 			.mockImplementation(() => undefined);
-		const scripts = [hubspot({ portalId: '53' })];
+		const scripts = [hubspot({ portalId: '53', region: 'na1' })];
 		loadScripts(scripts, grantedMarketingConsents);
+		expect(window.disableHubSpotCookieBanner).toBe(true);
+		expect(window._hsp).toContainEqual([
+			'setHubSpotConsent',
+			{ advertisement: true, analytics: false, functionality: false },
+		]);
 		updateScripts(scripts, deniedConsents);
 		updateScripts(scripts, grantedMarketingConsents);
 		expect(document.querySelectorAll('script')).toHaveLength(1);
@@ -532,6 +544,11 @@ describe('HubSpot core loader consent contract', () => {
 		loadScripts([hubspot({ chat, portalId: '53' })], allConsents);
 		expect(window.hsConversationsSettings?.loadImmediately).toBe(false);
 		expect(api.widget.load).not.toHaveBeenCalled();
+		api.widget.load();
+		api.emitWidgetLoaded();
+		expect(api.listeners.size).toBe(0);
+		expect(api.widget.remove).not.toHaveBeenCalled();
+		expect(api.clear).not.toHaveBeenCalled();
 	});
 
 	it('removes pending chat callbacks when its provider is disposed', () => {

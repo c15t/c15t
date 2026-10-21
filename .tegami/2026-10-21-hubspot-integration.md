@@ -1,5 +1,6 @@
 ---
 packages:
+  '@c15t/core': patch
   '@c15t/integrations': minor
   '@c15t/cli': patch
   '@c15t/scripts': patch
@@ -13,4 +14,10 @@ Request HubSpot cookie revocation when any forwarded grant is withdrawn, then re
 
 Warn when a non-script element with `id="hs-script-loader"` blocks loading, with instructions to remove or rename the conflicting ID.
 
-Restore the chat completion listener when the same HubSpot script configuration remounts with a retained conversations client, so late widget events still enforce functionality withdrawal. Document that helper teardown can revoke HubSpot identity cookies while c15t's saved consent remains granted.
+Share one HubSpot controller across compatible helper configurations and their loader registrations. Intersect each owner's loader gate, vendor permission and consent fields, including initially denied owners. Ordinary nonfinal departure preserves permitted consent, chat and the late-completion guard without revocation or another widget load. Reattach the guard on permitted remounts, including with a retained SDK client.
+
+Read current core permission before releasing a script registration, so real category and vendor withdrawals still take effect during reentrant updates or replacement. Keep final teardown conservative and document that it can delete HubSpot identity cookies while c15t's saved consent remains granted.
+
+Leave chat manual unless an active owner opts in. Any `chat: true` owner requests automatic chat under every owner's actual consent restrictions; `chat: false` alone does not deny it. Stop automatic chat management when the last opt-in leaves, without removing a widget that the remaining consent permits. Retain pending widget loads through removal and remounts to avoid duplicate loads.
+
+Reserve the first configuration's portal, effective loader URL and nonce until reload. Warn and ignore incompatible configurations instead of sending grants to the wrong account. Reuse compatible external loaders with a warning and block control of incompatible external installations.

@@ -140,6 +140,387 @@ const hasLostConsent = function hasLostConsent(
 	);
 };
 
+interface HubSpotInstallation {
+	portalId: string;
+	src: string;
+	nonce: string | undefined;
+}
+
+interface HubSpotOwner {
+	chat: boolean;
+	info: ScriptCallbackInfo;
+}
+
+const controllers = new WeakMap<Window, ReturnType<typeof createController>>();
+
+const sameConsent = (left: HubSpotConsent, right: HubSpotConsent) =>
+	left.advertisement === right.advertisement &&
+	left.analytics === right.analytics &&
+	left.functionality === right.functionality;
+
+const currentInfo = (info: ScriptCallbackInfo): ScriptCallbackInfo =>
+	info.getCurrentConsent?.() ?? info;
+
+const createController = (host: Window, installation: HubSpotInstallation) => {
+	const owners = new Map<symbol, Map<symbol, HubSpotOwner>>();
+	const rejected = new Set<symbol>();
+	let consent = DENIED_CONSENT;
+	let started = false;
+	let revision = 0;
+	let client: HubSpotConversationsClient | undefined;
+	let ready: (() => void) | undefined;
+	let widgetLoaded: (() => void) | undefined;
+	let chatRequested = false;
+	let chatClearPending = false;
+	// remove() has no cancellation handle. Retain in-flight knowledge even
+	// after the last registration leaves, until that client's completion.
+	const pendingClients = new WeakSet<HubSpotConversationsClient>();
+	let externalConflict = false;
+	let finishing = 0;
+	let loadSuspensions = 0;
+
+	const aggregate = () => {
+		const active = [...owners.values()].flatMap((entries) => [
+			...entries.values(),
+		]);
+		const states = active.map((owner) => currentInfo(owner.info));
+		return {
+			chat: active.some((owner) => owner.chat),
+			consent:
+				finishing || states.length === 0
+					? DENIED_CONSENT
+					: states.map(consentFor).reduce((left, right) => ({
+							advertisement: left.advertisement && right.advertisement,
+							analytics: left.analytics && right.analytics,
+							functionality: left.functionality && right.functionality,
+						})),
+			gate:
+				!finishing &&
+				states.length > 0 &&
+				states.every(
+					(info) => info.hasConsent && info.vendor?.granted !== false
+				),
+		};
+	};
+
+	const removeChat = (conversations: HubSpotConversationsClient) => {
+		chatClearPending = false;
+		chatRequested = false;
+		conversations.widget.remove();
+		conversations.clear({ resetWidget: false });
+	};
+
+	const detachChat = () => {
+		const previousReady = ready;
+		const previousListener = widgetLoaded;
+		const previousClient = client;
+		ready = undefined;
+		widgetLoaded = undefined;
+		client = undefined;
+		if (previousReady) {
+			const index = host.hsConversationsOnReady?.indexOf(previousReady) ?? -1;
+			if (index !== -1) {
+				host.hsConversationsOnReady?.splice(index, 1);
+			}
+		}
+		if (previousListener) {
+			previousClient?.off('widgetLoaded', previousListener);
+		}
+	};
+
+	const loaderAvailable = () => {
+		if (externalConflict) {
+			return false;
+		}
+		const existing = host.document.getElementById('hs-script-loader');
+		if (!existing) {
+			return true;
+		}
+		if (!(existing instanceof HTMLScriptElement)) {
+			if (!warnedLoaders.has(existing)) {
+				warnedLoaders.add(existing);
+				console.warn(
+					'hubspot: #hs-script-loader belongs to a non-script element. HubSpot will not load; remove or rename the conflicting ID.'
+				);
+			}
+			return false;
+		}
+		if (
+			existing.src !== installation.src ||
+			(installation.nonce !== undefined &&
+				existing.nonce !== installation.nonce)
+		) {
+			externalConflict = true;
+			if (!warnedLoaders.has(existing)) {
+				warnedLoaders.add(existing);
+				console.warn(
+					'hubspot: #hs-script-loader has an incompatible URL or nonce. Consent forwarding and automatic chat will not start. Remove the other installation and reload.'
+				);
+			}
+			return false;
+		}
+		if (!ownedLoaders.has(existing) && !warnedLoaders.has(existing)) {
+			warnedLoaders.add(existing);
+			console.warn(
+				'hubspot: #hs-script-loader already exists. Reusing it; remove other HubSpot installations to keep loading consent-gated.'
+			);
+		}
+		return true;
+	};
+
+	const ensureLoader = () => {
+		if (
+			!aggregate().gate ||
+			!loaderAvailable() ||
+			host.document.getElementById('hs-script-loader')
+		) {
+			return;
+		}
+		const element = host.document.createElement('script');
+		element.async = true;
+		element.defer = true;
+		element.id = 'hs-script-loader';
+		element.src = installation.src;
+		if (installation.nonce) {
+			element.nonce = installation.nonce;
+		}
+		ownedLoaders.add(element);
+		host.document.head.appendChild(element);
+	};
+
+	const allowsChat = (state: ReturnType<typeof aggregate>) =>
+		state.chat && state.gate && state.consent.functionality;
+	const syncChat = (refresh: () => void, allowLoad: boolean) => {
+		const token = revision;
+		if (!started) {
+			return;
+		}
+		const state = aggregate();
+		if (!state.chat) {
+			detachChat();
+			return;
+		}
+		const conversations = host.HubSpotConversations;
+		if (!conversations) {
+			if (!ready) {
+				const callback = () => {
+					if (ready !== callback || !started) {
+						return;
+					}
+					const index = host.hsConversationsOnReady?.indexOf(callback) ?? -1;
+					if (index !== -1) {
+						host.hsConversationsOnReady?.splice(index, 1);
+					}
+					ready = undefined;
+					refresh();
+				};
+				ready = callback;
+				host.hsConversationsOnReady ??= [];
+				host.hsConversationsOnReady.push(callback);
+			}
+			return;
+		}
+		if (client !== conversations) {
+			const previousListener = widgetLoaded;
+			const previousClient = client;
+			widgetLoaded = undefined;
+			client = undefined;
+			if (previousListener) {
+				previousClient?.off('widgetLoaded', previousListener);
+			}
+			if (revision !== token || !started) {
+				return;
+			}
+			client = conversations;
+			chatRequested = false;
+			const callback = () => {
+				if (widgetLoaded !== callback || client !== conversations || !started) {
+					return;
+				}
+				pendingClients.delete(conversations);
+				const latest = aggregate();
+				if (latest.chat && !allowsChat(latest)) {
+					removeChat(conversations);
+				} else if (allowsChat(latest)) {
+					chatRequested = true;
+				}
+			};
+			widgetLoaded = callback;
+			conversations.on('widgetLoaded', callback);
+			if (revision !== token || !started) {
+				return;
+			}
+		}
+		if (chatClearPending) {
+			removeChat(conversations);
+		}
+		if (revision !== token || !started) {
+			return;
+		}
+		const latest = aggregate();
+		if (
+			allowLoad &&
+			allowsChat(latest) &&
+			!chatRequested &&
+			!pendingClients.has(conversations)
+		) {
+			chatRequested = true;
+			pendingClients.add(conversations);
+			conversations.widget.load();
+		}
+	};
+
+	const canStart = (gate: boolean, allowLoad: boolean) =>
+		allowLoad && gate && loaderAvailable();
+	const reconcile = (force: boolean, allowLoad = true) => {
+		const canLoad = allowLoad && loadSuspensions === 0;
+		let sendConsent = force;
+		revision += 1;
+		const token = revision;
+		const next = aggregate();
+		if (!started) {
+			if (!canStart(next.gate, canLoad)) {
+				return;
+			}
+			started = true;
+			host.disableHubSpotCookieBanner = true;
+			host._hsq ??= new Array<unknown[]>();
+			host._hsp ??= new Array<unknown[]>();
+			host.hsConversationsSettings = {
+				...host.hsConversationsSettings,
+				loadImmediately: false,
+			};
+			sendConsent = true;
+		}
+		const changed = !sameConsent(consent, next.consent);
+		const revoke = hasLostConsent(consent, next.consent);
+		chatClearPending ||=
+			next.chat && consent.functionality && !next.consent.functionality;
+		// Commit state before calling APIs that can synchronously change consent
+		// or dispose a registration. Every privileged effect rereads the gate.
+		const { consent: nextConsent } = next;
+		consent = nextConsent;
+		const isCurrent = () => {
+			if (revision !== token) {
+				return false;
+			}
+			const latest = aggregate();
+			if (
+				!sameConsent(latest.consent, next.consent) ||
+				latest.gate !== next.gate ||
+				latest.chat !== next.chat
+			) {
+				reconcile(false, canLoad);
+				return false;
+			}
+			return true;
+		};
+		if (revoke) {
+			host._hsp?.push(['revokeCookieConsent']);
+		}
+		if (!isCurrent()) {
+			return;
+		}
+		if (changed || sendConsent) {
+			host._hsp?.push(['setHubSpotConsent', { ...consent }]);
+		}
+		if (!isCurrent()) {
+			return;
+		}
+		syncChat(() => reconcile(false), canLoad);
+		if (!isCurrent()) {
+			return;
+		}
+		if (canLoad) {
+			ensureLoader();
+		}
+	};
+
+	return {
+		release(config: symbol, registration: symbol, info: ScriptCallbackInfo) {
+			const registrations = owners.get(config);
+			const owner = registrations?.get(registration);
+			if (!owner) {
+				return;
+			}
+			owner.info = info;
+			const isFinalOwner = () =>
+				owners.size === 1 &&
+				registrations?.size === 1 &&
+				registrations.has(registration);
+			let final = isFinalOwner();
+			// Disposal can observe a queued grant. Apply withdrawal, but start no
+			// new work until the departing registration has been released.
+			loadSuspensions += 1;
+			if (final) {
+				finishing += 1;
+			}
+			reconcile(final, false);
+			if (!final && isFinalOwner()) {
+				final = true;
+				finishing += 1;
+				reconcile(true, false);
+			}
+			registrations?.delete(registration);
+			if (registrations?.size === 0) {
+				owners.delete(config);
+			}
+			if (final) {
+				finishing -= 1;
+			}
+			if (owners.size === 0) {
+				started = false;
+				chatRequested = false;
+				detachChat();
+			}
+			if (info.replacing === true) {
+				// The incoming registration will supply its own gate. Keep this
+				// restriction through synchronous callbacks from consent commands.
+				reconcile(false, false);
+				if (info.afterReplacement) {
+					info.afterReplacement(() => {
+						loadSuspensions -= 1;
+						reconcile(false);
+					});
+					return;
+				}
+			}
+			loadSuspensions -= 1;
+			if (owners.size > 0 && info.replacing !== true) {
+				reconcile(false);
+			}
+		},
+		update(
+			config: symbol,
+			registration: symbol,
+			settings: HubSpotInstallation,
+			chat: boolean,
+			info: ScriptCallbackInfo
+		) {
+			if (
+				settings.portalId !== installation.portalId ||
+				settings.src !== installation.src ||
+				(settings.nonce !== undefined && settings.nonce !== installation.nonce)
+			) {
+				if (!rejected.has(config)) {
+					rejected.add(config);
+					console.warn(
+						'hubspot: conflicting portal, loader URL or explicit nonce. Keep one compatible HubSpot installation per page; reload to change it. This configuration will not control the installed SDK.'
+					);
+				}
+				return;
+			}
+			let registrations = owners.get(config);
+			if (!registrations) {
+				registrations = new Map();
+				owners.set(config, registrations);
+			}
+			registrations.set(registration, { chat, info });
+			reconcile(true);
+		},
+	};
+};
+
 /**
  * Loads HubSpot after marketing consent and forwards c15t's consent categories.
  *
@@ -157,7 +538,8 @@ const hasLostConsent = function hasLostConsent(
  * reload on revocation enabled to stop the current page's running code.
  *
  * Remove other HubSpot installations. An existing `hs-script-loader` script is
- * reused, but the helper cannot control requests that installation already sent.
+ * reused only with a compatible URL and nonce. The helper cannot control
+ * requests that installation already sent.
  * A non-script element with that ID blocks loading and logs a warning once.
  * Remove or rename the conflicting ID to allow the helper to insert its loader.
  * Wrapped setup runs in the browser after hydration, including returning grants.
@@ -169,177 +551,69 @@ const hasLostConsent = function hasLostConsent(
  */
 export const hubspot = function hubspot(options: HubSpotOptions): Script {
 	const category = (options?.category ?? 'marketing') as Script['category'];
-	const portalId = readId(options?.portalId);
-	if (portalId === undefined || !PORTAL_ID_PATTERN.test(portalId)) {
+	const rawPortalId = readId(options?.portalId);
+	if (rawPortalId === undefined || !PORTAL_ID_PATTERN.test(rawPortalId)) {
 		return skipMissingId('hubspot', 'portalId', {
 			category,
 			manifest: hubspotManifest,
 		});
 	}
+	const portalId = rawPortalId.replace(/^0+(?=\d)/u, '');
 	const script = resolveManifest(hubspotManifest, {
 		scriptUrl:
 			trimToUndefined(options.scriptUrl) ??
 			defaultScriptUrl(portalId, options.region),
 	});
-	let consent = DENIED_CONSENT;
-	let started = false;
-	let chatRequested = false;
-	let chatClearPending = false;
-	let readyQueued = false;
-	let disposed = false;
-	let conversationsClient: HubSpotConversationsClient | undefined;
-
-	const removeChat = (client: HubSpotConversationsClient) => {
-		client.widget.remove();
-		// resetWidget: true recreates the widget after clearing its cookies.
-		client.clear({ resetWidget: false });
-		chatClearPending = false;
-		chatRequested = false;
+	const config = Symbol('hubspot-configuration');
+	const fallbackRegistration = Symbol('hubspot-registration');
+	const settings = {
+		nonce: trimToUndefined(options.nonce),
+		portalId,
+		src: script.src as string,
 	};
-
-	const onWidgetLoaded = () => {
-		if (
-			conversationsClient &&
-			(!consent.functionality || options.chat !== true)
-		) {
-			removeChat(conversationsClient);
-		}
-	};
-
-	const syncChat = () => {
-		if (disposed) {
+	const update = (info: ScriptCallbackInfo) => {
+		if (typeof window === 'undefined') {
 			return;
 		}
-		const conversations = window.HubSpotConversations;
-		if (!conversations) {
-			return;
+		const installation = {
+			...settings,
+			src: new URL(settings.src, document.baseURI).href,
+		};
+		let controller = controllers.get(window);
+		if (!controller) {
+			controller = createController(window, installation);
+			controllers.set(window, controller);
 		}
-		if (conversationsClient !== conversations) {
-			conversationsClient?.off('widgetLoaded', onWidgetLoaded);
-			conversationsClient = conversations;
-			conversations.on('widgetLoaded', onWidgetLoaded);
-		}
-		if (chatClearPending) {
-			removeChat(conversations);
-		}
-		if (options.chat === true && consent.functionality && !chatRequested) {
-			chatRequested = true;
-			conversations.widget.load();
-		}
+		controller.update(
+			config,
+			info.registration ?? fallbackRegistration,
+			installation,
+			options.chat === true,
+			info
+		);
 	};
-
-	const onConversationsReady = () => {
-		readyQueued = false;
-		syncChat();
-	};
-
-	const updateConsent = (info: ScriptCallbackInfo) => {
-		if (disposed) {
-			return;
-		}
-		const next = consentFor(info);
-		if (!started && (!info.hasConsent || info.vendor?.granted === false)) {
-			return;
-		}
-		if (!started) {
-			started = true;
-			window.disableHubSpotCookieBanner = true;
-			window._hsq ??= new Array<unknown[]>();
-			window._hsp ??= new Array<unknown[]>();
-			window.hsConversationsSettings = {
-				...window.hsConversationsSettings,
-				loadImmediately: false,
-			};
-		}
-		const revokeCookies = hasLostConsent(consent, next);
-		chatClearPending ||= consent.functionality && !next.functionality;
-		consent = next;
-		if (revokeCookies) {
-			window._hsp?.push(['revokeCookieConsent']);
-		}
-		// Cookie revocation also denies HubSpot's categories. Restore the actual
-		// remaining grants after cleanup, rather than leaving them all denied.
-		window._hsp?.push(['setHubSpotConsent', { ...consent }]);
-		if (options.chat === true && !window.HubSpotConversations && !readyQueued) {
-			window.hsConversationsOnReady ??= [];
-			window.hsConversationsOnReady.push(onConversationsReady);
-			readyQueued = true;
-		}
-		syncChat();
-	};
-
-	const ensureLoader = (info: ScriptCallbackInfo) => {
-		if (!info.hasConsent || info.vendor?.granted === false || disposed) {
-			return;
-		}
-		const existing = document.getElementById('hs-script-loader');
-		if (existing) {
-			if (!(existing instanceof HTMLScriptElement)) {
-				if (!warnedLoaders.has(existing)) {
-					warnedLoaders.add(existing);
-					console.warn(
-						'hubspot: #hs-script-loader belongs to a non-script element. HubSpot will not load; remove or rename the conflicting ID.'
-					);
-				}
-				return;
-			}
-			if (
-				(!ownedLoaders.has(existing) || existing.src !== script.src) &&
-				!warnedLoaders.has(existing)
-			) {
-				warnedLoaders.add(existing);
-				console.warn(
-					'hubspot: #hs-script-loader already exists. Reusing it; remove other HubSpot installations to keep loading consent-gated.'
-				);
-			}
-			return;
-		}
-		const element = document.createElement('script');
-		element.async = true;
-		element.defer = true;
-		element.id = 'hs-script-loader';
-		element.src = script.src as string;
-		const nonce = trimToUndefined(options.nonce);
-		if (nonce) {
-			element.nonce = nonce;
-		}
-		ownedLoaders.add(element);
-		document.head.appendChild(element);
-	};
-
 	return {
 		...script,
 		callbackOnly: true,
 		category,
 		observeConsentBeforeLoad: true,
 		onBeforeLoad(info) {
-			disposed = false;
-			updateConsent(info);
+			update(info);
 			script.onBeforeLoad?.(info);
-			ensureLoader(info);
 		},
 		onConsentChange(info) {
-			updateConsent(info);
+			update(info);
 			script.onConsentChange?.(info);
-			ensureLoader(info);
 		},
 		onDispose(info) {
-			if (typeof window === 'undefined' || !started) {
+			if (typeof window === 'undefined') {
 				return;
 			}
-			updateConsent({ ...info, hasConsent: false });
-			disposed = true;
-			const callbacks = window.hsConversationsOnReady;
-			const index = callbacks?.indexOf(onConversationsReady) ?? -1;
-			if (callbacks && index !== -1) {
-				callbacks.splice(index, 1);
-			}
-			readyQueued = false;
-			conversationsClient?.off('widgetLoaded', onWidgetLoaded);
-			conversationsClient = undefined;
+			controllers
+				.get(window)
+				?.release(config, info.registration ?? fallbackRegistration, info);
 			script.onDispose?.(info);
 		},
-		// The wrapper must run before HubSpot; defer startup to the browser loader.
 		serverStart: undefined,
 	};
 };

@@ -14,6 +14,7 @@ import {
 	declareOwnedVendors,
 	forgetOwnedVendors,
 	isValidVendorId,
+	withoutOwnedVendors,
 } from '../../libs/vendors';
 import {
 	deniedVendorIds,
@@ -33,4 +34,5 @@ export const scriptLoaderTools: ScriptLoaderTools = {
 	gateState: getEffectiveGateState,
 	has,
 	isVendorId: isValidVendorId,
+	withoutOwners: withoutOwnedVendors,
 };

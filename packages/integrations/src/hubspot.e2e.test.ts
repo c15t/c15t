@@ -3,6 +3,7 @@
  */
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { isolateHubSpotPage } from './__tests__/hubspot-page';
 import {
 	deniedConsents,
 	grantedMarketingConsents,
@@ -27,6 +28,8 @@ describe('HubSpot core loader consent contract', () => {
 			Reflect.deleteProperty(window, key);
 		}
 	});
+	isolateHubSpotPage();
+
 	it('creates no vendor globals, requests or storage before mapped consent', () => {
 		const scripts = [hubspot({ portalId: '53' })];
 		loadScripts(scripts, deniedConsents);

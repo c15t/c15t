@@ -12,6 +12,7 @@ import {
 	vendorRenders,
 	vendorsListedUnder,
 	withoutManifestVendors,
+	withoutOwnedVendors,
 	withoutSourceVendors,
 } from '../vendors';
 
@@ -769,3 +770,34 @@ test('vendorRenders is false for a slug-only or negated declaration', () => {
 		vendorRenders({ ...base, category: { or: ['marketing', 'measurement'] } })
 	).toBe(true);
 });
+
+test.each(['script', 'config'] as const)(
+	'projects departing %s ownership without changing active declarations',
+	(source) => {
+		const kernel = createConsentKernel({
+			initialVendors: {
+				declared: resolveVendors({ config: source === 'config' ? [meta] : [] }),
+				listVersion: null,
+			},
+		});
+		const departing = Symbol('departing');
+		const survivor = Symbol('survivor');
+		declareOwnedVendors(
+			kernel,
+			[{ category: 'marketing', vendor: meta.id }],
+			departing
+		);
+		declareOwnedVendors(
+			kernel,
+			[{ category: 'necessary', vendor: meta.id }],
+			survivor
+		);
+		const before = kernel.getSnapshot();
+		const projected = withoutOwnedVendors(kernel, departing);
+		expect(kernel.getSnapshot()).toBe(before);
+		expect(projected[0]?.disabled === true).toBe(source === 'script');
+		forgetOwnedVendors(kernel, departing);
+		expect(kernel.getSnapshot().vendors?.declared).toEqual(projected);
+		kernel.dispose();
+	}
+);

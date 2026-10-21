@@ -1,6 +1,7 @@
 /** @vitest-environment jsdom */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { isolateHubSpotPage } from './__tests__/hubspot-page';
 import {
 	grantedMarketingConsents,
 	loadScripts,
@@ -11,6 +12,8 @@ import type { HubSpotOptions } from './vendors/analytics/hubspot';
 
 describe('HubSpot loader configuration', () => {
 	registerVendorContractCleanup();
+
+	isolateHubSpotPage();
 
 	it('runs its consent controller in the browser before the remote loader', () => {
 		expect(hubspot({ portalId: 53 })).toMatchObject({

@@ -20,6 +20,7 @@ import type {
 	declareOwnedVendors,
 	forgetOwnedVendors,
 	isValidVendorId,
+	withoutOwnedVendors,
 } from '../../libs/vendors';
 import type {
 	ConsentKernel,
@@ -47,6 +48,11 @@ export interface ScriptLoaderTools {
 	/** Identity of this loader's callback registrations. */
 	registration?: symbol;
 
+	/** Reader bound to the script object's active lifecycle, when available. */
+	getConsentReader?: (
+		script: Script
+	) => ScriptCallbackInfo['getCurrentConsent'];
+
 	/** `extractConsentNamesFromCondition`. */
 	categoriesOf: typeof extractConsentNamesFromCondition;
 	/** `declareOwnedVendors`. */
@@ -57,6 +63,8 @@ export interface ScriptLoaderTools {
 	evaluate: typeof evaluateConsent;
 	/** `forgetOwnedVendors`. */
 	forgetOwners: typeof forgetOwnedVendors;
+	/** Project declarations after this loader leaves, without mutations. */
+	withoutOwners: typeof withoutOwnedVendors;
 	/** `getEffectiveGateState`. */
 	gateState: typeof getEffectiveGateState;
 	has: typeof has;

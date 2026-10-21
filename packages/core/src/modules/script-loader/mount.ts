@@ -31,7 +31,7 @@ export interface MountDeps {
 	/** Consent reads for callback payloads. */
 	tools: Pick<
 		ScriptLoaderTools,
-		'deniedVendors' | 'gateState' | 'registration'
+		'deniedVendors' | 'gateState' | 'getConsentReader' | 'registration'
 	>;
 	/** Stop lifecycle callbacks when disposal is requested during mounting. */
 	isDisposed: () => boolean;
@@ -157,13 +157,10 @@ const observeElement = (
 			element
 		);
 		if (current?.info) {
-			const info =
-				completion === 'error'
-					? {
-							...current.info,
-							error: new Error(`Failed to load script: ${current.script.src}`),
-						}
-					: current.info;
+			const { info } = current;
+			if (completion === 'error') {
+				info.error = new Error(`Failed to load script: ${current.script.src}`);
+			}
 			invokeCallback(
 				current.script,
 				completion === 'load' ? 'onLoad' : 'onError',

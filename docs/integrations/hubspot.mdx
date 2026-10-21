@@ -34,23 +34,41 @@ that another installation already sent.
 <include src="../shared/integrations/register-scripts.mdx" />
 
 Keep the returned script configuration stable across rerenders. The helper
-owns consent callbacks and chat listeners for that configuration.
+tracks each loader registration and shares one controller for compatible
+HubSpot configurations on the page.
 
 ## Options
 
 | Option | Default | Behavior |
 | --- | --- | --- |
-| `portalId` | Required | Numeric string or number. Surrounding string whitespace is trimmed. Missing, blank or non-numeric values log `hubspot: missing or invalid portalId` and load nothing. |
+| `portalId` | Required | Numeric string or number. Surrounding string whitespace is trimmed. Missing, blank or non-numeric values log `hubspot: missing or invalid portalId` and load nothing. Portal identity ignores leading zeros, but loader URLs must still match. |
 | `region` | None | Lowercase code from the tracking snippet, such as `na1` or `eu1`. Used only when `scriptUrl` is absent or blank. Invalid values on that default path log an error and use `js.hs-scripts.com`. Copy the actual account code; matching the format does not verify that a region exists. |
-| `scriptUrl` | `https://js.hs-scripts.com/<portalId>.js`, or its regional host | Custom loader URL. Whitespace-only values fall back to the default. This does not proxy child scripts or other HubSpot requests. |
+| `scriptUrl` | `https://js.hs-scripts.com/<portalId>.js`, or its regional host | Custom loader URL. A nonblank override is trimmed and otherwise used unchanged. Whitespace-only values fall back to the default. This does not proxy child scripts or other HubSpot requests. |
 | `category` | `marketing` | An `IntegrationConsentCondition` for the entire loader. A condition such as `{ and: ['marketing', 'measurement'] }` requires both categories. Replacing it with a weaker condition permits the whole loader and its child requests under that condition. |
-| `chat` | `false` | Set `true` to request the widget only while functionality consent and the loader condition are both granted. |
-| `nonce` | None | CSP nonce for this helper's inserted loader. Pass it here when required; the provider nonce is not forwarded to a callback-only controller. |
+| `chat` | `false` | Set `true` to opt into automatic chat. Any active accepted registration can opt in, but every registration's consent must permit the widget. Omitted or `false` leaves chat manual when no registration opts in. |
+| `nonce` | None | CSP nonce for the inserted loader. Pass it here when required; the provider nonce is not forwarded to this callback-only controller. Surrounding whitespace is trimmed and blank values count as omitted. Later explicit nonces must match the reserved nonce. |
 
 The helper inserts an HTTPS loader with `async`, `defer` and the literal ID
-`hs-script-loader`. It reuses an existing script with that ID and warns about
-an external installation or conflicting URL. It does not replace that element
-to switch portal IDs. Register one HubSpot portal per page.
+`hs-script-loader`. Register one HubSpot portal per page.
+
+The first registered configuration reserves the portal, effective loader URL
+and nonce, even if consent initially denies loading. Portal IDs compare without
+leading zeros. Loader URLs compare after the browser resolves them against the
+page URL. Region matters only through the selected URL; a nonblank `scriptUrl`
+override makes `region` irrelevant, including its validation.
+
+Later configurations must match the portal and effective URL. An omitted nonce
+accepts the reserved nonce; an explicit nonce must match it exactly. A conflict
+logs a warning and that configuration cannot control the installed SDK or send
+it grants. Its consent also does not restrict accepted owners. The helper never
+overwrites the selected loader or switches the global SDK to another account.
+The reserved identity survives final teardown. Reload the page to change it.
+
+An externally installed `hs-script-loader` with a matching URL can be reused,
+with a warning. Its nonce must also match if the reserved configuration chose
+an explicit nonce. A different URL or incompatible explicit nonce blocks
+controller startup until reload, because c15t cannot safely control that SDK.
+Reusing an external script cannot gate requests it already sent.
 
 If a non-script element has that ID, the helper leaves it untouched and does
 not insert a loader. It warns once for that element after consent permits
@@ -72,9 +90,21 @@ has a saved grant. It does not use an inline server-start snippet.
 | `marketing` | `advertisement` |
 | `functionality` | `functionality` |
 
-Missing categories become `false`. If the configured loader condition fails or
-the visitor turns off the HubSpot vendor, all three HubSpot fields become
-`false`, even when other c15t categories remain granted.
+Each active, accepted loader registration is an owner. Registering the same
+returned script with separate loaders creates separate owners. Distinct helpers
+with compatible installation options share the same controller too.
+
+For each owner, the helper evaluates that owner's complete loader condition and
+vendor permission against its own consent state. A failed gate denies all three
+HubSpot fields for that owner. Otherwise, the fields follow the table, with
+missing categories treated as `false`.
+
+The controller then intersects those per-owner fields. A shared HubSpot field
+is `true` only when every owner permits it. Compound conditions are evaluated
+per owner before combining the results. A later granted callback cannot
+override another active owner's denial. Initially denied owners restrict the
+controller too, even if their registrations have never loaded. Startup requires
+at least one owner and every owner's loader gate to pass.
 
 c15t's `necessary` and `experience` categories have no corresponding field in
 this helper. HubSpot manages its necessary cookies separately.
@@ -82,8 +112,10 @@ this helper. HubSpot manages its necessary cookies separately.
 The helper forwards these values through `_hsp.push(['setHubSpotConsent', ...])`
 before the first loader insertion and on later changes. HubSpot does not save
 these values in its consent cookies, so the helper sends them again on each
-consented page load. Before the first grant, it creates no HubSpot globals or
-queues. Existing queues and conversation settings are preserved after grant.
+consented page load. Before aggregate permission allows startup, it creates no
+HubSpot globals or queues. Existing queues and conversation settings are
+preserved at startup. A denied owner that joins later restricts the running
+installation, but cannot undo requests already sent.
 
 The HubSpot loader can inject analytics, ads pixels, forms, surveys, chat and
 other modules according to your portal settings. Its internal consent fields
@@ -95,16 +127,37 @@ analytics refusal.
 ## Chat
 
 The helper always sets `hsConversationsSettings.loadImmediately = false`
-before inserting the loader. With `chat: true`, it calls
-`HubSpotConversations.widget.load()` only while functionality and the loader
-condition are granted. If the conversations SDK becomes ready later, the
-helper checks the latest consent before loading the widget.
+before inserting the loader. Automatic chat starts when at least one active,
+accepted owner sets `chat: true`. An omitted or `false` option does not veto
+another owner's opt-in. Every owner's loader condition, vendor permission and
+functionality consent must still allow the widget before the controller calls
+`HubSpotConversations.widget.load()`. If the conversations SDK becomes ready
+later, the controller checks the latest shared consent before loading.
 
-On functionality withdrawal, the helper requests widget removal and calls
+With no owner opted in, the helper does not register chat listeners or call
+widget load, removal or chat-cookie cleanup merely because `chat` is omitted or
+`false`. Your application owns manual chat. When the last opted-in owner leaves
+and manual owners remain, the controller stops automatic chat management and
+detaches its chat listeners. It does not forcibly remove a widget that the
+remaining consent permits. Global cookie revocation can still clear chat
+identity cookies. Your application must enforce subsequent manual widget
+consent.
+
+While automatic chat is active, loss of shared functionality consent or a
+loader or vendor gate requests widget removal and calls
 `HubSpotConversations.clear({ resetWidget: false })` to clear chat cookies.
-It also checks a late `widgetLoaded` event while the configuration is active.
-It does not recreate the widget during cleanup. Removal and cookie cleanup
-do not guarantee that remote chat requests have stopped.
+The shared `widgetLoaded` listener also removes a late completion when the
+current permissions deny it. Ordinary nonfinal owner departure keeps this
+guard attached while automatic chat remains active.
+
+Widget removal does not confirm cancellation of a pending load. The controller
+retains that pending-load state through removal, final teardown and remounts
+to avoid issuing a duplicate load. Final teardown detaches the controller's
+exact ready callback and widget listener. The late-completion guard applies
+while automatic chat management is active; it does not guarantee that an
+in-flight widget can never appear after final teardown. Cleanup does not
+recreate the widget, and removal and cookie cleanup do not guarantee that
+remote chat requests stop.
 
 Chat visitor identification needs a server-generated token and is outside
 this helper's configuration. Follow the
@@ -113,11 +166,12 @@ for that separate setup.
 
 ## Withdrawal and page reload
 
-When any previously granted HubSpot field becomes denied, the helper queues
-`revokeCookieConsent`, then sends the current consent categories again. This
-includes marketing-only withdrawal without a measurement grant, and loss of
-functionality. Denying the loader condition or vendor denies all three fields
-and requests revocation if any was previously granted.
+When any previously granted shared HubSpot field becomes denied, the controller
+synchronously queues `revokeCookieConsent`, then sends the remaining shared
+grants. This includes marketing-only withdrawal without a measurement grant
+and loss of functionality. Denying any owner's loader condition or vendor
+denies all three shared fields and requests revocation if any was previously
+granted.
 
 HubSpot's `setHubSpotConsent` records and distributes consent state. It does
 not replace cookie revocation. `revokeCookieConsent` takes no category argument
@@ -130,11 +184,21 @@ Global revocation can remove chat identity cookies even when functionality
 remains granted. Restoring functionality consent does not preserve that chat
 identity.
 
-Removing or replacing a started helper, or disposing its script loader, also
+Removing a granted owner while other accepted owners remain releases only
+that registration's restriction. If shared permission stays the
+same, departure sends no revocation or all-denied pulse and causes no widget
+removal or extra load. Before releasing an owner, the controller reads its
+current core permission so a real category or vendor withdrawal still takes
+effect, including a withdrawal saved during a synchronous callback.
+
+When the last owner leaves a started controller, teardown conservatively
 denies HubSpot consent and can revoke cookies, including the `messagesUtk`
-chat identity cookie. c15t's saved consent can remain granted during this
-teardown. A permitted remount forwards the current grants, but cannot restore
-deleted identity cookies. Keep the returned script configuration stable.
+chat identity cookie. c15t's saved consent can remain granted. A replacement
+that crosses this zero-owner boundary has the same conservative behavior.
+A replacement while another owner remains can retain permission when the
+current core state still grants it. A permitted remount forwards current grants
+and reattaches chat management when opted in, but cannot restore deleted
+identity cookies. Keep the returned script configuration stable.
 
 `revokeCookieConsent` asks HubSpot to remove tracking and consent cookies. It
 can itself trigger a revocation request. It does not remove every browser
@@ -175,6 +239,13 @@ Check HubSpot's consent state with measurement and functionality toggled
 independently. With `chat: true`, verify that chat appears only after
 functionality is allowed. Test functionality withdrawal while the SDK and
 widget are still loading, then test regrant and provider remounts.
+
+If you share the configuration across loaders or use compatible helpers,
+check that an initially denied owner restricts all shared fields. Remove one
+granted owner and verify that a permitted survivor keeps its widget and late
+completion guard without another load or revocation. With no chat opt-in,
+verify that manual widget loading does not trigger helper removal or cleanup.
+Also test the last opt-in leaving while manual owners remain.
 
 Test marketing withdrawal with measurement never granted. The privacy queue
 must receive `revokeCookieConsent` before the new consent state. With a custom
