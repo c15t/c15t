@@ -7,10 +7,12 @@ icon: hotjar
 group: integrations
 ---
 
-Hotjar records what visitors do on your pages, so it should not load until they
-allow analytics. The c15t `hotjar` helper waits for `measurement` consent
-before it adds the Hotjar loader. Until then, c15t doesn't define
-`window._hjSettings` or `window.hj`, and it loads nothing from Hotjar.
+Hotjar records what visitors do on your pages, so it should load only when
+consent allows analytics. The c15t `hotjar` helper waits until the
+`measurement` category is allowed before it adds the Hotjar loader. Until then,
+c15t doesn't define `window._hjSettings` or `window.hj`, and it loads nothing
+from Hotjar. Under an opt-in policy, that wait lasts until the visitor allows
+analytics.
 
 Withdrawal needs more care. c15t sends Hotjar no consent signal, so it can't
 tell a running recording to stop. It reloads the page instead, and the reload
@@ -42,7 +44,7 @@ export const scripts = [hotjar({ siteId: 1234567 })];
 
 ## Loading and revocation
 
-`hotjar` uses the `measurement` category. When the visitor allows it, the
+`hotjar` uses the `measurement` category. When `measurement` is allowed, the
 helper sets `window._hjSettings` and a `window.hj` stub that queues calls, then
 loads the Hotjar script. If your page already defines either global, the helper
 leaves it alone.

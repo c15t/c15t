@@ -9,7 +9,7 @@ group: frameworks
 This guide is for the App Router on a Next.js server, the setup most Next.js
 apps use. When you finish, your server works out each visitor's consent and
 sends it in the same response as the page. The browser makes no `/init`
-request, and analytics wait until the visitor allows them. Consent
+request, and analytics wait until consent allows them. Consent
 choices are saved to Inth.
 
 Using the Pages Router, `output: 'export'` or cached pages? Find your app in
@@ -84,7 +84,7 @@ The config sets no `mode`, so it uses `manifest()`: the server resolves each
 visitor from the bundled policy. [Consent modes](/docs/concepts/modes) lists
 the alternatives.
 
-The example holds PostHog back until the visitor allows measurement. Swap
+The example holds PostHog back until `measurement` is allowed. Swap
 `phc_your_project_key` for your key, or use whichever
 [integration](/docs/integrations/overview) your app needs.
 `cookieless_mode: 'never'` stops PostHog from switching to cookieless capture
