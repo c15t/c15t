@@ -216,6 +216,9 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 				window.pendo === undefined,
 				'No Pendo namespace until the real agent loads'
 			),
+		// Real public key from https://web-sdk.pendo.io/ page source lets the
+		// probe load the actual agent. The runner blocks collection and account
+		// configuration requests.
 		createScript: () =>
 			pendo({ apiKey: '2a7e6935-2488-4303-61ea-eda91d575707' }),
 		loaderUrlSubstring:
