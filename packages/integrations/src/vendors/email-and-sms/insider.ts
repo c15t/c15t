@@ -29,6 +29,24 @@ export interface InsiderProduct {
 	size?: string;
 	/** Identifier shared by product variants. */
 	groupcode?: string;
+	/** Product description. */
+	description?: string;
+	/** Global Trade Item Number. */
+	gtin?: string;
+	/** Stock keeping unit. */
+	sku?: string;
+	/** Product brand. */
+	brand?: string;
+	/** Whether a unique product identifier exists, expressed as a string. */
+	identifier_exists?: string;
+	/** Product locale. */
+	locale?: string;
+	/** Product title used for Google feeds. */
+	google_title?: string;
+	/** Product gender. */
+	gender?: string;
+	/** Omnibus price, expressed as a string in the Web SDK guide. */
+	omnibus_price?: string;
 	/** Account-specific event parameters. */
 	custom?: Record<string, unknown>;
 }
@@ -44,6 +62,8 @@ export interface InsiderCartItem extends InsiderProduct {
  *
  * `home` and `other` need no payload. The SDK uses `category` for listing
  * pages, `cart` for baskets, and `purchase` for order confirmation pages.
+ * A purchase requires an application-owned, durable per-order guard. The
+ * helper does not deduplicate order IDs across reloads or reinitialization.
  *
  * @see https://academy.insiderone.com/docs/insider-web-sdk-integration-guide
  */
@@ -149,6 +169,8 @@ export interface InsiderTagOptions {
 	partnerId: string;
 	/**
 	 * Complete page definition pushed between `user` and `init`.
+	 * Only use `purchase` after a durable per-order guard permits the attempt.
+	 * Use `other` on confirmation-page revisits and keep reload on revocation.
 	 * @default { type: 'other' }
 	 */
 	pageType?: InsiderPageType;

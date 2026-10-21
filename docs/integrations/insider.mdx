@@ -40,7 +40,7 @@ page. The helper defaults to `{ type: 'other' }` when you omit page context.
 | --- | --- | --- |
 | `partnerName` | Required | Public partner name from Insider. Trimmed, lowercased, and checked as a single DNS label for `<partnerName>.api.useinsider.com`. A missing, blank, or invalid value logs an error and skips the integration. |
 | `partnerId` | Required | Public partner ID from Insider. Trimmed and encoded as one query value. A missing or blank value logs an error and skips the integration. |
-| `pageType` | `{ type: 'other' }` | Complete page push, including any required `value` fields. See the supported page definitions below. |
+| `pageType` | `{ type: 'other' }` | Complete page push, including any required `value` fields. A purchase requires the per-order guard described below. |
 | `category` | `'marketing'` | Consent condition required before creating the queue or loading the tag. Accepts a category or an `and`/`or`/`not` condition. |
 
 For an account classified as personalization, you can replace the default
@@ -60,7 +60,16 @@ or order confirmation pages `confirmation`.
 | `'category'` | `{ breadcrumb: string[] }` for a listing page. Insider requires the category hierarchy for many use cases. |
 | `'product'` | Product data with `id`, `name`, `taxonomy`, `unit_price`, `unit_sale_price`, `url`, and `product_image_url`. |
 | `'cart'` | `{ total, items, shipping_cost? }`. Each item needs the product fields and `quantity`. |
-| `'purchase'` | `{ order_id, total, items, shipping_cost? }`. Each item needs the product fields and `quantity`. Use a confirmation page that contains no payment card data. |
+| `'purchase'` | `{ order_id, total, items, shipping_cost? }`. Each item needs the product fields and `quantity`. Only for a newly completed order after the per-order guard permits it. |
+
+Products also accept the optional string fields `brand`, `description`, `gtin`,
+`sku`, `identifier_exists`, `locale`, `google_title`, `gender` and
+`omnibus_price`, plus `groupcode`, `color`, `size`, numeric `stock` and
+account-specific `custom` data. Cart and purchase items accept these fields too.
+Insider's Web SDK guide specifies strings for `identifier_exists` and
+`omnibus_price`.
+
+<include src="../shared/examples/javascript/insider-product.mdx" />
 
 The helper queues the page object followed by `init`. Insider documents that
 every `init` updates the profile and triggers a page-view event for the last
@@ -73,6 +82,34 @@ to push the new page definition followed by `init`, only while the configured
 consent condition and the Insider vendor switch are allowed. Keep your own
 `user` pushes consistent with the current consent. Insider treats an omitted
 `gdpr_optin` as `true`.
+
+### Prevent duplicate purchases
+
+**A purchase configuration requires a durable per-order guard in your app.**
+The helper does not deduplicate `order_id`. Configuring `purchase` whenever the
+confirmation URL renders would enqueue the order again on every permitted
+load. Insider's [confirmation-page guide](https://academy.insiderone.com/docs/integrate-insider-into-your-confirmation-page)
+forbids repeating the purchase after refresh, Back navigation, another page
+visit, or opening the confirmation URL in a new tab.
+
+Use an atomic claim in your order backend, keyed by the completed order ID,
+before exposing a purchase payload to the page. Only the request that claims
+that order may build `pageType: { type: 'purchase', value: ... }`. Return
+`{ type: 'other' }` for subsequent requests. An in-memory flag or a check of the
+current URL cannot protect against a reload or a second tab. Only confirmed,
+successful orders qualify, and the confirmation page must contain no payment
+card data.
+
+Do not reuse a claimed purchase configuration when recreating the helper or
+reinitializing it after withdrawal. Keep the default reload on revocation and
+rebuild the page configuration through the same order guard. Apply that guard
+to manual SPA purchase pushes too. If your app cannot enforce this rule, use
+`other` instead of configuring a purchase.
+
+This limits purchase attempts; it does not guarantee delivery. A claimed order
+may never reach Insider if the visitor denies consent or the loader fails.
+The guard must not itself create Insider globals or send Insider requests
+before effective consent. c15t still gates the configured purchase and loader.
 
 ## Loading and revocation
 
