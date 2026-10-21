@@ -119,24 +119,84 @@ describe('HubSpot core loader consent contract', () => {
 		});
 	});
 
-	it('revokes cookies on measurement loss, then restores remaining grants', () => {
-		const scripts = [hubspot({ portalId: '53' })];
-		loadScripts(scripts, allConsents);
+	it.each(['queued', 'ready'])(
+		'requests cookie revocation on marketing-only withdrawal with a %s privacy API',
+		(state) => {
+			const scripts = [hubspot({ portalId: '53' })];
+			loadScripts(scripts, grantedMarketingConsents);
+			const commands: unknown[][] = [];
+			if (state === 'ready') {
+				window._hsp = { push: (command) => commands.push(command) };
+			} else {
+				window._hsp = commands;
+			}
+			const original = document.getElementById('hs-script-loader');
+			updateScripts(scripts, deniedConsents);
+			expect(commands).toEqual([
+				['revokeCookieConsent'],
+				['setHubSpotConsent', deniedHubSpotConsent],
+			]);
+			updateScripts(scripts, deniedConsents);
+			expect(
+				commands.filter(([name]) => name === 'revokeCookieConsent')
+			).toHaveLength(1);
+			original?.dispatchEvent(new Event('load'));
+			updateScripts(scripts, grantedMarketingConsents);
+			expect(commands.at(-1)).toEqual([
+				'setHubSpotConsent',
+				{ advertisement: true, analytics: false, functionality: false },
+			]);
+			updateScripts(scripts, deniedConsents);
+			expect(commands.slice(-2)).toEqual([
+				['revokeCookieConsent'],
+				['setHubSpotConsent', deniedHubSpotConsent],
+			]);
+			expect(document.querySelectorAll('#hs-script-loader')).toHaveLength(1);
+			expect(document.getElementById('hs-script-loader')).toBe(original);
+		}
+	);
+
+	it.each([
+		{
+			category: 'marketing' as const,
+			expected: { advertisement: true, analytics: false, functionality: true },
+			next: { ...allConsents, measurement: false },
+			withdrawn: 'measurement',
+		},
+		{
+			category: 'measurement' as const,
+			expected: { advertisement: false, analytics: true, functionality: true },
+			next: { ...allConsents, marketing: false },
+			withdrawn: 'marketing',
+		},
+		{
+			category: 'marketing' as const,
+			expected: { advertisement: true, analytics: true, functionality: false },
+			next: { ...allConsents, functionality: false },
+			withdrawn: 'functionality',
+		},
+	])(
+		'requests revocation on $withdrawn loss, then restores remaining grants',
+		({ category, next, expected }) => {
+			const scripts = [hubspot({ category, portalId: '53' })];
+			loadScripts(scripts, allConsents);
+			const push = vi.fn();
+			window._hsp = { push };
+			updateScripts(scripts, next);
+			expect(push.mock.calls).toEqual([
+				[['revokeCookieConsent']],
+				[['setHubSpotConsent', expected]],
+			]);
+		}
+	);
+
+	it('keeps necessary and experience separate from HubSpot consent fields', () => {
+		const scripts = [hubspot({ category: 'necessary', portalId: '53' })];
+		loadScripts(scripts, { ...deniedConsents, experience: true });
 		const push = vi.fn();
 		window._hsp = { push };
-		updateScripts(scripts, { ...allConsents, measurement: false });
-		expect(push.mock.calls).toEqual([
-			[['revokeCookieConsent']],
-			[
-				[
-					'setHubSpotConsent',
-					{ advertisement: true, analytics: false, functionality: true },
-				],
-			],
-		]);
-		push.mockClear();
-		updateScripts(scripts, { ...allConsents, marketing: false });
-		expect(push).toHaveBeenLastCalledWith([
+		updateScripts(scripts, deniedConsents);
+		expect(push).toHaveBeenCalledExactlyOnceWith([
 			'setHubSpotConsent',
 			deniedHubSpotConsent,
 		]);
@@ -197,9 +257,9 @@ describe('HubSpot core loader consent contract', () => {
 		const push = vi.fn();
 		window._hsp = { push };
 		updateScripts(scripts, { ...allConsents, measurement: false });
-		expect(push).toHaveBeenLastCalledWith([
-			'setHubSpotConsent',
-			deniedHubSpotConsent,
+		expect(push.mock.calls).toEqual([
+			[['revokeCookieConsent']],
+			[['setHubSpotConsent', deniedHubSpotConsent]],
 		]);
 	});
 
@@ -208,18 +268,32 @@ describe('HubSpot core loader consent contract', () => {
 		const kernel = createConsentKernel();
 		const loader = createScriptLoader({ kernel, scripts });
 		try {
-			await kernel.commands.save(allConsents, { vendors: { hubspot: false } });
+			await kernel.commands.save(grantedMarketingConsents, {
+				vendors: { hubspot: false },
+			});
 			expect(window._hsp).toBeUndefined();
 			expect(document.querySelector('script')).toBeNull();
-			await kernel.commands.save(allConsents, { vendors: { hubspot: true } });
+			await kernel.commands.save(grantedMarketingConsents, {
+				vendors: { hubspot: true },
+			});
 			expect(document.getElementById('hs-script-loader')).not.toBeNull();
 			const push = vi.fn();
 			window._hsp = { push };
-			await kernel.commands.save(allConsents, { vendors: { hubspot: false } });
-			expect(push).toHaveBeenLastCalledWith([
-				'setHubSpotConsent',
-				deniedHubSpotConsent,
+			await kernel.commands.save(grantedMarketingConsents, {
+				vendors: { hubspot: false },
+			});
+			expect(push.mock.calls.slice(0, 2)).toEqual([
+				[['revokeCookieConsent']],
+				[['setHubSpotConsent', deniedHubSpotConsent]],
 			]);
+			expect(
+				push.mock.calls.filter(
+					([command]) => command[0] === 'revokeCookieConsent'
+				)
+			).toHaveLength(1);
+			for (const [command] of push.mock.calls.slice(1)) {
+				expect(command).toEqual(['setHubSpotConsent', deniedHubSpotConsent]);
+			}
 		} finally {
 			loader.dispose();
 			kernel.dispose();

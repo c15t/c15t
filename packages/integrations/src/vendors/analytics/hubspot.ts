@@ -5,7 +5,7 @@ import { resolveManifest } from '../../resolve';
 import { vendorManifestContract } from '../../types';
 import type { VendorManifest } from '../../types';
 import { readId, skipMissingId } from '../_shared/required-id';
-import { resolveScriptUrl, trimToUndefined } from '../_shared/script-url';
+import { trimToUndefined } from '../_shared/script-url';
 
 interface HubSpotConsent {
 	advertisement: boolean;
@@ -91,7 +91,8 @@ export interface HubSpotOptions {
 	portalId: string | number;
 	/**
 	 * Lowercase region code from the tracking snippet, such as `na1` or `eu1`.
-	 * Invalid values log an error and use the region-independent host.
+	 * Used only without a non-blank `scriptUrl` override. Invalid values log an
+	 * error and use the region-independent host.
 	 */
 	region?: string;
 	/**
@@ -126,6 +127,17 @@ const consentFor = function consentFor(
 		analytics: info.consents.measurement === true,
 		functionality: info.consents.functionality === true,
 	};
+};
+
+const hasLostConsent = function hasLostConsent(
+	previous: HubSpotConsent,
+	next: HubSpotConsent
+): boolean {
+	return (
+		(previous.advertisement && !next.advertisement) ||
+		(previous.analytics && !next.analytics) ||
+		(previous.functionality && !next.functionality)
+	);
 };
 
 /**
@@ -163,10 +175,9 @@ export const hubspot = function hubspot(options: HubSpotOptions): Script {
 		});
 	}
 	const script = resolveManifest(hubspotManifest, {
-		scriptUrl: resolveScriptUrl(
-			trimToUndefined(options.scriptUrl),
-			defaultScriptUrl(portalId, options.region)
-		),
+		scriptUrl:
+			trimToUndefined(options.scriptUrl) ??
+			defaultScriptUrl(portalId, options.region),
 	});
 	let consent = DENIED_CONSENT;
 	let started = false;
@@ -238,10 +249,10 @@ export const hubspot = function hubspot(options: HubSpotOptions): Script {
 				loadImmediately: false,
 			};
 		}
-		const revokeAnalytics = consent.analytics && !next.analytics;
+		const revokeCookies = hasLostConsent(consent, next);
 		chatClearPending ||= consent.functionality && !next.functionality;
 		consent = next;
-		if (revokeAnalytics) {
+		if (revokeCookies) {
 			window._hsp?.push(['revokeCookieConsent']);
 		}
 		// Cookie revocation also denies HubSpot's categories. Restore the actual

@@ -41,7 +41,7 @@ owns consent callbacks and chat listeners for that configuration.
 | Option | Default | Behavior |
 | --- | --- | --- |
 | `portalId` | Required | Numeric string or number. Surrounding string whitespace is trimmed. Missing, blank or non-numeric values log `hubspot: missing or invalid portalId` and load nothing. |
-| `region` | None | Lowercase code from the tracking snippet, such as `na1` or `eu1`. Invalid values log an error and use `js.hs-scripts.com`. Copy the actual account code; matching the format does not verify that a region exists. |
+| `region` | None | Lowercase code from the tracking snippet, such as `na1` or `eu1`. Used only when `scriptUrl` is absent or blank. Invalid values on that default path log an error and use `js.hs-scripts.com`. Copy the actual account code; matching the format does not verify that a region exists. |
 | `scriptUrl` | `https://js.hs-scripts.com/<portalId>.js`, or its regional host | Custom loader URL. Whitespace-only values fall back to the default. This does not proxy child scripts or other HubSpot requests. |
 | `category` | `marketing` | An `IntegrationConsentCondition` for the entire loader. A condition such as `{ and: ['marketing', 'measurement'] }` requires both categories. Replacing it with a weaker condition permits the whole loader and its child requests under that condition. |
 | `chat` | `false` | Set `true` to request the widget only while functionality consent and the loader condition are both granted. |
@@ -70,6 +70,9 @@ has a saved grant. It does not use an inline server-start snippet.
 Missing categories become `false`. If the configured loader condition fails or
 the visitor turns off the HubSpot vendor, all three HubSpot fields become
 `false`, even when other c15t categories remain granted.
+
+c15t's `necessary` and `experience` categories have no corresponding field in
+this helper. HubSpot manages its necessary cookies separately.
 
 The helper forwards these values through `_hsp.push(['setHubSpotConsent', ...])`
 before the first loader insertion and on later changes. HubSpot does not save
@@ -105,11 +108,22 @@ for that separate setup.
 
 ## Withdrawal and page reload
 
-When effective measurement consent changes from granted to denied, the helper
-queues `revokeCookieConsent`, then sends the current consent categories again.
-Cookie revocation resets HubSpot's categories too, so this order restores any
-remaining grants. If the helper condition or vendor is denied, the final
-state denies every field.
+When any previously granted HubSpot field becomes denied, the helper queues
+`revokeCookieConsent`, then sends the current consent categories again. This
+includes marketing-only withdrawal without a measurement grant, and loss of
+functionality. Denying the loader condition or vendor denies all three fields
+and requests revocation if any was previously granted.
+
+HubSpot's `setHubSpotConsent` records and distributes consent state. It does
+not replace cookie revocation. `revokeCookieConsent` takes no category argument
+and resets HubSpot's categories too, so the helper sends the remaining grants
+after it. A partial withdrawal can therefore clear tracking cookies associated
+with categories that remain granted. HubSpot may create cookies again under
+those remaining grants.
+
+Global revocation can remove chat identity cookies even when functionality
+remains granted. Restoring functionality consent does not preserve that chat
+identity.
 
 `revokeCookieConsent` asks HubSpot to remove tracking and consent cookies. It
 can itself trigger a revocation request. It does not remove every browser
@@ -150,6 +164,12 @@ Check HubSpot's consent state with measurement and functionality toggled
 independently. With `chat: true`, verify that chat appears only after
 functionality is allowed. Test functionality withdrawal while the SDK and
 widget are still loading, then test regrant and provider remounts.
+
+Test marketing withdrawal with measurement never granted. The privacy queue
+must receive `revokeCookieConsent` before the new consent state. With a custom
+loader condition, also test partial withdrawal and check that remaining grants
+reach HubSpot after revocation. Inspect actual cookies and requests for your
+portal, since queued commands alone do not prove cookie removal or shutdown.
 
 The portal can contact `*.hs-scripts.com`, `*.hs-analytics.net`,
 `*.hs-banner.com`, `*.hscollectedforms.net`, `*.usemessages.com`,

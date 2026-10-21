@@ -70,6 +70,41 @@ describe('HubSpot loader configuration', () => {
 		}
 	);
 
+	it('ignores an unused invalid region when a proxy URL is supplied', () => {
+		const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+		loadScripts(
+			[
+				hubspot({
+					portalId: '53',
+					region: 'EU1',
+					scriptUrl: ' https://cdn.example.com/hubspot.js ',
+				}),
+			],
+			grantedMarketingConsents
+		);
+		expect(document.querySelector('script')?.src).toBe(
+			'https://cdn.example.com/hubspot.js'
+		);
+		expect(error).not.toHaveBeenCalled();
+	});
+
+	it.each([undefined, '', '   '])(
+		'validates the region when scriptUrl %j falls back to the default',
+		(scriptUrl) => {
+			const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+			loadScripts(
+				[hubspot({ portalId: '53', region: 'EU1', scriptUrl })],
+				grantedMarketingConsents
+			);
+			expect(document.querySelector('script')?.src).toBe(
+				'https://js.hs-scripts.com/53.js'
+			);
+			expect(error).toHaveBeenCalledExactlyOnceWith(
+				'hubspot: invalid region. Using https://js.hs-scripts.com.'
+			);
+		}
+	);
+
 	it.each(['EU1', '../eu1', '//example.com', 'eu1.example.com'])(
 		'rejects invalid region %j and uses the default host',
 		(region) => {
