@@ -4,20 +4,29 @@ import { resolveManifest } from '../../resolve';
 import { vendorManifestContract } from '../../types';
 import type { VendorManifest } from '../../types';
 import { readId, skipMissingId } from '../_shared/required-id';
-import { createScriptReuse } from '../_shared/reuse-script';
+import {
+	createScriptReuse,
+	getScriptRegistrations,
+} from '../_shared/reuse-script';
 import { resolveScriptUrl, trimToUndefined } from '../_shared/script-url';
 
-/** Six-field queue entry for FullStory's synchronous v2 calls. */
+/** FullStory v2 dispatcher arguments, including Async completion callbacks. */
 export type FullStoryCall = [
-	string,
-	unknown,
-	unknown,
-	unknown,
-	unknown,
-	number,
+	command: string,
+	argument: unknown,
+	source: unknown,
+	resolve: ((value: unknown) => void) | undefined,
+	reject: ((reason: unknown) => void) | undefined,
+	version: number,
 ];
-/** Callable namespace for synchronous v2 controls; the SDK attaches _api. */
+/** Callable v2 namespace. Async commands return promises before and after load. */
 export interface FullStoryApi {
+	(
+		command: `${string}Async`,
+		argument?: unknown,
+		source?: unknown,
+		version?: number
+	): Promise<unknown>;
 	(
 		command: string,
 		argument?: unknown,
@@ -29,6 +38,153 @@ export interface FullStoryApi {
 	_v?: string;
 	_w?: { fetch?: typeof fetch; XMLHttpRequest: typeof XMLHttpRequest };
 }
+
+const asyncCommand = /Async$/u;
+
+const rejectQueue = (api: FullStoryApi, error: Error): void => {
+	const queue = api.q;
+	if (!queue) {
+		return;
+	}
+	const reject = (...calls: FullStoryCall[]): number => {
+		for (const call of calls) {
+			call[4]?.(error);
+		}
+		return 0;
+	};
+	reject(...queue);
+	queue.length = 0;
+	queue.push = reject;
+};
+
+// Matches @fullstory/snippet 2.1.0: strip Async and forward six arguments.
+const createApi = (): FullStoryApi => {
+	const metadata: Pick<FullStoryApi, 'q' | '_api' | '_v' | '_w'> = {
+		_v: '2.1.0',
+		_w: { XMLHttpRequest: window.XMLHttpRequest, fetch: window.fetch },
+		q: [],
+	};
+	// oxlint-disable-next-line no-use-before-define -- The callable and its SDK metadata share one identity.
+	const api = Object.assign(call, metadata);
+	function call(
+		command: `${string}Async`,
+		argument?: unknown,
+		source?: unknown,
+		version?: number
+	): Promise<unknown>;
+	function call(
+		command: string,
+		argument?: unknown,
+		source?: unknown,
+		version?: number
+	): unknown;
+	function call(
+		command: string,
+		argument?: unknown,
+		source?: unknown,
+		version = 2
+	): unknown {
+		const dispatch = (
+			name: string,
+			resolve?: FullStoryCall[3],
+			reject?: FullStoryCall[4]
+		): unknown => {
+			if (api._api) {
+				return api._api(name, argument, source, resolve, reject, version || 2);
+			}
+			api.q?.push([name, argument, source, resolve, reject, version || 2]);
+			return undefined;
+		};
+		if (asyncCommand.test(command)) {
+			return new Promise<unknown>((resolve, reject) => {
+				dispatch(command.replace(asyncCommand, ''), resolve, reject);
+			});
+		}
+		return dispatch(command);
+	}
+	if (window.fetch) {
+		window.fetch = Object.assign(function instrumentedFetch(
+			this: Window,
+			...args: Parameters<typeof fetch>
+		): Promise<Response> {
+			const original = api._w?.fetch;
+			if (!original) {
+				throw new Error('fullStory: saved fetch is unavailable');
+			}
+			return original.apply(this, args);
+		}, window.fetch);
+	}
+	return api;
+};
+
+interface Recorder {
+	api: FullStoryApi;
+	element?: HTMLScriptElement;
+	configuration: string;
+	loaded: boolean;
+	started: boolean;
+	appliedConsent?: boolean;
+	appliedElementConsent?: boolean;
+}
+interface Gate {
+	consent: boolean;
+	elementConsent: boolean;
+}
+const recorders = new WeakMap<FullStoryApi, Recorder>();
+const gates = new WeakMap<Document, Set<Gate>>();
+const reloadError = (): Error =>
+	new Error(
+		'fullStory: reload the page to change the recorder configuration or replace an existing FS installation'
+	);
+const applyRecorderConsent = (recorder: Recorder): void => {
+	if (!recorder.loaded) {
+		return;
+	}
+	const owners = [...(gates.get(document) ?? [])];
+	const consent =
+		window.FS === recorder.api &&
+		owners.length > 0 &&
+		owners.every((owner) => owner.consent);
+	const elementConsent =
+		consent && owners.every((owner) => owner.elementConsent);
+	if (
+		recorder.appliedConsent === consent &&
+		recorder.appliedElementConsent === elementConsent
+	) {
+		return;
+	}
+	recorder.api('setIdentity', { consent: elementConsent });
+	if (recorder.appliedConsent !== consent) {
+		if (consent) {
+			recorder.api(recorder.started ? 'restart' : 'start');
+			recorder.started = true;
+		} else {
+			recorder.api('shutdown');
+		}
+	}
+	recorder.appliedConsent = consent;
+	recorder.appliedElementConsent = elementConsent;
+};
+const configurationOf = (options: FullStoryOptions): string =>
+	JSON.stringify([
+		readId(options.orgId),
+		trimToUndefined(options.host) ?? 'fullstory.com',
+		trimToUndefined(options.script) ?? 'edge.fullstory.com/s/fs.js',
+		resolveScriptUrl(
+			options.scriptUrl,
+			`https://${trimToUndefined(options.script) ?? 'edge.fullstory.com/s/fs.js'}?org=${encodeURIComponent(readId(options.orgId) ?? '')}`
+		),
+	]);
+const matchingRecorder = (configuration: string): Recorder | undefined => {
+	if (!window.FS) {
+		return undefined;
+	}
+	const recorder = recorders.get(window.FS);
+	if (!recorder || recorder.configuration !== configuration) {
+		throw reloadError();
+	}
+	return recorder;
+};
 declare global {
 	interface Window {
 		FS?: FullStoryApi;
@@ -99,38 +255,51 @@ const createFullStory = function createFullStory(
 			`https://${scriptPath}?org=${encodeURIComponent(orgId)}`
 		),
 	});
-	let hasConsent = false;
-	let started = false;
-	let loaded = false;
-	let appliedConsent: boolean | undefined;
-	const applyConsent = (): void => {
-		if (!loaded || appliedConsent === hasConsent) {
-			return;
+	const configuration = configurationOf(options);
+	const gate: Gate = {
+		consent: false,
+		elementConsent: options.elementConsent ?? false,
+	};
+	let ownedRecorder: Recorder | undefined;
+	const updateGate = (consent: boolean): void => {
+		gate.consent = consent;
+		let owners = gates.get(document);
+		if (!owners) {
+			owners = new Set();
+			gates.set(document, owners);
 		}
-		const api = window.FS;
-		if (!api) {
-			throw new Error('fullStory: loader did not install the FS API');
+		owners.add(gate);
+	};
+	const update = (consent: boolean): void => {
+		updateGate(consent);
+		const recorder = ownedRecorder ?? matchingRecorder(configuration);
+		if (recorder) {
+			ownedRecorder = recorder;
+			applyRecorderConsent(recorder);
 		}
-		api('setIdentity', {
-			consent: hasConsent && (options.elementConsent ?? false),
-		});
-		if (hasConsent) {
-			api(started ? 'restart' : 'start');
-			started = true;
-		} else {
-			api('shutdown');
-		}
-		appliedConsent = hasConsent;
 	};
 	return {
 		...script,
 		category,
-		onBeforeLoad({ hasConsent: consent }) {
-			hasConsent = consent;
-			if (!hasConsent) {
+		observeConsentBeforeLoad: true,
+		onBeforeLoad(info) {
+			const { element, hasConsent } = info;
+			const src = element?.isConnected ? null : element?.getAttribute('src');
+			// Core still inserts the element if configuration validation throws.
+			if (src) {
+				element?.removeAttribute('src');
+			}
+			const existing = matchingRecorder(configuration);
+			ownedRecorder = existing;
+			updateGate(hasConsent);
+			if (existing) {
+				if (element === existing.element && src) {
+					element?.setAttribute('src', src);
+				}
+				applyRecorderConsent(existing);
 				return;
 			}
-			if (window.FS) {
+			if (!getScriptRegistrations(info).some((owner) => owner.hasConsent)) {
 				return;
 			}
 			window._fs_org = orgId;
@@ -138,51 +307,57 @@ const createFullStory = function createFullStory(
 			window._fs_script = scriptPath;
 			window._fs_capture_on_startup = false;
 			window._fs_namespace = 'FS';
-			const api: FullStoryApi = (command, argument, source, version = 2) => {
-				if (api._api) {
-					return api._api(
-						command,
-						argument,
-						source,
-						undefined,
-						undefined,
-						version
-					);
-				}
-				api.q?.push([command, argument, source, undefined, undefined, version]);
+			const api = createApi();
+			const recorder: Recorder = {
+				api,
+				configuration,
+				element,
+				loaded: false,
+				started: false,
 			};
-			api.q = [];
-			api._v = '2.1.0';
-			api._w = { XMLHttpRequest: window.XMLHttpRequest, fetch: window.fetch };
-			if (window.fetch) {
-				window.fetch = Object.assign(function instrumentedFetch(
-					this: Window,
-					...args: Parameters<typeof window.fetch>
-				): Promise<Response> {
-					return (api._w as { fetch: typeof fetch }).fetch.apply(this, args);
-				}, window.fetch);
-			}
+			recorders.set(api, recorder);
+			ownedRecorder = recorder;
 			window.FS = api;
+			// Removing an async script cannot guarantee that its execution stops.
+			// Keep completion across disposal so remounts reuse even a pending SDK.
+			element?.addEventListener(
+				'load',
+				() => {
+					recorder.loaded = true;
+					applyRecorderConsent(recorder);
+				},
+				{ once: true }
+			);
+			element?.addEventListener(
+				'error',
+				() => {
+					rejectQueue(api, new Error(`fullStory: error loading ${script.src}`));
+				},
+				{ once: true }
+			);
 			api('init', {
 				env: { captureOnStartup: false, host, orgId, script: scriptPath },
 			});
+			if (src) {
+				element?.setAttribute('src', src);
+			}
 		},
-		onConsentChange({ hasConsent: consent }) {
-			hasConsent = consent;
-			applyConsent();
+		onConsentChange({ hasConsent }) {
+			update(hasConsent);
 		},
 		onDispose() {
-			hasConsent = false;
-			applyConsent();
-			loaded = false;
+			gates.get(document)?.delete(gate);
+			if (ownedRecorder) {
+				applyRecorderConsent(ownedRecorder);
+			}
 		},
-		onLoad({ element, hasConsent: consent }) {
-			if (!element?.isConnected) {
+		onLoad({ hasConsent }) {
+			updateGate(hasConsent);
+			const recorder = matchingRecorder(configuration);
+			if (!recorder) {
 				return;
 			}
-			hasConsent = consent;
-			loaded = true;
-			applyConsent();
+			applyRecorderConsent(recorder);
 		},
 	};
 };
@@ -192,6 +367,7 @@ const createFullStory = function createFullStory(
  * Capture is always disabled at initialization, including in-flight revocation.
  * @param options - FullStory organization, endpoint and element consent.
  * @returns A gated script, or an inactive script for a missing organization ID.
+ * @throws {Error} If FS belongs to another installer or recorder endpoints have changed. Reload the page first.
  * @example fullStory({ orgId: 'YOUR_ORG_ID' });
  * @see https://developer.fullstory.com/browser/getting-started/
  */
@@ -202,5 +378,26 @@ export const fullStory = function fullStory(options: FullStoryOptions): Script {
 			manifest: fullStoryManifest,
 		});
 	}
-	return reuseFullStory(options, createFullStory);
+	const configuration = configurationOf(options);
+	if (typeof document !== 'undefined') {
+		matchingRecorder(configuration);
+	}
+	const script = reuseFullStory(options, createFullStory);
+	// A retained runtime, including a pending download, needs callbacks only.
+	// Evaluate at mount time because callers can retain scripts across disposal.
+	Object.defineProperty(script, 'callbackOnly', {
+		configurable: true,
+		enumerable: true,
+		get: () => {
+			if (typeof window === 'undefined' || !window.FS) {
+				return false;
+			}
+			const recorder = recorders.get(window.FS);
+			return (
+				!recorder?.element?.isConnected ||
+				recorder.configuration !== configuration
+			);
+		},
+	});
+	return script;
 };

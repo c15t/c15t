@@ -195,7 +195,7 @@ const observeElement = (
 		elementCompletions.set(element, 'error');
 		complete('error');
 	};
-	if (script.src) {
+	if (element.src) {
 		element.addEventListener('load', onLoad);
 		element.addEventListener('error', onError);
 	}
@@ -312,7 +312,7 @@ const completeMount = (deps: MountDeps, pending: PendingMount): void => {
 	if (deps.isDisposed()) {
 		return;
 	}
-	if (!script.src) {
+	if (!element.src) {
 		// Inline adopters share completion even if the original loader is gone.
 		setTimeout(() => {
 			elementCompletions.set(element, 'load');

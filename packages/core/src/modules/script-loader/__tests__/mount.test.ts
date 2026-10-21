@@ -42,6 +42,28 @@ afterEach(() => {
 });
 
 describe('mountScript', () => {
+	test('completes an inline element when onBeforeLoad removes its external source', async () => {
+		const { deps } = makeDeps();
+		const onLoad = vi.fn();
+		mountScript(
+			deps,
+			{
+				category: 'necessary',
+				id: 'retained-sdk',
+				onBeforeLoad: ({ element }) => element?.removeAttribute('src'),
+				onLoad,
+				src: 'https://example.com/already-loaded.js',
+			},
+			createConsentKernel().getSnapshot(),
+			true,
+			null
+		);
+		expect(document.querySelector('script[src]')).toBeNull();
+		await new Promise((resolve) => {
+			setTimeout(resolve, 0);
+		});
+		expect(onLoad).toHaveBeenCalledOnce();
+	});
 	test('applies the loader nonce unless the script declares its own', () => {
 		const { deps } = makeDeps();
 		deps.nonce = 'loader-nonce';
