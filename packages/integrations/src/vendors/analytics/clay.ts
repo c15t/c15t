@@ -66,7 +66,8 @@ export interface ClayOptions {
  * @see https://university.clay.com/docs/website-tracking
  */
 export const clay = function clay(options: ClayOptions): Script {
-	const siteId = readId(options?.siteId);
+	const siteId =
+		typeof options?.siteId === 'string' ? readId(options.siteId) : undefined;
 	if (siteId === undefined) {
 		return skipMissingId('clay', 'siteId', {
 			category: 'marketing',

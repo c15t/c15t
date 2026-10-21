@@ -17,7 +17,7 @@ describe('clay', () => {
 		});
 	});
 	it('skips invalid required IDs', () => {
-		for (const id of ['', ' ', undefined, null, {}]) {
+		for (const id of ['', ' ', 42, undefined, null, {}]) {
 			expectSkippedScript(
 				() => clay({ siteId: id as string }),
 				{ category: 'marketing', id: 'clay' },

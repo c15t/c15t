@@ -26,7 +26,7 @@ Clay snippet or GTM copy so it cannot bypass c15t.
 
 | Option | Default | Behavior |
 | --- | --- | --- |
-| `siteId` | Required | Public ID from Clay's snippet. Trimmed and URL-encoded. Invalid or blank IDs log an error and skip loading. |
+| `siteId` | Required | Public ID from Clay's snippet. Trimmed and URL-encoded. Non-string, blank or invalid IDs log an error and skip loading. |
 | `scriptUrl` | `https://static.claydar.com/init.v1.js?id=<siteId>` | Override for a proxy or pinned loader. Keep the `id` query parameter because Clay reads `document.currentScript.src`. A blank override uses the default. |
 
 ## Loading and revocation
