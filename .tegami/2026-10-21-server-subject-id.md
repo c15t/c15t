@@ -26,8 +26,9 @@ decides.
 - Astro: the c15t middleware sets it on server-rendered pages, named from
   `storageConfig`. `middleware.trustForwardedHeaders` is new.
 - SvelteKit: `c15tHandle` sets it and exposes the request cookie as
-  `locals.c15t.cookie`. `storage` and `trustForwardedHeaders` are new
-  options.
+  `locals.c15t.cookie`. `storage`, `trustForwardedHeaders` and
+  `subjectCookie` are new options. With `persistence: false` on
+  `ConsentProvider`, pass `subjectCookie: false`.
 - Nuxt: the plugin sets it during server rendering, except for prerendered
   and cached routes.
 

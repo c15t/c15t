@@ -58,6 +58,7 @@ gets no subject ID cookie either.
 | `cookieName` | `string` | `c15t` | The consent cookie. Match the provider's `storageConfig.storageKey`. |
 | `storage` | `{ defaultDomain?, crossSubdomain?, defaultExpiryDays? }` | the browser defaults | The provider's `storageConfig` cookie attributes, so the subject ID cookie gets the same domain and lifetime as the one the browser writes. `cookieName` names the cookie. |
 | `trustForwardedHeaders` | `boolean` | `false` | Reads the scheme and host from `X-Forwarded-*` and `Forwarded` headers for the subject ID cookie's `Secure` flag and cross-subdomain domain. Set it only behind a proxy that overwrites those headers. |
+| `subjectCookie` | `boolean` | `true` | Set `false` when `ConsentProvider` runs with `persistence: false`. The handle and `loadConsent` then set no subject ID cookie, so each page load gets a new ID, as it does without storage. |
 | `country`, `region`, `language` | `string` | from headers | Forces the input for every request. |
 
 `event.locals.c15t` has this shape, exported as `C15tLocals`:

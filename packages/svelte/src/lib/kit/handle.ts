@@ -80,6 +80,14 @@ export interface C15tHandleOptions extends ConsentRequestOptions {
 	 * @default false
 	 */
 	trustForwardedHeaders?: boolean;
+	/**
+	 * Set `false` when `ConsentProvider` runs with `persistence: false`, so
+	 * no `c15t-sid` cookie is set and each page load gets a new subject ID,
+	 * as it does without storage.
+	 *
+	 * @default true
+	 */
+	subjectCookie?: boolean;
 }
 
 /**
@@ -204,12 +212,15 @@ export const c15tHandle = function c15tHandle(
 			...options.storage,
 			...(options.cookieName && { storageKey: options.cookieName }),
 		};
-		const subject = resolveRequestSubject({
-			request: { headers, url: event.url },
-			shared: building,
-			storage,
-			trustForwardedHeaders: options.trustForwardedHeaders,
-		});
+		const subject =
+			options.subjectCookie === false
+				? null
+				: resolveRequestSubject({
+						request: { headers, url: event.url },
+						shared: building,
+						storage,
+						trustForwardedHeaders: options.trustForwardedHeaders,
+					});
 		if (subject?.setCookie) {
 			const { header: _header, name, value, ...attributes } = subject.setCookie;
 			event.cookies.set(name, value, attributes);
@@ -251,6 +262,9 @@ export const c15tHandle = function c15tHandle(
 		}
 		if (options.trustForwardedHeaders !== undefined) {
 			locals.trustForwardedHeaders = options.trustForwardedHeaders;
+		}
+		if (options.subjectCookie === false) {
+			locals.subjectCookie = false;
 		}
 		if (subject?.setCookie) {
 			locals.cookie = subject.cookie;

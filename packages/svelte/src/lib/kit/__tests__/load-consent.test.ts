@@ -326,6 +326,24 @@ describe('loadConsent', () => {
 		expect(consent.prefetch.initialRecords?.subject?.subjectId).toBe(subjectId);
 	});
 
+	test('subjectCookie: false sets no subject cookie, also for a per-call cookieName', async () => {
+		const setCookie = vi.fn();
+		const event = await withHandle(
+			createEvent({ setCookie, url: 'https://app.example.com/' }),
+			{ mode: offline(), subjectCookie: false }
+		);
+		const first = await loadConsent(event);
+		const custom = await loadConsent(event, { cookieName: 'my-consent' });
+
+		expect(setCookie).not.toHaveBeenCalled();
+		expect(
+			first.consent.prefetch.initialRecords?.subject?.subjectId
+		).toBeUndefined();
+		expect(
+			custom.consent.prefetch.initialRecords?.subject?.subjectId
+		).toBeUndefined();
+	});
+
 	test('a prerender or a prefetch gets no subject cookie', async () => {
 		const setCookie = vi.fn();
 		await withHandle(

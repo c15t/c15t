@@ -183,7 +183,11 @@ const requestCookie = function requestCookie(
 	shared: boolean,
 	options: LoadConsentOptions
 ): string | undefined {
-	if (!locals || sameCookieName(cookieName, locals.cookieName)) {
+	if (
+		!locals ||
+		locals.subjectCookie === false ||
+		sameCookieName(cookieName, locals.cookieName)
+	) {
 		return locals?.cookie;
 	}
 	const subject = resolveRequestSubject({

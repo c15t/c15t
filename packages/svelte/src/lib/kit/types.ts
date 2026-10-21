@@ -61,6 +61,11 @@ export interface C15tLocals {
 	 * so `loadConsent` makes no upstream call and carries no visitor state.
 	 */
 	shared?: true;
+	/**
+	 * The handle's `subjectCookie: false`, so a call that reads another
+	 * cookie name sets no subject cookie either.
+	 */
+	subjectCookie?: false;
 }
 
 /** Normalized consent request context. Re-exported for `App.Locals` users. */
