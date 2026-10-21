@@ -145,7 +145,7 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 - [Mixpanel](./integrations/mixpanel-analytics.md): Load the Mixpanel SDK on every page with the c15t mixpanelAnalytics helper, which switches Mixpanel tracking on and off with measurement consent, and check it in DevTools.
 - [OneDollarStats](./integrations/one-dollar-stats.md): Load the OneDollarStats tracker only after measurement consent with the c15t oneDollarStats helper, forward its data-attribute settings, and check it in DevTools.
 - [OpenAI Pixel](./integrations/openai-pixel.md): Load the ChatGPT Ads Measurement Pixel only after marketing consent with the c15t openaiPixel helper, guard oaiq conversion calls, and check it in DevTools.
-- [Oracle Eloqua](./integrations/oracle-eloqua.md): Load Oracle Eloqua after marketing consent, configure its tracking settings, and verify loading and withdrawal with c15t.
+- [Oracle Eloqua](./integrations/oracle-eloqua.md): Load Oracle Eloqua after mapped category and vendor consent, configure its tracking settings, and verify loading and withdrawal with c15t.
 - [Integrations](./integrations/overview.md): Find all c15t integrations for analytics, tag managers, advertising, email and SMS, chat and embedded content.
 - [Pinterest Tag](./integrations/pinterest-tag.md): Load the Pinterest Tag only after marketing consent with the c15t pinterestTag helper, guard pintrk event calls, and check it in DevTools.
 - [Pirsch](./integrations/pirsch.md): Load Pirsch Analytics only after measurement consent with the c15t pirsch helper, keep custom event bindings working, and check it in DevTools.
