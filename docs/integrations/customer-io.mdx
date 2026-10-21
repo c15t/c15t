@@ -1,0 +1,48 @@
+---
+title: Customer.io
+description: Load Customer.io after marketing consent, configure its tracking settings, and verify loading and withdrawal with c15t.
+seoTitle: Customer.io cookie consent with c15t
+seoDescription: Gate Customer.io on marketing consent with c15t. Configure the loader, understand withdrawal limits, and verify vendor requests and storage.
+icon: chart-line
+group: integrations
+---
+
+`customerIo` waits for `marketing` consent before creating vendor globals or downloading Customer.io.
+
+## Configure Customer.io
+
+Create a JavaScript source in Customer.io Data Pipelines and copy its write key. Select the region of that source and remove the original snippet.
+
+<CommandTabs command="@c15t/integrations" mode="install" />
+
+<include src="../shared/examples/javascript/customer-io-configuration.mdx" />
+
+<include src="../shared/integrations/register-scripts.mdx" />
+
+## Options
+
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `writeKey` | Required | Data Pipelines JavaScript source key. |
+| `region` | `us` | `us` uses `cdp.customer.io`; `eu` uses `cdp-eu.customer.io`. |
+| `loadOptions` | Unset | Vendor loader options, including destination integration settings. |
+| `category` | `marketing` | Consent condition for the whole loader. |
+| `scriptUrl` | Region-specific snippet URL | Custom or proxied loader URL. Blank values use the default. |
+
+Missing or blank required values log an error and never load.
+
+## Loading and revocation
+
+After consent, the helper creates Customer.io's array queue and method stubs, sets `_writeKey` and `_loadOptions`, and loads the region-specific SDK. The script carries the namespace attribute required by Customer.io. Page tracking starts only after the load completes with consent still granted.
+
+Revocation calls `reset()` to clear identity. It does not stop SDK dispatch, retries or destination SDKs. Keep `reloadOnConsentRevoked` enabled. The SDK loads once per page; regrant reuses it instead of injecting another copy. On the next denied page the helper creates no queue or vendor requests.
+
+Customer.io can use analytics identity cookies and localStorage keys including `ack`, `reclaimStart`, `reclaimEnd`, `inProgress` and `queue`. Destination integrations can add storage of their own. Reset is not a promise to erase all destination data.
+
+## Verify Customer.io
+
+Check for no Customer.io snippet request, `cioanalytics`, vendor cookies or browser storage before consent and after unrelated consent. Grant marketing and verify the real SDK initialized, then revoke and check identity reset. Keep withdrawal reload enabled and confirm the next denied page stays quiet. A 200 JSON response for an invalid key is not evidence of SDK initialization.
+
+Sources: [JavaScript source](https://docs.customer.io/cdp/sources/connections/javascript/js-source/), [in-app snippet](https://docs.customer.io/integrations/data-in/connections/javascript/in-app/), and [utility methods](https://docs.customer.io/integrations/data-in/connections/javascript/utility-methods/).
+
+<include src="../shared/integrations/vendor-revocation-and-verify.mdx" />

@@ -881,7 +881,7 @@ export default defineDocsConfig({
 					title: 'Chat and support',
 				},
 				{
-					pages: ['klaviyo'],
+					pages: ['klaviyo', 'customer-io'],
 					slug: 'email-and-sms',
 					title: 'Email and SMS',
 				},

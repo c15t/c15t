@@ -62,6 +62,26 @@ describe('live vendor probe configs', () => {
 		expect(isAllowed('https://ct.pinterest.com/stats/')).toBe(false);
 	});
 
+	it('allows Customer.io settings and SDK chunks while blocking collection', () => {
+		const [config] = configsForVendor('customer-io');
+		const allowed = [
+			config?.loaderUrlSubstring,
+			...(config?.allowUrlSubstrings ?? []),
+		].filter((value): value is string => Boolean(value));
+		const isAllowed = (url: string) =>
+			allowed.some((substring) => url.includes(substring));
+		expect(
+			isAllowed(
+				'https://cdp.customer.io/v1/projects/47e549aabef763c4f2fc/settings'
+			)
+		).toBe(true);
+		expect(
+			isAllowed('https://cdp.customer.io/v1/analytics-js/inAppPlugin.js')
+		).toBe(true);
+		expect(isAllowed('https://cdp.customer.io/v1/m')).toBe(false);
+		expect(isAllowed('https://cdp.customer.io/v1/track')).toBe(false);
+	});
+
 	it('documents every vendor that asserts no runtime behavior', () => {
 		// A vendor whose loader answers placeholder credentials with an error
 		// page cannot prove its SDK started, so the probe reduces to "the

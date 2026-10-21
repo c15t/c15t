@@ -64,6 +64,10 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 		example: "crisp({ websiteId: 'YOUR_WEBSITE_ID' })",
 		importName: 'crisp',
 	},
+	'customer-io': {
+		example: "customerIo({ writeKey: 'YOUR_WRITEKEY' })",
+		importName: 'customerIo',
+	},
 	databuddy: {
 		example: "databuddy({ clientId: 'YOUR_CLIENT_ID' })",
 		importName: 'databuddy',

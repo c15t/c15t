@@ -302,6 +302,11 @@
 			"types": "./dist-types/events.d.ts",
 			"import": "./dist/events.js",
 			"default": "./dist/events.js"
+		},
+		"./customer-io": {
+			"types": "./dist-types/vendors/email-and-sms/customer-io.d.ts",
+			"import": "./dist/vendors/email-and-sms/customer-io.js",
+			"default": "./dist/vendors/email-and-sms/customer-io.js"
 		}
 	},
 	"publishConfig": {

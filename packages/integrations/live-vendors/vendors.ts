@@ -1,3 +1,4 @@
+import { linkedinInsights } from '../src/vendors/ads-and-pixels/linkedin-insights';
 /**
  * Live probe definitions for built-in `@c15t/integrations` integrations.
  *
@@ -10,8 +11,6 @@
  * account. Collection endpoints are blocked by the runner, so probes cannot
  * send real analytics data even when a vendor runtime initializes.
  */
-
-import { linkedinInsights } from '../src/vendors/ads-and-pixels/linkedin-insights';
 import { metaPixel } from '../src/vendors/ads-and-pixels/meta-pixel';
 import { microsoftUet } from '../src/vendors/ads-and-pixels/microsoft-uet';
 import type { OpenAIPixelFunction } from '../src/vendors/ads-and-pixels/openai-pixel';
@@ -58,6 +57,7 @@ import type { SentryClient } from '../src/vendors/analytics/sentry';
 import { umamiAnalytics } from '../src/vendors/analytics/umami-analytics';
 import { vercelAnalytics } from '../src/vendors/analytics/vercel-analytics';
 import { vercelSpeedInsights } from '../src/vendors/analytics/vercel-speed-insights';
+import { customerIo } from '../src/vendors/email-and-sms/customer-io';
 import { klaviyo } from '../src/vendors/email-and-sms/klaviyo';
 import { crisp } from '../src/vendors/functional/crisp';
 import { frontChat } from '../src/vendors/functional/front-chat';
@@ -209,6 +209,34 @@ type PosthogProbeWindow = Window & {
  * Probe configs for every built-in integration, ordered by registry vendor id.
  */
 export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
+	{
+		allowUrlSubstrings: [
+			'cdp.customer.io/v1/projects/47e549aabef763c4f2fc/settings',
+			'cdp.customer.io/v1/analytics-js/',
+		],
+		bootstrapCheck: () =>
+			check(
+				Array.isArray(window.cioanalytics) &&
+					window.cioanalytics?._writeKey === '47e549aabef763c4f2fc' &&
+					document.querySelector(
+						'script[data-global-customerio-analytics-key="cioanalytics"]'
+					) !== null,
+				'Customer.io namespace, array queue and write key'
+			),
+		createScript: () => customerIo({ writeKey: '47e549aabef763c4f2fc' }),
+		loaderUrlSubstring:
+			'cdp.customer.io/v1/analytics-js/snippet/47e549aabef763c4f2fc/analytics.min.js',
+		notes:
+			'Public US write key yields actual JavaScript. Invalid keys or wrong regions can return 200 JSON and do not prove SDK execution. Collection and destination endpoints are blocked; account delivery and complete destination shutdown are not verified.',
+		runtimeCheck: () =>
+			check(
+				typeof window.cioanalytics?.initialize === 'function',
+				'Customer.io installed its real analytics SDK'
+			),
+		runtimeReplacedGlobals: ['cioanalytics'],
+		tier: 'full',
+		vendor: 'customer-io',
+	},
 	{
 		skipReason:
 			'Requires a configured Cloudflare zone and purpose IDs. This bridge does not fetch a public vendor loader.',
