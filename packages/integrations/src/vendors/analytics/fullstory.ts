@@ -312,7 +312,7 @@ interface ResolvedFullStoryOptions extends FullStoryOptions {
 const fullStoryDomain = /^(?:[^.]+\.)*fullstory\.com(?:\/|$)/u;
 const regionLabel = /^[a-z]{2,3}[0-9]+$/u;
 
-// Matches @fullstory/browser 2.1.2's orgLocale and regionalize rules.
+// Matches @fullstory/browser 2.1.2's orgLocale rules.
 const orgLocale = (orgId: string): string | undefined => {
 	const sections = orgId.split('-');
 	const locale = sections.at(-1);
