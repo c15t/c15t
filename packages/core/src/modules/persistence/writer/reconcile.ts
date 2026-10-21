@@ -404,7 +404,9 @@ const reconcileNoticeSubject = function reconcileNoticeSubject(
 		movement.changed('notice')
 	) {
 		if (movement.removed('notice')) {
-			return null;
+			return stored.choice === null && stored.vendorChoice === null
+				? null
+				: candidate;
 		} else if (
 			prefersStoredSubject(
 				snapshot.subject,

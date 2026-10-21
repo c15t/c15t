@@ -793,6 +793,32 @@ const readCompactCookie = function readCompactCookie<RecordType>(
 	return { issues: [{ code: 'malformed-encoding', path: '' }], ok: false };
 };
 
+/** Attach identity only while its matching acknowledgement is still present. */
+const noticeWithSubjectCookie = function noticeWithSubjectCookie(
+	notice: DecodeResult<StoredNoticeDismissal> | null,
+	rawSubject: string | null | undefined,
+	now: number
+): DecodeResult<StoredNoticeDismissal> | null {
+	if (!notice?.ok) {
+		return notice;
+	}
+	const subject = readCompactCookie(rawSubject, (text) =>
+		decodeNoticeDismissalCompact(text, now)
+	);
+	if (
+		subject?.ok &&
+		subject.record.subject &&
+		subject.record.dismissedAt === notice.record.dismissedAt &&
+		subject.record.fingerprint === notice.record.fingerprint
+	) {
+		return {
+			ok: true,
+			record: { ...notice.record, subject: subject.record.subject },
+		};
+	}
+	return notice;
+};
+
 /**
  * Reads the local notice dismissal from its cookie projection and its
  * localStorage copy. When both are valid the newer dismissal wins, the
@@ -806,9 +832,12 @@ export const readStoredNoticeDismissal = function readStoredNoticeDismissal(
 	onUnavailable?: () => void
 ): DecodeResult<StoredNoticeDismissal> | null {
 	const keys = resolveStorageKeys(config);
-	const fromCookie = readCompactCookie(
-		getRawCookieValue(keys.notice, onUnavailable),
-		(text) => decodeNoticeDismissalCompact(text, now)
+	const fromCookie = noticeWithSubjectCookie(
+		readCompactCookie(getRawCookieValue(keys.notice, onUnavailable), (text) =>
+			decodeNoticeDismissalCompact(text, now)
+		),
+		getRawCookieValue(`${keys.notice}-subject`, onUnavailable),
+		now
 	);
 	const fromLocal = readLocalJson(
 		keys.notice,
@@ -849,9 +878,13 @@ export const readStoredNoticeDismissalFromCookieHeader =
 		now: number
 	): DecodeResult<StoredNoticeDismissal> | null {
 		const keys = resolveStorageKeys(config);
-		return readCompactCookie(
-			readCookieValueFromHeader(cookieHeader, keys.notice),
-			(text) => decodeNoticeDismissalCompact(text, now)
+		return noticeWithSubjectCookie(
+			readCompactCookie(
+				readCookieValueFromHeader(cookieHeader, keys.notice),
+				(text) => decodeNoticeDismissalCompact(text, now)
+			),
+			readCookieValueFromHeader(cookieHeader, `${keys.notice}-subject`),
+			now
 		);
 	};
 

@@ -358,7 +358,12 @@ denials never come back. The newer notice dismissal applies; it still only hides
 notice with the fingerprint it names. When a visitor acknowledges a necessary-only
 prompt, the notice record also preserves their subject ID across reloads. This
 does not create optional consent. Clearing the stored records removes that ID
-with the acknowledgement. The consent record follows the rules below.
+with the acknowledgement. The original `<key>-notice` cookie keeps its v1
+acknowledgement format for older runtimes. A separate `<key>-notice-subject`
+cookie carries identity; readers use it only while its timestamp and fingerprint
+match the acknowledgement. Removing or replacing the notice makes a stale
+identity cookie ineffective, and clearing consent deletes both cookies.
+The consent record follows the rules below.
 
 The consent record is stored twice: as a cookie, which a server render reads,
 and in localStorage. The cookie is authoritative. A well-formed cookie wins

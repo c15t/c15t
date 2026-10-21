@@ -53,6 +53,7 @@ export const clearStoredConsentRecords = function clearStoredConsentRecords(
 		keys.consent,
 		keys.legacyConsent,
 		keys.notice,
+		`${keys.notice}-subject`,
 		`${keys.consent}-privacy`,
 		keys.vendors,
 	];

@@ -242,9 +242,18 @@ export const encodeNoticeDismissalCompact =
 			field('v', 1),
 			field('t', record.dismissedAt),
 			field('f', encodeURIComponent(record.fingerprint)),
-			...subjectFields(record.subject),
 		].join(FIELD_SEPARATOR);
 	};
+
+/** Identity companion for `<key>-notice-subject`, bound to the acknowledgement. */
+export const encodeNoticeSubjectCompact = function encodeNoticeSubjectCompact(
+	record: StoredNoticeDismissal
+): string {
+	return [
+		encodeNoticeDismissalCompact(record),
+		...subjectFields(record.subject),
+	].join(FIELD_SEPARATOR);
+};
 
 // ---------------------------------------------------------------------------
 // Vendor denial list

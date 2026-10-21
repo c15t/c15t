@@ -327,7 +327,11 @@ describe('persistence: clear', () => {
 		await kernel.commands.save({ marketing: false });
 		await kernel.commands.dismissNotice();
 		flushWrites();
-		expect(cookieNames()).toEqual([STORAGE_KEY_V2, `${STORAGE_KEY_V2}-notice`]);
+		expect(cookieNames()).toEqual([
+			STORAGE_KEY_V2,
+			`${STORAGE_KEY_V2}-notice`,
+			`${STORAGE_KEY_V2}-notice-subject`,
+		]);
 
 		handle.clear();
 		flushWrites();

@@ -2,8 +2,13 @@
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 
 import { createConsentKernel } from '../../../index';
+import { getRawCookieValue } from '../../../libs/cookie';
 import { createPersistence, readStoredRecordsFromCookieHeader } from '../index';
-import { clearStoredConsentRecords } from './record-writes';
+import { resolveStorageKeys } from '../record-storage';
+import {
+	clearStoredConsentRecords,
+	encodeNoticeDismissalCompact,
+} from './record-writes';
 
 beforeEach(() => {
 	vi.useFakeTimers();
@@ -164,13 +169,14 @@ test('a canonical subject in localStorage survives a dropped cookie rewrite', as
 	const handle = createPersistence({ kernel });
 	const saving = kernel.commands.save('none');
 	await vi.advanceTimersByTimeAsync(0);
-	const staleCookie = document.cookie;
+	const identityKey = `${resolveStorageKeys().notice}-subject`;
+	const staleCookie = getRawCookieValue(identityKey);
 	response.resolve({ ok: true, subjectId: 'canonical' });
 	await saving;
 	handle.dispose();
 	kernel.dispose();
 	// Simulate a cookie write the browser dropped, while localStorage succeeded.
-	document.cookie = staleCookie;
+	document.cookie = `${identityKey}=${staleCookie}; path=/`;
 	const restored = createConsentKernel({ consentCategories: ['necessary'] });
 	const reader = createPersistence({ kernel: restored });
 	expect(restored.getSnapshot().subject?.subjectId).toBe('canonical');
@@ -205,3 +211,129 @@ test('a necessary-only visitor can make a second choice after reload with the sa
 	expect(sent[0]).toBeTruthy();
 	expect(sent[1]).toBe(sent[0]);
 });
+
+test.each(['consent', 'vendors'] as const)(
+	'removing a notice preserves the subject when the %s record is unreadable',
+	async (kind) => {
+		const kernel = createConsentKernel({ consentCategories: ['necessary'] });
+		const handle = createPersistence({ kernel });
+		const saving = kernel.commands.save('none');
+		await vi.advanceTimersByTimeAsync(0);
+		await saving;
+		await vi.advanceTimersByTimeAsync(0);
+		const { subject } = kernel.getSnapshot();
+		expect(subject?.subjectId).toBeTruthy();
+		const keys = resolveStorageKeys();
+		localStorage.setItem(keys[kind], 'unreadable');
+		document.cookie = `${keys[kind]}=unreadable; path=/`;
+		localStorage.removeItem(keys.notice);
+		document.cookie = `${keys.notice}=; max-age=0; path=/`;
+		handle.reconcile();
+		expect(kernel.getSnapshot().noticeDismissal).toBeNull();
+		expect(kernel.getSnapshot().subject).toEqual(subject);
+		handle.dispose();
+		kernel.dispose();
+	}
+);
+
+test.each([undefined, 'custom-consent'])(
+	'cookie-only identity survives reload and clear with storage key %s',
+	async (storageKey) => {
+		const storageConfig = { storageKey };
+		const kernel = createConsentKernel({
+			consentCategories: ['necessary'],
+			transport: {
+				save: () => Promise.resolve({ ok: true, subjectId: 'cookie-visitor' }),
+			},
+		});
+		const handle = createPersistence({ kernel, storageConfig });
+		const saving = kernel.commands.save('none');
+		await vi.advanceTimersByTimeAsync(0);
+		await saving;
+		await vi.advanceTimersByTimeAsync(0);
+		await vi.runOnlyPendingTimersAsync();
+		localStorage.clear();
+		const stored = readStoredRecordsFromCookieHeader(
+			document.cookie,
+			storageConfig,
+			Date.now()
+		);
+		expect(stored.subject?.subjectId).toBe('cookie-visitor');
+		expect(stored.choice).toBeNull();
+		const restored = createConsentKernel({ consentCategories: ['necessary'] });
+		const reader = createPersistence({ kernel: restored, storageConfig });
+		expect(restored.getSnapshot().subject?.subjectId).toBe('cookie-visitor');
+		reader.clear();
+		expect(
+			readStoredRecordsFromCookieHeader(
+				document.cookie,
+				storageConfig,
+				Date.now()
+			).subject
+		).toBeNull();
+		expect(
+			getRawCookieValue(`${resolveStorageKeys(storageConfig).notice}-subject`)
+		).toBeNull();
+		reader.dispose();
+		restored.dispose();
+		handle.dispose();
+		kernel.dispose();
+	}
+);
+
+test.each([
+	'absent',
+	'new-time',
+	'new-fingerprint',
+	'corrupt-subject',
+] as const)(
+	'the notice subject companion is ignored when its acknowledgement is %s',
+	async (change) => {
+		const kernel = createConsentKernel({
+			consentCategories: ['necessary'],
+			transport: {
+				save: () => Promise.resolve({ ok: true, subjectId: 'old-visitor' }),
+			},
+		});
+		const handle = createPersistence({ kernel });
+		const saving = kernel.commands.save('none');
+		await vi.advanceTimersByTimeAsync(0);
+		await saving;
+		await vi.advanceTimersByTimeAsync(0);
+		const { noticeDismissal: notice } = kernel.getSnapshot();
+		if (!notice) {
+			throw new Error('Necessary-only save must acknowledge the notice');
+		}
+		const key = resolveStorageKeys().notice;
+		handle.dispose();
+		kernel.dispose();
+		localStorage.clear();
+		await vi.advanceTimersByTimeAsync(1);
+		if (change === 'absent') {
+			document.cookie = `${key}=; max-age=0; path=/`;
+		} else if (change === 'corrupt-subject') {
+			document.cookie = `${key}-subject=invalid; path=/`;
+		} else {
+			const replacement = { ...notice };
+			if (change === 'new-time') {
+				replacement.dismissedAt += 1;
+			} else {
+				replacement.fingerprint += '-changed';
+			}
+			document.cookie = `${key}=${encodeNoticeDismissalCompact(replacement)}; path=/`;
+		}
+		const fromCookie = readStoredRecordsFromCookieHeader(
+			document.cookie,
+			undefined,
+			Date.now()
+		);
+		expect(fromCookie.subject).toBeNull();
+		expect(fromCookie.noticeDismissal === null).toBe(change === 'absent');
+		const restored = createConsentKernel({ consentCategories: ['necessary'] });
+		const reader = createPersistence({ kernel: restored });
+		expect(restored.getSnapshot().subject).toBeNull();
+		expect(restored.getSnapshot().explicitChoice).toBeNull();
+		reader.dispose();
+		restored.dispose();
+	}
+);
