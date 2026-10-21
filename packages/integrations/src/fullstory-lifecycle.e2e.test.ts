@@ -70,7 +70,7 @@ const sdkInsertions = () => {
 		return elements;
 	};
 };
-// Models the documented controls: start is a one-time operation, restart resumes.
+// Records control commands; capture state below is a test model, not SDK evidence.
 const recorder = (element = loaderElement()) => {
 	const api = apiOf();
 	let started = false;
@@ -317,9 +317,11 @@ describe('FullStory retained recorder', () => {
 			]);
 			void denier.kernel.commands.save(granted);
 			expect(model.capturing()).toBe(true);
-			expect(
-				model.dispatch.mock.calls.filter(([name]) => name === 'start')
-			).toHaveLength(1);
+			expect(model.dispatch.mock.calls.map(([name]) => name)).toEqual(
+				action === 'grant'
+					? ['init', 'setIdentity', 'start']
+					: ['init', 'setIdentity', 'shutdown', 'setIdentity', 'restart']
+			);
 			expect(owner.events).toEqual([]);
 			expect(denier.events).toEqual([]);
 		}
@@ -378,8 +380,10 @@ describe('FullStory retained recorder', () => {
 			await expect(pending).resolves.toBe('session-url');
 			element.dispatchEvent(new Event('load'));
 			expect(
-				model.dispatch.mock.calls.filter(([name]) => name === 'start')
-			).toHaveLength(1);
+				model.dispatch.mock.calls
+					.filter(([name]) => ['start', 'restart', 'shutdown'].includes(name))
+					.map(([name]) => name)
+			).toEqual(['shutdown', 'restart']);
 		}
 	);
 	it.each([false, true])(
@@ -395,8 +399,10 @@ describe('FullStory retained recorder', () => {
 			denied.loader.dispose();
 			expect(model.capturing()).toBe(true);
 			expect(
-				model.dispatch.mock.calls.filter(([name]) => name === 'start')
-			).toHaveLength(1);
+				model.dispatch.mock.calls
+					.filter(([name]) => ['start', 'restart', 'shutdown'].includes(name))
+					.map(([name]) => name)
+			).toEqual(['shutdown', 'restart']);
 			expect(model.dispatch.mock.calls.at(-2)?.slice(0, 2)).toEqual([
 				'setIdentity',
 				{ consent: false },
@@ -635,16 +641,21 @@ describe('FullStory retained recorder', () => {
 			expect(model.capturing()).toBe(false);
 		}
 	);
-	it('keeps pending withdrawal off and starts once after regrant', () => {
+	it('keeps pending withdrawal off and restarts once after regrant', () => {
 		const owner = mount({ orgId: 'pending-withdrawal' });
 		void owner.kernel.commands.save(deniedConsents);
 		const model = recorder();
 		expect(model.capturing()).toBe(false);
+		void owner.kernel.commands.save(deniedConsents);
 		void owner.kernel.commands.save(granted);
-		expect(model.capturing()).toBe(true);
-		expect(
-			model.dispatch.mock.calls.filter(([name]) => name === 'start')
-		).toHaveLength(1);
+		void owner.kernel.commands.save(granted);
+		expect(model.dispatch.mock.calls.map(([name]) => name)).toEqual([
+			'init',
+			'setIdentity',
+			'shutdown',
+			'setIdentity',
+			'restart',
+		]);
 		expect(document.querySelectorAll('script[src]')).toHaveLength(1);
 	});
 	it.each([
@@ -664,6 +675,377 @@ describe('FullStory retained recorder', () => {
 			expect(window.fetch).toBe(fetch);
 			expect(window._fs_org).toBe('fixed-org');
 			expect(model.capturing()).toBe(true);
+			expect(document.querySelectorAll('script[src]')).toHaveLength(1);
+		}
+	);
+});
+
+describe('FullStory shutdown before first start', () => {
+	it.each(['same-script', 'new-helper'] as const)(
+		'restarts after an ownerless late load and %s remount',
+		(remount) => {
+			const insertions = sdkInsertions();
+			const options = { orgId: 'ownerless-late-load' };
+			const script = fullStory(options);
+			const owner = mount(options, true, script);
+			const element = loaderElement();
+			const api = apiOf();
+			owner.loader.dispose();
+			expect(element.isConnected).toBe(false);
+			element.dispatchEvent(new Event('load'));
+			expect(api.q?.map(([name]) => name)).toEqual([
+				'init',
+				'setIdentity',
+				'shutdown',
+			]);
+			mount(
+				options,
+				true,
+				remount === 'same-script' ? script : fullStory({ ...options })
+			);
+			expect(apiOf()).toBe(api);
+			expect(api.q?.map(([name]) => name)).toEqual([
+				'init',
+				'setIdentity',
+				'shutdown',
+				'setIdentity',
+				'restart',
+			]);
+			expect(insertions()).toHaveLength(1);
+			expect(window._fs_capture_on_startup).toBe(false);
+		}
+	);
+});
+
+describe('FullStory effective regional configuration', () => {
+	it.each([
+		{
+			host: 'eu1.fullstory.com',
+			options: {
+				orgId: 'o-ABC123-eu1',
+			},
+			script: 'edge.eu1.fullstory.com/s/fs.js',
+			src: 'https://edge.eu1.fullstory.com/s/fs.js?org=o-ABC123-eu1',
+		},
+		{
+			host: 'eu1.fullstory.com',
+			options: {
+				orgId: 'u-ABC123-eu1',
+			},
+			script: 'edge.eu1.fullstory.com/s/fs.js',
+			src: 'https://edge.eu1.fullstory.com/s/fs.js?org=u-ABC123-eu1',
+		},
+		{
+			host: 'eu1.fullstory.com',
+			options: {
+				orgId: '-ABC123-eu1',
+			},
+			script: 'edge.eu1.fullstory.com/s/fs.js',
+			src: 'https://edge.eu1.fullstory.com/s/fs.js?org=-ABC123-eu1',
+		},
+		{
+			host: 'eu1.fullstory.com',
+			options: {
+				orgId: 'o-ABC-extra-eu1',
+			},
+			script: 'edge.eu1.fullstory.com/s/fs.js',
+			src: 'https://edge.eu1.fullstory.com/s/fs.js?org=o-ABC-extra-eu1',
+		},
+		{
+			host: 'ap1.fullstory.com',
+			options: {
+				orgId: 'o-ABC123-ap1',
+			},
+			script: 'edge.ap1.fullstory.com/s/fs.js',
+			src: 'https://edge.ap1.fullstory.com/s/fs.js?org=o-ABC123-ap1',
+		},
+		{
+			host: 'custom.fullstory.com',
+			options: {
+				orgId: 'o-ABC123-custom',
+			},
+			script: 'edge.custom.fullstory.com/s/fs.js',
+			src: 'https://edge.custom.fullstory.com/s/fs.js?org=o-ABC123-custom',
+		},
+		{
+			host: 'fullstory.com',
+			options: {
+				orgId: 'o-ABC123-na1',
+			},
+			script: 'edge.fullstory.com/s/fs.js',
+			src: 'https://edge.fullstory.com/s/fs.js?org=o-ABC123-na1',
+		},
+		{
+			host: 'fullstory.com',
+			options: {
+				orgId: 'legacy-eu1',
+			},
+			script: 'edge.fullstory.com/s/fs.js',
+			src: 'https://edge.fullstory.com/s/fs.js?org=legacy-eu1',
+		},
+		{
+			host: 'fullstory.com',
+			options: {
+				orgId: 'legacy-id-eu1',
+			},
+			script: 'edge.fullstory.com/s/fs.js',
+			src: 'https://edge.fullstory.com/s/fs.js?org=legacy-id-eu1',
+		},
+		{
+			host: 'fullstory.com',
+			options: {
+				orgId: 'ABC123',
+			},
+			script: 'edge.fullstory.com/s/fs.js',
+			src: 'https://edge.fullstory.com/s/fs.js?org=ABC123',
+		},
+		{
+			host: 'fullstory.com',
+			options: {
+				orgId: 'o-ABC123-',
+			},
+			script: 'edge.fullstory.com/s/fs.js',
+			src: 'https://edge.fullstory.com/s/fs.js?org=o-ABC123-',
+		},
+		{
+			host: 'eu1.fullstory.com',
+			options: {
+				host: ' ',
+				orgId: '  o-ABC123-eu1  ',
+				script: '\t',
+				scriptUrl: ' ',
+			},
+			script: 'edge.eu1.fullstory.com/s/fs.js',
+			src: 'https://edge.eu1.fullstory.com/s/fs.js?org=o-ABC123-eu1',
+		},
+		{
+			host: 'eu1.fullstory.com',
+			options: {
+				host: 'fullstory.com',
+				orgId: 'o-ABC123-eu1',
+				script: 'edge.fullstory.com/s/fs.js',
+			},
+			script: 'edge.eu1.fullstory.com/s/fs.js',
+			src: 'https://edge.eu1.fullstory.com/s/fs.js?org=o-ABC123-eu1',
+		},
+		{
+			host: 'eu1.fullstory.com',
+			options: {
+				host: '  eu1.fullstory.com ',
+				orgId: 'o-ABC123-eu1',
+				script: ' edge.eu1.fullstory.com/s/fs.js ',
+			},
+			script: 'edge.eu1.fullstory.com/s/fs.js',
+			src: 'https://edge.eu1.fullstory.com/s/fs.js?org=o-ABC123-eu1',
+		},
+		{
+			host: 'eu1.fullstory.com',
+			options: {
+				host: 'ap1.fullstory.com',
+				orgId: 'o-ABC123-eu1',
+				script: 'edge.na1.fullstory.com/s/fs.js',
+			},
+			script: 'edge.eu1.fullstory.com/s/fs.js',
+			src: 'https://edge.eu1.fullstory.com/s/fs.js?org=o-ABC123-eu1',
+		},
+		{
+			host: 'www.eu1.fullstory.com/custom',
+			options: {
+				host: ' www.fullstory.com/custom ',
+				orgId: 'o-ABC123-eu1',
+				script: 'cdn.fullstory.com/custom/fs.js',
+			},
+			script: 'cdn.eu1.fullstory.com/custom/fs.js',
+			src: 'https://cdn.eu1.fullstory.com/custom/fs.js?org=o-ABC123-eu1',
+		},
+		{
+			host: 'relay.example.com',
+			options: {
+				host: ' relay.example.com ',
+				orgId: 'o-ABC123-eu1',
+			},
+			script: 'edge.eu1.fullstory.com/s/fs.js',
+			src: 'https://edge.eu1.fullstory.com/s/fs.js?org=o-ABC123-eu1',
+		},
+		{
+			host: 'eu1.fullstory.com',
+			options: {
+				orgId: 'o-ABC123-eu1',
+				script: ' cdn.example.com/fullstory.com/s/fs.js ',
+			},
+			script: 'cdn.example.com/fullstory.com/s/fs.js',
+			src: 'https://cdn.example.com/fullstory.com/s/fs.js?org=o-ABC123-eu1',
+		},
+		{
+			host: 'fullstory.com.example.com',
+			options: {
+				host: 'fullstory.com.example.com',
+				orgId: 'o-ABC123-eu1',
+				script: 'edge.fullstory.com.example.com/s/fs.js',
+			},
+			script: 'edge.fullstory.com.example.com/s/fs.js',
+			src: 'https://edge.fullstory.com.example.com/s/fs.js?org=o-ABC123-eu1',
+		},
+		{
+			host: 'relay.example.com',
+			options: {
+				host: 'relay.example.com',
+				orgId: 'o-ABC123-eu1',
+				script: 'relay.example.com/s/fs.js',
+			},
+			script: 'relay.example.com/s/fs.js',
+			src: 'https://relay.example.com/s/fs.js?org=o-ABC123-eu1',
+		},
+		{
+			host: 'eu1.fullstory.com',
+			options: {
+				orgId: 'o-ABC123-eu1',
+				scriptUrl: ' https://edge.fullstory.com/s/fs.js?fixed=1 ',
+			},
+			script: 'edge.eu1.fullstory.com/s/fs.js',
+			src: 'https://edge.fullstory.com/s/fs.js?fixed=1',
+		},
+		{
+			host: 'eu1.fullstory.com',
+			options: {
+				orgId: 'o-ABC123-eu1',
+				script: 'relay.example.com/sdk.js',
+				scriptUrl: ' https://download.example.com/exact.js ',
+			},
+			script: 'relay.example.com/sdk.js',
+			src: 'https://download.example.com/exact.js',
+		},
+		{
+			host: 'eu1.fullstory.com',
+			options: {
+				host: 'eu1.fullstory.com',
+				orgId: 'o-ABC123-na1',
+				script: 'edge.eu1.fullstory.com/s/fs.js',
+			},
+			script: 'edge.eu1.fullstory.com/s/fs.js',
+			src: 'https://edge.eu1.fullstory.com/s/fs.js?org=o-ABC123-na1',
+		},
+	])(
+		'resolves endpoints before bootstrap: $options',
+		({ options, host, script, src }) => {
+			mount(options);
+			expect(loaderElement().src).toBe(src);
+			expect(window._fs_org).toBe(options.orgId.trim());
+			expect(window._fs_host).toBe(host);
+			expect(window._fs_script).toBe(script);
+			expect(window._fs_capture_on_startup).toBe(false);
+			expect(apiOf().q).toEqual([
+				[
+					'init',
+					{
+						env: {
+							captureOnStartup: false,
+							host,
+							orgId: options.orgId.trim(),
+							script,
+						},
+					},
+					undefined,
+					undefined,
+					undefined,
+					2,
+				],
+			]);
+		}
+	);
+	it('snapshots effective options and shares inferred and explicit regional defaults', () => {
+		const insertions = sdkInsertions();
+		const options = {
+			host: ' ',
+			orgId: '  o-ABC123-eu1  ',
+			script: '\t',
+			scriptUrl: ' ',
+		};
+		const original = fullStory(options);
+		const explicit = {
+			host: 'eu1.fullstory.com',
+			orgId: 'o-ABC123-eu1',
+			script: 'edge.eu1.fullstory.com/s/fs.js',
+			scriptUrl: 'https://edge.eu1.fullstory.com/s/fs.js?org=o-ABC123-eu1',
+		};
+		expect(fullStory(explicit)).toBe(original);
+		Object.assign(options, {
+			host: 'mutated.example.com',
+			orgId: 'o-OTHER-ap1',
+			script: 'mutated.example.com/fs.js',
+			scriptUrl: 'https://mutated.example.com/fs.js',
+		});
+		const owner = mount(explicit, true, original);
+		const element = loaderElement();
+		const api = apiOf();
+		expect(element.src).toBe(explicit.scriptUrl);
+		expect(window._fs_host).toBe(explicit.host);
+		expect(window._fs_script).toBe(explicit.script);
+		void owner.kernel.commands.save(deniedConsents);
+		element.dispatchEvent(new Event('load'));
+		void owner.kernel.commands.save(granted);
+		owner.loader.dispose();
+		mount(explicit);
+		expect(apiOf()).toBe(api);
+		expect(insertions()).toHaveLength(1);
+		expect(api.q?.map(([name]) => name)).toEqual([
+			'init',
+			'setIdentity',
+			'shutdown',
+			'setIdentity',
+			'restart',
+			'setIdentity',
+			'shutdown',
+			'setIdentity',
+			'restart',
+		]);
+	});
+	it('preserves a custom proxy whose path contains a dotted FullStory hostname', () => {
+		mount({
+			host: ' relay.example.com/path.edge.fullstory.com ',
+			orgId: 'o-ABC123-eu1',
+			script: ' cdn.example.com/path.edge.fullstory.com/fs.js ',
+		});
+		expect(window._fs_host).toBe('relay.example.com/path.edge.fullstory.com');
+		expect(window._fs_script).toBe(
+			'cdn.example.com/path.edge.fullstory.com/fs.js'
+		);
+		expect(loaderElement().src).toBe(
+			'https://cdn.example.com/path.edge.fullstory.com/fs.js?org=o-ABC123-eu1'
+		);
+	});
+	it('normalizes an unrestricted locale only once across lifecycle recreation', () => {
+		const insertions = sdkInsertions();
+		const options = { orgId: 'o-A&B-eu1.example' };
+		const script = fullStory(options);
+		const owner = mount(options, true, script);
+		const api = apiOf();
+		expect(loaderElement().src).toBe(
+			'https://edge.eu1.example.fullstory.com/s/fs.js?org=o-A%26B-eu1.example'
+		);
+		owner.loader.dispose();
+		mount(options, true, script);
+		expect(window._fs_host).toBe('eu1.example.fullstory.com');
+		expect(window._fs_script).toBe('edge.eu1.example.fullstory.com/s/fs.js');
+		expect(apiOf()).toBe(api);
+		expect(insertions()).toHaveLength(1);
+	});
+
+	it.each([
+		{ orgId: 'o-OTHER-eu1' },
+		{ host: 'relay.example.com', orgId: 'o-ABC123-eu1' },
+		{ orgId: 'o-ABC123-eu1', script: 'relay.example.com/fs.js' },
+		{
+			orgId: 'o-ABC123-eu1',
+			scriptUrl: 'https://edge.fullstory.com/s/fs.js?org=o-ABC123-eu1',
+		},
+	])(
+		'requires reload for a changed effective configuration: %j',
+		(replacement) => {
+			mount({ orgId: 'o-ABC123-eu1' });
+			const api = apiOf();
+			expect(() => fullStory(replacement)).toThrow(/reload/u);
+			expect(apiOf()).toBe(api);
 			expect(document.querySelectorAll('script[src]')).toHaveLength(1);
 		}
 	);

@@ -11,7 +11,7 @@ group: integrations
 
 ## Configure FullStory
 
-Copy your organization ID from FullStory setup and remove the original snippet. Keep the host and script settings aligned with your FullStory environment.
+Copy your organization ID from FullStory setup and remove the original snippet. For regional IDs such as `o-ABC123-eu1`, c15t selects the regional FullStory host and SDK download before loading. That ID uses `eu1.fullstory.com` and `edge.eu1.fullstory.com/s/fs.js`. Legacy IDs and the `na1` region use the US defaults.
 
 <CommandTabs command="@c15t/integrations" mode="install" />
 
@@ -24,21 +24,29 @@ Copy your organization ID from FullStory setup and remove the original snippet. 
 | Option | Default | Behavior |
 | --- | --- | --- |
 | `orgId` | Required | FullStory organization ID. |
-| `host` | `fullstory.com` | FullStory host. |
-| `script` | `edge.fullstory.com/s/fs.js` | FullStory script host and path. |
+| `host` | Regional FullStory host | `fullstory.com` for US and legacy IDs; `eu1.fullstory.com` for EU IDs. |
+| `script` | Regional FullStory edge | Script host and path without a scheme, such as `edge.eu1.fullstory.com/s/fs.js`. |
 | `elementConsent` | `false` | Also set consent for elements marked capture with consent. |
 | `category` | `measurement` | Consent condition for the whole loader. |
-| `scriptUrl` | HTTPS URL from `script` | Custom or proxied loader URL. Blank values use the default. |
+| `scriptUrl` | HTTPS URL from `script`, with `org` | Exact download URL override. Nonblank values are trimmed, kept unchanged and receive no added `org`. Blank values use the derived URL. |
+
+The helper trims organization and endpoint values and treats blank overrides as missing. FullStory-owned `host` and `script` values receive the organization's region, replacing an existing region label when needed. Custom proxy or Relay hosts and script paths stay unchanged. The host and script resolve independently: a custom `host` alone does not change the default `script`. `scriptUrl` never changes the SDK's `script` environment value.
 
 Missing or blank required values log an error and never load.
 
 ## Loading and revocation
 
-After consent, the helper creates FullStory's v2 callable queue with six-field command records. Async commands such as `FS('getSessionAsync')` return promises while the SDK loads and after its dispatcher is ready. It configures `captureOnStartup: false` and downloads the SDK. After loading it calls `start`; revocation calls `shutdown`, and regrant calls `restart`. Optional element consent follows the mapped permission through `setIdentity`.
+After consent, the helper creates FullStory's v2 callable queue with six-field command records. Async commands such as `FS('getSessionAsync')` return promises while the SDK loads and after its dispatcher is ready. It configures `captureOnStartup: false` and downloads the SDK. An uninterrupted first allowed load calls `start`. A load that completes while consent is denied, or after the last owner is removed, calls `shutdown`. After any helper-issued `shutdown`, regrant or remount calls `restart`, even if the helper never called `start`. Optional element consent follows the mapped permission through `setIdentity`.
 
 Equivalent registrations share one download and recorder. Each registration must grant the mapped consent before capture can start or resume, including registrations that have never loaded. Removing a denying registration reapplies the remaining registrations' consent, including when they use different `elementConsent` settings. Initial denial creates no FullStory globals or requests. Removing the last registration shuts down capture. Mounting the same configuration again resumes the retained recorder with `restart` without downloading the SDK again.
 
-Keep `orgId`, `host`, `script` and `scriptUrl` fixed for the page. After bootstrap begins, c15t requires a page reload to change these settings and rejects incompatible configurations explicitly. Removing an async script does not guarantee that its pending download cannot execute, so c15t retains the pending bootstrap too. Remounting the same configuration waits for that download instead of inserting another script. If a script update interrupts setup before insertion, the next mount inserts the SDK without initializing FullStory twice. FullStory documents `init` before capture starts; c15t does not support replacing an initialized recorder in place. `scriptUrl` chooses the downloaded file, while `script` configures the SDK's environment. An existing `FS` from another installer must be removed from the site's setup before using this helper.
+Keep `orgId`, `host`, `script` and `scriptUrl` fixed for the page. c15t compares their effective values, so omitted regional defaults and explicit equivalent endpoints share the recorder. After bootstrap begins, c15t requires a page reload to change these effective settings and rejects incompatible configurations explicitly.
+
+Removing an async script does not guarantee that its pending download cannot execute, so c15t retains the pending bootstrap too. Remounting the same configuration waits for that download instead of inserting another script. If a script update interrupts setup before insertion, the next mount inserts the SDK without initializing FullStory twice.
+
+Without `MutationObserver`, c15t prevents a second download, but setup interrupted before insertion can require a reload. A nested synchronous mount can leave an outer registration on a source-less placeholder; it still shares the retained recorder and consent state.
+
+FullStory documents `init` before capture starts; c15t does not support replacing an initialized recorder in place. `scriptUrl` chooses the downloaded file, while `script` configures the SDK's environment. An existing `FS` from another installer must be removed from the site's setup before using this helper.
 
 Shutdown stops capture, but does not erase cookies or unload the SDK. Keep `reloadOnConsentRevoked` enabled when your policy also requires a fresh page without loaded vendor code. Capture state is reapplied on every page.
 

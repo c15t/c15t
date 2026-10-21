@@ -178,7 +178,11 @@ const applyRecorderConsent = (recorder: Recorder): void => {
 	recorder.api('setIdentity', { consent: elementConsent });
 	if (recorder.appliedConsent !== consent) {
 		if (consent) {
-			recorder.api(recorder.started ? 'restart' : 'start');
+			recorder.api(
+				recorder.started || recorder.appliedConsent === false
+					? 'restart'
+					: 'start'
+			);
 			recorder.started = true;
 		} else {
 			recorder.api('shutdown');
@@ -234,15 +238,12 @@ const observeRecorderElement = (
 		{ once: true }
 	);
 };
-const configurationOf = (options: FullStoryOptions): string =>
+const configurationOf = (options: ResolvedFullStoryOptions): string =>
 	JSON.stringify([
-		readId(options.orgId),
-		trimToUndefined(options.host) ?? 'fullstory.com',
-		trimToUndefined(options.script) ?? 'edge.fullstory.com/s/fs.js',
-		resolveScriptUrl(
-			options.scriptUrl,
-			`https://${trimToUndefined(options.script) ?? 'edge.fullstory.com/s/fs.js'}?org=${encodeURIComponent(readId(options.orgId) ?? '')}`
-		),
+		options.orgId,
+		options.host,
+		options.script,
+		options.scriptUrl,
 	]);
 const matchingRecorder = (configuration: string): Recorder | undefined => {
 	if (!window.FS) {
@@ -290,9 +291,9 @@ export const fullStoryManifest = {
 export interface FullStoryOptions {
 	/** Organization ID supplied by FullStory. */
 	orgId: string;
-	/** FullStory host, including regional deployments. @default 'fullstory.com' */
+	/** FullStory host. Defaults to the organization's regional FullStory host. */
 	host?: string;
-	/** Script host/path without a scheme. @default 'edge.fullstory.com/s/fs.js' */
+	/** Script host/path without a scheme. Defaults to the organization's regional edge. */
 	script?: string;
 	/** Consent for elements configured as capture with consent. @default false */
 	elementConsent?: boolean;
@@ -302,28 +303,82 @@ export interface FullStoryOptions {
 	scriptUrl?: string;
 }
 
-const reuseFullStory = createScriptReuse<FullStoryOptions>();
+interface ResolvedFullStoryOptions extends FullStoryOptions {
+	host: string;
+	script: string;
+	scriptUrl: string;
+}
 
-const createFullStory = function createFullStory(
-	options: FullStoryOptions
-): Script {
-	const category = options?.category ?? 'measurement';
-	const orgId = readId(options?.orgId);
-	if (!orgId) {
-		return skipMissingId('fullStory', 'orgId', {
-			category,
-			manifest: fullStoryManifest,
-		});
+const fullStoryDomain = /^(?:[^.]+\.)*fullstory\.com(?:\/|$)/u;
+const regionLabel = /^[a-z]{2,3}[0-9]+$/u;
+
+// Matches @fullstory/browser 2.1.2's orgLocale and regionalize rules.
+const orgLocale = (orgId: string): string | undefined => {
+	const sections = orgId.split('-');
+	const locale = sections.at(-1);
+	if (
+		sections.length < 3 ||
+		(sections[0]?.length ?? 0) > 1 ||
+		locale === 'na1'
+	) {
+		return undefined;
 	}
-	const host = trimToUndefined(options.host) ?? 'fullstory.com';
-	const scriptPath =
-		trimToUndefined(options.script) ?? 'edge.fullstory.com/s/fs.js';
-	const script = resolveManifest(fullStoryManifest, {
+	return locale;
+};
+const regionalize = (value: string, locale: string | undefined): string => {
+	const pathIndex = value.indexOf('/');
+	const host = pathIndex === -1 ? value : value.slice(0, pathIndex);
+	// Check the host alone so a proxy path cannot match FullStory's domain.
+	if (!locale || !fullStoryDomain.test(host)) {
+		return value;
+	}
+	const path = pathIndex === -1 ? '' : value.slice(pathIndex);
+	const labels = host.split('.');
+	const insertAt = labels.length - 2;
+	const existing = insertAt > 0 ? labels[insertAt - 1] : undefined;
+	if (existing === locale) {
+		return value;
+	}
+	if (existing !== undefined && regionLabel.test(existing)) {
+		labels[insertAt - 1] = locale;
+	} else {
+		labels.splice(insertAt, 0, locale);
+	}
+	return labels.join('.') + path;
+};
+const resolveOptions = (
+	options: FullStoryOptions,
+	orgId: string
+): ResolvedFullStoryOptions => {
+	const locale = orgLocale(orgId);
+	const host = regionalize(
+		trimToUndefined(options.host) ?? 'fullstory.com',
+		locale
+	);
+	const script = regionalize(
+		trimToUndefined(options.script) ?? 'edge.fullstory.com/s/fs.js',
+		locale
+	);
+	return {
+		...options,
+		host,
+		orgId,
+		script,
 		scriptUrl: resolveScriptUrl(
 			options.scriptUrl,
-			`https://${scriptPath}?org=${encodeURIComponent(orgId)}`
+			`https://${script}?org=${encodeURIComponent(orgId)}`
 		),
-	});
+	};
+};
+
+const reuseFullStory = createScriptReuse<ResolvedFullStoryOptions>();
+
+const createFullStory = function createFullStory(
+	options: ResolvedFullStoryOptions
+): Script {
+	const category = options.category ?? 'measurement';
+	const { orgId, host, script: scriptPath, scriptUrl } = options;
+	const script = resolveManifest(fullStoryManifest, { scriptUrl });
 	const configuration = configurationOf(options);
 	const gate: Gate = {
 		consent: false,
@@ -439,17 +494,19 @@ const createFullStory = function createFullStory(
  * @see https://developer.fullstory.com/browser/getting-started/
  */
 export const fullStory = function fullStory(options: FullStoryOptions): Script {
-	if (!readId(options?.orgId)) {
+	const orgId = readId(options?.orgId);
+	if (!orgId) {
 		return skipMissingId('fullStory', 'orgId', {
 			category: options?.category ?? 'measurement',
 			manifest: fullStoryManifest,
 		});
 	}
-	const configuration = configurationOf(options);
+	const resolved = resolveOptions(options, orgId);
+	const configuration = configurationOf(resolved);
 	if (typeof document !== 'undefined') {
 		matchingRecorder(configuration);
 	}
-	const script = reuseFullStory(options, createFullStory);
+	const script = reuseFullStory(resolved, createFullStory);
 	// A retained runtime, including a pending download, needs callbacks only.
 	// Evaluate at mount time because callers can retain scripts across disposal.
 	Object.defineProperty(script, 'callbackOnly', {

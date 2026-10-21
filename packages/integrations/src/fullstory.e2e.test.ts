@@ -147,7 +147,7 @@ describe('FullStory v2 capture controls', () => {
 			'shutdown',
 		]);
 		updateScripts(scripts, granted);
-		expect(window.FS?.q?.at(-1)?.[0]).toBe('start');
+		expect(window.FS?.q?.at(-1)?.[0]).toBe('restart');
 		expect(window._fs_capture_on_startup).toBe(false);
 	});
 });
