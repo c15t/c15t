@@ -43,7 +43,7 @@ with your framework, follow any vendor guide, for example
 | `vendor` | None | Vendor slug, so a visitor can turn this vendor off inside an allowed category. |
 | `callbackOnly` | `false` | Run callbacks without adding a script element. |
 | `alwaysLoad` | `false` | Load regardless of permission. |
-| `persistAfterConsentRevoked` | `false` | Keep the script element when permission is revoked. |
+| `persistAfterConsentRevoked` | `false` | `true` keeps the element after withdrawal, including pending downloads. `'loaded'` keeps only elements whose load event completed; pending and failed loads are removed. |
 | `onBeforeLoad`, `onLoad`, `onError` | None | Run before the element is added, after it loads, and if it fails. |
 | `onConsentChange` | None | Runs when permissions change after the script has loaded, and when it is removed. |
 | `onDispose` | None | Runs when this configuration is removed or its loader is disposed. Revocation alone does not call it. |

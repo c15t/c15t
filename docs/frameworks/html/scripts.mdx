@@ -89,7 +89,7 @@ element again when the visitor withdraws it.
 | `src` or `textContent` | The URL to load, or inline code to run. One is required unless `callbackOnly` is set. |
 | `callbackOnly` | Add no element. Only run the callbacks, for a vendor that is already on the page. |
 | `alwaysLoad` | Load whatever the consent state. Use it only for tags that manage consent themselves. |
-| `persistAfterConsentRevoked` | Keep the element on the page after withdrawal. |
+| `persistAfterConsentRevoked` | `true` keeps the element after withdrawal, including pending downloads. `'loaded'` keeps only elements whose load event completed; pending and failed loads are removed. |
 | `target` | `'head'` (default) or `'body'`. |
 | `async`, `defer`, `nonce`, `fetchPriority`, `attributes` | Attributes for the created `<script>` element. Without its own `nonce`, the script gets the c15t tag's nonce. |
 | `anonymizeId` | Give the element a random `id` so blockers cannot match it by name. On by default. |

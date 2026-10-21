@@ -32,7 +32,7 @@ yourself:
 | `src` or `textContent` | none | The script's URL, or inline code. |
 | `callbackOnly` | `false` | Adds no `<script>` element and only runs the callbacks. Use it to switch an SDK you load yourself on and off. |
 | `alwaysLoad` | `false` | Loads at once, whatever the consent state. Only for scripts that apply consent themselves, such as a tag manager with Consent Mode. |
-| `persistAfterConsentRevoked` | `false` | Keeps the element after withdrawal instead of removing it. |
+| `persistAfterConsentRevoked` | `false` | `true` keeps the element after withdrawal, including pending downloads. `'loaded'` keeps only elements whose load event completed; pending and failed loads are removed. |
 | `target` | `'head'` | Where the element goes: `'head'` or `'body'`. |
 | `async`, `defer`, `fetchPriority`, `attributes`, `nonce` | none | Set on the `<script>` element. |
 | `anonymizeId` | `true` | Gives the element a random `id`, so ad blockers do not match it by name. |

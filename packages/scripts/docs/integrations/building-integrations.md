@@ -36,22 +36,22 @@ with your framework, follow any vendor guide, for example
 
 ## Script fields
 
-| Field                                           | Default                | Behavior                                                                                                              |
-| ----------------------------------------------- | ---------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| `id`                                            | Required               | Stable identifier. c15t tracks the script by it across renders.                                                       |
-| `category`                                      | Required               | A category name, or a condition such as `{ or: ['measurement', 'marketing'] }`, `{ and: [...] }` or `{ not: '...' }`. |
-| `src` / `textContent`                           | None                   | Set exactly one, unless `callbackOnly` is `true`.                                                                     |
-| `vendor`                                        | None                   | Vendor slug, so a visitor can turn this vendor off inside an allowed category.                                        |
-| `callbackOnly`                                  | `false`                | Run callbacks without adding a script element.                                                                        |
-| `alwaysLoad`                                    | `false`                | Load regardless of permission.                                                                                        |
-| `persistAfterConsentRevoked`                    | `false`                | Keep the script element when permission is revoked.                                                                   |
-| `onBeforeLoad`, `onLoad`, `onError`             | None                   | Run before the element is added, after it loads, and if it fails.                                                     |
-| `onConsentChange`                               | None                   | Runs when permissions change after the script has loaded, and when it is removed.                                     |
-| `onDispose`                                     | None                   | Runs when this configuration is removed or its loader is disposed. Revocation alone does not call it.                 |
-| `target`                                        | `'head'`               | `'head'` or `'body'`.                                                                                                 |
-| `async`, `defer`, `attributes`, `fetchPriority` | None                   | Copied to the script element.                                                                                         |
-| `nonce`                                         | The provider's `nonce` | Content Security Policy nonce for this element.                                                                       |
-| `anonymizeId`                                   | `true`                 | Use a random element ID. Set `false` for `c15t-script-<id>`.                                                          |
+| Field                                           | Default                | Behavior                                                                                                                                                                 |
+| ----------------------------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `id`                                            | Required               | Stable identifier. c15t tracks the script by it across renders.                                                                                                          |
+| `category`                                      | Required               | A category name, or a condition such as `{ or: ['measurement', 'marketing'] }`, `{ and: [...] }` or `{ not: '...' }`.                                                    |
+| `src` / `textContent`                           | None                   | Set exactly one, unless `callbackOnly` is `true`.                                                                                                                        |
+| `vendor`                                        | None                   | Vendor slug, so a visitor can turn this vendor off inside an allowed category.                                                                                           |
+| `callbackOnly`                                  | `false`                | Run callbacks without adding a script element.                                                                                                                           |
+| `alwaysLoad`                                    | `false`                | Load regardless of permission.                                                                                                                                           |
+| `persistAfterConsentRevoked`                    | `false`                | `true` keeps the element after withdrawal, including pending downloads. `'loaded'` keeps only elements whose load event completed; pending and failed loads are removed. |
+| `onBeforeLoad`, `onLoad`, `onError`             | None                   | Run before the element is added, after it loads, and if it fails.                                                                                                        |
+| `onConsentChange`                               | None                   | Runs when permissions change after the script has loaded, and when it is removed.                                                                                        |
+| `onDispose`                                     | None                   | Runs when this configuration is removed or its loader is disposed. Revocation alone does not call it.                                                                    |
+| `target`                                        | `'head'`               | `'head'` or `'body'`.                                                                                                                                                    |
+| `async`, `defer`, `attributes`, `fetchPriority` | None                   | Copied to the script element.                                                                                                                                            |
+| `nonce`                                         | The provider's `nonce` | Content Security Policy nonce for this element.                                                                                                                          |
+| `anonymizeId`                                   | `true`                 | Use a random element ID. Set `false` for `c15t-script-<id>`.                                                                                                             |
 
 Every callback receives `{ id, elementId, hasConsent, consents }`, plus
 `vendor` when the script declares one, and `element` for scripts with an
