@@ -5,8 +5,9 @@
  * read-only pass. It folds stored records into the kernel, but it must
  * not renew a receipt, recreate a missing cookie or localStorage mirror,
  * migrate a legacy key or call the backend. Only an explicit accept,
- * reject or save writes to storage, and it writes the v3 envelope. The one
- * startup write is the subject ID key, which records no choice.
+ * reject or save writes to storage, and it writes the v3 envelope. A
+ * stored record that carries a subject ID keeps it there: startup does not
+ * copy it into the subject ID key.
  */
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
@@ -41,14 +42,6 @@ const readLocalStorage = function readLocalStorage(key = STORAGE_KEY_V2) {
 	return raw ? (JSON.parse(raw) as ReturnType<typeof storedPayload>) : null;
 };
 
-/** Every cookie except the subject ID, which startup may store. */
-const recordCookies = function recordCookies(): string {
-	return document.cookie
-		.split('; ')
-		.filter((cookie) => cookie && !cookie.startsWith(`${STORAGE_KEY_V2}-sid=`))
-		.join('; ');
-};
-
 const readStored = function readStored(config?: { storageKey: string }) {
 	return readStoredConsentRecord(config, Date.now()).selected;
 };
@@ -67,6 +60,7 @@ beforeEach(() => {
 	localStorage.clear();
 	deleteConsentFromStorage();
 	deleteCookie(`${STORAGE_KEY_V2}-sid`);
+	deleteCookie(`${STORAGE_KEY_V2}-epoch`);
 	document.cookie = '';
 });
 
@@ -97,12 +91,11 @@ describe('persistence: hydration is read-only', () => {
 		});
 
 		expect(readLocalStorage()).toEqual(storedPayload());
-		expect(recordCookies()).toBe('');
-		expect(document.cookie).toBe(`${STORAGE_KEY_V2}-sid=${SUBJECT_ID}`);
+		expect(document.cookie).toBe('');
 
 		handle.dispose();
 		expect(readLocalStorage()).toEqual(storedPayload());
-		expect(recordCookies()).toBe('');
+		expect(document.cookie).toBe('');
 	});
 
 	test('hydrating from a cookie does not mirror it into localStorage', () => {
@@ -118,7 +111,7 @@ describe('persistence: hydration is read-only', () => {
 			Object.keys(kernel.getSnapshot().explicitChoice?.categories ?? {})
 		).not.toHaveLength(0);
 		expect(localStorage.getItem(STORAGE_KEY_V2)).toBeNull();
-		expect(recordCookies()).toBe(cookieBefore);
+		expect(document.cookie).toBe(cookieBefore);
 	});
 
 	test('handle.hydrate() after subscribing writes nothing', () => {
@@ -134,7 +127,7 @@ describe('persistence: hydration is read-only', () => {
 			Object.keys(kernel.getSnapshot().explicitChoice?.categories ?? {})
 		).not.toHaveLength(0);
 		expect(readLocalStorage()?.consentInfo.time).toBe(ORIGINAL_TIME);
-		expect(recordCookies()).toBe('');
+		expect(document.cookie).toBe('');
 	});
 
 	test('hydration reads a legacy-key record without migrating it', () => {
@@ -148,7 +141,7 @@ describe('persistence: hydration is read-only', () => {
 		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(true);
 		expect(readLocalStorage(STORAGE_KEY)).toEqual(storedPayload());
 		expect(localStorage.getItem(STORAGE_KEY_V2)).toBeNull();
-		expect(recordCookies()).toBe('');
+		expect(document.cookie).toBe('');
 	});
 
 	test('hydration does not emit a save command or a choice event', () => {
@@ -165,6 +158,24 @@ describe('persistence: hydration is read-only', () => {
 
 		expect(saveStarted).not.toHaveBeenCalled();
 		expect(choiceRecorded).not.toHaveBeenCalled();
+	});
+});
+
+describe('persistence: the subject ID outlives a clear', () => {
+	test('clearing records that carry the ID stores it, and a reload keeps it', () => {
+		localStorage.setItem(STORAGE_KEY_V2, JSON.stringify(storedPayload()));
+
+		const kernel = createConsentKernel({ now: NOW });
+		const handle = createPersistence({ kernel });
+		handle.clear();
+		handle.dispose();
+
+		expect(readLocalStorage()).toBeNull();
+		expect(localStorage.getItem(`${STORAGE_KEY_V2}-sid`)).toBe(SUBJECT_ID);
+		const reloaded = createConsentKernel({ now: NOW });
+		createPersistence({ kernel: reloaded }).dispose();
+		expect(reloaded.getSnapshot().explicitChoice).toBeNull();
+		expect(reloaded.getSnapshot().subject?.subjectId).toBe(SUBJECT_ID);
 	});
 });
 

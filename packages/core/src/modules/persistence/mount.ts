@@ -296,8 +296,11 @@ export const mountPersistence = function mountPersistence(
 	 * records stay the seed's, and storage is what it was read as here.
 	 * Reconciling merges only records that changed since this read, so a
 	 * grant left out here stays out until another runtime writes storage.
+	 * Returns the subject ID the stored records carry, `null` for none.
 	 */
-	const applyNewerStoredRecords = function applyNewerStoredRecords(): void {
+	const applyNewerStoredRecords = function applyNewerStoredRecords():
+		| string
+		| null {
 		const at = now();
 		const read = readStoredRecordsForReconcile(storageConfig, at);
 		baseline = [read, false];
@@ -325,6 +328,7 @@ export const mountPersistence = function mountPersistence(
 		if (Object.keys(patch).length > 0) {
 			kernel.hydrate({ ...patch, now: at });
 		}
+		return read.recordedSubjectId;
 	};
 
 	/** Hydrates from storage and returns the read, `null` when none ran. */
@@ -411,8 +415,8 @@ export const mountPersistence = function mountPersistence(
 	 * Gives the kernel a subject ID at startup, before anything binds to
 	 * it. Records storage held keep the ID they carry. Otherwise a subject
 	 * the server named is kept, then the ID in `<key>-sid`, then a new one.
-	 * The ID is stored in `<key>-sid` at once so a reload keeps it. The ID
-	 * alone records no choice.
+	 * An ID no stored record carries is stored in `<key>-sid` at once so a
+	 * reload keeps it. The ID alone records no choice.
 	 */
 	const startSubject = function startSubject(
 		before: ConsentSubject | null,
@@ -424,6 +428,9 @@ export const mountPersistence = function mountPersistence(
 		let local = false;
 		if (!recordedSubjectId && before?.subjectId) {
 			subject = { ...subject, ...before };
+		} else if (recordedSubjectId && !subject?.subjectId) {
+			// Hydration is deferred: take the ID it will bring.
+			subject = { ...subject, subjectId: recordedSubjectId };
 		} else if (!(recordedSubjectId && subject?.subjectId)) {
 			subject = {
 				...subject,
@@ -445,7 +452,11 @@ export const mountPersistence = function mountPersistence(
 		if (id !== snapshot.subject?.subjectId) {
 			kernel.hydrate({ subject });
 		}
-		storeSubjectId(id);
+		// Records that carry the ID already keep it: hydrating them writes
+		// nothing. A clear stores it before it removes them.
+		if (id !== recordedSubjectId) {
+			storeSubjectId(id);
+		}
 	};
 
 	/**
@@ -536,7 +547,7 @@ export const mountPersistence = function mountPersistence(
 		const before = kernel.getSnapshot().subject;
 		let recordedSubjectId: string | null = null;
 		if (options.skipHydration) {
-			applyNewerStoredRecords();
+			recordedSubjectId = applyNewerStoredRecords();
 		} else {
 			recordedSubjectId = hydrateStored()?.recordedSubjectId ?? null;
 		}
@@ -572,6 +583,9 @@ export const mountPersistence = function mountPersistence(
 			// the server resolved.
 			state.subjectBeforeSave = undefined;
 			state.freshSubjectId = undefined;
+			if (subjectId) {
+				storeSubjectId(subjectId);
+			}
 			const at = now();
 			const landed = landedWriter();
 			if (landed) {
