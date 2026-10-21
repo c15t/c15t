@@ -203,10 +203,12 @@ Stored records are merged into the ones in memory:
   wins in both tabs.
 - Tabs keep one subject. A stored subject is considered only when the record
   that carries it changed, never on focus alone. It replaces a subject the tab
-  generated on its first save or copied from storage, so a tab that opened
-  before another tab stored a subject joins it. A subject id the server
-  resolved (at init, from a prefetch or in a save response) is replaced only by
-  a strictly newer stored choice, and an identity set with `identify()` is
+  generated at startup or on its first save, or copied from storage, so a tab
+  that opened before another tab stored a subject joins it. When it replaces
+  an ID the tab generated at startup and never used, the kernel emits
+  `subject:resolved` with `previousSubjectId`. A subject id the server
+  resolved (at init, from a prefetch or in a save response) is replaced only
+  by a strictly newer stored choice, and an identity set with `identify()` is
   never replaced.
 - Under an IAB policy, the TC string follows the reconciled choice. See
   [How the TC string is reconciled](#how-the-tc-string-is-reconciled).
@@ -280,7 +282,9 @@ wherever it turns up. A decision stamped in the very millisecond of the clear
 counts only if it comes from a tab that had already seen that clear, so a tab's
 own choice right after its own clear stands while another tab's decision in the
 same millisecond does not. A stored record left with no decisions after the
-clear is void too, subject included.
+clear is void too, subject included. The subject ID itself survives the clear:
+it lives in its own key, `c15t-sid`, which clearing never removes, so a
+withdrawal stays linked to the same visitor.
 
 - A tab that reconciles only after another tab cleared and saved again drops
   its pre-clear decisions instead of merging them back. Its subject from before

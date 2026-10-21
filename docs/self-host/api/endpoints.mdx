@@ -21,7 +21,7 @@ inputs, results and retries.
 | `POST /sessions` | Report an init a host resolved from a cached manifest. Server-to-server only; nothing is stored. | No |
 | `POST /subjects` | Record a consent submission and its category receipts. | No |
 | `GET /subjects/:id` | Read this subject's consent status and merged choices. Optional `?type=a,b` filter. | No, the subject ID is the capability |
-| `PATCH /subjects/:id` | Link `externalId` and optional `identityProvider`. The link counts in reads by external ID only when [verified](#verify-identity-links). | No |
+| `PATCH /subjects/:id` | Link `externalId` and optional `identityProvider`. Creates the subject when a client identifies a visitor before their first save. The link counts in reads by external ID only when [verified](#verify-identity-links). | No |
 | `GET /subjects?externalId=...` | Retrieve subjects verifiably linked to an external identity. | Required |
 | `GET /consents/check?externalId=...&type=a,b` | Return `hasConsent` and `isLatestPolicy` for every requested type, from verified links only. | Required |
 | `GET /experiments/:id/summary?from=...&to=...&domain=...` | Choices per arm of a [banner experiment](/docs/guides/banner-experiments), split by action and surface, with the median time to decision. | Required |
@@ -253,6 +253,12 @@ another language, sign an HS256 JWT with `sub` set to the external ID, `aud`
 | --- | --- |
 | `401 IDENTITY_TOKEN_INVALID` | `PATCH` only. The token doesn't verify, has expired, or names another external ID or provider. Nothing changes. |
 | `409 IDENTITY_CONFLICT` | `PATCH` only. The subject's current link is verified and this request isn't, so it can't replace it. Sending the same identity again succeeds. |
+| `409 SUBJECT_CONFLICT` | `PATCH` only. Another tenant on the same database already holds this subject ID. Nothing is linked. |
+
+A browser has a subject ID from its first page load, so `identify()` can run
+before any save. `PATCH /subjects/:id` then creates the subject. An older
+self-hosted backend answers `404` for a subject no save has created yet. The
+client treats that as success and sends the identity with the next save.
 
 `POST /subjects` never refuses a consent because of its token: a bad token
 leaves the link unverified, and the token only applies when the save creates
