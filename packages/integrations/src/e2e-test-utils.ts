@@ -324,6 +324,8 @@ const resetVendorGlobals = function resetVendorGlobals() {
 		'CRISP_TOKEN_ID',
 		'CRISP_WEBSITE_ID',
 		'Intercom',
+		'InsiderQueue',
+		'Insider',
 		'_linkedin_data_partner_ids',
 		'_linkedin_partner_id',
 		'_fbq',

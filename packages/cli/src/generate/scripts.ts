@@ -96,6 +96,11 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 		example: 'hotjar({ siteId: 1234567 })',
 		importName: 'hotjar',
 	},
+	insider: {
+		example:
+			"insiderTag({ partnerName: 'yourpartner', partnerId: 'YOUR_PARTNER_ID' })",
+		importName: 'insiderTag',
+	},
 	intercom: {
 		example: "intercom({ appId: 'YOUR_APP_ID' })",
 		importName: 'intercom',

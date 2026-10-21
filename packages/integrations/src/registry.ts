@@ -115,6 +115,16 @@ export const BUILT_IN_INTEGRATION_CATEGORIES = [
  */
 export const builtInScriptIntegrations = [
 	{
+		consentCategory: 'marketing',
+		docsSlug: 'insider',
+		hint: 'Personalized campaigns and customer messaging',
+		integrationCategory: 'email-and-sms',
+		key: 'insiderTag',
+		label: 'Insider',
+		packageSubpath: 'insider',
+		vendor: 'insider',
+	},
+	{
 		consentCategory: 'necessary',
 		docsSlug: 'cloudflare-zaraz',
 		hint: 'Consent bridge for tools managed by Zaraz',

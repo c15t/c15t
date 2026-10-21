@@ -37,6 +37,7 @@ import { sentry } from './vendors/analytics/sentry';
 import { umamiAnalytics } from './vendors/analytics/umami-analytics';
 import { vercelAnalytics } from './vendors/analytics/vercel-analytics';
 import { vercelSpeedInsights } from './vendors/analytics/vercel-speed-insights';
+import { insiderTag } from './vendors/email-and-sms/insider';
 import { klaviyo } from './vendors/email-and-sms/klaviyo';
 import { crisp } from './vendors/functional/crisp';
 import { frontChat } from './vendors/functional/front-chat';
@@ -58,6 +59,22 @@ const requiredIdCases: {
 	create: (id: unknown) => Script;
 	script: Pick<Script, 'category' | 'id'>;
 }[] = [
+	{
+		create: (id) => insiderTag({ partnerId: asId(id), partnerName: 'c15t' }),
+		helper: 'insiderTag',
+		option: 'partnerId',
+		script: { category: 'marketing', id: 'insider' },
+	},
+	{
+		create: (id) =>
+			insiderTag({
+				...{ partnerId: '123456', partnerName: 'c15t' },
+				partnerName: asId(id),
+			}),
+		helper: 'insiderTag',
+		option: 'partnerName',
+		script: { category: 'marketing', id: 'insider' },
+	},
 	{
 		create: (id) => linkedinInsights({ id: asId(id) }),
 		helper: 'linkedinInsights',

@@ -1,0 +1,145 @@
+---
+title: Insider One
+description: Load Insider One after marketing consent, send gdpr_optin through its Web SDK queue, and define the current page with the c15t insiderTag helper.
+seoTitle: Insider One cookie consent with c15t
+seoDescription: Load Insider One after marketing consent. Send gdpr_optin on grant and revocation, set page context, and check requests and storage with c15t.
+icon: insider
+group: integrations
+---
+
+The c15t `insiderTag` helper waits for `marketing` consent before creating
+`InsiderQueue` or requesting Insider's `ins.js`. It queues
+`user.gdpr_optin: true`, the current page definition, and `init` before the
+loader starts. On revocation it sends `gdpr_optin: false` followed by `init`
+and removes the loader. Keep c15t's default reload-on-revocation behavior
+enabled to stop code the SDK already ran.
+
+## Configure Insider
+
+Ask Insider for your public `partnerName` and `partnerId`, and confirm that
+Web SDK integration is enabled for your account. Replace any existing Insider
+tag or tag-manager installation so it cannot load outside c15t's consent gate.
+Remove any code that defines or populates `window.insider_object` too. Insider
+does not support running that legacy integration alongside `InsiderQueue`.
+Insider says to keep the tag off pages containing sensitive information, such
+as payment pages with credit card data.
+
+<CommandTabs command="@c15t/integrations" mode="install" />
+
+<include src="../shared/examples/javascript/insider-scripts.mdx" />
+
+This example describes a clothing category page. Replace its `pageType` with
+the definition for the current page. Use `{ type: 'home' }` only on the home
+page. The helper defaults to `{ type: 'other' }` when you omit page context.
+
+<include src="../shared/integrations/register-scripts.mdx" />
+
+## Options
+
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `partnerName` | Required | Public partner name from Insider. Trimmed, lowercased, and checked as a single DNS label for `<partnerName>.api.useinsider.com`. A missing, blank, or invalid value logs an error and skips the integration. |
+| `partnerId` | Required | Public partner ID from Insider. Trimmed and encoded as one query value. A missing or blank value logs an error and skips the integration. |
+| `pageType` | `{ type: 'other' }` | Complete page push, including any required `value` fields. See the supported page definitions below. |
+| `category` | `'marketing'` | Consent condition required before creating the queue or loading the tag. Accepts a category or an `and`/`or`/`not` condition. |
+
+For an account classified as personalization, you can replace the default
+condition with `category: 'experience'`. The same condition controls both
+loading and the `gdpr_optin` value sent on revocation.
+
+## Define the page context
+
+`pageType` is an object with the SDK's exact `type` and `value` fields. Insider
+documents these six page definitions. It does not call basket pages `basket`
+or order confirmation pages `confirmation`.
+
+| `type` | `value` |
+| --- | --- |
+| `'home'` | Optional `{ custom }` event parameters. |
+| `'other'` | Optional `{ name, custom }` for any other page. |
+| `'category'` | `{ breadcrumb: string[] }` for a listing page. Insider requires the category hierarchy for many use cases. |
+| `'product'` | Product data with `id`, `name`, `taxonomy`, `unit_price`, `unit_sale_price`, `url`, and `product_image_url`. |
+| `'cart'` | `{ total, items, shipping_cost? }`. Each item needs the product fields and `quantity`. |
+| `'purchase'` | `{ order_id, total, items, shipping_cost? }`. Each item needs the product fields and `quantity`. Use a confirmation page that contains no payment card data. |
+
+The helper queues the page object followed by `init`. Insider documents that
+every `init` updates the profile and triggers a page-view event for the last
+defined page.
+
+The helper defines the initial page only. It does not watch client-side route
+changes. For single-page navigation, follow Insider's
+[Web SDK guide](https://academy.insiderone.com/docs/insider-web-sdk-integration-guide)
+to push the new page definition followed by `init`, only while the configured
+consent condition and the Insider vendor switch are allowed. Keep your own
+`user` pushes consistent with the current consent. Insider treats an omitted
+`gdpr_optin` as `true`.
+
+## Loading and revocation
+
+The loader URL is
+`https://<partnerName>.api.useinsider.com/ins.js?id=<partnerId>`. c15t inserts
+it asynchronously into `<head>` after consent. Before the first grant, this
+helper creates no Insider global, request, cookie, or Web Storage entry.
+That guarantee requires removing other Insider installations and applies to
+this helper's work.
+
+If the category or the Insider vendor switch is revoked after installation,
+the helper pushes `{ type: 'user', value: { gdpr_optin: false } }` followed by
+`{ type: 'init' }` through `InsiderQueue.push`. c15t sends these updates; you
+do not need to call the queue yourself.
+
+This updates the user's consent through the same `user` and `init` lifecycle
+used on grant. It is not an SDK unload or a promise that all requests stop.
+Insider says `gdpr_optin: false` prevents campaigns except cookieless cases
+and prevents Insider messages. It does not document a shutdown or unload
+method in the integration guide. The final `init` can trigger page processing,
+so the helper does not promise zero traffic after revocation on the running
+page.
+
+c15t removes the loader, but a download already in flight can still finish,
+and code that already ran can keep listeners or timers. If consent is revoked
+before the SDK starts, the queue still contains the earlier grant and `init`
+before the denial update. A late SDK may process those earlier entries first.
+Removing the loader does not prove that the SDK discarded them. Keep
+`reloadOnConsentRevoked` enabled. On the next page with denied consent, c15t
+creates no queue and loads no Insider tag. The reload does not wait for Insider
+to acknowledge the consent update and does not delete existing vendor storage.
+
+## Cookies and storage
+
+The helper writes no cookies, localStorage, or sessionStorage itself. After
+consent, Insider's tag can use all three. The public loader contains cookie
+and Web Storage code and storage names including `spUID`, `ins-current-currency`,
+and `ins-cart-product-list`. These names come from the loader source; they
+are not a browser-observed inventory or a promise that every account writes
+them. Campaigns, account settings, and SDK updates can change the storage used.
+
+Inspect your account in DevTools Application after a grant and again after a
+revocation. Record cookie names, domains, paths and expiries, plus localStorage
+and sessionStorage keys. Configure c15t's clear-on-revocation rules from that
+inventory. This helper does not guess storage prefixes to delete, and browser
+JavaScript cannot remove HttpOnly or inaccessible third-party cookies.
+
+## Verify Insider
+
+Use an opt-in policy in a fresh private window and filter Network by
+`useinsider.com`. Before grant, including after a rejection and reload, there
+should be no Insider request and `window.InsiderQueue` should be undefined.
+After grant, check the partner-specific `ins.js` request and verify that your
+Insider account receives the correct page context. Test both category
+revocation and the Insider vendor switch. The next denied page should make no
+Insider request. Check existing storage separately; a removed loader does not
+prove cleanup.
+
+A placeholder partner can return HTTP 200 with an HTML error body. That response
+proves the endpoint answered; it does not prove the SDK ran or that an account
+accepted your events.
+
+<include src="../shared/integrations/vendor-revocation-and-verify.mdx" />
+
+## Official sources
+
+- [Integrate the Insider tag](https://academy.insiderone.com/docs/integrate-insider-tag-into-your-website)
+- [Insider Web SDK integration guide](https://academy.insiderone.com/docs/insider-web-sdk-integration-guide)
+- [Cookie-free Insider tag behavior](https://academy.insiderone.com/docs/how-does-cookie-free-insider-tag-work)
+- [Insider One privacy policy](https://insiderone.com/privacy-policy/)

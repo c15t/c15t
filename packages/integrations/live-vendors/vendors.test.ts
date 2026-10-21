@@ -94,6 +94,7 @@ describe('live vendor probe configs', () => {
 			'crisp',
 			'google-tag-manager',
 			'hotjar',
+			'insider',
 			'intercom',
 			'linkedin-insights',
 			'matomo-analytics',

@@ -302,6 +302,11 @@
 			"types": "./dist-types/events.d.ts",
 			"import": "./dist/events.js",
 			"default": "./dist/events.js"
+		},
+		"./insider": {
+			"types": "./dist-types/vendors/email-and-sms/insider.d.ts",
+			"import": "./dist/vendors/email-and-sms/insider.js",
+			"default": "./dist/vendors/email-and-sms/insider.js"
 		}
 	},
 	"publishConfig": {
