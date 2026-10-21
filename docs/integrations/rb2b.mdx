@@ -1,0 +1,82 @@
+---
+title: RB2B
+description: Load RB2B with c15t after marketing consent and verify its loader, storage and revocation behavior.
+seoTitle: RB2B consent with c15t
+seoDescription: Configure the c15t rb2b helper, gate vendor requests on marketing consent and understand what happens when consent is withdrawn.
+icon: radar
+group: integrations
+---
+
+The `rb2b` helper keeps RB2B off the page until `marketing` consent is granted.
+Remove direct snippets and tag manager copies so they cannot bypass c15t.
+
+## Configure RB2B
+
+<CommandTabs command="@c15t/integrations" mode="install" />
+
+<include src="../shared/examples/javascript/rb2b-scripts.mdx" />
+
+<include src="../shared/integrations/register-scripts.mdx" />
+
+Copy the account key from Script Setup, where the snippet calls `reb2b.load`.
+RB2B identifies companies and US visitors for sales outreach. This helper uses
+marketing consent even though some RB2B guidance calls its cookies functional.
+
+## Options
+
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `accountKey` | Required | Public account key, trimmed and URL-encoded. Invalid or blank values log an error and skip loading. |
+| `scriptUrl` | `https://ddwl4m2hdecbv.cloudfront.net/b/<key>/<key>.js.gz` | Override for the URL in your dashboard snippet. Blank values use the default. RB2B checks its own URL; preserve a supported CloudFront or S3 prefix and the `/b/<key>/` path. An arbitrary proxy may fail that check. |
+
+## Loading and revocation
+
+The helper installs the official `reb2b` array with `identify` and `collect`
+queue methods, `invoked: true` and `SNIPPET_VERSION: '1.0.1'`, then loads the
+account script asynchronously. The currently served account script does not
+replay queued identification calls. The helper sends no identification calls and
+sets no `rb2bConfig` itself.
+
+RB2B can delay startup by three seconds. It sends once per script execution;
+the helper does not reload the script on SPA navigation. Configure route behavior
+with RB2B before adding manual page tracking.
+
+The loader stays registered across withdrawal and regrant to avoid duplicate
+execution. RB2B has no documented stop or opt-out API. Keep c15t's default page
+reload on revocation enabled. With reload disabled, existing timers, identity
+lookups and tracking can continue until navigation, including an in-flight load.
+The helper does not claim that deleting a script clears vendor storage.
+
+CSP depends on account configuration. Observed hosts include the account's
+CloudFront or S3 loader, `b-code.liadm.com`, `pro.ip-api.com`,
+`a.usbrowserspeed.com`, `alocdn.com` and account-specific
+`*.execute-api.us-west-2.amazonaws.com` endpoints.
+
+## Cookies and storage
+
+RB2B documents `_reb2bgeo`, `_reb2bloaded`, `_reb2bref`, `_reb2sessionID`,
+`_reb2buid`, `_reb2bfxf`, `_reb2btd`, `_reb2bli`, `_reb2bresolve` and `_reb2butk`.
+Served scripts can differ, including `_reb2bsessionID`, `_reb2bsha`, `_reb2bec`
+and `_reb2beid`. Some builds mirror `_reb2buid`, `_reb2bref`, `_reb2bec`,
+`_reb2butk` and `_reb2beid` in local storage. Check the current account script
+rather than treating this list as exhaustive.
+
+The monitor uses a public key from RB2B's own homepage. Its loader returns real
+JavaScript, but domain restrictions and automation checks prevent identification
+verification. Placeholder keys return access denied. Collection remains blocked
+in the monitor.
+
+Sources: [RB2B TypeScript installation](https://support.rb2b.com/en/articles/9503690-rb2b-install-guide-for-typescript),
+[cookie information](https://support.rb2b.com/en/articles/9910029-rb2b-cookie-information),
+[consent guidance](https://support.rb2b.com/en/articles/9611828-considerations-when-controlling-rb2b-s-functionality-with-your-cookie-policy-banner),
+and [Next.js installation](https://support.rb2b.com/en/articles/9116902-rb2b-install-guide-for-next-js).
+
+## Verify RB2B
+
+In a fresh browser profile, deny consent and allow only an unrelated category.
+Confirm that no vendor requests, globals, cookies, local storage or session storage
+appear. Grant `marketing` and check the loader URL against your account snippet.
+Withdraw consent and confirm the page reloads. RB2B must stay blocked on the
+new page. Inspect storage in DevTools as well as Network.
+
+<include src="../shared/integrations/vendor-revocation-and-verify.mdx" />

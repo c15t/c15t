@@ -850,6 +850,7 @@ export default defineDocsConfig({
 						'amplitude',
 						'cloudflare-web-analytics',
 						'clearbit',
+						'rb2b',
 						'microsoft-clarity',
 						'databuddy',
 						'fathom-analytics',

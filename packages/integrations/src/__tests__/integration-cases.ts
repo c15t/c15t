@@ -2,6 +2,7 @@
  * One script per built-in integration, built from its public helper with
  * sample options, and the fields the helper must set.
  */
+
 import type { BuiltInScriptIntegrationKey } from '../registry';
 import { linkedinInsights } from '../vendors/ads-and-pixels/linkedin-insights';
 import { metaPixel } from '../vendors/ads-and-pixels/meta-pixel';
@@ -32,6 +33,7 @@ import { pirsch } from '../vendors/analytics/pirsch';
 import { plausibleAnalytics } from '../vendors/analytics/plausible-analytics';
 import { posthog } from '../vendors/analytics/posthog';
 import { promptwatch } from '../vendors/analytics/promptwatch';
+import { rb2b } from '../vendors/analytics/rb2b';
 import { rudderstack } from '../vendors/analytics/rudderstack';
 import { rybbitAnalytics } from '../vendors/analytics/rybbit-analytics';
 import { segment } from '../vendors/analytics/segment';
@@ -310,6 +312,14 @@ export const helperParityCases = {
 		script: promptwatch({
 			projectId: '7d60345b-27bb-4779-a385-d4fc19ce732c',
 		}),
+	},
+	rb2b: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: true,
+			src: 'https://ddwl4m2hdecbv.cloudfront.net/b/c15tfake/c15tfake.js.gz',
+		},
+		script: rb2b({ accountKey: 'c15tfake' }),
 	},
 	redditPixel: {
 		expected: {

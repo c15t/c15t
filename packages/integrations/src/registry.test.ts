@@ -41,6 +41,7 @@ import { pirschManifest } from './vendors/analytics/pirsch';
 import { plausibleAnalyticsManifest } from './vendors/analytics/plausible-analytics';
 import { posthogManifest } from './vendors/analytics/posthog';
 import { promptwatchManifest } from './vendors/analytics/promptwatch';
+import { rb2bManifest } from './vendors/analytics/rb2b';
 import { rudderstackManifest } from './vendors/analytics/rudderstack';
 import { rybbitAnalyticsManifest } from './vendors/analytics/rybbit-analytics';
 import { segmentManifest } from './vendors/analytics/segment';
@@ -63,6 +64,7 @@ const validConsentCategories = [
 ] as const satisfies readonly AllConsentNames[];
 
 const vendorManifests = [
+	rb2bManifest,
 	googleTagManagerManifest,
 	gtagManifest,
 	ahrefsAnalyticsManifest,

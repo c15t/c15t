@@ -47,6 +47,7 @@ import { pirsch } from '../src/vendors/analytics/pirsch';
 import { plausibleAnalytics } from '../src/vendors/analytics/plausible-analytics';
 import { posthog } from '../src/vendors/analytics/posthog';
 import { promptwatch } from '../src/vendors/analytics/promptwatch';
+import { rb2b } from '../src/vendors/analytics/rb2b';
 import {
 	RUDDERSTACK_QUEUE_METHODS,
 	rudderstack,
@@ -209,6 +210,24 @@ type PosthogProbeWindow = Window & {
  * Probe configs for every built-in integration, ordered by registry vendor id.
  */
 export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
+	{
+		bootstrapCheck: () =>
+			check(
+				Array.isArray(window.reb2b) &&
+					window.reb2b.invoked === true &&
+					window.reb2b.SNIPPET_VERSION === '1.0.1' &&
+					typeof window.reb2b.identify === 'function' &&
+					typeof window.reb2b.collect === 'function',
+				'Official RB2B array and snippet guard'
+			),
+		createScript: () => rb2b({ accountKey: '1VN080HQL06J' }),
+		loaderUrlSubstring:
+			'ddwl4m2hdecbv.cloudfront.net/b/1VN080HQL06J/1VN080HQL06J.js.gz',
+		notes:
+			'Public RB2B homepage account key serves real JavaScript. Domain restrictions and automation checks prevent identification verification; collection is blocked.',
+		tier: 'loader-only',
+		vendor: 'rb2b',
+	},
 	{
 		skipReason:
 			'Requires a configured Cloudflare zone and purpose IDs. This bridge does not fetch a public vendor loader.',

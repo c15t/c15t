@@ -166,6 +166,10 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 		example: "promptwatch({ projectId: 'YOUR_PROJECT_ID' })",
 		importName: 'promptwatch',
 	},
+	rb2b: {
+		example: "rb2b({ accountKey: 'YOUR_RB2B_KEY' })",
+		importName: 'rb2b',
+	},
 	'reddit-pixel': {
 		example: "redditPixel({ pixelId: 't2_XXXXXXX' })",
 		importName: 'redditPixel',

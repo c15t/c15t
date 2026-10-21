@@ -534,6 +534,16 @@ export const builtInScriptIntegrations = [
 		packageSubpath: 'x-pixel',
 		vendor: 'x-pixel',
 	},
+	{
+		consentCategory: 'marketing',
+		docsSlug: 'rb2b',
+		hint: 'Website visitor identification for sales outreach',
+		integrationCategory: 'analytics',
+		key: 'rb2b',
+		label: 'RB2B',
+		packageSubpath: 'rb2b',
+		vendor: 'rb2b',
+	},
 ] as const satisfies readonly IntegrationRegistryEntry[];
 
 /**

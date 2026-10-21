@@ -35,6 +35,7 @@
 		"pirsch",
 		"posthog",
 		"privacy",
+		"rb2b",
 		"rudderstack",
 		"script-loader",
 		"sentry",
@@ -302,6 +303,11 @@
 			"types": "./dist-types/events.d.ts",
 			"import": "./dist/events.js",
 			"default": "./dist/events.js"
+		},
+		"./rb2b": {
+			"types": "./dist-types/vendors/analytics/rb2b.d.ts",
+			"import": "./dist/vendors/analytics/rb2b.js",
+			"default": "./dist/vendors/analytics/rb2b.js"
 		}
 	},
 	"publishConfig": {

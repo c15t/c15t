@@ -97,6 +97,7 @@ describe('live vendor probe configs', () => {
 			'intercom',
 			'linkedin-insights',
 			'matomo-analytics',
+			'rb2b',
 			'segment',
 			'vercel-analytics',
 		]);
