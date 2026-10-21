@@ -1,0 +1,67 @@
+---
+title: Clay
+description: Load Clay web intent only after marketing consent and understand its storage and revocation limits.
+seoTitle: Clay web intent consent with c15t
+seoDescription: Gate Clay visitor identification on marketing consent with c15t and verify the loader, storage and revocation behavior.
+group: integrations
+---
+
+The `clay` helper waits for `marketing` consent before loading Clay web intent.
+Clay resolves visitors' IP addresses to companies and can use device fingerprints
+and identifiers from other vendors for sales profiling.
+
+## Configure Clay
+
+Copy the `id` from Settings > Web intent > JavaScript Snippet. Remove any direct
+Clay snippet or GTM copy so it cannot bypass c15t.
+
+<CommandTabs command="@c15t/integrations" mode="install" />
+
+<include src="../shared/examples/javascript/clay-scripts.mdx" />
+
+<include src="../shared/integrations/register-scripts.mdx" />
+
+## Options
+
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `siteId` | Required | Public ID from Clay's snippet. Trimmed and URL-encoded. Invalid or blank IDs log an error and skip loading. |
+| `scriptUrl` | `https://static.claydar.com/init.v1.js?id=<siteId>` | Override for a proxy or pinned loader. Keep the `id` query parameter because Clay reads `document.currentScript.src`. A blank override uses the default. |
+
+## Loading and revocation
+
+The loader runs from a real script element in the body after marketing consent.
+It loads `cdn.claydar.com/releases/latest/radar.min.js`, which sends data to
+`api.claydar.com`. Include those hosts in the matching CSP directives.
+Measurement consent alone loads nothing. Clay's own CMP detection does not cover
+c15t.
+
+On load, the helper queues `giveCookieConsent`. On withdrawal it calls
+`denyCookieConsent` when available. These methods were verified in the served
+tracker, but Clay does not document them. Denial moves identifiers from persistent
+storage into session storage. It does not stop requests. Keep c15t's default
+`reloadOnConsentRevoked` behavior enabled. With reload disabled, the tracker can
+continue sending events until navigation. Removing its loader cannot unload the
+tracker or its child scripts.
+
+The served tracker uses `claydar_*` cookies and local storage, including a device
+ID cookie with a one-year lifetime. It also uses `radar_sn_*` session keys for
+fingerprints, `spotter_data` for company lookup and a temporary `__sn_tld_probe`
+cookie. Account settings and future vendor versions can change this inventory.
+
+## Verify Clay
+
+Filter Network by `claydar.com`. Denial and measurement-only consent must show no
+requests, no `Claydar` global and no vendor storage. Grant marketing and confirm
+one `init.v1.js?id=<siteId>` loader plus the tracker. Withdraw consent and confirm
+the page reloads, then confirm Clay stays blocked on the new page.
+
+The monitor uses a placeholder site ID. Successful loader and tracker execution
+does not establish account configuration or successful company identification.
+
+Sources: [Clay Web intent](https://university.clay.com/docs/website-tracking),
+[Clay's Web intent announcement](https://www.clay.com/blog/web-intent),
+[loader](https://static.claydar.com/init.v1.js), and
+[served tracker](https://cdn.claydar.com/releases/latest/radar.min.js).
+
+<include src="../shared/integrations/vendor-revocation-and-verify.mdx" />
