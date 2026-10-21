@@ -1,6 +1,7 @@
 import type { AllConsentNames, HasCondition, Script } from '@c15t/core';
 
-import { resolveManifest } from '../../resolve';
+import { compileManifest } from '../../engine/compile';
+import { resolvedManifestToScript } from '../../engine/runtime';
 import { vendorManifestContract } from '../../types';
 import type { VendorManifest } from '../../types';
 import { readId, skipMissingId } from '../_shared/required-id';
@@ -117,6 +118,7 @@ export const insiderManifest = {
 		{
 			args: [{ type: 'user', value: '{{user}}' }],
 			global: 'InsiderQueue',
+			literalArgs: true,
 			method: 'push',
 			type: 'callGlobal',
 		},
@@ -191,8 +193,9 @@ export interface InsiderTagOptions {
 	 * Complete current user attributes for the final grant `user` push.
 	 * Pass current checkout identifiers, such as `email` and `phone_number`,
 	 * and account-specific attributes under `custom`. No historical queue
-	 * identity is reused. The helper overrides `gdpr_optin` with actual consent
-	 * and sends no supplied attributes on denial. Values must be serializable
+	 * identity is reused. Attributes are snapshotted when this helper is called.
+	 * The helper overrides `gdpr_optin` with actual consent
+	 * and sends no supplied attributes on denial. Values must be JSON-serializable
 	 * and follow your Insider account's attribute and identifier definitions.
 	 */
 	user?: Record<string, unknown>;
@@ -232,7 +235,8 @@ const PARTNER_NAME_PATTERN = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/u;
  *
  * @param options - Insider account, current user, currency, page, and consent.
  * @returns The consent-gated Insider script configuration.
- * @throws {TypeError} When a supplied currency is not a non-blank string.
+ * @throws {TypeError} When currency is not a non-blank string or user data
+ *   cannot be serialized to JSON.
  * @remarks A missing or blank required ID, or an invalid partner hostname,
  *   logs `insiderTag: missing or invalid <option>` with `console.error` and
  *   returns a script that never loads. Insider must enable Web SDK support
@@ -273,14 +277,21 @@ export const insiderTag = function insiderTag(
 		throw new TypeError('insiderTag: currency must be a non-blank string');
 	}
 
-	return resolveManifest(
-		currency === undefined ? insiderManifest : insiderCurrencyManifest,
-		{
-			category,
-			currency,
-			pageType: options.pageType ?? { type: 'other' },
-			scriptSrc: `https://${partnerName}.api.useinsider.com/ins.js?id=${encodeURIComponent(partnerId)}`,
-			user: { ...options.user, gdpr_optin: true },
-		}
+	const user = JSON.parse(JSON.stringify(options.user ?? {})) as Record<
+		string,
+		unknown
+	>;
+	// Keep current identifiers independent of the resolver's shared config cache.
+	return resolvedManifestToScript(
+		compileManifest(
+			currency === undefined ? insiderManifest : insiderCurrencyManifest,
+			{
+				category,
+				currency,
+				pageType: options.pageType ?? { type: 'other' },
+				scriptSrc: `https://${partnerName}.api.useinsider.com/ins.js?id=${encodeURIComponent(partnerId)}`,
+				user: { ...user, gdpr_optin: true },
+			}
+		)
 	);
 };

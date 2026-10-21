@@ -128,6 +128,12 @@ export interface CallGlobalStep {
 	method?: string;
 	/** Arguments to pass */
 	args?: unknown[];
+	/**
+	 * Clone arguments as literal JSON without interpreting runtime value markers.
+	 * Arguments must be JSON-serializable.
+	 * @default false
+	 */
+	literalArgs?: boolean;
 }
 
 export interface PushToQueueStep {

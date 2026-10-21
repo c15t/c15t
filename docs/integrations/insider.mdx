@@ -66,7 +66,7 @@ and `uuid` are strings; `age` is a number; `email_optin` is a boolean; and
 and send their values as strings. Follow the Web SDK guide for field formats,
 including E.164 phone numbers. Nested objects pass through without flattening;
 the helper does not validate their support or schema in your account. Use
-serializable data matching Insider's definitions.
+JSON-serializable data matching Insider's definitions.
 
 Insider documents that logging out does not reset the browser's Insider ID.
 For a guest purchase, supply the current guest's available checkout identifiers,
@@ -80,7 +80,9 @@ account settings; the option alone does not guarantee correct unification.
 Build this configuration from the current checkout or session data, current
 storefront currency, and guarded page definition before registering it with
 your consent adapter. Keep the returned scripts stable while those values are
-current. The helper does not watch login, logout, checkout, currency, or route
+current. User attributes, including nested data, are snapshotted when the helper
+is called; later mutations to the supplied object do not update that configuration.
+The helper does not watch login, logout, checkout, currency, or route
 changes. Rebuild stale configuration through the app's session and order logic
 before a fresh registration or page load. Recreating an already active helper
 does not itself send new user data or restart it.

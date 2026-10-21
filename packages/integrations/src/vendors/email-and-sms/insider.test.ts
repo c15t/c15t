@@ -2,6 +2,7 @@
  * @vitest-environment jsdom
  */
 
+import type { Script } from '@c15t/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
@@ -42,6 +43,20 @@ const pageTypes: InsiderPageType[] = [
 		},
 	},
 ];
+
+const runGrant = function runGrant(script: Script, mode: string): void {
+	const info = createCallbackInfo({ hasConsent: true, id: script.id });
+	if (mode === 'callback') {
+		script.onBeforeLoad?.(info);
+		return;
+	}
+	const start = script.serverStart?.(info, script);
+	if (!start) {
+		throw new Error('Expected inline Insider start code');
+	}
+	// oxlint-disable-next-line no-new-func -- Execute the HTML start code the helper emits.
+	new Function(`${start.prelude ?? ''};${start.code}`)();
+};
 
 describe('insiderTag', () => {
 	afterEach(() => {
@@ -137,6 +152,112 @@ describe('insiderTag', () => {
 		insiderTag(account);
 		expect(window.InsiderQueue).toBeUndefined();
 	});
+
+	it.each(['callback', 'server-start'])(
+		'snapshots nested identifiers independently across rebuilds through %s',
+		(mode) => {
+			const user = { custom: { loyalty_id: 'snapshot-A' } };
+			const first = insiderTag({ ...account, user });
+			user.custom.loyalty_id = 'snapshot-B';
+			const rebuilt = insiderTag({ ...account, user });
+			const fresh = insiderTag({
+				...account,
+				user: { custom: { loyalty_id: 'snapshot-A' } },
+			});
+			for (const [script, loyaltyId] of [
+				[first, 'snapshot-A'],
+				[rebuilt, 'snapshot-B'],
+				[fresh, 'snapshot-A'],
+			] as const) {
+				delete window.InsiderQueue;
+				runGrant(script, mode);
+				expect(window.InsiderQueue).toEqual([
+					{
+						type: 'user',
+						value: { custom: { loyalty_id: loyaltyId }, gdpr_optin: true },
+					},
+					{ type: 'other' },
+					{ type: 'init' },
+				]);
+			}
+		}
+	);
+
+	it.each(['callback', 'server-start'])(
+		'accepts and snapshots JSON-serializable nested proxies through %s',
+		(mode) => {
+			const custom = new Proxy({ loyalty_id: 'proxy-A' }, {});
+			const script = insiderTag({ ...account, user: { custom } });
+			custom.loyalty_id = 'proxy-B';
+			runGrant(script, mode);
+			expect(window.InsiderQueue).toEqual([
+				{
+					type: 'user',
+					value: { custom: { loyalty_id: 'proxy-A' }, gdpr_optin: true },
+				},
+				{ type: 'other' },
+				{ type: 'init' },
+			]);
+		}
+	);
+
+	it.each(['callback', 'server-start'])(
+		'preserves nested user JSON that resembles a runtime marker through %s',
+		(mode) => {
+			const user = {
+				custom: {
+					detail: {
+						identifier: 'checkout-A',
+						kind: 'c15t.runtime-value',
+						value: 'timestamp',
+					},
+				},
+				email: 'guest@example.com',
+			};
+			runGrant(insiderTag({ ...account, user }), mode);
+			expect(window.InsiderQueue).toEqual([
+				{ type: 'user', value: { ...user, gdpr_optin: true } },
+				{ type: 'other' },
+				{ type: 'init' },
+			]);
+		}
+	);
+
+	it.each(['callback', 'server-start'])(
+		'preserves consent when user JSON resembles a runtime marker through %s',
+		(mode) => {
+			const user = {
+				email: 'guest@example.com',
+				gdpr_optin: false,
+				kind: 'c15t.runtime-value',
+				value: 'date',
+			};
+			runGrant(insiderTag({ ...account, user }), mode);
+			expect(window.InsiderQueue).toEqual([
+				{ type: 'user', value: { ...user, gdpr_optin: true } },
+				{ type: 'other' },
+				{ type: 'init' },
+			]);
+		}
+	);
+
+	it.each(['callback', 'server-start'])(
+		'keeps distinct current identifier payloads separate through %s',
+		(mode) => {
+			insiderTag({
+				...account,
+				user: { custom: { loyalty_id: 'collision-A,"nickname":string:B' } },
+			});
+			const user = { custom: { loyalty_id: 'collision-A', nickname: 'B' } };
+			const script = insiderTag({ ...account, user });
+			runGrant(script, mode);
+			expect(window.InsiderQueue).toEqual([
+				{ type: 'user', value: { ...user, gdpr_optin: true } },
+				{ type: 'other' },
+				{ type: 'init' },
+			]);
+		}
+	);
 
 	it.each(pageTypes)(
 		'queues the complete $type page between user consent and init',
