@@ -15,8 +15,8 @@ from Hotjar. Under an opt-in policy, that wait lasts until the visitor allows
 analytics.
 
 Withdrawal needs more care. c15t sends Hotjar no consent signal, so it can't
-tell a running recording to stop. It reloads the page instead, and the reload
-ends the recording.
+tell a running recording to stop. By default it reloads the page instead, and
+the reload ends the recording.
 
 ## Configure Hotjar
 
@@ -50,13 +50,16 @@ loads the Hotjar script. If your page already defines either global, the helper
 leaves it alone.
 
 When the visitor withdraws, the helper removes the script element. Hotjar is
-already running by then, so removing the element doesn't stop it. The page
-reload does.
+already running by then, so removing the element doesn't stop it. The default
+page reload does. If you set `reloadOnConsentRevoked: false`, Hotjar keeps
+recording until the visitor leaves the page.
 
 ## Verify Hotjar
 
 Filter the DevTools Network panel by `hotjar`. After you allow measurement,
-the loader appears and `window._hjSettings.hjid` holds your site ID. By default
+the loader appears and `window._hjSettings.hjid` holds your site ID. If it
+holds a different ID, other code on the page set `_hjSettings` before c15t, and
+the helper left it alone. Find and remove that code. By default
 the loader is `hotjar-<siteId>.js` from `static.hotjar.com`. If you set
 `scriptUrl`, look for that URL instead.
 
