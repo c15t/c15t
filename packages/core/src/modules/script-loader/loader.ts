@@ -271,7 +271,10 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 					status = 'retained';
 				} else if (loadedElements.has(script.id)) {
 					status = statuses.get(script.id) ?? 'present';
-					if (!script.src && status === 'loading') {
+					if (
+						(!script.src || loadedElements.get(script.id) === null) &&
+						status === 'loading'
+					) {
 						status = 'loaded';
 					}
 				}

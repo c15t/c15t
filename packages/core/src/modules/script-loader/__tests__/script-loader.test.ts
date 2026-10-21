@@ -533,16 +533,53 @@ describe('script-loader: callbackOnly skips DOM mount', () => {
 			const first = createScriptLoader({ kernel, scripts: [{ ...script }] });
 			expect(head.children).toHaveLength(initial ? 0 : 1);
 			expect(getScriptDiagnostics(kernel)[0]?.callbackOnly).toBe(initial);
+			expect(getScriptDiagnostics(kernel)[0]?.status).toBe(
+				initial ? 'loaded' : 'loading'
+			);
 			started = !initial;
 			expect(getScriptDiagnostics(kernel)[0]?.callbackOnly).toBe(started);
+			expect(getScriptDiagnostics(kernel)[0]?.status).toBe(
+				initial ? 'loaded' : 'loading'
+			);
 			expect(head.children).toHaveLength(initial ? 0 : 1);
 			first.dispose();
 			const second = createScriptLoader({ kernel, scripts: [{ ...script }] });
 			try {
 				expect(head.children).toHaveLength(started ? 0 : 1);
 				expect(getScriptDiagnostics(kernel)[0]?.callbackOnly).toBe(started);
+				expect(getScriptDiagnostics(kernel)[0]?.status).toBe(
+					started ? 'loaded' : 'loading'
+				);
 			} finally {
 				second.dispose();
+				kernel.dispose();
+			}
+		}
+	);
+
+	test.each([true, () => true])(
+		'reports a completed callback-only script with a fallback source, %s',
+		(callbackOnly) => {
+			const onLoad = vi.fn();
+			const kernel = createConsentKernel();
+			const loader = createScriptLoader({
+				kernel,
+				scripts: [
+					{
+						callbackOnly,
+						category: 'necessary',
+						id: 'existing-runtime',
+						onLoad,
+						src: 'https://example.com/sdk.js',
+					},
+				],
+			});
+			try {
+				expect(head.children).toHaveLength(0);
+				expect(onLoad).toHaveBeenCalledOnce();
+				expect(getScriptDiagnostics(kernel)[0]?.status).toBe('loaded');
+			} finally {
+				loader.dispose();
 				kernel.dispose();
 			}
 		}
@@ -613,6 +650,7 @@ describe('script-loader: callbacks fire in sequence', () => {
 		});
 
 		expect(onLoad).not.toHaveBeenCalled();
+		expect(getScriptDiagnostics(kernel)[0]?.status).toBe('loaded');
 		vi.runAllTimers();
 		expect(onLoad).toHaveBeenCalledTimes(1);
 	});

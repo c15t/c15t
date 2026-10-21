@@ -13,3 +13,5 @@ packages:
 Retries before SDK startup rebuild the pending queue from the current product, configuration and identity, including server-generated startup. Interrupted setups no longer supply stale identity or product data to the next loader.
 
 Gainsight PX runtime detection survives object-spread customization made before startup, so retaining the same script copy across disposal and remount does not execute the SDK again. Core's `callbackOnly` also accepts a zero-argument boolean predicate, evaluated at mount time, for diagnostics and for server startup.
+
+Script diagnostics report completed callback-only registrations as loaded, including configurations with a fallback script URL.
