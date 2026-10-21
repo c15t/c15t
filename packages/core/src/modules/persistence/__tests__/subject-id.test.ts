@@ -161,6 +161,30 @@ test('removing the ID starts a new one', () => {
 	expect(storedSid()).toEqual({ cookie: next, local: next });
 });
 
+test.each([
+	['a new one', null],
+	['one the app names', 'sub_app'],
+] as const)(
+	'replacing a saved ID with %s survives a reload',
+	async (_, next) => {
+		const first = boot();
+		const saved = subjectIdOf(first.kernel);
+		await first.kernel.commands.save({ measurement: true });
+		vi.advanceTimersByTime(0);
+
+		first.kernel.set.subjectId(next);
+		const replaced = subjectIdOf(first.kernel);
+		expect(replaced).not.toBe(saved);
+		vi.advanceTimersByTime(0);
+		first.handle.dispose();
+
+		const { kernel } = boot();
+		expect(subjectIdOf(kernel)).toBe(replaced);
+		expect(kernel.getSnapshot().explicitChoice).not.toBeNull();
+		expect(storedSid()).toEqual({ cookie: replaced, local: replaced });
+	}
+);
+
 test('an ID that is not a generated one survives a clear and a reload', () => {
 	const first = boot();
 	first.kernel.set.subjectId('canonical id/1');
@@ -187,6 +211,17 @@ test('an unused ID follows the one another tab stored and names the one it repla
 			type: 'subject:resolved',
 		})
 	);
+});
+
+test('an ID the app names does not follow another tab', () => {
+	const { kernel } = boot();
+	kernel.set.subjectId('sub_app');
+
+	localStorage.setItem(SID_KEY, 'sub_other_tab');
+	document.cookie = `${SID_KEY}=sub_other_tab; path=/`;
+	window.dispatchEvent(new StorageEvent('storage', { key: SID_KEY }));
+
+	expect(subjectIdOf(kernel)).toBe('sub_app');
 });
 
 test('an ID a save used does not follow another tab', async () => {

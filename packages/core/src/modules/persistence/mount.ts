@@ -112,6 +112,8 @@ export const mountPersistence = function mountPersistence(
 	// Set while this handle announces a subject change it only followed. The
 	// change came from records or a response, so there is nothing to write.
 	let followingSubject = false;
+	// Set while this handle takes the unused ID another tab stored.
+	let adopting = false;
 
 	const land = function land(module: WriterModule): void {
 		if (writer) {
@@ -225,6 +227,24 @@ export const mountPersistence = function mountPersistence(
 		}
 	};
 
+	/** Writes the stored records again under the kernel's subject ID. */
+	const rekeyRecords = function rekeyRecords(snapshot: ConsentSnapshot): void {
+		// The vendor record carries the subject only once a vendor decision
+		// exists. Scheduling without one would run the writer's clear branch
+		// and delete a stored denial this kernel never hydrated. Without
+		// either record, `<key>-sid` alone holds the subject.
+		const kinds: WriteKind[] = [];
+		if (snapshot.explicitChoice) {
+			kinds.push('choice');
+		}
+		if (snapshot.vendorChoice) {
+			kinds.push('vendors');
+		}
+		if (kinds.length > 0) {
+			request(...kinds);
+		}
+	};
+
 	const unsubscribers = [
 		kernel.events.on('command:save:started', () => {
 			state.subjectBeforeSave = kernel.getSnapshot().subject?.subjectId;
@@ -240,22 +260,8 @@ export const mountPersistence = function mountPersistence(
 			request('choice', 'notice');
 		}),
 		kernel.events.on('subject:resolved', ({ snapshot }) => {
-			if (followingSubject) {
-				return;
-			}
-			// The vendor record carries the subject only once a vendor decision
-			// exists. Scheduling without one would run the writer's clear branch
-			// and delete a stored denial this kernel never hydrated. Without
-			// either record, `<key>-sid` alone holds the subject.
-			const kinds: WriteKind[] = [];
-			if (snapshot.explicitChoice) {
-				kinds.push('choice');
-			}
-			if (snapshot.vendorChoice) {
-				kinds.push('vendors');
-			}
-			if (kinds.length > 0) {
-				request(...kinds);
+			if (!followingSubject) {
+				rekeyRecords(snapshot);
 			}
 		}),
 		kernel.events.on('notice:dismissed', () => {
@@ -397,9 +403,22 @@ export const mountPersistence = function mountPersistence(
 			return;
 		}
 		storeSubjectId(id);
+		if (
+			(snapshot.explicitChoice || snapshot.vendorChoice) &&
+			readStoredRecordsForReconcile(storageConfig, now()).recordedSubjectId !==
+				id
+		) {
+			// `set.subjectId` and init change the ID without a save. The
+			// records follow it, or the next load restores the old ID.
+			rekeyRecords(snapshot);
+		}
 		if (previous !== undefined && previous === unusedSubjectId) {
-			unusedSubjectId = id;
-			state.freshSubjectId = id;
+			// Another tab's ID stays unused. One the app or the server named
+			// is kept.
+			unusedSubjectId = adopting ? id : undefined;
+			if (adopting) {
+				state.freshSubjectId = id;
+			}
 			followingSubject = true;
 			try {
 				kernel.events.emit({
@@ -483,7 +502,12 @@ export const mountPersistence = function mountPersistence(
 			!snapshot.explicitChoice &&
 			!snapshot.vendorChoice
 		) {
-			kernel.hydrate({ subject: { ...snapshot.subject, subjectId: stored } });
+			adopting = true;
+			try {
+				kernel.hydrate({ subject: { ...snapshot.subject, subjectId: stored } });
+			} finally {
+				adopting = false;
+			}
 		}
 	};
 
