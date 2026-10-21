@@ -91,6 +91,15 @@ export interface C15tMiddlewareOptions {
 	 * @default 500
 	 */
 	timeoutMs?: number | false;
+	/**
+	 * Read the request's scheme and host from `forwarded` and
+	 * `x-forwarded-*` headers when deciding the subject cookie's `Secure`
+	 * flag and cross-subdomain domain. Any client can send those headers, so
+	 * set this only behind a proxy that sets them and drops incoming ones.
+	 *
+	 * @default false
+	 */
+	trustForwardedHeaders?: boolean;
 }
 
 /** Options accepted by the `c15t()` Astro integration. */
@@ -483,8 +492,10 @@ export interface C15tResolvedOptions extends Omit<
 	routePrefix?: string;
 	ui: C15tUIAdapterName;
 	colorScheme: C15tColorScheme;
-	middleware: Required<Omit<C15tMiddlewareOptions, 'timeoutMs'>> &
-		Pick<C15tMiddlewareOptions, 'timeoutMs'>;
+	middleware: Required<
+		Omit<C15tMiddlewareOptions, 'timeoutMs' | 'trustForwardedHeaders'>
+	> &
+		Pick<C15tMiddlewareOptions, 'timeoutMs' | 'trustForwardedHeaders'>;
 	/**
 	 * Whether the components inline the first-paint rules and the client
 	 * links the dialog's when it opens. `false` with `styles: false`, and on

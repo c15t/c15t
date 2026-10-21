@@ -175,6 +175,9 @@ const resolveMiddleware = function resolveMiddleware(
 	if (raw.timeoutMs !== undefined) {
 		resolved.timeoutMs = raw.timeoutMs;
 	}
+	if (raw.trustForwardedHeaders !== undefined) {
+		resolved.trustForwardedHeaders = raw.trustForwardedHeaders;
+	}
 	return resolved;
 };
 
