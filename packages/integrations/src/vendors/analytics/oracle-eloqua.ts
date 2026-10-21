@@ -58,7 +58,7 @@ export interface EloquaTrackingOptions {
 interface ConsentOwner {
 	hasConsent: boolean;
 	loaded: boolean;
-	track: (dispatcher: NonNullable<Window['_elqQ']>) => void;
+	track: (dispatcher: NonNullable<Window['_elqQ']>) => boolean;
 }
 
 // Keep one consent request in flight, including across provider remounts.
@@ -117,10 +117,11 @@ const createConsentDispatcher = (siteId: string, onIdle: () => void) => {
 				desired &&
 				dispatcher === currentDispatcher
 			) {
-				const owner = [...owners]
-					.reverse()
-					.find((candidate) => candidate.loaded);
-				owner?.track(currentDispatcher);
+				for (const candidate of [...owners].reverse()) {
+					if (candidate.loaded && candidate.track(currentDispatcher)) {
+						break;
+					}
+				}
 			}
 			reconcile();
 			retire();
@@ -234,7 +235,7 @@ export const eloquaTracking = function eloquaTracking(
 		let generation = 0;
 		let trackedGeneration = -1;
 		let element: HTMLScriptElement | undefined;
-		const track = (dispatcher: NonNullable<Window['_elqQ']>): void => {
+		const track = (dispatcher: NonNullable<Window['_elqQ']>): boolean => {
 			if (
 				hasConsent &&
 				element?.isConnected &&
@@ -242,7 +243,9 @@ export const eloquaTracking = function eloquaTracking(
 			) {
 				trackedGeneration = generation;
 				dispatcher.push(['elqTrackPageView', window.location.href]);
+				return true;
 			}
+			return false;
 		};
 		const owner: ConsentOwner = { hasConsent, loaded, track };
 		const updateConsent = (dispatcher?: Window['_elqQ']): void => {

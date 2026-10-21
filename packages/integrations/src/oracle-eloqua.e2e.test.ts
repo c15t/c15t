@@ -177,6 +177,71 @@ describe('Eloqua dispatcher lifecycle', () => {
 			}
 		}
 	);
+	it.each([
+		['marketing', 'experience'],
+		['experience', 'marketing'],
+	] as const)(
+		'tracks an earlier %s owner regrant after a shared %s owner tracked',
+		async (firstCategory, secondCategory) => {
+			const firstKernel = createConsentKernel();
+			const secondKernel = createConsentKernel();
+			const consents = { ...granted, experience: true };
+			await Promise.all([
+				firstKernel.commands.save(consents),
+				secondKernel.commands.save(consents),
+			]);
+			const first = createScriptLoader({
+				kernel: firstKernel,
+				scripts: [
+					eloquaTracking({ category: firstCategory, siteId: '1973398186' }),
+				],
+			});
+			const element = getLoader();
+			const push = installDispatcher();
+			element.dispatchEvent(new Event('load'));
+			const second = createScriptLoader({
+				kernel: secondKernel,
+				scripts: [
+					eloquaTracking({ category: secondCategory, siteId: '1973398186' }),
+				],
+			});
+			const finish = (pps: '41' | '42') => {
+				const response = Array.from(
+					document.querySelectorAll(`script[src*="pps=${pps}"]`)
+				).at(-1);
+				expect(response).toBeDefined();
+				response?.dispatchEvent(new Event('load'));
+				return response;
+			};
+			try {
+				await Promise.resolve();
+				finish('41');
+				await firstKernel.commands.save({
+					...consents,
+					[firstCategory]: false,
+				});
+				finish('42');
+				await firstKernel.commands.save(consents);
+				await firstKernel.commands.save(consents);
+				const response = finish('41');
+				response?.dispatchEvent(new Event('load'));
+				await firstKernel.commands.save(consents);
+				expect(push.mock.calls).toEqual([
+					[['elqOptIn']],
+					[['elqTrackPageView', window.location.href]],
+					[['elqOptOut']],
+					[['elqOptIn']],
+					[['elqTrackPageView', window.location.href]],
+				]);
+				expect(getLoader()).toBe(element);
+			} finally {
+				first.dispose();
+				second.dispose();
+				firstKernel.dispose();
+				secondKernel.dispose();
+			}
+		}
+	);
 	it.each([false, true])(
 		'aggregates a never-mounted denial across distinct kernels, granted first: %s',
 		async (grantedFirst) => {
