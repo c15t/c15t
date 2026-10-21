@@ -200,6 +200,10 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 		example: "umamiAnalytics({ websiteId: 'YOUR_WEBSITE_ID' })",
 		importName: 'umamiAnalytics',
 	},
+	vector: {
+		example: "vector({ pixelId: 'YOUR_PIXEL_ID' })",
+		importName: 'vector',
+	},
 	'vercel-analytics': {
 		example: 'vercelAnalytics({})',
 		importName: 'vercelAnalytics',

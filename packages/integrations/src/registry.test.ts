@@ -20,6 +20,7 @@ import { pinterestTagManifest } from './vendors/ads-and-pixels/pinterest-tag';
 import { redditPixelManifest } from './vendors/ads-and-pixels/reddit-pixel';
 import { snapchatPixelManifest } from './vendors/ads-and-pixels/snapchat-pixel';
 import { tiktokPixelManifest } from './vendors/ads-and-pixels/tiktok-pixel';
+import { vectorManifest } from './vendors/ads-and-pixels/vector';
 import { xPixelManifest } from './vendors/ads-and-pixels/x-pixel';
 import { adobeAnalyticsManifest } from './vendors/analytics/adobe-analytics';
 import { ahrefsAnalyticsManifest } from './vendors/analytics/ahrefs-analytics';
@@ -63,6 +64,7 @@ const validConsentCategories = [
 ] as const satisfies readonly AllConsentNames[];
 
 const vendorManifests = [
+	vectorManifest,
 	googleTagManagerManifest,
 	gtagManifest,
 	ahrefsAnalyticsManifest,

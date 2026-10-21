@@ -362,7 +362,11 @@ const executeStep = function executeStep(step: ManifestStep): void {
 						return;
 					}
 
-					queueTarget.push([methodName, ...args]);
+					queueTarget.push(
+						step.queueFormat === 'nameAndArgs'
+							? [methodName, args]
+							: [methodName, ...args]
+					);
 				};
 			}
 			break;

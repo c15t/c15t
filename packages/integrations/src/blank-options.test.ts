@@ -10,6 +10,7 @@ import { pinterestTag } from './vendors/ads-and-pixels/pinterest-tag';
 import { redditPixel } from './vendors/ads-and-pixels/reddit-pixel';
 import { snapchatPixel } from './vendors/ads-and-pixels/snapchat-pixel';
 import { tiktokPixel } from './vendors/ads-and-pixels/tiktok-pixel';
+import { vector } from './vendors/ads-and-pixels/vector';
 import { xPixel } from './vendors/ads-and-pixels/x-pixel';
 import { adobeAnalytics } from './vendors/analytics/adobe-analytics';
 import { ahrefsAnalytics } from './vendors/analytics/ahrefs-analytics';
@@ -58,6 +59,12 @@ const requiredIdCases: {
 	create: (id: unknown) => Script;
 	script: Pick<Script, 'category' | 'id'>;
 }[] = [
+	{
+		create: (id) => vector({ pixelId: asId(id) }),
+		helper: 'vector',
+		option: 'pixelId',
+		script: { category: 'marketing', id: 'vector' },
+	},
 	{
 		create: (id) => linkedinInsights({ id: asId(id) }),
 		helper: 'linkedinInsights',

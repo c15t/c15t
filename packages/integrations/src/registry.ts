@@ -534,6 +534,16 @@ export const builtInScriptIntegrations = [
 		packageSubpath: 'x-pixel',
 		vendor: 'x-pixel',
 	},
+	{
+		consentCategory: 'marketing',
+		docsSlug: 'vector',
+		hint: 'Visitor identification for advertising audiences',
+		integrationCategory: 'ads-and-pixels',
+		key: 'vector',
+		label: 'Vector',
+		packageSubpath: 'vector',
+		vendor: 'vector',
+	},
 ] as const satisfies readonly IntegrationRegistryEntry[];
 
 /**

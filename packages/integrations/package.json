@@ -40,6 +40,7 @@
 		"sentry",
 		"session-replay",
 		"tiktok-pixel",
+		"vector",
 		"vercel-speed-insights",
 		"x-pixel"
 	],
@@ -302,6 +303,11 @@
 			"types": "./dist-types/events.d.ts",
 			"import": "./dist/events.js",
 			"default": "./dist/events.js"
+		},
+		"./vector": {
+			"types": "./dist-types/vendors/ads-and-pixels/vector.d.ts",
+			"import": "./dist/vendors/ads-and-pixels/vector.js",
+			"default": "./dist/vendors/ads-and-pixels/vector.js"
 		}
 	},
 	"publishConfig": {

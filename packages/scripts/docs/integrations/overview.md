@@ -99,6 +99,7 @@ kernel to control its DOM lifecycle. Embeds do not require `@c15t/integrations`.
 
 | Integration                                    | Helper             | Category    | Loading behavior                                                 |
 | ---------------------------------------------- | ------------------ | ----------- | ---------------------------------------------------------------- |
+| [Vector](./vector.md)                          | `vector`           | `marketing` | Waits for effective permission                                   |
 | [Meta Pixel](./meta-pixel.md)                  | `metaPixel`        | `marketing` | Gated initially; keeps the SDK and signals consent               |
 | [OpenAI Pixel](./openai-pixel.md)              | `openaiPixel`      | `marketing` | Gated initially; keeps the SDK and signals consent               |
 | [Pinterest Tag](./pinterest-tag.md)            | `pinterestTag`     | `marketing` | Gated initially; keeps the tag and signals consent               |
