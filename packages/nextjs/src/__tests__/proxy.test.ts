@@ -39,10 +39,15 @@ describe('c15tProxy subject ID', () => {
 		expect(renderedCookie(response)).toBe(`c15t-sid=${first}`);
 	});
 
-	test('a prefetch gets no subject', () => {
-		const response = c15tProxy(request({ 'next-router-prefetch': '1' }));
-		expect(response.cookies.get('c15t-sid')).toBeUndefined();
-	});
+	// Next.js strips `next-router-prefetch` before a Node.js-runtime proxy
+	// runs, so only the edge runtime and `Sec-Purpose` prefetches reach here.
+	test.each([{ 'next-router-prefetch': '1' }, { 'sec-purpose': 'prefetch' }])(
+		'a prefetch gets no subject: %o',
+		(headers) => {
+			const response = c15tProxy(request(headers));
+			expect(response.cookies.get('c15t-sid')).toBeUndefined();
+		}
+	);
 
 	test('the storage configuration names the cookie and sets its domain', () => {
 		const response = c15tProxy(request(), {

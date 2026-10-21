@@ -687,6 +687,49 @@ describe('withConsentProps', () => {
 		expect(page.responseHeaders.has('set-cookie')).toBe(false);
 	});
 
+	test("the subject cookie survives the page's own set-cookie", async () => {
+		const page = createPageContext({});
+		const result = await withConsentProps(({ res }) => {
+			res.setHeader('set-cookie', 'session=1; Path=/');
+			return Promise.resolve({ props: {} });
+		})(page.context);
+
+		if (!('props' in result)) {
+			throw new Error('expected props');
+		}
+		const { consent } = await result.props;
+		expect(page.responseHeaders.get('set-cookie')).toEqual([
+			'session=1; Path=/',
+			expect.stringMatching(
+				new RegExp(
+					`^c15t-sid=${consent?.initialRecords?.subject?.subjectId};`,
+					'u'
+				)
+			),
+		]);
+	});
+
+	test('storage.storageKey alone names both cookies', async () => {
+		const page = createPageContext({
+			cookie: 'my-consent=c.necessary:1,c.marketing:1,i.t:1',
+		});
+		const result = await withConsentProps(undefined, {
+			reportSessions: false,
+			storage: { storageKey: 'my-consent' },
+		})(page.context);
+
+		if (!('props' in result)) {
+			throw new Error('expected props');
+		}
+		const { consent } = await result.props;
+		expect(consent?.initialRecords?.choice?.categories.marketing?.value).toBe(
+			true
+		);
+		expect(page.responseHeaders.get('set-cookie')).toEqual([
+			expect.stringMatching(/^my-consent-sid=sub_/u),
+		]);
+	});
+
 	test('cookieName names the subject cookie', async () => {
 		const page = createPageContext({});
 		await withConsentProps(undefined, {

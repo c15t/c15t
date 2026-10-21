@@ -211,8 +211,9 @@ export type WithConsentPropsOptions = Omit<
 	/**
 	 * The client's `storageConfig`, so the subject cookie this sets matches
 	 * the one the browser would: `defaultDomain`, `crossSubdomain` and
-	 * `defaultExpiryDays` set its domain and lifetime. `storageKey` defaults
-	 * to `cookieName`. Set it only if you changed those client-side.
+	 * `defaultExpiryDays` set its domain and lifetime. `storageKey` names
+	 * both cookies, like `cookieName`, and wins over it. Set it only if you
+	 * changed those client-side.
 	 */
 	storage?: Pick<
 		StorageConfig,
@@ -267,29 +268,33 @@ export const withConsentProps = function withConsentProps<
 	options: WithConsentPropsOptions = {}
 ): GetServerSideProps<Props & ConsentPageProps> {
 	const { storage, ...resolveOptions } = options;
+	// One key for the consent cookie and the subject cookie, whichever
+	// option named it.
+	const cookieName = storage?.storageKey ?? options.cookieName;
 	return async (context: GetServerSidePropsContext) => {
 		const subject = resolveRequestSubject({
 			request: { headers: context.req.headers },
-			storage: {
-				storageKey: options.cookieName,
-				...storage,
-			},
+			storage: { ...storage, storageKey: cookieName },
 			trustForwardedHeaders: options.trustForwardedHeaders,
 		});
-		let req: NodeRequestLike = context.req;
-		if (subject?.setCookie) {
-			appendSetCookie(context.res, subject.setCookie.header);
-			req = { headers: { ...context.req.headers, cookie: subject.cookie } };
-		}
+		const req: NodeRequestLike = subject?.setCookie
+			? { headers: { ...context.req.headers, cookie: subject.cookie } }
+			: context.req;
 		const [state, result] = await Promise.all([
-			resolveConsent({ ...resolveOptions, req }),
+			resolveConsent({ ...resolveOptions, cookieName, req }),
 			getServerSideProps ? getServerSideProps(context) : { props: {} as Props },
 		]);
-		if (!('props' in result)) {
-			return result;
+		const settled = 'props' in result ? { props: await result.props } : result;
+		// After the page's own handler, whose `res.setHeader('set-cookie', …)`
+		// would replace the subject cookie.
+		if (subject?.setCookie) {
+			appendSetCookie(context.res, subject.setCookie.header);
+		}
+		if (!('props' in settled)) {
+			return settled;
 		}
 		// Next.js rejects undefined prop values, such as an absent GPC signal.
 		const consent = JSON.parse(JSON.stringify(state)) as ConsentState;
-		return { props: { ...(await result.props), consent } };
+		return { props: { ...settled.props, consent } };
 	};
 };

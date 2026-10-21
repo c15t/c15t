@@ -172,7 +172,11 @@ proxy can do this. When the request has no ID, the proxy:
 The browser then starts with that ID in `snapshot.subject.subjectId` instead
 of creating its own. Without the proxy, the browser creates the ID when the
 page loads. `c15t-sid` holds only the ID, so the banner still shows until the
-visitor makes a choice. Prefetch requests get no cookie. See
+visitor makes a choice. A prefetch the browser marks with `Sec-Purpose` or
+`Purpose` gets no cookie. In the Node.js runtime, Next.js hides the header
+that marks its own `<Link>` prefetches from the proxy, so those can set the
+cookie. It is the visitor's own browser, so the ID only arrives one request
+earlier. See
 [the subject ID](/docs/concepts/consent-state#a-subject-id-from-the-first-page-load)
 for how long it lasts and when it changes.
 
