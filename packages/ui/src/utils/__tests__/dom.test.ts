@@ -127,6 +127,9 @@ describe('getTextDirection', () => {
 		expect(getTextDirection('ku')).toBe('rtl');
 		// Divehi
 		expect(getTextDirection('dv')).toBe('rtl');
+		// Yiddish
+		expect(getTextDirection('yi')).toBe('rtl');
+		expect(getTextDirection('yi-US')).toBe('rtl');
 	});
 
 	test('handles case insensitively', () => {

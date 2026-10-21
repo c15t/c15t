@@ -3,7 +3,7 @@
  * Framework-agnostic.
  */
 
-const RTL_LANGUAGES = ['ar', 'he', 'fa', 'ur', 'ps', 'sd', 'ku', 'dv'];
+const RTL_LANGUAGES = ['ar', 'he', 'fa', 'ur', 'ps', 'sd', 'ku', 'dv', 'yi'];
 
 let lastFocusedElement: HTMLElement | null = null;
 
