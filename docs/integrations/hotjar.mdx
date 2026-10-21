@@ -9,8 +9,8 @@ group: integrations
 
 Hotjar records what visitors do on your pages, so it should not load until they
 allow analytics. The c15t `hotjar` helper waits for `measurement` consent
-before it adds the Hotjar loader. Until then, `window._hjSettings` and
-`window.hj` don't exist and nothing reaches Hotjar.
+before it adds the Hotjar loader. Until then, c15t doesn't define
+`window._hjSettings` or `window.hj`, and it loads nothing from Hotjar.
 
 Withdrawal needs more care. c15t sends Hotjar no consent signal, so it can't
 tell a running recording to stop. It reloads the page instead, and the reload
@@ -54,8 +54,9 @@ reload does.
 ## Verify Hotjar
 
 Filter the DevTools Network panel by `hotjar`. After you allow measurement,
-`hotjar-<siteId>.js` loads from `static.hotjar.com` and
-`window._hjSettings.hjid` holds your site ID.
+the loader appears and `window._hjSettings.hjid` holds your site ID. By default
+the loader is `hotjar-<siteId>.js` from `static.hotjar.com`. If you set
+`scriptUrl`, look for that URL instead.
 
 Then watch one recording of a real screen in your app. Hotjar decides what to
 mask, not c15t, so check that it hides the fields you expect.

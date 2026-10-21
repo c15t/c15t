@@ -7,9 +7,9 @@ group: frameworks
 ## Before you start
 
 This guide is for the App Router on a Next.js server, the setup most Next.js
-apps use. When you finish, your server works out each visitor's consent before
-it sends the page. The browser gets the answer with the page, so it makes no
-`/init` request, and analytics wait until the visitor allows them. Consent
+apps use. When you finish, your server works out each visitor's consent and
+sends it in the same response as the page. The browser makes no `/init`
+request, and analytics wait until the visitor allows them. Consent
 choices are saved to Inth.
 
 Using the Pages Router, `output: 'export'` or cached pages? Find your app in
@@ -64,8 +64,8 @@ or function goes in as the first argument, unchanged:
 `next build` and `next dev` fetch `${NEXT_PUBLIC_C15T_BACKEND_URL}/manifest`
 and write the policy to `node_modules/.cache/c15t/`. That's outside your source
 tree, so there's nothing to add to `.gitignore`. `resolveConsent` finds the
-file on its own, and `next start` serves that snapshot without fetching the
-policy again.
+file on its own. When the build produced a snapshot, `next start` serves it
+without fetching the policy again.
 
 <include src="../../shared/build-time-manifest-notes.mdx" />
 
