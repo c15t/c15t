@@ -25,7 +25,7 @@ Create a JavaScript source in Customer.io Data Pipelines and copy its write key.
 | --- | --- | --- |
 | `writeKey` | Required | Data Pipelines JavaScript source key. |
 | `region` | `us` | `us` uses `cdp.customer.io`; `eu` uses `cdp-eu.customer.io`. |
-| `loadOptions` | Unset | Vendor loader options, including destination integration settings. |
+| `loadOptions` | Unset | Vendor loader options, including destination integration settings. The helper overrides `initialPageview` to `false`. |
 | `category` | `marketing` | Consent condition for the whole loader. |
 | `cdnUrl` | Region-specific HTTPS origin | Origin for the loader, source settings and SDK assets. Trims whitespace and trailing slashes. Blank values use the regional default. |
 | `scriptUrl` | Snippet URL under `cdnUrl` | Overrides only the initial loader URL. Blank values use the default. |
@@ -44,11 +44,11 @@ Replace both example domains with configured proxies. `cdnUrl` does not redirect
 
 ## Loading and revocation
 
-After consent, the helper creates Customer.io's array queue and method stubs, sets `_writeKey`, `_cdn` and `_loadOptions`, and loads the SDK. The script carries the namespace attribute required by Customer.io. The helper calls `page()` once after the load completes with consent still granted, and once on each regrant after loading. It does not wait for `ready()`: a device-mode destination can fail to initialize, and some destinations need `page()` to initialize. A revoked or disposed loader cannot send a pending initial page.
+After consent, the helper creates Customer.io's array queue and method stubs, sets `_writeKey`, `_cdn` and `_loadOptions`, and loads the SDK. The script carries the namespace attribute required by Customer.io. The helper calls `page()` once after the load completes with consent still granted, and once on each regrant after loading. The helper copies `loadOptions` and forces the SDK's `initialPageview` to `false`, even if the caller passes `true`. The caller's options stay unchanged. This keeps the helper as the only owner of the initial page event and preserves the consent checks. It does not wait for `ready()`: a device-mode destination can fail to initialize, and some destinations need `page()` to initialize. A revoked or disposed loader cannot send a pending initial page.
 
 While the SDK downloads, each method stub returns the same `cioanalytics` queue. Calls such as `cioanalytics.identify('customer-123').track('Signed up')` queue both operations in order. Wait for mapped consent before calling these methods, because the helper creates no `cioanalytics` global before consent.
 
-The `@c15t/integrations/customer-io` subpath exports `CustomerIoQueue` and `CustomerIoApi` types. `window.cioanalytics` is optional before consent. After checking it exists, use `Array.isArray()` to narrow it to the queue or loaded SDK. Queue methods return the queue for chaining. Loaded `identify()`, `track()` and `page()` return event-context promises; loaded `reset()` returns nothing, and `setAnonymousId()` returns the identity value. These return values do not confirm delivery.
+The `@c15t/integrations/customer-io` subpath exports `CustomerIoQueue` and `CustomerIoApi` types. `window.cioanalytics` is optional before consent. After checking it exists, use `Array.isArray()` to narrow it to the queue or loaded SDK. Queue methods return the queue for chaining. Loaded `identify()`, `track()` and `page()` return event-context promises; loaded `reset()` returns nothing, and `setAnonymousId()` returns the identity value. Loaded `user()` and `group()` expose stored identity accessors. Their `id()` and `traits()` methods read or replace values; pass `null` to clear them. `user().anonymousId()` also reads, replaces or clears the anonymous ID. Setters return the stored value, not a chainable owner. Disabled identity storage returns `null` for IDs and `undefined` for traits. The pre-load queue does not provide `user()`. These return values do not confirm delivery.
 
 Revocation calls `reset()` to clear identity. It does not stop SDK dispatch, retries or destination SDKs. Keep `reloadOnConsentRevoked` enabled. The SDK loads once per page; regrant reuses it instead of injecting another copy. On the next denied page the helper creates no queue or vendor requests.
 

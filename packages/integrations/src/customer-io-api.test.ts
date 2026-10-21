@@ -84,9 +84,34 @@ if (analytics) {
 		const queue: CustomerIoQueue = analytics;
 		const chained: CustomerIoQueue = queue.identify('id').track('Signed up').page('Pricing').reset().ready();
 		const tuple: [string, ...unknown[]] | undefined = queue[0];
+		// @ts-expect-error The snippet does not install user() on the queue.
+		queue.user();
 		void [chained, tuple];
 	} else {
 		const runtime: CustomerIoApi = analytics;
+		const userId: string | null | undefined = runtime.user().id();
+		const anonymousId: string | null | undefined = runtime.user().anonymousId();
+		const userTraits: Record<string, unknown> | undefined = runtime.user().traits();
+		const setUserTraits: Record<string, unknown> | undefined = runtime.user().traits({ plan: 'pro' });
+		const groupTraits: Record<string, unknown> | undefined = runtime.group().traits();
+		const setGroupTraits: Record<string, unknown> | undefined = runtime.group().traits({ name: 'Acme' });
+		const setUserId: string | null | undefined = runtime.user().id('customer-123');
+		const clearUserId: string | null | undefined = runtime.user().id(null);
+		const setAnonymousId: string | null | undefined = runtime.user().anonymousId('anonymous');
+		const clearAnonymousId: string | null | undefined = runtime.user().anonymousId(null);
+		const clearUserTraits: Record<string, unknown> | undefined = runtime.user().traits(null);
+		const setGroupId: string | null | undefined = runtime.group().id('team');
+		const clearGroupId: string | null | undefined = runtime.group().id(null);
+		const clearGroupTraits: Record<string, unknown> | undefined = runtime.group().traits(null);
+		// @ts-expect-error Identity setters return values, not fluent identity owners.
+		runtime.user().id('id').traits({});
+		// @ts-expect-error Identity IDs accept strings or null, not numeric event IDs.
+		runtime.user().id(123);
+		// @ts-expect-error Traits can be undefined when identity storage is disabled.
+		const requiredTraits: Record<string, unknown> = runtime.group().traits();
+		void [userId, anonymousId, userTraits, setUserTraits, groupTraits, setGroupTraits,
+			setUserId, clearUserId, setAnonymousId, clearAnonymousId, clearUserTraits,
+			setGroupId, clearGroupId, clearGroupTraits, requiredTraits];
 		const event: Promise<{ event: Record<string, unknown> }> = runtime.identify('id');
 		const group: string | null | undefined = runtime.group().id();
 		const trackedGroup: Promise<{ event: Record<string, unknown> }> = runtime.group('team');

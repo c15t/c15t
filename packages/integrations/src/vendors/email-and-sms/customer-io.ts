@@ -83,8 +83,18 @@ type Result<
 
 /** Stored group identity returned synchronously by the loaded SDK's group(). */
 export interface CustomerIoGroup {
-	id: () => string | null | undefined;
-	traits: () => CustomerIoProperties;
+	/** Read, replace or clear the stored ID. Disabled storage returns null. */
+	id: (id?: string | null) => string | null | undefined;
+	/** Read or replace traits, or clear them with null. Disabled storage returns undefined. */
+	traits: (
+		traits?: CustomerIoProperties | null
+	) => CustomerIoProperties | undefined;
+}
+
+/** Stored identity returned synchronously by the loaded SDK's user(). */
+export interface CustomerIoUser extends CustomerIoGroup {
+	/** Read, replace or clear the anonymous ID. Disabled storage returns null. */
+	anonymousId: (id?: string | null) => string | null | undefined;
 }
 
 /** Event facade supplied to Customer.io middleware. */
@@ -126,11 +136,13 @@ type TrackLink<Stage extends CustomerIoStage> = (
 ) => Result<Stage, Promise<CustomerIoApi>>;
 
 /**
- * Customer.io methods installed by this helper. Queue calls return their owner;
+ * Customer.io analytics API. Queue calls return their owner;
  * loaded methods retain the SDK's individual return contracts.
  * @see https://github.com/customerio/cdp-analytics-js
  */
 export interface CustomerIoApi<Stage extends CustomerIoStage = 'loaded'> {
+	/** Loaded-only identity access. The helper does not install a user queue stub. */
+	user: Stage extends 'loaded' ? () => CustomerIoUser : unknown;
 	/** Loader metadata is optional and need not survive SDK initialization. */
 	_writeKey?: string;
 	_cdn?: string;
@@ -288,7 +300,7 @@ export interface CustomerIoOptions {
 	writeKey: string;
 	/** Region of the Customer.io workspace. @default 'us' */
 	region?: 'us' | 'eu';
-	/** JSON-serializable options passed to the source loader. */
+	/** Loader options. initialPageview is forced off; the helper owns page calls. */
 	loadOptions?: Record<string, unknown>;
 	/** Consent condition required before loading. @default 'marketing' */
 	category?: Script['category'];
@@ -343,7 +355,7 @@ const createCustomerIo = function createCustomerIo(
 	}
 	const script = resolveManifest(customerIoManifest, {
 		cdnUrl: cdn.origin,
-		loadOptions: options.loadOptions ?? {},
+		loadOptions: { ...options.loadOptions, initialPageview: false },
 		scriptUrl: resolveScriptUrl(
 			options.scriptUrl,
 			`${cdn.origin}/v1/analytics-js/snippet/${encodeURIComponent(writeKey)}/analytics.min.js`

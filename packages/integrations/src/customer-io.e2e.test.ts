@@ -116,7 +116,10 @@ describe('Customer.io consent loader', () => {
 		);
 		expect(getLoader().src).toBe('https://assets.example.com/custom-loader.js');
 		expect(window.cioanalytics?._cdn).toBe('https://assets.example.com');
-		expect(window.cioanalytics?._loadOptions).toEqual(loadOptions);
+		expect(window.cioanalytics?._loadOptions).toEqual({
+			...loadOptions,
+			initialPageview: false,
+		});
 	});
 });
 
@@ -136,6 +139,7 @@ describe('Customer.io loading and identity', () => {
 
 		const queue = window.cioanalytics;
 		assert(queue && Array.isArray(queue));
+		expect(queue).not.toHaveProperty('user');
 		const traits = { email: 'person@example.com' };
 		const properties = { plan: 'pro' };
 		const result = queue
@@ -185,6 +189,7 @@ describe('Customer.io loading and identity', () => {
 		expect(window.cioanalytics?._writeKey).toBe('key/with spaces');
 		expect(window.cioanalytics?._cdn).toBe('https://cdp-eu.customer.io');
 		expect(window.cioanalytics?._loadOptions).toEqual({
+			initialPageview: false,
 			integrations: { All: false },
 		});
 		expect(getLoader().src).toBe(
@@ -220,56 +225,90 @@ describe('Customer.io loading and identity', () => {
 		expect(initialized).toBe(true);
 		expect(runtime.page).toHaveBeenCalledTimes(1);
 	});
-	it('pages once per load or regrant even when a destination never becomes ready', () => {
-		const create = () => customerIo({ writeKey: 'ready-key' });
-		const scripts = [create()];
-		loadScripts(scripts, granted);
-		const loader = getLoader();
-		const runtime = {
-			page: vi.fn(),
-			ready: vi.fn<(callback: () => void) => void>(),
-			reset: vi.fn(),
-		};
-		Reflect.set(window, 'cioanalytics', runtime);
-		loader.dispatchEvent(new Event('load'));
-		expect(runtime.page).toHaveBeenCalledTimes(1);
-		loader.dispatchEvent(new Event('load'));
-		expect(runtime.page).toHaveBeenCalledTimes(1);
-		updateScripts([create()], deniedConsents);
-		expect(runtime.reset).toHaveBeenCalledTimes(1);
-		expect(runtime.page).toHaveBeenCalledTimes(1);
-		updateScripts([create()], granted);
-		expect(getLoader()).toBe(loader);
-		expect(runtime.page).toHaveBeenCalledTimes(2);
-		updateScripts([create()], granted);
-		expect(runtime.page).toHaveBeenCalledTimes(2);
-		expect(runtime.ready).not.toHaveBeenCalled();
-		expect(window.cioanalytics).toBe(runtime);
-	});
-	it('does not queue a page when the download finishes after withdrawal', () => {
-		const scripts = [customerIo({ writeKey: 'inflight-key' })];
-		loadScripts(scripts, granted);
-		const loader = getLoader();
-		updateScripts(scripts, deniedConsents);
-		const runtime = { page: vi.fn(), ready: vi.fn(), reset: vi.fn() };
-		Reflect.set(window, 'cioanalytics', runtime);
-		loader.dispatchEvent(new Event('load'));
-		expect(runtime.page).not.toHaveBeenCalled();
-		expect(runtime.ready).not.toHaveBeenCalled();
-		updateScripts(scripts, granted);
-		expect(getLoader()).toBe(loader);
-		expect(runtime.page).toHaveBeenCalledTimes(1);
-	});
-	it('cancels the pending load callback on disposal', () => {
-		loadScripts([customerIo({ writeKey: 'disposed-key' })], granted);
-		const loader = getLoader();
-		updateScripts([], granted);
-		const runtime = { page: vi.fn(), ready: vi.fn() };
-		Reflect.set(window, 'cioanalytics', runtime);
-		loader.dispatchEvent(new Event('load'));
-		expect(loader.isConnected).toBe(false);
-		expect(runtime.page).not.toHaveBeenCalled();
-	});
+	it.each([undefined, false, true])(
+		'owns each page with initialPageview %s even when a destination never becomes ready',
+		(initialPageview) => {
+			const loadOptions = Object.freeze({
+				initialPageview,
+				integrations: { All: false },
+			});
+			const create = () => customerIo({ loadOptions, writeKey: 'ready-key' });
+			const scripts = [create()];
+			loadScripts(scripts, granted);
+			const loader = getLoader();
+			expect(window.cioanalytics?._loadOptions).toEqual({
+				initialPageview: false,
+				integrations: { All: false },
+			});
+			expect(loadOptions).toEqual({
+				initialPageview,
+				integrations: { All: false },
+			});
+			const runtime = {
+				page: vi.fn(),
+				ready: vi.fn<(callback: () => void) => void>(),
+				reset: vi.fn(),
+			};
+			Reflect.set(window, 'cioanalytics', runtime);
+			loader.dispatchEvent(new Event('load'));
+			expect(runtime.page).toHaveBeenCalledTimes(1);
+			loader.dispatchEvent(new Event('load'));
+			expect(runtime.page).toHaveBeenCalledTimes(1);
+			updateScripts([create()], deniedConsents);
+			expect(runtime.reset).toHaveBeenCalledTimes(1);
+			expect(runtime.page).toHaveBeenCalledTimes(1);
+			updateScripts([create()], granted);
+			expect(getLoader()).toBe(loader);
+			expect(runtime.page).toHaveBeenCalledTimes(2);
+			updateScripts([create()], granted);
+			expect(runtime.page).toHaveBeenCalledTimes(2);
+			expect(runtime.ready).not.toHaveBeenCalled();
+			expect(window.cioanalytics).toBe(runtime);
+		}
+	);
+	it.each([undefined, false, true])(
+		'does not queue a page after withdrawal with initialPageview %s',
+		(initialPageview) => {
+			const scripts = [
+				customerIo({
+					loadOptions: { initialPageview },
+					writeKey: 'inflight-key',
+				}),
+			];
+			loadScripts(scripts, granted);
+			const loader = getLoader();
+			updateScripts(scripts, deniedConsents);
+			const runtime = { page: vi.fn(), ready: vi.fn(), reset: vi.fn() };
+			Reflect.set(window, 'cioanalytics', runtime);
+			loader.dispatchEvent(new Event('load'));
+			expect(runtime.page).not.toHaveBeenCalled();
+			expect(runtime.ready).not.toHaveBeenCalled();
+			updateScripts(scripts, granted);
+			expect(getLoader()).toBe(loader);
+			expect(runtime.page).toHaveBeenCalledTimes(1);
+		}
+	);
+	it.each([undefined, false, true])(
+		'cancels a disposed load with initialPageview %s',
+		(initialPageview) => {
+			loadScripts(
+				[
+					customerIo({
+						loadOptions: { initialPageview },
+						writeKey: 'disposed-key',
+					}),
+				],
+				granted
+			);
+			const loader = getLoader();
+			updateScripts([], granted);
+			const runtime = { page: vi.fn(), ready: vi.fn() };
+			Reflect.set(window, 'cioanalytics', runtime);
+			loader.dispatchEvent(new Event('load'));
+			expect(loader.isConnected).toBe(false);
+			expect(runtime.page).not.toHaveBeenCalled();
+		}
+	);
 	it('shares one page across owners and waits for every owner to regrant', () => {
 		const firstKernel = createConsentKernel();
 		const secondKernel = createConsentKernel();
