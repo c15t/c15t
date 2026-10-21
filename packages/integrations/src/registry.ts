@@ -117,6 +117,7 @@ export const builtInScriptIntegrations = [
 	{
 		consentCategory: 'experience',
 		docsSlug: 'appcues',
+		hint: 'Onboarding flows, checklists and announcements',
 		integrationCategory: 'functional',
 		key: 'appcues',
 		label: 'Appcues',

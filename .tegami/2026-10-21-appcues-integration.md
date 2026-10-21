@@ -2,6 +2,7 @@
 packages:
   '@c15t/integrations': minor
   '@c15t/cli': minor
+  '@c15t/scripts': patch
 ---
 
 ### Add Appcues consent integration
