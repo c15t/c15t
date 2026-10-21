@@ -36,15 +36,28 @@ const hubspotGlobals = [
 	'hsConversationsSettings',
 ] as const;
 
-const conversationsApi = () => ({
-	clear: vi.fn(),
-	off: vi.fn(),
-	on: vi.fn(),
-	widget: {
-		load: vi.fn(),
-		remove: vi.fn(),
-	},
-});
+const conversationsApi = () => {
+	const listeners = new Set<() => void>();
+	return {
+		clear: vi.fn(),
+		emitWidgetLoaded() {
+			for (const listener of listeners) {
+				listener();
+			}
+		},
+		listeners,
+		off: vi.fn((_event: 'widgetLoaded', listener: () => void) => {
+			listeners.delete(listener);
+		}),
+		on: vi.fn((_event: 'widgetLoaded', listener: () => void) => {
+			listeners.add(listener);
+		}),
+		widget: {
+			load: vi.fn(),
+			remove: vi.fn(),
+		},
+	};
+};
 
 describe('HubSpot core loader consent contract', () => {
 	registerVendorContractCleanup();
@@ -390,13 +403,110 @@ describe('HubSpot core loader consent contract', () => {
 		updateScripts(scripts, grantedMarketingConsents);
 		expect(api.widget.remove).toHaveBeenCalledOnce();
 		expect(api.clear).toHaveBeenCalledWith({ resetWidget: false });
-		const loaded = api.on.mock.calls.find(
-			([event]) => event === 'widgetLoaded'
-		);
-		const notifyLoaded = loaded?.[1] as (() => void) | undefined;
-		notifyLoaded?.();
+		api.emitWidgetLoaded();
 		expect(api.widget.remove).toHaveBeenCalledTimes(2);
 		expect(api.widget.load).toHaveBeenCalledOnce();
+	});
+
+	it.each([false, true])(
+		'reattaches one chat listener when the same Script remounts (initially denied: %s)',
+		async (initiallyDenied) => {
+			const api = conversationsApi();
+			window.HubSpotConversations = api;
+			const script = hubspot({ chat: true, portalId: '53' });
+			const kernel = createConsentKernel();
+			let loader = createScriptLoader({ kernel, scripts: [script] });
+			try {
+				await kernel.commands.save(allConsents);
+				const element = document.getElementById('hs-script-loader');
+				expect(api.listeners.size).toBe(1);
+				const remount = async (registrations: number) => {
+					const disposalCommands: unknown[][] = [];
+					window._hsp = disposalCommands;
+					const loads = api.widget.load.mock.calls.length;
+					loader.dispose();
+					expect(api.listeners.size).toBe(0);
+					expect(disposalCommands).toEqual([
+						['revokeCookieConsent'],
+						['setHubSpotConsent', deniedHubSpotConsent],
+					]);
+					expect(kernel.getSnapshot().effectivePermissions).toMatchObject(
+						allConsents
+					);
+					if (initiallyDenied) {
+						await kernel.commands.save(deniedConsents);
+					}
+					loader = createScriptLoader({ kernel, scripts: [script] });
+					expect(api.listeners.size).toBe(initiallyDenied ? 0 : 1);
+					expect(api.widget.load).toHaveBeenCalledTimes(
+						loads + (initiallyDenied ? 0 : 1)
+					);
+					await kernel.commands.save(allConsents);
+					expect(api.listeners.size).toBe(1);
+					expect(api.on).toHaveBeenCalledTimes(registrations);
+					expect(document.getElementById('hs-script-loader')).toBe(element);
+					const commands: unknown[][] = [];
+					window._hsp = commands;
+					await kernel.commands.save({ ...allConsents, functionality: false });
+					expect(commands.slice(0, 2)).toEqual([
+						['revokeCookieConsent'],
+						[
+							'setHubSpotConsent',
+							{ advertisement: true, analytics: true, functionality: false },
+						],
+					]);
+					const removals = api.widget.remove.mock.calls.length;
+					const clears = api.clear.mock.calls.length;
+					api.emitWidgetLoaded();
+					expect(api.widget.remove).toHaveBeenCalledTimes(removals + 1);
+					expect(api.clear).toHaveBeenCalledTimes(clears + 1);
+					expect(api.clear).toHaveBeenLastCalledWith({ resetWidget: false });
+					await kernel.commands.save(allConsents);
+				};
+				await remount(2);
+				await remount(3);
+			} finally {
+				loader.dispose();
+				kernel.dispose();
+			}
+		}
+	);
+
+	it('attaches a fresh helper to the retained conversations client', () => {
+		const api = conversationsApi();
+		window.HubSpotConversations = api;
+		loadScripts([hubspot({ chat: true, portalId: '53' })], allConsents);
+		clearAllScripts();
+		expect(api.listeners.size).toBe(0);
+		const scripts = [hubspot({ chat: true, portalId: '53' })];
+		loadScripts(scripts, allConsents);
+		expect(api.listeners.size).toBe(1);
+		updateScripts(scripts, grantedMarketingConsents);
+		const removals = api.widget.remove.mock.calls.length;
+		api.emitWidgetLoaded();
+		expect(api.widget.remove).toHaveBeenCalledTimes(removals + 1);
+	});
+
+	it('moves the listener to a changed conversations client after remount', () => {
+		const original = conversationsApi();
+		window.HubSpotConversations = original;
+		const scripts = [hubspot({ chat: true, portalId: '53' })];
+		loadScripts(scripts, allConsents);
+		clearAllScripts();
+		const replacement = conversationsApi();
+		window.HubSpotConversations = replacement;
+		loadScripts(scripts, allConsents);
+		expect(original.listeners.size).toBe(0);
+		expect(replacement.listeners.size).toBe(1);
+		updateScripts(scripts, grantedMarketingConsents);
+		const originalRemovals = original.widget.remove.mock.calls.length;
+		const replacementRemovals = replacement.widget.remove.mock.calls.length;
+		original.emitWidgetLoaded();
+		expect(original.widget.remove).toHaveBeenCalledTimes(originalRemovals);
+		replacement.emitWidgetLoaded();
+		expect(replacement.widget.remove).toHaveBeenCalledTimes(
+			replacementRemovals + 1
+		);
 	});
 
 	it('checks current consent when the conversations SDK becomes ready late', () => {
@@ -433,5 +543,6 @@ describe('HubSpot core loader consent contract', () => {
 		window.HubSpotConversations = api;
 		ready?.();
 		expect(api.widget.load).not.toHaveBeenCalled();
+		expect(api.listeners.size).toBe(0);
 	});
 });

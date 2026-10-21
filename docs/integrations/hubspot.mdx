@@ -130,6 +130,12 @@ Global revocation can remove chat identity cookies even when functionality
 remains granted. Restoring functionality consent does not preserve that chat
 identity.
 
+Removing or replacing a started helper, or disposing its script loader, also
+denies HubSpot consent and can revoke cookies, including the `messagesUtk`
+chat identity cookie. c15t's saved consent can remain granted during this
+teardown. A permitted remount forwards the current grants, but cannot restore
+deleted identity cookies. Keep the returned script configuration stable.
+
 `revokeCookieConsent` asks HubSpot to remove tracking and consent cookies. It
 can itself trigger a revocation request. It does not remove every browser
 storage entry or unload the child scripts.

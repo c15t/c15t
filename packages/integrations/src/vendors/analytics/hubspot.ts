@@ -336,6 +336,7 @@ export const hubspot = function hubspot(options: HubSpotOptions): Script {
 			}
 			readyQueued = false;
 			conversationsClient?.off('widgetLoaded', onWidgetLoaded);
+			conversationsClient = undefined;
 			script.onDispose?.(info);
 		},
 		// The wrapper must run before HubSpot; defer startup to the browser loader.
