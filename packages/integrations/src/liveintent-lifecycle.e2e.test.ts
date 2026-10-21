@@ -29,7 +29,7 @@ const vendorGlobals = ['liQ', 'LI', 'lc2', 'liQHub', 'liQ_instances'];
 describe('LiveIntent production core loader contract', () => {
 	registerVendorContractCleanup();
 	afterEach(() => {
-		for (const key of vendorGlobals) {
+		for (const key of ['lc2', 'liQHub', 'liQ_instances']) {
 			Reflect.deleteProperty(window, key);
 		}
 	});

@@ -16,7 +16,7 @@ import { liveIntentTag } from './vendors/ads-and-pixels/liveintent';
 describe('LiveIntent core loader consent contract', () => {
 	registerVendorContractCleanup();
 	afterEach(() => {
-		for (const key of ['liQ', 'LI', 'lc2', 'liQHub', 'liQ_instances']) {
+		for (const key of ['lc2', 'liQHub', 'liQ_instances']) {
 			Reflect.deleteProperty(window, key);
 		}
 	});
