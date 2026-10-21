@@ -26,6 +26,7 @@ import {
 import type { SaveResult } from '../../../types';
 import { watchRevocationReload } from '../../revocation-reload';
 import { createScriptLoader } from '../../script-loader';
+import { readStoredRecordsForReconcile } from '../hydrate';
 import { mountPersistence as createPersistence, queuedWrites } from '../mount';
 import { readStoredConsentRecord } from '../record-storage';
 import { createWriterLoader } from '../writer-loader';
@@ -649,6 +650,39 @@ describe('before the write code lands', () => {
 
 		await vi.advanceTimersByTimeAsync(1000);
 		expect(loads()).toBe(0);
+	});
+
+	test('a new subject ID is stored with the records that carry it', async () => {
+		const sidKey = `${STORAGE_KEY_V2}-sid`;
+		const storedSid = () => localStorage.getItem(sidKey);
+		document.cookie = `${sidKey}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
+		await seedChoice({ marketing: true });
+		const saved = storedSid();
+
+		const leaving = createConsentKernel({ now: Date.now() });
+		const left = createPersistence(
+			{ kernel: leaving },
+			heldBackLoader().loader
+		);
+		leaving.set.subjectId('sub_left');
+		// The page unloads before the write code lands: the records still
+		// carry the saved ID, so <key>-sid keeps it too.
+		left.dispose();
+		expect(storedSid()).toBe(saved);
+
+		const { land, loader } = heldBackLoader();
+		const kernel = createConsentKernel({ now: Date.now() });
+		createPersistence({ kernel }, loader);
+		expect(kernel.getSnapshot().subject?.subjectId).toBe(saved);
+		kernel.set.subjectId('sub_next');
+		expect(storedSid()).toBe(saved);
+
+		await land();
+		expect(storedSid()).toBe('sub_next');
+		expect(
+			readStoredRecordsForReconcile(undefined, Date.now()).recordedSubjectId
+		).toBe('sub_next');
+		document.cookie = `${sidKey}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
 	});
 });
 

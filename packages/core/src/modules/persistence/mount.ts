@@ -105,6 +105,9 @@ export const mountPersistence = function mountPersistence(
 	// The ID both copies of `<key>-sid` were last read as or written with;
 	// `null` when a copy was missing, so the next store writes both.
 	let storedSubjectId: string | null = null;
+	// An ID for `<key>-sid` that waits for the records carrying it to be
+	// stored, so a page that unloads first keeps both on the old ID.
+	let pendingSubjectId: string | undefined;
 	// An ID this runtime generated or read from `<key>-sid` that no save or
 	// `identify()` has used yet. Another tab's stored ID replaces it, so two
 	// tabs opened together settle on one ID.
@@ -139,6 +142,10 @@ export const mountPersistence = function mountPersistence(
 		}
 		requested.clear();
 		writer.flush();
+		if (pendingSubjectId) {
+			// oxlint-disable-next-line no-use-before-define -- Runs only after assembly.
+			storeSubjectId(pendingSubjectId);
+		}
 		if (queuedWrites.get(consentKey) === kernel) {
 			queuedWrites.delete(consentKey);
 		}
@@ -408,6 +415,11 @@ export const mountPersistence = function mountPersistence(
 	};
 
 	const storeSubjectId = function storeSubjectId(id: string): void {
+		if (!writer && (requested.has('choice') || requested.has('vendors'))) {
+			pendingSubjectId = id;
+			return;
+		}
+		pendingSubjectId = undefined;
 		if (id !== storedSubjectId) {
 			writeStoredSubjectId(id, storageConfig);
 			storedSubjectId = id;
@@ -438,7 +450,6 @@ export const mountPersistence = function mountPersistence(
 			kernel.hydrate({ subject: { ...snapshot.subject, subjectId: next } });
 			return;
 		}
-		storeSubjectId(id);
 		if (
 			(snapshot.explicitChoice || snapshot.vendorChoice) &&
 			readStoredRecordsForReconcile(storageConfig, now()).recordedSubjectId !==
@@ -448,6 +459,7 @@ export const mountPersistence = function mountPersistence(
 			// records follow it, or the next load restores the old ID.
 			rekeyRecords(snapshot);
 		}
+		storeSubjectId(id);
 		if (previous !== undefined && previous === unusedSubjectId) {
 			// Another tab's ID stays unused. One the app or the server named
 			// is kept.
@@ -658,9 +670,6 @@ export const mountPersistence = function mountPersistence(
 			// the server resolved.
 			state.subjectBeforeSave = undefined;
 			state.freshSubjectId = undefined;
-			if (subjectId) {
-				storeSubjectId(subjectId);
-			}
 			const at = now();
 			const landed = landedWriter();
 			if (landed) {
@@ -673,6 +682,10 @@ export const mountPersistence = function mountPersistence(
 				hydrateRequested = false;
 				clearStoredRecords(storageConfig, at, baseline?.[0].epoch ?? 0);
 				baseline = [readStoredRecordsForReconcile(storageConfig, at), false];
+			}
+			// After the queued writes go: no record waits to carry the ID.
+			if (subjectId) {
+				storeSubjectId(subjectId);
 			}
 			clearKernelRecords(kernel, at);
 		},

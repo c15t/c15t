@@ -40,6 +40,9 @@ from the first page load and still find it when they opt out later.
   its ID follows the one another tab stored, and the kernel emits
   `subject:resolved` with `previousSubjectId` so you can move anything
   recorded under the old ID.
+- For a visitor with a stored choice, a new ID from `kernel.set.subjectId()`
+  reaches `c15t-sid` when the choice is rewritten with it. If the page
+  unloads before the write code loads, both keep the old ID.
 
 ## When records are read and written
 
