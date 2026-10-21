@@ -302,6 +302,11 @@
 			"types": "./dist-types/events.d.ts",
 			"import": "./dist/events.js",
 			"default": "./dist/events.js"
+		},
+		"./appcues": {
+			"types": "./dist-types/vendors/functional/appcues.d.ts",
+			"import": "./dist/vendors/functional/appcues.js",
+			"default": "./dist/vendors/functional/appcues.js"
 		}
 	},
 	"publishConfig": {

@@ -1,7 +1,3 @@
-/**
- * One script per built-in integration, built from its public helper with
- * sample options, and the fields the helper must set.
- */
 import type { BuiltInScriptIntegrationKey } from '../registry';
 import { linkedinInsights } from '../vendors/ads-and-pixels/linkedin-insights';
 import { metaPixel } from '../vendors/ads-and-pixels/meta-pixel';
@@ -40,6 +36,11 @@ import { umamiAnalytics } from '../vendors/analytics/umami-analytics';
 import { vercelAnalytics } from '../vendors/analytics/vercel-analytics';
 import { vercelSpeedInsights } from '../vendors/analytics/vercel-speed-insights';
 import { klaviyo } from '../vendors/email-and-sms/klaviyo';
+/**
+ * One script per built-in integration, built from its public helper with
+ * sample options, and the fields the helper must set.
+ */
+import { appcues } from '../vendors/functional/appcues';
 import { crisp } from '../vendors/functional/crisp';
 import { frontChat } from '../vendors/functional/front-chat';
 import { intercom } from '../vendors/functional/intercom';
@@ -74,6 +75,14 @@ export const helperParityCases = {
 			src: 'https://cdn.amplitude.com/libs/analytics-browser-2.44.4-min.js.gz',
 		},
 		script: amplitude({ apiKey: 'AMPLITUDE-CONTRACT' }),
+	},
+	appcues: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://fast.appcues.com/123.js',
+		},
+		script: appcues({ accountId: '123' }),
 	},
 	clearbit: {
 		expected: {

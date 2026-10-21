@@ -38,6 +38,7 @@ import { umamiAnalytics } from './vendors/analytics/umami-analytics';
 import { vercelAnalytics } from './vendors/analytics/vercel-analytics';
 import { vercelSpeedInsights } from './vendors/analytics/vercel-speed-insights';
 import { klaviyo } from './vendors/email-and-sms/klaviyo';
+import { appcues } from './vendors/functional/appcues';
 import { crisp } from './vendors/functional/crisp';
 import { frontChat } from './vendors/functional/front-chat';
 import { intercom } from './vendors/functional/intercom';
@@ -58,6 +59,12 @@ const requiredIdCases: {
 	create: (id: unknown) => Script;
 	script: Pick<Script, 'category' | 'id'>;
 }[] = [
+	{
+		create: (id) => appcues({ ...{ accountId: '123' }, accountId: asId(id) }),
+		helper: 'appcues',
+		option: 'accountId',
+		script: { category: 'experience', id: 'appcues' },
+	},
 	{
 		create: (id) => linkedinInsights({ id: asId(id) }),
 		helper: 'linkedinInsights',
@@ -333,6 +340,11 @@ const blankScriptUrlCases: {
 	create: (scriptUrl: string) => Script;
 	expectedSrc: string;
 }[] = [
+	{
+		create: (url) => appcues({ ...{ accountId: '123' }, scriptUrl: url }),
+		expectedSrc: 'https://fast.appcues.com/123.js',
+		helper: 'appcues',
+	},
 	{
 		create: (scriptUrl) => hotjar({ scriptUrl, siteId: 123 }),
 		expectedSrc: 'https://static.hotjar.com/c/hotjar-123.js?sv=6',

@@ -115,6 +115,15 @@ export const BUILT_IN_INTEGRATION_CATEGORIES = [
  */
 export const builtInScriptIntegrations = [
 	{
+		consentCategory: 'experience',
+		docsSlug: 'appcues',
+		integrationCategory: 'functional',
+		key: 'appcues',
+		label: 'Appcues',
+		packageSubpath: 'appcues',
+		vendor: 'appcues',
+	},
+	{
 		consentCategory: 'necessary',
 		docsSlug: 'cloudflare-zaraz',
 		hint: 'Consent bridge for tools managed by Zaraz',

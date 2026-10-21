@@ -90,6 +90,7 @@ describe('live vendor probe configs', () => {
 		// impossible to land unnoticed.
 		expect(gaps.sort()).toEqual([
 			'adobe-analytics',
+			'appcues',
 			'clearbit',
 			'crisp',
 			'google-tag-manager',

@@ -59,6 +59,7 @@ import { umamiAnalytics } from '../src/vendors/analytics/umami-analytics';
 import { vercelAnalytics } from '../src/vendors/analytics/vercel-analytics';
 import { vercelSpeedInsights } from '../src/vendors/analytics/vercel-speed-insights';
 import { klaviyo } from '../src/vendors/email-and-sms/klaviyo';
+import { appcues } from '../src/vendors/functional/appcues';
 import { crisp } from '../src/vendors/functional/crisp';
 import { frontChat } from '../src/vendors/functional/front-chat';
 import { intercom } from '../src/vendors/functional/intercom';
@@ -209,6 +210,20 @@ type PosthogProbeWindow = Window & {
  * Probe configs for every built-in integration, ordered by registry vendor id.
  */
 export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
+	{
+		bootstrapCheck: () =>
+			check(
+				window.AppcuesSettings?.enableURLDetection === true,
+				'Appcues settings exist before its loader executes'
+			),
+		createScript: () => appcues({ accountId: 'c15t-nonexistent-account' }),
+		loaderUrlSubstring: 'fast.appcues.com/c15t-nonexistent-account.js',
+		notes:
+			'Placeholder accounts may reject the loader. This probe proves consent gating and endpoint reachability, not SDK initialization; use a real account for onboarding flows.',
+		tier: 'loader-only',
+		vendor: 'appcues',
+	},
+
 	{
 		skipReason:
 			'Requires a configured Cloudflare zone and purpose IDs. This bridge does not fetch a public vendor loader.',

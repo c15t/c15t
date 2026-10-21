@@ -876,6 +876,11 @@ export default defineDocsConfig({
 					title: 'Analytics',
 				},
 				{
+					pages: ['appcues'],
+					slug: 'experience',
+					title: 'Experience and personalization',
+				},
+				{
 					pages: ['crisp', 'front-chat', 'intercom'],
 					slug: 'chat-and-support',
 					title: 'Chat and support',

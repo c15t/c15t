@@ -40,6 +40,10 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 		example: "amplitude({ apiKey: 'YOUR_API_KEY' })",
 		importName: 'amplitude',
 	},
+	appcues: {
+		example: "appcues({ accountId: 'YOUR_APPCUES_ID' })",
+		importName: 'appcues',
+	},
 	clearbit: {
 		example: "clearbit({ publishableKey: 'pk_XXXXXXXXXX' })",
 		importName: 'clearbit',
