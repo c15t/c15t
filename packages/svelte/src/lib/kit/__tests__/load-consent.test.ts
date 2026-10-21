@@ -197,6 +197,89 @@ describe('loadConsent', () => {
 		expect(consent.prefetch.initialRecords?.choice).not.toBeNull();
 	});
 
+	test('a new visitor gets a subject cookie the load already reads', async () => {
+		const setCookie = vi.fn();
+		const event = await withHandle(
+			createEvent({
+				headers: { cookie: 'theme=dark' },
+				setCookie,
+				url: 'https://app.example.com/',
+			}),
+			{ mode: offline() }
+		);
+		expect(setCookie).toHaveBeenCalledOnce();
+		const [name, subjectId, attributes] = setCookie.mock.calls[0] as [
+			string,
+			string,
+			unknown,
+		];
+		expect(name).toBe('c15t-sid');
+		expect(subjectId).toMatch(/^sub_/u);
+		// SvelteKit defaults to `httpOnly` and `secure`; the browser reads
+		// this cookie, so both are explicit.
+		expect(attributes).toEqual({
+			httpOnly: false,
+			maxAge: 365 * 86_400,
+			path: '/',
+			sameSite: 'lax',
+			secure: true,
+		});
+		const first = await loadConsent(event);
+		expect(first.consent.prefetch.initialRecords?.subject?.subjectId).toBe(
+			subjectId
+		);
+		expect(first.consent.prefetch.initialRecords?.choice).toBeNull();
+
+		const returning = vi.fn();
+		const next = await withHandle(
+			createEvent({
+				headers: { cookie: `c15t-sid=${subjectId}` },
+				setCookie: returning,
+			}),
+			{ mode: offline() }
+		);
+		expect(returning).not.toHaveBeenCalled();
+		const second = await loadConsent(next);
+		expect(second.consent.prefetch.initialRecords?.subject?.subjectId).toBe(
+			subjectId
+		);
+	});
+
+	test('the subject cookie follows cookieName and storage', async () => {
+		const setCookie = vi.fn();
+		await withHandle(
+			createEvent({ setCookie, url: 'http://app.example.com/' }),
+			{
+				cookieName: 'my-consent',
+				mode: offline(),
+				storage: { crossSubdomain: true, defaultExpiryDays: 30 },
+			}
+		);
+		expect(setCookie).toHaveBeenCalledWith(
+			'my-consent-sid',
+			expect.stringMatching(/^sub_/u),
+			{
+				domain: '.example.com',
+				httpOnly: false,
+				maxAge: 30 * 86_400,
+				path: '/',
+				sameSite: 'lax',
+				secure: false,
+			}
+		);
+	});
+
+	test('a prerender or a prefetch gets no subject cookie', async () => {
+		const setCookie = vi.fn();
+		await withHandle(
+			createEvent({ headers: { 'sec-purpose': 'prefetch' }, setCookie }),
+			{ mode: offline() }
+		);
+		setBuilding(true);
+		await withHandle(createEvent({ setCookie }), { mode: offline() });
+		expect(setCookie).not.toHaveBeenCalled();
+	});
+
 	test('offline mode resolves on the server', async () => {
 		const event = await withHandle(
 			createEvent({ headers: { 'x-c15t-country': 'DE' } }),

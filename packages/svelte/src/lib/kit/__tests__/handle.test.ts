@@ -89,14 +89,18 @@ describe('c15tHandle', () => {
 		).toMatchObject({ basis: { kind: 'legacy-v2' }, value: true });
 	});
 
-	test('leaves the config empty when there is no request context', async () => {
+	test('records no choice when there is no request context', async () => {
 		const event = createEvent();
 		const { locals } = await runHandle(event);
 
 		expect(locals.config).toMatchObject({
 			// No signal is not a decision: an absent header stays undefined.
 			initialPrivacySignals: { gpc: undefined },
-			initialRecords: { choice: null, subject: null },
+			// The subject ID the handle just set is not a choice.
+			initialRecords: {
+				choice: null,
+				subject: { subjectId: expect.stringMatching(/^sub_/u) },
+			},
 			now: expect.any(Number),
 		});
 		expect(locals.inputs.country).toBeUndefined();

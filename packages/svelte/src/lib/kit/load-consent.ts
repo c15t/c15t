@@ -157,6 +157,23 @@ const browserMode = function browserMode(mode: ConsentMode): ConsentMode {
 };
 
 /**
+ * The request as `c15tHandle` left it: its inputs, unless this call
+ * overrides them, and the cookie header with the subject ID it set.
+ */
+const requestFrom = function requestFrom(
+	event: RequestEvent,
+	locals: C15tLocals | undefined,
+	overridesPerCall: boolean
+) {
+	return {
+		cookie: locals?.cookie,
+		headers: event.request.headers,
+		inputs: locals && !overridesPerCall ? locals.inputs : undefined,
+		url: event.url,
+	};
+};
+
+/**
  * Resolves the visitor's consent for `<ConsentRoot state>`. Export it as
  * the root layout's `load`:
  *
@@ -218,11 +235,7 @@ export const loadConsent = async function loadConsent(
 			region: options.region,
 		},
 		reportSessions: options.reportSessions,
-		request: {
-			headers: event.request.headers,
-			inputs: locals && !overridesPerCall ? locals.inputs : undefined,
-			url: event.url,
-		},
+		request: requestFrom(event, locals, overridesPerCall),
 		// A prerendered page is one HTML file for every visitor.
 		shared: building || locals?.shared === true,
 		storage: cookieName ? { storageKey: cookieName } : undefined,

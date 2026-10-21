@@ -37,6 +37,12 @@ export interface C15tLocals {
 	 */
 	cookieName?: string;
 	/**
+	 * The request `Cookie` header with the subject ID the handle just set,
+	 * which the browser does not send until its next request. `loadConsent`
+	 * reads it in place of the request's own.
+	 */
+	cookie?: string;
+	/**
 	 * Set while SvelteKit prerenders: the page is shared between visitors,
 	 * so `loadConsent` makes no upstream call and carries no visitor state.
 	 */
