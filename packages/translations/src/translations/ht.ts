@@ -6,7 +6,7 @@ export const translations: CompleteTranslations = {
 		acknowledge: 'Dakò',
 		close: 'Fèmen',
 		customize: 'Pèsonalize',
-		dismiss: 'Fèmen',
+		dismiss: 'Kache',
 		rejectAll: 'Refize tout',
 		save: 'Anrejistre paramèt yo',
 		securedBy: 'Pwoteje pa',
@@ -17,7 +17,7 @@ export const translations: CompleteTranslations = {
 		loading: 'N ap chaje kontni an…',
 		policyBlocked:
 			'Kontni sa a pa disponib dapre règ konsantman ki aplike nan rejyon ou a.',
-		title: 'Aksepte konsantman {category} pou ou ka wè kontni sa a.',
+		title: 'Bay konsantman pou kategori «{category}» pou ou ka wè kontni sa a.',
 	},
 	consentManagerDialog: {
 		description:

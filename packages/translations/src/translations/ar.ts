@@ -26,7 +26,7 @@ export const translations: CompleteTranslations = {
 		vendors: {
 			disabledByCategory: 'يلزم تفعيل هذه الفئة لاختيار المورّدين.',
 			privacyPolicy: 'سياسة الخصوصية',
-			switchLabel: 'السماح لـ {vendor}',
+			switchLabel: 'السماح بالتعامل مع {vendor}',
 			title: 'المورّدون ({count})',
 		},
 	},
@@ -71,7 +71,7 @@ export const translations: CompleteTranslations = {
 			description:
 				'نقوم نحن و{partnerCount} من الشركاء الذين نتعامل معهم بتخزين المعلومات على جهازك و/أو الوصول إليها، ومعالجة البيانات الشخصية، مثل المعرّفات الفريدة وبيانات التصفح، لهذا الموقع الإلكتروني من أجل:',
 			legitimateInterestNotice:
-				'يستند بعض الشركاء إلى المصلحة المشروعة لمعالجة بياناتك. ويحق لك الاعتراض على هذه المعالجة، وتخصيص خياراتك، وسحب موافقتك في أي وقت.',
+				'يدّعي بعض الشركاء وجود مصلحة مشروعة لمعالجة بياناتك. ويحق لك الاعتراض على هذه المعالجة، وتخصيص خياراتك، وسحب موافقتك في أي وقت.',
 			partnersLink: '{count} من الشركاء',
 			scopeGroup: 'ينطبق اختيارك على جميع مواقعنا الإلكترونية ضمن هذه المجموعة.',
 			scopeServiceSpecific:

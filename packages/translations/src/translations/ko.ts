@@ -6,7 +6,7 @@ export const translations: CompleteTranslations = {
 		acknowledge: '확인',
 		close: '닫기',
 		customize: '맞춤 설정',
-		dismiss: '닫기',
+		dismiss: '숨기기',
 		rejectAll: '모두 거부',
 		save: '설정 저장',
 		securedBy: '보안 제공:',
@@ -62,7 +62,7 @@ export const translations: CompleteTranslations = {
 		description:
 			'이 사이트는 브라우징 환경 개선, 사이트 트래픽 분석, 맞춤형 콘텐츠 제공을 위해 쿠키를 사용합니다.',
 		noticeDescription:
-			'당사는 이 사이트 운영, 트래픽 측정, 콘텐츠 및 광고 맞춤화를 위해 쿠키 및 유사 기술을 사용합니다. 언제든지 수집을 거부하거나 설정을 관리할 수 있습니다.',
+			'당사는 이 사이트 운영, 트래픽 측정, 콘텐츠 및 광고 맞춤화를 위해 쿠키 및 유사 기술을 사용합니다. 언제든지 선택적 쿠키 및 유사 기술의 사용을 거부하거나 설정을 관리할 수 있습니다.',
 		noticeTitle: '개인정보 보호 안내',
 		title: '귀하의 개인정보를 소중히 여깁니다',
 	},
@@ -72,7 +72,7 @@ export const translations: CompleteTranslations = {
 			description:
 				'당사와 {partnerCount}개 파트너는 이 웹사이트에서 다음 목적을 위해 귀하의 기기에 정보를 저장하거나 액세스하고, 고유 식별자 및 브라우징 데이터와 같은 개인정보를 처리합니다:',
 			legitimateInterestNotice:
-				'일부 파트너는 정당한 이익을 근거로 귀하의 데이터를 처리합니다. 귀하는 이러한 처리에 이의를 제기하고, 선택 사항을 변경하며, 언제든지 동의를 철회할 권리가 있습니다.',
+				'일부 파트너는 귀하의 데이터 처리에 정당한 이익이 있다고 주장합니다. 귀하는 이러한 처리에 이의를 제기하고, 선택 사항을 변경하며, 언제든지 동의를 철회할 권리가 있습니다.',
 			partnersLink: '{count}개 파트너',
 			scopeGroup:
 				'귀하의 선택은 이 그룹에 속한 당사의 모든 웹사이트에 적용됩니다.',
@@ -154,7 +154,7 @@ export const translations: CompleteTranslations = {
 				showingCount: '공급업체 {total}개 중 {filtered}개',
 				specialFeatures: '특별 기능',
 				specialPurposes: '특별 목적',
-				storageDisclosure: '저장소 정보 공개',
+				storageDisclosure: '정보 저장에 관한 안내',
 				usesCookies: '쿠키 사용',
 			},
 		},

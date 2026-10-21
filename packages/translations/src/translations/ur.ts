@@ -6,18 +6,18 @@ export const translations: CompleteTranslations = {
 		acknowledge: 'ٹھیک ہے',
 		close: 'بند کریں',
 		customize: 'حسبِ ضرورت بنائیں',
-		dismiss: 'برخاست کریں',
+		dismiss: 'ہٹا دیں',
 		rejectAll: 'سب مسترد کریں',
 		save: 'ترتیبات محفوظ کریں',
 		securedBy: 'محفوظ بذریعہ',
 	},
 	consentGate: {
-		actionButton: '{category} کی رضامندی فعال کریں',
+		actionButton: '{category} کے لیے رضامندی دیں',
 		error: 'یہ مواد لوڈ نہیں ہو سکا۔',
 		loading: 'مواد لوڈ ہو رہا ہے…',
 		policyBlocked:
 			'آپ کے علاقے کی رضامندی کی پالیسی کے تحت یہ مواد دستیاب نہیں ہے۔',
-		title: 'یہ مواد دیکھنے کے لیے {category} کی رضامندی دیں۔',
+		title: 'یہ مواد دیکھنے کے لیے {category} کے لیے رضامندی دیں۔',
 	},
 	consentManagerDialog: {
 		description:
@@ -111,7 +111,7 @@ export const translations: CompleteTranslations = {
 				rightToObject:
 					'آپ کو جائز مفاد کی بنیاد پر کی جانے والی کارروائی پر اعتراض کرنے کا حق حاصل ہے۔',
 				vendorsUseLegitimateInterest:
-					'{count} وینڈرز جائز مفاد کا دعویٰ کرتے ہیں',
+					'جائز مفاد کا دعویٰ کرنے والے وینڈرز کی تعداد: {count}',
 				withYourPermission: 'آپ کی اجازت سے',
 			},
 			specialPurposes: {
@@ -151,7 +151,7 @@ export const translations: CompleteTranslations = {
 				retainedDays: 'محفوظ رکھا جاتا ہے: {days} دن',
 				retention: 'محفوظ رکھنے کی مدت: {days} دن',
 				search: 'وینڈرز تلاش کریں...',
-				showingCount: '{total} میں سے {filtered} وینڈرز',
+				showingCount: 'وینڈرز: کل {total}، دکھائے گئے {filtered}',
 				specialFeatures: 'خاص خصوصیات',
 				specialPurposes: 'خصوصی مقاصد',
 				storageDisclosure: 'ذخیرہ کاری کا انکشاف',
