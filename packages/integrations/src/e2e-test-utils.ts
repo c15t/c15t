@@ -373,6 +373,8 @@ const resetVendorGlobals = function resetVendorGlobals() {
 		'GorgiasChat',
 		'gorgiasChat',
 		'gorgiasChatPendingEvents',
+		'zE',
+		'zEmbed',
 	] as const) {
 		Reflect.deleteProperty(win, key);
 	}

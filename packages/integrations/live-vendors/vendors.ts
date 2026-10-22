@@ -63,6 +63,7 @@ import { crisp } from '../src/vendors/functional/crisp';
 import { frontChat } from '../src/vendors/functional/front-chat';
 import { gorgiasChat } from '../src/vendors/functional/gorgias';
 import { intercom } from '../src/vendors/functional/intercom';
+import { zendeskWidget } from '../src/vendors/functional/zendesk';
 import { googleTagManager } from '../src/vendors/tag-managers/google-tag-manager';
 import type { LiveProbeCheckResult, LiveVendorProbeConfig } from './types';
 
@@ -223,6 +224,32 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 			'The placeholder v3 loader returns HTTP 200 with a 145-byte warning and creates no runtime. This checks the empty pre-load global and endpoint reachability only. A real pre-init proxy already exposes init, so that method cannot prove SDK readiness. Collection stays blocked.',
 		tier: 'loader-only',
 		vendor: 'gorgias',
+	},
+	{
+		bootstrapCheck: () => {
+			const api = window.zE;
+			const range = api?._?.find(
+				(args) => args[0] === 'messenger:set' && args[1] === 'cookies'
+			);
+			return check(
+				typeof api === 'function' &&
+					Array.isArray(api._) &&
+					typeof api.t === 'number' &&
+					window.zEmbed === api &&
+					api.s instanceof HTMLScriptElement &&
+					api.s.isConnected &&
+					range?.[2] === 'all',
+				'Zendesk arguments queue, alias, timestamp, real loader reference and all-consent cookie command exist before load'
+			);
+		},
+		createScript: () =>
+			zendeskWidget({ key: '00000000-0000-0000-0000-000000000000' }),
+		loaderUrlSubstring:
+			'static.zdassets.com/ekr/snippet.js?key=00000000-0000-0000-0000-000000000000',
+		notes:
+			'The universal snippet returns HTTP 200 for the all-zero placeholder key, while its compose endpoint returns HTTP 404. This checks bootstrap and loader reachability only, not a Messaging runtime or cookie cleanup. Configuration and collection stay blocked.',
+		tier: 'loader-only',
+		vendor: 'zendesk',
 	},
 
 	{

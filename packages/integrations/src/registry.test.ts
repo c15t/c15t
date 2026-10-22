@@ -54,6 +54,7 @@ import { crispManifest } from './vendors/functional/crisp';
 import { frontChatManifest } from './vendors/functional/front-chat';
 import { gorgiasChatManifest } from './vendors/functional/gorgias';
 import { intercomManifest } from './vendors/functional/intercom';
+import { zendeskWidgetManifest } from './vendors/functional/zendesk';
 import { googleTagManagerManifest } from './vendors/tag-managers/google-tag-manager';
 
 const validConsentCategories = [
@@ -67,6 +68,7 @@ const validConsentCategories = [
 const vendorManifests = [
 	clayManifest,
 	gorgiasChatManifest,
+	zendeskWidgetManifest,
 	googleTagManagerManifest,
 	gtagManifest,
 	ahrefsAnalyticsManifest,

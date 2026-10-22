@@ -1,0 +1,201 @@
+---
+title: "v3.2.0 - Fast Script Loading, shadcn Registry and 18 New Languages"
+version: "3.2.0"
+date: 2026-10-21
+description: "Minor release that starts allowed scripts before hydration, adds a shadcn registry, 18 consent languages and new integrations, with fixes for dialogs, IAB and backend errors."
+group: changelog
+tags:
+  - release
+  - stable
+  - performance
+  - react
+  - nextjs
+  - tanstack-start
+  - vue
+  - svelte
+  - headless
+  - translations
+  - integrations
+  - backend
+  - iab
+  - cli
+type: release
+breaking: false
+draft: true
+authors: [KayleeWilliams]
+---
+
+In c15t 3.2, consent no longer makes your scripts late. Scripts that a visitor
+already allowed now start before the page hydrates. This release also adds a
+shadcn registry, 18 languages, and more integrations.
+
+## Fast script loading
+
+Scripts behind consent now load about as fast as scripts with no consent check.
+When a visitor already gave consent, c15t starts their allowed scripts from the
+server HTML, before the page hydrates.
+
+The last vendor script now loads:
+
+- 845 ms sooner than with OneTrust, on Next.js
+- 1,622 ms sooner than with `@nuxt/scripts` and its consent trigger, on Nuxt
+- 434 to 823 ms sooner than with c15t 3.1, on Next.js, SvelteKit, and TanStack
+  Start
+- within 133 ms of `next/script`, which loads every vendor for every visitor
+
+| Next.js | `next/script`, no consent check | OneTrust | c15t 3.1 | c15t 3.2 |
+| --- | ---: | ---: | ---: | ---: |
+| First vendor tag inserted | 1,773 ms | 2,406 ms | 2,000 ms | **1,073 ms** |
+| Last vendor loaded | 2,498 ms | 3,476 ms | 3,065 ms | **2,631 ms** |
+
+The test page loaded the real Google tag, Meta Pixel, and TikTok Pixel for a
+repeat visitor who accepted all. The CPU ran 4x slower, with 170 ms latency and
+1.125 MB/s bandwidth. Each number is the median of 10 loads. The script loading
+blog post has the results for every framework. {/* TODO: link the blog post. */}
+
+This works in Next.js, TanStack Start, Nuxt, and SvelteKit. An inline script in
+the HTML runs after first paint and inserts the vendor tags. The script loader
+then adopts those tags, so no script loads twice. First paint does not get
+slower.
+
+Every vendor helper in `@c15t/integrations` starts early, except Cloudflare
+Zaraz and Sentry. Those two start after hydration, as in 3.1. Nothing starts
+early while the policy asks the visitor to choose, or when the page comes from
+prerendered or cached HTML. To turn the early start off, set `scriptLoader: {
+serverStart: false }`. See [Start allowed scripts before
+hydration](/docs/frameworks/next/rendering#start-allowed-scripts-before-hydration).
+
+Browser manifest mode also does less work. With `manifest({ resolve: 'browser'
+})`, c15t skips the `/manifest` request when the server state already holds the
+visitor's policy. It also skips the policy resolver, which is about 20 KB
+gzipped.
+
+## shadcn registry
+
+Your consent banner can now use the same components as the rest of your app. Add
+it with the shadcn CLI:
+
+```bash
+npx shadcn add @c15t/next-consent-manager @c15t/next-consent-banner
+```
+
+Each item renders your project's own shadcn components, and the markup is yours
+to change. c15t keeps the consent logic, so you still get its fixes when you
+update `c15t`.
+
+| Item | What it gives you |
+| --- | --- |
+| `consent-manager` | The provider setup for your framework |
+| `consent-banner` | The banner, also as a consent wall that blocks the page |
+| `consent-dialog`, `consent-sheet` | The preference center in a dialog or a sheet |
+| `consent-preferences` | The category and vendor switches |
+| `consent-dialog-trigger` | A button that floats on the page and opens the preference center again |
+| `consent-widget` | The preference center inline on a page |
+| `consent-gate` | A gate that holds an embed until the visitor allows its category |
+| `consent-branding` | The "Secured by" link and the trigger mark |
+
+Each item has a `next-`, `react-`, and `tanstack-start-` version. The registry
+has a build for all 27 shadcn styles, so Radix, Base UI, and React Aria projects
+all work. It has no IAB TCF items yet. Under an IAB policy, the TCF banner from
+`<IABProvider>` shows instead of the shadcn banner.
+
+### Build your own banner
+
+The registry items use public headless hooks, so a banner in any design system
+can use them too. `useBannerCopy()` and `useConsentLabels()` return the same
+copy and button labels as the stock banner, in the active language.
+`useConsentGate()`, `useScrollLock()`, `useConsentTextDirection()`, and
+`StreamedConsentSurface` cover the rest of what the stock UI does. See [headless
+UI](/docs/frameworks/next/headless).
+
+Vue, Svelte, and the script tag get the same copy as plain functions:
+`resolvePromptCopy`, `resolveActionLabels`, and
+`resolvePreferenceControlLabels`.
+
+## 18 new languages
+
+More of your visitors can now read the banner in their own language. c15t ships
+consent copy in 53 languages, up from 35 in 3.1.
+
+- Arabic (`ar`), Urdu (`ur`), and Yiddish (`yi`), which read right to left
+- Bangla (`bn`), Haitian Creole (`ht`), Korean (`ko`), and Russian (`ru`)
+- Japanese (`ja`), Thai (`th`), Malay (`ms`), Vietnamese (`vi`), and Turkish
+  (`tr`)
+- Tamil (`ta`), Telugu (`te`), Marathi (`mr`), Kannada (`kn`), Malayalam (`ml`),
+  and Punjabi in Gurmukhi script (`pa`)
+
+With these, c15t covers all 12 languages that New York State's language access
+law names for state agencies.
+
+`manifest()` loads each language on demand, and the backend serves them from
+`/init`. To bundle them, import one with `@c15t/translations/<code>` or all of
+them with `@c15t/translations/all`. See
+[translations](/docs/customization/translations).
+
+Banners, dialogs, and preference centers also read right to left for Central
+Kurdish (`ckb`), Uyghur (`ug`), Syriac (`syr`), and N'Ko (`nqo`). A script
+subtag now sets the direction, so `ku-Arab` reads right to left.
+
+## Integrations
+
+{/* TODO: add the integrations that land before release. */}
+
+- **Shopify.** `createShopifyCustomerPrivacy` sends each c15t choice to
+  Shopify's Customer Privacy API. Hydrogen holds analytics events until the
+  visitor answers the c15t banner. See the [Shopify
+  guide](/docs/integrations/shopify).
+- **Clay.** The `clay` helper loads Clay after the visitor allows marketing. See
+  the [Clay guide](/docs/integrations/clay).
+- **Google Tag Manager.** A community template loads the c15t script tag from
+  GTM and sends each choice to Consent Mode. See the [Google Tag Manager
+  guide](/docs/integrations/google-tag-manager).
+
+## Also in 3.2
+
+### Svelte and SvelteKit through `c15t`
+
+Install `c15t` and import from `c15t/svelte`, as you do for the other
+frameworks. SvelteKit helpers live at `c15t/svelte/kit`, server resolution at
+`c15t/svelte/server`, and the Vite plugin at `c15t/svelte/vite`. `c15t setup`
+writes these imports for you. See the [SvelteKit
+quickstart](/docs/frameworks/sveltekit/quickstart).
+
+### `offline()` is now `local()`
+
+Local mode keeps consent only in the browser, with no record on a server.
+Development builds now warn you about that once per page. Production builds
+never log it.
+
+`offline()` still works until v4. Once you decide that a browser-only record is
+enough, pass `local({ acknowledgeNoRecords: true })` to stop the warning. For
+the script tag, use `c15t.local.js` and add `data-acknowledge-no-records`. See
+[modes](/docs/concepts/modes).
+
+### Clearer backend errors
+
+When the backend refuses a request, the error now says why. In 3.1, an error
+over HTTP/2 could stop at `/init responded 402`. Now it includes the backend's
+message and code, with `status` and `code` properties to match.
+
+After a 402 response, c15t no longer sends the consent save again. The choice
+stays in the browser.
+
+### Fixes
+
+- A preference center that a visitor opens before the backend answers now stays
+  open when the answer arrives.
+- Under an IAB policy, c15t now creates the IAB CMP once per page load. In 3.1,
+  it could create the CMP up to 100 times.
+- The backend now records the tenant on `identify_user` audit entries.
+
+## Before you upgrade
+
+Update `c15t` and any `@c15t/*` packages you use to 3.2 together.
+
+Two changes can move things on a page:
+
+- The banner now stays in its corner for right-to-left languages. In 3.1, a
+  `bottom-left` banner moved to the bottom right for Hebrew. To put the banner
+  on the right for right-to-left pages, set `position`.
+- Plain `ku` now reads left to right, because it usually means Kurmanji. For
+  Sorani, use `ckb` or `ku-Arab`.

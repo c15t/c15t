@@ -309,6 +309,11 @@
 			"import": "./dist/vendors/functional/gorgias.js",
 			"default": "./dist/vendors/functional/gorgias.js"
 		},
+		"./zendesk": {
+			"types": "./dist-types/vendors/functional/zendesk.d.ts",
+			"import": "./dist/vendors/functional/zendesk.js",
+			"default": "./dist/vendors/functional/zendesk.js"
+		},
 		"./clay": {
 			"types": "./dist-types/vendors/analytics/clay.d.ts",
 			"import": "./dist/vendors/analytics/clay.js",
