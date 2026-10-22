@@ -1,5 +1,5 @@
 /** @vitest-environment jsdom */
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
 	deniedConsents,
@@ -27,12 +27,18 @@ const getLoader = (): HTMLScriptElement => {
 
 describe('Marketo Munchkin consent loader', () => {
 	registerVendorContractCleanup();
+	// Node 25+ replaces jsdom's storage globals with its own.
+	beforeEach(() => {
+		vi.stubGlobal('localStorage', jsdom.window.localStorage);
+		vi.stubGlobal('sessionStorage', jsdom.window.sessionStorage);
+	});
 	afterEach(() => {
 		for (const name of GLOBALS) {
 			Reflect.deleteProperty(window, name);
 		}
 		localStorage.clear();
 		sessionStorage.clear();
+		vi.unstubAllGlobals();
 	});
 	it('creates no vendor requests, globals or storage before mapped consent', () => {
 		const scripts = [marketoMunchkin({ munchkinId: 'AAA-BBB-CCC' })];
