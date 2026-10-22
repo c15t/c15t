@@ -118,7 +118,6 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 ## Integrations
 
 - [Adobe Analytics](./integrations/adobe-analytics.md): Load an Adobe Data Collection Tags property only after measurement consent with the c15t adobeAnalytics helper, and check its extensions in DevTools.
-- [Adobe Target](./integrations/adobe-target.md): Gate a self-hosted Adobe Target at.js download or Adobe Experience Platform Web SDK on experience consent, send consent updates and check revocation limits.
 - [Ahrefs Analytics](./integrations/ahrefs-analytics.md): Load Ahrefs Web Analytics only after measurement consent with the c15t ahrefsAnalytics helper, and check it in DevTools.
 - [Amplitude](./integrations/amplitude.md): Load the Amplitude Browser SDK 2 only after measurement consent with the c15t amplitude helper, which opts the SDK out on revocation and back in on a new grant.
 - [Custom integrations](./integrations/building-integrations.md): Gate a vendor that has no @c15t/integrations helper, or sync consent with an SDK your app already loads, using a c15t script configuration.
@@ -147,7 +146,8 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 - [Mixpanel](./integrations/mixpanel-analytics.md): Load the Mixpanel SDK on every page with the c15t mixpanelAnalytics helper, which switches Mixpanel tracking on and off with measurement consent, and check it in DevTools.
 - [OneDollarStats](./integrations/one-dollar-stats.md): Load the OneDollarStats tracker only after measurement consent with the c15t oneDollarStats helper, forward its data-attribute settings, and check it in DevTools.
 - [OpenAI Pixel](./integrations/openai-pixel.md): Load the ChatGPT Ads Measurement Pixel only after marketing consent with the c15t openaiPixel helper, guard oaiq conversion calls, and check it in DevTools.
-- [Integrations](./integrations/overview.md): Find all c15t integrations for analytics, tag managers, advertising, email and SMS, chat and embedded content.
+- [Experimentation and personalization tools](./integrations/other-experience.md): Consent-gated helpers for experimentation and personalization tools that don't need a full guide.
+- [Integrations](./integrations/overview.md): Find all c15t integrations for analytics, tag managers, advertising, experimentation and personalization, email and SMS, chat and embedded content.
 - [Pinterest Tag](./integrations/pinterest-tag.md): Load the Pinterest Tag only after marketing consent with the c15t pinterestTag helper, guard pintrk event calls, and check it in DevTools.
 - [Pirsch](./integrations/pirsch.md): Load Pirsch Analytics only after measurement consent with the c15t pirsch helper, keep custom event bindings working, and check it in DevTools.
 - [Plausible Analytics](./integrations/plausible-analytics.md): Load the Plausible Analytics tracker only after measurement consent with the c15t plausibleAnalytics helper, and check it in DevTools.

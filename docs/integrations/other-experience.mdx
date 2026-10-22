@@ -1,0 +1,46 @@
+---
+title: Experimentation and personalization tools
+description: Consent-gated helpers for experimentation and personalization tools that don't need a full guide.
+icon: flask-conical
+group: integrations
+---
+
+Each helper below loads its vendor only after the visitor allows the listed consent category. For setup, see [Integrations overview](/docs/integrations/overview).
+
+## Adobe Target
+
+Adobe Target runs A/B tests and personalizes page content. Waits for
+`experience` consent. Pick one mode per page: your self-hosted at.js file, or
+Adobe Experience Platform Web SDK.
+
+<include src="../shared/examples/javascript/adobe-target-atjs.mdx" />
+
+<include src="../shared/examples/javascript/adobe-target-websdk.mdx" />
+
+| Option | Type | Required | Description |
+| --- | --- | --- | --- |
+| `mode` | `'atjs' \| 'websdk'` | Yes | Which Adobe SDK to load. |
+| `scriptUrl` | `string` | at.js | URL of your self-hosted at.js file. |
+| `targetGlobalSettings` | `object` | No | at.js settings such as `cookieDomain`, `secureOnly`, `bodyHidingEnabled` and `bodyHiddenStyle`. The helper always sets `optinEnabled: true`. |
+| `datastreamId` | `string` | Web SDK | ID of a Target-enabled datastream. |
+| `orgId` | `string` | Web SDK | Organization ID, including `@AdobeOrg`. |
+| `version` | `string` | Web SDK | Exact Web SDK version, `2.21.0` or later. |
+| `category` | `HasCondition` | No | Consent condition to wait for. Defaults to `'experience'`. |
+
+**When consent is withdrawn:** with at.js, the helper calls
+`adobe.optIn.deny(adobe.OptInCategories.TARGET)` if the Opt-in service is on
+the page. With Web SDK, it sends `setConsent` with `'out'`. Neither undoes
+content Target already changed, so keep `reloadOnConsentRevoked` on.
+
+Remove Adobe's prehiding snippet when you use this helper. Without it, visitors
+see the original page first, then Target's changes once consent allows the
+SDK to load.
+
+- at.js has no Adobe CDN, so host the file yourself. Its opt-in API comes from
+  the Experience Cloud ID (ECID) Opt-in service, which the helper doesn't load.
+  Without it, only the page reload stops at.js.
+- Web SDK needs version 2.21 or later. The helper configures the SDK and sends
+  consent but never calls `sendEvent`. Gate your own `sendEvent` calls behind
+  the same consent.
+- Web SDK can be configured only once per page. Reload the page before you
+  mount the helper again or change its IDs, version or mode.

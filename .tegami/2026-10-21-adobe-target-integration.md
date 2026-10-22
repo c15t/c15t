@@ -7,12 +7,4 @@ packages:
 
 ### Add Adobe Target consent integration
 
-`adobeTarget()` loads Adobe Target only after `experience` consent. Includes configuration and revocation guidance, loader contract tests, and CLI setup support.
-
-Web SDK consent updates run one at a time and retry failed updates on later
-consent notifications. Shared registrations respect initially denied choices
-in both SDK modes.
-
-Web SDK mode requires an exact stable version of 2.21.0 or later so its
-datastream configuration is supported. Invalid or older versions log an
-error and skip the loader.
+`adobeTarget()` from `@c15t/integrations/adobe-target` loads Adobe Target after `experience` consent, using either a self-hosted at.js file or Adobe Experience Platform Web SDK 2.21 or later. On revocation it denies Target through Adobe's consent APIs; keep the page reload on to stop code that already ran. The CLI can add it during setup.

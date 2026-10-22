@@ -20,6 +20,11 @@ export interface AdobeTargetGlobalSettings {
 	secureOnly?: boolean;
 	/** Hide page content while Target retrieves offers. */
 	bodyHidingEnabled?: boolean;
+	/**
+	 * CSS that at.js applies while it hides the page for offers.
+	 * Adobe's default is `body { opacity: 0 }`.
+	 */
+	bodyHiddenStyle?: string;
 	/** Retrieve page-load offers automatically. */
 	pageLoadEnabled?: boolean;
 	/** Retrieve SPA views automatically. */

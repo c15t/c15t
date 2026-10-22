@@ -116,7 +116,7 @@ export const BUILT_IN_INTEGRATION_CATEGORIES = [
 export const builtInScriptIntegrations = [
 	{
 		consentCategory: 'experience',
-		docsSlug: 'adobe-target',
+		docsSlug: 'other-experience',
 		hint: 'Website experiments and personalized offers',
 		integrationCategory: 'functional',
 		key: 'adobeTarget',
