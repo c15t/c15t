@@ -172,7 +172,7 @@ pass them as a top-level prop:
 
 ```svelte title="src/App.svelte"
 <script lang="ts">
-  import { ConsentProvider, manifest } from '@c15t/svelte';
+  import { ConsentProvider, manifest } from 'c15t/svelte';
   import { scripts } from './consent-scripts';
 </script>
 
@@ -191,7 +191,7 @@ handle and the layout load from the [SvelteKit quickstart](https://c15t.com/docs
 
 ```svelte title="src/routes/+layout.svelte"
 <script lang="ts">
-  import { ConsentRoot } from '@c15t/svelte';
+  import { ConsentRoot } from 'c15t/svelte';
   import { scripts } from '../consent-scripts';
 
   let { children, data } = $props();

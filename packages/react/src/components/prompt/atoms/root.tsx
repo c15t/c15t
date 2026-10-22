@@ -32,7 +32,6 @@ import {
 } from '../../shared/surface-styles';
 import {
 	ConsentBannerSurfaceContext,
-	mirrorDefaultPosition,
 	useConsentBannerSurface,
 } from '../surface-context';
 import type { ConsentBannerSurface } from '../surface-context';
@@ -124,8 +123,8 @@ interface ConsentBannerRootProps extends HTMLAttributes<HTMLDivElement> {
 	/**
 	 * Placement of the prompt. Overrides `presentation.prompt.position`.
 	 * @remarks Must be valid for the resolved variant; otherwise the variant
-	 * default is used and a development diagnostic is logged. Host-chosen
-	 * positions are never mirrored for right-to-left text.
+	 * default is used and a development diagnostic is logged. Right-to-left
+	 * text does not move the prompt.
 	 */
 	position?: PromptPosition;
 
@@ -277,12 +276,6 @@ const ConsentBannerRootChildren = createForwardRef<
 		const textDirection = useTextDirection(
 			translations?.language ?? defaultTranslationConfig.defaultLanguage
 		);
-		const renderedPosition = mirrorDefaultPosition(
-			surface.position,
-			surface.positionSource,
-			surface.variant,
-			textDirection
-		);
 		// ConsentBanner shows when a policy is resolved, activeUI is 'banner'
 		// and the current model matches. Without a policy nothing renders.
 		// Mounted on every page, so a banner the browser shows later finds
@@ -322,7 +315,7 @@ const ConsentBannerRootChildren = createForwardRef<
 					{...contentStyle}
 					className={finalClassName}
 					data-variant={surface.variant}
-					data-position={renderedPosition}
+					data-position={surface.position}
 					data-blocking={surface.blocking ? 'true' : undefined}
 					data-prompt={policy.prompt}
 					data-model={policy.model}

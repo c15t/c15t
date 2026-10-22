@@ -6,7 +6,7 @@
 		ConsentDialog,
 		ConsentDialogLink,
 		ConsentRoot,
-	} from '@c15t/svelte';
+	} from 'c15t/svelte';
 
 	let { children, data } = $props();
 
