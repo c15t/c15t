@@ -337,6 +337,7 @@
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",
 		"@c15t/vitest-config": "workspace:*",
+		"esbuild": "0.28.1",
 		"playwright": "1.58.2",
 		"sentry-browser-v10": "npm:@sentry/browser@^10.67.0",
 		"sentry-browser-v10-min": "npm:@sentry/browser@10.67.0",
