@@ -193,4 +193,59 @@ describe('resolveRequestSubject', () => {
 			});
 		}
 	);
+
+	// A URL host may contain `;`, so a host the request names could add
+	// cookie attributes through the derived `Domain`.
+	test.each([
+		['a Host header', { headers: { host: 'a.b;samesite=none' } }, false],
+		[
+			'a trusted forwarded host',
+			{
+				headers: {
+					host: 'app.example.com',
+					'x-forwarded-host': 'a.b;domain=evil.example',
+				},
+			},
+			true,
+		],
+		['the request URL', { url: 'https://a.b;samesite=none/' }, false],
+	] as const)(
+		'%s with a cookie attribute in it gets a host-only cookie',
+		(_, request, trustForwardedHeaders) => {
+			const subject = resolveRequestSubject({
+				request,
+				storage: { crossSubdomain: true },
+				trustForwardedHeaders,
+			});
+			expect(subject?.setCookie?.domain).toBeUndefined();
+			expect(subject?.setCookie?.header).toBe(
+				`c15t-sid=${subject?.subjectId}; Max-Age=31536000; Path=/; Secure; SameSite=Lax`
+			);
+		}
+	);
+
+	test.each([
+		['app.example.com', '.example.com'],
+		['APP.Example.COM', '.example.com'],
+		['shop.bücher.example', '.xn--bcher-kva.example'],
+		['localhost:3000', 'localhost'],
+		['127.0.0.1:8080', '127.0.0.1'],
+		['[::1]:3000', '[::1]'],
+	])('crossSubdomain on host %s sets Domain=%s', (host, domain) => {
+		const subject = resolveRequestSubject({
+			request: { headers: { host } },
+			storage: { crossSubdomain: true },
+		});
+		expect(subject?.setCookie?.domain).toBe(domain);
+		expect(subject?.setCookie?.header).toContain(`; Domain=${domain};`);
+	});
+
+	test('a configured defaultDomain is kept whatever the host says', () => {
+		const subject = resolveRequestSubject({
+			request: { headers: { host: 'a.b;samesite=none' } },
+			storage: { defaultDomain: '.example.org' },
+		});
+		expect(subject?.setCookie?.domain).toBe('.example.org');
+		expect(subject?.setCookie?.header).toContain('; Domain=.example.org;');
+	});
 });

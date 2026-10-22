@@ -80,7 +80,11 @@ export interface SubjectCookie {
 	secure: boolean;
 	/** The browser reads the ID, so the cookie is never HTTP-only. */
 	httpOnly: false;
-	/** The request's root domain with `crossSubdomain`, else `defaultDomain`. */
+	/**
+	 * The request's root domain with `crossSubdomain`, else `defaultDomain`.
+	 * Unset with `crossSubdomain` when the request's host holds characters a
+	 * cookie domain cannot, such as `;`.
+	 */
 	domain?: string;
 	/** The whole cookie as a `Set-Cookie` header value. */
 	header: string;
@@ -104,6 +108,10 @@ export interface RequestSubject {
 }
 
 const SECONDS_PER_DAY = 86_400;
+// A URL host may hold characters such as `;` that would end the `Domain`
+// attribute and start another, so a domain taken from the request is used
+// only when it is made of hostname characters or is an IPv6 literal.
+const COOKIE_DOMAIN = /^(?:[a-z0-9_.-]+|\[[0-9a-f:.]+\])$/iu;
 
 const readCookieHeader = function readCookieHeader(
 	options: ResolveRequestSubjectOptions
@@ -174,10 +182,11 @@ const subjectCookie = function subjectCookie(
 	// whenever `crossSubdomain` is set, even with a `defaultDomain`. Two
 	// cookies of one name on different domains could bring back an old ID,
 	// so this follows the same rule.
-	const domain =
-		storage?.crossSubdomain && url
-			? rootDomainOf(url.hostname)
-			: storage?.defaultDomain || undefined;
+	let domain = storage?.defaultDomain || undefined;
+	if (storage?.crossSubdomain && url) {
+		const root = rootDomainOf(url.hostname);
+		domain = COOKIE_DOMAIN.test(root) ? root : undefined;
+	}
 	const maxAge = Math.round(
 		(storage?.defaultExpiryDays ?? 365) * SECONDS_PER_DAY
 	);
