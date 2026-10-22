@@ -32,7 +32,7 @@ export type OtherLanguage = Exclude<keyof BaseTranslations, 'en'>;
  * names one chunk rather than one per language.
  */
 const otherLanguages = new Set<string>(
-	'bg cs cy da de el es et fi fr ga gu he hi hr hu id is it lb lt lv mt nb nl nn pl pt rm ro sk sl sv zh'.split(
+	'ar bg bn cs cy da de el es et fi fr ga gu he hi hr ht hu id is it ko lb lt lv mt nb nl nn pl pt rm ro ru sk sl sv ur yi zh'.split(
 		' '
 	)
 );

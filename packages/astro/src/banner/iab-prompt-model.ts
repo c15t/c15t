@@ -310,16 +310,6 @@ const resolveIABButton = function resolveIABButton(
 	};
 };
 
-const mirrorCorner = function mirrorCorner(corner: string): string {
-	if (corner.endsWith('-left')) {
-		return corner.replace(/-left$/u, '-right');
-	}
-	if (corner.endsWith('-right')) {
-		return corner.replace(/-right$/u, '-left');
-	}
-	return corner;
-};
-
 /**
  * Resolve the IAB banner's copy, summary, buttons and class names.
  *
@@ -342,12 +332,7 @@ export const resolveIABPromptModel = function resolveIABPromptModel(
 	);
 	const translations = resolveIABTranslations(snapshot);
 	const textDirection = getTextDirection(snapshot.translations?.language);
-	// A default corner mirrors for RTL, as in the React and Svelte IAB
-	// banners; a position the host or an experiment arm set is kept.
-	const position =
-		textDirection === 'rtl' && presentation.positionSource === 'default'
-			? mirrorCorner(presentation.position)
-			: presentation.position;
+	const { position } = presentation;
 	const classesAndStyles = resolveIABClasses(
 		input.classNames,
 		props,

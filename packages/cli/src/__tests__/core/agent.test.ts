@@ -616,7 +616,7 @@ describe('c15t setup instructions', () => {
 			`Install only the packages the framework's quickstart installs (\`${origin}/docs/frameworks/<framework>/quickstart.md\`)`
 		);
 		expect(instructions).toContain(
-			'Svelte and SvelteKit use `@c15t/svelte` and do not install `c15t`'
+			'Svelte and SvelteKit install `c15t` and import from `c15t/svelte`'
 		);
 		expect(instructions).not.toContain('Look up `c15t`');
 	});

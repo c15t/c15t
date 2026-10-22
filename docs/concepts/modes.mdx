@@ -42,10 +42,10 @@ needs under the same three names.
 | TanStack Start | `c15t/tanstack-start` | `createConsentStateHandler({ mode })` | Data |
 | Nuxt | `c15t/vue` | `c15t.mode` in `nuxt.config.ts` | Data |
 | Astro | `c15t/astro` | `c15t({ mode })` in `astro.config.mjs` | Data |
-| SvelteKit | `@c15t/svelte/kit` | `c15tHandle({ mode })` in `src/hooks.server.ts` | Data |
+| SvelteKit | `c15t/svelte/kit` | `c15tHandle({ mode })` in `src/hooks.server.ts` | Data |
 | React | `c15t/react` | `ConsentProvider`'s `options.mode` | Transport |
 | Vue | `c15t/vue/vue-plugin` | `app.use(c15tVue, { mode })` | Transport |
-| Svelte | `@c15t/svelte` | `<ConsentProvider mode={...}>` | Transport |
+| Svelte | `c15t/svelte` | `<ConsentProvider mode={...}>` | Transport |
 | JavaScript | `@c15t/browser` | `init({ mode })` | Transport |
 | Script tag | none | The bundle file: `c15t.js` is hosted, `c15t.local.js` local. The headless and IAB scripts also take `data-mode="manifest"`. | Name |
 
@@ -84,7 +84,7 @@ holds your policy rules and copy, and no visitor data.
 | `inputs` | none | `{ country, region }` when the page already knows the visitor's location, for example from an edge worker. Browser resolution only. |
 
 The transport `manifest()` from `c15t/react`, `c15t/vue/vue-plugin`,
-`@c15t/svelte` and `@c15t/browser` always resolves in the browser, so it has
+`c15t/svelte` and `@c15t/browser` always resolve in the browser, so they have
 no `resolve` option. It also takes `backendURL`, `headers`, `credentials`,
 `domain`, `fetch` and `initFallback`. With no options it reads the snapshot
 and the backend URL your build integration downloaded. With `manifestURL`,
@@ -96,7 +96,7 @@ know the country or region, browser resolution asks `geoURL`, then the
 backend's `/init`. Set `initFallback: false` to resolve for an unknown location
 instead. A policy with location rules therefore saves no request in a
 single-page app unless you pass `inputs` or `geoURL`. The `consentManifest()`
-plugins from `c15t/build`, `c15t/vue/vite` and `@c15t/svelte/vite` warn
+plugins from `c15t/build`, `c15t/vue/vite` and `c15t/svelte/vite` warn
 about this when a single-page app build bundles such a policy.
 
 ## hosted()
@@ -253,7 +253,7 @@ build integration downloads from `${backendURL}/manifest`:
 | TanStack Start | `consentManifest()` from `c15t/tanstack-start/build` | `@c15t/tanstack-start/build` |
 | React and JavaScript | `consentManifest()` from `c15t/build` | `@c15t/core/build` |
 | Vue | `consentManifest()` from `c15t/vue/vite` | `@c15t/vue/vite` |
-| Svelte and SvelteKit | `consentManifest()` from `@c15t/svelte/vite` | `@c15t/svelte/vite` |
+| Svelte and SvelteKit | `consentManifest()` from `c15t/svelte/vite` | `@c15t/svelte/vite` |
 | Nuxt | the `c15t/vue` module | `@c15t/vue` |
 | Astro | the `c15t()` integration | `@c15t/astro` |
 
