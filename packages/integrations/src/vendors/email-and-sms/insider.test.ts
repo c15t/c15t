@@ -163,13 +163,28 @@ describe('insiderTag', () => {
 	});
 
 	it.each([null, 123, {}, '', '   '])(
-		'rejects invalid optional currency %s',
+		'skips an invalid optional currency %s',
 		(currency) => {
-			expect(() =>
-				insiderTag({ ...account, currency: currency as string })
-			).toThrow('insiderTag: currency must be a non-blank string');
+			expectSkippedScript(
+				() => insiderTag({ ...account, currency: currency as string }),
+				{ category: 'marketing', id: 'insider' },
+				'insiderTag: currency must be a non-blank string'
+			);
 		}
 	);
+
+	it('skips user data that cannot be serialized to JSON', () => {
+		const user: Record<string, unknown> = { custom: { points: 10n } };
+		const circular: Record<string, unknown> = {};
+		circular.self = circular;
+		for (const value of [user, circular]) {
+			expectSkippedScript(
+				() => insiderTag({ ...account, user: value }),
+				{ category: 'marketing', id: 'insider' },
+				'insiderTag: user must be JSON-serializable'
+			);
+		}
+	});
 
 	it('passes currency unchanged without a code whitelist or case conversion', () => {
 		const script = insiderTag({ ...account, currency: 'usd' });

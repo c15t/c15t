@@ -4,7 +4,7 @@ import { compileManifest } from '../../engine/compile';
 import { resolvedManifestToScript } from '../../engine/runtime';
 import { vendorManifestContract } from '../../types';
 import type { VendorManifest } from '../../types';
-import { readId, skipMissingId } from '../_shared/required-id';
+import { readId, skipMissingId, skipScript } from '../_shared/required-id';
 
 /** Product data required by Insider's product page push. */
 export interface InsiderProduct {
@@ -237,11 +237,10 @@ const PARTNER_NAME_PATTERN = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/u;
  *
  * @param options - Insider account, current user, currency, page, and consent.
  * @returns The consent-gated Insider script configuration.
- * @throws {TypeError} When currency is not a non-blank string or user data
- *   cannot be serialized to JSON.
- * @remarks A missing or blank required ID, or an invalid partner hostname,
- *   logs `insiderTag: missing or invalid <option>` with `console.error` and
- *   returns a script that never loads. Insider must enable Web SDK support
+ * @remarks A missing or blank required ID, an invalid partner hostname, a
+ *   blank or non-string currency, or user data that cannot be serialized to
+ *   JSON logs an error with `console.error` and returns a script that never
+ *   loads. Insider must enable Web SDK support
  *   for the account. Do not install it on pages containing payment card data.
  * @example
  * insiderTag({
@@ -271,18 +270,27 @@ export const insiderTag = function insiderTag(
 		});
 	}
 
+	const skipped = { category, manifest: insiderManifest };
 	const { currency } = options;
 	if (
 		currency !== undefined &&
 		(typeof currency !== 'string' || currency.trim().length === 0)
 	) {
-		throw new TypeError('insiderTag: currency must be a non-blank string');
+		return skipScript(
+			'insiderTag: currency must be a non-blank string',
+			skipped
+		);
 	}
 
-	const user = JSON.parse(JSON.stringify(options.user ?? {})) as Record<
-		string,
-		unknown
-	>;
+	let user: Record<string, unknown>;
+	try {
+		user = JSON.parse(JSON.stringify(options.user ?? {})) as Record<
+			string,
+			unknown
+		>;
+	} catch {
+		return skipScript('insiderTag: user must be JSON-serializable', skipped);
+	}
 	// Keep current identifiers independent of the resolver's shared config cache.
 	return resolvedManifestToScript(
 		compileManifest(
