@@ -141,6 +141,12 @@ describe('Lucky Orange privacy readiness', () => {
 		updateScripts([create()], granted);
 		updateScripts([create()], granted);
 		expect(api.privacy.setConsentStatus.mock.calls).toEqual([[false], [true]]);
+		updateScripts([create()], deniedConsents);
+		expect(api.privacy.setConsentStatus.mock.calls).toEqual([
+			[false],
+			[true],
+			[false],
+		]);
 		expect(queue).toHaveLength(1);
 		expect(document.querySelectorAll('script[src]')).toHaveLength(1);
 	});
