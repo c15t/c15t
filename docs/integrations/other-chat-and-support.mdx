@@ -1,0 +1,38 @@
+---
+title: Other chat and support tools
+description: Consent-gated helpers for chat and support tools that don't need a full guide.
+icon: messages-square
+group: integrations
+---
+
+Each helper below loads its vendor only after the visitor allows the listed consent category. For setup, see [Integrations overview](/docs/integrations/overview).
+
+## Gorgias Chat
+
+Gorgias Chat adds the Gorgias support chat widget to your store or site. Waits
+for `functionality` consent.
+
+<include src="../shared/examples/javascript/gorgias-scripts.mdx" />
+
+| Option | Type | Required | Description |
+| --- | --- | --- | --- |
+| `appKey` | `string` | Yes | Public app key from your Gorgias installation snippet. A blank key logs an error and nothing loads. |
+| `version` | `2` or `3` | No | Installation snippet version. Defaults to `3`. |
+
+Remove any other Gorgias snippet or store app installation, or Gorgias can load
+before consent. Without `measurement` consent, the helper calls
+`GorgiasChat.disableSegment()` when the widget is ready.
+
+**When consent is withdrawn:** c15t removes the loader and calls
+`disableSegment()` if the widget is ready. Gorgias has no shutdown API, so keep
+`reloadOnConsentRevoked` enabled. The page reload stops the widget.
+
+- Segment stays off for the rest of the page after `disableSegment()`, even if
+  the visitor then grants `measurement`. Gorgias has no call to turn it back on.
+  A reload with `measurement` allowed turns it back on.
+- The v3 snippet has the key at the end of
+  `https://config.gorgias.chat/bundle-loader/YOUR_APP_KEY`. A v2 snippet uses
+  `applicationId` instead. Pass that value as `appKey` with `version: 2`.
+- A placeholder or deleted key still returns HTTP 200, with only a warning
+  that the installation is incorrect. Check that the widget appears to confirm
+  the key works.

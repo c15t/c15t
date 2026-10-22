@@ -97,7 +97,6 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 - [Google Maps](./docs/integrations/google-maps.md): Gate a Google Maps iframe embed with c15t v3 so the map loads only after the visitor allows its consent category, in Next.js, TanStack Start, React, Nuxt, Vue, Astro, Svelte, SvelteKit, HTML or JavaScript.
 - [Google Tag](./docs/integrations/google-tag.md): Load gtag.js for Google Analytics or Google Ads before or after consent with c15t Consent Mode v2 signals, and verify the consent commands in DevTools.
 - [Google Tag Manager](./docs/integrations/google-tag-manager.md): Load a Google Tag Manager container before or after consent with c15t Consent Mode v2 signals, configure consent checks inside the container, and verify both in DevTools.
-- [Gorgias Chat](./docs/integrations/gorgias.md): Load Gorgias Chat after functionality consent, disable its Segment analytics when measurement is denied, and verify loading and revocation with c15t.
 - [Heap](./docs/integrations/heap.md): Load the Heap config script and heap.js only after measurement consent with the c15t heap helper, and check it in DevTools.
 - [Hightouch](./docs/integrations/hightouch.md): Load the Hightouch Events browser SDK only after measurement consent with the c15t hightouch helper, and check page events in DevTools.
 - [Hotjar](./docs/integrations/hotjar.md): Load Hotjar only after measurement consent with the c15t hotjar helper, and check its loader and recordings in DevTools.
@@ -112,6 +111,7 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 - [Mixpanel](./docs/integrations/mixpanel-analytics.md): Load the Mixpanel SDK on every page with the c15t mixpanelAnalytics helper, which switches Mixpanel tracking on and off with measurement consent, and check it in DevTools.
 - [OneDollarStats](./docs/integrations/one-dollar-stats.md): Load the OneDollarStats tracker only after measurement consent with the c15t oneDollarStats helper, forward its data-attribute settings, and check it in DevTools.
 - [OpenAI Pixel](./docs/integrations/openai-pixel.md): Load the ChatGPT Ads Measurement Pixel only after marketing consent with the c15t openaiPixel helper, guard oaiq conversion calls, and check it in DevTools.
+- [Other chat and support tools](./docs/integrations/other-chat-and-support.md): Consent-gated helpers for chat and support tools that don't need a full guide.
 - [Integrations](./docs/integrations/overview.md): Find all c15t integrations for analytics, tag managers, advertising, email and SMS, chat and embedded content.
 - [Pinterest Tag](./docs/integrations/pinterest-tag.md): Load the Pinterest Tag only after marketing consent with the c15t pinterestTag helper, guard pintrk event calls, and check it in DevTools.
 - [Pirsch](./docs/integrations/pirsch.md): Load Pirsch Analytics only after measurement consent with the c15t pirsch helper, keep custom event bindings working, and check it in DevTools.

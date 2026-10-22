@@ -116,7 +116,7 @@ export const BUILT_IN_INTEGRATION_CATEGORIES = [
 export const builtInScriptIntegrations = [
 	{
 		consentCategory: 'functionality',
-		docsSlug: 'gorgias',
+		docsSlug: 'other-chat-and-support',
 		hint: 'Customer support through Gorgias Chat',
 		integrationCategory: 'functional',
 		key: 'gorgiasChat',
