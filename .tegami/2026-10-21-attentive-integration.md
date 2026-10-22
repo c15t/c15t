@@ -5,6 +5,6 @@ packages:
   '@c15t/scripts': patch
 ---
 
-### Add consent-gated Attentive loading
+### Add Attentive integration
 
-Add `attentiveTag` to load Attentive only after marketing consent. Include vendor settings, consent lifecycle handling, a CLI snippet and setup documentation.
+`attentiveTag` from `@c15t/integrations/attentive` loads the Attentive tag after `marketing` consent. Attentive cannot be stopped once it runs, so withdrawing consent reloads the page.
