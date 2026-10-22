@@ -116,7 +116,7 @@ export const BUILT_IN_INTEGRATION_CATEGORIES = [
 export const builtInScriptIntegrations = [
 	{
 		consentCategory: 'experience',
-		docsSlug: 'appcues',
+		docsSlug: 'other-experience',
 		hint: 'Onboarding flows, checklists and announcements',
 		integrationCategory: 'functional',
 		key: 'appcues',

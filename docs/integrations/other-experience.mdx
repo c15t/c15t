@@ -1,0 +1,33 @@
+---
+title: Experimentation and personalization tools
+description: Consent-gated helpers for experimentation and personalization tools that don't need a full guide.
+icon: flask-conical
+group: integrations
+---
+
+Each helper below loads its vendor only after the visitor allows the listed consent category. For setup, see [Integrations overview](/docs/integrations/overview).
+
+## Appcues
+
+Appcues shows onboarding flows, tooltips and checklists inside your app. Waits
+for `experience` consent.
+
+<include src="../shared/examples/javascript/appcues-scripts.mdx" />
+
+| Option | Type | Required | Description |
+| --- | --- | --- | --- |
+| `accountId` | `string` | Yes | Account ID from your [Appcues install snippet](https://docs.appcues.com/install-appcues-web/install-the-appcues-sdk). A blank ID logs an error and skips loading. |
+| `region` | `'us' \| 'eu'` | No | Account region. Defaults to `'us'`. |
+| `settings` | `object` | No | `AppcuesSettings` to set before the SDK loads. Defaults to `{ enableURLDetection: true }`. |
+| `onReady` | `() => void` | No | Runs once after the SDK loads, while consent still allows it. Call `identify`, `group` and `track` here. |
+
+**When consent is withdrawn:** the helper calls `Appcues.reset()` and removes
+the loader, then c15t reloads the page. Keep `reloadOnConsentRevoked` on.
+`reset()` clears the user and any flow in progress, but the SDK keeps running
+until the reload.
+
+- Set `region: 'eu'` for an EU account. The SDK then loads from
+  `fast.eu.appcues.com` instead of `fast.appcues.com`.
+- Call `identify` from `onReady`, using the signed-in user's real, stable ID.
+  If the user signs in later, call `identify` from your auth handler, but first
+  check that `window.Appcues` exists and consent still allows Appcues.

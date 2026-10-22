@@ -7,4 +7,4 @@ packages:
 
 ### Add Appcues consent integration
 
-`appcues()` loads Appcues only after `experience` consent. Use `onReady` to identify the current visitor after the asynchronous account loader finishes. Revoking consent suppresses pending readiness callbacks. Includes configuration and revocation guidance, loader contract tests, and CLI setup support.
+`appcues()` from `@c15t/integrations/appcues` loads Appcues after `experience` consent. Use `onReady` to identify the visitor once the SDK loads. On revocation it calls `Appcues.reset()` and c15t reloads the page. The CLI can add it during setup.
