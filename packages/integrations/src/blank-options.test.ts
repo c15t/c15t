@@ -41,6 +41,7 @@ import { promptwatch } from './vendors/analytics/promptwatch';
 import { rb2b } from './vendors/analytics/rb2b';
 import { rudderstack } from './vendors/analytics/rudderstack';
 import { rybbitAnalytics } from './vendors/analytics/rybbit-analytics';
+import { pardotTracking } from './vendors/analytics/salesforce-pardot';
 import { segment } from './vendors/analytics/segment';
 import { sentry } from './vendors/analytics/sentry';
 import { statableAnalytics } from './vendors/analytics/statable-analytics';
@@ -252,6 +253,17 @@ const requiredIdCases: {
 		helper: 'marketoMunchkin',
 		option: 'munchkinId',
 		script: { category: 'marketing', id: 'marketo' },
+	},
+	{
+		create: (id) =>
+			pardotTracking({
+				piAId: asId(id),
+				piCId: '654321',
+				piDomain: 'pi.pardot.com',
+			}),
+		helper: 'pardotTracking',
+		option: 'piAId',
+		script: { category: 'marketing', id: 'salesforce-pardot' },
 	},
 	{
 		create: (id) => linkedinInsights({ id: asId(id) }),

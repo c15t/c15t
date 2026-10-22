@@ -24,3 +24,25 @@ Munchkin is Adobe Marketo's script for tracking known and anonymous leads on you
 
 - `cookieAnon: false` stops Munchkin from creating cookies for new anonymous visitors. It is not a consent switch: visitors who already have a cookie are still tracked.
 - The `_mkto_trk` cookie lasts two years by default and survives the reload. The next page does not load Munchkin while consent is denied.
+
+## Salesforce Account Engagement
+
+Account Engagement, formerly Pardot, tracks visitors and prospects for Salesforce B2B marketing. Waits for `marketing` consent.
+
+<include src="../shared/examples/javascript/salesforce-pardot-configuration.mdx" />
+
+Replace `pi.pardot.com` in the example with your verified tracker domain.
+
+| Option | Type | Required | Description |
+| --- | --- | --- | --- |
+| `piAId` | `string` or `number` | Yes | Account ID from the tracking snippet. |
+| `piCId` | `string` or `number` | Yes | Campaign ID from the tracking snippet. |
+| `piDomain` | `string` | In consent mode | Verified tracker domain, without a scheme or path. |
+| `mode` | `'consent'` or `'classic'` | No | `consent`, the default, uses the Tracking and Consent API. `classic` loads the older `pd.js` snippet. |
+| `piHostname` | `string` | No | Tracker hostname in classic mode. Defaults to `pi.pardot.com`. |
+
+**When consent is withdrawn:** in consent mode, the helper calls `pdt('revokeConsent')`. Classic mode has no revoke call. Keep `reloadOnConsentRevoked` on in both modes, because the reload is what stops the running tracker.
+
+- Turn on the Tracking and Consent API in Account Engagement before you use consent mode.
+- Copy `piAId` and `piCId` from the generated snippet as they are. They already include Salesforce's +1000 offset, and the helper does not add it again.
+- Do not call `clearTrackingCookies` after `revokeConsent`. It also deletes the cookie that records the refusal, so later page views can be tracked.

@@ -44,6 +44,7 @@ import { promptwatch } from '../vendors/analytics/promptwatch';
 import { rb2b } from '../vendors/analytics/rb2b';
 import { rudderstack } from '../vendors/analytics/rudderstack';
 import { rybbitAnalytics } from '../vendors/analytics/rybbit-analytics';
+import { pardotTracking } from '../vendors/analytics/salesforce-pardot';
 import { segment } from '../vendors/analytics/segment';
 import { sentry } from '../vendors/analytics/sentry';
 import { statableAnalytics } from '../vendors/analytics/statable-analytics';
@@ -383,6 +384,18 @@ export const helperParityCases = {
 			src: 'https://cdn.optimizely.com/js/12345678.js',
 		},
 		script: optimizelyWeb({ projectId: '12345678' }),
+	},
+	pardotTracking: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: true,
+			src: 'https://pi.pardot.com/pdt.js?aid=123456',
+		},
+		script: pardotTracking({
+			piAId: '123456',
+			piCId: '654321',
+			piDomain: 'pi.pardot.com',
+		}),
 	},
 	pinterestTag: {
 		expected: {

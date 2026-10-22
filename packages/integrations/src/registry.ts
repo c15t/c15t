@@ -225,6 +225,16 @@ export const builtInScriptIntegrations = [
 		vendor: 'marketo',
 	},
 	{
+		consentCategory: 'marketing',
+		docsSlug: 'other-email-and-sms',
+		hint: 'B2B visitor tracking with the Account Engagement consent API',
+		integrationCategory: 'analytics',
+		key: 'pardotTracking',
+		label: 'Salesforce Account Engagement',
+		packageSubpath: 'salesforce-pardot',
+		vendor: 'salesforce-pardot',
+	},
+	{
 		consentCategory: 'necessary',
 		docsSlug: 'cloudflare-zaraz',
 		hint: 'Consent bridge for tools managed by Zaraz',

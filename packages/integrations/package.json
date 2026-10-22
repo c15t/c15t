@@ -395,6 +395,11 @@
 			"import": "./dist/vendors/analytics/marketo.js",
 			"default": "./dist/vendors/analytics/marketo.js"
 		},
+		"./salesforce-pardot": {
+			"types": "./dist-types/vendors/analytics/salesforce-pardot.d.ts",
+			"import": "./dist/vendors/analytics/salesforce-pardot.js",
+			"default": "./dist/vendors/analytics/salesforce-pardot.js"
+		},
 		"./clay": {
 			"types": "./dist-types/vendors/analytics/clay.d.ts",
 			"import": "./dist/vendors/analytics/clay.js",

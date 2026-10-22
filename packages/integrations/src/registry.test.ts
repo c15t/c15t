@@ -52,6 +52,7 @@ import { promptwatchManifest } from './vendors/analytics/promptwatch';
 import { rb2bManifest } from './vendors/analytics/rb2b';
 import { rudderstackManifest } from './vendors/analytics/rudderstack';
 import { rybbitAnalyticsManifest } from './vendors/analytics/rybbit-analytics';
+import { pardotTrackingManifest } from './vendors/analytics/salesforce-pardot';
 import { segmentManifest } from './vendors/analytics/segment';
 import { sentryManifest } from './vendors/analytics/sentry';
 import { statableAnalyticsManifest } from './vendors/analytics/statable-analytics';
@@ -98,6 +99,7 @@ const vendorManifests = [
 	appcuesManifest,
 	wisepopsManifest,
 	marketoManifest,
+	pardotTrackingManifest,
 	googleTagManagerManifest,
 	gtagManifest,
 	ahrefsAnalyticsManifest,

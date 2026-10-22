@@ -223,6 +223,11 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 		example: "rybbitAnalytics({ siteId: 'YOUR_SITE_ID' })",
 		importName: 'rybbitAnalytics',
 	},
+	'salesforce-pardot': {
+		example:
+			"pardotTracking({ piAId: 'YOUR_ACCOUNT_ID', piCId: 'YOUR_CAMPAIGN_ID', piDomain: 'go.example.com' })",
+		importName: 'pardotTracking',
+	},
 	segment: {
 		example: "segment({ writeKey: 'YOUR_WRITE_KEY' })",
 		importName: 'segment',

@@ -61,6 +61,7 @@ import {
 	rudderstack,
 } from '../src/vendors/analytics/rudderstack';
 import { rybbitAnalytics } from '../src/vendors/analytics/rybbit-analytics';
+import { pardotTracking } from '../src/vendors/analytics/salesforce-pardot';
 import { segment } from '../src/vendors/analytics/segment';
 import { sentry } from '../src/vendors/analytics/sentry';
 import type { SentryClient } from '../src/vendors/analytics/sentry';
@@ -686,6 +687,30 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 			),
 		tier: 'full',
 		vendor: 'marketo',
+	},
+	{
+		bootstrapCheck: () =>
+			check(
+				typeof window.pdt === 'function' && Array.isArray(window.pdt.cq),
+				'Pardot callable cq queue'
+			),
+		createScript: () =>
+			pardotTracking({
+				piAId: '123456',
+				piCId: '654321',
+				piDomain: 'pi.pardot.com',
+			}),
+		loaderUrlSubstring: 'pi.pardot.com/pdt.js',
+		notes:
+			'Placeholder account and campaign prove real consent dispatcher installation, not account activation or analytics delivery. Every collection and clearing request is blocked.',
+		runtimeCheck: () =>
+			check(
+				typeof window.pdt === 'function' && !window.pdt.cq,
+				'Pardot replaced its snippet queue'
+			),
+		runtimeReplacedGlobals: ['pdt'],
+		tier: 'full',
+		vendor: 'salesforce-pardot',
 	},
 	{
 		skipReason:
