@@ -10,6 +10,7 @@ import {
 	registerVendorContractCleanup,
 	resetVendorGlobals,
 } from './e2e-test-utils';
+import { liveIntentTag } from './vendors/ads-and-pixels/liveintent';
 import { theTradeDeskPixel } from './vendors/ads-and-pixels/the-trade-desk';
 
 describe('vendor contract cleanup', () => {
@@ -29,37 +30,19 @@ describe('vendor contract cleanup', () => {
 		expect.soft('ttdConversionEvents' in window).toBe(false);
 		expect.soft('ttdConversionEventsLayer' in window).toBe(false);
 	});
-});
-/**
- * @vitest-environment jsdom
- */
-import { afterEach, describe, expect, it } from 'vitest';
 
-import {
-	grantedMarketingConsents,
-	loadScripts,
-	registerVendorContractCleanup,
-} from './e2e-test-utils';
-import { liveIntentTag } from './vendors/ads-and-pixels/liveintent';
+	it('removes the LiveIntent bootstrap and SDK configuration', () => {
+		loadScripts(
+			[liveIntentTag({ tagId: 'c15t-tag' })],
+			grantedMarketingConsents
+		);
+		expect(window.liQ).toEqual([]);
+		window.LI = { appId: 'c15t-tag' };
 
-describe('vendor contract cleanup', () => {
-	afterEach(() => {
-		expect({ LI: window.LI, liQ: window.liQ }).toEqual({
-			LI: undefined,
-			liQ: undefined,
-		});
-	});
+		clearAllScripts();
+		resetVendorGlobals();
 
-	describe('LiveIntent globals', () => {
-		registerVendorContractCleanup();
-
-		it('clears the manifest bootstrap and SDK configuration', () => {
-			loadScripts(
-				[liveIntentTag({ tagId: 'c15t-tag' })],
-				grantedMarketingConsents
-			);
-			expect(window.liQ).toEqual([]);
-			window.LI = { appId: 'c15t-tag' };
-		});
+		expect.soft('LI' in window).toBe(false);
+		expect.soft('liQ' in window).toBe(false);
 	});
 });
