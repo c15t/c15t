@@ -40,6 +40,7 @@
 		"script-loader",
 		"sentry",
 		"session-replay",
+		"the-trade-desk",
 		"tiktok-pixel",
 		"vercel-speed-insights",
 		"x-pixel"
@@ -318,6 +319,11 @@
 			"types": "./dist-types/vendors/functional/zendesk.d.ts",
 			"import": "./dist/vendors/functional/zendesk.js",
 			"default": "./dist/vendors/functional/zendesk.js"
+		},
+		"./the-trade-desk": {
+			"types": "./dist-types/vendors/ads-and-pixels/the-trade-desk.d.ts",
+			"import": "./dist/vendors/ads-and-pixels/the-trade-desk.js",
+			"default": "./dist/vendors/ads-and-pixels/the-trade-desk.js"
 		},
 		"./clay": {
 			"types": "./dist-types/vendors/analytics/clay.d.ts",

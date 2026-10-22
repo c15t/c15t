@@ -9,6 +9,7 @@ import { openaiPixel } from './vendors/ads-and-pixels/openai-pixel';
 import { pinterestTag } from './vendors/ads-and-pixels/pinterest-tag';
 import { redditPixel } from './vendors/ads-and-pixels/reddit-pixel';
 import { snapchatPixel } from './vendors/ads-and-pixels/snapchat-pixel';
+import { theTradeDeskPixel } from './vendors/ads-and-pixels/the-trade-desk';
 import { tiktokPixel } from './vendors/ads-and-pixels/tiktok-pixel';
 import { xPixel } from './vendors/ads-and-pixels/x-pixel';
 import { adobeAnalytics } from './vendors/analytics/adobe-analytics';
@@ -93,6 +94,20 @@ const requiredIdCases: {
 		helper: 'zendeskWidget',
 		option: 'key',
 		script: { category: 'functionality', id: 'zendesk' },
+	},
+	{
+		create: (id) =>
+			theTradeDeskPixel({ advertiserId: 'c15tfake', pixelIds: [asId(id)] }),
+		helper: 'theTradeDeskPixel',
+		option: 'pixelIds',
+		script: { category: 'marketing', id: 'the-trade-desk' },
+	},
+	{
+		create: (id) =>
+			theTradeDeskPixel({ advertiserId: asId(id), pixelIds: ['c15tfake'] }),
+		helper: 'theTradeDeskPixel',
+		option: 'advertiserId',
+		script: { category: 'marketing', id: 'the-trade-desk' },
 	},
 	{
 		create: (id) => linkedinInsights({ id: asId(id) }),

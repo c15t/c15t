@@ -566,6 +566,16 @@ export const builtInScriptIntegrations = [
 	},
 	{
 		consentCategory: 'marketing',
+		docsSlug: 'other-ads-and-pixels',
+		hint: 'Universal Pixel conversions and advertising audiences',
+		integrationCategory: 'ads-and-pixels',
+		key: 'theTradeDeskPixel',
+		label: 'The Trade Desk',
+		packageSubpath: 'the-trade-desk',
+		vendor: 'the-trade-desk',
+	},
+	{
+		consentCategory: 'marketing',
 		docsSlug: 'clay',
 		hint: 'Website visitor company identification',
 		integrationCategory: 'analytics',

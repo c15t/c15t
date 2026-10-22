@@ -198,6 +198,11 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 		example: "snapchatPixel({ pixelId: 'XXXXXXXXXXXXXXX' })",
 		importName: 'snapchatPixel',
 	},
+	'the-trade-desk': {
+		example:
+			"theTradeDeskPixel({ advertiserId: 'ADVERTISER_ID', pixelIds: ['PIXEL_ID'] })",
+		importName: 'theTradeDeskPixel',
+	},
 	'tiktok-pixel': {
 		example: "tiktokPixel({ pixelId: 'XXXXXXXXXXXXXXXXX' })",
 		importName: 'tiktokPixel',

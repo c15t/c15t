@@ -897,6 +897,7 @@ export default defineDocsConfig({
 						'microsoft-uet',
 						'snapchat-pixel',
 						'x-pixel',
+						'other-ads-and-pixels',
 					],
 					slug: 'ads-and-pixels',
 					title: 'Ads and pixels',
