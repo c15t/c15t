@@ -211,20 +211,11 @@ type PosthogProbeWindow = Window & {
  */
 export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 	{
-		bootstrapCheck: () =>
-			check(
-				Array.isArray(window.reb2b) &&
-					window.reb2b.invoked === true &&
-					window.reb2b.SNIPPET_VERSION === '1.0.1' &&
-					typeof window.reb2b.identify === 'function' &&
-					typeof window.reb2b.collect === 'function',
-				'Official RB2B array and snippet guard'
-			),
 		createScript: () => rb2b({ accountKey: 'C15TFAKERB2BKEY' }),
 		loaderUrlSubstring:
 			'ddwl4m2hdecbv.cloudfront.net/b/C15TFAKERB2BKEY/C15TFAKERB2BKEY.js.gz',
 		notes:
-			'Placeholder account key provides consent gating, bootstrap, and endpoint reachability coverage only. Runtime initialization and visitor identification are not verified; collection is blocked.',
+			'Placeholder account key provides consent gating and endpoint reachability coverage only. Runtime initialization and visitor identification are not verified; collection is blocked.',
 		tier: 'loader-only',
 		vendor: 'rb2b',
 	},

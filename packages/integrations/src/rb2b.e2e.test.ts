@@ -84,20 +84,15 @@ describe('RB2B core loader consent contract', () => {
 	});
 });
 
-describe('RB2B official bootstrap', () => {
+describe('RB2B runtime client', () => {
 	registerVendorContractCleanup();
-	it('keeps the snippet guard and tuple methods behind consent', () => {
+	it('defines no pre-load stubs, because the account script ignores queued calls', () => {
 		const scripts = [rb2b({ accountKey: 'c15tfake' })];
 		loadScripts(scripts, grantedMarketingConsents);
-		expect(window.reb2b?.invoked).toBe(true);
-		expect(window.reb2b?.SNIPPET_VERSION).toBe('1.0.1');
-		window.reb2b?.identify?.('known');
-		window.reb2b?.collect?.();
-		expect(window.reb2b?.slice()).toEqual([['identify', 'known'], ['collect']]);
-		const client = window.reb2b;
-		updateScripts(scripts, deniedConsents);
-		updateScripts(scripts, grantedMarketingConsents);
-		expect(window.reb2b).toBe(client);
+		expect(document.querySelector('script')?.src).toBe(
+			'https://ddwl4m2hdecbv.cloudfront.net/b/c15tfake/c15tfake.js.gz'
+		);
+		expect('reb2b' in window).toBe(false);
 	});
 	it('preserves a frozen runtime client when a changed source remounts', () => {
 		const kernel = createConsentKernel();
@@ -141,11 +136,12 @@ describe('RB2B shared cleanup', () => {
 	afterEach(() => {
 		expect('reb2b' in window).toBe(false);
 	});
-	describe('after bootstrap', () => {
+	describe('after the runtime loads', () => {
 		registerVendorContractCleanup();
-		it('clears bootstrapped globals with shared vendor cleanup', () => {
+		it('clears the runtime client with shared vendor cleanup', () => {
 			loadScripts([rb2b({ accountKey: 'c15tfake' })], grantedMarketingConsents);
-			expect(window.reb2b?.invoked).toBe(true);
+			window.reb2b = Object.freeze({ collect: vi.fn(), identify: vi.fn() });
+			expect('reb2b' in window).toBe(true);
 		});
 	});
 });

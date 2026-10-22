@@ -6,42 +6,19 @@ import type { VendorManifest } from '../../types';
 import { readId, skipMissingId, skipScript } from '../_shared/required-id';
 import { resolveScriptUrl, trimToUndefined } from '../_shared/script-url';
 
-interface Rb2bQueue extends Array<unknown[]> {
-	identify?: (...args: unknown[]) => void;
-	collect?: (...args: unknown[]) => void;
-	invoked?: boolean;
-	SNIPPET_VERSION?: string;
-}
 declare global {
 	interface Window {
-		reb2b?: Rb2bQueue;
+		/** Client that RB2B's account script installs when it runs. */
+		reb2b?: unknown;
 	}
 }
 
-/** RB2B's consent-gated installation queue and account loader. */
+/**
+ * RB2B's consent-gated account loader. There is no pre-load queue: the
+ * current account script ignores calls queued before it runs.
+ */
 export const rb2bManifest = {
 	...vendorManifestContract,
-	bootstrap: [
-		{ name: 'reb2b', type: 'setGlobal', value: [] },
-		{
-			methods: ['identify', 'collect'],
-			preserveExisting: true,
-			target: 'reb2b',
-			type: 'defineQueueMethods',
-		},
-		{
-			ifGlobalIsQueue: true,
-			path: ['reb2b', 'invoked'],
-			type: 'setGlobalPath',
-			value: true,
-		},
-		{
-			ifGlobalIsQueue: true,
-			path: ['reb2b', 'SNIPPET_VERSION'],
-			type: 'setGlobalPath',
-			value: '1.0.1',
-		},
-	],
 	category: 'marketing',
 	install: [{ async: true, src: '{{scriptUrl}}', type: 'loadScript' }],
 	persistAfterConsentRevoked: true,
