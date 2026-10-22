@@ -113,3 +113,16 @@ it('rejects a tracker URL where a hostname is required', () => {
 		'pardotTracking: tracker domain must be a hostname'
 	);
 });
+it('skips an unknown mode', () => {
+	expectSkippedScript(
+		() =>
+			pardotTracking({
+				mode: 'legacy' as 'classic',
+				piAId: '123456',
+				piCId: '654321',
+				piDomain: 'pi.pardot.com',
+			}),
+		{ category: 'marketing', id: 'salesforce-pardot' },
+		"pardotTracking: mode must be 'consent' or 'classic'"
+	);
+});

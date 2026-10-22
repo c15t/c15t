@@ -132,7 +132,10 @@ export const pardotTracking = function pardotTracking(
 	}
 	const mode = options.mode ?? 'consent';
 	if (mode !== 'consent' && mode !== 'classic') {
-		throw new Error("pardotTracking: mode must be 'consent' or 'classic'");
+		return skipScript(
+			"pardotTracking: mode must be 'consent' or 'classic'",
+			skipped
+		);
 	}
 	const domain = readId(
 		mode === 'classic'
