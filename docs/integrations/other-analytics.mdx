@@ -7,6 +7,25 @@ group: integrations
 
 Each helper below loads its vendor only after the visitor allows the listed consent category. For setup, see [Integrations overview](/docs/integrations/overview).
 
+## Statable
+
+Statable is cookieless web analytics. Waits for `measurement` consent.
+
+<include src="../shared/examples/javascript/statable-scripts.mdx" />
+
+| Option | Type | Required | Description |
+| --- | --- | --- | --- |
+| `siteId` | `string` or `number` | Yes | Numeric site ID from **Site settings > Tracking Code** in Statable. |
+| `scriptUrl` | `string` | No | Loader URL for your own CDN. Each `{siteId}` is replaced with the ID. Defaults to `https://statable.com/js/{siteId}/s.js`. |
+| `trackingApi` | `string` | No | Full ingestion endpoint. Defaults to the loader origin plus `/api/event`. |
+
+**When consent is withdrawn:** Statable has no stop API, so c15t reloads the page to stop the tracker. Keep `reloadOnConsentRevoked` on.
+
+- The `/js/<siteId>/s.js` loader is only on Statable's paid plans. The Hobby plan uses a widget with a different loader, which this helper doesn't support.
+- If your CDN serves the loader but doesn't serve or proxy `/api/event`, set `trackingApi` to the full ingestion URL:
+
+<include src="../shared/examples/javascript/statable-proxy-scripts.mdx" />
+
 ## Vector
 
 Vector identifies the people and companies visiting your site and builds advertising audiences from their activity. Waits for `marketing` consent.

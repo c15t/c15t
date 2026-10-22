@@ -39,6 +39,7 @@ import { rudderstack } from './vendors/analytics/rudderstack';
 import { rybbitAnalytics } from './vendors/analytics/rybbit-analytics';
 import { segment } from './vendors/analytics/segment';
 import { sentry } from './vendors/analytics/sentry';
+import { statableAnalytics } from './vendors/analytics/statable-analytics';
 import { umamiAnalytics } from './vendors/analytics/umami-analytics';
 import { vercelAnalytics } from './vendors/analytics/vercel-analytics';
 import { vercelSpeedInsights } from './vendors/analytics/vercel-speed-insights';
@@ -335,6 +336,12 @@ const requiredIdCases: {
 		},
 	},
 	{
+		create: (siteId) => statableAnalytics({ siteId: asId(siteId) }),
+		helper: 'statableAnalytics',
+		option: 'siteId',
+		script: { category: 'measurement', id: 'statable-analytics' },
+	},
+	{
 		create: (websiteId) => umamiAnalytics({ websiteId: asId(websiteId) }),
 		helper: 'umamiAnalytics',
 		option: 'websiteId',
@@ -413,6 +420,11 @@ const blankScriptUrlCases: {
 	create: (scriptUrl: string) => Script;
 	expectedSrc: string;
 }[] = [
+	{
+		create: (scriptUrl) => statableAnalytics({ scriptUrl, siteId: 12345 }),
+		expectedSrc: 'https://statable.com/js/12345/s.js',
+		helper: 'statableAnalytics',
+	},
 	{
 		create: (scriptUrl) => hotjar({ scriptUrl, siteId: 123 }),
 		expectedSrc: 'https://static.hotjar.com/c/hotjar-123.js?sv=6',

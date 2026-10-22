@@ -406,6 +406,16 @@ export const builtInScriptIntegrations = [
 	},
 	{
 		consentCategory: 'measurement',
+		docsSlug: 'other-analytics',
+		hint: 'Cookieless web analytics',
+		integrationCategory: 'analytics',
+		key: 'statableAnalytics',
+		label: 'Statable',
+		packageSubpath: 'statable-analytics',
+		vendor: 'statable-analytics',
+	},
+	{
+		consentCategory: 'measurement',
 		docsSlug: 'umami-analytics',
 		hint: 'Open-source cookieless analytics',
 		integrationCategory: 'analytics',

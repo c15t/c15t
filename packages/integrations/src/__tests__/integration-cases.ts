@@ -42,6 +42,7 @@ import { rudderstack } from '../vendors/analytics/rudderstack';
 import { rybbitAnalytics } from '../vendors/analytics/rybbit-analytics';
 import { segment } from '../vendors/analytics/segment';
 import { sentry } from '../vendors/analytics/sentry';
+import { statableAnalytics } from '../vendors/analytics/statable-analytics';
 import { umamiAnalytics } from '../vendors/analytics/umami-analytics';
 import { vercelAnalytics } from '../vendors/analytics/vercel-analytics';
 import { vercelSpeedInsights } from '../vendors/analytics/vercel-speed-insights';
@@ -422,6 +423,14 @@ export const helperParityCases = {
 			advertiserId: 'c15tfake',
 			pixelIds: ['c15tfake'],
 		}),
+	},
+	statableAnalytics: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://statable.com/js/12345/s.js',
+		},
+		script: statableAnalytics({ siteId: 12345 }),
 	},
 	tiktokPixel: {
 		expected: {

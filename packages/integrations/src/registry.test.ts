@@ -50,6 +50,7 @@ import { rudderstackManifest } from './vendors/analytics/rudderstack';
 import { rybbitAnalyticsManifest } from './vendors/analytics/rybbit-analytics';
 import { segmentManifest } from './vendors/analytics/segment';
 import { sentryManifest } from './vendors/analytics/sentry';
+import { statableAnalyticsManifest } from './vendors/analytics/statable-analytics';
 import { umamiAnalyticsManifest } from './vendors/analytics/umami-analytics';
 import { vercelAnalyticsManifest } from './vendors/analytics/vercel-analytics';
 import { vercelSpeedInsightsManifest } from './vendors/analytics/vercel-speed-insights';
@@ -104,6 +105,7 @@ const vendorManifests = [
 	sentryManifest,
 	rybbitAnalyticsManifest,
 	plausibleAnalyticsManifest,
+	statableAnalyticsManifest,
 	umamiAnalyticsManifest,
 	vercelAnalyticsManifest,
 	vercelSpeedInsightsManifest,
