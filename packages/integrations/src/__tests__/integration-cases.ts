@@ -56,6 +56,7 @@ import { frontChat } from '../vendors/functional/front-chat';
 import { gorgiasChat } from '../vendors/functional/gorgias';
 import { intercom } from '../vendors/functional/intercom';
 import { zendeskWidget } from '../vendors/functional/zendesk';
+import { optimizelyWeb } from '../vendors/functional/optimizely';
 import { cloudflareZaraz } from '../vendors/tag-managers/cloudflare-zaraz';
 import { googleTagManager } from '../vendors/tag-managers/google-tag-manager';
 import type { expectScriptMatchesIntegration } from './helpers';
@@ -337,6 +338,14 @@ export const helperParityCases = {
 			src: 'https://cdn.pendo.io/agent/static/YOUR_API_KEY/pendo.js',
 		},
 		script: pendo({ apiKey: 'YOUR_API_KEY' }),
+	},
+	optimizelyWeb: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://cdn.optimizely.com/js/12345678.js',
+		},
+		script: optimizelyWeb({ projectId: '12345678' }),
 	},
 	pinterestTag: {
 		expected: {

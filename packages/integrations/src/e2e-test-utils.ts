@@ -362,6 +362,7 @@ export const resetVendorGlobals = function resetVendorGlobals() {
 		'rdt',
 		'reb2b',
 		'oaiq',
+		'optimizely',
 		'rudderanalytics',
 		'rudderAnalyticsBuildType',
 		'RudderSnippetVersion',

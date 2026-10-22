@@ -160,6 +160,10 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 		example: "openaiPixel({ pixelId: 'YOUR_PIXEL_ID' })",
 		importName: 'openaiPixel',
 	},
+	optimizely: {
+		example: "optimizelyWeb({ projectId: 'YOUR_PROJECT_ID' })",
+		importName: 'optimizelyWeb',
+	},
 	pendo: { example: "pendo({ apiKey: 'YOUR_APIKEY' })", importName: 'pendo' },
 	'pinterest-tag': {
 		example: "pinterestTag({ tagId: 'XXXXXXXX' })",

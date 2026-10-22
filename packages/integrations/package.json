@@ -365,6 +365,11 @@
 			"import": "./dist/vendors/analytics/rb2b.js",
 			"default": "./dist/vendors/analytics/rb2b.js"
 		},
+		"./optimizely": {
+			"types": "./dist-types/vendors/functional/optimizely.d.ts",
+			"import": "./dist/vendors/functional/optimizely.js",
+			"default": "./dist/vendors/functional/optimizely.js"
+		},
 		"./clay": {
 			"types": "./dist-types/vendors/analytics/clay.d.ts",
 			"import": "./dist/vendors/analytics/clay.js",

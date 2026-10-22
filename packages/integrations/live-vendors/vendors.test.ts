@@ -149,6 +149,7 @@ describe('live vendor probe configs', () => {
 			'linkedin-insights',
 			'matomo-analytics',
 			'rb2b',
+			'optimizely',
 			'segment',
 			'vercel-analytics',
 			'zendesk',

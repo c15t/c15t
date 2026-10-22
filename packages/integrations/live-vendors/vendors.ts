@@ -74,6 +74,7 @@ import { frontChat } from '../src/vendors/functional/front-chat';
 import { gorgiasChat } from '../src/vendors/functional/gorgias';
 import { intercom } from '../src/vendors/functional/intercom';
 import { zendeskWidget } from '../src/vendors/functional/zendesk';
+import { optimizelyWeb } from '../src/vendors/functional/optimizely';
 import { googleTagManager } from '../src/vendors/tag-managers/google-tag-manager';
 import type { LiveProbeCheckResult, LiveVendorProbeConfig } from './types';
 
@@ -581,6 +582,15 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 		tier: 'loader-only',
 		vendor: 'rb2b',
 	},
+	{
+		createScript: () => optimizelyWeb({ projectId: '12345678' }),
+		loaderUrlSubstring: 'cdn.optimizely.com/js/12345678.js',
+		notes:
+			'The official sample project returns HTTP 403. This checks CDN reachability only; a dedicated project is needed for account runtime validation.',
+		tier: 'loader-only',
+		vendor: 'optimizely',
+	},
+
 	{
 		skipReason:
 			'Requires a configured Cloudflare zone and purpose IDs. This bridge does not fetch a public vendor loader.',

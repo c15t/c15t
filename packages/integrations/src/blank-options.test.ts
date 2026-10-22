@@ -53,6 +53,7 @@ import { frontChat } from './vendors/functional/front-chat';
 import { gorgiasChat } from './vendors/functional/gorgias';
 import { intercom } from './vendors/functional/intercom';
 import { zendeskWidget } from './vendors/functional/zendesk';
+import { optimizelyWeb } from './vendors/functional/optimizely';
 import { googleTagManager } from './vendors/tag-managers/google-tag-manager';
 
 const BLANK_VALUES = ['', '   '] as const;
@@ -159,6 +160,13 @@ const requiredIdCases: {
 		helper: 'rb2b',
 		option: 'accountKey',
 		script: { category: 'marketing', id: 'rb2b' },
+	},
+	{
+		create: (id) =>
+			optimizelyWeb({ ...{ projectId: '12345678' }, projectId: asId(id) }),
+		helper: 'optimizelyWeb',
+		option: 'projectId',
+		script: { category: 'experience', id: 'optimizely' },
 	},
 	{
 		create: (id) => linkedinInsights({ id: asId(id) }),
@@ -445,6 +453,12 @@ const blankScriptUrlCases: {
 		create: (scriptUrl) => statableAnalytics({ scriptUrl, siteId: 12345 }),
 		expectedSrc: 'https://statable.com/js/12345/s.js',
 		helper: 'statableAnalytics',
+	},
+	{
+		create: (url) =>
+			optimizelyWeb({ ...{ projectId: '12345678' }, scriptSrc: url }),
+		expectedSrc: 'https://cdn.optimizely.com/js/12345678.js',
+		helper: 'optimizelyWeb',
 	},
 	{
 		create: (scriptUrl) => hotjar({ scriptUrl, siteId: 123 }),

@@ -165,6 +165,16 @@ export const builtInScriptIntegrations = [
 		vendor: 'lucky-orange',
 	},
 	{
+		consentCategory: 'experience',
+		docsSlug: 'other-experience',
+		hint: 'Website experiments and personalization',
+		integrationCategory: 'functional',
+		key: 'optimizelyWeb',
+		label: 'Optimizely Web Experimentation',
+		packageSubpath: 'optimizely',
+		vendor: 'optimizely',
+	},
+	{
 		consentCategory: 'necessary',
 		docsSlug: 'cloudflare-zaraz',
 		hint: 'Consent bridge for tools managed by Zaraz',

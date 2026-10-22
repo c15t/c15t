@@ -64,6 +64,7 @@ import { frontChatManifest } from './vendors/functional/front-chat';
 import { gorgiasChatManifest } from './vendors/functional/gorgias';
 import { intercomManifest } from './vendors/functional/intercom';
 import { zendeskWidgetManifest } from './vendors/functional/zendesk';
+import { optimizelyWebManifest } from './vendors/functional/optimizely';
 import { googleTagManagerManifest } from './vendors/tag-managers/google-tag-manager';
 
 const validConsentCategories = [
@@ -86,6 +87,7 @@ const vendorManifests = [
 	pendoManifest,
 	luckyOrangeManifest,
 	rb2bManifest,
+	optimizelyWebManifest,
 	googleTagManagerManifest,
 	gtagManifest,
 	ahrefsAnalyticsManifest,
