@@ -12,7 +12,6 @@
 		"@c15t/backend": "workspace:*",
 		"@c15t/integrations": "workspace:*",
 		"@c15t/node-sdk": "workspace:*",
-		"@c15t/svelte": "workspace:*",
 		"@c15t/ui": "workspace:*",
 		"c15t": "workspace:*"
 	},

@@ -10,7 +10,6 @@
  * documented in each entry. Collection and non-loader third-party requests
  * remain blocked when a vendor runtime initializes.
  */
-
 import { linkedinInsights } from '../src/vendors/ads-and-pixels/linkedin-insights';
 import { metaPixel } from '../src/vendors/ads-and-pixels/meta-pixel';
 import { microsoftUet } from '../src/vendors/ads-and-pixels/microsoft-uet';
@@ -28,6 +27,7 @@ import {
 	AMPLITUDE_QUEUE_METHODS,
 	amplitude,
 } from '../src/vendors/analytics/amplitude';
+import { clay } from '../src/vendors/analytics/clay';
 import { clearbit } from '../src/vendors/analytics/clearbit';
 import { cloudflareWebAnalytics } from '../src/vendors/analytics/cloudflare-web-analytics';
 import { databuddy } from '../src/vendors/analytics/databuddy';
@@ -485,6 +485,21 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 			),
 		tier: 'full',
 		vendor: 'cloudflare-web-analytics',
+	},
+	{
+		allowUrlSubstrings: ['cdn.claydar.com/releases/latest/radar.min.js'],
+		createScript: () => clay({ siteId: 'c15tfake' }),
+		loaderUrlSubstring: 'static.claydar.com/init.v1.js?id=c15tfake',
+		notes:
+			'Placeholder profile verifies real loader and tracker execution; API collection requests are blocked and account configuration is unverified.',
+		runtimeCheck: () =>
+			check(
+				typeof window.Claydar?.denyCookieConsent === 'function',
+				'Clay tracker exposes its consent method'
+			),
+		runtimeReplacedGlobals: ['Claydar'],
+		tier: 'full',
+		vendor: 'clay',
 	},
 	{
 		createScript: () => clearbit({ publishableKey: 'pk_c15tfake' }),

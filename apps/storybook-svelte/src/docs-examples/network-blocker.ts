@@ -1,5 +1,5 @@
 // #region docs:network-blocker title="src/lib/network-blocker.ts"
-import type { UseNetworkBlockerOptions } from '@c15t/svelte';
+import type { UseNetworkBlockerOptions } from 'c15t/svelte';
 
 // Pass as `networkBlocker={networkBlocker}` on ConsentProvider.
 export const networkBlocker: UseNetworkBlockerOptions = {

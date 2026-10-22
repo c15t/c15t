@@ -98,14 +98,6 @@
 		class?: string;
 	} = $props();
 
-	/** Corner mirror for right-to-left text when the host set no position. */
-	const MIRRORED_POSITIONS: Partial<Record<PromptPosition, PromptPosition>> = {
-		'bottom-left': 'bottom-right',
-		'bottom-right': 'bottom-left',
-		'top-left': 'top-right',
-		'top-right': 'top-left',
-	};
-
 	const consent = getConsentContext();
 	const theme = getThemeContext();
 
@@ -285,17 +277,7 @@
 	const shouldScrollLock = $derived(presentation.scrollLock);
 	const resolvedVariant = $derived(presentation.variant);
 	const isBlocking = $derived(presentation.blocking);
-	// A defaulted corner follows the text direction; a host position is
-	// physical and stays put.
-	const resolvedPosition = $derived.by(() => {
-		const { position: resolved, positionSource } = presentation;
-		const corner =
-			resolvedVariant === 'floating' || resolvedVariant === 'widget';
-		if (textDirection === 'rtl' && positionSource === 'default' && corner) {
-			return MIRRORED_POSITIONS[resolved] ?? resolved;
-		}
-		return resolved;
-	});
+	const resolvedPosition = $derived(presentation.position);
 
 	$effect(() => {
 		if (

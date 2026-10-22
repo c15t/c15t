@@ -104,9 +104,7 @@ const IABConsentBannerRootChildren = createForwardRef<
 					ref={ref}
 					{...contentStyle}
 					className={finalClassName}
-					data-position={
-						textDirection === 'ltr' ? 'bottom-left' : 'bottom-right'
-					}
+					data-position="bottom-left"
 					data-entry={lateEntry ? 'late' : undefined}
 					data-testid="iab-consent-banner-root"
 					data-c15t-streamed=""

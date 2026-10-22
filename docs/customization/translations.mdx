@@ -54,9 +54,10 @@ string or build your messages from it:
 import { translations as de } from '@c15t/translations/de';
 ```
 
-The entries are `bg`, `cs`, `cy`, `da`, `de`, `el`, `es`, `et`, `fi`, `fr`,
-`ga`, `gu`, `he`, `hi`, `hr`, `hu`, `id`, `is`, `it`, `lb`, `lt`, `lv`, `mt`,
-`nb`, `nl`, `nn`, `pl`, `pt`, `rm`, `ro`, `sk`, `sl`, `sv` and `zh`.
+The entries are `ar`, `bg`, `bn`, `cs`, `cy`, `da`, `de`, `el`, `es`, `et`,
+`fi`, `fr`, `ga`, `gu`, `he`, `hi`, `hr`, `ht`, `hu`, `id`, `is`, `it`, `ko`,
+`lb`, `lt`, `lv`, `mt`, `nb`, `nl`, `nn`, `pl`, `pt`, `rm`, `ro`, `ru`, `sk`,
+`sl`, `sv`, `ur`, `yi` and `zh`.
 `@c15t/translations/all` still loads every language at once. The `c15t`
 package doesn't re-export these entries, so add `@c15t/translations` to your
 dependencies.
@@ -105,26 +106,30 @@ production. Rename the section to `consentGate` to remove the warning.
 ## Show right-to-left languages
 
 c15t sets `dir="rtl"` on its surfaces when the resolved language is Arabic,
-Hebrew, Persian, Urdu, Pashto, Sindhi, Kurdish or Dhivehi. It matches the
-primary language, so `ar-EG` counts as Arabic. Hebrew is the only
-right-to-left translation c15t ships. For the others, supply your own
-messages or the copy from your Inth project.
+Hebrew, Yiddish, Persian, Urdu, Pashto, Sindhi, Central Kurdish (`ckb`),
+Uyghur, Dhivehi, Syriac or N'Ko. It matches the primary language, so `ar-EG`
+counts as Arabic, and accepts the older codes `iw` and `ji`. A script subtag
+decides over the language: `ku-Arab` and `pa-Arab` are right to left, and
+`sd-Deva` is left to right. Plain `ku` is left to right because it usually
+means Kurmanji, which uses Latin script. c15t ships right-to-left
+translations for Arabic, Hebrew, Urdu and Yiddish. For the others, supply
+your own messages or the copy from your Inth project.
 
 What follows the direction:
 
 - Text, headings and the button row in the banner, the preference dialog and
   the preference widget flow right to left.
-- A floating or widget banner in its default corner moves to the mirrored
-  corner, so `bottom-left` becomes `bottom-right`. A `position` you set
-  yourself stays where you put it.
 - The HTML script tag, `@c15t/browser` and Astro's banner also set `lang` on
   their surfaces. React, Vue and Svelte set `dir` only, so set `lang` on
   `<html>` yourself.
 
+The banner and the floating `ConsentDialogTrigger` stay in their corners. A
+`bottom-left` banner is still at the bottom left in Hebrew, so it doesn't
+jump across the page when the visitor's language changes.
+
 What does not follow yet:
 
 - The IAB TCF dialog aligns several labels, indents and borders to the left.
-- The floating `ConsentDialogTrigger` keeps the corner you give it.
 
 Test right-to-left pages with a real translation before you ship them.
 
