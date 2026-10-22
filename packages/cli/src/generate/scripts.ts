@@ -77,6 +77,10 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 		example: "frontChat({ chatId: 'YOUR_FRONT_CHAT_ID' })",
 		importName: 'frontChat',
 	},
+	'gainsight-px': {
+		example: "gainsightPx({ productKey: 'YOUR_PRODUCT_KEY' })",
+		importName: 'gainsightPx',
+	},
 	'google-tag': {
 		example: "gtag({ id: 'G-XXXXXXXXXX', category: 'measurement' })",
 		importName: 'gtag',

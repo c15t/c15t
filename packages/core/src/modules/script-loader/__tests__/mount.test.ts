@@ -132,6 +132,62 @@ describe('mountScript', () => {
 		expect(onLoad).toHaveBeenCalledOnce();
 	});
 
+	test.each([
+		{ callbackOnly: undefined, skipsElement: false },
+		{ callbackOnly: false, skipsElement: false },
+		{ callbackOnly: true, skipsElement: true },
+		{ callbackOnly: () => false, skipsElement: false },
+		{ callbackOnly: () => true, skipsElement: true },
+		{
+			callbackOnly: (() => ({ sdk: true })) as unknown as () => boolean,
+			skipsElement: false,
+		},
+	])(
+		'resolves callbackOnly=$callbackOnly to $skipsElement',
+		({ callbackOnly, skipsElement }) => {
+			const { deps } = makeDeps();
+			const onBeforeLoad = vi.fn();
+			const script: Script = {
+				callbackOnly,
+				category: 'necessary',
+				id: 'runtime-check',
+				onBeforeLoad,
+				src: 'https://example.com/sdk.js',
+			};
+			mountScript(
+				deps,
+				script,
+				createConsentKernel().getSnapshot(),
+				true,
+				null
+			);
+			expect(document.head.querySelectorAll('script')).toHaveLength(
+				skipsElement ? 0 : 1
+			);
+			expect(onBeforeLoad).toHaveBeenCalledOnce();
+			expect(deps.loadedElements.get(script.id)).toBe(
+				skipsElement ? null : document.head.querySelector('script')
+			);
+		}
+	);
+
+	test('a false callback-only predicate still requires a script source', () => {
+		const { deps } = makeDeps();
+		expect(() =>
+			mountScript(
+				deps,
+				{
+					callbackOnly: () => false,
+					category: 'necessary',
+					id: 'missing-source',
+				},
+				createConsentKernel().getSnapshot(),
+				true,
+				null
+			)
+		).toThrow(/either 'src'/u);
+	});
+
 	test('queues the element when a batch is provided', () => {
 		const { deps } = makeDeps();
 		const snap = createConsentKernel().getSnapshot();
@@ -220,6 +276,24 @@ describe('mountScript with a server-started element', () => {
 	afterEach(() => {
 		delete (window as StartedWindow).__c15tStarted;
 	});
+
+	test.each(['load', 'error', undefined] as const)(
+		'retains a completed server load before callback replay, completion=%s',
+		(done) => {
+			const { deps } = makeDeps();
+			const script: Script = {
+				category: 'marketing',
+				id: 's',
+				persistAfterConsentRevoked: 'loaded',
+				src: 'https://x/s.js',
+			};
+			const element = startOnServer('s', script.src ?? '', done);
+			const snapshot = createConsentKernel().getSnapshot();
+			mountScript(deps, script, snapshot, true, null);
+			unmountScript(deps, script, snapshot, false);
+			expect(element.isConnected).toBe(done === 'load');
+		}
+	);
 
 	test('adopts the element instead of inserting another', async () => {
 		const { deps, emitted } = makeDeps();
@@ -365,6 +439,10 @@ describe('mountScript with a server-started element', () => {
 			[
 				'a persistAfterConsentRevoked script',
 				{ persistAfterConsentRevoked: true },
+			],
+			[
+				'a completed-load retention script',
+				{ persistAfterConsentRevoked: 'loaded' as const },
 			],
 		])(
 			'cancels the insert when consent is withdrawn first, for %s',

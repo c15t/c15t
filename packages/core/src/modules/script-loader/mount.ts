@@ -13,6 +13,7 @@
  * fires `onConsentChange` if wired.
  */
 import type { ConsentSnapshot } from '../../types';
+import { isCallbackOnly } from './callback-only';
 import { buildCallbackInfo, hasAnyCallback, invokeCallback } from './callbacks';
 import type { ElementIdResolver } from './normalize';
 import type {
@@ -513,7 +514,7 @@ export const mountScript = function mountScript(
 		return;
 	}
 
-	if (script.callbackOnly === true) {
+	if (isCallbackOnly(script)) {
 		const info = buildCallbackInfo(
 			deps.tools,
 			script,
@@ -699,6 +700,15 @@ export const mountScript = function mountScript(
 	});
 };
 
+const persistsAfterRevocation = (
+	script: Script,
+	element: HTMLScriptElement | null
+): boolean =>
+	script.persistAfterConsentRevoked === true ||
+	(script.persistAfterConsentRevoked === 'loaded' &&
+		element !== null &&
+		elementCompletions.get(element) === 'load');
+
 /**
  * Unmount a script. Honors `persistAfterConsentRevoked` (DOM stays,
  * but our registry reference is dropped so a later re-grant re-fires
@@ -717,7 +727,11 @@ export const unmountScript = function unmountScript(
 	let element = deps.loadedElements.get(script.id);
 	if (
 		element === undefined &&
-		(removeConfiguration || !script.persistAfterConsentRevoked)
+		(removeConfiguration ||
+			!persistsAfterRevocation(
+				script,
+				deps.retainedElements.get(script.id) ?? null
+			))
 	) {
 		element = deps.retainedElements.get(script.id);
 	}
@@ -752,7 +766,7 @@ export const unmountScript = function unmountScript(
 	// loaded, so there is nothing to keep.
 	const neverInserted = notYetInserted(element);
 	if (
-		script.persistAfterConsentRevoked &&
+		persistsAfterRevocation(script, element) &&
 		!removeConfiguration &&
 		!neverInserted
 	) {

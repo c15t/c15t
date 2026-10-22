@@ -334,6 +334,7 @@ const resetVendorGlobals = function resetVendorGlobals() {
 		'adobeDataLayer',
 		'amplitude',
 		'analytics',
+		'aptrinsic',
 		'clarity',
 		'dataLayer',
 		'databuddy',

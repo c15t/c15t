@@ -844,6 +844,7 @@ export default defineDocsConfig({
 				},
 				{
 					pages: [
+						'gainsight-px',
 						'google-tag',
 						'ahrefs-analytics',
 						'adobe-analytics',

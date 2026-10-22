@@ -2,6 +2,7 @@
  * One script per built-in integration, built from its public helper with
  * sample options, and the fields the helper must set.
  */
+
 import type { BuiltInScriptIntegrationKey } from '../registry';
 import { linkedinInsights } from '../vendors/ads-and-pixels/linkedin-insights';
 import { metaPixel } from '../vendors/ads-and-pixels/meta-pixel';
@@ -20,6 +21,7 @@ import { clearbit } from '../vendors/analytics/clearbit';
 import { cloudflareWebAnalytics } from '../vendors/analytics/cloudflare-web-analytics';
 import { databuddy } from '../vendors/analytics/databuddy';
 import { fathomAnalytics } from '../vendors/analytics/fathom-analytics';
+import { gainsightPx } from '../vendors/analytics/gainsight-px';
 import { gtag } from '../vendors/analytics/google-tag';
 import { heap } from '../vendors/analytics/heap';
 import { hightouch } from '../vendors/analytics/hightouch';
@@ -144,6 +146,14 @@ export const helperParityCases = {
 			src: 'https://chat-assets.frontapp.com/v1/chat.bundle.js',
 		},
 		script: frontChat({ chatId: 'front-chat-123' }),
+	},
+	gainsightPx: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: 'loaded',
+			src: 'https://web-sdk.aptrinsic.com/api/aptrinsic.js?a=AP-PRODUCT-KEY-2',
+		},
+		script: gainsightPx({ productKey: 'AP-PRODUCT-KEY-2' }),
 	},
 	googleTagManager: {
 		expected: {

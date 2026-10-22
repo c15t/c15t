@@ -26,10 +26,10 @@ one.
 | `src` | `string` | none | The URL to load. |
 | `resourceKey` | `string` | `id` | The DOM resource identity. Matching keys share one element within and across loaders, while each logical script keeps its callbacks and consent state. Use different keys for different resources under the same script ID. |
 | `textContent` | `string` | none | Inline code to run instead of `src`. |
-| `callbackOnly` | `boolean` | `false` | Add no element, run only the callbacks. For a vendor already on the page. |
+| `callbackOnly` | `boolean` or `() => boolean` | `false` | Add no element when `true` or when the predicate returns `true`. Evaluated before each new mount, for diagnostics and for server startup. Keep predicates free of side effects and safe on the server. |
 | `alwaysLoad` | `boolean` | `false` | Load whatever the consent state, for tags that manage consent themselves through the vendor's API. |
 | `observeConsentBeforeLoad` | `boolean` | `false` | Notify `onConsentChange` during initial denial and subsequent updates before the resource loads. Useful for integrations that coordinate a shared SDK. |
-| `persistAfterConsentRevoked` | `boolean` | `false` | Keep the element after withdrawal instead of removing it. |
+| `persistAfterConsentRevoked` | `boolean` or `'loaded'` | `false` | `true` keeps the element after withdrawal, including pending downloads. `'loaded'` keeps only elements whose load event completed; pending and failed loads are removed. |
 | `target` | `'head' \| 'body'` | `'head'` | Where the element goes. |
 | `async`, `defer` | `boolean` | none | Attributes on the created element. |
 | `nonce` | `string` | the runtime's `nonce` | CSP nonce for this element. |
@@ -74,9 +74,11 @@ once:
 - A script with the same `id`, source, inline code and attributes keeps its
   element. New callback functions alone do not reload it.
 - Changing the source, inline code or attributes starts a new load.
-- A script that adds `onDispose` is tracked by object. Replacing the object
-  disposes it and starts again, even with the same `id`. Keep such objects
-  stable.
+- A DOM script with `onDispose` keeps its lifecycle when the resource and
+  disposal callback stay the same. Changing either disposes the previous
+  configuration. Keep the callback stable across rerenders, or supply a new
+  callback when replacement needs cleanup. Callback-only scripts with
+  `onDispose` are tracked by object and restart when the object changes.
 - A removed script releases its element. Shared external elements stay while
   another loader still uses them.
 
