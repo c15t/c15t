@@ -497,6 +497,65 @@ describe('amazonAdsTag production loader', () => {
 		expect(helper.isConnected).toBe(false);
 	});
 
+	it('preserves ACS grants when replacing an already-loaded configuration', async () => {
+		const consent = vi.fn();
+		window.amznConsent = consent;
+		const { kernel, loader } = mount(
+			amazonAdsTag({ countryCode: 'DE', tagId })
+		);
+		await kernel.commands.save(grantedMarketingConsents);
+		findScript(mainUrl).dispatchEvent(new Event('load'));
+		consent.mockClear();
+		loader.updateScripts([
+			amazonAdsTag({ countryCode: 'DE', region: 'EU', tagId }),
+		]);
+		expect(consent.mock.calls.map(([value]) => value.enableAdStorage)).toEqual([
+			true,
+		]);
+		await kernel.commands.save(deniedConsents);
+		expect(consent).toHaveBeenLastCalledWith({
+			countryCode: 'DE',
+			enableAdStorage: false,
+			enableUserData: false,
+		});
+		await kernel.commands.save(grantedMarketingConsents);
+		loader.updateScripts([]);
+		expect(consent).toHaveBeenLastCalledWith({
+			countryCode: 'DE',
+			enableAdStorage: false,
+			enableUserData: false,
+		});
+	});
+	it('forwards a queued real withdrawal during configuration replacement', async () => {
+		const consent = vi.fn();
+		window.amznConsent = consent;
+		const script = amazonAdsTag({ countryCode: 'DE', tagId });
+		const { kernel, loader } = mount(script);
+		await kernel.commands.save(grantedMarketingConsents);
+		const original = script.onConsentChange;
+		let armed = true;
+		script.onConsentChange = (info) => {
+			original?.(info);
+			if (armed && info.hasConsent) {
+				armed = false;
+				void kernel.commands.save(deniedConsents);
+				loader.updateScripts([
+					amazonAdsTag({ countryCode: 'DE', region: 'EU', tagId }),
+				]);
+			}
+		};
+		consent.mockClear();
+		await kernel.commands.save({
+			...grantedMarketingConsents,
+			measurement: true,
+		});
+		expect(armed).toBe(false);
+		expect(consent).toHaveBeenCalledExactlyOnceWith({
+			countryCode: 'DE',
+			enableAdStorage: false,
+			enableUserData: false,
+		});
+	});
 	it('replaces the helper with its same-ID configuration and ignores stale completion', async () => {
 		const { kernel, loader } = mount(
 			amazonAdsTag({ countryCode: 'DE', tagId })

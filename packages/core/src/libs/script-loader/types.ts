@@ -27,6 +27,8 @@ export interface ScriptCallbackInfo {
 	 * @internal
 	 */
 	readonly registration?: symbol;
+	/** Same-ID configuration replacement, rather than a consent withdrawal. @internal */
+	readonly replacing?: boolean;
 
 	/** The original script ID */
 	id: string;
