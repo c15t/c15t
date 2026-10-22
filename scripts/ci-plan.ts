@@ -180,6 +180,8 @@ export const createCiPlan = function createCiPlan(
 		if (path === 'scripts/example-doc-sources.ts') {
 			// The CLI compares generated quickstarts with extracted regions, and
 			// the HTML fixture serves extracted snippets in its browser journeys.
+			// Integrations are selected above through integrationExampleInputs;
+			// that allowlist also skips the unknown root-file fallback below.
 			owners.add('@c15t/cli');
 			owners.add('@c15t/fixture-script-tag');
 		}

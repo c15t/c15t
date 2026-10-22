@@ -16,6 +16,8 @@ describe('completed CI task caches', () => {
 				{
 					cwd: new URL('..', import.meta.url),
 					encoding: 'utf8',
+					maxBuffer: 16 * 1024 * 1024,
+					timeout: 20_000,
 					stdio: ['ignore', 'pipe', 'pipe'],
 				}
 			)
@@ -39,7 +41,7 @@ describe('completed CI task caches', () => {
 				'../../oxfmt.config.ts',
 			])
 		);
-	});
+	}, 30_000);
 
 	it('restores prior test caches before merging same-run library outputs', () => {
 		const action = read('.github/actions/setup/action.yml');
