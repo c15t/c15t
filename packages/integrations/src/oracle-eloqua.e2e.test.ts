@@ -376,6 +376,73 @@ describe('Eloqua dispatcher lifecycle', () => {
 			deniedKernel.dispose();
 		}
 	});
+	it('retains an adopted load completion while another provider blocks initialization', async () => {
+		const firstKernel = createConsentKernel();
+		const deniedKernel = createConsentKernel();
+		const adopterKernel = createConsentKernel();
+		const adopterGranted = { ...granted, experience: true };
+		await firstKernel.commands.save(granted);
+		await adopterKernel.commands.save(adopterGranted);
+		const options = { siteId: '1973398186' };
+		const first = createScriptLoader({
+			kernel: firstKernel,
+			scripts: [eloquaTracking(options)],
+		});
+		let blocker: ReturnType<typeof createScriptLoader> | undefined;
+		let adopter: ReturnType<typeof createScriptLoader> | undefined;
+		const finish = (pps: '41' | '42') => {
+			const response = Array.from(
+				document.querySelectorAll(`script[src*="pps=${pps}"]`)
+			).at(-1);
+			expect(response).toBeDefined();
+			response?.dispatchEvent(new Event('load'));
+		};
+		try {
+			const element = getLoader();
+			const push = installDispatcher();
+			element.dispatchEvent(new Event('load'));
+			finish('41');
+			blocker = createScriptLoader({
+				kernel: deniedKernel,
+				scripts: [eloquaTracking(options)],
+			});
+			finish('42');
+			adopter = createScriptLoader({
+				kernel: adopterKernel,
+				scripts: [eloquaTracking({ ...options, category: 'experience' })],
+			});
+			await Promise.resolve();
+			expect(push.mock.calls.at(-1)).toEqual([['elqOptOut']]);
+			blocker.dispose();
+			finish('41');
+			const beforeDisposal = [...push.mock.calls];
+			first.dispose();
+			expect(push.mock.calls).toEqual(beforeDisposal);
+			expect(getLoader()).toBe(element);
+			await adopterKernel.commands.save(deniedConsents);
+			finish('42');
+			await adopterKernel.commands.save(adopterGranted);
+			finish('41');
+			expect(push.mock.calls).toEqual([
+				[['elqOptIn']],
+				[['elqTrackPageView', window.location.href]],
+				[['elqOptOut']],
+				[['elqOptIn']],
+				[['elqTrackPageView', window.location.href]],
+				[['elqOptOut']],
+				[['elqOptIn']],
+				[['elqTrackPageView', window.location.href]],
+			]);
+			expect(getLoader()).toBe(element);
+		} finally {
+			adopter?.dispose();
+			blocker?.dispose();
+			first.dispose();
+			firstKernel.dispose();
+			deniedKernel.dispose();
+			adopterKernel.dispose();
+		}
+	});
 	it.each([false, true])(
 		'preserves shared setup across category replacement, SDK already loaded: %s',
 		async (alreadyLoaded) => {

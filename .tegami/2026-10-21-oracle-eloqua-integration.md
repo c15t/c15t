@@ -12,3 +12,5 @@ Add `eloquaTracking` to load Oracle Eloqua only when its mapped category and ven
 Block tracking after a custom consent dispatcher throws any value, including a falsy value, even when it created a matching response before throwing.
 
 Keep failed consent responses unconfirmed. Retry failed opt-outs on a later consent update or provider remount without an automatic retry loop.
+
+Preserve a loaded Eloqua tag when a new provider adopts it while another provider denies consent. Removing the denying and original providers no longer opts out the permitted adopter or prevents later regrants from tracking.

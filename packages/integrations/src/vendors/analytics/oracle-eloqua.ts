@@ -410,7 +410,8 @@ export const eloquaTracking = function eloquaTracking(
 			if (info.element && info.element !== element) {
 				({ element } = info);
 				initialized = initializedElements.has(info.element);
-				loaded = false;
+				// Another provider may have completed this tag while setup was blocked.
+				loaded = elementDispatchers.has(info.element);
 				generation += 1;
 			}
 			if (
