@@ -116,7 +116,7 @@ export const BUILT_IN_INTEGRATION_CATEGORIES = [
 export const builtInScriptIntegrations = [
 	{
 		consentCategory: 'marketing',
-		docsSlug: 'insider',
+		docsSlug: 'other-email-and-sms',
 		hint: 'Personalized campaigns and customer messaging',
 		integrationCategory: 'email-and-sms',
 		key: 'insiderTag',
