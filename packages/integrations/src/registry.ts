@@ -586,6 +586,16 @@ export const builtInScriptIntegrations = [
 	},
 	{
 		consentCategory: 'marketing',
+		docsSlug: 'other-ads-and-pixels',
+		hint: 'Retargeting audiences and conversion tracking',
+		integrationCategory: 'ads-and-pixels',
+		key: 'adrollPixel',
+		label: 'AdRoll',
+		packageSubpath: 'adroll',
+		vendor: 'adroll',
+	},
+	{
+		consentCategory: 'marketing',
 		docsSlug: 'clay',
 		hint: 'Website visitor company identification',
 		integrationCategory: 'analytics',

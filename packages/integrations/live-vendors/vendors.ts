@@ -10,6 +10,8 @@
  * account. Collection endpoints are blocked by the runner, so probes cannot
  * send real analytics data even when a vendor runtime initializes.
  */
+
+import { adrollPixel } from '../src/vendors/ads-and-pixels/adroll';
 import { linkedinInsights } from '../src/vendors/ads-and-pixels/linkedin-insights';
 import { liveIntentTag } from '../src/vendors/ads-and-pixels/liveintent';
 import { metaPixel } from '../src/vendors/ads-and-pixels/meta-pixel';
@@ -82,6 +84,14 @@ type LiveIntentProbeWindow = Window & {
 		ready?: boolean;
 		resolve?: unknown;
 		resolveNonId?: unknown;
+		version?: string;
+	};
+};
+
+type AdrollProbeWindow = Window & {
+	__adroll?: {
+		loadGlobalFunctions?: unknown;
+		track?: unknown;
 		version?: string;
 	};
 };
@@ -337,6 +347,74 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 		// Downloaded a-00xx is real JavaScript with source-backed runtime markers.
 		tier: 'full',
 		vendor: 'liveintent',
+	},
+	{
+		// oxlint-disable-next-line complexity -- Check the official globals, methods and Arguments queue together.
+		bootstrapCheck: () => {
+			// Vendor-published bootstrap, embedded by help article 360040116252:
+			const queue = window.adroll;
+			const entry = Array.isArray(queue) ? queue[0] : undefined;
+			const args = Array.isArray(entry) ? entry[1] : undefined;
+			const hasPageViewArguments =
+				typeof args === 'object' &&
+				args !== null &&
+				Object.prototype.toString.call(args) === '[object Arguments]' &&
+				'length' in args &&
+				args.length === 1 &&
+				'0' in args &&
+				args[0] === 'pageView';
+			return {
+				detail:
+					'Official AdRoll v2 globals and one [track, Arguments(pageView)] entry',
+				ok:
+					window.adroll_adv_id === '5L5IV3X4ZNCUZFMLN5KKOD' &&
+					window.adroll_pix_id === 'DLEXXKZ55FGAPLBGIZ2AGG' &&
+					window.adroll_version === '2.0' &&
+					window.__adroll_loaded === true &&
+					Array.isArray(queue) &&
+					queue.length === 1 &&
+					Array.isArray(queue.f) &&
+					queue.f.length === 3 &&
+					queue.f[0] === 'setProperties' &&
+					queue.f[1] === 'identify' &&
+					queue.f[2] === 'track' &&
+					typeof queue.setProperties === 'function' &&
+					typeof queue.identify === 'function' &&
+					typeof queue.track === 'function' &&
+					Array.isArray(entry) &&
+					entry.length === 2 &&
+					entry[0] === 'track' &&
+					hasPageViewArguments,
+			};
+		},
+		createScript: () =>
+			adrollPixel({
+				advertiserId: '5L5IV3X4ZNCUZFMLN5KKOD',
+				pixelId: 'DLEXXKZ55FGAPLBGIZ2AGG',
+			}),
+		loaderUrlSubstring: 's.adroll.com/j/5L5IV3X4ZNCUZFMLN5KKOD/roundtrip.js',
+		notes:
+			'Public AdRoll house advertiser and pixel IDs, explicitly authorized for this monitor. The downloaded account-specific loader returned real v2 JavaScript. The existing runner blocks collection and every non-loader third-party URL; add no broad AdRoll allowlist. Runtime check proves SDK construction only, not queue replay, account delivery, cookie behavior or full shutdown.',
+		runtimeCheck: () => {
+			// adroll-v2-house.js creates window.__adroll with `new __adroll__`.
+			// The constructor sets version and these prototype methods exist in
+			// the downloaded bundle. Our bootstrap creates none of this object.
+			const runtime = (window as AdrollProbeWindow).__adroll;
+			return {
+				detail:
+					'Downloaded AdRoll SDK constructed __adroll and its runtime methods',
+				ok:
+					typeof runtime === 'object' &&
+					runtime !== null &&
+					typeof runtime.version === 'string' &&
+					runtime.version.length > 0 &&
+					typeof runtime.loadGlobalFunctions === 'function' &&
+					typeof runtime.track === 'function',
+			};
+		},
+		runtimeVersion: () => (window as AdrollProbeWindow).__adroll?.version,
+		tier: 'full',
+		vendor: 'adroll',
 	},
 	{
 		skipReason:

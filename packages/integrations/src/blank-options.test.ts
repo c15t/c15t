@@ -2,6 +2,7 @@ import type { Script } from '@c15t/core';
 import { describe, expect, it } from 'vitest';
 
 import { expectSkippedScript } from './__tests__/helpers';
+import { adrollPixel } from './vendors/ads-and-pixels/adroll';
 import { linkedinInsights } from './vendors/ads-and-pixels/linkedin-insights';
 import { liveIntentTag } from './vendors/ads-and-pixels/liveintent';
 import { metaPixel } from './vendors/ads-and-pixels/meta-pixel';
@@ -115,6 +116,20 @@ const requiredIdCases: {
 		helper: 'liveIntentTag',
 		option: 'tagId',
 		script: { category: 'marketing', id: 'liveintent' },
+	},
+	{
+		create: (id) =>
+			adrollPixel({ advertiserId: 'c15tfake', pixelId: asId(id) }),
+		helper: 'adrollPixel',
+		option: 'pixelId',
+		script: { category: 'marketing', id: 'adroll' },
+	},
+	{
+		create: (id) =>
+			adrollPixel({ advertiserId: asId(id), pixelId: 'c15tfake' }),
+		helper: 'adrollPixel',
+		option: 'advertiserId',
+		script: { category: 'marketing', id: 'adroll' },
 	},
 	{
 		create: (id) => linkedinInsights({ id: asId(id) }),

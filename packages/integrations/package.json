@@ -4,6 +4,7 @@
 	"description": "Consent-aware integrations for c15t: 40+ analytics, advertising and chat tools, including GTM, GA4 and Meta Pixel, with Google Consent Mode v2 and script gating.",
 	"keywords": [
 		"adobe-analytics",
+		"adroll",
 		"amplitude",
 		"analytics-consent",
 		"block-scripts-until-consent",
@@ -330,6 +331,11 @@
 			"types": "./dist-types/vendors/ads-and-pixels/liveintent.d.ts",
 			"import": "./dist/vendors/ads-and-pixels/liveintent.js",
 			"default": "./dist/vendors/ads-and-pixels/liveintent.js"
+		},
+		"./adroll": {
+			"types": "./dist-types/vendors/ads-and-pixels/adroll.d.ts",
+			"import": "./dist/vendors/ads-and-pixels/adroll.js",
+			"default": "./dist/vendors/ads-and-pixels/adroll.js"
 		},
 		"./clay": {
 			"types": "./dist-types/vendors/analytics/clay.d.ts",

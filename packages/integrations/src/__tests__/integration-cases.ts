@@ -4,6 +4,7 @@
  */
 
 import type { BuiltInScriptIntegrationKey } from '../registry';
+import { adrollPixel } from '../vendors/ads-and-pixels/adroll';
 import { linkedinInsights } from '../vendors/ads-and-pixels/linkedin-insights';
 import { liveIntentTag } from '../vendors/ads-and-pixels/liveintent';
 import { metaPixel } from '../vendors/ads-and-pixels/meta-pixel';
@@ -73,6 +74,14 @@ export const helperParityCases = {
 			scriptUrl:
 				'https://assets.adobedtm.com/c15tfake/c15tfake/launch-c15tfake.min.js',
 		}),
+	},
+	adrollPixel: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: true,
+			src: 'https://s.adroll.com/j/c15tfake/roundtrip.js',
+		},
+		script: adrollPixel({ advertiserId: 'c15tfake', pixelId: 'c15tfake' }),
 	},
 	ahrefsAnalytics: {
 		expected: {

@@ -12,6 +12,7 @@ import {
 	getBuiltInScriptIntegrationByVendor,
 } from './registry';
 import type { IntegrationConsentCondition } from './registry';
+import { adrollPixelManifest } from './vendors/ads-and-pixels/adroll';
 import { linkedinInsightsManifest } from './vendors/ads-and-pixels/linkedin-insights';
 import { liveIntentTagManifest } from './vendors/ads-and-pixels/liveintent';
 import { metaPixelManifest } from './vendors/ads-and-pixels/meta-pixel';
@@ -75,6 +76,7 @@ const vendorManifests = [
 	zendeskWidgetManifest,
 	theTradeDeskPixelManifest,
 	liveIntentTagManifest,
+	adrollPixelManifest,
 	googleTagManagerManifest,
 	gtagManifest,
 	ahrefsAnalyticsManifest,

@@ -33,6 +33,11 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 			"adobeAnalytics({ scriptUrl: 'https://assets.adobedtm.com/YOUR_ORG/YOUR_PROPERTY/launch-production.min.js' })",
 		importName: 'adobeAnalytics',
 	},
+	adroll: {
+		example:
+			"adrollPixel({ advertiserId: 'ADVERTISER_ID', pixelId: 'PIXEL_ID' })",
+		importName: 'adrollPixel',
+	},
 	'ahrefs-analytics': {
 		example: "ahrefsAnalytics({ key: 'YOUR_ANALYTICS_KEY' })",
 		importName: 'ahrefsAnalytics',
