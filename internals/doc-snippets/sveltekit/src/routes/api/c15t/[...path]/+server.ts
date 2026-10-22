@@ -1,5 +1,5 @@
 // #region docs:route-handlers
-import { createConsentRoute } from '@c15t/svelte/kit';
+import { createConsentRoute } from 'c15t/svelte/kit';
 
 // GET /api/c15t/init resolves the visitor from the bundled policy, and
 // GET /api/c15t/manifest serves it. Other methods are not handled: the

@@ -1,6 +1,6 @@
 <!-- #region docs:privacy-controls title="src/lib/privacy-controls.svelte" -->
 <script lang="ts">
-	import { ConsentDialog, getConsentManager } from '@c15t/svelte';
+	import { ConsentDialog, getConsentManager } from 'c15t/svelte';
 
 	const consent = getConsentManager();
 

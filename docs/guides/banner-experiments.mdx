@@ -58,7 +58,7 @@ sends it with `/init`, and records it on the choices of visitors the banner
 showed it to, so you can compare opt-in rate and time to decision per arm.
 
 The same option exists in `c15t/next` (`ConsentRoot` `options`), `c15t/vue`,
-`@c15t/svelte`, the `c15t()` Astro integration from `c15t/astro`, and
+`c15t/svelte`, the `c15t()` Astro integration from `c15t/astro`, and
 `@c15t/browser`. On a server-rendered page in Next.js, TanStack Start or
 SvelteKit, pass it to `resolveConsent` instead, which counts the arm and hands
 it to the client; see [Vercel Flags SDK](#vercel-flags-sdk).
@@ -184,7 +184,7 @@ from [send the events to your own analytics](#send-the-events-to-your-own-analyt
 in `options`. The layout awaits consent inside `<Suspense>`, as in
 [render the banner in the server HTML](/docs/frameworks/next/app-router#render-the-banner-in-the-server-html),
 so the banner is in the server HTML already showing the visitor's arm.
-`resolveConsent` in `c15t/tanstack-start/server` and `@c15t/svelte/server`
+`resolveConsent` in `c15t/tanstack-start/server` and `c15t/svelte/server`
 takes the same `experiment`.
 
 If you pass `resolveConsent()` to `ConsentRoot` without awaiting it (the
@@ -418,7 +418,7 @@ server has to know the arm. Pass the experiment to `resolveConsent`, as in
 [Vercel Flags SDK](#vercel-flags-sdk): it sends only `{ id, arm }` to the
 backend and hands the full experiment to the client in its state.
 `resolveConsent` takes `experiment` in `c15t/next/server`,
-`c15t/tanstack-start/server` and `@c15t/svelte/server`; Astro and Nuxt pass
+`c15t/tanstack-start/server` and `c15t/svelte/server`; Astro and Nuxt pass
 the arm they rendered on their own. When c15t picks the arm in the browser,
 the browser's own `/init` carries it, so a server-rendered page that skips
 the client `/init` has no count for built-in assignment. Resolve the arm with

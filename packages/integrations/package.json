@@ -9,6 +9,7 @@
 		"block-scripts-until-consent",
 		"c15t",
 		"ccpa",
+		"clay",
 		"clearbit",
 		"cmp",
 		"consent",
@@ -307,6 +308,11 @@
 			"types": "./dist-types/vendors/functional/appcues.d.ts",
 			"import": "./dist/vendors/functional/appcues.js",
 			"default": "./dist/vendors/functional/appcues.js"
+		},
+		"./clay": {
+			"types": "./dist-types/vendors/analytics/clay.d.ts",
+			"import": "./dist/vendors/analytics/clay.js",
+			"default": "./dist/vendors/analytics/clay.js"
 		}
 	},
 	"publishConfig": {

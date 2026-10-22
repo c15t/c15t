@@ -688,6 +688,41 @@
 			"import": "./shims/astro/components/iab-panel.astro.js",
 			"default": "./shims/astro/components/iab-panel.astro.js"
 		},
+		"./svelte/styles.css": "./dist/svelte/styles.css",
+		"./svelte/iab/styles.css": "./dist/svelte/iab/styles.css",
+		"./svelte/headless": {
+			"types": "./shims/svelte/headless.d.ts",
+			"svelte": "./shims/svelte/headless.js",
+			"default": "./shims/svelte/headless.js"
+		},
+		"./svelte/devtools": {
+			"types": "./shims/svelte/devtools.d.ts",
+			"svelte": "./shims/svelte/devtools.js",
+			"default": "./shims/svelte/devtools.js"
+		},
+		"./svelte/kit": {
+			"types": "./shims/svelte/kit.d.ts",
+			"import": "./shims/svelte/kit.js",
+			"default": "./shims/svelte/kit.js"
+		},
+		"./svelte/kit/locals": {
+			"types": "./shims/svelte/kit/locals.d.ts"
+		},
+		"./svelte/server": {
+			"types": "./shims/svelte/server.d.ts",
+			"import": "./shims/svelte/server.js",
+			"default": "./shims/svelte/server.js"
+		},
+		"./svelte/vite": {
+			"types": "./shims/svelte/vite.d.ts",
+			"import": "./shims/svelte/vite.js",
+			"default": "./shims/svelte/vite.js"
+		},
+		"./svelte": {
+			"types": "./shims/svelte.d.ts",
+			"svelte": "./shims/svelte.js",
+			"default": "./shims/svelte.js"
+		},
 		"./postcss-tailwind3": {
 			"types": "./shims/postcss-tailwind3.d.ts",
 			"import": "./shims/postcss-tailwind3.js",
@@ -711,6 +746,7 @@
 		"@c15t/core": "workspace:*",
 		"@c15t/nextjs": "workspace:*",
 		"@c15t/react": "workspace:*",
+		"@c15t/svelte": "workspace:*",
 		"@c15t/tanstack-start": "workspace:*",
 		"@c15t/ui": "workspace:*",
 		"@c15t/vue": "workspace:*"
