@@ -42,12 +42,18 @@ const getLoader = (): HTMLScriptElement => {
 
 describe('Customer.io consent loader', () => {
 	registerVendorContractCleanup();
+	// Node 25+ replaces jsdom's storage globals with its own.
+	beforeEach(() => {
+		vi.stubGlobal('localStorage', jsdom.window.localStorage);
+		vi.stubGlobal('sessionStorage', jsdom.window.sessionStorage);
+	});
 	afterEach(() => {
 		for (const name of GLOBALS) {
 			Reflect.deleteProperty(window, name);
 		}
 		localStorage.clear();
 		sessionStorage.clear();
+		vi.unstubAllGlobals();
 	});
 	it('creates no vendor requests, globals or storage before mapped consent', () => {
 		const scripts = [
