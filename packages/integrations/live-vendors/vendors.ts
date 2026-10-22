@@ -48,6 +48,7 @@ import { matomoAnalytics } from '../src/vendors/analytics/matomo-analytics';
 import { clarity } from '../src/vendors/analytics/microsoft-clarity';
 import { mixpanelAnalytics } from '../src/vendors/analytics/mixpanel-analytics';
 import { oneDollarStats } from '../src/vendors/analytics/one-dollar-stats';
+import { pendo } from '../src/vendors/analytics/pendo';
 import { pirsch } from '../src/vendors/analytics/pirsch';
 import { plausibleAnalytics } from '../src/vendors/analytics/plausible-analytics';
 import { posthog } from '../src/vendors/analytics/posthog';
@@ -520,6 +521,32 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 			),
 		tier: 'full',
 		vendor: 'statable-analytics',
+	},
+	{
+		bootstrapCheck: () =>
+			check(
+				window.pendo === undefined,
+				'No Pendo namespace until the real agent loads'
+			),
+		// Real public key from https://web-sdk.pendo.io/ page source lets the
+		// probe load the actual agent. The runner blocks collection and account
+		// configuration requests.
+		createScript: () =>
+			pendo({ apiKey: '2a7e6935-2488-4303-61ea-eda91d575707' }),
+		loaderUrlSubstring:
+			'cdn.pendo.io/agent/static/2a7e6935-2488-4303-61ea-eda91d575707/pendo.js',
+		notes:
+			'Public vendor API key proves real agent installation and initialize/stop/start API availability. Collection and account configuration requests are blocked. No authorized account event delivery, replay, or guide behavior is verified.',
+		runtimeCheck: () =>
+			check(
+				typeof window.pendo?.initialize === 'function' &&
+					typeof window.pendo.stopSendingEvents === 'function' &&
+					typeof window.pendo.startSendingEvents === 'function',
+				'Real Pendo initialize and event controls'
+			),
+		runtimeReplacedGlobals: ['pendo'],
+		tier: 'full',
+		vendor: 'pendo',
 	},
 	{
 		skipReason:

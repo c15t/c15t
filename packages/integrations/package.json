@@ -349,6 +349,11 @@
 			"import": "./dist/vendors/ads-and-pixels/vector.js",
 			"default": "./dist/vendors/ads-and-pixels/vector.js"
 		},
+		"./pendo": {
+			"types": "./dist-types/vendors/analytics/pendo.d.ts",
+			"import": "./dist/vendors/analytics/pendo.js",
+			"default": "./dist/vendors/analytics/pendo.js"
+		},
 		"./clay": {
 			"types": "./dist-types/vendors/analytics/clay.d.ts",
 			"import": "./dist/vendors/analytics/clay.js",

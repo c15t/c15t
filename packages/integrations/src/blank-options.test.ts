@@ -31,6 +31,7 @@ import { logRocket } from './vendors/analytics/logrocket';
 import { matomoAnalytics } from './vendors/analytics/matomo-analytics';
 import { clarity } from './vendors/analytics/microsoft-clarity';
 import { mixpanelAnalytics } from './vendors/analytics/mixpanel-analytics';
+import { pendo } from './vendors/analytics/pendo';
 import { pirsch } from './vendors/analytics/pirsch';
 import { plausibleAnalytics } from './vendors/analytics/plausible-analytics';
 import { posthog } from './vendors/analytics/posthog';
@@ -138,6 +139,12 @@ const requiredIdCases: {
 		helper: 'vector',
 		option: 'pixelId',
 		script: { category: 'marketing', id: 'vector' },
+	},
+	{
+		create: (id) => pendo({ apiKey: asId(id) }),
+		helper: 'pendo',
+		option: 'apiKey',
+		script: { category: 'measurement', id: 'pendo' },
 	},
 	{
 		create: (id) => linkedinInsights({ id: asId(id) }),

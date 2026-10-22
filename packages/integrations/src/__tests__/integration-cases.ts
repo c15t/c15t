@@ -34,6 +34,7 @@ import { matomoAnalytics } from '../vendors/analytics/matomo-analytics';
 import { clarity } from '../vendors/analytics/microsoft-clarity';
 import { mixpanelAnalytics } from '../vendors/analytics/mixpanel-analytics';
 import { oneDollarStats } from '../vendors/analytics/one-dollar-stats';
+import { pendo } from '../vendors/analytics/pendo';
 import { pirsch } from '../vendors/analytics/pirsch';
 import { plausibleAnalytics } from '../vendors/analytics/plausible-analytics';
 import { posthog } from '../vendors/analytics/posthog';
@@ -318,6 +319,14 @@ export const helperParityCases = {
 			src: 'https://bzrcdn.openai.com/sdk/oaiq.min.js',
 		},
 		script: openaiPixel({ pixelId: 'OPENAI-CONTRACT' }),
+	},
+	pendo: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: true,
+			src: 'https://cdn.pendo.io/agent/static/YOUR_API_KEY/pendo.js',
+		},
+		script: pendo({ apiKey: 'YOUR_API_KEY' }),
 	},
 	pinterestTag: {
 		expected: {
