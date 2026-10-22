@@ -116,7 +116,7 @@ export const BUILT_IN_INTEGRATION_CATEGORIES = [
 export const builtInScriptIntegrations = [
 	{
 		consentCategory: 'measurement',
-		docsSlug: 'lucky-orange',
+		docsSlug: 'other-analytics',
 		hint: 'Session recordings, heatmaps, chat and surveys',
 		integrationCategory: 'analytics',
 		key: 'luckyOrange',

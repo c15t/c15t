@@ -5,8 +5,9 @@ packages:
   '@c15t/scripts': patch
 ---
 
-### Add consent-gated Lucky Orange loading
+### Add Lucky Orange
 
-Add `luckyOrange` to load Lucky Orange only after measurement consent. Include vendor settings, consent lifecycle handling, a CLI snippet and setup documentation.
-
-Report rejected privacy initialization without an unhandled promise rejection or a consent update, including after disposal.
+`luckyOrange` from `@c15t/integrations/lucky-orange` loads Lucky Orange after
+`measurement` consent and sets its privacy consent status. Turn on Require
+Consent in the Lucky Orange dashboard, and keep the default page reload when
+consent is withdrawn. The CLI can generate the integration too.
