@@ -5,6 +5,6 @@ packages:
   '@c15t/scripts': patch
 ---
 
-### Add consent-gated Marketo Munchkin loading
+### Add Marketo Munchkin integration
 
-Add `marketoMunchkin` to load Marketo Munchkin only after marketing consent. Include vendor settings, consent lifecycle handling, a CLI snippet and setup documentation.
+`marketoMunchkin` from `@c15t/integrations/marketo` loads Adobe Marketo Munchkin after `marketing` consent. Munchkin has no API to stop tracking, so withdrawing consent reloads the page.
