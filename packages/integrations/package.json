@@ -304,6 +304,11 @@
 			"import": "./dist/events.js",
 			"default": "./dist/events.js"
 		},
+		"./fullstory": {
+			"types": "./dist-types/vendors/analytics/fullstory.d.ts",
+			"import": "./dist/vendors/analytics/fullstory.js",
+			"default": "./dist/vendors/analytics/fullstory.js"
+		},
 		"./clay": {
 			"types": "./dist-types/vendors/analytics/clay.d.ts",
 			"import": "./dist/vendors/analytics/clay.js",

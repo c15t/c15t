@@ -31,6 +31,7 @@ import { clearbit } from '../src/vendors/analytics/clearbit';
 import { cloudflareWebAnalytics } from '../src/vendors/analytics/cloudflare-web-analytics';
 import { databuddy } from '../src/vendors/analytics/databuddy';
 import { fathomAnalytics } from '../src/vendors/analytics/fathom-analytics';
+import { fullStory } from '../src/vendors/analytics/fullstory';
 import { gtag } from '../src/vendors/analytics/google-tag';
 import { HEAP_QUEUE_METHODS, heap } from '../src/vendors/analytics/heap';
 import {
@@ -209,6 +210,36 @@ type PosthogProbeWindow = Window & {
  * Probe configs for every built-in integration, ordered by registry vendor id.
  */
 export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
+	{
+		allowUrlSubstrings: [
+			'edge.staging.fullstory.com/s/settings/thefullstory.com/v1/web',
+			'rs.staging.fullstory.com/s/settings/thefullstory.com/v1/web',
+		],
+		bootstrapCheck: () =>
+			check(
+				window._fs_capture_on_startup === false &&
+					window.FS?._v === '2.1.0' &&
+					window.FS.q?.[0]?.length === 6 &&
+					window.FS.q[0][5] === 2,
+				'FullStory v2 six-slot init queue with capture off'
+			),
+		createScript: () =>
+			fullStory({
+				host: 'staging.fullstory.com',
+				orgId: 'thefullstory.com',
+				script: 'edge.staging.fullstory.com/s/fs.js',
+			}),
+		loaderUrlSubstring: 'edge.staging.fullstory.com/s/fs.js',
+		notes:
+			'Public FullStory staging organization proves real v2 dispatcher installation. The official wrapper keeps its identity and gains _api. Collection is blocked; authorized account recording and storage erasure are not verified.',
+		runtimeCheck: () =>
+			check(
+				typeof window.FS?._api === 'function',
+				'FullStory real SDK attached its dispatcher'
+			),
+		tier: 'full',
+		vendor: 'fullstory',
+	},
 	{
 		skipReason:
 			'Requires a configured Cloudflare zone and purpose IDs. This bridge does not fetch a public vendor loader.',
