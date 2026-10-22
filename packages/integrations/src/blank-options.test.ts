@@ -41,6 +41,7 @@ import { vercelSpeedInsights } from './vendors/analytics/vercel-speed-insights';
 import { klaviyo } from './vendors/email-and-sms/klaviyo';
 import { crisp } from './vendors/functional/crisp';
 import { frontChat } from './vendors/functional/front-chat';
+import { gorgiasChat } from './vendors/functional/gorgias';
 import { intercom } from './vendors/functional/intercom';
 import { zendeskWidget } from './vendors/functional/zendesk';
 import { googleTagManager } from './vendors/tag-managers/google-tag-manager';
@@ -65,6 +66,16 @@ const requiredIdCases: {
 		helper: 'clay',
 		option: 'siteId',
 		script: { category: 'marketing', id: 'clay' },
+	},
+	{
+		create: (id) =>
+			gorgiasChat({
+				...{ appKey: 'XXXXXXXXXXXXXXXXXXXXXXXXXX' },
+				appKey: asId(id),
+			}),
+		helper: 'gorgiasChat',
+		option: 'appKey',
+		script: { category: 'functionality', id: 'gorgias' },
 	},
 	{
 		create: (id) =>

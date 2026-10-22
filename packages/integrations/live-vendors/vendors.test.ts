@@ -93,6 +93,7 @@ describe('live vendor probe configs', () => {
 			'clearbit',
 			'crisp',
 			'google-tag-manager',
+			'gorgias',
 			'hotjar',
 			'intercom',
 			'linkedin-insights',

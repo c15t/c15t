@@ -370,6 +370,9 @@ const resetVendorGlobals = function resetVendorGlobals() {
 		'uetq',
 		'va',
 		'vaq',
+		'GorgiasChat',
+		'gorgiasChat',
+		'gorgiasChatPendingEvents',
 		'zE',
 		'zEmbed',
 	] as const) {

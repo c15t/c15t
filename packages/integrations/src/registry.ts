@@ -117,6 +117,16 @@ export const builtInScriptIntegrations = [
 	{
 		consentCategory: 'functionality',
 		docsSlug: 'other-chat-and-support',
+		hint: 'Customer support through Gorgias Chat',
+		integrationCategory: 'functional',
+		key: 'gorgiasChat',
+		label: 'Gorgias Chat',
+		packageSubpath: 'gorgias',
+		vendor: 'gorgias',
+	},
+	{
+		consentCategory: 'functionality',
+		docsSlug: 'other-chat-and-support',
 		hint: 'Customer support through Zendesk Messaging',
 		integrationCategory: 'functional',
 		key: 'zendeskWidget',
