@@ -62,11 +62,24 @@ describe('resolveRequestSubject', () => {
 		});
 	});
 
-	test('the ID the stored choice carries wins over the subject cookie', () => {
-		const subject = resolve(`c15t-sid=sub_other; ${RECORDED}`);
+	test('the ID the stored choice carries is stored when no subject cookie exists', () => {
+		const subject = resolve(RECORDED);
 		expect(subject?.subjectId).toBe('sub_recorded');
 		expect(subject?.setCookie?.value).toBe('sub_recorded');
 		expect(subject?.cookie).toBe(`${RECORDED}; c15t-sid=sub_recorded`);
+	});
+
+	// A record cookie can be stale after the browser dropped its rewrite,
+	// while `c15t-sid` already holds the newer ID. Only the browser can
+	// tell, so the server renders the records' ID and leaves the cookie.
+	test('the ID the stored choice carries never replaces the subject cookie', () => {
+		const cookie = `c15t-sid=sub_other; ${RECORDED}`;
+		const subject = resolve(cookie);
+		expect(subject).toEqual({
+			cookie,
+			setCookie: null,
+			subjectId: 'sub_recorded',
+		});
 	});
 
 	test('a shared render or a speculative request gets no subject', () => {

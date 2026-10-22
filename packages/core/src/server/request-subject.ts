@@ -91,12 +91,15 @@ export interface RequestSubject {
 	/** The visitor's subject ID. */
 	subjectId: string;
 	/**
-	 * The request `Cookie` header with `<storageKey>-sid` holding the ID.
-	 * Hand it to the render in the same request, so it reads the ID before
-	 * the browser has the cookie.
+	 * The request `Cookie` header, with `<storageKey>-sid` added when the
+	 * request had none. Hand it to the render in the same request, so it
+	 * reads the ID before the browser has the cookie.
 	 */
 	cookie: string;
-	/** The cookie to set on the response, `null` when the request has it. */
+	/**
+	 * The cookie to set on the response. `null` when the request already
+	 * has a `<storageKey>-sid` cookie, even one holding a different ID.
+	 */
 	setCookie: SubjectCookie | null;
 }
 
@@ -199,10 +202,19 @@ const subjectCookie = function subjectCookie(
  * visitor who has none, with the cookie the response sets to keep it.
  *
  * The ID the stored consent records carry wins, then the one in
- * `<storageKey>-sid`, then a new one: the order the browser runtime uses,
- * so the browser starts with the same ID. Call it from request middleware,
- * set `setCookie` on the response when it is not `null`, and pass `cookie`
- * to the render in the same request.
+ * `<storageKey>-sid`, then a new one: the order the browser runtime uses.
+ * While the browser's cookie writes succeed, it starts with the same ID.
+ * Only cookies are read. If the browser refused to rewrite a record cookie
+ * after the subject ID changed, that cookie keeps the old ID and this
+ * returns it, while the browser starts with the new ID from localStorage.
+ * This happens even when the request's `<storageKey>-sid` cookie already
+ * holds the new ID. It lasts until a later write of the record reaches the
+ * cookie, which may never happen while the browser keeps refusing it. A
+ * `<storageKey>-sid` cookie the request already holds is never replaced,
+ * so the old ID is never stored over the new one.
+ *
+ * Call it from request middleware, set `setCookie` on the response when it
+ * is not `null`, and pass `cookie` to the render in the same request.
  *
  * @param options - The request, the storage configuration and whether the
  * response is shared.
@@ -236,7 +248,7 @@ export const resolveRequestSubject = function resolveRequestSubject(
 		options.now ?? Date.now()
 	).subject?.subjectId;
 	const subjectId = recorded ?? stored ?? generateSubjectId();
-	if (subjectId === stored) {
+	if (stored) {
 		return { cookie: cookieHeader, setCookie: null, subjectId };
 	}
 	return {
