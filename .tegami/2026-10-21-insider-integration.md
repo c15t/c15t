@@ -5,16 +5,6 @@ packages:
   '@c15t/cli': patch
 ---
 
-### Add Insider consent integration
+### Add Insider One integration
 
-`insiderTag()` loads Insider only after `marketing` consent. Includes configuration and revocation guidance, loader contract tests, and CLI setup support.
-
-Supports the documented optional product attributes. Purchase setup requires a durable per-order guard so confirmation-page revisits do not enqueue the same order again.
-
-Accepts current user attributes, including checkout identifiers and custom data, in the final grant push with helper-controlled `gdpr_optin`. Each configuration snapshots nested user data independently. Optional currency is queued before the page and `init`. The app must keep user and currency context current; these options do not guarantee identity matching or deduplicate purchases.
-
-Preserves page custom data as literal JSON, including objects that resemble c15t runtime-value markers. Normal JSON serialization rules apply to page values.
-
-Keeps server startup available for JSON-normalizable page values, including dates and omitted `undefined` properties, so granted visitors can start Insider before hydration.
-
-On withdrawal, the helper queues `gdpr_optin: false`, a neutral `other` page and `init` so the withdrawal init does not reuse a purchase page, including one pushed manually during SPA navigation. This does not cancel earlier queued purchases or deduplicate orders. Keep the per-order guard and reload-on-revocation behavior.
+`insiderTag` from `@c15t/integrations/insider` loads the Insider One tag after `marketing` consent, with optional user attributes, currency and page context. Withdrawing consent sends `gdpr_optin: false` to Insider and reloads the page.
