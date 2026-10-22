@@ -83,6 +83,7 @@ describe('Dynamic Yield real-core loader contract', () => {
 					`${secondBase}/api_static.js`,
 				]);
 				first.dispose();
+				expect(window.DY?.userActiveConsent).toEqual({ accepted: true });
 				expect(
 					Array.from(document.head.querySelectorAll('script')).map(
 						(element) => element.src
@@ -92,7 +93,74 @@ describe('Dynamic Yield real-core loader contract', () => {
 					`${secondBase}/api_static.js`,
 				]);
 				await secondKernel.commands.save(deniedConsents);
+				expect(window.DY?.userActiveConsent).toEqual({ accepted: false });
 				expect(document.head.querySelector('script')).toBeNull();
+			} finally {
+				first.dispose();
+				second.dispose();
+				firstKernel.dispose();
+				secondKernel.dispose();
+			}
+		}
+	);
+
+	it.each([
+		{ denial: 'category', loaded: false },
+		{ denial: 'category', loaded: true },
+		{ denial: 'vendor', loaded: false },
+		{ denial: 'vendor', loaded: true },
+	])(
+		'keeps global consent across distinct sections with $denial denial, loaded=$loaded',
+		async ({ denial, loaded }) => {
+			const firstKernel = createConsentKernel();
+			const secondKernel = createConsentKernel();
+			await firstKernel.commands.save(grantedConsents);
+			await secondKernel.commands.save({ ...deniedConsents, marketing: true });
+			const first = createScriptLoader({
+				kernel: firstKernel,
+				scripts: [dynamicYield({ sectionId: '1234567' })],
+			});
+			const second = createScriptLoader({
+				kernel: secondKernel,
+				scripts: [
+					dynamicYield({
+						category: 'marketing',
+						region: 'eu',
+						sectionId: '7654321',
+					}),
+				],
+			});
+			try {
+				if (loaded) {
+					for (const element of document.head.querySelectorAll('script')) {
+						element.dispatchEvent(new Event('load'));
+					}
+				}
+				const secondElements = Array.from(
+					document.head.querySelectorAll('script[src*="/7654321/"]')
+				);
+				if (denial === 'vendor') {
+					await firstKernel.commands.save(grantedConsents, {
+						vendors: { 'dynamic-yield': false },
+					});
+				} else {
+					await firstKernel.commands.save(deniedConsents);
+				}
+				expect(window.DY?.userActiveConsent).toEqual({ accepted: true });
+				expect(Array.from(document.head.querySelectorAll('script'))).toEqual(
+					secondElements
+				);
+				await secondKernel.commands.save(deniedConsents);
+				expect(window.DY?.userActiveConsent).toEqual({ accepted: false });
+				expect(document.head.querySelector('script')).toBeNull();
+				await firstKernel.commands.save(grantedConsents, {
+					vendors: { 'dynamic-yield': true },
+				});
+				expect(window.DY?.userActiveConsent).toEqual({ accepted: true });
+				second.dispose();
+				expect(window.DY?.userActiveConsent).toEqual({ accepted: true });
+				first.dispose();
+				expect(window.DY?.userActiveConsent).toEqual({ accepted: false });
 			} finally {
 				first.dispose();
 				second.dispose();

@@ -30,9 +30,13 @@ declare global {
 }
 
 interface DynamicYieldStaticLoader {
+	consentOwners: Set<symbol>;
 	element?: HTMLScriptElement;
 	owners: Set<symbol>;
 }
+
+// Active Cookie Consent is page-global across section and region resources.
+const consentOwners = new WeakMap<Document, Set<symbol>>();
 
 // Core can share one dynamic loader across independent registrations.
 const staticLoaders = new WeakMap<
@@ -121,16 +125,24 @@ const createDynamicYieldScript = (options: DynamicYieldOptions): Script => {
 		}
 		shared = staticLoaders.get(info.element);
 		if (!shared) {
-			shared = { owners: new Set() };
+			const { ownerDocument } = info.element;
+			const grantedOwners =
+				consentOwners.get(ownerDocument) ?? new Set<symbol>();
+			consentOwners.set(ownerDocument, grantedOwners);
+			shared = { consentOwners: grantedOwners, owners: new Set() };
 			staticLoaders.set(info.element, shared);
 		}
 		shared.owners.add(owner);
+		shared.consentOwners.add(owner);
 		return shared;
 	};
 	const removeStatic = () => {
 		const removed = shared?.owners.delete(owner) ?? false;
-		if (removed && shared?.owners.size === 0) {
-			shared.element?.remove();
+		if (removed && shared) {
+			shared.consentOwners.delete(owner);
+			if (shared.owners.size === 0) {
+				shared.element?.remove();
+			}
 		}
 		return removed;
 	};
@@ -146,7 +158,7 @@ const createDynamicYieldScript = (options: DynamicYieldOptions): Script => {
 		}
 		resolved.onConsentChange?.({
 			...info,
-			hasConsent: !!granted || !!shared?.owners.size,
+			hasConsent: !!granted || !!shared?.consentOwners.size,
 		});
 	};
 
@@ -166,7 +178,7 @@ const createDynamicYieldScript = (options: DynamicYieldOptions): Script => {
 			if (removeStatic() && shared) {
 				resolved.onConsentChange?.({
 					...info,
-					hasConsent: shared.owners.size > 0,
+					hasConsent: shared.consentOwners.size > 0,
 				});
 			}
 		},
