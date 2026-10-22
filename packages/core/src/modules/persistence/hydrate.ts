@@ -322,6 +322,22 @@ export const readStoredRecordsForReconcile =
 		return readRecords(storageConfig, now, true);
 	};
 
+/** Every cookie-carried record from a `Cookie` header, composed. */
+const composeFromCookieHeader = function composeFromCookieHeader(
+	cookieHeader: string | undefined,
+	storageConfig: StorageConfig | undefined,
+	now: number
+): StoredRecords {
+	return composeRecords(
+		readStoredConsentRecordFromCookieHeader(cookieHeader, storageConfig, now),
+		readStoredNoticeDismissalFromCookieHeader(cookieHeader, storageConfig, now),
+		readStoredVendorChoiceFromCookieHeader(cookieHeader, storageConfig, now),
+		readStoredClearEpochFromCookieHeader(cookieHeader, storageConfig, now),
+		readStoredSubjectIdFromCookieHeader(cookieHeader, storageConfig),
+		now
+	);
+};
+
 /**
  * Server read of every cookie-carried record from a request `Cookie`
  * header at `now`. The choice, the notice projection and the vendor
@@ -335,18 +351,24 @@ export const readStoredRecordsFromCookieHeader =
 		storageConfig: StorageConfig | undefined,
 		now: number
 	): HydrationRecords {
-		return composeRecords(
-			readStoredConsentRecordFromCookieHeader(cookieHeader, storageConfig, now),
-			readStoredNoticeDismissalFromCookieHeader(
-				cookieHeader,
-				storageConfig,
-				now
-			),
-			readStoredVendorChoiceFromCookieHeader(cookieHeader, storageConfig, now),
-			readStoredClearEpochFromCookieHeader(cookieHeader, storageConfig, now),
-			readStoredSubjectIdFromCookieHeader(cookieHeader, storageConfig),
-			now
-		).records;
+		return composeFromCookieHeader(cookieHeader, storageConfig, now).records;
+	};
+
+/**
+ * The subject ID the cookie copies of the records carry, read as a server
+ * reads them but without the `<key>-sid` fallback. `null` when they carry
+ * none.
+ *
+ * @internal
+ */
+export const readRecordedSubjectIdFromCookieHeader =
+	function readRecordedSubjectIdFromCookieHeader(
+		cookieHeader: string | undefined,
+		storageConfig: StorageConfig | undefined,
+		now: number
+	): string | null {
+		return composeFromCookieHeader(cookieHeader, storageConfig, now)
+			.recordedSubjectId;
 	};
 
 /**

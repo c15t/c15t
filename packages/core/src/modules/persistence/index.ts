@@ -29,8 +29,11 @@
  * - Every runtime has a subject ID from startup, before the visitor
  *   decides anything. Startup takes the one the records carry, else the
  *   one the server named, else the one stored under `<key>-sid`, else a
- *   new one. When `<key>-sid` (cookie and localStorage) does not hold that
- *   ID yet, it is stored there at once; this is the only startup write.
+ *   new one. A server seed that only repeats what the cookies say yields
+ *   to the records as storage holds them. When no stored record carries
+ *   the ID and `<key>-sid` (cookie and localStorage) does not hold it yet,
+ *   it is stored there at once; this is the only startup write. Startup
+ *   never rewrites a `<key>-sid` copy the records disagree with.
  *   `<key>-sid` is never read as a choice, so an ID alone still shows the
  *   banner. Until a save uses it, an ID this runtime made follows one
  *   another tab stores. Every later subject change is stored there too,

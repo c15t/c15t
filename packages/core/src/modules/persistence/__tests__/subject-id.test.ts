@@ -14,6 +14,8 @@ import {
 import { createConsentKernel } from '../../../index';
 import { hasStoredConsentRecord } from '../../../libs/journey';
 import { STORAGE_KEY_V2 } from '../../../libs/storage-keys';
+import { readRequestConsent } from '../../../server/request-consent';
+import { resolveRequestSubject } from '../../../server/request-subject';
 import type { ConsentKernel } from '../../../types';
 import { createPersistence } from '../index';
 import { readStoredConsentRecord } from '../record-storage';
@@ -280,6 +282,67 @@ test('a seed from a stale consent cookie keeps the newer stored ID', async () =>
 	expect(storedSid()).toEqual({ cookie: 'sub_next', local: 'sub_next' });
 });
 
+// The same stale consent cookie, carried through a server render: the
+// server reads the cookies alone and must not store the old ID again.
+test.each(['consent', 'all'] as const)(
+	'a server render after a dropped %s cookie rewrite does not bring the old ID back',
+	async (dropped) => {
+		const first = boot();
+		await first.kernel.commands.save({ measurement: true });
+		vi.advanceTimersByTime(0);
+		const old = subjectIdOf(first.kernel) as string;
+		const setter = Object.getOwnPropertyDescriptor(
+			Document.prototype,
+			'cookie'
+		)?.set;
+		const drop = vi
+			.spyOn(document, 'cookie', 'set')
+			.mockImplementation((value: string) => {
+				if (dropped === 'consent' && !value.startsWith(`${STORAGE_KEY_V2}=`)) {
+					setter?.call(document, value);
+				}
+			});
+		try {
+			first.kernel.set.subjectId('sub_next');
+			vi.advanceTimersByTime(0);
+			first.handle.dispose();
+		} finally {
+			drop.mockRestore();
+		}
+
+		// The records win on the server, so its render still names the old
+		// ID, but it never replaces the subject cookie the request holds.
+		const subject = resolveRequestSubject({
+			now: NOW,
+			request: { cookie: document.cookie, url: 'https://example.com/' },
+		});
+		expect(subject?.subjectId).toBe(old);
+		expect(subject?.setCookie).toBeNull();
+		const { state } = readRequestConsent({
+			adapter: '@c15t/test',
+			now: NOW,
+			request: { cookie: subject?.cookie, headers: new Headers() },
+		});
+		expect(state.initialRecords?.subject?.subjectId).toBe(old);
+
+		const kernel = createConsentKernel({
+			initialPolicyResolution: matchedResolution(optInRule()),
+			initialRecords: state.initialRecords,
+			now: NOW,
+		});
+		disposers.push(createPersistence({ kernel, skipHydration: true }).dispose);
+		expect(subjectIdOf(kernel)).toBe('sub_next');
+		expect(
+			kernel.getSnapshot().explicitChoice?.categories.measurement?.value
+		).toBe(true);
+		expect(storedSid()).toEqual({
+			cookie: dropped === 'all' ? old : 'sub_next',
+			local: 'sub_next',
+		});
+		expect(subjectIdOf(boot().kernel)).toBe('sub_next');
+	}
+);
+
 test('an unused ID follows the one another tab stored and names the one it replaced', () => {
 	const { kernel } = boot();
 	const subjectId = subjectIdOf(kernel);
@@ -357,6 +420,20 @@ test('a tab whose ID is used stores it again, and an unused tab takes it', async
 
 	expect(subjectIdOf(first.kernel)).toBe(used);
 	expect(subjectIdOf(second.kernel)).toBe(used);
+	expect(storedSid()).toEqual({ cookie: used, local: used });
+});
+
+test('a tab whose saved records carry its ID stores it over another stored ID', async () => {
+	const { kernel } = boot();
+	const used = subjectIdOf(kernel);
+	await kernel.commands.save({ measurement: true });
+	vi.advanceTimersByTime(0);
+	localStorage.setItem(SID_KEY, 'sub_other_tab');
+	document.cookie = `${SID_KEY}=sub_other_tab; path=/`;
+
+	window.dispatchEvent(new StorageEvent('storage', { key: SID_KEY }));
+
+	expect(subjectIdOf(kernel)).toBe(used);
 	expect(storedSid()).toEqual({ cookie: used, local: used });
 });
 

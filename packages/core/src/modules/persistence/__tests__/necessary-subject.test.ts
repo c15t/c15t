@@ -3,6 +3,8 @@ import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 
 import { createConsentKernel } from '../../../index';
 import { getRawCookieValue } from '../../../libs/cookie';
+import { readRequestConsent } from '../../../server/request-consent';
+import { resolveRequestSubject } from '../../../server/request-subject';
 import { createClearOnRevocation } from '../../clear-on-revocation';
 import { createPersistence, readStoredRecordsFromCookieHeader } from '../index';
 import {
@@ -16,15 +18,27 @@ import {
 	writeStoredNoticeDismissal,
 } from './record-writes';
 
+/**
+ * Expire every cookie. A clear keeps `<key>-sid`, so removing only the
+ * records would carry one test's subject ID into the next.
+ */
+const expireCookies = function expireCookies(): void {
+	for (const part of document.cookie.split(';')) {
+		const [name] = part.trim().split('=');
+		if (name) {
+			document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
+		}
+	}
+};
+
 beforeEach(() => {
 	vi.useFakeTimers();
 	localStorage.clear();
-	clearStoredConsentRecords();
-	document.cookie =
-		'c15t-epoch=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
+	expireCookies();
 });
 afterEach(() => {
-	clearStoredConsentRecords();
+	localStorage.clear();
+	expireCookies();
 	vi.useRealTimers();
 });
 
@@ -58,9 +72,11 @@ test.each(['all', 'none'] as const)(
 		reader.clear();
 		reader.dispose();
 		restored.dispose();
+		// A clear removes the acknowledgement and keeps the subject ID.
 		const cleared = createConsentKernel({ consentCategories: ['necessary'] });
 		const clearedHandle = createPersistence({ kernel: cleared });
-		expect(cleared.getSnapshot().subject).toBeNull();
+		expect(cleared.getSnapshot().subject).toEqual({ subjectId: 'canonical' });
+		expect(cleared.getSnapshot().noticeDismissal).toBeNull();
 		clearedHandle.dispose();
 		cleared.dispose();
 	}
@@ -122,7 +138,9 @@ test('a response arriving after another handle clears does not restore the visit
 	await vi.advanceTimersByTimeAsync(0);
 	const restored = createConsentKernel({ consentCategories: ['necessary'] });
 	const reader = createPersistence({ kernel: restored });
-	expect(restored.getSnapshot().subject).toBeNull();
+	// The acknowledgement stays cleared. The ID is the visitor's, and a
+	// clear keeps it, so the server's name for it carries over.
+	expect(restored.getSnapshot().subject).toEqual({ subjectId: 'canonical' });
 	expect(restored.getSnapshot().noticeDismissal).toBeNull();
 	reader.dispose();
 	restored.dispose();
@@ -157,7 +175,8 @@ test('a fresh necessary-only acknowledgement after clear persists and another ha
 	expect(restored.getSnapshot().subject?.subjectId).toBe('new-subject');
 	secondHandle.clear();
 	firstHandle.reconcile();
-	expect(first.getSnapshot().subject).toBeNull();
+	expect(first.getSnapshot().subject).toEqual({ subjectId: 'new-subject' });
+	expect(first.getSnapshot().noticeDismissal).toBeNull();
 	reader.dispose();
 	restored.dispose();
 	secondHandle.dispose();
@@ -270,13 +289,14 @@ test.each([undefined, 'custom-consent'])(
 		const reader = createPersistence({ kernel: restored, storageConfig });
 		expect(restored.getSnapshot().subject?.subjectId).toBe('cookie-visitor');
 		reader.clear();
-		expect(
-			readStoredRecordsFromCookieHeader(
-				document.cookie,
-				storageConfig,
-				Date.now()
-			).subject
-		).toBeNull();
+		// Only `<key>-sid` still names the visitor after the clear.
+		const cleared = readStoredRecordsFromCookieHeader(
+			document.cookie,
+			storageConfig,
+			Date.now()
+		);
+		expect(cleared.subject).toEqual({ subjectId: 'cookie-visitor' });
+		expect(cleared.noticeDismissal).toBeNull();
 		expect(
 			getRawCookieValue(`${resolveStorageKeys(storageConfig).notice}-subject`)
 		).toBeNull();
@@ -314,6 +334,8 @@ test.each([
 		handle.dispose();
 		kernel.dispose();
 		localStorage.clear();
+		// Without `<key>-sid` only the companion could name the visitor.
+		document.cookie = `${resolveStorageKeys().subject}=; max-age=0; path=/`;
 		await vi.advanceTimersByTimeAsync(1);
 		if (change === 'absent') {
 			document.cookie = `${key}=; max-age=0; path=/`;
@@ -337,7 +359,8 @@ test.each([
 		expect(fromCookie.noticeDismissal === null).toBe(change === 'absent');
 		const restored = createConsentKernel({ consentCategories: ['necessary'] });
 		const reader = createPersistence({ kernel: restored });
-		expect(restored.getSnapshot().subject).toBeNull();
+		expect(restored.getSnapshot().subject?.subjectId).toBeTruthy();
+		expect(restored.getSnapshot().subject?.subjectId).not.toBe('old-visitor');
 		expect(restored.getSnapshot().explicitChoice).toBeNull();
 		reader.dispose();
 		restored.dispose();
@@ -480,7 +503,9 @@ test.each([undefined, { storageKey: 'subject-removal' }])(
 		expect(local?.ok && local.record.subject).toBeUndefined();
 		const kernel = createConsentKernel({ consentCategories: ['necessary'] });
 		const reader = createPersistence({ kernel, storageConfig });
-		expect(kernel.getSnapshot().subject).toBeNull();
+		// The removed identity stays removed; startup gives a new ID.
+		expect(kernel.getSnapshot().subject?.subjectId).toBeTruthy();
+		expect(kernel.getSnapshot().subject?.subjectId).not.toBe('original');
 		reader.dispose();
 		kernel.dispose();
 
@@ -542,11 +567,154 @@ test.each([['necessary'], ['necessary', 'measurement']] as const)(
 		const saving = kernel.commands.save('none');
 		await vi.advanceTimersByTimeAsync(0);
 		await saving;
-		expect(kernel.getSnapshot().subject?.externalId).toBe('account');
+		const { subject } = kernel.getSnapshot();
+		expect(subject?.externalId).toBe('account');
 		clearStoredConsentRecords();
 		handle.reconcile();
-		expect(kernel.getSnapshot().subject).toBeNull();
+		// The linked identity goes with the record. The ID stays.
+		expect(kernel.getSnapshot().subject).toEqual({
+			subjectId: subject?.subjectId,
+		});
 		handle.dispose();
 		kernel.dispose();
+	}
+);
+
+test.each([
+	['a new one', null],
+	['one the app names', 'sub_app'],
+] as const)(
+	'replacing a necessary-only subject ID with %s rewrites the acknowledgement',
+	async (_, next) => {
+		const kernel = createConsentKernel({ consentCategories: ['necessary'] });
+		const handle = createPersistence({ kernel });
+		const saving = kernel.commands.save('none');
+		await vi.advanceTimersByTimeAsync(0);
+		await saving;
+		await vi.advanceTimersByTimeAsync(0);
+		const saved = kernel.getSnapshot().subject?.subjectId;
+		const notice = kernel.getSnapshot().noticeDismissal;
+		expect(saved).toBeTruthy();
+		expect(notice).not.toBeNull();
+
+		kernel.set.subjectId(next);
+		const replaced = kernel.getSnapshot().subject?.subjectId;
+		expect(replaced).toBeTruthy();
+		expect(replaced).not.toBe(saved);
+		await vi.advanceTimersByTimeAsync(0);
+		handle.dispose();
+		kernel.dispose();
+
+		// Neither copy of the acknowledgement brings the old ID back.
+		const keys = resolveStorageKeys();
+		const local = readStoredNoticeDismissal(undefined, Date.now());
+		expect(local?.ok && local.record.subject?.subjectId).toBe(replaced);
+		expect(
+			readStoredRecordsFromCookieHeader(document.cookie, undefined, Date.now())
+				.subject?.subjectId
+		).toBe(replaced);
+		expect(getRawCookieValue(keys.noticeSubject)).toContain(
+			`sid=${encodeURIComponent(replaced ?? '')}`
+		);
+		const restored = createConsentKernel({ consentCategories: ['necessary'] });
+		const reader = createPersistence({ kernel: restored });
+		expect(restored.getSnapshot().subject?.subjectId).toBe(replaced);
+		expect(restored.getSnapshot().noticeDismissal).toEqual(notice);
+		expect(restored.getSnapshot().explicitChoice).toBeNull();
+		reader.dispose();
+		restored.dispose();
+	}
+);
+
+// The browser dropped the rewrite of the notice identity cookie, or of every
+// cookie, after the save response named the canonical ID. Only localStorage
+// knows the cookies are stale, so a server render still reads the startup
+// ID from them. It must not store that ID again anywhere.
+test.each(['notice-subject', 'all'] as const)(
+	'a server render after a dropped %s cookie rewrite does not bring the startup ID back',
+	async (dropped) => {
+		const response = Promise.withResolvers<{
+			ok: boolean;
+			subjectId: string;
+		}>();
+		const kernel = createConsentKernel({
+			consentCategories: ['necessary'],
+			transport: { save: () => response.promise },
+		});
+		const handle = createPersistence({ kernel });
+		const startup = kernel.getSnapshot().subject?.subjectId;
+		const saving = kernel.commands.save('none');
+		await vi.advanceTimersByTimeAsync(0);
+		const keys = resolveStorageKeys();
+		const setter = Object.getOwnPropertyDescriptor(
+			Document.prototype,
+			'cookie'
+		)?.set;
+		const drop = vi
+			.spyOn(document, 'cookie', 'set')
+			.mockImplementation((value: string) => {
+				if (
+					dropped === 'notice-subject' &&
+					!value.startsWith(`${keys.noticeSubject}=`)
+				) {
+					setter?.call(document, value);
+				}
+			});
+		try {
+			response.resolve({ ok: true, subjectId: 'canonical' });
+			await saving;
+			await vi.runOnlyPendingTimersAsync();
+		} finally {
+			drop.mockRestore();
+		}
+		handle.dispose();
+		kernel.dispose();
+		expect(getRawCookieValue(keys.noticeSubject)).toContain(`sid=${startup}`);
+		expect(getRawCookieValue(keys.subject)).toBe(
+			dropped === 'all' ? startup : 'canonical'
+		);
+
+		// The server renders from the cookies alone. The records win there,
+		// so the render still names the startup ID, but a subject cookie
+		// already present is never replaced.
+		const subject = resolveRequestSubject({
+			now: Date.now(),
+			request: { cookie: document.cookie, url: 'https://example.com/' },
+		});
+		expect(subject?.subjectId).toBe(startup);
+		expect(subject?.setCookie).toBeNull();
+		const { state } = readRequestConsent({
+			adapter: '@c15t/test',
+			now: Date.now(),
+			request: { cookie: subject?.cookie, headers: new Headers() },
+		});
+		expect(state.initialRecords?.subject?.subjectId).toBe(startup);
+
+		// The browser seeded with that render resolves from storage.
+		const seeded = createConsentKernel({
+			consentCategories: ['necessary'],
+			initialRecords: state.initialRecords,
+		});
+		const seededHandle = createPersistence({
+			kernel: seeded,
+			skipHydration: true,
+		});
+		expect(seeded.getSnapshot().subject?.subjectId).toBe('canonical');
+		expect(seeded.getSnapshot().explicitChoice).toBeNull();
+		expect(localStorage.getItem(keys.subject)).toBe('canonical');
+		// Startup leaves a subject cookie it cannot tell is stale alone.
+		expect(getRawCookieValue(keys.subject)).toBe(
+			dropped === 'all' ? startup : 'canonical'
+		);
+		seededHandle.dispose();
+		seeded.dispose();
+
+		const restored = createConsentKernel({ consentCategories: ['necessary'] });
+		const reader = createPersistence({ kernel: restored });
+		expect(restored.getSnapshot().subject?.subjectId).toBe('canonical');
+		expect(restored.getSnapshot().explicitChoice).toBeNull();
+		expect(restored.getSnapshot().effectivePermissions.measurement).toBe(false);
+		reader.dispose();
+		restored.dispose();
 	}
 );

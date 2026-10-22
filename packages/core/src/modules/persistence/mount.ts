@@ -13,7 +13,12 @@ import type {
 	HydrationRecords,
 } from '../../types';
 import { clearStoredRecords, writeStoredSubjectId } from './clear';
-import { hydrateFromStorage, readStoredRecordsForReconcile } from './hydrate';
+import {
+	hydrateFromStorage,
+	readRecordedSubjectIdFromCookieHeader,
+	readStoredRecordsForReconcile,
+	readStoredRecordsFromCookieHeader,
+} from './hydrate';
 import type { StoredRecords } from './hydrate';
 import {
 	isNewerDenial,
@@ -590,11 +595,64 @@ export const mountPersistence = function mountPersistence(
 	};
 
 	/**
+	 * Whether `id` is only what the cookies say, read as a server reads
+	 * them. A seed like that adds nothing to what storage holds here: a
+	 * record cookie whose rewrite the browser dropped still names the old
+	 * ID, and only localStorage shows it is stale.
+	 */
+	const fromCookiesAlone = function fromCookiesAlone(id: string): boolean {
+		return (
+			readStoredRecordsFromCookieHeader(document.cookie, storageConfig, now())
+				.subject?.subjectId === id
+		);
+	};
+
+	/**
+	 * The subject to start with and whether its ID is a local one, which
+	 * yields to a subject another runtime stored. Records storage held keep
+	 * the ID they carry. Otherwise a subject the server named is kept, then
+	 * the ID in `<key>-sid`, then a new one. A server seed read from the
+	 * cookies alone yields to the records as storage holds them, as on a
+	 * load that hydrates.
+	 */
+	const startingSubject = function startingSubject(
+		before: ConsentSubject | null,
+		recorded: ConsentSubject | null,
+		stored: string | null
+	): [subject: ConsentSubject, local: boolean] {
+		const { subject } = kernel.getSnapshot();
+		if (!recorded) {
+			if (before?.subjectId) {
+				return [{ ...subject, ...before }, false];
+			}
+			return [
+				{
+					...subject,
+					subjectId: subject?.subjectId ?? stored ?? generateSubjectId(),
+				},
+				true,
+			];
+		}
+		if (
+			!subject?.subjectId ||
+			recorded.subjectId === stored ||
+			fromCookiesAlone(subject.subjectId)
+		) {
+			// Hydration is deferred: take the subject it will bring, whole. A
+			// seed from a consent cookie older than storage, such as one whose
+			// rewrite the browser dropped, yields to the subject storage
+			// agrees on, linked identity included: the seed's belongs to the
+			// ID it names.
+			return [recorded, false];
+		}
+		return [subject, false];
+	};
+
+	/**
 	 * Gives the kernel a subject ID at startup, before anything binds to
-	 * it. Records storage held keep the ID they carry. Otherwise a subject
-	 * the server named is kept, then the ID in `<key>-sid`, then a new one.
-	 * An ID no stored record carries is stored in `<key>-sid` at once so a
-	 * reload keeps it. The ID alone records no choice.
+	 * it (see {@link startingSubject}). An ID no stored record carries is
+	 * stored in `<key>-sid` at once so a reload keeps it. The ID alone
+	 * records no choice.
 	 */
 	const startSubject = function startSubject(
 		before: ConsentSubject | null,
@@ -603,27 +661,7 @@ export const mountPersistence = function mountPersistence(
 		const stored = readStoredSubjectId(storageConfig);
 		storedSubjectId = readSyncedSubjectId(storageConfig);
 		const snapshot = kernel.getSnapshot();
-		let { subject } = snapshot;
-		let local = false;
-		if (!recorded && before?.subjectId) {
-			subject = { ...subject, ...before };
-		} else if (
-			recorded &&
-			(!subject?.subjectId || recorded.subjectId === stored)
-		) {
-			// Hydration is deferred: take the subject it will bring, whole. A
-			// seed from a consent cookie older than storage, such as one whose
-			// rewrite the browser dropped, yields to the subject storage
-			// agrees on, linked identity included: the seed's belongs to the
-			// ID it names.
-			subject = recorded;
-		} else if (!(recorded && subject?.subjectId)) {
-			subject = {
-				...subject,
-				subjectId: subject?.subjectId ?? stored ?? generateSubjectId(),
-			};
-			local = true;
-		}
+		const [subject, local] = startingSubject(before, recorded, stored);
 		const id = subject.subjectId as string;
 		subjectId = id;
 		if (local) {
@@ -639,7 +677,10 @@ export const mountPersistence = function mountPersistence(
 			kernel.hydrate({ subject });
 		}
 		// Records that carry the ID already keep it: hydrating them writes
-		// nothing. A clear stores it before it removes them.
+		// nothing, even when a `<key>-sid` copy holds another ID. Cookies
+		// alone cannot tell a copy a dropped write left behind from one
+		// another runtime rewrote since, so startup does not overwrite it.
+		// A clear stores it before it removes them.
 		if (id !== recorded?.subjectId) {
 			storeSubjectId(id);
 		}
@@ -713,7 +754,19 @@ export const mountPersistence = function mountPersistence(
 		}
 		if (refused?.[0] !== subjectId || refused[1] !== stored) {
 			refused = [subjectId, stored];
-			storeSubjectId(subjectId);
+			// The record cookies name the stored ID too: the runtime that wrote
+			// them, such as a sibling subdomain sharing the cookies, agrees with
+			// it. This runtime's own copy may be the stale one, so it keeps its
+			// ID without writing it over theirs.
+			if (
+				readRecordedSubjectIdFromCookieHeader(
+					document.cookie,
+					storageConfig,
+					now()
+				) !== stored
+			) {
+				storeSubjectId(subjectId);
+			}
 		}
 	};
 

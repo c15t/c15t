@@ -14,10 +14,15 @@ import {
 	optInRule,
 } from '../../../__tests__/fixtures/kernel-fixtures';
 import { createConsentKernel } from '../../../index';
-import type { KernelVendorsState } from '../../../types';
+import { readRequestConsent } from '../../../server/request-consent';
+import { resolveRequestSubject } from '../../../server/request-subject';
+import type { HydrationRecords, KernelVendorsState } from '../../../types';
 import { createPersistence } from '../index';
 import { readStoredVendorChoice } from '../record-storage';
-import { writeStoredVendorChoice } from './record-writes';
+import {
+	encodeVendorChoiceCompact,
+	writeStoredVendorChoice,
+} from './record-writes';
 
 const vendors: KernelVendorsState = {
 	declared: [
@@ -340,5 +345,151 @@ describe('vendor persistence', () => {
 		expect(kernel.getSnapshot().vendorChoice).toBeNull();
 		persistence.dispose();
 		kernel.dispose();
+	});
+});
+
+describe('vendor-only subject through a server render', () => {
+	const vendorOnlyKernel = (initialRecords?: HydrationRecords) =>
+		createConsentKernel({
+			consentCategories: ['marketing'],
+			initialPolicyResolution: matchedResolution(
+				optInRule({ categories: ['marketing'] })
+			),
+			initialRecords,
+			initialVendors: vendors,
+			now: NOW,
+		});
+	const cookieValue = (name: string) => {
+		const pair = document.cookie
+			.split('; ')
+			.find((part) => part.startsWith(`${name}=`));
+		return pair ? decodeURIComponent(pair.slice(name.length + 1)) : null;
+	};
+	const serverRender = () => {
+		const subject = resolveRequestSubject({
+			now: NOW,
+			request: { cookie: document.cookie, url: 'https://example.com/' },
+		});
+		const { state } = readRequestConsent({
+			adapter: '@c15t/test',
+			now: NOW,
+			request: { cookie: subject?.cookie, headers: new Headers() },
+		});
+		return { initialRecords: state.initialRecords, subject };
+	};
+	const seed = (initialRecords?: HydrationRecords) => {
+		const kernel = vendorOnlyKernel(initialRecords);
+		const handle = createPersistence({
+			kernel,
+			now: () => NOW,
+			skipHydration: true,
+		});
+		return { handle, kernel };
+	};
+	const savedVisitor = async () => {
+		const kernel = vendorOnlyKernel();
+		const handle = createPersistence({ kernel, now: () => NOW });
+		await kernel.commands.save({}, { vendors: { 'meta-pixel': false } });
+		await vi.runAllTimersAsync();
+		expect(kernel.getSnapshot().explicitChoice).toBeNull();
+		return { handle, kernel };
+	};
+
+	it('a dropped vendor cookie rewrite does not bring the old ID back', async () => {
+		const { handle, kernel } = await savedVisitor();
+		const old = kernel.getSnapshot().subject?.subjectId;
+		const setter = Object.getOwnPropertyDescriptor(
+			Document.prototype,
+			'cookie'
+		)?.set;
+		const drop = vi
+			.spyOn(document, 'cookie', 'set')
+			.mockImplementation((value: string) => {
+				if (!value.startsWith('c15t-vendors=')) {
+					setter?.call(document, value);
+				}
+			});
+		try {
+			kernel.set.subjectId('sub_next');
+			await vi.runAllTimersAsync();
+		} finally {
+			drop.mockRestore();
+		}
+		handle.dispose();
+		kernel.dispose();
+
+		const { initialRecords, subject } = serverRender();
+		expect(subject?.subjectId).toBe(old);
+		expect(subject?.setCookie).toBeNull();
+		const seeded = seed(initialRecords);
+		expect(seeded.kernel.getSnapshot().subject?.subjectId).toBe('sub_next');
+		expect(seeded.kernel.getSnapshot().vendorChoice?.denied).toEqual([
+			'meta-pixel',
+		]);
+		expect(cookieValue('c15t-sid')).toBe('sub_next');
+		expect(localStorage.getItem('c15t-sid')).toBe('sub_next');
+		seeded.handle.dispose();
+		seeded.kernel.dispose();
+	});
+
+	// The vendor reader keeps the local subject on an equal time, as if the
+	// cookie missed a rewrite. A sibling subdomain's rewrite at the same
+	// time looks the same from here. A seeded start resolves it as a
+	// hydrating load does, and leaves the shared subject cookie alone.
+	it('a sibling vendor rewrite at the same time leaves the shared subject cookie alone, and a later vendor save republishes the local ID', async () => {
+		const { handle, kernel } = await savedVisitor();
+		const local = kernel.getSnapshot().subject?.subjectId;
+		const record = kernel.getSnapshot().vendorChoice;
+		if (!record) {
+			throw new Error('Expected a vendor decision');
+		}
+		handle.dispose();
+		kernel.dispose();
+		document.cookie = `c15t-vendors=${encodeVendorChoiceCompact({ ...record, subject: { subjectId: 'sub_sibling' } })}; path=/`;
+		document.cookie = 'c15t-sid=sub_sibling; path=/';
+
+		const { initialRecords, subject } = serverRender();
+		expect(subject?.subjectId).toBe('sub_sibling');
+		expect(subject?.setCookie).toBeNull();
+		const seeded = seed(initialRecords);
+		expect(cookieValue('c15t-sid')).toBe('sub_sibling');
+		const hydrating = vendorOnlyKernel();
+		const hydratingHandle = createPersistence({
+			kernel: hydrating,
+			now: () => NOW,
+		});
+		expect(seeded.kernel.getSnapshot().subject?.subjectId).toBe(
+			hydrating.getSnapshot().subject?.subjectId
+		);
+		expect(cookieValue('c15t-sid')).toBe('sub_sibling');
+		// Focus and a storage event check the subject cookie again. The record
+		// cookies name the sibling's ID too, so neither runtime writes its own
+		// ID over it.
+		window.dispatchEvent(new Event('focus'));
+		window.dispatchEvent(new StorageEvent('storage', { key: 'c15t-sid' }));
+		await vi.runAllTimersAsync();
+		expect(cookieValue('c15t-sid')).toBe('sub_sibling');
+		expect(seeded.kernel.getSnapshot().vendorChoice?.denied).toEqual([
+			'meta-pixel',
+		]);
+		hydratingHandle.dispose();
+		hydrating.dispose();
+
+		// Accepted limit: equal receipt times keep the local copy's ID, so this
+		// origin runs on it, and its next explicit vendor save stores it in the
+		// shared vendor cookie. The save records no category choice and grants
+		// no category.
+		expect(seeded.kernel.getSnapshot().subject?.subjectId).toBe(local);
+		await seeded.kernel.commands.save({}, { vendors: { 'meta-pixel': true } });
+		await vi.runAllTimersAsync();
+		expect(seeded.kernel.getSnapshot().explicitChoice).toBeNull();
+		expect(seeded.kernel.getSnapshot().effectivePermissions.marketing).toBe(
+			false
+		);
+		expect(seeded.kernel.getSnapshot().vendorChoice?.denied).toEqual([]);
+		expect(serverRender().subject?.subjectId).toBe(local);
+		expect(cookieValue('c15t-sid')).toBe('sub_sibling');
+		seeded.handle.dispose();
+		seeded.kernel.dispose();
 	});
 });
