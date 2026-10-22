@@ -189,6 +189,7 @@ const createDynamicYieldScript = (options: DynamicYieldOptions): Script => {
 			staticLoader.element = element;
 			document.head.appendChild(element);
 		},
+		resourceKey: `${resolved.id}:${base}`,
 	};
 };
 

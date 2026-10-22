@@ -35,6 +35,73 @@ describe('Dynamic Yield real-core loader contract', () => {
 		delete window.DY;
 	});
 
+	it.each([
+		{
+			hostname: 'cdn.dynamicyield.com',
+			region: 'us',
+			sectionId: '7654321',
+		},
+		{
+			hostname: 'cdn-eu.dynamicyield.com',
+			region: 'eu',
+			sectionId: '1234567',
+		},
+	] as const)(
+		'requests separate loader sequences for $region section $sectionId',
+		async ({ hostname, region, sectionId }) => {
+			const requests: string[] = [];
+			installHeadProbe((element) => requests.push(element.src));
+			const firstKernel = createConsentKernel();
+			const secondKernel = createConsentKernel();
+			await firstKernel.commands.save(grantedConsents);
+			await secondKernel.commands.save(grantedConsents);
+			const first = createScriptLoader({
+				kernel: firstKernel,
+				scripts: [dynamicYield({ sectionId: '1234567' })],
+			});
+			const second = createScriptLoader({
+				kernel: secondKernel,
+				scripts: [dynamicYield({ region, sectionId })],
+			});
+			try {
+				const firstBase = 'https://cdn.dynamicyield.com/api/1234567';
+				const secondBase = `https://${hostname}/api/${sectionId}`;
+				const elements = Array.from(
+					document.head.querySelectorAll<HTMLScriptElement>('script')
+				);
+				expect(elements.map((element) => element.src)).toEqual([
+					`${firstBase}/api_dynamic.js`,
+					`${secondBase}/api_dynamic.js`,
+				]);
+				for (const element of elements) {
+					element.dispatchEvent(new Event('load'));
+				}
+				expect(requests).toEqual([
+					`${firstBase}/api_dynamic.js`,
+					`${secondBase}/api_dynamic.js`,
+					`${firstBase}/api_static.js`,
+					`${secondBase}/api_static.js`,
+				]);
+				first.dispose();
+				expect(
+					Array.from(document.head.querySelectorAll('script')).map(
+						(element) => element.src
+					)
+				).toEqual([
+					`${secondBase}/api_dynamic.js`,
+					`${secondBase}/api_static.js`,
+				]);
+				await secondKernel.commands.save(deniedConsents);
+				expect(document.head.querySelector('script')).toBeNull();
+			} finally {
+				first.dispose();
+				second.dispose();
+				firstKernel.dispose();
+				secondKernel.dispose();
+			}
+		}
+	);
+
 	it('leaves DY globals, loaders, and storage untouched until mapped consent', () => {
 		const scripts = [dynamicYield({ sectionId: '1234567' })];
 		const beforeCookies = document.cookie;
