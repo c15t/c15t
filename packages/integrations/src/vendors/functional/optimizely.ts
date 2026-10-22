@@ -106,10 +106,12 @@ export const optimizelyWeb = function optimizelyWeb(
 /**
  * Requests Optimizely's persistent visitor opt-out through an existing API.
  *
- * Optimizely stores a ten-year `optimizelyOptOut` cookie. Its API cannot opt
- * the visitor back in. This utility is deliberate and is never called by
- * `optimizelyWeb` on ordinary consent revocation. Reload the page to unload
- * code that already ran; the command does not promise to undo page changes.
+ * Optimizely stores a ten-year `optimizelyOptOut` cookie. To opt back in after
+ * consent, the application must delete that cookie or set it to `false`,
+ * then reload so the permitted snippet can run. An API command alone cannot
+ * restart a blocked snippet. Neither helper resets the opt-out cookie.
+ * This utility is never called by `optimizelyWeb` on ordinary revocation.
+ * Reload to unload code that already ran; this does not undo page changes.
  * Does nothing during SSR or when no Optimizely API or queue exists.
  *
  * @returns Nothing.

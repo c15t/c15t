@@ -95,11 +95,20 @@ For a deliberate persistent opt-out, import `optOutOptimizely` from
 existing SDK or queue and does nothing if neither exists.
 
 Optimizely records this choice in the ten-year `optimizelyOptOut` cookie.
-Its API cannot opt that visitor back in. Granting consent again in c15t does
-not reverse that Optimizely choice. The helper therefore does not call this
-utility during ordinary consent revocation. The command also provides no
-completion promise and does not promise to undo changes already applied to
-the page. Keep the page reload enabled when you use it.
+Granting consent again in c15t does not clear that cookie. The helper
+therefore does not call this utility during ordinary consent revocation.
+The command also provides no completion promise and does not promise to undo
+changes already applied to the page. Keep the page reload enabled when you
+use it.
+
+To reverse an explicit opt-out after the visitor grants consent, follow
+Optimizely's [cookie implementation guidance](https://support.optimizely.com/hc/en-us/articles/22060116282509-Cookie-implementation-options):
+delete `optimizelyOptOut` or set its value to `false`, using the cookie's
+existing domain and path, then reload or navigate to another page. On that
+page, c15t must permit the snippet to load. Optimizely's API reference warns
+that an opt-in command alone cannot restart a snippet blocked by the opt-out
+cookie. Your application must handle the cookie reset; `optimizelyWeb` and
+`optOutOptimizely` do not perform it.
 
 ## Cookies and localStorage
 
@@ -152,7 +161,9 @@ that ordinary revocation has not created a persistent opt-out.
 Check [consent verification](/docs/guides/verify-consent) for navigation,
 expiry and hosting tests. Use [vendor switches and cleanup](/docs/integrations/overview#vendor-switches-and-cookie-cleanup)
 for your framework's revocation configuration. Keep automatic reloads enabled
-for Optimizely; its persistent opt-out cannot be used as a reversible pause.
+for Optimizely. If you use `optOutOptimizely`, also test the explicit cookie
+reset and reload described above before expecting a later grant to resume
+experiments.
 
 <include src="../shared/integrations/vendor-revocation-and-verify.mdx" />
 
