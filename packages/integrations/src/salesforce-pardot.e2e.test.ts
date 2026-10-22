@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 import { createConsentKernel } from '@c15t/core';
 import { createScriptLoader } from '@c15t/core/modules/script-loader';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
 	clearAllScripts,
@@ -49,12 +49,18 @@ const executeSdk = (element: HTMLScriptElement, pageView: () => void): void => {
 
 describe('Salesforce Account Engagement consent loader', () => {
 	registerVendorContractCleanup();
+	// Node 25+ replaces jsdom's storage globals with its own.
+	beforeEach(() => {
+		vi.stubGlobal('localStorage', jsdom.window.localStorage);
+		vi.stubGlobal('sessionStorage', jsdom.window.sessionStorage);
+	});
 	afterEach(() => {
 		for (const name of GLOBALS) {
 			Reflect.deleteProperty(window, name);
 		}
 		localStorage.clear();
 		sessionStorage.clear();
+		vi.unstubAllGlobals();
 	});
 	it('creates no vendor requests, globals or storage before mapped consent', () => {
 		const scripts = [
