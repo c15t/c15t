@@ -7,4 +7,4 @@ packages:
 
 ### Add The Trade Desk consent integration
 
-Load The Trade Desk after marketing consent with the `theTradeDeskPixel` helper, with vendor metadata, framework registration examples and CLI setup.
+Load The Trade Desk Universal Pixel after `marketing` consent with `theTradeDeskPixel` from `@c15t/integrations/the-trade-desk`. The Trade Desk has no API to stop its SDK, so keep the default page reload when consent is withdrawn. The CLI can now add it during setup.

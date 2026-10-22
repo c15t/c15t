@@ -1,0 +1,27 @@
+---
+title: Other ads and pixels
+description: Consent-gated helpers for ad platforms and conversion pixels that don't need a full guide.
+icon: radar
+group: integrations
+---
+
+Each helper below loads its vendor only after the visitor allows the listed consent category. For setup, see [Integrations overview](/docs/integrations/overview).
+
+## The Trade Desk
+
+The Trade Desk Universal Pixel records conversions and builds ad audiences. Waits for `marketing` consent.
+
+<include src="../shared/examples/javascript/the-trade-desk-scripts.mdx" />
+
+| Option | Type | Required | Description |
+| --- | --- | --- | --- |
+| `advertiserId` | `string` | Yes | Advertiser ID from your Universal Pixel snippet. |
+| `pixelIds` | `string[]` | Yes | One or more Universal Pixel IDs. A blank entry skips the helper. |
+| `enableCookieSyncing` | `boolean` | No | Set `false` to turn off cookie syncing. Unset uses the vendor default. |
+| `dataProcessingOption` | `{ policies: string[]; region: string }` | No | Limited data use setting, such as `{ policies: ['LDU'], region: 'US-CO' }`. It doesn't replace consent. |
+| `scriptUrl` | `string` | No | Loader URL. Defaults to `https://js.adsrvr.org/up_loader.3.0.0.js`. |
+
+**When consent is withdrawn:** The Trade Desk has no API to stop its SDK, so the helper leaves it on the page. Keep c15t's default `reloadOnConsentRevoked` so the page reload removes it.
+
+- Walmart DSP accounts use a different loader. Set `scriptUrl` to `https://azjs.adsrvr.org/thetradedesk-ads/up_loader.3.0.0.js`.
+- `enableCookieSyncing: false` doesn't stop all cookies. The Trade Desk still sets its `TDID` cookie on `adsrvr.org`.

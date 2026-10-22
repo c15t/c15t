@@ -536,7 +536,7 @@ export const builtInScriptIntegrations = [
 	},
 	{
 		consentCategory: 'marketing',
-		docsSlug: 'the-trade-desk',
+		docsSlug: 'other-ads-and-pixels',
 		hint: 'Universal Pixel conversions and advertising audiences',
 		integrationCategory: 'ads-and-pixels',
 		key: 'theTradeDeskPixel',
