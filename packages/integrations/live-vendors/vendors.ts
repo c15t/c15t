@@ -54,6 +54,7 @@ import { pirsch } from '../src/vendors/analytics/pirsch';
 import { plausibleAnalytics } from '../src/vendors/analytics/plausible-analytics';
 import { posthog } from '../src/vendors/analytics/posthog';
 import { promptwatch } from '../src/vendors/analytics/promptwatch';
+import { rb2b } from '../src/vendors/analytics/rb2b';
 import {
 	RUDDERSTACK_QUEUE_METHODS,
 	rudderstack,
@@ -570,6 +571,15 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 		userAgent:
 			'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36',
 		vendor: 'lucky-orange',
+	},
+	{
+		createScript: () => rb2b({ accountKey: 'C15TFAKERB2BKEY' }),
+		loaderUrlSubstring:
+			'ddwl4m2hdecbv.cloudfront.net/b/C15TFAKERB2BKEY/C15TFAKERB2BKEY.js.gz',
+		notes:
+			'Placeholder account key provides consent gating and endpoint reachability coverage only. Runtime initialization and visitor identification are not verified; collection is blocked.',
+		tier: 'loader-only',
+		vendor: 'rb2b',
 	},
 	{
 		skipReason:

@@ -38,6 +38,7 @@
 		"pirsch",
 		"posthog",
 		"privacy",
+		"rb2b",
 		"rudderstack",
 		"script-loader",
 		"sentry",
@@ -358,6 +359,11 @@
 			"types": "./dist-types/vendors/analytics/lucky-orange.d.ts",
 			"import": "./dist/vendors/analytics/lucky-orange.js",
 			"default": "./dist/vendors/analytics/lucky-orange.js"
+		},
+		"./rb2b": {
+			"types": "./dist-types/vendors/analytics/rb2b.d.ts",
+			"import": "./dist/vendors/analytics/rb2b.js",
+			"default": "./dist/vendors/analytics/rb2b.js"
 		},
 		"./clay": {
 			"types": "./dist-types/vendors/analytics/clay.d.ts",

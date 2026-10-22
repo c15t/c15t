@@ -636,6 +636,16 @@ export const builtInScriptIntegrations = [
 	},
 	{
 		consentCategory: 'marketing',
+		docsSlug: 'other-analytics',
+		hint: 'Website visitor identification for sales outreach',
+		integrationCategory: 'analytics',
+		key: 'rb2b',
+		label: 'RB2B',
+		packageSubpath: 'rb2b',
+		vendor: 'rb2b',
+	},
+	{
+		consentCategory: 'marketing',
 		docsSlug: 'clay',
 		hint: 'Website visitor company identification',
 		integrationCategory: 'analytics',

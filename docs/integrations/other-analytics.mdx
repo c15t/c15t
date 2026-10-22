@@ -45,6 +45,23 @@ Pendo records product usage and shows in-app guides. Waits for `measurement` con
 - The helper never calls `clearSession()`, because that starts a new anonymous visitor. If a visitor signs out while consent is granted, call `pendo.clearSession()` yourself before you identify the next visitor.
 - Stopping events doesn't delete Pendo's cookies or local storage, and guides already on the page stay there.
 
+## RB2B
+
+RB2B identifies the companies and US visitors behind site traffic for sales outreach. Waits for `marketing` consent.
+
+<include src="../shared/examples/javascript/rb2b-scripts.mdx" />
+
+| Option | Type | Required | Description |
+| --- | --- | --- | --- |
+| `accountKey` | `string` | Yes | Account key from the `reb2b.load` call on RB2B's Script Setup page. |
+| `scriptUrl` | `string` | No | Loader URL from your dashboard snippet. Defaults to `https://ddwl4m2hdecbv.cloudfront.net/b/<accountKey>/<accountKey>.js.gz`. |
+
+**When consent is withdrawn:** RB2B has no stop API, so c15t reloads the page to stop it. Keep `reloadOnConsentRevoked` on.
+
+- Authorize your domain first: in RB2B, open **Script**, choose **Add a Domain** and save it. RB2B's script doesn't run on domains you haven't added.
+- `scriptUrl` must stay on RB2B's CloudFront or S3 hosts, under `/b/<accountKey>/`. RB2B checks the script's own URL, so a proxy fails, and the helper logs an error and skips loading for other URLs.
+- RB2B runs once per page load, not on client-side route changes. To count a new page view, use full-page navigation, such as a plain `<a href>`.
+
 ## Statable
 
 Statable is cookieless web analytics. Waits for `measurement` consent.

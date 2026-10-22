@@ -37,6 +37,7 @@ import { pirsch } from './vendors/analytics/pirsch';
 import { plausibleAnalytics } from './vendors/analytics/plausible-analytics';
 import { posthog } from './vendors/analytics/posthog';
 import { promptwatch } from './vendors/analytics/promptwatch';
+import { rb2b } from './vendors/analytics/rb2b';
 import { rudderstack } from './vendors/analytics/rudderstack';
 import { rybbitAnalytics } from './vendors/analytics/rybbit-analytics';
 import { segment } from './vendors/analytics/segment';
@@ -152,6 +153,12 @@ const requiredIdCases: {
 		helper: 'luckyOrange',
 		option: 'siteId',
 		script: { category: 'measurement', id: 'lucky-orange' },
+	},
+	{
+		create: (id) => rb2b({ accountKey: asId(id) }),
+		helper: 'rb2b',
+		option: 'accountKey',
+		script: { category: 'marketing', id: 'rb2b' },
 	},
 	{
 		create: (id) => linkedinInsights({ id: asId(id) }),
