@@ -220,8 +220,11 @@ describe('persistence: write path', () => {
 		expect(localStorage.getItem(`${STORAGE_KEY_V2}-notice`)).toContain(
 			'"version":1'
 		);
+		// The ID from first load is bound to the acknowledgement in a
+		// companion cookie; the v1 notice cookie keeps its format.
 		expect(cookieNames()).toEqual([
 			`${STORAGE_KEY_V2}-notice`,
+			`${STORAGE_KEY_V2}-notice-subject`,
 			`${STORAGE_KEY_V2}-sid`,
 		]);
 
@@ -232,6 +235,9 @@ describe('persistence: write path', () => {
 		createPersistence({ kernel: read });
 		expect(read.getSnapshot().promptRequirement).toEqual({ kind: 'none' });
 		expect(read.getSnapshot().explicitChoice).toBeNull();
+		expect(read.getSnapshot().subject?.subjectId).toBe(
+			kernel.getSnapshot().subject?.subjectId
+		);
 	});
 
 	test('GPC restricts only while the signal is live and is never stored', () => {
