@@ -41,6 +41,7 @@
 		"TypeScript-first: All APIs are fully typed. Use TypeScript for best experience with autocomplete and type safety",
 		"Performance: c15t is lightweight with minimal bundle impact. Scripts load/unload dynamically based on consent changes",
 		"Privacy by design: GDPR-compliant by default with granular consent controls and complete audit trail for compliance",
+		"Amazon Ads: use amazonAdsTag from @c15t/integrations/amazon-ads to gate loading on marketing consent. Keep c15t's default reload on revocation to stop code already running.",
 		"Clay: use clay from @c15t/integrations/clay to gate loading on marketing consent. Keep c15t's default reload on revocation to stop code already running."
 	]
 }

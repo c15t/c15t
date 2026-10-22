@@ -12,6 +12,7 @@ import {
 	getBuiltInScriptIntegrationByVendor,
 } from './registry';
 import type { IntegrationConsentCondition } from './registry';
+import { amazonAdsTagManifest } from './vendors/ads-and-pixels/amazon-ads';
 import { linkedinInsightsManifest } from './vendors/ads-and-pixels/linkedin-insights';
 import { metaPixelManifest } from './vendors/ads-and-pixels/meta-pixel';
 import { microsoftUetManifest } from './vendors/ads-and-pixels/microsoft-uet';
@@ -65,6 +66,7 @@ const validConsentCategories = [
 
 const vendorManifests = [
 	clayManifest,
+	amazonAdsTagManifest,
 	googleTagManagerManifest,
 	gtagManifest,
 	ahrefsAnalyticsManifest,

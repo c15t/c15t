@@ -156,6 +156,9 @@ export const createScriptReuse = <OptionsType extends object>() => {
 						}
 					: undefined,
 			};
+			if (info.replacing) {
+				Object.defineProperty(combined, 'replacing', { value: true });
+			}
 			registrationStates.set(combined, states);
 			return combined;
 		};

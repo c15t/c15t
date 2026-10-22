@@ -36,6 +36,10 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 		example: "ahrefsAnalytics({ key: 'YOUR_ANALYTICS_KEY' })",
 		importName: 'ahrefsAnalytics',
 	},
+	'amazon-ads': {
+		example: "amazonAdsTag({ tagId: 'YOUR_TAG_ID', region: 'NA' })",
+		importName: 'amazonAdsTag',
+	},
 	amplitude: {
 		example: "amplitude({ apiKey: 'YOUR_API_KEY' })",
 		importName: 'amplitude',

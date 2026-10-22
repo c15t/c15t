@@ -119,6 +119,7 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 
 - [Adobe Analytics](./integrations/adobe-analytics.md): Load an Adobe Data Collection Tags property only after measurement consent with the c15t adobeAnalytics helper, and check its extensions in DevTools.
 - [Ahrefs Analytics](./integrations/ahrefs-analytics.md): Load Ahrefs Web Analytics only after measurement consent with the c15t ahrefsAnalytics helper, and check it in DevTools.
+- [Amazon Ads](./integrations/amazon-ads.md): Load Amazon Ads with c15t after marketing consent and verify its loader, storage and revocation behavior.
 - [Amplitude](./integrations/amplitude.md): Load the Amplitude Browser SDK 2 only after measurement consent with the c15t amplitude helper, which opts the SDK out on revocation and back in on a new grant.
 - [Custom integrations](./integrations/building-integrations.md): Gate a vendor that has no @c15t/integrations helper, or sync consent with an SDK your app already loads, using a c15t script configuration.
 - [Clay](./integrations/clay.md): Load Clay web intent only after marketing consent and understand its storage and revocation limits.
