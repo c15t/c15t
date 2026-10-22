@@ -97,6 +97,10 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 		example: 'hotjar({ siteId: 1234567 })',
 		importName: 'hotjar',
 	},
+	hubspot: {
+		example: "hubspot({ portalId: '123456' })",
+		importName: 'hubspot',
+	},
 	intercom: {
 		example: "intercom({ appId: 'YOUR_APP_ID' })",
 		importName: 'intercom',

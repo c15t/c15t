@@ -33,6 +33,7 @@ import { gtagManifest } from './vendors/analytics/google-tag';
 import { heapManifest } from './vendors/analytics/heap';
 import { hightouchManifest } from './vendors/analytics/hightouch';
 import { hotjarManifest } from './vendors/analytics/hotjar';
+import { hubspotManifest } from './vendors/analytics/hubspot';
 import { logRocketManifest } from './vendors/analytics/logrocket';
 import { matomoAnalyticsManifest } from './vendors/analytics/matomo-analytics';
 import { clarityManifest } from './vendors/analytics/microsoft-clarity';
@@ -65,6 +66,7 @@ const validConsentCategories = [
 
 const vendorManifests = [
 	clayManifest,
+	hubspotManifest,
 	googleTagManagerManifest,
 	gtagManifest,
 	ahrefsAnalyticsManifest,

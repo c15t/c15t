@@ -28,6 +28,33 @@ export interface ScriptCallbackInfo {
 	 */
 	readonly registration?: symbol;
 
+	/**
+	 * Read this registration's current whole-script gate, effective categories
+	 * and vendor permission, including changes awaiting callback delivery.
+	 * During disposal, retains declaration context while reading current consent.
+	 * After disposal, returns the last state evaluated for that registration.
+	 * Non-enumerable; lifecycle event fields retain their original meaning.
+	 * @returns Current permission info for this script registration.
+	 * @internal
+	 */
+	readonly getCurrentConsent?: () => ScriptCallbackInfo;
+
+	/**
+	 * A configuration with the same ID will register after this disposal.
+	 * Read current permission separately; replacement can include real withdrawal.
+	 * Non-enumerable and only supplied to the outgoing disposal callback.
+	 * @internal
+	 */
+	readonly replacing?: boolean;
+
+	/**
+	 * Run after the queued replacement has reconciled, or disposal aborts it.
+	 * Only present on an outgoing replacement's disposal info. Non-enumerable.
+	 * @param effect - Synchronous work that must wait for incoming membership.
+	 * @internal
+	 */
+	readonly afterReplacement?: (effect: () => void) => void;
+
 	/** The original script ID */
 	id: string;
 

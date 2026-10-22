@@ -2,6 +2,7 @@
  * One script per built-in integration, built from its public helper with
  * sample options, and the fields the helper must set.
  */
+
 import type { BuiltInScriptIntegrationKey } from '../registry';
 import { linkedinInsights } from '../vendors/ads-and-pixels/linkedin-insights';
 import { metaPixel } from '../vendors/ads-and-pixels/meta-pixel';
@@ -24,6 +25,7 @@ import { gtag } from '../vendors/analytics/google-tag';
 import { heap } from '../vendors/analytics/heap';
 import { hightouch } from '../vendors/analytics/hightouch';
 import { hotjar } from '../vendors/analytics/hotjar';
+import { hubspot } from '../vendors/analytics/hubspot';
 import { logRocket } from '../vendors/analytics/logrocket';
 import { matomoAnalytics } from '../vendors/analytics/matomo-analytics';
 import { clarity } from '../vendors/analytics/microsoft-clarity';
@@ -184,6 +186,14 @@ export const helperParityCases = {
 			src: 'https://static.hotjar.com/c/hotjar-1234567.js?sv=6',
 		},
 		script: hotjar({ siteId: 1234567 }),
+	},
+	hubspot: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: true,
+			src: 'https://js.hs-scripts.com/53.js',
+		},
+		script: hubspot({ portalId: '53' }),
 	},
 	intercom: {
 		expected: {

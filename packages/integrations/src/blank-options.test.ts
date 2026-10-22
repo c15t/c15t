@@ -23,6 +23,7 @@ import { gtag } from './vendors/analytics/google-tag';
 import { heap } from './vendors/analytics/heap';
 import { hightouch } from './vendors/analytics/hightouch';
 import { hotjar } from './vendors/analytics/hotjar';
+import { hubspot } from './vendors/analytics/hubspot';
 import { logRocket } from './vendors/analytics/logrocket';
 import { matomoAnalytics } from './vendors/analytics/matomo-analytics';
 import { clarity } from './vendors/analytics/microsoft-clarity';
@@ -64,6 +65,12 @@ const requiredIdCases: {
 		helper: 'clay',
 		option: 'siteId',
 		script: { category: 'marketing', id: 'clay' },
+	},
+	{
+		create: (id) => hubspot({ portalId: asId(id) }),
+		helper: 'hubspot',
+		option: 'portalId',
+		script: { category: 'marketing', id: 'hubspot' },
 	},
 	{
 		create: (id) => linkedinInsights({ id: asId(id) }),
@@ -340,6 +347,11 @@ const blankScriptUrlCases: {
 	create: (scriptUrl: string) => Script;
 	expectedSrc: string;
 }[] = [
+	{
+		create: (scriptUrl) => hubspot({ portalId: '53', scriptUrl }),
+		expectedSrc: 'https://js.hs-scripts.com/53.js',
+		helper: 'hubspot',
+	},
 	{
 		create: (scriptUrl) => hotjar({ scriptUrl, siteId: 123 }),
 		expectedSrc: 'https://static.hotjar.com/c/hotjar-123.js?sv=6',

@@ -851,6 +851,7 @@ export default defineDocsConfig({
 						'cloudflare-web-analytics',
 						'clearbit',
 						'clay',
+						'hubspot',
 						'microsoft-clarity',
 						'databuddy',
 						'fathom-analytics',
