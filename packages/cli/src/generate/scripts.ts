@@ -33,14 +33,14 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 			"adobeAnalytics({ scriptUrl: 'https://assets.adobedtm.com/YOUR_ORG/YOUR_PROPERTY/launch-production.min.js' })",
 		importName: 'adobeAnalytics',
 	},
+	'adobe-target': {
+		example: "adobeTarget({ mode: 'atjs', scriptUrl: '/scripts/at.js' })",
+		importName: 'adobeTarget',
+	},
 	adroll: {
 		example:
 			"adrollPixel({ advertiserId: 'ADVERTISER_ID', pixelId: 'PIXEL_ID' })",
 		importName: 'adrollPixel',
-	},
-	'adobe-target': {
-		example: "adobeTarget({ mode: 'atjs', scriptUrl: '/scripts/at.js' })",
-		importName: 'adobeTarget',
 	},
 	'ahrefs-analytics': {
 		example: "ahrefsAnalytics({ key: 'YOUR_ANALYTICS_KEY' })",
@@ -254,14 +254,14 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 		example: "snapchatPixel({ pixelId: 'XXXXXXXXXXXXXXX' })",
 		importName: 'snapchatPixel',
 	},
+	'statable-analytics': {
+		example: "statableAnalytics({ siteId: '12345' })",
+		importName: 'statableAnalytics',
+	},
 	'the-trade-desk': {
 		example:
 			"theTradeDeskPixel({ advertiserId: 'ADVERTISER_ID', pixelIds: ['PIXEL_ID'] })",
 		importName: 'theTradeDeskPixel',
-	},
-	'statable-analytics': {
-		example: "statableAnalytics({ siteId: '12345' })",
-		importName: 'statableAnalytics',
 	},
 	'tiktok-pixel': {
 		example: "tiktokPixel({ pixelId: 'XXXXXXXXXXXXXXXXX' })",
