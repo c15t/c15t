@@ -364,7 +364,7 @@ cookie carries identity; readers use it only while its timestamp and fingerprint
 match the acknowledgement. Removing or replacing the notice makes a stale
 identity cookie ineffective, and clearing consent deletes both cookies. For the same
 acknowledgement, the cookie identity wins unless a failed cookie write left a
-newer local identity. That exception lasts only while both notice cookies match
+newer local identity or a local identity removal. That exception lasts only while both notice cookies match
 the values observed after the failed write; a later server or sibling-subdomain
 cookie update takes precedence. Category-based data cleanup protects these
 identity records even when a configured wildcard matches their names. An explicit

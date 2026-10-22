@@ -864,7 +864,6 @@ export const readStoredNoticeDismissal = function readStoredNoticeDismissal(
 		if (
 			fromLocal.record.dismissedAt === fromCookie.record.dismissedAt &&
 			fromLocal.record.fingerprint === fromCookie.record.fingerprint &&
-			fromLocal.record.subject &&
 			readLocalStorageText(keys.noticeCookieMiss) ===
 				JSON.stringify([
 					getRawCookieValue(keys.notice) ?? '',

@@ -437,6 +437,63 @@ test.each([undefined, { storageKey: 'review-custom-notice' }])(
 	}
 );
 
+test.each([undefined, { storageKey: 'subject-removal' }])(
+	'a dropped subject-cookie deletion preserves local removal until cookies change with config %j',
+	(storageConfig) => {
+		const now = Date.now();
+		const keys = resolveStorageKeys(storageConfig);
+		const record = {
+			dismissedAt: now,
+			fingerprint: 'policy',
+			version: 1 as const,
+		};
+		writeStoredNoticeDismissal(
+			{ ...record, subject: { subjectId: 'original' } },
+			storageConfig,
+			now
+		);
+		const setter = Object.getOwnPropertyDescriptor(
+			Document.prototype,
+			'cookie'
+		)?.set;
+		if (!setter) {
+			throw new Error('Expected a browser cookie setter');
+		}
+		const dropped = vi
+			.spyOn(document, 'cookie', 'set')
+			.mockImplementation((value: string) => {
+				if (!value.startsWith(`${keys.noticeSubject}=`)) {
+					setter.call(document, value);
+				}
+			});
+		try {
+			writeStoredNoticeDismissal(record, storageConfig, now);
+		} finally {
+			dropped.mockRestore();
+		}
+		expect(
+			readStoredRecordsFromCookieHeader(document.cookie, storageConfig, now)
+				.subject?.subjectId
+		).toBe('original');
+		const local = readStoredNoticeDismissal(storageConfig, now);
+		expect(local?.ok).toBe(true);
+		expect(local?.ok && local.record.subject).toBeUndefined();
+		const kernel = createConsentKernel({ consentCategories: ['necessary'] });
+		const reader = createPersistence({ kernel, storageConfig });
+		expect(kernel.getSnapshot().subject).toBeNull();
+		reader.dispose();
+		kernel.dispose();
+
+		// The exception is bound to cookie bytes, even without a local subject.
+		document.cookie = `${keys.noticeSubject}=${encodeNoticeSubjectCompact({ ...record, subject: { subjectId: 'server-canonical' } })}; path=/`;
+		const changed = readStoredNoticeDismissal(storageConfig, now);
+		expect(changed?.ok && changed.record.subject?.subjectId).toBe(
+			'server-canonical'
+		);
+		clearStoredConsentRecords(undefined, storageConfig);
+	}
+);
+
 test.each([undefined, { storageKey: 'custom-consent' }])(
 	'wildcard revocation cleanup preserves necessary-only identity with config %j',
 	async (storageConfig) => {
