@@ -1,14 +1,14 @@
 /**
  * Live probe definitions for built-in `@c15t/integrations` integrations.
  *
- * Each entry pairs a registry vendor with a probe configuration and
+ * Each entry pairs a registry vendor with safe placeholder configuration and
  * the checks used by the live monitor. This module is imported by the Node
  * runner and bundled into the browser harness, so check callbacks run inside
  * the probed page.
  *
- * Use placeholder IDs by default. Explicitly authorized public sample IDs are
- * documented in each entry. Collection and non-loader third-party requests
- * remain blocked when a vendor runtime initializes.
+ * Placeholder ids must be obviously fake and must never point at a real
+ * account. Collection endpoints are blocked by the runner, so probes cannot
+ * send real analytics data even when a vendor runtime initializes.
  */
 import { linkedinInsights } from '../src/vendors/ads-and-pixels/linkedin-insights';
 import { metaPixel } from '../src/vendors/ads-and-pixels/meta-pixel';

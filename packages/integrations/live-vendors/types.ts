@@ -55,9 +55,8 @@ export interface LiveVendorProbeConfig {
 	/** Required when `tier` is `skip`; explains the coverage gap. */
 	skipReason?: string;
 	/**
-	 * Builds the vendor script with placeholders or explicitly authorized public
-	 * sample IDs documented in the entry. Required unless `tier` is `skip`.
-	 * Collection requests remain blocked.
+	 * Builds the vendor script with safe placeholder configuration. Required
+	 * unless `tier` is `skip`. Must not send real account identifiers.
 	 */
 	createScript?: () => Script;
 	/** Substring identifying the vendor loader request URL. */
