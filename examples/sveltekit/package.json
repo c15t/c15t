@@ -10,7 +10,7 @@
 	},
 	"dependencies": {
 		"@c15t/integrations": "workspace:*",
-		"@c15t/svelte": "workspace:*"
+		"c15t": "workspace:*"
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-auto": "8.0.0",
