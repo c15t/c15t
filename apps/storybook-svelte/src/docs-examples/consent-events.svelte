@@ -1,6 +1,6 @@
 <!-- #region docs:consent-events title="src/lib/consent-events.svelte" -->
 <script lang="ts">
-	import { getConsentKernel } from '@c15t/svelte';
+	import { getConsentKernel } from 'c15t/svelte';
 
 	// Read the kernel at the top level; subscribe in an effect so the
 	// listener is removed when the component unmounts.

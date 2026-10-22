@@ -44,6 +44,7 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 		example: "attentiveTag({ siteSlug: 'YOUR_SITESLUG' })",
 		importName: 'attentiveTag',
 	},
+	clay: { example: "clay({ siteId: 'YOUR_SITE_ID' })", importName: 'clay' },
 	clearbit: {
 		example: "clearbit({ publishableKey: 'pk_XXXXXXXXXX' })",
 		importName: 'clearbit',
