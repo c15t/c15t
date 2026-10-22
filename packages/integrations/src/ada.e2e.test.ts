@@ -69,6 +69,7 @@ describe('Ada Messaging core loader contract', () => {
 		importGate.resolve();
 		await settle();
 		vi.doUnmock(SDK_URL);
+		vi.unstubAllGlobals();
 	});
 
 	it('waits for functionality consent, then starts one private interface', async () => {
@@ -102,6 +103,9 @@ describe('Ada Messaging core loader contract', () => {
 		const send = vi.spyOn(XMLHttpRequest.prototype, 'send');
 		const writeStorage = vi.spyOn(Storage.prototype, 'setItem');
 		const writeCookie = vi.spyOn(document, 'cookie', 'set');
+		// Node 25+ defines its own storage globals over jsdom's.
+		vi.stubGlobal('localStorage', jsdom.window.localStorage);
+		vi.stubGlobal('sessionStorage', jsdom.window.sessionStorage);
 		const scripts = [ada({ handle: 'agent' })];
 		const cookies = document.cookie;
 		expect(window.localStorage).toBeInstanceOf(Storage);
@@ -244,7 +248,8 @@ describe('Ada Messaging core loader contract', () => {
 		stopping.resolve();
 		await vi.waitFor(() => expect(client.start).toHaveBeenCalledTimes(2));
 		expect(client.start).toHaveBeenLastCalledWith({ handle: 'second' });
-		expect(createAdaEmbedInterface).toHaveBeenCalledTimes(2);
+		// A second interface would reject with Ada's start_owner_conflict.
+		expect(createAdaEmbedInterface).toHaveBeenCalledOnce();
 	});
 
 	it('keeps a shared script active until its last loader releases it', async () => {
