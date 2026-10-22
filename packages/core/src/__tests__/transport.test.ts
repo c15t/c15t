@@ -1394,6 +1394,53 @@ describe('createHostedTransport: request shape', () => {
 		}
 	);
 
+	test.each(['hosted', 'manifest'] as const)(
+		'after an older backend does not know the subject, the %s transport sends the identity with the next save',
+		async (kind) => {
+			const fetchSpy = vi.fn((_url: unknown, init?: RequestInit) =>
+				Promise.resolve(
+					init?.method === 'PATCH'
+						? Response.json({ message: 'nope' }, { status: 404 })
+						: Response.json({ ok: true, subjectId: 'sub_unsaved' })
+				)
+			);
+			const fetch = fetchSpy as unknown as typeof globalThis.fetch;
+			const transport =
+				kind === 'hosted'
+					? createHostedTransport({ backendURL: 'https://backend.test', fetch })
+					: createManifestTransport({
+							backendURL: 'https://backend.test',
+							domain: 'example.com',
+							fetch,
+							snapshot: MANIFEST_FIXTURE,
+						});
+			const kernel = createConsentKernel({
+				initialRecords: { subject: { subjectId: 'sub_unsaved' } },
+				transport,
+			});
+
+			await kernel.commands.identify({
+				externalId: 'user-42',
+				identityProvider: 'app',
+			});
+			expect(
+				fetchSpy.mock.calls.filter(([, init]) => init?.method === 'PATCH')
+			).toHaveLength(1);
+			await kernel.commands.save('all');
+
+			const saves = fetchSpy.mock.calls.filter(
+				([url, init]) =>
+					init?.method === 'POST' && withoutQuery(url).endsWith('/subjects')
+			);
+			expect(saves).toHaveLength(1);
+			expect(JSON.parse(saves[0]?.[1]?.body as string)).toMatchObject({
+				externalSubjectId: 'user-42',
+				identityProvider: 'app',
+				subjectId: 'sub_unsaved',
+			});
+		}
+	);
+
 	test('initURL overrides init without changing the save endpoint', async () => {
 		const fetchSpy = vi
 			.fn()
