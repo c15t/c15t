@@ -222,6 +222,17 @@ const BROWSER_MANIFEST_ENTRIES = new Set(['browser-full', 'browser-headless']);
  */
 const ADDITIONAL_CONSENT_COPY_GZIP_BYTES = 3584;
 
+/**
+ * Seven built-in languages for New York State's language access list (ar,
+ * bn, ht, ko, ru, ur, yi; #1562) land in the same first-load JavaScript of
+ * entries that bundle every language: 18,759 bytes gzip, measured as the
+ * change from the base commit. The browser entries get seven more language
+ * chunks, which `BROWSER_LANGUAGE_CHUNKS_GZIP_BYTES` already covers. The
+ * budgets below carry it once; they return to their previous values after
+ * the languages are on the base branch.
+ */
+const NY_LANGUAGES_GZIP_BYTES = 19_456;
+
 /** Bundle entries that bundle every built-in language on first load. */
 const ALL_LANGUAGE_ENTRIES = new Set(['manifest-transport']);
 
@@ -1269,13 +1280,13 @@ export const bundleEntryBudgets = function bundleEntryBudgets(
 		? BROWSER_LANGUAGE_CHUNKS_GZIP_BYTES
 		: 0;
 	const allLanguageCopy = ALL_LANGUAGE_ENTRIES.has(scenario)
-		? ADDITIONAL_CONSENT_COPY_GZIP_BYTES
+		? ADDITIONAL_CONSENT_COPY_GZIP_BYTES + NY_LANGUAGES_GZIP_BYTES
 		: 0;
 	return [
 		{
 			comparator: 'delta-bytes-lte',
 			description:
-				'Consumer entry initial JavaScript may grow by at most 2 KiB gzip, plus the vendor consent allowance, the Additional Consent copy for entries that bundle every language and, for entries with a stock surface, its styles.',
+				'Consumer entry initial JavaScript may grow by at most 2 KiB gzip, plus the vendor consent allowance, the Additional Consent copy and new languages for entries that bundle every language and, for entries with a stock surface, its styles.',
 			metric: 'initialGzip',
 			threshold:
 				2048 +
@@ -1301,7 +1312,7 @@ export const bundleEntryBudgets = function bundleEntryBudgets(
 		{
 			comparator: 'delta-bytes-lte',
 			description:
-				'Initial plus reachable deferred JavaScript may grow by at most 3 KiB gzip, plus the ordinary or IAB style allowance and the Additional Consent copy for entries that bundle every language.',
+				'Initial plus reachable deferred JavaScript may grow by at most 3 KiB gzip, plus the ordinary or IAB style allowance and the Additional Consent copy and new languages for entries that bundle every language.',
 			metric: 'gzipSize',
 			threshold:
 				3072 +

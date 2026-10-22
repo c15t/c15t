@@ -54,7 +54,7 @@ export const hosted = function hosted(
 		try {
 			if (process.env.NODE_ENV !== 'production') {
 				hint =
-					' Add consentManifest() from @c15t/svelte/vite to vite.config.ts and set VITE_C15T_BACKEND_URL (or VITE_INTH_PROJECT_URL), or pass `backendURL`.';
+					' Add consentManifest() from c15t/svelte/vite to vite.config.ts and set VITE_C15T_BACKEND_URL (or VITE_INTH_PROJECT_URL), or pass `backendURL`.';
 			}
 		} catch {
 			// No bundler and no `process`: the short message has to do.

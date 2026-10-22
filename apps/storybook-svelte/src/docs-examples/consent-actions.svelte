@@ -1,6 +1,6 @@
 <!-- #region docs:consent-actions title="src/lib/cookie-choices.svelte" -->
 <script lang="ts">
-	import { ConsentButton, ConsentDialog } from '@c15t/svelte';
+	import { ConsentButton, ConsentDialog } from 'c15t/svelte';
 </script>
 
 <section aria-labelledby="cookie-choices">

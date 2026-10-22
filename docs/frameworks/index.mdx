@@ -14,8 +14,8 @@ group: frameworks
 | Nuxt | `c15t` (`c15t/vue` Nuxt module) | [Nuxt quickstart](/docs/frameworks/nuxt/quickstart) |
 | Vue | `c15t` (`c15t/vue/vue-plugin`) | [Vue quickstart](/docs/frameworks/vue/quickstart) |
 | Astro | `c15t` (`c15t/astro`) | [Astro quickstart](/docs/frameworks/astro/quickstart) |
-| Svelte | `@c15t/svelte` | [Svelte quickstart](/docs/frameworks/svelte/quickstart) |
-| SvelteKit | `@c15t/svelte` | [SvelteKit quickstart](/docs/frameworks/sveltekit/quickstart) |
+| Svelte | `c15t/svelte` | [Svelte quickstart](/docs/frameworks/svelte/quickstart) |
+| SvelteKit | `c15t/svelte` | [SvelteKit quickstart](/docs/frameworks/sveltekit/quickstart) |
 | HTML, a CMS, a page builder or a static site generator | `@c15t/browser` from a script tag | [HTML quickstart](/docs/frameworks/html/quickstart) |
 | JavaScript with a bundler, or your own UI | `@c15t/browser`, or `c15t` (`c15t/runtime`) | [JavaScript quickstart](/docs/frameworks/javascript/quickstart) |
 
@@ -27,11 +27,11 @@ site, to a guide.
 
 Most frameworks use one package, `c15t`, and import the framework entry point:
 `c15t/next`, `c15t/react`, `c15t/vue` (the Nuxt module), `c15t/vue/vue-plugin`
-(plain Vue), `c15t/astro` or `c15t/tanstack-start`.
+(plain Vue), `c15t/astro`, `c15t/tanstack-start` or `c15t/svelte`.
 You do not need `@c15t/nextjs` or `@c15t/react` as well; `c15t` depends on
 them.
 
-Svelte and SvelteKit use their own package, `@c15t/svelte`. HTML pages and the
+HTML pages and the
 stock UI in JavaScript use `@c15t/browser`. Vendor script helpers are a separate
 install, `@c15t/integrations`, in every framework.
 

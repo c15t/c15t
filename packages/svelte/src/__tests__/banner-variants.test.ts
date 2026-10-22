@@ -113,16 +113,16 @@ describe('banner variants', () => {
 		view.unmount();
 	});
 
-	test('a defaulted corner mirrors for right-to-left text', () => {
+	test('right-to-left text keeps the default corner', () => {
 		const view = renderFixture(rtl(choice()));
 		expect(root().getAttribute('dir')).toBe('rtl');
-		expect(root().dataset.position).toBe('bottom-right');
+		expect(root().dataset.position).toBe('bottom-left');
 		view.unmount();
 	});
 
 	test('a host corner stays put for right-to-left text', () => {
-		const view = renderFixture(rtl(choice()), { position: 'bottom-left' });
-		expect(root().dataset.position).toBe('bottom-left');
+		const view = renderFixture(rtl(choice()), { position: 'top-right' });
+		expect(root().dataset.position).toBe('top-right');
 		view.unmount();
 	});
 
@@ -134,7 +134,7 @@ describe('banner variants', () => {
 		view.unmount();
 	});
 
-	test('a bar edge is not mirrored for right-to-left text', () => {
+	test('a bar edge stays put for right-to-left text', () => {
 		const view = renderFixture(rtl(notice()), { variant: 'bar' });
 		expect(root().dataset.variant).toBe('bar');
 		expect(root().dataset.position).toBe('bottom');
