@@ -42,6 +42,7 @@ import { klaviyo } from './vendors/email-and-sms/klaviyo';
 import { crisp } from './vendors/functional/crisp';
 import { frontChat } from './vendors/functional/front-chat';
 import { intercom } from './vendors/functional/intercom';
+import { zendeskWidget } from './vendors/functional/zendesk';
 import { googleTagManager } from './vendors/tag-managers/google-tag-manager';
 
 const BLANK_VALUES = ['', '   '] as const;
@@ -64,6 +65,15 @@ const requiredIdCases: {
 		helper: 'clay',
 		option: 'siteId',
 		script: { category: 'marketing', id: 'clay' },
+	},
+	{
+		create: (id) =>
+			zendeskWidget({
+				key: asId(id),
+			}),
+		helper: 'zendeskWidget',
+		option: 'key',
+		script: { category: 'functionality', id: 'zendesk' },
 	},
 	{
 		create: (id) => linkedinInsights({ id: asId(id) }),

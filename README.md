@@ -135,7 +135,7 @@ The layout stays a Server Component. You write no `'use client'` wrapper and nee
 - **Analytics**: Google tag (GA4 and Google Ads), Adobe Analytics, Ahrefs Analytics, Amplitude, Clay, Cloudflare Web Analytics, Databuddy, Fathom, Heap, Hightouch, Hotjar, LogRocket, Matomo, Microsoft Clarity, Mixpanel, OneDollarStats, Pirsch, Plausible, PostHog, Promptwatch, RudderStack, Rybbit, Segment, Umami, Vercel Analytics, Vercel Speed Insights
 - **Ads and pixels**: Meta Pixel, OpenAI Pixel, TikTok Pixel, LinkedIn Insight Tag, Microsoft UET, Pinterest Tag, Reddit Pixel, Snapchat Pixel, X Pixel
 - **Enrichment, email, and SMS**: Clearbit, Klaviyo
-- **Chat and support**: Intercom, Crisp, Front Chat
+- **Chat and support**: Intercom, Crisp, Front Chat, Zendesk Messaging
 - **Monitoring**: Sentry
 - **Embeds**: YouTube and Google Maps, with no extra package
 
