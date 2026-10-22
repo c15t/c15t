@@ -86,6 +86,7 @@ kernel to control its DOM lifecycle. Embeds do not require `@c15t/integrations`.
 
 | Integration                                                        | Helper          | Category        | Loading behavior               |
 | ------------------------------------------------------------------ | --------------- | --------------- | ------------------------------ |
+| [Ada](./other-chat-and-support.md#ada)                             | `ada`           | `functionality` | Waits for effective permission |
 | [Crisp](./crisp.md)                                                | `crisp`         | `functionality` | Waits for effective permission |
 | [Front Chat](./front-chat.md)                                      | `frontChat`     | `functionality` | Waits for effective permission |
 | [Gorgias Chat](./other-chat-and-support.md#gorgias-chat)           | `gorgiasChat`   | `functionality` | Waits for effective permission |

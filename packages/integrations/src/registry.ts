@@ -117,6 +117,16 @@ export const builtInScriptIntegrations = [
 	{
 		consentCategory: 'functionality',
 		docsSlug: 'other-chat-and-support',
+		hint: 'Customer support through Ada Messaging',
+		integrationCategory: 'functional',
+		key: 'ada',
+		label: 'Ada',
+		packageSubpath: 'ada',
+		vendor: 'ada',
+	},
+	{
+		consentCategory: 'functionality',
+		docsSlug: 'other-chat-and-support',
 		hint: 'Customer support through Gorgias Chat',
 		integrationCategory: 'functional',
 		key: 'gorgiasChat',

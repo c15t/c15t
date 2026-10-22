@@ -50,6 +50,7 @@ import { umamiAnalyticsManifest } from './vendors/analytics/umami-analytics';
 import { vercelAnalyticsManifest } from './vendors/analytics/vercel-analytics';
 import { vercelSpeedInsightsManifest } from './vendors/analytics/vercel-speed-insights';
 import { klaviyoManifest } from './vendors/email-and-sms/klaviyo';
+import { adaManifest } from './vendors/functional/ada';
 import { crispManifest } from './vendors/functional/crisp';
 import { frontChatManifest } from './vendors/functional/front-chat';
 import { gorgiasChatManifest } from './vendors/functional/gorgias';
@@ -67,6 +68,7 @@ const validConsentCategories = [
 
 const vendorManifests = [
 	clayManifest,
+	adaManifest,
 	gorgiasChatManifest,
 	zendeskWidgetManifest,
 	googleTagManagerManifest,

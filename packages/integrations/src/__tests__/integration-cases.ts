@@ -42,6 +42,7 @@ import { umamiAnalytics } from '../vendors/analytics/umami-analytics';
 import { vercelAnalytics } from '../vendors/analytics/vercel-analytics';
 import { vercelSpeedInsights } from '../vendors/analytics/vercel-speed-insights';
 import { klaviyo } from '../vendors/email-and-sms/klaviyo';
+import { ada } from '../vendors/functional/ada';
 import { crisp } from '../vendors/functional/crisp';
 import { frontChat } from '../vendors/functional/front-chat';
 import { gorgiasChat } from '../vendors/functional/gorgias';
@@ -52,6 +53,14 @@ import { googleTagManager } from '../vendors/tag-managers/google-tag-manager';
 import type { expectScriptMatchesIntegration } from './helpers';
 
 export const helperParityCases = {
+	ada: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: undefined,
+		},
+		script: ada({ handle: 'c15t-live-probe-placeholder' }),
+	},
 	adobeAnalytics: {
 		expected: {
 			alwaysLoad: undefined,

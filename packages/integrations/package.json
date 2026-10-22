@@ -304,6 +304,11 @@
 			"import": "./dist/events.js",
 			"default": "./dist/events.js"
 		},
+		"./ada": {
+			"types": "./dist-types/vendors/functional/ada.d.ts",
+			"import": "./dist/vendors/functional/ada.js",
+			"default": "./dist/vendors/functional/ada.js"
+		},
 		"./gorgias": {
 			"types": "./dist-types/vendors/functional/gorgias.d.ts",
 			"import": "./dist/vendors/functional/gorgias.js",

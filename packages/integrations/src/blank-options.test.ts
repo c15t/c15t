@@ -39,6 +39,7 @@ import { umamiAnalytics } from './vendors/analytics/umami-analytics';
 import { vercelAnalytics } from './vendors/analytics/vercel-analytics';
 import { vercelSpeedInsights } from './vendors/analytics/vercel-speed-insights';
 import { klaviyo } from './vendors/email-and-sms/klaviyo';
+import { ada } from './vendors/functional/ada';
 import { crisp } from './vendors/functional/crisp';
 import { frontChat } from './vendors/functional/front-chat';
 import { gorgiasChat } from './vendors/functional/gorgias';
@@ -66,6 +67,13 @@ const requiredIdCases: {
 		helper: 'clay',
 		option: 'siteId',
 		script: { category: 'marketing', id: 'clay' },
+	},
+	{
+		create: (id) =>
+			ada({ ...{ handle: 'c15t-live-probe-placeholder' }, handle: asId(id) }),
+		helper: 'ada',
+		option: 'handle',
+		script: { category: 'functionality', id: 'ada' },
 	},
 	{
 		create: (id) =>
