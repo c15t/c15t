@@ -44,6 +44,7 @@
 		"session-replay",
 		"the-trade-desk",
 		"tiktok-pixel",
+		"vector",
 		"vercel-speed-insights",
 		"x-pixel"
 	],
@@ -336,6 +337,11 @@
 			"types": "./dist-types/vendors/ads-and-pixels/adroll.d.ts",
 			"import": "./dist/vendors/ads-and-pixels/adroll.js",
 			"default": "./dist/vendors/ads-and-pixels/adroll.js"
+		},
+		"./vector": {
+			"types": "./dist-types/vendors/ads-and-pixels/vector.d.ts",
+			"import": "./dist/vendors/ads-and-pixels/vector.js",
+			"default": "./dist/vendors/ads-and-pixels/vector.js"
 		},
 		"./clay": {
 			"types": "./dist-types/vendors/analytics/clay.d.ts",

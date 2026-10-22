@@ -596,6 +596,16 @@ export const builtInScriptIntegrations = [
 	},
 	{
 		consentCategory: 'marketing',
+		docsSlug: 'other-analytics',
+		hint: 'Visitor identification for advertising audiences',
+		integrationCategory: 'ads-and-pixels',
+		key: 'vector',
+		label: 'Vector',
+		packageSubpath: 'vector',
+		vendor: 'vector',
+	},
+	{
+		consentCategory: 'marketing',
 		docsSlug: 'clay',
 		hint: 'Website visitor company identification',
 		integrationCategory: 'analytics',

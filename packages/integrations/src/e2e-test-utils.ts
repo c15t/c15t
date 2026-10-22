@@ -325,6 +325,7 @@ export const resetVendorGlobals = function resetVendorGlobals() {
 		'CRISP_WEBSITE_ID',
 		'Intercom',
 		'LI',
+		'__vector_manager',
 		'_linkedin_data_partner_ids',
 		'_linkedin_partner_id',
 		'_fbq',
@@ -380,6 +381,7 @@ export const resetVendorGlobals = function resetVendorGlobals() {
 		'gorgiasChatPendingEvents',
 		'zE',
 		'zEmbed',
+		'vector',
 	] as const) {
 		Reflect.deleteProperty(win, key);
 	}

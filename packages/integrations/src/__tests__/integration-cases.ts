@@ -15,6 +15,7 @@ import { redditPixel } from '../vendors/ads-and-pixels/reddit-pixel';
 import { snapchatPixel } from '../vendors/ads-and-pixels/snapchat-pixel';
 import { theTradeDeskPixel } from '../vendors/ads-and-pixels/the-trade-desk';
 import { tiktokPixel } from '../vendors/ads-and-pixels/tiktok-pixel';
+import { vector } from '../vendors/ads-and-pixels/vector';
 import { xPixel } from '../vendors/ads-and-pixels/x-pixel';
 import { adobeAnalytics } from '../vendors/analytics/adobe-analytics';
 import { ahrefsAnalytics } from '../vendors/analytics/ahrefs-analytics';
@@ -437,6 +438,14 @@ export const helperParityCases = {
 			src: 'https://cloud.umami.is/script.js',
 		},
 		script: umamiAnalytics({ websiteId: 'site-abc' }),
+	},
+	vector: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: true,
+			src: 'https://cdn.vector.co/pixel.js',
+		},
+		script: vector({ pixelId: '00000000-0000-0000-0000-000000000000' }),
 	},
 	vercelAnalytics: {
 		expected: {

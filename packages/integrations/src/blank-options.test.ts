@@ -13,6 +13,7 @@ import { redditPixel } from './vendors/ads-and-pixels/reddit-pixel';
 import { snapchatPixel } from './vendors/ads-and-pixels/snapchat-pixel';
 import { theTradeDeskPixel } from './vendors/ads-and-pixels/the-trade-desk';
 import { tiktokPixel } from './vendors/ads-and-pixels/tiktok-pixel';
+import { vector } from './vendors/ads-and-pixels/vector';
 import { xPixel } from './vendors/ads-and-pixels/x-pixel';
 import { adobeAnalytics } from './vendors/analytics/adobe-analytics';
 import { ahrefsAnalytics } from './vendors/analytics/ahrefs-analytics';
@@ -130,6 +131,12 @@ const requiredIdCases: {
 		helper: 'adrollPixel',
 		option: 'advertiserId',
 		script: { category: 'marketing', id: 'adroll' },
+	},
+	{
+		create: (id) => vector({ pixelId: asId(id) }),
+		helper: 'vector',
+		option: 'pixelId',
+		script: { category: 'marketing', id: 'vector' },
 	},
 	{
 		create: (id) => linkedinInsights({ id: asId(id) }),

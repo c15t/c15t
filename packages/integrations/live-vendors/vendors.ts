@@ -23,6 +23,7 @@ import { redditPixel } from '../src/vendors/ads-and-pixels/reddit-pixel';
 import { snapchatPixel } from '../src/vendors/ads-and-pixels/snapchat-pixel';
 import { theTradeDeskPixel } from '../src/vendors/ads-and-pixels/the-trade-desk';
 import { tiktokPixel } from '../src/vendors/ads-and-pixels/tiktok-pixel';
+import { vector } from '../src/vendors/ads-and-pixels/vector';
 import { xPixel } from '../src/vendors/ads-and-pixels/x-pixel';
 import { adobeAnalytics } from '../src/vendors/analytics/adobe-analytics';
 import { ahrefsAnalytics } from '../src/vendors/analytics/ahrefs-analytics';
@@ -94,6 +95,22 @@ type AdrollProbeWindow = Window & {
 		track?: unknown;
 		version?: string;
 	};
+};
+
+type VectorProbeWindow = Window & {
+	vector?: {
+		loaded?: boolean;
+		q?: unknown[];
+		load?: unknown;
+		identify?: unknown;
+		on?: unknown;
+		emit?: unknown;
+		processQueue?: unknown;
+		_queue?: unknown[];
+		instances?: Map<string, { pixelId?: string }>;
+	};
+	Vector?: unknown;
+	__vector_manager?: unknown;
 };
 
 const check = function check(
@@ -415,6 +432,72 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 		runtimeVersion: () => (window as AdrollProbeWindow).__adroll?.version,
 		tier: 'full',
 		vendor: 'adroll',
+	},
+	{
+		// oxlint-disable-next-line complexity -- Verify the documented nested load tuple and all bootstrap methods together.
+		bootstrapCheck: () => {
+			const probeWindow: VectorProbeWindow = window;
+			const stub = probeWindow.vector;
+			const queue = stub?.q;
+			const entry = Array.isArray(queue) ? queue[0] : undefined;
+			const args = Array.isArray(entry) ? entry[1] : undefined;
+			return {
+				detail:
+					'Vector bootstrap has loaded=true and one [load, [pixelId]] command before the real loader executes',
+				ok:
+					stub?.loaded === true &&
+					typeof stub.load === 'function' &&
+					typeof stub.identify === 'function' &&
+					typeof stub.on === 'function' &&
+					Array.isArray(queue) &&
+					queue.length === 1 &&
+					Array.isArray(entry) &&
+					entry.length === 2 &&
+					entry[0] === 'load' &&
+					Array.isArray(args) &&
+					args.length === 1 &&
+					args[0] === 'c15t-test-pixel' &&
+					probeWindow.__vector_manager === undefined,
+			};
+		},
+		createScript: () => vector({ pixelId: 'c15t-test-pixel' }),
+		loaderUrlSubstring: 'https://cdn.vector.co/pixel.js',
+		notes:
+			'Only the exact GET script URL https://cdn.vector.co/pixel.js is allowed by the batch config. The placeholder pixel proves bootstrap, manager replacement and nested queue replay only. API, settings, identity, collection, partner and other script requests stay blocked. Real account/domain settings and visitor identification are not validated. Settings require an authorized X-Request-URL; public account IDs cannot validate this test origin. Blocked empty settings responses may produce vendor JSON errors, which must remain visible. Vector has no documented complete stop API; revocation requires the normal c15t reload, and retained code may continue without it.',
+		// oxlint-disable-next-line complexity -- Check source-backed manager aliases, live methods, queue drain and exact pixel replay together.
+		runtimeCheck: () => {
+			// pixel.js constructs __vector_manager, aliases Vector/vector to it,
+			// drains _queue, deletes q, and creates an instance for the load ID.
+			// These markers precede account-settings success and are absent from
+			// our bootstrap. Do not use loaded=true as a runtime assertion.
+			const probeWindow: VectorProbeWindow = window;
+			const runtime = probeWindow.vector;
+			const instances = runtime?.instances;
+			const instance =
+				instances instanceof Map ? instances.get('c15t-test-pixel') : undefined;
+			return {
+				detail:
+					'Downloaded Vector manager replaced the stub, drained its nested queue and registered the exact placeholder pixel; account initialization is unverified',
+				ok:
+					runtime !== undefined &&
+					runtime === probeWindow.__vector_manager &&
+					runtime === probeWindow.Vector &&
+					typeof runtime.load === 'function' &&
+					typeof runtime.identify === 'function' &&
+					typeof runtime.on === 'function' &&
+					typeof runtime.emit === 'function' &&
+					typeof runtime.processQueue === 'function' &&
+					runtime.q === undefined &&
+					Array.isArray(runtime._queue) &&
+					runtime._queue.length === 0 &&
+					instances instanceof Map &&
+					instances.size === 1 &&
+					instance?.pixelId === 'c15t-test-pixel',
+			};
+		},
+		runtimeReplacedGlobals: ['vector'],
+		tier: 'full',
+		vendor: 'vector',
 	},
 	{
 		skipReason:
