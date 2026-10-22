@@ -1,7 +1,15 @@
 /** @vitest-environment jsdom */
 import { createConsentKernel } from '@c15t/core';
 import { createScriptLoader } from '@c15t/core/modules/script-loader';
-import { afterEach, assert, describe, expect, it, vi } from 'vitest';
+import {
+	afterEach,
+	assert,
+	beforeEach,
+	describe,
+	expect,
+	it,
+	vi,
+} from 'vitest';
 
 import {
 	deniedConsents,
@@ -9,13 +17,19 @@ import {
 	registerVendorContractCleanup,
 	updateScripts,
 } from './e2e-test-utils';
-import type { CustomerIoQueue } from './vendors/email-and-sms/customer-io';
 import {
 	CUSTOMER_IO_METHODS,
 	customerIo,
 } from './vendors/email-and-sms/customer-io';
 
 const GLOBALS = ['cioanalytics'];
+type CustomerIoTestQueue = [string, ...unknown[]][] & {
+	[Method in (typeof CUSTOMER_IO_METHODS)[number]]: (
+		...args: unknown[]
+	) => CustomerIoTestQueue;
+} & { _cdn?: string; _loadOptions?: unknown; _writeKey?: string };
+const cio = () =>
+	window.cioanalytics as unknown as CustomerIoTestQueue | undefined;
 const granted = { ...deniedConsents, marketing: true };
 const unrelated = { ...deniedConsents, measurement: true };
 const getLoader = (): HTMLScriptElement => {
@@ -89,7 +103,7 @@ describe('Customer.io consent loader', () => {
 		},
 	] as const)('uses CDN origin $expected for the loader and SDK', (options) => {
 		loadScripts([customerIo({ ...options, writeKey: 'proxy-key' })], granted);
-		expect(window.cioanalytics?._cdn).toBe(options.expected);
+		expect(cio()?._cdn).toBe(options.expected);
 		expect(getLoader().src).toBe(
 			`${options.expected}/v1/analytics-js/snippet/proxy-key/analytics.min.js`
 		);
@@ -115,8 +129,8 @@ describe('Customer.io consent loader', () => {
 			granted
 		);
 		expect(getLoader().src).toBe('https://assets.example.com/custom-loader.js');
-		expect(window.cioanalytics?._cdn).toBe('https://assets.example.com');
-		expect(window.cioanalytics?._loadOptions).toEqual({
+		expect(cio()?._cdn).toBe('https://assets.example.com');
+		expect(cio()?._loadOptions).toEqual({
 			...loadOptions,
 			initialPageview: false,
 		});
@@ -126,18 +140,18 @@ describe('Customer.io consent loader', () => {
 describe('Customer.io loading and identity', () => {
 	registerVendorContractCleanup();
 	afterEach(() => {
-		delete window.cioanalytics;
+		Reflect.deleteProperty(window, 'cioanalytics');
 		Reflect.deleteProperty(window, 'analytics');
 	});
 	it('chains calls on the same queue while the SDK download is pending', () => {
 		const scripts = [customerIo({ writeKey: 'chain-key' })];
 		loadScripts(scripts, deniedConsents);
-		expect(window.cioanalytics).toBeUndefined();
+		expect(cio()).toBeUndefined();
 		updateScripts(scripts, unrelated);
-		expect(window.cioanalytics).toBeUndefined();
+		expect(cio()).toBeUndefined();
 		updateScripts(scripts, granted);
 
-		const queue = window.cioanalytics;
+		const queue = cio();
 		assert(queue && Array.isArray(queue));
 		expect(queue).not.toHaveProperty('user');
 		const traits = { email: 'person@example.com' };
@@ -152,7 +166,7 @@ describe('Customer.io loading and identity', () => {
 			['track', 'Signed up', properties],
 		]);
 		for (const method of CUSTOMER_IO_METHODS) {
-			const stub = queue[method] as (...args: unknown[]) => CustomerIoQueue;
+			const stub = queue[method] as (...args: unknown[]) => CustomerIoTestQueue;
 			expect(stub('argument')).toBe(queue);
 			expect(queue.at(-1)).toEqual([method, 'argument']);
 		}
@@ -167,9 +181,9 @@ describe('Customer.io loading and identity', () => {
 		Reflect.set(window, 'cioanalytics', runtime);
 		loadScripts([customerIo({ writeKey: 'existing-runtime-key' })], granted);
 
-		expect(window.cioanalytics).toBe(runtime);
-		expect(window.cioanalytics?.identify).toBe(runtime.identify);
-		expect(window.cioanalytics?.track).toBe(runtime.track);
+		expect(cio()).toBe(runtime);
+		expect(cio()?.identify).toBe(runtime.identify);
+		expect(cio()?.track).toBe(runtime.track);
 		expect(runtime).not.toHaveProperty('_writeKey');
 		expect(runtime).not.toHaveProperty('_cdn');
 		expect(runtime).not.toHaveProperty('_loadOptions');
@@ -185,10 +199,10 @@ describe('Customer.io loading and identity', () => {
 			}),
 		];
 		loadScripts(scripts, granted);
-		expect(Array.isArray(window.cioanalytics)).toBe(true);
-		expect(window.cioanalytics?._writeKey).toBe('key/with spaces');
-		expect(window.cioanalytics?._cdn).toBe('https://cdp-eu.customer.io');
-		expect(window.cioanalytics?._loadOptions).toEqual({
+		expect(Array.isArray(cio())).toBe(true);
+		expect(cio()?._writeKey).toBe('key/with spaces');
+		expect(cio()?._cdn).toBe('https://cdp-eu.customer.io');
+		expect(cio()?._loadOptions).toEqual({
 			initialPageview: false,
 			integrations: { All: false },
 		});
@@ -198,7 +212,9 @@ describe('Customer.io loading and identity', () => {
 		expect(
 			getLoader().getAttribute('data-global-customerio-analytics-key')
 		).toBe('cioanalytics');
-		expect(window.analytics).toBe(sentinel);
+		expect((window as Window & { analytics?: unknown }).analytics).toBe(
+			sentinel
+		);
 	});
 	it('starts a destination that needs page before it can become ready', () => {
 		const scripts = [customerIo({ writeKey: 'page-initializes-destination' })];
@@ -236,7 +252,7 @@ describe('Customer.io loading and identity', () => {
 			const scripts = [create()];
 			loadScripts(scripts, granted);
 			const loader = getLoader();
-			expect(window.cioanalytics?._loadOptions).toEqual({
+			expect(cio()?._loadOptions).toEqual({
 				initialPageview: false,
 				integrations: { All: false },
 			});
@@ -263,7 +279,7 @@ describe('Customer.io loading and identity', () => {
 			updateScripts([create()], granted);
 			expect(runtime.page).toHaveBeenCalledTimes(2);
 			expect(runtime.ready).not.toHaveBeenCalled();
-			expect(window.cioanalytics).toBe(runtime);
+			expect(cio()).toBe(runtime);
 		}
 	);
 	it.each([undefined, false, true])(

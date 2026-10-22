@@ -142,19 +142,6 @@ export const packageBuildClosure = function packageBuildClosure(
 		.map((workspace) => workspace.name);
 };
 
-// Example tests import Sentry's source and compile Customer.io's rendered regions.
-// Add the test consumer without selecting all of the package's reverse dependencies.
-const integrationExampleInputs = new Set([
-	'internals/doc-snippets/javascript/package.json',
-	'internals/doc-snippets/javascript/src/customer-io.ts',
-	'internals/doc-snippets/javascript/src/customer-io-proxy.ts',
-	'internals/doc-snippets/javascript/src/sentry.ts',
-	'docs/shared/examples/javascript/customer-io-configuration.mdx',
-	'docs/shared/examples/javascript/customer-io-proxy.mdx',
-	'scripts/example-doc-sources.ts',
-	'scripts/docs-code-format.ts',
-]);
-
 /** Select reverse dependencies first, then build their forward dependency closure. */
 // oxlint-disable-next-line complexity -- Selection combines independent integration capabilities; graph traversal stays explicit.
 export const createCiPlan = function createCiPlan(
@@ -164,9 +151,6 @@ export const createCiPlan = function createCiPlan(
 ) {
 	let full = forceFull;
 	const runtime = files.filter((path) => !isDocumentation(path));
-	const exampleTests = files.some((path) => integrationExampleInputs.has(path))
-		? ['@c15t/integrations']
-		: [];
 	const owners = new Set<string>();
 	for (const path of runtime) {
 		const [owner] = workspaces
@@ -177,17 +161,9 @@ export const createCiPlan = function createCiPlan(
 			// them against these files, so a starter edit runs those tests too.
 			owners.add('@c15t/cli');
 		}
-		if (path === 'scripts/example-doc-sources.ts') {
-			// The CLI compares generated quickstarts with extracted regions, and
-			// the HTML fixture serves extracted snippets in its browser journeys.
-			// Integrations are selected above through integrationExampleInputs;
-			// that allowlist also skips the unknown root-file fallback below.
-			owners.add('@c15t/cli');
-			owners.add('@c15t/fixture-script-tag');
-		}
 		if (owner) {
 			owners.add(owner.name);
-		} else if (!integrationExampleInputs.has(path)) {
+		} else {
 			// Root config, shared build helpers, deleted packages, and unknown inputs
 			// widen the run. An unrecognised file must never silently skip validation.
 			full = true;
@@ -210,7 +186,7 @@ export const createCiPlan = function createCiPlan(
 	const selected = workspaces.filter((workspace) =>
 		affected.has(workspace.name)
 	);
-	const required = new Set([...affected, ...exampleTests]);
+	const required = new Set(affected);
 	const examples = [
 		['nextjs', 'nextjs'],
 		['react', 'react'],
@@ -315,11 +291,9 @@ export const createCiPlan = function createCiPlan(
 	const compat = selected
 		.filter((workspace) => workspace.scripts['test:compat'])
 		.map((workspace) => workspace.name.replace('@c15t/next-compat-', ''));
-	const tests = workspaces
+	const tests = selected
 		.filter(
 			(workspace) =>
-				(affected.has(workspace.name) ||
-					exampleTests.includes(workspace.name)) &&
 				workspace.scripts.test &&
 				workspace.name !== '@c15t/backend' &&
 				workspace.directory !== 'internals/fixtures/acceptance'
@@ -382,7 +356,7 @@ export const createCiPlan = function createCiPlan(
 		build,
 		bundle: affected.has('@c15t/next-bundle-bench'),
 		compat,
-		coverage: workspaces
+		coverage: selected
 			.filter(
 				(workspace) =>
 					tests.includes(workspace.name) &&

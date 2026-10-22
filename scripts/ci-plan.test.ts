@@ -220,66 +220,6 @@ describe('CI selection', () => {
 		expect(result.full).toBe(false);
 		expect(result.examples).toEqual(['html']);
 	});
-	it.each([
-		'internals/doc-snippets/javascript/package.json',
-		'internals/doc-snippets/javascript/src/customer-io.ts',
-		'internals/doc-snippets/javascript/src/customer-io-proxy.ts',
-		'internals/doc-snippets/javascript/src/sentry.ts',
-		'docs/shared/examples/javascript/customer-io-configuration.mdx',
-		'docs/shared/examples/javascript/customer-io-proxy.mdx',
-		'scripts/docs-code-format.ts',
-	])('checks integrations examples when %s changes', (file) => {
-		const result = plan([file]);
-		expect(result).toMatchObject({
-			backend: false,
-			bundle: false,
-			full: false,
-			integrations: [],
-			mobile: false,
-			performance: false,
-			testBrowsers: false,
-			tests: ['@c15t/integrations'],
-		});
-		expect(result.build).toContain('@c15t/integrations');
-		expect(result.build).toContain('@c15t/core');
-		expect(result.coverage).toEqual(['packages/integrations']);
-	});
-	it('checks every renderer consumer without selecting the full graph', () => {
-		const result = plan(['scripts/example-doc-sources.ts']);
-		expect(result.full).toBe(false);
-		expect(new Set(result.tests)).toEqual(
-			new Set(['@c15t/integrations', '@c15t/cli'])
-		);
-		expect(result.examples).toEqual(['html']);
-		expect(result.build).toContain('@c15t/integrations');
-		expect(result.build).toContain('@c15t/cli');
-		expect(result.testBrowsers).toBe(false);
-		expect(result.mobile).toBe(false);
-		expect(result.performance).toBe(false);
-	});
-	it('keeps Customer.io example checks out of unrelated snippet and docs edits', () => {
-		for (const file of [
-			'internals/doc-snippets/javascript/src/lifecycle.ts',
-			'docs/shared/examples/javascript/lifecycle.mdx',
-			'docs/integrations/customer-io.mdx',
-		]) {
-			expect(plan([file]).tests, file).toEqual([]);
-			expect(plan([file]).full, file).toBe(false);
-		}
-	});
-	it('adds standalone example checks without widening another package change', () => {
-		const other = plan(['packages/node-sdk/src/index.ts']);
-		const combined = plan([
-			'packages/node-sdk/src/index.ts',
-			'docs/shared/examples/javascript/customer-io-proxy.mdx',
-		]);
-		expect(new Set(combined.tests)).toEqual(
-			new Set([...other.tests, '@c15t/integrations'])
-		);
-		expect(combined.types).toEqual(other.types);
-		expect(combined.integrations).toEqual(other.integrations);
-		expect(combined.full).toBe(false);
-	});
 	it('runs the mobile SDK jobs for the package, the kernels, and the mobile bench', () => {
 		for (const file of [
 			'packages/react-native/src/specs/NativeC15t.ts',

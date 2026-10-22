@@ -1,4 +1,3 @@
-import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 
 import { describe, expect, it } from 'vitest';
@@ -8,41 +7,6 @@ const read = (path: string) =>
 	parse(readFileSync(new URL(`../${path}`, import.meta.url), 'utf8'));
 
 describe('completed CI task caches', () => {
-	it('hashes external integrations examples and builds declarations before testing', () => {
-		const run = JSON.parse(
-			execFileSync(
-				'bun',
-				['turbo', 'run', 'test', '--filter=@c15t/integrations', '--dry=json'],
-				{
-					cwd: new URL('..', import.meta.url),
-					encoding: 'utf8',
-					maxBuffer: 16 * 1024 * 1024,
-					stdio: ['ignore', 'pipe', 'pipe'],
-					timeout: 20_000,
-				}
-			)
-		);
-		const task = run.tasks.find(
-			(entry: { taskId: string }) => entry.taskId === '@c15t/integrations#test'
-		);
-		expect(task).toBeDefined();
-		expect(task.dependencies).toContain('@c15t/integrations#build');
-		expect(Object.keys(task.inputs)).toEqual(
-			expect.arrayContaining([
-				'src/customer-io-doc-example.test.ts',
-				'../../internals/doc-snippets/javascript/package.json',
-				'../../internals/doc-snippets/javascript/src/customer-io.ts',
-				'../../internals/doc-snippets/javascript/src/customer-io-proxy.ts',
-				'../../internals/doc-snippets/javascript/src/sentry.ts',
-				'../../docs/shared/examples/javascript/customer-io-configuration.mdx',
-				'../../docs/shared/examples/javascript/customer-io-proxy.mdx',
-				'../../scripts/example-doc-sources.ts',
-				'../../scripts/docs-code-format.ts',
-				'../../oxfmt.config.ts',
-			])
-		);
-	}, 30_000);
-
 	it('restores prior test caches before merging same-run library outputs', () => {
 		const action = read('.github/actions/setup/action.yml');
 		const { steps } = action.runs;

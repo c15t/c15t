@@ -1,4 +1,3 @@
-import { linkedinInsights } from '../src/vendors/ads-and-pixels/linkedin-insights';
 /**
  * Live probe definitions for built-in `@c15t/integrations` integrations.
  *
@@ -11,6 +10,7 @@ import { linkedinInsights } from '../src/vendors/ads-and-pixels/linkedin-insight
  * account. Collection endpoints are blocked by the runner, so probes cannot
  * send real analytics data even when a vendor runtime initializes.
  */
+import { linkedinInsights } from '../src/vendors/ads-and-pixels/linkedin-insights';
 import { metaPixel } from '../src/vendors/ads-and-pixels/meta-pixel';
 import { microsoftUet } from '../src/vendors/ads-and-pixels/microsoft-uet';
 import type { OpenAIPixelFunction } from '../src/vendors/ads-and-pixels/openai-pixel';
@@ -201,6 +201,10 @@ type RudderStackWindow = Window & {
 	};
 };
 
+type CustomerIoProbeWindow = Window & {
+	cioanalytics?: { _writeKey?: unknown; initialize?: unknown };
+};
+
 type PosthogProbeWindow = Window & {
 	__c15tPosthogQueueReplayExpected?: boolean;
 	__c15tPosthogQueueReplayed?: boolean;
@@ -218,7 +222,8 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 		bootstrapCheck: () =>
 			check(
 				Array.isArray(window.cioanalytics) &&
-					window.cioanalytics?._writeKey === '47e549aabef763c4f2fc' &&
+					(window as CustomerIoProbeWindow).cioanalytics?._writeKey ===
+						'47e549aabef763c4f2fc' &&
 					document.querySelector(
 						'script[data-global-customerio-analytics-key="cioanalytics"]'
 					) !== null,
@@ -231,7 +236,8 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 			'Public US write key yields actual JavaScript. Invalid keys or wrong regions can return 200 JSON and do not prove SDK execution. Collection and destination endpoints are blocked; account delivery and complete destination shutdown are not verified.',
 		runtimeCheck: () =>
 			check(
-				typeof window.cioanalytics?.initialize === 'function',
+				typeof (window as CustomerIoProbeWindow).cioanalytics?.initialize ===
+					'function',
 				'Customer.io installed its real analytics SDK'
 			),
 		runtimeReplacedGlobals: ['cioanalytics'],
