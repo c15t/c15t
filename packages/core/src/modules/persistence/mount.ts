@@ -54,22 +54,61 @@ const RETRIES = 3;
  */
 export const queuedWrites = new Map<string, InternalKernel>();
 
-// Kernels whose queued subject change a later handle took over when it
-// started from their records (see `startQueuedSubject`), with that
-// handle's kernel. The subject is the later kernel's from then on: the
-// earlier handle lands only the decisions it queued, under that subject.
+// A kernel whose queued records a later handle started from (see
+// `startQueuedSubject`), with that handle's kernel. A remount can do this
+// again, so the handovers form a chain. Its live end holds the subject
+// for every queued record along it.
 const handedOver = new WeakMap<InternalKernel, InternalKernel>();
 
-/** `owner` with the subject `successor` holds, for the owner's writes. */
-const withSubjectOf = function withSubjectOf(
-	owner: InternalKernel,
-	successor: InternalKernel
+/** Whether two subjects name the same ID and linked identity. */
+const sameSubject = function sameSubject(
+	left: ConsentSubject | null | undefined,
+	right: ConsentSubject | null | undefined
+): boolean {
+	return (
+		left?.subjectId === right?.subjectId &&
+		left?.externalId === right?.externalId &&
+		left?.identityProvider === right?.identityProvider
+	);
+};
+
+/** The complete subject a storage read's records carry, `null` for none. */
+const recordedSubjectOf = function recordedSubjectOf(
+	read: StoredRecords | null | undefined
+): ConsentSubject | null {
+	if (!read?.recordedSubjectId) {
+		return null;
+	}
+	return { ...read.records.subject, subjectId: read.recordedSubjectId };
+};
+
+/**
+ * The kernel at the live end of the handovers from `kernel`. The chain
+ * has no cycle: a kernel loses its own handover when it mounts, before
+ * any earlier kernel is handed to it.
+ */
+const subjectHolder = function subjectHolder(
+	kernel: InternalKernel
+): InternalKernel {
+	let holder = kernel;
+	for (let next = handedOver.get(holder); next; next = handedOver.get(holder)) {
+		holder = next;
+	}
+	return holder;
+};
+
+/**
+ * `owner` as its writes see it once handed over: its records, under the
+ * subject the live end of its handovers holds when each write runs.
+ */
+const withHolderSubject = function withHolderSubject(
+	owner: InternalKernel
 ): InternalKernel {
 	return {
 		...owner,
 		getSnapshot: () => ({
 			...owner.getSnapshot(),
-			subject: successor.getSnapshot().subject,
+			subject: subjectHolder(owner).getSnapshot().subject,
 		}),
 	};
 };
@@ -150,11 +189,10 @@ export const mountPersistence = function mountPersistence(
 			return;
 		}
 		clearTimeout(retryTimer);
-		const successor = handedOver.get(kernel);
-		handedOver.delete(kernel);
+		const handed = handedOver.has(kernel);
 		writer = module.createPersistenceWriter(
 			{
-				kernel: successor ? withSubjectOf(kernel, successor) : kernel,
+				kernel: handed ? withHolderSubject(kernel) : kernel,
 				now,
 				state,
 				storageConfig,
@@ -165,15 +203,6 @@ export const mountPersistence = function mountPersistence(
 			writer.adopt(...baseline);
 			baseline = undefined;
 		}
-		if (successor) {
-			if (!state.choiceRecorded) {
-				requested.delete('choice');
-			}
-			if (!state.vendorsRecorded) {
-				requested.delete('vendors');
-			}
-			pendingSubjectId = undefined;
-		}
 		// At once, not in a later macrotask: a save request held for these
 		// writes is released as soon as they are stored.
 		for (const kind of requested) {
@@ -181,9 +210,15 @@ export const mountPersistence = function mountPersistence(
 		}
 		requested.clear();
 		writer.flush();
-		if (pendingSubjectId) {
+		// A handed-over handle's own pending ID is an earlier one: the
+		// records it just stored carry the holder's.
+		const publish = handed
+			? subjectHolder(kernel).getSnapshot().subject?.subjectId
+			: pendingSubjectId;
+		pendingSubjectId = undefined;
+		if (publish) {
 			// oxlint-disable-next-line no-use-before-define -- Runs only after assembly.
-			storeSubjectId(pendingSubjectId);
+			storeSubjectId(publish);
 		}
 		if (queuedWrites.get(consentKey) === kernel) {
 			queuedWrites.delete(consentKey);
@@ -358,40 +393,39 @@ export const mountPersistence = function mountPersistence(
 	 * records stay the seed's, and storage is what it was read as here.
 	 * Reconciling merges only records that changed since this read, so a
 	 * grant left out here stays out until another runtime writes storage.
-	 * Returns the subject ID the stored records carry, `null` for none.
+	 * Returns the subject the stored records carry, `null` for none.
 	 */
-	const applyNewerStoredRecords = function applyNewerStoredRecords():
-		| string
-		| null {
-		const at = now();
-		const read = readStoredRecordsForReconcile(storageConfig, at);
-		baseline = [read, false];
-		const records = withQueued(read.records);
-		const snapshot = kernel.getSnapshot();
-		const patch: HydrationRecords = {};
-		const seeded = snapshot.explicitChoice?.categories ?? {};
-		const denials = Object.entries(records.choice?.categories ?? {}).filter(
-			([category, decision]) =>
-				isNewerDenial(decision, seeded[category as keyof typeof seeded])
-		);
-		if (denials.length > 0) {
-			patch.choice = {
-				categories: { ...seeded, ...Object.fromEntries(denials) },
-				version: 3,
-			};
-		}
-		const { vendorChoice } = records;
-		if (
-			vendorChoice &&
-			vendorChoice.confirmedAt > (snapshot.vendorChoice?.confirmedAt ?? -1)
-		) {
-			patch.vendorChoice = vendorChoice;
-		}
-		if (Object.keys(patch).length > 0) {
-			kernel.hydrate({ ...patch, now: at });
-		}
-		return read.recordedSubjectId;
-	};
+	const applyNewerStoredRecords =
+		function applyNewerStoredRecords(): ConsentSubject | null {
+			const at = now();
+			const read = readStoredRecordsForReconcile(storageConfig, at);
+			baseline = [read, false];
+			const records = withQueued(read.records);
+			const snapshot = kernel.getSnapshot();
+			const patch: HydrationRecords = {};
+			const seeded = snapshot.explicitChoice?.categories ?? {};
+			const denials = Object.entries(records.choice?.categories ?? {}).filter(
+				([category, decision]) =>
+					isNewerDenial(decision, seeded[category as keyof typeof seeded])
+			);
+			if (denials.length > 0) {
+				patch.choice = {
+					categories: { ...seeded, ...Object.fromEntries(denials) },
+					version: 3,
+				};
+			}
+			const { vendorChoice } = records;
+			if (
+				vendorChoice &&
+				vendorChoice.confirmedAt > (snapshot.vendorChoice?.confirmedAt ?? -1)
+			) {
+				patch.vendorChoice = vendorChoice;
+			}
+			if (Object.keys(patch).length > 0) {
+				kernel.hydrate({ ...patch, now: at });
+			}
+			return recordedSubjectOf(read);
+		};
 
 	/**
 	 * Whether this handle gives the kernel a subject ID. A throwaway kernel
@@ -552,24 +586,26 @@ export const mountPersistence = function mountPersistence(
 	 */
 	const startSubject = function startSubject(
 		before: ConsentSubject | null,
-		recordedSubjectId: string | null
+		recorded: ConsentSubject | null
 	): void {
 		const stored = readStoredSubjectId(storageConfig);
 		storedSubjectId = readSyncedSubjectId(storageConfig);
 		const snapshot = kernel.getSnapshot();
 		let { subject } = snapshot;
 		let local = false;
-		if (!recordedSubjectId && before?.subjectId) {
+		if (!recorded && before?.subjectId) {
 			subject = { ...subject, ...before };
 		} else if (
-			recordedSubjectId &&
-			(!subject?.subjectId || recordedSubjectId === stored)
+			recorded &&
+			(!subject?.subjectId || recorded.subjectId === stored)
 		) {
-			// Hydration is deferred: take the ID it will bring. A seed from a
-			// consent cookie older than storage, such as one whose rewrite
-			// the browser dropped, yields to the ID storage agrees on.
-			subject = { ...subject, subjectId: recordedSubjectId };
-		} else if (!(recordedSubjectId && subject?.subjectId)) {
+			// Hydration is deferred: take the subject it will bring, whole. A
+			// seed from a consent cookie older than storage, such as one whose
+			// rewrite the browser dropped, yields to the subject storage
+			// agrees on, linked identity included: the seed's belongs to the
+			// ID it names.
+			subject = recorded;
+		} else if (!(recorded && subject?.subjectId)) {
 			subject = {
 				...subject,
 				subjectId: subject?.subjectId ?? stored ?? generateSubjectId(),
@@ -587,12 +623,12 @@ export const mountPersistence = function mountPersistence(
 				unusedSubjectId = id;
 			}
 		}
-		if (id !== snapshot.subject?.subjectId) {
+		if (!sameSubject(subject, snapshot.subject)) {
 			kernel.hydrate({ subject });
 		}
 		// Records that carry the ID already keep it: hydrating them writes
 		// nothing. A clear stores it before it removes them.
-		if (id !== recordedSubjectId) {
+		if (id !== recorded?.subjectId) {
 			storeSubjectId(id);
 		}
 	};
@@ -611,12 +647,14 @@ export const mountPersistence = function mountPersistence(
 	): void {
 		storedSubjectId = readSyncedSubjectId(storageConfig);
 		subjectId = id;
-		const { subject } = kernel.getSnapshot();
-		if (subject?.subjectId !== id) {
-			kernel.hydrate({ subject: { ...subject, subjectId: id } });
-		}
 		if (owner === kernel) {
 			return;
+		}
+		// The owner's whole subject, linked identity included: a seed this
+		// kernel started with names another ID.
+		const queued = owner.getSnapshot().subject;
+		if (!sameSubject(queued, kernel.getSnapshot().subject)) {
+			kernel.hydrate({ subject: queued });
 		}
 		// The subject change is this handle's now: a later one made here
 		// supersedes it before the owner's write could land it.
@@ -727,20 +765,20 @@ export const mountPersistence = function mountPersistence(
 	};
 
 	if (browser) {
+		// A kernel mounted again holds its own subject, whatever an earlier
+		// handle handed it to.
+		handedOver.delete(kernel);
 		const before = kernel.getSnapshot().subject;
-		let recordedSubjectId: string | null = null;
-		if (options.skipHydration) {
-			recordedSubjectId = applyNewerStoredRecords();
-		} else {
-			recordedSubjectId = hydrateStored()?.recordedSubjectId ?? null;
-		}
+		const recorded = options.skipHydration
+			? applyNewerStoredRecords()
+			: recordedSubjectOf(hydrateStored());
 		if (handlesSubject()) {
 			const queued = queuedWrites.get(consentKey);
 			const queuedSubjectId = queued?.getSnapshot().subject?.subjectId;
 			if (queued && queuedSubjectId) {
 				startQueuedSubject(queued, queuedSubjectId);
 			} else {
-				startSubject(before, recordedSubjectId);
+				startSubject(before, recorded);
 			}
 			unsubscribers.push(kernel.subscribe(followSubjectId));
 		}

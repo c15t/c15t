@@ -319,6 +319,128 @@ describe('<key>-sid follows the records that carry the subject', () => {
 	);
 
 	test.each([
+		['one loader', 'an ID the app names'],
+		['one loader', 'a reset'],
+		['one loader', 'an identity'],
+		['loaders landing C, B, A', 'an ID the app names'],
+		['loaders landing B, C, A', 'a reset'],
+	] as const)(
+		'a decision queued through two remounts lands under the last handle’s subject, %s, %s',
+		async (loaders, terminal) => {
+			expireSid();
+			await seedChoice({ marketing: true });
+			const saved = localStorage.getItem(sidKey);
+			const one = heldBackLoader();
+			const [a, b, c] =
+				loaders === 'one loader'
+					? [one, one, one]
+					: [heldBackLoader(), heldBackLoader(), heldBackLoader()];
+			const first = createConsentKernel({ now: Date.now() });
+			const firstHandle = createPersistence({ kernel: first }, a.loader);
+			vi.setSystemTime(NOW + 1000);
+			const saving = first.commands.save({ marketing: false });
+			first.set.subjectId('sub_next');
+			firstHandle.dispose();
+			const second = createConsentKernel({ now: Date.now() });
+			createPersistence({ kernel: second }, b.loader).dispose();
+			const kernel = createConsentKernel({ now: Date.now() });
+			const handle = createPersistence({ kernel }, c.loader);
+			expect(kernel.getSnapshot().subject?.subjectId).toBe('sub_next');
+			if (terminal === 'an ID the app names') {
+				kernel.set.subjectId('sub_third');
+			} else if (terminal === 'a reset') {
+				kernel.set.subjectId(null);
+			} else {
+				await kernel.commands.identify({
+					externalId: 'account-c',
+					identityProvider: 'app',
+				});
+			}
+			const { subject } = kernel.getSnapshot();
+			expect([saved, undefined]).not.toContain(subject?.subjectId);
+
+			if (loaders === 'one loader') {
+				await one.land();
+			} else {
+				const order =
+					loaders === 'loaders landing C, B, A' ? [c, b, a] : [b, c, a];
+				for (const loader of order) {
+					// oxlint-disable-next-line no-await-in-loop -- The landing order is the point.
+					await loader.land();
+				}
+			}
+			await settle(saving);
+			// No save after the remounts: the queued decision keeps its time,
+			// under the last handle's whole subject, and <key>-sid follows.
+			expect(storedChoice()?.subject).toEqual(subject);
+			expect(storedChoice()?.choice.categories.marketing).toMatchObject({
+				confirmedAt: NOW + 1000,
+				value: false,
+			});
+			expect(localStorage.getItem(sidKey)).toBe(subject?.subjectId);
+			handle.dispose();
+
+			const reloaded = createConsentKernel({ now: Date.now() });
+			const reader = createPersistence({ kernel: reloaded });
+			expect(reloaded.getSnapshot().subject).toEqual(subject);
+			expect(
+				reloaded.getSnapshot().explicitChoice?.categories.marketing?.value
+			).toBe(false);
+			reader.clear();
+			expect(localStorage.getItem(sidKey)).toBe(subject?.subjectId);
+			reader.dispose();
+			expireSid();
+		}
+	);
+
+	test('a server-seeded remount takes the queued subject whole, not the seed’s linked identity', async () => {
+		expireSid();
+		await seedChoice({ marketing: true });
+		const { land, loader } = heldBackLoader();
+		const leaving = createConsentKernel({ now: Date.now() });
+		const left = createPersistence({ kernel: leaving }, loader);
+		leaving.set.subjectId('sub_next');
+		left.dispose();
+
+		// A server render seeded another ID and the account linked to it.
+		const kernel = createConsentKernel({ now: Date.now() });
+		kernel.hydrate({
+			subject: {
+				externalId: 'account-a',
+				identityProvider: 'app',
+				subjectId: 'sub_server',
+			},
+		});
+		const handle = createPersistence({ kernel, skipHydration: true }, loader);
+		expect(kernel.getSnapshot().subject).toEqual({ subjectId: 'sub_next' });
+
+		await land();
+		expect(storedChoice()?.subject).toEqual({ subjectId: 'sub_next' });
+		expect(localStorage.getItem(sidKey)).toBe('sub_next');
+		handle.dispose();
+		expireSid();
+	});
+
+	test('a server seed yields to the stored subject whole when the records and <key>-sid agree on it', async () => {
+		expireSid();
+		await seedChoice({ marketing: true });
+		const saved = localStorage.getItem(sidKey);
+		const kernel = createConsentKernel({ now: Date.now() });
+		kernel.hydrate({
+			choice: storedChoice()?.choice,
+			subject: {
+				externalId: 'account-a',
+				identityProvider: 'app',
+				subjectId: 'sub_server',
+			},
+		});
+		const handle = createPersistence({ kernel, skipHydration: true });
+		expect(kernel.getSnapshot().subject).toEqual({ subjectId: saved });
+		handle.dispose();
+		expireSid();
+	});
+
+	test.each([
 		['an ID the app names', 'sub_third'],
 		['a reset', null],
 	] as const)(
