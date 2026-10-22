@@ -304,6 +304,11 @@
 			"import": "./dist/events.js",
 			"default": "./dist/events.js"
 		},
+		"./oracle-eloqua": {
+			"types": "./dist-types/vendors/analytics/oracle-eloqua.d.ts",
+			"import": "./dist/vendors/analytics/oracle-eloqua.js",
+			"default": "./dist/vendors/analytics/oracle-eloqua.js"
+		},
 		"./clay": {
 			"types": "./dist-types/vendors/analytics/clay.d.ts",
 			"import": "./dist/vendors/analytics/clay.js",

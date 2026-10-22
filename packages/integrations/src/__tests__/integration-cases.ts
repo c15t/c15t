@@ -29,6 +29,7 @@ import { matomoAnalytics } from '../vendors/analytics/matomo-analytics';
 import { clarity } from '../vendors/analytics/microsoft-clarity';
 import { mixpanelAnalytics } from '../vendors/analytics/mixpanel-analytics';
 import { oneDollarStats } from '../vendors/analytics/one-dollar-stats';
+import { eloquaTracking } from '../vendors/analytics/oracle-eloqua';
 import { pirsch } from '../vendors/analytics/pirsch';
 import { plausibleAnalytics } from '../vendors/analytics/plausible-analytics';
 import { posthog } from '../vendors/analytics/posthog';
@@ -128,6 +129,14 @@ export const helperParityCases = {
 
 			configWhenGranted: { clientId: 'db_123', disabled: false },
 		}),
+	},
+	eloquaTracking: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: true,
+			src: 'https://img.en25.com/i/elqCfg.min.js',
+		},
+		script: eloquaTracking({ siteId: '1973398186' }),
 	},
 	fathomAnalytics: {
 		expected: {
