@@ -47,18 +47,17 @@ describe('theTradeDeskPixel', () => {
 			}).src
 		).toBe('https://js.adsrvr.org/up_loader.3.0.0.js');
 	});
-});
-
-it('rejects absent, empty or partially blank pixel arrays', () => {
-	for (const pixelIds of [undefined, null, [], [''], ['ok', '  '], [null]]) {
-		expectSkippedScript(
-			() =>
-				theTradeDeskPixel({
-					advertiserId: 'ok',
-					pixelIds: pixelIds as string[],
-				}),
-			{ category: 'marketing', id: 'the-trade-desk' },
-			'theTradeDeskPixel: missing or invalid pixelIds'
-		);
-	}
+	it('rejects absent, empty or partially blank pixel arrays', () => {
+		for (const pixelIds of [undefined, null, [], [''], ['ok', '  '], [null]]) {
+			expectSkippedScript(
+				() =>
+					theTradeDeskPixel({
+						advertiserId: 'ok',
+						pixelIds: pixelIds as string[],
+					}),
+				{ category: 'marketing', id: 'the-trade-desk' },
+				'theTradeDeskPixel: missing or invalid pixelIds'
+			);
+		}
+	});
 });
