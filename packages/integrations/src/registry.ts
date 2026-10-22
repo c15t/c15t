@@ -116,7 +116,7 @@ export const BUILT_IN_INTEGRATION_CATEGORIES = [
 export const builtInScriptIntegrations = [
 	{
 		consentCategory: 'marketing',
-		docsSlug: 'marketo',
+		docsSlug: 'other-email-and-sms',
 		hint: 'Lead scoring and marketing analytics',
 		integrationCategory: 'analytics',
 		key: 'marketoMunchkin',
