@@ -48,7 +48,10 @@ export interface LiveIntentTagOptions {
 	tagId: string;
 	/** Consent condition required before loading. Defaults to marketing. */
 	category?: Script['category'];
-	/** Optional events queued once on the initial grant. Do not include sensitive data without permission. */
+	/**
+	 * Optional events queued once on the initial grant. Strings remain literal,
+	 * including `{{...}}`. Do not include sensitive data without permission.
+	 */
 	events?: readonly LiveIntentEvent[];
 	/** Override the account tag URL. A blank value uses the default URL. */
 	scriptUrl?: string;
@@ -74,23 +77,28 @@ export const liveIntentTag = function liveIntentTag(
 			manifest: liveIntentTagManifest,
 		});
 	}
-	const events: ManifestStep[] = (options.events ?? []).map((event) => ({
-		args: [event],
-		global: 'liQ',
-		method: 'push',
-		type: 'callGlobal',
-	}));
+	const config: Record<string, unknown> = {
+		scriptUrl: resolveScriptUrl(
+			trimToUndefined(options.scriptUrl),
+			`https://b-code.liadm.com/${encodeURIComponent(tagId)}.min.js`
+		),
+	};
+	const events: ManifestStep[] = (options.events ?? []).map((event, index) => {
+		const key = `event${index}`;
+		config[key] = event;
+		return {
+			args: [`{{${key}}}`],
+			global: 'liQ',
+			method: 'push',
+			type: 'callGlobal',
+		};
+	});
 	return resolveManifest(
 		{
 			...liveIntentTagManifest,
 			category,
 			install: [...events, ...liveIntentTagManifest.install],
 		},
-		{
-			scriptUrl: resolveScriptUrl(
-				trimToUndefined(options.scriptUrl),
-				`https://b-code.liadm.com/${encodeURIComponent(tagId)}.min.js`
-			),
-		}
+		config
 	);
 };

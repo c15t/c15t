@@ -20,6 +20,31 @@ describe('LiveIntent core loader consent contract', () => {
 			Reflect.deleteProperty(window, key);
 		}
 	});
+	it.each(['{{coupon}}', '{{scriptUrl}}', 'offer {{coupon}} at {{scriptUrl}}'])(
+		'preserves literal event payload strings such as %s',
+		(name) => {
+			const events = [
+				{
+					event: 'conversion',
+					name,
+					properties: { labels: [name, '{{scriptUrl}}'] },
+				},
+				{ event: 'view', name: 'second event' },
+			];
+			const scripts = [liveIntentTag({ events, tagId: 'a-00xx' })];
+			loadScripts(scripts, deniedConsents);
+			expect(window.liQ).toBeUndefined();
+			updateScripts(scripts, grantedMarketingConsents);
+			expect(window.liQ).toEqual(events);
+			const loader = document.querySelector('script');
+			expect(loader?.src).toBe('https://b-code.liadm.com/a-00xx.min.js');
+			loader?.dispatchEvent(new Event('load'));
+			updateScripts(scripts, deniedConsents);
+			updateScripts(scripts, grantedMarketingConsents);
+			expect(window.liQ).toEqual(events);
+			expect(document.querySelectorAll('script')).toHaveLength(1);
+		}
+	);
 	it('creates no vendor globals, requests or storage before mapped consent', () => {
 		const scripts = [liveIntentTag({ tagId: 'a-00xx' })];
 		loadScripts(scripts, deniedConsents);

@@ -29,7 +29,7 @@ JavaScript and is not a sandbox or a default for your account.
 | `category` | `marketing` | Consent condition for the entire loader, including compound category conditions. |
 | `tagId` | Required | Trimmed public tag ID, URL-encoded into the filename. Blank or invalid values log an error and skip loading. |
 | `scriptUrl` | `https://b-code.liadm.com/<tagId>.min.js` | Account loader override. Blank values use the default. |
-| `events` | None | Plain event objects queued once after the initial grant. Use the fields from your account's event tags. |
+| `events` | None | Plain event objects queued once after the initial grant. Use the fields from your account's event tags. Strings, including `{{...}}`, remain literal event data. |
 
 ## Loading and revocation
 
