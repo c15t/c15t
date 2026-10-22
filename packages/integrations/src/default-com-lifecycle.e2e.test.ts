@@ -172,6 +172,148 @@ describe('Default explicit marketing gate lifecycle', () => {
 		expect(config.q).toEqual([]);
 	});
 
+	it.each([
+		{ publicKey: 'other-workspace' },
+		{ schedulerOrigins: ['https://other.default.com'] },
+		{ autoDisplayScheduler: false },
+		{ autoDisplayScheduler: { loader: true, target: '#other' } },
+		{ autoDisplayScheduler: { loader: false, target: '#calendar' } },
+		{ scriptUrl: 'https://proxy.example.com/pixel.js' },
+	])('rejects pre-created live Pixel changes: %j', (changed) => {
+		const options: DefaultCom.DefaultComPixelOptions = {
+			autoDisplayScheduler: { loader: true, target: '#calendar' },
+			publicKey: 'workspace-key',
+			schedulerOrigins: ['https://book.default.com'],
+		};
+		const initial = defaultComPixel(options);
+		const replacement = defaultComPixel({ ...options, ...changed });
+		loadScripts([initial], fullConsent);
+		const element = getLoader();
+		element.dispatchEvent(new Event('load'));
+		const config = window.__defaultPixel__;
+		const setConsent = vi.fn();
+		if (!config) {
+			throw new Error('Expected the Pixel bootstrap.');
+		}
+		config.setConsent = setConsent;
+		expect(() => updateScripts([replacement], fullConsent)).toThrow(
+			'Reload the page to change Default Pixel configuration'
+		);
+		expect(window.__defaultPixel__).toBe(config);
+		expect(config.key).toBe('workspace-key');
+		expect(config.schedulerOrigins).toEqual(['https://book.default.com']);
+		expect(config.autoDisplayScheduler).toEqual({
+			loader: true,
+			target: '#calendar',
+		});
+		expect(getLoader()).toBe(element);
+		expect(setConsent).not.toHaveBeenCalled();
+		updateScripts([initial], grantedMeasurementConsents);
+		expect(setConsent).toHaveBeenLastCalledWith({
+			analytics: false,
+			marketing: false,
+		});
+	});
+
+	it.each([false, true])(
+		'rejects changes while Pixel is downloading, alwaysLoad=%s',
+		(alwaysLoad) => {
+			const options: DefaultCom.DefaultComPixelOptions = {
+				loadMode: alwaysLoad ? 'always' : 'after-consent',
+				publicKey: 'workspace-key',
+			};
+			const initial = defaultComPixel(options);
+			const replacement = defaultComPixel({
+				...options,
+				publicKey: 'other-workspace',
+			});
+			const consents = alwaysLoad ? deniedConsents : fullConsent;
+			loadScripts([initial], consents);
+			const element = getLoader();
+			expect(() => updateScripts([replacement], consents)).toThrow(
+				'Reload the page to change Default Pixel configuration'
+			);
+			expect(getLoader()).toBe(element);
+			expect(window.__defaultPixel__?.key).toBe('workspace-key');
+		}
+	);
+
+	it('rejects newly created Pixel settings after startup and removal', () => {
+		const script = defaultComPixel({ publicKey: 'workspace-key' });
+		loadScripts([script], fullConsent);
+		expect(() => defaultComPixel({ publicKey: 'other-workspace' })).toThrow(
+			'Reload the page to change Default Pixel configuration'
+		);
+		updateScripts([], fullConsent);
+		expect(() => defaultComPixel({ publicKey: 'other-workspace' })).toThrow(
+			'Reload the page to change Default Pixel configuration'
+		);
+	});
+
+	it('allows changing Pixel settings before the first permitted load', () => {
+		loadScripts(
+			[defaultComPixel({ publicKey: 'first-workspace' })],
+			deniedConsents
+		);
+		const replacement = defaultComPixel({ publicKey: 'next-workspace' });
+		updateScripts([replacement], fullConsent);
+		expect(window.__defaultPixel__?.key).toBe('next-workspace');
+	});
+
+	it('retains equivalent Pixel settings while changing consent gates', () => {
+		const target = document.createElement('div');
+		const options = {
+			autoDisplayScheduler: { target },
+			publicKey: ' workspace-key ',
+			schedulerOrigins: ['https://book.default.com'],
+		};
+		loadScripts([defaultComPixel(options)], fullConsent);
+		const element = getLoader();
+		element.dispatchEvent(new Event('load'));
+		const setConsent = vi.fn();
+		if (!window.__defaultPixel__) {
+			throw new Error('Expected the Pixel bootstrap.');
+		}
+		window.__defaultPixel__.setConsent = setConsent;
+		const replacement = defaultComPixel({
+			...options,
+			autoDisplayScheduler: { loader: false, target },
+			category: 'measurement',
+			publicKey: 'workspace-key',
+			scriptUrl: ' https://handshake.default.com/index.js ',
+		});
+		updateScripts([replacement], grantedMarketingConsents);
+		expect(setConsent).toHaveBeenLastCalledWith({
+			analytics: false,
+			marketing: false,
+		});
+		updateScripts([replacement], fullConsent);
+		expect(setConsent).toHaveBeenLastCalledWith({
+			analytics: true,
+			marketing: true,
+		});
+		expect(getLoader()).toBe(element);
+	});
+
+	it('snapshots caller-owned Pixel settings before registration', () => {
+		const options = {
+			autoDisplayScheduler: { loader: true, target: '#calendar' },
+			publicKey: 'workspace-key',
+			schedulerOrigins: ['https://book.default.com'],
+		};
+		const script = defaultComPixel(options);
+		options.schedulerOrigins[0] = 'https://other.default.com';
+		options.autoDisplayScheduler.target = '#other';
+		loadScripts([script], fullConsent);
+		expect(window.__defaultPixel__?.schedulerOrigins).toEqual([
+			'https://book.default.com',
+		]);
+		expect(window.__defaultPixel__?.autoDisplayScheduler).toEqual({
+			loader: true,
+			target: '#calendar',
+		});
+	});
+
 	it('queues Pixel withdrawal during an in-flight download', () => {
 		const scripts = [defaultComPixel({ publicKey: 'workspace-key' })];
 		loadScripts(scripts, fullConsent);

@@ -103,13 +103,23 @@ options, then queues one initial
 `['setConsent', { analytics, marketing }]` command before inserting `index.js`.
 It preserves existing queue entries and an existing consent setter.
 
+Once Pixel loading starts, keep its `publicKey`, `scriptUrl`,
+`schedulerOrigins` and `autoDisplayScheduler` unchanged for that document.
+Changing these settings throws an error that requires a page reload. This also
+applies to helpers created before startup and later passed to `updateScripts()`.
+The loader rejects the update before changing existing registrations. Removing
+the helper does not unlock the running Pixel's configuration. Navigate to a new
+document to switch workspaces; the helper does not reload the page itself.
+Equivalent settings and category or consent changes remain supported. Before
+the first permitted load, settings can still change.
+
 The standalone SDK helper does not create `window.__defaultPixel__` or set its
 key. After `sdk.js` loads, the helper calls `DefaultPixelSDK.setConsent()` before
 the first `DefaultPixelSDK.init()`. If the visitor withdraws consent during the
 download, the helper forwards denial and waits until the configured category
 and vendor allow the SDK again before calling `init()`.
 
-For a live registration whose category and vendor are allowed, changes to
+For a live standalone SDK registration whose category and vendor are allowed, changes to
 `publicKey`, `endpoint`, `schedulerOrigins` or `autoDisplayScheduler` call
 `init()` again with consent forwarded first. Recreating the helper with the same
 effective options or changing consent alone does not repeat `init()`. Changes

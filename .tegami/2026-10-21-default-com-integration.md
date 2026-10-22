@@ -17,3 +17,5 @@ Forward denial to the owned SDK after its final registration is removed or dispo
 Preserve a DOM script's lifecycle when a replacement configuration keeps the same resource and `onDispose` function. Changing that function still disposes the previous configuration. Callback-only scripts with disposal hooks still tear down when their configuration object is replaced.
 
 Include typed form submissions, interaction warmup, scheduler events and element targets, the Pixel's public methods and partial consent updates.
+
+Reject changes to a started Pixel's workspace key, loader URL or scheduler settings before replacing existing registrations. Require a new document to apply these settings, including for helpers created before startup. Keep equivalent settings and consent changes supported.

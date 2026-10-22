@@ -322,6 +322,28 @@ const sameSdkOptions = (
 type DefaultComLoader = 'defaultComPixel' | 'defaultComFormsSdk';
 const pageLoaders = new WeakMap<Document, DefaultComLoader>();
 const blockedLoaderType = 'application/x-c15t-default-conflict';
+interface PixelConfiguration extends DefaultComFormsSdkInitOptions {
+	scriptUrl: string;
+}
+const pixelConfigurations = new WeakMap<Document, PixelConfiguration>();
+const conflictsWithPixel = (options: PixelConfiguration): boolean => {
+	const previous =
+		typeof document === 'undefined'
+			? undefined
+			: pixelConfigurations.get(document);
+	return (
+		previous !== undefined &&
+		(previous.scriptUrl !== options.scriptUrl ||
+			!sameSdkOptions(previous, options))
+	);
+};
+const assertPixelConfiguration = (options: PixelConfiguration): void => {
+	if (conflictsWithPixel(options)) {
+		throw new Error(
+			'defaultComPixel: Reload the page to change Default Pixel configuration.'
+		);
+	}
+};
 
 const claimLoader = function claimLoader(
 	info: ScriptCallbackInfo,
@@ -401,7 +423,11 @@ const forwardPixelConsent = function forwardPixelConsent(
  * `loadMode: 'always'` explicitly permits the loader and form-list requests
  * before consent, plus form capture and scheduling while tracking is denied.
  * The helper queues the current mapped state before inserting the loader.
+ * After loading starts, configuration changes require a new document.
  * Missing, blank or non-string keys log an error and skip loading.
+ * @throws {Error} If the workspace key, loader URL or scheduler settings change
+ * after a Pixel helper starts in this document. The loader also rejects
+ * pre-created configurations before replacing existing registrations.
  * @example defaultComPixel({ publicKey: 'YOUR_PUBLIC_KEY' });
  * @see https://docs.os.default.com/settings/pixel
  * @see https://docs.os.default.com/forms/privacy
@@ -427,21 +453,45 @@ export const defaultComPixel = function defaultComPixel(
 			manifest: defaultComPixelManifest,
 		});
 	}
+	const configuration: PixelConfiguration = {
+		autoDisplayScheduler:
+			typeof options.autoDisplayScheduler === 'object'
+				? { ...options.autoDisplayScheduler }
+				: options.autoDisplayScheduler,
+		publicKey,
+		schedulerOrigins: options.schedulerOrigins?.slice(),
+		scriptUrl: script.src ?? '',
+	};
+	assertPixelConfiguration(configuration);
 	return {
 		...script,
 		alwaysLoad: alwaysLoad || undefined,
 		onBeforeLoad(info) {
+			if (conflictsWithPixel(configuration)) {
+				if (info.element) {
+					info.element.removeAttribute('src');
+					info.element.type = blockedLoaderType;
+				}
+				console.error(
+					'defaultComPixel: Reload the page to change Default Pixel configuration.'
+				);
+				return;
+			}
 			if (!claimLoader(info, 'defaultComPixel', alwaysLoad)) {
 				return;
 			}
+			pixelConfigurations.set(document, configuration);
 			window.__defaultPixel__ ??= {};
 			const config = window.__defaultPixel__;
 			config.key = publicKey;
-			if (options.schedulerOrigins !== undefined) {
-				config.schedulerOrigins = options.schedulerOrigins;
+			if (configuration.schedulerOrigins !== undefined) {
+				config.schedulerOrigins = configuration.schedulerOrigins?.slice();
 			}
-			if (options.autoDisplayScheduler !== undefined) {
-				config.autoDisplayScheduler = options.autoDisplayScheduler;
+			if (configuration.autoDisplayScheduler !== undefined) {
+				config.autoDisplayScheduler =
+					typeof configuration.autoDisplayScheduler === 'object'
+						? { ...configuration.autoDisplayScheduler }
+						: configuration.autoDisplayScheduler;
 			}
 			config.q ??= [];
 			config.setConsent ??= (consent) => {
@@ -449,7 +499,10 @@ export const defaultComPixel = function defaultComPixel(
 			};
 			config.setConsent(mapConsent(info));
 		},
-		onConsentChange: forwardPixelConsent,
+		onConsentChange(info) {
+			assertPixelConfiguration(configuration);
+			forwardPixelConsent(info);
+		},
 		onLoad(info) {
 			if (info.element?.isConnected) {
 				forwardPixelConsent(info);
@@ -457,6 +510,7 @@ export const defaultComPixel = function defaultComPixel(
 		},
 		// The runtime wrapper must apply consent before the loader is inserted.
 		serverStart: undefined,
+		validate: () => assertPixelConfiguration(configuration),
 	};
 };
 

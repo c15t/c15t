@@ -33,6 +33,12 @@ import type {
 
 const MAX_RECONCILE_PASSES = 100;
 
+const validateScripts = (scripts: Script[]): void => {
+	for (const script of scripts) {
+		script.validate?.();
+	}
+};
+
 /**
  * Create a script loader from the tools it calls.
  *
@@ -82,6 +88,7 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 		);
 		declareOwners(kernel, scripts, ownerSource);
 	};
+	validateScripts(options.scripts);
 	registerCategories(options.scripts);
 	let normalized: NormalizedScript[] = normalizeScripts(
 		options.scripts,
@@ -350,6 +357,7 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 	};
 
 	const replaceScripts = (next: Script[]): void => {
+		validateScripts(next);
 		const nextScripts = new Set(next);
 		const nextById = new Map(next.map((script) => [script.id, script]));
 		const previous = new Set(normalized.map(({ script }) => script));

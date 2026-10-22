@@ -99,6 +99,15 @@ export interface Script {
 	id: string;
 
 	/**
+	 * Validate before initial registration or configuration replacement.
+	 * Throw to reject the batch before existing registrations are changed.
+	 * Must not mutate script or SDK state. Lifecycle callback errors are isolated;
+	 * the loader does not catch validation errors.
+	 * @internal
+	 */
+	validate?: () => void;
+
+	/**
 	 * Stable identity of the DOM resource, separate from the logical script ID.
 	 * Set this when separate loaders can select different resources for the same
 	 * integration. Matching keys share an element; different keys mount separately.

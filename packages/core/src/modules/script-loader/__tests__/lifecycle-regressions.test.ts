@@ -27,6 +27,70 @@ const mount = (scripts: Script[]) => {
 	return { kernel, loader };
 };
 
+test('rejects an invalid replacement batch before disposing any registration', async () => {
+	const onDispose = vi.fn();
+	const onConsentChange = vi.fn();
+	const { kernel, loader } = mount([
+		{
+			category: 'measurement',
+			id: 'preserved',
+			onConsentChange,
+			onDispose,
+			src: 'https://example.com/original.js',
+		},
+	]);
+	const original = document.head.querySelector('script');
+	original?.dispatchEvent(new Event('load'));
+	onConsentChange.mockClear();
+	expect(() =>
+		loader.updateScripts([
+			{
+				category: 'marketing',
+				id: 'new-first',
+				src: 'https://example.com/new.js',
+			},
+			{
+				category: 'experience',
+				id: 'invalid-last',
+				validate: () => {
+					throw new Error('invalid configuration');
+				},
+			},
+		])
+	).toThrow('invalid configuration');
+	expect(onDispose).not.toHaveBeenCalled();
+	expect(original?.isConnected).toBe(true);
+	expect(document.head.querySelectorAll('script')).toHaveLength(1);
+	await kernel.commands.save({ measurement: false });
+	expect(onConsentChange).toHaveBeenLastCalledWith(
+		expect.objectContaining({ hasConsent: false, id: 'preserved' })
+	);
+	loader.updateScripts([]);
+	expect(onDispose).toHaveBeenCalledOnce();
+});
+
+test('rejects invalid initial registrations before mounting any script', () => {
+	const kernel = createConsentKernel();
+	disposers.push(kernel.dispose);
+	expect(() =>
+		createScriptLoader({
+			kernel,
+			scripts: [
+				{
+					alwaysLoad: true,
+					category: 'measurement',
+					id: 'invalid-initial',
+					src: 'https://example.com/invalid.js',
+					validate: () => {
+						throw new Error('invalid initial configuration');
+					},
+				},
+			],
+		})
+	).toThrow('invalid initial configuration');
+	expect(document.head.querySelector('script')).toBeNull();
+});
+
 test.each([true, false])(
 	'coalesces resource keys within one loader with anonymizeId=%s',
 	(anonymizeId) => {
