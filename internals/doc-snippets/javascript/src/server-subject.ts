@@ -19,10 +19,14 @@ export const handleRequest = async function handleRequest(
 	const headers = new Headers(request.headers);
 	headers.set('cookie', subject.cookie);
 	const response = await render(new Request(request, { headers }));
-
-	if (subject.setCookie) {
-		response.headers.append('set-cookie', subject.setCookie.header);
+	if (!subject.setCookie) {
+		return response;
 	}
-	return response;
+
+	// A response from fetch() or Response.redirect() has immutable
+	// headers, so the cookie goes on a copy.
+	const withCookie = new Response(response.body, response);
+	withCookie.headers.append('set-cookie', subject.setCookie.header);
+	return withCookie;
 };
 // #endregion docs:server-subject

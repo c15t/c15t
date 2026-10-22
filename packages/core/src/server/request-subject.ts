@@ -228,6 +228,9 @@ const subjectCookie = function subjectCookie(
  * ```ts
  * const subject = resolveRequestSubject({ request: { headers, url } });
  * if (subject?.setCookie) {
+ * 	// A response from fetch() or Response.redirect() has immutable
+ * 	// headers, so the cookie goes on a copy.
+ * 	response = new Response(response.body, response);
  * 	response.headers.append('set-cookie', subject.setCookie.header);
  * }
  * ```
