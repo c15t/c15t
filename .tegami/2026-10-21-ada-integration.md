@@ -7,4 +7,4 @@ packages:
 
 ### Add Ada consent integration
 
-`ada()` imports the Ada Messaging Web SDK only after `functionality` consent. Includes configuration and revocation guidance, loader contract tests, and CLI setup support.
+`ada()` from `@c15t/integrations/ada` imports the Ada Messaging Web SDK only after `functionality` consent. On revocation it calls Ada's `stop()`, which removes the widget but keeps stored conversations. The CLI can add it during setup. See [Other chat and support tools](https://c15t.com/docs/integrations/other-chat-and-support#ada).

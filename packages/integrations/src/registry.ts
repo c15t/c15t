@@ -116,7 +116,7 @@ export const BUILT_IN_INTEGRATION_CATEGORIES = [
 export const builtInScriptIntegrations = [
 	{
 		consentCategory: 'functionality',
-		docsSlug: 'ada',
+		docsSlug: 'other-chat-and-support',
 		hint: 'Customer support through Ada Messaging',
 		integrationCategory: 'functional',
 		key: 'ada',

@@ -1,0 +1,37 @@
+---
+title: Other chat and support tools
+description: Consent-gated helpers for chat and support tools that don't need a full guide.
+icon: messages-square
+group: integrations
+---
+
+Each helper below loads its vendor only after the visitor allows the listed consent category. For setup, see [Integrations overview](/docs/integrations/overview).
+
+## Ada
+
+Ada Messaging adds an Ada AI Agent chat widget to your site. Waits for
+`functionality` consent.
+
+<include src="../shared/examples/javascript/ada-scripts.mdx" />
+
+| Option | Type | Required | Description |
+| --- | --- | --- | --- |
+| `handle` | `string` | Yes | Your AI Agent's public handle, from your Ada team. A blank handle logs an error and nothing loads. |
+| `cluster` | `string` | No | Regional cluster, such as `eu`, `us2` or `maple`. Set it only when Ada gives you one. |
+| `domain` | `string` | No | Ada base-domain override. Set it only when Ada gives you one. |
+
+The helper imports Ada's Messaging Web SDK from
+`https://messaging-assets.ada.support/sdk.js` and keeps its interface private,
+so `window.adaEmbed` stays unset. Remove any other Ada snippet or `embed2.js`
+tag. Ada allows only one Messaging interface per page.
+
+**When consent is withdrawn:** the helper calls Ada's `stop()`, which removes
+the widget's frames. c15t then reloads the page to end any SDK work still
+running.
+
+- Ada has no consent API. The helper can only start and stop the widget.
+- `stop()` doesn't erase stored conversations, tokens or cookies. The visitor's
+  conversation can still be there after a reload.
+- An SDK import that has already started can't be cancelled. The helper skips
+  starting the widget when it finishes, but the SDK can still write its own
+  storage. Keep `reloadOnConsentRevoked` enabled.
