@@ -47,7 +47,7 @@ stop an already-running installation.
 
 As an alternative to at.js, enable Adobe Target on your datastream in Adobe
 Data Collection. Copy the datastream ID and organization ID, then choose an
-exact Web SDK version from Adobe's
+exact Web SDK version of `2.21.0` or later from Adobe's
 [release notes](https://experienceleague.adobe.com/en/docs/experience-platform/collection/js/release-notes).
 
 Use this configuration instead of the at.js configuration:
@@ -56,6 +56,9 @@ Use this configuration instead of the at.js configuration:
 
 Version `2.30.0` is an example, not an automatically updated version. The
 helper loads the minified library from Adobe's CDN for the version you pass.
+Versions before `2.21.0` require `edgeConfigId` instead of the `datastreamId`
+key this helper configures. Older versions, ranges, aliases and prerelease
+versions log an error and skip the loader.
 
 Once consent allows the loader, the helper creates the `alloy` base code.
 After the SDK loads, it calls `alloy('configure')` with your IDs and
@@ -97,11 +100,11 @@ with a separate Adobe Tags or Web SDK initializer.
 | `targetGlobalSettings` | `{ optinEnabled: true }` | at.js settings applied before the file loads. Supported fields include `cookieDomain`, `secureOnly`, `bodyHidingEnabled`, `pageLoadEnabled`, `viewsEnabled`, `timeout`, `visitorApiTimeout`, `cspScriptNonce` and `cspStyleNonce`. The helper always sets `optinEnabled` to `true`. |
 | `datastreamId` | Required for Web SDK | Public ID of the Target-enabled datastream. Surrounding whitespace is trimmed. |
 | `orgId` | Required for Web SDK | Organization ID including the `@AdobeOrg` suffix. Surrounding whitespace is trimmed. |
-| `version` | Required for Web SDK | Exact version in `https://cdn1.adoberesources.net/alloy/<version>/alloy.min.js`. Surrounding whitespace is trimmed. |
+| `version` | Required for Web SDK | Exact stable version of `2.21.0` or later in `https://cdn1.adoberesources.net/alloy/<version>/alloy.min.js`. Surrounding whitespace is trimmed. Older versions, ranges, aliases and prerelease versions log an error and skip the loader. |
 
 A missing or blank required value logs a configuration error and skips the
 integration. The helper remains listed in the preference dialog. It does not
-validate whether your IDs, SDK version or self-hosted file exist.
+validate whether your IDs, supported SDK version or self-hosted file exist.
 
 ## Loading and revocation
 
@@ -193,5 +196,6 @@ datastream to verify offer delivery and server-side consent persistence.
 - [Adobe Opt-in API](https://experienceleague.adobe.com/en/docs/id-service/using/implementation/opt-in-service/api)
 - [Web SDK base code](https://experienceleague.adobe.com/en/docs/experience-platform/collection/js/install/base-code)
 - [Web SDK library URL](https://experienceleague.adobe.com/en/docs/experience-platform/collection/js/install/library)
+- [Web SDK datastream ID and version support](https://experienceleague.adobe.com/en/docs/experience-platform/collection/js/commands/configure/datastreamid)
 - [Web SDK default consent](https://experienceleague.adobe.com/en/docs/experience-platform/collection/js/commands/configure/defaultconsent)
 - [Web SDK setConsent](https://experienceleague.adobe.com/en/docs/experience-platform/collection/js/commands/setconsent)

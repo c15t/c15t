@@ -135,6 +135,57 @@ describe('adobeTarget', () => {
 		expect(script.persistAfterConsentRevoked).toBe(true);
 	});
 
+	it.each([
+		'1.99.0',
+		'2.0.0',
+		'2.20.0',
+		'2.20.1',
+		'latest',
+		'^2.30.0',
+		'2.21',
+		'2.21.0-beta.1',
+	])(
+		'skips unsupported Web SDK version %s before creating a runtime',
+		(version) => {
+			expectSkippedScript(
+				() => adobeTarget({ ...webSdkOptions, version }),
+				{ category: 'experience', id: 'adobe-target' },
+				'adobeTarget: missing or invalid version'
+			);
+			const win = window as TargetWindow;
+			expect(win.alloy).toBeUndefined();
+			expect(win.__alloyNS).toBeUndefined();
+			expect(document.querySelector('script')).toBeNull();
+		}
+	);
+
+	it.each(['2.21.0', '2.21.1', '2.30.0', '2.100.0'])(
+		'configures Web SDK %s with the supported datastream key',
+		async (version) => {
+			const win = window as TargetWindow;
+			win.alloy = Object.assign(vi.fn().mockResolvedValue(undefined), {
+				q: [],
+			});
+			const script = adobeTarget({ ...webSdkOptions, version });
+			expect(script.src).toBe(
+				`https://cdn1.adoberesources.net/alloy/${version}/alloy.min.js`
+			);
+			const info = createCallbackInfo({
+				element: connectedScript(),
+				hasConsent: true,
+				id: script.id,
+			});
+			script.onBeforeLoad?.(info);
+			script.onLoad?.(info);
+			await Promise.resolve();
+			expect(win.alloy).toHaveBeenCalledWith('configure', {
+				datastreamId: webSdkOptions.datastreamId,
+				defaultConsent: 'pending',
+				orgId: webSdkOptions.orgId,
+			});
+		}
+	);
+
 	it('sets at.js options and approves only Target before the loader runs', () => {
 		const win = window as TargetWindow;
 		win.adobe = {

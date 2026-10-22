@@ -57,7 +57,7 @@ export interface AdobeTargetWebSdkOptions extends AdobeTargetSharedOptions {
 	datastreamId: string;
 	/** Adobe organization ID including the @AdobeOrg suffix. */
 	orgId: string;
-	/** Exact Web SDK version, for example '2.30.0'. */
+	/** Exact stable Web SDK version, at least 2.21.0, for example '2.30.0'. */
 	version: string;
 }
 
@@ -304,6 +304,14 @@ const createWebSdkScript = function createWebSdkScript(
 const reuseAtJsScript = createScriptReuse<AdobeTargetAtJsOptions>();
 const reuseWebSdkScript = createScriptReuse<AdobeTargetWebSdkOptions>();
 
+const isSupportedWebSdkVersion = (version: string): boolean => {
+	if (!/^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)$/u.test(version)) {
+		return false;
+	}
+	const [major = 0, minor = 0] = version.split('.').map(Number);
+	return major > 2 || (major === 2 && minor >= 21);
+};
+
 /**
  * Loads Adobe Target only after the configured consent condition permits it.
  *
@@ -312,9 +320,10 @@ const reuseWebSdkScript = createScriptReuse<AdobeTargetWebSdkOptions>();
  * Keep reloadOnConsentRevoked enabled to stop existing offers and handlers.
  *
  * @param options - Deployment path, public configuration and consent category.
- * @returns A consent-gated script, or an inactive script for missing IDs.
- * @remarks Blank required values log an error and skip the loader. Remove
- * existing at.js, Web SDK and Adobe Tags installations of the same SDK.
+ * @returns A consent-gated script, or an inactive script for invalid options.
+ * @remarks Web SDK requires an exact stable version of 2.21.0 or later.
+ * Blank required values and unsupported versions log an error and skip loading.
+ * Remove existing at.js, Web SDK and Adobe Tags installations of the same SDK.
  * @example
  * adobeTarget({ mode: 'atjs', scriptUrl: '/scripts/at.js' });
  * @example
@@ -343,7 +352,7 @@ export const adobeTarget = function adobeTarget(
 				manifest: adobeTargetWebSdkManifest,
 			});
 		}
-		if (version === undefined) {
+		if (version === undefined || !isSupportedWebSdkVersion(version)) {
 			return skipMissingId('adobeTarget', 'version', {
 				category,
 				manifest: adobeTargetWebSdkManifest,
