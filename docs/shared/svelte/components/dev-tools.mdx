@@ -55,6 +55,6 @@ loads DevTools only in development shows no DevTools button in the trigger.
 ## Keep it out of production
 
 The panel can clear consent and change the location the policy resolves for.
-Render it in development only. Importing `@c15t/svelte/devtools` statically
+Render it in development only. Importing `c15t/svelte/devtools` statically
 puts the panel in every bundle that imports the file, so import it
 dynamically behind a development check, as the example above does.

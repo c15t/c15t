@@ -4,8 +4,8 @@ export const adapterStyles = `
 [data-testid="iab-consent-banner-card"], [data-testid="iab-consent-dialog-card"] { pointer-events: auto; }
 [data-testid="iab-consent-banner-root"][data-variant="floating"][data-position^="top"] { align-items: flex-start; }
 [data-testid="iab-consent-banner-root"][data-variant="floating"][data-position^="bottom"] { align-items: flex-end; }
-[data-testid="iab-consent-banner-root"][data-variant="floating"][data-position$="left"] { justify-content: flex-start; }
-[data-testid="iab-consent-banner-root"][data-variant="floating"][data-position$="right"] { justify-content: flex-end; }
+[data-testid="iab-consent-banner-root"][data-variant="floating"][data-position$="left"] { justify-content: left; }
+[data-testid="iab-consent-banner-root"][data-variant="floating"][data-position$="right"] { justify-content: right; }
 [data-testid="iab-consent-banner-root"][data-variant="bar"] { --iab-consent-banner-max-width: 100%; align-items: flex-end; }
 [data-testid="iab-consent-banner-root"][data-variant="bar"][data-position="top"] { align-items: flex-start; }
 [data-testid="iab-consent-banner-card"] { max-height: calc(100dvh - 4rem); overflow-y: auto; }

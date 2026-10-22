@@ -1,5 +1,5 @@
 // #region docs:slim-bar title="src/lib/consent-options.ts"
-import type { ConsentManagerOptions } from '@c15t/svelte';
+import type { ConsentManagerOptions } from 'c15t/svelte';
 
 import './slim-bar.css';
 
