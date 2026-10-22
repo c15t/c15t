@@ -60,6 +60,12 @@ export interface StoredRecords {
 	 */
 	recordedSubjectId: string | null;
 	/**
+	 * The record `records.subject` comes from, `null` when no record carries
+	 * a subject. A record stored without one, as older versions wrote them,
+	 * does not carry it.
+	 */
+	subjectCarrier: 'choice' | 'vendors' | 'notice' | null;
+	/**
 	 * The clear epoch in force: the newer of the stored epoch and the one
 	 * the envelope records, `0` when no clear was ever recorded. Records
 	 * above already exclude everything confirmed before it.
@@ -125,6 +131,24 @@ const composeSubject = function composeSubject(
 		return recorded;
 	}
 	return { ...recorded, subjectId: storedSubjectId };
+};
+
+/**
+ * The record that carries the subject among the surviving records: the
+ * envelope, else the vendor record, else the notice record.
+ */
+const subjectCarrier = function subjectCarrier(
+	selected: StoredConsentSelection['selected'],
+	vendorRecord: StoredVendorChoice | null,
+	noticeRecord: StoredNoticeDismissal | null
+): StoredRecords['subjectCarrier'] {
+	if (selected?.subject) {
+		return 'choice';
+	}
+	if (vendorRecord?.subject) {
+		return 'vendors';
+	}
+	return noticeRecord?.subject ? 'notice' : null;
 };
 
 /**
@@ -195,6 +219,7 @@ const composeRecords = function composeRecords(
 		noticeSubject: noticeRecord?.subject ?? null,
 		recordedSubjectId: recorded?.subjectId ?? null,
 		records,
+		subjectCarrier: subjectCarrier(selected, vendorRecord, noticeRecord),
 		vendorSubject: vendorRecord?.subject ?? null,
 	};
 };

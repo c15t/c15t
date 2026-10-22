@@ -2,6 +2,7 @@
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 
 import {
+	explicitChoice,
 	matchedResolution,
 	noticeRule,
 } from '../../../__tests__/fixtures/kernel-fixtures';
@@ -9,6 +10,7 @@ import { createConsentKernel } from '../../../index';
 import { getRawCookieValue } from '../../../libs/cookie';
 import { readRequestConsent } from '../../../server/request-consent';
 import { resolveRequestSubject } from '../../../server/request-subject';
+import type { HydrationRecords, KernelVendorsState } from '../../../types';
 import { createClearOnRevocation } from '../../clear-on-revocation';
 import { createPersistence, readStoredRecordsFromCookieHeader } from '../index';
 import {
@@ -19,7 +21,9 @@ import {
 	clearStoredConsentRecords,
 	encodeNoticeDismissalCompact,
 	encodeNoticeSubjectCompact,
+	writeStoredConsentEnvelope,
 	writeStoredNoticeDismissal,
+	writeStoredVendorChoice,
 } from './record-writes';
 
 /**
@@ -916,5 +920,154 @@ test.each([
 		expect(restored.getSnapshot().subject).toEqual(local);
 		reader.dispose();
 		restored.dispose();
+	}
+);
+
+// A consent or vendor record stored without a subject, as older versions
+// wrote them, carries no subject: the record that does carries it. A
+// running tab follows that record the way a reload and a server render
+// select it, so its next save names the same visitor.
+test.each([
+	['a notice acknowledgement', 'consent'],
+	['a notice acknowledgement', 'vendor'],
+	['a vendor decision', 'consent'],
+] as const)(
+	'a tab follows the subject %s carries past a %s record stored without one',
+	async (act, carrier) => {
+		const keys = resolveStorageKeys();
+		const start = Date.now();
+		const vendors: KernelVendorsState = {
+			declared: [
+				{
+					category: 'marketing',
+					id: 'meta-pixel',
+					name: 'Meta Pixel',
+					presentable: true,
+					privacyPolicyUrl: 'https://example.com/privacy',
+					source: 'config',
+				},
+			],
+			listVersion: null,
+		};
+		if (carrier === 'consent') {
+			writeStoredConsentEnvelope(
+				{
+					categories: explicitChoice(
+						{ marketing: false },
+						{ confirmedAt: start - 5000, now: start }
+					).categories,
+					version: 3,
+				},
+				{ now: start }
+			);
+		} else {
+			writeStoredVendorChoice(
+				{ confirmedAt: start - 5000, denied: ['meta-pixel'], version: 1 },
+				undefined,
+				start
+			);
+		}
+		const initialPolicyResolution = matchedResolution(noticeRule());
+		const sent: (string | undefined)[] = [];
+		const tab = (initialRecords?: HydrationRecords) =>
+			createConsentKernel({
+				initialPolicyResolution,
+				initialRecords,
+				initialVendors: vendors,
+				transport: {
+					save: (payload: { subjectId?: string }) => {
+						sent.push(payload.subjectId);
+						return Promise.resolve({ ok: true });
+					},
+				},
+			});
+		const render = () => {
+			const subject = resolveRequestSubject({
+				now: Date.now(),
+				request: { cookie: document.cookie, url: 'https://example.com/' },
+			});
+			const { state } = readRequestConsent({
+				adapter: '@c15t/test',
+				now: Date.now(),
+				request: {
+					cookie: subject?.cookie ?? document.cookie,
+					headers: new Headers(),
+				},
+			});
+			return state.initialRecords;
+		};
+		const reload = () => {
+			const kernel = tab();
+			const handle = createPersistence({ kernel });
+			const id = kernel.getSnapshot().subject?.subjectId;
+			handle.dispose();
+			kernel.dispose();
+			return { hydrated: id, rendered: render()?.subject?.subjectId };
+		};
+		const sync = async () => {
+			for (const key of [keys.notice, keys.subject]) {
+				window.dispatchEvent(new StorageEvent('storage', { key }));
+			}
+			window.dispatchEvent(new Event('focus'));
+			await vi.advanceTimersByTimeAsync(0);
+		};
+		// Two pages render before either response stores `<key>-sid`, so the
+		// server names a different ID for each.
+		const firstRecords = render();
+		const otherRecords = render();
+		const first = tab(firstRecords);
+		const firstHandle = createPersistence({
+			kernel: first,
+			skipHydration: true,
+		});
+		const other = tab(otherRecords);
+		const otherHandle = createPersistence({
+			kernel: other,
+			skipHydration: true,
+		});
+		const firstId = first.getSnapshot().subject?.subjectId;
+		expect(firstId).toBeTruthy();
+		expect(other.getSnapshot().subject?.subjectId).not.toBe(firstId);
+		const before = other.getSnapshot();
+
+		vi.advanceTimersByTime(1000);
+		const acting =
+			act === 'a vendor decision'
+				? first.commands.save({}, { vendors: { 'meta-pixel': false } })
+				: first.commands.dismissNotice();
+		await vi.advanceTimersByTimeAsync(0);
+		await acting;
+		await sync();
+		expect(other.getSnapshot().subject?.subjectId).toBe(firstId);
+		expect(reload()).toEqual({ hydrated: firstId, rendered: firstId });
+		expect(other.getSnapshot().explicitChoice).toEqual(before.explicitChoice);
+		expect(other.getSnapshot().vendorChoice).toEqual(
+			first.getSnapshot().vendorChoice
+		);
+		const notice = readStoredNoticeDismissal(undefined, Date.now());
+		expect(other.getSnapshot().noticeDismissal?.dismissedAt).toBe(
+			notice?.ok ? notice.record.dismissedAt : undefined
+		);
+		const decided = other.getSnapshot();
+
+		vi.advanceTimersByTime(1000);
+		first.set.subjectId('sub_named');
+		await vi.advanceTimersByTimeAsync(0);
+		await sync();
+		expect(other.getSnapshot().subject?.subjectId).toBe('sub_named');
+		expect(reload()).toEqual({ hydrated: 'sub_named', rendered: 'sub_named' });
+
+		const earlier = sent.length;
+		const saving = other.commands.save({ marketing: false });
+		await vi.advanceTimersByTimeAsync(0);
+		await saving;
+		await vi.advanceTimersByTimeAsync(0);
+		expect(sent.slice(earlier)).toEqual(['sub_named']);
+		expect(reload()).toEqual({ hydrated: 'sub_named', rendered: 'sub_named' });
+		expect(other.getSnapshot().vendorChoice).toEqual(decided.vendorChoice);
+		firstHandle.dispose();
+		first.dispose();
+		otherHandle.dispose();
+		other.dispose();
 	}
 );

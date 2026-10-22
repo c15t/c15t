@@ -57,7 +57,7 @@ type Rules = Pick<
 /** The parts of a storage read that reconciliation consults. */
 export type StoredRead = Pick<
 	StoredRecords,
-	'records' | 'vendorSubject' | 'noticeSubject' | 'epoch'
+	'records' | 'vendorSubject' | 'noticeSubject' | 'subjectCarrier' | 'epoch'
 >;
 
 const canonical = function canonical(value: unknown): unknown {
@@ -412,16 +412,12 @@ const subjectAfterRemoval = function subjectAfterRemoval(
 const reconcileNoticeSubject = function reconcileNoticeSubject(
 	snapshot: ConsentSnapshot,
 	stored: HydrationRecords,
+	carries: boolean,
 	movement: Movement,
 	subjectYields: boolean,
 	candidate: HydrationRecords['subject']
 ): HydrationRecords['subject'] {
-	if (
-		snapshot.explicitChoice === null &&
-		!stored.choice &&
-		!stored.vendorChoice &&
-		movement.changed('notice')
-	) {
+	if (carries && movement.changed('notice')) {
 		if (movement.removed('notice')) {
 			return stored.choice === null && stored.vendorChoice === null
 				? subjectAfterClear(snapshot.subject)
@@ -445,7 +441,9 @@ const reconcileNoticeSubject = function reconcileNoticeSubject(
  * The subject to apply, or `undefined` to keep the one in memory.
  *
  * The subject belongs to the record it was stored with: the envelope,
- * a vendor decision, or a notice acknowledgement. It
+ * a vendor decision, or a notice acknowledgement. A record stored without
+ * a subject, as older versions wrote them, does not carry it, so the
+ * subject follows the record that does, as a reload selects it. It
  * is only considered when that record changed in storage, so focus or an
  * unrelated key never moves the subject, and follows
  * {@link prefersStoredSubject}. Only the removal of the record that carried
@@ -455,11 +453,16 @@ const reconcileSubject = function reconcileSubject(
 	snapshot: ConsentSnapshot,
 	stored: HydrationRecords,
 	carried: ConsentSubject | null,
+	carrier: StoredRead['subjectCarrier'],
 	records: HydrationRecords,
 	movement: Movement,
 	subjectYields: boolean
 ): HydrationRecords['subject'] {
 	const { explicitChoice, vendorChoice } = snapshot;
+	// With no record carrying it, the subject is `<key>-sid` alone and goes
+	// with the records present.
+	const carries = (kind: StoredRecordKind, present: boolean): boolean =>
+		carrier === kind || (carrier === null && present);
 	let candidate: HydrationRecords['subject'];
 	if (records.choice === null) {
 		candidate = subjectAfterRemoval(
@@ -469,7 +472,7 @@ const reconcileSubject = function reconcileSubject(
 			movement,
 			subjectYields
 		);
-	} else if (stored.choice) {
+	} else if (stored.choice && carries('choice', true)) {
 		const relevant = movement.changed('choice') || records.choice !== undefined;
 		if (
 			relevant &&
@@ -483,9 +486,12 @@ const reconcileSubject = function reconcileSubject(
 		) {
 			candidate = stored.subject;
 		}
-	} else if (explicitChoice === null && movement.changed('vendors')) {
-		// No choice on either side, or an unreadable one: the vendor record
-		// carries the subject.
+	} else if (
+		carries('vendors', explicitChoice === null) &&
+		movement.changed('vendors')
+	) {
+		// No choice on either side, an unreadable one, or one stored without
+		// a subject: the vendor record carries the subject.
 		if (stored.choice === null && movement.removed('vendors')) {
 			candidate = subjectAfterClear(snapshot.subject);
 		} else if (
@@ -503,6 +509,10 @@ const reconcileSubject = function reconcileSubject(
 	candidate = reconcileNoticeSubject(
 		snapshot,
 		stored,
+		carries(
+			'notice',
+			explicitChoice === null && !stored.choice && !stored.vendorChoice
+		),
 		movement,
 		subjectYields,
 		candidate
@@ -517,6 +527,7 @@ const reconcileChoice = function reconcileChoice(
 	snapshot: ConsentSnapshot,
 	stored: HydrationRecords,
 	carried: ConsentSubject | null,
+	carrier: StoredRead['subjectCarrier'],
 	movement: Movement,
 	subjectYields: boolean,
 	merge: Rules['merge']
@@ -541,6 +552,7 @@ const reconcileChoice = function reconcileChoice(
 		snapshot,
 		stored,
 		carried,
+		carrier,
 		records,
 		movement,
 		subjectYields
@@ -674,6 +686,7 @@ export const selectReconciledRecords = function selectReconciledRecords(
 		// The identity a vendor or notice record still carries once the
 		// choice is gone.
 		read.vendorSubject ?? read.noticeSubject ?? null,
+		read.subjectCarrier,
 		movement,
 		subjectYields || clearMissed,
 		rules.merge
