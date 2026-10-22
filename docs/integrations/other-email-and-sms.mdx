@@ -22,6 +22,26 @@ Attentive shows SMS and email signup units and tracks on-site events for its mar
 
 - Some Attentive identifiers, such as `__attentive_id`, last up to 390 days. The reload does not delete them.
 
+## Customer.io
+
+Customer.io collects events and visitor identity on your site through its Data Pipelines JavaScript source, for use in its messaging. Waits for `marketing` consent.
+
+<include src="../shared/examples/javascript/customer-io-configuration.mdx" />
+
+| Option | Type | Required | Description |
+| --- | --- | --- | --- |
+| `writeKey` | `string` | Yes | Write key of your Data Pipelines JavaScript source. |
+| `region` | `'us'` or `'eu'` | No | Region of the source. Defaults to `us`. |
+| `loadOptions` | `Record<string, unknown>` | No | Options for the Customer.io loader, such as destination settings. |
+| `cdnUrl` | `string` | No | Origin of a proxy for the loader, source settings and SDK files. |
+
+**When consent is withdrawn:** the helper calls `cioanalytics.reset()` to clear the stored identity, and c15t reloads the page. `reset()` is not an opt-out. It does not stop the SDK or destination SDKs from sending, so keep `reloadOnConsentRevoked` on.
+
+- The helper sends the first `page()` call itself. It always sets `initialPageview` to `false`, even if you pass `true`.
+- `cdnUrl` moves only the loader, settings and SDK files to your proxy. To proxy collected events too, set `apiHost` for the `Customer.io Data Pipelines` integration in `loadOptions`:
+
+<include src="../shared/examples/javascript/customer-io-proxy.mdx" />
+
 ## Marketo Munchkin
 
 Munchkin is Adobe Marketo's script for tracking known and anonymous leads on your site. Waits for `marketing` consent.

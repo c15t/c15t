@@ -137,7 +137,7 @@ The layout stays a Server Component. You write no `'use client'` wrapper and nee
 - **Experimentation and personalization**: Adobe Target
 - **Experimentation and personalization**: Appcues
 - **Ads and pixels**: AdRoll, Meta Pixel, OpenAI Pixel, TikTok Pixel, LinkedIn Insight Tag, LiveIntent, Microsoft UET, Pinterest Tag, Reddit Pixel, Snapchat Pixel, The Trade Desk, Vector, X Pixel
-- **Enrichment, email, and SMS**: Attentive, Clearbit, Klaviyo
+- **Enrichment, email, and SMS**: Attentive, Clearbit, Customer.io, Klaviyo
 - **Experimentation and personalization**: Wisepops popups and onsite campaigns
 - **Chat and support**: Ada, Intercom, Crisp, Front Chat, Gorgias Chat, Zendesk Messaging
 - **Monitoring**: Sentry

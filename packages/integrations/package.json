@@ -405,6 +405,11 @@
 			"import": "./dist/vendors/email-and-sms/attentive.js",
 			"default": "./dist/vendors/email-and-sms/attentive.js"
 		},
+		"./customer-io": {
+			"types": "./dist-types/vendors/email-and-sms/customer-io.d.ts",
+			"import": "./dist/vendors/email-and-sms/customer-io.js",
+			"default": "./dist/vendors/email-and-sms/customer-io.js"
+		},
 		"./clay": {
 			"types": "./dist-types/vendors/analytics/clay.d.ts",
 			"import": "./dist/vendors/analytics/clay.js",

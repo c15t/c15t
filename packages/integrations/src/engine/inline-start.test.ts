@@ -1,5 +1,13 @@
 import type { ConsentState, Script, ScriptCallbackInfo } from '@c15t/core';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+	afterEach,
+	assert,
+	beforeEach,
+	describe,
+	expect,
+	it,
+	vi,
+} from 'vitest';
 
 import {
 	createCallbackInfo,
@@ -7,6 +15,8 @@ import {
 	setupScriptHelperTest,
 } from '../__tests__/helpers';
 import { helperParityCases } from '../__tests__/integration-cases';
+import { resolveManifest } from '../resolve';
+import { vendorManifestContract } from '../types';
 import { metaPixel } from '../vendors/ads-and-pixels/meta-pixel';
 import { gtag } from '../vendors/analytics/google-tag';
 import { vercelSpeedInsights } from '../vendors/analytics/vercel-speed-insights';
@@ -204,6 +214,117 @@ describe('inlineStepsStart', () => {
 			])
 		);
 	});
+	it.each([undefined, false, true])(
+		'returns the method owner only when returnTarget is %s in both runners',
+		(returnTarget) => {
+			const script = resolveManifest(
+				{
+					...vendorManifestContract,
+					bootstrap: [
+						{ name: 'chainQueue', type: 'setGlobal', value: [] },
+						{
+							methods: ['identify', 'track'],
+							returnTarget,
+							target: 'chainQueue',
+							type: 'defineQueueMethods',
+						},
+					],
+					category: 'measurement',
+					install: [{ src: 'https://example.com/sdk.js', type: 'loadScript' }],
+					vendor: 'chain-queue',
+				},
+				{}
+			);
+			const pages = runBoth(
+				script,
+				{ consents: granted, hasConsent: true, id: script.id },
+				() => {
+					const queue = getTestGlobal().chainQueue as unknown as {
+						identify: (id: string) => unknown;
+						track: (event: string) => unknown;
+					};
+					expect(queue.identify('customer-123')).toBe(
+						returnTarget ? queue : undefined
+					);
+					expect(queue.track('Signed up')).toBe(
+						returnTarget ? queue : undefined
+					);
+					return queue;
+				}
+			);
+			expect(pages[1]).toStrictEqual(pages[0]);
+		}
+	);
+
+	describe.each(['runtime', 'server-start'])(
+		'%s queue method returns',
+		(runner) => {
+			describe.each(['global', 'property'])(
+				'with a separate %s queue',
+				(location) => {
+					it.each([undefined, false, true])(
+						'chains through the method owner only when returnTarget is %s',
+						(returnTarget) => {
+							const calls: unknown[] = [];
+							interface QueueOwner {
+								q: unknown[];
+								track: (event: string) => QueueOwner;
+							}
+							const owner: QueueOwner = { q: calls, track: vi.fn() };
+							getTestGlobal().chainOwner = owner;
+							getTestGlobal().chainCalls = calls;
+							const script = resolveManifest(
+								{
+									...vendorManifestContract,
+									bootstrap: [
+										{
+											methods: ['track'],
+											queue:
+												location === 'global'
+													? { global: 'chainCalls' }
+													: { property: 'q' },
+											returnTarget,
+											target: 'chainOwner',
+											type: 'defineQueueMethods',
+										},
+									],
+									category: 'measurement',
+									install: [
+										{ src: 'https://example.com/sdk.js', type: 'loadScript' },
+									],
+									vendor: 'separate-queue',
+								},
+								{}
+							);
+							const info = {
+								consents: granted,
+								hasConsent: true,
+								id: script.id,
+							};
+							if (runner === 'runtime') {
+								script.onBeforeLoad?.(createCallbackInfo(info));
+							} else {
+								const start = script.serverStart?.(info, script);
+								assert(start, 'Expected a server-start script');
+								// oxlint-disable-next-line no-new-func -- Runs the server-start script as the page would.
+								new Function(`${start.prelude ?? ''};${start.code}`)();
+							}
+							const first = owner.track('First');
+							const second = returnTarget
+								? first.track('Second')
+								: owner.track('Second');
+							expect(first).toBe(returnTarget ? owner : undefined);
+							expect(second).toBe(returnTarget ? owner : undefined);
+							expect(calls).toEqual([
+								['track', 'First'],
+								['track', 'Second'],
+							]);
+						}
+					);
+				}
+			);
+		}
+	);
 
 	// Speed Insights registers its consent gate at hydration; see below.
 	describe.each(inlineCases.filter(([key]) => key !== 'vercelSpeedInsights'))(

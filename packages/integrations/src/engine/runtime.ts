@@ -367,6 +367,7 @@ const executeStep = function executeStep(step: ManifestStep): void {
 							? [methodName, args]
 							: [methodName, ...args]
 					);
+					return step.returnTarget ? targetRecord : undefined;
 				};
 			}
 			break;

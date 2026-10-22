@@ -245,6 +245,16 @@ export const builtInScriptIntegrations = [
 		vendor: 'attentive',
 	},
 	{
+		consentCategory: 'marketing',
+		docsSlug: 'other-email-and-sms',
+		hint: 'Website events through Customer.io Data Pipelines',
+		integrationCategory: 'email-and-sms',
+		key: 'customerIo',
+		label: 'Customer.io',
+		packageSubpath: 'customer-io',
+		vendor: 'customer-io',
+	},
+	{
 		consentCategory: 'necessary',
 		docsSlug: 'cloudflare-zaraz',
 		hint: 'Consent bridge for tools managed by Zaraz',

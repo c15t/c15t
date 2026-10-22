@@ -52,6 +52,7 @@ import { umamiAnalytics } from '../vendors/analytics/umami-analytics';
 import { vercelAnalytics } from '../vendors/analytics/vercel-analytics';
 import { vercelSpeedInsights } from '../vendors/analytics/vercel-speed-insights';
 import { attentiveTag } from '../vendors/email-and-sms/attentive';
+import { customerIo } from '../vendors/email-and-sms/customer-io';
 import { klaviyo } from '../vendors/email-and-sms/klaviyo';
 import { ada } from '../vendors/functional/ada';
 import { adobeTarget } from '../vendors/functional/adobe-target';
@@ -175,6 +176,14 @@ export const helperParityCases = {
 			src: 'https://client.crisp.chat/l.js',
 		},
 		script: crisp({ websiteId: 'crisp-123' }),
+	},
+	customerIo: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: true,
+			src: 'https://cdp.customer.io/v1/analytics-js/snippet/test-key/analytics.min.js',
+		},
+		script: customerIo({ writeKey: 'test-key' }),
 	},
 	databuddy: {
 		expected: {

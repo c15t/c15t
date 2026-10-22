@@ -49,6 +49,7 @@ import { umamiAnalytics } from './vendors/analytics/umami-analytics';
 import { vercelAnalytics } from './vendors/analytics/vercel-analytics';
 import { vercelSpeedInsights } from './vendors/analytics/vercel-speed-insights';
 import { attentiveTag } from './vendors/email-and-sms/attentive';
+import { customerIo } from './vendors/email-and-sms/customer-io';
 import { klaviyo } from './vendors/email-and-sms/klaviyo';
 import { ada } from './vendors/functional/ada';
 import { adobeTarget } from './vendors/functional/adobe-target';
@@ -271,6 +272,12 @@ const requiredIdCases: {
 		helper: 'attentiveTag',
 		option: 'siteSlug',
 		script: { category: 'marketing', id: 'attentive' },
+	},
+	{
+		create: (id) => customerIo({ writeKey: asId(id) }),
+		helper: 'customerIo',
+		option: 'writeKey',
+		script: { category: 'marketing', id: 'customer-io' },
 	},
 	{
 		create: (id) => linkedinInsights({ id: asId(id) }),

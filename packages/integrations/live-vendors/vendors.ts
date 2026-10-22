@@ -72,6 +72,7 @@ import { umamiAnalytics } from '../src/vendors/analytics/umami-analytics';
 import { vercelAnalytics } from '../src/vendors/analytics/vercel-analytics';
 import { vercelSpeedInsights } from '../src/vendors/analytics/vercel-speed-insights';
 import { attentiveTag } from '../src/vendors/email-and-sms/attentive';
+import { customerIo } from '../src/vendors/email-and-sms/customer-io';
 import { klaviyo } from '../src/vendors/email-and-sms/klaviyo';
 import { ada } from '../src/vendors/functional/ada';
 import { adobeTarget } from '../src/vendors/functional/adobe-target';
@@ -253,6 +254,10 @@ type RudderStackWindow = Window & {
 		snippetExecuted?: boolean;
 		[key: string]: unknown;
 	};
+};
+
+type CustomerIoProbeWindow = Window & {
+	cioanalytics?: { _writeKey?: unknown; initialize?: unknown };
 };
 
 type PosthogProbeWindow = Window & {
@@ -732,6 +737,36 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 		runtimeReplacedGlobals: ['attentive'],
 		tier: 'full',
 		vendor: 'attentive',
+	},
+	{
+		allowUrlSubstrings: [
+			'cdp.customer.io/v1/projects/47e549aabef763c4f2fc/settings',
+			'cdp.customer.io/v1/analytics-js/',
+		],
+		bootstrapCheck: () =>
+			check(
+				Array.isArray(window.cioanalytics) &&
+					(window as CustomerIoProbeWindow).cioanalytics?._writeKey ===
+						'47e549aabef763c4f2fc' &&
+					document.querySelector(
+						'script[data-global-customerio-analytics-key="cioanalytics"]'
+					) !== null,
+				'Customer.io namespace, array queue and write key'
+			),
+		createScript: () => customerIo({ writeKey: '47e549aabef763c4f2fc' }),
+		loaderUrlSubstring:
+			'cdp.customer.io/v1/analytics-js/snippet/47e549aabef763c4f2fc/analytics.min.js',
+		notes:
+			'Public US write key yields actual JavaScript. Invalid keys or wrong regions can return 200 JSON and do not prove SDK execution. Collection and destination endpoints are blocked; account delivery and complete destination shutdown are not verified.',
+		runtimeCheck: () =>
+			check(
+				typeof (window as CustomerIoProbeWindow).cioanalytics?.initialize ===
+					'function',
+				'Customer.io installed its real analytics SDK'
+			),
+		runtimeReplacedGlobals: ['cioanalytics'],
+		tier: 'full',
+		vendor: 'customer-io',
 	},
 	{
 		skipReason:
