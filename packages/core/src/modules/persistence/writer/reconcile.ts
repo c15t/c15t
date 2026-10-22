@@ -376,18 +376,20 @@ const prefersStoredSubject = function prefersStoredSubject(
 
 /**
  * The subject once the stored choice was removed. With no identity left in
- * storage the identity goes with the choice and the ID stays, as a clear
- * leaves it. A subject the vendor record
+ * a stored record the identity goes with the choice and the ID stays, as a
+ * clear leaves it. `<key>-sid` alone is not such a record: it holds the ID
+ * and never an identity. A subject the vendor record
  * still carries follows the usual precedence, so it never replaces an id
  * the server resolved or an identity from `identify()` it should yield to.
  */
 const subjectAfterRemoval = function subjectAfterRemoval(
 	snapshot: ConsentSnapshot,
 	stored: HydrationRecords,
+	carried: ConsentSubject | null,
 	movement: Movement,
 	subjectYields: boolean
 ): HydrationRecords['subject'] {
-	if (!stored.subject) {
+	if (!(stored.subject && carried)) {
 		return subjectAfterClear(snapshot.subject);
 	}
 	return movement.changed('vendors') &&
@@ -452,6 +454,7 @@ const reconcileNoticeSubject = function reconcileNoticeSubject(
 const reconcileSubject = function reconcileSubject(
 	snapshot: ConsentSnapshot,
 	stored: HydrationRecords,
+	carried: ConsentSubject | null,
 	records: HydrationRecords,
 	movement: Movement,
 	subjectYields: boolean
@@ -459,7 +462,13 @@ const reconcileSubject = function reconcileSubject(
 	const { explicitChoice, vendorChoice } = snapshot;
 	let candidate: HydrationRecords['subject'];
 	if (records.choice === null) {
-		candidate = subjectAfterRemoval(snapshot, stored, movement, subjectYields);
+		candidate = subjectAfterRemoval(
+			snapshot,
+			stored,
+			carried,
+			movement,
+			subjectYields
+		);
 	} else if (stored.choice) {
 		const relevant = movement.changed('choice') || records.choice !== undefined;
 		if (
@@ -507,6 +516,7 @@ const reconcileSubject = function reconcileSubject(
 const reconcileChoice = function reconcileChoice(
 	snapshot: ConsentSnapshot,
 	stored: HydrationRecords,
+	carried: ConsentSubject | null,
 	movement: Movement,
 	subjectYields: boolean,
 	merge: Rules['merge']
@@ -530,6 +540,7 @@ const reconcileChoice = function reconcileChoice(
 	const subject = reconcileSubject(
 		snapshot,
 		stored,
+		carried,
 		records,
 		movement,
 		subjectYields
@@ -660,6 +671,9 @@ export const selectReconciledRecords = function selectReconciledRecords(
 	const records = reconcileChoice(
 		view,
 		stored,
+		// The identity a vendor or notice record still carries once the
+		// choice is gone.
+		read.vendorSubject ?? read.noticeSubject ?? null,
 		movement,
 		subjectYields || clearMissed,
 		rules.merge
