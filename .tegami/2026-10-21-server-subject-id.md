@@ -45,6 +45,11 @@ On another server, `resolveRequestSubject()` from `c15t/server` returns the
 visitor's ID, the `Set-Cookie` value to send and the request `Cookie` header
 to render with.
 
+The server helpers read a Node-style header record under any header-name
+casing. `resolveRequestSubject()` and `readRequestConsent()` find a `Cookie` or
+`COOKIE` header, and the request origin finds `Host`. Forwarding headers are
+still read only with `trustForwardedHeaders: true`.
+
 The server and the adapters never replace a `c15t-sid` cookie the request
 already has. While the browser's cookie writes succeed, the server render and
 the browser use the same ID. The server reads cookies only, though. If the

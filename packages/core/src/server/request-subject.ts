@@ -118,9 +118,14 @@ const readCookieHeader = function readCookieHeader(
 	if (typeof (headers as Headers).get === 'function') {
 		return (headers as Headers).get('cookie') ?? '';
 	}
-	const value = (headers as Record<string, string | string[] | undefined>)
-		.cookie;
-	return (Array.isArray(value) ? value.join('; ') : value) ?? '';
+	// Header names are case-insensitive, and a record keeps whatever casing
+	// the runtime or the client used.
+	return Object.entries(
+		headers as Record<string, string | string[] | undefined>
+	)
+		.filter(([name]) => name.toLowerCase() === 'cookie')
+		.flatMap(([, value]) => value ?? [])
+		.join('; ');
 };
 
 const toHeaders = function toHeaders(

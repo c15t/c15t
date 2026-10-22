@@ -143,4 +143,54 @@ describe('resolveRequestSubject', () => {
 			secure: true,
 		});
 	});
+
+	// Header names are case-insensitive, and some runtimes keep the casing
+	// the client sent.
+	test.each(['Cookie', 'COOKIE', 'cOoKiE'])(
+		'a Node header record with a %s header keeps the visitor ID',
+		(name) => {
+			const existing = resolveRequestSubject({
+				now: NOW,
+				request: {
+					headers: { [name]: ['theme=dark', 'c15t-sid=sub_existing'] },
+				},
+			});
+			expect(existing).toEqual({
+				cookie: 'theme=dark; c15t-sid=sub_existing',
+				setCookie: null,
+				subjectId: 'sub_existing',
+			});
+			const { state } = readRequestConsent({
+				adapter: '@c15t/test',
+				now: NOW,
+				request: { cookie: existing?.cookie, headers: new Headers() },
+			});
+			expect(state.initialRecords?.subject?.subjectId).toBe('sub_existing');
+			expect(state.initialRecords?.choice).toBeNull();
+
+			const recorded = resolveRequestSubject({
+				now: NOW,
+				request: { headers: { [name]: `c15t-sid=sub_other; ${RECORDED}` } },
+			});
+			expect(recorded).toEqual({
+				cookie: `c15t-sid=sub_other; ${RECORDED}`,
+				setCookie: null,
+				subjectId: 'sub_recorded',
+			});
+		}
+	);
+
+	test.each(['Host', 'HOST'])(
+		'the subject cookie reads a %s header from a Node header record',
+		(name) => {
+			const subject = resolveRequestSubject({
+				request: { headers: { [name]: 'app.example.com' } },
+				storage: { crossSubdomain: true },
+			});
+			expect(subject?.setCookie).toMatchObject({
+				domain: '.example.com',
+				secure: true,
+			});
+		}
+	);
 });
