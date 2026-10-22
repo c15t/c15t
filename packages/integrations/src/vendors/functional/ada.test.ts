@@ -215,6 +215,42 @@ describe('ada', () => {
 		expect(createAdaEmbedInterface).toHaveBeenCalledOnce();
 	});
 
+	it('ignores a second configuration so disposing the first stops Messaging', async () => {
+		importGate.resolve();
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+		const first = create({ handle: 'first' });
+		const second = create({ handle: 'second' });
+		first.onLoad?.(info(first, true));
+		await vi.waitFor(() => expect(client.start).toHaveBeenCalledOnce());
+		second.onLoad?.(info(second, true));
+		second.onConsentChange?.(info(second, true));
+		expect(warn).toHaveBeenCalledOnce();
+		expect(warn).toHaveBeenCalledWith(
+			expect.stringContaining('one configuration per page')
+		);
+		first.onDispose?.(info(first, true));
+		expect(client.stop).toHaveBeenCalledOnce();
+		second.onConsentChange?.(info(second, true));
+		await settle();
+		expect(client.start).toHaveBeenCalledOnce();
+		expect(client.start).toHaveBeenCalledWith({ handle: 'first' });
+	});
+
+	it('shares Messaging between registrations with the same settings', async () => {
+		importGate.resolve();
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+		const first = create();
+		const second = create();
+		first.onLoad?.(info(first, true));
+		second.onLoad?.(info(second, true));
+		await vi.waitFor(() => expect(client.start).toHaveBeenCalledOnce());
+		first.onDispose?.(info(first, true));
+		expect(client.stop).not.toHaveBeenCalled();
+		second.onDispose?.(info(second, true));
+		expect(client.stop).toHaveBeenCalledOnce();
+		expect(warn).not.toHaveBeenCalled();
+	});
+
 	it('cancels a pending import on disposal even if the payload still has consent', async () => {
 		const script = create();
 		script.onLoad?.(info(script, true));

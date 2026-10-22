@@ -54,7 +54,8 @@ interface StartAttempt {
 let instance: AdaMessagingInterface | undefined;
 let attempt: StartAttempt | undefined;
 let operations = Promise.resolve();
-let granted = false;
+// Settings of the granted configuration; undefined while Messaging is off.
+let active: AdaOptions | undefined;
 const registrations = new Set<symbol>();
 
 const stop = (current: StartAttempt): Promise<void> => {
@@ -74,8 +75,13 @@ const stop = (current: StartAttempt): Promise<void> => {
 	return current.stop;
 };
 
+const sameSettings = (left: AdaOptions, right: AdaOptions): boolean =>
+	left.handle === right.handle &&
+	left.cluster === right.cluster &&
+	left.domain === right.domain;
+
 const deactivate = (): void => {
-	granted = false;
+	active = undefined;
 	if (!attempt || attempt.cancelled) {
 		return;
 	}
@@ -88,10 +94,10 @@ const deactivate = (): void => {
 };
 
 const startMessaging = (settings: AdaOptions): void => {
-	if (granted) {
+	if (active) {
 		return;
 	}
-	granted = true;
+	active = settings;
 	const current: StartAttempt = { cancelled: false, started: false };
 	attempt = current;
 	const pending = operations;
@@ -124,7 +130,7 @@ const startMessaging = (settings: AdaOptions): void => {
 			await instance.start(settings);
 		} catch (error) {
 			if (!current.cancelled) {
-				granted = false;
+				active = undefined;
 				console.error('ada: failed to start Messaging.', error);
 			}
 		}
@@ -134,9 +140,10 @@ const startMessaging = (settings: AdaOptions): void => {
 /**
  * Loads Ada Messaging only after the script's mapped consent is granted.
  *
- * Repeated registrations share one private Messaging interface. The first
- * active configuration supplies its settings. When the last granted loader
- * revokes consent or disposes the script, Ada's documented `stop()` runs,
+ * Repeated registrations share one private Messaging interface. A
+ * registration whose settings differ from the active configuration logs a
+ * `console.warn` and is ignored until the page reloads. When the last granted
+ * loader revokes consent or disposes the script, Ada's documented `stop()` runs,
  * including while `start()` is pending. A later grant waits for pending work.
  * Changed account or regional settings restart that interface after
  * `stop()`.
@@ -172,7 +179,11 @@ export const ada = function ada(options: AdaOptions): Script {
 	}
 
 	const registration = Symbol('ada');
+	let ignored = false;
 	const dispose = (info: ScriptCallbackInfo): void => {
+		if (ignored) {
+			return;
+		}
 		registrations.delete(info.registration ?? registration);
 		if (registrations.size === 0) {
 			deactivate();
@@ -184,7 +195,14 @@ export const ada = function ada(options: AdaOptions): Script {
 			dispose(info);
 			return;
 		}
-		if (typeof window === 'undefined') {
+		if (ignored || typeof window === 'undefined') {
+			return;
+		}
+		if (active && !sameSettings(active, settings)) {
+			ignored = true;
+			console.warn(
+				'ada: Ada supports one configuration per page. These settings are ignored until the page reloads.'
+			);
 			return;
 		}
 		registrations.add(info.registration ?? registration);
