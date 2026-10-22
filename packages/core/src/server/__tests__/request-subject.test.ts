@@ -97,6 +97,64 @@ describe('resolveRequestSubject', () => {
 		}
 	});
 
+	// A Headers implementation from a polyfill or another realm, such as an
+	// edge runtime shim: not an instance of this realm's Headers, and with
+	// no enumerable entries.
+	class OtherHeaders {
+		readonly #values = new Map<string, string>();
+
+		constructor(init: Record<string, string>) {
+			for (const [name, value] of Object.entries(init)) {
+				this.#values.set(name.toLowerCase(), value);
+			}
+		}
+
+		get(name: string): string | null {
+			return this.#values.get(name.toLowerCase()) ?? null;
+		}
+
+		has(name: string): boolean {
+			return this.#values.has(name.toLowerCase());
+		}
+	}
+	const other = (init: Record<string, string>) =>
+		new OtherHeaders(init) as unknown as Headers;
+
+	test.each<Record<string, string>>([
+		{ 'sec-purpose': 'prefetch' },
+		{ purpose: 'prefetch' },
+		{ 'next-router-prefetch': '1' },
+	])(
+		'a speculative request with another Headers implementation gets no subject: %o',
+		(headers) => {
+			expect(
+				resolve(undefined, { request: { headers: other(headers) } })
+			).toBeNull();
+		}
+	);
+
+	test('another Headers implementation keeps the visitor ID and the request host', () => {
+		expect(
+			resolveRequestSubject({
+				now: NOW,
+				request: { headers: other({ cookie: 'c15t-sid=sub_existing' }) },
+			})
+		).toEqual({
+			cookie: 'c15t-sid=sub_existing',
+			setCookie: null,
+			subjectId: 'sub_existing',
+		});
+		const first = resolveRequestSubject({
+			request: { headers: other({ host: 'app.example.com' }) },
+			storage: { crossSubdomain: true },
+		});
+		expect(first?.setCookie).toMatchObject({
+			domain: '.example.com',
+			secure: true,
+			value: first?.subjectId,
+		});
+	});
+
 	test('the cookie follows the storage configuration the browser uses', () => {
 		const custom = resolve(undefined, {
 			request: { url: 'http://app.example.com/' },
