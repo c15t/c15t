@@ -551,6 +551,46 @@ describe('Gainsight PX production loader contract', () => {
 		}
 	);
 
+	it('keeps a pending loader across freshly spread equivalent rerenders', async () => {
+		const createScript = () => ({
+			...gainsightPx({
+				config: { usePOST: true },
+				productKey: 'AP-SPREAD-RERENDER-2',
+				user: { id: 'current-user' },
+			}),
+			anonymizeId: false,
+		});
+		const append = vi.spyOn(document.head, 'appendChild');
+		const kernel = createConsentKernel();
+		await kernel.commands.save(grantedConsents);
+		const loader = createScriptLoader({ kernel, scripts: [createScript()] });
+		try {
+			const element = document.head.querySelector('script');
+			const pending = getAptrinsic();
+			for (let render = 0; render < 3; render += 1) {
+				loader.updateScripts([createScript()]);
+			}
+			expect(document.head.querySelector('script')).toBe(element);
+			expect(append).toHaveBeenCalledOnce();
+			expect(getAptrinsic()).toBe(pending);
+			const runtime = Object.assign(vi.fn(), { __sdkBundleStarted: true });
+			Reflect.set(window, 'aptrinsic', runtime);
+			element?.dispatchEvent(new Event('load'));
+			await kernel.commands.save(deniedConsents);
+			await kernel.commands.save(grantedConsents);
+			expect(runtime.mock.calls).toEqual([
+				['config', 'enableTag', false],
+				['reset'],
+				['config', 'enableTag', true],
+				['identify', { id: 'current-user' }],
+			]);
+			expect(append).toHaveBeenCalledOnce();
+		} finally {
+			loader.dispose();
+			kernel.dispose();
+		}
+	});
+
 	it('retries a retained clone with a fresh queue when its SDK never started', () => {
 		const script = {
 			...gainsightPx({

@@ -680,6 +680,73 @@ test('keeps a same-ID vendor mounted when a rerender recreates its callbacks', (
 	expect(consent.mock.calls).toEqual([[true], [true]]);
 });
 
+test.each([undefined, false, () => false])(
+	'preserves a DOM resource with a stable disposer, callbackOnly=%s',
+	(callbackOnly) => {
+		const initialize = vi.fn();
+		const cleanup = vi.fn();
+		const config = (): Script => ({
+			callbackOnly,
+			category: 'measurement',
+			id: 'stable-disposer',
+			onBeforeLoad: initialize,
+			onDispose: cleanup,
+			src: 'https://example.com/vendor.js',
+		});
+		const { loader } = mount([config()]);
+		const element = document.head.querySelector('script');
+		loader.updateScripts([config()]);
+		loader.updateScripts([config()]);
+		expect(document.head.querySelector('script')).toBe(element);
+		expect(initialize).toHaveBeenCalledOnce();
+		expect(cleanup).not.toHaveBeenCalled();
+		loader.dispose();
+		expect(cleanup).toHaveBeenCalledOnce();
+		expect(element?.isConnected).toBe(false);
+	}
+);
+
+test.each([true, () => true])(
+	'disposes callback-only replacements with a stable disposer, callbackOnly=%s',
+	(callbackOnly) => {
+		const initialize = vi.fn();
+		const cleanup = vi.fn();
+		const config = (): Script => ({
+			callbackOnly,
+			category: 'measurement',
+			id: 'callback-disposer',
+			onBeforeLoad: initialize,
+			onDispose: cleanup,
+		});
+		const { loader } = mount([config()]);
+		loader.updateScripts([config()]);
+		expect(initialize).toHaveBeenCalledTimes(2);
+		expect(cleanup).toHaveBeenCalledOnce();
+		loader.dispose();
+		expect(cleanup).toHaveBeenCalledTimes(2);
+	}
+);
+
+test('disposes a DOM resource when its cleanup callback changes', () => {
+	const cleanup = vi.fn();
+	const nextCleanup = vi.fn();
+	const config: Script = {
+		category: 'measurement',
+		id: 'changed-disposer',
+		onDispose: cleanup,
+		src: 'https://example.com/vendor.js',
+	};
+	const { loader } = mount([config]);
+	const element = document.head.querySelector('script');
+	loader.updateScripts([{ ...config, onDispose: nextCleanup }]);
+	expect(cleanup).toHaveBeenCalledOnce();
+	expect(element?.isConnected).toBe(false);
+	expect(document.head.querySelector('script')).not.toBe(element);
+	expect(nextCleanup).not.toHaveBeenCalled();
+	loader.dispose();
+	expect(nextCleanup).toHaveBeenCalledOnce();
+});
+
 test.each([false, true])(
 	'does not execute a self-removing inline script again, batched=%s',
 	(batched) => {

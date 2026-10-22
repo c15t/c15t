@@ -14,6 +14,8 @@ Retries before SDK startup rebuild the pending queue from the current product, c
 
 Gainsight PX runtime detection survives object-spread customization made before startup, so retaining the same script copy across disposal and remount does not execute the SDK again. Core's `callbackOnly` also accepts a zero-argument boolean predicate, evaluated at mount time, for diagnostics and for server startup.
 
+Fresh spread copies with equivalent options preserve pending Gainsight PX downloads across rerenders. DOM scripts with the same resource and disposal callback now retain their lifecycle until removal or loader disposal. Changing the resource or disposal callback still runs cleanup, and callback-only registrations retain their object-owned lifecycle.
+
 Script diagnostics report completed callback-only registrations as loaded, including configurations with a fallback script URL.
 
 Product-key or configuration changes after PX starts are rejected before registration or replacement, including scripts created before startup and later remounts. Reload the page to change startup settings. Equivalent configuration objects still match by value, and supported identity updates remain available. Validation preserves the original SDK configuration and consent handling.

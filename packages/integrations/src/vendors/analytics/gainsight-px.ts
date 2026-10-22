@@ -221,6 +221,9 @@ const unadoptedServerElement = (): HTMLScriptElement | undefined => {
 	return element;
 };
 
+const isGainsightPxCallbackOnly = (): boolean =>
+	hasStartedGainsightPx() && !unadoptedServerElement();
+
 const matchesPendingServerSetup = (options: GainsightPxOptions): boolean => {
 	const pending = 'aptrinsic' in window ? window.aptrinsic : undefined;
 	if (
@@ -423,8 +426,7 @@ export const gainsightPx = function gainsightPx(
 	// Reuse resets its callbacks after final disposal, but cannot unload PX.
 	// Keep the runtime check intact when callers customize the script with spread.
 	// Let core adopt and own the server element before later API-only mounts.
-	script.callbackOnly = () =>
-		hasStartedGainsightPx() && !unadoptedServerElement();
+	script.callbackOnly = isGainsightPxCallbackOnly;
 	script.observeConsentBeforeLoad = true;
 	return script;
 };
