@@ -1,3 +1,5 @@
+import type { StorageConfig } from './cookie';
+
 /**
  * Default consent storage keys (aligned with legacy c15t store).
  */
@@ -28,3 +30,43 @@ export const EXPERIMENT_STORAGE_KEY = 'c15t-experiment-v1';
  * `sessionStorage` while a prompt is due. Removed once a choice is recorded.
  */
 export const JOURNEY_STORAGE_KEY = 'c15t-journey-v1';
+
+/**
+ * The storage keys one configuration resolves to. Notice dismissals,
+ * vendor denials and the clear epoch get their own keys derived from the
+ * consent key so a custom `storageKey` moves them all together.
+ */
+export interface ResolvedStorageKeys {
+	consent: string;
+	/** `null` when the configured key already is the legacy key. */
+	legacyConsent: string | null;
+	notice: string;
+	/** Identity cookie bound to the notice acknowledgement. */
+	noticeSubject: string;
+	/** localStorage marker for dropped notice cookie writes. */
+	noticeCookieMiss: string;
+	vendors: string;
+	/** Time of the last clear. Survives the clear it records. */
+	epoch: string;
+	/**
+	 * localStorage only: the consent cookie as it stood when a consent write
+	 * reached localStorage but not the cookie.
+	 */
+	cookieMiss: string;
+}
+
+export const resolveStorageKeys = function resolveStorageKeys(
+	config?: StorageConfig
+): ResolvedStorageKeys {
+	const consent = config?.storageKey || STORAGE_KEY_V2;
+	return {
+		consent,
+		cookieMiss: `${consent}-cookie-miss`,
+		epoch: `${consent}-epoch`,
+		legacyConsent: consent === STORAGE_KEY ? null : STORAGE_KEY,
+		notice: `${consent}-notice`,
+		noticeCookieMiss: `${consent}-notice-cookie-miss`,
+		noticeSubject: `${consent}-notice-subject`,
+		vendors: `${consent}-vendors`,
+	};
+};

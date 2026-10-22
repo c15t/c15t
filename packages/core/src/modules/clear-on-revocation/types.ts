@@ -1,8 +1,8 @@
 import type { OptionalConsentCategory } from '../../consent-record/types';
 import type { StorageConfig } from '../../libs/cookie/types';
+import type { resolveStorageKeys } from '../../libs/storage-keys';
 import type { ConsentKernel } from '../../types';
 import type { getEffectiveGateState } from '../has';
-import type { resolveStorageKeys } from '../persistence/record-storage';
 
 /** A cookie name or nonempty prefix ending in `*`, with optional scope. */
 export interface ClearOnRevocationCookie {

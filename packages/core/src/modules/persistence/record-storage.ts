@@ -45,7 +45,7 @@ import {
 	stringToFlat,
 } from '../../libs/cookie';
 import type { StorageConfig } from '../../libs/cookie';
-import { STORAGE_KEY, STORAGE_KEY_V2 } from '../../libs/storage-keys';
+import { resolveStorageKeys } from '../../libs/storage-keys';
 import { choiceSinceEpoch } from './epoch';
 import {
 	decodeClearEpoch,
@@ -68,6 +68,9 @@ import type {
 	StoredVendorChoice,
 } from './record-codec';
 
+export { resolveStorageKeys } from '../../libs/storage-keys';
+export type { ResolvedStorageKeys } from '../../libs/storage-keys';
+
 export type { LegacyRecordEncoding as StoredRecordEncoding };
 
 /** Where a candidate was read from, in selection order. */
@@ -78,47 +81,6 @@ export type StoredRecordSource =
 
 /** Which record format a parsed candidate turned out to be. */
 export type StoredRecordFormat = 'legacy-v2' | 'v3';
-
-/**
- * The storage keys one configuration resolves to. Notice dismissals,
- * vendor denials and the clear epoch get their own keys derived from the
- * consent key so a custom `storageKey` moves them all together.
- */
-export interface ResolvedStorageKeys {
-	consent: string;
-	/** `null` when the configured key already is the legacy key. */
-	legacyConsent: string | null;
-	notice: string;
-	/** Identity cookie bound to the notice acknowledgement. */
-	noticeSubject: string;
-	/** localStorage marker for dropped notice cookie writes. */
-	noticeCookieMiss: string;
-	vendors: string;
-	/** Time of the last clear. Survives the clear it records. */
-	epoch: string;
-	/**
-	 * localStorage only: the consent cookie as it stood when a consent write
-	 * reached localStorage but not the cookie. See
-	 * {@link readStoredConsentRecord}.
-	 */
-	cookieMiss: string;
-}
-
-export const resolveStorageKeys = function resolveStorageKeys(
-	config?: StorageConfig
-): ResolvedStorageKeys {
-	const consent = config?.storageKey || STORAGE_KEY_V2;
-	return {
-		consent,
-		cookieMiss: `${consent}-cookie-miss`,
-		epoch: `${consent}-epoch`,
-		legacyConsent: consent === STORAGE_KEY ? null : STORAGE_KEY,
-		notice: `${consent}-notice`,
-		noticeCookieMiss: `${consent}-notice-cookie-miss`,
-		noticeSubject: `${consent}-notice-subject`,
-		vendors: `${consent}-vendors`,
-	};
-};
 
 /** One raw stored value, parsed but not validated or normalized. */
 export type RawStoredCandidate =

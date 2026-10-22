@@ -11,12 +11,12 @@ import { OPTIONAL_CONSENT_CATEGORIES } from '../../consent-record/types';
 import {
 	EXPERIMENT_STORAGE_KEY,
 	PENDING_SAVES_STORAGE_KEY,
+	resolveStorageKeys,
 	STORAGE_KEY,
 	STORAGE_KEY_V2,
 	SUBJECT_REASSIGNMENTS_STORAGE_KEY,
 } from '../../libs/storage-keys';
 import { getEffectiveGateState } from '../has';
-import { resolveStorageKeys } from '../persistence/record-storage';
 import type { ClearOnRevocationTools } from './types';
 
 /** @internal */
