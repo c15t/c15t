@@ -123,6 +123,7 @@ JSON, including objects with `kind: 'c15t.runtime-value'` and `value: 'date'` or
 Normal JSON serialization rules apply, so a JavaScript `Date` becomes a string
 and object properties with `undefined` values are omitted. Queue consumers
 receive a copy; their mutations do not change the supplied page data.
+The helper's server-start code uses the same JSON conversions.
 
 <include src="../shared/examples/javascript/insider-product.mdx" />
 

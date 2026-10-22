@@ -145,14 +145,27 @@ const stepValues = function stepValues(step: ManifestStep): unknown[] {
 export const inlineStepsStart = function inlineStepsStart(
 	steps: ManifestStep[]
 ): ScriptServerStart | undefined {
+	// Literal calls intentionally apply JSON's conversions, just as the
+	// runtime does. Check and emit the same snapshot so toJSON runs once.
+	let inlineSteps: ManifestStep[];
+	try {
+		inlineSteps = steps.map((step) =>
+			step.type === 'callGlobal' && step.literalArgs
+				? { ...step, args: JSON.parse(JSON.stringify(step.args ?? [])) }
+				: step
+		);
+	} catch {
+		// A non-JSON literal payload has no inline form.
+		return;
+	}
 	if (
-		!steps.every(
+		!inlineSteps.every(
 			(step) => runsInline(step) && stepValues(step).every(survivesJSON)
 		)
 	) {
 		return;
 	}
-	const run = steps.filter((step) => step.type !== 'loadScript');
+	const run = inlineSteps.filter((step) => step.type !== 'loadScript');
 	return {
 		code: `window.${RUNNER}(${inlineJSON(run)})`,
 		prelude: `window.${RUNNER}=window.${RUNNER}||${RUNNER_SOURCE}`,

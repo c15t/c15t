@@ -383,6 +383,69 @@ describe('inlineStepsStart', () => {
 		).toBeDefined();
 	});
 
+	it('normalizes literal call arguments once before starting inline', () => {
+		const toJSON = vi.fn(() => ({
+			kind: 'c15t.runtime-value',
+			value: 'date',
+		}));
+		const args = [
+			new Date(0),
+			{ omitted: undefined, text: '</script>\u2028\u2029' },
+			[undefined, Number.NaN, -0],
+			{ toJSON },
+		];
+		const start = inlineStepsStart([
+			{ args, global: 'literalCall', literalArgs: true, type: 'callGlobal' },
+		]);
+		expect(start).toBeDefined();
+		if (!start) {
+			throw new Error('Expected inline start for literal JSON arguments');
+		}
+		const call = vi.fn();
+		Object.assign(getTestGlobal(), { literalCall: call });
+		expect(start.code).not.toContain('</script>');
+		// oxlint-disable-next-line no-new-func -- Runs the HTML start code.
+		new Function(`${start.prelude ?? ''};${start.code}`)();
+		expect(call).toHaveBeenCalledWith(
+			'1970-01-01T00:00:00.000Z',
+			{ text: '</script>\u2028\u2029' },
+			[null, null, 0],
+			{ kind: 'c15t.runtime-value', value: 'date' }
+		);
+		expect(toJSON).toHaveBeenCalledTimes(1);
+		expect(args[0]).toBeInstanceOf(Date);
+	});
+
+	it('falls back when literal JSON contains an own prototype key', () => {
+		expect(
+			inlineStepsStart([
+				{
+					args: [JSON.parse('{"__proto__":{"debug":true}}')],
+					global: 'literalCall',
+					literalArgs: true,
+					type: 'callGlobal',
+				},
+			])
+		).toBeUndefined();
+	});
+
+	it('falls back when literal arguments cannot be serialized as JSON', () => {
+		const cyclic: unknown[] = [];
+		cyclic.push(cyclic);
+		for (const args of [[10n], cyclic]) {
+			expect(
+				inlineStepsStart([
+					{
+						args,
+						global: 'literalCall',
+						literalArgs: true,
+						type: 'callGlobal',
+					},
+				])
+			).toBeUndefined();
+		}
+	});
+
 	/** The vendor calls an app makes before the vendor's script loads. */
 	const calls: [string, () => unknown][] = [
 		[

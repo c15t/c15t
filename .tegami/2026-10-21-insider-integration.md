@@ -15,4 +15,6 @@ Accepts current user attributes, including checkout identifiers and custom data,
 
 Preserves page custom data as literal JSON, including objects that resemble c15t runtime-value markers. Normal JSON serialization rules apply to page values.
 
+Keeps server startup available for JSON-normalizable page values, including dates and omitted `undefined` properties, so granted visitors can start Insider before hydration.
+
 On withdrawal, the helper queues `gdpr_optin: false`, a neutral `other` page and `init` so the withdrawal init does not reuse a purchase page, including one pushed manually during SPA navigation. This does not cancel earlier queued purchases or deduplicate orders. Keep the per-order guard and reload-on-revocation behavior.

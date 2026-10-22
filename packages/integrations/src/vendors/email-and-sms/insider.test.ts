@@ -395,22 +395,25 @@ describe('insiderTag', () => {
 		}
 	);
 
-	it('uses JSON serialization for page custom values', () => {
-		const date = new Date('2026-10-21T00:00:00Z');
-		const script = insiderTag({
-			...account,
-			pageType: {
-				type: 'home',
-				value: { custom: { date, omitted: undefined } },
-			},
-		});
-		runGrant(script, 'callback');
-		expect(window.InsiderQueue).toEqual([
-			{ type: 'user', value: { gdpr_optin: true } },
-			{ type: 'home', value: { custom: { date: date.toISOString() } } },
-			{ type: 'init' },
-		]);
-	});
+	it.each(['callback', 'server-start'])(
+		'uses JSON serialization for page custom values through %s',
+		(mode) => {
+			const date = new Date('2026-10-21T00:00:00Z');
+			const script = insiderTag({
+				...account,
+				pageType: {
+					type: 'home',
+					value: { custom: { date, omitted: undefined } },
+				},
+			});
+			runGrant(script, mode);
+			expect(window.InsiderQueue).toEqual([
+				{ type: 'user', value: { gdpr_optin: true } },
+				{ type: 'home', value: { custom: { date: date.toISOString() } } },
+				{ type: 'init' },
+			]);
+		}
+	);
 
 	it('defaults to an other page rather than assuming the home page', () => {
 		const script = insiderTag(account);
