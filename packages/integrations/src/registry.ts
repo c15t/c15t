@@ -116,7 +116,7 @@ export const BUILT_IN_INTEGRATION_CATEGORIES = [
 export const builtInScriptIntegrations = [
 	{
 		consentCategory: 'marketing',
-		docsSlug: 'attentive',
+		docsSlug: 'other-email-and-sms',
 		hint: 'SMS and email signup units with on-site event tracking',
 		integrationCategory: 'email-and-sms',
 		key: 'attentiveTag',
