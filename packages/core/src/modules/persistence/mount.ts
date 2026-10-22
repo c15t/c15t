@@ -65,6 +65,19 @@ export const queuedWrites = new Map<string, InternalKernel>();
 // for every queued record along it.
 const handedOver = new WeakMap<InternalKernel, InternalKernel>();
 
+/**
+ * `document.cookie`, or `null` when the browser refuses to read it. The
+ * cookie readers treat that as an unavailable source, and persistence
+ * keeps working from localStorage.
+ */
+const readCookieHeader = function readCookieHeader(): string | null {
+	try {
+		return document.cookie;
+	} catch {
+		return null;
+	}
+};
+
 /** Whether two subjects name the same ID and linked identity. */
 const sameSubject = function sameSubject(
 	left: ConsentSubject | null | undefined,
@@ -619,9 +632,13 @@ export const mountPersistence = function mountPersistence(
 	 * ID, and only localStorage shows it is stale.
 	 */
 	const fromCookiesAlone = function fromCookiesAlone(id: string): boolean {
+		const header = readCookieHeader();
+		// Cookies this page cannot read leave localStorage as the only record
+		// source, so a seed adds nothing to what it holds.
 		return (
-			readStoredRecordsFromCookieHeader(document.cookie, storageConfig, now())
-				.subject?.subjectId === id
+			header === null ||
+			readStoredRecordsFromCookieHeader(header, storageConfig, now()).subject
+				?.subjectId === id
 		);
 	};
 
@@ -776,12 +793,11 @@ export const mountPersistence = function mountPersistence(
 			// them, such as a sibling subdomain sharing the cookies, agrees with
 			// it. This runtime's own copy may be the stale one, so it keeps its
 			// ID without writing it over theirs.
+			const header = readCookieHeader();
 			if (
-				readRecordedSubjectIdFromCookieHeader(
-					document.cookie,
-					storageConfig,
-					now()
-				) !== stored
+				header === null ||
+				readRecordedSubjectIdFromCookieHeader(header, storageConfig, now()) !==
+					stored
 			) {
 				storeSubjectId(subjectId);
 			}

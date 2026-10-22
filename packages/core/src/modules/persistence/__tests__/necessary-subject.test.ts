@@ -826,3 +826,95 @@ test('a reset ID a notice acknowledgement carries does not follow another tab', 
 	reader.dispose();
 	restored.dispose();
 });
+
+// A server render seeded from a stale record cookie names another ID and
+// that ID's linked account. The browser starts with the subject its own
+// storage holds, whole: the account belongs to the stale ID.
+test.each([
+	['no linked identity', undefined],
+	[
+		'its own linked identity',
+		{ externalId: 'account-b', identityProvider: 'app' },
+	],
+] as const)(
+	'a stale cookie seed yields to the stored subject with %s',
+	async (_, identity) => {
+		const keys = resolveStorageKeys();
+		const now = Date.now();
+		const initialPolicyResolution = matchedResolution(noticeRule());
+		const fingerprint = createConsentKernel({
+			initialPolicyResolution,
+		}).getSnapshot().evaluationPolicy?.notice?.fingerprint;
+		if (!fingerprint) {
+			throw new Error('Expected a notice policy');
+		}
+		const record = { dismissedAt: now, fingerprint, version: 1 as const };
+		writeStoredNoticeDismissal(
+			{
+				...record,
+				subject: {
+					externalId: 'account-a',
+					identityProvider: 'app',
+					subjectId: 'sub_cookie',
+				},
+			},
+			undefined,
+			now
+		);
+		// The rewrite under the local subject reaches localStorage only.
+		const setter = Object.getOwnPropertyDescriptor(
+			Document.prototype,
+			'cookie'
+		)?.set;
+		const dropped = vi
+			.spyOn(document, 'cookie', 'set')
+			.mockImplementation((value: string) => {
+				if (!value.startsWith(`${keys.noticeSubject}=`)) {
+					setter?.call(document, value);
+				}
+			});
+		const local = { ...identity, subjectId: 'sub_local' };
+		writeStoredNoticeDismissal({ ...record, subject: local }, undefined, now);
+		dropped.mockRestore();
+		document.cookie = `${keys.subject}=; max-age=0; path=/`;
+		localStorage.removeItem(keys.subject);
+
+		const subject = resolveRequestSubject({
+			now,
+			request: { cookie: document.cookie, url: 'https://example.com/' },
+		});
+		const { state } = readRequestConsent({
+			adapter: '@c15t/test',
+			now,
+			request: { cookie: subject?.cookie, headers: new Headers() },
+		});
+		expect(state.initialRecords?.subject?.externalId).toBe('account-a');
+		const sent: unknown[] = [];
+		const kernel = createConsentKernel({
+			initialPolicyResolution,
+			initialRecords: state.initialRecords,
+			transport: {
+				save: (payload: { subject?: unknown }) => {
+					sent.push(payload.subject);
+					return Promise.resolve({ ok: true });
+				},
+			},
+		});
+		const handle = createPersistence({ kernel, skipHydration: true });
+		expect(kernel.getSnapshot().subject).toEqual(local);
+
+		const saving = kernel.commands.save({ marketing: false });
+		await vi.advanceTimersByTimeAsync(0);
+		await saving;
+		await vi.advanceTimersByTimeAsync(0);
+		expect(sent).toEqual([local]);
+		handle.dispose();
+		kernel.dispose();
+
+		const restored = createConsentKernel({ initialPolicyResolution });
+		const reader = createPersistence({ kernel: restored });
+		expect(restored.getSnapshot().subject).toEqual(local);
+		reader.dispose();
+		restored.dispose();
+	}
+);

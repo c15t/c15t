@@ -222,3 +222,59 @@ test.each(['getter', 'methods', 'missing'] as const)(
 		);
 	}
 );
+
+// A page that cannot read its cookies keeps persisting to localStorage.
+// The subject checks that read the whole Cookie header degrade the same
+// way the per-cookie readers do, at startup and on focus.
+test('a server-seeded start reads the subject from localStorage when cookies cannot be read', () => {
+	const kernel = createKernel();
+	const handle = persist(kernel);
+	kernel.set.subjectId('sub_local');
+	void kernel.commands.save({ measurement: false });
+	vi.advanceTimersByTime(0);
+	handle.dispose();
+	for (const key of ['c15t-sid']) {
+		document.cookie = `${key}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
+		localStorage.removeItem(key);
+	}
+	vi.spyOn(document, 'cookie', 'get').mockImplementation(() => {
+		throw new DOMException('Cookies blocked', 'SecurityError');
+	});
+	const seeded = createConsentKernel({
+		initialPolicyResolution: resolution,
+		initialRecords: { subject: { subjectId: 'sub_server' } },
+	});
+	disposers.push(() => seeded.dispose());
+	const seededHandle = createPersistence({
+		kernel: seeded,
+		skipHydration: true,
+	});
+	disposers.push(() => seededHandle.dispose());
+	expect(seeded.getSnapshot().subject).toEqual({ subjectId: 'sub_local' });
+	expect(
+		seeded.getSnapshot().explicitChoice?.categories.measurement?.value
+	).toBe(false);
+});
+
+test('focus keeps a used subject ID when cookies cannot be read', async () => {
+	const kernel = createKernel();
+	persist(kernel);
+	await kernel.commands.save({ measurement: false });
+	vi.advanceTimersByTime(0);
+	const own = kernel.getSnapshot().subject?.subjectId;
+	localStorage.setItem('c15t-sid', 'sub_other_tab');
+	vi.spyOn(document, 'cookie', 'get').mockImplementation(() => {
+		throw new DOMException('Cookies blocked', 'SecurityError');
+	});
+	const errors: unknown[] = [];
+	const onError = (event: ErrorEvent) => {
+		errors.push(event.error);
+		event.preventDefault();
+	};
+	window.addEventListener('error', onError);
+	window.dispatchEvent(new Event('focus'));
+	window.removeEventListener('error', onError);
+	expect(errors).toEqual([]);
+	expect(kernel.getSnapshot().subject?.subjectId).toBe(own);
+	expect(localStorage.getItem('c15t-sid')).toBe(own);
+});
