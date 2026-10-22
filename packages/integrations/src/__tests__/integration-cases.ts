@@ -81,9 +81,9 @@ export const helperParityCases = {
 		expected: {
 			alwaysLoad: undefined,
 			persistAfterConsentRevoked: true,
-			src: 'https://cdn.attn.tv/allbirds/dtag.js',
+			src: 'https://cdn.attn.tv/c15tfake/dtag.js',
 		},
-		script: attentiveTag({ siteSlug: 'allbirds' }),
+		script: attentiveTag({ siteSlug: 'c15tfake' }),
 	},
 	clay: {
 		expected: {

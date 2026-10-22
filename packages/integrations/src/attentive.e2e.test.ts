@@ -1,5 +1,5 @@
 /** @vitest-environment jsdom */
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
 	clearAllScripts,
@@ -23,15 +23,21 @@ const getLoader = (): HTMLScriptElement => {
 
 describe('Attentive consent loader', () => {
 	registerVendorContractCleanup();
+	// Node 25+ replaces jsdom's storage globals with its own.
+	beforeEach(() => {
+		vi.stubGlobal('localStorage', jsdom.window.localStorage);
+		vi.stubGlobal('sessionStorage', jsdom.window.sessionStorage);
+	});
 	afterEach(() => {
 		for (const name of GLOBALS) {
 			Reflect.deleteProperty(window, name);
 		}
 		localStorage.clear();
 		sessionStorage.clear();
+		vi.unstubAllGlobals();
 	});
 	it('creates no vendor requests, globals or storage before mapped consent', () => {
-		const scripts = [attentiveTag({ siteSlug: 'allbirds' })];
+		const scripts = [attentiveTag({ siteSlug: 'c15tfake' })];
 		const cookies = document.cookie;
 		const local = { ...localStorage };
 		const session = { ...sessionStorage };
@@ -48,7 +54,7 @@ describe('Attentive consent loader', () => {
 		expect({ ...sessionStorage }).toEqual(session);
 		updateScripts(scripts, granted);
 		const first = getLoader();
-		expect(first.src).toBe('https://cdn.attn.tv/allbirds/dtag.js');
+		expect(first.src).toBe('https://cdn.attn.tv/c15tfake/dtag.js');
 		updateScripts(scripts, granted);
 		expect(getLoader()).toBe(first);
 		updateScripts(scripts, deniedConsents);
@@ -59,7 +65,7 @@ describe('Attentive consent loader', () => {
 	});
 	it('honors an overridden category', () => {
 		const scripts = [
-			attentiveTag({ category: 'experience', siteSlug: 'allbirds' }),
+			attentiveTag({ category: 'experience', siteSlug: 'c15tfake' }),
 		];
 		loadScripts(scripts, granted);
 		expect(document.querySelector('script[src]')).toBeNull();
@@ -88,7 +94,7 @@ describe('Attentive body tag lifecycle', () => {
 		expect(document.querySelectorAll('script[src]')).toHaveLength(1);
 	});
 	it('uses one body tag across pending withdrawal and helper recreation', () => {
-		const create = () => attentiveTag({ siteSlug: 'allbirds' });
+		const create = () => attentiveTag({ siteSlug: 'c15tfake' });
 		loadScripts([create()], granted);
 		const loader = getLoader();
 		expect(loader.parentElement).toBe(document.body);
@@ -99,6 +105,6 @@ describe('Attentive body tag lifecycle', () => {
 		expect(document.querySelectorAll('script[src]')).toHaveLength(1);
 		expect(
 			document.querySelector('script[src*="dtag.js"]')?.getAttribute('src')
-		).toBe('https://cdn.attn.tv/allbirds/dtag.js');
+		).toBe('https://cdn.attn.tv/c15tfake/dtag.js');
 	});
 });
