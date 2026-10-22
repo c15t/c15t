@@ -156,6 +156,7 @@ describe('live vendor probe configs', () => {
 			'segment',
 			'vercel-analytics',
 			'zendesk',
+			'wisepops',
 		]);
 	});
 

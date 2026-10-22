@@ -60,6 +60,7 @@ import { gorgiasChat } from '../vendors/functional/gorgias';
 import { intercom } from '../vendors/functional/intercom';
 import { zendeskWidget } from '../vendors/functional/zendesk';
 import { optimizelyWeb } from '../vendors/functional/optimizely';
+import { wisepops } from '../vendors/functional/wisepops';
 import { cloudflareZaraz } from '../vendors/tag-managers/cloudflare-zaraz';
 import { googleTagManager } from '../vendors/tag-managers/google-tag-manager';
 import type { expectScriptMatchesIntegration } from './helpers';
@@ -534,6 +535,14 @@ export const helperParityCases = {
 			src: 'https://va.vercel-scripts.com/v1/speed-insights/script.js',
 		},
 		script: vercelSpeedInsights(),
+	},
+	wisepops: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://wisepops.net/loader.js?v=3&h=c15tfake',
+		},
+		script: wisepops({ siteId: 'c15tfake' }),
 	},
 	xPixel: {
 		expected: {

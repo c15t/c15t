@@ -68,6 +68,7 @@ import { gorgiasChatManifest } from './vendors/functional/gorgias';
 import { intercomManifest } from './vendors/functional/intercom';
 import { zendeskWidgetManifest } from './vendors/functional/zendesk';
 import { optimizelyWebManifest } from './vendors/functional/optimizely';
+import { wisepopsManifest } from './vendors/functional/wisepops';
 import { googleTagManagerManifest } from './vendors/tag-managers/google-tag-manager';
 
 const validConsentCategories = [
@@ -94,6 +95,7 @@ const vendorManifests = [
 	dynamicYieldManifest,
 	adobeTargetManifest,
 	appcuesManifest,
+	wisepopsManifest,
 	googleTagManagerManifest,
 	gtagManifest,
 	ahrefsAnalyticsManifest,

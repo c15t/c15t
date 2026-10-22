@@ -57,6 +57,7 @@ import { gorgiasChat } from './vendors/functional/gorgias';
 import { intercom } from './vendors/functional/intercom';
 import { zendeskWidget } from './vendors/functional/zendesk';
 import { optimizelyWeb } from './vendors/functional/optimizely';
+import { wisepops } from './vendors/functional/wisepops';
 import { googleTagManager } from './vendors/tag-managers/google-tag-manager';
 
 const BLANK_VALUES = ['', '   '] as const;
@@ -238,6 +239,12 @@ const requiredIdCases: {
 		helper: 'appcues',
 		option: 'accountId',
 		script: { category: 'experience', id: 'appcues' },
+	},
+	{
+		create: (id) => wisepops({ ...{ siteId: 'c15tfake' }, siteId: asId(id) }),
+		helper: 'wisepops',
+		option: 'siteId',
+		script: { category: 'marketing', id: 'wisepops' },
 	},
 	{
 		create: (id) => linkedinInsights({ id: asId(id) }),

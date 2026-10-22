@@ -385,6 +385,11 @@
 			"import": "./dist/vendors/functional/appcues.js",
 			"default": "./dist/vendors/functional/appcues.js"
 		},
+		"./wisepops": {
+			"types": "./dist-types/vendors/functional/wisepops.d.ts",
+			"import": "./dist/vendors/functional/wisepops.js",
+			"default": "./dist/vendors/functional/wisepops.js"
+		},
 		"./clay": {
 			"types": "./dist-types/vendors/analytics/clay.d.ts",
 			"import": "./dist/vendors/analytics/clay.js",

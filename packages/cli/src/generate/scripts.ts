@@ -261,6 +261,10 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 		example: 'vercelSpeedInsights({})',
 		importName: 'vercelSpeedInsights',
 	},
+	wisepops: {
+		example: "wisepops({ siteId: 'YOUR_WISEPOPS_SITE_ID' })",
+		importName: 'wisepops',
+	},
 	'x-pixel': {
 		example: "xPixel({ pixelId: 'oXXXX' })",
 		importName: 'xPixel',

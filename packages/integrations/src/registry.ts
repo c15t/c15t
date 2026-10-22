@@ -205,6 +205,16 @@ export const builtInScriptIntegrations = [
 		vendor: 'appcues',
 	},
 	{
+		consentCategory: 'marketing',
+		docsSlug: 'other-experience',
+		hint: 'Onsite popups, campaigns and signup forms',
+		integrationCategory: 'functional',
+		key: 'wisepops',
+		label: 'Wisepops',
+		packageSubpath: 'wisepops',
+		vendor: 'wisepops',
+	},
+	{
 		consentCategory: 'necessary',
 		docsSlug: 'cloudflare-zaraz',
 		hint: 'Consent bridge for tools managed by Zaraz',

@@ -389,6 +389,7 @@ export const resetVendorGlobals = function resetVendorGlobals() {
 		'zE',
 		'zEmbed',
 		'vector',
+		'wisepops',
 	] as const) {
 		Reflect.deleteProperty(win, key);
 	}
