@@ -30,7 +30,7 @@ outside c15t.
 | --- | --- | --- |
 | `productKey` | Required | Product/channel key assigned to `aptrinsic.p` and the loader's `a` query parameter. Changing the key after this helper starts PX throws an error and requires a page reload. Blank values log an error and skip installation. |
 | `category` | `measurement` | Consent category or condition for the whole SDK. Choose `experience` if it fits your use of analytics and engagements. |
-| `config` | None | JSON-serializable PX configuration assigned to `aptrinsic.c`. c15t owns `enableTag`; do not set it yourself. |
+| `config` | None | JSON-serializable PX startup configuration assigned to `aptrinsic.c`. Changing it after PX starts throws and requires a page reload. c15t owns `enableTag`; do not set it yourself. |
 | `user` | None | User identify payload with a required `id`. The helper queues it only after mapped consent. |
 | `account` | None | Optional account identify payload with a required `id`. Sent only when `user` is also supplied. |
 | `scriptUrl` | `https://web-sdk.aptrinsic.com/api/aptrinsic.js?a=<productKey>` | Full loader override. Other PX requests still use the endpoints configured by the SDK. |
@@ -118,6 +118,14 @@ configuration and its consent handling. Reload the page before installing a
 different product.
 PX's asynchronous `tagKey` API queues commands during reconfiguration and can
 defer opt-out until after queued identity calls, so c15t does not use it.
+
+Keep the same `config` after startup too, including after disposal. Adding,
+removing or changing a configuration value throws before registration or
+replacement, so the current consent handling stays active. This also applies
+to scripts created before startup and registered afterward. Equivalent objects
+may use a different property order. The reuse path forwards consent and optional
+identity calls; it does not apply new startup settings through PX's config API.
+Reload the page to change configuration.
 
 PX has one global SDK per window. Mount one configuration at a time. Owners
 with different options still control the same SDK and do not share a consent

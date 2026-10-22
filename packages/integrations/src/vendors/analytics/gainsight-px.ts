@@ -179,6 +179,23 @@ const assertProductKey = (productKey: string): void => {
 	}
 };
 
+const assertStartupConfig = (config: GainsightPxConfig | undefined): void => {
+	if (typeof window === 'undefined' || !hasStartedGainsightPx()) {
+		return;
+	}
+	const previous = setupGlobal in window ? window[setupGlobal] : undefined;
+	if (
+		typeof previous === 'object' &&
+		previous !== null &&
+		'config' in previous &&
+		!equalConfig(previous.config, { ...config, enableTag: true })
+	) {
+		throw new Error(
+			'gainsightPx: cannot change config after the SDK has started. Reload the page to change PX configuration.'
+		);
+	}
+};
+
 const unadoptedServerElement = (): HTMLScriptElement | undefined => {
 	const scope: object = globalThis;
 	const started = '__c15tStarted' in scope ? scope.__c15tStarted : undefined;
@@ -313,6 +330,9 @@ const createGainsightPxScript = function createGainsightPxScript(
 	const originalServerStart = script.serverStart;
 	const onBeforeLoad: Script['onBeforeLoad'] = (info) => {
 		assertProductKey(productKey);
+		if (info.hasConsent) {
+			assertStartupConfig(options.config);
+		}
 		if (info.hasConsent && !info.startedOnServer) {
 			clearPendingGainsightPx();
 		}
@@ -338,12 +358,14 @@ const createGainsightPxScript = function createGainsightPxScript(
 	script.onConsentChange = (info) => {
 		if (info.hasConsent) {
 			assertProductKey(productKey);
+			assertStartupConfig(options.config);
 		}
 		onConsentChange?.(info);
 	};
 	script.validate = () => {
 		assertProductKey(productKey);
 		assertServerSetup(options, script);
+		assertStartupConfig(options.config);
 	};
 	return script;
 };
@@ -365,11 +387,14 @@ const createGainsightPxScript = function createGainsightPxScript(
  * its bundle twice. After disposal, PX's execution marker lets later mounts
  * use its existing API without another loader. Disposal does not stop the SDK.
  * Pending loaders are removed on revocation. A retry before SDK startup
- * rebuilds the pending queue from the current options.
+ * rebuilds the pending queue from the current options. After startup, keep
+ * the same `config` for the page's lifetime, including after disposal.
  * Hydration requires matching server and client options, including when PX
  * finishes startup before hydration; mismatches throw before adoption.
  * @throws {Error} If a different product key is supplied after this helper starts PX.
  * Reload the page to switch products.
+ * @throws {Error} If configuration changes after this helper starts PX.
+ * Reload the page to change startup configuration.
  * @throws {Error} If server setup differs from the client options during hydration.
  * @example
  * gainsightPx({ productKey: 'AP-PRODUCT-KEY-2' });
@@ -390,6 +415,7 @@ export const gainsightPx = function gainsightPx(
 		Reflect.deleteProperty(window, productKeyGlobal);
 	}
 	assertProductKey(productKey);
+	assertStartupConfig(options.config);
 	const script = reuseGainsightPxScript(
 		{ ...options, productKey },
 		createGainsightPxScript

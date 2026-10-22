@@ -114,6 +114,96 @@ describe('Gainsight PX production loader contract', () => {
 		}
 	);
 
+	describe.each([
+		{ denied: false, disposed: false },
+		{ denied: true, disposed: false },
+		{ denied: false, disposed: true },
+		{ denied: true, disposed: true },
+	])(
+		'started PX config, denied=$denied, disposed=$disposed',
+		({ denied, disposed }) => {
+			it.each([
+				{
+					config: { usePOST: false },
+					initialConfig: { usePOST: true },
+					name: 'changed',
+				},
+				{
+					config: undefined,
+					initialConfig: { usePOST: true },
+					name: 'removed',
+				},
+				{
+					config: { usePOST: true },
+					initialConfig: undefined,
+					name: 'added',
+				},
+			])(
+				'rejects $name configuration before registering a replacement',
+				async ({ config, initialConfig }) => {
+					const original = gainsightPx({
+						config: initialConfig,
+						productKey: 'AP-CONFIG-2',
+						user: { id: 'original-user' },
+					});
+					// Build the replacement before PX starts, including spread customization.
+					const replacement = {
+						...gainsightPx({
+							config,
+							productKey: 'AP-CONFIG-2',
+							user: { id: 'replacement-user' },
+						}),
+						anonymizeId: false,
+					};
+					const runtime = Object.assign(vi.fn(), { __sdkBundleStarted: true });
+					const executeSdk = vi.fn((element: HTMLScriptElement) => {
+						Reflect.set(window, 'aptrinsic', runtime);
+						element.dispatchEvent(new Event('load'));
+					});
+					installHeadProbe(executeSdk);
+					const kernel = createConsentKernel();
+					await kernel.commands.save(grantedConsents);
+					let loader = createScriptLoader({ kernel, scripts: [original] });
+					try {
+						await kernel.commands.save(
+							denied ? deniedConsents : grantedConsents
+						);
+						if (disposed) {
+							loader.dispose();
+						}
+						runtime.mockClear();
+						expect(() => {
+							if (disposed) {
+								loader = createScriptLoader({ kernel, scripts: [replacement] });
+							} else {
+								loader.updateScripts([replacement]);
+							}
+						}).toThrow('cannot change config after the SDK has started');
+						expect(() =>
+							gainsightPx({ config, productKey: 'AP-CONFIG-2' })
+						).toThrow('cannot change config after the SDK has started');
+						expect(runtime).not.toHaveBeenCalled();
+						if (disposed) {
+							loader = createScriptLoader({ kernel, scripts: [original] });
+						}
+						runtime.mockClear();
+						await kernel.commands.save(deniedConsents);
+						await kernel.commands.save(grantedConsents);
+						expect(runtime.mock.calls).toEqual([
+							...(denied ? [] : [['config', 'enableTag', false], ['reset']]),
+							['config', 'enableTag', true],
+							['identify', { id: 'original-user' }],
+						]);
+						expect(executeSdk).toHaveBeenCalledTimes(1);
+					} finally {
+						loader.dispose();
+						kernel.dispose();
+					}
+				}
+			);
+		}
+	);
+
 	it.each([false, true])(
 		'rejects a loaded product-key replacement without changing the SDK, denied=%s',
 		(denied) => {

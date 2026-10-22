@@ -16,7 +16,7 @@ Gainsight PX runtime detection survives object-spread customization made before 
 
 Script diagnostics report completed callback-only registrations as loaded, including configurations with a fallback script URL.
 
-A product-key replacement created before PX starts is rejected when registered after startup. Validation runs before replacing any loader registrations, preserving the original SDK configuration and consent handling.
+Product-key or configuration changes after PX starts are rejected before registration or replacement, including scripts created before startup and later remounts. Reload the page to change startup settings. Equivalent configuration objects still match by value, and supported identity updates remain available. Validation preserves the original SDK configuration and consent handling.
 
 Hydration rejects client options that differ from the server-started PX setup, including configuration, user and account identity, product key and loader URL. c15t preserves startup settings outside PX's function stub, so validation still runs after the SDK finishes loading and discards its queue. Matching options preserve the existing SDK and loader.
 
