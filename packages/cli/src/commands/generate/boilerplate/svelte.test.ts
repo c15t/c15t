@@ -37,10 +37,7 @@ describe('Svelte v3 boilerplate', () => {
 		'generates $framework wiring and current transport factories',
 		({ component, framework, mode }) => {
 			const result = generate(framework, 'offline', ['segment']);
-			expect(result.dependencies).toEqual([
-				'@c15t/svelte',
-				'@c15t/integrations',
-			]);
+			expect(result.dependencies).toEqual(['c15t', '@c15t/integrations']);
 			const source = result.files[component];
 			expect(source).toContain(
 				'<ConsentDialogLink>Privacy settings</ConsentDialogLink>'
@@ -77,7 +74,7 @@ describe('Svelte v3 boilerplate', () => {
 	it('hosted Svelte uses hosted() and prefetches /init; SvelteKit does not', () => {
 		const svelte = generate('svelte', 'hosted', []);
 		expect(svelte.files['src/App.svelte']).toContain(
-			"\t\thosted,\n\t} from '@c15t/svelte';"
+			"\t\thosted,\n\t} from 'c15t/svelte';"
 		);
 		expect(svelte.files['src/App.svelte']).toContain(
 			'<ConsentProvider mode={hosted()}>'
@@ -112,7 +109,7 @@ describe('Svelte v3 boilerplate', () => {
 			template.merge['src/app.d.ts']
 		);
 		expect(merged).toBe(
-			`/// <reference types="@c15t/svelte/kit/locals" />\n${existing}`
+			`/// <reference types="c15t/svelte/kit/locals" />\n${existing}`
 		);
 		expect(mergeFile(merged, '', template.merge['src/app.d.ts'])).toBe(merged);
 	});

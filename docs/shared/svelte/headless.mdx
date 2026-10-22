@@ -51,7 +51,7 @@ policy can require a reject button next to accept, or offer only a dismiss
 button for a notice, and a hard-coded pair of buttons breaks those rules.
 
 The example takes its text from `resolvePromptCopy` and `resolveActionLabels`,
-which `@c15t/svelte` exports. Pass them
+which `c15t/svelte` exports. Pass them
 `getConsentManager().translations?.translations` and they return the banner's
 title, description and button labels in the active language, with English for
 any missing key. Under a notice, `resolvePromptCopy` reads the
@@ -71,7 +71,7 @@ the policy changes while the draft is open, `consent.draft.isStale` becomes
 Translated titles and descriptions are in `consent.translationConfig`.
 [Context getters](./getters#work-with-the-draft) covers the draft.
 
-`@c15t/svelte` exports `Dialog`, `Switch`, `Accordion`, `PreferenceItem` and
+`c15t/svelte` exports `Dialog`, `Switch`, `Accordion`, `PreferenceItem` and
 the `focusTrap`, `scrollLock` and `portal` actions if you want accessible
 building blocks for the dialog itself; see [primitives](./components/primitives).
 

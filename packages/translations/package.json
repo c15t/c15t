@@ -1,7 +1,7 @@
 {
 	"name": "@c15t/translations",
 	"version": "3.1.0",
-	"description": "Translations for c15t in 35 languages. Typed i18n strings for c15t banners, dialogs and preference centers.",
+	"description": "Translations for c15t in 42 languages. Typed i18n strings for c15t banners, dialogs and preference centers.",
 	"keywords": [
 		"c15t",
 		"i18n",
@@ -46,10 +46,20 @@
 			"import": "./dist/translations/en.js",
 			"default": "./dist/translations/en.js"
 		},
+		"./ar": {
+			"types": "./dist-types/languages/ar.d.ts",
+			"import": "./dist/languages/ar.js",
+			"default": "./dist/languages/ar.js"
+		},
 		"./bg": {
 			"types": "./dist-types/languages/bg.d.ts",
 			"import": "./dist/languages/bg.js",
 			"default": "./dist/languages/bg.js"
+		},
+		"./bn": {
+			"types": "./dist-types/languages/bn.d.ts",
+			"import": "./dist/languages/bn.js",
+			"default": "./dist/languages/bn.js"
 		},
 		"./cs": {
 			"types": "./dist-types/languages/cs.d.ts",
@@ -121,6 +131,11 @@
 			"import": "./dist/languages/hr.js",
 			"default": "./dist/languages/hr.js"
 		},
+		"./ht": {
+			"types": "./dist-types/languages/ht.d.ts",
+			"import": "./dist/languages/ht.js",
+			"default": "./dist/languages/ht.js"
+		},
 		"./hu": {
 			"types": "./dist-types/languages/hu.d.ts",
 			"import": "./dist/languages/hu.js",
@@ -140,6 +155,11 @@
 			"types": "./dist-types/languages/it.d.ts",
 			"import": "./dist/languages/it.js",
 			"default": "./dist/languages/it.js"
+		},
+		"./ko": {
+			"types": "./dist-types/languages/ko.d.ts",
+			"import": "./dist/languages/ko.js",
+			"default": "./dist/languages/ko.js"
 		},
 		"./lb": {
 			"types": "./dist-types/languages/lb.d.ts",
@@ -196,6 +216,11 @@
 			"import": "./dist/languages/ro.js",
 			"default": "./dist/languages/ro.js"
 		},
+		"./ru": {
+			"types": "./dist-types/languages/ru.d.ts",
+			"import": "./dist/languages/ru.js",
+			"default": "./dist/languages/ru.js"
+		},
 		"./sk": {
 			"types": "./dist-types/languages/sk.d.ts",
 			"import": "./dist/languages/sk.js",
@@ -210,6 +235,16 @@
 			"types": "./dist-types/languages/sv.d.ts",
 			"import": "./dist/languages/sv.js",
 			"default": "./dist/languages/sv.js"
+		},
+		"./ur": {
+			"types": "./dist-types/languages/ur.d.ts",
+			"import": "./dist/languages/ur.js",
+			"default": "./dist/languages/ur.js"
+		},
+		"./yi": {
+			"types": "./dist-types/languages/yi.d.ts",
+			"import": "./dist/languages/yi.js",
+			"default": "./dist/languages/yi.js"
 		},
 		"./zh": {
 			"types": "./dist-types/languages/zh.d.ts",

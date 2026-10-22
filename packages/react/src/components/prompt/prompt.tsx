@@ -213,8 +213,8 @@ export interface ConsentBannerProps {
 	/**
 	 * Placement of the prompt. Overrides `presentation.prompt.position`.
 	 * @remarks Must be valid for the resolved variant; otherwise the variant
-	 * default is used and a development diagnostic is logged. Host-chosen
-	 * positions are never mirrored for right-to-left text.
+	 * default is used and a development diagnostic is logged. Right-to-left
+	 * text does not move the prompt.
 	 */
 	position?: PromptPosition;
 

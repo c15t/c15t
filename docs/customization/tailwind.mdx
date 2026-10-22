@@ -153,8 +153,7 @@ package that ships a stylesheet exports the plugin as
 
 | You installed | Plugin name |
 | --- | --- |
-| `c15t` (React, Next.js, TanStack Start, Vue, Nuxt, Astro) | `c15t/postcss-tailwind3` |
-| `@c15t/svelte` (Svelte, SvelteKit) | `@c15t/svelte/postcss-tailwind3` |
+| `c15t` (React, Next.js, TanStack Start, Vue, Nuxt, Astro, Svelte, SvelteKit) | `c15t/postcss-tailwind3` |
 | `@c15t/browser` (script tag in the light DOM) | `@c15t/browser/postcss-tailwind3` |
 
 They are the same plugin. A config that already lists
@@ -292,7 +291,7 @@ plugin and the build fails on c15t's stylesheet. Add the plugin before
 
     <include src="../shared/examples/tailwind-v3/svelte/tailwind-config.mdx" />
 
-    Import `@c15t/svelte/styles.css` above the directives, import this
+    Import `c15t/svelte/styles.css` above the directives, import this
     stylesheet from `src/main.ts`, and pass `styles={false}` to
     `ConsentProvider`:
 
@@ -306,7 +305,7 @@ plugin and the build fails on c15t's stylesheet. Add the plugin before
 
     <include src="../shared/examples/tailwind-v3/sveltekit/tailwind-config.mdx" />
 
-    Import `@c15t/svelte/styles.css` above the directives, import this
+    Import `c15t/svelte/styles.css` above the directives, import this
     stylesheet from your root `+layout.svelte`, and pass `styles={false}` to
     `ConsentRoot`:
 

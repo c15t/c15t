@@ -28,7 +28,7 @@ const writePackage = async (
 	const directory = path.join(
 		checkout,
 		'packages',
-		name.slice('@c15t/'.length)
+		name.replace(/^@c15t\//u, '')
 	);
 	await fs.mkdir(path.join(directory, 'dist'), { recursive: true });
 	await fs.writeFile(path.join(directory, 'dist/index.js'), content);
@@ -211,11 +211,7 @@ describe('local unpublished package sources', () => {
 		});
 	});
 	it('refreshes generated app dependencies after preparing a new local snapshot', async () => {
-		await writePackage(
-			'@c15t/svelte',
-			{ [rootName]: 'workspace:*' },
-			'export {};'
-		);
+		await writePackage('c15t', { [rootName]: 'workspace:*' }, 'export {};');
 		await fs.writeFile(path.join(app, 'package.json'), '{"private":true}');
 		const args = [
 			'generate',
@@ -228,24 +224,24 @@ describe('local unpublished package sources', () => {
 			'--json',
 		];
 		const first = await prepareBoilerplatePackages({
-			dependencies: ['@c15t/svelte'],
+			dependencies: ['c15t'],
 			packageSource: checkout,
 		});
 		expect(await runCli(args, { cwd: app })).toMatchObject({ success: true });
 		const componentPath = path.join(app, 'src/App.svelte');
 		const component = await fs.readFile(componentPath, 'utf8');
 		await writePackage(
-			'@c15t/svelte',
+			'c15t',
 			{ [rootName]: 'workspace:*' },
 			'export const updated = true;'
 		);
 		const second = await prepareBoilerplatePackages({
-			dependencies: ['@c15t/svelte'],
+			dependencies: ['c15t'],
 			packageSource: checkout,
 		});
 		expect(second.preparedAt).not.toBe(first.preparedAt);
-		expect(second.packages['@c15t/svelte']?.tarball).not.toBe(
-			first.packages['@c15t/svelte']?.tarball
+		expect(second.packages['c15t']?.tarball).not.toBe(
+			first.packages['c15t']?.tarball
 		);
 		const refreshed = await runCli(args, { cwd: app });
 		expect(refreshed, JSON.stringify(refreshed)).toMatchObject({
