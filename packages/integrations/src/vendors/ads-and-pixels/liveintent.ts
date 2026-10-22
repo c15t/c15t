@@ -46,8 +46,6 @@ export const liveIntentTagManifest = {
 export interface LiveIntentTagOptions {
 	/** Filename without .min.js, supplied by LiveIntent, for example a-1234. */
 	tagId: string;
-	/** Consent condition required before loading. Defaults to marketing. */
-	category?: Script['category'];
 	/**
 	 * Optional events queued once on the initial grant. Strings remain literal,
 	 * including `{{...}}`. Do not include sensitive data without permission.
@@ -58,7 +56,7 @@ export interface LiveIntentTagOptions {
 }
 
 /**
- * Loads LiveConnect only after the mapped consent.
+ * Loads LiveConnect only after marketing consent.
  * @param options - Public tag ID, optional initial events and loader URL.
  * @returns A gated script, or a skipped script for a missing tag ID.
  * @remarks Keep reload on revocation enabled. LiveConnect has no documented stop API.
@@ -69,11 +67,10 @@ export interface LiveIntentTagOptions {
 export const liveIntentTag = function liveIntentTag(
 	options: LiveIntentTagOptions
 ): Script {
-	const category = options?.category ?? 'marketing';
 	const tagId = readId(options?.tagId);
 	if (tagId === undefined) {
 		return skipMissingId('liveIntentTag', 'tagId', {
-			category,
+			category: 'marketing',
 			manifest: liveIntentTagManifest,
 		});
 	}
@@ -96,7 +93,6 @@ export const liveIntentTag = function liveIntentTag(
 	return resolveManifest(
 		{
 			...liveIntentTagManifest,
-			category,
 			install: [...events, ...liveIntentTagManifest.install],
 		},
 		config

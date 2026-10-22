@@ -60,27 +60,6 @@ describe('LiveIntent production core loader contract', () => {
 		expect(append).toHaveBeenCalledOnce();
 	});
 
-	it('uses the configured consent condition for its queue and account loader', () => {
-		const scripts = [
-			liveIntentTag({
-				category: { and: ['marketing', 'measurement'] },
-				events: [conversion],
-				tagId: 'c15t-tag',
-			}),
-		];
-		loadScripts(scripts, deniedConsents);
-		updateScripts(scripts, grantedMarketingConsents);
-		updateScripts(scripts, grantedMeasurementConsents);
-		expect(window.liQ).toBeUndefined();
-		expect(document.querySelector('script')).toBeNull();
-		updateScripts(scripts, {
-			...grantedMarketingConsents,
-			measurement: true,
-		});
-		expect(window.liQ).toEqual([conversion]);
-		expect(document.querySelectorAll('script')).toHaveLength(1);
-	});
-
 	it('queues the exact event objects in order before the account script is inserted', () => {
 		const second = { event: 'conversion', name: 'newsletter_signup' };
 		let atAppend: unknown;
