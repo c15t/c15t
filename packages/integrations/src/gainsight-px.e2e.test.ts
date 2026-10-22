@@ -38,6 +38,7 @@ describe('Gainsight PX production loader contract', () => {
 	afterEach(() => {
 		Reflect.deleteProperty(window, 'aptrinsic');
 		Reflect.deleteProperty(window, '__c15tGainsightPxProductKey');
+		Reflect.deleteProperty(window, '__c15tGainsightPxSetup');
 		Reflect.deleteProperty(globalThis, '__c15tStarted');
 	});
 
@@ -553,13 +554,17 @@ describe('Gainsight PX production loader contract', () => {
 	);
 
 	it.each([
-		{ allow: true, cloned: false },
-		{ allow: false, cloned: false },
-		{ allow: true, cloned: true },
-		{ allow: false, cloned: true },
+		{ allow: true, cloned: false, completed: false },
+		{ allow: false, cloned: false, completed: false },
+		{ allow: true, cloned: true, completed: false },
+		{ allow: false, cloned: true, completed: false },
+		{ allow: true, cloned: false, completed: true },
+		{ allow: false, cloned: false, completed: true },
+		{ allow: true, cloned: true, completed: true },
+		{ allow: false, cloned: true, completed: true },
 	])(
-		'preserves pending server setup during hydration, client consent=$allow, cloned=$cloned',
-		async ({ allow, cloned }) => {
+		'preserves server setup during hydration, client consent=$allow, cloned=$cloned, completed=$completed',
+		async ({ allow, cloned, completed }) => {
 			const original = gainsightPx({
 				account: { id: 'server-account', tier: 'paid' },
 				config: { fullDomainCookie: true, usePOST: true },
@@ -584,8 +589,13 @@ describe('Gainsight PX production loader contract', () => {
 			// oxlint-disable-next-line no-new-func -- Executes the generated server snippet.
 			new Function(`${start?.prelude ?? ''};${start?.code}`)();
 			const pending = getAptrinsic();
+			const runtime = Object.assign(vi.fn(), { __sdkBundleStarted: true });
+			if (completed) {
+				Reflect.set(window, 'aptrinsic', runtime);
+			}
 			const element = Object.assign(document.createElement('script'), {
 				__c15tConsent: true,
+				__c15tDone: completed ? 'load' : undefined,
 				__c15tScript: script.id,
 				src: script.src,
 			});
@@ -598,7 +608,7 @@ describe('Gainsight PX production loader contract', () => {
 				scripts: [cloned ? { ...client, anonymizeId: false } : client],
 			});
 			try {
-				expect(getAptrinsic()).toBe(pending);
+				expect(getAptrinsic()).toBe(completed ? runtime : pending);
 				expect(pending.p).toBe('AP-SERVER-HYDRATION-2');
 				expect(pending.c).toEqual({
 					enableTag: true,
@@ -610,7 +620,7 @@ describe('Gainsight PX production loader contract', () => {
 					'AP-SERVER-HYDRATION-2'
 				);
 				expect(document.head.querySelectorAll('script')).toHaveLength(
-					allow ? 1 : 0
+					allow || completed ? 1 : 0
 				);
 				expect(pending.q.map((entry) => Array.from(entry))).toEqual([
 					['config', 'enableTag', true],
@@ -619,8 +629,31 @@ describe('Gainsight PX production loader contract', () => {
 						{ id: 'server-user' },
 						{ id: 'server-account', tier: 'paid' },
 					],
-					...(allow ? [] : [['config', 'enableTag', false], ['reset']]),
+					...(allow || completed
+						? []
+						: [['config', 'enableTag', false], ['reset']]),
 				]);
+				expect(runtime.mock.calls).toEqual(
+					completed && !allow ? [['config', 'enableTag', false], ['reset']] : []
+				);
+				runtime.mockClear();
+				expect(() =>
+					loader.updateScripts([
+						gainsightPx({
+							config: { fullDomainCookie: true, usePOST: true },
+							productKey: 'AP-SERVER-HYDRATION-2',
+							user: { id: 'updated-user' },
+						}),
+					])
+				).not.toThrow();
+				await kernel.commands.save(grantedConsents);
+				const calls = completed
+					? runtime.mock.calls
+					: getAptrinsic().q.map((entry) => Array.from(entry));
+				expect(calls.at(-1)).toEqual(['identify', { id: 'updated-user' }]);
+				expect(document.head.querySelectorAll('script')).toHaveLength(
+					completed ? 0 : 1
+				);
 			} finally {
 				loader.dispose();
 				kernel.dispose();
@@ -628,9 +661,14 @@ describe('Gainsight PX production loader contract', () => {
 		}
 	);
 
-	describe.each([true, false])(
-		'pending server setup, client consent=%s',
-		(allow) => {
+	describe.each([
+		{ allow: true, completed: false },
+		{ allow: false, completed: false },
+		{ allow: true, completed: true },
+		{ allow: false, completed: true },
+	])(
+		'server setup, completed=$completed, client consent=$allow',
+		({ allow, completed }) => {
 			const initialOptions: GainsightPxOptions = {
 				account: { id: 'server-account' },
 				config: { fullDomainCookie: true },
@@ -670,7 +708,7 @@ describe('Gainsight PX production loader contract', () => {
 				},
 			])(
 				'rejects a different $name before adopting the server loader',
-				async ({ options }) => {
+				async ({ name, options }) => {
 					// Construct the client script before the server queue exists.
 					const client = { ...gainsightPx(options), anonymizeId: false };
 					const server = gainsightPx(initialOptions);
@@ -683,8 +721,14 @@ describe('Gainsight PX production loader contract', () => {
 					new Function(`${start?.prelude ?? ''};${start?.code}`)();
 					const pending = getAptrinsic();
 					const queued = pending.q.map((entry) => Array.from(entry));
+					// A completed SDK may replace its stub and discard the setup fields.
+					const runtime = Object.assign(vi.fn(), { __sdkBundleStarted: true });
+					if (completed) {
+						Reflect.set(window, 'aptrinsic', runtime);
+					}
 					const element = Object.assign(document.createElement('script'), {
 						__c15tConsent: true,
+						__c15tDone: completed ? 'load' : undefined,
 						__c15tScript: server.id,
 						src: server.src,
 					});
@@ -697,9 +741,12 @@ describe('Gainsight PX production loader contract', () => {
 						expect(() => {
 							loader = createScriptLoader({ kernel, scripts: [client] });
 						}).toThrow(
-							'server and client options must match while the server-started SDK is pending'
+							completed && name === 'product key'
+								? 'cannot change productKey after the SDK has started'
+								: 'server and client options must match'
 						);
-						expect(getAptrinsic()).toBe(pending);
+						expect(getAptrinsic()).toBe(completed ? runtime : pending);
+						expect(runtime).not.toHaveBeenCalled();
 						expect(pending.q.map((entry) => Array.from(entry))).toEqual(queued);
 						expect(element.isConnected).toBe(true);
 						expect(document.head.querySelectorAll('script')).toHaveLength(1);

@@ -89,13 +89,16 @@ configuration and optional identity, so an interrupted setup cannot replay an
 earlier user's identify call. This also applies to server-generated startup.
 It does not cancel a detached download that may still execute later.
 
-When hydrating a server-started loader that is still pending, use the same
+When hydrating a server-started loader, use the same
 `productKey`, `config`, `user`, `account` and `scriptUrl` on the server and client.
-The loader compares the queued setup with the client options before adopting
-the server's element. A mismatch throws before registration or replacement,
-leaving the server's queue and download intact. It does not silently apply the
-client options to that download. Render matching options to hydrate successfully.
-Equivalent configuration objects can use different property orders.
+The loader compares the server setup with the client options before adopting
+the server's element. This check also runs when PX finishes startup before
+hydration. c15t retains the startup settings separately from PX's queue so the
+check still works after PX replaces its function stub. A mismatch throws before
+registration or replacement and leaves the existing setup intact. If identity
+changes between render and hydration, reload the page with the current options.
+Matching options preserve the existing SDK and loader. Equivalent configuration
+objects can use different property orders.
 
 Disposing the last provider or script loader removes its element, but PX's code
 remains in the page. Later mounts check PX's own bundle execution marker and

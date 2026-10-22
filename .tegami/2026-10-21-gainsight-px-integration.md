@@ -18,6 +18,6 @@ Script diagnostics report completed callback-only registrations as loaded, inclu
 
 A product-key replacement created before PX starts is rejected when registered after startup. Validation runs before replacing any loader registrations, preserving the original SDK configuration and consent handling.
 
-Hydration rejects client options that differ from a pending server-started PX setup, including configuration, user and account identity, product key and loader URL. Matching options preserve the existing queue and loader.
+Hydration rejects client options that differ from the server-started PX setup, including configuration, user and account identity, product key and loader URL. c15t preserves startup settings outside PX's function stub, so validation still runs after the SDK finishes loading and discards its queue. Matching options preserve the existing SDK and loader.
 
 A failing callback-only predicate no longer aborts unrelated server starts. Scripts sharing its resource stay with the client loader so every owner's setup runs. Predicate results enable callback-only mode only when they are exactly `true`.

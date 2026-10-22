@@ -60,6 +60,8 @@ export interface GainsightPxOptions {
 
 // Keep the installed key across server startup and PX replacing its stub.
 const productKeyGlobal = '__c15tGainsightPxProductKey';
+// PX may replace its stub and discard its queue before client hydration.
+const setupGlobal = '__c15tGainsightPxSetup';
 
 /** PX's official snippet queue, created only after mapped consent. */
 export const gainsightPxManifest = {
@@ -78,6 +80,17 @@ export const gainsightPxManifest = {
 			name: productKeyGlobal,
 			type: 'setGlobal',
 			value: '{{productKey}}',
+		},
+		{
+			ifUndefined: false,
+			name: setupGlobal,
+			type: 'setGlobal',
+			value: {
+				account: '{{account}}',
+				config: '{{config}}',
+				productKey: '{{productKey}}',
+				user: '{{user}}',
+			},
 		},
 		{ async: true, src: '{{scriptUrl}}', type: 'loadScript' },
 	],
@@ -166,7 +179,7 @@ const assertProductKey = (productKey: string): void => {
 	}
 };
 
-const pendingServerElement = (): HTMLScriptElement | undefined => {
+const unadoptedServerElement = (): HTMLScriptElement | undefined => {
 	const scope: object = globalThis;
 	const started = '__c15tStarted' in scope ? scope.__c15tStarted : undefined;
 	if (
@@ -191,24 +204,14 @@ const pendingServerElement = (): HTMLScriptElement | undefined => {
 	return element;
 };
 
-const assertPendingServerSetup = (
-	options: GainsightPxOptions,
-	script: Script
-): void => {
-	if (typeof window === 'undefined' || hasStartedGainsightPx()) {
-		return;
-	}
-	const element = pendingServerElement();
-	if (!element) {
-		return;
-	}
+const matchesPendingServerSetup = (options: GainsightPxOptions): boolean => {
 	const pending = 'aptrinsic' in window ? window.aptrinsic : undefined;
 	if (
 		typeof pending !== 'function' ||
 		!('q' in pending) ||
 		!Array.isArray(pending.q)
 	) {
-		return;
+		return false;
 	}
 	const identities = pending.q
 		.filter(
@@ -222,22 +225,43 @@ const assertPendingServerSetup = (
 			account: entry[2],
 			user: entry[1],
 		}));
-	if (
-		!('p' in pending) ||
-		pending.p !== options.productKey ||
-		!('c' in pending) ||
-		!equalConfig(pending.c, {
-			...options.config,
-			enableTag: true,
-		}) ||
-		!equalConfig(
+	return (
+		'p' in pending &&
+		pending.p === options.productKey &&
+		'c' in pending &&
+		equalConfig(pending.c, { ...options.config, enableTag: true }) &&
+		equalConfig(
 			identities,
 			options.user ? [{ account: options.account, user: options.user }] : []
-		) ||
+		)
+	);
+};
+
+const assertServerSetup = (
+	options: GainsightPxOptions,
+	script: Script
+): void => {
+	if (typeof window === 'undefined') {
+		return;
+	}
+	const element = unadoptedServerElement();
+	if (!element) {
+		return;
+	}
+	const matches = hasStartedGainsightPx()
+		? equalConfig(setupGlobal in window ? window[setupGlobal] : undefined, {
+				account: options.account,
+				config: { ...options.config, enableTag: true },
+				productKey: options.productKey,
+				user: options.user,
+			})
+		: matchesPendingServerSetup(options);
+	if (
+		!matches ||
 		element.src !== new URL(script.src ?? '', document.baseURI).href
 	) {
 		throw new Error(
-			'gainsightPx: server and client options must match while the server-started SDK is pending. Render the same productKey, config, user, account and scriptUrl on both sides.'
+			'gainsightPx: server and client options must match when hydrating a server-started SDK. Render the same productKey, config, user, account and scriptUrl on both sides, or reload the page with the current options.'
 		);
 	}
 };
@@ -319,7 +343,7 @@ const createGainsightPxScript = function createGainsightPxScript(
 	};
 	script.validate = () => {
 		assertProductKey(productKey);
-		assertPendingServerSetup(options, script);
+		assertServerSetup(options, script);
 	};
 	return script;
 };
@@ -342,11 +366,11 @@ const createGainsightPxScript = function createGainsightPxScript(
  * use its existing API without another loader. Disposal does not stop the SDK.
  * Pending loaders are removed on revocation. A retry before SDK startup
  * rebuilds the pending queue from the current options.
- * Hydration requires matching server and client options while the server's
- * loader is pending; mismatches throw before adoption.
+ * Hydration requires matching server and client options, including when PX
+ * finishes startup before hydration; mismatches throw before adoption.
  * @throws {Error} If a different product key is supplied after this helper starts PX.
  * Reload the page to switch products.
- * @throws {Error} If pending server setup differs from the client options.
+ * @throws {Error} If server setup differs from the client options during hydration.
  * @example
  * gainsightPx({ productKey: 'AP-PRODUCT-KEY-2' });
  * @see https://support.gainsight.com/PX/API_for_Developers/01About/Work_with_Gainsight_PX_Web_SDK
@@ -372,7 +396,9 @@ export const gainsightPx = function gainsightPx(
 	);
 	// Reuse resets its callbacks after final disposal, but cannot unload PX.
 	// Keep the runtime check intact when callers customize the script with spread.
-	script.callbackOnly = hasStartedGainsightPx;
+	// Let core adopt and own the server element before later API-only mounts.
+	script.callbackOnly = () =>
+		hasStartedGainsightPx() && !unadoptedServerElement();
 	script.observeConsentBeforeLoad = true;
 	return script;
 };
