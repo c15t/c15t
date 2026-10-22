@@ -1,6 +1,10 @@
 /** @vitest-environment jsdom */
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 
+import {
+	matchedResolution,
+	noticeRule,
+} from '../../../__tests__/fixtures/kernel-fixtures';
 import { createConsentKernel } from '../../../index';
 import { getRawCookieValue } from '../../../libs/cookie';
 import { readRequestConsent } from '../../../server/request-consent';
@@ -718,3 +722,107 @@ test.each(['notice-subject', 'all'] as const)(
 		restored.dispose();
 	}
 );
+
+// `dismissNotice()` records the acknowledgement locally and never makes a
+// subject ID, so a dismissal must not mark the ID it found as one a save
+// made, which would let an older stored notice's ID replace it.
+test('dismissing a notice keeps a server-seeded subject over an older stored notice', async () => {
+	const keys = resolveStorageKeys();
+	const now = Date.now();
+	// An acknowledgement of an older policy version carried another ID, and
+	// only its localStorage copy is left.
+	writeStoredNoticeDismissal(
+		{
+			dismissedAt: now - 1000,
+			fingerprint: 'older-policy',
+			subject: { subjectId: 'sub_other' },
+			version: 1,
+		},
+		undefined,
+		now
+	);
+	document.cookie = `${keys.notice}=; max-age=0; path=/`;
+	document.cookie = `${keys.noticeSubject}=; max-age=0; path=/`;
+	const initialPolicyResolution = matchedResolution(noticeRule());
+	const kernel = createConsentKernel({
+		initialPolicyResolution,
+		initialRecords: { subject: { subjectId: 'sub_server' } },
+	});
+	const handle = createPersistence({ kernel, skipHydration: true });
+	expect(kernel.getSnapshot().subject?.subjectId).toBe('sub_server');
+	expect(kernel.getSnapshot().promptRequirement.kind).toBe('notice');
+
+	await kernel.commands.dismissNotice();
+	await vi.advanceTimersByTimeAsync(0);
+	const stored = readStoredNoticeDismissal(undefined, Date.now());
+	expect(stored?.ok && stored.record.subject?.subjectId).toBe('sub_server');
+	expect(kernel.getSnapshot().subject?.subjectId).toBe('sub_server');
+	expect(kernel.getSnapshot().explicitChoice).toBeNull();
+	handle.dispose();
+	kernel.dispose();
+
+	const restored = createConsentKernel({ initialPolicyResolution });
+	const reader = createPersistence({ kernel: restored });
+	expect(restored.getSnapshot().subject?.subjectId).toBe('sub_server');
+	expect(restored.getSnapshot().promptRequirement.kind).toBe('none');
+	expect(restored.getSnapshot().explicitChoice).toBeNull();
+	reader.dispose();
+	restored.dispose();
+});
+
+// After `set.subjectId(null)` the acknowledgement is stored under the new
+// ID, like a choice or vendor record would be, so another tab's ID does
+// not replace it.
+test('a reset ID a notice acknowledgement carries does not follow another tab', async () => {
+	const keys = resolveStorageKeys();
+	const sent: (string | undefined)[] = [];
+	const initialPolicyResolution = matchedResolution(noticeRule());
+	const kernel = createConsentKernel({
+		initialPolicyResolution,
+		transport: {
+			save: (payload: { subjectId?: string }) => {
+				sent.push(payload.subjectId);
+				return Promise.resolve({ ok: true });
+			},
+		},
+	});
+	const handle = createPersistence({ kernel });
+	await kernel.commands.dismissNotice();
+	await vi.advanceTimersByTimeAsync(0);
+	const before = kernel.getSnapshot().subject?.subjectId;
+
+	kernel.set.subjectId(null);
+	await vi.advanceTimersByTimeAsync(0);
+	const reset = kernel.getSnapshot().subject?.subjectId;
+	expect(reset).toBeTruthy();
+	expect(reset).not.toBe(before);
+	const notice = readStoredNoticeDismissal(undefined, Date.now());
+	expect(notice?.ok && notice.record.subject?.subjectId).toBe(reset);
+
+	// Another tab stores a different ID.
+	localStorage.setItem(keys.subject, 'sub_other_tab');
+	document.cookie = `${keys.subject}=sub_other_tab; path=/`;
+	window.dispatchEvent(new StorageEvent('storage', { key: keys.subject }));
+	window.dispatchEvent(new Event('focus'));
+	await vi.advanceTimersByTimeAsync(0);
+	expect(kernel.getSnapshot().subject?.subjectId).toBe(reset);
+	expect(kernel.getSnapshot().explicitChoice).toBeNull();
+	expect(kernel.getSnapshot().promptRequirement.kind).toBe('none');
+
+	const saving = kernel.commands.save({ marketing: false });
+	await vi.advanceTimersByTimeAsync(0);
+	await saving;
+	await vi.advanceTimersByTimeAsync(0);
+	expect(sent).toEqual([reset]);
+	handle.dispose();
+	kernel.dispose();
+
+	const restored = createConsentKernel({ initialPolicyResolution });
+	const reader = createPersistence({ kernel: restored });
+	expect(restored.getSnapshot().subject?.subjectId).toBe(reset);
+	expect(
+		restored.getSnapshot().explicitChoice?.categories.marketing?.value
+	).toBe(false);
+	reader.dispose();
+	restored.dispose();
+});

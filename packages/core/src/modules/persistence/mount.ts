@@ -310,6 +310,10 @@ export const mountPersistence = function mountPersistence(
 		void withWriter();
 	};
 
+	// Set from a save's start to its completion. The records it commits are
+	// announced in between, synchronously.
+	let saving = false;
+
 	const noteGeneratedSubject = function noteGeneratedSubject(
 		snapshot: ConsentSnapshot,
 		actionAt: number
@@ -345,8 +349,12 @@ export const mountPersistence = function mountPersistence(
 
 	const unsubscribers = [
 		kernel.events.on('command:save:started', () => {
+			saving = true;
 			state.subjectBeforeSave = kernel.getSnapshot().subject?.subjectId;
 			unusedSubjectId = undefined;
+		}),
+		kernel.events.on('command:save:completed', () => {
+			saving = false;
 		}),
 		kernel.events.on('user:identified', () => {
 			unusedSubjectId = undefined;
@@ -364,7 +372,11 @@ export const mountPersistence = function mountPersistence(
 			}
 		}),
 		kernel.events.on('notice:dismissed', ({ snapshot, dismissal }) => {
-			noteGeneratedSubject(snapshot, dismissal.dismissedAt);
+			// Only a save can have made the subject ID. `dismissNotice()` keeps
+			// the one it found, which may be a server's.
+			if (saving) {
+				noteGeneratedSubject(snapshot, dismissal.dismissedAt);
+			}
 			state.noticeRecorded = true;
 			request('notice');
 		}),
@@ -555,8 +567,14 @@ export const mountPersistence = function mountPersistence(
 		subjectId = id;
 		if (!id) {
 			const next = generateSubjectId();
+			// The records rewritten under the new ID, a notice acknowledgement
+			// included, keep it from following another tab.
 			unusedSubjectId =
-				snapshot.explicitChoice || snapshot.vendorChoice ? undefined : next;
+				snapshot.explicitChoice ||
+				snapshot.vendorChoice ||
+				snapshot.noticeDismissal
+					? undefined
+					: next;
 			state.freshSubjectId = next;
 			state.freshSubjectAt = now();
 			kernel.hydrate({ subject: { ...snapshot.subject, subjectId: next } });
