@@ -17,8 +17,8 @@ describe('completed CI task caches', () => {
 					cwd: new URL('..', import.meta.url),
 					encoding: 'utf8',
 					maxBuffer: 16 * 1024 * 1024,
-					timeout: 20_000,
 					stdio: ['ignore', 'pipe', 'pipe'],
+					timeout: 20_000,
 				}
 			)
 		);
