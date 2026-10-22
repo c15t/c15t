@@ -7,7 +7,7 @@
  * the probed page.
  *
  * Placeholder ids must be obviously fake and must never point at a real
- * account, except for the Attentive customer-tag probe documented below.
+ * account.
  * The runner allows literal URL substring matches and answers other intercepted
  * HTTP requests with empty 204 responses. Allowlisted requests reach upstream;
  * these routing rules do not establish complete isolation or account delivery.
@@ -71,7 +71,6 @@ import { statableAnalytics } from '../src/vendors/analytics/statable-analytics';
 import { umamiAnalytics } from '../src/vendors/analytics/umami-analytics';
 import { vercelAnalytics } from '../src/vendors/analytics/vercel-analytics';
 import { vercelSpeedInsights } from '../src/vendors/analytics/vercel-speed-insights';
-import { attentiveTag } from '../src/vendors/email-and-sms/attentive';
 import { customerIo } from '../src/vendors/email-and-sms/customer-io';
 import { insiderTag } from '../src/vendors/email-and-sms/insider';
 import { klaviyo } from '../src/vendors/email-and-sms/klaviyo';
@@ -722,21 +721,9 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 		vendor: 'salesforce-pardot',
 	},
 	{
-		// Attentive-only exception: saved demo/EXAMPLE CDN responses were empty
-		// 204s and YOUR_DOMAIN returned HTML, so those synthetic slugs could not
-		// install the tag. The customer loader was publicly served at
-		// https://cdn.attn.tv/allbirds/dtag.js; the saved vendor installation
-		// guide does not identify Allbirds as a test tenant. Public availability
-		// does not establish customer authorization.
-		allowUrlSubstrings: ['cdn.attn.tv/tag/'],
-		bootstrapCheck: () =>
-			check(!Object.hasOwn(window, 'attentive'), 'No custom Attentive stub'),
-		createScript: () => attentiveTag({ siteSlug: 'allbirds' }),
-		loaderUrlSubstring: 'cdn.attn.tv/allbirds/dtag.js',
-		notes:
-			'Attentive customer-tag exception. Checks tag execution and creation of window.attentive; chained static tag bundles are allowlisted. Known collection, iframe/config and signup URLs do not match the configured literal substrings. Full SDK initialization, complete isolation, account conversion and complete runtime shutdown are not verified.',
-		runtimeReplacedGlobals: ['attentive'],
-		tier: 'full',
+		skipReason:
+			'Attentive placeholder slugs do not install the tag, and no authorized test tenant is configured.',
+		tier: 'skip',
 		vendor: 'attentive',
 	},
 	{
