@@ -53,8 +53,10 @@ opt-out because it would also affect a later consent grant.
 
 Filter Network by `munchkin.marketo.net`. Before consent, check that no loader
 request, `window.Munchkin`, `_mkto_trk` or vendor browser storage appears.
-Grant marketing and check that the SDK loads and initializes. Reject marketing
-again and check that the reloaded page makes no Munchkin request.
+Grant the category configured in `category`, which defaults to `marketing`,
+and check that the SDK loads and initializes. Reject that category again and
+check that the reloaded page makes no Munchkin request. For example, with
+`category: 'experience'`, grant and reject `experience`.
 
 The implementation follows Adobe's [async installation snippet](https://experienceleague.adobe.com/en/docs/marketo-developer/marketo/javascriptapi/leadtracking/lead-tracking)
 and [configuration reference](https://experienceleague.adobe.com/en/docs/marketo-developer/marketo/javascriptapi/leadtracking/configuration).
