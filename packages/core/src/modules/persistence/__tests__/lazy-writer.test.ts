@@ -14,6 +14,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import {
 	matchedResolution,
+	noticeRule,
 	NOW,
 	optInRule,
 } from '../../../__tests__/fixtures/kernel-fixtures';
@@ -28,7 +29,10 @@ import { watchRevocationReload } from '../../revocation-reload';
 import { createScriptLoader } from '../../script-loader';
 import { readStoredRecordsForReconcile } from '../hydrate';
 import { mountPersistence as createPersistence, queuedWrites } from '../mount';
-import { readStoredConsentRecord } from '../record-storage';
+import {
+	readStoredConsentRecord,
+	readStoredNoticeDismissal,
+} from '../record-storage';
 import { createWriterLoader } from '../writer-loader';
 import type { WriterLoader } from '../writer-loader';
 import {
@@ -256,6 +260,53 @@ describe('<key>-sid follows the records that carry the subject', () => {
 			const reloaded = createConsentKernel({ now: Date.now() });
 			createPersistence({ kernel: reloaded }).dispose();
 			expect(reloaded.getSnapshot().subject?.subjectId).toBe('sub_next');
+			expireSid();
+		}
+	);
+
+	test.each([
+		['an ID the app names', 'sub_third'],
+		['a reset', null],
+	] as const)(
+		'%s after a remount, before the queued notice lands, is what a reload restores',
+		async (_, next) => {
+			expireSid();
+			const notice = () =>
+				createConsentKernel({
+					initialPolicyResolution: matchedResolution(noticeRule()),
+					now: Date.now(),
+				});
+			const visitor = notice();
+			const seeded = createPersistence({ kernel: visitor });
+			await visitor.commands.dismissNotice();
+			await vi.advanceTimersByTimeAsync(0);
+			seeded.dispose();
+			const saved = localStorage.getItem(sidKey);
+			const { land, loader } = heldBackLoader();
+			const leaving = notice();
+			const left = createPersistence({ kernel: leaving }, loader);
+			leaving.set.subjectId('sub_next');
+			left.dispose();
+
+			const kernel = notice();
+			const handle = createPersistence({ kernel }, loader);
+			expect(kernel.getSnapshot().subject?.subjectId).toBe('sub_next');
+			kernel.set.subjectId(next);
+			const replaced = kernel.getSnapshot().subject?.subjectId;
+			expect([saved, 'sub_next', undefined]).not.toContain(replaced);
+
+			await land();
+			const stored = readStoredNoticeDismissal(undefined, Date.now());
+			expect(stored?.ok && stored.record.subject?.subjectId).toBe(replaced);
+			expect(localStorage.getItem(sidKey)).toBe(replaced);
+			expect(kernel.getSnapshot().explicitChoice).toBeNull();
+			handle.dispose();
+
+			const reloaded = notice();
+			createPersistence({ kernel: reloaded }).dispose();
+			expect(reloaded.getSnapshot().subject?.subjectId).toBe(replaced);
+			expect(reloaded.getSnapshot().promptRequirement.kind).toBe('none');
+			expect(reloaded.getSnapshot().explicitChoice).toBeNull();
 			expireSid();
 		}
 	);
