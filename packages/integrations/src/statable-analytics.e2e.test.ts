@@ -1,6 +1,6 @@
 /** @vitest-environment jsdom */
 
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
 	deniedConsents,
@@ -15,6 +15,14 @@ import { statableAnalytics } from './vendors/analytics/statable-analytics';
 
 describe('Statable consent lifecycle', () => {
 	registerVendorContractCleanup();
+	beforeEach(() => {
+		// Node 25+ replaces jsdom's storage globals with its own Web Storage.
+		vi.stubGlobal('localStorage', jsdom.window.localStorage);
+		vi.stubGlobal('sessionStorage', jsdom.window.sessionStorage);
+	});
+	afterEach(() => {
+		vi.unstubAllGlobals();
+	});
 
 	it('leaves scripts, event globals and storage untouched before measurement consent', () => {
 		const script = statableAnalytics({ siteId: 12345 });
