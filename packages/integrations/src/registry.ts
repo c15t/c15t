@@ -116,7 +116,7 @@ export const BUILT_IN_INTEGRATION_CATEGORIES = [
 export const builtInScriptIntegrations = [
 	{
 		consentCategory: 'marketing',
-		docsSlug: 'salesforce-pardot',
+		docsSlug: 'other-email-and-sms',
 		hint: 'B2B visitor tracking with the Account Engagement consent API',
 		integrationCategory: 'analytics',
 		key: 'pardotTracking',

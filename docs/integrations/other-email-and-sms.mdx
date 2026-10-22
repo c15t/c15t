@@ -1,0 +1,30 @@
+---
+title: Other email, SMS and marketing automation tools
+description: Consent-gated helpers for email, SMS and marketing automation tools that don't need a full guide.
+icon: mail
+group: integrations
+---
+
+Each helper below loads its vendor only after the visitor allows the listed consent category. For setup, see [Integrations overview](/docs/integrations/overview).
+
+## Salesforce Account Engagement
+
+Account Engagement, formerly Pardot, tracks visitors and prospects for Salesforce B2B marketing. Waits for `marketing` consent.
+
+<include src="../shared/examples/javascript/salesforce-pardot-configuration.mdx" />
+
+Replace `pi.pardot.com` in the example with your verified tracker domain.
+
+| Option | Type | Required | Description |
+| --- | --- | --- | --- |
+| `piAId` | `string` or `number` | Yes | Account ID from the tracking snippet. |
+| `piCId` | `string` or `number` | Yes | Campaign ID from the tracking snippet. |
+| `piDomain` | `string` | In consent mode | Verified tracker domain, without a scheme or path. |
+| `mode` | `'consent'` or `'classic'` | No | `consent`, the default, uses the Tracking and Consent API. `classic` loads the older `pd.js` snippet. |
+| `piHostname` | `string` | No | Tracker hostname in classic mode. Defaults to `pi.pardot.com`. |
+
+**When consent is withdrawn:** in consent mode, the helper calls `pdt('revokeConsent')`. Classic mode has no revoke call. Keep `reloadOnConsentRevoked` on in both modes, because the reload is what stops the running tracker.
+
+- Turn on the Tracking and Consent API in Account Engagement before you use consent mode.
+- Copy `piAId` and `piCId` from the generated snippet as they are. They already include Salesforce's +1000 offset, and the helper does not add it again.
+- Do not call `clearTrackingCookies` after `revokeConsent`. It also deletes the cookie that records the refusal, so later page views can be tracked.

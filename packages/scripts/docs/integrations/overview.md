@@ -53,7 +53,6 @@ kernel to control its DOM lifecycle. Embeds do not require `@c15t/integrations`.
 
 | Integration                                               | Helper                   | Category                                        | Loading behavior                                                                                     |
 | --------------------------------------------------------- | ------------------------ | ----------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| [Salesforce Account Engagement](./salesforce-pardot.md)   | `pardotTracking`         | `marketing`                                     | Waits for effective permission                                                                       |
 | [Google Tag](./google-tag.md)                             | `gtag`                   | `measurement` or `marketing`                    | Always loads and signals Google consent by default; `loadMode: 'after-consent'` waits for permission |
 | [Ahrefs Analytics](./ahrefs-analytics.md)                 | `ahrefsAnalytics`        | `measurement`                                   | Waits for effective permission                                                                       |
 | [Adobe Analytics](./adobe-analytics.md)                   | `adobeAnalytics`         | `measurement`                                   | Waits for effective permission                                                                       |
@@ -93,9 +92,10 @@ kernel to control its DOM lifecycle. Embeds do not require `@c15t/integrations`.
 
 ## Email and SMS
 
-| Integration             | Helper    | Category                      | Loading behavior                                           |
-| ----------------------- | --------- | ----------------------------- | ---------------------------------------------------------- |
-| [Klaviyo](./klaviyo.md) | `klaviyo` | `marketing` and `measurement` | Waits for both; optional forms-only mode needs `marketing` |
+| Integration                                                                             | Helper           | Category                      | Loading behavior                                           |
+| --------------------------------------------------------------------------------------- | ---------------- | ----------------------------- | ---------------------------------------------------------- |
+| [Klaviyo](./klaviyo.md)                                                                 | `klaviyo`        | `marketing` and `measurement` | Waits for both; optional forms-only mode needs `marketing` |
+| [Salesforce Account Engagement](./other-email-and-sms.md#salesforce-account-engagement) | `pardotTracking` | `marketing`                   | Waits for effective permission                             |
 
 ## Ads and pixels
 

@@ -845,7 +845,6 @@ export default defineDocsConfig({
 				{
 					pages: [
 						'google-tag',
-						'salesforce-pardot',
 						'ahrefs-analytics',
 						'adobe-analytics',
 						'amplitude',
@@ -883,7 +882,7 @@ export default defineDocsConfig({
 					title: 'Chat and support',
 				},
 				{
-					pages: ['klaviyo'],
+					pages: ['klaviyo', 'other-email-and-sms'],
 					slug: 'email-and-sms',
 					title: 'Email and SMS',
 				},
