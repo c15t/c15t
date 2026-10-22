@@ -116,7 +116,7 @@ export const BUILT_IN_INTEGRATION_CATEGORIES = [
 export const builtInScriptIntegrations = [
 	{
 		consentCategory: 'marketing',
-		docsSlug: 'customer-io',
+		docsSlug: 'other-email-and-sms',
 		hint: 'Website events through Customer.io Data Pipelines',
 		integrationCategory: 'email-and-sms',
 		key: 'customerIo',

@@ -92,10 +92,10 @@ kernel to control its DOM lifecycle. Embeds do not require `@c15t/integrations`.
 
 ## Email and SMS
 
-| Integration                     | Helper       | Category                      | Loading behavior                                           |
-| ------------------------------- | ------------ | ----------------------------- | ---------------------------------------------------------- |
-| [Customer.io](./customer-io.md) | `customerIo` | `marketing`                   | Waits for effective permission                             |
-| [Klaviyo](./klaviyo.md)         | `klaviyo`    | `marketing` and `measurement` | Waits for both; optional forms-only mode needs `marketing` |
+| Integration                                        | Helper       | Category                      | Loading behavior                                           |
+| -------------------------------------------------- | ------------ | ----------------------------- | ---------------------------------------------------------- |
+| [Customer.io](./other-email-and-sms.md#customerio) | `customerIo` | `marketing`                   | Waits for effective permission                             |
+| [Klaviyo](./klaviyo.md)                            | `klaviyo`    | `marketing` and `measurement` | Waits for both; optional forms-only mode needs `marketing` |
 
 ## Ads and pixels
 
