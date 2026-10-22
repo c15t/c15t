@@ -176,7 +176,6 @@ const createController = (host: Window, installation: HubSpotInstallation) => {
 	// after the last registration leaves, until that client's completion.
 	const pendingClients = new WeakSet<HubSpotConversationsClient>();
 	let externalConflict = false;
-	let finishing = 0;
 	let loadSuspensions = 0;
 
 	const aggregate = () => {
@@ -187,7 +186,7 @@ const createController = (host: Window, installation: HubSpotInstallation) => {
 		return {
 			chat: active.some((owner) => owner.chat),
 			consent:
-				finishing || states.length === 0
+				states.length === 0
 					? DENIED_CONSENT
 					: states.map(consentFor).reduce((left, right) => ({
 							advertisement: left.advertisement && right.advertisement,
@@ -195,7 +194,6 @@ const createController = (host: Window, installation: HubSpotInstallation) => {
 							functionality: left.functionality && right.functionality,
 						})),
 			gate:
-				!finishing &&
 				states.length > 0 &&
 				states.every(
 					(info) => info.hasConsent && info.vendor?.granted !== false
@@ -450,29 +448,13 @@ const createController = (host: Window, installation: HubSpotInstallation) => {
 				return;
 			}
 			owner.info = info;
-			const isFinalOwner = () =>
-				owners.size === 1 &&
-				registrations?.size === 1 &&
-				registrations.has(registration);
-			let final = isFinalOwner();
 			// Disposal can observe a queued grant. Apply withdrawal, but start no
 			// new work until the departing registration has been released.
 			loadSuspensions += 1;
-			if (final) {
-				finishing += 1;
-			}
-			reconcile(final, false);
-			if (!final && isFinalOwner()) {
-				final = true;
-				finishing += 1;
-				reconcile(true, false);
-			}
+			reconcile(false, false);
 			registrations?.delete(registration);
 			if (registrations?.size === 0) {
 				owners.delete(config);
-			}
-			if (final) {
-				finishing -= 1;
 			}
 			if (owners.size === 0) {
 				started = false;

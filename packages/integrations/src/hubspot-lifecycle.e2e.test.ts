@@ -440,10 +440,7 @@ describe('HubSpot core loader consent contract', () => {
 					const loads = api.widget.load.mock.calls.length;
 					loader.dispose();
 					expect(api.listeners.size).toBe(0);
-					expect(disposalCommands).toEqual([
-						['revokeCookieConsent'],
-						['setHubSpotConsent', deniedHubSpotConsent],
-					]);
+					expect(disposalCommands).toEqual([]);
 					expect(kernel.getSnapshot().effectivePermissions).toMatchObject(
 						allConsents
 					);

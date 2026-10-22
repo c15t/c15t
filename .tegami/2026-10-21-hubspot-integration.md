@@ -16,7 +16,7 @@ Warn when a non-script element with `id="hs-script-loader"` blocks loading, with
 
 Share one HubSpot controller across compatible helper configurations and their loader registrations. Intersect each owner's loader gate, vendor permission and consent fields, including initially denied owners. Ordinary nonfinal departure preserves permitted consent, chat and the late-completion guard without revocation or another widget load. Reattach the guard on permitted remounts, including with a retained SDK client.
 
-Read current core permission before releasing a script registration, so real category and vendor withdrawals still take effect during reentrant updates or replacement. Keep final teardown conservative and document that it can delete HubSpot identity cookies while c15t's saved consent remains granted.
+Read current core permission before releasing a script registration, so real category and vendor withdrawals still take effect during reentrant updates or replacement. Preserve saved grants across final teardown and replacement instead of revoking cookies solely because a provider unmounts. Detach callbacks and listeners without starting new chat work during departure.
 
 Leave chat manual unless an active owner opts in. Any `chat: true` owner requests automatic chat under every owner's actual consent restrictions; `chat: false` alone does not deny it. Stop automatic chat management when the last opt-in leaves, without removing a widget that the remaining consent permits. Retain pending widget loads through removal and remounts to avoid duplicate loads.
 

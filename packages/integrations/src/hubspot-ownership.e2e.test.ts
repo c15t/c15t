@@ -373,6 +373,30 @@ describe('HubSpot consent intersection', () => {
 });
 
 describe('HubSpot reentrant ownership changes', () => {
+	it.each(['disposal', 'replacement'] as const)(
+		'preserves granted consent across a final-owner %s',
+		async (departure) => {
+			const api = conversations();
+			window.HubSpotConversations = api;
+			const owner = await ownerOf(hubspot({ chat: true, portalId: '53' }));
+			api.completeLoad();
+			const recorded = commands();
+			if (departure === 'disposal') {
+				owner.loader?.dispose();
+			} else {
+				owner.loader?.updateScripts([
+					hubspot({ category: 'measurement', chat: true, portalId: '53' }),
+				]);
+			}
+			expectNoLoss(recorded);
+			expect(api.widget.remove).not.toHaveBeenCalled();
+			expect(api.clear).not.toHaveBeenCalled();
+			expect(api.visible).toBe(true);
+			expect(owner.kernel.getSnapshot().effectivePermissions).toMatchObject(
+				granted
+			);
+		}
+	);
 	for (const final of [false, true]) {
 		it.each(['category', 'vendor'] as const)(
 			`forwards real pending %s withdrawal before ${final ? 'final' : 'non-final'} departure`,
@@ -551,7 +575,7 @@ describe('HubSpot physical installation identity', () => {
 				expectConsent(recorded, { ...yes, functionality: false });
 				first.loader?.dispose();
 				second.loader?.dispose();
-				expectConsent(recorded, no);
+				expectConsent(recorded, { ...yes, functionality: false });
 				recorded.length = 0;
 				const incompatible = await ownerOf(hubspot(rejected));
 				expect(recorded).toEqual([]);
@@ -657,7 +681,7 @@ describe('HubSpot shared chat lifecycle', () => {
 			expectConsent(recorded, { ...yes, functionality: false });
 			first.loader?.dispose();
 			second.loader?.dispose();
-			expectConsent(recorded, no);
+			expectConsent(recorded, { ...yes, functionality: false });
 			expect(api.on).not.toHaveBeenCalled();
 			expect(api.off).not.toHaveBeenCalled();
 			expect(api.widget.load).not.toHaveBeenCalled();
@@ -1190,7 +1214,7 @@ describe('HubSpot complete replacement boundary', () => {
 	});
 });
 
-it('Independent review round2 keeps final cleanup conservative when another owner leaves from a release grant callback', async () => {
+it('preserves a queued grant when another owner leaves from a release grant callback', async () => {
 	const api = conversations();
 	window.HubSpotConversations = api;
 	const script = hubspot({ chat: true, portalId: '53' });
@@ -1225,8 +1249,9 @@ it('Independent review round2 keeps final cleanup conservative when another owne
 	await first.save({ ...granted, experience: true, functionality: false });
 	expect(secondDisposed).toBe(true);
 	expect(api.listeners.size).toBe(0);
-	expectConsent(recorded, no);
-	expect(recorded.some(([name]) => name === 'revokeCookieConsent')).toBe(true);
+	expectConsent(recorded, yes);
+	expectNoLoss(recorded);
+	expect(api.widget.load).not.toHaveBeenCalled();
 });
 describe('HubSpot external installation compatibility', () => {
 	it.each(['URL', 'nonce'] as const)(

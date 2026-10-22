@@ -205,14 +205,13 @@ removal or extra load. Before releasing an owner, the controller reads its
 current core permission so a real category or vendor withdrawal still takes
 effect, including a withdrawal saved during a synchronous callback.
 
-When the last owner leaves a started controller, teardown conservatively
-denies HubSpot consent and can revoke cookies, including the `messagesUtk`
-chat identity cookie. c15t's saved consent can remain granted. A replacement
-that crosses this zero-owner boundary has the same conservative behavior.
-A replacement while another owner remains can retain permission when the
-current core state still grants it. A permitted remount forwards current grants
-and reattaches chat management when opted in, but cannot restore deleted
-identity cookies. Keep the returned script configuration stable.
+When the last owner leaves, teardown detaches chat callbacks and listeners.
+It forwards any actual consent withdrawal before releasing that owner, but
+does not turn a saved grant into denial or revoke cookies solely because the
+provider unmounted. Replacing a granted configuration preserves the current
+permission across the zero-owner boundary. A permitted remount forwards
+current grants and reattaches chat management when opted in. Keep the returned
+script configuration stable.
 
 `revokeCookieConsent` asks HubSpot to remove tracking and consent cookies. It
 can itself trigger a revocation request. It does not remove every browser
