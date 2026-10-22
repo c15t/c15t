@@ -5,6 +5,6 @@ packages:
   '@c15t/scripts': patch
 ---
 
-### Add consent-gated Customer.io loading
+### Add Customer.io integration
 
-Add `customerIo` to load Customer.io only after marketing consent. Preserve chained calls while the SDK downloads. Send the initial page after SDK loading without waiting for destination readiness. Support a CDN proxy through `cdnUrl`, with separate collection routing through vendor loader options. Keep the helper as the only initial page event owner by overriding the SDK's `initialPageview` option without changing caller options. Publish callable queue and loaded-SDK types, including loaded user and group identity accessors, with their respective return values. Report the same CDN origin error for malformed URLs and unsupported origins. Include consent lifecycle handling, a CLI snippet and standalone setup examples.
+`customerIo` from `@c15t/integrations/customer-io` loads Customer.io Data Pipelines after `marketing` consent. Withdrawing consent clears the stored identity with `reset()` and reloads the page, because `reset()` does not stop the SDK from sending.
