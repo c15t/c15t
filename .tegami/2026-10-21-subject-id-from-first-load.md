@@ -26,6 +26,9 @@ load and still find it when they opt out.
   new one.
 
 `identify()` works before the first save. `PATCH /subjects/:id` in
-`@c15t/backend` creates the subject when no save has created it yet. The
-client treats a `404` from an older self-hosted backend as success and sends
-the identity with the next save.
+`@c15t/backend` now creates the subject and links the identity in one request
+when no save has created the subject yet. Before, the link needed a save
+first. Like `POST /subjects`, it needs no API key. The backend has no rate or
+body-size limit of its own, so set them in front of it; see the self-host
+configuration guide. The client treats a `404` from an older self-hosted
+backend as success and sends the identity with the next save.

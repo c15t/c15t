@@ -31,6 +31,9 @@ inputs, results and retries.
 Subject IDs allow public reads of that subject's state. Treat them as private
 capabilities. Do not expose administrative API keys to make browser requests.
 
+These routes have no built-in rate or body-size limit; see
+[Origins, identity and secrets](/docs/self-host/api/configuration#origins-identity-and-secrets).
+
 ## Fetch reusable configuration
 
 ```bash
@@ -251,6 +254,8 @@ another language, sign an HS256 JWT with `sub` set to the external ID, `aud`
 
 | Response | Cause |
 | --- | --- |
+| `400 EXTERNAL_ID_REQUIRED` | `PATCH` only. The body has no `externalId`. Nothing is created or linked. |
+| `400 INPUT_VALIDATION_FAILED` | `PATCH` only. `externalId`, `identityProvider` or `identityToken` isn't a string. Nothing is created or linked. |
 | `401 IDENTITY_TOKEN_INVALID` | `PATCH` only. The token doesn't verify, has expired, or names another external ID or provider. Nothing changes. |
 | `409 IDENTITY_CONFLICT` | `PATCH` only. The subject's current link is verified and this request isn't, so it can't replace it. Sending the same identity again succeeds. |
 | `409 SUBJECT_CONFLICT` | `PATCH` only. Another tenant on the same database already holds this subject ID. Nothing is linked. |
