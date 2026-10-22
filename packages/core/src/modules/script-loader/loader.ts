@@ -309,6 +309,11 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 			return;
 		}
 		const snapshot = kernel.getSnapshot();
+		const entry = normalized.find((candidate) => candidate.script === script);
+		const hasConsent =
+			replacingScript === script && entry
+				? hasScriptConsent(entry, buildReconcilePass(snapshot, tools))
+				: (consentByScriptId.get(script.id) ?? false);
 		invokeCallback(
 			script,
 			'onDispose',
@@ -316,7 +321,7 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 				callbackTools,
 				script,
 				snapshot,
-				consentByScriptId.get(script.id) ?? false,
+				hasConsent,
 				elementIds.resolve(script),
 				element
 			),

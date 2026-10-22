@@ -239,7 +239,9 @@ const createAmazonAdsTag = (options: AmazonAdsTagOptions): Script => {
 		allowed = info.hasConsent;
 		if (!allowed) {
 			discardPendingCommands();
-			forwardConsent();
+			if (window.amzn) {
+				forwardConsent();
+			}
 			return;
 		}
 		if (!changed) {
@@ -254,14 +256,12 @@ const createAmazonAdsTag = (options: AmazonAdsTagOptions): Script => {
 	return {
 		...script,
 		async: !countryCode,
+		observeConsentBeforeLoad: true,
 		onBeforeLoad: update,
 		onConsentChange: update,
 		onDispose: (info) => {
 			disposed = true;
-			allowed =
-				info.replacing === true &&
-				info.consents.marketing === true &&
-				info.vendor?.granted !== false;
+			allowed = info.replacing === true && info.hasConsent;
 			discardPendingCommands();
 			releaseHelper?.();
 			forwardConsent();

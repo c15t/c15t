@@ -550,6 +550,57 @@ describe('amazonAdsTag production loader', () => {
 			measurement: true,
 		});
 		expect(armed).toBe(false);
+		expect(consent).toHaveBeenCalledWith({
+			countryCode: 'DE',
+			enableAdStorage: false,
+			enableUserData: false,
+		});
+		expect(
+			consent.mock.calls.map(([value]) => value.enableAdStorage)
+		).not.toContain(true);
+	});
+	it.each([false, true])(
+		'uses the overridden category during replacement, measurement=%s',
+		async (measurement) => {
+			const consent = vi.fn();
+			window.amznConsent = consent;
+			const script = {
+				...amazonAdsTag({ countryCode: 'DE', tagId }),
+				category: 'measurement',
+			} satisfies Script;
+			const { kernel, loader } = mount(script);
+			await kernel.commands.save({ ...deniedConsents, measurement: true });
+			findScript(mainUrl).dispatchEvent(new Event('load'));
+			await kernel.commands.save({
+				...deniedConsents,
+				marketing: !measurement,
+				measurement,
+			});
+			consent.mockClear();
+			loader.updateScripts([
+				{
+					...amazonAdsTag({ countryCode: 'DE', region: 'EU', tagId }),
+					category: 'measurement',
+				},
+			]);
+			expect(
+				consent.mock.calls.map(([value]) => value.enableAdStorage)
+			).toEqual([measurement]);
+		}
+	);
+	it('forwards denial when replacement selects a denied category', async () => {
+		const consent = vi.fn();
+		window.amznConsent = consent;
+		const { kernel, loader } = mount({
+			...amazonAdsTag({ countryCode: 'DE', tagId }),
+			category: 'measurement',
+		});
+		await kernel.commands.save({ ...deniedConsents, measurement: true });
+		findScript(mainUrl).dispatchEvent(new Event('load'));
+		consent.mockClear();
+		loader.updateScripts([
+			amazonAdsTag({ countryCode: 'DE', region: 'EU', tagId }),
+		]);
 		expect(consent).toHaveBeenCalledExactlyOnceWith({
 			countryCode: 'DE',
 			enableAdStorage: false,

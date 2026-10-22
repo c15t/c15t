@@ -48,7 +48,8 @@ template states that EEA traffic needs at least one of TCF, GPP or ACS.
 | `consentScriptUrl` | `https://c.amazon-adsystem.com/aat/amzn-consent.js` | ACS loader URL override. A blank value falls back to the default. |
 
 The returned script uses `marketing` by default. A category override on that
-script also changes the permission forwarded to ACS. Both `enableAdStorage`
+script also changes the permission forwarded to ACS, including during
+configuration replacement. Both `enableAdStorage`
 and `enableUserData` follow the script's effective permission, including its
 vendor switch. They are not independent configuration flags.
 
