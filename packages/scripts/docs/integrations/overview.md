@@ -53,6 +53,7 @@ kernel to control its DOM lifecycle. Embeds do not require `@c15t/integrations`.
 
 | Integration                                               | Helper                   | Category                                        | Loading behavior                                                                                     |
 | --------------------------------------------------------- | ------------------------ | ----------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| [Lucky Orange](./other-analytics.md#lucky-orange)         | `luckyOrange`            | `measurement`                                   | Waits for effective permission                                                                       |
 | [Google Tag](./google-tag.md)                             | `gtag`                   | `measurement` or `marketing`                    | Always loads and signals Google consent by default; `loadMode: 'after-consent'` waits for permission |
 | [Pendo](./other-analytics.md#pendo)                       | `pendo`                  | `measurement`                                   | Waits for effective permission; stops and resumes event sending                                      |
 | [Ahrefs Analytics](./ahrefs-analytics.md)                 | `ahrefsAnalytics`        | `measurement`                                   | Waits for effective permission                                                                       |

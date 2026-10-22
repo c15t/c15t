@@ -7,6 +7,24 @@ group: integrations
 
 Each helper below loads its vendor only after the visitor allows the listed consent category. For setup, see [Integrations overview](/docs/integrations/overview).
 
+## Lucky Orange
+
+Lucky Orange records sessions and builds heatmaps. Waits for `measurement` consent by default.
+
+<include src="../shared/examples/javascript/lucky-orange-configuration.mdx" />
+
+| Option | Type | Required | Description |
+| --- | --- | --- | --- |
+| `siteId` | `string` | Yes | Site ID from Lucky Orange. |
+| `category` | Consent condition | No | Category or condition that must be allowed. Defaults to `'measurement'`. |
+| `scriptUrl` | `string` | No | Custom or proxied loader URL. Defaults to `https://tools.luckyorange.com/core/lo.js?site-id=<siteId>`. |
+
+**When consent is withdrawn:** the helper calls `LO.privacy.setConsentStatus(false)`. Recording code already on the page can't be unloaded, so keep c15t's default page reload.
+
+- Turn on **Require Consent** in the Lucky Orange dashboard. The helper grants consent through Lucky Orange's privacy API after the visitor allows it.
+- The helper doesn't call `optOut()`, because that writes an opt-out cookie that lasts two years and gets in the way if the visitor grants consent again.
+- A proxy `scriptUrl` must keep `lo.js` in its path. Lucky Orange finds the site ID by looking for that file name.
+
 ## Pendo
 
 Pendo records product usage and shows in-app guides. Waits for `measurement` consent by default.

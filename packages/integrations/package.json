@@ -354,6 +354,11 @@
 			"import": "./dist/vendors/analytics/pendo.js",
 			"default": "./dist/vendors/analytics/pendo.js"
 		},
+		"./lucky-orange": {
+			"types": "./dist-types/vendors/analytics/lucky-orange.d.ts",
+			"import": "./dist/vendors/analytics/lucky-orange.js",
+			"default": "./dist/vendors/analytics/lucky-orange.js"
+		},
 		"./clay": {
 			"types": "./dist-types/vendors/analytics/clay.d.ts",
 			"import": "./dist/vendors/analytics/clay.js",

@@ -127,6 +127,10 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 		example: "logRocket({ appId: 'org-slug/app-slug' })",
 		importName: 'logRocket',
 	},
+	'lucky-orange': {
+		example: "luckyOrange({ siteId: 'YOUR_SITEID' })",
+		importName: 'luckyOrange',
+	},
 	'matomo-analytics': {
 		example:
 			"matomoAnalytics({ matomoUrl: 'https://analytics.example.com', siteId: 1 })",
