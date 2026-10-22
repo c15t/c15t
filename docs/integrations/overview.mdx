@@ -51,6 +51,7 @@ kernel to control its DOM lifecycle. Embeds do not require `@c15t/integrations`.
 | [Adobe Analytics](/docs/integrations/adobe-analytics) | `adobeAnalytics` | `measurement` | Waits for effective permission |
 | [Amplitude](/docs/integrations/amplitude) | `amplitude` | `measurement` | Waits for effective permission; opts the SDK out on revocation |
 | [Cloudflare Web Analytics](/docs/integrations/cloudflare-web-analytics) | `cloudflareWebAnalytics` | `measurement` | Waits for effective permission |
+| [Clay](/docs/integrations/clay) | `clay` | `marketing` | Waits for effective permission |
 | [Clearbit](/docs/integrations/clearbit) | `clearbit` | `marketing` | Waits for effective permission |
 | [Microsoft Clarity](/docs/integrations/microsoft-clarity) | `clarity` | `measurement` | Gated initially; keeps the SDK and signals storage consent |
 | [Databuddy](/docs/integrations/databuddy) | `databuddy` | `measurement` | Always loads; switches the SDK's disabled flag |
@@ -165,7 +166,7 @@ the scripts or the consent snapshot yourself:
 | --- | --- |
 | React, Next.js, TanStack Start | `useEventDispatcher()` from `c15t/react`, `c15t/next` or `c15t/tanstack-start` |
 | Vue, Nuxt | `useEventDispatcher()` from `c15t/vue/vue-plugin`, auto-imported in Nuxt |
-| Svelte, SvelteKit | `getEventDispatcher()` from `@c15t/svelte`, called inside `ConsentProvider` |
+| Svelte, SvelteKit | `getEventDispatcher()` from `c15t/svelte`, called inside `ConsentProvider` |
 | Astro | `getEventDispatcher()` from `c15t/astro/client` |
 | JavaScript | `getEventDispatcher(runtime)` from `@c15t/browser` |
 
