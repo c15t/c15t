@@ -15,6 +15,7 @@ import { xPixel } from '../vendors/ads-and-pixels/x-pixel';
 import { adobeAnalytics } from '../vendors/analytics/adobe-analytics';
 import { ahrefsAnalytics } from '../vendors/analytics/ahrefs-analytics';
 import { amplitude } from '../vendors/analytics/amplitude';
+import { clay } from '../vendors/analytics/clay';
 import { clearbit } from '../vendors/analytics/clearbit';
 import { cloudflareWebAnalytics } from '../vendors/analytics/cloudflare-web-analytics';
 import { databuddy } from '../vendors/analytics/databuddy';
@@ -83,6 +84,14 @@ export const helperParityCases = {
 			src: 'https://cdn.amplitude.com/libs/analytics-browser-2.44.4-min.js.gz',
 		},
 		script: amplitude({ apiKey: 'AMPLITUDE-CONTRACT' }),
+	},
+	clay: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: true,
+			src: 'https://static.claydar.com/init.v1.js?id=c15tfake',
+		},
+		script: clay({ siteId: 'c15tfake' }),
 	},
 	clearbit: {
 		expected: {

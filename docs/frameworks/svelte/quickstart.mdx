@@ -32,12 +32,10 @@ vendor edits reach visitors on their next page load, without a rebuild.
 
 ## Install
 
-<CommandTabs command="@c15t/svelte @c15t/integrations" mode="install" />
+<CommandTabs command="c15t @c15t/integrations" mode="install" />
 
-Svelte uses its own package, `@c15t/svelte`, which exports the components and
-the consent modes. `@c15t/integrations`
-holds the vendor helpers. The `c15t` package has no Svelte entry point, so
-you don't install it.
+The `c15t` package exports the Svelte components and consent modes from
+`c15t/svelte`. `@c15t/integrations` holds the vendor helpers.
 
 ## Add the Vite plugin
 
@@ -71,7 +69,7 @@ vendor scripts c15t should load:
 <include src="../../shared/examples/svelte/app.mdx" />
 
 The `<main>` element stands in for your app's content. `hosted()` from
-`@c15t/svelte` makes one `/init` request to `VITE_C15T_BACKEND_URL`, started
+`c15t/svelte` makes one `/init` request to `VITE_C15T_BACKEND_URL`, started
 early by the script in `index.html`. The backend picks the policy from the
 visitor's location and language and returns its current version. Consent choices go to the same
 backend. Vite writes the variable into the bundle at build time, so changing
@@ -92,7 +90,7 @@ footer.
 
 There is no stylesheet to import. Each component adds the rules it uses to
 `<head>` when it first renders. With Tailwind CSS 3, import
-`@c15t/svelte/styles.css` yourself and pass `styles={false}` to the provider;
+`c15t/svelte/styles.css` yourself and pass `styles={false}` to the provider;
 see [stylesheets and CSS layers](/docs/customization/stylesheets#import-the-stylesheet-yourself).
 
 ## Verify consent
@@ -126,7 +124,7 @@ and tests. Not recommended for production environments.
 {/* example: fragment */}
 
 ```ts
-import { local } from '@c15t/svelte';
+import { local } from 'c15t/svelte';
 
 const mode = local();
 ```
@@ -172,7 +170,7 @@ visitors the browser resolves this way. Swap the mode in `src/App.svelte`:
 
 ```svelte title="src/App.svelte (partial)"
 <script lang="ts">
-	import { ConsentProvider, manifest } from '@c15t/svelte';
+	import { ConsentProvider, manifest } from 'c15t/svelte';
 </script>
 
 <ConsentProvider mode={manifest()} {scripts}>

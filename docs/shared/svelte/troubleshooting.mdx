@@ -33,9 +33,10 @@ Svelte's `getContext`.
 **Fix.** Call getters at the top level of a component's `<script>`.
 
 **Check.** If the provider is there, check that the app resolves one copy of
-`@c15t/svelte`. Two copies create two separate contexts.
+`c15t/svelte`. Two copies create two separate contexts.
 
-**Fix.** Make the app resolve a single copy of `@c15t/svelte`.
+**Fix.** Use `c15t/svelte` consistently and make the app resolve a single
+copy of its underlying `@c15t/svelte` dependency.
 
 ## Theme colors are ignored
 
@@ -62,16 +63,16 @@ SvelteKit page, check that `src/hooks.server.ts` exports `c15tHandle`.
 **Fix.**
 
 - No c15t `<style>` element: the provider sets `styles={false}` or
-  `noStyle`. With `styles={false}`, import `@c15t/svelte/styles.css` once,
+  `noStyle`. With `styles={false}`, import `c15t/svelte/styles.css` once,
   in the component that renders the provider or in your global stylesheet.
 - The SvelteKit banner is unstyled until hydration: add `c15tHandle` from
-  `@c15t/svelte/kit` to `src/hooks.server.ts`, or set `styles={false}` and
-  import `@c15t/svelte/styles.css`.
+  `c15t/svelte/kit` to `src/hooks.server.ts`, or set `styles={false}` and
+  import `c15t/svelte/styles.css`.
 - The console reports a blocked inline style: pass the provider a `nonce`, or
   set `styles={false}` and import the stylesheet. The Content Security Policy
   page covers both.
 - IAB TCF surfaces are unstyled with automatic styles disabled: import
-  `@c15t/svelte/styles.css` and `@c15t/svelte/iab/styles.css` together. With
+  `c15t/svelte/styles.css` and `c15t/svelte/iab/styles.css` together. With
   automatic styles enabled, check the policy and IAB configuration, the
   provider's `noStyle` option, and CSP errors.
 
