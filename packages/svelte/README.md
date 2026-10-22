@@ -29,7 +29,7 @@ c15t is used by [2,100+ sites](https://www.wappalyzer.com/technologies/cookie-co
 - Prebuilt cookie banner, consent dialog, and preference center with a theme system
 - Headless state for a fully custom design
 - Analytics, ads, and pixels follow each visitor's choice through @c15t/integrations: Google Tag Manager, Google Consent Mode v2, GA4, Meta Pixel, PostHog, and more
-- Translations for 35 languages through @c15t/translations
+- Translations for 42 languages through @c15t/translations
 
 ## Prerequisites
 
@@ -40,19 +40,19 @@ c15t is used by [2,100+ sites](https://www.wappalyzer.com/technologies/cookie-co
 ## Installation
 
 ```bash
-pnpm add @c15t/svelte
+pnpm add c15t
 ```
 
-`@c15t/svelte` is not part of the `c15t` package. Install it on its own.
+Install `c15t` and import the Svelte components from `c15t/svelte`.
 
 To manually install, follow the [quickstart](https://c15t.com/docs/frameworks/svelte/quickstart).
 
 ## Usage
 
-1. Add `consentManifest()` from `@c15t/svelte/vite` to `vite.config.ts`. It downloads your policy from `VITE_C15T_BACKEND_URL` (SvelteKit: `PUBLIC_C15T_BACKEND_URL`)
+1. Add `consentManifest()` from `c15t/svelte/vite` to `vite.config.ts`. It downloads your policy from `VITE_C15T_BACKEND_URL` (SvelteKit: `PUBLIC_C15T_BACKEND_URL`)
 2. Wrap your app with `ConsentProvider` in `manifest()` mode
 3. Add `ConsentBanner` and `ConsentDialog` near the root
-4. In SvelteKit, render `ConsentRoot` with the state `loadConsent` from `@c15t/svelte/kit` returns; see the [SvelteKit quickstart](https://c15t.com/docs/frameworks/sveltekit/quickstart)
+4. In SvelteKit, render `ConsentRoot` with the state `loadConsent` from `c15t/svelte/kit` returns; see the [SvelteKit quickstart](https://c15t.com/docs/frameworks/sveltekit/quickstart)
 5. For the full setup, see the [Svelte quickstart docs](https://c15t.com/docs/frameworks/svelte/quickstart)
 
 ```svelte
@@ -64,7 +64,7 @@ To manually install, follow the [quickstart](https://c15t.com/docs/frameworks/sv
     ConsentDialogLink,
     ConsentProvider,
     manifest,
-  } from '@c15t/svelte';
+  } from 'c15t/svelte';
 </script>
 
 <ConsentProvider mode={manifest()}>

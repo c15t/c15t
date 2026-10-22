@@ -66,7 +66,7 @@ render. The elements stay after the surface unmounts. The Svelte dialog's
 sheets, its rules and the primitives, load with the dialog's code.
 
 On a server-rendered SvelteKit page, the banner leaves a
-`<meta name="c15t-styles">` marker, and `c15tHandle` from `@c15t/svelte/kit`
+`<meta name="c15t-styles">` marker, and `c15tHandle` from `c15t/svelte/kit`
 writes the sheets into the HTML `<head>` as `<style>` elements. The banner is
 styled before hydration with no stylesheet request. Without `c15tHandle` in
 `src/hooks.server.ts`, a server-rendered banner shows unstyled until
@@ -106,7 +106,7 @@ need control over the file:
 | Next.js | `options.styles` in `c15t.config.ts` or on `ConsentRoot` | `c15t/next/styles.css`, and `c15t/next/iab/styles.css` for IAB TCF |
 | TanStack Start | `options.styles` on `ConsentRoot` | `c15t/tanstack-start/styles.css`, and `c15t/tanstack-start/iab/styles.css` for IAB TCF |
 | React | `options.styles` on `ConsentProvider` | `c15t/react/styles.css`, and `c15t/react/iab/styles.css` for IAB TCF |
-| Svelte, SvelteKit | `options.styles` on `ConsentProvider` or `ConsentRoot` | `@c15t/svelte/styles.css`, and `@c15t/svelte/iab/styles.css` for IAB TCF |
+| Svelte, SvelteKit | `options.styles` on `ConsentProvider` or `ConsentRoot` | `c15t/svelte/styles.css`, and `c15t/svelte/iab/styles.css` for IAB TCF |
 | Astro | `styles` in the `c15t()` integration options | See [load Astro's stylesheets yourself](#load-astros-stylesheets-yourself) |
 
 {/* example: fragment */}
@@ -131,7 +131,7 @@ the first paint. Remove the import, or add `styles: false` if you need it.
 | Next.js, TanStack Start, React | In the dialog sheet that `ConsentDialog` and `ConsentWidget` render. It ships with the dialog's lazily loaded code. With `styles: false`, in `styles.css`. No `@c15t/react` or `@c15t/ui` module imports CSS, so a Next.js app that uses only the Pages Router builds without `transpilePackages` |
 | Nuxt, Vue | The dialog component imports its stylesheet, so the rules load with the dialog's code, not the banner's |
 | Astro | In `@c15t/ui/styles/sheets/dialog.css`. The Svelte dialog, the default `ui`, also needs the primitives stylesheet. c15t links both when a visitor first points at, focuses or opens a control that opens the dialog, waits for them before it shows the dialog, and keeps them across `ClientRouter` navigation. On a Tailwind CSS 3 site, the dialog's rules are in `c15t/astro/styles.css`, and c15t links only the primitives stylesheet |
-| Svelte, SvelteKit | In the dialog's sheets, which load with the dialog's code. With `styles: false`, in `@c15t/svelte/styles.css` |
+| Svelte, SvelteKit | In the dialog's sheets, which load with the dialog's code. With `styles: false`, in `c15t/svelte/styles.css` |
 | HTML, JavaScript | Part of the stylesheet in the shadow root, which holds only the rules the stock surfaces use |
 
 `styles.css` still holds every stock surface's rules for apps that set

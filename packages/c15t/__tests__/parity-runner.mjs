@@ -23,6 +23,7 @@ const PREFIXES = [
 	{ packageName: '@c15t/tanstack-start', prefix: 'tanstack-start' },
 	{ packageName: '@c15t/vue', prefix: 'vue' },
 	{ packageName: '@c15t/astro', prefix: 'astro' },
+	{ packageName: '@c15t/svelte', prefix: 'svelte' },
 ];
 
 /**
