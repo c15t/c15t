@@ -245,9 +245,7 @@ useFocusTrap(bannerCard, () => shouldTrapFocus.value);
 				"
 				data-testid="iab-consent-banner-root"
 				:data-entry="entryAttribute"
-				:data-position="
-					textDirection === 'ltr' ? 'bottom-left' : 'bottom-right'
-				"
+				data-position="bottom-left"
 				:dir="textDirection"
 				tabindex="-1"
 			>
