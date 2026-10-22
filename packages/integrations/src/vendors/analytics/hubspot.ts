@@ -377,6 +377,9 @@ const createController = (host: Window, installation: HubSpotInstallation) => {
 	const canStart = (gate: boolean, allowLoad: boolean) =>
 		allowLoad && gate && loaderAvailable();
 	const reconcile = (force: boolean, allowLoad = true) => {
+		if (owners.size === 0) {
+			return;
+		}
 		const canLoad = allowLoad && loadSuspensions === 0;
 		let sendConsent = force;
 		revision += 1;
@@ -457,7 +460,6 @@ const createController = (host: Window, installation: HubSpotInstallation) => {
 				owners.delete(config);
 			}
 			if (owners.size === 0) {
-				started = false;
 				chatRequested = false;
 				detachChat();
 			}

@@ -209,8 +209,10 @@ When the last owner leaves, teardown detaches chat callbacks and listeners.
 It forwards any actual consent withdrawal before releasing that owner, but
 does not turn a saved grant into denial or revoke cookies solely because the
 provider unmounted. Replacing a granted configuration preserves the current
-permission across the zero-owner boundary. A permitted remount forwards
-current grants and reattaches chat management when opted in. Keep the returned
+permission across the zero-owner boundary. A remount forwards current consent
+to the retained runtime and reattaches chat management when opted in. If consent
+became denied while no owner was mounted, the remount sends that denial and
+cleans up automatic chat without downloading HubSpot again. Keep the returned
 script configuration stable.
 
 `revokeCookieConsent` asks HubSpot to remove tracking and consent cookies. It

@@ -373,6 +373,22 @@ describe('HubSpot consent intersection', () => {
 });
 
 describe('HubSpot reentrant ownership changes', () => {
+	it('forwards denial when a retained granted SDK remounts with denied consent', async () => {
+		const api = conversations();
+		window.HubSpotConversations = api;
+		const script = hubspot({ chat: true, portalId: '53' });
+		const owner = await ownerOf(script);
+		api.completeLoad();
+		owner.loader?.dispose();
+		await owner.save(denied);
+		const recorded = commands();
+		owner.mount();
+		expect(recorded).toContainEqual(['revokeCookieConsent']);
+		expectConsent(recorded, no);
+		expect(api.widget.remove).toHaveBeenCalledOnce();
+		expect(api.clear).toHaveBeenCalledExactlyOnceWith({ resetWidget: false });
+		expect(api.visible).toBe(false);
+	});
 	it.each(['disposal', 'replacement'] as const)(
 		'preserves granted consent across a final-owner %s',
 		async (departure) => {
@@ -836,7 +852,7 @@ describe('HubSpot shared chat lifecycle', () => {
 		expect(document.getElementById('hs-script-loader')).toBe(element);
 	});
 
-	it('keeps a denied remount inactive, then reattaches to the retained client on regrant', async () => {
+	it('cleans up a denied remount, then loads the retained client on regrant', async () => {
 		const api = conversations();
 		window.HubSpotConversations = api;
 		const script = hubspot({ chat: true, portalId: '53' });
@@ -846,7 +862,8 @@ describe('HubSpot shared chat lifecycle', () => {
 		owner.loader?.dispose();
 		await owner.save(denied);
 		owner.mount();
-		expect(api.listeners.size).toBe(0);
+		expect(api.listeners.size).toBe(1);
+		expect(api.visible).toBe(false);
 		expect(api.widget.load).toHaveBeenCalledOnce();
 		await owner.save();
 		expect(api.listeners.size).toBe(1);

@@ -18,6 +18,8 @@ Share one HubSpot controller across compatible helper configurations and their l
 
 Read current core permission before releasing a script registration, so real category and vendor withdrawals still take effect during reentrant updates or replacement. Preserve saved grants across final teardown and replacement instead of revoking cookies solely because a provider unmounts. Detach callbacks and listeners without starting new chat work during departure.
 
+Reconcile current consent with the retained runtime on remount, including a denial saved while no owner was mounted. Remove denied automatic chat without downloading HubSpot again.
+
 Leave chat manual unless an active owner opts in. Any `chat: true` owner requests automatic chat under every owner's actual consent restrictions; `chat: false` alone does not deny it. Stop automatic chat management when the last opt-in leaves, without removing a widget that the remaining consent permits. Retain pending widget loads through removal and remounts to avoid duplicate loads.
 
 Recheck current shared permissions and chat opt-in before deferred SDK-ready cleanup. Skip stale removal and chat-cookie cleanup after permission returns, including across remounts and replacements. Keep cleanup for withdrawals that still deny automatic chat at readiness.

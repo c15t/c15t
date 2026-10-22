@@ -448,7 +448,7 @@ describe('HubSpot core loader consent contract', () => {
 						await kernel.commands.save(deniedConsents);
 					}
 					loader = createScriptLoader({ kernel, scripts: [script] });
-					expect(api.listeners.size).toBe(initiallyDenied ? 0 : 1);
+					expect(api.listeners.size).toBe(1);
 					expect(api.widget.load).toHaveBeenCalledTimes(
 						loads + (initiallyDenied ? 0 : 1)
 					);
