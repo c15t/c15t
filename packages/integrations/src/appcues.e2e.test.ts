@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 import { createConsentKernel } from '@c15t/core';
 import { createScriptLoader } from '@c15t/core/modules/script-loader';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
 	deniedConsents,
@@ -15,11 +15,17 @@ const granted = { ...deniedConsents, experience: true };
 
 describe('Appcues consent lifecycle through core', () => {
 	registerVendorContractCleanup();
+	// Node 25+ storage globals shadow jsdom's, so use the jsdom instance.
+	beforeEach(() => {
+		vi.stubGlobal('localStorage', jsdom.window.localStorage);
+		vi.stubGlobal('sessionStorage', jsdom.window.sessionStorage);
+	});
 	afterEach(() => {
 		delete window.Appcues;
 		delete window.AppcuesSettings;
-		localStorage.clear();
-		sessionStorage.clear();
+		window.localStorage.clear();
+		window.sessionStorage.clear();
+		vi.unstubAllGlobals();
 	});
 	it('creates nothing before mapped consent, grants once and resets on revoke', () => {
 		const onReady = vi.fn();
@@ -43,8 +49,8 @@ describe('Appcues consent lifecycle through core', () => {
 		expect(Reflect.has(window, 'AppcuesReady')).toBe(false);
 		expect(onReady).not.toHaveBeenCalled();
 		expect(document.cookie).toBe('');
-		expect(localStorage.length).toBe(0);
-		expect(sessionStorage.length).toBe(0);
+		expect(window.localStorage.length).toBe(0);
+		expect(window.sessionStorage.length).toBe(0);
 		updateScripts(scripts, granted);
 		const element = document.querySelector('script');
 		expect(element?.src).toBe('https://fast.appcues.com/account%2Fid.js');
