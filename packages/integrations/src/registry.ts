@@ -116,7 +116,7 @@ export const BUILT_IN_INTEGRATION_CATEGORIES = [
 export const builtInScriptIntegrations = [
 	{
 		consentCategory: 'marketing',
-		docsSlug: 'wisepops',
+		docsSlug: 'other-experience',
 		hint: 'Onsite popups, campaigns and signup forms',
 		integrationCategory: 'functional',
 		key: 'wisepops',

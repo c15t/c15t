@@ -1,0 +1,38 @@
+---
+title: Experimentation and personalization tools
+description: Consent-gated helpers for experimentation and personalization tools that don't need a full guide.
+icon: flask-conical
+group: integrations
+---
+
+Each helper below loads its vendor only after the visitor allows the listed consent category. For setup, see [Integrations overview](/docs/integrations/overview).
+
+## Wisepops
+
+Wisepops shows popups, bars, embeds and notification feeds on your site. Waits
+for `marketing` consent. The `experienceScripts` export below shows the
+`experience` alternative; register one of the two arrays.
+
+<include src="../shared/examples/javascript/wisepops-scripts.mdx" />
+
+| Option | Type | Required | Description |
+| --- | --- | --- | --- |
+| `siteId` | `string` | Yes | The `h` value in the loader URL from **Settings > Install Wisepops**. A blank ID logs an error and skips loading. |
+| `category` | `HasCondition` | No | Consent condition to wait for. Defaults to `'marketing'`. Use `'experience'` if that fits your campaigns. |
+| `options.autoPageview` | `'url' \| 'init' \| false` | No | When Wisepops checks for campaigns. Defaults to `'url'`, which follows client-side navigation. |
+| `options.browserStorage` | `boolean` | No | `true` stores visitor data in localStorage instead of cookies. |
+
+The helper queues `defaultConsent: 'denied'`, loads Wisepops, then calls
+`wisepops('consent', 'granted')`.
+
+**When consent is withdrawn:** c15t removes the loader and reloads the page.
+Keep `reloadOnConsentRevoked` on. Wisepops has no way to revoke consent or shut
+down from code, so the reload is the only way to stop it.
+
+- Wisepops' own `denied` mode still shows campaigns, with session-only
+  cookies. This helper doesn't use it. It keeps Wisepops off the page until
+  consent, so don't install Wisepops a second time to get denied mode.
+- Wisepops integrates with Shopify Customer Privacy on its own, and this helper
+  doesn't sync c15t choices to Shopify. On a Shopify store, check Wisepops'
+  [consent mode](https://support.wisepops.com/en/articles/12679556-cookie-consent-mode)
+  settings and make sure a Shopify app doesn't load Wisepops outside c15t.

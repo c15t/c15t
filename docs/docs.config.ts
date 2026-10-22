@@ -877,9 +877,9 @@ export default defineDocsConfig({
 					title: 'Analytics',
 				},
 				{
-					pages: ['wisepops'],
+					pages: ['other-experience'],
 					slug: 'experience',
-					title: 'Experience and personalization',
+					title: 'Experimentation and personalization',
 				},
 				{
 					pages: ['crisp', 'front-chat', 'intercom'],

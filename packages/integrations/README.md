@@ -45,7 +45,7 @@ See the [documentation](https://c15t.com/docs/integrations) for guides, API refe
 - **Analytics**: Amplitude, Heap, Segment, RudderStack, Hightouch, Mixpanel, Microsoft Clarity, Hotjar, Plausible, Fathom, Matomo, Umami, Vercel Analytics, Vercel Speed Insights, OneDollarStats
 - **Sentry**: Loads Sentry from its CDN or works with your own SDK; Session Replay and user data wait for measurement, and error monitoring can too ([guide](https://c15t.com/docs/integrations/sentry))
 - **Email and SMS**: Klaviyo, loaded only once marketing and measurement are both allowed
-- **Experience and personalization**: Wisepops popups and onsite campaigns, loaded after marketing consent by default ([guide](https://c15t.com/docs/integrations/wisepops))
+- **Experimentation and personalization**: Wisepops popups and onsite campaigns, loaded after marketing consent by default ([guide](https://c15t.com/docs/integrations/other-experience#wisepops))
 - **Chat widgets**: Intercom, Crisp, Front Chat
 - **Shopify**: Sends c15t consent to Shopify's Customer Privacy API from a Hydrogen storefront ([guide](https://c15t.com/docs/integrations/shopify))
 - **Clay**: Loads after marketing consent ([guide](https://c15t.com/docs/integrations/clay))
