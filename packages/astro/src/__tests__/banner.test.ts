@@ -726,14 +726,15 @@ describe('<ConsentBanner /> surface shape', () => {
 		expect(readCard(html)).toContain('role="dialog"');
 	});
 
-	it('mirrors a defaulted corner for right-to-left text but keeps a host corner', async () => {
-		const mirrored = await render(
+	it('keeps the default and host corners for right-to-left text', async () => {
+		const defaulted = await render(
 			await buildLocals(
 				{ mode: offlineMode({ policyRules: [testRule] }) },
 				{ 'accept-language': 'he' }
 			)
 		);
-		expect(readRoot(mirrored)).toContain('data-position="bottom-right"');
+		expect(readRoot(defaulted)).toContain('dir="rtl"');
+		expect(readRoot(defaulted)).toContain('data-position="bottom-left"');
 
 		const kept = await render(
 			await buildLocals(

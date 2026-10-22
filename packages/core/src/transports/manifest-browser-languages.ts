@@ -19,7 +19,9 @@ type LanguageModule = Promise<{ translations: Translations }>;
  * listed.
  */
 const languageModules: Record<OtherLanguage, () => LanguageModule> = {
+	ar: () => import('@c15t/translations/ar'),
 	bg: () => import('@c15t/translations/bg'),
+	bn: () => import('@c15t/translations/bn'),
 	cs: () => import('@c15t/translations/cs'),
 	cy: () => import('@c15t/translations/cy'),
 	da: () => import('@c15t/translations/da'),
@@ -34,10 +36,12 @@ const languageModules: Record<OtherLanguage, () => LanguageModule> = {
 	he: () => import('@c15t/translations/he'),
 	hi: () => import('@c15t/translations/hi'),
 	hr: () => import('@c15t/translations/hr'),
+	ht: () => import('@c15t/translations/ht'),
 	hu: () => import('@c15t/translations/hu'),
 	id: () => import('@c15t/translations/id'),
 	is: () => import('@c15t/translations/is'),
 	it: () => import('@c15t/translations/it'),
+	ko: () => import('@c15t/translations/ko'),
 	lb: () => import('@c15t/translations/lb'),
 	lt: () => import('@c15t/translations/lt'),
 	lv: () => import('@c15t/translations/lv'),
@@ -49,9 +53,12 @@ const languageModules: Record<OtherLanguage, () => LanguageModule> = {
 	pt: () => import('@c15t/translations/pt'),
 	rm: () => import('@c15t/translations/rm'),
 	ro: () => import('@c15t/translations/ro'),
+	ru: () => import('@c15t/translations/ru'),
 	sk: () => import('@c15t/translations/sk'),
 	sl: () => import('@c15t/translations/sl'),
 	sv: () => import('@c15t/translations/sv'),
+	ur: () => import('@c15t/translations/ur'),
+	yi: () => import('@c15t/translations/yi'),
 	zh: () => import('@c15t/translations/zh'),
 };
 

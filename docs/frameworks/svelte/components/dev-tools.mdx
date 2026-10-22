@@ -1,6 +1,6 @@
 ---
 title: DevTools
-description: Inspect consent, scripts, location and events in a Svelte app with ConsentDevTools from @c15t/svelte/devtools, loaded only in development.
+description: Inspect consent, scripts, location and events in a Svelte app with ConsentDevTools from c15t/svelte/devtools, loaded only in development.
 group: frameworks
 ---
 
@@ -14,7 +14,7 @@ development. Vite sets `import.meta.env.DEV` to `true` in `vite dev` and to
 
 ```svelte title="src/lib/ConsentDevTools.svelte"
 <script lang="ts">
-	const devTools = import.meta.env.DEV ? import('@c15t/svelte/devtools') : null;
+	const devTools = import.meta.env.DEV ? import('c15t/svelte/devtools') : null;
 </script>
 
 {#if devTools}

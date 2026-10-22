@@ -244,6 +244,13 @@ export const UMBRELLA_SOURCES: UmbrellaSource[] = [
 		prefix: 'astro',
 	},
 	{
+		directory: 'svelte',
+		exclude: [TAILWIND3_PLUGIN],
+		packageName: '@c15t/svelte',
+		prefix: 'svelte',
+		sourceRoot: { distPrefix: 'dist/', srcPrefix: 'src/lib/' },
+	},
+	{
 		// Tailwind 3 apps list the plugin in their PostCSS config, so an app
 		// that installed only `c15t` needs it as `c15t/postcss-tailwind3`.
 		directory: 'ui',
@@ -916,7 +923,7 @@ const resolveViaSourceRoot = function resolveViaSourceRoot(
 		return null;
 	}
 
-	for (const condition of JS_ENTRY_CONDITIONS) {
+	for (const condition of [...JS_ENTRY_CONDITIONS, 'types']) {
 		const value = entry[condition];
 		const target = value ? normalizePackagePath(value) : null;
 		if (!target?.startsWith(sourceRoot.distPrefix)) {
@@ -924,13 +931,14 @@ const resolveViaSourceRoot = function resolveViaSourceRoot(
 		}
 
 		const relative = target.slice(sourceRoot.distPrefix.length);
-		const candidates = relative.endsWith('.vue')
-			? [relative]
-			: [
-					// oxlint-disable-next-line prefer-named-capture-group -- Preserve declaration order, interface shape, and public compatibility.
-					relative.replace(/\.(mjs|cjs|js)$/u, '.ts'),
-					relative.replace(/\.(?<capture1>mjs|cjs|js)$/u, '.tsx'),
-				];
+		const candidates =
+			relative.endsWith('.vue') || relative.endsWith('.d.ts')
+				? [relative]
+				: [
+						// oxlint-disable-next-line prefer-named-capture-group -- Preserve declaration order, interface shape, and public compatibility.
+						relative.replace(/\.(mjs|cjs|js)$/u, '.ts'),
+						relative.replace(/\.(?<capture1>mjs|cjs|js)$/u, '.tsx'),
+					];
 		for (const candidate of candidates) {
 			const candidatePath = join(packageDir, sourceRoot.srcPrefix, candidate);
 			if (existsSync(candidatePath)) {
