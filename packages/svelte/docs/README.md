@@ -148,6 +148,7 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 - [Mixpanel](./integrations/mixpanel-analytics.md): Load the Mixpanel SDK on every page with the c15t mixpanelAnalytics helper, which switches Mixpanel tracking on and off with measurement consent, and check it in DevTools.
 - [OneDollarStats](./integrations/one-dollar-stats.md): Load the OneDollarStats tracker only after measurement consent with the c15t oneDollarStats helper, forward its data-attribute settings, and check it in DevTools.
 - [OpenAI Pixel](./integrations/openai-pixel.md): Load the ChatGPT Ads Measurement Pixel only after marketing consent with the c15t openaiPixel helper, guard oaiq conversion calls, and check it in DevTools.
+- [Other analytics tools](./integrations/other-analytics.md): Consent-gated helpers for analytics tools that don't need a full guide.
 - [Integrations](./integrations/overview.md): Find all c15t integrations for analytics, tag managers, advertising, email and SMS, chat and embedded content.
 - [Pinterest Tag](./integrations/pinterest-tag.md): Load the Pinterest Tag only after marketing consent with the c15t pinterestTag helper, guard pintrk event calls, and check it in DevTools.
 - [Pirsch](./integrations/pirsch.md): Load Pirsch Analytics only after measurement consent with the c15t pirsch helper, keep custom event bindings working, and check it in DevTools.
@@ -161,7 +162,6 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 - [Sentry](./integrations/sentry.md): Configure Sentry's CDN or your own SDK with consent for error monitoring, Session Replay and user data.
 - [Shopify](./integrations/shopify.md): Send c15t consent to Shopify's Customer Privacy API from a Hydrogen storefront, so Shopify analytics wait for the visitor's choice and follow each later change.
 - [Snapchat Pixel](./integrations/snapchat-pixel.md): Load the Snapchat Pixel only after marketing consent with the c15t snapchatPixel helper, guard snaptr event calls, and check it in DevTools.
-- [Statable](./integrations/statable-analytics.md): Load Statable analytics after measurement consent with the c15t statableAnalytics helper, configure its ingestion endpoint, and verify requests and browser storage.
 - [TikTok Pixel](./integrations/tiktok-pixel.md): Load the TikTok Pixel only after marketing consent with the c15t tiktokPixel helper, guard ttq event calls, and check it in DevTools.
 - [Umami Analytics](./integrations/umami-analytics.md): Load the Umami Analytics tracker only after measurement consent with the c15t umamiAnalytics helper, point it at a self-hosted instance, and check it in DevTools.
 - [Vercel Analytics](./integrations/vercel-analytics.md): Load the Vercel Web Analytics script only after measurement consent with the c15t vercelAnalytics helper, choose the debug script, and check it in DevTools.

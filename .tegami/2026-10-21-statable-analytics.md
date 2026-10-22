@@ -7,7 +7,7 @@ packages:
 
 ### Add Statable analytics
 
-Load Statable only after measurement consent with the `statableAnalytics`
-helper. Configure its numeric site ID, optional loader and ingestion URLs,
-and generate the integration through the CLI. The guide covers setup,
-browser verification and the reload needed when consent is withdrawn.
+`statableAnalytics` from `@c15t/integrations/statable-analytics` loads
+Statable after `measurement` consent. Statable has no stop API, so keep the
+default page reload when consent is withdrawn. The CLI can generate the
+integration too.

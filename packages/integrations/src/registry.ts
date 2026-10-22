@@ -376,7 +376,7 @@ export const builtInScriptIntegrations = [
 	},
 	{
 		consentCategory: 'measurement',
-		docsSlug: 'statable-analytics',
+		docsSlug: 'other-analytics',
 		hint: 'Cookieless web analytics',
 		integrationCategory: 'analytics',
 		key: 'statableAnalytics',
