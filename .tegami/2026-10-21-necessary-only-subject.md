@@ -3,8 +3,21 @@ packages:
   '@c15t/core': patch
 ---
 
-### Preserve visitor identity for necessary-only choices
+### Keep the subject ID with a notice acknowledgement
 
-Keep the visitor's subject ID when a necessary-only consent banner is acknowledged and the page reloads. Store the identity with the notice acknowledgement without creating optional consent, and discard it when the records are cleared. Canonical subject updates from a server or sibling subdomain survive reloads, while a dropped cookie write retains the newer local identity or identity removal until the cookies change. Category-based cleanup also protects notice identity records from wildcard deletion.
+Every notice acknowledgement now stores the visitor's subject ID with it, in a
+new `<storageKey>-notice-subject` cookie (`c15t-notice-subject` by default).
+That includes a choice that acknowledges a notice. A visitor whose only action
+was acknowledging a banner that offers only necessary categories keeps their ID
+through this record. The acknowledgement still grants no optional category. The
+`<storageKey>-notice` cookie keeps its old format, so an older c15t runtime on
+the same site still reads it.
 
-Keep cleanup’s shared storage-key resolver independent of persistence decoding so TanStack Start retains its initial-load chunk limits.
+`clear()` removes the acknowledgement and its `-notice-subject` cookie. The
+visitor keeps their subject ID in `<storageKey>-sid`, as after any other clear.
+`kernel.set.subjectId(null)` gives the visitor a new ID in both places.
+
+`clearOnRevocation` patterns never delete the notice identity cookie, even when a
+wildcard matches its name.
+
+If your cookie policy lists c15t cookies, add `c15t-notice-subject`.

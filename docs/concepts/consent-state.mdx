@@ -304,8 +304,8 @@ it lives in its own key, `c15t-sid`, which clearing never removes, so a
 withdrawal stays linked to the same visitor.
 
 - A tab that reconciles only after another tab cleared and saved again drops
-  its pre-clear decisions instead of merging them back. Its subject from before
-  the clear is dropped too.
+  its pre-clear decisions instead of merging them back. The external identity
+  linked to its subject before the clear is dropped too; the subject ID stays.
 - A tab that missed the clear writes only decisions it made after it. Its queued
   write of an earlier decision is discarded, so it cannot bring back a cleared
   record.
@@ -376,22 +376,30 @@ The notice dismissal and vendor denials are stored twice as well. A vendor
 list in localStorage at least as new as the cookie's adds its denials but never
 lifts one the cookie holds; a copy confirmed before the last clear is ignored, so its
 denials never come back. The newer notice dismissal applies; it still only hides a
-notice with the fingerprint it names. When a visitor acknowledges a necessary-only
-prompt, the notice record also preserves their subject ID across reloads. This
-does not create optional consent. Clearing the stored records removes that ID
-with the acknowledgement. The original `<key>-notice` cookie keeps its v1
-acknowledgement format for older runtimes. A separate `<key>-notice-subject`
-cookie carries identity; readers use it only while its timestamp and fingerprint
-match the acknowledgement. Removing or replacing the notice makes a stale
-identity cookie ineffective, and clearing consent deletes both cookies. For the same
-acknowledgement, the cookie identity wins unless a failed cookie write left a
-newer local identity or a local identity removal. That exception lasts only while both notice cookies match
-the values observed after the failed write; a later server or sibling-subdomain
-cookie update takes precedence. Category-based data cleanup protects these
-identity records even when a configured wildcard matches their names. An explicit
-clear or removal of the identity-bearing record still clears its subject,
-including external identity fields previously supplied through `identify()`.
-The consent record follows the rules below.
+notice with the fingerprint it names.
+
+Every notice acknowledgement also stores the visitor's subject ID with it,
+including a choice that acknowledges a notice. For a visitor whose only action
+was acknowledging a prompt that offers only necessary categories, this record
+is what keeps the ID. The acknowledgement still grants no optional category. The `<key>-notice` cookie keeps its v1 format, so older
+runtimes still read it. A separate `<key>-notice-subject` cookie binds the
+subject ID to that acknowledgement: readers use it only while its timestamp and
+fingerprint match the notice, so removing or replacing the notice makes a stale
+identity cookie ineffective. When the subject ID changes, through a save
+response or `set.subjectId()`, c15t rewrites the acknowledgement with the new
+ID, so a reload does not bring the old one back. For the same acknowledgement,
+the cookie identity wins unless a failed cookie write left a newer local
+identity or a local identity removal. That exception lasts only while both
+notice cookies match the values observed after the failed write; a later server
+or sibling-subdomain cookie update takes precedence. Category-based data cleanup
+protects these records and `<key>-sid` even when a configured wildcard matches
+their names.
+
+Clearing the stored records removes the acknowledgement and its
+`<key>-notice-subject` cookie. The subject ID stays in `<key>-sid`, as after any
+other clear. External identity fields supplied through `identify()` go with the
+record that carried them. Call `set.subjectId(null)` to give the visitor a new
+ID. The consent record follows the rules below.
 
 The consent record is stored twice: as a cookie, which a server render reads,
 and in localStorage. The cookie is authoritative. A well-formed cookie wins
@@ -421,6 +429,32 @@ cookie. The browser then applies the clear from localStorage, while a server
 render still reads the old consent cookie until the next successful cookie
 write. The same applies to a consent cookie set with a different `domain` than
 the current `storageConfig` uses, which the clear cannot remove.
+
+The subject ID follows the same split. When its cookie writes succeed, the
+server render and the browser use the same ID. When the browser refuses the
+rewrite of a record cookie after the subject ID changed (the consent cookie,
+`c15t-vendors` or `c15t-notice-subject`), that cookie keeps the old ID while
+localStorage holds the new one. A server render then reports the old ID, and
+the browser starts with the new ID from its storage. This happens even when the
+request's `c15t-sid` cookie already holds the new ID. It lasts until a later
+write of that record reaches the cookie, which may never happen while the
+browser keeps refusing it. The server never replaces a `c15t-sid` cookie the
+request already has with the old ID. When this browser's storage holds the
+newer ID, the browser does not store the old one again either.
+
+The vendor record has a separate limit. A local vendor copy at least as new as
+the cookie's keeps its subject ID, and a rekey to a new subject ID keeps the
+original decision time. So with `crossSubdomain`, a visitor whose only record is
+a vendor decision (no consent record) can hold a local copy and a shared cookie
+copy with the same time but different subject IDs, for example after another
+subdomain rekeyed it at any later moment. This origin then starts with the ID
+from its local copy, on server-rendered loads as well as loads that hydrate. It
+does not write that ID over the shared `c15t-sid` cookie when that cookie and
+the record cookies agree on another ID. A later vendor save from this origin
+does store its ID in the shared vendor cookie, where the other subdomains read
+it. Once that cookie carries it, this origin can also write it to the shared
+`c15t-sid` cookie on a later page load. No optional category is granted and no
+denial is lifted.
 
 ### Ordering with pending writes
 

@@ -81,3 +81,13 @@ starts with the new ID from its localStorage. This happens even when the
 request's `c15t-sid` cookie already holds the new ID. It lasts until a later
 write of that record reaches the cookie, which may never happen while the
 browser keeps refusing it.
+
+With `crossSubdomain`, a visitor whose only record is a vendor decision can hold
+a local vendor copy and a shared cookie copy with the same decision time but
+different subject IDs, because a rekey keeps the original decision time. As
+before, a page that hydrates from storage starts with the local copy's ID.
+Server-rendered pages now do the same. The runtime does not write that ID over a
+shared `c15t-sid` cookie the record cookies agree with, but a later vendor save
+from this origin stores it in the shared vendor cookie, and after that a later
+page load can store it in the shared `c15t-sid` cookie too. No optional category
+is granted and no denial is lifted.

@@ -29,13 +29,14 @@ they decide anything. It is in `snapshot.subject.subjectId` from the first
 snapshot after the runtime starts, so you can link activity to the visitor
 from the first page load and still find it when they opt out later.
 
-- The ID is stored in `c15t-sid` at once, so a reload keeps it. The first
-  save records the same ID with the choice.
+- When no stored record carries the ID, it is stored in `c15t-sid` at once,
+  so a reload keeps it. The first save records the same ID with the choice.
 - `c15t-sid` is not a choice. A visitor with only an ID still sees the
   banner, and `hasConsented()` stays `false`.
 - `clear()` and a revocation keep the ID; only recorded choices go. Call
   `kernel.set.subjectId(null)` to start over with a new ID.
-- An ID stored with a choice wins over `c15t-sid`. Two tabs that open
+- An ID stored with a choice, a vendor decision or a notice acknowledgement
+  wins over `c15t-sid`. Two tabs that open
   together each generate one. Until a tab saves or identifies the visitor,
   its ID follows the one another tab stored, and the kernel emits
   `subject:resolved` with `previousSubjectId` so you can move anything
