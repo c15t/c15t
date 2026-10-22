@@ -19,9 +19,12 @@ load and still find it when they opt out.
   stays `false` until the visitor decides.
 - `clear()`, a revocation and `clearOnRevocation` patterns keep the ID.
   `kernel.set.subjectId(null)` starts over with a new one.
-- Until a tab saves or identifies the visitor, its ID follows one another tab
-  stored. `subject:resolved` now carries `previousSubjectId`, the ID it
-  replaced, so you can move anything recorded under the old one.
+- An ID a tab generated, or read from `c15t-sid` alone, follows one another
+  tab stores until this tab saves or identifies the visitor. IDs the app or
+  the server supplies, IDs the stored records carry when the page loads, and
+  a new ID `set.subjectId(null)` writes into existing records do not follow.
+  `subject:resolved` now carries `previousSubjectId`, the ID it replaced, so
+  you can move anything recorded under the old one.
 - With `persistence: false`, the ID lives in memory and each page load gets a
   new one.
 
