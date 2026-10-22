@@ -245,10 +245,20 @@ export const createPersistenceWriter = function createPersistenceWriter(
 		);
 	});
 	const noticeWrites = createWriteScheduler(() => {
+		const subjectOnly = !state.noticeRecorded;
+		state.noticeRecorded = false;
 		const snapshot = kernel.getSnapshot();
 		const at = now();
 		const read = tools.read(storageConfig, at);
 		const ours = tools.noticeSince(snapshot.noticeDismissal, read.epoch);
+		if (
+			subjectOnly &&
+			(read.epoch > memoryEpoch ||
+				!read.records.noticeDismissal ||
+				changedSinceSeen('notice', read))
+		) {
+			return;
+		}
 		if (
 			ours &&
 			mayWriteNotice(
@@ -257,8 +267,14 @@ export const createPersistenceWriter = function createPersistenceWriter(
 				changedSinceSeen('notice', read)
 			)
 		) {
-			writeNoticeToStorage(store, snapshot, storageConfig, at);
-			observe('notice');
+			const subject = writtenSubject(
+				snapshot,
+				read.noticeSubject,
+				subjectOnly,
+				read
+			);
+			writeNoticeToStorage(store, { ...snapshot, subject }, storageConfig, at);
+			markWritten('notice', sameRecord(subject, snapshot.subject));
 		}
 	});
 	const vendorWrites = createWriteScheduler(() => {

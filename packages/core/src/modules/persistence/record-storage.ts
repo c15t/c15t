@@ -49,7 +49,7 @@ import {
 	stringToFlat,
 } from '../../libs/cookie';
 import type { StorageConfig } from '../../libs/cookie';
-import { STORAGE_KEY, STORAGE_KEY_V2 } from '../../libs/storage-keys';
+import { resolveStorageKeys } from '../../libs/storage-keys';
 import { choiceSinceEpoch } from './epoch';
 import {
 	decodeClearEpoch,
@@ -72,6 +72,9 @@ import type {
 	StoredVendorChoice,
 } from './record-codec';
 
+export { resolveStorageKeys } from '../../libs/storage-keys';
+export type { ResolvedStorageKeys } from '../../libs/storage-keys';
+
 export type { LegacyRecordEncoding as StoredRecordEncoding };
 
 /** Where a candidate was read from, in selection order. */
@@ -82,48 +85,6 @@ export type StoredRecordSource =
 
 /** Which record format a parsed candidate turned out to be. */
 export type StoredRecordFormat = 'legacy-v2' | 'v3';
-
-/**
- * The storage keys one configuration resolves to. Notice dismissals,
- * vendor denials and the clear epoch get their own keys derived from the
- * consent key so a custom `storageKey` moves them all together.
- */
-export interface ResolvedStorageKeys {
-	consent: string;
-	/** `null` when the configured key already is the legacy key. */
-	legacyConsent: string | null;
-	notice: string;
-	vendors: string;
-	/** Time of the last clear. Survives the clear it records. */
-	epoch: string;
-	/**
-	 * localStorage only: the consent cookie as it stood when a consent write
-	 * reached localStorage but not the cookie. See
-	 * {@link readStoredConsentRecord}.
-	 */
-	cookieMiss: string;
-	/**
-	 * The visitor's subject ID on its own, stored from first load so it
-	 * exists before any choice. Never removed by a clear, and never read as
-	 * a recorded choice.
-	 */
-	subject: string;
-}
-
-export const resolveStorageKeys = function resolveStorageKeys(
-	config?: StorageConfig
-): ResolvedStorageKeys {
-	const consent = config?.storageKey || STORAGE_KEY_V2;
-	return {
-		consent,
-		cookieMiss: `${consent}-cookie-miss`,
-		epoch: `${consent}-epoch`,
-		legacyConsent: consent === STORAGE_KEY ? null : STORAGE_KEY,
-		notice: `${consent}-notice`,
-		subject: `${consent}-sid`,
-		vendors: `${consent}-vendors`,
-	};
-};
 
 /** One raw stored value, parsed but not validated or normalized. */
 export type RawStoredCandidate =
@@ -804,6 +765,32 @@ const readCompactCookie = function readCompactCookie<RecordType>(
 	return { issues: [{ code: 'malformed-encoding', path: '' }], ok: false };
 };
 
+/** Attach identity only while its matching acknowledgement is still present. */
+const noticeWithSubjectCookie = function noticeWithSubjectCookie(
+	notice: DecodeResult<StoredNoticeDismissal> | null,
+	rawSubject: string | null | undefined,
+	now: number
+): DecodeResult<StoredNoticeDismissal> | null {
+	if (!notice?.ok) {
+		return notice;
+	}
+	const subject = readCompactCookie(rawSubject, (text) =>
+		decodeNoticeDismissalCompact(text, now)
+	);
+	if (
+		subject?.ok &&
+		subject.record.subject &&
+		subject.record.dismissedAt === notice.record.dismissedAt &&
+		subject.record.fingerprint === notice.record.fingerprint
+	) {
+		return {
+			ok: true,
+			record: { ...notice.record, subject: subject.record.subject },
+		};
+	}
+	return notice;
+};
+
 /**
  * Reads the local notice dismissal from its cookie projection and its
  * localStorage copy. When both are valid the newer dismissal wins, the
@@ -817,22 +804,41 @@ export const readStoredNoticeDismissal = function readStoredNoticeDismissal(
 	onUnavailable?: () => void
 ): DecodeResult<StoredNoticeDismissal> | null {
 	const keys = resolveStorageKeys(config);
-	const fromCookie = readCompactCookie(
-		getRawCookieValue(keys.notice, onUnavailable),
-		(text) => decodeNoticeDismissalCompact(text, now)
+	const fromCookie = noticeWithSubjectCookie(
+		readCompactCookie(getRawCookieValue(keys.notice, onUnavailable), (text) =>
+			decodeNoticeDismissalCompact(text, now)
+		),
+		getRawCookieValue(keys.noticeSubject, onUnavailable),
+		now
 	);
 	const fromLocal = readLocalJson(
 		keys.notice,
 		(value) => decodeNoticeDismissal(value, now),
 		onUnavailable
 	);
-	// The newer dismissal wins, the cookie on a tie. A dismissal only hides
+	// The newer dismissal wins; same-acknowledgement identity is resolved below.
+	// A dismissal only hides
 	// the notice for the fingerprint it names, which the evaluator checks,
 	// and it never grants a category.
 	if (fromCookie?.ok && fromLocal?.ok) {
-		return fromLocal.record.dismissedAt > fromCookie.record.dismissedAt
-			? fromLocal
-			: fromCookie;
+		if (fromLocal.record.dismissedAt > fromCookie.record.dismissedAt) {
+			return fromLocal;
+		}
+		// Prefer a local identity rewrite only while both cookie projections
+		// still match the values observed when that write was dropped. A later
+		// server or sibling-subdomain cookie rewrite supersedes the marker.
+		if (
+			fromLocal.record.dismissedAt === fromCookie.record.dismissedAt &&
+			fromLocal.record.fingerprint === fromCookie.record.fingerprint &&
+			readLocalStorageText(keys.noticeCookieMiss) ===
+				JSON.stringify([
+					getRawCookieValue(keys.notice) ?? '',
+					getRawCookieValue(keys.noticeSubject) ?? '',
+				])
+		) {
+			return fromLocal;
+		}
+		return fromCookie;
 	}
 	if (fromCookie?.ok) {
 		return fromCookie;
@@ -848,9 +854,13 @@ export const readStoredNoticeDismissalFromCookieHeader =
 		now: number
 	): DecodeResult<StoredNoticeDismissal> | null {
 		const keys = resolveStorageKeys(config);
-		return readCompactCookie(
-			readCookieValueFromHeader(cookieHeader, keys.notice),
-			(text) => decodeNoticeDismissalCompact(text, now)
+		return noticeWithSubjectCookie(
+			readCompactCookie(
+				readCookieValueFromHeader(cookieHeader, keys.notice),
+				(text) => decodeNoticeDismissalCompact(text, now)
+			),
+			readCookieValueFromHeader(cookieHeader, keys.noticeSubject),
+			now
 		);
 	};
 

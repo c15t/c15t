@@ -344,6 +344,7 @@ describe('persistence: clear', () => {
 		expect(cookieNames()).toEqual([
 			STORAGE_KEY_V2,
 			`${STORAGE_KEY_V2}-notice`,
+			`${STORAGE_KEY_V2}-notice-subject`,
 			`${STORAGE_KEY_V2}-sid`,
 		]);
 

@@ -37,8 +37,8 @@
  *   and `clear()` keeps it. Only `set.subjectId(null)` replaces it with a
  *   new one. `keepSubject` and external permissions turn all of this off.
  * - Choice envelope writes follow `choice:recorded` and `subject:resolved`.
- *   The vendor record follows `subject:resolved` too, since it carries the
- *   subject for a visitor with no category choice yet.
+ *   Vendor and notice records follow `subject:resolved` too, since they
+ *   carry the subject for a visitor with no category choice yet.
  *   A canonical subject acknowledgement preserves every receipt timestamp.
  *   Separate writes follow
  *   `notice:dismissed` (the notice record and its cookie projection) and

@@ -65,6 +65,8 @@ export type WriteKind = 'choice' | 'notice' | 'vendors';
 export interface PersistenceState {
 	/** A decision was recorded since the last choice write. */
 	choiceRecorded: boolean;
+	/** A notice was acknowledged since the last notice write. */
+	noticeRecorded?: boolean;
 	/** A vendor decision was recorded since the last vendor write. */
 	vendorsRecorded: boolean;
 	/** The subject id held when the current save started. */

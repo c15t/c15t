@@ -1,3 +1,4 @@
+/** @vitest-environment jsdom */
 /**
  * Cookie projection size baseline. These numbers are evidence for a
  * later budget decision, not a budget. They lock the encoding: a change
@@ -31,6 +32,7 @@ import {
 	encodeStoredConsentEnvelopeJson,
 } from '../writer/encode';
 import {
+	clearStoredConsentRecords,
 	writeStoredClearEpoch,
 	writeStoredConsentEnvelope,
 	writeStoredNoticeDismissal,
@@ -193,12 +195,12 @@ const v3: Record<string, StoredConsentEnvelope> = {
 
 describe('cookie projection bytes (baseline evidence, not a budget)', () => {
 	beforeEach(() => {
-		document.cookie = '';
+		clearStoredConsentRecords();
 		window.localStorage.clear();
 	});
 
 	afterEach(() => {
-		document.cookie = '';
+		clearStoredConsentRecords();
 		window.localStorage.clear();
 	});
 
@@ -259,12 +261,12 @@ describe('cookie projection bytes (baseline evidence, not a budget)', () => {
 
 describe('auxiliary cookie projection bytes (baseline evidence, not a budget)', () => {
 	beforeEach(() => {
-		document.cookie = '';
+		clearStoredConsentRecords();
 		window.localStorage.clear();
 	});
 
 	afterEach(() => {
-		document.cookie = '';
+		clearStoredConsentRecords();
 		window.localStorage.clear();
 	});
 

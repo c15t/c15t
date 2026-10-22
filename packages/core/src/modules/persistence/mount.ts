@@ -320,11 +320,15 @@ export const mountPersistence = function mountPersistence(
 	const rekeyRecords = function rekeyRecords(snapshot: ConsentSnapshot): void {
 		// The vendor record carries the subject only once a vendor decision
 		// exists. Scheduling without one would run the writer's clear branch
-		// and delete a stored denial this kernel never hydrated. Without
-		// either record, `<key>-sid` alone holds the subject.
+		// and delete a stored denial this kernel never hydrated. The notice
+		// record carries it for a visitor who only acknowledged a notice.
+		// Without any of them, `<key>-sid` alone holds the subject.
 		const kinds: WriteKind[] = [];
 		if (snapshot.explicitChoice) {
 			kinds.push('choice');
+		}
+		if (snapshot.noticeDismissal) {
+			kinds.push('notice');
 		}
 		if (snapshot.vendorChoice) {
 			kinds.push('vendors');
@@ -345,6 +349,7 @@ export const mountPersistence = function mountPersistence(
 		kernel.events.on('choice:recorded', ({ actionAt, snapshot }) => {
 			noteGeneratedSubject(snapshot, actionAt);
 			state.choiceRecorded = true;
+			state.noticeRecorded = snapshot.noticeDismissal !== null;
 			// A choice under a notice prompt acknowledges the notice too.
 			request('choice', 'notice');
 		}),
@@ -353,7 +358,9 @@ export const mountPersistence = function mountPersistence(
 				rekeyRecords(snapshot);
 			}
 		}),
-		kernel.events.on('notice:dismissed', () => {
+		kernel.events.on('notice:dismissed', ({ snapshot, dismissal }) => {
+			noteGeneratedSubject(snapshot, dismissal.dismissedAt);
+			state.noticeRecorded = true;
 			request('notice');
 		}),
 		kernel.events.on('vendors:recorded', ({ actionAt, snapshot }) => {
@@ -510,7 +517,10 @@ export const mountPersistence = function mountPersistence(
 		// requested can bring the records to the ID.
 		writer?.flush();
 		if (
-			(!writer && (requested.has('choice') || requested.has('vendors'))) ||
+			(!writer &&
+				(requested.has('choice') ||
+					requested.has('notice') ||
+					requested.has('vendors'))) ||
 			recordsCarryOther(id)
 		) {
 			pendingSubjectId = id;
@@ -548,7 +558,9 @@ export const mountPersistence = function mountPersistence(
 			return;
 		}
 		if (
-			(snapshot.explicitChoice || snapshot.vendorChoice) &&
+			(snapshot.explicitChoice ||
+				snapshot.vendorChoice ||
+				snapshot.noticeDismissal) &&
 			readStoredRecordsForReconcile(storageConfig, now()).recordedSubjectId !==
 				id
 		) {
@@ -804,6 +816,7 @@ export const mountPersistence = function mountPersistence(
 			// What any handle queued belongs to the cleared records.
 			queuedWrites.delete(consentKey);
 			state.choiceRecorded = false;
+			state.noticeRecorded = false;
 			state.vendorsRecorded = false;
 			// The cleared records' identity is gone, and the ID stays: an ID
 			// a save already under way generates is a new local one, not one

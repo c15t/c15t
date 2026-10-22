@@ -16,7 +16,11 @@ import {
 	noticeSinceEpoch,
 	vendorChoiceSinceEpoch,
 } from './epoch';
-import type { StoredIabMetadata, StoredVendorChoice } from './record-codec';
+import type {
+	StoredIabMetadata,
+	StoredNoticeDismissal,
+	StoredVendorChoice,
+} from './record-codec';
 import {
 	readStoredClearEpoch,
 	readStoredClearEpochFromCookieHeader,
@@ -47,6 +51,8 @@ export interface StoredRecords {
 	 * `records.subject`, so this is the only place the vendor copy shows.
 	 */
 	vendorSubject: ConsentSubject | null;
+	/** Subject carried by the notice record, independently of other records. */
+	noticeSubject?: ConsentSubject | null;
 	/**
 	 * The subject ID the records themselves carry, `null` when they carry
 	 * none. `records.subject` falls back to the stored subject ID; this
@@ -75,6 +81,17 @@ const kernelVendorChoice = function kernelVendorChoice(
 	return vendorChoice;
 };
 
+/** Strip storage-only identity before applying a notice to the kernel. */
+const kernelNoticeDismissal = function kernelNoticeDismissal(
+	record: StoredNoticeDismissal | null
+): HydrationRecords['noticeDismissal'] {
+	if (!record) {
+		return null;
+	}
+	const { subject: _subject, ...dismissal } = record;
+	return dismissal;
+};
+
 /**
  * The selected envelope as the clear in force leaves it. An envelope with
  * nothing left since the clear is a cleared one (the caller passes no
@@ -95,7 +112,8 @@ const envelopeSinceEpoch = function envelopeSinceEpoch(
 /**
  * The subject the records carry. The envelope's subject wins; the vendor
  * record's copy covers a visitor whose only act so far decided vendors;
- * the stored subject ID covers a visitor who has decided nothing yet, or
+ * the notice record's covers one who only acknowledged a notice; the
+ * stored subject ID covers a visitor who has decided nothing yet, or
  * whose records were cleared. A record subject without an ID takes the
  * stored one.
  */
@@ -109,12 +127,18 @@ const composeSubject = function composeSubject(
 	return { ...recorded, subjectId: storedSubjectId };
 };
 
-/** The subject the surviving records carry: the envelope's, else the vendor record's. */
+/**
+ * The subject the surviving records carry: the envelope's, else the vendor
+ * record's, else the notice record's.
+ */
 const recordedSubject = function recordedSubject(
 	selected: StoredConsentSelection['selected'],
-	vendorRecord: StoredVendorChoice | null
+	vendorRecord: StoredVendorChoice | null,
+	noticeRecord: StoredNoticeDismissal | null
 ): ConsentSubject | null {
-	return selected?.subject ?? vendorRecord?.subject ?? null;
+	return (
+		selected?.subject ?? vendorRecord?.subject ?? noticeRecord?.subject ?? null
+	);
 };
 
 /**
@@ -148,10 +172,14 @@ const composeRecords = function composeRecords(
 		vendors?.ok ? vendors.record : null,
 		epoch
 	);
-	const recorded = recordedSubject(selected, vendorRecord);
+	const noticeRecord = noticeSinceEpoch(
+		notice?.ok ? notice.record : null,
+		epoch
+	);
+	const recorded = recordedSubject(selected, vendorRecord, noticeRecord);
 	const records: HydrationRecords = {
 		choice,
-		noticeDismissal: noticeSinceEpoch(notice?.ok ? notice.record : null, epoch),
+		noticeDismissal: kernelNoticeDismissal(noticeRecord),
 		now,
 		subject: composeSubject(recorded, storedSubjectId),
 		vendorChoice: kernelVendorChoice(vendorRecord),
@@ -164,6 +192,7 @@ const composeRecords = function composeRecords(
 			vendorRecord !== null ||
 			records.noticeDismissal !== null,
 		iab: selected?.iab ?? null,
+		noticeSubject: noticeRecord?.subject ?? null,
 		recordedSubjectId: recorded?.subjectId ?? null,
 		records,
 		vendorSubject: vendorRecord?.subject ?? null,

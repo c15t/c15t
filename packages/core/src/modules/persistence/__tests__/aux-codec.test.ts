@@ -25,6 +25,18 @@ describe('notice dismissal compact projection', () => {
 		});
 	});
 
+	it('keeps the v1 notice-cookie wire format readable by pre-subject decoders', () => {
+		const record = {
+			dismissedAt: NOW - 1,
+			fingerprint: 'notice/&',
+			subject: { subjectId: 'visitor' },
+			version: 1 as const,
+		};
+		expect(encodeNoticeDismissalCompact(record)).toBe(
+			`v=1&t=${NOW - 1}&f=notice%2F%26`
+		);
+	});
+
 	it.each([
 		['unknown version', 'v=2&t=1&f=x'],
 		['future time', `v=1&t=${NOW + 1}&f=x`],

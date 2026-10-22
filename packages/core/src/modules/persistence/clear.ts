@@ -57,11 +57,12 @@ export const clearStoredConsentRecords = function clearStoredConsentRecords(
 		keys.consent,
 		keys.legacyConsent,
 		keys.notice,
+		keys.noticeSubject,
 		`${keys.consent}-privacy`,
 		keys.vendors,
 	];
 	// localStorage first, then the cookies.
-	for (const key of [...both, keys.cookieMiss]) {
+	for (const key of [...both, keys.cookieMiss, keys.noticeCookieMiss]) {
 		if (key) {
 			removeLocalStorageKey(key);
 		}
