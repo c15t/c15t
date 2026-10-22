@@ -193,9 +193,9 @@ describe('ConsentBanner surface variants', () => {
 		expect(card?.getAttribute('aria-modal')).toBe('true');
 	});
 
-	test('mirrors only a defaulted corner for right-to-left text', async () => {
+	test('keeps the default corner under right-to-left text', async () => {
 		await renderBanner(buildInit(choiceRule, 'he'));
-		expect(rootAttributes().position).toBe('bottom-right');
+		expect(rootAttributes().position).toBe('bottom-left');
 		expect(query('consent-banner-root')?.getAttribute('dir')).toBe('rtl');
 	});
 
@@ -217,7 +217,7 @@ describe('ConsentBanner surface variants', () => {
 		});
 	});
 
-	test('does not mirror a bar edge', async () => {
+	test('keeps a bar edge under right-to-left text', async () => {
 		await renderBanner(buildInit(noticeRule, 'he'), {
 			config: { presentation: { prompt: { variant: 'bar' } } },
 		});
@@ -275,7 +275,6 @@ describe('ConsentBanner surface variants', () => {
 		await renderBanner(buildInit(choiceRule, 'he'), {
 			config: { bannerPosition: 'top-right' },
 		});
-		// Host-chosen through the legacy field, so no rtl mirroring either.
 		expect(rootAttributes()).toMatchObject({
 			position: 'top-right',
 			variant: 'floating',

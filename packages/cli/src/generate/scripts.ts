@@ -44,6 +44,7 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 		example: "amplitude({ apiKey: 'YOUR_API_KEY' })",
 		importName: 'amplitude',
 	},
+	clay: { example: "clay({ siteId: 'YOUR_SITE_ID' })", importName: 'clay' },
 	clearbit: {
 		example: "clearbit({ publishableKey: 'pk_XXXXXXXXXX' })",
 		importName: 'clearbit',
