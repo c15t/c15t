@@ -116,7 +116,7 @@ export const BUILT_IN_INTEGRATION_CATEGORIES = [
 export const builtInScriptIntegrations = [
 	{
 		consentCategory: 'experience',
-		docsSlug: 'dynamic-yield',
+		docsSlug: 'other-experience',
 		hint: 'On-site personalization and recommendations',
 		integrationCategory: 'functional',
 		key: 'dynamicYield',

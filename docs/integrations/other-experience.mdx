@@ -1,0 +1,38 @@
+---
+title: Experimentation and personalization tools
+description: Consent-gated helpers for experimentation and personalization tools that don't need a full guide.
+icon: flask-conical
+group: integrations
+---
+
+Each helper below loads its vendor only after the visitor allows the listed consent category. For setup, see [Integrations overview](/docs/integrations/overview).
+
+## Dynamic Yield
+
+Dynamic Yield personalizes pages and serves product recommendations. Waits for
+`experience` consent.
+
+<include src="../shared/examples/javascript/dynamic-yield-scripts.mdx" />
+
+| Option | Type | Required | Description |
+| --- | --- | --- | --- |
+| `sectionId` | `string` | Yes | Section ID from your [installation snippet](https://dy.dev/docs/implement-script). A blank ID logs an error and skips loading. |
+| `region` | `'us' \| 'eu'` | No | Data center for the section. Defaults to `'us'`. |
+| `recommendationContext` | `object` | No | [Page context](https://dy.dev/docs/page-context) set before the scripts load, such as `{ type: 'PRODUCT', data: ['SKU-1'] }`. Your app updates it on client-side navigation. |
+| `category` | `HasCondition` | No | Consent condition to wait for. Defaults to `'experience'`. |
+
+After consent, the helper sets `DY.userActiveConsent = { accepted: true }`,
+loads `api_dynamic.js`, then loads `api_static.js`.
+
+**When consent is withdrawn:** the helper removes both scripts and sets
+`DY.userActiveConsent = { accepted: false }`. The SDK that already ran stays
+loaded, so keep `reloadOnConsentRevoked` on.
+
+- Ask Dynamic Yield Support to enable
+  [Active Cookie Consent](https://dy.dev/docs/active-cookie-consent) for your
+  section. Until they do, Dynamic Yield ignores the consent signal.
+- Use one section and region per page. Dynamic Yield keeps its consent and page
+  context on the page-wide `window.DY`.
+- Expect flicker. Dynamic Yield wants synchronous scripts in `<head>`. Loading
+  after consent, one script after the other, can show the original page before
+  a campaign applies.
