@@ -153,9 +153,6 @@ const assertProductKey = (productKey: string): void => {
 	if (typeof window === 'undefined') {
 		return;
 	}
-	if (!('aptrinsic' in window)) {
-		Reflect.deleteProperty(window, productKeyGlobal);
-	}
 	const previous =
 		productKeyGlobal in window ? window[productKeyGlobal] : undefined;
 	if (
@@ -282,6 +279,9 @@ export const gainsightPx = function gainsightPx(
 			manifest: gainsightPxManifest,
 		});
 	}
+	if (typeof window !== 'undefined' && !('aptrinsic' in window)) {
+		Reflect.deleteProperty(window, productKeyGlobal);
+	}
 	assertProductKey(productKey);
 	const script = reuseGainsightPxScript(
 		{ ...options, productKey },
@@ -291,5 +291,6 @@ export const gainsightPx = function gainsightPx(
 	// Keep the runtime check intact when callers customize the script with spread.
 	script.callbackOnly = hasStartedGainsightPx;
 	script.observeConsentBeforeLoad = true;
+	script.validate = () => assertProductKey(productKey);
 	return script;
 };

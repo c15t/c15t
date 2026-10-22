@@ -101,7 +101,10 @@ before PX started and the same copy is mounted again after disposal.
 
 Once this helper starts the SDK, use the same `productKey` for the rest of the
 page's lifetime, including after disposal. Constructing a helper with another
-key throws an error. Reload the page before installing a different product.
+key throws an error. The loader also rejects a different-key script created
+before startup if it is registered after PX starts, preserving the current
+configuration and its consent handling. Reload the page before installing a
+different product.
 PX's asynchronous `tagKey` API queues commands during reconfiguration and can
 defer opt-out until after queued identity calls, so c15t does not use it.
 

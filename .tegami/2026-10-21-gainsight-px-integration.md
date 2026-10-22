@@ -16,4 +16,6 @@ Gainsight PX runtime detection survives object-spread customization made before 
 
 Script diagnostics report completed callback-only registrations as loaded, including configurations with a fallback script URL.
 
+A product-key replacement created before PX starts is rejected when registered after startup. Validation runs before replacing any loader registrations, preserving the original SDK configuration and consent handling.
+
 A failing callback-only predicate no longer aborts unrelated server starts. Scripts sharing its resource stay with the client loader so every owner's setup runs. Predicate results enable callback-only mode only when they are exactly `true`.

@@ -68,6 +68,52 @@ describe('Gainsight PX production loader contract', () => {
 	});
 
 	it.each([false, true])(
+		'rejects a pre-created product-key replacement and preserves consent handling, denied=%s',
+		async (denied) => {
+			const original = gainsightPx({ productKey: 'AP-PRECREATED-ORIGINAL-2' });
+			const replacement = {
+				...gainsightPx({
+					productKey: 'AP-PRECREATED-REPLACEMENT-2',
+					user: { id: 'replacement-user' },
+				}),
+			};
+			const runtime = Object.assign(vi.fn(), { __sdkBundleStarted: true });
+			const executeSdk = vi.fn((element: HTMLScriptElement) => {
+				Reflect.set(window, 'aptrinsic', runtime);
+				element.dispatchEvent(new Event('load'));
+			});
+			installHeadProbe(executeSdk);
+			const kernel = createConsentKernel();
+			await kernel.commands.save(grantedConsents);
+			const loader = createScriptLoader({ kernel, scripts: [original] });
+			try {
+				await kernel.commands.save(denied ? deniedConsents : grantedConsents);
+				runtime.mockClear();
+				expect(() => loader.updateScripts([replacement])).toThrow(
+					'cannot change productKey after the SDK has started'
+				);
+				expect(runtime).not.toHaveBeenCalled();
+				expect(getAptrinsic()).toBe(runtime);
+				await kernel.commands.save(deniedConsents);
+				await kernel.commands.save(grantedConsents);
+				expect(runtime.mock.calls).toEqual(
+					denied
+						? [['config', 'enableTag', true]]
+						: [
+								['config', 'enableTag', false],
+								['reset'],
+								['config', 'enableTag', true],
+							]
+				);
+				expect(executeSdk).toHaveBeenCalledTimes(1);
+			} finally {
+				loader.dispose();
+				kernel.dispose();
+			}
+		}
+	);
+
+	it.each([false, true])(
 		'rejects a loaded product-key replacement without changing the SDK, denied=%s',
 		(denied) => {
 			const runtime = Object.assign(vi.fn(), { __sdkBundleStarted: true });
