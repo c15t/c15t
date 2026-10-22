@@ -236,6 +236,42 @@ describe('ada', () => {
 		expect(client.start).toHaveBeenCalledWith({ handle: 'first' });
 	});
 
+	it('stops a second configuration when it is disposed after the first failed to start', async () => {
+		importGate.resolve();
+		client.start.mockRejectedValueOnce(new Error('start failed'));
+		const error = vi
+			.spyOn(console, 'error')
+			.mockImplementation(() => undefined);
+		const first = create({ handle: 'first' });
+		const second = create({ handle: 'second' });
+		first.onLoad?.(info(first, true));
+		await vi.waitFor(() => expect(error).toHaveBeenCalledOnce());
+		second.onLoad?.(info(second, true));
+		await vi.waitFor(() => expect(client.start).toHaveBeenCalledTimes(2));
+		expect(client.start).toHaveBeenLastCalledWith({ handle: 'second' });
+		second.onDispose?.(info(second, true));
+		expect(client.stop).toHaveBeenCalledOnce();
+	});
+
+	it('stops Messaging when a loader ignored after its failed start and the active loader are disposed', async () => {
+		importGate.resolve();
+		client.start.mockRejectedValueOnce(new Error('start failed'));
+		vi.spyOn(console, 'error').mockImplementation(() => undefined);
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+		const first = create({ handle: 'first' });
+		const second = create({ handle: 'second' });
+		first.onLoad?.(info(first, true));
+		await vi.waitFor(() => expect(client.start).toHaveBeenCalledOnce());
+		await settle();
+		second.onLoad?.(info(second, true));
+		await vi.waitFor(() => expect(client.start).toHaveBeenCalledTimes(2));
+		first.onConsentChange?.(info(first, true));
+		expect(warn).toHaveBeenCalledOnce();
+		first.onDispose?.(info(first, true));
+		second.onDispose?.(info(second, true));
+		expect(client.stop).toHaveBeenCalledOnce();
+	});
+
 	it('shares Messaging between registrations with the same settings', async () => {
 		importGate.resolve();
 		const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);

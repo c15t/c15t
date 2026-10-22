@@ -56,6 +56,7 @@ let attempt: StartAttempt | undefined;
 let operations = Promise.resolve();
 // Settings of the granted configuration; undefined while Messaging is off.
 let active: AdaOptions | undefined;
+// Invariant: every symbol here belongs to the configuration in `active`.
 const registrations = new Set<symbol>();
 
 const stop = (current: StartAttempt): Promise<void> => {
@@ -131,6 +132,7 @@ const startMessaging = (settings: AdaOptions): void => {
 		} catch (error) {
 			if (!current.cancelled) {
 				active = undefined;
+				registrations.clear();
 				console.error('ada: failed to start Messaging.', error);
 			}
 		}
@@ -145,8 +147,8 @@ const startMessaging = (settings: AdaOptions): void => {
  * `console.warn` and is ignored until the page reloads. When the last granted
  * loader revokes consent or disposes the script, Ada's documented `stop()` runs,
  * including while `start()` is pending. A later grant waits for pending work.
- * Changed account or regional settings restart that interface after
- * `stop()`.
+ * Once every registration is gone and `stop()` has run, a later registration
+ * can restart the reused interface with different settings.
  *
  * @param options - AI Agent handle and optional Ada regional settings.
  * @returns A callback-only script gated on functionality consent.
@@ -200,6 +202,7 @@ export const ada = function ada(options: AdaOptions): Script {
 		}
 		if (active && !sameSettings(active, settings)) {
 			ignored = true;
+			registrations.delete(info.registration ?? registration);
 			console.warn(
 				'ada: Ada supports one configuration per page. These settings are ignored until the page reloads.'
 			);
