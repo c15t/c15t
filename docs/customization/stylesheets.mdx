@@ -55,8 +55,10 @@ This prevents movement caused by painting a partially received banner.
 The guard requires CSS `:has()` support; other browsers show the banner as
 it parses.
 Headless-hook banners and roots using `noStyle` keep their own visibility
-behavior. Custom styles and content that resolves later need their own
-layout handling.
+behavior. Each banner root ends with a hidden `[data-c15t-stream-end]` span,
+so `:last-child` selectors and Tailwind `last:` utilities on root children
+match that marker. Target the content's part, class or test ID instead.
+Custom styles and content that resolves later need their own layout handling.
 
 Streamed React IAB banners become visible once their complete card markup
 arrives. This prevents the centered card from moving as the browser parses
