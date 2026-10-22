@@ -12,6 +12,7 @@ import { expect, test } from 'vitest';
 import docsConfig from '../docs/docs.config';
 import umbrellaPackage from '../packages/c15t/package.json';
 import scriptsPackage from '../packages/integrations/package.json';
+import { getBuiltInScriptIntegrationBySubpath } from '../packages/integrations/src/registry';
 
 const docsRoot = fileURLToPath(new URL('../docs', import.meta.url));
 
@@ -190,11 +191,17 @@ test('integration navigation covers every vendor helper, both embeds and Shopify
 		'ads-and-pixels',
 		'commerce',
 	]);
-	const vendors = Object.entries(scriptsPackage.exports)
-		.filter(([, entry]) => entry.types.includes('/vendors/'))
-		.map(([subpath]) => subpath.slice(2));
+	// Smaller vendors share an "Other" page, so use each vendor's registry slug.
+	const vendorPages = new Set(
+		Object.entries(scriptsPackage.exports)
+			.filter(([, entry]) => entry.types.includes('/vendors/'))
+			.map(([subpath]) =>
+				getBuiltInScriptIntegrationBySubpath(subpath.slice(2))
+			)
+			.map((integration) => integration?.docsSlug)
+	);
 	const expectedRoutes = [
-		...vendors,
+		...vendorPages,
 		'google-maps',
 		'youtube',
 		'shopify',
