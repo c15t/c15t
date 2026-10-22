@@ -1,0 +1,34 @@
+---
+title: Experimentation and personalization tools
+description: Consent-gated helpers for experimentation and personalization tools that don't need a full guide.
+icon: flask-conical
+group: integrations
+---
+
+Each helper below loads its vendor only after the visitor allows the listed consent category. For setup, see [Integrations overview](/docs/integrations/overview).
+
+## Optimizely Web Experimentation
+
+Optimizely Web runs A/B tests and personalization by changing the page in the
+browser. Waits for `experience` consent.
+
+<include src="../shared/examples/javascript/optimizely-web-scripts.mdx" />
+
+| Option | Type | Required | Description |
+| --- | --- | --- | --- |
+| `projectId` | `string \| number` | Yes | The number before `.js` in your snippet URL, from **Settings > Implementation**. Invalid IDs log an error and skip loading. |
+| `category` | `HasCondition` | No | Consent condition to wait for. Defaults to `'experience'`. |
+| `scriptSrc` | `string` | No | Custom or proxied snippet URL. Defaults to `https://cdn.optimizely.com/js/<projectId>.js`. |
+
+**When consent is withdrawn:** c15t removes the snippet and reloads the page.
+Keep `reloadOnConsentRevoked` on. The running SDK can't be unloaded, so
+without the reload it keeps changing the page and sending events.
+
+- Expect flicker. Optimizely wants a parser-blocking snippet at the top of
+  `<head>`. c15t injects it with `async: false` after consent, which doesn't
+  block the parser, so visitors can see the original page before a variation
+  applies.
+- `optOutOptimizely()` from `@c15t/integrations/optimizely` sets Optimizely's
+  `optimizelyOptOut` cookie for ten years. Granting consent later in c15t
+  doesn't clear it, so the helper never calls it on revoke. Call it only for a
+  deliberate permanent opt-out, and clear the cookie yourself to undo it.

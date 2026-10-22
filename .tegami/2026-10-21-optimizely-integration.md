@@ -7,4 +7,4 @@ packages:
 
 ### Add Optimizely Web Experimentation consent integration
 
-`optimizelyWeb()` loads Optimizely Web Experimentation only after `experience` consent. Includes configuration and revocation guidance, loader contract tests, and CLI setup support.
+`optimizelyWeb()` from `@c15t/integrations/optimizely` loads Optimizely Web Experimentation after `experience` consent. On revocation, c15t removes the snippet and reloads the page. The CLI can add it during setup.

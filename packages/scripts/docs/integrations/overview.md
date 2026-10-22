@@ -1,8 +1,8 @@
 ---
 title: Integrations
 description: Find all c15t integrations for analytics, tag managers,
-  advertising, experience and personalization, email and SMS, chat and embedded
-  content.
+  advertising, experimentation and personalization, email and SMS, chat and
+  embedded content.
 seoTitle: Cookie consent integrations for analytics and ads | c15t
 seoDescription: Connect analytics, ad pixels, chat widgets and embeds to your
   cookie banner. c15t has helpers for Google Tag Manager, Meta Pixel, PostHog,
@@ -83,11 +83,11 @@ kernel to control its DOM lifecycle. Embeds do not require `@c15t/integrations`.
 | [Vercel Analytics](./vercel-analytics.md)                 | `vercelAnalytics`        | `measurement`                                   | Waits for effective permission                                                                       |
 | [Vercel Speed Insights](./vercel-speed-insights.md)       | `vercelSpeedInsights`    | `measurement`                                   | Waits for effective permission; drops reports after revocation                                       |
 
-## Experience and personalization
+## Experimentation and personalization
 
-| Integration                                       | Helper          | Default consent | Loading                        |
-| ------------------------------------------------- | --------------- | --------------- | ------------------------------ |
-| [Optimizely Web Experimentation](./optimizely.md) | `optimizelyWeb` | `experience`    | Waits for effective permission |
+| Integration                                                                            | Helper          | Category     | Loading behavior               |
+| -------------------------------------------------------------------------------------- | --------------- | ------------ | ------------------------------ |
+| [Optimizely Web Experimentation](./other-experience.md#optimizely-web-experimentation) | `optimizelyWeb` | `experience` | Waits for effective permission |
 
 ## Chat and support
 

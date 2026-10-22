@@ -116,7 +116,7 @@ export const BUILT_IN_INTEGRATION_CATEGORIES = [
 export const builtInScriptIntegrations = [
 	{
 		consentCategory: 'experience',
-		docsSlug: 'optimizely',
+		docsSlug: 'other-experience',
 		hint: 'Website experiments and personalization',
 		integrationCategory: 'functional',
 		key: 'optimizelyWeb',
