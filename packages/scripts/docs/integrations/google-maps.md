@@ -239,7 +239,7 @@ The provider from your quickstart supplies its consent state.
 
 ```svelte title="src/ConsentEmbed.svelte"
 <script lang="ts">
-  import { ConsentGate } from '@c15t/svelte';
+  import { ConsentGate } from 'c15t/svelte';
   import { embedCategory, embedURL, embedTitle, embedAspectRatio } from './embed-config';
 </script>
 
@@ -268,7 +268,7 @@ Keep the SvelteKit root and its server-resolved state unchanged.
 
 ```svelte title="src/lib/ConsentEmbed.svelte"
 <script lang="ts">
-  import { ConsentGate } from '@c15t/svelte';
+  import { ConsentGate } from 'c15t/svelte';
   import { embedCategory, embedURL, embedTitle, embedAspectRatio } from '../embed-config';
 </script>
 

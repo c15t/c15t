@@ -4,7 +4,7 @@
 
 	// Import the panel only in development, so production bundles never
 	// download it.
-	const devTools = dev ? import('@c15t/svelte/devtools') : null;
+	const devTools = dev ? import('c15t/svelte/devtools') : null;
 </script>
 
 {#if devTools}

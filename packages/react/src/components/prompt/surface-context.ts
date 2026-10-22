@@ -13,7 +13,7 @@ import { createContext, useContext } from 'react';
 export interface ConsentBannerSurface {
 	/** Shape of the first-layer prompt. */
 	variant: PromptVariant;
-	/** Placement, already mirrored for right-to-left text when defaulted. */
+	/** Placement. It stays the same for right-to-left text. */
 	position: PromptPosition;
 	/** Whether the host chose the position or the resolver defaulted it. */
 	positionSource: 'host' | 'default';
@@ -47,37 +47,3 @@ export const useConsentBannerSurface =
 	function useConsentBannerSurface(): ConsentBannerSurface {
 		return useContext(ConsentBannerSurfaceContext);
 	};
-
-/**
- * Mirror a defaulted corner for right-to-left text so the banner keeps
- * hugging the reading start. Host-chosen positions and edge or center
- * placements are returned unchanged.
- *
- * @param position - The resolved position.
- * @param positionSource - Whether the host chose it.
- * @param variant - The resolved variant; only corners of floating and widget mirror.
- * @param textDirection - Document text direction.
- * @returns The position to render.
- * @internal
- */
-export const mirrorDefaultPosition = function mirrorDefaultPosition(
-	position: PromptPosition,
-	positionSource: 'host' | 'default',
-	variant: PromptVariant,
-	textDirection: 'ltr' | 'rtl'
-): PromptPosition {
-	if (
-		positionSource === 'host' ||
-		textDirection !== 'rtl' ||
-		(variant !== 'floating' && variant !== 'widget')
-	) {
-		return position;
-	}
-	if (position.endsWith('-left')) {
-		return position.replace('-left', '-right') as PromptPosition;
-	}
-	if (position.endsWith('-right')) {
-		return position.replace('-right', '-left') as PromptPosition;
-	}
-	return position;
-};
