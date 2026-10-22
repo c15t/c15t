@@ -187,11 +187,17 @@ const createConsentDispatcher = (onIdle: () => void) => {
 			response.removeEventListener('load', complete);
 			response.removeEventListener('error', complete);
 			pending = false;
-			if (!indeterminate) {
+			if (!indeterminate && event.type === 'load') {
 				settledDispatcher = currentDispatcher.queue;
 				settledConsent = requested;
 				if (!requested) {
 					failedWithdrawals.delete(document);
+				}
+			}
+			if (!indeterminate && event.type === 'error') {
+				settledConsent = undefined;
+				if (!requested) {
+					failedWithdrawals.set(document, currentDispatcher);
 				}
 			}
 			if (
@@ -211,7 +217,13 @@ const createConsentDispatcher = (onIdle: () => void) => {
 					block(error);
 				}
 			}
-			reconcile();
+			if (
+				event.type === 'load' ||
+				desired !== requested ||
+				dispatcher !== currentDispatcher
+			) {
+				reconcile();
+			}
 			retire();
 		};
 		response.addEventListener('load', complete, { once: true });

@@ -579,7 +579,7 @@ describe('Eloqua dispatcher lifecycle', () => {
 		response?.dispatchEvent(new Event('load'));
 		expect(push.mock.calls).toEqual([[['elqOptIn']], [['elqOptOut']]]);
 	});
-	it('does not retry failed consent responses or send a page view after an opt-in error', () => {
+	it('does not immediately retry failed responses or send a page view after an opt-in error', () => {
 		const scripts = [eloquaTracking({ siteId: '1973398186' })];
 		loadScripts(scripts, granted);
 		const push = installDispatcher();
@@ -594,6 +594,40 @@ describe('Eloqua dispatcher lifecycle', () => {
 			?.dispatchEvent(new Event('error'));
 		expect(push.mock.calls).toEqual([[['elqOptIn']], [['elqOptOut']]]);
 	});
+	it.each([false, true])(
+		'retries a failed opt-out on a later denied update, remounted: %s',
+		(remounted) => {
+			const scripts = [eloquaTracking({ siteId: '1973398186' })];
+			loadScripts(scripts, granted);
+			const push = installDispatcher();
+			getLoader().dispatchEvent(new Event('load'));
+			document
+				.querySelector('script[src*="pps=41"]')
+				?.dispatchEvent(new Event('load'));
+			document.cookie = 'OPTIN=1; path=/';
+			if (remounted) {
+				clearAllScripts();
+			} else {
+				updateScripts(scripts, deniedConsents);
+			}
+			document
+				.querySelector('script[src*="pps=42"]')
+				?.dispatchEvent(new Event('error'));
+			expect(push).toHaveBeenCalledTimes(3);
+			loadScripts(scripts, deniedConsents);
+			expect(push).toHaveBeenCalledTimes(4);
+			expect(push.mock.calls.at(-1)).toEqual([['elqOptOut']]);
+			const response = Array.from(
+				document.querySelectorAll('script[src*="pps=42"]')
+			).at(-1);
+			expect(response).toBeDefined();
+			document.cookie = 'OPTIN=0; path=/';
+			response?.dispatchEvent(new Event('load'));
+			loadScripts(scripts, deniedConsents);
+			expect(push).toHaveBeenCalledTimes(4);
+			expect(document.cookie).toContain('OPTIN=0');
+		}
+	);
 	it.each([false, true])(
 		'honors a custom category and vendor denial until disposal, granted first: %s',
 		async (grantedFirst) => {
