@@ -18,7 +18,7 @@ slug each script already carries:
 {/* example: fragment */}
 
 ```ts title="src/scripts.ts (partial)"
-import type { ConsentManagerOptions } from '@c15t/svelte';
+import type { ConsentManagerOptions } from 'c15t/svelte';
 
 export const vendors: NonNullable<ConsentManagerOptions['vendors']> = [
 	{
@@ -69,7 +69,7 @@ records the draft:
 
 ```svelte title="src/XPixelSwitch.svelte (partial)"
 <script lang="ts">
-	import { getConsentManager } from '@c15t/svelte';
+	import { getConsentManager } from 'c15t/svelte';
 
 	const consent = getConsentManager();
 </script>

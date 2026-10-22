@@ -266,6 +266,19 @@ describe('mountConsentUI', () => {
 		expect(document.body.style.overflow).toBe('hidden');
 	});
 
+	it('keeps the default corner for right-to-left text', async () => {
+		const { root } = await mount(
+			{},
+			{
+				i18n: { messages: { he: { cookieBanner: { title: 'פרטיות' } } } },
+				overrides: { language: 'he' },
+			}
+		);
+		const banner = query(root, 'consent-banner-root');
+		expect(banner.getAttribute('dir')).toBe('rtl');
+		expect(banner.dataset.position).toBe('bottom-left');
+	});
+
 	it('replaces light DOM customization when remounted and removes it on disposal', async () => {
 		const { client, handle } = await mount({
 			css: 'button { color: red; }',
