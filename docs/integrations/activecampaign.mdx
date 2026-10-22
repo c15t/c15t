@@ -1,0 +1,57 @@
+---
+title: ActiveCampaign
+description: Load ActiveCampaign after marketing consent, configure its tracking settings, and verify loading and withdrawal with c15t.
+seoTitle: ActiveCampaign cookie consent with c15t
+seoDescription: Gate ActiveCampaign on marketing consent with c15t. Configure the loader, understand withdrawal limits, and verify vendor requests and storage.
+icon: chart-line
+group: integrations
+---
+
+`activeCampaignTracking` waits for `marketing` consent before creating vendor globals or downloading ActiveCampaign.
+
+## Configure ActiveCampaign
+
+Copy the account ID from your ActiveCampaign site tracking snippet and remove the original snippet. Enable site tracking and authorize your site in ActiveCampaign.
+
+<CommandTabs command="@c15t/integrations" mode="install" />
+
+<include src="../shared/examples/javascript/activecampaign-configuration.mdx" />
+
+<include src="../shared/integrations/register-scripts.mdx" />
+
+## Options
+
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `accountId` | Required | ActiveCampaign account ID. Fixed once loading starts on this page. |
+| `email` | Unset | Email for future requests, updated through `setEmail` after consent. Removing or blanking it clears the runtime's email field. |
+| `category` | `marketing` | Consent condition for the whole loader. |
+| `scriptUrl` | `https://diffuser-cdn.app-us1.com/diffuser/diffuser.js` | Regional or proxied loader URL. Blank values use the default. Fixed once loading starts on this page. |
+
+Missing or blank required values log an error and never load.
+
+## Loading and revocation
+
+After consent, the helper creates the callable `pgo` queue, sets its alias and timestamp, configures the account, and sets `setTrackByDefault(false)`. After the SDK loads it calls `process('allowTracking')`, which sends the page request itself. The helper sends no duplicate `process` call at initial load. Once tracking starts, a settled denial reported by an active registration requires a page reload. The helper sends no further tracking or email commands on that page, even after a regrant.
+
+Recreating the helper with the same options or a different `email` keeps the same SDK tag. After sign-in, register the helper with the contact's email. An email update changes future vendor requests and sends no additional page request. Omitting `email`, or passing a blank string, clears the runtime's email field after consent. This does not clear tracking cookies, reset the visitor ID, or erase identity already copied into vendor services.
+
+If another script replaces the captured `pgo` dispatcher, the helper sends no further commands and requires a page reload.
+
+Without a browser document, the script loader does not start ActiveCampaign. Replacing the helper or disposing its loader also requires no browser cleanup.
+
+Use one account, loader URL and contact email across registrations on the page. Every active registration must have its mapped consent before the helper enables tracking. Conflicting registrations withhold further helper commands. Resolving a conflict or remounting a registration does not send another page request on an already activated runtime. Changing `accountId` or `scriptUrl` after loading starts requires a new page; the helper logs the conflict and keeps the original SDK. A `category` change updates c15t eligibility, not vendor configuration. Consent and option updates settle after the current JavaScript turn.
+
+Keep `reloadOnConsentRevoked` enabled. The fetched runtime has no documented stop command. `setTrackByDefault(false)` does not stop services already started by `allowTracking`. Removing its script or registration cannot stop running code, clear stored identifiers or cancel requests. If a running helper changes to a denied category, reload the page as part of that configuration change. The helper logs that a reload is required; `reloadOnConsentRevoked` observes consent changes, not helper replacements. The permitted tag stays in the DOM across withdrawal and registration disposal to avoid installing a second runtime on remount. A pending download completed without consent or an active registration receives no `allowTracking` until a consenting registration exists and all active registrations agree on the configuration and have consent. An interrupted mount, failed download or externally detached SDK requires a page reload. The next denied page does not load the tag.
+
+ActiveCampaign uses first-party tracking cookies. Cookie names and other storage can vary with the vendor runtime and account configuration. Inspect your own deployment after grant.
+
+The default loads ActiveCampaign's Diffuser SDK directly from its vendor CDN. During verification, the `prism.js` URL from ActiveCampaign's tracking snippet redirected to `diffuser.js,?` and returned 403. The clean CDN URL returned JavaScript, accepted the same `pgo` queue, and initialized the tracker. The default bypasses that malformed redirect. Use `scriptUrl` for another region or a proxy and verify that it serves the matching ActiveCampaign runtime.
+
+## Verify ActiveCampaign
+
+Check for no `diffuser.js`, `pgo`, `prismGlobalObjectAlias`, cookies or browser storage before consent and after unrelated consent. Grant marketing and confirm the vendor runtime replaces the queue. Verify the page request with your own configured account. Revoke and check that the next denied page does not load the tracker.
+
+Sources: [tracking snippet](https://developers.activecampaign.com/reference/retrieve-site-tracking-code), [GDPR flow](https://help.activecampaign.com/hc/en-us/articles/360000872064-Site-tracking-and-the-GDPR), and [site tracking setup](https://help.activecampaign.com/hc/en-us/articles/20315300118044-How-to-set-up-Site-Tracking).
+
+<include src="../shared/integrations/vendor-revocation-and-verify.mdx" />

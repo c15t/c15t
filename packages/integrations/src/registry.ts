@@ -115,6 +115,16 @@ export const BUILT_IN_INTEGRATION_CATEGORIES = [
  */
 export const builtInScriptIntegrations = [
 	{
+		consentCategory: 'marketing',
+		docsSlug: 'activecampaign',
+		hint: 'Site visits for ActiveCampaign contact automation',
+		integrationCategory: 'email-and-sms',
+		key: 'activeCampaignTracking',
+		label: 'ActiveCampaign',
+		packageSubpath: 'activecampaign',
+		vendor: 'activecampaign',
+	},
+	{
 		consentCategory: 'necessary',
 		docsSlug: 'cloudflare-zaraz',
 		hint: 'Consent bridge for tools managed by Zaraz',

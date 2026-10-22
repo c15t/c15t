@@ -79,6 +79,7 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 
 ## Integrations
 
+- [ActiveCampaign](./docs/integrations/activecampaign.md): Load ActiveCampaign after marketing consent, configure its tracking settings, and verify loading and withdrawal with c15t.
 - [Adobe Analytics](./docs/integrations/adobe-analytics.md): Load an Adobe Data Collection Tags property only after measurement consent with the c15t adobeAnalytics helper, and check its extensions in DevTools.
 - [Ahrefs Analytics](./docs/integrations/ahrefs-analytics.md): Load Ahrefs Web Analytics only after measurement consent with the c15t ahrefsAnalytics helper, and check it in DevTools.
 - [Amplitude](./docs/integrations/amplitude.md): Load the Amplitude Browser SDK 2 only after measurement consent with the c15t amplitude helper, which opts the SDK out on revocation and back in on a new grant.

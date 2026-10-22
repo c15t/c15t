@@ -27,6 +27,10 @@ interface ScriptSnippet {
  * `scripts-snippets.test.ts` fails when a registry vendor is missing here.
  */
 export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
+	activecampaign: {
+		example: "activeCampaignTracking({ accountId: 'YOUR_ACCOUNT_ID' })",
+		importName: 'activeCampaignTracking',
+	},
 	'adobe-analytics': {
 		example:
 			"adobeAnalytics({ scriptUrl: 'https://assets.adobedtm.com/YOUR_ORG/YOUR_PROPERTY/launch-production.min.js' })",

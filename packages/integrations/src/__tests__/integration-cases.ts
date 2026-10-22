@@ -40,6 +40,7 @@ import { sentry } from '../vendors/analytics/sentry';
 import { umamiAnalytics } from '../vendors/analytics/umami-analytics';
 import { vercelAnalytics } from '../vendors/analytics/vercel-analytics';
 import { vercelSpeedInsights } from '../vendors/analytics/vercel-speed-insights';
+import { activeCampaignTracking } from '../vendors/email-and-sms/activecampaign';
 import { klaviyo } from '../vendors/email-and-sms/klaviyo';
 import { crisp } from '../vendors/functional/crisp';
 import { frontChat } from '../vendors/functional/front-chat';
@@ -49,6 +50,14 @@ import { googleTagManager } from '../vendors/tag-managers/google-tag-manager';
 import type { expectScriptMatchesIntegration } from './helpers';
 
 export const helperParityCases = {
+	activeCampaignTracking: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: true,
+			src: 'https://diffuser-cdn.app-us1.com/diffuser/diffuser.js',
+		},
+		script: activeCampaignTracking({ accountId: '123456' }),
+	},
 	adobeAnalytics: {
 		expected: {
 			alwaysLoad: undefined,

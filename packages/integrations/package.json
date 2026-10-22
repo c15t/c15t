@@ -304,6 +304,11 @@
 			"import": "./dist/events.js",
 			"default": "./dist/events.js"
 		},
+		"./activecampaign": {
+			"types": "./dist-types/vendors/email-and-sms/activecampaign.d.ts",
+			"import": "./dist/vendors/email-and-sms/activecampaign.js",
+			"default": "./dist/vendors/email-and-sms/activecampaign.js"
+		},
 		"./clay": {
 			"types": "./dist-types/vendors/analytics/clay.d.ts",
 			"import": "./dist/vendors/analytics/clay.js",

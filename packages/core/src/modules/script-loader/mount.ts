@@ -109,6 +109,25 @@ const elementObservers = new WeakMap<
 // Keep physical completion when another registration joins after the event.
 const elementCompletions = new WeakMap<HTMLScriptElement, ElementCompletion>();
 
+// c15t-created resources released without removal can be owned again on adoption.
+const retainedResources = new WeakSet<HTMLScriptElement>();
+const retainedCompletions = new WeakSet<HTMLScriptElement>();
+
+// A retained download can finish while there are no callback registrations.
+const rememberRetainedCompletion = (element: HTMLScriptElement): void => {
+	if (elementCompletions.has(element) || retainedCompletions.has(element)) {
+		return;
+	}
+	retainedCompletions.add(element);
+	const complete = (event: Event): void => {
+		elementCompletions.set(element, event.type === 'load' ? 'load' : 'error');
+		element.removeEventListener('load', complete);
+		element.removeEventListener('error', complete);
+	};
+	element.addEventListener('load', complete);
+	element.addEventListener('error', complete);
+};
+
 // A batched resource is not in the DOM yet, but later registrations reuse it.
 const pendingResources = new WeakMap<
 	PendingMount[],
@@ -265,7 +284,8 @@ const forgetServerStarted = function forgetServerStarted(
 export const releaseScriptElement = (
 	deps: MountDeps,
 	scriptId: string,
-	element: HTMLScriptElement
+	element: HTMLScriptElement,
+	retainElement = false
 ): void => {
 	const observers = elementObservers.get(element);
 	const registrations = observers?.get(deps);
@@ -288,7 +308,12 @@ export const releaseScriptElement = (
 			delete started.__c15tInsert;
 			delete started.__c15tHeld;
 			forgetServerStarted(started);
-			element.parentNode?.removeChild(element);
+			if (retainElement && element.isConnected) {
+				retainedResources.add(element);
+				rememberRetainedCompletion(element);
+			} else {
+				element.parentNode?.removeChild(element);
+			}
 		}
 	}
 	deps.ownedScriptIds.delete(scriptId);
@@ -300,6 +325,19 @@ export const releaseScriptElement = (
 /** Finalize an append, dropping any batch entry skipped by an interrupted pass. */
 const completeMount = (deps: MountDeps, pending: PendingMount): void => {
 	const { script, element, elementId, hasConsent } = pending;
+	if (pending.appended && element.isConnected && !script.src) {
+		// Inline execution can dispose its loader inside appendChild. Remember
+		// physical completion even after that registration has been released.
+		setTimeout(() => {
+			elementCompletions.set(element, 'load');
+			for (const registrations of elementObservers.get(element)?.values() ??
+				[]) {
+				for (const observer of registrations.values()) {
+					observer.complete('load');
+				}
+			}
+		}, 0);
+	}
 	if (deps.loadedElements.get(script.id) !== element) {
 		return;
 	}
@@ -311,18 +349,6 @@ const completeMount = (deps: MountDeps, pending: PendingMount): void => {
 	}
 	if (deps.isDisposed()) {
 		return;
-	}
-	if (!script.src) {
-		// Inline adopters share completion even if the original loader is gone.
-		setTimeout(() => {
-			elementCompletions.set(element, 'load');
-			for (const registrations of elementObservers.get(element)?.values() ??
-				[]) {
-				for (const observer of registrations.values()) {
-					observer.complete('load');
-				}
-			}
-		}, 0);
 	}
 	deps.emit({
 		action: 'loaded',
@@ -576,6 +602,10 @@ export const mountScript = function mountScript(
 			: null);
 	if (existingElement) {
 		const element = existingElement as HTMLScriptElement;
+		if (retainedResources.has(element)) {
+			deps.ownedScriptIds.add(script.id);
+			retainedResources.delete(element);
+		}
 		deps.loadedElements.set(script.id, element);
 		observeElement(deps, script, hasConsent, elementId, element);
 		if (typeof script.onConsentChange === 'function' || deps.hasDebugListener) {
@@ -787,7 +817,12 @@ export const unmountScript = function unmountScript(
 	}
 
 	if (element) {
-		releaseScriptElement(deps, script.id, element);
+		releaseScriptElement(
+			deps,
+			script.id,
+			element,
+			removeConfiguration && script.persistAfterDispose === true
+		);
 	}
 	deps.loadedElements.delete(script.id);
 	deps.retainedElements.delete(script.id);

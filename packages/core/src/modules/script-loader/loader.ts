@@ -323,6 +323,11 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 		// Clear registrations before user callbacks. Each object owns one cleanup
 		// per registration, even if it appears more than once in the input.
 		const scripts = new Set(normalized.map(({ script }) => script));
+		const persistentIds = new Set(
+			[...scripts]
+				.filter((script) => script.persistAfterDispose)
+				.map((script) => script.id)
+		);
 		normalized = [];
 		pendingScripts = undefined;
 		forgetOwners(kernel, ownerSource);
@@ -336,7 +341,12 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 			...loadedElements,
 		])) {
 			if (element) {
-				releaseScriptElement(mountDeps, scriptId, element);
+				releaseScriptElement(
+					mountDeps,
+					scriptId,
+					element,
+					persistentIds.has(scriptId)
+				);
 			}
 		}
 		loadedElements.clear();

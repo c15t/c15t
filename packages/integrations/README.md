@@ -29,7 +29,7 @@ c15t is used by [2,100+ sites](https://www.wappalyzer.com/technologies/cookie-co
 - Google Tag Manager support with Google Consent Mode v2 defaults and consent updates
 - Google Analytics 4 and Google Ads support through gtag.js
 - Consent-gated Meta Pixel and conversion pixel loading
-- Supported vendors include Google Tag Manager, Meta Pixel, OpenAI Pixel, Amplitude, Heap, PostHog, TikTok Pixel, LinkedIn Insights, Microsoft UET, X Pixel, Reddit Pixel, Snapchat Pixel, Intercom, Crisp, Klaviyo, and more
+- Supported vendors include Google Tag Manager, Meta Pixel, OpenAI Pixel, Amplitude, Heap, PostHog, TikTok Pixel, LinkedIn Insights, Microsoft UET, X Pixel, Reddit Pixel, Snapchat Pixel, Intercom, Crisp, ActiveCampaign, Klaviyo, and more
 
 ## Documentation
 
@@ -44,7 +44,7 @@ See the [documentation](https://c15t.com/docs/integrations) for guides, API refe
 - **PostHog**: Loads before or after measurement consent, with switches that stop PostHog downloading its surveys, heatmaps, dead clicks and web vitals modules or requesting `/flags` ([guide](https://c15t.com/docs/integrations/posthog))
 - **Analytics**: Amplitude, Heap, Segment, RudderStack, Hightouch, Mixpanel, Microsoft Clarity, Hotjar, Plausible, Fathom, Matomo, Umami, Vercel Analytics, Vercel Speed Insights, OneDollarStats
 - **Sentry**: Loads Sentry from its CDN or works with your own SDK; Session Replay and user data wait for measurement, and error monitoring can too ([guide](https://c15t.com/docs/integrations/sentry))
-- **Email and SMS**: Klaviyo, loaded only once marketing and measurement are both allowed
+- **Email and SMS**: ActiveCampaign site tracking, loaded after marketing consent ([guide](https://c15t.com/docs/integrations/activecampaign)); Klaviyo, loaded only once marketing and measurement are both allowed
 - **Chat widgets**: Intercom, Crisp, Front Chat
 - **Shopify**: Sends c15t consent to Shopify's Customer Privacy API from a Hydrogen storefront ([guide](https://c15t.com/docs/integrations/shopify))
 - **Clay**: Loads after marketing consent ([guide](https://c15t.com/docs/integrations/clay))
