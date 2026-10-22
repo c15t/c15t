@@ -561,11 +561,21 @@ describe('Gainsight PX production loader contract', () => {
 		'preserves pending server setup during hydration, client consent=$allow, cloned=$cloned',
 		async ({ allow, cloned }) => {
 			const original = gainsightPx({
-				config: { fullDomainCookie: true },
+				account: { id: 'server-account', tier: 'paid' },
+				config: { fullDomainCookie: true, usePOST: true },
 				productKey: 'AP-SERVER-HYDRATION-2',
 				user: { id: 'server-user' },
 			});
 			const script = cloned ? { ...original, anonymizeId: false } : original;
+			const client = gainsightPx({
+				// oxlint-disable-next-line sort-keys -- Equivalent SSR data may have a different property order.
+				account: { tier: 'paid', id: 'server-account' },
+				category: 'measurement',
+				// oxlint-disable-next-line sort-keys -- Equivalent SSR data may have a different property order.
+				config: { usePOST: true, fullDomainCookie: true },
+				productKey: 'AP-SERVER-HYDRATION-2',
+				user: { id: 'server-user' },
+			});
 			const start = script.serverStart?.(
 				{ consents: grantedConsents, hasConsent: true, id: script.id },
 				script
@@ -583,13 +593,17 @@ describe('Gainsight PX production loader contract', () => {
 			Reflect.set(globalThis, '__c15tStarted', { [script.id]: element });
 			const kernel = createConsentKernel();
 			await kernel.commands.save(allow ? grantedConsents : deniedConsents);
-			const loader = createScriptLoader({ kernel, scripts: [script] });
+			const loader = createScriptLoader({
+				kernel,
+				scripts: [cloned ? { ...client, anonymizeId: false } : client],
+			});
 			try {
 				expect(getAptrinsic()).toBe(pending);
 				expect(pending.p).toBe('AP-SERVER-HYDRATION-2');
 				expect(pending.c).toEqual({
 					enableTag: true,
 					fullDomainCookie: true,
+					usePOST: true,
 				});
 				expect(window).toHaveProperty(
 					'__c15tGainsightPxProductKey',
@@ -600,13 +614,101 @@ describe('Gainsight PX production loader contract', () => {
 				);
 				expect(pending.q.map((entry) => Array.from(entry))).toEqual([
 					['config', 'enableTag', true],
-					['identify', { id: 'server-user' }],
+					[
+						'identify',
+						{ id: 'server-user' },
+						{ id: 'server-account', tier: 'paid' },
+					],
 					...(allow ? [] : [['config', 'enableTag', false], ['reset']]),
 				]);
 			} finally {
 				loader.dispose();
 				kernel.dispose();
 			}
+		}
+	);
+
+	describe.each([true, false])(
+		'pending server setup, client consent=%s',
+		(allow) => {
+			const initialOptions: GainsightPxOptions = {
+				account: { id: 'server-account' },
+				config: { fullDomainCookie: true },
+				productKey: 'AP-SERVER-HYDRATION-2',
+				user: { id: 'server-user' },
+			};
+			it.each<{ name: string; options: GainsightPxOptions }>([
+				{
+					name: 'product key',
+					options: { ...initialOptions, productKey: 'AP-CLIENT-2' },
+				},
+				{
+					name: 'configuration',
+					options: { ...initialOptions, config: { localStorageCookie: true } },
+				},
+				{
+					name: 'user',
+					options: { ...initialOptions, user: { id: 'client-user' } },
+				},
+				{
+					name: 'account',
+					options: { ...initialOptions, account: { id: 'client-account' } },
+				},
+				{
+					name: 'removed identity',
+					options: {
+						config: initialOptions.config,
+						productKey: initialOptions.productKey,
+					},
+				},
+				{
+					name: 'loader URL',
+					options: {
+						...initialOptions,
+						scriptUrl: 'https://proxy.example.com/px.js',
+					},
+				},
+			])(
+				'rejects a different $name before adopting the server loader',
+				async ({ options }) => {
+					// Construct the client script before the server queue exists.
+					const client = { ...gainsightPx(options), anonymizeId: false };
+					const server = gainsightPx(initialOptions);
+					const start = server.serverStart?.(
+						{ consents: grantedConsents, hasConsent: true, id: server.id },
+						server
+					);
+					expect(start).toBeDefined();
+					// oxlint-disable-next-line no-new-func -- Executes the generated server snippet.
+					new Function(`${start?.prelude ?? ''};${start?.code}`)();
+					const pending = getAptrinsic();
+					const queued = pending.q.map((entry) => Array.from(entry));
+					const element = Object.assign(document.createElement('script'), {
+						__c15tConsent: true,
+						__c15tScript: server.id,
+						src: server.src,
+					});
+					document.head.appendChild(element);
+					Reflect.set(globalThis, '__c15tStarted', { [server.id]: element });
+					const kernel = createConsentKernel();
+					await kernel.commands.save(allow ? grantedConsents : deniedConsents);
+					let loader: ReturnType<typeof createScriptLoader> | undefined;
+					try {
+						expect(() => {
+							loader = createScriptLoader({ kernel, scripts: [client] });
+						}).toThrow(
+							'server and client options must match while the server-started SDK is pending'
+						);
+						expect(getAptrinsic()).toBe(pending);
+						expect(pending.q.map((entry) => Array.from(entry))).toEqual(queued);
+						expect(element.isConnected).toBe(true);
+						expect(document.head.querySelectorAll('script')).toHaveLength(1);
+					} finally {
+						loader?.dispose();
+						kernel.dispose();
+					}
+				}
+			);
 		}
 	);
 

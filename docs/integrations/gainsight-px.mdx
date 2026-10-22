@@ -89,6 +89,14 @@ configuration and optional identity, so an interrupted setup cannot replay an
 earlier user's identify call. This also applies to server-generated startup.
 It does not cancel a detached download that may still execute later.
 
+When hydrating a server-started loader that is still pending, use the same
+`productKey`, `config`, `user`, `account` and `scriptUrl` on the server and client.
+The loader compares the queued setup with the client options before adopting
+the server's element. A mismatch throws before registration or replacement,
+leaving the server's queue and download intact. It does not silently apply the
+client options to that download. Render matching options to hydrate successfully.
+Equivalent configuration objects can use different property orders.
+
 Disposing the last provider or script loader removes its element, but PX's code
 remains in the page. Later mounts check PX's own bundle execution marker and
 use the existing API without requesting the bundle again. A denied mount sends

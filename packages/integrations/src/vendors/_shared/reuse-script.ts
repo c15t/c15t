@@ -61,7 +61,8 @@ const configKeys = (value: ConfigFields): (string | symbol)[] =>
 			value[key] !== undefined
 	);
 
-const equalConfig = (
+/** Compare configuration data by value, ignoring undefined object fields. @internal */
+export const equalConfig = (
 	previous: unknown,
 	next: unknown,
 	seen = new WeakMap<ConfigFields, ConfigFields>()
