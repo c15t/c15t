@@ -18,16 +18,16 @@
 <a href="https://inth.com?utm_source=npm&utm_medium=readme&utm_campaign=oss_readme&utm_content=c15t"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/badge/Made%20By-Inth-ffc803.svg?color=ffc803&labelTextColor=000000&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGZpbGw9Im5vbmUiIHZpZXdCb3g9IjAgMCAzOTMgNDAwIj48cGF0aCBmaWxsPSIjMDAwIiBkPSJNMTgyLjY2MiAwdjM2Ljg5NWgtNTkuMDMxdjgyLjczM2g1OS4wMzF2MzYuODkzSDI3LjQ4MnYtMzYuODkzaDU5LjAzVjM2Ljg5NWgtNTkuMDNWMHpNMzIxLjk0MSA4OS44NVYwaDM1LjM1NXYxNTYuNTIxaC0yNS43MTNsLTg2LjEzNy05MC4zNjR2OTAuMzY0aC0zNS4zNTVWMGgyNi4zNTV6Ii8%2BPHBhdGggZmlsbD0iIzAwMCIgZmlsbC1ydWxlPSJldmVub2RkIiBkPSJNMzE4LjU3MSAxODUuNzE0aDc0LjI4NlY0MDBIMFYxODUuNzE0aDI3Mi44NTd2LTQ3LjE0M3ptLTI5MS4wOSAyOC45Njl2MzcuMTE4aDU4LjEzN3YxMTkuNjI4aDM2Ljg5NVYyNTEuODAxaDU4LjU4NHYtMzcuMTE4em0xODIuNjEuMjI0djE1Ni41MjJoMzYuODk0VjMxMy41OWg3My4zNDF2NTcuODM5aDM3LjExOFYyMTQuOTA3aC0zNy4xMTh2NjEuNzg4aC03My4zNDF2LTYxLjc4OHoiIGNsaXAtcnVsZT0iZXZlbm9kZCIvPjwvc3ZnPg%3D%3D&valueColor=000000&mode=dark"><img src="https://shieldcn.dev/badge/Made%20By-Inth-ffc803.svg?color=ffc803&labelTextColor=000000&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGZpbGw9Im5vbmUiIHZpZXdCb3g9IjAgMCAzOTMgNDAwIj48cGF0aCBmaWxsPSIjMDAwIiBkPSJNMTgyLjY2MiAwdjM2Ljg5NWgtNTkuMDMxdjgyLjczM2g1OS4wMzF2MzYuODkzSDI3LjQ4MnYtMzYuODkzaDU5LjAzVjM2Ljg5NWgtNTkuMDNWMHpNMzIxLjk0MSA4OS44NVYwaDM1LjM1NXYxNTYuNTIxaC0yNS43MTNsLTg2LjEzNy05MC4zNjR2OTAuMzY0aC0zNS4zNTVWMGgyNi4zNTV6Ii8%2BPHBhdGggZmlsbD0iIzAwMCIgZmlsbC1ydWxlPSJldmVub2RkIiBkPSJNMzE4LjU3MSAxODUuNzE0aDc0LjI4NlY0MDBIMFYxODUuNzE0aDI3Mi44NTd2LTQ3LjE0M3ptLTI5MS4wOSAyOC45Njl2MzcuMTE4aDU4LjEzN3YxMTkuNjI4aDM2Ljg5NVYyNTEuODAxaDU4LjU4NHYtMzcuMTE4em0xODIuNjEuMjI0djE1Ni41MjJoMzYuODk0VjMxMy41OWg3My4zNDF2NTcuODM5aDM3LjExOFYyMTQuOTA3aC0zNy4xMTh2NjEuNzg4aC03My4zNDF2LTYxLjc4OHoiIGNsaXAtcnVsZT0iZXZlbm9kZCIvPjwvc3ZnPg%3D%3D&valueColor=000000&mode=light" alt="Made by Inth"></picture></a>
 </p>
 
-c15t is the open standard for cookie banners. It's an open-source cookie consent manager and consent management platform (CMP). One package gives you a GDPR cookie banner, a preference dialog, and consent-gated scripts for React, Next.js, Vue, Nuxt, Astro, TanStack Start, and plain JavaScript. Keep consent records on [Inth](https://inth.com?utm_source=github&utm_medium=readme&utm_content=c15t), on a backend you run, or in the browser only.
+c15t is the open standard for cookie banners. It's an open-source cookie consent manager and consent management platform (CMP). One package gives you a GDPR cookie banner, a preference dialog, and consent-gated scripts for React, Next.js, Vue, Nuxt, Astro, TanStack Start, Svelte, SvelteKit, and plain JavaScript. Keep consent records on [Inth](https://inth.com?utm_source=github&utm_medium=readme&utm_content=c15t), on a backend you run, or in the browser only.
 
 c15t is used by [2,100+ sites](https://www.wappalyzer.com/technologies/cookie-compliance/c15t/), including expo.dev, zed.dev, unkey.dev, mintlify.com, and sazabi.com.
 
 ## Key Features
 
-- One install for every framework: `c15t` brings the consent engine and the React, Next.js, Vue, Nuxt, Astro, and TanStack Start adapters, always at the same version
+- One install for every framework: `c15t` brings the consent engine and the React, Next.js, Vue, Nuxt, Astro, TanStack Start, Svelte, and SvelteKit adapters, always at the same version
 - Analytics, ads, pixels, and embeds follow each visitor's choice. Ready-made loaders cover 40+ vendors, such as Google Tag Manager, GA4, Meta Pixel, and PostHog
 - Policies decide who sees a banner: opt-in for visitors in the EU, opt-out for some US states, or rules that you write
-- On server-rendered Next.js, Nuxt, Astro, and TanStack Start pages, the server resolves each visitor's policy and can send the banner in the first HTML
+- On server-rendered Next.js, Nuxt, Astro, TanStack Start, and SvelteKit pages, the server resolves each visitor's policy and can send the banner in the first HTML
 - Google Consent Mode v2, IAB TCF 2.4, and Global Privacy Control support
 - Prebuilt components with a theme system, or headless hooks and composables for your own design
 - Framework peer dependencies are optional, so a plain JavaScript project does not install React, Vue, or Astro
@@ -43,7 +43,7 @@ c15t is used by [2,100+ sites](https://www.wappalyzer.com/technologies/cookie-co
 | Nuxt 3 and 4 | `c15t/vue` (Nuxt module) | [Nuxt](https://c15t.com/docs/frameworks/nuxt/quickstart) |
 | Astro 5, 6, and 7 | `c15t/astro` | [Astro](https://c15t.com/docs/frameworks/astro/quickstart) |
 | TanStack Start | `c15t/tanstack-start` | [TanStack Start](https://c15t.com/docs/frameworks/tanstack-start/quickstart) |
-| Svelte 5 and SvelteKit | [`@c15t/svelte`](https://www.npmjs.com/package/@c15t/svelte), a separate install | [Svelte](https://c15t.com/docs/frameworks/svelte/quickstart), [SvelteKit](https://c15t.com/docs/frameworks/sveltekit/quickstart) |
+| Svelte 5 and SvelteKit | `c15t/svelte` | [Svelte](https://c15t.com/docs/frameworks/svelte/quickstart), [SvelteKit](https://c15t.com/docs/frameworks/sveltekit/quickstart) |
 | Script tag, no build step (Webflow, WordPress, Framer, Squarespace) | [`@c15t/browser`](https://www.npmjs.com/package/@c15t/browser), a separate install | [HTML](https://c15t.com/docs/frameworks/html/quickstart) |
 
 Not sure which one fits? [Choose your setup](https://c15t.com/docs/concepts/choose-your-setup) compares the options by framework, rendering mode, and hosting.

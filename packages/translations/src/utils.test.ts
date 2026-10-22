@@ -92,6 +92,28 @@ describe('bundled notice and rights translations', () => {
 	);
 });
 
+describe('bundled IAB banner translations', () => {
+	// Existing mismatches; this list should only shrink. `bg` and `cs` also
+	// ship ICU plural syntax that nothing formats.
+	const knownMismatches = new Set(['bg', 'cs', 'he', 'pl']);
+
+	it.each(
+		Object.entries(bundledTranslations).filter(
+			([language]) => !knownMismatches.has(language)
+		)
+	)(
+		'%s contains the partners link inside the banner description',
+		(_language, translations) => {
+			// The stock IAB banners split the description on the link text to
+			// turn it into a button; without a match they repeat the count.
+			const { description, partnersLink } = translations.iab.banner;
+			expect(description.replace('{partnerCount}', '42')).toContain(
+				partnersLink.replace('{count}', '42')
+			);
+		}
+	);
+});
+
 describe('deepMergeTranslations', () => {
 	it('preserves an older notice label and prefers an explicit acknowledgement', () => {
 		const base = bundledTranslations.en;

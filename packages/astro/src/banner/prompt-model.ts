@@ -153,22 +153,6 @@ export const joinClasses = function joinClasses(
 	return names.filter(Boolean).join(' ');
 };
 
-/**
- * Swap a physical corner for its mirror image.
- *
- * @param position - A position such as `bottom-left`.
- * @returns The mirrored position.
- */
-const mirrorCorner = function mirrorCorner(position: string): string {
-	if (position.endsWith('-left')) {
-		return position.replace(/-left$/u, '-right');
-	}
-	if (position.endsWith('-right')) {
-		return position.replace(/-right$/u, '-left');
-	}
-	return position;
-};
-
 type TranslationBundle = Partial<Translations>;
 
 /**
@@ -402,14 +386,7 @@ export const resolvePromptModel = function resolvePromptModel(
 		variant,
 	} = presentation;
 
-	// A corner the host did not choose follows the text direction, the same
-	// mirroring the React and Svelte roots apply; a host corner is kept as is.
-	const position =
-		textDirection === 'rtl' &&
-		presentation.positionSource === 'default' &&
-		(variant === 'floating' || variant === 'widget')
-			? mirrorCorner(presentation.position)
-			: presentation.position;
+	const { position } = presentation;
 
 	// A notice offers no customize, so the resolver's default primary drops
 	// out. When dismiss is the only button it is the primary one, as in the
