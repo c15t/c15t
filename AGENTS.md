@@ -8,14 +8,14 @@ This file is the canonical agent guide. `CLAUDE.md` imports it. Deeper task guid
 
 | Path | What it is |
 | --- | --- |
-| `packages/c15t` | `c15t` — the umbrella package users install; re-exports the adapters as `c15t/next`, `c15t/react`, `c15t/vue`, `c15t/astro`, `c15t/tanstack-start` |
+| `packages/c15t` | `c15t` — the umbrella package users install; re-exports the adapters as `c15t/next`, `c15t/react`, `c15t/vue`, `c15t/astro`, `c15t/tanstack-start`, `c15t/svelte` |
 | `packages/core` | `@c15t/core` — headless consent engine (storage, script gating, callbacks) |
 | `packages/react` | `@c15t/react` — banner/dialog/preference-center components + headless hooks |
 | `packages/nextjs` | `@c15t/nextjs` — Next.js integration (App + Pages Router, SSR) |
 | `packages/tanstack-start` | `@c15t/tanstack-start` — TanStack Start integration (server routes, server functions, request middleware, SSR) |
 | `packages/ui` | `@c15t/ui` — framework-agnostic primitives, CSS, theme system |
 | `packages/vue` | `@c15t/vue` — Vue plugin and Nuxt module (`c15t/vue`) |
-| `packages/svelte` | `@c15t/svelte` — Svelte components and SvelteKit helpers (not in the umbrella) |
+| `packages/svelte` | `@c15t/svelte` — Svelte components and SvelteKit helpers (`c15t/svelte`) |
 | `packages/astro` | `@c15t/astro` — Astro integration (`c15t/astro`) |
 | `packages/browser` | `@c15t/browser` — script-tag build and stock UI for sites without a framework |
 | `packages/react-native` | `@c15t/react-native` — native iOS and Android consent SDK, released separately |

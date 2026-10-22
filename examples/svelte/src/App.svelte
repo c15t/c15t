@@ -7,7 +7,7 @@
 		ConsentDialogLink,
 		ConsentProvider,
 		hosted,
-	} from '@c15t/svelte';
+	} from 'c15t/svelte';
 
 	const scripts = [
 		posthog({

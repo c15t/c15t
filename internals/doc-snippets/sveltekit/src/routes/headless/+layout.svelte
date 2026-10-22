@@ -5,7 +5,7 @@
 		ConsentDialogLink,
 		ConsentProvider,
 		hosted,
-	} from '@c15t/svelte';
+	} from 'c15t/svelte';
 
 	import CustomConsentBanner from '#lib/custom-consent-banner.svelte';
 	import { scripts } from '#lib/scripts.js';
