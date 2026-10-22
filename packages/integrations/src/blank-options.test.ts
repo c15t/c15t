@@ -48,6 +48,7 @@ import { vercelAnalytics } from './vendors/analytics/vercel-analytics';
 import { vercelSpeedInsights } from './vendors/analytics/vercel-speed-insights';
 import { klaviyo } from './vendors/email-and-sms/klaviyo';
 import { ada } from './vendors/functional/ada';
+import { adobeTarget } from './vendors/functional/adobe-target';
 import { crisp } from './vendors/functional/crisp';
 import { dynamicYield } from './vendors/functional/dynamic-yield';
 import { frontChat } from './vendors/functional/front-chat';
@@ -175,6 +176,61 @@ const requiredIdCases: {
 		helper: 'dynamicYield',
 		option: 'sectionId',
 		script: { category: 'experience', id: 'dynamic-yield' },
+	},
+	{
+		create: (id) =>
+			adobeTarget({
+				...{
+					datastreamId: 'STREAM',
+					mode: 'websdk' as const,
+					orgId: 'ORG@AdobeOrg',
+					version: '2.30.0',
+				},
+				version: asId(id),
+			}),
+		helper: 'adobeTarget',
+		option: 'version',
+		script: { category: 'experience', id: 'adobe-target' },
+	},
+	{
+		create: (id) =>
+			adobeTarget({
+				...{
+					datastreamId: 'STREAM',
+					mode: 'websdk' as const,
+					orgId: 'ORG@AdobeOrg',
+					version: '2.30.0',
+				},
+				orgId: asId(id),
+			}),
+		helper: 'adobeTarget',
+		option: 'orgId',
+		script: { category: 'experience', id: 'adobe-target' },
+	},
+	{
+		create: (id) =>
+			adobeTarget({
+				...{
+					datastreamId: 'STREAM',
+					mode: 'websdk' as const,
+					orgId: 'ORG@AdobeOrg',
+					version: '2.30.0',
+				},
+				datastreamId: asId(id),
+			}),
+		helper: 'adobeTarget',
+		option: 'datastreamId',
+		script: { category: 'experience', id: 'adobe-target' },
+	},
+	{
+		create: (id) =>
+			adobeTarget({
+				...{ mode: 'atjs', scriptUrl: '/scripts/at.js' },
+				scriptUrl: asId(id),
+			}),
+		helper: 'adobeTarget',
+		option: 'scriptUrl',
+		script: { category: 'experience', id: 'adobe-target' },
 	},
 	{
 		create: (id) => linkedinInsights({ id: asId(id) }),

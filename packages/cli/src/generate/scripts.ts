@@ -38,6 +38,10 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 			"adrollPixel({ advertiserId: 'ADVERTISER_ID', pixelId: 'PIXEL_ID' })",
 		importName: 'adrollPixel',
 	},
+	'adobe-target': {
+		example: "adobeTarget({ mode: 'atjs', scriptUrl: '/scripts/at.js' })",
+		importName: 'adobeTarget',
+	},
 	'ahrefs-analytics': {
 		example: "ahrefsAnalytics({ key: 'YOUR_ANALYTICS_KEY' })",
 		importName: 'ahrefsAnalytics',

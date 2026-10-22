@@ -51,6 +51,7 @@ import { vercelAnalytics } from '../vendors/analytics/vercel-analytics';
 import { vercelSpeedInsights } from '../vendors/analytics/vercel-speed-insights';
 import { klaviyo } from '../vendors/email-and-sms/klaviyo';
 import { ada } from '../vendors/functional/ada';
+import { adobeTarget } from '../vendors/functional/adobe-target';
 import { crisp } from '../vendors/functional/crisp';
 import { dynamicYield } from '../vendors/functional/dynamic-yield';
 import { frontChat } from '../vendors/functional/front-chat';
@@ -89,6 +90,14 @@ export const helperParityCases = {
 			src: 'https://s.adroll.com/j/c15tfake/roundtrip.js',
 		},
 		script: adrollPixel({ advertiserId: 'c15tfake', pixelId: 'c15tfake' }),
+	},
+	adobeTarget: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: true,
+			src: '/scripts/at.js',
+		},
+		script: adobeTarget({ mode: 'atjs', scriptUrl: '/scripts/at.js' }),
 	},
 	ahrefsAnalytics: {
 		expected: {

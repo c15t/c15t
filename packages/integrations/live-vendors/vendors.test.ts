@@ -140,6 +140,7 @@ describe('live vendor probe configs', () => {
 		expect(gaps.sort()).toEqual([
 			'ada',
 			'adobe-analytics',
+			'adobe-target',
 			'clearbit',
 			'crisp',
 			'dynamic-yield',

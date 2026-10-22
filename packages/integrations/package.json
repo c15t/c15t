@@ -375,6 +375,11 @@
 			"import": "./dist/vendors/functional/dynamic-yield.js",
 			"default": "./dist/vendors/functional/dynamic-yield.js"
 		},
+		"./adobe-target": {
+			"types": "./dist-types/vendors/functional/adobe-target.d.ts",
+			"import": "./dist/vendors/functional/adobe-target.js",
+			"default": "./dist/vendors/functional/adobe-target.js"
+		},
 		"./clay": {
 			"types": "./dist-types/vendors/analytics/clay.d.ts",
 			"import": "./dist/vendors/analytics/clay.js",

@@ -134,6 +134,7 @@ The layout stays a Server Component. You write no `'use client'` wrapper and nee
 - **Tag managers**: Google Tag Manager, Cloudflare Zaraz
 - **Analytics**: Google tag (GA4 and Google Ads), Adobe Analytics, Ahrefs Analytics, Amplitude, Clay, Cloudflare Web Analytics, Databuddy, Fathom, Heap, Hightouch, Hotjar, LogRocket, Lucky Orange, Matomo, Microsoft Clarity, Mixpanel, OneDollarStats, Pendo, Pirsch, Plausible, PostHog, Promptwatch, RB2B, RudderStack, Rybbit, Segment, Statable, Umami, Vercel Analytics, Vercel Speed Insights
 - **Experimentation and personalization**: Optimizely Web Experimentation
+- **Experimentation and personalization**: Adobe Target
 - **Ads and pixels**: AdRoll, Meta Pixel, OpenAI Pixel, TikTok Pixel, LinkedIn Insight Tag, LiveIntent, Microsoft UET, Pinterest Tag, Reddit Pixel, Snapchat Pixel, The Trade Desk, Vector, X Pixel
 - **Enrichment, email, and SMS**: Clearbit, Klaviyo
 - **Chat and support**: Ada, Intercom, Crisp, Front Chat, Gorgias Chat, Zendesk Messaging
