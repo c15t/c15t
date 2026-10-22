@@ -1,5 +1,6 @@
 ---
 packages:
+  'c15t': minor
   '@c15t/core': minor
   '@c15t/nextjs': minor
   '@c15t/tanstack-start': minor
@@ -43,3 +44,13 @@ pass `subjectCookie: false` so the server sets no cookie.
 On another server, `resolveRequestSubject()` from `c15t/server` returns the
 visitor's ID, the `Set-Cookie` value to send and the request `Cookie` header
 to render with.
+
+The server and the adapters never replace a `c15t-sid` cookie the request
+already has. While the browser's cookie writes succeed, the server render and
+the browser use the same ID. The server reads cookies only, though. If the
+browser refuses to rewrite a record cookie after the subject ID changes, a
+server render keeps reporting the old ID that cookie holds, and the browser
+starts with the new ID from its localStorage. This happens even when the
+request's `c15t-sid` cookie already holds the new ID. It lasts until a later
+write of that record reaches the cookie, which may never happen while the
+browser keeps refusing it.

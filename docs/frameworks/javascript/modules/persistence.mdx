@@ -48,22 +48,31 @@ from the first page load and still find it when they opt out later.
 
 When your server answers the first request, it can create the subject ID
 and send it back as the `c15t-sid` cookie. The server render and the browser
-then start with the same ID. The Next.js, TanStack Start, Astro, SvelteKit
+then start with the same ID, as long as the browser keeps accepting c15t's
+cookie writes. The Next.js, TanStack Start, Astro, SvelteKit
 and Nuxt adapters do this for you; see their rendering pages. On another
 server, call `resolveRequestSubject()` from `c15t/server` in your request
 handler:
 
 <include src="../../../shared/examples/javascript/server-subject.mdx" />
 
-`resolveRequestSubject()` reads the ID from the stored consent cookie, then
+`resolveRequestSubject()` reads the ID from the stored consent records, then
 from `c15t-sid`, and creates one only when neither has it, the same order
-the browser uses. It returns:
+the browser uses. It reads cookies only. If the browser refused to rewrite a
+record cookie after the subject ID changed, that cookie still holds the old
+ID while the browser's localStorage holds the new one. The server then
+reports the old ID, and the browser starts with the new one from its
+storage. This happens even when the request's `c15t-sid` cookie already holds
+the new ID. It lasts until a later write of that record reaches the cookie,
+which may never happen while the browser keeps refusing it. The server never
+replaces a `c15t-sid` cookie the request already has, so it cannot store the
+old ID over the new one. It returns:
 
 | Field | What it is |
 | --- | --- |
 | `subjectId` | The visitor's subject ID. |
-| `setCookie` | The `c15t-sid` cookie to set on the response, with its `header` value and attributes. `null` when the request already has that ID in `c15t-sid`. |
-| `cookie` | The request `Cookie` header with `c15t-sid` set. Pass it to a render in the same request so the render sees the ID. |
+| `setCookie` | The `c15t-sid` cookie to set on the response, with its `header` value and attributes. `null` when the request already has a `c15t-sid` cookie, even one holding a different ID. |
+| `cookie` | The request `Cookie` header, with `c15t-sid` added when the request had none. Pass it to a render in the same request so the render sees the ID. |
 
 It returns `null` for a prefetch, a prerender, and any response marked
 `shared: true`, such as cached HTML. A cookie on a shared response would give
