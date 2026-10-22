@@ -50,9 +50,8 @@ interface StartAttempt {
 	stop?: Promise<void>;
 }
 
-// Ada permits one active interface per page, including fresh helper objects.
+// Ada permits one interface per page, including fresh helper objects.
 let instance: AdaMessagingInterface | undefined;
-let instanceSettings: AdaOptions | undefined;
 let attempt: StartAttempt | undefined;
 let operations = Promise.resolve();
 let granted = false;
@@ -117,17 +116,10 @@ const startMessaging = (settings: AdaOptions): void => {
 					'Ada Messaging did not export createAdaEmbedInterface.'
 				);
 			}
-			// Ada merges restart settings, so a changed account or region needs
-			// a new interface to drop values omitted by the next configuration.
-			if (
-				!instance ||
-				settings.handle !== instanceSettings?.handle ||
-				settings.cluster !== instanceSettings?.cluster ||
-				settings.domain !== instanceSettings?.domain
-			) {
-				instance = sdk.createAdaEmbedInterface();
-				instanceSettings = settings;
-			}
+			// A second interface rejects with start_owner_conflict. Revocation
+			// already ran stop() before this start, and Ada documents that
+			// stop() then start() creates a new client with the new settings.
+			instance ??= sdk.createAdaEmbedInterface();
 			current.started = true;
 			await instance.start(settings);
 		} catch (error) {
@@ -146,7 +138,8 @@ const startMessaging = (settings: AdaOptions): void => {
  * active configuration supplies its settings. When the last granted loader
  * revokes consent or disposes the script, Ada's documented `stop()` runs,
  * including while `start()` is pending. A later grant waits for pending work.
- * Changed account or regional settings create a fresh private interface.
+ * Changed account or regional settings restart that interface after
+ * `stop()`.
  *
  * @param options - AI Agent handle and optional Ada regional settings.
  * @returns A callback-only script gated on functionality consent.
