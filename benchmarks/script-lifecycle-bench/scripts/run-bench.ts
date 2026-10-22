@@ -203,33 +203,62 @@ const assertScenarioInvariants = function assertScenarioInvariants(
 	}
 };
 
+/** Name the scenario, the wait, and the page state when a wait fails. */
+const describeWaitFailure = async function describeWaitFailure(
+	page: PlaywrightTypes.Page,
+	config: ScriptLifecycleScenarioConfig,
+	marker: string,
+	error: unknown
+): Promise<Error> {
+	const state = await page
+		.evaluate(() => JSON.stringify(window.__c15tScriptBench ?? null))
+		.catch(() => 'unavailable');
+	return new Error(
+		`${config.name}: gave up waiting for ${marker}. Page state: ${state}`,
+		{ cause: error }
+	);
+};
+
 const collectScenarioSample = async function collectScenarioSample(
 	page: PlaywrightTypes.Page,
 	config: ScriptLifecycleScenarioConfig
 ) {
 	await page.goto(`/?scenario=${config.name}`);
-	await page.waitForFunction(
-		(targetScenario) => {
-			const state = window.__c15tScriptBench;
-			return (
-				!!state &&
-				state.scenario === targetScenario &&
-				state.completionMarkers.initialReady === true
-			);
-		},
-		config.name,
-		{ timeout: 30_000 }
-	);
+	await page
+		.waitForFunction(
+			(targetScenario) => {
+				const state = window.__c15tScriptBench;
+				return (
+					!!state &&
+					state.scenario === targetScenario &&
+					state.completionMarkers.initialReady === true
+				);
+			},
+			config.name,
+			{ timeout: 30_000 }
+		)
+		.catch(async (error: unknown) => {
+			throw await describeWaitFailure(page, config, 'initialReady', error);
+		});
 
 	await page.click('#run-scenario-action');
-	await page.waitForFunction(
-		(marker) => {
-			const state = window.__c15tScriptBench;
-			return !!state && state.completionMarkers[marker] === true;
-		},
-		config.completionMarker,
-		{ timeout: 30_000 }
-	);
+	await page
+		.waitForFunction(
+			(marker) => {
+				const state = window.__c15tScriptBench;
+				return !!state && state.completionMarkers[marker] === true;
+			},
+			config.completionMarker,
+			{ timeout: 30_000 }
+		)
+		.catch(async (error: unknown) => {
+			throw await describeWaitFailure(
+				page,
+				config,
+				config.completionMarker,
+				error
+			);
+		});
 
 	const state = await page.evaluate(() => {
 		const current = window.__c15tScriptBench;
