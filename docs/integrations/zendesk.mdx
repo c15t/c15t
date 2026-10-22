@@ -17,7 +17,8 @@ different API.
 
 ## Configure Zendesk Messaging
 
-Copy your widget key from **Admin Center > Channels > Messaging > Installation**.
+In **Admin Center > Channels > Messaging and social > Messaging**, select your
+widget and open **Installation**. Copy the widget key from its code snippet.
 Remove the original Zendesk snippet from your page or tag manager.
 
 <CommandTabs command="@c15t/integrations" mode="install" />
@@ -61,6 +62,10 @@ active script. Recreating the helper on a render keeps its loader and consent
 updates active. If several loaders share that configuration, the widget stays
 available while any registration grants its mapped consent. Analytics storage
 requires measurement consent from every granted registration.
+
+Use one widget key per page because Zendesk exposes one global `zE` API.
+Different keys use separate loader resources, so a c15t loader cannot silently
+adopt another key's script. Separate resources do not isolate Zendesk's global API.
 
 Removing a configuration or unmounting its provider releases that loader's
 registration. Once the last registration leaves, c15t removes the script

@@ -54,7 +54,7 @@ export const zendeskWidgetManifest = {
 } satisfies VendorManifest;
 
 export interface ZendeskWidgetOptions {
-	/** Public widget key from Admin Center > Channels > Messaging > Installation. */
+	/** Public widget key from the selected Messaging widget's Installation panel. */
 	key: string;
 	/** Consent condition required to load the widget. @default 'functionality' */
 	category?: Script['category'];
@@ -114,6 +114,7 @@ const createZendeskScript = (options: ZendeskWidgetOptions): Script => {
 		onDispose() {
 			installed = false;
 		},
+		resourceKey: `zendesk:${options.key}`,
 		// The client must attach zE.s and set cookies before the vendor executes.
 		serverStart: undefined,
 	};

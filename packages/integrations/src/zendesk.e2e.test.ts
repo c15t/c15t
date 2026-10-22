@@ -107,6 +107,44 @@ describe('Zendesk Messaging loader contract', () => {
 		]);
 	});
 
+	it.each([false, true])(
+		'keeps different widget keys on separate loader resources, loaded=%s',
+		async (loaded) => {
+			const firstKernel = createConsentKernel();
+			const secondKernel = createConsentKernel();
+			await firstKernel.commands.save(functionalityConsents);
+			await secondKernel.commands.save(functionalityConsents);
+			const first = createScriptLoader({
+				kernel: firstKernel,
+				scripts: [zendeskWidget({ key: 'first-widget' })],
+			});
+			const firstElement = getLoader();
+			if (loaded) {
+				firstElement.dispatchEvent(new Event('load'));
+			}
+			const second = createScriptLoader({
+				kernel: secondKernel,
+				scripts: [zendeskWidget({ key: 'second-widget' })],
+			});
+			try {
+				const elements = [...document.head.querySelectorAll('script')];
+				expect(elements.map((element) => element.src)).toEqual([
+					'https://static.zdassets.com/ekr/snippet.js?key=first-widget',
+					'https://static.zdassets.com/ekr/snippet.js?key=second-widget',
+				]);
+				expect(elements[1]?.id).not.toBe(firstElement.id);
+				second.dispose();
+				expect(firstElement.isConnected).toBe(true);
+				expect(elements[1]?.isConnected).toBe(false);
+			} finally {
+				first.dispose();
+				second.dispose();
+				firstKernel.dispose();
+				secondKernel.dispose();
+			}
+		}
+	);
+
 	it('queues none for an in-flight revocation and restores the range on re-grant', () => {
 		const scripts = [zendeskWidget({ key: 'widget-key' })];
 		loadScripts(scripts, functionalityConsents);
