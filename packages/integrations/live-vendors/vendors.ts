@@ -70,6 +70,7 @@ import { vercelSpeedInsights } from '../src/vendors/analytics/vercel-speed-insig
 import { klaviyo } from '../src/vendors/email-and-sms/klaviyo';
 import { ada } from '../src/vendors/functional/ada';
 import { crisp } from '../src/vendors/functional/crisp';
+import { dynamicYield } from '../src/vendors/functional/dynamic-yield';
 import { frontChat } from '../src/vendors/functional/front-chat';
 import { gorgiasChat } from '../src/vendors/functional/gorgias';
 import { intercom } from '../src/vendors/functional/intercom';
@@ -589,6 +590,20 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 			'The official sample project returns HTTP 403. This checks CDN reachability only; a dedicated project is needed for account runtime validation.',
 		tier: 'loader-only',
 		vendor: 'optimizely',
+	},
+
+	{
+		bootstrapCheck: () =>
+			check(
+				window.DY?.userActiveConsent?.accepted === true,
+				'Active Cookie Consent is granted only after the mapped gate'
+			),
+		createScript: () => dynamicYield({ sectionId: '1234567' }),
+		loaderUrlSubstring: 'cdn.dynamicyield.com/api/1234567/api_dynamic.js',
+		notes:
+			'Placeholder sections return HTTP403. This checks endpoint reachability and the consent bootstrap, not a configured section or SDK runtime.',
+		tier: 'loader-only',
+		vendor: 'dynamic-yield',
 	},
 
 	{

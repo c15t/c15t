@@ -60,6 +60,7 @@ import { vercelSpeedInsightsManifest } from './vendors/analytics/vercel-speed-in
 import { klaviyoManifest } from './vendors/email-and-sms/klaviyo';
 import { adaManifest } from './vendors/functional/ada';
 import { crispManifest } from './vendors/functional/crisp';
+import { dynamicYieldManifest } from './vendors/functional/dynamic-yield';
 import { frontChatManifest } from './vendors/functional/front-chat';
 import { gorgiasChatManifest } from './vendors/functional/gorgias';
 import { intercomManifest } from './vendors/functional/intercom';
@@ -88,6 +89,7 @@ const vendorManifests = [
 	luckyOrangeManifest,
 	rb2bManifest,
 	optimizelyWebManifest,
+	dynamicYieldManifest,
 	googleTagManagerManifest,
 	gtagManifest,
 	ahrefsAnalyticsManifest,

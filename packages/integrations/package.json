@@ -370,6 +370,11 @@
 			"import": "./dist/vendors/functional/optimizely.js",
 			"default": "./dist/vendors/functional/optimizely.js"
 		},
+		"./dynamic-yield": {
+			"types": "./dist-types/vendors/functional/dynamic-yield.d.ts",
+			"import": "./dist/vendors/functional/dynamic-yield.js",
+			"default": "./dist/vendors/functional/dynamic-yield.js"
+		},
 		"./clay": {
 			"types": "./dist-types/vendors/analytics/clay.d.ts",
 			"import": "./dist/vendors/analytics/clay.js",

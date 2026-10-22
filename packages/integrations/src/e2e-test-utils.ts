@@ -338,6 +338,7 @@ export const resetVendorGlobals = function resetVendorGlobals() {
 		'analytics',
 		'clarity',
 		'dataLayer',
+		'DY',
 		'databuddy',
 		'databuddyConfig',
 		'fbq',

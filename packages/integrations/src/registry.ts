@@ -175,6 +175,16 @@ export const builtInScriptIntegrations = [
 		vendor: 'optimizely',
 	},
 	{
+		consentCategory: 'experience',
+		docsSlug: 'other-experience',
+		hint: 'On-site personalization and recommendations',
+		integrationCategory: 'functional',
+		key: 'dynamicYield',
+		label: 'Dynamic Yield',
+		packageSubpath: 'dynamic-yield',
+		vendor: 'dynamic-yield',
+	},
+	{
 		consentCategory: 'necessary',
 		docsSlug: 'cloudflare-zaraz',
 		hint: 'Consent bridge for tools managed by Zaraz',

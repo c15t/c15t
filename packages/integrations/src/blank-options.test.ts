@@ -49,6 +49,7 @@ import { vercelSpeedInsights } from './vendors/analytics/vercel-speed-insights';
 import { klaviyo } from './vendors/email-and-sms/klaviyo';
 import { ada } from './vendors/functional/ada';
 import { crisp } from './vendors/functional/crisp';
+import { dynamicYield } from './vendors/functional/dynamic-yield';
 import { frontChat } from './vendors/functional/front-chat';
 import { gorgiasChat } from './vendors/functional/gorgias';
 import { intercom } from './vendors/functional/intercom';
@@ -167,6 +168,13 @@ const requiredIdCases: {
 		helper: 'optimizelyWeb',
 		option: 'projectId',
 		script: { category: 'experience', id: 'optimizely' },
+	},
+	{
+		create: (id) =>
+			dynamicYield({ ...{ sectionId: '1234567' }, sectionId: asId(id) }),
+		helper: 'dynamicYield',
+		option: 'sectionId',
+		script: { category: 'experience', id: 'dynamic-yield' },
 	},
 	{
 		create: (id) => linkedinInsights({ id: asId(id) }),
