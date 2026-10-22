@@ -42,28 +42,25 @@ describe('AdRoll account configuration', () => {
 		{ advertiserId: ' \t ', missing: 'advertiserId', pixelId: 'pixel' },
 		{ advertiserId: 'advertiser', missing: 'pixelId', pixelId: '' },
 		{ advertiserId: 'advertiser', missing: 'pixelId', pixelId: ' \n ' },
-	])(
-		'skips missing $missing while retaining the configured category',
-		(options) => {
-			const error = vi
-				.spyOn(console, 'error')
-				.mockImplementation(() => undefined);
-			try {
-				const script = adrollPixel({ ...options, category: 'measurement' });
-				expect(script).toMatchObject({
-					callbackOnly: true,
-					category: 'measurement',
-					id: 'adroll',
-					vendor: 'adroll',
-				});
-				expect(script.src).toBeUndefined();
-				expect(script.onBeforeLoad).toBeUndefined();
-				expect(error).toHaveBeenCalledExactlyOnceWith(
-					`adrollPixel: missing or invalid ${options.missing}. The script will not load.`
-				);
-			} finally {
-				error.mockRestore();
-			}
+	])('skips missing $missing', (options) => {
+		const error = vi
+			.spyOn(console, 'error')
+			.mockImplementation(() => undefined);
+		try {
+			const script = adrollPixel(options);
+			expect(script).toMatchObject({
+				callbackOnly: true,
+				category: 'marketing',
+				id: 'adroll',
+				vendor: 'adroll',
+			});
+			expect(script.src).toBeUndefined();
+			expect(script.onBeforeLoad).toBeUndefined();
+			expect(error).toHaveBeenCalledExactlyOnceWith(
+				`adrollPixel: missing or invalid ${options.missing}. The script will not load.`
+			);
+		} finally {
+			error.mockRestore();
 		}
-	);
+	});
 });

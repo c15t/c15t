@@ -78,27 +78,6 @@ describe('AdRoll production core loader contract', () => {
 		);
 	});
 
-	it('uses the configured consent condition for every bootstrap step', () => {
-		const scripts = [
-			adrollPixel({
-				...account,
-				category: { and: ['marketing', 'measurement'] },
-			}),
-		];
-		loadScripts(scripts, deniedConsents);
-		updateScripts(scripts, grantedMarketingConsents);
-		updateScripts(scripts, grantedMeasurementConsents);
-		expect(window.adroll).toBeUndefined();
-		expect(document.querySelector('script')).toBeNull();
-
-		updateScripts(scripts, {
-			...grantedMarketingConsents,
-			measurement: true,
-		});
-		expect(queuedCalls()).toEqual([['track', ['pageView']]]);
-		expect(document.querySelectorAll('script')).toHaveLength(1);
-	});
-
 	it('queues the exact official method and Arguments tuples before insertion', () => {
 		let atAppend: unknown[][] | undefined;
 		installHeadProbe((node) => {

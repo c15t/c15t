@@ -42,14 +42,12 @@ export interface AdrollPixelOptions {
 	advertiserId: string;
 	/** Pixel ID from the generated snippet. */
 	pixelId: string;
-	/** Consent condition required before loading. Defaults to marketing. */
-	category?: Script['category'];
 	/** Override URL for the account-specific v2 loader. */
 	scriptUrl?: string;
 }
 
 /**
- * Loads AdRoll v2 only after the mapped consent and queues the initial page view.
+ * Loads AdRoll v2 only after marketing consent and queues the initial page view.
  * @param options - Public advertiser and pixel IDs, plus an optional loader URL.
  * @returns A gated script, or a skipped script for missing IDs.
  * @remarks Keep reload on revocation enabled. AdRoll has no documented stop API.
@@ -59,18 +57,17 @@ export interface AdrollPixelOptions {
 export const adrollPixel = function adrollPixel(
 	options: AdrollPixelOptions
 ): Script {
-	const category = options?.category ?? 'marketing';
 	const advertiserId = readId(options?.advertiserId);
 	if (advertiserId === undefined) {
 		return skipMissingId('adrollPixel', 'advertiserId', {
-			category,
+			category: 'marketing',
 			manifest: adrollPixelManifest,
 		});
 	}
 	const pixelId = readId(options.pixelId);
 	if (pixelId === undefined) {
 		return skipMissingId('adrollPixel', 'pixelId', {
-			category,
+			category: 'marketing',
 			manifest: adrollPixelManifest,
 		});
 	}
@@ -82,7 +79,6 @@ export const adrollPixel = function adrollPixel(
 	});
 	return {
 		...script,
-		category,
 		onBeforeLoad(info) {
 			window.adroll_adv_id = advertiserId;
 			window.adroll_pix_id = pixelId;
