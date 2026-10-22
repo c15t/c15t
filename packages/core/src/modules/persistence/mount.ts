@@ -54,6 +54,26 @@ const RETRIES = 3;
  */
 export const queuedWrites = new Map<string, InternalKernel>();
 
+// Kernels whose queued subject change a later handle took over when it
+// started from their records (see `startQueuedSubject`), with that
+// handle's kernel. The subject is the later kernel's from then on: the
+// earlier handle lands only the decisions it queued, under that subject.
+const handedOver = new WeakMap<InternalKernel, InternalKernel>();
+
+/** `owner` with the subject `successor` holds, for the owner's writes. */
+const withSubjectOf = function withSubjectOf(
+	owner: InternalKernel,
+	successor: InternalKernel
+): InternalKernel {
+	return {
+		...owner,
+		getSnapshot: () => ({
+			...owner.getSnapshot(),
+			subject: successor.getSnapshot().subject,
+		}),
+	};
+};
+
 /**
  * `createPersistence`, with the place the write code comes from. Tests
  * pass their own loader.
@@ -105,8 +125,11 @@ export const mountPersistence = function mountPersistence(
 	// The ID both copies of `<key>-sid` were last read as or written with;
 	// `null` when a copy was missing, so the next store writes both.
 	let storedSubjectId: string | null = null;
-	// An ID for `<key>-sid` that waits for the records carrying it to be
-	// stored, so a page that unloads first keeps both on the old ID.
+	// An ID for `<key>-sid` that waits until no stored record carries
+	// another ID: until this runtime's writes store it with the records, or
+	// those of another handle whose queued records it started from. A page
+	// that unloads first keeps both on the old ID, and a record another
+	// runtime rewrote in the meantime keeps its ID in `<key>-sid` too.
 	let pendingSubjectId: string | undefined;
 	// An ID this runtime generated or read from `<key>-sid` that no save or
 	// `identify()` has used yet. Another tab's stored ID replaces it, so two
@@ -127,13 +150,29 @@ export const mountPersistence = function mountPersistence(
 			return;
 		}
 		clearTimeout(retryTimer);
+		const successor = handedOver.get(kernel);
+		handedOver.delete(kernel);
 		writer = module.createPersistenceWriter(
-			{ kernel, now, state, storageConfig },
+			{
+				kernel: successor ? withSubjectOf(kernel, successor) : kernel,
+				now,
+				state,
+				storageConfig,
+			},
 			persistenceTools
 		);
 		if (baseline) {
 			writer.adopt(...baseline);
 			baseline = undefined;
+		}
+		if (successor) {
+			if (!state.choiceRecorded) {
+				requested.delete('choice');
+			}
+			if (!state.vendorsRecorded) {
+				requested.delete('vendors');
+			}
+			pendingSubjectId = undefined;
 		}
 		// At once, not in a later macrotask: a save request held for these
 		// writes is released as soon as they are stored.
@@ -204,6 +243,10 @@ export const mountPersistence = function mountPersistence(
 			queuedWrites.delete(consentKey);
 			for (const kind of kinds) {
 				landed.schedule(kind);
+			}
+			if (pendingSubjectId) {
+				// oxlint-disable-next-line no-use-before-define -- Runs only after assembly.
+				storeSubjectId(pendingSubjectId);
 			}
 			return;
 		}
@@ -414,8 +457,28 @@ export const mountPersistence = function mountPersistence(
 		return hydrateStored()?.found ?? false;
 	};
 
+	/** Whether a stored record carries a subject ID other than `id`. */
+	const recordsCarryOther = function recordsCarryOther(id: string): boolean {
+		const recorded = readStoredRecordsForReconcile(
+			storageConfig,
+			now()
+		).recordedSubjectId;
+		return recorded !== null && recorded !== id;
+	};
+
+	/**
+	 * Stores `id` in `<key>-sid` once no stored record carries another ID,
+	 * else keeps it pending: records win on the next load, so `<key>-sid`
+	 * ahead of them would name an ID a reload does not restore.
+	 */
 	const storeSubjectId = function storeSubjectId(id: string): void {
-		if (!writer && (requested.has('choice') || requested.has('vendors'))) {
+		// This runtime's own scheduled writes go first: a rewrite it just
+		// requested can bring the records to the ID.
+		writer?.flush();
+		if (
+			(!writer && (requested.has('choice') || requested.has('vendors'))) ||
+			recordsCarryOther(id)
+		) {
 			pendingSubjectId = id;
 			return;
 		}
@@ -536,17 +599,35 @@ export const mountPersistence = function mountPersistence(
 
 	/**
 	 * Starts from the subject another handle's queued records carry. This
-	 * handle starts from those records (`withQueued`), and they land over
-	 * storage, so their subject does too: storage still holds the ID they
-	 * replace until then. Their writes store `<key>-sid` when they land.
+	 * handle starts from those records (`withQueued`), so it takes their
+	 * subject too, and the change to it: it rewrites the records under the
+	 * subject it holds when its own write code lands, and `<key>-sid`
+	 * follows them. The owner's handle then lands only its decisions.
+	 * Storage keeps the ID it held until then.
 	 */
-	const startQueuedSubject = function startQueuedSubject(id: string): void {
+	const startQueuedSubject = function startQueuedSubject(
+		owner: InternalKernel,
+		id: string
+	): void {
 		storedSubjectId = readSyncedSubjectId(storageConfig);
 		subjectId = id;
 		const { subject } = kernel.getSnapshot();
 		if (subject?.subjectId !== id) {
 			kernel.hydrate({ subject: { ...subject, subjectId: id } });
 		}
+		if (owner === kernel) {
+			return;
+		}
+		// The subject change is this handle's now: a later one made here
+		// supersedes it before the owner's write could land it.
+		handedOver.set(owner, kernel);
+		if (
+			readStoredRecordsForReconcile(storageConfig, now()).recordedSubjectId !==
+			id
+		) {
+			rekeyRecords(kernel.getSnapshot());
+		}
+		storeSubjectId(id);
 	};
 
 	/**
@@ -654,10 +735,10 @@ export const mountPersistence = function mountPersistence(
 			recordedSubjectId = hydrateStored()?.recordedSubjectId ?? null;
 		}
 		if (handlesSubject()) {
-			const queuedSubjectId = queuedWrites.get(consentKey)?.getSnapshot()
-				.subject?.subjectId;
-			if (queuedSubjectId) {
-				startQueuedSubject(queuedSubjectId);
+			const queued = queuedWrites.get(consentKey);
+			const queuedSubjectId = queued?.getSnapshot().subject?.subjectId;
+			if (queued && queuedSubjectId) {
+				startQueuedSubject(queued, queuedSubjectId);
 			} else {
 				startSubject(before, recordedSubjectId);
 			}

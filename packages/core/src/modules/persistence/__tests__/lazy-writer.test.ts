@@ -31,7 +31,10 @@ import { mountPersistence as createPersistence, queuedWrites } from '../mount';
 import { readStoredConsentRecord } from '../record-storage';
 import { createWriterLoader } from '../writer-loader';
 import type { WriterLoader } from '../writer-loader';
-import { clearStoredConsentRecords } from './record-writes';
+import {
+	clearStoredConsentRecords,
+	writeStoredConsentEnvelope,
+} from './record-writes';
 
 /** A loader whose write code lands on `land()`; `fail()` fails the next load. */
 const heldBackLoader = function heldBackLoader(): {
@@ -128,6 +131,233 @@ beforeEach(() => {
 afterEach(() => {
 	clearStoredConsentRecords();
 	vi.useRealTimers();
+});
+
+// First in the file: several tests below leave a handle mounted, and the
+// focus events here would reach them.
+describe('<key>-sid follows the records that carry the subject', () => {
+	const sidKey = `${STORAGE_KEY_V2}-sid`;
+	const expireSid = () => {
+		document.cookie = `${sidKey}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
+	};
+
+	test('a rekey another tab’s newer record skipped does not publish the new ID ahead of it', async () => {
+		expireSid();
+		await seedChoice({ marketing: true });
+		const saved = localStorage.getItem(sidKey);
+		const { land, loader } = heldBackLoader();
+		const sent: (string | undefined)[] = [];
+		const kernel = createConsentKernel({
+			now: Date.now(),
+			transport: {
+				save: (payload) => {
+					sent.push(payload.subjectId);
+					return Promise.resolve({ ok: true });
+				},
+			},
+		});
+		const handle = createPersistence({ kernel, sync: false }, loader);
+		kernel.set.subjectId('sub_next');
+		// Another tab, still on the saved ID, records a newer denial. It
+		// shares storage, not this page's queued writes.
+		vi.setSystemTime(NOW + 1000);
+		const before = storedChoice();
+		const granted = before?.choice.categories.marketing;
+		if (!(before?.subject && granted)) {
+			throw new Error('Expected a stored grant with a subject');
+		}
+		writeStoredConsentEnvelope(
+			{
+				categories: {
+					...before.choice.categories,
+					marketing: { ...granted, confirmedAt: NOW + 1000, value: false },
+				},
+				subject: before.subject,
+				version: 3,
+			},
+			{ now: NOW + 1000 }
+		);
+
+		await land();
+		// The subject-only rewrite yields to the newer record, which still
+		// carries the saved ID, so <key>-sid keeps that ID too.
+		expect(storedChoice()?.subject?.subjectId).toBe(saved);
+		expect(localStorage.getItem(sidKey)).toBe(saved);
+		expect(storedChoice()?.choice.categories.marketing).toMatchObject({
+			confirmedAt: NOW + 1000,
+			value: false,
+		});
+
+		// This runtime's next save stores its ID with the merged records.
+		vi.setSystemTime(NOW + 2000);
+		await settle(kernel.commands.save({ measurement: true }));
+		expect(sent).toEqual(['sub_next']);
+		expect(storedChoice()?.subject?.subjectId).toBe('sub_next');
+		expect(localStorage.getItem(sidKey)).toBe('sub_next');
+		expect(storedChoice()?.choice.categories.marketing).toMatchObject({
+			confirmedAt: NOW + 1000,
+			value: false,
+		});
+		handle.dispose();
+
+		const reloaded = createConsentKernel({ now: Date.now() });
+		const reader = createPersistence({ kernel: reloaded });
+		expect(reloaded.getSnapshot().subject?.subjectId).toBe('sub_next');
+		reader.clear();
+		expect(localStorage.getItem(sidKey)).toBe('sub_next');
+		reader.dispose();
+		expireSid();
+	});
+
+	test.each([
+		['kept', 'present'],
+		['dropped', 'present'],
+		['dropped', 'absent'],
+	] as const)(
+		'focus before a remount’s queued records land does not publish their ID ahead of them, record cookie %s, <key>-sid %s',
+		async (recordCookie, sid) => {
+			expireSid();
+			await seedChoice({ marketing: true });
+			const saved = localStorage.getItem(sidKey);
+			const { land, loader } = heldBackLoader();
+			const leaving = createConsentKernel({ now: Date.now() });
+			const left = createPersistence({ kernel: leaving }, loader);
+			leaving.set.subjectId('sub_next');
+			left.dispose();
+
+			const kernel = createConsentKernel({ now: Date.now() });
+			const handle = createPersistence({ kernel }, loader);
+			expect(kernel.getSnapshot().subject?.subjectId).toBe('sub_next');
+			// The browser lost the record cookie (localStorage still holds the
+			// record), or <key>-sid altogether.
+			if (recordCookie === 'dropped') {
+				document.cookie = `${STORAGE_KEY_V2}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
+			}
+			if (sid === 'absent') {
+				expireSid();
+				localStorage.removeItem(sidKey);
+			}
+			window.dispatchEvent(new Event('focus'));
+			// The records still carry the saved ID until the queued writes land.
+			expect(
+				readStoredRecordsForReconcile(undefined, Date.now()).recordedSubjectId
+			).toBe(saved);
+			expect(localStorage.getItem(sidKey)).toBe(
+				sid === 'absent' ? null : saved
+			);
+
+			await land();
+			expect(storedChoice()?.subject?.subjectId).toBe('sub_next');
+			expect(localStorage.getItem(sidKey)).toBe('sub_next');
+			window.dispatchEvent(new Event('focus'));
+			expect(localStorage.getItem(sidKey)).toBe('sub_next');
+			handle.dispose();
+
+			const reloaded = createConsentKernel({ now: Date.now() });
+			createPersistence({ kernel: reloaded }).dispose();
+			expect(reloaded.getSnapshot().subject?.subjectId).toBe('sub_next');
+			expireSid();
+		}
+	);
+
+	test.each([
+		['a decision then a new ID', 'an ID the app names', 'sub_third'],
+		['a decision then a new ID', 'a reset', null],
+		['a new ID then a decision', 'an ID the app names', 'sub_third'],
+		['a new ID then a decision', 'a reset', null],
+	] as const)(
+		'a remount that queued %s, then %s before they land, stores that decision under the newer ID',
+		async (order, _, next) => {
+			expireSid();
+			await seedChoice({ marketing: true });
+			const saved = localStorage.getItem(sidKey);
+			const { land, loader } = heldBackLoader();
+			const leaving = createConsentKernel({ now: Date.now() });
+			const left = createPersistence({ kernel: leaving }, loader);
+			vi.setSystemTime(NOW + 1000);
+			let saving: Promise<unknown>;
+			if (order === 'a decision then a new ID') {
+				saving = leaving.commands.save({ marketing: false });
+				leaving.set.subjectId('sub_next');
+			} else {
+				leaving.set.subjectId('sub_next');
+				saving = leaving.commands.save({ marketing: false });
+			}
+			left.dispose();
+
+			const kernel = createConsentKernel({ now: Date.now() });
+			const handle = createPersistence({ kernel }, loader);
+			expect(kernel.getSnapshot().subject?.subjectId).toBe('sub_next');
+			kernel.set.subjectId(next);
+			const replaced = kernel.getSnapshot().subject?.subjectId;
+			expect([saved, 'sub_next', undefined]).not.toContain(replaced);
+
+			await land();
+			await settle(saving);
+			// The queued decision lands with its time, under the newer ID, and
+			// <key>-sid follows it. No save was made after the replacement.
+			expect(storedChoice()?.subject?.subjectId).toBe(replaced);
+			expect(storedChoice()?.choice.categories.marketing).toMatchObject({
+				confirmedAt: NOW + 1000,
+				value: false,
+			});
+			expect(localStorage.getItem(sidKey)).toBe(replaced);
+			expect(kernel.getSnapshot().subject?.subjectId).toBe(replaced);
+			handle.dispose();
+
+			const reloaded = createConsentKernel({ now: Date.now() });
+			const reader = createPersistence({ kernel: reloaded });
+			expect(reloaded.getSnapshot().subject?.subjectId).toBe(replaced);
+			expect(
+				reloaded.getSnapshot().explicitChoice?.categories.marketing?.value
+			).toBe(false);
+			reader.clear();
+			expect(localStorage.getItem(sidKey)).toBe(replaced);
+			reader.dispose();
+			expireSid();
+		}
+	);
+
+	test.each([
+		['an ID the app names', 'sub_third'],
+		['a reset', null],
+	] as const)(
+		'%s after a remount, before the queued records land, is what a reload restores',
+		async (_, next) => {
+			expireSid();
+			await seedChoice({ marketing: true });
+			const saved = localStorage.getItem(sidKey);
+			const { land, loader } = heldBackLoader();
+			const leaving = createConsentKernel({ now: Date.now() });
+			const left = createPersistence({ kernel: leaving }, loader);
+			leaving.set.subjectId('sub_next');
+			left.dispose();
+
+			const kernel = createConsentKernel({ now: Date.now() });
+			const handle = createPersistence({ kernel }, loader);
+			expect(kernel.getSnapshot().subject?.subjectId).toBe('sub_next');
+			kernel.set.subjectId(next);
+			const replaced = kernel.getSnapshot().subject?.subjectId;
+			expect(replaced).toBeTruthy();
+			expect([saved, 'sub_next']).not.toContain(replaced);
+
+			await land();
+			// No save: the records carry the newer ID, and <key>-sid with them.
+			expect(storedChoice()?.subject?.subjectId).toBe(replaced);
+			expect(localStorage.getItem(sidKey)).toBe(replaced);
+			expect(storedChoice()?.choice.categories.marketing?.value).toBe(true);
+			expect(kernel.getSnapshot().subject?.subjectId).toBe(replaced);
+			handle.dispose();
+
+			const reloaded = createConsentKernel({ now: Date.now() });
+			const reader = createPersistence({ kernel: reloaded });
+			expect(reloaded.getSnapshot().subject?.subjectId).toBe(replaced);
+			reader.clear();
+			expect(localStorage.getItem(sidKey)).toBe(replaced);
+			reader.dispose();
+			expireSid();
+		}
+	);
 });
 
 describe('before the write code lands', () => {
