@@ -98,18 +98,18 @@ kernel to control its DOM lifecycle. Embeds do not require `@c15t/integrations`.
 
 ## Ads and pixels
 
-| Integration                                    | Helper             | Category    | Loading behavior                                                 |
-| ---------------------------------------------- | ------------------ | ----------- | ---------------------------------------------------------------- |
-| [LiveIntent](./liveintent.md)                  | `liveIntentTag`    | `marketing` | Waits for effective permission                                   |
-| [Meta Pixel](./meta-pixel.md)                  | `metaPixel`        | `marketing` | Gated initially; keeps the SDK and signals consent               |
-| [OpenAI Pixel](./openai-pixel.md)              | `openaiPixel`      | `marketing` | Gated initially; keeps the SDK and signals consent               |
-| [Pinterest Tag](./pinterest-tag.md)            | `pinterestTag`     | `marketing` | Gated initially; keeps the tag and signals consent               |
-| [Reddit Pixel](./reddit-pixel.md)              | `redditPixel`      | `marketing` | Gated initially; keeps the pixel and toggles first-party cookies |
-| [TikTok Pixel](./tiktok-pixel.md)              | `tiktokPixel`      | `marketing` | Gated initially; keeps the SDK and signals consent               |
-| [LinkedIn Insight Tag](./linkedin-insights.md) | `linkedinInsights` | `marketing` | Waits for effective permission                                   |
-| [Microsoft UET](./microsoft-uet.md)            | `microsoftUet`     | `marketing` | Always loads; signals ad storage consent                         |
-| [Snapchat Pixel](./snapchat-pixel.md)          | `snapchatPixel`    | `marketing` | Waits for effective permission                                   |
-| [X Pixel](./x-pixel.md)                        | `xPixel`           | `marketing` | Waits for effective permission                                   |
+| Integration                                        | Helper             | Category    | Loading behavior                                                 |
+| -------------------------------------------------- | ------------------ | ----------- | ---------------------------------------------------------------- |
+| [LiveIntent](./other-ads-and-pixels.md#liveintent) | `liveIntentTag`    | `marketing` | Waits for effective permission                                   |
+| [Meta Pixel](./meta-pixel.md)                      | `metaPixel`        | `marketing` | Gated initially; keeps the SDK and signals consent               |
+| [OpenAI Pixel](./openai-pixel.md)                  | `openaiPixel`      | `marketing` | Gated initially; keeps the SDK and signals consent               |
+| [Pinterest Tag](./pinterest-tag.md)                | `pinterestTag`     | `marketing` | Gated initially; keeps the tag and signals consent               |
+| [Reddit Pixel](./reddit-pixel.md)                  | `redditPixel`      | `marketing` | Gated initially; keeps the pixel and toggles first-party cookies |
+| [TikTok Pixel](./tiktok-pixel.md)                  | `tiktokPixel`      | `marketing` | Gated initially; keeps the SDK and signals consent               |
+| [LinkedIn Insight Tag](./linkedin-insights.md)     | `linkedinInsights` | `marketing` | Waits for effective permission                                   |
+| [Microsoft UET](./microsoft-uet.md)                | `microsoftUet`     | `marketing` | Always loads; signals ad storage consent                         |
+| [Snapchat Pixel](./snapchat-pixel.md)              | `snapchatPixel`    | `marketing` | Waits for effective permission                                   |
+| [X Pixel](./x-pixel.md)                            | `xPixel`           | `marketing` | Waits for effective permission                                   |
 
 ## Commerce
 

@@ -536,7 +536,7 @@ export const builtInScriptIntegrations = [
 	},
 	{
 		consentCategory: 'marketing',
-		docsSlug: 'liveintent',
+		docsSlug: 'other-ads-and-pixels',
 		hint: 'LiveConnect identity resolution and conversion events',
 		integrationCategory: 'ads-and-pixels',
 		key: 'liveIntentTag',

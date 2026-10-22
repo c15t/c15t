@@ -7,6 +7,4 @@ packages:
 
 ### Add LiveIntent consent integration
 
-Load LiveIntent after marketing consent with the `liveIntentTag` helper, with vendor metadata, framework registration examples and CLI setup.
-
-Initial event payloads preserve literal strings such as `{{coupon}}`, including nested fields, without interpreting them as manifest placeholders.
+Load LiveIntent's LiveConnect tag after `marketing` consent with `liveIntentTag` from `@c15t/integrations/liveintent`. LiveConnect has no API to stop it, so keep the default page reload when consent is withdrawn. The CLI can now add it during setup.

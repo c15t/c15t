@@ -1,0 +1,25 @@
+---
+title: Other ads and pixels
+description: Consent-gated helpers for ad platforms and conversion pixels that don't need a full guide.
+icon: radar
+group: integrations
+---
+
+Each helper below loads its vendor only after the visitor allows the listed consent category. For setup, see [Integrations overview](/docs/integrations/overview).
+
+## LiveIntent
+
+LiveIntent's LiveConnect tag identifies visitors for people-based ad targeting and measurement. Waits for `marketing` consent.
+
+<include src="../shared/examples/javascript/liveintent-scripts.mdx" />
+
+| Option | Type | Required | Description |
+| --- | --- | --- | --- |
+| `tagId` | `string` | Yes | Tag filename from your LiveConnect base tag, without `.min.js`. |
+| `events` | `LiveIntentEvent[]` | No | Event objects queued once on the first grant, such as `{ event: 'conversion', name: 'purchase' }`. Use the fields from your account's event tags. |
+| `scriptUrl` | `string` | No | Loader URL. Defaults to `https://b-code.liadm.com/<tagId>.min.js`. |
+
+**When consent is withdrawn:** LiveConnect has no API to stop it, so the helper leaves it on the page. Keep c15t's default `reloadOnConsentRevoked` so the page reload removes it.
+
+- Don't test with the public `a-00xx` tag from LiveIntent's examples. It's live production code, not a sandbox.
+- Where GDPR applies, LiveIntent also reads the TCF string. LiveIntent's guide lists purposes 1 to 4, but the served bundle asks for more. Confirm your account's requirements with LiveIntent.
