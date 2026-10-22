@@ -535,6 +535,21 @@ export const mountPersistence = function mountPersistence(
 	};
 
 	/**
+	 * Starts from the subject another handle's queued records carry. This
+	 * handle starts from those records (`withQueued`), and they land over
+	 * storage, so their subject does too: storage still holds the ID they
+	 * replace until then. Their writes store `<key>-sid` when they land.
+	 */
+	const startQueuedSubject = function startQueuedSubject(id: string): void {
+		storedSubjectId = readSyncedSubjectId(storageConfig);
+		subjectId = id;
+		const { subject } = kernel.getSnapshot();
+		if (subject?.subjectId !== id) {
+			kernel.hydrate({ subject: { ...subject, subjectId: id } });
+		}
+	};
+
+	/**
 	 * Takes the ID another tab stored when this runtime's is unused, and
 	 * stores this runtime's again when storage lost it. A runtime whose ID
 	 * is used stores it over another tab's, so a tab still holding an
@@ -639,7 +654,13 @@ export const mountPersistence = function mountPersistence(
 			recordedSubjectId = hydrateStored()?.recordedSubjectId ?? null;
 		}
 		if (handlesSubject()) {
-			startSubject(before, recordedSubjectId);
+			const queuedSubjectId = queuedWrites.get(consentKey)?.getSnapshot()
+				.subject?.subjectId;
+			if (queuedSubjectId) {
+				startQueuedSubject(queuedSubjectId);
+			} else {
+				startSubject(before, recordedSubjectId);
+			}
 			unsubscribers.push(kernel.subscribe(followSubjectId));
 		}
 	}

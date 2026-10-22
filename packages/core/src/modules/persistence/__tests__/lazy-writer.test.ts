@@ -666,8 +666,10 @@ describe('before the write code lands', () => {
 		);
 		leaving.set.subjectId('sub_left');
 		// The page unloads before the write code lands: the records still
-		// carry the saved ID, so <key>-sid keeps it too.
+		// carry the saved ID, so <key>-sid keeps it too. Its queued writes go
+		// with the page.
 		left.dispose();
+		queuedWrites.clear();
 		expect(storedSid()).toBe(saved);
 
 		const { land, loader } = heldBackLoader();
@@ -684,6 +686,69 @@ describe('before the write code lands', () => {
 		).toBe('sub_next');
 		document.cookie = `${sidKey}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
 	});
+});
+
+describe('a remount while a new subject ID waits for the write code', () => {
+	test.each([false, true])(
+		'keeps the new ID through landing, the next save and a reload with skipHydration=%s',
+		async (skipHydration) => {
+			const sidKey = `${STORAGE_KEY_V2}-sid`;
+			document.cookie = `${sidKey}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
+			await seedChoice({ marketing: true });
+			const saved = localStorage.getItem(sidKey);
+
+			// One page, one loader: the leaving handle's writes land with it.
+			const { land, loader } = heldBackLoader();
+			const leaving = createConsentKernel({ now: Date.now() });
+			const left = createPersistence({ kernel: leaving }, loader);
+			expect(leaving.getSnapshot().subject?.subjectId).toBe(saved);
+			leaving.set.subjectId('sub_next');
+			left.dispose();
+
+			const sent: (string | undefined)[] = [];
+			const kernel = createConsentKernel({
+				now: Date.now(),
+				transport: {
+					save: (payload) => {
+						sent.push(payload.subjectId);
+						return Promise.resolve({ ok: true });
+					},
+				},
+			});
+			if (skipHydration) {
+				// A server render seeded the stored records, old ID included.
+				const stored = readStoredRecordsForReconcile(undefined, Date.now());
+				kernel.hydrate({
+					choice: stored.records.choice,
+					subject: stored.records.subject,
+				});
+			}
+			expect(kernel.getSnapshot().subject?.subjectId).toBe(
+				skipHydration ? saved : undefined
+			);
+			const handle = createPersistence({ kernel, skipHydration }, loader);
+			// It starts from the queued records, and from the subject they carry.
+			expect(kernel.getSnapshot().subject?.subjectId).toBe('sub_next');
+
+			await land();
+			expect(localStorage.getItem(sidKey)).toBe('sub_next');
+			expect(
+				readStoredRecordsForReconcile(undefined, Date.now()).recordedSubjectId
+			).toBe('sub_next');
+
+			vi.setSystemTime(NOW + 1000);
+			await settle(kernel.commands.save({ marketing: false }));
+			expect(sent).toEqual(['sub_next']);
+			expect(storedChoice()?.subject?.subjectId).toBe('sub_next');
+			expect(storedChoice()?.choice.categories.marketing?.value).toBe(false);
+			handle.dispose();
+
+			const reloaded = createConsentKernel({ now: Date.now() });
+			createPersistence({ kernel: reloaded }).dispose();
+			expect(reloaded.getSnapshot().subject?.subjectId).toBe('sub_next');
+			document.cookie = `${sidKey}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
+		}
+	);
 });
 
 describe('the queued writes another mount starts from', () => {
