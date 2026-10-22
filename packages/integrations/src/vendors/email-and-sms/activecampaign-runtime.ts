@@ -209,6 +209,9 @@ export const withActiveCampaignRuntime = (
 			}
 		},
 		onDispose(info) {
+			if (typeof document === 'undefined') {
+				return;
+			}
 			const state = states.get(document);
 			if (state) {
 				state.registrations.delete(info.registration ?? standalone);

@@ -16,4 +16,6 @@ Keep one SDK mounted when options change or a registration remounts. Update or c
 
 Preserve the captured `pgo` dispatcher when a registration remounts. Require a page reload if another script replaces it, without sending email or tracking commands to the replacement.
 
+Skip browser cleanup when a server-side script loader replaces or disposes an ActiveCampaign registration without a document.
+
 Add opt-in `Script.persistAfterDispose` so integrations whose SDK outlives its registration can retain the original tag and its completion, including inline scripts that dispose their loader during execution. Other scripts still remove their owned elements on disposal.
