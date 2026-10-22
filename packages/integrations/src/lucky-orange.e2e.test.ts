@@ -2,6 +2,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
+	clearAllScripts,
 	deniedConsents,
 	loadScripts,
 	registerVendorContractCleanup,
@@ -76,6 +77,40 @@ describe('Lucky Orange privacy readiness', () => {
 		delete window.LOQ;
 		delete window.LO;
 	});
+	it.each([false, true])(
+		'reports rejected privacy readiness without granting consent, disposed: %s',
+		async (dispose) => {
+			const error = new Error('Privacy initialization failed');
+			const report = vi.spyOn(console, 'error').mockImplementation(() => {});
+			const scripts = [luckyOrange({ siteId: 'failed-privacy-site' })];
+			loadScripts(scripts, granted);
+			const queue = window.LOQ;
+			if (!Array.isArray(queue) || !queue[0]) {
+				throw new Error('Expected Lucky Orange ready callback');
+			}
+			const api = {
+				$internal: { ready: vi.fn().mockRejectedValue(error) },
+				privacy: { setConsentStatus: vi.fn() },
+			};
+			queue[0][1](api);
+			if (dispose) {
+				clearAllScripts();
+			}
+			await new Promise((resolve) => {
+				setTimeout(resolve, 0);
+			});
+			expect(report).toHaveBeenCalledExactlyOnceWith(
+				'luckyOrange: privacy initialization failed.',
+				error
+			);
+			expect(api.$internal.ready).toHaveBeenCalledWith('privacy');
+			if (!dispose) {
+				updateScripts(scripts, deniedConsents);
+				updateScripts(scripts, granted);
+			}
+			expect(api.privacy.setConsentStatus).not.toHaveBeenCalled();
+		}
+	);
 	it('waits for privacy and uses the latest consent across helper recreation', async () => {
 		const create = () => luckyOrange({ siteId: 'privacy-site' });
 		const scripts = [create()];

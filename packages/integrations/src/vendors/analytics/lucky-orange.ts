@@ -84,12 +84,16 @@ const createLuckyOrange = function createLuckyOrange(
 		appliedConsent = hasConsent;
 	};
 	const ready = async (loaded: LuckyOrangeApi): Promise<void> => {
-		await loaded.$internal.ready('privacy');
-		if (disposed) {
-			return;
+		try {
+			await loaded.$internal.ready('privacy');
+			if (disposed) {
+				return;
+			}
+			api = loaded;
+			applyConsent();
+		} catch (error) {
+			console.error('luckyOrange: privacy initialization failed.', error);
 		}
-		api = loaded;
-		applyConsent();
 	};
 	return {
 		...script,
@@ -123,6 +127,7 @@ const createLuckyOrange = function createLuckyOrange(
 
 /**
  * Enables Lucky Orange privacy consent only after its privacy module is ready.
+ * Reports privacy initialization failures with `console.error`.
  * Enable Require Consent in the Lucky Orange dashboard. Keep c15t's reload on
  * revocation enabled; false consent is not verified to stop every recording path.
  * @param options - Lucky Orange site and loader configuration.

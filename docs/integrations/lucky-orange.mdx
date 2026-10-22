@@ -33,6 +33,8 @@ Missing or blank required values log an error and never load. A proxy must prese
 
 After consent, the helper creates `LOQ`, loads the SDK and waits for its ready callback and privacy module. It rechecks the current consent before `LO.privacy.setConsentStatus(true)`. Revocation calls `setConsentStatus(false)` when privacy is ready; a pending ready callback cannot restore consent after withdrawal.
 
+If privacy readiness rejects, the helper logs the initialization error and does not call `setConsentStatus`. The rejection remains contained even if the helper was disposed while waiting.
+
 The helper does not call `optOut()`, which persists a two-year opt-out cookie and complicates regrant. Keep `reloadOnConsentRevoked` enabled. Complete teardown of an active recording through `setConsentStatus(false)` has not been verified, and removing a script cannot unload recording code. The next denied page does not load Lucky Orange.
 
 Lucky Orange can set `lo-domain-check`, `lo-opt-out`, `lo-uid` and `lo-visits` cookies, plus `lo-session`, `lo-messenger` and `lo-visitor` in localStorage. Some cookies last two years. Lucky Orange documents Do Not Track support. Verify Do Not Track and existing vendor opt-out choices with your own account; these interactions have not been verified here.
