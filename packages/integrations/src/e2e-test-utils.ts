@@ -371,6 +371,11 @@ const resetVendorGlobals = function resetVendorGlobals() {
 		'va',
 		'vaq',
 		'__AdaMessagingSdkBootstrap',
+		'GorgiasChat',
+		'gorgiasChat',
+		'gorgiasChatPendingEvents',
+		'zE',
+		'zEmbed',
 	] as const) {
 		Reflect.deleteProperty(win, key);
 	}

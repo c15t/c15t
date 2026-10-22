@@ -42,7 +42,9 @@ import { klaviyo } from './vendors/email-and-sms/klaviyo';
 import { ada } from './vendors/functional/ada';
 import { crisp } from './vendors/functional/crisp';
 import { frontChat } from './vendors/functional/front-chat';
+import { gorgiasChat } from './vendors/functional/gorgias';
 import { intercom } from './vendors/functional/intercom';
+import { zendeskWidget } from './vendors/functional/zendesk';
 import { googleTagManager } from './vendors/tag-managers/google-tag-manager';
 
 const BLANK_VALUES = ['', '   '] as const;
@@ -72,6 +74,25 @@ const requiredIdCases: {
 		helper: 'ada',
 		option: 'handle',
 		script: { category: 'functionality', id: 'ada' },
+	},
+	{
+		create: (id) =>
+			gorgiasChat({
+				...{ appKey: 'XXXXXXXXXXXXXXXXXXXXXXXXXX' },
+				appKey: asId(id),
+			}),
+		helper: 'gorgiasChat',
+		option: 'appKey',
+		script: { category: 'functionality', id: 'gorgias' },
+	},
+	{
+		create: (id) =>
+			zendeskWidget({
+				key: asId(id),
+			}),
+		helper: 'zendeskWidget',
+		option: 'key',
+		script: { category: 'functionality', id: 'zendesk' },
 	},
 	{
 		create: (id) => linkedinInsights({ id: asId(id) }),

@@ -86,6 +86,10 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 		example: "googleTagManager({ id: 'GTM-XXXXXX' })",
 		importName: 'googleTagManager',
 	},
+	gorgias: {
+		example: "gorgiasChat({ appKey: 'YOUR_GORGIAS_APP_KEY' })",
+		importName: 'gorgiasChat',
+	},
 	heap: {
 		example: "heap({ envId: 'YOUR_ENV_ID' })",
 		importName: 'heap',
@@ -213,6 +217,10 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 	'x-pixel': {
 		example: "xPixel({ pixelId: 'oXXXX' })",
 		importName: 'xPixel',
+	},
+	zendesk: {
+		example: "zendeskWidget({ key: 'YOUR_ZENDESK_WIDGET_KEY' })",
+		importName: 'zendeskWidget',
 	},
 };
 

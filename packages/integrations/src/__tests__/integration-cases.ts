@@ -45,7 +45,9 @@ import { klaviyo } from '../vendors/email-and-sms/klaviyo';
 import { ada } from '../vendors/functional/ada';
 import { crisp } from '../vendors/functional/crisp';
 import { frontChat } from '../vendors/functional/front-chat';
+import { gorgiasChat } from '../vendors/functional/gorgias';
 import { intercom } from '../vendors/functional/intercom';
+import { zendeskWidget } from '../vendors/functional/zendesk';
 import { cloudflareZaraz } from '../vendors/tag-managers/cloudflare-zaraz';
 import { googleTagManager } from '../vendors/tag-managers/google-tag-manager';
 import type { expectScriptMatchesIntegration } from './helpers';
@@ -162,6 +164,14 @@ export const helperParityCases = {
 			src: 'https://www.googletagmanager.com/gtm.js?id=GTM-123',
 		},
 		script: googleTagManager({ id: 'GTM-123' }),
+	},
+	gorgiasChat: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://config.gorgias.chat/bundle-loader/XXXXXXXXXXXXXXXXXXXXXXXXXX',
+		},
+		script: gorgiasChat({ appKey: 'XXXXXXXXXXXXXXXXXXXXXXXXXX' }),
 	},
 	gtag: {
 		expected: {
@@ -421,6 +431,14 @@ export const helperParityCases = {
 			src: 'https://static.ads-twitter.com/uwt.js',
 		},
 		script: xPixel({ pixelId: 'tw-123' }),
+	},
+	zendeskWidget: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://static.zdassets.com/ekr/snippet.js?key=00000000-0000-0000-0000-000000000000',
+		},
+		script: zendeskWidget({ key: '00000000-0000-0000-0000-000000000000' }),
 	},
 } satisfies Record<
 	BuiltInScriptIntegrationKey,
