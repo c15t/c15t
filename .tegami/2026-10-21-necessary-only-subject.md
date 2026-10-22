@@ -20,4 +20,8 @@ visitor keeps their subject ID in `<storageKey>-sid`, as after any other clear.
 `clearOnRevocation` patterns never delete the notice identity cookie, even when a
 wildcard matches its name.
 
+A save that records only vendor decisions while a notice is shown, such as
+turning off a vendor switch, now stores the notice acknowledgement too, so a
+reload no longer shows the notice again.
+
 If your cookie policy lists c15t cookies, add `c15t-notice-subject`.

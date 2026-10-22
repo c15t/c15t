@@ -326,6 +326,8 @@ export const mountPersistence = function mountPersistence(
 	// Set from a save's start to its completion. The records it commits are
 	// announced in between, synchronously.
 	let saving = false;
+	// The notice acknowledgement when the latest save started.
+	let noticeBeforeSave: ConsentSnapshot['noticeDismissal'] = null;
 
 	const noteGeneratedSubject = function noteGeneratedSubject(
 		snapshot: ConsentSnapshot,
@@ -364,6 +366,7 @@ export const mountPersistence = function mountPersistence(
 		kernel.events.on('command:save:started', () => {
 			saving = true;
 			state.subjectBeforeSave = kernel.getSnapshot().subject?.subjectId;
+			noticeBeforeSave = kernel.getSnapshot().noticeDismissal;
 			unusedSubjectId = undefined;
 		}),
 		kernel.events.on('command:save:completed', () => {
@@ -396,7 +399,17 @@ export const mountPersistence = function mountPersistence(
 		kernel.events.on('vendors:recorded', ({ actionAt, snapshot }) => {
 			noteGeneratedSubject(snapshot, actionAt);
 			state.vendorsRecorded = true;
-			request('vendors');
+			// A save under a notice prompt acknowledges the notice. One that
+			// confirms no category emits no `choice:recorded` to carry it.
+			if (
+				snapshot.noticeDismissal &&
+				snapshot.noticeDismissal !== noticeBeforeSave
+			) {
+				state.noticeRecorded = true;
+				request('vendors', 'notice');
+			} else {
+				request('vendors');
+			}
 		}),
 	];
 
