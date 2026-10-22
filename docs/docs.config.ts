@@ -872,6 +872,7 @@ export default defineDocsConfig({
 						'umami-analytics',
 						'vercel-analytics',
 						'vercel-speed-insights',
+						'other-analytics',
 					],
 					slug: 'analytics',
 					title: 'Analytics',
@@ -889,7 +890,6 @@ export default defineDocsConfig({
 				{
 					pages: [
 						'meta-pixel',
-						'vector',
 						'openai-pixel',
 						'pinterest-tag',
 						'reddit-pixel',

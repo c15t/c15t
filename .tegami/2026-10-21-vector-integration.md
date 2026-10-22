@@ -5,6 +5,8 @@ packages:
   '@c15t/scripts': patch
 ---
 
-### Add Vector consent integration
+### Add Vector
 
-Load Vector after marketing consent with the `vector` helper, with vendor metadata, framework registration examples and CLI setup.
+`vector` from `@c15t/integrations/vector` loads Vector after `marketing`
+consent. Vector has no stop API, so keep the default page reload when consent
+is withdrawn. The CLI can generate the integration too.
