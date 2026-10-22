@@ -25,6 +25,7 @@ import { xPixelManifest } from './vendors/ads-and-pixels/x-pixel';
 import { adobeAnalyticsManifest } from './vendors/analytics/adobe-analytics';
 import { ahrefsAnalyticsManifest } from './vendors/analytics/ahrefs-analytics';
 import { amplitudeManifest } from './vendors/analytics/amplitude';
+import { clayManifest } from './vendors/analytics/clay';
 import { clearbitManifest } from './vendors/analytics/clearbit';
 import { cloudflareWebAnalyticsManifest } from './vendors/analytics/cloudflare-web-analytics';
 import { databuddyManifest } from './vendors/analytics/databuddy';
@@ -64,6 +65,7 @@ const validConsentCategories = [
 ] as const satisfies readonly AllConsentNames[];
 
 const vendorManifests = [
+	clayManifest,
 	adrollPixelManifest,
 	googleTagManagerManifest,
 	gtagManifest,

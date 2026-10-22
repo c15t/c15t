@@ -1,6 +1,6 @@
 <!-- #region docs:privacy-settings-page title="src/routes/privacy/+page.svelte" -->
 <script lang="ts">
-	import { ConsentWidget } from '@c15t/svelte';
+	import { ConsentWidget } from 'c15t/svelte';
 </script>
 
 <h1>Privacy settings</h1>

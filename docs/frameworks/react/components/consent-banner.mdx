@@ -148,8 +148,8 @@ Each variant accepts its own positions:
 | `widget` | `bottom-left`, `bottom-right`, `top-left`, `top-right` | `bottom-right` |
 | `wall` | `center` | `center` |
 
-A default corner mirrors left and right for right-to-left languages. A
-position you set is never mirrored. A position that is not valid for the
+Right-to-left languages keep the same position; only the text direction
+changes. A position that is not valid for the
 variant falls back to the default and logs an `invalid-position` diagnostic
 in development.
 

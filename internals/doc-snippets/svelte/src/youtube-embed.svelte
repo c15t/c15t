@@ -1,6 +1,6 @@
 <!-- #region docs:youtube-embed title="src/YouTubeEmbed.svelte" -->
 <script lang="ts">
-	import { ConsentDialogLink, ConsentGate } from '@c15t/svelte';
+	import { ConsentDialogLink, ConsentGate } from 'c15t/svelte';
 </script>
 
 <!-- The iframe mounts only while measurement is allowed. -->

@@ -10,6 +10,7 @@
 		"block-scripts-until-consent",
 		"c15t",
 		"ccpa",
+		"clay",
 		"clearbit",
 		"cmp",
 		"consent",
@@ -308,6 +309,11 @@
 			"types": "./dist-types/vendors/ads-and-pixels/adroll.d.ts",
 			"import": "./dist/vendors/ads-and-pixels/adroll.js",
 			"default": "./dist/vendors/ads-and-pixels/adroll.js"
+		},
+		"./clay": {
+			"types": "./dist-types/vendors/analytics/clay.d.ts",
+			"import": "./dist/vendors/analytics/clay.js",
+			"default": "./dist/vendors/analytics/clay.js"
 		}
 	},
 	"publishConfig": {

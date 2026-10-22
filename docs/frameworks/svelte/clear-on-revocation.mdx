@@ -15,7 +15,7 @@ c15t deletes them:
 
 ```svelte title="src/App.svelte (partial)"
 <script lang="ts">
-  import type { ConsentManagerOptions } from '@c15t/svelte';
+  import type { ConsentManagerOptions } from 'c15t/svelte';
 
   const clearOnRevocation: ConsentManagerOptions['clearOnRevocation'] = {
     measurement: { cookies: ['_ga', '_ga_*'], localStorage: ['analytics:*'] },
