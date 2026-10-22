@@ -7,6 +7,21 @@ group: integrations
 
 Each helper below loads its vendor only after the visitor allows the listed consent category. For setup, see [Integrations overview](/docs/integrations/overview).
 
+## Attentive
+
+Attentive shows SMS and email signup units and tracks on-site events for its marketing messages. Waits for `marketing` consent.
+
+<include src="../shared/examples/javascript/attentive-configuration.mdx" />
+
+| Option | Type | Required | Description |
+| --- | --- | --- | --- |
+| `siteSlug` | `string` | Yes | Site slug from your Attentive tag URL, `https://cdn.attn.tv/<siteSlug>/dtag.js`. Ask your Attentive contact if you don't have it. |
+| `scriptUrl` | `string` | No | Exact tag URL from Attentive or your proxy. |
+
+**When consent is withdrawn:** c15t reloads the page, and the next page does not load the tag. Attentive has no supported way to stop a running tag, so keep `reloadOnConsentRevoked` on.
+
+- Some Attentive identifiers, such as `__attentive_id`, last up to 390 days. The reload does not delete them.
+
 ## Marketo Munchkin
 
 Munchkin is Adobe Marketo's script for tracking known and anonymous leads on your site. Waits for `marketing` consent.

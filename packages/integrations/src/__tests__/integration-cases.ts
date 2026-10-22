@@ -51,6 +51,7 @@ import { statableAnalytics } from '../vendors/analytics/statable-analytics';
 import { umamiAnalytics } from '../vendors/analytics/umami-analytics';
 import { vercelAnalytics } from '../vendors/analytics/vercel-analytics';
 import { vercelSpeedInsights } from '../vendors/analytics/vercel-speed-insights';
+import { attentiveTag } from '../vendors/email-and-sms/attentive';
 import { klaviyo } from '../vendors/email-and-sms/klaviyo';
 import { ada } from '../vendors/functional/ada';
 import { adobeTarget } from '../vendors/functional/adobe-target';
@@ -126,6 +127,14 @@ export const helperParityCases = {
 			src: 'https://fast.appcues.com/123.js',
 		},
 		script: appcues({ accountId: '123' }),
+	},
+	attentiveTag: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: true,
+			src: 'https://cdn.attn.tv/c15tfake/dtag.js',
+		},
+		script: attentiveTag({ siteSlug: 'c15tfake' }),
 	},
 	clay: {
 		expected: {

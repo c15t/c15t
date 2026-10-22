@@ -48,6 +48,7 @@ import { statableAnalytics } from './vendors/analytics/statable-analytics';
 import { umamiAnalytics } from './vendors/analytics/umami-analytics';
 import { vercelAnalytics } from './vendors/analytics/vercel-analytics';
 import { vercelSpeedInsights } from './vendors/analytics/vercel-speed-insights';
+import { attentiveTag } from './vendors/email-and-sms/attentive';
 import { klaviyo } from './vendors/email-and-sms/klaviyo';
 import { ada } from './vendors/functional/ada';
 import { adobeTarget } from './vendors/functional/adobe-target';
@@ -264,6 +265,12 @@ const requiredIdCases: {
 		helper: 'pardotTracking',
 		option: 'piAId',
 		script: { category: 'marketing', id: 'salesforce-pardot' },
+	},
+	{
+		create: (id) => attentiveTag({ siteSlug: asId(id) }),
+		helper: 'attentiveTag',
+		option: 'siteSlug',
+		script: { category: 'marketing', id: 'attentive' },
 	},
 	{
 		create: (id) => linkedinInsights({ id: asId(id) }),

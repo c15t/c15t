@@ -400,6 +400,11 @@
 			"import": "./dist/vendors/analytics/salesforce-pardot.js",
 			"default": "./dist/vendors/analytics/salesforce-pardot.js"
 		},
+		"./attentive": {
+			"types": "./dist-types/vendors/email-and-sms/attentive.d.ts",
+			"import": "./dist/vendors/email-and-sms/attentive.js",
+			"default": "./dist/vendors/email-and-sms/attentive.js"
+		},
 		"./clay": {
 			"types": "./dist-types/vendors/analytics/clay.d.ts",
 			"import": "./dist/vendors/analytics/clay.js",

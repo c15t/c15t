@@ -59,6 +59,7 @@ import { statableAnalyticsManifest } from './vendors/analytics/statable-analytic
 import { umamiAnalyticsManifest } from './vendors/analytics/umami-analytics';
 import { vercelAnalyticsManifest } from './vendors/analytics/vercel-analytics';
 import { vercelSpeedInsightsManifest } from './vendors/analytics/vercel-speed-insights';
+import { attentiveTagManifest } from './vendors/email-and-sms/attentive';
 import { klaviyoManifest } from './vendors/email-and-sms/klaviyo';
 import { adaManifest } from './vendors/functional/ada';
 import { adobeTargetManifest } from './vendors/functional/adobe-target';
@@ -100,6 +101,7 @@ const vendorManifests = [
 	wisepopsManifest,
 	marketoManifest,
 	pardotTrackingManifest,
+	attentiveTagManifest,
 	googleTagManagerManifest,
 	gtagManifest,
 	ahrefsAnalyticsManifest,
