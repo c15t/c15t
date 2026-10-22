@@ -231,7 +231,7 @@
 			class={finalClassName}
 			style={toStyleAttribute(rootStyle.style)}
 			dir={textDirection}
-			data-position={textDirection === 'ltr' ? 'bottom-left' : 'bottom-right'}
+			data-position="bottom-left"
 			data-entry={visibility.lateEntry && !disableAnimation
 				? 'late'
 				: undefined}
