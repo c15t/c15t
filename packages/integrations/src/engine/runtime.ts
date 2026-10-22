@@ -229,7 +229,9 @@ const executeStep = function executeStep(step: ManifestStep): void {
 				break;
 			}
 
-			const args = (step.args ?? []).map((arg) => cloneStepValue(arg));
+			const args = step.literalArgs
+				? (JSON.parse(JSON.stringify(step.args ?? [])) as unknown[])
+				: (step.args ?? []).map((arg) => cloneStepValue(arg));
 
 			if (step.method) {
 				const objectTarget = target as Record<

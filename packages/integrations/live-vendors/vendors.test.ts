@@ -168,6 +168,7 @@ describe('live vendor probe configs', () => {
 			'google-tag-manager',
 			'gorgias',
 			'hotjar',
+			'insider',
 			'intercom',
 			'linkedin-insights',
 			'matomo-analytics',

@@ -53,6 +53,7 @@ import { vercelAnalytics } from '../vendors/analytics/vercel-analytics';
 import { vercelSpeedInsights } from '../vendors/analytics/vercel-speed-insights';
 import { attentiveTag } from '../vendors/email-and-sms/attentive';
 import { customerIo } from '../vendors/email-and-sms/customer-io';
+import { insiderTag } from '../vendors/email-and-sms/insider';
 import { klaviyo } from '../vendors/email-and-sms/klaviyo';
 import { ada } from '../vendors/functional/ada';
 import { adobeTarget } from '../vendors/functional/adobe-target';
@@ -269,6 +270,14 @@ export const helperParityCases = {
 			src: 'https://static.hotjar.com/c/hotjar-1234567.js?sv=6',
 		},
 		script: hotjar({ siteId: 1234567 }),
+	},
+	insiderTag: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://c15t.api.useinsider.com/ins.js?id=123456',
+		},
+		script: insiderTag({ partnerId: '123456', partnerName: 'c15t' }),
 	},
 	intercom: {
 		expected: {

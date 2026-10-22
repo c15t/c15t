@@ -42,6 +42,25 @@ Customer.io collects events and visitor identity on your site through its Data P
 
 <include src="../shared/examples/javascript/customer-io-proxy.mdx" />
 
+## Insider One
+
+Insider One runs personalized web campaigns and builds customer profiles from on-site behavior. Waits for `marketing` consent.
+
+<include src="../shared/examples/javascript/insider-scripts.mdx" />
+
+| Option | Type | Required | Description |
+| --- | --- | --- | --- |
+| `partnerName` | `string` | Yes | Public partner name from Insider. |
+| `partnerId` | `string` | Yes | Public partner ID from Insider. |
+| `user` | `Record<string, unknown>` | No | Current user attributes, such as `email`, `phone_number` and `custom`. Must be JSON-serializable. |
+| `currency` | `string` | No | Current currency, such as `'GBP'`. Set it on multi-currency sites. |
+| `pageType` | `InsiderPageType` | No | Page definition from Insider's Web SDK guide. Defaults to `{ type: 'other' }`. |
+
+**When consent is withdrawn:** the helper pushes `gdpr_optin: false`, a neutral `other` page and `init`, then c15t reloads the page. Insider has no unload method, so keep `reloadOnConsentRevoked` on.
+
+- The helper sets `gdpr_optin` from consent and overrides any value in `user`. If you push `user` data to `InsiderQueue` yourself, set `gdpr_optin` too, because Insider treats a missing value as `true`.
+- The helper does not deduplicate purchases. Set `pageType: { type: 'purchase', ... }` only when your backend claims that order ID for the first time. Use `{ type: 'other' }` when the confirmation page reloads or opens again.
+
 ## Marketo Munchkin
 
 Munchkin is Adobe Marketo's script for tracking known and anonymous leads on your site. Waits for `marketing` consent.

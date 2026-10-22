@@ -326,6 +326,8 @@ export const resetVendorGlobals = function resetVendorGlobals() {
 		'Intercom',
 		'LI',
 		'__vector_manager',
+		'InsiderQueue',
+		'Insider',
 		'_linkedin_data_partner_ids',
 		'_linkedin_partner_id',
 		'_fbq',

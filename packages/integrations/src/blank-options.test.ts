@@ -50,6 +50,7 @@ import { vercelAnalytics } from './vendors/analytics/vercel-analytics';
 import { vercelSpeedInsights } from './vendors/analytics/vercel-speed-insights';
 import { attentiveTag } from './vendors/email-and-sms/attentive';
 import { customerIo } from './vendors/email-and-sms/customer-io';
+import { insiderTag } from './vendors/email-and-sms/insider';
 import { klaviyo } from './vendors/email-and-sms/klaviyo';
 import { ada } from './vendors/functional/ada';
 import { adobeTarget } from './vendors/functional/adobe-target';
@@ -278,6 +279,22 @@ const requiredIdCases: {
 		helper: 'customerIo',
 		option: 'writeKey',
 		script: { category: 'marketing', id: 'customer-io' },
+	},
+	{
+		create: (id) => insiderTag({ partnerId: asId(id), partnerName: 'c15t' }),
+		helper: 'insiderTag',
+		option: 'partnerId',
+		script: { category: 'marketing', id: 'insider' },
+	},
+	{
+		create: (id) =>
+			insiderTag({
+				...{ partnerId: '123456', partnerName: 'c15t' },
+				partnerName: asId(id),
+			}),
+		helper: 'insiderTag',
+		option: 'partnerName',
+		script: { category: 'marketing', id: 'insider' },
 	},
 	{
 		create: (id) => linkedinInsights({ id: asId(id) }),

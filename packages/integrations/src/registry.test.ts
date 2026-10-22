@@ -61,6 +61,7 @@ import { vercelAnalyticsManifest } from './vendors/analytics/vercel-analytics';
 import { vercelSpeedInsightsManifest } from './vendors/analytics/vercel-speed-insights';
 import { attentiveTagManifest } from './vendors/email-and-sms/attentive';
 import { customerIoManifest } from './vendors/email-and-sms/customer-io';
+import { insiderManifest } from './vendors/email-and-sms/insider';
 import { klaviyoManifest } from './vendors/email-and-sms/klaviyo';
 import { adaManifest } from './vendors/functional/ada';
 import { adobeTargetManifest } from './vendors/functional/adobe-target';
@@ -104,6 +105,7 @@ const vendorManifests = [
 	pardotTrackingManifest,
 	attentiveTagManifest,
 	customerIoManifest,
+	insiderManifest,
 	googleTagManagerManifest,
 	gtagManifest,
 	ahrefsAnalyticsManifest,

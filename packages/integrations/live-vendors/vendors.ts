@@ -73,6 +73,7 @@ import { vercelAnalytics } from '../src/vendors/analytics/vercel-analytics';
 import { vercelSpeedInsights } from '../src/vendors/analytics/vercel-speed-insights';
 import { attentiveTag } from '../src/vendors/email-and-sms/attentive';
 import { customerIo } from '../src/vendors/email-and-sms/customer-io';
+import { insiderTag } from '../src/vendors/email-and-sms/insider';
 import { klaviyo } from '../src/vendors/email-and-sms/klaviyo';
 import { ada } from '../src/vendors/functional/ada';
 import { adobeTarget } from '../src/vendors/functional/adobe-target';
@@ -768,6 +769,28 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 		tier: 'full',
 		vendor: 'customer-io',
 	},
+	{
+		bootstrapCheck: () => {
+			const queue = window.InsiderQueue;
+			return check(
+				Array.isArray(queue) &&
+					queue.length === 3 &&
+					queue[0]?.type === 'user' &&
+					queue[0]?.value?.gdpr_optin === true &&
+					queue[1]?.type === 'other' &&
+					queue[2]?.type === 'init',
+				'Insider queue contains the granted user, default page and init in order before load'
+			);
+		},
+		createScript: () =>
+			insiderTag({ partnerId: '123456', partnerName: 'c15t' }),
+		loaderUrlSubstring: 'c15t.api.useinsider.com/ins.js?id=123456',
+		notes:
+			'The placeholder partner returns HTTP 200 with a 52-byte HTML response, not an SDK. This checks the user/page/init bootstrap and endpoint reachability only. A dedicated Web SDK-enabled account is required for runtime and consent-update validation; collection stays blocked.',
+		tier: 'loader-only',
+		vendor: 'insider',
+	},
+
 	{
 		skipReason:
 			'Requires a configured Cloudflare zone and purpose IDs. This bridge does not fetch a public vendor loader.',

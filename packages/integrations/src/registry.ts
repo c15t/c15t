@@ -255,6 +255,16 @@ export const builtInScriptIntegrations = [
 		vendor: 'customer-io',
 	},
 	{
+		consentCategory: 'marketing',
+		docsSlug: 'other-email-and-sms',
+		hint: 'Personalized campaigns and customer messaging',
+		integrationCategory: 'email-and-sms',
+		key: 'insiderTag',
+		label: 'Insider',
+		packageSubpath: 'insider',
+		vendor: 'insider',
+	},
+	{
 		consentCategory: 'necessary',
 		docsSlug: 'cloudflare-zaraz',
 		hint: 'Consent bridge for tools managed by Zaraz',

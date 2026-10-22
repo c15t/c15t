@@ -410,6 +410,11 @@
 			"import": "./dist/vendors/email-and-sms/customer-io.js",
 			"default": "./dist/vendors/email-and-sms/customer-io.js"
 		},
+		"./insider": {
+			"types": "./dist-types/vendors/email-and-sms/insider.d.ts",
+			"import": "./dist/vendors/email-and-sms/insider.js",
+			"default": "./dist/vendors/email-and-sms/insider.js"
+		},
 		"./clay": {
 			"types": "./dist-types/vendors/analytics/clay.d.ts",
 			"import": "./dist/vendors/analytics/clay.js",
