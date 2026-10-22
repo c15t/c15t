@@ -852,13 +852,18 @@ export const readStoredNoticeDismissal = function readStoredNoticeDismissal(
 		if (fromLocal.record.dismissedAt > fromCookie.record.dismissedAt) {
 			return fromLocal;
 		}
-		// A canonical subject rewrite keeps the acknowledgement time. The
-		// local copy can therefore carry the new identity when the cookie
-		// write was dropped, but must still describe the same acknowledgement.
+		// Prefer a local identity rewrite only while both cookie projections
+		// still match the values observed when that write was dropped. A later
+		// server or sibling-subdomain cookie rewrite supersedes the marker.
 		if (
 			fromLocal.record.dismissedAt === fromCookie.record.dismissedAt &&
 			fromLocal.record.fingerprint === fromCookie.record.fingerprint &&
-			fromLocal.record.subject
+			fromLocal.record.subject &&
+			readLocalStorageText(`${keys.notice}-cookie-miss`) ===
+				JSON.stringify([
+					getRawCookieValue(keys.notice) ?? '',
+					getRawCookieValue(`${keys.notice}-subject`) ?? '',
+				])
 		) {
 			return fromLocal;
 		}

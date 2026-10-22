@@ -362,7 +362,11 @@ with the acknowledgement. The original `<key>-notice` cookie keeps its v1
 acknowledgement format for older runtimes. A separate `<key>-notice-subject`
 cookie carries identity; readers use it only while its timestamp and fingerprint
 match the acknowledgement. Removing or replacing the notice makes a stale
-identity cookie ineffective, and clearing consent deletes both cookies.
+identity cookie ineffective, and clearing consent deletes both cookies. For the same
+acknowledgement, the cookie identity wins unless a failed cookie write left a
+newer local identity. That exception lasts only while both notice cookies match
+the values observed after the failed write; a later server or sibling-subdomain
+cookie update takes precedence.
 The consent record follows the rules below.
 
 The consent record is stored twice: as a cookie, which a server render reads,

@@ -241,15 +241,32 @@ export const createRecordStore = function createRecordStore(
 			);
 			// Keep the original cookie readable by older runtimes. The companion is
 			// usable only with the same acknowledgement, never as a record on its own.
+			let subjectWritten = true;
 			if (validated.record.subject) {
-				tools.writeCookie(
+				const subjectDetail = tools.writeCookie(
 					`${key}-subject`,
 					encodeNoticeSubjectCompact(validated.record),
 					cookie,
 					config
 				);
+				subjectWritten = subjectDetail.attempted && subjectDetail.verified;
 			} else {
 				tools.deleteCookie(`${key}-subject`, cookie, config);
+				subjectWritten = tools.rawCookie(`${key}-subject`) === null;
+			}
+			if (written.cookie && subjectWritten) {
+				removeLocalStorageKey(`${key}-cookie-miss`);
+				if (!written.localStorage) {
+					removeLocalStorageKey(key);
+				}
+			} else if (written.localStorage) {
+				writeLocalStorageText(
+					`${key}-cookie-miss`,
+					JSON.stringify([
+						tools.rawCookie(key) ?? '',
+						tools.rawCookie(`${key}-subject`) ?? '',
+					])
+				);
 			}
 			return { ...validated, written };
 		},

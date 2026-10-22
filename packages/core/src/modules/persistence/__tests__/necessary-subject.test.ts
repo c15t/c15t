@@ -4,10 +4,15 @@ import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { createConsentKernel } from '../../../index';
 import { getRawCookieValue } from '../../../libs/cookie';
 import { createPersistence, readStoredRecordsFromCookieHeader } from '../index';
-import { resolveStorageKeys } from '../record-storage';
+import {
+	readStoredNoticeDismissal,
+	resolveStorageKeys,
+} from '../record-storage';
 import {
 	clearStoredConsentRecords,
 	encodeNoticeDismissalCompact,
+	encodeNoticeSubjectCompact,
+	writeStoredNoticeDismissal,
 } from './record-writes';
 
 beforeEach(() => {
@@ -169,14 +174,14 @@ test('a canonical subject in localStorage survives a dropped cookie rewrite', as
 	const handle = createPersistence({ kernel });
 	const saving = kernel.commands.save('none');
 	await vi.advanceTimersByTimeAsync(0);
-	const identityKey = `${resolveStorageKeys().notice}-subject`;
-	const staleCookie = getRawCookieValue(identityKey);
+	const dropped = vi
+		.spyOn(document, 'cookie', 'set')
+		.mockImplementation(() => {});
 	response.resolve({ ok: true, subjectId: 'canonical' });
 	await saving;
 	handle.dispose();
 	kernel.dispose();
-	// Simulate a cookie write the browser dropped, while localStorage succeeded.
-	document.cookie = `${identityKey}=${staleCookie}; path=/`;
+	dropped.mockRestore();
 	const restored = createConsentKernel({ consentCategories: ['necessary'] });
 	const reader = createPersistence({ kernel: restored });
 	expect(restored.getSnapshot().subject?.subjectId).toBe('canonical');
@@ -335,5 +340,98 @@ test.each([
 		expect(restored.getSnapshot().explicitChoice).toBeNull();
 		reader.dispose();
 		restored.dispose();
+	}
+);
+
+// A shared cookie can change independently of this origin's localStorage.
+test.each([false, true])(
+	'a canonical cookie rewrite wins after a previous dropped rewrite=%s',
+	(droppedRewrite) => {
+		const now = Date.now();
+		const record = {
+			dismissedAt: now,
+			fingerprint: 'policy',
+			subject: { subjectId: 'original' },
+			version: 1 as const,
+		};
+		writeStoredNoticeDismissal(record, undefined, now);
+		if (droppedRewrite) {
+			const dropped = vi
+				.spyOn(document, 'cookie', 'set')
+				.mockImplementation(() => {});
+			writeStoredNoticeDismissal(
+				{ ...record, subject: { subjectId: 'local-canonical' } },
+				undefined,
+				now
+			);
+			dropped.mockRestore();
+		}
+		const key = resolveStorageKeys().notice;
+		document.cookie = `${key}-subject=${encodeNoticeSubjectCompact({ ...record, subject: { subjectId: 'server-canonical' } })}; path=/`;
+		const restored = createConsentKernel({ consentCategories: ['necessary'] });
+		const reader = createPersistence({ kernel: restored });
+		expect(restored.getSnapshot().subject?.subjectId).toBe('server-canonical');
+		expect(
+			readStoredRecordsFromCookieHeader(document.cookie, undefined, now).subject
+				?.subjectId
+		).toBe('server-canonical');
+		expect(restored.getSnapshot().explicitChoice).toBeNull();
+		reader.dispose();
+		restored.dispose();
+	}
+);
+
+test.each([undefined, { storageKey: 'review-custom-notice' }])(
+	'partial subject-cookie writes, recovery and clear use configured keys %j',
+	(storageConfig) => {
+		const now = Date.now();
+		const key = resolveStorageKeys(storageConfig).notice;
+		const record = {
+			dismissedAt: now,
+			fingerprint: 'policy',
+			subject: { subjectId: 'original' },
+			version: 1 as const,
+		};
+		writeStoredNoticeDismissal(record, storageConfig, now);
+		const setter = Object.getOwnPropertyDescriptor(
+			Document.prototype,
+			'cookie'
+		)?.set;
+		if (!setter) {
+			throw new Error('Expected a browser cookie setter');
+		}
+		const dropped = vi
+			.spyOn(document, 'cookie', 'set')
+			.mockImplementation((value: string) => {
+				if (!value.startsWith(`${key}-subject=`)) {
+					setter.call(document, value);
+				}
+			});
+		writeStoredNoticeDismissal(
+			{ ...record, subject: { subjectId: 'local-canonical' } },
+			storageConfig,
+			now
+		);
+		dropped.mockRestore();
+		const local = readStoredNoticeDismissal(storageConfig, now);
+		expect(local?.ok && local.record.subject?.subjectId).toBe(
+			'local-canonical'
+		);
+		expect(
+			readStoredRecordsFromCookieHeader(document.cookie, storageConfig, now)
+				.subject?.subjectId
+		).toBe('original');
+		// A successful retry removes the dropped-write exception. Even if a
+		// sibling later restores the original bytes, that cookie now wins.
+		writeStoredNoticeDismissal(
+			{ ...record, subject: { subjectId: 'local-canonical' } },
+			storageConfig,
+			now
+		);
+		document.cookie = `${key}-subject=${encodeNoticeSubjectCompact(record)}; path=/`;
+		const restored = readStoredNoticeDismissal(storageConfig, now);
+		expect(restored?.ok && restored.record.subject?.subjectId).toBe('original');
+		clearStoredConsentRecords(undefined, storageConfig);
+		expect(readStoredNoticeDismissal(storageConfig, now)).toBeNull();
 	}
 );
