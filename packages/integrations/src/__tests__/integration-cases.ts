@@ -5,6 +5,7 @@
 
 import type { BuiltInScriptIntegrationKey } from '../registry';
 import { linkedinInsights } from '../vendors/ads-and-pixels/linkedin-insights';
+import { liveIntentTag } from '../vendors/ads-and-pixels/liveintent';
 import { metaPixel } from '../vendors/ads-and-pixels/meta-pixel';
 import { microsoftUet } from '../vendors/ads-and-pixels/microsoft-uet';
 import { openaiPixel } from '../vendors/ads-and-pixels/openai-pixel';
@@ -229,6 +230,14 @@ export const helperParityCases = {
 			src: 'https://snap.licdn.com/li.lms-analytics/insight.min.js',
 		},
 		script: linkedinInsights({ id: '987654' }),
+	},
+	liveIntentTag: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: true,
+			src: 'https://b-code.liadm.com/a-00xx.min.js',
+		},
+		script: liveIntentTag({ tagId: 'a-00xx' }),
 	},
 	logRocket: {
 		expected: {

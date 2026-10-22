@@ -11,6 +11,7 @@
  * send real analytics data even when a vendor runtime initializes.
  */
 import { linkedinInsights } from '../src/vendors/ads-and-pixels/linkedin-insights';
+import { liveIntentTag } from '../src/vendors/ads-and-pixels/liveintent';
 import { metaPixel } from '../src/vendors/ads-and-pixels/meta-pixel';
 import { microsoftUet } from '../src/vendors/ads-and-pixels/microsoft-uet';
 import type { OpenAIPixelFunction } from '../src/vendors/ads-and-pixels/openai-pixel';
@@ -75,6 +76,15 @@ interface OpenAIPixelRuntime extends OpenAIPixelFunction {
 	measure?: (...args: unknown[]) => void;
 	consent?: (granted: boolean) => void;
 }
+
+type LiveIntentProbeWindow = Window & {
+	liQ?: {
+		ready?: boolean;
+		resolve?: unknown;
+		resolveNonId?: unknown;
+		version?: string;
+	};
+};
 
 const check = function check(
 	ok: boolean,
@@ -287,6 +297,46 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 			),
 		tier: 'full',
 		vendor: 'the-trade-desk',
+	},
+	{
+		bootstrapCheck: () => ({
+			// LiveConnect event guide uses an array, not a callable stub.
+			// No synthetic conversion is configured for this live monitor.
+			detail:
+				'LiveConnect starts with an empty event array and no helper-created LI config',
+			ok:
+				Array.isArray(window.liQ) &&
+				window.liQ.length === 0 &&
+				window.LI === undefined,
+		}),
+		createScript: () => liveIntentTag({ tagId: 'a-00xx' }),
+		loaderUrlSubstring: 'b-code.liadm.com/a-00xx.min.js',
+		notes:
+			'Public a-00xx example tag, explicitly authorized for this monitor. Its downloaded bundle is configured for advertiser 30117 and contains real SDK code, so this is not a sandbox. The existing runner blocks collection, identity resolution, sync frames and every non-loader third-party URL; add no broad liadm.com allowlist. Runtime check proves SDK object installation and config handling, not event delivery, complete consent handling or full shutdown. The downloaded TCF predicate disagrees with the four-purpose guide.',
+		runtimeCheck: () => {
+			// liveintent-placeholder.js replaces liQ with `new ri(...)`, handles
+			// window.LI, and sets ready=true. ri has resolve/resolveNonId and a
+			// version property. The helper creates only an array with .push.
+			const runtime = (window as LiveIntentProbeWindow).liQ;
+			return {
+				detail: 'LiveConnect replaced liQ with its configured SDK event client',
+				ok:
+					runtime !== undefined &&
+					!Array.isArray(runtime) &&
+					typeof runtime.push === 'function' &&
+					typeof runtime.resolve === 'function' &&
+					typeof runtime.resolveNonId === 'function' &&
+					typeof runtime.version === 'string' &&
+					runtime.version.length > 0 &&
+					runtime.ready === true &&
+					window.LI?.appId === 'a-00xx',
+			};
+		},
+		runtimeReplacedGlobals: ['liQ'],
+		runtimeVersion: () => (window as LiveIntentProbeWindow).liQ?.version,
+		// Downloaded a-00xx is real JavaScript with source-backed runtime markers.
+		tier: 'full',
+		vendor: 'liveintent',
 	},
 	{
 		skipReason:

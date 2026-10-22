@@ -29,6 +29,7 @@
 		"klaviyo",
 		"lgpd",
 		"linkedin-insights",
+		"liveintent",
 		"logrocket",
 		"meta-pixel",
 		"microsoft-uet",
@@ -324,6 +325,11 @@
 			"types": "./dist-types/vendors/ads-and-pixels/the-trade-desk.d.ts",
 			"import": "./dist/vendors/ads-and-pixels/the-trade-desk.js",
 			"default": "./dist/vendors/ads-and-pixels/the-trade-desk.js"
+		},
+		"./liveintent": {
+			"types": "./dist-types/vendors/ads-and-pixels/liveintent.d.ts",
+			"import": "./dist/vendors/ads-and-pixels/liveintent.js",
+			"default": "./dist/vendors/ads-and-pixels/liveintent.js"
 		},
 		"./clay": {
 			"types": "./dist-types/vendors/analytics/clay.d.ts",

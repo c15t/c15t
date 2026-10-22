@@ -576,6 +576,16 @@ export const builtInScriptIntegrations = [
 	},
 	{
 		consentCategory: 'marketing',
+		docsSlug: 'other-ads-and-pixels',
+		hint: 'LiveConnect identity resolution and conversion events',
+		integrationCategory: 'ads-and-pixels',
+		key: 'liveIntentTag',
+		label: 'LiveIntent',
+		packageSubpath: 'liveintent',
+		vendor: 'liveintent',
+	},
+	{
+		consentCategory: 'marketing',
 		docsSlug: 'clay',
 		hint: 'Website visitor company identification',
 		integrationCategory: 'analytics',
