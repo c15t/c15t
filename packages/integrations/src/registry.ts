@@ -544,6 +544,16 @@ export const builtInScriptIntegrations = [
 		packageSubpath: 'the-trade-desk',
 		vendor: 'the-trade-desk',
 	},
+	{
+		consentCategory: 'marketing',
+		docsSlug: 'clay',
+		hint: 'Website visitor company identification',
+		integrationCategory: 'analytics',
+		key: 'clay',
+		label: 'Clay',
+		packageSubpath: 'clay',
+		vendor: 'clay',
+	},
 ] as const satisfies readonly IntegrationRegistryEntry[];
 
 /**

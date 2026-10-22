@@ -1,5 +1,5 @@
 // #region docs:traced-route-handlers title="src/routes/api/c15t/[...path]/+server.ts"
-import { createConsentRoute } from '@c15t/svelte/kit';
+import { createConsentRoute } from 'c15t/svelte/kit';
 
 import { traceConsent } from '#lib/server/trace-consent.js';
 
