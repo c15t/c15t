@@ -291,7 +291,7 @@ describe('HubSpot core loader consent contract', () => {
 			}
 			loadScripts(scripts, grantedMarketingConsents);
 			expect(warning).toHaveBeenCalledExactlyOnceWith(
-				'hubspot: #hs-script-loader belongs to a non-script element. HubSpot will not load; remove or rename the conflicting ID.'
+				'hubspot: #hs-script-loader belongs to a non-script element. HubSpot will not load; remove or rename the conflicting ID and reload.'
 			);
 			updateScripts(scripts, grantedMarketingConsents);
 			updateScripts(scripts, deniedConsents);
@@ -329,7 +329,7 @@ describe('HubSpot core loader consent contract', () => {
 				vendors: { hubspot: true },
 			});
 			expect(warning).toHaveBeenCalledExactlyOnceWith(
-				'hubspot: #hs-script-loader belongs to a non-script element. HubSpot will not load; remove or rename the conflicting ID.'
+				'hubspot: #hs-script-loader belongs to a non-script element. HubSpot will not load; remove or rename the conflicting ID and reload.'
 			);
 			expect(document.querySelector('script')).toBeNull();
 			expect(document.getElementById('hs-script-loader')).toBe(existing);

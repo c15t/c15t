@@ -206,6 +206,51 @@ it('retains a pending load when a previous SDK client returns', async () => {
 	expect(first.widget.load).toHaveBeenCalledTimes(2);
 });
 
+it('adopts an already-loaded external chat and reloads it after regrant', async () => {
+	const api = conversations();
+	Object.assign(api.widget, {
+		status: () => ({ loaded: api.visible }),
+	});
+	api.widget.load();
+	api.completeLoad();
+	api.widget.load.mockClear();
+	window.HubSpotConversations = api;
+	const owner = await ownerOf(hubspot({ chat: true, portalId: '53' }));
+	expect(api.widget.load).not.toHaveBeenCalled();
+	await owner.save({ ...granted, functionality: false });
+	expect(api.visible).toBe(false);
+	await owner.save(granted);
+	expect(api.widget.load).toHaveBeenCalledOnce();
+	api.completeLoad();
+	expect(api.visible).toBe(true);
+});
+
+it('recognizes a pending client that completed while its listener was detached', async () => {
+	const first = conversations();
+	const second = conversations();
+	Object.assign(first.widget, {
+		status: () => ({ loaded: first.visible }),
+	});
+	window.HubSpotConversations = first;
+	const owner = await ownerOf(hubspot({ chat: true, portalId: '53' }));
+	window.HubSpotConversations = second;
+	await owner.save({ ...granted, experience: true });
+	window.HubSpotConversations = first;
+	await owner.save(granted);
+	expect(first.widget.load).toHaveBeenCalledOnce();
+	window.HubSpotConversations = second;
+	await owner.save({ ...granted, experience: true });
+	first.completeLoad();
+	window.HubSpotConversations = first;
+	await owner.save(granted);
+	expect(first.widget.load).toHaveBeenCalledOnce();
+	await owner.save({ ...granted, functionality: false });
+	await owner.save(granted);
+	expect(first.widget.load).toHaveBeenCalledTimes(2);
+	first.completeLoad();
+	expect(first.visible).toBe(true);
+});
+
 describe.each(['same Script', 'distinct helpers'] as const)(
 	'HubSpot independent kernel ownership with %s',
 	(form) => {
@@ -1127,6 +1172,47 @@ describe('Independent review current reader declaration sweep', () => {
 });
 
 describe('HubSpot withdrawal during sibling teardown', () => {
+	it.each(['category', 'vendor'] as const)(
+		'forwards a %s withdrawal saved after final release only on remount',
+		async (denial) => {
+			const api = conversations();
+			window.HubSpotConversations = api;
+			const script = hubspot({ chat: true, portalId: '53' });
+			const owner = await ownerOf(script);
+			api.completeLoad();
+			owner.loader?.updateScripts([
+				script,
+				{
+					callbackOnly: true,
+					category: 'necessary',
+					id: 'later-script',
+					onDispose() {
+						void owner.save(
+							denial === 'category' ? denied : granted,
+							denial !== 'vendor'
+						);
+					},
+				},
+			]);
+			const recorded = commands();
+			owner.loader?.dispose();
+			expect(recorded).toEqual([]);
+			expect(api.widget.remove).not.toHaveBeenCalled();
+			expect(api.visible).toBe(true);
+			expect(api.listeners.size).toBe(0);
+			expect(owner.kernel.getSnapshot().effectivePermissions.marketing).toBe(
+				denial !== 'category'
+			);
+			expect(owner.kernel.getSnapshot().vendorChoice?.denied ?? []).toEqual(
+				denial === 'vendor' ? ['hubspot'] : []
+			);
+			owner.mount();
+			expect(recorded).toContainEqual(['revokeCookieConsent']);
+			expectConsent(recorded, no);
+			expect(api.widget.remove).toHaveBeenCalledOnce();
+			expect(api.visible).toBe(false);
+		}
+	);
 	it.each(['category', 'vendor'] as const)(
 		'keeps a reentrant %s denial effective until its registration leaves',
 		async (denial) => {

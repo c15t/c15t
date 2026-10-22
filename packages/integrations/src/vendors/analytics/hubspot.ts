@@ -24,6 +24,7 @@ interface HubSpotConversationsClient {
 	widget: {
 		load: () => void;
 		remove: () => void;
+		status?: () => { loaded: boolean };
 	};
 }
 
@@ -175,6 +176,13 @@ const createController = (host: Window, installation: HubSpotInstallation) => {
 	// remove() has no cancellation handle. Retain in-flight knowledge even
 	// after the last registration leaves, until that client's completion.
 	const pendingClients = new WeakSet<HubSpotConversationsClient>();
+	const readWidgetLoaded = (conversations: HubSpotConversationsClient) => {
+		const loaded = conversations.widget.status?.().loaded === true;
+		if (loaded) {
+			pendingClients.delete(conversations);
+		}
+		return loaded;
+	};
 	let externalConflict = false;
 	let loadSuspensions = 0;
 
@@ -244,7 +252,7 @@ const createController = (host: Window, installation: HubSpotInstallation) => {
 			if (!warnedLoaders.has(existing)) {
 				warnedLoaders.add(existing);
 				console.warn(
-					'hubspot: #hs-script-loader belongs to a non-script element. HubSpot will not load; remove or rename the conflicting ID.'
+					'hubspot: #hs-script-loader belongs to a non-script element. HubSpot will not load; remove or rename the conflicting ID and reload.'
 				);
 			}
 			return false;
@@ -330,11 +338,12 @@ const createController = (host: Window, installation: HubSpotInstallation) => {
 			if (previousListener) {
 				previousClient?.off('widgetLoaded', previousListener);
 			}
+			const loaded = readWidgetLoaded(conversations);
 			if (revision !== token || !started) {
 				return;
 			}
 			client = conversations;
-			chatRequested = false;
+			chatRequested = loaded;
 			// A retained client may have emitted widgetLoaded before attachment.
 			chatClearPending = true;
 			const callback = () => {
@@ -531,7 +540,7 @@ const createController = (host: Window, installation: HubSpotInstallation) => {
  * reused only with a compatible URL and nonce. The helper cannot control
  * requests that installation already sent.
  * A non-script element with that ID blocks loading and logs a warning once.
- * Remove or rename the conflicting ID to allow the helper to insert its loader.
+ * Remove or rename the conflicting ID, then reload to retry loader insertion.
  * Wrapped setup runs in the browser after hydration, including returning grants.
  *
  * Missing, blank or non-numeric IDs log `hubspot: missing or invalid portalId`

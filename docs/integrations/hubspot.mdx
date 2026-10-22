@@ -72,8 +72,8 @@ Reusing an external script cannot gate requests it already sent.
 
 If a non-script element has that ID, the helper leaves it untouched and does
 not insert a loader. It warns once for that element after consent permits
-loading. Remove or rename the conflicting ID so the helper can insert its
-loader.
+loading. Remove or rename the conflicting ID, then reload the page to retry
+loader insertion. Removing the element alone does not trigger a retry.
 
 Core load and error callbacks describe controller setup, not the external
 download. Check the actual HubSpot request in Network to diagnose download
@@ -148,7 +148,10 @@ current shared permissions and requests removal and chat-cookie cleanup if
 chat is denied. This includes a matching external client whose `widgetLoaded`
 event already fired, a late SDK, a replacement client and a manual-to-automatic
 handoff. Initially permitted attachment skips cleanup. A fresh controller whose
-loader or vendor gate is denied remains inactive.
+loader or vendor gate is denied remains inactive. When `widget.status().loaded`
+is true, permitted attachment reuses the loaded widget without requesting
+another load. After a subsequent withdrawal removes it, regrant can load it
+again without waiting for a second completion of the original load.
 
 While automatic chat is active, loss of shared functionality consent or a
 loader or vendor gate requests widget removal and calls
@@ -214,6 +217,13 @@ to the retained runtime and reattaches chat management when opted in. If consent
 became denied while no owner was mounted, the remount sends that denial and
 cleans up automatic chat without downloading HubSpot again. Keep the returned
 script configuration stable.
+
+Save a withdrawal before disposing the loader. Once the last HubSpot
+registration has been released, the helper no longer observes that owner's
+consent. A denial saved by a later sibling's `onDispose` callback is not
+forwarded, even during the same synchronous teardown. Without a remount or
+page reload, the retained SDK keeps its last forwarded consent. The remount
+behavior above also applies to this case.
 
 `revokeCookieConsent` asks HubSpot to remove tracking and consent cookies. It
 can itself trigger a revocation request. It does not remove every browser
