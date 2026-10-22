@@ -145,8 +145,9 @@ export const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 		name: '@c15t/svelte',
 		outDir: 'packages/svelte',
 		skill: {
-			install: '`npm install @c15t/svelte`',
+			install: '`npm install c15t` and import `c15t/svelte`',
 			topic: 'the project is a Svelte or SvelteKit app',
+			umbrella: true,
 		},
 		summary:
 			'Svelte and SvelteKit v3 providers, request loading and static hosting with Inth.',

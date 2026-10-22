@@ -851,6 +851,7 @@ export default defineDocsConfig({
 						'amplitude',
 						'cloudflare-web-analytics',
 						'clearbit',
+						'clay',
 						'microsoft-clarity',
 						'databuddy',
 						'fathom-analytics',
