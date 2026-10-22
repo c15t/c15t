@@ -1,5 +1,5 @@
 // #region docs:app-locals
-/// <reference types="@c15t/svelte/kit/locals" />
+/// <reference types="c15t/svelte/kit/locals" />
 // #endregion docs:app-locals
 
 // See https://svelte.dev/docs/kit/types#app.d.ts

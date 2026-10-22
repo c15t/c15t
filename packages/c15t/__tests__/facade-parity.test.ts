@@ -70,6 +70,12 @@ const rows = JSON.parse(
 ) as ParityRow[];
 
 const EXPECTED_ESM_FAILURES = new Set<string>([
+	// Svelte's unbundled output needs the Svelte/Vite pipeline for SFCs
+	// and extensionless imports. Both names must reach the same failure.
+	'./svelte',
+	'./svelte/headless',
+	'./svelte/devtools',
+	'./svelte/kit',
 	// The vue plugin/runtime entries need a Nuxt/Vite context (`#imports`)
 	// or the `.vue` SFC pipeline.
 	'./vue/vue-plugin',
@@ -245,6 +251,7 @@ const rowsScopedSpecifier = function rowsScopedSpecifier(
 		['tanstack-start', '@c15t/tanstack-start'],
 		['vue', '@c15t/vue'],
 		['astro', '@c15t/astro'],
+		['svelte', '@c15t/svelte'],
 	];
 	for (const [prefix, packageName] of prefixes) {
 		if (segment === prefix) {
