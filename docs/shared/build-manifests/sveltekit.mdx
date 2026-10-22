@@ -5,7 +5,7 @@ these files:
 
 | File | Role |
 | --- | --- |
-| `vite.config.ts` | `consentManifest` from `@c15t/svelte/vite` fetches the policy. |
+| `vite.config.ts` | `consentManifest` from `c15t/svelte/vite` fetches the policy. |
 | `src/hooks.server.ts` | `c15tHandle()`, whose default mode, `manifest()`, resolves from the fetched policy. |
 | `src/routes/+layout.server.ts` | `export { loadConsent as load }` resolves each visitor. |
 | `src/routes/+layout.svelte` | `ConsentRoot state={data.consent}` renders the result. |

@@ -103,7 +103,6 @@ const {
 	blocking,
 	direction,
 	position,
-	positionSource,
 	primaryActions,
 	shouldFillActions,
 	preferenceControls,
@@ -170,28 +169,6 @@ const bannerTitle = computed(() => {
 		return cookieBanner?.noticeTitle ?? cookieBanner?.title ?? 'Privacy notice';
 	}
 	return cookieBanner?.title ?? 'Cookie choices';
-});
-
-/**
- * A defaulted corner mirrors for right-to-left text so the card sits at
- * the reading start. A host-chosen position is kept as written.
- */
-const resolvedPosition = computed(() => {
-	const { value } = position;
-	if (
-		positionSource.value === 'host' ||
-		textDirection.value !== 'rtl' ||
-		(variant.value !== 'floating' && variant.value !== 'widget')
-	) {
-		return value;
-	}
-	if (value.endsWith('-left')) {
-		return value.replace('-left', '-right') as PromptPosition;
-	}
-	if (value.endsWith('-right')) {
-		return value.replace('-right', '-left') as PromptPosition;
-	}
-	return value;
 });
 
 /**
@@ -300,7 +277,7 @@ const onAction = function onAction(action: PresentationAction) {
 				data-testid="consent-banner-root"
 				:data-entry="entryAttribute"
 				:data-variant="variant"
-				:data-position="resolvedPosition"
+				:data-position="position"
 				:data-blocking="blocking ? 'true' : undefined"
 				:data-prompt="promptKind"
 				:data-model="snapshot.policyRule.model"
