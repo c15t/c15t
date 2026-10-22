@@ -116,7 +116,7 @@ export const BUILT_IN_INTEGRATION_CATEGORIES = [
 export const builtInScriptIntegrations = [
 	{
 		consentCategory: 'functionality',
-		docsSlug: 'zendesk',
+		docsSlug: 'other-chat-and-support',
 		hint: 'Customer support through Zendesk Messaging',
 		integrationCategory: 'functional',
 		key: 'zendeskWidget',

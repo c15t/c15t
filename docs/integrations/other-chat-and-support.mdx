@@ -1,0 +1,40 @@
+---
+title: Other chat and support tools
+description: Consent-gated helpers for chat and support tools that don't need a full guide.
+icon: messages-square
+group: integrations
+---
+
+Each helper below loads its vendor only after the visitor allows the listed consent category. For setup, see [Integrations overview](/docs/integrations/overview).
+
+## Zendesk Messaging
+
+Zendesk Messaging adds the Zendesk support chat widget to your site. It doesn't
+cover Web Widget Classic. Waits for `functionality` consent.
+
+<include src="../shared/examples/javascript/zendesk-scripts.mdx" />
+
+| Option | Type | Required | Description |
+| --- | --- | --- | --- |
+| `key` | `string` | Yes | Widget key from **Admin Center > Channels > Messaging and social > Messaging**, on the widget's **Installation** page. A blank key logs an error and nothing loads. |
+| `category` | Consent condition | No | Consent needed to load the widget. Defaults to `functionality`. |
+
+The helper passes consent to Zendesk's
+[cookie setting](https://developer.zendesk.com/api-reference/widget-messaging/web/core/#set-cookies)
+before the widget loads, and again on every consent change:
+
+| Consent | Zendesk cookie setting |
+| --- | --- |
+| `functionality` and `measurement` | `all` |
+| `functionality` only | `functional` |
+| `functionality` withdrawn | `none` |
+
+**When consent is withdrawn:** the helper sends `none`. Zendesk hides the
+widget and deletes its local and session storage. c15t then reloads the page to
+stop the widget code that already ran.
+
+- Use one widget key per page. Zendesk has one global `zE` API, so two widgets
+  on the same page control each other.
+- Removing the helper from your configuration doesn't clear the conversation.
+  It sends no `none`. Revoke consent first if you need the widget storage
+  cleared.

@@ -7,8 +7,4 @@ packages:
 
 ### Add Zendesk Messaging consent integration
 
-`zendeskWidget()` loads Zendesk Messaging only after `functionality` consent. Includes configuration and revocation guidance, loader contract tests, and CLI setup support.
-
-Equivalent configurations share the active widget lifecycle. Provider cleanup preserves granted conversations. Consent withdrawal sends the `none` storage range once no shared registration grants the widget.
-
-Give each widget key its own loader resource identity so independent loaders cannot adopt another key's script. Document the single-widget-per-page requirement and the complete Admin Center path to the widget key.
+`zendeskWidget()` from `@c15t/integrations/zendesk` loads Zendesk Messaging only after `functionality` consent. It sets Zendesk's cookie range to `all` with measurement consent and `functional` without it. On revocation it sends `none`, which hides the widget and clears its storage. The CLI can add it during setup. See [Other chat and support tools](https://c15t.com/docs/integrations/other-chat-and-support#zendesk-messaging).
