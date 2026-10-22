@@ -91,7 +91,11 @@ kernel to control its DOM lifecycle. Embeds do not require `@c15t/integrations`.
 
 | Integration                                                                            | Helper          | Category     | Loading behavior               |
 | -------------------------------------------------------------------------------------- | --------------- | ------------ | ------------------------------ |
+| [Adobe Target](./other-experience.md#adobe-target)                                     | `adobeTarget`   | `experience` | Waits for effective permission |
+| [Appcues](./other-experience.md#appcues)                                               | `appcues`       | `experience` | Waits for effective permission |
+| [Dynamic Yield](./other-experience.md#dynamic-yield)                                   | `dynamicYield`  | `experience` | Waits for effective permission |
 | [Optimizely Web Experimentation](./other-experience.md#optimizely-web-experimentation) | `optimizelyWeb` | `experience` | Waits for effective permission |
+| [Wisepops](./other-experience.md#wisepops)                                             | `wisepops`      | `marketing`  | Waits for effective permission |
 
 ## Chat and support
 
@@ -106,16 +110,23 @@ kernel to control its DOM lifecycle. Embeds do not require `@c15t/integrations`.
 
 ## Email and SMS
 
-| Integration                                                   | Helper            | Category                      | Loading behavior                                           |
-| ------------------------------------------------------------- | ----------------- | ----------------------------- | ---------------------------------------------------------- |
-| [Klaviyo](./klaviyo.md)                                       | `klaviyo`         | `marketing` and `measurement` | Waits for both; optional forms-only mode needs `marketing` |
-| [Marketo Munchkin](./other-email-and-sms.md#marketo-munchkin) | `marketoMunchkin` | `marketing`                   | Waits for effective permission                             |
+| Integration                                                                             | Helper            | Category                      | Loading behavior                                           |
+| --------------------------------------------------------------------------------------- | ----------------- | ----------------------------- | ---------------------------------------------------------- |
+| [Attentive](./other-email-and-sms.md#attentive)                                         | `attentiveTag`    | `marketing`                   | Waits for effective permission                             |
+| [Customer.io](./other-email-and-sms.md#customerio)                                      | `customerIo`      | `marketing`                   | Waits for effective permission                             |
+| [Insider](./other-email-and-sms.md#insider-one)                                         | `insiderTag`      | `marketing`                   | Waits for effective permission                             |
+| [Klaviyo](./klaviyo.md)                                                                 | `klaviyo`         | `marketing` and `measurement` | Waits for both; optional forms-only mode needs `marketing` |
+| [Marketo Munchkin](./other-email-and-sms.md#marketo-munchkin)                           | `marketoMunchkin` | `marketing`                   | Waits for effective permission                             |
+| [Salesforce Account Engagement](./other-email-and-sms.md#salesforce-account-engagement) | `pardotTracking`  | `marketing`                   | Waits for effective permission                             |
 
 ## Ads and pixels
 
 | Integration                                                | Helper              | Category    | Loading behavior                                                 |
 | ---------------------------------------------------------- | ------------------- | ----------- | ---------------------------------------------------------------- |
 | [The Trade Desk](./other-ads-and-pixels.md#the-trade-desk) | `theTradeDeskPixel` | `marketing` | Waits for effective permission                                   |
+| [LiveIntent](./other-ads-and-pixels.md#liveintent)         | `liveIntentTag`     | `marketing` | Waits for effective permission                                   |
+| [AdRoll](./other-ads-and-pixels.md#adroll)                 | `adrollPixel`       | `marketing` | Waits for effective permission                                   |
+| [Vector](./other-ads-and-pixels.md#vector)                 | `vector`            | `marketing` | Waits for effective permission                                   |
 | [Meta Pixel](./meta-pixel.md)                              | `metaPixel`         | `marketing` | Gated initially; keeps the SDK and signals consent               |
 | [OpenAI Pixel](./openai-pixel.md)                          | `openaiPixel`       | `marketing` | Gated initially; keeps the SDK and signals consent               |
 | [Pinterest Tag](./pinterest-tag.md)                        | `pinterestTag`      | `marketing` | Gated initially; keeps the tag and signals consent               |

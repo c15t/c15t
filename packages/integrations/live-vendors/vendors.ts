@@ -83,9 +83,9 @@ import { dynamicYield } from '../src/vendors/functional/dynamic-yield';
 import { frontChat } from '../src/vendors/functional/front-chat';
 import { gorgiasChat } from '../src/vendors/functional/gorgias';
 import { intercom } from '../src/vendors/functional/intercom';
-import { zendeskWidget } from '../src/vendors/functional/zendesk';
 import { optimizelyWeb } from '../src/vendors/functional/optimizely';
 import { wisepops } from '../src/vendors/functional/wisepops';
+import { zendeskWidget } from '../src/vendors/functional/zendesk';
 import { googleTagManager } from '../src/vendors/tag-managers/google-tag-manager';
 import type { LiveProbeCheckResult, LiveVendorProbeConfig } from './types';
 

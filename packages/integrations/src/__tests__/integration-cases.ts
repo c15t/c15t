@@ -63,9 +63,9 @@ import { dynamicYield } from '../vendors/functional/dynamic-yield';
 import { frontChat } from '../vendors/functional/front-chat';
 import { gorgiasChat } from '../vendors/functional/gorgias';
 import { intercom } from '../vendors/functional/intercom';
-import { zendeskWidget } from '../vendors/functional/zendesk';
 import { optimizelyWeb } from '../vendors/functional/optimizely';
 import { wisepops } from '../vendors/functional/wisepops';
+import { zendeskWidget } from '../vendors/functional/zendesk';
 import { cloudflareZaraz } from '../vendors/tag-managers/cloudflare-zaraz';
 import { googleTagManager } from '../vendors/tag-managers/google-tag-manager';
 import type { expectScriptMatchesIntegration } from './helpers';
@@ -90,14 +90,6 @@ export const helperParityCases = {
 				'https://assets.adobedtm.com/c15tfake/c15tfake/launch-c15tfake.min.js',
 		}),
 	},
-	adrollPixel: {
-		expected: {
-			alwaysLoad: undefined,
-			persistAfterConsentRevoked: true,
-			src: 'https://s.adroll.com/j/c15tfake/roundtrip.js',
-		},
-		script: adrollPixel({ advertiserId: 'c15tfake', pixelId: 'c15tfake' }),
-	},
 	adobeTarget: {
 		expected: {
 			alwaysLoad: undefined,
@@ -105,6 +97,14 @@ export const helperParityCases = {
 			src: '/scripts/at.js',
 		},
 		script: adobeTarget({ mode: 'atjs', scriptUrl: '/scripts/at.js' }),
+	},
+	adrollPixel: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: true,
+			src: 'https://s.adroll.com/j/c15tfake/roundtrip.js',
+		},
+		script: adrollPixel({ advertiserId: 'c15tfake', pixelId: 'c15tfake' }),
 	},
 	ahrefsAnalytics: {
 		expected: {
@@ -396,14 +396,6 @@ export const helperParityCases = {
 		},
 		script: openaiPixel({ pixelId: 'OPENAI-CONTRACT' }),
 	},
-	pendo: {
-		expected: {
-			alwaysLoad: undefined,
-			persistAfterConsentRevoked: true,
-			src: 'https://cdn.pendo.io/agent/static/YOUR_API_KEY/pendo.js',
-		},
-		script: pendo({ apiKey: 'YOUR_API_KEY' }),
-	},
 	optimizelyWeb: {
 		expected: {
 			alwaysLoad: undefined,
@@ -423,6 +415,14 @@ export const helperParityCases = {
 			piCId: '654321',
 			piDomain: 'pi.pardot.com',
 		}),
+	},
+	pendo: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: true,
+			src: 'https://cdn.pendo.io/agent/static/YOUR_API_KEY/pendo.js',
+		},
+		script: pendo({ apiKey: 'YOUR_API_KEY' }),
 	},
 	pinterestTag: {
 		expected: {
@@ -526,6 +526,14 @@ export const helperParityCases = {
 		},
 		script: snapchatPixel({ pixelId: '123456789012345' }),
 	},
+	statableAnalytics: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://statable.com/js/12345/s.js',
+		},
+		script: statableAnalytics({ siteId: 12345 }),
+	},
 	theTradeDeskPixel: {
 		expected: {
 			alwaysLoad: undefined,
@@ -536,14 +544,6 @@ export const helperParityCases = {
 			advertiserId: 'c15tfake',
 			pixelIds: ['c15tfake'],
 		}),
-	},
-	statableAnalytics: {
-		expected: {
-			alwaysLoad: undefined,
-			persistAfterConsentRevoked: undefined,
-			src: 'https://statable.com/js/12345/s.js',
-		},
-		script: statableAnalytics({ siteId: 12345 }),
 	},
 	tiktokPixel: {
 		expected: {

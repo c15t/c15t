@@ -60,9 +60,9 @@ import { dynamicYield } from './vendors/functional/dynamic-yield';
 import { frontChat } from './vendors/functional/front-chat';
 import { gorgiasChat } from './vendors/functional/gorgias';
 import { intercom } from './vendors/functional/intercom';
-import { zendeskWidget } from './vendors/functional/zendesk';
 import { optimizelyWeb } from './vendors/functional/optimizely';
 import { wisepops } from './vendors/functional/wisepops';
+import { zendeskWidget } from './vendors/functional/zendesk';
 import { googleTagManager } from './vendors/tag-managers/google-tag-manager';
 
 const BLANK_VALUES = ['', '   '] as const;
