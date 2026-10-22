@@ -366,7 +366,10 @@ identity cookie ineffective, and clearing consent deletes both cookies. For the 
 acknowledgement, the cookie identity wins unless a failed cookie write left a
 newer local identity. That exception lasts only while both notice cookies match
 the values observed after the failed write; a later server or sibling-subdomain
-cookie update takes precedence.
+cookie update takes precedence. Category-based data cleanup protects these
+identity records even when a configured wildcard matches their names. An explicit
+clear or removal of the identity-bearing record still clears its subject,
+including external identity fields previously supplied through `identify()`.
 The consent record follows the rules below.
 
 The consent record is stored twice: as a cookie, which a server render reads,

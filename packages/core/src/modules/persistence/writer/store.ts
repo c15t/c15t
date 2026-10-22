@@ -231,7 +231,8 @@ export const createRecordStore = function createRecordStore(
 			if (validated.ok === false) {
 				return validated;
 			}
-			const key = tools.keys(config).notice;
+			const keys = tools.keys(config);
+			const key = keys.notice;
 			const written = writeBoth(
 				key,
 				encodeNoticeDismissal(validated.record),
@@ -244,27 +245,27 @@ export const createRecordStore = function createRecordStore(
 			let subjectWritten = true;
 			if (validated.record.subject) {
 				const subjectDetail = tools.writeCookie(
-					`${key}-subject`,
+					keys.noticeSubject,
 					encodeNoticeSubjectCompact(validated.record),
 					cookie,
 					config
 				);
 				subjectWritten = subjectDetail.attempted && subjectDetail.verified;
 			} else {
-				tools.deleteCookie(`${key}-subject`, cookie, config);
-				subjectWritten = tools.rawCookie(`${key}-subject`) === null;
+				tools.deleteCookie(keys.noticeSubject, cookie, config);
+				subjectWritten = tools.rawCookie(keys.noticeSubject) === null;
 			}
 			if (written.cookie && subjectWritten) {
-				removeLocalStorageKey(`${key}-cookie-miss`);
+				removeLocalStorageKey(keys.noticeCookieMiss);
 				if (!written.localStorage) {
 					removeLocalStorageKey(key);
 				}
 			} else if (written.localStorage) {
 				writeLocalStorageText(
-					`${key}-cookie-miss`,
+					keys.noticeCookieMiss,
 					JSON.stringify([
 						tools.rawCookie(key) ?? '',
-						tools.rawCookie(`${key}-subject`) ?? '',
+						tools.rawCookie(keys.noticeSubject) ?? '',
 					])
 				);
 			}

@@ -89,6 +89,10 @@ export interface ResolvedStorageKeys {
 	/** `null` when the configured key already is the legacy key. */
 	legacyConsent: string | null;
 	notice: string;
+	/** Identity cookie bound to the notice acknowledgement. */
+	noticeSubject: string;
+	/** localStorage marker for dropped notice cookie writes. */
+	noticeCookieMiss: string;
 	vendors: string;
 	/** Time of the last clear. Survives the clear it records. */
 	epoch: string;
@@ -110,6 +114,8 @@ export const resolveStorageKeys = function resolveStorageKeys(
 		epoch: `${consent}-epoch`,
 		legacyConsent: consent === STORAGE_KEY ? null : STORAGE_KEY,
 		notice: `${consent}-notice`,
+		noticeCookieMiss: `${consent}-notice-cookie-miss`,
+		noticeSubject: `${consent}-notice-subject`,
 		vendors: `${consent}-vendors`,
 	};
 };
@@ -836,7 +842,7 @@ export const readStoredNoticeDismissal = function readStoredNoticeDismissal(
 		readCompactCookie(getRawCookieValue(keys.notice, onUnavailable), (text) =>
 			decodeNoticeDismissalCompact(text, now)
 		),
-		getRawCookieValue(`${keys.notice}-subject`, onUnavailable),
+		getRawCookieValue(keys.noticeSubject, onUnavailable),
 		now
 	);
 	const fromLocal = readLocalJson(
@@ -859,10 +865,10 @@ export const readStoredNoticeDismissal = function readStoredNoticeDismissal(
 			fromLocal.record.dismissedAt === fromCookie.record.dismissedAt &&
 			fromLocal.record.fingerprint === fromCookie.record.fingerprint &&
 			fromLocal.record.subject &&
-			readLocalStorageText(`${keys.notice}-cookie-miss`) ===
+			readLocalStorageText(keys.noticeCookieMiss) ===
 				JSON.stringify([
 					getRawCookieValue(keys.notice) ?? '',
-					getRawCookieValue(`${keys.notice}-subject`) ?? '',
+					getRawCookieValue(keys.noticeSubject) ?? '',
 				])
 		) {
 			return fromLocal;
@@ -888,7 +894,7 @@ export const readStoredNoticeDismissalFromCookieHeader =
 				readCookieValueFromHeader(cookieHeader, keys.notice),
 				(text) => decodeNoticeDismissalCompact(text, now)
 			),
-			readCookieValueFromHeader(cookieHeader, `${keys.notice}-subject`),
+			readCookieValueFromHeader(cookieHeader, keys.noticeSubject),
 			now
 		);
 	};

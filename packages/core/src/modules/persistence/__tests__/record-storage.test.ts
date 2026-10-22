@@ -446,6 +446,8 @@ describe('raw candidate reading', () => {
 			epoch: 'custom-key-epoch',
 			legacyConsent: STORAGE_KEY,
 			notice: 'custom-key-notice',
+			noticeCookieMiss: 'custom-key-notice-cookie-miss',
+			noticeSubject: 'custom-key-notice-subject',
 			vendors: 'custom-key-vendors',
 		});
 	});

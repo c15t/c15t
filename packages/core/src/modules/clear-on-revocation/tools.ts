@@ -16,6 +16,7 @@ import {
 	SUBJECT_REASSIGNMENTS_STORAGE_KEY,
 } from '../../libs/storage-keys';
 import { getEffectiveGateState } from '../has';
+import { resolveStorageKeys } from '../persistence/record-storage';
 import type { ClearOnRevocationTools } from './types';
 
 /** @internal */
@@ -28,5 +29,6 @@ export const clearOnRevocationTools: ClearOnRevocationTools = {
 		SUBJECT_REASSIGNMENTS_STORAGE_KEY,
 		EXPERIMENT_STORAGE_KEY,
 	],
+	resolveStorageKeys,
 	storageKey: STORAGE_KEY_V2,
 };

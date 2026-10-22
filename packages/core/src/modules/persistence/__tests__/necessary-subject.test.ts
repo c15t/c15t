@@ -3,6 +3,7 @@ import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 
 import { createConsentKernel } from '../../../index';
 import { getRawCookieValue } from '../../../libs/cookie';
+import { createClearOnRevocation } from '../../clear-on-revocation';
 import { createPersistence, readStoredRecordsFromCookieHeader } from '../index';
 import {
 	readStoredNoticeDismissal,
@@ -433,5 +434,62 @@ test.each([undefined, { storageKey: 'review-custom-notice' }])(
 		expect(restored?.ok && restored.record.subject?.subjectId).toBe('original');
 		clearStoredConsentRecords(undefined, storageConfig);
 		expect(readStoredNoticeDismissal(storageConfig, now)).toBeNull();
+	}
+);
+
+test.each([undefined, { storageKey: 'custom-consent' }])(
+	'wildcard revocation cleanup preserves necessary-only identity with config %j',
+	async (storageConfig) => {
+		const kernel = createConsentKernel({
+			consentCategories: ['necessary'],
+			transport: {
+				save: () => Promise.resolve({ ok: true, subjectId: 'visitor' }),
+			},
+		});
+		const handle = createPersistence({ kernel, storageConfig });
+		const saving = kernel.commands.save('none');
+		await vi.advanceTimersByTimeAsync(0);
+		await saving;
+		const key = resolveStorageKeys(storageConfig).consent;
+		document.cookie = `${key}-analytics=tracking; path=/`;
+		const cleanup = createClearOnRevocation({
+			config: {
+				measurement: { cookies: [`${key}*`], localStorage: [`${key}*`] },
+			},
+			kernel,
+			storageConfig,
+		});
+		expect(getRawCookieValue(`${key}-analytics`)).toBeNull();
+		cleanup.dispose();
+		handle.dispose();
+		kernel.dispose();
+		const restored = createConsentKernel({ consentCategories: ['necessary'] });
+		const reader = createPersistence({ kernel: restored, storageConfig });
+		expect(restored.getSnapshot().subject?.subjectId).toBe('visitor');
+		expect(restored.getSnapshot().explicitChoice).toBeNull();
+		reader.clear();
+		reader.dispose();
+		restored.dispose();
+	}
+);
+
+test.each([['necessary'], ['necessary', 'measurement']] as const)(
+	'removal of the identity-bearing record clears identify data for %j',
+	async (...consentCategories) => {
+		const kernel = createConsentKernel({ consentCategories });
+		const handle = createPersistence({ kernel });
+		await kernel.commands.identify({
+			externalId: 'account',
+			identityProvider: 'application',
+		});
+		const saving = kernel.commands.save('none');
+		await vi.advanceTimersByTimeAsync(0);
+		await saving;
+		expect(kernel.getSnapshot().subject?.externalId).toBe('account');
+		clearStoredConsentRecords();
+		handle.reconcile();
+		expect(kernel.getSnapshot().subject).toBeNull();
+		handle.dispose();
+		kernel.dispose();
 	}
 );
