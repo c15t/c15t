@@ -215,6 +215,16 @@ export const builtInScriptIntegrations = [
 		vendor: 'wisepops',
 	},
 	{
+		consentCategory: 'marketing',
+		docsSlug: 'other-email-and-sms',
+		hint: 'Lead scoring and marketing analytics',
+		integrationCategory: 'analytics',
+		key: 'marketoMunchkin',
+		label: 'Marketo Munchkin',
+		packageSubpath: 'marketo',
+		vendor: 'marketo',
+	},
+	{
 		consentCategory: 'necessary',
 		docsSlug: 'cloudflare-zaraz',
 		hint: 'Consent bridge for tools managed by Zaraz',

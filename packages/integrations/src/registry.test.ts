@@ -39,6 +39,7 @@ import { hightouchManifest } from './vendors/analytics/hightouch';
 import { hotjarManifest } from './vendors/analytics/hotjar';
 import { logRocketManifest } from './vendors/analytics/logrocket';
 import { luckyOrangeManifest } from './vendors/analytics/lucky-orange';
+import { marketoManifest } from './vendors/analytics/marketo';
 import { matomoAnalyticsManifest } from './vendors/analytics/matomo-analytics';
 import { clarityManifest } from './vendors/analytics/microsoft-clarity';
 import { mixpanelAnalyticsManifest } from './vendors/analytics/mixpanel-analytics';
@@ -96,6 +97,7 @@ const vendorManifests = [
 	adobeTargetManifest,
 	appcuesManifest,
 	wisepopsManifest,
+	marketoManifest,
 	googleTagManagerManifest,
 	gtagManifest,
 	ahrefsAnalyticsManifest,

@@ -390,6 +390,11 @@
 			"import": "./dist/vendors/functional/wisepops.js",
 			"default": "./dist/vendors/functional/wisepops.js"
 		},
+		"./marketo": {
+			"types": "./dist-types/vendors/analytics/marketo.d.ts",
+			"import": "./dist/vendors/analytics/marketo.js",
+			"default": "./dist/vendors/analytics/marketo.js"
+		},
 		"./clay": {
 			"types": "./dist-types/vendors/analytics/clay.d.ts",
 			"import": "./dist/vendors/analytics/clay.js",

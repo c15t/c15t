@@ -1,0 +1,26 @@
+---
+title: Other email, SMS and marketing automation tools
+description: Consent-gated helpers for email, SMS and marketing automation tools that don't need a full guide.
+icon: mail
+group: integrations
+---
+
+Each helper below loads its vendor only after the visitor allows the listed consent category. For setup, see [Integrations overview](/docs/integrations/overview).
+
+## Marketo Munchkin
+
+Munchkin is Adobe Marketo's script for tracking known and anonymous leads on your site. Waits for `marketing` consent.
+
+<include src="../shared/examples/javascript/marketo-configuration.mdx" />
+
+| Option | Type | Required | Description |
+| --- | --- | --- | --- |
+| `munchkinId` | `string` | Yes | Account ID from Marketo's installation snippet. |
+| `initOptions` | `Record<string, unknown>` | No | Passed to `Munchkin.init`, for example `cookieAnon` or `anonymizeIP`. |
+| `category` | consent condition | No | Replaces the default `marketing` condition. |
+| `scriptUrl` | `string` | No | Custom or proxied loader URL. |
+
+**When consent is withdrawn:** c15t removes the loader and reloads the page. Munchkin has no API to stop tracking, so keep `reloadOnConsentRevoked` on.
+
+- `cookieAnon: false` stops Munchkin from creating cookies for new anonymous visitors. It is not a consent switch: visitors who already have a cookie are still tracked.
+- The `_mkto_trk` cookie lasts two years by default and survives the reload. The next page does not load Munchkin while consent is denied.

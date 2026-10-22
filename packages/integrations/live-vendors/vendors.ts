@@ -45,6 +45,7 @@ import {
 import { hotjar } from '../src/vendors/analytics/hotjar';
 import { logRocket } from '../src/vendors/analytics/logrocket';
 import { luckyOrange } from '../src/vendors/analytics/lucky-orange';
+import { marketoMunchkin } from '../src/vendors/analytics/marketo';
 import { matomoAnalytics } from '../src/vendors/analytics/matomo-analytics';
 import { clarity } from '../src/vendors/analytics/microsoft-clarity';
 import { mixpanelAnalytics } from '../src/vendors/analytics/mixpanel-analytics';
@@ -672,6 +673,20 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 		vendor: 'wisepops',
 	},
 
+	{
+		allowUrlSubstrings: ['munchkin.marketo.net/'],
+		createScript: () => marketoMunchkin({ munchkinId: 'AAA-BBB-CCC' }),
+		loaderUrlSubstring: 'munchkin.marketo.net/munchkin.js',
+		notes:
+			'Uses a placeholder Munchkin ID. Collection is blocked. This validates SDK installation, not attribution to a configured Marketo account.',
+		runtimeCheck: () =>
+			check(
+				typeof window.MunchkinTracker?.init === 'function',
+				'Munchkin runtime methods installed by the real loader'
+			),
+		tier: 'full',
+		vendor: 'marketo',
+	},
 	{
 		skipReason:
 			'Requires a configured Cloudflare zone and purpose IDs. This bridge does not fetch a public vendor loader.',

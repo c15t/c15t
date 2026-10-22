@@ -31,6 +31,7 @@ import { hightouch } from '../vendors/analytics/hightouch';
 import { hotjar } from '../vendors/analytics/hotjar';
 import { logRocket } from '../vendors/analytics/logrocket';
 import { luckyOrange } from '../vendors/analytics/lucky-orange';
+import { marketoMunchkin } from '../vendors/analytics/marketo';
 import { matomoAnalytics } from '../vendors/analytics/matomo-analytics';
 import { clarity } from '../vendors/analytics/microsoft-clarity';
 import { mixpanelAnalytics } from '../vendors/analytics/mixpanel-analytics';
@@ -297,6 +298,14 @@ export const helperParityCases = {
 			src: 'https://tools.luckyorange.com/core/lo.js?site-id=YOUR_SITE_ID',
 		},
 		script: luckyOrange({ siteId: 'YOUR_SITE_ID' }),
+	},
+	marketoMunchkin: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://munchkin.marketo.net/munchkin.js',
+		},
+		script: marketoMunchkin({ munchkinId: 'AAA-BBB-CCC' }),
 	},
 	matomoAnalytics: {
 		expected: {

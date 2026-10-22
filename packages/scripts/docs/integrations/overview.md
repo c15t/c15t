@@ -106,9 +106,10 @@ kernel to control its DOM lifecycle. Embeds do not require `@c15t/integrations`.
 
 ## Email and SMS
 
-| Integration             | Helper    | Category                      | Loading behavior                                           |
-| ----------------------- | --------- | ----------------------------- | ---------------------------------------------------------- |
-| [Klaviyo](./klaviyo.md) | `klaviyo` | `marketing` and `measurement` | Waits for both; optional forms-only mode needs `marketing` |
+| Integration                                                   | Helper            | Category                      | Loading behavior                                           |
+| ------------------------------------------------------------- | ----------------- | ----------------------------- | ---------------------------------------------------------- |
+| [Klaviyo](./klaviyo.md)                                       | `klaviyo`         | `marketing` and `measurement` | Waits for both; optional forms-only mode needs `marketing` |
+| [Marketo Munchkin](./other-email-and-sms.md#marketo-munchkin) | `marketoMunchkin` | `marketing`                   | Waits for effective permission                             |
 
 ## Ads and pixels
 
