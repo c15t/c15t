@@ -213,10 +213,10 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 	{
 		bootstrapCheck: () =>
 			check(Array.isArray(window._elqQ), 'Eloqua command array'),
-		createScript: () => eloquaTracking({ siteId: '1973398186' }),
+		createScript: () => eloquaTracking({ siteId: 'c15t-placeholder-site' }),
 		loaderUrlSubstring: 'img.en25.com/i/elqCfg.min.js',
 		notes:
-			'Public Oracle site ID proves real dispatcher execution. All opt-in, opt-out and collection endpoints are blocked; cookie response behavior and account reporting are not verified.',
+			'Uses a non-account placeholder site ID to check that the shared loader installs its dispatcher. All opt-in, opt-out and collection endpoints are blocked; cookie response behavior and account reporting are not verified.',
 		runtimeCheck: () =>
 			check(
 				!Array.isArray(window._elqQ) &&
