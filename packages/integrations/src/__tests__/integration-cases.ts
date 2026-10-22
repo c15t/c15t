@@ -2,6 +2,7 @@
  * One script per built-in integration, built from its public helper with
  * sample options, and the fields the helper must set.
  */
+
 import type { BuiltInScriptIntegrationKey } from '../registry';
 import { linkedinInsights } from '../vendors/ads-and-pixels/linkedin-insights';
 import { metaPixel } from '../vendors/ads-and-pixels/meta-pixel';
@@ -19,6 +20,7 @@ import { clay } from '../vendors/analytics/clay';
 import { clearbit } from '../vendors/analytics/clearbit';
 import { cloudflareWebAnalytics } from '../vendors/analytics/cloudflare-web-analytics';
 import { databuddy } from '../vendors/analytics/databuddy';
+import { defaultComPixel } from '../vendors/analytics/default-com';
 import { fathomAnalytics } from '../vendors/analytics/fathom-analytics';
 import { gtag } from '../vendors/analytics/google-tag';
 import { heap } from '../vendors/analytics/heap';
@@ -128,6 +130,14 @@ export const helperParityCases = {
 
 			configWhenGranted: { clientId: 'db_123', disabled: false },
 		}),
+	},
+	defaultComPixel: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: true,
+			src: 'https://handshake.default.com/index.js',
+		},
+		script: defaultComPixel({ publicKey: 'c15tfake' }),
 	},
 	fathomAnalytics: {
 		expected: {

@@ -71,12 +71,15 @@ removes an element it created when the last loader releases it.
 `loader.updateScripts(next)` replaces the configuration and reconciles at
 once:
 
-- A script with the same `id`, source, inline code and attributes keeps its
-  element. New callback functions alone do not reload it.
+- A DOM script with the same `id`, source, inline code and attributes keeps its
+  element when its `onDispose` callback is unchanged. Replacing the
+  configuration object with the same callback preserves that lifecycle.
+  Changes to other callback functions alone do not reload it.
 - Changing the source, inline code or attributes starts a new load.
-- A script that adds `onDispose` is tracked by object. Replacing the object
-  disposes it and starts again, even with the same `id`. Keep such objects
-  stable.
+- Adding, removing or changing the `onDispose` function disposes the previous
+  configuration and starts a new load, even with the same `id` and resource.
+- A callback-only script with `onDispose` still disposes the previous
+  configuration when its object is replaced, even with the same callback.
 - A removed script releases its element. Shared external elements stay while
   another loader still uses them.
 

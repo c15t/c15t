@@ -69,6 +69,10 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 		example: "databuddy({ clientId: 'YOUR_CLIENT_ID' })",
 		importName: 'databuddy',
 	},
+	'default-com': {
+		example: "defaultComPixel({ publicKey: 'YOUR_PUBLIC_KEY' })",
+		importName: 'defaultComPixel',
+	},
 	'fathom-analytics': {
 		example: "fathomAnalytics({ site: 'YOUR_SITE_ID' })",
 		importName: 'fathomAnalytics',

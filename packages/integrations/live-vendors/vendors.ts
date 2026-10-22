@@ -1,14 +1,14 @@
 /**
  * Live probe definitions for built-in `@c15t/integrations` integrations.
  *
- * Each entry pairs a registry vendor with safe placeholder configuration and
+ * Each entry pairs a registry vendor with a probe configuration and
  * the checks used by the live monitor. This module is imported by the Node
  * runner and bundled into the browser harness, so check callbacks run inside
  * the probed page.
  *
- * Placeholder ids must be obviously fake and must never point at a real
- * account. Collection endpoints are blocked by the runner, so probes cannot
- * send real analytics data even when a vendor runtime initializes.
+ * Use placeholder IDs by default. Explicitly authorized public sample IDs are
+ * documented in each entry. Collection and non-loader third-party requests
+ * remain blocked when a vendor runtime initializes.
  */
 import { linkedinInsights } from '../src/vendors/ads-and-pixels/linkedin-insights';
 import { metaPixel } from '../src/vendors/ads-and-pixels/meta-pixel';
@@ -30,6 +30,7 @@ import { clay } from '../src/vendors/analytics/clay';
 import { clearbit } from '../src/vendors/analytics/clearbit';
 import { cloudflareWebAnalytics } from '../src/vendors/analytics/cloudflare-web-analytics';
 import { databuddy } from '../src/vendors/analytics/databuddy';
+import { defaultComPixel } from '../src/vendors/analytics/default-com';
 import { fathomAnalytics } from '../src/vendors/analytics/fathom-analytics';
 import { gtag } from '../src/vendors/analytics/google-tag';
 import { HEAP_QUEUE_METHODS, heap } from '../src/vendors/analytics/heap';
@@ -71,6 +72,21 @@ interface OpenAIPixelRuntime extends OpenAIPixelFunction {
 	measure?: (...args: unknown[]) => void;
 	consent?: (granted: boolean) => void;
 }
+
+interface DefaultComProbeConsent {
+	analytics: boolean;
+	marketing: boolean;
+}
+
+interface DefaultComPixelProbeRuntime {
+	key?: string;
+	q?: ['setConsent', DefaultComProbeConsent][];
+	setConsent?: (consent: DefaultComProbeConsent) => void;
+}
+
+type DefaultComProbeWindow = Window & {
+	__defaultPixel__?: DefaultComPixelProbeRuntime;
+};
 
 const check = function check(
 	ok: boolean,
@@ -209,6 +225,54 @@ type PosthogProbeWindow = Window & {
  * Probe configs for every built-in integration, ordered by registry vendor id.
  */
 export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
+	{
+		bootstrapCheck: () => {
+			const pixel: DefaultComPixelProbeRuntime | undefined = (
+				window as DefaultComProbeWindow
+			).__defaultPixel__;
+			const queuedConsent = pixel?.q?.[0];
+
+			return check(
+				pixel?.key === '39af45d7-093f-4efe-a5d1-5bdb462fc4e0' &&
+					typeof pixel.setConsent === 'function' &&
+					Array.isArray(pixel.q) &&
+					pixel.q.length === 1 &&
+					queuedConsent?.[0] === 'setConsent' &&
+					queuedConsent[1]?.analytics === true &&
+					queuedConsent[1]?.marketing === true,
+				'Default Pixel public key and granted consent tuple queued before loader execution'
+			);
+		},
+		createScript: () =>
+			defaultComPixel({
+				// Public Pixel bootstrap at https://www.default.com/, checked 2026-10-21.
+				// Full-tier probe executes index.js and checks its live consent setter.
+				// Collection and Vector endpoints remain outside the loader allowlist.
+				// Workspace monitoring authorization remains unverified.
+				publicKey: '39af45d7-093f-4efe-a5d1-5bdb462fc4e0',
+			}),
+		loaderUrlSubstring: 'https://handshake.default.com/index.js',
+		notes:
+			"The key comes from Default's public homepage Pixel bootstrap; public visibility does not establish collection authorization. Collection endpoints and Vector scripts remain blocked; do not broaden the loader allowlist. This checks Pixel bootstrap, queue drain and real consent-setter installation. It does not validate account configuration, event delivery or complete shutdown after withdrawal. The standalone Forms SDK has no separate probe.",
+		runtimeCheck: () => {
+			const pixel = (window as DefaultComProbeWindow).__defaultPixel__;
+			const setter = pixel?.setConsent;
+			const setterSource =
+				typeof setter === 'function' ? setter.toString() : '';
+			// The downloaded index.js drains q, then installs
+			// f.setConsent=h=>he.setConsent(h). The bootstrap only pushes to q.
+			return check(
+				Array.isArray(pixel?.q) &&
+					pixel.q.length === 0 &&
+					typeof setter === 'function' &&
+					setterSource.includes('.setConsent(') &&
+					!setterSource.includes('.push('),
+				'Default Pixel drained its consent queue and installed the upstream consent setter'
+			);
+		},
+		tier: 'full',
+		vendor: 'default-com',
+	},
 	{
 		skipReason:
 			'Requires a configured Cloudflare zone and purpose IDs. This bridge does not fetch a public vendor loader.',

@@ -28,6 +28,7 @@ import { clayManifest } from './vendors/analytics/clay';
 import { clearbitManifest } from './vendors/analytics/clearbit';
 import { cloudflareWebAnalyticsManifest } from './vendors/analytics/cloudflare-web-analytics';
 import { databuddyManifest } from './vendors/analytics/databuddy';
+import { defaultComPixelManifest } from './vendors/analytics/default-com';
 import { fathomAnalyticsManifest } from './vendors/analytics/fathom-analytics';
 import { gtagManifest } from './vendors/analytics/google-tag';
 import { heapManifest } from './vendors/analytics/heap';
@@ -65,6 +66,7 @@ const validConsentCategories = [
 
 const vendorManifests = [
 	clayManifest,
+	defaultComPixelManifest,
 	googleTagManagerManifest,
 	gtagManifest,
 	ahrefsAnalyticsManifest,

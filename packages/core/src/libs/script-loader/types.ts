@@ -99,6 +99,15 @@ export interface Script {
 	id: string;
 
 	/**
+	 * Validate before initial registration or configuration replacement.
+	 * Throw to reject the batch before existing registrations are changed.
+	 * Must not mutate script or SDK state. Lifecycle callback errors are isolated;
+	 * the loader does not catch validation errors.
+	 * @internal
+	 */
+	validate?: () => void;
+
+	/**
 	 * Stable identity of the DOM resource, separate from the logical script ID.
 	 * Set this when separate loaders can select different resources for the same
 	 * integration. Matching keys share an element; different keys mount separately.
@@ -283,8 +292,10 @@ export interface Script {
 
 	/**
 	 * Release listeners and other resources when this configuration is removed,
-	 * replaced by a different object, or its loader is disposed. Adding this hook
-	 * opts into object-owned lifecycles; keep the config stable across rerenders.
+	 * replaced by a different resource or disposal callback, or its loader is
+	 * disposed. Recreating a DOM script config with the same resource and callback
+	 * preserves its lifecycle. Callback-only scripts with this hook retain an
+	 * object-owned lifecycle. Use a new callback when replacement needs cleanup.
 	 * Called even if the script never loaded.
 	 * Consent revocation alone does not call this hook. It does not revoke vendor
 	 * consent or undo code that has already executed. Must be safe to call before

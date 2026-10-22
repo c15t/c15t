@@ -33,6 +33,12 @@ import type {
 
 const MAX_RECONCILE_PASSES = 100;
 
+const validateScripts = (scripts: Script[]): void => {
+	for (const script of scripts) {
+		script.validate?.();
+	}
+};
+
 /**
  * Create a script loader from the tools it calls.
  *
@@ -82,6 +88,7 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 		);
 		declareOwners(kernel, scripts, ownerSource);
 	};
+	validateScripts(options.scripts);
 	registerCategories(options.scripts);
 	let normalized: NormalizedScript[] = normalizeScripts(
 		options.scripts,
@@ -350,6 +357,7 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 	};
 
 	const replaceScripts = (next: Script[]): void => {
+		validateScripts(next);
 		const nextScripts = new Set(next);
 		const nextById = new Map(next.map((script) => [script.id, script]));
 		const previous = new Set(normalized.map(({ script }) => script));
@@ -360,12 +368,12 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 			}
 			const replacement = nextById.get(script.id);
 			// Existing vendor helpers are recreated on framework rerenders. Keep
-			// their resource mounted unless it changed. onDispose opts into an
-			// object-owned lifecycle, used by integrations with attached listeners.
+			// their resource mounted unless it or the disposal callback changed.
+			// A stable disposer retains a DOM resource's registration lifecycle.
 			if (
 				replacement &&
-				!script.onDispose &&
-				!replacement.onDispose &&
+				script.onDispose === replacement.onDispose &&
+				(!script.onDispose || !script.callbackOnly) &&
 				hasSameResource(script, replacement)
 			) {
 				continue;

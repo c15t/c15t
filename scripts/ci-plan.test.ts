@@ -11,6 +11,27 @@ const workspaces = readWorkspaces(repository);
 const plan = (files: string[]) => createCiPlan(files, workspaces);
 
 describe('CI selection', () => {
+	it('installs Chromium for integrations-only runtime tests', () => {
+		const result = plan([
+			'packages/integrations/src/vendors/analytics/default-com.ts',
+		]);
+		expect(result).toMatchObject({ full: false, testBrowsers: true });
+		expect(result.tests).toContain('@c15t/integrations');
+		expect(ciSchedulingOutputs(result)).toMatchObject({
+			packageChecks: true,
+			testBrowsers: true,
+		});
+	});
+
+	it.each([
+		'docs/integrations/default-com.mdx',
+		'packages/node-sdk/src/index.ts',
+	])('does not install Chromium for %s', (file) => {
+		const result = plan([file]);
+		expect(result).toMatchObject({ full: false, testBrowsers: false });
+		expect(ciSchedulingOutputs(result).testBrowsers).toBe(false);
+	});
+
 	it('tests the compatibility package without requiring vendor-runtime coverage', () => {
 		const result = plan(['bun.lock']);
 		expect(result.tests).toContain('@c15t/scripts');
