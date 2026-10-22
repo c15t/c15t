@@ -616,7 +616,7 @@ export const builtInScriptIntegrations = [
 	},
 	{
 		consentCategory: 'marketing',
-		docsSlug: 'other-analytics',
+		docsSlug: 'other-ads-and-pixels',
 		hint: 'Visitor identification for advertising audiences',
 		integrationCategory: 'ads-and-pixels',
 		key: 'vector',

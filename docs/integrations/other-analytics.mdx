@@ -45,16 +45,3 @@ Statable is cookieless web analytics. Waits for `measurement` consent.
 - If your CDN serves the loader but doesn't serve or proxy `/api/event`, set `trackingApi` to the full ingestion URL:
 
 <include src="../shared/examples/javascript/statable-proxy-scripts.mdx" />
-
-## Vector
-
-Vector identifies the people and companies visiting your site and builds advertising audiences from their activity. Waits for `marketing` consent.
-
-<include src="../shared/examples/javascript/vector-scripts.mdx" />
-
-| Option | Type | Required | Description |
-| --- | --- | --- | --- |
-| `pixelId` | `string` | Yes | Pixel ID from **Settings > Pixel** in Vector. |
-| `scriptUrl` | `string` | No | Custom SDK URL. Defaults to `https://cdn.vector.co/pixel.js`. |
-
-**When consent is withdrawn:** Vector has no stop API, so c15t reloads the page to stop it. Keep `reloadOnConsentRevoked` on.

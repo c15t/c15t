@@ -12,6 +12,7 @@ import {
 } from './e2e-test-utils';
 import { liveIntentTag } from './vendors/ads-and-pixels/liveintent';
 import { theTradeDeskPixel } from './vendors/ads-and-pixels/the-trade-desk';
+import { vector } from './vendors/ads-and-pixels/vector';
 
 describe('vendor contract cleanup', () => {
 	registerVendorContractCleanup();
@@ -45,36 +46,21 @@ describe('vendor contract cleanup', () => {
 		expect.soft('LI' in window).toBe(false);
 		expect.soft('liQ' in window).toBe(false);
 	});
-});
-/** @vitest-environment jsdom */
-import { afterEach, describe, expect, it } from 'vitest';
 
-import {
-	grantedMarketingConsents,
-	loadScripts,
-	registerVendorContractCleanup,
-} from './e2e-test-utils';
-import { vector } from './vendors/ads-and-pixels/vector';
+	it('removes the Vector bootstrap and SDK manager globals', () => {
+		loadScripts(
+			[vector({ pixelId: 'cleanup-test-pixel' })],
+			grantedMarketingConsents
+		);
+		expect(window).toHaveProperty('vector.q', [
+			['load', ['cleanup-test-pixel']],
+		]);
+		Reflect.set(window, '__vector_manager', { instances: new Map() });
 
-describe('vendor contract cleanup', () => {
-	afterEach(() => {
-		for (const name of ['vector', '__vector_manager']) {
-			expect(name in window, `${name} survives shared cleanup`).toBe(false);
-		}
-	});
+		clearAllScripts();
+		resetVendorGlobals();
 
-	describe('after Vector bootstrap', () => {
-		registerVendorContractCleanup();
-
-		it('removes the bootstrap and SDK manager globals', () => {
-			loadScripts(
-				[vector({ pixelId: 'cleanup-test-pixel' })],
-				grantedMarketingConsents
-			);
-			expect(window).toHaveProperty('vector.q', [
-				['load', ['cleanup-test-pixel']],
-			]);
-			Reflect.set(window, '__vector_manager', { instances: new Map() });
-		});
+		expect.soft('vector' in window).toBe(false);
+		expect.soft('__vector_manager' in window).toBe(false);
 	});
 });

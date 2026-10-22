@@ -58,3 +58,16 @@ The Trade Desk Universal Pixel records conversions and builds ad audiences. Wait
 
 - Walmart DSP accounts use a different loader. Set `scriptUrl` to `https://azjs.adsrvr.org/thetradedesk-ads/up_loader.3.0.0.js`.
 - `enableCookieSyncing: false` doesn't stop all cookies. The Trade Desk still sets its `TDID` cookie on `adsrvr.org`.
+
+## Vector
+
+Vector identifies the people and companies visiting your site and builds advertising audiences from their activity. Waits for `marketing` consent.
+
+<include src="../shared/examples/javascript/vector-scripts.mdx" />
+
+| Option | Type | Required | Description |
+| --- | --- | --- | --- |
+| `pixelId` | `string` | Yes | Pixel ID from **Settings > Pixel** in Vector. |
+| `scriptUrl` | `string` | No | Custom SDK URL. Defaults to `https://cdn.vector.co/pixel.js`. |
+
+**When consent is withdrawn:** Vector has no stop API, so c15t reloads the page to stop it. Keep `reloadOnConsentRevoked` on.
