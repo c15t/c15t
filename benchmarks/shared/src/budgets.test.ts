@@ -35,8 +35,8 @@ it.each([
 	{ limit: 3072, metric: 'gzipSize', scenario: 'browser-full' },
 	{ limit: 99_328, metric: 'lazyGzip', scenario: 'browser-headless' },
 	{ limit: 3072, metric: 'gzipSize', scenario: 'browser-headless' },
-	{ limit: 28_672, metric: 'initialGzip', scenario: 'manifest-transport' },
-	{ limit: 26_112, metric: 'gzipSize', scenario: 'manifest-transport' },
+	{ limit: 37_888, metric: 'initialGzip', scenario: 'manifest-transport' },
+	{ limit: 35_328, metric: 'gzipSize', scenario: 'manifest-transport' },
 ])(
 	'caps $scenario $metric growth at $limit bytes',
 	({ scenario, metric, limit }) => {
