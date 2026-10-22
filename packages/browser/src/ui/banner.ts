@@ -71,14 +71,7 @@ export const createBanner = function createBanner(
 			}
 		);
 		({ trapFocus, scrollLock } = actions);
-		let { position } = actions;
-		if (copy.dir === 'rtl' && actions.positionSource === 'default') {
-			if (position.endsWith('-left')) {
-				position = position.replace('-left', '-right') as typeof position;
-			} else if (position.endsWith('-right')) {
-				position = position.replace('-right', '-left') as typeof position;
-			}
-		}
+		const { position } = actions;
 
 		const card = slot(
 			h(

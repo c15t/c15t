@@ -121,14 +121,7 @@ export const createIABSurface = (
 						trapFocus: bannerOptions.trapFocus,
 					}
 		);
-		let { position } = actions;
-		if (dir === 'rtl' && actions.positionSource === 'default') {
-			if (position.endsWith('-left')) {
-				position = position.replace('-left', '-right') as typeof position;
-			} else if (position.endsWith('-right')) {
-				position = position.replace('-right', '-left') as typeof position;
-			}
-		}
+		const { position } = actions;
 		const prefix = dialog ? 'iab-consent-dialog' : 'iab-consent-banner';
 		const surfaceOptions = dialog ? dialogOptions : bannerOptions;
 		const title = dialog

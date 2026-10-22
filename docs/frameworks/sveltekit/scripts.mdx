@@ -28,7 +28,7 @@ it. On a page with either, the browser would otherwise request the chunk after
 the app's JavaScript has run, and a returning visitor's consented scripts and
 held requests would wait for that extra request.
 
-`consentManifest()` from `@c15t/svelte/vite`, already in `vite.config.ts`
+`consentManifest()` from `c15t/svelte/vite`, already in `vite.config.ts`
 from the quickstart, lets `c15tHandle` link the chunk from the page's
 `<head>` with `<link rel="modulepreload">`. It does this whenever the
 `sveltekit()` plugin is present; there is nothing else to add.
@@ -53,7 +53,7 @@ hydration, and the loader adopts its tag. See
 
 ## Send your own analytics events
 
-`getEventDispatcher()` from `@c15t/svelte` returns the provider's event
+`getEventDispatcher()` from `c15t/svelte` returns the provider's event
 dispatcher. It sends to the provider's `scripts` and checks consent when an
 event goes out. Call it in a component rendered inside `ConsentProvider`, and
 send a pageview when `page.url` changes:

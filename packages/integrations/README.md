@@ -47,6 +47,7 @@ See the [documentation](https://c15t.com/docs/integrations) for guides, API refe
 - **Email and SMS**: Customer.io loads after marketing consent by default ([guide](https://c15t.com/docs/integrations/customer-io)). Klaviyo loads only once marketing and measurement are both allowed
 - **Chat widgets**: Intercom, Crisp, Front Chat
 - **Shopify**: Sends c15t consent to Shopify's Customer Privacy API from a Hydrogen storefront ([guide](https://c15t.com/docs/integrations/shopify))
+- **Clay**: Loads after marketing consent ([guide](https://c15t.com/docs/integrations/clay))
 
 ## Example
 

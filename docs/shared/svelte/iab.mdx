@@ -10,7 +10,7 @@ String names the CMP that wrote it, so an ID you did not register attributes
 your visitors' consent to someone else. Example CMP IDs in c15t demos are not
 production configuration.
 
-`@c15t/svelte` loads the TCF add-on from `@c15t/iab`, which it installs as a
+`c15t/svelte` loads the TCF add-on from `@c15t/iab`, which it installs as a
 dependency. The add-on is a separate chunk that apps without IAB never
 download.
 
@@ -46,7 +46,7 @@ rules into `<head>` before hydration.
 
 To run the CSS through Tailwind CSS 3 or put it in a named cascade layer,
 set `styles={false}` on the provider and import
-`@c15t/svelte/styles.css` followed by `@c15t/svelte/iab/styles.css`.
+`c15t/svelte/styles.css` followed by `c15t/svelte/iab/styles.css`.
 [Stylesheets and CSS layers](/docs/customization/stylesheets#import-the-stylesheet-yourself)
 explains when to use that option.
 
@@ -87,7 +87,7 @@ and vendor consents, `isLoadingGVL`, and the actions `acceptAll()`,
 [Context getters](./getters#read-and-change-iab-tcf-consent) lists every
 member.
 
-For a custom IAB banner, `@c15t/svelte/headless` exports
+For a custom IAB banner, `c15t/svelte/headless` exports
 `getIABBannerDisplayItems`, `processGVLData` and `getIABTranslations`.
 
 ## Restrict how vendors use a purpose
