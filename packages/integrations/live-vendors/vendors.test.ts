@@ -141,6 +141,7 @@ describe('live vendor probe configs', () => {
 			'ada',
 			'adobe-analytics',
 			'adobe-target',
+			'appcues',
 			'clearbit',
 			'crisp',
 			'dynamic-yield',

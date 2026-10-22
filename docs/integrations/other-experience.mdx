@@ -45,6 +45,31 @@ SDK to load.
 - Web SDK can be configured only once per page. Reload the page before you
   mount the helper again or change its IDs, version or mode.
 
+## Appcues
+
+Appcues shows onboarding flows, tooltips and checklists inside your app. Waits
+for `experience` consent.
+
+<include src="../shared/examples/javascript/appcues-scripts.mdx" />
+
+| Option | Type | Required | Description |
+| --- | --- | --- | --- |
+| `accountId` | `string` | Yes | Account ID from your [Appcues install snippet](https://docs.appcues.com/install-appcues-web/install-the-appcues-sdk). A blank ID logs an error and skips loading. |
+| `region` | `'us' \| 'eu'` | No | Account region. Defaults to `'us'`. |
+| `settings` | `object` | No | `AppcuesSettings` to set before the SDK loads. Defaults to `{ enableURLDetection: true }`. |
+| `onReady` | `() => void` | No | Runs once after the SDK loads, while consent still allows it. Call `identify`, `group` and `track` here. |
+
+**When consent is withdrawn:** the helper calls `Appcues.reset()` and removes
+the loader, then c15t reloads the page. Keep `reloadOnConsentRevoked` on.
+`reset()` clears the user and any flow in progress, but the SDK keeps running
+until the reload.
+
+- Set `region: 'eu'` for an EU account. The SDK then loads from
+  `fast.eu.appcues.com` instead of `fast.appcues.com`.
+- Call `identify` from `onReady`, using the signed-in user's real, stable ID.
+  If the user signs in later, call `identify` from your auth handler, but first
+  check that `window.Appcues` exists and consent still allows Appcues.
+
 ## Dynamic Yield
 
 Dynamic Yield personalizes pages and serves product recommendations. Waits for

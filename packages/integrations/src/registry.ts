@@ -195,6 +195,16 @@ export const builtInScriptIntegrations = [
 		vendor: 'adobe-target',
 	},
 	{
+		consentCategory: 'experience',
+		docsSlug: 'other-experience',
+		hint: 'Onboarding flows, checklists and announcements',
+		integrationCategory: 'functional',
+		key: 'appcues',
+		label: 'Appcues',
+		packageSubpath: 'appcues',
+		vendor: 'appcues',
+	},
+	{
 		consentCategory: 'necessary',
 		docsSlug: 'cloudflare-zaraz',
 		hint: 'Consent bridge for tools managed by Zaraz',

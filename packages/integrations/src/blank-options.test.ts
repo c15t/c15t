@@ -49,6 +49,7 @@ import { vercelSpeedInsights } from './vendors/analytics/vercel-speed-insights';
 import { klaviyo } from './vendors/email-and-sms/klaviyo';
 import { ada } from './vendors/functional/ada';
 import { adobeTarget } from './vendors/functional/adobe-target';
+import { appcues } from './vendors/functional/appcues';
 import { crisp } from './vendors/functional/crisp';
 import { dynamicYield } from './vendors/functional/dynamic-yield';
 import { frontChat } from './vendors/functional/front-chat';
@@ -231,6 +232,12 @@ const requiredIdCases: {
 		helper: 'adobeTarget',
 		option: 'scriptUrl',
 		script: { category: 'experience', id: 'adobe-target' },
+	},
+	{
+		create: (id) => appcues({ ...{ accountId: '123' }, accountId: asId(id) }),
+		helper: 'appcues',
+		option: 'accountId',
+		script: { category: 'experience', id: 'appcues' },
 	},
 	{
 		create: (id) => linkedinInsights({ id: asId(id) }),
@@ -523,6 +530,11 @@ const blankScriptUrlCases: {
 			optimizelyWeb({ ...{ projectId: '12345678' }, scriptSrc: url }),
 		expectedSrc: 'https://cdn.optimizely.com/js/12345678.js',
 		helper: 'optimizelyWeb',
+	},
+	{
+		create: (url) => appcues({ ...{ accountId: '123' }, scriptUrl: url }),
+		expectedSrc: 'https://fast.appcues.com/123.js',
+		helper: 'appcues',
 	},
 	{
 		create: (scriptUrl) => hotjar({ scriptUrl, siteId: 123 }),

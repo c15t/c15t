@@ -52,6 +52,7 @@ import { vercelSpeedInsights } from '../vendors/analytics/vercel-speed-insights'
 import { klaviyo } from '../vendors/email-and-sms/klaviyo';
 import { ada } from '../vendors/functional/ada';
 import { adobeTarget } from '../vendors/functional/adobe-target';
+import { appcues } from '../vendors/functional/appcues';
 import { crisp } from '../vendors/functional/crisp';
 import { dynamicYield } from '../vendors/functional/dynamic-yield';
 import { frontChat } from '../vendors/functional/front-chat';
@@ -114,6 +115,14 @@ export const helperParityCases = {
 			src: 'https://cdn.amplitude.com/libs/analytics-browser-2.44.4-min.js.gz',
 		},
 		script: amplitude({ apiKey: 'AMPLITUDE-CONTRACT' }),
+	},
+	appcues: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://fast.appcues.com/123.js',
+		},
+		script: appcues({ accountId: '123' }),
 	},
 	clay: {
 		expected: {

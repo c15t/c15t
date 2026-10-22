@@ -60,6 +60,7 @@ import { vercelSpeedInsightsManifest } from './vendors/analytics/vercel-speed-in
 import { klaviyoManifest } from './vendors/email-and-sms/klaviyo';
 import { adaManifest } from './vendors/functional/ada';
 import { adobeTargetManifest } from './vendors/functional/adobe-target';
+import { appcuesManifest } from './vendors/functional/appcues';
 import { crispManifest } from './vendors/functional/crisp';
 import { dynamicYieldManifest } from './vendors/functional/dynamic-yield';
 import { frontChatManifest } from './vendors/functional/front-chat';
@@ -92,6 +93,7 @@ const vendorManifests = [
 	optimizelyWebManifest,
 	dynamicYieldManifest,
 	adobeTargetManifest,
+	appcuesManifest,
 	googleTagManagerManifest,
 	gtagManifest,
 	ahrefsAnalyticsManifest,

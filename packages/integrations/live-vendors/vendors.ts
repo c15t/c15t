@@ -70,6 +70,7 @@ import { vercelSpeedInsights } from '../src/vendors/analytics/vercel-speed-insig
 import { klaviyo } from '../src/vendors/email-and-sms/klaviyo';
 import { ada } from '../src/vendors/functional/ada';
 import { adobeTarget } from '../src/vendors/functional/adobe-target';
+import { appcues } from '../src/vendors/functional/appcues';
 import { crisp } from '../src/vendors/functional/crisp';
 import { dynamicYield } from '../src/vendors/functional/dynamic-yield';
 import { frontChat } from '../src/vendors/functional/front-chat';
@@ -633,6 +634,20 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 			'Web SDK 2.30.0 has a public CDN loader. Placeholder organization and datastream IDs and blocked collection cannot validate configuration, setConsent delivery or Target offers. This monitor asserts bootstrap and loader reachability only; customer-hosted at.js is not covered.',
 		tier: 'loader-only',
 		vendor: 'adobe-target',
+	},
+
+	{
+		bootstrapCheck: () =>
+			check(
+				window.AppcuesSettings?.enableURLDetection === true,
+				'Appcues settings exist before its loader executes'
+			),
+		createScript: () => appcues({ accountId: 'c15t-nonexistent-account' }),
+		loaderUrlSubstring: 'fast.appcues.com/c15t-nonexistent-account.js',
+		notes:
+			'Placeholder accounts may reject the loader. This probe proves consent gating and endpoint reachability, not SDK initialization; use a real account for onboarding flows.',
+		tier: 'loader-only',
+		vendor: 'appcues',
 	},
 
 	{

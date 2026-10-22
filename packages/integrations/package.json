@@ -380,6 +380,11 @@
 			"import": "./dist/vendors/functional/adobe-target.js",
 			"default": "./dist/vendors/functional/adobe-target.js"
 		},
+		"./appcues": {
+			"types": "./dist-types/vendors/functional/appcues.d.ts",
+			"import": "./dist/vendors/functional/appcues.js",
+			"default": "./dist/vendors/functional/appcues.js"
+		},
 		"./clay": {
 			"types": "./dist-types/vendors/analytics/clay.d.ts",
 			"import": "./dist/vendors/analytics/clay.js",

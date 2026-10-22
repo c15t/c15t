@@ -1,0 +1,20 @@
+{/* Generated from internals/doc-snippets/javascript/src/appcues.ts (docs:appcues-scripts) by scripts/sync-example-docs.ts. Edit the source file. */}
+
+```ts title="src/consent-scripts.ts"
+import { appcues } from '@c15t/integrations/appcues';
+
+export const scripts = [
+	appcues({
+		accountId: 'YOUR_APPCUES_ID',
+		onReady: () => {
+			// Read the signed-in visitor from your auth state here.
+			// Enable only with their real, unique, stable ID; skip if signed out.
+			// window.Appcues?.identify?.('CURRENT_USER_ID');
+			// After identify, enable with the visitor's real group ID if needed.
+			// window.Appcues?.group?.('CURRENT_GROUP_ID');
+			// After identify, track only an event that actually happened.
+			// window.Appcues?.track?.('Started onboarding');
+		},
+	}),
+];
+```
