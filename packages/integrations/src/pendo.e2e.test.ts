@@ -1,5 +1,5 @@
 /** @vitest-environment jsdom */
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
 	deniedConsents,
@@ -22,12 +22,18 @@ const getLoader = (): HTMLScriptElement => {
 
 describe('Pendo consent loader', () => {
 	registerVendorContractCleanup();
+	beforeEach(() => {
+		// Node 25+ replaces jsdom's storage globals with its own Web Storage.
+		vi.stubGlobal('localStorage', jsdom.window.localStorage);
+		vi.stubGlobal('sessionStorage', jsdom.window.sessionStorage);
+	});
 	afterEach(() => {
 		for (const name of GLOBALS) {
 			Reflect.deleteProperty(window, name);
 		}
 		localStorage.clear();
 		sessionStorage.clear();
+		vi.unstubAllGlobals();
 	});
 	it('creates no vendor requests, globals or storage before mapped consent', () => {
 		const scripts = [pendo({ apiKey: 'YOUR_API_KEY' })];
@@ -71,6 +77,18 @@ describe('Pendo event lifecycle', () => {
 	registerVendorContractCleanup();
 	afterEach(() => {
 		delete window.pendo;
+	});
+	it('logs instead of throwing when the loader installs no Pendo API', async () => {
+		const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+		const scripts = [pendo({ apiKey: 'broken-key' })];
+		loadScripts(scripts, granted);
+		getLoader().dispatchEvent(new Event('load'));
+		await Promise.resolve();
+		updateScripts(scripts, deniedConsents);
+		expect(error).toHaveBeenCalledTimes(2);
+		expect(error).toHaveBeenCalledWith(
+			'pendo: loader did not install the Pendo API'
+		);
 	});
 	it('initializes once, preserves metadata and resumes the same identity', async () => {
 		const create = () =>

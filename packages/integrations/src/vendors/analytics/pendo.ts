@@ -51,15 +51,15 @@ export interface PendoOptions {
 
 const reusePendo = createScriptReuse<PendoOptions>();
 
-const createPendo = function createPendo(options: PendoOptions): Script {
-	const category = options?.category ?? 'measurement';
-	const apiKey = readId(options?.apiKey);
-	if (!apiKey) {
-		return skipMissingId('pendo', 'apiKey', {
-			category,
-			manifest: pendoManifest,
-		});
-	}
+// These callbacks can run in a microtask, outside core's error isolation, so
+// log instead of throwing.
+const missingApi = 'pendo: loader did not install the Pendo API';
+
+const createPendo = function createPendo(
+	options: PendoOptions,
+	apiKey: string
+): Script {
+	const category = options.category ?? 'measurement';
 	const script = resolveManifest(pendoManifest, {
 		scriptUrl: resolveScriptUrl(
 			options.scriptUrl,
@@ -87,7 +87,8 @@ const createPendo = function createPendo(options: PendoOptions): Script {
 		if (!hasConsent) {
 			const api = window.pendo;
 			if (!api) {
-				throw new Error('pendo: loader did not install the Pendo API');
+				console.error(missingApi);
+				return;
 			}
 			api.stopSendingEvents();
 			appliedConsent = false;
@@ -104,7 +105,8 @@ const createPendo = function createPendo(options: PendoOptions): Script {
 			}
 			const api = window.pendo;
 			if (!api) {
-				throw new Error('pendo: loader did not install the Pendo API');
+				console.error(missingApi);
+				return;
 			}
 			const resume = appliedConsent === false;
 			if (!initialized) {
@@ -157,11 +159,12 @@ const createPendo = function createPendo(options: PendoOptions): Script {
  * @see https://web-sdk.pendo.io/public/events
  */
 export const pendo = function pendo(options: PendoOptions): Script {
-	if (!readId(options?.apiKey)) {
+	const apiKey = readId(options?.apiKey);
+	if (!apiKey) {
 		return skipMissingId('pendo', 'apiKey', {
 			category: options?.category ?? 'measurement',
 			manifest: pendoManifest,
 		});
 	}
-	return reusePendo(options, createPendo);
+	return reusePendo(options, (saved) => createPendo(saved, apiKey));
 };
