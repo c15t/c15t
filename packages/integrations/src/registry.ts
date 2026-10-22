@@ -116,7 +116,7 @@ export const BUILT_IN_INTEGRATION_CATEGORIES = [
 export const builtInScriptIntegrations = [
 	{
 		consentCategory: 'measurement',
-		docsSlug: 'pendo',
+		docsSlug: 'other-analytics',
 		hint: 'Product analytics and in-app guides',
 		integrationCategory: 'analytics',
 		key: 'pendo',

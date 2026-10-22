@@ -1,0 +1,28 @@
+---
+title: Other analytics tools
+description: Consent-gated helpers for analytics tools that don't need a full guide.
+icon: chart-line
+group: integrations
+---
+
+Each helper below loads its vendor only after the visitor allows the listed consent category. For setup, see [Integrations overview](/docs/integrations/overview).
+
+## Pendo
+
+Pendo records product usage and shows in-app guides. Waits for `measurement` consent by default.
+
+<include src="../shared/examples/javascript/pendo-configuration.mdx" />
+
+| Option | Type | Required | Description |
+| --- | --- | --- | --- |
+| `apiKey` | `string` | Yes | Web agent API key from Pendo. |
+| `visitor` | `Record<string, unknown>` | No | Visitor metadata passed to `pendo.initialize()`. |
+| `account` | `Record<string, unknown>` | No | Account metadata passed to `pendo.initialize()`. |
+| `initializeOptions` | `Record<string, unknown>` | No | Other `initialize()` options, such as `disableCookies` or `excludeAllText`. |
+| `category` | Consent condition | No | Category or condition that must be allowed. Defaults to `'measurement'`. |
+| `scriptUrl` | `string` | No | Custom or proxied agent URL. Defaults to `https://cdn.pendo.io/agent/static/<apiKey>/pendo.js`. |
+
+**When consent is withdrawn:** the helper calls `pendo.stopSendingEvents()`. If consent comes back on the same page, it calls `startSendingEvents()` and keeps the same visitor identity. c15t still reloads the page by default; keep the reload if the next page must run without Pendo.
+
+- The helper never calls `clearSession()`, because that starts a new anonymous visitor. If a visitor signs out while consent is granted, call `pendo.clearSession()` yourself before you identify the next visitor.
+- Stopping events doesn't delete Pendo's cookies or local storage, and guides already on the page stay there.

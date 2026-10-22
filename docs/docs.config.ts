@@ -845,7 +845,6 @@ export default defineDocsConfig({
 				{
 					pages: [
 						'google-tag',
-						'pendo',
 						'ahrefs-analytics',
 						'adobe-analytics',
 						'amplitude',
@@ -873,6 +872,7 @@ export default defineDocsConfig({
 						'umami-analytics',
 						'vercel-analytics',
 						'vercel-speed-insights',
+						'other-analytics',
 					],
 					slug: 'analytics',
 					title: 'Analytics',

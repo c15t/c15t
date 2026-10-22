@@ -12,6 +12,7 @@ import { expect, test } from 'vitest';
 import docsConfig from '../docs/docs.config';
 import umbrellaPackage from '../packages/c15t/package.json';
 import scriptsPackage from '../packages/integrations/package.json';
+import { builtInScriptIntegrations } from '../packages/integrations/src/registry';
 
 const docsRoot = fileURLToPath(new URL('../docs', import.meta.url));
 
@@ -190,16 +191,26 @@ test('integration navigation covers every vendor helper, both embeds and Shopify
 		'ads-and-pixels',
 		'commerce',
 	]);
+	// Smaller vendors share an "Other" page, so map each export to its docsSlug.
+	const docsSlugs = new Map<string, string>(
+		builtInScriptIntegrations.map((entry) => [
+			entry.packageSubpath,
+			entry.docsSlug,
+		])
+	);
 	const vendors = Object.entries(scriptsPackage.exports)
 		.filter(([, entry]) => entry.types.includes('/vendors/'))
-		.map(([subpath]) => subpath.slice(2));
+		.map(([subpath]) => subpath.slice(2))
+		.map((subpath) => docsSlugs.get(subpath) ?? subpath);
 	const expectedRoutes = [
-		...vendors,
-		'google-maps',
-		'youtube',
-		'shopify',
-		'overview',
-		'building-integrations',
+		...new Set([
+			...vendors,
+			'google-maps',
+			'youtube',
+			'shopify',
+			'overview',
+			'building-integrations',
+		]),
 	].map((slug) => `/docs/integrations/${slug}`);
 	const pages = [
 		...(integrations?.pages ?? []),

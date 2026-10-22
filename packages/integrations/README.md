@@ -48,6 +48,7 @@ See the [documentation](https://c15t.com/docs/integrations) for guides, API refe
 - **Chat widgets**: Intercom, Crisp, Front Chat
 - **Shopify**: Sends c15t consent to Shopify's Customer Privacy API from a Hydrogen storefront ([guide](https://c15t.com/docs/integrations/shopify))
 - **Clay**: Loads after marketing consent ([guide](https://c15t.com/docs/integrations/clay))
+- **Pendo**: Loads after measurement consent; stops and resumes event sending when consent changes ([guide](https://c15t.com/docs/integrations/other-analytics#pendo))
 
 ## Example
 

@@ -5,6 +5,9 @@ packages:
   '@c15t/scripts': patch
 ---
 
-### Add consent-gated Pendo loading
+### Add Pendo
 
-Add `pendo` to load Pendo only after measurement consent. Include vendor settings, consent lifecycle handling, a CLI snippet and setup documentation.
+`pendo` from `@c15t/integrations/pendo` loads Pendo after `measurement`
+consent. When consent is withdrawn it stops Pendo's event sending, and resumes
+it with the same visitor if consent returns. The CLI can generate the
+integration too.
