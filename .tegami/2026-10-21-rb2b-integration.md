@@ -5,6 +5,8 @@ packages:
   '@c15t/scripts': patch
 ---
 
-### Add RB2B consent integration
+### Add RB2B
 
-Load RB2B after marketing consent with the `rb2b` helper. Includes vendor metadata, framework registration examples and CLI setup. Validate supported loader URLs and their case-sensitive account pathname segment, accepting equivalent percent escapes. Require a script filename after the account directory. Document domain authorization, full-document navigation and revocation limits.
+`rb2b` from `@c15t/integrations/rb2b` loads RB2B after `marketing` consent.
+RB2B has no stop API, so keep the default page reload when consent is
+withdrawn. The CLI can generate the integration too.

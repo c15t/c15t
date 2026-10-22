@@ -1,0 +1,25 @@
+---
+title: Other analytics tools
+description: Consent-gated helpers for analytics tools that don't need a full guide.
+icon: chart-line
+group: integrations
+---
+
+Each helper below loads its vendor only after the visitor allows the listed consent category. For setup, see [Integrations overview](/docs/integrations/overview).
+
+## RB2B
+
+RB2B identifies the companies and US visitors behind site traffic for sales outreach. Waits for `marketing` consent.
+
+<include src="../shared/examples/javascript/rb2b-scripts.mdx" />
+
+| Option | Type | Required | Description |
+| --- | --- | --- | --- |
+| `accountKey` | `string` | Yes | Account key from the `reb2b.load` call on RB2B's Script Setup page. |
+| `scriptUrl` | `string` | No | Loader URL from your dashboard snippet. Defaults to `https://ddwl4m2hdecbv.cloudfront.net/b/<accountKey>/<accountKey>.js.gz`. |
+
+**When consent is withdrawn:** RB2B has no stop API, so c15t reloads the page to stop it. Keep `reloadOnConsentRevoked` on.
+
+- Authorize your domain first: in RB2B, open **Script**, choose **Add a Domain** and save it. RB2B's script doesn't run on domains you haven't added.
+- `scriptUrl` must stay on RB2B's CloudFront or S3 hosts, under `/b/<accountKey>/`. RB2B checks the script's own URL, so a proxy fails, and the helper logs an error and skips loading for other URLs.
+- RB2B runs once per page load, not on client-side route changes. To count a new page view, use full-page navigation, such as a plain `<a href>`.
