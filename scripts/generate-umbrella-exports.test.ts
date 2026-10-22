@@ -807,6 +807,30 @@ describe('committed umbrella package', () => {
 		);
 	});
 
+	it('ships Svelte components, server helpers, locals types and styles', () => {
+		for (const subpath of [
+			'',
+			'/headless',
+			'/devtools',
+			'/kit',
+			'/server',
+			'/vite',
+		]) {
+			expect(manifest.exports[`./svelte${subpath}`]).toBeDefined();
+		}
+		expect(manifest.exports['./svelte/kit/locals']).toEqual({
+			types: './shims/svelte/kit/locals.d.ts',
+		});
+		expect(artifacts.shimFiles['shims/svelte/kit/locals.d.ts']).toContain(
+			"export * from '@c15t/svelte/kit/locals';"
+		);
+		for (const subpath of ['styles.css', 'iab/styles.css']) {
+			expect(manifest.exports[`./svelte/${subpath}`]).toBe(
+				`./dist/svelte/${subpath}`
+			);
+		}
+	});
+
 	it('exposes the Tailwind 3 PostCSS plugin once, from @c15t/ui', () => {
 		// Each adapter publishes `<package>/postcss-tailwind3`; the umbrella
 		// leaves those out so `c15t/postcss-tailwind3` is the only name.

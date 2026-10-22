@@ -2,7 +2,7 @@
 
 ## Where getters work
 
-Svelte has no consent hooks or stores. `@c15t/svelte` exports context getters
+Svelte has no consent hooks or stores. `c15t/svelte` exports context getters
 instead. Call one at the top level of a component's `<script>`, inside
 `ConsentProvider`, and read its properties in markup or in `$derived`.
 The properties read the provider's `$state`, so the component updates when
@@ -16,7 +16,7 @@ A getter uses Svelte's `getContext`, so it throws when you call it:
 
 Call it once at the top level and keep the returned object; its methods work
 from event handlers later. The same getters are exported from
-`@c15t/svelte/headless`.
+`c15t/svelte/headless`.
 
 | Getter | Returns | Use it to |
 | --- | --- | --- |
@@ -172,7 +172,7 @@ The kernel also has `subscribe(listener)`, which runs on every snapshot
 change, `getSnapshot()`, and `commands` for `init()`, `save()`,
 `dismissNotice()` and `identify()`. Prefer the manager's methods; they keep
 the draft and the open surface in step, which the raw commands do not.
-`getSnapshot()` from `@c15t/svelte` returns the snapshot at the moment you
+`getSnapshot()` from `c15t/svelte` returns the snapshot at the moment you
 call it and does not update.
 
 ## Other exports

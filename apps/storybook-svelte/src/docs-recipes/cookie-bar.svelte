@@ -1,7 +1,7 @@
 <!-- #region docs:headless-bar title="src/lib/cookie-bar.svelte" -->
 <script lang="ts">
-	import { getHeadlessConsent } from '@c15t/svelte';
-	import type { PresentationAction } from '@c15t/svelte';
+	import { getHeadlessConsent } from 'c15t/svelte';
+	import type { PresentationAction } from 'c15t/svelte';
 
 	import './cookie-bar.css';
 

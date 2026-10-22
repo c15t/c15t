@@ -543,7 +543,7 @@ export const getConsentContext =
 		);
 		if (!context) {
 			throw new Error(
-				'c15t: no v3 consent context. Wrap your app with <ConsentProvider options={...}> from @c15t/svelte.'
+				'c15t: no v3 consent context. Wrap your app with <ConsentProvider options={...}> from c15t/svelte.'
 			);
 		}
 		return context;

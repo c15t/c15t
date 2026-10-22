@@ -6,7 +6,9 @@ const DEFAULT_PROFILE = 'default';
 export const isBuiltInMessageProfile = (profile: string): boolean =>
 	profile === DEFAULT_PROFILE || profile === 'preferences';
 const SUPPORTED_BASE_LANGUAGES = new Set([
+	'ar',
 	'bg',
+	'bn',
 	'cs',
 	'cy',
 	'da',
@@ -22,10 +24,12 @@ const SUPPORTED_BASE_LANGUAGES = new Set([
 	'he',
 	'hi',
 	'hr',
+	'ht',
 	'hu',
 	'id',
 	'is',
 	'it',
+	'ko',
 	'lb',
 	'lt',
 	'lv',
@@ -37,9 +41,12 @@ const SUPPORTED_BASE_LANGUAGES = new Set([
 	'pt',
 	'rm',
 	'ro',
+	'ru',
 	'sk',
 	'sl',
 	'sv',
+	'ur',
+	'yi',
 	'zh',
 ]);
 

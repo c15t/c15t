@@ -14,6 +14,7 @@ import { xPixel } from './vendors/ads-and-pixels/x-pixel';
 import { adobeAnalytics } from './vendors/analytics/adobe-analytics';
 import { ahrefsAnalytics } from './vendors/analytics/ahrefs-analytics';
 import { amplitude } from './vendors/analytics/amplitude';
+import { clay } from './vendors/analytics/clay';
 import { clearbit } from './vendors/analytics/clearbit';
 import { cloudflareWebAnalytics } from './vendors/analytics/cloudflare-web-analytics';
 import { databuddy } from './vendors/analytics/databuddy';
@@ -59,6 +60,12 @@ const requiredIdCases: {
 	create: (id: unknown) => Script;
 	script: Pick<Script, 'category' | 'id'>;
 }[] = [
+	{
+		create: (id) => clay({ siteId: asId(id) }),
+		helper: 'clay',
+		option: 'siteId',
+		script: { category: 'marketing', id: 'clay' },
+	},
 	{
 		create: (id) => rb2b({ accountKey: asId(id) }),
 		helper: 'rb2b',

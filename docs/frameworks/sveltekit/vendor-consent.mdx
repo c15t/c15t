@@ -19,7 +19,7 @@ already carries, and pass them to `ConsentRoot`:
 
 ```svelte title="src/routes/+layout.svelte (partial)"
 <script lang="ts">
-  import type { ConsentManagerOptions } from '@c15t/svelte';
+  import type { ConsentManagerOptions } from 'c15t/svelte';
 
   const vendors: NonNullable<ConsentManagerOptions['vendors']> = [
     {
@@ -61,7 +61,7 @@ records the draft:
 
 ```svelte title="src/lib/x-pixel-switch.svelte (partial)"
 <script lang="ts">
-	import { getConsentManager } from '@c15t/svelte';
+	import { getConsentManager } from 'c15t/svelte';
 
 	const consent = getConsentManager();
 </script>
