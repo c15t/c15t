@@ -83,9 +83,9 @@ export const invokeCallback = function invokeCallback(
 	script: Script,
 	key: NonNullable<ScriptLoaderDebugEvent['callback']>,
 	info: ScriptCallbackInfo,
-	emit: (event: ScriptLoaderDebugEvent) => void
+	emit: (event: ScriptLoaderDebugEvent) => void,
+	fn: ((info: ScriptCallbackInfo) => void) | undefined = script[key]
 ): void {
-	const fn = script[key];
 	if (typeof fn !== 'function') {
 		return;
 	}

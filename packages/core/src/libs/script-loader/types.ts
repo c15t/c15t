@@ -29,6 +29,13 @@ export interface ScriptCallbackInfo {
 	readonly registration?: symbol;
 	/** Same-ID configuration replacement, rather than a consent withdrawal. @internal */
 	readonly replacing?: boolean;
+	/**
+	 * Run after the queued replacement has reconciled, or disposal aborts it.
+	 * Only present on an outgoing replacement's disposal info. Non-enumerable.
+	 * @param effect - Synchronous work that must wait for incoming membership.
+	 * @internal
+	 */
+	readonly afterReplacement?: (effect: () => void) => void;
 
 	/** The original script ID */
 	id: string;

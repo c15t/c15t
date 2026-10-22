@@ -56,6 +56,140 @@ const expectedCommands = (options: Partial<AmazonAdsTagOptions> = {}) => [
 ];
 
 describe('amazonAdsTag production loader', () => {
+	it.each([undefined, '   '])(
+		'denies ACS when replacement removes countryCode with %j',
+		async (countryCode) => {
+			const consent = vi.fn();
+			window.amznConsent = consent;
+			const { kernel, loader } = mount(
+				amazonAdsTag({ countryCode: 'DE', tagId })
+			);
+			await kernel.commands.save(grantedMarketingConsents);
+			findScript(mainUrl).dispatchEvent(new Event('load'));
+			consent.mockClear();
+			loader.updateScripts([amazonAdsTag({ countryCode, tagId })]);
+			expect(consent).toHaveBeenCalledExactlyOnceWith({
+				countryCode: 'DE',
+				enableAdStorage: false,
+				enableUserData: false,
+			});
+		}
+	);
+	it.each(['before', 'after'])(
+		'keeps ACS granted when a distinct owner disposes and ACS loads %s registration',
+		async (timing) => {
+			const consent = vi.fn();
+			if (timing === 'before') {
+				window.amznConsent = consent;
+			}
+			const first = mount(amazonAdsTag({ countryCode: 'DE', tagId }));
+			await first.kernel.commands.save(grantedMarketingConsents);
+			const second = mount(
+				amazonAdsTag({ countryCode: 'DE', region: 'EU', tagId })
+			);
+			await second.kernel.commands.save(grantedMarketingConsents);
+			if (timing === 'after') {
+				window.amznConsent = consent;
+				findScript(helperUrl).dispatchEvent(new Event('load'));
+			}
+			expect(consent).toHaveBeenLastCalledWith({
+				countryCode: 'DE',
+				enableAdStorage: true,
+				enableUserData: true,
+			});
+			consent.mockClear();
+			first.loader.dispose();
+			expect(consent).not.toHaveBeenCalled();
+			second.loader.dispose();
+			expect(consent).toHaveBeenCalledExactlyOnceWith({
+				countryCode: 'DE',
+				enableAdStorage: false,
+				enableUserData: false,
+			});
+		}
+	);
+	it('aggregates distinct owner withdrawal and regrant without retaining stale consent', async () => {
+		const consent = vi.fn();
+		window.amznConsent = consent;
+		const first = mount(amazonAdsTag({ countryCode: 'DE', tagId }));
+		await first.kernel.commands.save(grantedMarketingConsents);
+		const second = mount(
+			amazonAdsTag({ countryCode: 'DE', region: 'EU', tagId })
+		);
+		await second.kernel.commands.save(grantedMarketingConsents);
+		consent.mockClear();
+		await first.kernel.commands.save(deniedConsents);
+		expect(consent).not.toHaveBeenCalled();
+		await second.kernel.commands.save(deniedConsents);
+		await first.kernel.commands.save(grantedMarketingConsents);
+		expect(consent.mock.calls.map(([value]) => value.enableAdStorage)).toEqual([
+			false,
+			true,
+		]);
+	});
+	it('drops ACS ownership on replacement while preserving a permitted distinct owner', async () => {
+		const consent = vi.fn();
+		window.amznConsent = consent;
+		const first = mount(amazonAdsTag({ countryCode: 'DE', tagId }));
+		await first.kernel.commands.save(grantedMarketingConsents);
+		const second = mount(
+			amazonAdsTag({ countryCode: 'DE', region: 'EU', tagId })
+		);
+		await second.kernel.commands.save(grantedMarketingConsents);
+		consent.mockClear();
+		first.loader.updateScripts([amazonAdsTag({ tagId })]);
+		expect(consent).not.toHaveBeenCalled();
+		second.loader.dispose();
+		expect(consent).toHaveBeenCalledExactlyOnceWith({
+			countryCode: 'DE',
+			enableAdStorage: false,
+			enableUserData: false,
+		});
+	});
+	it('does not let a denied distinct owner preserve the departing grant', async () => {
+		const consent = vi.fn();
+		window.amznConsent = consent;
+		const first = mount(amazonAdsTag({ countryCode: 'DE', tagId }));
+		await first.kernel.commands.save(grantedMarketingConsents);
+		const second = mount(
+			amazonAdsTag({ countryCode: 'DE', region: 'EU', tagId })
+		);
+		await second.kernel.commands.save(deniedConsents);
+		consent.mockClear();
+		first.loader.dispose();
+		expect(consent).toHaveBeenCalledExactlyOnceWith({
+			countryCode: 'DE',
+			enableAdStorage: false,
+			enableUserData: false,
+		});
+	});
+	it('preserves the replacement grant when another owner disposes during cleanup', async () => {
+		const consent = vi.fn();
+		window.amznConsent = consent;
+		const script = amazonAdsTag({ countryCode: 'DE', tagId });
+		const first = mount(script);
+		await first.kernel.commands.save(grantedMarketingConsents);
+		const second = mount(
+			amazonAdsTag({ countryCode: 'DE', tagId, trackPageView: false })
+		);
+		await second.kernel.commands.save(grantedMarketingConsents);
+		const original = script.onDispose;
+		script.onDispose = (info) => {
+			original?.(info);
+			second.loader.dispose();
+		};
+		consent.mockClear();
+		first.loader.updateScripts([
+			amazonAdsTag({ countryCode: 'DE', region: 'EU', tagId }),
+		]);
+		expect(consent).not.toHaveBeenCalled();
+		first.loader.dispose();
+		expect(consent).toHaveBeenCalledExactlyOnceWith({
+			countryCode: 'DE',
+			enableAdStorage: false,
+			enableUserData: false,
+		});
+	});
 	it('creates no vendor globals, scripts or storage before marketing consent', async () => {
 		const script = amazonAdsTag({ countryCode: 'DE', tagId });
 		const append = vi.spyOn(document.head, 'appendChild');
@@ -498,7 +632,10 @@ describe('amazonAdsTag production loader', () => {
 	});
 
 	it('preserves ACS grants when replacing an already-loaded configuration', async () => {
-		const consent = vi.fn();
+		let permission: boolean | undefined;
+		const consent = vi.fn((value: AmazonAdsConsent) => {
+			permission = value.enableAdStorage;
+		});
 		window.amznConsent = consent;
 		const { kernel, loader } = mount(
 			amazonAdsTag({ countryCode: 'DE', tagId })
@@ -509,9 +646,8 @@ describe('amazonAdsTag production loader', () => {
 		loader.updateScripts([
 			amazonAdsTag({ countryCode: 'DE', region: 'EU', tagId }),
 		]);
-		expect(consent.mock.calls.map(([value]) => value.enableAdStorage)).toEqual([
-			true,
-		]);
+		expect(consent).not.toHaveBeenCalled();
+		expect(permission).toBe(true);
 		await kernel.commands.save(deniedConsents);
 		expect(consent).toHaveBeenLastCalledWith({
 			countryCode: 'DE',
@@ -562,7 +698,10 @@ describe('amazonAdsTag production loader', () => {
 	it.each([false, true])(
 		'uses the overridden category during replacement, measurement=%s',
 		async (measurement) => {
-			const consent = vi.fn();
+			let permission: boolean | undefined;
+			const consent = vi.fn((value: AmazonAdsConsent) => {
+				permission = value.enableAdStorage;
+			});
 			window.amznConsent = consent;
 			const script = {
 				...amazonAdsTag({ countryCode: 'DE', tagId }),
@@ -583,9 +722,8 @@ describe('amazonAdsTag production loader', () => {
 					category: 'measurement',
 				},
 			]);
-			expect(
-				consent.mock.calls.map(([value]) => value.enableAdStorage)
-			).toEqual([measurement]);
+			expect(consent).not.toHaveBeenCalled();
+			expect(permission).toBe(measurement);
 		}
 	);
 	it('forwards denial when replacement selects a denied category', async () => {

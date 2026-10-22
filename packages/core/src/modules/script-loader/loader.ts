@@ -76,6 +76,7 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 
 	const ownerSource = Symbol('script-loader');
 	let replacingScript: Script | undefined;
+	const replacementEffects = new Set<() => void>();
 	const callbackTools = {
 		...tools,
 		isReplacing: (script: Script) => script === replacingScript,
@@ -314,19 +315,23 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 			replacingScript === script && entry
 				? hasScriptConsent(entry, buildReconcilePass(snapshot, tools))
 				: (consentByScriptId.get(script.id) ?? false);
-		invokeCallback(
+		const info = buildCallbackInfo(
+			callbackTools,
 			script,
-			'onDispose',
-			buildCallbackInfo(
-				callbackTools,
-				script,
-				snapshot,
-				hasConsent,
-				elementIds.resolve(script),
-				element
-			),
-			emit
+			snapshot,
+			hasConsent,
+			elementIds.resolve(script),
+			element
 		);
+		if (info.replacing) {
+			Object.defineProperty(info, 'afterReplacement', {
+				value: (effect: () => void) =>
+					replacementEffects.add(() =>
+						invokeCallback(script, 'onDispose', info, emit, effect)
+					),
+			});
+		}
+		invokeCallback(script, 'onDispose', info, emit);
 	};
 
 	const cleanup = (): void => {
@@ -449,6 +454,11 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 				cleanup();
 			}
 			processing = false;
+			const effects = [...replacementEffects];
+			replacementEffects.clear();
+			for (const effect of effects) {
+				effect();
+			}
 		}
 	};
 	unsubscribe = kernel.subscribe(() => {

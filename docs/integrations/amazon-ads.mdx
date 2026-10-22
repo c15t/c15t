@@ -109,9 +109,15 @@ registration using that element releases it, including registrations with
 different options that borrow the same helper.
 c15t leaves externally supplied helper elements in place. A disposed helper's
 late completion cannot initialize the tag or forward an old consent state.
-Replacing options while marketing and vendor consent remain granted preserves
-ACS permission. Actual withdrawal and removing the helper configuration still
-forward denial.
+ACS permission stays granted while at least one active distinct configuration
+with `countryCode` passes its effective consent gate. Releasing or withdrawing
+one configuration does not deny a surviving permitted configuration. Equivalent
+configurations share their lifecycle and combine their registrations' gates.
+Replacing options evaluates the incoming configuration before settling ACS, so
+an unchanged grant does not produce a temporary denial. Removing `countryCode`,
+removing the configuration or withdrawing consent forwards denial when no
+permitted ACS configuration remains. This includes category overrides and
+vendor restrictions.
 Removing an element does not abort code already downloaded or stop a running
 Amazon runtime. Keep the default revocation reload enabled.
 

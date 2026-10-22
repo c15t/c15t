@@ -83,6 +83,20 @@ export const amazonAdsTagManifest = {
 // Different configurations can borrow the same c15t-created ACS element.
 const helperOwners = new WeakMap<HTMLScriptElement, number>();
 
+interface ConsentOwner {
+	readonly allowed: boolean;
+	readonly details: Pick<AmazonAdsConsent, 'countryCode' | 'ipAddress' | 'gpp'>;
+}
+
+interface SharedConsent {
+	owners: Set<ConsentOwner>;
+	lastConsent?: AmazonAdsConsent;
+	api?: Window['amznConsent'];
+}
+
+// ACS is global even when distinct configurations borrow different elements.
+const consentOwners = new WeakMap<Document, SharedConsent>();
+
 const createAmazonAdsTag = (options: AmazonAdsTagOptions): Script => {
 	const countryCode = trimToUndefined(options.countryCode)?.toUpperCase();
 	const script = resolveManifest(amazonAdsTagManifest, {
@@ -94,7 +108,19 @@ const createAmazonAdsTag = (options: AmazonAdsTagOptions): Script => {
 	let allowed = false;
 	let initialized = false;
 	let disposed = false;
-	let lastConsent: boolean | undefined;
+	let sharedConsent: SharedConsent | undefined;
+	const consentOwner: ConsentOwner = {
+		get allowed() {
+			return allowed;
+		},
+		details: { countryCode: countryCode ?? '' },
+	};
+	if (options.ipAddress !== undefined) {
+		consentOwner.details.ipAddress = options.ipAddress;
+	}
+	if (options.gpp !== undefined) {
+		consentOwner.details.gpp = options.gpp;
+	}
 	let helper: HTMLScriptElement | undefined;
 	let releaseHelper: (() => void) | undefined;
 	const pendingCommands = new Set<AmazonAdsQueueEntry>();
@@ -114,26 +140,34 @@ const createAmazonAdsTag = (options: AmazonAdsTagOptions): Script => {
 	};
 
 	const forwardConsent = () => {
+		const state = sharedConsent;
+		if (!state || typeof window.amznConsent !== 'function') {
+			return;
+		}
+		const source =
+			(state.owners.has(consentOwner) && allowed ? consentOwner : undefined) ??
+			[...state.owners].find((owner) => owner.allowed) ??
+			state.owners.values().next().value ??
+			consentOwner;
+		const permitted = state.owners.has(source) && source.allowed;
+		const consent: AmazonAdsConsent = {
+			...source.details,
+			enableAdStorage: permitted,
+			enableUserData: permitted,
+		};
+		const previous = state.lastConsent;
 		if (
-			!countryCode ||
-			typeof window.amznConsent !== 'function' ||
-			lastConsent === allowed
+			state.api === window.amznConsent &&
+			previous?.countryCode === consent.countryCode &&
+			previous.enableAdStorage === permitted &&
+			previous.ipAddress === consent.ipAddress &&
+			previous.gpp === consent.gpp
 		) {
 			return;
 		}
-		const consent: AmazonAdsConsent = {
-			countryCode,
-			enableAdStorage: allowed,
-			enableUserData: allowed,
-		};
-		if (options.ipAddress !== undefined) {
-			consent.ipAddress = options.ipAddress;
-		}
-		if (options.gpp !== undefined) {
-			consent.gpp = options.gpp;
-		}
 		window.amznConsent(consent);
-		lastConsent = allowed;
+		state.lastConsent = consent;
+		state.api = window.amznConsent;
 	};
 
 	const initialize = () => {
@@ -237,6 +271,11 @@ const createAmazonAdsTag = (options: AmazonAdsTagOptions): Script => {
 		}
 		const changed = allowed !== info.hasConsent;
 		allowed = info.hasConsent;
+		if (countryCode && !sharedConsent) {
+			sharedConsent = consentOwners.get(document) ?? { owners: new Set() };
+			consentOwners.set(document, sharedConsent);
+			sharedConsent.owners.add(consentOwner);
+		}
 		if (!allowed) {
 			discardPendingCommands();
 			if (window.amzn) {
@@ -261,10 +300,29 @@ const createAmazonAdsTag = (options: AmazonAdsTagOptions): Script => {
 		onConsentChange: update,
 		onDispose: (info) => {
 			disposed = true;
-			allowed = info.replacing === true && info.hasConsent;
+			// Hold this permission until incoming membership is known.
+			allowed = info.afterReplacement !== undefined && info.hasConsent;
 			discardPendingCommands();
 			releaseHelper?.();
-			forwardConsent();
+			const finish = () => {
+				allowed = false;
+				sharedConsent?.owners.delete(consentOwner);
+				try {
+					forwardConsent();
+				} finally {
+					if (
+						sharedConsent?.owners.size === 0 &&
+						consentOwners.get(document) === sharedConsent
+					) {
+						consentOwners.delete(document);
+					}
+				}
+			};
+			if (info.afterReplacement) {
+				info.afterReplacement(finish);
+			} else {
+				finish();
+			}
 		},
 		// The custom bootstrap must run in the client consent lifecycle.
 		serverStart: undefined,
@@ -282,6 +340,8 @@ const reuseAmazonAdsTag = createScriptReuse<AmazonAdsTagOptions>();
  * ACS requires the visitor's actual country. Both ACS permissions follow the
  * script's consent gate. Denial forwards withdrawal, but Amazon supplies no
  * documented shutdown command. Reload after revocation to stop the runtime.
+ * Distinct active ACS configurations preserve permission while any is granted.
+ * Removing the last permitted ACS configuration forwards denial.
  * @example
  * ```ts
  * amazonAdsTag({ tagId: 'YOUR_TAG_ID', region: 'EU', countryCode: 'DE' });
