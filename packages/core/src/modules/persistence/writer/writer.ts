@@ -86,6 +86,18 @@ export const createPersistenceWriter = function createPersistenceWriter(
 	// it means another runtime cleared the records since.
 	let memoryEpoch = 0;
 
+	// The subject the notice record carried when this runtime last saw it,
+	// when no envelope or vendor record carried one.
+	let seenNoticeSubject: ConsentSubject | null = null;
+	const rememberNoticeSubject = function rememberNoticeSubject(
+		read: StoredRecords
+	): void {
+		if (read.records.noticeDismissal !== undefined) {
+			seenNoticeSubject =
+				read.subjectCarrier === 'notice' ? (read.noticeSubject ?? null) : null;
+		}
+	};
+
 	// A read that could not tell the subject omits it. One whose choice is
 	// unreadable can still take it from a vendor or notice record.
 	const rememberSubject = function rememberSubject(
@@ -111,6 +123,9 @@ export const createPersistenceWriter = function createPersistenceWriter(
 			seen[kind] = prints[kind];
 		} else {
 			seen = prints;
+		}
+		if (kind === undefined || kind === 'notice') {
+			rememberNoticeSubject(read);
 		}
 		if (kind === undefined || kind === 'choice') {
 			rememberSubject(read.records);
@@ -385,9 +400,11 @@ export const createPersistenceWriter = function createPersistenceWriter(
 			unadopted,
 			memoryEpoch,
 			subjectBornAfter(stored.epoch),
+			seenNoticeSubject,
 			tools
 		);
 		({ seen } = next);
+		rememberNoticeSubject(stored);
 		unadopted.clear();
 		rememberSubject(stored.records);
 		memoryEpoch = stored.epoch;
@@ -418,6 +435,7 @@ export const createPersistenceWriter = function createPersistenceWriter(
 	return {
 		adopt(read, iab) {
 			seen = fingerprintStoredRecords(read);
+			rememberNoticeSubject(read);
 			rememberSubject(read.records);
 			memoryEpoch = read.epoch;
 			if (iab && read.records.choice !== undefined) {

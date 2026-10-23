@@ -438,6 +438,27 @@ const reconcileNoticeSubject = function reconcileNoticeSubject(
 };
 
 /**
+ * The notice carried the subject in memory and, removed or rewritten
+ * without one, no longer does, as an older runtime that knows nothing of
+ * the subject companion leaves it. With no other record carrying a subject,
+ * the linked identity goes and the ID stays, as a reload finds it.
+ */
+const subjectAfterNoticeLeft = function subjectAfterNoticeLeft(
+	snapshot: ConsentSnapshot,
+	carrier: StoredRead['subjectCarrier'],
+	noticeCarried: ConsentSubject | null,
+	movement: Movement,
+	candidate: HydrationRecords['subject']
+): HydrationRecords['subject'] {
+	return carrier === null &&
+		noticeCarried &&
+		movement.changed('notice') &&
+		sameRecord(snapshot.subject, noticeCarried)
+		? subjectAfterClear(snapshot.subject)
+		: candidate;
+};
+
+/**
  * The subject to apply, or `undefined` to keep the one in memory.
  *
  * The subject belongs to the record it was stored with: the envelope,
@@ -454,6 +475,7 @@ const reconcileSubject = function reconcileSubject(
 	stored: HydrationRecords,
 	carried: ConsentSubject | null,
 	carrier: StoredRead['subjectCarrier'],
+	noticeCarried: ConsentSubject | null,
 	records: HydrationRecords,
 	movement: Movement,
 	subjectYields: boolean
@@ -506,6 +528,13 @@ const reconcileSubject = function reconcileSubject(
 			candidate = stored.subject;
 		}
 	}
+	candidate = subjectAfterNoticeLeft(
+		snapshot,
+		carrier,
+		noticeCarried,
+		movement,
+		candidate
+	);
 	candidate = reconcileNoticeSubject(
 		snapshot,
 		stored,
@@ -528,6 +557,7 @@ const reconcileChoice = function reconcileChoice(
 	stored: HydrationRecords,
 	carried: ConsentSubject | null,
 	carrier: StoredRead['subjectCarrier'],
+	noticeCarried: ConsentSubject | null,
 	movement: Movement,
 	subjectYields: boolean,
 	merge: Rules['merge']
@@ -553,6 +583,7 @@ const reconcileChoice = function reconcileChoice(
 		stored,
 		carried,
 		carrier,
+		noticeCarried,
 		records,
 		movement,
 		subjectYields
@@ -645,6 +676,8 @@ const applyVoided = function applyVoided(
  * @param subjectBornAfterEpoch - Whether a save made after the stored epoch
  * generated the in-memory subject, so it survives a clear this runtime
  * missed.
+ * @param noticeCarried - The subject the notice record carried at the
+ * previous read or write, when no other record carried one.
  * @param rules - The per-category merge and the clear-epoch rules.
  * @returns The records to hydrate and the fingerprints to keep.
  */
@@ -657,6 +690,7 @@ export const selectReconciledRecords = function selectReconciledRecords(
 	unadopted: ReadonlySet<StoredRecordKind>,
 	memoryEpoch: number,
 	subjectBornAfterEpoch: boolean,
+	noticeCarried: ConsentSubject | null,
 	rules: Rules
 ): ReconciledRecords {
 	const { records: stored } = read;
@@ -687,6 +721,7 @@ export const selectReconciledRecords = function selectReconciledRecords(
 		// choice is gone.
 		read.vendorSubject ?? read.noticeSubject ?? null,
 		read.subjectCarrier,
+		noticeCarried,
 		movement,
 		subjectYields || clearMissed,
 		rules.merge

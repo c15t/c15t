@@ -19,6 +19,7 @@ import {
 } from '../record-storage';
 import {
 	clearStoredConsentRecords,
+	encodeNoticeDismissal,
 	encodeNoticeDismissalCompact,
 	encodeNoticeSubjectCompact,
 	writeStoredConsentEnvelope,
@@ -1069,5 +1070,132 @@ test.each([
 		first.dispose();
 		otherHandle.dispose();
 		other.dispose();
+	}
+);
+
+// A linked account a notice acknowledgement carries goes with it when an
+// older c15t runtime, which knows nothing of the subject companion, removes
+// the acknowledgement or writes it again without a subject. A consent or
+// vendor record stored without a subject does not keep it either. The ID
+// stays, as a reload finds it.
+test.each([
+	['no other record', 'writes it again without a subject'],
+	['no other record', 'removes it'],
+	['a consent record without a subject', 'writes it again without a subject'],
+	['a consent record without a subject', 'removes it'],
+	['a vendor record without a subject', 'writes it again without a subject'],
+	['a vendor record without a subject', 'removes it'],
+	['a consent record with the same subject', 'removes it'],
+] as const)(
+	'with %s, a running tab drops the linked account when an older runtime %s',
+	async (other, change) => {
+		const keys = resolveStorageKeys();
+		const initialPolicyResolution = matchedResolution(noticeRule());
+		const initialVendors: KernelVendorsState = {
+			declared: [
+				{
+					category: 'marketing',
+					id: 'meta-pixel',
+					name: 'Meta Pixel',
+					presentable: true,
+					privacyPolicyUrl: 'https://example.com/privacy',
+					source: 'config',
+				},
+			],
+			listVersion: null,
+		};
+		const fingerprint = createConsentKernel({
+			initialPolicyResolution,
+		}).getSnapshot().evaluationPolicy?.notice?.fingerprint;
+		if (!fingerprint) {
+			throw new Error('Expected a notice policy');
+		}
+		const now = Date.now();
+		const linked = {
+			externalId: 'account-a',
+			identityProvider: 'app',
+			subjectId: 'sub_a',
+		};
+		if (other === 'a vendor record without a subject') {
+			writeStoredVendorChoice(
+				{ confirmedAt: now - 5000, denied: ['meta-pixel'], version: 1 },
+				undefined,
+				now
+			);
+		} else if (other !== 'no other record') {
+			const envelope: Parameters<typeof writeStoredConsentEnvelope>[0] = {
+				categories: explicitChoice(
+					{ marketing: false },
+					{ confirmedAt: now - 5000, now }
+				).categories,
+				version: 3,
+			};
+			if (other === 'a consent record with the same subject') {
+				envelope.subject = linked;
+			}
+			writeStoredConsentEnvelope(envelope, { now });
+		}
+		writeStoredNoticeDismissal(
+			{ dismissedAt: now - 4000, fingerprint, subject: linked, version: 1 },
+			undefined,
+			now
+		);
+		localStorage.setItem(keys.subject, 'sub_a');
+		document.cookie = `${keys.subject}=sub_a; path=/`;
+		const sent: unknown[] = [];
+		const createTab = () =>
+			createConsentKernel({
+				initialPolicyResolution,
+				initialVendors,
+				transport: {
+					save: (payload: { subject?: unknown }) => {
+						sent.push(payload.subject);
+						return Promise.resolve({ ok: true });
+					},
+				},
+			});
+		const kernel = createTab();
+		const handle = createPersistence({ kernel });
+		await vi.advanceTimersByTimeAsync(0);
+		const before = kernel.getSnapshot();
+		expect(before.subject).toEqual(linked);
+
+		vi.advanceTimersByTime(1000);
+		if (change === 'removes it') {
+			localStorage.removeItem(keys.notice);
+			document.cookie = `${keys.notice}=; max-age=0; path=/`;
+		} else {
+			const record = {
+				dismissedAt: Date.now(),
+				fingerprint,
+				version: 1 as const,
+			};
+			localStorage.setItem(keys.notice, encodeNoticeDismissal(record));
+			document.cookie = `${keys.notice}=${encodeURIComponent(
+				encodeNoticeDismissalCompact(record)
+			)}; path=/`;
+		}
+		window.dispatchEvent(new StorageEvent('storage', { key: keys.notice }));
+		await vi.advanceTimersByTimeAsync(0);
+
+		const reloaded = createTab();
+		createPersistence({ kernel: reloaded }).dispose();
+		const expected =
+			other === 'a consent record with the same subject'
+				? linked
+				: { subjectId: 'sub_a' };
+		expect(reloaded.getSnapshot().subject).toEqual(expected);
+		const after = kernel.getSnapshot();
+		expect(after.subject).toEqual(expected);
+		expect(after.explicitChoice).toEqual(before.explicitChoice);
+		expect(after.vendorChoice).toEqual(before.vendorChoice);
+
+		const saving = kernel.commands.save({ marketing: false });
+		await vi.advanceTimersByTimeAsync(0);
+		await saving;
+		expect(sent).toEqual([expected]);
+		handle.dispose();
+		kernel.dispose();
+		reloaded.dispose();
 	}
 );

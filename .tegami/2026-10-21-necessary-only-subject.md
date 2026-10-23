@@ -31,4 +31,7 @@ When the consent record cannot be read, a tab now follows another tab's change
 of the subject ID that a notice or vendor record carries, instead of keeping
 the old ID and saving it later.
 
+A tab drops a linked account when an older c15t runtime removes or replaces
+the notice acknowledgement that carried it. The subject ID stays.
+
 If your cookie policy lists c15t cookies, add `c15t-notice-subject`.
