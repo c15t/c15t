@@ -86,10 +86,12 @@ export const createPersistenceWriter = function createPersistenceWriter(
 	// it means another runtime cleared the records since.
 	let memoryEpoch = 0;
 
+	// A read that could not tell the subject omits it. One whose choice is
+	// unreadable can still take it from a vendor or notice record.
 	const rememberSubject = function rememberSubject(
 		records: HydrationRecords
 	): void {
-		if (records.choice !== undefined) {
+		if (records.subject !== undefined) {
 			seenSubjectId = records.subject?.subjectId ?? null;
 		}
 	};

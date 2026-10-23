@@ -27,4 +27,8 @@ reload no longer shows the notice again.
 Notice acknowledgements stored in localStorage keep their linked account when
 cookies cannot be read.
 
+When the consent record cannot be read, a tab now follows another tab's change
+of the subject ID that a notice or vendor record carries, instead of keeping
+the old ID and saving it later.
+
 If your cookie policy lists c15t cookies, add `c15t-notice-subject`.

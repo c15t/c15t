@@ -358,3 +358,148 @@ test.each([
 		expect(sent).toEqual([saved.subject]);
 	}
 );
+
+// A tab whose choice record cannot be read takes its subject from the vendor
+// or notice record that carries it, a copy of storage like any other. When
+// another tab renames that ID, the tab follows, as a reload would.
+const vendorList = {
+	declared: [
+		{
+			category: 'marketing' as const,
+			id: 'meta-pixel',
+			name: 'Meta Pixel',
+			presentable: true,
+			privacyPolicyUrl: 'https://example.com/privacy',
+			source: 'config' as const,
+		},
+	],
+	listVersion: null,
+};
+
+const settleAll = async (pending?: Promise<unknown>) => {
+	await vi.advanceTimersByTimeAsync(0);
+	await pending;
+	await vi.dynamicImportSettled();
+	await vi.advanceTimersByTimeAsync(0);
+};
+
+test.each([
+	['a notice acknowledgement', 'can be read'],
+	['a notice acknowledgement', 'cannot be read'],
+	['a vendor decision', 'can be read'],
+	['a vendor decision', 'cannot be read'],
+] as const)(
+	'a tab follows another tab renaming the ID %s carries when cookies %s',
+	async (carrier, cookies) => {
+		const sent: unknown[] = [];
+		const createVisitor = () => {
+			const kernel = createConsentKernel(
+				carrier === 'a vendor decision'
+					? {
+							initialPolicyResolution: resolution,
+							initialVendors: vendorList,
+							transport: {
+								save: (payload: { subjectId?: string }) => {
+									sent.push(payload.subjectId);
+									return Promise.resolve({ ok: true });
+								},
+							},
+						}
+					: {
+							consentCategories: ['necessary'],
+							transport: {
+								save: (payload: { subjectId?: string }) => {
+									sent.push(payload.subjectId);
+									return Promise.resolve({ ok: true });
+								},
+							},
+						}
+			);
+			disposers.push(() => kernel.dispose());
+			return kernel;
+		};
+		const first = createVisitor();
+		const firstHandle = createPersistence({ kernel: first });
+		await settleAll(
+			carrier === 'a vendor decision'
+				? first.commands.save({}, { vendors: { 'meta-pixel': false } })
+				: first.commands.save('none')
+		);
+		const saved = first.getSnapshot();
+		firstHandle.dispose();
+		sent.length = 0;
+		if (cookies === 'cannot be read') {
+			vi.spyOn(document, 'cookie', 'get').mockImplementation(() => {
+				throw new DOMException('Cookies blocked', 'SecurityError');
+			});
+		}
+
+		const tab = createVisitor();
+		disposers.push(persist(tab).dispose);
+		expect(tab.getSnapshot().subject).toEqual(saved.subject);
+		const other = createVisitor();
+		const otherHandle = createPersistence({ kernel: other });
+		other.set.subjectId('sub_next');
+		await settleAll();
+		otherHandle.dispose();
+		for (const key of ['c15t-notice', 'c15t-vendors', 'c15t-sid']) {
+			window.dispatchEvent(new StorageEvent('storage', { key }));
+		}
+		window.dispatchEvent(new Event('focus'));
+		await settleAll();
+
+		const after = tab.getSnapshot();
+		expect(after.subject?.subjectId).toBe('sub_next');
+		expect(after.noticeDismissal).toEqual(saved.noticeDismissal);
+		expect(after.vendorChoice).toEqual(saved.vendorChoice);
+		expect(after.explicitChoice).toBeNull();
+		const reloaded = createVisitor();
+		createPersistence({ kernel: reloaded }).dispose();
+		expect(reloaded.getSnapshot().subject?.subjectId).toBe('sub_next');
+
+		await settleAll(tab.commands.save('none'));
+		expect(sent).toEqual(['sub_next']);
+	}
+);
+
+// An ID a save response named came from the server and yields only to a
+// strictly newer record, whether cookies can be read or not.
+test.each(['can be read', 'cannot be read'] as const)(
+	'a tab keeps an ID the server resolved over a rename at the same time when cookies %s',
+	async (cookies) => {
+		const first = createConsentKernel({ consentCategories: ['necessary'] });
+		disposers.push(() => first.dispose());
+		const firstHandle = createPersistence({ kernel: first });
+		await settleAll(first.commands.save('none'));
+		firstHandle.dispose();
+		if (cookies === 'cannot be read') {
+			vi.spyOn(document, 'cookie', 'get').mockImplementation(() => {
+				throw new DOMException('Cookies blocked', 'SecurityError');
+			});
+		}
+
+		const tab = createConsentKernel({
+			consentCategories: ['necessary'],
+			transport: {
+				save: () => Promise.resolve({ ok: true, subjectId: 'sub_server' }),
+			},
+		});
+		disposers.push(() => tab.dispose());
+		disposers.push(persist(tab).dispose);
+		await settleAll(tab.commands.save('none'));
+		expect(tab.getSnapshot().subject?.subjectId).toBe('sub_server');
+		const acknowledged = tab.getSnapshot().noticeDismissal;
+
+		const other = createConsentKernel({ consentCategories: ['necessary'] });
+		disposers.push(() => other.dispose());
+		const otherHandle = createPersistence({ kernel: other });
+		other.set.subjectId('sub_next');
+		await settleAll();
+		otherHandle.dispose();
+		window.dispatchEvent(new StorageEvent('storage', { key: 'c15t-notice' }));
+		window.dispatchEvent(new Event('focus'));
+		await settleAll();
+		expect(tab.getSnapshot().subject?.subjectId).toBe('sub_server');
+		expect(tab.getSnapshot().noticeDismissal).toEqual(acknowledged);
+	}
+);
