@@ -264,3 +264,71 @@ describe('c15tHandle on the consent route', () => {
 		);
 	});
 });
+
+// The handle runs before the response exists, so the app marks routes whose
+// response a shared cache keeps, as in the rendering docs: each route and
+// the paths below it get `c15tHandle({ subjectCookie: false })` in place of
+// the default handle.
+describe('c15tHandle on routes a shared cache keeps', () => {
+	const SHARED_ROUTES = ['/api/feed', '/blog'];
+	const isShared = (pathname: string) =>
+		SHARED_ROUTES.some(
+			(route) => pathname === route || pathname.startsWith(`${route}/`)
+		);
+	const visitorHandle = c15tHandle();
+	const sharedHandle = c15tHandle({ subjectCookie: false });
+
+	const serve = async function serve(path: string) {
+		const setCookie = vi.fn();
+		const event = createEvent({
+			headers: { 'cf-ipcountry': 'DE', 'sec-gpc': '1' },
+			setCookie,
+			url: `https://shop.example${path}`,
+		});
+		const resolve = vi.fn(() => Promise.resolve(new Response('ok')));
+		const handle = isShared(event.url.pathname) ? sharedHandle : visitorHandle;
+		await handle({ event, resolve });
+		return { event, setCookie };
+	};
+
+	test.each(['/api/feed', '/api/feed/rss', '/blog', '/blog/first-post'])(
+		'%s gets no cookie and still has normalized consent headers',
+		async (path) => {
+			const { event, setCookie } = await serve(path);
+			expect(setCookie).not.toHaveBeenCalled();
+			expect(event.request.headers.get('x-c15t-country')).toBe('DE');
+			expect(event.request.headers.get('sec-gpc')).toBe('1');
+		}
+	);
+
+	test.each(['/api/feedback', '/blogger', '/pricing'])(
+		'%s still gets a subject ID',
+		async (path) => {
+			const { setCookie } = await serve(path);
+			expect(setCookie).toHaveBeenCalledWith(
+				'c15t-sid',
+				expect.stringMatching(/^sub_/u),
+				expect.anything()
+			);
+		}
+	);
+
+	// What `sequence(c15tHandle(), c15tHandle({ subjectCookie: false }))` runs:
+	// the first handle resolves through the second.
+	test('a handle with subjectCookie: false after the default one cannot take back its cookie', async () => {
+		const setCookie = vi.fn();
+		const event = createEvent({
+			setCookie,
+			url: 'https://shop.example/api/feed',
+		});
+		await visitorHandle({
+			event,
+			resolve: (next) =>
+				sharedHandle({
+					event: next,
+					resolve: () => Promise.resolve(new Response('ok')),
+				}),
+		});
+		expect(setCookie).toHaveBeenCalledTimes(1);
+	});
+});

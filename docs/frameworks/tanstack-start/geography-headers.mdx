@@ -74,17 +74,23 @@ for how long it lasts and when it changes.
 
 A shared cache may keep any response whose `Cache-Control` doesn't say
 `private` or `no-store`. `private="Set-Cookie"` doesn't count: it only keeps
-the listed headers out of the shared copy. The middleware checks each response:
+the listed headers out of the shared copy. A CDN that honours a cache field
+aimed at it, such as `CDN-Cache-Control`, `Vercel-CDN-Cache-Control`,
+`Cloudflare-CDN-Cache-Control` or Fastly's `Surrogate-Control`, reads that
+field in place of `Cache-Control`. The middleware checks each response:
 
 - A page whose `resolveConsent` read the visitor's cookies holds that
   visitor's consent and subject ID. Unless it already says `private` or
   `no-store`, the middleware sets `private` and removes `public`, `s-maxage`
   and `proxy-revalidate`. Browser directives such as `max-age` and
-  `no-cache` stay. For a new visitor, the page gets the cookie its render
-  used.
-- A response no such render produced that sets `public`, `s-maxage`,
-  `max-age`, `no-cache` or an `Expires` header is for every visitor, so it
-  gets no cookie and keeps its headers.
+  `no-cache` stay. It also removes those CDN cache fields, so a CDN that
+  honours them falls back to that `Cache-Control`. For a new visitor, the
+  page gets the cookie its render used.
+- A response no such render produced is for every visitor, so it gets no
+  cookie and keeps its headers, when it sets `public`, `s-maxage`,
+  `max-age`, `no-cache` or an `Expires` header, a `CDN-Cache-Control`-style
+  field without `private` or `no-store`, or any `Surrogate-Control`. Fastly
+  documents only freshness directives in `Surrogate-Control`.
 - Any other response that gets a new visitor's cookie is sent `private`,
   unless it already says `private` or `no-store`.
 

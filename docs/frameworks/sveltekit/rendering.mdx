@@ -255,10 +255,17 @@ See
 `c15tHandle` runs before the response exists, so it cannot tell a page
 rendered for the visitor from a response a shared cache keeps for everyone,
 such as a public API route or a page served with `Cache-Control: public`.
-Call a second handle made with `subjectCookie: false` for requests to those
-routes; it still normalizes the consent headers. Pages that call
-`loadConsent` hold the visitor's consent and subject ID, so keep them out of
-shared caches.
+For requests to those routes, run `c15tHandle({ subjectCookie: false })` in
+place of the default handle. It still normalizes the consent headers. Don't
+add it after `c15tHandle()` in `sequence()`: the first handle has already
+set the cookie. Match each route and the paths below it, so `/api/feedback`
+and `/blogger` still get an ID:
+
+<include src="../../shared/examples/sveltekit/shared-routes-handle.mdx" />
+
+Server-rendered pages that call `loadConsent` hold the visitor's consent and
+subject ID, so keep them out of shared caches. Prerendered pages hold neither:
+`loadConsent` returns no visitor state while SvelteKit prerenders.
 
 `c15tHandle` also writes a server-rendered banner's rules into the HTML
 `<head>` as `<style>` elements, so the banner is styled before hydration.

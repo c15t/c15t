@@ -46,8 +46,11 @@ routes a shared cache keeps, such as a public API route or feed; the
 consent headers are still normalized. TanStack Start sees the response: a
 page whose `resolveConsent` read the visitor's cookies holds the visitor's
 consent and subject ID, so it is sent `private` with the cookie, keeping
-its browser directives. A response with no such render that sets
-`public`, `s-maxage`, `max-age`, `no-cache` or `Expires` gets no cookie, and
+its browser directives, and without the CDN cache fields, such as
+`CDN-Cache-Control` and `Surrogate-Control`, that a CDN honouring them reads
+in place of `Cache-Control`. A response with no such render that sets
+`public`, `s-maxage`, `max-age`, `no-cache` or `Expires`, or a CDN cache field
+that lets the CDN store it, gets no cookie, and
 TanStack Start sends the consent route's responses unchanged, wherever it is
 mounted. Render HTML you cache for every
 visitor with `shared: true`. Pass the same `storage` options as the

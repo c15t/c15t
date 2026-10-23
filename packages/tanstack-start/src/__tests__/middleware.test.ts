@@ -713,3 +713,135 @@ describe('consentRequestMiddleware: consent route at any mount', () => {
 		expect(result.response.headers.get('cache-control')).toBe('private');
 	});
 });
+
+// A CDN reads the cache field targeted at it, such as `CDN-Cache-Control`
+// (RFC 9213), in place of `Cache-Control`, so `private` there does not keep
+// a response out of that CDN.
+describe('consentRequestMiddleware: targeted cache fields', () => {
+	const serve = async function serve(
+		cookie: string | undefined,
+		headers: Record<string, string>,
+		render: boolean
+	) {
+		const request = new Request('https://app.example.com/pricing', {
+			headers: cookie ? { cookie } : {},
+		});
+		let rendered: string | undefined;
+		const result = (await serverHandlerOf(consentRequestMiddleware())({
+			context: {},
+			next: async () => {
+				if (render) {
+					rendered = (await resolveConsent({ request })).initialRecords?.subject
+						?.subjectId;
+				}
+				return {
+					context: {},
+					pathname: '/pricing',
+					request,
+					response: new Response(`<html>${rendered ?? ''}</html>`, {
+						headers,
+					}),
+				};
+			},
+			pathname: '/pricing',
+			request,
+		})) as { response: Response };
+		return { rendered, response: result.response };
+	};
+
+	test.each([
+		[{ 'cache-control': 'private', 'cdn-cache-control': 'public, max-age=60' }],
+		[{ 'cache-control': 'no-store', 'cdn-cache-control': 'max-age=60' }],
+		[{ 'cdn-cache-control': 'max-age=60' }],
+		[
+			{
+				'cache-control': 'private',
+				'vercel-cdn-cache-control': 'max-age=60',
+			},
+		],
+		[{ 'cache-control': 'private', 'surrogate-control': 'max-age=60' }],
+	])(
+		'a returning visitor render with %o keeps no targeted cache field',
+		async (headers) => {
+			const { rendered, response } = await serve(
+				'c15t-sid=sub_returning',
+				headers,
+				true
+			);
+			expect(rendered).toBe('sub_returning');
+			expect(response.headers.get('cdn-cache-control')).toBeNull();
+			expect(response.headers.get('vercel-cdn-cache-control')).toBeNull();
+			expect(response.headers.get('surrogate-control')).toBeNull();
+			expect(response.headers.get('cache-control')).toBe(
+				headers['cache-control'] ?? 'private'
+			);
+		}
+	);
+
+	test('a new visitor render keeps no targeted cache field and gets its cookie', async () => {
+		const { rendered, response } = await serve(
+			undefined,
+			{ 'cache-control': 'private', 'cdn-cache-control': 'max-age=60' },
+			true
+		);
+		expect(response.headers.get('cdn-cache-control')).toBeNull();
+		expect(response.headers.get('cache-control')).toBe('private');
+		expect(response.headers.getSetCookie()[0]).toContain(
+			`c15t-sid=${rendered};`
+		);
+	});
+
+	test.each([
+		[{ 'cache-control': 'no-store', 'cdn-cache-control': 'max-age=60' }],
+		[
+			{
+				'cache-control': 'private',
+				'cdn-cache-control': 'public, s-maxage=60',
+			},
+		],
+		[{ 'cdn-cache-control': 'max-age=60' }],
+	])(
+		'a response with no visitor render and %o is shared: no cookie, headers kept',
+		async (headers) => {
+			const { response } = await serve(undefined, headers, false);
+			expect(response.headers.getSetCookie()).toEqual([]);
+			for (const [name, value] of Object.entries(headers)) {
+				expect(response.headers.get(name)).toBe(value);
+			}
+		}
+	);
+
+	test('a response with no visitor render and any Surrogate-Control is shared: no cookie', async () => {
+		const { response } = await serve(
+			undefined,
+			{ 'cache-control': 'no-store', 'surrogate-control': 'no-store' },
+			false
+		);
+		expect(response.headers.getSetCookie()).toEqual([]);
+		expect(response.headers.get('surrogate-control')).toBe('no-store');
+	});
+
+	test.each(['cdn-cache-control', 'vercel-cdn-cache-control'])(
+		'a response with no visitor render whose %s is private gets the cookie',
+		async (field) => {
+			const { response } = await serve(
+				undefined,
+				{ 'cache-control': 'no-store', [field]: 'private' },
+				false
+			);
+			expect(response.headers.getSetCookie()[0]).toMatch(/^c15t-sid=sub_/u);
+			expect(response.headers.get(field)).toBe('private');
+		}
+	);
+
+	test('a response with no visitor render whose targeted field is private gets the cookie', async () => {
+		const { response } = await serve(
+			undefined,
+			{ 'cache-control': 'no-store', 'cdn-cache-control': 'private' },
+			false
+		);
+		expect(response.headers.getSetCookie()[0]).toMatch(/^c15t-sid=sub_/u);
+		expect(response.headers.get('cache-control')).toBe('no-store');
+		expect(response.headers.get('cdn-cache-control')).toBe('private');
+	});
+});

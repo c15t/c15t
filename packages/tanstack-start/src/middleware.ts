@@ -122,17 +122,14 @@ const isConsentRoute = function isConsentRoute(
 };
 
 /**
- * The `Cache-Control` directives of `response`, by lowercase name. A
+ * The directives of a `Cache-Control`-style field, by lowercase name. A
  * quoted value can hold commas, as in `private="Set-Cookie, X-Id"`.
  */
 const cacheDirectives = function cacheDirectives(
-	response: Response
+	field: string | null
 ): Map<string, string> {
 	const directives = new Map<string, string>();
-	const parts =
-		(response.headers.get('cache-control') ?? '').match(
-			/(?:[^,"]|"[^"]*")+/gu
-		) ?? [];
+	const parts = (field ?? '').match(/(?:[^,"]|"[^"]*")+/gu) ?? [];
 	for (const part of parts) {
 		const [name = '', ...value] = part.split('=');
 		if (name.trim()) {
@@ -140,6 +137,36 @@ const cacheDirectives = function cacheDirectives(
 		}
 	}
 	return directives;
+};
+
+/**
+ * Whether `directives` keep a response out of every cache that reads them.
+ * A qualified `private="Set-Cookie"` only keeps the listed fields out of
+ * the shared copy (RFC 9111, section 5.2.2.7).
+ */
+const keepsOutOfSharedCaches = function keepsOutOfSharedCaches(
+	directives: Map<string, string>
+): boolean {
+	return directives.get('private') === '' || directives.has('no-store');
+};
+
+/**
+ * The cache fields on `response` that a CDN reads in place of
+ * `Cache-Control`: `CDN-Cache-Control` and the fields targeted at one CDN
+ * by the same naming, such as `Vercel-CDN-Cache-Control` and
+ * `Cloudflare-CDN-Cache-Control` (RFC 9213), and `Surrogate-Control`. A
+ * name that only follows the convention is matched too: removing it, or
+ * treating the response as shared, only keeps more out of shared caches.
+ */
+const targetedCacheFields = function targetedCacheFields(
+	response: Response
+): string[] {
+	return [...response.headers.keys()].filter(
+		(name) =>
+			name === 'cdn-cache-control' ||
+			name.endsWith('-cdn-cache-control') ||
+			name === 'surrogate-control'
+	);
 };
 
 /** Directives that only grant or govern storage in shared caches. */
@@ -166,15 +193,17 @@ const privateCacheControl = function privateCacheControl(
 /**
  * `result` ready to send with the subject cookie `header`.
  *
- * A shared cache may store any response without `private` or `no-store`
- * (RFC 9111, section 3). A qualified `private="Set-Cookie"` only keeps the
- * listed fields out of the shared copy (section 5.2.2.7), so only an
- * unqualified `private` protects the body. Therefore:
+ * A shared cache may store any response without an unqualified `private`
+ * or `no-store` (RFC 9111, section 3). A CDN reads a cache field targeted
+ * at it in place of `Cache-Control`, and falls back to `Cache-Control`
+ * without one (RFC 9213). Therefore:
  * - a response whose `resolveConsent` read the visitor's cookies holds that
- *   visitor's consent state and subject ID, and is made `private`;
- * - a response with no such render that states how it may be cached
- *   (`public`, `s-maxage`, `max-age`, `no-cache` or `Expires`) is a shared
- *   resource, such as the consent route's manifest, and gets no cookie;
+ *   visitor's consent state and subject ID. It is made `private`, and its
+ *   targeted fields are removed so every CDN reads that;
+ * - a response with no such render that some shared cache may store, by
+ *   stating caching in `Cache-Control` (`public`, `s-maxage`, `max-age`,
+ *   `no-cache` or `Expires`) or in a targeted field, is a shared resource
+ *   and gets no cookie;
  * - any other response gets the cookie and is made `private`.
  *
  * A response the consent route served, at whatever path it is mounted, is
@@ -190,25 +219,40 @@ const withSetCookie = function withSetCookie<
 	if (servedByConsentRoute(request)) {
 		return result;
 	}
-	const directives = cacheDirectives(result.response);
-	const guarded =
-		directives.get('private') === '' || directives.has('no-store');
+	const { headers } = result.response;
+	const directives = cacheDirectives(headers.get('cache-control'));
+	const guarded = keepsOutOfSharedCaches(directives);
 	const personal = renderedForVisitor(request);
+	const targeted = targetedCacheFields(result.response);
 	const statesCaching =
 		directives.has('public') ||
 		directives.has('s-maxage') ||
 		directives.has('max-age') ||
 		directives.has('no-cache') ||
-		result.response.headers.has('expires');
-	if (!personal && !guarded && statesCaching) {
+		headers.has('expires');
+	// RFC 9213 fields take `private` and `no-store` as `Cache-Control`
+	// does. Fastly documents only freshness directives in
+	// `Surrogate-Control`, so any of it may let the CDN store the response.
+	const cdnMayStore = targeted.some(
+		(name) =>
+			name === 'surrogate-control' ||
+			!keepsOutOfSharedCaches(cacheDirectives(headers.get(name)))
+	);
+	if (!personal && (cdnMayStore || (!guarded && statesCaching))) {
 		return result;
 	}
-	if (guarded ? !header : !(header || personal)) {
+	const unchanged = guarded ? !header : !(header || personal);
+	if (unchanged && !(personal && targeted.length > 0)) {
 		return result;
 	}
 	const response = new Response(result.response.body, result.response);
 	if (!guarded) {
 		response.headers.set('cache-control', privateCacheControl(directives));
+	}
+	if (personal) {
+		for (const name of targeted) {
+			response.headers.delete(name);
+		}
 	}
 	if (header) {
 		response.headers.append('set-cookie', header);
