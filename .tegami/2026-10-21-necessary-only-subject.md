@@ -42,4 +42,9 @@ one with a lone surrogate, keeps the whole record in localStorage and skips
 its cookie copy instead of throwing. A tab follows the notice's subject once
 the vendor record that carried another is removed or loses its subject.
 
+The `StoredRecords` type exported from `@c15t/core/modules/persistence` now
+requires `recordedSubjectId` and `subjectCarrier`. Hand-built records and typed
+mocks must include both fields; `readStoredRecords()` and
+`readStoredRecordsFromCookieHeader()` supply them.
+
 If your cookie policy lists c15t cookies, add `c15t-notice-subject`.
