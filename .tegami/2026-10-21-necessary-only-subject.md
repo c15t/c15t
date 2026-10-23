@@ -34,4 +34,7 @@ the old ID and saving it later.
 A tab drops a linked account when an older c15t runtime removes or replaces
 the notice acknowledgement that carried it. The subject ID stays.
 
+A seed from a backend keeps the linked account it names for a stored ID. A tab
+follows another tab's linked account on the record that gave its own.
+
 If your cookie policy lists c15t cookies, add `c15t-notice-subject`.

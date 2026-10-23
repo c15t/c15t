@@ -5,6 +5,7 @@ import {
 	explicitChoice,
 	matchedResolution,
 	noticeRule,
+	optInRule,
 } from '../../../__tests__/fixtures/kernel-fixtures';
 import { createConsentKernel } from '../../../index';
 import { getRawCookieValue } from '../../../libs/cookie';
@@ -1197,5 +1198,344 @@ test.each([
 		handle.dispose();
 		kernel.dispose();
 		reloaded.dispose();
+	}
+);
+
+// A linked identity belongs to the source that gave it. Storage may replace
+// or clear only one it gave this runtime: the identity the records carried at
+// the last read, or the cookies a seed was read from. An identity a server
+// or `identify()` gave, or a seed from elsewhere, stays until that source,
+// a save or a clear changes it.
+const identityTab = (
+	options: Parameters<typeof createConsentKernel>[0],
+	sent: unknown[],
+	serverAccount?: string
+) => {
+	const transport: NonNullable<
+		Parameters<typeof createConsentKernel>[0]
+	>['transport'] = {
+		save: (payload: { subject?: unknown }) => {
+			sent.push(payload.subject);
+			return Promise.resolve({ ok: true });
+		},
+	};
+	if (serverAccount) {
+		transport.identify = () => Promise.resolve();
+		transport.loadSubjectRecord = (subjectId: string) =>
+			Promise.resolve({
+				subject: {
+					externalId: serverAccount,
+					identityProvider: 'app',
+					subjectId,
+				},
+			});
+	}
+	return createConsentKernel({ ...options, transport });
+};
+const settleAll = async (pending?: Promise<unknown>) => {
+	await vi.advanceTimersByTimeAsync(0);
+	await pending;
+	await vi.dynamicImportSettled();
+	await vi.advanceTimersByTimeAsync(0);
+};
+const syncTab = async () => {
+	const keys = resolveStorageKeys();
+	for (const key of [keys.consent, keys.notice, keys.subject]) {
+		window.dispatchEvent(new StorageEvent('storage', { key }));
+	}
+	window.dispatchEvent(new Event('focus'));
+	await settleAll();
+};
+
+test.each([
+	['an account the cookies do not hold', { subjectId: 'sub_s' }],
+	[
+		'another account the cookies hold',
+		{ externalId: 'account-a', identityProvider: 'old', subjectId: 'sub_s' },
+	],
+] as const)(
+	'a seed from elsewhere keeps its linked account for the stored ID over %s',
+	async (_, stored) => {
+		const keys = resolveStorageKeys();
+		const now = Date.now();
+		const initialPolicyResolution = matchedResolution(noticeRule());
+		const { categories } = explicitChoice(
+			{ marketing: false },
+			{ confirmedAt: now - 5000, now }
+		);
+		writeStoredConsentEnvelope(
+			{ categories, subject: stored, version: 3 },
+			{ now }
+		);
+		localStorage.setItem(keys.subject, 'sub_s');
+		document.cookie = `${keys.subject}=sub_s; path=/`;
+		// A seed read from those cookies adds nothing to storage: storage
+		// starts it, as before.
+		const { state } = readRequestConsent({
+			adapter: '@c15t/test',
+			now,
+			request: { cookie: document.cookie, headers: new Headers() },
+		});
+		const fromCookies = identityTab(
+			{ initialPolicyResolution, initialRecords: state.initialRecords },
+			[]
+		);
+		const reader = createPersistence({
+			kernel: fromCookies,
+			skipHydration: true,
+		});
+		expect(fromCookies.getSnapshot().subject).toEqual(stored);
+		reader.dispose();
+		fromCookies.dispose();
+
+		const seeded = {
+			externalId: 'account-b',
+			identityProvider: 'app',
+			subjectId: 'sub_s',
+		};
+		const sent: unknown[] = [];
+		const kernel = identityTab(
+			{
+				initialPolicyResolution,
+				initialRecords: {
+					choice: { categories, version: 3 },
+					now,
+					subject: seeded,
+				},
+			},
+			sent
+		);
+		const handle = createPersistence({ kernel, skipHydration: true });
+		expect(kernel.getSnapshot().subject).toEqual(seeded);
+		expect(kernel.getSnapshot().explicitChoice?.categories).toEqual(categories);
+		await settleAll(kernel.commands.save({ marketing: false }));
+		expect(sent).toEqual([seeded]);
+		handle.dispose();
+		kernel.dispose();
+	}
+);
+
+test.each([
+	['a notice acknowledgement', 'newer'],
+	['a notice acknowledgement', 'as recent'],
+	['a consent record', 'newer'],
+] as const)(
+	'a tab follows another tab linking another account in %s it carries, %s',
+	async (carrier, order) => {
+		const sent: unknown[] = [];
+		const options: Parameters<typeof createConsentKernel>[0] =
+			carrier === 'a consent record'
+				? { initialPolicyResolution: matchedResolution(noticeRule()) }
+				: { consentCategories: ['necessary'] };
+		const decide = (kernel: ReturnType<typeof createConsentKernel>) =>
+			carrier === 'a consent record'
+				? kernel.commands.save({ marketing: false })
+				: kernel.commands.save('none');
+		const first = identityTab(options, []);
+		const firstHandle = createPersistence({ kernel: first });
+		await settleAll(
+			first.commands.identify({
+				externalId: 'account-a',
+				identityProvider: 'app',
+			})
+		);
+		await settleAll(decide(first));
+		const id = first.getSnapshot().subject?.subjectId as string;
+		firstHandle.dispose();
+		first.dispose();
+		vi.advanceTimersByTime(1000);
+
+		const tab = identityTab(options, sent);
+		const handle = createPersistence({ kernel: tab });
+		await settleAll();
+		expect(tab.getSnapshot().subject?.externalId).toBe('account-a');
+		vi.advanceTimersByTime(1000);
+		const linked = {
+			externalId: 'account-b',
+			identityProvider: 'app',
+			subjectId: id,
+		};
+		if (order === 'newer') {
+			const other = identityTab(options, []);
+			const otherHandle = createPersistence({ kernel: other });
+			await settleAll(
+				other.commands.identify({
+					externalId: 'account-b',
+					identityProvider: 'app',
+				})
+			);
+			await settleAll(decide(other));
+			otherHandle.dispose();
+			other.dispose();
+		} else {
+			const notice = readStoredNoticeDismissal(undefined, Date.now());
+			if (!notice?.ok) {
+				throw new Error('Expected a stored notice');
+			}
+			writeStoredNoticeDismissal(
+				{ ...notice.record, subject: linked },
+				undefined,
+				Date.now()
+			);
+		}
+		await syncTab();
+		expect(tab.getSnapshot().subject).toEqual(linked);
+		const reloaded = identityTab(options, []);
+		createPersistence({ kernel: reloaded }).dispose();
+		expect(reloaded.getSnapshot().subject).toEqual(linked);
+		reloaded.dispose();
+		await settleAll(decide(tab));
+		expect(sent).toEqual([linked]);
+		handle.dispose();
+		tab.dispose();
+	}
+);
+
+test('a save before the tab syncs does not write a storage-given account back over a newer one', async () => {
+	const options = { initialPolicyResolution: matchedResolution(noticeRule()) };
+	const first = identityTab(options, []);
+	const firstHandle = createPersistence({ kernel: first });
+	await settleAll(
+		first.commands.identify({
+			externalId: 'account-a',
+			identityProvider: 'app',
+		})
+	);
+	await settleAll(first.commands.save({ marketing: false }));
+	firstHandle.dispose();
+	first.dispose();
+	vi.advanceTimersByTime(1000);
+	const tab = identityTab(options, []);
+	const handle = createPersistence({ kernel: tab });
+	await settleAll();
+	vi.advanceTimersByTime(1000);
+	const other = identityTab(options, []);
+	const otherHandle = createPersistence({ kernel: other });
+	await settleAll(
+		other.commands.identify({
+			externalId: 'account-b',
+			identityProvider: 'app',
+		})
+	);
+	await settleAll(other.commands.save({ marketing: false }));
+	otherHandle.dispose();
+	other.dispose();
+
+	await settleAll(tab.commands.save({ marketing: false }));
+	handle.dispose();
+	tab.dispose();
+	const reloaded = identityTab(options, []);
+	createPersistence({ kernel: reloaded }).dispose();
+	expect(reloaded.getSnapshot().subject?.externalId).toBe('account-b');
+	reloaded.dispose();
+});
+
+// A runtime from before the clear epoch clears by removing the records, so
+// removing the acknowledgement drops the linked account as a clear does,
+// wherever the account came from.
+test.each([
+	'a server gave after the last read',
+	'the tab stored on the acknowledgement',
+] as const)('removing a notice drops an account %s', async (source) => {
+	const keys = resolveStorageKeys();
+	const options = { consentCategories: ['necessary'] as const };
+	const first = identityTab({ ...options }, []);
+	const firstHandle = createPersistence({ kernel: first });
+	await settleAll(first.commands.save('none'));
+	firstHandle.dispose();
+	first.dispose();
+	const sent: unknown[] = [];
+	const tab = identityTab(
+		{ ...options },
+		sent,
+		source === 'a server gave after the last read' ? 'account-c' : undefined
+	);
+	const handle = createPersistence({ kernel: tab });
+	await settleAll();
+	vi.advanceTimersByTime(1000);
+	await settleAll(
+		tab.commands.identify({
+			externalId: 'account-c',
+			identityProvider: 'app',
+		})
+	);
+	if (source === 'the tab stored on the acknowledgement') {
+		await settleAll(tab.commands.save('none'));
+	}
+	const { subject: before } = tab.getSnapshot();
+	expect(before?.externalId).toBe('account-c');
+
+	// An older runtime removes the acknowledgement.
+	localStorage.removeItem(keys.notice);
+	document.cookie = `${keys.notice}=; max-age=0; path=/`;
+	await syncTab();
+	expect(tab.getSnapshot().subject).toEqual({
+		subjectId: before?.subjectId,
+	});
+	expect(tab.getSnapshot().noticeDismissal).toBeNull();
+	handle.dispose();
+	tab.dispose();
+});
+
+// Removing the consent receipt is the one way back. With no other record
+// carrying a subject, the linked account goes with it and the ID stays, as
+// a clear leaves it, whichever source gave the account.
+test.each([
+	'a server gave after the last read',
+	'the tab stored on the receipt',
+] as const)(
+	'removing the only consent receipt drops an account %s',
+	async (source) => {
+		const keys = resolveStorageKeys();
+		const options = {
+			consentCategories: ['necessary', 'marketing'] as const,
+			initialPolicyResolution: matchedResolution(optInRule()),
+		};
+		const first = identityTab({ ...options }, []);
+		const firstHandle = createPersistence({ kernel: first });
+		await settleAll(first.commands.save({ marketing: false }));
+		firstHandle.dispose();
+		first.dispose();
+		const sent: unknown[] = [];
+		const tab = identityTab(
+			{ ...options },
+			sent,
+			source === 'a server gave after the last read' ? 'account-c' : undefined
+		);
+		const handle = createPersistence({ kernel: tab });
+		await settleAll();
+		vi.advanceTimersByTime(1000);
+		await settleAll(
+			tab.commands.identify({
+				externalId: 'account-c',
+				identityProvider: 'app',
+			})
+		);
+		if (source === 'the tab stored on the receipt') {
+			await settleAll(tab.commands.save({ marketing: true }));
+		}
+		const { subject: before } = tab.getSnapshot();
+		expect(before?.externalId).toBe('account-c');
+		// The receipt is the only record: no acknowledgement, no vendors.
+		expect(Object.keys(localStorage).sort()).toEqual([
+			keys.consent,
+			keys.subject,
+		]);
+
+		localStorage.removeItem(keys.consent);
+		document.cookie = `${keys.consent}=; max-age=0; path=/`;
+		await syncTab();
+		expect(tab.getSnapshot().subject).toEqual({
+			subjectId: before?.subjectId,
+		});
+		expect(tab.getSnapshot().explicitChoice).toBeNull();
+		const reloaded = identityTab({ ...options }, []);
+		createPersistence({ kernel: reloaded }).dispose();
+		expect(reloaded.getSnapshot().subject).toEqual({
+			subjectId: before?.subjectId,
+		});
+		reloaded.dispose();
+		handle.dispose();
+		tab.dispose();
 	}
 );

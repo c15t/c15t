@@ -100,12 +100,34 @@ export const createPersistenceWriter = function createPersistenceWriter(
 
 	// A read that could not tell the subject omits it. One whose choice is
 	// unreadable can still take it from a vendor or notice record.
+	// The whole subject storage held then, linked identity included.
+	let seenSubject: ConsentSubject | null = null;
 	const rememberSubject = function rememberSubject(
 		records: HydrationRecords
 	): void {
 		if (records.subject !== undefined) {
 			seenSubjectId = records.subject?.subjectId ?? null;
+			seenSubject = records.subject ?? null;
 		}
+	};
+
+	/**
+	 * Whether the linked identity in memory is only storage's copy: the one
+	 * the records carried at the previous read, which `identify()` did not
+	 * set in this runtime. Storage may replace such an identity.
+	 */
+	const identityYields = function identityYields(): boolean {
+		const { subject, user } = kernel.getSnapshot();
+		const identity = [subject?.externalId, subject?.identityProvider];
+		return (
+			identity.some(Boolean) &&
+			identity[0] === seenSubject?.externalId &&
+			identity[1] === seenSubject?.identityProvider &&
+			!(
+				user?.externalId === identity[0] &&
+				user?.identityProvider === identity[1]
+			)
+		);
 	};
 
 	const subjectYields = function subjectYields(): boolean {
@@ -200,7 +222,12 @@ export const createPersistenceWriter = function createPersistenceWriter(
 		if (read.epoch > memoryEpoch && !subjectBornAfter(read.epoch)) {
 			return stored ?? subjectAfterClear(snapshot.subject);
 		}
-		return subjectToWrite(snapshot.subject, stored, subjectYields());
+		return subjectToWrite(
+			snapshot.subject,
+			stored,
+			subjectYields(),
+			identityYields()
+		);
 	};
 
 	// Every write reads storage first and voids what this runtime holds from
@@ -400,7 +427,7 @@ export const createPersistenceWriter = function createPersistenceWriter(
 			unadopted,
 			memoryEpoch,
 			subjectBornAfter(stored.epoch),
-			seenNoticeSubject,
+			{ identityYields: identityYields(), noticeCarried: seenNoticeSubject },
 			tools
 		);
 		({ seen } = next);

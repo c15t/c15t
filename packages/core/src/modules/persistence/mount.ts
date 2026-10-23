@@ -656,6 +656,28 @@ export const mountPersistence = function mountPersistence(
 	};
 
 	/**
+	 * Whether a seed's linked identity is more than the cookies say: an
+	 * account or provider that a seed from elsewhere, such as a backend,
+	 * names for the ID storage holds. Cookies this page cannot read cannot
+	 * tell, so storage keeps it.
+	 */
+	const seedBringsIdentity = function seedBringsIdentity(
+		seed: ConsentSubject
+	): boolean {
+		if (!(seed.externalId || seed.identityProvider)) {
+			return false;
+		}
+		const header = readCookieHeader();
+		return (
+			header !== null &&
+			!sameSubject(
+				readStoredRecordsFromCookieHeader(header, storageConfig, now()).subject,
+				seed
+			)
+		);
+	};
+
+	/**
 	 * The subject to start with and whether its ID is a local one, which
 	 * yields to a subject another runtime stored. Records storage held keep
 	 * the ID they carry. Otherwise a subject the server named is kept, then
@@ -680,6 +702,15 @@ export const mountPersistence = function mountPersistence(
 				},
 				true,
 			];
+		}
+		if (
+			subject &&
+			subject.subjectId === recorded.subjectId &&
+			seedBringsIdentity(subject)
+		) {
+			// The seed names the stored ID with a linked identity the cookies
+			// do not hold, so it did not come from them: it stands, whole.
+			return [subject, false];
 		}
 		if (
 			!subject?.subjectId ||
