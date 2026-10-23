@@ -168,10 +168,27 @@ const withCookie = function withCookie(
 	return [...others, `${name}=${value}`].join('; ');
 };
 
+/**
+ * `subjectId` URI-encoded for its cookie, or `null` for an ID with no URI
+ * encoding, such as one with a lone surrogate. The browser keeps such an ID
+ * in localStorage and its records and writes no cookie copy.
+ */
+const cookieValueOf = function cookieValueOf(subjectId: string): string | null {
+	try {
+		return encodeURIComponent(subjectId);
+	} catch (error) {
+		if (error instanceof URIError) {
+			return null;
+		}
+		throw error;
+	}
+};
+
 const subjectCookie = function subjectCookie(
 	options: ResolveRequestSubjectOptions,
 	name: string,
-	subjectId: string
+	subjectId: string,
+	value: string
 ): SubjectCookie {
 	const { storage } = options;
 	const origin = resolveRequestOrigin({
@@ -194,7 +211,7 @@ const subjectCookie = function subjectCookie(
 		(storage?.defaultExpiryDays ?? 365) * SECONDS_PER_DAY
 	);
 	const header = [
-		`${name}=${encodeURIComponent(subjectId)}`,
+		`${name}=${value}`,
 		`Max-Age=${maxAge}`,
 		'Path=/',
 		...(domain ? [`Domain=${domain}`] : []),
@@ -268,12 +285,15 @@ export const resolveRequestSubject = function resolveRequestSubject(
 		options.now ?? Date.now()
 	).subject?.subjectId;
 	const subjectId = recorded ?? stored ?? generateSubjectId();
-	if (stored) {
+	const value = cookieValueOf(subjectId);
+	// The recorded ID stays the visitor's when it has no cookie copy, as in
+	// the browser; the render reads it from the same records.
+	if (stored || value === null) {
 		return { cookie: cookieHeader, setCookie: null, subjectId };
 	}
 	return {
-		cookie: withCookie(cookieHeader, name, encodeURIComponent(subjectId)),
-		setCookie: subjectCookie(options, name, subjectId),
+		cookie: withCookie(cookieHeader, name, value),
+		setCookie: subjectCookie(options, name, subjectId, value),
 		subjectId,
 	};
 };

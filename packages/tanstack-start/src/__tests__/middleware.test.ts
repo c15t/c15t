@@ -845,3 +845,49 @@ describe('consentRequestMiddleware: targeted cache fields', () => {
 		expect(response.headers.get('cdn-cache-control')).toBe('private');
 	});
 });
+
+// A subject ID with no URI encoding, such as one with a lone surrogate,
+// has no subject cookie in the browser. The request still renders with the
+// ID and account its records carry, and sets no cookie.
+describe('consentRequestMiddleware: a recorded ID with no URI encoding', () => {
+	test('the page renders with the recorded ID and account, and sets no cookie', async () => {
+		const envelope = {
+			categories: {
+				measurement: {
+					basis: { fingerprint: 'a'.repeat(64), kind: 'choice-v1' },
+					confirmedAt: Date.now() - 1000,
+					value: true,
+				},
+			},
+			subject: {
+				externalId: 'account-a',
+				identityProvider: 'app',
+				subjectId: 'sub_\uD800',
+			},
+			version: 3,
+		};
+		const request = new Request('https://app.example.com/pricing', {
+			headers: {
+				cookie: `c15t=${encodeURIComponent(JSON.stringify(envelope))}`,
+			},
+		});
+		let rendered: unknown;
+		const result = (await serverHandlerOf(consentRequestMiddleware())({
+			context: {},
+			next: async () => {
+				rendered = (await resolveConsent({ request })).initialRecords?.subject;
+				return {
+					context: {},
+					pathname: '/pricing',
+					request,
+					response: new Response('<html></html>'),
+				};
+			},
+			pathname: '/pricing',
+			request,
+		})) as { response: Response };
+		expect(rendered).toEqual(envelope.subject);
+		expect(result.response.headers.getSetCookie()).toEqual([]);
+		expect(result.response.headers.get('cache-control')).toBe('private');
+	});
+});

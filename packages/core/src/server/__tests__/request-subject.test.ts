@@ -307,3 +307,79 @@ describe('resolveRequestSubject', () => {
 		expect(subject?.setCookie?.header).toContain('; Domain=.example.org;');
 	});
 });
+
+// The browser keeps an opaque ID with no URI encoding, such as one with a
+// lone surrogate, in localStorage and a JSON record, and writes no
+// `<storageKey>-sid` cookie for it (`writeStoredSubjectId`). The server
+// does the same: it keeps the recorded ID and sets no cookie.
+describe('resolveRequestSubject: a recorded ID with no URI encoding', () => {
+	const envelopeCookie = function envelopeCookie(
+		subject: Record<string, string>
+	) {
+		const envelope = {
+			categories: {
+				measurement: {
+					basis: { fingerprint: 'a'.repeat(64), kind: 'choice-v1' },
+					confirmedAt: NOW - 1000,
+					value: true,
+				},
+			},
+			subject,
+			version: 3,
+		};
+		return `c15t=${encodeURIComponent(JSON.stringify(envelope))}`;
+	};
+	const account = { externalId: 'account-a', identityProvider: 'app' };
+
+	test('a lone surrogate keeps the recorded ID and account, with no cookie, and the render reads them', () => {
+		const cookie = `theme=dark; ${envelopeCookie({ ...account, subjectId: 'sub_\uD800' })}`;
+		const subject = resolve(cookie);
+		expect(subject).toEqual({
+			cookie,
+			setCookie: null,
+			subjectId: 'sub_\uD800',
+		});
+		const { state } = readRequestConsent({
+			adapter: '@c15t/test',
+			now: NOW,
+			request: { cookie: subject?.cookie, headers: new Headers() },
+		});
+		expect(state.initialRecords?.subject).toEqual({
+			...account,
+			subjectId: 'sub_\uD800',
+		});
+		expect(state.initialRecords?.choice).not.toBeNull();
+	});
+
+	test.each([
+		['valid Unicode', 'sub_é'],
+		['a paired surrogate', 'sub_😀'],
+	])(
+		'an ID with %s is stored in the subject cookie as before',
+		(_, subjectId) => {
+			const subject = resolve(envelopeCookie({ ...account, subjectId }));
+			expect(subject?.subjectId).toBe(subjectId);
+			expect(subject?.setCookie?.header).toContain(
+				`c15t-sid=${encodeURIComponent(subjectId)};`
+			);
+		}
+	);
+
+	test('a lone surrogate with a subject cookie keeps both, as for any recorded ID', () => {
+		const cookie = `c15t-sid=sub_other; ${envelopeCookie({ subjectId: 'sub_\uD800' })}`;
+		expect(resolve(cookie)).toEqual({
+			cookie,
+			setCookie: null,
+			subjectId: 'sub_\uD800',
+		});
+	});
+
+	test.each([
+		['an empty ID', { subjectId: '' }],
+		['no ID', {}],
+	])('a record with %s gets a new ID and its cookie', (_, subject) => {
+		const result = resolve(envelopeCookie(subject as Record<string, string>));
+		expect(result?.subjectId).toMatch(/^sub_/u);
+		expect(result?.setCookie?.header).toMatch(/^c15t-sid=sub_/u);
+	});
+});
