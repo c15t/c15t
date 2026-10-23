@@ -93,6 +93,7 @@
  *   run.
  */
 import { STORAGE_KEY_V2 } from '../../libs/storage-keys';
+import type { StoredRecords as StoredRead } from './hydrate';
 import { mountPersistence } from './mount';
 import type { PersistenceHandle, PersistenceOptions } from './types';
 
@@ -105,7 +106,20 @@ export {
 	readStoredRecords,
 	readStoredRecordsFromCookieHeader,
 } from './hydrate';
-export type { StoredRecords } from './hydrate';
+
+/**
+ * Stored records as {@link readStoredRecords} returns them. A read always
+ * sets `recordedSubjectId` and `subjectCarrier`; they are optional here so a
+ * record built by hand with the fields this type had before, such as a
+ * typed mock, still type-checks.
+ */
+export interface StoredRecords extends Omit<
+	StoredRead,
+	'recordedSubjectId' | 'subjectCarrier'
+> {
+	recordedSubjectId?: StoredRead['recordedSubjectId'];
+	subjectCarrier?: StoredRead['subjectCarrier'];
+}
 export type {
 	StoredIabMetadata,
 	StoredConsentEnvelope,
