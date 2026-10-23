@@ -109,9 +109,11 @@ export {
 
 /**
  * Stored records as {@link readStoredRecords} returns them. A read always
- * sets `recordedSubjectId` and `subjectCarrier`; they are optional here so a
- * record built by hand with the fields this type had before, such as a
- * typed mock, still type-checks.
+ * sets `recordedSubjectId` and `subjectCarrier`, and its return type says
+ * so. They are optional here, so an object typed as `StoredRecords` with
+ * the fields this type had before still type-checks. A stand-in typed
+ * through the reader, such as `typeof readStoredRecords` or a mocked reader,
+ * must return both fields.
  */
 export interface StoredRecords extends Omit<
 	StoredRead,

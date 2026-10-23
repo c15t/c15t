@@ -43,8 +43,10 @@ its cookie copy instead of throwing. A tab follows the notice's subject once
 the vendor record that carried another is removed or loses its subject.
 
 The `StoredRecords` type exported from `@c15t/core/modules/persistence` gains
-optional `recordedSubjectId` and `subjectCarrier` fields, which
-`readStoredRecords()` always sets. Records built by hand with the earlier
-fields, such as typed mocks, still type-check.
+optional `recordedSubjectId` and `subjectCarrier` fields. An object typed as
+`StoredRecords` with the earlier fields still type-checks. `readStoredRecords()`
+always sets both, and its return type says so. A stand-in typed through the
+reader, such as `typeof readStoredRecords`, its return type or a mocked
+reader, must now return both fields.
 
 If your cookie policy lists c15t cookies, add `c15t-notice-subject`.
