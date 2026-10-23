@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/dev-tools",
-	"version": "3.1.0",
+	"version": "3.2.0-canary.0",
 	"description": "Developer tools for debugging c15t. Inspect consent state, resolved policy, location, IAB TCF state and kernel events.",
 	"keywords": [
 		"c15t",

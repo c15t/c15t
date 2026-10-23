@@ -1,6 +1,8 @@
 ---
 packages:
-  '@c15t/backend': patch
+  "@c15t/backend":
+    replay:
+      - exit-prerelease(npm:@c15t/backend)
 ---
 
 ### Validate identity links before writing, and skip repeated links
