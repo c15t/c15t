@@ -192,20 +192,7 @@ routes, pass `subjectCookie: false`. The proxy still normalizes the consent
 headers, and a cache never receives a visitor's `c15t-sid`. Match each route
 and the paths below it, so `/api/feedback` and `/blogger` still get an ID:
 
-```ts title="proxy.ts"
-import { c15tProxy } from '@c15t/nextjs/proxy';
-import type { NextRequest } from 'next/server';
-
-const SHARED_ROUTES = ['/api/feed', '/blog'];
-
-const isShared = (pathname: string) =>
-	SHARED_ROUTES.some(
-		(route) => pathname === route || pathname.startsWith(`${route}/`)
-	);
-
-export const proxy = (request: NextRequest) =>
-	c15tProxy(request, { subjectCookie: !isShared(request.nextUrl.pathname) });
-```
+<include src="../../shared/examples/nextjs/subject-cookie-proxy.mdx" />
 
 If `ConsentRoot` runs with `persistence={false}` or a `consentSource`, pass
 `subjectCookie: false` too. The proxy then sets no `c15t-sid`. A subject ID or
