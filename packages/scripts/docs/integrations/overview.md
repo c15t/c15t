@@ -1,7 +1,8 @@
 ---
 title: Integrations
 description: Find all c15t integrations for analytics, tag managers,
-  advertising, email and SMS, chat and embedded content.
+  advertising, experimentation and personalization, email and SMS, chat and
+  embedded content.
 seoTitle: Cookie consent integrations for analytics and ads | c15t
 seoDescription: Connect analytics, ad pixels, chat widgets and embeds to your
   cookie banner. c15t has helpers for Google Tag Manager, Meta Pixel, PostHog,
@@ -53,11 +54,14 @@ kernel to control its DOM lifecycle. Embeds do not require `@c15t/integrations`.
 
 | Integration                                               | Helper                   | Category                                        | Loading behavior                                                                                     |
 | --------------------------------------------------------- | ------------------------ | ----------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| [Lucky Orange](./other-analytics.md#lucky-orange)         | `luckyOrange`            | `measurement`                                   | Waits for effective permission                                                                       |
 | [Google Tag](./google-tag.md)                             | `gtag`                   | `measurement` or `marketing`                    | Always loads and signals Google consent by default; `loadMode: 'after-consent'` waits for permission |
+| [Pendo](./other-analytics.md#pendo)                       | `pendo`                  | `measurement`                                   | Waits for effective permission; stops and resumes event sending                                      |
 | [Ahrefs Analytics](./ahrefs-analytics.md)                 | `ahrefsAnalytics`        | `measurement`                                   | Waits for effective permission                                                                       |
 | [Adobe Analytics](./adobe-analytics.md)                   | `adobeAnalytics`         | `measurement`                                   | Waits for effective permission                                                                       |
 | [Amplitude](./amplitude.md)                               | `amplitude`              | `measurement`                                   | Waits for effective permission; opts the SDK out on revocation                                       |
 | [Cloudflare Web Analytics](./cloudflare-web-analytics.md) | `cloudflareWebAnalytics` | `measurement`                                   | Waits for effective permission                                                                       |
+| [RB2B](./other-analytics.md#rb2b)                         | `rb2b`                   | `marketing`                                     | Waits for effective permission                                                                       |
 | [Clay](./clay.md)                                         | `clay`                   | `marketing`                                     | Waits for effective permission                                                                       |
 | [Clearbit](./clearbit.md)                                 | `clearbit`               | `marketing`                                     | Waits for effective permission                                                                       |
 | [Microsoft Clarity](./microsoft-clarity.md)               | `clarity`                | `measurement`                                   | Gated initially; keeps the SDK and signals storage consent                                           |
@@ -78,14 +82,26 @@ kernel to control its DOM lifecycle. Embeds do not require `@c15t/integrations`.
 | [Segment](./segment.md)                                   | `segment`                | `measurement`                                   | Waits for effective permission                                                                       |
 | [Sentry](./sentry.md)                                     | `sentry`                 | `necessary`; Replay and user data `measurement` | Configurable; defaults to always loading and loads Replay after permission                           |
 | [Rybbit Analytics](./rybbit-analytics.md)                 | `rybbitAnalytics`        | `measurement`                                   | Waits for effective permission                                                                       |
+| [Statable](./other-analytics.md#statable)                 | `statableAnalytics`      | `measurement`                                   | Waits for effective permission                                                                       |
 | [Umami Analytics](./umami-analytics.md)                   | `umamiAnalytics`         | `measurement`                                   | Waits for effective permission                                                                       |
 | [Vercel Analytics](./vercel-analytics.md)                 | `vercelAnalytics`        | `measurement`                                   | Waits for effective permission                                                                       |
 | [Vercel Speed Insights](./vercel-speed-insights.md)       | `vercelSpeedInsights`    | `measurement`                                   | Waits for effective permission; drops reports after revocation                                       |
+
+## Experimentation and personalization
+
+| Integration                                                                            | Helper          | Category     | Loading behavior               |
+| -------------------------------------------------------------------------------------- | --------------- | ------------ | ------------------------------ |
+| [Adobe Target](./other-experience.md#adobe-target)                                     | `adobeTarget`   | `experience` | Waits for effective permission |
+| [Appcues](./other-experience.md#appcues)                                               | `appcues`       | `experience` | Waits for effective permission |
+| [Dynamic Yield](./other-experience.md#dynamic-yield)                                   | `dynamicYield`  | `experience` | Waits for effective permission |
+| [Optimizely Web Experimentation](./other-experience.md#optimizely-web-experimentation) | `optimizelyWeb` | `experience` | Waits for effective permission |
+| [Wisepops](./other-experience.md#wisepops)                                             | `wisepops`      | `marketing`  | Waits for effective permission |
 
 ## Chat and support
 
 | Integration                                                        | Helper          | Category        | Loading behavior               |
 | ------------------------------------------------------------------ | --------------- | --------------- | ------------------------------ |
+| [Ada](./other-chat-and-support.md#ada)                             | `ada`           | `functionality` | Waits for effective permission |
 | [Crisp](./crisp.md)                                                | `crisp`         | `functionality` | Waits for effective permission |
 | [Front Chat](./front-chat.md)                                      | `frontChat`     | `functionality` | Waits for effective permission |
 | [Gorgias Chat](./other-chat-and-support.md#gorgias-chat)           | `gorgiasChat`   | `functionality` | Waits for effective permission |
@@ -94,23 +110,32 @@ kernel to control its DOM lifecycle. Embeds do not require `@c15t/integrations`.
 
 ## Email and SMS
 
-| Integration             | Helper    | Category                      | Loading behavior                                           |
-| ----------------------- | --------- | ----------------------------- | ---------------------------------------------------------- |
-| [Klaviyo](./klaviyo.md) | `klaviyo` | `marketing` and `measurement` | Waits for both; optional forms-only mode needs `marketing` |
+| Integration                                                                             | Helper            | Category                      | Loading behavior                                           |
+| --------------------------------------------------------------------------------------- | ----------------- | ----------------------------- | ---------------------------------------------------------- |
+| [Attentive](./other-email-and-sms.md#attentive)                                         | `attentiveTag`    | `marketing`                   | Waits for effective permission                             |
+| [Customer.io](./other-email-and-sms.md#customerio)                                      | `customerIo`      | `marketing`                   | Waits for effective permission                             |
+| [Insider](./other-email-and-sms.md#insider-one)                                         | `insiderTag`      | `marketing`                   | Waits for effective permission                             |
+| [Klaviyo](./klaviyo.md)                                                                 | `klaviyo`         | `marketing` and `measurement` | Waits for both; optional forms-only mode needs `marketing` |
+| [Marketo Munchkin](./other-email-and-sms.md#marketo-munchkin)                           | `marketoMunchkin` | `marketing`                   | Waits for effective permission                             |
+| [Salesforce Account Engagement](./other-email-and-sms.md#salesforce-account-engagement) | `pardotTracking`  | `marketing`                   | Waits for effective permission                             |
 
 ## Ads and pixels
 
-| Integration                                    | Helper             | Category    | Loading behavior                                                 |
-| ---------------------------------------------- | ------------------ | ----------- | ---------------------------------------------------------------- |
-| [Meta Pixel](./meta-pixel.md)                  | `metaPixel`        | `marketing` | Gated initially; keeps the SDK and signals consent               |
-| [OpenAI Pixel](./openai-pixel.md)              | `openaiPixel`      | `marketing` | Gated initially; keeps the SDK and signals consent               |
-| [Pinterest Tag](./pinterest-tag.md)            | `pinterestTag`     | `marketing` | Gated initially; keeps the tag and signals consent               |
-| [Reddit Pixel](./reddit-pixel.md)              | `redditPixel`      | `marketing` | Gated initially; keeps the pixel and toggles first-party cookies |
-| [TikTok Pixel](./tiktok-pixel.md)              | `tiktokPixel`      | `marketing` | Gated initially; keeps the SDK and signals consent               |
-| [LinkedIn Insight Tag](./linkedin-insights.md) | `linkedinInsights` | `marketing` | Waits for effective permission                                   |
-| [Microsoft UET](./microsoft-uet.md)            | `microsoftUet`     | `marketing` | Always loads; signals ad storage consent                         |
-| [Snapchat Pixel](./snapchat-pixel.md)          | `snapchatPixel`    | `marketing` | Waits for effective permission                                   |
-| [X Pixel](./x-pixel.md)                        | `xPixel`           | `marketing` | Waits for effective permission                                   |
+| Integration                                                | Helper              | Category    | Loading behavior                                                 |
+| ---------------------------------------------------------- | ------------------- | ----------- | ---------------------------------------------------------------- |
+| [The Trade Desk](./other-ads-and-pixels.md#the-trade-desk) | `theTradeDeskPixel` | `marketing` | Waits for effective permission                                   |
+| [LiveIntent](./other-ads-and-pixels.md#liveintent)         | `liveIntentTag`     | `marketing` | Waits for effective permission                                   |
+| [AdRoll](./other-ads-and-pixels.md#adroll)                 | `adrollPixel`       | `marketing` | Waits for effective permission                                   |
+| [Vector](./other-ads-and-pixels.md#vector)                 | `vector`            | `marketing` | Waits for effective permission                                   |
+| [Meta Pixel](./meta-pixel.md)                              | `metaPixel`         | `marketing` | Gated initially; keeps the SDK and signals consent               |
+| [OpenAI Pixel](./openai-pixel.md)                          | `openaiPixel`       | `marketing` | Gated initially; keeps the SDK and signals consent               |
+| [Pinterest Tag](./pinterest-tag.md)                        | `pinterestTag`      | `marketing` | Gated initially; keeps the tag and signals consent               |
+| [Reddit Pixel](./reddit-pixel.md)                          | `redditPixel`       | `marketing` | Gated initially; keeps the pixel and toggles first-party cookies |
+| [TikTok Pixel](./tiktok-pixel.md)                          | `tiktokPixel`       | `marketing` | Gated initially; keeps the SDK and signals consent               |
+| [LinkedIn Insight Tag](./linkedin-insights.md)             | `linkedinInsights`  | `marketing` | Waits for effective permission                                   |
+| [Microsoft UET](./microsoft-uet.md)                        | `microsoftUet`      | `marketing` | Always loads; signals ad storage consent                         |
+| [Snapchat Pixel](./snapchat-pixel.md)                      | `snapchatPixel`     | `marketing` | Waits for effective permission                                   |
+| [X Pixel](./x-pixel.md)                                    | `xPixel`            | `marketing` | Waits for effective permission                                   |
 
 ## Commerce
 

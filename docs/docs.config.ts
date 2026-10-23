@@ -872,9 +872,15 @@ export default defineDocsConfig({
 						'umami-analytics',
 						'vercel-analytics',
 						'vercel-speed-insights',
+						'other-analytics',
 					],
 					slug: 'analytics',
 					title: 'Analytics',
+				},
+				{
+					pages: ['other-experience'],
+					slug: 'experience',
+					title: 'Experimentation and personalization',
 				},
 				{
 					pages: ['crisp', 'front-chat', 'intercom', 'other-chat-and-support'],
@@ -882,7 +888,7 @@ export default defineDocsConfig({
 					title: 'Chat and support',
 				},
 				{
-					pages: ['klaviyo'],
+					pages: ['klaviyo', 'other-email-and-sms'],
 					slug: 'email-and-sms',
 					title: 'Email and SMS',
 				},
@@ -897,6 +903,7 @@ export default defineDocsConfig({
 						'microsoft-uet',
 						'snapchat-pixel',
 						'x-pixel',
+						'other-ads-and-pixels',
 					],
 					slug: 'ads-and-pixels',
 					title: 'Ads and pixels',

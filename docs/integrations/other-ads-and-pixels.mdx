@@ -1,0 +1,73 @@
+---
+title: Other ads and pixels
+description: Consent-gated helpers for ad platforms and conversion pixels that don't need a full guide.
+icon: radar
+group: integrations
+---
+
+Each helper below loads its vendor only after the visitor allows the listed consent category. For setup, see [Integrations overview](/docs/integrations/overview).
+
+## AdRoll
+
+AdRoll retargets site visitors with ads and measures conversions. The helper sends the first `pageView` for you. Waits for `marketing` consent.
+
+<include src="../shared/examples/javascript/adroll-scripts.mdx" />
+
+| Option | Type | Required | Description |
+| --- | --- | --- | --- |
+| `advertiserId` | `string` | Yes | Advertiser ID from Analytics > Insights > Website > View Pixel. |
+| `pixelId` | `string` | Yes | Pixel ID from the same snippet. |
+| `scriptUrl` | `string` | No | Loader URL. Defaults to `https://s.adroll.com/j/<advertiserId>/roundtrip.js`. |
+
+**When consent is withdrawn:** AdRoll has no API to stop it, so the helper leaves it on the page. Keep c15t's default `reloadOnConsentRevoked` so the page reload removes it.
+
+- In AdRoll, set Settings > Data Collection > Visitor Consent to **Use your existing Consent Banner**. Otherwise AdRoll can load its own banner.
+
+## LiveIntent
+
+LiveIntent's LiveConnect tag identifies visitors for people-based ad targeting and measurement. Waits for `marketing` consent.
+
+<include src="../shared/examples/javascript/liveintent-scripts.mdx" />
+
+| Option | Type | Required | Description |
+| --- | --- | --- | --- |
+| `tagId` | `string` | Yes | Tag filename from your LiveConnect base tag, without `.min.js`. |
+| `events` | `LiveIntentEvent[]` | No | Event objects queued once on the first grant, such as `{ event: 'conversion', name: 'purchase' }`. Use the fields from your account's event tags. |
+| `scriptUrl` | `string` | No | Loader URL. Defaults to `https://b-code.liadm.com/<tagId>.min.js`. |
+
+**When consent is withdrawn:** LiveConnect has no API to stop it, so the helper leaves it on the page. Keep c15t's default `reloadOnConsentRevoked` so the page reload removes it.
+
+- Don't test with the public `a-00xx` tag from LiveIntent's examples. It's live production code, not a sandbox.
+- Where GDPR applies, LiveIntent also reads the TCF string. LiveIntent's guide lists purposes 1 to 4, but the served bundle asks for more. Confirm your account's requirements with LiveIntent.
+
+## The Trade Desk
+
+The Trade Desk Universal Pixel records conversions and builds ad audiences. Waits for `marketing` consent.
+
+<include src="../shared/examples/javascript/the-trade-desk-scripts.mdx" />
+
+| Option | Type | Required | Description |
+| --- | --- | --- | --- |
+| `advertiserId` | `string` | Yes | Advertiser ID from your Universal Pixel snippet. |
+| `pixelIds` | `string[]` | Yes | One or more Universal Pixel IDs. A blank entry skips the helper. |
+| `enableCookieSyncing` | `boolean` | No | Set `false` to turn off cookie syncing. Unset uses the vendor default. |
+| `dataProcessingOption` | `{ policies: string[]; region: string }` | No | Limited data use setting, such as `{ policies: ['LDU'], region: 'US-CO' }`. It doesn't replace consent. |
+| `scriptUrl` | `string` | No | Loader URL. Defaults to `https://js.adsrvr.org/up_loader.3.0.0.js`. |
+
+**When consent is withdrawn:** The Trade Desk has no API to stop its SDK, so the helper leaves it on the page. Keep c15t's default `reloadOnConsentRevoked` so the page reload removes it.
+
+- Walmart DSP accounts use a different loader. Set `scriptUrl` to `https://azjs.adsrvr.org/thetradedesk-ads/up_loader.3.0.0.js`.
+- `enableCookieSyncing: false` doesn't stop all cookies. The Trade Desk still sets its `TDID` cookie on `adsrvr.org`.
+
+## Vector
+
+Vector identifies the people and companies visiting your site and builds advertising audiences from their activity. Waits for `marketing` consent.
+
+<include src="../shared/examples/javascript/vector-scripts.mdx" />
+
+| Option | Type | Required | Description |
+| --- | --- | --- | --- |
+| `pixelId` | `string` | Yes | Pixel ID from **Settings > Pixel** in Vector. |
+| `scriptUrl` | `string` | No | Custom SDK URL. Defaults to `https://cdn.vector.co/pixel.js`. |
+
+**When consent is withdrawn:** Vector has no stop API, so c15t reloads the page to stop it. Keep `reloadOnConsentRevoked` on.

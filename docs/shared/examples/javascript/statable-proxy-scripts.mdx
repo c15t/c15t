@@ -1,0 +1,13 @@
+{/* Generated from internals/doc-snippets/javascript/src/statable-proxy.ts (docs:statable-proxy-scripts) by scripts/sync-example-docs.ts. Edit the source file. */}
+
+```ts title="src/consent-scripts.ts"
+import { statableAnalytics } from '@c15t/integrations/statable-analytics';
+
+export const scripts = [
+	statableAnalytics({
+		scriptUrl: 'https://cdn.example.com/js/{siteId}/s.js',
+		siteId: '12345',
+		trackingApi: 'https://analytics.example.com/api/event',
+	}),
+];
+```

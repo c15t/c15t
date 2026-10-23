@@ -1,0 +1,82 @@
+---
+title: Other analytics tools
+description: Consent-gated helpers for analytics tools that don't need a full guide.
+icon: chart-line
+group: integrations
+---
+
+Each helper below loads its vendor only after the visitor allows the listed consent category. For setup, see [Integrations overview](/docs/integrations/overview).
+
+## Lucky Orange
+
+Lucky Orange records sessions and builds heatmaps. Waits for `measurement` consent by default.
+
+<include src="../shared/examples/javascript/lucky-orange-configuration.mdx" />
+
+| Option | Type | Required | Description |
+| --- | --- | --- | --- |
+| `siteId` | `string` | Yes | Site ID from Lucky Orange. |
+| `category` | Consent condition | No | Category or condition that must be allowed. Defaults to `'measurement'`. |
+| `scriptUrl` | `string` | No | Custom or proxied loader URL. Defaults to `https://tools.luckyorange.com/core/lo.js?site-id=<siteId>`. |
+
+**When consent is withdrawn:** the helper calls `LO.privacy.setConsentStatus(false)`. Recording code already on the page can't be unloaded, so keep c15t's default page reload.
+
+- Turn on **Require Consent** in the Lucky Orange dashboard. The helper grants consent through Lucky Orange's privacy API after the visitor allows it.
+- The helper doesn't call `optOut()`, because that writes an opt-out cookie that lasts two years and gets in the way if the visitor grants consent again.
+- A proxy `scriptUrl` must keep `lo.js` in its path. Lucky Orange finds the site ID by looking for that file name.
+
+## Pendo
+
+Pendo records product usage and shows in-app guides. Waits for `measurement` consent by default.
+
+<include src="../shared/examples/javascript/pendo-configuration.mdx" />
+
+| Option | Type | Required | Description |
+| --- | --- | --- | --- |
+| `apiKey` | `string` | Yes | Web agent API key from Pendo. |
+| `visitor` | `Record<string, unknown>` | No | Visitor metadata passed to `pendo.initialize()`. |
+| `account` | `Record<string, unknown>` | No | Account metadata passed to `pendo.initialize()`. |
+| `initializeOptions` | `Record<string, unknown>` | No | Other `initialize()` options, such as `disableCookies` or `excludeAllText`. |
+| `category` | Consent condition | No | Category or condition that must be allowed. Defaults to `'measurement'`. |
+| `scriptUrl` | `string` | No | Custom or proxied agent URL. Defaults to `https://cdn.pendo.io/agent/static/<apiKey>/pendo.js`. |
+
+**When consent is withdrawn:** the helper calls `pendo.stopSendingEvents()`. If consent comes back on the same page, it calls `startSendingEvents()` and keeps the same visitor identity. c15t still reloads the page by default; keep the reload if the next page must run without Pendo.
+
+- The helper never calls `clearSession()`, because that starts a new anonymous visitor. If a visitor signs out while consent is granted, call `pendo.clearSession()` yourself before you identify the next visitor.
+- Stopping events doesn't delete Pendo's cookies or local storage, and guides already on the page stay there.
+
+## RB2B
+
+RB2B identifies the companies and US visitors behind site traffic for sales outreach. Waits for `marketing` consent.
+
+<include src="../shared/examples/javascript/rb2b-scripts.mdx" />
+
+| Option | Type | Required | Description |
+| --- | --- | --- | --- |
+| `accountKey` | `string` | Yes | Account key from the `reb2b.load` call on RB2B's Script Setup page. |
+| `scriptUrl` | `string` | No | Loader URL from your dashboard snippet. Defaults to `https://ddwl4m2hdecbv.cloudfront.net/b/<accountKey>/<accountKey>.js.gz`. |
+
+**When consent is withdrawn:** RB2B has no stop API, so c15t reloads the page to stop it. Keep `reloadOnConsentRevoked` on.
+
+- Authorize your domain first: in RB2B, open **Script**, choose **Add a Domain** and save it. RB2B's script doesn't run on domains you haven't added.
+- `scriptUrl` must stay on RB2B's CloudFront or S3 hosts, under `/b/<accountKey>/`. RB2B checks the script's own URL, so a proxy fails, and the helper logs an error and skips loading for other URLs.
+- RB2B runs once per page load, not on client-side route changes. To count a new page view, use full-page navigation, such as a plain `<a href>`.
+
+## Statable
+
+Statable is cookieless web analytics. Waits for `measurement` consent.
+
+<include src="../shared/examples/javascript/statable-scripts.mdx" />
+
+| Option | Type | Required | Description |
+| --- | --- | --- | --- |
+| `siteId` | `string` or `number` | Yes | Numeric site ID from **Site settings > Tracking Code** in Statable. |
+| `scriptUrl` | `string` | No | Loader URL for your own CDN. Each `{siteId}` is replaced with the ID. Defaults to `https://statable.com/js/{siteId}/s.js`. |
+| `trackingApi` | `string` | No | Full ingestion endpoint. Defaults to the loader origin plus `/api/event`. |
+
+**When consent is withdrawn:** Statable has no stop API, so c15t reloads the page to stop the tracker. Keep `reloadOnConsentRevoked` on.
+
+- The `/js/<siteId>/s.js` loader is only on Statable's paid plans. The Hobby plan uses a widget with a different loader, which this helper doesn't support.
+- If your CDN serves the loader but doesn't serve or proxy `/api/event`, set `trackingApi` to the full ingestion URL:
+
+<include src="../shared/examples/javascript/statable-proxy-scripts.mdx" />
