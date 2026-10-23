@@ -12,6 +12,7 @@ import {
 	rememberConsentInputs,
 	rememberSubjectCookieHeader,
 	renderedForVisitor,
+	servedByConsentRoute,
 } from './libs/request-inputs';
 
 /** Options for {@link consentRequestMiddleware}. */
@@ -176,12 +177,19 @@ const privateCacheControl = function privateCacheControl(
  *   resource, such as the consent route's manifest, and gets no cookie;
  * - any other response gets the cookie and is made `private`.
  *
+ * A response the consent route served, at whatever path it is mounted, is
+ * sent as it is: its manifest is public data and init is private, and
+ * neither is a page.
+ *
  * The handler's response can have immutable headers, so changes go on a
  * copy.
  */
 const withSetCookie = function withSetCookie<
 	Result extends { response: Response },
 >(result: Result, header: string | undefined, request: Request): Result {
+	if (servedByConsentRoute(request)) {
+		return result;
+	}
 	const directives = cacheDirectives(result.response);
 	const guarded =
 		directives.get('private') === '' || directives.has('no-store');

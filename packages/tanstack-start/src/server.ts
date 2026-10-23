@@ -81,6 +81,7 @@ import type {
 } from '@c15t/core/server';
 import type { ConsentManifest, InitOutput } from '@c15t/schema/types';
 
+import { handledRequestFor } from './libs/handled-request';
 import { isPrerendering } from './libs/prerendering';
 import {
 	readConsentInputs,
@@ -108,24 +109,6 @@ const stripTransport = function stripTransport({
 	...config
 }: KernelConfig): ConsentState {
 	return config;
-};
-
-/**
- * The request `consentRequestMiddleware` handles: the Start request this
- * render runs in, from `getRequest()`. The middleware records the minted
- * cookie and its inputs on that request and checks it for a visitor
- * render, while the consent input can be a clone or another `Request`.
- * Outside a Start request, such as a unit test, it is `request`.
- */
-const handledRequestFor = async function handledRequestFor(
-	request: Request
-): Promise<Request> {
-	try {
-		const { getRequest } = await import('@tanstack/react-start/server');
-		return getRequest();
-	} catch {
-		return request;
-	}
 };
 
 const readCurrentRequest = async function readCurrentRequest(

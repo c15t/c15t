@@ -84,14 +84,14 @@ the listed headers out of the shared copy. The middleware checks each response:
   used.
 - A response no such render produced that sets `public`, `s-maxage`,
   `max-age`, `no-cache` or an `Expires` header is for every visitor, so it
-  gets no cookie and keeps its headers. The consent route's `/manifest`
-  response is one, wherever the route is mounted.
+  gets no cookie and keeps its headers.
 - Any other response that gets a new visitor's cookie is sent `private`,
   unless it already says `private` or `no-store`.
 
-Requests under `/api/c15t`, where the consent route lives by default, get no
-cookie either. To cache HTML for every visitor, pass `shared: true` to
-`resolveConsent`.
+Responses from `createConsentRoute()` get no cookie and keep their headers,
+wherever the route is mounted. Its manifest is public data a shared cache
+keeps, and init is private to the request. To cache HTML for every visitor,
+pass `shared: true` to `resolveConsent`.
 
 If `ConsentRoot` runs with `persistence={false}` or a `consentSource`, pass
 `subjectCookie: false` too. The middleware then sets no `c15t-sid`. A subject

@@ -48,7 +48,8 @@ page whose `resolveConsent` read the visitor's cookies holds the visitor's
 consent and subject ID, so it is sent `private` with the cookie, keeping
 its browser directives. A response with no such render that sets
 `public`, `s-maxage`, `max-age`, `no-cache` or `Expires` gets no cookie, and
-TanStack Start also skips `/api/c15t`. Render HTML you cache for every
+TanStack Start sends the consent route's responses unchanged, wherever it is
+mounted. Render HTML you cache for every
 visitor with `shared: true`. Pass the same `storage` options as the
 browser so the cookie has the same name, domain and lifetime. With
 `persistence={false}` or a `consentSource` on `ConsentRoot`, pass

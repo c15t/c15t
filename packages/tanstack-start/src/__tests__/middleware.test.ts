@@ -606,3 +606,110 @@ describe('consentRequestMiddleware: qualified private', () => {
 		expect(response.headers.getSetCookie()).toEqual([]);
 	});
 });
+
+// The consent route renders no page: its manifest is public data a shared
+// cache keeps, and init is private to one request. It is mounted at any
+// path, and the bundled snapshot manifest has no cache headers, so the
+// route itself tells the middleware it served the request.
+describe('consentRequestMiddleware: consent route at any mount', () => {
+	beforeEach(() => {
+		clearManifestCache();
+	});
+
+	const serve = async function serve(path: string, splat: string) {
+		const { GET } = createConsentRoute({
+			backendURL: 'https://consent.example.com',
+			reportSessions: false,
+			snapshot: MANIFEST_FIXTURE,
+		});
+		const request = new Request(`https://app.example.com${path}`, {
+			headers: { 'cf-ipcountry': 'DE' },
+		});
+		const result = (await serverHandlerOf(consentRequestMiddleware())({
+			context: {},
+			next: async () => ({
+				context: {},
+				pathname: path,
+				request,
+				response: await GET({ params: { _splat: splat }, request }),
+			}),
+			pathname: path,
+			request,
+		})) as { response: Response };
+		return result.response;
+	};
+
+	test.each(['/api/c15t', '/api/consent', '/consent'])(
+		'the bundled manifest at %s/manifest keeps its headers and gets no cookie',
+		async (prefix) => {
+			const response = await serve(`${prefix}/manifest`, 'manifest');
+			expect(response.headers.getSetCookie()).toEqual([]);
+			expect(response.headers.get('cache-control')).toBeNull();
+			expect(await response.json()).toEqual(MANIFEST_FIXTURE);
+		}
+	);
+
+	test.each(['/api/c15t', '/api/consent', '/consent'])(
+		'init at %s/init stays private, no-store with no cookie',
+		async (prefix) => {
+			const response = await serve(`${prefix}/init`, 'init');
+			expect(response.status).toBe(200);
+			expect(response.headers.getSetCookie()).toEqual([]);
+			expect(response.headers.get('cache-control')).toBe('private, no-store');
+		}
+	);
+
+	test('the route served inside a Start request keeps its headers and gets no cookie', async () => {
+		const { createServerEntry } = await import('@tanstack/react-start/server');
+		const { GET } = createConsentRoute({
+			backendURL: 'https://consent.example.com',
+			reportSessions: false,
+			snapshot: MANIFEST_FIXTURE,
+		});
+		const entry = createServerEntry({
+			fetch: async (request: Request) => {
+				const result = (await serverHandlerOf(consentRequestMiddleware())({
+					context: {},
+					next: async () => ({
+						context: {},
+						pathname: '/api/consent/manifest',
+						request,
+						// A handler may see a copy of the request.
+						response: await GET({
+							params: { _splat: 'manifest' },
+							request: request.clone(),
+						}),
+					}),
+					pathname: '/api/consent/manifest',
+					request,
+				})) as { response: Response };
+				return result.response;
+			},
+		});
+		const response = await entry.fetch(
+			new Request('https://app.example.com/api/consent/manifest')
+		);
+		expect(response.headers.getSetCookie()).toEqual([]);
+		expect(response.headers.get('cache-control')).toBeNull();
+	});
+
+	test('a page next to a custom mount still gets a cookie', async () => {
+		const request = new Request('https://app.example.com/api/consent-docs');
+		const result = (await serverHandlerOf(consentRequestMiddleware())({
+			context: {},
+			next: () =>
+				Promise.resolve({
+					context: {},
+					pathname: '/api/consent-docs',
+					request,
+					response: new Response('page'),
+				}),
+			pathname: '/api/consent-docs',
+			request,
+		})) as { response: Response };
+		expect(result.response.headers.getSetCookie()[0]).toMatch(
+			/^c15t-sid=sub_/u
+		);
+		expect(result.response.headers.get('cache-control')).toBe('private');
+	});
+});

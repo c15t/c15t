@@ -38,6 +38,27 @@ export const rememberSubjectCookieHeader = function rememberSubjectCookieHeader(
 	subjectCookieByRequest.set(request, cookie);
 };
 
+/** Requests the consent route served. */
+const consentRouteRequests = new WeakSet<Request>();
+
+/**
+ * Records that the consent route served `request`. It renders no page: its
+ * manifest is public data a shared cache keeps and init is private to the
+ * request, so the middleware leaves the response as it is.
+ */
+export const rememberConsentRouteRequest = function rememberConsentRouteRequest(
+	request: Request
+): void {
+	consentRouteRequests.add(request);
+};
+
+/** Whether the consent route served `request`. */
+export const servedByConsentRoute = function servedByConsentRoute(
+	request: Request
+): boolean {
+	return consentRouteRequests.has(request);
+};
+
 /** Requests whose render read the visitor's cookies. */
 const visitorRenders = new WeakSet<Request>();
 

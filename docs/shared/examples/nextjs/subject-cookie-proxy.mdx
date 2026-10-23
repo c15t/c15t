@@ -2,6 +2,7 @@
 
 ```ts title="proxy.ts"
 import { c15tProxy } from 'c15t/next/proxy';
+import type { NextRequest } from 'next/server';
 
 const SHARED_ROUTES = ['/api/feed', '/blog'];
 
@@ -10,6 +11,6 @@ const isShared = (pathname: string) =>
 		(route) => pathname === route || pathname.startsWith(`${route}/`)
 	);
 
-export const proxy = (request: Parameters<typeof c15tProxy>[0]) =>
+export const proxy = (request: NextRequest) =>
 	c15tProxy(request, { subjectCookie: !isShared(request.nextUrl.pathname) });
 ```
