@@ -309,7 +309,9 @@ const readRecords = function readRecords(
 	// A valid record from an available source can still hydrate normally.
 	if (!selection.selected && choiceUnavailable) {
 		delete stored.records.choice;
-		if (!stored.records.vendorChoice) {
+		// A readable vendor or notice record still supplies the subject it
+		// carries, linked identity included.
+		if (!stored.records.vendorChoice && stored.subjectCarrier !== 'notice') {
 			delete stored.records.subject;
 		}
 	}

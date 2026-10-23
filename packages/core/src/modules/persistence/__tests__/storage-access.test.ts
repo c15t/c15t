@@ -8,6 +8,9 @@ import {
 	NOW,
 } from '../../../__tests__/fixtures/kernel-fixtures';
 import { createConsentKernel } from '../../../kernel';
+import { readRequestConsent } from '../../../server/request-consent';
+import { resolveRequestSubject } from '../../../server/request-subject';
+import type { HydrationRecords } from '../../../types';
 import { readStoredRecords } from '../hydrate';
 import { createPersistence } from '../index';
 import { readStoredConsentRecord } from '../record-storage';
@@ -278,3 +281,80 @@ test('focus keeps a used subject ID when cookies cannot be read', async () => {
 	expect(kernel.getSnapshot().subject?.subjectId).toBe(own);
 	expect(localStorage.getItem('c15t-sid')).toBe(own);
 });
+
+// A visitor on a site with only necessary categories who linked an account
+// is known by the acknowledgement alone. A load that cannot read cookies
+// takes that subject whole from localStorage, as one that can does.
+test.each([
+	['can be read', 'hydrating'],
+	['cannot be read', 'hydrating'],
+	['cannot be read', 'server-seeded'],
+] as const)(
+	'a necessary-only visitor keeps the linked account when cookies %s, %s',
+	async (cookies, start) => {
+		const sent: unknown[] = [];
+		const createVisitor = (initialRecords?: HydrationRecords) => {
+			const kernel = createConsentKernel({
+				consentCategories: ['necessary'],
+				initialRecords,
+				transport: {
+					save: (payload: { subject?: unknown }) => {
+						sent.push(payload.subject);
+						return Promise.resolve({ ok: true });
+					},
+				},
+			});
+			disposers.push(() => kernel.dispose());
+			return kernel;
+		};
+		const first = createVisitor();
+		const firstHandle = createPersistence({ kernel: first });
+		await first.commands.identify({
+			externalId: 'account-a',
+			identityProvider: 'app',
+		});
+		const saving = first.commands.save('none');
+		await vi.advanceTimersByTimeAsync(0);
+		await saving;
+		await vi.advanceTimersByTimeAsync(0);
+		const saved = first.getSnapshot();
+		expect(saved.subject?.externalId).toBe('account-a');
+		expect(saved.explicitChoice).toBeNull();
+		firstHandle.dispose();
+		sent.length = 0;
+
+		let initialRecords: HydrationRecords | undefined;
+		if (start === 'server-seeded') {
+			const subject = resolveRequestSubject({
+				now: Date.now(),
+				request: { cookie: document.cookie, url: 'https://example.com/' },
+			});
+			({ initialRecords } = readRequestConsent({
+				adapter: '@c15t/test',
+				now: Date.now(),
+				request: { cookie: subject?.cookie, headers: new Headers() },
+			}).state);
+		}
+		if (cookies === 'cannot be read') {
+			vi.spyOn(document, 'cookie', 'get').mockImplementation(() => {
+				throw new DOMException('Cookies blocked', 'SecurityError');
+			});
+		}
+		const restored = createVisitor(initialRecords);
+		const handle = createPersistence({
+			kernel: restored,
+			skipHydration: start === 'server-seeded',
+		});
+		disposers.push(() => handle.dispose());
+		const snapshot = restored.getSnapshot();
+		expect(snapshot.subject).toEqual(saved.subject);
+		expect(snapshot.noticeDismissal).toEqual(saved.noticeDismissal);
+		expect(snapshot.promptRequirement.kind).toBe('none');
+		expect(snapshot.explicitChoice).toBeNull();
+
+		const next = restored.commands.save('none');
+		await vi.advanceTimersByTimeAsync(0);
+		await next;
+		expect(sent).toEqual([saved.subject]);
+	}
+);

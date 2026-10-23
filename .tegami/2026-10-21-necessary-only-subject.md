@@ -24,4 +24,7 @@ A save that records only vendor decisions while a notice is shown, such as
 turning off a vendor switch, now stores the notice acknowledgement too, so a
 reload no longer shows the notice again.
 
+Notice acknowledgements stored in localStorage keep their linked account when
+cookies cannot be read.
+
 If your cookie policy lists c15t cookies, add `c15t-notice-subject`.
