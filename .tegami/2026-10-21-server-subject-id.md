@@ -89,5 +89,6 @@ before, a page that hydrates from storage starts with the local copy's ID.
 Server-rendered pages now do the same. The runtime does not write that ID over a
 shared `c15t-sid` cookie the record cookies agree with, but a later vendor save
 from this origin stores it in the shared vendor cookie, and after that a later
-page load can store it in the shared `c15t-sid` cookie too. No optional category
-is granted and no denial is lifted.
+page load can store it in the shared `c15t-sid` cookie too. The ID mismatch on
+its own grants no optional category and lifts no denial; that vendor save
+changes only the vendor decisions it names.
