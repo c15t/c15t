@@ -121,44 +121,86 @@ const isConsentRoute = function isConsentRoute(
 };
 
 /**
- * Whether a shared cache may store `response` for every visitor: its
- * `Cache-Control` says `public` or `s-maxage`, and not `private` or
- * `no-store`. The consent route's manifest is one, wherever the route is
- * mounted.
+ * The `Cache-Control` directives of `response`, by lowercase name. A
+ * quoted value can hold commas, as in `private="Set-Cookie, X-Id"`.
  */
-const isSharedResponse = function isSharedResponse(
+const cacheDirectives = function cacheDirectives(
 	response: Response
-): boolean {
-	const directives = (response.headers.get('cache-control') ?? '')
-		.toLowerCase()
-		.split(',')
-		.map((directive) => directive.split('=')[0]?.trim());
-	return (
-		(directives.includes('public') || directives.includes('s-maxage')) &&
-		!directives.includes('private') &&
-		!directives.includes('no-store')
-	);
+): Map<string, string> {
+	const directives = new Map<string, string>();
+	const parts =
+		(response.headers.get('cache-control') ?? '').match(
+			/(?:[^,"]|"[^"]*")+/gu
+		) ?? [];
+	for (const part of parts) {
+		const [name = '', ...value] = part.split('=');
+		if (name.trim()) {
+			directives.set(name.trim().toLowerCase(), value.join('=').trim());
+		}
+	}
+	return directives;
+};
+
+/** Directives that only grant or govern storage in shared caches. */
+const SHARED_ONLY_DIRECTIVES = new Set([
+	'public',
+	's-maxage',
+	'proxy-revalidate',
+]);
+
+/**
+ * `cache-control` for a response that holds one visitor's data: `private`,
+ * so no shared cache may store it, with the response's own browser
+ * directives (`max-age`, `no-cache`, `must-revalidate`, ...) kept.
+ */
+const privateCacheControl = function privateCacheControl(
+	directives: Map<string, string>
+): string {
+	const kept = [...directives]
+		.filter(([name]) => name !== 'private' && !SHARED_ONLY_DIRECTIVES.has(name))
+		.map(([name, value]) => (value ? `${name}=${value}` : name));
+	return ['private', ...kept].join(', ');
 };
 
 /**
- * `result` ready to send with the subject cookie `header`. A response a
- * shared cache may keep gets no cookie, unless its render read the
- * visitor's cookies: that HTML holds the visitor's consent state and
- * subject ID, so it is sent `private, no-store` with the cookie instead.
+ * `result` ready to send with the subject cookie `header`.
+ *
+ * A shared cache may store any response without `private` or `no-store`
+ * (RFC 9111, section 3). A qualified `private="Set-Cookie"` only keeps the
+ * listed fields out of the shared copy (section 5.2.2.7), so only an
+ * unqualified `private` protects the body. Therefore:
+ * - a response whose `resolveConsent` read the visitor's cookies holds that
+ *   visitor's consent state and subject ID, and is made `private`;
+ * - a response with no such render that states how it may be cached
+ *   (`public`, `s-maxage`, `max-age`, `no-cache` or `Expires`) is a shared
+ *   resource, such as the consent route's manifest, and gets no cookie;
+ * - any other response gets the cookie and is made `private`.
+ *
  * The handler's response can have immutable headers, so changes go on a
  * copy.
  */
 const withSetCookie = function withSetCookie<
 	Result extends { response: Response },
 >(result: Result, header: string | undefined, request: Request): Result {
-	const visitorRender = renderedForVisitor(request);
-	const shared = isSharedResponse(result.response);
-	if (shared ? !visitorRender : !header) {
+	const directives = cacheDirectives(result.response);
+	const guarded =
+		directives.get('private') === '' || directives.has('no-store');
+	const personal = renderedForVisitor(request);
+	const statesCaching =
+		directives.has('public') ||
+		directives.has('s-maxage') ||
+		directives.has('max-age') ||
+		directives.has('no-cache') ||
+		result.response.headers.has('expires');
+	if (!personal && !guarded && statesCaching) {
+		return result;
+	}
+	if (guarded ? !header : !(header || personal)) {
 		return result;
 	}
 	const response = new Response(result.response.body, result.response);
-	if (shared) {
-		response.headers.set('cache-control', 'private, no-store');
+	if (!guarded) {
+		response.headers.set('cache-control', privateCacheControl(directives));
 	}
 	if (header) {
 		response.headers.append('set-cookie', header);

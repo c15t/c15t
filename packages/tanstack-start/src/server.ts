@@ -110,6 +110,24 @@ const stripTransport = function stripTransport({
 	return config;
 };
 
+/**
+ * The request `consentRequestMiddleware` handles: the Start request this
+ * render runs in, from `getRequest()`. The middleware records the minted
+ * cookie and its inputs on that request and checks it for a visitor
+ * render, while the consent input can be a clone or another `Request`.
+ * Outside a Start request, such as a unit test, it is `request`.
+ */
+const handledRequestFor = async function handledRequestFor(
+	request: Request
+): Promise<Request> {
+	try {
+		const { getRequest } = await import('@tanstack/react-start/server');
+		return getRequest();
+	} catch {
+		return request;
+	}
+};
+
 const readCurrentRequest = async function readCurrentRequest(
 	source: ConsentRequestSource | undefined
 ): Promise<Request> {
@@ -459,11 +477,12 @@ const resolveConsentState = async function resolveConsentState(
 	const routePrefix = readRoutePrefix(options);
 	const client = clientConfigFor(options, backendURL, routePrefix);
 	const request = await readCurrentRequest(options.request);
+	const handled = await handledRequestFor(request);
 	const server = serverModeOptions(options, backendURL);
 	const shared = options.shared ?? isPrerendering();
 	if (!shared) {
 		// The middleware keeps this HTML out of shared caches.
-		rememberVisitorRender(request);
+		rememberVisitorRender(handled);
 	}
 	const state = await resolveRequestConsent({
 		...server,
@@ -486,11 +505,11 @@ const resolveConsentState = async function resolveConsentState(
 		request: {
 			// The cookie header with the subject ID the middleware set on this
 			// response, which the browser has not sent yet.
-			cookie: readSubjectCookieHeader(request),
+			cookie: readSubjectCookieHeader(handled),
 			headers: request.headers,
 			// What `consentRequestMiddleware` normalized for this request, so
 			// overrides survive runtimes with immutable headers.
-			inputs: readConsentInputs(request),
+			inputs: readConsentInputs(handled),
 			url: request.url,
 		},
 		shared,

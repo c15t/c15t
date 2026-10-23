@@ -42,6 +42,12 @@ export interface C15tProxyOptions {
 	 * `consentSource`, so no `c15t-sid` cookie is set. A subject ID or
 	 * choice the visitor's cookies already hold is still read.
 	 *
+	 * The proxy runs before the response exists, so it cannot tell a page
+	 * rendered for the visitor from a response a shared cache keeps for
+	 * everyone. For a request to such a route (a static or ISR page, a
+	 * public API route or feed), pass `false`; the consent headers are
+	 * still normalized. The consent route is skipped without it.
+	 *
 	 * @default true
 	 */
 	subjectCookie?: boolean;

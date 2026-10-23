@@ -97,6 +97,50 @@ describe('c15tProxy on the consent route', () => {
 		expect(served.headers.get('cache-control')).toBe('public, s-maxage=120');
 	});
 
+	// The proxy cannot see the response, so the caller marks routes whose
+	// response a shared cache keeps, as in the geography-headers docs: each
+	// route and the paths below it.
+	const SHARED_ROUTES = ['/api/feed', '/blog'];
+	const isShared = (pathname: string) =>
+		SHARED_ROUTES.some(
+			(route) => pathname === route || pathname.startsWith(`${route}/`)
+		);
+
+	const proxyFor = (path: string) => {
+		const page = new NextRequest(`https://app.example.com${path}`, {
+			headers: { 'cf-ipcountry': 'DE', 'sec-gpc': '1' },
+		});
+		return c15tProxy(page, {
+			subjectCookie: !isShared(page.nextUrl.pathname),
+		});
+	};
+
+	test.each(['/api/feed', '/api/feed/rss', '/blog', '/blog/first-post'])(
+		'the documented shared-route call sets no cookie on %s and forwards the geo headers',
+		(path) => {
+			const response = proxyFor(path);
+			expect(response.headers.get('set-cookie')).toBeNull();
+			expect(response.headers.get('x-middleware-request-x-c15t-country')).toBe(
+				'DE'
+			);
+			expect(response.headers.get('x-middleware-request-sec-gpc')).toBe('1');
+		}
+	);
+
+	test.each(['/api/feedback', '/blogger'])(
+		'the documented shared-route call still gives %s an ID the render reads',
+		(path) => {
+			const response = proxyFor(path);
+			const id = response.cookies.get('c15t-sid')?.value;
+			expect(id).toMatch(/^sub_/u);
+			expect(renderedCookie(response)).toBe(`c15t-sid=${id}`);
+			expect(response.headers.get('x-middleware-request-x-c15t-country')).toBe(
+				'DE'
+			);
+			expect(response.headers.get('x-middleware-request-sec-gpc')).toBe('1');
+		}
+	);
+
 	test('a page whose path only starts like the route still gets one', () => {
 		const response = c15tProxy(
 			new NextRequest('https://app.example.com/api/c15t-docs')

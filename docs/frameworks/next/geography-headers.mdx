@@ -185,6 +185,28 @@ in `c15t.config.ts`, or under `/api/c15t` without one. That route renders no
 page, and its `/manifest` response is public data a shared cache keeps.
 `withConsentManifest` passes the configured `routePrefix` to the proxy.
 
+The proxy runs before the response exists, so it cannot tell a page rendered
+for the visitor from a response a shared cache keeps for everyone, such as a
+static or ISR page, a public API route or a feed. For requests to those
+routes, pass `subjectCookie: false`. The proxy still normalizes the consent
+headers, and a cache never receives a visitor's `c15t-sid`. Match each route
+and the paths below it, so `/api/feedback` and `/blogger` still get an ID:
+
+```ts title="proxy.ts"
+import { c15tProxy } from '@c15t/nextjs/proxy';
+import type { NextRequest } from 'next/server';
+
+const SHARED_ROUTES = ['/api/feed', '/blog'];
+
+const isShared = (pathname: string) =>
+	SHARED_ROUTES.some(
+		(route) => pathname === route || pathname.startsWith(`${route}/`)
+	);
+
+export const proxy = (request: NextRequest) =>
+	c15tProxy(request, { subjectCookie: !isShared(request.nextUrl.pathname) });
+```
+
 If `ConsentRoot` runs with `persistence={false}` or a `consentSource`, pass
 `subjectCookie: false` too. The proxy then sets no `c15t-sid`. A subject ID or
 choice the visitor's cookies already hold is still read.

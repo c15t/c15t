@@ -252,6 +252,14 @@ public data a shared cache keeps.
 See
 [the subject ID](/docs/concepts/consent-state#a-subject-id-from-the-first-page-load).
 
+`c15tHandle` runs before the response exists, so it cannot tell a page
+rendered for the visitor from a response a shared cache keeps for everyone,
+such as a public API route or a page served with `Cache-Control: public`.
+Call a second handle made with `subjectCookie: false` for requests to those
+routes; it still normalizes the consent headers. Pages that call
+`loadConsent` hold the visitor's consent and subject ID, so keep them out of
+shared caches.
+
 `c15tHandle` also writes a server-rendered banner's rules into the HTML
 `<head>` as `<style>` elements, so the banner is styled before hydration.
 Without it, a server-rendered banner shows unstyled until the page hydrates,

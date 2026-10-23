@@ -278,6 +278,9 @@ describe('consentRequestMiddleware: consent route', () => {
 	test.each([
 		['public, s-maxage=60', 0],
 		['s-maxage=60', 0],
+		['max-age=60', 0],
+		['max-age=0', 0],
+		['no-cache', 0],
 		['private, no-store', 1],
 		['public, no-store', 1],
 		[null, 1],
@@ -334,7 +337,7 @@ describe('consentRequestMiddleware: rendered pages a shared cache may keep', () 
 	test('a first visit to a public page is sent private, with the cookie the page holds', async () => {
 		const { rendered, response } = await renderPage({}, 'public, s-maxage=60');
 		expect(rendered).toMatch(/^sub_/u);
-		expect(response.headers.get('cache-control')).toBe('private, no-store');
+		expect(response.headers.get('cache-control')).toBe('private');
 		expect(cookieID(response)).toBe(rendered);
 		expect(await response.text()).toBe(`<html>${rendered}</html>`);
 	});
@@ -345,7 +348,7 @@ describe('consentRequestMiddleware: rendered pages a shared cache may keep', () 
 			's-maxage=60'
 		);
 		expect(rendered).toBe('sub_returning');
-		expect(response.headers.get('cache-control')).toBe('private, no-store');
+		expect(response.headers.get('cache-control')).toBe('private');
 		expect(response.headers.getSetCookie()).toEqual([]);
 	});
 
@@ -360,12 +363,246 @@ describe('consentRequestMiddleware: rendered pages a shared cache may keep', () 
 		expect(response.headers.getSetCookie()).toEqual([]);
 	});
 
-	test.each(['private, no-store', null])(
-		'a page with Cache-Control %s keeps its headers and gets the cookie its render holds',
-		async (cacheControl) => {
+	test.each([
+		['private, no-store', 'private, no-store'],
+		['no-store', 'no-store'],
+		[null, 'private'],
+		['max-age=60', 'private, max-age=60'],
+		['max-age=0', 'private, max-age=0'],
+		['no-cache', 'private, no-cache'],
+		[
+			'public, max-age=60, s-maxage=300, must-revalidate',
+			'private, max-age=60, must-revalidate',
+		],
+		['private="Set-Cookie", max-age=60', 'private, max-age=60'],
+		['private="Set-Cookie, X-Id", max-age=60', 'private, max-age=60'],
+	] as const)(
+		'a page rendered for the visitor with Cache-Control %s is sent with %s and the cookie its render holds',
+		async (cacheControl, sent) => {
 			const { rendered, response } = await renderPage({}, cacheControl);
-			expect(response.headers.get('cache-control')).toBe(cacheControl);
+			expect(response.headers.get('cache-control')).toBe(sent);
 			expect(cookieID(response)).toBe(rendered);
 		}
 	);
+});
+
+// A shared cache may store a response with Expires and no Cache-Control
+// (RFC 9111, section 3).
+describe('consentRequestMiddleware: Expires', () => {
+	const expires = 'Wed, 21 Oct 2037 07:28:00 GMT';
+
+	test('a shared resource with Expires gets no cookie and keeps its headers', async () => {
+		const request = new Request('https://app.example.com/feed.xml');
+		const result = (await serverHandlerOf(consentRequestMiddleware())({
+			context: {},
+			next: () =>
+				Promise.resolve({
+					context: {},
+					pathname: '/feed.xml',
+					request,
+					response: new Response('feed', { headers: { expires } }),
+				}),
+			pathname: '/feed.xml',
+			request,
+		})) as { response: Response };
+		expect(result.response.headers.getSetCookie()).toEqual([]);
+		expect(result.response.headers.get('cache-control')).toBeNull();
+		expect(result.response.headers.get('expires')).toBe(expires);
+	});
+
+	test('a page rendered for the visitor with Expires is made private, with its cookie', async () => {
+		const request = new Request('https://app.example.com/pricing');
+		let rendered: string | undefined;
+		const result = (await serverHandlerOf(consentRequestMiddleware())({
+			context: {},
+			next: async () => {
+				rendered = (await resolveConsent({ request })).initialRecords?.subject
+					?.subjectId;
+				return {
+					context: {},
+					pathname: '/pricing',
+					request,
+					response: new Response(`<html>${rendered}</html>`, {
+						headers: { expires },
+					}),
+				};
+			},
+			pathname: '/pricing',
+			request,
+		})) as { response: Response };
+		expect(result.response.headers.get('cache-control')).toBe('private');
+		expect(result.response.headers.get('expires')).toBe(expires);
+		expect(result.response.headers.getSetCookie()[0]).toContain(
+			`c15t-sid=${rendered};`
+		);
+	});
+});
+
+// resolveConsent may read a clone or another Request, while the middleware
+// decides for the request TanStack Start handles. Both run in one Start
+// request scope.
+describe('consentRequestMiddleware: a render from another Request object', () => {
+	const serve = async function serve(
+		cookie: string | undefined,
+		cacheControl: string,
+		input: (request: Request) => Request,
+		shared?: boolean
+	) {
+		const { createServerEntry } = await import('@tanstack/react-start/server');
+		let rendered: string | undefined;
+		const entry = createServerEntry({
+			fetch: async (request: Request) => {
+				const result = (await serverHandlerOf(consentRequestMiddleware())({
+					context: {},
+					next: async () => {
+						const state = await resolveConsent({
+							request: input(request),
+							shared,
+						});
+						rendered = state.initialRecords?.subject?.subjectId;
+						return {
+							context: {},
+							pathname: '/pricing',
+							request,
+							response: new Response(`<html>${rendered ?? ''}</html>`, {
+								headers: { 'cache-control': cacheControl },
+							}),
+						};
+					},
+					pathname: '/pricing',
+					request,
+				})) as { response: Response };
+				return result.response;
+			},
+		});
+		const response = await entry.fetch(
+			new Request('https://app.example.com/pricing', {
+				headers: cookie ? { cookie } : {},
+			})
+		);
+		return { rendered, response };
+	};
+
+	test.each([
+		['a clone', (request: Request) => request.clone()],
+		[
+			'a new Request with the same headers',
+			(request: Request) =>
+				new Request(request.url, { headers: request.headers }),
+		],
+	] as const)(
+		'a returning visitor rendered from %s on a public page is sent private',
+		async (_, input) => {
+			const { rendered, response } = await serve(
+				'c15t-sid=sub_returning',
+				'public, s-maxage=60',
+				input
+			);
+			expect(rendered).toBe('sub_returning');
+			expect(response.headers.get('cache-control')).toBe('private');
+			expect(response.headers.getSetCookie()).toEqual([]);
+		}
+	);
+
+	test('a new visitor rendered from a clone gets the ID its cookie holds', async () => {
+		const { rendered, response } = await serve(
+			undefined,
+			'no-store',
+			(request) => request.clone()
+		);
+		expect(rendered).toMatch(/^sub_/u);
+		expect(response.headers.getSetCookie()[0]).toContain(
+			`c15t-sid=${rendered};`
+		);
+	});
+
+	test('a shared render from a clone stays public with no cookie', async () => {
+		const { rendered, response } = await serve(
+			'c15t-sid=sub_returning',
+			'public, s-maxage=60',
+			(request) => request.clone(),
+			true
+		);
+		expect(rendered).toBeUndefined();
+		expect(response.headers.get('cache-control')).toBe('public, s-maxage=60');
+		expect(response.headers.getSetCookie()).toEqual([]);
+	});
+
+	test('concurrent requests keep their own render', async () => {
+		const [personal, shared] = await Promise.all([
+			serve('c15t-sid=sub_a', 'public, s-maxage=60', (r) => r.clone()),
+			serve('c15t-sid=sub_b', 'public, s-maxage=60', (r) => r.clone(), true),
+		]);
+		expect(personal.response.headers.get('cache-control')).toBe('private');
+		expect(shared.response.headers.get('cache-control')).toBe(
+			'public, s-maxage=60'
+		);
+	});
+});
+
+// A qualified `private` lets a shared cache store the response without the
+// listed fields (RFC 9111, section 5.2.2.7), so it doesn't protect a body.
+describe('consentRequestMiddleware: qualified private', () => {
+	const serve = async function serve(
+		cookie: string | undefined,
+		cacheControl: string,
+		render: boolean
+	) {
+		const request = new Request('https://app.example.com/pricing', {
+			headers: cookie ? { cookie } : {},
+		});
+		let rendered: string | undefined;
+		const result = (await serverHandlerOf(consentRequestMiddleware())({
+			context: {},
+			next: async () => {
+				if (render) {
+					rendered = (await resolveConsent({ request })).initialRecords?.subject
+						?.subjectId;
+				}
+				return {
+					context: {},
+					pathname: '/pricing',
+					request,
+					response: new Response(`<html>${rendered ?? ''}</html>`, {
+						headers: { 'cache-control': cacheControl },
+					}),
+				};
+			},
+			pathname: '/pricing',
+			request,
+		})) as { response: Response };
+		return { rendered, response: result.response };
+	};
+
+	test('a returning visitor render with private="Set-Cookie" is made private', async () => {
+		const { rendered, response } = await serve(
+			'c15t-sid=sub_returning',
+			'private="Set-Cookie", max-age=60',
+			true
+		);
+		expect(rendered).toBe('sub_returning');
+		expect(response.headers.get('cache-control')).toBe('private, max-age=60');
+		expect(response.headers.getSetCookie()).toEqual([]);
+	});
+
+	test('a returning visitor render with unqualified private keeps its headers', async () => {
+		const { response } = await serve(
+			'c15t-sid=sub_returning',
+			'private, max-age=60',
+			true
+		);
+		expect(response.headers.get('cache-control')).toBe('private, max-age=60');
+	});
+
+	test('a shared response with private="Set-Cookie" keeps its headers and gets no cookie', async () => {
+		const { response } = await serve(
+			undefined,
+			'public, max-age=60, private="Set-Cookie"',
+			false
+		);
+		expect(response.headers.get('cache-control')).toBe(
+			'public, max-age=60, private="Set-Cookie"'
+		);
+		expect(response.headers.getSetCookie()).toEqual([]);
+	});
 });

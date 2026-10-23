@@ -40,11 +40,16 @@ cookie, because every visitor who received it would share the ID. Neither does
 the consent route, which renders no page and serves its manifest as public
 data a shared cache keeps: Next.js skips the `routePrefix` in
 `c15t.config.ts`, SvelteKit and Astro skip their `routePrefix`, and each falls
-back to `/api/c15t`. TanStack Start skips `/api/c15t` and any response whose
-`Cache-Control` lets a shared cache keep it, unless its `resolveConsent` read
-the visitor's cookies: that page holds the visitor's consent and subject ID,
-so it is sent `private, no-store` with the cookie. Render HTML you cache for
-every visitor with `shared: true`. Pass the same `storage` options as the
+back to `/api/c15t`. The Next.js proxy and the SvelteKit handle run before
+the response exists, so pass `subjectCookie: false` for requests to other
+routes a shared cache keeps, such as a public API route or feed; the
+consent headers are still normalized. TanStack Start sees the response: a
+page whose `resolveConsent` read the visitor's cookies holds the visitor's
+consent and subject ID, so it is sent `private` with the cookie, keeping
+its browser directives. A response with no such render that sets
+`public`, `s-maxage`, `max-age`, `no-cache` or `Expires` gets no cookie, and
+TanStack Start also skips `/api/c15t`. Render HTML you cache for every
+visitor with `shared: true`. Pass the same `storage` options as the
 browser so the cookie has the same name, domain and lifetime. With
 `persistence={false}` or a `consentSource` on `ConsentRoot`, pass
 `subjectCookie: false` so the server sets no cookie.

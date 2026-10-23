@@ -72,14 +72,26 @@ never open. See
 [the subject ID](/docs/concepts/consent-state#a-subject-id-from-the-first-page-load)
 for how long it lasts and when it changes.
 
+A shared cache may keep any response whose `Cache-Control` doesn't say
+`private` or `no-store`. `private="Set-Cookie"` doesn't count: it only keeps
+the listed headers out of the shared copy. The middleware checks each response:
+
+- A page whose `resolveConsent` read the visitor's cookies holds that
+  visitor's consent and subject ID. Unless it already says `private` or
+  `no-store`, the middleware sets `private` and removes `public`, `s-maxage`
+  and `proxy-revalidate`. Browser directives such as `max-age` and
+  `no-cache` stay. For a new visitor, the page gets the cookie its render
+  used.
+- A response no such render produced that sets `public`, `s-maxage`,
+  `max-age`, `no-cache` or an `Expires` header is for every visitor, so it
+  gets no cookie and keeps its headers. The consent route's `/manifest`
+  response is one, wherever the route is mounted.
+- Any other response that gets a new visitor's cookie is sent `private`,
+  unless it already says `private` or `no-store`.
+
 Requests under `/api/c15t`, where the consent route lives by default, get no
-cookie either, and neither does a response a shared cache may keep, one whose
-`Cache-Control` says `public` or `s-maxage` and not `private` or `no-store`.
-The consent route's `/manifest` response is one, wherever the route is
-mounted. A page whose `resolveConsent` read the visitor's cookies holds that
-visitor's consent and subject ID, so if it says `public` or `s-maxage` the
-middleware sends it as `private, no-store`, with the cookie. To cache HTML for
-every visitor, pass `shared: true` to `resolveConsent`.
+cookie either. To cache HTML for every visitor, pass `shared: true` to
+`resolveConsent`.
 
 If `ConsentRoot` runs with `persistence={false}` or a `consentSource`, pass
 `subjectCookie: false` too. The middleware then sets no `c15t-sid`. A subject
