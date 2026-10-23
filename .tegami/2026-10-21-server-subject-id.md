@@ -35,11 +35,16 @@ decides.
 - Nuxt: the plugin sets it during server rendering, except for prerendered
   and cached routes.
 
-Prefetch and prerender requests, and responses marked as shared, never get
-a cookie, because every visitor who received it would share the ID. Pass the
-same `storage` options as the browser so the cookie has the same name, domain
-and lifetime. With `persistence={false}` or a `consentSource` on `ConsentRoot`,
-pass `subjectCookie: false` so the server sets no cookie.
+Prefetch and prerender requests, and responses marked as shared, never get a
+cookie, because every visitor who received it would share the ID. Neither does
+the consent route, which renders no page and serves its manifest as public
+data a shared cache keeps: Next.js skips the `routePrefix` in
+`c15t.config.ts`, SvelteKit and Astro skip their `routePrefix`, and each falls
+back to `/api/c15t`. TanStack Start skips `/api/c15t` and any response whose
+`Cache-Control` lets a shared cache keep it. Pass the same `storage` options
+as the browser so the cookie has the same name, domain and lifetime. With
+`persistence={false}` or a `consentSource` on `ConsentRoot`, pass
+`subjectCookie: false` so the server sets no cookie.
 
 On another server, `resolveRequestSubject()` from `c15t/server` returns the
 visitor's ID, the `Set-Cookie` value to send and the request `Cookie` header

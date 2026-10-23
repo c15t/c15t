@@ -1,10 +1,13 @@
 import { custom, hosted as hostedTransport } from '@c15t/core';
+import { clearManifestCache } from '@c15t/core/server';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { c15tHandle } from '../handle';
 import { hosted } from '../index';
+import { createConsentRoute } from '../routes';
 import type { C15tLocals } from '../types';
 import { CONSENTED_COOKIE, createEvent } from './event';
+import { MANIFEST_FIXTURE } from './manifest-fixture';
 
 const runHandle = async function runHandle(
 	event: ReturnType<typeof createEvent>,
@@ -199,6 +202,65 @@ describe('c15tHandle mode', () => {
 		const mode = custom({ init: () => Promise.resolve({}) });
 		expect(() => c15tHandle({ mode: mode as never })).toThrow(
 			/Pass custom\(\) to <ConsentRoot mode>/u
+		);
+	});
+});
+
+// The consent route never renders a page, and its manifest is public data a
+// shared cache keeps: a subject cookie on it would reach every visitor the
+// cache serves it to.
+describe('c15tHandle on the consent route', () => {
+	beforeEach(() => {
+		clearManifestCache();
+	});
+
+	test.each([
+		[
+			'the configured routePrefix',
+			'/api/self-host',
+			{ routePrefix: '/api/self-host' },
+		],
+		['the default route', '/api/c15t', {}],
+	] as const)(
+		'the public manifest under %s gets no subject cookie',
+		async (_, prefix, options) => {
+			const setCookie = vi.fn();
+			const event = createEvent({
+				route: { id: `${prefix}/[...path]`, params: { path: 'manifest' } },
+				setCookie,
+				url: `https://shop.example${prefix}/manifest`,
+			});
+			const { GET } = createConsentRoute({
+				backendURL: 'https://consent.example.com',
+				fetch: vi.fn<typeof globalThis.fetch>().mockResolvedValue(
+					Response.json(MANIFEST_FIXTURE, {
+						headers: { 'cache-control': 'public, s-maxage=120' },
+					})
+				),
+				reportSessions: false,
+			});
+			const response = await c15tHandle(options)({
+				event,
+				resolve: () => GET(event),
+			});
+			expect(setCookie).not.toHaveBeenCalled();
+			expect(response.headers.get('cache-control')).toBe(
+				'public, s-maxage=120'
+			);
+			expect(await response.json()).toEqual(MANIFEST_FIXTURE);
+		}
+	);
+
+	test('a page whose path only starts like the route still gets one', async () => {
+		const setCookie = vi.fn();
+		await runHandle(
+			createEvent({ setCookie, url: 'https://shop.example/api/c15t-docs' }),
+			{ routePrefix: '/api/c15t' }
+		);
+		expect(setCookie).toHaveBeenCalledWith(
+			'c15t-sid',
+			expect.stringMatching(/^sub_/u),
+			expect.anything()
 		);
 	});
 });

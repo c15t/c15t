@@ -3,10 +3,13 @@
  * `c15t-sid` cookie, and the render in the same request reads it from the
  * rewritten `cookie` request header.
  */
+import { clearManifestCache } from '@c15t/core/server';
 import { NextRequest } from 'next/server.js';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test, vi } from 'vitest';
 
+import { createConsentRoute } from '../api';
 import { c15tProxy } from '../proxy';
+import { MANIFEST_FIXTURE } from './manifest-fixture';
 
 const request = (headers: Record<string, string> = {}) =>
 	new NextRequest('https://app.example.com/pricing', { headers });
@@ -60,5 +63,68 @@ describe('c15tProxy subject ID', () => {
 			storage: { crossSubdomain: true, storageKey: 'consent' },
 		});
 		expect(response.cookies.get('consent-sid')?.domain).toBe('.example.com');
+	});
+});
+
+// The consent route never renders a page, and its manifest is public data a
+// shared cache keeps: a subject cookie on it would reach every visitor the
+// cache serves it to.
+describe('c15tProxy on the consent route', () => {
+	test('the public manifest gets no subject cookie, and the geo headers still go through', async () => {
+		clearManifestCache();
+		const url = 'https://app.example.com/api/c15t/manifest';
+		const proxied = c15tProxy(
+			new NextRequest(url, { headers: { 'cf-ipcountry': 'DE' } })
+		);
+		expect(proxied.cookies.get('c15t-sid')).toBeUndefined();
+		expect(proxied.headers.get('set-cookie')).toBeNull();
+		expect(proxied.headers.get('x-middleware-request-x-c15t-country')).toBe(
+			'DE'
+		);
+
+		const { GET } = createConsentRoute({
+			backendURL: 'https://consent.example.com',
+			fetch: vi.fn<typeof globalThis.fetch>().mockResolvedValue(
+				Response.json(MANIFEST_FIXTURE, {
+					headers: { 'cache-control': 'public, s-maxage=120' },
+				})
+			),
+			reportSessions: false,
+		});
+		const served = await GET(new Request(url), {
+			params: Promise.resolve({}),
+		});
+		expect(served.headers.get('cache-control')).toBe('public, s-maxage=120');
+	});
+
+	test('a page whose path only starts like the route still gets one', () => {
+		const response = c15tProxy(
+			new NextRequest('https://app.example.com/api/c15t-docs')
+		);
+		expect(response.cookies.get('c15t-sid')?.value).toMatch(/^sub_/u);
+	});
+
+	// withConsentManifest inlines the routePrefix c15t.config.ts names.
+	test('a route mounted at the configured routePrefix gets no subject cookie, and still gets the geo headers', () => {
+		vi.stubEnv('C15T_CONSENT_ROUTE_PREFIX', '/api/consent');
+		try {
+			const routed = c15tProxy(
+				new NextRequest('https://app.example.com/api/consent/manifest', {
+					headers: { 'cf-ipcountry': 'DE' },
+				})
+			);
+			expect(routed.cookies.get('c15t-sid')).toBeUndefined();
+			expect(routed.headers.get('x-middleware-request-x-c15t-country')).toBe(
+				'DE'
+			);
+			for (const path of ['/api/consent-docs', '/api/c15t/page']) {
+				const page = c15tProxy(
+					new NextRequest(`https://app.example.com${path}`)
+				);
+				expect(page.cookies.get('c15t-sid')?.value).toMatch(/^sub_/u);
+			}
+		} finally {
+			vi.unstubAllEnvs();
+		}
 	});
 });

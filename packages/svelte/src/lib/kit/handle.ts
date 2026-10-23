@@ -11,6 +11,7 @@ import { building } from '$app/env';
 import type { StorageConfig } from '@c15t/core';
 import type { ConsentMode } from '@c15t/core/modes';
 import {
+	DEFAULT_CONSENT_ROUTE_PREFIX,
 	normalizeRoutePrefix,
 	readRequestConsent,
 	resolveRequestSubject,
@@ -148,6 +149,18 @@ const normalizeRequestHeaders = function normalizeRequestHeaders(
 };
 
 /**
+ * Whether `pathname` is the consent route at `prefix` or a path under it.
+ * The consent route renders no page, and its manifest is public data a
+ * shared cache keeps, so it gets no subject cookie.
+ */
+const isConsentRoute = function isConsentRoute(
+	pathname: string,
+	prefix: string
+): boolean {
+	return pathname === prefix || pathname.startsWith(`${prefix}/`);
+};
+
+/**
  * The data a mode carries. A transport factory, such as `hosted()` from
  * `@c15t/svelte`, carries its options as data too; only that data reaches
  * the browser.
@@ -206,6 +219,7 @@ export const c15tHandle = function c15tHandle(
 		options.routePrefix === undefined
 			? undefined
 			: normalizeRoutePrefix('@c15t/svelte', options.routePrefix);
+	const consentPrefix = routePrefix ?? DEFAULT_CONSENT_ROUTE_PREFIX;
 	return async ({ event, resolve }) => {
 		const { headers } = event.request;
 		const storage = {
@@ -213,7 +227,8 @@ export const c15tHandle = function c15tHandle(
 			...(options.cookieName && { storageKey: options.cookieName }),
 		};
 		const subject =
-			options.subjectCookie === false
+			options.subjectCookie === false ||
+			isConsentRoute(event.url.pathname, consentPrefix)
 				? null
 				: resolveRequestSubject({
 						request: { headers, url: event.url },

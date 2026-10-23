@@ -1,8 +1,13 @@
 import type { StorageConfig } from '@c15t/core';
-import { resolveRequestSubject } from '@c15t/core/server';
+import {
+	DEFAULT_CONSENT_ROUTE_PREFIX,
+	resolveRequestSubject,
+} from '@c15t/core/server';
 import { extractConsentRequestInputs } from '@c15t/schema/types';
 import { NextResponse } from 'next/server.js';
 import type { NextRequest } from 'next/server.js';
+
+import { readRoutePrefixFromEnv } from './config';
 
 export interface C15tProxyOptions {
 	/**
@@ -46,6 +51,18 @@ const DEFAULT_COUNTRY_COOKIE = 'c15t-country';
 const DEFAULT_REGION_COOKIE = 'c15t-region';
 
 /**
+ * Whether `pathname` is the consent route or a path under it: the
+ * `routePrefix` `withConsentManifest` passes from `c15t.config.ts`, else
+ * {@link DEFAULT_CONSENT_ROUTE_PREFIX}. The consent route renders no page,
+ * and its manifest is public data a shared cache keeps, so it gets no
+ * subject cookie.
+ */
+const isConsentRoute = function isConsentRoute(pathname: string): boolean {
+	const prefix = readRoutePrefixFromEnv() ?? DEFAULT_CONSENT_ROUTE_PREFIX;
+	return pathname === prefix || pathname.startsWith(`${prefix}/`);
+};
+
+/**
  * Creates a `NextResponse.next()` that forwards normalized consent headers
  * and gives a new visitor a subject ID.
  *
@@ -53,12 +70,13 @@ const DEFAULT_REGION_COOKIE = 'c15t-region';
  * geo the deployment platform exposes to the proxy but strips before Server
  * Components or Route Handlers. A visitor with no subject ID gets one in a
  * `c15t-sid` cookie on this response, and the render in the same request
- * reads it, so the server render and the browser start with the same ID.
- * A prefetch marked with `Sec-Purpose` or `Purpose` gets none. Next.js
- * hides the header that marks its own `<Link>` prefetches from the proxy,
- * so one of those can set the cookie. It comes from a page that has usually
- * stored the ID already; otherwise the ID arrives one request early, in the
- * same browser.
+ * reads it, so the server render and the browser start with the same ID. A
+ * prefetch marked with `Sec-Purpose` or `Purpose` gets none, and so does
+ * the consent route: under the `routePrefix` in `c15t.config.ts`, or under
+ * `/api/c15t` without one. Next.js hides the header that marks its own
+ * `<Link>` prefetches from the proxy, so one of those can set the cookie.
+ * It comes from a page that has usually stored the ID already; otherwise
+ * the ID arrives one request early, in the same browser.
  * `@c15t/nextjs/middleware` exports the same function
  * as `c15tMiddleware`.
  *
@@ -92,7 +110,7 @@ export const c15tProxy = function c15tProxy(
 		requestHeaders.set('sec-gpc', inputs.gpc ? '1' : '0');
 	}
 	const subject =
-		options.subjectCookie === false
+		options.subjectCookie === false || isConsentRoute(request.nextUrl.pathname)
 			? null
 			: resolveRequestSubject({
 					request: { headers: request.headers, url: request.url },

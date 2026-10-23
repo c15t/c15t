@@ -1,5 +1,8 @@
 import type { StorageConfig } from '@c15t/core';
-import { resolveRequestSubject } from '@c15t/core/server';
+import {
+	DEFAULT_CONSENT_ROUTE_PREFIX,
+	resolveRequestSubject,
+} from '@c15t/core/server';
 import { extractConsentRequestInputs } from '@c15t/schema/types';
 import type { ConsentRequestHeaderInputs as ConsentRequestInputs } from '@c15t/schema/types';
 import { createMiddleware } from '@tanstack/react-start';
@@ -105,6 +108,38 @@ const writeNormalizedHeaders = function writeNormalizedHeaders(
 };
 
 /**
+ * Whether `pathname` is the consent route at `prefix` or a path under it.
+ * The consent route renders no page, and its manifest is public data a
+ * shared cache keeps, so it gets no subject cookie.
+ */
+const isConsentRoute = function isConsentRoute(
+	pathname: string,
+	prefix: string
+): boolean {
+	return pathname === prefix || pathname.startsWith(`${prefix}/`);
+};
+
+/**
+ * Whether a shared cache may store `response` for every visitor: its
+ * `Cache-Control` says `public` or `s-maxage`, and not `private` or
+ * `no-store`. The consent route's manifest is one, wherever the route is
+ * mounted.
+ */
+const isSharedResponse = function isSharedResponse(
+	response: Response
+): boolean {
+	const directives = (response.headers.get('cache-control') ?? '')
+		.toLowerCase()
+		.split(',')
+		.map((directive) => directive.split('=')[0]?.trim());
+	return (
+		(directives.includes('public') || directives.includes('s-maxage')) &&
+		!directives.includes('private') &&
+		!directives.includes('no-store')
+	);
+};
+
+/**
  * `result` with `header` added to its response's `Set-Cookie` headers. The
  * handler's response can have immutable headers, so the cookie goes on a
  * copy.
@@ -112,7 +147,9 @@ const writeNormalizedHeaders = function writeNormalizedHeaders(
 const withSetCookie = function withSetCookie<
 	Result extends { response: Response },
 >(result: Result, header: string | undefined): Result {
-	if (!header) {
+	// A shared response reaches every visitor a cache serves it to, so it
+	// gets no subject cookie.
+	if (!header || isSharedResponse(result.response)) {
 		return result;
 	}
 	const response = new Response(result.response.body, result.response);
@@ -179,7 +216,11 @@ export const consentRequestMiddleware = function consentRequestMiddleware(
 			writeNormalizedHeaders(request.headers, inputs, options.language);
 		}
 		const subject =
-			options.subjectCookie === false
+			options.subjectCookie === false ||
+			isConsentRoute(
+				new URL(request.url).pathname,
+				DEFAULT_CONSENT_ROUTE_PREFIX
+			)
 				? null
 				: resolveRequestSubject({
 						request: { headers: request.headers, url: request.url },

@@ -1,7 +1,10 @@
-import { describe, expect, test, vi } from 'vitest';
+import { clearManifestCache } from '@c15t/core/server';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 
+import { createConsentRoute } from '../api';
 import { consentRequestMiddleware } from '../middleware';
 import { resolveConsent } from '../server';
+import { MANIFEST_FIXTURE } from './manifest-fixture';
 
 type ServerHandler = (input: {
 	context: Record<string, never>;
@@ -205,4 +208,89 @@ describe('consentRequestMiddleware: subject ID', () => {
 		);
 		expect(response.headers.getSetCookie()[1]).toMatch(/^consent-sid=sub_/u);
 	});
+});
+
+// The consent route never renders a page, and its manifest is public data a
+// shared cache keeps: a subject cookie on it would reach every visitor the
+// cache serves it to.
+describe('consentRequestMiddleware: consent route', () => {
+	beforeEach(() => {
+		clearManifestCache();
+	});
+
+	const through = async function through(path: string, response: Response) {
+		const request = new Request(`https://app.example.com${path}`);
+		const result = (await serverHandlerOf(consentRequestMiddleware())({
+			context: {},
+			next: () =>
+				Promise.resolve({ context: {}, pathname: path, request, response }),
+			pathname: path,
+			request,
+		})) as { response: Response };
+		return result.response;
+	};
+
+	test('the public manifest gets no subject cookie', async () => {
+		const { GET } = createConsentRoute({
+			backendURL: 'https://consent.example.com',
+			fetch: vi.fn<typeof globalThis.fetch>().mockResolvedValue(
+				Response.json(MANIFEST_FIXTURE, {
+					headers: { 'cache-control': 'public, s-maxage=120' },
+				})
+			),
+			reportSessions: false,
+		});
+		const request = new Request('https://app.example.com/api/c15t/manifest');
+		const response = await through(
+			'/api/c15t/manifest',
+			await GET({ params: { _splat: 'manifest' }, request })
+		);
+		expect(response.headers.get('cache-control')).toBe('public, s-maxage=120');
+		expect(response.headers.getSetCookie()).toEqual([]);
+		expect(await response.json()).toEqual(MANIFEST_FIXTURE);
+	});
+
+	test('a page whose path only starts like the route still gets one', async () => {
+		const response = await through('/api/c15t-docs', new Response('page'));
+		expect(response.headers.getSetCookie()[0]).toMatch(/^c15t-sid=sub_/u);
+	});
+
+	test('the public manifest from a route mounted elsewhere gets no subject cookie', async () => {
+		const { GET } = createConsentRoute({
+			backendURL: 'https://consent.example.com',
+			fetch: vi.fn<typeof globalThis.fetch>().mockResolvedValue(
+				Response.json(MANIFEST_FIXTURE, {
+					headers: { 'cache-control': 'public, s-maxage=120' },
+				})
+			),
+			reportSessions: false,
+		});
+		const request = new Request('https://app.example.com/api/consent/manifest');
+		const response = await through(
+			'/api/consent/manifest',
+			await GET({ params: { _splat: 'manifest' }, request })
+		);
+		expect(response.headers.get('cache-control')).toBe('public, s-maxage=120');
+		expect(response.headers.getSetCookie()).toEqual([]);
+		expect(await response.json()).toEqual(MANIFEST_FIXTURE);
+	});
+
+	test.each([
+		['public, s-maxage=60', 0],
+		['s-maxage=60', 0],
+		['private, no-store', 1],
+		['public, no-store', 1],
+		[null, 1],
+	] as const)(
+		'a page with Cache-Control %s gets %i subject cookies',
+		async (cacheControl, cookies) => {
+			const response = await through(
+				'/pricing',
+				new Response('page', {
+					headers: cacheControl ? { 'cache-control': cacheControl } : {},
+				})
+			);
+			expect(response.headers.getSetCookie()).toHaveLength(cookies);
+		}
+	);
 });

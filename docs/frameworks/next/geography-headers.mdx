@@ -180,6 +180,11 @@ arrives one request early, in the visitor's own browser. See
 [the subject ID](/docs/concepts/consent-state#a-subject-id-from-the-first-page-load)
 for how long it lasts and when it changes.
 
+Requests to the consent route get no cookie either: under the `routePrefix`
+in `c15t.config.ts`, or under `/api/c15t` without one. That route renders no
+page, and its `/manifest` response is public data a shared cache keeps.
+`withConsentManifest` passes the configured `routePrefix` to the proxy.
+
 If `ConsentRoot` runs with `persistence={false}` or a `consentSource`, pass
 `subjectCookie: false` too. The proxy then sets no `c15t-sid`. A subject ID or
 choice the visitor's cookies already hold is still read.

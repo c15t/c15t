@@ -246,6 +246,9 @@ render and the browser then start with the same ID in
 `snapshot.subject.subjectId`. The cookie holds only the ID, so the banner
 still shows until the visitor makes a choice. Prerendered pages and prefetch
 requests get no cookie; there the browser creates the ID when the page loads.
+Requests under `routePrefix`, or under `/api/c15t` without it, get none
+either: the consent route renders no page, and its `/manifest` response is
+public data a shared cache keeps.
 See
 [the subject ID](/docs/concepts/consent-state#a-subject-id-from-the-first-page-load).
 

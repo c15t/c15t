@@ -72,6 +72,12 @@ never open. See
 [the subject ID](/docs/concepts/consent-state#a-subject-id-from-the-first-page-load)
 for how long it lasts and when it changes.
 
+Requests under `/api/c15t`, where the consent route lives by default, get no
+cookie either, and neither does a response a shared cache may keep, one whose
+`Cache-Control` says `public` or `s-maxage` and not `private` or `no-store`.
+The consent route's `/manifest` response is one, wherever the route is
+mounted.
+
 If `ConsentRoot` runs with `persistence={false}` or a `consentSource`, pass
 `subjectCookie: false` too. The middleware then sets no `c15t-sid`. A subject
 ID or choice the visitor's cookies already hold is still read.
