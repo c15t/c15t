@@ -8,6 +8,9 @@ import {
 	NOW,
 } from '../../../__tests__/fixtures/kernel-fixtures';
 import { createConsentKernel } from '../../../kernel';
+import { readRequestConsent } from '../../../server/request-consent';
+import { resolveRequestSubject } from '../../../server/request-subject';
+import type { HydrationRecords } from '../../../types';
 import { readStoredRecords } from '../hydrate';
 import { createPersistence } from '../index';
 import { readStoredConsentRecord } from '../record-storage';
@@ -26,9 +29,10 @@ beforeEach(() => {
 	vi.setSystemTime(NOW);
 	localStorage.clear();
 	clearStoredConsentRecords();
-	// A clear keeps its epoch; start every test without one.
-	document.cookie =
-		'c15t-epoch=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
+	// A clear keeps its epoch and the subject ID; start every test without.
+	for (const key of ['c15t-epoch', 'c15t-sid']) {
+		document.cookie = `${key}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
+	}
 	vi.spyOn(console, 'warn').mockImplementation(() => {});
 });
 
@@ -103,11 +107,13 @@ test('distinguishes unreadable records from readable empty storage', async () =>
 	await kernel.commands.save({ measurement: false });
 	await kernel.commands.dismissNotice();
 	vi.advanceTimersByTime(0);
+	const subjectId = kernel.getSnapshot().subject?.subjectId;
 	clearStoredConsentRecords();
 
 	expect(handle.hydrate()).toBe(false);
 	expect(kernel.getSnapshot().explicitChoice).toBeNull();
-	expect(kernel.getSnapshot().subject).toBeNull();
+	// The subject ID is not a record: clearing records keeps it.
+	expect(kernel.getSnapshot().subject).toEqual({ subjectId });
 	expect(kernel.getSnapshot().noticeDismissal).toBeNull();
 });
 
@@ -188,8 +194,8 @@ test.each(['getter', 'methods', 'missing'] as const)(
 		expect(document.cookie).toBe(cookie);
 
 		reader.clear();
-		// The clear epoch is the only thing left.
-		expect(document.cookie).toMatch(/^c15t-epoch=\d+$/u);
+		// The subject ID and the clear epoch are the only things left.
+		expect(document.cookie).toMatch(/^c15t-sid=sub_\w+; c15t-epoch=\d+$/u);
 		expect(restored.getSnapshot().explicitChoice).toBeNull();
 		expect(restored.getSnapshot().noticeDismissal).toBeNull();
 	}
@@ -217,5 +223,283 @@ test.each(['getter', 'methods', 'missing'] as const)(
 		expect(restored.getSnapshot().noticeDismissal).toEqual(
 			kernel.getSnapshot().noticeDismissal
 		);
+	}
+);
+
+// A page that cannot read its cookies keeps persisting to localStorage.
+// The subject checks that read the whole Cookie header degrade the same
+// way the per-cookie readers do, at startup and on focus.
+test('a server-seeded start reads the subject from localStorage when cookies cannot be read', () => {
+	const kernel = createKernel();
+	const handle = persist(kernel);
+	kernel.set.subjectId('sub_local');
+	void kernel.commands.save({ measurement: false });
+	vi.advanceTimersByTime(0);
+	handle.dispose();
+	for (const key of ['c15t-sid']) {
+		document.cookie = `${key}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
+		localStorage.removeItem(key);
+	}
+	vi.spyOn(document, 'cookie', 'get').mockImplementation(() => {
+		throw new DOMException('Cookies blocked', 'SecurityError');
+	});
+	const seeded = createConsentKernel({
+		initialPolicyResolution: resolution,
+		initialRecords: { subject: { subjectId: 'sub_server' } },
+	});
+	disposers.push(() => seeded.dispose());
+	const seededHandle = createPersistence({
+		kernel: seeded,
+		skipHydration: true,
+	});
+	disposers.push(() => seededHandle.dispose());
+	expect(seeded.getSnapshot().subject).toEqual({ subjectId: 'sub_local' });
+	expect(
+		seeded.getSnapshot().explicitChoice?.categories.measurement?.value
+	).toBe(false);
+});
+
+test('focus keeps a used subject ID when cookies cannot be read', async () => {
+	const kernel = createKernel();
+	persist(kernel);
+	await kernel.commands.save({ measurement: false });
+	vi.advanceTimersByTime(0);
+	const own = kernel.getSnapshot().subject?.subjectId;
+	localStorage.setItem('c15t-sid', 'sub_other_tab');
+	vi.spyOn(document, 'cookie', 'get').mockImplementation(() => {
+		throw new DOMException('Cookies blocked', 'SecurityError');
+	});
+	const errors: unknown[] = [];
+	const onError = (event: ErrorEvent) => {
+		errors.push(event.error);
+		event.preventDefault();
+	};
+	window.addEventListener('error', onError);
+	window.dispatchEvent(new Event('focus'));
+	window.removeEventListener('error', onError);
+	expect(errors).toEqual([]);
+	expect(kernel.getSnapshot().subject?.subjectId).toBe(own);
+	expect(localStorage.getItem('c15t-sid')).toBe(own);
+});
+
+// A visitor on a site with only necessary categories who linked an account
+// is known by the acknowledgement alone. A load that cannot read cookies
+// takes that subject whole from localStorage, as one that can does.
+test.each([
+	['can be read', 'hydrating'],
+	['cannot be read', 'hydrating'],
+	['cannot be read', 'server-seeded'],
+] as const)(
+	'a necessary-only visitor keeps the linked account when cookies %s, %s',
+	async (cookies, start) => {
+		const sent: unknown[] = [];
+		const createVisitor = (initialRecords?: HydrationRecords) => {
+			const kernel = createConsentKernel({
+				consentCategories: ['necessary'],
+				initialRecords,
+				transport: {
+					save: (payload: { subject?: unknown }) => {
+						sent.push(payload.subject);
+						return Promise.resolve({ ok: true });
+					},
+				},
+			});
+			disposers.push(() => kernel.dispose());
+			return kernel;
+		};
+		const first = createVisitor();
+		const firstHandle = createPersistence({ kernel: first });
+		await first.commands.identify({
+			externalId: 'account-a',
+			identityProvider: 'app',
+		});
+		const saving = first.commands.save('none');
+		await vi.advanceTimersByTimeAsync(0);
+		await saving;
+		await vi.advanceTimersByTimeAsync(0);
+		const saved = first.getSnapshot();
+		expect(saved.subject?.externalId).toBe('account-a');
+		expect(saved.explicitChoice).toBeNull();
+		firstHandle.dispose();
+		sent.length = 0;
+
+		let initialRecords: HydrationRecords | undefined;
+		if (start === 'server-seeded') {
+			const subject = resolveRequestSubject({
+				now: Date.now(),
+				request: { cookie: document.cookie, url: 'https://example.com/' },
+			});
+			({ initialRecords } = readRequestConsent({
+				adapter: '@c15t/test',
+				now: Date.now(),
+				request: { cookie: subject?.cookie, headers: new Headers() },
+			}).state);
+		}
+		if (cookies === 'cannot be read') {
+			vi.spyOn(document, 'cookie', 'get').mockImplementation(() => {
+				throw new DOMException('Cookies blocked', 'SecurityError');
+			});
+		}
+		const restored = createVisitor(initialRecords);
+		const handle = createPersistence({
+			kernel: restored,
+			skipHydration: start === 'server-seeded',
+		});
+		disposers.push(() => handle.dispose());
+		const snapshot = restored.getSnapshot();
+		expect(snapshot.subject).toEqual(saved.subject);
+		expect(snapshot.noticeDismissal).toEqual(saved.noticeDismissal);
+		expect(snapshot.promptRequirement.kind).toBe('none');
+		expect(snapshot.explicitChoice).toBeNull();
+
+		const next = restored.commands.save('none');
+		await vi.advanceTimersByTimeAsync(0);
+		await next;
+		expect(sent).toEqual([saved.subject]);
+	}
+);
+
+// A tab whose choice record cannot be read takes its subject from the vendor
+// or notice record that carries it, a copy of storage like any other. When
+// another tab renames that ID, the tab follows, as a reload would.
+const vendorList = {
+	declared: [
+		{
+			category: 'marketing' as const,
+			id: 'meta-pixel',
+			name: 'Meta Pixel',
+			presentable: true,
+			privacyPolicyUrl: 'https://example.com/privacy',
+			source: 'config' as const,
+		},
+	],
+	listVersion: null,
+};
+
+const settleAll = async (pending?: Promise<unknown>) => {
+	await vi.advanceTimersByTimeAsync(0);
+	await pending;
+	await vi.dynamicImportSettled();
+	await vi.advanceTimersByTimeAsync(0);
+};
+
+test.each([
+	['a notice acknowledgement', 'can be read'],
+	['a notice acknowledgement', 'cannot be read'],
+	['a vendor decision', 'can be read'],
+	['a vendor decision', 'cannot be read'],
+] as const)(
+	'a tab follows another tab renaming the ID %s carries when cookies %s',
+	async (carrier, cookies) => {
+		const sent: unknown[] = [];
+		const createVisitor = () => {
+			const kernel = createConsentKernel(
+				carrier === 'a vendor decision'
+					? {
+							initialPolicyResolution: resolution,
+							initialVendors: vendorList,
+							transport: {
+								save: (payload: { subjectId?: string }) => {
+									sent.push(payload.subjectId);
+									return Promise.resolve({ ok: true });
+								},
+							},
+						}
+					: {
+							consentCategories: ['necessary'],
+							transport: {
+								save: (payload: { subjectId?: string }) => {
+									sent.push(payload.subjectId);
+									return Promise.resolve({ ok: true });
+								},
+							},
+						}
+			);
+			disposers.push(() => kernel.dispose());
+			return kernel;
+		};
+		const first = createVisitor();
+		const firstHandle = createPersistence({ kernel: first });
+		await settleAll(
+			carrier === 'a vendor decision'
+				? first.commands.save({}, { vendors: { 'meta-pixel': false } })
+				: first.commands.save('none')
+		);
+		const saved = first.getSnapshot();
+		firstHandle.dispose();
+		sent.length = 0;
+		if (cookies === 'cannot be read') {
+			vi.spyOn(document, 'cookie', 'get').mockImplementation(() => {
+				throw new DOMException('Cookies blocked', 'SecurityError');
+			});
+		}
+
+		const tab = createVisitor();
+		disposers.push(persist(tab).dispose);
+		expect(tab.getSnapshot().subject).toEqual(saved.subject);
+		const other = createVisitor();
+		const otherHandle = createPersistence({ kernel: other });
+		other.set.subjectId('sub_next');
+		await settleAll();
+		otherHandle.dispose();
+		for (const key of ['c15t-notice', 'c15t-vendors', 'c15t-sid']) {
+			window.dispatchEvent(new StorageEvent('storage', { key }));
+		}
+		window.dispatchEvent(new Event('focus'));
+		await settleAll();
+
+		const after = tab.getSnapshot();
+		expect(after.subject?.subjectId).toBe('sub_next');
+		expect(after.noticeDismissal).toEqual(saved.noticeDismissal);
+		expect(after.vendorChoice).toEqual(saved.vendorChoice);
+		expect(after.explicitChoice).toBeNull();
+		const reloaded = createVisitor();
+		createPersistence({ kernel: reloaded }).dispose();
+		expect(reloaded.getSnapshot().subject?.subjectId).toBe('sub_next');
+
+		await settleAll(tab.commands.save('none'));
+		expect(sent).toEqual(['sub_next']);
+	}
+);
+
+// An ID a save response named came from the server and yields only to a
+// strictly newer record, whether cookies can be read or not.
+test.each(['can be read', 'cannot be read'] as const)(
+	'a tab keeps an ID the server resolved over a rename at the same time when cookies %s',
+	async (cookies) => {
+		const first = createConsentKernel({ consentCategories: ['necessary'] });
+		disposers.push(() => first.dispose());
+		const firstHandle = createPersistence({ kernel: first });
+		await settleAll(first.commands.save('none'));
+		firstHandle.dispose();
+		if (cookies === 'cannot be read') {
+			vi.spyOn(document, 'cookie', 'get').mockImplementation(() => {
+				throw new DOMException('Cookies blocked', 'SecurityError');
+			});
+		}
+
+		const tab = createConsentKernel({
+			consentCategories: ['necessary'],
+			transport: {
+				save: () => Promise.resolve({ ok: true, subjectId: 'sub_server' }),
+			},
+		});
+		disposers.push(() => tab.dispose());
+		disposers.push(persist(tab).dispose);
+		await settleAll(tab.commands.save('none'));
+		expect(tab.getSnapshot().subject?.subjectId).toBe('sub_server');
+		const acknowledged = tab.getSnapshot().noticeDismissal;
+
+		const other = createConsentKernel({ consentCategories: ['necessary'] });
+		disposers.push(() => other.dispose());
+		const otherHandle = createPersistence({ kernel: other });
+		other.set.subjectId('sub_next');
+		await settleAll();
+		otherHandle.dispose();
+		window.dispatchEvent(new StorageEvent('storage', { key: 'c15t-notice' }));
+		window.dispatchEvent(new Event('focus'));
+		await settleAll();
+		expect(tab.getSnapshot().subject?.subjectId).toBe('sub_server');
+		expect(tab.getSnapshot().noticeDismissal).toEqual(acknowledged);
 	}
 );

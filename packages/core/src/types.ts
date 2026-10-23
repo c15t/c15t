@@ -812,9 +812,18 @@ export type KernelEvent =
 	| { type: 'overrides:set'; snapshot: ConsentSnapshot }
 	| { type: 'user:identified'; snapshot: ConsentSnapshot }
 	| {
-			/** A successful current save resolved its canonical server subject. */
+			/**
+			 * The subject ID changed to a canonical one: a save resolved the
+			 * server's subject, a subject was reassigned, or another tab's ID
+			 * replaced one generated here that nothing used yet.
+			 */
 			type: 'subject:resolved';
 			snapshot: ConsentSnapshot;
+			/**
+			 * The ID this one replaced, so anything recorded under it can be
+			 * moved to the new one. Omitted when there was none.
+			 */
+			previousSubjectId?: string;
 	  }
 	| { type: 'iab:set'; snapshot: ConsentSnapshot }
 	| {

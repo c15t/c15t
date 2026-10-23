@@ -45,6 +45,8 @@ vi.mock('#imports', async () => {
 				iframeBlocker: false,
 			},
 		}),
+		// The plugin sets the subject cookie on the server render.
+		useCookie: () => ({ value: undefined }),
 		useHead: () => undefined,
 		useRequestEvent: () => ({ context: {} }),
 		useRequestHeaders: () => ({ 'x-vercel-ip-country': 'DE' }),
