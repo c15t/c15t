@@ -96,13 +96,15 @@ export interface RequestSubject {
 	subjectId: string;
 	/**
 	 * The request `Cookie` header, with `<storageKey>-sid` added when the
-	 * request had none. Hand it to the render in the same request, so it
-	 * reads the ID before the browser has the cookie.
+	 * request had none and `setCookie` is set. Hand it to the render in the
+	 * same request, so it reads the ID before the browser has the cookie.
 	 */
 	cookie: string;
 	/**
 	 * The cookie to set on the response. `null` when the request already
-	 * has a `<storageKey>-sid` cookie, even one holding a different ID.
+	 * has a `<storageKey>-sid` cookie, even one holding a different ID, or
+	 * when the ID has no URI encoding, such as one with a lone surrogate:
+	 * the browser keeps such an ID without the cookie, too.
 	 */
 	setCookie: SubjectCookie | null;
 }

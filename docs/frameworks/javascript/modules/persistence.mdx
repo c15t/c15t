@@ -71,8 +71,8 @@ old ID over the new one. It returns:
 | Field | What it is |
 | --- | --- |
 | `subjectId` | The visitor's subject ID. |
-| `setCookie` | The `c15t-sid` cookie to set on the response, with its `header` value and attributes. `null` when the request already has a `c15t-sid` cookie, even one holding a different ID. |
-| `cookie` | The request `Cookie` header, with `c15t-sid` added when the request had none. Pass it to a render in the same request so the render sees the ID. |
+| `setCookie` | The `c15t-sid` cookie to set on the response, with its `header` value and attributes. `null` when the request already has a `c15t-sid` cookie, even one holding a different ID, or when the ID has no URI encoding, such as one with a lone surrogate. The browser keeps such an ID without the cookie, too. |
+| `cookie` | The request `Cookie` header, with `c15t-sid` added when the request had none and `setCookie` is set. Pass it to a render in the same request so the render sees the ID. |
 
 It returns `null` for a prefetch, a prerender, and any response marked
 `shared: true`, such as cached HTML. A cookie on a shared response would give
