@@ -62,6 +62,11 @@ On another server, `resolveRequestSubject()` from `c15t/server` returns the
 visitor's ID, the `Set-Cookie` value to send and the request `Cookie` header
 to render with.
 
+A subject ID with an unpaired UTF-16 surrogate gets no subject cookie, and the
+server keeps the ID its records carry. TanStack Start's server-render state
+replaces that surrogate with U+FFFD on the way to the browser; see the
+TanStack Start docs for when the browser keeps the changed ID.
+
 The server helpers read a Node-style header record under any header-name
 casing. `resolveRequestSubject()` and `readRequestConsent()` find a `Cookie` or
 `COOKIE` header, and the request origin finds `Host`. Forwarding headers are

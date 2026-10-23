@@ -72,6 +72,15 @@ never open. See
 [the subject ID](/docs/concepts/consent-state#a-subject-id-from-the-first-page-load)
 for how long it lasts and when it changes.
 
+A subject ID with an unpaired UTF-16 surrogate, such as `'sub_\uD800'`,
+reaches the browser changed. In tests with `@tanstack/react-start` 1.169.1,
+the state a server render sends replaced the surrogate with U+FFFD; IDs in
+valid Unicode, paired surrogates included, arrived unchanged. When the
+browser also held the visitor's records and ID in localStorage, c15t started
+with the original ID. When the request's cookies were the only copy, such as
+a record an older or external writer left there, the browser took the
+changed ID and saved it.
+
 A shared cache may keep any response whose `Cache-Control` doesn't say
 `private` or `no-store`. `private="Set-Cookie"` doesn't count: it only keeps
 the listed headers out of the shared copy. A CDN that honours a cache field
