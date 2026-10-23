@@ -8,6 +8,7 @@ import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 
 import {
 	matchedResolution,
+	noticeRule,
 	NOW,
 	optInRule,
 } from '../../../__tests__/fixtures/kernel-fixtures';
@@ -452,3 +453,98 @@ test('two tabs whose IDs are both used stop overwriting each other', async () =>
 	);
 	setCookie.mockRestore();
 });
+
+// An ID or linked account with no URI encoding has no cookie copy, as
+// `<key>-sid` has none: each record's cookie is skipped like a write the
+// cookie refused, and localStorage keeps the whole record.
+test.each(
+	(
+		['a necessary-only save', 'a choice', 'a vendor-only save'] as const
+	).flatMap((action) =>
+		(
+			[
+				['an ID', { subjectId: 'sub_\uD800' }],
+				[
+					'a linked account',
+					{
+						externalId: 'acct_\uDC00',
+						identityProvider: 'app',
+						subjectId: 'sub_plain',
+					},
+				],
+			] as const
+		).map(([label, subject]) => [action, label, subject] as const)
+	)
+)(
+	'%s with %s that has no URI encoding is stored and reloads whole',
+	async (action, _, subject) => {
+		const options = {
+			'a choice': {
+				consentCategories: ['necessary', 'marketing'],
+				initialPolicyResolution: matchedResolution(optInRule()),
+			},
+			'a necessary-only save': { consentCategories: ['necessary'] },
+			'a vendor-only save': {
+				initialPolicyResolution: matchedResolution(noticeRule()),
+				initialVendors: {
+					declared: [
+						{
+							category: 'marketing',
+							id: 'meta-pixel',
+							name: 'Meta Pixel',
+							presentable: true,
+							privacyPolicyUrl: 'https://example.com/privacy',
+							source: 'config',
+						},
+					],
+					listVersion: null,
+				},
+			},
+		}[action] as Parameters<typeof createConsentKernel>[0];
+		const sent: unknown[] = [];
+		const create = () =>
+			createConsentKernel({
+				...options,
+				transport: {
+					save: (payload: { subject?: unknown }) => {
+						sent.push(payload.subject);
+						return Promise.resolve({ ok: true });
+					},
+				},
+			});
+		const kernel = create();
+		const handle = createPersistence({ kernel });
+		kernel.set.subjectId(subject.subjectId);
+		if ('externalId' in subject) {
+			await kernel.commands.identify({
+				externalId: subject.externalId,
+				identityProvider: subject.identityProvider,
+			});
+		}
+		await vi.advanceTimersByTimeAsync(0);
+		const decide = {
+			'a choice': () => kernel.commands.save({ marketing: false }),
+			'a necessary-only save': () => kernel.commands.save('none'),
+			'a vendor-only save': () =>
+				kernel.commands.save({}, { vendors: { 'meta-pixel': false } }),
+		}[action];
+		const saving = decide();
+		await vi.advanceTimersByTimeAsync(0);
+		await expect(saving).resolves.toMatchObject({ ok: true });
+		await vi.dynamicImportSettled();
+		await vi.advanceTimersByTimeAsync(0);
+		expect(sent).toEqual([subject]);
+		const saved = kernel.getSnapshot();
+		handle.dispose();
+		kernel.dispose();
+
+		const restored = create();
+		createPersistence({ kernel: restored }).dispose();
+		const snapshot = restored.getSnapshot();
+		expect(snapshot.subject).toEqual(subject);
+		expect(snapshot.explicitChoice).toEqual(saved.explicitChoice);
+		expect(snapshot.vendorChoice).toEqual(saved.vendorChoice);
+		expect(snapshot.noticeDismissal).toEqual(saved.noticeDismissal);
+		restored.dispose();
+	}
+);

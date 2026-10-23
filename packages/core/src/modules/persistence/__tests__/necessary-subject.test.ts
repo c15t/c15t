@@ -16,6 +16,7 @@ import { createClearOnRevocation } from '../../clear-on-revocation';
 import { createPersistence, readStoredRecordsFromCookieHeader } from '../index';
 import {
 	readStoredNoticeDismissal,
+	readStoredVendorChoice,
 	resolveStorageKeys,
 } from '../record-storage';
 import {
@@ -1535,6 +1536,83 @@ test.each([
 			subjectId: before?.subjectId,
 		});
 		reloaded.dispose();
+		handle.dispose();
+		tab.dispose();
+	}
+);
+
+// A notice acknowledgement that did not change can become the record that
+// carries the subject: when the vendor record that did is removed, or an
+// older runtime writes it again without a subject. The subject follows it,
+// as a reload selects it.
+test.each(['removed', 'written again without a subject'] as const)(
+	'a tab follows the notice subject once the vendor record that carried another is %s',
+	async (change) => {
+		const keys = resolveStorageKeys();
+		const options: Parameters<typeof createConsentKernel>[0] = {
+			initialPolicyResolution: matchedResolution(noticeRule()),
+			initialVendors: {
+				declared: [
+					{
+						category: 'marketing',
+						id: 'meta-pixel',
+						name: 'Meta Pixel',
+						presentable: true,
+						privacyPolicyUrl: 'https://example.com/privacy',
+						source: 'config',
+					},
+				],
+				listVersion: null,
+			},
+		};
+		const first = identityTab(options, []);
+		const firstHandle = createPersistence({ kernel: first });
+		await settleAll(first.commands.dismissNotice());
+		vi.advanceTimersByTime(1000);
+		await settleAll(
+			first.commands.identify({
+				externalId: 'account-a',
+				identityProvider: 'app',
+			})
+		);
+		await settleAll(
+			first.commands.save({}, { vendors: { 'meta-pixel': false } })
+		);
+		const id = first.getSnapshot().subject?.subjectId as string;
+		const notice = readStoredNoticeDismissal(undefined, Date.now());
+		expect(notice?.ok && notice.record.subject).toEqual({ subjectId: id });
+		firstHandle.dispose();
+		first.dispose();
+
+		const sent: unknown[] = [];
+		const tab = identityTab(options, sent);
+		const handle = createPersistence({ kernel: tab });
+		await settleAll();
+		expect(tab.getSnapshot().subject?.externalId).toBe('account-a');
+		const denied = tab.getSnapshot().vendorChoice;
+		vi.advanceTimersByTime(1000);
+		if (change === 'removed') {
+			localStorage.removeItem(keys.vendors);
+			document.cookie = `${keys.vendors}=; max-age=0; path=/`;
+		} else {
+			const stored = readStoredVendorChoice(undefined, Date.now());
+			if (!stored?.ok) {
+				throw new Error('Expected a vendor record');
+			}
+			const { subject: _subject, ...record } = stored.record;
+			writeStoredVendorChoice(record, undefined, Date.now());
+		}
+		await syncTab();
+		expect(tab.getSnapshot().subject).toEqual({ subjectId: id });
+		expect(tab.getSnapshot().vendorChoice).toEqual(
+			change === 'removed' ? null : denied
+		);
+		const reloaded = identityTab(options, []);
+		createPersistence({ kernel: reloaded }).dispose();
+		expect(reloaded.getSnapshot().subject).toEqual({ subjectId: id });
+		reloaded.dispose();
+		await settleAll(tab.commands.save({ marketing: false }));
+		expect(sent).toEqual([{ subjectId: id }]);
 		handle.dispose();
 		tab.dispose();
 	}

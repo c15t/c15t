@@ -89,6 +89,8 @@ export const createPersistenceWriter = function createPersistenceWriter(
 	// The subject the notice record carried when this runtime last saw it,
 	// when no envelope or vendor record carried one.
 	let seenNoticeSubject: ConsentSubject | null = null;
+	// The record that carried the subject when this runtime last saw storage.
+	let seenCarrier: StoredRecords['subjectCarrier'] | undefined;
 	const rememberNoticeSubject = function rememberNoticeSubject(
 		read: StoredRecords
 	): void {
@@ -154,6 +156,7 @@ export const createPersistenceWriter = function createPersistenceWriter(
 		}
 		if (kind === undefined) {
 			memoryEpoch = read.epoch;
+			seenCarrier = read.subjectCarrier;
 		}
 	};
 
@@ -427,10 +430,15 @@ export const createPersistenceWriter = function createPersistenceWriter(
 			unadopted,
 			memoryEpoch,
 			subjectBornAfter(stored.epoch),
-			{ identityYields: identityYields(), noticeCarried: seenNoticeSubject },
+			{
+				identityYields: identityYields(),
+				noticeCarried: seenNoticeSubject,
+				seenCarrier,
+			},
 			tools
 		);
 		({ seen } = next);
+		seenCarrier = stored.subjectCarrier;
 		rememberNoticeSubject(stored);
 		unadopted.clear();
 		rememberSubject(stored.records);
@@ -462,6 +470,7 @@ export const createPersistenceWriter = function createPersistenceWriter(
 	return {
 		adopt(read, iab) {
 			seen = fingerprintStoredRecords(read);
+			seenCarrier = read.subjectCarrier;
 			rememberNoticeSubject(read);
 			rememberSubject(read.records);
 			memoryEpoch = read.epoch;

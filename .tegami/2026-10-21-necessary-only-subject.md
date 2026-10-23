@@ -37,4 +37,9 @@ the notice acknowledgement that carried it. The subject ID stays.
 A seed from a backend keeps the linked account it names for a stored ID. A tab
 follows another tab's linked account on the record that gave its own.
 
+A save under a subject ID or linked account with no URI encoding, such as
+one with a lone surrogate, keeps the whole record in localStorage and skips
+its cookie copy instead of throwing. A tab follows the notice's subject once
+the vendor record that carried another is removed or loses its subject.
+
 If your cookie policy lists c15t cookies, add `c15t-notice-subject`.

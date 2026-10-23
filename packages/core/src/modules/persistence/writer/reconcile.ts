@@ -374,6 +374,8 @@ export interface SubjectProvenance {
 	 * when no other record carried one.
 	 */
 	noticeCarried: ConsentSubject | null;
+	/** The record that carried the subject at the previous read. */
+	seenCarrier: StoredRead['subjectCarrier'] | undefined;
 }
 
 /**
@@ -510,7 +512,7 @@ const reconcileSubject = function reconcileSubject(
 	carrier: StoredRead['subjectCarrier'],
 	provenance: SubjectProvenance,
 	records: HydrationRecords,
-	movement: Movement,
+	recordMovement: Movement,
 	subjectYields: boolean
 ): HydrationRecords['subject'] {
 	const { explicitChoice, vendorChoice } = snapshot;
@@ -518,6 +520,15 @@ const reconcileSubject = function reconcileSubject(
 	// with the records present.
 	const carries = (kind: StoredRecordKind, present: boolean): boolean =>
 		carrier === kind || (carrier === null && present);
+	// The subject moves with the record that carries it: when that record
+	// changed, or when another record that did not change carries it now
+	// because the one that did was removed or lost its subject.
+	const movement: Movement = {
+		changed: (kind) =>
+			recordMovement.changed(kind) ||
+			(carrier === kind && provenance.seenCarrier !== carrier),
+		removed: recordMovement.removed,
+	};
 	let candidate: HydrationRecords['subject'];
 	if (records.choice === null) {
 		candidate = subjectAfterRemoval(
