@@ -51,6 +51,7 @@ import {
 	coldStateMetadata,
 	describeColdState,
 	savedConsentVisits,
+	storedConsentReadyExpression,
 } from '@c15t/benchmarking/visit-definitions';
 import type {
 	BenchColdState,
@@ -464,17 +465,18 @@ const recordChoice = async function recordChoice(
 			undefined,
 			{ timeout: 30_000 }
 		);
+		const saved = page.waitForResponse(
+			(response) =>
+				response.request().method() === 'POST' &&
+				new URL(response.url()).pathname.endsWith('/subjects') &&
+				response.ok()
+		);
 		await page.click(`[data-testid="${visit.buttonTestId}"]`);
 		await waitForChoiceRecorded(page, 0);
-		// Persistence writes are debounced behind the save.
-		await page.waitForFunction(
-			() =>
-				document.cookie
-					.split(';')
-					.some((entry) => entry.trim().startsWith('c15t=')),
-			undefined,
-			{ timeout: 10_000 }
-		);
+		await saved;
+		await page.waitForFunction(storedConsentReadyExpression, undefined, {
+			timeout: 10_000,
+		});
 		return await context.storageState();
 	} finally {
 		await context.close();
