@@ -16,7 +16,11 @@ import {
 	noticeSinceEpoch,
 	vendorChoiceSinceEpoch,
 } from './epoch';
-import type { StoredIabMetadata, StoredVendorChoice } from './record-codec';
+import type {
+	StoredIabMetadata,
+	StoredNoticeDismissal,
+	StoredVendorChoice,
+} from './record-codec';
 import {
 	readStoredClearEpoch,
 	readStoredClearEpochFromCookieHeader,
@@ -45,6 +49,8 @@ export interface StoredRecords {
 	 * `records.subject`, so this is the only place the vendor copy shows.
 	 */
 	vendorSubject: ConsentSubject | null;
+	/** Subject carried by the notice record, independently of other records. */
+	noticeSubject?: ConsentSubject | null;
 	/**
 	 * The clear epoch in force: the newer of the stored epoch and the one
 	 * the envelope records, `0` when no clear was ever recorded. Records
@@ -67,6 +73,17 @@ const kernelVendorChoice = function kernelVendorChoice(
 	return vendorChoice;
 };
 
+/** Strip storage-only identity before applying a notice to the kernel. */
+const kernelNoticeDismissal = function kernelNoticeDismissal(
+	record: StoredNoticeDismissal | null
+): HydrationRecords['noticeDismissal'] {
+	if (!record) {
+		return null;
+	}
+	const { subject: _subject, ...dismissal } = record;
+	return dismissal;
+};
+
 /**
  * The selected envelope as the clear in force leaves it. An envelope with
  * nothing left since the clear is a cleared one (the caller passes no
@@ -82,6 +99,17 @@ const envelopeSinceEpoch = function envelopeSinceEpoch(
 		return selected;
 	}
 	return { ...selected, iab: null, subject: null };
+};
+
+/** Prefer the category envelope, then a vendor decision, then a notice. */
+const storedSubject = function storedSubject(
+	...records: readonly (
+		| { subject?: ConsentSubject | null }
+		| null
+		| undefined
+	)[]
+): ConsentSubject | null {
+	return records.find((record) => record?.subject)?.subject ?? null;
 };
 
 /**
@@ -113,13 +141,16 @@ const composeRecords = function composeRecords(
 		vendors?.ok ? vendors.record : null,
 		epoch
 	);
+	const noticeRecord = noticeSinceEpoch(
+		notice?.ok ? notice.record : null,
+		epoch
+	);
 	const records: HydrationRecords = {
 		choice,
-		noticeDismissal: noticeSinceEpoch(notice?.ok ? notice.record : null, epoch),
+		noticeDismissal: kernelNoticeDismissal(noticeRecord),
 		now,
-		// The envelope's subject wins; the vendor record's copy covers a visitor
-		// whose only act so far decided vendors.
-		subject: selected?.subject ?? vendorRecord?.subject ?? null,
+		// The envelope wins, followed by vendor-only and notice-only identity.
+		subject: storedSubject(selected, vendorRecord, noticeRecord),
 		vendorChoice: kernelVendorChoice(vendorRecord),
 	};
 	return {
@@ -130,6 +161,7 @@ const composeRecords = function composeRecords(
 			vendorRecord !== null ||
 			records.noticeDismissal !== null,
 		iab: selected?.iab ?? null,
+		noticeSubject: noticeRecord?.subject ?? null,
 		records,
 		vendorSubject: vendorRecord?.subject ?? null,
 	};

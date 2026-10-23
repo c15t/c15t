@@ -200,9 +200,13 @@ describe('web storage cleanup', () => {
 			PENDING_SAVES_STORAGE_KEY,
 			SUBJECT_REASSIGNMENTS_STORAGE_KEY,
 			'c15t-notice',
+			'c15t-notice-subject',
+			'c15t-notice-cookie-miss',
 			'c15t-privacy',
 			'custom',
 			'custom-notice',
+			'custom-notice-subject',
+			'custom-notice-cookie-miss',
 			'custom-privacy',
 		];
 		for (const key of [...protectedKeys, 'c15t-analytics']) {

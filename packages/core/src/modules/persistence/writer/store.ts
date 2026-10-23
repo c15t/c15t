@@ -22,6 +22,7 @@ import type { StorageConfig } from '../types';
 import {
 	encodeNoticeDismissal,
 	encodeNoticeDismissalCompact,
+	encodeNoticeSubjectCompact,
 	encodeStoredConsentEnvelopeCompact,
 	encodeStoredConsentEnvelopeJson,
 	encodeVendorChoice,
@@ -230,16 +231,45 @@ export const createRecordStore = function createRecordStore(
 			if (validated.ok === false) {
 				return validated;
 			}
-			return {
-				...validated,
-				written: writeBoth(
-					tools.keys(config).notice,
-					encodeNoticeDismissal(validated.record),
-					encodeNoticeDismissalCompact(validated.record),
-					config,
-					cookie
-				),
-			};
+			const keys = tools.keys(config);
+			const key = keys.notice;
+			const written = writeBoth(
+				key,
+				encodeNoticeDismissal(validated.record),
+				encodeNoticeDismissalCompact(validated.record),
+				config,
+				cookie
+			);
+			// Keep the original cookie readable by older runtimes. The companion is
+			// usable only with the same acknowledgement, never as a record on its own.
+			let subjectWritten = true;
+			if (validated.record.subject) {
+				const subjectDetail = tools.writeCookie(
+					keys.noticeSubject,
+					encodeNoticeSubjectCompact(validated.record),
+					cookie,
+					config
+				);
+				subjectWritten = subjectDetail.attempted && subjectDetail.verified;
+			} else {
+				tools.deleteCookie(keys.noticeSubject, cookie, config);
+				subjectWritten = tools.rawCookie(keys.noticeSubject) === null;
+			}
+			if (written.cookie && subjectWritten) {
+				removeLocalStorageKey(keys.noticeCookieMiss);
+				if (!written.localStorage) {
+					removeLocalStorageKey(key);
+				}
+			} else if (written.localStorage) {
+				writeLocalStorageText(
+					keys.noticeCookieMiss,
+					JSON.stringify([
+						tools.rawCookie(key) ?? '',
+						tools.rawCookie(keys.noticeSubject) ?? '',
+					])
+				);
+			}
+			return { ...validated, written };
 		},
 		writeStoredVendorChoice(record, config, now, cookie) {
 			const validated = tools.decodeVendors(record, now);
