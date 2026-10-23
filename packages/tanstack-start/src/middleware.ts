@@ -11,6 +11,7 @@ import { isPrerendering } from './libs/prerendering';
 import {
 	rememberConsentInputs,
 	rememberSubjectCookieHeader,
+	renderedForVisitor,
 } from './libs/request-inputs';
 
 /** Options for {@link consentRequestMiddleware}. */
@@ -140,20 +141,28 @@ const isSharedResponse = function isSharedResponse(
 };
 
 /**
- * `result` with `header` added to its response's `Set-Cookie` headers. The
- * handler's response can have immutable headers, so the cookie goes on a
+ * `result` ready to send with the subject cookie `header`. A response a
+ * shared cache may keep gets no cookie, unless its render read the
+ * visitor's cookies: that HTML holds the visitor's consent state and
+ * subject ID, so it is sent `private, no-store` with the cookie instead.
+ * The handler's response can have immutable headers, so changes go on a
  * copy.
  */
 const withSetCookie = function withSetCookie<
 	Result extends { response: Response },
->(result: Result, header: string | undefined): Result {
-	// A shared response reaches every visitor a cache serves it to, so it
-	// gets no subject cookie.
-	if (!header || isSharedResponse(result.response)) {
+>(result: Result, header: string | undefined, request: Request): Result {
+	const visitorRender = renderedForVisitor(request);
+	const shared = isSharedResponse(result.response);
+	if (shared ? !visitorRender : !header) {
 		return result;
 	}
 	const response = new Response(result.response.body, result.response);
-	response.headers.append('set-cookie', header);
+	if (shared) {
+		response.headers.set('cache-control', 'private, no-store');
+	}
+	if (header) {
+		response.headers.append('set-cookie', header);
+	}
 	return { ...result, response };
 };
 
@@ -235,7 +244,8 @@ export const consentRequestMiddleware = function consentRequestMiddleware(
 			await next({
 				context: { consent: inputs } satisfies ConsentRequestContext,
 			}),
-			subject?.setCookie?.header
+			subject?.setCookie?.header,
+			request
 		);
 	});
 };

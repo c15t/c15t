@@ -76,7 +76,10 @@ Requests under `/api/c15t`, where the consent route lives by default, get no
 cookie either, and neither does a response a shared cache may keep, one whose
 `Cache-Control` says `public` or `s-maxage` and not `private` or `no-store`.
 The consent route's `/manifest` response is one, wherever the route is
-mounted.
+mounted. A page whose `resolveConsent` read the visitor's cookies holds that
+visitor's consent and subject ID, so if it says `public` or `s-maxage` the
+middleware sends it as `private, no-store`, with the cookie. To cache HTML for
+every visitor, pass `shared: true` to `resolveConsent`.
 
 If `ConsentRoot` runs with `persistence={false}` or a `consentSource`, pass
 `subjectCookie: false` too. The middleware then sets no `c15t-sid`. A subject

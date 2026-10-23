@@ -85,6 +85,7 @@ import { isPrerendering } from './libs/prerendering';
 import {
 	readConsentInputs,
 	readSubjectCookieHeader,
+	rememberVisitorRender,
 } from './libs/request-inputs';
 
 type Awaitable<Value> = Promise<Value> | Value;
@@ -459,6 +460,11 @@ const resolveConsentState = async function resolveConsentState(
 	const client = clientConfigFor(options, backendURL, routePrefix);
 	const request = await readCurrentRequest(options.request);
 	const server = serverModeOptions(options, backendURL);
+	const shared = options.shared ?? isPrerendering();
+	if (!shared) {
+		// The middleware keeps this HTML out of shared caches.
+		rememberVisitorRender(request);
+	}
 	const state = await resolveRequestConsent({
 		...server,
 		adapter: '@c15t/tanstack-start',
@@ -487,7 +493,7 @@ const resolveConsentState = async function resolveConsentState(
 			inputs: readConsentInputs(request),
 			url: request.url,
 		},
-		shared: options.shared ?? isPrerendering(),
+		shared,
 		storage: options.cookieName
 			? { storageKey: options.cookieName }
 			: undefined,

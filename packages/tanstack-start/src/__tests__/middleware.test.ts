@@ -294,3 +294,78 @@ describe('consentRequestMiddleware: consent route', () => {
 		}
 	);
 });
+
+// A page whose render read the visitor's cookies holds that visitor's
+// consent state and subject ID, so a shared cache must not keep it.
+describe('consentRequestMiddleware: rendered pages a shared cache may keep', () => {
+	const renderPage = async function renderPage(
+		headers: Record<string, string>,
+		cacheControl: string | null,
+		shared?: boolean
+	) {
+		const request = new Request('https://app.example.com/pricing', {
+			headers,
+		});
+		let rendered: string | undefined;
+		const result = (await serverHandlerOf(consentRequestMiddleware())({
+			context: {},
+			next: async () => {
+				const state = await resolveConsent({ request, shared });
+				rendered = state.initialRecords?.subject?.subjectId;
+				return {
+					context: {},
+					pathname: '/pricing',
+					request,
+					response: new Response(`<html>${rendered ?? ''}</html>`, {
+						headers: cacheControl ? { 'cache-control': cacheControl } : {},
+					}),
+				};
+			},
+			pathname: '/pricing',
+			request,
+		})) as { response: Response };
+		return { rendered, response: result.response };
+	};
+
+	const cookieID = (response: Response) =>
+		/c15t-sid=(?<id>sub_\w+);/u.exec(response.headers.getSetCookie().join('\n'))
+			?.groups?.id;
+
+	test('a first visit to a public page is sent private, with the cookie the page holds', async () => {
+		const { rendered, response } = await renderPage({}, 'public, s-maxage=60');
+		expect(rendered).toMatch(/^sub_/u);
+		expect(response.headers.get('cache-control')).toBe('private, no-store');
+		expect(cookieID(response)).toBe(rendered);
+		expect(await response.text()).toBe(`<html>${rendered}</html>`);
+	});
+
+	test('a returning visitor on a public page is sent private, with no new cookie', async () => {
+		const { rendered, response } = await renderPage(
+			{ cookie: 'c15t-sid=sub_returning' },
+			's-maxage=60'
+		);
+		expect(rendered).toBe('sub_returning');
+		expect(response.headers.get('cache-control')).toBe('private, no-store');
+		expect(response.headers.getSetCookie()).toEqual([]);
+	});
+
+	test('a shared render of a public page holds no subject and stays public', async () => {
+		const { rendered, response } = await renderPage(
+			{ cookie: 'c15t-sid=sub_returning' },
+			'public, s-maxage=60',
+			true
+		);
+		expect(rendered).toBeUndefined();
+		expect(response.headers.get('cache-control')).toBe('public, s-maxage=60');
+		expect(response.headers.getSetCookie()).toEqual([]);
+	});
+
+	test.each(['private, no-store', null])(
+		'a page with Cache-Control %s keeps its headers and gets the cookie its render holds',
+		async (cacheControl) => {
+			const { rendered, response } = await renderPage({}, cacheControl);
+			expect(response.headers.get('cache-control')).toBe(cacheControl);
+			expect(cookieID(response)).toBe(rendered);
+		}
+	);
+});

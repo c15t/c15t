@@ -38,6 +38,26 @@ export const rememberSubjectCookieHeader = function rememberSubjectCookieHeader(
 	subjectCookieByRequest.set(request, cookie);
 };
 
+/** Requests whose render read the visitor's cookies. */
+const visitorRenders = new WeakSet<Request>();
+
+/**
+ * Records that a render on `request` read the visitor's cookies, so its
+ * HTML holds that visitor's consent state and subject ID.
+ */
+export const rememberVisitorRender = function rememberVisitorRender(
+	request: Request
+): void {
+	visitorRenders.add(request);
+};
+
+/** Whether a render on `request` read the visitor's cookies. */
+export const renderedForVisitor = function renderedForVisitor(
+	request: Request
+): boolean {
+	return visitorRenders.has(request);
+};
+
 /**
  * Reads the cookie header the middleware recorded for `request`, or
  * `undefined` when it minted no subject ID, so the request's own header is
