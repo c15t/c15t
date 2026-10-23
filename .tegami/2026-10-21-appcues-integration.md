@@ -1,8 +1,14 @@
 ---
 packages:
-  '@c15t/integrations': minor
-  '@c15t/cli': patch
-  '@c15t/scripts': patch
+  "@c15t/integrations":
+    replay:
+      - exit-prerelease(npm:@c15t/integrations)
+  "@c15t/cli":
+    replay:
+      - exit-prerelease(npm:@c15t/cli)
+  "@c15t/scripts":
+    replay:
+      - exit-prerelease(npm:@c15t/scripts)
 ---
 
 ### Add Appcues consent integration

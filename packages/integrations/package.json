@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/integrations",
-	"version": "3.1.0",
+	"version": "3.2.0-canary.0",
 	"description": "Consent-aware integrations for c15t: 40+ analytics, advertising and chat tools, including GTM, GA4 and Meta Pixel, with Google Consent Mode v2 and script gating.",
 	"keywords": [
 		"adobe-analytics",

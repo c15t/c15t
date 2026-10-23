@@ -1,8 +1,14 @@
 ---
 packages:
-  '@c15t/core': minor
-  '@c15t/backend': minor
-  '@c15t/browser': minor
+  "@c15t/core":
+    replay:
+      - exit-prerelease(npm:@c15t/core)
+  "@c15t/backend":
+    replay:
+      - exit-prerelease(npm:@c15t/backend)
+  "@c15t/browser":
+    replay:
+      - exit-prerelease(npm:@c15t/browser)
 ---
 
 ### Give every visitor a subject ID from the first page load

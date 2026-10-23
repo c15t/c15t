@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/cli",
-	"version": "3.1.0",
+	"version": "3.2.0-canary.0",
 	"description": "Setup CLI for c15t. Scaffolds the banner for React, Next.js and other frameworks, configures hosted, self-hosted or offline mode, and adds integrations.",
 	"keywords": [
 		"c15t",

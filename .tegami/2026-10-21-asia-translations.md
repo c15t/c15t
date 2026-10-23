@@ -1,8 +1,14 @@
 ---
 packages:
-  "@c15t/translations": minor
-  "@c15t/core": patch
-  "@c15t/schema": patch
+  "@c15t/translations":
+    replay:
+      - exit-prerelease(npm:@c15t/translations)
+  "@c15t/core":
+    replay:
+      - exit-prerelease(npm:@c15t/core)
+  "@c15t/schema":
+    replay:
+      - exit-prerelease(npm:@c15t/schema)
 ---
 
 ### Add Japanese, Thai, Malay, Vietnamese, Turkish and six Indian languages

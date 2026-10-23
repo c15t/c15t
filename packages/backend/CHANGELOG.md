@@ -1,3 +1,71 @@
+## @c15t/backend@3.2.0-canary.0 (canary)
+
+### Rewrite npm descriptions for search
+
+npm search scores a phrase in the description far above the same words in
+keywords or the README. Each package description now names the phrases
+people search for that package: "cookie banner", "cookie consent manager",
+"consent management platform" and "Google Consent Mode v2" on `c15t`,
+"React cookie banner" on `@c15t/react`, "Vue cookie consent" on `@c15t/vue`,
+and so on. `c15t` keeps "The open standard for cookie banners". Supporting
+packages describe their role in c15t instead of repeating the main
+package's phrases. Keyword lists are shorter. No code changes.
+
+### Give every visitor a subject ID from the first page load
+
+A browser runtime now has `snapshot.subject.subjectId` from the first
+snapshot, before the visitor decides anything. Before, the ID appeared only
+at the first save. You can link activity to a visitor from the first page
+load and still find it when they opt out.
+
+- Persistence stores the ID in a new `<storageKey>-sid` cookie and
+  localStorage key (`c15t-sid` by default). The first save records the same
+  ID with the choice.
+- The ID alone is not a choice. The banner still shows and `hasConsented()`
+  stays `false` until the visitor decides.
+- `clear()`, a revocation and `clearOnRevocation` patterns keep the ID.
+  `kernel.set.subjectId(null)` starts over with a new one.
+- An ID a tab generated, or read from `c15t-sid` alone, follows one another
+  tab stores until this tab saves or identifies the visitor. IDs the app or
+  the server supplies, IDs the stored records carry when the page loads, and
+  a new ID `set.subjectId(null)` writes into existing records do not follow.
+  `subject:resolved` now carries `previousSubjectId`, the ID it replaced, so
+  you can move anything recorded under the old one.
+- With `persistence: false`, the ID lives in memory and each page load gets a
+  new one.
+
+`identify()` works before the first save. `PATCH /subjects/:id` in
+`@c15t/backend` now creates the subject and links the identity in one request
+when no save has created the subject yet. Before, the link needed a save
+first. Like `POST /subjects`, it needs no API key. The backend has no rate or
+body-size limit of its own, so set them in front of it; see the self-host
+configuration guide. The client treats a `404` from an older self-hosted
+backend as success and sends the identity with the next save.
+
+### Record the tenant on identity-link audit entries
+
+On an instance configured with a `tenantId`, `PATCH /subjects/:id` wrote its
+`identify_user` audit entry with a NULL tenant, while the subject and the
+`consent_given` entry carried the configured one. Identity-link entries now
+carry the tenant too. Entries written before this fix keep a NULL tenant; their
+subject's `tenantId` identifies the tenant they belong to.
+
+### Validate identity links before writing, and skip repeated links
+
+`PATCH /subjects/:id` now checks that `externalId` and `identityProvider` are
+strings before it writes anything. Other values get a 400 with
+`INPUT_VALIDATION_FAILED`. Before, a number or an object could create the
+subject and then fail the link, with a misleading 409 or a 500, or store the
+value as text such as `"[object Object]"`.
+
+Creating a subject and linking it now happen in one transaction. A link the
+database rejects leaves no subject behind.
+
+A link that matches the stored identity, provider and verification state writes
+nothing, so client retries no longer add an `identify_user` audit entry each
+time. A link that verifies the identity or changes the provider is still stored
+and audited.
+
 ## @c15t/backend@3.1.0
 
 ### Clearer npm descriptions and keywords
