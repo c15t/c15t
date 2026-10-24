@@ -1,6 +1,8 @@
 ---
 packages:
-  "@c15t/integrations": minor
+  "@c15t/integrations":
+    replay:
+      - exit-prerelease(npm:@c15t/integrations)
 ---
 
 ### Load Databuddy after consent and turn off features you do not use
