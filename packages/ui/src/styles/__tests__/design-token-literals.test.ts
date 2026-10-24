@@ -425,6 +425,37 @@ const declarationViolations = function declarationViolations(
 	return [...new Set(reasons)];
 };
 
+/** A `px` length: `14px`, `0.5px`, `-2px`. */
+const PX_LENGTH = /(?<![\w.-])-?(?:\d+\.?\d*|\.\d+)px(?![\w-])/u;
+
+/**
+ * Whether a declaration sizes text in `px`, which ignores the visitor's
+ * text-size setting while the rest of the UI follows it. Every `var()`
+ * fallback counts, a theme token's included: `--c15t-font-size-xs` is an
+ * override hook no theme declares, so its fallback is what renders.
+ */
+const setsPxFontSize = function setsPxFontSize(
+	property: string,
+	value: string
+): boolean {
+	const sizesText =
+		property === 'font-size' ||
+		property === 'font' ||
+		(property.startsWith('--') && property.includes('font-size'));
+	return sizesText && PX_LENGTH.test(value);
+};
+
+const findPxFontSizes = function findPxFontSizes(): string[] {
+	return sourceFiles(STYLES_DIR)
+		.flatMap((path) => declarations(path))
+		.filter(({ property, value }) => setsPxFontSize(property, value))
+		.map(
+			({ file, selector, property, value }) =>
+				`${file} | ${selector} | ${property}: ${value}`
+		)
+		.sort();
+};
+
 const findViolations = function findViolations(): string[] {
 	const violations = new Set<string>();
 
@@ -464,6 +495,38 @@ describe('design token literals', () => {
 			fixed,
 			'Remove fixed entries from design-token-baseline.json.'
 		).toEqual([]);
+	});
+});
+
+describe('text sizes', () => {
+	// No baseline: every font size in the stylesheet is already in rem.
+	test('use rem, not px, so they follow the visitor text size', () => {
+		expect(
+			findPxFontSizes(),
+			'Size text with a --c15t-font-size-* token or rem, fallbacks included.'
+		).toEqual([]);
+	});
+
+	test.each([
+		['font-size', '14px'],
+		['font-size', 'var(--c15t-font-size-sm, 14px)'],
+		['font-size', 'var(--a, var(--b, 13.5px))'],
+		['font-size', 'calc(1rem + 2px)'],
+		['font', '600 14px/1.5 system-ui'],
+		['--iab-cd-title-font-size', '18px'],
+	])('flags %s: %s', (property, value) => {
+		expect(setsPxFontSize(property, value)).toBe(true);
+	});
+
+	test.each([
+		['font-size', '0.875rem'],
+		['font-size', 'var(--c15t-font-size-sm, 0.875rem)'],
+		['font', 'inherit'],
+		['--consent-dialog-footer-font-size', 'var(--c15t-font-size-sm)'],
+		['outline-offset', '2px'],
+		['--cdt-offset', '16px'],
+	])('accepts %s: %s', (property, value) => {
+		expect(setsPxFontSize(property, value)).toBe(false);
 	});
 });
 
