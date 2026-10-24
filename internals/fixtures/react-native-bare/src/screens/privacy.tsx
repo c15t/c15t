@@ -58,7 +58,7 @@ const CategoryLine = ({ category }: { readonly category: AllConsentNames }) => {
 
 	return (
 		<View
-			style={{ alignItems: 'center', flexDirection: 'row', gap: spacing.m }}
+			style={{ alignItems: 'center', flexDirection: 'row', gap: spacing.m16 }}
 		>
 			<Text>{categoryTitle(snapshot, category)}</Text>
 			<View style={{ marginLeft: 'auto' }}>
@@ -102,7 +102,7 @@ export const PrivacyScreen = ({
 
 	return (
 		<Screen>
-			<View style={{ gap: spacing.xs }}>
+			<View style={{ gap: spacing.xs4 }}>
 				<Heading>Privacy</Heading>
 				<Text muted>
 					{granted.length === 0

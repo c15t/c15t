@@ -1,0 +1,117 @@
+{
+	"builder": "buildIabPurposeDetail",
+	"description": "A stack opened: its own switch, then one switch per purpose it covers, then the partners that use it.",
+	"expected": {
+		"actions": [],
+		"id": "stack.42",
+		"intro": "Advertising can be personalised based on a profile, and its performance measured.",
+		"sections": [
+			{
+				"id": "control",
+				"rows": [
+					{
+						"control": {
+							"disabled": false,
+							"kind": "switch",
+							"value": false
+						},
+						"detail": "Partially enabled",
+						"id": "stack.42",
+						"title": "Personalised advertising and measurement"
+					}
+				]
+			},
+			{
+				"header": "Purposes",
+				"id": "purposes",
+				"rows": [
+					{
+						"control": {
+							"disabled": false,
+							"kind": "switch",
+							"value": true
+						},
+						"detail": "2 partners",
+						"id": "purpose.3",
+						"navigatesTo": "purpose.3",
+						"title": "Create profiles for personalised advertising"
+					},
+					{
+						"control": {
+							"disabled": false,
+							"kind": "switch",
+							"value": false
+						},
+						"detail": "1 partner",
+						"id": "purpose.4",
+						"navigatesTo": "purpose.4",
+						"title": "Use profiles to select personalised advertising"
+					},
+					{
+						"control": {
+							"disabled": true,
+							"kind": "switch",
+							"value": false
+						},
+						"detail": "2 partners",
+						"id": "purpose.7",
+						"navigatesTo": "purpose.7",
+						"title": "Measure advertising performance"
+					}
+				]
+			},
+			{
+				"header": "Partners Using This Purpose",
+				"id": "partners",
+				"rows": [
+					{
+						"id": "partner.1",
+						"navigatesTo": "vendor.1",
+						"title": "Adnami Ltd"
+					},
+					{
+						"id": "partner.755",
+						"navigatesTo": "vendor.755",
+						"title": "Google Advertising Products"
+					}
+				]
+			}
+		],
+		"title": "Personalised advertising and measurement"
+	},
+	"id": "iab-purpose-detail-stack",
+	"input": {
+		"copy": {
+			"$ref": "iab-copy"
+		},
+		"model": {
+			"$ref": "iab-model"
+		},
+		"routeId": "stack.42",
+		"selection": {
+			"purposeConsents": {
+				"1": true,
+				"2": false,
+				"3": true,
+				"4": false,
+				"7": false,
+				"8": true
+			},
+			"specialFeatureOptIns": {
+				"1": false
+			},
+			"vendorConsents": {
+				"1": true,
+				"42": false,
+				"755": false,
+				"acme-analytics": false
+			},
+			"vendorLegitimateInterests": {
+				"1": true,
+				"42": true,
+				"755": false
+			}
+		}
+	},
+	"version": 1
+}

@@ -1,0 +1,90 @@
+{
+	"builder": "buildIabVendors",
+	"description": "A partner search that matches two names, case-insensitively, with surrounding spaces trimmed.",
+	"expected": {
+		"actions": [
+			{
+				"emphasis": "primary",
+				"id": "save",
+				"label": "Save Settings"
+			},
+			{
+				"emphasis": "tonal",
+				"id": "rejectAll",
+				"label": "Reject All"
+			},
+			{
+				"emphasis": "tonal",
+				"id": "acceptAll",
+				"label": "Accept All"
+			}
+		],
+		"id": "iab.vendors",
+		"sections": [
+			{
+				"header": "IAB Registered Vendors",
+				"id": "iab",
+				"rows": [
+					{
+						"id": "vendor.1.consent",
+						"navigatesTo": "vendor.1",
+						"title": "Adnami Ltd",
+						"detail": "Consent · Legitimate Interest",
+						"control": {
+							"disabled": false,
+							"kind": "switch",
+							"value": true
+						}
+					},
+					{
+						"id": "vendor.755.consent",
+						"navigatesTo": "vendor.755",
+						"title": "Google Advertising Products",
+						"detail": "Consent · Legitimate Interest",
+						"control": {
+							"disabled": false,
+							"kind": "switch",
+							"value": false
+						}
+					}
+				]
+			}
+		],
+		"title": "Vendors"
+	},
+	"id": "iab-vendors-search-hit",
+	"input": {
+		"copy": {
+			"$ref": "iab-copy"
+		},
+		"model": {
+			"$ref": "iab-model"
+		},
+		"query": "  AD ",
+		"selection": {
+			"purposeConsents": {
+				"1": true,
+				"2": false,
+				"3": true,
+				"4": false,
+				"7": false,
+				"8": true
+			},
+			"specialFeatureOptIns": {
+				"1": false
+			},
+			"vendorConsents": {
+				"1": true,
+				"42": false,
+				"755": false,
+				"acme-analytics": false
+			},
+			"vendorLegitimateInterests": {
+				"1": true,
+				"42": true,
+				"755": false
+			}
+		}
+	},
+	"version": 1
+}

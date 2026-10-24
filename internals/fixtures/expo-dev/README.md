@@ -6,6 +6,21 @@ SDK 57 project that gets its native consent core from the
 so that a difference between the two apps points at the native wiring and not at the
 consent code.
 
+## Native consent UI
+
+Standard/IAB selects the consent flow, and Page/Sheet selects the standalone
+preferences presentation. The Consent tab can open either form of preferences.
+The Preferences tab draws `ConsentWidget` inside the host screen.
+
+The IAB model is shared with the bare fixture. Follow its
+[native UI checklist](../react-native-bare/README.md#native-ui-review) on iOS and
+Android. The [API guide](../../../native/react-native-ui.md) covers component
+props and migration. Device and simulator validation of the redesign is pending.
+
+IAB selections are held in memory for UI review and reset when the app restarts.
+This fixture does not encode or persist IAB consent. A production host must save
+the selection and restore it through `initialSelection`, as the API guide describes.
+
 ## Expo Go will not run this app
 
 `@c15t/react-native` is a custom native module: the consent kernel is Swift on iOS and

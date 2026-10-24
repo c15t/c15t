@@ -3,62 +3,41 @@
  *
  * The list is closed on purpose: a component may expose a part, and a host may
  * override one, but neither side invents a selector. Anything the list does not
- * cover belongs in a theme token.
+ * cover belongs in a theme token. The names follow the platform elements in
+ * `native/UI.md`, so a SwiftUI or Compose port can offer the same hooks.
  */
 
 import type { StyleProp, TextStyle, ViewStyle } from 'react-native';
 
-/** Every part a built-in surface exposes. */
+/** Every part a built-in screen exposes. */
 export const CONSENT_THEME_PARTS = [
-	'banner',
 	'branding',
-	'brandingLabel',
-	'brandingWordmark',
-	'caption',
-	'captionLink',
-	'categoryContent',
-	'categoryDescription',
-	'categoryDisclosure',
-	'categoryRow',
-	'categoryTitle',
-	'categoryTrigger',
-	'closeButton',
-	'closeGlyph',
-	'description',
+	'button',
+	'buttonLabel',
+	'empty',
 	'footer',
-	'handle',
-	'header',
-	'label',
-	'objectButton',
-	'objectLabel',
-	'overlay',
-	'primaryButton',
-	'primaryLabel',
+	'grabber',
+	'intro',
+	'list',
+	'navBar',
+	'navButton',
+	'navButtonLabel',
+	'navTitle',
+	'page',
 	'row',
-	'rowCard',
-	'rowContent',
-	'rowDescription',
-	'rowHeader',
-	'rowListItem',
-	'rowLock',
-	'rowMeta',
-	'rowNotice',
-	'rowSectionTitle',
+	'rowDetail',
 	'rowTitle',
-	'scroll',
-	'scrollContent',
-	'secondaryButton',
-	'secondaryLabel',
-	'sectionHeading',
+	'rowValue',
+	'scrim',
+	'searchField',
+	'section',
+	'sectionFooter',
+	'sectionHeader',
+	'segment',
+	'segmentLabel',
+	'segmentedControl',
 	'sheet',
-	'stackContent',
-	'switch',
-	'tab',
-	'tabBand',
-	'tabLabel',
-	'tabList',
 	'title',
-	'vendorContent',
 ] as const;
 
 /** One restylable part. */
@@ -75,7 +54,7 @@ export type ConsentResolvedParts = Record<
 	ViewStyle & TextStyle
 >;
 
-/** The smallest tap target Apple and Google accept. */
+/** The smallest tap target Apple accepts. Android asks for 48. */
 export const MIN_TAP_TARGET = 44;
 
 /**

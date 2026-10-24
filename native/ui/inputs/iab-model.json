@@ -1,0 +1,1128 @@
+{
+	"consentRows": [
+		{
+			"description": "Cookies, device or similar online identifiers can be stored on or accessed from your device.",
+			"hasConsentBasis": true,
+			"id": 1,
+			"illustrations": [
+				"Most purposes explained in this notice rely on storing or accessing information from your device."
+			],
+			"kind": "purpose",
+			"locked": false,
+			"name": "Store and/or access information on a device",
+			"testId": "purpose-item-1",
+			"toggle": "purpose",
+			"vendors": [
+				{
+					"cookieMaxAgeSeconds": null,
+					"deviceStorageDisclosureUrl": null,
+					"features": [],
+					"legIntPurposes": [],
+					"policyUrl": "https://acme.example/privacy",
+					"purposes": [1, 8],
+					"specialFeatures": [],
+					"specialPurposes": [],
+					"usesCookies": false,
+					"usesNonCookieAccess": false,
+					"id": "acme-analytics",
+					"isCustom": true,
+					"name": "Acme Analytics"
+				},
+				{
+					"cookieMaxAgeSeconds": 7776000,
+					"deviceStorageDisclosureUrl": "https://adnami.example/device-storage.json",
+					"features": [1],
+					"legIntPurposes": [7],
+					"policyUrl": "https://adnami.example/privacy",
+					"purposes": [1, 2, 3],
+					"specialFeatures": [1],
+					"specialPurposes": [1],
+					"usesCookies": true,
+					"usesNonCookieAccess": false,
+					"dataRetention": {
+						"stdRetention": 365
+					},
+					"id": 1,
+					"name": "Adnami Ltd"
+				},
+				{
+					"cookieMaxAgeSeconds": 34190000,
+					"deviceStorageDisclosureUrl": null,
+					"features": [2],
+					"legIntPurposes": [2, 7],
+					"policyUrl": "https://business.safety.google/privacy/",
+					"purposes": [1, 3, 4],
+					"specialFeatures": [],
+					"specialPurposes": [1, 2],
+					"usesCookies": true,
+					"usesNonCookieAccess": true,
+					"id": 755,
+					"name": "Google Advertising Products"
+				}
+			]
+		},
+		{
+			"description": "Advertising presented to you can be based on limited data, such as the app you are using.",
+			"hasConsentBasis": true,
+			"id": 2,
+			"illustrations": [],
+			"kind": "purpose",
+			"locked": false,
+			"name": "Use limited data to select advertising",
+			"testId": "purpose-item-2",
+			"toggle": "purpose",
+			"vendors": [
+				{
+					"cookieMaxAgeSeconds": 7776000,
+					"deviceStorageDisclosureUrl": "https://adnami.example/device-storage.json",
+					"features": [1],
+					"legIntPurposes": [7],
+					"policyUrl": "https://adnami.example/privacy",
+					"purposes": [1, 2, 3],
+					"specialFeatures": [1],
+					"specialPurposes": [1],
+					"usesCookies": true,
+					"usesNonCookieAccess": false,
+					"dataRetention": {
+						"stdRetention": 365
+					},
+					"id": 1,
+					"name": "Adnami Ltd"
+				},
+				{
+					"cookieMaxAgeSeconds": 34190000,
+					"deviceStorageDisclosureUrl": null,
+					"features": [2],
+					"legIntPurposes": [2, 7],
+					"policyUrl": "https://business.safety.google/privacy/",
+					"purposes": [1, 3, 4],
+					"specialFeatures": [],
+					"specialPurposes": [1, 2],
+					"usesCookies": true,
+					"usesNonCookieAccess": true,
+					"id": 755,
+					"name": "Google Advertising Products"
+				}
+			]
+		},
+		{
+			"description": "Advertising can be personalised based on a profile, and its performance measured.",
+			"id": 42,
+			"kind": "stack",
+			"name": "Personalised advertising and measurement",
+			"purposes": [
+				{
+					"description": "Information about your activity can be used to build a profile about you.",
+					"hasConsentBasis": true,
+					"id": 3,
+					"illustrations": [],
+					"kind": "purpose",
+					"locked": false,
+					"name": "Create profiles for personalised advertising",
+					"testId": "purpose-item-3",
+					"toggle": "purpose",
+					"vendors": [
+						{
+							"cookieMaxAgeSeconds": 7776000,
+							"deviceStorageDisclosureUrl": "https://adnami.example/device-storage.json",
+							"features": [1],
+							"legIntPurposes": [7],
+							"policyUrl": "https://adnami.example/privacy",
+							"purposes": [1, 2, 3],
+							"specialFeatures": [1],
+							"specialPurposes": [1],
+							"usesCookies": true,
+							"usesNonCookieAccess": false,
+							"dataRetention": {
+								"stdRetention": 365
+							},
+							"id": 1,
+							"name": "Adnami Ltd"
+						},
+						{
+							"cookieMaxAgeSeconds": 34190000,
+							"deviceStorageDisclosureUrl": null,
+							"features": [2],
+							"legIntPurposes": [2, 7],
+							"policyUrl": "https://business.safety.google/privacy/",
+							"purposes": [1, 3, 4],
+							"specialFeatures": [],
+							"specialPurposes": [1, 2],
+							"usesCookies": true,
+							"usesNonCookieAccess": true,
+							"id": 755,
+							"name": "Google Advertising Products"
+						}
+					]
+				},
+				{
+					"description": "Advertising presented to you can be based on your advertising profile.",
+					"hasConsentBasis": true,
+					"id": 4,
+					"illustrations": [],
+					"kind": "purpose",
+					"locked": false,
+					"name": "Use profiles to select personalised advertising",
+					"testId": "purpose-item-4",
+					"toggle": "purpose",
+					"vendors": [
+						{
+							"cookieMaxAgeSeconds": 34190000,
+							"deviceStorageDisclosureUrl": null,
+							"features": [2],
+							"legIntPurposes": [2, 7],
+							"policyUrl": "https://business.safety.google/privacy/",
+							"purposes": [1, 3, 4],
+							"specialFeatures": [],
+							"specialPurposes": [1, 2],
+							"usesCookies": true,
+							"usesNonCookieAccess": true,
+							"id": 755,
+							"name": "Google Advertising Products"
+						}
+					]
+				},
+				{
+					"description": "Information about which advertising is presented to you and how you interact with it can be used to measure its performance.",
+					"hasConsentBasis": false,
+					"id": 7,
+					"illustrations": [],
+					"kind": "purpose",
+					"locked": false,
+					"name": "Measure advertising performance",
+					"testId": "purpose-item-7",
+					"toggle": "purpose",
+					"vendors": [
+						{
+							"cookieMaxAgeSeconds": 7776000,
+							"deviceStorageDisclosureUrl": "https://adnami.example/device-storage.json",
+							"features": [1],
+							"legIntPurposes": [7],
+							"policyUrl": "https://adnami.example/privacy",
+							"purposes": [1, 2, 3],
+							"specialFeatures": [1],
+							"specialPurposes": [1],
+							"usesCookies": true,
+							"usesNonCookieAccess": false,
+							"dataRetention": {
+								"stdRetention": 365
+							},
+							"id": 1,
+							"name": "Adnami Ltd"
+						},
+						{
+							"cookieMaxAgeSeconds": 34190000,
+							"deviceStorageDisclosureUrl": null,
+							"features": [2],
+							"legIntPurposes": [2, 7],
+							"policyUrl": "https://business.safety.google/privacy/",
+							"purposes": [1, 3, 4],
+							"specialFeatures": [],
+							"specialPurposes": [1, 2],
+							"usesCookies": true,
+							"usesNonCookieAccess": true,
+							"id": 755,
+							"name": "Google Advertising Products"
+						}
+					]
+				}
+			],
+			"testId": "stack-item-42"
+		},
+		{
+			"description": "Information about which content is presented to you and how you interact with it can be used to measure its performance.",
+			"hasConsentBasis": true,
+			"id": 8,
+			"illustrations": [],
+			"kind": "purpose",
+			"locked": false,
+			"name": "Measure content performance",
+			"testId": "purpose-item-8",
+			"toggle": "purpose",
+			"vendors": [
+				{
+					"cookieMaxAgeSeconds": null,
+					"deviceStorageDisclosureUrl": null,
+					"features": [],
+					"legIntPurposes": [],
+					"policyUrl": "https://acme.example/privacy",
+					"purposes": [1, 8],
+					"specialFeatures": [],
+					"specialPurposes": [],
+					"usesCookies": false,
+					"usesNonCookieAccess": false,
+					"id": "acme-analytics",
+					"isCustom": true,
+					"name": "Acme Analytics"
+				},
+				{
+					"cookieMaxAgeSeconds": 2592000,
+					"deviceStorageDisclosureUrl": null,
+					"features": [],
+					"legIntPurposes": [8],
+					"policyUrl": "https://measure.example/privacy",
+					"purposes": [],
+					"specialFeatures": [],
+					"specialPurposes": [],
+					"usesCookies": true,
+					"usesNonCookieAccess": false,
+					"id": 42,
+					"name": "Measure Co"
+				}
+			]
+		},
+		{
+			"description": "With your acceptance, your precise location can be used.",
+			"hasConsentBasis": true,
+			"id": 1,
+			"illustrations": [],
+			"kind": "special-feature",
+			"locked": false,
+			"name": "Use precise geolocation data",
+			"testId": "special-feature-item-1",
+			"toggle": "special-feature",
+			"vendors": [
+				{
+					"cookieMaxAgeSeconds": 7776000,
+					"deviceStorageDisclosureUrl": "https://adnami.example/device-storage.json",
+					"features": [1],
+					"legIntPurposes": [7],
+					"policyUrl": "https://adnami.example/privacy",
+					"purposes": [1, 2, 3],
+					"specialFeatures": [1],
+					"specialPurposes": [1],
+					"usesCookies": true,
+					"usesNonCookieAccess": false,
+					"dataRetention": {
+						"stdRetention": 365
+					},
+					"id": 1,
+					"name": "Adnami Ltd"
+				}
+			]
+		}
+	],
+	"data": {
+		"features": [
+			{
+				"description": "Information about your activity in this service may be matched and combined with other information.",
+				"id": 1,
+				"illustrations": [],
+				"name": "Match and combine data from other data sources",
+				"vendors": [
+					{
+						"cookieMaxAgeSeconds": 7776000,
+						"deviceStorageDisclosureUrl": "https://adnami.example/device-storage.json",
+						"features": [1],
+						"legIntPurposes": [7],
+						"policyUrl": "https://adnami.example/privacy",
+						"purposes": [1, 2, 3],
+						"specialFeatures": [1],
+						"specialPurposes": [1],
+						"usesCookies": true,
+						"usesNonCookieAccess": false,
+						"dataRetention": {
+							"stdRetention": 365
+						},
+						"id": 1,
+						"name": "Adnami Ltd"
+					}
+				]
+			},
+			{
+				"description": "Different devices can be determined as belonging to you or your household.",
+				"id": 2,
+				"illustrations": [],
+				"name": "Link different devices",
+				"vendors": [
+					{
+						"cookieMaxAgeSeconds": 34190000,
+						"deviceStorageDisclosureUrl": null,
+						"features": [2],
+						"legIntPurposes": [2, 7],
+						"policyUrl": "https://business.safety.google/privacy/",
+						"purposes": [1, 3, 4],
+						"specialFeatures": [],
+						"specialPurposes": [1, 2],
+						"usesCookies": true,
+						"usesNonCookieAccess": true,
+						"id": 755,
+						"name": "Google Advertising Products"
+					}
+				]
+			}
+		],
+		"isLoading": false,
+		"isReady": true,
+		"purposes": [
+			{
+				"description": "Cookies, device or similar online identifiers can be stored on or accessed from your device.",
+				"id": 1,
+				"illustrations": [
+					"Most purposes explained in this notice rely on storing or accessing information from your device."
+				],
+				"name": "Store and/or access information on a device",
+				"vendors": [
+					{
+						"cookieMaxAgeSeconds": null,
+						"deviceStorageDisclosureUrl": null,
+						"features": [],
+						"legIntPurposes": [],
+						"policyUrl": "https://acme.example/privacy",
+						"purposes": [1, 8],
+						"specialFeatures": [],
+						"specialPurposes": [],
+						"usesCookies": false,
+						"usesNonCookieAccess": false,
+						"id": "acme-analytics",
+						"isCustom": true,
+						"name": "Acme Analytics"
+					},
+					{
+						"cookieMaxAgeSeconds": 7776000,
+						"deviceStorageDisclosureUrl": "https://adnami.example/device-storage.json",
+						"features": [1],
+						"legIntPurposes": [7],
+						"policyUrl": "https://adnami.example/privacy",
+						"purposes": [1, 2, 3],
+						"specialFeatures": [1],
+						"specialPurposes": [1],
+						"usesCookies": true,
+						"usesNonCookieAccess": false,
+						"dataRetention": {
+							"stdRetention": 365
+						},
+						"id": 1,
+						"name": "Adnami Ltd"
+					},
+					{
+						"cookieMaxAgeSeconds": 34190000,
+						"deviceStorageDisclosureUrl": null,
+						"features": [2],
+						"legIntPurposes": [2, 7],
+						"policyUrl": "https://business.safety.google/privacy/",
+						"purposes": [1, 3, 4],
+						"specialFeatures": [],
+						"specialPurposes": [1, 2],
+						"usesCookies": true,
+						"usesNonCookieAccess": true,
+						"id": 755,
+						"name": "Google Advertising Products"
+					}
+				]
+			},
+			{
+				"description": "Advertising presented to you can be based on limited data, such as the app you are using.",
+				"id": 2,
+				"illustrations": [],
+				"name": "Use limited data to select advertising",
+				"vendors": [
+					{
+						"cookieMaxAgeSeconds": 7776000,
+						"deviceStorageDisclosureUrl": "https://adnami.example/device-storage.json",
+						"features": [1],
+						"legIntPurposes": [7],
+						"policyUrl": "https://adnami.example/privacy",
+						"purposes": [1, 2, 3],
+						"specialFeatures": [1],
+						"specialPurposes": [1],
+						"usesCookies": true,
+						"usesNonCookieAccess": false,
+						"dataRetention": {
+							"stdRetention": 365
+						},
+						"id": 1,
+						"name": "Adnami Ltd"
+					},
+					{
+						"cookieMaxAgeSeconds": 34190000,
+						"deviceStorageDisclosureUrl": null,
+						"features": [2],
+						"legIntPurposes": [2, 7],
+						"policyUrl": "https://business.safety.google/privacy/",
+						"purposes": [1, 3, 4],
+						"specialFeatures": [],
+						"specialPurposes": [1, 2],
+						"usesCookies": true,
+						"usesNonCookieAccess": true,
+						"id": 755,
+						"name": "Google Advertising Products"
+					}
+				]
+			},
+			{
+				"description": "Information about your activity can be used to build a profile about you.",
+				"id": 3,
+				"illustrations": [],
+				"name": "Create profiles for personalised advertising",
+				"vendors": [
+					{
+						"cookieMaxAgeSeconds": 7776000,
+						"deviceStorageDisclosureUrl": "https://adnami.example/device-storage.json",
+						"features": [1],
+						"legIntPurposes": [7],
+						"policyUrl": "https://adnami.example/privacy",
+						"purposes": [1, 2, 3],
+						"specialFeatures": [1],
+						"specialPurposes": [1],
+						"usesCookies": true,
+						"usesNonCookieAccess": false,
+						"dataRetention": {
+							"stdRetention": 365
+						},
+						"id": 1,
+						"name": "Adnami Ltd"
+					},
+					{
+						"cookieMaxAgeSeconds": 34190000,
+						"deviceStorageDisclosureUrl": null,
+						"features": [2],
+						"legIntPurposes": [2, 7],
+						"policyUrl": "https://business.safety.google/privacy/",
+						"purposes": [1, 3, 4],
+						"specialFeatures": [],
+						"specialPurposes": [1, 2],
+						"usesCookies": true,
+						"usesNonCookieAccess": true,
+						"id": 755,
+						"name": "Google Advertising Products"
+					}
+				]
+			},
+			{
+				"description": "Advertising presented to you can be based on your advertising profile.",
+				"id": 4,
+				"illustrations": [],
+				"name": "Use profiles to select personalised advertising",
+				"vendors": [
+					{
+						"cookieMaxAgeSeconds": 34190000,
+						"deviceStorageDisclosureUrl": null,
+						"features": [2],
+						"legIntPurposes": [2, 7],
+						"policyUrl": "https://business.safety.google/privacy/",
+						"purposes": [1, 3, 4],
+						"specialFeatures": [],
+						"specialPurposes": [1, 2],
+						"usesCookies": true,
+						"usesNonCookieAccess": true,
+						"id": 755,
+						"name": "Google Advertising Products"
+					}
+				]
+			},
+			{
+				"description": "Information about which advertising is presented to you and how you interact with it can be used to measure its performance.",
+				"id": 7,
+				"illustrations": [],
+				"name": "Measure advertising performance",
+				"vendors": [
+					{
+						"cookieMaxAgeSeconds": 7776000,
+						"deviceStorageDisclosureUrl": "https://adnami.example/device-storage.json",
+						"features": [1],
+						"legIntPurposes": [7],
+						"policyUrl": "https://adnami.example/privacy",
+						"purposes": [1, 2, 3],
+						"specialFeatures": [1],
+						"specialPurposes": [1],
+						"usesCookies": true,
+						"usesNonCookieAccess": false,
+						"dataRetention": {
+							"stdRetention": 365
+						},
+						"id": 1,
+						"name": "Adnami Ltd"
+					},
+					{
+						"cookieMaxAgeSeconds": 34190000,
+						"deviceStorageDisclosureUrl": null,
+						"features": [2],
+						"legIntPurposes": [2, 7],
+						"policyUrl": "https://business.safety.google/privacy/",
+						"purposes": [1, 3, 4],
+						"specialFeatures": [],
+						"specialPurposes": [1, 2],
+						"usesCookies": true,
+						"usesNonCookieAccess": true,
+						"id": 755,
+						"name": "Google Advertising Products"
+					}
+				]
+			},
+			{
+				"description": "Information about which content is presented to you and how you interact with it can be used to measure its performance.",
+				"id": 8,
+				"illustrations": [],
+				"name": "Measure content performance",
+				"vendors": [
+					{
+						"cookieMaxAgeSeconds": null,
+						"deviceStorageDisclosureUrl": null,
+						"features": [],
+						"legIntPurposes": [],
+						"policyUrl": "https://acme.example/privacy",
+						"purposes": [1, 8],
+						"specialFeatures": [],
+						"specialPurposes": [],
+						"usesCookies": false,
+						"usesNonCookieAccess": false,
+						"id": "acme-analytics",
+						"isCustom": true,
+						"name": "Acme Analytics"
+					},
+					{
+						"cookieMaxAgeSeconds": 2592000,
+						"deviceStorageDisclosureUrl": null,
+						"features": [],
+						"legIntPurposes": [8],
+						"policyUrl": "https://measure.example/privacy",
+						"purposes": [],
+						"specialFeatures": [],
+						"specialPurposes": [],
+						"usesCookies": true,
+						"usesNonCookieAccess": false,
+						"id": 42,
+						"name": "Measure Co"
+					}
+				]
+			}
+		],
+		"specialFeatures": [
+			{
+				"description": "With your acceptance, your precise location can be used.",
+				"id": 1,
+				"illustrations": [],
+				"name": "Use precise geolocation data",
+				"vendors": [
+					{
+						"cookieMaxAgeSeconds": 7776000,
+						"deviceStorageDisclosureUrl": "https://adnami.example/device-storage.json",
+						"features": [1],
+						"legIntPurposes": [7],
+						"policyUrl": "https://adnami.example/privacy",
+						"purposes": [1, 2, 3],
+						"specialFeatures": [1],
+						"specialPurposes": [1],
+						"usesCookies": true,
+						"usesNonCookieAccess": false,
+						"dataRetention": {
+							"stdRetention": 365
+						},
+						"id": 1,
+						"name": "Adnami Ltd"
+					}
+				]
+			}
+		],
+		"specialPurposes": [
+			{
+				"description": "Your data can be used to monitor for and prevent unusual and possibly fraudulent activity.",
+				"id": 1,
+				"illustrations": [],
+				"name": "Ensure security, prevent and detect fraud, and fix errors",
+				"vendors": [
+					{
+						"cookieMaxAgeSeconds": 7776000,
+						"deviceStorageDisclosureUrl": "https://adnami.example/device-storage.json",
+						"features": [1],
+						"legIntPurposes": [7],
+						"policyUrl": "https://adnami.example/privacy",
+						"purposes": [1, 2, 3],
+						"specialFeatures": [1],
+						"specialPurposes": [1],
+						"usesCookies": true,
+						"usesNonCookieAccess": false,
+						"dataRetention": {
+							"stdRetention": 365
+						},
+						"id": 1,
+						"name": "Adnami Ltd"
+					},
+					{
+						"cookieMaxAgeSeconds": 34190000,
+						"deviceStorageDisclosureUrl": null,
+						"features": [2],
+						"legIntPurposes": [2, 7],
+						"policyUrl": "https://business.safety.google/privacy/",
+						"purposes": [1, 3, 4],
+						"specialFeatures": [],
+						"specialPurposes": [1, 2],
+						"usesCookies": true,
+						"usesNonCookieAccess": true,
+						"id": 755,
+						"name": "Google Advertising Products"
+					}
+				],
+				"isSpecialPurpose": true
+			},
+			{
+				"description": "Certain information is used to technically deliver advertising or content to your device.",
+				"id": 2,
+				"illustrations": [],
+				"name": "Deliver and present advertising and content",
+				"vendors": [
+					{
+						"cookieMaxAgeSeconds": 34190000,
+						"deviceStorageDisclosureUrl": null,
+						"features": [2],
+						"legIntPurposes": [2, 7],
+						"policyUrl": "https://business.safety.google/privacy/",
+						"purposes": [1, 3, 4],
+						"specialFeatures": [],
+						"specialPurposes": [1, 2],
+						"usesCookies": true,
+						"usesNonCookieAccess": true,
+						"id": 755,
+						"name": "Google Advertising Products"
+					}
+				],
+				"isSpecialPurpose": true
+			}
+		],
+		"stacks": [
+			{
+				"description": "Advertising can be personalised based on a profile, and its performance measured.",
+				"id": 42,
+				"name": "Personalised advertising and measurement",
+				"purposes": [
+					{
+						"description": "Information about your activity can be used to build a profile about you.",
+						"id": 3,
+						"illustrations": [],
+						"name": "Create profiles for personalised advertising",
+						"vendors": [
+							{
+								"cookieMaxAgeSeconds": 7776000,
+								"deviceStorageDisclosureUrl": "https://adnami.example/device-storage.json",
+								"features": [1],
+								"legIntPurposes": [7],
+								"policyUrl": "https://adnami.example/privacy",
+								"purposes": [1, 2, 3],
+								"specialFeatures": [1],
+								"specialPurposes": [1],
+								"usesCookies": true,
+								"usesNonCookieAccess": false,
+								"dataRetention": {
+									"stdRetention": 365
+								},
+								"id": 1,
+								"name": "Adnami Ltd"
+							},
+							{
+								"cookieMaxAgeSeconds": 34190000,
+								"deviceStorageDisclosureUrl": null,
+								"features": [2],
+								"legIntPurposes": [2, 7],
+								"policyUrl": "https://business.safety.google/privacy/",
+								"purposes": [1, 3, 4],
+								"specialFeatures": [],
+								"specialPurposes": [1, 2],
+								"usesCookies": true,
+								"usesNonCookieAccess": true,
+								"id": 755,
+								"name": "Google Advertising Products"
+							}
+						]
+					},
+					{
+						"description": "Advertising presented to you can be based on your advertising profile.",
+						"id": 4,
+						"illustrations": [],
+						"name": "Use profiles to select personalised advertising",
+						"vendors": [
+							{
+								"cookieMaxAgeSeconds": 34190000,
+								"deviceStorageDisclosureUrl": null,
+								"features": [2],
+								"legIntPurposes": [2, 7],
+								"policyUrl": "https://business.safety.google/privacy/",
+								"purposes": [1, 3, 4],
+								"specialFeatures": [],
+								"specialPurposes": [1, 2],
+								"usesCookies": true,
+								"usesNonCookieAccess": true,
+								"id": 755,
+								"name": "Google Advertising Products"
+							}
+						]
+					},
+					{
+						"description": "Information about which advertising is presented to you and how you interact with it can be used to measure its performance.",
+						"id": 7,
+						"illustrations": [],
+						"name": "Measure advertising performance",
+						"vendors": [
+							{
+								"cookieMaxAgeSeconds": 7776000,
+								"deviceStorageDisclosureUrl": "https://adnami.example/device-storage.json",
+								"features": [1],
+								"legIntPurposes": [7],
+								"policyUrl": "https://adnami.example/privacy",
+								"purposes": [1, 2, 3],
+								"specialFeatures": [1],
+								"specialPurposes": [1],
+								"usesCookies": true,
+								"usesNonCookieAccess": false,
+								"dataRetention": {
+									"stdRetention": 365
+								},
+								"id": 1,
+								"name": "Adnami Ltd"
+							},
+							{
+								"cookieMaxAgeSeconds": 34190000,
+								"deviceStorageDisclosureUrl": null,
+								"features": [2],
+								"legIntPurposes": [2, 7],
+								"policyUrl": "https://business.safety.google/privacy/",
+								"purposes": [1, 3, 4],
+								"specialFeatures": [],
+								"specialPurposes": [1, 2],
+								"usesCookies": true,
+								"usesNonCookieAccess": true,
+								"id": 755,
+								"name": "Google Advertising Products"
+							}
+						]
+					}
+				]
+			}
+		],
+		"standalonePurposes": [
+			{
+				"description": "Cookies, device or similar online identifiers can be stored on or accessed from your device.",
+				"id": 1,
+				"illustrations": [
+					"Most purposes explained in this notice rely on storing or accessing information from your device."
+				],
+				"name": "Store and/or access information on a device",
+				"vendors": [
+					{
+						"cookieMaxAgeSeconds": null,
+						"deviceStorageDisclosureUrl": null,
+						"features": [],
+						"legIntPurposes": [],
+						"policyUrl": "https://acme.example/privacy",
+						"purposes": [1, 8],
+						"specialFeatures": [],
+						"specialPurposes": [],
+						"usesCookies": false,
+						"usesNonCookieAccess": false,
+						"id": "acme-analytics",
+						"isCustom": true,
+						"name": "Acme Analytics"
+					},
+					{
+						"cookieMaxAgeSeconds": 7776000,
+						"deviceStorageDisclosureUrl": "https://adnami.example/device-storage.json",
+						"features": [1],
+						"legIntPurposes": [7],
+						"policyUrl": "https://adnami.example/privacy",
+						"purposes": [1, 2, 3],
+						"specialFeatures": [1],
+						"specialPurposes": [1],
+						"usesCookies": true,
+						"usesNonCookieAccess": false,
+						"dataRetention": {
+							"stdRetention": 365
+						},
+						"id": 1,
+						"name": "Adnami Ltd"
+					},
+					{
+						"cookieMaxAgeSeconds": 34190000,
+						"deviceStorageDisclosureUrl": null,
+						"features": [2],
+						"legIntPurposes": [2, 7],
+						"policyUrl": "https://business.safety.google/privacy/",
+						"purposes": [1, 3, 4],
+						"specialFeatures": [],
+						"specialPurposes": [1, 2],
+						"usesCookies": true,
+						"usesNonCookieAccess": true,
+						"id": 755,
+						"name": "Google Advertising Products"
+					}
+				]
+			},
+			{
+				"description": "Advertising presented to you can be based on limited data, such as the app you are using.",
+				"id": 2,
+				"illustrations": [],
+				"name": "Use limited data to select advertising",
+				"vendors": [
+					{
+						"cookieMaxAgeSeconds": 7776000,
+						"deviceStorageDisclosureUrl": "https://adnami.example/device-storage.json",
+						"features": [1],
+						"legIntPurposes": [7],
+						"policyUrl": "https://adnami.example/privacy",
+						"purposes": [1, 2, 3],
+						"specialFeatures": [1],
+						"specialPurposes": [1],
+						"usesCookies": true,
+						"usesNonCookieAccess": false,
+						"dataRetention": {
+							"stdRetention": 365
+						},
+						"id": 1,
+						"name": "Adnami Ltd"
+					},
+					{
+						"cookieMaxAgeSeconds": 34190000,
+						"deviceStorageDisclosureUrl": null,
+						"features": [2],
+						"legIntPurposes": [2, 7],
+						"policyUrl": "https://business.safety.google/privacy/",
+						"purposes": [1, 3, 4],
+						"specialFeatures": [],
+						"specialPurposes": [1, 2],
+						"usesCookies": true,
+						"usesNonCookieAccess": true,
+						"id": 755,
+						"name": "Google Advertising Products"
+					}
+				]
+			},
+			{
+				"description": "Information about which content is presented to you and how you interact with it can be used to measure its performance.",
+				"id": 8,
+				"illustrations": [],
+				"name": "Measure content performance",
+				"vendors": [
+					{
+						"cookieMaxAgeSeconds": null,
+						"deviceStorageDisclosureUrl": null,
+						"features": [],
+						"legIntPurposes": [],
+						"policyUrl": "https://acme.example/privacy",
+						"purposes": [1, 8],
+						"specialFeatures": [],
+						"specialPurposes": [],
+						"usesCookies": false,
+						"usesNonCookieAccess": false,
+						"id": "acme-analytics",
+						"isCustom": true,
+						"name": "Acme Analytics"
+					},
+					{
+						"cookieMaxAgeSeconds": 2592000,
+						"deviceStorageDisclosureUrl": null,
+						"features": [],
+						"legIntPurposes": [8],
+						"policyUrl": "https://measure.example/privacy",
+						"purposes": [],
+						"specialFeatures": [],
+						"specialPurposes": [],
+						"usesCookies": true,
+						"usesNonCookieAccess": false,
+						"id": 42,
+						"name": "Measure Co"
+					}
+				]
+			}
+		],
+		"totalVendors": 4
+	},
+	"essentialPartnerCount": 2,
+	"essentialRows": [
+		{
+			"description": "Your data can be used to monitor for and prevent unusual and possibly fraudulent activity.",
+			"hasConsentBasis": true,
+			"id": 1,
+			"illustrations": [],
+			"kind": "special-purpose",
+			"locked": true,
+			"name": "Ensure security, prevent and detect fraud, and fix errors",
+			"testId": "special-purpose-item-1",
+			"toggle": "none",
+			"vendors": [
+				{
+					"cookieMaxAgeSeconds": 7776000,
+					"deviceStorageDisclosureUrl": "https://adnami.example/device-storage.json",
+					"features": [1],
+					"legIntPurposes": [7],
+					"policyUrl": "https://adnami.example/privacy",
+					"purposes": [1, 2, 3],
+					"specialFeatures": [1],
+					"specialPurposes": [1],
+					"usesCookies": true,
+					"usesNonCookieAccess": false,
+					"dataRetention": {
+						"stdRetention": 365
+					},
+					"id": 1,
+					"name": "Adnami Ltd"
+				},
+				{
+					"cookieMaxAgeSeconds": 34190000,
+					"deviceStorageDisclosureUrl": null,
+					"features": [2],
+					"legIntPurposes": [2, 7],
+					"policyUrl": "https://business.safety.google/privacy/",
+					"purposes": [1, 3, 4],
+					"specialFeatures": [],
+					"specialPurposes": [1, 2],
+					"usesCookies": true,
+					"usesNonCookieAccess": true,
+					"id": 755,
+					"name": "Google Advertising Products"
+				}
+			]
+		},
+		{
+			"description": "Certain information is used to technically deliver advertising or content to your device.",
+			"hasConsentBasis": true,
+			"id": 2,
+			"illustrations": [],
+			"kind": "special-purpose",
+			"locked": true,
+			"name": "Deliver and present advertising and content",
+			"testId": "special-purpose-item-2",
+			"toggle": "none",
+			"vendors": [
+				{
+					"cookieMaxAgeSeconds": 34190000,
+					"deviceStorageDisclosureUrl": null,
+					"features": [2],
+					"legIntPurposes": [2, 7],
+					"policyUrl": "https://business.safety.google/privacy/",
+					"purposes": [1, 3, 4],
+					"specialFeatures": [],
+					"specialPurposes": [1, 2],
+					"usesCookies": true,
+					"usesNonCookieAccess": true,
+					"id": 755,
+					"name": "Google Advertising Products"
+				}
+			]
+		}
+	],
+	"featureRows": [
+		{
+			"description": "Information about your activity in this service may be matched and combined with other information.",
+			"hasConsentBasis": true,
+			"id": 1,
+			"illustrations": [],
+			"kind": "feature",
+			"locked": false,
+			"name": "Match and combine data from other data sources",
+			"testId": "feature-item-1",
+			"toggle": "none",
+			"vendors": [
+				{
+					"cookieMaxAgeSeconds": 7776000,
+					"deviceStorageDisclosureUrl": "https://adnami.example/device-storage.json",
+					"features": [1],
+					"legIntPurposes": [7],
+					"policyUrl": "https://adnami.example/privacy",
+					"purposes": [1, 2, 3],
+					"specialFeatures": [1],
+					"specialPurposes": [1],
+					"usesCookies": true,
+					"usesNonCookieAccess": false,
+					"dataRetention": {
+						"stdRetention": 365
+					},
+					"id": 1,
+					"name": "Adnami Ltd"
+				}
+			]
+		},
+		{
+			"description": "Different devices can be determined as belonging to you or your household.",
+			"hasConsentBasis": true,
+			"id": 2,
+			"illustrations": [],
+			"kind": "feature",
+			"locked": false,
+			"name": "Link different devices",
+			"testId": "feature-item-2",
+			"toggle": "none",
+			"vendors": [
+				{
+					"cookieMaxAgeSeconds": 34190000,
+					"deviceStorageDisclosureUrl": null,
+					"features": [2],
+					"legIntPurposes": [2, 7],
+					"policyUrl": "https://business.safety.google/privacy/",
+					"purposes": [1, 3, 4],
+					"specialFeatures": [],
+					"specialPurposes": [1, 2],
+					"usesCookies": true,
+					"usesNonCookieAccess": true,
+					"id": 755,
+					"name": "Google Advertising Products"
+				}
+			]
+		}
+	],
+	"featuresStandardText": null,
+	"isLoading": false,
+	"isReady": true,
+	"purposeTabCount": 7,
+	"vendorTabCount": 4,
+	"vendors": [
+		{
+			"cookieMaxAgeSeconds": null,
+			"deviceStorageDisclosureUrl": null,
+			"features": [],
+			"legIntPurposes": [],
+			"policyUrl": "https://acme.example/privacy",
+			"purposes": [1, 8],
+			"specialFeatures": [],
+			"specialPurposes": [],
+			"usesCookies": false,
+			"usesNonCookieAccess": false,
+			"id": "acme-analytics",
+			"isCustom": true,
+			"name": "Acme Analytics"
+		},
+		{
+			"cookieMaxAgeSeconds": 7776000,
+			"deviceStorageDisclosureUrl": "https://adnami.example/device-storage.json",
+			"features": [1],
+			"legIntPurposes": [7],
+			"policyUrl": "https://adnami.example/privacy",
+			"purposes": [1, 2, 3],
+			"specialFeatures": [1],
+			"specialPurposes": [1],
+			"usesCookies": true,
+			"usesNonCookieAccess": false,
+			"dataRetention": {
+				"stdRetention": 365
+			},
+			"id": 1,
+			"name": "Adnami Ltd"
+		},
+		{
+			"cookieMaxAgeSeconds": 34190000,
+			"deviceStorageDisclosureUrl": null,
+			"features": [2],
+			"legIntPurposes": [2, 7],
+			"policyUrl": "https://business.safety.google/privacy/",
+			"purposes": [1, 3, 4],
+			"specialFeatures": [],
+			"specialPurposes": [1, 2],
+			"usesCookies": true,
+			"usesNonCookieAccess": true,
+			"id": 755,
+			"name": "Google Advertising Products"
+		},
+		{
+			"cookieMaxAgeSeconds": 2592000,
+			"deviceStorageDisclosureUrl": null,
+			"features": [],
+			"legIntPurposes": [8],
+			"policyUrl": "https://measure.example/privacy",
+			"purposes": [],
+			"specialFeatures": [],
+			"specialPurposes": [],
+			"usesCookies": true,
+			"usesNonCookieAccess": false,
+			"id": 42,
+			"name": "Measure Co"
+		}
+	]
+}

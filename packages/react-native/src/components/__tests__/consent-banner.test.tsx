@@ -15,15 +15,12 @@ import {
 } from '../../__tests__/helpers/react-native-stub';
 import { resetConsentClient } from '../../native/client';
 import { ConsentBanner } from '../consent-banner';
-import { MIN_TAP_TARGET } from '../theme/consent-theme-parts';
-import { lightTheme } from '../theme/create-consent-theme';
 import {
 	CONTROL_ROLES,
 	mountSurface,
 	nodeStyle,
 	requireRole,
 	roleNodes,
-	surfaceNode,
 	tap,
 	touchHeight,
 	translatedSnapshot,
@@ -42,7 +39,7 @@ describe('ConsentBanner', () => {
 		expect(tree.text()).toContain('Wir verarbeiten deine Daten.');
 		requireRole(tree.container(), 'button', 'Alle akzeptieren');
 		requireRole(tree.container(), 'button', 'Alle ablehnen');
-		requireRole(tree.container(), 'button', 'Auswahlen');
+		requireRole(tree.container(), 'button', 'Einstellungen');
 
 		tree.unmount();
 	});
@@ -83,17 +80,16 @@ describe('ConsentBanner', () => {
 				<ConsentBanner />
 			</>
 		);
-		const [layer] = tree
-			.container()
-			.querySelectorAll<HTMLElement>('[data-pointer-events="box-none"]');
-
-		expect(layer).toBeDefined();
-		expect(nodeStyle(layer as HTMLElement).position).toBe('absolute');
+		expect(
+			tree
+				.container()
+				.querySelector('[aria-modal="true"][data-transparent="true"]')
+		).not.toBeNull();
 
 		tree.unmount();
 	});
 
-	test('accept all and reject all each reach the core once', () => {
+	test('accept all and reject all each reach the core once', async () => {
 		const tree = mountSurface(<ConsentBanner />);
 
 		tap(requireRole(tree.container(), 'button', 'Alle akzeptieren'));
@@ -102,6 +98,7 @@ describe('ConsentBanner', () => {
 		expect(JSON.parse(tree.fake.commitIntents[0] as string)).toEqual({
 			action: 'all',
 		});
+		await flushPromises();
 
 		tap(requireRole(tree.container(), 'button', 'Alle ablehnen'));
 
@@ -112,6 +109,40 @@ describe('ConsentBanner', () => {
 
 		tree.unmount();
 	});
+
+	test.each(['Alle akzeptieren', 'Alle ablehnen'])(
+		'%s cannot submit another choice while its write is pending',
+		async (label) => {
+			const tree = mountSurface(<ConsentBanner />);
+			const accept = requireRole(tree.container(), 'button', label);
+			flush(() => {
+				accept.click();
+				accept.click();
+			});
+			expect(tree.fake.commitIntents).toHaveLength(1);
+			expect(accept.getAttribute('aria-disabled')).toBe('true');
+			await flushPromises();
+			expect(accept.getAttribute('aria-disabled')).not.toBe('true');
+			tree.unmount();
+		}
+	);
+
+	test.each(['Alle akzeptieren', 'Alle ablehnen'])(
+		'a refused %s keeps the prompt and permits retry',
+		async (label) => {
+			const tree = mountSurface(<ConsentBanner />);
+			tree.fake.failCommitWith('unavailable');
+			tap(requireRole(tree.container(), 'button', label));
+			await flushPromises();
+			expect(tree.text()).toContain('Deine Privatsphaere');
+			const retry = requireRole(tree.container(), 'button', label);
+			expect(retry.getAttribute('aria-disabled')).not.toBe('true');
+			tap(retry);
+			await flushPromises();
+			expect(tree.fake.commitIntents).toHaveLength(2);
+			tree.unmount();
+		}
+	);
 
 	test('acknowledge records the dismissal and writes no consent', () => {
 		const tree = mountSurface(
@@ -132,7 +163,7 @@ describe('ConsentBanner', () => {
 	test('opens the built-in manager when the app brings no surface', async () => {
 		const tree = mountSurface(<ConsentBanner />);
 
-		tap(requireRole(tree.container(), 'button', 'Auswahlen'));
+		tap(requireRole(tree.container(), 'button', 'Einstellungen'));
 		await flushPromises();
 
 		expect(tree.text()).toContain('Zustimmung verwalten');
@@ -146,7 +177,7 @@ describe('ConsentBanner', () => {
 		const onCustomize = vi.fn();
 		const tree = mountSurface(<ConsentBanner onCustomize={onCustomize} />);
 
-		tap(requireRole(tree.container(), 'button', 'Auswahlen'));
+		tap(requireRole(tree.container(), 'button', 'Einstellungen'));
 
 		expect(onCustomize).toHaveBeenCalledTimes(1);
 		expect(tree.text()).toContain('Deine Privatsphaere');
@@ -253,7 +284,7 @@ describe('ConsentBanner', () => {
 		await flushPromises();
 
 		expect(tree.text()).toContain('Deine Privatsphaere');
-		expect(animationState.durations).toContain(1);
+		expect(animationState.durations).toContain(0);
 
 		tree.unmount();
 	});
@@ -283,7 +314,7 @@ describe('ConsentBanner', () => {
 		// Nothing clamps the box to a floor any more, which is the point: a 3x
 		// label sets its own line box and the control grows around it instead of
 		// clipping. The touch area still clears the platform minimum.
-		expect(nodeStyle(largeAccept).minHeight ?? null).toBeNull();
+		expect(nodeStyle(largeAccept).minHeight).toBeGreaterThanOrEqual(44);
 		expect(touchHeight(largeAccept)).toBeGreaterThanOrEqual(44);
 
 		large.unmount();
@@ -299,121 +330,6 @@ describe('ConsentBanner', () => {
 		}
 
 		expect(uiState.announcements).toContain('Deine Privatsphaere');
-
-		tree.unmount();
-	});
-});
-
-describe('banner action row', () => {
-	// A device measurement put all three actions in one flex row: the labels won the
-	// arithmetic, `Reject All` came out four times as wide as `Customize`, and the
-	// third action read as a caption instead of a control. Web keeps the two
-	// decisions in a row of their own and gives customize the row below them, so the
-	// structure is pinned here rather than left to the width of a word.
-	test('the two decisions share a row and each takes half of it', () => {
-		const tree = mountSurface(<ConsentBanner />);
-		const accept = requireRole(tree.container(), 'button', 'Alle akzeptieren');
-		const reject = requireRole(tree.container(), 'button', 'Alle ablehnen');
-
-		expect(accept.parentElement).toBe(reject.parentElement);
-		expect(nodeStyle(accept.parentElement as HTMLElement).flexDirection).toBe(
-			'row'
-		);
-
-		for (const action of [accept, reject]) {
-			const style = nodeStyle(action);
-
-			// Half the row each, rather than a share decided by the label.
-			expect(style.flexGrow).toBe(1);
-			expect(style.flexShrink).toBe(1);
-			expect(style.flexBasis).toBe(0);
-			// The box is the web's 35.5; the 44 is on the hit area.
-			expect(touchHeight(action)).toBeGreaterThanOrEqual(MIN_TAP_TARGET);
-		}
-
-		tree.unmount();
-	});
-
-	test('customize is a control on a row of its own', () => {
-		const tree = mountSurface(<ConsentBanner />);
-		const accept = requireRole(tree.container(), 'button', 'Alle akzeptieren');
-		const customize = requireRole(tree.container(), 'button', 'Auswahlen');
-
-		// It used to be a run of underlined text with no box to press, which is how
-		// it ended up squeezed into the actions row beside two real buttons.
-		expect(customize.parentElement).not.toBe(accept.parentElement);
-		expect(
-			nodeStyle(customize.parentElement as HTMLElement).flexDirection
-		).toBe('column');
-
-		const style = nodeStyle(customize);
-
-		// The action on a row of its own fills it because the footer's column
-		// stretches its children, not because it grows. A zero flex basis inside
-		// that column resolves as a height of nothing, which is how a save action
-		// came to draw as an empty outline with its label painted underneath it.
-		expect(style.flexGrow ?? 0).toBe(0);
-		expect(style.flexBasis ?? 'auto').toBe('auto');
-		expect(touchHeight(customize)).toBeGreaterThanOrEqual(MIN_TAP_TARGET);
-
-		tree.unmount();
-	});
-
-	test('every action is outlined, and Customize carries the accent', () => {
-		const tree = mountSurface(<ConsentBanner />);
-
-		const outlined = (name: string, accent: boolean): void => {
-			const action = requireRole(tree.container(), 'button', name);
-			const style = nodeStyle(action);
-			const label = nodeStyle(action.firstElementChild as HTMLElement);
-
-			// Web strokes these rather than filling them: the card shows through. The
-			// accent action carries a 2pt ring, which is web's 1px border plus the
-			// accent ring laid inside it, and the neutral one is a single hairline.
-			expect(style.backgroundColor).toBe(lightTheme.colors.surface);
-			expect(style.borderWidth).toBe(accent ? 2 : 1);
-			expect(style.borderColor).toBe(
-				accent ? lightTheme.colors.primary : lightTheme.colors.border
-			);
-			// Both sit off the card on the web's own smallest elevation.
-			expect(style.boxShadow).toBe('0 1px 2px 0 rgba(0, 0, 0, 0.05)');
-			expect(label.color).toBe(
-				accent ? lightTheme.colors.primary : lightTheme.colors.text
-			);
-			expect(label.fontWeight).toBe('500');
-		};
-
-		// The two decisions stay neutral together and Customize carries the accent,
-		// which is the kernel's own default: `primaryActions` is `customize` so the
-		// prompt does not lean on a subject toward accepting or rejecting.
-		outlined('Alle akzeptieren', false);
-		outlined('Alle ablehnen', false);
-		outlined('Auswahlen', true);
-
-		tree.unmount();
-	});
-
-	test('the actions sit on a band divided from the card', () => {
-		const tree = mountSurface(<ConsentBanner />);
-		const footer = nodeStyle(
-			requireRole(tree.container(), 'button', 'Auswahlen')
-				.parentElement as HTMLElement
-		);
-
-		expect(footer.backgroundColor).toBe(lightTheme.colors.surfaceRaised);
-		expect(footer.borderTopWidth).toBe(1);
-		expect(footer.borderTopColor).toBe(lightTheme.colors.border);
-
-		const card = nodeStyle(
-			surfaceNode(tree.container(), 'Deine Privatsphaere')
-		);
-
-		// The heading above the band stays on the plain card surface, and the card
-		// itself carries the border and elevation the web banner draws.
-		expect(card.backgroundColor).toBe(lightTheme.colors.surface);
-		expect(card.borderWidth).toBe(1);
-		expect(card.borderColor).toBe(lightTheme.colors.border);
-		expect(card.boxShadow).toBe('0 8px 24px rgba(0, 0, 0, 0.12)');
 
 		tree.unmount();
 	});

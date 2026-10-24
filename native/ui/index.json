@@ -1,0 +1,125 @@
+{
+	"count": 14,
+	"fixtures": [
+		{
+			"builder": "buildFirstLayer",
+			"id": "standard-first-layer-choice",
+			"bytes": 746,
+			"file": "fixtures/standard-first-layer-choice.json",
+			"sha256": "20756795df0ef519bdf08a85a938207fbb2f18d80ab88726e1270e44873943bc"
+		},
+		{
+			"builder": "buildFirstLayer",
+			"id": "standard-first-layer-notice",
+			"bytes": 669,
+			"file": "fixtures/standard-first-layer-notice.json",
+			"sha256": "0dc9e5b6df7821a4793d6097638cdcdaf1b6e26fe80a07a0fc78373461c129d0"
+		},
+		{
+			"builder": "buildPreferences",
+			"id": "standard-preferences-opt-in",
+			"bytes": 2045,
+			"file": "fixtures/standard-preferences-opt-in.json",
+			"sha256": "221600ae39e9d5750b62915cda2555fd8afb5dd0acf166cb945ae8b35971ec13"
+		},
+		{
+			"builder": "buildPreferences",
+			"id": "standard-preferences-restricted",
+			"bytes": 2076,
+			"file": "fixtures/standard-preferences-restricted.json",
+			"sha256": "50235cc35500c79f96b1eaff6ab37ac7bb4d01c4e5c4a3e8bc96133c552154e3"
+		},
+		{
+			"builder": "buildIabFirstLayer",
+			"id": "iab-first-layer",
+			"bytes": 1720,
+			"file": "fixtures/iab-first-layer.json",
+			"sha256": "cb051e5cf4745002836e0d5f8e1164706538e1e2517657f9294b08a1383557c3"
+		},
+		{
+			"builder": "buildIabPurposes",
+			"id": "iab-purposes-partial-stack",
+			"bytes": 3622,
+			"file": "fixtures/iab-purposes-partial-stack.json",
+			"sha256": "0838dc37751eef61c29db65aeb879d3b2d3337987f300540b224f5e70f29449a"
+		},
+		{
+			"builder": "buildIabVendors",
+			"id": "iab-vendors-search-hit",
+			"bytes": 1680,
+			"file": "fixtures/iab-vendors-search-hit.json",
+			"sha256": "ff82e04fe4a07769409bad639676c2ccb7aa04d13f584ecddc8ffa02241be605"
+		},
+		{
+			"builder": "buildIabVendors",
+			"id": "iab-vendors-search-miss",
+			"bytes": 1097,
+			"file": "fixtures/iab-vendors-search-miss.json",
+			"sha256": "b77c59e57364ee4fcaa5662d73685c19b526f83cf3a2eb2e305334cd9a3930a6"
+		},
+		{
+			"builder": "buildIabVendorDetail",
+			"id": "iab-vendor-detail-legitimate-interest",
+			"bytes": 2813,
+			"file": "fixtures/iab-vendor-detail-legitimate-interest.json",
+			"sha256": "4788f59c46c38eab6660be74a3c07eb7c5c2fa06bbe6f7f1b840a33e9c3d134c"
+		},
+		{
+			"builder": "buildIabVendorDetail",
+			"id": "iab-vendor-detail-storage",
+			"bytes": 3063,
+			"file": "fixtures/iab-vendor-detail-storage.json",
+			"sha256": "3953675e5910dd7c1f815060105e6e193ad8574e0007ee09fcf366170814192d"
+		},
+		{
+			"builder": "buildIabPurposeDetail",
+			"id": "iab-purpose-detail-stack",
+			"bytes": 2417,
+			"file": "fixtures/iab-purpose-detail-stack.json",
+			"sha256": "bef5401af93f3238947850e9de796d8689cfe0b01cdbbf1ac903ba5f38072c90"
+		},
+		{
+			"builder": "buildIabPurposeDetail",
+			"id": "iab-purpose-detail-special-purpose",
+			"bytes": 1289,
+			"file": "fixtures/iab-purpose-detail-special-purpose.json",
+			"sha256": "1f0d0c1ab5119b8690536d70754397f323d05a8842b7a7653d0a1c3f7786c288"
+		},
+		{
+			"builder": "applyIabToggle",
+			"id": "iab-toggle-stack",
+			"bytes": 1011,
+			"file": "fixtures/iab-toggle-stack.json",
+			"sha256": "5cc1673d9a687b7c3dcbe0c87838926c3464d4ead8c1486021f6468b13675a37"
+		},
+		{
+			"builder": "seedConsentIabSelection",
+			"id": "iab-seed-default",
+			"bytes": 609,
+			"file": "fixtures/iab-seed-default.json",
+			"sha256": "b5dbfc15e23ed8e0865c708ae71d1c3c6078b74bf84340669510e1bbf38500f4"
+		}
+	],
+	"generatedBy": "packages/react-native/scripts/generate-ui-fixtures.ts",
+	"inputs": [
+		{
+			"name": "iab-copy",
+			"bytes": 1925,
+			"file": "inputs/iab-copy.json",
+			"sha256": "dea50a3c918ff289472a36cf2c784c26e7c8e70c884b9e692bda06437113fae8"
+		},
+		{
+			"name": "iab-model",
+			"bytes": 32606,
+			"file": "inputs/iab-model.json",
+			"sha256": "a38cb7f286110bc09881a2fb748d94bd85d0259f51d9f2ab72b718189f57ab6a"
+		},
+		{
+			"name": "standard-copy",
+			"bytes": 1293,
+			"file": "inputs/standard-copy.json",
+			"sha256": "dacc51d186fc280135d91e9d5268f4d00c269735417a96d625e41b01e4b4821b"
+		}
+	],
+	"version": 1
+}

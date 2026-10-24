@@ -8,14 +8,20 @@
 
 import {
 	ConsentBanner,
-	ConsentDialog,
+	ConsentIabBanner,
+	ConsentIabPreferences,
 	ConsentPreferences,
 	useTrackingRequest,
+} from '@c15t/react-native';
+import type {
+	ConsentIabSelection,
+	ConsentPreferencesPresentation,
 } from '@c15t/react-native';
 import { Component, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Text as NativeText, View } from 'react-native';
 
+import { IAB_DEMO_DISPLAY_MODEL } from '../../react-native-bare/src/fixtures/iab-display-model';
 import { useConsentSource } from './c15t/consent-source';
 import { Button, Card, Hint, Screen } from './components/ui';
 import { HomeScreen } from './screens/home';
@@ -115,7 +121,12 @@ const MissingNativeCore = () => {
 export const App = () => {
 	const { kind } = useConsentSource();
 	const [tab, setTab] = useState<Tab>('home');
-	const [dialogOpen, setDialogOpen] = useState(false);
+	const [mode, setMode] = useState<'standard' | 'iab'>('standard');
+	const [presentation, setPresentation] =
+		useState<ConsentPreferencesPresentation>('page');
+	const [iabOpen, setIabOpen] = useState(false);
+	const [iabBannerOpen, setIabBannerOpen] = useState(true);
+	const [iabSelection, setIabSelection] = useState<ConsentIabSelection>();
 	const [preferencesOpen, setPreferencesOpen] = useState(false);
 
 	// One hook, one call, and the Apple flow is driven from there: the sheet, the
@@ -127,7 +138,7 @@ export const App = () => {
 	const tracking = useTrackingRequest({
 		categories: TRACKING_CATEGORIES,
 		preferences: {
-			onRequestClose: () => {
+			onClose: () => {
 				setPreferencesOpen(false);
 			},
 			open: preferencesOpen,
@@ -157,11 +168,40 @@ export const App = () => {
 				))}
 			</View>
 
+			<View style={shellStyles.tabs}>
+				<Button
+					label={
+						mode === 'standard' ? 'Show IAB banner' : 'Show standard banner'
+					}
+					onPress={() => {
+						setPreferencesOpen(false);
+						setIabOpen(false);
+						setIabBannerOpen(true);
+						setMode(mode === 'standard' ? 'iab' : 'standard');
+					}}
+				/>
+				<Button
+					label={presentation === 'page' ? 'Use sheet' : 'Use page'}
+					onPress={() =>
+						setPresentation(presentation === 'page' ? 'sheet' : 'page')
+					}
+				/>
+				<Button
+					label="Open IAB preferences"
+					onPress={() => {
+						setMode('iab');
+						setIabBannerOpen(false);
+						setIabOpen(true);
+					}}
+				/>
+			</View>
+
 			<ErrorBoundary>
 				{tab === 'home' ? (
 					<HomeScreen
-						onOpenDialog={() => {
-							setDialogOpen(true);
+						onOpenSheet={() => {
+							setPresentation('sheet');
+							setPreferencesOpen(true);
 						}}
 						onOpenPreferences={() => {
 							setPreferencesOpen(true);
@@ -177,26 +217,33 @@ export const App = () => {
 				)}
 			</ErrorBoundary>
 
-			<ConsentBanner
-				onCustomize={() => {
-					setPreferencesOpen(true);
-				}}
+			{mode === 'standard' && !tracking.preferences.open ? (
+				<ConsentBanner />
+			) : null}
+			<ConsentPreferences
+				{...tracking.preferences}
+				presentation={presentation}
 			/>
-			<ConsentDialog
-				onOpenPreferences={() => {
-					setDialogOpen(false);
-					setPreferencesOpen(true);
+			<ConsentIabBanner
+				model={IAB_DEMO_DISPLAY_MODEL}
+				initialSelection={iabSelection}
+				onSave={(selection) => {
+					setIabSelection(selection);
+					setIabBannerOpen(false);
 				}}
-				onRequestClose={() => {
-					setDialogOpen(false);
-				}}
-				open={dialogOpen}
+				open={mode === 'iab' && iabBannerOpen && !iabOpen}
 			/>
-			{/*
-			 * One centre doing both jobs: the subject opens it from either tab, and it is
-			 * the same card the tracking journey raises mid-request.
-			 */}
-			<ConsentPreferences {...tracking.preferences} />
+			<ConsentIabPreferences.Root
+				model={IAB_DEMO_DISPLAY_MODEL}
+				initialSelection={iabSelection}
+				onClose={() => setIabOpen(false)}
+				onSave={(selection) => {
+					setIabSelection(selection);
+					setIabOpen(false);
+				}}
+				open={iabOpen}
+				presentation={presentation}
+			/>
 		</View>
 	);
 };

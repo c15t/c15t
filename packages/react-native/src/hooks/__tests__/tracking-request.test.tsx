@@ -152,7 +152,7 @@ const press = function press(): void {
 /** Close the preference centre the way `ConsentPreferences` does after a save. */
 const close = function close(): void {
 	flush((): void => {
-		probe.tracking?.preferences.onRequestClose();
+		probe.tracking?.preferences.onClose();
 	});
 };
 
@@ -513,7 +513,7 @@ describe('useTrackingRequest', () => {
 		);
 
 		const request = probe.tracking?.request;
-		const onRequestClose = probe.tracking?.preferences.onRequestClose;
+		const onClose = probe.tracking?.preferences.onClose;
 
 		// `useTrackingRequest({ categories: ['marketing'] })` is a fresh array on every
 		// render. The journey reads the list when it needs it rather than capturing it,
@@ -530,7 +530,7 @@ describe('useTrackingRequest', () => {
 		);
 
 		expect(probe.tracking?.request).toBe(request);
-		expect(probe.tracking?.preferences.onRequestClose).toBe(onRequestClose);
+		expect(probe.tracking?.preferences.onClose).toBe(onClose);
 
 		tree.unmount();
 	});
@@ -570,7 +570,7 @@ describe('useTrackingRequest', () => {
 		// Spread-ready, so a host that already renders a preference centre adds one
 		// expression rather than a state machine of its own.
 		expect(Object.keys(probe.tracking?.preferences ?? {}).sort()).toEqual([
-			'onRequestClose',
+			'onClose',
 			'open',
 		]);
 		expect(probe.tracking?.preferences.open).toBe(false);
@@ -608,7 +608,7 @@ describe('a preference centre the host already owns', () => {
 
 		const tracking = useTrackingRequest({
 			preferences: {
-				onRequestClose: (): void => {
+				onClose: (): void => {
 					setHostOpen(false);
 					centre.closeCalls += 1;
 				},
