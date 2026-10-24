@@ -1081,11 +1081,6 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 					disabled: false,
 				},
 			}),
-		deniedConsentProbe: {
-			// configWhenDenied sets disabled: true, so the SDK must send nothing
-			// to Databuddy's collection API while consent is denied.
-			collectUrlSubstrings: ['basket.databuddy.cc', 'api.databuddy.cc'],
-		},
 		loaderUrlSubstring: 'cdn.databuddy.cc/databuddy.js',
 		runtimeCheck: () =>
 			check(
