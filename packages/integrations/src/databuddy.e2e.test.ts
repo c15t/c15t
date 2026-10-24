@@ -101,6 +101,40 @@ describe('databuddy contract', () => {
 		expect(win.databuddyConfig).toEqual(configWhenGranted);
 	});
 
+	it('disables the config when consent is refused while databuddy.js downloads', () => {
+		const configAtLoad: unknown[] = [];
+		installHeadProbe((node, win) => {
+			if (isDatabuddyLoader(node)) {
+				// Never fire `load`: the download is still in flight.
+				configAtLoad.push({ ...(win.databuddyConfig ?? {}) });
+			}
+		});
+
+		const script = databuddy({
+			clientId: 'db-contract',
+			configWhenGranted: { clientId: 'db-contract', trackScreenViews: true },
+		});
+
+		loadScripts([script], grantedMeasurementConsents);
+		updateScripts([script], deniedConsents);
+
+		// databuddy.js can still run after its <script> is removed, and it reads
+		// this config when it does.
+		const win = window as TestWindow;
+		expect(win.databuddyConfig).toEqual({
+			clientId: 'db-contract',
+			disabled: true,
+			trackScreenViews: true,
+		});
+
+		updateScripts([script], grantedMeasurementConsents);
+
+		expect(configAtLoad).toEqual([
+			{ clientId: 'db-contract', disabled: false, trackScreenViews: true },
+			{ clientId: 'db-contract', disabled: false, trackScreenViews: true },
+		]);
+	});
+
 	it('boots with denied defaults when always loaded and then flips to granted', () => {
 		const configWhenGranted = {
 			clientId: 'db-contract',

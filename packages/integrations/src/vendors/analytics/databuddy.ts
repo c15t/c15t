@@ -46,10 +46,29 @@ const enableTracker = {
 } satisfies SetGlobalPathStep;
 
 /**
+ * Removing the `<script>` on a refusal does not cancel a download that has
+ * started, and `databuddy.js` reads `window.databuddyConfig` when it runs.
+ * Disabling the config makes a script that finishes after the refusal start
+ * disabled. Every granted load enables it again, so a later grant on the same
+ * page does not start from the refused state.
+ */
+const disableConfig = {
+	path: ['databuddyConfig', 'disabled'],
+	type: 'setGlobalPath',
+	value: true,
+} satisfies SetGlobalPathStep;
+
+const enableConfig = {
+	...disableConfig,
+	value: false,
+} satisfies SetGlobalPathStep;
+
+/**
  * Databuddy vendor manifest.
  *
  * Databuddy loads only with measurement consent. On revocation the manifest
- * sets `options.disabled`, which stops the main tracker. Other Databuddy
+ * sets `options.disabled`, which stops the main tracker, and disables the
+ * config a script still downloading will read. Other Databuddy
  * scripts, such as `replay.js`, ignore it and stop when c15t reloads the
  * page after the revocation.
  * Config is seeded via `window.databuddyConfig` before the script loads.
@@ -83,8 +102,9 @@ export const databuddyManifest = {
 			type: 'setGlobal',
 			value: '{{configWhenGranted}}',
 		},
+		enableConfig,
 	],
-	onConsentDenied: [disableTracker],
+	onConsentDenied: [disableConfig, disableTracker],
 	onConsentGranted: [
 		{
 			ifUndefined: false,
@@ -188,6 +208,7 @@ export interface DatabuddyConsentOptions {
 
 	/**
 	 * Databuddy config object to seed when consent is granted at load time.
+	 * c15t sets its `disabled` key from consent.
 	 * @default { disabled: false }
 	 */
 	configWhenGranted?: Record<string, unknown>;

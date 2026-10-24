@@ -43,7 +43,7 @@ export const scripts = [
 | `features.webVitals` | Unset, Databuddy turns it off | Sets `data-track-web-vitals`. |
 | `features.errors` | Unset, Databuddy turns it off | Sets `data-track-errors`. |
 | `features.outgoingLinks` | Unset, Databuddy turns it off | Sets `data-track-outgoing-links`. |
-| `configWhenGranted` | `{ disabled: false }` | Object set as `window.databuddyConfig` before the script loads with measurement allowed, and on each grant. |
+| `configWhenGranted` | `{ disabled: false }` | Object set as `window.databuddyConfig` before the script loads with measurement allowed, and on each grant. c15t sets its `disabled` key from consent. |
 | `configWhenDenied` | `{ disabled: true }` | With `loadMode: 'always'` only. Object set as `window.databuddyConfig` before the script loads without measurement permission, and on each refusal. |
 | `apiUrl` | `https://basket.databuddy.cc` | Collection endpoint, set as `data-api-url`. |
 | `scriptUrl` | `https://cdn.databuddy.cc/databuddy.js` | Loader URL override. A blank value falls back to the default. |
@@ -87,14 +87,16 @@ in `configWhenGranted` or `configWhenDenied`.
 | `'after-consent'` | Only while measurement is allowed | No request to Databuddy and no storage |
 | `'always'` | On every page, before consent | The script loads and stores a visitor ID while `disabled` stops it sending |
 
-On revocation, the helper sets `window.databuddy.options.disabled` to `true`
-and `window.databuddyConfig` to `configWhenDenied` in `'always'` mode. The
-flag stops the main tracker sending. `replay.js` ignores it and keeps
-recording until the page unloads. Keep c15t's default `reloadOnConsentRevoked`
-behavior enabled: the reload after the refusal stops every Databuddy script.
-With reload disabled, session replay can continue until the visitor navigates.
-On a later grant, c15t sets `disabled` to `false`, and `window.databuddyConfig`
-to `configWhenGranted`.
+On revocation, the helper sets `window.databuddy.options.disabled` to `true`,
+which stops the main tracker sending. It also sets `disabled: true` in
+`window.databuddyConfig`, or replaces the object with `configWhenDenied` in
+`'always'` mode. A `databuddy.js` download that finishes after the refusal then
+starts disabled. `replay.js` ignores both and keeps recording until the page
+unloads. Keep c15t's default `reloadOnConsentRevoked` behavior enabled: the
+reload after the refusal stops every Databuddy script. With reload disabled,
+session replay can continue until the visitor navigates. On a later grant,
+c15t sets both back to `false`, and `window.databuddyConfig` to
+`configWhenGranted`.
 
 With `loadMode: 'always'`, `databuddy.js` runs before the visitor chooses. It
 stores its visitor ID in localStorage even while `disabled` is `true`.
