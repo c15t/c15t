@@ -113,6 +113,7 @@ export const databuddyManifest = {
 			type: 'setGlobal',
 			value: '{{configWhenGranted}}',
 		},
+		enableConfig,
 		enableTracker,
 	],
 	onLoadDenied: [disableTracker],
@@ -148,6 +149,7 @@ const databuddyAlwaysLoadManifest = {
 			type: 'setGlobal',
 			value: '{{configWhenDenied}}',
 		},
+		disableConfig,
 	],
 	onConsentDenied: [
 		{
@@ -157,6 +159,7 @@ const databuddyAlwaysLoadManifest = {
 			type: 'setGlobal',
 			value: '{{configWhenDenied}}',
 		},
+		disableConfig,
 		disableTracker,
 	],
 } as const satisfies VendorManifest;
@@ -215,7 +218,8 @@ export interface DatabuddyConsentOptions {
 
 	/**
 	 * Databuddy config object to seed when consent is denied at load time,
-	 * and to set on a refusal. Used only with `loadMode: 'always'`.
+	 * and to set on a refusal. Used only with `loadMode: 'always'`. c15t sets
+	 * its `disabled` key from consent.
 	 * @default { disabled: true }
 	 */
 	configWhenDenied?: Record<string, unknown>;

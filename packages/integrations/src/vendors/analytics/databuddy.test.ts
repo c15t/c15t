@@ -42,6 +42,40 @@ describe('databuddy', () => {
 		expect(globalRef.databuddyConfig).toEqual({ disabled: false });
 	});
 
+	it('sets the config disabled key from consent when always loaded', () => {
+		const globalRef = getTestGlobal();
+		const script = databuddy({
+			clientId: 'db_123',
+			configWhenDenied: { clientId: 'db_123' },
+			configWhenGranted: { clientId: 'db_123', disabled: true },
+			loadMode: 'always',
+		});
+
+		script.onBeforeLoad?.(
+			createCallbackInfo({
+				consents: deniedConsentState,
+				id: script.id,
+			})
+		);
+		// databuddy.js reads this as it starts, before onLoad disables it.
+		expect(globalRef.databuddyConfig).toEqual({
+			clientId: 'db_123',
+			disabled: true,
+		});
+
+		script.onConsentChange?.(
+			createCallbackInfo({
+				consents: grantedMeasurementConsentState,
+				hasConsent: true,
+				id: script.id,
+			})
+		);
+		expect(globalRef.databuddyConfig).toEqual({
+			clientId: 'db_123',
+			disabled: false,
+		});
+	});
+
 	it('sets a data attribute for each feature switch', () => {
 		const script = databuddy({
 			clientId: 'db_123',
