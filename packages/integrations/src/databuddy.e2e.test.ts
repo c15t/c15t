@@ -135,6 +135,30 @@ describe('databuddy contract', () => {
 		]);
 	});
 
+	it('seeds the client ID and API URL for a loader URL without /databuddy.js', () => {
+		let configAtLoad: unknown;
+		installHeadProbe((node, win) => {
+			if (node.src === 'https://example.com/stats.js') {
+				configAtLoad = { ...(win.databuddyConfig ?? {}) };
+			}
+		});
+
+		const script = databuddy({
+			apiUrl: 'https://example.com/collect',
+			clientId: 'db-contract',
+			scriptUrl: 'https://example.com/stats.js',
+		});
+
+		loadScripts([script], grantedMeasurementConsents);
+
+		// Databuddy falls back to this config when it cannot find its script tag.
+		expect(configAtLoad).toEqual({
+			apiUrl: 'https://example.com/collect',
+			clientId: 'db-contract',
+			disabled: false,
+		});
+	});
+
 	it('boots with denied defaults when always loaded and then flips to granted', () => {
 		const configWhenGranted = {
 			clientId: 'db-contract',

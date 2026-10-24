@@ -20,7 +20,7 @@ describe('databuddy', () => {
 		expect(script.src).toBe('https://cdn.databuddy.cc/databuddy.js');
 	});
 
-	it('seeds a disabled flag in config when no configs are passed', () => {
+	it('seeds the client ID, API URL and disabled flag when no configs are passed', () => {
 		const globalRef = getTestGlobal();
 		const script = databuddy({ clientId: 'db_123', loadMode: 'always' });
 
@@ -30,7 +30,11 @@ describe('databuddy', () => {
 				id: script.id,
 			})
 		);
-		expect(globalRef.databuddyConfig).toEqual({ disabled: true });
+		expect(globalRef.databuddyConfig).toEqual({
+			apiUrl: 'https://basket.databuddy.cc',
+			clientId: 'db_123',
+			disabled: true,
+		});
 
 		script.onConsentChange?.(
 			createCallbackInfo({
@@ -39,7 +43,11 @@ describe('databuddy', () => {
 				id: script.id,
 			})
 		);
-		expect(globalRef.databuddyConfig).toEqual({ disabled: false });
+		expect(globalRef.databuddyConfig).toEqual({
+			apiUrl: 'https://basket.databuddy.cc',
+			clientId: 'db_123',
+			disabled: false,
+		});
 	});
 
 	it('sets the config disabled key from consent when always loaded', () => {

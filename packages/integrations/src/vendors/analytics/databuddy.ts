@@ -211,8 +211,10 @@ export interface DatabuddyConsentOptions {
 
 	/**
 	 * Databuddy config object to seed when consent is granted at load time.
-	 * c15t sets its `disabled` key from consent.
-	 * @default { disabled: false }
+	 * c15t sets its `disabled` key from consent. The default carries the
+	 * client ID and API URL, for when Databuddy cannot read them from its
+	 * script tag.
+	 * @default { apiUrl, clientId, disabled: false }
 	 */
 	configWhenGranted?: Record<string, unknown>;
 
@@ -220,7 +222,7 @@ export interface DatabuddyConsentOptions {
 	 * Databuddy config object to seed when consent is denied at load time,
 	 * and to set on a refusal. Used only with `loadMode: 'always'`. c15t sets
 	 * its `disabled` key from consent.
-	 * @default { disabled: true }
+	 * @default { apiUrl, clientId, disabled: true }
 	 */
 	configWhenDenied?: Record<string, unknown>;
 }
@@ -319,6 +321,7 @@ export const databuddy = function databuddy(
 		});
 	}
 
+	const apiUrl = options.apiUrl ?? 'https://basket.databuddy.cc';
 	const features = options.features ?? {};
 	const manifest =
 		options.loadMode === 'always'
@@ -326,10 +329,18 @@ export const databuddy = function databuddy(
 			: databuddyManifest;
 
 	return resolveManifest(manifest, {
-		apiUrl: options.apiUrl ?? 'https://basket.databuddy.cc',
+		apiUrl,
 		clientId,
-		configWhenDenied: options.configWhenDenied ?? { disabled: true },
-		configWhenGranted: options.configWhenGranted ?? { disabled: false },
+		configWhenDenied: options.configWhenDenied ?? {
+			apiUrl,
+			clientId,
+			disabled: true,
+		},
+		configWhenGranted: options.configWhenGranted ?? {
+			apiUrl,
+			clientId,
+			disabled: false,
+		},
 		scriptUrl: resolveScriptUrl(
 			options.scriptUrl,
 			'https://cdn.databuddy.cc/databuddy.js'
