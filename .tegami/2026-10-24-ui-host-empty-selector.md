@@ -1,7 +1,11 @@
 ---
 packages:
-  '@c15t/browser': patch
-  '@c15t/dev-tools': patch
+  "@c15t/browser":
+    replay:
+      - exit-prerelease(npm:@c15t/browser)
+  "@c15t/dev-tools":
+    replay:
+      - exit-prerelease(npm:@c15t/dev-tools)
 ---
 
 ### Show the banner on pages that hide empty elements
