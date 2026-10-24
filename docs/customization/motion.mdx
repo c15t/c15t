@@ -37,9 +37,13 @@ The banner never slides in. When it shows with the page, it is part of the
 first paint and appears on its first frame. When it arrives more than 100ms
 after the page first painted, such as after a slow script or a client-side
 init, it fades in over `--c15t-duration-normal` instead, and its root and
-backdrop carry `data-entry="late"`. A banner rendered on the server always
-shows at once. When it hides, Vue, Svelte and the script tag fade it out over
-`--c15t-duration-fast`.
+backdrop carry `data-entry="late"`. A banner rendered on the server
+does not fade in. When it hides, Vue, Svelte and the script tag fade it out
+over `--c15t-duration-fast`.
+
+The styled React, Vue/Nuxt and Svelte banners wait for their serialized
+contents to finish parsing in browsers that support CSS `:has()`. See
+[stylesheets](/docs/customization/stylesheets#how-the-surfaces-deliver-their-rules).
 
 The theme goes where your framework's other tokens go. See
 [theme tokens](/docs/customization/tokens) and your framework's customize page.

@@ -7,7 +7,9 @@
  */
 import type { KernelConfig } from '@c15t/core';
 import type { PolicyRule } from '@c15t/schema/types';
+import { css as firstPaintCss } from '@c15t/ui/styles/sheets/first-paint';
 import { StrictMode, act } from 'react';
+import type { ReactNode } from 'react';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 
 import { ConsentBanner, ConsentProvider, custom } from '../index';
@@ -49,13 +51,16 @@ const transportSave = vi.fn(() => Promise.resolve({ ok: true as const }));
 type Prefetch = KernelConfig | Promise<KernelConfig>;
 
 const NO_OPTIONS: Partial<ConsentProviderOptions> = {};
+const STOCK_BANNER = <ConsentBanner />;
 
 const Page = ({
 	prefetch,
 	options = NO_OPTIONS,
+	banner = STOCK_BANNER,
 }: {
 	prefetch: Prefetch;
 	options?: Partial<ConsentProviderOptions>;
+	banner?: ReactNode;
 }) => (
 	<html lang="en">
 		<head />
@@ -69,7 +74,7 @@ const Page = ({
 				}}
 			>
 				<main>content</main>
-				<ConsentBanner />
+				{banner}
 			</ConsentProvider>
 		</body>
 	</html>
@@ -107,6 +112,7 @@ beforeEach(() => {
 afterEach(() => {
 	page?.dispose();
 	page = undefined;
+	vi.restoreAllMocks();
 });
 
 /**
@@ -326,23 +332,133 @@ test('client data that lands before the chunk does not render the banner ahead o
 	await hydrated.unmount();
 });
 
-test('accepting right after hydration records the choice against the streamed policy', async () => {
-	const { hydrated } = await streamThenHydrate(policyConfig());
+test.each([
+	{
+		banner: STOCK_BANNER,
+		cardTag: 'DIV',
+		lastContentTestId: null,
+		name: 'stock',
+		noStyle: false,
+		titleTag: 'H2',
+	},
+	{
+		banner: <ConsentBanner noStyle />,
+		cardTag: 'DIV',
+		lastContentTestId: null,
+		name: 'noStyle',
+		noStyle: true,
+		titleTag: 'H2',
+	},
+	{
+		banner: (
+			<ConsentBanner.Root>
+				<ConsentBanner.Card asChild>
+					<section>
+						<ConsentBanner.Title asChild>
+							<h3>Custom privacy choices</h3>
+						</ConsentBanner.Title>
+						<ConsentBanner.AcceptButton />
+					</section>
+				</ConsentBanner.Card>
+				<p data-testid="after-card">Caller content after the card</p>
+			</ConsentBanner.Root>
+		),
+		cardTag: 'SECTION',
+		lastContentTestId: 'after-card',
+		name: 'compound',
+		noStyle: false,
+		titleTag: 'H3',
+	},
+])(
+	'$name keeps its root-owned completion marker through hydration and saves once',
+	async ({ banner, cardTag, lastContentTestId, noStyle, titleTag }) => {
+		const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
+		const warnings = vi.spyOn(console, 'warn').mockImplementation(() => {});
+		const config = policyConfig();
+		const server = deferred<KernelConfig>();
+		page = await streamPage(
+			<Page
+				prefetch={server.promise}
+				banner={banner}
+			/>
+		);
+		server.resolve(config);
+		await page.finish();
 
-	const accept = page?.doc.querySelector<HTMLButtonElement>(
-		'[data-testid="consent-banner-accept-button"]'
-	);
-	expect(accept).toBeTruthy();
-	await act(() => {
-		accept?.click();
-	});
-	await tick(100);
+		const completion = () => {
+			const root = page?.doc.querySelector<HTMLElement>(BANNER);
+			const marker = root?.querySelector<HTMLElement>('[data-c15t-stream-end]');
+			expect(root?.getAttribute('data-c15t-streamed')).toBe('');
+			expect(root?.querySelectorAll('[data-c15t-stream-end]')).toHaveLength(1);
+			expect(marker?.tagName).toBe('SPAN');
+			expect(marker?.hidden).toBe(true);
+			expect(marker?.parentElement).toBe(root);
+			expect(root?.lastChild).toBe(marker);
+			return {
+				card: root?.querySelector('[data-testid="consent-banner-card"]'),
+				marker,
+				root,
+			};
+		};
+		const streamed = completion();
+		expect(streamed.card).not.toBeNull();
+		expect(Boolean(streamed.root?.className)).toBe(!noStyle);
+		expect(streamed.card?.tagName).toBe(cardTag);
+		expect(
+			streamed.card?.querySelector('[data-testid="consent-banner-title"]')
+				?.tagName
+		).toBe(titleTag);
+		expect(
+			streamed.marker?.previousElementSibling?.getAttribute('data-testid')
+		).toBe(lastContentTestId);
+		const sheet = page.doc.createElement('style');
+		sheet.textContent = firstPaintCss;
+		page.doc.head.append(sheet);
+		if (noStyle) {
+			streamed.marker?.remove();
+		}
+		expect(streamed.root?.checkVisibility({ checkVisibilityCSS: true })).toBe(
+			true
+		);
+		if (noStyle && streamed.marker) {
+			streamed.root?.append(streamed.marker);
+		}
+		sheet.remove();
+		const hydrated = await page.hydrate(
+			<Page
+				prefetch={fulfilledThenable(config)}
+				banner={banner}
+			/>
+		);
+		await tick(100);
+		const client = completion();
+		expect(client.root).toBe(streamed.root);
+		expect(client.card).toBe(streamed.card);
+		expect(client.marker).toBe(streamed.marker);
+		expect(hydrated.recoverableErrors).toEqual([]);
+		expect(page.serverErrors).toEqual([]);
+		// Server and client renderers share contexts in this browser harness.
+		expect(
+			errors.mock.calls.filter(
+				([message]) =>
+					message !==
+					'Detected multiple renderers concurrently rendering the same context provider. This is currently unsupported.'
+			)
+		).toEqual([]);
+		expect(warnings).not.toHaveBeenCalled();
 
-	expect(page?.doc.querySelector(BANNER)).toBeNull();
-	expect(transportSave).toHaveBeenCalledTimes(1);
-	expect(JSON.stringify(transportSave.mock.calls[0])).toContain('gdpr');
-	await hydrated.unmount();
-});
+		const accept = client.root?.querySelector<HTMLButtonElement>(
+			'[data-testid="consent-banner-accept-button"]'
+		);
+		expect(accept).toBeTruthy();
+		await act(() => accept?.click());
+		await tick(100);
+		expect(page.doc.querySelector(BANNER)).toBeNull();
+		expect(transportSave).toHaveBeenCalledTimes(1);
+		expect(JSON.stringify(transportSave.mock.calls[0])).toContain('gdpr');
+		await hydrated.unmount();
+	}
+);
 
 test('a click before the client has the data waits for it and records against the streamed policy', async () => {
 	const config = policyConfig();

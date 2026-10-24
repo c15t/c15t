@@ -135,8 +135,16 @@ describe('the disableAnimation prop', () => {
 			context.activeUI.value = 'banner';
 		}
 		await vi.waitFor(() => expect(bannerRoot()).not.toBeNull());
-		expect(bannerRoot()?.dataset.entry).toBe('late');
-		expect(bannerRoot()?.classList.contains(entering)).toBe(true);
+		const root = bannerRoot();
+		const marker = root?.querySelector<HTMLSpanElement>(
+			':scope > span[data-c15t-stream-end]'
+		);
+		expect(root?.dataset.entry).toBe('late');
+		expect(root?.classList.contains(entering)).toBe(true);
+		expect(root?.hasAttribute('data-c15t-streamed')).toBe(true);
+		expect(root?.querySelectorAll('[data-c15t-stream-end]')).toHaveLength(1);
+		expect(marker?.hidden).toBe(true);
+		expect(root?.lastChild).toBe(marker);
 	});
 
 	test('shows a banner open at setup at once', async () => {
