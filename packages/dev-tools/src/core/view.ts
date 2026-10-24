@@ -1285,6 +1285,10 @@ export function createDevToolsView(options: ViewOptions): DevToolsView {
 			: createElement(document, 'div', 'c15t-dev-tools-host');
 	if (host) {
 		host.dataset.c15tDevToolsHost = viewId;
+		// Shadow content is not a child, so the host matches `:empty`, and
+		// themes such as Shopify's Dawn hide `div:empty`. Page rules beat
+		// `:host`, so only an inline `!important` keeps the host displayed.
+		host.style.setProperty('display', 'block', 'important');
 		if (options.embedded) {
 			// The panel fills the container only if its host does.
 			host.style.height = '100%';
