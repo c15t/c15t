@@ -428,6 +428,30 @@ const declarationViolations = function declarationViolations(
 /** A `px` length: `14px`, `0.5px`, `-2px`. */
 const PX_LENGTH = /(?<![\w.-])-?(?:\d+\.?\d*|\.\d+)px(?![\w-])/u;
 
+/** Every custom property a value reads, fallbacks included. */
+const variableReferences = function variableReferences(value: string) {
+	return [...value.matchAll(/var\(\s*(?<name>--[\w-]+)/gu)].map(
+		(match) => match.groups?.name ?? ''
+	);
+};
+
+/**
+ * Whether a property sizes text. `sizeVariables` holds the variables text
+ * sizes read whatever their name, such as
+ * `--consent-dialog-branding-label-size`.
+ */
+const sizesText = function sizesText(
+	property: string,
+	sizeVariables: ReadonlySet<string>
+): boolean {
+	return (
+		property === 'font-size' ||
+		property === 'font' ||
+		(property.startsWith('--') && property.includes('font-size')) ||
+		sizeVariables.has(property)
+	);
+};
+
 /**
  * Whether a declaration sizes text in `px`, which ignores the visitor's
  * text-size setting while the rest of the UI follows it. Every `var()`
@@ -436,19 +460,44 @@ const PX_LENGTH = /(?<![\w.-])-?(?:\d+\.?\d*|\.\d+)px(?![\w-])/u;
  */
 const setsPxFontSize = function setsPxFontSize(
 	property: string,
-	value: string
+	value: string,
+	sizeVariables: ReadonlySet<string> = new Set()
 ): boolean {
-	const sizesText =
-		property === 'font-size' ||
-		property === 'font' ||
-		(property.startsWith('--') && property.includes('font-size'));
-	return sizesText && PX_LENGTH.test(value);
+	return sizesText(property, sizeVariables) && PX_LENGTH.test(value);
+};
+
+/**
+ * The variables a text size reads, followed through each variable that
+ * reads another, so an alias of an alias still counts.
+ */
+const textSizeVariables = function textSizeVariables(
+	found: readonly Declaration[]
+): Set<string> {
+	const sizes = new Set<string>();
+	let size = -1;
+
+	while (sizes.size !== size) {
+		({ size } = sizes);
+		for (const { property, value } of found) {
+			if (sizesText(property, sizes)) {
+				for (const name of variableReferences(value)) {
+					sizes.add(name);
+				}
+			}
+		}
+	}
+
+	return sizes;
 };
 
 const findPxFontSizes = function findPxFontSizes(): string[] {
-	return sourceFiles(STYLES_DIR)
-		.flatMap((path) => declarations(path))
-		.filter(({ property, value }) => setsPxFontSize(property, value))
+	const found = sourceFiles(STYLES_DIR).flatMap((path) => declarations(path));
+	const sizeVariables = textSizeVariables(found);
+
+	return found
+		.filter(({ property, value }) =>
+			setsPxFontSize(property, value, sizeVariables)
+		)
 		.map(
 			({ file, selector, property, value }) =>
 				`${file} | ${selector} | ${property}: ${value}`
@@ -527,6 +576,25 @@ describe('text sizes', () => {
 		['--cdt-offset', '16px'],
 	])('accepts %s: %s', (property, value) => {
 		expect(setsPxFontSize(property, value)).toBe(false);
+	});
+
+	test('follows a size through variables not named for it', () => {
+		const declaration = (property: string, value: string): Declaration => ({
+			file: 'components/x.module.css',
+			property,
+			selector: '.x',
+			value,
+		});
+		const sizes = textSizeVariables([
+			declaration('font-size', 'var(--label-size)'),
+			declaration('--label-size', 'var(--base-size, 1rem)'),
+			declaration('--switch-width', '32px'),
+		]);
+
+		expect([...sizes].sort()).toEqual(['--base-size', '--label-size']);
+		expect(setsPxFontSize('--label-size', '11px', sizes)).toBe(true);
+		expect(setsPxFontSize('--base-size', '11px', sizes)).toBe(true);
+		expect(setsPxFontSize('--switch-width', '32px', sizes)).toBe(false);
 	});
 });
 
