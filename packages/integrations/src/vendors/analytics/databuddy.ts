@@ -2,7 +2,7 @@ import type { Script } from '@c15t/core';
 
 import { resolveManifest } from '../../resolve';
 import { vendorManifestContract } from '../../types';
-import type { VendorManifest } from '../../types';
+import type { SetGlobalPathStep, VendorManifest } from '../../types';
 import { readId, skipMissingId } from '../_shared/required-id';
 import { resolveScriptUrl } from '../_shared/script-url';
 
@@ -34,15 +34,28 @@ declare global {
 	}
 }
 
+const disableTracker = {
+	path: ['databuddy', 'options', 'disabled'],
+	type: 'setGlobalPath',
+	value: true,
+} satisfies SetGlobalPathStep;
+
+const enableTracker = {
+	...disableTracker,
+	value: false,
+} satisfies SetGlobalPathStep;
+
 /**
- * DataBuddy vendor manifest.
+ * Databuddy vendor manifest.
  *
- * DataBuddy always loads but controls tracking via its `options.disabled` flag.
+ * Databuddy loads only with measurement consent. On revocation the manifest
+ * sets `options.disabled`, which stops the main tracker. Other Databuddy
+ * scripts, such as `replay.js`, ignore it and stop when c15t reloads the
+ * page after the revocation.
  * Config is seeded via `window.databuddyConfig` before the script loads.
  */
 export const databuddyManifest = {
 	...vendorManifestContract,
-	alwaysLoad: true,
 	category: 'measurement',
 	install: [
 		{
@@ -52,19 +65,14 @@ export const databuddyManifest = {
 				'data-api-url': '{{apiUrl}}',
 
 				'data-client-id': '{{clientId}}',
+				'data-track-errors': '{{trackErrors}}',
+				'data-track-interactions': '{{trackInteractions}}',
+				'data-track-outgoing-links': '{{trackOutgoingLinks}}',
+				'data-track-web-vitals': '{{trackWebVitals}}',
 			},
 
 			src: '{{scriptUrl}}',
 			type: 'loadScript',
-		},
-	],
-	onBeforeLoadDenied: [
-		{
-			ifUndefined: true,
-
-			name: 'databuddyConfig',
-			type: 'setGlobal',
-			value: '{{configWhenDenied}}',
 		},
 	],
 	onBeforeLoadGranted: [
@@ -76,20 +84,7 @@ export const databuddyManifest = {
 			value: '{{configWhenGranted}}',
 		},
 	],
-	onConsentDenied: [
-		{
-			ifUndefined: false,
-
-			name: 'databuddyConfig',
-			type: 'setGlobal',
-			value: '{{configWhenDenied}}',
-		},
-		{
-			path: ['databuddy', 'options', 'disabled'],
-			type: 'setGlobalPath',
-			value: true,
-		},
-	],
+	onConsentDenied: [disableTracker],
 	onConsentGranted: [
 		{
 			ifUndefined: false,
@@ -98,26 +93,10 @@ export const databuddyManifest = {
 			type: 'setGlobal',
 			value: '{{configWhenGranted}}',
 		},
-		{
-			path: ['databuddy', 'options', 'disabled'],
-			type: 'setGlobalPath',
-			value: false,
-		},
+		enableTracker,
 	],
-	onLoadDenied: [
-		{
-			path: ['databuddy', 'options', 'disabled'],
-			type: 'setGlobalPath',
-			value: true,
-		},
-	],
-	onLoadGranted: [
-		{
-			path: ['databuddy', 'options', 'disabled'],
-			type: 'setGlobalPath',
-			value: false,
-		},
-	],
+	onLoadDenied: [disableTracker],
+	onLoadGranted: [enableTracker],
 	vendor: 'databuddy',
 	vendorDetails: {
 		homepageUrl: 'https://www.databuddy.cc/',
@@ -126,6 +105,43 @@ export const databuddyManifest = {
 		privacyPolicyUrl: 'https://www.databuddy.cc/privacy',
 	},
 } as const satisfies VendorManifest;
+
+/**
+ * Databuddy manifest for `loadMode: 'always'`.
+ *
+ * The script loads before consent and stays after a refusal, so the denied
+ * steps above keep it from collecting, and `configWhenDenied` seeds the
+ * config it starts with.
+ *
+ * The default manifest leaves `configWhenDenied` out: that script never
+ * starts without consent, and swapping the config on a refusal would leave
+ * the denied config in place for the script a later grant loads again.
+ */
+const databuddyAlwaysLoadManifest = {
+	...databuddyManifest,
+	alwaysLoad: true,
+	onBeforeLoadDenied: [
+		{
+			ifUndefined: true,
+
+			name: 'databuddyConfig',
+			type: 'setGlobal',
+			value: '{{configWhenDenied}}',
+		},
+	],
+	onConsentDenied: [
+		{
+			ifUndefined: false,
+
+			name: 'databuddyConfig',
+			type: 'setGlobal',
+			value: '{{configWhenDenied}}',
+		},
+		disableTracker,
+	],
+} as const satisfies VendorManifest;
+
+export type DatabuddyLoadMode = 'after-consent' | 'always';
 
 export interface DatabuddyConsentOptions {
 	/**
@@ -145,19 +161,103 @@ export interface DatabuddyConsentOptions {
 	 */
 	scriptUrl?: string;
 
-	/** Databuddy config object to seed when consent is granted at load time. */
-	configWhenGranted: Record<string, unknown>;
+	/**
+	 * When c15t should load the Databuddy script.
+	 *
+	 * - `after-consent`: wait for measurement consent before loading Databuddy.
+	 * - `always`: load immediately and switch Databuddy's disabled flag from
+	 *   consent. Databuddy starts before the visitor chooses and stores a
+	 *   visitor ID even while disabled.
+	 *
+	 * @default 'after-consent'
+	 */
+	loadMode?: DatabuddyLoadMode;
 
-	/** Databuddy config object to seed when consent is denied at load time. */
-	configWhenDenied: Record<string, unknown>;
+	/**
+	 * Turns Databuddy tracking features on or off. Each switch sets a
+	 * `data-track-*` attribute on the script. An unset switch leaves
+	 * Databuddy's own default.
+	 *
+	 * Databuddy reads `data-*` attributes after `window.databuddyConfig`, so a
+	 * switch wins over the same key in `configWhenGranted` or
+	 * `configWhenDenied`.
+	 *
+	 * @default {}
+	 */
+	features?: DatabuddyFeatures;
+
+	/**
+	 * Databuddy config object to seed when consent is granted at load time.
+	 * @default { disabled: false }
+	 */
+	configWhenGranted?: Record<string, unknown>;
+
+	/**
+	 * Databuddy config object to seed when consent is denied at load time,
+	 * and to set on a refusal. Used only with `loadMode: 'always'`.
+	 * @default { disabled: true }
+	 */
+	configWhenDenied?: Record<string, unknown>;
 }
 
 /**
- * Loads the Databuddy script and manages consent state declaratively via the manifest runtime.
+ * Databuddy tracking features. `false` turns the feature off, `true` turns it
+ * on, and unset keeps Databuddy's default.
+ */
+export interface DatabuddyFeatures {
+	/**
+	 * Rage clicks, dead clicks and abandoned forms. Sets
+	 * `data-track-interactions`. Databuddy turns this on by default.
+	 *
+	 * @default undefined
+	 */
+	interactions?: boolean;
+
+	/**
+	 * FCP, LCP, INP, CLS, TTFB and FPS. Sets `data-track-web-vitals`.
+	 * Databuddy turns this off by default.
+	 *
+	 * @default undefined
+	 */
+	webVitals?: boolean;
+
+	/**
+	 * JavaScript errors, with message and stack. Sets `data-track-errors`.
+	 * Databuddy turns this off by default.
+	 *
+	 * @default undefined
+	 */
+	errors?: boolean;
+
+	/**
+	 * Clicks on links to other sites. Sets `data-track-outgoing-links`.
+	 * Databuddy turns this off by default.
+	 *
+	 * @default undefined
+	 */
+	outgoingLinks?: boolean;
+}
+
+/**
+ * Maps a feature switch to its `data-*` attribute value. `undefined` drops
+ * the attribute from the script.
+ */
+const featureAttribute = function featureAttribute(
+	enabled: boolean | undefined
+): string | undefined {
+	return enabled === undefined ? undefined : String(enabled);
+};
+
+/**
+ * Loads the Databuddy script once measurement consent is granted and manages
+ * consent state declaratively via the manifest runtime.
  *
- * The script always loads (`alwaysLoad: true`) but tracking is controlled via the `disabled`
- * flag on Databuddy's global config/runtime objects, allowing the vendor to stay present in
- * the DOM while respecting consent boundaries.
+ * On revocation, the helper sets `window.databuddy.options.disabled` to
+ * `true`, which stops the main tracker. Databuddy's `replay.js` ignores that
+ * flag; it stops when c15t reloads the page after the revocation, which is
+ * the default. With `loadMode: 'always'`, the script loads before consent
+ * and the same flag keeps the tracker from sending until measurement is
+ * granted.
  *
  * @param options - Configuration for the Databuddy consent script
  * @returns The Databuddy script configuration object for c15t's script loader
@@ -177,18 +277,7 @@ export interface DatabuddyConsentOptions {
  *   scripts: [
  *     databuddy({
  *       clientId: 'db_1234567890abcdef',
- *       configWhenGranted: {
- *         clientId: 'db_1234567890abcdef',
- *         trackScreenViews: true,
- *         trackOutgoingLinks: true,
- *         trackPerformance: true,
- *         samplingRate: 1.0,
- *         disabled: false,
- *       },
- *       configWhenDenied: {
- *         clientId: 'db_1234567890abcdef',
- *         disabled: true,
- *       },
+ *       features: { interactions: false, webVitals: true },
  *     }),
  *   ],
  * });
@@ -205,16 +294,24 @@ export const databuddy = function databuddy(
 		});
 	}
 
-	const resolved = resolveManifest(databuddyManifest, {
+	const features = options.features ?? {};
+	const manifest =
+		options.loadMode === 'always'
+			? databuddyAlwaysLoadManifest
+			: databuddyManifest;
+
+	return resolveManifest(manifest, {
 		apiUrl: options.apiUrl ?? 'https://basket.databuddy.cc',
 		clientId,
-		configWhenDenied: options.configWhenDenied,
-		configWhenGranted: options.configWhenGranted,
+		configWhenDenied: options.configWhenDenied ?? { disabled: true },
+		configWhenGranted: options.configWhenGranted ?? { disabled: false },
 		scriptUrl: resolveScriptUrl(
 			options.scriptUrl,
 			'https://cdn.databuddy.cc/databuddy.js'
 		),
+		trackErrors: featureAttribute(features.errors),
+		trackInteractions: featureAttribute(features.interactions),
+		trackOutgoingLinks: featureAttribute(features.outgoingLinks),
+		trackWebVitals: featureAttribute(features.webVitals),
 	});
-
-	return resolved;
 };

@@ -12,7 +12,59 @@ import { databuddy } from './databuddy';
 describe('databuddy', () => {
 	setupScriptHelperTest();
 
-	it('preserves config seeding and sync behavior', () => {
+	it('waits for measurement consent by default', () => {
+		const script = databuddy({ clientId: 'db_123' });
+
+		expect(script.alwaysLoad).toBeUndefined();
+		expect(script.category).toBe('measurement');
+		expect(script.src).toBe('https://cdn.databuddy.cc/databuddy.js');
+	});
+
+	it('seeds a disabled flag in config when no configs are passed', () => {
+		const globalRef = getTestGlobal();
+		const script = databuddy({ clientId: 'db_123', loadMode: 'always' });
+
+		script.onBeforeLoad?.(
+			createCallbackInfo({
+				consents: deniedConsentState,
+				id: script.id,
+			})
+		);
+		expect(globalRef.databuddyConfig).toEqual({ disabled: true });
+
+		script.onConsentChange?.(
+			createCallbackInfo({
+				consents: grantedMeasurementConsentState,
+				hasConsent: true,
+				id: script.id,
+			})
+		);
+		expect(globalRef.databuddyConfig).toEqual({ disabled: false });
+	});
+
+	it('sets a data attribute for each feature switch', () => {
+		const script = databuddy({
+			clientId: 'db_123',
+			features: {
+				errors: true,
+				interactions: false,
+				outgoingLinks: true,
+				webVitals: false,
+			},
+		});
+
+		expect(script.attributes).toEqual({
+			crossorigin: 'anonymous',
+			'data-api-url': 'https://basket.databuddy.cc',
+			'data-client-id': 'db_123',
+			'data-track-errors': 'true',
+			'data-track-interactions': 'false',
+			'data-track-outgoing-links': 'true',
+			'data-track-web-vitals': 'false',
+		});
+	});
+
+	it('preserves config seeding and sync behavior when always loaded', () => {
 		const globalRef = getTestGlobal();
 		const script = databuddy({
 			apiUrl: 'https://basket.databuddy.cc',
@@ -29,8 +81,10 @@ describe('databuddy', () => {
 				disabled: false,
 				trackScreenViews: true,
 			},
+			loadMode: 'always',
 		});
 
+		expect(script.alwaysLoad).toBe(true);
 		expect(script.src).toBe('https://cdn.databuddy.cc/databuddy.js');
 		expect(script.attributes).toEqual({
 			crossorigin: 'anonymous',

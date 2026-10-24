@@ -188,7 +188,7 @@ export const helperParityCases = {
 	},
 	databuddy: {
 		expected: {
-			alwaysLoad: true,
+			alwaysLoad: undefined,
 			persistAfterConsentRevoked: undefined,
 			src: 'https://cdn.databuddy.cc/databuddy.js',
 		},

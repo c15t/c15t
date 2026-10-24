@@ -1,27 +1,25 @@
 ---
 title: Databuddy
-description: Load the Databuddy SDK on every page with the c15t databuddy helper, switch its disabled flag and config from measurement consent, and check both in DevTools.
+description: Load Databuddy only after measurement consent with the c15t databuddy helper, turn off tracking features you do not use, gate session replay, and check revocation in DevTools.
 seoTitle: Databuddy cookie consent with c15t
-seoDescription: Keep Databuddy disabled without measurement consent, and turn it on with consent. Set it up with the c15t databuddy helper.
+seoDescription: Load Databuddy and its session replay only with measurement consent, and stop both when consent is withdrawn. Set it up with the c15t databuddy helper.
 icon: databuddy
 group: integrations
 ---
 
-The c15t `databuddy` helper loads `databuddy.js` on every page, before the
-visitor chooses. The helper uses `alwaysLoad`, but its category is
-`measurement`. While `measurement` has no consent, the helper sets
-`window.databuddy.options.disabled` to `true`. It also sets
-`window.databuddyConfig` to `configWhenDenied`, unless your page set
-`window.databuddyConfig` first. When `measurement` has consent, the helper
-changes to `configWhenGranted` and sets `disabled` to `false`. If the visitor
-withdraws consent, the helper changes both values back.
+The c15t `databuddy` helper waits for `measurement` consent before it loads
+`databuddy.js`. Before the visitor allows measurement, the page sends no
+request to Databuddy and Databuddy stores nothing. If the visitor withdraws
+consent, the helper disables the Databuddy tracker and c15t reloads the page,
+which also stops session replay.
 
 ## Configure Databuddy
 
 Copy the client ID from your Databuddy project. The helper passes it to the
-script as `data-client-id`. Remove any existing Databuddy script and any code
-that sets `window.databuddyConfig`. The helper seeds that global only when it
-is absent, so an existing value overrides your initial state.
+script as `data-client-id`. Remove any existing Databuddy script tag, any
+`<Databuddy />` component from `@databuddy/sdk`, and any code that sets
+`window.databuddyConfig`. The helper seeds that global only when it is absent,
+so an existing value overrides it.
 
 <CommandTabs command="@c15t/integrations" mode="install" />
 
@@ -29,11 +27,7 @@ is absent, so an existing value overrides your initial state.
 import { databuddy } from '@c15t/integrations/databuddy';
 
 export const scripts = [
-	databuddy({
-		clientId: 'YOUR_CLIENT_ID',
-		configWhenGranted: { disabled: false },
-		configWhenDenied: { disabled: true },
-	}),
+	databuddy({ clientId: 'YOUR_CLIENT_ID', features: { interactions: false } }),
 ];
 ```
 
@@ -44,40 +38,108 @@ export const scripts = [
 | Option | Default | Behavior |
 | --- | --- | --- |
 | `clientId` | Required | Set as `data-client-id`. The helper trims it. Empty or whitespace-only values log an error and the script does not load. |
-| `configWhenGranted` | Required | Object set as `window.databuddyConfig` while measurement is allowed. |
-| `configWhenDenied` | Required | Object set as `window.databuddyConfig` while measurement is denied. |
+| `loadMode` | `'after-consent'` | When the script loads. See [loading and revocation](#loading-and-revocation). |
+| `features.interactions` | Unset, Databuddy turns it on | Sets `data-track-interactions`. |
+| `features.webVitals` | Unset, Databuddy turns it off | Sets `data-track-web-vitals`. |
+| `features.errors` | Unset, Databuddy turns it off | Sets `data-track-errors`. |
+| `features.outgoingLinks` | Unset, Databuddy turns it off | Sets `data-track-outgoing-links`. |
+| `configWhenGranted` | `{ disabled: false }` | Object set as `window.databuddyConfig` before the script loads with measurement allowed, and on each grant. |
+| `configWhenDenied` | `{ disabled: true }` | With `loadMode: 'always'` only. Object set as `window.databuddyConfig` before the script loads without measurement permission, and on each refusal. |
 | `apiUrl` | `https://basket.databuddy.cc` | Collection endpoint, set as `data-api-url`. |
 | `scriptUrl` | `https://cdn.databuddy.cc/databuddy.js` | Loader URL override. A blank value falls back to the default. |
 
+## Turn off features you do not use
+
+Databuddy collects some data unless the site turns it off. Set a `features`
+switch to `false` to stop that collection, or to `true` to turn on a feature
+Databuddy leaves off:
+
+{/* example: fragment */}
+
+```ts
+databuddy({
+	clientId: 'YOUR_CLIENT_ID',
+	features: {
+		interactions: false,
+		webVitals: false,
+		errors: false,
+		outgoingLinks: false,
+	},
+});
+```
+
+| Switch | Databuddy default | What Databuddy collects |
+| --- | --- | --- |
+| `interactions` | On | Rage clicks, dead clicks and abandoned forms |
+| `webVitals` | Off | FCP, LCP, INP, CLS, TTFB and FPS |
+| `errors` | Off | JavaScript errors, with message and stack |
+| `outgoingLinks` | Off | Clicks on links to other sites |
+
+Each switch sets a `data-track-*` attribute on the script. An unset switch
+sets no attribute, so Databuddy keeps its own default. Databuddy reads `data-*`
+attributes after `window.databuddyConfig`, so a switch wins over the same key
+in `configWhenGranted` or `configWhenDenied`.
+
 ## Loading and revocation
 
-`databuddy` uses the `measurement` category with `alwaysLoad`, so the
-Databuddy script loads on every page, before the visitor chooses. Before the
-script loads, the helper sets `window.databuddyConfig` to `configWhenDenied` or
-`configWhenGranted`, unless that global already exists. After the script
-loads, the helper sets `window.databuddy.options.disabled` to `true` without
-measurement permission and to `false` with it. On each later consent change,
-the helper replaces `window.databuddyConfig` with the matching object and
-updates `disabled` again. c15t never removes the script.
+| `loadMode` | When `databuddy.js` loads | Before the visitor allows measurement |
+| --- | --- | --- |
+| `'after-consent'` | Only while measurement is allowed | No request to Databuddy and no storage |
+| `'always'` | On every page, before consent | The script loads and stores a visitor ID while `disabled` stops it sending |
 
-The Databuddy SDK decides what `disabled` stops. The helper cannot prevent the
-script request before consent. If Databuddy must receive no request before
-consent, write a
-[custom gated integration](/docs/integrations/building-integrations) instead.
+On revocation, the helper sets `window.databuddy.options.disabled` to `true`
+and `window.databuddyConfig` to `configWhenDenied` in `'always'` mode. The
+flag stops the main tracker sending. `replay.js` ignores it and keeps
+recording until the page unloads. Keep c15t's default `reloadOnConsentRevoked`
+behavior enabled: the reload after the refusal stops every Databuddy script.
+With reload disabled, session replay can continue until the visitor navigates.
+On a later grant, c15t sets `disabled` to `false`, and `window.databuddyConfig`
+to `configWhenGranted`.
+
+With `loadMode: 'always'`, `databuddy.js` runs before the visitor chooses. It
+stores its visitor ID in localStorage even while `disabled` is `true`.
+Databuddy's own consent guidance is to delay loading until consent where prior
+consent is required. Use `'always'` only where your policy allows that.
+
+## Gate session replay
+
+Databuddy records sessions with a separate script, `replay.js`. The
+`databuddy` helper does not load it. Register it as its own script in the same
+`scripts` array, in the `measurement` category:
+
+{/* example: fragment */}
+
+```ts
+const databuddyReplay = {
+	id: 'databuddy-replay',
+	category: 'measurement',
+	src: 'https://cdn.databuddy.cc/replay.js',
+	attributes: { 'data-client-id': 'YOUR_CLIENT_ID' },
+};
+```
+
+c15t then loads `replay.js` only while measurement is allowed. `replay.js`
+does not read Databuddy's `disabled` flag, so on revocation it stops only when
+c15t reloads the page. Keep `reloadOnConsentRevoked` enabled when you use
+session replay. Do not add `replay.js` to the page as a plain `<script>` tag.
+Outside c15t, it starts recording on the visitor's first click, scroll or key
+press, and uploads that recording even if the visitor has not chosen.
+
+Databuddy does not document `replay.js` yet. Check the script URL and its
+attributes against your Databuddy dashboard before you rely on it.
 
 ## Verify Databuddy
 
-1. In a private window with an opt-in policy, load the page. `databuddy.js`
-   loads from `cdn.databuddy.cc` with your `data-client-id`. In the console,
-   `window.databuddyConfig` matches `configWhenDenied` and
-   `window.databuddy.options.disabled` is `true`.
-2. Click Reject, then reload. `disabled` is still `true`, and DevTools Network
-   shows no event request to your `apiUrl`.
-3. Open Privacy settings and allow measurement. Without a reload, `disabled`
-   becomes `false`, `window.databuddyConfig` matches `configWhenGranted`, and
-   event requests reach your `apiUrl`.
+1. In a private window with an opt-in policy, load the page. DevTools Network
+   shows no request to `cdn.databuddy.cc` or `basket.databuddy.cc`, and
+   Application shows no `did` key in localStorage.
+2. Click Reject, then reload. There are still no Databuddy requests.
+3. Open Privacy settings and allow measurement. Without a reload,
+   `databuddy.js` loads from `cdn.databuddy.cc` with your `data-client-id`, and
+   requests reach your `apiUrl`. If you registered session replay, click on the
+   page. A `POST` to `/replay` follows within a few seconds.
 4. Turn measurement off again and save. c15t reloads the page, and the new
-   page starts with `disabled` set to `true`.
+   page sends no request to `cdn.databuddy.cc` or `basket.databuddy.cc`.
 
 See the [consent verification guide](/docs/guides/verify-consent) for
 navigation and hosting checks.
