@@ -97,6 +97,50 @@ const refused = (code: string) =>
 const accepted = ({ subjectId }: { subjectId: string }) =>
 	Promise.resolve({ ok: true, subjectId });
 
+/** A queued save payload that passes every shape check. */
+const queuedPayload = {
+	choice: {
+		categories: {
+			marketing: {
+				basis: { fingerprint: 'fp', kind: 'choice-v1' },
+				confirmedAt: 1_700_000_000_000,
+				value: true,
+			},
+		},
+		version: 3,
+	},
+	confirmed: {
+		actionAt: 1_700_000_000_000,
+		categories: { marketing: true },
+	},
+	consentAction: 'custom',
+	consents: { marketing: true, necessary: true },
+	givenAt: 1_700_000_000_000,
+	model: 'opt-out',
+	overrides: {},
+	policySnapshotToken: 'snap-1',
+	subject: { subjectId: 'sub_valid' },
+	subjectId: 'sub_valid',
+	tcString: null,
+	uiSource: 'dialog',
+	user: {
+		externalId: 'user-1',
+		externalIdType: 'email',
+		identityProvider: 'auth0',
+		properties: { plan: 'pro', seats: 3, trial: false },
+	},
+};
+/** Wraps a payload as a raw queue entry, valid or not. */
+const queuedEntry = (
+	payload: unknown,
+	extra: Record<string, unknown> = {}
+) => ({
+	attempts: 0,
+	payload,
+	queuedAt: Date.now(),
+	...extra,
+});
+
 describe('save outbox: queue and replay', () => {
 	test('a new runtime replays a choice whose request never settled', async () => {
 		const firstSend = vi.fn(
@@ -396,79 +440,59 @@ describe('save outbox: queue and replay', () => {
 	});
 
 	test('drops malformed queue entries before replay', async () => {
-		const validPayload = {
-			choice: {
-				categories: {
-					marketing: {
-						basis: { fingerprint: 'fp', kind: 'choice-v1' },
-						confirmedAt: 1_700_000_000_000,
-						value: true,
-					},
-				},
-				version: 3,
-			},
-			confirmed: {
-				actionAt: 1_700_000_000_000,
-				categories: { marketing: true },
-			},
-			consentAction: 'custom',
-			consents: { marketing: true, necessary: true },
-			givenAt: 1_700_000_000_000,
-			model: 'opt-out',
-			overrides: {},
-			policySnapshotToken: 'snap-1',
-			subject: { subjectId: 'sub_valid' },
-			subjectId: 'sub_valid',
-			tcString: null,
-			uiSource: 'dialog',
-			user: {
-				externalId: 'user-1',
-				externalIdType: 'email',
-				identityProvider: 'auth0',
-				properties: { plan: 'pro', seats: 3, trial: false },
-			},
-		};
-		const entry = (payload: unknown, extra: Record<string, unknown> = {}) => ({
-			attempts: 0,
-			payload,
-			queuedAt: Date.now(),
-			...extra,
-		});
 		await editQueue(() => [
-			entry(validPayload),
+			queuedEntry(queuedPayload),
 			'not an entry',
-			entry(null),
-			entry({ ...validPayload, model: 'weird', subjectId: 'sub_model' }),
-			entry({ ...validPayload, subjectId: 'sub_ui', uiSource: 'popup' }),
-			entry({ ...validPayload, consentAction: 'x', subjectId: 'sub_action' }),
-			entry({
-				...validPayload,
+			queuedEntry(null),
+			queuedEntry({ ...queuedPayload, model: 'weird', subjectId: 'sub_model' }),
+			queuedEntry({ ...queuedPayload, subjectId: 'sub_ui', uiSource: 'popup' }),
+			queuedEntry({
+				...queuedPayload,
+				consentAction: 'x',
+				subjectId: 'sub_action',
+			}),
+			queuedEntry({
+				...queuedPayload,
 				consents: { a: 1 },
 				subjectId: 'sub_consents',
 			}),
-			entry({ ...validPayload, overrides: [], subjectId: 'sub_overrides' }),
-			entry({ ...validPayload, subjectId: 'sub_user', user: { id: 1 } }),
-			entry({
-				...validPayload,
+			queuedEntry({
+				...queuedPayload,
+				overrides: [],
+				subjectId: 'sub_overrides',
+			}),
+			queuedEntry({ ...queuedPayload, subjectId: 'sub_user', user: { id: 1 } }),
+			queuedEntry({
+				...queuedPayload,
 				subjectId: 'sub_user_type',
 				user: { externalId: 'u', externalIdType: 7 },
 			}),
-			entry({
-				...validPayload,
+			queuedEntry({
+				...queuedPayload,
 				subjectId: 'sub_user_props',
 				user: { externalId: 'u', properties: { nested: {} } },
 			}),
-			entry({ ...validPayload, givenAt: 'yesterday', subjectId: 'sub_given' }),
-			entry({
-				...validPayload,
+			queuedEntry({
+				...queuedPayload,
+				givenAt: 'yesterday',
+				subjectId: 'sub_given',
+			}),
+			queuedEntry({
+				...queuedPayload,
 				policySnapshotToken: 1,
 				subjectId: 'sub_token',
 			}),
-			entry({ ...validPayload, subjectId: 'sub_tc', tcString: 5 }),
-			entry({ ...validPayload, addtlConsent: 5, subjectId: 'sub_ac' }),
-			entry({ ...validPayload, subjectId: 42 }),
-			entry({ ...validPayload, subjectId: 'sub_queued' }, { queuedAt: -1 }),
-			entry({ ...validPayload, subjectId: 'sub_attempts' }, { attempts: 1.5 }),
+			queuedEntry({ ...queuedPayload, subjectId: 'sub_tc', tcString: 5 }),
+			queuedEntry({ ...queuedPayload, addtlConsent: 5, subjectId: 'sub_ac' }),
+			queuedEntry({ ...queuedPayload, subjectId: 42 }),
+			queuedEntry(
+				{ ...queuedPayload, subjectId: 'sub_queued' },
+				{ queuedAt: -1 }
+			),
+			queuedEntry(
+				{ ...queuedPayload, subjectId: 'sub_attempts' },
+				{ attempts: 1.5 }
+			),
 		]);
 		const saveSpy = vi.fn().mockResolvedValue({ ok: true });
 		const kernel = kernelOn({
@@ -481,7 +505,28 @@ describe('save outbox: queue and replay', () => {
 		});
 
 		expect(saveSpy).toHaveBeenCalledTimes(1);
-		expect(saveSpy).toHaveBeenCalledWith(validPayload, { replay: true });
+		expect(saveSpy).toHaveBeenCalledWith(queuedPayload, { replay: true });
+		kernel.dispose();
+	});
+
+	test('replays a queued choice without a script list it cannot read', async () => {
+		await editQueue(() => [
+			queuedEntry({
+				...queuedPayload,
+				scripts: [{ category: 'advertising', id: 'ads' }],
+			}),
+		]);
+		const saveSpy = vi.fn().mockResolvedValue({ ok: true });
+		const kernel = kernelOn({
+			transport: { init: vi.fn().mockResolvedValue({}), save: saveSpy },
+		});
+
+		await kernel.commands.init();
+		await vi.waitFor(async () => {
+			expect(await queued()).toEqual([]);
+		});
+
+		expect(saveSpy).toHaveBeenCalledWith(queuedPayload, { replay: true });
 		kernel.dispose();
 	});
 

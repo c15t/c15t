@@ -81,6 +81,15 @@ const readPolicyContract = function readPolicyContract(
  * everything else comes from the manifest, which is why the manifest can be
  * cached per tenant and this cannot.
  */
+/**
+ * Global Privacy Control from request headers. The application override
+ * `x-c15t-gpc` wins over the browser's `sec-gpc`. The signal is not a
+ * preference: the spec defines '1' as the only affirmative value, so
+ * anything else is absence rather than a false.
+ */
+export const readGpcHeader = (headers: Headers): boolean =>
+	(headers.get('x-c15t-gpc') ?? headers.get('sec-gpc')) === '1';
+
 export const readInitSignals = function readInitSignals(
 	headers: Headers
 ): InitRequestSignals {
@@ -92,10 +101,7 @@ export const readInitSignals = function readInitSignals(
 		// the shape that serves the configured scope. A consent surface that
 		// answers is worth more than one that reports a bad request.
 		declaredVendorIds: parseVendorScopeHeader(headers.get(VENDOR_SCOPE_HEADER)),
-		// Global Privacy Control is a signal, not a preference: the spec
-		// defines '1' as the only affirmative value, so anything else is
-		// absence rather than a false.
-		gpc: (headers.get('x-c15t-gpc') ?? headers.get('sec-gpc')) === '1',
+		gpc: readGpcHeader(headers),
 
 		// Matches 2.x: the raw header, defaulted to 'en'. Narrowing to a
 		// primary subtag happens downstream in the resolver, not here.

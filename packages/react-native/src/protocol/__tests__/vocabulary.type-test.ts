@@ -112,13 +112,16 @@ expectTypeOf<KernelTranslations>().toEqualTypeOf<KernelTranslationsType>();
 // and this type did not is a write the backend reads as absent, with nothing failing
 // on either side of the bridge.
 //
-// `journey` is the one kernel field that is not part of it. The browser runtime adds
+// `journey` is one of two kernel fields that are not part of it. The browser runtime adds
 // it as a live save leaves and sends it as query parameters, never in the body; a
 // queued save is stored without it and a replay sends none. A native queue that
 // replays verbatim therefore matches the kernel without it, and the phone has no
 // browser journey to send.
+//
+// `scripts` lists what the browser script loader had configured. A native app has
+// no script loader, so its saves never carry one.
 expectTypeOf<Wire<NativeSavePayload>>().toEqualTypeOf<
-	Wire<Omit<KernelSavePayload, 'journey'>>
+	Wire<Omit<KernelSavePayload, 'journey' | 'scripts'>>
 >();
 expectTypeOf<KernelUser>().toEqualTypeOf<KernelUserType>();
 

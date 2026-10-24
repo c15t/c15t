@@ -51,6 +51,14 @@ export {
 } from './choice-wire';
 
 export {
+	MAX_SUBJECT_SCRIPTS,
+	type SubjectScriptWire,
+	type SubjectScriptsWire,
+	subjectScriptWireSchema,
+	subjectScriptsWireSchema,
+} from './scripts-wire';
+
+export {
 	type VendorChoiceWire,
 	vendorChoiceWireSchema,
 } from './vendor-choice-wire';

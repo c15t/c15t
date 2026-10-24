@@ -37,6 +37,8 @@
  *   hides the change from other listeners. A commit's follow-up event is
  *   delivered before any transition a listener starts in response.
  */
+import { mergeSaveScripts } from '../libs/save-scripts';
+import type { SaveScript } from '../libs/save-scripts';
 import type { ConsentKernel, KernelConfig } from '../types';
 import { createChoiceRecorder } from './choice';
 import { createDispatcher } from './dispatch';
@@ -124,10 +126,12 @@ export const createKernel = function createKernel(
 		start: lifecycle.start,
 		transport,
 	});
+	const saveScripts = new Map<symbol, readonly SaveScript[]>();
 	const choice = createChoiceRecorder({
 		initialDraft: buildDraft(config.initialDraft),
 		outbox,
 		runtime,
+		scripts: () => mergeSaveScripts(saveScripts.values()),
 	});
 
 	return {
@@ -137,6 +141,13 @@ export const createKernel = function createKernel(
 			identify: records.identify,
 			init: lifecycle.init,
 			save: choice.save,
+		},
+		declareSaveScripts: (source, scripts) => {
+			if (scripts.length > 0) {
+				saveScripts.set(source, scripts);
+			} else {
+				saveScripts.delete(source);
+			}
 		},
 		dispose: lifecycle.dispose,
 		events: {

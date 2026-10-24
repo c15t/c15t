@@ -7,6 +7,8 @@
  * 3. `evaluateConsent` picks IAB when model==='iab' AND target has IAB fields,
  *    otherwise falls back to category-based has.
  */
+import { satisfiesCategoryCondition } from '@c15t/schema';
+import type { VendorCategoryCondition } from '@c15t/schema';
 import { describe, expect, test } from 'vitest';
 
 import { choiceRecords } from '../../__tests__/fixtures/kernel-fixtures';
@@ -72,6 +74,46 @@ describe('has() — v2 semantics preserved', () => {
 				consents
 			)
 		).toBe(true);
+	});
+});
+
+describe('has() — agrees with the backend evaluator', () => {
+	// The backend records which scripts a consent allowed with
+	// `satisfiesCategoryCondition` from @c15t/schema. A drift between the two
+	// would store answers the browser never gave.
+	const conditions: VendorCategoryCondition[] = [
+		'measurement',
+		{ and: 'marketing' },
+		{ and: ['marketing', 'measurement'] },
+		{ or: ['functionality', { not: 'experience' }] },
+		{ not: { and: ['measurement', { or: 'marketing' }] } },
+	];
+	const optional = [
+		'experience',
+		'functionality',
+		'marketing',
+		'measurement',
+	] as const;
+
+	type Permissions = Record<(typeof optional)[number] | 'necessary', boolean>;
+	const combinations = optional.reduce<Permissions[]>(
+		(partial, category) =>
+			partial.flatMap((consents) => [
+				{ ...consents, [category]: false },
+				{ ...consents, [category]: true },
+			]),
+		[{ necessary: true } as Permissions]
+	);
+
+	test('on every condition and permission combination', () => {
+		expect(combinations).toHaveLength(2 ** optional.length);
+		for (const consents of combinations) {
+			for (const condition of conditions) {
+				expect(has(condition, consents), JSON.stringify(condition)).toBe(
+					satisfiesCategoryCondition(condition, consents)
+				);
+			}
+		}
 	});
 });
 

@@ -195,6 +195,56 @@ Retrying the same act with a different map is a `CONFLICT`, like a retry with
 different receipts, and so is any retry against a stored map that cannot be
 read. Migration `4-vendor-choice` adds the column.
 
+When the page registers scripts with the script loader, a save also carries
+`scripts`: one entry per configured script, whether or not the choice let it
+load. Each entry holds the fields that decide whether the script may run:
+`id`, `category`, `vendor`, `vendorId`, the IAB purpose and special feature
+lists, and the `alwaysLoad`, `callbackOnly` and `persistAfterConsentRevoked`
+flags. No source URL or inline code is sent. An entry leaves out `vendor`
+when the browser ignores the visitor's denial of that vendor because it is
+declared `disabled` or not declared at all, even though `vendorChoice` still
+carries the denial. The list leaves out network
+blocker rules and iframes, and a save sent before the script loader starts
+has none.
+
+The backend stores the list in the consent row's `scripts` column, or `null`
+when the save has none, and drops keys it does not know. It adds `allowed` to
+each entry: whether the consent permitted the script to load, worked out with
+the same rules the browser's script loader uses. It applies the resolved
+policy's scope and defaults, the submitted preferences, vendor grants, and
+Global Privacy Control. The browser sends the GPC value the visitor acted
+under as `gpc` in the body, so a retried save is judged by that value. Without
+it, the backend reads the request's `Sec-GPC` header. `allowed` is
+permission, not proof of execution: an allowed script can still fail to load.
+Under an `iab` policy, entries with IAB TCF fields have no `allowed`, because
+their gate reads the TC string. An entry also has no `allowed` when the answer
+depends on an earlier grant in `preferences` that this save's `choice` did not
+confirm: the browser ignores a grant whose receipt has expired or belongs to an
+older policy, and the backend only sees this save's receipts. An earlier
+refusal and a vendor the subject turned off always count, because the browser
+applies them either way. Without a resolved policy, only an explicit grant
+allows a category.
+
+A retry with a different list is not a `CONFLICT`: the list describes the
+page, not the decision, so the row keeps the first one. `GET /subjects/:id`
+does not return it. Migration `10-consent-scripts` adds the column.
+
+To count the consents that allowed PostHog on Postgres:
+
+```sql
+select count(*)
+from consent
+where exists (
+  select 1
+  from json_array_elements(consent.scripts) as script
+  where script->>'id' = 'posthog'
+    and script->>'allowed' = 'true'
+);
+```
+
+A list can hold the same `id` more than once when the page configured it with
+different gating, so the query checks each consent once.
+
 ### Late saves
 
 A browser that can't deliver a save keeps it and sends it again on the next

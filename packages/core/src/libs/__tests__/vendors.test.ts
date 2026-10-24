@@ -4,9 +4,11 @@ import { describe, expect, test, vi } from 'vitest';
 import { choiceRecords, NOW } from '../../__tests__/fixtures/kernel-fixtures';
 import { createConsentKernel } from '../../kernel';
 import type { ResolvedVendor } from '../../types';
+import { isValidVendorId as isSaveVendorId } from '../vendor-id';
 import {
 	declareOwnedVendors,
 	forgetOwnedVendors,
+	isValidVendorId,
 	mergeDeclaredVendors,
 	resolveVendors,
 	vendorRenders,
@@ -768,4 +770,25 @@ test('vendorRenders is false for a slug-only or negated declaration', () => {
 	expect(
 		vendorRenders({ ...base, category: { or: ['marketing', 'measurement'] } })
 	).toBe(true);
+});
+
+test('the save path accepts the same vendor slugs as declaration', () => {
+	const samples = [
+		'posthog',
+		'meta-pixel',
+		'a.b_c-9',
+		'0',
+		'a'.repeat(64),
+		'a'.repeat(65),
+		'',
+		'-lead',
+		'.lead',
+		'Upper',
+		'has space',
+		'café',
+		'slash/y',
+	];
+	for (const sample of samples) {
+		expect(isSaveVendorId(sample), sample).toBe(isValidVendorId(sample));
+	}
 });

@@ -51,6 +51,52 @@ export const vendorCategoryConditionSchema: v.GenericSchema<VendorCategoryCondit
 	);
 
 /**
+ * Whether a category condition holds for a set of permissions.
+ *
+ * Same semantics as core's `has`: `and` needs every branch, `or` needs one,
+ * `not` inverts, and a single condition stands in for a one-item list. The
+ * condition must already have passed {@link vendorCategoryConditionSchema},
+ * which rejects unknown categories and empty lists.
+ *
+ * @param condition - Validated category condition
+ * @param permissions - Permission for every consent category
+ * @returns True when the permissions satisfy the condition
+ *
+ * @example
+ * ```ts
+ * satisfiesCategoryCondition(
+ *   { and: ['measurement', { not: 'marketing' }] },
+ *   { necessary: true, functionality: false, measurement: true, experience: false, marketing: false }
+ * ); // true
+ * ```
+ */
+export const satisfiesCategoryCondition = (
+	condition: VendorCategoryCondition,
+	permissions: Readonly<Record<PolicyConsentCategory, boolean>>
+): boolean => {
+	if (typeof condition === 'string') {
+		return permissions[condition];
+	}
+	if ('and' in condition) {
+		const branches = Array.isArray(condition.and)
+			? condition.and
+			: [condition.and];
+		return branches.every((branch) =>
+			satisfiesCategoryCondition(branch, permissions)
+		);
+	}
+	if ('or' in condition) {
+		const branches = Array.isArray(condition.or)
+			? condition.or
+			: [condition.or];
+		return branches.some((branch) =>
+			satisfiesCategoryCondition(branch, permissions)
+		);
+	}
+	return !satisfiesCategoryCondition(condition.not, permissions);
+};
+
+/**
  * Stable vendor identifier. Lowercase slug so it survives cookies, URLs and
  * `data-vendor` attributes without escaping.
  */

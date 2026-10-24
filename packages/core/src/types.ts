@@ -40,6 +40,7 @@ import type { RecordIssue } from './consent-record/validation';
 import type { AllConsentNames } from './consent/consent-types';
 import type { ExperimentAssignment, ExperimentGate } from './libs/experiment';
 import type { HasCondition } from './libs/has';
+import type { SaveScript } from './libs/save-scripts';
 import type { VendorDetails } from './libs/script-loader/types';
 import type { PublisherRestriction } from './options/iab-tcf';
 
@@ -715,6 +716,12 @@ export interface SavePayload {
 		confirmedAt: number;
 		grants: Readonly<Record<string, boolean>>;
 	};
+	/**
+	 * Gating fields of every script the page's script loaders had configured
+	 * when the visitor acted, whether or not the action let them load.
+	 * Absent when no loader had declared a script.
+	 */
+	scripts?: readonly SaveScript[];
 }
 
 /**

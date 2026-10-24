@@ -146,6 +146,7 @@ for (const [name, makeConfig] of CONFIGS) {
 					'7-optional-decision-jurisdiction',
 					'8-verified-external-id',
 					'9-additional-consent',
+					'10-consent-scripts',
 				]);
 
 				const applied = await migrator.apply();

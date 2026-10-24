@@ -31,6 +31,8 @@ import type { ExperimentAssignment } from '../libs/experiment';
 import { generateSubjectId } from '../libs/generate-subject-id';
 import { extractConsentNamesFromCondition, has } from '../libs/has';
 import type { HasCondition } from '../libs/has';
+import { withHonoredVendors } from '../libs/save-scripts';
+import type { SaveScript } from '../libs/save-scripts';
 import { presentedSelection, scopeSelection } from '../policy';
 import type { PresentedSelection } from '../policy';
 import type {
@@ -825,6 +827,8 @@ export interface ChoiceRecorderOptions {
 	outbox: Pick<SaveOutbox, 'send'>;
 	/** Draft values staged by config. */
 	initialDraft: PresentedSelection | null;
+	/** The scripts the page has configured, or `undefined` when none. */
+	scripts?: () => SaveScript[] | undefined;
 }
 
 /**
@@ -836,6 +840,7 @@ export const createChoiceRecorder = function createChoiceRecorder({
 	runtime,
 	outbox,
 	initialDraft,
+	scripts,
 }: ChoiceRecorderOptions) {
 	const { batch, getSnapshot, commit, emit } = runtime;
 	const draft = createBoundDraft<PresentedSelection>(getSnapshot, initialDraft);
@@ -1035,6 +1040,9 @@ export const createChoiceRecorder = function createChoiceRecorder({
 			}
 			applyNoticeAcknowledgement(patch, before, actionAt);
 			applySaveAuthority(patch, before, context?.iabAuthority);
+			// Read before listeners run: one could reconfigure the loader in
+			// response, and the save records what the visitor acted on.
+			const configuredScripts = scripts?.();
 			// Listeners run when the batch closes, after this action's events
 			// are queued: `after` and the events carry this action's snapshot
 			// even when a listener records another choice in response.
@@ -1112,6 +1120,9 @@ export const createChoiceRecorder = function createChoiceRecorder({
 			const addtlConsent = after.iab?.authority?.addtlConsent;
 			if (payload.tcString && addtlConsent) {
 				payload.addtlConsent = addtlConsent;
+			}
+			if (configuredScripts) {
+				payload.scripts = withHonoredVendors(configuredScripts, after);
 			}
 
 			const result = await outbox.send(payload, {

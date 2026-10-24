@@ -67,14 +67,17 @@ import { baseTranslations } from '@c15t/translations/all';
 import { Effect } from 'effect';
 import * as v from 'valibot';
 
+import type { RecordedScript } from '../repository/consent';
 import type { DecisionInput } from '../repository/runtime-policy-decision';
 import {
 	BadRequestError,
 	PolicySnapshotError,
 	StalePolicyError,
 } from './errors';
+import { readGpcHeader } from './init';
 import { verifyPolicySnapshotToken } from './policy-snapshot';
 import type { PolicySnapshotOptions } from './policy-snapshot';
+import { recordScriptPermissions } from './script-permissions';
 
 /** The largest epoch millisecond value `Date` can represent. */
 const MAX_DATE_MS = 8_640_000_000_000_000;
@@ -137,6 +140,8 @@ export interface PreparedSubmission {
 	readonly choiceFromPreferences: boolean;
 	/** Per-vendor grants this act carried, stored as sent. */
 	readonly vendorChoice: VendorChoiceWire | undefined;
+	/** Scripts the page had configured, each stamped with `allowed`. */
+	readonly scripts: readonly RecordedScript[] | undefined;
 	/** Granted codes after scope filtering, for `purposeIds`. */
 	readonly grantedCodes: readonly string[];
 	/** The preference map after scope filtering, echoed to the client. */
@@ -867,6 +872,26 @@ export const prepareSubmission = Effect.fn('submission.prepare')(
 			decision,
 			input.model ?? input.jurisdictionModel
 		);
+		const scripts =
+			cookieBanner?.scripts &&
+			recordScriptPermissions(cookieBanner.scripts, {
+				confirmed:
+					choice && !choiceFromPreferences
+						? new Set(
+								Object.entries(choice.categories)
+									.filter(([, receipt]) => receipt)
+									.map(([category]) => category)
+							)
+						: undefined,
+				// The signal the visitor acted under. Manifest-mode saves assert it
+				// as a decision input, and token-backed saves send it with
+				// `scripts` so a replay is not judged by the header at replay time.
+				gpc: cookieBanner.gpc ?? readGpcHeader(context.headers),
+				model,
+				preferences: appliedPreferences,
+				rule: decision?.rule,
+				vendorGrants: vendorChoice?.grants,
+			});
 		const validityMs = choiceValidityMs(decision);
 		const proof = proofFields(decision, context, input.metadata);
 
@@ -883,6 +908,7 @@ export const prepareSubmission = Effect.fn('submission.prepare')(
 			ipAddress: proof.ipAddress,
 			jurisdictionModel: model,
 			metadata: proof.metadata,
+			scripts,
 			userAgent: proof.userAgent,
 			validUntil:
 				validityMs === undefined

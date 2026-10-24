@@ -2,9 +2,10 @@
  * Upgrading a @c15t/backend 3.0 database to 3.1, on every engine.
  *
  * Starts from a database exactly as the 3.0 migrator left it, with an IAB
- * consent already recorded, then runs the 3.1 migrator. It must apply only
- * migration 9, keep the 3.0 consent as it was, and leave a database a 3.1
- * app can store Additional Consent strings in.
+ * consent already recorded, then runs the current migrator. It must apply
+ * only the migrations after 8, keep the 3.0 consent as it was, and leave a
+ * database the app can store Additional Consent strings and configured
+ * scripts in.
  */
 
 import type { PolicyRule } from '@c15t/schema';
@@ -118,7 +119,7 @@ for (const engine of ENGINES) {
 			runtime = undefined;
 		});
 
-		it('applies only migration 9 and keeps 3.0 consents', async () => {
+		it('applies only migrations 9 and 10 and keeps 3.0 consents', async () => {
 			runtime = ManagedRuntime.make(engine.client);
 			const report = await runtime.runPromise(
 				Effect.gen(function* upgrade() {
@@ -131,7 +132,10 @@ for (const engine of ENGINES) {
 			assert.isUndefined(report.blocked);
 			assert.strictEqual(report['shape']._tag, 'Baseline');
 			assert.deepStrictEqual(report.adoption, []);
-			assert.deepStrictEqual(report.pending, ['9-additional-consent']);
+			assert.deepStrictEqual(report.pending, [
+				'9-additional-consent',
+				'10-consent-scripts',
+			]);
 			assert.deepStrictEqual(report.drift, []);
 			assert.deepStrictEqual(
 				await runtime.runPromise(ledgerIds),

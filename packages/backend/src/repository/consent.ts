@@ -30,6 +30,7 @@ import { buildConsentId, vendorChoiceWireSchema } from '@c15t/schema';
 import type {
 	ConsentSubmissionIdentity,
 	SubjectChoiceWire,
+	SubjectScriptWire,
 	VendorChoiceWire,
 } from '@c15t/schema';
 import { Data, Effect } from 'effect';
@@ -42,6 +43,16 @@ import { currentTenantId } from '../db/tenant';
 import type { Tenant, TenantRow } from '../db/tenant';
 import { encoder } from '../db/values';
 import { isLegacyJsonEnvelope, unwrapLegacyJson } from './subject-choice';
+
+/**
+ * One configured script as `consent.scripts` stores it: the wire entry plus
+ * `allowed`, whether the recorded consent permitted it to load. `allowed`
+ * is absent when the backend could not tell, such as for IAB TCF scripts
+ * under an `iab` policy.
+ */
+export type RecordedScript = SubjectScriptWire & {
+	readonly allowed?: boolean;
+};
 
 /** A consent to record. The tenant comes from the `Tenant` scope. */
 export interface ConsentSubmission extends Omit<
@@ -80,6 +91,13 @@ export interface ConsentSubmission extends Omit<
 	 * `2~89.486~dv.2572`. Null without a TC string.
 	 */
 	readonly addtlConsent?: string | null;
+	/**
+	 * Gating fields of every script the page had configured, in wire form,
+	 * each stamped with whether this consent allowed it. Not compared on a
+	 * replay: it describes the page rather than the visitor's decision, so
+	 * the row keeps the list it was first recorded with.
+	 */
+	readonly scripts?: readonly RecordedScript[] | null;
 	readonly uiSource?: string | null;
 	readonly consentAction?: string | null;
 	readonly validUntil?: Date | null;
@@ -423,13 +441,14 @@ export const assertSameSubmission = Effect.fn('consent.assertSameSubmission')(
 	}
 );
 
+/** A JSON column's value: the serialized field, or SQL NULL when absent. */
+const jsonOrNull = (value: unknown): string | null =>
+	value === undefined || value === null ? null : JSON.stringify(value);
+
 /** The column values one submission writes, absent fields as SQL NULL. */
 const rowValues = (id: string, submission: ConsentSubmission): TenantRow => ({
 	addtlConsent: submission.addtlConsent ?? null,
-	choice:
-		submission.choice === undefined || submission.choice === null
-			? null
-			: JSON.stringify(submission.choice),
+	choice: jsonOrNull(submission.choice),
 	consentAction: submission.consentAction ?? null,
 	domainId: submission.domainId,
 	experimentArm: submission.experimentArm ?? null,
@@ -447,16 +466,14 @@ const rowValues = (id: string, submission: ConsentSubmission): TenantRow => ({
 	policyId: submission.policyId ?? null,
 	purposeIds: JSON.stringify(submission.purposeIds),
 	runtimePolicySource: submission.runtimePolicySource ?? null,
+	scripts: jsonOrNull(submission.scripts),
 	subjectId: submission.subjectId,
 	tcString: submission.tcString ?? null,
 	timeToDecisionMs: submission.timeToDecisionMs ?? null,
 	uiSource: submission.uiSource ?? null,
 	userAgent: submission.userAgent ?? null,
 	validUntil: submission.validUntil ?? null,
-	vendorChoice:
-		submission.vendorChoice === undefined || submission.vendorChoice === null
-			? null
-			: JSON.stringify(submission.vendorChoice),
+	vendorChoice: jsonOrNull(submission.vendorChoice),
 });
 
 export const record = Effect.fn('consent.record')(function* record(
