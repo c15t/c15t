@@ -72,7 +72,7 @@ A choice in the browser does not prove that the backend saved a consent record. 
 
 When a visitor changes a choice, each c15t component that reads the consent state gets the change. Preference controls and gated content use the same state. Use the supplied interface, or build your own with [headless APIs](/docs/frameworks/react/headless).
 
-In Next.js, you can [choose how consent resolves](/docs/frameworks/next/rendering). The default streamed path of the App Router shows the page first. It sends the banner in a later chunk, before hydration. An awaited path sends the page and the banner together.
+In Next.js, you can [choose how consent resolves](/docs/frameworks/next/rendering). The default streamed path of the App Router shows the page first. It sends the banner in a later chunk, before hydration. An awaited path puts the banner in the server HTML. The page content then streams in a later chunk, after consent resolves.
 
 CookieConsent runs only in the browser. Its React example starts it in an effect, after the page renders.
 
