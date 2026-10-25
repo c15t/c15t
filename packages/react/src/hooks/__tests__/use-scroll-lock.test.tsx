@@ -278,17 +278,23 @@ describe('useScrollLock', () => {
 			);
 			expect(measure()).toEqual(before);
 		});
-		test.each(['1', '2'])(
-			'reports the padded width so fixed elements can stay still at zoom %s',
-			async (zoom) => {
+		test.each([
+			['html', '1'],
+			['html', '2'],
+			['body', '2'],
+		] as const)(
+			'reports the padded width so fixed elements can stay still with %s zoom %s',
+			async (zoomed, zoom) => {
 				// Without `scrollbar-gutter`, the lock always pads <body>, on every
-				// platform. Zoom scales the padding it sets, so it must not count
+				// platform. Zoom scales the lengths it sets, so they must not count
 				// the scrollbar twice.
 				vi.spyOn(CSS, 'supports').mockReturnValue(false);
-				document.documentElement.style.zoom = zoom;
+				const element =
+					zoomed === 'html' ? document.documentElement : document.body;
+				element.style.zoom = zoom;
 				onTestFinished(() => {
 					vi.restoreAllMocks();
-					document.documentElement.style.removeProperty('zoom');
+					element.style.removeProperty('zoom');
 				});
 				const screen = await render(
 					<Page

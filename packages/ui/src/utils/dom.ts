@@ -290,10 +290,12 @@ export const setupScrollLock = function setupScrollLock() {
 			setStyle(element, 'overflow', 'hidden', ['overflow-x', 'overflow-y']);
 		};
 		// The viewport widened by `gap`. Padding keeps in-flow content still;
-		// the variable lets the page move its own fixed elements back.
+		// the variable lets the page move its own fixed elements back. Both
+		// use <body>'s zoom, which the fixed elements inside it share.
 		const fillGap = (gap: number) => {
-			setStyle(body, 'padding-right', `${toCSSPixels(body, gap)}px`);
-			setStyle(root, '--c15t-scroll-lock-gap', `${toCSSPixels(root, gap)}px`);
+			const width = `${toCSSPixels(body, gap)}px`;
+			setStyle(body, 'padding-right', width);
+			setStyle(root, '--c15t-scroll-lock-gap', width);
 		};
 
 		// While <html> has visible overflow, <body>'s overflow is what the
