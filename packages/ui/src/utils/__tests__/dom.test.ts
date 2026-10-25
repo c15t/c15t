@@ -292,6 +292,8 @@ describe('setupScrollLock', () => {
 		const cleanup = setupScrollLock();
 		expect(root.style.scrollbarGutter).toBe('stable');
 		expect(body.style.paddingRight).toBe('10px');
+		// Fixed elements stay still, so there is no gap to report.
+		expect(root.style.getPropertyValue('--c15t-scroll-lock-gap')).toBe('');
 		cleanup();
 		expect(root.style.scrollbarGutter).toBe('');
 	});
@@ -333,6 +335,18 @@ describe('setupScrollLock', () => {
 		expect(root.style.scrollbarGutter).toBe('');
 		cleanup();
 		expect(body.style.paddingRight).toBe('10px');
+	});
+
+	test('reports the padded width as --c15t-scroll-lock-gap until release', () => {
+		showRootScrollbar(15);
+		root.style.setProperty('--c15t-scroll-lock-gap', '4px');
+		const first = setupScrollLock();
+		const second = setupScrollLock();
+		expect(root.style.getPropertyValue('--c15t-scroll-lock-gap')).toBe('15px');
+		first();
+		expect(root.style.getPropertyValue('--c15t-scroll-lock-gap')).toBe('15px');
+		second();
+		expect(root.style.getPropertyValue('--c15t-scroll-lock-gap')).toBe('4px');
 	});
 });
 
