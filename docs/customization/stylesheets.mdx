@@ -265,8 +265,10 @@ the same width. Add it to the right offset of your fixed elements:
 }
 ```
 
-When the lock needs no padding, and when no lock is held, the variable is
-unset and the `0px` fallback applies.
+The lock sets the variable only while it pads `<body>`. When the last lock
+releases, `<html>` gets back any `--c15t-scroll-lock-gap` value it had before,
+so the `0px` fallback applies only on pages that don't set the variable
+themselves.
 
 ## Check the result
 
