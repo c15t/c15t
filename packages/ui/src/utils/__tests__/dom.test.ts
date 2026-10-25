@@ -236,6 +236,7 @@ describe('setupScrollLock', () => {
 		pageStyle = null;
 		Reflect.deleteProperty(root, 'clientWidth');
 		vi.unstubAllGlobals();
+		vi.restoreAllMocks();
 	});
 
 	test('hides body overflow when it controls the viewport, and restores it', () => {
@@ -325,6 +326,23 @@ describe('setupScrollLock', () => {
 		const cleanup = setupScrollLock();
 		expect(root.style.scrollbarGutter).toBe('');
 		cleanup();
+	});
+
+	test('pads body by the width the page gained when the gutter does not hold', () => {
+		supportScrollbarGutter();
+		showRootScrollbar(15);
+		// A scrollbar styled with `::-webkit-scrollbar` on macOS Chromium: the
+		// gutter reserves nothing, so the page is wider once overflow is hidden.
+		const rootWidth = (width: number) => ({ width }) as DOMRect;
+		vi.spyOn(root, 'getBoundingClientRect')
+			.mockReturnValueOnce(rootWidth(1000))
+			.mockReturnValue(rootWidth(1015));
+		const cleanup = setupScrollLock();
+		expect(body.style.paddingRight).toBe('15px');
+		expect(root.style.getPropertyValue('--c15t-scroll-lock-gap')).toBe('15px');
+		cleanup();
+		expect(body.style.paddingRight).toBe('');
+		expect(root.style.getPropertyValue('--c15t-scroll-lock-gap')).toBe('');
 	});
 
 	test('pads body by the scrollbar width without scrollbar-gutter support', () => {

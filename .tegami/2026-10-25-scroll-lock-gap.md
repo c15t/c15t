@@ -20,3 +20,7 @@ to the same width. Use it to keep your fixed elements still:
   right: calc(1rem + var(--c15t-scroll-lock-gap, 0px));
 }
 ```
+
+The padding and the variable now also account for CSS `zoom` on the page.
+Before, `html { zoom: 2 }` doubled the padding, so page content moved left by
+the scrollbar's width while the lock held.

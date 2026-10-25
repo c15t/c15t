@@ -212,6 +212,13 @@ const supportsScrollbarGutter = (): boolean =>
 	CSS.supports('scrollbar-gutter', 'stable');
 
 /**
+ * Converts a width measured in viewport pixels into a length for `element`'s
+ * own styles, which CSS `zoom` on it or an ancestor scales again.
+ */
+const toCSSPixels = (element: HTMLElement, width: number): number =>
+	width / (element.currentCSSZoom || 1);
+
+/**
  * Locks document scrolling.
  *
  * Hides overflow on whichever element scrolls the page: `<body>` when its
@@ -285,8 +292,8 @@ export const setupScrollLock = function setupScrollLock() {
 		// The viewport widened by `gap`. Padding keeps in-flow content still;
 		// the variable lets the page move its own fixed elements back.
 		const fillGap = (gap: number) => {
-			setStyle(body, 'padding-right', `${gap}px`);
-			setStyle(root, '--c15t-scroll-lock-gap', `${gap}px`);
+			setStyle(body, 'padding-right', `${toCSSPixels(body, gap)}px`);
+			setStyle(root, '--c15t-scroll-lock-gap', `${toCSSPixels(root, gap)}px`);
 		};
 
 		// While <html> has visible overflow, <body>'s overflow is what the

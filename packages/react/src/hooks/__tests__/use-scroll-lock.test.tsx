@@ -278,40 +278,46 @@ describe('useScrollLock', () => {
 			);
 			expect(measure()).toEqual(before);
 		});
-		test('reports the padded width so fixed elements can stay still', async () => {
-			// Without `scrollbar-gutter`, the lock always pads <body>, on every
-			// platform.
-			vi.spyOn(CSS, 'supports').mockReturnValue(false);
-			onTestFinished(() => {
-				vi.restoreAllMocks();
-			});
-			const screen = await render(
-				<Page
-					locked={false}
-					styledScrollbar
-				/>
-			);
-			const before = measure();
+		test.each(['1', '2'])(
+			'reports the padded width so fixed elements can stay still at zoom %s',
+			async (zoom) => {
+				// Without `scrollbar-gutter`, the lock always pads <body>, on every
+				// platform. Zoom scales the padding it sets, so it must not count
+				// the scrollbar twice.
+				vi.spyOn(CSS, 'supports').mockReturnValue(false);
+				document.documentElement.style.zoom = zoom;
+				onTestFinished(() => {
+					vi.restoreAllMocks();
+					document.documentElement.style.removeProperty('zoom');
+				});
+				const screen = await render(
+					<Page
+						locked={false}
+						styledScrollbar
+					/>
+				);
+				const before = measure();
 
-			await screen.rerender(
-				<Page
-					locked
-					styledScrollbar
-				/>
-			);
-			const locked = measure();
-			expect(locked.fixedRight).toBeGreaterThan(before.fixedRight);
-			expect(locked.fixedOffsetRight).toBe(before.fixedOffsetRight);
-			expect(locked.flowRight).toBe(before.flowRight);
+				await screen.rerender(
+					<Page
+						locked
+						styledScrollbar
+					/>
+				);
+				const locked = measure();
+				expect(locked.fixedRight).toBeGreaterThan(before.fixedRight);
+				expect(locked.fixedOffsetRight).toBe(before.fixedOffsetRight);
+				expect(locked.flowRight).toBe(before.flowRight);
 
-			await screen.rerender(
-				<Page
-					locked={false}
-					styledScrollbar
-				/>
-			);
-			expect(measure()).toEqual(before);
-		});
+				await screen.rerender(
+					<Page
+						locked={false}
+						styledScrollbar
+					/>
+				);
+				expect(measure()).toEqual(before);
+			}
+		);
 	});
 
 	describe('Scrolling', () => {
