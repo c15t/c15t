@@ -64,7 +64,9 @@ You do not need to design a consent record system. Inth runs the [c15t backend](
 
 CookieConsent's consent logging guide says that it has no built-in API. Your team must build the endpoint, the storage and a way to read the records back.
 
-c15t applies the visitor's choice in the browser before the backend confirms it. c15t retries a failed submission until it reaches a retry limit or an expiry limit. The [consent state guide](/docs/concepts/consent-state) gives these conditions.
+c15t applies the visitor's choice in the browser before the backend confirms it. c15t keeps each choice in a queue in browser storage. If the page closes before the backend answers, c15t sends the choice again on the next page. A permanent rejection, such as a stale policy, removes the choice from the queue. If browser storage is unavailable, c15t cannot keep an interrupted request for the next page.
+
+A choice in the browser does not prove that the backend saved a consent record. Check the saved record in Inth. The [consent state guide](/docs/concepts/consent-state) gives all of these conditions.
 
 ## Fit consent to the application
 
@@ -86,7 +88,7 @@ The library is free, with an MIT licence. The parts that it leaves out are not f
 
 ### Is CookieConsent v3 a CMP?
 
-No. Its documentation says that it is not a CMP and does not support IAB TCF. c15t supports TCF 2.4 with the [`@c15t/iab` add-on](/docs/self-host/guides/iab-tcf). IAB Europe lists Consent Management Inc., the company behind Inth, as a CMP with ID 490.
+No. Its documentation says that it is not a CMP and does not support IAB TCF. c15t supports TCF 2.4 with the [`@c15t/iab` add-on](/docs/self-host/guides/iab-tcf). IAB Europe lists Consent Management Inc., the company behind Inth, as a CMP with ID 490. IAB Europe registration is separate from Google's CMP certification.
 
 ### Does CookieConsent v3 work with React and Next.js?
 

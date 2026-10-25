@@ -63,7 +63,9 @@ You do not need to design a consent record system. Inth runs the [c15t backend](
 
 Silktide saves choices in the visitor's browser storage. It documents no record service. If you need proof of consent, your team must build the endpoint and the storage.
 
-c15t applies the visitor's choice in the browser before the backend confirms it. c15t retries a failed submission until it reaches a retry limit or an expiry limit. The [consent state guide](/docs/concepts/consent-state) gives these conditions.
+c15t applies the visitor's choice in the browser before the backend confirms it. c15t keeps each choice in a queue in browser storage. If the page closes before the backend answers, c15t sends the choice again on the next page. A permanent rejection, such as a stale policy, removes the choice from the queue. If browser storage is unavailable, c15t cannot keep an interrupted request for the next page.
+
+A choice in the browser does not prove that the backend saved a consent record. Check the saved record in Inth. The [consent state guide](/docs/concepts/consent-state) gives all of these conditions.
 
 ## Fit consent to the application
 
@@ -85,7 +87,7 @@ Not on a server. Silktide saves choices in the visitor's browser storage and doc
 
 ### Does Silktide Consent Manager support IAB TCF?
 
-Silktide documents no IAB TCF support. Its source has no TCF API. c15t supports TCF 2.4 with the [`@c15t/iab` add-on](/docs/self-host/guides/iab-tcf). IAB Europe lists Consent Management Inc., the company behind Inth, as a CMP with ID 490.
+Silktide documents no IAB TCF support. Its source has no TCF API. c15t supports TCF 2.4 with the [`@c15t/iab` add-on](/docs/self-host/guides/iab-tcf). IAB Europe lists Consent Management Inc., the company behind Inth, as a CMP with ID 490. IAB Europe registration is separate from Google's CMP certification.
 
 ### Does Silktide Consent Manager support Google Consent Mode v2?
 
