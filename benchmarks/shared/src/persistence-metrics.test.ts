@@ -4,6 +4,10 @@ import { policyRulePresets, resolvePolicyRules } from '@c15t/schema/types';
 /** @vitest-environment jsdom */
 import { afterEach, expect, it, vi } from 'vitest';
 
+import { reactBrowserBudgetsForScenario } from './budgets';
+import { evaluateBudget } from './reporting';
+import { summarizeMetric } from './utils';
+
 afterEach(() => {
 	localStorage.clear();
 	vi.useRealTimers();
@@ -56,6 +60,23 @@ it('measures the real cookie projections and hydrates without writes', async () 
 			cookieValueBytes: bytes,
 		})
 	);
+	const budget = reactBrowserBudgetsForScenario('policy-notice').find(
+		(entry) => entry.metric === 'c15tCookieBytes'
+	);
+	expect.assert(budget);
+	const headerBytes = new TextEncoder().encode(cookies.join('; ')).length;
+	expect(
+		evaluateBudget(
+			budget,
+			summarizeMetric('c15tCookieBytes', 'bytes', [headerBytes])
+		).pass
+	).toBe(true);
+	expect(
+		evaluateBudget(
+			budget,
+			summarizeMetric('c15tCookieBytes', 'bytes', [budget.threshold + 1])
+		).pass
+	).toBe(false);
 	const repeated = createConsentKernel({ initialPolicyResolution: resolution });
 	const repeatedPersistence = createPersistence({
 		kernel: repeated,
