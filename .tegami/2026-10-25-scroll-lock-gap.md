@@ -21,6 +21,7 @@ to the same width. Use it to keep your fixed elements still:
 }
 ```
 
-The padding and the variable now also account for CSS `zoom` on the page.
-Before, `html { zoom: 2 }` doubled the padding, so page content moved left by
-the scrollbar's width while the lock held.
+The padding and the variable now also account for CSS `zoom` on `<html>` or
+`<body>`, in browsers with `Element.currentCSSZoom`. Before, `html { zoom: 2 }`
+doubled the padding, so page content moved left by the scrollbar's width while
+the lock held. Browsers without `currentCSSZoom` behave as before.
