@@ -5,6 +5,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import {
+	clearAllScripts,
 	deniedConsents,
 	grantedMeasurementConsents,
 	installHeadProbe,
@@ -32,12 +33,14 @@ const isReplayLoader = function isReplayLoader(
  * when appended, and the replay stub records every `stop()` call.
  */
 const probeDatabuddyScripts = function probeDatabuddyScripts() {
+	const loaderScripts: HTMLScriptElement[] = [];
 	const replayScripts: HTMLScriptElement[] = [];
 	const stop = vi.fn(() => {
 		delete (window as TestWindow).databuddyReplay;
 	});
 	installHeadProbe((node, win) => {
 		if (isDatabuddyLoader(node)) {
+			loaderScripts.push(node);
 			win.databuddy = { options: {} };
 			node.dispatchEvent(new Event('load'));
 		}
@@ -46,7 +49,7 @@ const probeDatabuddyScripts = function probeDatabuddyScripts() {
 			win.databuddyReplay = { stop };
 		}
 	});
-	return { replayScripts, stop };
+	return { loaderScripts, replayScripts, stop };
 };
 
 describe('databuddy contract', () => {
@@ -312,5 +315,52 @@ describe('databuddy contract', () => {
 		expect(stop).toHaveBeenCalledTimes(1);
 		expect(replayScripts[0]?.isConnected).toBe(false);
 		expect(win.databuddy?.options.disabled).toBe(true);
+	});
+
+	it('stops replay.js when its loader is disposed', () => {
+		const { replayScripts, stop } = probeDatabuddyScripts();
+
+		loadScripts(
+			[databuddy({ clientId: 'db-dispose', replay: true })],
+			grantedMeasurementConsents
+		);
+		expect(replayScripts[0]?.isConnected).toBe(true);
+
+		clearAllScripts();
+
+		expect(stop).toHaveBeenCalledTimes(1);
+		expect(replayScripts[0]?.isConnected).toBe(false);
+	});
+
+	it('stops replay.js when the replay option is turned off', () => {
+		const { replayScripts, stop } = probeDatabuddyScripts();
+
+		loadScripts(
+			[databuddy({ clientId: 'db-toggle', replay: true })],
+			grantedMeasurementConsents
+		);
+		updateScripts(
+			[databuddy({ clientId: 'db-toggle' })],
+			grantedMeasurementConsents
+		);
+
+		expect(stop).toHaveBeenCalledTimes(1);
+		expect(replayScripts[0]?.isConnected).toBe(false);
+	});
+
+	it('keeps both scripts running when equal options are passed again', () => {
+		const { loaderScripts, replayScripts, stop } = probeDatabuddyScripts();
+		const options = { clientId: 'db-rerender', replay: { maskText: false } };
+
+		loadScripts([databuddy(options)], grantedMeasurementConsents);
+		updateScripts(
+			[databuddy({ ...options, replay: { maskText: false } })],
+			grantedMeasurementConsents
+		);
+
+		expect(loaderScripts).toHaveLength(1);
+		expect(replayScripts).toHaveLength(1);
+		expect(replayScripts[0]?.isConnected).toBe(true);
+		expect(stop).not.toHaveBeenCalled();
 	});
 });
