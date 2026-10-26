@@ -1,0 +1,120 @@
+---
+title: Zendesk Messaging
+description: Load the Zendesk Messaging Web Widget after functionality consent, map measurement consent to its cookie ranges and clear widget storage on revocation.
+seoTitle: Zendesk Messaging cookie consent with c15t
+seoDescription: Gate Zendesk Messaging on functionality consent. Map measurement consent to analytics storage and send Zendesk's none range when consent is withdrawn.
+icon: messages-square
+group: integrations
+---
+
+Zendesk Messaging adds the Zendesk support chat widget to your site. The c15t
+`zendeskWidget` helper waits for `functionality` consent before it creates
+Zendesk's globals or requests the widget. Before the widget loads, it tells
+Zendesk which storage to use: functional storage only, or analytics storage as
+well when `measurement` is allowed.
+
+On withdrawal, the helper tells Zendesk to hide the widget and delete its local
+and session storage, and c15t reloads the page by default.
+
+This helper covers Zendesk Messaging. Web Widget Classic uses a different API.
+
+## Configure Zendesk Messaging
+
+In **Admin Center > Channels > Messaging and social > Messaging**, select your
+widget and open **Installation**. Copy the widget key from its code snippet.
+Then remove the Zendesk snippet from your page or tag manager.
+
+<CommandTabs command="@c15t/integrations" mode="install" />
+
+<include src="../shared/examples/javascript/zendesk-scripts.mdx" />
+
+<include src="../shared/integrations/register-scripts.mdx" />
+
+## Options
+
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `key` | Required | Public Messaging widget key. Trimmed and URL-encoded. If it's missing or blank, c15t logs `zendeskWidget: missing or invalid key` and never loads the widget. |
+| `category` | `functionality` | c15t consent category or condition needed to load the widget. Measurement consent still controls analytics storage. |
+
+## Loading and revocation
+
+When the consent condition passes, the helper creates Zendesk's `zE` command
+queue (also exposed as `zEmbed`) and loads
+`https://static.zdassets.com/ekr/snippet.js?key=<key>`. Before the loader runs,
+and again on each consent change, it queues
+`zE('messenger:set', 'cookies', range)`:
+
+| Mapped consent | Measurement consent | Zendesk range |
+| --- | --- | --- |
+| Granted | Granted | `all` |
+| Granted | Denied | `functional` |
+| Denied after loading | Either | `none` |
+
+With `functional`, Zendesk turns off the analytics behind Pages viewed and
+Proactive messages analytics. With `none`, Zendesk hides the widget and deletes
+its local and session storage. These effects come from Zendesk's
+[Set cookies API](https://developer.zendesk.com/api-reference/widget-messaging/web/core/#set-cookies).
+Turning off the visitor's Zendesk vendor switch counts as denied, so it also
+sends `none`.
+
+c15t removes the loader on revocation. The `none` call doesn't unload the SDK or
+stop every request in progress. Keep `reloadOnConsentRevoked` enabled to stop
+code already running on the page. If the visitor grants consent again before
+the reload, c15t inserts a new loader and the helper sends the current range.
+
+### Several helpers and one widget key
+
+Helper calls with the same key and consent condition share one script. If you
+recreate the helper on each render, its loader and consent updates stay active.
+If several registrations share that configuration, the widget stays available
+while any of them has consent. `all` needs measurement consent from every
+granted registration.
+
+Use one widget key per page. Zendesk exposes a single global `zE` API, so two
+widgets on the same page control each other. Different keys get separate
+loaders, but that doesn't separate Zendesk's global API.
+
+### Removing the helper
+
+Removing the helper from your configuration, or unmounting its provider,
+releases that registration. When the last registration goes, c15t removes the
+loader but keeps the conversation and storage. It doesn't send `none` or unload
+code that already ran, and later consent changes no longer reach the widget.
+Revoke consent first, or reload the page, when you need the widget stopped and
+its storage cleared.
+
+## Cookies and storage
+
+Zendesk's [in-product cookie policy](https://support.zendesk.com/hc/en-us/articles/4408824378650-Zendesk-In-Product-Cookie-Policy)
+lists these entries for the Web Widget. Check your own widget configuration for
+other product storage.
+
+| Name | Zendesk category | Lifetime |
+| --- | --- | --- |
+| `<integrationId>.appUserId`, `<integrationId>.clientId`, `<integrationId>.sessionToken` | Essential | Local or session storage, subject to the browser's policy |
+| `ZD-suid` | Analytics | 20 minutes |
+| `ZD-buid` | Analytics | Forever |
+| `ZD-widgetOpen`, `ZD-launcherLabelRemoved` | Functionality | Forever |
+| `ZD-soundNotificationDisabledKey`, `ZD-campaigns`, `<integrationId>.conversationStartedAt` | Functionality | Subject to the browser's policy |
+
+## Verify Zendesk Messaging
+
+Filter Network by `zdassets.com` and your Zendesk subdomain. Before consent,
+no Zendesk loader request appears and `window.zE` is undefined, as long as you
+removed other Zendesk installations.
+
+Grant functionality without measurement and check that the widget's analytics
+storage stays off. Grant measurement while the widget is open, then withdraw
+it, and check that the widget stays available with analytics off.
+
+Revoke functionality and check that Zendesk hides the widget. After c15t
+reloads, the loader stays absent. A successful response for `snippet.js` alone
+doesn't prove your widget key or Messaging setup works. Open a conversation in
+your widget to check that.
+
+Sources: [install and show the Web Widget](https://developer.zendesk.com/documentation/zendesk-web-widget-sdks/sdks/web/messaging-show-web-widget/),
+[Messaging core API](https://developer.zendesk.com/api-reference/widget-messaging/web/core/),
+and [Zendesk privacy notice](https://www.zendesk.com/company/agreements-and-terms/privacy-notice/).
+
+<include src="../shared/integrations/vendor-revocation-and-verify.mdx" />

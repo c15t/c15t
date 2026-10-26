@@ -101,3 +101,8 @@ links land on the framework list. Do not mention React Native, Expo or
 | `/docs/cli/global-flags` | `/docs/cli/commands/setup#options` | Hosted setup moved to the Inth CLI; its options live on the `inth c15t` page |
 | `/docs/cli/commands/hosted` | `/docs/cli/commands/setup` | Hosted setup moved to the Inth CLI as `inth c15t` |
 | `/docs/cli/commands/boilerplate` | `/docs/cli/commands/setup#what-scaffold-writes` | Quickstart files are written by `inth c15t scaffold` |
+| `/docs/integrations/other-analytics` | `/docs/integrations/overview#analytics` | Split back into vendor guides: `lucky-orange`, `pendo`, `rb2b` and `statable-analytics` |
+| `/docs/integrations/other-experience` | `/docs/integrations/overview#experimentation-and-personalization` | Split back into vendor guides: `adobe-target`, `appcues`, `dynamic-yield`, `optimizely` and `wisepops` |
+| `/docs/integrations/other-chat-and-support` | `/docs/integrations/overview#chat-and-support` | Split back into vendor guides: `ada`, `gorgias` and `zendesk` |
+| `/docs/integrations/other-email-and-sms` | `/docs/integrations/overview#email-and-sms` | Split back into vendor guides: `attentive`, `customer-io`, `insider`, `marketo` and `salesforce-pardot` |
+| `/docs/integrations/other-ads-and-pixels` | `/docs/integrations/overview#ads-and-pixels` | Split back into vendor guides: `adroll`, `liveintent`, `the-trade-desk` and `vector` |
