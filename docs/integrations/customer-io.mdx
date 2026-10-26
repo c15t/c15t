@@ -1,0 +1,115 @@
+---
+title: Customer.io
+description: Load Customer.io Data Pipelines only after marketing consent with the c15t customerIo helper, set up a proxy, and check withdrawal.
+seoTitle: Customer.io cookie consent with c15t
+seoDescription: Load Customer.io only with marketing consent. Set your write key, region and proxy, and reset identity on withdrawal with c15t.
+icon: chart-line
+group: integrations
+---
+
+Customer.io collects events and visitor identity on your site through its
+Data Pipelines JavaScript source, for use in its messaging. The c15t
+`customerIo` helper waits for `marketing` consent before it creates the
+`cioanalytics` global or downloads the SDK.
+
+When the visitor withdraws, the helper calls `cioanalytics.reset()` to clear
+the stored identity, and c15t reloads the page. `reset()` is not an opt-out.
+The reload is what stops the SDK.
+
+## Configure Customer.io
+
+Create a JavaScript source in Customer.io Data Pipelines and copy its write
+key. Note the region of your workspace. Then remove the original Customer.io
+snippet from your site, so that c15t controls when it loads.
+
+<CommandTabs command="@c15t/integrations" mode="install" />
+
+<include src="../shared/examples/javascript/customer-io-configuration.mdx" />
+
+<include src="../shared/integrations/register-scripts.mdx" />
+
+## Options
+
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `writeKey` | Required | Write key of your Data Pipelines JavaScript source. Whitespace is trimmed. If it's missing or blank, c15t logs an error and never loads Customer.io. |
+| `region` | `us` | `us` uses `cdp.customer.io`. `eu` uses `cdp-eu.customer.io`. Any other value throws `customerIo: region must be 'us' or 'eu'`. |
+| `loadOptions` | Unset | Options for the Customer.io loader, such as destination settings. The helper always sets `initialPageview` to `false`, even if you pass `true`. |
+| `category` | `marketing` | Consent condition for the whole loader. |
+| `cdnUrl` | Region's HTTPS origin | Origin for the loader, source settings and SDK files. See [Use a proxy](#use-a-proxy). Blank values use the regional default. |
+| `scriptUrl` | `<cdnUrl>/v1/analytics-js/snippet/<writeKey>/analytics.min.js` | Overrides only the initial loader URL. Blank values use the default. |
+
+## Use a proxy
+
+Set `cdnUrl` to your proxy's HTTP(S) origin. The helper trims whitespace and
+trailing slashes. Any path, query, fragment or credentials, or a value without
+a scheme, throws `customerIo: cdnUrl must be an HTTP(S) origin`. `cdnUrl` sets
+`cioanalytics._cdn` as well as the default loader URL, so source settings and
+SDK files come from your proxy too. The proxy must keep Customer.io's paths and
+forward to the source's regional host. A `scriptUrl` override alone doesn't
+change where the SDK loads its files from.
+
+`cdnUrl` doesn't move collected events. To proxy Data Pipelines events, set
+`apiHost` for the `Customer.io Data Pipelines` integration in `loadOptions` to
+your collection proxy host plus `/v1`, without a scheme, and set `protocol` to
+`https`:
+
+<include src="../shared/examples/javascript/customer-io-proxy.mdx" />
+
+Replace both example domains with your own proxies. Neither option redirects
+traffic that destinations send themselves. Configure each destination
+separately where it supports a proxy.
+
+## Loading and revocation
+
+After consent, the helper creates Customer.io's array queue and method stubs,
+sets `_writeKey`, `_cdn` and `_loadOptions`, and loads the SDK. The script
+element carries the namespace attribute Customer.io requires. If the page
+already has a loaded `cioanalytics`, the helper keeps it.
+
+The helper sends the first `page()` call itself, once the SDK has loaded and
+consent is still granted, and again on each new grant after that. That's why
+it forces `initialPageview` to `false`. It copies `loadOptions`, so your object
+stays unchanged. It doesn't wait for `ready()`, because a destination can fail
+to initialize and some destinations need `page()` before they can start. A
+revoked or disposed loader doesn't send a pending first page view.
+
+While the SDK downloads, each method stub returns the same `cioanalytics`
+queue. Calls such as `cioanalytics.identify('customer-123').track('Signed up')`
+queue both calls in order. `cioanalytics` is undefined before consent, so
+check marketing consent before your own code calls it.
+
+On withdrawal, the helper calls `reset()` to clear identity. That doesn't stop
+the SDK, its retries or destination SDKs from sending, so keep
+`reloadOnConsentRevoked` enabled. The SDK loads once per page. A new grant on
+the same page reuses it instead of adding another copy. On the next page,
+while marketing is denied, the helper creates no queue and makes no vendor
+requests.
+
+## Cookies and storage
+
+Customer.io can use analytics identity cookies and `localStorage` keys
+including `ack`, `reclaimStart`, `reclaimEnd`, `inProgress` and `queue`.
+Destinations can add storage of their own. `reset()` doesn't erase all
+destination data.
+
+## Verify Customer.io
+
+Filter the Network panel by `customer.io`, or by your proxy's domain. Before
+consent, and after you allow an unrelated category, check that there is no
+snippet request, no `cioanalytics` global and no vendor cookies or browser
+storage. Allow marketing and check that the SDK initialized. Withdraw marketing
+and confirm the page reloads and the next page stays quiet. A 200 JSON response
+for an invalid write key doesn't prove the SDK initialized.
+
+With a proxy, check that the snippet, `/v1/projects/<writeKey>/settings` and
+the SDK files come from the CDN proxy. Check event collection separately
+against the `apiHost` you set. A successful load doesn't prove that events
+reach your workspace or destinations.
+
+Sources: Customer.io's [JavaScript source](https://docs.customer.io/cdp/sources/connections/javascript/js-source/),
+[in-app snippet](https://docs.customer.io/integrations/data-in/connections/javascript/in-app/),
+[proxy setup](https://docs.customer.io/integrations/data-in/connections/javascript/js-source-proxy/)
+and [utility methods](https://docs.customer.io/integrations/data-in/connections/javascript/utility-methods/).
+
+<include src="../shared/integrations/vendor-revocation-and-verify.mdx" />

@@ -192,26 +192,22 @@ test('integration navigation covers every vendor helper, both embeds and Shopify
 		'ads-and-pixels',
 		'commerce',
 	]);
-	// Newer vendors share an "Other" page, named by their registry docsSlug.
-	const docsSlugs = new Map(
-		builtInScriptIntegrations.map((entry) => [
-			entry.packageSubpath,
-			entry.docsSlug,
-		])
-	);
 	const vendors = Object.entries(scriptsPackage.exports)
 		.filter(([, entry]) => entry.types.includes('/vendors/'))
-		.map(([subpath]) => subpath.slice(2))
-		.map((subpath) => docsSlugs.get(subpath) ?? subpath);
+		.map(([subpath]) => subpath.slice(2));
+	// Every vendor helper has its own guide, and the registry links to it.
+	expect(
+		builtInScriptIntegrations
+			.filter((entry) => vendors.includes(entry.packageSubpath))
+			.filter((entry) => entry.docsSlug !== entry.packageSubpath)
+	).toEqual([]);
 	const expectedRoutes = [
-		...new Set([
-			...vendors,
-			'google-maps',
-			'youtube',
-			'shopify',
-			'overview',
-			'building-integrations',
-		]),
+		...vendors,
+		'google-maps',
+		'youtube',
+		'shopify',
+		'overview',
+		'building-integrations',
 	].map((slug) => `/docs/integrations/${slug}`);
 	const pages = [
 		...(integrations?.pages ?? []),

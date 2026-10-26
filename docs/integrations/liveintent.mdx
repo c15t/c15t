@@ -1,0 +1,90 @@
+---
+title: LiveIntent
+description: Load LiveIntent with c15t after marketing consent and verify its loader, storage and revocation behavior.
+seoTitle: LiveIntent consent with c15t
+seoDescription: Load LiveIntent's LiveConnect tag only after marketing consent. Learn what liveIntentTag queues, which storage it sets and how to verify it.
+icon: radar
+group: integrations
+---
+
+LiveIntent's LiveConnect tag identifies visitors for people-based ad targeting
+and measurement. The c15t `liveIntentTag` helper waits until the `marketing`
+category is allowed before it creates the `liQ` queue and adds your account's
+tag.
+
+LiveConnect has no API to stop it. When the visitor withdraws, the helper
+leaves the tag on the page, and c15t's default page reload removes it.
+
+## Configure LiveIntent
+
+Copy the tag ID from your account's LiveConnect base tag. Use the filename
+without `.min.js`. Don't test with the public `a-00xx` tag from LiveIntent's
+examples. It's live production code, not a sandbox or a default for your
+account. Then delete the direct base tag and any tag manager copy, so they
+can't load LiveConnect without consent.
+
+<CommandTabs command="@c15t/integrations" mode="install" />
+
+<include src="../shared/examples/javascript/liveintent-scripts.mdx" />
+
+<include src="../shared/integrations/register-scripts.mdx" />
+
+## Options
+
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `tagId` | Required | Public tag ID, trimmed and URL-encoded into the filename. If it's missing or blank, c15t logs an error and never loads the tag. |
+| `events` | None | Plain event objects, such as `{ event: 'conversion', name: 'purchase' }`, queued once on the first grant. Use the fields from your account's event tags. Strings, including `{{...}}`, stay literal event data. |
+| `scriptUrl` | `https://b-code.liadm.com/<tagId>.min.js` | Loader URL override. A blank value uses the default. |
+
+## Loading and revocation
+
+When `marketing` is allowed, the helper sets `window.liQ` to an empty array,
+pushes any `events` onto it in order, then adds one async loader. If your page
+already defines `liQ`, the helper keeps it and pushes the events onto it. Once
+it loads, LiveConnect replaces the array with its own client.
+
+For later events, call `window.liQ.push` with a plain event object, and only
+while marketing and any vendor consent stay granted. A function queue or
+method-and-arguments tuples don't match LiveConnect's event format.
+
+Where GDPR applies, LiveIntent documents further TCF requirements, along with
+GPP and legacy US privacy signals. c15t's marketing category doesn't replace a
+TC string. Zeta's guide names purposes 1 to 4, but the public example bundle
+served during testing required more purposes and special features. Confirm
+your account's production tag and requirements with LiveIntent. Don't request
+extra purposes just to satisfy the public example.
+
+LiveIntent documents no stop or withdrawal command for the full runtime. On
+withdrawal, the helper keeps the loader element and sends no withdrawal event.
+Keep c15t's default `reloadOnConsentRevoked` enabled. With reload disabled,
+existing clients, listeners and sync frames can keep running until the visitor
+navigates. If the visitor grants consent again on the same page, the helper
+reuses the loader and doesn't push `events` a second time.
+
+## Cookies and storage
+
+The served code writes the `_lc2_fpi`, `_lc2_fpi_js`, `_li_dcdm_c`, `_li_ss`
+and `lidids.*` cookies, and `_li_duid` and `_li_ss` in local storage. Some
+cookies request lifetimes up to 730 days, which browsers can shorten. Partner
+and account settings can add storage.
+
+For CSP, the main hosts are `b-code.liadm.com`, `idx.liadm.com`,
+`rp.liadm.com`, `rpr.liadm.com` and `i.liadm.com`.
+
+## Verify LiveIntent
+
+In a fresh browser profile, deny consent and allow only an unrelated category.
+Filter Network by `liadm.com` and confirm that no requests, globals, cookies,
+local storage or session storage appear. Grant `marketing` and check the loader
+URL against your account's base tag. Withdraw consent and confirm the page
+reloads. LiveIntent must stay blocked on the new page. Check storage in
+DevTools as well as Network.
+
+Sources: [base tag guide](https://support.liveintent.com/liveconnect-implementation-guide/),
+[Shopify tag example](https://support.liveintent.com/shopify-liveconnect-implementation/),
+[event tags](https://support.liveintent.com/liveconnect-event-tags/),
+[privacy requirements](https://knowledgebase.zetaglobal.com/gswz/privacy-with-liveintent)
+and [services privacy policy](https://www.liveintent.com/privacy-policy/).
+
+<include src="../shared/integrations/vendor-revocation-and-verify.mdx" />
