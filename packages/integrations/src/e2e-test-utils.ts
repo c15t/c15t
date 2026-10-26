@@ -347,6 +347,7 @@ export const resetVendorGlobals = function resetVendorGlobals() {
 		'DY',
 		'databuddy',
 		'databuddyConfig',
+		'databuddyReplay',
 		'fbq',
 		'google_tag_data',
 		'gtag',

@@ -132,7 +132,7 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 - [Cloudflare Zaraz](./integrations/cloudflare-zaraz.md): Sync c15t permissions to Cloudflare Zaraz purposes with the c15t cloudflareZaraz bridge, which runs on every page without loading a script, and check the tools it controls.
 - [Crisp](./integrations/crisp.md): Load the Crisp chat widget only after functionality consent with the c15t crisp helper, pass its runtime settings and check it in DevTools.
 - [Customer.io](./integrations/customer-io.md): Load Customer.io Data Pipelines only after marketing consent with the c15t customerIo helper, set up a proxy, and check withdrawal.
-- [Databuddy](./integrations/databuddy.md): Load Databuddy only after measurement consent with the c15t databuddy helper, turn off tracking features you do not use, gate session replay, and check revocation in DevTools.
+- [Databuddy](./integrations/databuddy.md): Load Databuddy only after measurement consent with the c15t databuddy helper, turn off tracking features you do not use, record sessions with the replay option, and check revocation in DevTools.
 - [Dynamic Yield](./integrations/dynamic-yield.md): Load Dynamic Yield personalization scripts after experience consent, set the page context and synchronize Active Cookie Consent with c15t.
 - [Fathom Analytics](./integrations/fathom-analytics.md): Load Fathom Analytics only after measurement consent with the c15t fathomAnalytics helper, set its SPA mode, and check it in DevTools.
 - [Front Chat](./integrations/front-chat.md): Load the Front Chat widget only after functionality consent with the c15t frontChat helper, forward CSP nonces, clear the session on revocation and check it in DevTools.

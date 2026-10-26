@@ -1,9 +1,10 @@
-import type { Script } from '@c15t/core';
+import type { Script, ScriptCallbackInfo } from '@c15t/core';
 
 import { resolveManifest } from '../../resolve';
 import { vendorManifestContract } from '../../types';
 import type { SetGlobalPathStep, VendorManifest } from '../../types';
 import { readId, skipMissingId } from '../_shared/required-id';
+import { createScriptReuse } from '../_shared/reuse-script';
 import { resolveScriptUrl } from '../_shared/script-url';
 
 declare global {
@@ -30,6 +31,10 @@ declare global {
 			clientId?: string;
 			apiUrl?: string;
 			[key: string]: unknown;
+		};
+		/** Set by `replay.js` once it runs. */
+		databuddyReplay?: {
+			stop: () => void;
 		};
 	}
 }
@@ -68,9 +73,8 @@ const enableConfig = {
  *
  * Databuddy loads only with measurement consent. On revocation the manifest
  * sets `options.disabled`, which stops the main tracker, and disables the
- * config a script still downloading will read. Other Databuddy
- * scripts, such as `replay.js`, ignore it and stop when c15t reloads the
- * page after the revocation.
+ * config a script still downloading will read. `replay.js` ignores that flag,
+ * so the helper's `replay` option stops it separately.
  * Config is seeded via `window.databuddyConfig` before the script loads.
  */
 export const databuddyManifest = {
@@ -210,6 +214,15 @@ export interface DatabuddyConsentOptions {
 	features?: DatabuddyFeatures;
 
 	/**
+	 * Loads Databuddy's session replay recorder, `replay.js`, while
+	 * measurement is granted. `true` keeps Databuddy's replay defaults. On
+	 * revocation the helper stops the recorder and removes its script.
+	 *
+	 * @default false
+	 */
+	replay?: boolean | DatabuddyReplayOptions;
+
+	/**
 	 * Databuddy config object to seed when consent is granted at load time.
 	 * c15t sets its `disabled` key from consent. The default carries the
 	 * client ID and API URL, for when Databuddy cannot read them from its
@@ -266,6 +279,36 @@ export interface DatabuddyFeatures {
 }
 
 /**
+ * Databuddy session replay settings. Each one sets a `data-*` attribute on
+ * `replay.js`. An unset setting leaves Databuddy's own default.
+ */
+export interface DatabuddyReplayOptions {
+	/**
+	 * Masks page text in recordings. Set `false` to record it, only on pages
+	 * that show no personal data. Typed input stays masked either way. Sets `data-mask-text`. Databuddy masks text by
+	 * default.
+	 *
+	 * @default undefined
+	 */
+	maskText?: boolean;
+
+	/**
+	 * Records your own embedded pages into the parent page's recording. Set it
+	 * on the framed page too. Sets `data-record-iframes`. Databuddy turns this
+	 * off by default.
+	 *
+	 * @default undefined
+	 */
+	recordIframes?: boolean;
+
+	/**
+	 * The Databuddy replay script URL.
+	 * @default 'https://cdn.databuddy.cc/replay.js'
+	 */
+	scriptUrl?: string;
+}
+
+/**
  * Maps a feature switch to its `data-*` attribute value. `undefined` drops
  * the attribute from the script.
  */
@@ -275,52 +318,64 @@ const featureAttribute = function featureAttribute(
 	return enabled === undefined ? undefined : String(enabled);
 };
 
+interface ReplaySettings {
+	apiUrl: string;
+	clientId: string;
+	maskText: boolean | undefined;
+	recordIframes: boolean | undefined;
+	scriptUrl: string;
+}
+
 /**
- * Loads the Databuddy script once measurement consent is granted and manages
- * consent state declaratively via the manifest runtime.
- *
- * On revocation, the helper sets `window.databuddy.options.disabled` to
- * `true`, which stops the main tracker. Databuddy's `replay.js` ignores that
- * flag; it stops when c15t reloads the page after the revocation, which is
- * the default. With `loadMode: 'always'`, the script loads before consent
- * and the same flag keeps the tracker from sending until measurement is
- * granted.
- *
- * @param options - Configuration for the Databuddy consent script
- * @returns The Databuddy script configuration object for c15t's script loader
- * @remarks When `clientId` is missing or blank, the
- *   helper logs `databuddy: missing or invalid clientId` with
- *   `console.error` and returns a script that never loads.
- *
- * @example
- * ```ts
- * import { createConsentKernel } from 'c15t';
- * import { createScriptLoader } from 'c15t/modules/script-loader';
- * import { databuddy } from '@c15t/integrations/databuddy';
- *
- * const kernel = createConsentKernel();
- * const loader = createScriptLoader({
- *   kernel,
- *   scripts: [
- *     databuddy({
- *       clientId: 'db_1234567890abcdef',
- *       features: { interactions: false, webVitals: true },
- *     }),
- *   ],
- * });
- * ```
+ * Starts and stops `replay.js` from consent. The recorder is a separate
+ * script that ignores `options.disabled`, so revocation calls its own
+ * `stop()`. A removed `<script>` that finishes downloading does not start,
+ * because `replay.js` checks that it is still in the document.
  */
-export const databuddy = function databuddy(
+const createReplayLoader = function createReplayLoader(
+	settings: ReplaySettings
+) {
+	let element: HTMLScriptElement | undefined;
+
+	return {
+		start(info: ScriptCallbackInfo) {
+			if (window.databuddyReplay || element?.isConnected) {
+				return;
+			}
+			element = document.createElement('script');
+			element.async = true;
+			element.src = settings.scriptUrl;
+			element.setAttribute('crossorigin', 'anonymous');
+			element.setAttribute('data-api-url', settings.apiUrl);
+			element.setAttribute('data-client-id', settings.clientId);
+			const maskText = featureAttribute(settings.maskText);
+			if (maskText !== undefined) {
+				element.setAttribute('data-mask-text', maskText);
+			}
+			const recordIframes = featureAttribute(settings.recordIframes);
+			if (recordIframes !== undefined) {
+				element.setAttribute('data-record-iframes', recordIframes);
+			}
+			if (info.element?.nonce) {
+				element.nonce = info.element.nonce;
+			}
+			document.head.appendChild(element);
+		},
+		stop() {
+			element?.remove();
+			element = undefined;
+			// Core may dispose a loader created during server rendering.
+			if (typeof window !== 'undefined') {
+				window.databuddyReplay?.stop();
+			}
+		},
+	};
+};
+
+const createDatabuddyScript = function createDatabuddyScript(
 	options: DatabuddyConsentOptions
 ): Script {
-	const clientId = readId(options.clientId);
-	if (clientId === undefined) {
-		return skipMissingId('databuddy', 'clientId', {
-			category: 'measurement',
-			manifest: databuddyManifest,
-		});
-	}
-
+	const { clientId } = options;
 	const apiUrl = options.apiUrl ?? 'https://basket.databuddy.cc';
 	const features = options.features ?? {};
 	const manifest =
@@ -328,7 +383,7 @@ export const databuddy = function databuddy(
 			? databuddyAlwaysLoadManifest
 			: databuddyManifest;
 
-	return resolveManifest(manifest, {
+	const script = resolveManifest(manifest, {
 		apiUrl,
 		clientId,
 		configWhenDenied: options.configWhenDenied ?? {
@@ -350,4 +405,102 @@ export const databuddy = function databuddy(
 		trackOutgoingLinks: featureAttribute(features.outgoingLinks),
 		trackWebVitals: featureAttribute(features.webVitals),
 	});
+	if (!options.replay) {
+		return script;
+	}
+
+	const replayOptions = options.replay === true ? {} : options.replay;
+	const replay = createReplayLoader({
+		apiUrl,
+		clientId,
+		maskText: replayOptions.maskText,
+		recordIframes: replayOptions.recordIframes,
+		scriptUrl: resolveScriptUrl(
+			replayOptions.scriptUrl,
+			'https://cdn.databuddy.cc/replay.js'
+		),
+	});
+
+	return {
+		...script,
+		onConsentChange(info) {
+			script.onConsentChange?.(info);
+			if (info.hasConsent) {
+				replay.start(info);
+			} else {
+				replay.stop();
+			}
+		},
+		onDispose(info) {
+			script.onDispose?.(info);
+			replay.stop();
+		},
+		onLoad(info) {
+			script.onLoad?.(info);
+			if (info.hasConsent) {
+				replay.start(info);
+			}
+		},
+	};
+};
+
+/**
+ * With `replay`, equal options share one script across rerenders, so the
+ * `onDispose` that stops the recorder does not remount `databuddy.js` on each
+ * render.
+ */
+const reuseDatabuddyReplay = createScriptReuse<DatabuddyConsentOptions>();
+
+/**
+ * Loads the Databuddy script once measurement consent is granted and manages
+ * consent state declaratively via the manifest runtime.
+ *
+ * On revocation, the helper sets `window.databuddy.options.disabled` to
+ * `true`, which stops the main tracker. With `replay`, it also loads
+ * `replay.js` while measurement is granted and calls its `stop()` on
+ * revocation, when the configuration is removed and when its loader is
+ * disposed. With `loadMode: 'always'`, the script loads before consent
+ * and the same flag keeps the tracker from sending until measurement is
+ * granted. `replay.js` still waits for consent.
+ *
+ * @param options - Configuration for the Databuddy consent script
+ * @returns The Databuddy script configuration object for c15t's script loader
+ * @remarks When `clientId` is missing or blank, the
+ *   helper logs `databuddy: missing or invalid clientId` with
+ *   `console.error` and returns a script that never loads.
+ *
+ * @example
+ * ```ts
+ * import { createConsentKernel } from 'c15t';
+ * import { createScriptLoader } from 'c15t/modules/script-loader';
+ * import { databuddy } from '@c15t/integrations/databuddy';
+ *
+ * const kernel = createConsentKernel();
+ * const loader = createScriptLoader({
+ *   kernel,
+ *   scripts: [
+ *     databuddy({
+ *       clientId: 'db_1234567890abcdef',
+ *       features: { interactions: false, webVitals: true },
+ *       replay: true,
+ *     }),
+ *   ],
+ * });
+ * ```
+ */
+export const databuddy = function databuddy(
+	options: DatabuddyConsentOptions
+): Script {
+	const clientId = readId(options.clientId);
+	if (clientId === undefined) {
+		return skipMissingId('databuddy', 'clientId', {
+			category: 'measurement',
+			manifest: databuddyManifest,
+		});
+	}
+
+	const configured = { ...options, clientId };
+	return options.replay
+		? reuseDatabuddyReplay(configured, createDatabuddyScript)
+		: createDatabuddyScript(configured);
 };

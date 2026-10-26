@@ -210,4 +210,14 @@ describe('databuddy', () => {
 				.disabled
 		).toEqual(false);
 	});
+
+	it('disposes replay during server rendering', () => {
+		const script = databuddy({ clientId: 'db_123', replay: true });
+		vi.stubGlobal('window', undefined);
+
+		expect(script.onDispose).toBeTypeOf('function');
+		expect(() =>
+			script.onDispose?.(createCallbackInfo({ id: script.id }))
+		).not.toThrow();
+	});
 });
