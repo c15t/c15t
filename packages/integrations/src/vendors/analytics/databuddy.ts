@@ -284,8 +284,8 @@ export interface DatabuddyFeatures {
  */
 export interface DatabuddyReplayOptions {
 	/**
-	 * Masks page text in recordings. Set `false` to record it. Typed input
-	 * stays masked either way. Sets `data-mask-text`. Databuddy masks text by
+	 * Masks page text in recordings. Set `false` to record it, only on pages
+	 * that show no personal data. Typed input stays masked either way. Sets `data-mask-text`. Databuddy masks text by
 	 * default.
 	 *
 	 * @default undefined
@@ -479,7 +479,7 @@ const reuseDatabuddyReplay = createScriptReuse<DatabuddyConsentOptions>();
  *     databuddy({
  *       clientId: 'db_1234567890abcdef',
  *       features: { interactions: false, webVitals: true },
- *       replay: { maskText: false },
+ *       replay: true,
  *     }),
  *   ],
  * });

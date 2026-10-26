@@ -113,21 +113,22 @@ to have the helper load it:
 {/* example: fragment */}
 
 ```ts
-databuddy({ clientId: 'YOUR_CLIENT_ID', replay: { maskText: false } });
+databuddy({ clientId: 'YOUR_CLIENT_ID', replay: true });
 ```
 
-`replay: true` keeps Databuddy's replay defaults. The helper adds `replay.js`
-only while measurement is allowed, including with `loadMode: 'always'`, and
-passes it the same `clientId` and `apiUrl` as `databuddy.js`. `replay.js` does
-not read Databuddy's `disabled` flag, so the helper calls
-`window.databuddyReplay.stop()` and removes the script on revocation. It does
-the same when you turn `replay` off, remove the helper or dispose the script
-loader. Recording stops without waiting for the page reload. A later grant
-loads `replay.js` again.
+`replay: true` keeps Databuddy's replay defaults, which mask page text and
+typed input. The helper adds `replay.js` only while measurement is allowed,
+including with `loadMode: 'always'`, and passes it the same `clientId` and
+`apiUrl` as `databuddy.js`. `replay.js` does not read Databuddy's `disabled`
+flag, so the helper calls `window.databuddyReplay.stop()` and removes the
+script on revocation. It does the same when you turn `replay` off, remove the
+helper or dispose the script loader. Recording stops without waiting for the
+page reload. A later grant loads `replay.js` again.
 
-Databuddy masks page text and typed input by default. `maskText: false` records
-page text; typed input stays masked. To change masking for one element, add an
-attribute to it in your markup:
+`replay: { maskText: false }` records page text; typed input stays masked. Use
+it only when your pages show no personal data, such as names, email addresses
+or order details. Recordings would otherwise include that data. To change
+masking for one element, add an attribute to it in your markup:
 
 - `data-replay-unmask` records the text of an element that is safe to show.
 - `data-replay-block` leaves the element out. The recording shows an empty box
