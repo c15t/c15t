@@ -1,4 +1,4 @@
-import type { Script } from '@c15t/core';
+import type { Script, ScriptCallbackInfo } from '@c15t/core';
 
 import { resolveManifest } from '../../resolve';
 import { vendorManifestContract } from '../../types';
@@ -30,6 +30,10 @@ declare global {
 			clientId?: string;
 			apiUrl?: string;
 			[key: string]: unknown;
+		};
+		/** Set by `replay.js` once it runs. */
+		databuddyReplay?: {
+			stop: () => void;
 		};
 	}
 }
@@ -68,9 +72,8 @@ const enableConfig = {
  *
  * Databuddy loads only with measurement consent. On revocation the manifest
  * sets `options.disabled`, which stops the main tracker, and disables the
- * config a script still downloading will read. Other Databuddy
- * scripts, such as `replay.js`, ignore it and stop when c15t reloads the
- * page after the revocation.
+ * config a script still downloading will read. `replay.js` ignores that flag,
+ * so the helper's `replay` option stops it separately.
  * Config is seeded via `window.databuddyConfig` before the script loads.
  */
 export const databuddyManifest = {
@@ -210,6 +213,15 @@ export interface DatabuddyConsentOptions {
 	features?: DatabuddyFeatures;
 
 	/**
+	 * Loads Databuddy's session replay recorder, `replay.js`, while
+	 * measurement is granted. `true` keeps Databuddy's replay defaults. On
+	 * revocation the helper stops the recorder and removes its script.
+	 *
+	 * @default false
+	 */
+	replay?: boolean | DatabuddyReplayOptions;
+
+	/**
 	 * Databuddy config object to seed when consent is granted at load time.
 	 * c15t sets its `disabled` key from consent. The default carries the
 	 * client ID and API URL, for when Databuddy cannot read them from its
@@ -266,6 +278,36 @@ export interface DatabuddyFeatures {
 }
 
 /**
+ * Databuddy session replay settings. Each one sets a `data-*` attribute on
+ * `replay.js`. An unset setting leaves Databuddy's own default.
+ */
+export interface DatabuddyReplayOptions {
+	/**
+	 * Masks page text in recordings. Set `false` to record it. Typed input
+	 * stays masked either way. Sets `data-mask-text`. Databuddy masks text by
+	 * default.
+	 *
+	 * @default undefined
+	 */
+	maskText?: boolean;
+
+	/**
+	 * Records your own embedded pages into the parent page's recording. Set it
+	 * on the framed page too. Sets `data-record-iframes`. Databuddy turns this
+	 * off by default.
+	 *
+	 * @default undefined
+	 */
+	recordIframes?: boolean;
+
+	/**
+	 * The Databuddy replay script URL.
+	 * @default 'https://cdn.databuddy.cc/replay.js'
+	 */
+	scriptUrl?: string;
+}
+
+/**
  * Maps a feature switch to its `data-*` attribute value. `undefined` drops
  * the attribute from the script.
  */
@@ -275,16 +317,67 @@ const featureAttribute = function featureAttribute(
 	return enabled === undefined ? undefined : String(enabled);
 };
 
+interface ReplaySettings {
+	apiUrl: string;
+	clientId: string;
+	maskText: boolean | undefined;
+	recordIframes: boolean | undefined;
+	scriptUrl: string;
+}
+
+/**
+ * Starts and stops `replay.js` from consent. The recorder is a separate
+ * script that ignores `options.disabled`, so revocation calls its own
+ * `stop()`. A removed `<script>` that finishes downloading does not start,
+ * because `replay.js` checks that it is still in the document.
+ */
+const createReplayLoader = function createReplayLoader(
+	settings: ReplaySettings
+) {
+	let element: HTMLScriptElement | undefined;
+
+	return {
+		start(info: ScriptCallbackInfo) {
+			if (window.databuddyReplay || element?.isConnected) {
+				return;
+			}
+			element = document.createElement('script');
+			element.async = true;
+			element.src = settings.scriptUrl;
+			element.setAttribute('crossorigin', 'anonymous');
+			element.setAttribute('data-api-url', settings.apiUrl);
+			element.setAttribute('data-client-id', settings.clientId);
+			const maskText = featureAttribute(settings.maskText);
+			if (maskText !== undefined) {
+				element.setAttribute('data-mask-text', maskText);
+			}
+			const recordIframes = featureAttribute(settings.recordIframes);
+			if (recordIframes !== undefined) {
+				element.setAttribute('data-record-iframes', recordIframes);
+			}
+			if (info.element?.nonce) {
+				element.nonce = info.element.nonce;
+			}
+			document.head.appendChild(element);
+		},
+		stop() {
+			element?.remove();
+			element = undefined;
+			window.databuddyReplay?.stop();
+		},
+	};
+};
+
 /**
  * Loads the Databuddy script once measurement consent is granted and manages
  * consent state declaratively via the manifest runtime.
  *
  * On revocation, the helper sets `window.databuddy.options.disabled` to
- * `true`, which stops the main tracker. Databuddy's `replay.js` ignores that
- * flag; it stops when c15t reloads the page after the revocation, which is
- * the default. With `loadMode: 'always'`, the script loads before consent
+ * `true`, which stops the main tracker. With `replay`, it also loads
+ * `replay.js` while measurement is granted and calls its `stop()` on
+ * revocation. With `loadMode: 'always'`, the script loads before consent
  * and the same flag keeps the tracker from sending until measurement is
- * granted.
+ * granted. `replay.js` still waits for consent.
  *
  * @param options - Configuration for the Databuddy consent script
  * @returns The Databuddy script configuration object for c15t's script loader
@@ -305,6 +398,7 @@ const featureAttribute = function featureAttribute(
  *     databuddy({
  *       clientId: 'db_1234567890abcdef',
  *       features: { interactions: false, webVitals: true },
+ *       replay: { maskText: false },
  *     }),
  *   ],
  * });
@@ -328,7 +422,7 @@ export const databuddy = function databuddy(
 			? databuddyAlwaysLoadManifest
 			: databuddyManifest;
 
-	return resolveManifest(manifest, {
+	const script = resolveManifest(manifest, {
 		apiUrl,
 		clientId,
 		configWhenDenied: options.configWhenDenied ?? {
@@ -350,4 +444,37 @@ export const databuddy = function databuddy(
 		trackOutgoingLinks: featureAttribute(features.outgoingLinks),
 		trackWebVitals: featureAttribute(features.webVitals),
 	});
+	if (!options.replay) {
+		return script;
+	}
+
+	const replayOptions = options.replay === true ? {} : options.replay;
+	const replay = createReplayLoader({
+		apiUrl,
+		clientId,
+		maskText: replayOptions.maskText,
+		recordIframes: replayOptions.recordIframes,
+		scriptUrl: resolveScriptUrl(
+			replayOptions.scriptUrl,
+			'https://cdn.databuddy.cc/replay.js'
+		),
+	});
+
+	return {
+		...script,
+		onConsentChange(info) {
+			script.onConsentChange?.(info);
+			if (info.hasConsent) {
+				replay.start(info);
+			} else {
+				replay.stop();
+			}
+		},
+		onLoad(info) {
+			script.onLoad?.(info);
+			if (info.hasConsent) {
+				replay.start(info);
+			}
+		},
+	};
 };
