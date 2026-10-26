@@ -116,7 +116,7 @@ export const BUILT_IN_INTEGRATION_CATEGORIES = [
 export const builtInScriptIntegrations = [
 	{
 		consentCategory: 'functionality',
-		docsSlug: 'other-chat-and-support',
+		docsSlug: 'ada',
 		hint: 'Customer support through Ada Messaging',
 		integrationCategory: 'functional',
 		key: 'ada',
@@ -126,7 +126,7 @@ export const builtInScriptIntegrations = [
 	},
 	{
 		consentCategory: 'functionality',
-		docsSlug: 'other-chat-and-support',
+		docsSlug: 'gorgias',
 		hint: 'Customer support through Gorgias Chat',
 		integrationCategory: 'functional',
 		key: 'gorgiasChat',
@@ -136,7 +136,7 @@ export const builtInScriptIntegrations = [
 	},
 	{
 		consentCategory: 'functionality',
-		docsSlug: 'other-chat-and-support',
+		docsSlug: 'zendesk',
 		hint: 'Customer support through Zendesk Messaging',
 		integrationCategory: 'functional',
 		key: 'zendeskWidget',
@@ -146,7 +146,7 @@ export const builtInScriptIntegrations = [
 	},
 	{
 		consentCategory: 'measurement',
-		docsSlug: 'other-analytics',
+		docsSlug: 'pendo',
 		hint: 'Product analytics and in-app guides',
 		integrationCategory: 'analytics',
 		key: 'pendo',
@@ -156,7 +156,7 @@ export const builtInScriptIntegrations = [
 	},
 	{
 		consentCategory: 'measurement',
-		docsSlug: 'other-analytics',
+		docsSlug: 'lucky-orange',
 		hint: 'Session recordings, heatmaps, chat and surveys',
 		integrationCategory: 'analytics',
 		key: 'luckyOrange',
@@ -166,7 +166,7 @@ export const builtInScriptIntegrations = [
 	},
 	{
 		consentCategory: 'experience',
-		docsSlug: 'other-experience',
+		docsSlug: 'optimizely',
 		hint: 'Website experiments and personalization',
 		integrationCategory: 'functional',
 		key: 'optimizelyWeb',
@@ -176,7 +176,7 @@ export const builtInScriptIntegrations = [
 	},
 	{
 		consentCategory: 'experience',
-		docsSlug: 'other-experience',
+		docsSlug: 'dynamic-yield',
 		hint: 'On-site personalization and recommendations',
 		integrationCategory: 'functional',
 		key: 'dynamicYield',
@@ -186,7 +186,7 @@ export const builtInScriptIntegrations = [
 	},
 	{
 		consentCategory: 'experience',
-		docsSlug: 'other-experience',
+		docsSlug: 'adobe-target',
 		hint: 'Website experiments and personalized offers',
 		integrationCategory: 'functional',
 		key: 'adobeTarget',
@@ -196,7 +196,7 @@ export const builtInScriptIntegrations = [
 	},
 	{
 		consentCategory: 'experience',
-		docsSlug: 'other-experience',
+		docsSlug: 'appcues',
 		hint: 'Onboarding flows, checklists and announcements',
 		integrationCategory: 'functional',
 		key: 'appcues',
@@ -206,7 +206,7 @@ export const builtInScriptIntegrations = [
 	},
 	{
 		consentCategory: 'marketing',
-		docsSlug: 'other-experience',
+		docsSlug: 'wisepops',
 		hint: 'Onsite popups, campaigns and signup forms',
 		integrationCategory: 'functional',
 		key: 'wisepops',
@@ -216,7 +216,7 @@ export const builtInScriptIntegrations = [
 	},
 	{
 		consentCategory: 'marketing',
-		docsSlug: 'other-email-and-sms',
+		docsSlug: 'marketo',
 		hint: 'Lead scoring and marketing analytics',
 		integrationCategory: 'email-and-sms',
 		key: 'marketoMunchkin',
@@ -226,7 +226,7 @@ export const builtInScriptIntegrations = [
 	},
 	{
 		consentCategory: 'marketing',
-		docsSlug: 'other-email-and-sms',
+		docsSlug: 'salesforce-pardot',
 		hint: 'B2B visitor tracking with the Account Engagement consent API',
 		integrationCategory: 'email-and-sms',
 		key: 'pardotTracking',
@@ -236,7 +236,7 @@ export const builtInScriptIntegrations = [
 	},
 	{
 		consentCategory: 'marketing',
-		docsSlug: 'other-email-and-sms',
+		docsSlug: 'attentive',
 		hint: 'SMS and email signup units with on-site event tracking',
 		integrationCategory: 'email-and-sms',
 		key: 'attentiveTag',
@@ -246,7 +246,7 @@ export const builtInScriptIntegrations = [
 	},
 	{
 		consentCategory: 'marketing',
-		docsSlug: 'other-email-and-sms',
+		docsSlug: 'customer-io',
 		hint: 'Website events through Customer.io Data Pipelines',
 		integrationCategory: 'email-and-sms',
 		key: 'customerIo',
@@ -256,7 +256,7 @@ export const builtInScriptIntegrations = [
 	},
 	{
 		consentCategory: 'marketing',
-		docsSlug: 'other-email-and-sms',
+		docsSlug: 'insider',
 		hint: 'Personalized campaigns and customer messaging',
 		integrationCategory: 'email-and-sms',
 		key: 'insiderTag',
@@ -526,7 +526,7 @@ export const builtInScriptIntegrations = [
 	},
 	{
 		consentCategory: 'measurement',
-		docsSlug: 'other-analytics',
+		docsSlug: 'statable-analytics',
 		hint: 'Cookieless web analytics',
 		integrationCategory: 'analytics',
 		key: 'statableAnalytics',
@@ -696,7 +696,7 @@ export const builtInScriptIntegrations = [
 	},
 	{
 		consentCategory: 'marketing',
-		docsSlug: 'other-ads-and-pixels',
+		docsSlug: 'the-trade-desk',
 		hint: 'Universal Pixel conversions and advertising audiences',
 		integrationCategory: 'ads-and-pixels',
 		key: 'theTradeDeskPixel',
@@ -706,7 +706,7 @@ export const builtInScriptIntegrations = [
 	},
 	{
 		consentCategory: 'marketing',
-		docsSlug: 'other-ads-and-pixels',
+		docsSlug: 'liveintent',
 		hint: 'LiveConnect identity resolution and conversion events',
 		integrationCategory: 'ads-and-pixels',
 		key: 'liveIntentTag',
@@ -716,7 +716,7 @@ export const builtInScriptIntegrations = [
 	},
 	{
 		consentCategory: 'marketing',
-		docsSlug: 'other-ads-and-pixels',
+		docsSlug: 'adroll',
 		hint: 'Retargeting audiences and conversion tracking',
 		integrationCategory: 'ads-and-pixels',
 		key: 'adrollPixel',
@@ -726,7 +726,7 @@ export const builtInScriptIntegrations = [
 	},
 	{
 		consentCategory: 'marketing',
-		docsSlug: 'other-ads-and-pixels',
+		docsSlug: 'vector',
 		hint: 'Visitor identification for advertising audiences',
 		integrationCategory: 'ads-and-pixels',
 		key: 'vector',
@@ -736,7 +736,7 @@ export const builtInScriptIntegrations = [
 	},
 	{
 		consentCategory: 'marketing',
-		docsSlug: 'other-analytics',
+		docsSlug: 'rb2b',
 		hint: 'Website visitor identification for sales outreach',
 		integrationCategory: 'analytics',
 		key: 'rb2b',

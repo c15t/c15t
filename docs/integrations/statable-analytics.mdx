@@ -1,0 +1,96 @@
+---
+title: Statable
+description: Load Statable analytics after measurement consent with the c15t statableAnalytics helper, configure its ingestion endpoint, and verify requests and browser storage.
+seoTitle: Statable cookie consent with c15t
+seoDescription: Keep the Statable tracker off your page until measurement consent. Configure the site ID, check browser storage, and stop tracking on consent withdrawal.
+icon: chart-line
+group: integrations
+---
+
+Statable describes its web analytics as cookieless. The c15t
+`statableAnalytics` helper still waits until the `measurement` category is
+allowed before it loads Statable's tracker, so no request reaches Statable
+before then.
+
+Statable has no stop API. When the visitor withdraws, c15t reloads the page by
+default, and the reload stops the running tracker.
+
+## Configure Statable
+
+Copy the numeric site ID from **Site settings > Tracking Code** in Statable,
+and replace `12345` in the example with it. This helper uses the standalone
+`/js/<siteId>/s.js` tracker, which Statable offers on paid plans. The Hobby
+plan bundles tracking inside a widget with a different loader, which this
+helper doesn't support.
+
+Delete any existing Statable script tag or tag manager copy, so it can't load
+outside c15t.
+
+<CommandTabs command="@c15t/integrations" mode="install" />
+
+<include src="../shared/examples/javascript/statable-scripts.mdx" />
+
+<include src="../shared/integrations/register-scripts.mdx" />
+
+## Options
+
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `siteId` | Required | Positive integer as a string or number. Trimmed. If it's missing, blank, fractional, negative, non-decimal or above the safe integer limit, c15t logs an error and never loads the tracker. |
+| `scriptUrl` | `https://statable.com/js/{siteId}/s.js` | Loader URL override. Each `{siteId}` is replaced with the site ID. A blank value uses the default. |
+| `trackingApi` | Loader origin plus `/api/event` | Full ingestion endpoint, set as the `data-tracking-api` attribute. The tracker posts to this URL as you give it. A blank value leaves the attribute off, so Statable uses its default. |
+
+If you serve the tracker from your own CDN, and that CDN doesn't serve or proxy
+`/api/event`, set `trackingApi` to the full ingestion URL too. Replace both
+example hosts with your own:
+
+<include src="../shared/examples/javascript/statable-proxy-scripts.mdx" />
+
+A custom `scriptUrl` only changes where the browser fetches the tracker. It
+doesn't proxy event requests. Statable uses the visitor's connection to the
+ingestion server for its reports, so check Statable's guidance before you proxy
+collection.
+
+## Loading and revocation
+
+When `measurement` is allowed, the helper adds a deferred script with your
+site ID in its path and in the `data-id` attribute. It doesn't create
+`window.statable` or queue events. The tracker sets up `window.statable.t`
+after it loads, and it doesn't replay events sent before then. Check the
+measurement permission and wait for that function before you send an event.
+
+The helper calls no Statable consent or stop API. On withdrawal, c15t removes
+the loader element, but the tracker's listeners and timers keep running until
+the page unloads. Keep `reloadOnConsentRevoked` enabled. If you turn it off,
+tracking continues on the current page.
+
+## Cookies and storage
+
+Statable says it sets no cookies and stores no persistent visitor ID in the
+browser. Its tracker reads the `analytics_ignore` flag in local storage. It
+sends the full page URL to ingestion, including the query and fragment.
+Statable says it strips both when it processes URLs. Keep sensitive data out of
+URLs anyway.
+
+For CSP, allow `https://statable.com` in `script-src` and `connect-src`, or
+your custom loader and ingestion hosts.
+
+## Verify Statable
+
+With measurement denied, filter the DevTools Network panel by `statable.com`
+and check that no loader or event request appears. Check Cookies, Local Storage
+and Session Storage in the Application panel for Statable entries. Allowing
+only marketing must leave Statable blocked too.
+
+After you allow measurement, expect one `/js/<siteId>/s.js` script element, and
+`typeof window.statable?.t === 'function'`. With a configured site, events post
+to `/api/event` or to your `trackingApi` URL. Statable suppresses collection
+for automated browsers, Do Not Track, Global Privacy Control and the
+`analytics_ignore` flag. A ready API alone doesn't prove that an event reached
+your dashboard.
+
+Sources: [tracking script reference](https://statable.com/docs/developers/tracking-script/),
+[JavaScript API reference](https://statable.com/docs/developers/javascript-api/)
+and [privacy policy](https://statable.com/privacy).
+
+<include src="../shared/integrations/vendor-revocation-and-verify.mdx" />

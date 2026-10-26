@@ -1,0 +1,95 @@
+---
+title: AdRoll
+description: Load AdRoll with c15t after marketing consent and verify its loader, storage and revocation behavior.
+seoTitle: AdRoll consent with c15t
+seoDescription: Load the AdRoll pixel only after marketing consent. Learn what adrollPixel queues, which storage AdRoll sets and how to verify it.
+icon: radar
+group: integrations
+---
+
+AdRoll retargets site visitors with ads and measures conversions. The c15t
+`adrollPixel` helper waits until the `marketing` category is allowed before it
+sets the AdRoll globals, queues the first `pageView` and adds the loader.
+
+AdRoll has no API to stop its pixel. When the visitor withdraws, the helper
+leaves AdRoll on the page, and c15t's default page reload removes it.
+
+## Configure AdRoll
+
+Copy the advertiser ID and pixel ID from Analytics > Insights > Website > View
+Pixel. Under Settings > Data Collection > Visitor Consent, choose **Use your
+existing Consent Banner**. Otherwise AdRoll can show its own banner. AdRoll's
+instructions for an existing banner say to wait for affirmative consent before
+you deploy the pixel, which is what the helper does. Delete the direct pixel
+snippet and any tag manager copy, so they can't load AdRoll without consent.
+
+<CommandTabs command="@c15t/integrations" mode="install" />
+
+<include src="../shared/examples/javascript/adroll-scripts.mdx" />
+
+<include src="../shared/integrations/register-scripts.mdx" />
+
+## Options
+
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `advertiserId` | Required | Public advertiser ID from the v2 snippet. Trimmed and URL-encoded into the loader path. If it's missing or blank, c15t logs an error and never loads AdRoll. |
+| `pixelId` | Required | Public pixel ID from the same snippet. Trimmed. If it's missing or blank, c15t logs an error and never loads AdRoll. |
+| `scriptUrl` | `https://s.adroll.com/j/<advertiserId>/roundtrip.js` | Override for the account-specific v2 loader. A blank value uses the default. |
+
+## Loading and revocation
+
+When `marketing` is allowed, the helper sets `adroll_adv_id`, `adroll_pix_id`,
+`adroll_version` and `__adroll_loaded`. It creates the `window.adroll` array
+queue with `setProperties`, `identify` and `track` stubs. Each stub pushes the
+method name and its arguments object, which is the format AdRoll replays. The
+helper calls `track('pageView')` once, then adds the advertiser's v2 loader as
+an async script. The generic `https://s.adroll.com/j/roundtrip.js` is a
+different, legacy v1 loader.
+
+If your page already defines `window.adroll` or any of those methods, the
+helper keeps them and sends the `pageView` through them. On server-rendered
+pages, the helper doesn't start from the server HTML. It always starts in the
+browser script loader, also when the visitor's consent was saved earlier.
+
+The helper doesn't send email addresses or other identity data. Send further
+events and identity data through AdRoll's JavaScript API, and only while
+marketing and any vendor consent stay granted.
+
+AdRoll documents no public stop or teardown API, and the helper sends no
+withdrawal command. On withdrawal, it keeps the loader element on the page.
+Keep c15t's default `reloadOnConsentRevoked` enabled. With reload disabled,
+loaded code, partner pixels and timers can keep running until the visitor
+navigates. If the visitor grants consent again on the same page, the helper
+reuses the loader and doesn't send a second `pageView`.
+
+## Cookies and storage
+
+NextRoll's privacy notice names the `__adroll`, `__ar_v4`, `__adroll_shared`
+and `__adroll_fpc` tracking cookies. The served code also writes consent
+cookies, local storage such as `__adroll_consent_data`, session storage such as
+`adroll_tpc` and `adroll_flgs`, and an `adroll` IndexedDB database. Account and
+partner settings change this list. AdRoll can set storage as soon as the loader
+runs, which is why the whole loader waits for consent.
+
+## Verify AdRoll
+
+In a fresh browser profile, deny consent and allow only an unrelated category.
+Filter Network by `adroll.com` and confirm that no requests, globals, cookies,
+local storage, session storage or IndexedDB appear. Grant `marketing` and check
+the loader URL against your account snippet. Withdraw consent and confirm the
+page reloads. AdRoll must stay blocked on the new page. Check storage in
+DevTools as well as Network.
+
+The c15t monitor runs public house-account IDs with collection blocked, because
+AdRoll's sample IDs return access-denied responses. It also blocks the JSONP
+consent check. It confirms that the SDK starts and stays behind consent. It
+doesn't confirm your account's configuration, conversion delivery or partner
+behavior.
+
+Sources: [installation article](https://help.adroll.com/hc/en-us/articles/360040116252),
+[existing consent banners](https://help.adroll.com/hc/en-us/articles/360003797191-Custom-Existing-Cookie-Consent-Banners),
+[JavaScript API](https://apidocs.nextroll.com/guides/pixel-javascript-api.html)
+and [NextRoll privacy notice](https://www.nextroll.com/privacy).
+
+<include src="../shared/integrations/vendor-revocation-and-verify.mdx" />
