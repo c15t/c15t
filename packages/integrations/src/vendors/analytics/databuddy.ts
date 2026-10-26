@@ -364,7 +364,10 @@ const createReplayLoader = function createReplayLoader(
 		stop() {
 			element?.remove();
 			element = undefined;
-			window.databuddyReplay?.stop();
+			// Core may dispose a loader created during server rendering.
+			if (typeof window !== 'undefined') {
+				window.databuddyReplay?.stop();
+			}
 		},
 	};
 };
