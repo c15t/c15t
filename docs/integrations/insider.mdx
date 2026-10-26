@@ -189,8 +189,8 @@ withdrawal, including after your app pushed a purchase during SPA navigation.
 
 The denial push contains only `gdpr_optin: false`. The helper doesn't resend
 your `user` attributes or currency on withdrawal, even if `user` contains
-`gdpr_optin: true`, so no new checkout or identity data reaches Insider after
-withdrawal. It doesn't clear identity or currency Insider already holds.
+`gdpr_optin: true`, so the denial push adds no checkout or identity data. An
+SDK that is still loading can process the earlier grant before the denial. It doesn't clear identity or currency Insider already holds.
 
 This is a consent update through the same `user` and `init` steps used on
 grant. It doesn't unload the SDK or stop every request. Insider says

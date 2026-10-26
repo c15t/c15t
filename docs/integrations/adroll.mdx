@@ -20,7 +20,9 @@ Copy the advertiser ID and pixel ID from Analytics > Insights > Website > View
 Pixel. Under Settings > Data Collection > Visitor Consent, choose **Use your
 existing Consent Banner**. Otherwise AdRoll can show its own banner. AdRoll's
 instructions for an existing banner say to wait for affirmative consent before
-you deploy the pixel, which is what the helper does. Delete the direct pixel
+you deploy the pixel. The helper loads AdRoll once the `marketing` category is
+allowed. Under an opt-out policy that can happen before the visitor chooses, so
+use an opt-in policy if you need affirmative consent. Delete the direct pixel
 snippet and any tag manager copy, so they can't load AdRoll without consent.
 
 <CommandTabs command="@c15t/integrations" mode="install" />
