@@ -125,6 +125,16 @@ export const builtInScriptIntegrations = [
 		vendor: 'gainsight-px',
 	},
 	{
+		consentCategory: 'measurement',
+		docsSlug: 'fullstory',
+		hint: 'Session replay and behavioral analytics',
+		integrationCategory: 'analytics',
+		key: 'fullStory',
+		label: 'FullStory',
+		packageSubpath: 'fullstory',
+		vendor: 'fullstory',
+	},
+	{
 		consentCategory: 'functionality',
 		docsSlug: 'ada',
 		hint: 'Customer support through Ada Messaging',
@@ -703,6 +713,16 @@ export const builtInScriptIntegrations = [
 		label: 'X (Twitter) Pixel',
 		packageSubpath: 'x-pixel',
 		vendor: 'x-pixel',
+	},
+	{
+		consentCategory: 'marketing',
+		docsSlug: 'amazon-ads',
+		hint: 'Amazon conversion tracking and advertising audiences',
+		integrationCategory: 'ads-and-pixels',
+		key: 'amazonAdsTag',
+		label: 'Amazon Ads',
+		packageSubpath: 'amazon-ads',
+		vendor: 'amazon-ads',
 	},
 	{
 		consentCategory: 'marketing',

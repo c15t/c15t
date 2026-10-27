@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import { expectSkippedScript } from './__tests__/helpers';
 import { adrollPixel } from './vendors/ads-and-pixels/adroll';
+import { amazonAdsTag } from './vendors/ads-and-pixels/amazon-ads';
 import { linkedinInsights } from './vendors/ads-and-pixels/linkedin-insights';
 import { liveIntentTag } from './vendors/ads-and-pixels/liveintent';
 import { metaPixel } from './vendors/ads-and-pixels/meta-pixel';
@@ -23,6 +24,7 @@ import { clearbit } from './vendors/analytics/clearbit';
 import { cloudflareWebAnalytics } from './vendors/analytics/cloudflare-web-analytics';
 import { databuddy } from './vendors/analytics/databuddy';
 import { fathomAnalytics } from './vendors/analytics/fathom-analytics';
+import { fullStory } from './vendors/analytics/fullstory';
 import { gainsightPx } from './vendors/analytics/gainsight-px';
 import { gtag } from './vendors/analytics/google-tag';
 import { heap } from './vendors/analytics/heap';
@@ -86,6 +88,18 @@ const requiredIdCases: {
 		helper: 'clay',
 		option: 'siteId',
 		script: { category: 'marketing', id: 'clay' },
+	},
+	{
+		create: (id) => fullStory({ orgId: asId(id) }),
+		helper: 'fullStory',
+		option: 'orgId',
+		script: { category: 'measurement', id: 'fullstory' },
+	},
+	{
+		create: (id) => amazonAdsTag({ tagId: asId(id) }),
+		helper: 'amazonAdsTag',
+		option: 'tagId',
+		script: { category: 'marketing', id: 'amazon-ads' },
 	},
 	{
 		create: (id) =>
