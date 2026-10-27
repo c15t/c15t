@@ -13,6 +13,7 @@ import {
 } from './registry';
 import type { IntegrationConsentCondition } from './registry';
 import { adrollPixelManifest } from './vendors/ads-and-pixels/adroll';
+import { amazonAdsTagManifest } from './vendors/ads-and-pixels/amazon-ads';
 import { linkedinInsightsManifest } from './vendors/ads-and-pixels/linkedin-insights';
 import { liveIntentTagManifest } from './vendors/ads-and-pixels/liveintent';
 import { metaPixelManifest } from './vendors/ads-and-pixels/meta-pixel';
@@ -34,6 +35,8 @@ import { cloudflareWebAnalyticsManifest } from './vendors/analytics/cloudflare-w
 import { databuddyManifest } from './vendors/analytics/databuddy';
 import { defaultComPixelManifest } from './vendors/analytics/default-com';
 import { fathomAnalyticsManifest } from './vendors/analytics/fathom-analytics';
+import { fullStoryManifest } from './vendors/analytics/fullstory';
+import { gainsightPxManifest } from './vendors/analytics/gainsight-px';
 import { gtagManifest } from './vendors/analytics/google-tag';
 import { heapManifest } from './vendors/analytics/heap';
 import { hightouchManifest } from './vendors/analytics/hightouch';
@@ -45,6 +48,7 @@ import { matomoAnalyticsManifest } from './vendors/analytics/matomo-analytics';
 import { clarityManifest } from './vendors/analytics/microsoft-clarity';
 import { mixpanelAnalyticsManifest } from './vendors/analytics/mixpanel-analytics';
 import { oneDollarStatsManifest } from './vendors/analytics/one-dollar-stats';
+import { eloquaTrackingManifest } from './vendors/analytics/oracle-eloqua';
 import { pendoManifest } from './vendors/analytics/pendo';
 import { pirschManifest } from './vendors/analytics/pirsch';
 import { plausibleAnalyticsManifest } from './vendors/analytics/plausible-analytics';
@@ -60,6 +64,7 @@ import { statableAnalyticsManifest } from './vendors/analytics/statable-analytic
 import { umamiAnalyticsManifest } from './vendors/analytics/umami-analytics';
 import { vercelAnalyticsManifest } from './vendors/analytics/vercel-analytics';
 import { vercelSpeedInsightsManifest } from './vendors/analytics/vercel-speed-insights';
+import { activeCampaignTrackingManifest } from './vendors/email-and-sms/activecampaign';
 import { attentiveTagManifest } from './vendors/email-and-sms/attentive';
 import { customerIoManifest } from './vendors/email-and-sms/customer-io';
 import { insiderManifest } from './vendors/email-and-sms/insider';
@@ -88,6 +93,11 @@ const validConsentCategories = [
 const vendorManifests = [
 	clayManifest,
 	defaultComPixelManifest,
+	eloquaTrackingManifest,
+	activeCampaignTrackingManifest,
+	gainsightPxManifest,
+	fullStoryManifest,
+	amazonAdsTagManifest,
 	adaManifest,
 	gorgiasChatManifest,
 	zendeskWidgetManifest,

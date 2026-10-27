@@ -27,6 +27,15 @@ export interface ScriptCallbackInfo {
 	 * @internal
 	 */
 	readonly registration?: symbol;
+	/** Same-ID configuration replacement, rather than a consent withdrawal. @internal */
+	readonly replacing?: boolean;
+	/**
+	 * Run after the queued replacement has reconciled, or disposal aborts it.
+	 * Only present on an outgoing replacement's disposal info. Non-enumerable.
+	 * @param effect - Synchronous work that must wait for incoming membership.
+	 * @internal
+	 */
+	readonly afterReplacement?: (effect: () => void) => void;
 
 	/** The original script ID */
 	id: string;
@@ -127,6 +136,12 @@ export interface Script {
 	/**
 	 * Whether this is a callback-only script that doesn't need to load an external resource.
 	 * When true, no script tag will be added to the DOM, only callbacks will be executed.
+	 * A zero-argument predicate checks the current runtime before each new mount,
+	 * when reading diagnostics, and when selecting scripts for server startup.
+	 * Keep it free of side effects and safe to call on the server. It may run
+	 * more than once and does not change an already mounted registration.
+	 * Keep the function reference stable across script updates. A new function
+	 * counts as a resource change and remounts the registration.
 	 *
 	 * This is useful for:
 	 * - Managing consent for libraries already loaded on the page
@@ -140,13 +155,14 @@ export interface Script {
 	 *
 	 * @default false
 	 */
-	callbackOnly?: boolean;
+	callbackOnly?: boolean | (() => boolean);
 
 	/**
-	 * Whether the script should persist after consent is revoked.
+	 * Keep the element after consent is revoked. `true` also keeps pending
+	 * downloads; `'loaded'` keeps only elements whose load event completed.
 	 * @default false
 	 */
-	persistAfterConsentRevoked?: boolean;
+	persistAfterConsentRevoked?: boolean | 'loaded';
 
 	/**
 	 * Whether the script should always load regardless of consent state.
@@ -303,6 +319,16 @@ export interface Script {
 	 * @param info - The current consent state and script identity.
 	 */
 	onDispose?: (info: ScriptCallbackInfo) => void;
+
+	/**
+	 * Keep an inserted element when this configuration is removed or disposed.
+	 * Lifecycle listeners are released; a later registration can reuse the tag
+	 * and receive its load or error completion. Use only when the SDK must stay
+	 * installed for the rest of the page. This does not stop vendor tracking.
+	 * Consent withdrawal still follows `persistAfterConsentRevoked`.
+	 * @default false
+	 */
+	persistAfterDispose?: boolean;
 
 	// ─────────────────────────────────────────────────────────────────────────
 	// IAB TCF Properties

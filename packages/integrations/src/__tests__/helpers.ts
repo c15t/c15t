@@ -23,7 +23,7 @@ export interface HelperScriptSnapshot {
 	/** Whether the script should load even before optional consent is granted. */
 	alwaysLoad?: boolean;
 	/** Whether the script stays loaded after consent for its category is revoked. */
-	persistAfterConsentRevoked?: boolean;
+	persistAfterConsentRevoked?: Script['persistAfterConsentRevoked'];
 	/** Remote script URL emitted by the helper, when applicable. */
 	src?: string;
 	/** Vendor slug the helper gates the script on. */
@@ -43,7 +43,7 @@ export interface ExpectedScriptSnapshot {
 	/** Expected `alwaysLoad` flag from the generated helper script. */
 	alwaysLoad: boolean | undefined;
 	/** Expected consent-revocation persistence flag from the generated script. */
-	persistAfterConsentRevoked: boolean | undefined;
+	persistAfterConsentRevoked: Script['persistAfterConsentRevoked'];
 	/** Expected remote script URL from the generated helper script. */
 	src: string | undefined;
 }

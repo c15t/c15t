@@ -5,6 +5,7 @@
 
 import type { BuiltInScriptIntegrationKey } from '../registry';
 import { adrollPixel } from '../vendors/ads-and-pixels/adroll';
+import { amazonAdsTag } from '../vendors/ads-and-pixels/amazon-ads';
 import { linkedinInsights } from '../vendors/ads-and-pixels/linkedin-insights';
 import { liveIntentTag } from '../vendors/ads-and-pixels/liveintent';
 import { metaPixel } from '../vendors/ads-and-pixels/meta-pixel';
@@ -26,6 +27,8 @@ import { cloudflareWebAnalytics } from '../vendors/analytics/cloudflare-web-anal
 import { databuddy } from '../vendors/analytics/databuddy';
 import { defaultComPixel } from '../vendors/analytics/default-com';
 import { fathomAnalytics } from '../vendors/analytics/fathom-analytics';
+import { fullStory } from '../vendors/analytics/fullstory';
+import { gainsightPx } from '../vendors/analytics/gainsight-px';
 import { gtag } from '../vendors/analytics/google-tag';
 import { heap } from '../vendors/analytics/heap';
 import { hightouch } from '../vendors/analytics/hightouch';
@@ -37,6 +40,7 @@ import { matomoAnalytics } from '../vendors/analytics/matomo-analytics';
 import { clarity } from '../vendors/analytics/microsoft-clarity';
 import { mixpanelAnalytics } from '../vendors/analytics/mixpanel-analytics';
 import { oneDollarStats } from '../vendors/analytics/one-dollar-stats';
+import { eloquaTracking } from '../vendors/analytics/oracle-eloqua';
 import { pendo } from '../vendors/analytics/pendo';
 import { pirsch } from '../vendors/analytics/pirsch';
 import { plausibleAnalytics } from '../vendors/analytics/plausible-analytics';
@@ -52,6 +56,7 @@ import { statableAnalytics } from '../vendors/analytics/statable-analytics';
 import { umamiAnalytics } from '../vendors/analytics/umami-analytics';
 import { vercelAnalytics } from '../vendors/analytics/vercel-analytics';
 import { vercelSpeedInsights } from '../vendors/analytics/vercel-speed-insights';
+import { activeCampaignTracking } from '../vendors/email-and-sms/activecampaign';
 import { attentiveTag } from '../vendors/email-and-sms/attentive';
 import { customerIo } from '../vendors/email-and-sms/customer-io';
 import { insiderTag } from '../vendors/email-and-sms/insider';
@@ -72,6 +77,14 @@ import { googleTagManager } from '../vendors/tag-managers/google-tag-manager';
 import type { expectScriptMatchesIntegration } from './helpers';
 
 export const helperParityCases = {
+	activeCampaignTracking: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: true,
+			src: 'https://diffuser-cdn.app-us1.com/diffuser/diffuser.js',
+		},
+		script: activeCampaignTracking({ accountId: '123456' }),
+	},
 	ada: {
 		expected: {
 			alwaysLoad: undefined,
@@ -114,6 +127,14 @@ export const helperParityCases = {
 			src: 'https://analytics.ahrefs.com/analytics.js',
 		},
 		script: ahrefsAnalytics({ key: 'ahrefs-key' }),
+	},
+	amazonAdsTag: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: true,
+			src: 'https://c.amazon-adsystem.com/aat/amzn.js',
+		},
+		script: amazonAdsTag({ tagId: '00000000-0000-0000-0000-000000000000' }),
 	},
 	amplitude: {
 		expected: {
@@ -216,6 +237,14 @@ export const helperParityCases = {
 		},
 		script: dynamicYield({ sectionId: '1234567' }),
 	},
+	eloquaTracking: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: true,
+			src: 'https://img.en25.com/i/elqCfg.min.js',
+		},
+		script: eloquaTracking({ siteId: '1973398186' }),
+	},
 	fathomAnalytics: {
 		expected: {
 			alwaysLoad: undefined,
@@ -231,6 +260,22 @@ export const helperParityCases = {
 			src: 'https://chat-assets.frontapp.com/v1/chat.bundle.js',
 		},
 		script: frontChat({ chatId: 'front-chat-123' }),
+	},
+	fullStory: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: true,
+			src: 'https://edge.fullstory.com/s/fs.js?org=YOUR_ORG_ID',
+		},
+		script: fullStory({ orgId: 'YOUR_ORG_ID' }),
+	},
+	gainsightPx: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: 'loaded',
+			src: 'https://web-sdk.aptrinsic.com/api/aptrinsic.js?a=AP-PRODUCT-KEY-2',
+		},
+		script: gainsightPx({ productKey: 'AP-PRODUCT-KEY-2' }),
 	},
 	googleTagManager: {
 		expected: {

@@ -4,6 +4,7 @@
  * `index.ts` is the public entry and passes the shared implementations.
  */
 import type { ConsentSnapshot } from '../../types';
+import { isCallbackOnly } from './callback-only';
 import { buildCallbackInfo, invokeCallback } from './callbacks';
 import { createDebugEmitter } from './debug';
 import { registerScriptDiagnostics } from './diagnostics';
@@ -81,7 +82,13 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 	};
 
 	const ownerSource = Symbol('script-loader');
-	const callbackTools = { ...tools, registration: ownerSource };
+	let replacingScript: Script | undefined;
+	const replacementEffects = new Set<() => void>();
+	const callbackTools = {
+		...tools,
+		isReplacing: (script: Script) => script === replacingScript,
+		registration: ownerSource,
+	};
 	const registerCategories = (scripts: Script[]) => {
 		kernel.set.registerConsentCategories(
 			scripts.flatMap((script) => categoriesOf(script.category))
@@ -277,13 +284,16 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 					status = 'retained';
 				} else if (loadedElements.has(script.id)) {
 					status = statuses.get(script.id) ?? 'present';
-					if (!script.src && status === 'loading') {
+					if (
+						(!script.src || loadedElements.get(script.id) === null) &&
+						status === 'loading'
+					) {
 						status = 'loaded';
 					}
 				}
 				return {
 					alwaysLoad: script.alwaysLoad ?? false,
-					callbackOnly: script.callbackOnly ?? false,
+					callbackOnly: isCallbackOnly(script),
 					category: script.category,
 					elementId,
 					eligible,
@@ -311,25 +321,39 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 			return;
 		}
 		const snapshot = kernel.getSnapshot();
-		invokeCallback(
+		const entry = normalized.find((candidate) => candidate.script === script);
+		const hasConsent =
+			replacingScript === script && entry
+				? hasScriptConsent(entry, buildReconcilePass(snapshot, tools))
+				: (consentByScriptId.get(script.id) ?? false);
+		const info = buildCallbackInfo(
+			callbackTools,
 			script,
-			'onDispose',
-			buildCallbackInfo(
-				callbackTools,
-				script,
-				snapshot,
-				consentByScriptId.get(script.id) ?? false,
-				elementIds.resolve(script),
-				element
-			),
-			emit
+			snapshot,
+			hasConsent,
+			elementIds.resolve(script),
+			element
 		);
+		if (info.replacing) {
+			Object.defineProperty(info, 'afterReplacement', {
+				value: (effect: () => void) =>
+					replacementEffects.add(() =>
+						invokeCallback(script, 'onDispose', info, emit, effect)
+					),
+			});
+		}
+		invokeCallback(script, 'onDispose', info, emit);
 	};
 
 	const cleanup = (): void => {
 		// Clear registrations before user callbacks. Each object owns one cleanup
 		// per registration, even if it appears more than once in the input.
 		const scripts = new Set(normalized.map(({ script }) => script));
+		const persistentIds = new Set(
+			[...scripts]
+				.filter((script) => script.persistAfterDispose)
+				.map((script) => script.id)
+		);
 		normalized = [];
 		pendingScripts = undefined;
 		forgetOwners(kernel, ownerSource);
@@ -343,7 +367,12 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 			...loadedElements,
 		])) {
 			if (element) {
-				releaseScriptElement(mountDeps, scriptId, element);
+				releaseScriptElement(
+					mountDeps,
+					scriptId,
+					element,
+					persistentIds.has(scriptId)
+				);
 			}
 		}
 		loadedElements.clear();
@@ -373,7 +402,7 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 			if (
 				replacement &&
 				script.onDispose === replacement.onDispose &&
-				(!script.onDispose || !script.callbackOnly) &&
+				(!script.onDispose || !isCallbackOnly(script)) &&
 				hasSameResource(script, replacement)
 			) {
 				continue;
@@ -382,8 +411,13 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 			// Persistence applies to consent revocation, not config replacement.
 			const element =
 				loadedElements.get(script.id) ?? retainedElements.get(script.id);
-			unmountScript(mountDeps, script, snapshot, false, true);
-			disposeScript(script, element);
+			replacingScript = replacement ? script : undefined;
+			try {
+				unmountScript(mountDeps, script, snapshot, false, true);
+				disposeScript(script, element);
+			} finally {
+				replacingScript = undefined;
+			}
 			retainedElements.delete(script.id);
 			eligibilityByScriptId.delete(script.id);
 			consentByScriptId.delete(script.id);
@@ -442,6 +476,11 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 				cleanup();
 			}
 			processing = false;
+			const effects = [...replacementEffects];
+			replacementEffects.clear();
+			for (const effect of effects) {
+				effect();
+			}
 		}
 	};
 	unsubscribe = kernel.subscribe(() => {

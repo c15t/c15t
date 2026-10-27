@@ -15,6 +15,7 @@
  */
 
 import { adrollPixel } from '../src/vendors/ads-and-pixels/adroll';
+import { amazonAdsTag } from '../src/vendors/ads-and-pixels/amazon-ads';
 import { linkedinInsights } from '../src/vendors/ads-and-pixels/linkedin-insights';
 import { liveIntentTag } from '../src/vendors/ads-and-pixels/liveintent';
 import { metaPixel } from '../src/vendors/ads-and-pixels/meta-pixel';
@@ -40,6 +41,8 @@ import { cloudflareWebAnalytics } from '../src/vendors/analytics/cloudflare-web-
 import { databuddy } from '../src/vendors/analytics/databuddy';
 import { defaultComPixel } from '../src/vendors/analytics/default-com';
 import { fathomAnalytics } from '../src/vendors/analytics/fathom-analytics';
+import { fullStory } from '../src/vendors/analytics/fullstory';
+import { gainsightPx } from '../src/vendors/analytics/gainsight-px';
 import { gtag } from '../src/vendors/analytics/google-tag';
 import { HEAP_QUEUE_METHODS, heap } from '../src/vendors/analytics/heap';
 import {
@@ -54,6 +57,7 @@ import { matomoAnalytics } from '../src/vendors/analytics/matomo-analytics';
 import { clarity } from '../src/vendors/analytics/microsoft-clarity';
 import { mixpanelAnalytics } from '../src/vendors/analytics/mixpanel-analytics';
 import { oneDollarStats } from '../src/vendors/analytics/one-dollar-stats';
+import { eloquaTracking } from '../src/vendors/analytics/oracle-eloqua';
 import { pendo } from '../src/vendors/analytics/pendo';
 import { pirsch } from '../src/vendors/analytics/pirsch';
 import { plausibleAnalytics } from '../src/vendors/analytics/plausible-analytics';
@@ -73,6 +77,7 @@ import { statableAnalytics } from '../src/vendors/analytics/statable-analytics';
 import { umamiAnalytics } from '../src/vendors/analytics/umami-analytics';
 import { vercelAnalytics } from '../src/vendors/analytics/vercel-analytics';
 import { vercelSpeedInsights } from '../src/vendors/analytics/vercel-speed-insights';
+import { activeCampaignTracking } from '../src/vendors/email-and-sms/activecampaign';
 import { customerIo } from '../src/vendors/email-and-sms/customer-io';
 import { insiderTag } from '../src/vendors/email-and-sms/insider';
 import { klaviyo } from '../src/vendors/email-and-sms/klaviyo';
@@ -333,6 +338,128 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 		},
 		tier: 'full',
 		vendor: 'default-com',
+	},
+	{
+		bootstrapCheck: () =>
+			check(Array.isArray(window._elqQ), 'Eloqua command array'),
+		createScript: () => eloquaTracking({ siteId: 'c15t-placeholder-site' }),
+		loaderUrlSubstring: 'img.en25.com/i/elqCfg.min.js',
+		notes:
+			'Uses a non-account placeholder site ID to check that the shared loader installs its dispatcher. All opt-in, opt-out and collection endpoints are blocked; cookie response behavior and account reporting are not verified.',
+		runtimeCheck: () =>
+			check(
+				!Array.isArray(window._elqQ) &&
+					typeof window._elqQ?.push === 'function',
+				'Eloqua installed its dispatcher'
+			),
+		runtimeReplacedGlobals: ['_elqQ'],
+		tier: 'full',
+		vendor: 'oracle-eloqua',
+	},
+	{
+		bootstrapCheck: () =>
+			check(
+				typeof window.pgo === 'function' &&
+					Array.isArray(window.pgo.q) &&
+					typeof window.pgo.l === 'number' &&
+					window.prismGlobalObjectAlias === 'pgo',
+				'ActiveCampaign callable q queue and timestamp'
+			),
+		createScript: () => activeCampaignTracking({ accountId: '123456' }),
+		loaderUrlSubstring: 'diffuser-cdn.app-us1.com/diffuser/diffuser.js',
+		notes:
+			"The default uses ActiveCampaign's direct CDN loader, bypassing the malformed prism.js redirect. Collection and account configuration requests are blocked; SDK construction does not establish account delivery.",
+		runtimeCheck: () =>
+			check(
+				typeof window.pgo === 'function' && !window.pgo.q,
+				'ActiveCampaign runtime replaced its queue'
+			),
+		runtimeReplacedGlobals: ['pgo'],
+		tier: 'full',
+		vendor: 'activecampaign',
+	},
+	{
+		bootstrapCheck: () => {
+			const px = (window as Window & { aptrinsic?: unknown }).aptrinsic as
+				| (((...args: unknown[]) => void) & {
+						p?: string;
+						c?: { enableTag?: boolean };
+						q?: unknown[];
+				  })
+				| undefined;
+			return check(
+				typeof px === 'function' &&
+					px.p === 'AP-PRODUCT-KEY-2' &&
+					px.c?.enableTag === true &&
+					Array.isArray(px.q),
+				'PX official product key, enabled config and arguments queue exist before load'
+			);
+		},
+		createScript: () => gainsightPx({ productKey: 'AP-PRODUCT-KEY-2' }),
+		loaderUrlSubstring: 'web-sdk.aptrinsic.com/api/aptrinsic.js',
+		notes:
+			'The loader serves JavaScript for a sample key; initialization depends on a valid account configuration response. Collection and configuration endpoints stay blocked, so this probe asserts endpoint reachability and bootstrap only.',
+		tier: 'loader-only',
+		vendor: 'gainsight-px',
+	},
+	{
+		allowUrlSubstrings: [
+			'edge.staging.fullstory.com/s/settings/thefullstory.com/v1/web',
+			'rs.staging.fullstory.com/s/settings/thefullstory.com/v1/web',
+		],
+		bootstrapCheck: () =>
+			check(
+				window._fs_capture_on_startup === false &&
+					window.FS?._v === '2.1.0' &&
+					window.FS.q?.[0]?.length === 6 &&
+					window.FS.q[0][5] === 2,
+				'FullStory v2 six-slot init queue with capture off'
+			),
+		createScript: () =>
+			fullStory({
+				host: 'staging.fullstory.com',
+				orgId: 'thefullstory.com',
+				script: 'edge.staging.fullstory.com/s/fs.js',
+			}),
+		loaderUrlSubstring: 'edge.staging.fullstory.com/s/fs.js',
+		notes:
+			'Public FullStory staging organization proves real v2 dispatcher installation. The official wrapper keeps its identity and gains _api. Collection is blocked; authorized account recording and storage erasure are not verified.',
+		runtimeCheck: () =>
+			check(
+				typeof window.FS?._api === 'function',
+				'FullStory real SDK attached its dispatcher'
+			),
+		tier: 'full',
+		vendor: 'fullstory',
+	},
+	{
+		allowUrlSubstrings: ['c.amazon-adsystem.com/aat/amzn-consent.js'],
+		bootstrapCheck: () =>
+			check(
+				typeof window.amzn === 'function' &&
+					Array.isArray(window.amzn.q) &&
+					window.amzn.q.length === 0 &&
+					window.amzn.version === '0.0',
+				'Nested arguments queue waits for the ordered ACS helper'
+			),
+		createScript: () =>
+			amazonAdsTag({
+				countryCode: 'DE',
+				tagId: '00000000-0000-0000-0000-000000000000',
+			}),
+		loaderUrlSubstring: 'c.amazon-adsystem.com/aat/amzn.js',
+		notes:
+			'Nil UUID accepted by the real parser, not an advertiser account. Both real loaders execute; all collection and geo/config requests are blocked. ACS denial is a consent signal, not a shutdown API.',
+		runtimeCheck: () =>
+			check(
+				typeof window.amzn === 'function' &&
+					window.amzn.q === undefined &&
+					typeof window.amznConsent === 'function',
+				'Real Amazon libraries replaced the queue and exposed ACS'
+			),
+		runtimeReplacedGlobals: ['amzn'],
+		tier: 'full',
+		vendor: 'amazon-ads',
 	},
 	{
 		allowUrlSubstrings: ['https://messaging-assets.ada.support/'],

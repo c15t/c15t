@@ -1,7 +1,7 @@
 /**
  * @vitest-environment jsdom
  */
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
 	clearAllScripts,
@@ -63,4 +63,21 @@ describe('vendor contract cleanup', () => {
 		expect.soft('vector' in window).toBe(false);
 		expect.soft('__vector_manager' in window).toBe(false);
 	});
+});
+
+describe('Eloqua queue cleanup', () => {
+	afterEach(() => {
+		expect(window._elqQ).toBeUndefined();
+	});
+	registerVendorContractCleanup();
+
+	const commands: unknown[][] = [];
+	const queues = [commands, { push: vi.fn() }];
+	it.each(queues)(
+		'removes the Eloqua queue or dispatcher after a test',
+		(queue) => {
+			window._elqQ = queue;
+			expect(window._elqQ).toBe(queue);
+		}
+	);
 });
