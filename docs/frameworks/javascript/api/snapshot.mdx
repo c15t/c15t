@@ -44,7 +44,7 @@ kernel.subscribe((next) => {
 | `explicitChoice` | `{ version, categories } \| null` | The visitor's recorded decision per category, each with `value` and `confirmedAt`. Only accept, reject and save write it. `null` when they never chose. |
 | `noticeDismissal` | `{ dismissedAt, fingerprint } \| null` | When the visitor acknowledged the current notice. Not a grant. |
 | `vendorChoice` | `{ denied, confirmedAt } \| null` | Vendors the visitor turned off, outside IAB. |
-| `subject` | `{ subjectId?, externalId?, identityProvider? } \| null` | The consent subject the backend knows. |
+| `subject` | `{ subjectId?, externalId?, identityProvider? } \| null` | The consent subject. A browser runtime has a `subjectId` from startup, before any choice; it alone is not a decision. |
 
 Read permissions to gate code and recorded choices to report decisions.
 [How consent works](/docs/concepts/how-consent-works#a-permission-is-not-a-recorded-choice)

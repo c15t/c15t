@@ -233,6 +233,43 @@ lists where each framework takes it.
 behavior. If a token seems to do nothing, check the layer order and your
 selector before you reach for `noStyle`.
 
+## Keep your fixed elements still during a scroll lock
+
+A blocking banner or preference dialog locks page scrolling in every
+framework and in the script tag. The lock hides the page's overflow and keeps
+the scrollbar's space with `scrollbar-gutter: stable`, so nothing on the page
+moves. Where that gutter does not hold, the lock pads `<body>` by the
+scrollbar's width instead. This happens in browsers without
+`scrollbar-gutter`, and in Chromium on macOS when the page styles its
+scrollbar with `::-webkit-scrollbar`. The padding keeps your content in place,
+but `position: fixed` elements, such as a fixed header or a chat button, move
+right by the scrollbar's width until the lock ends.
+
+While it pads `<body>`, the lock sets `--c15t-scroll-lock-gap` on `<html>` to
+the same width. Add it to the right offset of your fixed elements:
+
+{/* example: fragment */}
+
+```css
+.site-header {
+  position: fixed;
+  inset-inline: 0;
+  top: 0;
+  padding-right: var(--c15t-scroll-lock-gap, 0px);
+}
+
+.chat-button {
+  position: fixed;
+  right: calc(1rem + var(--c15t-scroll-lock-gap, 0px));
+  bottom: 1rem;
+}
+```
+
+The lock sets the variable only while it pads `<body>`. When the last lock
+releases, `<html>` gets back any `--c15t-scroll-lock-gap` value it had before,
+so the `0px` fallback applies only on pages that don't set the variable
+themselves.
+
 ## Check the result
 
 1. Open DevTools Network, clear site data and reload. No c15t stylesheet
@@ -249,3 +286,7 @@ selector before you reach for `noStyle`.
    `<style>` element appears.
 4. Select a banner part and read the Styles panel. c15t's rules appear under
    `@layer components`, and your unlayered rules for the same property win.
+5. On a page that styles its scrollbar with `::-webkit-scrollbar`, open the
+   preference dialog in Chrome on macOS. `<html>` gets
+   `--c15t-scroll-lock-gap` in its `style` attribute, and fixed elements that
+   use it stay where they were.

@@ -38,6 +38,13 @@ export interface PersistenceOptions {
 	 * Set `false` to reconcile only when you call `reconcile()` yourself.
 	 */
 	sync?: boolean;
+	/**
+	 * Leave the subject ID alone: none is generated, stored or followed.
+	 * For a throwaway kernel that only reads storage.
+	 *
+	 * @internal
+	 */
+	keepSubject?: boolean;
 }
 
 export interface PersistenceHandle {

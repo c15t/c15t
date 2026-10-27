@@ -42,12 +42,14 @@ export const createClearOnRevocationWith = (
 		'euconsent-v2',
 	]);
 	for (const key of [storageKey, storageConfig?.storageKey || storageKey]) {
-		protectedKeys.add(key);
-		protectedKeys.add(`${key}-notice`);
+		for (const resolved of Object.values(
+			tools.resolveStorageKeys({ storageKey: key })
+		)) {
+			if (resolved) {
+				protectedKeys.add(resolved);
+			}
+		}
 		protectedKeys.add(`${key}-privacy`);
-		protectedKeys.add(`${key}-vendors`);
-		protectedKeys.add(`${key}-epoch`);
-		protectedKeys.add(`${key}-cookie-miss`);
 	}
 	const previous = new Map<OptionalConsentCategory, boolean>();
 	const reconcile = (): void => {

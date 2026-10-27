@@ -1,6 +1,8 @@
 ---
 packages:
-  '@c15t/core': patch
+  "@c15t/core":
+    replay:
+      - exit-prerelease(npm:@c15t/core)
 ---
 
 ### Browser manifest mode skips the manifest request when the server state has a policy

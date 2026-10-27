@@ -126,6 +126,7 @@ export const scriptLoaderRunsAtStart = function scriptLoaderRunsAtStart(
 				// As `start()` mounts it: records a server read from the cookie
 				// stay, and only newer stored denials apply over them.
 				createPersistence({
+					keepSubject: true,
 					kernel: judged,
 					now: settings.now,
 					skipHydration:

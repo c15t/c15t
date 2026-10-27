@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/nextjs",
-	"version": "3.1.0",
+	"version": "3.2.0-canary.0",
 	"description": "Next.js cookie consent banner and consent management platform for c15t. Server-rendered for the App Router and Pages Router, with a consent dialog and preference center.",
 	"keywords": [
 		"app-router",

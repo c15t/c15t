@@ -1,6 +1,8 @@
 ---
 packages:
-  '@c15t/core': patch
+  "@c15t/core":
+    replay:
+      - exit-prerelease(npm:@c15t/core)
 ---
 
 ### The IAB CMP is created once under an IAB policy
