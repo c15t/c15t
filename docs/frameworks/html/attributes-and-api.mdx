@@ -58,8 +58,9 @@ call sets `overrides`, `experiment` or `storageConfig`. `c15t.js` then sends a
 different `/init`, and the first request goes unused. The
 [endpoint reference](/docs/self-host/api/endpoints#serve-the-script-tag) lists
 every case. Without `c15t.init.js`, `c15t.js` still sends `/init` before its
-bundle runs, unless one of those cases applies or `script.prefetch` is
-`false`. That request starts later than `c15t.init.js` would start it.
+bundle runs, unless one of those cases applies, `script.prefetch` is `false`
+or `script.bundles.full` points at your own bundle. That request starts later
+than `c15t.init.js` would start it.
 
 `dist/c15t.css` and `dist/c15t.iab.css` are the stylesheets, for pages that
 render the UI with `data-shadow="false"` and load the CSS themselves.
