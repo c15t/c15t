@@ -112,14 +112,15 @@ kernel to control its DOM lifecycle. Embeds do not require `@c15t/integrations`.
 
 ## Email and SMS
 
-| Integration                                             | Helper            | Category                      | Loading behavior                                           |
-| ------------------------------------------------------- | ----------------- | ----------------------------- | ---------------------------------------------------------- |
-| [Attentive](./attentive.md)                             | `attentiveTag`    | `marketing`                   | Waits for effective permission                             |
-| [Customer.io](./customer-io.md)                         | `customerIo`      | `marketing`                   | Waits for effective permission                             |
-| [Insider](./insider.md)                                 | `insiderTag`      | `marketing`                   | Waits for effective permission                             |
-| [Klaviyo](./klaviyo.md)                                 | `klaviyo`         | `marketing` and `measurement` | Waits for both; optional forms-only mode needs `marketing` |
-| [Marketo Munchkin](./marketo.md)                        | `marketoMunchkin` | `marketing`                   | Waits for effective permission                             |
-| [Salesforce Account Engagement](./salesforce-pardot.md) | `pardotTracking`  | `marketing`                   | Waits for effective permission                             |
+| Integration                                             | Helper                   | Category                      | Loading behavior                                           |
+| ------------------------------------------------------- | ------------------------ | ----------------------------- | ---------------------------------------------------------- |
+| [ActiveCampaign](./activecampaign.md)                   | `activeCampaignTracking` | `marketing`                   | Waits for effective permission                             |
+| [Attentive](./attentive.md)                             | `attentiveTag`           | `marketing`                   | Waits for effective permission                             |
+| [Customer.io](./customer-io.md)                         | `customerIo`             | `marketing`                   | Waits for effective permission                             |
+| [Insider](./insider.md)                                 | `insiderTag`             | `marketing`                   | Waits for effective permission                             |
+| [Klaviyo](./klaviyo.md)                                 | `klaviyo`                | `marketing` and `measurement` | Waits for both; optional forms-only mode needs `marketing` |
+| [Marketo Munchkin](./marketo.md)                        | `marketoMunchkin`        | `marketing`                   | Waits for effective permission                             |
+| [Salesforce Account Engagement](./salesforce-pardot.md) | `pardotTracking`         | `marketing`                   | Waits for effective permission                             |
 
 ## Ads and pixels
 

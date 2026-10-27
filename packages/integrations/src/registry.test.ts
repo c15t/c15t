@@ -62,6 +62,7 @@ import { statableAnalyticsManifest } from './vendors/analytics/statable-analytic
 import { umamiAnalyticsManifest } from './vendors/analytics/umami-analytics';
 import { vercelAnalyticsManifest } from './vendors/analytics/vercel-analytics';
 import { vercelSpeedInsightsManifest } from './vendors/analytics/vercel-speed-insights';
+import { activeCampaignTrackingManifest } from './vendors/email-and-sms/activecampaign';
 import { attentiveTagManifest } from './vendors/email-and-sms/attentive';
 import { customerIoManifest } from './vendors/email-and-sms/customer-io';
 import { insiderManifest } from './vendors/email-and-sms/insider';
@@ -89,6 +90,7 @@ const validConsentCategories = [
 
 const vendorManifests = [
 	clayManifest,
+	activeCampaignTrackingManifest,
 	gainsightPxManifest,
 	fullStoryManifest,
 	amazonAdsTagManifest,

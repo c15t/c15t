@@ -74,6 +74,7 @@ import { statableAnalytics } from '../src/vendors/analytics/statable-analytics';
 import { umamiAnalytics } from '../src/vendors/analytics/umami-analytics';
 import { vercelAnalytics } from '../src/vendors/analytics/vercel-analytics';
 import { vercelSpeedInsights } from '../src/vendors/analytics/vercel-speed-insights';
+import { activeCampaignTracking } from '../src/vendors/email-and-sms/activecampaign';
 import { customerIo } from '../src/vendors/email-and-sms/customer-io';
 import { insiderTag } from '../src/vendors/email-and-sms/insider';
 import { klaviyo } from '../src/vendors/email-and-sms/klaviyo';
@@ -272,6 +273,28 @@ type PosthogProbeWindow = Window & {
  * Probe configs for every built-in integration, ordered by registry vendor id.
  */
 export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
+	{
+		bootstrapCheck: () =>
+			check(
+				typeof window.pgo === 'function' &&
+					Array.isArray(window.pgo.q) &&
+					typeof window.pgo.l === 'number' &&
+					window.prismGlobalObjectAlias === 'pgo',
+				'ActiveCampaign callable q queue and timestamp'
+			),
+		createScript: () => activeCampaignTracking({ accountId: '123456' }),
+		loaderUrlSubstring: 'diffuser-cdn.app-us1.com/diffuser/diffuser.js',
+		notes:
+			"The default uses ActiveCampaign's direct CDN loader, bypassing the malformed prism.js redirect. Collection and account configuration requests are blocked; SDK construction does not establish account delivery.",
+		runtimeCheck: () =>
+			check(
+				typeof window.pgo === 'function' && !window.pgo.q,
+				'ActiveCampaign runtime replaced its queue'
+			),
+		runtimeReplacedGlobals: ['pgo'],
+		tier: 'full',
+		vendor: 'activecampaign',
+	},
 	{
 		bootstrapCheck: () => {
 			const px = (window as Window & { aptrinsic?: unknown }).aptrinsic as

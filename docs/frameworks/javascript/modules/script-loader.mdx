@@ -30,6 +30,7 @@ one.
 | `alwaysLoad` | `boolean` | `false` | Load whatever the consent state, for tags that manage consent themselves through the vendor's API. |
 | `observeConsentBeforeLoad` | `boolean` | `false` | Notify `onConsentChange` during initial denial and subsequent updates before the resource loads. Useful for integrations that coordinate a shared SDK. |
 | `persistAfterConsentRevoked` | `boolean` or `'loaded'` | `false` | `true` keeps the element after withdrawal, including pending downloads. `'loaded'` keeps only elements whose load event completed; pending and failed loads are removed. |
+| `persistAfterDispose` | `boolean` | `false` | Keep an inserted element after configuration removal or loader disposal, while releasing its lifecycle callbacks. |
 | `target` | `'head' \| 'body'` | `'head'` | Where the element goes. |
 | `async`, `defer` | `boolean` | none | Attributes on the created element. |
 | `nonce` | `string` | the runtime's `nonce` | CSP nonce for this element. |
@@ -64,7 +65,17 @@ completion too. Removing a registration cancels its pending callback. c15t does
 not infer completion for elements added outside the loader.
 
 Removing the original loader transfers ownership to a remaining loader. c15t
-removes an element it created when the last loader releases it.
+removes an element it created when the last loader releases it, unless a
+registration that released it by removal or disposal set
+`persistAfterDispose`. That setting does not apply to consent withdrawal.
+
+Use `persistAfterDispose` for an SDK that must remain installed for the rest
+of the page. Disposal still releases callbacks. A later registration with
+the same resource identity can adopt the retained element and receive its
+load or error completion, including a download that finished without an
+owner. This preserves the existing source and element attributes; it does
+not apply new SDK configuration or stop running code. The integration must
+reconcile supported settings and reject incompatible changes.
 
 ## Update the list
 
@@ -78,7 +89,8 @@ once:
   disposal callback stay the same. Changing either disposes the previous
   configuration. Keep the callback stable across rerenders, or supply a new
   callback when replacement needs cleanup. Callback-only scripts with
-  `onDispose` are tracked by object and restart when the object changes.
+  `onDispose` are tracked by object and restart when the object changes. Set
+  `persistAfterDispose` to keep an inserted resource on purpose.
 - A removed script releases its element. Shared external elements stay while
   another loader still uses them.
 

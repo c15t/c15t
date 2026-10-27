@@ -111,7 +111,7 @@ describe('mountScript', () => {
 			expect(secondError).toHaveBeenCalledTimes(event === 'error' ? 1 : 0);
 		}
 	);
-	test('completes an inline element when onBeforeLoad removes its external source', async () => {
+	test('waits for a real load when onBeforeLoad removes its external source', async () => {
 		const { deps } = makeDeps();
 		const onLoad = vi.fn();
 		mountScript(
@@ -127,10 +127,14 @@ describe('mountScript', () => {
 			true,
 			null
 		);
-		expect(document.querySelector('script[src]')).toBeNull();
+		const element = document.querySelector('script');
+		expect(element?.getAttribute('src')).toBeNull();
 		await new Promise((resolve) => {
 			setTimeout(resolve, 0);
 		});
+		// The hook may restore its source later; no synthetic completion.
+		expect(onLoad).not.toHaveBeenCalled();
+		element?.dispatchEvent(new Event('load'));
 		expect(onLoad).toHaveBeenCalledOnce();
 	});
 	test('applies the loader nonce unless the script declares its own', () => {

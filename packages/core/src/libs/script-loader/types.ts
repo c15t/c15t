@@ -320,6 +320,16 @@ export interface Script {
 	 */
 	onDispose?: (info: ScriptCallbackInfo) => void;
 
+	/**
+	 * Keep an inserted element when this configuration is removed or disposed.
+	 * Lifecycle listeners are released; a later registration can reuse the tag
+	 * and receive its load or error completion. Use only when the SDK must stay
+	 * installed for the rest of the page. This does not stop vendor tracking.
+	 * Consent withdrawal still follows `persistAfterConsentRevoked`.
+	 * @default false
+	 */
+	persistAfterDispose?: boolean;
+
 	// ─────────────────────────────────────────────────────────────────────────
 	// IAB TCF Properties
 	// ─────────────────────────────────────────────────────────────────────────

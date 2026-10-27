@@ -924,6 +924,7 @@ export default defineDocsConfig({
 				},
 				{
 					pages: [
+						'activecampaign',
 						'attentive',
 						'customer-io',
 						'insider',

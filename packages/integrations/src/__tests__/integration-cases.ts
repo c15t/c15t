@@ -54,6 +54,7 @@ import { statableAnalytics } from '../vendors/analytics/statable-analytics';
 import { umamiAnalytics } from '../vendors/analytics/umami-analytics';
 import { vercelAnalytics } from '../vendors/analytics/vercel-analytics';
 import { vercelSpeedInsights } from '../vendors/analytics/vercel-speed-insights';
+import { activeCampaignTracking } from '../vendors/email-and-sms/activecampaign';
 import { attentiveTag } from '../vendors/email-and-sms/attentive';
 import { customerIo } from '../vendors/email-and-sms/customer-io';
 import { insiderTag } from '../vendors/email-and-sms/insider';
@@ -74,6 +75,14 @@ import { googleTagManager } from '../vendors/tag-managers/google-tag-manager';
 import type { expectScriptMatchesIntegration } from './helpers';
 
 export const helperParityCases = {
+	activeCampaignTracking: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: true,
+			src: 'https://diffuser-cdn.app-us1.com/diffuser/diffuser.js',
+		},
+		script: activeCampaignTracking({ accountId: '123456' }),
+	},
 	ada: {
 		expected: {
 			alwaysLoad: undefined,

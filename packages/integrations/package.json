@@ -316,6 +316,11 @@
 			"import": "./dist/events.js",
 			"default": "./dist/events.js"
 		},
+		"./activecampaign": {
+			"types": "./dist-types/vendors/email-and-sms/activecampaign.d.ts",
+			"import": "./dist/vendors/email-and-sms/activecampaign.js",
+			"default": "./dist/vendors/email-and-sms/activecampaign.js"
+		},
 		"./gainsight-px": {
 			"types": "./dist-types/vendors/analytics/gainsight-px.d.ts",
 			"import": "./dist/vendors/analytics/gainsight-px.js",

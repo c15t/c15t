@@ -51,6 +51,7 @@ import { statableAnalytics } from './vendors/analytics/statable-analytics';
 import { umamiAnalytics } from './vendors/analytics/umami-analytics';
 import { vercelAnalytics } from './vendors/analytics/vercel-analytics';
 import { vercelSpeedInsights } from './vendors/analytics/vercel-speed-insights';
+import { activeCampaignTracking } from './vendors/email-and-sms/activecampaign';
 import { attentiveTag } from './vendors/email-and-sms/attentive';
 import { customerIo } from './vendors/email-and-sms/customer-io';
 import { insiderTag } from './vendors/email-and-sms/insider';
@@ -88,6 +89,12 @@ const requiredIdCases: {
 		helper: 'clay',
 		option: 'siteId',
 		script: { category: 'marketing', id: 'clay' },
+	},
+	{
+		create: (id) => activeCampaignTracking({ accountId: asId(id) }),
+		helper: 'activeCampaignTracking',
+		option: 'accountId',
+		script: { category: 'marketing', id: 'activecampaign' },
 	},
 	{
 		create: (id) => fullStory({ orgId: asId(id) }),
