@@ -279,6 +279,10 @@ for (const engine of ENGINES) {
 			assert.strictEqual(saved.status, 200, JSON.stringify(saved.body));
 
 			const read = await harness.json('GET', `/subjects/${base.subjectId}`);
+			assert.strictEqual(
+				(read.body.consents as { givenAt: string }[])[0]?.givenAt,
+				new Date(ahead).toISOString()
+			);
 			assert.deepStrictEqual(read.body.subjectChoice, {
 				categories: { marketing: receipt(true, ahead) },
 				version: 3,
