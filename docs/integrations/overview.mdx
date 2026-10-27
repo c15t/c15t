@@ -45,8 +45,11 @@ kernel to control its DOM lifecycle. Embeds do not require `@c15t/integrations`.
 
 | Integration | Helper | Category | Loading behavior |
 | --- | --- | --- | --- |
+| [Oracle Eloqua](/docs/integrations/oracle-eloqua) | `eloquaTracking` | `marketing` | Waits for effective permission |
+| [FullStory](/docs/integrations/fullstory) | `fullStory` | `measurement` | Waits for effective permission |
 | [Lucky Orange](/docs/integrations/lucky-orange) | `luckyOrange` | `measurement` | Waits for effective permission |
 | [Google Tag](/docs/integrations/google-tag) | `gtag` | `measurement` or `marketing` | Always loads and signals Google consent by default; `loadMode: 'after-consent'` waits for permission |
+| [Gainsight PX](/docs/integrations/gainsight-px) | `gainsightPx` | `measurement` | Waits for effective permission |
 | [Pendo](/docs/integrations/pendo) | `pendo` | `measurement` | Waits for effective permission; stops and resumes event sending |
 | [Ahrefs Analytics](/docs/integrations/ahrefs-analytics) | `ahrefsAnalytics` | `measurement` | Waits for effective permission |
 | [Adobe Analytics](/docs/integrations/adobe-analytics) | `adobeAnalytics` | `measurement` | Waits for effective permission |
@@ -56,6 +59,7 @@ kernel to control its DOM lifecycle. Embeds do not require `@c15t/integrations`.
 | [RB2B](/docs/integrations/rb2b) | `rb2b` | `marketing` | Waits for effective permission |
 | [Clay](/docs/integrations/clay) | `clay` | `marketing` | Waits for effective permission |
 | [Clearbit](/docs/integrations/clearbit) | `clearbit` | `marketing` | Waits for effective permission |
+| [Default](/docs/integrations/default-com) | `defaultComPixel` or `defaultComFormsSdk` | Pixel: `measurement`; SDK: `functionality`; both configurable | Pixel waits for permission by default; opt-in `loadMode: 'always'` loads before consent. Standalone SDK always waits for permission. Use one helper per document. |
 | [Microsoft Clarity](/docs/integrations/microsoft-clarity) | `clarity` | `measurement` | Gated initially; keeps the SDK and signals storage consent |
 | [Databuddy](/docs/integrations/databuddy) | `databuddy` | `measurement` | Gated by default; disables the SDK on revocation |
 | [Fathom Analytics](/docs/integrations/fathom-analytics) | `fathomAnalytics` | `measurement` | Waits for effective permission |
@@ -104,6 +108,7 @@ kernel to control its DOM lifecycle. Embeds do not require `@c15t/integrations`.
 
 | Integration | Helper | Category | Loading behavior |
 | --- | --- | --- | --- |
+| [ActiveCampaign](/docs/integrations/activecampaign) | `activeCampaignTracking` | `marketing` | Waits for effective permission |
 | [Attentive](/docs/integrations/attentive) | `attentiveTag` | `marketing` | Waits for effective permission |
 | [Customer.io](/docs/integrations/customer-io) | `customerIo` | `marketing` | Waits for effective permission |
 | [Insider](/docs/integrations/insider) | `insiderTag` | `marketing` | Waits for effective permission |
@@ -120,6 +125,7 @@ kernel to control its DOM lifecycle. Embeds do not require `@c15t/integrations`.
 | [AdRoll](/docs/integrations/adroll) | `adrollPixel` | `marketing` | Waits for effective permission |
 | [Vector](/docs/integrations/vector) | `vector` | `marketing` | Waits for effective permission |
 | [Meta Pixel](/docs/integrations/meta-pixel) | `metaPixel` | `marketing` | Gated initially; keeps the SDK and signals consent |
+| [Amazon Ads](/docs/integrations/amazon-ads) | `amazonAdsTag` | `marketing` | Gated initially; keeps the tag and signals consent when ACS is enabled |
 | [OpenAI Pixel](/docs/integrations/openai-pixel) | `openaiPixel` | `marketing` | Gated initially; keeps the SDK and signals consent |
 | [Pinterest Tag](/docs/integrations/pinterest-tag) | `pinterestTag` | `marketing` | Gated initially; keeps the tag and signals consent |
 | [Reddit Pixel](/docs/integrations/reddit-pixel) | `redditPixel` | `marketing` | Gated initially; keeps the pixel and toggles first-party cookies |

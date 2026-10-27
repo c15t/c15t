@@ -5,6 +5,7 @@
 	"keywords": [
 		"adobe-analytics",
 		"adroll",
+		"amazon-ads",
 		"amplitude",
 		"analytics-consent",
 		"block-scripts-until-consent",
@@ -17,6 +18,7 @@
 		"consent-mode",
 		"consent-mode-v2",
 		"cookie-consent",
+		"default-com",
 		"ga4",
 		"gdpr",
 		"google-ads",
@@ -321,6 +323,36 @@
 			"import": "./dist/vendors/analytics/hubspot.js",
 			"default": "./dist/vendors/analytics/hubspot.js"
 		},
+		"./default-com": {
+			"types": "./dist-types/vendors/analytics/default-com.d.ts",
+			"import": "./dist/vendors/analytics/default-com.js",
+			"default": "./dist/vendors/analytics/default-com.js"
+		},
+		"./oracle-eloqua": {
+			"types": "./dist-types/vendors/analytics/oracle-eloqua.d.ts",
+			"import": "./dist/vendors/analytics/oracle-eloqua.js",
+			"default": "./dist/vendors/analytics/oracle-eloqua.js"
+		},
+		"./activecampaign": {
+			"types": "./dist-types/vendors/email-and-sms/activecampaign.d.ts",
+			"import": "./dist/vendors/email-and-sms/activecampaign.js",
+			"default": "./dist/vendors/email-and-sms/activecampaign.js"
+		},
+		"./gainsight-px": {
+			"types": "./dist-types/vendors/analytics/gainsight-px.d.ts",
+			"import": "./dist/vendors/analytics/gainsight-px.js",
+			"default": "./dist/vendors/analytics/gainsight-px.js"
+		},
+		"./fullstory": {
+			"types": "./dist-types/vendors/analytics/fullstory.d.ts",
+			"import": "./dist/vendors/analytics/fullstory.js",
+			"default": "./dist/vendors/analytics/fullstory.js"
+		},
+		"./amazon-ads": {
+			"types": "./dist-types/vendors/ads-and-pixels/amazon-ads.d.ts",
+			"import": "./dist/vendors/ads-and-pixels/amazon-ads.js",
+			"default": "./dist/vendors/ads-and-pixels/amazon-ads.js"
+		},
 		"./ada": {
 			"types": "./dist-types/vendors/functional/ada.d.ts",
 			"import": "./dist/vendors/functional/ada.js",
@@ -448,6 +480,7 @@
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",
 		"@c15t/vitest-config": "workspace:*",
+		"esbuild": "0.28.1",
 		"playwright": "1.58.2",
 		"sentry-browser-v10": "npm:@sentry/browser@^10.67.0",
 		"sentry-browser-v10-min": "npm:@sentry/browser@10.67.0",

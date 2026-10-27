@@ -1,0 +1,187 @@
+---
+title: Amazon Ads
+description: Load Amazon Ads with c15t after marketing consent and verify its loader, storage and revocation behavior.
+seoTitle: Amazon Ads consent with c15t
+seoDescription: Configure the c15t amazonAdsTag helper, gate vendor requests on marketing consent and understand what happens when consent is withdrawn.
+icon: radar
+group: integrations
+---
+
+The `amazonAdsTag` helper keeps Amazon Ads off the page until `marketing` consent is granted.
+Remove direct snippets and tag manager copies so they cannot bypass c15t.
+
+## Configure Amazon Ads
+
+<CommandTabs command="@c15t/integrations" mode="install" />
+
+<include src="../shared/examples/javascript/amazon-ads-scripts.mdx" />
+
+<include src="../shared/integrations/register-scripts.mdx" />
+
+The c15t `amazonAdsTag` helper loads Amazon's advertising tag after
+`marketing` consent. It creates no Amazon queue or script before that grant.
+When you supply the visitor's country, the helper also loads Amazon Consent
+Signal, ACS, and forwards the current permission for ad storage and user data.
+
+To enable ACS, pass `countryCode` with the actual visitor country from your
+server or another trusted geography source. The helper trims and uppercases
+that value. It never assumes `US`. The `region` option selects your Amazon
+advertising account's region and does not identify the visitor's country.
+
+Amazon's template requires a country code to process ACS data. If the country
+is unknown, omit `countryCode`; c15t then loads only the main tag. Confirm
+which signals your account and traffic require before deploying. Amazon's
+template states that EEA traffic needs at least one of TCF, GPP or ACS.
+Amazon's [consent-signal requirements](https://advertising.amazon.com/en-gb/resources/ad-policy/consent-signal-requirements)
+require a valid consent signal when transmitting personal data from UK and
+EEA users to Amazon Ads.
+
+## Options
+
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `tagId` | Required | Amazon Ads tag ID passed to `amzn('addTag', ...)`. The helper trims it. A missing, empty or whitespace-only value logs an error and loads nothing. |
+| `region` | `NA` | `NA` or `EU`, passed to `amzn('setRegion', ...)`. Use the region for your advertising account. Amazon's template groups North America, South America, Japan and Australia under `NA`. |
+| `trackPageView` | `true` | Sends one initial `amzn('trackEvent', 'PageView', ...)`. Set `false` when your application owns the initial page view. |
+| `pageViewAttributes` | `{}` | Attributes for that initial PageView, such as `value`, `currencyCode` or `clientDedupeId`. |
+| `countryCode` | None | Actual visitor country, as a two-letter ISO 3166-1 code. Enables the consent helper. Blank values disable ACS. |
+| `ipAddress` | None | Optional visitor IP address passed to ACS. Used only when `countryCode` enables ACS. |
+| `gpp` | None | Existing IAB GPP consent string passed to ACS. Used only when `countryCode` enables ACS. The helper does not create or validate this string. |
+| `scriptUrl` | `https://c.amazon-adsystem.com/aat/amzn.js` | Main loader URL override. A blank value falls back to the default. |
+| `consentScriptUrl` | `https://c.amazon-adsystem.com/aat/amzn-consent.js` | ACS loader URL override. A blank value falls back to the default. |
+
+The returned script uses `marketing` by default. A category override on that
+script also changes the permission forwarded to ACS, including during
+configuration replacement. Both `enableAdStorage`
+and `enableUserData` follow the script's effective permission, including its
+vendor switch. They are not independent configuration flags.
+
+The helper does not set user data for advanced matching or create a TCF
+consent string. Do not manufacture a TCF string to satisfy a tag's consent
+checks. Use your existing IAB consent implementation when Amazon requires
+TCF. Amazon's template says TCF takes priority when several signals are
+present.
+
+## Loading and revocation
+
+Before the script's permission is granted, c15t creates no `window.amzn`,
+`amzn.q` or `amznConsent`, loads neither Amazon library and sets no Amazon
+cookie or browser storage. This guarantee covers the helper's own actions.
+Remove other Amazon loaders to apply the same gate to the whole page.
+
+After grant, the helper preserves an existing `amzn` function or creates
+Amazon's nested command queue. Each entry contains the command arguments and
+a timestamp, `[arguments, Date.now()]`.
+
+When ACS is enabled, the helper inserts `amzn-consent.js` before the main
+`amzn.js` element and uses ordered script execution. The downloads can
+overlap. After the consent helper executes, c15t calls `amznConsent` with the
+real country and both permissions set to `true`. It then queues `setRegion`,
+`addTag` and the optional PageView before the main library executes. Without
+ACS, it queues those commands before inserting the main tag. The helper
+does not add automatic tracking for client-side navigation.
+
+If consent is withdrawn while the consent helper is loading, its completion
+forwards both permissions as `false` and skips initialization. An already
+started helper can still execute after withdrawal. Amazon's helper writes a
+cookie during evaluation, before the first explicit consent update.
+
+If Amazon has not consumed c15t's queued initialization commands, withdrawal
+removes those entries. Amazon can still be waiting to consume the queue after
+the browser reports that `amzn.js` has loaded. The helper preserves commands
+your application queued itself.
+
+Both loaders stay on the page after revocation. When ACS is available, the
+helper calls `amznConsent` with `enableAdStorage: false` and
+`enableUserData: false`. This forwards withdrawal. Amazon documents no
+shutdown or unload command for this tag, and ACS denial does not stop all
+requests from the running runtime. Keep c15t's default reload on revocation
+to stop that runtime. Removing script elements cannot undo executed code,
+requests already sent or cookies already set.
+
+If marketing is allowed again before a reload, the helper reuses both
+loaders and the existing Amazon function. It restores ACS permission without
+repeating a completed initialization or PageView. If withdrawal canceled
+initialization before Amazon consumed the queue, it queues initialization
+once for the new grant. Changes to unrelated consent categories do not
+repeat these calls.
+
+Full loader disposal or configuration replacement detaches that lifecycle's
+load and error listeners. c15t removes its ACS element after the final
+registration using that element releases it, including registrations with
+different options that borrow the same helper.
+c15t leaves externally supplied helper elements in place. A disposed helper's
+late completion cannot initialize the tag or forward an old consent state.
+ACS permission stays granted while at least one active distinct configuration
+with `countryCode` passes its effective consent gate. Releasing or withdrawing
+one configuration does not deny a surviving permitted configuration. Equivalent
+configurations share their lifecycle and combine their registrations' gates.
+Replacing options evaluates the incoming configuration before settling ACS, so
+an unchanged grant does not produce a temporary denial. Removing `countryCode`,
+removing the configuration or withdrawing consent forwards denial when no
+permitted ACS configuration remains. This includes category overrides and
+vendor restrictions.
+Removing an element does not abort code already downloaded or stop a running
+Amazon runtime. Keep the default revocation reload enabled.
+
+If the ACS library fails to load, c15t reports the failure and withholds the
+tag registration and initial PageView. The main library remains a normal
+core script resource with its own load and error events. Reload to retry a
+failed consent-helper download.
+
+Guard every application-owned `amzn` event call with the current permission
+for the category and vendor. The global function still exists after
+revocation, so checking for that function alone does not check consent. If
+you disable `reloadOnConsentRevoked`, queued application events and the
+running Amazon library can still send requests.
+
+## Cookies and storage
+
+The following names come from the downloaded Amazon libraries reviewed on
+21 October 2026. They are source-code findings, not a complete inventory from
+a live browser session. Account configuration, downstream responses and
+browser restrictions can change which cookies appear and how long they last.
+
+| Name | Source | Lifetime in the reviewed code |
+| --- | --- | --- |
+| `amzn_consent` | First-party ACS cookie written by `amzn-consent.js`. The library creates denied defaults during evaluation if the cookie is absent. It requests `Path=/`, `SameSite=Strict` and `Secure`. | 28 days |
+| `amznAref` | First-party measurement-token cookie read, updated or removed by `amzn.js`. | 30-day token lifetime |
+| `aatToken` | First-party token cookie managed by `amzn.js`. | Supplied by the token response |
+| `AMZN-NoCookieConsent` | First-party cached no-consent cookie managed by `amzn.js`. | Supplied by the token response |
+
+Neither reviewed library references `localStorage` or `sessionStorage`. That
+does not establish which storage downstream Amazon resources use. A reload
+does not delete existing cookies, and your site's JavaScript cannot delete
+cookies on Amazon's domains.
+
+## Verify Amazon Ads
+
+1. Use a private window with an opt-in policy. In DevTools, filter requests
+   by `amazon-adsystem.com`. Before choosing, then after rejecting and
+   reloading, neither Amazon library nor any Amazon event request should
+   appear. Check cookies and browser storage too.
+2. Allow marketing. Without ACS, check for one `amzn.js` load and the initial
+   PageView. With a real `countryCode`, also check that `amzn-consent.js`
+   executes first and ACS contains the supplied country and granted signals.
+3. Change an unrelated consent category. There should be no second loader
+   or initial PageView.
+4. Withdraw marketing. With ACS enabled, check that both signals become
+   denied. After c15t reloads the page, neither Amazon library should load.
+   If reload is disabled, test your application event guards and do not
+   treat ACS denial as proof that all Amazon traffic stopped.
+
+Use your account's tag ID for an acceptance test. A fetched script or a
+syntactically valid UUID does not establish that an advertiser account or
+conversion endpoint accepted the event.
+
+## Sources
+
+- [Amazon's official Google Tag Manager template](https://github.com/amzn/ads-pao-amznjs-gtm-template), including its README, `template.tpl`, loader URLs, queue contract and ACS fields.
+- [Amazon Ads consent signal requirements](https://advertising.amazon.com/resources/ad-policy/consent-signal-requirements).
+- [The live Amazon tag library](https://c.amazon-adsystem.com/aat/amzn.js) and [consent helper](https://c.amazon-adsystem.com/aat/amzn-consent.js), used to check the queue parser, consent updates and storage names.
+- [Amazon Ads product terms](https://advertising.amazon.com/legal/product-terms), which name Amazon Advertising LLC and its affiliates. The legal entity for an account can depend on its agreement and region.
+
+The account-console installation snippet requires an Amazon Ads login. This
+guide follows Amazon's public template and downloaded libraries.
+
+<include src="../shared/integrations/vendor-revocation-and-verify.mdx" />

@@ -28,7 +28,13 @@ export default mergeConfig(
 				// The live-vendor monitor drives real vendor endpoints from a
 				// scheduled workflow rather than from unit tests, so it is
 				// measured by its own run, not by this package's ratchet.
-				exclude: ['live-vendors/**'],
+				exclude: [
+					'live-vendors/**',
+					// These fixtures run in the type compiler and a bundled Chromium
+					// page, outside this runner's Istanbul instrumentation.
+					'src/__tests__/default-com-public.type-test.ts',
+					'src/__tests__/default-com-runtime-page.ts',
+				],
 				// Coverage ratchet: floors below current coverage so regressions
 				// fail CI. Raise as coverage improves; never lower.
 				thresholds: {

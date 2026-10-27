@@ -86,10 +86,10 @@ element again when the visitor withdraws it.
 | --- | --- |
 | `id` | A unique, stable name for the script. Required. |
 | `category` | The category it needs, such as `'measurement'`. Required. It also accepts a condition such as `{ and: ['measurement', 'marketing'] }`. |
-| `src` or `textContent` | The URL to load, or inline code to run. One is required unless `callbackOnly` is set. |
-| `callbackOnly` | Add no element. Only run the callbacks, for a vendor that is already on the page. |
+| `src` or `textContent` | The URL to load, or inline code to run. One is required unless `callbackOnly` is `true` or returns `true`. |
+| `callbackOnly` | `true` or a zero-argument predicate returning `true` adds no element and only runs callbacks. Predicates also run for diagnostics and server startup; keep them free of side effects and safe on the server. |
 | `alwaysLoad` | Load whatever the consent state. Use it only for tags that manage consent themselves. |
-| `persistAfterConsentRevoked` | Keep the element on the page after withdrawal. |
+| `persistAfterConsentRevoked` | `true` keeps the element after withdrawal, including pending downloads. `'loaded'` keeps only elements whose load event completed; pending and failed loads are removed. |
 | `target` | `'head'` (default) or `'body'`. |
 | `async`, `defer`, `nonce`, `fetchPriority`, `attributes` | Attributes for the created `<script>` element. Without its own `nonce`, the script gets the c15t tag's nonce. |
 | `anonymizeId` | Give the element a random `id` so blockers cannot match it by name. On by default. |

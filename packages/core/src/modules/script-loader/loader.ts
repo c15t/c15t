@@ -4,6 +4,7 @@
  * `index.ts` is the public entry and passes the shared implementations.
  */
 import type { ConsentSnapshot } from '../../types';
+import { isCallbackOnly } from './callback-only';
 import { buildCallbackInfo, invokeCallback } from './callbacks';
 import { createDebugEmitter } from './debug';
 import { registerScriptDiagnostics } from './diagnostics';
@@ -33,6 +34,12 @@ import type {
 } from './types';
 
 const MAX_RECONCILE_PASSES = 100;
+
+const validateScripts = (scripts: Script[]): void => {
+	for (const script of scripts) {
+		script.validate?.();
+	}
+};
 
 /**
  * Create a script loader from the tools it calls.
@@ -76,12 +83,14 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 	};
 
 	const ownerSource = Symbol('script-loader');
+	let replacingScript: Script | undefined;
 	const registerCategories = (scripts: Script[]) => {
 		kernel.set.registerConsentCategories(
 			scripts.flatMap((script) => categoriesOf(script.category))
 		);
 		declareOwners(kernel, scripts, ownerSource);
 	};
+	validateScripts(options.scripts);
 	registerCategories(options.scripts);
 	let normalized: NormalizedScript[] = normalizeScripts(
 		options.scripts,
@@ -166,6 +175,7 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 			consentReaders.set(script, reader);
 			return reader.read;
 		},
+		isReplacing: (script) => script === replacingScript,
 		registration: ownerSource,
 	};
 	const freezeConsentReader = (script: Script): void => {
@@ -332,13 +342,16 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 					status = 'retained';
 				} else if (loadedElements.has(script.id)) {
 					status = statuses.get(script.id) ?? 'present';
-					if (!script.src && status === 'loading') {
+					if (
+						(!script.src || loadedElements.get(script.id) === null) &&
+						status === 'loading'
+					) {
 						status = 'loaded';
 					}
 				}
 				return {
 					alwaysLoad: script.alwaysLoad ?? false,
-					callbackOnly: script.callbackOnly ?? false,
+					callbackOnly: isCallbackOnly(script),
 					category: script.category,
 					elementId,
 					eligible,
@@ -360,8 +373,7 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 	);
 	const disposeScript = (
 		script: Script,
-		element = loadedElements.get(script.id) ?? retainedElements.get(script.id),
-		replacing = false
+		element = loadedElements.get(script.id) ?? retainedElements.get(script.id)
 	): void => {
 		if (!script.onDispose) {
 			return;
@@ -376,16 +388,16 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 					},
 				}
 			: current;
+		const hasConsent = consentByScriptId.get(script.id) ?? false;
 		const info = buildCallbackInfo(
 			callbackTools,
 			script,
 			snapshot,
-			consentByScriptId.get(script.id) ?? false,
+			hasConsent,
 			elementIds.resolve(script),
 			element
 		);
-		if (replacing) {
-			Object.defineProperty(info, 'replacing', { value: true });
+		if (info.replacing) {
 			Object.defineProperty(info, 'afterReplacement', {
 				value: (effect: () => void) =>
 					replacementEffects.add(() =>
@@ -399,6 +411,11 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 	const cleanup = (): void => {
 		// Each object owns one cleanup per registration, even if repeated.
 		const scripts = new Set(normalized.map(({ script }) => script));
+		const persistentIds = new Set(
+			[...scripts]
+				.filter((script) => script.persistAfterDispose)
+				.map((script) => script.id)
+		);
 		// Keep declarations and readers live through every disposal callback:
 		// an earlier onDispose can save a withdrawal before a later one runs.
 		cleaningUp = true;
@@ -417,7 +434,12 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 			...loadedElements,
 		])) {
 			if (element) {
-				releaseScriptElement(mountDeps, scriptId, element);
+				releaseScriptElement(
+					mountDeps,
+					scriptId,
+					element,
+					persistentIds.has(scriptId)
+				);
 			}
 		}
 		loadedElements.clear();
@@ -432,6 +454,7 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 	};
 
 	const replaceScripts = (next: Script[]): void => {
+		validateScripts(next);
 		const nextScripts = new Set(next);
 		const nextById = new Map(next.map((script) => [script.id, script]));
 		const previous = new Set(normalized.map(({ script }) => script));
@@ -442,12 +465,12 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 			}
 			const replacement = nextById.get(script.id);
 			// Existing vendor helpers are recreated on framework rerenders. Keep
-			// their resource mounted unless it changed. onDispose opts into an
-			// object-owned lifecycle, used by integrations with attached listeners.
+			// their resource mounted unless it or the disposal callback changed.
+			// A stable disposer retains a DOM resource's registration lifecycle.
 			if (
 				replacement &&
-				!script.onDispose &&
-				!replacement.onDispose &&
+				script.onDispose === replacement.onDispose &&
+				(!script.onDispose || !isCallbackOnly(script)) &&
 				hasSameResource(script, replacement)
 			) {
 				freezeConsentReader(script);
@@ -458,8 +481,13 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 			// Persistence applies to consent revocation, not config replacement.
 			const element =
 				loadedElements.get(script.id) ?? retainedElements.get(script.id);
-			unmountScript(mountDeps, script, snapshot, false, true);
-			disposeScript(script, element, replacement !== undefined);
+			replacingScript = replacement ? script : undefined;
+			try {
+				unmountScript(mountDeps, script, snapshot, false, true);
+				disposeScript(script, element);
+			} finally {
+				replacingScript = undefined;
+			}
 			freezeConsentReader(script);
 			consentReaders.delete(script);
 			retainedElements.delete(script.id);

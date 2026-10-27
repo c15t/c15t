@@ -25,7 +25,11 @@ import type {
 export const buildCallbackInfo = function buildCallbackInfo(
 	tools: Pick<
 		ScriptLoaderTools,
-		'deniedVendors' | 'gateState' | 'getConsentReader' | 'registration'
+		| 'deniedVendors'
+		| 'gateState'
+		| 'getConsentReader'
+		| 'isReplacing'
+		| 'registration'
 	>,
 	script: Script,
 	snapshot: ConsentSnapshot,
@@ -50,6 +54,9 @@ export const buildCallbackInfo = function buildCallbackInfo(
 		Object.defineProperty(info, 'getCurrentConsent', {
 			value: getCurrentConsent,
 		});
+	}
+	if (tools.isReplacing?.(script)) {
+		Object.defineProperty(info, 'replacing', { value: true });
 	}
 	if (script.vendor && snapshot.model !== 'iab') {
 		info.vendor = {
