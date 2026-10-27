@@ -474,6 +474,34 @@ describe('Gainsight PX production loader contract', () => {
 		}
 	);
 
+	it('starts PX disabled when an earlier shared owner denies consent', async () => {
+		const denied = createConsentKernel();
+		const granted = createConsentKernel();
+		await denied.commands.save(deniedConsents);
+		await granted.commands.save(grantedConsents);
+		const createScript = () =>
+			gainsightPx({ productKey: 'AP-SHARED-DENIAL-2', user: { id: 'user' } });
+		const first = createScriptLoader({
+			kernel: denied,
+			scripts: [createScript()],
+		});
+		const second = createScriptLoader({
+			kernel: granted,
+			scripts: [createScript()],
+		});
+		try {
+			const queued = getAptrinsic().q.map((entry) => Array.from(entry));
+			expect(queued).toContainEqual(['config', 'enableTag', false]);
+			expect(queued).not.toContainEqual(['config', 'enableTag', true]);
+			expect(queued.some(([name]) => name === 'identify')).toBe(false);
+		} finally {
+			first.dispose();
+			second.dispose();
+			denied.dispose();
+			granted.dispose();
+		}
+	});
+
 	it('honors a denied shared owner until that owner disposes', async () => {
 		const runtime = Object.assign(vi.fn(), { __sdkBundleStarted: true });
 		Reflect.set(window, 'aptrinsic', runtime);
