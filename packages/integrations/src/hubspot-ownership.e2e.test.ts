@@ -185,6 +185,20 @@ const sharedScripts = (form: 'same Script' | 'distinct helpers') => {
 	] as const;
 };
 
+it('keeps a late widget when its replaced client becomes active again', async () => {
+	const first = conversations();
+	const second = conversations();
+	window.HubSpotConversations = first;
+	const owner = await ownerOf(hubspot({ chat: true, portalId: '53' }));
+	window.HubSpotConversations = second;
+	await owner.save({ ...granted, experience: true });
+	expect(first.pending).toBe(1);
+	window.HubSpotConversations = first;
+	first.completeLoad();
+	expect(first.visible).toBe(true);
+	expect(first.clear).not.toHaveBeenCalled();
+});
+
 it('retains a pending load when a previous SDK client returns', async () => {
 	const first = conversations();
 	const second = conversations();
