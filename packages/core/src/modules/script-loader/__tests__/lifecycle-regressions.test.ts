@@ -706,6 +706,31 @@ test.each([undefined, false, () => false])(
 	}
 );
 
+test('keeps a DOM-mounted registration when its callback-only predicate flips after load', () => {
+	let started = false;
+	const initialize = vi.fn(() => {
+		started = true;
+	});
+	const cleanup = vi.fn();
+	const callbackOnly = () => started;
+	const config = (): Script => ({
+		callbackOnly,
+		category: 'measurement',
+		id: 'flipping-disposer',
+		onBeforeLoad: initialize,
+		onDispose: cleanup,
+		src: 'https://example.com/vendor.js',
+	});
+	const { loader } = mount([config()]);
+	const element = document.head.querySelector('script');
+	expect(started).toBe(true);
+	loader.updateScripts([config()]);
+	loader.updateScripts([config()]);
+	expect(document.head.querySelector('script')).toBe(element);
+	expect(initialize).toHaveBeenCalledOnce();
+	expect(cleanup).not.toHaveBeenCalled();
+});
+
 test.each([true, () => true])(
 	'disposes callback-only replacements with a stable disposer, callbackOnly=%s',
 	(callbackOnly) => {

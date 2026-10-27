@@ -199,16 +199,18 @@ const assertStartupConfig = (config: GainsightPxConfig | undefined): void => {
 const unadoptedServerElement = (): HTMLScriptElement | undefined => {
 	const scope: object = globalThis;
 	const started = '__c15tStarted' in scope ? scope.__c15tStarted : undefined;
-	if (
-		typeof started !== 'object' ||
-		started === null ||
-		!('gainsight-px' in started)
-	) {
+	if (typeof started !== 'object' || started === null) {
 		return;
 	}
-	const element = started['gainsight-px'];
+	// Server starts key elements by `resourceKey ?? id` and record the script id.
+	const element = Object.values(started).find(
+		(candidate): candidate is HTMLScriptElement =>
+			candidate instanceof HTMLScriptElement &&
+			'__c15tScript' in candidate &&
+			candidate.__c15tScript === 'gainsight-px'
+	);
 	if (
-		!(element instanceof HTMLScriptElement) ||
+		!element ||
 		('__c15tAdopted' in element && element.__c15tAdopted) ||
 		!(
 			element.isConnected ||
