@@ -17,6 +17,7 @@ import { displayedCategories } from '../consent/consent-types';
 import type { AllConsentNames } from '../consent/consent-types';
 import { clearKernelRecords } from '../kernel/clear-records';
 import { hostExperiment, startExperiment } from '../libs/experiment';
+import { generateSubjectId } from '../libs/generate-subject-id';
 import { extractConsentNamesFromCondition } from '../libs/has';
 import type { IframeBlockerHandle } from '../modules/iframe-blocker/types';
 import { holdNetworkRequests, NOT_HELD } from '../modules/network-blocker/hold';
@@ -286,15 +287,23 @@ export const assembleConsentRuntime = function assembleConsentRuntime(
 					storageConfig: storageFor(options),
 					sync,
 				});
-				// Storage replaced the subject a backend named; keep the named
-				// one when storage held none of its own.
-				if (!seeded && seed?.subject && !kernel.getSnapshot().subject) {
-					kernel.hydrate({ subject: seed.subject });
-				}
 				persistenceHandle = persistence;
 				disposers.push(() => {
 					persistence.dispose();
 					persistenceHandle = null;
+				});
+			}
+			// Persistence gives a browser runtime its subject ID at startup.
+			// Without it the ID lives in memory for the page.
+			const { externalPermissions, subject } = kernel.getSnapshot();
+			if (
+				enabled &&
+				!consentSource &&
+				!externalPermissions &&
+				!subject?.subjectId
+			) {
+				kernel.hydrate({
+					subject: { ...subject, subjectId: generateSubjectId() },
 				});
 			}
 			// After hydration, so the journey knows whether a choice was

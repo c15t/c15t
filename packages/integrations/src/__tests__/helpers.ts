@@ -165,6 +165,7 @@ const cleanupMockBrowser = function cleanupMockBrowser() {
 	delete globalRef.intercomSettings;
 	delete globalRef.databuddy;
 	delete globalRef.databuddyConfig;
+	delete globalRef.databuddyReplay;
 	delete globalRef.plausible;
 	delete globalRef.ttq;
 	delete globalRef.snaptr;

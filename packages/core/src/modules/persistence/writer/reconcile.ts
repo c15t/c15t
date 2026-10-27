@@ -57,7 +57,7 @@ type Rules = Pick<
 /** The parts of a storage read that reconciliation consults. */
 export type StoredRead = Pick<
 	StoredRecords,
-	'records' | 'vendorSubject' | 'epoch'
+	'records' | 'vendorSubject' | 'noticeSubject' | 'subjectCarrier' | 'epoch'
 >;
 
 const canonical = function canonical(value: unknown): unknown {
@@ -122,17 +122,21 @@ const hasNewerIdentity = function hasNewerIdentity(
  * on a save because it held none: a runtime opened before another one stored
  * a subject then joins that subject. Any other in-memory id came from the
  * server (init, prefetch or a save response) and wins, as does an identity
- * set by `identify()`. Fields the winner lacks are filled from the other.
+ * set by `identify()`. A linked identity that is only storage's own copy
+ * yields like the id. Fields the winner lacks are filled from the other.
  *
  * @param ours - The subject in memory.
  * @param stored - The subject storage holds now, or `null`.
  * @param oursYields - Whether the in-memory subject is a copy or generated.
+ * @param identityYields - Whether the in-memory linked identity is only
+ * storage's copy (see {@link SubjectProvenance}).
  * @returns The subject to write.
  */
 export const subjectToWrite = function subjectToWrite(
 	ours: ConsentSubject | null,
 	stored: ConsentSubject | null | undefined,
-	oursYields: boolean
+	oursYields: boolean,
+	identityYields = false
 ): ConsentSubject | null {
 	if (!stored || Object.keys(stored).length === 0) {
 		return ours;
@@ -140,7 +144,7 @@ export const subjectToWrite = function subjectToWrite(
 	if (!ours) {
 		return { ...stored };
 	}
-	if (hasNewerIdentity(ours, stored) || !oursYields) {
+	if ((!identityYields && hasNewerIdentity(ours, stored)) || !oursYields) {
 		return { ...stored, ...ours };
 	}
 	return { ...ours, ...stored };
@@ -275,7 +279,7 @@ const fingerprint = function fingerprint(value: unknown): string {
 /** Fingerprints of readable storage holding none of the records. */
 const ABSENT: Record<StoredRecordKind, string> = {
 	choice: fingerprint(null),
-	notice: fingerprint(null),
+	notice: fingerprint([null, null]),
 	vendors: fingerprint([null, null]),
 };
 
@@ -300,7 +304,10 @@ export const fingerprintStoredRecords = function fingerprintStoredRecords(
 				: fingerprint([stored.choice, stored.subject ?? null]);
 	}
 	if (stored.noticeDismissal !== undefined) {
-		prints.notice = fingerprint(stored.noticeDismissal);
+		prints.notice = fingerprint([
+			stored.noticeDismissal,
+			read.noticeSubject ?? null,
+		]);
 	}
 	if (stored.vendorChoice !== undefined) {
 		prints.vendors = fingerprint([
@@ -339,21 +346,59 @@ const adoptNewer = function adoptNewer<RecordType>(
 };
 
 /**
+ * The subject a clear leaves: the ID alone. The kernel's
+ * `subjectAfterClear` does the same; the write code cannot import it.
+ *
+ * @internal
+ */
+export const subjectAfterClear = function subjectAfterClear(
+	subject: ConsentSubject | null | undefined
+): ConsentSubject | null {
+	return subject?.subjectId ? { subjectId: subject.subjectId } : null;
+};
+
+/**
+ * Where the in-memory subject's linked identity came from, as the writer
+ * last saw storage. Storage may replace or clear only an identity it gave.
+ *
+ * @internal
+ */
+export interface SubjectProvenance {
+	/**
+	 * The linked identity is storage's own copy: the records carried it at
+	 * the previous read, and `identify()` did not set it in this runtime.
+	 */
+	identityYields: boolean;
+	/**
+	 * The subject the notice record carried at the previous read or write,
+	 * when no other record carried one.
+	 */
+	noticeCarried: ConsentSubject | null;
+	/** The record that carried the subject at the previous read. */
+	seenCarrier: StoredRead['subjectCarrier'] | undefined;
+}
+
+/**
  * Whether a stored subject should replace the one in memory, given the
  * time of the newest decision each side carries. A subject that yields (see
  * {@link subjectToWrite}) is replaced by a stored one at least as recent; an
  * id the server resolved only by a strictly newer one. An identity from
- * `identify()` is never replaced, and a missing stored subject replaces
- * nothing.
+ * `identify()`, or any other one storage did not give, is never replaced;
+ * one storage gave follows the same times. A missing stored subject
+ * replaces nothing.
  */
 const prefersStoredSubject = function prefersStoredSubject(
 	memory: ConsentSubject | null,
 	stored: ConsentSubject | null | undefined,
 	storedAt: number,
 	memoryAt: number,
-	subjectYields: boolean
+	subjectYields: boolean,
+	provenance: SubjectProvenance
 ): stored is ConsentSubject {
-	if (!stored || hasNewerIdentity(memory, stored)) {
+	if (
+		!stored ||
+		(!provenance.identityYields && hasNewerIdentity(memory, stored))
+	) {
 		return false;
 	}
 	return subjectYields ? storedAt >= memoryAt : storedAt > memoryAt;
@@ -361,18 +406,22 @@ const prefersStoredSubject = function prefersStoredSubject(
 
 /**
  * The subject once the stored choice was removed. With no identity left in
- * storage the subject goes with the choice. A subject the vendor record
+ * a stored record the identity goes with the choice and the ID stays, as a
+ * clear leaves it. `<key>-sid` alone is not such a record: it holds the ID
+ * and never an identity. A subject the vendor record
  * still carries follows the usual precedence, so it never replaces an id
  * the server resolved or an identity from `identify()` it should yield to.
  */
 const subjectAfterRemoval = function subjectAfterRemoval(
 	snapshot: ConsentSnapshot,
 	stored: HydrationRecords,
+	carried: ConsentSubject | null,
 	movement: Movement,
-	subjectYields: boolean
+	subjectYields: boolean,
+	provenance: SubjectProvenance
 ): HydrationRecords['subject'] {
-	if (!stored.subject) {
-		return null;
+	if (!(stored.subject && carried)) {
+		return subjectAfterClear(snapshot.subject);
 	}
 	return movement.changed('vendors') &&
 		prefersStoredSubject(
@@ -380,17 +429,77 @@ const subjectAfterRemoval = function subjectAfterRemoval(
 			stored.subject,
 			stored.vendorChoice?.confirmedAt ?? Number.NEGATIVE_INFINITY,
 			snapshot.vendorChoice?.confirmedAt ?? Number.NEGATIVE_INFINITY,
-			subjectYields
+			subjectYields,
+			provenance
 		)
 		? stored.subject
 		: undefined;
 };
 
 /**
+ * A notice-only identity follows the acknowledgement that carries it. When
+ * that acknowledgement is removed the linked identity goes and the ID
+ * stays, as a clear leaves it: a runtime from before the clear epoch clears
+ * by removing the records.
+ */
+const reconcileNoticeSubject = function reconcileNoticeSubject(
+	snapshot: ConsentSnapshot,
+	stored: HydrationRecords,
+	carries: boolean,
+	movement: Movement,
+	subjectYields: boolean,
+	provenance: SubjectProvenance,
+	candidate: HydrationRecords['subject']
+): HydrationRecords['subject'] {
+	if (carries && movement.changed('notice')) {
+		if (movement.removed('notice')) {
+			return stored.choice === null && stored.vendorChoice === null
+				? subjectAfterClear(snapshot.subject)
+				: candidate;
+		} else if (
+			prefersStoredSubject(
+				snapshot.subject,
+				stored.subject,
+				stored.noticeDismissal?.dismissedAt ?? Number.NEGATIVE_INFINITY,
+				snapshot.noticeDismissal?.dismissedAt ?? Number.NEGATIVE_INFINITY,
+				subjectYields,
+				provenance
+			)
+		) {
+			return stored.subject;
+		}
+	}
+	return candidate;
+};
+
+/**
+ * The notice carried the subject in memory and, removed or rewritten
+ * without one, no longer does, as an older runtime that knows nothing of
+ * the subject companion leaves it. With no other record carrying a subject,
+ * the linked identity goes and the ID stays, as a reload finds it.
+ */
+const subjectAfterNoticeLeft = function subjectAfterNoticeLeft(
+	snapshot: ConsentSnapshot,
+	carrier: StoredRead['subjectCarrier'],
+	noticeCarried: ConsentSubject | null,
+	movement: Movement,
+	candidate: HydrationRecords['subject']
+): HydrationRecords['subject'] {
+	return carrier === null &&
+		noticeCarried &&
+		movement.changed('notice') &&
+		sameRecord(snapshot.subject, noticeCarried)
+		? subjectAfterClear(snapshot.subject)
+		: candidate;
+};
+
+/**
  * The subject to apply, or `undefined` to keep the one in memory.
  *
- * The subject belongs to the record it was stored with: the envelope, or
- * the vendor record for a visitor whose only decision is about vendors. It
+ * The subject belongs to the record it was stored with: the envelope,
+ * a vendor decision, or a notice acknowledgement. A record stored without
+ * a subject, as older versions wrote them, does not carry it, so the
+ * subject follows the record that does, as a reload selects it. It
  * is only considered when that record changed in storage, so focus or an
  * unrelated key never moves the subject, and follows
  * {@link prefersStoredSubject}. Only the removal of the record that carried
@@ -399,15 +508,38 @@ const subjectAfterRemoval = function subjectAfterRemoval(
 const reconcileSubject = function reconcileSubject(
 	snapshot: ConsentSnapshot,
 	stored: HydrationRecords,
+	carried: ConsentSubject | null,
+	carrier: StoredRead['subjectCarrier'],
+	provenance: SubjectProvenance,
 	records: HydrationRecords,
-	movement: Movement,
+	recordMovement: Movement,
 	subjectYields: boolean
 ): HydrationRecords['subject'] {
 	const { explicitChoice, vendorChoice } = snapshot;
+	// With no record carrying it, the subject is `<key>-sid` alone and goes
+	// with the records present.
+	const carries = (kind: StoredRecordKind, present: boolean): boolean =>
+		carrier === kind || (carrier === null && present);
+	// The subject moves with the record that carries it: when that record
+	// changed, or when another record that did not change carries it now
+	// because the one that did was removed or lost its subject.
+	const movement: Movement = {
+		changed: (kind) =>
+			recordMovement.changed(kind) ||
+			(carrier === kind && provenance.seenCarrier !== carrier),
+		removed: recordMovement.removed,
+	};
 	let candidate: HydrationRecords['subject'];
 	if (records.choice === null) {
-		candidate = subjectAfterRemoval(snapshot, stored, movement, subjectYields);
-	} else if (stored.choice) {
+		candidate = subjectAfterRemoval(
+			snapshot,
+			stored,
+			carried,
+			movement,
+			subjectYields,
+			provenance
+		);
+	} else if (stored.choice && carries('choice', true)) {
 		const relevant = movement.changed('choice') || records.choice !== undefined;
 		if (
 			relevant &&
@@ -416,28 +548,52 @@ const reconcileSubject = function reconcileSubject(
 				stored.subject,
 				latestDecisionAt(stored.choice),
 				latestDecisionAt(explicitChoice),
-				subjectYields
+				subjectYields,
+				provenance
 			)
 		) {
 			candidate = stored.subject;
 		}
-	} else if (explicitChoice === null && movement.changed('vendors')) {
-		// No choice on either side, or an unreadable one: the vendor record
-		// carries the subject.
+	} else if (
+		carries('vendors', explicitChoice === null) &&
+		movement.changed('vendors')
+	) {
+		// No choice on either side, an unreadable one, or one stored without
+		// a subject: the vendor record carries the subject.
 		if (stored.choice === null && movement.removed('vendors')) {
-			candidate = null;
+			candidate = subjectAfterClear(snapshot.subject);
 		} else if (
 			prefersStoredSubject(
 				snapshot.subject,
 				stored.subject,
 				stored.vendorChoice?.confirmedAt ?? Number.NEGATIVE_INFINITY,
 				vendorChoice?.confirmedAt ?? Number.NEGATIVE_INFINITY,
-				subjectYields
+				subjectYields,
+				provenance
 			)
 		) {
 			candidate = stored.subject;
 		}
 	}
+	candidate = subjectAfterNoticeLeft(
+		snapshot,
+		carrier,
+		provenance.noticeCarried,
+		movement,
+		candidate
+	);
+	candidate = reconcileNoticeSubject(
+		snapshot,
+		stored,
+		carries(
+			'notice',
+			explicitChoice === null && !stored.choice && !stored.vendorChoice
+		),
+		movement,
+		subjectYields,
+		provenance,
+		candidate
+	);
 	return candidate !== undefined && !sameRecord(snapshot.subject, candidate)
 		? candidate
 		: undefined;
@@ -447,6 +603,9 @@ const reconcileSubject = function reconcileSubject(
 const reconcileChoice = function reconcileChoice(
 	snapshot: ConsentSnapshot,
 	stored: HydrationRecords,
+	carried: ConsentSubject | null,
+	carrier: StoredRead['subjectCarrier'],
+	provenance: SubjectProvenance,
 	movement: Movement,
 	subjectYields: boolean,
 	merge: Rules['merge']
@@ -470,6 +629,9 @@ const reconcileChoice = function reconcileChoice(
 	const subject = reconcileSubject(
 		snapshot,
 		stored,
+		carried,
+		carrier,
+		provenance,
 		records,
 		movement,
 		subjectYields
@@ -491,9 +653,10 @@ export interface ReconciledRecords {
 /**
  * The in-memory records as the clear epoch leaves them: decisions confirmed
  * before `epoch` are void. When the epoch moved past the one this runtime
- * last saw, another runtime cleared the records and the subject in memory
- * belongs to the cleared history, so it does not survive either, unless a
- * save made after the epoch generated it (`subjectSurvives`).
+ * last saw, another runtime cleared the records and the identity linked to
+ * the subject in memory belongs to the cleared history, so only its ID
+ * survives, as it does in the runtime that cleared. A subject a save made
+ * after the epoch generated survives whole (`subjectSurvives`).
  */
 const sinceEpoch = function sinceEpoch(
 	snapshot: ConsentSnapshot,
@@ -510,7 +673,10 @@ const sinceEpoch = function sinceEpoch(
 			!clearMissed
 		),
 		noticeDismissal: rules.noticeSince(snapshot.noticeDismissal, epoch),
-		subject: clearMissed && !subjectSurvives ? null : snapshot.subject,
+		subject:
+			clearMissed && !subjectSurvives
+				? subjectAfterClear(snapshot.subject)
+				: snapshot.subject,
 		vendorChoice: rules.vendorsSince(snapshot.vendorChoice, epoch),
 	};
 };
@@ -558,6 +724,7 @@ const applyVoided = function applyVoided(
  * @param subjectBornAfterEpoch - Whether a save made after the stored epoch
  * generated the in-memory subject, so it survives a clear this runtime
  * missed.
+ * @param provenance - Where the in-memory linked identity came from.
  * @param rules - The per-category merge and the clear-epoch rules.
  * @returns The records to hydrate and the fingerprints to keep.
  */
@@ -570,6 +737,7 @@ export const selectReconciledRecords = function selectReconciledRecords(
 	unadopted: ReadonlySet<StoredRecordKind>,
 	memoryEpoch: number,
 	subjectBornAfterEpoch: boolean,
+	provenance: SubjectProvenance,
 	rules: Rules
 ): ReconciledRecords {
 	const { records: stored } = read;
@@ -596,6 +764,11 @@ export const selectReconciledRecords = function selectReconciledRecords(
 	const records = reconcileChoice(
 		view,
 		stored,
+		// The identity a vendor or notice record still carries once the
+		// choice is gone.
+		read.vendorSubject ?? read.noticeSubject ?? null,
+		read.subjectCarrier,
+		provenance,
 		movement,
 		subjectYields || clearMissed,
 		rules.merge

@@ -21,14 +21,20 @@ import { translations as hu } from './hu';
 import { translations as id } from './id';
 import { translations as is } from './is';
 import { translations as it } from './it';
+import { translations as ja } from './ja';
+import { translations as kn } from './kn';
 import { translations as ko } from './ko';
 import { translations as lb } from './lb';
 import { translations as lt } from './lt';
 import { translations as lv } from './lv';
+import { translations as ml } from './ml';
+import { translations as mr } from './mr';
+import { translations as ms } from './ms';
 import { translations as mt } from './mt';
 import { translations as nb } from './nb';
 import { translations as nl } from './nl';
 import { translations as nn } from './nn';
+import { translations as pa } from './pa';
 import { translations as pl } from './pl';
 import { translations as pt } from './pt';
 import { translations as rm } from './rm';
@@ -37,7 +43,12 @@ import { translations as ru } from './ru';
 import { translations as sk } from './sk';
 import { translations as sl } from './sl';
 import { translations as sv } from './sv';
+import { translations as ta } from './ta';
+import { translations as te } from './te';
+import { translations as th } from './th';
+import { translations as tr } from './tr';
 import { translations as ur } from './ur';
+import { translations as vi } from './vi';
 import { translations as yi } from './yi';
 import { translations as zh } from './zh';
 
@@ -78,14 +89,20 @@ const baseTranslations = {
 	id,
 	is,
 	it,
+	ja,
+	kn,
 	ko,
 	lb,
 	lt,
 	lv,
+	ml,
+	mr,
+	ms,
 	mt,
 	nb,
 	nl,
 	nn,
+	pa,
 	pl,
 	pt,
 	rm,
@@ -94,7 +111,12 @@ const baseTranslations = {
 	sk,
 	sl,
 	sv,
+	ta,
+	te,
+	th,
+	tr,
 	ur,
+	vi,
 	yi,
 	zh,
 } as const;

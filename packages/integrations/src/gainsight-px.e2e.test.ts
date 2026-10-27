@@ -4,7 +4,7 @@
 
 import { createConsentKernel } from '@c15t/core';
 import { createScriptLoader } from '@c15t/core/modules/script-loader';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
 	clearAllScripts,
@@ -35,11 +35,18 @@ const grantedConsents = { ...deniedConsents, measurement: true };
 describe('Gainsight PX production loader contract', () => {
 	registerVendorContractCleanup();
 
+	beforeEach(() => {
+		// Node 25+ replaces jsdom's storage globals with its own Web Storage.
+		vi.stubGlobal('localStorage', jsdom.window.localStorage);
+		vi.stubGlobal('sessionStorage', jsdom.window.sessionStorage);
+	});
+
 	afterEach(() => {
 		Reflect.deleteProperty(window, 'aptrinsic');
 		Reflect.deleteProperty(window, '__c15tGainsightPxProductKey');
 		Reflect.deleteProperty(window, '__c15tGainsightPxSetup');
 		Reflect.deleteProperty(globalThis, '__c15tStarted');
+		vi.unstubAllGlobals();
 	});
 
 	it('creates no PX global, loader or storage until the mapped category is granted', () => {

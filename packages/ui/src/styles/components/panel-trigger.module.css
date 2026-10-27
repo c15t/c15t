@@ -124,7 +124,7 @@
 .text {
 	margin-left: var(--c15t-space-xs, 6px);
 	font-family: var(--c15t-font-family, system-ui, sans-serif);
-	font-size: var(--c15t-font-size-sm, 14px);
+	font-size: var(--c15t-font-size-sm, 0.875rem);
 	font-weight: var(--c15t-font-weight-medium, 500);
 	line-height: 1;
 	color: var(--cdt-icon-color);
@@ -159,7 +159,7 @@
 
 .trigger:has(.text)[data-size='sm'] .text,
 .trigger:has(.text).sm .text {
-	font-size: var(--c15t-font-size-xs, 12px);
+	font-size: var(--c15t-font-size-xs, 0.75rem);
 }
 
 .trigger:has(.text)[data-size='lg'],
@@ -175,7 +175,7 @@
 
 .trigger:has(.text)[data-size='lg'] .text,
 .trigger:has(.text).lg .text {
-	font-size: var(--c15t-font-size-md, 16px);
+	font-size: var(--c15t-font-size-md, 1rem);
 }
 
 /* Corner positioning utilities */

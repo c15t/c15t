@@ -214,6 +214,7 @@ export default mergeConfig(
 						include: [
 							'src/__tests__/build.test.ts',
 							'src/__tests__/config.test.ts',
+							'src/__tests__/proxy.test.ts',
 							'src/__tests__/root-server-start.test.tsx',
 						],
 						name: 'node',
@@ -231,6 +232,7 @@ export default mergeConfig(
 						exclude: [
 							'src/__tests__/build.test.ts',
 							'src/__tests__/config.test.ts',
+							'src/__tests__/proxy.test.ts',
 							'src/__tests__/root-server-start.test.tsx',
 						],
 						include: [

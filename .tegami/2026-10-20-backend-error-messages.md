@@ -1,7 +1,11 @@
 ---
 packages:
-  '@c15t/core': patch
-  '@c15t/node-sdk': patch
+  "@c15t/core":
+    replay:
+      - exit-prerelease(npm:@c15t/core)
+  "@c15t/node-sdk":
+    replay:
+      - exit-prerelease(npm:@c15t/node-sdk)
 ---
 
 ### Errors say what the backend said

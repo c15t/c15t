@@ -214,6 +214,25 @@ describe('createDevTools', () => {
 		).toContain('.c15t-dev-tools');
 	});
 
+	// Shadow content is not a child, so the host matches `:empty`, and
+	// themes such as Shopify's Dawn hide `div:empty`.
+	it('keeps its shadow host displayed under page `div:empty` rules', () => {
+		const style = document.createElement('style');
+		style.textContent = 'div:empty { display: none !important; }';
+		document.head.append(style);
+		try {
+			createInstance();
+			const host = document.querySelector<HTMLElement>(
+				'[data-c15t-dev-tools-host]'
+			);
+
+			expect(host?.matches(':empty')).toBe(true);
+			expect(host && getComputedStyle(host).display).toBe('block');
+		} finally {
+			style.remove();
+		}
+	});
+
 	it('keeps the embedded panel open on Escape', () => {
 		const devTools = createInstance(undefined, document.body);
 		devTools.element?.classList.add('c15t-dev-tools--embedded');

@@ -37,6 +37,9 @@ export const devToolsPrefetch = {
 			})
 		)
 	),
+	// A fixed subject, so every framework's Policy tab shows the same ID
+	// instead of one generated at startup.
+	initialRecords: { subject: { subjectId: 'sub_2VZxR7YmNpKq3WfLs8TgHd' } },
 	now: Date.UTC(2026, 0, 1, 12),
 } satisfies KernelConfig;
 

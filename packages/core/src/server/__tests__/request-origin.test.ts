@@ -156,4 +156,29 @@ describe('resolveRequestOrigin', () => {
 			})
 		).toBe('https://app.example.com');
 	});
+
+	// Header names are case-insensitive, and some runtimes keep the casing
+	// the client sent.
+	test('reads a Node header record in any casing, forwarding headers only when trusted', () => {
+		expect(
+			resolveRequestOrigin({
+				headers: { HOST: ['app.example.com', 'other.example'] },
+			})
+		).toBe('https://app.example.com');
+		const headers = {
+			Forwarded: 'host=attacker.example;proto=http',
+			Host: 'app.example.com',
+			'X-Forwarded-Host': 'attacker.example',
+		};
+		expect(resolveRequestOrigin({ headers })).toBe('https://app.example.com');
+		expect(
+			resolveRequestOrigin({
+				headers,
+				requestURL: 'http://localhost:5173/page',
+			})
+		).toBe('http://localhost:5173');
+		expect(resolveRequestOrigin({ headers, trustForwardedHeaders: true })).toBe(
+			'http://attacker.example'
+		);
+	});
 });

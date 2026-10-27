@@ -1,0 +1,88 @@
+---
+title: The Trade Desk
+description: Load The Trade Desk with c15t after marketing consent and verify its loader, storage and revocation behavior.
+seoTitle: The Trade Desk consent with c15t
+seoDescription: Load The Trade Desk Universal Pixel only after marketing consent. Learn what theTradeDeskPixel queues, which cookies remain and how to verify it.
+icon: radar
+group: integrations
+---
+
+The Trade Desk Universal Pixel records conversions and builds ad audiences.
+The c15t `theTradeDeskPixel` helper waits until the `marketing` category is
+allowed before it defines the pixel globals and adds the loader.
+
+The Trade Desk has no API to stop its SDK. When the visitor withdraws, the
+helper leaves the SDK on the page, and c15t's default page reload removes it.
+
+## Configure The Trade Desk
+
+Copy the advertiser ID and Universal Pixel IDs from your account snippet. This
+helper uses the Universal Pixel 3 loader. Unified ID 2.0 setup is separate.
+Then delete the direct snippet and any tag manager copy, so they can't load
+The Trade Desk without consent.
+
+<CommandTabs command="@c15t/integrations" mode="install" />
+
+<include src="../shared/examples/javascript/the-trade-desk-scripts.mdx" />
+
+<include src="../shared/integrations/register-scripts.mdx" />
+
+## Options
+
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `advertiserId` | Required | Public advertiser ID. Trimmed. If it's missing or blank, c15t logs an error and never loads the pixel. |
+| `pixelIds` | Required | Nonempty array of public Universal Pixel IDs, each trimmed. If the array is empty or any entry is blank, c15t logs an error and skips the whole helper. |
+| `enableCookieSyncing` | Vendor default | Passed to `init` when set. `false` turns off cookie syncing, but it doesn't stop all cookies and doesn't make loading before consent safe. |
+| `dataProcessingOption` | None | Limited data use setting, such as `{ policies: ['LDU'], region: 'US-CO' }`. It doesn't replace consent. |
+| `scriptUrl` | `https://js.adsrvr.org/up_loader.3.0.0.js` | Loader URL override. A blank value uses the default. Walmart DSP accounts use `https://azjs.adsrvr.org/thetradedesk-ads/up_loader.3.0.0.js`. |
+
+## Loading and revocation
+
+When `marketing` is allowed, the helper creates the `ttdConversionEventsLayer`
+array and a `ttdConversionEvents` function that pushes each call's arguments
+onto it. It queues one `init` call and one `event` call, then adds the loader
+as an async script. If you set `dataProcessingOption`, the helper passes it as
+`dataProcessingOption` to `init` and as `data_processing_option` on the event.
+If your page already defines `ttdConversionEvents` or the layer, the helper
+leaves them alone.
+
+The SDK reads TCF and GPP signals where they apply. Those signals control what
+the vendor does after it loads. They don't replace the c15t gate. Send your own
+conversion calls only while marketing and any vendor consent stay granted.
+
+The Trade Desk documents no way to stop or tear down the SDK in the browser.
+On withdrawal, the helper keeps the loader element on the page. Keep c15t's
+default `reloadOnConsentRevoked` enabled. Without the reload, existing code,
+requests and frames can keep running until the visitor navigates. If the
+visitor grants consent again on the same page, the helper reuses that loader
+and doesn't queue `init` or the event a second time.
+
+## Cookies and storage
+
+The Trade Desk documents the `TDID` identifier cookie on `adsrvr.org`, with a
+one-year lifetime. A read-only request using the guide's sample IDs returned a
+`TDID` cookie even with cookie syncing turned off. The served SDK also reads
+local storage debugging flags and can read existing GA4 cookies when
+configured. This list isn't a complete cookie inventory.
+
+For CSP, the guide lists `js.adsrvr.org` for scripts, and `insight.adsrvr.org`
+and `match.adsrvr.org` for frames. Realtime conversion connections use
+`insight.adsrvr.org`. Account options can add hosts.
+
+## Verify The Trade Desk
+
+In a fresh browser profile, deny consent and allow only an unrelated category.
+Filter Network by `adsrvr.org` and confirm that no requests, globals, cookies,
+local storage or session storage appear. Grant `marketing` and check the loader
+URL against your account snippet. Withdraw consent and confirm the page
+reloads. The Trade Desk must stay blocked on the new page. Check storage in
+DevTools as well as Network.
+
+The browser monitor blocks collection, so it doesn't confirm that your account
+receives events.
+
+Sources: [Universal Pixel guide](https://open.thetradedesk.com/provider/docsApp/GuidesProvider/data/doc/TrackingTagsUniversalPixel)
+and [privacy policy](https://www.thetradedesk.com/legal/privacy).
+
+<include src="../shared/integrations/vendor-revocation-and-verify.mdx" />

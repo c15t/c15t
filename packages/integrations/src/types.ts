@@ -128,6 +128,12 @@ export interface CallGlobalStep {
 	method?: string;
 	/** Arguments to pass */
 	args?: unknown[];
+	/**
+	 * Clone arguments as literal JSON without interpreting runtime value markers.
+	 * Arguments must be JSON-serializable.
+	 * @default false
+	 */
+	literalArgs?: boolean;
 }
 
 export interface PushToQueueStep {
@@ -168,6 +174,8 @@ export interface DefineQueueMethodsStep {
 	 * Format used for each queued method call.
 	 *
 	 * - `tuple` pushes `[methodName, ...args]`, matching classic array queues.
+	 * - `nameAndArgs` pushes `[methodName, argsArray]`, preserving argument
+	 *   references for SDKs that spread the second entry when replaying calls.
 	 * - `methodCall` pushes `{ name, args, resolve }` and returns a `Promise`,
 	 *   matching SDK loaders that replay named calls and resolve the original
 	 *   pre-load promise after the real method runs.
@@ -184,10 +192,17 @@ export interface DefineQueueMethodsStep {
 	 */
 	queueFormat?:
 		| 'tuple'
+		| 'nameAndArgs'
 		| 'methodCall'
 		| 'wrappedMethodCall'
 		| 'voidMethodCall'
 		| 'callback';
+	/**
+	 * Return the target that owns the methods after a tuple call, even when
+	 * storage uses a separate queue. Other formats keep their return values.
+	 * @default false
+	 */
+	returnTarget?: boolean;
 	/**
 	 * Leave a method alone when the target already has a function under that
 	 * name. Setup runs again when consent is granted after a revocation

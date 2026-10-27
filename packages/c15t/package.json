@@ -1,6 +1,6 @@
 {
 	"name": "c15t",
-	"version": "3.1.0",
+	"version": "3.2.0-canary.0",
 	"description": "c15t: The open standard for cookie banners. Cookie banner and cookie consent manager for React, Next.js, Vue and JavaScript. Cookie consent banner and consent management platform (CMP) with GDPR cookie consent, GDPR consent records, Google Consent Mode v2 and IAB TCF.",
 	"keywords": [
 		"cmp",

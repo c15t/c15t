@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/backend",
-	"version": "3.1.0",
+	"version": "3.2.0-canary.0",
 	"description": "Self-hosted backend for c15t. Stores consent records and audit logs, and resolves policies and geolocation, on Postgres, MySQL or SQLite.",
 	"keywords": [
 		"audit-log",
