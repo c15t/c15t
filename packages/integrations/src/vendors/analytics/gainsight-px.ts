@@ -104,13 +104,6 @@ export const gainsightPxManifest = {
 		},
 		{ async: true, src: '{{scriptUrl}}', type: 'loadScript' },
 	],
-	onBeforeLoadGranted: [
-		{
-			args: ['config', 'enableTag', true],
-			global: 'aptrinsic',
-			type: 'callGlobal',
-		},
-	],
 	// A shared mount can start under another owner's denial; the stub's config
 	// enables the tag, so disable it before the SDK reads the queue.
 	onBeforeLoadDenied: [
@@ -120,6 +113,13 @@ export const gainsightPxManifest = {
 			type: 'callGlobal',
 		},
 		{ args: ['reset'], global: 'aptrinsic', type: 'callGlobal' },
+	],
+	onBeforeLoadGranted: [
+		{
+			args: ['config', 'enableTag', true],
+			global: 'aptrinsic',
+			type: 'callGlobal',
+		},
 	],
 	onConsentDenied: [
 		{
