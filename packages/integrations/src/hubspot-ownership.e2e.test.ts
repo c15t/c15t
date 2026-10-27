@@ -202,6 +202,8 @@ it('retains a pending load when a previous SDK client returns', async () => {
 	// The replaced client keeps a guard until its in-flight load completes.
 	expect(second.listeners.size).toBe(1);
 	second.completeLoad();
+	expect(second.visible).toBe(false);
+	expect(second.clear).not.toHaveBeenCalled();
 	expect(second.listeners.size).toBe(0);
 	first.completeLoad();
 	await owner.save({ ...granted, functionality: false });
@@ -228,7 +230,7 @@ it('adopts an already-loaded external chat and reloads it after regrant', async 
 	expect(api.visible).toBe(true);
 });
 
-it('recognizes a pending client that completed while its listener was detached', async () => {
+it('removes a replaced client widget that loads late and reloads it on return', async () => {
 	const first = conversations();
 	const second = conversations();
 	Object.assign(first.widget, {
@@ -244,12 +246,16 @@ it('recognizes a pending client that completed while its listener was detached',
 	window.HubSpotConversations = second;
 	await owner.save({ ...granted, experience: true });
 	first.completeLoad();
+	expect(first.visible).toBe(false);
 	window.HubSpotConversations = first;
 	await owner.save(granted);
-	expect(first.widget.load).toHaveBeenCalledOnce();
-	await owner.save({ ...granted, functionality: false });
-	await owner.save(granted);
 	expect(first.widget.load).toHaveBeenCalledTimes(2);
+	first.completeLoad();
+	expect(first.visible).toBe(true);
+	await owner.save({ ...granted, functionality: false });
+	expect(first.visible).toBe(false);
+	await owner.save(granted);
+	expect(first.widget.load).toHaveBeenCalledTimes(3);
 	first.completeLoad();
 	expect(first.visible).toBe(true);
 });

@@ -266,9 +266,10 @@ const createController = (host: Window, installation: HubSpotInstallation) => {
 			replaced.off('widgetLoaded', guard);
 			replacedGuards.delete(replaced);
 			pendingClients.delete(replaced);
+			// The replaced client's late widget would duplicate the current one.
+			replaced.widget.remove();
 			const latest = aggregate();
 			if (latest.chat && !allowsChat(latest)) {
-				replaced.widget.remove();
 				replaced.clear({ resetWidget: false });
 			}
 		};
