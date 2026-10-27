@@ -115,6 +115,16 @@ export const BUILT_IN_INTEGRATION_CATEGORIES = [
  */
 export const builtInScriptIntegrations = [
 	{
+		consentCategory: 'measurement',
+		docsSlug: 'fullstory',
+		hint: 'Session replay and behavioral analytics',
+		integrationCategory: 'analytics',
+		key: 'fullStory',
+		label: 'FullStory',
+		packageSubpath: 'fullstory',
+		vendor: 'fullstory',
+	},
+	{
 		consentCategory: 'functionality',
 		docsSlug: 'ada',
 		hint: 'Customer support through Ada Messaging',

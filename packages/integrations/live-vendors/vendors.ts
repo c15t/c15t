@@ -39,6 +39,7 @@ import { clearbit } from '../src/vendors/analytics/clearbit';
 import { cloudflareWebAnalytics } from '../src/vendors/analytics/cloudflare-web-analytics';
 import { databuddy } from '../src/vendors/analytics/databuddy';
 import { fathomAnalytics } from '../src/vendors/analytics/fathom-analytics';
+import { fullStory } from '../src/vendors/analytics/fullstory';
 import { gtag } from '../src/vendors/analytics/google-tag';
 import { HEAP_QUEUE_METHODS, heap } from '../src/vendors/analytics/heap';
 import {
@@ -270,6 +271,22 @@ type PosthogProbeWindow = Window & {
  * Probe configs for every built-in integration, ordered by registry vendor id.
  */
 export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
+	{
+		bootstrapCheck: () =>
+			check(
+				window._fs_capture_on_startup === false &&
+					window.FS?._v === '2.1.0' &&
+					window.FS.q?.[0]?.length === 6 &&
+					window.FS.q[0][5] === 2,
+				'FullStory v2 six-slot init queue with capture off'
+			),
+		createScript: () => fullStory({ orgId: 'c15t-live-probe-placeholder' }),
+		loaderUrlSubstring: 'edge.fullstory.com/s/fs.js',
+		notes:
+			'A placeholder organization loads the public v2 SDK, but its settings request stays blocked, so the real dispatcher is not proven. This checks the capture-off init queue and loader reachability only. Collection stays blocked.',
+		tier: 'loader-only',
+		vendor: 'fullstory',
+	},
 	{
 		allowUrlSubstrings: ['c.amazon-adsystem.com/aat/amzn-consent.js'],
 		bootstrapCheck: () =>

@@ -195,10 +195,9 @@ const observeElement = (
 		elementCompletions.set(element, 'error');
 		complete('error');
 	};
-	if (script.src) {
-		element.addEventListener('load', onLoad);
-		element.addEventListener('error', onError);
-	}
+	// A later shared registration can add a source after this owner's hook.
+	element.addEventListener('load', onLoad);
+	element.addEventListener('error', onError);
 	registrations.set(script.id, {
 		complete,
 		scriptId: script.id,
@@ -312,7 +311,7 @@ const completeMount = (deps: MountDeps, pending: PendingMount): void => {
 	if (deps.isDisposed()) {
 		return;
 	}
-	if (!script.src) {
+	if (!element.src) {
 		// Inline adopters share completion even if the original loader is gone.
 		setTimeout(() => {
 			elementCompletions.set(element, 'load');
