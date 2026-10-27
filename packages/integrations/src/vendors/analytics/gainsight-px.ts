@@ -178,11 +178,16 @@ const assertProductKey = (productKey: string): void => {
 	}
 	const previous =
 		productKeyGlobal in window ? window[productKeyGlobal] : undefined;
-	if (
-		hasStartedGainsightPx() &&
-		typeof previous === 'string' &&
-		previous !== productKey
-	) {
+	if (!hasStartedGainsightPx()) {
+		return;
+	}
+	// c15t's bootstrap always records its product key, including server starts.
+	if (typeof previous !== 'string') {
+		throw new Error(
+			'gainsightPx: another Gainsight PX installation is already running. Remove the other PX snippet and reload the page.'
+		);
+	}
+	if (previous !== productKey) {
 		throw new Error(
 			'gainsightPx: cannot change productKey after the SDK has started. Reload the page to switch PX products.'
 		);
