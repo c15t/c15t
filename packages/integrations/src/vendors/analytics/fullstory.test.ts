@@ -7,6 +7,18 @@ import {
 import { fullStory } from './fullstory';
 
 describe('fullStory', () => {
+	it('disposes without browser globals', () => {
+		const script = fullStory({ orgId: 'o-ORG-na1' });
+		expect(() =>
+			script.onDispose?.({
+				consents: {} as never,
+				elementId: script.id,
+				hasConsent: false,
+				id: script.id,
+			})
+		).not.toThrow();
+	});
+
 	it('matches its public registry and export', () => {
 		expectScriptMatchesIntegration(
 			'fullStory',
