@@ -242,9 +242,8 @@ test('denies the initialized SDK when its registration is removed', async () => 
 	).toBe(true);
 });
 
-test('denies the owned SDK while a changed-URL replacement is pending', async () => {
+test('denies the retained SDK and rejects a changed-URL replacement', async () => {
 	await start();
-	holdScripts = true;
 	await page.evaluate(
 		(publicKey) =>
 			window.__defaultComRuntime.replace({
@@ -253,8 +252,21 @@ test('denies the owned SDK while a changed-URL replacement is pending', async ()
 			}),
 		keyA
 	);
-	await expect.poll(() => held.length).toBe(1);
+	// sdk.js stays loaded for the page, so a new URL is not downloaded.
+	await expect
+		.poll(() => messages)
+		.toContain(
+			'defaultComFormsSdk: Reload the page to change the Forms SDK URL.'
+		);
+	expect(
+		await page
+			.locator('script[src]')
+			.evaluateAll((elements) =>
+				elements.map((element) => element.getAttribute('src'))
+			)
+	).toEqual(['https://handshake.default.com/sdk.js']);
 	expect(await cookie()).toMatchObject(denied);
+	expect(loaderRequests).toBe(1);
 	expect(initialized()).toHaveLength(1);
 });
 
@@ -288,9 +300,17 @@ test.each(['remove', 'dispose'] as const)(
 			action
 		);
 		expect(await cookie()).toMatchObject(denied);
-		expect(await page.locator('script[src]').count()).toBe(0);
+		// The final owner leaves the loaded SDK in the page for a later remount.
+		expect(await page.locator('script[src]').count()).toBe(1);
+		await page.evaluate(
+			(publicKey) => window.__defaultComRuntime.addOwner({ publicKey }),
+			keyA
+		);
+		await expect.poll(cookie).toMatchObject(granted);
+		expect(await page.locator('script[src]').count()).toBe(1);
 		expect(loaderRequests).toBe(1);
 		expect(initialized()).toHaveLength(1);
+		expect(reconfigured()).toHaveLength(0);
 	}
 );
 

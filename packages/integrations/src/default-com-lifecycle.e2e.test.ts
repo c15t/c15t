@@ -336,6 +336,108 @@ describe('Default explicit marketing gate lifecycle', () => {
 		});
 	});
 
+	it('snapshots a caller-owned Forms SDK display object before init', () => {
+		const init = vi.fn();
+		const autoDisplayScheduler = { loader: true, target: '#calendar' };
+		const scripts = [
+			defaultComFormsSdk({ autoDisplayScheduler, publicKey: 'workspace-key' }),
+		];
+		loadScripts(scripts, grantedMarketingConsents);
+		autoDisplayScheduler.target = '#other';
+		window.DefaultPixelSDK = createDefaultComFormsSdkMock({ init });
+		getLoader().dispatchEvent(new Event('load'));
+		expect(init).toHaveBeenCalledWith(
+			expect.objectContaining({
+				autoDisplayScheduler: { loader: true, target: '#calendar' },
+			})
+		);
+	});
+
+	it('readopts the loaded Forms SDK after its registration is removed', () => {
+		const init = vi.fn();
+		const setConsent = vi.fn();
+		loadScripts(
+			[defaultComFormsSdk({ publicKey: 'workspace-key' })],
+			grantedMarketingConsents
+		);
+		const element = getLoader();
+		window.DefaultPixelSDK = createDefaultComFormsSdkMock({ init, setConsent });
+		element.dispatchEvent(new Event('load'));
+		expect(init).toHaveBeenCalledOnce();
+		updateScripts([], grantedMarketingConsents);
+		updateScripts(
+			[defaultComFormsSdk({ publicKey: 'workspace-key' })],
+			grantedMarketingConsents
+		);
+		expect(document.querySelectorAll('script')).toHaveLength(1);
+		expect(getLoader()).toBe(element);
+		expect(init).toHaveBeenCalledOnce();
+		expect(setConsent).toHaveBeenLastCalledWith({
+			analytics: false,
+			marketing: true,
+		});
+	});
+
+	it('rejects a changed Forms SDK URL after the SDK is inserted', () => {
+		const error = vi
+			.spyOn(console, 'error')
+			.mockImplementation(() => undefined);
+		const init = vi.fn();
+		const setConsent = vi.fn();
+		loadScripts(
+			[defaultComFormsSdk({ publicKey: 'workspace-key' })],
+			grantedMarketingConsents
+		);
+		const element = getLoader();
+		window.DefaultPixelSDK = createDefaultComFormsSdkMock({ init, setConsent });
+		element.dispatchEvent(new Event('load'));
+		updateScripts(
+			[
+				defaultComFormsSdk({
+					publicKey: 'workspace-key',
+					scriptUrl: 'https://proxy.example.com/sdk.js',
+				}),
+			],
+			grantedMarketingConsents
+		);
+		expect(document.querySelectorAll('script')).toHaveLength(1);
+		expect(getLoader()).toBe(element);
+		expect(init).toHaveBeenCalledOnce();
+		expect(setConsent).toHaveBeenLastCalledWith({
+			analytics: false,
+			marketing: false,
+		});
+		expect(error).toHaveBeenCalledWith(
+			'defaultComFormsSdk: Reload the page to change the Forms SDK URL.'
+		);
+	});
+
+	it('blocks a new loader for a changed Forms SDK URL', () => {
+		const error = vi
+			.spyOn(console, 'error')
+			.mockImplementation(() => undefined);
+		loadScripts(
+			[defaultComFormsSdk({ publicKey: 'workspace-key' })],
+			grantedMarketingConsents
+		);
+		// Without a connected element to adopt, core inserts a new loader.
+		getLoader().remove();
+		updateScripts(
+			[
+				defaultComFormsSdk({
+					publicKey: 'workspace-key',
+					scriptUrl: 'https://proxy.example.com/sdk.js',
+				}),
+			],
+			grantedMarketingConsents
+		);
+		expect(getLoader().getAttribute('src')).toBeNull();
+		expect(getLoader().type).toBe('application/x-c15t-default-conflict');
+		expect(error).toHaveBeenCalledWith(
+			'defaultComFormsSdk: Reload the page to change the Forms SDK URL.'
+		);
+	});
+
 	it('snapshots caller-owned Forms SDK scheduler origins before init', () => {
 		const init = vi.fn();
 		const schedulerOrigins = ['https://book.default.com'];
@@ -561,8 +663,15 @@ describe('Default explicit marketing gate lifecycle', () => {
 			loadScripts([first], fullConsent);
 			updateScripts([], fullConsent);
 			updateScripts([second], fullConsent);
-			expect(document.querySelector('script[src]')).toBeNull();
-			expect(getLoader().type).toBe('application/x-c15t-default-conflict');
+			// The removed Forms SDK stays loaded for the page; the Pixel stays blocked.
+			expect(
+				[...document.querySelectorAll('script[src]')].map((s) => s.src)
+			).toEqual(
+				order === 'sdk-first' ? ['https://handshake.default.com/sdk.js'] : []
+			);
+			expect(document.querySelector('script:not([src])')?.type).toBe(
+				'application/x-c15t-default-conflict'
+			);
 		}
 	);
 });

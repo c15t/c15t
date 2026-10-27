@@ -243,6 +243,10 @@ const sdkStates = new WeakMap<DefaultComFormsSdkClient, SdkState>();
 const sdkOwners = new Map<SdkRegistration, DefaultComFormsSdkClient>();
 const formsElements = new WeakSet<HTMLScriptElement>();
 const loadedFormsElements = new WeakSet<HTMLScriptElement>();
+// sdk.js runs once per document, so its first inserted URL stays for the page.
+const formsSdkSources = new WeakMap<Document, string>();
+const formsSdkSourceError =
+	'defaultComFormsSdk: Reload the page to change the Forms SDK URL.';
 
 const registrationOf = (
 	info: ScriptCallbackInfo
@@ -535,7 +539,9 @@ export const defaultComPixel = function defaultComPixel(
  * identities. A load that finishes while denied receives both consent values
  * as false and waits for a later grant before initialization.
  * Removal and disposal withdraw consent from the owned SDK after its final
- * registration leaves. Keep c15t's default revocation reload enabled because
+ * registration leaves. The loaded SDK stays for the page, and a later helper
+ * with the same URL reuses it. A changed URL logs an error and does not load.
+ * Keep c15t's default revocation reload enabled because
  * Default does not offer a complete form or scheduler shutdown API.
  * Missing, blank or non-string keys log an error and skip loading.
  * @example defaultComFormsSdk({ publicKey: 'YOUR_PUBLIC_KEY' });
@@ -566,7 +572,10 @@ export const defaultComFormsSdk = function defaultComFormsSdk(
 		};
 	}
 	const initOptions: DefaultComFormsSdkInitOptions = {
-		autoDisplayScheduler: options.autoDisplayScheduler ?? true,
+		autoDisplayScheduler:
+			typeof options.autoDisplayScheduler === 'object'
+				? { ...options.autoDisplayScheduler }
+				: (options.autoDisplayScheduler ?? true),
 		publicKey,
 	};
 	const endpoint = trimToUndefined(options.endpoint);
@@ -577,6 +586,14 @@ export const defaultComFormsSdk = function defaultComFormsSdk(
 		// Initialization is asynchronous; snapshot caller-owned settings now.
 		initOptions.schedulerOrigins = options.schedulerOrigins.slice();
 	}
+	const scriptUrl = script.src ?? '';
+	let reportedSource = false;
+	const reportSource = (): void => {
+		if (!reportedSource) {
+			reportedSource = true;
+			console.error(formsSdkSourceError);
+		}
+	};
 	const synchronize = (info: ScriptCallbackInfo): void => {
 		const registration = registrationOf(info);
 		if (!info.element?.isConnected) {
@@ -594,6 +611,11 @@ export const defaultComFormsSdk = function defaultComFormsSdk(
 			!loadedFormsElements.has(info.element) ||
 			registration === undefined
 		) {
+			return;
+		}
+		// Core adopts a retained element by id; it keeps the original source.
+		if (info.element.getAttribute('src') !== scriptUrl) {
+			reportSource();
 			return;
 		}
 		const previous = sdkOwners.get(registration);
@@ -623,9 +645,18 @@ export const defaultComFormsSdk = function defaultComFormsSdk(
 		...script,
 		id: 'default-com-forms-sdk',
 		onBeforeLoad(info) {
-			if (claimLoader(info, 'defaultComFormsSdk') && info.element) {
-				formsElements.add(info.element);
+			if (!claimLoader(info, 'defaultComFormsSdk') || !info.element) {
+				return;
 			}
+			const source = formsSdkSources.get(document);
+			if (source !== undefined && source !== scriptUrl) {
+				info.element.removeAttribute('src');
+				info.element.type = blockedLoaderType;
+				reportSource();
+				return;
+			}
+			formsSdkSources.set(document, scriptUrl);
+			formsElements.add(info.element);
 		},
 		onConsentChange: synchronize,
 		onDispose: disposeFormsSdk,
@@ -635,6 +666,9 @@ export const defaultComFormsSdk = function defaultComFormsSdk(
 				synchronize(info);
 			}
 		},
+		// sdk.js keeps document listeners and a page-level module; running it
+		// again on remount would leave capture bound to the disposed client.
+		persistAfterDispose: true,
 		serverStart: undefined,
 	};
 };
