@@ -400,10 +400,14 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 			// their resource mounted unless it or the disposal callback changed.
 			// A stable disposer retains a DOM resource's registration lifecycle.
 			// A mounted registration keeps the mode it mounted with: callback-only
-			// predicates can turn true once the SDK they load has started.
-			const mountedCallbackOnly = loadedElements.has(script.id)
-				? loadedElements.get(script.id) === null
-				: isCallbackOnly(script);
+			// predicates can turn true once the SDK they load has started. An
+			// element retained after revocation is still a DOM registration.
+			let mountedCallbackOnly = isCallbackOnly(script);
+			if (loadedElements.has(script.id)) {
+				mountedCallbackOnly = loadedElements.get(script.id) === null;
+			} else if (retainedElements.has(script.id)) {
+				mountedCallbackOnly = false;
+			}
 			if (
 				replacement &&
 				script.onDispose === replacement.onDispose &&
