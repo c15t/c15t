@@ -520,6 +520,37 @@ describe('ActiveCampaign registration ownership', () => {
 		delete window.pgo;
 		delete window.prismGlobalObjectAlias;
 	});
+	it('starts after a denied shared owner grants, without a premature load', async () => {
+		const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+		const denied = createConsentKernel();
+		const allowed = createConsentKernel();
+		await denied.commands.save(deniedConsents);
+		await allowed.commands.save(granted);
+		const first = createScriptLoader({
+			kernel: denied,
+			scripts: [activeCampaignTracking({ accountId: '123456' })],
+		});
+		const second = createScriptLoader({
+			kernel: allowed,
+			scripts: [activeCampaignTracking({ accountId: '123456' })],
+		});
+		try {
+			await new Promise((resolve) => {
+				setTimeout(resolve, 0);
+			});
+			expect(document.querySelector('script[src]')).toBeNull();
+			await denied.commands.save(granted);
+			expect(document.querySelector('script')?.getAttribute('src')).toBe(
+				'https://diffuser-cdn.app-us1.com/diffuser/diffuser.js'
+			);
+			expect(error).not.toHaveBeenCalled();
+		} finally {
+			first.dispose();
+			second.dispose();
+			denied.dispose();
+			allowed.dispose();
+		}
+	});
 	it('requires reload after another lifecycle callback interrupts its initial mount', async () => {
 		const error = vi.spyOn(console, 'error').mockImplementation(() => {});
 		const kernel = createConsentKernel();
