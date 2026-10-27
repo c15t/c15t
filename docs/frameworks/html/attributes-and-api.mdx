@@ -52,13 +52,13 @@ A self-hosted c15t backend also serves `c15t.init.js`. Put it before the
 ```
 
 Add the same `?language=` to both URLs if you use it. Leave `c15t.init.js` out
-when the `c15t.js` tag sets `data-country`, `data-region` or `data-language`,
-or a queued `config` call sets `overrides`, `experiment` or `storageConfig`.
-`c15t.js` then sends a different `/init`, and the first request goes unused.
-Without `c15t.init.js`, `c15t.js` still sends `/init` before its bundle runs,
-which is later than `c15t.init.js` would. The
+when the page changes the `/init` request, for example when the `c15t.js` tag
+sets `data-country`, `data-region` or `data-language`, or a queued `config`
+call sets `overrides`, `experiment` or `storageConfig`. `c15t.js` then sends a
+different `/init`, and the first request goes unused. The
 [endpoint reference](/docs/self-host/api/endpoints#serve-the-script-tag) lists
-when it skips that.
+every case. Without `c15t.init.js`, `c15t.js` still sends `/init` before its
+bundle runs, which is later than `c15t.init.js` would.
 
 `dist/c15t.css` and `dist/c15t.iab.css` are the stylesheets, for pages that
 render the UI with `data-shadow="false"` and load the CSS themselves.
