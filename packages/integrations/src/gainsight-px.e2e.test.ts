@@ -477,6 +477,8 @@ describe('Gainsight PX production loader contract', () => {
 	it('honors a denied shared owner until that owner disposes', async () => {
 		const runtime = Object.assign(vi.fn(), { __sdkBundleStarted: true });
 		Reflect.set(window, 'aptrinsic', runtime);
+		// A runtime c15t started records its product key.
+		Reflect.set(window, '__c15tGainsightPxProductKey', 'AP-SHARED-DENIED-2');
 		const granted = createConsentKernel();
 		const denied = createConsentKernel();
 		await granted.commands.save(grantedConsents);
@@ -797,6 +799,15 @@ describe('Gainsight PX production loader contract', () => {
 			}
 		}
 	);
+
+	it('rejects a running PX installation that c15t did not start', () => {
+		const external = Object.assign(vi.fn(), { __sdkBundleStarted: true });
+		Reflect.set(window, 'aptrinsic', external);
+		expect(() =>
+			gainsightPx({ productKey: 'AP-OWN-KEY-2', user: { id: 'user' } })
+		).toThrow(/another Gainsight PX installation/u);
+		expect(external).not.toHaveBeenCalled();
+	});
 
 	it('finds a server-started PX loader stored under a custom resource key', async () => {
 		const resourceKey = 'px-custom-resource';
