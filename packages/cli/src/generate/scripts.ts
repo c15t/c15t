@@ -50,6 +50,10 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 		example: "ahrefsAnalytics({ key: 'YOUR_ANALYTICS_KEY' })",
 		importName: 'ahrefsAnalytics',
 	},
+	'amazon-ads': {
+		example: "amazonAdsTag({ tagId: 'YOUR_TAG_ID', region: 'NA' })",
+		importName: 'amazonAdsTag',
+	},
 	amplitude: {
 		example: "amplitude({ apiKey: 'YOUR_API_KEY' })",
 		importName: 'amplitude',
@@ -106,6 +110,14 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 	'front-chat': {
 		example: "frontChat({ chatId: 'YOUR_FRONT_CHAT_ID' })",
 		importName: 'frontChat',
+	},
+	fullstory: {
+		example: "fullStory({ orgId: 'YOUR_ORG_ID' })",
+		importName: 'fullStory',
+	},
+	'gainsight-px': {
+		example: "gainsightPx({ productKey: 'YOUR_PRODUCT_KEY' })",
+		importName: 'gainsightPx',
 	},
 	'google-tag': {
 		example: "gtag({ id: 'G-XXXXXXXXXX', category: 'measurement' })",

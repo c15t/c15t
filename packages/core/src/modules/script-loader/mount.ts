@@ -13,6 +13,7 @@
  * fires `onConsentChange` if wired.
  */
 import type { ConsentSnapshot } from '../../types';
+import { isCallbackOnly } from './callback-only';
 import { buildCallbackInfo, hasAnyCallback, invokeCallback } from './callbacks';
 import type { ElementIdResolver } from './normalize';
 import type {
@@ -214,10 +215,9 @@ const observeElement = (
 		elementCompletions.set(element, 'error');
 		complete('error');
 	};
-	if (script.src) {
-		element.addEventListener('load', onLoad);
-		element.addEventListener('error', onError);
-	}
+	// A later shared registration can add a source after this owner's hook.
+	element.addEventListener('load', onLoad);
+	element.addEventListener('error', onError);
 	registrations.set(script.id, {
 		complete,
 		scriptId: script.id,
@@ -325,7 +325,7 @@ export const releaseScriptElement = (
 /** Finalize an append, dropping any batch entry skipped by an interrupted pass. */
 const completeMount = (deps: MountDeps, pending: PendingMount): void => {
 	const { script, element, elementId, hasConsent } = pending;
-	if (pending.appended && element.isConnected && !script.src) {
+	if (pending.appended && element.isConnected && !element.src) {
 		// Inline execution can dispose its loader inside appendChild. Remember
 		// physical completion even after that registration has been released.
 		setTimeout(() => {
@@ -539,7 +539,7 @@ export const mountScript = function mountScript(
 		return;
 	}
 
-	if (script.callbackOnly === true) {
+	if (isCallbackOnly(script)) {
 		const info = buildCallbackInfo(
 			deps.tools,
 			script,
@@ -729,6 +729,15 @@ export const mountScript = function mountScript(
 	});
 };
 
+const persistsAfterRevocation = (
+	script: Script,
+	element: HTMLScriptElement | null
+): boolean =>
+	script.persistAfterConsentRevoked === true ||
+	(script.persistAfterConsentRevoked === 'loaded' &&
+		element !== null &&
+		elementCompletions.get(element) === 'load');
+
 /**
  * Unmount a script. Honors `persistAfterConsentRevoked` (DOM stays,
  * but our registry reference is dropped so a later re-grant re-fires
@@ -747,7 +756,11 @@ export const unmountScript = function unmountScript(
 	let element = deps.loadedElements.get(script.id);
 	if (
 		element === undefined &&
-		(removeConfiguration || !script.persistAfterConsentRevoked)
+		(removeConfiguration ||
+			!persistsAfterRevocation(
+				script,
+				deps.retainedElements.get(script.id) ?? null
+			))
 	) {
 		element = deps.retainedElements.get(script.id);
 	}
@@ -782,7 +795,7 @@ export const unmountScript = function unmountScript(
 	// loaded, so there is nothing to keep.
 	const neverInserted = notYetInserted(element);
 	if (
-		script.persistAfterConsentRevoked &&
+		persistsAfterRevocation(script, element) &&
 		!removeConfiguration &&
 		!neverInserted
 	) {

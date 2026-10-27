@@ -27,6 +27,146 @@ const mount = (scripts: Script[]) => {
 	return { kernel, loader };
 };
 
+test('rejects an invalid replacement batch before disposing any registration', async () => {
+	const onDispose = vi.fn();
+	const onConsentChange = vi.fn();
+	const { kernel, loader } = mount([
+		{
+			category: 'measurement',
+			id: 'preserved',
+			onConsentChange,
+			onDispose,
+			src: 'https://example.com/original.js',
+		},
+	]);
+	const original = document.head.querySelector('script');
+	original?.dispatchEvent(new Event('load'));
+	onConsentChange.mockClear();
+	expect(() =>
+		loader.updateScripts([
+			{
+				category: 'marketing',
+				id: 'new-first',
+				src: 'https://example.com/new.js',
+			},
+			{
+				category: 'experience',
+				id: 'invalid-last',
+				validate: () => {
+					throw new Error('invalid configuration');
+				},
+			},
+		])
+	).toThrow('invalid configuration');
+	expect(onDispose).not.toHaveBeenCalled();
+	expect(original?.isConnected).toBe(true);
+	expect(document.head.querySelectorAll('script')).toHaveLength(1);
+	await kernel.commands.save({ measurement: false });
+	expect(onConsentChange).toHaveBeenLastCalledWith(
+		expect.objectContaining({ hasConsent: false, id: 'preserved' })
+	);
+	loader.updateScripts([]);
+	expect(onDispose).toHaveBeenCalledOnce();
+});
+
+test('rejects invalid initial registrations before mounting any script', () => {
+	const kernel = createConsentKernel();
+	disposers.push(kernel.dispose);
+	expect(() =>
+		createScriptLoader({
+			kernel,
+			scripts: [
+				{
+					alwaysLoad: true,
+					category: 'measurement',
+					id: 'invalid-initial',
+					src: 'https://example.com/invalid.js',
+					validate: () => {
+						throw new Error('invalid initial configuration');
+					},
+				},
+			],
+		})
+	).toThrow('invalid initial configuration');
+	expect(document.head.querySelector('script')).toBeNull();
+});
+
+test.each(['pending', 'error', 'load'] as const)(
+	'retains only completed loads across recreated configs, completion=%s',
+	async (completion) => {
+		const onLoad = vi.fn();
+		const config = (): Script => ({
+			category: 'measurement',
+			id: 'retain-completed',
+			onLoad,
+			persistAfterConsentRevoked: 'loaded',
+			src: 'https://example.com/vendor.js',
+		});
+		const { kernel, loader } = mount([config()]);
+		const element = document.head.querySelector('script');
+		if (completion !== 'pending') {
+			element?.dispatchEvent(new Event(completion));
+		}
+		loader.updateScripts([config()]);
+		await kernel.commands.save({ measurement: false });
+		loader.updateScripts([config()]);
+		expect(element?.isConnected).toBe(completion === 'load');
+		expect(getScriptDiagnostics(kernel)[0]?.status).toBe(
+			completion === 'load' ? 'retained' : 'blocked'
+		);
+		element?.dispatchEvent(new Event('load'));
+		expect(onLoad).toHaveBeenCalledTimes(completion === 'load' ? 1 : 0);
+		await kernel.commands.save({ measurement: true });
+		expect(document.head.querySelector('script') === element).toBe(
+			completion === 'load'
+		);
+		await kernel.commands.save({ measurement: false });
+		loader.updateScripts([]);
+		expect(document.head.querySelector('script')).toBeNull();
+	}
+);
+
+test.each([true, 'loaded'] as const)(
+	'does not repeat revocation callbacks for retained elements, retention=%s',
+	async (persistAfterConsentRevoked) => {
+		const onConsentChange = vi.fn();
+		const script: Script = {
+			category: 'measurement',
+			id: 'retain-callbacks',
+			onConsentChange,
+			persistAfterConsentRevoked,
+			src: 'https://example.com/vendor.js',
+		};
+		const { kernel, loader } = mount([script]);
+		document.head.querySelector('script')?.dispatchEvent(new Event('load'));
+		await kernel.commands.save({ measurement: false });
+		expect(onConsentChange).toHaveBeenCalledOnce();
+		loader.updateScripts([{ ...script }]);
+		expect(onConsentChange).toHaveBeenCalledOnce();
+		await kernel.commands.save({ functionality: true, measurement: false });
+		expect(onConsentChange).toHaveBeenCalledOnce();
+	}
+);
+
+test('cancels a retained pending download when retention changes to loaded', async () => {
+	const onLoad = vi.fn();
+	const script: Script = {
+		category: 'measurement',
+		id: 'change-retention',
+		onLoad,
+		persistAfterConsentRevoked: true,
+		src: 'https://example.com/vendor.js',
+	};
+	const { kernel, loader } = mount([script]);
+	const element = document.head.querySelector('script');
+	await kernel.commands.save({ measurement: false });
+	loader.updateScripts([{ ...script, persistAfterConsentRevoked: 'loaded' }]);
+	expect(element?.isConnected).toBe(false);
+	expect(getScriptDiagnostics(kernel)[0]?.status).toBe('blocked');
+	element?.dispatchEvent(new Event('load'));
+	expect(onLoad).not.toHaveBeenCalled();
+});
+
 test.each([true, false])(
 	'coalesces resource keys within one loader with anonymizeId=%s',
 	(anonymizeId) => {
@@ -538,6 +678,73 @@ test('keeps a same-ID vendor mounted when a rerender recreates its callbacks', (
 	expect(document.head.querySelector('script')).toBe(element);
 	expect(initialize).toHaveBeenCalledOnce();
 	expect(consent.mock.calls).toEqual([[true], [true]]);
+});
+
+test.each([undefined, false, () => false])(
+	'preserves a DOM resource with a stable disposer, callbackOnly=%s',
+	(callbackOnly) => {
+		const initialize = vi.fn();
+		const cleanup = vi.fn();
+		const config = (): Script => ({
+			callbackOnly,
+			category: 'measurement',
+			id: 'stable-disposer',
+			onBeforeLoad: initialize,
+			onDispose: cleanup,
+			src: 'https://example.com/vendor.js',
+		});
+		const { loader } = mount([config()]);
+		const element = document.head.querySelector('script');
+		loader.updateScripts([config()]);
+		loader.updateScripts([config()]);
+		expect(document.head.querySelector('script')).toBe(element);
+		expect(initialize).toHaveBeenCalledOnce();
+		expect(cleanup).not.toHaveBeenCalled();
+		loader.dispose();
+		expect(cleanup).toHaveBeenCalledOnce();
+		expect(element?.isConnected).toBe(false);
+	}
+);
+
+test.each([true, () => true])(
+	'disposes callback-only replacements with a stable disposer, callbackOnly=%s',
+	(callbackOnly) => {
+		const initialize = vi.fn();
+		const cleanup = vi.fn();
+		const config = (): Script => ({
+			callbackOnly,
+			category: 'measurement',
+			id: 'callback-disposer',
+			onBeforeLoad: initialize,
+			onDispose: cleanup,
+		});
+		const { loader } = mount([config()]);
+		loader.updateScripts([config()]);
+		expect(initialize).toHaveBeenCalledTimes(2);
+		expect(cleanup).toHaveBeenCalledOnce();
+		loader.dispose();
+		expect(cleanup).toHaveBeenCalledTimes(2);
+	}
+);
+
+test('disposes a DOM resource when its cleanup callback changes', () => {
+	const cleanup = vi.fn();
+	const nextCleanup = vi.fn();
+	const config: Script = {
+		category: 'measurement',
+		id: 'changed-disposer',
+		onDispose: cleanup,
+		src: 'https://example.com/vendor.js',
+	};
+	const { loader } = mount([config]);
+	const element = document.head.querySelector('script');
+	loader.updateScripts([{ ...config, onDispose: nextCleanup }]);
+	expect(cleanup).toHaveBeenCalledOnce();
+	expect(element?.isConnected).toBe(false);
+	expect(document.head.querySelector('script')).not.toBe(element);
+	expect(nextCleanup).not.toHaveBeenCalled();
+	loader.dispose();
+	expect(nextCleanup).toHaveBeenCalledOnce();
 });
 
 test.each([false, true])(

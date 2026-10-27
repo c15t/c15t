@@ -13,6 +13,7 @@ import {
 } from './registry';
 import type { IntegrationConsentCondition } from './registry';
 import { adrollPixelManifest } from './vendors/ads-and-pixels/adroll';
+import { amazonAdsTagManifest } from './vendors/ads-and-pixels/amazon-ads';
 import { linkedinInsightsManifest } from './vendors/ads-and-pixels/linkedin-insights';
 import { liveIntentTagManifest } from './vendors/ads-and-pixels/liveintent';
 import { metaPixelManifest } from './vendors/ads-and-pixels/meta-pixel';
@@ -33,6 +34,8 @@ import { clearbitManifest } from './vendors/analytics/clearbit';
 import { cloudflareWebAnalyticsManifest } from './vendors/analytics/cloudflare-web-analytics';
 import { databuddyManifest } from './vendors/analytics/databuddy';
 import { fathomAnalyticsManifest } from './vendors/analytics/fathom-analytics';
+import { fullStoryManifest } from './vendors/analytics/fullstory';
+import { gainsightPxManifest } from './vendors/analytics/gainsight-px';
 import { gtagManifest } from './vendors/analytics/google-tag';
 import { heapManifest } from './vendors/analytics/heap';
 import { hightouchManifest } from './vendors/analytics/hightouch';
@@ -88,6 +91,9 @@ const validConsentCategories = [
 const vendorManifests = [
 	clayManifest,
 	activeCampaignTrackingManifest,
+	gainsightPxManifest,
+	fullStoryManifest,
+	amazonAdsTagManifest,
 	adaManifest,
 	gorgiasChatManifest,
 	zendeskWidgetManifest,

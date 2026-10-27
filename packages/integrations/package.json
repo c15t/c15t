@@ -5,6 +5,7 @@
 	"keywords": [
 		"adobe-analytics",
 		"adroll",
+		"amazon-ads",
 		"amplitude",
 		"analytics-consent",
 		"block-scripts-until-consent",
@@ -319,6 +320,21 @@
 			"types": "./dist-types/vendors/email-and-sms/activecampaign.d.ts",
 			"import": "./dist/vendors/email-and-sms/activecampaign.js",
 			"default": "./dist/vendors/email-and-sms/activecampaign.js"
+		},
+		"./gainsight-px": {
+			"types": "./dist-types/vendors/analytics/gainsight-px.d.ts",
+			"import": "./dist/vendors/analytics/gainsight-px.js",
+			"default": "./dist/vendors/analytics/gainsight-px.js"
+		},
+		"./fullstory": {
+			"types": "./dist-types/vendors/analytics/fullstory.d.ts",
+			"import": "./dist/vendors/analytics/fullstory.js",
+			"default": "./dist/vendors/analytics/fullstory.js"
+		},
+		"./amazon-ads": {
+			"types": "./dist-types/vendors/ads-and-pixels/amazon-ads.d.ts",
+			"import": "./dist/vendors/ads-and-pixels/amazon-ads.js",
+			"default": "./dist/vendors/ads-and-pixels/amazon-ads.js"
 		},
 		"./ada": {
 			"types": "./dist-types/vendors/functional/ada.d.ts",

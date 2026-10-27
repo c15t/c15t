@@ -217,7 +217,7 @@ export const compileManifest = function compileManifest(
 				: (interpolateValue(
 						manifest.persistAfterConsentRevoked,
 						config
-					) as boolean),
+					) as ResolvedManifest['persistAfterConsentRevoked']),
 		schemaVersion: manifest.schemaVersion,
 		setupSteps,
 		vendor: manifest.vendor,

@@ -5,6 +5,7 @@
 
 import type { BuiltInScriptIntegrationKey } from '../registry';
 import { adrollPixel } from '../vendors/ads-and-pixels/adroll';
+import { amazonAdsTag } from '../vendors/ads-and-pixels/amazon-ads';
 import { linkedinInsights } from '../vendors/ads-and-pixels/linkedin-insights';
 import { liveIntentTag } from '../vendors/ads-and-pixels/liveintent';
 import { metaPixel } from '../vendors/ads-and-pixels/meta-pixel';
@@ -25,6 +26,8 @@ import { clearbit } from '../vendors/analytics/clearbit';
 import { cloudflareWebAnalytics } from '../vendors/analytics/cloudflare-web-analytics';
 import { databuddy } from '../vendors/analytics/databuddy';
 import { fathomAnalytics } from '../vendors/analytics/fathom-analytics';
+import { fullStory } from '../vendors/analytics/fullstory';
+import { gainsightPx } from '../vendors/analytics/gainsight-px';
 import { gtag } from '../vendors/analytics/google-tag';
 import { heap } from '../vendors/analytics/heap';
 import { hightouch } from '../vendors/analytics/hightouch';
@@ -122,6 +125,14 @@ export const helperParityCases = {
 			src: 'https://analytics.ahrefs.com/analytics.js',
 		},
 		script: ahrefsAnalytics({ key: 'ahrefs-key' }),
+	},
+	amazonAdsTag: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: true,
+			src: 'https://c.amazon-adsystem.com/aat/amzn.js',
+		},
+		script: amazonAdsTag({ tagId: '00000000-0000-0000-0000-000000000000' }),
 	},
 	amplitude: {
 		expected: {
@@ -231,6 +242,22 @@ export const helperParityCases = {
 			src: 'https://chat-assets.frontapp.com/v1/chat.bundle.js',
 		},
 		script: frontChat({ chatId: 'front-chat-123' }),
+	},
+	fullStory: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: true,
+			src: 'https://edge.fullstory.com/s/fs.js?org=YOUR_ORG_ID',
+		},
+		script: fullStory({ orgId: 'YOUR_ORG_ID' }),
+	},
+	gainsightPx: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: 'loaded',
+			src: 'https://web-sdk.aptrinsic.com/api/aptrinsic.js?a=AP-PRODUCT-KEY-2',
+		},
+		script: gainsightPx({ productKey: 'AP-PRODUCT-KEY-2' }),
 	},
 	googleTagManager: {
 		expected: {

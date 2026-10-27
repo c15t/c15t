@@ -29,7 +29,7 @@ c15t is used by [2,100+ sites](https://www.wappalyzer.com/technologies/cookie-co
 - Google Tag Manager support with Google Consent Mode v2 defaults and consent updates
 - Google Analytics 4 and Google Ads support through gtag.js
 - Consent-gated Meta Pixel and conversion pixel loading
-- Supported vendors include Google Tag Manager, Meta Pixel, OpenAI Pixel, Amplitude, Heap, PostHog, TikTok Pixel, LinkedIn Insights, Microsoft UET, X Pixel, Reddit Pixel, Snapchat Pixel, Ada, Intercom, Crisp, ActiveCampaign, Gorgias Chat, Zendesk Messaging, Attentive, Customer.io, Insider, Klaviyo, Appcues, Wisepops, and more
+- Supported vendors include Google Tag Manager, Meta Pixel, OpenAI Pixel, Amplitude, FullStory, Heap, PostHog, TikTok Pixel, LinkedIn Insights, Microsoft UET, X Pixel, Reddit Pixel, Snapchat Pixel, Ada, Intercom, Crisp, ActiveCampaign, Gorgias Chat, Zendesk Messaging, Attentive, Customer.io, Insider, Klaviyo, Appcues, Wisepops, and more
 
 ## Documentation
 
@@ -42,7 +42,7 @@ See the [documentation](https://c15t.com/docs/integrations) for guides, API refe
 - **Google Analytics 4 + Google Ads (gtag.js)**: Consent Mode v2 defaults and consent updates when users make a choice ([guide](https://c15t.com/docs/integrations/google-tag))
 - **Conversion pixels**: Meta Pixel, OpenAI Pixel, Pinterest Tag, TikTok Pixel, LinkedIn Insights, Microsoft UET (Microsoft Ads), X Pixel, Reddit Pixel, Snapchat Pixel
 - **PostHog**: Loads before or after measurement consent, with switches that stop PostHog downloading its surveys, heatmaps, dead clicks and web vitals modules or requesting `/flags` ([guide](https://c15t.com/docs/integrations/posthog))
-- **Analytics**: Amplitude, Heap, Segment, Statable, RudderStack, Hightouch, Mixpanel, Microsoft Clarity, Hotjar, Lucky Orange, Plausible, Fathom, Matomo, Umami, Vercel Analytics, Vercel Speed Insights, OneDollarStats
+- **Analytics**: Amplitude, FullStory, Heap, Segment, Statable, RudderStack, Hightouch, Mixpanel, Microsoft Clarity, Hotjar, Lucky Orange, Plausible, Fathom, Matomo, Umami, Vercel Analytics, Vercel Speed Insights, OneDollarStats
 - **Experimentation and personalization**: Adobe Target, Appcues, Dynamic Yield, Optimizely Web Experimentation and Wisepops. Wisepops waits for marketing consent by default; the others wait for experience consent ([guide](https://c15t.com/docs/integrations/overview#experimentation-and-personalization))
 - **Sentry**: Loads Sentry from its CDN or works with your own SDK; Session Replay and user data wait for measurement, and error monitoring can too ([guide](https://c15t.com/docs/integrations/sentry))
 - **Email and SMS**: ActiveCampaign site tracking, loaded after marketing consent ([guide](https://c15t.com/docs/integrations/activecampaign)); Attentive loads after marketing consent and requires a page reload on withdrawal; Customer.io loads after marketing consent by default ([guide](https://c15t.com/docs/integrations/customer-io)). Insider, loaded after marketing consent; Klaviyo loads only once marketing and measurement are both allowed; Marketo Munchkin and Salesforce Account Engagement load after marketing consent ([guide](https://c15t.com/docs/integrations/overview#email-and-sms))
@@ -53,6 +53,7 @@ See the [documentation](https://c15t.com/docs/integrations) for guides, API refe
 - **AdRoll**: Loads after marketing consent ([guide](https://c15t.com/docs/integrations/adroll))
 - **Vector**: Loads after marketing consent ([guide](https://c15t.com/docs/integrations/vector))
 - **RB2B**: Loads after marketing consent ([guide](https://c15t.com/docs/integrations/rb2b))
+- **Amazon Ads**: Loads after marketing consent ([guide](https://c15t.com/docs/integrations/amazon-ads))
 - **Clay**: Loads after marketing consent ([guide](https://c15t.com/docs/integrations/clay))
 - **Pendo**: Loads after measurement consent; stops and resumes event sending when consent changes ([guide](https://c15t.com/docs/integrations/pendo))
 

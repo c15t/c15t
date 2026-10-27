@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import { expectSkippedScript } from './__tests__/helpers';
 import { adrollPixel } from './vendors/ads-and-pixels/adroll';
+import { amazonAdsTag } from './vendors/ads-and-pixels/amazon-ads';
 import { linkedinInsights } from './vendors/ads-and-pixels/linkedin-insights';
 import { liveIntentTag } from './vendors/ads-and-pixels/liveintent';
 import { metaPixel } from './vendors/ads-and-pixels/meta-pixel';
@@ -23,6 +24,8 @@ import { clearbit } from './vendors/analytics/clearbit';
 import { cloudflareWebAnalytics } from './vendors/analytics/cloudflare-web-analytics';
 import { databuddy } from './vendors/analytics/databuddy';
 import { fathomAnalytics } from './vendors/analytics/fathom-analytics';
+import { fullStory } from './vendors/analytics/fullstory';
+import { gainsightPx } from './vendors/analytics/gainsight-px';
 import { gtag } from './vendors/analytics/google-tag';
 import { heap } from './vendors/analytics/heap';
 import { hightouch } from './vendors/analytics/hightouch';
@@ -92,6 +95,28 @@ const requiredIdCases: {
 		helper: 'activeCampaignTracking',
 		option: 'accountId',
 		script: { category: 'marketing', id: 'activecampaign' },
+	},
+	{
+		create: (id) => fullStory({ orgId: asId(id) }),
+		helper: 'fullStory',
+		option: 'orgId',
+		script: { category: 'measurement', id: 'fullstory' },
+	},
+	{
+		create: (id) => amazonAdsTag({ tagId: asId(id) }),
+		helper: 'amazonAdsTag',
+		option: 'tagId',
+		script: { category: 'marketing', id: 'amazon-ads' },
+	},
+	{
+		create: (id) =>
+			gainsightPx({
+				...{ productKey: 'AP-PRODUCT-KEY-2' },
+				productKey: asId(id),
+			}),
+		helper: 'gainsightPx',
+		option: 'productKey',
+		script: { category: 'measurement', id: 'gainsight-px' },
 	},
 	{
 		create: (id) =>
@@ -584,6 +609,13 @@ const blankScriptUrlCases: {
 	create: (scriptUrl: string) => Script;
 	expectedSrc: string;
 }[] = [
+	{
+		create: (url) =>
+			gainsightPx({ ...{ productKey: 'AP-PRODUCT-KEY-2' }, scriptUrl: url }),
+		expectedSrc:
+			'https://web-sdk.aptrinsic.com/api/aptrinsic.js?a=AP-PRODUCT-KEY-2',
+		helper: 'gainsightPx',
+	},
 	{
 		create: (scriptUrl) => statableAnalytics({ scriptUrl, siteId: 12345 }),
 		expectedSrc: 'https://statable.com/js/12345/s.js',

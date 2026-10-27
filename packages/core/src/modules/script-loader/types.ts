@@ -46,6 +46,8 @@ export type { Script, ScriptCallbackInfo };
 export interface ScriptLoaderTools {
 	/** Identity of this loader's callback registrations. */
 	registration?: symbol;
+	/** Whether a callback belongs to a same-ID configuration replacement. */
+	isReplacing?: (script: Script) => boolean;
 
 	/** `extractConsentNamesFromCondition`. */
 	categoriesOf: typeof extractConsentNamesFromCondition;

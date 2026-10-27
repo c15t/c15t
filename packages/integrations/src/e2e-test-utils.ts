@@ -342,6 +342,7 @@ export const resetVendorGlobals = function resetVendorGlobals() {
 		'adobe',
 		'amplitude',
 		'analytics',
+		'aptrinsic',
 		'clarity',
 		'dataLayer',
 		'DY',

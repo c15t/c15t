@@ -81,6 +81,23 @@ export default defineDocsConfig({
 				type: 'links',
 			},
 			{
+				heading: 'Compare c15t',
+				links: [
+					{
+						urlPath: '/docs/comparisons',
+					},
+					{
+						title:
+							'c15t vs CookieConsent v3, the vanilla-cookieconsent package',
+						urlPath: '/docs/comparisons/cookieconsent-v3',
+					},
+					{
+						urlPath: '/docs/comparisons/silktide-consent-manager',
+					},
+				],
+				type: 'links',
+			},
+			{
 				body: '[Documentation index](/docs/llms.txt) · [Full Markdown context](/llms-full.txt). Prefer the index and individual pages for focused tasks.',
 				heading: 'More documentation',
 				type: 'markdown',
@@ -844,7 +861,9 @@ export default defineDocsConfig({
 				},
 				{
 					pages: [
+						'gainsight-px',
 						'google-tag',
+						'fullstory',
 						'ahrefs-analytics',
 						'adobe-analytics',
 						'amplitude',
@@ -919,6 +938,7 @@ export default defineDocsConfig({
 				{
 					pages: [
 						'meta-pixel',
+						'amazon-ads',
 						'openai-pixel',
 						'pinterest-tag',
 						'reddit-pixel',
