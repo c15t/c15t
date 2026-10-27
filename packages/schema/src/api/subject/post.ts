@@ -13,6 +13,7 @@ import {
 } from '../../domain/consent-policy';
 import { ADDITIONAL_CONSENT_V2_PATTERN } from '../../shared/ad-tech-provider';
 import { subjectChoiceWireSchema } from './choice-wire';
+import { subjectScriptsWireSchema } from './scripts-wire';
 import { vendorChoiceWireSchema } from './vendor-choice-wire';
 
 /**
@@ -201,11 +202,17 @@ const manifestDecisionInputEntries = {
 			)
 		)
 	),
-	/** Global Privacy Control input used by the manifest resolver */
+	/**
+	 * Global Privacy Control as the visitor acted. Manifest-mode saves assert
+	 * it as a decision input. Token-backed saves send it with `scripts`, and
+	 * the backend reads it only to work out `allowed`.
+	 */
 	gpc: v.optional(
 		v.pipe(
 			v.boolean(),
-			v.description('Global Privacy Control input used by manifest-mode saves.')
+			v.description(
+				'Global Privacy Control as the visitor acted. A manifest-mode decision input; with a policy snapshot token, used only to work out which `scripts` were allowed.'
+			)
 		)
 	),
 	/** Language input used by the manifest resolver */
@@ -257,6 +264,14 @@ export const subjectCookieBannerInputSchema = v.object({
 		v.description('Consent preferences keyed by category.'),
 		v.examples([{ marketing: false, measurement: true, necessary: true }])
 	),
+	/**
+	 * Gating fields of every script the page had configured when the subject
+	 * acted. The backend drops unknown keys, stores each entry with `allowed`
+	 * when it can tell whether this consent permitted the script, and omits
+	 * `allowed` for IAB-field entries under an `iab` policy or when the answer
+	 * turns on an earlier grant this save's `choice` did not confirm.
+	 */
+	scripts: v.optional(subjectScriptsWireSchema),
 	type: v.literal('cookie_banner'),
 	/**
 	 * Per-vendor grants confirmed by this action, when the publisher declares

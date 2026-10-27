@@ -119,6 +119,7 @@ export {
 } from './non-iab-vendor';
 export {
 	type Vendor,
+	satisfiesCategoryCondition,
 	type VendorCategoryCondition,
 	vendorCategoryConditionSchema,
 	vendorIdSchema,

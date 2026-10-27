@@ -29,7 +29,11 @@ import type { SqlError } from 'effect/sql';
 import type { Tenant } from '../db/tenant';
 import { encodeTenantRow } from '../db/values';
 import { record } from './consent';
-import type { ConsentPurposeConflictError, ConsentSubmission } from './consent';
+import type {
+	ConsentPurposeConflictError,
+	ConsentSubmission,
+	RecordedScript,
+} from './consent';
 import { recordDecision } from './runtime-policy-decision';
 import type { DecisionInput } from './runtime-policy-decision';
 import type { SubjectTenantConflictError } from './subject';
@@ -65,6 +69,8 @@ export interface ConsentSubmissionRequest {
 	readonly tcString?: string | null;
 	/** See `ConsentSubmission.addtlConsent`. */
 	readonly addtlConsent?: string | null;
+	/** See `ConsentSubmission.scripts`. */
+	readonly scripts?: readonly RecordedScript[] | null;
 	readonly uiSource?: string | null;
 	readonly consentAction?: string | null;
 	readonly validUntil?: Date | null;
@@ -129,6 +135,7 @@ export const submit = Effect.fn('consent.submit')(function* submit(
 		policyId: request.policyId,
 		purposeIds: request.purposeIds,
 		runtimePolicySource: decision ? request.runtimePolicySource : undefined,
+		scripts: request.scripts,
 		subjectId: subject.id,
 		tcString: request.tcString,
 		timeToDecisionMs: request.timeToDecisionMs,

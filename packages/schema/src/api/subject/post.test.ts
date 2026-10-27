@@ -69,3 +69,79 @@ describe('postSubjectInputSchema addtlConsent', () => {
 		expect(parseAddtlConsent(addtlConsent).success).toBe(false);
 	});
 });
+
+describe('postSubjectInputSchema scripts', () => {
+	const parseScripts = (scripts: unknown) =>
+		v.safeParse(postSubjectInputSchema, {
+			...baseInput,
+			givenAt: 1_735_689_600_000,
+			scripts,
+		});
+
+	it('accepts gating fields and drops keys it does not know', () => {
+		const parsed = parseScripts([
+			{
+				category: { and: ['marketing', { not: 'measurement' }] },
+				iabPurposes: [1, 3],
+				id: 'meta-pixel',
+				src: 'https://connect.facebook.net/en_US/fbevents.js',
+				vendor: 'meta-pixel',
+				vendorId: 755,
+			},
+			{ alwaysLoad: true, category: 'necessary', id: 'errors' },
+		]);
+		expect(parsed.success).toBe(true);
+		expect(parsed.output).toHaveProperty('scripts', [
+			{
+				category: { and: ['marketing', { not: 'measurement' }] },
+				iabPurposes: [1, 3],
+				id: 'meta-pixel',
+				vendor: 'meta-pixel',
+				vendorId: 755,
+			},
+			{ alwaysLoad: true, category: 'necessary', id: 'errors' },
+		]);
+	});
+
+	it.each([
+		['an unknown category', [{ category: 'advertising', id: 'ads' }]],
+		['an empty id', [{ category: 'marketing', id: '' }]],
+		['a false flag', [{ alwaysLoad: false, category: 'marketing', id: 'a' }]],
+		[
+			'an IAB purpose of 0',
+			[{ category: 'marketing', iabPurposes: [0], id: 'a' }],
+		],
+		[
+			'more than 256 entries',
+			Array.from({ length: 257 }, (_, index) => ({
+				category: 'marketing',
+				id: `s${index}`,
+			})),
+		],
+	])('rejects %s', (_label, scripts) => {
+		expect(parseScripts(scripts).success).toBe(false);
+	});
+
+	const nested = (depth: number): unknown => {
+		let condition: unknown = 'marketing';
+		for (let level = 0; level < depth; level += 1) {
+			condition = { not: condition };
+		}
+		return condition;
+	};
+
+	it('accepts a condition as deep as core sends', () => {
+		expect(parseScripts([{ category: nested(16), id: 'a' }]).success).toBe(
+			true
+		);
+	});
+
+	it('rejects a deeper condition without exhausting the stack', () => {
+		expect(parseScripts([{ category: nested(17), id: 'a' }]).success).toBe(
+			false
+		);
+		expect(parseScripts([{ category: nested(100_000), id: 'a' }]).success).toBe(
+			false
+		);
+	});
+});

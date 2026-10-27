@@ -56,6 +56,8 @@ export type {
 	SubjectChoiceBasisWire,
 	SubjectChoiceWire,
 	SubjectItem,
+	SubjectScriptWire,
+	SubjectScriptsWire,
 	VendorChoiceWire,
 } from './api/subject';
 // Domain types

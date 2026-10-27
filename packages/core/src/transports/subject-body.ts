@@ -24,9 +24,17 @@
  * `vendorChoice` travels alongside when the publisher declares vendors: the
  * complete granted-or-denied map with one confirmation time, so the backend
  * stores the vendor decision without knowing the vendor list.
+ *
+ * `scripts` lists the gating fields of every script the page had
+ * configured when the visitor acted, for the backend to store beside the
+ * record.
  */
 import { appendJourneyParams } from '@c15t/schema/types';
-import type { SubjectChoiceWire, VendorChoiceWire } from '@c15t/schema/types';
+import type {
+	SubjectChoiceWire,
+	SubjectScriptsWire,
+	VendorChoiceWire,
+} from '@c15t/schema/types';
 
 import { OPTIONAL_CONSENT_CATEGORIES } from '../consent-record/types';
 import type {
@@ -82,6 +90,13 @@ export interface SubjectPostBody {
 	addtlConsent?: string;
 	/** Granted flag per declared vendor after this act, when vendors exist. */
 	vendorChoice?: VendorChoiceWire;
+	/** Gating fields of every script the page had configured. */
+	scripts?: SubjectScriptsWire;
+	/**
+	 * Global Privacy Control as the visitor acted. A manifest-mode save sends
+	 * it as a decision input; a token-backed save sends it with `scripts`.
+	 */
+	gpc?: boolean;
 	/** Free-form audit metadata. `userProperties`, `timeToDecisionMs` and `experiment` are the keys c15t sets. */
 	metadata?: Record<string, unknown> & {
 		userProperties?: NonNullable<SavePayload['user']>['properties'];
@@ -196,5 +211,14 @@ export const buildSubjectPostBody = function buildSubjectPostBody(
 				version: 1 as const,
 			},
 		}),
+		...(payload.scripts !== undefined && {
+			scripts: payload.scripts.map((script) => ({ ...script })),
+		}),
+		// The backend reads GPC to tell which scripts the choice allowed. A
+		// token-backed save asserts no decision inputs, so without this a
+		// replay would be judged by the signal at replay time.
+		...(payload.scripts !== undefined &&
+			payload.policySnapshotToken &&
+			payload.decisionInputs && { gpc: payload.decisionInputs.gpc }),
 	};
 };

@@ -12,6 +12,7 @@
  * - IAB evaluation when model === 'iab'
  * - updateScripts swaps config and unloads removed scripts
  * - dispose removes elements and disconnects subscription
+ * - saves carry the gating fields of every configured script
  */
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
@@ -22,6 +23,8 @@ import {
 	optInRule,
 } from '../../../__tests__/fixtures/kernel-fixtures';
 import { createConsentKernel } from '../../../index';
+import type { KernelTransport } from '../../../index';
+import { createKernel } from '../../../kernel';
 import { createScriptLoader } from '../index';
 import type { Script } from '../index';
 
@@ -1151,5 +1154,150 @@ describe('script-loader: onDebug emits lifecycle events', () => {
 		expect(events).toContain('loaded:gtm');
 		void kernel.commands.save({ marketing: false });
 		expect(events).toContain('unloaded:gtm');
+	});
+});
+
+describe('script-loader: configured scripts on saves', () => {
+	// The save outbox waits on timers the file-wide fake clock never runs.
+	beforeEach(() => {
+		vi.useRealTimers();
+	});
+
+	const kernelWithSave = () => {
+		const save = vi.fn<NonNullable<KernelTransport['save']>>(() =>
+			Promise.resolve({ ok: true })
+		);
+		// The internal kernel, so a test can seed records with `hydrate`.
+		return { kernel: createKernel({ transport: { save } }), save };
+	};
+	const lastScripts = (save: ReturnType<typeof kernelWithSave>['save']) =>
+		save.mock.lastCall?.[0].scripts;
+
+	test('a save lists every configured script, loaded or not', async () => {
+		const { kernel, save } = kernelWithSave();
+		createScriptLoader({
+			kernel,
+			scripts: [
+				{
+					category: 'measurement',
+					id: 'ga',
+					src: 'https://example.com/ga.js',
+					vendorId: 755,
+				},
+				{
+					category: 'marketing',
+					id: 'pixel',
+					src: 'https://example.com/pixel.js',
+					vendor: 'meta-pixel',
+				},
+			],
+		});
+		await kernel.commands.save({ measurement: true });
+		expect(lastScripts(save)).toEqual([
+			{ category: 'measurement', id: 'ga', vendorId: 755 },
+			{ category: 'marketing', id: 'pixel', vendor: 'meta-pixel' },
+		]);
+		kernel.dispose();
+	});
+
+	test('follows updateScripts and merges loaders', async () => {
+		const { kernel, save } = kernelWithSave();
+		const first = createScriptLoader({
+			kernel,
+			scripts: [{ category: 'measurement', id: 'ga', src: 'https://a/ga.js' }],
+		});
+		createScriptLoader({
+			kernel,
+			scripts: [
+				{ category: 'marketing', id: 'pixel', src: 'https://a/pixel.js' },
+			],
+		});
+		first.updateScripts([
+			{ category: 'experience', id: 'chat', src: 'https://a/chat.js' },
+		]);
+		await kernel.commands.save({ measurement: true });
+		expect(lastScripts(save)).toEqual([
+			{ category: 'experience', id: 'chat' },
+			{ category: 'marketing', id: 'pixel' },
+		]);
+		kernel.dispose();
+	});
+
+	test('lists the scripts configured when the visitor acted', async () => {
+		const { kernel, save } = kernelWithSave();
+		const loader = createScriptLoader({
+			kernel,
+			scripts: [{ category: 'measurement', id: 'ga', src: 'https://a/ga.js' }],
+		});
+		kernel.events.on('choice:recorded', () => loader.dispose());
+		await kernel.commands.save({ measurement: true });
+		expect(lastScripts(save)).toEqual([{ category: 'measurement', id: 'ga' }]);
+		kernel.dispose();
+	});
+
+	test('leaves off a vendor whose denial the gate ignores', async () => {
+		const { kernel, save } = kernelWithSave();
+		kernel.hydrate({
+			now: Date.now(),
+			vendorChoice: {
+				confirmedAt: Date.now() - 5,
+				denied: ['ads', 'chat'],
+				version: 1,
+			},
+		});
+		kernel.set.vendors({
+			declared: [
+				{
+					category: 'functionality',
+					disabled: true,
+					id: 'chat',
+					name: 'Chat',
+					presentable: true,
+					source: 'config',
+				},
+			],
+		});
+		createScriptLoader({
+			kernel,
+			scripts: [
+				{
+					category: 'marketing',
+					id: 'ads',
+					src: 'https://a/ads.js',
+					vendor: 'ads',
+				},
+				{
+					category: 'functionality',
+					id: 'chat',
+					src: 'https://a/chat.js',
+					vendor: 'chat',
+				},
+			],
+		});
+		await kernel.commands.save({ functionality: true, marketing: true });
+		// The disabled vendor's denial still travels, but the browser loads
+		// its script, so the entry must not name it for the backend to block.
+		expect(save.mock.lastCall?.[0].vendorChoice?.grants).toEqual({
+			ads: false,
+			chat: false,
+		});
+		expect(lastScripts(save)).toEqual([
+			{ category: 'marketing', id: 'ads', vendor: 'ads' },
+			{ category: 'functionality', id: 'chat' },
+		]);
+		kernel.dispose();
+	});
+
+	test('a disposed loader no longer lists its scripts', async () => {
+		const { kernel, save } = kernelWithSave();
+		const loader = createScriptLoader({
+			kernel,
+			scripts: [{ category: 'measurement', id: 'ga', src: 'https://a/ga.js' }],
+		});
+		loader.dispose();
+		await kernel.commands.save({ measurement: true });
+		expect(save).toHaveBeenCalledOnce();
+		expect(save.mock.lastCall?.[0]).not.toHaveProperty('scripts');
+		kernel.dispose();
 	});
 });

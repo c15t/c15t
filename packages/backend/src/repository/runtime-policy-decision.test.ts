@@ -26,6 +26,7 @@ import { up as attribution } from '../db/migrations/6-experiment-attribution';
 import { up as optionalJurisdiction } from '../db/migrations/7-optional-decision-jurisdiction';
 import { up as verifiedExternalId } from '../db/migrations/8-verified-external-id';
 import { up as additionalConsent } from '../db/migrations/9-additional-consent';
+import { up as consentScripts } from '../db/migrations/10-consent-scripts';
 import { singleTenant, layer as tenantLayer } from '../db/tenant';
 import { recordDecision, scopedDedupeKey } from './runtime-policy-decision';
 
@@ -97,6 +98,7 @@ for (const engine of ENGINES) {
 					yield* optionalJurisdiction;
 					yield* verifiedExternalId;
 					yield* additionalConsent;
+					yield* consentScripts;
 
 					const a = yield* recordDecision(input).pipe(
 						Effect.provide(tenantLayer('tenant_a'))
@@ -199,6 +201,7 @@ for (const engine of ENGINES) {
 						yield* optionalJurisdiction;
 						yield* verifiedExternalId;
 						yield* additionalConsent;
+						yield* consentScripts;
 						const sql = yield* SqlClient.SqlClient;
 						yield* sql.unsafe(
 							'alter table "runtimePolicyDecision" add constraint "decision_fingerprint_deferrable" unique ("fingerprint") deferrable'
@@ -231,6 +234,7 @@ for (const engine of ENGINES) {
 					yield* optionalJurisdiction;
 					yield* verifiedExternalId;
 					yield* additionalConsent;
+					yield* consentScripts;
 
 					// Scoping must not cost idempotency, which is the whole point of
 					// the key.
@@ -260,6 +264,7 @@ for (const engine of ENGINES) {
 					yield* optionalJurisdiction;
 					yield* verifiedExternalId;
 					yield* additionalConsent;
+					yield* consentScripts;
 
 					const first = yield* recordDecision(input);
 					const second = yield* recordDecision(input);
