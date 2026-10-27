@@ -33,6 +33,7 @@ import { clayManifest } from './vendors/analytics/clay';
 import { clearbitManifest } from './vendors/analytics/clearbit';
 import { cloudflareWebAnalyticsManifest } from './vendors/analytics/cloudflare-web-analytics';
 import { databuddyManifest } from './vendors/analytics/databuddy';
+import { defaultComPixelManifest } from './vendors/analytics/default-com';
 import { fathomAnalyticsManifest } from './vendors/analytics/fathom-analytics';
 import { fullStoryManifest } from './vendors/analytics/fullstory';
 import { gainsightPxManifest } from './vendors/analytics/gainsight-px';
@@ -91,6 +92,7 @@ const validConsentCategories = [
 
 const vendorManifests = [
 	clayManifest,
+	defaultComPixelManifest,
 	eloquaTrackingManifest,
 	activeCampaignTrackingManifest,
 	gainsightPxManifest,

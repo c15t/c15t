@@ -48,6 +48,7 @@ See the [documentation](https://c15t.com/docs/integrations) for guides, API refe
 - **Email and SMS**: ActiveCampaign site tracking, loaded after marketing consent ([guide](https://c15t.com/docs/integrations/activecampaign)); Attentive loads after marketing consent and requires a page reload on withdrawal; Customer.io loads after marketing consent by default ([guide](https://c15t.com/docs/integrations/customer-io)). Insider, loaded after marketing consent; Klaviyo loads only once marketing and measurement are both allowed; Marketo Munchkin and Salesforce Account Engagement load after marketing consent ([guide](https://c15t.com/docs/integrations/overview#email-and-sms))
 - **Chat widgets**: Ada, Intercom, Crisp, Front Chat, Gorgias Chat, Zendesk Messaging
 - **Shopify**: Sends c15t consent to Shopify's Customer Privacy API from a Hydrogen storefront ([guide](https://c15t.com/docs/integrations/shopify))
+- **Default**: Pixel after measurement consent or standalone Forms SDK after functionality consent, with configurable categories and an opt-in always mode for the Pixel ([guide](https://c15t.com/docs/integrations/default-com))
 - **The Trade Desk**: Loads after marketing consent ([guide](https://c15t.com/docs/integrations/the-trade-desk))
 - **LiveIntent**: Loads after marketing consent ([guide](https://c15t.com/docs/integrations/liveintent))
 - **AdRoll**: Loads after marketing consent ([guide](https://c15t.com/docs/integrations/adroll))

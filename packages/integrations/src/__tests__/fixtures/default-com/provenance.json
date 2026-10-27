@@ -1,0 +1,18 @@
+[
+	{
+		"file": "sdk.js.txt",
+		"url": "https://handshake.default.com/sdk.js",
+		"sha256": "0c4a524f78412015ade3fd066a4020d6e2d425de25baf441f01ec09a93f89e2a",
+		"bytes": 125409,
+		"savedAt": "2026-10-21",
+		"source": "Previously saved upstream response. Never fetched by these tests."
+	},
+	{
+		"file": "index.js.txt",
+		"url": "https://handshake.default.com/index.js",
+		"sha256": "250750410f07067ca57f43f1f493f7ba7c174baad264bde7904bdea6d360c434",
+		"bytes": 184514,
+		"savedAt": "2026-10-21",
+		"source": "Previously saved upstream response. Never fetched by these tests."
+	}
+]

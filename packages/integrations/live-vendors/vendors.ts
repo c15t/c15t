@@ -6,8 +6,9 @@
  * runner and bundled into the browser harness, so check callbacks run inside
  * the probed page.
  *
- * Placeholder ids must be obviously fake and must never point at a real
- * account.
+ * Use placeholder IDs by default. Explicitly authorized public sample IDs are
+ * documented in each entry. Placeholder ids must be obviously fake and must
+ * never point at a real account.
  * The runner allows literal URL substring matches and answers other intercepted
  * HTTP requests with empty 204 responses. Allowlisted requests reach upstream;
  * these routing rules do not establish complete isolation or account delivery.
@@ -38,6 +39,7 @@ import { clay } from '../src/vendors/analytics/clay';
 import { clearbit } from '../src/vendors/analytics/clearbit';
 import { cloudflareWebAnalytics } from '../src/vendors/analytics/cloudflare-web-analytics';
 import { databuddy } from '../src/vendors/analytics/databuddy';
+import { defaultComPixel } from '../src/vendors/analytics/default-com';
 import { fathomAnalytics } from '../src/vendors/analytics/fathom-analytics';
 import { fullStory } from '../src/vendors/analytics/fullstory';
 import { gainsightPx } from '../src/vendors/analytics/gainsight-px';
@@ -99,6 +101,21 @@ interface OpenAIPixelRuntime extends OpenAIPixelFunction {
 	measure?: (...args: unknown[]) => void;
 	consent?: (granted: boolean) => void;
 }
+
+interface DefaultComProbeConsent {
+	analytics: boolean;
+	marketing: boolean;
+}
+
+interface DefaultComPixelProbeRuntime {
+	key?: string;
+	q?: ['setConsent', DefaultComProbeConsent][];
+	setConsent?: (consent: DefaultComProbeConsent) => void;
+}
+
+type DefaultComProbeWindow = Window & {
+	__defaultPixel__?: DefaultComPixelProbeRuntime;
+};
 
 type LiveIntentProbeWindow = Window & {
 	liQ?: {
@@ -274,6 +291,54 @@ type PosthogProbeWindow = Window & {
  * Probe configs for every built-in integration, ordered by registry vendor id.
  */
 export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
+	{
+		bootstrapCheck: () => {
+			const pixel: DefaultComPixelProbeRuntime | undefined = (
+				window as DefaultComProbeWindow
+			).__defaultPixel__;
+			const queuedConsent = pixel?.q?.[0];
+
+			return check(
+				pixel?.key === '39af45d7-093f-4efe-a5d1-5bdb462fc4e0' &&
+					typeof pixel.setConsent === 'function' &&
+					Array.isArray(pixel.q) &&
+					pixel.q.length === 1 &&
+					queuedConsent?.[0] === 'setConsent' &&
+					queuedConsent[1]?.analytics === true &&
+					queuedConsent[1]?.marketing === true,
+				'Default Pixel public key and granted consent tuple queued before loader execution'
+			);
+		},
+		createScript: () =>
+			defaultComPixel({
+				// Public Pixel bootstrap at https://www.default.com/, checked 2026-10-21.
+				// Full-tier probe executes index.js and checks its live consent setter.
+				// Collection and Vector endpoints remain outside the loader allowlist.
+				// Workspace monitoring authorization remains unverified.
+				publicKey: '39af45d7-093f-4efe-a5d1-5bdb462fc4e0',
+			}),
+		loaderUrlSubstring: 'https://handshake.default.com/index.js',
+		notes:
+			"The key comes from Default's public homepage Pixel bootstrap; public visibility does not establish collection authorization. Collection endpoints and Vector scripts remain blocked; do not broaden the loader allowlist. This checks Pixel bootstrap, queue drain and real consent-setter installation. It does not validate account configuration, event delivery or complete shutdown after withdrawal. The standalone Forms SDK has no separate probe.",
+		runtimeCheck: () => {
+			const pixel = (window as DefaultComProbeWindow).__defaultPixel__;
+			const setter = pixel?.setConsent;
+			const setterSource =
+				typeof setter === 'function' ? setter.toString() : '';
+			// The downloaded index.js drains q, then installs
+			// f.setConsent=h=>he.setConsent(h). The bootstrap only pushes to q.
+			return check(
+				Array.isArray(pixel?.q) &&
+					pixel.q.length === 0 &&
+					typeof setter === 'function' &&
+					setterSource.includes('.setConsent(') &&
+					!setterSource.includes('.push('),
+				'Default Pixel drained its consent queue and installed the upstream consent setter'
+			);
+		},
+		tier: 'full',
+		vendor: 'default-com',
+	},
 	{
 		bootstrapCheck: () =>
 			check(Array.isArray(window._elqQ), 'Eloqua command array'),

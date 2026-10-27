@@ -25,6 +25,7 @@ import { clay } from '../vendors/analytics/clay';
 import { clearbit } from '../vendors/analytics/clearbit';
 import { cloudflareWebAnalytics } from '../vendors/analytics/cloudflare-web-analytics';
 import { databuddy } from '../vendors/analytics/databuddy';
+import { defaultComPixel } from '../vendors/analytics/default-com';
 import { fathomAnalytics } from '../vendors/analytics/fathom-analytics';
 import { fullStory } from '../vendors/analytics/fullstory';
 import { gainsightPx } from '../vendors/analytics/gainsight-px';
@@ -219,6 +220,14 @@ export const helperParityCases = {
 
 			configWhenGranted: { clientId: 'db_123', disabled: false },
 		}),
+	},
+	defaultComPixel: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: true,
+			src: 'https://handshake.default.com/index.js',
+		},
+		script: defaultComPixel({ publicKey: 'c15tfake' }),
 	},
 	dynamicYield: {
 		expected: {

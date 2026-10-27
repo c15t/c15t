@@ -18,6 +18,7 @@
 		"consent-mode",
 		"consent-mode-v2",
 		"cookie-consent",
+		"default-com",
 		"ga4",
 		"gdpr",
 		"google-ads",
@@ -316,6 +317,11 @@
 			"import": "./dist/events.js",
 			"default": "./dist/events.js"
 		},
+		"./default-com": {
+			"types": "./dist-types/vendors/analytics/default-com.d.ts",
+			"import": "./dist/vendors/analytics/default-com.js",
+			"default": "./dist/vendors/analytics/default-com.js"
+		},
 		"./oracle-eloqua": {
 			"types": "./dist-types/vendors/analytics/oracle-eloqua.d.ts",
 			"import": "./dist/vendors/analytics/oracle-eloqua.js",
@@ -468,6 +474,7 @@
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",
 		"@c15t/vitest-config": "workspace:*",
+		"esbuild": "0.28.1",
 		"playwright": "1.58.2",
 		"sentry-browser-v10": "npm:@sentry/browser@^10.67.0",
 		"sentry-browser-v10-min": "npm:@sentry/browser@10.67.0",

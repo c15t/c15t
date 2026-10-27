@@ -82,15 +82,19 @@ reconcile supported settings and reject incompatible changes.
 `loader.updateScripts(next)` replaces the configuration and reconciles at
 once:
 
-- A script with the same `id`, source, inline code and attributes keeps its
-  element. New callback functions alone do not reload it.
+- A DOM script with the same `id`, source, inline code and attributes keeps its
+  element when its `onDispose` callback is unchanged. Replacing the
+  configuration object with the same callback preserves that lifecycle.
+  Changes to other callback functions alone do not reload it.
 - Changing the source, inline code or attributes starts a new load.
 - A DOM script with `onDispose` keeps its lifecycle when the resource and
-  disposal callback stay the same. Changing either disposes the previous
-  configuration. Keep the callback stable across rerenders, or supply a new
-  callback when replacement needs cleanup. Callback-only scripts with
-  `onDispose` are tracked by object and restart when the object changes. Set
-  `persistAfterDispose` to keep an inserted resource on purpose.
+  disposal callback stay the same. Adding, removing or changing the callback,
+  or changing the resource, disposes the previous configuration and starts a
+  new load. Keep the callback stable across rerenders, or supply a new
+  callback when replacement needs cleanup.
+- A callback-only script with `onDispose` is tracked by object, so replacing
+  the object disposes the previous configuration, even with the same callback.
+- Set `persistAfterDispose` to keep an inserted resource on purpose.
 - A removed script releases its element. Shared external elements stay while
   another loader still uses them.
 

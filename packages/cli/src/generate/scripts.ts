@@ -99,6 +99,10 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 		example: "databuddy({ clientId: 'YOUR_CLIENT_ID' })",
 		importName: 'databuddy',
 	},
+	'default-com': {
+		example: "defaultComPixel({ publicKey: 'YOUR_PUBLIC_KEY' })",
+		importName: 'defaultComPixel',
+	},
 	'dynamic-yield': {
 		example: "dynamicYield({ sectionId: 'YOUR_SECTION_ID' })",
 		importName: 'dynamicYield',
