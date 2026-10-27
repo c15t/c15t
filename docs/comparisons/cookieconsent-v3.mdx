@@ -1,65 +1,125 @@
 ---
 title: c15t vs CookieConsent v3
-description: Choose c15t when your application needs native consent state and a record backend. Compare CookieConsent's browser controls and the extra setup each approach needs.
+description: Compare c15t with CookieConsent v3, the vanilla-cookieconsent package. See regional rules, consent records, IAB TCF, Google Consent Mode and framework support.
+seoTitle: CookieConsent v3 vs c15t, vanilla-cookieconsent compared
+seoDescription: Compare c15t with CookieConsent v3, the vanilla-cookieconsent package, on regional rules, consent records, IAB TCF, Consent Mode v2 and framework support.
 group: reference
 ---
 
-## Choose c15t to connect the interface, rules and records
+c15t is the better choice for most production sites. It applies consent rules by region, so visitors outside opt-in regions do not wait behind a banner. Inth keeps your consent records. c15t also supports IAB TCF 2.4, Global Privacy Control and Google Consent Mode v2. With CookieConsent v3, you build most of these parts yourself. IAB TCF is not available.
 
-c15t is the stronger fit when your application needs more than browser preferences. It connects framework components, consent rules, vendor integrations and a backend for records.
+CookieConsent v3 is a free browser library by Orest Bida, with an MIT licence. Its npm package is `vanilla-cookieconsent`. Its own documentation says that it is not a CMP, does not store consent records and does not support IAB TCF.
 
-CookieConsent is a capable browser library with granular controls and custom styles. It installs as `vanilla-cookieconsent`. It is a separate project from c15t.
+Start on Inth's [free plan](https://inth.com/pricing) and follow the [framework guide](/docs/frameworks) for your app.
 
-<include src="../shared/comparisons/inth-hosting.mdx" />
-
-## Compare what you need to assemble
+## c15t vs CookieConsent v3 feature comparison
 
 | What you need | c15t | CookieConsent v3 |
 | --- | --- | --- |
-| Use consent in framework components | Native adapters and reactive state | Browser library with framework setup recipes |
-| Show preferences | Category and vendor controls | Category controls and individual service switches |
+| Apply different rules by region | Policy rules by country and US state. Inth or your backend finds the location | One mode for all visitors, opt-in by default. For a mode per country, you find the location yourself |
+| Keep consent records on a server | Inth hosts the backend and keeps records in its database. Self-hosting is optional | Not included. Callbacks can send records to an endpoint that you build |
+| Use IAB TCF | TCF 2.4 with the `@c15t/iab` add-on. Inth is a registered IAB Europe CMP, ID 490 | Not supported |
+| Respect privacy signals | Reads Global Privacy Control. IAB GPP API for US state opt-outs | Not documented |
+| Use Google Consent Mode v2 | Google tag and GTM integrations send the default and each update | Example code that you connect to its consent callbacks |
+| Use consent in framework components | Native adapters and reactive consent state | Browser library, with framework setup recipes |
 | Resolve consent in Next.js | Server, streamed and browser paths | Browser setup. Its React example starts in an effect |
-| Keep remote consent records | Inth hosts the backend and stores records in its database. Self-hosting is optional | Send records to your own backend through callbacks |
+| Translate the interface | Built-in copy in 53 languages, with your own [i18n messages](/docs/customization/translations) | No default translations. You supply each language |
+| Show preferences | Category and vendor controls | Category controls and a switch for each service |
+| Control scripts | Registered integrations, network request rules and embeds | Script attributes and service callbacks |
+| Clear cookies after withdrawal | Optional rules for each category. A refusal for one vendor needs separate cleanup | Cookie cleanup for each category and service |
 | Change the interface | Themes, component parts and headless APIs | Modal options, CSS and custom content |
-| Control scripts | Registered integrations, request rules and embeds | Script attributes and service callbacks |
-| Clear cookies after withdrawal | Optional category rules. Vendor-only refusal needs separate cleanup | Category and service cookie cleanup |
-| Use Google Consent Mode | Documented Google tag and GTM integrations | Documented Consent Mode implementation |
-| Pay for software | No licence fee. Backend costs remain | No licence fee. Any record backend is your responsibility |
+| Licence and price | Apache 2.0, with no licence fee. Inth has a free plan and paid plans | MIT, with no licence fee. You pay to host any parts that you build |
+| Install | `c15t` from npm, or `@c15t/browser` as a script tag | `vanilla-cookieconsent` from npm, or a CDN script |
 
-Sources: [setup](https://cookieconsent.orestbida.com/essential/getting-started.html), [configuration](https://cookieconsent.orestbida.com/reference/configuration-reference.html), [consent records](https://cookieconsent.orestbida.com/advanced/consent-logging.html), [script controls](https://cookieconsent.orestbida.com/advanced/manage-scripts.html) and [Google Consent Mode](https://cookieconsent.orestbida.com/advanced/google-consent-mode.html).
+Sources: [introduction](https://cookieconsent.orestbida.com/essential/introduction.html), [setup](https://cookieconsent.orestbida.com/essential/getting-started.html), [configuration](https://cookieconsent.orestbida.com/reference/configuration-reference.html), [consent records](https://cookieconsent.orestbida.com/advanced/consent-logging.html), [script controls](https://cookieconsent.orestbida.com/advanced/manage-scripts.html), [Google Consent Mode](https://cookieconsent.orestbida.com/advanced/google-consent-mode.html) and the [npm package](https://www.npmjs.com/package/vanilla-cookieconsent).
 
-## Use a backend that already understands consent
+## What you build yourself with CookieConsent v3
 
-CookieConsent's record guide leaves the request to your own backend. That route works, but your team must supply storage, delivery and retrieval.
+CookieConsent v3 gives you a banner and switches in the browser. Your team builds and runs the rest:
 
-c15t gives you a [backend protocol and implementation](/docs/self-host/overview). The interface can use that consent state without a separate record system designed from scratch.
+1. **A location lookup**, to apply different rules by region.
+2. **A consent record endpoint and its storage**, to prove what each visitor chose.
+3. **Consent Mode code**, to send the Google signals at the correct time.
+4. **Language files**, because the library has no default translations.
 
-Check browser state and saved records separately. c15t applies a visitor's choice locally before the backend confirms it. Failed submissions have retry and expiry limits.
+c15t and Inth include all four. CookieConsent does not support IAB TCF. If ad partners need a TC string from your site, CookieConsent cannot supply one.
 
-See the [consent state guide](/docs/concepts/consent-state) for those conditions.
+<include src="../shared/comparisons/inth-hosting.mdx" />
+
+## Ask for consent only where your policy needs it
+
+When your policy lets scripts run before a choice in a region, c15t runs them there. You keep the analytics and ad data from those visitors. Visitors in opt-in regions still see the banner before optional scripts run.
+
+c15t picks a [policy rule](/docs/concepts/policies) for each visitor from their location. The `recommendedPolicyRules()` pack uses opt-in rules for Europe and Québec. It uses opt-out rules for supported US privacy states. Other known locations get no banner. A visitor from an unknown country gets strict opt-in.
+
+Inth or your own backend finds the location. Browser-only mode does not find the visitor's country.
+
+CookieConsent v3 does not find the visitor's location. Its default opt-in mode applies to all visitors. The banner shows to all visitors, also where your policy lets optional scripts run before a choice. Until those visitors accept, you lose their analytics and ad data.
+
+Before you let categories run by default, compare the preset with how you use the data. A country match does not give a legal basis for a vendor's use of data.
+
+## Keep consent records without a backend project
+
+You do not need to design a consent record system. Inth runs the [c15t backend](/docs/self-host/overview) and keeps each consent record in its database. If your team must operate the service, you can self-host the same backend.
+
+CookieConsent's consent logging guide says that it has no built-in API. Your team must build the endpoint, the storage and a way to read the records back.
+
+c15t applies the visitor's choice in the browser before the backend confirms it. c15t keeps each choice in a queue in browser storage. If the page closes before the backend answers, c15t sends the choice again on the next page. A permanent rejection, such as a stale policy, removes the choice from the queue. If browser storage is unavailable, c15t cannot keep an interrupted request for the next page.
+
+A choice in the browser does not prove that the backend saved a consent record. Check the saved record in Inth or in your self-hosted backend. The [consent state guide](/docs/concepts/consent-state) gives all of these conditions.
 
 ## Fit consent to the application
 
-Your c15t preference controls and gated content can use the same framework state. Use the supplied interface or build one with [headless APIs](/docs/frameworks/react/headless).
+When a visitor changes a choice, each c15t component that reads the consent state gets the change. Preference controls and gated content use the same state. Use the supplied interface, or build your own with [headless APIs](/docs/frameworks/react/headless).
 
-In Next.js, you can [choose how consent resolves](/docs/frameworks/next/rendering). The App Router's default streamed path shows the page first and sends the banner in a later chunk, before hydration. An awaited path sends the page and the banner together.
+In Next.js, you can [choose how consent resolves](/docs/frameworks/next/rendering). The default streamed path of the App Router shows the page first. It sends the banner in a later chunk, before hydration. An awaited path puts the banner in the server HTML. The page content then streams in a later chunk, after consent resolves.
 
-CookieConsent supports service switches, cookie cleanup and framework integration. c15t's stronger case is the integrated framework and backend workflow.
+CookieConsent runs only in the browser. Its React example starts it in an effect, after the page renders.
 
-## What c15t does not include
+## CookieConsent v3 questions
 
-- **A production record service with no setup or cost.** Configure Inth or deploy a backend.
-- **Automatic vendor discovery.** Your team still needs to register the site's scripts and embeds.
-- **Service-cookie cleanup for every vendor refusal.** The built-in cleanup follows categories. A vendor-only denial needs explicit cleanup.
+### Is CookieConsent v3 part of c15t?
 
-If a local browser library covers the whole job, CookieConsent can need less infrastructure.
+No. Orest Bida builds CookieConsent v3. Inth builds c15t. The two projects share no code.
 
-## Test the full choice lifecycle
+### Is CookieConsent v3 free?
 
-Choose c15t when the product needs a common model for UI, vendor behaviour and remote records. Start with [Inth and the framework guide](/docs/frameworks).
+The library is free, with an MIT licence. The parts that it leaves out are not free. You build and host the consent record endpoint and the location lookup. c15t has no licence fee. Inth has a [free plan](https://inth.com/pricing) that includes the backend.
 
-Accept one category and reject another. Reload, reopen preferences and withdraw the first choice.
+### Is CookieConsent v3 a CMP?
 
-Check both vendor requests and backend records with the [verification guide](/docs/guides/verify-consent). Do not treat a visible banner as proof that the integration works.
+No. Its documentation says that it is not a CMP and does not support IAB TCF. c15t supports TCF 2.4 with the [`@c15t/iab` add-on](/docs/self-host/guides/iab-tcf). IAB Europe lists Consent Management Inc., the company behind Inth, as a CMP with ID 490. IAB Europe registration is separate from Google's CMP certification.
 
-Sources checked on 6 October 2026. We did not compare measured bundle size or speed.
+### Does CookieConsent v3 work with React and Next.js?
+
+Yes, from client code. CookieConsent runs in the browser. Its React example starts it in an effect, after the page renders. c15t has native adapters for [React, Next.js, Vue, Svelte, Astro and TanStack Start](/docs/frameworks). In Next.js, c15t can resolve consent on the server.
+
+### Does CookieConsent v3 store consent records?
+
+No. Its documentation says that it does not store consent records. You send the visitor's choice to your own endpoint from `onFirstConsent` and `onChange`. c15t sends consent records to Inth or to a [self-hosted backend](/docs/self-host/overview).
+
+### Does CookieConsent v3 support Google Consent Mode v2?
+
+Yes, with example code. The guide sets denied defaults. Then it calls `gtag('consent', 'update', ...)` from consent callbacks. You add this code to your site and keep it up to date. c15t's [Google tag integration](/docs/integrations/google-tag) sends the Consent Mode v2 default before `config`. It sends an update after each change. c15t also has a [GTM integration](/docs/integrations/google-tag-manager).
+
+### Can I move from CookieConsent v3 to c15t?
+
+Yes. Map each CookieConsent category to a c15t category. Map each CookieConsent service to a registered integration. Then remove the old script loaders. c15t does not read CookieConsent's `cc_cookie` cookie. Decide if you carry previous choices over or ask visitors again.
+
+## What to plan for with c15t
+
+- **Register your vendors.** c15t controls the scripts and embeds that you register. Remove their old loaders.
+- **Clean up for single-vendor refusals.** The built-in cleanup follows categories. A refusal for one vendor needs explicit cleanup.
+
+## Start with Inth
+
+Create a project on Inth's [free plan](https://inth.com/pricing). Then follow the [framework guide](/docs/frameworks) for your app. Test each step that a visitor can do:
+
+1. Accept one category and reject a different category.
+2. Reload the page.
+3. Open the preferences again.
+4. Withdraw the first choice.
+
+Check the vendor requests and the consent records with the [verification guide](/docs/guides/verify-consent). A visible banner does not prove that the integration works.
+
+Sources checked on 25 October 2026. We did not compare bundle size or speed.
