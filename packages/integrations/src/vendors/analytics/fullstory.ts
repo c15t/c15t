@@ -462,6 +462,9 @@ const createFullStory = function createFullStory(
 			update(hasConsent);
 		},
 		onDispose({ element }) {
+			if (typeof document === 'undefined') {
+				return;
+			}
 			gates.get(document)?.delete(gate);
 			const current = window.FS ? recorders.get(window.FS) : undefined;
 			const recorder = ownedRecorder ?? current;
