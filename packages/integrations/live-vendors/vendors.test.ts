@@ -190,6 +190,7 @@ describe('live vendor probe configs', () => {
 			'clearbit',
 			'crisp',
 			'dynamic-yield',
+			'fullstory',
 			'gainsight-px',
 			'google-tag-manager',
 			'gorgias',

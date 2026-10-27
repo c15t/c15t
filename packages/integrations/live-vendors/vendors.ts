@@ -471,10 +471,6 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 		vendor: 'gainsight-px',
 	},
 	{
-		allowUrlSubstrings: [
-			'edge.staging.fullstory.com/s/settings/thefullstory.com/v1/web',
-			'rs.staging.fullstory.com/s/settings/thefullstory.com/v1/web',
-		],
 		bootstrapCheck: () =>
 			check(
 				window._fs_capture_on_startup === false &&
@@ -483,21 +479,11 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 					window.FS.q[0][5] === 2,
 				'FullStory v2 six-slot init queue with capture off'
 			),
-		createScript: () =>
-			fullStory({
-				host: 'staging.fullstory.com',
-				orgId: 'thefullstory.com',
-				script: 'edge.staging.fullstory.com/s/fs.js',
-			}),
-		loaderUrlSubstring: 'edge.staging.fullstory.com/s/fs.js',
+		createScript: () => fullStory({ orgId: 'c15t-live-probe-placeholder' }),
+		loaderUrlSubstring: 'edge.fullstory.com/s/fs.js',
 		notes:
-			'Public FullStory staging organization proves real v2 dispatcher installation. The official wrapper keeps its identity and gains _api. Collection is blocked; authorized account recording and storage erasure are not verified.',
-		runtimeCheck: () =>
-			check(
-				typeof window.FS?._api === 'function',
-				'FullStory real SDK attached its dispatcher'
-			),
-		tier: 'full',
+			'A placeholder organization loads the public v2 SDK, but its settings request stays blocked, so the real dispatcher is not proven. This checks the capture-off init queue and loader reachability only. Collection stays blocked.',
+		tier: 'loader-only',
 		vendor: 'fullstory',
 	},
 	{
