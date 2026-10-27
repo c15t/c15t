@@ -73,6 +73,25 @@ test.each([true, false])(
 	}
 );
 
+test('keeps a shared element when a persistent non-owner leaves first', () => {
+	const config = (persistAfterDispose: boolean): Script => ({
+		category: 'measurement',
+		id: 'shared-non-owner-retention',
+		persistAfterDispose,
+		src: 'https://example.com/sdk.js',
+	});
+	const owner = mount([config(false)]);
+	const persistent = createScriptLoader({
+		kernel: owner.kernel,
+		scripts: [config(true)],
+	});
+	disposers.push(() => persistent.dispose());
+	persistent.dispose();
+	expect(owner.element.isConnected).toBe(true);
+	owner.loader.dispose();
+	expect(owner.element.isConnected).toBe(true);
+});
+
 test('removes a shared element on revocation after its persistent owner leaves', async () => {
 	const config = (persistAfterDispose: boolean): Script => ({
 		category: 'measurement',
