@@ -165,6 +165,9 @@ const currentInfo = (info: ScriptCallbackInfo): ScriptCallbackInfo =>
 const createController = (host: Window, installation: HubSpotInstallation) => {
 	const owners = new Map<symbol, Map<symbol, HubSpotOwner>>();
 	const rejected = new Set<symbol>();
+	// Live registrations rejected for a conflicting installation, retried if
+	// this controller is dropped before HubSpot starts.
+	const retries = new Map<symbol, Map<symbol, () => void>>();
 	let consent = DENIED_CONSENT;
 	let started = false;
 	let revision = 0;
@@ -529,7 +532,15 @@ const createController = (host: Window, installation: HubSpotInstallation) => {
 	return {
 		/** No owners and nothing started, so a later installation may differ. */
 		idle: () => owners.size === 0 && !started,
+		/** Registrations to retry against a fresh controller. */
+		pendingRetries: () =>
+			[...retries.values()].flatMap((entries) => [...entries.values()]),
 		release(config: symbol, registration: symbol, info: ScriptCallbackInfo) {
+			const pending = retries.get(config);
+			pending?.delete(registration);
+			if (pending?.size === 0) {
+				retries.delete(config);
+			}
 			const registrations = owners.get(config);
 			const owner = registrations?.get(registration);
 			if (!owner) {
@@ -570,13 +581,20 @@ const createController = (host: Window, installation: HubSpotInstallation) => {
 			registration: symbol,
 			settings: HubSpotInstallation,
 			chat: boolean,
-			info: ScriptCallbackInfo
+			info: ScriptCallbackInfo,
+			retry: () => void
 		) {
 			if (
 				settings.portalId !== installation.portalId ||
 				settings.src !== installation.src ||
 				(settings.nonce !== undefined && settings.nonce !== installation.nonce)
 			) {
+				let pending = retries.get(config);
+				if (!pending) {
+					pending = new Map();
+					retries.set(config, pending);
+				}
+				pending.set(registration, retry);
 				if (!rejected.has(config)) {
 					rejected.add(config);
 					console.warn(
@@ -664,7 +682,8 @@ export const hubspot = function hubspot(options: HubSpotOptions): Script {
 			info.registration ?? fallbackRegistration,
 			installation,
 			options.chat === true,
-			info
+			info,
+			() => update(info)
 		);
 	};
 	return {
@@ -694,6 +713,9 @@ export const hubspot = function hubspot(options: HubSpotOptions): Script {
 			// from an initially denied owner must not reject a new configuration.
 			if (controller?.idle() && controllers.get(window) === controller) {
 				controllers.delete(window);
+				for (const retry of controller.pendingRetries()) {
+					retry();
+				}
 			}
 			script.onDispose?.(info);
 		},

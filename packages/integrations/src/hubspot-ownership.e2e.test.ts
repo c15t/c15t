@@ -672,6 +672,15 @@ it('accepts a different portal before an initially denied installation starts', 
 	);
 });
 
+it('starts a rejected portal once the unstarted installation owner leaves', async () => {
+	const first = await ownerOf(hubspot({ portalId: '53' }), denied);
+	await ownerOf(hubspot({ portalId: '54' }));
+	expect(document.getElementById('hs-script-loader')).toBeNull();
+	first.loader?.dispose();
+	const loader = document.querySelector<HTMLScriptElement>('#hs-script-loader');
+	expect(loader?.src ?? '').toContain('/54.js');
+});
+
 describe('HubSpot physical installation identity', () => {
 	const conflicts: { name: string; options: Partial<HubSpotOptions> }[] = [
 		{ name: 'portal', options: { portalId: '54' } },
