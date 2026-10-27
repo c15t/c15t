@@ -33,6 +33,7 @@ import { gtag } from '../vendors/analytics/google-tag';
 import { heap } from '../vendors/analytics/heap';
 import { hightouch } from '../vendors/analytics/hightouch';
 import { hotjar } from '../vendors/analytics/hotjar';
+import { hubspot } from '../vendors/analytics/hubspot';
 import { logRocket } from '../vendors/analytics/logrocket';
 import { luckyOrange } from '../vendors/analytics/lucky-orange';
 import { marketoMunchkin } from '../vendors/analytics/marketo';
@@ -324,6 +325,14 @@ export const helperParityCases = {
 			src: 'https://static.hotjar.com/c/hotjar-1234567.js?sv=6',
 		},
 		script: hotjar({ siteId: 1234567 }),
+	},
+	hubspot: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: true,
+			src: 'https://js.hs-scripts.com/53.js',
+		},
+		script: hubspot({ portalId: '53' }),
 	},
 	insiderTag: {
 		expected: {

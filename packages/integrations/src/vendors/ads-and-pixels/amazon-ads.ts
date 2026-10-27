@@ -300,8 +300,11 @@ const createAmazonAdsTag = (options: AmazonAdsTagOptions): Script => {
 		onConsentChange: update,
 		onDispose: (info) => {
 			disposed = true;
-			// Hold this permission until incoming membership is known.
-			allowed = info.afterReplacement !== undefined && info.hasConsent;
+			// Hold this permission until incoming membership is known. A
+			// replacement can include a real withdrawal, so read current consent.
+			allowed =
+				info.afterReplacement !== undefined &&
+				(info.getCurrentConsent?.().hasConsent ?? info.hasConsent);
 			discardPendingCommands();
 			releaseHelper?.();
 			const finish = () => {

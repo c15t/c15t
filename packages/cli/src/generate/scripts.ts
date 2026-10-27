@@ -147,6 +147,10 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 		example: 'hotjar({ siteId: 1234567 })',
 		importName: 'hotjar',
 	},
+	hubspot: {
+		example: "hubspot({ portalId: '123456' })",
+		importName: 'hubspot',
+	},
 	insider: {
 		example:
 			"insiderTag({ partnerName: 'yourpartner', partnerId: 'YOUR_PARTNER_ID' })",

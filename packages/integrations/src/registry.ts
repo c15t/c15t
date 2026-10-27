@@ -756,6 +756,16 @@ export const builtInScriptIntegrations = [
 	},
 	{
 		consentCategory: 'marketing',
+		docsSlug: 'hubspot',
+		hint: 'CRM tracking with consent signals and optional chat',
+		integrationCategory: 'analytics',
+		key: 'hubspot',
+		label: 'HubSpot',
+		packageSubpath: 'hubspot',
+		vendor: 'hubspot',
+	},
+	{
+		consentCategory: 'marketing',
 		docsSlug: 'the-trade-desk',
 		hint: 'Universal Pixel conversions and advertising audiences',
 		integrationCategory: 'ads-and-pixels',

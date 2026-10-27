@@ -29,6 +29,7 @@
 		"gtm",
 		"heap",
 		"hightouch",
+		"hubspot",
 		"klaviyo",
 		"lgpd",
 		"linkedin-insights",
@@ -316,6 +317,11 @@
 			"types": "./dist-types/events.d.ts",
 			"import": "./dist/events.js",
 			"default": "./dist/events.js"
+		},
+		"./hubspot": {
+			"types": "./dist-types/vendors/analytics/hubspot.d.ts",
+			"import": "./dist/vendors/analytics/hubspot.js",
+			"default": "./dist/vendors/analytics/hubspot.js"
 		},
 		"./default-com": {
 			"types": "./dist-types/vendors/analytics/default-com.d.ts",

@@ -603,6 +603,54 @@ const withoutOwnerConditions = function withoutOwnerConditions(
 	return next;
 };
 
+const resolveOwnerDeclarations = (
+	existing: readonly ResolvedVendor[],
+	union: readonly VendorOwner[],
+	before: readonly VendorOwner[]
+): readonly ResolvedVendor[] => {
+	const named = new Set(
+		[...union, ...before].flatMap((owner) =>
+			owner.vendor ? [owner.vendor] : []
+		)
+	);
+	if (named.size === 0) {
+		return existing;
+	}
+	// Owner conditions on a named slug are rebuilt from the union, so they
+	// are stripped first; a declared vendor keeps everything else.
+	const stripped = existing.flatMap((vendor) => {
+		if (!named.has(vendor.id)) {
+			return [vendor];
+		}
+		const bare = withoutOwnerConditions(vendor);
+		return bare ? [bare] : [];
+	});
+	return resolveVendors({ existing: stripped, owners: union });
+};
+
+/**
+ * Project declarations after one module leaves, without changing the kernel.
+ * Used to retain legacy disposal fields while current-consent readers remain
+ * live through disposal callbacks.
+ * @param kernel - Kernel whose owner registrations are being projected.
+ * @param source - Departing module's registration identity.
+ * @returns Declarations with that module's contribution removed.
+ * @internal
+ */
+export const withoutOwnedVendors = (
+	kernel: Pick<ConsentKernel, 'getSnapshot'>,
+	source: symbol
+): readonly ResolvedVendor[] => {
+	const registry = registries.get(kernel);
+	return resolveOwnerDeclarations(
+		kernel.getSnapshot().vendors?.declared ?? [],
+		[...(registry ?? [])].flatMap(([id, owners]) =>
+			id === source ? [] : owners
+		),
+		registry?.get(source) ?? []
+	);
+};
+
 /**
  * Declare the vendors a module's scripts, rules or frames own on the kernel,
  * merging over the entries it already holds. Called by an integration when
@@ -648,25 +696,11 @@ export const declareOwnedVendors = function declareOwnedVendors(
 			union.push(owner);
 		}
 	}
-	const named = new Set(
-		[...union, ...before].flatMap((owner) =>
-			owner.vendor ? [owner.vendor] : []
-		)
-	);
-	if (named.size === 0) {
+	const existing = kernel.getSnapshot().vendors?.declared ?? [];
+	const declared = resolveOwnerDeclarations(existing, union, before);
+	if (declared === existing) {
 		return;
 	}
-	const existing = kernel.getSnapshot().vendors?.declared ?? [];
-	// Owner conditions on a named slug are rebuilt from the union, so they
-	// are stripped first; a declared vendor keeps everything else.
-	const stripped = existing.flatMap((vendor) => {
-		if (!named.has(vendor.id)) {
-			return [vendor];
-		}
-		const bare = withoutOwnerConditions(vendor);
-		return bare ? [bare] : [];
-	});
-	const declared = resolveVendors({ existing: stripped, owners: union });
 	// The script source is replaced rather than merged: a slug no module
 	// names any more must lose its script entry, and a merge cannot remove.
 	// Every other script entry is in `declared`, so it comes straight back.

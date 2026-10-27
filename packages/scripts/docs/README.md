@@ -148,6 +148,7 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 - [Heap](./integrations/heap.md): Load the Heap config script and heap.js only after measurement consent with the c15t heap helper, and check it in DevTools.
 - [Hightouch](./integrations/hightouch.md): Load the Hightouch Events browser SDK only after measurement consent with the c15t hightouch helper, and check page events in DevTools.
 - [Hotjar](./integrations/hotjar.md): Load Hotjar only after measurement consent with the c15t hotjar helper, and check its loader and recordings in DevTools.
+- [HubSpot](./integrations/hubspot.md): Gate HubSpot's tracking code on marketing consent, forward c15t categories and enable chat only after functionality consent.
 - [Insider One](./integrations/insider.md): Load Insider One after consent with current user attributes, currency and page context through the c15t insiderTag helper.
 - [Intercom](./integrations/intercom.md): Load the Intercom messenger only after functionality consent with the c15t intercom helper, set its region and check it in DevTools.
 - [Klaviyo](./integrations/klaviyo.md): Load Klaviyo signup forms and onsite tracking only after marketing and measurement consent with the c15t klaviyo helper, gate your own events, and check it in DevTools.

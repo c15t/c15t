@@ -20,14 +20,16 @@ import type {
 
 /**
  * Build the `ScriptCallbackInfo` payload exposed to user callbacks.
- * Pure: same input always produces the same output. The element ID
- * comes from the resolver passed in — keeps anonymized-ID logic out
- * of this module.
+ * The loader supplies the element ID and optional current-consent reader.
  */
 export const buildCallbackInfo = function buildCallbackInfo(
 	tools: Pick<
 		ScriptLoaderTools,
-		'deniedVendors' | 'gateState' | 'registration' | 'isReplacing'
+		| 'deniedVendors'
+		| 'gateState'
+		| 'getConsentReader'
+		| 'isReplacing'
+		| 'registration'
 	>,
 	script: Script,
 	snapshot: ConsentSnapshot,
@@ -46,6 +48,12 @@ export const buildCallbackInfo = function buildCallbackInfo(
 	};
 	if (tools.registration) {
 		Object.defineProperty(info, 'registration', { value: tools.registration });
+	}
+	const getCurrentConsent = tools.getConsentReader?.(script);
+	if (getCurrentConsent) {
+		Object.defineProperty(info, 'getCurrentConsent', {
+			value: getCurrentConsent,
+		});
 	}
 	if (tools.isReplacing?.(script)) {
 		Object.defineProperty(info, 'replacing', { value: true });
