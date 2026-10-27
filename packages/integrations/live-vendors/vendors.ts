@@ -14,6 +14,7 @@
  */
 
 import { adrollPixel } from '../src/vendors/ads-and-pixels/adroll';
+import { amazonAdsTag } from '../src/vendors/ads-and-pixels/amazon-ads';
 import { linkedinInsights } from '../src/vendors/ads-and-pixels/linkedin-insights';
 import { liveIntentTag } from '../src/vendors/ads-and-pixels/liveintent';
 import { metaPixel } from '../src/vendors/ads-and-pixels/meta-pixel';
@@ -299,6 +300,35 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 			),
 		tier: 'full',
 		vendor: 'fullstory',
+	},
+	{
+		allowUrlSubstrings: ['c.amazon-adsystem.com/aat/amzn-consent.js'],
+		bootstrapCheck: () =>
+			check(
+				typeof window.amzn === 'function' &&
+					Array.isArray(window.amzn.q) &&
+					window.amzn.q.length === 0 &&
+					window.amzn.version === '0.0',
+				'Nested arguments queue waits for the ordered ACS helper'
+			),
+		createScript: () =>
+			amazonAdsTag({
+				countryCode: 'DE',
+				tagId: '00000000-0000-0000-0000-000000000000',
+			}),
+		loaderUrlSubstring: 'c.amazon-adsystem.com/aat/amzn.js',
+		notes:
+			'Nil UUID accepted by the real parser, not an advertiser account. Both real loaders execute; all collection and geo/config requests are blocked. ACS denial is a consent signal, not a shutdown API.',
+		runtimeCheck: () =>
+			check(
+				typeof window.amzn === 'function' &&
+					window.amzn.q === undefined &&
+					typeof window.amznConsent === 'function',
+				'Real Amazon libraries replaced the queue and exposed ACS'
+			),
+		runtimeReplacedGlobals: ['amzn'],
+		tier: 'full',
+		vendor: 'amazon-ads',
 	},
 	{
 		allowUrlSubstrings: ['https://messaging-assets.ada.support/'],

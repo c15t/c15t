@@ -5,6 +5,7 @@
 
 import type { BuiltInScriptIntegrationKey } from '../registry';
 import { adrollPixel } from '../vendors/ads-and-pixels/adroll';
+import { amazonAdsTag } from '../vendors/ads-and-pixels/amazon-ads';
 import { linkedinInsights } from '../vendors/ads-and-pixels/linkedin-insights';
 import { liveIntentTag } from '../vendors/ads-and-pixels/liveintent';
 import { metaPixel } from '../vendors/ads-and-pixels/meta-pixel';
@@ -114,6 +115,14 @@ export const helperParityCases = {
 			src: 'https://analytics.ahrefs.com/analytics.js',
 		},
 		script: ahrefsAnalytics({ key: 'ahrefs-key' }),
+	},
+	amazonAdsTag: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: true,
+			src: 'https://c.amazon-adsystem.com/aat/amzn.js',
+		},
+		script: amazonAdsTag({ tagId: '00000000-0000-0000-0000-000000000000' }),
 	},
 	amplitude: {
 		expected: {

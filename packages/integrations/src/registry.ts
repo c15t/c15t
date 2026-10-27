@@ -706,6 +706,16 @@ export const builtInScriptIntegrations = [
 	},
 	{
 		consentCategory: 'marketing',
+		docsSlug: 'amazon-ads',
+		hint: 'Amazon conversion tracking and advertising audiences',
+		integrationCategory: 'ads-and-pixels',
+		key: 'amazonAdsTag',
+		label: 'Amazon Ads',
+		packageSubpath: 'amazon-ads',
+		vendor: 'amazon-ads',
+	},
+	{
+		consentCategory: 'marketing',
 		docsSlug: 'the-trade-desk',
 		hint: 'Universal Pixel conversions and advertising audiences',
 		integrationCategory: 'ads-and-pixels',

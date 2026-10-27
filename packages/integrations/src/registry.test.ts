@@ -13,6 +13,7 @@ import {
 } from './registry';
 import type { IntegrationConsentCondition } from './registry';
 import { adrollPixelManifest } from './vendors/ads-and-pixels/adroll';
+import { amazonAdsTagManifest } from './vendors/ads-and-pixels/amazon-ads';
 import { linkedinInsightsManifest } from './vendors/ads-and-pixels/linkedin-insights';
 import { liveIntentTagManifest } from './vendors/ads-and-pixels/liveintent';
 import { metaPixelManifest } from './vendors/ads-and-pixels/meta-pixel';
@@ -88,6 +89,7 @@ const validConsentCategories = [
 const vendorManifests = [
 	clayManifest,
 	fullStoryManifest,
+	amazonAdsTagManifest,
 	adaManifest,
 	gorgiasChatManifest,
 	zendeskWidgetManifest,

@@ -53,6 +53,7 @@ See the [documentation](https://c15t.com/docs/integrations) for guides, API refe
 - **AdRoll**: Loads after marketing consent ([guide](https://c15t.com/docs/integrations/adroll))
 - **Vector**: Loads after marketing consent ([guide](https://c15t.com/docs/integrations/vector))
 - **RB2B**: Loads after marketing consent ([guide](https://c15t.com/docs/integrations/rb2b))
+- **Amazon Ads**: Loads after marketing consent ([guide](https://c15t.com/docs/integrations/amazon-ads))
 - **Clay**: Loads after marketing consent ([guide](https://c15t.com/docs/integrations/clay))
 - **Pendo**: Loads after measurement consent; stops and resumes event sending when consent changes ([guide](https://c15t.com/docs/integrations/pendo))
 

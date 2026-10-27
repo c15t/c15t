@@ -373,6 +373,7 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 - [Adobe Target](./docs/integrations/adobe-target.md): Gate a self-hosted Adobe Target at.js download or Adobe Experience Platform Web SDK on experience consent, send consent updates and check revocation limits.
 - [AdRoll](./docs/integrations/adroll.md): Load AdRoll with c15t after marketing consent and verify its loader, storage and revocation behavior.
 - [Ahrefs Analytics](./docs/integrations/ahrefs-analytics.md): Load Ahrefs Web Analytics only after measurement consent with the c15t ahrefsAnalytics helper, and check it in DevTools.
+- [Amazon Ads](./docs/integrations/amazon-ads.md): Load Amazon Ads with c15t after marketing consent and verify its loader, storage and revocation behavior.
 - [Amplitude](./docs/integrations/amplitude.md): Load the Amplitude Browser SDK 2 only after measurement consent with the c15t amplitude helper, which opts the SDK out on revocation and back in on a new grant.
 - [Appcues](./docs/integrations/appcues.md): Load Appcues onboarding flows after experience consent, configure US or EU accounts, and reset the visitor on revocation.
 - [Attentive](./docs/integrations/attentive.md): Load the Attentive tag only after marketing consent with the c15t attentiveTag helper, and check its requests and storage in DevTools.
