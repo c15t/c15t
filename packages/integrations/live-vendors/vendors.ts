@@ -40,6 +40,7 @@ import { cloudflareWebAnalytics } from '../src/vendors/analytics/cloudflare-web-
 import { databuddy } from '../src/vendors/analytics/databuddy';
 import { fathomAnalytics } from '../src/vendors/analytics/fathom-analytics';
 import { fullStory } from '../src/vendors/analytics/fullstory';
+import { gainsightPx } from '../src/vendors/analytics/gainsight-px';
 import { gtag } from '../src/vendors/analytics/google-tag';
 import { HEAP_QUEUE_METHODS, heap } from '../src/vendors/analytics/heap';
 import {
@@ -271,6 +272,30 @@ type PosthogProbeWindow = Window & {
  * Probe configs for every built-in integration, ordered by registry vendor id.
  */
 export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
+	{
+		bootstrapCheck: () => {
+			const px = (window as Window & { aptrinsic?: unknown }).aptrinsic as
+				| (((...args: unknown[]) => void) & {
+						p?: string;
+						c?: { enableTag?: boolean };
+						q?: unknown[];
+				  })
+				| undefined;
+			return check(
+				typeof px === 'function' &&
+					px.p === 'AP-PRODUCT-KEY-2' &&
+					px.c?.enableTag === true &&
+					Array.isArray(px.q),
+				'PX official product key, enabled config and arguments queue exist before load'
+			);
+		},
+		createScript: () => gainsightPx({ productKey: 'AP-PRODUCT-KEY-2' }),
+		loaderUrlSubstring: 'web-sdk.aptrinsic.com/api/aptrinsic.js',
+		notes:
+			'The loader serves JavaScript for a sample key; initialization depends on a valid account configuration response. Collection and configuration endpoints stay blocked, so this probe asserts endpoint reachability and bootstrap only.',
+		tier: 'loader-only',
+		vendor: 'gainsight-px',
+	},
 	{
 		bootstrapCheck: () =>
 			check(

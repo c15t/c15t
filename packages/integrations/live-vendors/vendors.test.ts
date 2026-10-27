@@ -166,6 +166,7 @@ describe('live vendor probe configs', () => {
 			'crisp',
 			'dynamic-yield',
 			'fullstory',
+			'gainsight-px',
 			'google-tag-manager',
 			'gorgias',
 			'hotjar',

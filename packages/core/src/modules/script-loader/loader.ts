@@ -4,6 +4,7 @@
  * `index.ts` is the public entry and passes the shared implementations.
  */
 import type { ConsentSnapshot } from '../../types';
+import { isCallbackOnly } from './callback-only';
 import { buildCallbackInfo, invokeCallback } from './callbacks';
 import { createDebugEmitter } from './debug';
 import { registerScriptDiagnostics } from './diagnostics';
@@ -32,6 +33,12 @@ import type {
 } from './types';
 
 const MAX_RECONCILE_PASSES = 100;
+
+const validateScripts = (scripts: Script[]): void => {
+	for (const script of scripts) {
+		script.validate?.();
+	}
+};
 
 /**
  * Create a script loader from the tools it calls.
@@ -88,6 +95,7 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 		);
 		declareOwners(kernel, scripts, ownerSource);
 	};
+	validateScripts(options.scripts);
 	registerCategories(options.scripts);
 	let normalized: NormalizedScript[] = normalizeScripts(
 		options.scripts,
@@ -276,13 +284,16 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 					status = 'retained';
 				} else if (loadedElements.has(script.id)) {
 					status = statuses.get(script.id) ?? 'present';
-					if (!script.src && status === 'loading') {
+					if (
+						(!script.src || loadedElements.get(script.id) === null) &&
+						status === 'loading'
+					) {
 						status = 'loaded';
 					}
 				}
 				return {
 					alwaysLoad: script.alwaysLoad ?? false,
-					callbackOnly: script.callbackOnly ?? false,
+					callbackOnly: isCallbackOnly(script),
 					category: script.category,
 					elementId,
 					eligible,
@@ -365,6 +376,7 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 	};
 
 	const replaceScripts = (next: Script[]): void => {
+		validateScripts(next);
 		const nextScripts = new Set(next);
 		const nextById = new Map(next.map((script) => [script.id, script]));
 		const previous = new Set(normalized.map(({ script }) => script));
@@ -375,12 +387,21 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 			}
 			const replacement = nextById.get(script.id);
 			// Existing vendor helpers are recreated on framework rerenders. Keep
-			// their resource mounted unless it changed. onDispose opts into an
-			// object-owned lifecycle, used by integrations with attached listeners.
+			// their resource mounted unless it or the disposal callback changed.
+			// A stable disposer retains a DOM resource's registration lifecycle.
+			// A mounted registration keeps the mode it mounted with: callback-only
+			// predicates can turn true once the SDK they load has started. An
+			// element retained after revocation is still a DOM registration.
+			let mountedCallbackOnly = isCallbackOnly(script);
+			if (loadedElements.has(script.id)) {
+				mountedCallbackOnly = loadedElements.get(script.id) === null;
+			} else if (retainedElements.has(script.id)) {
+				mountedCallbackOnly = false;
+			}
 			if (
 				replacement &&
-				!script.onDispose &&
-				!replacement.onDispose &&
+				script.onDispose === replacement.onDispose &&
+				(!script.onDispose || !mountedCallbackOnly) &&
 				hasSameResource(script, replacement)
 			) {
 				continue;

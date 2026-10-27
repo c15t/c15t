@@ -25,6 +25,7 @@ import { cloudflareWebAnalytics } from './vendors/analytics/cloudflare-web-analy
 import { databuddy } from './vendors/analytics/databuddy';
 import { fathomAnalytics } from './vendors/analytics/fathom-analytics';
 import { fullStory } from './vendors/analytics/fullstory';
+import { gainsightPx } from './vendors/analytics/gainsight-px';
 import { gtag } from './vendors/analytics/google-tag';
 import { heap } from './vendors/analytics/heap';
 import { hightouch } from './vendors/analytics/hightouch';
@@ -99,6 +100,16 @@ const requiredIdCases: {
 		helper: 'amazonAdsTag',
 		option: 'tagId',
 		script: { category: 'marketing', id: 'amazon-ads' },
+	},
+	{
+		create: (id) =>
+			gainsightPx({
+				...{ productKey: 'AP-PRODUCT-KEY-2' },
+				productKey: asId(id),
+			}),
+		helper: 'gainsightPx',
+		option: 'productKey',
+		script: { category: 'measurement', id: 'gainsight-px' },
 	},
 	{
 		create: (id) =>
@@ -591,6 +602,13 @@ const blankScriptUrlCases: {
 	create: (scriptUrl: string) => Script;
 	expectedSrc: string;
 }[] = [
+	{
+		create: (url) =>
+			gainsightPx({ ...{ productKey: 'AP-PRODUCT-KEY-2' }, scriptUrl: url }),
+		expectedSrc:
+			'https://web-sdk.aptrinsic.com/api/aptrinsic.js?a=AP-PRODUCT-KEY-2',
+		helper: 'gainsightPx',
+	},
 	{
 		create: (scriptUrl) => statableAnalytics({ scriptUrl, siteId: 12345 }),
 		expectedSrc: 'https://statable.com/js/12345/s.js',

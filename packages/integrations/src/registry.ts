@@ -116,6 +116,16 @@ export const BUILT_IN_INTEGRATION_CATEGORIES = [
 export const builtInScriptIntegrations = [
 	{
 		consentCategory: 'measurement',
+		docsSlug: 'gainsight-px',
+		hint: 'Product analytics and in-app engagements',
+		integrationCategory: 'analytics',
+		key: 'gainsightPx',
+		label: 'Gainsight PX',
+		packageSubpath: 'gainsight-px',
+		vendor: 'gainsight-px',
+	},
+	{
+		consentCategory: 'measurement',
 		docsSlug: 'fullstory',
 		hint: 'Session replay and behavioral analytics',
 		integrationCategory: 'analytics',

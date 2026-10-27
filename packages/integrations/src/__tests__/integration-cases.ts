@@ -27,6 +27,7 @@ import { cloudflareWebAnalytics } from '../vendors/analytics/cloudflare-web-anal
 import { databuddy } from '../vendors/analytics/databuddy';
 import { fathomAnalytics } from '../vendors/analytics/fathom-analytics';
 import { fullStory } from '../vendors/analytics/fullstory';
+import { gainsightPx } from '../vendors/analytics/gainsight-px';
 import { gtag } from '../vendors/analytics/google-tag';
 import { heap } from '../vendors/analytics/heap';
 import { hightouch } from '../vendors/analytics/hightouch';
@@ -240,6 +241,14 @@ export const helperParityCases = {
 			src: 'https://edge.fullstory.com/s/fs.js?org=YOUR_ORG_ID',
 		},
 		script: fullStory({ orgId: 'YOUR_ORG_ID' }),
+	},
+	gainsightPx: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: 'loaded',
+			src: 'https://web-sdk.aptrinsic.com/api/aptrinsic.js?a=AP-PRODUCT-KEY-2',
+		},
+		script: gainsightPx({ productKey: 'AP-PRODUCT-KEY-2' }),
 	},
 	googleTagManager: {
 		expected: {

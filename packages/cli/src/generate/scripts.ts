@@ -111,6 +111,10 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 		example: "fullStory({ orgId: 'YOUR_ORG_ID' })",
 		importName: 'fullStory',
 	},
+	'gainsight-px': {
+		example: "gainsightPx({ productKey: 'YOUR_PRODUCT_KEY' })",
+		importName: 'gainsightPx',
+	},
 	'google-tag': {
 		example: "gtag({ id: 'G-XXXXXXXXXX', category: 'measurement' })",
 		importName: 'gtag',

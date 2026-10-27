@@ -35,6 +35,7 @@ import { cloudflareWebAnalyticsManifest } from './vendors/analytics/cloudflare-w
 import { databuddyManifest } from './vendors/analytics/databuddy';
 import { fathomAnalyticsManifest } from './vendors/analytics/fathom-analytics';
 import { fullStoryManifest } from './vendors/analytics/fullstory';
+import { gainsightPxManifest } from './vendors/analytics/gainsight-px';
 import { gtagManifest } from './vendors/analytics/google-tag';
 import { heapManifest } from './vendors/analytics/heap';
 import { hightouchManifest } from './vendors/analytics/hightouch';
@@ -88,6 +89,7 @@ const validConsentCategories = [
 
 const vendorManifests = [
 	clayManifest,
+	gainsightPxManifest,
 	fullStoryManifest,
 	amazonAdsTagManifest,
 	adaManifest,

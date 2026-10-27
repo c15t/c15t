@@ -101,6 +101,105 @@ afterEach(() => {
 });
 
 describe('serverScriptStart', () => {
+	test.each([undefined, false, () => false])(
+		'starts element scripts when callbackOnly=%s',
+		(callbackOnly) => {
+			run(
+				serverScriptStart({
+					mode,
+					prefetch: prefetchFor({ marketing: true }),
+					scripts: [{ ...pixel, callbackOnly }],
+				})
+			);
+			expect((window as StartedWindow).__c15tSetup).toBe(1);
+			expect(document.head.querySelector('script')?.src).toBe(pixel.src);
+		}
+	);
+
+	test.each([true, () => true])(
+		'skips server startup when callbackOnly=%s',
+		(callbackOnly) => {
+			expect(
+				serverScriptStart({
+					mode,
+					prefetch: prefetchFor({ marketing: true }),
+					scripts: [{ ...pixel, callbackOnly }],
+				})
+			).toBeUndefined();
+			expect((window as StartedWindow).__c15tSetup).toBeUndefined();
+		}
+	);
+
+	test('does not evaluate predicates when no script can start on the server', () => {
+		const callbackOnly = vi.fn(() => {
+			throw new Error('browser runtime is unavailable');
+		});
+		expect(
+			serverScriptStart({
+				mode,
+				prefetch: prefetchFor({ marketing: true }),
+				scripts: [{ ...pixel, callbackOnly, serverStart: undefined }],
+			})
+		).toBeUndefined();
+		expect(callbackOnly).not.toHaveBeenCalled();
+	});
+
+	test.each([false, true])(
+		'a throwing predicate leaves unrelated server starts intact, serverStart=%s',
+		(hasServerStart) => {
+			const serverStart = vi.fn(() => ({ code: 'window.failedSetup=true' }));
+			run(
+				serverScriptStart({
+					mode,
+					prefetch: prefetchFor({ marketing: true }),
+					scripts: [
+						{
+							...pixel,
+							callbackOnly: () => {
+								throw new Error('browser runtime is unavailable');
+							},
+							id: 'failed-predicate',
+							serverStart: hasServerStart ? serverStart : undefined,
+							src: 'https://cdn.example.com/failed.js',
+						},
+						pixel,
+					],
+				})
+			);
+			expect(serverStart).not.toHaveBeenCalled();
+			expect((window as StartedWindow).__c15tSetup).toBe(1);
+			expect(document.head.querySelectorAll('script')).toHaveLength(1);
+			expect(document.head.querySelector('script')?.src).toBe(pixel.src);
+		}
+	);
+
+	test.each([false, true])(
+		'a failing predicate preserves shared-resource ownership, serverStart=%s',
+		(hasServerStart) => {
+			const serverStart = vi.fn(pixel.serverStart);
+			expect(
+				serverScriptStart({
+					mode,
+					prefetch: prefetchFor({ marketing: true }),
+					scripts: [
+						{ ...pixel, resourceKey: 'shared', serverStart },
+						{
+							...pixel,
+							callbackOnly: () => {
+								throw new Error('browser runtime is unavailable');
+							},
+							id: 'failed-predicate',
+							resourceKey: 'shared',
+							serverStart: hasServerStart ? serverStart : undefined,
+						},
+					],
+				})
+			).toBeUndefined();
+			expect(serverStart).not.toHaveBeenCalled();
+			expect(document.head.querySelector('script')).toBeNull();
+		}
+	);
+
 	test('runs setup, then inserts the element for the loader to adopt', () => {
 		run(
 			serverScriptStart({
