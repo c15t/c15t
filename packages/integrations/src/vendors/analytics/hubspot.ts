@@ -176,6 +176,8 @@ const createController = (host: Window, installation: HubSpotInstallation) => {
 	// remove() has no cancellation handle. Retain in-flight knowledge even
 	// after the last registration leaves, until that client's completion.
 	const pendingClients = new WeakSet<HubSpotConversationsClient>();
+	// Replaced clients with a load in flight keep a guard until it completes.
+	const replacedGuards = new Map<HubSpotConversationsClient, () => void>();
 	const readWidgetLoaded = (conversations: HubSpotConversationsClient) => {
 		const loaded = conversations.widget.status?.().loaded === true;
 		if (loaded) {
@@ -238,6 +240,40 @@ const createController = (host: Window, installation: HubSpotInstallation) => {
 		if (previousListener) {
 			previousClient?.off('widgetLoaded', previousListener);
 		}
+		for (const [replaced, guard] of replacedGuards) {
+			replaced.off('widgetLoaded', guard);
+		}
+		replacedGuards.clear();
+	};
+
+	const releaseReplacedGuard = (conversations: HubSpotConversationsClient) => {
+		const guard = replacedGuards.get(conversations);
+		if (guard) {
+			replacedGuards.delete(conversations);
+			conversations.off('widgetLoaded', guard);
+		}
+	};
+
+	const guardReplacedClient = (replaced?: HubSpotConversationsClient) => {
+		if (
+			!replaced ||
+			!pendingClients.has(replaced) ||
+			replacedGuards.has(replaced)
+		) {
+			return;
+		}
+		const guard = () => {
+			replaced.off('widgetLoaded', guard);
+			replacedGuards.delete(replaced);
+			pendingClients.delete(replaced);
+			const latest = aggregate();
+			if (latest.chat && !allowsChat(latest)) {
+				replaced.widget.remove();
+				replaced.clear({ resetWidget: false });
+			}
+		};
+		replacedGuards.set(replaced, guard);
+		replaced.on('widgetLoaded', guard);
 	};
 
 	const loaderAvailable = () => {
@@ -338,6 +374,8 @@ const createController = (host: Window, installation: HubSpotInstallation) => {
 			if (previousListener) {
 				previousClient?.off('widgetLoaded', previousListener);
 			}
+			guardReplacedClient(previousClient);
+			releaseReplacedGuard(conversations);
 			const loaded = readWidgetLoaded(conversations);
 			if (revision !== token || !started) {
 				return;

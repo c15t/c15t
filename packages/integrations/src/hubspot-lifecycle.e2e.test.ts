@@ -520,6 +520,24 @@ describe('HubSpot core loader consent contract', () => {
 		);
 	});
 
+	it('removes a replaced client widget whose pending load completes after denial', () => {
+		const original = conversationsApi();
+		// Leave the load in flight so it completes after the client changes.
+		original.widget.load = vi.fn();
+		window.HubSpotConversations = original;
+		const scripts = [hubspot({ chat: true, portalId: '53' })];
+		loadScripts(scripts, allConsents);
+		expect(original.widget.load).toHaveBeenCalledOnce();
+		const replacement = conversationsApi();
+		window.HubSpotConversations = replacement;
+		updateScripts(scripts, grantedMarketingConsents);
+		const removals = original.widget.remove.mock.calls.length;
+		original.emitWidgetLoaded();
+		expect(original.widget.remove).toHaveBeenCalledTimes(removals + 1);
+		expect(original.clear).toHaveBeenLastCalledWith({ resetWidget: false });
+		expect(original.listeners.size).toBe(0);
+	});
+
 	it('checks current consent when the conversations SDK becomes ready late', () => {
 		const scripts = [hubspot({ chat: true, portalId: '53' })];
 		loadScripts(scripts, allConsents);

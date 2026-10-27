@@ -199,6 +199,9 @@ it('retains a pending load when a previous SDK client returns', async () => {
 	expect(first.pending).toBe(1);
 	expect(second.pending).toBe(1);
 	expect(first.listeners.size).toBe(1);
+	// The replaced client keeps a guard until its in-flight load completes.
+	expect(second.listeners.size).toBe(1);
+	second.completeLoad();
 	expect(second.listeners.size).toBe(0);
 	first.completeLoad();
 	await owner.save({ ...granted, functionality: false });
@@ -765,13 +768,18 @@ describe('HubSpot shared chat lifecycle', () => {
 			'widgetLoaded',
 			oldListener
 		);
-		expect(oldClient.listeners.size).toBe(0);
+		// Only the guard for the old client's in-flight load remains.
+		expect(oldClient.listeners.size).toBe(1);
 		expect(nextClient.listeners.size).toBe(1);
 		expect(nextClient.widget.load).toHaveBeenCalledOnce();
 		await first.save({ ...granted, functionality: false });
 		nextClient.completeLoad();
 		expect(nextClient.visible).toBe(false);
 		expect(nextClient.clear).toHaveBeenLastCalledWith({ resetWidget: false });
+		oldClient.completeLoad();
+		expect(oldClient.visible).toBe(false);
+		expect(oldClient.clear).toHaveBeenLastCalledWith({ resetWidget: false });
+		expect(oldClient.listeners.size).toBe(0);
 	});
 
 	it('ignores old ready callbacks after final disposal and a new lifecycle', async () => {
