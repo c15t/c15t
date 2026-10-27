@@ -209,6 +209,10 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 		example: "optimizelyWeb({ projectId: 'YOUR_PROJECT_ID' })",
 		importName: 'optimizelyWeb',
 	},
+	'oracle-eloqua': {
+		example: "eloquaTracking({ siteId: 'YOUR_SITEID' })",
+		importName: 'eloquaTracking',
+	},
 	pendo: { example: "pendo({ apiKey: 'YOUR_APIKEY' })", importName: 'pendo' },
 	'pinterest-tag': {
 		example: "pinterestTag({ tagId: 'XXXXXXXX' })",

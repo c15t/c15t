@@ -55,6 +55,7 @@ import { matomoAnalytics } from '../src/vendors/analytics/matomo-analytics';
 import { clarity } from '../src/vendors/analytics/microsoft-clarity';
 import { mixpanelAnalytics } from '../src/vendors/analytics/mixpanel-analytics';
 import { oneDollarStats } from '../src/vendors/analytics/one-dollar-stats';
+import { eloquaTracking } from '../src/vendors/analytics/oracle-eloqua';
 import { pendo } from '../src/vendors/analytics/pendo';
 import { pirsch } from '../src/vendors/analytics/pirsch';
 import { plausibleAnalytics } from '../src/vendors/analytics/plausible-analytics';
@@ -273,6 +274,23 @@ type PosthogProbeWindow = Window & {
  * Probe configs for every built-in integration, ordered by registry vendor id.
  */
 export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
+	{
+		bootstrapCheck: () =>
+			check(Array.isArray(window._elqQ), 'Eloqua command array'),
+		createScript: () => eloquaTracking({ siteId: 'c15t-placeholder-site' }),
+		loaderUrlSubstring: 'img.en25.com/i/elqCfg.min.js',
+		notes:
+			'Uses a non-account placeholder site ID to check that the shared loader installs its dispatcher. All opt-in, opt-out and collection endpoints are blocked; cookie response behavior and account reporting are not verified.',
+		runtimeCheck: () =>
+			check(
+				!Array.isArray(window._elqQ) &&
+					typeof window._elqQ?.push === 'function',
+				'Eloqua installed its dispatcher'
+			),
+		runtimeReplacedGlobals: ['_elqQ'],
+		tier: 'full',
+		vendor: 'oracle-eloqua',
+	},
 	{
 		bootstrapCheck: () =>
 			check(

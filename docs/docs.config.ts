@@ -863,6 +863,7 @@ export default defineDocsConfig({
 					pages: [
 						'gainsight-px',
 						'google-tag',
+						'oracle-eloqua',
 						'fullstory',
 						'ahrefs-analytics',
 						'adobe-analytics',

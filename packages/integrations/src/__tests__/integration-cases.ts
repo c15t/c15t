@@ -39,6 +39,7 @@ import { matomoAnalytics } from '../vendors/analytics/matomo-analytics';
 import { clarity } from '../vendors/analytics/microsoft-clarity';
 import { mixpanelAnalytics } from '../vendors/analytics/mixpanel-analytics';
 import { oneDollarStats } from '../vendors/analytics/one-dollar-stats';
+import { eloquaTracking } from '../vendors/analytics/oracle-eloqua';
 import { pendo } from '../vendors/analytics/pendo';
 import { pirsch } from '../vendors/analytics/pirsch';
 import { plausibleAnalytics } from '../vendors/analytics/plausible-analytics';
@@ -226,6 +227,14 @@ export const helperParityCases = {
 			src: 'https://cdn.dynamicyield.com/api/1234567/api_dynamic.js',
 		},
 		script: dynamicYield({ sectionId: '1234567' }),
+	},
+	eloquaTracking: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: true,
+			src: 'https://img.en25.com/i/elqCfg.min.js',
+		},
+		script: eloquaTracking({ siteId: '1973398186' }),
 	},
 	fathomAnalytics: {
 		expected: {

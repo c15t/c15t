@@ -36,6 +36,7 @@ import { marketoMunchkin } from './vendors/analytics/marketo';
 import { matomoAnalytics } from './vendors/analytics/matomo-analytics';
 import { clarity } from './vendors/analytics/microsoft-clarity';
 import { mixpanelAnalytics } from './vendors/analytics/mixpanel-analytics';
+import { eloquaTracking } from './vendors/analytics/oracle-eloqua';
 import { pendo } from './vendors/analytics/pendo';
 import { pirsch } from './vendors/analytics/pirsch';
 import { plausibleAnalytics } from './vendors/analytics/plausible-analytics';
@@ -89,6 +90,12 @@ const requiredIdCases: {
 		helper: 'clay',
 		option: 'siteId',
 		script: { category: 'marketing', id: 'clay' },
+	},
+	{
+		create: (id) => eloquaTracking({ siteId: asId(id) }),
+		helper: 'eloquaTracking',
+		option: 'siteId',
+		script: { category: 'marketing', id: 'oracle-eloqua' },
 	},
 	{
 		create: (id) => activeCampaignTracking({ accountId: asId(id) }),

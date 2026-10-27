@@ -316,6 +316,11 @@
 			"import": "./dist/events.js",
 			"default": "./dist/events.js"
 		},
+		"./oracle-eloqua": {
+			"types": "./dist-types/vendors/analytics/oracle-eloqua.d.ts",
+			"import": "./dist/vendors/analytics/oracle-eloqua.js",
+			"default": "./dist/vendors/analytics/oracle-eloqua.js"
+		},
 		"./activecampaign": {
 			"types": "./dist-types/vendors/email-and-sms/activecampaign.d.ts",
 			"import": "./dist/vendors/email-and-sms/activecampaign.js",

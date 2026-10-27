@@ -116,6 +116,16 @@ export const BUILT_IN_INTEGRATION_CATEGORIES = [
 export const builtInScriptIntegrations = [
 	{
 		consentCategory: 'marketing',
+		docsSlug: 'oracle-eloqua',
+		hint: 'Oracle Eloqua consent-gated loader',
+		integrationCategory: 'analytics',
+		key: 'eloquaTracking',
+		label: 'Oracle Eloqua',
+		packageSubpath: 'oracle-eloqua',
+		vendor: 'oracle-eloqua',
+	},
+	{
+		consentCategory: 'marketing',
 		docsSlug: 'activecampaign',
 		hint: 'Site visits for ActiveCampaign contact automation',
 		integrationCategory: 'email-and-sms',
