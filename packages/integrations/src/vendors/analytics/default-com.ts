@@ -241,6 +241,9 @@ interface SdkState {
 }
 const sdkStates = new WeakMap<DefaultComFormsSdkClient, SdkState>();
 const sdkOwners = new Map<SdkRegistration, DefaultComFormsSdkClient>();
+// Owners observed before their element mounted, such as an initially denied
+// loader. They still gate the shared SDK once another owner loads it.
+const preloadOwners = new Map<SdkRegistration, DefaultComConsent>();
 const formsElements = new WeakSet<HTMLScriptElement>();
 const loadedFormsElements = new WeakSet<HTMLScriptElement>();
 // sdk.js runs once per document, so its first inserted URL stays for the page.
@@ -261,8 +264,38 @@ const forwardSdkConsent = (sdk: DefaultComFormsSdkClient): void => {
 };
 
 // Stable identity lets core retain the resource across configuration updates.
+const observePreloadOwner = (
+	registration: SdkRegistration,
+	consent: DefaultComConsent
+): void => {
+	preloadOwners.set(registration, consent);
+	const sdk =
+		typeof window === 'undefined' ? undefined : window.DefaultPixelSDK;
+	const state = sdk ? sdkStates.get(sdk) : undefined;
+	if (sdk && state) {
+		state.registrations.set(registration, consent);
+		forwardSdkConsent(sdk);
+	}
+};
+
+const joinPreloadOwners = (state: SdkState): void => {
+	for (const [owner, consent] of preloadOwners) {
+		if (!state.registrations.has(owner)) {
+			state.registrations.set(owner, consent);
+		}
+	}
+};
+
 const disposeFormsSdk = (info: ScriptCallbackInfo): void => {
 	const registration = registrationOf(info);
+	if (registration !== undefined && preloadOwners.delete(registration)) {
+		const sdk =
+			typeof window === 'undefined' ? undefined : window.DefaultPixelSDK;
+		const state = sdk ? sdkStates.get(sdk) : undefined;
+		if (sdk && state?.registrations.delete(registration)) {
+			forwardSdkConsent(sdk);
+		}
+	}
 	const sdk =
 		registration === undefined ? undefined : sdkOwners.get(registration);
 	if (registration !== undefined && sdk) {
@@ -399,6 +432,20 @@ const mapConsent = function mapConsent(
 		analytics: permitted && info.consents.measurement === true,
 		marketing: permitted && info.consents.marketing === true,
 	};
+};
+
+/** Handle a callback for an owner without a connected element. */
+const releaseUnmountedFormsSdk = (
+	info: ScriptCallbackInfo,
+	registration: SdkRegistration | undefined
+): void => {
+	if (info.element) {
+		denyDetachedFormsSdk(info);
+	} else if (registration !== undefined && !sdkOwners.has(registration)) {
+		observePreloadOwner(registration, mapConsent(info));
+	} else {
+		disposeFormsSdk(info);
+	}
 };
 
 const forwardPixelConsent = function forwardPixelConsent(
@@ -597,11 +644,7 @@ export const defaultComFormsSdk = function defaultComFormsSdk(
 	const synchronize = (info: ScriptCallbackInfo): void => {
 		const registration = registrationOf(info);
 		if (!info.element?.isConnected) {
-			if (info.element) {
-				denyDetachedFormsSdk(info);
-			} else {
-				disposeFormsSdk(info);
-			}
+			releaseUnmountedFormsSdk(info, registration);
 			return;
 		}
 		if (
@@ -633,7 +676,9 @@ export const defaultComFormsSdk = function defaultComFormsSdk(
 			sdkStates.set(sdk, state);
 		}
 		sdkOwners.set(registration, sdk);
+		preloadOwners.delete(registration);
 		state.registrations.set(registration, mapConsent(info));
+		joinPreloadOwners(state);
 		forwardSdkConsent(sdk);
 		if (permitted && !sameSdkOptions(state.options, initOptions)) {
 			const applied = snapshotSdkOptions(initOptions);
@@ -644,6 +689,8 @@ export const defaultComFormsSdk = function defaultComFormsSdk(
 	return {
 		...script,
 		id: 'default-com-forms-sdk',
+		// Initially denied owners still gate the shared SDK.
+		observeConsentBeforeLoad: true,
 		onBeforeLoad(info) {
 			if (!claimLoader(info, 'defaultComFormsSdk') || !info.element) {
 				return;
