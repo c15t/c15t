@@ -42,21 +42,31 @@ export interface GainsightPxIdentity {
 	[attribute: string]: GainsightPxValue;
 }
 
-/** Configuration for consent-gated product analytics and engagements. */
-export interface GainsightPxOptions {
+/** Shared Gainsight PX options, apart from identity. */
+interface GainsightPxBaseOptions {
 	/** Product/channel key from Administration > Products. */
 	productKey: string;
 	/** Gate for the whole SDK, including engagements. @default 'measurement' */
 	category?: HasCondition<AllConsentNames>;
 	/** JSON-serializable PX configuration, passed to `aptrinsic.c`. */
 	config?: GainsightPxConfig;
-	/** Optional identify call after mapped consent. */
-	user?: GainsightPxIdentity;
-	/** Optional account argument of the user identify call. Requires `user`. */
-	account?: GainsightPxIdentity;
 	/** Complete loader URL override. Does not proxy PX's other requests. */
 	scriptUrl?: string;
 }
+
+/** PX identifies an account only through a user identify call. */
+type GainsightPxIdentityOptions =
+	| {
+			/** Optional identify call after mapped consent. */
+			user: GainsightPxIdentity;
+			/** Optional account argument of the user identify call. */
+			account?: GainsightPxIdentity;
+	  }
+	| { user?: undefined; account?: undefined };
+
+/** Configuration for consent-gated product analytics and engagements. */
+export type GainsightPxOptions = GainsightPxBaseOptions &
+	GainsightPxIdentityOptions;
 
 // Keep the installed key across server startup and PX replacing its stub.
 const productKeyGlobal = '__c15tGainsightPxProductKey';
