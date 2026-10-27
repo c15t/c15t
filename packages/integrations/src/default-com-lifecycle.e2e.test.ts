@@ -336,6 +336,23 @@ describe('Default explicit marketing gate lifecycle', () => {
 		});
 	});
 
+	it('snapshots caller-owned Forms SDK scheduler origins before init', () => {
+		const init = vi.fn();
+		const schedulerOrigins = ['https://book.default.com'];
+		const scripts = [
+			defaultComFormsSdk({ publicKey: 'workspace-key', schedulerOrigins }),
+		];
+		loadScripts(scripts, grantedMarketingConsents);
+		schedulerOrigins[0] = 'https://other.default.com';
+		window.DefaultPixelSDK = createDefaultComFormsSdkMock({ init });
+		getLoader().dispatchEvent(new Event('load'));
+		expect(init).toHaveBeenCalledWith(
+			expect.objectContaining({
+				schedulerOrigins: ['https://book.default.com'],
+			})
+		);
+	});
+
 	it('applies SDK consent before init without creating Pixel configuration', () => {
 		const events: unknown[] = [];
 		const scripts = [

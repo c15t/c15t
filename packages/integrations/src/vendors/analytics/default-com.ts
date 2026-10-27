@@ -574,7 +574,8 @@ export const defaultComFormsSdk = function defaultComFormsSdk(
 		initOptions.endpoint = endpoint;
 	}
 	if (options.schedulerOrigins !== undefined) {
-		initOptions.schedulerOrigins = options.schedulerOrigins;
+		// Initialization is asynchronous; snapshot caller-owned settings now.
+		initOptions.schedulerOrigins = options.schedulerOrigins.slice();
 	}
 	const synchronize = (info: ScriptCallbackInfo): void => {
 		const registration = registrationOf(info);
