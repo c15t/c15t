@@ -75,7 +75,13 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 	};
 
 	const ownerSource = Symbol('script-loader');
-	const callbackTools = { ...tools, registration: ownerSource };
+	let replacingScript: Script | undefined;
+	const replacementEffects = new Set<() => void>();
+	const callbackTools = {
+		...tools,
+		isReplacing: (script: Script) => script === replacingScript,
+		registration: ownerSource,
+	};
 	const registerCategories = (scripts: Script[]) => {
 		kernel.set.registerConsentCategories(
 			scripts.flatMap((script) => categoriesOf(script.category))
@@ -304,19 +310,28 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 			return;
 		}
 		const snapshot = kernel.getSnapshot();
-		invokeCallback(
+		const entry = normalized.find((candidate) => candidate.script === script);
+		const hasConsent =
+			replacingScript === script && entry
+				? hasScriptConsent(entry, buildReconcilePass(snapshot, tools))
+				: (consentByScriptId.get(script.id) ?? false);
+		const info = buildCallbackInfo(
+			callbackTools,
 			script,
-			'onDispose',
-			buildCallbackInfo(
-				callbackTools,
-				script,
-				snapshot,
-				consentByScriptId.get(script.id) ?? false,
-				elementIds.resolve(script),
-				element
-			),
-			emit
+			snapshot,
+			hasConsent,
+			elementIds.resolve(script),
+			element
 		);
+		if (info.replacing) {
+			Object.defineProperty(info, 'afterReplacement', {
+				value: (effect: () => void) =>
+					replacementEffects.add(() =>
+						invokeCallback(script, 'onDispose', info, emit, effect)
+					),
+			});
+		}
+		invokeCallback(script, 'onDispose', info, emit);
 	};
 
 	const cleanup = (): void => {
@@ -374,8 +389,13 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 			// Persistence applies to consent revocation, not config replacement.
 			const element =
 				loadedElements.get(script.id) ?? retainedElements.get(script.id);
-			unmountScript(mountDeps, script, snapshot, false, true);
-			disposeScript(script, element);
+			replacingScript = replacement ? script : undefined;
+			try {
+				unmountScript(mountDeps, script, snapshot, false, true);
+				disposeScript(script, element);
+			} finally {
+				replacingScript = undefined;
+			}
 			retainedElements.delete(script.id);
 			eligibilityByScriptId.delete(script.id);
 			consentByScriptId.delete(script.id);
@@ -434,6 +454,11 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 				cleanup();
 			}
 			processing = false;
+			const effects = [...replacementEffects];
+			replacementEffects.clear();
+			for (const effect of effects) {
+				effect();
+			}
 		}
 	};
 	unsubscribe = kernel.subscribe(() => {

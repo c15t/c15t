@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import { expectSkippedScript } from './__tests__/helpers';
 import { adrollPixel } from './vendors/ads-and-pixels/adroll';
+import { amazonAdsTag } from './vendors/ads-and-pixels/amazon-ads';
 import { linkedinInsights } from './vendors/ads-and-pixels/linkedin-insights';
 import { liveIntentTag } from './vendors/ads-and-pixels/liveintent';
 import { metaPixel } from './vendors/ads-and-pixels/meta-pixel';
@@ -85,6 +86,12 @@ const requiredIdCases: {
 		helper: 'clay',
 		option: 'siteId',
 		script: { category: 'marketing', id: 'clay' },
+	},
+	{
+		create: (id) => amazonAdsTag({ tagId: asId(id) }),
+		helper: 'amazonAdsTag',
+		option: 'tagId',
+		script: { category: 'marketing', id: 'amazon-ads' },
 	},
 	{
 		create: (id) =>

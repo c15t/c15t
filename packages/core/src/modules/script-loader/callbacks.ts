@@ -27,7 +27,7 @@ import type {
 export const buildCallbackInfo = function buildCallbackInfo(
 	tools: Pick<
 		ScriptLoaderTools,
-		'deniedVendors' | 'gateState' | 'registration'
+		'deniedVendors' | 'gateState' | 'registration' | 'isReplacing'
 	>,
 	script: Script,
 	snapshot: ConsentSnapshot,
@@ -46,6 +46,9 @@ export const buildCallbackInfo = function buildCallbackInfo(
 	};
 	if (tools.registration) {
 		Object.defineProperty(info, 'registration', { value: tools.registration });
+	}
+	if (tools.isReplacing?.(script)) {
+		Object.defineProperty(info, 'replacing', { value: true });
 	}
 	if (script.vendor && snapshot.model !== 'iab') {
 		info.vendor = {
@@ -80,9 +83,9 @@ export const invokeCallback = function invokeCallback(
 	script: Script,
 	key: NonNullable<ScriptLoaderDebugEvent['callback']>,
 	info: ScriptCallbackInfo,
-	emit: (event: ScriptLoaderDebugEvent) => void
+	emit: (event: ScriptLoaderDebugEvent) => void,
+	fn: ((info: ScriptCallbackInfo) => void) | undefined = script[key]
 ): void {
-	const fn = script[key];
 	if (typeof fn !== 'function') {
 		return;
 	}
