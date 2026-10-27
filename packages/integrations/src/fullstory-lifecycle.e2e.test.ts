@@ -217,9 +217,8 @@ describe('FullStory retained recorder', () => {
 			owner.loader.updateScripts([script]);
 			expect(insertions()).toEqual([original]);
 			expect(original.isConnected).toBe(false);
-			const placeholder = document.querySelector('script');
-			expect(placeholder?.getAttribute('src')).toBeNull();
-			placeholder?.dispatchEvent(new Event('load'));
+			// The copy keeps the live callback-only check, so no placeholder mounts.
+			expect(document.querySelector('script')).toBeNull();
 			expect(apiOf().q?.map(([name]) => name)).toEqual(['init']);
 			const model = recorder(original);
 			expect(model.dispatch.mock.calls.map(([name]) => name)).toEqual([
@@ -439,7 +438,7 @@ describe('FullStory retained recorder', () => {
 		expect(foreign).not.toHaveBeenCalled();
 		expect(denied.events).toEqual([]);
 	});
-	it('completes a remount placeholder without making its detached pending SDK ready', async () => {
+	it('completes a callback-only remount without making its detached pending SDK ready', async () => {
 		const options = { orgId: 'placeholder-readiness' };
 		const script = { ...fullStory(options), nonce: 'placeholder' };
 		const first = mount(options, true, script);
@@ -452,14 +451,11 @@ describe('FullStory retained recorder', () => {
 			onLoad?.(info);
 		};
 		mount(options, true, script);
-		const placeholder = document.querySelector('script');
-		expect(placeholder?.getAttribute('src')).toBeNull();
+		// The copy keeps the live callback-only check, so no placeholder mounts.
+		expect(document.querySelector('script')).toBeNull();
 		await new Promise((resolve) => {
 			setTimeout(resolve, 0);
 		});
-		expect(completed).toHaveBeenCalledOnce();
-		expect(apiOf().q?.map(([name]) => name)).toEqual(['init']);
-		placeholder?.dispatchEvent(new Event('load'));
 		expect(completed).toHaveBeenCalledOnce();
 		expect(apiOf().q?.map(([name]) => name)).toEqual(['init']);
 		const model = recorder(original);
