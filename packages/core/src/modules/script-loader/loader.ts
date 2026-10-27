@@ -467,10 +467,15 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 			// Existing vendor helpers are recreated on framework rerenders. Keep
 			// their resource mounted unless it or the disposal callback changed.
 			// A stable disposer retains a DOM resource's registration lifecycle.
+			// A mounted registration keeps the mode it mounted with: callback-only
+			// predicates can turn true once the SDK they load has started.
+			const mountedCallbackOnly = loadedElements.has(script.id)
+				? loadedElements.get(script.id) === null
+				: isCallbackOnly(script);
 			if (
 				replacement &&
 				script.onDispose === replacement.onDispose &&
-				(!script.onDispose || !isCallbackOnly(script)) &&
+				(!script.onDispose || !mountedCallbackOnly) &&
 				hasSameResource(script, replacement)
 			) {
 				freezeConsentReader(script);
