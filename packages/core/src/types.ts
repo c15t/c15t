@@ -463,6 +463,8 @@ export interface ConsentSnapshot {
  * handle and only invoked when the corresponding command fires.
  */
 export interface KernelConfig {
+	/** Optional hosted observation capability from server init. @internal */
+	initialObservationEndpoint?: string;
 	/** External CMP authority. An empty object starts with optional categories denied. */
 	initialExternalPermissions?: Partial<ConsentState>;
 	/**
@@ -602,6 +604,10 @@ export interface KernelJourney {
  * fields leave the current snapshot value alone.
  */
 export interface InitResponse {
+	/** Optional hosted observation capability; carries no project secret. */
+	observationEndpoint?: string;
+	/** Opaque browser-only credential issued by the trusted backend. */
+	observationReceipt?: string;
 	/** Geographic context the transport resolved (e.g. from IP lookup). */
 	resolvedOverrides?: KernelOverrides;
 	/** Detected privacy signals, for example from the `Sec-GPC` header. */
@@ -731,6 +737,19 @@ export interface SaveContext {
 }
 
 export interface KernelTransport {
+	/** Acquire a browser-bound observation receipt for an adopted server init. @internal */
+	/** Adopt observation credentials only after this kernel accepts init. @internal */
+	acceptObservations?: (context: InitContext, response: InitResponse) => void;
+	beginObservations?: (ctx: InitContext, endpoint: string) => void;
+	/** Report a surface confirmed visible by its rendering adapter. @internal */
+	observe?: (input: {
+		event: 'banner_shown';
+		isVisible?: () => boolean;
+		language?: string;
+		policyFingerprint: string;
+	}) => void;
+	/** Release optional observation listeners when the kernel disposes. @internal */
+	disposeObservations?: () => void;
 	init?: (ctx: InitContext) => Promise<InitResponse>;
 	save?: (payload: SavePayload, context?: SaveContext) => Promise<SaveResult>;
 	identify?: (user: KernelUser, subjectId: string | null) => Promise<void>;
@@ -746,6 +765,13 @@ export interface KernelTransport {
  * Kernel event surface. Stable event names.
  */
 export type KernelEvent =
+	| {
+			/** A rendering adapter confirmed a mounted banner intersects a visible document. */
+			type: 'surface:rendered';
+			surface: 'banner';
+			language?: string;
+			policyFingerprint: string;
+	  }
 	| {
 			/** An external authority should open its preferences. */
 			type: 'preferences:requested';
@@ -926,6 +952,16 @@ export type NoticeDismissResult =
  * The public kernel contract.
  */
 export interface ConsentKernel {
+	/**
+	 * Report a banner after its rendering adapter confirms actual element visibility.
+	 * Does not record a choice or change permissions. The kernel checks the current policy and language.
+	 * @param input - Policy and language rendered by that element.
+	 */
+	reportBannerRendered?: (input: {
+		language?: string;
+		isVisible?: () => boolean;
+		policyFingerprint: string;
+	}) => void;
 	/**
 	 * Cancel background retries, the deadline timer and browser listeners.
 	 * Idempotent. Snapshot reads and explicit commands remain available.

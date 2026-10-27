@@ -60,6 +60,12 @@ describe('kernel event mapping', () => {
 			},
 			{ shownAt: 1, snapshot, surface: 'banner', type: 'surface:shown' },
 			{
+				language: 'en',
+				policyFingerprint: 'rendered-policy',
+				surface: 'banner',
+				type: 'surface:rendered',
+			},
+			{
 				previous: snapshot.effectivePermissions,
 				snapshot,
 				type: 'permissions:changed',

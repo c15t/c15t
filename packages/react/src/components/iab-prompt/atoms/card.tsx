@@ -4,6 +4,7 @@ import styles from '@c15t/ui/styles/components/iab-consent-banner';
 import { useCallback, useRef, forwardRef as createForwardRef } from 'react';
 import type { HTMLAttributes, ReactNode } from 'react';
 
+import { useBannerObservation } from '~/hooks/use-banner-observation';
 import { useFocusTrap } from '~/hooks/use-focus-trap';
 import { useTheme } from '~/hooks/use-theme';
 import { useUIConfig } from '~/ui-config-context';
@@ -29,6 +30,7 @@ const IABConsentBannerCard = createForwardRef<
 	const { noStyle, trapFocus } = useTheme();
 	const { components } = useUIConfig();
 	const cardRef = useRef<HTMLDivElement>(null);
+	useBannerObservation(cardRef, true);
 	const setCardRef = useCallback(
 		(node: HTMLDivElement | null) => {
 			cardRef.current = node;

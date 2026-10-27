@@ -8,12 +8,14 @@
 	import {
 		defaultTranslationConfig,
 		resolveConsentPresentation,
+		observationPolicyFingerprint,
 	} from '@c15t/core';
 	import type { PolicyRight } from '@c15t/schema/types';
 	import styles from '@c15t/ui/styles/components/consent-banner';
 	import { getTextDirection, resolveTranslations } from '@c15t/ui/utils';
 
 	import { focusTrap } from '../actions/focus-trap';
+	import { observeBanner } from '../actions/observe-banner';
 	// Banner uses custom portal/focus-trap/scroll-lock actions (not Ark UI's built-in)
 	// because the banner is not an Ark Dialog - it's a simpler container that
 	// conditionally acts as a dialog. The ConsentDialog uses Ark's Dialog which
@@ -376,6 +378,13 @@
 					class={cardStyle.className || ''}
 					style={toStyleAttribute(cardStyle.style)}
 					data-testid="consent-banner-card"
+					use:observeBanner={{
+						kernel: consent.kernel,
+						language: consent.snapshot.translations?.language,
+						policyFingerprint: observationPolicyFingerprint(
+							consent.snapshot.resolution
+						),
+					}}
 					tabindex="-1"
 					role={isBlocking ? 'dialog' : 'region'}
 					aria-modal={isBlocking ? 'true' : undefined}

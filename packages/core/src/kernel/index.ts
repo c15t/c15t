@@ -1,3 +1,4 @@
+import { observationPolicyFingerprint } from '../libs/observation-policy';
 /**
  * Pure consent kernel.
  *
@@ -112,6 +113,7 @@ export const createKernel = function createKernel(
 	eventBus.on('records:cleared', () => {
 		void outbox.clear();
 	});
+
 	const lifecycle = createInitLifecycle({
 		initRetry: config.initRetry,
 		outbox,
@@ -138,7 +140,10 @@ export const createKernel = function createKernel(
 			init: lifecycle.init,
 			save: choice.save,
 		},
-		dispose: lifecycle.dispose,
+		dispose: () => {
+			lifecycle.dispose();
+			transport?.disposeObservations?.();
+		},
 		events: {
 			emit: eventBus.emit,
 			on: eventBus.on,
@@ -148,8 +153,48 @@ export const createKernel = function createKernel(
 		getSnapshot: runtime.getSnapshot,
 		holdSaves: outbox.hold,
 		hydrate: records.hydrate,
-		markLive: runtime.markLive,
+		markLive: (at) => {
+			runtime.markLive(at);
+			if (config.initialObservationEndpoint) {
+				const snapshot = runtime.getSnapshot();
+				transport?.beginObservations?.(
+					{ overrides: snapshot.overrides, user: snapshot.user },
+					config.initialObservationEndpoint
+				);
+			}
+		},
 		refresh: lifecycle.refresh,
+		reportBannerRendered: (input) => {
+			const isCurrent = () => {
+				const snapshot = runtime.getSnapshot();
+				try {
+					return (
+						snapshot.activeUI === 'banner' &&
+						observationPolicyFingerprint(snapshot.resolution) ===
+							input.policyFingerprint &&
+						snapshot.translations?.language === input.language &&
+						(input.isVisible?.() ?? true)
+					);
+				} catch {
+					return false;
+				}
+			};
+			if (!isCurrent()) {
+				return;
+			}
+			transport?.observe?.({
+				event: 'banner_shown',
+				isVisible: input.isVisible ? isCurrent : undefined,
+				language: input.language,
+				policyFingerprint: input.policyFingerprint,
+			});
+			eventBus.emit({
+				language: input.language,
+				policyFingerprint: input.policyFingerprint,
+				surface: 'banner',
+				type: 'surface:rendered',
+			});
+		},
 		set: {
 			...buildSetters(runtime, config),
 			draft: choice.draft,

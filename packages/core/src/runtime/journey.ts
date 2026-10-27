@@ -268,7 +268,22 @@ export const withJourney = function withJourney(
 	transport: KernelTransport,
 	journey: Pick<JourneyController, 'forInit' | 'forSave'>
 ): KernelTransport {
-	const wrapped: KernelTransport = {};
+	const wrapped: KernelTransport = {
+		acceptObservations: (context, response) =>
+			transport.acceptObservations?.(
+				{ ...context, journey: journey.forInit() },
+				response
+			),
+		beginObservations: transport.beginObservations
+			? (ctx, endpoint) =>
+					transport.beginObservations?.(
+						{ ...ctx, journey: journey.forInit() },
+						endpoint
+					)
+			: undefined,
+		disposeObservations: () => transport.disposeObservations?.(),
+		observe: (input) => transport.observe?.(input),
+	};
 	if (transport.init) {
 		wrapped.init = (ctx) => {
 			// Read when the request is built, not now: a streamed prefetch can

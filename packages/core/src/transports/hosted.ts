@@ -48,6 +48,7 @@ import { consumePrefetchedInitialData } from '../libs/prefetch/prefetch';
 import { DEFAULT_INIT_CREDENTIALS } from '../libs/request-context-headers';
 import type { SSRInitialData } from '../options/ssr';
 import type { KernelOverrides, InitContext } from '../types';
+import { createBannerObservationReporter } from './banner-observations';
 import {
 	decisionInputsMatchOverrides,
 	gpcFromHeaders,
@@ -63,6 +64,7 @@ import {
 import type { HostedRecordTransport } from './hosted-records';
 import { mapInitOutputToInitResponse } from './init-output';
 import type { TransportInitResponse } from './init-output';
+import { createObservationReceiptAcquirer } from './observation-receipt';
 import { readProducerPolicyContract } from './version-header';
 
 export interface HostedTransportOptions {
@@ -235,9 +237,9 @@ const buildAllowedInitHeaders = function buildAllowedInitHeaders(
 };
 
 /**
- * Build a hosted transport. The returned object is plain — no listeners,
- * no caches, and no state beyond the decision inputs remembered when
- * `assertDecisionInputs` is set. Safe to create per request.
+ * Build a hosted transport. Browser observation listeners are installed only
+ * when a backend supplies an observation capability or receipt, and released
+ * when the kernel is disposed. Server requests install no listeners.
  */
 export const createHostedTransport = function createHostedTransport(
 	options: HostedTransportOptions
@@ -245,6 +247,10 @@ export const createHostedTransport = function createHostedTransport(
 	const base = trimSlash(options.backendURL);
 	const initURL = options.initURL ?? `${base}/init`;
 	const fetchImpl = resolveFetch(options.fetch);
+	const observations = createBannerObservationReporter({
+		backendURL: base,
+		fetch: fetchImpl,
+	});
 	const initHeaders = buildAllowedInitHeaders(options.headers);
 	const credentials = options.credentials ?? 'include';
 	const initCredentials = options.credentials ?? DEFAULT_INIT_CREDENTIALS;
@@ -337,9 +343,15 @@ export const createHostedTransport = function createHostedTransport(
 					prefetched.producerPolicyContract
 				);
 			}
-			return mapInitOutputToInitResponse(prefetched.init, headers, {
-				producerContract: readProducerPolicyContract(producerHeaders),
-			});
+			// A prefetched response does not prove this browser's page/journey binding.
+			// Its endpoint capability can request a fresh browser receipt after init.
+			return mapInitOutputToInitResponse(
+				{ ...prefetched.init, observationReceipt: undefined },
+				headers,
+				{
+					producerContract: readProducerPolicyContract(producerHeaders),
+				}
+			);
 		}
 		const response = await fetchImpl(request.url, request.init);
 
@@ -377,8 +389,38 @@ export const createHostedTransport = function createHostedTransport(
 		}
 	);
 
+	const receiptAcquirer = createObservationReceiptAcquirer({
+		accept: observations.setReceipt,
+		acceptsEndpoint: observations.acceptsEndpoint,
+		async load(context, signal) {
+			const request = createHostedInitRequest({
+				backendURL: base,
+				credentials: initCredentials,
+				experiment: context.experiment,
+				headers: initHeaders,
+				journey: context.journey,
+				overrides: context.overrides,
+			});
+			const response = await fetchImpl(request.url, {
+				...request.init,
+				signal,
+			});
+			if (!response.ok) {
+				throw new Error('c15t: observation receipt unavailable.');
+			}
+			return await response.json();
+		},
+	});
 	return {
 		...records,
+		acceptObservations: (context, response) =>
+			observations.setReceipt(response, context.journey),
+		beginObservations: receiptAcquirer.begin,
+		disposeObservations: () => {
+			initGeneration += 1;
+			receiptAcquirer.dispose();
+			observations.dispose();
+		},
 		async init(ctx: InitContext): Promise<TransportInitResponse> {
 			const run = runInit(ctx);
 			pendingInit = run;
@@ -390,5 +432,6 @@ export const createHostedTransport = function createHostedTransport(
 				}
 			}
 		},
+		observe: observations.observe,
 	};
 };
