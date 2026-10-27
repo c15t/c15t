@@ -40,9 +40,12 @@ describe('ConsentRoot', () => {
 		});
 
 		await vi.waitFor(() => {
-			expect(String(mockFetch.mock.calls[0]?.[0])).toMatch(
-				/^\/api\/c15t\/init/u
+			const url = new URL(
+				String(mockFetch.mock.calls[0]?.[0]),
+				window.location.href
 			);
+			expect(url.origin).toBe(window.location.origin);
+			expect(url.pathname).toBe('/api/c15t/init');
 		});
 		expect((window as WindowWithC15t).c15t?.mode).toBe('manifest');
 		result.unmount();
