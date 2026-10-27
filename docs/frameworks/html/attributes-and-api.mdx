@@ -42,6 +42,24 @@ Load one of `c15t.js`, `c15t.local.js`, `c15t.headless.js` or
 already installed, it leaves the first one in place and does not start a
 second client.
 
+A self-hosted c15t backend also serves `c15t.init.js`. Put it before the
+`c15t.js` tag with `async` so the visitor's `/init` request starts while
+`c15t.js` downloads, instead of after it runs:
+
+```html title="index.html"
+<script src="https://consent.example.com/c15t.init.js" async></script>
+<script src="https://consent.example.com/c15t.js" defer></script>
+```
+
+Add the same `?language=` to both URLs if you use it. Leave `c15t.init.js` out
+when the `c15t.js` tag sets `data-country`, `data-region` or `data-language`,
+or a queued `config` call sets `overrides`, `experiment` or `storageConfig`.
+`c15t.js` then sends a different `/init`, and the first request goes unused.
+Without `c15t.init.js`, `c15t.js` still sends `/init` before its bundle runs,
+which is later than `c15t.init.js` would. The
+[endpoint reference](/docs/self-host/api/endpoints#serve-the-script-tag) lists
+when it skips that.
+
 `dist/c15t.css` and `dist/c15t.iab.css` are the stylesheets, for pages that
 render the UI with `data-shadow="false"` and load the CSS themselves.
 
