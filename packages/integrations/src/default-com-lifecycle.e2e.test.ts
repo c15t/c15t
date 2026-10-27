@@ -1,5 +1,7 @@
 /** @vitest-environment jsdom */
 import type { ScriptCallbackInfo } from '@c15t/core';
+import { createConsentKernel } from '@c15t/core';
+import { createScriptLoader } from '@c15t/core/modules/script-loader';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createDefaultComFormsSdkMock } from './__tests__/default-com-sdk';
@@ -334,6 +336,40 @@ describe('Default explicit marketing gate lifecycle', () => {
 			analytics: false,
 			marketing: false,
 		});
+	});
+
+	it('keeps an initially denied Forms SDK owner in the consent aggregate', async () => {
+		const setConsent = vi.fn();
+		const denied = createConsentKernel();
+		const allowed = createConsentKernel();
+		await denied.commands.save(deniedConsents);
+		await allowed.commands.save(grantedMarketingConsents);
+		const first = createScriptLoader({
+			kernel: denied,
+			scripts: [defaultComFormsSdk({ publicKey: 'workspace-key' })],
+		});
+		const second = createScriptLoader({
+			kernel: allowed,
+			scripts: [defaultComFormsSdk({ publicKey: 'workspace-key' })],
+		});
+		try {
+			window.DefaultPixelSDK = createDefaultComFormsSdkMock({ setConsent });
+			getLoader().dispatchEvent(new Event('load'));
+			expect(setConsent).toHaveBeenLastCalledWith({
+				analytics: false,
+				marketing: false,
+			});
+			await denied.commands.save(grantedMarketingConsents);
+			expect(setConsent).toHaveBeenLastCalledWith({
+				analytics: false,
+				marketing: true,
+			});
+		} finally {
+			first.dispose();
+			second.dispose();
+			denied.dispose();
+			allowed.dispose();
+		}
 	});
 
 	it('snapshots a caller-owned Forms SDK display object before init', () => {
