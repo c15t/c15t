@@ -28,6 +28,8 @@ interface RunInput {
 	experimentArm?: (context: {
 		request: Request;
 	}) => string | undefined | Promise<string | undefined>;
+	/** Receives every `context.cookies.set` call. */
+	setCookie?: (name: string, value: string, options: unknown) => void;
 }
 
 const run = async function run(input: RunInput = {}): Promise<C15tLocals> {
@@ -41,6 +43,7 @@ const run = async function run(input: RunInput = {}): Promise<C15tLocals> {
 	const next = vi.fn(() => new Response('ok'));
 	await middleware(
 		{
+			cookies: { set: input.setCookie ?? (() => undefined) },
 			isPrerendered: input.isPrerendered ?? false,
 			locals,
 			request: new Request('https://example.com/', {
@@ -229,6 +232,72 @@ describe('consent middleware', () => {
 		expect(copy?.cookieBanner.title).toBe('Servus');
 		expect(copy?.cookieBanner.description).toBe(stock.cookieBanner.description);
 		expect(copy?.common.acceptAll).toBe(stock.common.acceptAll);
+	});
+
+	it('gives a new visitor a subject cookie the render already reads', async () => {
+		const setCookie = vi.fn();
+		const first = await run({ headers: { cookie: 'theme=dark' }, setCookie });
+		expect(setCookie).toHaveBeenCalledOnce();
+		const [name, subjectId, attributes] = setCookie.mock.calls[0] as [
+			string,
+			string,
+			unknown,
+		];
+		expect(name).toBe('c15t-sid');
+		expect(subjectId).toMatch(/^sub_/u);
+		expect(attributes).toEqual({
+			httpOnly: false,
+			maxAge: 365 * 86_400,
+			path: '/',
+			sameSite: 'lax',
+			secure: true,
+		});
+		expect(first.config.initialRecords?.subject?.subjectId).toBe(subjectId);
+		expect(first.config.initialRecords?.choice).toBeNull();
+
+		const returning = vi.fn();
+		const second = await run({
+			headers: { cookie: `c15t-sid=${subjectId}` },
+			setCookie: returning,
+		});
+		expect(returning).not.toHaveBeenCalled();
+		expect(second.config.initialRecords?.subject?.subjectId).toBe(subjectId);
+	});
+
+	it('names the subject cookie after storageConfig.storageKey', async () => {
+		const setCookie = vi.fn();
+		await run({
+			options: {
+				mode: offlineMode({ policyRules: [testRule] }),
+				storageConfig: { crossSubdomain: true, storageKey: 'consent' },
+			},
+			setCookie,
+		});
+		expect(setCookie).toHaveBeenCalledWith(
+			'consent-sid',
+			expect.stringMatching(/^sub_/u),
+			expect.objectContaining({ domain: '.example.com' })
+		);
+	});
+
+	it('gives a prerendered route or a prefetch no subject cookie', async () => {
+		const setCookie = vi.fn();
+		await run({ isPrerendered: true, setCookie });
+		await run({ headers: { 'sec-purpose': 'prefetch' }, setCookie });
+		expect(setCookie).not.toHaveBeenCalled();
+	});
+
+	it('middleware.subjectCookie: false sets no subject cookie', async () => {
+		const setCookie = vi.fn();
+		const c15t = await run({
+			options: {
+				middleware: { subjectCookie: false },
+				mode: offlineMode({ policyRules: [testRule] }),
+			},
+			setCookie,
+		});
+		expect(setCookie).not.toHaveBeenCalled();
+		expect(c15t.config.initialRecords?.subject?.subjectId).toBeUndefined();
 	});
 
 	it('skips the network prefetch on a prerendered route', async () => {

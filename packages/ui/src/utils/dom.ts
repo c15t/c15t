@@ -212,6 +212,13 @@ const supportsScrollbarGutter = (): boolean =>
 	CSS.supports('scrollbar-gutter', 'stable');
 
 /**
+ * Converts a width measured in viewport pixels into a length for `element`'s
+ * own styles, which CSS `zoom` on it or an ancestor scales again.
+ */
+const toCSSPixels = (element: HTMLElement, width: number): number =>
+	width / (element.currentCSSZoom || 1);
+
+/**
  * Locks document scrolling.
  *
  * Hides overflow on whichever element scrolls the page: `<body>` when its
@@ -223,7 +230,22 @@ const supportsScrollbarGutter = (): boolean =>
  * and scrollbars styled with `::-webkit-scrollbar`), `<body>` gets
  * `padding-right` instead, which keeps in-flow content still.
  *
+ * Padding cannot hold fixed-position elements, so the lock also sets
+ * `--c15t-scroll-lock-gap` on `<html>` to the width the viewport gained.
+ * A page offsets its own fixed elements with it, such as
+ * `right: calc(1rem + var(--c15t-scroll-lock-gap, 0px))`. The variable is
+ * only set while the lock pads `<body>`.
+ *
  * @returns Cleanup function to restore scroll
+ *
+ * @example
+ * ```css
+ * .site-header {
+ * 	position: fixed;
+ * 	inset-inline: 0;
+ * 	padding-right: var(--c15t-scroll-lock-gap, 0px);
+ * }
+ * ```
  */
 export const setupScrollLock = function setupScrollLock() {
 	// Reference counted: a banner and a dialog can both hold the lock (the
@@ -267,6 +289,14 @@ export const setupScrollLock = function setupScrollLock() {
 		const hideOverflow = (element: HTMLElement) => {
 			setStyle(element, 'overflow', 'hidden', ['overflow-x', 'overflow-y']);
 		};
+		// The viewport widened by `gap`. Padding keeps in-flow content still;
+		// the variable lets the page move its own fixed elements back. Both
+		// use <body>'s zoom, which the fixed elements inside it share.
+		const fillGap = (gap: number) => {
+			const width = `${toCSSPixels(body, gap)}px`;
+			setStyle(body, 'padding-right', width);
+			setStyle(root, '--c15t-scroll-lock-gap', width);
+		};
 
 		// While <html> has visible overflow, <body>'s overflow is what the
 		// viewport uses. Hiding it there, rather than on <html>, leaves <body>
@@ -289,16 +319,16 @@ export const setupScrollLock = function setupScrollLock() {
 				) {
 					setStyle(root, 'scrollbar-gutter', 'stable');
 				}
-				// The gutter only holds for native scrollbars: Chromium reserves
-				// none for one styled with `::-webkit-scrollbar`. When the page
-				// still widened, pad <body> by the difference instead, which keeps
-				// in-flow content still (fixed elements still move).
+				// The gutter does not always hold: Chromium on macOS, where native
+				// scrollbars overlay the page, reserves none for a scrollbar
+				// styled with `::-webkit-scrollbar`. When the page still widened,
+				// fill the difference instead.
 				const growth = root.getBoundingClientRect().width - rootWidth;
 				if (growth > 0.5) {
-					setStyle(body, 'padding-right', `${growth}px`);
+					fillGap(growth);
 				}
 			} else {
-				setStyle(body, 'padding-right', `${scrollbarWidth}px`);
+				fillGap(scrollbarWidth);
 			}
 		}
 

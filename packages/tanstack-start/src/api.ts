@@ -41,7 +41,11 @@ import type {
 } from '@c15t/core/server';
 import type { ConsentManifest } from '@c15t/schema/types';
 
-import { readConsentInputs } from './libs/request-inputs';
+import { handledRequestFor } from './libs/handled-request';
+import {
+	readConsentInputs,
+	rememberConsentRouteRequest,
+} from './libs/request-inputs';
 
 export type { ConsentProxyOptions } from '@c15t/core/server';
 
@@ -247,28 +251,32 @@ export const createConsentRoute = function createConsentRoute<
 	 * The request as core sees it: the router's `_splat` (absent in tests
 	 * and custom mounts, where the last path segment decides), and the
 	 * inputs the request middleware already resolved, so the init route
-	 * agrees with the render.
+	 * agrees with the render. The handler may hold a copy of the request, so
+	 * both are keyed on the Start request. The route renders no page, so it
+	 * also tells the middleware to send its response as it is.
 	 */
-	const contextFor = function contextFor(
+	const contextFor = async function contextFor(
 		{ params, request }: ConsentRouteHandlerContext,
 		route?: ConsentRouteRequestContext['route']
-	): ConsentRouteRequestContext {
+	): Promise<ConsentRouteRequestContext> {
+		const handled = await handledRequestFor(request);
+		rememberConsentRouteRequest(handled);
 		return {
-			inputs: readConsentInputs(request),
+			inputs: readConsentInputs(handled),
 			path: params?._splat,
 			route,
 			waitUntil: resolved.onBackgroundRevalidate,
 		};
 	};
 
-	const GET: ConsentRouteHandler = (context) =>
-		handle(context.request, contextFor(context));
+	const GET: ConsentRouteHandler = async (context) =>
+		handle(context.request, await contextFor(context));
 	if (!resolved.proxy) {
 		const handlers: ConsentRouteHandlers = { GET };
 		return handlers as ConsentRouteHandlersFor<Options>;
 	}
-	const proxyHandler: ConsentRouteHandler = (context) =>
-		handle(context.request, contextFor(context, 'proxy'));
+	const proxyHandler: ConsentRouteHandler = async (context) =>
+		handle(context.request, await contextFor(context, 'proxy'));
 	const proxied: ConsentProxyRouteHandlers = {
 		DELETE: proxyHandler,
 		GET,

@@ -48,6 +48,8 @@ vi.mock('#imports', async () => {
 				...nuxt.appConfig,
 			},
 		}),
+		// The plugin sets the subject cookie on the server render.
+		useCookie: () => ({ value: undefined }),
 		useHead: (input: unknown) => {
 			nuxt.heads.push(input);
 		},

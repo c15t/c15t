@@ -14,6 +14,9 @@ import type { activeCampaignTracking as ActiveCampaignTracking } from './vendors
 let activeCampaignTracking: typeof ActiveCampaignTracking;
 
 beforeEach(async () => {
+	// Node 25+ replaces jsdom's storage globals with its own Web Storage.
+	vi.stubGlobal('localStorage', jsdom.window.localStorage);
+	vi.stubGlobal('sessionStorage', jsdom.window.sessionStorage);
 	vi.resetModules();
 	({ activeCampaignTracking } =
 		await import('./vendors/email-and-sms/activecampaign'));
@@ -27,6 +30,7 @@ afterEach(() => {
 	]) {
 		Reflect.deleteProperty(window, name);
 	}
+	vi.unstubAllGlobals();
 });
 
 const GLOBALS = ['pgo', 'prismGlobalObjectAlias'];

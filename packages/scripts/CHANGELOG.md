@@ -1,3 +1,106 @@
+## @c15t/scripts@3.0.2-canary.0 (canary)
+
+### Add Attentive integration
+
+`attentiveTag` from `@c15t/integrations/attentive` loads the Attentive tag after `marketing` consent. Attentive cannot be stopped once it runs, so withdrawing consent reloads the page.
+
+### Add Lucky Orange
+
+`luckyOrange` from `@c15t/integrations/lucky-orange` loads Lucky Orange after
+`measurement` consent and sets its privacy consent status. Turn on Require
+Consent in the Lucky Orange dashboard, and keep the default page reload when
+consent is withdrawn. The CLI can generate the integration too.
+
+### Add RB2B
+
+`rb2b` from `@c15t/integrations/rb2b` loads RB2B after `marketing` consent.
+RB2B has no stop API, so keep the default page reload when consent is
+withdrawn. The CLI can generate the integration too.
+
+### Add Wisepops consent integration
+
+`wisepops()` from `@c15t/integrations/wisepops` loads Wisepops after `marketing` consent. Wisepops can't revoke consent from code, so c15t reloads the page on revocation. The CLI can add it during setup.
+
+### Add AdRoll consent integration
+
+Load AdRoll after `marketing` consent with `adrollPixel` from `@c15t/integrations/adroll`. AdRoll has no API to stop it, so keep the default page reload when consent is withdrawn. The CLI can now add it during setup.
+
+### Add Adobe Target consent integration
+
+`adobeTarget()` from `@c15t/integrations/adobe-target` loads Adobe Target after `experience` consent, using either a self-hosted at.js file or Adobe Experience Platform Web SDK 2.21 or later. On revocation it denies Target through Adobe's consent APIs; keep the page reload on to stop code that already ran. The CLI can add it during setup.
+
+### Add Pendo
+
+`pendo` from `@c15t/integrations/pendo` loads Pendo after `measurement`
+consent. When consent is withdrawn it stops Pendo's event sending, and resumes
+it with the same visitor if consent returns. The CLI can generate the
+integration too.
+
+### Add Statable analytics
+
+`statableAnalytics` from `@c15t/integrations/statable-analytics` loads
+Statable after `measurement` consent. Statable has no stop API, so keep the
+default page reload when consent is withdrawn. The CLI can generate the
+integration too.
+
+### Add Insider One integration
+
+`insiderTag` from `@c15t/integrations/insider` loads the Insider One tag after `marketing` consent, with optional user attributes, currency and page context. Withdrawing consent sends `gdpr_optin: false` to Insider and reloads the page.
+
+### Add Zendesk Messaging consent integration
+
+`zendeskWidget()` from `@c15t/integrations/zendesk` loads Zendesk Messaging only after `functionality` consent. It sets Zendesk's cookie range to `all` with measurement consent and `functional` without it. On revocation it sends `none`, which hides the widget and clears its storage. The CLI can add it during setup. See [Other chat and support tools](https://c15t.com/docs/integrations/other-chat-and-support#zendesk-messaging).
+
+### Add Dynamic Yield consent integration
+
+`dynamicYield()` from `@c15t/integrations/dynamic-yield` loads Dynamic Yield after `experience` consent and sends the choice through Dynamic Yield's Active Cookie Consent API. The CLI can add it during setup.
+
+### Add Salesforce Account Engagement integration
+
+`pardotTracking` from `@c15t/integrations/salesforce-pardot` loads Salesforce Account Engagement (Pardot) after `marketing` consent. In the default consent mode, withdrawing consent calls Pardot's `revokeConsent` and reloads the page.
+
+### Add Gorgias Chat consent integration
+
+`gorgiasChat()` from `@c15t/integrations/gorgias` loads Gorgias Chat only after `functionality` consent. Without `measurement` consent it turns off the widget's Segment analytics. Gorgias has no shutdown API, so revocation relies on c15t's page reload. The CLI can add it during setup. See [Other chat and support tools](https://c15t.com/docs/integrations/other-chat-and-support#gorgias-chat).
+
+### Add The Trade Desk consent integration
+
+Load The Trade Desk Universal Pixel after `marketing` consent with `theTradeDeskPixel` from `@c15t/integrations/the-trade-desk`. The Trade Desk has no API to stop its SDK, so keep the default page reload when consent is withdrawn. The CLI can now add it during setup.
+
+### Add Marketo Munchkin integration
+
+`marketoMunchkin` from `@c15t/integrations/marketo` loads Adobe Marketo Munchkin after `marketing` consent. Munchkin has no API to stop tracking, so withdrawing consent reloads the page.
+
+### Add LiveIntent consent integration
+
+Load LiveIntent's LiveConnect tag after `marketing` consent with `liveIntentTag` from `@c15t/integrations/liveintent`. LiveConnect has no API to stop it, so keep the default page reload when consent is withdrawn. The CLI can now add it during setup.
+
+### Add Appcues consent integration
+
+`appcues()` from `@c15t/integrations/appcues` loads Appcues after `experience` consent. Use `onReady` to identify the visitor once the SDK loads. On revocation it calls `Appcues.reset()` and c15t reloads the page. The CLI can add it during setup.
+
+### Add Ada consent integration
+
+`ada()` from `@c15t/integrations/ada` imports the Ada Messaging Web SDK only after `functionality` consent. On revocation it calls Ada's `stop()`, which removes the widget but keeps stored conversations. The CLI can add it during setup. See [Other chat and support tools](https://c15t.com/docs/integrations/other-chat-and-support#ada).
+
+### Add Clay consent integration
+
+Load Clay after marketing consent with the `clay` helper, with vendor metadata, framework registration examples and CLI setup.
+
+### Add Customer.io integration
+
+`customerIo` from `@c15t/integrations/customer-io` loads Customer.io Data Pipelines after `marketing` consent. Withdrawing consent clears the stored identity with `reset()` and reloads the page, because `reset()` does not stop the SDK from sending.
+
+### Add Optimizely Web Experimentation consent integration
+
+`optimizelyWeb()` from `@c15t/integrations/optimizely` loads Optimizely Web Experimentation after `experience` consent. On revocation, c15t removes the snippet and reloads the page. The CLI can add it during setup.
+
+### Add Vector
+
+`vector` from `@c15t/integrations/vector` loads Vector after `marketing`
+consent. Vector has no stop API, so keep the default page reload when consent
+is withdrawn. The CLI can generate the integration too.
+
 ## @c15t/scripts@3.0.0
 
 ### c15t v3

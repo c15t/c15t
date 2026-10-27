@@ -5,13 +5,19 @@
  * read-only pass. It folds stored records into the kernel, but it must
  * not renew a receipt, recreate a missing cookie or localStorage mirror,
  * migrate a legacy key or call the backend. Only an explicit accept,
- * reject or save writes to storage, and it writes the v3 envelope.
+ * reject or save writes to storage, and it writes the v3 envelope. A
+ * stored record that carries a subject ID keeps it there: startup does not
+ * copy it into the subject ID key.
  */
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { NOW } from '../../../__tests__/fixtures/kernel-fixtures';
 import { createConsentKernel } from '../../../kernel';
-import { deleteConsentFromStorage, setCookie } from '../../../libs/cookie';
+import {
+	deleteConsentFromStorage,
+	deleteCookie,
+	setCookie,
+} from '../../../libs/cookie';
 import { STORAGE_KEY, STORAGE_KEY_V2 } from '../../../libs/storage-keys';
 import { createPersistence } from '../index';
 import { readStoredConsentRecord } from '../record-storage';
@@ -53,11 +59,14 @@ beforeEach(() => {
 	vi.setSystemTime(NOW);
 	localStorage.clear();
 	deleteConsentFromStorage();
+	deleteCookie(`${STORAGE_KEY_V2}-sid`);
+	deleteCookie(`${STORAGE_KEY_V2}-epoch`);
 	document.cookie = '';
 });
 
 afterEach(() => {
 	deleteConsentFromStorage(undefined, { storageKey: 'custom-key' });
+	deleteCookie('custom-key-sid');
 	vi.useRealTimers();
 });
 
@@ -149,6 +158,24 @@ describe('persistence: hydration is read-only', () => {
 
 		expect(saveStarted).not.toHaveBeenCalled();
 		expect(choiceRecorded).not.toHaveBeenCalled();
+	});
+});
+
+describe('persistence: the subject ID outlives a clear', () => {
+	test('clearing records that carry the ID stores it, and a reload keeps it', () => {
+		localStorage.setItem(STORAGE_KEY_V2, JSON.stringify(storedPayload()));
+
+		const kernel = createConsentKernel({ now: NOW });
+		const handle = createPersistence({ kernel });
+		handle.clear();
+		handle.dispose();
+
+		expect(readLocalStorage()).toBeNull();
+		expect(localStorage.getItem(`${STORAGE_KEY_V2}-sid`)).toBe(SUBJECT_ID);
+		const reloaded = createConsentKernel({ now: NOW });
+		createPersistence({ kernel: reloaded }).dispose();
+		expect(reloaded.getSnapshot().explicitChoice).toBeNull();
+		expect(reloaded.getSnapshot().subject?.subjectId).toBe(SUBJECT_ID);
 	});
 });
 
@@ -318,11 +345,14 @@ describe('persistence: explicit choices still write', () => {
 		flushWrites();
 		expect(document.cookie).toContain('custom-key=');
 
+		const subjectId = kernel.getSnapshot().subject?.subjectId;
+		const customCookies = `custom-key-sid=${subjectId}; custom-key-epoch=${NOW}`;
 		handle.clear();
 		expect(localStorage.getItem('custom-key')).toBeNull();
 		expect(readLocalStorage()).toEqual(defaultPayload);
-		// Only the custom key's clear epoch is added; default-key data stays.
-		expect(document.cookie).toBe(`${defaultCookie}; custom-key-epoch=${NOW}`);
+		// Only the custom key's subject ID and clear epoch are added;
+		// default-key data stays.
+		expect(document.cookie).toBe(`${defaultCookie}; ${customCookies}`);
 		expect(kernel.getSnapshot().explicitChoice).toBeNull();
 		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);
 		handle.dispose();
@@ -337,7 +367,8 @@ describe('persistence: explicit choices still write', () => {
 		flushWrites();
 		reloadedHandle.dispose();
 		expect(readLocalStorage()).toEqual(defaultPayload);
-		expect(document.cookie).toBe(`${defaultCookie}; custom-key-epoch=${NOW}`);
+		expect(document.cookie).toBe(`${defaultCookie}; ${customCookies}`);
+		expect(reloaded.getSnapshot().subject?.subjectId).toBe(subjectId);
 	});
 
 	test('a failed remote save still persists the choice locally with the same receipt', async () => {

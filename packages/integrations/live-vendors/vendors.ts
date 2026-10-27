@@ -1,16 +1,21 @@
-import { linkedinInsights } from '../src/vendors/ads-and-pixels/linkedin-insights';
 /**
  * Live probe definitions for built-in `@c15t/integrations` integrations.
  *
- * Each entry pairs a registry vendor with safe placeholder configuration and
+ * Each entry pairs a registry vendor with probe configuration and
  * the checks used by the live monitor. This module is imported by the Node
  * runner and bundled into the browser harness, so check callbacks run inside
  * the probed page.
  *
  * Placeholder ids must be obviously fake and must never point at a real
- * account. Collection endpoints are blocked by the runner, so probes cannot
- * send real analytics data even when a vendor runtime initializes.
+ * account.
+ * The runner allows literal URL substring matches and answers other intercepted
+ * HTTP requests with empty 204 responses. Allowlisted requests reach upstream;
+ * these routing rules do not establish complete isolation or account delivery.
  */
+
+import { adrollPixel } from '../src/vendors/ads-and-pixels/adroll';
+import { linkedinInsights } from '../src/vendors/ads-and-pixels/linkedin-insights';
+import { liveIntentTag } from '../src/vendors/ads-and-pixels/liveintent';
 import { metaPixel } from '../src/vendors/ads-and-pixels/meta-pixel';
 import { microsoftUet } from '../src/vendors/ads-and-pixels/microsoft-uet';
 import type { OpenAIPixelFunction } from '../src/vendors/ads-and-pixels/openai-pixel';
@@ -18,7 +23,9 @@ import { openaiPixel } from '../src/vendors/ads-and-pixels/openai-pixel';
 import { pinterestTag } from '../src/vendors/ads-and-pixels/pinterest-tag';
 import { redditPixel } from '../src/vendors/ads-and-pixels/reddit-pixel';
 import { snapchatPixel } from '../src/vendors/ads-and-pixels/snapchat-pixel';
+import { theTradeDeskPixel } from '../src/vendors/ads-and-pixels/the-trade-desk';
 import { tiktokPixel } from '../src/vendors/ads-and-pixels/tiktok-pixel';
+import { vector } from '../src/vendors/ads-and-pixels/vector';
 import { xPixel } from '../src/vendors/ads-and-pixels/x-pixel';
 import { adobeAnalytics } from '../src/vendors/analytics/adobe-analytics';
 import { ahrefsAnalytics } from '../src/vendors/analytics/ahrefs-analytics';
@@ -39,30 +46,46 @@ import {
 } from '../src/vendors/analytics/hightouch';
 import { hotjar } from '../src/vendors/analytics/hotjar';
 import { logRocket } from '../src/vendors/analytics/logrocket';
+import { luckyOrange } from '../src/vendors/analytics/lucky-orange';
+import { marketoMunchkin } from '../src/vendors/analytics/marketo';
 import { matomoAnalytics } from '../src/vendors/analytics/matomo-analytics';
 import { clarity } from '../src/vendors/analytics/microsoft-clarity';
 import { mixpanelAnalytics } from '../src/vendors/analytics/mixpanel-analytics';
 import { oneDollarStats } from '../src/vendors/analytics/one-dollar-stats';
+import { pendo } from '../src/vendors/analytics/pendo';
 import { pirsch } from '../src/vendors/analytics/pirsch';
 import { plausibleAnalytics } from '../src/vendors/analytics/plausible-analytics';
 import { posthog } from '../src/vendors/analytics/posthog';
 import { promptwatch } from '../src/vendors/analytics/promptwatch';
+import { rb2b } from '../src/vendors/analytics/rb2b';
 import {
 	RUDDERSTACK_QUEUE_METHODS,
 	rudderstack,
 } from '../src/vendors/analytics/rudderstack';
 import { rybbitAnalytics } from '../src/vendors/analytics/rybbit-analytics';
+import { pardotTracking } from '../src/vendors/analytics/salesforce-pardot';
 import { segment } from '../src/vendors/analytics/segment';
 import { sentry } from '../src/vendors/analytics/sentry';
 import type { SentryClient } from '../src/vendors/analytics/sentry';
+import { statableAnalytics } from '../src/vendors/analytics/statable-analytics';
 import { umamiAnalytics } from '../src/vendors/analytics/umami-analytics';
 import { vercelAnalytics } from '../src/vendors/analytics/vercel-analytics';
 import { vercelSpeedInsights } from '../src/vendors/analytics/vercel-speed-insights';
 import { activeCampaignTracking } from '../src/vendors/email-and-sms/activecampaign';
+import { customerIo } from '../src/vendors/email-and-sms/customer-io';
+import { insiderTag } from '../src/vendors/email-and-sms/insider';
 import { klaviyo } from '../src/vendors/email-and-sms/klaviyo';
+import { ada } from '../src/vendors/functional/ada';
+import { adobeTarget } from '../src/vendors/functional/adobe-target';
+import { appcues } from '../src/vendors/functional/appcues';
 import { crisp } from '../src/vendors/functional/crisp';
+import { dynamicYield } from '../src/vendors/functional/dynamic-yield';
 import { frontChat } from '../src/vendors/functional/front-chat';
+import { gorgiasChat } from '../src/vendors/functional/gorgias';
 import { intercom } from '../src/vendors/functional/intercom';
+import { optimizelyWeb } from '../src/vendors/functional/optimizely';
+import { wisepops } from '../src/vendors/functional/wisepops';
+import { zendeskWidget } from '../src/vendors/functional/zendesk';
 import { googleTagManager } from '../src/vendors/tag-managers/google-tag-manager';
 import type { LiveProbeCheckResult, LiveVendorProbeConfig } from './types';
 
@@ -72,6 +95,39 @@ interface OpenAIPixelRuntime extends OpenAIPixelFunction {
 	measure?: (...args: unknown[]) => void;
 	consent?: (granted: boolean) => void;
 }
+
+type LiveIntentProbeWindow = Window & {
+	liQ?: {
+		ready?: boolean;
+		resolve?: unknown;
+		resolveNonId?: unknown;
+		version?: string;
+	};
+};
+
+type AdrollProbeWindow = Window & {
+	__adroll?: {
+		loadGlobalFunctions?: unknown;
+		track?: unknown;
+		version?: string;
+	};
+};
+
+type VectorProbeWindow = Window & {
+	vector?: {
+		loaded?: boolean;
+		q?: unknown[];
+		load?: unknown;
+		identify?: unknown;
+		on?: unknown;
+		emit?: unknown;
+		processQueue?: unknown;
+		_queue?: unknown[];
+		instances?: Map<string, { pixelId?: string }>;
+	};
+	Vector?: unknown;
+	__vector_manager?: unknown;
+};
 
 const check = function check(
 	ok: boolean,
@@ -201,6 +257,10 @@ type RudderStackWindow = Window & {
 	};
 };
 
+type CustomerIoProbeWindow = Window & {
+	cioanalytics?: { _writeKey?: unknown; initialize?: unknown };
+};
+
 type PosthogProbeWindow = Window & {
 	__c15tPosthogQueueReplayExpected?: boolean;
 	__c15tPosthogQueueReplayed?: boolean;
@@ -232,6 +292,515 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 		tier: 'full',
 		vendor: 'activecampaign',
 	},
+	{
+		allowUrlSubstrings: ['https://messaging-assets.ada.support/'],
+		createScript: () => ada({ handle: 'c15t-live-probe-placeholder' }),
+		loaderUrlSubstring: 'messaging-assets.ada.support/sdk.js',
+		notes:
+			'Ada is callback-only and imports the real SDK entry after consent; there is no Script.src or loader element. The entry returns HTTP 200 and can fetch rollout modules and write rollout storage during evaluation. A placeholder handle with blocked Agent APIs cannot prove start, stop, a usable conversation or data erasure. This probe records module reachability only; collection stays blocked.',
+		tier: 'loader-only',
+		vendor: 'ada',
+	},
+	{
+		bootstrapCheck: () =>
+			check(
+				window.GorgiasChat === undefined,
+				'GorgiasChat is absent before the loader so its duplicate-install guard permits initialization'
+			),
+		createScript: () => gorgiasChat({ appKey: 'XXXXXXXXXXXXXXXXXXXXXXXXXX' }),
+		loaderUrlSubstring:
+			'config.gorgias.chat/bundle-loader/XXXXXXXXXXXXXXXXXXXXXXXXXX',
+		notes:
+			'The placeholder v3 loader returns HTTP 200 with a 145-byte warning and creates no runtime. This checks the empty pre-load global and endpoint reachability only. A real pre-init proxy already exposes init, so that method cannot prove SDK readiness. Collection stays blocked.',
+		tier: 'loader-only',
+		vendor: 'gorgias',
+	},
+	{
+		bootstrapCheck: () => {
+			const api = window.zE;
+			const range = api?._?.find(
+				(args) => args[0] === 'messenger:set' && args[1] === 'cookies'
+			);
+			return check(
+				typeof api === 'function' &&
+					Array.isArray(api._) &&
+					typeof api.t === 'number' &&
+					window.zEmbed === api &&
+					api.s instanceof HTMLScriptElement &&
+					api.s.isConnected &&
+					range?.[2] === 'all',
+				'Zendesk arguments queue, alias, timestamp, real loader reference and all-consent cookie command exist before load'
+			);
+		},
+		createScript: () =>
+			zendeskWidget({ key: '00000000-0000-0000-0000-000000000000' }),
+		loaderUrlSubstring:
+			'static.zdassets.com/ekr/snippet.js?key=00000000-0000-0000-0000-000000000000',
+		notes:
+			'The universal snippet returns HTTP 200 for the all-zero placeholder key, while its compose endpoint returns HTTP 404. This checks bootstrap and loader reachability only, not a Messaging runtime or cookie cleanup. Configuration and collection stay blocked.',
+		tier: 'loader-only',
+		vendor: 'zendesk',
+	},
+
+	{
+		bootstrapCheck: () =>
+			check(
+				typeof window.ttdConversionEvents === 'function' &&
+					Array.isArray(window.ttdConversionEventsLayer) &&
+					window.ttdConversionEventsLayer.length === 2,
+				'Official init and event arguments queue'
+			),
+		createScript: () =>
+			theTradeDeskPixel({
+				advertiserId: 'rt7ftg2',
+				enableCookieSyncing: false,
+				pixelIds: ['ejs57s6'],
+			}),
+		loaderUrlSubstring: 'js.adsrvr.org/up_loader.3.0.0.js',
+		notes:
+			'Official sample advertiser and pixel IDs. Real SDK executes with collection and sync frames blocked. Account delivery and TDID creation are not verified by this monitor.',
+		runtimeCheck: () =>
+			check(
+				typeof window.ttdConversionEvents?.dumpConfigs === 'function',
+				'Real Trade Desk SDK added dumpConfigs'
+			),
+		tier: 'full',
+		vendor: 'the-trade-desk',
+	},
+	{
+		bootstrapCheck: () => ({
+			// LiveConnect event guide uses an array, not a callable stub.
+			// No synthetic conversion is configured for this live monitor.
+			detail:
+				'LiveConnect starts with an empty event array and no helper-created LI config',
+			ok:
+				Array.isArray(window.liQ) &&
+				window.liQ.length === 0 &&
+				window.LI === undefined,
+		}),
+		createScript: () => liveIntentTag({ tagId: 'a-00xx' }),
+		loaderUrlSubstring: 'b-code.liadm.com/a-00xx.min.js',
+		notes:
+			'Public a-00xx example tag, explicitly authorized for this monitor. Its downloaded bundle is configured for advertiser 30117 and contains real SDK code, so this is not a sandbox. The existing runner blocks collection, identity resolution, sync frames and every non-loader third-party URL; add no broad liadm.com allowlist. Runtime check proves SDK object installation and config handling, not event delivery, complete consent handling or full shutdown. The downloaded TCF predicate disagrees with the four-purpose guide.',
+		runtimeCheck: () => {
+			// liveintent-placeholder.js replaces liQ with `new ri(...)`, handles
+			// window.LI, and sets ready=true. ri has resolve/resolveNonId and a
+			// version property. The helper creates only an array with .push.
+			const runtime = (window as LiveIntentProbeWindow).liQ;
+			return {
+				detail: 'LiveConnect replaced liQ with its configured SDK event client',
+				ok:
+					runtime !== undefined &&
+					!Array.isArray(runtime) &&
+					typeof runtime.push === 'function' &&
+					typeof runtime.resolve === 'function' &&
+					typeof runtime.resolveNonId === 'function' &&
+					typeof runtime.version === 'string' &&
+					runtime.version.length > 0 &&
+					runtime.ready === true &&
+					window.LI?.appId === 'a-00xx',
+			};
+		},
+		runtimeReplacedGlobals: ['liQ'],
+		runtimeVersion: () => (window as LiveIntentProbeWindow).liQ?.version,
+		// Downloaded a-00xx is real JavaScript with source-backed runtime markers.
+		tier: 'full',
+		vendor: 'liveintent',
+	},
+	{
+		// oxlint-disable-next-line complexity -- Check the official globals, methods and Arguments queue together.
+		bootstrapCheck: () => {
+			// Vendor-published bootstrap, embedded by help article 360040116252:
+			const queue = window.adroll;
+			const entry = Array.isArray(queue) ? queue[0] : undefined;
+			const args = Array.isArray(entry) ? entry[1] : undefined;
+			const hasPageViewArguments =
+				typeof args === 'object' &&
+				args !== null &&
+				Object.prototype.toString.call(args) === '[object Arguments]' &&
+				'length' in args &&
+				args.length === 1 &&
+				'0' in args &&
+				args[0] === 'pageView';
+			return {
+				detail:
+					'Official AdRoll v2 globals and one [track, Arguments(pageView)] entry',
+				ok:
+					window.adroll_adv_id === '5L5IV3X4ZNCUZFMLN5KKOD' &&
+					window.adroll_pix_id === 'DLEXXKZ55FGAPLBGIZ2AGG' &&
+					window.adroll_version === '2.0' &&
+					window.__adroll_loaded === true &&
+					Array.isArray(queue) &&
+					queue.length === 1 &&
+					Array.isArray(queue.f) &&
+					queue.f.length === 3 &&
+					queue.f[0] === 'setProperties' &&
+					queue.f[1] === 'identify' &&
+					queue.f[2] === 'track' &&
+					typeof queue.setProperties === 'function' &&
+					typeof queue.identify === 'function' &&
+					typeof queue.track === 'function' &&
+					Array.isArray(entry) &&
+					entry.length === 2 &&
+					entry[0] === 'track' &&
+					hasPageViewArguments,
+			};
+		},
+		createScript: () =>
+			adrollPixel({
+				advertiserId: '5L5IV3X4ZNCUZFMLN5KKOD',
+				pixelId: 'DLEXXKZ55FGAPLBGIZ2AGG',
+			}),
+		loaderUrlSubstring: 's.adroll.com/j/5L5IV3X4ZNCUZFMLN5KKOD/roundtrip.js',
+		notes:
+			'Public AdRoll house advertiser and pixel IDs, explicitly authorized for this monitor. The downloaded account-specific loader returned real v2 JavaScript. The existing runner blocks collection and every non-loader third-party URL; add no broad AdRoll allowlist. Runtime check proves SDK construction only, not queue replay, account delivery, cookie behavior or full shutdown.',
+		runtimeCheck: () => {
+			// adroll-v2-house.js creates window.__adroll with `new __adroll__`.
+			// The constructor sets version and these prototype methods exist in
+			// the downloaded bundle. Our bootstrap creates none of this object.
+			const runtime = (window as AdrollProbeWindow).__adroll;
+			return {
+				detail:
+					'Downloaded AdRoll SDK constructed __adroll and its runtime methods',
+				ok:
+					typeof runtime === 'object' &&
+					runtime !== null &&
+					typeof runtime.version === 'string' &&
+					runtime.version.length > 0 &&
+					typeof runtime.loadGlobalFunctions === 'function' &&
+					typeof runtime.track === 'function',
+			};
+		},
+		runtimeVersion: () => (window as AdrollProbeWindow).__adroll?.version,
+		tier: 'full',
+		vendor: 'adroll',
+	},
+	{
+		// oxlint-disable-next-line complexity -- Verify the documented nested load tuple and all bootstrap methods together.
+		bootstrapCheck: () => {
+			const probeWindow: VectorProbeWindow = window;
+			const stub = probeWindow.vector;
+			const queue = stub?.q;
+			const entry = Array.isArray(queue) ? queue[0] : undefined;
+			const args = Array.isArray(entry) ? entry[1] : undefined;
+			return {
+				detail:
+					'Vector bootstrap has loaded=true and one [load, [pixelId]] command before the real loader executes',
+				ok:
+					stub?.loaded === true &&
+					typeof stub.load === 'function' &&
+					typeof stub.identify === 'function' &&
+					typeof stub.on === 'function' &&
+					Array.isArray(queue) &&
+					queue.length === 1 &&
+					Array.isArray(entry) &&
+					entry.length === 2 &&
+					entry[0] === 'load' &&
+					Array.isArray(args) &&
+					args.length === 1 &&
+					args[0] === 'c15t-test-pixel' &&
+					probeWindow.__vector_manager === undefined,
+			};
+		},
+		createScript: () => vector({ pixelId: 'c15t-test-pixel' }),
+		loaderUrlSubstring: 'https://cdn.vector.co/pixel.js',
+		notes:
+			'Only the exact GET script URL https://cdn.vector.co/pixel.js is allowed by the batch config. The placeholder pixel proves bootstrap, manager replacement and nested queue replay only. API, settings, identity, collection, partner and other script requests stay blocked. Real account/domain settings and visitor identification are not validated. Settings require an authorized X-Request-URL; public account IDs cannot validate this test origin. Blocked empty settings responses may produce vendor JSON errors, which must remain visible. Vector has no documented complete stop API; revocation requires the normal c15t reload, and retained code may continue without it.',
+		// oxlint-disable-next-line complexity -- Check source-backed manager aliases, live methods, queue drain and exact pixel replay together.
+		runtimeCheck: () => {
+			// pixel.js constructs __vector_manager, aliases Vector/vector to it,
+			// drains _queue, deletes q, and creates an instance for the load ID.
+			// These markers precede account-settings success and are absent from
+			// our bootstrap. Do not use loaded=true as a runtime assertion.
+			const probeWindow: VectorProbeWindow = window;
+			const runtime = probeWindow.vector;
+			const instances = runtime?.instances;
+			const instance =
+				instances instanceof Map ? instances.get('c15t-test-pixel') : undefined;
+			return {
+				detail:
+					'Downloaded Vector manager replaced the stub, drained its nested queue and registered the exact placeholder pixel; account initialization is unverified',
+				ok:
+					runtime !== undefined &&
+					runtime === probeWindow.__vector_manager &&
+					runtime === probeWindow.Vector &&
+					typeof runtime.load === 'function' &&
+					typeof runtime.identify === 'function' &&
+					typeof runtime.on === 'function' &&
+					typeof runtime.emit === 'function' &&
+					typeof runtime.processQueue === 'function' &&
+					runtime.q === undefined &&
+					Array.isArray(runtime._queue) &&
+					runtime._queue.length === 0 &&
+					instances instanceof Map &&
+					instances.size === 1 &&
+					instance?.pixelId === 'c15t-test-pixel',
+			};
+		},
+		runtimeReplacedGlobals: ['vector'],
+		tier: 'full',
+		vendor: 'vector',
+	},
+	{
+		bootstrapCheck: () =>
+			check(
+				window.statable === undefined,
+				'Statable event API left absent before the real tracker loads'
+			),
+		createScript: () => statableAnalytics({ siteId: 123456789 }),
+		loaderUrlSubstring: 'statable.com/js/123456789/s.js',
+		notes:
+			'The public loader serves JavaScript for a placeholder site ID. Collection requests are blocked; this does not verify dashboard attribution.',
+		runtimeCheck: () =>
+			check(
+				typeof window.statable?.t === 'function' &&
+					document.cookie === '' &&
+					localStorage.length === 0 &&
+					sessionStorage.length === 0,
+				'Statable initialized its event API without cookies or browser storage'
+			),
+		tier: 'full',
+		vendor: 'statable-analytics',
+	},
+	{
+		bootstrapCheck: () =>
+			check(
+				window.pendo === undefined,
+				'No Pendo namespace until the real agent loads'
+			),
+		// Real public key from https://web-sdk.pendo.io/ page source lets the
+		// probe load the actual agent. The runner blocks collection and account
+		// configuration requests.
+		createScript: () =>
+			pendo({ apiKey: '2a7e6935-2488-4303-61ea-eda91d575707' }),
+		loaderUrlSubstring:
+			'cdn.pendo.io/agent/static/2a7e6935-2488-4303-61ea-eda91d575707/pendo.js',
+		notes:
+			'Public vendor API key proves real agent installation and initialize/stop/start API availability. Collection and account configuration requests are blocked. No authorized account event delivery, replay, or guide behavior is verified.',
+		runtimeCheck: () =>
+			check(
+				typeof window.pendo?.initialize === 'function' &&
+					typeof window.pendo.stopSendingEvents === 'function' &&
+					typeof window.pendo.startSendingEvents === 'function',
+				'Real Pendo initialize and event controls'
+			),
+		runtimeReplacedGlobals: ['pendo'],
+		tier: 'full',
+		vendor: 'pendo',
+	},
+	{
+		allowUrlSubstrings: [
+			'tools.luckyorange.com/core/',
+			'settings.luckyorange.com/a4e370c0',
+		],
+		bootstrapCheck: () =>
+			check(Array.isArray(window.LOQ), 'Lucky Orange ready callback queue'),
+		createScript: () => luckyOrange({ siteId: 'a4e370c0' }),
+		loaderUrlSubstring: 'tools.luckyorange.com/core/lo.js',
+		notes:
+			'Public vendor site ID proves real loader and privacy API installation with a regular Chrome user agent; settings reject the headless default. The sample account has Require Consent disabled, so its account-specific Require Consent behavior is not verified. Require Consent must be enabled in the account. Collection is blocked; complete stop of active recordings and behavior with DNT or existing vendor opt-out are not verified. Keep reload on withdrawal.',
+		runtimeCheck: () =>
+			check(
+				typeof window.LO?.privacy?.setConsentStatus === 'function',
+				'Lucky Orange installed its privacy API'
+			),
+		runtimeReplacedGlobals: ['LO'],
+		tier: 'full',
+		userAgent:
+			'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36',
+		vendor: 'lucky-orange',
+	},
+	{
+		createScript: () => rb2b({ accountKey: 'C15TFAKERB2BKEY' }),
+		loaderUrlSubstring:
+			'ddwl4m2hdecbv.cloudfront.net/b/C15TFAKERB2BKEY/C15TFAKERB2BKEY.js.gz',
+		notes:
+			'Placeholder account key provides consent gating and endpoint reachability coverage only. Runtime initialization and visitor identification are not verified; collection is blocked.',
+		tier: 'loader-only',
+		vendor: 'rb2b',
+	},
+	{
+		createScript: () => optimizelyWeb({ projectId: '12345678' }),
+		loaderUrlSubstring: 'cdn.optimizely.com/js/12345678.js',
+		notes:
+			'The official sample project returns HTTP 403. This checks CDN reachability only; a dedicated project is needed for account runtime validation.',
+		tier: 'loader-only',
+		vendor: 'optimizely',
+	},
+
+	{
+		bootstrapCheck: () =>
+			check(
+				window.DY?.userActiveConsent?.accepted === true,
+				'Active Cookie Consent is granted only after the mapped gate'
+			),
+		createScript: () => dynamicYield({ sectionId: '1234567' }),
+		loaderUrlSubstring: 'cdn.dynamicyield.com/api/1234567/api_dynamic.js',
+		notes:
+			'Placeholder sections return HTTP403. This checks endpoint reachability and the consent bootstrap, not a configured section or SDK runtime.',
+		tier: 'loader-only',
+		vendor: 'dynamic-yield',
+	},
+
+	{
+		bootstrapCheck: () => {
+			const adobeWindow = window as Window & {
+				alloy?: { (...args: unknown[]): Promise<unknown>; q?: unknown[] };
+				__alloyNS?: string[];
+			};
+			const { alloy } = adobeWindow;
+			return check(
+				typeof alloy === 'function' &&
+					Array.isArray(alloy.q) &&
+					adobeWindow.__alloyNS?.includes('alloy') === true,
+				'Adobe promise-queue stub and alloy namespace exist after consent, before SDK execution'
+			);
+		},
+		createScript: () =>
+			adobeTarget({
+				datastreamId: '00000000-0000-4000-8000-000000000000',
+				mode: 'websdk',
+				orgId: 'C15TFAKE@AdobeOrg',
+				version: '2.30.0',
+			}),
+		loaderUrlSubstring: 'cdn1.adoberesources.net/alloy/2.30.0/alloy.min.js',
+		notes:
+			'Web SDK 2.30.0 has a public CDN loader. Placeholder organization and datastream IDs and blocked collection cannot validate configuration, setConsent delivery or Target offers. This monitor asserts bootstrap and loader reachability only; customer-hosted at.js is not covered.',
+		tier: 'loader-only',
+		vendor: 'adobe-target',
+	},
+
+	{
+		bootstrapCheck: () =>
+			check(
+				window.AppcuesSettings?.enableURLDetection === true,
+				'Appcues settings exist before its loader executes'
+			),
+		createScript: () => appcues({ accountId: 'c15t-nonexistent-account' }),
+		loaderUrlSubstring: 'fast.appcues.com/c15t-nonexistent-account.js',
+		notes:
+			'Placeholder accounts may reject the loader. This probe proves consent gating and endpoint reachability, not SDK initialization; use a real account for onboarding flows.',
+		tier: 'loader-only',
+		vendor: 'appcues',
+	},
+
+	{
+		allowUrlSubstrings: ['wisepops.net/h/c15tfake/loader.js?v=3'],
+		bootstrapCheck: () => {
+			const api = window.wisepops;
+			const options = api?.q?.find((args) => args[0] === 'options');
+			return check(
+				typeof api === 'function' &&
+					typeof api.l === 'number' &&
+					Array.isArray(api.q) &&
+					options?.[1]?.defaultConsent === 'denied',
+				'Wisepops arguments queue, snippet timestamp and denied default exist before loader execution'
+			);
+		},
+		createScript: () => wisepops({ siteId: 'c15tfake' }),
+		loaderUrlSubstring: 'wisepops.net/loader.js?v=3&h=c15tfake',
+		notes:
+			'The placeholder loader redirects with HTTP 301, then returns HTTP 404. This checks the denied-default bootstrap and endpoint response only; the runner can record the redirect. It cannot validate runtime startup or a campaign. Stored grants can override the denied default, and no supported consent-denied API exists. Collection stays blocked.',
+		tier: 'loader-only',
+		vendor: 'wisepops',
+	},
+
+	{
+		allowUrlSubstrings: ['munchkin.marketo.net/'],
+		createScript: () => marketoMunchkin({ munchkinId: 'AAA-BBB-CCC' }),
+		loaderUrlSubstring: 'munchkin.marketo.net/munchkin.js',
+		notes:
+			'Uses a placeholder Munchkin ID. Collection is blocked. This validates SDK installation, not attribution to a configured Marketo account.',
+		runtimeCheck: () =>
+			check(
+				typeof window.MunchkinTracker?.init === 'function',
+				'Munchkin runtime methods installed by the real loader'
+			),
+		tier: 'full',
+		vendor: 'marketo',
+	},
+	{
+		bootstrapCheck: () =>
+			check(
+				typeof window.pdt === 'function' && Array.isArray(window.pdt.cq),
+				'Pardot callable cq queue'
+			),
+		createScript: () =>
+			pardotTracking({
+				piAId: '123456',
+				piCId: '654321',
+				piDomain: 'pi.pardot.com',
+			}),
+		loaderUrlSubstring: 'pi.pardot.com/pdt.js',
+		notes:
+			'Placeholder account and campaign prove real consent dispatcher installation, not account activation or analytics delivery. Every collection and clearing request is blocked.',
+		runtimeCheck: () =>
+			check(
+				typeof window.pdt === 'function' && !window.pdt.cq,
+				'Pardot replaced its snippet queue'
+			),
+		runtimeReplacedGlobals: ['pdt'],
+		tier: 'full',
+		vendor: 'salesforce-pardot',
+	},
+	{
+		skipReason:
+			'Attentive placeholder slugs do not install the tag, and no authorized test tenant is configured.',
+		tier: 'skip',
+		vendor: 'attentive',
+	},
+	{
+		allowUrlSubstrings: [
+			'cdp.customer.io/v1/projects/47e549aabef763c4f2fc/settings',
+			'cdp.customer.io/v1/analytics-js/',
+		],
+		bootstrapCheck: () =>
+			check(
+				Array.isArray(window.cioanalytics) &&
+					(window as CustomerIoProbeWindow).cioanalytics?._writeKey ===
+						'47e549aabef763c4f2fc' &&
+					document.querySelector(
+						'script[data-global-customerio-analytics-key="cioanalytics"]'
+					) !== null,
+				'Customer.io namespace, array queue and write key'
+			),
+		createScript: () => customerIo({ writeKey: '47e549aabef763c4f2fc' }),
+		loaderUrlSubstring:
+			'cdp.customer.io/v1/analytics-js/snippet/47e549aabef763c4f2fc/analytics.min.js',
+		notes:
+			'Public US write key yields actual JavaScript. Invalid keys or wrong regions can return 200 JSON and do not prove SDK execution. Collection and destination endpoints are blocked; account delivery and complete destination shutdown are not verified.',
+		runtimeCheck: () =>
+			check(
+				typeof (window as CustomerIoProbeWindow).cioanalytics?.initialize ===
+					'function',
+				'Customer.io installed its real analytics SDK'
+			),
+		runtimeReplacedGlobals: ['cioanalytics'],
+		tier: 'full',
+		vendor: 'customer-io',
+	},
+	{
+		bootstrapCheck: () => {
+			const queue = window.InsiderQueue;
+			return check(
+				Array.isArray(queue) &&
+					queue.length === 3 &&
+					queue[0]?.type === 'user' &&
+					queue[0]?.value?.gdpr_optin === true &&
+					queue[1]?.type === 'other' &&
+					queue[2]?.type === 'init',
+				'Insider queue contains the granted user, default page and init in order before load'
+			);
+		},
+		createScript: () =>
+			insiderTag({ partnerId: '123456', partnerName: 'c15t' }),
+		loaderUrlSubstring: 'c15t.api.useinsider.com/ins.js?id=123456',
+		notes:
+			'The placeholder partner returns HTTP 200 with a 52-byte HTML response, not an SDK. This checks the user/page/init bootstrap and endpoint reachability only. A dedicated Web SDK-enabled account is required for runtime and consent-update validation; collection stays blocked.',
+		tier: 'loader-only',
+		vendor: 'insider',
+	},
+
 	{
 		skipReason:
 			'Requires a configured Cloudflare zone and purpose IDs. This bridge does not fetch a public vendor loader.',
@@ -535,11 +1104,6 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 					disabled: false,
 				},
 			}),
-		deniedConsentProbe: {
-			// configWhenDenied sets disabled: true, so the SDK must send nothing
-			// to Databuddy's collection API while consent is denied.
-			collectUrlSubstrings: ['basket.databuddy.cc', 'api.databuddy.cc'],
-		},
 		loaderUrlSubstring: 'cdn.databuddy.cc/databuddy.js',
 		runtimeCheck: () =>
 			check(

@@ -247,6 +247,22 @@ describe('success shapes', () => {
 		});
 	});
 
+	it('subjects.identify creates a subject that has not saved yet', async () => {
+		const subjectId = newSubjectId();
+
+		const data = dataOf(
+			await api.client.subjects.identify(subjectId, {
+				externalId: 'user_unsaved',
+			})
+		);
+
+		expect(data.subject).toMatchObject({
+			externalId: 'user_unsaved',
+			id: subjectId,
+		});
+		expect(dataOf(await api.client.subjects.get(subjectId))).toBeDefined();
+	});
+
 	it('subjects.list revives subject and consent dates', async () => {
 		const input = cookieBanner();
 		dataOf(await api.client.subjects.create(input));
@@ -432,9 +448,9 @@ describe('typed backend errors', () => {
 		expect(error.requestId).toEqual(expect.any(String));
 	});
 
-	it('subjects.identify on an unknown id is NOT_FOUND', async () => {
+	it('subjects.identify on a malformed id is NOT_FOUND', async () => {
 		const error = errorOf(
-			await api.client.subjects.identify(newSubjectId(), {
+			await api.client.subjects.identify('not-a-subject', {
 				externalId: 'user_missing',
 			})
 		);

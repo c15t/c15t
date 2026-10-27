@@ -1,3 +1,135 @@
+## @c15t/react@3.2.0-canary.0 (canary)
+
+### Allowed scripts start from the server HTML
+
+Next.js, TanStack Start, Nuxt and SvelteKit now start the `scripts` entries a
+visitor's consent already allows from the server-rendered HTML, before the page
+hydrates. An inline script runs after first paint and inserts their tags; the
+script loader adopts them. On a throttled mobile profile, vendors started about
+800 ms sooner. This covers React 18 and 19, and every vendor helper in
+`@c15t/integrations` except Cloudflare Zaraz and Sentry.
+
+Nothing starts while the policy asks the visitor to choose, or from prerendered
+or cached HTML. Set `scriptLoader: { serverStart: false }` to start every entry
+after hydration, as before.
+
+### Rename offline mode to `local()` and warn that it keeps no consent records
+
+`offline()` is now `local()` in every framework package, in `c15t` and in
+`c15t/modes`. `offline()` still works and is marked deprecated. c15t v4 removes
+it.
+
+In development builds, local mode logs one `console.warn` per page: c15t keeps
+no server-side record of consent, and with no geolocation every visitor gets
+the same policy. Production builds never log it, and it blocks nothing. Pass
+`local({ acknowledgeNoRecords: true })` to hide it once you have decided a
+browser-only record is enough. c15t v4 will require that option.
+
+The script tag's local-mode file is now `c15t.local.js`. `c15t.offline.js`
+still ships until v4, and on development hosts it logs its new name. Script-tag files are production builds, so
+they log the warning only on development hosts such as `localhost`. Add
+`data-acknowledge-no-records` to the tag to hide it. `c15t.local()` joins the
+script-tag global.
+
+`c15t setup` labels local mode "Development and tests only, no consent records"
+and generates `local()`.
+
+### The banner keeps its corner for right-to-left text
+
+A floating or widget banner in its default corner used to jump to the other
+side of the page when the visitor's language ran right to left, so a
+`bottom-left` banner showed at the bottom right in Hebrew. The IAB banner in
+`@c15t/browser` did the same. The page layout doesn't change with the
+banner's language, so the banner shouldn't move either. It now stays in the
+same corner in every language, and only its text runs right to left.
+
+To put the banner on the right for right-to-left pages, set `position`
+yourself.
+
+### Rewrite npm descriptions for search
+
+npm search scores a phrase in the description far above the same words in
+keywords or the README. Each package description now names the phrases
+people search for that package: "cookie banner", "cookie consent manager",
+"consent management platform" and "Google Consent Mode v2" on `c15t`,
+"React cookie banner" on `@c15t/react`, "Vue cookie consent" on `@c15t/vue`,
+and so on. `c15t` keeps "The open standard for cookie banners". Supporting
+packages describe their role in c15t instead of repeating the main
+package's phrases. Keyword lists are shorter. No code changes.
+
+### Lock page scroll from a headless banner
+
+`useScrollLock(shouldLock)` locks page scroll the way the stock banner does
+when its policy is blocking. Call it with
+`banner.isVisible && banner.blocking` from `useHeadlessConsentUI()`. Locks
+are counted, so the page scrolls again once every surface holding one lets
+go. Import it from `c15t/react/headless`, `c15t/next/headless` or
+`c15t/tanstack-start/headless`.
+
+### Export banner copy and button labels for headless UIs
+
+`resolvePromptCopy(translations, prompt)` returns the banner's title and
+description, and reads the notice copy when the prompt is a notice.
+`resolveActionLabels(translations)` labels each banner action, and
+`resolvePreferenceControlLabels(translations)` labels the opt-out and
+preferences buttons. All three use the active language and fall back to
+English for a missing key. Import them from `c15t`, `@c15t/svelte`,
+`@c15t/svelte/headless`, `c15t/vue/vue-plugin` or `@c15t/browser/headless`.
+`@c15t/browser/headless` also exports `resolveConsentPresentation` now.
+
+React adds `useBannerCopy()` and `useConsentLabels()` to
+`c15t/react/headless`, `c15t/next/headless` and
+`c15t/tanstack-start/headless`. They return the same strings the stock
+banner renders and update when the language changes. The same headless
+entries now export `useVendorsListedUnder(category)`, which returns the
+vendors the stock dialog lists under a category.
+
+When a notice offers only a dismiss button, `primaryActions` from
+`resolveConsentPresentation` now contains `dismiss`, so a headless banner can
+style it as the primary button. The browser banner now styles that button as
+primary too. The React, Vue and Svelte banners already did.
+
+### Match the stock surfaces' text direction and IAB handling in headless UI
+
+`useConsentTextDirection()` returns `'rtl'` or `'ltr'` for the language
+c15t shows consent copy in. Set it as `dir` on a custom banner or
+preference center, as the stock ones do, so a visitor whose browser
+language runs right to left gets a mirrored layout.
+
+`useIABPolicyGuard()` is now public. A custom surface that handles only
+opt-in and opt-out calls it and returns `null` when `useModel()` is
+`'iab'`. The guard throws `IABUnavailableError` while rendering when the
+policy needs IAB and the app never loaded `<IABProvider>`.
+
+Import both from `c15t/react/headless`, `c15t/next/headless` or
+`c15t/tanstack-start/headless`.
+
+### Stream a headless banner with `StreamedConsentSurface`
+
+`StreamedConsentSurface` lets a banner built with the headless hooks stream
+like the stock `ConsentBanner`. With Next.js
+`<ConsentRoot state={resolveConsent()}>` or a streamed TanStack Start loader,
+it waits for the consent promise in its own `Suspense` boundary, so the
+banner follows in a later chunk of the same response and shows before
+hydration. Without a pending promise it renders its children as they are.
+Call the hooks in a component inside it. Import it from
+`c15t/react/headless`, `c15t/next/headless` or
+`c15t/tanstack-start/headless`.
+
+### Add `useConsentGate` for custom consent gates
+
+`useConsentGate(category)` returns what a gate on one consent category should
+render: `'granted'`, `'pending'`, `'denied'` or `'policy-blocked'`. It also
+returns the translated title, button label and policy message, and
+`requestConsent`, which opens the preference center. Import it from
+`c15t/react/headless`, `c15t/next/headless` or
+`c15t/tanstack-start/headless`.
+
+`ConsentGate` now runs on the hook, so a custom gate follows the same rules.
+Granted content waits for hydration, a strict policy scope blocks categories
+outside it, and server rendering never reads the clock. `ConsentGate` renders
+the same markup as before.
+
 ## @c15t/react@3.1.0
 
 ### Get the provider's event dispatcher in every framework

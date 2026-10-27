@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/schema",
-	"version": "3.1.0",
+	"version": "3.1.1-canary.0",
 	"description": "Valibot schemas and TypeScript types for the c15t consent API, shared by the backend, frontends and Node.js SDK.",
 	"keywords": [
 		"ccpa",

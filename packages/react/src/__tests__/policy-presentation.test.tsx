@@ -252,7 +252,7 @@ describe('policy presentation reference behavior', () => {
 	});
 });
 
-it('hydrates prepared server HTML without a prompt flash, callback, request or storage write', async () => {
+it('hydrates prepared server HTML without a prompt flash, callback, request or record write', async () => {
 	const { renderToString } = await import('react-dom/server');
 	const { hydrateRoot } = await import('react-dom/client');
 	const { readStoredRecordsFromCookieHeader } =
@@ -299,7 +299,8 @@ it('hydrates prepared server HTML without a prompt flash, callback, request or s
 	expect(onChoiceRecorded).not.toHaveBeenCalled();
 	expect(onPermissionsChanged).not.toHaveBeenCalled();
 	expect(init).not.toHaveBeenCalled();
-	expect(setItem).not.toHaveBeenCalled();
+	// A first visit stores its new subject ID and nothing else.
+	expect(setItem.mock.calls.filter(([key]) => key !== 'c15t-sid')).toEqual([]);
 	expect(errors).not.toHaveBeenCalled();
 	root.unmount();
 	host.remove();

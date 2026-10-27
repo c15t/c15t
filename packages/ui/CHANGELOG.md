@@ -1,3 +1,29 @@
+## @c15t/ui@3.0.2-canary.0 (canary)
+
+### Yiddish and other right-to-left languages render right to left
+
+Banners, dialogs and preference centers now set `dir="rtl"` for Yiddish
+(`yi`), Central Kurdish (`ckb`), Uyghur (`ug`), Syriac (`syr`) and N'Ko
+(`nqo`), and for the older codes `iw` (Hebrew) and `ji` (Yiddish). They
+rendered left to right before.
+
+A script subtag now decides the direction over the language: `ku-Arab`,
+`pa-Arab` and `az-Arab` are right to left, and `sd-Deva` is left to right.
+
+Plain `ku` is now left to right. It usually means Kurmanji, which uses
+Latin script. For Sorani, use `ckb` or `ku-Arab`.
+
+### Rewrite npm descriptions for search
+
+npm search scores a phrase in the description far above the same words in
+keywords or the README. Each package description now names the phrases
+people search for that package: "cookie banner", "cookie consent manager",
+"consent management platform" and "Google Consent Mode v2" on `c15t`,
+"React cookie banner" on `@c15t/react`, "Vue cookie consent" on `@c15t/vue`,
+and so on. `c15t` keeps "The open standard for cookie banners". Supporting
+packages describe their role in c15t instead of repeating the main
+package's phrases. Keyword lists are shorter. No code changes.
+
 ## @c15t/ui@3.0.1
 
 ### Clearer npm descriptions and keywords

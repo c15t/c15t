@@ -10,14 +10,25 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
 	choiceRecords,
 	matchedResolution,
+	noticeRule,
 	NOW,
 	optInRule,
 } from '../../../__tests__/fixtures/kernel-fixtures';
 import { createConsentKernel } from '../../../index';
-import type { KernelVendorsState } from '../../../types';
+import { readRequestConsent } from '../../../server/request-consent';
+import { resolveRequestSubject } from '../../../server/request-subject';
+import type { HydrationRecords, KernelVendorsState } from '../../../types';
+import { watchRevocationReload } from '../../revocation-reload';
 import { createPersistence } from '../index';
-import { readStoredVendorChoice } from '../record-storage';
-import { writeStoredVendorChoice } from './record-writes';
+import {
+	readStoredNoticeDismissal,
+	readStoredVendorChoice,
+	resolveStorageKeys,
+} from '../record-storage';
+import {
+	encodeVendorChoiceCompact,
+	writeStoredVendorChoice,
+} from './record-writes';
 
 const vendors: KernelVendorsState = {
 	declared: [
@@ -339,6 +350,344 @@ describe('vendor persistence', () => {
 		expect(readStoredVendorChoice(undefined, NOW)).toBeNull();
 		expect(kernel.getSnapshot().vendorChoice).toBeNull();
 		persistence.dispose();
+		kernel.dispose();
+	});
+});
+
+describe('vendor-only subject through a server render', () => {
+	const vendorOnlyKernel = (initialRecords?: HydrationRecords) =>
+		createConsentKernel({
+			consentCategories: ['marketing'],
+			initialPolicyResolution: matchedResolution(
+				optInRule({ categories: ['marketing'] })
+			),
+			initialRecords,
+			initialVendors: vendors,
+			now: NOW,
+		});
+	const cookieValue = (name: string) => {
+		const pair = document.cookie
+			.split('; ')
+			.find((part) => part.startsWith(`${name}=`));
+		return pair ? decodeURIComponent(pair.slice(name.length + 1)) : null;
+	};
+	const serverRender = () => {
+		const subject = resolveRequestSubject({
+			now: NOW,
+			request: { cookie: document.cookie, url: 'https://example.com/' },
+		});
+		const { state } = readRequestConsent({
+			adapter: '@c15t/test',
+			now: NOW,
+			request: { cookie: subject?.cookie, headers: new Headers() },
+		});
+		return { initialRecords: state.initialRecords, subject };
+	};
+	const seed = (initialRecords?: HydrationRecords) => {
+		const kernel = vendorOnlyKernel(initialRecords);
+		const handle = createPersistence({
+			kernel,
+			now: () => NOW,
+			skipHydration: true,
+		});
+		return { handle, kernel };
+	};
+	const savedVisitor = async () => {
+		const kernel = vendorOnlyKernel();
+		const handle = createPersistence({ kernel, now: () => NOW });
+		await kernel.commands.save({}, { vendors: { 'meta-pixel': false } });
+		await vi.runAllTimersAsync();
+		expect(kernel.getSnapshot().explicitChoice).toBeNull();
+		return { handle, kernel };
+	};
+
+	it('a dropped vendor cookie rewrite does not bring the old ID back', async () => {
+		const { handle, kernel } = await savedVisitor();
+		const old = kernel.getSnapshot().subject?.subjectId;
+		const setter = Object.getOwnPropertyDescriptor(
+			Document.prototype,
+			'cookie'
+		)?.set;
+		const drop = vi
+			.spyOn(document, 'cookie', 'set')
+			.mockImplementation((value: string) => {
+				if (!value.startsWith('c15t-vendors=')) {
+					setter?.call(document, value);
+				}
+			});
+		try {
+			kernel.set.subjectId('sub_next');
+			await vi.runAllTimersAsync();
+		} finally {
+			drop.mockRestore();
+		}
+		handle.dispose();
+		kernel.dispose();
+
+		const { initialRecords, subject } = serverRender();
+		expect(subject?.subjectId).toBe(old);
+		expect(subject?.setCookie).toBeNull();
+		const seeded = seed(initialRecords);
+		expect(seeded.kernel.getSnapshot().subject?.subjectId).toBe('sub_next');
+		expect(seeded.kernel.getSnapshot().vendorChoice?.denied).toEqual([
+			'meta-pixel',
+		]);
+		expect(cookieValue('c15t-sid')).toBe('sub_next');
+		expect(localStorage.getItem('c15t-sid')).toBe('sub_next');
+		seeded.handle.dispose();
+		seeded.kernel.dispose();
+	});
+
+	// The vendor reader keeps the local subject on an equal time, as if the
+	// cookie missed a rewrite. A sibling subdomain's rewrite at the same
+	// time looks the same from here. A seeded start resolves it as a
+	// hydrating load does, and leaves the shared subject cookie alone.
+	it('a sibling vendor rewrite at the same time leaves the shared subject cookie alone, and a later vendor save republishes the local ID', async () => {
+		const { handle, kernel } = await savedVisitor();
+		const local = kernel.getSnapshot().subject?.subjectId;
+		const record = kernel.getSnapshot().vendorChoice;
+		if (!record) {
+			throw new Error('Expected a vendor decision');
+		}
+		handle.dispose();
+		kernel.dispose();
+		document.cookie = `c15t-vendors=${encodeVendorChoiceCompact({ ...record, subject: { subjectId: 'sub_sibling' } })}; path=/`;
+		document.cookie = 'c15t-sid=sub_sibling; path=/';
+
+		const { initialRecords, subject } = serverRender();
+		expect(subject?.subjectId).toBe('sub_sibling');
+		expect(subject?.setCookie).toBeNull();
+		const seeded = seed(initialRecords);
+		expect(cookieValue('c15t-sid')).toBe('sub_sibling');
+		const hydrating = vendorOnlyKernel();
+		const hydratingHandle = createPersistence({
+			kernel: hydrating,
+			now: () => NOW,
+		});
+		expect(seeded.kernel.getSnapshot().subject?.subjectId).toBe(
+			hydrating.getSnapshot().subject?.subjectId
+		);
+		expect(cookieValue('c15t-sid')).toBe('sub_sibling');
+		// Focus and a storage event check the subject cookie again. The record
+		// cookies name the sibling's ID too, so neither runtime writes its own
+		// ID over it.
+		window.dispatchEvent(new Event('focus'));
+		window.dispatchEvent(new StorageEvent('storage', { key: 'c15t-sid' }));
+		await vi.runAllTimersAsync();
+		expect(cookieValue('c15t-sid')).toBe('sub_sibling');
+		expect(seeded.kernel.getSnapshot().vendorChoice?.denied).toEqual([
+			'meta-pixel',
+		]);
+		hydratingHandle.dispose();
+		hydrating.dispose();
+
+		// Accepted limit: equal receipt times keep the local copy's ID, so this
+		// origin runs on it, and its next explicit vendor save stores it in the
+		// shared vendor cookie. The save records no category choice and grants
+		// no category.
+		expect(seeded.kernel.getSnapshot().subject?.subjectId).toBe(local);
+		await seeded.kernel.commands.save({}, { vendors: { 'meta-pixel': true } });
+		await vi.runAllTimersAsync();
+		expect(seeded.kernel.getSnapshot().explicitChoice).toBeNull();
+		expect(seeded.kernel.getSnapshot().effectivePermissions.marketing).toBe(
+			false
+		);
+		expect(seeded.kernel.getSnapshot().vendorChoice?.denied).toEqual([]);
+		expect(serverRender().subject?.subjectId).toBe(local);
+		expect(cookieValue('c15t-sid')).toBe('sub_sibling');
+		seeded.handle.dispose();
+		seeded.kernel.dispose();
+	});
+});
+
+// A save under a notice prompt acknowledges the notice, and a save that
+// confirms no category records only the vendor decision. The acknowledgement
+// it records is stored with that decision.
+describe('a vendor-only save under a notice', () => {
+	const recorded = (kernel: ReturnType<typeof createConsentKernel>) => {
+		const events: string[] = [];
+		for (const type of [
+			'choice:recorded',
+			'notice:dismissed',
+			'vendors:recorded',
+		] as const) {
+			kernel.events.on(type, () => events.push(type));
+		}
+		return events;
+	};
+	const storedDismissedAt = () => {
+		const notice = readStoredNoticeDismissal(undefined, Date.now());
+		return notice?.ok ? notice.record.dismissedAt : null;
+	};
+	// Counts the notice record's localStorage writes from now on.
+	const countNoticeWrites = () => {
+		const key = resolveStorageKeys().notice;
+		const setItem = vi.spyOn(window.localStorage, 'setItem');
+		const values = () =>
+			setItem.mock.calls
+				.filter(([name]) => name === key)
+				.map(([, value]) => value);
+		return {
+			count: () => values().length,
+			// Times of the acknowledgements written.
+			dismissedAts: () =>
+				values().map(
+					(value) => (JSON.parse(value) as { dismissedAt: number }).dismissedAt
+				),
+			restore: () => setItem.mockRestore(),
+		};
+	};
+	const settle = async (saving: Promise<unknown>) => {
+		await vi.advanceTimersByTimeAsync(0);
+		await saving;
+		await vi.advanceTimersByTimeAsync(0);
+		await vi.advanceTimersByTimeAsync(0);
+	};
+
+	it('stores the acknowledgement, so a reload keeps the notice dismissed', async () => {
+		const initialPolicyResolution = matchedResolution(noticeRule());
+		const kernel = createConsentKernel({
+			initialPolicyResolution,
+			initialVendors: vendors,
+			transport: { save: () => Promise.resolve({ ok: true }) },
+		});
+		const handle = createPersistence({ kernel });
+		const events = recorded(kernel);
+		// Switching off a granted vendor reloads the page once saves settle.
+		const reloads: (number | null)[] = [];
+		const stopReload = watchRevocationReload({
+			kernel,
+			reload: () => reloads.push(storedDismissedAt()),
+		});
+		expect(kernel.getSnapshot().promptRequirement.kind).toBe('notice');
+
+		vi.advanceTimersByTime(1000);
+		await settle(
+			kernel.commands.save({}, { vendors: { 'meta-pixel': false } })
+		);
+		const saved = kernel.getSnapshot();
+		expect(events).toEqual(['vendors:recorded']);
+		expect(saved.explicitChoice).toBeNull();
+		expect(saved.vendorChoice?.denied).toEqual(['meta-pixel']);
+		const actionAt = saved.vendorChoice?.confirmedAt;
+		expect(saved.noticeDismissal?.dismissedAt).toBe(actionAt);
+		await vi.waitFor(() => expect(reloads).toHaveLength(1));
+		// The acknowledgement is stored before the reload runs.
+		expect(reloads).toEqual([actionAt]);
+		const notice = readStoredNoticeDismissal(undefined, Date.now());
+		expect(notice?.ok && notice.record.subject?.subjectId).toBe(
+			saved.subject?.subjectId
+		);
+		expect(document.cookie).toContain(`${resolveStorageKeys().noticeSubject}=`);
+		stopReload();
+		handle.dispose();
+		kernel.dispose();
+
+		const restored = createConsentKernel({
+			initialPolicyResolution,
+			initialVendors: vendors,
+		});
+		const reader = createPersistence({ kernel: restored });
+		const snapshot = restored.getSnapshot();
+		expect(snapshot.promptRequirement.kind).toBe('none');
+		expect(snapshot.noticeDismissal).toEqual(saved.noticeDismissal);
+		expect(snapshot.vendorChoice).toEqual(saved.vendorChoice);
+		expect(snapshot.subject).toEqual(saved.subject);
+		expect(snapshot.explicitChoice).toBeNull();
+		reader.dispose();
+		restored.dispose();
+	});
+
+	it('leaves an earlier acknowledgement as stored', async () => {
+		const kernel = createConsentKernel({
+			initialPolicyResolution: matchedResolution(noticeRule()),
+			initialVendors: vendors,
+			transport: { save: () => Promise.resolve({ ok: true }) },
+		});
+		const handle = createPersistence({ kernel });
+		await settle(kernel.commands.dismissNotice());
+		const dismissedAt = storedDismissedAt();
+		expect(dismissedAt).toBe(kernel.getSnapshot().noticeDismissal?.dismissedAt);
+		vi.advanceTimersByTime(1000);
+		// Only what the save writes counts.
+		const events = recorded(kernel);
+		const writes = countNoticeWrites();
+		await settle(
+			kernel.commands.save({}, { vendors: { 'meta-pixel': false } })
+		);
+		expect(events).toEqual(['vendors:recorded']);
+		// The save records no new acknowledgement.
+		expect(writes.dismissedAts().filter((at) => at !== dismissedAt)).toEqual(
+			[]
+		);
+		expect(storedDismissedAt()).toBe(dismissedAt);
+		expect(kernel.getSnapshot().noticeDismissal?.dismissedAt).toBe(dismissedAt);
+		writes.restore();
+		handle.dispose();
+		kernel.dispose();
+	});
+
+	// Each of these saves already writes its acknowledgement through its own
+	// event; the vendor decision adds no second write.
+	it.each([
+		{
+			events: ['choice:recorded', 'vendors:recorded'],
+			name: 'a notice save that also confirms a category',
+			rule: noticeRule(),
+			values: { marketing: true },
+		},
+		{
+			events: ['vendors:recorded', 'notice:dismissed'],
+			name: 'a choice prompt with nothing to decide',
+			rule: optInRule({ categories: ['marketing'] }),
+			values: {},
+		},
+	])('writes the acknowledgement once for $name', async (control) => {
+		const kernel = createConsentKernel({
+			initialPolicyResolution: matchedResolution(control.rule),
+			initialVendors: vendors,
+			transport: { save: () => Promise.resolve({ ok: true }) },
+		});
+		const handle = createPersistence({ kernel });
+		const events = recorded(kernel);
+		const writes = countNoticeWrites();
+		await settle(
+			kernel.commands.save(control.values, {
+				vendors: { 'meta-pixel': false },
+			})
+		);
+		expect(events).toEqual(control.events);
+		expect(writes.count()).toBe(1);
+		expect(storedDismissedAt()).toBe(
+			kernel.getSnapshot().noticeDismissal?.dismissedAt
+		);
+		writes.restore();
+		handle.dispose();
+		kernel.dispose();
+	});
+
+	it('stores no acknowledgement under a choice prompt with a category to decide', async () => {
+		const kernel = createConsentKernel({
+			consentCategories: ['necessary', 'marketing'],
+			initialPolicyResolution: matchedResolution(optInRule()),
+			initialVendors: vendors,
+			transport: { save: () => Promise.resolve({ ok: true }) },
+		});
+		expect(kernel.getSnapshot().evaluationPolicy.choiceScope).toContain(
+			'marketing'
+		);
+		const handle = createPersistence({ kernel });
+		const events = recorded(kernel);
+		const writes = countNoticeWrites();
+		await settle(
+			kernel.commands.save({}, { vendors: { 'meta-pixel': false } })
+		);
+		expect(events).toEqual(['vendors:recorded']);
+		expect(kernel.getSnapshot().noticeDismissal).toBeNull();
+		expect(writes.count()).toBe(0);
+		expect(storedDismissedAt()).toBeNull();
+		writes.restore();
+		handle.dispose();
 		kernel.dispose();
 	});
 });

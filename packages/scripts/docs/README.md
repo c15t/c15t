@@ -118,28 +118,40 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 ## Integrations
 
 - [ActiveCampaign](./integrations/activecampaign.md): Load ActiveCampaign after marketing consent, configure its tracking settings, and verify loading and withdrawal with c15t.
+- [Ada](./integrations/ada.md): Load Ada Messaging after functionality consent with the c15t ada helper, configure regional Agents, and stop the widget when consent is revoked.
 - [Adobe Analytics](./integrations/adobe-analytics.md): Load an Adobe Data Collection Tags property only after measurement consent with the c15t adobeAnalytics helper, and check its extensions in DevTools.
+- [Adobe Target](./integrations/adobe-target.md): Gate a self-hosted Adobe Target at.js download or Adobe Experience Platform Web SDK on experience consent, send consent updates and check revocation limits.
+- [AdRoll](./integrations/adroll.md): Load AdRoll with c15t after marketing consent and verify its loader, storage and revocation behavior.
 - [Ahrefs Analytics](./integrations/ahrefs-analytics.md): Load Ahrefs Web Analytics only after measurement consent with the c15t ahrefsAnalytics helper, and check it in DevTools.
 - [Amplitude](./integrations/amplitude.md): Load the Amplitude Browser SDK 2 only after measurement consent with the c15t amplitude helper, which opts the SDK out on revocation and back in on a new grant.
+- [Appcues](./integrations/appcues.md): Load Appcues onboarding flows after experience consent, configure US or EU accounts, and reset the visitor on revocation.
+- [Attentive](./integrations/attentive.md): Load the Attentive tag only after marketing consent with the c15t attentiveTag helper, and check its requests and storage in DevTools.
 - [Custom integrations](./integrations/building-integrations.md): Gate a vendor that has no @c15t/integrations helper, or sync consent with an SDK your app already loads, using a c15t script configuration.
 - [Clay](./integrations/clay.md): Load Clay web intent only after marketing consent and understand its storage and revocation limits.
 - [Clearbit](./integrations/clearbit.md): Load the Clearbit enrichment tag only after marketing consent with the c15t clearbit helper, and check it in DevTools.
 - [Cloudflare Web Analytics](./integrations/cloudflare-web-analytics.md): Load the Cloudflare Web Analytics beacon only after measurement consent with the c15t cloudflareWebAnalytics helper, and check it in DevTools.
 - [Cloudflare Zaraz](./integrations/cloudflare-zaraz.md): Sync c15t permissions to Cloudflare Zaraz purposes with the c15t cloudflareZaraz bridge, which runs on every page without loading a script, and check the tools it controls.
 - [Crisp](./integrations/crisp.md): Load the Crisp chat widget only after functionality consent with the c15t crisp helper, pass its runtime settings and check it in DevTools.
-- [Databuddy](./integrations/databuddy.md): Load the Databuddy SDK on every page with the c15t databuddy helper, switch its disabled flag and config from measurement consent, and check both in DevTools.
+- [Customer.io](./integrations/customer-io.md): Load Customer.io Data Pipelines only after marketing consent with the c15t customerIo helper, set up a proxy, and check withdrawal.
+- [Databuddy](./integrations/databuddy.md): Load Databuddy only after measurement consent with the c15t databuddy helper, turn off tracking features you do not use, record sessions with the replay option, and check revocation in DevTools.
+- [Dynamic Yield](./integrations/dynamic-yield.md): Load Dynamic Yield personalization scripts after experience consent, set the page context and synchronize Active Cookie Consent with c15t.
 - [Fathom Analytics](./integrations/fathom-analytics.md): Load Fathom Analytics only after measurement consent with the c15t fathomAnalytics helper, set its SPA mode, and check it in DevTools.
 - [Front Chat](./integrations/front-chat.md): Load the Front Chat widget only after functionality consent with the c15t frontChat helper, forward CSP nonces, clear the session on revocation and check it in DevTools.
 - [Google Maps](./integrations/google-maps.md): Gate a Google Maps iframe embed with c15t v3 so the map loads only after the visitor allows its consent category, in Next.js, TanStack Start, React, Nuxt, Vue, Astro, Svelte, SvelteKit, HTML or JavaScript.
 - [Google Tag](./integrations/google-tag.md): Load gtag.js for Google Analytics or Google Ads before or after consent with c15t Consent Mode v2 signals, and verify the consent commands in DevTools.
 - [Google Tag Manager](./integrations/google-tag-manager.md): Load a Google Tag Manager container before or after consent with c15t Consent Mode v2 signals, configure consent checks inside the container, and verify both in DevTools.
+- [Gorgias Chat](./integrations/gorgias.md): Load Gorgias Chat after functionality consent, disable its Segment analytics when measurement is denied, and verify loading and revocation with c15t.
 - [Heap](./integrations/heap.md): Load the Heap config script and heap.js only after measurement consent with the c15t heap helper, and check it in DevTools.
 - [Hightouch](./integrations/hightouch.md): Load the Hightouch Events browser SDK only after measurement consent with the c15t hightouch helper, and check page events in DevTools.
 - [Hotjar](./integrations/hotjar.md): Load Hotjar only after measurement consent with the c15t hotjar helper, and check its loader and recordings in DevTools.
+- [Insider One](./integrations/insider.md): Load Insider One after consent with current user attributes, currency and page context through the c15t insiderTag helper.
 - [Intercom](./integrations/intercom.md): Load the Intercom messenger only after functionality consent with the c15t intercom helper, set its region and check it in DevTools.
 - [Klaviyo](./integrations/klaviyo.md): Load Klaviyo signup forms and onsite tracking only after marketing and measurement consent with the c15t klaviyo helper, gate your own events, and check it in DevTools.
 - [LinkedIn Insight Tag](./integrations/linkedin-insights.md): Load the LinkedIn Insight Tag only after marketing consent with the c15t linkedinInsights helper, guard lintrk conversion calls, and check it in DevTools.
+- [LiveIntent](./integrations/liveintent.md): Load LiveIntent with c15t after marketing consent and verify its loader, storage and revocation behavior.
 - [LogRocket](./integrations/logrocket.md): Load LogRocket session replay only after measurement consent with the c15t logRocket helper, including proxied setups, and check it in DevTools.
+- [Lucky Orange](./integrations/lucky-orange.md): Load Lucky Orange after measurement consent, configure its tracking settings, and verify loading and withdrawal with c15t.
+- [Marketo Munchkin](./integrations/marketo.md): Load Adobe Marketo Munchkin after marketing consent, configure its account and cookie options, and verify tracking and revocation with c15t.
 - [Matomo Analytics](./integrations/matomo-analytics.md): Load Matomo after measurement consent with the c15t matomoAnalytics helper, or use Matomo's own consent mode, and check each mode in DevTools.
 - [Meta Pixel](./integrations/meta-pixel.md): Load the Meta Pixel only after marketing consent with the c15t metaPixel helper, guard fbq event calls, and check it in DevTools.
 - [Microsoft Clarity](./integrations/microsoft-clarity.md): Load Microsoft Clarity only after measurement consent with the c15t clarity helper, send Consent V2 storage signals and check them in DevTools.
@@ -147,22 +159,31 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 - [Mixpanel](./integrations/mixpanel-analytics.md): Load the Mixpanel SDK on every page with the c15t mixpanelAnalytics helper, which switches Mixpanel tracking on and off with measurement consent, and check it in DevTools.
 - [OneDollarStats](./integrations/one-dollar-stats.md): Load the OneDollarStats tracker only after measurement consent with the c15t oneDollarStats helper, forward its data-attribute settings, and check it in DevTools.
 - [OpenAI Pixel](./integrations/openai-pixel.md): Load the ChatGPT Ads Measurement Pixel only after marketing consent with the c15t openaiPixel helper, guard oaiq conversion calls, and check it in DevTools.
-- [Integrations](./integrations/overview.md): Find all c15t integrations for analytics, tag managers, advertising, email and SMS, chat and embedded content.
+- [Optimizely](./integrations/optimizely.md): Load Optimizely Web Experimentation and Personalization after experience consent with c15t, choose a consent category and understand revocation limits.
+- [Integrations](./integrations/overview.md): Find all c15t integrations for analytics, tag managers, advertising, experimentation and personalization, email and SMS, chat and embedded content.
+- [Pendo](./integrations/pendo.md): Load Pendo after measurement consent, configure its tracking settings, and verify loading and withdrawal with c15t.
 - [Pinterest Tag](./integrations/pinterest-tag.md): Load the Pinterest Tag only after marketing consent with the c15t pinterestTag helper, guard pintrk event calls, and check it in DevTools.
 - [Pirsch](./integrations/pirsch.md): Load Pirsch Analytics only after measurement consent with the c15t pirsch helper, keep custom event bindings working, and check it in DevTools.
 - [Plausible Analytics](./integrations/plausible-analytics.md): Load the Plausible Analytics tracker only after measurement consent with the c15t plausibleAnalytics helper, and check it in DevTools.
 - [PostHog](./integrations/posthog.md): Load PostHog before or after measurement consent with the c15t posthog helper, choose its cookieless behavior, turn off PostHog modules you do not use, and sync consent with an SDK you already initialize.
 - [Promptwatch](./integrations/promptwatch.md): Load the Promptwatch attribution client only after measurement consent with the c15t promptwatch helper, and check it in DevTools.
+- [RB2B](./integrations/rb2b.md): Load RB2B only after marketing consent with the c15t rb2b helper, and check its loader URL, page views and revocation.
 - [Reddit Pixel](./integrations/reddit-pixel.md): Load the Reddit Pixel only after marketing consent with the c15t redditPixel helper, guard rdt conversion calls, and check it in DevTools.
 - [RudderStack](./integrations/rudderstack.md): Load the RudderStack JavaScript SDK after measurement consent with the c15t rudderstack helper, or map c15t categories to destination consent IDs, and check each mode.
 - [Rybbit Analytics](./integrations/rybbit-analytics.md): Load Rybbit Analytics only after measurement consent with the c15t rybbitAnalytics helper, map its tracking options to data attributes, and check it in DevTools.
+- [Salesforce Account Engagement](./integrations/salesforce-pardot.md): Gate Salesforce Account Engagement tracking on marketing consent, configure its consent API or classic Pardot snippet, and verify revocation with c15t.
 - [Segment](./integrations/segment.md): Load Segment Analytics.js only after measurement consent with the c15t segment helper, guard your own track and identify calls, and check it in DevTools.
 - [Sentry](./integrations/sentry.md): Configure Sentry's CDN or your own SDK with consent for error monitoring, Session Replay and user data.
 - [Shopify](./integrations/shopify.md): Send c15t consent to Shopify's Customer Privacy API from a Hydrogen storefront, so Shopify analytics wait for the visitor's choice and follow each later change.
 - [Snapchat Pixel](./integrations/snapchat-pixel.md): Load the Snapchat Pixel only after marketing consent with the c15t snapchatPixel helper, guard snaptr event calls, and check it in DevTools.
+- [Statable](./integrations/statable-analytics.md): Load Statable analytics after measurement consent with the c15t statableAnalytics helper, configure its ingestion endpoint, and verify requests and browser storage.
+- [The Trade Desk](./integrations/the-trade-desk.md): Load The Trade Desk with c15t after marketing consent and verify its loader, storage and revocation behavior.
 - [TikTok Pixel](./integrations/tiktok-pixel.md): Load the TikTok Pixel only after marketing consent with the c15t tiktokPixel helper, guard ttq event calls, and check it in DevTools.
 - [Umami Analytics](./integrations/umami-analytics.md): Load the Umami Analytics tracker only after measurement consent with the c15t umamiAnalytics helper, point it at a self-hosted instance, and check it in DevTools.
+- [Vector](./integrations/vector.md): Load the Vector pixel only after marketing consent with the c15t vector helper, and check its queue, storage and revocation.
 - [Vercel Analytics](./integrations/vercel-analytics.md): Load the Vercel Web Analytics script only after measurement consent with the c15t vercelAnalytics helper, choose the debug script, and check it in DevTools.
 - [Vercel Speed Insights](./integrations/vercel-speed-insights.md): Load the Vercel Speed Insights collector only after measurement consent with the c15t vercelSpeedInsights helper, drop Web Vitals reports on revocation, and check it in DevTools.
+- [Wisepops](./integrations/wisepops.md): Load Wisepops popups, bars, embeds and notification feeds after marketing consent with c15t. Configure its site ID, cookie options and reload behavior.
 - [X Pixel](./integrations/x-pixel.md): Load the X Pixel only after marketing consent with the c15t xPixel helper, guard twq conversion events, and check it in DevTools.
 - [YouTube](./integrations/youtube.md): Gate YouTube embeds with c15t v3 in Next.js, TanStack Start, React, Nuxt, Vue, Astro, Svelte, SvelteKit or JavaScript.
+- [Zendesk Messaging](./integrations/zendesk.md): Load the Zendesk Messaging Web Widget after functionality consent, map measurement consent to its cookie ranges and clear widget storage on revocation.

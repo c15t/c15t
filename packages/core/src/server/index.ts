@@ -43,6 +43,12 @@ export {
 	resolveRenderBudgetMs,
 	resolveRequestConsent,
 } from './request-consent';
+export type {
+	RequestSubject,
+	ResolveRequestSubjectOptions,
+	SubjectCookie,
+} from './request-subject';
+export { resolveRequestSubject } from './request-subject';
 export type { FetchCachedGvlOptions } from './gvl-cache';
 export { clearGvlCache, fetchCachedGvl } from './gvl-cache';
 export type {

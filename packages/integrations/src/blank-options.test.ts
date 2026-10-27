@@ -2,14 +2,18 @@ import type { Script } from '@c15t/core';
 import { describe, expect, it } from 'vitest';
 
 import { expectSkippedScript } from './__tests__/helpers';
+import { adrollPixel } from './vendors/ads-and-pixels/adroll';
 import { linkedinInsights } from './vendors/ads-and-pixels/linkedin-insights';
+import { liveIntentTag } from './vendors/ads-and-pixels/liveintent';
 import { metaPixel } from './vendors/ads-and-pixels/meta-pixel';
 import { microsoftUet } from './vendors/ads-and-pixels/microsoft-uet';
 import { openaiPixel } from './vendors/ads-and-pixels/openai-pixel';
 import { pinterestTag } from './vendors/ads-and-pixels/pinterest-tag';
 import { redditPixel } from './vendors/ads-and-pixels/reddit-pixel';
 import { snapchatPixel } from './vendors/ads-and-pixels/snapchat-pixel';
+import { theTradeDeskPixel } from './vendors/ads-and-pixels/the-trade-desk';
 import { tiktokPixel } from './vendors/ads-and-pixels/tiktok-pixel';
+import { vector } from './vendors/ads-and-pixels/vector';
 import { xPixel } from './vendors/ads-and-pixels/x-pixel';
 import { adobeAnalytics } from './vendors/analytics/adobe-analytics';
 import { ahrefsAnalytics } from './vendors/analytics/ahrefs-analytics';
@@ -24,25 +28,42 @@ import { heap } from './vendors/analytics/heap';
 import { hightouch } from './vendors/analytics/hightouch';
 import { hotjar } from './vendors/analytics/hotjar';
 import { logRocket } from './vendors/analytics/logrocket';
+import { luckyOrange } from './vendors/analytics/lucky-orange';
+import { marketoMunchkin } from './vendors/analytics/marketo';
 import { matomoAnalytics } from './vendors/analytics/matomo-analytics';
 import { clarity } from './vendors/analytics/microsoft-clarity';
 import { mixpanelAnalytics } from './vendors/analytics/mixpanel-analytics';
+import { pendo } from './vendors/analytics/pendo';
 import { pirsch } from './vendors/analytics/pirsch';
 import { plausibleAnalytics } from './vendors/analytics/plausible-analytics';
 import { posthog } from './vendors/analytics/posthog';
 import { promptwatch } from './vendors/analytics/promptwatch';
+import { rb2b } from './vendors/analytics/rb2b';
 import { rudderstack } from './vendors/analytics/rudderstack';
 import { rybbitAnalytics } from './vendors/analytics/rybbit-analytics';
+import { pardotTracking } from './vendors/analytics/salesforce-pardot';
 import { segment } from './vendors/analytics/segment';
 import { sentry } from './vendors/analytics/sentry';
+import { statableAnalytics } from './vendors/analytics/statable-analytics';
 import { umamiAnalytics } from './vendors/analytics/umami-analytics';
 import { vercelAnalytics } from './vendors/analytics/vercel-analytics';
 import { vercelSpeedInsights } from './vendors/analytics/vercel-speed-insights';
 import { activeCampaignTracking } from './vendors/email-and-sms/activecampaign';
+import { attentiveTag } from './vendors/email-and-sms/attentive';
+import { customerIo } from './vendors/email-and-sms/customer-io';
+import { insiderTag } from './vendors/email-and-sms/insider';
 import { klaviyo } from './vendors/email-and-sms/klaviyo';
+import { ada } from './vendors/functional/ada';
+import { adobeTarget } from './vendors/functional/adobe-target';
+import { appcues } from './vendors/functional/appcues';
 import { crisp } from './vendors/functional/crisp';
+import { dynamicYield } from './vendors/functional/dynamic-yield';
 import { frontChat } from './vendors/functional/front-chat';
+import { gorgiasChat } from './vendors/functional/gorgias';
 import { intercom } from './vendors/functional/intercom';
+import { optimizelyWeb } from './vendors/functional/optimizely';
+import { wisepops } from './vendors/functional/wisepops';
+import { zendeskWidget } from './vendors/functional/zendesk';
 import { googleTagManager } from './vendors/tag-managers/google-tag-manager';
 
 const BLANK_VALUES = ['', '   '] as const;
@@ -71,6 +92,216 @@ const requiredIdCases: {
 		helper: 'activeCampaignTracking',
 		option: 'accountId',
 		script: { category: 'marketing', id: 'activecampaign' },
+	},
+	{
+		create: (id) =>
+			ada({ ...{ handle: 'c15t-live-probe-placeholder' }, handle: asId(id) }),
+		helper: 'ada',
+		option: 'handle',
+		script: { category: 'functionality', id: 'ada' },
+	},
+	{
+		create: (id) =>
+			gorgiasChat({
+				...{ appKey: 'XXXXXXXXXXXXXXXXXXXXXXXXXX' },
+				appKey: asId(id),
+			}),
+		helper: 'gorgiasChat',
+		option: 'appKey',
+		script: { category: 'functionality', id: 'gorgias' },
+	},
+	{
+		create: (id) =>
+			zendeskWidget({
+				key: asId(id),
+			}),
+		helper: 'zendeskWidget',
+		option: 'key',
+		script: { category: 'functionality', id: 'zendesk' },
+	},
+	{
+		create: (id) =>
+			theTradeDeskPixel({ advertiserId: 'c15tfake', pixelIds: [asId(id)] }),
+		helper: 'theTradeDeskPixel',
+		option: 'pixelIds',
+		script: { category: 'marketing', id: 'the-trade-desk' },
+	},
+	{
+		create: (id) =>
+			theTradeDeskPixel({ advertiserId: asId(id), pixelIds: ['c15tfake'] }),
+		helper: 'theTradeDeskPixel',
+		option: 'advertiserId',
+		script: { category: 'marketing', id: 'the-trade-desk' },
+	},
+	{
+		create: (id) => liveIntentTag({ tagId: asId(id) }),
+		helper: 'liveIntentTag',
+		option: 'tagId',
+		script: { category: 'marketing', id: 'liveintent' },
+	},
+	{
+		create: (id) =>
+			adrollPixel({ advertiserId: 'c15tfake', pixelId: asId(id) }),
+		helper: 'adrollPixel',
+		option: 'pixelId',
+		script: { category: 'marketing', id: 'adroll' },
+	},
+	{
+		create: (id) =>
+			adrollPixel({ advertiserId: asId(id), pixelId: 'c15tfake' }),
+		helper: 'adrollPixel',
+		option: 'advertiserId',
+		script: { category: 'marketing', id: 'adroll' },
+	},
+	{
+		create: (id) => vector({ pixelId: asId(id) }),
+		helper: 'vector',
+		option: 'pixelId',
+		script: { category: 'marketing', id: 'vector' },
+	},
+	{
+		create: (id) => pendo({ apiKey: asId(id) }),
+		helper: 'pendo',
+		option: 'apiKey',
+		script: { category: 'measurement', id: 'pendo' },
+	},
+	{
+		create: (id) => luckyOrange({ siteId: asId(id) }),
+		helper: 'luckyOrange',
+		option: 'siteId',
+		script: { category: 'measurement', id: 'lucky-orange' },
+	},
+	{
+		create: (id) => rb2b({ accountKey: asId(id) }),
+		helper: 'rb2b',
+		option: 'accountKey',
+		script: { category: 'marketing', id: 'rb2b' },
+	},
+	{
+		create: (id) =>
+			optimizelyWeb({ ...{ projectId: '12345678' }, projectId: asId(id) }),
+		helper: 'optimizelyWeb',
+		option: 'projectId',
+		script: { category: 'experience', id: 'optimizely' },
+	},
+	{
+		create: (id) =>
+			dynamicYield({ ...{ sectionId: '1234567' }, sectionId: asId(id) }),
+		helper: 'dynamicYield',
+		option: 'sectionId',
+		script: { category: 'experience', id: 'dynamic-yield' },
+	},
+	{
+		create: (id) =>
+			adobeTarget({
+				...{
+					datastreamId: 'STREAM',
+					mode: 'websdk' as const,
+					orgId: 'ORG@AdobeOrg',
+					version: '2.30.0',
+				},
+				version: asId(id),
+			}),
+		helper: 'adobeTarget',
+		option: 'version',
+		script: { category: 'experience', id: 'adobe-target' },
+	},
+	{
+		create: (id) =>
+			adobeTarget({
+				...{
+					datastreamId: 'STREAM',
+					mode: 'websdk' as const,
+					orgId: 'ORG@AdobeOrg',
+					version: '2.30.0',
+				},
+				orgId: asId(id),
+			}),
+		helper: 'adobeTarget',
+		option: 'orgId',
+		script: { category: 'experience', id: 'adobe-target' },
+	},
+	{
+		create: (id) =>
+			adobeTarget({
+				...{
+					datastreamId: 'STREAM',
+					mode: 'websdk' as const,
+					orgId: 'ORG@AdobeOrg',
+					version: '2.30.0',
+				},
+				datastreamId: asId(id),
+			}),
+		helper: 'adobeTarget',
+		option: 'datastreamId',
+		script: { category: 'experience', id: 'adobe-target' },
+	},
+	{
+		create: (id) =>
+			adobeTarget({
+				...{ mode: 'atjs', scriptUrl: '/scripts/at.js' },
+				scriptUrl: asId(id),
+			}),
+		helper: 'adobeTarget',
+		option: 'scriptUrl',
+		script: { category: 'experience', id: 'adobe-target' },
+	},
+	{
+		create: (id) => appcues({ ...{ accountId: '123' }, accountId: asId(id) }),
+		helper: 'appcues',
+		option: 'accountId',
+		script: { category: 'experience', id: 'appcues' },
+	},
+	{
+		create: (id) => wisepops({ ...{ siteId: 'c15tfake' }, siteId: asId(id) }),
+		helper: 'wisepops',
+		option: 'siteId',
+		script: { category: 'marketing', id: 'wisepops' },
+	},
+	{
+		create: (id) => marketoMunchkin({ munchkinId: asId(id) }),
+		helper: 'marketoMunchkin',
+		option: 'munchkinId',
+		script: { category: 'marketing', id: 'marketo' },
+	},
+	{
+		create: (id) =>
+			pardotTracking({
+				piAId: asId(id),
+				piCId: '654321',
+				piDomain: 'pi.pardot.com',
+			}),
+		helper: 'pardotTracking',
+		option: 'piAId',
+		script: { category: 'marketing', id: 'salesforce-pardot' },
+	},
+	{
+		create: (id) => attentiveTag({ siteSlug: asId(id) }),
+		helper: 'attentiveTag',
+		option: 'siteSlug',
+		script: { category: 'marketing', id: 'attentive' },
+	},
+	{
+		create: (id) => customerIo({ writeKey: asId(id) }),
+		helper: 'customerIo',
+		option: 'writeKey',
+		script: { category: 'marketing', id: 'customer-io' },
+	},
+	{
+		create: (id) => insiderTag({ partnerId: asId(id), partnerName: 'c15t' }),
+		helper: 'insiderTag',
+		option: 'partnerId',
+		script: { category: 'marketing', id: 'insider' },
+	},
+	{
+		create: (id) =>
+			insiderTag({
+				...{ partnerId: '123456', partnerName: 'c15t' },
+				partnerName: asId(id),
+			}),
+		helper: 'insiderTag',
+		option: 'partnerName',
+		script: { category: 'marketing', id: 'insider' },
 	},
 	{
 		create: (id) => linkedinInsights({ id: asId(id) }),
@@ -269,6 +500,12 @@ const requiredIdCases: {
 		},
 	},
 	{
+		create: (siteId) => statableAnalytics({ siteId: asId(siteId) }),
+		helper: 'statableAnalytics',
+		option: 'siteId',
+		script: { category: 'measurement', id: 'statable-analytics' },
+	},
+	{
 		create: (websiteId) => umamiAnalytics({ websiteId: asId(websiteId) }),
 		helper: 'umamiAnalytics',
 		option: 'websiteId',
@@ -347,6 +584,22 @@ const blankScriptUrlCases: {
 	create: (scriptUrl: string) => Script;
 	expectedSrc: string;
 }[] = [
+	{
+		create: (scriptUrl) => statableAnalytics({ scriptUrl, siteId: 12345 }),
+		expectedSrc: 'https://statable.com/js/12345/s.js',
+		helper: 'statableAnalytics',
+	},
+	{
+		create: (url) =>
+			optimizelyWeb({ ...{ projectId: '12345678' }, scriptSrc: url }),
+		expectedSrc: 'https://cdn.optimizely.com/js/12345678.js',
+		helper: 'optimizelyWeb',
+	},
+	{
+		create: (url) => appcues({ ...{ accountId: '123' }, scriptUrl: url }),
+		expectedSrc: 'https://fast.appcues.com/123.js',
+		helper: 'appcues',
+	},
 	{
 		create: (scriptUrl) => hotjar({ scriptUrl, siteId: 123 }),
 		expectedSrc: 'https://static.hotjar.com/c/hotjar-123.js?sv=6',

@@ -31,10 +31,20 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 		example: "activeCampaignTracking({ accountId: 'YOUR_ACCOUNT_ID' })",
 		importName: 'activeCampaignTracking',
 	},
+	ada: { example: "ada({ handle: 'YOUR_ADA_HANDLE' })", importName: 'ada' },
 	'adobe-analytics': {
 		example:
 			"adobeAnalytics({ scriptUrl: 'https://assets.adobedtm.com/YOUR_ORG/YOUR_PROPERTY/launch-production.min.js' })",
 		importName: 'adobeAnalytics',
+	},
+	'adobe-target': {
+		example: "adobeTarget({ mode: 'atjs', scriptUrl: '/scripts/at.js' })",
+		importName: 'adobeTarget',
+	},
+	adroll: {
+		example:
+			"adrollPixel({ advertiserId: 'ADVERTISER_ID', pixelId: 'PIXEL_ID' })",
+		importName: 'adrollPixel',
 	},
 	'ahrefs-analytics': {
 		example: "ahrefsAnalytics({ key: 'YOUR_ANALYTICS_KEY' })",
@@ -43,6 +53,14 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 	amplitude: {
 		example: "amplitude({ apiKey: 'YOUR_API_KEY' })",
 		importName: 'amplitude',
+	},
+	appcues: {
+		example: "appcues({ accountId: 'YOUR_APPCUES_ID' })",
+		importName: 'appcues',
+	},
+	attentive: {
+		example: "attentiveTag({ siteSlug: 'YOUR_SITESLUG' })",
+		importName: 'attentiveTag',
 	},
 	clay: { example: "clay({ siteId: 'YOUR_SITE_ID' })", importName: 'clay' },
 	clearbit: {
@@ -69,9 +87,17 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 		example: "crisp({ websiteId: 'YOUR_WEBSITE_ID' })",
 		importName: 'crisp',
 	},
+	'customer-io': {
+		example: "customerIo({ writeKey: 'YOUR_WRITEKEY' })",
+		importName: 'customerIo',
+	},
 	databuddy: {
 		example: "databuddy({ clientId: 'YOUR_CLIENT_ID' })",
 		importName: 'databuddy',
+	},
+	'dynamic-yield': {
+		example: "dynamicYield({ sectionId: 'YOUR_SECTION_ID' })",
+		importName: 'dynamicYield',
 	},
 	'fathom-analytics': {
 		example: "fathomAnalytics({ site: 'YOUR_SITE_ID' })",
@@ -89,6 +115,10 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 		example: "googleTagManager({ id: 'GTM-XXXXXX' })",
 		importName: 'googleTagManager',
 	},
+	gorgias: {
+		example: "gorgiasChat({ appKey: 'YOUR_GORGIAS_APP_KEY' })",
+		importName: 'gorgiasChat',
+	},
 	heap: {
 		example: "heap({ envId: 'YOUR_ENV_ID' })",
 		importName: 'heap',
@@ -100,6 +130,11 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 	hotjar: {
 		example: 'hotjar({ siteId: 1234567 })',
 		importName: 'hotjar',
+	},
+	insider: {
+		example:
+			"insiderTag({ partnerName: 'yourpartner', partnerId: 'YOUR_PARTNER_ID' })",
+		importName: 'insiderTag',
 	},
 	intercom: {
 		example: "intercom({ appId: 'YOUR_APP_ID' })",
@@ -113,9 +148,21 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 		example: "linkedinInsights({ id: 'XXXXXXX' })",
 		importName: 'linkedinInsights',
 	},
+	liveintent: {
+		example: "liveIntentTag({ tagId: 'YOUR_TAG_ID' })",
+		importName: 'liveIntentTag',
+	},
 	logrocket: {
 		example: "logRocket({ appId: 'org-slug/app-slug' })",
 		importName: 'logRocket',
+	},
+	'lucky-orange': {
+		example: "luckyOrange({ siteId: 'YOUR_SITEID' })",
+		importName: 'luckyOrange',
+	},
+	marketo: {
+		example: "marketoMunchkin({ munchkinId: 'YOUR_MUNCHKINID' })",
+		importName: 'marketoMunchkin',
 	},
 	'matomo-analytics': {
 		example:
@@ -146,6 +193,11 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 		example: "openaiPixel({ pixelId: 'YOUR_PIXEL_ID' })",
 		importName: 'openaiPixel',
 	},
+	optimizely: {
+		example: "optimizelyWeb({ projectId: 'YOUR_PROJECT_ID' })",
+		importName: 'optimizelyWeb',
+	},
+	pendo: { example: "pendo({ apiKey: 'YOUR_APIKEY' })", importName: 'pendo' },
 	'pinterest-tag': {
 		example: "pinterestTag({ tagId: 'XXXXXXXX' })",
 		importName: 'pinterestTag',
@@ -171,6 +223,10 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 		example: "promptwatch({ projectId: 'YOUR_PROJECT_ID' })",
 		importName: 'promptwatch',
 	},
+	rb2b: {
+		example: "rb2b({ accountKey: 'YOUR_RB2B_KEY' })",
+		importName: 'rb2b',
+	},
 	'reddit-pixel': {
 		example: "redditPixel({ pixelId: 't2_XXXXXXX' })",
 		importName: 'redditPixel',
@@ -183,6 +239,11 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 	'rybbit-analytics': {
 		example: "rybbitAnalytics({ siteId: 'YOUR_SITE_ID' })",
 		importName: 'rybbitAnalytics',
+	},
+	'salesforce-pardot': {
+		example:
+			"pardotTracking({ piAId: 'YOUR_ACCOUNT_ID', piCId: 'YOUR_CAMPAIGN_ID', piDomain: 'go.example.com' })",
+		importName: 'pardotTracking',
 	},
 	segment: {
 		example: "segment({ writeKey: 'YOUR_WRITE_KEY' })",
@@ -197,6 +258,15 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 		example: "snapchatPixel({ pixelId: 'XXXXXXXXXXXXXXX' })",
 		importName: 'snapchatPixel',
 	},
+	'statable-analytics': {
+		example: "statableAnalytics({ siteId: '12345' })",
+		importName: 'statableAnalytics',
+	},
+	'the-trade-desk': {
+		example:
+			"theTradeDeskPixel({ advertiserId: 'ADVERTISER_ID', pixelIds: ['PIXEL_ID'] })",
+		importName: 'theTradeDeskPixel',
+	},
 	'tiktok-pixel': {
 		example: "tiktokPixel({ pixelId: 'XXXXXXXXXXXXXXXXX' })",
 		importName: 'tiktokPixel',
@@ -204,6 +274,10 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 	'umami-analytics': {
 		example: "umamiAnalytics({ websiteId: 'YOUR_WEBSITE_ID' })",
 		importName: 'umamiAnalytics',
+	},
+	vector: {
+		example: "vector({ pixelId: 'YOUR_PIXEL_ID' })",
+		importName: 'vector',
 	},
 	'vercel-analytics': {
 		example: 'vercelAnalytics({})',
@@ -213,9 +287,17 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 		example: 'vercelSpeedInsights({})',
 		importName: 'vercelSpeedInsights',
 	},
+	wisepops: {
+		example: "wisepops({ siteId: 'YOUR_WISEPOPS_SITE_ID' })",
+		importName: 'wisepops',
+	},
 	'x-pixel': {
 		example: "xPixel({ pixelId: 'oXXXX' })",
 		importName: 'xPixel',
+	},
+	zendesk: {
+		example: "zendeskWidget({ key: 'YOUR_ZENDESK_WIDGET_KEY' })",
+		importName: 'zendeskWidget',
 	},
 };
 
