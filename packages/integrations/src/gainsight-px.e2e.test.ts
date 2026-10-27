@@ -798,6 +798,50 @@ describe('Gainsight PX production loader contract', () => {
 		}
 	);
 
+	it('finds a server-started PX loader stored under a custom resource key', async () => {
+		const resourceKey = 'px-custom-resource';
+		const server = {
+			...gainsightPx({
+				productKey: 'AP-RESOURCE-KEY-2',
+				user: { id: 'server' },
+			}),
+			resourceKey,
+		};
+		const client = {
+			...gainsightPx({
+				productKey: 'AP-RESOURCE-KEY-2',
+				user: { id: 'client' },
+			}),
+			anonymizeId: false,
+			resourceKey,
+		};
+		const start = server.serverStart?.(
+			{ consents: grantedConsents, hasConsent: true, id: server.id },
+			server
+		);
+		expect(start).toBeDefined();
+		// oxlint-disable-next-line no-new-func -- Executes the generated server snippet.
+		new Function(`${start?.prelude ?? ''};${start?.code}`)();
+		const element = Object.assign(document.createElement('script'), {
+			__c15tConsent: true,
+			__c15tScript: server.id,
+			src: server.src,
+		});
+		document.head.appendChild(element);
+		Reflect.set(globalThis, '__c15tStarted', { [resourceKey]: element });
+		const kernel = createConsentKernel();
+		await kernel.commands.save(grantedConsents);
+		let loader: ReturnType<typeof createScriptLoader> | undefined;
+		try {
+			expect(() => {
+				loader = createScriptLoader({ kernel, scripts: [client] });
+			}).toThrow('server and client options must match');
+		} finally {
+			loader?.dispose();
+			kernel.dispose();
+		}
+	});
+
 	describe.each([
 		{ allow: true, completed: false },
 		{ allow: false, completed: false },
