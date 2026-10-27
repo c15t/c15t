@@ -15,6 +15,7 @@
 import type { ConsentSnapshot } from '../../types';
 import { isCallbackOnly } from './callback-only';
 import { buildCallbackInfo, hasAnyCallback, invokeCallback } from './callbacks';
+import { hasSameResource } from './normalize';
 import type { ElementIdResolver } from './normalize';
 import type {
 	PendingMount,
@@ -110,12 +111,13 @@ const elementObservers = new WeakMap<
 // Keep physical completion when another registration joins after the event.
 const elementCompletions = new WeakMap<HTMLScriptElement, ElementCompletion>();
 
-// c15t-created resources released without removal can be owned again on adoption.
-const retainedResources = new WeakSet<HTMLScriptElement>();
+// c15t-created resources released without removal, with the configuration that
+// kept them. Only a registration for the same resource may adopt one again.
+const retainedResources = new WeakMap<HTMLScriptElement, Script>();
 const retainedCompletions = new WeakSet<HTMLScriptElement>();
 
 // Shared elements whose earlier owner asked to keep them after removal.
-const retentionRequests = new WeakSet<HTMLScriptElement>();
+const retentionRequests = new WeakMap<HTMLScriptElement, Script>();
 
 // A retained download can finish while there are no callback registrations.
 const rememberRetainedCompletion = (element: HTMLScriptElement): void => {
@@ -284,27 +286,39 @@ const forgetServerStarted = function forgetServerStarted(
 };
 
 /** Drop the last owner of an element, keeping it when retention applies. */
-const releaseLastOwner = (element: HTMLScriptElement, retain: boolean) => {
+const releaseLastOwner = (
+	element: HTMLScriptElement,
+	retainFor: Script | undefined
+) => {
 	const started = element as ServerStartedElement;
 	delete started.__c15tInsert;
 	delete started.__c15tHeld;
 	forgetServerStarted(started);
 	retentionRequests.delete(element);
-	if (retain && element.isConnected) {
-		retainedResources.add(element);
+	if (retainFor && element.isConnected) {
+		retainedResources.set(element, retainFor);
 		rememberRetainedCompletion(element);
 	} else {
 		element.parentNode?.removeChild(element);
 	}
 };
 
+/** The configuration asking to keep its element after this removal, if any. */
+const retentionFor = (
+	script: Script,
+	removeConfiguration: boolean
+): Script | undefined =>
+	removeConfiguration && script.persistAfterDispose === true
+		? script
+		: undefined;
+
 /** Release a loader's listeners and transfer its resource to a surviving loader. @internal */
 export const releaseScriptElement = (
 	deps: MountDeps,
 	scriptId: string,
 	element: HTMLScriptElement,
-	retainElement = false,
-	removingConfiguration = retainElement
+	retainFor?: Script,
+	removingConfiguration = retainFor !== undefined
 ): void => {
 	const observers = elementObservers.get(element);
 	const registrations = observers?.get(deps);
@@ -317,8 +331,8 @@ export const releaseScriptElement = (
 	const survivor = observers?.entries().next().value;
 	// A later owner's removal still honors any departing registration's
 	// retention, whether or not it physically owned the element.
-	if (survivor && retainElement) {
-		retentionRequests.add(element);
+	if (survivor && retainFor) {
+		retentionRequests.set(element, retainFor);
 	}
 	if (deps.ownedScriptIds.has(scriptId)) {
 		if (survivor) {
@@ -330,8 +344,8 @@ export const releaseScriptElement = (
 		} else {
 			releaseLastOwner(
 				element,
-				retainElement ||
-					(removingConfiguration && retentionRequests.has(element))
+				retainFor ??
+					(removingConfiguration ? retentionRequests.get(element) : undefined)
 			);
 		}
 	}
@@ -621,9 +635,16 @@ export const mountScript = function mountScript(
 		(typeof document.getElementById === 'function'
 			? document.getElementById(elementId)
 			: null);
-	if (existingElement) {
+	const retainedFor = existingElement
+		? retainedResources.get(existingElement as HTMLScriptElement)
+		: undefined;
+	if (retainedFor && !hasSameResource(retainedFor, script)) {
+		// A retained element only satisfies the resource it was kept for.
+		retainedResources.delete(existingElement as HTMLScriptElement);
+		existingElement?.remove();
+	} else if (existingElement) {
 		const element = existingElement as HTMLScriptElement;
-		if (retainedResources.has(element)) {
+		if (retainedFor) {
 			deps.ownedScriptIds.add(script.id);
 			retainedResources.delete(element);
 		}
@@ -855,7 +876,7 @@ export const unmountScript = function unmountScript(
 			deps,
 			script.id,
 			element,
-			removeConfiguration && script.persistAfterDispose === true,
+			retentionFor(script, removeConfiguration),
 			removeConfiguration
 		);
 	}
