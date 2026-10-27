@@ -114,6 +114,9 @@ const elementCompletions = new WeakMap<HTMLScriptElement, ElementCompletion>();
 const retainedResources = new WeakSet<HTMLScriptElement>();
 const retainedCompletions = new WeakSet<HTMLScriptElement>();
 
+// Shared elements whose earlier owner asked to keep them after removal.
+const retentionRequests = new WeakSet<HTMLScriptElement>();
+
 // A retained download can finish while there are no callback registrations.
 const rememberRetainedCompletion = (element: HTMLScriptElement): void => {
 	if (elementCompletions.has(element) || retainedCompletions.has(element)) {
@@ -277,12 +280,28 @@ const forgetServerStarted = function forgetServerStarted(
 	}
 };
 
+/** Drop the last owner of an element, keeping it when retention applies. */
+const releaseLastOwner = (element: HTMLScriptElement, retain: boolean) => {
+	const started = element as ServerStartedElement;
+	delete started.__c15tInsert;
+	delete started.__c15tHeld;
+	forgetServerStarted(started);
+	retentionRequests.delete(element);
+	if (retain && element.isConnected) {
+		retainedResources.add(element);
+		rememberRetainedCompletion(element);
+	} else {
+		element.parentNode?.removeChild(element);
+	}
+};
+
 /** Release a loader's listeners and transfer its resource to a surviving loader. @internal */
 export const releaseScriptElement = (
 	deps: MountDeps,
 	scriptId: string,
 	element: HTMLScriptElement,
-	retainElement = false
+	retainElement = false,
+	removingConfiguration = retainElement
 ): void => {
 	const observers = elementObservers.get(element);
 	const registrations = observers?.get(deps);
@@ -295,22 +314,21 @@ export const releaseScriptElement = (
 	const survivor = observers?.entries().next().value;
 	if (deps.ownedScriptIds.has(scriptId)) {
 		if (survivor) {
+			// A later owner's removal still honors this owner's retention.
+			if (retainElement) {
+				retentionRequests.add(element);
+			}
 			const [nextDeps, nextRegistrations] = survivor;
 			const nextObserver = nextRegistrations.values().next().value;
 			if (nextObserver) {
 				nextDeps.ownedScriptIds.add(nextObserver.scriptId);
 			}
 		} else {
-			const started = element as ServerStartedElement;
-			delete started.__c15tInsert;
-			delete started.__c15tHeld;
-			forgetServerStarted(started);
-			if (retainElement && element.isConnected) {
-				retainedResources.add(element);
-				rememberRetainedCompletion(element);
-			} else {
-				element.parentNode?.removeChild(element);
-			}
+			releaseLastOwner(
+				element,
+				retainElement ||
+					(removingConfiguration && retentionRequests.has(element))
+			);
 		}
 	}
 	deps.ownedScriptIds.delete(scriptId);
@@ -831,7 +849,8 @@ export const unmountScript = function unmountScript(
 			deps,
 			script.id,
 			element,
-			removeConfiguration && script.persistAfterDispose === true
+			removeConfiguration && script.persistAfterDispose === true,
+			removeConfiguration
 		);
 	}
 	deps.loadedElements.delete(script.id);

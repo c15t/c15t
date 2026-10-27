@@ -438,7 +438,8 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 					mountDeps,
 					scriptId,
 					element,
-					persistentIds.has(scriptId)
+					persistentIds.has(scriptId),
+					true
 				);
 			}
 		}
