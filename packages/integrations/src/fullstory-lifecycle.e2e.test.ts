@@ -590,12 +590,15 @@ describe('FullStory retained recorder', () => {
 		const model = recorder();
 		const api = apiOf();
 		const append = vi.spyOn(document.head, 'appendChild');
-		first.loader.updateScripts([replacement]);
-		expect(first.events.some((message) => /reload/u.test(message))).toBe(true);
+		// Validation rejects the batch before the active owner is removed.
+		expect(() => first.loader.updateScripts([replacement])).toThrow(
+			/reload the page/u
+		);
+		expect(first.events).toEqual([]);
 		expect(window.FS).toBe(api);
 		expect(window._fs_org).toBe('precreated-original');
 		expect(append).not.toHaveBeenCalled();
-		expect(model.capturing()).toBe(false);
+		expect(model.capturing()).toBe(true);
 	});
 	it('allows element-consent replacement while keeping the configured recorder', () => {
 		const first = mount({ orgId: 'element-replacement' });
