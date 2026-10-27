@@ -200,14 +200,6 @@ export const helperParityCases = {
 			configWhenGranted: { clientId: 'db_123', disabled: false },
 		}),
 	},
-	eloquaTracking: {
-		expected: {
-			alwaysLoad: undefined,
-			persistAfterConsentRevoked: true,
-			src: 'https://img.en25.com/i/elqCfg.min.js',
-		},
-		script: eloquaTracking({ siteId: '1973398186' }),
-	},
 	dynamicYield: {
 		expected: {
 			alwaysLoad: undefined,
@@ -215,6 +207,14 @@ export const helperParityCases = {
 			src: 'https://cdn.dynamicyield.com/api/1234567/api_dynamic.js',
 		},
 		script: dynamicYield({ sectionId: '1234567' }),
+	},
+	eloquaTracking: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: true,
+			src: 'https://img.en25.com/i/elqCfg.min.js',
+		},
+		script: eloquaTracking({ siteId: '1973398186' }),
 	},
 	fathomAnalytics: {
 		expected: {

@@ -189,13 +189,13 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 		example: "openaiPixel({ pixelId: 'YOUR_PIXEL_ID' })",
 		importName: 'openaiPixel',
 	},
-	'oracle-eloqua': {
-		example: "eloquaTracking({ siteId: 'YOUR_SITEID' })",
-		importName: 'eloquaTracking',
-	},
 	optimizely: {
 		example: "optimizelyWeb({ projectId: 'YOUR_PROJECT_ID' })",
 		importName: 'optimizelyWeb',
+	},
+	'oracle-eloqua': {
+		example: "eloquaTracking({ siteId: 'YOUR_SITEID' })",
+		importName: 'eloquaTracking',
 	},
 	pendo: { example: "pendo({ apiKey: 'YOUR_APIKEY' })", importName: 'pendo' },
 	'pinterest-tag': {
