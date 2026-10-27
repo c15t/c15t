@@ -195,6 +195,11 @@ Retrying the same act with a different map is a `CONFLICT`, like a retry with
 different receipts, and so is any retry against a stored map that cannot be
 read. Migration `4-vendor-choice` adds the column.
 
+`givenAt`, each receipt's `confirmedAt` and `vendorChoice.confirmedAt` come from
+the visitor's clock, which can run ahead of the server's. The backend accepts
+them up to 10 minutes after its own clock and stores them as sent, never
+adjusted. A later time is a `400 INPUT_VALIDATION_FAILED`.
+
 ### Late saves
 
 A browser that can't deliver a save keeps it and sends it again on the next
