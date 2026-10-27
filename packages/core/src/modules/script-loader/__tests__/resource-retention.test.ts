@@ -50,6 +50,47 @@ test.each([undefined, false, true])(
 	}
 );
 
+test.each([true, false])(
+	'keeps a shared element retained by its first owner, persistentFirst=%s',
+	(persistentFirst) => {
+		const config = (persistAfterDispose: boolean): Script => ({
+			category: 'measurement',
+			id: 'shared-retention',
+			persistAfterDispose,
+			src: 'https://example.com/sdk.js',
+		});
+		const first = mount([config(persistentFirst)]);
+		const second = createScriptLoader({
+			kernel: first.kernel,
+			scripts: [config(!persistentFirst)],
+		});
+		disposers.push(() => second.dispose());
+		expect(document.querySelectorAll('script')).toHaveLength(1);
+		first.loader.dispose();
+		expect(first.element.isConnected).toBe(true);
+		second.dispose();
+		expect(first.element.isConnected).toBe(true);
+	}
+);
+
+test('removes a shared element on revocation after its persistent owner leaves', async () => {
+	const config = (persistAfterDispose: boolean): Script => ({
+		category: 'measurement',
+		id: 'shared-revocation',
+		persistAfterDispose,
+		src: 'https://example.com/sdk.js',
+	});
+	const first = mount([config(true)]);
+	const second = createScriptLoader({
+		kernel: first.kernel,
+		scripts: [config(false)],
+	});
+	disposers.push(() => second.dispose());
+	first.loader.dispose();
+	await first.kernel.commands.save({ measurement: false });
+	expect(first.element.isConnected).toBe(false);
+});
+
 test.each(['load', 'error'] as const)(
 	'remembers an ownerless retained download completing with %s',
 	async (completion) => {
