@@ -315,12 +315,13 @@ export const releaseScriptElement = (
 		observers?.delete(deps);
 	}
 	const survivor = observers?.entries().next().value;
+	// A later owner's removal still honors any departing registration's
+	// retention, whether or not it physically owned the element.
+	if (survivor && retainElement) {
+		retentionRequests.add(element);
+	}
 	if (deps.ownedScriptIds.has(scriptId)) {
 		if (survivor) {
-			// A later owner's removal still honors this owner's retention.
-			if (retainElement) {
-				retentionRequests.add(element);
-			}
 			const [nextDeps, nextRegistrations] = survivor;
 			const nextObserver = nextRegistrations.values().next().value;
 			if (nextObserver) {
