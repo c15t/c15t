@@ -527,6 +527,8 @@ const createController = (host: Window, installation: HubSpotInstallation) => {
 	};
 
 	return {
+		/** No owners and nothing started, so a later installation may differ. */
+		idle: () => owners.size === 0 && !started,
 		release(config: symbol, registration: symbol, info: ScriptCallbackInfo) {
 			const registrations = owners.get(config);
 			const owner = registrations?.get(registration);
@@ -682,9 +684,17 @@ export const hubspot = function hubspot(options: HubSpotOptions): Script {
 			if (typeof window === 'undefined') {
 				return;
 			}
-			controllers
-				.get(window)
-				?.release(config, info.registration ?? fallbackRegistration, info);
+			const controller = controllers.get(window);
+			controller?.release(
+				config,
+				info.registration ?? fallbackRegistration,
+				info
+			);
+			// Lock the installation only once HubSpot starts; an unused controller
+			// from an initially denied owner must not reject a new configuration.
+			if (controller?.idle() && controllers.get(window) === controller) {
+				controllers.delete(window);
+			}
 			script.onDispose?.(info);
 		},
 		serverStart: undefined,

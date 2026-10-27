@@ -660,6 +660,18 @@ describe('HubSpot reentrant ownership changes', () => {
 	);
 });
 
+it('accepts a different portal before an initially denied installation starts', async () => {
+	const owner = await ownerOf(hubspot({ portalId: '53' }), denied);
+	expect(document.getElementById('hs-script-loader')).toBeNull();
+	owner.loader?.updateScripts([hubspot({ portalId: '54' })]);
+	await owner.save(granted);
+	const loader = document.querySelector<HTMLScriptElement>('#hs-script-loader');
+	expect(loader?.src).toContain('/54.js');
+	expect(console.warn).not.toHaveBeenCalledWith(
+		expect.stringContaining('conflicting portal')
+	);
+});
+
 describe('HubSpot physical installation identity', () => {
 	const conflicts: { name: string; options: Partial<HubSpotOptions> }[] = [
 		{ name: 'portal', options: { portalId: '54' } },
