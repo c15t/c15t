@@ -176,12 +176,17 @@ const createController = (host: Window, installation: HubSpotInstallation) => {
 	// remove() has no cancellation handle. Retain in-flight knowledge even
 	// after the last registration leaves, until that client's completion.
 	const pendingClients = new WeakSet<HubSpotConversationsClient>();
-	// Replaced clients with a load in flight keep a guard until it completes.
-	const replacedGuards = new Map<HubSpotConversationsClient, () => void>();
+	// A client that stops being current with a load in flight keeps a one-shot
+	// guard until it completes, even after chat ownership ends.
+	const pendingGuards = new Map<HubSpotConversationsClient, () => void>();
+	// Clients showing a widget c15t loaded or adopted. Only the current one may.
+	const loadedClients = new WeakSet<HubSpotConversationsClient>();
+	let requestSync: (() => void) | undefined;
 	const readWidgetLoaded = (conversations: HubSpotConversationsClient) => {
 		const loaded = conversations.widget.status?.().loaded === true;
 		if (loaded) {
 			pendingClients.delete(conversations);
+			loadedClients.add(conversations);
 		}
 		return loaded;
 	};
@@ -220,8 +225,71 @@ const createController = (host: Window, installation: HubSpotInstallation) => {
 			return;
 		}
 		chatRequested = false;
+		loadedClients.delete(conversations);
 		conversations.widget.remove();
 		conversations.clear({ resetWidget: false });
+	};
+
+	// The current client's own listener handles its completion. Any other late
+	// load follows one rule: only the current client may show c15t's widget.
+	const settleLateLoad = (conversations: HubSpotConversationsClient) => {
+		if (started && conversations === client) {
+			return;
+		}
+		const latest = aggregate();
+		const allowed = allowsChat(latest);
+		if (allowed && host.HubSpotConversations === conversations) {
+			// The page switched back to this client; the next sync adopts it.
+			loadedClients.add(conversations);
+			requestSync?.();
+			return;
+		}
+		loadedClients.delete(conversations);
+		conversations.widget.remove();
+		if (latest.chat && !allowed) {
+			conversations.clear({ resetWidget: false });
+		}
+	};
+
+	const guardPendingLoad = (conversations?: HubSpotConversationsClient) => {
+		if (
+			!conversations ||
+			conversations === client ||
+			!pendingClients.has(conversations) ||
+			pendingGuards.has(conversations)
+		) {
+			return;
+		}
+		const guard = () => {
+			conversations.off('widgetLoaded', guard);
+			pendingGuards.delete(conversations);
+			pendingClients.delete(conversations);
+			settleLateLoad(conversations);
+		};
+		pendingGuards.set(conversations, guard);
+		conversations.on('widgetLoaded', guard);
+	};
+
+	// The current client's own listener takes over its completion.
+	const releasePendingGuard = (conversations: HubSpotConversationsClient) => {
+		const guard = pendingGuards.get(conversations);
+		if (guard) {
+			pendingGuards.delete(conversations);
+			conversations.off('widgetLoaded', guard);
+		}
+	};
+
+	const handOffClient = (
+		previous: HubSpotConversationsClient | undefined,
+		next: HubSpotConversationsClient
+	) => {
+		if (previous && loadedClients.has(previous)) {
+			// Only the current client may show c15t's widget.
+			loadedClients.delete(previous);
+			previous.widget.remove();
+		}
+		guardPendingLoad(previous);
+		releasePendingGuard(next);
 	};
 
 	const detachChat = () => {
@@ -240,45 +308,7 @@ const createController = (host: Window, installation: HubSpotInstallation) => {
 		if (previousListener) {
 			previousClient?.off('widgetLoaded', previousListener);
 		}
-		for (const [replaced, guard] of replacedGuards) {
-			replaced.off('widgetLoaded', guard);
-		}
-		replacedGuards.clear();
-	};
-
-	const releaseReplacedGuard = (conversations: HubSpotConversationsClient) => {
-		const guard = replacedGuards.get(conversations);
-		if (guard) {
-			replacedGuards.delete(conversations);
-			conversations.off('widgetLoaded', guard);
-		}
-	};
-
-	const guardReplacedClient = (replaced?: HubSpotConversationsClient) => {
-		if (
-			!replaced ||
-			!pendingClients.has(replaced) ||
-			replacedGuards.has(replaced)
-		) {
-			return;
-		}
-		const guard = () => {
-			replaced.off('widgetLoaded', guard);
-			replacedGuards.delete(replaced);
-			pendingClients.delete(replaced);
-			const latest = aggregate();
-			const denied = latest.chat && !allowsChat(latest);
-			// While inactive, its late widget would duplicate the current client's.
-			// An active client keeps a permitted widget; the next sync adopts it.
-			if (denied || host.HubSpotConversations !== replaced) {
-				replaced.widget.remove();
-			}
-			if (denied) {
-				replaced.clear({ resetWidget: false });
-			}
-		};
-		replacedGuards.set(replaced, guard);
-		replaced.on('widgetLoaded', guard);
+		guardPendingLoad(previousClient);
 	};
 
 	const loaderAvailable = () => {
@@ -346,6 +376,7 @@ const createController = (host: Window, installation: HubSpotInstallation) => {
 		if (!started) {
 			return;
 		}
+		requestSync = refresh;
 		const state = aggregate();
 		if (!state.chat) {
 			detachChat();
@@ -379,8 +410,7 @@ const createController = (host: Window, installation: HubSpotInstallation) => {
 			if (previousListener) {
 				previousClient?.off('widgetLoaded', previousListener);
 			}
-			guardReplacedClient(previousClient);
-			releaseReplacedGuard(conversations);
+			handOffClient(previousClient, conversations);
 			const loaded = readWidgetLoaded(conversations);
 			if (revision !== token || !started) {
 				return;
@@ -399,6 +429,7 @@ const createController = (host: Window, installation: HubSpotInstallation) => {
 					removeChat(conversations);
 				} else if (allowsChat(latest)) {
 					chatRequested = true;
+					loadedClients.add(conversations);
 				}
 			};
 			widgetLoaded = callback;

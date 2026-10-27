@@ -185,6 +185,34 @@ const sharedScripts = (form: 'same Script' | 'distinct helpers') => {
 	] as const;
 };
 
+it('removes a late widget after chat ownership ends', async () => {
+	const api = conversations();
+	window.HubSpotConversations = api;
+	const owner = await ownerOf(hubspot({ chat: true, portalId: '53' }));
+	expect(api.pending).toBe(1);
+	owner.loader?.updateScripts([hubspot({ chat: false, portalId: '53' })]);
+	api.completeLoad();
+	expect(api.visible).toBe(false);
+	expect(api.clear).not.toHaveBeenCalled();
+	expect(api.listeners.size).toBe(0);
+});
+
+it('removes the formerly current widget when a pending client returns', async () => {
+	const first = conversations();
+	const second = conversations();
+	window.HubSpotConversations = first;
+	const owner = await ownerOf(hubspot({ chat: true, portalId: '53' }));
+	window.HubSpotConversations = second;
+	await owner.save({ ...granted, experience: true });
+	second.completeLoad();
+	expect(second.visible).toBe(true);
+	window.HubSpotConversations = first;
+	first.completeLoad();
+	expect(first.visible).toBe(true);
+	expect(second.visible).toBe(false);
+	expect(second.clear).not.toHaveBeenCalled();
+});
+
 it('keeps a late widget when its replaced client becomes active again', async () => {
 	const first = conversations();
 	const second = conversations();
@@ -523,6 +551,13 @@ describe('HubSpot reentrant ownership changes', () => {
 				expectConsent(recorded, final ? no : yes);
 				expect(api.widget.remove).toHaveBeenCalled();
 				expect(api.clear).toHaveBeenCalledWith({ resetWidget: false });
+				// After final departure, a guard waits for the pending load.
+				expect(api.listeners.size).toBe(1);
+				expect(api.pending).toBe(1);
+				if (final) {
+					api.completeLoad();
+				}
+				expect(api.visible).toBe(false);
 				expect(api.listeners.size).toBe(final ? 0 : 1);
 			}
 		);
