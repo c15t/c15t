@@ -185,7 +185,7 @@ const checkTimestamp = (
 	if (value > now + DECISION_CLOCK_TOLERANCE_SECONDS * 1000) {
 		return new BadRequestError({
 			code: 'INPUT_VALIDATION_FAILED',
-			message: `${field} is later than the server clock; receipts are recorded as sent, never adjusted`,
+			message: `${field} is more than ${DECISION_CLOCK_TOLERANCE_SECONDS / 60} minutes later than the server clock; receipts are recorded as sent, never adjusted`,
 		});
 	}
 	return undefined;
