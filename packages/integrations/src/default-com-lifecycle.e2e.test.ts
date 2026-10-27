@@ -372,6 +372,40 @@ describe('Default explicit marketing gate lifecycle', () => {
 		}
 	});
 
+	it('keeps a revoked retained Forms SDK owner denied after later consent changes', async () => {
+		const setConsent = vi.fn();
+		const first = createConsentKernel();
+		const second = createConsentKernel();
+		await first.commands.save(grantedMarketingConsents);
+		await second.commands.save(grantedMarketingConsents);
+		const loaders = [first, second].map((kernel) =>
+			createScriptLoader({
+				kernel,
+				scripts: [defaultComFormsSdk({ publicKey: 'workspace-key' })],
+			})
+		);
+		try {
+			window.DefaultPixelSDK = createDefaultComFormsSdkMock({ setConsent });
+			getLoader().dispatchEvent(new Event('load'));
+			await first.commands.save(deniedConsents);
+			expect(setConsent).toHaveBeenLastCalledWith({
+				analytics: false,
+				marketing: false,
+			});
+			await first.commands.save({ ...deniedConsents, measurement: true });
+			expect(setConsent).toHaveBeenLastCalledWith({
+				analytics: false,
+				marketing: false,
+			});
+		} finally {
+			for (const loader of loaders) {
+				loader.dispose();
+			}
+			first.dispose();
+			second.dispose();
+		}
+	});
+
 	it('snapshots a caller-owned Forms SDK display object before init', () => {
 		const init = vi.fn();
 		const autoDisplayScheduler = { loader: true, target: '#calendar' };
