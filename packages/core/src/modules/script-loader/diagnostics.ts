@@ -27,7 +27,9 @@ export interface ScriptDiagnostic {
 	readonly vendor?: Script['vendor'];
 	readonly callbackOnly: boolean;
 	readonly alwaysLoad: boolean;
-	readonly persistAfterConsentRevoked: boolean;
+	readonly persistAfterConsentRevoked: NonNullable<
+		Script['persistAfterConsentRevoked']
+	>;
 	readonly lastEvent?: ScriptLoaderDebugEvent;
 }
 

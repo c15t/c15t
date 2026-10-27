@@ -62,6 +62,31 @@ describe('live vendor probe configs', () => {
 		expect(isAllowed('https://ct.pinterest.com/stats/')).toBe(false);
 	});
 
+	it('checks the default ActiveCampaign runtime and blocks collection', () => {
+		const [config] = configsForVendor('activecampaign');
+		expect(config?.createScript?.().src).toBe(
+			'https://diffuser-cdn.app-us1.com/diffuser/diffuser.js'
+		);
+		expect(config?.loaderUrlSubstring).toBe(
+			'diffuser-cdn.app-us1.com/diffuser/diffuser.js'
+		);
+		expect(config?.tier).toBe('full');
+		expect(config?.runtimeReplacedGlobals).toEqual(['pgo']);
+		const allowedUrls = [
+			config?.loaderUrlSubstring,
+			...(config?.allowUrlSubstrings ?? []),
+		].filter((value): value is string => Boolean(value));
+		for (const url of [
+			'https://prism.app-us1.com/?a=123456',
+			'https://trackcmp.net/visit',
+			'https://diffuser-cdn.app-us1.com/telemetry',
+		]) {
+			expect(allowedUrls.some((substring) => url.includes(substring))).toBe(
+				false
+			);
+		}
+	});
+
 	it('allows Customer.io settings and SDK chunks while blocking collection', () => {
 		const [config] = configsForVendor('customer-io');
 		const allowed = [
@@ -165,6 +190,7 @@ describe('live vendor probe configs', () => {
 			'clearbit',
 			'crisp',
 			'dynamic-yield',
+			'gainsight-px',
 			'google-tag-manager',
 			'gorgias',
 			'hotjar',

@@ -18,6 +18,7 @@ import { helperParityCases } from '../__tests__/integration-cases';
 import { resolveManifest } from '../resolve';
 import { vendorManifestContract } from '../types';
 import { metaPixel } from '../vendors/ads-and-pixels/meta-pixel';
+import { gainsightPx } from '../vendors/analytics/gainsight-px';
 import { gtag } from '../vendors/analytics/google-tag';
 import { vercelSpeedInsights } from '../vendors/analytics/vercel-speed-insights';
 import { klaviyo } from '../vendors/email-and-sms/klaviyo';
@@ -203,6 +204,7 @@ describe('inlineStepsStart', () => {
 		expect(inlineCases.map(([key]) => key)).toEqual(
 			expect.arrayContaining([
 				'amplitude',
+				'gainsightPx',
 				'gtag',
 				'googleTagManager',
 				'heap',
@@ -400,17 +402,38 @@ describe('inlineStepsStart', () => {
 		expect(JSON.stringify(fromInline)).toContain('__kla_off=true');
 	});
 
-	it('has no inline form for a copy whose onBeforeLoad was replaced', () => {
-		const script = metaPixel({ pixelId: '123456' });
-		const copy = { ...script, onBeforeLoad: () => undefined };
+	it('prepares Gainsight configuration and identity in the server HTML', () => {
+		const script = gainsightPx({
+			account: { id: 'account-123' },
+			config: { fullDomainCookie: true },
+			productKey: 'AP-PRODUCT-KEY-2',
+			user: { id: 'user-123' },
+		});
+		const [fromCallback, fromInline] = runBoth(script, {
+			consents: granted,
+			hasConsent: true,
+			id: script.id,
+		});
 
-		expect(
-			copy.serverStart?.(
-				{ consents: granted, hasConsent: true, id: copy.id },
-				copy
-			)
-		).toBeUndefined();
+		expect(fromInline).toStrictEqual(fromCallback);
 	});
+
+	it.each([
+		['Meta Pixel', metaPixel({ pixelId: '123456' })],
+		['Gainsight PX', helperParityCases.gainsightPx.script as Script],
+	] as const)(
+		'has no inline form for a %s copy whose onBeforeLoad was replaced',
+		(_vendor, script) => {
+			const copy = { ...script, onBeforeLoad: () => undefined };
+
+			expect(
+				copy.serverStart?.(
+					{ consents: granted, hasConsent: true, id: copy.id },
+					copy
+				)
+			).toBeUndefined();
+		}
+	);
 
 	it('signals the consent default the vendor choice allows', () => {
 		const script = gtag({ category: 'measurement', id: 'G-TEST000001' });

@@ -355,7 +355,7 @@ export interface VendorManifest extends ManifestContract {
 	/** Load regardless of consent state (vendor manages its own consent internally) */
 	alwaysLoad?: boolean | string;
 
-	/** Keep script in DOM after consent revocation (vendor has a consent API) */
+	/** Keep the element after revocation; 'loaded' removes pending loaders. */
 	persistAfterConsentRevoked?: boolean | string;
 
 	/**
@@ -455,7 +455,7 @@ export interface ResolvedManifest extends ManifestContract {
 	vendorDetails?: VendorDetails;
 	category: HasCondition<AllConsentNames>;
 	alwaysLoad?: boolean;
-	persistAfterConsentRevoked?: boolean;
+	persistAfterConsentRevoked?: boolean | 'loaded';
 	bootstrapSteps: ManifestStep[];
 	setupSteps: ManifestStep[];
 	loadScript?: LoadScriptStep;

@@ -27,6 +27,15 @@ export interface ScriptCallbackInfo {
 	 * @internal
 	 */
 	readonly registration?: symbol;
+	/** Same-ID configuration replacement, rather than a consent withdrawal. @internal */
+	readonly replacing?: boolean;
+	/**
+	 * Run after the queued replacement has reconciled, or disposal aborts it.
+	 * Only present on an outgoing replacement's disposal info. Non-enumerable.
+	 * @param effect - Synchronous work that must wait for incoming membership.
+	 * @internal
+	 */
+	readonly afterReplacement?: (effect: () => void) => void;
 
 	/** The original script ID */
 	id: string;
@@ -99,6 +108,15 @@ export interface Script {
 	id: string;
 
 	/**
+	 * Validate before initial registration or configuration replacement.
+	 * Throw to reject the batch before existing registrations are changed.
+	 * Must not mutate script or SDK state. Lifecycle callback errors are isolated;
+	 * the loader does not catch validation errors.
+	 * @internal
+	 */
+	validate?: () => void;
+
+	/**
 	 * Stable identity of the DOM resource, separate from the logical script ID.
 	 * Set this when separate loaders can select different resources for the same
 	 * integration. Matching keys share an element; different keys mount separately.
@@ -118,6 +136,12 @@ export interface Script {
 	/**
 	 * Whether this is a callback-only script that doesn't need to load an external resource.
 	 * When true, no script tag will be added to the DOM, only callbacks will be executed.
+	 * A zero-argument predicate checks the current runtime before each new mount,
+	 * when reading diagnostics, and when selecting scripts for server startup.
+	 * Keep it free of side effects and safe to call on the server. It may run
+	 * more than once and does not change an already mounted registration.
+	 * Keep the function reference stable across script updates. A new function
+	 * counts as a resource change and remounts the registration.
 	 *
 	 * This is useful for:
 	 * - Managing consent for libraries already loaded on the page
@@ -131,13 +155,14 @@ export interface Script {
 	 *
 	 * @default false
 	 */
-	callbackOnly?: boolean;
+	callbackOnly?: boolean | (() => boolean);
 
 	/**
-	 * Whether the script should persist after consent is revoked.
+	 * Keep the element after consent is revoked. `true` also keeps pending
+	 * downloads; `'loaded'` keeps only elements whose load event completed.
 	 * @default false
 	 */
-	persistAfterConsentRevoked?: boolean;
+	persistAfterConsentRevoked?: boolean | 'loaded';
 
 	/**
 	 * Whether the script should always load regardless of consent state.
@@ -283,8 +308,10 @@ export interface Script {
 
 	/**
 	 * Release listeners and other resources when this configuration is removed,
-	 * replaced by a different object, or its loader is disposed. Adding this hook
-	 * opts into object-owned lifecycles; keep the config stable across rerenders.
+	 * replaced by a different resource or disposal callback, or its loader is
+	 * disposed. Recreating a DOM script config with the same resource and callback
+	 * preserves its lifecycle. Callback-only scripts with this hook retain an
+	 * object-owned lifecycle. Use a new callback when replacement needs cleanup.
 	 * Called even if the script never loaded.
 	 * Consent revocation alone does not call this hook. It does not revoke vendor
 	 * consent or undo code that has already executed. Must be safe to call before
@@ -292,6 +319,16 @@ export interface Script {
 	 * @param info - The current consent state and script identity.
 	 */
 	onDispose?: (info: ScriptCallbackInfo) => void;
+
+	/**
+	 * Keep an inserted element when this configuration is removed or disposed.
+	 * Lifecycle listeners are released; a later registration can reuse the tag
+	 * and receive its load or error completion. Use only when the SDK must stay
+	 * installed for the rest of the page. This does not stop vendor tracking.
+	 * Consent withdrawal still follows `persistAfterConsentRevoked`.
+	 * @default false
+	 */
+	persistAfterDispose?: boolean;
 
 	// ─────────────────────────────────────────────────────────────────────────
 	// IAB TCF Properties
