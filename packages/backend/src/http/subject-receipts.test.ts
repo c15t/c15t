@@ -260,11 +260,39 @@ for (const engine of ENGINES) {
 			);
 		});
 
+		it('records a save from a clock slightly ahead of the server as sent', async () => {
+			// The client saves on the tick after the click, so a visitor whose
+			// clock runs a little ahead sends times the server has not reached.
+			const ahead = Date.now() + 5000;
+			const vendorChoice = {
+				confirmedAt: ahead,
+				grants: { 'meta-pixel': true },
+				version: 1,
+			};
+			const saved = await harness.json('POST', '/subjects', {
+				...base,
+				choice: { categories: { marketing: receipt(true, ahead) }, version: 3 },
+				givenAt: ahead,
+				preferences: { marketing: true, necessary: true },
+				vendorChoice,
+			});
+			assert.strictEqual(saved.status, 200, JSON.stringify(saved.body));
+
+			const read = await harness.json('GET', `/subjects/${base.subjectId}`);
+			assert.deepStrictEqual(read.body.subjectChoice, {
+				categories: { marketing: receipt(true, ahead) },
+				version: 3,
+			});
+			assert.deepStrictEqual(read.body.subjectVendorChoice, vendorChoice);
+		});
+
 		it('rejects a receipt later than the server clock rather than clamping it', async () => {
 			const future = await harness.json('POST', '/subjects', {
 				...base,
 				choice: {
-					categories: { marketing: receipt(true, Date.now() + 60_000) },
+					categories: {
+						marketing: receipt(true, Date.now() + 11 * 60_000),
+					},
 					version: 3,
 				},
 				givenAt: T0,

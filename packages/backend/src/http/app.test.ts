@@ -1952,11 +1952,11 @@ describe.each(ENGINES)('HTTP app ($name)', (engine) => {
 		it('rejects a givenAt later than the server clock rather than clamping it', async () => {
 			await seed();
 			// A receipt records when the subject acted. Moving it to server time
-			// would rewrite the evidence, so a clock ahead of the server is a
-			// visible rejection instead.
+			// would rewrite the evidence, so a clock further ahead of the server
+			// than the drift tolerance is a visible rejection instead.
 			const response = await post({
 				...submission,
-				givenAt: Date.now() + 60_000,
+				givenAt: Date.now() + 11 * 60_000,
 			});
 			assert.strictEqual(response.status, 400);
 			assert.strictEqual(
