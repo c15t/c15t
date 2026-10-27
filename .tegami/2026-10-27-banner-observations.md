@@ -1,5 +1,6 @@
 ---
 packages:
+  'c15t': minor
   '@c15t/core': minor
   '@c15t/schema': minor
   '@c15t/react': minor
