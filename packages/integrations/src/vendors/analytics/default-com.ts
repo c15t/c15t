@@ -434,18 +434,30 @@ const mapConsent = function mapConsent(
 	};
 };
 
-/** Handle a callback for an owner without a connected element. */
+/**
+ * Handle a callback for an owner without a connected element. A no-element
+ * callback is a consent update for a pending or retained owner; only
+ * `onDispose` removes an owner from the SDK aggregate.
+ */
 const releaseUnmountedFormsSdk = (
 	info: ScriptCallbackInfo,
 	registration: SdkRegistration | undefined
 ): void => {
 	if (info.element) {
 		denyDetachedFormsSdk(info);
-	} else if (registration !== undefined && !sdkOwners.has(registration)) {
-		observePreloadOwner(registration, mapConsent(info));
-	} else {
-		disposeFormsSdk(info);
+		return;
 	}
+	if (registration === undefined) {
+		return;
+	}
+	const sdk = sdkOwners.get(registration);
+	const state = sdk ? sdkStates.get(sdk) : undefined;
+	if (sdk && state) {
+		state.registrations.set(registration, mapConsent(info));
+		forwardSdkConsent(sdk);
+		return;
+	}
+	observePreloadOwner(registration, mapConsent(info));
 };
 
 const forwardPixelConsent = function forwardPixelConsent(
