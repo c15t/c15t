@@ -341,7 +341,9 @@ export const releaseScriptElement = (
 /** Finalize an append, dropping any batch entry skipped by an interrupted pass. */
 const completeMount = (deps: MountDeps, pending: PendingMount): void => {
 	const { script, element, elementId, hasConsent } = pending;
-	if (pending.appended && element.isConnected && !element.src) {
+	// Only a configured inline script completes without an event. A hook that
+	// removes an external src may set it again later, so wait for that load.
+	if (pending.appended && element.isConnected && !script.src && !element.src) {
 		// Inline execution can dispose its loader inside appendChild. Remember
 		// physical completion even after that registration has been released.
 		setTimeout(() => {
