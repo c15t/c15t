@@ -204,6 +204,14 @@ the helper forwards denial to the SDK client it owns, even after the loader
 element is detached. A surviving shared registration retains its permission.
 Removing or disposing a pending helper does not initialize the SDK.
 
+The standalone Forms SDK stays loaded for the rest of the page after its final
+registration leaves, because running `sdk.js` a second time would leave form
+capture attached to the old client. A later helper with the same `scriptUrl`
+reuses that SDK, so a remount does not request `sdk.js` again. The helper
+forwards the current consent, and calls `init` again only when the SDK options
+changed. A helper with a different `scriptUrl` logs an error, does not
+load and leaves the SDK denied. Reload the page to change the SDK URL.
+
 Default says analytics withdrawal clears its visitor and session identity
 cookies and their session-storage copies. The current bundles also remove
 `_dflt_attr` attribution data from local storage. Default retains its
