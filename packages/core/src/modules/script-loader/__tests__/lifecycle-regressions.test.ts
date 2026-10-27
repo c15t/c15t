@@ -850,6 +850,32 @@ test('keeps a DOM-mounted registration when its callback-only predicate flips af
 	expect(cleanup).not.toHaveBeenCalled();
 });
 
+test('keeps a retained registration when its callback-only predicate flips after load', async () => {
+	let started = false;
+	const initialize = vi.fn(() => {
+		started = true;
+	});
+	const cleanup = vi.fn();
+	const callbackOnly = () => started;
+	const config = (): Script => ({
+		callbackOnly,
+		category: 'measurement',
+		id: 'retained-flipping-disposer',
+		onBeforeLoad: initialize,
+		onDispose: cleanup,
+		persistAfterConsentRevoked: true,
+		src: 'https://example.com/vendor.js',
+	});
+	const { kernel, loader } = mount([config()]);
+	const element = document.head.querySelector('script');
+	expect(started).toBe(true);
+	await kernel.commands.save({ measurement: false });
+	expect(element?.isConnected).toBe(true);
+	loader.updateScripts([config()]);
+	expect(element?.isConnected).toBe(true);
+	expect(cleanup).not.toHaveBeenCalled();
+});
+
 test.each([true, () => true])(
 	'disposes callback-only replacements with a stable disposer, callbackOnly=%s',
 	(callbackOnly) => {
