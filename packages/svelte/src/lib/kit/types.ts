@@ -1,3 +1,4 @@
+import type { StorageConfig } from '@c15t/core';
 import type { ConsentMode } from '@c15t/core/modes';
 import type {
 	ConsentManifest,
@@ -37,10 +38,34 @@ export interface C15tLocals {
 	 */
 	cookieName?: string;
 	/**
+	 * The handle's `storage` cookie attributes, for a `loadConsent` call
+	 * that sets the subject cookie under its own `cookieName`.
+	 */
+	storage?: Pick<
+		StorageConfig,
+		'crossSubdomain' | 'defaultDomain' | 'defaultExpiryDays'
+	>;
+	/**
+	 * The handle's `trustForwardedHeaders`, so that cookie is `Secure` behind
+	 * the same TLS-terminating proxy.
+	 */
+	trustForwardedHeaders?: boolean;
+	/**
+	 * The request `Cookie` header with the subject ID the handle just set,
+	 * which the browser does not send until its next request. `loadConsent`
+	 * reads it in place of the request's own.
+	 */
+	cookie?: string;
+	/**
 	 * Set while SvelteKit prerenders: the page is shared between visitors,
 	 * so `loadConsent` makes no upstream call and carries no visitor state.
 	 */
 	shared?: true;
+	/**
+	 * The handle's `subjectCookie: false`, so a call that reads another
+	 * cookie name sets no subject cookie either.
+	 */
+	subjectCookie?: false;
 }
 
 /** Normalized consent request context. Re-exported for `App.Locals` users. */

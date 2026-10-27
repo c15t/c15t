@@ -1,8 +1,14 @@
 ---
 packages:
-  c15t: minor
-  "@c15t/cli": patch
-  "@c15t/svelte": patch
+  c15t:
+    replay:
+      - exit-prerelease(npm:c15t)
+  "@c15t/cli":
+    replay:
+      - exit-prerelease(npm:@c15t/cli)
+  "@c15t/svelte":
+    replay:
+      - exit-prerelease(npm:@c15t/svelte)
 ---
 
 ### Install Svelte and SvelteKit through c15t

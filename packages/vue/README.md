@@ -30,7 +30,7 @@ c15t is used by [2,100+ sites](https://www.wappalyzer.com/technologies/cookie-co
 - Composables for a fully custom design
 - Analytics, ads, and pixels follow each visitor's choice through @c15t/integrations: Google Tag Manager, Google Consent Mode v2, GA4, Meta Pixel, PostHog, and more
 - IAB TCF 2.4 banner and dialog components
-- Translations for 42 languages through @c15t/translations
+- Translations for 53 languages through @c15t/translations
 
 ## Prerequisites
 

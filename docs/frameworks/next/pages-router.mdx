@@ -130,6 +130,17 @@ Consent resolves while the page's function runs, and its `redirect` and
 `notFound` results pass through unchanged. `resolveConsent` options, such as
 `timeoutMs`, go in the second argument.
 
+`withConsentProps` also gives a new visitor a subject ID (`sub_…`). When
+the request has none, it sets the `c15t-sid` cookie on the response and puts
+the ID in `consent`, so the browser starts with the same ID. The cookie holds
+only the ID, so the banner still shows. If you changed `storageConfig`, pass
+the same values as `storage` in the second argument so the cookie has the
+same name, domain and lifetime. The cookie is `Secure` when the request came
+over TLS or `X-Forwarded-Proto` says `https`, the rule Next.js uses for an
+App Router request's URL. With `persistence={false}` or a `consentSource` on
+`ConsentRoot`, pass `subjectCookie: false` so no cookie is set. See
+[the subject ID](/docs/concepts/consent-state#a-subject-id-from-the-first-page-load).
+
 Add `withConsentProps` to every page that should render consent on the
 server. Do not resolve consent in `getStaticProps`. It runs without the
 visitor's request, so it cannot read their cookies or location. If the

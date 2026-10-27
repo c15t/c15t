@@ -1244,7 +1244,8 @@ describe('lifecycle verbs', () => {
 
 		const snapshot = runtime.kernel.getSnapshot();
 		expect(snapshot.explicitChoice).toBeNull();
-		expect(snapshot.subject).toBeNull();
+		// The subject ID stays, so the visitor can still be reached.
+		expect(snapshot.subject).toEqual({ subjectId: 'sub_1' });
 		expect(snapshot.vendorChoice).toBeNull();
 		// The save outbox listens for this to drop the cleared subject's saves.
 		expect(cleared).toHaveBeenCalledOnce();

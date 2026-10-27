@@ -200,10 +200,16 @@ describe('web storage cleanup', () => {
 			PENDING_SAVES_STORAGE_KEY,
 			SUBJECT_REASSIGNMENTS_STORAGE_KEY,
 			'c15t-notice',
+			'c15t-notice-subject',
+			'c15t-notice-cookie-miss',
 			'c15t-privacy',
+			'c15t-sid',
 			'custom',
 			'custom-notice',
+			'custom-notice-subject',
+			'custom-notice-cookie-miss',
 			'custom-privacy',
+			'custom-sid',
 		];
 		for (const key of [...protectedKeys, 'c15t-analytics']) {
 			window.localStorage.setItem(key, 'value');

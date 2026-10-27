@@ -1,4 +1,14 @@
-import { readdirSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import {
+	mkdirSync,
+	mkdtempSync,
+	readdirSync,
+	readFileSync,
+	rmSync,
+	writeFileSync,
+} from 'node:fs';
+import { tmpdir } from 'node:os';
+import { dirname, join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
@@ -379,4 +389,68 @@ it('every selected artifact consumer has a package build in the real graph', () 
 		return consumesArtifact && result.build.length === 0;
 	});
 	expect(missingBuilds.map((workspace) => workspace.name)).toEqual([]);
+});
+
+// Nitro writes .output/server/package.json with dependencies. When Turbo read it
+// as a workspace, it dropped the lockfile from every task hash for the rest of
+// the job, so CI rebuilt finished packages and ignored dependency updates.
+it('keeps build output out of the workspaces Turbo and the CI plan read', () => {
+	const root = mkdtempSync(join(tmpdir(), 'c15t-workspaces-'));
+	try {
+		const { workspaces: globs } = JSON.parse(
+			readFileSync(join(repository, 'package.json'), 'utf8')
+		);
+		const write = (path: string, manifest: Record<string, unknown>) => {
+			mkdirSync(dirname(join(root, path)), { recursive: true });
+			writeFileSync(join(root, path), JSON.stringify(manifest));
+		};
+		write('package.json', {
+			name: 'root',
+			packageManager: 'bun@1.3.11',
+			private: true,
+			workspaces: globs,
+		});
+		write('turbo.json', { tasks: {} });
+		write('internals/fixture/package.json', { name: 'fixture' });
+		write('benchmarks/bench/package.json', { name: 'bench' });
+		for (const output of [
+			'dist',
+			'.next/standalone',
+			'.nuxt',
+			'.output/server',
+			'storybook-static',
+		]) {
+			for (const owner of ['internals/fixture', 'benchmarks/bench']) {
+				write(`${owner}/${output}/package.json`, {
+					dependencies: { vue: '3.5.0' },
+					name: `${owner}-${output}`,
+				});
+			}
+		}
+
+		const turbo = JSON.parse(
+			execFileSync(
+				join(repository, 'node_modules/.bin/turbo'),
+				['ls', '--output=json'],
+				{
+					cwd: root,
+					encoding: 'utf8',
+					env: { ...process.env, TURBO_TELEMETRY_DISABLED: '1' },
+					stdio: ['ignore', 'pipe', 'ignore'],
+				}
+			)
+		) as { packages: { items: { path: string }[] } };
+
+		expect(turbo.packages.items.map((item) => item.path).sort()).toEqual([
+			'benchmarks/bench',
+			'internals/fixture',
+		]);
+		expect(
+			readWorkspaces(root)
+				.map((workspace) => workspace.directory)
+				.sort()
+		).toEqual(['benchmarks/bench', 'internals/fixture']);
+	} finally {
+		rmSync(root, { force: true, recursive: true });
+	}
 });

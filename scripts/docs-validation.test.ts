@@ -12,6 +12,7 @@ import { expect, test } from 'vitest';
 import docsConfig from '../docs/docs.config';
 import umbrellaPackage from '../packages/c15t/package.json';
 import scriptsPackage from '../packages/integrations/package.json';
+import { builtInScriptIntegrations } from '../packages/integrations/src/registry';
 
 const docsRoot = fileURLToPath(new URL('../docs', import.meta.url));
 
@@ -185,6 +186,7 @@ test('integration navigation covers every vendor helper, both embeds and Shopify
 		'embeds',
 		'tag-managers',
 		'analytics',
+		'experience',
 		'chat-and-support',
 		'email-and-sms',
 		'ads-and-pixels',
@@ -193,6 +195,12 @@ test('integration navigation covers every vendor helper, both embeds and Shopify
 	const vendors = Object.entries(scriptsPackage.exports)
 		.filter(([, entry]) => entry.types.includes('/vendors/'))
 		.map(([subpath]) => subpath.slice(2));
+	// Every vendor helper has its own guide, and the registry links to it.
+	expect(
+		builtInScriptIntegrations
+			.filter((entry) => vendors.includes(entry.packageSubpath))
+			.filter((entry) => entry.docsSlug !== entry.packageSubpath)
+	).toEqual([]);
 	const expectedRoutes = [
 		...vendors,
 		'google-maps',

@@ -1,6 +1,6 @@
 ---
 title: Integrations
-description: Find all c15t integrations for analytics, tag managers, advertising, email and SMS, chat and embedded content.
+description: Find all c15t integrations for analytics, tag managers, advertising, experimentation and personalization, email and SMS, chat and embedded content.
 seoTitle: Cookie consent integrations for analytics and ads | c15t
 seoDescription: Connect analytics, ad pixels, chat widgets and embeds to your cookie banner. c15t has helpers for Google Tag Manager, Meta Pixel, PostHog, Segment and Hotjar.
 group: integrations
@@ -45,16 +45,19 @@ kernel to control its DOM lifecycle. Embeds do not require `@c15t/integrations`.
 
 | Integration | Helper | Category | Loading behavior |
 | --- | --- | --- | --- |
+| [Lucky Orange](/docs/integrations/lucky-orange) | `luckyOrange` | `measurement` | Waits for effective permission |
 | [Google Tag](/docs/integrations/google-tag) | `gtag` | `measurement` or `marketing` | Always loads and signals Google consent by default; `loadMode: 'after-consent'` waits for permission |
+| [Pendo](/docs/integrations/pendo) | `pendo` | `measurement` | Waits for effective permission; stops and resumes event sending |
 | [Ahrefs Analytics](/docs/integrations/ahrefs-analytics) | `ahrefsAnalytics` | `measurement` | Waits for effective permission |
 | [Adobe Analytics](/docs/integrations/adobe-analytics) | `adobeAnalytics` | `measurement` | Waits for effective permission |
 | [Amplitude](/docs/integrations/amplitude) | `amplitude` | `measurement` | Waits for effective permission; opts the SDK out on revocation |
 | [Cloudflare Web Analytics](/docs/integrations/cloudflare-web-analytics) | `cloudflareWebAnalytics` | `measurement` | Waits for effective permission |
+| [RB2B](/docs/integrations/rb2b) | `rb2b` | `marketing` | Waits for effective permission |
 | [Clay](/docs/integrations/clay) | `clay` | `marketing` | Waits for effective permission |
 | [Clearbit](/docs/integrations/clearbit) | `clearbit` | `marketing` | Waits for effective permission |
 | [Default](/docs/integrations/default-com) | `defaultComPixel` or `defaultComFormsSdk` | Pixel: `measurement`; SDK: `functionality`; both configurable | Pixel waits for permission by default; opt-in `loadMode: 'always'` loads before consent. Standalone SDK always waits for permission. Use one helper per document. |
 | [Microsoft Clarity](/docs/integrations/microsoft-clarity) | `clarity` | `measurement` | Gated initially; keeps the SDK and signals storage consent |
-| [Databuddy](/docs/integrations/databuddy) | `databuddy` | `measurement` | Always loads; switches the SDK's disabled flag |
+| [Databuddy](/docs/integrations/databuddy) | `databuddy` | `measurement` | Gated by default; disables the SDK on revocation |
 | [Fathom Analytics](/docs/integrations/fathom-analytics) | `fathomAnalytics` | `measurement` | Waits for effective permission |
 | [Heap](/docs/integrations/heap) | `heap` | `measurement` | Waits for effective permission |
 | [Matomo Analytics](/docs/integrations/matomo-analytics) | `matomoAnalytics` | `measurement` | Gated by default; optional consent mode |
@@ -71,28 +74,51 @@ kernel to control its DOM lifecycle. Embeds do not require `@c15t/integrations`.
 | [Segment](/docs/integrations/segment) | `segment` | `measurement` | Waits for effective permission |
 | [Sentry](/docs/integrations/sentry) | `sentry` | `necessary`; Replay and user data `measurement` | Configurable; defaults to always loading and loads Replay after permission |
 | [Rybbit Analytics](/docs/integrations/rybbit-analytics) | `rybbitAnalytics` | `measurement` | Waits for effective permission |
+| [Statable](/docs/integrations/statable-analytics) | `statableAnalytics` | `measurement` | Waits for effective permission |
 | [Umami Analytics](/docs/integrations/umami-analytics) | `umamiAnalytics` | `measurement` | Waits for effective permission |
 | [Vercel Analytics](/docs/integrations/vercel-analytics) | `vercelAnalytics` | `measurement` | Waits for effective permission |
 | [Vercel Speed Insights](/docs/integrations/vercel-speed-insights) | `vercelSpeedInsights` | `measurement` | Waits for effective permission; drops reports after revocation |
+
+## Experimentation and personalization
+
+| Integration | Helper | Category | Loading behavior |
+| --- | --- | --- | --- |
+| [Adobe Target](/docs/integrations/adobe-target) | `adobeTarget` | `experience` | Waits for effective permission |
+| [Appcues](/docs/integrations/appcues) | `appcues` | `experience` | Waits for effective permission |
+| [Dynamic Yield](/docs/integrations/dynamic-yield) | `dynamicYield` | `experience` | Waits for effective permission |
+| [Optimizely Web Experimentation](/docs/integrations/optimizely) | `optimizelyWeb` | `experience` | Waits for effective permission |
+| [Wisepops](/docs/integrations/wisepops) | `wisepops` | `marketing` | Waits for effective permission |
 
 ## Chat and support
 
 | Integration | Helper | Category | Loading behavior |
 | --- | --- | --- | --- |
+| [Ada](/docs/integrations/ada) | `ada` | `functionality` | Waits for effective permission |
 | [Crisp](/docs/integrations/crisp) | `crisp` | `functionality` | Waits for effective permission |
 | [Front Chat](/docs/integrations/front-chat) | `frontChat` | `functionality` | Waits for effective permission |
+| [Gorgias Chat](/docs/integrations/gorgias) | `gorgiasChat` | `functionality` | Waits for effective permission |
 | [Intercom](/docs/integrations/intercom) | `intercom` | `functionality` | Waits for effective permission |
+| [Zendesk Messaging](/docs/integrations/zendesk) | `zendeskWidget` | `functionality` | Waits for effective permission |
 
 ## Email and SMS
 
 | Integration | Helper | Category | Loading behavior |
 | --- | --- | --- | --- |
+| [Attentive](/docs/integrations/attentive) | `attentiveTag` | `marketing` | Waits for effective permission |
+| [Customer.io](/docs/integrations/customer-io) | `customerIo` | `marketing` | Waits for effective permission |
+| [Insider](/docs/integrations/insider) | `insiderTag` | `marketing` | Waits for effective permission |
 | [Klaviyo](/docs/integrations/klaviyo) | `klaviyo` | `marketing` and `measurement` | Waits for both; optional forms-only mode needs `marketing` |
+| [Marketo Munchkin](/docs/integrations/marketo) | `marketoMunchkin` | `marketing` | Waits for effective permission |
+| [Salesforce Account Engagement](/docs/integrations/salesforce-pardot) | `pardotTracking` | `marketing` | Waits for effective permission |
 
 ## Ads and pixels
 
 | Integration | Helper | Category | Loading behavior |
 | --- | --- | --- | --- |
+| [The Trade Desk](/docs/integrations/the-trade-desk) | `theTradeDeskPixel` | `marketing` | Waits for effective permission |
+| [LiveIntent](/docs/integrations/liveintent) | `liveIntentTag` | `marketing` | Waits for effective permission |
+| [AdRoll](/docs/integrations/adroll) | `adrollPixel` | `marketing` | Waits for effective permission |
+| [Vector](/docs/integrations/vector) | `vector` | `marketing` | Waits for effective permission |
 | [Meta Pixel](/docs/integrations/meta-pixel) | `metaPixel` | `marketing` | Gated initially; keeps the SDK and signals consent |
 | [OpenAI Pixel](/docs/integrations/openai-pixel) | `openaiPixel` | `marketing` | Gated initially; keeps the SDK and signals consent |
 | [Pinterest Tag](/docs/integrations/pinterest-tag) | `pinterestTag` | `marketing` | Gated initially; keeps the tag and signals consent |

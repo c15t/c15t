@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/ui",
-	"version": "3.0.1",
+	"version": "3.0.2-canary.0",
 	"description": "Framework-agnostic UI primitives, CSS and theme tokens behind the c15t React, Vue, Svelte and Astro components.",
 	"keywords": [
 		"c15t",

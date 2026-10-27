@@ -26,9 +26,22 @@
  *   causes never schedule a write, so startup does not renew a receipt or
  *   recreate a missing cookie or localStorage mirror. A `hydrate()` call
  *   flushes any queued write first.
+ * - Every runtime has a subject ID from startup, before the visitor
+ *   decides anything. Startup takes the one the records carry, else the
+ *   one the server named, else the one stored under `<key>-sid`, else a
+ *   new one. A server seed that only repeats what the cookies say yields
+ *   to the records as storage holds them. When no stored record carries
+ *   the ID and `<key>-sid` (cookie and localStorage) does not hold it yet,
+ *   it is stored there at once; this is the only startup write. Startup
+ *   never rewrites a `<key>-sid` copy the records disagree with.
+ *   `<key>-sid` is never read as a choice, so an ID alone still shows the
+ *   banner. Until a save uses it, an ID this runtime made follows one
+ *   another tab stores. Every later subject change is stored there too,
+ *   and `clear()` keeps it. Only `set.subjectId(null)` replaces it with a
+ *   new one. `keepSubject` and external permissions turn all of this off.
  * - Choice envelope writes follow `choice:recorded` and `subject:resolved`.
- *   The vendor record follows `subject:resolved` too, since it carries the
- *   subject for a visitor with no category choice yet.
+ *   Vendor and notice records follow `subject:resolved` too, since they
+ *   carry the subject for a visitor with no category choice yet.
  *   A canonical subject acknowledgement preserves every receipt timestamp.
  *   Separate writes follow
  *   `notice:dismissed` (the notice record and its cookie projection) and
@@ -63,10 +76,11 @@
  *   synchronously. Script-tag builds bundle it and swap in
  *   `writer-loader-static.ts`.
  * - `clear()` needs no write code: it clears the kernel's records and
- *   storage, and stores the clear epoch, before it returns, so a reload
- *   right after it cannot restore a cleared grant. It cancels queued writes
- *   first, so a pending flush cannot recreate what was just cleared. Its
- *   `records:cleared` event makes the kernel drop its queued saves.
+ *   storage except `<key>-sid`, and stores the clear epoch, before it
+ *   returns, so a reload right after it cannot restore a cleared grant. It
+ *   cancels queued writes first, so a pending flush cannot recreate what
+ *   was just cleared. Its `records:cleared` event makes the kernel drop its
+ *   queued saves.
  * - Writes and `reconcile()` follow the ordering rules in
  *   `writer/reconcile.ts`: choices merge per category, a notice or vendor
  *   write never replaces a newer stored record, a subject-only rewrite
@@ -79,6 +93,7 @@
  *   run.
  */
 import { STORAGE_KEY_V2 } from '../../libs/storage-keys';
+import type { StoredRecords as StoredRead } from './hydrate';
 import { mountPersistence } from './mount';
 import type { PersistenceHandle, PersistenceOptions } from './types';
 
@@ -91,7 +106,22 @@ export {
 	readStoredRecords,
 	readStoredRecordsFromCookieHeader,
 } from './hydrate';
-export type { StoredRecords } from './hydrate';
+
+/**
+ * Stored records as {@link readStoredRecords} returns them. A read always
+ * sets `recordedSubjectId` and `subjectCarrier`, and its return type says
+ * so. They are optional here, so an object typed as `StoredRecords` with
+ * the fields this type had before still type-checks. A stand-in typed
+ * through the reader, such as `typeof readStoredRecords` or a mocked reader,
+ * must return both fields.
+ */
+export interface StoredRecords extends Omit<
+	StoredRead,
+	'recordedSubjectId' | 'subjectCarrier'
+> {
+	recordedSubjectId?: StoredRead['recordedSubjectId'];
+	subjectCarrier?: StoredRead['subjectCarrier'];
+}
 export type {
 	StoredIabMetadata,
 	StoredConsentEnvelope,

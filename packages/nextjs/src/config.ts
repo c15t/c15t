@@ -26,6 +26,31 @@ declare const process: { env: Record<string, string | undefined> };
 export const BACKEND_URL_ENV = 'NEXT_PUBLIC_C15T_BACKEND_URL';
 
 /**
+ * The variable `withConsentManifest` sets to the path `routePrefix` in
+ * `c15t.config.ts` names, so the proxy, which cannot import the config,
+ * knows where the consent route is.
+ *
+ * @internal
+ */
+export const ROUTE_PREFIX_ENV = 'C15T_CONSENT_ROUTE_PREFIX';
+
+/**
+ * The consent route's path prefix from {@link ROUTE_PREFIX_ENV}, or
+ * `undefined` when it is unset or the runtime has no `process`.
+ *
+ * @internal
+ */
+export const readRoutePrefixFromEnv = function readRoutePrefixFromEnv():
+	| string
+	| undefined {
+	try {
+		return process.env.C15T_CONSENT_ROUTE_PREFIX || undefined;
+	} catch {
+		return undefined;
+	}
+};
+
+/**
  * `NEXT_PUBLIC_C15T_BACKEND_URL`, or `undefined` when it is unset or the
  * runtime has no `process`. Only the c15t name is read here, so browser
  * bundles carry one value: `withConsentManifest` sets it from
