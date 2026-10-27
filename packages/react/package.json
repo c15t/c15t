@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/react",
-	"version": "3.1.0",
+	"version": "3.2.0-canary.0",
 	"description": "React cookie consent banner and React consent dialog for c15t, plus a React cookie banner, preference center and headless hooks.",
 	"keywords": [
 		"cmp",

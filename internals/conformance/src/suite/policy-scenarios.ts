@@ -170,6 +170,12 @@ const assertStorage = function assertStorage(
 	after: PolicyEvidence
 ): void {
 	const bytes = after.storage;
+	const expectedNotice: Record<string, unknown> = {
+		...after.snapshot.noticeDismissal,
+	};
+	if (after.snapshot.subject) {
+		expectedNotice.subject = after.snapshot.subject;
+	}
 	if (expected === 'unchanged') {
 		api.expect(bytes).toEqual(before);
 	}
@@ -188,7 +194,7 @@ const assertStorage = function assertStorage(
 			.toBe(false);
 		api.expect(bytes.notice.localStorage).not.toBeNull();
 		const persisted: unknown = JSON.parse(bytes.notice.localStorage ?? 'null');
-		api.expect(persisted).toEqual(after.snapshot.noticeDismissal);
+		api.expect(persisted).toEqual(expectedNotice);
 	}
 	if (expected === 'choice-v3' || expected === 'choice-and-notice') {
 		api.expect(bytes.choice.localStorage).not.toBeNull();
@@ -217,7 +223,7 @@ const assertStorage = function assertStorage(
 		api.expect(bytes.notice.localStorage).not.toBeNull();
 		api
 			.expect(JSON.parse(bytes.notice.localStorage ?? 'null'))
-			.toEqual(after.snapshot.noticeDismissal);
+			.toEqual(expectedNotice);
 	}
 };
 
@@ -372,7 +378,12 @@ export const assertPolicyObservation = function assertPolicyObservation(
 	if (expected.choice !== undefined) {
 		api.expect(snapshot.explicitChoice).toEqual(expected.choice);
 	}
-	if (expected.subject !== undefined) {
+	if (expected.subject === 'generated') {
+		api.expect(Object.keys(snapshot.subject ?? {})).toEqual(['subjectId']);
+		api
+			.expect(snapshot.subject?.subjectId?.startsWith('sub_'), 'subject ID')
+			.toBe(true);
+	} else if (expected.subject !== undefined) {
 		api.expect(snapshot.subject).toEqual(expected.subject);
 	}
 	if (expected.resolution !== undefined) {

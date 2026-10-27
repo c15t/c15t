@@ -465,6 +465,30 @@ describe('Next.js build-time manifest', () => {
 		);
 	});
 
+	test.each([
+		[
+			"routePrefix: '/api/consent/'",
+			{ C15T_CONSENT_ROUTE_PREFIX: '/api/consent' },
+		],
+		["routePrefix: 'https://consent.example.com/c15t'", undefined],
+		['no routePrefix', undefined],
+	] as const)(
+		'c15t.config.ts with %s sets the consent route the proxy skips',
+		async (setting, env) => {
+			const root = await createRoot();
+			const body = setting.startsWith('routePrefix') ? `${setting}, ` : '';
+			await writeFile(
+				join(root, 'c15t.config.ts'),
+				`export default { ${body}backendURL: 'https://consent.example.com' };\n`
+			);
+			const config = await withConsentManifest(
+				{ env: { OTHER: '1' } },
+				optionsFor()
+			)('phase-production-build', { defaultConfig: {} });
+			expect(config.env).toEqual({ OTHER: '1', ...env });
+		}
+	);
+
 	test("fetches from the config's backendURL when the env leaves it out", async () => {
 		const root = await createRoot();
 		await writeFile(

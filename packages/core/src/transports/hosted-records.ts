@@ -12,6 +12,7 @@
  * reload), so its reviver loads on first use.
  */
 import { failedResponseError } from '../libs/failed-response';
+import { isValidSubjectId } from '../libs/generate-subject-id';
 import type { KernelTransport, KernelUser, SaveResult } from '../types';
 import { buildDecisionAssertion } from './decision-inputs';
 import type { RememberedDecisionInputs } from './decision-inputs';
@@ -187,6 +188,12 @@ export const createHostedRecordTransport = function createHostedRecordTransport(
 				headers: jsonHeaders,
 				method: 'PATCH',
 			});
+			// A backend older than first-load subject IDs only knows subjects
+			// a save created. The identity then travels with the next save.
+			// The backend rejects an ID of another form, and so would the save.
+			if (response.status === 404 && isValidSubjectId(subjectId)) {
+				return;
+			}
 			if (!response.ok) {
 				throw await failed('/subjects/:id', response);
 			}

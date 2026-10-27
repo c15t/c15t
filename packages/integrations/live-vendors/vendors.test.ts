@@ -62,6 +62,75 @@ describe('live vendor probe configs', () => {
 		expect(isAllowed('https://ct.pinterest.com/stats/')).toBe(false);
 	});
 
+	it('allows Customer.io settings and SDK chunks while blocking collection', () => {
+		const [config] = configsForVendor('customer-io');
+		const allowed = [
+			config?.loaderUrlSubstring,
+			...(config?.allowUrlSubstrings ?? []),
+		].filter((value): value is string => Boolean(value));
+		const isAllowed = (url: string) =>
+			allowed.some((substring) => url.includes(substring));
+		expect(
+			isAllowed(
+				'https://cdp.customer.io/v1/projects/47e549aabef763c4f2fc/settings'
+			)
+		).toBe(true);
+		expect(
+			isAllowed('https://cdp.customer.io/v1/analytics-js/inAppPlugin.js')
+		).toBe(true);
+		expect(isAllowed('https://cdp.customer.io/v1/m')).toBe(false);
+		expect(isAllowed('https://cdp.customer.io/v1/track')).toBe(false);
+	});
+
+	it('allows Ada rollout assets while blocking Agent and collection endpoints', () => {
+		const [config] = configsForVendor('ada');
+		const allowedUrls = [
+			config?.loaderUrlSubstring,
+			...(config?.allowUrlSubstrings ?? []),
+		].filter((value): value is string => Boolean(value));
+		const isAllowed = (url: string) =>
+			allowedUrls.some((substring) => url.includes(substring));
+		const assets = 'https://messaging-assets.ada.support';
+		const futureVersion = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+
+		for (const path of [
+			'/sdk.js',
+			'/messaging-manifest.json',
+			'/messaging-stable-version.txt',
+			`/${futureVersion}/sdk/index.js`,
+			`/${futureVersion}/sdk/core.html?ada_handle=c15t-live-probe-placeholder`,
+			`/${futureVersion}/sdk/button.html?ada_handle=c15t-live-probe-placeholder`,
+			`/${futureVersion}/core/index.js`,
+			`/${futureVersion}/core/chunk-future.js`,
+			`/${futureVersion}/core/styles.css`,
+			`/${futureVersion}/core/font.woff2`,
+		]) {
+			expect.soft(isAllowed(`${assets}${path}`), path).toBe(true);
+		}
+
+		for (const url of [
+			'https://c15t-live-probe-placeholder.ada.support/api/?ada_request_origin=embed',
+			'https://c15t-live-probe-placeholder.eu.ada.support/api/',
+			'https://c15t-live-probe-placeholder.us2.ada.support/api/',
+			'https://rollout.ada.support/c15t-live-probe-placeholder/client.json',
+			'https://api.ada.support/collect',
+			'https://o38990.ingest.us.sentry.io/api/4510980191027200/envelope/',
+			'https://messaging-assets.ada.support.example.com/collect',
+		]) {
+			expect.soft(isAllowed(url), url).toBe(false);
+		}
+	});
+
+	it('uses an obvious placeholder account for the RB2B reachability probe', () => {
+		const [config] = configsForVendor('rb2b');
+		const loaderPath =
+			'ddwl4m2hdecbv.cloudfront.net/b/C15TFAKERB2BKEY/C15TFAKERB2BKEY.js.gz';
+
+		expect(config?.createScript?.().src).toBe(`https://${loaderPath}`);
+		expect(config?.loaderUrlSubstring).toBe(loaderPath);
+		expect(config?.tier).toBe('loader-only');
+	});
+
 	it('documents every vendor that asserts no runtime behavior', () => {
 		// A vendor whose loader answers placeholder credentials with an error
 		// page cannot prove its SDK started, so the probe reduces to "the
@@ -89,16 +158,26 @@ describe('live vendor probe configs', () => {
 		// Snapshot the gap list so shrinking it is deliberate and growing it is
 		// impossible to land unnoticed.
 		expect(gaps.sort()).toEqual([
+			'ada',
 			'adobe-analytics',
+			'adobe-target',
+			'appcues',
 			'clearbit',
 			'crisp',
+			'dynamic-yield',
 			'google-tag-manager',
+			'gorgias',
 			'hotjar',
+			'insider',
 			'intercom',
 			'linkedin-insights',
 			'matomo-analytics',
+			'optimizely',
+			'rb2b',
 			'segment',
 			'vercel-analytics',
+			'wisepops',
+			'zendesk',
 		]);
 	});
 

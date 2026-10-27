@@ -147,12 +147,14 @@ test.each([
 		await active.kernel.commands.save(before ? 'all' : 'none');
 		await nextTask();
 		expect(measurement(active)).toBe(before);
+		const subjectId = active.kernel.getSnapshot().subject?.subjectId;
 
 		start().clearRecords();
 
 		expect(active.reconcileStorage()).toBe(true);
 		expect(active.kernel.getSnapshot().explicitChoice).toBeNull();
-		expect(active.kernel.getSnapshot().subject).toBeNull();
+		// A clear keeps the subject ID.
+		expect(active.kernel.getSnapshot().subject).toEqual({ subjectId });
 		expect(measurement(active)).toBe(after);
 	}
 );
@@ -672,7 +674,13 @@ test('a late subject acknowledgement does not replace a subject another runtime 
 		{ vendors },
 		createTransport({ save: vi.fn(() => response.promise) })
 	);
+	// Without the stored subject ID, the other runtime starts its own.
+	clearCookies();
+	localStorage.clear();
 	const other = start({ vendors });
+	expect(other.kernel.getSnapshot().subject?.subjectId).not.toBe(
+		late.kernel.getSnapshot().subject?.subjectId
+	);
 	const input = { measurement: true, vendors: { 'analytics-one': false } };
 
 	void late.kernel.commands.save(input);
@@ -1040,7 +1048,9 @@ test('a stored record without decisions from before a clear does not restore its
 	);
 	writeStoredClearEpoch(T, undefined);
 
-	expect(start().kernel.getSnapshot().subject).toBeNull();
+	const subjectId = start().kernel.getSnapshot().subject?.subjectId;
+	expect(subjectId).not.toBe('sub_before_clear');
+	expect(subjectId).toMatch(/^sub_/u);
 });
 
 test('a removed choice does not replace a server subject with an older vendor subject', async () => {

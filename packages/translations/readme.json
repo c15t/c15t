@@ -1,8 +1,8 @@
 {
-	"title": "@c15t/translations: Cookie consent translations in 42 languages",
-	"description": "Typed cookie consent translations for c15t banners, dialogs, and preference centers, in 42 languages.",
+	"title": "@c15t/translations: Cookie consent translations in 53 languages",
+	"description": "Typed cookie consent translations for c15t banners, dialogs, and preference centers, in 53 languages.",
 	"features": [
-		"42 languages, including all 24 official EU languages",
+		"53 languages, including all 24 official EU languages",
 		"Typed translation objects, so a misspelled key fails type checking",
 		"Override one string or a whole language",
 		"Language follows the visitor's browser, or a language that you set"
