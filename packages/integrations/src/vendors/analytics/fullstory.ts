@@ -245,6 +245,29 @@ const configurationOf = (options: ResolvedFullStoryOptions): string =>
 		options.script,
 		options.scriptUrl,
 	]);
+// One predicate per configuration keeps recreated helpers the same resource.
+const callbackOnlyChecks = new Map<string, () => boolean>();
+const callbackOnlyFor = (configuration: string): (() => boolean) => {
+	let check = callbackOnlyChecks.get(configuration);
+	if (!check) {
+		check = () => {
+			if (typeof window === 'undefined' || !window.FS) {
+				return false;
+			}
+			const recorder = recorders.get(window.FS);
+			if (!recorder || recorder.configuration !== configuration) {
+				return true;
+			}
+			readRecorderInsertions(recorder);
+			if (recorder.element?.isConnected) {
+				return false;
+			}
+			return recorder.inserted;
+		};
+		callbackOnlyChecks.set(configuration, check);
+	}
+	return check;
+};
 const matchingRecorder = (configuration: string): Recorder | undefined => {
 	if (!window.FS) {
 		return undefined;
@@ -511,24 +534,7 @@ export const fullStory = function fullStory(options: FullStoryOptions): Script {
 	}
 	const script = reuseFullStory(resolved, createFullStory);
 	// A retained runtime, including a pending download, needs callbacks only.
-	// Evaluate at mount time because callers can retain scripts across disposal.
-	Object.defineProperty(script, 'callbackOnly', {
-		configurable: true,
-		enumerable: true,
-		get: () => {
-			if (typeof window === 'undefined' || !window.FS) {
-				return false;
-			}
-			const recorder = recorders.get(window.FS);
-			if (!recorder || recorder.configuration !== configuration) {
-				return true;
-			}
-			readRecorderInsertions(recorder);
-			if (recorder.element?.isConnected) {
-				return false;
-			}
-			return recorder.inserted;
-		},
-	});
+	// A function survives object-spread customization and is checked at mount.
+	script.callbackOnly = callbackOnlyFor(configuration);
 	return script;
 };

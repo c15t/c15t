@@ -42,6 +42,19 @@ describe('FullStory consent loader', () => {
 		sessionStorage.clear();
 		vi.unstubAllGlobals();
 	});
+	it('keeps a live callback-only check through object spread', () => {
+		const copy = { ...fullStory({ orgId: 'o-SPREAD-na1' }) };
+		expect(typeof copy.callbackOnly).toBe('function');
+		expect(fullStory({ orgId: 'o-SPREAD-na1' }).callbackOnly).toBe(
+			copy.callbackOnly
+		);
+		const check = copy.callbackOnly as () => boolean;
+		expect(check()).toBe(false);
+		// A runtime this helper did not start needs callbacks only.
+		Reflect.set(window, 'FS', vi.fn());
+		expect(check()).toBe(true);
+	});
+
 	it('creates no vendor requests, globals or storage before mapped consent', () => {
 		const scripts = [fullStory({ orgId: 'YOUR_ORG_ID' })];
 		const cookies = document.cookie;
