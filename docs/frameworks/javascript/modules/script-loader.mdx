@@ -65,8 +65,9 @@ completion too. Removing a registration cancels its pending callback. c15t does
 not infer completion for elements added outside the loader.
 
 Removing the original loader transfers ownership to a remaining loader. c15t
-removes an element it created when the last loader releases it, unless that
-registration sets `persistAfterDispose`.
+removes an element it created when the last loader releases it, unless a
+registration that released it by removal or disposal set
+`persistAfterDispose`. That setting does not apply to consent withdrawal.
 
 Use `persistAfterDispose` for an SDK that must remain installed for the rest
 of the page. Disposal still releases callbacks. A later registration with
