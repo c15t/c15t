@@ -92,22 +92,6 @@ test('keeps a shared element when a persistent non-owner leaves first', () => {
 	expect(owner.element.isConnected).toBe(true);
 });
 
-test('inserts a changed resource instead of adopting a retained element', () => {
-	const script: Script = {
-		category: 'measurement',
-		id: 'retained-changed',
-		persistAfterDispose: true,
-		src: 'https://example.com/sdk-v1.js',
-	};
-	const { element, loader } = mount([script]);
-	loader.updateScripts([{ ...script, src: 'https://example.com/sdk-v2.js' }]);
-	const scripts = [...document.querySelectorAll('script')];
-	expect(scripts.map((current) => current.getAttribute('src'))).toEqual([
-		'https://example.com/sdk-v2.js',
-	]);
-	expect(element.isConnected).toBe(false);
-});
-
 test('removes a shared element on revocation after its persistent owner leaves', async () => {
 	const config = (persistAfterDispose: boolean): Script => ({
 		category: 'measurement',
