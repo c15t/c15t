@@ -29,6 +29,7 @@ import {
 	mayWriteVendorChoice,
 	sameRecord,
 	selectReconciledRecords,
+	subjectAfterClear,
 	subjectToWrite,
 } from './reconcile';
 import type { StorageFingerprints, StoredRecordKind } from './reconcile';
@@ -85,12 +86,50 @@ export const createPersistenceWriter = function createPersistenceWriter(
 	// it means another runtime cleared the records since.
 	let memoryEpoch = 0;
 
+	// The subject the notice record carried when this runtime last saw it,
+	// when no envelope or vendor record carried one.
+	let seenNoticeSubject: ConsentSubject | null = null;
+	// The record that carried the subject when this runtime last saw storage.
+	let seenCarrier: StoredRecords['subjectCarrier'] | undefined;
+	const rememberNoticeSubject = function rememberNoticeSubject(
+		read: StoredRecords
+	): void {
+		if (read.records.noticeDismissal !== undefined) {
+			seenNoticeSubject =
+				read.subjectCarrier === 'notice' ? (read.noticeSubject ?? null) : null;
+		}
+	};
+
+	// A read that could not tell the subject omits it. One whose choice is
+	// unreadable can still take it from a vendor or notice record.
+	// The whole subject storage held then, linked identity included.
+	let seenSubject: ConsentSubject | null = null;
 	const rememberSubject = function rememberSubject(
 		records: HydrationRecords
 	): void {
-		if (records.choice !== undefined) {
+		if (records.subject !== undefined) {
 			seenSubjectId = records.subject?.subjectId ?? null;
+			seenSubject = records.subject ?? null;
 		}
+	};
+
+	/**
+	 * Whether the linked identity in memory is only storage's copy: the one
+	 * the records carried at the previous read, which `identify()` did not
+	 * set in this runtime. Storage may replace such an identity.
+	 */
+	const identityYields = function identityYields(): boolean {
+		const { subject, user } = kernel.getSnapshot();
+		const identity = [subject?.externalId, subject?.identityProvider];
+		return (
+			identity.some(Boolean) &&
+			identity[0] === seenSubject?.externalId &&
+			identity[1] === seenSubject?.identityProvider &&
+			!(
+				user?.externalId === identity[0] &&
+				user?.identityProvider === identity[1]
+			)
+		);
 	};
 
 	const subjectYields = function subjectYields(): boolean {
@@ -109,11 +148,15 @@ export const createPersistenceWriter = function createPersistenceWriter(
 		} else {
 			seen = prints;
 		}
+		if (kind === undefined || kind === 'notice') {
+			rememberNoticeSubject(read);
+		}
 		if (kind === undefined || kind === 'choice') {
 			rememberSubject(read.records);
 		}
 		if (kind === undefined) {
 			memoryEpoch = read.epoch;
+			seenCarrier = read.subjectCarrier;
 		}
 	};
 
@@ -165,10 +208,10 @@ export const createPersistenceWriter = function createPersistenceWriter(
 	};
 
 	/**
-	 * The subject a write stores. After a clear this runtime missed, a
-	 * subject from before it belongs to the cleared history: only what
-	 * storage holds now is kept, or none. A subject a save generated after
-	 * the clear follows the usual rules.
+	 * The subject a write stores. After a clear this runtime missed, the
+	 * identity linked to a subject from before it belongs to the cleared
+	 * history: what storage holds now is kept, or else the ID alone. A
+	 * subject a save generated after the clear follows the usual rules.
 	 */
 	const writtenSubject = function writtenSubject(
 		snapshot: ConsentSnapshot,
@@ -180,9 +223,14 @@ export const createPersistenceWriter = function createPersistenceWriter(
 			return snapshot.subject;
 		}
 		if (read.epoch > memoryEpoch && !subjectBornAfter(read.epoch)) {
-			return stored ?? null;
+			return stored ?? subjectAfterClear(snapshot.subject);
 		}
-		return subjectToWrite(snapshot.subject, stored, subjectYields());
+		return subjectToWrite(
+			snapshot.subject,
+			stored,
+			subjectYields(),
+			identityYields()
+		);
 	};
 
 	// Every write reads storage first and voids what this runtime holds from
@@ -244,10 +292,20 @@ export const createPersistenceWriter = function createPersistenceWriter(
 		);
 	});
 	const noticeWrites = createWriteScheduler(() => {
+		const subjectOnly = !state.noticeRecorded;
+		state.noticeRecorded = false;
 		const snapshot = kernel.getSnapshot();
 		const at = now();
 		const read = tools.read(storageConfig, at);
 		const ours = tools.noticeSince(snapshot.noticeDismissal, read.epoch);
+		if (
+			subjectOnly &&
+			(read.epoch > memoryEpoch ||
+				!read.records.noticeDismissal ||
+				changedSinceSeen('notice', read))
+		) {
+			return;
+		}
 		if (
 			ours &&
 			mayWriteNotice(
@@ -256,8 +314,14 @@ export const createPersistenceWriter = function createPersistenceWriter(
 				changedSinceSeen('notice', read)
 			)
 		) {
-			writeNoticeToStorage(store, snapshot, storageConfig, at);
-			observe('notice');
+			const subject = writtenSubject(
+				snapshot,
+				read.noticeSubject,
+				subjectOnly,
+				read
+			);
+			writeNoticeToStorage(store, { ...snapshot, subject }, storageConfig, at);
+			markWritten('notice', sameRecord(subject, snapshot.subject));
 		}
 	});
 	const vendorWrites = createWriteScheduler(() => {
@@ -366,9 +430,16 @@ export const createPersistenceWriter = function createPersistenceWriter(
 			unadopted,
 			memoryEpoch,
 			subjectBornAfter(stored.epoch),
+			{
+				identityYields: identityYields(),
+				noticeCarried: seenNoticeSubject,
+				seenCarrier,
+			},
 			tools
 		);
 		({ seen } = next);
+		seenCarrier = stored.subjectCarrier;
+		rememberNoticeSubject(stored);
 		unadopted.clear();
 		rememberSubject(stored.records);
 		memoryEpoch = stored.epoch;
@@ -399,6 +470,8 @@ export const createPersistenceWriter = function createPersistenceWriter(
 	return {
 		adopt(read, iab) {
 			seen = fingerprintStoredRecords(read);
+			seenCarrier = read.subjectCarrier;
+			rememberNoticeSubject(read);
 			rememberSubject(read.records);
 			memoryEpoch = read.epoch;
 			if (iab && read.records.choice !== undefined) {

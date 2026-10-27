@@ -223,15 +223,15 @@ const BROWSER_MANIFEST_ENTRIES = new Set(['browser-full', 'browser-headless']);
 const ADDITIONAL_CONSENT_COPY_GZIP_BYTES = 3584;
 
 /**
- * Seven built-in languages for New York State's language access list (ar,
- * bn, ht, ko, ru, ur, yi; #1562) land in the same first-load JavaScript of
- * entries that bundle every language: 18,759 bytes gzip, measured as the
- * change from the base commit. The browser entries get seven more language
- * chunks, which `BROWSER_LANGUAGE_CHUNKS_GZIP_BYTES` already covers. The
- * budgets below carry it once; they return to their previous values after
- * the languages are on the base branch.
+ * Eleven built-in languages from #927 (ja, kn, ml, mr, ms, pa, ta, te, th,
+ * tr, vi) land in the same first-load JavaScript of entries that bundle
+ * every language: 28,415 bytes gzip, measured as the change from the base
+ * commit. The browser entries get eleven more language chunks (+35,256
+ * bytes gzip deferred), which `BROWSER_LANGUAGE_CHUNKS_GZIP_BYTES` already
+ * covers. The budgets below carry it once; they return to their previous
+ * values after the languages are on the base branch.
  */
-const NY_LANGUAGES_GZIP_BYTES = 19_456;
+const ASIA_LANGUAGES_GZIP_BYTES = 28_672;
 
 /** Bundle entries that bundle every built-in language on first load. */
 const ALL_LANGUAGE_ENTRIES = new Set(['manifest-transport']);
@@ -1280,7 +1280,7 @@ export const bundleEntryBudgets = function bundleEntryBudgets(
 		? BROWSER_LANGUAGE_CHUNKS_GZIP_BYTES
 		: 0;
 	const allLanguageCopy = ALL_LANGUAGE_ENTRIES.has(scenario)
-		? ADDITIONAL_CONSENT_COPY_GZIP_BYTES + NY_LANGUAGES_GZIP_BYTES
+		? ADDITIONAL_CONSENT_COPY_GZIP_BYTES + ASIA_LANGUAGES_GZIP_BYTES
 		: 0;
 	return [
 		{

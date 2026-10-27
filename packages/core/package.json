@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/core",
-	"version": "3.1.0",
+	"version": "3.2.0-canary.0",
 	"description": "Headless consent engine behind c15t. Stores consent, decides who sees the banner and gates configured scripts on each visitor's consent policy.",
 	"keywords": [
 		"banner",

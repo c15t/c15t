@@ -16,7 +16,11 @@ import {
 	noticeSinceEpoch,
 	vendorChoiceSinceEpoch,
 } from './epoch';
-import type { StoredIabMetadata, StoredVendorChoice } from './record-codec';
+import type {
+	StoredIabMetadata,
+	StoredNoticeDismissal,
+	StoredVendorChoice,
+} from './record-codec';
 import {
 	readStoredClearEpoch,
 	readStoredClearEpochFromCookieHeader,
@@ -24,6 +28,8 @@ import {
 	readStoredConsentRecordFromCookieHeader,
 	readStoredNoticeDismissal,
 	readStoredNoticeDismissalFromCookieHeader,
+	readStoredSubjectId,
+	readStoredSubjectIdFromCookieHeader,
 	readStoredVendorChoice,
 	readStoredVendorChoiceFromCookieHeader,
 } from './record-storage';
@@ -45,6 +51,20 @@ export interface StoredRecords {
 	 * `records.subject`, so this is the only place the vendor copy shows.
 	 */
 	vendorSubject: ConsentSubject | null;
+	/** Subject carried by the notice record, independently of other records. */
+	noticeSubject?: ConsentSubject | null;
+	/**
+	 * The subject ID the records themselves carry, `null` when they carry
+	 * none. `records.subject` falls back to the stored subject ID; this
+	 * does not.
+	 */
+	recordedSubjectId: string | null;
+	/**
+	 * The record `records.subject` comes from, `null` when no record carries
+	 * a subject. A record stored without one, as older versions wrote them,
+	 * does not carry it.
+	 */
+	subjectCarrier: 'choice' | 'vendors' | 'notice' | null;
 	/**
 	 * The clear epoch in force: the newer of the stored epoch and the one
 	 * the envelope records, `0` when no clear was ever recorded. Records
@@ -67,6 +87,17 @@ const kernelVendorChoice = function kernelVendorChoice(
 	return vendorChoice;
 };
 
+/** Strip storage-only identity before applying a notice to the kernel. */
+const kernelNoticeDismissal = function kernelNoticeDismissal(
+	record: StoredNoticeDismissal | null
+): HydrationRecords['noticeDismissal'] {
+	if (!record) {
+		return null;
+	}
+	const { subject: _subject, ...dismissal } = record;
+	return dismissal;
+};
+
 /**
  * The selected envelope as the clear in force leaves it. An envelope with
  * nothing left since the clear is a cleared one (the caller passes no
@@ -85,16 +116,68 @@ const envelopeSinceEpoch = function envelopeSinceEpoch(
 };
 
 /**
+ * The subject the records carry. The envelope's subject wins; the vendor
+ * record's copy covers a visitor whose only act so far decided vendors;
+ * the notice record's covers one who only acknowledged a notice; the
+ * stored subject ID covers a visitor who has decided nothing yet, or
+ * whose records were cleared. A record subject without an ID takes the
+ * stored one.
+ */
+const composeSubject = function composeSubject(
+	recorded: ConsentSubject | null,
+	storedSubjectId: string | null
+): ConsentSubject | null {
+	if (recorded?.subjectId || !storedSubjectId) {
+		return recorded;
+	}
+	return { ...recorded, subjectId: storedSubjectId };
+};
+
+/**
+ * The record that carries the subject among the surviving records: the
+ * envelope, else the vendor record, else the notice record.
+ */
+const subjectCarrier = function subjectCarrier(
+	selected: StoredConsentSelection['selected'],
+	vendorRecord: StoredVendorChoice | null,
+	noticeRecord: StoredNoticeDismissal | null
+): StoredRecords['subjectCarrier'] {
+	if (selected?.subject) {
+		return 'choice';
+	}
+	if (vendorRecord?.subject) {
+		return 'vendors';
+	}
+	return noticeRecord?.subject ? 'notice' : null;
+};
+
+/**
+ * The subject the surviving records carry: the envelope's, else the vendor
+ * record's, else the notice record's.
+ */
+const recordedSubject = function recordedSubject(
+	selected: StoredConsentSelection['selected'],
+	vendorRecord: StoredVendorChoice | null,
+	noticeRecord: StoredNoticeDismissal | null
+): ConsentSubject | null {
+	return (
+		selected?.subject ?? vendorRecord?.subject ?? noticeRecord?.subject ?? null
+	);
+};
+
+/**
  * Builds the records from decoded reads. Anything confirmed before the
  * clear epoch (the newer of the stored epoch and the envelope's own) was
  * cleared and reads as absent, so a record written back by a runtime that
- * missed the clear cannot bring it back.
+ * missed the clear cannot bring it back. The stored subject ID is not cut
+ * to the epoch: a clear keeps it.
  */
 const composeRecords = function composeRecords(
 	selection: StoredConsentSelection,
 	notice: ReturnType<typeof readStoredNoticeDismissal>,
 	vendors: ReturnType<typeof readStoredVendorChoice>,
 	clearEpoch: number,
+	storedSubjectId: string | null,
 	now: number
 ): StoredRecords {
 	const envelopeEpoch = selection.selected?.epoch ?? 0;
@@ -113,13 +196,16 @@ const composeRecords = function composeRecords(
 		vendors?.ok ? vendors.record : null,
 		epoch
 	);
+	const noticeRecord = noticeSinceEpoch(
+		notice?.ok ? notice.record : null,
+		epoch
+	);
+	const recorded = recordedSubject(selected, vendorRecord, noticeRecord);
 	const records: HydrationRecords = {
 		choice,
-		noticeDismissal: noticeSinceEpoch(notice?.ok ? notice.record : null, epoch),
+		noticeDismissal: kernelNoticeDismissal(noticeRecord),
 		now,
-		// The envelope's subject wins; the vendor record's copy covers a visitor
-		// whose only act so far decided vendors.
-		subject: selected?.subject ?? vendorRecord?.subject ?? null,
+		subject: composeSubject(recorded, storedSubjectId),
 		vendorChoice: kernelVendorChoice(vendorRecord),
 	};
 	return {
@@ -130,7 +216,10 @@ const composeRecords = function composeRecords(
 			vendorRecord !== null ||
 			records.noticeDismissal !== null,
 		iab: selected?.iab ?? null,
+		noticeSubject: noticeRecord?.subject ?? null,
+		recordedSubjectId: recorded?.subjectId ?? null,
 		records,
+		subjectCarrier: subjectCarrier(selected, vendorRecord, noticeRecord),
 		vendorSubject: vendorRecord?.subject ?? null,
 	};
 };
@@ -199,6 +288,7 @@ const readRecords = function readRecords(
 		},
 		Math.max(clearEpoch, selection.selected?.epoch ?? 0)
 	);
+	const storedSubjectId = readStoredSubjectId(storageConfig);
 	if (preserveUndecodable) {
 		markUndecodable(unreadable, selection, { notice, vendors });
 	}
@@ -207,12 +297,21 @@ const readRecords = function readRecords(
 		notice: noticeUnavailable,
 		vendors: vendorsUnavailable,
 	} = unreadable;
-	const stored = composeRecords(selection, notice, vendors, clearEpoch, now);
+	const stored = composeRecords(
+		selection,
+		notice,
+		vendors,
+		clearEpoch,
+		storedSubjectId,
+		now
+	);
 	// An absent value only clears memory when every candidate was readable.
 	// A valid record from an available source can still hydrate normally.
 	if (!selection.selected && choiceUnavailable) {
 		delete stored.records.choice;
-		if (!stored.records.vendorChoice) {
+		// A readable vendor or notice record still supplies the subject it
+		// carries, linked identity included.
+		if (!stored.records.vendorChoice && stored.subjectCarrier !== 'notice') {
 			delete stored.records.subject;
 		}
 	}
@@ -250,6 +349,22 @@ export const readStoredRecordsForReconcile =
 		return readRecords(storageConfig, now, true);
 	};
 
+/** Every cookie-carried record from a `Cookie` header, composed. */
+const composeFromCookieHeader = function composeFromCookieHeader(
+	cookieHeader: string | undefined,
+	storageConfig: StorageConfig | undefined,
+	now: number
+): StoredRecords {
+	return composeRecords(
+		readStoredConsentRecordFromCookieHeader(cookieHeader, storageConfig, now),
+		readStoredNoticeDismissalFromCookieHeader(cookieHeader, storageConfig, now),
+		readStoredVendorChoiceFromCookieHeader(cookieHeader, storageConfig, now),
+		readStoredClearEpochFromCookieHeader(cookieHeader, storageConfig, now),
+		readStoredSubjectIdFromCookieHeader(cookieHeader, storageConfig),
+		now
+	);
+};
+
 /**
  * Server read of every cookie-carried record from a request `Cookie`
  * header at `now`. The choice, the notice projection and the vendor
@@ -263,17 +378,24 @@ export const readStoredRecordsFromCookieHeader =
 		storageConfig: StorageConfig | undefined,
 		now: number
 	): HydrationRecords {
-		return composeRecords(
-			readStoredConsentRecordFromCookieHeader(cookieHeader, storageConfig, now),
-			readStoredNoticeDismissalFromCookieHeader(
-				cookieHeader,
-				storageConfig,
-				now
-			),
-			readStoredVendorChoiceFromCookieHeader(cookieHeader, storageConfig, now),
-			readStoredClearEpochFromCookieHeader(cookieHeader, storageConfig, now),
-			now
-		).records;
+		return composeFromCookieHeader(cookieHeader, storageConfig, now).records;
+	};
+
+/**
+ * The subject ID the cookie copies of the records carry, read as a server
+ * reads them but without the `<key>-sid` fallback. `null` when they carry
+ * none.
+ *
+ * @internal
+ */
+export const readRecordedSubjectIdFromCookieHeader =
+	function readRecordedSubjectIdFromCookieHeader(
+		cookieHeader: string | undefined,
+		storageConfig: StorageConfig | undefined,
+		now: number
+	): string | null {
+		return composeFromCookieHeader(cookieHeader, storageConfig, now)
+			.recordedSubjectId;
 	};
 
 /**
@@ -286,7 +408,7 @@ export const hydrateFromStorage = function hydrateFromStorage(
 	kernel: InternalKernel,
 	storageConfig: StorageConfig | undefined,
 	now: number,
-	apply: (records: HydrationRecords) => HydrationRecords
+	apply: (records: HydrationRecords, stored: StoredRecords) => HydrationRecords
 ): StoredRecords | null {
 	if (typeof document === 'undefined') {
 		return null;
@@ -294,7 +416,7 @@ export const hydrateFromStorage = function hydrateFromStorage(
 	// Cookies can remain usable when localStorage is blocked. Let each
 	// storage reader guard its own access, including property getters.
 	const stored = readStoredRecords(storageConfig, now);
-	const result = kernel.hydrate(apply(stored.records));
+	const result = kernel.hydrate(apply(stored.records, stored));
 	if (result.ok === false) {
 		// The storage layer already validated; a rejection here means the
 		// records changed shape between read and apply. Nothing is applied.

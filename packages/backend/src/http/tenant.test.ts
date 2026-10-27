@@ -314,6 +314,28 @@ for (const engine of ENGINES) {
 			assert.deepStrictEqual(await rowTenants('consent'), ['tenant_a']);
 		});
 
+		it('refuses to link a subjectId another tenant already owns', async () => {
+			// PATCH creates a missing subject, so it runs the same ownership
+			// check a save does.
+			assert.strictEqual(
+				(await post(appFor('tenant_a'), submission)).status,
+				200
+			);
+
+			const response = await appFor('tenant_b').request(
+				`/subjects/${submission.subjectId}`,
+				{
+					body: JSON.stringify({ externalId: 'ext_other' }),
+					headers: { 'Content-Type': 'application/json' },
+					method: 'PATCH',
+				}
+			);
+			assert.strictEqual(response.status, 409);
+			const body = (await response.json()) as { cause?: { code?: string } };
+			assert.strictEqual(body.cause?.code, 'SUBJECT_CONFLICT');
+			assert.deepStrictEqual(await rowTenants('subject'), ['tenant_a']);
+		});
+
 		it('refuses a resubmission that changes the purposes', async () => {
 			// The consent id covers identity and not purposes, so this arrives
 			// looking exactly like a retry. Answering 200 would tell the client

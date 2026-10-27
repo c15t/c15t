@@ -49,7 +49,7 @@ const Probe = () => {
 			{snapshot.activeUI}|{String(snapshot.policyPending)}|
 			{snapshot.policyPending ? 'none' : snapshot.policyRule.id}|
 			{String(!!snapshot.explicitChoice)}|
-			{snapshot.subject?.subjectId ?? 'none'}|
+			{snapshot.subject?.subjectId?.startsWith('sub_') ? 'subject' : 'none'}|
 			{snapshot.overrides.country ?? 'none'}|
 			{String(snapshot.effectivePermissions.marketing)}
 		</div>
@@ -103,14 +103,14 @@ describe('ConsentProvider prefetch promise', () => {
 		await expect.element(getByTestId('child')).toHaveTextContent('ready');
 		await expect
 			.element(getByTestId('state'))
-			.toHaveTextContent('none|true|none|false|none|none|false');
+			.toHaveTextContent('none|true|none|false|subject|none|false');
 		expect(counts.completed).toBe(0);
 
 		prefetch.resolve(policyConfig());
 
 		await expect
 			.element(getByTestId('state'))
-			.toHaveTextContent('banner|false|gdpr|false|none|DE|false');
+			.toHaveTextContent('banner|false|gdpr|false|subject|DE|false');
 		await vi.waitFor(() => expect(counts.completed).toBe(1));
 		expect(fetchSpy).not.toHaveBeenCalled();
 		expect(counts.completed).toBe(1);
@@ -134,7 +134,7 @@ describe('ConsentProvider prefetch promise', () => {
 
 		await expect
 			.element(getByTestId('state'))
-			.toHaveTextContent('banner|false|gdpr|false|none|DE|false');
+			.toHaveTextContent('banner|false|gdpr|false|subject|DE|false');
 	});
 });
 

@@ -13,10 +13,16 @@
  * `../consent-submission.ts`; this file is transport only.
  */
 
-import { getSubjectOutputSchema, listSubjectsOutputSchema } from '@c15t/schema';
+import {
+	getSubjectOutputSchema,
+	listSubjectsOutputSchema,
+	patchSubjectInputSchema,
+	subjectIdSchema,
+} from '@c15t/schema';
 import type { ConsentItem } from '@c15t/schema';
 import { getIpAddress } from '@c15t/schema/geo';
 import { Effect } from 'effect';
+import { SqlClient } from 'effect/sql';
 import { describeRoute } from 'hono-openapi';
 import * as v from 'valibot';
 
@@ -27,6 +33,7 @@ import { findOrCreateDomain } from '../../repository/domain';
 import { submit } from '../../repository/record-consent';
 import {
 	findById,
+	findOrCreateForUpdate,
 	linkExternalId,
 	listByExternalId,
 } from '../../repository/subject';
@@ -426,14 +433,27 @@ export const register = function register({
 							message: 'identityToken must be a string',
 						});
 					}
+					// Checked before anything is written: this route can create the
+					// subject, and a value the link then cannot store would leave
+					// that subject behind.
+					const parsed = v.safeParse(patchSubjectInputSchema, body);
+					if (!parsed.success) {
+						return yield* new BadRequestError({
+							code: 'INPUT_VALIDATION_FAILED',
+							message: `Invalid identity link: ${Object.keys(
+								v.flatten(parsed.issues).nested ?? {}
+							).join(', ')} must be a string`,
+						});
+					}
+					const input = parsed.output;
 
 					// Matches @c15t/backend's default: an identity supplied
 					// without a named provider is still externally sourced.
-					const identityProvider: string = body.identityProvider ?? 'external';
+					const identityProvider = input.identityProvider ?? 'external';
 					const identity = yield* checkIdentity(c.req.raw.headers, options, {
-						externalId: body.externalId,
+						externalId: input.externalId,
 						identityProvider,
-						token: body.identityToken,
+						token: input.identityToken,
 					});
 					if (!identity.verified && identity.reason === 'invalid') {
 						return yield* new IdentityTokenError({
@@ -442,14 +462,28 @@ export const register = function register({
 						});
 					}
 
-					const linked = yield* linkExternalId({
-						externalId: body.externalId,
-						identityProvider,
-						ipAddress: getIpAddress(c.req.raw.headers, options.ipAddress),
-						subjectId,
-						userAgent: c.req.header('user-agent') ?? null,
-						verifiedBy: identity.verified ? identity.by : null,
-					});
+					// A browser has its subject ID from its first page load, so it
+					// can identify before it saves anything. The subject is created
+					// here then, the same way a first save creates it. One
+					// transaction, so a link that fails creates no subject; the
+					// subject row is locked for the rest of it, so concurrent links
+					// of one subject run one after another.
+					const sql = yield* SqlClient.SqlClient;
+					const linked = yield* sql.withTransaction(
+						Effect.gen(function* createAndLink() {
+							if (v.is(subjectIdSchema, subjectId)) {
+								yield* findOrCreateForUpdate({ subjectId });
+							}
+							return yield* linkExternalId({
+								externalId: input.externalId,
+								identityProvider,
+								ipAddress: getIpAddress(c.req.raw.headers, options.ipAddress),
+								subjectId,
+								userAgent: c.req.header('user-agent') ?? null,
+								verifiedBy: identity.verified ? identity.by : null,
+							});
+						})
+					);
 
 					if (linked === undefined) {
 						return yield* new NotFoundError({
@@ -460,6 +494,15 @@ export const register = function register({
 
 					return { subject: linked };
 				}).pipe(
+					// See the consent route: the ID is another tenant's.
+					Effect.catchTag('SubjectTenantConflictError', (error) =>
+						Effect.fail(
+							new ConflictError({
+								code: 'SUBJECT_CONFLICT',
+								message: error.message,
+							})
+						)
+					),
 					Effect.catchTag('IdentityConflictError', (error) =>
 						Effect.fail(
 							new ConflictError({

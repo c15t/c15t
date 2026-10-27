@@ -76,7 +76,10 @@ export interface StoredConsentEnvelope {
 }
 
 /** Local-only notice dismissal record. Version 1 matches the record type. */
-export type StoredNoticeDismissal = NoticeDismissal;
+export type StoredNoticeDismissal = NoticeDismissal & {
+	/** Identity for a visitor whose only action acknowledged a notice. */
+	subject?: ConsentSubject;
+};
 
 /** Local vendor denial list. Version 1 matches the kernel record. */
 export type StoredVendorChoice = VendorChoice & {
@@ -650,10 +653,28 @@ export const decodeStoredConsentEnvelopeCompact =
 // ---------------------------------------------------------------------------
 
 /** Validates a parsed notice dismissal. */
-export const decodeNoticeDismissal: (
+export const decodeNoticeDismissal = function decodeNoticeDismissal(
 	input: unknown,
 	now: number
-) => DecodeResult<StoredNoticeDismissal> = validateNoticeDismissal;
+): DecodeResult<StoredNoticeDismissal> {
+	if (!isPlainRecord(input)) {
+		return validateNoticeDismissal(input, now);
+	}
+	const { subject: rawSubject, ...dismissal } = input;
+	const decoded = validateNoticeDismissal(dismissal, now);
+	if (!decoded.ok) {
+		return decoded;
+	}
+	const issues: StorageIssue[] = [];
+	const subject = validateSubject(rawSubject, issues);
+	if (issues.length > 0) {
+		return { issues, ok: false };
+	}
+	return {
+		ok: true,
+		record: subject ? { ...decoded.record, subject } : decoded.record,
+	};
+};
 
 // ---------------------------------------------------------------------------
 // Compact cookie projection for notice dismissal
@@ -682,7 +703,11 @@ export const decodeNoticeDismissalCompact =
 		if (!fields) {
 			return { issues, ok: false };
 		}
-		for (const key of fields.keys()) {
+		const subject: ConsentSubject = {};
+		for (const [key, value] of fields) {
+			if (readSubjectField(key, value, subject, issues)) {
+				continue;
+			}
 			if (key !== 't' && key !== 'f') {
 				issues.push({ code: 'unknown-key', path: key });
 			}
@@ -698,14 +723,15 @@ export const decodeNoticeDismissalCompact =
 		if (fingerprint === null) {
 			return { issues: [{ code: 'malformed-encoding', path: 'f' }], ok: false };
 		}
-		return decodeNoticeDismissal(
-			{
-				dismissedAt: parseCompactInteger(fields.get('t')),
-				fingerprint,
-				version: 1,
-			},
-			now
-		);
+		const candidate: Record<string, unknown> = {
+			dismissedAt: parseCompactInteger(fields.get('t')),
+			fingerprint,
+			version: 1,
+		};
+		if (Object.keys(subject).length > 0) {
+			candidate.subject = subject;
+		}
+		return decodeNoticeDismissal(candidate, now);
 	};
 
 // ---------------------------------------------------------------------------

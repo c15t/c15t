@@ -47,13 +47,98 @@ middleware:
 - writes the result back onto the request as `x-c15t-country`,
   `x-c15t-region` and `sec-gpc`, so later code sees one format whichever CDN
   sent the value,
-- and exposes the same values as `context.consent` to server routes and server
-  functions.
+- exposes the same values as `context.consent` to server routes and server
+  functions,
+- and gives a visitor with no subject ID one, in the `c15t-sid` cookie. See
+  [Set the subject ID on the server](#set-the-subject-id-on-the-server).
 
 Some runtimes hand middleware a request whose headers cannot change. The
 middleware also keeps the values for that request, and the c15t helpers read
 them from there first, so they still see the location. Pass
 `normalizeHeaders: false` to leave the request headers untouched.
+
+## Set the subject ID on the server
+
+When a request has no subject ID (`sub_…`), `consentRequestMiddleware`
+creates one and sets it in the `c15t-sid` cookie on the response.
+`resolveConsent` in the same request reads it, so the server render and the
+browser start with the same ID in `snapshot.subject.subjectId`. Without the
+middleware, the browser creates the ID when the page loads.
+
+`c15t-sid` holds only the ID, so the banner still shows until the visitor
+makes a choice. A prerender (`TSS_PRERENDERING`) and a prefetch request get
+no cookie: prerendered HTML reaches every visitor, and a prefetched page may
+never open. See
+[the subject ID](/docs/concepts/consent-state#a-subject-id-from-the-first-page-load)
+for how long it lasts and when it changes.
+
+A subject ID with an unpaired UTF-16 surrogate, such as `'sub_\uD800'`,
+reaches the browser changed. In tests with `@tanstack/react-start` 1.169.1,
+the state a server render sends replaced the surrogate with U+FFFD; IDs in
+valid Unicode, paired surrogates included, arrived unchanged. When the
+browser also held the visitor's records and ID in localStorage, c15t started
+with the original ID. When the request's cookies were the only copy, such as
+a record an older or external writer left there, the browser took the
+changed ID and saved it.
+
+A shared cache may keep any response whose `Cache-Control` doesn't say
+`private` or `no-store`. `private="Set-Cookie"` doesn't count: it only keeps
+the listed headers out of the shared copy. A CDN that honours a cache field
+aimed at it, such as `CDN-Cache-Control`, `Vercel-CDN-Cache-Control`,
+`Cloudflare-CDN-Cache-Control` or Fastly's `Surrogate-Control`, reads that
+field in place of `Cache-Control`. The middleware checks each response:
+
+- A page whose `resolveConsent` read the visitor's cookies holds that
+  visitor's consent and subject ID. Unless it already says `private` or
+  `no-store`, the middleware sets `private` and removes `public`, `s-maxage`
+  and `proxy-revalidate`. Browser directives such as `max-age` and
+  `no-cache` stay. It also removes those CDN cache fields, so a CDN that
+  honours them falls back to that `Cache-Control`. For a new visitor, the
+  page gets the cookie its render used.
+- A response no such render produced is for every visitor, so it gets no
+  cookie and keeps its headers, when it sets `public`, `s-maxage`,
+  `max-age`, `no-cache` or an `Expires` header, a `CDN-Cache-Control`-style
+  field without `private` or `no-store`, or any `Surrogate-Control`. Fastly
+  documents only freshness directives in `Surrogate-Control`.
+- Any other response that gets a new visitor's cookie is sent `private`,
+  unless it already says `private` or `no-store`.
+
+Responses from `createConsentRoute()` get no cookie and keep their headers,
+wherever the route is mounted. Its manifest is public data a shared cache
+keeps, and init is private to the request. To cache HTML for every visitor,
+pass `shared: true` to `resolveConsent`.
+
+If `ConsentRoot` runs with `persistence={false}` or a `consentSource`, pass
+`subjectCookie: false` too. The middleware then sets no `c15t-sid`. A subject
+ID or choice the visitor's cookies already hold is still read.
+
+If you changed `storageConfig` in the browser, pass the same values as
+`storage` so the cookie has the same name, domain and lifetime:
+
+{/* example: fragment */}
+
+```ts title="src/start.ts (partial)"
+consentRequestMiddleware({
+	storage: { storageKey: 'my-consent', crossSubdomain: true },
+});
+```
+
+`resolveConsent` takes its cookie names from its own `cookieName` option, not
+from the middleware, and it needs that option anyway to read the visitor's
+consent cookie under a custom key. Pass the same key there too. Without it,
+the render looks for `c15t-sid`, misses the ID the middleware set, and the
+browser starts with a second ID:
+
+{/* example: fragment */}
+
+```ts title="resolveConsent call (partial)"
+resolveConsent({ cookieName: 'my-consent' });
+```
+
+The cookie is `Secure` when the request URL is `https`. If a proxy in front
+of the server terminates TLS and the request arrives over `http`, set
+`trustForwardedHeaders: true` to read the scheme from `X-Forwarded-Proto`.
+Only do that when the proxy overwrites the forwarding headers clients send.
 
 ## Where the location goes
 

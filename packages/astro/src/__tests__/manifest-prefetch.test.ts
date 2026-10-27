@@ -58,6 +58,7 @@ const render = async function render(
 	const next = vi.fn(() => new Response('ok'));
 	await middleware(
 		{
+			cookies: { set: () => undefined },
 			isPrerendered: false,
 			locals,
 			request: new Request(`https://site.example.com${input.path ?? '/'}`, {

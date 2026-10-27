@@ -159,6 +159,74 @@ when your code signs the value and verifies the signature before passing it
 as `country`. Where you can do neither, keep the cookie out of policy
 resolution and use it only for non-policy code such as display defaults.
 
+## Give each visitor a subject ID
+
+`c15tProxy` also gives a visitor a subject ID (`sub_…`) on their first
+request. Server Components cannot set cookies, so in the App Router only the
+proxy can do this. When the request has no ID, the proxy:
+
+1. Creates one and sets it in the `c15t-sid` cookie on the response.
+2. Adds the cookie to the forwarded request, so `resolveConsent` in the same
+   request reads the ID.
+
+The browser then starts with that ID in `snapshot.subject.subjectId` instead
+of creating its own. Without the proxy, the browser creates the ID when the
+page loads. `c15t-sid` holds only the ID, so the banner still shows until the
+visitor makes a choice. A prefetch the browser marks with `Sec-Purpose` or
+`Purpose` gets no cookie. Next.js hides the header that marks its own
+`<Link>` prefetches from the proxy, so one of those can set the cookie. It
+comes from a page that has usually stored the ID already. Otherwise the ID
+arrives one request early, in the visitor's own browser. See
+[the subject ID](/docs/concepts/consent-state#a-subject-id-from-the-first-page-load)
+for how long it lasts and when it changes.
+
+Requests to the consent route get no cookie either: under the `routePrefix`
+in `c15t.config.ts`, or under `/api/c15t` without one. That route renders no
+page, and its `/manifest` response is public data a shared cache keeps.
+`withConsentManifest` passes the configured `routePrefix` to the proxy.
+
+The proxy runs before the response exists, so it cannot tell a page rendered
+for the visitor from a response a shared cache keeps for everyone, such as a
+static or ISR page, a public API route or a feed. For requests to those
+routes, pass `subjectCookie: false`. The proxy still normalizes the consent
+headers, and a cache never receives a visitor's `c15t-sid`. Match each route
+and the paths below it, so `/api/feedback` and `/blogger` still get an ID:
+
+<include src="../../shared/examples/nextjs/subject-cookie-proxy.mdx" />
+
+If `ConsentRoot` runs with `persistence={false}` or a `consentSource`, pass
+`subjectCookie: false` too. The proxy then sets no `c15t-sid`. A subject ID or
+choice the visitor's cookies already hold is still read.
+
+If you changed `storageConfig` in your consent config, pass the same values
+as `storage` so the cookie has the same name, domain and lifetime as the one
+the browser writes:
+
+{/* example: fragment */}
+
+```ts title="proxy.ts (partial)"
+c15tProxy(request, {
+	storage: { storageKey: 'my-consent', crossSubdomain: true },
+});
+```
+
+`resolveConsent` takes its cookie names from its own `cookieName` option, not
+from the proxy, and it needs that option anyway to read the visitor's consent
+cookie under a custom key. Pass the same key there too. Without it, the render
+looks for `c15t-sid`, misses the ID the proxy set, and the browser starts
+with a second ID:
+
+{/* example: fragment */}
+
+```tsx title="app/layout.tsx (partial)"
+resolveConsent({ cookieName: 'my-consent' });
+```
+
+The cookie is `Secure` when the request URL is `https`. If a proxy in front
+of Next.js terminates TLS and the request reaches Next.js over `http`, set
+`trustForwardedHeaders: true` to read the scheme from `X-Forwarded-Proto`.
+Only do that when that proxy overwrites the forwarding headers clients send.
+
 ## Which headers are read?
 
 `c15tProxy` and the server helpers use the same extraction from

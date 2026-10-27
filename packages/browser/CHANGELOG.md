@@ -1,3 +1,103 @@
+## @c15t/browser@3.2.0-canary.0 (canary)
+
+### Rename offline mode to `local()` and warn that it keeps no consent records
+
+`offline()` is now `local()` in every framework package, in `c15t` and in
+`c15t/modes`. `offline()` still works and is marked deprecated. c15t v4 removes
+it.
+
+In development builds, local mode logs one `console.warn` per page: c15t keeps
+no server-side record of consent, and with no geolocation every visitor gets
+the same policy. Production builds never log it, and it blocks nothing. Pass
+`local({ acknowledgeNoRecords: true })` to hide it once you have decided a
+browser-only record is enough. c15t v4 will require that option.
+
+The script tag's local-mode file is now `c15t.local.js`. `c15t.offline.js`
+still ships until v4, and on development hosts it logs its new name. Script-tag files are production builds, so
+they log the warning only on development hosts such as `localhost`. Add
+`data-acknowledge-no-records` to the tag to hide it. `c15t.local()` joins the
+script-tag global.
+
+`c15t setup` labels local mode "Development and tests only, no consent records"
+and generates `local()`.
+
+### The banner keeps its corner for right-to-left text
+
+A floating or widget banner in its default corner used to jump to the other
+side of the page when the visitor's language ran right to left, so a
+`bottom-left` banner showed at the bottom right in Hebrew. The IAB banner in
+`@c15t/browser` did the same. The page layout doesn't change with the
+banner's language, so the banner shouldn't move either. It now stays in the
+same corner in every language, and only its text runs right to left.
+
+To put the banner on the right for right-to-left pages, set `position`
+yourself.
+
+### Rewrite npm descriptions for search
+
+npm search scores a phrase in the description far above the same words in
+keywords or the README. Each package description now names the phrases
+people search for that package: "cookie banner", "cookie consent manager",
+"consent management platform" and "Google Consent Mode v2" on `c15t`,
+"React cookie banner" on `@c15t/react`, "Vue cookie consent" on `@c15t/vue`,
+and so on. `c15t` keeps "The open standard for cookie banners". Supporting
+packages describe their role in c15t instead of repeating the main
+package's phrases. Keyword lists are shorter. No code changes.
+
+### Export banner copy and button labels for headless UIs
+
+`resolvePromptCopy(translations, prompt)` returns the banner's title and
+description, and reads the notice copy when the prompt is a notice.
+`resolveActionLabels(translations)` labels each banner action, and
+`resolvePreferenceControlLabels(translations)` labels the opt-out and
+preferences buttons. All three use the active language and fall back to
+English for a missing key. Import them from `c15t`, `@c15t/svelte`,
+`@c15t/svelte/headless`, `c15t/vue/vue-plugin` or `@c15t/browser/headless`.
+`@c15t/browser/headless` also exports `resolveConsentPresentation` now.
+
+React adds `useBannerCopy()` and `useConsentLabels()` to
+`c15t/react/headless`, `c15t/next/headless` and
+`c15t/tanstack-start/headless`. They return the same strings the stock
+banner renders and update when the language changes. The same headless
+entries now export `useVendorsListedUnder(category)`, which returns the
+vendors the stock dialog lists under a category.
+
+When a notice offers only a dismiss button, `primaryActions` from
+`resolveConsentPresentation` now contains `dismiss`, so a headless banner can
+style it as the primary button. The browser banner now styles that button as
+primary too. The React, Vue and Svelte banners already did.
+
+### Give every visitor a subject ID from the first page load
+
+A browser runtime now has `snapshot.subject.subjectId` from the first
+snapshot, before the visitor decides anything. Before, the ID appeared only
+at the first save. You can link activity to a visitor from the first page
+load and still find it when they opt out.
+
+- Persistence stores the ID in a new `<storageKey>-sid` cookie and
+  localStorage key (`c15t-sid` by default). The first save records the same
+  ID with the choice.
+- The ID alone is not a choice. The banner still shows and `hasConsented()`
+  stays `false` until the visitor decides.
+- `clear()`, a revocation and `clearOnRevocation` patterns keep the ID.
+  `kernel.set.subjectId(null)` starts over with a new one.
+- An ID a tab generated, or read from `c15t-sid` alone, follows one another
+  tab stores until this tab saves or identifies the visitor. IDs the app or
+  the server supplies, IDs the stored records carry when the page loads, and
+  a new ID `set.subjectId(null)` writes into existing records do not follow.
+  `subject:resolved` now carries `previousSubjectId`, the ID it replaced, so
+  you can move anything recorded under the old one.
+- With `persistence: false`, the ID lives in memory and each page load gets a
+  new one.
+
+`identify()` works before the first save. `PATCH /subjects/:id` in
+`@c15t/backend` now creates the subject and links the identity in one request
+when no save has created the subject yet. Before, the link needed a save
+first. Like `POST /subjects`, it needs no API key. The backend has no rate or
+body-size limit of its own, so set them in front of it; see the self-host
+configuration guide. The client treats a `404` from an older self-hosted
+backend as success and sends the identity with the next save.
+
 ## @c15t/browser@3.1.0
 
 ### Get the provider's event dispatcher in every framework

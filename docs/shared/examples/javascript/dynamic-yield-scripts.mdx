@@ -1,0 +1,13 @@
+{/* Generated from internals/doc-snippets/javascript/src/dynamic-yield.ts (docs:dynamic-yield-scripts) by scripts/sync-example-docs.ts. Edit the source file. */}
+
+```ts title="src/consent-scripts.ts"
+import { dynamicYield } from '@c15t/integrations/dynamic-yield';
+
+export const scripts = [
+	dynamicYield({
+		recommendationContext: { lng: 'en_GB', type: 'HOMEPAGE' },
+		region: 'eu',
+		sectionId: 'YOUR_SECTION_ID',
+	}),
+];
+```

@@ -241,7 +241,7 @@ const probeDeniedConsentEgress = async function probeDeniedConsentEgress(
 	const observedRequests: string[] = [];
 	const allow = buildAllowList(config);
 
-	const context = await browser.newContext();
+	const context = await browser.newContext({ userAgent: config.userAgent });
 
 	try {
 		await context.route('**/*', (route) => {
@@ -324,7 +324,7 @@ const probeVendorAttempt = async function probeVendorAttempt(
 	const pageErrors: string[] = [];
 	const allow = buildAllowList(config);
 
-	const context = await browser.newContext();
+	const context = await browser.newContext({ userAgent: config.userAgent });
 
 	try {
 		await context.route('**/*', (route) => {

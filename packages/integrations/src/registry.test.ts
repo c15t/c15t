@@ -12,15 +12,19 @@ import {
 	getBuiltInScriptIntegrationByVendor,
 } from './registry';
 import type { IntegrationConsentCondition } from './registry';
+import { adrollPixelManifest } from './vendors/ads-and-pixels/adroll';
 import { amazonAdsTagManifest } from './vendors/ads-and-pixels/amazon-ads';
 import { linkedinInsightsManifest } from './vendors/ads-and-pixels/linkedin-insights';
+import { liveIntentTagManifest } from './vendors/ads-and-pixels/liveintent';
 import { metaPixelManifest } from './vendors/ads-and-pixels/meta-pixel';
 import { microsoftUetManifest } from './vendors/ads-and-pixels/microsoft-uet';
 import { openaiPixelManifest } from './vendors/ads-and-pixels/openai-pixel';
 import { pinterestTagManifest } from './vendors/ads-and-pixels/pinterest-tag';
 import { redditPixelManifest } from './vendors/ads-and-pixels/reddit-pixel';
 import { snapchatPixelManifest } from './vendors/ads-and-pixels/snapchat-pixel';
+import { theTradeDeskPixelManifest } from './vendors/ads-and-pixels/the-trade-desk';
 import { tiktokPixelManifest } from './vendors/ads-and-pixels/tiktok-pixel';
+import { vectorManifest } from './vendors/ads-and-pixels/vector';
 import { xPixelManifest } from './vendors/ads-and-pixels/x-pixel';
 import { adobeAnalyticsManifest } from './vendors/analytics/adobe-analytics';
 import { ahrefsAnalyticsManifest } from './vendors/analytics/ahrefs-analytics';
@@ -35,25 +39,42 @@ import { heapManifest } from './vendors/analytics/heap';
 import { hightouchManifest } from './vendors/analytics/hightouch';
 import { hotjarManifest } from './vendors/analytics/hotjar';
 import { logRocketManifest } from './vendors/analytics/logrocket';
+import { luckyOrangeManifest } from './vendors/analytics/lucky-orange';
+import { marketoManifest } from './vendors/analytics/marketo';
 import { matomoAnalyticsManifest } from './vendors/analytics/matomo-analytics';
 import { clarityManifest } from './vendors/analytics/microsoft-clarity';
 import { mixpanelAnalyticsManifest } from './vendors/analytics/mixpanel-analytics';
 import { oneDollarStatsManifest } from './vendors/analytics/one-dollar-stats';
+import { pendoManifest } from './vendors/analytics/pendo';
 import { pirschManifest } from './vendors/analytics/pirsch';
 import { plausibleAnalyticsManifest } from './vendors/analytics/plausible-analytics';
 import { posthogManifest } from './vendors/analytics/posthog';
 import { promptwatchManifest } from './vendors/analytics/promptwatch';
+import { rb2bManifest } from './vendors/analytics/rb2b';
 import { rudderstackManifest } from './vendors/analytics/rudderstack';
 import { rybbitAnalyticsManifest } from './vendors/analytics/rybbit-analytics';
+import { pardotTrackingManifest } from './vendors/analytics/salesforce-pardot';
 import { segmentManifest } from './vendors/analytics/segment';
 import { sentryManifest } from './vendors/analytics/sentry';
+import { statableAnalyticsManifest } from './vendors/analytics/statable-analytics';
 import { umamiAnalyticsManifest } from './vendors/analytics/umami-analytics';
 import { vercelAnalyticsManifest } from './vendors/analytics/vercel-analytics';
 import { vercelSpeedInsightsManifest } from './vendors/analytics/vercel-speed-insights';
+import { attentiveTagManifest } from './vendors/email-and-sms/attentive';
+import { customerIoManifest } from './vendors/email-and-sms/customer-io';
+import { insiderManifest } from './vendors/email-and-sms/insider';
 import { klaviyoManifest } from './vendors/email-and-sms/klaviyo';
+import { adaManifest } from './vendors/functional/ada';
+import { adobeTargetManifest } from './vendors/functional/adobe-target';
+import { appcuesManifest } from './vendors/functional/appcues';
 import { crispManifest } from './vendors/functional/crisp';
+import { dynamicYieldManifest } from './vendors/functional/dynamic-yield';
 import { frontChatManifest } from './vendors/functional/front-chat';
+import { gorgiasChatManifest } from './vendors/functional/gorgias';
 import { intercomManifest } from './vendors/functional/intercom';
+import { optimizelyWebManifest } from './vendors/functional/optimizely';
+import { wisepopsManifest } from './vendors/functional/wisepops';
+import { zendeskWidgetManifest } from './vendors/functional/zendesk';
 import { googleTagManagerManifest } from './vendors/tag-managers/google-tag-manager';
 
 const validConsentCategories = [
@@ -67,6 +88,26 @@ const validConsentCategories = [
 const vendorManifests = [
 	clayManifest,
 	amazonAdsTagManifest,
+	adaManifest,
+	gorgiasChatManifest,
+	zendeskWidgetManifest,
+	theTradeDeskPixelManifest,
+	liveIntentTagManifest,
+	adrollPixelManifest,
+	vectorManifest,
+	pendoManifest,
+	luckyOrangeManifest,
+	rb2bManifest,
+	optimizelyWebManifest,
+	dynamicYieldManifest,
+	adobeTargetManifest,
+	appcuesManifest,
+	wisepopsManifest,
+	marketoManifest,
+	pardotTrackingManifest,
+	attentiveTagManifest,
+	customerIoManifest,
+	insiderManifest,
 	googleTagManagerManifest,
 	gtagManifest,
 	ahrefsAnalyticsManifest,
@@ -92,6 +133,7 @@ const vendorManifests = [
 	sentryManifest,
 	rybbitAnalyticsManifest,
 	plausibleAnalyticsManifest,
+	statableAnalyticsManifest,
 	umamiAnalyticsManifest,
 	vercelAnalyticsManifest,
 	vercelSpeedInsightsManifest,

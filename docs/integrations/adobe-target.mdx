@@ -1,0 +1,205 @@
+---
+title: Adobe Target
+description: Gate a self-hosted Adobe Target at.js download or Adobe Experience Platform Web SDK on experience consent, send consent updates and check revocation limits.
+seoTitle: Adobe Target cookie consent with c15t
+seoDescription: Load Adobe Target after experience consent with c15t. Configure at.js opt-in or Web SDK setConsent, and understand what revocation can stop.
+icon: 'bullseye'
+group: integrations
+---
+
+Adobe Target runs A/B tests and personalizes page content. The c15t
+`adobeTarget` helper waits for `experience` consent before it creates Adobe
+globals or requests the SDK. Pick one mode per page: your self-hosted `at.js`
+file or Adobe Experience Platform Web SDK.
+
+On withdrawal, the helper denies Target through Adobe's Opt-in service for
+at.js, or sends `setConsent` with `'out'` for Web SDK. Neither undoes content
+Target already changed, so keep `reloadOnConsentRevoked` enabled.
+
+## Configure Adobe Target
+
+Remove the original loader, any Adobe Tags rule and any Web SDK prehiding
+snippet for this installation. A separate Adobe installation can make requests
+before c15t has permission. Without the prehiding snippet, visitors see the
+original page first, then Target's changes once consent allows the SDK to load.
+
+<CommandTabs command="@c15t/integrations" mode="install" />
+
+### at.js
+
+Download `at.js` from **Administration > Implementation** in Adobe Target,
+then host the file on your own site. Adobe provides no shared CDN URL for
+`at.js`. Use at.js 1.7.0 or 2.1.0 and later for Opt-in support. Adobe excludes
+2.0.0 and 2.0.1 from this support.
+
+<include src="../shared/examples/javascript/adobe-target-atjs.mdx" />
+
+The helper writes `window.targetGlobalSettings` before it appends the loader
+and forces `optinEnabled: true`. Pass the rest of your supported settings in
+`targetGlobalSettings`. The helper replaces any previous settings object.
+
+Adobe's Opt-in service is part of the Experience Cloud ID (ECID) service. If
+that service is on the page, the helper calls
+`adobe.optIn.approve(adobe.OptInCategories.TARGET)` before it loads at.js and
+`adobe.optIn.deny(adobe.OptInCategories.TARGET)` on revocation. It leaves the
+permissions for ECID and other Adobe products alone. The helper doesn't load
+or configure the ID service. Any ID service deployment needs its own consent
+gate and Adobe configuration.
+
+Without that service, `optinEnabled` alone gives no runtime stop API. c15t
+still gates the at.js download, but only the page reload stops an at.js that
+is already running.
+
+### Web SDK
+
+As an alternative to at.js, enable Adobe Target on your datastream in Adobe
+Data Collection. Copy the datastream ID and organization ID, then choose an
+exact Web SDK version of `2.21.0` or later from Adobe's
+[release notes](https://experienceleague.adobe.com/en/docs/experience-platform/collection/js/release-notes).
+
+<include src="../shared/examples/javascript/adobe-target-websdk.mdx" />
+
+Version `2.30.0` is an example. It doesn't update itself. The helper loads the
+minified library from Adobe's CDN for the version you pass. Versions before
+`2.21.0` need `edgeConfigId` instead of the `datastreamId` key this helper
+configures. Older versions, ranges, aliases and prerelease versions log an
+error and skip the loader.
+
+Once consent allows the loader, the helper creates the `alloy` base code.
+After the SDK loads, it calls `alloy('configure')` with your IDs and
+`defaultConsent: 'pending'`. Once configuration succeeds, it sends
+`alloy('setConsent')` using Adobe 1.0 consent with the latest permitted state.
+If consent was withdrawn during configuration, that state is `'out'`.
+
+Consent updates run one at a time. If the choice changes while a command is
+pending, the helper sends the latest choice after that command settles. A
+rejected `setConsent` logs an error and can retry on a later consent change.
+The helper schedules no automatic retries and can't recover an operation
+stalled inside Adobe. Reload if commands stay pending. A failed configuration
+also logs an error and needs a page reload. Web SDK keeps a rejected
+configuration, so another configure call on the same instance can't recover
+it.
+
+The helper configures the SDK and updates consent. It doesn't send a page
+view, request offers or render decisions. Keep your own
+[`sendEvent` personalization code](https://experienceleague.adobe.com/en/docs/experience-platform/collection/js/commands/sendevent/personalization)
+behind the same consent condition and vendor switch, and run it after SDK
+configuration. Calls to `alloy` before the helper creates it fail.
+
+Web SDK consent applies to every service on this SDK instance. Use a
+Target-only datastream when you map it to `experience`. If the datastream also
+sends analytics or advertising data, choose a consent condition that covers
+those purposes. Don't share this helper's `window.alloy` installation with a
+separate Adobe Tags or Web SDK initializer.
+
+<include src="../shared/integrations/register-scripts.mdx" />
+
+## Options
+
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `mode` | Required | `'atjs'` or `'websdk'`. Register one deployment path per page. |
+| `category` | `'experience'` | A c15t category or condition. Use a stricter condition if the SDK also serves other purposes. |
+| `nonce` | None | CSP nonce for the loader. Surrounding whitespace is trimmed. A nonce from the consent provider also reaches the loader. |
+| `scriptUrl` | Required for at.js | URL of your at.js download. Root-relative URLs work. Surrounding whitespace is trimmed. |
+| `targetGlobalSettings` | `{ optinEnabled: true }` | at.js settings applied before the file loads. Supported fields are `cookieDomain`, `secureOnly`, `bodyHidingEnabled`, `bodyHiddenStyle`, `pageLoadEnabled`, `viewsEnabled`, `timeout`, `visitorApiTimeout`, `cspScriptNonce` and `cspStyleNonce`. The helper always sets `optinEnabled` to `true`. |
+| `datastreamId` | Required for Web SDK | Public ID of the Target-enabled datastream. Surrounding whitespace is trimmed. |
+| `orgId` | Required for Web SDK | Organization ID including the `@AdobeOrg` suffix. Surrounding whitespace is trimmed. |
+| `version` | Required for Web SDK | Exact stable version of `2.21.0` or later in `https://cdn1.adoberesources.net/alloy/<version>/alloy.min.js`. Surrounding whitespace is trimmed. Older versions, ranges, aliases and prerelease versions log an error and skip the loader. |
+
+A missing or blank required value logs a configuration error and skips the
+integration. The helper stays listed in the preference dialog. It doesn't check
+whether your IDs, SDK version or self-hosted file exist.
+
+## Loading and revocation
+
+Before the first permitted grant, neither mode creates Adobe globals, requests
+a loader or writes Adobe storage. Rejecting the mapped consent keeps it that
+way. The Adobe Target vendor switch can also block loading inside an allowed
+category.
+
+When several loaders share the same helper options, every registration must
+permit Adobe Target before the shared runtime opts in. An initially denied
+registration counts toward that decision too.
+
+After the first grant, at.js stays installed. On revocation, the helper calls
+the Opt-in service's Target denial API if it's available. A later grant
+approves Target again without downloading or running a second copy of at.js.
+The denial doesn't cancel in-flight requests, remove existing offers, restore
+page content or erase cookies. Without the Opt-in service, only a page reload
+stops the installed runtime.
+
+After its first grant, Web SDK stays installed so the helper can send
+`setConsent` with `value.general: 'out'` on revocation. A later grant sends
+`'in'` again without configuring or downloading the SDK again. If consent is
+withdrawn during the initial download, the load callback doesn't configure the
+SDK or send an `'in'` signal. It can initialize after a later grant.
+
+The helper checks current consent when configuration finishes. It doesn't
+leave an earlier opt-in waiting in Adobe's configuration queue. Once the
+helper hands a command to Adobe, the SDK can still finish that command or an
+in-flight request after revocation. Its consent API doesn't unload listeners
+or restore rendered decisions. Keep c15t's default reload on revocation.
+
+Removing the last c15t registration sends a denial to the installed SDK when
+its consent API is available. It can't unload Adobe's runtime. Reload the page
+before you mount the helper again after its last registration was removed,
+even with the same options. Web SDK allows configuration only once per
+instance. Also reload before you change IDs, versions or deployment mode.
+
+`defaultConsent: 'pending'` is a configuration default, not a replacement for
+c15t's loading gate. Adobe can use consent saved on an earlier page instead.
+The helper resends the permitted state after loading on each page. Web SDK
+persists consent, including an opt-out, in `kndctr_<orgId>_consent`, and its
+consent update can contact Adobe. Adobe replaces `@` with `_` in the
+organization ID when it names the cookie.
+
+If you use [Adobe Analytics](/docs/integrations/adobe-analytics) to load an
+Adobe Tags property, every rule in that property starts under its configured
+measurement gate. Remove Target and Web SDK rules from that property when you
+use this helper. Registering this helper can't constrain another loader.
+
+## Cookies and storage
+
+Actual storage depends on your Adobe deployment and settings. Adobe documents
+these names:
+
+| Cookie | Purpose |
+| --- | --- |
+| `mbox` | at.js visitor and session values on your domain. Adobe documents a two-year lifetime from the last login. |
+| `at_check` | Temporary at.js cookie-support test. |
+| `mboxEdgeCluster` | Edge routing when `overrideMboxEdgeServer` is enabled in the at.js installation. |
+| `<clientcode>!mboxPC`, `<clientcode>!mboxSession` | Target server cookies on `tt.omtrdc.net` when cross-domain support is enabled. Your site can't delete these HTTP-only third-party cookies. |
+| `kndctr_<orgId>_consent` | Web SDK's persisted consent preference, with `@` replaced by `_` in the organization ID. Web SDK can also create identity and cluster cookies. |
+
+Revocation doesn't delete cookies already written. Check Adobe's
+[Target cookie reference](https://experienceleague.adobe.com/en/docs/core-services/interface/data-collection/cookies/target)
+and the SDK's actual storage in your browser before you configure cleanup.
+
+## Verify Adobe Target
+
+For at.js, filter Network by your self-hosted file URL and by `tt.omtrdc.net`.
+After a grant, check that `targetGlobalSettings.optinEnabled` is `true` and
+that your Target activities load. If you use Adobe Opt-in, check that only its
+Target permission changes when you revoke.
+
+For Web SDK, filter Network by `cdn1.adoberesources.net` and
+`edge.adobedc.net`. Confirm there is no `alloy` global before consent. After a
+grant, check that `alloy.q.push` is no longer the array's native push method.
+The SDK keeps the `alloy` function when it activates, so the function's
+presence alone doesn't prove the SDK loaded. Use a real Target-enabled
+datastream to check offer delivery and server-side consent persistence.
+
+Sources:
+[Target privacy and Opt-in support](https://experienceleague.adobe.com/en/docs/target-dev/developer/implementation/privacy/cmp-privacy-and-general-data-protection-regulation),
+[at.js settings](https://experienceleague.adobe.com/en/docs/target-dev/developer/client-side/at-js-implementation/functions-overview/targetglobalsettings),
+[self-hosting at.js](https://experienceleague.adobe.com/en/docs/target-dev/developer/client-side/at-js-implementation/deploy-at-js/implement-target-without-a-tag-manager),
+[Adobe Opt-in API](https://experienceleague.adobe.com/en/docs/id-service/using/implementation/opt-in-service/api),
+[Web SDK base code](https://experienceleague.adobe.com/en/docs/experience-platform/collection/js/install/base-code),
+[Web SDK library URL](https://experienceleague.adobe.com/en/docs/experience-platform/collection/js/install/library),
+[Web SDK datastream ID and version support](https://experienceleague.adobe.com/en/docs/experience-platform/collection/js/commands/configure/datastreamid),
+[Web SDK default consent](https://experienceleague.adobe.com/en/docs/experience-platform/collection/js/commands/configure/defaultconsent)
+and
+[Web SDK setConsent](https://experienceleague.adobe.com/en/docs/experience-platform/collection/js/commands/setconsent).
+
+<include src="../shared/integrations/vendor-revocation-and-verify.mdx" />

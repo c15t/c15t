@@ -15,6 +15,11 @@ import { useConsentKernelContext } from '../runtime/composables/kernel';
 import type { VueConsentKernelContext } from '../runtime/kernel';
 
 const nuxt = vi.hoisted(() => ({
+	cookies: [] as {
+		name: string;
+		options: Record<string, unknown>;
+		value: unknown;
+	}[],
 	event: undefined as { context: Record<string, unknown> } | undefined,
 	fetches: 0,
 	headers: {} as Record<string, string | undefined>,
@@ -34,6 +39,11 @@ vi.mock('#imports', async () => {
 				iframeBlocker: false,
 			},
 		}),
+		useCookie: (name: string, options: Record<string, unknown>) => {
+			const cookie = { name, options, value: undefined as unknown };
+			nuxt.cookies.push(cookie);
+			return cookie;
+		},
 		useHead: () => undefined,
 		useRequestEvent: () => nuxt.event,
 		useRequestHeaders: () => nuxt.headers,
@@ -52,6 +62,7 @@ vi.mock('#imports', async () => {
 
 type NuxtPlugin = (app: {
 	hook: (name: string, callback: () => void) => void;
+	runWithContext: <Result>(run: () => Result) => Result;
 	payload: { prerenderedAt?: number };
 	vueApp: App;
 }) => Promise<void>;
@@ -130,6 +141,7 @@ const renderOnServer = async function renderOnServer(
 				throw new Error('Server must not start browser lifecycle');
 			},
 			payload,
+			runWithContext: (run) => run(),
 			vueApp: app,
 		});
 		const html = await renderToString(app);
@@ -147,6 +159,7 @@ afterEach(() => {
 	vi.unstubAllGlobals();
 	vi.restoreAllMocks();
 	nuxt.state.clear();
+	nuxt.cookies = [];
 	localStorage.clear();
 	document.body.replaceChildren();
 });
@@ -168,6 +181,8 @@ test.each([
 		expect(nuxt.fetches).toBe(0);
 		expect(stateValue('c15t:records')).toBeUndefined();
 		expect(stateValue('c15t:request-headers')).toEqual({});
+		// Every visitor the cached HTML reaches would get the same subject ID.
+		expect(nuxt.cookies).toEqual([]);
 		expect(html).not.toContain('consent-banner-root');
 	}
 );
@@ -180,6 +195,7 @@ test('a per-request render still prefetches for its visitor', async () => {
 
 	expect(nuxt.fetches).toBe(1);
 	expect(stateValue('c15t:records')).toBeDefined();
+	expect(nuxt.cookies.map(({ name }) => name)).toEqual(['c15t-sid']);
 	expect(stateValue('c15t:request-headers')).toMatchObject({
 		'accept-language': 'de-DE',
 		'x-vercel-ip-country': 'DE',
@@ -244,6 +260,7 @@ test('the browser resolves a prerendered page itself and keeps a stored rejectio
 			}
 		},
 		payload,
+		runWithContext: (run) => run(),
 		vueApp: app,
 	});
 	const container = document.createElement('div');

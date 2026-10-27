@@ -16,10 +16,74 @@ choice survives reloads and later visits without a backend request.
 | Category choice | `c15t` cookie and localStorage key |
 | Notice acknowledgement | `c15t-notice` |
 | Vendor choice | `c15t-vendors` |
+| Subject ID | `c15t-sid` |
 | Saves waiting to reach the backend | a separate localStorage queue |
 
 The cookie is readable by your server, so a server-rendered page can see the
 visitor's choice before any script runs.
+
+## A subject ID from the first page load
+
+Every visitor gets a subject ID (`sub_…`) when the module starts, before
+they decide anything. It is in `snapshot.subject.subjectId` from the first
+snapshot after the runtime starts, so you can link activity to the visitor
+from the first page load and still find it when they opt out later.
+
+- When no stored record carries the ID, it is stored in `c15t-sid` at once,
+  so a reload keeps it. The first save records the same ID with the choice.
+- `c15t-sid` is not a choice. A visitor with only an ID still sees the
+  banner, and `hasConsented()` stays `false`.
+- `clear()` and a revocation keep the ID; only recorded choices go. Call
+  `kernel.set.subjectId(null)` to start over with a new ID.
+- An ID stored with a choice, a vendor decision or a notice acknowledgement
+  wins over `c15t-sid`. Two tabs that open
+  together each generate one. Until a tab saves or identifies the visitor,
+  its ID follows the one another tab stored, and the kernel emits
+  `subject:resolved` with `previousSubjectId` so you can move anything
+  recorded under the old ID.
+- For a visitor with a stored choice, a new ID from `kernel.set.subjectId()`
+  reaches `c15t-sid` when the choice is rewritten with it. If the page
+  unloads before the write code loads, both keep the old ID.
+
+## Set the subject ID on your server
+
+When your server answers the first request, it can create the subject ID
+and send it back as the `c15t-sid` cookie. The server render and the browser
+then start with the same ID, as long as the browser keeps accepting c15t's
+cookie writes. The Next.js, TanStack Start, Astro, SvelteKit
+and Nuxt adapters do this for you; see their rendering pages. On another
+server, call `resolveRequestSubject()` from `c15t/server` in your request
+handler:
+
+<include src="../../../shared/examples/javascript/server-subject.mdx" />
+
+`resolveRequestSubject()` reads the ID from the stored consent records, then
+from `c15t-sid`, and creates one only when neither has it, the same order
+the browser uses. It reads cookies only. If the browser refused to rewrite a
+record cookie after the subject ID changed, that cookie still holds the old
+ID while the browser's localStorage holds the new one. The server then
+reports the old ID, and the browser starts with the new one from its
+storage. This happens even when the request's `c15t-sid` cookie already holds
+the new ID. It lasts until a later write of that record reaches the cookie,
+which may never happen while the browser keeps refusing it. The server never
+replaces a `c15t-sid` cookie the request already has, so it cannot store the
+old ID over the new one. It returns:
+
+| Field | What it is |
+| --- | --- |
+| `subjectId` | The visitor's subject ID. |
+| `setCookie` | The `c15t-sid` cookie to set on the response, with its `header` value and attributes. `null` when the request already has a `c15t-sid` cookie, even one holding a different ID, or when the ID has no URI encoding, such as one with a lone surrogate. The browser keeps such an ID without the cookie, too. |
+| `cookie` | The request `Cookie` header, with `c15t-sid` added when the request had none and `setCookie` is set. Pass it to a render in the same request so the render sees the ID. |
+
+It returns `null` for a prefetch, a prerender, and any response marked
+`shared: true`, such as cached HTML. A cookie on a shared response would give
+every visitor who receives it the same ID.
+
+Pass the browser's `storage` options so the cookie has the same name,
+domain and lifetime. The cookie is `Secure` when the request URL is
+`https`. Behind a proxy that terminates TLS, set
+`trustForwardedHeaders: true` to read the scheme from `X-Forwarded-Proto`.
+Only do that when the proxy overwrites those headers.
 
 ## When records are read and written
 
@@ -41,9 +105,10 @@ when something needs it. Until it has loaded:
   1, 4 and 16 seconds, and at every later save, focus or tab change.
 - `reconcile()` returns `false` and runs when the chunk lands.
 
-`clear()` needs no chunk. It removes every record from the cookie and
-localStorage, stores the clear epoch and resets the kernel's records before
-it returns, so reloading right after a clear cannot restore a cleared choice.
+`clear()` needs no chunk. It removes every record except the subject ID
+from the cookie and localStorage, stores the clear epoch and resets the
+kernel's records before it returns, so reloading right after a clear cannot
+restore a cleared choice.
 
 - `pagehide` cannot store anything. A page restored from the back/forward
   cache stores its pending records when the chunk lands. A page that unloads
@@ -91,6 +156,7 @@ explains the merge rules.
 `persistence: false` on `createConsentRuntime` or on `init()` from
 `@c15t/browser` keeps choices in memory only.
 Every page load starts without a choice, so the banner shows on every page.
+The subject ID also lives in memory only, so each page load gets a new one.
 
 ## Attach it to your own kernel
 
@@ -106,7 +172,7 @@ returns:
 | --- | --- |
 | `hydrate()` | Read storage again. Returns whether any record was found. |
 | `reconcile()` | Merge records another tab or runtime stored. Returns whether anything changed. |
-| `clear()` | Delete every c15t record and reset the kernel's records. |
+| `clear()` | Delete every c15t record except the subject ID and reset the kernel's records. |
 | `dispose()` | Stop writing and remove the tab listeners. Stored records stay. |
 
 `skipHydration: true` skips the first read, for a kernel a server already
@@ -114,8 +180,9 @@ seeded with the visitor's records.
 
 ## Check it works
 
-1. Accept all and open DevTools, Application. A `c15t` cookie and a `c15t`
-   localStorage entry exist.
-2. Reload. The banner stays closed.
-3. Open a second tab, reject all there and switch back. The first tab now
+1. Load the page and open DevTools, Application. A `c15t-sid` cookie holds a
+   `sub_…` ID and the banner still shows.
+2. Accept all. A `c15t` cookie and a `c15t` localStorage entry exist.
+3. Reload. The banner stays closed and `c15t-sid` holds the same ID.
+4. Open a second tab, reject all there and switch back. The first tab now
    shows the rejection.

@@ -10,10 +10,11 @@ the Microsoft Clarity loader change that silently broke bootstrap assumptions.
 
 ## Running locally
 
-The probes exercise the built `c15t` package, so build core first:
+The probes import `#inline-start` from this package's `dist/`, so build
+integrations and its dependencies first:
 
 ```sh
-bun turbo run build --filter=@c15t/core
+bun turbo run build --filter=@c15t/integrations
 bunx playwright install --with-deps chromium
 ```
 

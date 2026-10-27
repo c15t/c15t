@@ -1,10 +1,13 @@
 import { custom, hosted as hostedTransport } from '@c15t/core';
+import { clearManifestCache } from '@c15t/core/server';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { c15tHandle } from '../handle';
 import { hosted } from '../index';
+import { createConsentRoute } from '../routes';
 import type { C15tLocals } from '../types';
 import { CONSENTED_COOKIE, createEvent } from './event';
+import { MANIFEST_FIXTURE } from './manifest-fixture';
 
 const runHandle = async function runHandle(
 	event: ReturnType<typeof createEvent>,
@@ -89,14 +92,18 @@ describe('c15tHandle', () => {
 		).toMatchObject({ basis: { kind: 'legacy-v2' }, value: true });
 	});
 
-	test('leaves the config empty when there is no request context', async () => {
+	test('records no choice when there is no request context', async () => {
 		const event = createEvent();
 		const { locals } = await runHandle(event);
 
 		expect(locals.config).toMatchObject({
 			// No signal is not a decision: an absent header stays undefined.
 			initialPrivacySignals: { gpc: undefined },
-			initialRecords: { choice: null, subject: null },
+			// The subject ID the handle just set is not a choice.
+			initialRecords: {
+				choice: null,
+				subject: { subjectId: expect.stringMatching(/^sub_/u) },
+			},
 			now: expect.any(Number),
 		});
 		expect(locals.inputs.country).toBeUndefined();
@@ -196,5 +203,132 @@ describe('c15tHandle mode', () => {
 		expect(() => c15tHandle({ mode: mode as never })).toThrow(
 			/Pass custom\(\) to <ConsentRoot mode>/u
 		);
+	});
+});
+
+// The consent route never renders a page, and its manifest is public data a
+// shared cache keeps: a subject cookie on it would reach every visitor the
+// cache serves it to.
+describe('c15tHandle on the consent route', () => {
+	beforeEach(() => {
+		clearManifestCache();
+	});
+
+	test.each([
+		[
+			'the configured routePrefix',
+			'/api/self-host',
+			{ routePrefix: '/api/self-host' },
+		],
+		['the default route', '/api/c15t', {}],
+	] as const)(
+		'the public manifest under %s gets no subject cookie',
+		async (_, prefix, options) => {
+			const setCookie = vi.fn();
+			const event = createEvent({
+				route: { id: `${prefix}/[...path]`, params: { path: 'manifest' } },
+				setCookie,
+				url: `https://shop.example${prefix}/manifest`,
+			});
+			const { GET } = createConsentRoute({
+				backendURL: 'https://consent.example.com',
+				fetch: vi.fn<typeof globalThis.fetch>().mockResolvedValue(
+					Response.json(MANIFEST_FIXTURE, {
+						headers: { 'cache-control': 'public, s-maxage=120' },
+					})
+				),
+				reportSessions: false,
+			});
+			const response = await c15tHandle(options)({
+				event,
+				resolve: () => GET(event),
+			});
+			expect(setCookie).not.toHaveBeenCalled();
+			expect(response.headers.get('cache-control')).toBe(
+				'public, s-maxage=120'
+			);
+			expect(await response.json()).toEqual(MANIFEST_FIXTURE);
+		}
+	);
+
+	test('a page whose path only starts like the route still gets one', async () => {
+		const setCookie = vi.fn();
+		await runHandle(
+			createEvent({ setCookie, url: 'https://shop.example/api/c15t-docs' }),
+			{ routePrefix: '/api/c15t' }
+		);
+		expect(setCookie).toHaveBeenCalledWith(
+			'c15t-sid',
+			expect.stringMatching(/^sub_/u),
+			expect.anything()
+		);
+	});
+});
+
+// The handle runs before the response exists, so the app marks routes whose
+// response a shared cache keeps, as in the rendering docs: each route and
+// the paths below it get `c15tHandle({ subjectCookie: false })` in place of
+// the default handle.
+describe('c15tHandle on routes a shared cache keeps', () => {
+	const SHARED_ROUTES = ['/api/feed', '/blog'];
+	const isShared = (pathname: string) =>
+		SHARED_ROUTES.some(
+			(route) => pathname === route || pathname.startsWith(`${route}/`)
+		);
+	const visitorHandle = c15tHandle();
+	const sharedHandle = c15tHandle({ subjectCookie: false });
+
+	const serve = async function serve(path: string) {
+		const setCookie = vi.fn();
+		const event = createEvent({
+			headers: { 'cf-ipcountry': 'DE', 'sec-gpc': '1' },
+			setCookie,
+			url: `https://shop.example${path}`,
+		});
+		const resolve = vi.fn(() => Promise.resolve(new Response('ok')));
+		const handle = isShared(event.url.pathname) ? sharedHandle : visitorHandle;
+		await handle({ event, resolve });
+		return { event, setCookie };
+	};
+
+	test.each(['/api/feed', '/api/feed/rss', '/blog', '/blog/first-post'])(
+		'%s gets no cookie and still has normalized consent headers',
+		async (path) => {
+			const { event, setCookie } = await serve(path);
+			expect(setCookie).not.toHaveBeenCalled();
+			expect(event.request.headers.get('x-c15t-country')).toBe('DE');
+			expect(event.request.headers.get('sec-gpc')).toBe('1');
+		}
+	);
+
+	test.each(['/api/feedback', '/blogger', '/pricing'])(
+		'%s still gets a subject ID',
+		async (path) => {
+			const { setCookie } = await serve(path);
+			expect(setCookie).toHaveBeenCalledWith(
+				'c15t-sid',
+				expect.stringMatching(/^sub_/u),
+				expect.anything()
+			);
+		}
+	);
+
+	// What `sequence(c15tHandle(), c15tHandle({ subjectCookie: false }))` runs:
+	// the first handle resolves through the second.
+	test('a handle with subjectCookie: false after the default one cannot take back its cookie', async () => {
+		const setCookie = vi.fn();
+		const event = createEvent({
+			setCookie,
+			url: 'https://shop.example/api/feed',
+		});
+		await visitorHandle({
+			event,
+			resolve: (next) =>
+				sharedHandle({
+					event: next,
+					resolve: () => Promise.resolve(new Response('ok')),
+				}),
+		});
+		expect(setCookie).toHaveBeenCalledTimes(1);
 	});
 });

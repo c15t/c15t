@@ -37,10 +37,10 @@ case 'setGlobal':if(s.ifUndefined!==false&&w[s.name]!==undefined)return;if(s.kee
 case 'defineQueueFunction':if(s.ifUndefined!==false&&w[s.name]!==undefined)return;w[s.name]=function(){var t=w[s.queue];if(!Array.isArray(t))return;t.push(s.pushStyle==='array'?Array.prototype.slice.call(arguments):arguments)};return;
 case 'defineStubFunction':if(s.ifUndefined!==false&&w[s.name]!==undefined)return;var f=function(){var self=w[s.name],d=self&&s.dispatchProperty?self[s.dispatchProperty]:undefined,a=Array.prototype.slice.call(arguments);if(typeof d==='function'){d.apply(self,a);return}var t=q(s.queue,self);if(!t)return;t.push(s.queueFormat==='array'?a:arguments)};w[s.name]=f;
 if('property' in s.queue&&typeof s.queue.property==='string'&&f[s.queue.property]===undefined)f[s.queue.property]=[];(s.aliases||[]).forEach(function(n){w[n]=f});(s.selfReferences||[]).forEach(function(n){f[n]=f});for(var p in s.properties||{})f[p]=c(s.properties[p]);return;
-case 'callGlobal':var g=w[s.global];if(!g)return;var a=(s.args||[]).map(c);if(s.method){if(typeof g[s.method]==='function')g[s.method].apply(g,a)}else if(typeof g==='function')g.apply(undefined,a);return;
+case 'callGlobal':var g=w[s.global];if(!g)return;var a=s.literalArgs?JSON.parse(JSON.stringify(s.args||[])):(s.args||[]).map(c);if(s.method){if(typeof g[s.method]==='function')g[s.method].apply(g,a)}else if(typeof g==='function')g.apply(undefined,a);return;
 case 'pushToQueue':if(Array.isArray(w[s.queue]))w[s.queue].push(c(s.value));return;
 case 'setGlobalPath':var r=s.path[0];if(s.ifGlobalIsQueue&&(!r||!Array.isArray(w[r])))return;if(s.path.length===0)return;var o=w;for(var j=0;j<s.path.length-1;j++){o=o[s.path[j]];if(o===null||typeof o!=='object')return}var k=s.path[s.path.length-1];if(s.ifUndefined&&o[k]!==undefined)return;o[k]=c(s.value);return;
-case 'defineQueueMethods':var t=w[s.target];if(t===null||(typeof t!=='object'&&typeof t!=='function'))return;if(!s.queue&&!Array.isArray(t))return;var F=s.queueFormat;s.methods.forEach(function(m){if(s.preserveExisting&&typeof t[m]==='function')return;t[m]=function(){var u=q(s.queue||{global:s.target},t);if(!u)return;var a=Array.prototype.slice.call(arguments);if(F==='methodCall'||F==='wrappedMethodCall'||F==='voidMethodCall'){var p=new Promise(function(r){u.push({args:a,name:m,resolve:r})});return F==='wrappedMethodCall'?{promise:p}:F==='voidMethodCall'?undefined:p}if(F==='callback'){u.push({fn:function(){var l=w[s.target];if(l===null||(typeof l!=='object'&&typeof l!=='function'))return;if(typeof l[m]==='function')l[m].apply(l,a)},name:m});return}u.push([m].concat(a))}});return;
+case 'defineQueueMethods':var t=w[s.target];if(t===null||(typeof t!=='object'&&typeof t!=='function'))return;if(!s.queue&&!Array.isArray(t))return;var F=s.queueFormat;s.methods.forEach(function(m){if(s.preserveExisting&&typeof t[m]==='function')return;t[m]=function(){var u=q(s.queue||{global:s.target},t);if(!u)return;var a=Array.prototype.slice.call(arguments);if(F==='methodCall'||F==='wrappedMethodCall'||F==='voidMethodCall'){var p=new Promise(function(r){u.push({args:a,name:m,resolve:r})});return F==='wrappedMethodCall'?{promise:p}:F==='voidMethodCall'?undefined:p}if(F==='callback'){u.push({fn:function(){var l=w[s.target];if(l===null||(typeof l!=='object'&&typeof l!=='function'))return;if(typeof l[m]==='function')l[m].apply(l,a)},name:m});return}u.push(F==='nameAndArgs'?[m,a]:[m].concat(a));return s.returnTarget?t:undefined}});return;
 case 'defineQueueClass':var t=w[s.target];if(t===null||(typeof t!=='object'&&typeof t!=='function'))return;var Q=s.queueProperty==null?'_q':s.queueProperty,C=function(){this[Q]=[]};s.methods.forEach(function(m){C.prototype[m]=function(){var u=this[Q];if(Array.isArray(u))u.push({args:Array.prototype.slice.call(arguments),name:m});return this}});t[s.name]=C;return;
 case 'defineGlobalMethods':var t=w[s.target];if(t===null||(typeof t!=='object'&&typeof t!=='function'))return;if(s.ifGlobalIsQueue&&!Array.isArray(t))return;s.methods.forEach(function(m){t[m.name]=m.behavior==='return'?function(){return c(m.value)}:function(){}});return;
 case 'setCookie':document.cookie=s.cookie;return;
@@ -145,14 +145,27 @@ const stepValues = function stepValues(step: ManifestStep): unknown[] {
 export const inlineStepsStart = function inlineStepsStart(
 	steps: ManifestStep[]
 ): ScriptServerStart | undefined {
+	// Literal calls intentionally apply JSON's conversions, just as the
+	// runtime does. Check and emit the same snapshot so toJSON runs once.
+	let inlineSteps: ManifestStep[];
+	try {
+		inlineSteps = steps.map((step) =>
+			step.type === 'callGlobal' && step.literalArgs
+				? { ...step, args: JSON.parse(JSON.stringify(step.args ?? [])) }
+				: step
+		);
+	} catch {
+		// A non-JSON literal payload has no inline form.
+		return;
+	}
 	if (
-		!steps.every(
+		!inlineSteps.every(
 			(step) => runsInline(step) && stepValues(step).every(survivesJSON)
 		)
 	) {
 		return;
 	}
-	const run = steps.filter((step) => step.type !== 'loadScript');
+	const run = inlineSteps.filter((step) => step.type !== 'loadScript');
 	return {
 		code: `window.${RUNNER}(${inlineJSON(run)})`,
 		prelude: `window.${RUNNER}=window.${RUNNER}||${RUNNER_SOURCE}`,

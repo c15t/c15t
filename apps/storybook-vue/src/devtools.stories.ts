@@ -82,7 +82,10 @@ export const Default: Story = {
 				prefetch: init,
 				producerContract: 1,
 			});
-			hydrateRecords(context.kernel, { now: devToolsPrefetch.now });
+			hydrateRecords(context.kernel, {
+				now: devToolsPrefetch.now,
+				subject: devToolsPrefetch.initialRecords.subject,
+			});
 			provideStorybookConsentContext(null, context, config);
 			const loader = createScriptLoader({
 				kernel: context.kernel,

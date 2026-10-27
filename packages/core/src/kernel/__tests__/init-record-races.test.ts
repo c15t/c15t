@@ -40,6 +40,7 @@ test.each([false, true])(
 		});
 		const persistence = createPersistence({ kernel, skipHydration: true });
 		const pending = kernel.commands.init();
+		const subjectId = kernel.getSnapshot().subject?.subjectId;
 		persistence.clear();
 		response.resolve({
 			policyResolution: { ...resolution, version: 1 },
@@ -48,7 +49,8 @@ test.each([false, true])(
 		});
 		await pending;
 		expect(kernel.getSnapshot().resolution).toEqual(resolution);
-		expect(kernel.getSnapshot().subject).toBeNull();
+		// The clear keeps the subject ID it found; the init records name none.
+		expect(kernel.getSnapshot().subject).toEqual({ subjectId });
 		expect(kernel.getSnapshot().explicitChoice).toBeNull();
 		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);
 		persistence.dispose();

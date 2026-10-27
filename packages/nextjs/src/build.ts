@@ -18,6 +18,7 @@ import {
 	PHASE_PRODUCTION_BUILD,
 } from 'next/constants.js';
 
+import { checkRoutePrefix, ROUTE_PREFIX_ENV } from './config';
 import type { ConsentConfig } from './config';
 
 export type {
@@ -388,8 +389,13 @@ const withConsentAliases = function withConsentAliases(
  * `NEXT_PUBLIC_C15T_BACKEND_URL` to it, in the environment and in the
  * config's `env`, so every reader of the c15t name sees the same URL.
  *
+ * A `routePrefix` path in `c15t.config.ts` goes into `env` too, so the
+ * proxy, which cannot import the config, sets no subject cookie on the
+ * consent route.
+ *
  * @param config - Existing Next.js configuration, preserved as given apart
- * from the alias and, for the Inth variable, `env`.
+ * from the alias and `env`, which gains the Inth variable and the consent
+ * route prefix.
  * @param options - Backend URL and `onBuildError`. `backendURL` defaults to
  * the one in `c15t.config.ts`, then `NEXT_PUBLIC_C15T_BACKEND_URL`, then
  * `NEXT_PUBLIC_INTH_PROJECT_URL`, from the environment or a `.env` file,
@@ -463,5 +469,21 @@ export const withConsentManifest =
 						: modeSkipReason(userConfig),
 			}
 		);
-		return withConsentAliases(resolved, files, userConfigFile);
+		// The proxy cannot import c15t.config.ts, so it reads the consent
+		// route's path from a value inlined into every bundle.
+		const routePrefix =
+			typeof userConfig?.routePrefix === 'string' &&
+			userConfig.routePrefix.startsWith('/')
+				? checkRoutePrefix(userConfig.routePrefix)
+				: undefined;
+		return withConsentAliases(
+			routePrefix === undefined
+				? resolved
+				: {
+						...resolved,
+						env: { ...resolved.env, [ROUTE_PREFIX_ENV]: routePrefix },
+					},
+			files,
+			userConfigFile
+		);
 	};
