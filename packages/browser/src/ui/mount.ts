@@ -32,6 +32,18 @@ const resolveContainer = function resolveContainer(
 	return container ?? document.body;
 };
 
+/**
+ * Shadow content is not a child, so the host matches `:empty`, and themes
+ * such as Shopify's Dawn hide `div:empty`. Page rules beat `:host`, so only
+ * an inline `!important` keeps the host displayed.
+ */
+const attachShadowRoot = function attachShadowRoot(
+	host: HTMLElement
+): ShadowRoot {
+	host.style.setProperty('display', 'block', 'important');
+	return host.attachShadow({ mode: 'open' });
+};
+
 const buildStyleText = function buildStyleText(
 	options: ConsentUIOptions,
 	theme: Theme | undefined,
@@ -167,7 +179,7 @@ export const mountConsentUI = function mountConsentUI(
 	const useShadow = options.shadow ?? true;
 	const host = h('div', { [HOST_ATTRIBUTE]: '' });
 	const root: ShadowRoot | HTMLElement = useShadow
-		? host.attachShadow({ mode: 'open' })
+		? attachShadowRoot(host)
 		: host;
 
 	// The arm's theme overrides ride on the host theme. Assignment lands in

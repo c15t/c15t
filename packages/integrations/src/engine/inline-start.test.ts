@@ -1,5 +1,13 @@
 import type { ConsentState, Script, ScriptCallbackInfo } from '@c15t/core';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+	afterEach,
+	assert,
+	beforeEach,
+	describe,
+	expect,
+	it,
+	vi,
+} from 'vitest';
 
 import {
 	createCallbackInfo,
@@ -7,6 +15,8 @@ import {
 	setupScriptHelperTest,
 } from '../__tests__/helpers';
 import { helperParityCases } from '../__tests__/integration-cases';
+import { resolveManifest } from '../resolve';
+import { vendorManifestContract } from '../types';
 import { metaPixel } from '../vendors/ads-and-pixels/meta-pixel';
 import { gtag } from '../vendors/analytics/google-tag';
 import { vercelSpeedInsights } from '../vendors/analytics/vercel-speed-insights';
@@ -204,6 +214,117 @@ describe('inlineStepsStart', () => {
 			])
 		);
 	});
+	it.each([undefined, false, true])(
+		'returns the method owner only when returnTarget is %s in both runners',
+		(returnTarget) => {
+			const script = resolveManifest(
+				{
+					...vendorManifestContract,
+					bootstrap: [
+						{ name: 'chainQueue', type: 'setGlobal', value: [] },
+						{
+							methods: ['identify', 'track'],
+							returnTarget,
+							target: 'chainQueue',
+							type: 'defineQueueMethods',
+						},
+					],
+					category: 'measurement',
+					install: [{ src: 'https://example.com/sdk.js', type: 'loadScript' }],
+					vendor: 'chain-queue',
+				},
+				{}
+			);
+			const pages = runBoth(
+				script,
+				{ consents: granted, hasConsent: true, id: script.id },
+				() => {
+					const queue = getTestGlobal().chainQueue as unknown as {
+						identify: (id: string) => unknown;
+						track: (event: string) => unknown;
+					};
+					expect(queue.identify('customer-123')).toBe(
+						returnTarget ? queue : undefined
+					);
+					expect(queue.track('Signed up')).toBe(
+						returnTarget ? queue : undefined
+					);
+					return queue;
+				}
+			);
+			expect(pages[1]).toStrictEqual(pages[0]);
+		}
+	);
+
+	describe.each(['runtime', 'server-start'])(
+		'%s queue method returns',
+		(runner) => {
+			describe.each(['global', 'property'])(
+				'with a separate %s queue',
+				(location) => {
+					it.each([undefined, false, true])(
+						'chains through the method owner only when returnTarget is %s',
+						(returnTarget) => {
+							const calls: unknown[] = [];
+							interface QueueOwner {
+								q: unknown[];
+								track: (event: string) => QueueOwner;
+							}
+							const owner: QueueOwner = { q: calls, track: vi.fn() };
+							getTestGlobal().chainOwner = owner;
+							getTestGlobal().chainCalls = calls;
+							const script = resolveManifest(
+								{
+									...vendorManifestContract,
+									bootstrap: [
+										{
+											methods: ['track'],
+											queue:
+												location === 'global'
+													? { global: 'chainCalls' }
+													: { property: 'q' },
+											returnTarget,
+											target: 'chainOwner',
+											type: 'defineQueueMethods',
+										},
+									],
+									category: 'measurement',
+									install: [
+										{ src: 'https://example.com/sdk.js', type: 'loadScript' },
+									],
+									vendor: 'separate-queue',
+								},
+								{}
+							);
+							const info = {
+								consents: granted,
+								hasConsent: true,
+								id: script.id,
+							};
+							if (runner === 'runtime') {
+								script.onBeforeLoad?.(createCallbackInfo(info));
+							} else {
+								const start = script.serverStart?.(info, script);
+								assert(start, 'Expected a server-start script');
+								// oxlint-disable-next-line no-new-func -- Runs the server-start script as the page would.
+								new Function(`${start.prelude ?? ''};${start.code}`)();
+							}
+							const first = owner.track('First');
+							const second = returnTarget
+								? first.track('Second')
+								: owner.track('Second');
+							expect(first).toBe(returnTarget ? owner : undefined);
+							expect(second).toBe(returnTarget ? owner : undefined);
+							expect(calls).toEqual([
+								['track', 'First'],
+								['track', 'Second'],
+							]);
+						}
+					);
+				}
+			);
+		}
+	);
 
 	// Speed Insights registers its consent gate at hydration; see below.
 	describe.each(inlineCases.filter(([key]) => key !== 'vercelSpeedInsights'))(
@@ -381,6 +502,69 @@ describe('inlineStepsStart', () => {
 				},
 			])
 		).toBeDefined();
+	});
+
+	it('normalizes literal call arguments once before starting inline', () => {
+		const toJSON = vi.fn(() => ({
+			kind: 'c15t.runtime-value',
+			value: 'date',
+		}));
+		const args = [
+			new Date(0),
+			{ omitted: undefined, text: '</script>\u2028\u2029' },
+			[undefined, Number.NaN, -0],
+			{ toJSON },
+		];
+		const start = inlineStepsStart([
+			{ args, global: 'literalCall', literalArgs: true, type: 'callGlobal' },
+		]);
+		expect(start).toBeDefined();
+		if (!start) {
+			throw new Error('Expected inline start for literal JSON arguments');
+		}
+		const call = vi.fn();
+		Object.assign(getTestGlobal(), { literalCall: call });
+		expect(start.code).not.toContain('</script>');
+		// oxlint-disable-next-line no-new-func -- Runs the HTML start code.
+		new Function(`${start.prelude ?? ''};${start.code}`)();
+		expect(call).toHaveBeenCalledWith(
+			'1970-01-01T00:00:00.000Z',
+			{ text: '</script>\u2028\u2029' },
+			[null, null, 0],
+			{ kind: 'c15t.runtime-value', value: 'date' }
+		);
+		expect(toJSON).toHaveBeenCalledTimes(1);
+		expect(args[0]).toBeInstanceOf(Date);
+	});
+
+	it('falls back when literal JSON contains an own prototype key', () => {
+		expect(
+			inlineStepsStart([
+				{
+					args: [JSON.parse('{"__proto__":{"debug":true}}')],
+					global: 'literalCall',
+					literalArgs: true,
+					type: 'callGlobal',
+				},
+			])
+		).toBeUndefined();
+	});
+
+	it('falls back when literal arguments cannot be serialized as JSON', () => {
+		const cyclic: unknown[] = [];
+		cyclic.push(cyclic);
+		for (const args of [[10n], cyclic]) {
+			expect(
+				inlineStepsStart([
+					{
+						args,
+						global: 'literalCall',
+						literalArgs: true,
+						type: 'callGlobal',
+					},
+				])
+			).toBeUndefined();
+		}
 	});
 
 	/** The vendor calls an app makes before the vendor's script loads. */

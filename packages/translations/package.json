@@ -1,7 +1,7 @@
 {
 	"name": "@c15t/translations",
-	"version": "3.1.0",
-	"description": "Translations for c15t in 42 languages. Typed i18n strings for c15t banners, dialogs and preference centers.",
+	"version": "3.2.0-canary.0",
+	"description": "Translations for c15t in 53 languages. Typed i18n strings for c15t banners, dialogs and preference centers.",
 	"keywords": [
 		"c15t",
 		"i18n",
@@ -156,6 +156,16 @@
 			"import": "./dist/languages/it.js",
 			"default": "./dist/languages/it.js"
 		},
+		"./ja": {
+			"types": "./dist-types/languages/ja.d.ts",
+			"import": "./dist/languages/ja.js",
+			"default": "./dist/languages/ja.js"
+		},
+		"./kn": {
+			"types": "./dist-types/languages/kn.d.ts",
+			"import": "./dist/languages/kn.js",
+			"default": "./dist/languages/kn.js"
+		},
 		"./ko": {
 			"types": "./dist-types/languages/ko.d.ts",
 			"import": "./dist/languages/ko.js",
@@ -176,6 +186,21 @@
 			"import": "./dist/languages/lv.js",
 			"default": "./dist/languages/lv.js"
 		},
+		"./ml": {
+			"types": "./dist-types/languages/ml.d.ts",
+			"import": "./dist/languages/ml.js",
+			"default": "./dist/languages/ml.js"
+		},
+		"./mr": {
+			"types": "./dist-types/languages/mr.d.ts",
+			"import": "./dist/languages/mr.js",
+			"default": "./dist/languages/mr.js"
+		},
+		"./ms": {
+			"types": "./dist-types/languages/ms.d.ts",
+			"import": "./dist/languages/ms.js",
+			"default": "./dist/languages/ms.js"
+		},
 		"./mt": {
 			"types": "./dist-types/languages/mt.d.ts",
 			"import": "./dist/languages/mt.js",
@@ -195,6 +220,11 @@
 			"types": "./dist-types/languages/nn.d.ts",
 			"import": "./dist/languages/nn.js",
 			"default": "./dist/languages/nn.js"
+		},
+		"./pa": {
+			"types": "./dist-types/languages/pa.d.ts",
+			"import": "./dist/languages/pa.js",
+			"default": "./dist/languages/pa.js"
 		},
 		"./pl": {
 			"types": "./dist-types/languages/pl.d.ts",
@@ -236,10 +266,35 @@
 			"import": "./dist/languages/sv.js",
 			"default": "./dist/languages/sv.js"
 		},
+		"./ta": {
+			"types": "./dist-types/languages/ta.d.ts",
+			"import": "./dist/languages/ta.js",
+			"default": "./dist/languages/ta.js"
+		},
+		"./te": {
+			"types": "./dist-types/languages/te.d.ts",
+			"import": "./dist/languages/te.js",
+			"default": "./dist/languages/te.js"
+		},
+		"./th": {
+			"types": "./dist-types/languages/th.d.ts",
+			"import": "./dist/languages/th.js",
+			"default": "./dist/languages/th.js"
+		},
+		"./tr": {
+			"types": "./dist-types/languages/tr.d.ts",
+			"import": "./dist/languages/tr.js",
+			"default": "./dist/languages/tr.js"
+		},
 		"./ur": {
 			"types": "./dist-types/languages/ur.d.ts",
 			"import": "./dist/languages/ur.js",
 			"default": "./dist/languages/ur.js"
+		},
+		"./vi": {
+			"types": "./dist-types/languages/vi.d.ts",
+			"import": "./dist/languages/vi.js",
+			"default": "./dist/languages/vi.js"
 		},
 		"./yi": {
 			"types": "./dist-types/languages/yi.d.ts",

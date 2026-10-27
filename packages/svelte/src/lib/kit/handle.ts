@@ -8,8 +8,14 @@
  * with, on `event.locals.c15t`.
  */
 import { building } from '$app/env';
+import type { StorageConfig } from '@c15t/core';
 import type { ConsentMode } from '@c15t/core/modes';
-import { normalizeRoutePrefix, readRequestConsent } from '@c15t/core/server';
+import {
+	DEFAULT_CONSENT_ROUTE_PREFIX,
+	normalizeRoutePrefix,
+	readRequestConsent,
+	resolveRequestSubject,
+} from '@c15t/core/server';
 import type {
 	ConsentManifest,
 	ConsentRequestHeaderInputs,
@@ -55,6 +61,34 @@ export interface C15tHandleOptions extends ConsentRequestOptions {
 	 * downloaded.
 	 */
 	snapshot?: ConsentManifest;
+	/**
+	 * The client's `storageConfig` cookie attributes, so the subject cookie
+	 * this sets matches the one the browser would: `defaultDomain`,
+	 * `crossSubdomain` and `defaultExpiryDays` set its domain and lifetime.
+	 * `cookieName` names it (`<cookieName>-sid`). Set it only if you changed
+	 * those client-side.
+	 */
+	storage?: Pick<
+		StorageConfig,
+		'crossSubdomain' | 'defaultDomain' | 'defaultExpiryDays'
+	>;
+	/**
+	 * Read the request's scheme and host from `forwarded` and
+	 * `x-forwarded-*` headers when deciding the subject cookie's `Secure`
+	 * flag and cross-subdomain domain. Any client can send those headers, so
+	 * set this only behind a proxy that sets them and drops incoming ones.
+	 *
+	 * @default false
+	 */
+	trustForwardedHeaders?: boolean;
+	/**
+	 * Set `false` when `ConsentProvider` runs with `persistence: false` or a
+	 * `consentSource`, so no `c15t-sid` cookie is set. A subject ID or
+	 * choice the visitor's cookies already hold is still read.
+	 *
+	 * @default true
+	 */
+	subjectCookie?: boolean;
 }
 
 /**
@@ -115,6 +149,18 @@ const normalizeRequestHeaders = function normalizeRequestHeaders(
 };
 
 /**
+ * Whether `pathname` is the consent route at `prefix` or a path under it.
+ * The consent route renders no page, and its manifest is public data a
+ * shared cache keeps, so it gets no subject cookie.
+ */
+const isConsentRoute = function isConsentRoute(
+	pathname: string,
+	prefix: string
+): boolean {
+	return pathname === prefix || pathname.startsWith(`${prefix}/`);
+};
+
+/**
  * The data a mode carries. A transport factory, such as `hosted()` from
  * `@c15t/svelte`, carries its options as data too; only that data reaches
  * the browser.
@@ -150,9 +196,14 @@ const modeData = function modeData(mode: ConsentMode): ConsentMode {
  * /// <reference types="@c15t/svelte/kit/locals" />
  * ```
  *
+ * A visitor with no subject ID gets one in a `c15t-sid` cookie (named after
+ * `cookieName`) on this response, and `loadConsent` reads it, so the page
+ * and the browser start with the same ID. The cookie holds only the ID, so
+ * the banner still shows. Prefetches get none.
+ *
  * While SvelteKit prerenders, every page is shared between visitors: the
- * handle reads no cookie or geo header and leaves no stored consent, clock
- * or privacy signal on `event.locals.c15t`.
+ * handle reads no cookie or geo header, sets no cookie, and leaves no
+ * stored consent, clock or privacy signal on `event.locals.c15t`.
  *
  * @param options - The mode, the consent route's prefix, a snapshot, the
  * cookie name and geo/language overrides.
@@ -168,8 +219,27 @@ export const c15tHandle = function c15tHandle(
 		options.routePrefix === undefined
 			? undefined
 			: normalizeRoutePrefix('@c15t/svelte', options.routePrefix);
+	const consentPrefix = routePrefix ?? DEFAULT_CONSENT_ROUTE_PREFIX;
 	return async ({ event, resolve }) => {
 		const { headers } = event.request;
+		const storage = {
+			...options.storage,
+			...(options.cookieName && { storageKey: options.cookieName }),
+		};
+		const subject =
+			options.subjectCookie === false ||
+			isConsentRoute(event.url.pathname, consentPrefix)
+				? null
+				: resolveRequestSubject({
+						request: { headers, url: event.url },
+						shared: building,
+						storage,
+						trustForwardedHeaders: options.trustForwardedHeaders,
+					});
+		if (subject?.setCookie) {
+			const { header: _header, name, value, ...attributes } = subject.setCookie;
+			event.cookies.set(name, value, attributes);
+		}
 		// A prerendered page is one HTML file for every visitor: no cookie or
 		// geo header of whoever triggered the build belongs in it.
 		const { inputs, state: config } = readRequestConsent({
@@ -179,7 +249,7 @@ export const c15tHandle = function c15tHandle(
 				language: options.language,
 				region: options.region,
 			},
-			request: { headers, url: event.url },
+			request: { cookie: subject?.cookie, headers, url: event.url },
 			shared: building,
 			storage: options.cookieName
 				? { storageKey: options.cookieName }
@@ -201,6 +271,18 @@ export const c15tHandle = function c15tHandle(
 		}
 		if (options.cookieName !== undefined) {
 			locals.cookieName = options.cookieName;
+		}
+		if (options.storage !== undefined) {
+			locals.storage = options.storage;
+		}
+		if (options.trustForwardedHeaders !== undefined) {
+			locals.trustForwardedHeaders = options.trustForwardedHeaders;
+		}
+		if (options.subjectCookie === false) {
+			locals.subjectCookie = false;
+		}
+		if (subject?.setCookie) {
+			locals.cookie = subject.cookie;
 		}
 		if (building) {
 			locals.shared = true;

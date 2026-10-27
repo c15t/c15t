@@ -11,6 +11,7 @@ import { OPTIONAL_CONSENT_CATEGORIES } from '../../consent-record/types';
 import {
 	EXPERIMENT_STORAGE_KEY,
 	PENDING_SAVES_STORAGE_KEY,
+	resolveStorageKeys,
 	STORAGE_KEY,
 	STORAGE_KEY_V2,
 	SUBJECT_REASSIGNMENTS_STORAGE_KEY,
@@ -28,5 +29,6 @@ export const clearOnRevocationTools: ClearOnRevocationTools = {
 		SUBJECT_REASSIGNMENTS_STORAGE_KEY,
 		EXPERIMENT_STORAGE_KEY,
 	],
+	resolveStorageKeys,
 	storageKey: STORAGE_KEY_V2,
 };

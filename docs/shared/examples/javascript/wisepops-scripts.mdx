@@ -1,0 +1,15 @@
+{/* Generated from internals/doc-snippets/javascript/src/wisepops.ts (docs:wisepops-scripts) by scripts/sync-example-docs.ts. Edit the source file. */}
+
+```ts title="src/consent-scripts.ts"
+import { wisepops } from '@c15t/integrations/wisepops';
+
+export const scripts = [wisepops({ siteId: 'YOUR_WISEPOPS_SITE_ID' })];
+
+export const experienceScripts = [
+	wisepops({
+		category: 'experience',
+		options: { browserStorage: true },
+		siteId: 'YOUR_WISEPOPS_SITE_ID',
+	}),
+];
+```

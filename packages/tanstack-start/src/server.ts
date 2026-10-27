@@ -81,7 +81,13 @@ import type {
 } from '@c15t/core/server';
 import type { ConsentManifest, InitOutput } from '@c15t/schema/types';
 
-import { readConsentInputs } from './libs/request-inputs';
+import { handledRequestFor } from './libs/handled-request';
+import { isPrerendering } from './libs/prerendering';
+import {
+	readConsentInputs,
+	readSubjectCookieHeader,
+	rememberVisitorRender,
+} from './libs/request-inputs';
 
 type Awaitable<Value> = Promise<Value> | Value;
 
@@ -103,18 +109,6 @@ const stripTransport = function stripTransport({
 	...config
 }: KernelConfig): ConsentState {
 	return config;
-};
-
-/**
- * Whether this render is TanStack Start's build-time prerender, which writes
- * HTML every visitor is served. The Start plugin sets `TSS_PRERENDERING`
- * for the whole prerender run.
- */
-const isPrerendering = function isPrerendering(): boolean {
-	const env = (
-		globalThis as { process?: { env?: Record<string, string | undefined> } }
-	).process?.env;
-	return env?.TSS_PRERENDERING === 'true';
 };
 
 const readCurrentRequest = async function readCurrentRequest(
@@ -466,7 +460,13 @@ const resolveConsentState = async function resolveConsentState(
 	const routePrefix = readRoutePrefix(options);
 	const client = clientConfigFor(options, backendURL, routePrefix);
 	const request = await readCurrentRequest(options.request);
+	const handled = await handledRequestFor(request);
 	const server = serverModeOptions(options, backendURL);
+	const shared = options.shared ?? isPrerendering();
+	if (!shared) {
+		// The middleware keeps this HTML out of shared caches.
+		rememberVisitorRender(handled);
+	}
 	const state = await resolveRequestConsent({
 		...server,
 		adapter: '@c15t/tanstack-start',
@@ -486,13 +486,16 @@ const resolveConsentState = async function resolveConsentState(
 		ownRoutes: [routePrefix ?? DEFAULT_CONSENT_ROUTE_PREFIX],
 		reportSessions: options.reportSessions,
 		request: {
+			// The cookie header with the subject ID the middleware set on this
+			// response, which the browser has not sent yet.
+			cookie: readSubjectCookieHeader(handled),
 			headers: request.headers,
 			// What `consentRequestMiddleware` normalized for this request, so
 			// overrides survive runtimes with immutable headers.
-			inputs: readConsentInputs(request),
+			inputs: readConsentInputs(handled),
 			url: request.url,
 		},
-		shared: options.shared ?? isPrerendering(),
+		shared,
 		storage: options.cookieName
 			? { storageKey: options.cookieName }
 			: undefined,

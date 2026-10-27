@@ -238,6 +238,34 @@ own handles through `sequence(c15tHandle(), yourHandle)` from
 | `snapshot` | The manifest `consentManifest` downloaded | A manifest of your own to resolve with. |
 | `cookieName` | `c15t` | The consent cookie. Match the provider's `storageConfig.storageKey`. |
 | `country`, `region`, `language` | from headers | Forces one input for every request. |
+| `storage`, `trustForwardedHeaders` | none | Set the subject ID cookie's domain, lifetime and `Secure` flag. See [the server API](/docs/frameworks/sveltekit/server-api#c15thandle). |
+
+`c15tHandle` also gives a visitor with no subject ID (`sub_…`) one, in the
+`c15t-sid` cookie, and `loadConsent` in the same request reads it. The server
+render and the browser then start with the same ID in
+`snapshot.subject.subjectId`. The cookie holds only the ID, so the banner
+still shows until the visitor makes a choice. Prerendered pages and prefetch
+requests get no cookie; there the browser creates the ID when the page loads.
+Requests under `routePrefix`, or under `/api/c15t` without it, get none
+either: the consent route renders no page, and its `/manifest` response is
+public data a shared cache keeps.
+See
+[the subject ID](/docs/concepts/consent-state#a-subject-id-from-the-first-page-load).
+
+`c15tHandle` runs before the response exists, so it cannot tell a page
+rendered for the visitor from a response a shared cache keeps for everyone,
+such as a public API route or a page served with `Cache-Control: public`.
+For requests to those routes, run `c15tHandle({ subjectCookie: false })` in
+place of the default handle. It still normalizes the consent headers. Don't
+add it after `c15tHandle()` in `sequence()`: the first handle has already
+set the cookie. Match each route and the paths below it, so `/api/feedback`
+and `/blogger` still get an ID:
+
+<include src="../../shared/examples/sveltekit/shared-routes-handle.mdx" />
+
+Server-rendered pages that call `loadConsent` hold the visitor's consent and
+subject ID, so keep them out of shared caches. Prerendered pages hold neither:
+`loadConsent` returns no visitor state while SvelteKit prerenders.
 
 `c15tHandle` also writes a server-rendered banner's rules into the HTML
 `<head>` as `<style>` elements, so the banner is styled before hydration.

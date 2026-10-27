@@ -77,9 +77,8 @@ export const vendorChoiceSinceEpoch = function vendorChoiceSinceEpoch<
 };
 
 /** The notice dismissal, or `null` when it was made before `epoch`. */
-export const noticeSinceEpoch = function noticeSinceEpoch(
-	record: NoticeDismissal | null,
-	epoch: number
-): NoticeDismissal | null {
+export const noticeSinceEpoch = function noticeSinceEpoch<
+	RecordType extends NoticeDismissal,
+>(record: RecordType | null, epoch: number): RecordType | null {
 	return record && record.dismissedAt >= epoch ? record : null;
 };

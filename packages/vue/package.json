@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/vue",
-	"version": "3.1.0",
+	"version": "3.2.0-canary.0",
 	"description": "Vue cookie consent banner and Nuxt cookie consent module for c15t, with a consent dialog and preference center.",
 	"keywords": [
 		"banner",

@@ -17,6 +17,8 @@ export const createEvent = function createEvent(
 		/** Route id and params, as SvelteKit sets them for a matched route. */
 		route?: { id: string; params: Record<string, string> };
 		clientAddress?: string;
+		/** Receives every `event.cookies.set` call. */
+		setCookie?: (name: string, value: string, options: unknown) => void;
 	} = {}
 ): RequestEvent {
 	const url = new URL(input.url ?? 'http://localhost:5173/');
@@ -26,6 +28,7 @@ export const createEvent = function createEvent(
 		method: input.method ?? 'GET',
 	});
 	return {
+		cookies: { set: input.setCookie ?? (() => undefined) },
 		fetch: input.fetch ?? globalThis.fetch,
 		getClientAddress: () => {
 			if (!input.clientAddress) {

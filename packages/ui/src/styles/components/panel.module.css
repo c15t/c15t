@@ -346,20 +346,8 @@
 
 	.closeButton:not(:global(.headless)) {
 		position: absolute;
-		right: 22px;
-		top: 22px;
-	}
-
-	.footer:not(:global(.headless)) {
-		justify-content: center;
-		font-size: 14px;
-		padding-top: 1rem;
-		padding-bottom: 1rem;
-		border-top: solid 1px var(--consent-dialog-stroke-color);
-	}
-
-	:global(.c15t-dark) .footer:not(:global(.headless)) {
-		border-color: var(--consent-dialog-stroke-color-dark);
+		right: 1.375rem;
+		top: 1.375rem;
 	}
 
 	.overlay:not(:global(.headless)) {

@@ -16,8 +16,15 @@ import type { eloquaTracking as EloquaTrackingFactory } from './vendors/analytic
 let eloquaTracking: typeof EloquaTrackingFactory;
 
 beforeEach(async () => {
+	// Node 25+ replaces jsdom's storage globals with its own Web Storage.
+	vi.stubGlobal('localStorage', jsdom.window.localStorage);
+	vi.stubGlobal('sessionStorage', jsdom.window.sessionStorage);
 	vi.resetModules();
 	({ eloquaTracking } = await import('./vendors/analytics/oracle-eloqua'));
+});
+
+afterEach(() => {
+	vi.unstubAllGlobals();
 });
 
 const GLOBALS = ['_elqQ'];

@@ -1,5 +1,6 @@
 import type { OptionalConsentCategory } from '../../consent-record/types';
 import type { StorageConfig } from '../../libs/cookie/types';
+import type { resolveStorageKeys } from '../../libs/storage-keys';
 import type { ConsentKernel } from '../../types';
 import type { getEffectiveGateState } from '../has';
 
@@ -53,6 +54,8 @@ export interface ClearOnRevocationHandle {
 export interface ClearOnRevocationTools {
 	/** `getEffectiveGateState`. */
 	gateState: typeof getEffectiveGateState;
+	/** Shared persistence key map, including auxiliary records. */
+	resolveStorageKeys: typeof resolveStorageKeys;
 	optionalConsentCategories: readonly OptionalConsentCategory[];
 	/** c15t's own keys besides the configurable consent key. */
 	protectedStorageKeys: readonly string[];

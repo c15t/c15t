@@ -1,6 +1,8 @@
 ---
 packages:
-  '@c15t/backend': patch
+  "@c15t/backend":
+    replay:
+      - exit-prerelease(npm:@c15t/backend)
 ---
 
 ### Record the tenant on identity-link audit entries

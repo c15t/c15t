@@ -5,7 +5,7 @@
  */
 
 import { useState } from 'react';
-import { describe, expect, test, vi } from 'vitest';
+import { describe, expect, onTestFinished, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 import { userEvent } from 'vitest/browser';
 
@@ -198,11 +198,24 @@ describe('useScrollLock', () => {
 							width: 10,
 						}}
 					/>
+					<div
+						data-testid="fixed-offset"
+						style={{
+							height: 10,
+							position: 'fixed',
+							right: 'var(--c15t-scroll-lock-gap, 0px)',
+							top: 20,
+							width: 10,
+						}}
+					/>
 				</>
 			);
 		};
 
 		const measure = () => ({
+			fixedOffsetRight: getDefined(
+				document.querySelector('[data-testid="fixed-offset"]')
+			).getBoundingClientRect().right,
 			fixedRight: getDefined(
 				document.querySelector('[data-testid="fixed"]')
 			).getBoundingClientRect().right,
@@ -234,8 +247,9 @@ describe('useScrollLock', () => {
 		});
 
 		test('keeps in-flow content still with a styled scrollbar', async () => {
-			// A `::-webkit-scrollbar` scrollbar always takes width in Chromium,
-			// and reserves no `scrollbar-gutter`, so the lock pads <body> instead.
+			// A `::-webkit-scrollbar` scrollbar always takes width in Chromium.
+			// On macOS no `scrollbar-gutter` holds it, so the lock pads <body>
+			// instead; on Linux the gutter holds and nothing moves.
 			const screen = await render(
 				<Page
 					locked={false}
@@ -251,7 +265,10 @@ describe('useScrollLock', () => {
 					styledScrollbar
 				/>
 			);
-			expect(measure().flowRight).toBe(before.flowRight);
+			const locked = measure();
+			expect(locked.flowRight).toBe(before.flowRight);
+			// Padding cannot hold a fixed element; the gap variable can.
+			expect(locked.fixedOffsetRight).toBe(before.fixedOffsetRight);
 
 			await screen.rerender(
 				<Page
@@ -260,6 +277,101 @@ describe('useScrollLock', () => {
 				/>
 			);
 			expect(measure()).toEqual(before);
+		});
+		test.each([
+			['html', '1'],
+			['html', '2'],
+			['body', '2'],
+		] as const)(
+			'reports the padded width so fixed elements can stay still with %s zoom %s',
+			async (zoomed, zoom) => {
+				// Without `scrollbar-gutter`, the lock always pads <body>, on every
+				// platform. Zoom scales the lengths it sets, so they must not count
+				// the scrollbar twice.
+				vi.spyOn(CSS, 'supports').mockReturnValue(false);
+				const element =
+					zoomed === 'html' ? document.documentElement : document.body;
+				element.style.zoom = zoom;
+				onTestFinished(() => {
+					vi.restoreAllMocks();
+					element.style.removeProperty('zoom');
+				});
+				const screen = await render(
+					<Page
+						locked={false}
+						styledScrollbar
+					/>
+				);
+				const before = measure();
+
+				await screen.rerender(
+					<Page
+						locked
+						styledScrollbar
+					/>
+				);
+				const locked = measure();
+				expect(locked.fixedRight).toBeGreaterThan(before.fixedRight);
+				expect(locked.fixedOffsetRight).toBe(before.fixedOffsetRight);
+				expect(locked.flowRight).toBe(before.flowRight);
+
+				await screen.rerender(
+					<Page
+						locked={false}
+						styledScrollbar
+					/>
+				);
+				expect(measure()).toEqual(before);
+			}
+		);
+	});
+
+	describe('Scrolling', () => {
+		const Page = ({ locked }: { locked: boolean }) => {
+			useScrollLock(locked);
+
+			return (
+				<>
+					<header
+						data-testid="sticky"
+						style={{ height: 40, position: 'sticky', top: 0 }}
+					/>
+					<div
+						data-testid="flow"
+						style={{ height: '400vh' }}
+					/>
+				</>
+			);
+		};
+
+		const stickyTop = () =>
+			getDefined(
+				document.querySelector('[data-testid="sticky"]')
+			).getBoundingClientRect().top;
+
+		test('keeps the scroll position and sticky elements, and stops the wheel', async () => {
+			const screen = await render(<Page locked={false} />);
+			window.scrollTo(0, 500);
+			expect(window.scrollY).toBe(500);
+			expect(stickyTop()).toBe(0);
+
+			await screen.rerender(<Page locked />);
+			expect(window.scrollY).toBe(500);
+			expect(stickyTop()).toBe(0);
+
+			const flow = getDefined(document.querySelector('[data-testid="flow"]'));
+			await userEvent.wheel(flow, { delta: { y: 400 } });
+			// A blocked wheel leaves no event to wait for. Give an unblocked one
+			// time to scroll the page.
+			await new Promise((resolve) => {
+				setTimeout(resolve, 200);
+			});
+			expect(window.scrollY).toBe(500);
+
+			await screen.rerender(<Page locked={false} />);
+			expect(window.scrollY).toBe(500);
+			expect(stickyTop()).toBe(0);
+			window.scrollTo(0, 0);
 		});
 	});
 

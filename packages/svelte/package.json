@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/svelte",
-	"version": "3.1.0",
+	"version": "3.2.0-canary.0",
 	"description": "Svelte cookie consent banner for Svelte and SvelteKit, with a consent dialog and preference center. The Svelte package for c15t.",
 	"keywords": [
 		"banner",

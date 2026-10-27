@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/tanstack-start",
-	"version": "3.1.0",
+	"version": "3.2.0-canary.0",
 	"description": "TanStack cookie consent banner for TanStack Start, built on c15t. Server-rendered banner, request middleware and a preference center.",
 	"keywords": [
 		"banner",

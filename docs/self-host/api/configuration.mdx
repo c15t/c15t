@@ -121,6 +121,18 @@ policy data for the request's location; consent saves and subject reads keep
 the allowlist. Keep API keys,
 database credentials and signing keys in server environment variables.
 
+The backend does not limit request rate or body size. `POST /subjects` and
+`PATCH /subjects/:id` need no API key, and each call with a new subject ID
+stores a subject and an audit entry; a save also stores a consent. Before you
+expose the backend, limit request rate per client and request body size for
+these two routes in your reverse proxy, platform firewall or WAF.
+`trustedOrigins` cannot do this, because a script or server ignores CORS. If a
+framework route proxies requests to the backend, forward the client address so
+per-client limits see each visitor. See `trustForwardedHeaders` in the
+[Next.js data fetching reference](/docs/frameworks/next/data-fetching-reference#createconsentroute-options)
+and the
+[TanStack Start troubleshooting guide](/docs/frameworks/tanstack-start/troubleshooting#saves-through-apic15t-fail-with-403-or-a-challenge-page).
+
 A `tenantId` scopes an instance, not an arbitrary incoming header. Construct the
 correct tenant instance in trusted application code. Do not choose a tenant from
 an unchecked browser value.
