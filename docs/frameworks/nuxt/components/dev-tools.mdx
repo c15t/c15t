@@ -37,8 +37,10 @@ Vite 8 release. c15t keeps its Nuxt peer dependency range at
 In DevTools 4, select c15t before choosing Popup. Switching Nuxt tabs in an
 existing popup can leave the previous page visible.
 
-For tailnet access, add `.ts.net` to Vite's `server.allowedHosts` and the
-app's exact HTTPS origin to `devtools.allowedOrigins` under `vite` in
+For tailnet access with DevTools 4, use Vite 8.3.0 or a later Vite 8 release.
+Earlier Vite versions do not pass `vite.devtools.allowedOrigins` to the
+DevTools server. Add `.ts.net` to Vite's `server.allowedHosts` and the app's
+exact HTTPS origin to `devtools.allowedOrigins` under `vite` in
 `nuxt.config.ts`. DevTools 4 requires a full origin, including its HTTPS
 port, rather than a wildcard. The c15t playground reads that origin from
 `PORTLESS_TAILSCALE_URL` when launched with Portless. When Nuxt
