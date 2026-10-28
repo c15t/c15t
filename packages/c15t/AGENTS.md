@@ -418,7 +418,7 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 - [OpenAI Pixel](./docs/integrations/openai-pixel.md): Load the ChatGPT Ads Measurement Pixel only after marketing consent with the c15t openaiPixel helper, guard oaiq conversion calls, and check it in DevTools.
 - [Optimizely](./docs/integrations/optimizely.md): Load Optimizely Web Experimentation and Personalization after experience consent with c15t, choose a consent category and understand revocation limits.
 - [Oracle Eloqua](./docs/integrations/oracle-eloqua.md): Load Oracle Eloqua after mapped category and vendor consent, configure its tracking settings, and verify loading and withdrawal with c15t.
-- [Integrations](./docs/integrations/overview.md): Find all c15t integrations for analytics, tag managers, advertising, experimentation and personalization, email and SMS, chat and embedded content.
+- [Integrations](./docs/integrations/overview.md): Find c15t integrations for analytics, replay, monitoring, experimentation, personalization, ads, data, chat and embeds.
 - [Pendo](./docs/integrations/pendo.md): Load Pendo after measurement consent, configure its tracking settings, and verify loading and withdrawal with c15t.
 - [Pinterest Tag](./docs/integrations/pinterest-tag.md): Load the Pinterest Tag only after marketing consent with the c15t pinterestTag helper, guard pintrk event calls, and check it in DevTools.
 - [Pirsch](./docs/integrations/pirsch.md): Load Pirsch Analytics only after measurement consent with the c15t pirsch helper, keep custom event bindings working, and check it in DevTools.

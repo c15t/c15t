@@ -131,15 +131,15 @@ The layout stays a Server Component. You write no `'use client'` wrapper and nee
 
 [`@c15t/integrations`](./packages/integrations) has a loader for each vendor below. Most wait until the visitor allows the vendor's consent category. A few, such as Google Tag Manager and Mixpanel, load at once and pass the choice to the vendor's own consent API. The [integrations overview](https://c15t.com/docs/integrations/overview) shows what each loader does.
 
-- **Tag managers**: Google Tag Manager, Cloudflare Zaraz
-- **Analytics**: Google tag (GA4 and Google Ads), Adobe Analytics, Ahrefs Analytics, Amplitude, Clay, Cloudflare Web Analytics, Databuddy, Fathom, FullStory, Gainsight PX, Heap, Hightouch, Hotjar, LogRocket, Lucky Orange, Matomo, Microsoft Clarity, Mixpanel, OneDollarStats, Oracle Eloqua, Pendo, Pirsch, Plausible, PostHog, Promptwatch, RB2B, RudderStack, Rybbit, Segment, Statable, Umami, Vercel Analytics, Vercel Speed Insights
+- **Web analytics**: Plausible Analytics, Fathom Analytics, Umami Analytics, Vercel Analytics, Google Tag, Cloudflare Web Analytics, Matomo Analytics, Adobe Analytics, Ahrefs Analytics, Databuddy, Pirsch, Rybbit Analytics, OneDollarStats, Promptwatch, Statable
+- **Product analytics**: PostHog, Mixpanel, Amplitude, Heap, Gainsight PX, Pendo
+- **Replay and monitoring**: Microsoft Clarity, Hotjar, LogRocket, Sentry, Vercel Speed Insights, FullStory, Lucky Orange
 - **Experimentation and personalization**: Adobe Target, Appcues, Dynamic Yield, Optimizely Web Experimentation, Wisepops
-- **Default**: Pixel after measurement consent or standalone Forms SDK after functionality consent, with configurable categories and an opt-in always mode for the Pixel ([guide](https://c15t.com/docs/integrations/default-com))
-- **Ads and pixels**: AdRoll, Meta Pixel, OpenAI Pixel, TikTok Pixel, LinkedIn Insight Tag, LiveIntent, Microsoft UET, Pinterest Tag, Reddit Pixel, Snapchat Pixel, The Trade Desk, Vector, X Pixel
-- **Enrichment, email, and SMS**: ActiveCampaign, Attentive, Clearbit, Customer.io, Insider, Klaviyo, Marketo Munchkin, Salesforce Account Engagement
-- **Chat and support**: Ada, Intercom, Crisp, Front Chat, Gorgias Chat, Zendesk Messaging
-- **Monitoring**: Sentry
-- **Embeds**: YouTube and Google Maps, with no extra package
+- **Ads and growth**: Meta Pixel, TikTok Pixel, Klaviyo, Clearbit, LinkedIn Insight Tag, Microsoft UET, Pinterest Tag, Reddit Pixel, Snapchat Pixel, X Pixel, OpenAI Pixel, ActiveCampaign, Attentive, Customer.io, Insider, Marketo Munchkin, Salesforce Account Engagement, Oracle Eloqua, HubSpot, RB2B, Clay, Default, Amazon Ads, AdRoll, LiveIntent, The Trade Desk, Vector
+- **Data and tags**: Segment, RudderStack, Hightouch, Google Tag Manager, Cloudflare Zaraz, Shopify
+- **Chat and embeds**: Intercom, Crisp, Front Chat, YouTube, Google Maps, Ada, Gorgias Chat, Zendesk Messaging
+
+YouTube and Google Maps use consent-gated embeds with no extra package. The [Default guide](https://c15t.com/docs/integrations/default-com) covers its Pixel and standalone Forms SDK, their configurable consent categories, and the Pixel's opt-in always mode.
 
 ## Packages
 
