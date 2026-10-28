@@ -20,4 +20,4 @@ labels in display order, and each entry's `integrationCategory` uses them.
 Consent categories and loading behavior do not change. `consentCategory`
 still identifies each helper's default consent category or condition.
 
-The `c15t generate` script picker lists integrations in the new groups.
+The `c15t generate` script picker orders integrations by the new categories.
