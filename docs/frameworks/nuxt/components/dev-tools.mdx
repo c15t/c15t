@@ -29,6 +29,22 @@ Shift + Option + D (Shift + Alt + D on Windows and Linux) and choose c15t. The
 tab shows consent values, scripts, location, the resolved policy, IAB state,
 events and consent actions. It follows the DevTools light or dark theme.
 
+The tab works with Nuxt DevTools 3 and 4, including popup windows. Use
+DevTools 3 with Nuxt 3, and DevTools 4 with Nuxt 4 and Vite 8.1.5 or a later
+Vite 8 release. c15t keeps its Nuxt peer dependency range at
+`^3.0.0 || ^4.0.0`.
+
+In DevTools 4, select c15t before choosing Popup. Switching Nuxt tabs in an
+existing popup can leave the previous page visible.
+
+For tailnet access, add `.ts.net` to Vite's `server.allowedHosts` and the
+app's exact HTTPS origin to `devtools.allowedOrigins` under `vite` in
+`nuxt.config.ts`. DevTools 4 requires a full origin, including its HTTPS
+port, rather than a wildcard. The c15t playground reads that origin from
+`PORTLESS_TAILSCALE_URL` when launched with Portless. When Nuxt
+advertises a separate WebSocket port in `/__devtools/__connection.json`,
+expose that port through HTTPS too. Keep DevTools authentication enabled.
+
 Nuxt enables its DevTools by default in development. Production builds don't
 register the tab, its `/__c15t_devtools__` page or the client plugin that
 exposes the kernel to it. To turn the tab off in development, set
