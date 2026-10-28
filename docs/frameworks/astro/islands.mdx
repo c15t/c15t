@@ -88,7 +88,7 @@ The Vue and Svelte adapters take the page runtime the same way:
 | Framework | Pass the runtime to | With |
 | --- | --- | --- |
 | React | `ConsentProvider` from `c15t/react` | `runtime={runtime}` and `options={{ colorScheme: null }}` |
-| Vue | `app.use(c15tVue, …)`, with `c15tVue` from `c15t/vue/vue-plugin` | `{ runtime, colorScheme: null }` |
+| Vue | `app.use(c15tVue, …)`, with `c15tVue` from `@c15t/vue/vue-plugin` | `{ runtime, colorScheme: null }` |
 | Svelte | `ConsentProvider` from `c15t/svelte` | `runtime={runtime}` and `options={{ colorScheme: null }}` |
 
 For Vue, an island's app is set up in the `appEntrypoint` module of
