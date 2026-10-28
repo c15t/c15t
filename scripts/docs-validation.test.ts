@@ -19,8 +19,8 @@ import {
 
 const docsRoot = fileURLToPath(new URL('../docs', import.meta.url));
 
-function getIntegrationOverviewGroups() {
-	return readFileSync(resolve(docsRoot, 'integrations/overview.mdx'), 'utf8')
+const getIntegrationOverviewGroups = () =>
+	readFileSync(resolve(docsRoot, 'integrations/overview.mdx'), 'utf8')
 		.split(/^## /mu)
 		.slice(1)
 		.map((section) => ({
@@ -39,7 +39,6 @@ function getIntegrationOverviewGroups() {
 			title: section.slice(0, section.indexOf('\n')),
 		}))
 		.filter((group) => group.pages.length > 0);
-}
 
 test('documented umbrella imports exist in the package export map', async () => {
 	const exports = Object.keys(umbrellaPackage.exports);
@@ -240,7 +239,7 @@ test('integration navigation covers every vendor helper, both embeds and Shopify
 });
 
 test('each registry integration category matches its overview group', () => {
-	const groupOf = new Map(
+	const groupOf = new Map<string, string>(
 		getIntegrationOverviewGroups().flatMap((group) =>
 			group.pages.map((route) => [route, group.title])
 		)
