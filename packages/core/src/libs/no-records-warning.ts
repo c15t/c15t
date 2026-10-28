@@ -8,7 +8,7 @@ const WARNED = Symbol.for('c15t.noRecordsWarned');
 
 /** What local mode logs once per page until `acknowledgeNoRecords` is set. */
 export const NO_RECORDS_WARNING =
-	'[c15t] Local mode keeps consent only in this browser. c15t keeps no server-side record of consent. Local mode also has no geolocation, so every visitor gets the same policy. Use it for development and tests. For production, see https://c15t.com/docs/concepts/modes\nSet acknowledgeNoRecords: true to hide this message.';
+	'[c15t] Local mode keeps consent only in this browser. c15t keeps no server-side record of consent. If you rely on consent under GDPR, Article 7(1) requires you to demonstrate it. Keep your own consent records or use a c15t backend. Local mode also has no geolocation, so every visitor gets the same policy. Use it for development and tests. For production, see https://c15t.com/docs/concepts/modes\nSet acknowledgeNoRecords: true to hide this message.';
 
 /**
  * Log {@link NO_RECORDS_WARNING} once per page. Stays silent on the server,

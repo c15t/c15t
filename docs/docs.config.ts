@@ -169,6 +169,7 @@ export default defineDocsConfig({
 								'/customization/tailwind',
 								'translations',
 								'compose',
+								'shadcn',
 								'headless',
 							],
 							slug: 'customization',
