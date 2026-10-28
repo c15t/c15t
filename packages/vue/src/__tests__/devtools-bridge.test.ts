@@ -114,6 +114,55 @@ describe('Nuxt DevTools tab bridge', () => {
 		expect(panelRoot(view)).not.toBeNull();
 	});
 
+	test('connects to the app from a DevTools popup window', async () => {
+		const kernel = createConsentKernel();
+		cleanups.push(() => kernel.dispose());
+		cleanups.push(registerDevToolsBridge(window, { kernel }));
+		const view = createTabFrame();
+		const popup = { opener: window };
+		Object.defineProperty(popup, 'parent', { value: popup });
+		Object.defineProperties(view, {
+			opener: { value: null },
+			parent: { value: popup },
+		});
+		runTabScript(view);
+		expect(panelRoot(view)).not.toBeNull();
+
+		panelRoot(view)
+			?.querySelector<HTMLButtonElement>('[data-tab="events"]')
+			?.click();
+		await kernel.commands.save({ measurement: true });
+		expect(panelRoot(view)?.textContent).toContain('choice:recorded');
+	});
+
+	test('finds the app past a cross-origin DevTools ancestor', () => {
+		const kernel = createConsentKernel();
+		cleanups.push(() => kernel.dispose());
+		cleanups.push(registerDevToolsBridge(window, { kernel }));
+		const view = createTabFrame();
+		const ancestor = {
+			get [DEVTOOLS_BRIDGE_KEY]() {
+				throw new DOMException('Cross-origin frame', 'SecurityError');
+			},
+			parent: window,
+		};
+		Object.defineProperty(view, 'parent', { value: ancestor });
+		runTabScript(view);
+		expect(panelRoot(view)).not.toBeNull();
+	});
+
+	test('stops at an opener cycle when no app is connected', () => {
+		const view = createTabFrame();
+		Object.defineProperties(view, {
+			opener: { value: view },
+			parent: { value: view },
+		});
+		expect(() => runTabScript(view)).not.toThrow();
+		expect(view.document.getElementById('c15t-devtools-waiting')?.hidden).toBe(
+			false
+		);
+	});
+
 	test('keeps retrying when the first mount throws', async () => {
 		const view = createTabFrame();
 		const mount = vi
