@@ -119,9 +119,11 @@ describe('Nuxt DevTools tab bridge', () => {
 		cleanups.push(() => kernel.dispose());
 		cleanups.push(registerDevToolsBridge(window, { kernel }));
 		const view = createTabFrame();
+		const popup = { opener: window };
+		Object.defineProperty(popup, 'parent', { value: popup });
 		Object.defineProperties(view, {
-			opener: { value: window },
-			parent: { value: view },
+			opener: { value: null },
+			parent: { value: popup },
 		});
 		runTabScript(view);
 		expect(panelRoot(view)).not.toBeNull();
