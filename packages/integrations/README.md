@@ -63,6 +63,8 @@ Find integrations by what each tool does. The [overview](https://c15t.com/docs/i
 
 - **Conversion pixels**: Meta Pixel, OpenAI Pixel, Pinterest Tag, TikTok Pixel, LinkedIn Insights, Microsoft UET (Microsoft Ads), X Pixel, Reddit Pixel, Snapchat Pixel
 - **Email and SMS**: ActiveCampaign site tracking, loaded after marketing consent ([guide](https://c15t.com/docs/integrations/activecampaign)); Attentive loads after marketing consent and requires a page reload on withdrawal; Customer.io loads after marketing consent by default ([guide](https://c15t.com/docs/integrations/customer-io)). Insider, loaded after marketing consent; Klaviyo loads only once marketing and measurement are both allowed; Marketo Munchkin and Salesforce Account Engagement load after marketing consent ([guide](https://c15t.com/docs/integrations/overview#ads-and-growth))
+- **Clearbit**: Loads after marketing consent ([guide](https://c15t.com/docs/integrations/clearbit))
+- **Oracle Eloqua**: Loads after marketing consent by default ([guide](https://c15t.com/docs/integrations/oracle-eloqua))
 - **HubSpot**: Loads after marketing consent ([guide](https://c15t.com/docs/integrations/hubspot))
 - **Default**: Pixel after measurement consent or standalone Forms SDK after functionality consent, with configurable categories and an opt-in always mode for the Pixel ([guide](https://c15t.com/docs/integrations/default-com))
 - **The Trade Desk**: Loads after marketing consent ([guide](https://c15t.com/docs/integrations/the-trade-desk))

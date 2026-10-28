@@ -39,7 +39,7 @@ export const scripts = [clearbit({ publishableKey: 'YOUR_PUBLISHABLE_KEY' })];
 
 `clearbit` uses the `marketing` category, not `measurement`. Clearbit
 identifies visitors and their companies for enrichment, so c15t treats it as
-marketing even though these docs list it with analytics. The `tags.js` script
+marketing. The `tags.js` script
 loads with `referrerpolicy="strict-origin-when-cross-origin"` only while
 marketing is allowed. On revocation the helper removes the script element and
 calls no Clearbit API.
