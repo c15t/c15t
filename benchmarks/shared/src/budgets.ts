@@ -640,9 +640,9 @@ export const noticeProjectionBudgets: MetricBudget[] = [
 	{
 		comparator: 'absolute-lte',
 		description:
-			'Full request cookie header for partial choice, notice and standing privacy directive measured 276 bytes including names and separators; keep the 320-byte aggregate ceiling.',
+			'Partial choice and notice with the compatible notice-subject companion measure 416 bytes including names and separators; 464 bytes preserves headroom for encoding growth.',
 		metric: 'c15tCookieBytes',
-		threshold: 320,
+		threshold: 464,
 	},
 	{
 		comparator: 'absolute-lte',
