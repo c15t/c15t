@@ -81,16 +81,22 @@ default export and add consent-gated scripts there using the
 [scripts guide](/docs/frameworks/next/scripts). Rebuild after changing
 policy rules, translations or vendors in Inth.
 
-In `app/layout.tsx`, import `ConsentManager` from
-`@/components/c15t/consent-manager`. Inside `<body>`, wrap `{children}` in
-`<ConsentManager>{children}</ConsentManager>`. Keep the layout and the
-generated manager as Server Components.
+In `app/layout.tsx`, import `ConsentManager` from your generated component.
+With the default components alias, its import path is
+`@/components/c15t/consent-manager`. If `aliases.components` in
+`components.json` differs, use your configured alias. Inside `<body>`, wrap
+`{children}` in `<ConsentManager>{children}</ConsentManager>`. Keep the
+layout and the generated manager as Server Components.
 
 The manager already renders `ConsentRoot`, the banner, the dialog and a
 floating button that reopens preferences after the banner closes. It passes
 `resolveConsent()` without awaiting it, so the page can stream while consent
 resolves. See [rendering and deployment](/docs/frameworks/next/rendering)
 for cached pages and other rendering options.
+
+Location-based policies need
+[trusted geography headers](/docs/frameworks/next/geography-headers).
+Without location data, c15t applies your unknown-location rule.
 
 ## Use an existing ConsentRoot
 
@@ -125,5 +131,7 @@ Run your app and open a fresh browser session under an opt-in policy.
 Check that the banner appears, saving a choice closes it, and the floating
 button reopens preferences. Reload and confirm the choice persists. In the
 Network panel, choices should post to your backend's `/subjects` endpoint.
-If you register scripts, also [verify they wait for
-consent](/docs/guides/verify-consent).
+Also [verify vendor requests and consent signals](/docs/guides/verify-consent),
+including loaders already in your app. The banner does not block scripts
+loaded outside c15t. Remove or migrate loaders that bypass your consent
+policy.
