@@ -136,6 +136,18 @@ before a choice.
 The YouTube and Google Maps guides include examples for every supported framework.
 Embeds do not require `@c15t/integrations`.
 
+## Read the integration catalog
+
+For programmatic discovery, import `builtInScriptIntegrations` and
+`BUILT_IN_INTEGRATION_KINDS` from `@c15t/integrations/registry`. Each built-in
+entry has an `integrationKind`, typed as `IntegrationKind`, for the groups
+above. `BUILT_IN_INTEGRATION_KINDS` supplies their labels and display order.
+
+The existing `integrationCategory`, `IntegrationCategory` and
+`BUILT_IN_INTEGRATION_CATEGORIES` keep their v3 values, so existing category
+filters still work. `consentCategory` identifies the default consent category
+or condition for each helper.
+
 ## Load each vendor once
 
 Remove the vendor's own snippet, tracking image, framework plugin or tag

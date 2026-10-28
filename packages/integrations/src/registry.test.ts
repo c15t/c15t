@@ -6,6 +6,7 @@ import { expectScriptMatchesIntegration } from './__tests__/helpers';
 import { helperParityCases } from './__tests__/integration-cases';
 import {
 	BUILT_IN_INTEGRATION_CATEGORIES,
+	BUILT_IN_INTEGRATION_KINDS,
 	builtInScriptIntegrations,
 	getBuiltInScriptIntegration,
 	getBuiltInScriptIntegrationBySubpath,
@@ -203,6 +204,44 @@ const expectUnique = function expectUnique(
 };
 
 describe('script integration registry', () => {
+	it('preserves v3 category labels and ordering', () => {
+		expect(BUILT_IN_INTEGRATION_CATEGORIES).toEqual([
+			{ key: 'analytics', label: 'Analytics' },
+			{ key: 'ads-and-pixels', label: 'Ads & Pixels' },
+			{ key: 'email-and-sms', label: 'Email & SMS' },
+			{ key: 'functional', label: 'Functional' },
+			{ key: 'tag-manager', label: 'Tag Managers' },
+		]);
+	});
+
+	it('preserves v3 category filters across the new tool kinds', () => {
+		const analytics = builtInScriptIntegrations
+			.filter((integration) => integration.integrationCategory === 'analytics')
+			.map((integration) => integration.packageSubpath);
+
+		expect(analytics).toEqual(
+			expect.arrayContaining([
+				'google-tag',
+				'posthog',
+				'microsoft-clarity',
+				'segment',
+			])
+		);
+		expect(
+			getBuiltInScriptIntegrationBySubpath('meta-pixel')?.integrationCategory
+		).toBe('ads-and-pixels');
+		expect(
+			getBuiltInScriptIntegrationBySubpath('klaviyo')?.integrationCategory
+		).toBe('email-and-sms');
+		expect(
+			getBuiltInScriptIntegrationBySubpath('intercom')?.integrationCategory
+		).toBe('functional');
+		expect(
+			getBuiltInScriptIntegrationBySubpath('google-tag-manager')
+				?.integrationCategory
+		).toBe('tag-manager');
+	});
+
 	it('keeps identity fields unique', () => {
 		expectUnique(
 			builtInScriptIntegrations.map((integration) => integration.key),
@@ -233,13 +272,15 @@ describe('script integration registry', () => {
 		}
 	});
 
-	it('uses declared integration and consent categories', () => {
+	it('uses declared integration kinds and consent categories', () => {
 		const integrationCategories = BUILT_IN_INTEGRATION_CATEGORIES.map(
 			(category) => category.key
 		);
+		const integrationKinds = BUILT_IN_INTEGRATION_KINDS.map((kind) => kind.key);
 
 		for (const integration of builtInScriptIntegrations) {
 			expect(integrationCategories).toContain(integration.integrationCategory);
+			expect(integrationKinds).toContain(integration.integrationKind);
 			for (const category of getConditionCategories(
 				integration.consentCategory
 			)) {

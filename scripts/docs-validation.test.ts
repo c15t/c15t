@@ -13,7 +13,7 @@ import docsConfig from '../docs/docs.config';
 import umbrellaPackage from '../packages/c15t/package.json';
 import scriptsPackage from '../packages/integrations/package.json';
 import {
-	BUILT_IN_INTEGRATION_CATEGORIES,
+	BUILT_IN_INTEGRATION_KINDS,
 	builtInScriptIntegrations,
 } from '../packages/integrations/src/registry';
 
@@ -238,23 +238,20 @@ test('integration navigation covers every vendor helper, both embeds and Shopify
 	);
 });
 
-test('each registry integration category matches its overview group', () => {
+test('each registry integration kind matches its overview group', () => {
 	const groupOf = new Map<string, string>(
 		getIntegrationOverviewGroups().flatMap((group) =>
 			group.pages.map((route) => [route, group.title])
 		)
 	);
 	const labels = new Map(
-		BUILT_IN_INTEGRATION_CATEGORIES.map((category) => [
-			category.key,
-			category.label,
-		])
+		BUILT_IN_INTEGRATION_KINDS.map((kind) => [kind.key, kind.label])
 	);
 	for (const integration of builtInScriptIntegrations) {
 		expect(
 			groupOf.get(`/docs/integrations/${integration.docsSlug}`),
 			integration.docsSlug
-		).toBe(labels.get(integration.integrationCategory));
+		).toBe(labels.get(integration.integrationKind));
 	}
 });
 

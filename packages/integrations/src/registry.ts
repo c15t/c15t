@@ -1,11 +1,24 @@
 /**
+ * High-level product area for a built-in script integration.
+ *
+ * Retained for v3 category filters. Use `IntegrationKind` for docs navigation
+ * and CLI ordering. Consent requirements are separate from both.
+ */
+export type IntegrationCategory =
+	| 'analytics'
+	| 'ads-and-pixels'
+	| 'email-and-sms'
+	| 'functional'
+	| 'tag-manager';
+
+/**
  * The kind of tool a built-in script integration is, by what it does.
  *
  * Used for discovery surfaces such as docs navigation and CLI grouping, in the
  * same groups as the integrations overview. This is intentionally separate
  * from a manifest consent category.
  */
-export type IntegrationCategory =
+export type IntegrationKind =
 	| 'web-analytics'
 	| 'product-analytics'
 	| 'replay-and-monitoring'
@@ -56,11 +69,26 @@ export interface IntegrationCategoryEntry {
 }
 
 /**
+ * Display metadata for an integration kind.
+ *
+ * @example
+ * ```ts
+ * const label = BUILT_IN_INTEGRATION_KINDS[0]?.label;
+ * ```
+ */
+export interface IntegrationKindEntry {
+	/** Kind key used by built-in registry entries. */
+	key: IntegrationKind;
+	/** Human-readable label for discovery UIs. */
+	label: string;
+}
+
+/**
  * Identity and discovery metadata for a built-in script integration.
  *
- * All fields are required except `hint`, which is optional short help text for
- * picker UIs. Do not add runtime behavior, disclosure metadata, or vendor
- * implementation details here.
+ * The optional `hint` supplies picker help text. `integrationKind` is optional
+ * for existing v3 consumers and present on every built-in entry. Do not add
+ * runtime behavior, disclosure metadata, or vendor implementation details here.
  */
 export interface IntegrationRegistryEntry {
 	/** Stable key used by tests and generated metadata. */
@@ -77,6 +105,8 @@ export interface IntegrationRegistryEntry {
 	packageSubpath: string;
 	/** Product area used for grouping and discovery. */
 	integrationCategory: IntegrationCategory;
+	/** Tool kind for docs and CLI discovery; present on every built-in entry. */
+	integrationKind?: IntegrationKind;
 	/** Default consent category or condition expected from the generated script. */
 	consentCategory: IntegrationConsentCondition;
 }
@@ -88,6 +118,34 @@ export interface IntegrationRegistryEntry {
  * re-declaring category names.
  */
 export const BUILT_IN_INTEGRATION_CATEGORIES = [
+	{
+		key: 'analytics',
+		label: 'Analytics',
+	},
+	{
+		key: 'ads-and-pixels',
+		label: 'Ads & Pixels',
+	},
+	{
+		key: 'email-and-sms',
+		label: 'Email & SMS',
+	},
+	{
+		key: 'functional',
+		label: 'Functional',
+	},
+	{
+		key: 'tag-manager',
+		label: 'Tag Managers',
+	},
+] as const satisfies readonly IntegrationCategoryEntry[];
+
+/**
+ * Canonical display list for built-in integration kinds.
+ *
+ * Use this list for the labels and display order in docs and CLI discovery.
+ */
+export const BUILT_IN_INTEGRATION_KINDS = [
 	{
 		key: 'web-analytics',
 		label: 'Web analytics',
@@ -116,7 +174,7 @@ export const BUILT_IN_INTEGRATION_CATEGORIES = [
 		key: 'chat-and-embeds',
 		label: 'Chat and embeds',
 	},
-] as const satisfies readonly IntegrationCategoryEntry[];
+] as const satisfies readonly IntegrationKindEntry[];
 
 /**
  * Canonical identity catalog for built-in `@c15t/integrations` integrations.
@@ -129,7 +187,8 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'marketing',
 		docsSlug: 'oracle-eloqua',
 		hint: 'Oracle Eloqua consent-gated loader',
-		integrationCategory: 'ads-and-growth',
+		integrationCategory: 'analytics',
+		integrationKind: 'ads-and-growth',
 		key: 'eloquaTracking',
 		label: 'Oracle Eloqua',
 		packageSubpath: 'oracle-eloqua',
@@ -139,7 +198,8 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'marketing',
 		docsSlug: 'activecampaign',
 		hint: 'Site visits for ActiveCampaign contact automation',
-		integrationCategory: 'ads-and-growth',
+		integrationCategory: 'email-and-sms',
+		integrationKind: 'ads-and-growth',
 		key: 'activeCampaignTracking',
 		label: 'ActiveCampaign',
 		packageSubpath: 'activecampaign',
@@ -149,7 +209,8 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'measurement',
 		docsSlug: 'gainsight-px',
 		hint: 'Product analytics and in-app engagements',
-		integrationCategory: 'product-analytics',
+		integrationCategory: 'analytics',
+		integrationKind: 'product-analytics',
 		key: 'gainsightPx',
 		label: 'Gainsight PX',
 		packageSubpath: 'gainsight-px',
@@ -159,7 +220,8 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'measurement',
 		docsSlug: 'fullstory',
 		hint: 'Session replay and behavioral analytics',
-		integrationCategory: 'replay-and-monitoring',
+		integrationCategory: 'analytics',
+		integrationKind: 'replay-and-monitoring',
 		key: 'fullStory',
 		label: 'FullStory',
 		packageSubpath: 'fullstory',
@@ -169,7 +231,8 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'functionality',
 		docsSlug: 'ada',
 		hint: 'Customer support through Ada Messaging',
-		integrationCategory: 'chat-and-embeds',
+		integrationCategory: 'functional',
+		integrationKind: 'chat-and-embeds',
 		key: 'ada',
 		label: 'Ada',
 		packageSubpath: 'ada',
@@ -179,7 +242,8 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'functionality',
 		docsSlug: 'gorgias',
 		hint: 'Customer support through Gorgias Chat',
-		integrationCategory: 'chat-and-embeds',
+		integrationCategory: 'functional',
+		integrationKind: 'chat-and-embeds',
 		key: 'gorgiasChat',
 		label: 'Gorgias Chat',
 		packageSubpath: 'gorgias',
@@ -189,7 +253,8 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'functionality',
 		docsSlug: 'zendesk',
 		hint: 'Customer support through Zendesk Messaging',
-		integrationCategory: 'chat-and-embeds',
+		integrationCategory: 'functional',
+		integrationKind: 'chat-and-embeds',
 		key: 'zendeskWidget',
 		label: 'Zendesk Messaging',
 		packageSubpath: 'zendesk',
@@ -199,7 +264,8 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'measurement',
 		docsSlug: 'pendo',
 		hint: 'Product analytics and in-app guides',
-		integrationCategory: 'product-analytics',
+		integrationCategory: 'analytics',
+		integrationKind: 'product-analytics',
 		key: 'pendo',
 		label: 'Pendo',
 		packageSubpath: 'pendo',
@@ -209,7 +275,8 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'measurement',
 		docsSlug: 'lucky-orange',
 		hint: 'Session recordings, heatmaps, chat and surveys',
-		integrationCategory: 'replay-and-monitoring',
+		integrationCategory: 'analytics',
+		integrationKind: 'replay-and-monitoring',
 		key: 'luckyOrange',
 		label: 'Lucky Orange',
 		packageSubpath: 'lucky-orange',
@@ -219,7 +286,8 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'experience',
 		docsSlug: 'optimizely',
 		hint: 'Website experiments and personalization',
-		integrationCategory: 'experimentation-and-personalization',
+		integrationCategory: 'functional',
+		integrationKind: 'experimentation-and-personalization',
 		key: 'optimizelyWeb',
 		label: 'Optimizely Web Experimentation',
 		packageSubpath: 'optimizely',
@@ -229,7 +297,8 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'experience',
 		docsSlug: 'dynamic-yield',
 		hint: 'On-site personalization and recommendations',
-		integrationCategory: 'experimentation-and-personalization',
+		integrationCategory: 'functional',
+		integrationKind: 'experimentation-and-personalization',
 		key: 'dynamicYield',
 		label: 'Dynamic Yield',
 		packageSubpath: 'dynamic-yield',
@@ -239,7 +308,8 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'experience',
 		docsSlug: 'adobe-target',
 		hint: 'Website experiments and personalized offers',
-		integrationCategory: 'experimentation-and-personalization',
+		integrationCategory: 'functional',
+		integrationKind: 'experimentation-and-personalization',
 		key: 'adobeTarget',
 		label: 'Adobe Target',
 		packageSubpath: 'adobe-target',
@@ -249,7 +319,8 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'experience',
 		docsSlug: 'appcues',
 		hint: 'Onboarding flows, checklists and announcements',
-		integrationCategory: 'experimentation-and-personalization',
+		integrationCategory: 'functional',
+		integrationKind: 'experimentation-and-personalization',
 		key: 'appcues',
 		label: 'Appcues',
 		packageSubpath: 'appcues',
@@ -259,7 +330,8 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'marketing',
 		docsSlug: 'wisepops',
 		hint: 'Onsite popups, campaigns and signup forms',
-		integrationCategory: 'experimentation-and-personalization',
+		integrationCategory: 'functional',
+		integrationKind: 'experimentation-and-personalization',
 		key: 'wisepops',
 		label: 'Wisepops',
 		packageSubpath: 'wisepops',
@@ -269,7 +341,8 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'marketing',
 		docsSlug: 'marketo',
 		hint: 'Lead scoring and marketing analytics',
-		integrationCategory: 'ads-and-growth',
+		integrationCategory: 'email-and-sms',
+		integrationKind: 'ads-and-growth',
 		key: 'marketoMunchkin',
 		label: 'Marketo Munchkin',
 		packageSubpath: 'marketo',
@@ -279,7 +352,8 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'marketing',
 		docsSlug: 'salesforce-pardot',
 		hint: 'B2B visitor tracking with the Account Engagement consent API',
-		integrationCategory: 'ads-and-growth',
+		integrationCategory: 'email-and-sms',
+		integrationKind: 'ads-and-growth',
 		key: 'pardotTracking',
 		label: 'Salesforce Account Engagement',
 		packageSubpath: 'salesforce-pardot',
@@ -289,7 +363,8 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'marketing',
 		docsSlug: 'attentive',
 		hint: 'SMS and email signup units with on-site event tracking',
-		integrationCategory: 'ads-and-growth',
+		integrationCategory: 'email-and-sms',
+		integrationKind: 'ads-and-growth',
 		key: 'attentiveTag',
 		label: 'Attentive',
 		packageSubpath: 'attentive',
@@ -299,7 +374,8 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'marketing',
 		docsSlug: 'customer-io',
 		hint: 'Website events through Customer.io Data Pipelines',
-		integrationCategory: 'ads-and-growth',
+		integrationCategory: 'email-and-sms',
+		integrationKind: 'ads-and-growth',
 		key: 'customerIo',
 		label: 'Customer.io',
 		packageSubpath: 'customer-io',
@@ -309,7 +385,8 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'marketing',
 		docsSlug: 'insider',
 		hint: 'Personalized campaigns and customer messaging',
-		integrationCategory: 'ads-and-growth',
+		integrationCategory: 'email-and-sms',
+		integrationKind: 'ads-and-growth',
 		key: 'insiderTag',
 		label: 'Insider',
 		packageSubpath: 'insider',
@@ -319,7 +396,8 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'necessary',
 		docsSlug: 'cloudflare-zaraz',
 		hint: 'Consent bridge for tools managed by Zaraz',
-		integrationCategory: 'data-and-tags',
+		integrationCategory: 'tag-manager',
+		integrationKind: 'data-and-tags',
 		key: 'cloudflareZaraz',
 		label: 'Cloudflare Zaraz',
 		packageSubpath: 'cloudflare-zaraz',
@@ -329,7 +407,8 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'necessary',
 		docsSlug: 'google-tag-manager',
 		hint: 'GTM container script',
-		integrationCategory: 'data-and-tags',
+		integrationCategory: 'tag-manager',
+		integrationKind: 'data-and-tags',
 		key: 'googleTagManager',
 		label: 'Google Tag Manager',
 		packageSubpath: 'google-tag-manager',
@@ -339,7 +418,8 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'measurement',
 		docsSlug: 'google-tag',
 		hint: 'Google Analytics 4',
-		integrationCategory: 'web-analytics',
+		integrationCategory: 'analytics',
+		integrationKind: 'web-analytics',
 		key: 'gtag',
 		label: 'Google Tag (gtag.js)',
 		packageSubpath: 'google-tag',
@@ -349,7 +429,8 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'measurement',
 		docsSlug: 'ahrefs-analytics',
 		hint: 'Cookieless web analytics from Ahrefs',
-		integrationCategory: 'web-analytics',
+		integrationCategory: 'analytics',
+		integrationKind: 'web-analytics',
 		key: 'ahrefsAnalytics',
 		label: 'Ahrefs Analytics',
 		packageSubpath: 'ahrefs-analytics',
@@ -359,7 +440,8 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'measurement',
 		docsSlug: 'adobe-analytics',
 		hint: 'Adobe Experience Platform tags',
-		integrationCategory: 'web-analytics',
+		integrationCategory: 'analytics',
+		integrationKind: 'web-analytics',
 		key: 'adobeAnalytics',
 		label: 'Adobe Analytics',
 		packageSubpath: 'adobe-analytics',
@@ -369,7 +451,8 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'measurement',
 		docsSlug: 'amplitude',
 		hint: 'Product analytics',
-		integrationCategory: 'product-analytics',
+		integrationCategory: 'analytics',
+		integrationKind: 'product-analytics',
 		key: 'amplitude',
 		label: 'Amplitude',
 		packageSubpath: 'amplitude',
@@ -379,7 +462,8 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'measurement',
 		docsSlug: 'cloudflare-web-analytics',
 		hint: 'Cookieless analytics from Cloudflare',
-		integrationCategory: 'web-analytics',
+		integrationCategory: 'analytics',
+		integrationKind: 'web-analytics',
 		key: 'cloudflareWebAnalytics',
 		label: 'Cloudflare Web Analytics',
 		packageSubpath: 'cloudflare-web-analytics',
@@ -389,7 +473,8 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'marketing',
 		docsSlug: 'clearbit',
 		hint: 'Visitor and company enrichment',
-		integrationCategory: 'ads-and-growth',
+		integrationCategory: 'analytics',
+		integrationKind: 'ads-and-growth',
 		key: 'clearbit',
 		label: 'Clearbit',
 		packageSubpath: 'clearbit',
@@ -399,7 +484,8 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'measurement',
 		docsSlug: 'microsoft-clarity',
 		hint: 'Session replay and heatmaps',
-		integrationCategory: 'replay-and-monitoring',
+		integrationCategory: 'analytics',
+		integrationKind: 'replay-and-monitoring',
 		key: 'microsoft-clarity',
 		label: 'Microsoft Clarity',
 		packageSubpath: 'microsoft-clarity',
@@ -409,7 +495,8 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'measurement',
 		docsSlug: 'databuddy',
 		hint: 'Data collection',
-		integrationCategory: 'web-analytics',
+		integrationCategory: 'analytics',
+		integrationKind: 'web-analytics',
 		key: 'databuddy',
 		label: 'Databuddy',
 		packageSubpath: 'databuddy',
@@ -419,7 +506,8 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'measurement',
 		docsSlug: 'fathom-analytics',
 		hint: 'Privacy-friendly cookieless analytics',
-		integrationCategory: 'web-analytics',
+		integrationCategory: 'analytics',
+		integrationKind: 'web-analytics',
 		key: 'fathomAnalytics',
 		label: 'Fathom Analytics',
 		packageSubpath: 'fathom-analytics',
@@ -429,7 +517,8 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'measurement',
 		docsSlug: 'heap',
 		hint: 'Autocapture product analytics',
-		integrationCategory: 'product-analytics',
+		integrationCategory: 'analytics',
+		integrationKind: 'product-analytics',
 		key: 'heap',
 		label: 'Heap',
 		packageSubpath: 'heap',
@@ -439,7 +528,8 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'measurement',
 		docsSlug: 'mixpanel-analytics',
 		hint: 'Product analytics and funnels',
-		integrationCategory: 'product-analytics',
+		integrationCategory: 'analytics',
+		integrationKind: 'product-analytics',
 		key: 'mixpanelAnalytics',
 		label: 'Mixpanel Analytics',
 		packageSubpath: 'mixpanel-analytics',
@@ -449,7 +539,8 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'measurement',
 		docsSlug: 'one-dollar-stats',
 		hint: 'Website analytics with no API key',
-		integrationCategory: 'web-analytics',
+		integrationCategory: 'analytics',
+		integrationKind: 'web-analytics',
 		key: 'oneDollarStats',
 		label: 'OneDollarStats',
 		packageSubpath: 'one-dollar-stats',
@@ -459,7 +550,8 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'measurement',
 		docsSlug: 'hotjar',
 		hint: 'Heatmaps and session recordings',
-		integrationCategory: 'replay-and-monitoring',
+		integrationCategory: 'analytics',
+		integrationKind: 'replay-and-monitoring',
 		key: 'hotjar',
 		label: 'Hotjar',
 		packageSubpath: 'hotjar',
@@ -469,7 +561,8 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'measurement',
 		docsSlug: 'hightouch',
 		hint: 'Customer data platform events',
-		integrationCategory: 'data-and-tags',
+		integrationCategory: 'analytics',
+		integrationKind: 'data-and-tags',
 		key: 'hightouch',
 		label: 'Hightouch',
 		packageSubpath: 'hightouch',
@@ -479,7 +572,8 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'measurement',
 		docsSlug: 'rudderstack',
 		hint: 'Customer data platform events',
-		integrationCategory: 'data-and-tags',
+		integrationCategory: 'analytics',
+		integrationKind: 'data-and-tags',
 		key: 'rudderstack',
 		label: 'RudderStack',
 		packageSubpath: 'rudderstack',
@@ -489,7 +583,8 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'measurement',
 		docsSlug: 'logrocket',
 		hint: 'Session replay and monitoring',
-		integrationCategory: 'replay-and-monitoring',
+		integrationCategory: 'analytics',
+		integrationKind: 'replay-and-monitoring',
 		key: 'logRocket',
 		label: 'LogRocket',
 		packageSubpath: 'logrocket',
@@ -499,7 +594,8 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'measurement',
 		docsSlug: 'matomo-analytics',
 		hint: 'Self-hosted privacy analytics',
-		integrationCategory: 'web-analytics',
+		integrationCategory: 'analytics',
+		integrationKind: 'web-analytics',
 		key: 'matomoAnalytics',
 		label: 'Matomo Analytics',
 		packageSubpath: 'matomo-analytics',
@@ -509,7 +605,8 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'measurement',
 		docsSlug: 'posthog',
 		hint: 'Product analytics',
-		integrationCategory: 'product-analytics',
+		integrationCategory: 'analytics',
+		integrationKind: 'product-analytics',
 		key: 'posthog',
 		label: 'PostHog',
 		packageSubpath: 'posthog',
@@ -519,7 +616,8 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'measurement',
 		docsSlug: 'promptwatch',
 		hint: 'AI traffic analytics',
-		integrationCategory: 'web-analytics',
+		integrationCategory: 'analytics',
+		integrationKind: 'web-analytics',
 		key: 'promptwatch',
 		label: 'Promptwatch',
 		packageSubpath: 'promptwatch',
@@ -529,7 +627,8 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'measurement',
 		docsSlug: 'pirsch',
 		hint: 'Privacy-friendly cookieless analytics',
-		integrationCategory: 'web-analytics',
+		integrationCategory: 'analytics',
+		integrationKind: 'web-analytics',
 		key: 'pirsch',
 		label: 'Pirsch',
 		packageSubpath: 'pirsch',
@@ -539,7 +638,8 @@ export const builtInScriptIntegrations = [
 		consentCategory: { or: ['necessary', 'measurement'] },
 		docsSlug: 'sentry',
 		hint: 'Error monitoring, with Session Replay and user data after consent',
-		integrationCategory: 'replay-and-monitoring',
+		integrationCategory: 'analytics',
+		integrationKind: 'replay-and-monitoring',
 		key: 'sentry',
 		label: 'Sentry',
 		packageSubpath: 'sentry',
@@ -549,7 +649,8 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'measurement',
 		docsSlug: 'segment',
 		hint: 'Customer data platform',
-		integrationCategory: 'data-and-tags',
+		integrationCategory: 'analytics',
+		integrationKind: 'data-and-tags',
 		key: 'segment',
 		label: 'Segment',
 		packageSubpath: 'segment',
@@ -559,7 +660,8 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'measurement',
 		docsSlug: 'rybbit-analytics',
 		hint: 'Privacy-friendly web analytics',
-		integrationCategory: 'web-analytics',
+		integrationCategory: 'analytics',
+		integrationKind: 'web-analytics',
 		key: 'rybbitAnalytics',
 		label: 'Rybbit Analytics',
 		packageSubpath: 'rybbit-analytics',
@@ -569,7 +671,8 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'measurement',
 		docsSlug: 'plausible-analytics',
 		hint: 'Privacy-friendly cookieless analytics',
-		integrationCategory: 'web-analytics',
+		integrationCategory: 'analytics',
+		integrationKind: 'web-analytics',
 		key: 'plausibleAnalytics',
 		label: 'Plausible Analytics',
 		packageSubpath: 'plausible-analytics',
@@ -579,7 +682,8 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'measurement',
 		docsSlug: 'statable-analytics',
 		hint: 'Cookieless web analytics',
-		integrationCategory: 'web-analytics',
+		integrationCategory: 'analytics',
+		integrationKind: 'web-analytics',
 		key: 'statableAnalytics',
 		label: 'Statable',
 		packageSubpath: 'statable-analytics',
@@ -589,7 +693,8 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'measurement',
 		docsSlug: 'umami-analytics',
 		hint: 'Open-source cookieless analytics',
-		integrationCategory: 'web-analytics',
+		integrationCategory: 'analytics',
+		integrationKind: 'web-analytics',
 		key: 'umamiAnalytics',
 		label: 'Umami Analytics',
 		packageSubpath: 'umami-analytics',
@@ -599,7 +704,8 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'measurement',
 		docsSlug: 'vercel-analytics',
 		hint: 'Vercel web analytics',
-		integrationCategory: 'web-analytics',
+		integrationCategory: 'analytics',
+		integrationKind: 'web-analytics',
 		key: 'vercelAnalytics',
 		label: 'Vercel Analytics',
 		packageSubpath: 'vercel-analytics',
@@ -609,7 +715,8 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'measurement',
 		docsSlug: 'vercel-speed-insights',
 		hint: 'Vercel Speed Insights (Web Vitals)',
-		integrationCategory: 'replay-and-monitoring',
+		integrationCategory: 'analytics',
+		integrationKind: 'replay-and-monitoring',
 		key: 'vercelSpeedInsights',
 		label: 'Vercel Speed Insights',
 		packageSubpath: 'vercel-speed-insights',
@@ -619,7 +726,8 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'functionality',
 		docsSlug: 'crisp',
 		hint: 'Live chat widget',
-		integrationCategory: 'chat-and-embeds',
+		integrationCategory: 'functional',
+		integrationKind: 'chat-and-embeds',
 		key: 'crisp',
 		label: 'Crisp',
 		packageSubpath: 'crisp',
@@ -629,7 +737,8 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'functionality',
 		docsSlug: 'front-chat',
 		hint: 'Live chat widget',
-		integrationCategory: 'chat-and-embeds',
+		integrationCategory: 'functional',
+		integrationKind: 'chat-and-embeds',
 		key: 'frontChat',
 		label: 'Front Chat',
 		packageSubpath: 'front-chat',
@@ -639,7 +748,8 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'functionality',
 		docsSlug: 'intercom',
 		hint: 'Messenger and live chat widget',
-		integrationCategory: 'chat-and-embeds',
+		integrationCategory: 'functional',
+		integrationKind: 'chat-and-embeds',
 		key: 'intercom',
 		label: 'Intercom',
 		packageSubpath: 'intercom',
@@ -649,7 +759,8 @@ export const builtInScriptIntegrations = [
 		consentCategory: { and: ['marketing', 'measurement'] },
 		docsSlug: 'klaviyo',
 		hint: 'Email and SMS signup forms and onsite tracking',
-		integrationCategory: 'ads-and-growth',
+		integrationCategory: 'email-and-sms',
+		integrationKind: 'ads-and-growth',
 		key: 'klaviyo',
 		label: 'Klaviyo',
 		packageSubpath: 'klaviyo',
@@ -659,7 +770,8 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'marketing',
 		docsSlug: 'meta-pixel',
 		hint: 'Facebook/Instagram tracking',
-		integrationCategory: 'ads-and-growth',
+		integrationCategory: 'ads-and-pixels',
+		integrationKind: 'ads-and-growth',
 		key: 'metaPixel',
 		label: 'Meta Pixel',
 		packageSubpath: 'meta-pixel',
@@ -669,7 +781,8 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'marketing',
 		docsSlug: 'openai-pixel',
 		hint: 'ChatGPT Ads conversion measurement',
-		integrationCategory: 'ads-and-growth',
+		integrationCategory: 'ads-and-pixels',
+		integrationKind: 'ads-and-growth',
 		key: 'openaiPixel',
 		label: 'OpenAI Pixel (ChatGPT Ads)',
 		packageSubpath: 'openai-pixel',
@@ -679,7 +792,8 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'marketing',
 		docsSlug: 'pinterest-tag',
 		hint: 'Pinterest ads tracking',
-		integrationCategory: 'ads-and-growth',
+		integrationCategory: 'ads-and-pixels',
+		integrationKind: 'ads-and-growth',
 		key: 'pinterestTag',
 		label: 'Pinterest Tag',
 		packageSubpath: 'pinterest-tag',
@@ -689,7 +803,8 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'marketing',
 		docsSlug: 'reddit-pixel',
 		hint: 'Reddit ads tracking',
-		integrationCategory: 'ads-and-growth',
+		integrationCategory: 'ads-and-pixels',
+		integrationKind: 'ads-and-growth',
 		key: 'redditPixel',
 		label: 'Reddit Pixel',
 		packageSubpath: 'reddit-pixel',
@@ -699,7 +814,8 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'marketing',
 		docsSlug: 'tiktok-pixel',
 		hint: 'TikTok ads tracking',
-		integrationCategory: 'ads-and-growth',
+		integrationCategory: 'ads-and-pixels',
+		integrationKind: 'ads-and-growth',
 		key: 'tiktokPixel',
 		label: 'TikTok Pixel',
 		packageSubpath: 'tiktok-pixel',
@@ -709,7 +825,8 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'marketing',
 		docsSlug: 'linkedin-insights',
 		hint: 'LinkedIn conversion tracking',
-		integrationCategory: 'ads-and-growth',
+		integrationCategory: 'ads-and-pixels',
+		integrationKind: 'ads-and-growth',
 		key: 'linkedinInsights',
 		label: 'LinkedIn Insight Tag',
 		packageSubpath: 'linkedin-insights',
@@ -719,7 +836,8 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'marketing',
 		docsSlug: 'microsoft-uet',
 		hint: 'Bing Ads tracking',
-		integrationCategory: 'ads-and-growth',
+		integrationCategory: 'ads-and-pixels',
+		integrationKind: 'ads-and-growth',
 		key: 'microsoftUet',
 		label: 'Microsoft UET',
 		packageSubpath: 'microsoft-uet',
@@ -729,7 +847,8 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'marketing',
 		docsSlug: 'snapchat-pixel',
 		hint: 'Snapchat ads tracking',
-		integrationCategory: 'ads-and-growth',
+		integrationCategory: 'ads-and-pixels',
+		integrationKind: 'ads-and-growth',
 		key: 'snapchatPixel',
 		label: 'Snapchat Pixel',
 		packageSubpath: 'snapchat-pixel',
@@ -739,7 +858,8 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'marketing',
 		docsSlug: 'x-pixel',
 		hint: 'X/Twitter conversion tracking',
-		integrationCategory: 'ads-and-growth',
+		integrationCategory: 'ads-and-pixels',
+		integrationKind: 'ads-and-growth',
 		key: 'xPixel',
 		label: 'X (Twitter) Pixel',
 		packageSubpath: 'x-pixel',
@@ -749,7 +869,8 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'measurement',
 		docsSlug: 'default-com',
 		hint: 'Form capture, scheduling and visitor identification',
-		integrationCategory: 'ads-and-growth',
+		integrationCategory: 'analytics',
+		integrationKind: 'ads-and-growth',
 		key: 'defaultComPixel',
 		label: 'Default',
 		packageSubpath: 'default-com',
@@ -759,7 +880,8 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'marketing',
 		docsSlug: 'amazon-ads',
 		hint: 'Amazon conversion tracking and advertising audiences',
-		integrationCategory: 'ads-and-growth',
+		integrationCategory: 'ads-and-pixels',
+		integrationKind: 'ads-and-growth',
 		key: 'amazonAdsTag',
 		label: 'Amazon Ads',
 		packageSubpath: 'amazon-ads',
@@ -769,7 +891,8 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'marketing',
 		docsSlug: 'hubspot',
 		hint: 'CRM tracking with consent signals and optional chat',
-		integrationCategory: 'ads-and-growth',
+		integrationCategory: 'analytics',
+		integrationKind: 'ads-and-growth',
 		key: 'hubspot',
 		label: 'HubSpot',
 		packageSubpath: 'hubspot',
@@ -779,7 +902,8 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'marketing',
 		docsSlug: 'the-trade-desk',
 		hint: 'Universal Pixel conversions and advertising audiences',
-		integrationCategory: 'ads-and-growth',
+		integrationCategory: 'ads-and-pixels',
+		integrationKind: 'ads-and-growth',
 		key: 'theTradeDeskPixel',
 		label: 'The Trade Desk',
 		packageSubpath: 'the-trade-desk',
@@ -789,7 +913,8 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'marketing',
 		docsSlug: 'liveintent',
 		hint: 'LiveConnect identity resolution and conversion events',
-		integrationCategory: 'ads-and-growth',
+		integrationCategory: 'ads-and-pixels',
+		integrationKind: 'ads-and-growth',
 		key: 'liveIntentTag',
 		label: 'LiveIntent',
 		packageSubpath: 'liveintent',
@@ -799,7 +924,8 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'marketing',
 		docsSlug: 'adroll',
 		hint: 'Retargeting audiences and conversion tracking',
-		integrationCategory: 'ads-and-growth',
+		integrationCategory: 'ads-and-pixels',
+		integrationKind: 'ads-and-growth',
 		key: 'adrollPixel',
 		label: 'AdRoll',
 		packageSubpath: 'adroll',
@@ -809,7 +935,8 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'marketing',
 		docsSlug: 'vector',
 		hint: 'Visitor identification for advertising audiences',
-		integrationCategory: 'ads-and-growth',
+		integrationCategory: 'ads-and-pixels',
+		integrationKind: 'ads-and-growth',
 		key: 'vector',
 		label: 'Vector',
 		packageSubpath: 'vector',
@@ -819,7 +946,8 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'marketing',
 		docsSlug: 'rb2b',
 		hint: 'Website visitor identification for sales outreach',
-		integrationCategory: 'ads-and-growth',
+		integrationCategory: 'analytics',
+		integrationKind: 'ads-and-growth',
 		key: 'rb2b',
 		label: 'RB2B',
 		packageSubpath: 'rb2b',
@@ -829,7 +957,8 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'marketing',
 		docsSlug: 'clay',
 		hint: 'Website visitor company identification',
-		integrationCategory: 'ads-and-growth',
+		integrationCategory: 'analytics',
+		integrationKind: 'ads-and-growth',
 		key: 'clay',
 		label: 'Clay',
 		packageSubpath: 'clay',
@@ -837,11 +966,20 @@ export const builtInScriptIntegrations = [
 	},
 ] as const satisfies readonly IntegrationRegistryEntry[];
 
+type WithOptionalIntegrationKind<Integration> = Integration extends {
+	integrationKind: infer Kind;
+}
+	? Omit<Integration, 'integrationKind'> & { readonly integrationKind?: Kind }
+	: never;
+
 /**
  * Concrete registry entry type inferred from `builtInScriptIntegrations`.
+ *
+ * The added kind is optional so existing v3 entry objects remain assignable.
  */
-export type BuiltInScriptIntegration =
-	(typeof builtInScriptIntegrations)[number];
+export type BuiltInScriptIntegration = WithOptionalIntegrationKind<
+	(typeof builtInScriptIntegrations)[number]
+>;
 
 /**
  * Union of stable keys for built-in integrations.
