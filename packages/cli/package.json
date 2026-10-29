@@ -44,9 +44,6 @@
 	"files": [
 		"dist",
 		"dist-types",
-		"AGENTS.md",
-		"SKILL.md",
-		"docs",
 		"src/generate/**/*.ts",
 		"src/frontend/**/*.ts"
 	],
@@ -97,14 +94,13 @@
 	},
 	"scripts": {
 		"build": "rslib build && bun ../../scripts/normalize-dist-types.mjs",
-		"build:docs": "bun ../../scripts/generate-package-docs.ts @c15t/cli",
 		"check-types": "bun prebuild && tsc --noEmit",
 		"dev": "sh -c 'bun prebuild && rslib build --no-dts --no-clean && rslib build --watch --no-dts --no-clean'",
 		"fmt": "bun oxfmt .",
 		"knip": "knip",
 		"lint": "bun oxlint ./src",
 		"prebuild": "bun scripts/write-version.ts",
-		"prepack": "bun prebuild && bun run build:docs",
+		"prepack": "bun prebuild",
 		"pretest": "bun prebuild",
 		"start": "node ./dist/bin.mjs",
 		"test": "vitest run",

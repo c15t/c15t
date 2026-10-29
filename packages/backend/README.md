@@ -92,12 +92,6 @@ Self-host when you need to run the service and its database yourself. You then o
 
 [Inth](https://inth.com) runs the same backend for you, with a dashboard, audit history, and a managed IAB CMP ID. Your frontend code is the same either way.
 
-## Docs for AI Agents
-
-This package ships its documentation as Markdown, matched to the installed version. After you install it, point your coding agent at `node_modules/@c15t/backend/AGENTS.md`. It indexes every guide in `node_modules/@c15t/backend/docs/`.
-
-On the web, every page of the [c15t docs](https://c15t.com/docs) has a Markdown version, and [llms.txt](https://c15t.com/docs/llms.txt) lists them all. Install the c15t agent skills with `npx skills add c15t/skills`.
-
 ## Support
 
 - Join our [Discord community](https://c15t.link/discord)
